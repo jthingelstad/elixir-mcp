@@ -2,7 +2,11 @@ import { checkRateLimit } from "@elixir-mcp/auth";
 import { featuredDeck, buildFriendsWeek } from "@elixir-mcp/tools/friends-week";
 import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
-import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
+import {
+  buildTimeline,
+  shownAt,
+  subjectsFor,
+} from "@elixir-mcp/tools/activity/entries";
 import { gameWeekStartMs } from "@elixir-mcp/record/form";
 import { lastGameWeek } from "@elixir-mcp/record/game-week";
 
@@ -283,7 +287,7 @@ async function readLatest(db, account) {
   return {
     items: (built.timeline ?? []).slice(0, LATEST).map((it) => ({
       id: it.id ?? null,
-      at: it.at ?? null,
+      at: shownAt(it) || null,
       text: String(it.text ?? ""),
     })),
   };
@@ -297,6 +301,18 @@ async function rate(db, account) {
   });
 }
 
+/** A moment's sentence in this reader's own word for the person: the nickname
+ *  their card is titled with, where the sentence opens on the in-game name.
+ *  Only ever this response, for the account that set it: the sentence the
+ *  timeline, the mail and every other reader get is untouched. */
+export function inOwnWords(text, name, nickname) {
+  if (!nickname || !name || typeof text !== "string") return text;
+  if (!text.startsWith(name)) return text;
+  const next = text.charAt(name.length);
+  if (next && !/[\s'’,:.;!?]/.test(next)) return text;
+  return `${nickname}${text.slice(name.length)}`;
+}
+
 const person = (p) => ({
   tag: p.tag,
   name: p.name,
@@ -307,7 +323,10 @@ const person = (p) => ({
   losses: p.losses ?? 0,
   // The record, whether or not the builder got as far as this person's deck.
   by_family: p.mode_records ?? [],
-  moments: p.moments ?? [],
+  moments: (p.moments ?? []).map((m) => ({
+    ...m,
+    text: inOwnWords(m.text, p.name, p.nickname),
+  })),
   deck: p.deck ?? null,
   line: p.line ?? null,
 });

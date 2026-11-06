@@ -45,6 +45,7 @@ export function modeLabel(gameMode = "", type = "") {
   // The timeline's mode GROUPS come through here too.
   if (/^war$/i.test(g)) return "War";
   if (/^casual$/i.test(g)) return "Casual";
+  if (/^event$/i.test(g)) return "Events";
   if (/^other$/i.test(g)) return "Other";
   if (/^Ranked/i.test(g) || /pathoflegend|ranked/i.test(type))
     return "Path of Legends";
@@ -378,7 +379,5 @@ function modesText(byMode) {
   const entries = Object.entries(byMode)
     .filter(([, n]) => n > 0)
     .sort((a, b) => b[1] - a[1]);
-  return entries
-    .map(([m, n]) => `${n} ${modeLabel(m, "").toLowerCase()}`)
-    .join(", ");
+  return entries.map(([m, n]) => `${n} ${modeLabel(m, "")}`).join(", ");
 }

@@ -537,3 +537,100 @@ test("a clan standout's evidence is the whole sitting it counts (11.8.0, #375)",
   );
   assert.equal(page.next_offset, null);
 });
+
+test("a game's evidence names who was opposite, by in-game name, with no nickname", async () => {
+  const RIVAL = "#QQ2CLUV";
+  const CLAN = "#QQ2CLUC";
+  await db.query("insert into player (player_tag,name) values ($1,'Rival')", [
+    RIVAL,
+  ]);
+  await db.query("insert into clan (clan_tag,name) values ($1,'Rival clan')", [
+    CLAN,
+  ]);
+  await db.query(
+    "insert into player_nickname (account_id,player_tag,nickname) values ($1,$2,'Private word')",
+    [owner, RIVAL],
+  );
+  const built = await feed();
+  const item = built.timeline.find((x) => x.kind === "battle_session");
+  const read = () =>
+    readTimelineEvidence(db, item, {
+      limit: 25,
+      expectedVersion: item.evidence.version,
+    });
+  const [game, other] = (await read()).battles;
+  assert.deepEqual(game.opponents, []);
+  await db.query(
+    "insert into battle_participant (battle_id,player_tag,battle_time,side,type,type_class,outcome,crowns,clan_tag) values ($1,$2,$3,1,'PvP','pvp','loss',1,$4)",
+    [game.battle_id, RIVAL, game.at, CLAN],
+  );
+  const page = await read();
+  assert.deepEqual(
+    page.battles.find((b) => b.battle_id === game.battle_id).opponents,
+    [
+      {
+        player_tag: RIVAL,
+        name: "Rival",
+        crowns: 1,
+        clan_tag: CLAN,
+        clan_name: "Rival clan",
+      },
+    ],
+  );
+  assert.deepEqual(
+    page.battles.find((b) => b.battle_id === other.battle_id).opponents,
+    [],
+  );
+  assert.doesNotMatch(JSON.stringify(page.battles), /Private word/);
+  await db.query("delete from player_nickname where account_id=$1", [owner]);
+  await db.query(
+    "delete from battle_participant where battle_id=$1 and player_tag=$2",
+    [game.battle_id, RIVAL],
+  );
+});
+
+test("a sitting's shown time is the time it sorts by: at_unix and local name sort_at", async () => {
+  const built = await feed();
+  const item = built.timeline.find((x) => x.kind === "battle_session");
+  assert.equal(item.at, at(1), "at stays the first battle");
+  assert.notEqual(item.sort_at, item.at);
+  assert.equal(item.at_unix, Date.parse(item.sort_at) / 1000);
+  assert.equal(item.local.time, item.sort_at.slice(11, 16));
+  const orders = built.timeline.map((x) => Date.parse(x.sort_at));
+  const shown = built.timeline.map((x) => x.at_unix * 1000);
+  assert.deepEqual(
+    shown,
+    orders.map((t) => Math.floor(t / 1000) * 1000),
+  );
+  assert.deepEqual(
+    orders,
+    [...orders].sort((a, b) => b - a),
+  );
+});
+
+test("elixir_track_player: a first friend stays a friend, and the answer says who you are not yet", async () => {
+  const { elixir_track_player } =
+    await import("../src/tools/elixir/track-player.mjs");
+  const {
+    rows: [{ account_id }],
+  } = await db.query(
+    "insert into account (email_hash,status,timezone) values ('evidence-friend-first','approved','UTC') returning account_id",
+  );
+  const r = await elixir_track_player.handler(
+    {
+      db,
+      account: { accountId: account_id, timezone: "UTC" },
+      live: null,
+    },
+    { player_tag: TAG, relationship: "friend" },
+  );
+  assert.equal(r.applied.relationship, "friend");
+  assert.ok(r.notes.some((n) => /no player of its own/.test(n)));
+  const {
+    rows: [claim],
+  } = await db.query(
+    "select is_primary, relationship from claim where account_id=$1",
+    [account_id],
+  );
+  assert.deepEqual(claim, { is_primary: false, relationship: "friend" });
+});

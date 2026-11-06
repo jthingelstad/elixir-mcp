@@ -7,6 +7,7 @@ import { tagPath } from "../lib/tag-url.js";
 import { recordJourney } from "../lib/record-journey.js";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { useInvalidate } from "../lib/queries.js";
+import { clanStepLine } from "./logic.js";
 
 /**
  * Welcome: worked out from the record each time, with nothing stored. Each
@@ -79,7 +80,7 @@ export function NewAccount({ first, zoneMissing }) {
             done={Boolean(live?.clan?.name)}
             waiting={!added}
             doneLine={
-              live?.clan?.name ? `${live.clan.name}, your player’s clan.` : null
+              live?.clan?.name ? clanStepLine(live.clan.name, added) : null
             }
           >
             {live?.clan?.name

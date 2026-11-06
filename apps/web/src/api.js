@@ -210,6 +210,7 @@ export const api = {
   timelineEvidence: (params, agent) =>
     request("GET", `${home(agent)}/timeline?${new URLSearchParams(params)}`),
   myTimeline: (agent) => request("GET", `${home(agent)}/timeline`),
+  timelineNews: () => request("GET", "/api/me/timeline?news=1"),
   // The Console's own place in the timeline (2026-10-20): the window end
   // the page showed. Never an agent's read pointer.
   markTimelineSeen: (to, agent) =>

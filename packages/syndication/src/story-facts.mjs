@@ -25,6 +25,7 @@
  *  what of it each kind of draft is told. */
 import {
   buildTimeline,
+  shownAt,
   factItems,
   isPublishable,
 } from "@elixir-mcp/tools/activity/entries";
@@ -265,9 +266,9 @@ export async function clanStoryFacts(
         );
         members[tag].moments = timeline
           .filter((it) => it.text && !skip.has(it.id))
-          .sort((a, b) => String(b.at ?? "").localeCompare(String(a.at ?? "")))
+          .sort((a, b) => shownAt(b).localeCompare(shownAt(a)))
           .slice(0, Math.min(want.max ?? MOMENTS_MAX, MOMENTS_MAX))
-          .map((it) => ({ at: it.at, text: it.text }));
+          .map((it) => ({ at: shownAt(it), text: it.text }));
       }
   }
   // The dossier's subject: their history is the dossier's to tell.
@@ -622,9 +623,9 @@ async function dossierMoments(db, playerTag, { fromMs, toMs }) {
   );
   return timeline
     .filter((it) => it.text)
-    .sort((a, b) => String(b.at ?? "").localeCompare(String(a.at ?? "")))
+    .sort((a, b) => shownAt(b).localeCompare(shownAt(a)))
     .slice(0, DOSSIER_MOMENTS)
-    .map((it) => ({ at: it.at, text: it.text }));
+    .map((it) => ({ at: shownAt(it), text: it.text }));
 }
 
 async function dossierRoles(db, clanTag, playerTag) {

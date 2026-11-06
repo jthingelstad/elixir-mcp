@@ -179,6 +179,13 @@ export const useMyTimeline = (enabled = true) => {
   });
 };
 
+/** Whether anything was learned since the page's place: Home's tab mark. */
+export const useTimelineNews = () =>
+  useQuery({
+    queryKey: scopedKey(null, "feed-news"),
+    queryFn: payload(() => api.timelineNews()),
+  });
+
 /** Move the Console's place in the timeline to the window end the page
  *  showed (Jamie, 2026-10-20: independent of what agents have read via
  *  MCP). The page's own copy takes the new place, so a return visit
@@ -195,6 +202,9 @@ export function useMarkTimelineSeen() {
       queryClient.setQueryData(scopedKey(agent, "feed"), (old) =>
         old ? { ...old, seen_to: res.data.seen_to } : old,
       );
+      queryClient.invalidateQueries({
+        queryKey: scopedKey(agent, "feed-news"),
+      });
       const queryKey = rootFor(agent);
       await queryClient.cancelQueries({ queryKey, exact: true });
       await queryClient.invalidateQueries({ queryKey, exact: true });

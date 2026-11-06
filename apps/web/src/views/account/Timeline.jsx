@@ -81,7 +81,7 @@ export function Timeline() {
           ? { text: "new", tone: "accent-bright" }
           : "earlier";
     return [
-      when(it.at),
+      when(it.sort_at ?? it.at),
       it.subject_name ?? it.subject_tag ?? "your account",
       // Time-free (11.8.0): the WHEN column says the time in the
       // account's zone (DECISIONS: the console tells time in it).

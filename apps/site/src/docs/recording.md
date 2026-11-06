@@ -147,8 +147,8 @@ record holds).
 
 ## Relationships, primary, nicknames
 
-Each player you track is your `primary` (exactly one: the first you track,
-or whichever you mark `relationship: "primary"`), an `alt`, a `friend`, or
+Each player you track is your `primary` (exactly one: the first you track unless you name
+them a friend or watching, or whichever you mark `relationship: "primary"`), an `alt`, a `friend`, or
 someone you are `watching` (the default). The primary is what "omit
 `player_tag`" means on your connection, and its current clan is what an
 omitted `clan_tag` means. Removing your primary is refused while you track

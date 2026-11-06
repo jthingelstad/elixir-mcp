@@ -211,11 +211,42 @@ export function timelineDays(items, { day, openedMs }) {
   const lastNew = items.reduce((at, it, i) => (isNew(it) ? i : at), -1);
   const days = [];
   items.forEach((it, i) => {
-    const key = day(it.at);
-    if (days.at(-1)?.key !== key) days.push({ key, at: it.at, rows: [] });
+    const at = shownAt(it);
+    const key = day(at);
+    if (days.at(-1)?.key !== key) days.push({ key, at, rows: [] });
     days.at(-1).rows.push({ it, isNew: isNew(it), newLine: i === lastNew });
   });
   return days;
+}
+
+/** Step 3's line: with no player of your own the clan is one you track, and
+ *  saying "your player's clan" would name somebody who is not there. */
+export const clanStepLine = (name, hasPlayer) =>
+  hasPlayer ? `${name}, your player’s clan.` : `${name}, a clan you track.`;
+
+/** The time to show beside an item: the one the feed is ordered by. */
+export const shownAt = (it) => it.sort_at ?? it.at;
+
+const OUTCOME_WORDS = { win: "Win", loss: "Loss", draw: "Draw" };
+const opposedBy = (o) => o.name ?? o.clan_name ?? o.player_tag;
+
+/** One recorded game in words: "Win 3-0 against <player>, Trophy Road". What
+ *  the record cannot say is left out, or said as unknown; never guessed. */
+export function gameLine(b) {
+  const opponents = b.opponents ?? [];
+  const theirs = opponents[0]?.crowns;
+  const outcome = b.outcome
+    ? (OUTCOME_WORDS[b.outcome] ?? modeWord(b.outcome))
+    : "Outcome unknown";
+  const score =
+    b.outcome && Number.isFinite(b.crowns) && Number.isFinite(theirs)
+      ? ` ${b.crowns}-${theirs}`
+      : "";
+  const against = opponents.length
+    ? ` against ${opponents.map(opposedBy).join(" and ")}`
+    : "";
+  const mode = b.mode_group ? `, ${modeWord(b.mode_group)}` : "";
+  return `${outcome}${score}${against}${mode}`;
 }
 
 export const whoOf = (it) =>

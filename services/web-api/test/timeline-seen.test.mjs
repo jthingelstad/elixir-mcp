@@ -294,6 +294,39 @@ test("on an agent's console the place is the agent's, moved by its owner, and st
   );
 });
 
+test("Home's tab mark: a poll alone is not news, a learned battle is, and a visit clears it", async () => {
+  const unread = async () => {
+    const res = await handler({
+      ...event({ path: "/api/me/timeline" }),
+      queryStringParameters: { news: "1" },
+    });
+    assert.equal(res.statusCode, 200, res.body);
+    return JSON.parse(res.body);
+  };
+  await visit();
+  await new Promise((r) => setTimeout(r, 5));
+  await admit(PLAYER);
+  assert.equal(await consolePending(), 1, "the rail's hint lights on a poll");
+  assert.deepEqual(await unread(), { unread: false }, "the tab does not");
+
+  const now = new Date().toISOString();
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, created_at)
+     values ('seen-mark-battle', $1, 'PvP', 'pvp', now())`,
+    [now],
+  );
+  await db.query(
+    `insert into battle_participant
+       (battle_id, player_tag, battle_time, side, type, type_class, outcome)
+     values ('seen-mark-battle', $1, $2, 0, 'PvP', 'pvp', 'win')`,
+    [PLAYER, now],
+  );
+  await new Promise((r) => setTimeout(r, 5));
+  assert.deepEqual(await unread(), { unread: true });
+  await visit();
+  assert.deepEqual(await unread(), { unread: false }, "the visit cleared it");
+});
+
 test("the place only moves forward, never past now, and only from the Console", async () => {
   const { console_timeline_seen_at: at } = await pointers(personId);
   const back = await call({

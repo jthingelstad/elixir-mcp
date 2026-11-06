@@ -665,17 +665,14 @@ test(
     global.fetch = signedIn("America/Chicago");
     render(<App />);
     // The evening before, in Chicago, and named as Chicago's clock.
-    expect(
-      await screen.findByText(/^Sat Sep 12( 2026)?, 9:30 pm$/),
-    ).toBeTruthy();
+    expect(await screen.findByText("9:30 pm")).toBeTruthy();
+    expect(screen.getByText("Saturday, September 12")).toBeTruthy();
 
     cleanup();
     window.history.pushState({}, "", "/console/account/timeline");
     global.fetch = signedIn(null);
     render(<App />);
-    expect(
-      await screen.findByText(/^Sun Sep 13( 2026)?, 2:30 am UTC$/),
-    ).toBeTruthy();
+    expect(await screen.findByText("2:30 am UTC")).toBeTruthy();
   },
 );
 

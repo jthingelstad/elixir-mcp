@@ -23,6 +23,7 @@ import {
   buildTimeline,
   subjectsFor,
   readTimelineEvidence,
+  timelineNews,
 } from "@elixir-mcp/tools/activity/entries";
 
 import { json, UUID_RE, ID_RE } from "../http.mjs";
@@ -251,8 +252,10 @@ export function accountRoutes({
       // theirs that no longer works is still being presented. Counted
       // here rather than by the pages, so the rail can show them on
       // every screen without every screen fetching four lists.
-      // timeline_pending counts against the Console's own place
-      // (console_timeline_seen_at, 0228), never an agent's read pointer:
+      // timeline_pending counts SUBJECTS polled since the page's own place
+      // (a hint behind the agent rail's dot, not a count of items: Home's tab
+      // asks GET /api/me/timeline?news=1 instead). Its place is
+      // console_timeline_seen_at (0228), never an agent's read pointer:
       // "timeline should be independent of what agents have seen via
       // MCP" (Jamie, 2026-10-20). An agent's mark_read leaves this dot
       // lit; meta.timeline_pending (packages/tools shared.mjs) is the
@@ -851,6 +854,23 @@ export function accountRoutes({
         [account.accountId],
       );
       const q = event.queryStringParameters ?? {};
+      // Home's tab mark: has anything been learned since the page's place?
+      // One statement, and false proves the page would mark nothing new.
+      // Its count stays the page's own: only the page builds the items.
+      if (q.news === "1") {
+        const now = Date.now();
+        const seen = rows[0]?.console_timeline_seen_at?.getTime() ?? 0;
+        const { any } = await timelineNews(
+          db,
+          await subjectsFor(db, account.accountId),
+          {
+            fromMs: Math.max(seen, now - 7 * 86_400_000),
+            toMs: now,
+            accountId: account.accountId,
+          },
+        );
+        return json(200, { unread: any });
+      }
       const evidenceRead = Boolean(q.evidence_item_id);
       const toMs = evidenceRead ? Date.parse(q.to ?? "") : Date.now();
       const fromMs = evidenceRead

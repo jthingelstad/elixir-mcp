@@ -32,7 +32,7 @@ export default [
         lede: "Not “you won 61%” — which deck, which mode, which week, and whether the grind is actually paying off.",
         reads: [
           "Every battle recorded for you, with decks and outcomes",
-          "Daily profile snapshots since you were added",
+          "A profile reading for each game day one landed, from the first the record holds",
           "Your record per deck and per game mode, by week",
         ],
         setup: ["Track your player", "Connect a client"],

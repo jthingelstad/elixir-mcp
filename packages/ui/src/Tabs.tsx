@@ -6,6 +6,10 @@ export interface TabItem {
   label: ReactNode;
   /** A count badge after the label: "Timeline 3". Nothing at null or 0. */
   count?: number | null;
+  /** A plain mark after the label, for "something new here" when no honest
+   *  count exists. Read aloud as `markLabel`. */
+  mark?: boolean;
+  markLabel?: string;
   /** A tab that is an address renders as a link; otherwise a button. */
   href?: string;
   /** The tab's name when its label alone would not say all of it. */
@@ -101,6 +105,11 @@ export function Tabs({
           <>
             {t.label}
             {t.count ? <em className="kit-tabs__count">{t.count}</em> : null}
+            {t.mark ? (
+              <em className="kit-tabs__mark">
+                <span className="sr-only">{t.markLabel ?? "New"}</span>
+              </em>
+            ) : null}
           </>
         );
         return t.href ? (

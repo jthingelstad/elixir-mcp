@@ -77,7 +77,7 @@ for (const [label, width] of [
         page.getByText(/the 2 newest are shown, and 46 more/),
       ).toBeVisible();
       await page.getByRole("button", { name: "View games" }).click();
-      await expect(page.getByText(/Open recorded game/)).toBeVisible();
+      await expect(page.getByText(/^Win, Trophy Road$/)).toBeVisible();
       await page.getByRole("button", { name: "New" }).click();
       await expect(page.getByText("Reached Path of Legends.")).toHaveCount(0);
       await noSideways(page);
