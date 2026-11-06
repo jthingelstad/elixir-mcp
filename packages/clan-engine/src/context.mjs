@@ -236,7 +236,7 @@ export function actionLines(
   } else if (kind === "rules") {
     lines.push(
       ev.version === 1
-        ? "The clan now runs with Elixir Clan: members can sign in with Elixir to see how it works and where they stand."
+        ? "The clan now runs with Elixir: members can sign in with Elixir to see how it works and where they stand."
         : `The clan changed how it runs: ${(ev.changes ?? []).map((c) => one(c, 80)).join(", ") || "some settings"}. Members can see how it works in Elixir Clan.`,
     );
     if (policyLines.length)

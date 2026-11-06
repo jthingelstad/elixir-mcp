@@ -1,12 +1,12 @@
 import {
   Disclosure,
-  Fresh,
   ago,
   Tag,
   TagText,
   useClock,
   Panel,
   Table,
+  Empty,
 } from "@elixir-mcp/ui";
 import { useRef, useState } from "react";
 import { manageApi } from "../api.js";
@@ -17,6 +17,7 @@ import { ReportThis } from "../components/ReportThis.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { trackEvent } from "../analytics.js";
 import { CLAN, clanPath } from "../lib/base.js";
+import { ordinal } from "../lib/words.js";
 
 /**
  * Clan ▸ Awards: the open season's races (provisional, tie-aware), each
@@ -25,10 +26,9 @@ import { CLAN, clanPath } from "../lib/base.js";
  * kind, name, parameters and help text, versioned like policy. Members read;
  * elders grant what elders may; leaders edit.
  */
-export function Awards({ clan, navigate }) {
+export function Awards({ clan, who, season: seasonParam, navigate }) {
   const { whenDay } = useClock();
-  const [editing, setEditing] = useState(false);
-  const [selection, setSelection] = useState(null);
+  const base = clanPath(clan.clan_tag);
   const { state, load, query } = useAwards(clan.clan_tag);
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -44,18 +44,31 @@ export function Awards({ clan, navigate }) {
     const d = query.data?.data ?? {};
     return <TooFew members={d.members} min={d.min_members} />;
   }
-  if (state.error)
+  if (state.error === "no_policy")
     return (
-      <div className="callout callout--warn" role="alert">
-        <span>
-          {state.error === "clan_not_recorded"
-            ? "Elixir is not recording this clan yet, so there is nothing to award."
-            : "Elixir did not answer. Try again in a minute."}
-        </span>
-      </div>
+      <Empty title="No policy yet">
+        Awards start with the clan&rsquo;s policy. Standing, Actions and Awards
+        wait until a leader or co-leader sets it.
+      </Empty>
     );
-  if (!state.data)
-    return <p className="page__lede">Reading the record and the seasons…</p>;
+  if (state.error)
+    return state.error === "clan_not_recorded" ? (
+      <Empty title="Elixir is not recording this clan yet">
+        There is nothing to award.
+      </Empty>
+    ) : (
+      <Empty
+        title="Elixir did not answer"
+        action={
+          <button type="button" className="btn" onClick={() => load()}>
+            Try again
+          </button>
+        }
+      >
+        Try again in a minute.
+      </Empty>
+    );
+  if (!state.data) return <p className="page__lede">Reading the awards…</p>;
   const d = state.data;
   const seasonIds = [
     ...new Set([
@@ -63,117 +76,123 @@ export function Awards({ clan, navigate }) {
       ...d.grants.map((g) => g.season_id),
     ]),
   ].sort((a, b) => b - a);
-  const selected = selection ?? d.seasons[0]?.season_id ?? seasonIds[0];
+  const asked = Number(seasonParam);
+  const selected = seasonIds.includes(asked)
+    ? asked
+    : (d.seasons[0]?.season_id ?? seasonIds[0]);
   const season = d.seasons.find((s) => s.season_id === selected);
   const awardById = new Map(d.config.awards.map((a) => [a.id, a]));
-  if (editing && d.can_edit)
+  const setup = `${base}/run/awards-setup`;
+  const yours = d.grants.filter((g) => g.player_tag === who?.player_tag);
+  if (!seasonIds.length && d.config_version === 0)
     return (
-      <AwardsConfig
-        clan={clan}
-        view={d}
-        onDone={() => {
-          setEditing(false);
-          load(true);
-        }}
-      />
+      <>
+        <PageHead title="Awards" />
+        <Empty
+          title="This clan runs no awards yet"
+          action={
+            d.can_edit ? (
+              <a
+                className="btn btn--primary"
+                href={setup}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate?.(setup);
+                }}
+              >
+                Add awards, in Run
+              </a>
+            ) : null
+          }
+        >
+          A leader adds the ones it runs.
+        </Empty>
+      </>
     );
   return (
     <div className="grid gap-5">
-      <PageHead
-        clan={clan}
-        crumb="Award races"
-        title="Award races"
-        lede="Current season standings and award setup. Award history keeps the earned record."
-        navigate={navigate}
-      >
-        {/* An award race is Elixir's judgment against the clan's awards
-            config: the version rides along (2026-10-08). */}
-        <div>
-          <ReportThis
-            about={`Award races in ${clan.name ?? clan.clan_tag}${d.config_version ? `, awards v${d.config_version}` : ""}. Name the award and what reads wrong.`}
-            refs={[
-              { kind: "clan", ref: clan.clan_tag },
-              ...(d.config_version
-                ? [{ kind: "award", ref: `config:v${d.config_version}` }]
-                : []),
-            ]}
-            context={{ page: "awards" }}
-          />
-        </div>
-      </PageHead>
-      <p className="page-head__note m-0">
-        {d.config_version === 0
-          ? "This clan runs no awards yet. A leader adds the ones it runs."
-          : `Awards v${d.config_version}.`}{" "}
-        Worked out {ago(d.evaluated_at)}
-        {d.as_of ? (
-          <>
-            {" "}
-            · <Fresh label="as of" seconds={d.freshness_seconds} ts={d.as_of} />
-          </>
-        ) : null}{" "}
-        ·{" "}
-        <button
-          type="button"
-          className="btn--text"
-          onClick={() => load(true)}
-          disabled={state.loading}
-        >
-          {state.loading ? "reading…" : "re-judge now"}
-        </button>
-        {d.can_edit ? (
-          <>
-            {" "}
-            ·{" "}
-            <button
-              type="button"
-              className="btn--text"
-              onClick={() => setEditing(true)}
-            >
-              edit the awards
-            </button>
-          </>
-        ) : null}
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
+      <PageHead title="Awards" />
+      <div className="clan-subnav">
         <label className="flex items-center gap-3">
           <span className="field-label">Season</span>
           <select
             className="input w-auto"
             value={selected ?? ""}
-            onChange={(e) => setSelection(Number(e.target.value))}
+            onChange={(e) => navigate?.(`${base}/awards/${e.target.value}`)}
           >
-            {seasonIds.map((id) => (
-              <option key={id} value={id}>
-                Season {id}
-                {d.seasons.find((s) => s.season_id === id)?.closed === false
-                  ? " · in progress"
-                  : " · closed"}
-              </option>
-            ))}
+            {seasonIds.map((id) => {
+              const known = d.seasons.find((s) => s.season_id === id);
+              return (
+                <option key={id} value={id}>
+                  Season {id}
+                  {!known
+                    ? ", grants only"
+                    : known.closed === false
+                      ? ", in progress"
+                      : ", closed"}
+                </option>
+              );
+            })}
           </select>
         </label>
-        {d.can_send &&
-        d.seasons[0]?.closed === false &&
-        d.seasons[0].awards.some(
-          (a) => a.state !== "off" && a.state !== "manual",
-        ) ? (
-          <CurrentUpdate
-            clan={clan}
-            navigate={navigate}
-            seasonId={d.seasons[0].season_id}
-            viewingSeason={selected}
-          />
-        ) : null}
+        <p className="page-head__note m-0">
+          Awards v{d.config_version} · read {ago(d.evaluated_at)}{" "}
+          <button
+            type="button"
+            className="btn--text"
+            onClick={() => load(true)}
+            disabled={state.loading}
+          >
+            {state.loading ? "Reading…" : "Read again"}
+          </button>
+          {d.can_edit ? (
+            <>
+              {" · "}
+              <a
+                href={setup}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate?.(setup);
+                }}
+              >
+                Awards setup, in Run
+              </a>
+            </>
+          ) : null}
+        </p>
       </div>
+      {d.can_send &&
+      d.seasons[0]?.closed === false &&
+      d.seasons[0].awards.some(
+        (a) => a.state !== "off" && a.state !== "manual",
+      ) ? (
+        <CurrentUpdate
+          clan={clan}
+          navigate={navigate}
+          seasonId={d.seasons[0].season_id}
+          viewingSeason={selected}
+        />
+      ) : null}
+      {yours.length ? (
+        <p className="m-0">
+          <span className="label mr-2">Yours</span>
+          {yours
+            .map(
+              (g) =>
+                `${awardById.get(g.award_id)?.name ?? g.award_id}${g.rank ? `, ${ordinal(g.rank)}` : ""}, Season ${g.season_id}`,
+            )
+            .join("; ")}
+          .
+        </p>
+      ) : null}
       {season ? (
         <section key={selected} className="grid gap-3">
           <div className="label">
-            Season {season.season_id} ·{" "}
+            Season {season.season_id},{" "}
             {season.closed
               ? `closed ${whenDay(season.closed_at)}`
-              : "in progress"}{" "}
-            · {season.weeks} war week{season.weeks === 1 ? "" : "s"}
+              : "in progress"}
+            , {season.weeks} war week{season.weeks === 1 ? "" : "s"}
           </div>
           {!season.closed ? (
             <p className="page__lede m-0">
@@ -227,11 +246,24 @@ export function Awards({ clan, navigate }) {
           <p className="page__lede m-0">
             Grants are recorded after a season closes; a manual award records
             who chose it and why. Members can read the races and saved grants
-            here and in Award history; nothing is published outside the
-            signed-in app.
+            here; nothing is published outside the signed-in app.
           </p>
         </div>
       </Disclosure>
+      {/* An award race is Elixir's reading against the clan's awards config:
+          the version rides along (2026-10-08). */}
+      <div>
+        <ReportThis
+          about={`Awards in ${clan.name ?? clan.clan_tag}${d.config_version ? `, awards v${d.config_version}` : ""}. Name the award and what reads wrong.`}
+          refs={[
+            { kind: "clan", ref: clan.clan_tag },
+            ...(d.config_version
+              ? [{ kind: "award", ref: `config:v${d.config_version}` }]
+              : []),
+          ]}
+          context={{ page: "awards" }}
+        />
+      </div>
     </div>
   );
 }
@@ -278,12 +310,12 @@ function CurrentUpdate({ clan, navigate, seasonId, viewingSeason }) {
           }
         }}
       >
-        {busy ? "Preparing update…" : `Send season ${seasonId} update to clan`}
+        {busy ? "Preparing update…" : `Send Season ${seasonId} update to clan`}
       </button>
       {viewingSeason !== seasonId ? (
         <p className="page-head__note m-0">
-          This prepares the current season {seasonId} update, while you are
-          viewing season {viewingSeason}.
+          This prepares the current Season {seasonId} update, while you are
+          viewing Season {viewingSeason}.
         </p>
       ) : null}
       {error ? (
@@ -753,7 +785,7 @@ function OlderGrants({ grants, awardById }) {
  * parameters with help text, on/off), add one, remove one, a note, save.
  * Validation answers come back keyed by field.
  */
-function AwardsConfig({ clan, view, onDone }) {
+export function AwardsConfig({ clan, view, onDone }) {
   const { whenDay } = useClock();
   const [draft, setDraft] = useState(() => structuredClone(view.config));
   const [errors, setErrors] = useState({});
@@ -812,8 +844,8 @@ function AwardsConfig({ clan, view, onDone }) {
     errors[key] ? <p className="field-error">{errors[key]}</p> : null;
 
   return (
-    <div style={{ display: "grid", gap: "16px" }}>
-      <p className="page-head__note" style={{ margin: 0 }}>
+    <div className="grid gap-4">
+      <p className="page-head__note m-0">
         Every save is a new version; grants already written keep the name they
         were given. Names and descriptions are yours; the rule under each is the
         kind&rsquo;s.
@@ -881,7 +913,7 @@ function AwardsConfig({ clan, view, onDone }) {
               </div>
               <div style={{ display: "grid", gap: "4px" }}>
                 <label className="field-label" htmlFor={`a-${i}-id`}>
-                  Id{" "}
+                  Short name{" "}
                   <span className="page-head__note">
                     (the durable key for this award and its grants; change it
                     only before the first grant)

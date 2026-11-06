@@ -30,13 +30,15 @@ export function weekChips(modes = {}) {
   return keys.map((key) => ({ key, label: modeWord(key) }));
 }
 
+const clanToday = (tag) => `/clan/${tagPath(tag)}/today`;
 const clanActions = (tag) => `/clan/${tagPath(tag)}/actions`;
 
 /** One open Action as a row, in the words its kind is drawn with. A kind with
  *  no drawing keeps Clan's own label. */
 function actionRow(need, clan, { when }) {
   const list = clanActions(clan.clan_tag);
-  const to = need.number != null ? `${list}/${need.number}` : list;
+  const to =
+    need.number != null ? `${list}/${need.number}` : clanToday(clan.clan_tag);
   const who = need.subject_name;
   const key = `action-${need.type}-${need.number ?? who ?? ""}`;
   const named = (title) => (who ? `${title} ${who}` : title);
@@ -109,7 +111,7 @@ export function needsYou({ clan, signals, clock }) {
     if (rest > 0)
       more = {
         title: `and ${rest} more in Clan › Today`,
-        to: clanActions(clan.clan_tag),
+        to: clanToday(clan.clan_tag),
       };
     if (
       LEADS.has(clan.role) &&

@@ -1,5 +1,6 @@
-import { useInitialTime, useClock, Panel, PageHead } from "@elixir-mcp/ui";
-import { Link, noun, Tag } from "@elixir-mcp/ui";
+import { useInitialTime, useClock, Panel } from "@elixir-mcp/ui";
+import { Link, noun } from "@elixir-mcp/ui";
+import { PageHead } from "../components/PageHead.jsx";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useMyAway } from "../lib/queries.js";
@@ -14,9 +15,8 @@ import { ELIXIR_LINKS } from "../lib/links.js";
  * with the member's note and can clear it; a leader's own hold is not the
  * member's to move.
  */
-export function Away({ me }) {
+export function Away({ clan }) {
   const { calendar } = useClock();
-  const clan = me?.selected ?? null;
   const [until, setUntil] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,11 +26,7 @@ export function Away({ me }) {
   const invalidate = useInvalidate();
   const load = () => invalidate(keys.away(clan.clan_tag));
 
-  if (!clan)
-    return (
-      <p className="page__lede">Choose a clan first; away is said per clan.</p>
-    );
-  if (!state) return <p className="page__lede">Loading…</p>;
+  if (!state) return <p className="page__lede">Reading…</p>;
   const hold = state.hold;
   const maxDate = new Date(today + state.max_days * 86400_000)
     .toISOString()
@@ -42,23 +38,15 @@ export function Away({ me }) {
     away_off: "This clan does not take away notices here.",
   };
   return (
-    <div style={{ maxWidth: "640px" }}>
+    <div className="max-w-[640px]">
       <PageHead
         title="Away"
-        sub={
-          <>
-            {clan.name ?? <Tag tag={clan.clan_tag} />} · as{" "}
-            {clan.player_name ?? <Tag tag={clan.player_tag} />}
-          </>
-        }
+        lede={`Tell your leaders when you will be back. It keeps you off the removal list while it's on. The days keep counting, and war decks still count.${
+          state.allowed
+            ? ` Up to ${state.max_days} ${noun(state.max_days, "day")} at a time.`
+            : " This clan's policy does not offer it; tell a leader instead."
+        }`}
       />
-      <p className="page__lede" style={{ margin: "0 0 16px" }}>
-        Tell your leaders when you will be back. An active notice shields
-        removal eligibility; elapsed time keeps counting.
-        {state.allowed
-          ? ` Up to ${state.max_days} ${noun(state.max_days, "day")} at a time.`
-          : " This clan's policy does not offer it; tell a leader instead."}
-      </p>
       {hold ? (
         <Panel
           as="div"
@@ -71,13 +59,20 @@ export function Away({ me }) {
         >
           <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
             <div>
-              {hold.until ? `Until ${calendar(hold.until)}` : "Open-ended"}
+              {hold.until
+                ? `Until ${calendar(hold.until)}`
+                : "With no end date"}
               {hold.note ? ` · ${hold.note}` : ""}
               {hold.kind !== "away"
                 ? ` · set by ${hold.by_name ?? hold.by}`
                 : ""}
             </div>
-            {hold.kind === "away" ? (
+            {hold.kind !== "away" ? (
+              <p className="page-head__note m-0">
+                A leader&rsquo;s hold stays until they change it; ask them to
+                change it.
+              </p>
+            ) : (
               <button
                 type="button"
                 className="btn"
@@ -93,16 +88,15 @@ export function Away({ me }) {
               >
                 I&rsquo;m back
               </button>
-            ) : null}
+            )}
           </div>
         </Panel>
       ) : state.allowed && state.verified === false ? (
         <div className="callout callout--info">
           <span>
-            Saying you are away shields removal eligibility while active and
-            tells Elixir in your player&rsquo;s name, so it waits until your
-            player is verified.{" "}
-            <Link to={ELIXIR_LINKS.verify}>Verify in Elixir ›</Link>
+            Saying you are away is said in your player&rsquo;s name, so it waits
+            until your player is verified.{" "}
+            <Link to={ELIXIR_LINKS.verify}>Verify your player</Link>
           </span>
         </div>
       ) : state.allowed ? (

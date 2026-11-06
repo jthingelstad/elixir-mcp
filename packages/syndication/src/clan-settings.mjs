@@ -34,7 +34,7 @@ const escape = (s) =>
  *  webhook works and the channel learns what will appear in it. */
 export function clanHelloContent(clanName, nowMs = Date.now()) {
   return [
-    `Elixir Clan will post ${clanName ? escape(clanName) : "the clan"}'s activity to this channel from <t:${Math.floor(nowMs / 1000)}:f>, as it happens. [Elixir Clan](<${ELIXIR_ORIGIN}/clan>)`,
+    `Elixir will post ${clanName ? escape(clanName) : "the clan"}'s activity to this channel from <t:${Math.floor(nowMs / 1000)}:f>, as it happens. [Elixir Clan](<${ELIXIR_ORIGIN}/clan>)`,
     `-# ${DISCLAIMER}`,
   ].join("\n");
 }

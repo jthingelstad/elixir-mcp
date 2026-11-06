@@ -60,7 +60,7 @@ const CHANNEL = {
 };
 
 for (const size of ["wide", "@narrow"]) {
-  test(`a leader sets the clan's voice in Settings; Discord shows it and links back ${size}`, async ({
+  test(`a leader sets the clan's voice in Run; Discord shows it and links back ${size}`, async ({
     page,
   }) => {
     const errors: string[] = [];
@@ -102,35 +102,24 @@ for (const size of ["wide", "@narrow"]) {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/manage/settings");
-    await expect(
-      page.getByText("Not set · Used by drafts and the Discord editor", {
-        exact: true,
-      }),
-    ).toBeVisible();
-    await page
-      .getByRole("button", {
-        name: "Manage How our messages sound",
-        exact: true,
-      })
-      .click();
-    const dialog = page.getByRole("dialog", {
+    await page.goto("/clan/2PQRJ8LV/run/model-voice");
+    const section = page.getByRole("region", {
       name: "How our messages sound",
     });
-    const box = dialog.getByLabel("How our messages sound");
+    const box = section.getByLabel("How our messages sound");
     await expect(box).toHaveAttribute("maxlength", "400");
     await expect(
-      dialog.getByText(
+      section.getByText(
         /^0\/400\. At most 400 characters, one paragraph, no links or mentions\./,
       ),
     ).toBeVisible();
-    await expect(dialog.getByText(/never the facts/)).toBeVisible();
+    await expect(section.getByText(/never the facts/)).toBeVisible();
     await accessible(page);
     await box.fill("Warm and short; cheer the wins, keep goodbyes kind.");
-    await expect(dialog.getByText(/^51\/400\./)).toBeVisible();
-    await dialog.getByRole("button", { name: "Save the voice" }).click();
+    await expect(section.getByText(/^51\/400\./)).toBeVisible();
+    await section.getByRole("button", { name: "Save the voice" }).click();
     await expect(
-      dialog.getByText(/^Last set by Ada · Tue Oct 20( 2026)?$/),
+      section.getByText(/^Last set by Ada · Tue Oct 20( 2026)?$/),
     ).toBeVisible();
     expect(writes).toEqual([
       { voice: "Warm and short; cheer the wins, keep goodbyes kind." },
@@ -139,16 +128,9 @@ for (const size of ["wide", "@narrow"]) {
       path: `/tmp/elixir-voice-settings-${size.replace("@", "")}.png`,
       fullPage: false,
     });
-    await dialog.getByRole("button", { name: "Close", exact: true }).click();
-    await expect(
-      page.getByText(
-        "“Warm and short; cheer the wins, keep goodbyes kind.” · Used by drafts and the Discord editor",
-        { exact: true },
-      ),
-    ).toBeVisible();
 
-    // Social ▸ Discord shows the one voice, as written, and links to it.
-    await page.goto("/clan/2PQRJ8LV/discord");
+    // Run > Discord shows the one voice, as written, and links to it.
+    await page.goto("/clan/2PQRJ8LV/run/discord");
     await page
       .getByRole("button", { name: "Manage Channel voice", exact: true })
       .click();
@@ -165,14 +147,10 @@ for (const size of ["wide", "@narrow"]) {
       }),
     ).toBeVisible();
     await accessible(page);
-    await channel
-      .getByRole("link", { name: "Settings › How our messages sound" })
-      .click();
-    await expect(page).toHaveURL(
-      /\/clan\/2PQRJ8LV\/manage\/settings#settings-voice$/,
-    );
+    await channel.getByRole("link", { name: "Model & voice" }).click();
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/run\/model-voice$/);
     await expect(
-      page.getByRole("dialog", { name: "How our messages sound" }),
+      page.getByRole("region", { name: "How our messages sound" }),
     ).toBeVisible();
     expect(writes).toHaveLength(1);
     expect(errors).toEqual([]);

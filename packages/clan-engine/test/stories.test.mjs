@@ -267,7 +267,7 @@ test("the roster: a departure says departed; a leader's word says removed or lef
       { items: [left] },
       { members: { "#AAA": { tenure_days: 40 } }, nowMs: T },
     ),
-    "Ada, an elder, departed the clan after 40 days.",
+    "Ada departed the clan (was Elder).",
   );
   const kick = item("departure_classified", { ...ADA, kind: "kick" });
   assert.equal(
@@ -284,13 +284,13 @@ test("the roster: a departure says departed; a leader's word says removed or lef
     ),
     "Bo joined the clan, back for a second stint.",
   );
-  // A baseline member's tenure is when tracking began: never said.
+  // Tenure is never said on a departure, baseline or not.
   assert.equal(
     renderStory(
       { items: [left] },
       { members: { "#AAA": { tenure_days: 40, baseline: true } }, nowMs: T },
     ),
-    "Ada, an elder, departed the clan.",
+    "Ada departed the clan (was Elder).",
   );
 });
 
@@ -307,7 +307,7 @@ test("the war week: points, never a share of fame", () => {
   });
   assert.equal(
     renderStory({ items: [week] }, { nowMs: T }),
-    "War week 3 finished in place 1 with 10,000 fame (+20 war trophies), led by Ada (3,600 points, 16 decks) and Bo (3,000 points, 16 decks).",
+    "Week 3 finished in 1st place with 10,000 fame (+20 war trophies), led by Ada (3,600 points, 16 decks) and Bo (3,000 points, 16 decks).",
   );
 });
 

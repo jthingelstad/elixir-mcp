@@ -21,7 +21,7 @@ game, and the action's log keeps what happened.
 
 ## Inspect a member's recorded activity
 
-Roster names, current members in Award races, Standing and The week, and
+Roster names, current members in the award races, Standing and Season, and
 member Actions link to **View member activity**, a page for
 a current member of a clan you belong to (the counts are recorded game
 data; the page lives inside Clan). It shows four weeks,
@@ -75,7 +75,7 @@ Award standings have no switch: they come with the clan's
 ## When one appears
 
 Clan reads the clan every morning from 11:00 UTC, and again when someone
-opens Standing or chooses **Refresh suggestions** in Actions. Actions normally
+opens Standing or chooses **Refresh suggestions** in Today. Today normally
 opens the saved evaluation with its as-of time, keeping decisions quick; its
 first reading or a changed policy also evaluates the record.
 A member has at most one open action of each
@@ -97,7 +97,7 @@ a week past the join.
   when the leaders save a new version of the policy.
 - **Award standings** are raised after a war week closes, when the clan
   has at least one award set up; a leader can also ask for the current
-  season's standings from Award races.
+  season's standings from **Awards**.
 
 ## Deciding one
 
@@ -197,7 +197,7 @@ cannot guarantee readable delivery or identify every filter trigger. Elixir
 cannot verify game delivery or readability and never automatically resends.
 Completed decisions and saved receipts do not change.
 
-With the clan's own model set up under **Manage ▸ Settings**, an open
+With the clan's own model set up under **Run ▸ Model & voice**, an open
 message, welcome or removal action offers leaders and co-leaders
 **Draft in our voice**. It uses the
 clan's Anthropic key to draft a promotion, demotion, awards announcement
@@ -396,7 +396,7 @@ clan, and at most once a day per clan. Turn it off on
 ## Actions in the clan's Discord
 
 The leader or a co-leader can connect a Discord webhook under
-**Manage ▸ Settings** ([Clan settings](/docs/clan-policy#clan-settings)).
+**Run ▸ Discord** ([Clan settings](/docs/clan-policy#clan-settings)).
 From then on, every open action that leaders or elders can take is posted
 to that channel as one message: its number, what it is and who it is
 about, and a link to it here. When someone completes or declines it,
@@ -438,6 +438,6 @@ again.
   and a note if they like: feedback to Elixir about that message from
   their own account (Elixir cannot see the channel), and each sees only
   their own.
-- Until a webhook is connected, the Actions page suggests one to the
+- Until a webhook is connected, **Today** suggests one to the
   leader and co-leaders. If Discord stops taking it (the webhook was
-  deleted, say), posting stops and Settings and the Actions page say so.
+  deleted, say), posting stops and **Run ▸ Discord** and **Today** say so.

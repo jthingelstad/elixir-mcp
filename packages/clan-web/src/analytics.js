@@ -17,6 +17,15 @@ import { CLAN, appPath, tagOf } from "./lib/base.js";
 
 const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
 const LOCAL = ["localhost", "127.0.0.1", "::1"];
+const MEMBERS_PAGES = new Set([
+  "me",
+  "standing",
+  "review",
+  "map",
+  "recruit",
+  "scout",
+  "away",
+]);
 
 export function loadTinylytics() {
   if (LOCAL.includes(window.location.hostname)) return;
@@ -34,8 +43,8 @@ export function loadTinylytics() {
 }
 
 /**
- * The page a path is, for the report. `/clan/2PQRJ8LV/manage/board` is the
- * page `/clan/manage/board` of clan 2PQRJ8LV; `/clan/2PQRJ8LV/actions/37`
+ * The page a path is, for the report. `/clan/2PQRJ8LV/members/review` is the
+ * page `/clan/members/review` of clan 2PQRJ8LV; `/clan/2PQRJ8LV/actions/37`
  * is the page `/clan/actions/detail` of action 37; `/clan/feedback/abc123`
  * is the page `/clan/feedback` of item abc123; `/clan` is the landing.
  * Segments are read under the prefix, where the app's own pages
@@ -60,9 +69,11 @@ export function analyticsLocation(
       url.searchParams.set("id", rest[1]);
       rest[1] = "detail";
     }
-    if (["week", "season"].includes(rest[0]) && rest[1])
+    if (["awards", "season"].includes(rest[0]) && rest[1])
       url.searchParams.set("id", rest.pop());
-    if (rest[0] === "members" && rest[1]) rest[1] = "detail";
+    // A member's page is one page, whoever it is; Members' own pages are not.
+    if (rest[0] === "members" && rest[1] && !MEMBERS_PAGES.has(rest[1]))
+      rest[1] = "detail";
     page = `${CLAN}${rest.length ? `/${rest.join("/")}` : ""}`;
   } else if (
     (segments[0] === "feedback" && segments[1]) ||

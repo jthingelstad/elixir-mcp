@@ -182,7 +182,7 @@ export function Model({ clan }) {
           action.
         </p>
         <p className="page-head__note m-0">
-          The one exception is the clan&rsquo;s activity in Discord (Social ▸
+          The one exception is the clan&rsquo;s activity in Discord (Run ›
           Discord), when a leader has the clan&rsquo;s model edit the channel:
           it is told the same record, may look up a member&rsquo;s record and
           battles and the channel&rsquo;s recent posts, may tell a few stories

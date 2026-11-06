@@ -56,7 +56,7 @@ export function discordActionMessage(card, { clanTag, appUrl }) {
   const closed = {
     done: `✅ Completed${by ? ` by ${by}` : ""}`,
     declined: `❌ Declined${by ? ` by ${by}` : ""}`,
-    withdrawn: "➖ Withdrawn: Elixir Clan no longer suggests it",
+    withdrawn: "➖ Withdrawn: Elixir no longer suggests it",
   }[card.status];
   return closed
     ? `~~**${title}**~~\n${closed}\n<${link}>`

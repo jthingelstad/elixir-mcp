@@ -1251,7 +1251,7 @@ test("model: a key that reaches no 5.5 model is refused when added, and a use no
   const r = await api(h, c, "POST", DRAFT, {});
   assert.equal(r.status, 409);
   assert.equal(r.body.error, "model_unavailable");
-  assert.match(r.body.message, /cannot reach the models Elixir Clan uses/);
+  assert.match(r.body.message, /cannot reach the models Elixir uses/);
   assert.equal(
     h.anthropic.state.calls.filter(([t]) => t === "write").length,
     0,
@@ -1270,7 +1270,7 @@ test("model: the leader's choice of model is retired; a model saved before it is
   const chosen = await api(h, c, "PUT", MODEL, { model: HAIKU_55 });
   assert.equal(chosen.status, 410);
   assert.equal(chosen.body.error, "model_choice_retired");
-  assert.match(chosen.body.message, /Elixir Clan chooses the model/);
+  assert.match(chosen.body.message, /Elixir chooses the model/);
   // A key sent with a model is added; the model is ignored.
   const withModel = await api(h, c, "PUT", MODEL, {
     key: OTHER,

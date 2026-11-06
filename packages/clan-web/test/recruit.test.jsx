@@ -10,7 +10,6 @@ import {
 import { renderWithProviders } from "./helpers.jsx";
 import { Recruit } from "../src/views/Recruit.jsx";
 import { manageApi } from "../src/api.js";
-import { railItems, railKey } from "../src/lib/rail.js";
 
 afterEach(() => {
   cleanup();
@@ -161,16 +160,6 @@ describe("recruit", () => {
       await screen.findByText(/has not written the clan's pitch yet/),
     ).toBeTruthy();
     expect(screen.queryByLabelText("Public post")).toBeNull();
-  });
-
-  test("the rail offers Recruit to every member", () => {
-    const me = {
-      ok: true,
-      selected: { clan_tag: "#2PQRJ8LV", role: "member" },
-      clans: [{}],
-    };
-    expect(railItems(me).map((r) => r.key)).toContain("recruit");
-    expect(railKey("/clan/2PQRJ8LV/recruit")).toBe("recruit");
   });
 });
 

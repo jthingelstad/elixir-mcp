@@ -7,7 +7,7 @@ import {
   within,
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
-import { RosterTable, ClanHeader } from "../src/views/Clan.jsx";
+import { RosterTable } from "../src/views/Clan.jsx";
 import { Refused, REFUSALS } from "../src/views/Refused.jsx";
 import { Landing } from "../src/views/Landing.jsx";
 import { Disclaimer } from "@elixir-mcp/ui";
@@ -69,23 +69,6 @@ const me = {
 };
 
 describe("the clan page", () => {
-  test("header names the clan and says how current the roster is", () => {
-    render(
-      <ClanHeader
-        clan={poap}
-        roster={{
-          name: "Example Clan",
-          meta: { freshness_seconds: 120, as_of: "2026-09-12T18:00:00Z" },
-        }}
-      />,
-    );
-    expect(
-      screen.getByRole("heading", { name: "Roster", level: 1 }),
-    ).toBeTruthy();
-    expect(screen.getByText("Example Clan")).toBeTruthy();
-    expect(screen.getByText(/as of 2m ago/)).toBeTruthy();
-  });
-
   test("a full clan keeps role order without duplicate headings, with your row marked and the API's coLeader spelled Co-leader", () => {
     const now = Date.parse("2026-09-12T18:00:00Z");
     const members = [
@@ -142,7 +125,7 @@ describe("the clan page", () => {
     expect(container.querySelectorAll("tr[data-you='true']").length).toBe(1);
     expect(screen.getByText("Co-leader")).toBeTruthy();
     expect(screen.queryByText("coLeader")).toBeNull();
-    expect(you.textContent).toContain("60m ago");
+    expect(you.textContent).toContain("Sep 12");
     // A null trophy count is a dash, never a zero.
     const amy = screen.getByText("Amy").closest("tr");
     const cells = [...amy.querySelectorAll("td")].map((td) => td.textContent);
@@ -281,14 +264,6 @@ test("the disclaimer is Supercell's fan-content note", () => {
 });
 
 describe("choosing a clan", () => {
-  test("the roster names its clan in a plain chip: switching is the rail's head", () => {
-    render(<ClanHeader clan={poap} roster={null} navigate={() => {}} />);
-    expect(screen.getByText("Example Clan").className).toBe("chip");
-    // No menu of other clans here any more (Jamie, 2026-10-20).
-    expect(screen.queryByRole("button")).toBeNull();
-    expect(screen.queryByRole("menu")).toBeNull();
-  });
-
   test("the chooser lists verified clans as cards and unverified alts greyed with a Verify link", () => {
     const two = {
       ...me,
@@ -333,7 +308,7 @@ describe("choosing a clan", () => {
     expect(screen.getByText("Third")).toBeTruthy();
     expect(
       screen
-        .getByRole("link", { name: /Verify in Elixir/ })
+        .getByRole("link", { name: /Verify your player/ })
         .getAttribute("href"),
     ).toContain("/console/account/verify");
     expect(screen.queryByText("#RRR", { exact: false })).toBeTruthy();

@@ -1,10 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
-import {
-  MemberActivity,
-  recordedSessions,
-} from "../src/views/MemberActivity.jsx";
+import { MemberActivity } from "../src/views/MemberActivity.jsx";
 import { manageApi } from "../src/api.js";
 import { analyticsLocation, routeLabel } from "../src/analytics.js";
 import { memberPath } from "../src/lib/base.js";
@@ -39,17 +36,15 @@ test("member evidence retains unknowns and continues past an empty filtered page
     .spyOn(manageApi, "memberActivity")
     .mockResolvedValue({ ok: true, status: 200, data });
   renderWithProviders(<MemberActivity clan={clan} playerTag="#9QY" />);
-  await screen.findByRole("heading", { name: /Test member · Activity/ });
+  await screen.findByRole("heading", { name: /Test member/ });
+  // A gap is unknown, in the words of the page's folded note.
   expect(
-    screen.getByText(/No recorded activity does not mean no play/),
+    screen.getByText(/No battle here does not prove no play/),
   ).toBeTruthy();
-  expect(screen.getByText(/Coverage could not be read/)).toBeTruthy();
-  expect(screen.getByText("S136 W4")).toBeTruthy();
-  expect(
-    screen.getByText(/No clan battles recorded on this page/),
-  ).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Older records" }));
-  await screen.findByRole("heading", { name: "Recorded sessions · page 2" });
+  expect(screen.getByText("Season 136, week 4")).toBeTruthy();
+  expect(screen.getByText(/No battle in this clan on this page/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Older battles" }));
+  await screen.findByRole("button", { name: "Newer battles" });
   expect(read).toHaveBeenLastCalledWith(
     clan.clan_tag,
     "#9QY",
@@ -73,25 +68,4 @@ test("member deep links parse and analytics never includes the player tag", () =
       "/api/clan/clans/2PQRJ8LV/members/UQ8LP2R9C/activity?cursor=secret",
     ),
   ).toBe("GET /api/clan/clans/*/members/*/activity");
-});
-test("recorded session groups retain distinct battle modes without pooled results", () => {
-  const rows = [
-    { battle_time: "2026-10-01T12:40:00Z", mode_group: "ranked" },
-    { battle_time: "2026-10-01T12:25:00Z", mode_group: "war" },
-    { battle_time: "2026-10-01T11:00:00Z", mode_group: "casual" },
-  ];
-  expect(recordedSessions(rows).map((s) => s.length)).toEqual([2, 1]);
-  expect(recordedSessions(rows)[0].map((b) => b.mode_group)).toEqual([
-    "ranked",
-    "war",
-  ]);
-});
-
-test("an exact thirty-minute gap starts a new recorded group", () => {
-  expect(
-    recordedSessions([
-      { battle_time: "2026-10-01T12:30:00Z" },
-      { battle_time: "2026-10-01T12:00:00Z" },
-    ]).map((g) => g.length),
-  ).toEqual([1, 1]);
 });

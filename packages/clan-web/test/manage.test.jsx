@@ -3,7 +3,7 @@ import { cleanup, screen, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { parseClanPath } from "../src/App.jsx";
 import { Standing } from "../src/views/Standing.jsx";
-import { Manage } from "../src/views/Manage.jsx";
+import { Review } from "../src/views/Manage.jsx";
 import { manageApi } from "../src/api.js";
 
 afterEach(() => {
@@ -21,7 +21,7 @@ const poap = {
   your_tags: ["#20QQL8CCRU"],
 };
 
-test("Board distinguishes all four removal triage labels without describing protected or recently active members as evidence-held cases", async () => {
+test("Review counts all four removal triage readings, and lists only who is near an action", async () => {
   const statuses = ["protected", "not_candidate", "evidence_held", "eligible"];
   vi.spyOn(manageApi, "manage").mockResolvedValue({
     ok: true,
@@ -60,37 +60,29 @@ test("Board distinguishes all four removal triage labels without describing prot
     },
   });
   renderWithProviders(
-    <Manage
-      clan={poap}
-      tab="board"
-      who={{ player_tag: poap.acting_as, role: "leader" }}
-    />,
+    <Review clan={poap} who={{ player_tag: poap.acting_as, role: "leader" }} />,
   );
-  await waitFor(() => expect(screen.getByText("Invented 0")).toBeTruthy());
-  for (const label of [
-    "Protected",
-    "Not currently a removal candidate",
-    "Waiting on the record",
-    "Eligible",
-  ])
-    expect(screen.getByText(label, { exact: true })).toBeTruthy();
-  expect(screen.getByLabelText("Removal triage").textContent).toMatch(
-    /Protected 1 · Not currently a removal candidate 1 · Waiting on the record 1 · Eligible 1/,
+  await waitFor(() => expect(screen.getByText("Invented 2")).toBeTruthy());
+  const page = document.body.textContent;
+  expect(page).toMatch(
+    /1 protected by their role or a hold, 1 not close, 1 with too little to go on, 1 past the removal day/,
   );
-  expect(
-    screen.getByLabelText("Elder, waiting on the record").textContent,
-  ).toMatch(/Promotion 2 · Demotion 1/);
-  const groups = screen.getByRole("navigation", { name: "Board groups" });
-  expect(groups.querySelector('a[href="#board-held"]').textContent).toBe(
-    "Waiting on the record · 1",
+  expect(page).toMatch(/promotion 2, demotion 1/);
+  const sections = screen.getByRole("navigation", { name: "Review sections" });
+  expect(sections.querySelector('a[href="#board-held"]').textContent).toBe(
+    "Too little to go on · 1",
   );
-  expect(screen.getByRole("region", { name: "Clear members" })).toBeTruthy();
-  expect(screen.getByText("Explanation 0")).toBeTruthy();
-  expect(screen.getByText("Explanation 1")).toBeTruthy();
+  expect(sections.querySelector('a[href="#board-clear"]').textContent).toBe(
+    "Clear · 2",
+  );
+  // Nobody clear is listed: only the count, and the way to the Roster.
+  expect(screen.queryByText("Invented 0")).toBeNull();
+  expect(screen.getByText("Removal: Explanation 2")).toBeTruthy();
+  expect(screen.getByText("Removal: Explanation 3")).toBeTruthy();
   expect(screen.queryByText("held · activity unknown")).toBeNull();
 });
 
-test("the board shows every held or unknown reason, including simultaneous dimensions", async () => {
+test("Review shows every held or unknown reason, including simultaneous dimensions", async () => {
   const reasons = [
     "Promotion: tenure unknown because the join predates the record.",
     "Removal held: no recorded battle or observed join anchors the clock.",
@@ -130,34 +122,30 @@ test("the board shows every held or unknown reason, including simultaneous dimen
     },
   });
   renderWithProviders(
-    <Manage
-      clan={poap}
-      tab="board"
-      who={{ player_tag: poap.acting_as, role: "leader" }}
-    />,
+    <Review clan={poap} who={{ player_tag: poap.acting_as, role: "leader" }} />,
   );
   await waitFor(() => expect(screen.getByText("Held member")).toBeTruthy());
-  expect(screen.getByText(reasons.join(" "))).toBeTruthy();
+  for (const reason of reasons) expect(screen.getByText(reason)).toBeTruthy();
 });
 
 describe("clan paths", () => {
-  test("parse the tag, the section and the manage tab", () => {
+  test("parse the tag, the section and the page", () => {
     expect(parseClanPath("/clan/2PQRJ8LV")).toEqual({
       tag: "#2PQRJ8LV",
-      section: "roster",
+      section: null,
       tab: null,
     });
-    expect(parseClanPath("/clan/2pqrj8lv/manage/board")).toEqual({
+    expect(parseClanPath("/clan/2pqrj8lv/members/review")).toEqual({
       tag: "#2PQRJ8LV",
-      section: "manage",
-      tab: "board",
+      section: "members",
+      tab: "review",
     });
-    expect(parseClanPath("/clan/2PQRJ8LV/standing")).toEqual({
+    expect(parseClanPath("/clan/2PQRJ8LV/season")).toEqual({
       tag: "#2PQRJ8LV",
-      section: "standing",
+      section: "season",
       tab: null,
     });
-    // Elixir Clan publishes no public pages (Jamie, 2026-09-25).
+    // Clan publishes no public pages (Jamie, 2026-09-25).
     expect(parseClanPath("/clan/2PQRJ8LV/how-elder-works")).toBeNull();
     expect(parseClanPath("/clan/2PQRJ8LV/nope")).toBeNull();
   });
@@ -237,14 +225,13 @@ describe("standing", () => {
     // War decks per race, out of the decks asked, in words for a reader.
     expect(
       screen.getByRole("img", {
-        name: "Amy's war decks: 135/3 12 of 16, 135/4 9 of 12",
+        name: "Amy's war decks: Season 135, week 4 12 of 16, Season 135, week 5 9 of 12",
       }),
     ).toBeTruthy();
     const you = screen.getByRole("region", { name: "You" });
     expect(you.textContent).toMatch(/Rising/);
     expect(you.textContent).toMatch(/28 of 28/);
-    expect(you.textContent).toMatch(/Races 135\/3 to 135\/4\./);
-    expect(screen.getByText(/War decks count here/)).toBeTruthy();
+    expect(you.textContent).toMatch(/Season 135, week 4 to Season 135, week 5/);
     expect(screen.getByText("How it works here")).toBeTruthy();
     expect(screen.getByText(/Clan Wars 100%/)).toBeTruthy();
     expect(document.querySelector("tr[data-you='true']")).toBeTruthy();
@@ -314,7 +301,7 @@ describe("standing", () => {
     expect(screen.getByText("policy v3")).toBeTruthy();
     expect(screen.getByText(/Read the policy in full/)).toBeTruthy();
     expect(document.body.textContent).toMatch(
-      /Leaders and co-leaders are not banded\./,
+      /Leaders and co-leaders have no group\./,
     );
   });
 
@@ -369,6 +356,6 @@ describe("below 10 members", () => {
         screen.getByText("Clan management starts at 10 members"),
       ).toBeTruthy(),
     );
-    expect(screen.getByText(/This clan has 6\./)).toBeTruthy();
+    expect(screen.getByText(/so\s+Standing waits/)).toBeTruthy();
   });
 });

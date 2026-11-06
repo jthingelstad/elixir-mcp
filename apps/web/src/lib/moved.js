@@ -1,3 +1,5 @@
+import { clanMoved } from "@elixir-mcp/clan-web/lib/moved.js";
+
 /**
  * Every address that moved, and every partial address that means a page: the
  * one map (redesign step 3b, 2026-11-06). The root route reads it and nothing
@@ -43,5 +45,5 @@ export const REDIRECTS = {
  *  means the same address. */
 export function movedTo(pathname) {
   const path = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
-  return REDIRECTS[path] ?? null;
+  return REDIRECTS[path] ?? clanMoved(path);
 }

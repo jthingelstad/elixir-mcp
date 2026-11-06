@@ -20,7 +20,7 @@ awards.
 
 ## Who writes it
 
-The leader and co-leaders, under **Manage ▸ Policy**, once their player
+The leader and co-leaders, under **Run**, once their player
 is [verified](/docs/verify). Leaders can prepare and save a policy at any
 clan size; the small-clan roster page offers leaders **Prepare policy** alongside
 **Open Recruit**. Operational reviews, Actions, standing and awards remain paused
@@ -31,8 +31,8 @@ Every member reads an active policy on
 
 ## Starting points
 
-The **About** tab starts from what the clan is for. Pick one and every
-tab is filled from it, yours to change before you save:
+The **About** section starts from what the clan is for. Pick one and every
+section is filled from it, yours to change before you save:
 
 | Starting point | Counts | How strict |
 |---|---|---|
@@ -51,7 +51,7 @@ those tabs before saving. Changing How strict alone does not retune fields alrea
 in the draft.
 
 **Clan War participation** comes first on About and in the **Draft agreement**
-summary, and the **Clan Wars** tab links back to it. It records the leaders'
+summary, and the **Clan Wars** section links back to it. It records the leaders'
 intent: participating, not participating, or not specified, which is where a
 policy starts. It is separate from **Count Clan Wars**, which controls scoring
 and minimums; starting points and category switches never set or change it.
@@ -76,7 +76,7 @@ scheduled war-deck check; other agent content keeps its own rules.
 | Arrivals and departures | **Ask about departures** and **Suggest welcoming newcomers** |
 | Announcements | **Announce each season's awards** and **Tell the clan when the rules change** |
 
-A tab that is off shows only its switch; turning it on fills it from the
+A section that is off shows only its switch; turning it on fills it from the
 clan's How strict. Every setting carries a line saying what it does.
 [Standing](/docs/standing) explains what the categories, minimums and
 band mean.
@@ -129,7 +129,7 @@ not an exact forecast of pending Actions. Editing any setting clears it.
 
 Saving makes a new version; the first is version 1. Add a line on why,
 if you like; the versions list keeps who saved each and when. A setting
-out of range is refused, with the tab that holds it opened and the
+out of range is refused, with the section that holds it opened and the
 field marked. The clan is read afresh under the new version, which can
 raise or withdraw pending Actions at the next evaluation, including reviews
 of recorded weeks. Completed decisions and saved award grants stay as
@@ -150,9 +150,9 @@ saying how the clan runs the first time, and what changed after.
 
 ## The leaders pages
 
-Under **Manage**, beside the policy:
+Under **Members** and **Today**:
 
-- **Member review**: every member as the policy reads them today, grouped as
+- **Review**: every member as the policy reads them today, grouped as
   actionable, building, held or clear. Group links jump to the members;
   held promotion and demotion counts are separate from removal evidence.
   The inactivity clock shows here as triage for every member
@@ -160,24 +160,24 @@ Under **Manage**, beside the policy:
   Open a member for their evidence,
   a note, and a **hold**, which shields removal eligibility for a member
   who said they will be away, until a date or until cleared.
-- **Decisions**: the joins, leaves and role changes the record saw, with
+- **Decided**, under Today: the joins, leaves and role changes the record saw, with
   how each leave was answered; every action the clan has had, with its
   outcome and who decided it; and the holds.
 - **Scout**: paste an applicant's tag and see their numbers; with a
   policy, also whether they would meet its minimums today. Elders see it
   too, and it works before a policy.
 
-Awards have pages of their own that every member sees, **Award races** and
-**Award history**; the leaders set the awards up and grant leaders' picks on
-Award races ([Awards and trophies](/docs/clan-awards)).
+**Awards** is a tab every member sees; the leaders set the awards up under
+**Run ▸ Awards setup** and grant leaders' picks on the tab
+([Awards and trophies](/docs/clan-awards)).
 
 ## Clan settings
 
-**Manage ▸ Settings** holds what belongs to the whole clan, with or
-without a policy. Each row shows its current state; **Manage** opens its
-editor in a drawer. **Monthly cap** has its own **Change** control.
-Recording and visibility details expand below the rows. Closing a drawer
-does not save it:
+**Run ▸ Clan settings**, **Run ▸ Discord** and **Run ▸ Model & voice** hold
+what belongs to the whole clan, with or without a policy, and each setting
+saves on its own. Only the leader and co-leaders open Run; a member who
+follows an old link to it lands on [Standing](/docs/standing), or the roster
+when the clan has no policy yet:
 
 - **What Clan records in Elixir**: the kinds of facts shared
   with Elixir, when each is shared and who sees it there. Kicks and
@@ -188,9 +188,8 @@ does not save it:
 - **Member map**: the clan map, where members add a city or region and see
   each other's local time. Only the clan's members with a verified player here see it, and
   it stays out of the game record. Only the leader and co-leaders can change
-  whether the member map is on; other members opening Settings
-  directly can read that status without a switch. The clan's activity
-  channel is Social's own page in the rail, not a setting here ([The
+  whether the member map is on. The clan's activity
+  channel is under **Run ▸ Discord** ([The
   clan's activity in Discord](#the-clans-activity-in-discord)).
 - **Actions in Discord**: a webhook from one of the clan's Discord channels.
   Each open action leaders or elders can take is posted there and
@@ -216,7 +215,7 @@ does not save it:
   Everything it writes is a draft a leader edits and copies into the
   game, marked where it carries a number or a name it was not given. It
   never makes or completes a decision.
-  Clan chooses the model for each use, and Settings shows which:
+  Clan chooses the model for each use, and **Model & voice** shows which:
   Claude Opus 5.5 drafts the recruiting pitch and the messages on
   Actions, and Claude Sonnet 5.5 edits the activity channel.
   When the key cannot reach that model, the use takes the other of the
@@ -251,7 +250,7 @@ does not save it:
 
 ## The clan's activity in Discord
 
-**Social ▸ Discord**, a page in the rail for the leader and co-leaders,
+**Run ▸ Discord**, for the leader and co-leaders,
 with or without a policy, shows the activity channel, what is posted and its
 voice as current-state rows. **Manage** opens each editor; closing discards
 unsaved text. Leaders connect a webhook of its own: not the one Actions go to, and not

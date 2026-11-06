@@ -28,14 +28,13 @@ describe("spread the word", () => {
       />,
     );
     expect(screen.getByText("Invite your leaders")).toBeTruthy();
-    expect(screen.getByText(/each with its own log/)).toBeTruthy();
     const [line] = screen.getAllByRole("button", {
       name: "Copy for clan chat",
     });
     fireEvent.click(line);
     await waitFor(() => expect(write).toHaveBeenCalled());
     const text = write.mock.calls[0][0];
-    expect(text).toMatch(/^Leaders: I use Elixir Clan/);
+    expect(text).toMatch(/^Leaders: I use Elixir/);
     expect(text).toMatch(/Example Clan/);
     expect(text.length).toBeLessThanOrEqual(200);
     expect(text).not.toMatch(/https?:|&|\+\d/);
@@ -51,6 +50,7 @@ describe("spread the word", () => {
       />,
     );
     expect(screen.getByText("Set up how the clan runs")).toBeTruthy();
+    expect(screen.getByText(/each with its own log/)).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "Set up the policy" }),
     ).toBeTruthy();
@@ -67,7 +67,7 @@ describe("spread the word", () => {
     expect(
       screen.getByText("Clan management starts at 10 members"),
     ).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Open Recruit ›" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open Recruit" })).toBeTruthy();
   });
 
   test("small-clan leaders can prepare policy, while members keep the recruiting path", () => {
@@ -81,14 +81,14 @@ describe("spread the word", () => {
           navigate={navigate}
         />,
       );
-      expect(screen.getByRole("link", { name: "Open Recruit ›" })).toBeTruthy();
-      const link = screen.queryByRole("link", { name: "Prepare policy" });
+      expect(screen.getByRole("link", { name: "Open Recruit" })).toBeTruthy();
+      const link = screen.queryByRole("link", { name: "Prepare the policy" });
       if (["leader", "coLeader"].includes(role)) {
-        expect(link.getAttribute("href")).toBe("/clan/2PQRJ8LV/manage/policy");
+        expect(link.getAttribute("href")).toBe("/clan/2PQRJ8LV/run/about");
         fireEvent.click(link);
-        expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/manage/policy");
+        expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/run/about");
         expect(
-          screen.getByText(/operational management still waits for 10 members/),
+          screen.getByText(/Leaders can prepare and save the policy now/),
         ).toBeTruthy();
       } else expect(link).toBeNull();
       cleanup();

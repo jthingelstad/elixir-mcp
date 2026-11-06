@@ -28,6 +28,98 @@ export function spreadState({ me, clan, roster }) {
   return null;
 }
 
+/** Below ten: what waits, and how to get there. */
+export function SmallClan({ clan, members, min = MIN_MEMBERS, navigate }) {
+  const base = clanPath(clan.clan_tag);
+  const go = (path) => (e) => {
+    e.preventDefault();
+    navigate?.(path);
+  };
+  const lead = LEADERS.has(clan.role) && clan.verified !== false;
+  const recruit = `${base}/members/recruit`;
+  const policy = `${base}/run/about`;
+  return (
+    <Panel as="div" title={`Clan management starts at ${min} members`}>
+      <div className="panel__body grid gap-2">
+        <p className="m-0">
+          This clan has {members}. Until it has {min}, Clan shows the roster and
+          every member&rsquo;s numbers. The policy, actions, standing and awards
+          wait, and a saved policy picks up again at {min}.
+        </p>
+        {lead ? (
+          <p className="m-0">Leaders can prepare and save the policy now.</p>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <a className="btn btn--sm" href={recruit} onClick={go(recruit)}>
+            Open Recruit
+          </a>
+          {lead ? (
+            <a className="btn btn--sm" href={policy} onClick={go(policy)}>
+              Prepare the policy
+            </a>
+          ) : null}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+/** A leader's way in: nothing runs until a policy. */
+export function SetupPolicy({ clan, navigate }) {
+  const to = `${clanPath(clan.clan_tag)}/run/about`;
+  return (
+    <Panel as="div" title="Set up how the clan runs">
+      <div className="panel__body grid gap-2">
+        <p className="m-0">
+          Nothing in clan management runs until a leader saves a policy. Start
+          from what the clan is for (a war clan, a social clan and so on) and
+          tune from there. Saving it turns on:
+        </p>
+        <ul className="m-0 pl-[18px]">
+          {TURNS_ON.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+        <a
+          className="btn btn--primary w-fit"
+          href={to}
+          onClick={(e) => {
+            e.preventDefault();
+            navigate?.(to);
+          }}
+        >
+          Set up the policy
+        </a>
+      </div>
+    </Panel>
+  );
+}
+
+/** Anyone else's: the leaders have not set it up, and a line to ask them. */
+export function InviteLeaders({ clan, name }) {
+  const link =
+    typeof window !== "undefined" ? `${window.location.origin}${CLAN}` : "";
+  return (
+    <Panel as="div" title="Invite your leaders">
+      <div className="panel__body grid gap-2">
+        <p className="m-0">
+          Your clan&rsquo;s leaders have not set it up here yet. When a leader
+          or co-leader does, everyone gets how the clan runs and where they
+          stand.
+        </p>
+        <div className="label">A line for clan chat</div>
+        <CopyLine
+          text={inviteCopy("leaders", { clanName: name ?? clan.name ?? null })}
+          event="clan.invite_copied"
+          value="leaders"
+        />
+        <div className="label">The link, for Discord or a message</div>
+        <CopyLine text={link} event="clan.invite_copied" value="link" />
+      </div>
+    </Panel>
+  );
+}
+
 /**
  * Spread the word (round 5, 2026-09-25): the one panel on the clan page
  * that fits where the clan is. Below 10 members, Recruit helps it reach
@@ -50,85 +142,9 @@ export function SpreadWord({ me, clan, roster, navigate }) {
   const name = roster?.name ?? clan.name ?? null;
 
   if (state === "small")
-    return (
-      <Panel as="div">
-        <div className="panel__head">
-          Clan management starts at {MIN_MEMBERS} members
-        </div>
-        <div className="panel__body grid gap-2">
-          <p className="m-0">
-            This clan has {members}. Until it has {MIN_MEMBERS}, Clan is your
-            clan&rsquo;s statistics; Recruit writes the words to help it grow.
-          </p>
-          <a href={`${base}/recruit`} onClick={go(`${base}/recruit`)}>
-            Open Recruit ›
-          </a>
-          {LEADERS.has(clan.role) ? (
-            <>
-              <p className="m-0">
-                Leaders can prepare and save the policy now; operational
-                management still waits for {MIN_MEMBERS} members.
-              </p>
-              <a
-                href={`${base}/manage/policy`}
-                onClick={go(`${base}/manage/policy`)}
-              >
-                Prepare policy
-              </a>
-            </>
-          ) : null}
-        </div>
-      </Panel>
-    );
-
-  if (state === "setup")
-    return (
-      <Panel as="div" title="Set up how the clan runs" titleAs="div">
-        <div className="panel__body grid gap-2">
-          <p className="m-0">
-            Nothing in clan management runs until a leader saves a policy. Start
-            from what the clan is for (a war clan, a social clan and so on) and
-            tune from there. Saving it turns on:
-          </p>
-          <ul className="m-0 pl-[18px]">
-            {TURNS_ON.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ul>
-          <a
-            className="btn btn--primary w-fit"
-            href={`${base}/manage/policy`}
-            onClick={go(`${base}/manage/policy`)}
-          >
-            Set up the policy
-          </a>
-        </div>
-      </Panel>
-    );
-  if (state === "invite")
-    return (
-      <Panel as="div" title="Invite your leaders" titleAs="div">
-        <div className="panel__body grid gap-2">
-          <p className="m-0">
-            Your clan&rsquo;s leaders have not set it up here yet. When a leader
-            or co-leader does, everyone gets:
-          </p>
-          <ul className="m-0 pl-[18px]">
-            {TURNS_ON.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ul>
-          <div className="label">A line for clan chat</div>
-          <CopyLine
-            text={inviteCopy("leaders", { clanName: name })}
-            event="clan.invite_copied"
-            value="leaders"
-          />
-          <div className="label">The link, for Discord or a message</div>
-          <CopyLine text={link} event="clan.invite_copied" value="link" />
-        </div>
-      </Panel>
-    );
+    return <SmallClan clan={clan} members={members} navigate={navigate} />;
+  if (state === "setup") return <SetupPolicy clan={clan} navigate={navigate} />;
+  if (state === "invite") return <InviteLeaders clan={clan} name={name} />;
 
   if (state === "active")
     return (
@@ -163,7 +179,10 @@ export function SpreadWord({ me, clan, roster, navigate }) {
           />
           <div className="label">The link, for Discord or a message</div>
           <CopyLine text={link} event="clan.invite_copied" value="link" />
-          <a href={`${base}/recruit`} onClick={go(`${base}/recruit`)}>
+          <a
+            href={`${base}/members/recruit`}
+            onClick={go(`${base}/members/recruit`)}
+          >
             Recruit writes the pitch ›
           </a>
         </div>

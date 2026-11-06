@@ -45,7 +45,7 @@ Season 137, week 4". Everything sends at 14:00 UTC.
 
 Battles in the clan report and in Your friends this week count what was
 played in the game week by `battle_time`, each battle once, boat defenses
-out: the same number as [The week](/docs/clan-week) in Clan. Times in mail
+out: the same number as [a week in Season](/docs/clan-week). Times in mail
 are written like the rest of Elixir ("Sat 8:42 pm", "Fri Oct 23, 5:07 pm")
 in your own time zone, with "UTC" beside them when no zone is set.
 

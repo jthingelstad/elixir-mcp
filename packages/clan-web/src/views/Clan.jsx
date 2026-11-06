@@ -1,21 +1,27 @@
-import { useInitialTime, Panel, Empty } from "@elixir-mcp/ui";
 import {
-  Fresh,
+  Empty,
   Icon,
   Link,
+  Panel,
+  Table,
+  Tag,
   ZoneProvider,
   ago,
-  useClock,
   noun,
-  Tag,
-  Table,
+  useClock,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useRoster } from "../lib/queries.js";
 import { ELIXIR_LINKS } from "../lib/links.js";
-import { SpreadWord, spreadState } from "../components/SpreadWord.jsx";
+import {
+  InviteLeaders,
+  SpreadWord,
+  spreadState,
+} from "../components/SpreadWord.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
 import { CLAN, clanPath, memberPath } from "../lib/base.js";
+import { ordinal, seasonWeek } from "../lib/words.js";
+import { leads } from "../lib/tabs.js";
 
 const ROLE_ORDER = ["leader", "coLeader", "elder", "member"];
 const ROLE_COUNT = {
@@ -28,34 +34,25 @@ const TYPE = {
   inviteOnly: "Invite only",
   closed: "Closed",
 };
-const LEADERS = new Set(["leader", "coLeader"]);
 /** Above this many members the roster opens on the first SHOWN rows and
  *  offers the rest, as the canvas does. */
 const LONG = 30;
 const SHOWN = 25;
 
 const num = (v) => (v == null ? "—" : Number(v).toLocaleString());
-const ordinal = (k) => {
-  const s = ["th", "st", "nd", "rd"];
-  const v = k % 100;
-  return `${k}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
-};
 
 /** The roster, grouped by role, your row marked. Every column is what the
  *  tool answered; a null is shown as a dash, never as zero. `limit` shows
  *  the first rows in role order and offers the rest. */
 export function RosterTable({
   members,
-  now,
   limit = null,
   onMore,
   clanTag,
   navigate,
   search = "",
 }) {
-  // Captured once per mount; a clock read during render is unstable.
-  const [mounted] = useInitialTime();
-  const at = now ?? mounted;
+  const { when } = useClock();
   const shown = limit === null ? members : members.slice(0, limit);
   const hidden = members.slice(shown.length);
   const groups = [...ROLE_ORDER, ...new Set(members.map((m) => m.role))]
@@ -70,108 +67,115 @@ export function RosterTable({
     .map((m) => m.trophies)
     .filter((t) => t !== null && t !== undefined);
   return (
-    <Table
-      groups={groups.map(([role, rows]) => ({ key: role, rows }))}
-      rowKey={(m) => m.player_tag}
-      rowProps={(m) => ({
-        "data-you": m.you ? "true" : undefined,
-        className: m.you ? "bg-panel-raised" : undefined,
-      })}
-      columns={[
-        {
-          head: "Member",
-          cellProps: (m) => ({ title: m.player_tag }),
-          cell: (m) => (
-            <span className="inline-flex items-center gap-2">
-              <span
-                className={
-                  m.you ? "font-semibold text-ink" : "font-medium text-ink"
-                }
-              >
-                {clanTag ? (
-                  <Link
-                    to={
-                      memberPath(clanTag, m.player_tag) +
-                      (search
-                        ? `?${new URLSearchParams({ find: search })}`
-                        : "")
-                    }
-                    navigate={navigate}
-                  >
-                    {m.name ?? <Tag tag={m.player_tag} />}
-                  </Link>
-                ) : (
-                  (m.name ?? <Tag tag={m.player_tag} />)
-                )}
-              </span>
-              {m.you ? (
-                <span className="chip chip--info px-2 py-0 text-[11px]">
-                  you
+    <div className="clan-rows">
+      <Table
+        groups={groups.map(([role, rows]) => ({ key: role, rows }))}
+        rowKey={(m) => m.player_tag}
+        rowProps={(m) => ({
+          "data-you": m.you ? "true" : undefined,
+          className: m.you ? "bg-panel-raised" : undefined,
+        })}
+        columns={[
+          {
+            head: "Member",
+            cellProps: (m) => ({ title: m.player_tag }),
+            cell: (m) => (
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className={
+                    m.you ? "font-semibold text-ink" : "font-medium text-ink"
+                  }
+                >
+                  {clanTag ? (
+                    <Link
+                      to={
+                        memberPath(clanTag, m.player_tag) +
+                        (search
+                          ? `?${new URLSearchParams({ find: search })}`
+                          : "")
+                      }
+                      navigate={navigate}
+                    >
+                      {m.name ?? <Tag tag={m.player_tag} />}
+                    </Link>
+                  ) : (
+                    (m.name ?? <Tag tag={m.player_tag} />)
+                  )}
                 </span>
-              ) : null}
-            </span>
-          ),
-        },
-        {
-          head: "Role",
-          cell: (m) => (
-            <span className="text-ink-dim">{m.role_label ?? m.role}</span>
-          ),
-        },
-        { head: "Trophies", num: true, cell: (m) => num(m.trophies) },
-        {
-          head: "Donations this week",
-          num: true,
-          cell: (m) => num(m.donations_this_week),
-        },
-        {
-          head: "Last seen in game",
-          cellProps: (m) => ({ title: m.last_seen_in_game ?? undefined }),
-          cell: (m) =>
-            m.last_seen_in_game ? (
-              ago(m.last_seen_in_game, at)
-            ) : (
-              <span className="nil">—</span>
+                {m.you ? (
+                  <span className="chip chip--info px-2 py-0 text-[11px]">
+                    you
+                  </span>
+                ) : null}
+              </span>
             ),
-        },
-        {
-          head: "Last recorded battle",
-          cellProps: (m) => ({ title: m.last_recorded_battle ?? undefined }),
-          cell: (m) =>
-            m.last_recorded_battle ? (
-              ago(m.last_recorded_battle, at)
-            ) : (
-              <span className="nil">—</span>
+          },
+          {
+            head: "Role",
+            cellProps: () => ({ "data-label": "Role" }),
+            cell: (m) => (
+              <span className="text-ink-dim">{m.role_label ?? m.role}</span>
             ),
-        },
-      ]}
-      foot={
-        hidden.length ? (
-          <button
-            type="button"
-            className="btn btn--sm btn--quiet"
-            onClick={onMore}
-          >
-            <Icon name="chevron-down" size={14} />
-            {hidden.length} more {hidden.length === 1 ? "member" : "members"}
-            {floor.length
-              ? `, down to ${num(Math.min(...floor))} trophies`
-              : ""}
-          </button>
-        ) : null
-      }
-    />
+          },
+          {
+            head: "Trophies",
+            num: true,
+            cellProps: () => ({ "data-label": "Trophies" }),
+            cell: (m) => num(m.trophies),
+          },
+          {
+            head: "Donations this week",
+            num: true,
+            cellProps: () => ({ "data-label": "Donated this week" }),
+            cell: (m) => num(m.donations_this_week),
+          },
+          {
+            head: "Last seen in game",
+            cellProps: () => ({ "data-label": "Last seen" }),
+            cell: (m) =>
+              m.last_seen_in_game ? (
+                when(m.last_seen_in_game)
+              ) : (
+                <span className="nil">—</span>
+              ),
+          },
+          {
+            // A date, never a day count: the count is a member's own, and leaders'
+            // on Review (Q2).
+            head: "Last battle",
+            cellProps: () => ({ "data-label": "Last battle" }),
+            cell: (m) =>
+              m.last_recorded_battle ? (
+                when(m.last_recorded_battle)
+              ) : (
+                <span className="nil">—</span>
+              ),
+          },
+        ]}
+        foot={
+          hidden.length ? (
+            <button
+              type="button"
+              className="btn btn--sm btn--quiet"
+              onClick={onMore}
+            >
+              <Icon name="chevron-down" size={14} />
+              {hidden.length} more {hidden.length === 1 ? "member" : "members"}
+              {floor.length
+                ? `, down to ${num(Math.min(...floor))} trophies`
+                : ""}
+            </button>
+          ) : null
+        }
+      />
+    </div>
   );
 }
 
-export function ClanHeader({ clan, roster, navigate }) {
-  const clanName = roster?.name ?? clan.name ?? <Tag tag={clan.clan_tag} />;
+function ClanHeader({ roster }) {
   return (
     <PageHead
-      clan={clan}
-      name={clanName}
       title="Roster"
-      breadcrumb={false}
       lede={
         roster
           ? [
@@ -184,23 +188,7 @@ export function ClanHeader({ clan, roster, navigate }) {
               .join(" · ")
           : null
       }
-      navigate={navigate}
-      fresh={
-        roster?.meta ? (
-          <Fresh
-            label="as of"
-            seconds={roster.meta.freshness_seconds}
-            ts={roster.meta.as_of}
-          />
-        ) : null
-      }
-    >
-      {/* The clan's name; switching clans is the rail's head, the Clan
-          picker (Jamie, 2026-10-20). */}
-      <div>
-        <span className="chip">{clanName}</span>
-      </div>
-    </PageHead>
+    />
   );
 }
 
@@ -233,14 +221,18 @@ function ClanTiles({ roster }) {
           value={num(roster.clan_war_trophies)}
           hint={
             race
-              ? `${ordinal(race.rank)} in race ${race.season_id}/${race.section_index}${change}`
+              ? `${ordinal(race.rank)} in ${seasonWeek(race)}${change}`
               : undefined
           }
         />
       ) : null}
       {roster.donations_per_week !== null &&
       roster.donations_per_week !== undefined ? (
-        <Tile label="Donations a week" value={num(roster.donations_per_week)} />
+        <Tile
+          label="Donations a week"
+          value={num(roster.donations_per_week)}
+          hint="From the game's clan card"
+        />
       ) : null}
     </Tiles>
   );
@@ -259,9 +251,8 @@ const COMING = {
 function Comings({ roster, clan, history, navigate }) {
   const { when } = useClock();
   const base = clanPath(clan.clan_tag);
-  // History is the leaders' (the rail's Manage group); everyone else
-  // reads the same comings and goings week by week.
-  const more = history ? `${base}/manage/history` : `${base}/week`;
+  // Decided is the leaders'; everyone else reads the same week by week.
+  const more = history ? `${base}/today/decided` : `${base}/season`;
   const go = (path) => (e) => {
     e.preventDefault();
     navigate?.(path);
@@ -284,7 +275,7 @@ function Comings({ roster, clan, history, navigate }) {
     if (e.type === "member_joined")
       return cameBack(e) ? <>{who} came back</> : <>{who} joined</>;
     if (e.type === "member_left") return <>{who} departed</>;
-    return `Finished ${ordinal(e.rank)} in ${e.is_colosseum ? "the Colosseum, " : ""}race ${e.season_id}/${e.section_index}${e.fame !== null ? ` with ${num(e.fame)} fame` : ""}`;
+    return `Finished ${ordinal(e.rank)}${e.is_colosseum ? " in the Colosseum" : ""}, ${seasonWeek(e)}${e.fame !== null ? `, with ${num(e.fame)} fame` : ""}`;
   };
   const rows = (roster.comings ?? []).filter(
     (e) => e.type !== "week_resolved" || e.rank !== null,
@@ -296,7 +287,7 @@ function Comings({ roster, clan, history, navigate }) {
           Comings and goings
         </h2>
         <a className="text-[13px] font-normal" href={more} onClick={go(more)}>
-          {history ? "History ›" : "The week ›"}
+          {history ? "Who came and went, on Today" : "Open Season"}
         </a>
       </div>
       <div className="px-4 py-1">
@@ -335,18 +326,16 @@ function Comings({ roster, clan, history, navigate }) {
   );
 }
 
-/** The one page. Reads /api/roster once per mount; the API caches it per
- *  session for a few minutes, and "Check again" is rate-limited there.
- *  `path` is the address it is on (the clan's own or its `/roster`),
- *  which a search keeps. */
-export function Clan({ me, clan, navigate, search, path = null }) {
+/** The roster. Reads /api/roster once per mount; the API caches it per session
+ *  for a few minutes, and "Check again" is rate-limited there. `search` is the
+ *  address's own (`/members?find=`), which Members' row writes. */
+export function Clan({ me, clan, navigate, search = "", fromRun = false }) {
   const tag = clan.clan_tag;
   const gated = useRoster(tag);
   const state = { ...gated.state, roster: gated.state.data };
   const load = gated.load;
   const [all, setAll] = useState(false);
-  const [localFind, setFind] = useState("");
-  const find = search ?? localFind;
+  const find = search;
 
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -367,21 +356,35 @@ export function Clan({ me, clan, navigate, search, path = null }) {
     : members;
   const limit = !q && !all && members.length > LONG ? SHOWN : null;
   const policy = me.policy ?? null;
-  const history =
-    LEADERS.has(clan.role) && (policy?.active ?? policy?.set === true);
+  const history = leads(clan) && (policy?.active ?? policy?.set === true);
 
   return (
     <ZoneProvider zone={roster?.meta?.timezone_applied ?? null}>
-      <ClanHeader clan={clan} roster={roster} navigate={navigate} />
-      {state.loading && !roster ? (
-        <p className="page__lede">Reading the roster from Elixir…</p>
-      ) : state.error ? (
-        <div className="callout callout--warn" role="alert">
-          <span>
-            Elixir did not answer the roster read. Nothing is stored here to
-            fall back on; try again in a minute.
-          </span>
+      <ClanHeader roster={roster} />
+      {fromRun ? (
+        <div className="mb-[22px]">
+          <div className="callout callout--info mb-3" role="status">
+            <span>
+              Run is for the leader and co-leaders, and this clan has no policy
+              to read yet.
+            </span>
+          </div>
+          <InviteLeaders clan={clan} name={roster?.name} />
         </div>
+      ) : null}
+      {state.loading && !roster ? (
+        <p className="page__lede">Reading the roster…</p>
+      ) : state.error ? (
+        <Empty
+          title="Elixir did not answer the roster read"
+          action={
+            <button type="button" className="btn" onClick={() => load()}>
+              Try again
+            </button>
+          }
+        >
+          Nothing is stored here to fall back on; try again in a minute.
+        </Empty>
       ) : roster?.not_recorded ? (
         <Empty
           title={
@@ -392,18 +395,18 @@ export function Clan({ me, clan, navigate, search, path = null }) {
           }
           action={
             <Link className="btn btn--primary" to={ELIXIR_LINKS.tracking}>
-              Elixir → Tracking ›
+              Start tracking {clan.name ?? roster.clan_tag}
             </Link>
           }
         >
           Your player is in this clan, but the clan itself is not on
-          Elixir&rsquo;s record, so there is no roster to read. Add it under
-          Elixir → Tracking (clans), and the roster arrives with the first read.
+          Elixir&rsquo;s record, so there is no roster to read. Add it in
+          Settings, and the roster arrives with the first read.
         </Empty>
       ) : roster ? (
         <>
           <ClanTiles roster={roster} />
-          {spread && spread !== "active" ? (
+          {!fromRun && spread && spread !== "active" ? (
             <div className="mb-[22px]">
               <SpreadWord
                 me={me}
@@ -413,37 +416,11 @@ export function Clan({ me, clan, navigate, search, path = null }) {
               />
             </div>
           ) : null}
-          <div className="grid gap-6 items-start">
+          <div className="grid gap-4 items-start">
             <Panel className="min-w-0" aria-labelledby="clan-roster">
-              <div className="panel__head">
-                <h2 id="clan-roster" className="sr-only">
-                  Roster
-                </h2>
-                {members.length ? (
-                  <label className="flex items-center gap-2 h-8 px-3 rounded-control border border-line bg-ground-sunken text-[13px] font-normal text-ink-faint">
-                    <Icon name="search" size={14} />
-                    <input
-                      type="search"
-                      value={find}
-                      onChange={(e) => {
-                        const next = e.target.value.slice(0, 100);
-                        if (navigate && search != null)
-                          navigate(
-                            (path ?? clanPath(tag)) +
-                              (next
-                                ? `?${new URLSearchParams({ find: next })}`
-                                : ""),
-                            { replace: true },
-                          );
-                        else setFind(next);
-                      }}
-                      placeholder="Find a member"
-                      aria-label="Find a member"
-                      className="w-[min(350px,60vw)] border-0 bg-transparent text-ink outline-none [font:inherit]"
-                    />
-                  </label>
-                ) : null}
-              </div>
+              <h3 id="clan-roster" className="sr-only">
+                Members
+              </h3>
               <div className="px-1.5 pb-1.5">
                 {members.length === 0 ? (
                   <Empty title="No members on the record">
@@ -468,10 +445,11 @@ export function Clan({ me, clan, navigate, search, path = null }) {
               <div className="panel__foot flex flex-wrap items-center gap-2">
                 <span>
                   {roster.member_count} {noun(roster.member_count, "member")}
-                  {roster.meta?.as_of
-                    ? ` · Elixir recorded the roster ${ago(roster.meta.as_of)}`
-                    : ""}
-                  {roster.cached_at ? ` · read ${ago(roster.cached_at)}` : ""}
+                  {roster.cached_at
+                    ? ` · roster read ${ago(roster.cached_at)}`
+                    : roster.meta?.as_of
+                      ? ` · roster read ${ago(roster.meta.as_of)}`
+                      : ""}
                 </span>
                 <button
                   type="button"
@@ -483,25 +461,20 @@ export function Clan({ me, clan, navigate, search, path = null }) {
                 </button>
               </div>
             </Panel>
-            <details className="disclosure">
-              <summary>Recent changes and recruiting</summary>
-              <div className="disclosure__body grid gap-4 min-w-0">
-                <Comings
-                  roster={roster}
-                  clan={clan}
-                  history={history}
-                  navigate={navigate}
-                />
-                {spread === "active" ? (
-                  <SpreadWord
-                    me={me}
-                    clan={clan}
-                    roster={roster}
-                    navigate={navigate}
-                  />
-                ) : null}
-              </div>
-            </details>
+            <Comings
+              roster={roster}
+              clan={clan}
+              history={history}
+              navigate={navigate}
+            />
+            {spread === "active" ? (
+              <SpreadWord
+                me={me}
+                clan={clan}
+                roster={roster}
+                navigate={navigate}
+              />
+            ) : null}
           </div>
         </>
       ) : null}

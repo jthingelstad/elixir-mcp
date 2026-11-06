@@ -84,4 +84,12 @@ test("every line the engine writes for the game passes its own warnings", () => 
     assert.deepEqual(chatWarnings(m.title, 24), [], m.title);
     assert.deepEqual(chatWarnings(m.body, 180), [], m.body);
   }
+  for (const data of [
+    { first: true, goals: "war & ranked-play" },
+    { first: false, changes: ["Elder at +12", "a phone rule"] },
+  ]) {
+    const m = leaderMessage("rules", data);
+    assert.deepEqual(chatWarnings(m.body, 180), [], m.body);
+    assert.ok(!/Elixir Clan/.test(m.body), m.body);
+  }
 });

@@ -1,6 +1,6 @@
 /**
  * Below the smallest clan a policy engages with (10 members, as Clan Wars):
- * Elixir Clan is a statistics view there, and every clan-management and
+ * Clan is a statistics view there, and every clan-management and
  * awards page says so in the same words.
  */
 import { Empty } from "@elixir-mcp/ui";

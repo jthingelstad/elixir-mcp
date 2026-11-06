@@ -1,4 +1,5 @@
-import { Tag, Panel, PageHead } from "@elixir-mcp/ui";
+import { Tag, Panel } from "@elixir-mcp/ui";
+import { PageHead } from "../components/PageHead.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -20,7 +21,7 @@ export function ClanMap({ clan }) {
   const d = state.data;
   if (state.forbidden || state.signedOut)
     return (
-      <Page clan={clan}>
+      <Page>
         <div className="callout callout--warn" role="alert">
           <span>
             The clan map is available to verified current members. Check your
@@ -31,7 +32,7 @@ export function ClanMap({ clan }) {
     );
   if (state.error === "social_off")
     return (
-      <Page clan={clan}>
+      <Page>
         <p className="page__lede">
           This clan&rsquo;s leaders have turned the member map off.
         </p>
@@ -39,7 +40,7 @@ export function ClanMap({ clan }) {
     );
   if (state.error)
     return (
-      <Page clan={clan}>
+      <Page>
         <p className="page-head__note">
           Clan did not answer. Try again in a minute.
         </p>
@@ -47,7 +48,7 @@ export function ClanMap({ clan }) {
     );
   if (!d) return <p className="page__lede">Reading…</p>;
   return (
-    <Page clan={clan}>
+    <Page>
       <p className="page__lede m-0">
         Where the clan plays from, and what time it is there. Add your city or
         region to appear; only signed-in members of{" "}
@@ -73,13 +74,10 @@ export function ClanMap({ clan }) {
   );
 }
 
-function Page({ clan, children }) {
+function Page({ children }) {
   return (
     <div className="grid gap-4">
-      <PageHead
-        title="Clan map"
-        sub={<>{clan.name ?? <Tag tag={clan.clan_tag} />}</>}
-      />
+      <PageHead title="Clan map" />
       {children}
     </div>
   );

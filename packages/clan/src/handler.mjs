@@ -514,7 +514,7 @@ export function createHandler({
           return json(410, {
             error: "model_choice_retired",
             message:
-              "Elixir Clan chooses the model for each use. The clan's key and its monthly cap are the leaders' to set.",
+              "Elixir chooses the model for each use. The clan's key and its monthly cap are the leaders' to set.",
           });
         // The clan's monthly spend cap: dollars, or null to remove it.
         if (method === "PUT" && Object.hasOwn(body ?? {}, "spend_cap_usd"))

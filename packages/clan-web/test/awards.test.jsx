@@ -1,13 +1,27 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { renderWithProviders } from "./helpers.jsx";
-import { Awards } from "../src/views/Awards.jsx";
+import { Awards, AwardsConfig } from "../src/views/Awards.jsx";
 import { manageApi } from "../src/api.js";
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
+
+/** Awards, walking its season picker as the router would. */
+function Walk({ clan, who }) {
+  const [season, setSeason] = useState(null);
+  return (
+    <Awards
+      clan={clan}
+      who={who}
+      season={season}
+      navigate={(to) => setSeason(to.split("/awards/")[1])}
+    />
+  );
+}
 
 const poap = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "leader" };
 const view = () => ({
@@ -199,7 +213,7 @@ describe("awards", () => {
       },
     ];
     vi.spyOn(manageApi, "awards").mockResolvedValue({ ok: true, data: d });
-    renderWithProviders(<Awards clan={poap} />);
+    renderWithProviders(<Walk clan={poap} />);
     for (const [name, place] of [
       ["Higher donor", "4"],
       ["Lower donor", "5"],
@@ -220,16 +234,16 @@ describe("awards", () => {
     const d = { ...view(), can_send: true };
     const update = vi.spyOn(manageApi, "awardsUpdate");
     vi.spyOn(manageApi, "awards").mockResolvedValue({ ok: true, data: d });
-    renderWithProviders(<Awards clan={poap} />);
+    renderWithProviders(<Walk clan={poap} />);
     fireEvent.change(await screen.findByRole("combobox", { name: "Season" }), {
       target: { value: "135" },
     });
     expect(
-      screen.getByRole("button", { name: "Send season 136 update to clan" }),
+      screen.getByRole("button", { name: "Send Season 136 update to clan" }),
     ).toBeTruthy();
     expect(
       screen.getByText(
-        /current season 136 update, while you are viewing season 135/,
+        /current Season 136 update, while you are viewing Season 135/,
       ),
     ).toBeTruthy();
     expect(update).not.toHaveBeenCalled();
@@ -244,20 +258,20 @@ describe("awards", () => {
     const grant = vi
       .spyOn(manageApi, "grantAward")
       .mockResolvedValue({ ok: true, status: 200, data: {} });
-    renderWithProviders(<Awards clan={poap} />);
+    renderWithProviders(<Walk clan={poap} />);
     expect(
-      (await screen.findAllByText(/Season 136 · in progress/)).length,
+      (await screen.findAllByText(/Season 136, in progress/)).length,
     ).toBeGreaterThan(0);
     expect(screen.getByText(/Provisional/)).toBeTruthy();
     expect(
-      screen.queryByText(/Season 135 · closed Mon Sep 7( 2026)?/),
+      screen.queryByText(/Season 135, closed Mon Sep 7( 2026)?/),
     ).toBeNull();
     expect(screen.queryByText("on the podium")).toBeNull();
     fireEvent.change(screen.getByRole("combobox", { name: "Season" }), {
       target: { value: "135" },
     });
     expect(
-      screen.getByText(/Season 135 · closed Mon Sep 7( 2026)?/),
+      screen.getByText(/Season 135, closed Mon Sep 7( 2026)?/),
     ).toBeTruthy();
     expect(screen.getAllByText("granted").length).toBe(1);
     fireEvent.click(
@@ -298,7 +312,7 @@ describe("awards", () => {
       status: 200,
       data,
     });
-    renderWithProviders(<Awards clan={poap} />);
+    renderWithProviders(<Walk clan={poap} />);
     await screen.findByRole("combobox", { name: "Season" });
     fireEvent.change(screen.getByRole("combobox", { name: "Season" }), {
       target: { value: "135" },
@@ -335,7 +349,7 @@ describe("awards", () => {
     const grant = vi
       .spyOn(manageApi, "grantAward")
       .mockRejectedValue(new Error("lost response"));
-    renderWithProviders(<Awards clan={poap} />);
+    renderWithProviders(<Walk clan={poap} />);
     fireEvent.change(await screen.findByRole("combobox", { name: "Season" }), {
       target: { value: "135" },
     });
@@ -366,9 +380,8 @@ describe("awards", () => {
     const save = vi
       .spyOn(manageApi, "saveAwards")
       .mockResolvedValue({ ok: true, status: 200, data: { version: 1 } });
-    renderWithProviders(<Awards clan={poap} />);
-    fireEvent.click(
-      await screen.findByRole("button", { name: "edit the awards" }),
+    renderWithProviders(
+      <AwardsConfig clan={poap} view={view()} onDone={vi.fn()} />,
     );
     const name = screen.getAllByLabelText("Name")[0];
     fireEvent.change(name, { target: { value: "Boat Captain" } });
@@ -397,7 +410,7 @@ describe("awards", () => {
     const revoke = vi
       .spyOn(manageApi, "revokeAward")
       .mockRejectedValue(new Error("lost response"));
-    renderWithProviders(<Awards clan={poap} />);
+    renderWithProviders(<Walk clan={poap} />);
     fireEvent.change(await screen.findByRole("combobox", { name: "Season" }), {
       target: { value: "135" },
     });
@@ -417,15 +430,17 @@ describe("awards", () => {
       status: 200,
       data: view(),
     });
-    renderWithProviders(<Awards clan={poap} />);
+    renderWithProviders(<Walk clan={poap} />);
     expect(
       await screen.findByText(
         /nothing is published outside the signed-in app/i,
       ),
     ).toBeTruthy();
     expect(screen.queryByText(/public document/i)).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: "edit the awards" }));
+    cleanup();
+    renderWithProviders(
+      <AwardsConfig clan={poap} view={view()} onDone={vi.fn()} />,
+    );
     expect(
       screen.getAllByText(/durable key for this award and its grants/i).length,
     ).toBeGreaterThan(0);
@@ -438,11 +453,9 @@ describe("awards", () => {
       status: 200,
       data: { ...view(), can_edit: false, can_grant: [] },
     });
-    renderWithProviders(<Awards clan={{ ...poap, role: "elder" }} />);
+    renderWithProviders(<Walk clan={{ ...poap, role: "elder" }} />);
     expect(await screen.findByText(/Season 135/)).toBeTruthy();
-    expect(
-      screen.queryByRole("button", { name: "edit the awards" }),
-    ).toBeNull();
+    expect(screen.queryByRole("link", { name: /Awards setup/ })).toBeNull();
     expect(
       screen.queryByRole("button", { name: /Grant Clan Honour/ }),
     ).toBeNull();
@@ -458,73 +471,32 @@ describe("awards", () => {
         versions: [],
       },
     });
-    renderWithProviders(<Awards clan={{ ...poap, role: "member" }} />);
+    renderWithProviders(<Walk clan={{ ...poap, role: "member" }} />);
     expect(
       await screen.findByRole("combobox", { name: "Season" }),
     ).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Awards setup/ })).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "edit the awards" }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Send season 136 update to clan" }),
+      screen.queryByRole("button", { name: "Send Season 136 update to clan" }),
     ).toBeNull();
   });
 });
 
-describe("trophies", () => {
-  test("every member sees the clan's awards, the winners by season, and their own", async () => {
-    const { Trophies } = await import("../src/views/Trophies.jsx");
-    vi.spyOn(manageApi, "trophies").mockResolvedValue({
+describe("awards for everyone", () => {
+  test("a member sees their own grants in a line, and the winners", async () => {
+    vi.spyOn(manageApi, "awards").mockResolvedValue({
       ok: true,
       status: 200,
-      data: {
-        clan_tag: "#2PQRJ8LV",
-        awards: [
-          {
-            id: "season_champ",
-            name: "Season Champion",
-            description: "Top war points.",
-            rule: "The 3 members with the most war points over the season.",
-            manual: false,
-          },
-        ],
-        seasons: [
-          {
-            season_id: 135,
-            grants: [
-              {
-                season_id: 135,
-                award_id: "season_champ",
-                name: "Season Champion",
-                rank: 1,
-                player_tag: "#2PQ",
-                player_name: "Someone",
-                manual: false,
-              },
-            ],
-          },
-        ],
-        yours: [
-          {
-            season_id: 135,
-            award_id: "season_champ",
-            name: "Season Champion",
-            rank: 1,
-            manual: false,
-          },
-        ],
-      },
+      data: { ...view(), can_edit: false, can_grant: [] },
     });
     renderWithProviders(
-      <Trophies
-        clan={{ clan_tag: "#2PQRJ8LV", name: "A clan" }}
-        who={{ player_tag: "#2PQ", role: "member" }}
+      <Walk
+        clan={{ ...poap, role: "member" }}
+        who={{ player_tag: "#20QQL8CCRU", role: "member" }}
       />,
     );
-    await waitFor(() => expect(screen.getByText("Yours")).toBeTruthy());
-    expect(screen.getByText(/most war points over the season/)).toBeTruthy();
-    expect(screen.getByText("Season 135")).toBeTruthy();
-    expect(document.querySelector("tr[data-you='true']")).toBeTruthy();
+    expect(await screen.findByText("Yours")).toBeTruthy();
+    expect(screen.getByText(/Season Champion, 1st, Season 135/)).toBeTruthy();
   });
 });
 
@@ -542,9 +514,9 @@ test("current update retries retain their request identity and a later intention
       status: 200,
       data: { action: { number: 44, evidence: { messages: [{ part: 1 }] } } },
     });
-  renderWithProviders(<Awards clan={poap} />);
+  renderWithProviders(<Walk clan={poap} />);
   const button = await screen.findByRole("button", {
-    name: "Send season 136 update to clan",
+    name: "Send Season 136 update to clan",
   });
   fireEvent.click(button);
   await screen.findByRole("alert");
@@ -564,9 +536,9 @@ test("manual-only awards do not offer a current computed update", async () => {
     season.awards = season.awards.filter((a) => a.state === "manual");
   });
   vi.spyOn(manageApi, "awards").mockResolvedValue({ ok: true, data: d });
-  renderWithProviders(<Awards clan={poap} who={{ role: "leader" }} />);
+  renderWithProviders(<Walk clan={poap} who={{ role: "leader" }} />);
   await screen.findByRole("combobox", { name: "Season" });
   expect(
-    screen.queryByRole("button", { name: "Send season 136 update to clan" }),
+    screen.queryByRole("button", { name: "Send Season 136 update to clan" }),
   ).toBeNull();
 });

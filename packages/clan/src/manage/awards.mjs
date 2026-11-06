@@ -164,7 +164,7 @@ export function createAwardsService({
     const text =
       plan.scope === "current"
         ? `Review current provisional season ${plan.season_id} standings as of ${plan.as_of}.`
-        : `War week ${plan.section_index + 1} closed: share provisional season ${plan.season_id} standings.`;
+        : `Season ${plan.season_id}, week ${plan.section_index + 1} closed: share provisional standings.`;
     const existing = cards.find((c) => c.card_id === plan.card_id);
     if (existing) return existing;
     return raiseAction(
@@ -255,7 +255,7 @@ export function createAwardsService({
         },
         cards,
         {
-          text: `War week ${plan.section_index + 1} closed: share provisional season ${plan.season_id} standings.`,
+          text: `Season ${plan.season_id}, week ${plan.section_index + 1} closed: share provisional standings.`,
         },
       );
       cards.push(card);

@@ -69,8 +69,7 @@ or workflow of its own.
   is a row in the Discord quality ledger (`quality` dep,
   `@elixir-mcp/syndication/quality`; the delivery history carries its
   `ledger_id`).
-- **The clan's activity in Discord** (Social ▸ Discord, its own page in
-  the rail) is the
+- **The clan's activity in Discord** (Run ▸ Discord, for the leaders) is the
   timeline cross-post's pipeline, not Clan's bridges: the connection and
   sync are `packages/syndication` (`clan-settings.mjs`, `clan-sync.mjs`,
   the editor's read-only lookups `editor-research.mjs`), the rules

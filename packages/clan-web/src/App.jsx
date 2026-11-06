@@ -17,20 +17,14 @@ import {
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
-import {
-  Disclaimer,
-  ErrorBoundary,
-  FeedbackSheet,
-  Link,
-  Rail as RailList,
-} from "@elixir-mcp/ui";
+import { Disclaimer, ErrorBoundary, FeedbackSheet } from "@elixir-mcp/ui";
 import { api, feedbackApi } from "./api.js";
 import { keys, useMeQuery } from "./lib/queries.js";
-import { railItems, railKey } from "./lib/rail.js";
-import { landingPath, useLanding } from "./lib/landing.js";
+import { leads, pageOf, policyActive } from "./lib/tabs.js";
+import { landingPath } from "./lib/landing.js";
 import { useSelectClan } from "./lib/select.js";
 import { CLAN, appPath, clanPath, isClanSegment, tagOf } from "./lib/base.js";
-import { ClanPicker } from "./components/ClanPicker.jsx";
+import { ClanHead } from "./components/ClanHead.jsx";
 import { RoleConfirming } from "./components/RoleConfirming.jsx";
 import {
   FEEDBACK_HISTORY,
@@ -38,21 +32,21 @@ import {
 } from "./components/ReportThis.jsx";
 import { Clan } from "./views/Clan.jsx";
 import { Clans } from "./views/Clans.jsx";
-import { Manage } from "./views/Manage.jsx";
+import { Review } from "./views/Manage.jsx";
 import { Standing } from "./views/Standing.jsx";
 import { Landing } from "./views/Landing.jsx";
 import { Refused } from "./views/Refused.jsx";
-import { You } from "./views/You.jsx";
 import { Away } from "./views/Away.jsx";
 import { Recruit } from "./views/Recruit.jsx";
-import { ActivityDiscord } from "./views/ActivityDiscord.jsx";
-import { Trophies } from "./views/Trophies.jsx";
+import { Scout } from "./views/Scout.jsx";
 import { MemberActivity } from "./views/MemberActivity.jsx";
 import { Awards } from "./views/Awards.jsx";
-import { ActionDetail, Actions } from "./views/Actions.jsx";
+import { ActionDetail } from "./views/Actions.jsx";
+import { Today } from "./views/Today.jsx";
 import { YouHere } from "./views/YouHere.jsx";
-import { Week } from "./views/Week.jsx";
 import { Season } from "./views/Season.jsx";
+import { Run } from "./views/Run.jsx";
+import { MembersNav } from "./views/Members.jsx";
 import { VerifyNotice } from "./views/VerifyNotice.jsx";
 import { ELIXIR_LINKS } from "./lib/links.js";
 // The clan map brings Leaflet and the place lists: loaded when opened.
@@ -65,7 +59,7 @@ const neverChanges = () => () => {};
  *  renderToString aborts its boundary, and the browser then reports React
  *  #419 on every visit, so the server and hydration both draw the waiting
  *  line and the view loads after. */
-function MapWhenInBrowser({ clan }) {
+function MapWhenInBrowser({ clan, me }) {
   const reading = <p className="page__lede">Reading…</p>;
   const inBrowser = useSyncExternalStore(
     neverChanges,
@@ -75,38 +69,34 @@ function MapWhenInBrowser({ clan }) {
   if (!inBrowser) return reading;
   return (
     <Suspense fallback={reading}>
-      <ClanMap key={clan.clan_tag} clan={clan} />
+      <ClanMap key={clan.clan_tag} clan={clan} me={me} />
     </Suspense>
   );
 }
 
 /**
- * Routes, all under Elixir's /clan (CLAN, lib/base.js): `/clan` (landing,
- * signed out), `/clan/clans` (the chooser), `/clan/<TAG>` (a clan's
- * landing, the tag without its #: Actions or the roster, lib/landing.js)
- * with its sections and Manage tabs, `/clan/<TAG>/roster`, `/clan/you`
- * and `/clan/you/away`, `/clan/verify` (the notice after sign-in),
- * `/clan/refused/<reason>`, `/clan/feedback[/<id>]`,
- * `/clan/maintain/feedback[/<id>]`. The app's own pages win over a tag.
- * The router owns history and params; the GATE - where a signed-in
- * person belongs, whatever address they arrived at - is the Shell's
- * effect below, because it is a session state machine (a refresh, a
- * select) and not a per-route loader.
+ * Routes, all under Elixir's /clan (CLAN, lib/base.js): `/clan` (the signed-out
+ * landing, or the chooser for someone with no clan open), `/clan/clans` (the
+ * whole chooser), `/clan/<TAG>/<tab>` with its pages, `/clan/verify` (the
+ * notice after sign-in) and `/clan/refused/<reason>`. The app's own pages win
+ * over a tag. Every address that moved with the five tabs is in lib/moved.js.
+ * The router owns history and params; the GATE - where a signed-in person
+ * belongs, whatever address they arrived at - is the Shell's effect below,
+ * because it is a session state machine (a refresh, a select) and not a
+ * per-route loader.
  */
 
-/** `/clan/<TAG>[/<section>[/<tab>]]` parsed: the tag with its #, the
- *  section (roster by default) and the Manage tab or, under actions, the
- *  action's number (`/clan/<TAG>/actions/37`). With no section the
- *  address is the clan's landing (lib/landing.js), the roster unless it
- *  sends a leader to Actions. */
+/** `/clan/<TAG>/<section>[/<tab>]` parsed: the tag with its #, the tab and the
+ *  page under it, or under actions the action's number
+ *  (`/clan/<TAG>/actions/37`). */
 export function parseClanPath(path) {
   const m =
-    /^\/([^/]+)(?:\/(roster|manage|me|week|season|actions|standing|trophies|awards|recruit|map|discord|members)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
+    /^\/([^/]+)(?:\/(today|members|season|awards|run|actions)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
       appPath(path) ?? "",
     );
   const tag = m ? tagOf(m[1]) : null;
   if (!tag) return null;
-  return { tag, section: m[2] ?? "roster", tab: m[3] ?? null };
+  return { tag, section: m[2] ?? null, tab: m[3] ?? null };
 }
 
 /** The clan a `/clan/<TAG>...` path names, if it is one of the person's. */
@@ -131,20 +121,6 @@ function useNav() {
     },
     [nav],
   );
-}
-
-/** Elixir's breakpoint: below it the rail is a disclosure above the page. */
-function useNarrow() {
-  const [narrow, setNarrow] = useState(() => false);
-  useEffect(() => {
-    const mq = window.matchMedia?.("(max-width: 900px)");
-    if (!mq?.addEventListener) return undefined;
-    setNarrow(mq.matches);
-    const on = (e) => setNarrow(e.matches);
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-  return narrow;
 }
 
 /** The session, as a query on ["me"]. A 401 reads as signed out (with
@@ -197,149 +173,265 @@ const SessionContext = createContext(null);
 const useSession = () => useContext(SessionContext);
 
 export function LandingPage() {
-  const { me } = useSession();
+  const { me, select, selecting } = useSession();
   const { searchStr, pathname } = useLocation();
   const error = new URLSearchParams(searchStr).get("error");
-  if (me === null || me.signed_in) return null;
+  if (me === null) return null;
+  // The chooser for someone signed in with no clan open.
+  if (me.signed_in)
+    return me.ok && !me.selected ? (
+      <Clans me={me} onSelect={select} selecting={selecting} />
+    ) : null;
   return <Landing error={error} here={pathname + searchStr} />;
 }
 
 export function ClansPage() {
   const { me, select, selecting } = useSession();
+  const { searchStr } = useLocation();
   if (!me?.ok) return null;
-  return <Clans me={me} onSelect={select} selecting={selecting} />;
+  return (
+    <Clans
+      me={me}
+      onSelect={select}
+      selecting={selecting}
+      notYours={new URLSearchParams(searchStr).get("not_yours")}
+    />
+  );
+}
+
+/** One redirect the session has to answer, once it can. */
+function Replace({ to, navigate }) {
+  useEffect(() => {
+    navigate(to, { replace: true });
+  }, [to, navigate]);
+  return null;
+}
+
+/** Members' page, under its row of chips. */
+function MembersPage({ me, clan, page, children, navigate, search }) {
+  return (
+    <>
+      <MembersNav
+        me={me}
+        page={page}
+        navigate={navigate}
+        find={search}
+        clan={clan}
+      />
+      {children}
+    </>
+  );
 }
 
 export function ClanPage() {
   const { me } = useSession();
   const navigate = useNav();
   const { pathname, search } = useLocation();
-  const actionScope = search.show === "closed" ? "closed" : "open";
-  const rosterSearch =
-    typeof search.find === "string" ? search.find.slice(0, 100) : "";
   const parsed = parseClanPath(pathname);
-  // The clan's own address is its landing: Actions for a leader with
-  // Actions waiting (replacing the address, so Back never returns here),
-  // else the roster. Nothing shows while it decides.
-  const landing = useLanding(me, pathname, {
-    search: typeof search.find === "string",
-  });
-  const landingTag = parsed?.tag ?? null;
-  useEffect(() => {
-    if (landing === "actions" && landingTag)
-      navigate(`${clanPath(landingTag)}/actions`, { replace: true });
-  }, [landing, landingTag, navigate]);
   if (!me?.ok || !parsed) return null;
   const clan = clanFromPath(pathname, me.clans);
   if (!clan) return null;
-  if (landing === "actions" || landing === "wait") return null;
+  const base = clanPath(clan.clan_tag);
   const who = {
     player_tag: clan.acting_as,
     name: clan.acting_as_name,
     role: clan.role,
   };
-  if (parsed.section === "members" && tagOf(parsed.tab))
+  const find = typeof search.find === "string" ? search.find.slice(0, 100) : "";
+  const { section, tab } = parsed;
+  if (section === "today") {
+    // A roster search at the clan's old bare address names the roster.
+    if (typeof search.find === "string")
+      return (
+        <Replace
+          to={`${base}/members?${new URLSearchParams({ find })}`}
+          navigate={navigate}
+        />
+      );
+    const decided =
+      leads(clan) && (tab === "decided" || search.show === "closed");
+    if (decided && tab !== "decided")
+      return <Replace to={`${base}/today/decided`} navigate={navigate} />;
+    if (tab === "decided" && !decided)
+      return <Replace to={`${base}/today`} navigate={navigate} />;
     return (
-      <MemberActivity
-        key={`${clan.clan_tag}-${parsed.tab}`}
+      <Today
+        key={clan.clan_tag}
+        me={me}
         clan={clan}
-        playerTag={tagOf(parsed.tab)}
-        rosterSearch={rosterSearch}
+        who={who}
+        decided={decided}
+        closedOpen={search.show === "closed"}
         navigate={navigate}
       />
     );
-  if (parsed.section === "me")
-    return <YouHere key={clan.clan_tag} clan={clan} navigate={navigate} />;
-  // The week in the clan: the latest closed week, or one by its id.
-  if (parsed.section === "week")
-    return (
-      <Week
-        key={`${clan.clan_tag}-${parsed.tab ?? "latest"}`}
+  }
+  // One action, by its number: the address people send each other.
+  if (section === "actions")
+    return tab && /^[0-9]{1,7}$/.test(tab) ? (
+      <ActionDetail
+        key={`${clan.clan_tag}-${tab}`}
         clan={clan}
-        week={parsed.tab ? parsed.tab.toUpperCase() : null}
+        who={who}
+        number={Number(tab)}
         navigate={navigate}
       />
+    ) : (
+      <Replace to={`${base}/today`} navigate={navigate} />
     );
-  if (parsed.section === "season")
+  if (section === "season")
     return (
       <Season
-        key={clan.clan_tag}
+        key={`${clan.clan_tag}-${tab ?? "latest"}`}
         clan={clan}
-        season={parsed.tab}
+        period={tab}
         navigate={navigate}
       />
     );
-  // One action, by its number: the address people send each other.
-  if (parsed.section === "actions" && /^[0-9]{1,7}$/.test(parsed.tab ?? ""))
+  if (section === "awards")
     return (
-      <ActionDetail
-        key={`${clan.clan_tag}-${parsed.tab}`}
-        clan={clan}
-        who={who}
-        number={Number(parsed.tab)}
-        scope={actionScope}
-        navigate={navigate}
-      />
-    );
-  // Actions are everyone's; the leaders' old Inbox address lands here.
-  if (
-    parsed.section === "actions" ||
-    (parsed.section === "manage" && (parsed.tab ?? "inbox") === "inbox")
-  )
-    return (
-      <Actions
+      <Awards
         key={clan.clan_tag}
         clan={clan}
         who={who}
-        scope={actionScope}
+        me={me}
+        season={tab}
         navigate={navigate}
       />
     );
-  if (
-    parsed.section === "awards" ||
-    (parsed.section === "manage" && parsed.tab === "awards")
-  )
-    return <Awards key={clan.clan_tag} clan={clan} navigate={navigate} />;
-  if (parsed.section === "manage")
+  if (section === "run") {
+    // A member's "Run" is how the clan runs; a clan with no policy has none
+    // to read, so it is the roster with the invite panel (A15).
+    if (!leads(clan))
+      return (
+        <Replace
+          to={
+            me.policy?.set
+              ? `${base}/members/standing?from=run`
+              : `${base}/members?from=run`
+          }
+          navigate={navigate}
+        />
+      );
     return (
-      <Manage
+      <Run
         key={clan.clan_tag}
         clan={clan}
-        tab={parsed.tab ?? "inbox"}
+        me={me}
+        section={tab}
         navigate={navigate}
-        who={who}
       />
     );
-  if (parsed.section === "standing")
+  }
+  // Members, and the pages under it.
+  if (tab === "me")
     return (
-      <Standing key={clan.clan_tag} clan={clan} who={who} navigate={navigate} />
+      <Replace
+        to={`${base}/members/${String(clan.acting_as).slice(1)}`}
+        navigate={navigate}
+      />
     );
-  if (parsed.section === "trophies")
-    return <Trophies key={clan.clan_tag} clan={clan} who={who} />;
-  if (parsed.section === "recruit")
-    return <Recruit key={clan.clan_tag} clan={clan} navigate={navigate} />;
-  if (parsed.section === "discord")
-    return (
-      <ActivityDiscord key={clan.clan_tag} clan={clan} navigate={navigate} />
+  const page = (name, body) => (
+    <MembersPage
+      me={me}
+      clan={clan}
+      page={name}
+      navigate={navigate}
+      search={find}
+    >
+      {body}
+    </MembersPage>
+  );
+  if (tab === "standing")
+    return page(
+      "standing",
+      <Standing
+        key={clan.clan_tag}
+        clan={clan}
+        who={who}
+        navigate={navigate}
+        fromRun={search.from === "run"}
+      />,
     );
-  if (parsed.section === "map") return <MapWhenInBrowser clan={clan} />;
-  return (
+  if (tab === "review")
+    return leads(clan)
+      ? page(
+          "review",
+          <Review
+            key={clan.clan_tag}
+            clan={clan}
+            who={who}
+            navigate={navigate}
+          />,
+        )
+      : page(
+          "review",
+          <div className="callout callout--warn" role="alert">
+            <span>
+              Review is for the leader and co-leaders. Standing is how every
+              member sees the clan.
+            </span>
+          </div>,
+        );
+  if (tab === "map")
+    return page("map", <MapWhenInBrowser clan={clan} me={me} />);
+  if (tab === "recruit")
+    return page(
+      "recruit",
+      <Recruit key={clan.clan_tag} clan={clan} navigate={navigate} />,
+    );
+  if (tab === "scout")
+    return page(
+      "scout",
+      <Scout key={clan.clan_tag} clan={clan} navigate={navigate} />,
+    );
+  if (tab === "away")
+    return page("away", <Away key={clan.clan_tag} me={me} clan={clan} />);
+  if (tab && tagOf(tab)) {
+    const own = tagOf(tab) === clan.acting_as;
+    return own ? (
+      <YouHere key={clan.clan_tag} clan={clan} navigate={navigate} />
+    ) : (
+      <MemberActivity
+        key={`${clan.clan_tag}-${tab}`}
+        clan={clan}
+        me={me}
+        playerTag={tagOf(tab)}
+        rosterSearch={find}
+        navigate={navigate}
+      />
+    );
+  }
+  return page(
+    "roster",
     <Clan
       key={clan.clan_tag}
       me={me}
       clan={clan}
-      path={pathname}
-      search={rosterSearch}
+      search={find}
+      fromRun={search.from === "run" && !policyActive(me)}
       navigate={navigate}
-    />
+    />,
   );
 }
 
+/** The old "You" pages: Away is said per clan now, under Members; Players
+ *  lives with the account. */
 export function YouPage() {
   const { me } = useSession();
+  const navigate = useNav();
   const { sub } = useParams({ strict: false });
-  if (!me?.signed_in || me.unavailable) return null;
-  return sub === "away" ? <Away me={me} /> : <You me={me} />;
+  const clan = me?.ok ? me.selected : null;
+  const replace = sub !== "away";
+  useEffect(() => {
+    if (!me?.signed_in || me.unavailable) return;
+    if (replace) window.location.replace(ELIXIR_LINKS.tracking);
+    else
+      navigate(clan ? `${clanPath(clan.clan_tag)}/members/away` : CLAN, {
+        replace: true,
+      });
+  }, [me, replace, clan, navigate]);
+  return null;
 }
 
 export function RefusedPage() {
@@ -355,7 +447,7 @@ export function RefusedPage() {
       onRecheck={async () => {
         const next = await refresh(true);
         if (next?.ok)
-          navigate(next.selected ? landingPath(next) : `${CLAN}/clans`, {
+          navigate(next.selected ? landingPath(next) : CLAN, {
             replace: true,
           });
         else if (next?.reason) navigate(`${CLAN}/refused/${next.reason}`);
@@ -377,7 +469,7 @@ export function VerifyPage() {
         const r = await api.acknowledgeVerify();
         if (r.ok) {
           setMe(r.data);
-          navigate(r.data.selected ? landingPath(r.data) : `${CLAN}/clans`, {
+          navigate(r.data.selected ? landingPath(r.data) : CLAN, {
             replace: true,
           });
         } else if (r.status === 401) {
@@ -405,43 +497,23 @@ export function MaintainPage() {
   return null;
 }
 
-export function Rail({ me, path, navigate, narrow, select, selecting }) {
+/** Feedback is Elixir's one system (2026-10-08): a quiet button under the
+ *  page opens the shared sheet, about this clan and the page it was on. */
+export function SendFeedback({ me, path }) {
   const clan = me?.selected ?? null;
-  const [feedback, setFeedback] = useState(false);
-  // The Clan picker heads the rail wherever a clan is selected (Jamie,
-  // 2026-10-20); the chooser keeps the plain head, being the full list.
-  const picker =
-    Boolean(me?.ok && clan && me.clans?.length) && appPath(path) !== "/clans";
+  const [open, setOpen] = useState(false);
   return (
     <>
-      <RailList
-        label="Sections"
-        items={railItems(me)}
-        current={railKey(path)}
-        navigate={navigate}
-        narrow={narrow}
-        title={clan?.name ?? "Clan"}
-        aside={clan?.clan_tag}
-        subtitle={picker ? undefined : (clan?.name ?? "")}
-        head={
-          picker ? (
-            <ClanPicker
-              me={me}
-              navigate={navigate}
-              select={select}
-              selecting={selecting}
-            />
-          ) : undefined
-        }
-        // Feedback is Elixir's one system (2026-10-08): the foot opens
-        // the shared sheet, about this clan and the page it was on.
-        foot={{
-          label: "Send feedback",
-          icon: "message-square",
-          onClick: () => setFeedback(true),
-        }}
-      />
-      {feedback && (
+      <div className="clan-foot">
+        <button
+          type="button"
+          className="btn btn--quiet btn--sm"
+          onClick={() => setOpen(true)}
+        >
+          Send feedback
+        </button>
+      </div>
+      {open && (
         <FeedbackSheet
           area="clan"
           categories={FEEDBACK_CATEGORIES}
@@ -451,9 +523,9 @@ export function Rail({ me, path, navigate, narrow, select, selecting }) {
               : "About Clan. The page you are on rides along."
           }
           refs={clan ? [{ kind: "clan", ref: clan.clan_tag }] : []}
-          context={{ page: railKey(path) ?? "clan" }}
+          context={{ page: pageOf(path) ?? "clan" }}
           send={feedbackApi.send}
-          onClose={() => setFeedback(false)}
+          onClose={() => setOpen(false)}
           itemHref={feedbackItemHref}
           historyHref={FEEDBACK_HISTORY}
         />
@@ -480,7 +552,6 @@ export function ClanShell({
   // The path under the prefix: "/" is the landing, "/you" your page.
   const app = appPath(path) ?? "";
   const navigate = useNav();
-  const narrow = useNarrow();
   const { me, checking, refresh, setMe } = useMe();
   // One selection at a time, held until the address is the new clan's.
   const { select, selecting } = useSelectClan({ navigate, setMe });
@@ -515,15 +586,21 @@ export function ClanShell({
       return;
     }
     const atClan = clanFromPath(path, me.clans);
-    // The landing is no page for a signed-in person: their clan's
-    // landing, or the chooser when none is selected. A redirect, so it
-    // replaces the address and Back never comes back to bounce.
+    const segment = app.split("/")[1];
+    // The landing is no page for a signed-in person with a clan: its Today, or
+    // the chooser at /clan when none is selected. A redirect, so it replaces
+    // the address and Back never comes back to bounce.
     if (app === "/" || app === "/verify" || app.startsWith("/refused")) {
-      navigate(me.selected ? landingPath(me) : `${CLAN}/clans`, {
-        replace: true,
-      });
-    } else if (isClanSegment(app.split("/")[1]) && !atClan) {
-      navigate(`${CLAN}/clans`);
+      if (me.selected) navigate(landingPath(me), { replace: true });
+      else if (app !== "/") navigate(CLAN, { replace: true });
+    } else if (isClanSegment(segment) && !atClan) {
+      // A clan that is not theirs: the chooser says so, and offers its record.
+      navigate(
+        tagOf(segment)
+          ? `${CLAN}/clans?not_yours=${tagOf(segment).slice(1)}`
+          : `${CLAN}/clans`,
+        { replace: true },
+      );
     } else if (
       atClan &&
       me.selected?.clan_tag !== atClan.clan_tag &&
@@ -536,72 +613,51 @@ export function ClanShell({
     }
   }, [me, path, app, navigate, select, selecting, rememberAfterSignIn]);
 
-  // The rail belongs to a signed-in person with somewhere to go: their
-  // clan pages, or their own pages while the gate still refuses them.
-  const showRail =
-    Boolean(me?.signed_in) &&
-    !me.unavailable &&
-    (me.ok || app.startsWith("/you") || app.startsWith("/feedback"));
+  // The head and tabs belong to the clan being read.
+  const inClan =
+    Boolean(me?.signed_in && me.ok && me.selected) &&
+    Boolean(parseClanPath(path));
 
   return (
     <SessionContext.Provider
       value={{ me, checking, refresh, setMe, select, selecting }}
     >
       <Frame>
-        <div
-          className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
-        >
-          {showRail ? (
-            <Rail
-              me={me}
-              path={path}
-              navigate={navigate}
-              narrow={narrow}
-              select={select}
-              selecting={selecting}
-            />
-          ) : null}
-          <main className="page">
-            <div
-              className={`page__inner${showRail ? "" : " page__inner--solo max-w-page"}`}
-            >
-              {me?.signed_in &&
-              me.ok &&
-              (me.selected?.verified === false || me.selected?.unlock) &&
-              parseClanPath(path) ? (
-                <div className="callout callout--info mb-4" role="status">
-                  <span>
-                    {me.selected.unlock
-                      ? `In the game ${me.selected.unlock.name ?? me.selected.unlock.player_tag} is ${me.selected.unlock.role_label === "Elder" ? "an" : "a"} ${me.selected.unlock.role_label}. Verify that player in Elixir to use those tools here; until then you are here as a member.`
-                      : "Your player is not verified in Elixir, so you are here as a member who reads: verify it to mark yourself away, comment or join the clan map."}
-                  </span>
-                  <Link className="btn btn--sm" to={ELIXIR_LINKS.verify}>
-                    Verify in Elixir ›
-                  </Link>
-                </div>
+        <main className="page">
+          <div className="page__inner page__inner--solo max-w-page mx-auto">
+            {inClan ? (
+              <ClanHead
+                me={me}
+                path={path}
+                navigate={navigate}
+                select={select}
+                selecting={selecting}
+              />
+            ) : null}
+            <RoleConfirming />
+            <ErrorBoundary key={path}>
+              {me && !me.signed_in && app !== "/" ? (
+                <Landing error={me.expired ? "session_expired" : null} />
               ) : null}
-              <RoleConfirming />
-              <ErrorBoundary key={path}>
-                {me && !me.signed_in && app !== "/" ? (
-                  <Landing error={me.expired ? "session_expired" : null} />
-                ) : null}
-                {me?.signed_in && me.unavailable ? (
-                  <div
-                    className="callout callout--warn mx-auto mt-10 max-w-[560px]"
-                    role="alert"
-                  >
-                    <span>
-                      Elixir did not answer. Your sign-in is fine; try again in
-                      a minute.
-                    </span>
-                  </div>
-                ) : (
-                  <Outlet />
-                )}
-              </ErrorBoundary>
-            </div>
-          </main>
-        </div>
+              {me?.signed_in && me.unavailable ? (
+                <div
+                  className="callout callout--warn mx-auto mt-10 max-w-[560px]"
+                  role="alert"
+                >
+                  <span>
+                    Elixir did not answer. Your sign-in is fine; try again in a
+                    minute.
+                  </span>
+                </div>
+              ) : (
+                <Outlet />
+              )}
+            </ErrorBoundary>
+            {me?.signed_in && !me.unavailable ? (
+              <SendFeedback me={me} path={path} />
+            ) : null}
+          </div>
+        </main>
       </Frame>
     </SessionContext.Provider>
   );

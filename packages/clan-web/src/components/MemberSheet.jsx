@@ -169,15 +169,15 @@ export function MemberSheet({ clanTag, member, role, onChange }) {
                 {member.hold.until
                   ? `until ${calendar(member.hold.until)}`
                   : "until cleared"}
-                {member.hold.note ? ` · ${member.hold.note}` : ""}. The removal
-                recommendation is shielded while this hold is active. Held time
-                is not subtracted from elapsed time.
+                {member.hold.note ? ` · ${member.hold.note}` : ""}. Keeps them
+                off the removal list while it&rsquo;s on. The days keep
+                counting.
               </p>
             ) : (
               <p className="page__lede" style={{ margin: "0 0 8px" }}>
-                Not on hold. A hold shields removal eligibility for a member who
-                told you they will be away; silence is not a hold. It does not
-                reset the activity clock.
+                Not on hold. A hold keeps a member who told you they will be
+                away off the removal list while it&rsquo;s on; silence is not a
+                hold. The days keep counting.
               </p>
             )}
             <form

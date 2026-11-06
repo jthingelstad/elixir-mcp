@@ -159,41 +159,28 @@ for (const size of ["wide", "@narrow"])
       path: `/tmp/elixir-triage-withdrawn-${size}.png`,
       fullPage: true,
     });
-    await page.goto("/clan/2PQRJ8LV/manage/board");
-    await expect(page.getByLabel("Removal triage")).toContainText(
-      "Protected 1 · Not currently a removal candidate 1 · Waiting on the record 1 · Eligible 1",
-    );
-    await expect(page.getByLabel("Elder, waiting on the record")).toContainText(
-      "Promotion 2 · Demotion 1",
-    );
-    const groups = page.getByRole("navigation", { name: "Board groups" });
+    await page.goto("/clan/2PQRJ8LV/members/review");
+    await expect(
+      page.getByText(
+        "Removal: 1 protected by their role or a hold, 1 not close, 1 with too little to go on, 1 past the removal day.",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        /^Too little to decide Elder: promotion 2,\s+demotion 1\./,
+      ),
+    ).toBeVisible();
+    const groups = page.getByRole("navigation", { name: "Review sections" });
     await groups.getByRole("link", { name: "Clear · 2" }).click();
     await expect(page).toHaveURL(/#board-clear$/);
     await expect(
-      page.getByRole("heading", { name: "Clear · 2" }),
+      page.getByRole("heading", { name: "Clear, 2 members" }),
     ).toBeInViewport();
-    const pageFits = await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    );
-    expect(pageFits).toBe(true);
-    const table = page.getByRole("region", { name: "Clear members" });
-    if (size === "wide")
-      expect(await table.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(
-        true,
-      );
-    else {
-      // A phone reads rows as blocks: the table never scrolls sideways.
-      expect(await table.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(
-        true,
-      );
-    }
-    for (const label of [
-      "Protected",
-      "Not currently a removal candidate",
-      "Waiting on the record",
-      "Eligible",
-    ])
-      await expect(page.getByText(label, { exact: true })).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
     await expect(
       page.getByText("held · activity unknown", { exact: true }),
     ).toHaveCount(0);
@@ -202,18 +189,6 @@ for (const size of ["wide", "@narrow"])
       path: `/tmp/elixir-triage-board-${size}.png`,
       fullPage: true,
     });
-    await table.evaluate((e) => {
-      e.scrollLeft = 0;
-    });
-    await page.getByRole("button", { name: "Invented 0", exact: true }).click();
-    await expect(
-      page.getByRole("button", { name: "Invented 0", exact: true }),
-    ).toHaveAttribute("aria-expanded", "true");
-    const sheet = page.getByPlaceholder("A leader note (leaders see these)");
-    await expect(sheet).toBeVisible();
-    expect(await sheet.evaluate((e) => e.closest("td")?.colSpan)).toBe(6);
-    await page.getByRole("button", { name: "Invented 0", exact: true }).click();
-    await expect(sheet).toHaveCount(0);
     expect(writes).toEqual([]);
   });
 
@@ -309,7 +284,7 @@ for (const size of ["wide", "@narrow"])
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/actions");
+    await page.goto("/clan/2PQRJ8LV/today");
     await expect(page.getByText(/No longer qualifies/)).toBeVisible();
     await page.getByRole("link", { name: /#45/ }).click();
     await expect(page.getByRole("alert")).toContainText(
@@ -326,7 +301,7 @@ for (const size of ["wide", "@narrow"])
       page.getByRole("button", { name: "Draft in our voice" }),
     ).toHaveCount(0);
     await expect(
-      page.getByRole("button", { name: "Complete", exact: true }),
+      page.getByRole("button", { name: "Done", exact: true }),
     ).toBeDisabled();
     await expect(page.getByText(/Saved rationale at the time/)).toBeVisible();
     await page.goto("/clan/2PQRJ8LV/actions/45");
@@ -391,7 +366,7 @@ for (const size of ["wide", "@narrow"])
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/manage/policy");
+    await page.goto("/clan/2PQRJ8LV/run/about");
     await page
       .locator("summary")
       .filter({ hasText: "What this policy can do today" })
@@ -401,10 +376,7 @@ for (const size of ["wide", "@narrow"])
     });
     await expect(canDo).toContainText("Remove inactive members: Live");
     await expect(canDo).toContainText("Promote and demote Elders: Live");
-    await page
-      .getByRole("tablist", { name: "Policy" })
-      .getByRole("tab", { name: /^Inactivity/ })
-      .click();
+    await page.goto("/clan/2PQRJ8LV/run/inactivity");
     await expect(
       page.getByText("Not yet enforceable", { exact: true }),
     ).toHaveCount(0);

@@ -8,7 +8,7 @@ import { trackEvent } from "../analytics.js";
  * How our messages sound (2026-10-20): the clan's one voice, in its
  * leaders' words, for both of the clan's model's writing uses: "Draft in
  * our voice" on an Action and the editor of the clan's Discord activity
- * channel. Social ▸ Discord shows it and links here; this is the one
+ * channel. Run › Discord shows it and links here; this is the one
  * place it is edited. The model gets it as written, and it never lifts a
  * rule: it sets the tone and the wording, never the facts.
  */

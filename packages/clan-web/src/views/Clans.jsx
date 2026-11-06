@@ -9,7 +9,7 @@ import { ELIXIR_LINKS } from "../lib/links.js";
  * it is verified, so its card says so; unverified players are also listed
  * with a Verify link.
  */
-export function Clans({ me, onSelect, selecting }) {
+export function Clans({ me, notYours, onSelect, selecting }) {
   const [picking, setPicking] = useState(null);
   const unverified = (me.identities ?? []).filter(
     (i) =>
@@ -17,9 +17,9 @@ export function Clans({ me, onSelect, selecting }) {
       (i.relationship === "primary" || i.relationship === "alt"),
   );
   return (
-    <div style={{ maxWidth: "640px" }}>
+    <div className="max-w-[640px]">
       <PageHead
-        title="Your clans"
+        title="All your clans"
         sub={
           <>
             Every clan you hold a player in. Pick one to work in; it is
@@ -27,7 +27,16 @@ export function Clans({ me, onSelect, selecting }) {
           </>
         }
       />
-      <div style={{ display: "grid", gap: "12px" }}>
+      {notYours ? (
+        <div className="callout mb-4" role="note">
+          <span>
+            You don&rsquo;t have a player in <Tag tag={`#${notYours}`} />. Its{" "}
+            <Link to={`/console/explore/clan/${notYours}`}>record</Link> is open
+            to anyone signed in.
+          </span>
+        </div>
+      ) : null}
+      <div className="grid gap-3">
         {me.clans.map((c) => {
           const current = me.selected?.clan_tag === c.clan_tag;
           return (
@@ -43,26 +52,10 @@ export function Clans({ me, onSelect, selecting }) {
                 setPicking(c.clan_tag);
                 onSelect(c.clan_tag);
               }}
-              style={{
-                textAlign: "left",
-                cursor: "pointer",
-                font: "inherit",
-                color: "inherit",
-                boxShadow: current ? "var(--mark-current)" : undefined,
-              }}
+              className={`w-full cursor-pointer text-left [color:inherit] [font:inherit]${current ? " [box-shadow:var(--mark-current)]" : ""}`}
             >
-              <div
-                className="panel__body"
-                style={{ display: "grid", gap: "6px" }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: "10px",
-                    flexWrap: "wrap",
-                  }}
-                >
+              <div className="panel__body grid gap-1.5">
+                <div className="flex flex-wrap items-baseline gap-2.5">
                   <span className="page-title">
                     {c.name ?? <Tag tag={c.clan_tag} />}
                   </span>
@@ -74,14 +67,7 @@ export function Clans({ me, onSelect, selecting }) {
                     <span className="page-head__note">opening…</span>
                   ) : null}
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="yours">★</span>
                   <span>{c.acting_as_name ?? <Tag tag={c.acting_as} />}</span>
                   <span className="tag">{c.acting_as}</span>
@@ -112,18 +98,13 @@ export function Clans({ me, onSelect, selecting }) {
           as="div"
           title="Unverified players"
           titleAs="div"
-          style={{ marginTop: "20px", opacity: 0.85 }}
+          className="mt-5 opacity-85"
         >
-          <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
+          <div className="panel__body grid gap-2">
             {unverified.map((i) => (
               <div
                 key={i.player_tag}
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
+                className="flex flex-wrap items-center gap-2"
               >
                 <span>{i.name ?? <Tag tag={i.player_tag} />}</span>
                 <span className="tag">{i.player_tag}</span>
@@ -132,12 +113,8 @@ export function Clans({ me, onSelect, selecting }) {
                     in {i.clan_name ?? <Tag tag={i.clan_tag} />}
                   </span>
                 ) : null}
-                <Link
-                  className="btn btn--sm"
-                  to={ELIXIR_LINKS.verify}
-                  style={{ marginLeft: "auto" }}
-                >
-                  Verify in Elixir ›
+                <Link className="btn btn--sm ml-auto" to={ELIXIR_LINKS.verify}>
+                  Verify your player
                 </Link>
               </div>
             ))}

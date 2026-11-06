@@ -1,16 +1,9 @@
 import { useState } from "react";
-import {
-  Disclosure,
-  Fresh,
-  Spark,
-  useClock,
-  Panel,
-  Empty,
-  Table,
-} from "@elixir-mcp/ui";
+import { Disclosure, Fresh, Spark, Panel, Empty, Table } from "@elixir-mcp/ui";
 import { useStanding } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
-import { TooFew } from "../components/TooFew.jsx";
+import { ROLE, seasonWeek } from "../lib/words.js";
+import { holdWords } from "../components/YouHereCard.jsx";
 import { ReportThis } from "../components/ReportThis.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { MemberLink } from "../components/MemberLink.jsx";
@@ -24,50 +17,44 @@ const STATUS = {
     label: "Holding Elder",
     chip: "chip--ok",
     bar: "shadow-[inset_3px_0_0_var(--ok)]",
-    says: "Elders the policy keeps",
+    says: "Elders the policy keeps.",
     shown: 5,
   },
   slipping: {
     label: "Slipping",
     chip: "chip--warn",
     bar: "shadow-[inset_3px_0_0_var(--warn)]",
-    says: "Elders with a demotion building",
+    says: "Elders falling short of what the policy keeps.",
     shown: 5,
   },
   rising: {
     label: "Rising",
     chip: "chip--info",
     bar: "shadow-[inset_3px_0_0_var(--accent-bright)]",
-    says: "Members with a promotion building",
+    says: "Members nearing Elder.",
     shown: 5,
   },
   participating: {
     label: "Participating",
     chip: "chip--mute",
     bar: "shadow-[inset_3px_0_0_var(--line-strong)]",
-    says: "Taking part, outside the Elder band",
+    says: "Meeting the minimums, not near Elder yet.",
     shown: 0,
   },
   quiet: {
     label: "Quiet",
     chip: "chip--mute",
     bar: "shadow-[inset_3px_0_0_var(--line-strong)]",
-    says: "Little recorded play in what the clan counts",
+    says: "Little recorded play in what the clan counts.",
     shown: 5,
   },
 };
 const ORDER = ["holding", "slipping", "rising", "participating", "quiet"];
 /** A group longer than this opens at its `shown` rows. */
 const LONG = 6;
-const ROLE = {
-  leader: "Leader",
-  coLeader: "Co-leader",
-  elder: "Elder",
-  member: "Member",
-};
 const LEADERS = new Set(["leader", "coLeader"]);
 
-const race = (w) => `${w.season_id}/${w.section_index}`;
+const race = (w) => seasonWeek(w);
 const points = (war) =>
   (war ?? []).map((w) => ({
     label: race(w),
@@ -89,9 +76,9 @@ function Group({ status, rows, you, war, clan, navigate }) {
   return (
     <Panel className="overflow-hidden" aria-labelledby={id}>
       <div className={`panel__head ${s.bar}`}>
-        <h2 id={id} className="m-0 text-[14px] font-semibold">
+        <h3 id={id} className="m-0 text-[14px] font-semibold">
           {s.label}
-        </h2>
+        </h3>
         <span className={`chip ${s.chip}`.trim()}>{rows.length}</span>
         <span className="grow text-[12.5px] font-normal text-ink-faint">
           {s.says}
@@ -146,7 +133,7 @@ function Group({ status, rows, you, war, clan, navigate }) {
               className:
                 "whitespace-normal text-right text-[12.5px] text-ink-dim",
               cell: (r) =>
-                r.evidence || <span className="nil">nothing recorded</span>,
+                r.evidence || <span className="nil">Nothing recorded yet</span>,
             },
           ]}
           rows={shown}
@@ -181,13 +168,13 @@ function Group({ status, rows, you, war, clan, navigate }) {
  *  Elder is ranked) and every section in a member's words. A leader can
  *  open the policy itself. */
 function How({ d, clan, who, navigate }) {
-  const policy = `${clanPath(clan.clan_tag)}/manage/policy`;
+  const policy = `${clanPath(clan.clan_tag)}/run/about`;
   return (
     <Panel aria-labelledby="standing-how">
       <div className="panel__head">
-        <h2 id="standing-how" className="m-0 grow text-[14px] font-semibold">
+        <h3 id="standing-how" className="m-0 grow text-[14px] font-semibold">
           How it works here
-        </h2>
+        </h3>
         {d.policy_version ? (
           <span className="chip chip--info">policy v{d.policy_version}</span>
         ) : null}
@@ -247,7 +234,7 @@ function How({ d, clan, who, navigate }) {
               navigate(policy);
             }}
           >
-            Read the policy in full ›
+            Read the policy in full, in Run
           </a>
         </div>
       ) : null}
@@ -258,7 +245,6 @@ function How({ d, clan, who, navigate }) {
 /** Your own line: your group (or your role, when the policy does not band
  *  you), your war decks per race, the evidence and what would move it. */
 function You({ you, who }) {
-  const { calendar } = useClock();
   const war = points(you.war);
   const played = war.reduce((n, p) => n + (p.value ?? 0), 0);
   const asked = war.reduce((n, p) => n + p.of, 0);
@@ -266,9 +252,9 @@ function You({ you, who }) {
   return (
     <Panel aria-labelledby="standing-you">
       <div className="panel__head">
-        <h2 id="standing-you" className="m-0 grow text-[14px] font-semibold">
+        <h3 id="standing-you" className="m-0 grow text-[14px] font-semibold">
           You
-        </h2>
+        </h3>
       </div>
       <div className="panel__body grid gap-3">
         <div className="flex items-center gap-2.5">
@@ -293,33 +279,29 @@ function You({ you, who }) {
             </span>
           </div>
         ) : null}
-        <p className="m-0">{you.evidence || "Nothing recorded yet."}</p>
-        {you.next.map((n) => (
-          <p key={n} className="m-0 text-[13.5px] text-ink-dim">
-            → {n}
-          </p>
-        ))}
+        <p className="m-0">
+          {LEADERS.has(who?.role)
+            ? "Leaders and co-leaders have no group. Your own numbers are on your page."
+            : you.evidence || "Nothing recorded yet."}
+        </p>
         {you.inactivity ? (
           <div className="callout callout--warn">
             <span>
-              The last recorded activity marker is {Math.floor(you.days_idle)}{" "}
-              days old. This does not establish no play across every battle
-              mode.
+              {Math.floor(you.days_idle)} days since your last battle; this clan
+              counts a member at risk from{" "}
+              {you.inactivity.at_risk_days ?? "its"}{" "}
+              {you.inactivity.at_risk_days ? "" : "at-risk day"}. Modes the
+              battle log does not carry are not seen.
             </span>
           </div>
         ) : null}
-        {you.hold ? (
-          <div className="notice">
-            A leader has you on hold
-            {you.hold.until ? ` until ${calendar(you.hold.until)}` : ""}.
-          </div>
-        ) : null}
+        {you.hold ? <div className="notice">{holdWords(you.hold)}</div> : null}
       </div>
       {war.length ? (
         <div className="panel__foot text-[12.5px] text-ink-faint">
           {war.length === 1
-            ? `Race ${war[0].label}.`
-            : `Races ${war[0].label} to ${war[war.length - 1].label}.`}
+            ? `${war[0].label}.`
+            : `${war[0].label} to ${war[war.length - 1].label}.`}
         </div>
       ) : null}
     </Panel>
@@ -331,7 +313,7 @@ function You({ you, who }) {
  *  Elder is ranked and the policy shares it, who holds Elder, who is rising
  *  and who is slipping, each with their own evidence in a player's terms.
  *  Never a score, a rank, or the slot count. */
-export function Standing({ clan, who, navigate }) {
+export function Standing({ clan, who, navigate, fromRun = false }) {
   const standing = useStanding(clan.clan_tag);
   const env = standing.data;
   const state = !env
@@ -347,11 +329,7 @@ export function Standing({ clan, who, navigate }) {
           : { data: env.data };
   const head = (
     <PageHead
-      clan={clan}
-      crumb="Standing"
       title="Standing"
-
-      navigate={navigate}
       fresh={
         state.data?.as_of ? (
           <Fresh
@@ -362,20 +340,12 @@ export function Standing({ clan, who, navigate }) {
         ) : null
       }
     >
-      {/* A standing is Elixir's judgment against the clan's policy: when
-          it reads wrong, the policy version rides along (2026-10-08). */}
-      {state.data ? (
-        <div>
-          <ReportThis
-            about={`Standing in ${clan.name ?? clan.clan_tag}${state.data.policy_version ? `, policy v${state.data.policy_version}` : ""}. Name the member and what reads wrong.`}
-            refs={[
-              { kind: "clan", ref: clan.clan_tag },
-              ...(state.data.policy_version
-                ? [{ kind: "policy", ref: `v${state.data.policy_version}` }]
-                : []),
-            ]}
-            context={{ page: "standing" }}
-          />
+      {fromRun ? (
+        <div className="callout callout--info" role="status">
+          <span>
+            Run is for the leader and co-leaders. This is how the clan runs, the
+            same rules every member reads.
+          </span>
         </div>
       ) : null}
     </PageHead>
@@ -391,7 +361,12 @@ export function Standing({ clan, who, navigate }) {
     return (
       <>
         {head}
-        <TooFew members={state.tooFew.members} min={state.tooFew.min_members} />
+        <Empty
+          title={`Clan management starts at ${state.tooFew.min_members} members`}
+        >
+          Clan management is paused below {state.tooFew.min_members} members, so
+          Standing waits.
+        </Empty>
       </>
     );
   if (state.noPolicy)
@@ -400,6 +375,7 @@ export function Standing({ clan, who, navigate }) {
         {head}
         <Empty title="No policy yet">
           This clan&rsquo;s leaders have not set up how the clan runs here.
+          Standing starts when they do.
         </Empty>
       </>
     );
@@ -425,7 +401,8 @@ export function Standing({ clan, who, navigate }) {
       {head}
       {you}
       <Disclosure
-        title={`How standing works${d.policy_version ? ` · Policy v${d.policy_version}` : ""}`}
+        title={`How it works here${d.policy_version ? ` · Policy v${d.policy_version}` : ""}`}
+        open={fromRun}
       >
         {how}
       </Disclosure>
@@ -442,16 +419,37 @@ export function Standing({ clan, who, navigate }) {
           />
         ))}
       </div>
+      {!groups.length && !d.rows?.length && d.you ? (
+        <p className="page-head__note mt-4 mb-0">
+          This clan&rsquo;s leaders keep the group lists to themselves. Your own
+          line is above.
+        </p>
+      ) : null}
       {groups.length ? (
         <p className="page-head__note mt-4 mb-0">
           Standing is participation in what this clan counts, compared across
-          its members and Elders over the windows the policy sets.
+          its members and Elders over the windows the policy sets. It is a
+          group.
           {war
-            ? " Bars are war decks in each race the war window reads, out of the decks asked."
+            ? " Bars are war decks in each finished race the war window reads, out of the decks asked."
             : ""}{" "}
-          Leaders and co-leaders are not banded.
+          Leaders and co-leaders have no group.
         </p>
       ) : null}
+      {/* A standing is Elixir's reading against the clan's policy: when it reads
+          wrong, the policy version rides along (2026-10-08). */}
+      <div className="mt-3">
+        <ReportThis
+          about={`Standing in ${clan.name ?? clan.clan_tag}${d.policy_version ? `, policy v${d.policy_version}` : ""}. Name the member and what reads wrong.`}
+          refs={[
+            { kind: "clan", ref: clan.clan_tag },
+            ...(d.policy_version
+              ? [{ kind: "policy", ref: `v${d.policy_version}` }]
+              : []),
+          ]}
+          context={{ page: "standing" }}
+        />
+      </div>
     </>
   );
 }

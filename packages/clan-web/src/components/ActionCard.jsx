@@ -28,7 +28,7 @@ import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { untilWritten } from "../lib/pending.js";
 import { trackEvent } from "../analytics.js";
-import { CLAN, clanPath, memberPath } from "../lib/base.js";
+import { clanPath, memberPath } from "../lib/base.js";
 import { MemberSheet } from "./MemberSheet.jsx";
 import { ReportThis } from "./ReportThis.jsx";
 import { RoleChip } from "./RoleChip.jsx";
@@ -100,14 +100,22 @@ const ROLE = {
   elder: "Elder",
   member: "Member",
 };
+/** The record keeps the reason's key; the card says it in words. */
+const DECLINE_WORDS = {
+  not_now: "Not now",
+  knows_the_member: "Knows the member",
+  evidence_wrong: "The numbers are wrong",
+  handled_in_game: "Handled in the game",
+  other: "Other",
+};
 export const STATUS = {
-  done: ["Completed", "chip--ok"],
+  done: ["Done", "chip--ok"],
   declined: ["Declined", "chip--warn"],
   withdrawn: ["Withdrawn", ""],
 };
 const KIND = {
   raised: "Suggested",
-  completed: "Completed",
+  completed: "Done",
   declined: "Declined",
   reopened: "Reopened",
   withdrawn: "Withdrawn",
@@ -324,7 +332,7 @@ function DraftControls({
       );
     } catch {
       setSaid(
-        "The draft's outcome is unknown. Your words are unchanged. Check the use log in Settings before requesting another draft.",
+        "The draft's outcome is unknown. Your words are unchanged. Check the use log in Model & voice before requesting another draft.",
       );
     } finally {
       setDrafting(false);
@@ -583,14 +591,12 @@ function DeliveryComposer({
           >
             <option value="clan_chat">Clan chat</option>
             {draft.options.leader_message ? (
-              <option value="leader_message">
-                Durable Leader Message · Inbox
-              </option>
+              <option value="leader_message">Leader Message</option>
             ) : null}
           </select>
           <span className="page-head__note">
-            Chat reaches the clan conversation. Inbox is separate and useful for
-            important messages members may want to keep.
+            Chat reaches the clan conversation. A Leader Message lands in each
+            member&rsquo;s Inbox and stays.
           </span>
         </label>
       ) : null}
@@ -773,22 +779,23 @@ const DRAFT_ERROR = {
     "The action's context changed. Reload it before drafting or sending these words.",
   departure_unconfirmed:
     "Confirm Kicked or Left before drafting a departure message.",
-  no_model_key: "The clan has no model key yet (Manage ▸ Settings).",
+  no_model_key: "The clan has no model key yet (Run › Model & voice).",
   model_key_refused:
-    "Anthropic stopped accepting the clan's key. Add it again in Settings.",
-  model_key_unreadable: "The clan's key needs to be added again in Settings.",
+    "Anthropic stopped accepting the clan's key. Add it again in Model & voice.",
+  model_key_unreadable:
+    "The clan's key needs to be added again in Model & voice.",
   model_unavailable:
     "The clan's key could not reach the model Clan uses for this. Try again; if it fails again, opening Settings checks the key with Anthropic.",
   model_daily_limit:
     "The clan's model has drafted as many times as it may today. Try again tomorrow.",
   model_spend_cap:
-    "The clan's model has reached this month's spend cap. A leader can raise it in Settings.",
+    "The clan's model has reached this month's spend cap. A leader can raise it in Model & voice.",
   model_key_owner_left:
-    "The clan's key was added by someone who no longer leads the clan. Add a key of yours in Settings.",
+    "The clan's key was added by someone who no longer leads the clan. Add a key of yours in Model & voice.",
   still_pending:
-    "The model is taking longer than usual. Its draft is counted in Settings; try again in a minute.",
+    "The model is taking longer than usual. Its draft is counted in Model & voice; try again in a minute.",
   outcome_unknown:
-    "The model did not answer in time. The attempt is counted in Settings; try again in a minute.",
+    "The model did not answer in time. The attempt is counted in Model & voice; try again in a minute.",
   no_pending_draft: "That draft is no longer waiting. Ask for another.",
   not_yours: "That draft was started by another leader. Ask for your own.",
 };
@@ -1029,7 +1036,7 @@ function BoundActionCard({
               error:
                 DRAFT_ERROR[r.data?.error] ??
                 r.data?.message ??
-                "The model did not answer. Your words are unchanged; check Settings before requesting another draft.",
+                "The model did not answer. Your words are unchanged; check Model & voice before requesting another draft.",
             };
           }
           trackEvent(
@@ -1143,7 +1150,7 @@ function BoundActionCard({
         <TypeIcon type={action.type} big />
         <div className="grid min-w-0 grow gap-0.5">
           <h2 id={id} className="m-0 text-[17px] font-semibold">
-            Evidence and message
+            {action.label}
           </h2>
           <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-dim">
             {mine ? (
@@ -1296,9 +1303,9 @@ function BoundActionCard({
             ) : action.type === "awards_announcement" ? (
               <div>
                 Season {ev.season_id} is closed and its awards are granted. Tell
-                the clan in chat or choose a durable Inbox message, then mark it
-                sent. This message covers the recipients listed below. An award
-                granted later can have its own announcement.
+                the clan in chat or by Leader Message, then mark it done. This
+                message covers the recipients listed below. An award granted
+                later can have its own announcement.
                 {ev.parts > 1
                   ? ` Message ${ev.part} of ${ev.parts}; send every part to name all recipients.`
                   : ""}
@@ -1306,12 +1313,12 @@ function BoundActionCard({
             ) : action.type === "awards_standings" ? (
               <div>
                 {ev.scope === "current"
-                  ? `Current provisional season ${ev.season_id} standings.`
-                  : `War week ${ev.section_index + 1} of season ${ev.season_id} is recorded as closed. Share provisional standings through that week.`}
+                  ? `Season ${ev.season_id} so far: provisional standings.`
+                  : `Season ${ev.season_id}, week ${ev.section_index + 1} is recorded as closed. Share provisional standings through that week.`}
                 {ev.as_of ? ` As of ${ev.as_of}.` : ""} These are not final
                 grants; incomplete evidence withholds places.
                 {grouped
-                  ? " Send each message in order and mark each one sent. Copying alone does not record delivery."
+                  ? " Send each message in order and mark each one when it is out. Copying alone does not record delivery."
                   : ev.parts > 1
                     ? ` Message ${ev.part} of ${ev.parts}; send every part.`
                     : ""}
@@ -1321,8 +1328,7 @@ function BoundActionCard({
                 {ev.changes?.length
                   ? `Policy version ${ev.version} changed: ${ev.changes.join(", ")}.`
                   : `Policy version ${ev.version}: the clan's first.`}{" "}
-                Tell the clan in chat or choose a durable Inbox message, then
-                mark it sent.
+                Tell the clan in chat or by Leader Message, then mark it done.
               </div>
             ) : (
               <div>
@@ -1339,7 +1345,7 @@ function BoundActionCard({
               <b className="text-ink">In the game:</b>{" "}
               {action.type === "promotion" ? "promote" : "demote"}{" "}
               {action.player_name ?? <Tag tag={action.player_tag} />}, send the
-              reviewed message, then mark it complete. They go together.
+              reviewed message, then mark it done. They go together.
             </div>
           ) : null}
           {LEADER_TYPES.has(action.type) && ev.facts?.length ? (
@@ -1405,20 +1411,20 @@ function BoundActionCard({
             <>
               <a
                 className="btn w-fit"
-                href={`${clanPath(clan.clan_tag)}/actions`}
+                href={`${clanPath(clan.clan_tag)}/today`}
                 onClick={(e) => {
                   if (!navigate || e.metaKey || e.ctrlKey || e.shiftKey) return;
                   e.preventDefault();
-                  navigate(`${clanPath(clan.clan_tag)}/actions`);
+                  navigate(`${clanPath(clan.clan_tag)}/today`);
                 }}
               >
                 Review later · leave open
               </a>
               {grouped && ev.messages.length > 1 ? (
                 <p className="page-head__note m-0">
-                  Each part has its own delivery choice. If using the Inbox,
-                  wait until the game allows another Leader Message. Sent
-                  receipts stay saved while you wait.
+                  Each part has its own delivery choice. For a Leader Message,
+                  wait until the game allows another. Sent receipts stay saved
+                  while you wait.
                 </p>
               ) : null}
             </>
@@ -1460,8 +1466,8 @@ function BoundActionCard({
             </div>
           ) : null}
         </div>
-        <aside className="action-workspace__decision">
-          <h2 className="text-[20px] font-semibold mb-4">Decision</h2>
+        <aside className="action-workspace__decision clan-decide">
+          <h3 className="text-[20px] font-semibold mb-4">Decision</h3>
           {(open && action.can_act) || action.can_reopen || sheet || error ? (
             <div className="grid gap-3 py-3.5">
               {action.can_reopen && !removalHeld ? (
@@ -1521,10 +1527,10 @@ function BoundActionCard({
                   <div className="flex flex-wrap gap-2">
                     <a
                       className="btn btn--primary"
-                      href={`${CLAN}/you/away`}
+                      href={`${clanPath(clan.clan_tag)}/members/away`}
                       onClick={(e) => {
                         e.preventDefault();
-                        navigate?.(`${CLAN}/you/away`);
+                        navigate?.(`${clanPath(clan.clan_tag)}/members/away`);
                       }}
                     >
                       Mark me away
@@ -1549,7 +1555,7 @@ function BoundActionCard({
                       disabled={busy || (grouped ? !allSent : !delivery.valid)}
                       onClick={() => decide("done")}
                     >
-                      {grouped ? "Complete update" : "Sent"}
+                      Done
                     </button>
                     <button
                       type="button"
@@ -1557,7 +1563,7 @@ function BoundActionCard({
                       disabled={busy}
                       onClick={() => decide("declined")}
                     >
-                      {grouped ? "Skip remaining messages" : "Skip"}
+                      Decline
                     </button>
                   </div>
                 ) : action.type === "welcome" ? (
@@ -1569,7 +1575,7 @@ function BoundActionCard({
                       disabled={busy}
                       onClick={() => decide("done")}
                     >
-                      Welcomed
+                      Done
                     </button>
                     <button
                       type="button"
@@ -1577,7 +1583,7 @@ function BoundActionCard({
                       disabled={busy}
                       onClick={() => decide("declined")}
                     >
-                      Skip
+                      Decline
                     </button>
                   </div>
                 ) : !declining ? (
@@ -1594,7 +1600,7 @@ function BoundActionCard({
                       }
                       onClick={() => decide("done")}
                     >
-                      Complete
+                      Done
                     </button>
                     <button
                       type="button"
@@ -1629,7 +1635,7 @@ function BoundActionCard({
                     >
                       {(reasons ?? []).map((r) => (
                         <option key={r} value={r}>
-                          {r.replaceAll("_", " ")}
+                          {DECLINE_WORDS[r] ?? r.replaceAll("_", " ")}
                         </option>
                       ))}
                     </select>

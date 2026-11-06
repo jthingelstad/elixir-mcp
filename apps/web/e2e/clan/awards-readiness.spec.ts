@@ -170,9 +170,9 @@ for (const size of ["wide", "@narrow"]) {
       { ...roster[1], member_count: 12 },
     ];
     await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/manage/awards");
+    await page.goto("/clan/2PQRJ8LV/awards");
     await expect(
-      page.getByRole("heading", { name: "Award races", exact: true }),
+      page.getByRole("heading", { name: "Awards", exact: true }),
     ).toBeVisible();
     await page.getByRole("combobox", { name: "Season" }).selectOption("135");
     await expect(page.getByText("80 war decks", { exact: true })).toBeVisible();
@@ -303,7 +303,7 @@ for (const size of ["wide", "@narrow"]) {
         action.message.body,
       );
       await expect(
-        page.getByRole("button", { name: "Sent", exact: true }),
+        page.getByRole("button", { name: "Done", exact: true }),
       ).toBeVisible();
       expect(
         await page.evaluate(
@@ -460,7 +460,7 @@ for (const size of ["wide", "@narrow"]) {
     await mockApi(page, responses);
     await page.goto("/clan/2PQRJ8LV/awards");
     const prepare = page.getByRole("button", {
-      name: "Send season 136 update to clan",
+      name: "Send Season 136 update to clan",
       exact: true,
     });
     await prepare.click();
@@ -471,7 +471,7 @@ for (const size of ["wide", "@narrow"]) {
     expect(requests[0]).toBeTruthy();
     expect(requests[1]).toBe(requests[0]);
     const complete = page.getByRole("button", {
-      name: "Complete update",
+      name: "Done",
       exact: true,
     });
     await expect(complete).toBeDisabled();
@@ -514,7 +514,7 @@ for (const size of ["wide", "@narrow"]) {
     await expect(complete).toHaveCount(0);
   });
 
-  test(`Actions defaults to Open and refreshes suggestions explicitly ${size}`, async ({
+  test(`Today defaults to Waiting and refreshes suggestions explicitly ${size}`, async ({
     page,
   }) => {
     const open = {
@@ -539,6 +539,14 @@ for (const size of ["wide", "@narrow"]) {
     await mockApi(
       page,
       signedIn({
+        "GET /api/clan/clans/2PQRJ8LV/history": [
+          200,
+          {
+            cards: [{ ...recent, decided_at: new Date().toISOString() }],
+            timeline: [],
+            holds: [],
+          },
+        ],
         "GET /api/clan/clans/2PQRJ8LV/actions": (route) => {
           if (
             new URL(route.request().url()).searchParams.get("refresh") === "1"
@@ -551,23 +559,22 @@ for (const size of ["wide", "@narrow"]) {
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/actions");
-    await expect(page.getByRole("combobox", { name: "Show" })).toHaveValue(
-      "open",
-    );
+    await page.goto("/clan/2PQRJ8LV/today");
     await expect(
       page.getByRole("link", { name: /Welcome the newcomer/ }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /Earlier welcome/ }),
     ).toHaveCount(0);
-    await page.getByRole("combobox", { name: "Show" }).selectOption("closed");
+    await page.getByRole("link", { name: /^Decided/ }).click();
+    await expect(page).toHaveURL(/\/today\/decided$/);
     await expect(
       page.getByRole("link", { name: /Earlier welcome/ }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /Welcome the newcomer/ }),
     ).toHaveCount(0);
+    await page.getByRole("link", { name: /^Waiting/ }).click();
     await page
       .getByRole("button", { name: "Refresh suggestions", exact: true })
       .click();
@@ -636,7 +643,7 @@ for (const size of ["wide", "@narrow"]) {
     await page.goto("/clan/2PQRJ8LV/awards");
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/awards$/);
     await expect(
-      page.getByRole("heading", { name: "Award races", exact: true }),
+      page.getByRole("heading", { name: "Awards", exact: true }),
     ).toBeVisible();
     for (const [name, place] of [
       ["Higher donor", "4"],
@@ -653,11 +660,11 @@ for (const size of ["wide", "@narrow"]) {
     });
     await page.getByRole("combobox", { name: "Season" }).selectOption("135");
     await expect(
-      page.getByRole("button", { name: "Send season 136 update to clan" }),
+      page.getByRole("button", { name: "Send Season 136 update to clan" }),
     ).toBeVisible();
     await expect(
       page.getByText(
-        "This prepares the current season 136 update, while you are viewing season 135.",
+        /current Season 136 update, while you are viewing Season 135/,
       ),
     ).toBeVisible();
     await page.screenshot({

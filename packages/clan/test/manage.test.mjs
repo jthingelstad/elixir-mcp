@@ -1851,9 +1851,8 @@ for (const [role, claim_status] of [
     assert.deepEqual(h.mcp.state.facts, []);
     assert.deepEqual(h.mcp.state.mail, []);
     assert.ok(
-      !h.mcp.calls.some(([name]) =>
-        ["war_history", "live_fetch"].includes(name),
-      ),
+      !h.mcp.calls.some(([name]) => name === "live_fetch"),
+      "the season page reads the record, never a live fetch",
     );
   });
 }

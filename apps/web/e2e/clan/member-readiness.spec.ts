@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { FIELDS, GROUPS, TABS, defaults } from "@elixir-mcp/clan-engine";
-import { ME, mockApi, signedIn } from "./fixtures.ts";
+import { ME, clanTab, mockApi, signedIn } from "./fixtures.ts";
 
 for (const width of [390, 1280]) {
   test(`member evidence and small-clan policy preparation at ${width}px`, async ({
@@ -85,22 +85,20 @@ for (const width of [390, 1280]) {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/roster");
+    await page.goto("/clan/2PQRJ8LV/members");
     await page.getByRole("link", { name: "Ben", exact: true }).click();
     await expect(page).toHaveURL(/\/members\/uq8lp2r9c$/);
     await expect(
-      page.getByRole("heading", { name: "Ben · Activity" }),
+      page.getByRole("heading", { name: "Ben", exact: true }),
     ).toBeVisible();
+    await page.getByText("Recent battles in this clan").click();
+    await page.getByText("How these are counted").click();
     await expect(
-      page.getByText("Missing battles", { exact: true }),
+      page.getByText(
+        /^A gap is unknown\. No battle here does not prove no play/,
+      ),
     ).toBeVisible();
-    await expect(
-      page.getByText(/No recorded activity does not mean no play/),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Older records" }).click();
-    await expect(
-      page.getByRole("heading", { name: "Recorded sessions · page 2" }),
-    ).toBeVisible();
+    await page.getByRole("button", { name: "Older battles" }).click();
     const axe = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])
       .analyze();
@@ -113,7 +111,7 @@ for (const width of [390, 1280]) {
       path: `/tmp/elixir-member-activity-${width}.png`,
       fullPage: true,
     });
-    await page.goto("/clan/2PQRJ8LV/manage/policy");
+    await page.goto("/clan/2PQRJ8LV/run/about");
     await expect(
       page.getByText(/Leaders can prepare and save its policy now/),
     ).toBeVisible();
@@ -159,22 +157,13 @@ test("switching back from two small clans restores the active clan's navigation 
     }),
   );
   await page.goto("/clan/2PQRJ8LV");
-  const rail = page.locator(".rail");
-  let from = first;
+  const picker = page.getByRole("combobox", { name: "Clan" });
   for (const clan of [second, third, first]) {
-    // The Clan picker, at the head of the rail (Jamie, 2026-10-20).
-    await rail.getByRole("button", { name: new RegExp(from.name) }).click();
-    await rail.getByRole("link", { name: new RegExp(clan.name) }).click();
+    await picker.selectOption(clan.clan_tag);
     await expect(
-      rail.getByRole("button", { name: new RegExp(clan.name) }),
+      page.getByRole("heading", { level: 1, name: clan.name }),
     ).toBeVisible();
-    from = clan;
-    const active = clan.clan_tag === first.clan_tag;
-    await expect(
-      page.locator(".rail").getByRole("link", { name: /^Actions/ }),
-    ).toHaveCount(active ? 1 : 0);
-    await expect(
-      page.locator(".rail").getByRole("link", { name: /^Award history/ }),
-    ).toHaveCount(active ? 1 : 0);
+    await expect(clanTab(page, /^Today/)).toBeVisible();
+    await expect(clanTab(page, "Members")).toBeVisible();
   }
 });

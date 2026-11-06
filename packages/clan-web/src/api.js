@@ -101,7 +101,6 @@ export const manageApi = {
     ),
   removeNote: (tag, noteId) => del(`${clanBase(tag)}/notes/${noteId}`),
   standing: (tag) => get(`${clanBase(tag)}/standing`),
-  trophies: (tag) => get(`${clanBase(tag)}/trophies`),
   // "You here": the member's own numbers and place in this clan.
   memberView: (tag) => get(`${clanBase(tag)}/me`),
   memberActivity: (tag, playerTag, cursor = null, to = null) => {

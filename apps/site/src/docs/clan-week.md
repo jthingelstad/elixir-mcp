@@ -4,15 +4,15 @@ title: "The week in your clan"
 description: "Clan's weekly report: which weeks it covers and when one closes, the four areas it reads (Clan Wars, donations, ranked play, battles), what it highlights and why, who came and went, and what it leaves out."
 section: clan
 order: 2
-navTitle: "The week"
+navTitle: "A week"
 icon: calendar-range
 lede: "A report on each closed week of the clan: what the clan did in Clan Wars, donations, ranked play and battles, who took part, and who came and went."
-reviewed: "2026-10-04; Clan browsing context and read clarity, contracts unchanged"
+reviewed: "2026-11-06; a week now lives under the Season tab; 2026-10-04; Clan browsing context and read clarity, contracts unchanged"
 ---
 
 # The week in your clan
 
-**The week** in Clan is a report on one week of the clan, read
+A week, under **Season** in Clan, is a report on one week of the clan, read
 from the record. Every member sees it, verified or not, and it needs no
 policy: it is there from the clan's first closed week.
 
@@ -20,14 +20,14 @@ policy: it is there from the clan's first closed week.
 
 The report covers closed weeks only. A week closes at the Monday reset
 (10:00 UTC), or earlier when the clan's war finished before it, and the
-report opens on the latest closed week. Step back and forward a week at
-a time, up to eight weeks back; each week has its own address. Until a
+**Period** picker on Season opens any of the last eight weeks; each week has
+its own address. Until a
 week has closed there is nothing to show, and the page says when the
 first one closes. On the latest week a section shows **this week so
 far**.
 
 For war totals and race-by-race progress across a season, open
-[Season](/docs/clan-season) beside The week. It includes the represented
+the season itself in the same picker ([Season](/docs/clan-season)). It includes the represented
 former members and explains partial reads separately.
 
 ## What it reads
