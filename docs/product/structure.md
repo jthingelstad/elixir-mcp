@@ -254,7 +254,7 @@ All [Jamie, 2026-11-05].
 
 | # | Ruling | Step |
 | --- | --- | --- |
-| A19 | "Gone quiet" in the clan report goes to members only; the line comes out for non-members | 8 |
+| A19 | "Gone quiet" in the clan report goes to verified members only (Jamie, 2026-11-06); the line comes out for everyone else | 8 |
 | A20 | A race counts as something happening: a racing clan with no joins or departures still mails, and a silent clan skips | 8 |
 | A21 | Firsts on an alt when Arena week is off reach only the timeline | 8 |
 | A22 | A friend who is also a clanmate links to Clan | 8 |

@@ -64,7 +64,7 @@ test("the clan report's links follow the reader: member to Clan, Season and Memb
   assert.equal(member.subject, outside.subject);
 });
 
-test("Gone quiet is the clan's: a member reads a last battle's date, nobody reads a count", () => {
+test("Gone quiet is the clan's: a verified member reads a last battle's date, nobody reads a count", () => {
   const facts = load("clan_report");
   const name = facts.presence.quiet[0].name;
   facts.presence.quiet[0].last_battle = "2026-10-21T15:00:00.000Z";
@@ -73,6 +73,7 @@ test("Gone quiet is the clan's: a member reads a last battle's date, nobody read
     renderMail("clan_report", facts, {
       ...links,
       member_clans: [facts.clan.tag],
+      verified_clans: [facts.clan.tag],
     }).html,
   );
   assert.match(member, /Gone quiet/);
@@ -82,6 +83,14 @@ test("Gone quiet is the clan's: a member reads a last battle's date, nobody read
 
   const outside = htmlToText(renderMail("clan_report", facts, links).html);
   assert.doesNotMatch(outside, /Gone quiet|Back: /);
+
+  const unverified = htmlToText(
+    renderMail("clan_report", facts, {
+      ...links,
+      member_clans: [facts.clan.tag],
+    }).html,
+  );
+  assert.doesNotMatch(unverified, /Gone quiet|Back: /);
 });
 
 test("the You line shows a player of yours with a deck used, and no reader else", () => {

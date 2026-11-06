@@ -108,6 +108,7 @@ restating it in wider words.
 - **Discord delivery skips a refused line, paces each channel and says what Discord said** — on the timeline cross-post and a clan's activity channel a 400 skips that line alone (the rest are delivered) and its page shows Discord's words; one webhook's lines go at most 25 a minute across runs, a wait goes back to the queue as the record's visibility, and the last receive records what is left as not delivered; a webhook may name one thread (`?thread_id=`), and a forum channel's webhook, which takes no plain message, is refused at save and turns the posting off (2026-10-11, Jamie via the delivery plan). [Jamie, 2026-10-11; engineering: the pace, the last receive, refusing a forum webhook at save]
 - **Timeline evidence is a read-only drill-down** — exact ordered constituent games with honest completeness; a crossing links a game only when proved; late proof keeps the original moment identity. [Jamie, 2026-10-04]
 - **Verify is one battle** — a battle in the player's own log after the brief with exactly the eight target cards; the target is one of their own Trophy Road decks with two cards swapped; the proof may be in any mode. [Jamie, 2026-09-12, 2026-09-13]
+- **`clans_participation` keeps ISO weeks** — it feeds Standing and policy; any change would be a dated switch after a side-by-side comparison. [Jamie, 2026-11-06; `docs/notes/2026-11-06-redesign-decisions.md`]
 
 ## MCP contract and versioning
 
@@ -127,6 +128,7 @@ restating it in wider words.
 - **Read-only tools race a deadline; writes never do** — a read answers `query_timeout` with a request id and waits at most 5 s for a lock, on every door (MCP, Explore, `/api/v1`); each function's `statement_timeout` is a ceiling just under its Lambda kill; a priced `result_too_large` is an answer. [engineering, 2026-09-19, 2026-09-21, 2026-09-27]
 - **`battles_decks` is a light list with one deck in full** — one-line `card_names` and `archetype_label`, paged by `offset`/`next_offset`; `deck_hash` returns one deck in full. [Jamie, 2026-09-26]
 - **Size per door** — `clans_roster`'s per-member extras appear only where no result cap applies (`/api/v1`, Explore); `clans_participation` over MCP is a lossless table that keeps an eight-week, 50-member read under 40,000 characters. [Jamie, 2026-09-28; engineering: the roster's per-member extras, 2026-09-29]
+- **The 11.17.0 change of `at_unix` and `local` stays a minor** — they mean a sitting's last battle, and a first friend no longer becomes primary; not re-versioned as a major. [Jamie, 2026-11-06; `docs/notes/2026-11-06-redesign-decisions.md`]
 
 ## JSON API and integrations
 
@@ -172,6 +174,7 @@ restating it in wider words.
 - **What we never do** — no ads, brokers, selling or sharing, engagement scoring, automation on read state, or commercial targeting from game data. [Jamie, 2026-09-19]
 - **Analytics is client-side Tinylytics only** — never proxied through our API; the servers send Tinylytics nothing; `/signin` loads no analytics. [Jamie, 2026-09-08, 2026-09-19, 2026-09-24]
 - **The policy pages restate the service in general terms** — short and plain, a free hobby service, contact admin@poapkings.com; the code is the policy, and the pages change only with Jamie's word. [Jamie, 2026-09-28, 2026-10-11]
+- **The privacy page's mail pixel stays under "Mail is counted by issue"** — "Counting visits" covers pages; both are accurate, and neither is reworded. [Jamie, 2026-11-06; `docs/notes/2026-11-06-redesign-decisions.md`]
 
 ## Clan
 
@@ -249,6 +252,9 @@ restating it in wider words.
 - **Docs ship with the change** — the tool reference is generated from the registry; a docs pointer must resolve before a tool names it. [Jamie, 2026-09-04, 2026-09-18]
 - **Form is numbers only** — "am I improving?" is answered by setting two stretches of one mode's record side by side (the game week beside the four before it; the season before and since the most-played deck arrived), each number beside its count, from `battles_performance`'s compare and `before_after` windows shaped once in `@elixir-mcp/record/form` for Ladder and the Arena mail; no verdict word ("better", "improving", "good"), arrow, colour, score or advice, while a direction stated with its numbers ("up from 52% to 58%") is a fact; a side under `FORM_MIN_BATTLES` (10, decided battles for the win rate, head-to-head for the three-crown rate) is not set beside the other, and below it for the win rate nothing is shown; never pooled across modes. [Jamie, 2026-10-08, 2026-10-11; engineering: ten battles minimum, the two windows, modes never pooled]
 - **This season beside the last** — Ladder's Season tab sets the season it reads beside the one before it on record, in its one mode (Jamie, 2026-10-20, asked "Ladder (optional): add a 'this season against last season' comparison for one mode?": "Sure."); it is a Form reading, so Form is numbers only applies to it. [Jamie, 2026-10-20; engineering: a running season "so far" beside last season to the same point (to the whole hour) and in full, a closed season beside the one before both whole, a mode with no battles last season said plainly, won–lost, win rate, net trophies and decks played (`total_decks`), no league movement]
+- **Invite clanmates is not on Home** — it is on Clan's Members and folded on Ladder's Season, because Home's first steps end once a read names the clan. [Jamie, 2026-11-06; `docs/notes/2026-11-06-redesign-decisions.md`]
+- **`/data` draws 120 days and 8 weeks** — the full-history chart stays removed. [Jamie, 2026-11-06; `docs/notes/2026-11-06-redesign-decisions.md`]
+- **The docs and mail fixtures keep "King Thing" and "Jamie"** — they are the owner's own names. [Jamie, 2026-11-06; `docs/notes/2026-11-06-redesign-decisions.md`]
 
 ## Email
 
@@ -268,7 +274,7 @@ restating it in wider words.
 - **Actions waiting says why** — a reason line per action, the subject leads with the action, "#92" stays out of mail and stays in Discord; the clause "This clan counts" replaces the board's clan name because a stored rationale carries none [engineering, 2026-11-05]. [Jamie, 2026-11-05, D10, A23]
 - **The clan report's You line** — only for a reader whose player used at least one war deck. [Jamie, 2026-11-05, D11]
 - **Alts' firsts wait for Tuesday** — milestone mail is the main player's; an alt's first is one line under the alt in Tuesday's mail, once, through the same journal; with that mail off it stays on the timeline. [Jamie, 2026-11-05, D12, A21]
-- **Gone quiet is members only** — a last battle's date, never a count of days, "Back:" with no counts. "was removed" in the clan report needs a verified claim on a current member, as `factItems` does, because the fact is clan-visible [engineering, 2026-11-06]. [Jamie, 2026-11-05, A19, Q2]
+- **Gone quiet is verified members only** — a last battle's date, never a count of days, "Back:" with no counts; an unverified claim reads no section. "was removed" in the clan report needs a verified claim on a current member, as `factItems` does, because the fact is clan-visible [engineering, 2026-11-06]. [Jamie, 2026-11-05, 2026-11-06, A19, Q2]
 - **A deck under five battles is not drawn in mail** — the threshold for the boards' "about 5". [engineering, 2026-11-05]
 - **Every send has an id and a record** — the footer links the record, one-click feedback and the sponsorship line; the relay logs the send id, never the recipient. [Jamie, 2026-09-19]
 - **A report's trend compares only recorded weeks** — the clan report sets its week beside at most the four before it that the record holds and says how many; a week the record lacks is left out, never a zero. War decks possible are four a war day up to the finish (every day in Colosseum) for each member on the roster at the race's close, from weekly totals only. [Jamie, 2026-10-08; engineering: a missing week left out, never a zero, and counting possible decks]
