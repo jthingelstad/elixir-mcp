@@ -288,9 +288,7 @@ function You({ you, who }) {
           <div className="callout callout--warn">
             <span>
               {Math.floor(you.days_idle)} days since your last battle; this clan
-              counts a member at risk from{" "}
-              {you.inactivity.at_risk_days ?? "its"}{" "}
-              {you.inactivity.at_risk_days ? "" : "at-risk day"}. Modes the
+              counts a member at risk from {you.at_risk_days} days. Modes the
               battle log does not carry are not seen.
             </span>
           </div>

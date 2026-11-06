@@ -2336,6 +2336,7 @@ export function createManageService({
                   : mine.removal.state === "recommended"
                     ? "at_risk"
                     : mine.removal.state,
+              at_risk_days: policy.values.at_risk_days,
               days_idle: mine.facts.days_idle,
               inactivity_evidence: mine.facts.activity_evidence,
               hold: myHold ? { until: myHold.until ?? null } : null,

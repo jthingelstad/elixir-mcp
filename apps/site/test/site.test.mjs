@@ -1367,7 +1367,9 @@ test(
       "the capped feed preserves every selected entry's kind",
     );
     // No double escaping: autoescape already escapes the title.
-    assert.doesNotMatch(xml, /&amp;amp;/);
+    // An entry's body is HTML inside XML, where &amp;amp; is correct.
+    for (const [, title] of xml.matchAll(/<title>([^<]*)<\/title>/g))
+      assert.doesNotMatch(title, /&amp;amp;/);
 
     const feed = JSON.parse(read("feed.json"));
     assert.equal(feed.version, "https://jsonfeed.org/version/1.1");
