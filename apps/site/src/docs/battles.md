@@ -75,8 +75,9 @@ not expose. **Neither number is a skill measure**; `caveat` says so on
 every object, and the response repeats it in a note whenever the field is
 served. Do not describe a player's leak as good or poor play.
 
-`trophy_change` is the trophies the battle moved, on Trophy Road (`PvP`)
-and Path of Legends (`pathOfLegend`) only; other modes carry `null`. On a
+`trophy_change` is the trophies the battle moved, on Trophy Road (`PvP`),
+Path of Legends (`pathOfLegend`) and the seasonal Trophy Road past 14,000
+(`trail`, game mode Ladder); other modes carry `null`. On a
 Trophy Road **loss** it has a second meaning: every arena has a trophy
 floor its players cannot fall below, a loss standing exactly on the floor
 comes back from the game with **no `trophyChange` at all** and is served as
@@ -102,8 +103,9 @@ Every battle has a page anyone can open, no account needed: the `url` above,
 the left and the opponent on the right; then both decks as the game lays them
 out (each with the game's own copy-deck link, which opens Clash Royale with
 the deck ready to save), the towers each side kept, how it ended, the two
-sides' numbers next to each other, the left player's session around it and
-every recorded meeting of the two. A duel reads game by game. The page shows
+sides' numbers next to each other, the left player's session around it when
+it holds other battles, and, for a one-on-one battle, the two players' other
+recorded meetings when there are any. A duel reads game by game. The page shows
 game names only, never a nickname or anything of an account, and its link
 unfurls in a chat as the battle itself. The same projection is JSON at
 `/api/public/battles/<short id>`.
@@ -216,7 +218,7 @@ round numbers, each entry with that game's own `crowns`, `tower_hp` and
 `elixir` - including a per-round `differential`, which the summed top-level
 counter cannot have. So "how did round two go" is answerable: read `rounds[]`
 rather than the top-level values whenever the question is about one game. Some
-older duels have an empty `rounds[]`, and every non-duel row has none at all.
+older duels have no `rounds[]`, and neither does any non-duel row.
 
 **Each round is a game with its own deck.** A round's eight cards
 carry their own `deck_hash`, with no tower troop (the identity every Clan Wars

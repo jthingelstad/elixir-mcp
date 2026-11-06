@@ -43,8 +43,8 @@ ends on the next tower, so:
 | unequal, neither 3 | `at_least_s` 180, `at_most_s` 300 | no King Tower, so regulation ran; 3:00 or overtime is not recorded |
 | level | `exact_s` **300** | overtime expired without a tower falling, and the tower-hitpoints tiebreaker resolved it |
 
-`basis` is the rule that fired: `king_tower_fell`, `regulation_ran` or `overtime_expired`. It is absent on duels (crowns sum over
-up to three games) and boat battles (no overtime), and present only on
+`basis` is the rule that fired: `king_tower_fell`, `regulation_ran` or `overtime_expired`. `duration` is `null` on duels (crowns sum over
+up to three games) and boat battles (no overtime), and set only on
 head-to-head 1v1 types. It is a bound, never a measurement: nothing here
 times a battle.
 
@@ -98,7 +98,8 @@ therefore serves the controls beside it:
   than one group, because the pooled win rate mixes different games. Quote
   a group's line, not the pooled one.
 - `battles_performance` carries `trophy_floor` when the window holds ladder
-  battles and the arena's floor is known (see `trophy_change` above;
+  battles and the arena's floor is known (see
+  [`trophy_change`](/docs/battles#what-a-battle-record-holds);
   `floors[]` lists every floor the window stood on, since a climbing player
   stands on several and `floor` is the most recent, with its own counts), and
   with `group_by: "week"` marks every bucket the window clips with
@@ -110,7 +111,8 @@ therefore serves the controls beside it:
   split), `top_deck.modes` and `dominant_mode` on both decks, and
   `trophy_floor` when the window holds ladder battles; the deck
   comparability note fires when the top and best decks were played in
-  different modes or at gaps half a level apart, and the floor note when a
+  different modes or at gaps half a level apart, a note says when their
+  ladder trophy ranges do not overlap, and the floor note fires when a
   loss touched the floor.
 - `clans_standings` members carry `modes`, `ladder_battles`,
   `mean_level_gap` (over `level_gap_battles`), `log_recorded` and
@@ -144,15 +146,16 @@ denominator:
 - `three_crown_rate = three-crown wins / head_to_head_battles`. Duels and boat
   battles are excluded from both sides.
 - `battles` is every recorded battle of the player's own in the window,
-  whatever its kind, boat defenses excepted (above), so `battles` minus
+  whatever its kind, boat defenses excepted
+  ([Duels and boat battles](/docs/battles#duels-and-boat-battles)), so `battles` minus
   `decided_battles` is draws plus unresolved plus boat attacks.
 - Duel crowns are summed over rounds, so `crowns_for` and `crowns_against`
   mix units when a window holds duels; `duel_battles` says how many did.
 - On a weekly row (`battles_performance group_by: "week"`, `battles_trends`),
   `trophy_mode_battles` counts the Trophy Road and Path of Legends battles
-  played, and `trophy_battles` the ones for which the game reported a
+  played, plus any other battle that reported a trophy delta, and `trophy_battles` the ones for which the game reported a
   trophy delta: a loss standing on an arena floor reports none (see
-  `trophy_change` above), so `trophy_battles` can be lower than the
+  [`trophy_change`](/docs/battles#what-a-battle-record-holds)), so `trophy_battles` can be lower than the
   trophy-mode battles played, and only losses drop out. `net_trophies` sums
   `trophy_battles`. Divide by `trophy_mode_battles` for a ladder record; a
   note names the weeks where the two differ.

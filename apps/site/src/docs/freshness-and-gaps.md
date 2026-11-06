@@ -321,7 +321,7 @@ What a live read leaves behind:
 | Verify's reads of your battle log | the battle log, as any poll of a tracked player |
 | the first read of a player you add | the profile: the tag is tracked from the moment it is added |
 
-Live fetches are capped per day by tier (20 / 100 / 250 / 1,000; owner and
+Live fetches are capped per day by role (20 / 100 / 250 / 1,000; owner and
 admin unlimited), and an agent spends its owner's allowance; past the cap a
 call is refused with `quota_exceeded`. A queued fetch is charged once, when
 it is queued; a second ask while it is queued, a fresh read already in hand

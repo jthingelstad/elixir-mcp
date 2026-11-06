@@ -29,17 +29,20 @@ it, Elders are shown as **protected** on Review and are never put up for
 removal.
 
 The clock waits only when it cannot be read: Elixir could not read the
-member's activity just now, or the player is no longer in the clan. The
+member's activity just now, the player is no longer in the clan, their
+battles are not recorded, or there is no battle or join to count from. The
 next run reads it again. Missing days of profile reads do not hold it.
 
 A removal Action says what it rests on. Its **Rests on** row names the
 member's last recorded battle, with its time and mode (or that no battle
 is recorded), when they joined (or that they were in the clan before
 recording began), and what the battle count on their profile did across
-Elixir's reads: when it last rose, or that it did not. Under it, every
+Elixir's reads: when it last rose, that it did not, or that it was read too
+few times to say. Under it, every
 removal says: modes the battle log does not carry are not seen, so the
-leader weighs it. The clan's Discord and the morning email name only the
-Action and the member. A removal raised before this row existed keeps
+leader weighs it. The clan's Discord names only the Action and the member,
+with a link to it. The morning email adds one line: the days without a battle
+and the removal day, then that caveat when it fits. A removal raised before this row existed keeps
 its saved evidence and still carries the sentence.
 
 A removal Action is withdrawn at the next evaluation when the member
@@ -50,15 +53,15 @@ removal that no longer qualifies says so, and withholds its copy, model
 drafting, completion and reopening; leadership can still explicitly
 Decline it.
 
-Review counts members under removal four ways: **protected** by their role or
-a hold, **not close**, **too little to go on**, and **past the removal day**.
+Review counts members under removal four ways: **protected** by their role, a
+hold or the waiting period after an earlier decision, **not close**, **too little to go on**, and **past the removal day**.
 Protected roles and recent recorded play
 do not become removal cases just because some coverage is incomplete. These
 labels keep evidence quality separate from relevance; they do not relax the
 current-evidence checks on an Action.
 Review counts too little to decide Elder, for promotion and for demotion,
-separately from removal; one person can count in more than one. Choose a group
-to jump to its members.
+separately from removal; one person can count in more than one. The chips
+below those counts jump to each section of the board.
 
 Two things shield removal eligibility while active:
 

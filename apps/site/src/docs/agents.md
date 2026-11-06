@@ -49,7 +49,7 @@ Only the key's SHA-256 is stored. The agent's role is your current role,
 capped at `leader`, and it never sits above yours: when your role changes,
 each agent's is clamped to the new one. It spends **your** daily call budget
 and **your** live lane.
-Every tier may create agents (3 / 5 / 10 / 25; owner and admin unlimited);
+Every role may create agents (3 / 5 / 10 / 25; owner and admin unlimited);
 over the cap the response is HTTP 400 `{"error":"not_entitled","reason":"agent_limit","limit":N}`.
 
 ## Connect it

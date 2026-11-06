@@ -86,7 +86,7 @@ The only machines with Clash Royale API keys are **collectors**,
 operator-run workers that lease fetch jobs from the job ledger, fetch
 with their IP-allowlisted key, and post results back. They never choose
 their own targets, hold no user data, and earn their operator the
-Family tier while active. The fleet shares **one global rate budget** by design:
+Family role while active. The fleet shares **one global rate budget** by design:
 more collectors mean resilience, never more API load. The budget is a token
 bucket the scheduler plans from, and everything that asks the API for a read
 spends it: each scheduled job, and each live read an agent, a JSON API
@@ -105,10 +105,10 @@ at a cabin. What makes the fleet interesting:
   publicly only by that card name; machine labels and IPs stay private. The signed-in [service](/data/service) page shows
   each card's heartbeat and hourly fetch rate, and `/api/public/status`
   publishes the same fleet without a session.
-- **The Family tier.** An operator whose collector is active holds the
-  Family tier while it stays active; there are no points, credits or bonus
+- **The Family role.** An operator whose collector is active holds the
+  Family role while it stays active; there are no points, credits or bonus
   slots, and more collectors never buy more of the rate budget. See
-  [Roles and tiers](/docs/roles#upgrades).
+  [Roles](/docs/roles#upgrades).
 - **Zero trust, zero AWS.** A collector holds exactly two secrets: its
   operator's own IP-bound Clash Royale key, and a bearer token we
   issue. It speaks three HTTPS routes (config / lease / submit),

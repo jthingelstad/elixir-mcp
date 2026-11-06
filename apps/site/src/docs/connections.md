@@ -85,7 +85,7 @@ player list, and everything it did would be recorded as something you did. An
 agent has no personal players to leak, because it has no self. Its subject is
 the clan.
 
-You can create an agent for **any clan you already record**, at any tier. It is
+You can create an agent for **any clan you already record**, whatever your role. It is
 not a paid feature. It spends your daily call and live-fetch budgets and your
 recording slots, and its own role is capped at yours (and at `leader`): an
 admin's agent is not an admin, and when your role changes, the agent's is
@@ -163,7 +163,7 @@ on a phone it folds into one row above the page.
 | Players & tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
 | Players & tracking › Verify | prove that you control a player by playing one battle with a deck Elixir names |
 | Connections & agents | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its pages; **New agent**; Discord sharing for your timeline; and the question to try once your agent can answer |
-| Usage and limits | today's call and live-fetch meters, what your account allows and what earns the next tier, fourteen days of calls, who and which tools spent them with agents broken out, your own website reads counted apart (they spend no daily quota), and **Requests**, every call with its `request_id` |
+| Usage and limits | today's call and live-fetch meters, what your account allows and what earns the next role, fourteen days of calls, who and which tools spent them with agents broken out, your own website reads counted apart (they spend no daily quota), and **Requests**, every call with its `request_id` |
 | Sign-ins & devices | every session that can still act as you, this one marked, and your account events |
 | Feedback | what you filed and what the maintainer answered |
 

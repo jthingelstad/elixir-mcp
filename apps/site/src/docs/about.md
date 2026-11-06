@@ -47,7 +47,7 @@ or bring your clan. To connect an agent, use
 top bar, opens the recorded facts directly.
 
 **Who runs it:** this is a hobby service operated by Jamie Thingelstad
-for the POAP KINGS clan and friends. It is free, and paid tiers are not
+for the POAP KINGS clan and friends. It is free, and no paid version is
 planned (see [Terms](/docs/terms)). Occasional product updates go out on the
 Elixir newsletter. New signup has a checked “Send me Elixir product news”
 box; uncheck it before requesting your sign-in email to skip enrollment.
@@ -72,5 +72,5 @@ this service. The code is public. Start at
 the [Architecture](/docs/architecture) page maps the related repos.
 
 *This material is unofficial and is not endorsed by Supercell. For more
-information see Supercell's Fan Content Policy:
+information see Supercell’s Fan Content Policy:
 www.supercell.com/fan-content-policy.*
