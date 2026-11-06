@@ -20,7 +20,15 @@ import {
   mailShell,
   mailParts,
 } from "./shell.mjs";
+import { monthDayAt, seasonWeek, whenAt } from "@elixir-mcp/ui/time";
 import { cardImg, cardTiles, deckStrip, cardFormLabel } from "./cards.mjs";
+
+/** The week a subject names: "Season 137, week 4". An issue stored before
+ *  2026-11-05 knows no week of its season, and keeps its dates. */
+const weekName = (w) =>
+  w?.season && w?.war_week
+    ? seasonWeek(w.season, w.war_week)
+    : (w?.label ?? "");
 
 /** A mode group's reader-facing name (contracts MODE_GROUPS). */
 const FAMILY_LABEL = {
@@ -151,52 +159,18 @@ function weekdayIn(iso, timezone = "UTC") {
   }
 }
 
-/** A weekday and a time in the reader's zone ("Sun 4:38 am"). */
-function dayTimeIn(iso, timezone = "UTC") {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const fmt = (tz) =>
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      weekday: "short",
-      hour: "numeric",
-      minute: "2-digit",
-    }).formatToParts(d);
-  let parts;
-  try {
-    parts = fmt(timezone || "UTC");
-  } catch {
-    parts = fmt("UTC");
-  }
-  const get = (t) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("weekday")} ${get("hour")}:${get("minute")} ${get("dayPeriod").toLowerCase()}`;
-}
-
-/** A date in the reader's zone ("Sep 17"). */
-function dateIn(iso, timezone = "UTC") {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const fmt = (tz) =>
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      month: "short",
-      day: "numeric",
-    }).format(d);
-  try {
-    return fmt(timezone || "UTC");
-  } catch {
-    return fmt("UTC");
-  }
-}
-
 function make(
   campaign = null,
-  { pixel = true, timezone = "UTC", mine = [] } = {},
+  { pixel = true, timezone = "UTC", mine = [], now = Date.now() } = {},
 ) {
   // The reader's own players: the clan report marks their rows "you".
   const isMine = (tag) => mine.includes(tag);
-  const dayTime = (m) => (m?.at ? dayTimeIn(m.at, timezone) : (m?.when ?? ""));
-  const date = (iso) => (iso ? dateIn(iso, timezone) : "");
+  // The member pages' one clock (packages/ui/time), so a mail and the
+  // page it links to name a moment the same way: "Sat 8:42 pm" within a
+  // week, "Fri Oct 23, 5:07 pm" older.
+  const dayTime = (m) =>
+    m?.at ? whenAt(m.at, timezone, { now }) : (m?.when ?? "");
+  const date = (iso) => (iso ? monthDayAt(iso, timezone) : "");
   // An entry's day: its instant in the reader's zone, or the label an
   // issue composed before 2026-09-27 stored.
   const day = (m) => (m?.at ? weekdayIn(m.at, timezone) : (m?.when ?? ""));
@@ -461,7 +435,7 @@ function arena(f, c) {
   ];
   const floor = tr?.floored
     ? c.small(
-        `${c.P(pr.tag, pr.name)} stood on the ${n(tr.floor)} floor${tr.arena ? ` (${esc(tr.arena)})` : ""} this week: a loss there costs nothing, so read the record, not the trophy line.`,
+        `${c.P(pr.tag, pr.name)} stood on the ${n(tr.floor)} floor${tr.arena ? ` (${esc(tr.arena)})` : ""} this week: a loss there costs no trophies, so the trophy line can stay flat.`,
       )
     : "";
   const notes = (pr.modes ?? []).filter((m) => m.note);
@@ -531,7 +505,7 @@ function arena(f, c) {
         .join(", ")
     : t.battles
       ? rec(t)
-      : f.week.label;
+      : weekName(f.week);
   const preheader = `${f.week.label}: ${n(t.battles)} battle${t.battles === 1 ? "" : "s"}${tr ? `, ${signed(trDelta)} trophies` : ""}${f.alts.length ? `; ${f.alts.map((a) => `${a.name} ${n(a.battles)}`).join(", ")}` : ""}.`;
   return {
     subject: `Your week in the Arena: ${subjectRecords}`,
@@ -730,7 +704,7 @@ function tracking(f, c) {
     ? `${lead}.`
     : (f.preheader ?? "Nobody you follow has a battle recorded this week.");
   return {
-    subject: `Your friends this week: ${people.length ? `${n(total)} battles, ` : ""}${f.week.label}`,
+    subject: `Your friends this week: ${people.length ? `${n(total)} battles, ` : ""}${weekName(f.week)}`,
     preheader,
     html: (links) =>
       c.shell({
@@ -748,10 +722,11 @@ function tracking(f, c) {
 /** A role as a sentence says it: "an elder", "a co-leader". */
 const roleWords = (role) =>
   ({
-    coLeader: "a co-leader",
-    "co-leader": "a co-leader",
-    elder: "an elder",
-    leader: "the leader",
+    member: "Member",
+    elder: "Elder",
+    coLeader: "Co-leader",
+    "co-leader": "Co-leader",
+    leader: "Leader",
   })[role] ?? null;
 
 /** The green "you" chip: the reader's own player in a shared list. */
@@ -934,8 +909,8 @@ function clan(f, c) {
     ...f.membership.left.map((m) => ({
       at: m.at ?? "",
       mark: M.loss,
-      title: `${c.P(m.tag, m.name)} departed${roleWords(m.role) ? `, ${roleWords(m.role)}` : ""}`,
-      text: `${esc(c.dayTime(m))}.${m.tenure_days != null ? ` Here ${n(m.tenure_days)} day${m.tenure_days === 1 ? "" : "s"}.` : ""}`,
+      title: `${c.P(m.tag, m.name)} departed ${esc(f.clan.name)}${roleWords(m.role) ? ` (was ${roleWords(m.role)})` : ""}`,
+      text: `${esc(c.dayTime(m))}.`,
     })),
     ...f.membership.roles.map((m) => ({
       at: m.at ?? "",
@@ -1053,7 +1028,7 @@ function clan(f, c) {
     ? `${n(war.fame)} fame${war.finish_war_day ? `, over the line on war day ${war.finish_war_day}` : ""}. ${activityLine}`
     : `${activityLine} ${n(h.donations)} cards donated.`;
   return {
-    subject: `${f.clan.name}, ${f.week.label}: ${warBit}${f.membership.left.length} departed, ${f.membership.joined.length} joined`,
+    subject: `${f.clan.name}, ${weekName(f.week)}: ${warBit}${f.membership.left.length} departed, ${f.membership.joined.length} joined`,
     preheader,
     html: (links) =>
       c.shell({
@@ -1077,7 +1052,7 @@ function collectorSecurity(state) {
       not_recorded:
         "Security status at this historical observation was not recorded.",
       signed:
-        "Signed: reported binary matches a signed release named by the hub.",
+        "Signed: reported binary matches a signed release named by Elixir.",
       dev_build:
         "Dev build: a local build, rather than a named signed release.",
       unverified: "Unverified: no binary hash reported.",
@@ -1088,16 +1063,16 @@ function collectorSecurity(state) {
 }
 
 function collectorUpgrade(f, c) {
-  const prefix = f.test ? "[TEST — historical replay] " : "";
+  const prefix = f.test ? "[Test replay] " : "";
   const subject = `${prefix}${f.name} upgraded: ${f.from_version} → ${f.to_version}`;
   const preheader = `${f.name} reported ${f.to_version}; previously ${f.from_version}.`;
   const release = f.release;
   const body = `${f.test ? c.cov("This is a test replay of a historical upgrade. No new upgrade was performed.") : ""}
     ${c.p(`Your collector <strong>${esc(f.name)}</strong> reported an upgrade from <strong>${esc(f.from_version)}</strong> to <strong>${esc(f.to_version)}</strong>.`)}
-    ${c.small(`Observed ${esc(c.date(f.observed_at))}, ${esc(c.dayTime({ at: f.observed_at }))}.`)}
+    ${c.small(`Seen ${esc(c.dayTime({ at: f.observed_at }))}.`)}
     ${c.h2("Security status")}${c.p(esc(collectorSecurity(f.signature_state)))}
-    ${c.small("This uses the same self-reported version and binary hash as the dashboard. It is not remote attestation.")}
-    ${c.h2("Why this release")}${c.p(esc(release?.reason ?? "No upgrade reason was recorded. The hub observed the installed version change; it cannot confirm whether this host updated automatically or was changed by its operator."))}
+    ${c.small("This uses the same self-reported version and binary hash as the collectors page. It is not remote attestation.")}
+    ${c.h2("Why this release")}${c.p(esc(release?.reason ?? "No upgrade reason was recorded. Elixir saw the installed version change; it cannot confirm whether this host updated automatically or was changed by its operator."))}
     ${release?.reason ? c.small("The reason above was supplied by the maintainer when naming this release; the installation mechanism on this host was not reported.") : ""}
     ${c.h2(release?.source_url?.includes("/compare/") ? "Changes between these releases" : "Target release changes")}${release?.changes ? c.p(esc(release.changes).replaceAll("\n", "<br>")) : c.p("Release notes were not recorded for this version.")}
     ${release?.release_url ? c.p(c.link(release.release_url, "Read the published release notes")) : ""}
@@ -1160,7 +1135,7 @@ function collector(f, c) {
       s === "active" || s === "probation"
         ? `<span style="color:${M.youInk};"><span style="display:inline-block;width:7px;height:7px;border-radius:999px;background-color:${M.ok};"></span>&nbsp; checking in${s === "probation" ? ", on probation" : ""}</span>`
         : s === "silent"
-          ? `<span style="color:${M.warn};">silent${x.since ? ` since ${esc(c.date(x.since))}, ${esc(c.dayTime({ at: x.since }).replace(/^\w+ /, ""))}` : ""}</span>`
+          ? `<span style="color:${M.warn};">silent${x.since ? ` since ${esc(c.dayTime({ at: x.since }))}` : ""}</span>`
           : s === "draining"
             ? `<span style="color:${M.faint};">stopped on purpose${x.since ? `, last checked in on ${esc(c.date(x.since))}` : ""}</span>`
             : s === "pending"
@@ -1197,7 +1172,7 @@ function collector(f, c) {
     ${t.saved_share != null ? c.small(`${pct(t.saved_share)} of what your collectors read was filtered at the edge as already recorded.`) : ""}
     ${rowsHtml}
     ${c.small("More collectors add resilience, not more Clash Royale budget: the whole fleet shares one rate limit.")}
-    ${c.small("Security status uses the dashboard’s self-reported version and binary hash; it is not remote attestation. A signed build can still be behind the current release.")}
+    ${c.small("Security status uses the collectors page’s self-reported version and binary hash; it is not remote attestation. A signed build can still be behind the current release.")}
     ${tierLine ? `${c.h2("Your tier")}${c.p(`${tierLine[0].toUpperCase()}${tierLine.slice(1)}.`, "margin:0;")}` : ""}
     ${f.fleet_note ? c.small(esc(f.fleet_note)) : ""}
     ${c.button("Open your collectors", `${SITE}/console/status/collectors`)}
@@ -1240,13 +1215,9 @@ function milestone(f, c) {
   const isCard = (m) => Boolean(m.card);
   const cards = ms.filter(isCard);
   const others = ms.filter((m) => !isCard(m));
-  // "Tue Sep 29, 7:53 pm" in the reader's zone; an issue stored before
+  // The one clock, in the reader's zone; an issue stored before
   // 2026-10-01 has only its label.
-  const when = (m) => {
-    if (!m.instant) return m.at ?? "";
-    const [wd, ...time] = c.dayTime({ at: m.instant }).split(" ");
-    return `${wd} ${c.date(m.instant)}, ${time.join(" ")}`;
-  };
+  const when = (m) => (m.instant ? c.dayTime({ at: m.instant }) : (m.at ?? ""));
   const whose = (s) =>
     `${c.P(s.tag, s.name)}${s.relationship === "alt" ? ", one of your players" : ""}`;
   const oneSubject = ms.every((m) => m.subject.tag === first.subject.tag);
@@ -1324,7 +1295,7 @@ function milestone(f, c) {
       `Open ${first.subject.name} in Ladder`,
       ladderUrl(first.subject.tag, "", f.season),
     )}
-    ${c.cov("Milestones come from the record as it is polled, usually within the hour. A move down never mails; only firsts do.")}`;
+    ${c.cov("Milestones come from the record, usually within the hour. A move down never mails; only firsts do.")}`;
   const more = ms.length - 1;
   const preheader =
     allCards && cards.length > 1
@@ -1373,7 +1344,7 @@ function clanActions(f, c) {
     ${rest ? c.small(`And ${n(rest)} more on the Actions page.`) : ""}
     ${c.small("Review each action in Clan before making a decision.")}
     ${c.button("Open Actions in Clan", f.link)}
-    ${c.cov(`${esc(f.app ?? "Elixir Clan")} sends this after its morning run when something new is yours to decide. Only people who can act on these actions receive it.`)}`;
+    ${c.cov(`Clan sends this each morning when something new is yours to decide. Only people who can act on these actions get it.`)}`;
   const preheader = actions
     .slice(0, 3)
     .map((l) => l.replace(/ \(new\)$/, ""))
@@ -1406,7 +1377,7 @@ const FEEDBACK_AREA_LABEL = {
   api: "the JSON API",
   console: "the Console",
   ladder: "Ladder",
-  clan: "Elixir Clan",
+  clan: "Clan",
   mail: "an email",
   docs: "the docs",
   recorder: "the recorder",
@@ -1494,6 +1465,7 @@ export function renderMail(kind, facts, links) {
       pixel: links.pixel !== false,
       timezone: links.timezone ?? "UTC",
       mine: Array.isArray(links.mine) ? links.mine : [],
+      ...(links.now === undefined ? {} : { now: Number(links.now) }),
     }),
   );
   return {

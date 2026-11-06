@@ -31,14 +31,14 @@ const STATUS = {
     label: "Slipping",
     chip: "chip--warn",
     bar: "shadow-[inset_3px_0_0_var(--warn)]",
-    says: "Elders falling short of what the policy keeps",
+    says: "Elders with a demotion building",
     shown: 5,
   },
   rising: {
     label: "Rising",
     chip: "chip--info",
     bar: "shadow-[inset_3px_0_0_var(--accent-bright)]",
-    says: "Members nearing Elder",
+    says: "Members with a promotion building",
     shown: 5,
   },
   participating: {

@@ -174,6 +174,7 @@ restating it in wider words.
 
 ## Clan
 
+- **A week's battles have one count** — Clan's The week, the clan report and Your friends this week count one clan's battles from Monday's reset to the next by `battle_time`, each battle once, boat defenses out; Detail: `docs/notes/2026-11-05-three-battle-counts.md`. [Jamie, 2026-11-05, A13] `clans_participation` keeps its ISO-week member columns. [engineering, 2026-11-05]
 - **The Clan picker sits beside the clan's name** — in the page head, and only with two or more clans; one clan at a time stays. Replaces "A Clan picker heads Clan's rail", from step 4. [Jamie, 2026-11-05; `docs/product/structure.md`]
 - **Clan is part of Elixir** — one session, React application, web API, Postgres ledger, jobs and deploy; no separate OAuth, store, build or stack. The engine is `packages/clan-engine`, orchestration `packages/clan`, private state `packages/clan-state`, views `packages/clan-web`. [Jamie, 2026-10-02]
 - **Clan sees one clan at a time** — a family (a main and its feeders) is a recording concept of the Family tier; each clan has its own policy, standing, Actions and awards, and a leader switches between them. [Jamie, 2026-10-12]
@@ -233,6 +234,7 @@ restating it in wider words.
 
 ## Email
 
+- **A clan report's row says departed, even after a leader says removed** — the report reaches people outside the clan, and the classification is a clan-visible fact. [engineering, 2026-11-05]
 - **Send over SES, receive at Fastmail** — never create SES address identities under the stack's domain. [Jamie, 2026-09-16, 2026-09-17, 2026-09-24]
 - **Seven product kinds** — clan, arena, friends (tracking), collector, milestone, Clan's actions-waiting and answers to feedback; each is an account switch, default on; at most one mail per kind and subject per day (milestone and feedback answers exempt, one clan report per tracked clan); bulk kinds carry one-click unsubscribe; login mail is transactional. [Jamie, 2026-09-17, 2026-09-18, 2026-09-25, 2026-10-02, 2026-10-08, 2026-10-12]
 - **One a day is for scheduled mail only** — the scheduled kinds (clan report, friends, Arena week, collector, actions waiting) send at most one of a kind about one subject a day; event-based mail (milestones, answers to feedback) flows when it happens (Jamie, 2026-10-12: "there is no hard 1 a day… however, SCHEDULED emails we are intentionally only doing one a day. On demand/event based emails are a completely different thing and flow whenever they flow."). [Jamie, 2026-10-12]

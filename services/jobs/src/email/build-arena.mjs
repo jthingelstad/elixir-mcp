@@ -148,7 +148,12 @@ export async function buildArena({ db, account, week, season }) {
     perf?.meta?.source_polls?.player_battlelog?.freshness_seconds;
 
   return {
-    week: { label: week.label, key: week.key, season },
+    week: {
+      label: week.label,
+      key: week.key,
+      season,
+      war_week: week.war_week ?? null,
+    },
     primary: {
       tag: primary.tag,
       name: primary.name,
@@ -218,7 +223,7 @@ export async function buildArena({ db, account, week, season }) {
           when: weekday(o.last_seen, account.timezone),
         })),
       },
-      coverage: `${w?.battles ?? 0} battles recorded for ${primary.name}; battle log last read ${agoText(freshness)}. The log holds roughly the last 30 battles, so a long session between reads can leave a gap; missing coverage is unknown, not evidence of absence.`,
+      coverage: `${primary.name} has ${w?.battles ?? 0} battle${w?.battles === 1 ? "" : "s"} recorded this week. The battle log was last read ${agoText(freshness)}. The game keeps about the last 30 battles, so a long session between reads can leave a gap. A gap means unknown. It does not mean you didn’t play.`,
     },
     alts: altRows,
     progress,

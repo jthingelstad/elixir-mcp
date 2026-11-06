@@ -291,7 +291,7 @@ export function cardRationale(type, v, policy, verdicts) {
   if (type === "promotion") {
     const s = v.standing;
     return {
-      headline: `In the promotable set on ${v.promotion.weeks} weekly reviews (needs ${policy.promote_qualifying_weeks}); Elders hold ${band.current_elders} of a ${band.floor}-${band.ceil} band, target ${band.target}.`,
+      headline: `In line for promotion on ${v.promotion.weeks} weekly reviews (needs ${policy.promote_qualifying_weeks}); Elders hold ${band.current_elders} of a ${band.floor}-${band.ceil} band, target ${band.target}.`,
       clauses: [
         "promote_qualifying_weeks",
         "worthiness_percentile",
@@ -304,7 +304,7 @@ export function cardRationale(type, v, policy, verdicts) {
     headline:
       reason === "abandoned"
         ? `Missed the minimums on ${v.demotion.weeks} weekly reviews (needs ${policy.demote_abandoned_weeks}).`
-        : `Outranked past the upper share on ${v.demotion.weeks} weekly reviews (needs ${policy.demote_outranked_weeks}); a higher-ranked member takes the seat.`,
+        : `Another member takes the seat: past the upper share on ${v.demotion.weeks} weekly reviews (needs ${policy.demote_outranked_weeks}).`,
     clauses:
       reason === "abandoned"
         ? [
@@ -471,7 +471,7 @@ export function describePolicy(policy) {
         `Elder is earned by participation, compared across the clan's members and Elders: ${list(shares)}.`,
         `To be considered: ${plural(policy.tenure_min_days, "day")} in the clan${Object.keys(minimums).length ? " and the minimums" : ""}.`,
         `Elders are between ${pct(policy.band_floor_share)} and ${pct(policy.band_ceiling_share)} of the roster.`,
-        `A promotion needs ${plural(policy.promote_qualifying_weeks, "weekly review")}; an Elder steps down after ${policy.demote_abandoned_weeks} ${Object.keys(minimums).length ? "reviews missing the minimums, or " : ""}${plural(policy.demote_outranked_weeks, "review")} outranked while the seat is needed.`,
+        `A promotion needs ${plural(policy.promote_qualifying_weeks, "weekly review")}; an Elder steps down after ${policy.demote_abandoned_weeks} ${Object.keys(minimums).length ? "reviews missing the minimums, or " : ""}${plural(policy.demote_outranked_weeks, "review")} when another member takes the seat.`,
       ],
     });
   }

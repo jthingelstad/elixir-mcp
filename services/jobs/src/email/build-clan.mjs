@@ -31,6 +31,9 @@ export async function buildClan({ db, account, clanTag, week, season }) {
     fromMs,
     toMs,
     timezone: "UTC",
+    // The week as it was played: the battle clock, never when the record
+    // learned of a battle (A13).
+    basis: "occurred",
   });
   const roster = await tryTool(callTool, ctx, "clans_roster", {
     clan_tag: clanTag,
@@ -185,7 +188,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
       label: week.label,
       key: week.key,
       season: war.present ? war.season : season,
-      war_week: war.present ? war.week : null,
+      war_week: war.present ? war.week : (week.war_week ?? null),
     },
     clan: {
       tag: clanTag,
@@ -230,7 +233,6 @@ export async function buildClan({ db, account, clanTag, week, season }) {
         name: m.name ?? m.tag,
         at: m.at ?? null,
         role: m.role,
-        tenure_days: m.tenure_days ?? null,
       })),
       more: (r.joined?.more ?? 0) + (r.left?.more ?? 0),
       roles: (r.role_changes?.items ?? r.role_changes ?? []).map((m) => ({
@@ -263,10 +265,15 @@ export async function buildClan({ db, account, clanTag, week, season }) {
     roster_note:
       scope === "comprehensive"
         ? null
-        : "Activity scope: roster and war only; member battles are not recorded for this clan.",
-    coverage: `Counted from what Elixir recorded for ${entry.name ?? roster?.name ?? clanTag}, Monday to Monday at the river race's own reset; the roster was read ${roster?.meta?.freshness_seconds != null ? `${Math.round(roster.meta.freshness_seconds / 60)} min` : "shortly"} before this was composed.`,
+        : "This clan’s battles are not recorded, only its roster and races.",
+    coverage: `Counted from what Elixir recorded for ${entry.name ?? roster?.name ?? clanTag}, Monday to Monday at the river race’s reset. The roster was read ${roster?.meta?.freshness_seconds != null ? minutesWords(roster.meta.freshness_seconds) : "shortly"} before this mail was written.`,
   };
 }
+
+const minutesWords = (seconds) => {
+  const m = Math.round(seconds / 60);
+  return `${m} minute${m === 1 ? "" : "s"}`;
+};
 
 const WEEK_MS = 7 * 86_400_000;
 // war_history's exact week lists at most this many members; a list that

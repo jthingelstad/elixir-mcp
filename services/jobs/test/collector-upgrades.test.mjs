@@ -205,7 +205,7 @@ test("door to mail: baseline, concurrent duplicate heartbeats, retries, preferen
       0,
       "replay notes never alter normal release metadata",
     );
-    assert.match(rr.details[0].subject, /TEST.*historical replay/);
+    assert.match(rr.details[0].subject, /^\[Test replay\] /);
     assert.match(sent.at(-1).text, /No new upgrade was performed/);
     assert.equal(
       (

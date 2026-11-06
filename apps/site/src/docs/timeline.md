@@ -92,7 +92,8 @@ two things, and `basis` says which:
   `mark_read: true`.
 
 A clan entry's `activity` follows the basis too: on an occurred read it
-counts the battles played in the window (`activity.basis` is `played`).
+counts the battles played in the window by `battle_time`, boat defenses out
+(`activity.basis` is `played`), as [The week](/docs/clan-week) does.
 
 ### One pointer per reader
 
@@ -197,10 +198,8 @@ and place at the last war day closed by `to`, no `race_finished_at`, and
 that week by then (a Colosseum week, or war day 1 still open), fame and place
 are `null`, not 0: `war_history` has the week's days.
 
-A clan entry's `activity` counts the battles played in the window on an
-occurred read, and the battles the record learned in it on an observed
-one, where `activity.played_here_learned_later` counts battles played in it
-that the record learned afterwards (a history backfill).
+On an observed read, `activity.played_here_learned_later` counts battles
+played in the window that the record learned afterwards (a backfill).
 
 The timeline's total and `clans_standings`' differ by design, and neither
 is wrong. The timeline counts each battle **once**, played while in the clan.
@@ -369,7 +368,7 @@ about a player, a member's moment on a clan's timeline included, carries
 | `returned` | 2 | the battle that ended the absence | `player_tag`, `name`, `after_days` |
 | `account` | 2 | the first event of the burst | other `account_*` kinds: the event's detail (a subject tag, a tier), `count` (events in the burst), `apps` (apps named) |
 | `account_feedback_responded` | 3 | the answer | `feedback_id`, `status`, `response` (`null` on a pre-11.13.0 answer since replaced), `shipped_in`, `area`, `category`, `message` (600 characters), `filed_at`, `answered_at`, `count` (1), `apps` |
-| `departure_classified` | 1 | when it happened, as attested; selected by when Elixir recorded it | `kind`, [`left_at`], `player_tag`, `name`, `attested_by`, `visibility` |
+| `departure_classified` | 1 | when it happened, as attested; selected by when Elixir recorded it | `kind`, [`left_at`], `player_tag`, `name`, `attested_by`, `visibility`; `role_at_departure` when known |
 | `role_change_made` | 1 | as above | `from`, `to`, `player_tag`, `name`, `attested_by`, `visibility` |
 | `award_granted` | 1 | as above | `award`, `season_id`, [`place`], `player_tag`, `name`, `attested_by`, `visibility` |
 | `award_standing` | 1 | as above | `award`, `award_id`, `season_id`, `place`, `value`, `unit`, `as_of`, [`previous_player_tag`], `player_tag`, `name`, `attested_by`, `visibility` |
@@ -576,8 +575,8 @@ single battle is a session item too.
 Every window is **(from, to]**, by `sort_at` on an occurred read and by
 `observed_at` on an observed one, compared at the millisecond the tool
 serves: `from` is exclusive and `to` inclusive, so the busy-window note's
-`to` reaches the item at the cut. On an observed read a clan entry's
-`activity` counts the battles the record learned in the window:
+`to` reaches the item at the cut. An observed clan entry's `activity` counts
+battles learned in the window:
 `activity.learned_here_played_before` counts ones played in the day before
 `from` and recorded here (counted), `activity.played_here_learned_later` ones
 played in the window and recorded after `to` (not counted).

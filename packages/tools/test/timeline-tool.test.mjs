@@ -427,9 +427,7 @@ test("the timeline: battle sessions break on a 30-minute gap, items are newest f
   assert.ok(sessions.every((s) => s.subject_tag === OBSERVER));
   assert.ok(
     sessions.every((s) =>
-      /played (a session of \d+ battles?|\d+ battles in one sitting)/.test(
-        s.text,
-      ),
+      /played \d+ battles?( in one sitting)? /.test(s.text),
     ),
   );
   // Newest first, a newsfeed (7.0.0): the 09-01 pair is last.
@@ -744,7 +742,7 @@ test("3.9.0: a member's session is a clan standout once per rung, named, at the 
   );
   assert.match(
     item.text,
-    /played 5 battles in one sitting \(5W-0L; 5 ladder, \+150 trophies, 5 wins in a row\), still going\.$/,
+    /played 5 battles in one sitting \(5W-0L; 5 Trophy Road, \+150 trophies, 5 wins in a row\), still going\.$/,
   );
   const clanEntry = first.body.entries.find((e) => e.kind === "clan_activity");
   assert.equal(clanEntry.standouts.sessions.items.length, 1);

@@ -49,6 +49,14 @@ const ROLE_ORDER = ["member", "elder", "coLeader", "leader"];
  *  The record's one derivation, shared with Elixir's clan report. */
 export { warDaysAsked };
 
+/** Where a week's battles start and stop. `weeks` name Monday midnight;
+ *  donations (game days) and the race close already keep Monday's reset,
+ *  so battles and the roster's moves are read on the same clock (A13). */
+const resetBounds = (week) => ({
+  from: Date.parse(week.from) + WEEK_RESET_HOURS * HOUR_MS,
+  to: Date.parse(week.to) + WEEK_RESET_HOURS * HOUR_MS,
+});
+
 /** The war week that belongs to an ISO week: the one that finished at the
  *  Monday reset ending it, or, still running, the one that began at the
  *  Monday reset opening it. */
@@ -98,8 +106,7 @@ export function reportWeeks(participation, now = new Date()) {
 /** Who could have taken part in a week: members whose current stint began
  *  before it ended; `joined_during` for a stint that began inside it. */
 function membersOf(participation, week) {
-  const from = Date.parse(week.from);
-  const to = Date.parse(week.to);
+  const { from, to } = resetBounds(week);
   return (participation.members ?? [])
     .map((m) => {
       const joined = Date.parse(m.joined_observed_at ?? "");
@@ -119,8 +126,12 @@ function membersOf(participation, week) {
 const byValue = (a, b) =>
   b.value - a.value || String(a.name).localeCompare(String(b.name));
 
-/** One area of one week: its total and everyone who took part. */
-function area(key, participation, week, index, members) {
+/** One area of one week: its total and everyone who took part.
+ *  `clanBattles` is the record's own count for battles and Path of Legends
+ *  by iso_week (clanWeekBattles); null means the read failed, and the area
+ *  is left out rather than drawn from another clock. Left undefined, the
+ *  area falls back to the participation columns. */
+function area(key, participation, week, index, members, clanBattles) {
   if (key === "war") {
     const wi = warIndexFor(participation, week);
     if (wi < 0) return null;
@@ -164,6 +175,28 @@ function area(key, participation, week, index, members) {
         all_decks: rows.filter((r) => r.all_decks).length,
       },
       participants: rows,
+    };
+  }
+  if (key !== "donations" && clanBattles !== undefined) {
+    const c = clanBattles?.[week.iso_week];
+    if (!c) return null;
+    const value = key === "ranked" ? "ranked" : "battles";
+    const during = new Map(
+      members.map(({ m, joined_during }) => [m.player_tag, joined_during]),
+    );
+    return {
+      key,
+      label: WEEK_AREA_LABELS[key],
+      total: c[value],
+      participants: c.members
+        .map((m) => ({
+          player_tag: m.player_tag,
+          name: m.name ?? null,
+          value: m[value],
+          joined_during: during.get(m.player_tag) === true,
+        }))
+        .filter((r) => r.value > 0)
+        .sort(byValue),
     };
   }
   const col = COLUMN[key];
@@ -256,6 +289,30 @@ function highlights(areas, policy, members) {
   return { basis: "activity", keys, counted: [] };
 }
 
+/** The weeks a report on `week` shows (the picked one and the one still
+ *  running) with the instants their battles are read between. */
+export function weekBattleWindows(
+  participation,
+  { now = new Date(), week = null } = {},
+) {
+  const closed = reportWeeks(participation, now);
+  const wanted = week ? String(week).toUpperCase() : null;
+  const pick = wanted
+    ? closed.find((w) => String(w.iso_week).toUpperCase() === wanted)
+    : closed[0];
+  const running = runningWeek(participation, now);
+  return [pick ? participation.weeks[pick.index] : null, running?.week ?? null]
+    .filter(Boolean)
+    .map((w) => {
+      const { from, to } = resetBounds(w);
+      return {
+        iso_week: w.iso_week,
+        from: new Date(from).toISOString(),
+        to: new Date(to).toISOString(),
+      };
+    });
+}
+
 /**
  * @param {object} participation the clans_participation answer
  * @param {object} [opts]
@@ -264,11 +321,19 @@ function highlights(areas, policy, members) {
  * @param {Date} [opts.now]
  * @param {string} [opts.week] an ISO week id ("2026-W38"); the latest
  *   closed week when omitted
+ * @param {object|null} [opts.clanBattles] clanWeekBattles by iso_week, the
+ *   count battles and Path of Legends show; null when the read failed
  * @returns {object|null} null when there is no such closed week
  */
 export function weeklyReport(
   participation,
-  { roster = null, policy = null, now = new Date(), week = null } = {},
+  {
+    roster = null,
+    policy = null,
+    now = new Date(),
+    week = null,
+    clanBattles,
+  } = {},
 ) {
   const closed = reportWeeks(participation, now);
   const wanted = week ? String(week).toUpperCase() : null;
@@ -285,7 +350,7 @@ export function weeklyReport(
     from,
     to,
   }));
-  const soFar = thisWeekSoFar(participation, now);
+  const soFar = thisWeekSoFar(participation, now, clanBattles);
   // When Elixir began reading this clan's roster: a week before it has
   // nothing to show, and the page says so instead of drawing it blank.
   const recordedFrom =
@@ -299,8 +364,9 @@ export function weeklyReport(
   const w = participation.weeks[pick.index];
   const members = membersOf(participation, w);
   const areas = WEEK_AREAS.map((k) =>
-    area(k, participation, w, pick.index, members),
+    area(k, participation, w, pick.index, members, clanBattles),
   ).filter(Boolean);
+  const reset = resetBounds(w);
   const hl = highlights(areas, policy, members.length);
   const order = (a) => {
     const i = hl.keys.indexOf(a.key);
@@ -311,6 +377,8 @@ export function weeklyReport(
       iso_week: pick.iso_week,
       from: pick.from,
       to: pick.to,
+      reset_from: new Date(reset.from).toISOString(),
+      reset_to: new Date(reset.to).toISOString(),
       closed_at: pick.closed_at,
     },
     members: members.length,
@@ -319,26 +387,32 @@ export function weeklyReport(
     areas: [...areas]
       .sort((a, b) => order(a) - order(b))
       .map((a) => ({ ...a, highlighted: hl.keys.includes(a.key) })),
-    membership: membership(
-      roster,
-      Date.parse(pick.from),
-      Date.parse(pick.to),
-      names,
-    ),
+    membership: membership(roster, reset.from, reset.to, names),
     weeks,
     so_far: soFar,
     recorded_from: recordedFrom,
   };
 }
 
-/** The week still running: each area's total and how many took part. */
-function thisWeekSoFar(participation, now) {
+/** The week that has not closed yet, on the reset's clock: between Monday
+ *  midnight and Monday's reset it is still last week's. Once a race's
+ *  finish has closed a week early, nothing is running until the reset. */
+function runningWeek(participation, now) {
   const t = now.getTime();
-  const index = (participation.weeks ?? []).findIndex(
-    (w) => Date.parse(w.from) <= t && t < Date.parse(w.to),
-  );
+  const index = (participation.weeks ?? []).findIndex((w) => {
+    const { from, to } = resetBounds(w);
+    return from <= t && t < to;
+  });
   if (index < 0) return null;
-  const w = participation.weeks[index];
+  const week = participation.weeks[index];
+  return closesAt(participation, week) <= t ? null : { index, week };
+}
+
+/** The week still running: each area's total and how many took part. */
+function thisWeekSoFar(participation, now, clanBattles) {
+  const running = runningWeek(participation, now);
+  if (!running) return null;
+  const { index, week: w } = running;
   const members = membersOf(participation, w);
   const areas = WEEK_AREAS.map((k) => {
     if (k === "war") {
@@ -357,7 +431,7 @@ function thisWeekSoFar(participation, now) {
         took_part: played.length,
       };
     }
-    const a = area(k, participation, w, index, members);
+    const a = area(k, participation, w, index, members, clanBattles);
     return a
       ? {
           key: k,

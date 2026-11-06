@@ -120,17 +120,17 @@ export function MemberActivity({
         <div className="panel__body">
           <Disclosure title="How weekly contributions are counted">
             <p className="page-head__note">
-              Four ISO weeks, including the current partial week, clipped to the
-              current time in the clan. Battles must name this clan. Donations
-              are the highest count seen for this clan in each week. A join
-              inside a week makes its cumulative donation counter unknown here.
-              Unknown stays unknown.
+              Four weeks, each from Monday&rsquo;s reset to the next, including
+              the current partial week, clipped to the current time in the clan.
+              Battles must name this clan. Donations are the highest count seen
+              for this clan in each week. A join inside a week makes its
+              cumulative donation counter unknown here. Unknown stays unknown.
             </p>
           </Disclosure>
           <Table
             columns={[
               {
-                head: "ISO week",
+                head: "Week",
                 cell: (w) => (
                   <>
                     {w.iso_week}
@@ -168,8 +168,9 @@ export function MemberActivity({
             <p className="page-head__note">
               Recorded weekly totals; decks cannot reliably be assigned to
               individual war days. A duel can use several decks. War weeks and
-              ISO weeks are different windows. A week crossing the current stint
-              or read boundary has unknown attribution; its totals are withheld.
+              weekly contributions are read separately. A week crossing the
+              current stint or read boundary has unknown attribution; its totals
+              are withheld.
             </p>
           </Disclosure>
           {d.war_weeks.length ? (

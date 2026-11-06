@@ -12,7 +12,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { buildTimeline, subjectsFor } from "../src/activity/entries.mjs";
-import { itemText } from "../src/activity/summary.mjs";
+import { clanSummaryParts, itemText } from "../src/activity/summary.mjs";
 import { followFor } from "../src/activity/follow.mjs";
 
 const CLAN = "#2PYLQJ";
@@ -249,7 +249,7 @@ test("a resolved week names who carried it, by points and decks; never fame per 
   };
   assert.equal(
     itemText(item),
-    "Example Clan finished week 1 in place 1 with 10,400 fame (+100 war trophies), led by Ann (3,200 points, 16 decks), Bea (2,900 points, 16 decks) and Cal (2,100 points, 12 decks).",
+    "Example Clan finished Season 137, week 1 in 1st place with 10,400 fame (+100 war trophies), led by Ann (3,200 points, 16 decks), Bea (2,900 points, 16 decks) and Cal (2,100 points, 12 decks).",
   );
   assert.equal(
     itemText({
@@ -259,11 +259,11 @@ test("a resolved week names who carried it, by points and decks; never fame per 
         members: [{ player_tag: ANN, name: "Ann", decks_used: 1, points: 100 }],
       },
     }),
-    "Example Clan finished week 1 in place 1 with 10,400 fame (+100 war trophies), led by Ann (100 points, 1 deck).",
+    "Example Clan finished Season 137, week 1 in 1st place with 10,400 fame (+100 war trophies), led by Ann (100 points, 1 deck).",
   );
   assert.equal(
     itemText({ ...item, facts: { ...item.facts, members: [] } }),
-    "Example Clan finished week 1 in place 1 with 10,400 fame (+100 war trophies).",
+    "Example Clan finished Season 137, week 1 in 1st place with 10,400 fame (+100 war trophies).",
   );
 });
 
@@ -285,4 +285,76 @@ test("a sitting only partly with the partner says how much of it (Codex on #482)
     /^Ann played 20 battles in one sitting, 1 of them with Bea in 2v2 \(/,
   );
   assert.doesNotMatch(itemText(item), /sitting with Bea/);
+});
+
+test("the roster's words: one form for joining and departing; removed or left only on a leader's word (Q9)", () => {
+  const clan = { subject_name: "Example Clan" };
+  const say = (kind, facts) => itemText({ ...clan, kind, facts });
+  assert.equal(
+    say("member_joined", { name: "Ann", role: "member" }),
+    "Ann joined Example Clan as Member.",
+  );
+  assert.equal(
+    say("member_left", { name: "Ann", role_at_departure: "member" }),
+    "Ann departed Example Clan (was Member).",
+  );
+  assert.equal(
+    say("member_role_changed", {
+      name: "Ann",
+      direction: "promoted",
+      role_before: "member",
+      role_after: "elder",
+    }),
+    "Ann was promoted from Member to Elder in Example Clan.",
+  );
+  const leader = { app: "Elixir Clan", name: "Bea" };
+  assert.equal(
+    say("departure_classified", {
+      name: "Ann",
+      kind: "kick",
+      role_at_departure: "member",
+      attested_by: leader,
+    }),
+    "Bea said (in Clan) Ann was removed from Example Clan (was Member).",
+  );
+  assert.equal(
+    say("departure_classified", {
+      name: "Ann",
+      kind: "leave",
+      attested_by: leader,
+    }),
+    "Bea said (in Clan) Ann left Example Clan on their own.",
+  );
+  assert.equal(
+    say("week_resolved", {
+      season_id: 137,
+      section_index: 3,
+      is_colosseum: true,
+      rank: 2,
+      fame: 84200,
+      trophy_change: 20,
+    }),
+    "Example Clan finished Season 137, week 4 (Colosseum) in 2nd place with 84,200 fame (+20 war trophies).",
+  );
+});
+
+test("a clan's week in a sentence says departed, never left", () => {
+  const list = (items) => ({ items, more: 0 });
+  const parts = clanSummaryParts({
+    window: { from: "2026-10-05T10:00:00Z", to: "2026-10-12T10:00:00Z" },
+    activity: { battles: null, members_total: 10 },
+    roster: {
+      joined: list([]),
+      left: list([{ name: "Ann" }]),
+      role_changes: list([{ name: "Bea", from: "member", to: "elder" }]),
+      size: { from: 10, to: 10 },
+    },
+    war: {
+      resolved: [{ season_id: 137, week: 4, rank: 2, fame: 84200 }],
+    },
+    presence: {},
+    donations: {},
+  });
+  assert.ok(parts.includes("departed: Ann; roles: Bea member → elder"));
+  assert.ok(parts.includes("finished 2nd in Season 137, week 4, 84,200 fame"));
 });

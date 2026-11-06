@@ -54,6 +54,7 @@ import { myPlayers } from "@elixir-mcp/record/players";
 import { readMembershipCapture } from "@elixir-mcp/record/membership-capture";
 import { membershipCapture } from "@elixir-mcp/record/capture-state";
 import {
+  clanWeekBattles,
   memberActivityWeeks,
   memberActivityWarBounds,
 } from "@elixir-mcp/record/member-activity";
@@ -233,6 +234,7 @@ export function createClanRequest({
       mcp,
       appUrl,
       activityFor: (tag, tags) => clanActivityEvidence(db, tag, tags),
+      weekBattlesFor: (tag, windows) => clanWeekBattles(db, tag, windows),
       seasonCalendar: (t, ids) => {
         const current = seasonFromDate(t).seasonId;
         return {

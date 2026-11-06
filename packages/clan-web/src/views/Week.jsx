@@ -18,7 +18,7 @@ const DAY_MS = 86_400_000;
 const after = (a, b) => Date.parse(a ?? "") > Date.parse(b ?? "");
 
 /** When the first whole week Elixir records for a clan closes: the
- *  Monday reset ending the first week (Monday 00:00 UTC to Monday) that
+ *  Monday reset ending the first week (Monday 00:00 UTC is its id) that
  *  began after it started following the clan. The week's own shape is
  *  the engine's (week.mjs); this only names its date. */
 function firstFullWeekCloses(recordedFrom) {
@@ -481,8 +481,10 @@ export function Week({ clan, week, navigate }) {
       </div>
 
       <p className="page-head__note mt-[22px]">
-        Numbers are for today&rsquo;s members: someone who has departed is not
-        counted. Only those who took part are named.
+        The week runs from Monday&rsquo;s reset to the next, 10:00 UTC. Battles
+        count this clan&rsquo;s battles, each once, including anyone who has
+        since departed. Donations and war decks are for today&rsquo;s members.
+        Only those who took part are named.
       </p>
     </>
   );
