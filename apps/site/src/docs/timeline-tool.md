@@ -20,7 +20,7 @@ lede: "elixir_timeline for an agent: subjects, items, entries, routines and poll
 | `basis` | `occurred` \| `observed` | `observed` for a poller, else `occurred` | what the window bounds ([Two kinds of window](#two-kinds-of-window)): `occurred` is what HAPPENED in it, `observed` what the record LEARNED in it. A poller is a read with a `reader`, a read from the stored pointer (no `from`), or one passing `mark_read: true` |
 | `days`, `weeks` | integer | none | the last N days or weeks ending now: sugar for `from` |
 | `season` | string or number | none | one season's span (`current`, `previous`, `2026-08` or `135`), to now while it runs, as on every windowed tool; still capped at 30 days, and `from`/`to`/`days`/`weeks` given win over it |
-| `mark_read` | boolean | `true` on an `recorded` read | move the read pointer (the reader's, or the account's) to this window's end. An occurred read never moves a pointer, and asking it to (`mark_read: true` with `basis: occurred`) is refused |
+| `mark_read` | boolean | `true` on an `observed` read | move the read pointer (the reader's, or the account's) to this window's end. An occurred read never moves a pointer, and asking it to (`mark_read: true` with `basis: occurred`) is refused |
 | `reader` | string | none | this consumer's own pointer, by a short name (`^[a-z0-9][a-z0-9-]{0,31}$`): an omitted `from` reads since it, `mark_read` moves it, `read_to` reports it; the account's unnamed pointer and every other reader's are untouched |
 | `sections` | string[] | all | keep only items and entry sections in these sections |
 | `kinds` | string[] | all | keep only items of these kinds (the table below, or `account_*`); entries are untouched. A consumer that wakes on a few kinds reads only those |
@@ -127,8 +127,8 @@ section, text, visibility, publishable, facts, follow }`:
 | `sort_at` | the instant the feed is ordered by and an occurred window selects on: a sitting's last battle, else `at` |
 | `at_unix` | `sort_at` in Unix seconds, for a renderer's own clock |
 | `local` | `sort_at` on the reader's clock: `date` (`YYYY-MM-DD`), `time` (`HH:MM`), `weekday` (`Sat`) and `tz` |
-| `observed_at` | when the record learned it, which an `recorded` window selects on; a polled moment can be learned well after `at` |
-| `late` | an `recorded` read learned it, but it happened before `from`; always `false` on an occurred read |
+| `observed_at` | when the record learned it, which an `observed` window selects on; a polled moment can be learned well after `at` |
+| `late` | an `observed` read learned it, but it happened before `from`; always `false` on an occurred read |
 | `subject_tag`, `subject_name` | whose story it is: a player or a clan, by the in-game name; `subject_tag` is null on your account's items |
 | `nickname` | your private nickname for the subject player, when you set one; never in `text`, never published |
 | `subjects` | every player and clan the story is about, `{ tag, kind, name }`, players first: a member's sitting names the member and the clan |
@@ -186,7 +186,7 @@ and place at the last war day closed by `to`, no `race_finished_at`, and
 that week by then (a Colosseum week, or war day 1 still open), fame and place
 are `null`, not 0: `war_history` has the week's days.
 
-On an `recorded` read, `activity.played_here_learned_later` counts battles
+On an `observed` read, `activity.played_here_learned_later` counts battles
 played in the window that the record learned afterwards (a backfill).
 
 The timeline's total and `clans_standings`' differ by design, and neither
@@ -233,7 +233,7 @@ story or how to name the moment to it:
 
 | kind | `follow` |
 |---|---|
-| `battle_session`, `session_standout` | this item's own [recorded evidence](#recorded-evidence) (`elixir_timeline` with `evidence_item_id`, this window and basis), then `battles_performance` over the sitting's span |
+| `battle_session`, `session_standout` | this item's own [recorded evidence](#recorded-evidence) (`elixir_timeline` with `evidence_item_id`, this window and basis), then `battles_performance` over the sitting's span; a standout's `best_win` is also a `battles_query` address |
 | `ranked_promotion`, `arena_changed`, `best_trophies_band`, `career_wins_step` | the battle that proved it (`battles_query` by `battle_id`), when the record holds it, then `players_summary` |
 | `badge_earned`, `legendary_badge_earned` | `players_profile` |
 | `collection_level_step` | `players_collection` |
@@ -269,14 +269,16 @@ its whole sitting, so `evidence.count` and `facts.battles` agree, and the
 battle that crossed each rung is in `facts.crossings`. Page controls appear
 only when more canonical games remain; closing the panel returns to its row.
 
-Every supported item carries `evidence.kind`, `version`, `observed_at`,
-`count` and `completeness`. `observed_at_basis` distinguishes recorded
-recording time from `legacy_window`: old rows keep the original
-reading window, as their proof's attachment time was not recorded. A sitting
-says `recorded_only`: recording completeness is **unknown**, even when all its
-recorded games are listed.
-`anchor_bound` means the 200-step search may omit its beginning. `open`: the
-sitting was still open at this read. Boat defenses and games
+Every supported item carries `evidence.kind`, `version`, `status`,
+`observed_at`, `observed_at_basis`, `count` and `completeness`.
+`observed_at_basis` says where `observed_at` came from: `recorded_observation`
+or `recorded_capture` is the time it was recorded, and `legacy_window` means an
+old row keeps the original reading window, as their proof's attachment time was
+not recorded. A sitting's `status` says `recorded_only`: its
+`capture_completeness` is **unknown**, even when all its recorded games are
+listed, and it also carries `from` and `through`. Its `completeness` is
+`recorded_sitting` or `anchor_bound`; `anchor_bound` means the 200-step search
+may omit its beginning. `open`: the sitting was still open at this read. Boat defenses and games
 recorded more than a day late remain outside these sessions.
 
 A crossing says `proved` only when its canonical game establishes it.
@@ -353,7 +355,7 @@ about a player, a member's moment on a clan's timeline included, carries
 | `week_resolved` | 2 | the read that saw the week close | `season_id`, `section_index`, `is_colosseum`, `fame`, `rank`, `trophy_change`, `members` (`player_tag`, `name`, `decks_used`, `points`, most points first; `text` names the top three) |
 | `quiet_crossed` | 2 | the last battle plus the rung's days | `player_tag`, `name`, `rung` (5, 10 or 20), `days_quiet`, `days_since_poll`, [`role` on a clan's timeline] |
 | `returned` | 2 | the battle that ended the absence | `player_tag`, `name`, `after_days` |
-| `account` | 2 | the first event of the burst | other `account_*` kinds: the event's detail (a subject tag, a tier), `count` (events in the burst), `apps` (apps named) |
+| `account` | 2 | the first event of the burst | other `account_*` kinds: the event's detail (a subject tag, a role), `count` (events in the burst), `apps` (apps named) |
 | `account_feedback_responded` | 3 | the answer | `feedback_id`, `status`, `response` (`null` on a pre-11.13.0 answer since replaced), `shipped_in`, `area`, `category`, `message` (600 characters), `filed_at`, `answered_at`, `count` (1), `apps` |
 | `departure_classified` | 1 | when it happened, as attested; selected by when Elixir recorded it | `kind`, [`left_at`], `player_tag`, `name`, `attested_by`, `visibility`; `role_at_departure` when known |
 | `role_change_made` | 1 | as above | `from`, `to`, `player_tag`, `name`, `attested_by`, `visibility` |
@@ -477,9 +479,9 @@ item is a sitting of two or more battles; on a player's own timeline a
 single battle is a session item too.
 
 Every window is **(from, to]**, by `sort_at` on an occurred read and by
-`observed_at` on an `recorded` one, compared at the millisecond the tool
+`observed_at` on an `observed` one, compared at the millisecond the tool
 serves: `from` is exclusive and `to` inclusive, so the busy-window note's
-`to` reaches the item at the cut. An `recorded` clan entry's `activity` counts
+`to` reaches the item at the cut. An `observed` clan entry's `activity` counts
 battles learned in the window:
 `activity.learned_here_played_before` counts ones played in the day before
 `from` and recorded here (counted), `activity.played_here_learned_later` ones

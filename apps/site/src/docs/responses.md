@@ -68,7 +68,7 @@ timestamps and the envelope remain UTC. Every windowed tool that resolves a
 date-only bound or a local label emits it (the battle tools,
 `clans_standings`, `clans_participation`, `battles_trends`, the daily series,
 `elixir_timeline`); it is absent when no zone applied, and `live_fetch`,
-feedback and changelog answers carry the three required fields only.
+feedback and changelog answers never carry it.
 
 **`read_to`** (on `elixir_timeline`, beside the envelope), your read pointer
 after the call: the window's end when the call moved it, the pointer as it

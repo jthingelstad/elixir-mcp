@@ -17,7 +17,7 @@ guide: ladder
 **Decks**, at `/ladder/decks`, is every deck you played in the season in the
 chosen mode, most played first, from
 [battles_decks](/docs/tools/battles#battles_decks) with that one `mode` and the
-season: one read for the list and one per deck for its cards, so a deck you took
+season: one read for the list and one per shown deck for its cards (six show until **Show all**), so a deck you took
 from Trophy Road into an event has a record on each chip and never one across
 them. A deck is its exact cards, forms and tower troop, so the same eight cards
 with an evolution moved are two decks, and a war deck (which has no tower troop)

@@ -1,7 +1,7 @@
 ---
 slug: protocol
 title: "Protocol reference"
-description: "The wire contract for the MCP door: transport, OAuth discovery and registration, scopes, per-principal URLs, error codes, the response cap, versioning and the tools/list cache-buster, cursors, and the meta envelope."
+description: "The wire contract for the MCP door: transport, error codes, the response cap, versioning and the tools/list cache-buster, cursors, and the meta envelope."
 section: protocol
 order: 2
 navTitle: "Protocol"
@@ -106,7 +106,7 @@ ordinary semver of its own ([Integrations](/docs/integrations#versions)).
 
 Three layers, each with a closed set.
 
-**HTTP**: 401, 403, 405, 429 as above; 400 for malformed JSON, a batch or an
+**HTTP**: 401, 403, 405 and 429 as on [Connecting](/docs/connecting); 400 for malformed JSON, a batch or an
 unsupported `MCP-Protocol-Version`; 500
 never carries internals.
 
@@ -277,9 +277,10 @@ in its hint.
   the minute or two after a season roll, before the new race is matched,
   answers `live_status: { state: "matchmaking", fetched_at, retry_after_s }`:
   no race yet, never an error. The tools are annotated `openWorldHint`.
-  `elixir_timeline` is the one exception: it selects by when the record
-  recorded an item, over (from, to] at the millisecond it serves, so a cut
-  instant passed as `to` reaches the item at the cut.
+  `elixir_timeline` windows work differently: over (from, to] at the
+  millisecond it serves, by when an item happened (`occurred`) or when the
+  record learned it (`observed`), so a cut instant passed as `to` reaches the
+  item at the cut.
 
 ## Identifiers the record uses
 

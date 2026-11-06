@@ -71,11 +71,11 @@ is still recorded, and its first read comes with the scheduler's next round.
 
 Slots are the only gate; see [Limits](/docs/limits).
 
-If your clans cannot be read, Home and Players say so and offer
-**Try again**. A failed read does not mean that you stopped tracking a clan;
-any previously read clans stay available. Trying again reads your saved
-tracking without adding a clan or forcing a game fetch. An empty list is
-shown only when the relevant read succeeds.
+If your clans cannot be read, Home says so, and the clans view of Players &
+tracking shows no list. A failed read does not mean that you stopped tracking a
+clan; any previously read clans stay available. Reloading the page reads your
+saved tracking again without adding a clan or forcing a game fetch. An empty
+list is shown only when the relevant read succeeds.
 
 ## One recording, many reasons
 
@@ -192,7 +192,8 @@ your clan's week in your Monday email. The rules:
 
 The follow comes with a read of your player's profile: within minutes of
 adding a new player, and otherwise at the next regular profile read. Each
-follow Elixir makes is in your account's activity log.
+follow Elixir makes is listed under **What changed on your account**, on
+Settings › Sign-ins & devices.
 
 `elixir_nickname({ player_tag, nickname })` stores a private label (1 to 40
 characters, `null` clears) that only your account, and what you connect as
