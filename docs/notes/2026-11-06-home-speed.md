@@ -37,7 +37,7 @@ the times. A tool's statement count includes its budget's `set_config`s.
 | Needs (second pass) | about 10 (store reads through Clan's door) |
 | Clan | about 114 after the second pass, 116 here (`war_history` 7, `clans_participation` 25, `clans_roster` 8 tool queries, each with budget) |
 | Week | 95 (tool queries 34 and two direct, from 70 in five tool calls) |
-| Latest | 200 (`buildTimeline`, about 11 per tracked player); second pass: 1 more per player, about 9 fewer per quiet one |
+| Latest | 200 (`buildTimeline`, about 11 per tracked player) |
 | Friends | 159 |
 
 - `players_summary` is gone from the week. The panel drew only its `trophies`

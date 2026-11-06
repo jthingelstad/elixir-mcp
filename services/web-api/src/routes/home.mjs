@@ -4,7 +4,7 @@ import { deckIdentities } from "@elixir-mcp/tools/shared";
 import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import {
-  newestItems,
+  buildTimeline,
   shownAt,
   subjectsFor,
 } from "@elixir-mcp/tools/activity/entries";
@@ -363,26 +363,20 @@ async function readLatest(db, account) {
   const now = Date.now();
   const subjects = await subjectsFor(db, account.accountId);
   const perf = {};
-  const newest = await newestItems(
-    db,
-    subjects,
-    {
-      fromMs: now - 7 * 86_400_000,
-      toMs: now,
-      timezone: account.timezone ?? "UTC",
-      accountId: account.accountId,
-      interactive: true,
-      perf,
-    },
-    LATEST,
-  );
-  // Where this panel's time goes: a builder's name beside its ms, and how many
-  // quiet players it skipped, so the next change to it can be chosen from these.
+  const built = await buildTimeline(db, subjects, {
+    fromMs: now - 7 * 86_400_000,
+    toMs: now,
+    timezone: account.timezone ?? "UTC",
+    accountId: account.accountId,
+    interactive: true,
+    perf,
+  });
+  // Where this panel's time goes: each builder's name beside its ms.
   console.info(
     JSON.stringify({ at: "home_panel", panel: "latest_parts", parts: perf }),
   );
   return {
-    items: newest.map((it) => ({
+    items: (built.timeline ?? []).slice(0, LATEST).map((it) => ({
       id: it.id ?? null,
       at: shownAt(it) || null,
       text: String(it.text ?? ""),
