@@ -90,10 +90,10 @@ export const elixir_track_clan = {
       throw new ToolFailure(
         "quota_exceeded",
         r.limit === 0
-          ? `The ${r.role} tier has no ${r.scope}-scope clan slots.`
-          : `Your ${r.scope}-scope clan slots are full (${r.limit} for the ${r.role} tier${ctx.account.kind === "agent" ? ", shared with its owner and their agents" : ""}).`,
+          ? `The ${r.role} role has no ${r.scope}-scope clan slots.`
+          : `Your ${r.scope}-scope clan slots are full (${r.limit} for the ${r.role} role${ctx.account.kind === "agent" ? ", shared with its owner and their agents" : ""}).`,
         r.scope === "comprehensive"
-          ? "Comprehensive capture records every member's battles; the leader tier and above include it. Leader is earned while a verified player of yours leads or co-leads a clan you track; or track at scope 'activity'."
+          ? "Comprehensive capture records every member's battles; the leader role and above include it. Leader is earned while a verified player of yours leads or co-leads a clan you track; or track at scope 'activity'."
           : "Tiers are earned: leading a clan you track gives Leader, running an active collector gives Family; elixir_docs({ page: 'roles' }) has the ladder.",
       );
     if (!r.ok)

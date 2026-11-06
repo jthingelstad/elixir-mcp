@@ -113,12 +113,12 @@ arriving and leaving, and its river races. **Every member also records every
 member's battles**, which is what builds the clan a full history rather than a
 record of who was in it.
 
-Every tier has at least one activity clan slot (member and leader one,
+Every role has at least one activity clan slot (member and leader one,
 family three, partner ten; [Roles](/docs/roles)), and the first is meant for
 your own clan: Elixir follows your primary player's clan in it for you
 ([Your player's clan](#your-players-clan)). Signup itself starts no
 recording. Every member is the upgrade, and
-it costs proportionally more to run: the member tier has none, so
+it costs proportionally more to run: the member role has none, so
 `elixir_track_clan`, which defaults to `comprehensive`, needs
 `scope: "activity"` there.
 

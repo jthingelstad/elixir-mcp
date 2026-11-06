@@ -235,10 +235,10 @@ export function Review({ clan, navigate, who }) {
         ) : null}
         {d.policy?.removal ? (
           <p className="page-head__note m-0">
-            Removal: {removal("protected")} protected by their role or a hold,{" "}
-            {removal("not_candidate")} not close, {removal("evidence_held")}{" "}
-            with too little to go on, {removal("eligible")} past the removal
-            day.
+            Removal: {removal("protected")} protected by their role, a hold or
+            the wait after a decision, {removal("not_candidate")} not close,{" "}
+            {removal("evidence_held")} with too little to go on,{" "}
+            {removal("eligible")} past the removal day.
           </p>
         ) : null}
         <p className="page-head__note m-0">

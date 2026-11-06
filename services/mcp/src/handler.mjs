@@ -417,7 +417,7 @@ export function makeHandler({
                     // A refusal that does not say how to fix it is a wall
                     // (feedback #16): the first connection is read-only by
                     // design, and the step-up is a reconnect, not a setting.
-                    hint: `Reconnect this client and tick '${requiredScope}' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Account -> Connections, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read.`,
+                    hint: `Reconnect this client and tick '${requiredScope}' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Settings, Connections & agents, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read.`,
                   },
                 },
               }),
