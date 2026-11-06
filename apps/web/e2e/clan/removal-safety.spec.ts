@@ -162,7 +162,7 @@ for (const size of ["wide", "@narrow"])
     await page.goto("/clan/2PQRJ8LV/members/review");
     await expect(
       page.getByText(
-        "Removal: 1 protected by their role or a hold, 1 not close, 1 with too little to go on, 1 past the removal day.",
+        "Removal: 1 protected by their role, a hold or the wait after a decision, 1 not close, 1 with too little to go on, 1 past the removal day.",
       ),
     ).toBeVisible();
     await expect(

@@ -65,7 +65,7 @@ test("Review counts all four removal triage readings, and lists only who is near
   await waitFor(() => expect(screen.getByText("Invented 2")).toBeTruthy());
   const page = document.body.textContent;
   expect(page).toMatch(
-    /1 protected by their role or a hold, 1 not close, 1 with too little to go on, 1 past the removal day/,
+    /1 protected by their role, a hold or the wait after a decision, 1 not close, 1 with too little to go on, 1 past the removal day/,
   );
   expect(page).toMatch(/promotion 2, demotion 1/);
   const sections = screen.getByRole("navigation", { name: "Review sections" });

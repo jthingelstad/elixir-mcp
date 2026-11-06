@@ -55,7 +55,7 @@ export const DOC_LINKS = {
     [
       ["How recording works", "/docs/recording"],
       ["Scopes", "/docs/recording#scope-what-is-actually-polled"],
-      ["Tiers & slots", "/docs/roles"],
+      ["Roles & slots", "/docs/roles"],
     ],
   ],
   verify: [
@@ -124,7 +124,7 @@ export const DOC_LINKS = {
     "Your account log",
     [
       ["Privacy", "/docs/privacy"],
-      ["Tiers & roles", "/docs/roles"],
+      ["Roles", "/docs/roles"],
     ],
   ],
   usage: [
@@ -139,7 +139,7 @@ export const DOC_LINKS = {
     "Your agent",
     [
       ["Agents", "/docs/agents"],
-      ["Tiers & roles", "/docs/roles"],
+      ["Roles", "/docs/roles"],
       ["The timeline", "/docs/timeline"],
     ],
   ],
@@ -148,7 +148,7 @@ export const DOC_LINKS = {
     [
       ["What an agent tracks", "/docs/agents#what-an-agent-tracks"],
       ["How recording works", "/docs/recording"],
-      ["Tiers & slots", "/docs/roles"],
+      ["Roles & slots", "/docs/roles"],
     ],
   ],
   "agent:settings": [
@@ -185,7 +185,7 @@ export const DOC_LINKS = {
   profile: [
     "Your account",
     [
-      ["Tiers & roles", "/docs/roles"],
+      ["Roles", "/docs/roles"],
       ["Limits", "/docs/limits"],
       ["Privacy", "/docs/privacy"],
     ],
@@ -193,7 +193,7 @@ export const DOC_LINKS = {
   "profile:profile": [
     "Your account",
     [
-      ["Tiers & roles", "/docs/roles"],
+      ["Roles", "/docs/roles"],
       ["Limits", "/docs/limits"],
       ["Privacy", "/docs/privacy"],
     ],
@@ -262,14 +262,14 @@ export const DOC_LINKS = {
   "admin:requests": [
     "Admission",
     [
-      ["Tiers & roles", "/docs/roles"],
+      ["Roles", "/docs/roles"],
       ["Privacy", "/docs/privacy"],
     ],
   ],
   "admin:accounts": [
-    "Accounts & tiers",
+    "Accounts & roles",
     [
-      ["Tiers & roles", "/docs/roles"],
+      ["Roles", "/docs/roles"],
       ["Limits", "/docs/limits"],
     ],
   ],
@@ -286,7 +286,7 @@ export const DOC_LINKS = {
     [
       ["Connections", "/docs/connections"],
       ["Protocol & auth", "/docs/protocol"],
-      ["Tiers & roles", "/docs/roles"],
+      ["Roles", "/docs/roles"],
     ],
   ],
   "admin:service-tokens": [

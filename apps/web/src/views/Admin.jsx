@@ -730,18 +730,18 @@ function AdminAccounts() {
       admin
       crumb="Admin"
       title="Accounts"
-      note="Everyone with a door. Tiers set what we record and the daily call budget — never read access."
+      note="Everyone with a door. Roles set what we record and the daily call budget, never read access."
       cols={[
         ["ACCOUNT", "left"],
         ["STATUS", "left"],
-        ["TIER", "left"],
+        ["ROLE", "left"],
         ["TRACKING", "left"],
         ["AGENTS & INTEGRATIONS", "right"],
       ]}
       rows={rows}
       monoCols={[0]}
       filters={[
-        { key: "tier", label: "Tier", col: 2 },
+        { key: "tier", label: "Role", col: 2 },
         { key: "status", label: "Status", col: 1 },
       ]}
       minWidth={620}
@@ -762,7 +762,7 @@ function AdminUsage() {
     String(a.calls_7d ?? 0),
     String(a.calls_today ?? 0),
     a.errors_7d ? String(a.errors_7d) : "0",
-    a.mcp_daily_quota == null ? "tier default" : String(a.mcp_daily_quota),
+    a.mcp_daily_quota == null ? "role default" : String(a.mcp_daily_quota),
     a.last_call ? day(a.last_call) : "never",
   ]);
 
