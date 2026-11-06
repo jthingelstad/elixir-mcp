@@ -38,9 +38,9 @@ describe("analyticsLocation", () => {
   });
 
   test("a two-segment page keeps both segments", () => {
-    expect(at("/console/data/dashboard")).toEqual({
-      path: "/console/data/dashboard",
-      url: `${ORIGIN}/console/data/dashboard`,
+    expect(at("/console/status/collectors")).toEqual({
+      path: "/console/status/collectors",
+      url: `${ORIGIN}/console/status/collectors`,
     });
   });
 

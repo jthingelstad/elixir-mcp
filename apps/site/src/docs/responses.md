@@ -1,9 +1,9 @@
 ---
 slug: responses
 title: "Reading a response"
-description: "Every Elixir response carries a meta envelope: when it was computed, how far back the record goes, how fresh it is, whether capture was incomplete, and the id of the call that produced it."
-section: agent
-order: 6
+description: "Every Elixir response carries a meta envelope: when it was computed, how far back the record goes, how fresh it is, whether recording was incomplete, and the id of the call that produced it."
+section: protocol
+order: 3
 navTitle: "Responses"
 icon: file-json
 lede: "The shape of what comes back, and how to read the footnotes on a number."
@@ -26,30 +26,30 @@ contract before returning a tool result.
 
 ## The fields
 
-**`as_of`** — when this answer was computed. Not when the data was captured;
+**`as_of`**: when this answer was computed. Not when the data was recorded;
 when the sums were done.
 
-**`recorded_since`** — the earliest stored history among the player sources
-used by this answer. Battle history can predate profile snapshots or signup.
-This is not a promise of continuous capture; check `elixir_coverage` before
+**`recorded_since`**: the earliest stored history among the player sources
+used by this answer. Battle history can predate profile readings or signup.
+This is not a promise of continuous recording; check `elixir_coverage` before
 interpreting an empty period. On mixed profile/battle answers, the sources can
 have different start dates.
 
-**`recording_active_since`** — when the currently active recording began. Kept
+**`recording_active_since`**: when the currently active recording began. Kept
 separate because imported history and earlier opponent appearances can predate
 it. Stopping recording does not erase the stored history.
 
-**`source_polls`** — each relevant endpoint's `observed_at` and
+**`source_polls`**: each relevant endpoint's `observed_at` and
 `freshness_seconds`. Battle tools use the battle-log poll, profile tools use the
 profile poll, and the player summary exposes both. `war_current` exposes its
 current-race poll. A source never polled reports null values.
 
-**`freshness_seconds`** — the oldest of those relevant poll ages, not the newest
+**`freshness_seconds`**: the oldest of those relevant poll ages, not the newest
 poll of any kind. It is null if a required source has never been polled. A fresh
 profile must never disguise a stale battle log. These fields describe polling
 freshness, not the age of every individual historic row.
 
-**`completeness_note`** — present only when capture is known to be incomplete
+**`completeness_note`**: present only when recording is known to be incomplete
 or cannot be known. On a player subject whose window ends inside the last
 seven days (an unbounded window ends now), the envelope reads the newest
 profile interval, the two latest profile polls and the recorded battles between
@@ -62,7 +62,7 @@ its tag; a complete side is not mentioned. When it is there, say so in
 the answer. It is the service admitting a gap; an agent that drops it on the
 floor is laundering that admission.
 
-**`timezone_applied`** — the display timezone used for local labels, when one
+**`timezone_applied`**: the display timezone used for local labels, when one
 applied: the account's, or the call's own `timezone` argument. Stored
 timestamps and the envelope remain UTC. Every windowed tool that resolves a
 date-only bound or a local label emits it (the battle tools,
@@ -70,24 +70,24 @@ date-only bound or a local label emits it (the battle tools,
 `elixir_timeline`); it is absent when no zone applied, and `live_fetch`,
 feedback and changelog answers carry the three required fields only.
 
-**`read_to`** (on `elixir_timeline`, beside the envelope) — your read pointer
+**`read_to`** (on `elixir_timeline`, beside the envelope), your read pointer
 after the call: the window's end when the call moved it, the pointer as it
 stood with `mark_read: false`, and `null` when the account has no pointer
 yet (nothing has been marked read); a null `read_to` with `mark_read: false`
 is the dry run on a fresh account, not an error.
 
-**`feedback_responses_pending`** — maintainer replies waiting to be read with
+**`feedback_responses_pending`**: maintainer replies waiting to be read with
 `elixir_my_feedback`.
 
-**`timeline_pending`** — subjects of yours with something admitted since
+**`timeline_pending`**: subjects of yours with something admitted since
 your timeline read pointer. A hint to call `elixir_timeline` rather than
 re-polling the data tools.
 
-**`quota`** — your spend against both daily budgets, on every response, so a
+**`quota`**: your spend against both daily budgets, on every response, so a
 plan can be priced before it starts rather than discovered mid-sweep. `calls`
 is tool calls today (`used`, `max`, `remaining`); `live` is live fetches today.
 Every tool call costs one call; `live_fetch`, and `live: true` on
-`players_profile`, `clans_roster`, `war_current`, `battles_query`, additionally cost one live fetch — charged once, when a fresh
+`players_profile`, `clans_roster`, `war_current`, `battles_query`, additionally cost one live fetch, charged once, when a fresh
 read is queued, never for a read already in hand or for the follow-up call
 that finds it landed. `max` and `remaining` are `null`
 when the budget is unlimited (owner and admin). `resets_at` is the next UTC
@@ -96,11 +96,11 @@ lane, so every agent on one account reads the same balances. The hourly
 rate limit is the exception: each agent has its own hour (see
 [Limits](/docs/limits#the-table)).
 
-**`request_id`** — the id of the call that produced this response. Quote it when
+**`request_id`**: the id of the call that produced this response. Quote it when
 reporting an answer that looks wrong and we can find the exact row. Your own
-call history, with these ids, is under **Settings ▸ Usage ▸ MCP requests**.
+call history, with these ids, is under **Settings › Usage and limits › Requests**.
 
-**`contract_version`** — the tool contract this response was produced under. If
+**`contract_version`**: the tool contract this response was produced under. If
 it differs from what you cached, re-read `tools/list`; `elixir_changelog(since)`
 says what moved.
 
@@ -110,7 +110,7 @@ Three keys ride at the top level of every response, next to the fields the
 tool is for (`applied` on all but six tools, which
 the [Protocol reference](/docs/protocol#argument-conventions) names):
 
-**`applied`** — the one echo block: what the tool actually used. `window`
+**`applied`**: the one echo block: what the tool actually used. `window`
 (`from`, `to`, `source`, `timezone`) on every windowed tool, plus `limit`,
 `sort`, `mode`, `min_battles`, `segment` and `verbosity` where they apply.
 `window.source` is `argument`, `default`, `unbounded`, `season` or `fixed`
@@ -119,11 +119,11 @@ read it before you say "your last 30 days". The season-grained tools add
 `window.season`, `window.crosses` and `window.season_age_days`
 ([Seasons](/docs/clocks#seasons)).
 
-**`notes`** — `notes[]`, one-sentence caveats to repeat when quoting the
-numbers. `meta.completeness_note` stays in the envelope because it is about capture,
+**`notes`**: `notes[]`, one-sentence caveats to repeat when quoting the
+numbers. `meta.completeness_note` stays in the envelope because it is about recording,
 not about the tool.
 
-**`docs`** — a `page#section` pointer into the documentation where the
+**`docs`**: a `page#section` pointer into the documentation where the
 formulas behind the answer live; hand it to `elixir_docs({ page, section })`
 or read `elixir://docs/<page>#<section>`.
 
@@ -131,7 +131,7 @@ or read `elixir://docs/<page>#<section>`.
 
 `initialize` describes the connection twice, for two different readers.
 
-`instructions` says it in prose — *"YOU ACT FOR POAP KINGS #J2RGCRVG"* — which
+`instructions` says it in prose, *"YOU ACT FOR Tidewater #QRP2GV"*, which
 is the right shape for the model that reads it, and the wrong shape for the
 program hosting that model. That wording is tuned for the model and changes
 whenever the tuning does, so a client must not parse it.
@@ -142,13 +142,13 @@ The same facts ride as data, in `_meta` on the initialize result:
 "_meta": {
   "elixir.poapkings.com/principal": {
     "kind": "agent",
-    "subject": { "type": "clan", "tag": "#J2RGCRVG", "name": "POAP KINGS", "members": 47 }
+    "subject": { "type": "clan", "tag": "#QRP2GV", "name": "Tidewater", "members": 47 }
   }
 }
 ```
 
 `kind` is `person`, `agent` or `integration`. `subject` is the clan an agent
-acts for, the primary player a person is, or `null` — and it is **always
+acts for, the primary player a person is, or `null`, and it is **always
 present**, so a misconfigured agent with no clan is something you can detect at
 boot rather than discover in an empty answer. A person also gets a separate
 `clan` for context; for an agent the clan *is* the subject.
@@ -173,15 +173,15 @@ the agent having to guess at them. Three habits worth building into any client:
 1. **Caveat against `recorded_since`** before making a claim about a period.
 2. **Repeat `completeness_note`** rather than summarising past it.
 3. **Never present a recalled figure as recorded data.** If the tools cannot
-   answer, say so — `elixir_coverage` will tell you how complete a record is.
+   answer, say so. `elixir_coverage` will tell you how complete a record is.
 
 ## Coverage and result limits
 
 `elixir_coverage.observation_intervals` compares a profile's lifetime-battle
 counter change with battles recorded in exactly `(observed_from, observed_to]`.
 Intervals can span several days and are recalculated when read, so late-arriving
-battles improve the estimate. A missing observation time or incompatible counter
-cannot produce a reliable estimate. These are estimates of capture, not proof
+battles improve the estimate. A missing reading time or incompatible counter
+cannot produce a reliable estimate. These are estimates of recording, not proof
 that every battle is present.
 
 `completeness_last_7_days` covers intervals **ending** in the last seven days;
@@ -193,10 +193,10 @@ first-to-last extent of the intervals behind the ratio and `measured_hours`
 their summed duration, so you can see how much of the week the number actually
 describes: a high `average_ratio` over a few hours describes only those hours.
 Compare `measured_hours` against 168 before reading it as a full week. `incomplete_intervals` counts
-measured intervals with fewer captured than expected battles. Interval
+measured intervals with fewer recorded than expected battles. Interval
 `is_complete` uses exact counts even when a rounded ratio displays as one.
 `unmeasured_tail_hours` gives the age of the unbracketed tail since the latest
-profile snapshot; it is not included in `average_ratio`. Older unbracketed
+profile reading; it is not included in `average_ratio`. Older unbracketed
 history remains unknown.
 
 Performance summaries aggregate the full requested time window. An explicit
@@ -206,7 +206,7 @@ Performance summaries aggregate the full requested time window. An explicit
 `war_current.period.source_observed_at` is the latest successful current-race
 poll, while `started_observed_at` is the first sighting of that period (`null`
 until the recorder has one). The period is the calendar's and open by
-construction; use the source observation for what the recorder knows about
+construction; use the source reading for what the recorder knows about
 the race and `game_clock` for the policy clock.
 
 An MCP result over 48,000 characters of compact JSON is a structured
@@ -232,7 +232,7 @@ an unmapped `on_behalf_of`, an agent with no recorded clan),
 `result_too_large` (narrow the arguments; the hint sizes the page that fits)
 and `internal` (the server failed, not your call: retry once, then report
 the `request_id`). Errors carry a `meta` envelope too, with the same
-`request_id` — a call that failed is still a call you can ask us about.
+`request_id`: a call that failed is still a call you can ask us about.
 
 **A note for client authors:** check the error body, not just the transport
 flag. A call can fail without a protocol-level error flag being set, and a

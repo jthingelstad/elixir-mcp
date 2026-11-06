@@ -157,7 +157,10 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
       page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
     )
     .toBe("/clan/2PQRJ8LV/today");
-  await page.getByRole("link", { name: "Sign in with Elixir" }).click();
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: "Sign in", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/signin$/);
   expect(
     await page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
@@ -185,7 +188,7 @@ test("a Clan landing uses the common sign-in without a separate OAuth login", as
   });
   await page.goto("/clan");
   await expect(
-    page.getByRole("link", { name: "Sign in with Elixir" }),
+    page.getByRole("main").getByRole("link", { name: "Sign in", exact: true }),
   ).toHaveAttribute("href", "/signin");
   // A new account comes back to Clan.
   for (const signup of await page

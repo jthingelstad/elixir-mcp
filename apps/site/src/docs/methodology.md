@@ -3,7 +3,7 @@ slug: methodology
 title: "How the numbers are made"
 description: "The denominators, level differences and coverage limits in your recorded history."
 section: record
-order: 9
+order: 11
 navTitle: "Methodology"
 icon: flask-conical
 lede: "How personal history counts games and explains gaps in the record."
@@ -11,7 +11,7 @@ lede: "How personal history counts games and explains gaps in the record."
 
 # How the numbers are made
 
-Elixir describes the histories people ask it to record. A win rate describes those games and their opponents; it is not a prediction or a judgment of player skill. The denominators behind every rate are on [The battle model](/docs/battles#decided-battles-and-denominators).
+Elixir describes the histories people ask it to record. A win rate describes those games and their opponents; it is not a prediction or a judgment of player skill. The denominators behind every rate are on [The battle model](/docs/reading-the-numbers#decided-battles-and-denominators).
 
 ## Card levels: described, not adjusted for
 
@@ -29,8 +29,8 @@ row, never as a judgment of who played them.
 
 ## Rival intelligence and coverage
 
-`war_rivals` aggregates recorded river-race observations: races seen, fame,
-zero-fame races and seasons spanned. This is observed history, not a forecast.
+`war_rivals` aggregates recorded river-race readings: races seen, fame,
+zero-fame races and seasons spanned. This is recorded history, not a forecast.
 `races_observed` counts every sighting, the week in progress included;
 the fame statistics (`mean_fame`, `median_fame`, `max_fame`,
 `zero_fame_races`) pool the finished races only, and `finished_races` is
@@ -39,7 +39,7 @@ shared race has `null` fame statistics, not zero.
 
 Every response carries [an envelope](/docs/responses) with its computation time.
 Subject tools expose history and source freshness where applicable. Check
-`elixir_coverage` for measured observation intervals. Missing coverage is unknown,
+`elixir_coverage` for measured reading intervals. Missing coverage is unknown,
 not evidence of completeness; no recorded battles is not proof of no play. How
 often a player is fetched, and why a sitting can still, rarely, roll past
 the ~30-entry battle log, is on [Recording and coverage](/docs/recording).

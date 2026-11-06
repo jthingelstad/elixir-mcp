@@ -3,7 +3,7 @@ slug: cards
 title: "Cards in the record"
 description: "Card catalog facts, forms, recorded inventory and the cards you and your clan have played."
 section: record
-order: 4
+order: 8
 navTitle: "Cards"
 icon: layers
 lede: "The cards you hold and the cards you played, as recorded."
@@ -11,7 +11,7 @@ lede: "The cards you hold and the cards you played, as recorded."
 
 # Cards in the record
 
-Elixir keeps the card catalog, your observed card inventory, the cards on each battle side and exact deck identities. These are facts from the API and your recorded history.
+Elixir keeps the card catalog, your recorded card inventory, the cards on each battle side and exact deck identities. These are facts from the API and your recorded history.
 
 ## The places a card lives
 
@@ -20,19 +20,19 @@ Elixir keeps the card catalog, your observed card inventory, the cards on each b
 | Catalog | Id, name, type, rarity, elixir cost, icons, art and available forms. |
 | Battle side | Played card, form, slot and level on the in-game 1–16 scale. |
 | Deck identity | Exact card/form pairs plus tower troop, identified by `deck_hash`; levels are separate. |
-| Player inventory | Last observed level, count, unlocked forms and star level, with observation timestamps. |
+| Player inventory | Last recorded level, count, unlocked forms and star level, with reading timestamps. |
 
-**Forms.** Played cards say `form: "base" | "evolution" | "hero"`. Inventory and catalog list sets as `forms_unlocked` and `forms_available`. The API encodes these as `evolutionLevel`: 1 Evolution, 2 Hero, 3 both. See [Deck identity and forms](/docs/battles#deck-identity-and-forms).
+**Forms.** Played cards say `form: "base" | "evolution" | "hero"`. Inventory and catalog list sets as `forms_unlocked` and `forms_available`. The API encodes these as `evolutionLevel`: 1 Evolution, 2 Hero, 3 both. See [Deck identity and forms](/docs/decks-and-war#deck-identity-and-forms).
 
 **Levels.** Recorded tools serve the in-game 1–16 scale. Raw API payloads use rarity-relative levels; `cards_catalog` carries `maxLevelRarityScale` for joining to them. Level differences describe the games that happened, as explained in [Methodology](/docs/methodology#card-levels-described-not-adjusted-for).
 
 ## One card in one call
 
-`cards_card` takes an exact card name or `card_id` and a required subject: `segment: "mine"` for your clan, `{player_tag}` for one player, or `{clan_tag}` for a clan's current members. It serves catalog facts and `card.first_played {base, evolution, hero}`: the earliest play of each form in that selected recorded history. A form never observed stays null.
+`cards_card` takes an exact card name or `card_id` and a required subject: `segment: "mine"` for your clan, `{player_tag}` for one player, or `{clan_tag}` for a clan's current members. It serves catalog facts and `card.first_played {base, evolution, hero}`: the earliest play of each form in that selected recorded history. A form never recorded stays null.
 
 `first_seen_in_catalog` is when Elixir stored the catalog row, not the card's release date. The API does not provide release dates, descriptions or combat statistics.
 
-For a clan, `members.played` lists current members who played the card in the requested window, with battle counts, wins/losses, levels and forms. A duel contributes each recorded round. `members.held` lists observed inventory with `observed_at` and `since`; missing inventory is unknown. Membership is current at the time of the call, including members' earlier games. The window defaults to the current season; `season`, `from`/`to` and `mode` can narrow the played list. `first_played` spans the whole selected history. Compact verbosity drops the member lists.
+For a clan, `members.played` lists current members who played the card in the requested window, with battle counts, wins/losses, levels and forms. A duel contributes each recorded round. `members.held` lists recorded inventory with `observed_at` and `since`; missing inventory is unknown. Membership is current at the time of the call, including members' earlier games. The window defaults to the current season; `season`, `from`/`to` and `mode` can narrow the played list. `first_played` spans the whole selected history. Compact verbosity drops the member lists.
 
 Card history reads use the selected players' recorded games before looking up card details. Repeated decks still contribute every played game and duel round; they share one earliest-play lookup for each card form.
 
@@ -44,7 +44,7 @@ Card history reads use the selected players' recorded games before looking up ca
 | When did this player first play it? Who in this clan played or holds it? | `cards_card` |
 | Which cards did I play, or face, in my games? | `battles_cards` with `perspective` |
 | My battles with or against a card | `battles_query` with `with_card`, `with_cards` or `against_card` |
-| My observed card levels and forms | `players_collection` |
+| My recorded card levels and forms | `players_collection` |
 | Which decks did I play? | `battles_decks` |
 | What is this deck called? | `cards_archetype` |
 
@@ -56,7 +56,7 @@ Draw a played card's form art, else the base card's art, else its name. The API 
 
 ## Tower troops
 
-A tower troop is the ninth card in a deck identity. The API reports none on river race battles; that absence stays unknown. Two otherwise identical decks with different tower troops have different hashes. `players_collection` lists observed tower troops as `support_cards`; `cards_card` can describe a tower troop and its earliest selected-history play. `cards_catalog` lists them under `tower_troops`, apart from `cards`.
+A tower troop is the ninth card in a deck identity. The API reports none on river race battles; that absence stays unknown. Two otherwise identical decks with different tower troops have different hashes. `players_collection` lists recorded tower troops as `support_cards`; `cards_card` can describe a tower troop and its earliest selected-history play. `cards_catalog` lists them under `tower_troops`, apart from `cards`.
 
 ## A card's own page
 

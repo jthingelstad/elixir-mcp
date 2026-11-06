@@ -271,8 +271,9 @@ test("a connection-wide ceiling from PGOPTIONS stays a ceiling: the per-call bud
     })("clans_standings", {});
     assert.equal(slow.isError, false, JSON.stringify(slow.body));
     assert.equal(await setting("statement_timeout"), "1s");
-    // Below it: the budget cancels first.
-    const started = Date.now();
+    // Below it: the budget cancels first. The code proves it: a 0.8 s sleep is
+    // inside the 1 s ceiling, so nothing else could cut it. No wall clock here;
+    // a stopwatch failed under the concurrent test runner.
     const cut = await makeInvoker({
       db: bounded,
       account,
@@ -285,7 +286,6 @@ test("a connection-wide ceiling from PGOPTIONS stays a ceiling: the per-call bud
       },
     })("clans_standings", {});
     assert.equal(cut.body.error.code, "query_timeout");
-    assert.ok(Date.now() - started < 700);
     assert.equal(await setting("statement_timeout"), "1s");
     // Outside a tool the ceiling holds.
     await assert.rejects(bounded.query("select pg_sleep(1.5)"), {

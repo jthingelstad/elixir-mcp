@@ -155,7 +155,7 @@ export const battles_trends = {
         win.seasonNotes,
         "Recording start dates differ per player, so early weeks may be thin because capture was, not because play was.",
       ),
-      docs: docsRef("recording", "completeness"),
+      docs: docsRef("freshness-and-gaps", "completeness"),
       meta: responseMeta({
         as_of: new Date().toISOString(),
         ...(win.timezone ? { timezone_applied: win.timezone } : {}),

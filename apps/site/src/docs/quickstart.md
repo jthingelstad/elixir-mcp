@@ -31,14 +31,14 @@ before any email is sent; leave the field empty to add your player later.
 Nothing happens with the tag until you verify the email: then the new
 account tracks it as your primary, and you land on that player's page with
 the first read on its way (or **Tag not found** there, with the place to
-fix it). An account opened without a tag lands on Settings ▸ Players with the tag
+fix it). An account opened without a tag lands on Settings › Players & tracking with the tag
 field ready. A tag given while signing in to an account that already exists
 is ignored; that account keeps its players.
 
 ## 2. Track your player
 
 If you gave your tag at signup, this step is done: skip to the first read
-below. Otherwise open [Settings ▸ Players](/settings/players) and add
+below. Otherwise open [Settings › Players & tracking](/settings/players) and add
 your Clash Royale player tag. Your first player is your **primary**, which is what every tool
 means when you omit `player_tag`. Tracking **is** recording: Elixir reads
 your profile straight away and your battle log at the scheduler's next tick,
@@ -58,10 +58,10 @@ type the right tag there and Elixir tracks it instead (as your primary, if
 the wrong one was), or stop tracking the wrong one. Email verification opens your Elixir account; [player
 verification](/docs/verify) separately proves ownership for the features that
 require it. An ordinary member account includes activity clan recording, not
-recording every member as well. Settings ▸ Players shows the available slots.
+recording every member as well. Settings › Players & tracking shows the available slots.
 
 Read your personal season in [Ladder](/ladder). Adding a tag opens
-your player's record in Settings ▸ Players. **Player tag saved** means
+your player's record in Settings › Players & tracking. **Player tag saved** means
 the tag is on your account, not that a profile has arrived or ownership has
 been proved. This page checks saved data every few seconds for the first
 minutes after you add a tag, then about once a minute while recording is
@@ -84,13 +84,13 @@ the next page. A profile alone does not establish recorded battle history.
 Recorded clan history links to a specific saved war week, independently of
 private Clan actions. AI setup is optional and follows these browser reads.
 
-Capture attempts and saved facts are separate: a recent failed fetch does not
+Read attempts and saved facts are separate: a recent failed fetch does not
 make a tag invalid or remove retained information. An incomplete measured
 profile interval names its bounds and recorded and expected counts; other time
 remains unknown, even after a successful read. Error receipts have bounded
 retention, so missing error metadata does not mean a read succeeded.
 Paused or stopped recording still links to the information already saved.
-Check Settings ▸ Players for status rather than treating an empty window as proof that
+Check Settings › Players & tracking for status rather than treating an empty window as proof that
 you did not play.
 
 If you want clan war history, follow [Bring your clan](/docs/bring-your-clan).
@@ -98,92 +98,9 @@ Private Clan actions still require verified membership and the appropriate game
 role. Running a collector is optional and open to anyone signed in (raising
 your hand approves it); it does not multiply the shared fetch budget.
 
-## 3. Connect
+## 3. Ask something
 
-**Optional:** connect a client if you want an AI agent to ask Elixir about your
-record. You can do this while recording is pending, or keep using Ladder and Clan
-in your browser. A connection authorizes access; it does not prove that a
-successful data read has happened. Connections reports data reads within
-the last seven days separately from active connections.
-
-The endpoint is the same for every client:
-
-```
-https://elixir.poapkings.com/mcp
-```
-
-The door speaks Streamable HTTP over JSON and authenticates with OAuth 2.1
-(dynamic client registration, PKCE S256, a `resource` parameter naming the
-endpoint). A client that names no scope asks for `cr:read` alone, and the
-consent page offers every other capability as a checkbox, unticked on your
-own connection: tick what you want to allow, and change it later under
-Account → Connections. Details are on the [Protocol reference](/docs/protocol).
-
-### Claude.ai
-
-1. **Settings → Connectors → Add custom connector.**
-2. Name it (say, `Elixir`) and paste `https://elixir.poapkings.com/mcp`.
-   Leave the OAuth client id and secret empty: the door registers the client
-   itself.
-3. Click **Connect**. A sign-in page opens: enter your account email, then the
-   six-digit code from the mail, and approve the listed capabilities.
-4. In a chat, enable the connector under the tools menu and ask something.
-
-The connector caches the tool list. When `elixir_changelog` or a response's
-`contract_version` shows the contract moved, disconnect and reconnect the
-connector to refresh it.
-
-### Claude Desktop
-
-Claude Desktop uses the same connector list as Claude.ai: **Settings →
-Connectors → Add custom connector**, then the steps above. Remote connectors
-need a plan that supports them; the desktop app's `claude_desktop_config.json`
-stdio servers are a different mechanism and are not needed.
-
-### Claude Code
-
-```
-claude mcp add --transport http elixir https://elixir.poapkings.com/mcp
-```
-
-Then run `/mcp` inside Claude Code and choose **Authenticate** for `elixir`;
-the browser flow is the same email-and-code page. Use `--scope user` on the
-add command if you want the connection in every project.
-
-### Any MCP client
-
-Your client needs: Streamable HTTP transport (POST only, JSON responses, no
-SSE required), OAuth 2.1 with dynamic client registration and PKCE S256, and
-RFC 8707 `resource` support. The sequence is:
-
-1. `POST /mcp` without a token → 401 with `WWW-Authenticate: Bearer
-   resource_metadata="https://elixir.poapkings.com/.well-known/oauth-protected-resource"`.
-2. Read that document, then the authorization-server metadata it points to.
-3. `POST /oauth/register` with your `redirect_uris` (https, or http on
-   localhost / 127.0.0.1 / [::1]).
-4. Send the user to `/oauth/authorize` with `client_id`, `redirect_uri`,
-   `code_challenge` (S256), `scope=cr:read`,
-   `resource=https://elixir.poapkings.com/mcp`, and `state`.
-5. Exchange the code at `/oauth/token` with `code_verifier` and the same
-   `resource`. Access tokens last an hour; refresh tokens rotate on every use.
-6. `POST /mcp` with `Authorization: Bearer <access_token>` and an
-   `initialize` request. Read `serverInfo.version` and `_meta`.
-
-The official MCP SDKs implement steps 1 to 5; `mcp-remote` bridges a
-stdio-only client to this flow.
-
-### ChatGPT
-
-ChatGPT's connector support is scoped to its own connector catalogue and to
-developer-mode custom connectors whose availability depends on your plan and
-region, and its expectations of a server (specific `search` and `fetch`
-tools for deep research) differ from a general MCP tool surface. Elixir
-does not test against ChatGPT and makes no claim that it works there. If you
-try it and it does, or does not, `elixir_send_feedback` is the place to say so.
-
-## 4. Ask something
-
-**Optional: ask through an AI client.**
+**Optional: ask through an AI client.** [Connect a client](/docs/connect-a-client) first if you want one.
 
 **Home** shows what is recorded for your primary so far,
 links to your next step in Settings or Ladder, and offers an optional first
@@ -191,7 +108,7 @@ question matched to that record. A profile is enough to start. Active client
 connections and successful data reads in the last seven days are reported
 separately: authorizing a connection alone does not confirm a data read.
 
-**Account → Connections** offers more starter questions matched to it under
+**Settings › Connections & agents** offers more starter questions matched to it under
 **Try asking…**: a review of one reading when only a profile exists, a seven-day
 review once battles are in (30 days if the last week is empty), a deck
 comparison when two decks appear, a week-over-week comparison when both
@@ -203,8 +120,7 @@ serves these pages over the connection, and the ten
 bracket?" is a question it can answer before it calls anything.
 
 Connections also counts each connection's calls over the last seven days,
-so you can tell an authorized connection from a working one. **Usage ▸ MCP
-requests** lists every call with its `request_id`.
+so you can tell an authorized connection from a working one. **Settings › Usage and limits › Requests** lists every call with its `request_id`.
 
 ## What next
 
@@ -218,5 +134,4 @@ requests** lists every call with its `request_id`.
 ## If something goes wrong
 
 Quote the `request_id` from the response's `meta` when you report an answer
-that looks wrong. Your own call history, with those ids, is under **Usage ▸
-MCP requests**; refused credentials appear on **Account → Connections**.
+that looks wrong. Your own call history, with those ids, is under **Settings › Usage and limits › Requests**; refused credentials appear on **Settings › Connections & agents**.

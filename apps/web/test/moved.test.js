@@ -19,6 +19,8 @@ const MAP = [
   ["/console/account/agents", "/settings/connections"],
   ["/console/account/feedback", "/settings/feedback"],
   ["/console/agent", "/settings/connections"],
+  ["/console/data", "/data"],
+  ["/console/data/dashboard", "/data"],
   ["/console/account/timeline", "/home/timeline"],
   ["/console/account/activity", "/home/timeline"],
   ["/console/signin", "/signin"],
@@ -101,7 +103,8 @@ describe("the map of moved addresses", () => {
   test("every target is a page the app resolves, in one hop", () => {
     for (const to of Object.values(REDIRECTS)) {
       expect(movedTo(to), to).toBeNull();
-      expect(legalRoute(to), to).toBe(to);
+      // The charts moved onto the site: its document, which the app loads.
+      if (to !== "/data") expect(legalRoute(to), to).toBe(to);
     }
   });
 

@@ -165,9 +165,15 @@ const builtAt = process.env.SOURCE_DATE_EPOCH
   ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000)
   : new Date();
 
+const { default: forwards } = await import(
+  path.join(site, "_data/docForwards.js")
+);
+
 const corpus = {
   built_at: builtAt.toISOString(),
   docs,
+  // Sections that moved when a long page split: old pointers keep resolving.
+  forwards,
   examples: examples.flatMap((g) =>
     g.cases.map((c) => ({
       slug: c.key,

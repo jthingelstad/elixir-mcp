@@ -94,7 +94,7 @@ export const liveTools = {
             : null,
           "Raw payload: card levels are the API's rarity-relative scale (a maxed legendary reads 8/8); live_fetch stores nothing, so this read did not enter the record.",
         ),
-        docs: docsRef("recording", "reading-the-game-live"),
+        docs: docsRef("freshness-and-gaps", "reading-the-game-live"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

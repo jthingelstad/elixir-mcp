@@ -663,13 +663,13 @@ function Lookup({ me, navigate, browse }) {
           title="What the record holds"
           titleAs="div"
           action={
-            <Link
-              to={`${CONSOLE}/data/dashboard`}
+            <a
+              href="/data"
               className="mono"
               style={{ marginLeft: "auto", fontSize: "11px" }}
             >
-              Data ›
-            </Link>
+              Status and data ›
+            </a>
           }
           style={{ flex: "1 1 340px", minWidth: 0 }}
         >

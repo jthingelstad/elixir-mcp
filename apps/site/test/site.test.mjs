@@ -57,6 +57,7 @@ const STATIC_PAGES = [
   "/cards",
   "/data",
   "/family",
+  "/examples",
   "/examples/play",
   "/examples/ladder",
   "/examples/friends",
@@ -76,6 +77,24 @@ const STATIC_PAGES = [
   "/docs",
   "/docs/about",
   "/docs/quickstart",
+  "/docs/connect-a-client",
+  "/docs/connecting",
+  "/docs/freshness-and-gaps",
+  "/docs/reading-the-numbers",
+  "/docs/decks-and-war",
+  "/docs/timeline-tool",
+  "/docs/ladder-season",
+  "/docs/ladder-battles",
+  "/docs/ladder-decks",
+  "/docs/ladder-cards",
+  "/docs/inactivity-clock",
+  "/docs/clan-actions-delivery",
+  "/docs/clan-policy-tabs",
+  "/docs/clan-leaders-pages",
+  "/docs/clan-settings",
+  "/docs/clan-discord",
+  "/docs/clan-your-own-view",
+  "/docs/clan-agent-context",
   "/docs/connections",
   "/docs/agents",
   "/docs/integrations",
@@ -118,10 +137,6 @@ const STATIC_PAGES = [
   "/docs/clan-awards",
   "/docs/clan-policy",
   "/updates",
-  "/data/growth",
-  "/data/collect",
-  "/data/now",
-  "/data/machines",
   "/support",
 ];
 
@@ -149,6 +164,14 @@ async function updatePages() {
     path.join(repoRoot, "apps/site/src/_data/updatesView.js")
   );
   return view.map((u) => `/updates/${u.slug}`);
+}
+
+/** Each month of the stream has its own page, derived the same way. */
+async function updateMonthPages() {
+  const { default: view } = await import(
+    path.join(repoRoot, "apps/site/src/_data/updatesMonths.js")
+  );
+  return view.months.map((m) => `/updates/${m.key}`);
 }
 
 test(
@@ -233,6 +256,7 @@ test("the sitemap lists exactly the static pages", { skip }, async () => {
   const expected = [
     ...STATIC_PAGES,
     ...(await updatePages()),
+    ...(await updateMonthPages()),
     ...(await cardPages()),
   ].sort();
   assert.deepEqual(locs, expected);
@@ -396,6 +420,7 @@ test(
     for (const page of [
       ...STATIC_PAGES,
       ...(await updatePages()),
+      ...(await updateMonthPages()),
       ...(await cardPages()),
     ]) {
       assert.equal(route(page), doc(page), `${page} is not its document`);
@@ -411,7 +436,7 @@ test(
       "/console/",
       "/console/signin",
       "/console/account/profile",
-      "/console/explore/player/%2320JJJ2CCRU",
+      "/console/explore/player/%232ABC",
       "/console/data/dashboard",
     ])
       assertNativeApp(uri);
@@ -666,7 +691,8 @@ test(
       site
         .querySelector('.kit-top__search[data-session-face="in"]')
         .getAttribute("href"),
-      kit.FAMILY_PLACES.search.path,
+      // A static page has no search sheet: it opens the one on Home.
+      kit.FAMILY_PLACES.search.staticPath,
     );
     assert.equal(
       site
@@ -686,7 +712,7 @@ test(
     // The phone's tabs are the signed-in face only, and are the app's four.
     assert.deepEqual(hrefs('nav.kit-bottom[data-session-face="in"] a'), [
       ...places,
-      [kit.FAMILY_PLACES.search.label, kit.FAMILY_PLACES.search.path],
+      [kit.FAMILY_PLACES.search.label, kit.FAMILY_PLACES.search.staticPath],
     ]);
     // The logo, on both faces.
     for (const img of site.querySelectorAll(".kit-top__brand img"))
@@ -1291,9 +1317,11 @@ test(
   { skip },
   () => {
     const html = read("updates/index.html");
-    assert.match(html, /<h2 id="2026-09"/);
+    assert.match(html, /<h2 id="\d{4}-\d{2}"/);
     assert.match(html, /data-kind="shipped"/);
     assert.match(html, /data-kind="contract"/);
+    // A month's own page holds the entries that aged off the front.
+    assert.match(read("updates/2026-09/index.html"), /<h2 id="2026-09"/);
     assert.ok(existsSync(path.join(out, "assets/updates-filter.js")));
     assert.ok(existsSync(path.join(out, "assets/rail-anchors.js")));
   },
@@ -1445,7 +1473,7 @@ test(
 );
 
 test(
-  "the front door is the canvas's: five tiles, Drop next door, no record in it",
+  "the front door is the board's: six tiles, Drop next door, no record in it",
   { skip },
   async () => {
     // The Site board (2026-09-29). The page is built whole; the cards'
@@ -1465,7 +1493,7 @@ test(
     const tiles = [...doc.querySelectorAll(".home-tile")];
     assert.deepEqual(
       tiles.map((t) => t.querySelector(".home-tile__product").textContent),
-      ["Home", "Ladder", "Clan", "Friends", "Emails", "Your AI"],
+      ["Your record", "Ladder", "Clan", "Friends", "Emails", "Your AI"],
     );
     assert.deepEqual(
       tiles.map((t) => t.querySelector(".home-tile__cta").getAttribute("href")),
@@ -1519,7 +1547,7 @@ test("a teaser keeps the underscores in a tool's name", async () => {
 });
 
 test("the Updates page prints tool names whole", { skip }, () => {
-  const html = read("updates/index.html");
+  const html = read("updates/2026-09/index.html");
   assert.ok(html.includes("elixir_my_feedback"));
   assert.ok(!html.includes("elixirmyfeedback"));
 });

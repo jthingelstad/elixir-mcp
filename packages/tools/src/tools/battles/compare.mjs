@@ -123,7 +123,7 @@ export const battles_compare = {
         win.seasonNotes,
         "window covers RECORDED battles only, and recording start dates differ per player; net_trophies sums recorded trophy changes, not the full ladder delta.",
       ),
-      docs: docsRef("recording", "completeness"),
+      docs: docsRef("freshness-and-gaps", "completeness"),
       meta: responseMeta({
         as_of: new Date().toISOString(),
         ...(win.timezone ? { timezone_applied: win.timezone } : {}),

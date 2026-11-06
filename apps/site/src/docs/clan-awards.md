@@ -3,7 +3,7 @@ slug: clan-awards
 title: "Awards and trophies"
 description: "Clan's season awards: the five kinds a clan can run and how each is decided, when a season is judged, who sets them up and who grants a leaders' pick, where members see them, and how they reach the clan in the game and on Elixir."
 section: clan
-order: 5
+order: 8
 navTitle: "Awards"
 icon: award
 lede: "A clan names its own awards, and Clan decides them from the record when each war season closes. Every member has a trophy case; leaders announce the winners in the game."
@@ -28,7 +28,7 @@ A clan can run up to twelve awards, each with a name of its own (up to
 | Season points podium | the most war points over the season, in order; equal points go to the member who donated more cards over the season, and equal in both share the place; one to three places |
 | Perfect attendance | pass or fail, never a ranking: the decks asked for on every war day of the season (four a day, or what the clan sets), with as many war days' worth short as the clan allows; any number can win |
 | Donations podium | the most cards donated over the season; ties share the place |
-| Rookie podium | the points podium among members whose first recorded join to this clan falls within this season's observed boundaries; a previous-season join does not qualify even without war points then, and a returning stint does not reset the first join; a member whose join is older than the record is never a rookie |
+| Rookie podium | the points podium among members whose first recorded join to this clan falls within this season's recorded boundaries; a previous-season join does not qualify even without war points then, and a returning stint does not reset the first join; a member whose join is older than the record is never a rookie |
 | Leaders' pick | granted by hand, with a note |
 
 The names are the clan's own: two clans can run the same kind under
@@ -39,7 +39,7 @@ different names.
 Awards follow Clan Wars seasons as the record saw them. A season is
 judged once it has **closed** (every week finished, its Colosseum week
 last or the next season begun) and Clan holds it **whole** (unique sections
-from zero through an observed final Colosseum week, with no gaps). The first reading after that writes the
+from zero through an recorded final Colosseum week, with no gaps). The first reading after that writes the
 season's winners: the morning run, or anyone opening **Awards**. A season still being fought shows on **Awards** as
 provisional, with nothing granted. Missing evidence holds the affected award,
 not every award in the season: points need the possible contenders' counters,
@@ -57,7 +57,7 @@ is outside its eligible group.
 The complete computed decision is saved before any recipient is written. An
 interrupted batch resumes its original winners; a completed decision, including
 one with no winners, is final. Closed views and shared standings use saved grants,
-so later capture or configuration changes do not rewrite the podium.
+so later recording or configuration changes do not rewrite the podium.
 
 ## Who does what
 
@@ -75,7 +75,7 @@ so later capture or configuration changes do not rewrite the podium.
 
 ## Where members see them
 
-**Awards** shows the selected season's provisional races or final saved grants, with award setup for leaders under **Run ▸ Awards setup**.
+**Awards** shows the selected season's provisional races or final saved grants, with award setup for leaders under **Run › Awards setup**.
 Equal points use known season donations to break ties, and equal in both share
 a place. The displayed place includes this donation tiebreak; `=` means a
 shared place after both values match. The season donation totals shown alongside
@@ -97,14 +97,14 @@ and each decided season's winners, place by place.
 **Weekly progress.** After a war week is recorded as closed, the normal
 morning evaluation gives leaders one Action with provisional standings through
 that completed week. Opening **Awards** can also raise it. Only the
-newest observed closed week of the newest recorded season is eligible, and
-its observed finish must be within the last seven days. A finished Colosseum
+newest recorded closed week of the newest recorded season is eligible, and
+its recorded finish must be within the last seven days. A finished Colosseum
 uses the final season path. Later open
 weeks are excluded. Missing evidence withholds places; attendance names the
 number recorded on track, and manual picks remain human choices. Each part
 is editable and defaults to clan chat, with an explicit durable Inbox alternative. All parts belong to
 the same Action; mark each sent only after sharing it in the game. Saved weekly
-snapshots and completed or declined Actions stay unchanged. Retrying a timely
+readings and completed or declined Actions stay unchanged. Retrying a timely
 update recovers its original Action. These updates do not grant awards and work separately from the final season
 announcement setting. Nothing posts automatically.
 
@@ -115,7 +115,7 @@ explains the target beside it. It freezes the fresh
 provisional standings and their as-of time into one Action for review, editing
 and copying. It grants no award and posts nothing to the game. A lost response
 can be retried to recover the same Action; a deliberate later request creates
-a new snapshot. Each part records its own sent receipt before the whole update
+a new reading. Each part records its own sent receipt before the whole update
 can be completed.
 
 **In the game.** When the clan turns on **Announce each season's
@@ -136,5 +136,5 @@ season's award races stand, for everyone verified in the clan and the
 clan's agent; a place is written only when it changes, and the morning a
 season closes its standings are taken back (its result is the
 announcement above, never a standing).
-[Clan settings](/docs/clan-policy#clan-settings) lists everything
+[Clan settings](/docs/clan-settings#clan-settings) lists everything
 shared.

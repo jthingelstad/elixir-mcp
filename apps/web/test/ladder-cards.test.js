@@ -90,9 +90,9 @@ test("opponents read as words", () => {
   expect(times(5)).toBe("5 times");
   expect(cameBack(1)).toBe("One came back");
   expect(cameBack(12)).toBe("12 came back");
-  expect(
-    opponentName({ player_tag: "#FAKE33", name: "Slate Otter" }),
-  ).toBe("Slate Otter");
+  expect(opponentName({ player_tag: "#FAKE33", name: "Slate Otter" })).toBe(
+    "Slate Otter",
+  );
   expect(
     opponentName({ player_tag: "#FAKE33", name: null, name_known: false }),
   ).toBe("#FAKE33");

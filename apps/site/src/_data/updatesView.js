@@ -40,7 +40,7 @@ const product = updates.map((u) => ({
 // being flattened into the summary and lost.
 const contract = (changelog ?? []).map((c) => ({
   date: c.date,
-  title: `Contract ${c.version}`,
+  title: `Tool contract ${c.version}`,
   body: c.summary,
   tools_added: c.tools_added ?? [],
   breaking: c.breaking ?? null,

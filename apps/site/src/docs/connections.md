@@ -2,19 +2,19 @@
 slug: connections
 title: "Users, agents and integrations"
 description: "Three kinds of connection to Elixir, what each one is for, and which you want. A user is you. An agent acts for a clan. An integration serves its own users."
-section: agent
+section: connect
 order: 1
 navTitle: "Connect an agent"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
-console: ["Manage your clients", "/settings/connections", "Settings ▸ Connections"]
 reviewed: "2026-10-12 against contract 11.11.3 and JSON API 3.2.0"
+callout: ["Open it at Settings › Connections & agents and agents", "/settings/connections", "Open Connections and agents"]
 ---
 
 # Users, agents and integrations
 
 Three different things can connect to Elixir, and the difference is not
-technical trivia — it decides what "me" means, whose data comes back, and who
+technical trivia, it decides what "me" means, whose data comes back, and who
 pays for the calls.
 
 The short version:
@@ -28,7 +28,7 @@ The short version:
 
 ## You
 
-When you connect Claude — or any MCP client — to
+When you connect Claude, or any MCP client, to
 `https://elixir.poapkings.com/mcp`, you are connecting **as yourself**. You sign
 in with your email (new to Elixir, the same page creates your account), and
 from then on the tools know who you are.
@@ -82,12 +82,12 @@ history, and what you do never shows up as its.
 The reason to want one is that a clan is not a person. If a Discord bot
 connected as *you*, then "who do you track?" would answer with **your** personal
 player list, and everything it did would be recorded as something you did. An
-agent has no personal players to leak, because it has no self — its subject is
+agent has no personal players to leak, because it has no self. Its subject is
 the clan.
 
 You can create an agent for **any clan you already record**, at any limits. It is
 not a paid feature. It spends your daily call and live-fetch budgets and your
-recording slots, and its own role is capped at yours (and at `leader`) — an
+recording slots, and its own role is capped at yours (and at `leader`): an
 admin's agent is not an admin, and when your role changes, the agent's is
 clamped to it.
 
@@ -95,7 +95,7 @@ clamped to it.
 
 A clan agent talks to a whole Discord, so "me" is a different person every time.
 MCP has no way to say *which* human is asking, so the agent tells us: it passes
-whatever id its own surface has — `discord:1234`, `signal:…`, anything — and the
+whatever id its own surface has, `discord:1234`, `signal:…`, anything, and the
 first time we don't recognise someone, it asks who they are in the clan and
 remembers.
 
@@ -128,8 +128,8 @@ not inherit the human sponsor's admin powers or personal quota.
 
 ## One connection at a time
 
-You can hold more than one — a personal connection *and* an agent for your clan
-— but keep them in **separate sessions**, not both switched on in the same chat.
+You can hold more than one (a personal connection *and* an agent for your clan),
+but keep them in **separate sessions**, not both switched on in the same chat.
 
 They publish the same tool names, so an assistant with both cannot tell which
 one you meant, and the two answer from different subjects. In Claude that means
@@ -150,7 +150,7 @@ on a phone it folds into one row above the page.
 |---|---|
 | Home | what needs you, your week, your clan and the latest, with Timeline and Friends as its tabs; a new account gets its steps until the first read lands. Timeline shows what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`. Viewing it marks what is new since your last visit; it never changes what your connections have read ([its own place](#home-keeps-its-own-place-in-the-timeline)) |
 | Search | the magnifier on the top bar: your players and clans as you type, a tag finds anyone on record, **Follow this tag** asks before it follows, and a deck hash or war week opens its record |
-| Explore | the same read tools in a browser (players, clans and wars, decks, war weeks), at `/console/explore`; the one write is nicknames |
+| Record pages | a player, clan, deck or war week as the record holds it, reached from search; the one write is nicknames |
 | [Service](/data/service) | recording health, budget gauge, missed battles, linked from Status and data, and signed in |
 | Help | the question mark on the top bar: what the page you are on is for, a link to read more, and **Send feedback**, which carries the page along. **Feedback**, in Settings, keeps what you filed and what the maintainer answered |
 
@@ -161,7 +161,7 @@ on a phone it folds into one row above the page.
 | Profile | your address, the timezone your date windows use and Elixir prints every time in (a new account starts on its signup browser's; UTC when it has none), slot meters, your tier and what earns the next one, and today's quota |
 | Emails | a switch for each email, and **All sent**, the emails Elixir sent you |
 | Players & tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
-| Players & tracking → Verify | prove that you control a player by playing one battle with a deck Elixir names |
+| Players & tracking › Verify | prove that you control a player by playing one battle with a deck Elixir names |
 | Connections & agents | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its pages; **New agent**; Discord sharing for your timeline; and the question to try once your agent can answer |
 | Usage and limits | today's call and live-fetch meters, fourteen days of calls, who and which tools spent them with agents broken out, your own website reads counted apart (they spend no daily quota), and **MCP requests**, every call with its `request_id` |
 | Sign-ins & devices | every session that can still act as you, this one marked, and your account events |
@@ -184,7 +184,7 @@ is filed as you).
 
 ### Home keeps its own place in the timeline
 
-Home ▸ Timeline has a place of its own in the
+Home › Timeline has a place of its own in the
 [timeline](/docs/timeline), apart from every read pointer. Showing the
 page moves it to the end of the window the page showed; it never moves
 back. The count on Home's Timeline tab shows while the recorder has admitted
@@ -201,7 +201,7 @@ its pointer.
 
 ## Making one
 
-Create clan agents under **Connections → New agent**. Platform integrations are
+Create clan agents under **Settings › Connections & agents › New agent**. Platform integrations are
 managed under **Admin → Integrations**. Both show a newly issued key once;
 only its hash is stored. See the [integration guide](/docs/integrations) for
 REST resources, permissions and bounded refreshes. An integration does not

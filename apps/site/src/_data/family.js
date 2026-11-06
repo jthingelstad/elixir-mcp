@@ -30,14 +30,14 @@ export default [
         icon: "crown",
         kind: "clan",
         state: "live",
-        lede: "The clan this all grew out of. 47 members, recorded comprehensively since March — every member's battles, every river race.",
+        lede: "The clan this all grew out of. Recorded member by member since March: every member's battles, every river race.",
         shot: "Drop a clan-page screenshot",
         points: [
-          "Recorded end to end — every member, every river race",
+          "Recorded end to end: every member, every river race",
           "Where every Elixir feature gets tried first",
           "Open to players who actually show up",
         ],
-        uses: "Recorded comprehensively by Elixir MCP — it is the most complete clan in the corpus.",
+        uses: "Recorded member by member by Elixir, the most complete clan in the record.",
         links: [
           ["Visit the clan page", "external", "https://poapkings.com"],
           ["Open the clan record", "record", "/console/explore/clan/J2RGCRVG"],
@@ -138,7 +138,7 @@ export default [
         state: "live",
         here: true,
         lede: "The hub. It records Clash Royale history and serves it to agents over MCP, and the family's apps read it rather than each other.",
-        shot: "Drop a screenshot of the console or a transcript",
+        shot: "Drop a screenshot of the app or a transcript",
         points: [
           "History for the players and clans people ask us to record",
           "One hub for the family's apps",
@@ -146,7 +146,7 @@ export default [
         ],
         uses: "You are here.",
         links: [
-          ["The corpus", "data", "/data"],
+          ["Status and data", "data", "/data"],
           ["Examples", "cases", "/examples/play"],
         ],
       },

@@ -3,12 +3,12 @@ slug: milestones
 title: "Milestones"
 description: "The milestone email: whose moments it covers (your primary player and your alts), which firsts count and at what steps, why it never mails a move down or a repeat, how often it is checked, what one email holds, and its switch."
 section: friends
-order: 4
+order: 5
 navTitle: "Milestones"
 icon: sparkles
 lede: "A short note when you or an alt reach a big first: a new arena, a promotion, a new best, a legendary badge. Never a move down, never the same moment twice."
-console: ["Your email switches", "/settings/emails", "Settings ▸ Emails"]
 reviewed: "2026-10-08 for legendary badges as milestones, contract 11.5.2"
+callout: ["Open it at Settings › Emails", "/settings/emails", "Open Emails"]
 ---
 
 # Milestones
@@ -54,7 +54,7 @@ check. Everything new rides in one email, so a good evening is one note,
 not five. If a check is missed (an outage, a failed send), the next one
 reads back to the last check that went through, up to a week, so a first
 can be late but is not lost. Moments come from the record as it is
-polled, usually within the hour of the battle.
+read, usually within the hour of the battle.
 
 ## Your other players
 
@@ -80,7 +80,7 @@ that player's season on [Ladder](/docs/ladder).
 ## Turning it off
 
 **Milestones** is one switch on
-[Settings ▸ Emails](/settings/emails), and every milestone
+[Settings › Emails](/settings/emails), and every milestone
 email has a link to turn it off. The switch is for all your players at
 once. [Turn an email off](/docs/turn-an-email-off) has the rest, and
 [Email](/docs/email) every other kind.

@@ -3,22 +3,17 @@ layout: base.njk
 navActive: docs
 ---
 {#-
-  The docs shell, as the 2026-10-01 design draws it: the rail is the
-  apps' rail (the kit's rail classes), with a search box on top and the
-  groups from `_data/docGroups.js` as disclosures, each with its Lucide
-  glyph. The group you are reading in is open, its pages indented under
-  it with the gold rule on the current one; every other group is one row
-  that opens in place. The docs home opens Start. The tool families nest
-  under Tools while you are inside the reference, with the tools of the
-  family you are reading under it. Without JavaScript every group still
-  opens (a <details>), and every link works.
+  The docs shell, as the redesign's boards draw it. The rail is
+  `docs-rail.njk`. The article carries a breadcrumb (Docs / parent / group /
+  page), the title, the page's lede, the one callout that says where this
+  lives in the app, the chip row of a split guide, the Markdown, the pages
+  either side, and a way to say something is wrong. "On this page" on the
+  right marks the section being read, with an edit link and when the source
+  last changed; on a phone headings simply scroll.
 
-  The article carries a breadcrumb (Docs / group / page), the title in
-  the display face, the page's lede, the Markdown, then what to read
-  next and a way to say something is wrong. "On this page" on the right
-  marks the section being read, with an edit link and when the source
-  last changed. Below 900px the rail is a disclosure above the content,
-  never a drawer over it.
+  The session is not known here, so a callout carries both faces: Open while
+  signed in, Sign in and back while not. A callout pointing at a public page
+  has one face.
 -#}
 {#- A tool family's sections are its tools (H3s with the tool's name as
     id) — that is what the outline and the rail's third level list, and
@@ -27,85 +22,55 @@ navActive: docs
 {%- set body = content | withoutH1 %}
 {%- set isTools = slug and ("tools" == slug or "tools-" in slug) %}
 {%- set here = collections.docSections | docGroup(section) %}
+{%- set railOn = slug %}
+{%- set railTop = here.top %}
+{%- set railHere = (navTitle or title) if slug else "Home" %}
+{%- set railOutline = outline %}
+{%- set topLabel = collections.docSections | docTops(examples) %}
 <div class="siterail siterail--docs">
-  <aside class="siterail__nav" data-siterail data-open="false">
-    <label class="docs-search">
-      {% icon "search", 16 %}
-      <input type="search" placeholder="Search the docs" aria-label="Search the docs" data-docs-search autocomplete="off" />
-      <kbd>/</kbd>
-    </label>
-    <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="docs-rail">
-      <span class="siterail__head-title">Docs</span>
-      <span class="siterail__head-here">{{ (navTitle or title) if slug else here.label }}</span>
-      <span class="siterail__head-meta"><span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
-    </button>
-    <nav class="siterail__list" id="docs-rail" aria-label="Documentation" data-docs-list>
-      {%- for s in collections.docSections %}
-      <details class="docrail__group" data-docs-group{% if s.key == here.key %} open{% endif %}>
-        <summary class="rail__item docrail__summary">
-          {% icon s.icon, 16 %}<span class="docrail__label">{{ s.label }}</span>{% icon "chevron-right", 14 %}
-        </summary>
-        {%- for d in s.pages %}
-        {%- if not d.data.toolFamily %}
-        <a class="rail__child{% if d.data.slug == slug %} rail__child--on{% endif %}" href="{{ d | pageUrl }}"{% if d.data.slug == slug %} aria-current="page"{% endif %} data-search="{{ (d.data.navTitle or d.data.title) | lower }} {{ d.data.description | lower }}">
-          {{- d.data.navTitle or d.data.title }}
-          {%- if d.data.slug == "tools" %}<span class="rail__gen" title="Generated from the MCP tool registry">gen</span>{% endif -%}
-        </a>
-        {#- The tool families under Tools, shown only while you are
-            inside the reference, and the tools of the family you are
-            reading under it, each a link to its own heading. -#}
-        {%- if d.data.slug == "tools" and isTools %}
-          {%- for f in s.pages %}{% if f.data.toolFamily %}
-          <a class="rail__child docrail__family{% if f.data.slug == slug %} rail__child--on{% endif %}" href="{{ f | pageUrl }}"{% if f.data.slug == slug %} aria-current="page"{% endif %} data-search="{{ f.data.title | lower }} {{ f.data.description | lower }}">{{ f.data.navTitle or f.data.title }}</a>
-          {%- if f.data.slug == slug %}{% for h in outline %}
-          <a class="rail__child rail__child--deep mono" href="#{{ h.id }}" data-search="{{ h.id }}">{{ h.id }}</a>
-          {%- endfor %}{% endif %}
-          {%- endif %}{% endfor %}
-        {%- endif %}
-        {%- endif %}
-        {%- endfor %}
-      </details>
-      {%- endfor %}
-    </nav>
-    <div class="siterail__foot">
-      <p class="docrail__note">Your agent reads these same pages as <code>elixir_docs</code>.</p>
-      <div class="siterail__chips">
-        <a href="/llms.txt">{% icon "file-text", 14 %}llms.txt</a>
-        <a href="/tools.json">{% icon "braces", 14 %}tools.json</a>
-        <a href="/feed.xml">{% icon "rss", 14 %}feed.xml</a>
-      </div>
-    </div>
-  </aside>
+  {% include "docs-rail.njk" %}
 
   <div class="siterail__body">
     <div class="docs-layout">
-      <article class="docs__body{% if not slug %} docs__body--home{% endif %}">
+      <article class="docs__body{% if not slug %} docs__body--home{% endif %}"{% if slug %} data-doc-forwards="{{ slug | docForwards | dump }}"{% endif %}>
         {%- if slug %}
         <nav class="docs__crumb" aria-label="Breadcrumb">
           <a href="/docs">Docs</a>{% icon "chevron-right", 12 %}
+          {%- for top in topLabel %}{% if top.key == here.top %}<span>{{ top.label }}</span>{% icon "chevron-right", 12 %}{% endif %}{% endfor %}
           {%- if toolFamily %}<a href="/docs/tools">Tools</a>{% icon "chevron-right", 12 %}{% else %}<span>{{ here.label }}</span>{% icon "chevron-right", 12 %}{% endif %}
           <span aria-current="page">{{ navTitle or title }}</span>
         </nav>
         <h1 class="hero-title docs__title">{{ title }}</h1>
         <p class="docs__lede">{{ lede or description }}</p>
-        {%- endif %}
-        {{ body | safe }}
-        {%- if console %}
-        <div class="docs__console">
-          {% icon "gauge", 17 %}
-          <span>{{ console[0] }}</span>
-          <a class="btn btn--sm" href="{{ console[1] }}">{{ console[2] }} {% icon "arrow-right", 15 %}</a>
+        {%- if callout %}
+        <div class="docs__callout">
+          <span>{{ callout[0] }}</span>
+          {%- if callout[1] == "/data" %}
+          <a class="btn btn--sm" href="{{ callout[1] }}">{{ callout[2] }}</a>
+          {%- else %}
+          <a class="btn btn--sm" data-session-face="in" href="{{ callout[1] }}">{{ callout[2] }}</a>
+          <a class="btn btn--sm" data-session-face="out" href="/signin?return_to={{ page.url | urlencode }}">Sign in</a>
+          {%- endif %}
         </div>
         {%- endif %}
+        {%- if guide %}
+        <nav class="docs__guide" aria-label="This guide">
+          {%- for g in collections.docs | docGuide(guide) %}
+          <a class="chip{% if g.data.slug == slug %} chip--on{% endif %}" href="{{ g | pageUrl }}"{% if g.data.slug == slug %} aria-current="page"{% endif %}>{{ g.data.navTitle or g.data.title }}</a>
+          {%- endfor %}
+        </nav>
+        {%- endif %}
+        {%- endif %}
+        {{ body | safe }}
         {%- if slug %}
-        {%- set next = collections.docSections | docNext(slug) %}
+        {%- set near = collections.docSections | docNeighbours(slug) %}
         <div class="docs__next">
-          {%- if next.length %}
-          <span class="docs__next-links">Next:
-            {%- for n in next %} <a href="{{ n | pageUrl }}">{{ n.data.navTitle or n.data.title }} ›</a>{% if not loop.last %}<span aria-hidden="true"> · </span>{% endif %}{% endfor %}
+          <span class="docs__next-links">
+            {%- if near.prev %}<a href="{{ near.prev | pageUrl }}">&lsaquo; {{ near.prev.data.navTitle or near.prev.data.title }}</a>{% endif %}
+            {%- if near.next %}<a class="docs__next-on" href="{{ near.next | pageUrl }}">Next: {{ near.next.data.navTitle or near.next.data.title }} &rsaquo;</a>{% endif %}
           </span>
-          {%- endif %}
-          <a class="docs__wrong" href="/settings/feedback?context={{ ('Docs: /docs/' + slug) | urlencode }}">{% icon "message-square", 14 %}Something wrong on this page?</a>
+          <button type="button" class="docs__wrong" data-session-face="in" data-help-open>{% icon "message-square", 14 %}Something wrong on this page?</button>
+          <a class="docs__wrong" data-session-face="out" href="/signin?return_to={{ page.url | urlencode }}">{% icon "message-square", 14 %}Something wrong on this page?</a>
         </div>
         {%- endif %}
       </article>

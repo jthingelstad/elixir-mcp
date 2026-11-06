@@ -22,7 +22,8 @@ import { createRequire } from "node:module";
 import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import DOC_GROUPS from "./src/_data/docGroups.js";
+import DOC_GROUPS, { DOC_TOPS } from "./src/_data/docGroups.js";
+import DOC_FORWARDS from "./src/_data/docForwards.js";
 import { firstParagraph } from "./src/_lib/plain-text.mjs";
 import { makeLastmod } from "./src/_lib/lastmod.mjs";
 
@@ -58,6 +59,9 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets/session-hint.js");
   eleventyConfig.addPassthroughCopy("src/assets/transcript.js");
   eleventyConfig.addPassthroughCopy("src/assets/rail-anchors.js");
+  eleventyConfig.addPassthroughCopy("src/assets/site-help.js");
+  eleventyConfig.addPassthroughCopy("src/assets/not-found.js");
+  eleventyConfig.addPassthroughCopy("src/assets/home-status.js");
   eleventyConfig.addPassthroughCopy("src/assets/updates-filter.js");
   eleventyConfig.addPassthroughCopy("src/assets/site-rail.js");
   // The share image every page's og:image and twitter:image name.
@@ -171,21 +175,84 @@ export default function (eleventyConfig) {
       .map((s) => (docs ?? []).find((d) => d.data.slug === s))
       .filter(Boolean),
   );
-  /** What to read after a page: the next two pages of its group, or,
-   *  at the end of a group, the first page of the next one. The tool
-   *  families are the Tools page's children, never a "next". */
-  eleventyConfig.addFilter("docNext", (sections, slug) => {
-    const groups = (sections ?? []).map((s) =>
+  /** The page before and after this one, in the rail's order: "‹ The week"
+   *  and "Next: Actions ›" at an article's foot. The tool families are the
+   *  Tools page's children, never a neighbour. */
+  eleventyConfig.addFilter("docNeighbours", (sections, slug) => {
+    const pages = (sections ?? []).flatMap((s) =>
       s.pages.filter((p) => !p.data.toolFamily),
     );
-    const g = groups.findIndex((pages) =>
-      pages.some((p) => p.data.slug === slug),
-    );
-    if (g === -1) return [];
-    const at = groups[g].findIndex((p) => p.data.slug === slug);
-    const rest = groups[g].slice(at + 1, at + 3);
-    if (rest.length > 0) return rest;
-    return groups[g + 1] ? groups[g + 1].slice(0, 1) : [];
+    const at = pages.findIndex((p) => p.data.slug === slug);
+    if (at === -1) return { prev: null, next: null };
+    return { prev: pages[at - 1] ?? null, next: pages[at + 1] ?? null };
+  });
+  /** The pages of one guide, in order: the chip row of a split long page. */
+  eleventyConfig.addFilter("docGuide", (docs, guide) =>
+    guide ? (docs ?? []).filter((d) => d.data.guide === guide) : [],
+  );
+  /** This page's old anchors and where they went, for the browser's
+   *  forward. Empty on every page nothing moved out of. */
+  eleventyConfig.addFilter("docForwards", (slug) =>
+    Object.fromEntries(
+      Object.entries(DOC_FORWARDS)
+        .filter(([from]) => from.startsWith(`${slug}#`))
+        .map(([from, to]) => [from.slice(slug.length + 1), `/docs/${to}`]),
+    ),
+  );
+  /** The rail: three parents, each with its sub-groups, each with its rows.
+   *  The ten examples live here too, seven under Connect an AI and the three
+   *  for builders under Build, keeping their /examples/<key> paths. */
+  eleventyConfig.addFilter("docTops", (sections, examples) => {
+    const pageRow = (p) => ({
+      id: p.data.slug,
+      href: pageUrlOf(p),
+      title: p.data.navTitle || p.data.title,
+      search: `${p.data.navTitle || p.data.title} ${p.data.description ?? ""}`,
+      family: Boolean(p.data.toolFamily),
+      gen: p.data.slug === "tools",
+    });
+    const exampleRow = (c) => ({
+      id: `example:${c.key}`,
+      href: `/examples/${c.key}`,
+      title: c.key === "collector" ? "Run a collector, an example" : c.label,
+      search: `${c.label} ${c.title} ${c.lede}`,
+    });
+    const groups = examples ?? [];
+    const builders = groups.filter((g) => g.group === "For builders");
+    const asked = groups.filter((g) => g.group !== "For builders");
+    return DOC_TOPS.map((top) => {
+      const subs = (sections ?? [])
+        .filter((s) => s.top === top.key)
+        .map((s) => ({
+          key: s.key,
+          label: s.label,
+          rows: [
+            ...s.pages.map(pageRow),
+            ...(s.key === "build"
+              ? builders.flatMap((g) => g.cases.map(exampleRow))
+              : []),
+          ],
+        }));
+      if (top.key === "connect")
+        subs.push({
+          key: "examples",
+          label: "Examples",
+          rows: [
+            {
+              id: "examples",
+              href: "/examples",
+              title: "All examples",
+              search: "all examples",
+            },
+            ...asked.flatMap((g) => g.cases.map(exampleRow)),
+          ],
+        });
+      return {
+        ...top,
+        subs,
+        count: subs.reduce((n, sub) => n + sub.rows.length, 0),
+      };
+    });
   });
 
   /**
@@ -320,33 +387,34 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("number", (n) =>
     typeof n === "number" ? n.toLocaleString("en-US") : "—",
   );
+  /** "Apr 12": a date, in the page's date format. */
+  eleventyConfig.addFilter("shortDay", (s) =>
+    s
+      ? new Date(`${String(s).slice(0, 10)}T12:00:00Z`).toLocaleDateString(
+          "en-US",
+          { month: "short", day: "numeric", timeZone: "UTC" },
+        )
+      : "—",
+  );
+  /** "Thu Nov 5": an update's date. */
+  eleventyConfig.addFilter("entryDay", (s) => {
+    const d = new Date(`${String(s).slice(0, 10)}T12:00:00Z`);
+    const part = (o) =>
+      d.toLocaleDateString("en-US", { timeZone: "UTC", ...o });
+    return `${part({ weekday: "short" })} ${part({ month: "short", day: "numeric" })}`;
+  });
+  /** "Thu Nov 5, 11:12 UTC": when the site read the record. Baked, so it can
+   *  only say a zone it knows. */
+  eleventyConfig.addFilter("countedAt", (s) => {
+    const d = new Date(s);
+    const part = (o) => d.toLocaleString("en-US", { timeZone: "UTC", ...o });
+    return `${part({ weekday: "short" })} ${part({ month: "short", day: "numeric" })}, ${String(s).slice(11, 16)} UTC`;
+  });
   eleventyConfig.addFilter("day", (s) => (s ? String(s).slice(0, 10) : "—"));
   /** "2026-09-09 18:44Z" — a timestamp to the minute, for an as-of. */
   eleventyConfig.addFilter("stamp", (s) =>
     s ? String(s).slice(0, 16).replace("T", " ") + "Z" : "—",
   );
-  eleventyConfig.addFilter("ofKind", (entries, kind) =>
-    (entries ?? []).filter((e) => e.kind === kind),
-  );
-  /** Updates grouped by month, newest first, for the archive rail and
-   *  the month headings — derived from the dates, never typed twice. */
-  eleventyConfig.addFilter("byMonth", (entries) => {
-    const months = new Map();
-    for (const u of entries ?? []) {
-      const key = String(u.date).slice(0, 7);
-      if (!months.has(key)) months.set(key, []);
-      months.get(key).push(u);
-    }
-    return [...months.entries()].map(([key, items]) => ({
-      key,
-      label: new Date(`${key}-01T00:00:00Z`).toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-        timeZone: "UTC",
-      }),
-      items,
-    }));
-  });
 
   /** Pick one group out of a grouped data file by name.
    *
@@ -386,16 +454,16 @@ export default function (eleventyConfig) {
    *  button. An unmapped label falls back to the quickstart. */
   const SETUP_HREF = {
     "Track your player": "/settings/players",
-    "Connect a client": "/docs/quickstart",
+    "Connect a client": "/docs/connect-a-client",
     "Read the methodology": "/docs/methodology",
     "Set your timezone": "/settings/profile",
     "Track a friend's tag": "/settings/players",
     "Turn on notifications": "/docs/timeline",
     "Track your clan": "/settings/players",
     "Choose a recording scope": "/docs/recording#scope-what-is-actually-polled",
-    "Track your clan, comprehensive": "/settings/players",
+    "Track your clan, every member": "/settings/players",
     "Read about scopes": "/docs/recording#scope-what-is-actually-polled",
-    "Look up a clan tag": "/console/explore/clans",
+    "Look up a clan tag": "/console/explore",
     "Read the privacy posture": "/docs/privacy",
     "Create an agent": "/settings/connections",
     "Read the agents doc": "/docs/agents",
@@ -403,7 +471,7 @@ export default function (eleventyConfig) {
     "Request a service key":
       "/docs/integrations#provisioning-and-administration",
     "Read the operators guide": "/docs/operators",
-    "Raise your hand": "/console/status/collectors/new",
+    "Raise your hand": "/settings/collectors",
   };
   eleventyConfig.addFilter(
     "setupHref",

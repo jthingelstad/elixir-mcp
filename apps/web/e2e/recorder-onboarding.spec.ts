@@ -649,25 +649,25 @@ for (const width of [390, 1280]) {
 test("Quickstart starts with browser use and retains client deep links", async ({
   page,
 }) => {
-  await page.goto("/docs/quickstart#3-connect");
+  await page.goto("/docs/quickstart");
   await expect(
     page.getByRole("heading", { name: "Get started with Elixir", exact: true }),
   ).toBeVisible();
   await expect(page.locator("main")).toContainText(
     "without connecting an AI client",
   );
-  await expect(page.locator("main")).toContainText(
-    "Optional: connect a client",
-  );
+  await expect(page.locator("main")).toContainText("Connect a client");
   await expect(
     page
       .locator("main")
       .getByRole("link", { name: "Ladder", exact: true })
       .first(),
   ).toHaveAttribute("href", "/ladder");
-  await expect(page.locator('[id="3-connect"]')).toBeAttached();
+  // The client steps moved to their own page; the old deep link still lands.
+  await page.goto("/docs/quickstart#3-connect");
+  await expect(page).toHaveURL(/\/docs\/connect-a-client#connect$/);
   await expect(page.locator("#claude-desktop")).toBeAttached();
   await page.goto("/docs");
   await expect(page.locator("main")).toContainText("free account");
-  await expect(page.locator("main")).toContainText("AI client is optional");
+  await expect(page.locator("main")).toContainText("Connecting an AI is");
 });

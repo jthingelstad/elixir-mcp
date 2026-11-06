@@ -7,14 +7,14 @@ order: 4
 navTitle: "Run a collector"
 icon: server
 lede: "Volunteer a machine that fetches for the shared record, and what it earns you."
-console: ["Your collector", "/settings/collectors", "Settings ▸ Collectors"]
+callout: ["Open it at Settings › Collectors", "/settings/collectors", "Open Collectors"]
 ---
 
 # Running a collector
 
 A collector is a small program that fetches Clash Royale data for
 Elixir MCP with YOUR API key and posts the results back to us over
-HTTPS. It has **no AWS credentials, no cloud access, no queues** — it
+HTTPS. It has **no AWS credentials, no cloud access, no queues**: it
 is a pure API client holding exactly two secrets: your Clash Royale
 key and the bearer token Elixir MCP issues you.
 
@@ -68,18 +68,18 @@ The maintainer is told when a collector is enrolled and sees every one.
 ## Setup
 
 1. **Raise your hand** at Status > Collectors > Run a collector on
-   https://elixir.poapkings.com — pick a machine name and the Clash
+   https://elixir.poapkings.com, pick a machine name and the Clash
    Royale card your collector will wear. The card is its public name,
    so pick a favourite; a card belongs to one collector, and one that
    is already taken is shown dimmed. You can change it later from the
    collector's own page. This is the only way a collector comes to
    exist: every one is bound to the account that raised it, and you can
-   raise as many machines as you run — each gets its own name, card and
+   raise as many machines as you run, each gets its own name, card and
    token.
 
    **What is public and what is not.** The card name, the collector's
    status, and its fetch counts are public. Your **machine name is
-   private** — it is visible to you and the maintainer, and to nobody
+   private**: it is visible to you and the maintainer, and to nobody
    else, which is why you can safely call it whatever your box is
    actually called. Your **primary claimed player name and tag are
    public** in the fleet listing (`/api/public/status`, which needs no
@@ -87,7 +87,7 @@ The maintainer is told when a collector is enrolled and sees every one.
    to the player who runs them, so running one attaches your CR identity
    to it. Your email address and IP are never published.
 2. Raising your hand approves it: you land on the collector's own page,
-   which offers your collector **token as a one-time reveal** — copy
+   which offers your collector **token as a one-time reveal**: copy
    it, because it disappears from the server the moment you claim it.
    The offer is good for **72 hours**: after that the staged token is
    discarded unclaimed. If it lapses, or you lose the token later,
@@ -113,8 +113,8 @@ The maintainer is told when a collector is enrolled and sees every one.
    such as a Synology NAS, runs it under `scripts/run-forever.sh`.
 
 That is the whole setup. The server tells the running collector
-everything else at launch — pacing, backoff, what to fetch (it even
-sends the exact URL paths) — so recording-schedule changes never require you to
+everything else at launch, pacing, backoff, what to fetch (it even
+sends the exact URL paths), so recording-schedule changes never require you to
 update anything. When a new binary IS required, the collector updates
 itself: the server names the exact version and SHA-256 it may install.
 There is no pin and no opt-out; the fleet shares one rate budget and one
@@ -166,7 +166,7 @@ it, so you can compare it with your own by eye.
 
 It leases fetch jobs, calls the CR API with your key, and posts the
 results. It never chooses targets, never sees user data, and holds
-nothing that touches our infrastructure — the token only works against
+nothing that touches our infrastructure. The token only works against
 three API routes, and revoking it is instant. While one of your
 collectors is active, your account holds the Family tier
 ([Roles](/docs/roles#upgrades)); that is the reward, and the only one.
@@ -185,8 +185,8 @@ Three routes, all `Authorization: Bearer emcg_…`:
 
 Config hands out pacing (1,500 ms between fetches), the 403 breaker (5 in
 a row, 300 s cooldown), the payload ceiling (5,000,000 bytes compressed and
-base64-encoded), the next check-in interval, your channel, your status, the address your requests arrive from (`observed_ip`
-— the one to allowlist on your CR key), the one Clash Royale path
+base64-encoded), the next check-in interval, your channel, your status, the address your requests arrive from (`observed_ip`,
+the one to allowlist on your CR key), the one Clash Royale path
 `collector doctor` may read to prove your key works from there, and the
 one release version and SHA-256 you may run. A `pending` token, the state
 of a hand raised before enrollment opened, can read config and nothing
@@ -213,8 +213,8 @@ A lease may carry a **filter**. On a battlelog job it is
 `filter.battles_after`, the newest battle the service already holds for
 that player, spelled the way the API spells `battleTime`
 (`20260911T123456.000Z`). A collector that honours it drops every entry at
-or before that value before submitting — the body stays the API's own
-array, just shorter — and reports `observed` (entries before the filter)
+or before that value before submitting, the body stays the API's own
+array, just shorter, and reports `observed` (entries before the filter)
 and `filtered` (entries dropped) beside `fetched_at`. Duplicates never cross
 the wire, and `filtered: 0` on a full log tells the service the log rolled
 past what it had. Ignoring the filter is still correct, only wasteful.
@@ -239,7 +239,7 @@ the pacing runs into the door's hourly limits.
 ## Collector email
 
 Your weekly collector email includes the security status shown in the dashboard.
-Elixir also sends one notice for each collector it observes upgrade to a higher
+Elixir also sends one notice for each collector it sees upgrade to a higher
 released version, with the old and new versions and available release notes.
 Both use your Collector activity email preference. See [email from
 Elixir](/docs/email#collector-upgrade-notices).

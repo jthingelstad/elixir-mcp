@@ -3163,9 +3163,30 @@ Resources:
           /\/(_*env|(app|env|runtime|window|global|server|sftp)?[.-]?config|appsettings(\.\w+)?|credentials|secrets?|settings|aws-exports|composer|auth|keys)\.(js|json)$/i
         ];
 
+        // The public data pages became one page (redesign step 7). Old links,
+        // mail and agent docs still name them.
+        var DATA_MOVED = {
+          '/data/growth': '/data#battles-by-day',
+          '/data/collect': '/data#what-is-recorded',
+          '/data/now': '/data#right-now',
+          '/data/machines': '/data#for-machines'
+        };
+
         function handler(event) {
           var request = event.request;
           var uri = request.uri;
+
+          var moved = DATA_MOVED[uri.replace(/\/$/, '')];
+          if (moved) {
+            return {
+              statusCode: 301,
+              statusDescription: 'Moved Permanently',
+              headers: {
+                location: { value: moved },
+                'cache-control': { value: 'public, max-age=86400' }
+              }
+            };
+          }
 
           for (var i = 0; i < SCANNED.length; i++) {
             if (SCANNED[i].test(uri)) {

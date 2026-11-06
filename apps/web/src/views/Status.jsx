@@ -12,7 +12,7 @@ import { CONSOLE } from "../lib/console.js";
 
 /** The service page at /data/service (Jamie, 2026-09-06): the operational dashboard,
  *  mobile-first, behind sign-in since 2026-09-09 (the public health
- *  views are /data/now and /api/public/status). Collectors and roughly an hour of system health, refreshed
+ *  views are /data and /api/public/status). Collectors and roughly an hour of system health, refreshed
  *  every 60s. Health is derived from data, never vibes.
  *
  *  The SQS queue panel was dropped 2026-09-06: migration 0040 replaced
@@ -432,7 +432,7 @@ export function Status() {
         {" · "}
         <Link to={`${CONSOLE}/status/efficiency`}>Efficiency</Link>
         {" · "}
-        <Link to={`${CONSOLE}/data/dashboard`}>Charts</Link>
+        <a href="/data">Status and data</a>
       </p>
 
       <BudgetGauge budget={data.budget} />

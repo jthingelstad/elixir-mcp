@@ -188,7 +188,10 @@ test("coming back from sign-in lands on Today", async ({ page }) => {
     },
   });
   await page.goto("/clan/2PQRJ8LV");
-  await page.getByRole("link", { name: "Sign in with Elixir" }).click();
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: "Sign in", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/signin$/);
   await page.getByLabel("Email").fill("ada@example.com");
   await page.getByRole("button", { name: "Send sign-in email" }).click();

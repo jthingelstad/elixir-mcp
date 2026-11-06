@@ -5,7 +5,7 @@
 import { docsRef } from "../shared.mjs";
 
 export const RECORDING_DOCS = docsRef("recording", "added-means-recorded");
-export const FEED_DOCS = docsRef("timeline");
+export const FEED_DOCS = docsRef("timeline-tool");
 // Leave room below the protocol's 48k cap for the invoker's request, quota and
 // pending-hint metadata. Feedback text and its maintainer response may each be
 // 4k, so a row-count limit alone cannot make this result safe.

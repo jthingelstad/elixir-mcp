@@ -188,7 +188,7 @@ test("players_timeline: every metric, the stamps, kind, progress_key, the season
     auto.map((p) => p.trophies),
   );
   assert.ok(body.notes.some((n) => n.includes("game days")));
-  assert.equal(body.docs, "recording#daily-series");
+  assert.equal(body.docs, "freshness-and-gaps#daily-series");
 
   const pre = await call("players_timeline", {
     kind: "pre_reset",
@@ -361,7 +361,7 @@ test("clans_members_timeline: every member's roster series, the stamps, player_t
   assert.equal(other.series[0].profile_observed_at, null);
   assert.equal(typeof other.series[0].roster_observed_at, "string");
   assert.ok(body.notes.some((n) => n.includes("roster-only")));
-  assert.equal(body.docs, "recording#daily-series");
+  assert.equal(body.docs, "freshness-and-gaps#daily-series");
 
   const compact = await call("clans_members_timeline", {
     player_tags: [ME],

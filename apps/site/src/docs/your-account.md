@@ -7,8 +7,8 @@ order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your limits, and it shows nobody your address."
-console: ["Your profile and limits", "/settings/profile", "Settings ▸ Profile"]
 reviewed: "2026-10-13 against contract 11.12.0"
+callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"]
 ---
 
 # Your account
@@ -46,7 +46,7 @@ does not. A malformed tag is refused on the form before any email is sent,
 and an empty field is fine. The tag is kept with the request and applied
 only after you verify: a new account tracks it as its primary player and
 opens on that player's page. An account opened without one opens on
-[Settings ▸ Players](/settings/players) with the tag field ready,
+[Settings › Players & tracking](/settings/players) with the tag field ready,
 and so does one whose tag another account has
 [verified](/docs/verify#a-verified-player-is-yours-alone): that player is
 not added, and Players says why.
@@ -57,11 +57,11 @@ You can also create your account where an app sends you to sign in with
 Elixir, as Elixir Drop does: enter your email, then the code, and the
 account opens the same way, after verification and as an ordinary member,
 with the same product-news box. That page asks for no player tag; add
-yours in [Settings ▸ Players](/settings/players). An account
+yours in [Settings › Players & tracking](/settings/players). An account
 opened there reads in UTC until you set a zone in Profile. See
 [Sign in with Elixir](/docs/sign-in-with-elixir).
 
-Then add your player in [Settings ▸ Players](/settings/players) if
+Then add your player in [Settings › Players & tracking](/settings/players) if
 you have not, read your recorded play in [Ladder](/ladder), or follow
 [Bring your clan](/docs/bring-your-clan).
 A collector is not required to join. Running one is open to any account
@@ -114,7 +114,7 @@ A connected Discord also tells your clan's Discord agent who you are,
 so it never has to ask ([Agents](/docs/agents#knowing-which-human-is-asking)).
 
 A sign-in lasts **thirty days from its last use and ninety days at
-most**. **Settings ▸ Sign-ins & devices** (Settings is in
+most**. **Settings › Sign-ins & devices** (Settings is in
 the account menu on the top bar) lists every session that can act
 as you, with a sign-out for each and **Sign out everywhere else**, which
 keeps the one you are using. Your agents and connected apps are not
@@ -152,12 +152,12 @@ player primary or add yours. Friends and watched players are covered in
 [Follow a friend](/docs/follow-a-friend) and
 [Watch any player](/docs/watch-a-player).
 
-Players are added under **Settings ▸ Players**, and tracking a player is
+Players are added under **Settings › Players & tracking**, and tracking a player is
 recording it: see [What Elixir records](/docs/recording).
 
 ## Your time zone
 
-**Settings ▸ Profile ▸ Timezone** sets the times Elixir
+**Settings › Profile › Timezone** sets the times Elixir
 shows, how a date in a question from a connected app resolves, the local
 times in tool responses and the days and times your emails name. Storage
 stays in UTC; only the reading changes. A new account starts on the time
@@ -172,7 +172,7 @@ browser's when you are not.
 ## Your limits
 
 Your limits set how many players and clans you can record and how many
-tool calls you can make a day; **Settings ▸ Profile** shows each limit
+tool calls you can make a day; **Settings › Profile** shows each limit
 beside what you use. Leader and Family are earned in the game and read every
 time you use Elixir: Leader while one of your verified players leads or
 co-leads a clan you track, Family while a collector you run is active. There
@@ -193,7 +193,7 @@ you think. Sending feedback needs you signed in; without an account,
 write to [admin@poapkings.com](mailto:admin@poapkings.com).
 
 Every item is answered, by Elixir's maintainer, sometimes with help
-from AI agents. **Settings ▸ Feedback** (linked
+from AI agents. **Settings › Feedback** (linked
 from Help as well) lists what you have sent
 with its state and the maintainer's answer, and an item's own page
 shows the whole thread: answer an answer with **Reply** and the two
@@ -211,7 +211,7 @@ yours: what you connect to Elixir as yourself reads them, and nobody
 else does. So is your own view in Clan (your standing line and
 the Actions waiting for you): your own connection reads it, for a
 player you have verified, and no agent or integration does
-([Your own view](/docs/clan-policy#your-own-view)). The game record
+([Your own view](/docs/clan-your-own-view#your-own-view)). The game record
 itself (battles, profiles, clans) is public game data, and every
 active account can read it. The one public line tied to an account is
 a collector's: the public list of collectors names the operator's

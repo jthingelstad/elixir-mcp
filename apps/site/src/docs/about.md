@@ -7,8 +7,8 @@ order: 1
 navTitle: "Welcome"
 icon: info
 lede: "Your Clash Royale history, your friends and your clan, kept for you to explore."
-console: ["See the recorder", "/data", "Data"]
 reviewed: "2026-10-12 who writes the words; 2026-10-02 recorder scope, contract 11.0.0"
+callout: ["Open it at Status and data", "/data", "Status and data"]
 ---
 
 # About Elixir
@@ -23,7 +23,7 @@ notifications about that record, making it available to your agents, and
 giving you a dashboard where you can explore what happened. Your primary,
 alt, friend and watching relationships organize the players you follow.
 
-The Clash Royale API only answers "what is true right now" — your last
+The Clash Royale API only answers "what is true right now": your last
 ~30 battles, your current trophies. Elixir reads continuously,
 stores every battle once (no matter how many members saw it),
 derives daily readings, war records, and timeline moments from the stream, and
@@ -39,12 +39,12 @@ record into a conversation: *"how has my ladder win rate trended since I
 swapped Cannon for Musketeer?"* is a real, answerable question here. MCP is
 one way to use Elixir; you do not need an agent to use the recorder.
 
-**How you use it:** verify your email, add your player tag — adding *is*
+**How you use it:** verify your email, add your player tag, adding *is*
 recording, there is no separate opt-in. Open your record, follow a friend,
 or bring your clan. To connect an agent, use
 `https://elixir.poapkings.com/mcp` with Claude or another MCP client. The
-[Quickstart](/docs/quickstart) walks it through; [Explore](/console/explore)
-lets you browse the recorded facts directly.
+[Quickstart](/docs/quickstart) walks it through; search, in the
+top bar, opens the recorded facts directly.
 
 **Who runs it:** this is a hobby service operated by Jamie Thingelstad
 for the POAP KINGS clan and friends. It is free, and paid tiers are not
@@ -67,7 +67,7 @@ Elder band and the actions leaders decide, using your clan's own policy.
 [Elixir Drop](https://drop.poapkings.com) is a separate elixir-cost learning
 game. A clan can also run its own
 [Discord bot](/family/discord), an agent that reads its game facts from
-this service. The code is public — start at
+this service. The code is public. Start at
 [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp);
 the [Architecture](/docs/architecture) page maps the related repos.
 

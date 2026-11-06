@@ -49,7 +49,7 @@ reaches_journeys() {
 
 # The doc pages a journey opens, which the doc-page rule above leaves out.
 opened_by_a_journey() {
-  printf '%s\n' "$paths" | grep -qE -e '^apps/site/src/docs/quickstart\.md$'
+  printf '%s\n' "$paths" | grep -qE -e '^apps/site/src/docs/(quickstart|connect-a-client)\.md$'
 }
 
 if reaches_journeys || opened_by_a_journey; then

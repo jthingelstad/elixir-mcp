@@ -171,7 +171,7 @@ export const DOC_LINKS = {
     [
       ["Connections", "/docs/connections"],
       ["Protocol & auth", "/docs/protocol"],
-      ["Scopes", "/docs/protocol#scopes"],
+      ["Scopes", "/docs/connecting#scopes"],
     ],
   ],
   "connections:agents": [
@@ -233,9 +233,9 @@ export const DOC_LINKS = {
     [
       [
         "How often a subject is fetched",
-        "/docs/recording#how-often-a-subject-is-fetched",
+        "/docs/freshness-and-gaps#how-often-a-subject-is-fetched",
       ],
-      ["Completeness", "/docs/recording#completeness"],
+      ["Completeness", "/docs/freshness-and-gaps#completeness"],
       [
         "Architecture",
         "/docs/architecture#scheduling-how-often-a-player-is-fetched-and-why",
@@ -322,10 +322,13 @@ export const DOC_LINKS = {
     "What Elixir posts to Discord",
     [
       ["Timeline cross-post", "/docs/timeline#cross-posting-to-discord"],
-      ["Actions in Discord", "/docs/clan-actions#actions-in-the-clans-discord"],
+      [
+        "Actions in Discord",
+        "/docs/clan-actions-delivery#actions-in-the-clans-discord",
+      ],
       [
         "The clan's activity",
-        "/docs/clan-policy#the-clans-activity-in-discord",
+        "/docs/clan-discord#the-clans-activity-in-discord",
       ],
       ["Privacy", "/docs/privacy"],
     ],
@@ -357,21 +360,21 @@ export const DOC_LINKS = {
   "ladder:battles": [
     "Ladder",
     [
-      ["Battles", "/docs/ladder#battles"],
+      ["Battles", "/docs/ladder-battles#battles"],
       ["battles_query", "/docs/tools/battles#battles_query"],
     ],
   ],
   "ladder:decks": [
     "Ladder",
     [
-      ["Decks", "/docs/ladder#decks"],
+      ["Decks", "/docs/ladder-decks#decks"],
       ["battles_decks", "/docs/tools/battles#battles_decks"],
     ],
   ],
   "ladder:cards": [
     "Ladder",
     [
-      ["Cards", "/docs/ladder#cards"],
+      ["Cards", "/docs/ladder-cards#cards"],
       ["battles_cards", "/docs/tools/battles#battles_cards"],
       ["battles_opponents", "/docs/tools/battles#battles_opponents"],
     ],

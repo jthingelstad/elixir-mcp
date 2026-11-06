@@ -194,11 +194,11 @@ export const BATTLE_DOCS = docsRef("battles", "what-a-battle-record-holds");
 // Where the mode split, the level gap, the trophy floor and the partial
 // bucket are explained (3.13.0): the deck and card aggregates point here.
 export const CONTROLS_DOCS = docsRef(
-  "battles",
+  "reading-the-numbers",
   "the-control-next-to-the-number",
 );
 export const DENOMINATOR_DOCS = docsRef(
-  "battles",
+  "reading-the-numbers",
   "decided-battles-and-denominators",
 );
 

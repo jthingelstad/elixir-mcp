@@ -28,6 +28,7 @@
   const sort = root.querySelector("[data-cards-sort]");
   const rarity = root.querySelector("[data-cards-rarity]");
   const elixir = root.querySelector("[data-cards-elixir]");
+  const none = root.querySelector("[data-cards-none]");
   const costs = new Set();
   let selectedRarity = "";
   sort.value = "name";
@@ -39,6 +40,7 @@
           ? Number(a.dataset.elixir) - Number(b.dataset.elixir)
           : 0) || a.dataset.name.localeCompare(b.dataset.name),
     );
+    let shown = 0;
     for (const card of cards) {
       const cost = Number(card.dataset.elixir);
       card.hidden = !(
@@ -46,8 +48,11 @@
         (!selectedRarity || card.dataset.rarity === selectedRarity) &&
         (!costs.size || costs.has(cost >= 7 ? "7+" : String(cost)))
       );
+      if (!card.hidden) shown += 1;
       grid.append(card);
     }
+    none.hidden = shown > 0;
+    grid.hidden = shown === 0;
   }
   search.addEventListener("input", draw);
   sort.addEventListener("change", draw);
@@ -66,6 +71,16 @@
     if (costs.has(value)) costs.delete(value);
     else costs.add(value);
     button.setAttribute("aria-pressed", String(costs.has(value)));
+    draw();
+  });
+  root.querySelector("[data-cards-clear]").addEventListener("click", () => {
+    search.value = "";
+    selectedRarity = "";
+    costs.clear();
+    for (const child of rarity.querySelectorAll("button"))
+      child.setAttribute("aria-pressed", String(child.dataset.value === ""));
+    for (const child of elixir.querySelectorAll("button"))
+      child.setAttribute("aria-pressed", "false");
     draw();
   });
   root.querySelector("[data-cards-controls]").hidden = false;

@@ -81,6 +81,7 @@
     "label": "Search",
     "prompt": "Search players, clans, cards, help",
     "path": "/console/explore",
+    "staticPath": "/home?search",
     "icon": "search"
   },
   "help": {

@@ -52,6 +52,9 @@ export const REDIRECTS = {
   [`${CONSOLE}/admin`]: `${CONSOLE}/admin/requests`,
   [`${CONSOLE}/explore/player`]: `${CONSOLE}/explore`,
   [`${CONSOLE}/explore/clan`]: `${CONSOLE}/explore`,
+  // The in-app charts joined the site's Status and data page (step 7).
+  [`${CONSOLE}/data`]: "/data",
+  [`${CONSOLE}/data/dashboard`]: "/data",
   // Ladder's Days played became Battles; the calendar moved to Season.
   "/ladder/days": "/ladder/battles",
 };

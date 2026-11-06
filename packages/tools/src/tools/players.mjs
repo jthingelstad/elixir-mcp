@@ -70,7 +70,7 @@ function likeLiteral(text) {
   return String(text).replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
-const FORMS_DOCS = docsRef("battles", "deck-identity-and-forms");
+const FORMS_DOCS = docsRef("decks-and-war", "deck-identity-and-forms");
 
 export const playersTools = {
   players_summary: {
@@ -377,7 +377,7 @@ export const playersTools = {
             : null,
           "History may predate active recording; elixir_coverage has the capture story.",
         ),
-        docs: docsRef("recording", "completeness"),
+        docs: docsRef("freshness-and-gaps", "completeness"),
         meta: await buildMeta(ctx.db, ctx.account, tag, [
           "player",
           "player_battlelog",
@@ -740,7 +740,7 @@ export const playersTools = {
           ...seasonFields.seasonNotes,
           GAME_DAY_NOTE,
         ),
-        docs: docsRef("recording", "daily-series"),
+        docs: docsRef("freshness-and-gaps", "daily-series"),
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player"], {
           timezone: tz,
           windowTo: win.to,

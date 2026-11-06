@@ -1,12 +1,12 @@
 ---
 slug: clocks
 title: "Time and clocks"
-description: "The three timestamps a response can carry (computed, observed, played) and which one freshness reads; the 10:00 UTC policy day every clan shares and the war-day, week, section, season and Colosseum vocabulary built on it; and how from/to windows, date-only bounds, days and weeks sugar and the timezone argument resolve on every windowed tool."
+description: "The three timestamps a response can carry (computed, seen, played) and which one freshness reads; the 10:00 UTC policy day every clan shares and the war-day, week, section, season and Colosseum vocabulary built on it; and how from/to windows, date-only bounds, days and weeks sugar and the timezone argument resolve on every windowed tool."
 section: record
-order: 3
+order: 7
 navTitle: "Time and clocks"
 icon: clock
-lede: "Computed, observed and played are three different times. Which one a field means, and what day it is in the game."
+lede: "Computed, seen and played are three different times. Which one a field means, and what day it is in the game."
 ---
 
 # Time and clocks
@@ -16,15 +16,15 @@ produces three different timestamps on most responses, a policy calendar the
 game itself does not publish, and a small set of window conventions every
 tool shares. This page holds all three so no tool has to explain them.
 
-## Computed, observed, played
+## Computed, seen, played
 
 A response can carry three kinds of time, and they answer different questions:
 
 | Time | Field | Question it answers |
 |---|---|---|
 | computed | `meta.as_of` | when the sums were done. It is now, at the moment of the call, and says nothing about the data's age |
-| observed | `meta.source_polls.<endpoint>.observed_at` | when the recorder last **admitted** a payload from that source (profile, battle log, clan, current race) |
-| played | `battle_time` | when the battle happened, from the battle log's own stamp. Every battle window filters on this, never on when the battle was captured |
+| seen | `meta.source_polls.<endpoint>.observed_at` | when the recorder last **admitted** a payload from that source (profile, battle log, clan, current race) |
+| played | `battle_time` | when the battle happened, from the battle log's own stamp. Every battle window filters on this, never on when the battle was recorded |
 
 `meta.freshness_seconds` is the age at `as_of` of the **oldest relevant**
 poll, not the newest poll of any kind: a fresh profile must never disguise a
@@ -36,20 +36,20 @@ recording began. The two are kept apart because history is never deleted when
 a recording stops. The fields are defined on
 [Reading a response](/docs/responses#the-fields).
 
-Daily snapshots are keyed by the **game day**, the [policy day](#the-policy-day)
+Daily readings are keyed by the **game day**, the [policy day](#the-policy-day)
 below: a day runs from 10:00 UTC to 10:00 UTC and is named for the date it
-starts on, so a snapshot taken at 09:00 UTC on the 18th belongs to the 17th,
+starts on, so a reading taken at 09:00 UTC on the 18th belongs to the 17th,
 the same day as the war day and the season roll it sits inside.
-`players_timeline` returns one point per snapshot day and
+`players_timeline` returns one point per reading day and
 only from `snapshots_available_from`, and `players_summary.trophies_as_of`
-is a date, not an instant, because it names the snapshot the trophy count
+is a date, not an instant, because it names the reading the trophy count
 came from. The series tools take `YYYY-MM-DD` bounds, game days; an
 instant is accepted and floored to its game day, and the response says
 which day it became (`applied.window.floored`).
 
 Timeline items carry `observed_at`, the moment the recorder noticed the
-change, which is "observed between two polls": a member who left at 09:05
-and was noticed at 09:15 is observed at 09:15. Their `at` is when the moment
+change, which is "seen between two polls": a member who left at 09:05
+and was noticed at 09:15 is seen at 09:15. Their `at` is when the moment
 happened, the battle's own instant where the record holds the battle that
 did it, with `at_unix` and `local` (the reader's date, time and weekday)
 beside it; a timeline item's `text` never carries a time
@@ -59,19 +59,19 @@ beside it; a timeline item's `text` never carries a time
 
 Every daily series in the record (`players_timeline`, `clans_timeline`,
 `clans_members_timeline`, and the progress series) is keyed by one day: the
-**game day**, the date whose 10:00 UTC start the observation falls after. It is
+**game day**, the date whose 10:00 UTC start the reading falls after. It is
 the same partition as the [policy day](#the-policy-day) below, so a war day, a
 season roll (the first Monday of the month at 10:00 UTC) and a series row never
-straddle: the snapshot taken at 09:00 UTC on the roll Monday is the last row of
+straddle: the reading taken at 09:00 UTC on the roll Monday is the last row of
 the old season, and the first row after 10:00 UTC is the first of the new one.
 The function is pure UTC arithmetic (`game_day(at) = date(at - 10 hours)`), so
 daylight-saving changes cannot move it. A point's `day` is the game's; your
 timezone is a display concern, and `applied.window.timezone` says which zone
 date-only bounds were resolved in.
 
-Within a game day the **last observation wins**: a row is the state as of its
-newest observation, and every point carries the instants that produced it -
-`observed_at` (the newest observation of either writer), `profile_observed_at`
+Within a game day the **last reading wins**: a row is the state as of its
+newest reading, and every point carries the instants that produced it -
+`observed_at` (the newest reading of either writer), `profile_observed_at`
 (the profile poll that wrote the lifetime columns) and, on member rows,
 `roster_observed_at` (the roster poll that wrote the clan columns). Null means
 that writer never touched the row. Two extra rows are kept where a counter is
@@ -159,7 +159,7 @@ Every windowed tool takes the same bounds and echoes what it used:
 - `from` is inclusive and `to` exclusive, except on the daily series (whole
   game days, both ends included; below) and `elixir_timeline`, which selects
   over (`from`, `to`], by when an item happened or (a poller's read) when
-  the record observed it. Each is an ISO
+  the record saw it. Each is an ISO
   8601 instant, taken as given, or a date `YYYY-MM-DD`, resolved in a
   timezone. A date-only `from`
   is local midnight; a date-only `to` covers **that whole day**, ending at the

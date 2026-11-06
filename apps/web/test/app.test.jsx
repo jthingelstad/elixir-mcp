@@ -61,11 +61,8 @@ test(
 test("the app owns /console and disowns everything else", async () => {
   const { legalRoute, STATIC_LINKS } = await import("../src/App.jsx");
   // Owned: resolved to a real app page.
-  expect(legalRoute("/console/data/dashboard")).toBe("/console/data/dashboard");
-  expect(legalRoute("/console/data/nonsense")).toBe("/console/data/dashboard");
-  // /data is the site's corpus page; under the prefix the paths no
-  // longer collide, so the bare section is the app's own first page.
-  expect(legalRoute("/console/data")).toBe("/console/data/dashboard");
+  // The charts joined the site's /data page: a section the app no longer has.
+  expect(legalRoute("/console/data/nonsense")).toBe(null);
   expect(legalRoute("/signin")).toBe("/signin");
   expect(legalRoute("/data/service")).toBe("/data/service");
   expect(legalRoute("/console/explore/player/%2320JJJ2CCRU")).toBe(
@@ -482,7 +479,6 @@ test("the tab title names the page, most specific part first", async () => {
   expect(titleFor(undefined, undefined, "/data/service")).toBe(
     "Status - Elixir",
   );
-  expect(t("/console/data/dashboard")).toBe("Charts - Data - Elixir");
   expect(t("/console/admin/collectors")).toBe("Collectors - Admin - Elixir");
   expect(t("/console/status/collectors")).toBe("Collectors - Status - Elixir");
   // Explore owns its sub-pages, so a record beats the page slug: it is

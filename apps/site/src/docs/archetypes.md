@@ -3,7 +3,7 @@ slug: archetypes
 title: "Deck archetypes"
 description: "How Elixir names a deck's shape - its win condition and family - from the cards, and how a name a person uses resolves back to decks. The six families, the grammar, the vocabulary's sources, the cycle bound, and what a label is not."
 section: record
-order: 5
+order: 9
 navTitle: "Archetypes"
 icon: shapes
 lede: "Royal Hogs bridge spam, Hog cycle, Log Bait - the names players use, on every deck Elixir serves, and understood when a person says one."
@@ -12,12 +12,12 @@ lede: "Royal Hogs bridge spam, Hog cycle, Log Bait - the names players use, on e
 # Deck archetypes
 
 Players talk about decks by name, and Elixir speaks the language in both
-directions. Every deck object it serves — on `battles_query`,
+directions. Every deck object it serves, on `battles_query`,
 `battles_decks` (the one deck asked for by `deck_hash`; its list rows
-carry the label alone, `archetype_label`) and `players_summary` — carries an `archetype`: the deck's **family** and **win condition(s)**, a
+carry the label alone, `archetype_label`) and `players_summary`: carries an `archetype`: the deck's **family** and **win condition(s)**, a
 descriptive **label** composed from them, and the average elixir the deck
-runs at. And a name a person uses — a family, a label, or a community
-name like *LavaLoon* — is understood by the `archetype` argument of
+runs at. And a name a person uses, a family, a label, or a community
+name like *LavaLoon*, is understood by the `archetype` argument of
 `battles_decks`, which narrows a list to that shape.
 
 ```json
@@ -43,8 +43,8 @@ no "family X beats family Y" anywhere in Elixir, on purpose.
 The community keeps two things separate, and so does Elixir.
 
 **Families** are a small, stable taxonomy that the deck sites filter on and
-every guide teaches — **beatdown, control, cycle, bait, bridge spam,
-siege** — plus `unclassified` for a deck whose cards carry no cost at all.
+every guide teaches, **beatdown, control, cycle, bait, bridge spam,
+siege**, plus `unclassified` for a deck whose cards carry no cost at all.
 A deck has one family. Some guides add "hybrid"; here a deck may carry two
 win conditions, which is how a hybrid shows.
 
@@ -57,18 +57,18 @@ win conditions, which is how a hybrid shows.
 | `bridge_spam` | fast units at the bridge to deny a build-up and punish mistakes | RoyaleAPI's filter, TrophyCoach |
 | `siege` | attack the tower from your own side with X-Bow or Mortar | every guide, RoyaleAPI |
 
-**Named decks** — "2.6 Hog", "LavaLoon", "PEKKA Bridge Spam",
-"Splashyard" — are hand-curated titles for particular card sets. Deck Shop
+**Named decks**: "2.6 Hog", "LavaLoon", "PEKKA Bridge Spam",
+"Splashyard", are hand-curated titles for particular card sets. Deck Shop
 titles each exact deck by hand; no site publishes a rule for them. Elixir
 does not assert one: it never labels a deck "LavaLoon". It *understands*
 those names when a person uses them (see resolving, below).
 
 ## The grammar
 
-`<win condition(s)> <family>` — "Royal Hogs bridge spam", "Hog Rider
+`<win condition(s)> <family>`: "Royal Hogs bridge spam", "Hog Rider
 cycle", "Lava Hound Balloon beatdown", "X-Bow siege". The win condition's
-form is said the way players say it — "Evo Royal Hogs bridge spam", "Hero
-Musketeer control" — and other cards' forms are not, so two deck
+form is said the way players say it, "Evo Royal Hogs bridge spam", "Hero
+Musketeer control", and other cards' forms are not, so two deck
 identities that differ only in a support card's form share a label. A
 deck with no attested win condition is named by its cost alone:
 "Cycle", "Control", "Beatdown".
@@ -97,16 +97,16 @@ Composition, in order:
 3. **A paired second win condition**, when present: Balloon beside Lava
    Hound (LavaLoon), Sparky beside Goblin Giant, Wall Breakers beside
    Miner (which makes it cycle), Giant beside Graveyard (which makes it
-   beatdown — the community's "Giant Graveyard").
-4. **No win condition**: by cost — at or under the cycle bound *cycle*,
-   4.0 and over *beatdown*, between them *control* — led by the card
+   beatdown, the community's "Giant Graveyard").
+4. **No win condition**: by cost, at or under the cycle bound *cycle*,
+   4.0 and over *beatdown*, between them *control*, led by the card
    that **names** the deck when one is present: "Rune Giant beatdown" for
    a deck whose tower damage is chip from enchanted troops behind the
    tank. Such a card (`named_by`) is not a win condition and never
    anchors over one; `win_conditions` stays empty.
 
 `secondary_win_conditions[]` carries every other attested win condition
-in the deck, by priority — what the label leaves out — so "Miner control"
+in the deck, by priority, what the label leaves out, so "Miner control"
 can be said as "Miner control, with Goblin Barrel and Boss Bandit"
 without reading the cards.
 
@@ -141,7 +141,7 @@ source names it; the reference lists those cards as `unattested`, and
 the domain's research agent treats that list as its queue. The
 vocabulary is not versioned by season: a role is a property of the card,
 not of the month it was learned in, and when the vocabulary improves,
-history is relabelled — the deck was always that shape.
+history is relabelled. The deck was always that shape.
 
 Where the community disagrees, Elixir picks and says so in the entry's
 source line: Royal Hogs is *bridge spam* (the deck sites) rather than
@@ -153,8 +153,8 @@ partner test is the difference.
 ## Resolving a name
 
 **`cards_archetype`** answers the two questions on their own, with no
-population attached: `{ name }` says what a name means — family, win
-conditions and the other names for that shape — and `{ cards }` names a deck from up to eight
+population attached: `{ name }` says what a name means, family, win
+conditions and the other names for that shape, and `{ cards }` names a deck from up to eight
 cards (ids or names; `Evo` / `Hero` before a name sets its form), with no
 record required. Called with nothing it returns the vocabulary itself.
 
@@ -164,21 +164,21 @@ said before a win condition ("Evo Royal Hogs bridge spam") keeps to that
 form's decks; a name without one ("Royal Hogs bridge spam") matches every
 form of the card, and `cards_archetype` says so in a note.
 
-1. **An alias** — the community names the grammar does not produce:
+1. **An alias**: the community names the grammar does not produce:
    *LavaLoon*, *LumberLoon*, *Log Bait*, *Splashyard*, *Miner Poison*, *Hog
    EQ*, *2.6 Hog*, *Hog cycle*, *Giant Graveyard*, *PEKKA Bridge Spam*,
    *Rocket cycle*, *RG cycle*, *Mortar cycle*, *X-Bow cycle*, *Wall
    Breakers cycle*, *Drill cycle*, *eBarbs bridge spam* and the rest of
    the aliases file, case and punctuation free.
-2. **A family** — `bridge spam`, `beatdown`, and so on: any win condition.
-3. **A composed label** — `<card(s)> <family>`, the cards by catalog name
+2. **A family**: `bridge spam`, `beatdown`, and so on: any win condition.
+3. **A composed label**: `<card(s)> <family>`, the cards by catalog name
    (`pekka` and `P.E.K.K.A` both), an `evo`/`hero` prefix setting the form:
    "evo royal hogs bridge spam" is Evo Royal Hogs, bridge spam, and keeps
    to that form's decks, as above.
 
-The response echoes `applied.archetype` — `family`, `win_conditions`,
+The response echoes `applied.archetype`: `family`, `win_conditions`,
 `resolved_from` (`alias`, `family` or `label`) and any `aliases` that name
-the resolved shape — and a note says what was matched. A name that is
+the resolved shape, and a note says what was matched. A name that is
 nothing is refused (`bad_request`) with the six families and the grammar
 in the hint; it is never a silent empty list that reads as "nobody plays
 that". The filter reads the selected player's recorded decks by their stamp.

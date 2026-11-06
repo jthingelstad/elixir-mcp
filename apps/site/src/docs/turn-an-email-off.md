@@ -3,12 +3,12 @@ slug: turn-an-email-off
 title: "Turn an email off"
 description: "Every Elixir email is a switch: where the switches are, the turn-off link in every issue and one-click unsubscribe, what the switches cannot do (one player or one clan), the mail that has no switch, and the newsletter, which is separate."
 section: friends
-order: 5
+order: 6
 navTitle: "Turn an email off"
 icon: bell-off
-lede: "Every kind of email is one switch, all on to start. Turn one off from Settings ▸ Emails or from the link at the foot of any issue, and turn it back on the same way."
-console: ["Your email switches", "/settings/emails", "Settings ▸ Emails"]
+lede: "Every kind of email is one switch, all on to start. Turn one off from Settings › Emails or from the link at the foot of any issue, and turn it back on the same way."
 reviewed: "2026-10-08 against contract 11.3.0"
+callout: ["Open it at Settings › Emails", "/settings/emails", "Open Emails"]
 ---
 
 # Turn an email off
@@ -20,7 +20,7 @@ lands.
 
 ## The switches
 
-**Settings ▸ Emails**
+**Settings › Emails**
 ([/settings/emails](/settings/emails)),
 reached from the account menu, lays the four weekly kinds out on your week, each
 on the day it arrives in your time zone: the Clan report, Your week in
@@ -41,13 +41,13 @@ actions waiting** needs a [verified](/docs/verify) player in a clan.
 ## From the email itself
 
 Every issue carries a link to turn that kind off, and **Manage your
-emails**, which opens Settings ▸ Emails. The turn-off link opens a page that asks first: nothing changes
+emails**, which opens Settings › Emails. The turn-off link opens a page that asks first: nothing changes
 until you press **Turn it off**. Every issue also carries the standard
 one-click unsubscribe, so a mail app that shows its own unsubscribe
 button turns the kind off in one step, with no page.
 
-Either way it can be turned back on from Settings ▸ Emails. Every change
-is kept in your account's log (**Settings ▸ Sign-ins**), saying
+Either way it can be turned back on from Settings › Emails. Every change
+is kept in your account's log (**Settings › Sign-ins & devices**), saying
 whether it came from the page or from a link.
 
 ## One player or one clan
@@ -56,7 +56,7 @@ The switches are per kind, never per player or per clan. To hear less
 about one subject:
 
 - **Your friends this week**: switch off the player's **Notifications** on its
-  page under Settings ▸ Players, and it leaves the report and your timeline while
+  page under Settings › Players & tracking, and it leaves the report and your timeline while
   recording carries on ([Follow a friend](/docs/follow-a-friend#the-notifications-switch)).
 - **Clan report**: it comes for each clan you track, one report per
   clan. Stopping tracking a clan stops its report, and its recording

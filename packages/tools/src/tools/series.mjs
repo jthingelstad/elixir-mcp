@@ -395,7 +395,7 @@ export const seriesTools = {
           ...seasonFields.seasonNotes,
           GAME_DAY_NOTE,
         ),
-        docs: docsRef("recording", "daily-series"),
+        docs: docsRef("freshness-and-gaps", "daily-series"),
         meta: await buildMeta(ctx.db, ctx.account, clanTag, ["clan"], {
           timezone: tz,
         }),
@@ -640,7 +640,7 @@ export const seriesTools = {
           ...seasonFields.seasonNotes,
           GAME_DAY_NOTE,
         ),
-        docs: docsRef("recording", "daily-series"),
+        docs: docsRef("freshness-and-gaps", "daily-series"),
         meta: await buildMeta(ctx.db, ctx.account, clanTag, ["clan"], {
           timezone: tz,
         }),

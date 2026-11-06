@@ -62,7 +62,7 @@ describe("the bar on a page", () => {
         text: async () => JSON.stringify(body),
       };
     });
-    window.history.pushState({}, "", "/console/data/dashboard");
+    window.history.pushState({}, "", "/console/explore");
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -253,7 +253,6 @@ describe("the bar on a page", () => {
     expect(barArea("/ladder/season")).toBe("ladder");
     expect(barArea("/clan/you")).toBe("clan");
     expect(barArea("/console/explore/player/2ABC")).toBe("search");
-    expect(barArea("/console/data/dashboard")).toBe("search");
     expect(barArea("/console/account/profile")).toBeUndefined();
     expect(barArea("/signin")).toBeUndefined();
     expect(barArea("/battle/a1b2c3d4e5f6")).toBeUndefined();

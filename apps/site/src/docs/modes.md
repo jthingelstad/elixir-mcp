@@ -3,7 +3,7 @@ slug: modes
 title: "Modes"
 description: "Why Elixir keeps Trophy Road, Path of Legends, Clan Wars, casual, challenges, events and tournaments apart: the seven mode groups, the note a number carries when it mixes them, how events are told apart, how Clan Wars games are counted, and how to ask for one mode."
 section: record
-order: 2
+order: 6
 navTitle: "Modes"
 icon: gamepad-2
 lede: "Trophy Road, Path of Legends and Clan Wars are different games. Elixir keeps every mode apart, and a number that mixes them says so."

@@ -1,0 +1,70 @@
+{#- Updates, as both /updates and a month's page draw it. Vars: shown (months on
+    this page), hereKey (the month in the nav, if it is a month's page), next
+    (the month to read on), prevMonth. A contract version is hidden until the
+    switch is on: agents keep elixir_changelog, and the feed keeps every entry. -#}
+<div class="page-head">
+  <div>
+    <h1 class="hero-title">Updates</h1>
+    <p class="lede">What changed, newest first. Open one for the whole entry.</p>
+  </div>
+</div>
+<div class="siterail">
+  <aside class="siterail__nav" data-siterail data-open="false" data-updates-rail>
+    <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="updates-rail">
+      <span class="siterail__head-title">Months</span>
+      <span class="siterail__head-here">{{ hereLabel or updatesMonths.months[0].label }}</span>
+      <span class="siterail__head-meta">{{ updatesMonths.months.length }}<span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
+    </button>
+    <nav class="siterail__list" id="updates-rail" aria-label="Months">
+      <div class="rail__group">Months</div>
+      {%- for m in updatesMonths.months %}
+      <a class="rail__item{% if m.key == hereKey %} rail__item--on{% endif %}"{% if m.key == hereKey %} aria-current="page"{% endif %} href="/updates/{{ m.key }}" data-month-link>{{ m.label }} <span class="rail__meta" data-count-product="{{ m.product }}" data-count-all="{{ m.all }}">{{ m.product }}</span></a>
+      {%- endfor %}
+      <div class="rail__group">Subscribe</div>
+      <a class="rail__item" href="/feed.xml" title="Subscribe to Elixir's updates">{% icon "rss", 18 %}Feed</a>
+    </nav>
+  </aside>
+
+  <div class="siterail__body">
+    <label class="updates-switch" hidden data-contract-switch>
+      <span class="updates-switch__words">
+        <span class="updates-switch__name">Show contract versions</span>
+        <span class="footnote">Each version of the tools agents call. For people building on Elixir.</span>
+      </span>
+      <input type="checkbox" role="switch" />
+    </label>
+
+    {%- for m in shown %}
+    <section data-updates-month>
+    <h2 id="{{ m.key }}" class="label updates-month">{{ m.label }}</h2>
+    {%- if m.product == 0 %}
+    <p class="footnote" data-only-contracts>Only contract versions this month.</p>
+    {%- endif %}
+    {%- for u in m.items %}
+    <article class="panel updates-entry" data-kind="{{ u.kind }}"{% if u.kind == 'contract' %} hidden{% endif %}>
+      <div class="panel__head">
+        <span class="chip {% if u.kind == 'shipped' %}chip--ok{% elif u.kind == 'contract' %}chip--info{% else %}chip--warn{% endif %}">{{ u.kind | capitalize }}</span>
+        <time class="updates-entry__date" datetime="{{ u.date }}">{{ u.date | entryDay }}</time>
+      </div>
+      {#- The preview is a clamp of the prose, not the prose: a contract
+          summary runs to a thousand words and the index is for finding the
+          one you want. -#}
+      <div class="panel__body">
+        <h3 class="panel-title updates-entry__title"><a href="/updates/{{ u.slug }}">{{ u.title }}</a></h3>
+        <p class="updates-entry__text">{{ u.body | firstParagraph | clamp(260) }}</p>
+        <a href="/updates/{{ u.slug }}" class="updates-entry__more">Read it ›</a>
+      </div>
+    </article>
+    {%- endfor %}
+    </section>
+    {%- endfor %}
+
+    <nav class="updates-pager" aria-label="More months">
+      {%- if newerKey %}<a class="btn btn--sm" href="/updates/{{ newerKey }}">‹ {{ newerLabel }}</a>{% endif %}
+      {%- if olderKey %}<a class="btn btn--sm updates-pager__older" href="/updates/{{ olderKey }}">{{ olderLabel }} ›</a>{% endif %}
+    </nav>
+  </div>
+</div>
+
+<script defer src="{{ "/assets/updates-filter.js" | asset }}"></script>
+<script defer src="{{ "/assets/site-rail.js" | asset }}"></script>

@@ -1,25 +1,45 @@
 /**
- * The one live element on the Data page.
+ * What moves on the Status and data page: Right now, and the chart's window.
  *
- * The strip is rendered server-side with the deploy-time numbers and
- * still reads true with JavaScript off — this only REPLACES values it
- * successfully fetched. A failed fetch leaves the baked answer standing
- * rather than blanking three numbers and explaining nothing.
+ * Right now is rendered server-side with the deploy-time numbers and still
+ * reads true with JavaScript off: this only REPLACES values it successfully
+ * fetched. A failed fetch leaves the baked answer standing and says so.
  *
  * External file, never inline: the CSP forbids inline script and a test
  * pins that.
  */
 (function () {
-  const slots = document.querySelectorAll("[data-live]");
-  if (slots.length === 0) return;
+  const chips = document.querySelector("[data-chart-range]");
+  if (chips) {
+    const buttons = chips.querySelectorAll("[data-range]");
+    chips.hidden = false;
+    buttons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        buttons.forEach(function (b) {
+          b.setAttribute("aria-pressed", String(b === button));
+        });
+        document.querySelectorAll("[data-chart]").forEach(function (chart) {
+          chart.hidden = chart.dataset.chart !== button.dataset.range;
+        });
+      });
+    });
+  }
+
+  const show = function (selector, on) {
+    const el = document.querySelector(selector);
+    if (el) el.hidden = !on;
+  };
+  const stale = function () {
+    show('[data-live-line="stale"]', true);
+  };
 
   function ago(iso) {
     const s = (Date.now() - Date.parse(iso)) / 1000;
     if (!isFinite(s) || s < 0) return null;
-    if (s < 90) return Math.round(s) + "s ago";
-    if (s < 5400) return Math.round(s / 60) + "m ago";
-    if (s < 172800) return Math.round(s / 3600) + "h ago";
-    return Math.round(s / 86400) + "d ago";
+    if (s < 90) return Math.round(s) + " sec ago";
+    if (s < 5400) return Math.round(s / 60) + " min ago";
+    if (s < 172800) return Math.round(s / 3600) + " h ago";
+    return Math.round(s / 86400) + " days ago";
   }
 
   fetch("/api/public/status", { headers: { accept: "application/json" } })
@@ -27,7 +47,14 @@
       return r.ok ? r.json() : null;
     })
     .then(function (b) {
-      if (!b || !b.health) return;
+      if (!b || !b.health) {
+        stale();
+        return;
+      }
+      const behind = b.health.ok === false;
+      show('[data-live-tag="ok"]', !behind);
+      show('[data-live-tag="behind"]', behind);
+      show('[data-live-line="behind"]', behind);
       const put = function (key, value) {
         if (value == null) return;
         const el = document.querySelector('[data-live="' + key + '"]');
@@ -46,7 +73,5 @@
       if (bg && typeof bg.share_24h === "number")
         put("budget", Math.round(bg.share_24h * 100) + "%");
     })
-    .catch(function () {
-      /* keep the baked values */
-    });
+    .catch(stale);
 })();
