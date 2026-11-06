@@ -1,5 +1,6 @@
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { featuredDeck, buildFriendsWeek } from "@elixir-mcp/tools/friends-week";
+import { deckIdentities } from "@elixir-mcp/tools/shared";
 import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import {
@@ -13,13 +14,21 @@ import { lastGameWeek } from "@elixir-mcp/record/game-week";
 import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
 import { firstAnswer } from "../first-answer.mjs";
-import { myClans } from "./clans.mjs";
+import { homeClan, myClans } from "./clans.mjs";
 
-/** Home's reads (redesign step 3a): one request where the page would make
- *  about seven, so a visit spends one charge on the person's hourly bucket.
- *  The app's own internal API, not a JSON API version. Reads run one after
- *  another (one client, one query at a time), and each panel answers for
- *  itself: a failed one says `{ ok: false }` and the rest still render. */
+/** Home's reads: the app's own internal API, not a JSON API version. The
+ *  page paints from `/api/me/home` (who you are, new account or not) and each
+ *  slow panel then asks for itself (`/clan`, `/week`, `/latest`), so one slow
+ *  or failed panel never holds up or takes down the others (2026-11-06: as one
+ *  request they ran in series to 18 s, and a 504 lost the whole page).
+ *
+ *  Inside a request reads still run one after another. A request holds one
+ *  client (docs/ENGINEERING.md: one client, one query at a time), a pool is
+ *  four of them, and the instance is the 1 GB micro: going parallel inside a
+ *  panel would take leases the other panels are waiting for.
+ *
+ *  A visit still spends one charge on the hourly bucket /mcp and Explore share:
+ *  the head's. The panels count on a bucket of their own (`panelRate`). */
 
 const LATEST = 5;
 /** Below about this many battles a "most played" deck says little (the
@@ -29,16 +38,28 @@ const LEADERS = new Set(["leader", "coLeader"]);
 /** The modes a week's chips can name, the ones Ladder names plus Casual. */
 const WEEK_MODES = ["ladder", "ranked", "war", "casual", "event"];
 
-/** One panel's read: its answer, or that it could not be read. */
+/** One panel's read: its answer, or that it could not be read. Either way one
+ *  line names the panel and how long it took, so the slow one can be read off
+ *  the log. Never a tag or a name in it. */
 export async function panel(name, read) {
+  const started = Date.now();
   try {
-    return { ok: true, ...(await read()) };
+    const answer = { ok: true, ...(await read()) };
+    console.info(
+      JSON.stringify({
+        at: "home_panel",
+        panel: name,
+        ms: Date.now() - started,
+      }),
+    );
+    return answer;
   } catch (err) {
     console.error(
       JSON.stringify({
         at: "home_panel_failed",
         panel: name,
         code: err?.code ?? null,
+        ms: Date.now() - started,
       }),
     );
     return { ok: false };
@@ -73,9 +94,31 @@ export function openingMode(modes) {
   return played[0] ?? "ladder";
 }
 
+/** The trophies on the player's latest snapshot, which is all this panel took
+ *  from players_summary: that tool also builds a 30-day record and two deck
+ *  rankings (about twenty statements) and the panel drew none of them. The same
+ *  row its `trophies` comes from. */
+async function latestTrophies(db, tag) {
+  const { rows } = await db.query(
+    `select trophies from player_snapshot_daily where player_tag = $1
+      order by snapshot_date desc, snapshot_kind desc limit 1`,
+    [tag],
+  );
+  return rows[0]?.trophies ?? null;
+}
+
+/** The primary player, for a read that needs only the tag. */
+async function primaryTag(db, accountId) {
+  const { rows } = await db.query(
+    "select player_tag from claim where account_id = $1 and is_primary limit 1",
+    [accountId],
+  );
+  return rows[0]?.player_tag ?? null;
+}
+
 /** Your week since Monday's reset, in one mode: modes are different games
  *  and nothing here pools them. */
-export async function readWeek(read, tag, wanted, now = Date.now()) {
+export async function readWeek(read, db, tag, wanted, now = Date.now()) {
   const from = new Date(gameWeekStartMs(now)).toISOString();
   const to = new Date(now).toISOString();
   const window = { from, to };
@@ -88,6 +131,9 @@ export async function readWeek(read, tag, wanted, now = Date.now()) {
   );
   const mode = WEEK_MODES.includes(wanted) ? wanted : openingMode(modes);
   const battles = modes[mode]?.battles ?? 0;
+  // A week played in this mode alone: the whole sample is this mode's, so its
+  // net is already in hand.
+  const onlyThisMode = battles > 0 && battles === all?.window?.battles;
   const out = {
     from,
     mode,
@@ -99,17 +145,16 @@ export async function readWeek(read, tag, wanted, now = Date.now()) {
     last_battle_at: null,
   };
   if (mode === "ladder" || mode === "ranked") {
-    const one = await read("battles_performance", {
-      player_tag: tag,
-      ...window,
-      mode,
-    });
+    const one = onlyThisMode
+      ? all
+      : await read("battles_performance", {
+          player_tag: tag,
+          ...window,
+          mode,
+        });
     out.net_trophies = one?.window?.net_trophies ?? null;
   }
-  if (mode === "ladder") {
-    const summary = await read("players_summary", { player_tag: tag });
-    out.trophies = summary?.trophies ?? null;
-  }
+  if (mode === "ladder") out.trophies = await latestTrophies(db, tag);
   if (battles >= DECK_FROM) {
     const list = await read("battles_decks", {
       player_tag: tag,
@@ -119,13 +164,15 @@ export async function readWeek(read, tag, wanted, now = Date.now()) {
     });
     const top = list?.decks?.[0];
     if (top) {
-      const full = await read("battles_decks", {
-        player_tag: tag,
-        ...window,
-        mode,
-        deck_hash: top.deck_hash,
+      // The cards from the identity battles_decks itself reads. Asking it
+      // for the one deck reran the window's whole aggregate for them.
+      const identity = (await deckIdentities(db, [top.deck_hash])).get(
+        top.deck_hash,
+      );
+      out.deck = featuredDeck(top, {
+        ...identity,
+        archetype_label: identity?.archetype?.label ?? null,
       });
-      out.deck = featuredDeck(top, full?.decks?.[0]);
     }
   }
   if (battles === 0) {
@@ -301,6 +348,19 @@ async function rate(db, account) {
   });
 }
 
+/** Three panels a visit, so the head's limit in visits stays what it was. */
+const PANEL_RATE_LIMIT = 3 * HOURLY_RATE_LIMIT;
+
+/** A panel's charge: its own bucket, so one visit still spends one charge on
+ *  the bucket /mcp and Explore share, while these reads, which cost the most,
+ *  stay limited. Your own reads on the website spend no budget either way. */
+async function panelRate(db, account) {
+  return checkRateLimit(db, {
+    bucket: `home#${account.accountId}`,
+    max: PANEL_RATE_LIMIT,
+  });
+}
+
 /** A moment's sentence in this reader's own word for the person: the nickname
  *  their card is titled with, where the sentence opens on the in-game name.
  *  Only ever this response, for the account that set it: the sentence the
@@ -333,7 +393,8 @@ const person = (p) => ({
 
 export function homeRoutes({ resolveAccount, exploreRegistry, clan }) {
   return {
-    "GET /api/me/home": async (db, event, _body, context) => {
+    // What the first paint needs, and all it waits for.
+    "GET /api/me/home": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       if (!(await rate(db, account)))
@@ -341,8 +402,15 @@ export function homeRoutes({ resolveAccount, exploreRegistry, clan }) {
       const first = await panel("first_answer", () =>
         firstAnswer(db, account.accountId),
       );
-      const tag = first.ok ? first.player?.player_tag : null;
-      if (!tag) return json(200, { first });
+      return json(200, { first });
+    },
+
+    // The clan card, its name in the head, and Needs you.
+    "GET /api/me/home/clan": async (db, event, _body, context) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (!(await panelRate(db, account)))
+        return json(429, { error: "rate_limited" });
       const read = toolReader(db, account, exploreRegistry(), event);
       const clanPanel = await panel("clan", () =>
         readClanPanel({
@@ -354,27 +422,31 @@ export function homeRoutes({ resolveAccount, exploreRegistry, clan }) {
           requestId: context?.requestId ?? null,
         }),
       );
-      const week = await panel("week", () =>
-        readWeek(read, tag, event.queryStringParameters?.mode ?? null),
-      );
-      const latest = await panel("latest", () => readLatest(db, account));
-      return json(200, { first, clan: clanPanel, week, latest });
+      return json(200, { clan: clanPanel });
     },
 
-    // A chip on Your week: that panel alone, the rest stay as they are.
+    // Your week: the opening mode, or the one a chip asked for.
     "GET /api/me/home/week": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
-      if (!(await rate(db, account)))
+      if (!(await panelRate(db, account)))
         return json(429, { error: "rate_limited" });
-      const first = await firstAnswer(db, account.accountId);
-      const tag = first.player?.player_tag;
+      const tag = await primaryTag(db, account.accountId);
       if (!tag) return json(404, { error: "no_player" });
       const read = toolReader(db, account, exploreRegistry(), event);
       const week = await panel("week", () =>
-        readWeek(read, tag, event.queryStringParameters?.mode ?? null),
+        readWeek(read, db, tag, event.queryStringParameters?.mode ?? null),
       );
       return json(200, { week });
+    },
+
+    "GET /api/me/home/latest": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (!(await panelRate(db, account)))
+        return json(429, { error: "rate_limited" });
+      const latest = await panel("latest", () => readLatest(db, account));
+      return json(200, { latest });
     },
 
     /** Home › Friends: the mail's builder, the mail's week. */
@@ -394,6 +466,7 @@ export function homeRoutes({ resolveAccount, exploreRegistry, clan }) {
       // Leave the page room to answer: past this the rest keep their counts
       // and go without a deck.
       const stopAt = (event.softDeadlineAt ?? Date.now() + 20_000) - 5_000;
+      const started = Date.now();
       const facts = await buildFriendsWeek({
         db,
         account: { ...account, timezone: account.timezone ?? "UTC" },
@@ -402,8 +475,15 @@ export function homeRoutes({ resolveAccount, exploreRegistry, clan }) {
         callTool: (ctx, name, args) => registry.invoke(name, ctx, args),
         within: () => Date.now() < stopAt,
       });
+      console.info(
+        JSON.stringify({
+          at: "home_panel",
+          panel: "friends",
+          ms: Date.now() - started,
+        }),
+      );
       // Whose card opens their Clan member page rather than the record.
-      const { home_clan: home } = await myClans(db, account);
+      const home = await homeClan(db, account.accountId);
       return json(200, {
         own_clan_tag: home?.clan_tag ?? null,
         week: { label: week.label, key: week.key },

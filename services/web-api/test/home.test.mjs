@@ -1,7 +1,7 @@
 /**
- * Home's one read route (redesign step 3a) and Friends' Follow, against a
- * real PostgreSQL database. A failed panel says so and the rest render; a
- * Follow never makes anyone the person's primary.
+ * Home's reads and Friends' Follow, against a real PostgreSQL database. The
+ * head paints the page, each panel reads alone, a failed panel says so and the
+ * rest render; a Follow never makes anyone the person's primary.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -11,7 +11,9 @@ import {
   seedDeck,
   seedPlayedDeck,
 } from "../../../packages/tools/test/deck-rows.mjs";
+import { gameWeekStartMs } from "@elixir-mcp/record/form";
 import { lastGameWeek } from "@elixir-mcp/record/game-week";
+import { makeRegistry } from "@elixir-mcp/tools";
 import { buildFriendsWeek } from "@elixir-mcp/tools/friends-week";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
@@ -93,7 +95,9 @@ after(async () => scratch.drop());
 test("every Home route wants a signed-in person", async () => {
   for (const path of [
     "/api/me/home",
+    "/api/me/home/clan",
     "/api/me/home/week",
+    "/api/me/home/latest",
     "/api/me/home/friends",
   ])
     assert.equal((await call(handler, null, "GET", path)).statusCode, 401);
@@ -344,17 +348,21 @@ test("a failed clan panel says so and the rest of Home still renders", async () 
      on conflict do nothing`,
     [id, CLAN],
   );
-  const r = await call(clanFails, id, "GET", "/api/me/home");
-  assert.equal(r.statusCode, 200, r.body);
-  const body = data(r);
-  assert.equal(body.first.ok, true);
-  assert.equal(body.clan.ok, false);
-  assert.equal(body.week.ok, true);
-  assert.equal(body.latest.ok, true);
-  assert.equal(body.week.record.battles, 0);
+  const head = await call(clanFails, id, "GET", "/api/me/home");
+  assert.equal(head.statusCode, 200, head.body);
+  assert.deepEqual(Object.keys(data(head)), ["first"]);
+  assert.equal(data(head).first.ok, true);
+  const failed = await call(clanFails, id, "GET", "/api/me/home/clan");
+  assert.equal(failed.statusCode, 200, failed.body);
+  assert.equal(data(failed).clan.ok, false);
+  const week = data(await call(clanFails, id, "GET", "/api/me/home/week")).week;
+  assert.equal(week.ok, true);
+  assert.equal(week.record.battles, 0);
+  const latest = await call(clanFails, id, "GET", "/api/me/home/latest");
+  assert.equal(data(latest).latest.ok, true);
 
   // The same person through Clan's real door: a leader's card.
-  const whole = await call(handler, id, "GET", "/api/me/home");
+  const whole = await call(handler, id, "GET", "/api/me/home/clan");
   const clan = data(whole).clan;
   assert.equal(clan.ok, true, whole.body);
   assert.equal(clan.state, "member");
@@ -363,8 +371,68 @@ test("a failed clan panel says so and the rest of Home still renders", async () 
   assert.deepEqual(clan.needs, []);
 });
 
+test("a visit spends one charge on the shared bucket, however many panels it reads", async () => {
+  const id = await person("home-charge");
+  await scratch.db.query(
+    `insert into claim(account_id,player_tag,relationship,is_primary)
+     values ($1,$2,'primary',true)`,
+    [id, OWN],
+  );
+  const charged = async (bucket) =>
+    (
+      await scratch.db.query(
+        "select coalesce(sum(count), 0)::int as n from rate_limit where bucket = $1",
+        [bucket],
+      )
+    ).rows[0].n;
+  for (const path of [
+    "/api/me/home",
+    "/api/me/home/clan",
+    "/api/me/home/week",
+    "/api/me/home/latest",
+  ])
+    assert.equal((await call(handler, id, "GET", path)).statusCode, 200, path);
+  assert.equal(await charged(`mcp#${id}`), 1);
+  assert.equal(await charged(`home#${id}`), 3);
+});
+
+test("the head names this account's nickname and no one else's", async () => {
+  const id = await person("home-head-nick");
+  const other = await person("home-head-nick-other");
+  await scratch.db.query(
+    `insert into claim(account_id,player_tag,relationship,is_primary)
+     values ($1,$3,'primary',true), ($2,$3,'primary',true)`,
+    [id, other, OWN],
+  );
+  await scratch.db.query(
+    "insert into player_nickname(account_id,player_tag,nickname) values ($1,$2,'Sam')",
+    [id, OWN],
+  );
+  const head = (who) => call(handler, who, "GET", "/api/me/home");
+  assert.equal(data(await head(id)).first.player.nickname, "Sam");
+  assert.equal(data(await head(other)).first.player.nickname, null);
+});
+
+test("panel: each read logs its name and time, and nothing about whose it was", async (t) => {
+  const info = t.mock.method(console, "info", () => {});
+  const error = t.mock.method(console, "error", () => {});
+  await panel("week", async () => ({ tag: OWN }));
+  await panel("clan", async () => {
+    throw Object.assign(new Error(OWN), { code: "x" });
+  });
+  const ok = JSON.parse(info.mock.calls[0].arguments[0]);
+  assert.deepEqual(Object.keys(ok).sort(), ["at", "ms", "panel"]);
+  assert.equal(ok.at, "home_panel");
+  assert.equal(ok.panel, "week");
+  const failed = JSON.parse(error.mock.calls[0].arguments[0]);
+  assert.deepEqual(Object.keys(failed).sort(), ["at", "code", "ms", "panel"]);
+  assert.equal(failed.at, "home_panel_failed");
+  assert.equal(failed.panel, "clan");
+});
+
 test("panel: a throw is one panel's failure, never the page's", async (t) => {
   t.mock.method(console, "error", () => {});
+  t.mock.method(console, "info", () => {});
   assert.deepEqual(await panel("x", async () => ({ a: 1 })), {
     ok: true,
     a: 1,
@@ -474,6 +542,43 @@ test("the week opens on the most played mode, Trophy Road with none", () => {
   );
 });
 
+const WEEK_PLAYER = "#2YG98VV8";
+let weekBattle = 0;
+/** Battles this game week, each [type, outcome, trophy change], on one deck. */
+async function seedWeek(tag, rows) {
+  const { db } = scratch;
+  const stamp = new Date(gameWeekStartMs(Date.now()) + 60_000).toISOString();
+  await db.query(
+    "insert into player(player_tag,name) values ($1,'Week') on conflict do nothing",
+    [tag],
+  );
+  const hash = await seedDeck(db, {
+    battle_time: stamp,
+    cards: DECK,
+    supportCards: TOWER,
+  });
+  for (const [type, outcome, change] of rows) {
+    const battle = `week-${++weekBattle}`;
+    await db.query(
+      "insert into battle (battle_id,battle_time,created_at,type,type_class,game_mode_name,event_tag) values ($1,$2,$2,$3,'pvp','Ladder',null)",
+      [battle, stamp, type],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash,type,type_class,deck_avg_level,opp_deck_avg_level,trophy_change)
+       values ($1,$2,0,$3,$4,0,$5,$6,'pvp',14,13,$7)`,
+      [battle, tag, outcome, stamp, hash, type, change],
+    );
+    await seedPlayedDeck(db, {
+      battle_id: battle,
+      player_tag: tag,
+      battle_time: stamp,
+      cards: DECK,
+      supportCards: TOWER,
+    });
+  }
+  return hash;
+}
+
 test("your week names one mode at a time, keeps a chip for each, and hides a deck under five battles", async () => {
   const calls = [];
   const read = async (tool, args) => {
@@ -489,10 +594,14 @@ test("your week names one mode at a time, keeps a chip for each, and hides a dec
               },
             },
       };
-    if (tool === "players_summary") return { trophies: 9000 };
     return {};
   };
-  const week = await readWeek(read, OWN, null);
+  await scratch.db.query(
+    `insert into player_snapshot_daily(player_tag,snapshot_date,trophies)
+     values ($1, current_date - 1, 8000), ($1, current_date, 9000)`,
+    [OWN],
+  );
+  const week = await readWeek(read, scratch.db, OWN, null);
   assert.equal(week.mode, "ladder");
   assert.deepEqual(Object.keys(week.modes).sort(), ["event", "ladder"]);
   assert.equal(week.record.battles, 3);
@@ -500,6 +609,65 @@ test("your week names one mode at a time, keeps a chip for each, and hides a dec
   assert.equal(week.trophies, 9000);
   assert.equal(week.deck, null);
   assert.ok(!calls.some(([tool]) => tool === "battles_decks"));
+  assert.ok(
+    !calls.some(([tool]) => tool === "players_summary"),
+    "the trophies come from the snapshot, not the whole summary",
+  );
+});
+
+test("your week reads through the real tools: one mode's own net, one deck's cards, in no more calls than it needs", async () => {
+  const id = await person("home-week-real");
+  await scratch.db.query(
+    "insert into player(player_tag,name) values ($1,'Week') on conflict do nothing",
+    [WEEK_PLAYER],
+  );
+  await scratch.db.query(
+    `insert into claim(account_id,player_tag,status,relationship,is_primary)
+     values ($1,$2,'verified','primary',true)`,
+    [id, WEEK_PLAYER],
+  );
+  const calls = [];
+  const invoke = makeRegistry();
+  const read = async (tool, args) => {
+    calls.push(tool);
+    return invoke.invoke(
+      tool,
+      {
+        db: scratch.db,
+        account: { accountId: id, timezone: "UTC", kind: "person" },
+        live: async () => null,
+      },
+      args,
+    );
+  };
+  const hash = await seedWeek(WEEK_PLAYER, [
+    ...Array(6).fill(["PvP", "win", 30]),
+    ["PvP", "loss", -29],
+  ]);
+  const only = await readWeek(read, scratch.db, WEEK_PLAYER, null);
+  assert.equal(only.mode, "ladder");
+  assert.deepEqual(only.record, { battles: 7, wins: 6, losses: 1 });
+  assert.equal(only.net_trophies, 151);
+  assert.equal(only.deck.battles, 7);
+  assert.equal(only.deck.cards.length, 8);
+  assert.equal(only.deck.tower_troop, "Tower Princess");
+  assert.deepEqual(
+    calls,
+    ["battles_performance", "battles_decks"],
+    "one mode all week: its net is in hand, and the cards are one read",
+  );
+  assert.ok(hash);
+
+  // A second mode this week: the net is Trophy Road's alone.
+  calls.length = 0;
+  await seedWeek(WEEK_PLAYER, [["riverRacePvP", "win", 500]]);
+  const mixed = await readWeek(read, scratch.db, WEEK_PLAYER, "ladder");
+  assert.equal(mixed.net_trophies, 151);
+  assert.deepEqual(calls, [
+    "battles_performance",
+    "battles_performance",
+    "battles_decks",
+  ]);
 });
 
 /** Clan's `/home` answer, with what each role's card reads. */

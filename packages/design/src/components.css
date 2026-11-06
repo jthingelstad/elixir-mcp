@@ -7200,6 +7200,35 @@ button.kit-row {
   display: grid;
   gap: 8px;
 }
+/* Needs you, when the clan read brings it after the page has painted: it opens,
+   so what is below moves down instead of jumping. */
+.kit-home__top {
+  display: grid;
+  grid-template-rows: 1fr;
+  min-width: 0;
+}
+.kit-home__top-in {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  min-height: 0;
+  overflow: clip;
+  overflow-clip-margin: 8px;
+}
+.kit-home__top--late {
+  animation: kit-home-opens 180ms ease-out;
+}
+@keyframes kit-home-opens {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-home__top--late {
+    animation: none;
+  }
+}
 .kit-notice {
   display: flex;
   flex-wrap: wrap;

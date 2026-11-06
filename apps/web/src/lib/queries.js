@@ -128,15 +128,30 @@ export const useMyClans = () => {
   });
 };
 
-/** Home's reads. Under ["me"], so a change to what you track refetches them. */
+/** Home's reads. Under ["me"], so a change to what you track refetches them.
+ *  The head is what the page paints from; each slow panel then reads alone. */
 export const useHome = () =>
   useQuery({ queryKey: ["me", "home"], queryFn: payload(api.home) });
 
-export const useHomeWeek = (mode) =>
+export const useHomeClan = (enabled = true) =>
   useQuery({
-    queryKey: ["me", "home", "week", mode],
+    queryKey: ["me", "home", "clan"],
+    queryFn: payload(api.homeClan),
+    enabled,
+  });
+
+export const useHomeLatest = () =>
+  useQuery({
+    queryKey: ["me", "home", "latest"],
+    queryFn: payload(api.homeLatest),
+  });
+
+/** No mode is the week's opening mode, which the read works out. */
+export const useHomeWeek = (mode, enabled = true) =>
+  useQuery({
+    queryKey: ["me", "home", "week", mode ?? null],
     queryFn: payload(() => api.homeWeek(mode)),
-    enabled: Boolean(mode),
+    enabled,
   });
 
 export const useHomeFriends = () =>

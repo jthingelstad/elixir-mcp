@@ -30,9 +30,10 @@ The signed-in person. An agent has no Home.
    raises and numbers nothing, so the list can lag Clan by up to the next
    morning's run or Clan visit. Other kinds appear only with a real source.
    [engineering, 2026-11-05]
-2. **One read, each panel for itself.** Today is one request on the person's
-   hourly bucket. A panel that fails says so and the rest render.
-   [engineering, 2026-11-05]
+2. **Each panel for itself.** The page paints from one fast read, and each
+   slow panel then reads alone with its own loading state. A visit spends one
+   charge on the person's hourly bucket, the head's. A panel that fails says so
+   and the rest render. [engineering, 2026-11-06]
 3. **Your own clock only.** The clan panel shows your own days, and only while
    you are at risk. Nobody below co-leader sees another member's day count
    here, and a leader sees one only through an Action they can take. [Jamie's

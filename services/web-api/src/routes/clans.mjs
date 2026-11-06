@@ -12,6 +12,26 @@ import { json } from "../http.mjs";
 
 /** The person's tracked clans, their slots and their primary player's clan:
  *  what the tracking page and Home's clan card both read. */
+/** Your primary player's current clan: "we know your clan from your account"
+ *  (the starred suggestion, Jamie, 2026-09-05). */
+export async function homeClan(db, accountId) {
+  const { rows } = await db.query(
+    `select coalesce(cm.clan_tag, p.last_known_clan_tag) as clan_tag,
+            cl.name
+     from claim c
+     join player p on p.player_tag = c.player_tag
+     left join clan_membership cm on cm.player_tag = c.player_tag
+       and cm.left_observed_at is null
+     left join clan cl on cl.clan_tag = coalesce(cm.clan_tag, p.last_known_clan_tag)
+     where c.account_id = $1 and c.is_primary
+     limit 1`,
+    [accountId],
+  );
+  return rows[0]?.clan_tag
+    ? { clan_tag: rows[0].clan_tag, name: rows[0].name }
+    : null;
+}
+
 export async function myClans(db, account) {
   const { rows } = await db.query(
     `select ac.clan_tag, ac.scope, ac.notify, ac.created_at, c.name,
@@ -30,26 +50,10 @@ export async function myClans(db, account) {
   const owner = await poolOwner(db, account.accountId);
   const limits = poolLimits(owner);
   const used = await pooledUsage(db, owner.account_id);
-  // The starred suggestion (Jamie, 2026-09-05): your primary
-  // player's current clan - "we know your clan from your account".
-  const { rows: home } = await db.query(
-    `select coalesce(cm.clan_tag, p.last_known_clan_tag) as clan_tag,
-            cl.name
-     from claim c
-     join player p on p.player_tag = c.player_tag
-     left join clan_membership cm on cm.player_tag = c.player_tag
-       and cm.left_observed_at is null
-     left join clan cl on cl.clan_tag = coalesce(cm.clan_tag, p.last_known_clan_tag)
-     where c.account_id = $1 and c.is_primary
-     limit 1`,
-    [account.accountId],
-  );
   const lim = (v) => (v === Infinity ? null : v);
   return {
     clans: rows,
-    home_clan: home[0]?.clan_tag
-      ? { clan_tag: home[0].clan_tag, name: home[0].name }
-      : null,
+    home_clan: await homeClan(db, account.accountId),
     slots: {
       activity: {
         used: used.activity_used,

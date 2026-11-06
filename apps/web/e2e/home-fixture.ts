@@ -1,6 +1,6 @@
 import { ME, signedIn } from "./fixtures.ts";
 
-/** The redesign's Home, as its one read answers it. */
+/** The redesign's Home, as its head and its panels' reads answer it. */
 const TAG = "#20JJJ2CCRU";
 const CLAN = "#2PQRJ8LV";
 const CARDS = [
@@ -202,7 +202,10 @@ const EVIDENCE: [number, unknown] = [
 export const homeApi = (overrides: Parameters<typeof signedIn>[0] = {}) =>
   signedIn({
     "GET /api/me": [200, ME],
-    "GET /api/me/home": [200, HOME],
+    "GET /api/me/home": [200, { first: HOME.first }],
+    "GET /api/me/home/clan": [200, { clan: HOME.clan }],
+    "GET /api/me/home/week": [200, { week: HOME.week }],
+    "GET /api/me/home/latest": [200, { latest: HOME.latest }],
     "GET /api/me/home/friends": [200, FRIENDS],
     "GET /api/me/timeline": (route) =>
       new URL(route.request().url()).searchParams.has("evidence_item_id")

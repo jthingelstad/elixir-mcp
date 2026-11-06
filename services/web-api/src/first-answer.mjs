@@ -9,6 +9,11 @@ export async function firstAnswer(db, accountId, playerTag = null) {
   // deprecation (docs/ENGINEERING.md: one client, one query at a time).
   const player = await db.query(
     `select c.player_tag, c.is_primary, c.relationship, p.name,
+              -- This account's own word for the player; Home's head leads
+              -- with it, as Ladder and Friends do.
+              (select nickname from player_nickname nn
+                where nn.account_id = c.account_id
+                  and nn.player_tag = c.player_tag) as nickname,
               -- Whether this account has proved the player is theirs: the
               -- checklist's Verify step reads it here, not a second request.
               (c.status = 'verified') as verified, c.verified_at,
