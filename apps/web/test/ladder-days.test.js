@@ -10,10 +10,11 @@ import {
   addDays,
   battlePath,
   battleScore,
+  soloSittingLine,
   battleWho,
   battleDays,
   battleKind,
-  battleResult,
+  battleOutcome,
   chipCalendar,
   counted,
   localDate,
@@ -464,10 +465,47 @@ test("a row names its kind where a mode's rows differ", () => {
   expect(battleKind(row("casual", "clanMate2v2", [{}, {}]))).toBe("2v2");
   expect(battleKind(row("challenge", "challenge"))).toBe("Challenge");
   expect(battleKind(row("ladder", "PvP"))).toBeNull();
-  expect(
-    battleResult({
-      ...row("tournament", "tournament", [{ crowns: 1 }]),
-      me: { outcome: "win", crowns: 2 },
-    }),
-  ).toBe("Tournament · won 2–1");
+});
+
+test("a row's result leads with the word and its tone", () => {
+  const b = (outcome, crowns, against) => ({
+    me: { outcome, crowns },
+    opponents: [{ crowns: against }],
+  });
+  expect(battleOutcome(b("win", 3, 0))).toEqual({
+    words: "Won 3–0",
+    tone: "win",
+  });
+  expect(battleOutcome(b("loss", 0, 2))).toEqual({
+    words: "Lost 0–2",
+    tone: "loss",
+  });
+  expect(battleOutcome({ me: { outcome: "draw" }, opponents: [] })).toEqual({
+    words: "Drew",
+    tone: "draw",
+  });
+});
+
+test("a day with one sitting says its record, trophies and span", () => {
+  const sit = (battles, trophies) => ({
+    wins: 0,
+    losses: 4,
+    draws: 0,
+    sittings: [
+      {
+        start: "2026-11-03T18:09:00Z",
+        end: "2026-11-03T18:44:00Z",
+        trophies,
+        battles,
+      },
+    ],
+  });
+  const line = soloSittingLine(
+    sit([{}, {}, {}, {}], { from: 12830, to: 12712 }),
+    "UTC",
+  );
+  expect(line).toMatch(/^0–4 · 12,830 to 12,712 · /);
+  expect(line).not.toContain("battles");
+  // One battle has no span to tell, and no trophies are not guessed.
+  expect(soloSittingLine(sit([{}], null), "UTC")).toBe("0–4");
 });

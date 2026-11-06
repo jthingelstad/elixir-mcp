@@ -620,7 +620,7 @@ export function ClanShell({
     >
       <Frame>
         <main className="page">
-          <div className="page__inner page__inner--solo max-w-page mx-auto">
+          <div className="page__inner page__inner--solo">
             {inClan ? (
               <ClanHead
                 me={me}

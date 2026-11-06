@@ -1,10 +1,12 @@
 import { ELIXIR_LINKS, inApp } from "../lib/links.js";
 import { CLAN } from "../lib/base.js";
 import { Link, useClock, Tag, Empty } from "@elixir-mcp/ui";
+import { useEffect } from "react";
 
 /**
  * One page per gate refusal, in gate order. Each says exactly what to do
- * and links to where, then offers to check again; nothing here guesses.
+ * and links to where, then looks again when you come back; nothing here
+ * guesses.
  */
 export const REFUSALS = {
   not_a_person: {
@@ -15,11 +17,11 @@ export const REFUSALS = {
     retry: "/signin",
   },
   no_primary_player: {
-    title: "Add your player in Elixir",
-    body: "Your Elixir account has no primary player yet, so there is nobody to show a clan for.",
-    action:
-      "Add the player you play as under Settings → Players, then come back.",
-    link: [ELIXIR_LINKS.tracking, "Settings → Players"],
+    title: "Clan starts with your player",
+    body: "Add the player you play as, and their clan shows up here.",
+    link: [ELIXIR_LINKS.addPlayer, "Add your player"],
+    // Nothing to report back: the page looks again when you return.
+    plain: true,
   },
   no_clan: {
     title: "No clan in your recorded profiles",
@@ -40,6 +42,15 @@ export const REFUSALS = {
 export function Refused({ reason, me, onRecheck, checking }) {
   const { when } = useClock();
   const page = REFUSALS[reason];
+  const canRecheck = Boolean(page && !page.retry);
+  useEffect(() => {
+    if (!canRecheck) return undefined;
+    const look = () => {
+      if (document.visibilityState === "visible") onRecheck?.();
+    };
+    document.addEventListener("visibilitychange", look);
+    return () => document.removeEventListener("visibilitychange", look);
+  }, [canRecheck, onRecheck]);
   if (!page) {
     return (
       <Empty
@@ -55,10 +66,24 @@ export function Refused({ reason, me, onRecheck, checking }) {
       </Empty>
     );
   }
+  if (page.plain)
+    return (
+      <Empty
+        title={page.title}
+        titleAs="h1"
+        action={
+          <Link className="btn btn--primary" to={page.link[0]}>
+            {page.link[1]}
+          </Link>
+        }
+      >
+        {page.body}
+      </Empty>
+    );
   const who = me?.primary?.name ?? me?.principal?.subject?.name;
   const players = me?.identities ?? [];
   return (
-    <div style={{ maxWidth: "560px", margin: "40px auto 0" }}>
+    <div style={{ maxWidth: "560px", marginTop: "40px" }}>
       <p className="eyebrow">NOT YET</p>
       <h1 className="page__title" style={{ marginBottom: "12px" }}>
         {page.title}
@@ -118,7 +143,7 @@ export function Refused({ reason, me, onRecheck, checking }) {
             onClick={onRecheck}
             disabled={checking}
           >
-            {checking ? "Checking…" : "I did that, check again"}
+            {checking ? "Checking…" : "Check again"}
           </button>
         )}
       </div>

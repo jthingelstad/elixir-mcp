@@ -149,15 +149,17 @@ describe("the gate pages", () => {
       );
       const page = REFUSALS[reason];
       expect(screen.getByRole("heading", { name: page.title })).toBeTruthy();
-      const link = screen.getByRole("link", { name: `${page.link[1]} ›` });
+      const link = screen.getByRole("link", {
+        name: page.plain ? page.link[1] : `${page.link[1]} ›`,
+      });
       expect(link.getAttribute("href")).toBe(page.link[0]);
     },
   );
 
-  test("the three refusals point at three different Elixir places; an unverified player is not one", () => {
+  test("each refusal points at its own Elixir place; an unverified player is not one", () => {
     const hrefs = Object.values(REFUSALS).map((p) => p.link[0]);
-    expect(new Set(hrefs).size).toBe(3);
-    expect(REFUSALS.no_primary_player.link[0]).toContain("/settings/players");
+    expect(new Set(hrefs).size).toBe(hrefs.length);
+    expect(REFUSALS.no_primary_player.link[0]).toBe("/home#add-player");
     expect(REFUSALS.unverified).toBeUndefined();
   });
 

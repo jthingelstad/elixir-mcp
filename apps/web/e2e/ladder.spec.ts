@@ -438,9 +438,15 @@ test.describe("Ladder signed in", () => {
     await page.goto("/ladder?mode=war");
     const select = page.getByLabel("Player", { exact: true });
     await expect(select.locator("option")).toHaveText([
-      "King Thing, your main player",
-      "Second Thing, also you",
+      "King Thing",
+      "Second Thing",
     ]);
+    // Which is which belongs to the open menu, not the closed select.
+    await expect(select.locator("optgroup")).toHaveCount(2);
+    await expect(select.locator("optgroup").first()).toHaveAttribute(
+      "label",
+      "Your main player",
+    );
     await accessible(page, "ladder player list");
     await select.selectOption("#9PQ2R8L");
     await expect(page).toHaveURL(/\/ladder\?player=9PQ2R8L&mode=war$/);
@@ -609,11 +615,11 @@ test.describe("Ladder signed in", () => {
     );
     await page.goto("/ladder");
     await expect(
-      page.getByRole("heading", { name: "No player of yours yet" }),
+      page.getByRole("heading", { name: "Ladder starts with your player" }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Add your player" }),
-    ).toHaveAttribute("href", "/settings/players#add-player-tag");
+    ).toHaveAttribute("href", "/home#add-player");
     await accessible(page, "ladder no players");
   });
 
@@ -796,18 +802,20 @@ test.describe("Ladder days and battles", () => {
     const day = page
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Mon Sep 28" }) });
-    await expect(day).toContainText("3 battles · 0–3");
-    // The newest sitting is open; the floor loss shows no trophies.
-    const sitting = day.locator(".ladder-sit").first();
-    await expect(sitting).toHaveAttribute("open", "");
-    await expect(sitting.locator("summary")).toContainText("10:53 – 11:09 pm");
-    await expect(sitting.locator("summary")).toContainText(
-      "3 battles · 0–3 · 12,530 to 12,500",
+    // One sitting has no row of its own: the day's head says it.
+    await expect(day.locator(".ladder-sit")).toHaveCount(0);
+    await expect(day.locator(".ladder-aside")).toHaveText(
+      "0–3 · 12,530 to 12,500 · 10:53 – 11:09 pm",
     );
-    const rows = sitting.locator(".ladder-row");
+    // The result leads, by the time, in words and Record's colour; the floor
+    // loss shows no trophies.
+    const rows = day.locator(".ladder-row");
     await expect(rows).toHaveCount(3);
-    await expect(rows.first()).toContainText("11:09 pm");
-    await expect(rows.first()).toContainText("lost 0–1");
+    await expect(rows.first().locator("> span").nth(0)).toHaveText("11:09 pm");
+    await expect(rows.first().locator("> span").nth(1)).toHaveText("Lost 0–1");
+    await expect(rows.first().locator(".ladder-row__res")).toHaveClass(
+      /ladder-row__res--loss/,
+    );
     await expect(rows.first().locator(".ladder-row__tr")).toHaveText("");
     await expect(rows.nth(2).locator(".ladder-row__tr")).toHaveText("−30");
     // Links come from the tool's url, never built here.
@@ -817,10 +825,11 @@ test.describe("Ladder days and battles", () => {
     );
     await accessible(page, "ladder battles");
 
-    await expect(page.locator(".ladder-sit")).toHaveCount(7);
+    const listed = await page.locator(".ladder-row").count();
     await page.getByRole("button", { name: "Show older days" }).click();
-    await expect(page.locator(".ladder-sit").last()).toBeAttached();
-    expect(await page.locator(".ladder-sit").count()).toBeGreaterThan(7);
+    await expect
+      .poll(() => page.locator(".ladder-row").count())
+      .toBeGreaterThan(listed);
 
     // Every page of this mode's season was read, compact, as the reader.
     const reads = calls.filter(
@@ -890,7 +899,13 @@ test.describe("Ladder days and battles", () => {
     await page.clock.setFixedTime(TODAY);
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
     await page.goto("/ladder");
-    await expect(page.locator(".ladder-day")).toHaveCount(28);
+    // Today leads: the days to come are one line under the played ones.
+    await expect(page.locator(".ladder-day:visible")).toHaveCount(23);
+    await expect(page.locator(".ladder-day:visible").first()).toBeVisible();
+    await expect(page.locator(".ladder-cal__ahead")).toContainText(
+      "5 days to come. The season ends",
+    );
+    await expect(page.locator(".ladder-legend__fut")).toBeHidden();
     await expect(page.locator(".ladder-cal__wd").first()).toBeHidden();
     // Newest first, naming its weekday.
     const cal = page.locator(".ladder-cal");
@@ -906,11 +921,14 @@ test.describe("Ladder days and battles", () => {
     await accessible(page, "ladder calendar narrow");
     await page.goto("/ladder/battles");
     await expect(page.locator(".ladder-row").first()).toBeVisible();
-    const summary = await page
-      .locator(".ladder-sit > summary")
-      .first()
-      .boundingBox();
-    expect(summary?.height ?? 0).toBeGreaterThanOrEqual(44);
+    // Time and result stay on one line, and the row is still a 44 px target.
+    const row = page.locator(".ladder-row").first();
+    const [time, result] = await Promise.all([
+      row.locator(".ladder-row__t").boundingBox(),
+      row.locator(".ladder-row__res").boundingBox(),
+    ]);
+    expect(Math.abs((time?.y ?? 0) - (result?.y ?? 99))).toBeLessThan(6);
+    expect((await row.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
     expect(await fits()).toBeLessThanOrEqual(0);
     await accessible(page, "ladder battles narrow");
   });
@@ -1093,13 +1111,9 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
       has: page.getByRole("heading", { name: "Mon Sep 28" }),
     });
     await expect(days).toHaveCount(2);
-    await expect(days.nth(0).locator(".ladder-aside")).toHaveText(
-      "1 battle · 1–0",
-    );
-    await expect(days.nth(1).locator(".ladder-aside")).toHaveText(
-      "1 battle · 0–1",
-    );
-    await expect(page.locator(".ladder-sit")).toHaveCount(2);
+    await expect(days.nth(0).locator(".ladder-aside")).toHaveText("1–0");
+    await expect(days.nth(1).locator(".ladder-aside")).toHaveText("0–1");
+    await expect(page.locator(".ladder-row")).toHaveCount(2);
     await expect(main).not.toContainText("2 battles");
     await expect(main).toContainText("the two are never added up");
     expect(
@@ -1517,9 +1531,13 @@ test.describe("Ladder seasons", () => {
     const picker = page.getByLabel("Season", { exact: true });
     await expect(picker).toHaveValue("136");
     await expect(picker.locator("option")).toHaveText([
-      "Season 136 (now)",
+      "Season 136",
       "Season 135",
     ]);
+    await expect(picker.locator("optgroup").first()).toHaveAttribute(
+      "label",
+      "This season",
+    );
 
     // Choosing one goes to its address, and the page reads that season.
     await picker.selectOption("135");

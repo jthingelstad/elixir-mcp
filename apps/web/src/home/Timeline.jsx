@@ -68,7 +68,7 @@ export function HomeTimeline() {
     );
   const days = timelineDays(shown, { day, openedMs });
   return (
-    <div className="kit-home">
+    <div className="kit-home kit-home--read">
       <div className="kit-home__filters">
         <Chips
           label="Who"

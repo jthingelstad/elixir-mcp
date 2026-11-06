@@ -1,4 +1,4 @@
-import { useLocation } from "@tanstack/react-router";
+import { Navigate, useLocation } from "@tanstack/react-router";
 import { PageHead, Tabs, TagText } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
 import {
@@ -45,6 +45,7 @@ function HomeTabs({ value }) {
 
 function TodayTab() {
   const { me } = useMe();
+  const { hash } = useLocation();
   const query = useHome();
   const data = query.data;
   const player = data?.first?.player ?? null;
@@ -60,6 +61,10 @@ function TodayTab() {
         <TodayError busy={query.isFetching} onRetry={() => query.refetch()} />
       </>
     );
+  // "Add your player" from Ladder or Clan, on an account that follows someone
+  // but has no player of its own: Home's steps are over, Settings adds one.
+  if (player && hash === "add-player")
+    return <Navigate to="/settings/players" hash="add-player-tag" replace />;
   if (query.isPending)
     return (
       <>

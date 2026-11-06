@@ -1,4 +1,10 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from "react";
+import { useScrollHint } from "./scrollHint.ts";
 
 /** One toggle chip: a real button that says whether it is pressed. */
 export function Chip({
@@ -33,7 +39,8 @@ export interface ChipOption {
 
 /**
  * A row of chips, one pressed at a time, named for a screen reader. It
- * wraps rather than scrolls. For anything else (several pressed at once),
+ * wraps unless its class makes it scroll, and then it keeps the pressed chip
+ * in view and fades the edge that has more. For anything else (several pressed at once),
  * put `Chip`s inside a `.kit-chips` group yourself.
  */
 export function Chips({
@@ -49,8 +56,18 @@ export function Chips({
   onChange: (key: string) => void;
   className?: string;
 }) {
+  const row = useRef<HTMLDivElement>(null);
+  useScrollHint(row);
+  useEffect(() => {
+    const el = row.current;
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    const on = el.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (on)
+      el.scrollLeft = on.offsetLeft - (el.clientWidth - on.offsetWidth) / 2;
+  }, [value]);
   return (
     <div
+      ref={row}
       className={className ? `kit-chips ${className}` : "kit-chips"}
       role="group"
       aria-label={label}

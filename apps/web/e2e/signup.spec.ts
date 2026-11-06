@@ -273,13 +273,24 @@ for (const width of [390, 1280]) {
       // An element inside a label is judged as the label's control, here the
       // select, by toBeDisabled; the option's own property is what counts.
     ).toHaveJSProperty("disabled", true);
+    // Ladder and Clan say one thing and go to one place: Home's first step.
     await page.goto("/ladder");
+    await expect(
+      page.getByRole("heading", { name: "Ladder starts with your player" }),
+    ).toBeVisible();
     await page.getByRole("link", { name: "Add your player" }).click();
-    await expect(page).toHaveURL(/\/settings\/players#add-player-tag$/);
+    await expect(page).toHaveURL(/\/home#add-player$/);
+    await expect(page.getByLabel("Your player tag")).toBeFocused();
     await page.goto("/clan");
     await expect(
-      page.getByRole("heading", { name: "Add your player in Elixir" }),
+      page.getByRole("heading", { name: "Clan starts with your player" }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Add your player" }),
+    ).toHaveAttribute("href", "/home#add-player");
+    await expect(
+      page.getByRole("button", { name: /check again/i }),
+    ).toHaveCount(0);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth - innerWidth,
@@ -293,7 +304,7 @@ for (const width of [390, 1280]) {
         ["serious", "critical"].includes(v.impact ?? ""),
       ),
     ).toEqual([]);
-    await page.getByRole("link", { name: "Settings → Players ›" }).click();
-    await expect(page).toHaveURL(/\/settings\/players$/);
+    await page.getByRole("link", { name: "Add your player" }).click();
+    await expect(page).toHaveURL(/\/home#add-player$/);
   });
 }

@@ -749,10 +749,21 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 .page {
   flex: 1 1 0;
   min-width: 0;
-  padding: var(--pad-page) var(--pad-page) 64px;
+  padding: var(--pad-page) var(--pad-frame) 64px;
 }
 .page__inner {
   max-width: var(--content-max);
+}
+/* One frame: at any width every place's edge is the top bar's (Jamie,
+   2026-11-06). A rail takes its column inside the frame, never outside it. */
+.kit-frame {
+  padding-inline: var(--pad-frame);
+}
+.kit-frame > .page {
+  padding-inline: 0;
+}
+.kit-frame > .rail + .page {
+  padding-left: var(--pad-page);
 }
 /* Without a rail there is no left edge to align to, so the column
    centres rather than hugging one that is no longer there. Sign-in is
@@ -784,7 +795,22 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 
 @media (max-width: 900px) {
   .page {
-    padding: 22px var(--pad-page-narrow) 56px;
+    padding-block: 22px 56px;
+  }
+  .kit-frame {
+    padding-inline: 0;
+  }
+  .kit-frame > .page,
+  .kit-frame > .rail + .page {
+    padding-inline: var(--pad-frame);
+  }
+}
+/* The bar's own phone padding, at the bar's own breakpoint. */
+@media (max-width: 760px) {
+  .page,
+  .kit-frame > .page,
+  .kit-frame > .rail + .page {
+    padding-inline: var(--pad-page-narrow);
   }
 }
 
@@ -1022,6 +1048,7 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   overflow: hidden;
 }
 .meter__fill {
+  display: block;
   height: 100%;
   background: var(--accent);
 }
@@ -2960,9 +2987,12 @@ input[aria-invalid="true"] {
   .home-art {
     height: 420px;
   }
+  /* The art's column is narrowest just past the band's start: its glow stays
+     inside it there, or the whole page gains a sideways scroll. */
   .home-art::before {
-    width: 400px;
-    height: 400px;
+    width: min(400px, 100%);
+    height: auto;
+    aspect-ratio: 1;
   }
   .home-art::after {
     width: 330px;
@@ -5531,12 +5561,13 @@ a.card-art:hover .card-art__img {
 .ladder-scope__picks {
   display: flex;
   flex: none;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
-.ladder-scope__select {
-  min-height: 32px;
+/* One select, one height, in Ladder's bar and Clan's head. */
+.scope-select {
+  width: auto;
+  min-height: 36px;
   max-width: 100%;
   padding: 4px 8px;
   border: 1px solid var(--line);
@@ -5560,6 +5591,29 @@ a.card-art:hover .card-art__img {
 }
 .ladder-scope__fresh {
   margin-left: auto;
+}
+/* A row that scrolls fades the edge with more behind it. */
+.kit-tabs[data-more-left],
+.kit-tabs[data-more-right],
+.kit-chips[data-more-left],
+.kit-chips[data-more-right] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--fade-left, 0px),
+    #000 calc(100% - var(--fade-right, 0px)),
+    transparent
+  );
+}
+[data-more-left] {
+  --fade-left: 24px;
+}
+[data-more-right] {
+  --fade-right: 28px;
+}
+.kit-fresh__key {
+  display: block;
+  margin-top: 6px;
 }
 
 .mode-chip__dot--casual {
@@ -5744,6 +5798,9 @@ a.card-art:hover .card-art__img {
   background: transparent;
   color: var(--ink-faint);
 }
+.ladder-cal__ahead {
+  display: none;
+}
 .ladder-day--today {
   box-shadow: inset 0 0 0 1px var(--gold);
 }
@@ -5886,12 +5943,26 @@ a.card-art:hover .card-art__img {
   font-size: 12.5px;
 }
 .ladder-row__who {
-  flex: 1 1 8rem;
+  flex: 1 1 6rem;
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.ladder-row__kind {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+}
+/* Record's two colours; the word is there too, so colour is never alone. */
 .ladder-row__res {
+  flex: none;
+  width: 78px;
+  font-weight: 600;
   color: var(--ink-dim);
+}
+.ladder-row__res--win {
+  color: var(--win-ink);
+}
+.ladder-row__res--loss {
+  color: var(--loss-ink);
 }
 .ladder-row__tr {
   flex: none;
@@ -6042,9 +6113,20 @@ a.card-art:hover .card-art__img {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .ladder-scope__select {
+  .scope-select {
     width: 100%;
     min-height: 44px;
+  }
+  /* Mode chips stay on one line; the fade says there are more. */
+  .ladder-scope .ladder-scope__modes {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ladder-scope__modes .kit-chip {
+    flex: none;
   }
   .ladder-scope__one {
     min-height: 44px;
@@ -6068,9 +6150,20 @@ a.card-art:hover .card-art__img {
     flex-direction: column-reverse;
     gap: 4px;
   }
+  /* The days to come are one line under the list, so today leads it (Jamie,
+     2026-11-06). The computer's month keeps them. */
   .ladder-cal__wd,
-  .ladder-cal__lead {
+  .ladder-cal__lead,
+  .ladder-day--fut:not(.ladder-day--today),
+  .ladder-legend .ladder-legend__fut {
     display: none;
+  }
+  .ladder-cal__ahead {
+    display: block;
+    margin: 0;
+    padding: 10px 18px 14px;
+    font-size: 13px;
+    color: var(--ink-dim);
   }
   .ladder-day {
     flex-direction: row;
@@ -6087,11 +6180,6 @@ a.card-art:hover .card-art__img {
   }
   .ladder-row__t {
     width: 62px;
-  }
-  .ladder-row__res {
-    order: 3;
-    flex: 1 0 100%;
-    padding-left: 72px;
   }
   .ladder-deckrow .deck-grid--8,
   .ladder-top .deck-grid--8 {
@@ -6249,6 +6337,13 @@ a.card-art:hover .card-art__img {
   align-items: start;
   padding: 18px 0;
   border-bottom: 1px solid var(--line-row);
+}
+/* A row the page draws whole (Feedback's kit Row) takes the whole line,
+   not the 150 px time column. */
+.timeline-list__row > .kit-row {
+  grid-column: 1 / -1;
+  padding: 0;
+  border-top: 0;
 }
 .timeline-list__time {
   color: var(--ink-faint);
@@ -6646,6 +6741,9 @@ a.card-art:hover .card-art__img {
   vertical-align: 0.1em;
 }
 
+.roster-table__line {
+  display: none;
+}
 .kit-chips {
   display: flex;
   flex-wrap: wrap;
@@ -7015,6 +7113,54 @@ button.kit-row {
   .kit-table--cards .kit-table__v {
     max-width: 100%;
   }
+  /* Clan's roster on a phone: two lines a member, the whole row one tap. The
+     line under the name is drawn for the phone; a wide screen has columns. */
+  .clan-rows.roster-table .kit-table--cards > tbody > tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 44px;
+  }
+  .clan-rows.roster-table .kit-table--cards > tbody > tr > .kit-table__lead {
+    grid-area: 1 / 1 / 1 / -1;
+    display: block;
+    padding: 0;
+    text-align: left;
+  }
+  .clan-rows.roster-table
+    .kit-table--cards
+    > tbody
+    > tr
+    > .roster-table__trophies {
+    grid-area: 1 / 2;
+    padding: 0;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .clan-rows.roster-table
+    .kit-table--cards
+    > tbody
+    > tr
+    > .roster-table__trophies::before {
+    content: none;
+  }
+  .clan-rows.roster-table .kit-table--cards > tbody > tr > .roster-table__wide {
+    display: none;
+  }
+  .clan-rows.roster-table .kit-table--cards a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  .roster-table__line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0 12px;
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--ink-dim);
+  }
   .kit-table--cards > tbody > tr > .kit-table__lead {
     justify-content: flex-start;
     margin-bottom: 3px;
@@ -7045,7 +7191,7 @@ button.kit-row {
 }
 .kit-shell__main {
   width: 100%;
-  max-width: 1180px;
+  max-width: var(--page-max);
   margin-inline: auto;
   padding: 20px 24px 40px;
   flex: 1 0 auto;
@@ -7227,6 +7373,10 @@ button.kit-row {
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+/* A page you read keeps its lines short inside the frame. */
+.kit-home--read {
+  max-width: 860px;
 }
 .kit-home__filters {
   display: grid;
@@ -7592,6 +7742,13 @@ button.kit-row {
   gap: 12px;
   margin-bottom: 20px;
 }
+/* The place's name leads in display type; a page inside it is a step down. */
+.clan-head ~ .kit-head .kit-head__title,
+.clan-head ~ * .kit-head__title,
+.clan-head ~ * .page__title {
+  font: 600 18px / 1.25 var(--font);
+  letter-spacing: -0.01em;
+}
 .clan-head__top {
   display: flex;
   flex-wrap: wrap;
@@ -7608,7 +7765,7 @@ button.kit-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
+  align-items: flex-end;
 }
 .clan-subnav {
   display: flex;
@@ -8122,6 +8279,19 @@ button.kit-row {
   padding: 8px 16px;
   border-top: 1px solid var(--line-soft);
 }
+/* Clan's answer to "am I OK?": the first thing in You in the clan. */
+.kit-step__ahead {
+  color: var(--ink-faint);
+}
+.clan-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+}
 .st-tools {
   margin: 0;
 }
@@ -8144,11 +8314,13 @@ button.kit-row {
 }
 .st-meter__name {
   flex: 0 1 180px;
-  min-width: 0;
-  overflow-wrap: anywhere;
+  /* A tool's name stays whole: the row wraps its meter underneath before a
+     name splits. */
+  min-width: min-content;
+  overflow-wrap: break-word;
 }
 .st-meter--two .st-meter__name {
-  flex-basis: 140px;
+  flex-basis: 170px;
 }
 .st-meter .meter {
   flex: 1 1 120px;
@@ -8466,8 +8638,7 @@ button.kit-row {
     content: attr(data-col) ": ";
     color: var(--ink-faint);
   }
-  .data-jump .chip,
-  .data-range .chip {
+  .data-jump .chip {
     min-height: 44px;
     display: inline-flex;
     align-items: center;

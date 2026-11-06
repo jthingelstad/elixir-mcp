@@ -3,9 +3,11 @@ import { useMemo, useState } from "react";
 import { OTHER, clockTime, fmt, modeWords, readModes } from "./ladder.js";
 import {
   battleDays,
+  battleKind,
+  battleOutcome,
   battlePath,
-  battleResult,
   battleWho,
+  soloSittingLine,
   tallyLine,
   timeSpan,
   weekdayLabel,
@@ -47,9 +49,9 @@ export function Battles({ player, mode, modeReady, season, startsAt }) {
 function SittingFoot({ mode }) {
   return (
     <p className="footnote">
-      A sitting is a run of battles with no gap longer than 30 minutes. Open one
-      to see each battle; a battle with a page opens on it, with both decks, and
-      you can share why it mattered to you.
+      A sitting is a run of battles with no gap longer than 30 minutes, and a
+      day with two or more lists each one. A battle with a page opens on it,
+      with both decks, and you can share why it mattered to you.
       {mode === "war"
         ? " War battles are listed one by one, like any other. Decks and points above are the clan war week."
         : ""}
@@ -141,6 +143,20 @@ function ModeBattles({ player, group, titled, modeReady, season, startsAt }) {
 function Day({ day, past, zone, titleAs }) {
   const [all, setAll] = useState(false);
   const sittings = all ? day.sittings : day.sittings.slice(0, SITTINGS_SHOWN);
+  // One sitting has nothing to tell apart: the day's head says it and the
+  // battles follow. A sitting row earns its place from the second on.
+  if (day.sittings.length === 1)
+    return (
+      <Panel
+        title={day.label}
+        titleAs={titleAs}
+        action={
+          <span className="ladder-aside">{soloSittingLine(day, zone)}</span>
+        }
+      >
+        <BattleRows battles={day.sittings[0].battles} zone={zone} />
+      </Panel>
+    );
   return (
     <Panel
       title={day.label}
@@ -161,11 +177,7 @@ function Day({ day, past, zone, titleAs }) {
                 : ""}
             </span>
           </summary>
-          <ul className="ladder-rows">
-            {s.battles.map((b) => (
-              <BattleRow key={b.battle_id ?? b.battle_time} b={b} zone={zone} />
-            ))}
-          </ul>
+          <BattleRows battles={s.battles} zone={zone} />
         </details>
       ))}
       {day.sittings.length > SITTINGS_SHOWN ? (
@@ -197,19 +209,36 @@ const sittingTally = (s) =>
     { battles: 0, wins: 0, losses: 0, draws: 0 },
   );
 
-/** One battle: when, against whom, how it went, and the trophies it moved. A
- *  battle with no change shows none: on the floor a loss costs nothing. */
+function BattleRows({ battles, zone }) {
+  return (
+    <ul className="ladder-rows">
+      {battles.map((b) => (
+        <BattleRow key={b.battle_id ?? b.battle_time} b={b} zone={zone} />
+      ))}
+    </ul>
+  );
+}
+
+/** One battle: when, how it went, against whom, and the trophies it moved. The
+ *  result sits by the time in Record's colours, so the list reads down one
+ *  column. A battle with no change shows none: on the floor a loss costs
+ *  nothing. */
 function BattleRow({ b, zone }) {
   const who = battleWho(b);
   const path = battlePath(b.url);
   const change = b.me?.trophy_change;
+  const kind = battleKind(b);
+  const outcome = battleOutcome(b);
   return (
     <li className="ladder-row">
       <span className="ladder-row__t">{clockTime(b.battle_time, zone)}</span>
+      <span className={`ladder-row__res ladder-row__res--${outcome.tone}`}>
+        {outcome.words}
+      </span>
       <span className="ladder-row__who">
         {path ? <Link to={path}>{who}</Link> : who}
+        {kind ? <span className="ladder-row__kind"> {kind}</span> : null}
       </span>
-      <span className="ladder-row__res">{battleResult(b)}</span>
       <span className="ladder-row__tr">
         {change ? `${change > 0 ? "+" : "−"}${fmt(Math.abs(change))}` : ""}
       </span>

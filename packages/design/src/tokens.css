@@ -227,7 +227,8 @@
   /* ---- Geometry --------------------------------------------------- */
   --rail-w: 232px;
   --page-max: 1280px;
-  --content-max: 1280px; /* console page content */
+  --pad-frame: 24px; /* the bar's own side padding: every page keeps its edge */
+  --content-max: calc(var(--page-max) - 2 * var(--pad-frame));
   --prose-max: 72ch;
   --pad-page: 32px;
   --pad-page-narrow: 16px;

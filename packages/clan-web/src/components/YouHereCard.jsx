@@ -18,18 +18,72 @@ const MINIMUM = {
   donations: ["donation a week", "donations a week"],
   trophies: ["trophy", "trophies"],
 };
-const COUNTS = {
-  war: "War decks count here: four a war day, up to the clan's finish.",
-  ranked: "Path of Legends battles count here.",
-  donations: "Donations count here.",
-  trophies: "Trophies count here.",
-};
 
 const MET = {
-  true: [": met", "text-ok", "circle-check"],
-  false: [": not met", "text-warn", "x"],
-  null: [": not known yet", "text-ink-faint", "circle-dashed"],
+  true: ["Met", "text-ok", "circle-check"],
+  false: ["Not met", "text-warn", "x"],
+  null: ["Not known yet", "text-ink-faint", "circle-dashed"],
 };
+
+const minimumWords = (key, need) =>
+  `${n(need)} ${MINIMUM[key]?.[need === 1 ? 0 : 1] ?? key}`;
+
+/**
+ * The answer to "am I OK?", in the engine's own words for it: `passes` and
+ * `unknown` are the policy's judgment (facts.mjs), never this page's sums.
+ * Jamie, 2026-11-06, the critique's fourth: "Approved to fix all 10 items."
+ */
+function verdictOf(minimums) {
+  if (minimums.passes)
+    return ["You are meeting the minimum", "text-ok", "circle-check"];
+  if (minimums.unknown)
+    return [
+      "Elixir cannot say yet whether you are meeting the minimum",
+      "text-ink-faint",
+      "circle-dashed",
+    ];
+  return ["You are not meeting the minimum yet", "text-warn", "x"];
+}
+
+export function Minimums({ minimums, ranks }) {
+  const [said, tone, icon] = verdictOf(minimums);
+  const weeks = `${minimums.window_weeks} ${noun(minimums.window_weeks, "week")}`;
+  const near = minimums.nearest;
+  return (
+    <div className="grid gap-1.5">
+      {ranks ? null : (
+        <p className="clan-verdict">
+          <span className={tone}>
+            <Icon name={icon} size={18} />
+          </span>
+          <span>{said}</span>
+        </p>
+      )}
+      <p className="m-0 text-[13.5px] text-ink-dim">
+        {minimums.rule === "all"
+          ? `All of these, over ${weeks}.`
+          : `Any one of these is enough, over ${weeks}.`}
+        {!ranks && !minimums.passes && !minimums.unknown && near
+          ? ` Your nearest is ${minimumWords(near.key, near.need)}: you are at ${n(Math.floor(near.have))}.`
+          : ""}
+      </p>
+      <ul className="m-0 p-0 list-none grid gap-1">
+        {Object.entries(minimums.set).map(([k, need]) => {
+          const [met, metTone, metIcon] = MET[minimums.met[k] ?? "null"];
+          return (
+            <li key={k} className="flex items-center gap-2">
+              <span className="grow">{minimumWords(k, need)}</span>
+              <span className={`inline-flex items-center gap-1 ${metTone}`}>
+                <Icon name={metIcon} size={15} />
+                {met}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 
 /** A hold, in one sentence, with what it does and does not do. */
 export function holdWords(hold) {
@@ -67,9 +121,9 @@ function Clock({ inactivity, awayTo, navigate }) {
 }
 
 /**
- * How someone is doing in this clan, in their own numbers: the group, the
- * evidence, what the clan counts, the minimums, tenure, the clock and a hold.
- * Facts and no advice (Q14). Today and their own member page both show it; a
+ * How someone is doing in this clan, in their own numbers: the answer on the
+ * minimums first, then the clock, a hold, the evidence and tenure. What the
+ * clan counts is in How it works here. Facts and no advice (Q14). Today and their own member page both show it; a
  * clan with no policy says so and shows no chip.
  */
 export function HowYouAreDoing({ d, base, navigate }) {
@@ -91,44 +145,13 @@ export function HowYouAreDoing({ d, base, navigate }) {
         <p className="m-0 text-ink-dim">
           Leaders and co-leaders have no group. These are your own numbers.
         </p>
-      ) : c.evidence ? (
-        <p className="m-0">{c.evidence}</p>
+      ) : null}
+      {Object.keys(c.minimums?.set ?? {}).length ? (
+        <Minimums minimums={c.minimums} ranks={ranks} />
       ) : null}
       <Clock inactivity={c.inactivity} awayTo={away} navigate={navigate} />
       {d.hold ? <div className="notice">{holdWords(d.hold)}</div> : null}
-      {Object.keys(c.minimums?.set ?? {}).length ? (
-        <div className="grid gap-1.5">
-          <h3 className="label m-0">
-            Minimums, {c.minimums.rule === "all" ? "all of" : "any one of"},
-            over {c.minimums.window_weeks}{" "}
-            {noun(c.minimums.window_weeks, "week")}
-          </h3>
-          <ul className="m-0 p-0 list-none grid gap-1">
-            {Object.entries(c.minimums.set).map(([k, need]) => {
-              const met = c.minimums.met[k];
-              const [said, tone, icon] = MET[met ?? "null"];
-              return (
-                <li key={k} className="flex items-center gap-2">
-                  <span className={tone}>
-                    <Icon name={icon} size={15} />
-                  </span>
-                  <span>
-                    {n(need)} {MINIMUM[k]?.[need === 1 ? 0 : 1] ?? k}
-                    {said}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : null}
-      {(c.counted ?? []).map((k) =>
-        COUNTS[k] ? (
-          <p key={k} className="m-0 text-[13.5px] text-ink-dim">
-            {COUNTS[k]}
-          </p>
-        ) : null,
-      )}
+      {!ranks && c.evidence ? <p className="m-0">{c.evidence}</p> : null}
       {c.tenure_min_days != null && y?.time_here?.tenure_known ? (
         <p className="m-0 text-[13.5px] text-ink-dim">
           {y.time_here.days >= c.tenure_min_days

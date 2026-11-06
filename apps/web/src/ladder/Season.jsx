@@ -325,6 +325,7 @@ function Calendar({ player, mode, season, modeReady }) {
   const name = applied.war != null ? `Season ${applied.war}` : season.name;
   const shown = new Set(cal.days.map((d) => d.cls));
   const firstRead = cal.days.find((d) => d.state !== "unread");
+  const toCome = cal.days.filter((d) => d.cls === "fut" && !d.today).length;
   return (
     <>
       {capped ? (
@@ -384,11 +385,17 @@ function Calendar({ player, mode, season, modeReady }) {
             </li>
           ))}
         </ol>
+        {toCome ? (
+          <p className="ladder-cal__ahead">
+            {fmt(toCome)} {toCome === 1 ? "day" : "days"} to come. The season
+            ends {edge(applied.ends_at)}.
+          </p>
+        ) : null}
         <ul className="ladder-legend">
           {KEY.filter(([cls]) =>
             cls === "l2" ? cal.played > 0 : shown.has(cls),
           ).map(([cls, words]) => (
-            <li key={cls}>
+            <li key={cls} className={`ladder-legend__${cls}`}>
               <span
                 className={`ladder-swatch ladder-day--${cls}`}
                 aria-hidden="true"

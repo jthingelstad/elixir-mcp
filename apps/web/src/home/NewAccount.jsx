@@ -58,6 +58,7 @@ export function NewAccount({ first, zoneMissing }) {
             title="First read"
             done={Boolean(landed)}
             waiting={!added}
+            ahead="Elixir reads your last 30 battles, usually within minutes."
             doneLine={
               landed
                 ? player.battles_30d > 0
@@ -79,6 +80,7 @@ export function NewAccount({ first, zoneMissing }) {
             title="Your clan"
             done={Boolean(live?.clan?.name)}
             waiting={!added}
+            ahead="If you’re in a clan, it appears here."
             doneLine={
               live?.clan?.name ? clanStepLine(live.clan.name, added) : null
             }
@@ -93,6 +95,7 @@ export function NewAccount({ first, zoneMissing }) {
             optional
             done={player?.verified === true}
             waiting={!added}
+            ahead="One battle with a deck Elixir names, for elders and leaders."
             doneLine={player?.verified ? "Proved." : null}
           >
             Play one battle with a deck Elixir gives you, win or lose. Elixir
@@ -131,7 +134,16 @@ export function NewAccount({ first, zoneMissing }) {
   );
 }
 
-function Step({ n, title, optional, done, waiting, doneLine, children }) {
+function Step({
+  n,
+  title,
+  optional,
+  done,
+  waiting,
+  ahead,
+  doneLine,
+  children,
+}) {
   return (
     <li className={`kit-step${done ? " kit-step--done" : ""}`}>
       <span className="kit-step__dot" aria-hidden="true">
@@ -144,7 +156,11 @@ function Step({ n, title, optional, done, waiting, doneLine, children }) {
         </h2>
         {done ? (
           <p>{doneLine}</p>
-        ) : waiting ? null : (
+        ) : waiting ? (
+          ahead ? (
+            <p className="kit-step__ahead">{ahead}</p>
+          ) : null
+        ) : (
           <div className="kit-step__text">{children}</div>
         )}
       </div>
@@ -189,6 +205,9 @@ function ZoneNotice() {
   );
 }
 
+/** Where Ladder's and Clan's "Add your player" land: Home's first step. */
+const ADD_PLAYER_HASH = "#add-player";
+
 const TAG_WORDS =
   "That doesn't look like a player tag. Tags use only these characters: 0 2 8 9 C G J L P Q R U V Y.";
 
@@ -230,6 +249,11 @@ function AddPlayer({ onAdded }) {
           onChange={(e) => setTag(e.target.value)}
           autoComplete="off"
           spellCheck="false"
+          placeholder="#ABC123"
+          // Ladder and Clan's "Add your player" arrive here, ready to type.
+          ref={(el) => {
+            if (el && window.location.hash === ADD_PLAYER_HASH) el.focus();
+          }}
         />
         <button type="submit" className="btn btn--primary" disabled={busy}>
           Add
