@@ -1,13 +1,13 @@
 ---
 slug: roles
 title: "Roles and quotas"
-description: "Roles never gate what you can read. Every active account reads all recorded game data; tiers set how much Elixir MCP records for you and how many tool calls you get per day."
+description: "Roles never gate what you can read. Every active account reads all recorded game data; your role sets how much Elixir MCP records for you and how many tool calls you get per day."
 section: policy
 order: 30
-navTitle: "Roles and tiers"
+navTitle: "Roles"
 icon: shield-check
-lede: "What each tier records for you, never what you may read."
-reviewed: "2026-10-12 tiers are earned in the game, the collector points economy retired; a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup"
+lede: "What each role records for you, never what you may read."
+reviewed: "2026-10-12 roles are earned in the game, the collector points economy retired; a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup"
 callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"]
 ---
 
@@ -16,7 +16,7 @@ callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"
 Every account sits on a six-rung ladder. One principle above everything:
 **roles never gate what you can read.** All recorded game data (battles,
 daily readings, wars) is open to every active account, the same
-posture as the game's own public API. Tiers set the two things that cost
+posture as the game's own public API. Your role sets the two things that cost
 the service something: **recording** (what Elixir promises to record for
 you) and **call volume** (your daily budgets, including the live lane that
 spends the one shared Clash Royale API budget).
@@ -54,7 +54,7 @@ player's clan](/docs/recording#your-players-clan)).
 **leader**: you run a clan: one of your [verified](/docs/verify)
 players is its leader or co-leader, and you track the clan. One
 every-member watch: every member's battles and profile, following
-membership as it changes. This is the tier a clan's own agent needs.
+membership as it changes. This is the role a clan's own agent needs.
 
 **family**: you run a collector for Elixir. Multiple every-member
 watches, for a clan family (a main plus feeders) or the clans you follow. A family is how they are
@@ -91,14 +91,14 @@ work uses an agent's key instead, which does not expire.
 
 **An agent** acts for a clan rather than for a person. It has its own identity,
 its own key and its own timeline, so what it does never lands in your history
-and what you do never shows up as its. Agents are **not a tier feature**: you
-can create one for any clan you already record, at any role, up to the
+and what you do never shows up as its. **Every role can have agents**: you
+can create one for any clan you already record, up to the
 per-account count in the table above. It spends your daily call budget, **your
 live-fetch budget**, every agent you run shares your one daily live
 allowance, **and your recording slots**: what your agents track is counted
 with what you track, once per player or clan, however many of you track it.
 Its own role is capped at yours, and at `leader`: an admin's agent is not an
-admin, and an agent's role follows your tier as it is read now (member while
+admin, and an agent's role follows yours as it is read now (member while
 you are a member, leader otherwise), so an agent never sits above its owner. Each agent has its own page,
 opened from its row in Settings › Connections & agents.
 
@@ -107,7 +107,7 @@ That separation is the point. An agent that borrowed your identity would answer
 be able to say out loud.
 
 **An integration** connects another platform to the [REST API](/docs/integrations).
-It is platform access an admin provisions, not a tier entitlement: no role
+It is platform access an admin provisions: no role
 includes one, and it is set up with explicit permissions and independent
 API and refresh limits. It has no personal subject or inherited
 admin authority.
@@ -121,13 +121,13 @@ admin authority.
 ## Tracked means recorded
 
 Tracking a player or clan on your account IS the act of recording it:
-there is no separate watch step and no approval queue; your tier's slots
+there is no separate watch step and no approval queue; your role's slots
 are the only gate, and recording starts immediately. The one per-subject
 setting is **notify**: whether that player or clan feeds your timeline
 (`elixir_timeline`). Remove a subject and its slot frees; a clan's shared
 recording stops only when no account tracks it.
 
-## Why fifty players, at every tier
+## Why fifty players, whatever your role
 
 One every-member clan watch already records about fifty players, so tracking
 fifty individually costs the service exactly what a single every-member slot
@@ -140,7 +140,7 @@ That is also what makes relationships worth having. Each player you track is you
 or someone you're **watching**, and "how are my friends playing?" is only a
 question worth asking if there is room to keep friends in.
 
-So player slots are deliberately not a rung on the ladder. The tiers differ
+So player slots are deliberately not a rung on the ladder. The roles differ
 where cost actually scales: clan watches, daily calls, the live lane.
 
 ## Why every-member watches are the scarce thing
@@ -153,27 +153,27 @@ gate.
 
 ## Upgrades
 
-There is nothing to request. Each tier comes with something you do in
-the game, and Elixir checks it every time you use it:
+Leader and Family are not requested. Each comes with something you do, and
+Elixir checks it every time you use it:
 
 - **Leader**: [verify](/docs/verify) a player of yours (your primary or
   an alt) who is the leader or a co-leader of a clan, and track that
   clan. Verified, because several accounts may claim one tag on trust;
-  only Verify proves whose it is. The role is the one Elixir last
-  recorded for the clan.
+  only Verify proves whose it is. Their role in the clan is the one
+  Elixir last recorded.
 - **Family**: [run a collector](/docs/operators) for Elixir. It counts
   while it is active: its last fetch was admitted since its last
   probation. A collector on probation, draining or revoked does not.
-  Running one earns the Family tier, and nothing else: there are no
+  Running one earns the Family role, and nothing else: there are no
   points, call credits or bonus slots.
 - **Partner**: granted by the maintainer, on request through
   [feedback](/settings/feedback).
 
-When both apply, the higher tier wins: a leader who runs a collector is
-Family. A tier earned is lost when its ground goes: step down as
+When both apply, the higher role wins: a leader who runs a collector is
+Family. A role earned is lost when its ground goes: step down as
 co-leader, leave the clan, stop tracking it or stop the collector, and
-the next request reads the tier below. Nothing you already track is
-removed when that happens; your tier's slots refuse only the next add
+the next request reads the role below. Nothing you already track is
+removed when that happens; your role's slots refuse only the next add
 until you are back under them.
 
 Hand-tuned per-account overrides exist for cases the ladder doesn't fit;
@@ -182,7 +182,7 @@ ask through feedback.
 ## The fine print
 
 - Quotas reset at midnight UTC. Recorded-data reads are only bounded by
-  the daily tool-call budget, never by tier, and your own reads on the
+  the daily tool-call budget, never by role, and your own reads on the
   Record pages and Ladder are not bounded by it at all.
 - Feedback has no limit of its own. Sent from the website it costs
   nothing; sent by your agent it is one tool call like any other.

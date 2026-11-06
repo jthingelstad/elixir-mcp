@@ -1,7 +1,7 @@
 ---
 slug: your-account
 title: "Your account"
-description: "Your Elixir account: creating an account, signing in with an emailed code or link, how long a sign-in lasts, your primary player and the others you track, your time zone, your tier, the feedback you send and its answers, what stays private, and how to have the account removed."
+description: "Your Elixir account: creating an account, signing in with an emailed code or link, how long a sign-in lasts, your primary player and the others you track, your time zone, your role, the feedback you send and its answers, what stays private, and how to have the account removed."
 section: start
 order: 3
 navTitle: "Your account"
@@ -176,8 +176,8 @@ tool calls you can make a day; **Settings › Usage and limits** shows each
 limit beside what you use. Leader and Family are earned in the game and read every
 time you use Elixir: Leader while one of your verified players leads or
 co-leads a clan you track, Family while a collector you run is active. There
-is nothing to ask for, and a tier goes when its ground goes; what you already
-track stays. Partner is granted by hand. The tiers and their numbers are on
+is nothing to ask for, and a role goes when its ground goes; what you already
+track stays. Partner is granted by hand. The roles and their numbers are on
 [Roles and limits](/docs/roles#upgrades).
 
 ## Feedback

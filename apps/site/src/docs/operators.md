@@ -168,10 +168,10 @@ It leases fetch jobs, calls the CR API with your key, and posts the
 results. It never chooses targets, never sees user data, and holds
 nothing that touches our infrastructure. The token only works against
 three API routes, and revoking it is instant. While one of your
-collectors is active, your account holds the Family tier
+collectors is active, your account holds the Family role
 ([Roles](/docs/roles#upgrades)); that is the reward, and the only one.
 There are no points, call credits or bonus slots. A collector on
-probation, draining or revoked earns no tier.
+probation, draining or revoked earns no role.
 
 ## The door, precisely
 

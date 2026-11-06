@@ -242,7 +242,7 @@ scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
   "error": { "code": -32003,
     "message": "The access token lacks the capability required by this tool: recordings:write.",
     "data": { "required_scope": "recordings:write", "granted_scope": "cr:read",
-              "hint": "Reconnect this client and tick 'recordings:write' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Settings › Connections & agents, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read." } } }
+              "hint": "Reconnect this client and tick 'recordings:write' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Account -> Connections, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read." } } }
 ```
 
 The challenge's `scope` is the granted set plus the missing one, so a client

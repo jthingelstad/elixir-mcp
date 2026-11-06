@@ -74,7 +74,7 @@ checks. See [Running a collector](/docs/operators).
 `live_fetch`, and `live: true` on `players_profile`, `clans_roster`,
 `war_current`, `battles_query`. Asynchronous: a fresh
 read is served if in hand, otherwise queued for the next collector and
-answered from the record with `live_status`. Capped per day by tier.
+answered from the record with `live_status`. Capped per day by role.
 
 ## Battles and numbers
 

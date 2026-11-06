@@ -16,8 +16,8 @@ lede: "Point Claude, ChatGPT or any MCP client at Elixir and sign in once. Conne
 Connect a client if you want an AI agent to ask Elixir about your
 record. You can do this while recording is pending, or keep using Ladder and Clan
 in your browser. A connection authorizes access; it does not prove that a
-successful data read has happened. Connections reports data reads within
-the last seven days separately from active connections.
+successful data read has happened. Each connection's row under Settings ›
+Connections & agents shows its last call and its calls in the last seven days.
 
 The endpoint is the same for every client:
 
@@ -70,7 +70,8 @@ SSE required), OAuth 2.1 with dynamic client registration and PKCE S256, and
 RFC 8707 `resource` support. The sequence is:
 
 1. `POST /mcp` without a token → 401 with `WWW-Authenticate: Bearer
-   resource_metadata="https://elixir.poapkings.com/.well-known/oauth-protected-resource"`.
+   resource_metadata="https://elixir.poapkings.com/.well-known/oauth-protected-resource",
+   scope="<every standard capability>"`.
 2. Read that document, then the authorization-server metadata it points to.
 3. `POST /oauth/register` with your `redirect_uris` (https, or http on
    localhost / 127.0.0.1 / [::1]).

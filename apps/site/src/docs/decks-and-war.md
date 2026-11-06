@@ -34,8 +34,8 @@ deck's cards in `battles_query`, `battles_decks` (one deck by `deck_hash`),
 progress counter, and forms are never merged: the card readers carry one
 row per form. On a collection, `maxEvolutionLevel` says which forms exist
 for the card and `evolutionLevel` which the player holds; `players_collection`
-and `cards_catalog` decode those sets into `forms_available` and
-`forms_unlocked`. A card's **type** (troop, building, spell, tower troop) is
+decodes those sets into `forms_available` and `forms_unlocked`, and
+`cards_catalog` serves `forms_available`. A card's **type** (troop, building, spell, tower troop) is
 not in the API; `cards_catalog` derives it from the id range and serves it
 as `type`.
 
@@ -128,8 +128,8 @@ because that endpoint does not report the former current-day value.
   recording gap rather than a zero.
 - `finished_early`, true on a regular week whose boat reached the
   10,000-fame line, false when it did not, and `null` on a Colosseum week
-  (which has no finish line) or a week seen without a standings
-  recording. Decks used after the finish earn zero points, so `decks_used`
+  (which has no finish line), a week still being fought, or a week seen
+  without a standings recording. Decks used after the finish earn zero points, so `decks_used`
   is not the denominator of a points-per-deck rate on a finished week.
 - `finish_war_day`, the war day whose close carried the boat over the line,
   from the race's own day-by-day; `null` when the boat did not finish or

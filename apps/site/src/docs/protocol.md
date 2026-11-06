@@ -237,10 +237,10 @@ in its hint.
   it resolves the date-only bounds and every local label
   (`battle_time_local` is ISO 8601 with its offset). Default: the account's
   timezone. An unknown zone is `bad_request`.
-- **`applied`** is the one echo block, on every response except six
+- **`applied`** is the one echo block, on every response except seven
   (`elixir_my_players`, `elixir_my_identities`, `elixir_coverage`,
-  `elixir_collectors`, `elixir_data_insights`, and
-  `elixir_examples` without an `example`): `window` (`from`,
+  `elixir_collectors`, `elixir_data_insights`, `elixir_examples` without an
+  `example`, and `elixir_docs` without a `page`): `window` (`from`,
   `to`, `source` of `argument` | `default` | `unbounded` | `season` |
   `fixed` (and `pointer` on `elixir_timeline`), `timezone`, and on the season-grained tools `season`,
   `crosses` and `season_age_days`), `limit`, `sort`, `mode`,
