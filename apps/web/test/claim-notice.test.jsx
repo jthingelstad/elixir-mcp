@@ -30,14 +30,14 @@ test("an ended primary names the tag, says there is none, and points at the play
   expect(box.textContent).toMatch(/Another account verified #2PP0V90Y/);
   expect(box.textContent).toMatch(/you have none: nothing defaults to you/);
   expect(box.textContent).toMatch(
-    /Open one of your players and make it primary/,
+    /Open one of your players and make it your main player/,
   );
   expect(
     screen.getByRole("link", { name: "Feedback" }).getAttribute("href"),
   ).toBe("/settings/feedback");
 });
 
-test("with no players left, it says to add one, on Tracking without a link to itself", () => {
+test("with no players left, it says to add one, on Players & tracking without a link to itself", () => {
   renderWithProviders(
     <ClaimNotice
       me={{ claim_notice: notice("primary_ended"), claims: [] }}
@@ -47,10 +47,10 @@ test("with no players left, it says to add one, on Tracking without a link to it
   expect(screen.getByRole("status").textContent).toMatch(
     /Add your player below\./,
   );
-  expect(screen.queryByRole("link", { name: "Tracking" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Players & tracking" })).toBeNull();
 });
 
-test("a signup tag verified elsewhere says it was not added, with a link to Tracking", () => {
+test("a signup tag verified elsewhere says it was not added, with a link to Players & tracking", () => {
   renderWithProviders(
     <ClaimNotice
       me={{ claim_notice: notice("signup_tag_refused"), claims: [] }}
@@ -60,7 +60,9 @@ test("a signup tag verified elsewhere says it was not added, with a link to Trac
     /#2PP0V90Y, the player tag you signed up with, is verified by another account, so it was not added/,
   );
   expect(
-    screen.getByRole("link", { name: "Tracking" }).getAttribute("href"),
+    screen
+      .getByRole("link", { name: "Players & tracking" })
+      .getAttribute("href"),
   ).toBe("/settings/players");
 });
 

@@ -7,7 +7,7 @@ order: 10
 navTitle: "Coverage"
 icon: calendar-days
 lede: "Recorded battles stay visible. Empty days need complete recording before they can mean quiet."
-callout: ["Open it on the player's Settings page", "/settings/players", "Open Players and tracking"]
+callout: ["Open it on the player's Settings page", "/settings/players", "Open Players & tracking"]
 ---
 
 # Battle activity: a year of days

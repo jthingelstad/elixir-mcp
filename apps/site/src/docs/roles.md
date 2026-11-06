@@ -174,8 +174,7 @@ Family. A tier earned is lost when its ground goes: step down as
 co-leader, leave the clan, stop tracking it or stop the collector, and
 the next request reads the tier below. Nothing you already track is
 removed when that happens; your tier's slots refuse only the next add
-until you are back under them. A leader or family tier granted by hand
-before 2026-10-12 no longer counts on its own.
+until you are back under them.
 
 Hand-tuned per-account overrides exist for cases the ladder doesn't fit;
 ask through feedback.

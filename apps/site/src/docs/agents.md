@@ -7,7 +7,7 @@ order: 3
 navTitle: "Your agents"
 icon: bot
 lede: "A runtime that acts for one clan, with its own door, key, identity map and feed."
-callout: ["Open it at Settings › Connections & agents and agents", "/settings/connections", "Open Connections and agents"]
+callout: ["Open it at Settings › Connections & agents", "/settings/connections", "Open Connections & agents"]
 ---
 
 # Building an agent
@@ -132,8 +132,8 @@ to fall back on):
     "hint": "Ask who they are in the clan, then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly." } }
 ```
 
-A person can connect their Discord account to Elixir from their
-profile, proved by Discord's own sign-in. Then `discord:<their Discord
+A person can connect their Discord account to Elixir under
+**Settings › Connections & agents**, proved by Discord's own sign-in. Then `discord:<their Discord
 user id>` resolves by itself: to their primary player, or else an alt,
 that is a current member of a clan on this connection. Every response
 to a call that carries `on_behalf_of` says who it named and how:
@@ -142,7 +142,7 @@ to a call that carries `on_behalf_of` says who it named and how:
 (your own `elixir_identify`) or null (nobody yet), and `verified` says
 whether the player's claim is proven in game. A `discord:` id nobody has
 connected or mapped is `no_subject`, whose hint adds that the person can
-connect Discord on their profile.
+connect Discord in their Settings.
 
 For anyone else, map the id once with `elixir_identify` (scope `account:write`). The tag must be a
 **current member of a clan on this connection**; anything else is
@@ -275,16 +275,12 @@ Facts in, judgment in your code.
 
 ## Key lifecycle
 
-Connections starts with active agents. **Show inactive agents** brings
-suspended and revoked entries back into the table. Each connection's
-permission count expands to show its grants and the edit control.
-
 | Action | Where | Effect |
 |---|---|---|
 | Rotate | its **Settings** tab, Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
 | Revoke | its **Settings** tab, Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready: it takes the name and scope of the most recent key, and is refused (`409 name_taken`) only if another of your live agents has taken that name since. |
 | Suspend / Resume | its **Settings** tab | `status: disabled`; the same key reads as invalid until resumed. Its players and clans leave your slots and stop recording unless someone else tracks them. Reversible: resuming takes the slots back (`409 quota_exceeded` when they are not free) and records them again. |
-| Remove / Restore | a suspended agent's **Settings** tab | takes it out of the Agents table into a folded **Removed agents** list on the Agents page. Nothing is deleted: it stays suspended, keeps its address, keys and history, and still opens at its own console. Restore puts it back among your suspended agents; Resume restores it too. |
+| Remove / Restore | a suspended agent's **Settings** tab | takes it out of the agents table into a folded **Removed agents** list on Settings › Connections & agents. Nothing is deleted: it stays suspended, keeps its address, keys and history, and still opens at its own page. Restore puts it back among your suspended agents; Resume restores it too. |
 | Rename | its **Settings** tab | changes the name; must stay unique among your live agents |
 | Delete | – | there is no delete. Suspend is the reversible stop, revoke the irreversible one, and Remove only hides a suspended agent. |
 

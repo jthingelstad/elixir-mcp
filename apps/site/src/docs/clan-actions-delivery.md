@@ -53,14 +53,14 @@ again.
   ten at a time, spaced under Discord's limit for a channel; a long
   backlog arrives over a few minutes.
 - Nothing pings anyone unless the leader or a co-leader names one Discord
-  role to mention (Settings, by the role's id). That role, and only it, is
+  role to mention (**Run › Discord**, by the role's id). That role, and only it, is
   mentioned when an action is first posted; an edit never mentions
   anyone. Connecting a different webhook clears the role, since it may
   be another server's channel.
 - A forum channel's webhook works: each action becomes a forum post of its
   own, named for it, and its close is edited in that post. A webhook
   ending in `?thread_id=` posts every action into that one thread.
-- Settings lists the last deliveries: posted, edited, refused (with what
+- **Run › Discord** lists the last deliveries: posted, edited, refused (with what
   Discord said), and those Discord never answered, which may be in the
   channel and are never sent again (a duplicate is worse than a missing
   message). It counts what did not arrive in the last 30 days. When

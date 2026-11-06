@@ -219,7 +219,7 @@ not carry the old season beyond its explicit end.
 source timestamp, not the time the response was delivered. A known tag without a
 profile reading returns `404 not_recorded`. Names, clan and account age can
 be incomplete; null means unknown, not zero. Tracking a player is not itself
-an reading.
+a reading.
 
 When a profile is missing or too old for your product, send:
 

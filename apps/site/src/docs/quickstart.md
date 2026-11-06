@@ -29,10 +29,10 @@ The signup form also asks for **your player tag**, optionally (plain sign-in
 does not). A tag that is not a Clash Royale tag is refused on the form,
 before any email is sent; leave the field empty to add your player later.
 Nothing happens with the tag until you verify the email: then the new
-account tracks it as your primary, and you land on that player's page with
-the first read on its way (or **Tag not found** there, with the place to
-fix it). An account opened without a tag lands on Settings › Players & tracking with the tag
-field ready. A tag given while signing in to an account that already exists
+account tracks it as your primary, and you land on **Home**, whose first
+steps show the first read on its way (or **Tag not found**, with the place to
+fix it). An account opened without a tag lands on Home too, asking for the
+tag. A tag given while signing in to an account that already exists
 is ignored; that account keeps its players.
 
 ## 2. Track your player
@@ -115,7 +115,7 @@ comparison when two decks appear, a week-over-week comparison when both
 windows have battles. Copy one into your client. You never need to tell
 the client your tag; if it starts by listing your players, that is a bug
 worth reporting. The agent can also read this manual itself: `elixir_docs`
-serves these pages over the connection, and the ten
+serves these pages over the connection, and the
 [examples](/examples/play) are offered as prompts, so "how do I scout a
 bracket?" is a question it can answer before it calls anything.
 

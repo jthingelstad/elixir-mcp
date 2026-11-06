@@ -131,4 +131,4 @@ yours.
 
 Below the season, once your primary player's clan is on record, the page
 offers [Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates):
-words to invite your clan, the same panel as on Home.
+words to invite your clan.
