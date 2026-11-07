@@ -20,3 +20,8 @@ a link or an emoji code stays text, and the clan hello line uses that one functi
 request body. Collector submissions are gzip+base64, so a name cannot stop a
 submission. A search or feedback holding such text gets a 403 from the edge
 before Elixir sees it.
+
+**Two rulings after the audit.** `<c/>` is colour markup too, stripped at ingest and
+from stored names (0235). Control characters and text-direction overrides are
+stripped at ingest only, so a stored name loses them when it is next recorded.
+Direction marks, joiners and variation selectors stay.

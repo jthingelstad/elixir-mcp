@@ -1,20 +1,27 @@
 /**
  * Names enter the record clean. Clash Royale lets a player type colour markup
  * into a name, and the API returns it as typed: `<c2>Name`, `<c9>Na<c5>me`,
- * `<c2>Name<\c>`. In game it is colour; everywhere else it is noise, so it
+ * `<c2>Name<\c>`, `Name<c/>`. In game it is colour; everywhere else it is noise, so it
  * stops here rather than in every reader (Timeline, mail, Discord, MCP,
  * search). The raw payload is archived untouched.
  *
  * Only the colour forms go: a name like `<Ox>~Stoat` or `4<Stoat` is the
  * player's own. A name that is nothing but markup keeps what the player typed
- * rather than becoming no name at all. 0234 applies the same rule to the names
- * stored before this existed, so change the two together.
+ * rather than becoming no name at all. 0234 and 0235 apply the same rule to the
+ * names stored before each form was known, so change them together.
+ *
+ * Control characters and text-direction overrides go too, here only: they can
+ * make a line read in a misleading order, and no name means them. Direction
+ * marks (U+200E, U+200F, U+061C), joiners and variation selectors stay, because
+ * right-to-left names and emoji need them.
  */
-const COLOUR_MARKUP = /<\s*c\d+\s*>|<[\\/]c>/gi;
+const COLOUR_MARKUP = /<\s*c\d+\s*>|<[\\/]c>|<c\/>/gi;
+const CONTROL = /[\p{Cc}\u202A-\u202E\u2066-\u2069]/gu;
 
 export function cleanName(name) {
-  const cleaned = name.replace(COLOUR_MARKUP, "").trim();
-  return cleaned === "" ? name : cleaned;
+  const text = name.replace(CONTROL, "");
+  const cleaned = text.replace(COLOUR_MARKUP, "").trim();
+  return cleaned === "" ? text : cleaned;
 }
 
 /** Every `name` in a parsed payload, in place: the API's players and clans
