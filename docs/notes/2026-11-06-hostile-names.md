@@ -23,5 +23,6 @@ before Elixir sees it.
 
 **Two rulings after the audit.** `<c/>` is colour markup too, stripped at ingest and
 from stored names (0235). Control characters and text-direction overrides are
-stripped at ingest only, so a stored name loses them when it is next recorded.
+stripped at ingest, and on 2026-11-07 from stored names too (0236): "Approved:
+strip control and text-direction override characters from stored player names".
 Direction marks, joiners and variation selectors stay.

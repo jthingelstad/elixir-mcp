@@ -10,7 +10,7 @@
  * rather than becoming no name at all. 0234 and 0235 apply the same rule to the
  * names stored before each form was known, so change them together.
  *
- * Control characters and text-direction overrides go too, here only: they can
+ * Control characters and text-direction overrides go too (0236 for stored names): they can
  * make a line read in a misleading order, and no name means them. Direction
  * marks (U+200E, U+200F, U+061C), joiners and variation selectors stay, because
  * right-to-left names and emoji need them.
