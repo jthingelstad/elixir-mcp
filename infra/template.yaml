@@ -2684,7 +2684,9 @@ Resources:
       DistributionConfig:
         Enabled: true
         Comment: elixir.poapkings.com
-        # projects-sysadmin's shared edge web ACL (stack edge-waf); its rules only count.
+        # projects-sysadmin's shared edge web ACL (stack edge-waf). Its rules block,
+        # including script-like text in the first 16 KB of a request body. Collector
+        # submissions are gzip+base64, so a player's name cannot trip them.
         WebACLId: !ImportValue edge-waf-WebAclArn
         HttpVersion: http2and3
         Aliases: !If [HasSiteCert, [elixir.poapkings.com], !Ref "AWS::NoValue"]

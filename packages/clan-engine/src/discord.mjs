@@ -23,13 +23,14 @@ export const DISCORD_MAX_CHARS = 2000;
 /** Whether an action is posted at all: every one but a member's own. */
 export const discordShareable = (card) => audienceOf(card).kind !== "member";
 
-/** Discord reads these as Markdown, and `<` and `@` as mentions: escaped,
- *  a name is shown as typed. Line breaks fold to spaces. One rule for
- *  every Discord path (the timeline's lines re-export it). */
+/** Discord reads these as Markdown, `<` and `@` as mentions, and `:` as an
+ *  emoji or the start of a link: escaped, a name is shown as typed. Line
+ *  breaks fold to spaces. One rule for every Discord path (the timeline's
+ *  lines re-export it). */
 export function escapeDiscord(s) {
   return String(s ?? "")
     .replace(/\s+/g, " ")
-    .replace(/[\\*_~`|>[\]<@]/g, (c) => `\\${c}`);
+    .replace(/[\\*_~`|>[\]<@:]/g, (c) => `\\${c}`);
 }
 const escape = escapeDiscord;
 

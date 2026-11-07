@@ -10,6 +10,7 @@
  *  policy allows and what a leader may switch is the engine's
  *  (`activityCategories`); this module keeps the row. */
 import { randomUUID } from "node:crypto";
+import { escapeDiscord } from "@elixir-mcp/clan-engine";
 import {
   ELIXIR_ORIGIN,
   parseDiscordWebhook,
@@ -25,10 +26,7 @@ const COLUMNS = `channel_id, webhook_sealed, webhook_fp, webhook_display,
 const DISCLAIMER =
   "This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: <https://www.supercell.com/fan-content-policy>.";
 
-const escape = (s) =>
-  String(s ?? "")
-    .replace(/\s+/g, " ")
-    .replace(/[\\*_~`|>[\]<@]/g, (c) => `\\${c}`);
+const escape = escapeDiscord;
 
 /** The line a connection sends, so the leader sees at once that the
  *  webhook works and the channel learns what will appear in it. */
