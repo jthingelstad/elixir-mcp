@@ -223,6 +223,7 @@ restating it in wider words.
 
 ## Web
 
+- **A name is escaped at its output, never in storage** — Clash Royale names are free text, so each output escapes for its own context (HTML, attribute, Discord, JSON in a script), and tests run every mail and the clan site with markup in every name. "we need to make them EXCEEDINGLY html safe." [Jamie, 2026-11-06; `docs/notes/2026-11-06-hostile-names.md`]
 - **One set of page parts, and no table scrolls a phone sideways** — pages use `PageHead`, `Tabs`, `Chips`, `Panel`, `Table`, `Empty`, `ErrorState`, `Stats` from `@elixir-mcp/ui`, styled under `kit-*` in the one stylesheet; a table's rows become blocks at phone width or its few columns tighten. Admin keeps its old head and scrolling tables, and the battle page keeps its layout. [engineering, 2026-11-05]
 - **One origin, paths not hostnames** — `elixir.poapkings.com` serves the site at `/`, the Console, Ladder and Clan under `/console`, `/ladder` and `/clan`, and the MCP/OAuth and JSON API doors; Drop stays at `drop.poapkings.com`; poapkings.com is the clan's website. [Jamie, 2026-09-28, 2026-10-02]
 - **The web lets people explore their record** — useful without an agent; MCP extends it; no general BI platform or global game analysis. [Jamie, 2026-10-02]

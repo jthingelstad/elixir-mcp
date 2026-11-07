@@ -22,6 +22,11 @@ test("names are literal: markdown, mentions and brackets are escaped", () => {
     "\\*\\_King\\_\\* \\~\\~x\\~\\~ \\`y\\` \\|\\|z\\|\\| \\> \\[a\\](b) \\<\\@123\\> \\@everyone",
   );
   assert.equal(escapeDiscord("two\nlines"), "two lines");
+  // A link or an emoji written in a name stays text.
+  assert.equal(
+    escapeDiscord("https://evil.example :x:"),
+    "https\\://evil.example \\:x\\:",
+  );
 });
 
 test("a fresh item carries no time, and every link is masked around <address>", () => {

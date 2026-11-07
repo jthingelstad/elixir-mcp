@@ -17,6 +17,12 @@ const SAFE_HREF = /^(https?:|mailto:)/i;
 const escapeHtml = (s: unknown) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/** An href goes inside an attribute, so its quotes are escaped as well: a
+ *  URL written with a `"` in it must not close the attribute. It arrives
+ *  with `&`, `<` and `>` already escaped, so those stay as they are. */
+const escapeHref = (s: unknown) =>
+  String(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
 marked.use({
   gfm: true,
   breaks: true,
@@ -24,7 +30,7 @@ marked.use({
     link({ href, text }) {
       if (!SAFE_HREF.test(String(href ?? "")))
         return `<span>${escapeHtml(text)}</span>`;
-      return `<a href="${escapeHtml(href)}" rel="noopener noreferrer" target="_blank">${text}</a>`;
+      return `<a href="${escapeHref(href)}" rel="noopener noreferrer" target="_blank">${text}</a>`;
     },
   },
 });
