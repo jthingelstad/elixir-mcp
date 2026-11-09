@@ -1,0 +1,11 @@
+{
+  "about": "p95 ceilings for npm run web-latency (infra/scripts/web-latency.mjs). A route matches its exact pattern first, else the longest glob; * matches anything, slashes included. A route with no pattern is reported, never judged. Fewer than min_samples is thin, never judged.",
+  "min_samples": 10,
+  "web": [
+    { "route": "GET /api/me", "p95_ms": 500 },
+    { "route": "GET /api/me/first-answer", "p95_ms": 500 },
+    { "route": "GET /api/me/home*", "p95_ms": 2000 },
+    { "route": "GET /api/clan/clans/*", "p95_ms": 1500 }
+  ],
+  "mcp": { "default_p95_ms": 2000, "tools": {} }
+}
