@@ -235,3 +235,15 @@ test("a throwing log never fails the admission", async () => {
   assert.equal(r.outcome, "admitted");
   assert.equal(errors[0]?.[0], "first_read_timing_failed");
 });
+
+test("a delayed profile behind a newer one on the first day is not a second first read (#731 review)", async () => {
+  const tag = "#2PYLQY";
+  await track(tag, { addedSecondsAgo: 60 });
+  const newer = await admit("player", tag, { fetchedAt: secondsAgo(5) });
+  assert.equal(newer.lines.length, 1);
+  // The older read was leased first and submitted last: both baselines
+  // are empty for it, and the record already has a profile.
+  const delayed = await admit("player", tag, { fetchedAt: secondsAgo(20) });
+  assert.equal(delayed.outcome, "admitted");
+  assert.deepEqual(delayed.lines, []);
+});

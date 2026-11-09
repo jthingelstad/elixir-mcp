@@ -3,9 +3,10 @@
  *
  * Home tells a person who adds their player that "the first read usually
  * lands within a few minutes"; this line is what measures it, from
- * natural traffic. Ingest already knows, from reads it makes anyway, when
- * an admission is the first of its kind for a tag: the profile projector
- * found no earlier profile observation (snapshots.mjs `firstProfile`), and
+ * natural traffic. Ingest knows when an admission is the first of its kind
+ * for a tag: the profile projector found no earlier profile observation
+ * (snapshots.mjs `firstProfile`: its baselines, and one prefix lookup
+ * only when both are empty, so a delayed profile is not a second first), and
  * the battle log projector found no high-water mark and wrote one
  * (battles.mjs `firstLog`). Only then does this run, and it makes one
  * query: the subject's active player recording (unique partial index
