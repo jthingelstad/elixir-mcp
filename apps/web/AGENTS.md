@@ -43,7 +43,10 @@ behaviour is in `apps/site/src/docs/`, not here.
   page, never per account; a record page reports as its kind; `/signin`
   loads no analytics. The embed (`/js/script.js`, site in `data-site`) counts
   the document; its own History counting is switched off with `data-spa="false"`
-  so the bridge counts each view after it once.
+  so the bridge counts each view after it once. A document that starts on
+  `/signin` or a record page loads no embed; its loader listens for the same
+  `data-tinylytics-event` clicks and beacons each event at the route (nothing
+  on `/signin`), so `trackEvent` works in every session (#508).
 - No Radix before a real dialog; no PWA. `test/inline-styles.test.js` is a
   ratchet on inline styles: the count only goes down.
 

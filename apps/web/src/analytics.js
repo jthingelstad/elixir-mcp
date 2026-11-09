@@ -66,7 +66,7 @@ function settingsRecord(pathname) {
 
 export function loadTinylytics() {
   if (["localhost", "127.0.0.1", "::1"].includes(window.location.hostname))
-    return;
+    return () => {};
 
   // Always, and before the early returns below: patching history is what
   // makes the rest of the session countable.
@@ -77,8 +77,13 @@ export function loadTinylytics() {
   // skipping it: the document hit it would have recorded is the /signin view
   // we deliberately do not keep, and every hit after this one is a beacon
   // built from the ROUTE (analyticsLocation), never from the raw URL.
+  //
+  // A document that skips the embed also skips the embed's event listener, and
+  // the session never loads another document, so it listens for the same
+  // clicks itself and sends each event by the bridge's beacon (#508). The
+  // returned function removes that listener (the tests' teardown).
   const app = appPath(window.location.pathname) ?? "";
-  if (isSignIn(window.location.pathname)) return;
+  if (isSignIn(window.location.pathname)) return listenForEvents();
   // A roster search is the reader's free text. Report its route through
   // the sanitized bridge, including direct loads, never the raw query.
   const clanSearch =
@@ -90,7 +95,7 @@ export function loadTinylytics() {
     clanSearch
   ) {
     landing();
-    return;
+    return listenForEvents();
   }
 
   const script = document.createElement("script");
@@ -105,6 +110,56 @@ export function loadTinylytics() {
   // after it.
   script.dataset.spa = "false";
   document.body.appendChild(script);
+  return () => {};
+}
+
+/** The collector address a hit or an event goes to: the route, never the
+ *  address bar. The embed's own event request is this address plus `event`
+ *  and `event_value` (tinylytics.app/js/script.js, `sendEvent`). */
+function collectorUrl(next, referrer) {
+  const collector = new URL(`https://tinylytics.app/collector/${SITE_ID}`);
+  collector.searchParams.set("url", next.url);
+  collector.searchParams.set("path", next.path);
+  collector.searchParams.set("referrer", referrer);
+  return collector;
+}
+
+/**
+ * The embed's event listener, for a session that never loads the embed: a
+ * click on a `data-tinylytics-event` node (trackEvent's hidden button here and
+ * in Clan, or a tagged link) becomes one event at the collector. It keeps the
+ * embed's rules (a primary click; a name with a dot; nothing once the reader
+ * has opted out with Tinylytics' `tinylytics_ignore`), and reports the page as
+ * the bridge does, from the route: on /signin it sends nothing, and a record's
+ * id never rides along. No referrer: an event is about the page it is on.
+ */
+function listenForEvents() {
+  const controller = new AbortController();
+  document.addEventListener(
+    "click",
+    (ev) => {
+      try {
+        if (ev.button !== 0) return;
+        const node = ev.target?.closest?.("[data-tinylytics-event]");
+        const name = node?.getAttribute("data-tinylytics-event")?.trim();
+        if (!name || !name.includes(".")) return;
+        if (localStorage.getItem("tinylytics_ignore") != null) return;
+        const here = analyticsLocation();
+        if (!here || typeof navigator.sendBeacon !== "function") return;
+        const collector = collectorUrl(here, "");
+        collector.searchParams.set("event", name.replace(/->/g, "."));
+        collector.searchParams.set(
+          "event_value",
+          node.getAttribute("data-tinylytics-event-value") ?? "",
+        );
+        navigator.sendBeacon(collector.toString());
+      } catch {
+        // Analytics is best-effort and must never turn one failure into two.
+      }
+    },
+    { capture: true, signal: controller.signal },
+  );
+  return () => controller.abort();
 }
 
 /** The one Tinylytics tag for every site: the site rides in data-site and
@@ -230,11 +285,7 @@ function bridgeRouteChanges() {
   const beacon = (next, referrer) => {
     try {
       if (typeof navigator.sendBeacon !== "function") return;
-      const collector = new URL(`https://tinylytics.app/collector/${SITE_ID}`);
-      collector.searchParams.set("url", next.url);
-      collector.searchParams.set("path", next.path);
-      collector.searchParams.set("referrer", referrer);
-      navigator.sendBeacon(collector.toString());
+      navigator.sendBeacon(collectorUrl(next, referrer).toString());
     } catch {
       // Analytics is best-effort and must never interrupt navigation.
     }
@@ -307,7 +358,9 @@ function bridgeRouteChanges() {
  * the edge, a script error in the view. Tinylytics' collector counts a
  * click on a data-tinylytics-event node, so a programmatic event is a
  * hidden node clicked once. Best-effort: never throws, never on
- * localhost, and silent until the embed has loaded.
+ * localhost. The embed's listener sends it; a session that never loaded the
+ * embed (it began on /signin or a record page) has the loader's own listener
+ * instead, so its events arrive too (#508).
  *
  * `value` must never carry a URL, a token or free text from an error;
  * callers pass a route KEY or a bounded label.

@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link, TagText, writeErrorText } from "@elixir-mcp/ui";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { api } from "../api.js";
+import { trackEvent } from "../analytics.js";
 import { SETTINGS } from "../lib/settings.js";
 import { tagPath } from "../lib/tag-url.js";
 import { recordJourney } from "../lib/record-journey.js";
@@ -33,9 +34,13 @@ export function NewAccount({ first, zoneMissing }) {
   const player = live?.player ?? null;
   const journey = recordJourney(live);
   const landed = Boolean(player && recorded(player));
-  // The first read landed while the page was open: Today can draw now.
+  const landedAtOpen = useRef(landed);
+  // The first read landed while the page was open: Today can draw now. The
+  // event counts that moment, once per page, never whose (#508).
   useEffect(() => {
-    if (landed) invalidate(["me", "home"]);
+    if (!landed) return;
+    if (!landedAtOpen.current) trackEvent("home.first_read_landed");
+    invalidate(["me", "home"]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [landed]);
   return (
@@ -238,7 +243,11 @@ function AddPlayer({ onAdded }) {
           make_primary: true,
         });
         setBusy(false);
-        if (res.ok) return onAdded();
+        if (res.ok) {
+          // A count of the first-use step, never which player or account.
+          trackEvent("home.player_added");
+          return onAdded();
+        }
         setErr(
           res.data?.error === "invalid_tag"
             ? TAG_WORDS
