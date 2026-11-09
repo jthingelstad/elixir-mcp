@@ -199,6 +199,9 @@ export function makeHandler({
   /** () => the built app shell (routes/battle.mjs makeSiteShell), which a
    *  battle's page is served in; null = /battle/* answers 503. */
   siteShell = null,
+  /** () => the site's email page (apps/site/src/email-page.njk), the
+   *  shell a mail's turn-off link is answered in; null = a plain page. */
+  emailShell = null,
   /** (read) => a battle's share picture as PNG bytes (share-image.mjs
    *  makeShareImage); null = /battle/<id>.png answers 503. */
   shareImage = null,
@@ -429,6 +432,7 @@ export function makeHandler({
       // The archive bucket store the call record reads from; sent mail
       // lives in the same bucket under mail/sent/.
       archive: capture,
+      emailShell,
     }),
   };
 

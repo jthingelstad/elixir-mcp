@@ -20,6 +20,7 @@
  *  2026-09-18): sharing a Top 100 is forwarding the mail.
  */
 import {
+  DISCLAIMER,
   PRODUCT_EMAIL_KINDS,
   ACTIVE_PRODUCT_EMAIL_KINDS,
   isProductEmailKind,
@@ -58,11 +59,85 @@ function html(statusCode, body) {
   };
 }
 
-function page({ title, lead, form = "" }) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · Elixir</title>
-<style>body{margin:0;background:#0c0920;color:#ddd7f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}main{max-width:480px;margin:48px auto;padding:0 20px}h1{color:#faf8ff;font-size:22px}p{line-height:1.55}a{color:#b49dfb}button{background:#f5c84c;color:#2a1500;border:0;border-radius:8px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer}.wm{letter-spacing:.18em;font-weight:800;color:#faf8ff;margin-bottom:28px}.f{margin-top:36px;font-size:12px;color:#a29ad0}</style></head>
-<body><main><div class="wm">ELIXIR</div><h1>${esc(title)}</h1><p>${lead}</p>${form}<p class="f">This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy.</p></main></body></html>`;
+/** Where a turn-off page sends a person next, by the face the page shows
+ *  (the site's session hint picks it before paint). Absolute paths: the
+ *  page is served at /api/email/unsubscribe. */
+const NEXT = {
+  in: [
+    { href: "/home", label: "Open Home" },
+    { href: "/settings/emails", label: "Email settings" },
+  ],
+  out: [
+    { href: "/signin", label: "Sign in" },
+    { href: "/", label: "Elixir home" },
+  ],
+};
+
+const DOCS_LINK = { href: "/docs/email", label: "How Elixir email works" };
+
+/** The step's own section, in the site's classes (every one is used by
+ *  apps/site/src/email-page.njk, so the stylesheet keeps it). */
+function section({ title, lead, form = "", next = NEXT }) {
+  const row = (face, links) =>
+    `<div class="flex flex-wrap items-center gap-3" data-session-face="${face}">${links
+      .map((l, i) => {
+        // The step's own button leads when it has one; else the first way on.
+        const cls =
+          l === DOCS_LINK
+            ? "btn btn--quiet"
+            : !form && i === 0
+              ? "btn btn--primary"
+              : "btn";
+        return `<a class="${cls}" href="${esc(l.href)}">${esc(l.label)}</a>`;
+      })
+      .join("")}</div>`;
+  return `<section class="mx-auto flex max-w-[560px] flex-col items-start gap-4 pt-10 pb-6" data-email-page>
+  <span class="chip">Email</span>
+  <h1 class="hero-title m-0">${esc(title)}</h1>
+  <p class="docs__lede m-0">${lead}</p>
+  ${form}
+  ${row("out", [...next.out, DOCS_LINK])}
+  ${row("in", [...next.in, DOCS_LINK])}
+</section>`;
 }
+
+const SLOT = /<section\b[^>]*\bdata-email-page\b[^>]*>[\s\S]*?<\/section>/;
+// The token in this page's address is a credential (it turns mail off),
+// so the page carries no third-party script that reads the address.
+const ANALYTICS = /\s*<script\b[^>]*tinylytics\.app[^>]*><\/script>/g;
+
+/** The site's own shell with this step in it, or null when the shell is
+ *  missing or not the one this expects. */
+function inShell(shell, view) {
+  if (typeof shell !== "string" || !SLOT.test(shell)) return null;
+  return shell
+    .replace(
+      /<title>[^<]*<\/title>/,
+      `<title>${esc(view.title)} - Elixir</title>`,
+    )
+    .replace(SLOT, () => section(view))
+    .replace(ANALYTICS, "");
+}
+
+/** What a step reads as when the site's shell cannot be read (the bucket
+ *  is mid-publish, or S3 did not answer): plain, but a page, with the
+ *  ways onward and the disclaimer. */
+function fallback({ title, lead, form = "", next = NEXT }) {
+  const links = [...next.in, ...next.out, DOCS_LINK]
+    .filter((l, i, all) => all.findIndex((x) => x.href === l.href) === i)
+    .map((l) => `<a href="${esc(l.href)}">${esc(l.label)}</a>`)
+    .join(" · ");
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)} - Elixir</title>
+<style>body{margin:0;background:#0c0920;color:#ddd7f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}main{max-width:480px;margin:48px auto;padding:0 20px}h1{color:#faf8ff;font-size:22px}p{line-height:1.55}a{color:#b49dfb}button{background:#f5c84c;color:#2a1500;border:0;border-radius:8px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer}.wm{letter-spacing:.18em;font-weight:800;color:#faf8ff;margin-bottom:28px}.f{margin-top:36px;font-size:12px;color:#a29ad0}</style></head>
+<body><main><div class="wm">ELIXIR</div><h1>${esc(title)}</h1><p>${lead}</p>${form}<p>${links}</p><p class="f">${esc(DISCLAIMER)}</p></main></body></html>`;
+}
+
+/** RFC 8058: a mail client's one-click POST carries this form body. A
+ *  person's button sends none, and is answered with a page. (Accept
+ *  cannot tell them apart: the edge forwards no Accept header to /api/*,
+ *  so every press of the button used to get the mail client's "ok".) */
+const isOneClick = (event) =>
+  /(^|&)List-Unsubscribe=One-Click(&|$)/i.test(String(event.body ?? "").trim());
 
 export function labelOf(kind) {
   return kind === "all" ? "every Elixir email" : (KIND_LABELS[kind] ?? kind);
@@ -100,10 +175,41 @@ async function setPref(
     });
 }
 
-export function emailRoutes({ resolveAccount, secret, archive = null }) {
+/** The labels read as names ("Milestones", "every Elixir email"); a
+ *  sentence that opens with one starts with a capital. */
+const upper = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+export function emailRoutes({
+  resolveAccount,
+  secret,
+  archive = null,
+  emailShell = null,
+}) {
   const claim = (event) => {
     const t = event.queryStringParameters?.t ?? "";
     return verifyUnsubscribe({ secret, token: t });
+  };
+  /** A step of the turn-off link, in the site's own page when it can be
+   *  read (apps/site/src/email-page.njk). */
+  const render = async (statusCode, view) => {
+    let shell = null;
+    try {
+      shell = emailShell ? await emailShell() : null;
+    } catch {
+      shell = null;
+    }
+    return html(statusCode, inShell(shell, view) ?? fallback(view));
+  };
+  const expired = {
+    title: "This link has expired",
+    lead: `Nothing was changed. Sign in and choose which emails you get from <a href="${MAIL_PATHS.emails}">your email settings</a>.`,
+    next: {
+      in: [
+        { href: "/settings/emails", label: "Email settings" },
+        { href: "/home", label: "Open Home" },
+      ],
+      out: NEXT.out,
+    },
   };
   return {
     "GET /api/me/email": async (db, event) => {
@@ -198,42 +304,26 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
     },
     "GET /api/email/unsubscribe": async (db, event) => {
       const c = claim(event);
-      if (!c)
-        return html(
-          400,
-          page({
-            title: "This link has expired",
-            lead: `Sign in and use <a href="${MAIL_PATHS.emails}">your email page</a> to change which emails you get.`,
-          }),
-        );
+      if (!c) return render(400, expired);
       if (isRetiredEmailKind(c.kind))
-        return html(
-          200,
-          page({
-            title: `${labelOf(c.kind)} has ended`,
-            lead: "Elixir no longer sends this email. Your other email preferences remain available on your account.",
-          }),
-        );
-      const t = esc(event.queryStringParameters?.t ?? "");
-      return html(
-        200,
-        page({
-          title: `Turn off ${labelOf(c.kind)}?`,
-          lead: `One click and Elixir stops sending you ${labelOf(c.kind)}. You can turn it back on any time from <a href="${MAIL_PATHS.emails}">your email page</a>.`,
-          form: `<form method="post" action="/api/email/unsubscribe?t=${t}"><button type="submit">Turn it off</button></form>`,
-        }),
-      );
+        return render(200, {
+          title: `${upper(labelOf(c.kind))} has ended`,
+          lead: `Elixir no longer sends this email, so there is nothing to turn off. Your other emails are on <a href="${MAIL_PATHS.emails}">your email settings</a>.`,
+        });
+      const t = encodeURIComponent(event.queryStringParameters?.t ?? "");
+      const what = labelOf(c.kind);
+      return render(200, {
+        title: `Turn off ${what}?`,
+        lead:
+          c.kind === "all"
+            ? `One click and Elixir stops sending you every email it sends. Sign-in codes and account notices still come. You can turn any of them back on from <a href="${MAIL_PATHS.emails}">your email settings</a>.`
+            : `One click and Elixir stops sending you ${esc(what)}. Your other emails stay as they are, and you can turn this one back on any time from <a href="${MAIL_PATHS.emails}">your email settings</a>.`,
+        form: `<form method="post" action="/api/email/unsubscribe?t=${t}"><button type="submit" class="btn btn--primary">Turn it off</button></form>`,
+      });
     },
     "POST /api/email/unsubscribe": async (db, event) => {
       const c = claim(event);
-      if (!c)
-        return html(
-          400,
-          page({
-            title: "This link has expired",
-            lead: `Sign in and use <a href="${MAIL_PATHS.emails}">your email page</a>.`,
-          }),
-        );
+      if (!c) return render(400, expired);
       if (c.kind !== "all" && !isProductEmailKind(c.kind))
         return json(400, { error: "bad_kind" });
       // A removed account keeps no switches ({account_remove}): a late
@@ -261,20 +351,20 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
       }
       // A mail client's one-click POST wants a 2xx and nothing else; a
       // person's button wants a page.
-      const wantsHtml = /text\/html/.test(event.headers?.accept ?? "");
-      if (!wantsHtml)
+      if (isOneClick(event))
         return {
           statusCode: 200,
           headers: { "content-type": "text/plain" },
           body: "ok",
         };
-      return html(
-        200,
-        page({
-          title: `${labelOf(c.kind)}: off`,
-          lead: `Done. Elixir will not send you ${labelOf(c.kind)} again unless you turn it back on from <a href="${MAIL_PATHS.emails}">your email page</a>.`,
-        }),
-      );
+      const what = labelOf(c.kind);
+      return render(200, {
+        title: c.kind === "all" ? "Every email is off" : `${upper(what)}: off`,
+        lead:
+          c.kind === "all"
+            ? `Elixir will not send you any more of its emails. Sign-in codes and account notices still come when there is one. Changed your mind? Turn any of them back on from <a href="${MAIL_PATHS.emails}">your email settings</a>.`
+            : `Elixir will not send you ${esc(what)} again. Your other emails stay as they are. Changed your mind? Turn it back on from <a href="${MAIL_PATHS.emails}">your email settings</a>.`,
+      });
     },
   };
 }

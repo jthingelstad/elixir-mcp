@@ -133,6 +133,8 @@ export function verifySite({ outDir, designCss }) {
     "index.html",
     // The answer to every address the site does not build (site-miss.mjs).
     "404.html",
+    // The shell a mail's turn-off link is answered in (routes/email.mjs).
+    "email-page.html",
     "robots.txt",
     "sitemap.xml",
     "llms.txt",
