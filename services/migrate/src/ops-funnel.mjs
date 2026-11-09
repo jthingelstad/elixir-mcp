@@ -29,7 +29,8 @@
  *                     on the person or on an agent they own
  *   came_back_7d / _30d  own activity on a later UTC day than the one
  *                     the account was made, within 7 or 30 days: a
- *                     sign-in (event or session minted) or a call they
+ *                     sign-in (event, session minted or OAuth family
+ *                     opened, which outlasts the session) or a call they
  *                     made (mcp_call_audit under their account, never a
  *                     service token's). A session only seen or refreshed
  *                     is not a return (Jamie, 2026-10-08, the beta pulse).
@@ -117,6 +118,12 @@ export async function funnelOp(databaseUrl, spec = {}) {
          select account_id, created_at from session
           where account_id in (select account_id from people)
          union all
+         -- Consent by code mints a session but no signed_in event, and
+         -- sessions go 30 days after they expire; the family it opens
+         -- is kept, so the return stays visible after cleanup.
+         select account_id, created_at from oauth_family
+          where account_id in (select account_id from people)
+         union all
          select account_id, created_at from mcp_call_audit
           where created_at >= now() - make_interval(days => $1)
             and surface not like 'svc:%'
@@ -125,9 +132,8 @@ export async function funnelOp(databaseUrl, spec = {}) {
          select distinct account_id, (at at time zone 'UTC')::date as day
            from own)
        select p.week::text as week, p.status,
-              (exists (select 1 from activity v where v.account_id = p.account_id)
-                or exists (select 1 from oauth_family f
-                            where f.account_id = p.account_id)) as signed_in,
+              exists (select 1 from activity v where v.account_id = p.account_id)
+                as signed_in,
               exists (select 1 from account_event e
                        where e.account_id = p.account_id and e.kind = 'enrolled')
                 as enrolled,
@@ -244,8 +250,8 @@ export async function funnelOp(databaseUrl, spec = {}) {
       time_to_first_read: timing(waits, alreadyRecorded),
       notes: [
         "first_read uses GET /api/me/first-answer's rule: a profile snapshot or battle evidence for the primary tag.",
-        "signed_in: a signed_in event, a session (kept 30 days past expiry), an OAuth family or an own call; an old OAuth-consent-only sign-in with no other trace would read as never signed in.",
-        "came_back counts sign-ins and own calls on a later UTC day, never a session merely seen or refreshed; open_* accounts are still inside that window.",
+        "signed_in: a signed_in event, a session (kept 30 days past expiry), an OAuth family opened (it outlasts the session that consent by code mints) or an own call.",
+        "came_back counts sign-ins (event, session or OAuth family opened) and own calls on a later UTC day, never a session merely seen or refreshed; open_* accounts are still inside that window.",
         "time_to_first_read runs from the primary claim's creation to the first admitted profile fetch or first stored battle; a primary re-chosen later is measured from the new claim.",
       ],
     };

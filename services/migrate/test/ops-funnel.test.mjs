@@ -245,3 +245,34 @@ test("a primary recorded before it was claimed has no wait to measure", async ()
   assert.equal(r.time_to_first_read.measured, 2);
   assert.equal(r.time_to_first_read.already_recorded, 1);
 });
+
+test("a return through OAuth consent outlasts its session", async () => {
+  const before = (await funnelOp(SCRATCH_URL, { days: 90 })).overall;
+  const f = (
+    await db.query(
+      `insert into account (email_hash, status, role, created_at)
+       values ('funnel-f', 'approved', 'member', $1) returning account_id`,
+      [ago(20)],
+    )
+  ).rows[0].account_id;
+  await db.query(
+    `insert into account_event (account_id, kind, created_at) values ($1, 'signed_in', $2)`,
+    [f, ago(20)],
+  );
+  // Consent by code three days later: it minted a session (since cleaned
+  // up) and no signed_in event; the family it opened is all that is left.
+  await db.query(
+    `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
+     values ('funnel-client', 'A client', '{}', now() + interval '1 day')`,
+  );
+  await db.query(
+    `insert into oauth_family (client_id, account_id, created_at, absolute_expires_at, revoked_at)
+     values ('funnel-client', $1, $2, $3, $3)`,
+    [f, ago(17), ago(10)],
+  );
+  const after = (await funnelOp(SCRATCH_URL, { days: 90 })).overall;
+  assert.equal(after.accounts, before.accounts + 1);
+  assert.equal(after.came_back_7d, before.came_back_7d + 1);
+  assert.equal(after.came_back_30d, before.came_back_30d + 1);
+  assert.equal(after.agent_connected, before.agent_connected);
+});
