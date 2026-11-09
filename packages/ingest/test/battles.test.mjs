@@ -283,6 +283,8 @@ test("empty battlelog is a clean no-op", async () => {
     battlesSkipped: 0,
     battlesInserted: 0,
     facts: 0,
+    // An empty log writes no mark, so it is no first read.
+    firstLog: false,
     captureAudit: { audited: false, gap: false },
     arenaEvidence: null,
     affectedPairs: [],

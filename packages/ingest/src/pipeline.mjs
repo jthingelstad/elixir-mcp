@@ -35,6 +35,7 @@ import {
   pinArenaMoment,
 } from "./snapshots.mjs";
 import { refreshDailyRollups } from "./rollups.mjs";
+import { isFirstRead, logFirstRead } from "./first-read.mjs";
 import { projectCardCatalog, projectPlayerCards } from "./cards.mjs";
 import { projectRiverRace, projectRiverRaceLog } from "./war.mjs";
 import {
@@ -916,6 +917,26 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
             console.error("timeline_wake_failed", tag, err?.message),
           );
     }
+    // How long a newly tracked player waited for this (first-read.mjs):
+    // only when the projection says it was the tag's first profile or
+    // battle log, after the commit, and never thrown. A replay is not a
+    // first read of the present.
+    if (
+      admission.ok &&
+      !deps.skipProjection &&
+      deps.moments !== false &&
+      isFirstRead(endpoint, projection)
+    )
+      await logFirstRead(
+        db,
+        {
+          endpoint,
+          entityKey,
+          jobId: msg.job_id,
+          lane: msg.job.lane,
+        },
+        deps.firstReadLog,
+      );
     timings.total_ms = Date.now() - t0;
     // A race in matchmaking (RACE_MATCHMAKING) is neither: no projection,
     // no freshness, no collector charge; the planner reads it again.

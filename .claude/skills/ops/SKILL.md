@@ -175,6 +175,24 @@ Stamps are UTC; Jamie reads US Central.
 - Failures log by name: `call_capture_failed`, `audit_write_failed`,
   `output_schema_mismatch`, `db_connect_failed` (MCP),
   `email_compose_failed` (jobs). The migrate group is every op's result.
+- **How long a first read takes** (2026-11-09). The collector group logs
+  `message.event = "first_read_landed"` once per tracked player's first
+  admitted profile (`endpoint` `player`) and first battle log with
+  battles in it (`player_battlelog`), with `lane`, `seconds_from_tracked`
+  (since the first account still tracking it added it),
+  `seconds_from_minted` and `seconds_queued` (mint to lease; both null
+  when no job id rode the submit); no tag (`packages/ingest/src/first-read.mjs`).
+  The distribution by day, in `/aws/lambda/web/elixir-mcp-collector-web`:
+  `fields message.endpoint as endpoint, message.seconds_from_tracked as s | filter message.event = "first_read_landed" | stats count(*) as n, pct(s, 50) as p50, pct(s, 90) as p90, max(s) as max_s by bin(1d), endpoint`.
+  Add `message.lane as lane` and `by ... lane` to split a live first
+  read from one the scheduler made. Whether the add asked at all is
+  `message.event = "first_read_requested"` in the web-api and mcp
+  groups, `message.outcome` one of `minted`, `joined`, `no_token`,
+  `first_reads_spent`, `fresh`, `read_today`, `failed_today`,
+  `not_found_today`, `no_live_lane`, `no_account`, `error`:
+  `filter message.event = "first_read_requested" | stats count(*) by bin(1d), message.outcome`.
+  A `no_token` or `first_reads_spent` add lands on the scheduler's bulk
+  lane, a tick or more later.
 
 **Call captures.** The MCP door writes each tool call's request and
 response, gzipped JSON, to the archive bucket (`ArchiveBucket`,

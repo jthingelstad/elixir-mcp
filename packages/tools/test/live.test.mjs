@@ -983,3 +983,52 @@ test("a refused first read takes nothing, so a read given back is there for the 
   const next = await requestFirstRead(db, live, "#2PYLU2", personId);
   assert.equal(next.requested, true);
 });
+
+test("a first read's outcome is logged by name, so a slow first read can be told from a refused one", async () => {
+  const lines = [];
+  const info = console.info;
+  const error = console.error;
+  console.info = (line) => lines.push(line);
+  console.error = () => {};
+  const answer = (r) => async () => r;
+  try {
+    for (const [tag, live, outcome] of [
+      [
+        "#2PYLC0",
+        answer({ ok: false, reason: "pending", minted: true }),
+        "minted",
+      ],
+      [
+        "#2PYLC2",
+        answer({ ok: false, reason: "pending", minted: false }),
+        "joined",
+      ],
+      [
+        "#2PYLC8",
+        answer({ ok: false, reason: "pending", minted: false, queued: false }),
+        "no_token",
+      ],
+      ["#2PYLC9", answer({ ok: true }), "fresh"],
+      ["#2PYLCP", null, "no_live_lane"],
+      [
+        "#2PYLCY",
+        async () => {
+          throw new Error("ledger down");
+        },
+        "error",
+      ],
+    ]) {
+      lines.length = 0;
+      await requestFirstRead(db, live, tag, "an-account");
+      assert.deepEqual(
+        lines,
+        [{ event: "first_read_requested", outcome }],
+        tag,
+      );
+      assert.ok(!JSON.stringify(lines).includes(tag.slice(1)), "no tag");
+    }
+  } finally {
+    console.info = info;
+    console.error = error;
+  }
+});

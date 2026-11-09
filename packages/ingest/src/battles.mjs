@@ -674,6 +674,10 @@ export async function ingestBattlelog(
     battlesSkipped: battlesSkipped + (collectorFilter?.filtered ?? 0),
     battlesInserted,
     facts: battlesInserted,
+    // The first live log this observer delivers with battles in it: no
+    // mark before (read above, no extra query) and one written now. An
+    // empty log writes no mark, so it is not counted until battles come.
+    firstLog: highWater && mark === null && newest !== null,
     captureAudit:
       hadPriorCoverage && seen > 0
         ? { audited: true, gap }
