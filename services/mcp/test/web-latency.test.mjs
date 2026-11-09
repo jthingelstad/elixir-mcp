@@ -242,3 +242,54 @@ test("rows, flags and refusals", () => {
   assert.throws(() => parseArgs(["--days"]), /needs a value/);
   assert.throws(() => parseArgs(["--min-samples", "-1"]), /--min-samples/);
 });
+
+test("an event on a window edge is kept once (StartQuery is inclusive at both ends)", async () => {
+  const edge = { "message.request_id": "r-edge", "message.ms": "5" };
+  const runQuery = async ({ start }) =>
+    start === 0
+      ? [{ "message.request_id": "r-1" }, edge, {}]
+      : [edge, { "@message": "line" }, { "@message": "line" }, {}];
+  const { rows } = await collectRows(runQuery, 0, 2 * 86_400);
+  assert.equal(rows.filter((row) => row === edge).length, 1);
+  assert.equal(rows.filter((row) => row["@message"] === "line").length, 1);
+  assert.equal(
+    rows.filter((row) => Object.keys(row).length === 0).length,
+    2,
+    "a row with no identity is never dropped",
+  );
+  assert.equal(rows.length, 5);
+});
+
+test("a timeout is joined to its outer request, not the handler's coarse key", () => {
+  const outer = (id, http, ms, status) => ({
+    "@timestamp": "2026-11-09 12:00:00.000",
+    "message.http": http,
+    "message.ms": String(ms),
+    "message.status": String(status),
+    "message.build": "b1",
+    "message.request_id": id,
+  });
+  const report = buildReport(
+    {
+      web: [
+        outer("r1", "GET /api/clan/clans/J2RGCRVG/week", 18_500, 504),
+        outer("r2", "GET /api/v1/clans/%23J2RGCRVG/roster", 18_400, 504),
+        outer("r3", "GET /api/me/home", 18_500, 504),
+      ],
+      timeouts: [
+        { "message.http": "GET /api/clan/*", "message.request_id": "r1" },
+        { "message.http": "GET /api/v1/*", "message.request_id": "r2" },
+        { "message.http": "GET /api/me/home", "message.request_id": "r3" },
+      ],
+    },
+    ceilings,
+  );
+  const timedOut = Object.fromEntries(
+    report.routes.map((row) => [row.key, row.timed_out]),
+  );
+  assert.deepEqual(timedOut, {
+    "GET /api/clan/clans/*/week": 1,
+    "GET /api/v1/clans/*/roster": 1,
+    "GET /api/me/home": 1,
+  });
+});

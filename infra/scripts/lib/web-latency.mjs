@@ -8,7 +8,9 @@
  * (`packages/http/src/server.mjs`, `event: "http_request"`) carries the
  * real path, the status, `ms` and the build, and is what this report
  * times. The handler's own line carries a coarser route key and
- * `timed_out`; only its timeouts are read. The Clan door logs a third,
+ * `timed_out`; only its timeouts are read, joined to the outer line by
+ * `request_id` (the handler's key is `GET /api/clan/*` or
+ * `GET /api/v1/*` for whole families, so it cannot name the route). The Clan door logs a third,
  * stringified line with `elixir_ms` and `store_ms`.
  */
 
@@ -22,10 +24,10 @@ export const LOG_GROUPS = {
 export const INSIGHTS_ROW_CAP = 10_000;
 
 export const QUERIES = {
-  web: `filter message.event = "http_request" | fields @timestamp, message.http, message.status, message.ms, message.build | limit ${INSIGHTS_ROW_CAP}`,
-  timeouts: `filter message.timed_out = 1 | fields @timestamp, message.http, message.status | limit ${INSIGHTS_ROW_CAP}`,
+  web: `filter message.event = "http_request" | fields @timestamp, message.http, message.status, message.ms, message.build, message.request_id | limit ${INSIGHTS_ROW_CAP}`,
+  timeouts: `filter message.timed_out = 1 | fields @timestamp, message.http, message.status, message.request_id | limit ${INSIGHTS_ROW_CAP}`,
   clan: `filter @message like /elixir_ms/ | fields @timestamp, @message | limit ${INSIGHTS_ROW_CAP}`,
-  mcp: `filter ispresent(message.tool) | fields @timestamp, message.tool, message.status, message.ms | limit ${INSIGHTS_ROW_CAP}`,
+  mcp: `filter ispresent(message.tool) | fields @timestamp, message.tool, message.status, message.ms, message.request_id | limit ${INSIGHTS_ROW_CAP}`,
 };
 
 const SLOW_MS = 3000;
@@ -183,14 +185,24 @@ function dayWindows(start, end) {
   return windows;
 }
 
+/** A row's identity across windows: its request id, else the whole log
+ * line; null keeps the row unconditionally. */
+function rowKey(row) {
+  return row["message.request_id"] ?? row["@message"] ?? null;
+}
+
 /**
  * Every row a query returns over [start, end), asked a day at a time; a
  * day that fills the row cap is halved until it does not (down to a
  * minute, where the cap is reported rather than hidden).
  * `runQuery({start, end})` resolves to an array of row objects.
+ * StartQuery's start and end are both inclusive, so an event on a
+ * window's edge comes back from both neighbours: rows are kept once by
+ * `rowKey`.
  */
 export async function collectRows(runQuery, start, end) {
   const rows = [];
+  const seen = new Set();
   let truncated = false;
   const ask = async (from, to) => {
     const got = await runQuery({ start: from, end: to });
@@ -201,7 +213,14 @@ export async function collectRows(runQuery, start, end) {
       return;
     }
     if (got.length >= INSIGHTS_ROW_CAP) truncated = true;
-    rows.push(...got);
+    for (const row of got) {
+      const key = rowKey(row);
+      if (key != null) {
+        if (seen.has(key)) continue;
+        seen.add(key);
+      }
+      rows.push(row);
+    }
   };
   for (const [from, to] of dayWindows(start, end)) await ask(from, to);
   return { rows, truncated };
@@ -225,11 +244,23 @@ export function buildReport(
       status: num(row["message.status"]),
       ms: num(row["message.ms"]),
       build: row["message.build"] ?? "unknown",
+      request_id: row["message.request_id"] ?? null,
     }))
     .filter((row) => isReportedWebRoute(row.route));
 
+  // A timeout belongs to the outer line with its request id; the
+  // handler's own key is only a fallback.
+  const routeOfRequest = new Map(
+    webRows
+      .filter((row) => row.request_id)
+      .map((row) => [row.request_id, row.route]),
+  );
   const timeoutsByRoute = groupBy(
-    timeouts.map((row) => normaliseRoute(row["message.http"])),
+    timeouts.map(
+      (row) =>
+        routeOfRequest.get(row["message.request_id"]) ??
+        normaliseRoute(row["message.http"]),
+    ),
     (route) => route,
   );
 
