@@ -1,0 +1,35 @@
+---
+layout: base.njk
+title: "Email"
+description: "Every Elixir email has a switch of its own, on your email settings."
+permalink: /email-page.html
+eleventyExcludeFromCollections: true
+noindex: true
+---
+{#- The shell for the pages a mail's turn-off link opens
+    (services/web-api routes/email.mjs). The API reads this built
+    document from the site bucket, writes its own title and replaces the
+    section marked data-email-page with the step the link is at: confirm,
+    turned off, an expired link, an email that has ended. Its words live
+    there; what is here is only what the address shows if someone opens
+    it directly. Every class the API writes is used below, so the
+    stylesheet keeps it. Served at /api/email/unsubscribe, so every link
+    is absolute. Never in the sitemap and never indexed. -#}
+<section class="mx-auto flex max-w-[560px] flex-col items-start gap-4 pt-10 pb-6" data-email-page>
+  <span class="chip">Email</span>
+  <h1 class="hero-title m-0">Your Elixir email</h1>
+  <p class="docs__lede m-0">
+    Every email Elixir sends has a switch of its own. Choose which ones you
+    get from your email settings, and turn any of them back on there.
+  </p>
+  <div class="flex flex-wrap items-center gap-3" data-session-face="out">
+    <a class="btn btn--primary" href="/signin">Sign in</a>
+    <a class="btn" href="/">Elixir home</a>
+    <a class="btn btn--quiet" href="/docs/email">How Elixir email works</a>
+  </div>
+  <div class="flex flex-wrap items-center gap-3" data-session-face="in">
+    <a class="btn btn--primary" href="/settings/emails">Email settings</a>
+    <a class="btn" href="/home">Open Home</a>
+    <a class="btn btn--quiet" href="/docs/email">How Elixir email works</a>
+  </div>
+</section>

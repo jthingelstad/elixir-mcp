@@ -659,6 +659,9 @@ Resources:
                   # The site's 404 page, answered for an address the
                   # bucket misses (SiteDistribution's site-or-miss group).
                   - !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/404.html
+                  # The page a mail's turn-off link is answered in
+                  # (routes/email.mjs, apps/site email-page.njk).
+                  - !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/email-page.html
 
   # The collector door (services/collector): archives each submission at
   # admission, write-once (ArchiveBucketPolicy; a put with If-None-Match

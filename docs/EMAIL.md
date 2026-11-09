@@ -83,6 +83,12 @@ The validator refuses a bulk message without `unsubscribe.url`.
 - The footer link is a **GET to `/api/email/unsubscribe?t=` that shows a
   page with a button** that POSTs. Link scanners pre-fetch GETs; a GET
   that changed state would unsubscribe people who never clicked.
+- The page is the site's `email-page.html` with the step written into its
+  `data-email-page` section (`services/web-api/src/routes/email.mjs`); a
+  plain inline page when the bucket cannot be read. The POST answers a
+  bare `ok` only to the RFC 8058 body (`List-Unsubscribe=One-Click`); the
+  button sends no body and gets the page. Never key this on `Accept`: the
+  edge does not forward it to `/api/*`.
 - `all` is a valid kind in the token: one click off everything.
 - Complaints and bounces reach the ops queue through the configuration
   set, and SES's account-level suppression list takes a complainer or a

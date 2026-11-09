@@ -3522,6 +3522,127 @@ test("a one-click unsubscribe racing a removal waits for it and writes nothing",
   assert.deepEqual(rows[0], { prefs: 0, events: 0 });
 });
 
+// The site's email page as the build writes it: the bar, the stylesheet,
+// the analytics tag and the section the API fills (apps/site
+// email-page.njk). Only what the route reads is here.
+const EMAIL_SHELL = `<!doctype html><html><head><title>Email - Elixir</title>
+<link rel="stylesheet" href="/assets/site.css?v=1" /></head><body>
+<header class="kit-top">bar</header><main class="wrap">
+<section class="mx-auto" data-email-page><h1>Your Elixir email</h1></section>
+</main><footer>not endorsed by Supercell</footer>
+<script defer src="https://tinylytics.app/js/script.js" data-site="x"></script>
+</body></html>`;
+
+test("a turn-off link is answered in Elixir's own page, and the button gets a page, not the mail client's ok", async () => {
+  const {
+    rows: [person],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
+     returning account_id`,
+    [emailHash("turn-off-page@example.com")],
+  );
+  const withShell = makeHandler({
+    databaseUrl: DB_URL,
+    secret: SECRET,
+    emailShell: async () => EMAIL_SHELL,
+  });
+  const token = signUnsubscribe({
+    secret: SECRET,
+    accountId: person.account_id,
+    kind: "milestone",
+  });
+  const call = (method, { t = token, body, accept } = {}) => {
+    // As the edge delivers it: no Accept header ever reaches /api/*.
+    const request = event({ method, path: "/api/email/unsubscribe" });
+    request.queryStringParameters = { t };
+    if (accept) request.headers.accept = accept;
+    if (body !== undefined) request.body = body;
+    return withShell(request);
+  };
+
+  const ask = await call("GET");
+  assert.equal(ask.statusCode, 200);
+  assert.match(ask.headers["content-type"], /^text\/html/);
+  assert.match(ask.body, /<title>Turn off Milestones\? - Elixir<\/title>/);
+  assert.match(ask.body, /class="kit-top"/, "the site's own bar");
+  assert.match(ask.body, /site\.css/, "the site's own stylesheet");
+  assert.match(
+    ask.body,
+    new RegExp(
+      `<form method="post" action="/api/email/unsubscribe\\?t=${token}">`,
+    ),
+  );
+  assert.doesNotMatch(ask.body, /Your Elixir email/, "the section is replaced");
+  // The address carries a credential; no third-party script reads it.
+  assert.doesNotMatch(ask.body, /tinylytics/);
+  assert.match(ask.body, /not endorsed by Supercell/);
+
+  // The person's button: no body, and no Accept (the edge drops it).
+  const pressed = await call("POST");
+  assert.equal(pressed.statusCode, 200);
+  assert.match(pressed.headers["content-type"], /^text\/html/);
+  assert.match(pressed.body, /<title>Milestones: off - Elixir<\/title>/);
+  for (const href of ["/home", "/settings/emails", "/signin", "/"])
+    assert.ok(pressed.body.includes(`href="${href}"`), `no way on to ${href}`);
+  assert.match(pressed.body, /data-session-face="in"/);
+  assert.match(pressed.body, /data-session-face="out"/);
+  const {
+    rows: [pref],
+  } = await db.query(
+    `select enabled, via from account_email_pref where account_id = $1 and kind = 'milestone'`,
+    [person.account_id],
+  );
+  assert.deepEqual(pref, { enabled: false, via: "one_click" });
+
+  // A mail client's RFC 8058 POST still gets a bare 2xx.
+  const client = await call("POST", { body: "List-Unsubscribe=One-Click" });
+  assert.equal(client.statusCode, 200);
+  assert.equal(client.headers["content-type"], "text/plain");
+  assert.equal(client.body, "ok");
+
+  // A link that does not verify says so in the same page, with the way on.
+  const stale = await call("GET", { t: "not-a-token" });
+  assert.equal(stale.statusCode, 400);
+  assert.match(stale.body, /This link has expired/);
+  assert.match(stale.body, /class="kit-top"/);
+  assert.ok(stale.body.includes('href="/signin"'));
+});
+
+test("a turn-off page still answers, with its ways on, when the site's page cannot be read", async () => {
+  const {
+    rows: [person],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
+     returning account_id`,
+    [emailHash("turn-off-fallback@example.com")],
+  );
+  const token = signUnsubscribe({
+    secret: SECRET,
+    accountId: person.account_id,
+    kind: "all",
+  });
+  for (const emailShell of [
+    async () => {
+      throw new Error("NoSuchKey");
+    },
+    // A shell without the section is not one to write into.
+    async () => "<!doctype html><title>Something else</title>",
+    null,
+  ]) {
+    const h = makeHandler({ databaseUrl: DB_URL, secret: SECRET, emailShell });
+    const request = event({ method: "POST", path: "/api/email/unsubscribe" });
+    request.queryStringParameters = { t: token };
+    const reply = await h(request);
+    assert.equal(reply.statusCode, 200);
+    assert.match(reply.headers["content-type"], /^text\/html/);
+    assert.match(reply.body, /Every email is off/);
+    assert.match(reply.body, /Sign-in codes and account notices still come/);
+    assert.ok(reply.body.includes('href="/settings/emails"'));
+    assert.ok(reply.body.includes('href="/home"'));
+    assert.match(reply.body, /not endorsed by Supercell/);
+  }
+});
+
 test("retired email switches cannot be restored, while history and old unsubscribe links remain readable", async () => {
   const {
     rows: [account],

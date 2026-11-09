@@ -142,6 +142,10 @@ const handler = makeHandler({
   },
   // A battle's page is the app shell with the battle's preview tags.
   siteShell: makeSiteShell(process.env.SITE_BUCKET),
+  // A mail's turn-off link is answered in the site's own page.
+  emailShell: makeSiteShell(process.env.SITE_BUCKET, {
+    key: "email-page.html",
+  }),
   // An address the site does not build: its 404 page, with a true 404.
   siteMiss: makeSiteMiss(
     makeSiteShell(process.env.SITE_BUCKET, { key: "404.html" }),

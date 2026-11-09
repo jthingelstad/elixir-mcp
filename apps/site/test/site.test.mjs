@@ -1576,6 +1576,38 @@ test(
 );
 
 test(
+  "the email page: the shell a turn-off link is answered in",
+  { skip },
+  () => {
+    // services/web-api routes/email.mjs reads this from the bucket and
+    // replaces the data-email-page section, so it must have exactly one,
+    // and it is served at /api/email/unsubscribe: every link absolute.
+    const html = read("email-page.html");
+    assert.match(html, /<title>Email - Elixir<\/title>/);
+    assert.match(html, /<meta name="robots" content="noindex"/);
+    assert.equal(html.match(/<section\b[^>]*\bdata-email-page\b/g)?.length, 1);
+    assert.match(html, /class="kit-top"/);
+    assert.match(html, /not endorsed by Supercell/);
+    assert.ok(!read("sitemap.xml").includes("email-page"));
+    // The classes the API writes into the section, kept by the stylesheet
+    // because this page uses them.
+    for (const cls of [
+      "chip",
+      "hero-title",
+      "docs__lede",
+      "btn--primary",
+      "btn--quiet",
+    ])
+      assert.ok(html.includes(cls), `email page lost ${cls}`);
+    for (const m of html.matchAll(/(?:href|src)="([^"#]+)"/g))
+      assert.ok(
+        /^(\/|https:)/.test(m[1]),
+        `email page links ${m[1]}, which resolves against /api/email/`,
+      );
+  },
+);
+
+test(
   "the home page shows a recorded battle beside its signup",
   { skip },
   () => {

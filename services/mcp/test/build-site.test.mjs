@@ -28,6 +28,7 @@ const CSS = `@font-face { src: url("/assets/fonts/Inter-latin.woff2") }`;
 const SITE = {
   "index.html": "<main>home</main>",
   "404.html": "<main>missing</main>",
+  "email-page.html": "<main><section data-email-page></section></main>",
   "docs/index.html": "<main>docs</main>",
   "robots.txt": "Sitemap: https://elixir.poapkings.com/sitemap.xml",
   "sitemap.xml":
