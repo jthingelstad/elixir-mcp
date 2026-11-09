@@ -156,6 +156,7 @@ describe("loadTinylytics", () => {
   let pushState;
   let replaceState;
   let beacons;
+  let unload;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -174,6 +175,8 @@ describe("loadTinylytics", () => {
     // Every bridge loaded so far sends what it holds now, never into the
     // next test.
     settle();
+    unload?.();
+    unload = undefined;
     window.history.pushState = pushState;
     window.history.replaceState = replaceState;
   });
@@ -187,7 +190,7 @@ describe("loadTinylytics", () => {
   const load = async (path) => {
     window.history.replaceState({}, "", path);
     const { loadTinylytics } = await import("../src/analytics.js");
-    loadTinylytics();
+    unload = loadTinylytics();
   };
 
   test("a session that starts on /signin reports every page AFTER it", async () => {
@@ -444,6 +447,161 @@ describe("loadTinylytics", () => {
       settle();
       vi.useRealTimers();
     }
+  });
+
+  /**
+   * Events (#508). The embed is the event listener, so a session that skipped
+   * it (it began on /signin or a record page, and never loads another
+   * document) dropped every event. That session now listens itself and sends
+   * the event to the address the embed would (/collector/<site> with `event`
+   * and `event_value`), at the route, never the address bar.
+   */
+  const events = () =>
+    beacons
+      .map((b) => new URL(b))
+      .filter((u) => u.searchParams.has("event"))
+      .map((u) => ({
+        event: u.searchParams.get("event"),
+        value: u.searchParams.get("event_value"),
+        path: u.searchParams.get("path"),
+        url: u.searchParams.get("url"),
+      }));
+  const track = async (event, value) => {
+    const { trackEvent } = await import("../src/analytics.js");
+    trackEvent(event, value);
+  };
+
+  test.each([
+    "/signin#login_token=secret",
+    "/signin?login_token=secret",
+    "/console/signin#login_token=secret",
+  ])(
+    "a session that starts at %s delivers its events once it leaves, and never the token",
+    async (start) => {
+      await load(start);
+      expect(embeds()).toEqual([]);
+      // On the sign-in page itself: nothing at all.
+      await track("web.api_timeout", "POST /api/auth/redeem");
+      expect(beacons).toEqual([]);
+
+      window.history.pushState({}, "", "/home");
+      await track("web.api_timeout", "GET /api/me/home");
+      expect(events()).toEqual([
+        {
+          event: "web.api_timeout",
+          value: "GET /api/me/home",
+          path: "/home",
+          url: `${ORIGIN}/home`,
+        },
+      ]);
+      const sent = new URL(beacons.at(-1));
+      expect(sent.host).toBe("tinylytics.app");
+      expect(sent.pathname).toBe(`/collector/${SITE_ID}`);
+      settle();
+      for (const b of beacons) {
+        expect(b).not.toContain("secret");
+        expect(b).not.toContain("login_token");
+        expect(b).not.toContain("signin");
+      }
+    },
+  );
+
+  test("Clan's events arrive through the same listener", async () => {
+    await load("/signin");
+    window.history.pushState({}, "", "/clan/2PQRJ8LV/actions");
+    const clan = await import("@elixir-mcp/clan-web/analytics.js");
+    clan.trackEvent("clan.discord_nudge");
+    expect(events()).toEqual([
+      {
+        event: "clan.discord_nudge",
+        value: "",
+        path: "/clan/actions",
+        url: at("/clan/2PQRJ8LV/actions").url,
+      },
+    ]);
+  });
+
+  test("the first-use steps arrive in a session that began at sign-in", async () => {
+    await load("/signin");
+    window.history.replaceState({}, "", "/home");
+    await track("home.player_added");
+    await track("home.first_read_landed");
+    expect(events().map((e) => [e.event, e.value, e.path])).toEqual([
+      ["home.player_added", "", "/home"],
+      ["home.first_read_landed", "", "/home"],
+    ]);
+  });
+
+  test.each([
+    ["/console/account/activity/e/abc123", "/console/account/activity/e"],
+    ["/settings/players/2ABC", "/settings/players"],
+    ["/clan/2PQRJ8LV?find=Private%20search", "/clan"],
+  ])(
+    "a session that starts on %s delivers events as its kind of page",
+    async (start, kind) => {
+      await load(start);
+      expect(embeds()).toEqual([]);
+      await track("web.error", `TypeError ${kind}`);
+      expect(events()).toHaveLength(1);
+      expect(events()[0].path).toBe(kind);
+      expect(beacons[0]).not.toMatch(/abc123|2ABC|Private|find=/);
+
+      window.history.pushState({}, "", "/home");
+      await track("console.invite_copied", "chat");
+      expect(events().map((e) => [e.event, e.path])).toEqual([
+        ["web.error", kind],
+        ["console.invite_copied", "/home"],
+      ]);
+    },
+  );
+
+  test("a tagged link the reader clicks counts as the embed would count it", async () => {
+    await load("/signin");
+    window.history.pushState({}, "", "/clan");
+    const link = document.createElement("a");
+    link.href = "/signin?next=/clan";
+    link.setAttribute("data-tinylytics-event", "clan.signin_started");
+    link.setAttribute("data-tinylytics-event-value", "landing");
+    link.addEventListener("click", (e) => e.preventDefault());
+    document.body.appendChild(link);
+    link.click();
+    // Not a primary click, or no dotted name: the embed ignores both.
+    link.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true, button: 1 }),
+    );
+    await track("nodot");
+    expect(events().map((e) => [e.event, e.value])).toEqual([
+      ["clan.signin_started", "landing"],
+    ]);
+  });
+
+  test("a reader who opted out of Tinylytics sends no events", async () => {
+    window.localStorage.setItem("tinylytics_ignore", "true");
+    try {
+      await load("/signin");
+      window.history.pushState({}, "", "/home");
+      await track("web.error", "TypeError /home");
+      expect(events()).toEqual([]);
+    } finally {
+      window.localStorage.removeItem("tinylytics_ignore");
+    }
+  });
+
+  test("an ordinary start leaves events to the embed, as before", async () => {
+    await load("/home");
+    expect(embeds()).toEqual(["https://tinylytics.app/js/script.js"]);
+    const clicks = [];
+    const onClick = (ev) =>
+      clicks.push(ev.target.getAttribute("data-tinylytics-event"));
+    document.addEventListener("click", onClick);
+    try {
+      await track("web.error", "TypeError /home");
+    } finally {
+      document.removeEventListener("click", onClick);
+    }
+    // The hidden node is clicked for the embed's listener; no beacon of ours.
+    expect(clicks).toEqual(["web.error"]);
+    expect(beacons).toEqual([]);
   });
 });
 
