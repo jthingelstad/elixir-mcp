@@ -218,6 +218,24 @@ class FirstReadsSpent extends Error {}
  * fetch was a 404.
  */
 export async function requestFirstRead(db, live, tag, accountId) {
+  const { result, outcome } = await firstReadOutcome(db, live, tag, accountId);
+  // By name, so a slow first read can be told from a refused one
+  // (first_read_landed in packages/ingest/src/first-read.mjs times the
+  // landing). No tag, account or email in the line.
+  console.info({ event: "first_read_requested", outcome });
+  return result;
+}
+
+/**
+ * The outcomes, one word each: minted (a live job queued for it), joined
+ * (a job for the tag was already open), no_token (the global bucket was
+ * empty: nothing queued, the scheduler reads it on a later tick),
+ * first_reads_spent (the pool's first reads for the day are used: the
+ * same), fresh, read_today, failed_today, not_found_today, no_live_lane,
+ * no_account, error.
+ */
+async function firstReadOutcome(db, live, tag, accountId) {
+  const done = (result, outcome) => ({ result, outcome });
   let spent = null;
   try {
     const {
@@ -232,15 +250,21 @@ export async function requestFirstRead(db, live, tag, accountId) {
                 order by fetched_at desc limit 1) as failed_status`,
       [tag],
     );
-    if (seen.read) return { requested: false, reason: "read_today" };
+    if (seen.read)
+      return done({ requested: false, reason: "read_today" }, "read_today");
     if (seen.failed_status !== undefined && seen.failed_status !== null)
-      return {
-        requested: false,
-        reason: "failed_today",
-        not_found: seen.failed_status === 404,
-      };
-    if (!live) return { requested: false, reason: "no_live_lane" };
-    if (!accountId) return { requested: false, reason: "no_account" };
+      return done(
+        {
+          requested: false,
+          reason: "failed_today",
+          not_found: seen.failed_status === 404,
+        },
+        seen.failed_status === 404 ? "not_found_today" : "failed_today",
+      );
+    if (!live)
+      return done({ requested: false, reason: "no_live_lane" }, "no_live_lane");
+    if (!accountId)
+      return done({ requested: false, reason: "no_account" }, "no_account");
     const r = await live(db, {
       endpoint: "player",
       entityKey: tag,
@@ -254,18 +278,28 @@ export async function requestFirstRead(db, live, tag, accountId) {
     // Another add of the same tag got its job in first: nothing was
     // minted for this one, so the pool's read goes back with the token.
     if (spent?.ok && r.minted === false) await refundFirstRead(db, spent);
-    if (r.ok) return { requested: false, reason: "fresh" };
-    return {
-      requested: r.reason === "pending" && r.queued !== false,
-      reason: r.reason,
-    };
+    if (r.ok) return done({ requested: false, reason: "fresh" }, "fresh");
+    const requested = r.reason === "pending" && r.queued !== false;
+    return done(
+      { requested, reason: r.reason },
+      r.reason !== "pending"
+        ? r.reason
+        : r.queued === false
+          ? "no_token"
+          : r.minted
+            ? "minted"
+            : "joined",
+    );
   } catch (err) {
     if (err instanceof FirstReadsSpent)
-      return { requested: false, reason: "first_reads_spent" };
+      return done(
+        { requested: false, reason: "first_reads_spent" },
+        "first_reads_spent",
+      );
     // The mint failed after the pool paid for it: give it back.
     if (spent?.ok) await refundFirstRead(db, spent).catch(() => {});
     console.error("first_read_failed", tag, err?.message);
-    return { requested: false, reason: "error" };
+    return done({ requested: false, reason: "error" }, "error");
   }
 }
 

@@ -469,6 +469,10 @@ export async function projectPlayerSnapshot(
     day,
     kind,
     hadPrevious: Boolean(prev),
+    // No profile observation of this player before this poll, read from
+    // the two baselines above (no extra query): the first profile the
+    // record admits for the tag (first-read.mjs times it).
+    firstProfile: !prev && !latest,
     moved,
     written,
     frozen,
