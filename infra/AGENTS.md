@@ -113,6 +113,12 @@ a claim), `name-collector-release.mjs` (`docs/RELEASING-COLLECTOR.md`),
 through today's editor on a maintainer's own key; the `discord-review`
 skill), `build-site.mjs`, `smoke.mjs` (the smoke phase; its checks are
 `runSmoke`, tested offline in `services/mcp/test/smoke.test.mjs`),
+`web-latency.mjs` (`npm run web-latency -- --days 7`, read-only Logs
+Insights over the web-api and MCP doors: per route and per tool p50, p95,
+max, over 3 s and 5xx against `infra/web-latency-ceilings.json`, Home by
+build, the Clan door's Elixir and store split; `--check` exits 1 when a
+judged route is over; not a deploy or CI gate, since natural traffic is
+too sparse; tested offline in `services/mcp/test/web-latency.test.mjs`),
 `test-workflows.sh` (the
 workflow lint), `test.mjs` (`npm test`: every workspace test, one build
 then a bounded pool locally, `--shard i/n` in CI), `e2e-shard.mjs` (the

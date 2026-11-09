@@ -152,6 +152,18 @@ Stamps are UTC; Jamie reads US Central.
   (method and route), `message.status`, `message.ms`, `message.request_id`;
   MCP adds `message.rpc` and `message.tool`, web-api `message.connect_ms`
   and `message.timed_out`. Per-tool numbers are `{audit_census}`'s.
+- **Why is the web slow?** `npm run web-latency -- --days 7`
+  (`infra/scripts/web-latency.mjs`, read-only) reads the web-api door's
+  outer `http_request` lines (real path, `ms`, `status`, `build`), its
+  handler's `timed_out` lines, the Clan door's trace line (`elixir_ms`,
+  `store_ms`) and the MCP door's tool lines, and prints per route and per
+  tool samples, p50, p95, max, over 3 s, 5xx and a verdict against
+  `infra/web-latency-ceilings.json` (`thin` under the minimum samples is
+  never judged), Home by build so a deploy's effect shows, and how much
+  of each Clan route is Elixir calls versus its own store. `--json` for
+  the rows, `--check` to exit 1 when a judged route is over. The
+  web-api door logs two lines per request: time the outer one, never
+  both.
 - The scheduler's EMF line, one a tick (`ElixirMCP/Ledger`), carries two
   metrics, `OldestQueuedAgeSeconds` and `DeadJobs` (behind the
   `elixir-mcp-ledger-dead-jobs` alarm), and plain properties: `QueuedJobs`, `PlannedJobs`,
@@ -208,6 +220,7 @@ read-only session (no issue, no send).
 | Question | Read |
 | --- | --- |
 | Is the pipeline healthy? | the status endpoint, then `{stats}` |
+| Why is the web slow? Which route or tool is over its ceiling? | `npm run web-latency -- --days 7` |
 | Why is this tool slow for this call? | `{profile_tool}` with `"explain": true`; the tool's `explain_*` op if it has one |
 | Which subjects lose battles to capture gaps? | `{capture_audit}` |
 | Why was this subject or board not fetched? | `{poll_state}` |

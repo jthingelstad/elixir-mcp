@@ -19,6 +19,7 @@
   "devDependencies": {
     "@aws-sdk/client-cloudformation": "^3.1161.0",
     "@aws-sdk/client-cloudfront": "^3.1161.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1161.0",
     "@aws-sdk/client-lambda": "^3.1161.0",
     "@aws-sdk/client-lambda-web": "3.1161.0",
     "@aws-sdk/client-s3": "^3.1161.0",
@@ -48,6 +49,7 @@
     "acceptance": "npm run build && node acceptance/run.mjs",
     "cr": "node infra/scripts/cr-api.mjs",
     "op": "node infra/scripts/op.mjs",
+    "web-latency": "node infra/scripts/web-latency.mjs",
     "editor-replay": "node infra/scripts/editor-replay.mjs",
     "contract:bump": "node packages/contracts/scripts/bump.mjs",
     "e2e": "playwright test -c apps/web/playwright.config.ts"

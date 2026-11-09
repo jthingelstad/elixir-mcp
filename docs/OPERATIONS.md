@@ -65,7 +65,13 @@ ledger should drain, and both doors should serve.
   the doors answer themselves (`ElixirMCP/Door` `HandledFailure`:
   `tool_failed_unexpectedly` and `db_connect_failed`, which no Lambda
   error counts): read the MCP log's `tool_failed_unexpectedly` lines for
-  the tool, then reproduce its arguments read-only. A door answering 429
+  the tool, then reproduce its arguments read-only. Route by route and
+  tool by tool, `npm run web-latency -- --days 7` (read-only) gives p50,
+  p95, max, over 3 s and 5xx against the p95 ceilings in
+  `infra/web-latency-ceilings.json`, Home by build and the Clan door's
+  Elixir and store split; `--check` exits 1 when a judged route is over.
+  It is a read, not a gate: natural traffic is tens of requests per route
+  a week. A door answering 429
   for capacity (its Web Function's MaxEnvironments or RateLimit) shows
   on the "Web throttles" panel of Grafana's Elixir dashboard
   (`otto-ops`), which says which door and which limit. The web-api's
