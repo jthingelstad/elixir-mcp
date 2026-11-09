@@ -410,6 +410,12 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.funnel) {
+    const { funnelOp } = await import("./ops-funnel.mjs");
+    const result = await funnelOp(process.env.DATABASE_URL, event.funnel);
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.account_role) {
     const result = await accountRoleOp(
       process.env.DATABASE_URL,

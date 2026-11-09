@@ -302,6 +302,19 @@ person, their inbox (`feedback_answer`, after ten quiet minutes).
   tools nobody calls and tools everybody chains. A red product case in
   the acceptance suite belongs here too.
 
+### First-use funnel
+
+`npm run op -- '{"funnel": {"days": 90}}'` answers "of the people who
+made an account, how many added a player, got a first read and came
+back?": counts of person accounts by UTC creation week, newest first,
+and the median and p90 wait from adding the primary player to its first
+read. Its row in the op catalogue defines each step. A step reads the
+record as it is now where only the state is kept (a primary, a live
+connection) and as ever reached where history is kept (a sign-in, a
+verification). `open_7d` and `open_30d` say how many accounts are still
+inside the came-back window, so a young week reads as so far, not as
+final. Counts only; it names no account.
+
 ## Record truth
 
 Error-free is not correct: the recorder can be healthy and still wrong.
