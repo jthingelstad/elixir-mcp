@@ -368,6 +368,23 @@ export async function projectPlayerSnapshot(
     [playerTag, fetchedAt],
   );
   const latest = latestRows[0];
+  // Whether the record had ANY profile of this player before this poll.
+  // Empty baselines are not enough: a delayed profile behind a newer one
+  // on the first day finds neither (prev is an earlier day, latest an
+  // earlier stamp). Asked only when both are empty, which is a first
+  // profile or that delay, on the snapshot key's player_tag prefix.
+  let firstProfile = false;
+  if (!prev && !latest && kind === "daily") {
+    const {
+      rows: [seen],
+    } = await db.query(
+      `select exists (select 1 from player_snapshot_daily
+                       where player_tag = $1
+                         and profile_observed_at is not null) as any`,
+      [playerTag],
+    );
+    firstProfile = !seen.any;
+  }
   // Auxiliary rows preserve reset boundaries rather than a current counter:
   // pre_reset can keep 60 after the real profile fell to 4. Its later stamp
   // must not become the next poll's baseline and invent another reset.
@@ -469,10 +486,9 @@ export async function projectPlayerSnapshot(
     day,
     kind,
     hadPrevious: Boolean(prev),
-    // No profile observation of this player before this poll, read from
-    // the two baselines above (no extra query): the first profile the
-    // record admits for the tag (first-read.mjs times it).
-    firstProfile: !prev && !latest,
+    // No profile observation of this player before this poll: the first
+    // profile the record admits for the tag (first-read.mjs times it).
+    firstProfile,
     moved,
     written,
     frozen,
