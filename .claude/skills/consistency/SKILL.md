@@ -182,8 +182,8 @@ consistency round:
 - Never read `.env` files or secret values; the public repos hold none.
 - DECISIONS.md is the ledger agents read. When a finding is "the ledger
   says X, the agents were never told", the fix is the reading path
-  (AGENTS.md, `docs/OPERATIONS.md`, the skills, the domain team's
-  runbooks),
+  (AGENTS.md, `docs/OPERATIONS.md`, the skills, the domain's
+  `../WORKFLOW.md`),
   not another copy of X.
 - Do not re-litigate a **[Jamie]** DECISIONS line. A surface that
   disagrees with it is the defect; a line that contradicts another line

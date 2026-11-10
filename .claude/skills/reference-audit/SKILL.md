@@ -24,7 +24,7 @@ its own evidence tool (`tools/cr-probe`) for live calls.
 |---|---|
 | Does Elixir's ingest know every field the API sends? | the hub's manifest (`packages/ingest/src/payload-keys.mjs`), the nightly shape census and the full audit's UNCATALOGUED list; a finding arrives as a `recorder` feedback item and becomes product work (`docs/OPERATIONS.md`, "Feedback") |
 | Does the reference document what the API sends? | **this skill** |
-| What is happening in the game, and what is coming? | the domain team (`../AGENT-TEAM/`), which runs this skill weekly for its evidence |
+| What is happening in the game, and what is coming? | nobody on a schedule since the domain agent team was retired (2026-11-09); a session asked to look runs this skill for its evidence |
 
 ## Preflight
 

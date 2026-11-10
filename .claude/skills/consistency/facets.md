@@ -18,10 +18,10 @@ The source of truth for what stands, and the files that point agents at it.
 | Invariants | `docs/ENGINEERING.md` | DECISIONS, the tests that enforce each invariant |
 | Change notes | `docs/notes/` (`docs/NOTES.md` the frozen archive) | one note per change; never cited as the ledger; open items are issues, not notes |
 | Agent guide | `AGENTS.md` (CLAUDE.md is a symlink) | DECISIONS; points at DECISIONS, not the notes |
-| Operations | `docs/OPERATIONS.md` | DECISIONS; current plumbing in `infra/template.yaml`; its section names (the domain team's runbooks cite them) |
+| Operations | `docs/OPERATIONS.md` | DECISIONS; current plumbing in `infra/template.yaml`; its section names (otto-ops' jobs and prompts cite them) |
 | Repo skills | `.claude/skills/gym/`, `.claude/skills/consistency/` | DECISIONS; the acceptance and deploy rules |
 | User skill | `~/.claude/skills/mcp-tool-review/SKILL.md` | profiles, paths and tools as they are now |
-| Domain guide | `../AGENTS.md`, `../AGENT-TEAM/` | the repo list, each repo's reading path, the OPERATIONS.md sections the runbooks cite |
+| Domain guide | `../AGENTS.md`, `../WORKFLOW.md` | the repo list, each repo's reading path, the session procedure |
 
 ## 2. The contract
 
