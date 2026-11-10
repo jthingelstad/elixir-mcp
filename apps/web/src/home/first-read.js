@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { trackEvent } from "../analytics.js";
 import {
@@ -36,8 +36,12 @@ export function useFirstRead(first) {
   const answer = useFirstAnswer(head?.player_tag ?? "none", {
     enabled: Boolean(head) && (!logRead(head) || !recorded(head)),
   });
-  // The status read is the newer one until Home's own read catches up.
-  const live = answer.data && !logRead(head) ? answer.data : first;
+  // The status read is the newer one until Home's own read catches up: the log
+  // read and something on record. A log read that lands before the profile
+  // (an empty log) leaves Home's read incomplete, so later status reads still
+  // win (Codex on #741).
+  const incomplete = Boolean(head) && (!logRead(head) || !recorded(head));
+  const live = answer.data && incomplete ? answer.data : first;
   const player = live?.player ?? null;
   // The fast window, on the server's clock: each status read says when it was
   // read (`as_of`), so the wait ends with the first answer past it.
@@ -63,5 +67,16 @@ export function useFirstRead(first) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
+  // The log was read before this page, but the profile lands after it: Home's
+  // reads refresh once so Today draws what the status read already shows.
+  const caughtUp = useRef(false);
+  const landedLater = Boolean(
+    head && logRead(head) && !recorded(head) && player && recorded(player),
+  );
+  useEffect(() => {
+    if (!landedLater || caughtUp.current) return;
+    caughtUp.current = true;
+    invalidate(["me", "home"]);
+  }, [landedLater, invalidate]);
   return { answer, live, player, ready, waiting };
 }

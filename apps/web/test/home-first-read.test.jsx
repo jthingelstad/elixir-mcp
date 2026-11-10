@@ -110,3 +110,36 @@ test("a player whose log has been read is never polled", async () => {
   expect(screen.getByText("Today")).toBeTruthy();
   expect(calls).toEqual([]);
 });
+
+test("a log read that lands before the profile keeps taking status reads, then refreshes Home once", async () => {
+  const empty = {
+    player_tag: "#2PYQ0LUC8",
+    recording_status: "active",
+    tracked_since: new Date().toISOString(),
+    profile_available: false,
+    battlelog_observed_at: READ,
+    last_battle_at: null,
+    battles_30d: 0,
+    capture_attempts: [],
+  };
+  status = empty;
+  const { queryClient } = renderWithProviders(
+    <Home
+      first={{ ok: true, as_of: new Date().toISOString(), player: empty }}
+    />,
+  );
+  const invalidated = vi.spyOn(queryClient, "invalidateQueries");
+  await act(() => vi.advanceTimersByTimeAsync(0));
+  expect(screen.getByText("Steps")).toBeTruthy();
+  expect(calls).toEqual(["/api/me/first-answer"]);
+  // The profile lands after the log: the next status read draws Today.
+  status = { ...empty, profile_available: true };
+  await act(() => vi.advanceTimersByTimeAsync(5_000));
+  expect(screen.getByText("Today")).toBeTruthy();
+  await act(() => vi.advanceTimersByTimeAsync(10_000));
+  expect(
+    invalidated.mock.calls.filter(
+      ([q]) => JSON.stringify(q?.queryKey) === '["me","home"]',
+    ),
+  ).toHaveLength(1);
+});
