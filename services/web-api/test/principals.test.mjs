@@ -16,6 +16,7 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
+import { listPrincipals } from "../src/principals.mjs";
 import { addPlayer } from "@elixir-mcp/claims";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -717,6 +718,80 @@ test("an agent's calls surface on the owner's principal list", async () => {
   );
   const agent = listed.agents.find((a) => a.account_id === id);
   assert.ok(agent.calls_7d >= 1, `calls_7d was ${agent.calls_7d}`);
+});
+
+test("an agent's last call, address, country and client are the newest that has each, as the whole-history aggregate read them", async () => {
+  const id = await bossAgentId();
+  // Newest first: the newest call has no address, the address is older,
+  // the country older still, and only the oldest names its client.
+  for (const [ago, ip, country, client] of [
+    ["1 minute", null, null, null],
+    ["2 hours", "203.0.113.9", null, null],
+    ["3 days", "198.51.100.4", "SE", null],
+    ["40 days", null, "US", "claude-ai"],
+    ["60 days", null, null, "older-client"],
+  ])
+    await db.query(
+      `insert into mcp_call_audit (account_id, tool, surface, created_at, viewer_ip, viewer_country, client_name)
+       values ($1, 'war_current', 'mcp', now() - $2::interval, $3, $4, $5)`,
+      [id, ago, ip, country, client],
+    );
+  // The statement /api/me/principals served before 2026-11-09.
+  const before = async (accountId) =>
+    (
+      await db.query(
+        `select json_build_object(
+                  'at', max(m.created_at),
+                  'ip', (array_agg(m.viewer_ip order by m.created_at desc)
+                         filter (where m.viewer_ip is not null))[1],
+                  'country', (array_agg(m.viewer_country order by m.created_at desc)
+                              filter (where m.viewer_country is not null))[1],
+                  'client', (array_agg(m.client_name order by m.created_at desc)
+                             filter (where m.client_name is not null))[1]) as last_seen
+           from mcp_call_audit m where m.account_id = $1`,
+        [accountId],
+      )
+    ).rows[0].last_seen;
+  const { rows: owners } = await db.query(
+    `select distinct owned_by_account_id as owner from account
+      where owned_by_account_id is not null`,
+  );
+  let compared = 0;
+  for (const { owner } of owners)
+    for (const row of await listPrincipals(db, owner)) {
+      assert.deepEqual(row.last_seen, await before(row.account_id));
+      compared += 1;
+    }
+  assert.ok(compared >= 2, `compared ${compared} principals`);
+  const mine = (
+    await listPrincipals(
+      db,
+      (
+        await db.query(
+          "select owned_by_account_id as o from account where account_id = $1",
+          [id],
+        )
+      ).rows[0].o,
+    )
+  ).find((r) => r.account_id === id);
+  assert.equal(mine.last_seen.ip, "203.0.113.9");
+  assert.equal(mine.last_seen.country, "SE");
+  assert.equal(mine.last_seen.client, "claude-ai");
+  // The count can be read down the account's own calls (0238).
+  await db.query("set enable_seqscan = off");
+  try {
+    const { rows: forced } = await db.query(
+      `explain select count(*) from mcp_call_audit m
+        where m.account_id = $1 and m.created_at > now() - interval '7 days'`,
+      [id],
+    );
+    assert.match(
+      forced.map((r) => r["QUERY PLAN"]).join("\n"),
+      /mcp_call_audit_by_account/,
+    );
+  } finally {
+    await db.query("reset enable_seqscan");
+  }
 });
 
 test("the owner's usage counts what the limiter counts, agents included", async () => {
