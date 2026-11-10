@@ -298,12 +298,12 @@ function BottomTabs({ area, open }) {
             {...here(t.key, area)}
             onClick={() => open("search")}
           >
-            <Icon name={t.icon} size={18} />
+            <Icon name={t.icon} size={22} />
             <span>{t.label}</span>
           </button>
         ) : (
           <Link key={t.key} to={PLACES[t.key]} {...here(t.key, area)}>
-            <Icon name={t.icon} size={18} />
+            <Icon name={t.icon} size={22} />
             <span>{t.label}</span>
           </Link>
         ),

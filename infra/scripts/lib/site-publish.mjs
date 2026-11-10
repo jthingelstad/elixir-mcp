@@ -91,6 +91,7 @@ export const CONTENT_TYPES = {
   ".webp": "image/webp",
   ".png": "image/png",
   ".ico": "image/x-icon",
+  ".webmanifest": "application/manifest+json",
   ".woff2": "font/woff2",
   ".otf": "font/otf",
 };

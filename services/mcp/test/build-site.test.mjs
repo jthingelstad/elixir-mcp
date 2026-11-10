@@ -49,6 +49,12 @@ const WEB = {
   "assets/index-BTm8TzAt.js": "app",
   "assets/fonts/Inter-latin.woff2": "font",
   "favicon.ico": "ico",
+  // Installing on a phone: apps/web/public's manifest and icons.
+  "manifest.webmanifest": "{}",
+  "apple-touch-icon.png": "png",
+  "icon-192.png": "png",
+  "icon-512.png": "png",
+  "icon-maskable-512.png": "png",
 };
 
 function workspace(t, { site = SITE, web = WEB } = {}) {
@@ -76,7 +82,12 @@ test("build-site: the app layers onto the static site, its shell renamed app.htm
   assert.equal(out("favicon.ico"), "ico");
   const { problems, files, pages } = verifySite(dirs);
   assert.deepEqual(problems, []);
-  assert.equal(files.size, Object.keys(SITE).length + 3);
+  // The site's files, then the app's: its shell as app.html, and every
+  // other file but the font both builds ship.
+  assert.equal(
+    files.size,
+    Object.keys(SITE).length + Object.keys(WEB).length - 1,
+  );
   assert.equal(pages, 2);
 });
 

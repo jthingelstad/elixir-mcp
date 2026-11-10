@@ -47,7 +47,9 @@ behaviour is in `apps/site/src/docs/`, not here.
   `/signin` or a record page loads no embed; its loader listens for the same
   `data-tinylytics-event` clicks and beacons each event at the route (nothing
   on `/signin`), so `trackEvent` works in every session (#508).
-- No Radix before a real dialog; no PWA. `test/inline-styles.test.js` is a
+- No Radix before a real dialog. Elixir installs as a web app
+  (`public/manifest.webmanifest`, its icons, the head tags here and in
+  the site's `base.njk`, pinned by a site test); no service worker. `test/inline-styles.test.js` is a
   ratchet on inline styles: the count only goes down.
 
 ## Testing

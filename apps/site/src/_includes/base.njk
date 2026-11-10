@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{{ title }} - {{ site.name }}</title>
     <meta name="description" content="{{ description }}" />
     {%- if noindex %}
@@ -25,7 +25,15 @@
     <meta name="twitter:title" content="{{ title }} - {{ site.name }}" />
     <meta name="twitter:description" content="{{ description }}" />
     <meta name="twitter:image" content="{{ site.url }}/assets/og.png" />
+    {#- Installable: the same tags as the app shell (apps/web/index.html). -#}
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#1b1630" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="{{ site.name }}" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     {#- Autodiscovery: a feed nobody can find is a feed nobody reads. -#}
     <link rel="alternate" type="application/rss+xml" title="{{ site.name }} updates" href="/feed.xml" />
     <link rel="stylesheet" href="{{ "/assets/site.css" | asset }}" />
@@ -123,12 +131,12 @@
       <nav class="kit-bottom" data-session-face="in" aria-label="Main, phone">
         {%- for product in familyBar.products %}{% if not product.game %}
         <a href="{{ product.path }}">
-          {% chromeIcon product.icon, 18 %}
+          {% chromeIcon product.icon, 22 %}
           <span>{{ product.label }}</span>
         </a>
         {%- endif %}{% endfor %}
         <a href="{{ familyBar.search.staticPath }}">
-          {% chromeIcon familyBar.search.icon, 18 %}
+          {% chromeIcon familyBar.search.icon, 22 %}
           <span>{{ familyBar.search.label }}</span>
         </a>
       </nav>

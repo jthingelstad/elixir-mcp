@@ -220,6 +220,59 @@ test("the share image is a 1200x630 PNG", { skip }, () => {
   assert.equal(png.readUInt32BE(20), 630);
 });
 
+test(
+  "Elixir installs on a phone: one manifest, its icons, every head",
+  {
+    skip,
+  },
+  () => {
+    const manifest = JSON.parse(read("manifest.webmanifest"));
+    assert.equal(manifest.name, "Elixir");
+    assert.equal(manifest.start_url, "/home");
+    assert.equal(manifest.scope, "/");
+    assert.equal(manifest.display, "standalone");
+    // Every icon ships, and is the size it says it is.
+    const purposes = new Set();
+    for (const icon of manifest.icons) {
+      const png = readFileSync(path.join(out, icon.src.slice(1)));
+      assert.equal(png.subarray(1, 4).toString(), "PNG", icon.src);
+      const [w, h] = icon.sizes.split("x").map(Number);
+      assert.equal(png.readUInt32BE(16), w, `${icon.src} width`);
+      assert.equal(png.readUInt32BE(20), h, `${icon.src} height`);
+      purposes.add(icon.purpose);
+    }
+    // Android needs a 192 and a 512, and crops a maskable one to its shape.
+    assert.ok(manifest.icons.some((i) => i.sizes === "192x192"));
+    assert.ok(manifest.icons.some((i) => i.sizes === "512x512"));
+    assert.ok(purposes.has("maskable"));
+    for (const s of manifest.shortcuts) assert.ok(s.url.startsWith("/"));
+    const touch = readFileSync(path.join(out, "apple-touch-icon.png"));
+    assert.equal(touch.readUInt32BE(16), 180);
+
+    // The app shell and every site page carry the same install tags, and the
+    // phone's chrome is the manifest's colour.
+    for (const rel of [
+      "app.html",
+      ...htmlPages().filter((p) => p !== "app.html"),
+    ]) {
+      const html = read(rel);
+      if (!html.includes('class="kit-shell"') && rel !== "app.html") continue;
+      for (const tag of [
+        'rel="manifest" href="/manifest.webmanifest"',
+        'rel="apple-touch-icon" href="/apple-touch-icon.png"',
+        'name="apple-mobile-web-app-capable" content="yes"',
+        'name="apple-mobile-web-app-title" content="Elixir"',
+        `name="theme-color" content="${manifest.theme_color}"`,
+        "viewport-fit=cover",
+      ])
+        assert.ok(
+          html.replace(/\s+/g, " ").includes(tag),
+          `${rel} lacks ${tag}`,
+        );
+    }
+  },
+);
+
 test("text is escaped once, by the template", { skip }, () => {
   // Nunjucks autoescapes every {{ }}. A hand-rolled esc filter on top of
   // it escaped the escape, so a tool's description read &amp;quot;mine&amp;quot;
