@@ -36,7 +36,7 @@ Jamie; this skill is the agent's path to them.
   clan tag of a clan whose leaders turned the feature on may be named;
   a timeline's account is named by its id only. Text that makes the
   case stays in the private session notes
-  (`../AGENT-TEAM/notes/`), never the issue.
+  (`../notes/`), never the issue.
 - **Product calls go to Jamie** (who sees what, what is promised, a
   rule for what the editor may say): a `needs-jamie` issue with one
   exact question, never a change.
@@ -46,7 +46,7 @@ Jamie; this skill is the agent's path to them.
 1. `AWS_PROFILE=cloud-engineer aws sts get-caller-identity` names
    account `<account>` and `assumed-role/ProjectsCloudEngineer/`.
 2. Read the previous run's notes for this skill in
-   `../AGENT-TEAM/notes/`: a finding already filed is a comment on its
+   `../notes/`: a finding already filed is a comment on its
    issue with the new evidence, never a second issue
    (`gh issue list --search "discord-review in:body"`).
 
@@ -174,4 +174,4 @@ something that fails one of these:
   belong to `packages/clan-engine/src/editor.mjs`; delivery to
   `packages/syndication`; Clan Actions to `packages/clan`.
 - **Notes:** the window's scores per feature, each issue filed or
-  commented, each rating answered, in `../AGENT-TEAM/notes/` (private).
+  commented, each rating answered, in `../notes/` (private).

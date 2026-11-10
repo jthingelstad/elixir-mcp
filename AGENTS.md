@@ -144,7 +144,7 @@ Skills and tests cite these by number; keep the numbering.
   checkout stays on a clean `main`. Make a worktree at a fresh
   `origin/main` and run `scripts/worktree-setup.sh` in it. On Jamie's
   machine the domain's `scripts/session-start` does both and
-  `session-finish` cleans up (`../AGENTS.md`, `../AGENT-TEAM/WORKFLOW.md`);
+  `session-finish` cleans up (`../AGENTS.md`, `../WORKFLOW.md`);
   there is no lease. Open a draft pull request at the first
   push (`gh pr create --draft --fill`): the open list is how sessions see
   each other.
