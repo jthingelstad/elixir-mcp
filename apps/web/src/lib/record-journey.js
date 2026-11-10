@@ -3,6 +3,12 @@ import { CONSOLE } from "./console.js";
 import { SETTINGS } from "./settings.js";
 import { tagPath } from "./tag-url.js";
 
+/** The player's own battle log has been read: the freshness every page shows
+ * as "Battle log read ...". A battle on record is not that: a tag Elixir
+ * already knew as an opponent carries battles from someone else's log, and
+ * their profile can land first, so neither ends the first read (2026-11-09). */
+export const logRead = (p) => Boolean(p?.battlelog_observed_at);
+
 /** A saved tag, capture attempts and retained facts are independent evidence.
  * Nothing here treats a successful poll or an empty count as full coverage. */
 export function recordJourney(data) {

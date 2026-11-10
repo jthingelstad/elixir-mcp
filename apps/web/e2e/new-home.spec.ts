@@ -333,6 +333,65 @@ test("adding your player from Ladder's or Clan's link stays on Home's steps", as
   await expect(page).toHaveURL(/\/home$/);
 });
 
+// 2026-11-09, a production walk: the tag added was already on record as an
+// opponent (one battle from another player's log). Home drew Today with
+// "Battle log read: never" at once and never read again.
+test("a player known as an opponent waits for their own battle log, then Today draws without a reload", async ({
+  page,
+}) => {
+  const stub = {
+    ...HOME.first.player,
+    verified: false,
+    tracked_since: new Date().toISOString(),
+    profile_available: false,
+    battlelog_observed_at: null,
+    last_battle_at: new Date(Date.now() - 7 * 86_400_000).toISOString(),
+    battles_30d: 1,
+  };
+  let read = false;
+  let checks = 0;
+  const now = () => ({
+    ...stub,
+    ...(read
+      ? {
+          profile_available: true,
+          battlelog_observed_at: new Date().toISOString(),
+          battles_30d: 6,
+        }
+      : {}),
+  });
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me/home": () => [
+        200,
+        { first: { ...HOME.first, player: now() } },
+      ],
+      "GET /api/me/first-answer": () => {
+        checks += 1;
+        return [
+          200,
+          { ...HOME.first, as_of: new Date().toISOString(), player: now() },
+        ];
+      },
+    }),
+  );
+  await page.goto("/home");
+  await expect(
+    page.getByRole("heading", { name: "Welcome to Elixir" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/usually arrive within a minute; at busy times/).first(),
+  ).toBeVisible();
+  await expect(page.getByText("Battle log read: never")).toHaveCount(0);
+  await expect.poll(() => checks).toBeGreaterThan(0);
+  read = true;
+  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText(/^Battle log read /).first()).toBeVisible();
+});
+
 test("the head leads with your nickname, as Ladder and Friends do", async ({
   page,
 }) => {

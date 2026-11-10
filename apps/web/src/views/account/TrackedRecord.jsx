@@ -27,7 +27,10 @@ import { Crumb, Facts, Note } from "./parts.jsx";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { HomeClanOffer } from "../../components/HomeClanOffer.jsx";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
-import { useFirstAnswer } from "../../hooks/useFirstAnswer.js";
+import {
+  useFirstAnswer,
+  useFirstReadLanded,
+} from "../../hooks/useFirstAnswer.js";
 import { recordJourney } from "../../lib/record-journey.js";
 import { FixTag, StopTracking } from "./TagFix.jsx";
 
@@ -70,6 +73,11 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   });
   const notFound = Boolean(
     claim && answer.data && recordJourney(answer.data).notFound,
+  );
+  // The player's own battle log read while the page is open: the year of
+  // battles below was drawn without it, so read it again, once (2026-11-09).
+  useFirstReadLanded(answer.data?.player ?? null, () =>
+    invalidate(["me", "activity", wanted]),
   );
   // Every write on this page, each unwrapped: a refusal is said on the
   // page, and the record refetches only after a write that took. "Make
