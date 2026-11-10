@@ -30,7 +30,7 @@ derives daily readings, war records, and timeline moments from the stream, and
 makes the record available on [Ladder](/ladder), in [Clan](/clan), and in
 [emails](/docs/email) about your play and the people you follow. Keeping you
 up to date is part of the service, even when you do not open the website.
-Add your player and the first read usually lands within a few minutes,
+Add your player and the first read usually lands within a minute,
 with roughly those last 30 battles; everything after is recorded as it
 happens, and your player's clan is followed for you.
 

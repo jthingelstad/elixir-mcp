@@ -605,7 +605,8 @@ function Lookup({ me, navigate, browse }) {
                   <Link to={`${SETTINGS}/players`}>
                     Settings › Players &amp; tracking
                   </Link>{" "}
-                  and recording starts within a few minutes.
+                  and recording starts at once; the first read usually lands
+                  within a minute.
                 </div>
               </div>
             )}

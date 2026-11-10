@@ -229,7 +229,8 @@ function FollowForm() {
         ) : (
           <p className="kit-tiny">
             Anyone with a player tag can be followed. They aren&rsquo;t told.
-            Recording starts within a few minutes.
+            Recording starts at once; the first read usually lands within a
+            minute.
           </p>
         )}
       </form>

@@ -122,7 +122,7 @@ export function renderEmail(msg) {
         `You're in.\n\n` +
         `Keep your Clash Royale history in one place: Home, Ladder and Clan, on one account.\n\n` +
         `Add your player on Home to start your record. If a player is already on your account, its recording stays in place.\n` +
-        `The first read usually lands within a few minutes, with roughly your last 30 battles.\n` +
+        `Your profile and roughly your last 30 battles usually arrive within a minute of adding it.\n` +
         `Open ${SITE}/home to get started.\n\n` +
         `What comes next\n\n` +
         `Monday: your clan's week. The river race, who joined and departed. Elixir follows your player's clan for you when it can.\n` +
@@ -143,7 +143,7 @@ export function renderEmail(msg) {
             "Keep your Clash Royale history in one place: Home, Ladder and Clan, on one account.",
           ),
           p(
-            "Add your player on Home to start your record. If a player is already on your account, its recording stays in place. The first read usually lands within a few minutes, with roughly your last 30 battles.",
+            "Add your player on Home to start your record. If a player is already on your account, its recording stays in place. Your profile and roughly your last 30 battles usually arrive within a minute of adding it.",
           ),
           button(`${SITE}/home`, "Start your record"),
           h2("What comes next"),

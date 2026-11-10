@@ -40,7 +40,7 @@ const ofLimit = (slot) =>
 /** "Battle log read 15 min ago, 26 reads in 24 hours" */
 function readLine(what, rec, now) {
   if (!rec?.freshest_poll)
-    return "Reading its battle log for the first time. Usually within a few minutes.";
+    return "Reading its battle log for the first time. Usually within a minute; a few at busy times.";
   const reads = rec.fetches_24h ?? 0;
   return `${what} read ${ago(rec.freshest_poll, now)}, ${reads} ${reads === 1 ? "read" : "reads"} in 24 hours`;
 }
@@ -258,8 +258,8 @@ function Players({ me, refresh, navigate, hash }) {
     <>
       {claims.length === 0 ? (
         <Empty title="No players tracked" titleAs="h2">
-          Add the player you play as. Nothing here defaults to you, and
-          recording starts within a few minutes.
+          Add the player you play as. Nothing here defaults to you, and the
+          first read usually lands within a minute.
         </Empty>
       ) : null}
       <AddPlayer

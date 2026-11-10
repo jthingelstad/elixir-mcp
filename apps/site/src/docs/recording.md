@@ -45,10 +45,12 @@ There is no watch step and no approval queue. **Tracked means recorded**:
 tracking a subject on your account is the request to record it, and recording
 starts at the next scheduler tick.
 
-Adding a player also asks for one read of their profile on the live lane,
-free and outside your quota, as [Verify](/docs/verify) does. So the first
-recording usually lands within a few minutes, and the first battle-log read
-brings roughly the last 30 battles with it (the game keeps no more; from
+Adding a player also asks for one read of their profile, and then one of
+their battle log, on the live lane, free and outside your quota, as
+[Verify](/docs/verify) does. So the first recording usually lands within a
+minute (a few when the live lane is busy, or when the day's first reads are
+used and the scheduler makes them instead), and the battle-log read brings
+roughly the last 30 battles with it (the game keeps no more; from
 there the record builds forward). If Clash Royale answers that it has no
 player with that tag (its "Player not found"), Settings › Players & tracking says so as an
 error on the player's page within seconds of the add (it checks every few
@@ -190,8 +192,8 @@ your clan's week in your Monday email. The rules:
 - Already following the clan, at any scope, changes nothing. Agents never
   follow a clan this way.
 
-The follow comes with a read of your player's profile: within minutes of
-adding a new player, and otherwise at the next regular profile read. Each
+The follow comes with a read of your player's profile: usually within a
+minute of adding a new player, and otherwise at the next regular profile read. Each
 follow Elixir makes is listed under **What changed on your account**, on
 Settings › Sign-ins & devices.
 
