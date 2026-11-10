@@ -3094,9 +3094,13 @@
     "request_id": "f215c027-2acf-4df8-a692-a779c391f83c",
     "assert": [
       {
-        "eq": ["s.last_30_days.battles", "q.total_count"]
+        "sum_eq": [
+          ["s.last_30_days.battles", "s.last_30_days.boat_defenses"],
+          "q.total_count"
+        ]
       }
-    ]
+    ],
+    "amended": "Amended 2026-11-09 for 11.18.5 (Jamie 2026-09-24 and 2026-09-25: a boat defense is not the member's battle and leaves every count of a member's own battles): players_summary now leaves defenses out of last_30_days.battles, while battles_query still lists a defense row (boat.role defender, docs battles#duels-and-boat-battles), so its total_count is the summary's battles plus its boat_defenses. The case still holds the summary's 30 days to the raw rows over the same window."
   },
   {
     "id": "135.2",
@@ -14671,15 +14675,13 @@
     },
     "assert": [
       {
-        "sum_eq": [
-          [
-            "st.members[?player_tag=#JYRQ8U92C].battles",
-            "s.last_30_days.boat_defenses"
-          ],
+        "eq": [
+          "st.members[?player_tag=#JYRQ8U92C].battles",
           "s.last_30_days.battles"
         ]
       }
-    ]
+    ],
+    "amended": "Amended 2026-11-09 for 11.18.5 (Jamie 2026-09-24 and 2026-09-25: a boat defense is not the member's battle and leaves every count of a member's own battles): players_summary now leaves defenses out of last_30_days.battles as clans_standings does, so the two counts are equal; the case had asserted standings plus boat_defenses, the 7.2.5 reading the decision retired."
   },
   {
     "id": "330.4",

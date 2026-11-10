@@ -1559,5 +1559,16 @@
     "case": "contracts/timeline-war-day-in-progress",
     "captures": ["nowms-elixir_timeline-war-day.json"],
     "expect": "failed unexpectedly"
+  },
+  {
+    "contract": "11.18.4",
+    "feedback": 135,
+    "why": "players_summary counted the window's 2 boat defenses in last_30_days.battles (50) and reported them again in boat_defenses, against battles_query's 50 rows: a defense counted twice is 52. The battles_query capture is from 11.18.5 (the tool did not change), trimmed to its total; the summary's from 11.18.4, trimmed to its counts",
+    "case": "gym/135.1",
+    "captures": [
+      "135-1-summary-counts-boat-defenses.json",
+      "135-1-battles_query-total.json"
+    ],
+    "expect": "sum_eq"
   }
 ]
