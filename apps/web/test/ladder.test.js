@@ -657,6 +657,29 @@ describe("a first capture, in the order its reads arrive", () => {
     expect(capturePending(answered({ battlelogAt: read }))).toBe(false);
   });
 
+  // 2026-11-09: the tag added was already on record as an opponent, with
+  // one battle from another player's log. That battle is not the read.
+  test("an opponent stub: pending until the player's own battle log is in", () => {
+    const stub = { last_battle_at: "2026-10-07T18:00:00Z", battles_30d: 1 };
+    expect(capturePending(answered({ battles: 1 }))).toBe(true);
+    expect(captureLanded(status({ ...stub, profile_available: true }))).toBe(
+      false,
+    );
+    const read = "2026-10-08T12:00:05Z";
+    expect(
+      captureLanded(
+        status({
+          ...stub,
+          profile_available: true,
+          battlelog_observed_at: read,
+        }),
+      ),
+    ).toBe(true);
+    expect(capturePending(answered({ battles: 6, battlelogAt: read }))).toBe(
+      false,
+    );
+  });
+
   test("a typo'd tag never lands: its empty battle log is no capture", () => {
     // Clash Royale answers the profile 404 and the battle log of an
     // unknown tag 200 [], which is admitted. No profile, so the summary

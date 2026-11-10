@@ -423,7 +423,11 @@ export function TodayFresh({ player }) {
   const ts = player?.battlelog_observed_at ?? null;
   return (
     <FreshChip ts={ts}>
-      {ts ? `Your battle log was last read ${when(ts)}. ` : ""}
+      {ts
+        ? `Your battle log was last read ${when(ts)}. `
+        : // Not read yet: what is on record came from elsewhere (a battle
+          // against someone Elixir records), and this page checks again.
+          "Your profile and roughly your last 30 battles usually arrive within a minute; at busy times it can take a few. "}
       The game keeps about your last 30 battles, so a long session between reads
       can leave a gap. A gap means unknown. It does not mean you didn&rsquo;t
       play.

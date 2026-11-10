@@ -496,16 +496,30 @@ test("the status is read every few seconds just after an add, then once a minute
       { now },
     ),
   ).toBe(SLOW_POLL_MS);
-  // Captured: nothing left to wait for.
+  // Captured: the profile and the player's own battle log are in.
   expect(
     nextPoll(
       waiting({
         tracked_since: at(10),
         profile_available: true,
+        battlelog_observed_at: at(5),
         battles_30d: 30,
         last_battle_at: at(600),
       }),
       { now },
     ),
   ).toBe(null);
+  // A tag already on record as an opponent (2026-11-09): its battle came from
+  // someone else's log, so the wait goes on until its own log is read.
+  expect(
+    nextPoll(
+      waiting({
+        tracked_since: at(10),
+        profile_available: true,
+        battles_30d: 1,
+        last_battle_at: at(600),
+      }),
+      { now },
+    ),
+  ).toBe(FAST_POLL_MS);
 });

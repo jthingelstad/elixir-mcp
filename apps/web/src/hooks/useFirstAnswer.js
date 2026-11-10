@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
-import { recordJourney } from "../lib/record-journey.js";
+import { logRead, recordJourney } from "../lib/record-journey.js";
 
 /** The first minutes after an add, when the first capture (or the game's
  * "not found") usually lands: poll every few seconds, then once a minute.
  * A first-answer read is one account query, no tool and no quota. */
-const FAST_WINDOW_MS = 3 * 60_000;
+export const FAST_WINDOW_MS = 3 * 60_000;
 export const FAST_POLL_MS = 5_000;
 export const SLOW_POLL_MS = 60_000;
 
 /** How long until the next check, or null for none: while recording is
- * active and the profile or battles are missing (or a connection is
- * watched), fast while the tag is new and its answer is still open. */
+ * active and the profile or the player's own battle-log read is missing (or a
+ * connection is watched), fast while the tag is new and its answer is still
+ * open. A player whose log has been read is never polled for it. */
 export function nextPoll(
   data,
   { watchConnection = false, now = Date.now() } = {},
@@ -21,7 +21,7 @@ export function nextPoll(
   if (!p) return null;
   const waiting =
     (p.recording_status === "active" &&
-      (!p.profile_available || !hasBattleEvidence(p))) ||
+      (!p.profile_available || !logRead(p))) ||
     (watchConnection && !data.connection?.last_data_read_at);
   if (!waiting) return null;
   const age = now - Date.parse(p.tracked_since ?? "");
@@ -84,4 +84,25 @@ export function useFirstAnswer(
     error,
     refresh: () => setAttempt((n) => n + 1),
   };
+}
+
+/**
+ * Calls `onLanded` once, when a poll shows the player's own battle log read on
+ * a page that saw it unread: the moment to refresh the page's reads, once.
+ * A page that opened with the log already read never calls it.
+ */
+export function useFirstReadLanded(player, onLanded) {
+  const read = logRead(player);
+  const present = Boolean(player);
+  // null until a player is seen; then whether the log was unread at the time.
+  const unread = useRef(null);
+  useEffect(() => {
+    if (!present) return;
+    if (!read) {
+      unread.current = true;
+      return;
+    }
+    if (unread.current === true) onLanded();
+    unread.current = false;
+  }, [present, read, onLanded]);
 }

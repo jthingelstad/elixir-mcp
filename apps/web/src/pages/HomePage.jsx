@@ -8,7 +8,8 @@ import {
   useTimelineNews,
 } from "../lib/queries.js";
 import { HOME_TABS, panelOf } from "../home/logic.js";
-import { NewAccount, recorded } from "../home/NewAccount.jsx";
+import { NewAccount } from "../home/NewAccount.jsx";
+import { useFirstRead } from "../home/first-read.js";
 import { TodayError, TodayFresh, TodayPanels } from "../home/Today.jsx";
 import { HomeTimeline } from "../home/Timeline.jsx";
 import { HomeFriends } from "../home/Friends.jsx";
@@ -48,8 +49,9 @@ function TodayTab() {
   const { hash } = useLocation();
   const query = useHome();
   const data = query.data;
-  const player = data?.first?.player ?? null;
-  const ready = player && recorded(player);
+  // The first read, whichever view is drawn: until the player's own battle
+  // log is read, one status read polls and Home refreshes once it lands.
+  const { answer, live, player, ready } = useFirstRead(data?.first);
   // The head's clan name comes when the panel's read does; no read at all for
   // a new account, whose page has no panels.
   const clan = panelOf(useHomeClan(Boolean(ready)), "clan");
@@ -80,7 +82,12 @@ function TodayTab() {
           title="Welcome to Elixir"
           sub="The game keeps about your last 30 battles. Elixir keeps reading them, so your record grows."
         />
-        <NewAccount first={data.first} zoneMissing={!me?.timezone} />
+        <NewAccount
+          first={live}
+          answer={answer}
+          landed={ready}
+          zoneMissing={!me?.timezone}
+        />
       </>
     );
   const clanName = clan?.ok ? clan.name : null;
@@ -104,7 +111,7 @@ function TodayTab() {
         aside={<TodayFresh player={player} />}
       />
       <HomeTabs value="today" />
-      <TodayPanels first={data.first} me={me} player={player} />
+      <TodayPanels first={live} me={me} player={player} />
     </>
   );
 }

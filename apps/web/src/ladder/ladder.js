@@ -15,6 +15,7 @@
  * by different rules, and war draws opponents from the racing clans.
  */
 import { clockAt, monthDayAt, seasonWeek, zoneShort } from "@elixir-mcp/ui";
+import { logRead } from "../lib/record-journey.js";
 import { tagPath } from "../lib/tag-url.js";
 
 export const LADDER = "/ladder";
@@ -348,7 +349,9 @@ export function capturePending(summary) {
   const meta = data?.meta;
   if (!meta) return false;
   if (meta.source_polls?.player_battlelog?.observed_at != null) return false;
-  if ((data.last_30_days?.battles ?? 0) > 0) return false;
+  // A battle on record is not the read: a tag Elixir knew as an opponent has
+  // one from someone else's log (2026-11-09), so only older history (below)
+  // is a record to show before the player's own log is in.
   const since = Date.parse(meta.recorded_since ?? "");
   const from = Date.parse(
     data.applied?.window?.from ??
@@ -361,16 +364,15 @@ export function capturePending(summary) {
 
 /**
  * Pending's side of the same rule, from the Console's first-answer
- * status: the capture has landed once the profile is in and the battle
- * log has been read (with battles, or none for an inactive player). A
+ * status: the capture has landed once the profile is in and the player's
+ * own battle log has been read (with battles, or none for an inactive
+ * player). A battle on record is not that read (an opponent stub's, from
+ * someone else's log, 2026-11-09). A
  * battle log alone is not enough: the summary still refuses until the
  * profile lands, and one refresh spent then would leave the page pending.
  */
 export function captureLanded(player) {
-  return Boolean(
-    player?.profile_available &&
-    (player.battlelog_observed_at || player.last_battle_at),
-  );
+  return Boolean(player?.profile_available && logRead(player));
 }
 
 /** A player as the page names them: nickname, name, or the tag. */

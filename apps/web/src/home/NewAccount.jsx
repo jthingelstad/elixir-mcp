@@ -1,48 +1,37 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Link, TagText, writeErrorText } from "@elixir-mcp/ui";
-import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { api } from "../api.js";
 import { trackEvent } from "../analytics.js";
 import { SETTINGS } from "../lib/settings.js";
 import { tagPath } from "../lib/tag-url.js";
 import { recordJourney } from "../lib/record-journey.js";
-import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { useInvalidate } from "../lib/queries.js";
 import { clanStepLine } from "./logic.js";
 
 /**
  * Welcome: worked out from the record each time, with nothing stored. Each
  * step's state comes from the first answer; adding a player and the first
- * read are the two that hold Today back, and the rest never do.
+ * read are the two that hold Today back, and the rest never do. The page owns
+ * the status read and the wait (first-read.js), so Today, once drawn, keeps
+ * the same read going: `first` is the newest answer, `landed` whether the
+ * first read is in (the player's own battle log, not a battle on record).
  */
-/** Whether a first read has landed: Today has something to say from here. */
 /** Where Ladder's and Clan's "Add your player" land: Home's first step. */
 const ADD_PLAYER_HASH = "#add-player";
 
-export const recorded = (player) =>
-  hasBattleEvidence(player) || player.profile_available === true;
-
-export function NewAccount({ first, zoneMissing }) {
+export function NewAccount({
+  first,
+  answer = null,
+  landed = false,
+  zoneMissing,
+}) {
   const invalidate = useInvalidate();
   const navigate = useNavigate();
   const added = Boolean(first?.player);
-  const answer = useFirstAnswer(first?.player?.player_tag ?? "none", {
-    enabled: added,
-  });
-  const live = answer.data ?? first;
+  const live = first;
   const player = live?.player ?? null;
   const journey = recordJourney(live);
-  const landed = Boolean(player && recorded(player));
-  const landedAtOpen = useRef(landed);
-  // The first read landed while the page was open: Today can draw now. The
-  // event counts that moment, once per page, never whose (#508).
-  useEffect(() => {
-    if (!landed) return;
-    if (!landedAtOpen.current) trackEvent("home.first_read_landed");
-    invalidate(["me", "home"]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landed]);
   return (
     <div className="kit-home">
       {zoneMissing ? <ZoneNotice /> : null}
@@ -88,8 +77,8 @@ export function NewAccount({ first, zoneMissing }) {
             <FirstRead
               player={player}
               journey={journey}
-              onCheck={answer.refresh}
-              busy={answer.loading}
+              onCheck={() => answer?.refresh()}
+              busy={Boolean(answer?.loading)}
               onStopped={() => invalidate()}
             />
           </Step>
