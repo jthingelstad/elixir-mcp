@@ -308,3 +308,64 @@ for (const width of [390, 1280]) {
     await expect(page).toHaveURL(/\/home#add-player$/);
   });
 }
+
+// 2026-11-09, a production walk: Cloudflare's box went interactive and the
+// form read "Sending…" for two minutes with nothing else to say. A box on
+// screen is named, beside it, and the email goes once it is answered.
+for (const width of [390, 1180]) {
+  test(`a Cloudflare box on screen is named while the send waits on it at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    let sentToken: unknown;
+    await mockApi(page, {
+      "GET /api/me": [200, SIGNED_OUT],
+      "POST /api/auth": (route) => {
+        sentToken = route.request().postDataJSON().turnstile_token;
+        return [200, { ok: true }];
+      },
+    });
+    // Registered last, so it answers first: a widget that wants a click.
+    await page.route(
+      "https://challenges.cloudflare.com/turnstile/v0/api.js*",
+      async (route) => {
+        const onload = new URL(route.request().url()).searchParams.get(
+          "onload",
+        );
+        await route.fulfill({
+          status: 200,
+          contentType: "text/javascript",
+          body: `window.turnstile = {
+  render(el, o) {
+    const box = document.createElement("button");
+    box.type = "button";
+    box.textContent = "Verify you are human";
+    box.onclick = () => { o["after-interactive-callback"](); o.callback("clicked-token"); };
+    el.appendChild(box);
+    setTimeout(() => o["before-interactive-callback"](), 0);
+    return "e2e";
+  },
+  reset() {}, remove() {},
+};
+window[${JSON.stringify(onload)}]();`,
+        });
+      },
+    );
+    await page.goto("/signin?signup");
+    await page.getByLabel("Email", { exact: true }).fill("new@example.com");
+    await page.getByRole("button", { name: "Send sign-in email" }).click();
+    await expect(
+      page.getByRole("button", { name: "Waiting for the check…" }),
+    ).toBeVisible();
+    await expect(page.getByRole("status")).toContainText(
+      "Cloudflare is asking for one click",
+    );
+    const box = page.getByRole("button", { name: "Verify you are human" });
+    await expect(box).toBeInViewport();
+    await box.click();
+    await expect(
+      page.getByRole("heading", { name: "Check your email" }),
+    ).toBeVisible();
+    expect(sentToken).toBe("clicked-token");
+  });
+}

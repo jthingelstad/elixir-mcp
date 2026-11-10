@@ -252,3 +252,118 @@ test("a send the server refuses for want of a token says so", async () => {
   expect(requests[0].turnstile_token).toBe("test-turnstile-token");
   expect(screen.queryByLabelText("6-digit code")).toBeNull();
 });
+
+// 2026-11-09, a production walk: Cloudflare's box went interactive and sat,
+// visible above the button, while the form said only "Sending…" for 121.8 s.
+test("a send says what it waits for: a check, Cloudflare's box, then nothing", async () => {
+  vi.useFakeTimers();
+  const page = fakePage();
+  const said = [];
+  const ts = makeTurnstile({
+    slot: () => ({ isConnected: true }),
+    onWait: (w) => said.push(w),
+    win: page.win,
+    doc: page.doc,
+    now: () => clock,
+  });
+  ts.warm();
+  page.load();
+  await vi.advanceTimersByTimeAsync(0);
+  let got = null;
+  ts.tokenFor("a@x.com").then((t) => (got = t));
+  page.last()["before-interactive-callback"]();
+  page.last()["after-interactive-callback"]();
+  page.last().callback("answered");
+  await vi.advanceTimersByTimeAsync(0);
+  expect(got).toBe("answered");
+  expect(said).toEqual(["check", "challenge", "check", null]);
+});
+
+test("a box on screen keeps its two minutes; a box that errors stops the wait at once", async () => {
+  vi.useFakeTimers();
+  const page = fakePage();
+  const { ts } = setup(page);
+  ts.warm();
+  page.load();
+  await vi.advanceTimersByTimeAsync(0);
+  let got = null;
+  ts.tokenFor("a@x.com").then((t) => (got = t));
+  page.last()["before-interactive-callback"]();
+  await vi.advanceTimersByTimeAsync(119_999);
+  expect(got).toBe(null);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(got).toBe("");
+
+  // Clicked, and Cloudflare's challenge host cannot be reached: 600010.
+  const next = makeTurnstile({
+    slot: () => ({ isConnected: true }),
+    win: page.win,
+    doc: page.doc,
+    now: () => clock,
+  });
+  next.warm();
+  await vi.advanceTimersByTimeAsync(0);
+  got = null;
+  next.tokenFor("a@x.com").then((t) => (got = t));
+  page.last()["before-interactive-callback"]();
+  await vi.advanceTimersByTimeAsync(3_000);
+  page.last()["after-interactive-callback"]();
+  page.last()["error-callback"]("600010");
+  await vi.advanceTimersByTimeAsync(0);
+  expect(got).toBe("");
+});
+
+test("the form names Cloudflare's box while it waits on it, and sends once it is answered", async () => {
+  let options;
+  window.turnstile = {
+    render: (_el, o) => {
+      options = o;
+      queueMicrotask(() => o["before-interactive-callback"]());
+      return "w";
+    },
+    reset: () => {},
+    remove: () => {},
+  };
+  const requests = replyWith(200, { ok: true });
+  render(<SignIn onAuthed={vi.fn()} />);
+  const field = screen.getByLabelText("Email");
+  fireEvent.focus(field);
+  fireEvent.change(field, { target: { value: "a@x.com" } });
+  fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
+  expect(
+    await screen.findByRole("button", { name: "Waiting for the check…" }),
+  ).toBeTruthy();
+  expect(screen.getByRole("status").textContent).toMatch(
+    /Cloudflare is asking for one click.*Answer the box above/,
+  );
+  expect(screen.queryByText("Sending…")).toBeNull();
+  options.callback("answered");
+  await screen.findByLabelText("6-digit code");
+  expect(requests).toHaveLength(1);
+  expect(requests[0].turnstile_token).toBe("answered");
+});
+
+test("a box that errors sends without a token at once and says nothing more", async () => {
+  let options;
+  window.turnstile = {
+    render: (_el, o) => {
+      options = o;
+      queueMicrotask(() => o["before-interactive-callback"]());
+      return "w";
+    },
+    reset: () => {},
+    remove: () => {},
+  };
+  const requests = replyWith(200, { ok: true });
+  render(<SignIn onAuthed={vi.fn()} />);
+  const field = screen.getByLabelText("Email");
+  fireEvent.focus(field);
+  fireEvent.change(field, { target: { value: "a@x.com" } });
+  fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
+  await screen.findByRole("button", { name: "Waiting for the check…" });
+  options["error-callback"]("600010");
+  await screen.findByLabelText("6-digit code");
+  expect(requests).toHaveLength(1);
+  expect(requests[0]).not.toHaveProperty("turnstile_token");
+  expect(screen.queryByText(/Cloudflare is asking/)).toBeNull();
+});

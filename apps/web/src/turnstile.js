@@ -10,6 +10,12 @@
  * challenge is on screen, and goes without one if Cloudflare cannot be
  * reached: the server decides what a missing token means.
  *
+ * While a send waits, the form is told what for (`onWait`): "challenge" while
+ * Cloudflare's box is on screen for a click, "check" otherwise, null when the
+ * wait is over. A person looking at the form is never left with a bare
+ * "Sending…": a 2026-11-09 walk sat on it for two minutes beside a visible
+ * "Verify you are human" box nobody was told to tick.
+ *
  * "Send another email" to the same address reuses the token it already
  * sent, inside the five minutes and three sends the relay allows; any
  * other send asks the widget for a fresh one.
@@ -53,6 +59,7 @@ function loadScript(win, doc) {
  */
 export function makeTurnstile({
   slot,
+  onWait = () => {},
   win = globalThis.window,
   doc = globalThis.document,
   now = Date.now,
@@ -68,6 +75,13 @@ export function makeTurnstile({
   const waiters = new Set();
   const settle = () => {
     for (const waiter of [...waiters]) waiter();
+  };
+  let said = null;
+  const report = () => {
+    const now = waiters.size === 0 ? null : interactive ? "challenge" : "check";
+    if (now === said) return;
+    said = now;
+    onWait(now);
   };
 
   function render() {
@@ -103,9 +117,12 @@ export function makeTurnstile({
         "before-interactive-callback": () => {
           interactive = true;
           settle();
+          report();
         },
         "after-interactive-callback": () => {
+          // Answered and being checked: still worth the wait it was given.
           interactive = false;
+          report();
         },
         "error-callback": () => {
           failed = true;
@@ -140,6 +157,7 @@ export function makeTurnstile({
       const done = () => {
         clearTimeout(timer);
         waiters.delete(check);
+        report();
         resolve();
       };
       const check = () => {
@@ -148,6 +166,7 @@ export function makeTurnstile({
         timer = setTimeout(done, interactive ? INTERACTIVE_WAIT_MS : WAIT_MS);
       };
       waiters.add(check);
+      report();
       check();
     });
   }
@@ -186,6 +205,7 @@ export function makeTurnstile({
 
   function dispose() {
     waiters.clear();
+    said = null;
     if (widget !== null && api) {
       try {
         api.remove(widget);
@@ -201,19 +221,21 @@ export function makeTurnstile({
 }
 
 /** The form's half: `slot` is the ref for the element the widget renders
- *  into, `warm` goes on the email field's first focus or input. */
+ *  into, `warm` goes on the email field's first focus or input, and
+ *  `waiting` says what a send is waiting for ("challenge", "check" or null). */
 export function useTurnstile() {
+  const [waiting, setWaiting] = useState(null);
   const [turnstile] = useState(() => {
     let el = null;
     return {
-      ...makeTurnstile({ slot: () => el }),
+      ...makeTurnstile({ slot: () => el, onWait: setWaiting }),
       slot: (node) => {
         if (node) el = node;
       },
     };
   });
   useEffect(() => () => turnstile.dispose(), [turnstile]);
-  return turnstile;
+  return { ...turnstile, waiting };
 }
 
 /** For tests: forget the page's script. */
