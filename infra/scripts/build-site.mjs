@@ -145,6 +145,14 @@ export function verifySite({ outDir, designCss }) {
     "assets/site.css",
     "assets/og.png",
     "assets/elixir-logo-96.webp",
+    // Installing Elixir on a phone: the manifest and every icon it and the
+    // heads name.
+    "manifest.webmanifest",
+    "favicon.ico",
+    "apple-touch-icon.png",
+    "icon-192.png",
+    "icon-512.png",
+    "icon-maskable-512.png",
   ]) {
     if (!files.has(required)) problems.push(`${required} is missing`);
   }

@@ -72,6 +72,8 @@ test("publish: each kind of file keeps the type the bucket gave it, and every .t
     ["assets/elixir-logo-96.webp", "image/webp"],
     ["assets/cards/26000000_evo.png", "image/png"],
     ["favicon.ico", "image/x-icon"],
+    // A manifest served as JSON is still read, but this is its own type.
+    ["manifest.webmanifest", "application/manifest+json"],
     ["assets/fonts/Inter-latin.woff2", "font/woff2"],
     ["assets/fonts/Clash_Regular.otf", "font/otf"],
     // llms.txt read as Latin-1 showed "adding â€¦" (2026-09-10).
@@ -83,7 +85,7 @@ test("publish: each kind of file keeps the type the bucket gave it, and every .t
   assert.equal(contentType("assets/v1.2/file"), undefined);
   assert.equal(contentType("image.svg"), undefined);
   assert.equal(contentType("SHOUT.HTML"), "text/html");
-  assert.equal(Object.keys(CONTENT_TYPES).length, 12);
+  assert.equal(Object.keys(CONTENT_TYPES).length, 13);
 });
 
 const sum = (text) => md5(Buffer.from(text));
