@@ -16,6 +16,7 @@
  *  without it. `mode_records` is everyone's record per mode, read with the
  *  timeline, so the cap or a deadline never takes it. */
 import { buildTimeline, subjectsFor } from "./activity/entries.mjs";
+import { deckIdentities } from "./tools/shared.mjs";
 import { clanSummaryParts, itemText } from "./activity/summary.mjs";
 
 /** The big firsts, the only moments that mail when they happen (Jamie,
@@ -117,7 +118,7 @@ export function featuredDeck(row, full) {
   };
 }
 
-/** People drawn as cards with a deck (three tool calls each); anyone
+/** People drawn as cards with a deck (two tool calls each); anyone
  *  past this is a line. */
 const CARD_CAP = 10;
 
@@ -337,7 +338,8 @@ function followingCoverage(subjects, entries) {
 
 /** One person's week the way the card draws it: a record per mode
  *  family (battles_performance's own split) and the deck played most
- *  (battles_decks, then the deck read by its hash for its art). */
+ *  (battles_decks, then the deck's identity read by its hash for its
+ *  art). */
 async function personWeek(callTool, ctx, tag, window, { deck = true } = {}) {
   const perf = await tryTool(callTool, ctx, "battles_performance", {
     player_tag: tag,
@@ -359,16 +361,19 @@ async function personWeek(callTool, ctx, tag, window, { deck = true } = {}) {
     limit: 1,
   });
   const top = list?.decks?.[0];
-  const full = top
-    ? await tryTool(callTool, ctx, "battles_decks", {
-        player_tag: tag,
-        ...window,
-        deck_hash: top.deck_hash,
-      })
-    : null;
+  // The cards from the identity battles_decks itself reads for one deck
+  // (the same deckIdentities, so the same cards, form and tower troop).
+  // Asking the tool for the one deck reran the window's whole aggregate
+  // for them, once per person drawn as a card (2026-11-09).
+  const identity = top
+    ? (await deckIdentities(ctx.db, [top.deck_hash])).get(top.deck_hash)
+    : undefined;
   return {
     by_family,
-    deck: featuredDeck(top, full?.decks?.[0]),
+    deck: featuredDeck(top, {
+      ...identity,
+      archetype_label: identity?.archetype?.label ?? null,
+    }),
     decks_used: list?.total_decks ?? null,
     deck_battles: list?.total_battles_in_window ?? null,
   };

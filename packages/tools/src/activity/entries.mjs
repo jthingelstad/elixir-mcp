@@ -1604,13 +1604,34 @@ export async function buildPlayerEntry(
  *  EXPLAIN the same statement the tool runs. */
 export function clanLearnedQuery({ tag, fromMs, toMs, basis = "observed" }) {
   const occurred = basis === "occurred";
-  const col = occurred ? "bp.battle_time" : "b.created_at";
+  // Learned in the window: the window's battles off the created_at index,
+  // each asking its own participants (primary key) whether one played in
+  // the clan. Both conditions are the battle's, so counting each battle
+  // once is the joined statement's count(distinct battle_id). Joined
+  // instead, the planner hashed the window's battles and scanned
+  // battle_participant whole for a big clan (live 2026-11-09, POAP KINGS'
+  // 7 days: 98,000 of 222,000 rows, about 500 ms, mostly disk: a scan
+  // that size never warms the cache). LIMIT keeps the lateral a per-battle
+  // probe the planner cannot flatten back into that join.
+  if (!occurred)
+    return {
+      text: `select count(*) filter (where b.battle_time >= b.created_at - interval '1 day')::int as recent,
+                    count(*) filter (where b.battle_time < b.created_at - interval '1 day')::int as late
+               from battle b
+              cross join lateral (
+                select 1 from battle_participant bp
+                 where bp.battle_id = b.battle_id and bp.clan_tag = $1
+                 limit 1) in_clan
+              where b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`,
+      values: [tag],
+    };
+  // Played in the window: the clan's own (clan_tag, battle_time) range.
   return {
     text: `select count(distinct b.battle_id) filter (where b.battle_time >= b.created_at - interval '1 day')::int as recent,
                   count(distinct b.battle_id) filter (where b.battle_time < b.created_at - interval '1 day')::int as late
              from battle b
              join battle_participant bp on bp.battle_id = b.battle_id
-            where ${col} >= ${ts(occurred ? fromMs : fromMs + 1)} and ${col} < ${ts(toMs + 1)}
+            where bp.battle_time >= ${ts(fromMs)} and bp.battle_time < ${ts(toMs + 1)}
               and bp.clan_tag = $1`,
     values: [tag],
   };
