@@ -214,16 +214,62 @@ class FirstReadsSpent extends Error {}
  * fresh tags cannot drain the global bucket (#371 review). Past that the
  * add still happens and the scheduler's first read comes as for any new
  * recording. Never throws: the add has already happened.
+ *
+ * `battles: true` (2026-11-09, Jamie: "adding new players battles right
+ * away makes a ton of sense and makes first user experience way better")
+ * also asks for the battle log on the live lane, after the profile and
+ * only when the profile's read is on its way (minted or joined), so the
+ * last 30 battles land with the profile instead of at the scheduler's
+ * next tick. It has the same guards on its own endpoint (a battle log
+ * read or failed in the last day, one open job per subject) and its own
+ * per-pool allowance, FIRST_BATTLES, of the same size: a second live
+ * token per new player, and nothing else. A refusal or failure never
+ * touches the add or the profile's read: the scheduler reads the battle
+ * log as for any new recording.
+ *
  * Returns {requested, reason}, and not_found when the last day's failed
- * fetch was a 404.
+ * fetch was a 404; with `battles`, also battles: {requested, reason}.
  */
-export async function requestFirstRead(db, live, tag, accountId) {
-  const { result, outcome } = await firstReadOutcome(db, live, tag, accountId);
+export async function requestFirstRead(
+  db,
+  live,
+  tag,
+  accountId,
+  { battles = false } = {},
+) {
+  const { result, outcome } = await firstReadOutcome(db, live, tag, accountId, {
+    endpoint: "player",
+    pool: FIRST_READS,
+  });
   // By name, so a slow first read can be told from a refused one
   // (first_read_landed in packages/ingest/src/first-read.mjs times the
   // landing). No tag, account or email in the line.
-  console.info({ event: "first_read_requested", outcome });
-  return result;
+  console.info({ event: "first_read_requested", endpoint: "player", outcome });
+  if (!battles) return result;
+  // The profile first; the battle log only behind a profile read that is
+  // on its way, so a tag the game does not have costs one token, not two.
+  const second =
+    outcome === "minted" || outcome === "joined"
+      ? await firstReadOutcome(db, live, tag, accountId, {
+          endpoint: "player_battlelog",
+          pool: FIRST_BATTLES,
+        })
+      : {
+          result: { requested: false, reason: "profile_not_requested" },
+          outcome: "profile_not_requested",
+        };
+  console.info({
+    event: "first_read_requested",
+    endpoint: "player_battlelog",
+    outcome: second.outcome,
+  });
+  return {
+    ...result,
+    battles: {
+      requested: second.result.requested,
+      reason: second.result.reason,
+    },
+  };
 }
 
 /**
@@ -232,9 +278,11 @@ export async function requestFirstRead(db, live, tag, accountId) {
  * empty: nothing queued, the scheduler reads it on a later tick),
  * first_reads_spent (the pool's first reads for the day are used: the
  * same), fresh, read_today, failed_today, not_found_today, no_live_lane,
- * no_account, error.
+ * no_account, error; for the battle log also not_recorded (no active
+ * comprehensive recording, so the scheduler would not read it either) and
+ * profile_not_requested (requestFirstRead above).
  */
-async function firstReadOutcome(db, live, tag, accountId) {
+async function firstReadOutcome(db, live, tag, accountId, { endpoint, pool }) {
   const done = (result, outcome) => ({ result, outcome });
   let spent = null;
   try {
@@ -242,13 +290,16 @@ async function firstReadOutcome(db, live, tag, accountId) {
       rows: [seen],
     } = await db.query(
       `select exists (select 1 from api_receipt
-                       where endpoint = 'player' and entity_key = $1
+                       where endpoint = $2 and entity_key = $1
                          and fetched_at > now() - interval '1 day') as read,
               (select http_status from collector_fetch_error
-                where endpoint = 'player' and entity_key = $1
+                where endpoint = $2 and entity_key = $1
                   and fetched_at > now() - interval '1 day'
-                order by fetched_at desc limit 1) as failed_status`,
-      [tag],
+                order by fetched_at desc limit 1) as failed_status,
+              exists (select 1 from recording
+                       where subject_type = 'player' and subject_tag = $1
+                         and status = 'active' and scope = 'comprehensive') as deep`,
+      [tag, endpoint],
     );
     if (seen.read)
       return done({ requested: false, reason: "read_today" }, "read_today");
@@ -261,17 +312,21 @@ async function firstReadOutcome(db, live, tag, accountId) {
         },
         seen.failed_status === 404 ? "not_found_today" : "failed_today",
       );
+    // The scheduler reads a player's battle log only for a comprehensive
+    // recording (plan.mjs seedPollState); a first read never reaches past it.
+    if (endpoint === "player_battlelog" && !seen.deep)
+      return done({ requested: false, reason: "not_recorded" }, "not_recorded");
     if (!live)
       return done({ requested: false, reason: "no_live_lane" }, "no_live_lane");
     if (!accountId)
       return done({ requested: false, reason: "no_account" }, "no_account");
     const r = await live(db, {
-      endpoint: "player",
+      endpoint,
       entityKey: tag,
       // Spent only when a job is minted: a fresh read or an open job
       // costs the pool nothing. Throwing here gives the token back.
       beforeMint: async () => {
-        spent = await spendFirstRead(db, accountId);
+        spent = await spendFirstRead(db, accountId, pool);
         if (!spent.ok) throw new FirstReadsSpent();
       },
     });
@@ -298,7 +353,7 @@ async function firstReadOutcome(db, live, tag, accountId) {
       );
     // The mint failed after the pool paid for it: give it back.
     if (spent?.ok) await refundFirstRead(db, spent).catch(() => {});
-    console.error("first_read_failed", tag, err?.message);
+    console.error("first_read_failed", tag, err?.message, endpoint);
     return done({ requested: false, reason: "error" }, "error");
   }
 }
@@ -306,19 +361,22 @@ async function firstReadOutcome(db, live, tag, accountId) {
 /** The day's first reads, per pool: `firstread#<owner>` in rate_limit,
  *  windowed by UTC date like `liveday#`. */
 const FIRST_READS = "firstread#";
+/** The day's first battle log reads, per pool, the same size: one per
+ *  player slot, so a profile's allowance is never spent on battles. */
+const FIRST_BATTLES = "firstbattles#";
 
 /** Take one of the pool's first reads for today: ok while the pool has
  *  one left within its player slots (an exempt pool is never counted).
  *  A refusal leaves the count alone, so the count is always the reads
  *  taken and not given back, and a refund frees a read for the next add.
  *  Returns the window it charged, for refundFirstRead. */
-async function spendFirstRead(db, accountId) {
+async function spendFirstRead(db, accountId, pool = FIRST_READS) {
   const owner = await poolOwner(db, accountId);
   if (!owner) return { ok: false, bucket: null };
   const max = poolLimits(owner).player_slots;
   if (max === Infinity) return { ok: true, bucket: null };
   if (!(max >= 1)) return { ok: false, bucket: null };
-  const bucket = `${FIRST_READS}${owner.account_id}`;
+  const bucket = `${pool}${owner.account_id}`;
   const day = new Date().toISOString().slice(0, 10);
   const { rows } = await db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 1)

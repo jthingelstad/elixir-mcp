@@ -190,10 +190,17 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
   // recording_started (the route used to log a second one of its own).
   assert.equal(parse(claim).first_read, true);
   assert.equal(parse(claim).not_found, false);
-  const { rows: liveJobs } = await db.query(
-    `select lane from job where endpoint = 'player' and entity_key = '#2GLQRLC'`,
-  );
-  assert.deepEqual(liveJobs, [{ lane: "live" }]);
+  // 2026-11-09: then its battle log, on the live lane too.
+  const liveJobs = async () =>
+    (
+      await db.query(
+        `select endpoint, lane from job where entity_key = '#2GLQRLC' order by job_id`,
+      )
+    ).rows;
+  assert.deepEqual(await liveJobs(), [
+    { endpoint: "player", lane: "live" },
+    { endpoint: "player_battlelog", lane: "live" },
+  ]);
   const { rows: started } = await db.query(
     `select count(*)::int as n from account_event
       where kind = 'recording_started' and detail->>'player_tag' = '#2GLQRLC'`,
@@ -206,6 +213,7 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
     ),
   );
   assert.equal(again.first_read, false);
+  assert.equal((await liveJobs()).length, 2, "no second job either way");
 
   const me2 = parse(
     await handler(

@@ -187,10 +187,14 @@ Stamps are UTC; Jamie reads US Central.
   Add `message.lane as lane` and `by ... lane` to split a live first
   read from one the scheduler made. Whether the add asked at all is
   `message.event = "first_read_requested"` in the web-api and mcp
-  groups, `message.outcome` one of `minted`, `joined`, `no_token`,
+  groups, one line per endpoint asked (`message.endpoint` `player`,
+  and from 2026-11-09 `player_battlelog` for a person's add), with
+  `message.outcome` one of `minted`, `joined`, `no_token`,
   `first_reads_spent`, `fresh`, `read_today`, `failed_today`,
-  `not_found_today`, `no_live_lane`, `no_account`, `error`:
-  `filter message.event = "first_read_requested" | stats count(*) by bin(1d), message.outcome`.
+  `not_found_today`, `no_live_lane`, `no_account`, `error`, and for the
+  battle log `not_recorded` and `profile_not_requested`:
+  `filter message.event = "first_read_requested" | stats count(*) by bin(1d), message.endpoint, message.outcome`.
+  Lines before 2026-11-09 carry no endpoint; they were all `player`.
   A `no_token` or `first_reads_spent` add lands on the scheduler's bulk
   lane, a tick or more later.
 
