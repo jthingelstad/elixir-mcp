@@ -14,6 +14,7 @@ import { participationObjects } from "../src/participation-table.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
 import { periodAt } from "../src/war-period.mjs";
 import { ensureSeasonsAround } from "@elixir-mcp/record/season";
+import { seedDeck } from "./deck-rows.mjs";
 
 /** The (player, UTC day) pairs of hand-seeded battles, as ingest would
  *  hand them to the rollup. */
@@ -640,6 +641,81 @@ test("clans_standings leaves out boat defenses the member did not play (0171, Gy
     "not a battle played",
   );
   assert.equal(after?.win_rate ?? null, was?.win_rate ?? null);
+});
+
+test("players_summary leaves out boat defenses, agreeing with battles_performance (Gym #262.1)", async () => {
+  const tag = (
+    await db.query(
+      `select player_tag from clan_membership
+       where clan_tag = $1 and left_observed_at is null
+       order by player_tag desc limit 1`,
+      [CLAN],
+    )
+  ).rows[0].player_tag;
+  const at = (hours) => `now() - make_interval(hours => ${hours})`;
+  // The defense deck: the only deck in the window, so a summary that
+  // counted defenses would make it the top deck.
+  const defDeck = await seedDeck(db, {
+    cards: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({ id: 26_262_000 + i })),
+  });
+  // One battle played two days back, and two boat defenses: one in a
+  // whole day the rollup answers, one on the window's first day, which
+  // the raw rows answer (daily-sql.mjs).
+  const rows = [
+    ["sd-play", 48, "PvP", "pvp", null, "win", null],
+    ["sd-def-a", 50, "boatBattle", "pvp", "defender", "win", defDeck],
+    ["sd-def-b", 30 * 24 - 1, "boatBattle", "pvp", "defender", "loss", defDeck],
+  ];
+  for (const [id, h, type, cls, side, outcome, deck] of rows) {
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, boat_battle_side)
+       values ($1, ${at(h)}, $2, $3, $4) on conflict do nothing`,
+      [id, type, cls, side],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, type, type_class, clan_tag, deck_hash)
+       values ($1, $2, ${at(h)}, 0, $3, $4, $5, $6, $7) on conflict do nothing`,
+      [id, tag, outcome, type, cls, CLAN, deck],
+    );
+  }
+  await refreshDailyRollups(db, await rollupPairs(db, "sd-%"));
+  const pairs = await rollupPairs(db, "sd-%");
+  try {
+    const s = await call(invoke, "players_summary", { player_tag: tag });
+    assert.equal(s.isError, false, JSON.stringify(s.body));
+    const p = await call(invoke, "battles_performance", {
+      player_tag: tag,
+      days: 30,
+    });
+    assert.equal(p.isError, false, JSON.stringify(p.body));
+    const l = s.body.last_30_days;
+    assert.equal(l.boat_defenses, 2, "the defenses are still said");
+    assert.equal(l.battles, p.body.window.battles, "one battle count");
+    assert.equal(l.wins, p.body.window.wins);
+    assert.equal(l.losses, p.body.window.losses);
+    assert.equal(l.battles, 1, "only the battle the member played");
+    assert.deepEqual(
+      Object.fromEntries(
+        Object.entries(l.modes).map(([g, m]) => [g, m.battles]),
+      ),
+      Object.fromEntries(
+        Object.entries(p.body.window.modes).map(([g, m]) => [g, m.battles]),
+      ),
+      "the mode split agrees too",
+    );
+    assert.notEqual(
+      s.body.top_deck?.deck_hash,
+      defDeck,
+      "a defense deck is not the deck the member played",
+    );
+  } finally {
+    // The member stays below the next test's floor with no battle.
+    await db.query(
+      `delete from battle_participant where battle_id like 'sd-%'`,
+    );
+    await db.query(`delete from battle where battle_id like 'sd-%'`);
+    await refreshDailyRollups(db, pairs);
+  }
 });
 
 test("clans_standings: ranked by win rate with floor, median, and honest basis", async () => {

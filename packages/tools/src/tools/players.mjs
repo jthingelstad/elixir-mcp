@@ -114,10 +114,12 @@ export const playersTools = {
       );
       // The 30-day record from the daily rollup for the whole days and
       // the raw rows for the edge day (daily-sql.mjs, plan step 14);
-      // first_recorded is one index probe.
+      // first_recorded is one index probe. A boat defense is not the
+      // member's battle (DECISIONS, Jamie 2026-09-24/25): out of every
+      // count here, as battles_performance leaves it (Gym #262.1).
       const since = new Date(Date.now() - 30 * 86_400_000);
       const record = await ctx.db.query(
-        `with d as ${dailySql({ players: "array[$1]", from: "$2", to: "null" })}
+        `with d as ${dailySql({ players: "array[$1]", from: "$2", to: "null", excludeBoatDefenses: true })}
          select coalesce(sum(d.battles), 0)::int as battles,
                 coalesce(sum(d.wins), 0)::int as wins,
                 coalesce(sum(d.losses), 0)::int as losses,
@@ -133,7 +135,7 @@ export const playersTools = {
       // The control next to the number (3.16.0): the window's mode split
       // from the same rollup rows, and the floor the player stood on.
       const modeRows = await ctx.db.query(
-        `with d as ${dailySql({ players: "array[$1]", from: "$2", to: "null" })}
+        `with d as ${dailySql({ players: "array[$1]", from: "$2", to: "null", excludeBoatDefenses: true })}
          select d.mode_group, sum(d.battles)::int as battles,
                 sum(d.wins)::int as wins, sum(d.losses)::int as losses
          from d group by d.mode_group`,
@@ -154,6 +156,8 @@ export const playersTools = {
                              join battle xb on xb.battle_id = x.battle_id
                             where x.player_tag = $1 and x.deck_hash = bp.deck_hash
                               and x.battle_time > now() - interval '30 days'
+                              and not (xb.boat_battle_side is not null
+                                       and (xb.boat_battle_side = 'defender') = (x.side = 0))
                             group by x.type, 2) t) as by_type,
                   round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap,
                   -- Where the deck was played (Gym #132): a starter deck
@@ -172,7 +176,10 @@ export const playersTools = {
              -- the deck is not the player's deck, as the meta rules.
              and exists (select 1 from battle cb where cb.battle_id = bp.battle_id
                           and (cb.deck_selection is null
-                               or cb.deck_selection in ('collection', 'warDeckPick')))
+                               or cb.deck_selection in ('collection', 'warDeckPick'))
+                          -- Nor a boat defense (Gym #262.1).
+                          and not (cb.boat_battle_side is not null
+                                   and (cb.boat_battle_side = 'defender') = (bp.side = 0)))
            group by bp.deck_hash order by count(*) desc limit 2`,
         [tag],
       );
@@ -190,6 +197,8 @@ export const playersTools = {
                              join battle xb on xb.battle_id = x.battle_id
                             where x.player_tag = $1 and x.deck_hash = bp.deck_hash
                               and x.battle_time > now() - interval '30 days'
+                              and not (xb.boat_battle_side is not null
+                                       and (xb.boat_battle_side = 'defender') = (x.side = 0))
                             group by x.type, 2) t) as by_type,
                   round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap,
                   -- Where the deck was played (Gym #132): a starter deck
@@ -208,7 +217,10 @@ export const playersTools = {
              -- the deck is not the player's deck, as the meta rules.
              and exists (select 1 from battle cb where cb.battle_id = bp.battle_id
                           and (cb.deck_selection is null
-                               or cb.deck_selection in ('collection', 'warDeckPick')))
+                               or cb.deck_selection in ('collection', 'warDeckPick'))
+                          -- Nor a boat defense (Gym #262.1).
+                          and not (cb.boat_battle_side is not null
+                                   and (cb.boat_battle_side = 'defender') = (bp.side = 0)))
            group by bp.deck_hash
            having count(*) >= 10 and count(*) filter (where bp.outcome in ('win','loss')) > 0
            order by (count(*) filter (where bp.outcome = 'win'))::numeric
@@ -299,8 +311,8 @@ export const playersTools = {
         cap && cap.expected >= 5 && cap.ratio < 0.8
           ? `The record captured ${cap.captured} of the ${cap.expected} battles this player's profile counter says were played between its reads in these 30 days (${Math.round(cap.ratio * 100)}%): battles, the record and the decks describe the captured battles only, not everything played. elixir_coverage says which stretches are missing.`
           : null;
-      // Boat defenses are in these counts (decided scope) and not in
-      // clans_standings' (7.1.22): said when there are any (Gym #330).
+      // Boat defenses are out of these counts, as on every surface
+      // (Gym #262.1); how many were left out is said (Gym #330).
       const {
         rows: [defs],
       } = await ctx.db.query(
@@ -313,7 +325,7 @@ export const playersTools = {
       );
       const defenseNote =
         defs?.n > 0
-          ? `The counts include ${defs.n} boat defense${defs.n === 1 ? "" : "s"} (an enemy attacking the clan's boat, answered by this player's defense deck), which clans_standings leaves out as battles the member did not play; battles_query lists them with boat.side.`
+          ? `The counts leave out ${defs.n} boat defense${defs.n === 1 ? "" : "s"} (an enemy attacking the clan's boat, answered by this player's defense deck): a defense is not a battle the member played. battles_query lists them with boat.side.`
           : null;
       return {
         player_tag: tag,
@@ -337,7 +349,7 @@ export const playersTools = {
         }),
         last_30_days: {
           // What the record captured of the play the profile counter saw
-          // (Gym #328), and the boat defenses in these counts (#330).
+          // (Gym #328), and the boat defenses left out of these counts (#330, #262.1).
           capture: cap
             ? {
                 captured_battles: cap.captured,
