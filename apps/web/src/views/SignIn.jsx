@@ -43,6 +43,17 @@ const PRODUCT_NEWS_DRAFT = "elixir.signup_product_news";
 // (TURNSTILE_REFUSED_MESSAGE in packages/auth).
 const TURNSTILE_REFUSED =
   "Elixir could not confirm a person asked for this email. Reload the page and try again.";
+
+/** What a send is waiting for while Cloudflare's box is on screen: the form
+ *  says so beside the box, never a bare "Sending…" (turnstile.js, 2026-11-09). */
+function ChallengeWait({ waiting }) {
+  return waiting === "challenge" ? (
+    <p className="footnote mt-2 mb-3" role="status">
+      Cloudflare is asking for one click to check that a person is sending this.
+      Answer the box above and the email goes.
+    </p>
+  ) : null;
+}
 /** `newAccount` is the server's word that this proof opened the account
  *  ({ player_tag } or null otherwise): App lands a new person on it. */
 function finishSignIn(onAuthed, newAccount = null) {
@@ -99,6 +110,7 @@ export function SignIn({
     slot: turnstileSlot,
     warm: warmTurnstile,
     tokenFor: turnstileToken,
+    waiting: turnstileWaiting,
   } = useTurnstile();
   const submitting = useRef(false);
   // The signup form: `?signup` (and the retired `?request`), or "New
@@ -489,6 +501,7 @@ export function SignIn({
           </button>
         </div>
         <div ref={turnstileSlot} />
+        <ChallengeWait waiting={turnstileWaiting} />
         <p className="footnote mt-3.5 mb-0">
           The code allows five attempts. After that, request another email.
         </p>
@@ -590,13 +603,18 @@ export function SignIn({
           </p>
         )}
         <div ref={turnstileSlot} />
+        <ChallengeWait waiting={turnstileWaiting} />
         <button
           className="btn btn--primary"
           type="submit"
           disabled={busy}
           style={primary}
         >
-          {busy ? "Sending…" : "Send sign-in email"}
+          {!busy
+            ? "Send sign-in email"
+            : turnstileWaiting === "challenge"
+              ? "Waiting for the check…"
+              : "Sending…"}
         </button>
       </form>
       {discordLogin && (
