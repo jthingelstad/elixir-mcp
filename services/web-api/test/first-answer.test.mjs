@@ -106,6 +106,21 @@ test("first-answer follows actual capture and distinguishes authorization from n
   await db.query(
     "insert into deck (deck_hash, card_count, first_seen_at, last_seen_at) values ('a', 8, now(), now()), ('b', 8, now(), now()) on conflict do nothing",
   );
+  // Two boat defenses (a rival attacking the boat, answered by the
+  // defense deck): not battles the member played, so no counter moves.
+  for (const [id, days] of [
+    ["defense-week", 1],
+    ["defense-previous", 9],
+  ]) {
+    await db.query(
+      "insert into battle (battle_id, battle_time, type, type_class, boat_battle_side) values ($1, now() - $2 * interval '1 day', 'boatBattle', 'pvp', 'defender')",
+      [id, days],
+    );
+    await db.query(
+      "insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class) values ($1, '#2PP0V90Y', 0, now() - $2 * interval '1 day', 'loss', 'boatBattle', 'pvp')",
+      [id, days],
+    );
+  }
   for (const [id, tag, days, deck] of [
     ["recent", "#2PP0V90Y", 1, "a"],
     ["second", "#2PP0V90Y", 2, "b"],
@@ -126,7 +141,7 @@ test("first-answer follows actual capture and distinguishes authorization from n
   // the first answer's counters read it for whole days.
   const { rows: pairs } = await db.query(
     `select distinct player_tag, to_char(battle_time, 'YYYY-MM-DD') as day
-     from battle_participant where battle_id in ('recent', 'second', 'previous', 'old', 'foreign')`,
+     from battle_participant where battle_id in ('recent', 'second', 'previous', 'old', 'foreign', 'defense-week', 'defense-previous')`,
   );
   await refreshDailyRollups(
     db,

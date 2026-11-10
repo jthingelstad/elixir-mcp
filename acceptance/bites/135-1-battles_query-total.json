@@ -1,0 +1,36 @@
+{
+  "contract_version": "11.18.5",
+  "captured_at": "2026-11-10T00:11:19.587Z",
+  "request": {
+    "tool": "battles_query",
+    "arguments": {
+      "player_tag": "#20JJJ2CCRU",
+      "days": 30,
+      "include_total": true,
+      "limit": 1,
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "player_tag": "#20JJJ2CCRU",
+    "name": "King Thing",
+    "applied": {
+      "window": {
+        "from": "2026-10-11T00:11:19.559Z",
+        "to": null,
+        "source": "argument",
+        "timezone": "America/Chicago"
+      },
+      "limit": 1,
+      "verbosity": "compact"
+    },
+    "battles": [],
+    "total_count": 50,
+    "meta": {
+      "as_of": "2026-11-10T00:11:19.587Z",
+      "contract_version": "11.18.5",
+      "request_id": "76f46fa6-6f3a-41db-a470-884752401094"
+    }
+  },
+  "timings": {}
+}

@@ -42,12 +42,14 @@ export async function firstAnswer(db, accountId, playerTag = null) {
          -- The counters from the daily rollup for whole days and the
          -- raw rows for each window's edge day (daily-sql.mjs); the
          -- distinct decks stay raw, the rollup does not carry them.
+         -- A boat defense is not the member's battle (DECISIONS, Jamie
+         -- 2026-09-24/25): out of the counts, as players_summary has it.
          select (select coalesce(sum(battles), 0)::int
-                   from ${dailySql({ players: "array[c.player_tag]", from: "(now() - interval '30 days')", to: "null" })} d) as battles_30d,
+                   from ${dailySql({ players: "array[c.player_tag]", from: "(now() - interval '30 days')", to: "null", excludeBoatDefenses: true })} d) as battles_30d,
                 (select coalesce(sum(battles), 0)::int
-                   from ${dailySql({ players: "array[c.player_tag]", from: "(now() - interval '7 days')", to: "null" })} d) as battles_7d,
+                   from ${dailySql({ players: "array[c.player_tag]", from: "(now() - interval '7 days')", to: "null", excludeBoatDefenses: true })} d) as battles_7d,
                 (select coalesce(sum(battles), 0)::int
-                   from ${dailySql({ players: "array[c.player_tag]", from: "(now() - interval '14 days')", to: "(now() - interval '7 days')" })} d) as battles_previous_7d,
+                   from ${dailySql({ players: "array[c.player_tag]", from: "(now() - interval '14 days')", to: "(now() - interval '7 days')", excludeBoatDefenses: true })} d) as battles_previous_7d,
                 (select count(distinct deck_hash)::int from battle_participant
                   where player_tag = c.player_tag
                     and battle_time >= now() - interval '7 days' and battle_time <= now()) as distinct_decks_7d

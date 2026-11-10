@@ -1,0 +1,66 @@
+{
+  "contract_version": "11.18.4",
+  "captured_at": "2026-11-09T23:56:35.033Z",
+  "request": {
+    "tool": "players_summary",
+    "arguments": {
+      "player_tag": "#20JJJ2CCRU"
+    }
+  },
+  "response": {
+    "player_tag": "#20JJJ2CCRU",
+    "name": "King Thing",
+    "applied": {
+      "window": {
+        "from": "2026-10-10T23:56:34.962Z",
+        "to": "2026-11-09T23:56:34.962Z",
+        "source": "fixed",
+        "days": 30
+      }
+    },
+    "last_30_days": {
+      "capture": {
+        "captured_battles": 7,
+        "expected_battles": 7
+      },
+      "boat_defenses": 2,
+      "battles": 50,
+      "wins": 27,
+      "losses": 23,
+      "draws": 0,
+      "net_trophies": 186,
+      "win_rate": 0.54,
+      "modes": {
+        "casual": {
+          "battles": 6,
+          "wins": 2,
+          "losses": 4
+        },
+        "event": {
+          "battles": 2,
+          "wins": 1,
+          "losses": 1
+        },
+        "ladder": {
+          "battles": 26,
+          "wins": 16,
+          "losses": 10
+        },
+        "war": {
+          "battles": 16,
+          "wins": 8,
+          "losses": 8
+        }
+      }
+    },
+    "notes": [
+      "The counts include 2 boat defenses (an enemy attacking the clan's boat, answered by this player's defense deck), which clans_standings leaves out as battles the member did not play; battles_query lists them with boat.side."
+    ],
+    "meta": {
+      "as_of": "2026-11-09T23:56:35.033Z",
+      "contract_version": "11.18.4",
+      "request_id": "b6315e0a-8308-4b8d-a995-fb067c09184f"
+    }
+  },
+  "timings": {}
+}
