@@ -37,6 +37,7 @@ import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemberActivity } from "@elixir-mcp/clan/member-activity.mjs";
 import { createAccountContext } from "@elixir-mcp/clan/account.mjs";
 import { createRecordedClient } from "@elixir-mcp/clan/recorded-client.mjs";
+import { sharedRead } from "./shared-read.mjs";
 import {
   createManageService,
   fetchParticipation,
@@ -151,6 +152,11 @@ export async function recordedIdentity(db, account) {
   };
 }
 
+/** The reads a page's parallel panel requests repeat, shared while one
+ *  is in flight (`shared-read.mjs`): the eight-week participation every
+ *  Clan panel evaluates from. */
+const SHARED_READS = new Set(["clans_participation"]);
+
 export function createClanRequest({
   origin,
   modelSecret = null,
@@ -197,7 +203,17 @@ export function createClanRequest({
         timedElixir("initialize", () => recordedIdentity(db, account)),
       invoke: (name, args) =>
         timedElixir(name, async () => {
-          const r = await invoke(name, args);
+          const r = SHARED_READS.has(name)
+            ? await sharedRead(
+                JSON.stringify([
+                  account.accountId,
+                  account.timezone ?? null,
+                  name,
+                  args,
+                ]),
+                () => invoke(name, args),
+              )
+            : await invoke(name, args);
           return r.isError
             ? {
                 ok: false,

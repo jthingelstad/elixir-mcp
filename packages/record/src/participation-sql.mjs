@@ -59,6 +59,24 @@ where cm.clan_tag = $1 and cm.left_observed_at >= $2
                     and o.left_observed_at is null)
 order by cm.player_tag, cm.left_observed_at desc`;
 
+/** A week's donation high-water mark per member: `max(donations)` and
+ *  the snapshot count per ISO week, grouped inside a lateral per
+ *  distinct tag so the read is the primary key's (player_tag,
+ *  snapshot_date) range for each member, never a table scan. `extra`
+ *  narrows the rows (a former member's: this clan's only). */
+const DONATIONS_BY_MEMBER = (
+  extra,
+) => `select t.player_tag, w.week_start, w.donations, w.snapshots
+             from (select distinct unnest($1::text[]) as player_tag) t
+             cross join lateral (
+               select date_trunc('week', d.snapshot_date::timestamp) as week_start,
+                      max(d.donations)::int as donations, count(*)::int as snapshots
+                 from player_snapshot_daily d
+                where d.player_tag = t.player_tag
+                  and d.snapshot_kind in ('daily', 'pre_reset')
+                  and d.snapshot_date >= $2::date ${extra}
+                group by date_trunc('week', d.snapshot_date::timestamp)) w`;
+
 export function participationQueries({
   clanTag,
   tags,
@@ -90,13 +108,16 @@ export function participationQueries({
       // the weekly reset). snapshot_date is the game day, so the week is
       // Monday 10:00Z to Monday 10:00Z; the pre_reset row (the high-water
       // mark near the reset) counts beside the daily rows.
+      //
+      // One grouped read per member (2026-11-09): over a whole clan the
+      // planner costed the scattered day rows above a sequential scan of
+      // the table, and a scan that size goes through a small ring
+      // buffer, so every call read the whole table from disk (412 ms of
+      // a 1,046 ms call, live). The grouped lateral cannot be flattened
+      // into a join, so each member is a primary-key range read; the
+      // rows and their groups are the ones the flat statement gave.
       name: "donations_by_week",
-      text: `select player_tag, date_trunc('week', snapshot_date::timestamp) as week_start,
-                    max(donations)::int as donations, count(*)::int as snapshots
-             from player_snapshot_daily
-             where player_tag = any($1) and snapshot_kind in ('daily', 'pre_reset')
-               and snapshot_date >= $2::date
-             group by player_tag, date_trunc('week', snapshot_date::timestamp)`,
+      text: DONATIONS_BY_MEMBER(""),
       values: [tags, from],
     },
     {
@@ -138,12 +159,7 @@ export function participationQueries({
     {
       // And the donation counter only from this clan's roster rows.
       name: "former_donations_by_week",
-      text: `select player_tag, date_trunc('week', snapshot_date::timestamp) as week_start,
-                    max(donations)::int as donations, count(*)::int as snapshots
-             from player_snapshot_daily
-             where player_tag = any($1) and snapshot_kind in ('daily', 'pre_reset')
-               and snapshot_date >= $2::date and clan_tag = $3
-             group by player_tag, date_trunc('week', snapshot_date::timestamp)`,
+      text: DONATIONS_BY_MEMBER("and d.clan_tag = $3"),
       values: [formerTags, from, clanTag],
     },
   ];
