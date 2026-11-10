@@ -75,10 +75,10 @@ export function Pending({ player, players, hrefFor, navigate }) {
           }
           role="status"
         >
-          Elixir has saved {name}&rsquo;s tag. The first read usually lands
-          within a few minutes, and roughly the last 30 battles arrive with it.
-          This page checks again every few seconds at first, then about once a
-          minute.
+          Elixir has saved {name}&rsquo;s tag. The profile and roughly the last
+          30 battles usually arrive within a minute; at busy times it can take a
+          few. This page checks again every few seconds at first, then about
+          once a minute.
           {error ? " Elixir could not check just now. It will try again." : ""}
         </Empty>
       )}

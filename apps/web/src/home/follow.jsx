@@ -60,9 +60,9 @@ export function Followed({ result }) {
     );
   return (
     <p className="kit-tiny" role="status">
-      <Tag tag={tag} /> <b>Recording</b>. The first read usually lands within a
-      few minutes, and roughly their last 30 battles arrive with it. You can
-      close this page.
+      <Tag tag={tag} /> <b>Recording</b>. Their profile and roughly their last
+      30 battles usually arrive within a minute; at busy times it can take a
+      few. You can close this page.
     </p>
   );
 }

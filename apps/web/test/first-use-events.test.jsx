@@ -68,3 +68,24 @@ test("a page that opens with the read already landed sends nothing", () => {
   );
   expect(trackEvent).not.toHaveBeenCalled();
 });
+
+test("the First read step says what is true now: profile and battles, usually within a minute (2026-11-09)", () => {
+  const before = renderWithProviders(<NewAccount first={first(null)} />);
+  expect(
+    screen.getByText(
+      "Elixir reads your profile and your last 30 battles, usually within a minute.",
+    ),
+  ).toBeTruthy();
+  before.unmount();
+  renderWithProviders(<NewAccount first={first(player)} />);
+  expect(
+    screen.getByText(
+      /Your profile and roughly your last 30 battles usually arrive within a minute; at busy times it can take a few\./,
+    ),
+  ).toBeTruthy();
+  // useFirstAnswer: every 5 s for three minutes, then every minute.
+  expect(
+    screen.getByText(/checks again every few seconds for the first minutes/),
+  ).toBeTruthy();
+  expect(screen.queryByText(/within a few minutes/)).toBeNull();
+});

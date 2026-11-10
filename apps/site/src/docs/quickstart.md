@@ -41,8 +41,8 @@ If you gave your tag at signup, this step is done: skip to the first read
 below. Otherwise open [Settings › Players & tracking](/settings/players) and add
 your Clash Royale player tag. Your first player is your **primary**, which is what every tool
 means when you omit `player_tag`. Tracking **is** recording: Elixir reads
-your profile straight away and your battle log at the scheduler's next tick,
-so the first read usually lands within a few minutes, with roughly your
+your profile and then your battle log straight away, on the live lane, so
+both usually land within a minute (a few at busy times), with roughly your
 last 30 battles (all the game keeps); history builds from there. Once your
 profile shows your clan, Elixir follows that clan for you at activity scope,
 which is what puts your clan's week in your Monday email ([Your player's
@@ -66,7 +66,7 @@ the tag is on your account, not that a profile has arrived or ownership has
 been proved. This page checks saved data every few seconds for the first
 minutes after you add a tag, then about once a minute while recording is
 pending; **Check again** reads the record without forcing a game fetch. The
-first read usually lands within a few minutes; until both your profile and
+first read usually lands within a minute; until both your profile and
 your battle log have been read, Ladder says it is on its way rather than
 showing an empty season.
 

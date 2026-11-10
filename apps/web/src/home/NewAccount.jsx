@@ -76,7 +76,7 @@ export function NewAccount({ first, zoneMissing }) {
             title="First read"
             done={Boolean(landed)}
             waiting={!added}
-            ahead="Elixir reads your last 30 battles, usually within minutes."
+            ahead="Elixir reads your profile and your last 30 battles, usually within a minute."
             doneLine={
               landed
                 ? player.battles_30d > 0
@@ -351,8 +351,8 @@ function FirstRead({ player, journey, onCheck, busy, onStopped }) {
   return (
     <>
       <p>
-        Your tag is saved. The first read usually lands within a few minutes,
-        and roughly your last 30 battles arrive with it.
+        Your tag is saved. Your profile and roughly your last 30 battles usually
+        arrive within a minute; at busy times it can take a few.
       </p>
       <p className="kit-tiny">
         This page checks again every few seconds for the first minutes, then

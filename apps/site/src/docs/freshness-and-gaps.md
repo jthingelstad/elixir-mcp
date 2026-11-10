@@ -33,7 +33,7 @@ per day, against the game's own lifetime battle counter.
 
 | Subject | Rule | Bounds |
 |---|---|---|
-| Battle log | 30 minutes after a read that delivered battles; after an empty read the wait doubles (60, then 120 minutes) | never past 2 hours; a new subject is read at the next planning tick, usually within a few minutes |
+| Battle log | 30 minutes after a read that delivered battles; after an empty read the wait doubles (60, then 120 minutes) | never past 2 hours; a new subject is read at the next planning tick, usually within a few minutes, and a player someone adds is read on the live lane at once ([first reads](/docs/limits)) |
 | Battle log, reader cap | any player resolved by a tool call (yours, or one you named) is polled at least hourly for the next 24 hours | – |
 | Battle log, floor | at least daily regardless, even under a starved budget | – |
 | Profile | once a day; a player somebody tracks directly, every 8 hours; forced once in the hour before the Monday donation reset and before the season rolls | no floor: an idle player owes the record no reading |
