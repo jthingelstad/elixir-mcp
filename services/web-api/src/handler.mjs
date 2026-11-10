@@ -358,8 +358,11 @@ export function makeHandler({
     // first read is asked for as a Tracking add asks (requestFirstRead,
     // the pool's daily first reads), so "Tag not found" or the capture
     // shows in seconds rather than at the scheduler's next pass.
+    // The battle log with it (2026-11-09): this is a person's first look.
     if (onboarded?.player === true && onboarded.tag)
-      await requestFirstRead(db, liveRead, onboarded.tag, account.account_id);
+      await requestFirstRead(db, liveRead, onboarded.tag, account.account_id, {
+        battles: true,
+      });
     // Only a first use says where a new person lands: their player's
     // record, or Tracking to add one. That is the verification that
     // created the account, or the first sign-in to one made for them

@@ -789,8 +789,10 @@ test("a signup tag is frozen at the request and claimed, with its clan, only aft
     { player_tag: "#2PYQ8GJ0", is_primary: true },
   ]);
   assert.deepEqual(await clans(), [{ clan_tag: "#QPPPP", scope: "activity" }]);
+  // The profile first, then its battle log (2026-11-09), both live.
   assert.deepEqual(liveCalls.slice(before), [
     { endpoint: "player", entityKey: "#2PYQ8GJ0" },
+    { endpoint: "player_battlelog", entityKey: "#2PYQ8GJ0" },
   ]);
 
   // A second sign-in, even naming another tag, changes nothing.
@@ -805,7 +807,7 @@ test("a signup tag is frozen at the request and claimed, with its clan, only aft
   ]);
   assert.deepEqual(await clans(), [{ clan_tag: "#QPPPP", scope: "activity" }]);
   assert.equal((await accountOf(email)).requested_player_tag, "#2PYQ8GJ0");
-  assert.equal(liveCalls.length, before + 1);
+  assert.equal(liveCalls.length, before + 2);
 });
 
 test("a link carries a new account's landing through the handoff answer", async () => {

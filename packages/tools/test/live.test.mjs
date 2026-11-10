@@ -13,6 +13,7 @@ import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { trackClans } from "../../ingest/test/helpers.mjs";
+import { addPlayer } from "@elixir-mcp/claims";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -1022,7 +1023,7 @@ test("a first read's outcome is logged by name, so a slow first read can be told
       await requestFirstRead(db, live, tag, "an-account");
       assert.deepEqual(
         lines,
-        [{ event: "first_read_requested", outcome }],
+        [{ event: "first_read_requested", endpoint: "player", outcome }],
         tag,
       );
       assert.ok(!JSON.stringify(lines).includes(tag.slice(1)), "no tag");
@@ -1031,4 +1032,244 @@ test("a first read's outcome is logged by name, so a slow first read can be told
     console.info = info;
     console.error = error;
   }
+});
+
+/** A person with `slots` player slots who has added `tag` (claimed, so
+ *  recorded comprehensively), as the web add and elixir_track_player do. */
+async function personWith(hash, tag, slots = 3) {
+  const {
+    rows: [p],
+  } = await db.query(
+    `insert into account (email_hash, status, role, max_player_recordings)
+     values ($1, 'approved', 'member', $2) returning account_id`,
+    [hash, slots],
+  );
+  if (tag) {
+    const r = await addPlayer(
+      db,
+      { accountId: p.account_id },
+      { tag, makePrimary: true, via: "web" },
+    );
+    assert.equal(r.ok, true, JSON.stringify(r));
+  }
+  return p.account_id;
+}
+
+const jobsOf = async (tag) =>
+  (
+    await db.query(
+      `select job_id::int as id, endpoint, lane from job
+        where entity_key = $1 order by job_id`,
+      [tag],
+    )
+  ).rows.map(({ endpoint, lane }) => `${endpoint}:${lane}`);
+
+async function logged(fn) {
+  const lines = [];
+  const info = console.info;
+  console.info = (line) => lines.push(line);
+  try {
+    const result = await fn();
+    return { result, lines };
+  } finally {
+    console.info = info;
+  }
+}
+
+const requested = (lines) =>
+  lines
+    .filter((l) => l?.event === "first_read_requested")
+    .map((l) => `${l.endpoint}:${l.outcome}`);
+
+test("a person's add asks for the profile and then the battle log on the live lane, so both land in seconds (2026-11-09)", async () => {
+  await db.query("update budget_state set tokens = 10");
+  const tag = "#2PYLRC";
+  const personId = await personWith("first-battles-person", tag);
+  const live = makeLive({ enqueue: enqueueJob });
+  const before = await tokens();
+  const { result, lines } = await logged(() =>
+    requestFirstRead(db, live, tag, personId, { battles: true }),
+  );
+  assert.equal(result.requested, true);
+  assert.deepEqual(result.battles, { requested: true, reason: "pending" });
+  // Profile first, then the battle log, both live; two tokens.
+  assert.deepEqual(await jobsOf(tag), ["player:live", "player_battlelog:live"]);
+  assert.equal(before - (await tokens()), 2);
+  assert.deepEqual(requested(lines), [
+    "player:minted",
+    "player_battlelog:minted",
+  ]);
+  assert.ok(!JSON.stringify(lines).includes(tag.slice(1)), "no tag");
+  const day = new Date().toISOString().slice(0, 10);
+  const { rows: pools } = await db.query(
+    `select split_part(bucket, '#', 1) as pool, count from rate_limit
+      where bucket in ($1, $2) and window_start = $3::date order by 1`,
+    [`firstread#${personId}`, `firstbattles#${personId}`, day],
+  );
+  assert.deepEqual(
+    pools.map((r) => `${r.pool}:${r.count}`),
+    ["firstbattles:1", "firstread:1"],
+    "each read from its own allowance",
+  );
+
+  // A re-add, or a second person adding the same tag while both are
+  // open: one job per tag and endpoint, nothing more charged.
+  const otherId = await personWith("first-battles-other", tag);
+  const tokensNow = await tokens();
+  const again = await logged(() =>
+    requestFirstRead(db, live, tag, otherId, { battles: true }),
+  );
+  assert.deepEqual(requested(again.lines), [
+    "player:joined",
+    "player_battlelog:joined",
+  ]);
+  assert.deepEqual(await jobsOf(tag), ["player:live", "player_battlelog:live"]);
+  assert.equal(await tokens(), tokensNow);
+  const { rows: theirs } = await db.query(
+    `select coalesce(sum(count), 0)::int as n from rate_limit
+      where bucket in ($1, $2) and window_start = $3::date`,
+    [`firstread#${otherId}`, `firstbattles#${otherId}`, day],
+  );
+  assert.equal(theirs[0].n, 0, "joining costs the second pool nothing");
+
+  // Without battles (the default) the profile alone, as before.
+  const solo = "#2PYLRG";
+  await personWith("first-battles-solo", solo);
+  const only = await logged(() => requestFirstRead(db, live, solo, personId));
+  assert.equal(only.result.battles, undefined);
+  assert.deepEqual(requested(only.lines), ["player:minted"]);
+  assert.deepEqual(await jobsOf(solo), ["player:live"]);
+});
+
+test("a refused battle-log read leaves the add and the profile's read alone, and is logged by outcome (2026-11-09)", async () => {
+  const day = new Date().toISOString().slice(0, 10);
+  const live = makeLive({ enqueue: enqueueJob });
+
+  // The global bucket has one token: the profile takes it.
+  await db.query("update budget_state set tokens = 1");
+  const a = "#2PYLR0";
+  const aId = await personWith("first-battles-no-token", a);
+  const empty = await logged(() =>
+    requestFirstRead(db, live, a, aId, { battles: true }),
+  );
+  assert.equal(empty.result.requested, true);
+  assert.deepEqual(empty.result.battles, {
+    requested: false,
+    reason: "pending",
+  });
+  assert.deepEqual(requested(empty.lines), [
+    "player:minted",
+    "player_battlelog:no_token",
+  ]);
+  assert.deepEqual(await jobsOf(a), ["player:live"]);
+  const { rows: noCharge } = await db.query(
+    `select count(*)::int as n from rate_limit
+      where bucket = $1 and window_start = $2::date and count > 0`,
+    [`firstbattles#${aId}`, day],
+  );
+  assert.equal(noCharge[0].n, 0, "a refused battle log takes no allowance");
+
+  // The pool's battle-log reads are spent: the token goes back.
+  await db.query("update budget_state set tokens = 10");
+  const b = "#2PYLR2";
+  const bId = await personWith("first-battles-spent", b, 1);
+  await db.query(
+    `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 1)`,
+    [`firstbattles#${bId}`, day],
+  );
+  const before = await tokens();
+  const spent = await logged(() =>
+    requestFirstRead(db, live, b, bId, { battles: true }),
+  );
+  assert.equal(spent.result.requested, true);
+  assert.deepEqual(spent.result.battles, {
+    requested: false,
+    reason: "first_reads_spent",
+  });
+  assert.deepEqual(requested(spent.lines), [
+    "player:minted",
+    "player_battlelog:first_reads_spent",
+  ]);
+  assert.deepEqual(await jobsOf(b), ["player:live"]);
+  assert.equal(before - (await tokens()), 1, "the battle log's token is back");
+
+  // The battle log's mint fails: the profile's job stays, the add stands.
+  const c = "#2PYLR8";
+  const cId = await personWith("first-battles-fails", c);
+  const failing = makeLive({
+    enqueue: async (_db, job) => {
+      if (job.endpoint === "player_battlelog") throw new Error("ledger down");
+      return enqueueJob(db, job);
+    },
+  });
+  const error = console.error;
+  console.error = () => {};
+  let failed;
+  try {
+    failed = await logged(() =>
+      requestFirstRead(db, failing, c, cId, { battles: true }),
+    );
+  } finally {
+    console.error = error;
+  }
+  assert.equal(failed.result.requested, true);
+  assert.deepEqual(failed.result.battles, {
+    requested: false,
+    reason: "error",
+  });
+  assert.deepEqual(requested(failed.lines), [
+    "player:minted",
+    "player_battlelog:error",
+  ]);
+  assert.deepEqual(await jobsOf(c), ["player:live"]);
+  const { rows: refunded } = await db.query(
+    `select coalesce(sum(count), 0)::int as n from rate_limit
+      where bucket = $1 and window_start = $2::date`,
+    [`firstbattles#${cId}`, day],
+  );
+  assert.equal(refunded[0].n, 0, "the failed mint's allowance is given back");
+
+  // A battle log read in the last day is not asked again.
+  const d = "#2PYLR9";
+  const dId = await personWith("first-battles-read", d);
+  await db.query(
+    `insert into api_receipt (endpoint, entity_key, gateway_id, fetched_at, payload_hash, admission)
+     values ('player_battlelog', $1, $2, now() - interval '1 hour', 'x', 'admitted')`,
+    [d, gatewayId],
+  );
+  const recent = await logged(() =>
+    requestFirstRead(db, live, d, dId, { battles: true }),
+  );
+  assert.deepEqual(requested(recent.lines), [
+    "player:minted",
+    "player_battlelog:read_today",
+  ]);
+  assert.deepEqual(await jobsOf(d), ["player:live"]);
+});
+
+test("a tag the game answered not found for asks for nothing, battle log included (2026-11-09)", async () => {
+  await db.query("update budget_state set tokens = 10");
+  const tag = "#2PYLRP";
+  const personId = await personWith("first-battles-404", tag);
+  await db.query(
+    `insert into collector_fetch_error (gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
+     values ($1, 'player', $2, now() - interval '1 minute', 404, 'http')`,
+    [gatewayId, tag],
+  );
+  const live = makeLive({ enqueue: enqueueJob });
+  const { result, lines } = await logged(() =>
+    requestFirstRead(db, live, tag, personId, { battles: true }),
+  );
+  assert.equal(result.requested, false);
+  assert.equal(result.not_found, true);
+  assert.equal(result.reason, "failed_today");
+  assert.deepEqual(result.battles, {
+    requested: false,
+    reason: "profile_not_requested",
+  });
+  assert.deepEqual(requested(lines), [
+    "player:not_found_today",
+    "player_battlelog:profile_not_requested",
+  ]);
+  assert.deepEqual(await jobsOf(tag), []);
 });

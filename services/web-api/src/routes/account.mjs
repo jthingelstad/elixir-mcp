@@ -53,8 +53,9 @@ export function accountRoutes({
   discordLogin = false,
   live = null,
 }) {
-  // The first read of an added tag (live.mjs requestFirstRead): the live
-  // lane Verify uses, charged to nobody.
+  // The first read of an added tag (live.mjs requestFirstRead), its
+  // profile and then its battle log: the live lane Verify uses, charged
+  // to nobody's live quota.
   const liveRead = live ?? makeLive({ enqueue: enqueueJob });
   /** Track, untrack, or set notify or relationship on a player; yours,
    *  or on an agent's console the agent's (which watches, only). */
@@ -162,8 +163,12 @@ export function accountRoutes({
       return json(409, { error: r.error, message: r.message });
     if (!r.ok) return json(404, { error: "not_found" });
     // claims logs recording_started; logging it here too wrote it twice.
+    // A person's add asks for the battle log live too (2026-11-09), so
+    // the last 30 battles land with the profile, in seconds.
     const first = r.added
-      ? await requestFirstRead(db, liveRead, tag, account.accountId)
+      ? await requestFirstRead(db, liveRead, tag, account.accountId, {
+          battles: true,
+        })
       : { requested: false };
     return json(200, {
       ok: true,

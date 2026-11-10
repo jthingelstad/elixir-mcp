@@ -116,11 +116,17 @@ export const elixir_track_player = {
     }
     // claims logs recording_started; logging it here too wrote it twice.
     // A new tag gets one free live read of its profile (live.mjs), so a
-    // tag the game does not have is known in minutes, not at the next
-    // scheduled poll, and the primary player's clan with it.
+    // tag the game does not have is known in seconds, not at the next
+    // scheduled poll, and the primary player's clan with it; then its
+    // battle log on the same lane (2026-11-09), so the last 30 battles
+    // land with it. Every door's add is a person's (or their agent's, or a
+    // family app's for the signed-in person), so every door asks the same.
     const first = r.added
-      ? await requestFirstRead(ctx.db, ctx.live, tag, ctx.account.accountId)
+      ? await requestFirstRead(ctx.db, ctx.live, tag, ctx.account.accountId, {
+          battles: true,
+        })
       : { requested: false };
+    const battlesToo = first.battles?.requested === true;
     return {
       player_tag: tag,
       added: r.added,
@@ -136,7 +142,9 @@ export const elixir_track_player = {
       }),
       notes: notes(
         r.recordingStarted
-          ? "Tracked and recording: the first capture usually lands within a few minutes and brings roughly the last 30 battles with it; history builds from there (the API has no past)."
+          ? battlesToo
+            ? "Tracked and recording: the profile and roughly the last 30 battles usually land within a minute, and can take a few at busy times; history builds from there (the API has no past)."
+            : "Tracked and recording: the first capture usually lands within a few minutes and brings roughly the last 30 battles with it; history builds from there (the API has no past)."
           : "Tracked; this player was already being recorded, so you share the existing record from here on.",
         first.not_found
           ? `Clash Royale answered "not found" for ${tag} on its last read today: check the tag (in the game, open the player's profile; the tag is below the name), and remove it with action remove if it is wrong.`
@@ -145,7 +153,9 @@ export const elixir_track_player = {
           ? "This account has no player of its own yet, so a tool that defaults to you has nobody to mean: add yours with relationship primary."
           : null,
         first.requested
-          ? "A first read of this profile is on its way; if Clash Royale has no player with this tag, the player's page in Settings says so within minutes."
+          ? battlesToo
+            ? "A first read of this profile and its battle log is on its way; if Clash Royale has no player with this tag, the player's page in Settings says so within a minute or two."
+            : "A first read of this profile is on its way; if Clash Royale has no player with this tag, the player's page in Settings says so within a minute or two."
           : null,
         r.clanFollowed
           ? `Your primary player's clan ${r.clanFollowed} is now followed at activity scope (roster, members coming and going, river races). Stop tracking it with elixir_track_clan action remove and it is not followed again.`
