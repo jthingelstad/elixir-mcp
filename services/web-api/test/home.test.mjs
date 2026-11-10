@@ -14,7 +14,7 @@ import {
 import { gameWeekStartMs } from "@elixir-mcp/record/form";
 import { lastGameWeek } from "@elixir-mcp/record/game-week";
 import { makeRegistry } from "@elixir-mcp/tools";
-import { buildFriendsWeek } from "@elixir-mcp/tools/friends-week";
+import { buildFriendsWeek, featuredDeck } from "@elixir-mcp/tools/friends-week";
 import {
   buildTimeline,
   shownAt,
@@ -335,6 +335,54 @@ test("the mail's mark of a card stays the builder's: past the deadline no by_fam
   });
   assert.equal(facts.friends[0].by_family, undefined);
   assert.deepEqual(byMode(facts.friends[0].mode_records), RECORD);
+});
+
+test("a friend's deck is the one battles_decks reads for its hash, in two tool calls, not three", async () => {
+  const id = await person("home-deck-identity");
+  await call(handler, id, "POST", "/api/claims", {
+    player_tag: OWN,
+    make_primary: true,
+  });
+  await played("#2YG98VV8", id);
+  const week = lastGameWeek(new Date());
+  const registry = makeRegistry();
+  const calls = [];
+  const facts = await buildFriendsWeek({
+    db: scratch.db,
+    account: { accountId: id, timezone: "UTC", kind: "person" },
+    week,
+    season: week.season,
+    callTool: (ctx, name, args) => {
+      calls.push({ name, args });
+      return registry.invoke(name, ctx, args);
+    },
+    within: () => true,
+  });
+  const [friend] = facts.friends;
+  const perFriend = calls.filter((c) => c.args?.player_tag === "#2YG98VV8");
+  assert.deepEqual(
+    perFriend.map((c) => c.name),
+    ["battles_performance", "battles_decks"],
+  );
+  // The deck as the third call drew it before 2026-11-09: the tool asked
+  // for the one deck, by its hash, over the same window.
+  const ctx = {
+    db: scratch.db,
+    account: { accountId: id, timezone: "UTC", kind: "person" },
+    live: null,
+    notifyOwner: async () => {},
+  };
+  const list = perFriend[1];
+  const top = (await registry.invoke("battles_decks", ctx, list.args)).decks[0];
+  const window = { ...list.args };
+  delete window.limit;
+  const full = await registry.invoke("battles_decks", ctx, {
+    ...window,
+    deck_hash: top.deck_hash,
+  });
+  const before = featuredDeck(top, full.decks[0]);
+  assert.ok(before?.cards.length === 8 && before.tower_troop);
+  assert.deepEqual(friend.deck, before);
 });
 
 test("a failed clan panel says so and the rest of Home still renders", async () => {
