@@ -59,15 +59,22 @@ export async function listPrincipals(db, ownerAccountId) {
             -- WHERE it connects from and WHAT calls itself what. Five agents
             -- on one account were five identical rows of "something called a
             -- tool"; this is the difference between usage and accountability.
-            (select json_build_object(
-                      'at', max(m.created_at),
-                      'ip', (array_agg(m.viewer_ip order by m.created_at desc)
-                             filter (where m.viewer_ip is not null))[1],
-                      'country', (array_agg(m.viewer_country order by m.created_at desc)
-                                  filter (where m.viewer_country is not null))[1],
-                      'client', (array_agg(m.client_name order by m.created_at desc)
-                                 filter (where m.client_name is not null))[1])
-             from mcp_call_audit m where m.account_id = a.account_id) as last_seen,
+            -- Each is the newest row that has it, read down
+            -- mcp_call_audit_by_account (0238) from the top; the same values
+            -- the whole-history array_agg took, without reading every call
+            -- the agent ever made.
+            json_build_object(
+              'at', (select max(m.created_at) from mcp_call_audit m
+                      where m.account_id = a.account_id),
+              'ip', (select m.viewer_ip from mcp_call_audit m
+                      where m.account_id = a.account_id and m.viewer_ip is not null
+                      order by m.created_at desc limit 1),
+              'country', (select m.viewer_country from mcp_call_audit m
+                           where m.account_id = a.account_id and m.viewer_country is not null
+                           order by m.created_at desc limit 1),
+              'client', (select m.client_name from mcp_call_audit m
+                          where m.account_id = a.account_id and m.client_name is not null
+                          order by m.created_at desc limit 1)) as last_seen,
             -- A credential its owner already revoked, still being presented,
             -- is the one refusal worth surfacing without being asked.
             coalesce(
