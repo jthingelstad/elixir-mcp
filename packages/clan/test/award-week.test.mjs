@@ -82,6 +82,28 @@ test("weekly missing counters withhold places and missing sections withhold comp
   );
 });
 
+test("a member the race left off its roster does not hold the weekly standings (#388)", () => {
+  const p = record();
+  // Dormant since before the race began: in the clan at the finish, with
+  // no race row that week.
+  p.members[0].war_points[5] = null;
+  p.members[0].war_decks[5] = null;
+  p.members[0].in_clan_at_war_finish = [true, true, true, true, true, true];
+  const text = updates(p)[0]
+    .parts.map((p) => p.message.body)
+    .join(" ");
+  assert.doesNotMatch(text, /standings not ready/);
+  assert.match(text, /1,600/);
+  // Without the finish placement it is still unknown.
+  p.members[0].in_clan_at_war_finish[5] = null;
+  assert.match(
+    updates(p)[0]
+      .parts.map((p) => p.message.body)
+      .join(" "),
+    /standings not ready/,
+  );
+});
+
 test("weekly frozen plans recover partial raises, preserve sent/skipped copy without historical backfill", async () => {
   const p = record();
   const ledger = createMemoryLedger();

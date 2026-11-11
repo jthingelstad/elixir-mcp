@@ -7,7 +7,7 @@ order: 8
 navTitle: "Awards"
 icon: award
 lede: "A clan names its own awards, and Clan decides them from the record when each war season closes. Every member has a trophy case; leaders announce the winners in the game."
-reviewed: "2026-10-04; resolved award places and explicit update season, contracts unchanged"
+reviewed: "2026-11-10; a member left off the race is a known zero, not unknown; 2026-10-04; resolved award places and explicit update season, contracts unchanged"
 ---
 
 # Awards and trophies
@@ -46,7 +46,10 @@ not every award in the season: points need the possible contenders' counters,
 donations break consequential point ties, rookies need first-season history,
 and attendance waits for every still-possible recipient. Recorded absence
 requires roster reads around the whole week and no overlapping membership;
-a current rejoin or absence at the finish alone does not prove it.
+a current rejoin or absence at the finish alone does not prove it. A member
+in the clan at a week's finish whom the game left off that week's race (it
+lists only members seen since the race began) scored nothing that week: no
+points and no decks, never an unknown that holds an award.
 
 Rookie uses the same season-points and donation tiebreaks as the points podium,
 restricted to first joins in that season. Unknown current-season points or

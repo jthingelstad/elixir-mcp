@@ -320,12 +320,29 @@ function knownAbsent(participation, m, w) {
   );
 }
 
+/** A member the race left off its roster earned nothing that week. The
+ * game seeds a race's participants from the members seen since it began,
+ * and points and decks accrue only to a listed participant, so a member in
+ * the clan at a finished week's finish with no race row, in a week the
+ * record read (someone has one), is a known zero, never an unknown that
+ * holds the podium (feedback #388: one dormant member held a points podium). */
+function offRaceRoster(participation, m, w) {
+  return (
+    w.finished !== null &&
+    m.in_clan_at_war_finish?.[w.i] === true &&
+    !Number.isFinite(m.war_points?.[w.i]) &&
+    !Number.isInteger(m.war_decks?.[w.i]) &&
+    participation.members.some((o) => Number.isInteger(o.war_decks?.[w.i]))
+  );
+}
+
 function missingPoints(participation, m, season) {
   return season.weeks.some(
     (w) =>
       w.finished !== null &&
       !Number.isFinite(m.war_points?.[w.i]) &&
-      !knownAbsent(participation, m, w),
+      !knownAbsent(participation, m, w) &&
+      !offRaceRoster(participation, m, w),
   );
 }
 
@@ -421,7 +438,7 @@ function attendance(participation, m, season, params) {
     const raw = m.war_decks?.[w.i];
     const d = Number.isInteger(raw)
       ? raw
-      : knownAbsent(participation, m, w)
+      : knownAbsent(participation, m, w) || offRaceRoster(participation, m, w)
         ? 0
         : null;
     const want = params.decks_per_day * w.required;
