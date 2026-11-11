@@ -216,7 +216,9 @@ export function actionLines(
       );
   } else if (kind === "awards") {
     lines.push(
-      `Season ${ev.season_id ?? "?"} closed and the clan granted these awards:`,
+      ev.in_progress
+        ? `Season ${ev.season_id ?? "?"} is still being fought; it has not closed. The clan's leaders granted these awards by hand just now, as their pick for this season, and the season's other awards come when it closes:`
+        : `Season ${ev.season_id ?? "?"} closed and the clan granted these awards:`,
     );
     // A grant names its winner by display name, never a tag: one without
     // a name falls back to the evidence's winners, which carry names.
