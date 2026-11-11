@@ -559,6 +559,8 @@ export function createManageService({
     };
     const card = await ledger.card(clanTag, removal.card_id);
     if (!card) return;
+    // A removal already pointing at a departure keeps that link.
+    if (card.withdraw_detail?.departure_card_id) return;
     if (card.status === "proposed")
       await withdrawAction(clanTag, card, LEFT_CLAN_REASON, link);
     else if (card.status === "withdrawn")

@@ -27,6 +27,13 @@ the departure is raised, the removal's `withdraw_detail` gains
 had done it), its closed line says "Their departure is Action #M.", and
 its log gets one `linked` entry. **[engineering]**
 
+**One stay.** A removal links only the leave that ends the membership it
+was raised in: one raised before the member's last recorded join or
+leave belongs to an earlier stay, however close the timestamps (Codex on
+#750: left, withdrawn, rejoined and gone again within a day). A removal
+already linked to a departure is never linked again, and its link is
+never overwritten.
+
 A removal marked Done still explains the leave, and a departure with no
 removal before it is unchanged. Cards are JSON in the clan ledger; no
 migration. MCP and JSON API unchanged.
