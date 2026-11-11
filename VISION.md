@@ -58,22 +58,23 @@ What brings you back: curiosity about the feed, the way you check a
 reader or a social app; a digest email; and Discord, where a clan's
 server gets a stream of events that link back to Elixir.
 
-## Open by default
+## Everyone signs in
 
-The Clash Royale API is open, so nearly nothing in the game is private,
-and Elixir is open too. Like early Twitter, anyone can read a player's
-timeline without signing in. Signing in is for writing and engaging:
-following, reacting, highlighting, running a clan.
+The Clash Royale API is open, so nearly nothing in the game is private.
+Elixir is for its members: everyone signs in, to read as well as to
+follow, react, highlight and run a clan. A post its owner shares, and its
+link preview, opens without an account. (Changed 2026-11-11 from "anyone
+can read a player's timeline without signing in".)
 
 | What | Who sees it |
 | --- | --- |
-| Everything from the game | Everyone |
-| Who you follow and who follows you | Everyone |
-| Verification (your Clash Royale player, your Discord) | Everyone, as badges |
+| Everything from the game | Every member |
+| Who you follow and who follows you | Every member |
+| Verification (your Clash Royale player, your Discord) | Every member, as badges |
 | Nicknames you give players | Only you |
 | Your Discord username and profile | Nobody; it shows only as a "verified in Discord" badge, and Elixir never helps anyone find a person in Discord |
 
-Every player is an RSS feed anyone can subscribe to. A "Follow me in
+Every player is an RSS feed, read through a private token link. A "Follow me in
 Elixir" link carries one or more player tags, for "follow me and my alts"
 or "follow this group", from any page on the web.
 
@@ -133,7 +134,7 @@ Royale because they play it with Elixir.
 ## Open
 
 - Defaults for young players beyond the 13+ attestation (the player map,
-  public timelines), worth a legal view.
+  shared posts), worth a legal view.
 - The cost of each followed player, and the limits that keep about 1,000
   people affordable.
 - The digest's cadence: weekly, daily, or the person's choice.
