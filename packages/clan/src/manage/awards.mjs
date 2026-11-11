@@ -129,8 +129,14 @@ export function createAwardsService({
         if (
           prior.some(
             (c) =>
-              (["done", "declined"].includes(c.status) &&
+              (c.status === "done" &&
                 c.evidence?.announcement_key === part.key) ||
+              // A copy declined while the season was fought never keeps
+              // the pick out of the season's close announcement, nor the
+              // reverse: the season's state is part of what was declined.
+              (c.status === "declined" &&
+                c.evidence?.announcement_key === part.key &&
+                Boolean(c.evidence?.in_progress) === inProgress) ||
               (c.status === "proposed" && samePendingPart(c, part)),
           )
         )

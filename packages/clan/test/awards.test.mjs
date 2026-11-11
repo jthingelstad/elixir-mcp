@@ -703,6 +703,61 @@ test("awards: a pick in the current season is announced at once and never again 
   }
 });
 
+test("awards: a pick whose in-progress announcement was declined is still announced at close", async () => {
+  // Only a leaders' pick runs, so the close has no computed recipients:
+  // the declined in-progress copy must not stand in for the close message.
+  const part = structuredClone(partClan());
+  const h = harness({
+    part,
+    policy: { ...EXAMPLE_POLICY, announce_awards_enabled: true },
+    awards: {
+      ...EXAMPLE_AWARDS,
+      awards: EXAMPLE_AWARDS.awards.filter((a) => a.kind === "leaders_pick"),
+    },
+  });
+  const cookies = await signedIn(h);
+  await api(h, cookies, "GET", `${BASE}/manage`);
+  const announcements = async () =>
+    (await h.ledger.cards("#2PQRJ8LV")).filter(
+      (c) => c.type === "awards_announcement" && c.evidence.season_id === 136,
+    );
+  const pick = await api(h, cookies, "POST", `${BASE}/grants`, {
+    award_id: "clan_honour",
+    player_tag: "UQ8LP2R9C",
+    season_id: 136,
+    note: "carried week one",
+  });
+  assert.equal(pick.status, 200);
+  const [raised] = await announcements();
+  assert.equal(raised.evidence.in_progress, true);
+  await h.ledger.putCard("#2PQRJ8LV", {
+    ...raised,
+    status: "declined",
+    decided_at: new Date(h.clock.t).toISOString(),
+  });
+  h.clock.t += 10 * 60_000;
+  Object.assign(part.war_weeks[5], {
+    is_colosseum: true,
+    finished_observed_at: new Date(h.clock.t - 60_000).toISOString(),
+  });
+  const closed = await api(h, cookies, "GET", `${BASE}/manage?refresh=1`);
+  assert.equal(closed.status, 200, JSON.stringify(closed.body));
+  const fresh = (await announcements()).filter(
+    (c) => c.card_id !== raised.card_id,
+  );
+  assert.equal(fresh.length, 1, "the close raises its own announcement");
+  assert.equal(fresh[0].status, "proposed");
+  assert.equal(fresh[0].evidence.in_progress, undefined);
+  assert.deepEqual(fresh[0].evidence.grant_refs, [
+    "136:clan_honour:#UQ8LP2R9C",
+  ]);
+  assert.match(fresh[0].evidence.message.body, /Clan Honour: Ben/);
+  // Read again: the close copy is not raised twice.
+  h.clock.t += 10 * 60_000;
+  await api(h, cookies, "GET", `${BASE}/manage?refresh=1`);
+  assert.equal((await announcements()).length, 2);
+});
+
 test("awards: a pending current-season pick is folded into the season's announcement at close", async () => {
   const part = structuredClone(partClan());
   const h = harness({

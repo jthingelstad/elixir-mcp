@@ -33,7 +33,15 @@ season's own copy (the pending-part match now includes `in_progress`, so
 a closed season never keeps an "in progress" card). A take-back in the
 current season reads the snapshot to keep the flag. A declined
 in-progress card does not stop the pick appearing in the close copy: it
-was never sent. **[engineering]**
+was never sent, and a declined card only suppresses copy of the same
+season state (`in_progress` compared, as for pending parts), so a clan
+whose only award is a pick still gets its close announcement.
+**[engineering]**
+
+**Drafting.** "Draft in our voice" on an in-progress announcement tells
+the model the season is still being fought and that the leaders granted
+the pick just now (`clan-engine/context.mjs` `actionLines("awards")`
+reads `in_progress`); a closed season's copy is told it closed, as before.
 
 **Copy.** The announcements setting reads "When awards are granted …: a
 season's awards when it closes, and a leaders' pick as soon as it is
@@ -44,8 +52,10 @@ the season is fought. Public docs: `clan-awards.md`, `clan-actions.md`.
 **Tests.** `packages/clan/test/awards.test.mjs`: the refusal test now
 allows 136 (current) and refuses 137 (future) and 134 (unseen); new cases
 refuse an older open season and a closed partial one, announce a current
-pick at once and not again after close, and fold a pending pick into the
-close copy. Playwright (`awards-readiness.spec.ts`): a current-season
+pick at once and not again after close, fold a pending pick into the
+close copy, and announce a pick-only season at close after its
+in-progress copy was declined. `clan-engine/test/context.test.mjs`: the
+in-progress drafting context. Playwright (`awards-readiness.spec.ts`): a current-season
 grant, and no control when `picks_open` is false.
 
 MCP 11.18.6 and JSON API 3.4.0 unchanged; no migration.

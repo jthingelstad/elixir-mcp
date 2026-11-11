@@ -210,6 +210,16 @@ test("what happened, per Action kind: the rule's evidence, the winners' numbers,
   assert.match(awards, /- Shield: Ben$/m);
   assert.match(awards, /announcement 1 of 2/);
   assert.doesNotMatch(awards, /PRIVATE|8QCV/);
+  // A leaders' pick in the season still being fought is told so: the
+  // season has not closed, and the pick was granted just now.
+  const pick = actionLines("awards", {
+    card: { evidence: { season_id: 136, in_progress: true } },
+    grants: [{ name: "Clan Honour", player_name: "Ben", metric_value: null }],
+  }).join("\n");
+  assert.match(pick, /Season 136 is still being fought; it has not closed/);
+  assert.match(pick, /granted these awards by hand just now/);
+  assert.doesNotMatch(pick, /Season 136 closed/);
+  assert.match(pick, /- Clan Honour: Ben$/m);
   // A grant with no name never sends its tag: the evidence's named
   // winners stand in.
   const unnamed = actionLines("awards", {
