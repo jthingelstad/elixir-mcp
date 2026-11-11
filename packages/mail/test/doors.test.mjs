@@ -182,7 +182,7 @@ test("no mail says Console: the footer is one line, the disclaimer stays word fo
     assert.match(html, />Manage emails</, kind);
     assert.match(html, />Send feedback</, kind);
     assert.match(html, />Mail 3f2a9c</, kind);
-    assert.match(html, /Free and sponsor-supported\./, kind);
+    assert.doesNotMatch(html, /sponsor|\/support/i, kind);
     assert.doesNotMatch(html, /Turn off (the|Your)/, kind);
   }
 });

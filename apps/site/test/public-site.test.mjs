@@ -246,18 +246,20 @@ test("a static page can reach search and help", { skip }, () => {
   assert.ok(existsSync(path.join(out, "assets/site-help.js")));
 });
 
-test(
-  "Support promises nothing for money, and links the record",
-  { skip },
-  () => {
-    const text = new JSDOM(
-      read("support/index.html"),
-    ).window.document.body.textContent.replace(/\s+/g, " ");
-    assert.match(
-      text,
-      /no extra quota, no longer retention, no features, no priority/,
+test("no page asks for sponsorship (Jamie, 2026-11-11)", { skip }, () => {
+  assert.ok(!existsSync(path.join(out, "support/index.html")));
+  const asks = [];
+  for (const page of pages()) {
+    // Old Updates entries are history: they say what was true that day.
+    if (isHistory(page) || inHistoryMonth(page)) continue;
+    const html = read(
+      page === "/" ? "index.html" : `${page.slice(1)}/index.html`,
     );
-    assert.match(text, /Raise your hand/);
-    assert.doesNotMatch(text, /corpus|Captured by/i);
-  },
-);
+    if (
+      /href="\/support[/"?#]|github\.com\/sponsors|sponsor-supported/.test(html)
+    )
+      asks.push(page);
+  }
+  assert.deepEqual(asks, []);
+  assert.doesNotMatch(read("llms.txt"), /\/support\b|Sponsors/);
+});

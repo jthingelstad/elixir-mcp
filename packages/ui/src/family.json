@@ -107,10 +107,6 @@
       "path": "/data"
     },
     {
-      "label": "Support Elixir",
-      "path": "/support"
-    },
-    {
       "label": "Privacy",
       "path": "/docs/privacy"
     },

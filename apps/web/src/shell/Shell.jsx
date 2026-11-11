@@ -312,8 +312,7 @@ function BottomTabs({ area, open }) {
   );
 }
 
-/** The footer: places, A7's short support line (the full promise stays on
- *  Support), and the disclaimer word for word. */
+/** The footer: places and the disclaimer word for word. */
 function SiteFoot() {
   return (
     <footer className="kit-foot">
@@ -327,10 +326,6 @@ function SiteFoot() {
           Play Drop
         </a>
       </nav>
-      <p className="kit-foot__support">
-        Elixir is free and sponsor-supported.{" "}
-        <a href="/support">Support Elixir</a>
-      </p>
       <Disclaimer as="div" />
     </footer>
   );

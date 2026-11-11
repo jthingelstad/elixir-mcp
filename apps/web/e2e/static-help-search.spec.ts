@@ -44,7 +44,7 @@ test.describe("Help on a static page", () => {
 
   async function openAndWrite(page: Page) {
     await signedInFace(page);
-    await page.goto("/support");
+    await page.goto("/updates");
     await page.locator("button.kit-top__icon[data-help-open]").click();
     const box = page.locator("dialog[data-help]");
     await expect(box).toBeVisible();
@@ -73,7 +73,7 @@ test.describe("Help on a static page", () => {
         message: note,
         category: "general",
         area: "console",
-        context: { path: "/support", page: expect.any(String) },
+        context: { path: "/updates", page: expect.any(String) },
       },
     ]);
   });
@@ -93,7 +93,7 @@ test.describe("Help on a static page", () => {
   });
 
   test("signed out, no Help or Search shows", async ({ page }) => {
-    await page.goto("/support");
+    await page.goto("/updates");
     await expect(page.locator("[data-help-open]:visible")).toHaveCount(0);
     await expect(page.locator("a.kit-top__search:visible")).toHaveCount(0);
   });

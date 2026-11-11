@@ -137,7 +137,6 @@ const STATIC_PAGES = [
   "/docs/clan-awards",
   "/docs/clan-policy",
   "/updates",
-  "/support",
 ];
 
 /** Every card is its own page, built from the catalog: in a test build
@@ -694,7 +693,7 @@ test("the bar has one source: the kit's product manifest", async () => {
       `"${p.icon}"`,
     ]),
     ...[...manifest.signedOut, ...manifest.foot]
-      .filter((t) => t.path !== "/" && t.path !== "/support")
+      .filter((t) => t.path !== "/")
       .flatMap((t) => [`>${t.label}<`, `"${t.path}"`]),
   ];
   for (const s of spelled)
@@ -786,7 +785,6 @@ test(
       ["updates/index.html", "/updates"],
       ["docs/index.html", "/docs"],
       ["data/index.html", null],
-      ["support/index.html", null],
     ]) {
       const doc = new JSDOM(read(page)).window.document;
       assert.deepEqual(

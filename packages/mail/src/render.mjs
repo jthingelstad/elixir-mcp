@@ -2,8 +2,8 @@
  *  product kinds. Every kind sits in the one mail shell (shell.mjs), the
  *  same one the relay's sign-in code and welcome use: the logo and the
  *  wordmark, a product label, one quiet panel, and the
- *  footer that carries the turn-off link, the short mail id, the sponsor
- *  line and the disclaimer. Tables and inline styles only; a name opens the
+ *  footer that carries the turn-off link, the short mail id and the
+ *  disclaimer. Tables and inline styles only; a name opens the
  *  page that is this reader's door to it (make); the coverage note comes
  *  last. Dark only, by decision
  *  (Jamie, 2026-09-18, from the gallery). Each renderer hands the shell
@@ -124,9 +124,6 @@ const raceWeekUrl = (tag, season, week) =>
 // tracking one (ENGINEERING, "Product identifiers versus measurement"), so
 // these links are tagged like every other link into the site; the page
 // reports itself to analytics as its kind, never which record.
-// The same line to everyone, in every product email (Jamie, 2026-09-19,
-// the settled policy): free, sponsor-supported, sponsorship buys nothing.
-const SUPPORT_URL = `${SITE}/support`;
 const sentMailUrl = (sendId, { report = false } = {}) =>
   report ? MAIL_PATHS.report(sendId) : MAIL_PATHS.record(sendId);
 
@@ -271,7 +268,7 @@ function make(
   const cov = (text) => parts.cov(text);
 
   /** The shell, with this mail's links: the manage page and the one-click
-   *  turn-off, the send's record, the support page, the open pixel. */
+   *  turn-off, the send's record, the open pixel. */
   function shell({
     kind,
     title,
@@ -305,7 +302,6 @@ function make(
             report: T(sentMailUrl(id, { report: true })),
           }
         : null,
-      support: T(SUPPORT_URL),
       pixel:
         campaign && pixel
           ? pixelTag(pixelPath(campaign.kind, campaign.period))

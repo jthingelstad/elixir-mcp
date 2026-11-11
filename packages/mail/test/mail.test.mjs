@@ -164,13 +164,8 @@ test("links.send_id puts the short mail id in the footer, the whole id in its li
       html.includes(`${MAIL_PATHS.report(id)}&amp;utm_source=email`),
     "feedback with the mail attached",
   );
-  // Every product email carries the same support line, tagged by kind.
-  assert.ok(
-    html.includes(
-      "https://elixir.poapkings.com/support?utm_source=email&utm_medium=milestone",
-    ),
-  );
-  assert.ok(html.includes("Support Elixir"));
+  // No sponsorship ask (Jamie, 2026-11-11).
+  assert.ok(!/sponsor|\/support/i.test(html), "no sponsor line");
   const text = htmlToText(html);
   assert.ok(text.includes(id), "the text alternative carries the id too");
   const page = renderMail("milestone", facts, links).html;

@@ -1,7 +1,7 @@
 # apps/site: the site and the public docs
 
 The Eleventy build behind every content path on `elixir.poapkings.com`:
-home, `/docs/*`, `/updates`, `/data`, `/cards`, `/examples`, `/support`,
+home, `/docs/*`, `/updates`, `/data`, `/cards`, `/examples`,
 and the machine-readable surfaces (`llms.txt`, `llms-full.txt`,
 `tools.json`, `sitemap.xml`, `feed.xml`). Paths under `/home`, `/signin`, `/data/service`, `/settings`, `/console`,
 `/ladder` and `/clan` are the React app (`apps/web`).

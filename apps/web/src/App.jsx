@@ -91,7 +91,6 @@ export const STATIC_LINKS = {
   examples: "/examples/play",
   docs: "/docs",
   updates: "/updates",
-  support: "/support",
 };
 
 /**
