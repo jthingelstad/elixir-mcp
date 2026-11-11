@@ -75,10 +75,13 @@ afterEach(async () => {
   cleanup();
   await Promise.all([...pending]);
 });
+// Dropping the scratch database waits for its connections to close, which
+// outlasts vitest's 10 s default when the whole suite runs side by side;
+// it gets the same minute as the setup.
 afterAll(async () => {
   vi.unstubAllGlobals();
   await scratch?.drop();
-});
+}, 60000);
 async function clickReady(name) {
   const button = await screen.findByRole("button", { name, exact: true });
   // A committed DB write can precede delivery of its HTTP response. Wait for
