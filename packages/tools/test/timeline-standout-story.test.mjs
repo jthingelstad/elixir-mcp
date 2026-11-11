@@ -19,6 +19,8 @@ const CLAN = "#2PYLQJ";
 const ANN = "#2PYLQ0";
 const BEA = "#2PYLQ2";
 const CAL = "#2PYLQ8";
+const DEE = "#2PYLQC";
+const EVE = "#2PYLQR";
 const FOES = ["#2PYLQV", "#2PYLQY", "#2PYLQU", "#2PYLQG"];
 const FROM = Date.parse("2026-10-10T05:00:00Z");
 const TO = Date.parse("2026-10-11T05:00:00Z");
@@ -31,11 +33,17 @@ let scratch,
 const id = (k) => k.toString(16).padStart(64, "0");
 
 /** One battle: `team` on side 0 (all with `outcome`), `foes` on side 1. */
-async function battle(at, type, team, foes, { outcome, crowns, against }) {
+async function battle(
+  at,
+  type,
+  team,
+  foes,
+  { outcome, crowns, against, eventTag = null, gameMode = null, change },
+) {
   n += 1;
   await db.query(
-    "insert into battle (battle_id,battle_time,type,type_class,created_at) values ($1,$2,$3,'pvp',$4)",
-    [id(n), iso(at), type, iso(at + 60_000)],
+    "insert into battle (battle_id,battle_time,type,type_class,created_at,event_tag,game_mode_name) values ($1,$2,$3,'pvp',$4,$5,$6)",
+    [id(n), iso(at), type, iso(at + 60_000), eventTag, gameMode],
   );
   const lost = outcome === "win" ? "loss" : "win";
   for (const [tag, side, result, c, trophies] of [
@@ -55,7 +63,13 @@ async function battle(at, type, team, foes, { outcome, crowns, against }) {
         type,
         result,
         c,
-        type === "PvP" ? (result === "win" ? 30 : -30) : null,
+        change
+          ? change(result)
+          : type === "PvP"
+            ? result === "win"
+              ? 30
+              : -30
+            : null,
         trophies ?? null,
         side === 0 ? CLAN : null,
       ],
@@ -63,7 +77,7 @@ async function battle(at, type, team, foes, { outcome, crowns, against }) {
   return id(n);
 }
 
-let annBest, calBest;
+let annBest, calBest, deeBest;
 before(async () => {
   scratch = await scratchDb("timeline_standout_story");
   db = scratch.db;
@@ -71,6 +85,8 @@ before(async () => {
     [ANN, "Ann"],
     [BEA, "Bea"],
     [CAL, "Cal"],
+    [DEE, "Dee"],
+    [EVE, "Eve"],
     [FOES[0], "Foe One"],
     [FOES[1], "Foe Two"],
     [FOES[2], "Foe Three"],
@@ -84,7 +100,7 @@ before(async () => {
     "insert into clan (clan_tag,name) values ($1,'Example Clan')",
     [CLAN],
   );
-  for (const tag of [ANN, BEA, CAL])
+  for (const tag of [ANN, BEA, CAL, DEE, EVE])
     await db.query(
       "insert into clan_membership (clan_tag,player_tag,role,joined_observed_at) values ($1,$2,'member','2026-09-01T00:00:00Z')",
       [CLAN, tag],
@@ -139,6 +155,43 @@ before(async () => {
     );
     if (i === 2) calBest = b;
   }
+  // Dee and Eve (#384): a Classic Challenge reports the run's win counter
+  // as starting_trophies (1-10) and +1 a win as trophy_change; the
+  // seasonal Trophy Road (event content under the Ladder ruleset) reports
+  // a standing. Eve's sitting is the challenge alone; Dee's adds one
+  // seasonal Trophy Road win over a lower opponent than the counter
+  // would ever rank above.
+  const challenge = {
+    eventTag: "#2PRCR9",
+    gameMode: "Challenge_AllCards_EventDeck_NoSet",
+    change: (r) => (r === "win" ? 1 : null),
+  };
+  for (const [who, foe] of [
+    [DEE, FOES[0]],
+    [EVE, FOES[1]],
+  ])
+    for (let w = 0; w < 5; w += 1)
+      await battle(
+        PLAY + w * 4 * 60_000,
+        "trail",
+        [{ tag: who, trophies: w }],
+        [{ tag: foe, trophies: w }],
+        { outcome: "win", crowns: 3, against: 0, ...challenge },
+      );
+  deeBest = await battle(
+    PLAY + 5 * 4 * 60_000,
+    "trail",
+    [{ tag: DEE, trophies: 14_050 }],
+    [{ tag: FOES[2], trophies: 14_020 }],
+    {
+      outcome: "win",
+      crowns: 1,
+      against: 0,
+      eventTag: "#2UQC8U",
+      gameMode: "Ladder",
+      change: (r) => (r === "win" ? 30 : -30),
+    },
+  );
 });
 after(async () => scratch.drop());
 
@@ -357,4 +410,33 @@ test("a clan's week in a sentence says departed, never left", () => {
   });
   assert.ok(parts.includes("departed: Ann; roles: Bea member → elder"));
   assert.ok(parts.includes("finished 2nd in Season 137, week 4, 84,200 fame"));
+});
+
+test("a challenge's win counter is never a rating or a trophy net (#384)", async () => {
+  const items = await standouts();
+  const eve = items.find((it) => it.facts.player_tag === EVE);
+  assert.ok(eve, "five challenge wins in a row are a standout");
+  assert.equal(
+    "best_win" in eve.facts,
+    false,
+    "no win over a standing: absence over a counter",
+  );
+  assert.deepEqual(eve.facts.by_mode, { event: 5 });
+  assert.deepEqual(eve.facts.trophy_net_by_mode, {});
+
+  const dee = items.find((it) => it.facts.player_tag === DEE);
+  assert.equal(
+    dee.facts.best_win.battle_id,
+    deeBest,
+    "the seasonal Trophy Road win, the only rated one",
+  );
+  assert.equal(dee.facts.best_win.mode, "event");
+  assert.equal(dee.facts.best_win.opponent.starting_trophies, 14_020);
+  assert.equal(dee.facts.best_win.trophy_change, 30);
+  assert.equal(dee.facts.best_win.trophies_after, 14_080);
+  assert.deepEqual(
+    dee.facts.trophy_net_by_mode,
+    { event: 30 },
+    "the challenge's +1s are not trophies",
+  );
 });

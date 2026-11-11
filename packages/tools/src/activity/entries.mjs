@@ -49,6 +49,7 @@ import {
 import { collectionLevelStep } from "@elixir-mcp/ingest/snapshots";
 import { deckIdentities } from "../tools/shared.mjs";
 import { itemSchema } from "./schemas.mjs";
+import { trophiesAreStanding } from "../controls.mjs";
 import {
   summarizePlayer,
   summarizeClan,
@@ -336,7 +337,7 @@ async function sittingDetails(db, sittings) {
   // per participant cost 3.2 s live (acceptance, 2026-10-11). Names are
   // read after, for the few players the details name.
   const { rows } = await db.query(
-    `select t.i, bp.battle_id, bp.battle_time, b.type, b.event_tag, bp.side,
+    `select t.i, bp.battle_id, bp.battle_time, b.type, b.event_tag, b.game_mode_name, bp.side,
             bp.outcome, bp.crowns, bp.trophy_change, bp.starting_trophies,
             o.player_tag as other_tag, o.side as other_side,
             o.crowns as other_crowns, o.starting_trophies as other_trophies
@@ -379,7 +380,13 @@ async function sittingDetails(db, sittings) {
           battles: (had?.battles ?? 0) + 1,
         });
       }
-      if (b.outcome !== "win") continue;
+      // A challenge's win counter or a tournament's score rates nobody
+      // (#384): only a win whose trophies are a standing is rated.
+      if (
+        b.outcome !== "win" ||
+        !trophiesAreStanding(b.type, b.event_tag, b.game_mode_name)
+      )
+        continue;
       const opponents = b.others.filter((x) => x.side !== b.side);
       const ratings = opponents
         .map((o) => o.starting_trophies)
@@ -776,7 +783,9 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
         // trophy_net is Trophy Road's alone, while Path of Legends and the
         // seasonal Trophy Road (event content) report a trophy_change too,
         // which battles_performance's net_trophies sums. Keyed by mode
-        // group, only for modes whose battles reported a delta.
+        // group, only for modes whose battles reported a delta. A
+        // challenge's +1 a win moves its win counter, not a standing, and
+        // is left out (#384).
         trophy_net_by_mode: {},
         run: 0,
         won_in_a_row: 0,
@@ -811,7 +820,10 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     }
     const g = modeGroupOf(b.type, b.event_tag);
     cur.by_mode[g] = (cur.by_mode[g] ?? 0) + 1;
-    if (typeof b.trophy_change === "number")
+    if (
+      typeof b.trophy_change === "number" &&
+      trophiesAreStanding(b.type, b.event_tag, b.game_mode_name)
+    )
       cur.trophy_net_by_mode[g] =
         (cur.trophy_net_by_mode[g] ?? 0) + b.trophy_change;
     if (g === "ladder") {
@@ -1043,7 +1055,7 @@ async function playerBattles(db, tag, fromMs, toMs, basis = "observed") {
     : `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
         and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`;
   const { rows: wide } = await db.query(
-    `select b.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.crowns,
+    `select b.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.crowns,
             bp.trophy_change, bp.clan_tag, bp.deck_hash
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
@@ -1652,7 +1664,7 @@ export function clanMemberBattlesQuery({
   // A boat defense is not the member's battle (0171), on either basis.
   const occurred = basis === "occurred";
   return {
-    text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.trophy_change, bp.deck_hash,
+    text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.trophy_change, bp.deck_hash,
                   (${
                     occurred
                       ? `bp.battle_time >= ${ts(fromMs + 1)}`
