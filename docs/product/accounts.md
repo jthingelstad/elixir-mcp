@@ -2,6 +2,11 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
+*Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing
+social layer of Clash Royale. Where this brief disagrees with the vision or
+[DECISIONS](../DECISIONS.md), they win; the brief is rewritten after the
+Design session (#752).*
+
 ## What it is for
 
 An account is how a person tells Elixir who they are in the game and
@@ -16,9 +21,8 @@ that same person. [Jamie, 2026-09-03; your-account]
 - **Anyone who likes the game.** Signup is free and public: verify an
   email and the account opens. No privileged tier, collector token or
   extra capacity comes with it; a denied or disabled account never
-  reopens through signup. There is no paid tier, and none is planned
-  without Supercell's express approval; money is voluntary sponsorship
-  that buys nothing. [Jamie, 2026-09-19, 2026-10-06]
+  reopens through signup. Elixir takes no money: no paid tier and no
+  sponsorship. [Jamie, 2026-09-19, 2026-10-06, 2026-11-11]
 - **The person's agents and apps.** Three kinds of principal: users,
   agents and integrations. An agent is the person's own, capped at its
   owner's tier, tracking in the person's pooled slots, never deleted

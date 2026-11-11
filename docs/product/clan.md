@@ -2,6 +2,11 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
+*Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing
+social layer of Clash Royale. Where this brief disagrees with the vision or
+[DECISIONS](../DECISIONS.md), they win; the brief is rewritten after the
+Design session (#752).*
+
 *Its arrangement (rail, tabs, Policy's sections) is to be rewritten at step 4 of
 the redesign ([Structure](structure.md)).*
 

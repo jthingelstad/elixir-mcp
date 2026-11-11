@@ -4,6 +4,11 @@
 rulings in [Structure](structure.md). Home lives at `/home` and, since step 3b,
 is where signing in lands and where `/console` goes.*
 
+*Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing
+social layer of Clash Royale. Where this brief disagrees with the vision or
+[DECISIONS](../DECISIONS.md), they win; the brief is rewritten after the
+Design session (#752).*
+
 ## What it is for
 
 Home is where a person sees their own day: what needs them, how their week is
