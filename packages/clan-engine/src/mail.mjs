@@ -15,6 +15,7 @@
  */
 
 import { ACTION_TYPES, actionLabel, canAct } from "./actions.mjs";
+import { removalLinkLine } from "./departures.mjs";
 
 export const ACTIONS_MAIL_KIND = "clan_actions_waiting";
 /** Lines in one email before the rest are counted. */
@@ -54,7 +55,9 @@ export function actionReason(c) {
       return ev.joined_at ? `Joined {{when:${ev.joined_at}}}. ${did}` : did;
     }
     case "departure":
-      return "A departure no action explained.";
+      return ev.suggested_classification === "kick"
+        ? `${removalLinkLine(ev.removal_number)} Confirm Kicked or Left.`
+        : "A departure no action explained.";
     case "away": {
       const days = Math.floor(ev.days_idle ?? 0);
       const asks = `Mark yourself away${ev.away_max_days ? `, for up to ${ev.away_max_days} days` : ""}. Keeps you off the removal list while it’s on. The days keep counting.`;

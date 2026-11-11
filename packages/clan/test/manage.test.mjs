@@ -954,6 +954,126 @@ test("departures: every unexplained member_left raises one card; Kicked / Left /
   assert.equal(sleepy.copy, null, "no farewell for a kick");
 });
 
+test("departures: a leave while the member's removal was still open asks, linked to that removal, with Kicked offered first; the leader still answers", async () => {
+  const part = partClan();
+  const h = harness({ part, roster: leftEvents() });
+  const cookies = await leader(h);
+  await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
+  if (
+    !(await h.ledger.cards("#2PQRJ8LV")).some(
+      (c) =>
+        c.type === "removal" &&
+        c.player_tag === idle.player_tag &&
+        c.status === "proposed",
+    )
+  )
+    await historicalRemoval(h, "proposed");
+  const [removal] = (await h.ledger.cards("#2PQRJ8LV"))
+    .filter(
+      (c) =>
+        c.type === "removal" &&
+        c.player_tag === idle.player_tag &&
+        c.status === "proposed",
+    )
+    .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1));
+  assert.ok(removal, "an open removal for the idle member");
+  assert.ok(Number.isInteger(removal.number), "it has a number");
+  // A leader kicks them in the game without marking the removal Done.
+  h.clock.t += 60 * 60_000;
+  part.members = part.members.filter((m) => m.player_tag !== idle.player_tag);
+  h.mcp.state.roster = leftEvents([
+    {
+      type: "member_left",
+      at: new Date(h.clock.t - 30 * 60_000).toISOString(),
+      detail: { player_tag: idle.player_tag, name: idle.name, role: "member" },
+    },
+  ]);
+  const after = await api(
+    h,
+    cookies,
+    "GET",
+    "/api/clans/2PQRJ8LV/manage?refresh=1",
+  );
+  const dep = after.body.inbox.find(
+    (c) => c.type === "departure" && c.player_tag === idle.player_tag,
+  );
+  assert.ok(dep, "the departure still asks");
+  assert.equal(dep.status, "proposed", "no kick is recorded for the leader");
+  assert.equal(dep.evidence.removal_card_id, removal.card_id);
+  assert.equal(dep.evidence.removal_number, removal.number);
+  assert.equal(dep.evidence.suggested_classification, "kick");
+  const depLog = await h.ledger.actionLog("#2PQRJ8LV", dep.card_id);
+  assert.match(
+    depLog.find((e) => e.kind === "raised").text,
+    new RegExp(
+      `Elixir recommended removing them in Action #${removal.number}\\.`,
+    ),
+  );
+  // The removal the leave closed points at the departure.
+  const closed = await h.ledger.card("#2PQRJ8LV", removal.card_id);
+  assert.equal(closed.status, "withdrawn");
+  assert.equal(closed.withdraw_reason, "They are no longer in the clan.");
+  assert.equal(closed.withdraw_detail.left_clan, true);
+  assert.equal(closed.withdraw_detail.departure_card_id, dep.card_id);
+  assert.equal(closed.withdraw_detail.departure_number, dep.number);
+  const rmLog = await h.ledger.actionLog("#2PQRJ8LV", removal.card_id);
+  const linked = rmLog.filter((e) => e.kind === "linked");
+  assert.equal(linked.length, 1);
+  assert.match(linked[0].text, new RegExp(`Action #${dep.number}`));
+  // Home's Needs you says it too.
+  const needs = await h.manage.needsView("#2PQRJ8LV", {
+    player_tag: king.player_tag,
+    role: "leader",
+    verified: true,
+  });
+  const need = needs.needs.find(
+    (n) => n.type === "departure" && n.subject_name === idle.name,
+  );
+  assert.equal(need.suggested_classification, "kick");
+  assert.equal(
+    needs.needs.find((n) => n.subject_name === "Gone One")
+      ?.suggested_classification,
+    undefined,
+    "a departure with no removal suggests nothing",
+  );
+  assert.equal(need.removal_number, removal.number);
+  // A second look links nothing twice.
+  h.clock.t += 60 * 60_000;
+  await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage?refresh=1");
+  assert.equal(
+    (await h.ledger.cards("#2PQRJ8LV")).filter(
+      (c) => c.type === "departure" && c.player_tag === idle.player_tag,
+    ).length,
+    1,
+  );
+  assert.equal(
+    (await h.ledger.actionLog("#2PQRJ8LV", removal.card_id)).filter(
+      (e) => e.kind === "linked",
+    ).length,
+    1,
+  );
+  // The leader confirms; Left stays answerable too, but Kicked is theirs to press.
+  const kicked = await api(
+    h,
+    cookies,
+    "POST",
+    `/api/clans/2PQRJ8LV/actions/${dep.card_id}/decide`,
+    { classification: "kick" },
+  );
+  assert.equal(kicked.status, 200, JSON.stringify(kicked.body));
+  assert.equal(kicked.body.outcome.classification, "member_kicked");
+});
+
+test("departures: a leave with no removal Action is asked as before, nothing suggested", async () => {
+  const h = harness({ part: partClan(), roster: leftEvents() });
+  const cookies = await leader(h);
+  const first = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
+  const dep = first.body.inbox.find((c) => c.type === "departure");
+  assert.equal(dep.player_tag, "#GONE1");
+  assert.equal(dep.evidence.suggested_classification, undefined);
+  assert.equal(dep.evidence.removal_number, undefined);
+});
+
 test("departures: a member_left that carries only a tag is named from Elixir's corpus, once, and the ledger remembers", async () => {
   // Elixir's roster event before 2026-09-13: no name, and the departing
   // role spelled role_at_departure. The member never had a verdict line

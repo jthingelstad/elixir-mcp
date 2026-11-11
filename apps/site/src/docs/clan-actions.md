@@ -90,7 +90,14 @@ a week past the join.
   total is never described as a milestone just reached.
 - A **departure** is raised when someone leaves and no removal action
   explains it, because a leave and a kick look the same in the record:
-  say which, so the clan's history knows.
+  say which, so the clan's history knows. A removal marked **Done**
+  explains the leave and raises nothing. If the member's removal Action
+  was still open when they went (a leader kicked them before marking it),
+  the departure still asks, but it names that removal ("Elixir recommended
+  removing them in Action #N") and offers **Kicked** first. Nothing is
+  recorded until a leader presses it, and **Left** or **Ignore** stays
+  open. The removal is withdrawn, and its withdrawal and History point to
+  the departure.
 - **Going to be away?** goes to a member who has reached at risk on the
   [inactivity clock](/docs/inactivity-clock#the-inactivity-clock), asking them before anyone
   else is.
