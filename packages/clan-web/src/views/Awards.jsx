@@ -694,11 +694,9 @@ function AwardPanel({
                 cell: (r) => (
                   <>
                     <span>{metric(award, r)}</span>
-                    {award.kind === "perfect_attendance" ? (
+                    {aside(award, r) ? (
                       <span className="block page-head__note">
-                        {Number.isFinite(r.donations)
-                          ? `${r.donations.toLocaleString()} donated`
-                          : "Donations unknown"}
+                        {aside(award, r)}
                       </span>
                     ) : null}
                   </>
@@ -708,6 +706,8 @@ function AwardPanel({
             rows={rows}
             rowKey={(r) => r.player_tag}
             noHead
+            phone="fit"
+            className="awards-race"
           />
         )}
       </div>
@@ -742,8 +742,23 @@ function metric(award, r) {
       ? `all ${r.decks_asked} war decks`
       : `${r.decks_short} deck${r.decks_short === 1 ? "" : "s"} short of ${r.decks_asked}`;
   if (award.kind === "donations_podium")
-    return `${r.total.toLocaleString()} ${UNIT.donations}${r.known_weeks < r.weeks ? ` (${r.known_weeks}/${r.weeks} weeks seen)` : ""}`;
-  return `${r.points.toLocaleString()} ${UNIT.points}${r.tied ? ` · ${r.donations.toLocaleString()} donated` : ""}`;
+    return `${r.total.toLocaleString()} ${UNIT.donations}`;
+  return `${r.points.toLocaleString()} ${UNIT.points}`;
+}
+
+/* The second line under a race's figure, so the figure itself stays
+   short enough to sit beside the name on a phone (#386). */
+function aside(award, r) {
+  if (award.kind === "perfect_attendance")
+    return Number.isFinite(r.donations)
+      ? `${r.donations.toLocaleString()} donated`
+      : "Donations unknown";
+  if (r.granted_at) return null;
+  if (award.kind === "donations_podium")
+    return r.known_weeks < r.weeks
+      ? `${r.known_weeks}/${r.weeks} weeks seen`
+      : null;
+  return r.tied ? `${r.donations.toLocaleString()} donated` : null;
 }
 
 function OlderGrants({ grants, awardById }) {
