@@ -138,6 +138,9 @@ export function weeklyAwardUpdates({ participation, config, now }) {
           absent_at_war_week: indices.map(
             (i) => m.absent_at_war_week?.[i] ?? null,
           ),
+          in_clan_at_war_finish: indices.map(
+            (i) => m.in_clan_at_war_finish?.[i] ?? null,
+          ),
         })),
       };
       const season = evaluateAwards({

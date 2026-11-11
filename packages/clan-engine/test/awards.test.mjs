@@ -541,6 +541,51 @@ test("finish absence and a later rejoin do not turn unknown counters into zero",
   assert.equal(award(r, 135, "top_donor").state, "held");
 });
 
+test("a member in the clan at a read week's finish with no race row is a known zero (#388)", () => {
+  // The game seeds the race from members seen since it began; a dormant
+  // member is off the roster, so the week has no row for them at all.
+  const off = () => {
+    const m = member("#OFF", { war: [16, 16, null, 16, 16, 8] });
+    m.war_points[2] = null;
+    m.in_clan_at_war_finish = [true, true, true, true, true, null];
+    return m;
+  };
+  const r = run([off(), member("#BBB")]);
+  const champ = award(r, 135, "season_champ");
+  assert.equal(champ.state, "closed");
+  assert.deepEqual(
+    champ.rows.map((x) => [x.player_tag, x.points]),
+    [
+      ["#BBB", 16000],
+      ["#OFF", 12800],
+    ],
+  );
+  // Off the roster is no decks: Ever Present is judged, and they are short.
+  const iron = award(r, 135, "ever_present");
+  assert.equal(iron.state, "closed");
+  assert.deepEqual(
+    iron.rows.map((x) => x.player_tag),
+    ["#BBB"],
+  );
+  assert.ok(
+    r.grants_due.some(
+      (g) => g.award_id === "ever_present" && g.player_tag === "#BBB",
+    ),
+  );
+
+  // Not known to be in the clan at the finish: still unknown.
+  const unplaced = off();
+  unplaced.in_clan_at_war_finish[2] = null;
+  assert.equal(
+    award(run([unplaced, member("#BBB")]), 135, "season_champ").state,
+    "held",
+  );
+  // A week nobody has a row for was not read: unknown for everyone.
+  const other = member("#BBB", { war: [16, 16, null, 16, 16, 8] });
+  other.war_points[2] = null;
+  assert.equal(award(run([off(), other]), 135, "season_champ").state, "held");
+});
+
 test("a first-ever join after a fully recorded week proves whole-period absence", () => {
   const m = member("#AAA", { tenureDays: 1 });
   m.first_joined_at = m.joined_observed_at;
