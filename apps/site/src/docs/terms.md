@@ -15,8 +15,7 @@ lede: "The short version: free, unofficial, best effort, be decent."
 hobby, for folks who like the game. It is not affiliated with,
 endorsed, sponsored, or specifically approved by Supercell, and
 Supercell is not responsible for it. See Supercell's Fan Content
-Policy: www.supercell.com/fan-content-policy. Voluntary
-[sponsorship](/support) helps with the running costs and buys nothing.
+Policy: www.supercell.com/fan-content-policy.
 
 **Access.** Ordinary member signup is open after email verification. Access is a courtesy. It can be withdrawn,
 especially for abusing the service or using it against Supercell's

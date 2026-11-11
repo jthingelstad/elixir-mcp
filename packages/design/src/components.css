@@ -7367,13 +7367,6 @@ button.kit-row {
 .kit-foot__links a {
   color: var(--ink-dim);
 }
-.kit-foot__support {
-  margin: 8px 0;
-  padding-inline: 16px;
-  color: var(--ink-dim);
-  font-size: 13px;
-  text-align: center;
-}
 .kit-home {
   display: grid;
   gap: 16px;
@@ -8793,41 +8786,4 @@ button.kit-row {
 }
 .updates-pager__older {
   margin-left: auto;
-}
-
-/* Support Elixir. */
-.support-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 0 0 14px;
-}
-.support-actions--foot {
-  margin: 12px 0 0;
-}
-.support-note {
-  margin: 0 0 30px;
-  max-width: 66ch;
-}
-.support-costs {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-.support-costs__name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 5px;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.support-costs__text {
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--ink-dim);
-}
-@media (min-width: 720px) {
-  .data-rows--levels .data-rows__row {
-    grid-template-columns: 2fr 5fr 1fr;
-  }
 }

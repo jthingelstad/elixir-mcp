@@ -3,8 +3,8 @@
  *  welcome and operator notices the relay renders (2026-10-01, the
  *  redesign boards). A login and a clan report are recognisably the same
  *  sender: the logo and the wordmark "Elixir", a quiet product label, one content panel, and one footer that says why
- *  the mail came, how to stop it (bulk kinds only), the send's own id,
- *  the sponsor line and the Fan Content disclaimer.
+ *  the mail came, how to stop it (bulk kinds only), the send's own id
+ *  and the Fan Content disclaimer.
  *
  *  Mail is not a browser. Tables and inline styles only: no flex, no
  *  grid, no background images, no stylesheet, no SVG. Images are https
@@ -218,7 +218,6 @@ const footLink = (href, text, extra = "") =>
  *    mail has none, and never an unsubscribe.
  *  - send: {id, record, report} when the send has an id. The footer shows
  *    the first six characters; the link carries the whole id.
- *  - support: the sponsor line's link.
  *  - pixel: the open pixel's tag, or "".
  */
 export function mailShell({
@@ -233,7 +232,6 @@ export function mailShell({
   timezone = "UTC",
   manage = null,
   send = null,
-  support = `${SITE}/support`,
   pixel = "",
 }) {
   const src = source ?? MAIL_SOURCE[kind] ?? { product: "Elixir", when: "" };
@@ -279,7 +277,6 @@ export function mailShell({
             .join(" · ")}</p>`
         : ""
     }
-    <p style="margin:0 0 8px;">Free and sponsor-supported. ${footLink(support, "Support Elixir")}</p>
     <p style="margin:0;font-size:11.5px;">${esc(DISCLAIMER)}</p>
   </td></tr>
 </table></td></tr></table>${pixel}</body></html>`;

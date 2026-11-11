@@ -372,7 +372,7 @@ per account or recipient. The analytics bridge (`apps/web/src/analytics.js`)
 reports a record page as its kind for report hygiene. The one URL that
 skips analytics entirely carries a credential (`/console/signin`). No
 per-recipient open or click tracking, engagement scoring, or automation on
-read state; sponsorship (`/support`) ties to nothing on an account.
+read state.
 
 ## Network posture
 

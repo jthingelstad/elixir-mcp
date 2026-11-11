@@ -426,7 +426,7 @@ sign-in code, welcome and operator notices included:
 - **Footer:** why the mail came and when the next one does, in the
   reader's own zone (`MAIL_SCHEDULE`); on a bulk kind the manage link
   and the turn-off; the send id with its record and feedback links; the
-  sponsor line; the disclaimer. Transactional mail has no turn-off.
+  disclaimer. Transactional mail has no turn-off.
 - **Palette:** `#0b0920` ground, `#120f2a` panel; wins blue and losses
   rose; gold is the brand and the button, never a figure.
 - **One preheader:** each renderer hands the shell the preheader it

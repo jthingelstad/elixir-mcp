@@ -121,8 +121,8 @@ its coverage note remains visible below the main link. An activity-scope
 clan report records rosters and wars and leaves battle activity unknown.
 A weekly email's footer then has one line, **Turn off this mail · Manage
 emails · Send feedback · Mail** and the first six characters of its id, then the
-sponsor line and the disclaimer; a sign-in code or a welcome has no such line,
-because you asked for it. The logo and card art are PNGs served from
+disclaimer; a sign-in code or a welcome has no such line, because you asked
+for it. The logo and card art are PNGs served from
 elixir.poapkings.com, never Supercell's servers, and each card says its name
 to a mail client that does not show images. The one other image is the open
 pixel ([below](#what-the-mail-counts)). A deck is drawn the way the
@@ -179,10 +179,6 @@ email's own record and to feedback about it carry the email's id,
 because they open one of your own records; the website counts those
 pages as "an email record", never which one. [Privacy](/docs/privacy)
 covers the rest.
-
-Every product email's footer also carries the same line for everyone:
-Elixir is free and sponsor-supported, with a link to
-[Support](/support). Sponsorship changes nothing about the mail you get.
 
 A name opens the page that is your door to it. Your own player opens Ladder;
 someone in a clan with you opens their page in Clan, friends included; anyone
