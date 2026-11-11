@@ -7879,6 +7879,21 @@ button.kit-row {
   width: 200px;
   max-width: 100%;
 }
+/* Clan ▸ Awards: a race is a short list of place, member and figure.
+   It keeps its three columns on a phone ("fit"), the figure's second
+   line never breaks mid-phrase, and the panel's own padding is the
+   row's edge rather than a second inset (#386). */
+.awards-race .kit-table__num .page-head__note {
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .kit-table--fit.awards-race td:first-child {
+    padding-left: 0;
+  }
+  .kit-table--fit.awards-race td:last-child {
+    padding-right: 0;
+  }
+}
 .clan-today {
   display: grid;
   gap: 20px;
