@@ -2,6 +2,11 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
+*Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing
+social layer of Clash Royale. Where this brief disagrees with the vision or
+[DECISIONS](../DECISIONS.md), they win; the brief is rewritten after the
+Design session (#752).*
+
 *The day has moved out: Home's half is [Home](home.md) (redesign step 3). The
 word Console is gone from what a reader sees since step 3b, and the pages here are
 called Settings, reached from the account menu, at `/settings` since step 6,

@@ -24,11 +24,13 @@ and secret safety everywhere.
 
 ## Scope
 
-Elixir is the personal and clan recorder; MCP is an extension of it
-(`VISION.md`). There are no global leaderboards, elite or corpus
-recording, game-wide meta statistics, recommendations in Elixir's own
-outputs, recording Collections or player ratings. Do not build them,
-even over a smaller population. Agents may coach from Elixir's facts;
+Elixir is the missing social layer of Clash Royale (`VISION.md`, the
+root): a timeline of the players you follow, built on the personal and
+clan recorder, with MCP and a person's own agent kept core. Never built:
+elite or pro tracking and a deck builder. Not part of Elixir: global
+leaderboards, corpus recording, game-wide meta statistics,
+recommendations in Elixir's own outputs, recording Collections or player
+ratings. Do not build them, even over a smaller population. Agents may coach from Elixir's facts;
 that is theirs, not Elixir's. The Ultimate Champions and Card of the
 Week mail are retired. A retired name still in code or docs is cleanup,
 not a feature to preserve.

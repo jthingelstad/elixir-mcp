@@ -1,7 +1,7 @@
 # Product briefs
 
 One page per surface of Elixir, between [`VISION.md`](../../VISION.md)
-(the whole product in two paragraphs) and [`DECISIONS.md`](../DECISIONS.md)
+(the root: Elixir is the missing social layer of Clash Royale) and [`DECISIONS.md`](../DECISIONS.md)
 (one ruling a line). A brief says what a surface is for, who it serves,
 what it never does, the principles that decide its details, and what is
 still open. The details are derived from it, not asked one at a time.

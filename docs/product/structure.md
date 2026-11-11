@@ -5,6 +5,11 @@ questions as recommended; build steps 1-3 in elixir-mcp, then stop for my
 review"; and 2026-11-06: "Approved: build Elixir redesign steps 4-8 in
 elixir-mcp". All eight steps shipped by 2026-11-06.*
 
+*Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing
+social layer of Clash Royale. Where this brief disagrees with the vision or
+[DECISIONS](../DECISIONS.md), they win; the brief is rewritten after the
+Design session (#752).*
+
 This is the redesign's record: how Elixir is arranged, the twelve
 decisions, and every answer from the detail design. The design boards were
 drawn on a temporary canvas; this page is what survives them. A ruling here
@@ -138,8 +143,7 @@ the button names the clan; a battle's link is unchanged; an action to Clan,
 Today on that action; signed out, an explanation and a sign-in link, then back.
 
 The footer: a why line; "Turn off this mail, Manage emails, Send feedback, Mail
-`<short id>`" with the short id shown and the full id in the link; "Free and
-sponsor-supported. Support Elixir"; the disclaimer, word for word.
+`<short id>`" with the short id shown and the full id in the link; the disclaimer, word for word.
 
 ## The twelve decisions
 
@@ -184,8 +188,8 @@ long page; only where the sections are listed changes (step 4).
 Facts only: no rating, no recommendations. Form is numbers only, with no verdict
 word, arrow, colour, score or advice, and nothing under ten decided battles a
 side. One mode at a time. Nobody below co-leader sees another member's removal
-or clock (Q1). Standing is groups, never a score or rank. One clan at a time. No
-public Clan pages. A leader with Actions waiting lands on them. Timeline is
+or clock (Q1). Standing is groups, never a score or rank. One clan at a time. Clan's
+own pages stay behind sign-in; the clan directory is public (VISION, 2026-11-11). Timeline is
 newest first and unfiltered at source. Mail collapses and the timeline does not.
 The seen marker is independent of agents. An action is one decide, Done or
 Decline. War is weekly on clan war surfaces, and Ladder treats a person's battles
