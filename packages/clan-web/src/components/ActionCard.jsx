@@ -23,6 +23,7 @@ import {
   chatLines,
   deliveryWords,
   REMOVAL_UNSEEN,
+  removalLinkLine,
 } from "@elixir-mcp/clan-engine";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
@@ -125,6 +126,7 @@ const KIND = {
   drafted: "Drafted by the clan's model",
   shared: "Shared with Elixir",
   not_shared: "Not shared with Elixir",
+  linked: "Linked",
 };
 /** Each kind of action's mark, as the canvas draws it: what it is in one
  *  glyph, toned by what it asks (a removal is the clan's hardest call). */
@@ -165,6 +167,7 @@ const KIND_ICON = {
   drafted: "file-text",
   shared: "external-link",
   not_shared: "shield-x",
+  linked: "link-2",
 };
 const CLASSIFIED = {
   member_kicked: "said: kicked",
@@ -995,8 +998,13 @@ function whatItComesFrom({ action, raised, restsOn, zone }) {
 
 /** A closed action's line: who closed it, when, and what the record said. */
 function closedLine(action, zone) {
-  if (action.status === "withdrawn")
-    return `Withdrawn${action.withdrawn_at ? ` ${dayAt(action.withdrawn_at, zone)}` : ""}. ${action.withdraw_reason ?? ""}`.trim();
+  if (action.status === "withdrawn") {
+    // A removal the member's leave closed names the departure asking
+    // whether it was a kick.
+    const n = action.withdraw_detail?.departure_number;
+    const then = Number.isInteger(n) ? ` Their departure is Action #${n}.` : "";
+    return `Withdrawn${action.withdrawn_at ? ` ${dayAt(action.withdrawn_at, zone)}` : ""}. ${action.withdraw_reason ?? ""}${then}`.trim();
+  }
   const who = action.decided_by_name ?? action.decided_by ?? "";
   const when = action.decided_at ? dayAt(action.decided_at, zone) : "";
   const by = [who, when].filter(Boolean).join(", ");
@@ -1042,7 +1050,9 @@ function Reason({ action, zone, grouped, departureCopy }) {
             ? `. A leader confirmed ${action.outcome?.classification === "member_kicked" ? "Kicked" : "Left"}.`
             : action.outcome?.classification === "ignored"
               ? ". A leader marked this departure Ignore."
-              : ". A leave and a kick look the same on the roster, so confirm which and the clan's history will say so."}
+              : ev.suggested_classification === "kick"
+                ? `. ${removalLinkLine(ev.removal_number)} Kicked is offered first; confirm it, or say Left if they went on their own.`
+                : ". A leave and a kick look the same on the roster, so confirm which and the clan's history will say so."}
         </div>
       ) : action.type === "welcome" ? (
         <div>
@@ -1312,6 +1322,9 @@ function BoundActionCard({
       ((open && delivery.draft) ||
         (action.copy && !delivery.draft && (open || departureCopy))));
   const canDecide = open && action.can_act;
+  const kickSuggested =
+    action.type === "departure" &&
+    action.evidence?.suggested_classification === "kick";
   const inGame =
     open && (action.type === "promotion" || action.type === "demotion");
   const logCount = (action.log ?? []).length;
@@ -1596,9 +1609,13 @@ function BoundActionCard({
                 onChange={setNote}
                 placeholder="Why, for the log (optional)"
               />
+              {/* A departure that follows an open removal offers Kicked
+                  first (preselected); the leader still presses it. */}
               <button
                 type="button"
-                className="btn btn--danger"
+                className={
+                  kickSuggested ? "btn btn--primary" : "btn btn--danger"
+                }
                 disabled={busy}
                 onClick={() => decide("done", { classification: "kick" })}
               >
@@ -1606,7 +1623,7 @@ function BoundActionCard({
               </button>
               <button
                 type="button"
-                className="btn btn--primary"
+                className={kickSuggested ? "btn" : "btn btn--primary"}
                 disabled={busy}
                 onClick={() => decide("done", { classification: "leave" })}
               >

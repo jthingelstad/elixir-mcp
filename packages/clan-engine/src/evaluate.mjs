@@ -18,6 +18,7 @@ import { factsAt } from "./facts.mjs";
 import { band, scores, passesMinimums, LEADERSHIP } from "./standing.mjs";
 import { elderWeights, ranksElder } from "./policy.mjs";
 import { removalDay } from "./inactivity.mjs";
+import { LEFT_CLAN_REASON } from "./departures.mjs";
 
 const DAY_MS = 86400_000;
 
@@ -505,10 +506,16 @@ export function reconcileCards(verdicts, openCards) {
   // An open action about someone no longer in the clan closes itself: the
   // loop above walks only today's members, so a second removal raised
   // before a kick showed would otherwise stay open forever (2026-09-25).
+  // Marked, so a departure can tell a removal the leave closed from one
+  // closed for any other reason (departures.mjs).
   const here = new Set(verdicts.members.map((m) => m.player_tag));
   for (const card of openCards)
     if (CARD_TYPES.includes(card.type) && !here.has(card.player_tag))
-      withdraw.push({ card, reason: "They are no longer in the clan." });
+      withdraw.push({
+        card,
+        reason: LEFT_CLAN_REASON,
+        detail: { left_clan: true },
+      });
   return { raise, withdraw };
 }
 

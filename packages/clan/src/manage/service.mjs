@@ -19,6 +19,8 @@ import {
   cardRationale,
   defaults,
   departuresFrom,
+  LEFT_CLAN_REASON,
+  removalLinkLine,
   describePolicy,
   inGameCopy,
   judgmentReasons,
@@ -546,6 +548,35 @@ export function createManageService({
   // What the clan shares with Elixir as attested facts (door 3).
   const sharing = createSharing({ ledger, mcp, logAction });
 
+  /** A removal the member's leave closed points at the departure that now
+   *  asks about it: withdrawn (if a run had not already), its withdrawal
+   *  naming the departure, and a line in its log. */
+  async function pointRemovalAt(clanTag, removal, departure) {
+    const link = {
+      left_clan: true,
+      departure_card_id: departure.card_id,
+      departure_number: departure.number ?? null,
+    };
+    const card = await ledger.card(clanTag, removal.card_id);
+    if (!card) return;
+    if (card.status === "proposed")
+      await withdrawAction(clanTag, card, LEFT_CLAN_REASON, link);
+    else if (card.status === "withdrawn")
+      await ledger.updateCardIf(clanTag, card, {
+        withdraw_detail: { ...card.withdraw_detail, ...link },
+      });
+    else return;
+    await logAction(clanTag, card.card_id, "linked", {
+      text: Number.isInteger(departure.number)
+        ? `They left the clan. Their departure is Action #${departure.number}, where a leader says whether it was a kick.`
+        : "They left the clan. A departure Action asks a leader whether it was a kick.",
+      detail: {
+        departure_card_id: departure.card_id,
+        departure_number: departure.number ?? null,
+      },
+    });
+  }
+
   /** Tag -> trophies today, when the policy counts trophy road. */
   const trophiesFrom = (roster) =>
     roster
@@ -656,8 +687,8 @@ export function createManageService({
     // Reconcile cards against the fresh verdicts.
     const open = cards.filter((c) => c.status === "proposed");
     const { raise, withdraw } = reconcileCards(verdicts, open);
-    for (const { card, reason } of withdraw)
-      await withdrawAction(clanTag, card, reason);
+    for (const { card, reason, detail } of withdraw)
+      await withdrawAction(clanTag, card, reason, detail ?? null);
     for (const { player_tag, type, verdict } of raise) {
       const raised_at = new Date(t).toISOString();
       const facts = cardFacts(verdict, policy.values, type);
@@ -928,7 +959,8 @@ export function createManageService({
           lastKnown,
           currentTags,
         )) {
-          await raiseAction(
+          const name = d.player_name ?? d.last?.name ?? d.player_tag;
+          const departure = await raiseAction(
             clanTag,
             {
               card_id: newId(),
@@ -951,14 +983,34 @@ export function createManageService({
                 phrase: d.last
                   ? participationPhrase(d.last, policy.values)
                   : null,
+                // The removal still open when they left: named, and
+                // Kicked offered first. The leader still answers.
+                ...(d.removal
+                  ? {
+                      removal_card_id: d.removal.card_id,
+                      removal_number: d.removal.number,
+                      suggested_classification: d.suggested,
+                    }
+                  : {}),
               },
             },
             allCards,
             {
-              text: `${d.player_name ?? d.last?.name ?? d.player_tag} left the clan ${d.left_at.slice(0, 10)} and no removal action explains it.`,
-              detail: { clauses: ["departures_enabled"] },
+              text: d.removal
+                ? `${name} left the clan ${d.left_at.slice(0, 10)} while their removal action was still open. ${removalLinkLine(d.removal.number)}`
+                : `${name} left the clan ${d.left_at.slice(0, 10)} and no removal action explains it.`,
+              detail: {
+                clauses: ["departures_enabled"],
+                ...(d.removal
+                  ? {
+                      removal_card_id: d.removal.card_id,
+                      removal_number: d.removal.number,
+                    }
+                  : {}),
+              },
             },
           );
+          if (d.removal) await pointRemovalAt(clanTag, d.removal, departure);
         }
       }
       // A card raised with only a tag (a member_left Elixir observed
@@ -1246,6 +1298,12 @@ export function createManageService({
           left_at: c.evidence?.left_at ?? null,
           days_idle: c.evidence?.days_idle ?? null,
           away_max_days: c.evidence?.away_max_days ?? null,
+          ...(c.evidence?.suggested_classification
+            ? {
+                suggested_classification: c.evidence.suggested_classification,
+                removal_number: c.evidence.removal_number ?? null,
+              }
+            : {}),
         })),
       };
     },

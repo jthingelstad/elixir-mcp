@@ -10,9 +10,53 @@
  * One card per (tag, observed leave); a rejoin and a second leave is a
  * second card. A leave the member has already undone (they rejoined, or
  * they are on the current roster) raises nothing.
+ *
+ * A leave while the member's removal Action was still open (a leader
+ * kicked them before marking it Done, and the next run withdrew it
+ * because they were gone) still asks, because only a leader's word says
+ * kick (Jamie, 2026-11-10: "Elixir Clan links a departure to an open
+ * removal Action and preselects Kicked"). The departure names that
+ * removal and suggests Kicked; it never records one.
  */
 
 const DAY_MS = 86400_000;
+
+/** Why an open Action about someone who left is withdrawn (evaluate.mjs
+ *  reconcileCards); withdrawals since 2026-11-10 also carry
+ *  `withdraw_detail.left_clan`. */
+export const LEFT_CLAN_REASON = "They are no longer in the clan.";
+
+/**
+ * The removal Action that was still open when a member left: raised
+ * before the leave, and still proposed or withdrawn by the leave itself.
+ * The latest such one, or null. A removal marked Done explains the leave
+ * instead (departuresFrom), and one withdrawn for any other reason (they
+ * played, a hold, a decline's wait) was not open at the leave.
+ */
+export function openRemovalAtLeave(cards, tag, leftAt) {
+  const atMs = Date.parse(leftAt);
+  const closedByLeave = (c) =>
+    c.status === "withdrawn" &&
+    (c.withdraw_detail?.left_clan === true ||
+      c.withdraw_reason === LEFT_CLAN_REASON) &&
+    Date.parse(c.withdrawn_at) >= atMs - DAY_MS;
+  const found = (cards ?? [])
+    .filter(
+      (c) =>
+        c.type === "removal" &&
+        c.player_tag === tag &&
+        Date.parse(c.raised_at) <= atMs &&
+        (c.status === "proposed" || closedByLeave(c)),
+    )
+    .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1));
+  return found[0] ?? null;
+}
+
+/** The departure's line about the removal it follows. */
+export const removalLinkLine = (number) =>
+  Number.isInteger(number)
+    ? `Elixir recommended removing them in Action #${number}.`
+    : "Elixir recommended removing them.";
 
 /**
  * @param {Array<{type:string, at:string, detail:object}>} events the roster's recent_events
@@ -60,7 +104,21 @@ export function departuresFrom(
       last: lastKnown.get(e.detail.player_tag) ?? null,
     }))
     .filter((d) => !explained(d.player_tag, Date.parse(d.left_at)))
-    .filter((d) => !rejoined(d.player_tag, Date.parse(d.left_at)));
+    .filter((d) => !rejoined(d.player_tag, Date.parse(d.left_at)))
+    .map((d) => {
+      const removal = openRemovalAtLeave(cards, d.player_tag, d.left_at);
+      return {
+        ...d,
+        removal: removal
+          ? {
+              card_id: removal.card_id,
+              number: Number.isInteger(removal.number) ? removal.number : null,
+            }
+          : null,
+        // The answer offered first; the leader still chooses.
+        suggested: removal ? "kick" : null,
+      };
+    });
 }
 
 export const DEPARTURE_CLASSIFICATIONS = ["kick", "leave", "ignore"];

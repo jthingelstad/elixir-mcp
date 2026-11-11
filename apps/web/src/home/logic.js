@@ -79,7 +79,11 @@ function actionRow(need, clan, { when }) {
       return {
         key,
         title: named("Departure: kicked, left, or ignore?"),
-        detail: `${need.left_at ? `Departed ${when(need.left_at)}. ` : ""}A leave and a kick look the same on the roster, so confirm which and the clan's history will say so.`,
+        detail: `${need.left_at ? `Departed ${when(need.left_at)}. ` : ""}${
+          need.suggested_classification === "kick"
+            ? `Elixir recommended removing them${Number.isInteger(need.removal_number) ? ` in Action #${need.removal_number}` : ""}. Confirm Kicked or Left.`
+            : "A leave and a kick look the same on the roster, so confirm which and the clan's history will say so."
+        }`,
         cta: "Open",
         to,
       };
