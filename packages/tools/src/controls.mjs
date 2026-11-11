@@ -429,6 +429,23 @@ export function partialWeeksNote(partial) {
  */
 export const TROPHY_MODE_TYPES = ["PvP", "pathOfLegend"];
 
+/**
+ * Whether a battle's `starting_trophies` and `trophy_change` are a
+ * trophy standing (feedback #384). On Trophy Road and Path of Legends
+ * they are; on war and casual rows `starting_trophies` is the side's
+ * Trophy Road count. Event content is a standing only under the Ladder
+ * ruleset (game mode `Ladder`, the seasonal Trophy Road past 14,000):
+ * in a Classic Challenge, a 20-Win Challenge or another event run the
+ * game reports the run's win counter there (1-10, +1 a win), and in a
+ * tournament its score. A field that is not a standing is never rated
+ * or summed beside one that is.
+ */
+export function trophiesAreStanding(type, eventTag, gameModeName) {
+  const group = modeGroupOf(type, eventTag);
+  if (group === "event") return gameModeName === "Ladder";
+  return group !== "challenge" && group !== "tournament";
+}
+
 /** Fires when a weekly row holds trophy-mode battles that reported no
  *  delta; names the weeks and the counts so the smaller number is never
  *  read as the games played. */

@@ -22,7 +22,7 @@ opponent**:
 | --- | --- |
 | `crowns` | the crown margin |
 | `deck_level` | the level edge in THIS battle, from the cards as played - not a career average |
-| `starting_trophies` | on ladder, what matchmaking paired you with; on river race rows each side's Trophy Road count, which war matchmaking does not pair on |
+| `starting_trophies` | on ladder, what matchmaking paired you with; on river race rows each side's Trophy Road count, which war matchmaking does not pair on; in an event run other than the seasonal Trophy Road (a Classic or 20-Win Challenge), the run's win counter, and `trophy_change` there is +1 a win |
 | `tower_hp` | hitpoints REMAINING on both sides: a margin of victory only between equal towers |
 | `tower_level` | the tower troop's level edge; a tower one level higher starts with more hitpoints (1,564 more across the three towers at 16 against 15), so when this is not `0`, `tower_hp` carries that starting gap too |
 
