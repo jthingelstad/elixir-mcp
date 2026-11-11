@@ -7,7 +7,7 @@ order: 8
 navTitle: "Awards"
 icon: award
 lede: "A clan names its own awards, and Clan decides them from the record when each war season closes. Every member has a trophy case; leaders announce the winners in the game."
-reviewed: "2026-11-10; a member left off the race is a known zero, not unknown; 2026-10-04; resolved award places and explicit update season, contracts unchanged"
+reviewed: "2026-11-10; leaders' picks in the current season; a member left off the race is a known zero, not unknown; 2026-10-04; resolved award places and explicit update season, contracts unchanged"
 ---
 
 # Awards and trophies
@@ -41,7 +41,8 @@ judged once it has **closed** (every week finished, its Colosseum week
 last or the next season begun) and Clan holds it **whole** (unique sections
 from zero through a recorded final Colosseum week, with no gaps). The first reading after that writes the
 season's winners: the morning run, or anyone opening **Awards**. A season still being fought shows on **Awards** as
-provisional, with nothing granted. Missing evidence holds the affected award,
+provisional: nothing Clan decides is granted until it closes, though a
+leaders' pick can be (below). Missing evidence holds the affected award,
 not every award in the season: points need the possible contenders' counters,
 donations break consequential point ties, rookies need first-season history,
 and attendance waits for every still-possible recipient. Recorded absence
@@ -70,10 +71,14 @@ so later recording or configuration changes do not rewrite the podium.
   read its saved grants.
 - A **Leaders' pick** is granted by the leader and co-leaders, or by
   elders too when the award allows it, with a note of up to 500
-  characters, after the season is recorded as closed and complete. The picker
-  shows the saved description, previous holder if recorded, and the member and
-  season you are confirming. If an award your choice depends on is held, wait
-  for its evidence. The leader and co-leaders can take a pick back; an award
+  characters, for a season recorded as closed and complete or for the
+  current season while it is still being fought. A pick in the current
+  season is granted at once, says so on the page, and counts as that
+  season's; the season's other awards are still decided when it closes.
+  An older season that is still open, or a season the record has not seen,
+  takes no pick. The picker shows the saved description, previous holder if
+  recorded, and the member and season you are confirming. If an award your
+  choice depends on is held, wait for its evidence. The leader and co-leaders can take a pick back; an award
   Clan decided is the record's and stays.
 
 ## Where members see them
@@ -126,7 +131,12 @@ awards**, the leaders get an [action](/docs/clan-actions) naming the winners,
 defaulting to clan chat with an explicit durable Leader Message alternative,
 to send in the game themselves.
 Long lists are split into numbered, game-sized messages that name every recipient;
-send every part. Later manual choices update pending copy or create new copy if
+send every part. A leaders' pick in the current season raises its own
+announcement Action as soon as it is granted, saying the season is in
+progress; when the season closes, its announcement names only the recipients no
+sent message has named, so a pick already announced is not announced again, and
+a pick whose announcement is still waiting joins the season's own copy.
+Later manual choices update pending copy or create new copy if
 the earlier message was sent. Taking back a manual choice removes it from pending
 copy. Completed messages keep their history. A model draft is told the winners
 and their numbers, but Elixir writes the complete recipient list itself; the

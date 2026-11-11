@@ -196,8 +196,13 @@ export function Awards({ clan, who, season: seasonParam, navigate }) {
           </div>
           {!season.closed ? (
             <p className="page__lede m-0">
-              Provisional: the season is still being fought. Nothing is granted
-              until it closes.
+              Provisional: the season is still being fought. Its races are
+              decided when it closes
+              {season.picks_open &&
+              season.awards.some((a) => a.state === "manual")
+                ? "; a leaders' pick can be granted now"
+                : ""}
+              .
             </p>
           ) : null}
           {season.awards.map((a) => (
@@ -209,9 +214,7 @@ export function Awards({ clan, who, season: seasonParam, navigate }) {
                 (g) => g.season_id === selected && g.award_id === a.award_id,
               )}
               canGrant={
-                season.closed &&
-                season.complete &&
-                d.can_grant.includes(a.award_id)
+                season.picks_open === true && d.can_grant.includes(a.award_id)
               }
               canRevoke={d.can_edit}
               clan={clan}
@@ -244,9 +247,10 @@ export function Awards({ clan, who, season: seasonParam, navigate }) {
             </div>
           ))}
           <p className="page__lede m-0">
-            Grants are recorded after a season closes; a manual award records
-            who chose it and why. Members can read the races and saved grants
-            here; nothing is published outside the signed-in app.
+            Clan decides its awards after a season closes; a leaders&rsquo; pick
+            can also be granted while the season is fought, and records who
+            chose it and why. Members can read the races and saved grants here;
+            nothing is published outside the signed-in app.
           </p>
         </div>
       </Disclosure>
@@ -429,15 +433,16 @@ function AwardPanel({
             {award.description ? (
               <p className="page__lede m-0">{award.description}</p>
             ) : null}
-            {season.closed ? (
+            {season.picks_open ? (
               <p className="page-head__note m-0">
                 <TagText>
                   {previousGrants.length
                     ? `Season ${season.season_id - 1}: ${previousGrants.map((g) => g.player_name ?? g.player_tag).join(", ")}.`
                     : `No recorded ${award.name} grant for season ${season.season_id - 1}. Check the clan's history before choosing.`}
                 </TagText>{" "}
-                Review the final podium and this award's rule; the choice is
-                yours.
+                {season.closed
+                  ? "Review the final podium and this award's rule; the choice is yours."
+                  : "The season is in progress: a pick now is granted at once, for this season. Review the races so far and this award's rule; the choice is yours."}
               </p>
             ) : null}
             {season.closed &&
@@ -454,7 +459,7 @@ function AwardPanel({
             ) : null}
             {rows.length === 0 ? (
               <p className="page__lede" style={{ margin: 0 }}>
-                Not granted{season.closed ? " yet" : ""}.
+                Not granted{season.closed || season.picks_open ? " yet" : ""}.
               </p>
             ) : (
               <ul style={{ margin: 0, paddingLeft: "18px" }}>
@@ -517,7 +522,7 @@ function AwardPanel({
                 ))}
               </ul>
             )}
-            {canGrant && season.closed ? (
+            {canGrant ? (
               granting ? (
                 <form
                   style={{ display: "grid", gap: "8px", maxWidth: "520px" }}
@@ -595,8 +600,10 @@ function AwardPanel({
                       Confirm {award.name} for season {season.season_id} for{" "}
                       {candidates.find((c) => c.player_tag === tag)?.name ??
                         tag}
-                      . This records your choice; it does not send an
-                      announcement.
+                      .{" "}
+                      {season.closed
+                        ? "This records your choice; it does not send an announcement."
+                        : "The season is still being fought; this records your choice now. It does not send an announcement."}
                     </p>
                   ) : null}
                   <div style={{ display: "flex", gap: "8px" }}>
@@ -724,7 +731,8 @@ const STATE_LABEL = {
 };
 
 const GRANT_ERRORS = {
-  season_not_closed: "This season is not yet recorded as closed and complete.",
+  season_not_pickable:
+    "A leaders' pick is granted for the season in progress or for a closed season recorded whole. Read the awards again.",
   bad_note: "Add a reason of at most 500 characters.",
   not_in_roster:
     "This member is not in the recorded roster. Read the awards again.",

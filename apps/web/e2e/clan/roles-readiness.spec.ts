@@ -92,6 +92,7 @@ function roleRoutes(role: "member" | "elder", small = false) {
         season_id: 135,
         closed: true,
         complete: true,
+        picks_open: true,
         weeks: 5,
         awards: [
           {

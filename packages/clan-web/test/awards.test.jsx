@@ -85,6 +85,7 @@ const view = () => ({
       season_id: 136,
       closed: false,
       complete: true,
+      picks_open: true,
       weeks: 1,
       awards: [
         {
@@ -121,6 +122,7 @@ const view = () => ({
       closed: true,
       closed_at: "2026-09-07T09:34:00Z",
       complete: true,
+      picks_open: true,
       weeks: 5,
       awards: [
         {
@@ -292,6 +294,61 @@ describe("awards", () => {
       season_id: 135,
       note: "rotation",
     });
+  });
+
+  test("the season in progress takes a leaders' pick, and says so", async () => {
+    vi.spyOn(manageApi, "awards").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: view(),
+    });
+    const grant = vi
+      .spyOn(manageApi, "grantAward")
+      .mockResolvedValue({ ok: true, status: 200, data: {} });
+    renderWithProviders(<Walk clan={poap} />);
+    expect(
+      await screen.findByText(/a leaders' pick can be granted now/),
+    ).toBeTruthy();
+    expect(screen.getByText(/The season is in progress/)).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Grant Clan Honour for season 136" }),
+    );
+    fireEvent.change(screen.getByLabelText("Member"), {
+      target: { value: "#UQ8LP2R9C" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Why/), {
+      target: { value: "carried week one" },
+    });
+    expect(
+      screen.getByText(/The season is still being fought; this records/),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Grant Clan Honour" }));
+    await waitFor(() => expect(grant).toHaveBeenCalled());
+    expect(grant.mock.calls[0][1].season_id).toBe(136);
+  });
+
+  test("a season the server does not open to picks shows no grant control", async () => {
+    const data = view();
+    for (const s of data.seasons) s.picks_open = false;
+    vi.spyOn(manageApi, "awards").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data,
+    });
+    renderWithProviders(<Walk clan={poap} />);
+    expect(
+      (await screen.findAllByText(/Season 136, in progress/)).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole("button", { name: /Grant Clan Honour/ }),
+    ).toBeNull();
+    expect(screen.queryByText(/a leaders' pick can be granted now/)).toBeNull();
+    fireEvent.change(screen.getByRole("combobox", { name: "Season" }), {
+      target: { value: "135" },
+    });
+    expect(
+      screen.queryByRole("button", { name: /Grant Clan Honour/ }),
+    ).toBeNull();
   });
 
   test("closed podium displays only stored receipts, and manual picks show history evidence", async () => {

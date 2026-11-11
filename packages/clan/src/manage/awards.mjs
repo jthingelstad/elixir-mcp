@@ -2,7 +2,8 @@
  * The awards service: the clan's awards document (versioned like policy),
  * the live races and closed seasons from the record, grants written on
  * the first evaluation after a season closes, grants by hand for a
- * leaders' pick, and the trophy case every member sees.
+ * leaders' pick (in a closed whole season or the one being fought), and the
+ * trophy case every member sees.
  *
  * Pure engine in (evaluateAwards), ledger and Elixir out. Evaluation is on
  * demand with the signed-in person's token and cached five minutes per
@@ -42,6 +43,24 @@ import {
 const LEADERS = new Set(["leader", "coLeader"]);
 const ELDER_PLUS = new Set(["leader", "coLeader", "elder"]);
 
+/**
+ * Whether a leaders' pick may be granted for a season, from an
+ * evaluation's seasons: "closed" for a closed season the record holds
+ * whole, "current" for the newest recorded season while it is still open
+ * ("Approved: allow leaders' picks in the current open Elixir Clan
+ * season", Jamie, 2026-11-10), otherwise null: a season the record has
+ * not seen (a future one), an older season still open, or a closed one
+ * held only in part. Computed awards are unaffected: they are only ever
+ * decided at close.
+ */
+function pickSeason(seasons = [], seasonId) {
+  const season = seasons.find((s) => s.season_id === seasonId);
+  if (!season) return null;
+  if (season.closed) return season.complete ? "closed" : null;
+  const newest = Math.max(...seasons.map((s) => s.season_id));
+  return season.season_id === newest ? "current" : null;
+}
+
 export function createAwardsService({
   ledger,
   participationFor,
@@ -59,8 +78,13 @@ export function createAwardsService({
 
   /** Complete bounded copy from receipts, including later manual picks.
    * Completed messages remain immutable; changed pending segments are withdrawn
-   * and replaced, with their evidence/log retained. No message is sent here. */
-  async function announceSeason(clanTag, seasonIds) {
+   * and replaced, with their evidence/log retained. No message is sent here.
+   * A pick in the season still being fought is announced at once; its copy
+   * says the season is in progress (`in_progress`), and the season's close
+   * announces only the receipts no completed message carried, so a sent
+   * pick is never named twice. A pending in-progress segment is replaced at
+   * close by the season's own copy, which names the pick with the rest. */
+  async function announceSeason(clanTag, seasonIds, { current = [] } = {}) {
     const policy = await ledger.currentPolicy(clanTag);
     if (!policy?.values?.announce_awards_enabled) return;
     const all = await ledger.grants(clanTag);
@@ -81,6 +105,7 @@ export function createAwardsService({
               : g.granted_at <= (c.decided_at ?? c.raised_at),
           ),
       );
+      const inProgress = current.includes(season_id);
       const parts = awardAnnouncementParts(unsent);
       const wanted = parts.map((part) => ({
         ...part,
@@ -91,7 +116,8 @@ export function createAwardsService({
       const samePendingPart = (c, p) =>
         p.key === c.evidence?.announcement_key &&
         p.part === c.evidence?.part &&
-        parts.length === c.evidence?.parts;
+        parts.length === c.evidence?.parts &&
+        Boolean(c.evidence?.in_progress) === inProgress;
       for (const c of prior.filter((c) => c.status === "proposed"))
         if (!wanted.some((p) => samePendingPart(c, p)))
           await withdrawAction(
@@ -137,11 +163,14 @@ export function createAwardsService({
               announcement_key: part.key,
               grant_refs: part.grants.map(grantRef),
               grant_receipts: part.grants.map(receiptRef),
+              ...(inProgress ? { in_progress: true } : {}),
             },
           },
           cards,
           {
-            text: `Season ${season_id}: review award announcement ${part.part} of ${parts.length}.`,
+            text: inProgress
+              ? `Season ${season_id}, in progress: review award announcement ${part.part} of ${parts.length}.`
+              : `Season ${season_id}: review award announcement ${part.part} of ${parts.length}.`,
             detail: { clauses: ["announce_awards_enabled"] },
           },
         );
@@ -551,6 +580,8 @@ export function createAwardsService({
       // snapshot: a pick granted a moment ago shows without a re-read.
       const seasons = result.seasons.map((s) => ({
         ...s,
+        // Where a leaders' pick may be granted: the server's own rule.
+        picks_open: pickSeason(result.seasons, s.season_id) !== null,
         awards: s.awards.map((a) =>
           a.state !== "manual"
             ? a
@@ -639,7 +670,8 @@ export function createAwardsService({
       });
     },
 
-    /** A leaders' pick, by hand. */
+    /** A leaders' pick, by hand: for a closed season the record holds
+     *  whole, or for the current season while it is fought (pickSeason). */
     async grant(clanTag, who, { award_id, player_tag, season_id, note }) {
       await requirePolicy(clanTag);
       const config = await configFor(clanTag);
@@ -657,12 +689,9 @@ export function createAwardsService({
       const text = String(note ?? "").trim();
       if (!text || text.length > 500) throw new ManageError(400, "bad_note");
       const snapshot = await ledger.latestAwardsSnapshot(clanTag);
-      if (
-        !snapshot?.seasons.some(
-          (s) => s.season_id === season && s.closed && s.complete,
-        )
-      )
-        throw new ManageError(409, "season_not_closed");
+      const when = pickSeason(snapshot?.seasons, season);
+      if (!when) throw new ManageError(409, "season_not_pickable");
+      const current = when === "current" ? [season] : [];
       const member = snapshot.members?.find((m) => m.player_tag === player_tag);
       if (!member) throw new ManageError(400, "not_in_roster");
       const previous = (await ledger.grants(clanTag)).find(
@@ -674,7 +703,7 @@ export function createAwardsService({
       if (previous) {
         if (previous.note !== text) throw new ManageError(409, "grant_exists");
         // Preserve the original author/time when a response is retried.
-        await announceSeason(clanTag, [season]);
+        await announceSeason(clanTag, [season], { current });
         return shape(previous);
       }
       const granted = await ledger.putGrant(clanTag, {
@@ -692,7 +721,7 @@ export function createAwardsService({
         granted_by: who.player_tag,
         granted_by_name: who.name ?? null,
       });
-      await announceSeason(clanTag, [season]);
+      await announceSeason(clanTag, [season], { current });
       return shape(granted);
     },
 
@@ -700,6 +729,11 @@ export function createAwardsService({
     async revoke(clanTag, who, { season_id, award_id, player_tag }) {
       if (!isLeader(who)) throw new ManageError(403, "leaders_only");
       await requirePolicy(clanTag);
+      const snapshot = await ledger.latestAwardsSnapshot(clanTag);
+      const current = (id) =>
+        pickSeason(snapshot?.seasons, id) === "current"
+          ? { current: [id] }
+          : {};
       const all = await ledger.grants(clanTag);
       const g = all.find(
         (x) =>
@@ -714,12 +748,16 @@ export function createAwardsService({
           "leaders_pick"
         )
           throw new ManageError(404, "no_grant");
-        await announceSeason(clanTag, [Number(season_id)]);
+        await announceSeason(
+          clanTag,
+          [Number(season_id)],
+          current(Number(season_id)),
+        );
         return;
       }
       if (g.manual !== true) throw new ManageError(400, "not_manual");
       await ledger.removeGrant(clanTag, g);
-      await announceSeason(clanTag, [g.season_id]);
+      await announceSeason(clanTag, [g.season_id], current(g.season_id));
     },
 
     /** One member's trophy case, for the member sheet and the roster. */

@@ -105,6 +105,7 @@ const makeView = () => {
         season_id: 136,
         closed: false,
         complete: true,
+        picks_open: true,
         weeks: 4,
         awards: awards.map((a) => ({
           ...a,
@@ -117,6 +118,7 @@ const makeView = () => {
         closed: true,
         closed_at: "2026-09-08T10:00:00Z",
         complete: true,
+        picks_open: true,
         weeks: 5,
         awards,
       },
@@ -232,6 +234,116 @@ for (const size of ["wide", "@narrow"]) {
       },
     ]);
     expect(errors).toEqual([]);
+  });
+
+  test(`a leaders' pick in the season in progress ${size}`, async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    const data = makeView();
+    const picks: unknown[] = [];
+    const responses = signedIn({
+      "GET /api/clan/clans/2PQRJ8LV/awards": () => [200, data],
+      "POST /api/clan/clans/2PQRJ8LV/awards/grants": (route) => {
+        const body = route.request().postDataJSON();
+        picks.push(body);
+        const grant: Grant = {
+          season_id: 136,
+          award_id: "pick",
+          kind: "leaders_pick",
+          name: "Clan Pick",
+          rank: 1,
+          player_tag: members[1].player_tag,
+          player_name: "Ben",
+          metric_value: null,
+          metric_unit: null,
+          manual: true,
+          granted_at: "2026-10-03T12:05:00Z",
+          note: body.note,
+          granted_by_name: "Ada",
+        };
+        data.grants.push(grant);
+        const manual = data.seasons[0].awards.find(
+          (a) => a.award_id === "pick",
+        );
+        if (!manual) throw new Error("Fixture manual award is missing");
+        manual.rows.push({ ...grant, name: "Ben" });
+        return [200, grant];
+      },
+    });
+    const roster = responses["GET /api/clan/roster"] as [
+      number,
+      Record<string, unknown>,
+    ];
+    responses["GET /api/clan/roster"] = [
+      200,
+      { ...roster[1], member_count: 12 },
+    ];
+    await mockApi(page, responses);
+    await page.goto("/clan/2PQRJ8LV/awards");
+    await expect(page.getByRole("combobox", { name: "Season" })).toHaveValue(
+      "136",
+    );
+    await expect(
+      page.getByText(/a leaders' pick can be granted now/),
+    ).toBeVisible();
+    await expect(page.getByText(/The season is in progress/)).toBeVisible();
+    await page
+      .getByRole("button", { name: "Grant Clan Pick for season 136" })
+      .click();
+    await page
+      .getByLabel("Member", { exact: true })
+      .selectOption(members[1].player_tag);
+    await page.getByLabel("Why this member").fill("Carried the first week.");
+    await expect(
+      page.getByText(/The season is still being fought; this records/),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Grant Clan Pick", exact: true })
+      .click();
+    await expect(
+      page.getByText("Carried the first week.", { exact: false }).last(),
+    ).toBeVisible();
+    expect(picks).toEqual([
+      {
+        award_id: "pick",
+        player_tag: members[1].player_tag,
+        player_name: "Ben",
+        season_id: 136,
+        note: "Carried the first week.",
+      },
+    ]);
+    expect(errors).toEqual([]);
+  });
+
+  test(`no leaders' pick for a season that is not open to picks ${size}`, async ({
+    page,
+  }) => {
+    const data = makeView();
+    const seasons = data.seasons.map((s) => ({ ...s, picks_open: false }));
+    const responses = signedIn({
+      "GET /api/clan/clans/2PQRJ8LV/awards": [200, { ...data, seasons }],
+    });
+    const roster = responses["GET /api/clan/roster"] as [
+      number,
+      Record<string, unknown>,
+    ];
+    responses["GET /api/clan/roster"] = [
+      200,
+      { ...roster[1], member_count: 12 },
+    ];
+    await mockApi(page, responses);
+    await page.goto("/clan/2PQRJ8LV/awards");
+    await expect(page.getByRole("combobox", { name: "Season" })).toHaveValue(
+      "136",
+    );
+    await expect(
+      page.getByRole("button", { name: /Grant Clan Pick/ }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(/leaders' pick can be granted now/),
+    ).toHaveCount(0);
   });
 
   for (const weekly of [false, true]) {
