@@ -59,6 +59,56 @@ test("a removal withdrawn for another reason, or raised after the leave, links n
   assert.equal(d.suggested, null);
 });
 
+test("a removal closed before a rejoin is not the second leave's (Codex, PR #750)", () => {
+  // First leave Nov 8 20:00, its removal withdrawn Nov 9 08:00, back at
+  // 09:00, gone again Nov 10 02:00: no removal was open at the second.
+  const withdrawn = removal({
+    status: "withdrawn",
+    withdrawn_at: "2026-11-09T08:00:00.000Z",
+    withdraw_reason: LEFT_CLAN_REASON,
+    withdraw_detail: { left_clan: true },
+  });
+  const events = [
+    left("#A", "2026-11-08T20:00:00.000Z"),
+    {
+      type: "member_joined",
+      at: "2026-11-09T09:00:00.000Z",
+      detail: { player_tag: "#A", name: "#A" },
+    },
+    left("#A", "2026-11-10T02:00:00.000Z"),
+  ];
+  const out = departuresFrom(events, [withdrawn]);
+  assert.deepEqual(
+    out.map((d) => [d.left_at, d.removal, d.suggested]),
+    [["2026-11-10T02:00:00.000Z", null, null]],
+    "the first leave is undone by the rejoin; the second suggests nothing",
+  );
+  // A removal raised after the rejoin is this stay's and still links.
+  const fresh = removal({
+    card_id: "rm-2",
+    number: 99,
+    raised_at: "2026-11-09T20:00:00.000Z",
+  });
+  assert.equal(
+    departuresFrom(events, [withdrawn, fresh])[0].removal?.card_id,
+    "rm-2",
+  );
+});
+
+test("a removal already linked to a departure is never linked again", () => {
+  const linked = removal({
+    status: "withdrawn",
+    withdrawn_at: "2026-11-09T08:00:00.000Z",
+    withdraw_reason: LEFT_CLAN_REASON,
+    withdraw_detail: {
+      left_clan: true,
+      departure_card_id: "dep-1",
+      departure_number: 97,
+    },
+  });
+  assert.equal(openRemovalAtLeave([linked], "#A", LEFT_AT), null);
+});
+
 test("a removal marked Done explains the leave: no question, unchanged", () => {
   const done = removal({
     status: "done",

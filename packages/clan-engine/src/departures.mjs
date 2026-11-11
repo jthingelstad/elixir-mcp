@@ -28,13 +28,30 @@ export const LEFT_CLAN_REASON = "They are no longer in the clan.";
 
 /**
  * The removal Action that was still open when a member left: raised
- * before the leave, and still proposed or withdrawn by the leave itself.
- * The latest such one, or null. A removal marked Done explains the leave
- * instead (departuresFrom), and one withdrawn for any other reason (they
- * played, a hold, a decline's wait) was not open at the leave.
+ * before the leave in the membership this leave ends, and still proposed
+ * or withdrawn by the leave itself. The latest such one, or null. A
+ * removal marked Done explains the leave instead (departuresFrom), and
+ * one withdrawn for any other reason (they played, a hold, a decline's
+ * wait) was not open at the leave.
+ *
+ * The membership starts at the member's last recorded join or leave
+ * before this leave: a removal raised before it belongs to an earlier
+ * stay (they left, rejoined and left again), whatever its timestamps.
+ * A removal already linked to another departure is that one's.
  */
-export function openRemovalAtLeave(cards, tag, leftAt) {
+export function openRemovalAtLeave(cards, tag, leftAt, events = []) {
   const atMs = Date.parse(leftAt);
+  const since = Math.max(
+    -Infinity,
+    ...(events ?? [])
+      .filter(
+        (e) =>
+          (e.type === "member_joined" || e.type === "member_left") &&
+          e.detail?.player_tag === tag &&
+          Date.parse(e.at) < atMs,
+      )
+      .map((e) => Date.parse(e.at)),
+  );
   const closedByLeave = (c) =>
     c.status === "withdrawn" &&
     (c.withdraw_detail?.left_clan === true ||
@@ -46,6 +63,8 @@ export function openRemovalAtLeave(cards, tag, leftAt) {
         c.type === "removal" &&
         c.player_tag === tag &&
         Date.parse(c.raised_at) <= atMs &&
+        Date.parse(c.raised_at) >= since &&
+        !c.withdraw_detail?.departure_card_id &&
         (c.status === "proposed" || closedByLeave(c)),
     )
     .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1));
@@ -106,7 +125,12 @@ export function departuresFrom(
     .filter((d) => !explained(d.player_tag, Date.parse(d.left_at)))
     .filter((d) => !rejoined(d.player_tag, Date.parse(d.left_at)))
     .map((d) => {
-      const removal = openRemovalAtLeave(cards, d.player_tag, d.left_at);
+      const removal = openRemovalAtLeave(
+        cards,
+        d.player_tag,
+        d.left_at,
+        events,
+      );
       return {
         ...d,
         removal: removal

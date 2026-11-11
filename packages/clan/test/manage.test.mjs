@@ -1062,6 +1062,46 @@ test("departures: a leave while the member's removal was still open asks, linked
   );
   assert.equal(kicked.status, 200, JSON.stringify(kicked.body));
   assert.equal(kicked.body.outcome.classification, "member_kicked");
+  // They rejoin and leave again just over a day later, inside a day of
+  // the old removal's withdrawal: that removal was closed before the
+  // rejoin, so the new departure suggests nothing, and the old removal
+  // keeps its link to the first departure.
+  const firstLeft = Date.parse(dep.evidence.left_at);
+  h.clock.t = firstLeft + 25 * 60 * 60_000;
+  h.mcp.state.roster = leftEvents([
+    {
+      type: "member_left",
+      at: dep.evidence.left_at,
+      detail: { player_tag: idle.player_tag, name: idle.name, role: "member" },
+    },
+    {
+      type: "member_joined",
+      at: new Date(firstLeft + 13 * 60 * 60_000).toISOString(),
+      detail: { player_tag: idle.player_tag, name: idle.name, role: "member" },
+    },
+    {
+      type: "member_left",
+      at: new Date(firstLeft + DAY + 10 * 60_000).toISOString(),
+      detail: { player_tag: idle.player_tag, name: idle.name, role: "member" },
+    },
+  ]);
+  await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage?refresh=1");
+  const deps = (await h.ledger.cards("#2PQRJ8LV")).filter(
+    (c) => c.type === "departure" && c.player_tag === idle.player_tag,
+  );
+  assert.equal(deps.length, 2, "the second leave is asked about");
+  const second = deps.find((c) => c.card_id !== dep.card_id);
+  assert.equal(second.evidence.suggested_classification, undefined);
+  assert.equal(second.evidence.removal_card_id, undefined);
+  const kept = await h.ledger.card("#2PQRJ8LV", removal.card_id);
+  assert.equal(kept.withdraw_detail.departure_card_id, dep.card_id);
+  assert.equal(kept.withdraw_detail.departure_number, dep.number);
+  assert.equal(
+    (await h.ledger.actionLog("#2PQRJ8LV", removal.card_id)).filter(
+      (e) => e.kind === "linked",
+    ).length,
+    1,
+  );
 });
 
 test("departures: a leave with no removal Action is asked as before, nothing suggested", async () => {
