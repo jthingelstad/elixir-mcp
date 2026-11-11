@@ -64,7 +64,9 @@ against current profile readings.
 Award announcement titles name the season and the awards covered by that
 message. A manual award granted after an announcement was completed can raise
 a separate Action for that later recipient; the completed announcement stays
-unchanged. Notification mail uses the same award scope as the Action.
+unchanged. A leaders' pick in the season still being fought raises its
+announcement at once; the season's announcement at close leaves out any pick
+already sent. Notification mail uses the same award scope as the Action.
 
 Every kind but one is off until the policy turns it on. Promotions and
 demotions come with ranking Elder by participation
@@ -94,8 +96,9 @@ a week past the join.
 - **Going to be away?** goes to a member who has reached at risk on the
   [inactivity clock](/docs/inactivity-clock#the-inactivity-clock), asking them before anyone
   else is.
-- An **announcement** is raised when a season's awards are decided, or
-  when the leaders save a new version of the policy.
+- An **announcement** is raised when a season's awards are decided, when a
+  leaders' pick is granted, or when the leaders save a new version of the
+  policy.
 - **Award standings** are raised after a war week closes, when the clan
   has at least one award set up; a leader can also ask for the current
   season's standings from **Awards**.

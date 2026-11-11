@@ -522,24 +522,41 @@ test("awards: an interrupted batch resumes its frozen winners after capture chan
   assert.deepEqual(again.body.grants, recovered.body.grants);
 });
 
-test("awards: manual choices require a closed complete season, roster member and reason; retries preserve author", async () => {
+test("awards: manual choices need a closed complete season or the current one, a roster member and a reason; retries preserve author", async () => {
   const h = harness({ part: partClan() });
   const cookies = await signedIn(h);
-  await api(h, cookies, "GET", `${BASE}/manage`);
+  const view = await api(h, cookies, "GET", `${BASE}/manage`);
+  assert.deepEqual(
+    view.body.seasons.map((s) => [s.season_id, s.picks_open]),
+    [
+      [136, true],
+      [135, true],
+    ],
+  );
   const body = {
     award_id: "clan_honour",
     player_tag: "UQ8LP2R9C",
     season_id: 135,
     note: "rotation",
   };
-  for (const id of [136, 137]) {
+  // A season the record has not seen (a future one) is refused.
+  for (const id of [137, 134]) {
     const r = await api(h, cookies, "POST", `${BASE}/grants`, {
       ...body,
       season_id: id,
     });
     assert.equal(r.status, 409);
-    assert.equal(r.body.error, "season_not_closed");
+    assert.equal(r.body.error, "season_not_pickable");
   }
+  // The season being fought takes a pick (Jamie, 2026-11-10).
+  const current = await api(h, cookies, "POST", `${BASE}/grants`, {
+    ...body,
+    season_id: 136,
+    note: "carried week one",
+  });
+  assert.equal(current.status, 200, JSON.stringify(current.body));
+  assert.equal(current.body.season_id, 136);
+  assert.equal(current.body.manual, true);
   assert.equal(
     (await api(h, cookies, "POST", `${BASE}/grants`, { ...body, note: " " }))
       .status,
@@ -570,6 +587,155 @@ test("awards: manual choices require a closed complete season, roster member and
       })
     ).body.error,
     "grant_exists",
+  );
+});
+
+test("awards: an older season still open, or a closed one held in part, takes no pick", async () => {
+  // Season 135's last week never recorded a finish: it is older than the
+  // running season 136 and still open, so no pick lands in it.
+  const open = structuredClone(partClan());
+  open.war_weeks[4].finished_observed_at = null;
+  const h = harness({ part: open });
+  const cookies = await signedIn(h);
+  const view = await api(h, cookies, "GET", `${BASE}/manage`);
+  assert.deepEqual(
+    view.body.seasons.map((s) => [s.season_id, s.closed, s.picks_open]),
+    [
+      [136, false, true],
+      [135, false, false],
+    ],
+  );
+  const body = {
+    award_id: "clan_honour",
+    player_tag: "UQ8LP2R9C",
+    note: "rotation",
+  };
+  const older = await api(h, cookies, "POST", `${BASE}/grants`, {
+    ...body,
+    season_id: 135,
+  });
+  assert.equal(older.status, 409);
+  assert.equal(older.body.error, "season_not_pickable");
+  assert.equal(
+    (
+      await api(h, cookies, "POST", `${BASE}/grants`, {
+        ...body,
+        season_id: 136,
+      })
+    ).status,
+    200,
+  );
+
+  // Season 135 closed by the next season's start but missing its
+  // Colosseum week: closed, not whole, so no pick.
+  const partial = structuredClone(partClan());
+  partial.war_weeks[4].is_colosseum = false;
+  const p = harness({ part: partial });
+  const pc = await signedIn(p);
+  const pv = await api(p, pc, "GET", `${BASE}/manage`);
+  const s135 = pv.body.seasons.find((s) => s.season_id === 135);
+  assert.equal(s135.closed, true);
+  assert.equal(s135.complete, false);
+  assert.equal(s135.picks_open, false);
+  const r = await api(p, pc, "POST", `${BASE}/grants`, {
+    ...body,
+    season_id: 135,
+  });
+  assert.equal(r.body.error, "season_not_pickable");
+});
+
+test("awards: a pick in the current season is announced at once and never again at close", async () => {
+  const part = structuredClone(partClan());
+  const h = harness({
+    part,
+    policy: { ...EXAMPLE_POLICY, announce_awards_enabled: true },
+  });
+  const cookies = await signedIn(h);
+  await api(h, cookies, "GET", `${BASE}/manage`);
+  const announcements = async (season) =>
+    (await h.ledger.cards("#2PQRJ8LV")).filter(
+      (c) =>
+        c.type === "awards_announcement" && c.evidence.season_id === season,
+    );
+  assert.equal((await announcements(136)).length, 0);
+  const pick = await api(h, cookies, "POST", `${BASE}/grants`, {
+    award_id: "clan_honour",
+    player_tag: "UQ8LP2R9C",
+    season_id: 136,
+    note: "carried week one",
+  });
+  assert.equal(pick.status, 200);
+  const [raised] = await announcements(136);
+  assert.equal(raised.status, "proposed");
+  assert.equal(raised.evidence.in_progress, true);
+  assert.match(raised.evidence.message.body, /Clan Honour: Ben/);
+  assert.deepEqual(raised.evidence.grant_refs, ["136:clan_honour:#UQ8LP2R9C"]);
+  // A leader sends it.
+  await h.ledger.putCard("#2PQRJ8LV", {
+    ...raised,
+    status: "done",
+    decided_at: new Date(h.clock.t).toISOString(),
+  });
+  // Season 136 closes: its one week finishes as a Colosseum.
+  h.clock.t += 10 * 60_000;
+  Object.assign(part.war_weeks[5], {
+    is_colosseum: true,
+    finished_observed_at: new Date(h.clock.t - 60_000).toISOString(),
+  });
+  const closed = await api(h, cookies, "GET", `${BASE}/manage?refresh=1`);
+  assert.equal(closed.status, 200, JSON.stringify(closed.body));
+  const s136 = closed.body.seasons.find((s) => s.season_id === 136);
+  assert.equal(s136.closed, true);
+  const computed = (await h.ledger.grants("#2PQRJ8LV")).filter(
+    (g) => g.season_id === 136 && !g.manual,
+  );
+  assert.ok(computed.length > 0, "the close grants the computed awards");
+  const after = await announcements(136);
+  const fresh = after.filter((c) => c.card_id !== raised.card_id);
+  assert.ok(fresh.length > 0, "the close raises the season's announcement");
+  for (const c of fresh) {
+    assert.equal(c.evidence.in_progress, undefined);
+    assert.ok(
+      !c.evidence.grant_refs.includes("136:clan_honour:#UQ8LP2R9C"),
+      "the sent pick is not announced again",
+    );
+    assert.ok(!c.evidence.message.body.includes("Clan Honour"));
+  }
+});
+
+test("awards: a pending current-season pick is folded into the season's announcement at close", async () => {
+  const part = structuredClone(partClan());
+  const h = harness({
+    part,
+    policy: { ...EXAMPLE_POLICY, announce_awards_enabled: true },
+  });
+  const cookies = await signedIn(h);
+  await api(h, cookies, "GET", `${BASE}/manage`);
+  await api(h, cookies, "POST", `${BASE}/grants`, {
+    award_id: "clan_honour",
+    player_tag: "UQ8LP2R9C",
+    season_id: 136,
+    note: "carried week one",
+  });
+  h.clock.t += 10 * 60_000;
+  Object.assign(part.war_weeks[5], {
+    is_colosseum: true,
+    finished_observed_at: new Date(h.clock.t - 60_000).toISOString(),
+  });
+  await api(h, cookies, "GET", `${BASE}/manage?refresh=1`);
+  const cards = (await h.ledger.cards("#2PQRJ8LV")).filter(
+    (c) => c.type === "awards_announcement" && c.evidence.season_id === 136,
+  );
+  const pending = cards.filter((c) => c.status === "proposed");
+  assert.ok(
+    cards.some((c) => c.status === "withdrawn" && c.evidence.in_progress),
+  );
+  assert.ok(pending.every((c) => !c.evidence.in_progress));
+  const named = pending.flatMap((c) => c.evidence.grant_refs);
+  assert.equal(
+    named.filter((r) => r === "136:clan_honour:#UQ8LP2R9C").length,
+    1,
+    "named once, with the season's other awards",
   );
 });
 

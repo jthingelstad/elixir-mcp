@@ -646,7 +646,7 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: false,
-    why: "When a season closes and its awards are granted, leaders get an action with a Clan Leader Message naming the winners.",
+    why: "When awards are granted, leaders get an action with a Clan Leader Message naming the winners: a season's awards when it closes, and a leaders' pick as soon as it is granted.",
   },
   announce_rules_enabled: {
     group: "messages",

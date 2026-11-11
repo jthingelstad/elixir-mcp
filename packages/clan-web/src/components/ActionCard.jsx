@@ -1062,10 +1062,9 @@ function Reason({ action, zone, grouped, departureCopy }) {
         </div>
       ) : action.type === "awards_announcement" ? (
         <div>
-          Season {ev.season_id} is closed and its awards are granted. Tell the
-          clan in chat or by Leader Message, then mark it done. This message
-          covers the recipients listed below. An award granted later can have
-          its own announcement.
+          {ev.in_progress
+            ? `Season ${ev.season_id} is still being fought, and these awards were granted by hand. Tell the clan in chat or by Leader Message, then mark it done. This message covers the recipients listed below; the season's other awards get their own announcement when it closes.`
+            : `Season ${ev.season_id} is closed and its awards are granted. Tell the clan in chat or by Leader Message, then mark it done. This message covers the recipients listed below. An award granted later can have its own announcement.`}
           {ev.parts > 1
             ? ` Message ${ev.part} of ${ev.parts}; send every part to name all recipients.`
             : ""}
