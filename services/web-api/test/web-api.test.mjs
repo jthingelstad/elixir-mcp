@@ -1453,9 +1453,24 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
     200,
   );
   assert.equal((await digest()).cadence, "daily");
+  // A person's own cadence choice is theirs even on a row an operator
+  // made, so Home's welcome step sees it (Codex on #811).
+  await db.query(
+    "update account_email_pref set via = 'ops' where account_id = $1 and kind = 'tracking_report'",
+    [accountId],
+  );
   assert.equal(
     (await put({ kind: "tracking_report", cadence: "weekly" })).statusCode,
     200,
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select via from account_email_pref where account_id = $1 and kind = 'tracking_report'",
+        [accountId],
+      )
+    ).rows[0].via,
+    "profile",
   );
   assert.deepEqual(
     [(await digest()).enabled, (await digest()).cadence],
