@@ -484,3 +484,28 @@ test("?tab=record opens the Record tab", { timeout: 20000 }, async () => {
     screen.getByRole("tab", { name: /Record/ }).getAttribute("aria-selected"),
   ).toBe("true");
 });
+
+test(
+  "the Record tab: not recorded is an absent half, a failed read is an error with a retry",
+  { timeout: 20000 },
+  async () => {
+    const real = global.fetch;
+    let fail = "query_timeout";
+    global.fetch = vi.fn(async (path, init) => {
+      if (String(path) === "/api/explore") {
+        const { tool } = JSON.parse(init.body);
+        if (tool === "players_summary")
+          return reply({ is_error: true, body: { error: { code: fail } } });
+      }
+      return real(path, init);
+    });
+    window.history.pushState({}, "", "/home/player/QQ8822?tab=record");
+    render(<App />);
+    await screen.findByText("This record could not be read just now");
+    expect(screen.queryByText(/No battles recorded/)).toBeNull();
+    fail = "not_recorded";
+    fireEvent.click(screen.getByRole("button", { name: /Try again/ }));
+    await screen.findByText("No battles recorded in the last 30 days.");
+    expect(screen.getByText("7,600")).toBeTruthy();
+  },
+);
