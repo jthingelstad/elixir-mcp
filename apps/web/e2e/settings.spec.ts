@@ -117,7 +117,7 @@ test.describe("@narrow Settings at phone width", () => {
     await fits(page, "lens as a member");
     await lens.getByRole("button", { name: "Someone with the link" }).click();
     await expect(
-      lens.getByRole("link", { name: "Create your account" }),
+      lens.getByRole("link", { name: "Join Elixir" }),
     ).toBeVisible();
     await fits(page, "lens as someone with the link");
   });

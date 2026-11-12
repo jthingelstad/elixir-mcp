@@ -180,7 +180,7 @@ test(
       screen.getByRole("button", { name: "Someone with the link" }),
     );
     await waitFor(() =>
-      screen.getByRole("link", { name: "Create your account" }),
+      screen.getByRole("link", { name: "Join Elixir" }),
     );
     expect(screen.queryByRole("link", { name: "Birch Lantern" })).toBeNull();
     expect(screen.getAllByText("Birch Lantern").length).toBeGreaterThan(0);
