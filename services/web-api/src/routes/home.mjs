@@ -5,6 +5,7 @@ import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import {
   buildTimeline,
+  readTimelineEvidence,
   shownAt,
   subjectsFor,
 } from "@elixir-mcp/tools/activity/entries";
@@ -13,7 +14,7 @@ import { lastGameWeek } from "@elixir-mcp/record/game-week";
 
 import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
-import { annotateFeed } from "../feed.mjs";
+import { annotateFeed, groupsOf } from "../feed.mjs";
 import { withCheers } from "../cheers.mjs";
 import { firstAnswer } from "../first-answer.mjs";
 import { homeClan, myClans } from "./clans.mjs";
@@ -438,39 +439,170 @@ async function readLatest(db, account) {
   };
 }
 
-/** Home's feed (2026-11-12): the last seven days of everyone you follow,
- *  your clan and you, as GET /api/me/timeline builds them, without the
- *  account's own administration. Claims, recording started or stopped and
- *  the like are about the account, not anyone's play, so the read leaves
- *  them out and the bell tells them (bell.mjs). Settings › Timeline, an
- *  agent's console and elixir_timeline keep them. */
-async function readFeed(db, account) {
+/** How many items a page of Home's feed carries (G1, 2026-11-12). */
+const FEED_PAGE = 30;
+const FEED_DAYS_MS = 7 * 86_400_000;
+/** A built week is kept this long for the reads that name its window: More,
+ *  and an item's evidence. The first page is always built fresh, so a post or
+ *  a cheer shows at once. */
+const FEED_KEEP_MS = 90_000;
+const FEED_KEPT_MAX = 32;
+const builtFeeds = new Map();
+
+/** Home's week as the timeline builds it, without the account's own
+ *  administration. Claims, recording started or stopped and the like are
+ *  about the account, not anyone's play, so the read leaves them out and the
+ *  bell tells them (bell.mjs). Settings › Timeline, an agent's console and
+ *  elixir_timeline keep them. `reuse` takes a build of the same window made
+ *  in the last 90 s by this instance. */
+async function buildFeed(db, account, { fromMs, toMs, reuse }) {
+  const key = `${account.accountId}|${fromMs}|${toMs}`;
+  const kept = builtFeeds.get(key);
+  if (reuse && kept && Date.now() - kept.at < FEED_KEEP_MS) return kept;
   const { rows } = await db.query(
     `select console_timeline_seen_at, timezone from account
       where account_id = $1`,
     [account.accountId],
   );
   const subjects = await subjectsFor(db, account.accountId);
-  const toMs = Date.now();
+  const perf = {};
   const built = await buildTimeline(db, subjects, {
-    fromMs: toMs - 7 * 86_400_000,
+    fromMs,
     toMs,
     timezone: account.timezone ?? rows[0]?.timezone ?? "UTC",
     accountId: account.accountId,
     interactive: true,
     accountLines: false,
+    perf,
   });
-  return {
-    ...built,
+  const feed = {
+    at: Date.now(),
+    built,
+    subjects,
+    perf,
+    seen_to: rows[0]?.console_timeline_seen_at?.toISOString() ?? null,
+  };
+  for (const [k, v] of builtFeeds)
+    if (Date.now() - v.at >= FEED_KEEP_MS) builtFeeds.delete(k);
+  if (builtFeeds.size >= FEED_KEPT_MAX)
+    builtFeeds.delete(builtFeeds.keys().next().value);
+  builtFeeds.set(key, feed);
+  return feed;
+}
+
+/** A page's place: the week it reads and how far in. Opaque to the page. */
+const feedCursor = (fromMs, toMs, offset) =>
+  Buffer.from(JSON.stringify({ f: fromMs, t: toMs, o: offset })).toString(
+    "base64url",
+  );
+function readCursor(raw) {
+  try {
+    const c = JSON.parse(Buffer.from(String(raw), "base64url").toString());
+    const ok =
+      Number.isSafeInteger(c?.f) &&
+      Number.isSafeInteger(c?.t) &&
+      Number.isSafeInteger(c?.o) &&
+      c.o > 0 &&
+      c.o <= 10_000 &&
+      c.f < c.t &&
+      c.t - c.f <= FEED_DAYS_MS &&
+      c.t <= Date.now() + 1000;
+    return ok ? { fromMs: c.f, toMs: c.t, offset: c.o } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Home's feed (2026-11-12): the last seven days of everyone you follow,
+ *  your clan and you, thirty items a page, newest first (G1). The first page
+ *  builds the week; `cursor` reads on in the same week. Each page carries its
+ *  own items' chips, sparklines, battle links and cheers, and the first says
+ *  how many items each chip holds across the whole week. */
+async function readFeed(db, account, cursor) {
+  const toMs = cursor?.toMs ?? Date.now();
+  const fromMs = cursor?.fromMs ?? toMs - FEED_DAYS_MS;
+  const offset = cursor?.offset ?? 0;
+  const started = Date.now();
+  const { built, subjects, perf, seen_to } = await buildFeed(db, account, {
+    fromMs,
+    toMs,
+    reuse: Boolean(cursor),
+  });
+  const built_ms = Date.now() - started;
+  const all = built.timeline ?? [];
+  const page = all.slice(offset, offset + FEED_PAGE);
+  const next = offset + FEED_PAGE < all.length ? offset + FEED_PAGE : null;
+  const out = {
+    window: built.window,
+    seen_to,
     // The chips, sparklines and battle links, and each item's cheers:
     // counts and the reader's own, never who (slice 7, #765).
     timeline: await withCheers(
       db,
-      await annotateFeed(db, built.timeline, subjects),
+      await annotateFeed(db, page, subjects),
       account.accountId,
     ),
-    seen_to: rows[0]?.console_timeline_seen_at?.toISOString() ?? null,
+    total: all.length,
+    next: next === null ? null : feedCursor(fromMs, toMs, next),
+    timeline_more: built.timeline_more ?? 0,
   };
+  if (!cursor) {
+    const counts = { everyone: all.length, you: 0, friends: 0, clan: 0 };
+    const seenMs = seen_to ? Date.parse(seen_to) : null;
+    let fresh = 0;
+    for (const it of all) {
+      for (const g of groupsOf(it, subjects)) counts[g] += 1;
+      if (seenMs !== null && Date.parse(it.observed_at ?? it.at) > seenMs)
+        fresh += 1;
+    }
+    out.counts = { ...counts, new: fresh };
+  }
+  console.info(
+    JSON.stringify({
+      at: "home_panel",
+      panel: cursor ? "feed_more" : "feed",
+      ms: Date.now() - started,
+      built_ms,
+      items: all.length,
+      parts: perf,
+    }),
+  );
+  return out;
+}
+
+/** One item's evidence (View games, View crossing), from the same build the
+ *  feed showed it in: Home's week leaves the account's lines out, so the
+ *  timeline's own evidence read (with them) can lack an item a busy week
+ *  pushed past its cap (Codex on #795). */
+async function readFeedEvidence(db, account, q) {
+  const toMs = Date.parse(q.to ?? "");
+  const fromMs = Date.parse(q.from ?? "");
+  if (
+    !Number.isFinite(fromMs) ||
+    !Number.isFinite(toMs) ||
+    fromMs >= toMs ||
+    toMs - fromMs > FEED_DAYS_MS ||
+    toMs > Date.now() + 1000
+  )
+    return json(400, { error: "invalid_window" });
+  const { built } = await buildFeed(db, account, {
+    fromMs,
+    toMs,
+    reuse: true,
+  });
+  const evidence = await readTimelineEvidence(
+    db,
+    built.timeline.find((it) => it.id === q.evidence_item_id),
+    {
+      offset: q.evidence_offset === undefined ? 0 : Number(q.evidence_offset),
+      limit: q.evidence_limit === undefined ? 25 : Number(q.evidence_limit),
+      expectedVersion: q.expected_evidence_version,
+    },
+  );
+  return json(
+    evidence.error ? (evidence.error === "evidence_changed" ? 409 : 404) : 200,
+    evidence,
+  );
 }
 
 async function rate(db, account) {
@@ -592,23 +724,18 @@ export function homeRoutes({ resolveAccount, exploreRegistry, clan }) {
       return json(200, { week });
     },
 
-    // The feed. Its place ("New since your last visit") is the timeline's,
-    // moved by POST /api/me/timeline/seen as before; its evidence reads are
-    // GET /api/me/timeline's.
+    // The feed, thirty items a page. Its place ("New since your last
+    // visit") is the timeline's, moved by POST /api/me/timeline/seen as
+    // before. `evidence_item_id` reads one item's evidence from the same
+    // week.
     "GET /api/me/home/feed": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
-      const started = Date.now();
-      const feed = await readFeed(db, account);
-      console.info(
-        JSON.stringify({
-          at: "home_panel",
-          panel: "feed",
-          ms: Date.now() - started,
-          items: feed.timeline.length,
-        }),
-      );
-      return json(200, feed);
+      const q = event.queryStringParameters ?? {};
+      if (q.evidence_item_id) return readFeedEvidence(db, account, q);
+      const cursor = q.cursor ? readCursor(q.cursor) : null;
+      if (q.cursor && !cursor) return json(400, { error: "invalid_cursor" });
+      return json(200, await readFeed(db, account, cursor));
     },
 
     "GET /api/me/home/latest": async (db, event) => {

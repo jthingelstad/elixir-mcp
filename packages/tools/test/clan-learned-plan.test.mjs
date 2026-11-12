@@ -32,7 +32,7 @@ const planNodes = async (db, q) => {
   return nodes;
 };
 
-test("clan.learned: the per-battle probe counts what the join counted, without scanning the clan's history", async () => {
+test("clan.learned: the two counts count what the join counted, without scanning the clan's history or probing every window battle", async () => {
   const db = new pg.Client({
     connectionString:
       process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres",
@@ -125,15 +125,31 @@ test("clan.learned: the per-battle probe counts what the join counted, without s
       { recent: 4, late: 1 },
       "w1, w2 once, w6, w9 recent; w3 late; w5 and w8 outside",
     );
-    // The plan: the window's battles off created_at, each probing its own
-    // participants by primary key; never a scan of battle_participant.
+    // The plan: the narrated count off the clan's own range, and the late
+    // count probing participants (primary key) only for a late capture;
+    // never a probe per battle the window learned, and never a scan of
+    // battle_participant.
     const q = clanLearnedQuery({ tag: "#BIG", fromMs, toMs });
     const nodes = await planNodes(db, q);
     const bp = nodes.filter((n) => n["Relation Name"] === "battle_participant");
-    assert.equal(bp.length, 1);
-    assert.match(bp[0]["Node Type"], /Index/);
-    assert.equal(bp[0]["Index Name"], "battle_participant_pkey");
-    assert.ok(bp[0]["Actual Loops"] <= 3010, bp[0]["Actual Loops"]);
+    assert.ok(
+      nodes.some((n) => n["Index Name"] === "battle_participant_clan_time"),
+      "the narrated count reads the clan's range",
+    );
+    const battleReads = nodes.filter((n) => n["Relation Name"] === "battle");
+    assert.ok(
+      battleReads.some((n) => n["Index Name"] === "battle_pkey"),
+      "each of the clan's rows asks its own battle",
+    );
+    assert.ok(
+      !nodes.some((n) => n["Node Type"] === "Hash"),
+      "the window's battles are never hashed",
+    );
+    const probes = bp.filter(
+      (n) => n["Index Name"] === "battle_participant_pkey",
+    );
+    assert.equal(probes.length, 1);
+    assert.ok(probes[0]["Actual Loops"] <= 1, probes[0]["Actual Loops"]);
     assert.ok(
       !nodes.some((n) => n["Node Type"].includes("Seq Scan")),
       "no sequential scan",

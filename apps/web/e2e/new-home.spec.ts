@@ -187,8 +187,9 @@ for (const [label, width] of [
         homeApi({ "GET /api/me/timeline": [500, { error: "boom" }] }),
       );
       await page.goto("/home");
+      await expect(page.getByText("Your feed didn’t load")).toBeVisible();
       await expect(
-        page.getByText("Your feed could not be read just now"),
+        page.getByRole("button", { name: "Try again" }),
       ).toBeVisible();
       await expect(page.getByText("23–14")).toBeVisible();
       await expect(

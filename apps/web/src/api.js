@@ -157,7 +157,17 @@ export const api = {
   home: () => request("GET", "/api/me/home"),
   homeClan: () => request("GET", "/api/me/home/clan"),
   // Home's feed: the timeline without your account's own lines (the bell's).
-  homeFeed: () => request("GET", "/api/me/home/feed"),
+  // Thirty items a page; `cursor` reads on in the same week (G1).
+  homeFeed: (cursor) =>
+    request(
+      "GET",
+      cursor
+        ? `/api/me/home/feed?${new URLSearchParams({ cursor })}`
+        : "/api/me/home/feed",
+    ),
+  // One of Home's items' evidence, from the week the feed showed it in.
+  homeFeedEvidence: (params) =>
+    request("GET", `/api/me/home/feed?${new URLSearchParams(params)}`),
   homeNeeds: () => request("GET", "/api/me/home/needs"),
   // The bell (2026-11-12): reactions to your items, new followers and your
   // feedback's answers; opening it moves your seen marker. Yours alone.

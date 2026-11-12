@@ -19,6 +19,7 @@ import {
   buildPlayerEntry,
   buildClanEntry,
   buildEntries,
+  buildTimeline,
   capTimeline,
   subjectsFor,
 } from "../src/activity/entries.mjs";
@@ -623,4 +624,50 @@ test("the player timeline: a first sight in a clan is no join, a join a roster s
     items: [CLAN],
     notables: 1,
   });
+});
+
+test("a timeline of several players reads them in one batch, and each entry is the one its player reads alone (G1)", async () => {
+  // Every player of the battlelog fixture, someone with no record at all,
+  // the profile's player and the clan.
+  const { rows } = await ctx.db.query(
+    `select distinct player_tag from battle_participant order by player_tag limit 6`,
+  );
+  const subjects = [
+    ...(await subjectsFor(ctx.db, owner)),
+    ...rows.map((r) => ({ kind: "player", tag: r.player_tag })),
+    { kind: "player", tag: "#NOBODY0" },
+  ];
+  const counted = () => {
+    let n = 0;
+    return {
+      db: { query: (...args) => ((n += 1), ctx.db.query(...args)) },
+      n: () => n,
+    };
+  };
+  const toMs = Date.now();
+  for (const basis of ["observed", "occurred"]) {
+    for (const fromMs of [FROM, toMs - 60_000]) {
+      const opts = {
+        fromMs,
+        toMs,
+        timezone: "America/Chicago",
+        accountId: owner,
+        basis,
+      };
+      const one = counted();
+      const batched = await buildTimeline(one.db, subjects, opts);
+      const each = counted();
+      const alone = await buildTimeline(each.db, subjects, {
+        ...opts,
+        batchPlayers: false,
+      });
+      assert.deepEqual(batched, alone, `${basis} from ${fromMs}`);
+      // Two battle reads and two profiles a player, at least, are one each.
+      const players = subjects.filter((x) => x.kind === "player").length;
+      assert.ok(
+        one.n() <= each.n() + 4 - 4 * players,
+        `${one.n()} statements batched, ${each.n()} alone`,
+      );
+    }
+  }
 });

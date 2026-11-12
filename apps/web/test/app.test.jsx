@@ -747,6 +747,127 @@ test(
 );
 
 test(
+  "Home's feed shows thirty and More reads the next page of the same week (G1)",
+  { timeout: 20000 },
+  async () => {
+    const item = (at, text) => ({
+      id: `tl_${text.length.toString(16).padStart(20, "0")}`,
+      at,
+      subject_tag: "#2FRND",
+      subject_name: "Fixture Friend",
+      kind: "personal_record",
+      section: "moments",
+      text,
+      facts: {},
+    });
+    const asked = [];
+    window.history.pushState({}, "", "/home");
+    global.fetch = mockFetch({
+      ...NO_PLAYER_YET,
+      "GET /api/me": [
+        200,
+        { authenticated: true, claims: FOLLOWS_A_FRIEND, recordings: [] },
+      ],
+      "GET /api/me/home/feed": () => {
+        asked.push("first");
+        return [
+          200,
+          {
+            window: {
+              from: "2026-09-06T02:30:00.000Z",
+              to: "2026-09-13T02:30:00.000Z",
+            },
+            seen_to: null,
+            timeline: [item("2026-09-12T10:00:00Z", "On the first page.")],
+            total: 2,
+            next: "c1",
+            counts: { everyone: 2, you: 0, friends: 2, clan: 0, new: 0 },
+            timeline_more: 0,
+          },
+        ];
+      },
+      "GET /api/me/home/feed?cursor=c1": () => {
+        asked.push("c1");
+        return [
+          200,
+          {
+            window: {
+              from: "2026-09-06T02:30:00.000Z",
+              to: "2026-09-13T02:30:00.000Z",
+            },
+            seen_to: null,
+            timeline: [item("2026-09-11T10:00:00Z", "Read by More, older.")],
+            total: 2,
+            next: null,
+            timeline_more: 0,
+          },
+        ];
+      },
+    });
+    render(<App />);
+    await screen.findByText("On the first page.");
+    expect(screen.getByText("1 of 2 shown")).toBeTruthy();
+    expect(screen.queryByText("Read by More, older.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    await screen.findByText("Read by More, older.");
+    expect(asked).toEqual(["first", "c1"]);
+    expect(screen.queryByRole("button", { name: "More" })).toBeNull();
+    const texts = [...document.querySelectorAll(".kit-feed__text")].map(
+      (p) => p.textContent,
+    );
+    expect(texts).toEqual(["On the first page.", "Read by More, older."]);
+  },
+);
+
+test(
+  "a feed that did not load says so and Try again reads it once more, never on its own (G1)",
+  { timeout: 20000 },
+  async () => {
+    let calls = 0;
+    window.history.pushState({}, "", "/home");
+    global.fetch = mockFetch({
+      ...NO_PLAYER_YET,
+      "GET /api/me": [
+        200,
+        { authenticated: true, claims: FOLLOWS_A_FRIEND, recordings: [] },
+      ],
+      "GET /api/me/home/feed": () => {
+        calls += 1;
+        return calls === 1
+          ? [504, { error: "timeout", message: "The read took too long." }]
+          : [
+              200,
+              {
+                seen_to: null,
+                timeline: [
+                  {
+                    id: "tl_00000000000000000001",
+                    at: "2026-09-12T10:00:00Z",
+                    subject_tag: "#2FRND",
+                    subject_name: "Fixture Friend",
+                    kind: "personal_record",
+                    section: "moments",
+                    text: "Read the second time.",
+                    facts: {},
+                  },
+                ],
+                total: 1,
+                next: null,
+                timeline_more: 0,
+              },
+            ];
+      },
+    });
+    render(<App />);
+    await screen.findByText("Your feed didn’t load");
+    expect(calls).toBe(1);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await screen.findByText("Read the second time.");
+    expect(calls).toBe(2);
+  },
+);
+
+test(
   "the timeline keeps the console's own place: it marks what it showed and rules off what is new",
   { timeout: 20000 },
   async () => {

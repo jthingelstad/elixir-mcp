@@ -26,7 +26,9 @@ tabs Today, Timeline and Friends are replaced:
 
 - **Home** (`/home`): one feed of the last seven days, newest first, in days,
   with the chips Everyone, Friends, Clan and You, and State (All, New) as
-  before. A sitting carries its sparkline. Your week, the clan panel (with
+  before. Thirty items a page with More, the chips counting the whole week; a
+  read that fails says so with Try again [G1, Jamie's approval 2026-11-12;
+  engineering: the page size, and no automatic retry]. A sitting carries its sparkline. Your week, the clan panel (with
   this week's race), People to follow and Setup details sit beside it, below
   it on a phone. People to follow names up to five players in turn from your
   battles of the last week, your clan and the players your follows follow,
