@@ -135,7 +135,9 @@ Skills and tests cite these by number; keep the numbering.
 - Private Clan state never reaches MCP or public tools. The two
   exceptions, `clans_context` (an agent's) and `clans_my_view` (a person's
   own view), read through `@elixir-mcp/auth/clan-context` (pinned by
-  `services/web-api/test/clan-boundary.test.mjs`).
+  `services/web-api/test/clan-boundary.test.mjs`). Clan's own web API
+  reads the clan directory through the same seam (`readClanDirectory`),
+  pinned there too.
 - Canonical game facts enter only through collectors.
 - Services share through packages, never each other
   (`packages/record/test/boundary.test.mjs`).

@@ -102,6 +102,9 @@ of recorded weeks. Completed decisions and saved award grants stay as
 recorded; awards have a separate setup. A stale browser version is refused
 instead of overwriting a newer policy, and unsaved edits survive a refetch.
 No policy save changes game settings, kicks a member or sends a message.
+A saved policy lists the clan in the
+[clan directory](/docs/clan-directory#what-it-lists), with the policy's
+public part.
 
 Saving does not restart review streaks or the activity clock. Recorded review
 boundaries are replayed under the new values; the current Trophy Road figure

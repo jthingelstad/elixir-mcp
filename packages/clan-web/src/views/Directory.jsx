@@ -74,7 +74,7 @@ export function Directory({ state, onRetry }) {
             type="search"
             value={f.q}
             onChange={(e) => set("q")(e.target.value)}
-            placeholder="Name, tag or words from the description"
+            placeholder="Name, tag or description"
             autoComplete="off"
             spellCheck="false"
           />
