@@ -39,7 +39,9 @@ test.describe("Search from a static page", () => {
     await mockApi(page, signedIn());
     await page.goto("/docs");
     await page.locator("a.kit-bell").click();
-    await expect(page.getByRole("dialog", { name: "Needs you" })).toBeVisible();
+    await expect(
+      page.getByRole("dialog", { name: "Notifications" }),
+    ).toBeVisible();
     await expect(page).toHaveURL(/\/home$/);
   });
 

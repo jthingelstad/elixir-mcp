@@ -25,11 +25,13 @@ test("front door focuses on recording and has no global statistics request", asy
   });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { level: 1, name: /on the record/ }),
+    page.getByRole("heading", {
+      level: 1,
+      name: "Keep up with your friends in Clash Royale",
+    }),
   ).toBeVisible();
   await expect(page.locator(".home-tile__product")).toHaveText([
     "Your record",
-    "Ladder",
     "Clan",
     "Friends",
     "Emails",
@@ -52,7 +54,6 @@ test("@narrow recorder home fits a phone and tablet", async ({ page }) => {
     await page.goto("/");
     for (const name of [
       "Get started ›",
-      "Open Ladder ›",
       "Bring your clan ›",
       "Follow a friend ›",
       "See every email ›",

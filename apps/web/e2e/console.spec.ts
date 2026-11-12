@@ -177,7 +177,7 @@ test.describe("signed in", () => {
     await expect(menu).toContainText("jamie@example.com");
     await expect(
       menu.getByRole("link", { name: /King Thing/ }),
-    ).toHaveAttribute("href", /\/ladder/);
+    ).toHaveAttribute("href", /\/home\/you\/stats/);
     await accessible(page, "account menu");
     await menu.getByRole("link", { name: /Settings/ }).click();
     await expect(page).toHaveURL(/\/settings\/profile$/);
@@ -722,11 +722,12 @@ test.describe("the static site's bar", () => {
     await expect(bar).toBeVisible();
     await expect(bar.getByRole("link", { name: "Sign in" })).toBeVisible();
     await expect(bar.getByRole("link", { name: "Docs" })).toBeVisible();
+    // Signed out the bar is Docs, Sign in and Create account (2026-11-12);
+    // the front page is the way in, so nothing on the bar is lit.
     await expect(
-      bar
-        .getByRole("navigation", { name: "Main" })
-        .getByRole("link", { name: "Home" }),
-    ).toHaveAttribute("aria-current", "page");
+      bar.getByRole("link", { name: "Create account" }),
+    ).toBeVisible();
+    await expect(bar.locator('[aria-current="page"]:visible')).toHaveCount(0);
     await accessible(page, "front page");
   });
 
