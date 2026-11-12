@@ -88,7 +88,9 @@ function Cadence({ value, disabled, onPick }) {
           role="radio"
           aria-checked={value === v ? "true" : "false"}
           disabled={disabled}
-          onClick={() => value !== v && onPick(v)}
+          // The selected one saves too: Weekly is the default, and
+          // clicking it is how a person chooses it (Codex on #811).
+          onClick={() => onPick(v)}
         >
           {label}
         </button>

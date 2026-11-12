@@ -181,11 +181,14 @@ async function setPref(
 /** The digest's cadence (0242): set on its pref row, a row made on (the
  *  default) when the person has none, so choosing daily never turns the
  *  digest on or off by itself. */
+/** The person's own cadence choice. It records `via = 'profile'` even on a
+ *  row an operator made, so Home's welcome step (first-answer.mjs) knows the
+ *  person chose (Codex on #811). */
 async function setCadence(db, accountId, cadence) {
   await db.query(
     `insert into account_email_pref (account_id, kind, enabled, via, changed_at, cadence)
      values ($1, 'tracking_report', true, 'profile', now(), $2)
-     on conflict (account_id, kind) do update set cadence = excluded.cadence, changed_at = now()`,
+     on conflict (account_id, kind) do update set cadence = excluded.cadence, via = excluded.via, changed_at = now()`,
     [accountId, cadence],
   );
   await db

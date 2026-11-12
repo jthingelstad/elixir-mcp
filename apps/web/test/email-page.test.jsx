@@ -216,3 +216,18 @@ test("the digest's how-often shows while it is on, and a choice is its own write
   await waitFor(() => expect(puts).toHaveLength(1));
   expect(puts[0]).toEqual({ kind: "tracking_report", cadence: "daily" });
 });
+
+test("clicking the digest's selected cadence saves it, so the default can be chosen", async () => {
+  kinds = KINDS.map((k) =>
+    k.kind === "tracking_report" ? { ...k, enabled: true } : k,
+  );
+  await open();
+  const group = screen.getByRole("radiogroup", {
+    name: "How often the digest comes",
+  });
+  const weekly = within(group).getByRole("radio", { name: "Weekly" });
+  expect(weekly.getAttribute("aria-checked")).toBe("true");
+  fireEvent.click(weekly);
+  await waitFor(() => expect(puts).toHaveLength(1));
+  expect(puts[0]).toEqual({ kind: "tracking_report", cadence: "weekly" });
+});
