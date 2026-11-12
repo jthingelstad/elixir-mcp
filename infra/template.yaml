@@ -2164,6 +2164,25 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt DiscordSittingsRule.Arn
+  # Home's stored weeks (home_feed, 0245; #649): every five minutes the
+  # jobs function wakes the timeline-sync build of each account that read
+  # Home in the last three days and whose week is past fifteen minutes.
+  HomeFeedsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-home-feeds
+      ScheduleExpression: rate(5 minutes)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: home-feeds
+          Input: '{"home_feeds": true}'
+  HomeFeedsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt HomeFeedsRule.Arn
   EmailMilestoneRule:
     Type: AWS::Events::Rule
     Properties:

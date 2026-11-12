@@ -217,6 +217,13 @@ before(async () => {
   await db.query(`insert into bell_seen (account_id) values ($1)`, [
     ids.person,
   ]);
+  // Their stored Home week (0245, #649).
+  await db.query(
+    `insert into home_feed (account_id, window_from, window_to, build_ms,
+                            timezone, subjects_key, items)
+     values ($1, now() - interval '7 days', now(), 1, 'UTC', 'k', '[]')`,
+    [ids.person],
+  );
   // A linked Discord and a link round trip still open (0233, #531).
   await db.query(
     `insert into account_discord (account_id, discord_user_id, username)
@@ -338,6 +345,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     timeline_cheer: 1,
     timeline_feed_link: 1,
     bell_seen: 1,
+    home_feed: 1,
     timeline_reader: 0,
     timeline_discord_told: 2,
     timeline_discord: 1,
@@ -483,6 +491,7 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "timeline_cheer",
     "timeline_feed_link",
     "bell_seen",
+    "home_feed",
     "credential_refusal",
     "mcp_call_audit",
     "timeline_discord",

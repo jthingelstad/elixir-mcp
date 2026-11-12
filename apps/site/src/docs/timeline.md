@@ -26,6 +26,8 @@ keeps for each player and clan. Nothing is queued, fanned out or pruned. An
 agent that comes back after a month gets a month's timeline (capped at 30 days,
 and at the newest 150 items). Home's feed shows the last seven days, with
 the same cap on items, thirty at a time, and reading it moves no pointer.
+Home's week is the one exception to reading on demand: it is built ahead and
+kept, so Home opens at once (below).
 
 ## Home's feed
 
@@ -35,6 +37,14 @@ friends), **Clan** (the clans you follow), or **You** (your own players),
 each with its count. A player you only watch is under Everyone. **All** or
 **New** chooses between everything and what came since your last visit. The
 chips only choose what the page draws.
+
+Elixir builds your week ahead and keeps it, so Home opens at once instead of
+reading seven days of everyone you follow while you wait. A kept week is
+rebuilt every quarter hour while you use Home, so the newest battles can take
+up to about twenty minutes to appear. A highlight, a cheer and your **New**
+marker are always read live, and following or unfollowing someone, changing a
+nickname or your time zone builds the week again on your next visit. After
+three days away the first visit builds it while you wait.
 
 The feed shows the newest thirty items, and **More** reads the next thirty of
 the same week, so an item never appears twice or goes missing between pages.

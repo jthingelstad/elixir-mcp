@@ -349,3 +349,46 @@ test("the relay's receipts are read into the quality ledger and their object del
     console.error = error;
   }
 });
+
+test("a Home week's wake builds it and deletes its object; a failed build is logged and dropped, never retried", async () => {
+  const built = [];
+  const good = `timeline-sync/home.${ACCOUNT}.1.json`;
+  const failing = `timeline-sync/home.${ACCOUNT}.2.json`;
+  const bad = "timeline-sync/home.bad.json";
+  const objects = new Map([
+    [good, JSON.stringify({ v: 1, home_feed: ACCOUNT })],
+    [failing, JSON.stringify({ v: 1, home_feed: ACCOUNT })],
+    [bad, JSON.stringify({ v: 1, home_feed: "x" })],
+  ]);
+  const deleted = [];
+  const handler = makeHandler({
+    connect: async () => ({ end: async () => {} }),
+    sync: async () => assert.fail("not an account sync"),
+    homeFeed: async (_db, id) => {
+      built.push(id);
+      if (built.length === 2) throw new Error("statement timeout");
+      return { items: 3 };
+    },
+    readObject: async (obj) => objects.get(obj.key) ?? null,
+    deleteObject: async (obj) => {
+      deleted.push(obj.key);
+      objects.delete(obj.key);
+    },
+  });
+  const lines = [];
+  const [log, error] = [console.log, console.error];
+  console.log = (...a) => lines.push(a[0]);
+  console.error = (...a) => lines.push(a[0]);
+  try {
+    const out = await handler({
+      Records: [record("a", good), record("b", failing), record("c", bad)],
+    });
+    assert.deepEqual(out, { batchItemFailures: [{ itemIdentifier: "c" }] });
+  } finally {
+    [console.log, console.error] = [log, error];
+  }
+  assert.deepEqual(built, [ACCOUNT, ACCOUNT]);
+  assert.deepEqual(deleted, [good, failing]);
+  assert.ok(lines.includes("home_feed_built"));
+  assert.ok(lines.includes("home_feed_failed"));
+});
