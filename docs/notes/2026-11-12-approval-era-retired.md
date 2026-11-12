@@ -23,6 +23,9 @@ goes"). No MCP contract change, no migration, no What's new entry.
 - **Card of the Week, Top 100 and the issue queue's manual entry points**
   in the jobs Lambda (`top100_*`, `issue_accept`, `card_of_week_*`) are
   no recognized op.
+- **`GET /api/me/home/latest`**, Home's old Latest panel. No caller since
+  the one-feed Home (3566a824); the stored week (`home_feed`) is what Home
+  reads. It answers 404.
 - **Leaderboard path builders** in `CR_PATH_BY_ENDPOINT`. `crPathForJob`
   still refuses the retired endpoints by name
   (`RETIRED_RECORDING_ENDPOINTS`) for any old lease or archive.

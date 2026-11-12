@@ -103,7 +103,6 @@ test("every Home route wants a signed-in person", async () => {
     "/api/me/home/needs",
     "/api/me/home/clan",
     "/api/me/home/week",
-    "/api/me/home/latest",
     "/api/me/home/friends",
   ])
     assert.equal((await call(handler, null, "GET", path)).statusCode, 401);
@@ -415,8 +414,6 @@ test("a failed clan panel says so and the rest of Home still renders", async () 
   const week = data(await call(clanFails, id, "GET", "/api/me/home/week")).week;
   assert.equal(week.ok, true);
   assert.equal(week.record.battles, 0);
-  const latest = await call(clanFails, id, "GET", "/api/me/home/latest");
-  assert.equal(data(latest).latest.ok, true);
 
   // The same person through Clan's real door: a leader's card.
   const whole = await call(handler, id, "GET", "/api/me/home/clan");
@@ -466,7 +463,7 @@ test("Needs you asks nothing of a person whose clan is untracked or absent", asy
   assert.equal(clan.slots.limit > 0, true, "the Track button's slots stay");
 });
 
-test("Latest is the newest five of the account's full timeline: items, words and order", async () => {
+test("the account's week as the timeline builds it: every kind, a repeat kept at its first instant", async () => {
   const id = await person("home-latest-same");
   const { db } = scratch;
   const H = 3_600_000;
@@ -532,11 +529,6 @@ test("Latest is the newest five of the account's full timeline: items, words and
 
   const subjects = await subjectsFor(db, id);
   assert.equal(subjects.length, 4);
-  const shape = (it) => ({
-    id: it.id ?? null,
-    at: shownAt(it) || null,
-    text: String(it.text ?? ""),
-  });
   const read = (fromMs, toMs) =>
     buildTimeline(db, subjects, {
       fromMs,
@@ -546,12 +538,6 @@ test("Latest is the newest five of the account's full timeline: items, words and
       interactive: true,
     });
   const full = await read(now - 7 * 86_400_000, now);
-  const latest = data(
-    await call(handler, id, "GET", "/api/me/home/latest"),
-  ).latest;
-  assert.equal(latest.ok, true);
-  assert.ok(full.timeline.length > 5, "the panel cuts this timeline");
-  assert.deepEqual(latest.items, full.timeline.slice(0, 5).map(shape));
   const kinds = full.timeline.map((it) => it.kind);
   assert.ok(kinds.some((k) => k.startsWith("account_")));
   assert.ok(kinds.includes("personal_record"));
@@ -562,7 +548,7 @@ test("Latest is the newest five of the account's full timeline: items, words and
     "the repeat collapsed",
   );
 
-  // Why Latest never reads a shorter window first: there the repeat is new,
+  // Why a week is never read from a shorter window first: there the repeat is new,
   // and it would lead on a moment the full timeline tells five days back.
   const shorter = await read(now - 86_400_000, now);
   const moved = (items) => items.find((it) => it.kind === "arena_changed");
@@ -591,11 +577,10 @@ test("a visit spends one charge on the shared bucket, however many panels it rea
     "/api/me/home/needs",
     "/api/me/home/clan",
     "/api/me/home/week",
-    "/api/me/home/latest",
   ])
     assert.equal((await call(handler, id, "GET", path)).statusCode, 200, path);
   assert.equal(await charged(`mcp#${id}`), 1);
-  assert.equal(await charged(`home#${id}`), 4);
+  assert.equal(await charged(`home#${id}`), 3);
 });
 
 test("the head names this account's nickname and no one else's", async () => {
