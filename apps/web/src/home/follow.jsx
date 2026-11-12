@@ -82,8 +82,11 @@ const plausible = (raw) => {
 function useSettled(raw, ms = 350) {
   const [settled, setSettled] = useState(() => plausible(raw));
   useEffect(() => {
-    const t = setTimeout(() => setSettled(plausible(raw)), ms);
-    return () => clearTimeout(t);
+    // A debounce, cleared on every keystroke and on unmount (the search
+    // sheet's own pattern).
+    const settle = () => setSettled(plausible(raw));
+    const timer = setTimeout(settle, ms);
+    return () => clearTimeout(timer);
   }, [raw, ms]);
   return settled;
 }

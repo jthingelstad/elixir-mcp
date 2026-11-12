@@ -504,25 +504,27 @@ export function accountRoutes({
     "GET /api/me/follow-cost": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
-      let tag;
-      try {
-        tag = normalizeTag(
-          String(event.queryStringParameters?.player_tag ?? ""),
-        );
-      } catch (err) {
-        if (err instanceof InvalidTagError)
-          return json(400, { error: "invalid_tag" });
-        throw err;
+      // No tag asks only for the count: how many slots are in use.
+      const raw = event.queryStringParameters?.player_tag;
+      let tag = null;
+      if (raw != null && raw !== "") {
+        try {
+          tag = normalizeTag(String(raw));
+        } catch (err) {
+          if (err instanceof InvalidTagError)
+            return json(400, { error: "invalid_tag" });
+          throw err;
+        }
       }
       const owner = await poolOwner(db, account.accountId);
       const limits = poolLimits(owner);
-      const [cost] = await playerCosts(db, owner.account_id, [tag]);
+      const [cost] = tag ? await playerCosts(db, owner.account_id, [tag]) : [];
       const used = await pooledUsage(db, owner.account_id);
       return json(200, {
         player_tag: tag,
-        following: cost.following,
-        free: cost.free,
-        reason: cost.reason,
+        following: cost?.following ?? null,
+        free: cost?.free ?? null,
+        reason: cost?.reason ?? null,
         used: used.players_used,
         limit: limits.player_slots === Infinity ? null : limits.player_slots,
       });
