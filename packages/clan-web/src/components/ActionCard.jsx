@@ -29,7 +29,7 @@ import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { untilWritten } from "../lib/pending.js";
 import { trackEvent } from "../analytics.js";
-import { clanPath, memberPath } from "../lib/base.js";
+import { clanPath, playerInClanPath } from "../lib/base.js";
 import { MemberSheet } from "./MemberSheet.jsx";
 import { RoleChip } from "./RoleChip.jsx";
 
@@ -1430,7 +1430,7 @@ function BoundActionCard({
         ) : null}
         {action.player_tag ? (
           <div className="flex flex-wrap items-center gap-2 text-[13px]">
-            <Link to={memberPath(clan.clan_tag, action.player_tag)}>
+            <Link to={playerInClanPath(action.player_tag)}>
               {action.player_name
                 ? `Open ${action.player_name}'s page`
                 : "Open their page"}

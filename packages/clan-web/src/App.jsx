@@ -25,7 +25,14 @@ import { leads, pageOf, policyActive } from "./lib/tabs.js";
 import { landingPath } from "./lib/landing.js";
 import { useSelectClan } from "./lib/select.js";
 import { HostContext } from "./lib/host.js";
-import { CLAN, appPath, clanPath, isClanSegment, tagOf } from "./lib/base.js";
+import {
+  CLAN,
+  appPath,
+  clanPath,
+  isClanSegment,
+  playerInClanPath,
+  tagOf,
+} from "./lib/base.js";
 import { ClanHead } from "./components/ClanHead.jsx";
 import { RoleConfirming } from "./components/RoleConfirming.jsx";
 import {
@@ -39,7 +46,6 @@ import { Standing } from "./views/Standing.jsx";
 import { Landing } from "./views/Landing.jsx";
 import { Refused } from "./views/Refused.jsx";
 import { Away } from "./views/Away.jsx";
-import { MemberActivity } from "./views/MemberActivity.jsx";
 import { Awards } from "./views/Awards.jsx";
 import { ActionDetail } from "./views/Actions.jsx";
 import { Feed } from "./views/Feed.jsx";
@@ -360,19 +366,14 @@ export function ClanPage() {
   if (tab === "map") return page(<MapWhenInBrowser clan={clan} me={me} />);
   if (tab === "away")
     return page(<Away key={clan.clan_tag} me={me} clan={clan} />);
+  // Another member's page folded into their player page's Clan tab
+  // (Jamie, 2026-11-12: one page); your own place here stays.
   if (tab && tagOf(tab)) {
     const own = tagOf(tab) === clan.acting_as;
     return own ? (
       <YouHere key={clan.clan_tag} clan={clan} navigate={navigate} />
     ) : (
-      <MemberActivity
-        key={`${clan.clan_tag}-${tab}`}
-        clan={clan}
-        me={me}
-        playerTag={tagOf(tab)}
-        rosterSearch={find}
-        navigate={navigate}
-      />
+      <Replace to={playerInClanPath(tagOf(tab))} navigate={navigate} />
     );
   }
   return (

@@ -24,6 +24,28 @@ const SECOND = {
   your_tags: ["#VLQV8C8RP"],
 };
 
+/** Ben's player page, where his member page in Example Clan folded
+ *  (2026-11-12): its Clan tab draws Clan's record of him. */
+const BEN_PAGE = {
+  player: {
+    tag: "#UQ8LP2R9C",
+    name: "Ben",
+    clan_tag: "#2PQRJ8LV",
+    clan_name: "Example Clan",
+    trophies: 7600,
+    recorded: true,
+  },
+  you: { own: false, following: false, relationship: null, clanmate: null },
+  badges: { verified_player: false, discord: false },
+  follows: null,
+  followers: null,
+  window_days: 30,
+  timeline: [],
+  timeline_more: 0,
+  moments: [],
+  highlights: [],
+};
+
 /** A signed-in leader of Example Clan who also holds a player in Elixir
  *  Kings, with nothing selected yet - the chooser's case. */
 export const ME = {
@@ -248,6 +270,7 @@ export function signedIn(
       return [200, me];
     },
     "GET /api/clan/roster": [200, ROSTER],
+    "GET /api/player": [200, BEN_PAGE],
     "GET /api/clan/clans/2PQRJ8LV/standing": [
       200,
       {

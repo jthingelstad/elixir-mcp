@@ -55,7 +55,14 @@ export const clanPath = (tag) => `${CLAN}/${String(tag).replace(/^#/, "")}`;
 export const playerPath = (playerTag) =>
   `/home/player/${String(playerTag).replace(/^#/, "")}`;
 
-/** A member's page in this clan: their record here, and for the leaders
- *  their notes and hold. Review and an Action's "Open their page" open it. */
+/** Another member's record in a clan, and for the leaders their clock,
+ *  notes and hold: the Clan tab of their player page since 2026-11-12, when
+ *  the member page folded into it. Review and an Action's "Open their page"
+ *  open it. */
+export const playerInClanPath = (playerTag) =>
+  `${playerPath(playerTag)}?tab=clan`;
+
+/** Your own page in a clan (YouHere). Another member's old address here
+ *  redirects to `playerInClanPath`. */
 export const memberPath = (clanTag, playerTag) =>
   `${clanPath(clanTag)}/members/${String(playerTag).replace(/^#/, "").toLowerCase()}`;
