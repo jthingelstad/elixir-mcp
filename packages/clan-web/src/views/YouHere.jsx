@@ -199,8 +199,8 @@ export function YouHere({ clan, navigate }) {
         <Panel
           as="a"
           className="flex items-center gap-3 px-4 py-3.5 mb-[22px] text-ink no-underline hover:bg-panel-raised"
-          href={`${base}/today`}
-          onClick={go(`${base}/today`)}
+          href={`${base}/feed`}
+          onClick={go(`${base}/feed`)}
         >
           <span className="flex items-center justify-center w-[34px] h-[34px] rounded-control bg-info-fill text-accent-bright">
             <Icon name="inbox" size={17} />

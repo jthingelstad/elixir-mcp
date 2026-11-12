@@ -18,7 +18,7 @@ function Walk({ clan, who }) {
       clan={clan}
       who={who}
       season={season}
-      navigate={(to) => setSeason(to.split("/awards/")[1])}
+      navigate={(to) => setSeason(to.split("/standings/")[1])}
     />
   );
 }

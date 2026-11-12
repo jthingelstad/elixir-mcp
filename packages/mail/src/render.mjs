@@ -183,7 +183,7 @@ function make(
   const readsClanFacts = (clanTag) => verifiedClans.includes(clanTag);
   const playerDoor = (tag) => playerUrl(tag);
   const clanDoor = (tag) =>
-    isMember(tag) ? clanPageUrl(tag, "season") : clanUrl(tag);
+    isMember(tag) ? clanPageUrl(tag, "war") : clanUrl(tag);
   const rosterDoor = (tag) =>
     isMember(tag) ? clanPageUrl(tag, "members") : clanUrl(tag);
   // The member pages' one clock (packages/ui/time), so a mail and the

@@ -227,7 +227,7 @@ export function ActionDetail({ clan, who, number, navigate }) {
     window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
-  const list = `${clanPath(clan.clan_tag)}/today`;
+  const list = `${clanPath(clan.clan_tag)}/feed`;
   const a = state.data?.action;
   const head = (
     <>
@@ -240,7 +240,7 @@ export function ActionDetail({ clan, who, number, navigate }) {
           navigate(list);
         }}
       >
-        ‹ Today
+        ‹ Feed
       </a>
       <PageHead
         title={

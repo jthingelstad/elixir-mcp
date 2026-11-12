@@ -147,7 +147,7 @@ describe("a closed week", () => {
     );
     expect(
       screen.getByRole("link", { name: "Current season" }).getAttribute("href"),
-    ).toBe("/clan/2PQRJ8LV/season");
+    ).toBe("/clan/2PQRJ8LV/war");
   });
 });
 
@@ -173,7 +173,7 @@ describe("a whole season", () => {
     );
     expect(
       screen.getByRole("link", { name: "Current season" }).getAttribute("href"),
-    ).toBe("/clan/2PQRJ8LV/season");
+    ).toBe("/clan/2PQRJ8LV/war");
   });
 });
 
@@ -190,7 +190,7 @@ describe("the period picker", () => {
     expect(labels.some((l) => /, so far$/.test(l))).toBe(true);
     expect(labels.some((l) => /^All of Season 136/.test(l))).toBe(true);
     fireEvent.change(box, { target: { value: "136" } });
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/season/136");
+    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/war/136");
   });
 });
 
@@ -210,15 +210,15 @@ describe("refusals", () => {
   });
 });
 
-test("its addresses sit on the Season tab and collapse in analytics", () => {
-  expect(tabOf("/clan/2PQRJ8LV/season/136")).toBe("season");
-  expect(tabOf("/clan/2PQRJ8LV/season/2026-w36")).toBe("season");
-  expect(parseClanPath("/clan/2PQRJ8LV/season/136").section).toBe("season");
+test("its addresses sit on the War tab and collapse in analytics", () => {
+  expect(tabOf("/clan/2PQRJ8LV/war/136")).toBe("war");
+  expect(tabOf("/clan/2PQRJ8LV/war/2026-w36")).toBe("war");
+  expect(parseClanPath("/clan/2PQRJ8LV/war/136").section).toBe("war");
   expect(
-    analyticsLocation("/clan/2PQRJ8LV/season/136", "https://elixir.test").path,
-  ).toBe("/clan/season");
+    analyticsLocation("/clan/2PQRJ8LV/war/136", "https://elixir.test").path,
+  ).toBe("/clan/war");
   expect(
-    analyticsLocation("/clan/2PQRJ8LV/season/2026-w36", "https://elixir.test")
+    analyticsLocation("/clan/2PQRJ8LV/war/2026-w36", "https://elixir.test")
       .path,
-  ).toBe("/clan/season");
+  ).toBe("/clan/war");
 });

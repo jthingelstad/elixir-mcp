@@ -118,7 +118,7 @@ export function Awards({ clan, who, season: seasonParam, navigate }) {
           <select
             className="input w-auto"
             value={selected ?? ""}
-            onChange={(e) => navigate?.(`${base}/awards/${e.target.value}`)}
+            onChange={(e) => navigate?.(`${base}/standings/${e.target.value}`)}
           >
             {seasonIds.map((id) => {
               const known = d.seasons.find((s) => s.season_id === id);

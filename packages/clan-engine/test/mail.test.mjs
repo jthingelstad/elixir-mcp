@@ -56,7 +56,7 @@ test("only people who can act on an action are sent it", () => {
   assert.equal(to["#E"].subject, "Welcome a newcomer: Newbie (Example Clan)");
   assert.equal(to["#Q"].lines[0].title, "Going to be away?");
   assert.equal(to["#Q"].lines[0].new, true);
-  assert.equal(to["#L"].link, "https://elixir.test/clan/2PQRJ8LV/today");
+  assert.equal(to["#L"].link, "https://elixir.test/clan/2PQRJ8LV/feed");
 });
 
 test("a person is emailed only when something became theirs since their last email; the email lists all of it", () => {
@@ -129,7 +129,7 @@ test("a line links by the action's number and never says it; one action waiting 
     [37, "Remove from the clan: Quiet"],
     [38, "Welcome a newcomer: Newbie"],
   ]);
-  assert.equal(to["#L"].link, "https://elixir.test/clan/2PQRJ8LV/today");
+  assert.equal(to["#L"].link, "https://elixir.test/clan/2PQRJ8LV/feed");
   assert.equal(to["#E"].subject, "Welcome a newcomer: Newbie (Example Clan)");
   assert.equal(to["#E"].link, "https://elixir.test/clan/2PQRJ8LV/actions/38");
 });

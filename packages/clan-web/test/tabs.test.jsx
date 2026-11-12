@@ -23,10 +23,10 @@ const me = (role, extra = {}) => ({
 });
 const keys = (m) => clanTabs(m).map((t) => t.key);
 
-describe("Clan's five tabs", () => {
-  const FOUR = ["today", "members", "season", "awards"];
+describe("Clan as one view: six tabs", () => {
+  const FOUR = ["feed", "standings", "war", "members", "policy"];
 
-  test("every member has four, a leader and a co-leader have Run as well", () => {
+  test("every member has five, a leader and a co-leader have Run as well", () => {
     expect(keys(me("member"))).toEqual(FOUR);
     expect(keys(me("elder"))).toEqual(FOUR);
     expect(keys(me("leader"))).toEqual([...FOUR, "run"]);
@@ -49,7 +49,7 @@ describe("Clan's five tabs", () => {
     expect(keys(me("member", { policy: { set: false } }))).toEqual(FOUR);
   });
 
-  test("Today counts what is waiting for you, and only with an active policy", () => {
+  test("Feed counts what is waiting for you, and only with an active policy", () => {
     const today = (m) => clanTabs(m)[0];
     expect(today(me("leader", { open_actions: 3 }))).toMatchObject({
       count: 3,
@@ -72,10 +72,11 @@ describe("Clan's five tabs", () => {
 
   test("a clan's own addresses are all under its tag", () => {
     expect(clanTabs(me("leader")).map((t) => t.href)).toEqual([
-      `${BASE}/today`,
+      `${BASE}/feed`,
+      `${BASE}/standings`,
+      `${BASE}/war`,
       `${BASE}/members`,
-      `${BASE}/season`,
-      `${BASE}/awards`,
+      `${BASE}/policy`,
       `${BASE}/run`,
     ]);
   });
@@ -113,15 +114,16 @@ describe("the pages inside Members", () => {
 describe("which tab and page a path is", () => {
   test("every page is on its tab", () => {
     for (const [path, tab] of [
-      [`${BASE}/today`, "today"],
-      [`${BASE}/today/decided`, "today"],
-      [`${BASE}/actions/37`, "today"],
+      [`${BASE}/feed`, "feed"],
+      [`${BASE}/actions/37`, "feed"],
       [`${BASE}/members`, "members"],
       [`${BASE}/members/standing`, "members"],
       [`${BASE}/members/uq8lp2r9c`, "members"],
-      [`${BASE}/season/136-2`, "season"],
-      [`${BASE}/awards/135`, "awards"],
+      [`${BASE}/war/136-2`, "war"],
+      [`${BASE}/standings/135`, "standings"],
+      [`${BASE}/policy`, "policy"],
       [`${BASE}/run/about`, "run"],
+      [`${BASE}/run/decided`, "run"],
     ])
       expect(tabOf(path)).toBe(tab);
     expect(tabOf("/clan/clans")).toBeNull();
@@ -130,13 +132,14 @@ describe("which tab and page a path is", () => {
 
   test("the page never carries a tag or a number", () => {
     for (const [path, page] of [
-      [`${BASE}/today`, "today"],
+      [`${BASE}/feed`, "feed"],
       [`${BASE}/actions/37`, "action"],
       [`${BASE}/members`, "roster"],
       [`${BASE}/members/standing`, "standing"],
       [`${BASE}/members/uq8lp2r9c`, "member"],
-      [`${BASE}/season/136-2`, "season"],
-      [`${BASE}/awards/135`, "awards"],
+      [`${BASE}/war/136-2`, "war"],
+      [`${BASE}/standings/135`, "standings"],
+      [`${BASE}/policy`, "policy"],
       [`${BASE}/run`, "run"],
       [`${BASE}/run/about`, "run/about"],
       ["/clan/clans", "clans"],
@@ -156,34 +159,45 @@ describe("which tab and page a path is", () => {
       tab: "model-voice",
     });
     expect(parseClanPath(`${BASE}/discord`)).toBeNull();
+    // The five tabs' addresses are redirected before the page reads them.
+    expect(parseClanPath(`${BASE}/today`)).toBeNull();
+    expect(parseClanPath(`${BASE}/season`)).toBeNull();
     expect(parseClanPath("/clan/clans")).toBeNull();
   });
 });
 
 describe("every Clan address that moved", () => {
   for (const [from, to] of [
-    ["", "today"],
-    ["/", "today"],
-    ["/actions", "today"],
+    ["", "feed"],
+    ["/", "feed"],
+    ["/actions", "feed"],
+    ["/today", "feed"],
+    ["/today/decided", "run/decided"],
+    ["/today/anything", "feed"],
+    ["/season", "war"],
+    ["/season/2026-W45", "war/2026-W45"],
+    ["/season/136", "war/136"],
+    ["/awards", "standings"],
+    ["/awards/135", "standings/135"],
     ["/roster", "members"],
     ["/me", "members/me"],
-    ["/week", "season"],
-    ["/week/136-2", "season/136-2"],
+    ["/week", "war"],
+    ["/week/136-2", "war/136-2"],
     ["/standing", "members/standing"],
-    ["/trophies", "awards"],
+    ["/trophies", "standings"],
     ["/recruit", "members/recruit"],
     ["/map", "members/map"],
     ["/discord", "run/discord"],
-    ["/manage", "today"],
-    ["/manage/inbox", "today"],
+    ["/manage", "feed"],
+    ["/manage/inbox", "feed"],
     ["/manage/board", "members/review"],
-    ["/manage/history", "today/decided"],
+    ["/manage/history", "run/decided"],
     ["/manage/policy", "run/about"],
     ["/manage/settings", "run/settings"],
     ["/manage/model", "run/model-voice"],
     ["/manage/scout", "members/scout"],
-    ["/manage/awards", "awards"],
-    ["/manage/gone", "today"],
+    ["/manage/awards", "standings"],
+    ["/manage/gone", "feed"],
   ])
     test(`${from || "(the clan)"} goes to ${to}`, () => {
       expect(clanMoved(`${BASE}${from}`)).toBe(`${BASE}/${to}`);
@@ -191,14 +205,16 @@ describe("every Clan address that moved", () => {
 
   test("what did not move stays, and nothing else is asked", () => {
     for (const path of [
-      `${BASE}/today`,
-      `${BASE}/today/decided`,
+      `${BASE}/feed`,
       `${BASE}/actions/37`,
       `${BASE}/members`,
       `${BASE}/members/standing`,
-      `${BASE}/season`,
-      `${BASE}/awards`,
+      `${BASE}/war`,
+      `${BASE}/war/136`,
+      `${BASE}/standings`,
+      `${BASE}/policy`,
       `${BASE}/run`,
+      `${BASE}/run/decided`,
       "/clan",
       "/clan/clans",
       "/clan/you",
@@ -215,6 +231,10 @@ describe("every Clan address that moved", () => {
       "/manage/board",
       "/week/136-2",
       "/discord",
+      "/today/decided",
+      "/season/136",
+      "/awards",
+      "/manage/history",
     ]) {
       const to = clanMoved(`${BASE}${from}`);
       expect(clanMoved(to)).toBeNull();

@@ -1,16 +1,13 @@
 import { Link } from "@elixir-mcp/ui";
-import { memberPath } from "../lib/base.js";
+import { playerPath } from "../lib/base.js";
 
-/** Recorded member activity is clan-scoped and admits only current members. */
-export function MemberLink({
-  clanTag,
-  playerTag,
-  navigate,
-  current = true,
-  children,
-}) {
-  return current && clanTag && playerTag ? (
-    <Link to={memberPath(clanTag, playerTag)} navigate={navigate}>
+/** A player's name opens their one player page (Clan as one view, slice 8,
+ *  following "Every player name opens one player page"); for a clanmate that
+ *  page links back to their page in this clan. A departed member's name
+ *  opens it too: the player page is any player's. */
+export function MemberLink({ playerTag, navigate, children }) {
+  return playerTag ? (
+    <Link to={playerPath(playerTag)} navigate={navigate}>
       {children}
     </Link>
   ) : (

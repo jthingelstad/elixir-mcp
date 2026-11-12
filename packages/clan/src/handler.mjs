@@ -11,6 +11,23 @@ import {
 import { roleLabel, roleRank } from "./roles.mjs";
 import { confirmRole, isLeaderMutation } from "./role-freshness.mjs";
 
+/** Run's reads (slice 8, #766): the leaders' tab, its Waiting and Decided,
+ *  Discord, the model and voice, what the clan records. A member or an
+ *  unverified leader is refused them here, whatever the page does, and
+ *  `GET /run` is the one answer the page asks before drawing Run. */
+const RUN_READS = new Set([
+  "/run",
+  "/history",
+  "/model",
+  "/voice",
+  "/discord",
+  "/activity-discord",
+  "/sharing",
+]);
+const RUNS_THE_CLAN = new Set(["leader", "coLeader"]);
+const runsTheClan = (who) =>
+  RUNS_THE_CLAN.has(who.role) && who.verified !== false;
+
 const json = (statusCode, body, extra = {}) => ({
   statusCode,
   headers: {
@@ -47,6 +64,9 @@ export function createHandler({
    *  Discord editor (`manage/voice.mjs`) */
   voice = null,
   memberActivity = null,
+  /** the clan's timeline for the reader (`readClanFeed` in web-api): Clan's
+   *  Feed, slice 8 (#766) */
+  feed = null,
   /** the clan directory's tiles for the signed-in person, read through the
    *  approved seam (`@elixir-mcp/auth/clan-context`, #768) */
   directory = null,
@@ -446,6 +466,13 @@ export function createHandler({
         if (!who.verified)
           return json(403, { error: "unverified", player_tag: who.player_tag });
       }
+      if (method === "GET" && RUN_READS.has(rest) && !runsTheClan(who))
+        return json(403, { error: "leaders_only" });
+      if (method === "GET" && rest === "/run")
+        return json(200, { clan_tag: tag, run: true });
+      // The Feed: the clan's timeline as this member reads it.
+      if (feed && method === "GET" && rest === "/feed")
+        return json(200, await feed(tag));
       const memberPath = /^\/members\/([0-9A-Za-z]{3,12})\/activity$/.exec(
         rest,
       );
@@ -902,7 +929,8 @@ export function createHandler({
           discord ||
           activity ||
           voice ||
-          memberActivity) &&
+          memberActivity ||
+          feed) &&
         path.startsWith("/api/clans/")
       ) {
         const answered = await manageRoute(event, method, path);

@@ -35,6 +35,7 @@ import {
  * read. There is no internal OAuth grant or HTTP round trip. */
 import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemberActivity } from "@elixir-mcp/clan/member-activity.mjs";
+import { readClanFeed } from "./clan-feed.mjs";
 import { createAccountContext } from "@elixir-mcp/clan/account.mjs";
 import { createRecordedClient } from "@elixir-mcp/clan/recorded-client.mjs";
 import { sharedRead } from "./shared-read.mjs";
@@ -459,6 +460,8 @@ export function createClanRequest({
       }),
       // The clan directory, through the approved seam (#768).
       directory: () => readClanDirectory(db, account),
+      // Clan's Feed (#766): the clan's timeline as this reader reads it.
+      feed: (clanTag) => readClanFeed(db, account, clanTag),
       appUrl,
       elixirUrl: origin,
     });
@@ -476,7 +479,7 @@ export function createClanRequest({
     // Their only shared metadata write is an atomic, monotonic observation.
     const pureView =
       method === "GET" &&
-      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|season|me|home|needs|members\/[0-9A-Za-z]{3,12}\/activity)$/.test(
+      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|season|me|home|needs|feed|run|members\/[0-9A-Za-z]{3,12}\/activity)$/.test(
         path,
       );
     const lock =
