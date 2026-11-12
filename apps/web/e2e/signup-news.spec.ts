@@ -65,6 +65,7 @@ for (const width of [390, 1280]) {
       await page
         .getByLabel("Email", { exact: true })
         .fill("fixture@example.com");
+      await page.getByRole("radio", { name: "Yes" }).check();
       await page.getByRole("button", { name: "Send sign-in email" }).click();
       await expect(page.getByRole("alert")).toContainText(
         "Mail request interrupted.",
@@ -77,6 +78,9 @@ for (const width of [390, 1280]) {
       await page
         .getByLabel("Email", { exact: true })
         .fill("fixture@example.com");
+      // The age answer is not kept across a reload: it is asked again.
+      await expect(page.getByRole("radio", { name: "Yes" })).not.toBeChecked();
+      await page.getByRole("radio", { name: "Yes" }).check();
       await page.getByRole("button", { name: "Send sign-in email" }).click();
       await expect(page.getByLabel("6-digit code")).toBeVisible();
       await page.getByRole("button", { name: "Send another email" }).click();
@@ -84,6 +88,7 @@ for (const width of [390, 1280]) {
       expect(sends).toEqual(
         Array(3).fill({
           email: "fixture@example.com",
+          age_13: true,
           newsletter_opt_in: news,
           timezone: "America/Chicago",
           turnstile_token: TURNSTILE_TOKEN,

@@ -45,6 +45,7 @@ test("public signup verifies email and returns to the requested Console step", a
   ).toBeVisible();
   await page.getByLabel("Email", { exact: true }).fill("new@example.com");
   await page.getByLabel("Your player tag (optional)").fill("#2pyq8gj0");
+  await page.getByRole("radio", { name: "Yes" }).check();
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await expect(
     page.getByRole("heading", { name: "Check your email" }),
@@ -102,6 +103,7 @@ test("a new account with no tag lands on Home with the first step open", async (
   await expect(page.getByLabel("Your player tag (optional)")).toHaveCount(0);
   await page.getByRole("button", { name: "Create an account" }).click();
   await page.getByLabel("Email", { exact: true }).fill("new@example.com");
+  await page.getByRole("radio", { name: "Yes" }).check();
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await expect(
     page.getByRole("heading", { name: "Check your email" }),
@@ -181,6 +183,7 @@ test("a failed email request stays editable and a failed code request remains re
   });
   await page.goto("/signin?signup");
   await page.getByLabel("Email", { exact: true }).fill("new@example.com");
+  await page.getByRole("radio", { name: "Yes" }).check();
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByLabel("Email", { exact: true })).toHaveValue(
@@ -353,6 +356,7 @@ window[${JSON.stringify(onload)}]();`,
     );
     await page.goto("/signin?signup");
     await page.getByLabel("Email", { exact: true }).fill("new@example.com");
+    await page.getByRole("radio", { name: "Yes" }).check();
     await page.getByRole("button", { name: "Send sign-in email" }).click();
     await expect(
       page.getByRole("button", { name: "Waiting for the check…" }),

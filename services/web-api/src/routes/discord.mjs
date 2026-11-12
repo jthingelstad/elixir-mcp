@@ -80,6 +80,7 @@ export function discordRoutes({
         signupZone:
           typeof q.tz === "string" ? (accountZone(q.tz) ?? null) : null,
         signupNews: q.news === "1",
+        signupAgeAttested: q.age === "1",
       });
       authLog("discord_started", {
         intent,
@@ -189,6 +190,7 @@ export function discordRoutes({
         verifiedEmail,
         verifiedNewsletter: row.signup_news === true,
         verifiedZone: row.signup_zone ?? null,
+        verifiedAgeAt: row.signup_age_attested_at ?? null,
       });
       if (minted.statusCode !== 200) {
         const body = JSON.parse(minted.body);
@@ -196,6 +198,10 @@ export function discordRoutes({
           reason: body.error ?? "mint",
           email: emailRef(hash),
         });
+        // A new account from plain sign-in, where the 13-or-older question
+        // is not asked: back to the signup form, which asks it (#763).
+        if (body.error === "age_attestation_required")
+          return redirect(`${SIGNIN}?signup&discord=age`, clear);
         return done(body.error === "not_approved" ? "not_approved" : "failed");
       }
       const opened = JSON.parse(minted.body);

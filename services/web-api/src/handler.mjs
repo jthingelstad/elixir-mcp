@@ -17,6 +17,7 @@ import { randomUUID } from "node:crypto";
 
 import { makeDatabase } from "@elixir-mcp/http/database";
 import {
+  AGE_ATTESTATION_MESSAGE,
   approvedAccount,
   openVerifiedAccount,
   createSession,
@@ -306,6 +307,7 @@ export function makeHandler({
       verifiedNewsletter = true,
       verifiedZone = null,
       verifiedPlayerTag = null,
+      verifiedAgeAt = null,
     } = {},
   ) {
     const opened = verifiedEmail
@@ -315,8 +317,19 @@ export function makeHandler({
           newsletterOptIn: verifiedNewsletter,
           timezone: verifiedZone,
           playerTag: verifiedPlayerTag,
+          ageAttestedAt: verifiedAgeAt,
         })
       : null;
+    // A proof for an address with no account, from a form that did not
+    // ask the 13-or-older question (plain sign-in): no account opens and
+    // no session is minted (0240, #763). Holding the proof already shows
+    // control of the address, so saying so is not an oracle; the page
+    // asks the question and sends a new email.
+    if (opened?.refused === "age_attestation_required")
+      return json(403, {
+        error: "age_attestation_required",
+        message: AGE_ATTESTATION_MESSAGE,
+      });
     const account = await approvedAccount(db, hash);
     if (account && account.kind !== "person")
       return json(403, { error: "not_approved" });

@@ -66,9 +66,7 @@ test("signed out: both decks, the score, how it ended, and the way in", async ({
   // No account: game names only, no player links, and the way in.
   await expect(page.locator(".battle__name").first()).toHaveText(left);
   await expect(page.locator("a.battle__name")).toHaveCount(0);
-  await expect(
-    page.getByRole("link", { name: "Create your account" }),
-  ).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "Join Elixir" })).toHaveAttribute(
     "href",
     `/signin?signup&return_to=${encodeURIComponent(`/battle/${BATTLE.battle.short_id}`)}`,
   );
@@ -103,9 +101,7 @@ test("signed in: your side says so, names open the record, another battle stays 
     "href",
     `/console/explore/player/${tag.slice(1)}`,
   );
-  await expect(
-    page.getByRole("link", { name: "Create your account" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Join Elixir" })).toHaveCount(0);
   // The session: this battle marked, the other one a link that loads
   // in-app.
   const session = page.getByRole("region", { name: /’s session$/ });
@@ -115,6 +111,97 @@ test("signed in: your side says so, names open the record, another battle stays 
   await session.getByRole("link").first().click();
   await expect(page).toHaveURL(new RegExp(`/battle/${nextShort}$`));
   await expect(page.getByRole("tablist", { name: "Games" })).toBeVisible();
+});
+
+test("joining from a battle link: Join Elixir, the age question, back on the battle, Follow from here", async ({
+  page,
+}) => {
+  // Social slice 5 (#763): the way in carries only the page; after the
+  // proof the reader is back on it, and the players come from the page.
+  const left = BATTLE.sides[0]!.players[0]!.player_tag as string;
+  const right = BATTLE.sides[1]!.players[0]!.player_tag as string;
+  let authed = false,
+    age: unknown,
+    followed: unknown;
+  await mockApi(page, {
+    "GET /api/me": () => [
+      200,
+      authed
+        ? {
+            ...ME,
+            role: "member",
+            // The tag given on the signup form, now this account's own.
+            claims: [
+              {
+                player_tag: "#2PYQ8GJ0",
+                name: null,
+                is_primary: true,
+                relationship: "primary",
+                claim_status: "unverified",
+              },
+            ],
+            recordings: [],
+          }
+        : SIGNED_OUT,
+    ],
+    ...battles,
+    "POST /api/auth": (route) => {
+      age = route.request().postDataJSON().age_13;
+      return [200, { ok: true }];
+    },
+    "POST /api/auth/code": () => {
+      authed = true;
+      return [
+        200,
+        { authenticated: true, new_account: { player_tag: "#2PYQ8GJ0" } },
+      ];
+    },
+    "GET /api/me/follow-cost": (route) => {
+      const tag = new URL(route.request().url()).searchParams.get("player_tag");
+      return [
+        200,
+        {
+          player_tag: tag,
+          following: false,
+          free: tag === left,
+          used: 0,
+          limit: 50,
+        },
+      ];
+    },
+    "POST /api/claims": (route) => {
+      followed = route.request().postDataJSON();
+      return [200, { player_tag: right, relationship: "friend", added: true }];
+    },
+  });
+  const here = `/battle/${BATTLE.battle.short_id}`;
+  await page.goto(here);
+  await page.getByRole("link", { name: "Join Elixir" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Create your Elixir account" }),
+  ).toBeVisible();
+  await page.getByLabel("Email", { exact: true }).fill("new@example.com");
+  await page.getByLabel("Your player tag (optional)").fill("#2PYQ8GJ0");
+  await page.getByRole("radio", { name: "Yes" }).check();
+  await page.getByRole("button", { name: "Send sign-in email" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Check your email" }),
+  ).toBeVisible();
+  expect(age).toBe(true);
+  await page.getByLabel("6-digit code").fill("123456");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`${here}$`));
+  const from = page.getByRole("region", { name: "Follow from here" });
+  await expect(from).toContainText("Free · already recorded");
+  await expect(from).toContainText("Uses 1 of your 50 player slots");
+  await expect(page.getByRole("link", { name: "Join Elixir" })).toHaveCount(0);
+  await from
+    .getByRole("button", { name: /^Follow / })
+    .nth(1)
+    .click();
+  await expect(from).toContainText("Following");
+  expect(followed).toEqual({ player_tag: right, relationship: "friend" });
+  await accessible(page, "battle, follow from here");
 });
 
 test("a duel: games won on top, then each game's decks and towers", async ({

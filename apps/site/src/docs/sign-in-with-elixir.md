@@ -51,7 +51,9 @@ Elixir too.
 and the code, and your free Elixir account opens once the code is
 proved, never before, exactly as signing up on the website does: an
 ordinary member account, with the **Send me Elixir product news** box
-checked unless you untick it, and the welcome email. The page asks for
+checked unless you untick it, and the welcome email. Tick **I am 13 or
+older** to open one: Elixir accounts are for people 13 or older, and
+without the tick the code signs in only an account that already exists. The page asks for
 no player tag; add yours in Settings › Players & tracking. An address whose account
 was denied or disabled does not reopen here either.
 

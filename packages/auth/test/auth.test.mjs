@@ -96,6 +96,7 @@ test("a verified signup writes its frozen player tag on creation only", async ()
     emailHash: emailHash(email),
     email,
     playerTag: "#2PYQ8GJ0",
+    ageAttestedAt: new Date().toISOString(),
   });
   assert.equal(opened.created, true);
   const tagOf = async (e) =>
@@ -124,13 +125,87 @@ test("a verified signup writes its frozen player tag on creation only", async ()
     emailHash: emailHash(pending),
     email: pending,
     playerTag: "#QPPPP",
+    ageAttestedAt: new Date().toISOString(),
   });
   assert.equal(promoted.created, false);
   assert.equal(await tagOf(pending), "#GGGG");
   // No tag at signup is no tag on the account.
   const bare = "signup-no-tag@example.com";
-  await openVerifiedAccount(db, { emailHash: emailHash(bare), email: bare });
+  await openVerifiedAccount(db, {
+    emailHash: emailHash(bare),
+    email: bare,
+    ageAttestedAt: new Date().toISOString(),
+  });
   assert.equal(await tagOf(bare), null);
+});
+
+test("no account opens without the 13-or-older attestation, and it is kept when given", async () => {
+  const email = "signup-age@example.com";
+  const count = async (e) =>
+    (
+      await db.query(
+        "select count(*)::int as n from account where email_hash = $1",
+        [emailHash(e)],
+      )
+    ).rows[0].n;
+  // No attestation: refused, and nothing written.
+  for (const ageAttestedAt of [undefined, null, false, "not a time"]) {
+    const refused = await openVerifiedAccount(db, {
+      emailHash: emailHash(email),
+      email,
+      ageAttestedAt,
+    });
+    assert.deepEqual(refused, { refused: "age_attestation_required" });
+    assert.equal(await count(email), 0);
+  }
+  // A pending member is not opened without it either, and stays pending.
+  const pending = "signup-age-pending@example.com";
+  await requestAccess(db, { emailHash: emailHash(pending) });
+  assert.deepEqual(
+    await openVerifiedAccount(db, {
+      emailHash: emailHash(pending),
+      email: pending,
+    }),
+    { refused: "age_attestation_required" },
+  );
+  assert.equal(
+    (
+      await db.query("select status from account where email_hash = $1", [
+        emailHash(pending),
+      ])
+    ).rows[0].status,
+    "requested",
+  );
+  // With it: opened, and when it was given is kept with the account.
+  const at = "2026-11-12T03:04:05.000Z";
+  const opened = await openVerifiedAccount(db, {
+    emailHash: emailHash(email),
+    email,
+    ageAttestedAt: at,
+  });
+  assert.equal(opened.created, true);
+  const kept = async (e) =>
+    (
+      await db.query(
+        "select age_attested_at from account where email_hash = $1",
+        [emailHash(e)],
+      )
+    ).rows[0].age_attested_at;
+  assert.equal((await kept(email)).toISOString(), at);
+  // An account already open signs in without it, and its record stays.
+  assert.equal(
+    await openVerifiedAccount(db, { emailHash: emailHash(email), email }),
+    null,
+  );
+  assert.equal(
+    await openVerifiedAccount(db, {
+      emailHash: emailHash(email),
+      email,
+      ageAttestedAt: "2026-12-01T00:00:00.000Z",
+    }),
+    null,
+  );
+  assert.equal((await kept(email)).toISOString(), at);
 });
 
 test("access decisions obey the role hierarchy, not just isAdmin", async () => {

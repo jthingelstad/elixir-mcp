@@ -32,7 +32,14 @@ export async function publicLoginAccount(db, emailHash) {
  * `playerTag`, normalized at the request, goes the same way: the insert
  * writes it to requested_player_tag, and onboardAccount claims it after
  * this proof. `created` says the insert, not the pending-member update,
- * opened the row: only a new account lands on its first-use page. */
+ * opened the row: only a new account lands on its first-use page.
+ *
+ * `ageAttestedAt` is when the signup form that asked was told the person
+ * is 13 or older (0240, #763; VISION "Signing up asks the person to attest
+ * they are 13 or older"), frozen with the request. Without it no account
+ * opens: an address with no account, or a pending member's, answers
+ * `{ refused: "age_attestation_required" }` and nothing is written. An
+ * account that is already open signs in as before (null). */
 export async function openVerifiedAccount(
   db,
   {
@@ -41,15 +48,29 @@ export async function openVerifiedAccount(
     newsletterOptIn = true,
     timezone = null,
     playerTag = null,
+    ageAttestedAt = null,
   },
 ) {
   if (typeof email !== "string" || hashEmail(email) !== emailHash) return;
+  const attestedAt = attestationTime(ageAttestedAt);
+  if (!attestedAt) {
+    const { rows } = await db.query(
+      `select 1 from account
+        where email_hash = $1
+          and not (status = 'requested' and role = 'member'
+                   and kind = 'person' and is_owner is not true)`,
+      [emailHash],
+    );
+    return rows[0] ? null : AGE_REFUSED;
+  }
   const { rows } = await db.query(
     `insert into account (email_hash, email, status, role, kind, decided_at,
-                          newsletter_opt_in, timezone, requested_player_tag)
-     values ($1, $2, 'approved', 'member', 'person', now(), $3, $4, $5)
+                          newsletter_opt_in, timezone, requested_player_tag,
+                          age_attested_at)
+     values ($1, $2, 'approved', 'member', 'person', now(), $3, $4, $5, $6)
      on conflict (email_hash) do update
-       set status = 'approved', email = excluded.email, decided_at = now()
+       set status = 'approved', email = excluded.email, decided_at = now(),
+           age_attested_at = coalesce(account.age_attested_at, excluded.age_attested_at)
        where account.status = 'requested' and account.role = 'member'
          and account.kind = 'person' and account.is_owner is not true
      returning account_id, newsletter_opt_in, (xmax = 0) as created`,
@@ -59,9 +80,26 @@ export async function openVerifiedAccount(
       newsletterOptIn === true,
       accountZone(timezone) ?? null,
       typeof playerTag === "string" && playerTag ? playerTag : null,
+      attestedAt,
     ],
   );
   return rows[0] ?? null;
+}
+
+/** The doors' words when a proof would open an account the 13-or-older
+ *  question was never answered for (0240, #763). */
+export const AGE_ATTESTATION_MESSAGE =
+  "There is no Elixir account for this address yet. To create one, say you are 13 or older and send a new email.";
+
+/** What openVerifiedAccount answers for a new account with no attestation. */
+const AGE_REFUSED = Object.freeze({ refused: "age_attestation_required" });
+
+/** The frozen attestation as a Date, or null when there is none to use.
+ *  The doors write it from their own clock, so only its shape is checked. */
+function attestationTime(value) {
+  if (value == null || value === false) return null;
+  const at = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(at.getTime()) ? null : at;
 }
 
 /**

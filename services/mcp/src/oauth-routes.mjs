@@ -323,6 +323,13 @@ function codeFailure(reason) {
     // Only an address the gate refuses reaches this: a new one is opened
     // by the code it just proved. Holding the code proves the address, so
     // saying so is not an oracle.
+    // A new address whose email step had the 13-or-older box unticked
+    // (0240, #763): nothing opened, and holding the code proves the
+    // address, so saying so is not an oracle.
+    age_attestation_required: [
+      "Elixir accounts are for people 13 or older",
+      "There is no Elixir account for this address yet. To create one, start over from the app that sent you here and tick “I am 13 or older”.",
+    ],
     account_not_approved: [
       "This account cannot sign in",
       "Contact Elixir at admin@poapkings.com if you think this is a mistake. A new code does not remove an account restriction.",
@@ -573,6 +580,13 @@ export function makeOauthRoutes({
   const productNewsBox = `<label><input type="checkbox" name="product_news" value="1" checked> Send me Elixir product news</label>
        <p><small>For a new account only. Existing newsletter choices stay the same.</small></p>`;
 
+  /** The website signup's 13-or-older question, as a box here: unticked,
+   *  a code still signs in an existing account and opens no new one
+   *  (VISION, "Signing up asks the person to attest they are 13 or older";
+   *  0240, #763). */
+  const ageBox = `<label><input type="checkbox" name="age_13" value="1"> I am 13 or older</label>
+       <p><small>Needed to create an account. Elixir accounts are for people 13 or older.</small></p>`;
+
   /** The email step's page, shared by the GET and by a session that lapsed. */
   const emailStepPage = (q, v, lead = "") =>
     page(
@@ -584,6 +598,7 @@ export function makeOauthRoutes({
        <form method="post" action="/oauth/authorize" id="signin-email-form">
          <input type="hidden" name="step" value="email">${hiddenAuthFields(q)}
          <input type="email" name="email" placeholder="you@example.com" required autofocus>
+         ${ageBox}
          ${productNewsBox}
          <div id="turnstile-slot"></div>
          <button>Send code</button>
@@ -1007,6 +1022,10 @@ export function makeOauthRoutes({
               // and the product-news box, unticked unless it was posted.
               signup_email: email.toLowerCase(),
               signup_news: form.product_news === "1",
+              // The box, stamped when it was posted; a new account opens
+              // only with it.
+              signup_age_attested_at:
+                form.age_13 === "1" ? new Date().toISOString() : null,
             },
           });
           await sendLoginEmail({
@@ -1105,9 +1124,14 @@ export function makeOauthRoutes({
                 emailHash: hash,
                 email: ctx.signup_email,
                 newsletterOptIn: ctx.signup_news === true,
+                ageAttestedAt: ctx.signup_age_attested_at ?? null,
               })
             : null;
-        const found = ctx && !mismatch ? await approvedAccount(db, hash) : null;
+        const ageRefused = opened?.refused === "age_attestation_required";
+        const found =
+          ctx && !mismatch && !ageRefused
+            ? await approvedAccount(db, hash)
+            : null;
         const account = found && found.kind === "person" ? found : null;
 
         // Same code again, or a different one? "no_live_code" alone cannot say,
@@ -1130,9 +1154,11 @@ export function makeOauthRoutes({
             ? verified.reason
             : mismatch
               ? `request_${mismatch}`
-              : !account
-                ? "account_not_approved"
-                : verified.reason;
+              : ageRefused
+                ? "age_attestation_required"
+                : !account
+                  ? "account_not_approved"
+                  : verified.reason;
           authLog("oauth_code_rejected", {
             email: emailRef(hash),
             request: requestRef(v.codeChallenge),

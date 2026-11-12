@@ -22,8 +22,9 @@ to do next and what the current record can show.
 Anyone can create a free ordinary member account at
 [/signin?signup](/signin?signup). Enter your email, then verify
 the six-digit code or one-click link (15 minutes, five code attempts).
-Signing in and creating an account use the same form. No invitation or
-collector is required. Restricted accounts stay restricted.
+Signing in and creating an account use the same form. The signup form asks
+whether you are 13 or older; Elixir accounts are for people who are. No
+invitation or collector is required. Restricted accounts stay restricted.
 
 The signup form also asks for **your player tag**, optionally (plain sign-in
 does not). A tag that is not a Clash Royale tag is refused on the form,

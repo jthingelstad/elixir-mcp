@@ -72,7 +72,7 @@ function answers(state: { authed: boolean; ready?: boolean }) {
 async function enter(page: Page, path: (typeof paths)[number]) {
   await page.goto(path.from);
   if (path.name === "battle")
-    await page.getByRole("link", { name: "Create your account" }).click();
+    await page.getByRole("link", { name: "Join Elixir" }).click();
   else if (path.name === "clan")
     await page
       .getByRole("main")
@@ -168,6 +168,9 @@ for (const width of [390, 1280]) {
           await page
             .getByLabel("Email", { exact: true })
             .fill("fixture@example.com");
+          // Join Elixir is the signup form: it asks the age question.
+          if (path.name === "battle")
+            await page.getByRole("radio", { name: "Yes" }).check();
           await page
             .getByRole("button", { name: "Send sign-in email" })
             .click();

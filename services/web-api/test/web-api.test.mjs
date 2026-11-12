@@ -85,7 +85,9 @@ after(async () => {
 // The sign-in door is rate limited per IP (10/hour) as well as per
 // email, so a test that needs a fresh identity gets a fresh source IP.
 async function signIn(email, ip = "8.8.4.4") {
-  await handler(event({ path: "/api/auth", body: { email }, ip }));
+  await handler(
+    event({ path: "/api/auth", body: { age_13: true, email }, ip }),
+  );
   const { code } = sentEmails.at(-1);
   const res = await handler(
     event({ path: "/api/auth/code", body: { email, code }, ip }),
@@ -116,7 +118,7 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
 
   // 2. Ordinary pending members may now verify email without owner approval.
   const preAuth = await handler(
-    event({ path: "/api/auth", body: { email: NEWCOMER } }),
+    event({ path: "/api/auth", body: { age_13: true, email: NEWCOMER } }),
   );
   assert.equal(parse(preAuth).ok, true);
   assert.equal(sentEmails.length, 1, "pending members can verify their email");
@@ -2227,7 +2229,9 @@ test("the address is kept, and sign-in fills it in for older accounts", async ()
   await db.query(`update account set email = null where email_hash = $1`, [
     hash,
   ]);
-  await handler(event({ path: "/api/auth", body: { email: NEWCOMER } }));
+  await handler(
+    event({ path: "/api/auth", body: { age_13: true, email: NEWCOMER } }),
+  );
   const backfilled = await db.query(
     `select email from account where email_hash = $1`,
     [hash],
@@ -2343,7 +2347,11 @@ test("beta accounts are enrolled by default, and an opt-out is never overridden"
     [emailHash(newcomer)],
   );
   await handler(
-    event({ path: "/api/auth", body: { email: newcomer }, ip: "203.0.113.33" }),
+    event({
+      path: "/api/auth",
+      body: { age_13: true, email: newcomer },
+      ip: "203.0.113.33",
+    }),
   );
   assert.equal(sentEmails.at(-1).newsletter, true);
 });

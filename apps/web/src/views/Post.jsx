@@ -6,7 +6,8 @@ import { NavigateProvider, ZoneProvider, browserZone } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useMe, useNav } from "../App.jsx";
 import { CONSOLE } from "../lib/console.js";
-import { BattleView } from "./Battle.jsx";
+import { BattleView, Invite } from "./Battle.jsx";
+import { FollowFromHere } from "./FollowFromHere.jsx";
 
 /**
  * A shared post, /h/<share id> (social slice 4, #762; DECISIONS
@@ -89,7 +90,13 @@ export function Post({ shareId, me }) {
           )}
         </div>
       </section>
-      <BattleView read={read} me={me} />
+      {/* The way in, or the Follow, sits under the post: its player first
+          (#763), read from the post itself, never from who sent it. */}
+      {me?.authenticated === false && <Invite who={who} />}
+      {me?.authenticated === true && (
+        <FollowFromHere sides={read.sides} me={me} first={h.player_tag} />
+      )}
+      <BattleView read={read} me={me} follow={false} invite={false} />
     </>
   );
 }

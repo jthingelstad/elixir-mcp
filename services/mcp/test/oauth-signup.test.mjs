@@ -92,7 +92,8 @@ const accountOf = async (email) =>
 async function emailStep(email, q, ip, extra = { product_news: "1" }) {
   const before = logins.length;
   const res = await handler(
-    event({ form: { step: "email", email, ...q, ...extra }, ip }),
+    // The 13-or-older box is ticked unless `extra` says otherwise (#763).
+    event({ form: { step: "email", email, age_13: "1", ...q, ...extra }, ip }),
   );
   return { res, mail: logins.length > before ? logins.at(-1) : null };
 }
@@ -152,6 +153,11 @@ test("the email page offers sign-in or a new account, with the news box", async 
     assert.match(
       res.body,
       /<input type="checkbox" name="product_news" value="1" checked> Send me Elixir product news/,
+    );
+    // The 13-or-older box, unticked until the person ticks it (#763).
+    assert.match(
+      res.body,
+      /<input type="checkbox" name="age_13" value="1"> I am 13 or older/,
     );
     assert.doesNotMatch(res.body, /request access|approved account/i);
   }
@@ -230,6 +236,38 @@ test("an unticked news box opens the account without product news", async () => 
   assert.equal(done.statusCode, 303, done.body);
   assert.equal((await accountOf(email)).newsletter_opt_in, false);
   assert.deepEqual(welcomes.at(-1), { email, newsletter: false });
+});
+
+test("an unticked 13-or-older box opens no new account, and signs an existing one in (#763)", async () => {
+  const email = "no-age-oauth@example.com";
+  const ip = nextIp();
+  const q = ask();
+  const { mail } = await emailStep(email, q, ip, { age_13: "" });
+  assert.ok(mail, "the page cannot tell a new address, so a code goes");
+  const welcomed = welcomes.length;
+  const refused = await codeStep(email, mail.code, q, ip);
+  assert.equal(refused.statusCode, 400, refused.body);
+  assert.match(refused.body, /Elixir accounts are for people 13 or older/);
+  assert.equal(refused.headers?.["set-cookie"], undefined, "no session");
+  assert.equal(await accountOf(email), null, "nothing opened");
+  assert.equal(welcomes.length, welcomed, "no welcome");
+
+  // Ticked, the account opens and keeps when it was said.
+  const q2 = ask();
+  const { mail: again } = await emailStep(email, q2, ip);
+  const done = await codeStep(email, again.code, q2, ip);
+  assert.equal(done.statusCode, 303, done.body);
+  const { rows } = await db.query(
+    "select age_attested_at from account where email = $1",
+    [email],
+  );
+  assert.ok(rows[0].age_attested_at, "the attestation is stored");
+
+  // An open account signs in with the box unticked.
+  const q3 = ask();
+  const { mail: later } = await emailStep(email, q3, ip, { age_13: "" });
+  const signedIn = await codeStep(email, later.code, q3, ip);
+  assert.equal(signedIn.statusCode, 303, signedIn.body);
 });
 
 test("a code proved for another request opens nothing", async () => {

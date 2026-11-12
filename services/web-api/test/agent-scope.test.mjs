@@ -59,7 +59,12 @@ const parse = (res) => JSON.parse(res.body);
 
 async function signIn(email, ip) {
   await handler(
-    event({ method: "POST", path: "/api/auth", body: { email }, ip }),
+    event({
+      method: "POST",
+      path: "/api/auth",
+      body: { age_13: true, email },
+      ip,
+    }),
   );
   const { code } = sentEmails.at(-1);
   const res = await handler(

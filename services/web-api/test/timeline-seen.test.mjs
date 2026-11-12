@@ -155,7 +155,11 @@ before(async () => {
   );
 
   await handler(
-    event({ method: "POST", path: "/api/auth", body: { email: PERSON } }),
+    event({
+      method: "POST",
+      path: "/api/auth",
+      body: { age_13: true, email: PERSON },
+    }),
   );
   const { code } = sentEmails.at(-1);
   const res = await handler(

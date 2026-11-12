@@ -56,6 +56,8 @@ export async function startDiscordLogin(
     sessionId = null,
     signupZone = null,
     signupNews = false,
+    // The signup form's 13-or-older answer (0240, #763), stamped now.
+    signupAgeAttested = false,
   },
 ) {
   if (!["link", "signin"].includes(intent))
@@ -64,8 +66,10 @@ export async function startDiscordLogin(
   const nonce = crypto.randomBytes(32).toString("base64url");
   await db.query(
     `insert into discord_login (state_hash, nonce_hash, intent, account_id, session_id,
-                                signup_zone, signup_news, expires_at)
-     values ($1, $2, $3, $4, $5, $6, $7, now() + make_interval(secs => $8))`,
+                                signup_zone, signup_news, expires_at,
+                                signup_age_attested_at)
+     values ($1, $2, $3, $4, $5, $6, $7, now() + make_interval(secs => $8),
+             case when $9::boolean then now() end)`,
     [
       sha256hex(state),
       sha256hex(nonce),
@@ -75,6 +79,7 @@ export async function startDiscordLogin(
       intent === "signin" ? signupZone : null,
       intent === "signin" && signupNews === true,
       DISCORD_LOGIN_TTL_SECONDS,
+      intent === "signin" && signupAgeAttested === true,
     ],
   );
   return { state, nonce };
@@ -92,7 +97,8 @@ export async function takeDiscordLogin(db, { state, nonce }) {
     `update discord_login set used_at = now()
       where state_hash = $1 and nonce_hash = $2
         and used_at is null and expires_at > now()
-      returning intent, account_id, session_id, signup_zone, signup_news`,
+      returning intent, account_id, session_id, signup_zone, signup_news,
+                signup_age_attested_at`,
     [sha256hex(state), sha256hex(nonce)],
   );
   return rows[0] ?? null;

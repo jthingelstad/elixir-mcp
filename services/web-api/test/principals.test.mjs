@@ -71,7 +71,9 @@ async function seed(email, role, { clans = [] } = {}) {
 }
 
 async function signIn(email, ip) {
-  await handler(event({ path: "/api/auth", body: { email }, ip }));
+  await handler(
+    event({ path: "/api/auth", body: { age_13: true, email }, ip }),
+  );
   const { code } = sentEmails.at(-1);
   const res = await handler(
     event({ path: "/api/auth/code", body: { email, code }, ip }),

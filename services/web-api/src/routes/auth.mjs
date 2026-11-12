@@ -74,6 +74,17 @@ export function authRoutes({
         typeof body.newsletter_opt_in !== "boolean"
       )
         return json(400, { error: "bad_request" });
+      // The signup form's 13-or-older question (0240, #763): true, or
+      // absent on plain sign-in. A "no" is refused here, before anything
+      // is counted, logged or kept: no address, no row, no mail. The page
+      // never sends one; this holds the line for any other caller.
+      if (body.age_13 !== undefined && typeof body.age_13 !== "boolean")
+        return json(400, { error: "bad_request" });
+      if (body.age_13 === false)
+        return json(403, {
+          error: "under_13",
+          message: "Elixir accounts are for people 13 or older.",
+        });
       const email = signinAddress(body.email);
       if (!email) return json(400, { error: "bad_request" });
       // The signup form's optional player tag, normalized here by the one
@@ -167,6 +178,10 @@ export function authRoutes({
               // Applied by the insert only, like the two above: a new
               // account starts tracking it after proof (onboardAccount).
               signup_player_tag: playerTag,
+              // When the person said they are 13 or older; without it
+              // the proof signs in an existing account and opens none.
+              signup_age_attested_at:
+                body.age_13 === true ? new Date().toISOString() : null,
             },
             pollId,
             startedFrom: {
@@ -207,6 +222,7 @@ export function authRoutes({
         verifiedNewsletter: row.context?.signup_news !== false,
         verifiedZone: row.context?.signup_zone ?? null,
         verifiedPlayerTag: row.context?.signup_player_tag ?? null,
+        verifiedAgeAt: row.context?.signup_age_attested_at ?? null,
       });
       if (minted.statusCode !== 200) return minted;
       // The screen that asked may be a different one (0083). From the
@@ -351,6 +367,7 @@ export function authRoutes({
         verifiedNewsletter: result.row.context?.signup_news !== false,
         verifiedZone: result.row.context?.signup_zone ?? null,
         verifiedPlayerTag: result.row.context?.signup_player_tag ?? null,
+        verifiedAgeAt: result.row.context?.signup_age_attested_at ?? null,
       });
     },
 
