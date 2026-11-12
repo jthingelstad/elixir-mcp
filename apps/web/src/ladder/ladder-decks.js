@@ -7,15 +7,20 @@
 import { cardLabel } from "@elixir-mcp/ui";
 import { shortDay } from "./ladder.js";
 
-/** "your cards 0.60 levels above theirs", from mean_level_gap. */
-export function gapLine(gap) {
+/** "your cards 0.60 levels above theirs", from mean_level_gap. For a
+ *  player you follow (`own` false), "their cards 0.60 levels above their
+ *  opponents'": "theirs" would be ambiguous. */
+export function gapLine(gap, own = true) {
   if (gap == null) return null;
   const n = Number(gap);
-  if (n === 0) return "your cards level with theirs";
+  const [mine, other] = own
+    ? ["your cards", "theirs"]
+    : ["their cards", "their opponents'"];
+  if (n === 0) return `${mine} level with ${other}`;
   const v = Math.abs(n).toFixed(2);
-  return `your cards ${v} ${v === "1.00" ? "level" : "levels"} ${
+  return `${mine} ${v} ${v === "1.00" ? "level" : "levels"} ${
     n > 0 ? "above" : "below"
-  } theirs`;
+  } ${other}`;
 }
 
 /** "Sep 8 to Sep 18", or one day, in the account's zone. */
@@ -115,14 +120,14 @@ export function nameList(cards) {
 
 /** The record line of a deck: "22 battles · 15–7 · 68% won" is laid out by the
  *  row; this is the line under its cards. */
-export function deckLine(row, full, zone) {
+export function deckLine(row, full, zone, own = true) {
   return [
     dayRange(row.first_used, row.last_used, zone),
     full?.archetype?.average_elixir != null
       ? `${Number(full.archetype.average_elixir).toFixed(2)} average elixir`
       : null,
     row.tower_troop_name ?? null,
-    gapLine(row.mean_level_gap),
+    gapLine(row.mean_level_gap, own),
   ]
     .filter(Boolean)
     .join(" · ");

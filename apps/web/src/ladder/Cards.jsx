@@ -33,6 +33,7 @@ import { useToolRead } from "../lib/queries.js";
 import { playerHref } from "../lib/player.js";
 import { useNav } from "../App.jsx";
 import { Loading, ReadError, Record } from "./common.jsx";
+import { useWhose } from "./whose.js";
 
 /** Rows a card table shows before "Show all". */
 const ROWS_SHOWN = 12;
@@ -71,6 +72,7 @@ export function Cards({ player, mode, modeReady, season, search, hrefFor }) {
 }
 
 function ModeCards({ player, mode, chip, modeReady, season, order, onOrder }) {
+  const whose = useWhose();
   const args = { player_tag: player.player_tag, season: season.arg, mode };
   // Only a chosen order rides on the read, so the default read is the
   // one the page always made (and shares its cache).
@@ -93,15 +95,18 @@ function ModeCards({ player, mode, chip, modeReady, season, order, onOrder }) {
   const label = modeLabel(mode);
   const when = seasonWords(season);
   const played = Number(modeBattles(mine.data, mode) ?? 0) > 0;
-  if (!modeReady || mine.isPending) return <Loading what="your cards" />;
-  if (mine.isError) return <ReadError error={mine.error} what="your cards" />;
+  if (!modeReady || mine.isPending)
+    return <Loading what={`${whose.your} cards`} />;
+  if (mine.isError)
+    return <ReadError error={mine.error} what={`${whose.your} cards`} />;
   if (!played)
     return chip === OTHER.key ? null : (
       <Empty title={`No ${modeWords(mode)} battles ${when}`} titleAs="h2">
         {season.current
           ? "Elixir has recorded none in this mode since the season began,"
           : `Elixir recorded none in this mode in ${season.name},`}{" "}
-        so there are no cards to read back. Another chip may hold your season.
+        so there are no cards to read back. Another chip may hold {whose.your}{" "}
+        season.
       </Empty>
     );
   return (
@@ -109,7 +114,7 @@ function ModeCards({ player, mode, chip, modeReady, season, order, onOrder }) {
       <YourCards body={mine.data} label={label} other={chip === OTHER.key} />
       <div className="ladder-order">
         <Chips
-          label="Order what you faced"
+          label={`Order what ${whose.you} faced`}
           options={ORDERS}
           value={order}
           onChange={onOrder}
@@ -181,13 +186,14 @@ function useShown(rows) {
 }
 
 function YourCards({ body, label, other }) {
+  const whose = useWhose();
   const id = useId();
   const rows = cardRows(body);
   const { shown, toggle } = useShown(rows);
   const floor = body?.applied?.min_battles;
   return (
     <Panel
-      title={other ? `Your cards in ${label}` : "Your cards"}
+      title={other ? `${whose.Your} cards in ${label}` : `${whose.Your} cards`}
       titleId={id}
       action={
         <span className="ladder-aside">
@@ -222,9 +228,9 @@ function YourCards({ body, label, other }) {
       )}
       {toggle}
       <div className="panel__foot">
-        Your record in the battles where your deck held the card. A card in more
-        than one deck carries all of their battles, so the rows overlap and
-        never add up.
+        {whose.Your} record in the battles where {whose.your} deck held the
+        card. A card in more than one deck carries all of their battles, so the
+        rows overlap and never add up.
         {floor
           ? ` Cards in fewer than ${fmt(floor)} ${noun(floor, "battle")} are left out.`
           : ""}
@@ -234,6 +240,7 @@ function YourCards({ body, label, other }) {
 }
 
 function TheirCards({ read, opponents, mode, order }) {
+  const whose = useWhose();
   const id = useId();
   const rows = read.data ? cardRows(read.data) : [];
   const { shown, toggle } = useShown(rows);
@@ -241,7 +248,7 @@ function TheirCards({ read, opponents, mode, order }) {
   const floor = read.data?.applied?.min_battles;
   return (
     <Panel
-      title="Across the table from you"
+      title={`Across the table from ${whose.them}`}
       titleId={id}
       action={
         <span className="ladder-aside">
@@ -261,19 +268,22 @@ function TheirCards({ read, opponents, mode, order }) {
     >
       {read.isPending ? (
         <div className="panel__body">
-          <Loading what="the cards you faced" />
+          <Loading what={`the cards ${whose.you} faced`} />
         </div>
       ) : read.isError ? (
         <div className="panel__body">
-          <ReadError error={read.error} what="the cards you faced" />
+          <ReadError error={read.error} what={`the cards ${whose.you} faced`} />
         </div>
       ) : rows.length ? (
         <Table
           columns={[
-            { head: "Their card", cell: (r) => <CardCell row={r} /> },
+            {
+              head: whose.own ? "Their card" : "Opponent's card",
+              cell: (r) => <CardCell row={r} />,
+            },
             { head: "Faced", num: true, cell: (r) => fmt(r.battles) },
             {
-              head: "Your record",
+              head: `${whose.Your} record`,
               cell: (r) => <Record wins={r.wins} losses={r.losses} />,
             },
             { head: "Level gap", num: true, cell: (r) => gapText(r.gap) },
@@ -291,11 +301,12 @@ function TheirCards({ read, opponents, mode, order }) {
       )}
       {toggle}
       <div className="panel__foot">
-        Your record in the battles where the opponent&apos;s deck held the card
+        {whose.Your} record in the battles where the opponent&apos;s deck held
+        the card
         {order === "losses" ? ", most battles lost first" : ""}. Level gap is
-        your deck&apos;s average card level minus your opponent&apos;s in those
-        battles (positive: yours were higher); a dash where the record has no
-        levels.
+        {whose.your} deck&apos;s average card level minus {whose.your}{" "}
+        opponent&apos;s in those battles (positive: {whose.yours} were higher);
+        a dash where the record has no levels.
         {floor
           ? ` Cards met in fewer than ${fmt(floor)} ${noun(floor, "battle")} are left out.`
           : ""}
@@ -306,6 +317,7 @@ function TheirCards({ read, opponents, mode, order }) {
 
 /** How many players you met in this mode, and the ones you met again. */
 function Opponents({ read, label, when, order }) {
+  const whose = useWhose();
   const id = useId();
   const body = read.data;
   const repeats = body?.opponents ?? [];
@@ -317,9 +329,9 @@ function Opponents({ read, label, when, order }) {
     <Panel title="Opponents" titleId={id} aria-labelledby={id}>
       <div className="panel__body">
         {read.isPending ? (
-          <Loading what="your opponents" />
+          <Loading what={`${whose.your} opponents`} />
         ) : read.isError ? (
-          <ReadError error={read.error} what="your opponents" />
+          <ReadError error={read.error} what={`${whose.your} opponents`} />
         ) : (
           <>
             <p className="ladder-opponents__lede">

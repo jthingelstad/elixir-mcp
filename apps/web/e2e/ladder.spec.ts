@@ -1357,6 +1357,40 @@ test.describe("Ladder decks", () => {
 });
 
 test.describe("Ladder cards", () => {
+  test("a player you follow: their cards, the cards they faced, and whose deck is whose", async ({
+    page,
+  }) => {
+    const calls: ToolCall[] = [];
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/me": [200, { ...ME, claims: [...ME.claims, FRIEND] }],
+        "POST /api/explore": explore(calls),
+      }),
+    );
+    await page.goto("/home/you/stats/cards?player=8LQ2R9P");
+    await expect(
+      page.getByRole("heading", { name: "Their cards" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Across the table from them" }),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your cards" })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("columnheader", { name: "Their record" }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: "Opponent's card" }),
+    ).toBeVisible();
+    expect(
+      calls.every(
+        (c) => c.args.player_tag == null || c.args.player_tag === "#8LQ2R9P",
+      ),
+    ).toBe(true);
+  });
+
   test("the cards you played and faced in one mode, each form its own row, and the opponents", async ({
     page,
   }) => {

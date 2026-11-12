@@ -142,6 +142,7 @@ function ModeDecks({ mode, read, base }) {
 /** One deck: its name, its record, its eight cards, and a line of facts. Until
  *  its cards are read (or if that read fails) the names stand in. */
 function DeckRow({ row, full, pending, zone }) {
+  const whose = useWhose();
   const name = row.archetype_label ?? "Unnamed deck";
   const forms = formNames(full ?? row);
   return (
@@ -168,7 +169,9 @@ function DeckRow({ row, full, pending, zone }) {
         )}
       </div>
       {forms ? <p className="ladder-deckrow__line">{forms}</p> : null}
-      <p className="ladder-deckrow__line">{deckLine(row, full, zone)}</p>
+      <p className="ladder-deckrow__line">
+        {deckLine(row, full, zone, whose.own)}
+      </p>
     </li>
   );
 }
