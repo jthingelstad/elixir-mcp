@@ -161,7 +161,8 @@ with the note.
 
 Links go to the paths that serve the page: the console under `/console`
 (`/console/explore/player/<tag>`, `/console/explore/clan/<tag>`), Settings
-under `/settings`, Ladder at `/ladder?player=<tag>`, battles at
+under `/settings`, Ladder at `/ladder?player=<tag>` (Stats under You since
+2026-11-12; the app redirects `/ladder` to `/home/you/stats`, query kept), battles at
 `/battle/<short id>`, cards at `/cards/<id>`. The manage link is
 `/settings/emails`. A bulk mail never carries a magic link.
 

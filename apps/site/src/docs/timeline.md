@@ -60,8 +60,10 @@ cheered in words ("You and 2 others", "3 people"): never who. Every member
 whose feed shows the item sees the same counts. Your account's own items
 (a sign-in, a feedback answer) take no cheers.
 
-A cheer stays on Home. It goes to no Discord channel, mail, bell or agent,
-and `elixir_timeline` does not carry it; an agent cannot cheer. You can give
+A cheer stays in Elixir. It goes to no Discord channel, mail or agent,
+and `elixir_timeline` does not carry it; an agent cannot cheer. The bell
+counts the cheers on items about your own verified players, never naming
+who ([the bell](/docs/your-account#the-bell)). You can give
 up to 120 cheers an hour.
 
 ## Your RSS link

@@ -163,7 +163,7 @@ about a minute.
 
 ### Share with your context
 
-In Ladder › Battles, choose a recorded battle. Inspect
+In Stats › Battles, choose a recorded battle. Inspect
 its facts, then choose **Share with your context** for a primary or alt on
 your account. Write up to 500 characters about why it mattered, or leave it
 blank, and preview the message before copying it or opening your device's

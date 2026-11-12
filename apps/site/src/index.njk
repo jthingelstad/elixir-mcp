@@ -1,14 +1,17 @@
 ---
 layout: base.njk
-title: "Your Clash Royale, on the record"
-description: "Elixir keeps every Clash Royale battle, clan week and river race it records, and reads it back: on your Ladder, inside your clan, in a short weekly email, or to your own AI agent over MCP. The card catalog is public."
+title: "Keep up with your friends in Clash Royale"
+description: "Elixir is the social layer of Clash Royale: your friends' sessions, their firsts and the battles they are proud of, with your clan's week beside them. Free; everything inside needs an account. The card catalog is public."
 permalink: /index.html
 canonical: /
 navActive: home
 ---
-{#- The front door: what Elixir is for a player, what each part of it does,
-    Drop next door, an agent exchange (it says what the record is FOR), the
-    totals baked from /api/public/stats at build, and the way in.
+{#- The front door, signed out: sign in or join (the canvas's signed-out
+    shell, Jamie's go 2026-11-12: "Approved: build the remaining canvas
+    pieces (…, signed-out shell, …)"). The gate leads; below it, what each
+    part of Elixir does, Drop next door, an agent exchange and the totals
+    baked from /api/public/stats at build, all still public. Signed in, the
+    same page offers Open Elixir.
 
     No number on this page is invented. The tiles describe a part of
     Elixir instead of showing a record, because a visitor here has none
@@ -16,22 +19,26 @@ navActive: home
 {%- set t = stats.totals %}
 {%- set drop = familyBar.products | selectattr("game") | first %}
 <div data-home>
-<section class="grid items-center gap-6 pt-6 wide:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] wide:gap-10 wide:pt-10">
+<section class="grid items-center gap-6 pt-6 wide:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] wide:gap-10 wide:pt-10" aria-labelledby="home-gate">
   <div class="flex min-w-0 flex-col items-start gap-5">
     <span class="chip chip--ok" data-recording-now hidden><span class="chip__dot"></span>Recording now</span>
-    <h1 class="home-title">Your Clash Royale,<br />on the record.</h1>
+    <h1 class="home-title" id="home-gate">Keep up with your friends in Clash Royale</h1>
     <p class="home-lede">
-      Track your player and Elixir keeps your battles, clan weeks and river races, and
-      reads it back: on your Ladder, inside your clan, in a short weekly
-      email, or to your own AI.
+      Their sessions, their firsts and the battles they are proud of, with
+      your clan&rsquo;s week beside them. Elixir is free; everything inside
+      needs an account.
     </p>
-    <div class="flex flex-wrap items-center gap-3">
-      <a class="btn btn--primary btn--lg" data-session-face="out" href="/signin?signup">Create your account</a>
-      <a class="btn btn--primary btn--lg" data-session-face="in" href="{{ familyBar.products[0].path }}">Open Elixir</a>
-      <a class="btn btn--text" href="{{ familyBar.sampleBattle.path }}">{{ familyBar.sampleBattle.label }}</a>
+    <div class="flex flex-wrap items-center gap-3" data-session-face="out">
+      <a class="btn btn--primary btn--lg" href="/signin?signup">Create an account</a>
+      <a class="btn btn--lg" href="{{ familyBar.signIn.path }}">{{ familyBar.signIn.label }}</a>
+    </div>
+    <div class="flex flex-wrap items-center gap-3" data-session-face="in">
+      <a class="btn btn--primary btn--lg" href="{{ familyBar.products[0].path }}">Open Elixir</a>
     </div>
     <p class="footnote m-0" data-session-face="out">
-      Free signup. Verify your email, then add your player.
+      A friend&rsquo;s shared highlight opens without an account. Everything
+      else, players, clans, the map and search, is for members.
+      <a href="{{ familyBar.sampleBattle.path }}">{{ familyBar.sampleBattle.label }}</a>
     </p>
   </div>
   <div class="home-art">
@@ -55,19 +62,6 @@ navActive: home
         <li class="home-tile__caption">An agent is optional</li>
       </ul>
       <a class="home-tile__cta" href="/home">Get started ›</a>
-    </article>
-
-    <article class="home-tile">
-      <span class="home-tile__head"><span class="home-tile__icon">{% icon "chart-line", 18 %}</span><span class="home-tile__product">Ladder</span></span>
-      <h3 class="home-tile__question">How am I actually doing?</h3>
-      <p class="home-tile__text">Your battles read back by mode, day, deck and card. Trophy Road and war never share a column. A mirror, not a coach.</p>
-      <ul class="home-tile__sample" aria-label="The modes Ladder reads">
-        <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--ladder"></span>Trophy Road</li>
-        <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--ranked"></span>Path of Legends</li>
-        <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--war"></span>War</li>
-        <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--event"></span>Casual</li>
-      </ul>
-      <a class="home-tile__cta" href="/ladder">Open Ladder ›</a>
     </article>
 
     <article class="home-tile">

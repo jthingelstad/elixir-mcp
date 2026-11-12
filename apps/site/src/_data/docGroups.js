@@ -21,7 +21,7 @@ export const DOC_TOPS = [
 
 export default [
   { key: "start", label: "Start", icon: "compass", top: "use" },
-  { key: "ladder", label: "Ladder", icon: "chart-line", top: "use" },
+  { key: "ladder", label: "Stats", icon: "chart-line", top: "use" },
   { key: "clan", label: "Clan", icon: "users", top: "use" },
   { key: "friends", label: "Friends and emails", icon: "heart", top: "use" },
   { key: "policy", label: "Account and policy", icon: "shield", top: "use" },

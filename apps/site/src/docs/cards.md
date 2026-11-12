@@ -60,7 +60,7 @@ A tower troop is the ninth card in a deck identity. The API reports none on rive
 
 ## A card's own page
 
-Every deck card has a public page at `/cards/<card id>` with its name, art, rarity, cost and forms; tower troops have none. A battle's page and Ladder's decks link each card there. These pages serve catalog facts only.
+Every deck card has a public page at `/cards/<card id>` with its name, art, rarity, cost and forms; tower troops have none. A battle's page and Stats' decks link each card there. These pages serve catalog facts only.
 
 Earliest play uses the recorded deck identity for each game or duel round; it does not infer a release date or compare your play with the game as a whole.
 

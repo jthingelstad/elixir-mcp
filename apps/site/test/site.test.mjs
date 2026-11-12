@@ -730,7 +730,8 @@ test(
       t.label,
       t.path,
     ]);
-    // Signed out: the public places, Sign in, Create account.
+    // Signed out: Docs, Sign in, Create account (the canvas's shell,
+    // 2026-11-12); Cards and Updates are in the footer.
     assert.deepEqual(
       hrefs('.kit-top__out[data-session-face="out"] a'),
       kit.FAMILY_SIGNED_OUT.map((p) => [p.label, p.path]),
@@ -762,8 +763,9 @@ test(
         .getAttribute("aria-label"),
       kit.FAMILY_PLACES.help.label,
     );
-    const drop = site.querySelector('.kit-top__drop[data-session-face="in"]');
-    assert.equal(drop.getAttribute("target"), "_blank");
+    // Play Drop left the bar (2026-11-12): the footer carries it.
+    assert.equal(site.querySelector(".kit-top__drop"), null);
+    const drop = site.querySelector('footer.kit-foot a[target="_blank"]');
     assert.match(drop.getAttribute("rel"), /noopener/);
     assert.equal(
       site
@@ -793,11 +795,12 @@ test(
     const kit = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
     const { JSDOM } = await import("jsdom");
     for (const [page, want] of [
-      ["index.html", "/"],
-      ["cards/index.html", "/cards"],
-      ["cards/26000000/index.html", "/cards"],
-      ["updates/index.html", "/updates"],
+      ["index.html", null],
+      ["cards/index.html", null],
+      ["cards/26000000/index.html", null],
+      ["updates/index.html", null],
       ["docs/index.html", "/docs"],
+      ["docs/about/index.html", "/docs"],
       ["data/index.html", null],
     ]) {
       const doc = new JSDOM(read(page)).window.document;
@@ -1550,7 +1553,7 @@ test(
     const doc = new JSDOM(read("index.html")).window.document;
     assert.match(
       doc.querySelector("h1").textContent,
-      /Your Clash Royale,\s*on the record\./,
+      /Keep up with your friends in Clash Royale/,
     );
     const art = doc.querySelector(".home-art img");
     assert.equal(art.getAttribute("src"), "/assets/elixir-logo-288.webp");
@@ -1560,13 +1563,12 @@ test(
     const tiles = [...doc.querySelectorAll(".home-tile")];
     assert.deepEqual(
       tiles.map((t) => t.querySelector(".home-tile__product").textContent),
-      ["Your record", "Ladder", "Clan", "Friends", "Emails", "Your AI"],
+      ["Your record", "Clan", "Friends", "Emails", "Your AI"],
     );
     assert.deepEqual(
       tiles.map((t) => t.querySelector(".home-tile__cta").getAttribute("href")),
       [
         "/home",
-        "/ladder",
         "/docs/bring-your-clan",
         "/docs/follow-a-friend",
         "/docs/email",
@@ -1676,11 +1678,12 @@ test(
   "the home page shows a recorded battle beside its signup",
   { skip },
   () => {
-    // One battle, named once in the kit's family manifest.
+    // One battle, named once in the kit's family manifest, in the gate's
+    // signed-out footnote: a shared battle opens without an account.
     const html = read("index.html");
     assert.match(
       html,
-      /<a class="btn btn--text" href="\/battle\/[0-9a-f]{12}">See a recorded battle<\/a>/,
+      /<a href="\/battle\/[0-9a-f]{12}">See a recorded battle<\/a>/,
     );
   },
 );

@@ -12,7 +12,7 @@ navActive: docs
   pages that exist (`docPages` leaves out a slug no page has yet).
 -#}
 {%- set tasks = [
-  { icon: "chart-line", title: "See how I am doing", product: "Ladder",
+  { icon: "chart-line", title: "See how I am doing", product: "Stats",
     text: "Your season as Elixir recorded it, one mode at a time: your battles, record and win rate week by week, and the deck you played most.",
     slugs: ["ladder"] },
   { icon: "users", title: "Run my clan", product: "Clan",
@@ -32,7 +32,7 @@ navActive: docs
     slugs: ["sign-in-with-elixir", "json-api", "integrations", "operators"] }
 ] %}
 {%- set panels = [
-  { title: "Use Elixir", text: "What each page shows and how to read it: your Ladder, your clan, your friends, your emails, your account.",
+  { title: "Use Elixir", text: "What each page shows and how to read it: your stats, your clan, your friends, your emails, your account.",
     links: [["Welcome", "/docs/about"]] },
   { title: "Connect an AI", text: "Connect a client, what your agent can read, which tool answers what, and ten recorded examples.",
     links: [["Connect an agent", "/docs/connections"], ["All examples", "/examples"]] },
@@ -41,7 +41,7 @@ navActive: docs
 ] %}
 <nav class="docs__crumb" aria-label="Breadcrumb"><span aria-current="page">Docs</span></nav>
 <h1 class="hero-title docs__title">Elixir docs</h1>
-<p class="docs__lede">Elixir keeps your Clash Royale record and reads it back to you: on your Ladder, in your clan, by email and through your own AI. Start with what you want to do.</p>
+<p class="docs__lede">Elixir keeps your Clash Royale record and reads it back to you: in your stats, in your clan, by email and through your own AI. Start with what you want to do.</p>
 
 <div class="docs-tasks">
   {%- for t in tasks %}

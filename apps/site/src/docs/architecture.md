@@ -73,7 +73,7 @@ description of record**; there is no fuller internal one.
 
 Everything cloud-side is serverless: RDS Postgres, S3 and eight Lambdas in
 one CloudFormation stack, inside a VPC with no NAT. The **web API** serves
-Home, Ladder, Clan, the JSON API and battle pages; **MCP**
+Home, Stats, Clan, the JSON API and battle pages; **MCP**
 serves the MCP and OAuth doors; **collector** is the collector door;
 **scheduler** plans fetch jobs into the Postgres job ledger on every tick;
 **jobs** runs scheduled product work (mail, sweeps, Clan's morning run);
@@ -161,7 +161,7 @@ service's, and nothing on the timeline announces the time, which is
 Feedback is a first-class product surface, not a mailbox. Agents file
 it mid-session with `elixir_send_feedback` (attributed to the account that
 connected: yours on your own connection, the agent's on an agent's);
-people file it from Settings, Ladder, Clan, the docs and an
+people file it from Settings, Stats, Clan, the docs and an
 email's footer, and integrations over the JSON API. It is one record
 for all of Elixir, each item tagged with the part of Elixir it is about
 and what it points at (a call, an email, a clan action). Every item gets a maintainer response, sometimes written with help from AI agents,

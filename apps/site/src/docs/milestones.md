@@ -75,7 +75,7 @@ Evolution or Hero is shown as its art, in the form you unlocked, and opens the
 card's page in Elixir. With none of those,
 the first three of anything lead. The rest are listed under **Also**. The subject is the first
 headline, with how many more ride along. The button at the foot opens
-that player's season on [Ladder](/docs/ladder).
+that player's season on [Stats](/docs/ladder).
 
 ## Turning it off
 

@@ -1,7 +1,7 @@
 ---
 slug: ladder-battles
-title: "Ladder battles"
-description: "The Battles tab in Ladder: each day played, and every recorded battle with its deck, opponent and result."
+title: "Stats battles"
+description: "The Battles tab in Stats: each day played, and every recorded battle with its deck, opponent and result."
 section: ladder
 order: 3
 navTitle: "Battles"
@@ -40,7 +40,7 @@ is a list of the days, newest first.
 
 ## Battles
 
-**Battles**, at `/ladder/battles`, lists the season's battles in the chosen
+**Battles**, at `/home/you/stats/battles`, lists the season's battles in the chosen
 mode, newest first: a panel for each day, headed by its count and record, and
 under it each sitting, a run of battles with no gap longer than 30 minutes. A
 sitting that crosses midnight splits, so a day's panel matches its day on the
@@ -51,7 +51,7 @@ shows seven days until you ask for older ones. On **Other**, Challenge and
 Tournament each have their own days and sittings, so no count or record crosses
 the two.
 
-War battles are listed like any other, each on the day you played it: Ladder
+War battles are listed like any other, each on the day you played it: Stats
 shows your battles one by one. Elixir shows war by the week where it is about
 your clan's war, such as the decks a member used in a race week, as the line at
 the top says.
@@ -59,4 +59,4 @@ the top says.
 A defense of your clan's boat is not your battle, so Battles leaves it out, as
 the Season tab does.
 
-The old address, `/ladder/days`, lands here with its player, mode and season.
+The old addresses, `/ladder/days` and `/ladder/battles`, land here with its player, mode and season.
