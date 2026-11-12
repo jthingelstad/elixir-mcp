@@ -6,7 +6,9 @@
  * share and delete; a shared post opens signed out and carries nothing
  * about the account; a deleted one is a 404; a name and words are escaped
  * at each output; the timeline item carries the words, and the share link
- * only for its owner.
+ * only for its owner; a post and an edit that changes the words wake the
+ * Discord syndication of the timelines the player reaches, and an edit
+ * is the same item at a higher revision.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -49,7 +51,9 @@ const SHELL = `<!doctype html><html><head>
 let db, handler;
 const sent = [];
 const cookies = {};
-let battleId, otherBattleId, ownerId;
+let battleId, otherBattleId, ownerId, friendId;
+// The syndication wakes the routes write (the outbox's timeline-sync lane).
+const wakes = [];
 
 const request = (method, p, { body, who, contract = true } = {}) =>
   handler({
@@ -178,6 +182,10 @@ before(async () => {
     notifyOwner: async () => {},
     sendWelcomeEmail: async () => {},
     siteShell: async () => SHELL,
+    discord: {
+      outbox: async (lane, message, opts) =>
+        wakes.push({ lane, message, opts }),
+    },
     shareImage: makeShareImage({
       assets: async () =>
         Object.fromEntries(
@@ -191,7 +199,7 @@ before(async () => {
     }),
   });
   ownerId = await account(OWNER, "verified");
-  await account(FRIEND, "unverified");
+  friendId = await account(FRIEND, "unverified");
   await account(STRANGER, null);
   cookies.owner = await signIn(OWNER);
   cookies.friend = await signIn(FRIEND);
@@ -450,4 +458,68 @@ test("the timeline item carries the words, and the link only for its owner", asy
   assert.ok(seen);
   assert.equal(seen.facts.words, HOSTILE_WORDS);
   assert.equal("share_url" in seen.facts, false);
+});
+
+test("a post and a changed edit wake the Discord syndication; the edit is the same item grown", async () => {
+  // The friend cross-posts their timeline, which follows the player.
+  await db.query(
+    `insert into timeline_discord (account_id, webhook_sealed, webhook_fp,
+       webhook_display)
+     values ($1, '{}', '0123456789abcdef', 'hook ...abcd')`,
+    [friendId],
+  );
+  const syncWakes = () =>
+    wakes
+      .filter((w) => w.lane === "timeline-sync")
+      .map((w) => w.message.account_id);
+  wakes.length = 0;
+  const made = await call("POST", "/api/me/highlights", {
+    who: "owner",
+    body: { battle: battleId, words: "before" },
+  });
+  assert.equal(made.status, 201, JSON.stringify(made.body));
+  assert.deepEqual(syncWakes(), [friendId]);
+  const id = made.body.highlight.highlight_id;
+  const read = async () =>
+    (
+      await call("GET", "/api/me/timeline", { who: "friend" })
+    ).body.timeline.find(
+      (it) => it.kind === "battle_highlight" && it.facts.highlight_id === id,
+    );
+  const first = await read();
+  assert.equal(first.revision, 1);
+  assert.equal(first.facts.words, "before");
+
+  // The same words again change nothing and wake nothing.
+  wakes.length = 0;
+  const same = await call("PUT", `/api/me/highlights/${id}`, {
+    who: "owner",
+    body: { words: "before" },
+  });
+  assert.equal(same.status, 200);
+  assert.deepEqual(syncWakes(), []);
+  assert.equal((await read()).revision, 1);
+
+  // New words: a wake, and the same story at a higher revision, posted
+  // when it was.
+  const edited = await call("PUT", `/api/me/highlights/${id}`, {
+    who: "owner",
+    body: { words: "after" },
+  });
+  assert.equal(edited.status, 200);
+  assert.deepEqual(syncWakes(), [friendId]);
+  const grown = await read();
+  assert.equal(grown.id, first.id);
+  assert.equal(grown.revision, 2);
+  assert.equal(grown.at, first.at);
+  assert.equal(grown.facts.words, "after");
+  assert.ok(grown.observed_at >= first.observed_at);
+
+  // A deletion wakes nothing: no sync takes a line back.
+  wakes.length = 0;
+  const gone = await call("DELETE", `/api/me/highlights/${id}`, {
+    who: "owner",
+  });
+  assert.equal(gone.status, 200);
+  assert.deepEqual(syncWakes(), []);
 });
