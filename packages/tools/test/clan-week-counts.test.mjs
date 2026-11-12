@@ -156,6 +156,28 @@ test("why they differed: the learned clock and the ISO week count other battles"
     assert.equal(entry.activity.battles, 3);
     assert.equal(entry.activity.late_captures, 1);
 
+    // A read that serves no activity (#649) leaves the two late counts
+    // out and says everything else the same, its sentence included.
+    const lean = (
+      await buildClanEntry(db, {
+        tag: CLAN,
+        fromMs: FROM,
+        toMs: TO,
+        lateCounts: false,
+      })
+    ).entry;
+    assert.equal(lean.activity.late_captures, null);
+    assert.equal(lean.activity.played_here_learned_later, null);
+    const strip = (e) => ({
+      ...e,
+      activity: {
+        ...e.activity,
+        late_captures: null,
+        played_here_learned_later: null,
+      },
+    });
+    assert.deepEqual(lean, strip(entry));
+
     // clans_participation counts per member by ISO week, any clan: Monday
     // morning's battle and the other clan's are in Ann's six, and the pair
     // is in both members', so the column sums to seven against five.

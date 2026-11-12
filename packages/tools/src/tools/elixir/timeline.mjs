@@ -332,6 +332,10 @@ export const elixir_timeline = {
         // Leaders-only facts need the person's own consent, not a key.
         interactive: ctx.account.credentialType === "oauth",
         memberTag,
+        // A clan entry's late counts are said only in its activity
+        // section, which compact and a sections filter without it drop
+        // (keep, below): leave out the month-long walk they cost (#649).
+        lateCounts: !compact && (!sections || sections.includes("activity")),
         filter: (it) =>
           (!sections || sections.includes(it.section)) &&
           (!kinds || kinds.includes(it.kind)) &&
