@@ -133,12 +133,17 @@ test(
     );
     render(<App />);
 
-    // On the field it came for, ready to type in.
-    const input = await waitFor(() => {
-      const el = document.getElementById("add-player-tag");
-      expect(document.activeElement).toBe(el);
-      return el;
-    });
+    // On the field it came for, ready to type in. The first paint loads
+    // the Settings chunk cold; on a loaded machine that outlasted the 5 s
+    // wait with nothing drawn yet (2026-11-12), so this first wait is longer.
+    const input = await waitFor(
+      () => {
+        const el = document.getElementById("add-player-tag");
+        expect(document.activeElement).toBe(el);
+        return el;
+      },
+      { timeout: 15000 },
+    );
     fireEvent.change(input, { target: { value: player.player_tag } });
     fireEvent.click(input.closest("form").querySelector("button"));
 
