@@ -36,7 +36,7 @@
  * Gym's case stays as filed, SKIPPED with the reason, 148.1).
  */
 
-import { answered, ok, fail } from "./lib.mjs";
+import { answered, ok, fail, timedOut } from "./lib.mjs";
 
 const SEG = /^([A-Za-z_][A-Za-z0-9_]*)((?:\[[^\]]*\])*)$/;
 
@@ -479,6 +479,7 @@ export function gymCases(blocks) {
             const r = await ctx.read(c.tool, c.args ?? {}, {
               fresh: b.fresh === true,
             });
+            if (timedOut(r)) answered(r, `${c.tool} ${JSON.stringify(c.args)}`);
             root[alias] = r.body; // a refusal is a body too (nc.errors.*)
             ms = (ms ?? 0) + (r.ms ?? 0);
           }
@@ -492,11 +493,15 @@ export function gymCases(blocks) {
           // into error (error.code, or has: "error"), or the notes verbs,
           // which read error.message and error.hint on a refusal (the
           // README's vocabulary; Gym 93.3-93.5 were refused-and-right).
+          // A timeout is never that refusal: it says nothing about the
+          // case, and read as a body it let 215.2's `when` hold over an
+          // absent list and fail as "no note says it" (2026-11-12).
           if (
             r.isError &&
-            !b.assert?.some((a) =>
-              /"error\b|"notes_(not_)?match"/.test(JSON.stringify(a)),
-            )
+            (timedOut(r) ||
+              !b.assert?.some((a) =>
+                /"error\b|"notes_(not_)?match"/.test(JSON.stringify(a)),
+              ))
           )
             answered(r, `${b.tool} ${JSON.stringify(b.args)}`);
         }

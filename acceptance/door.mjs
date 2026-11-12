@@ -29,11 +29,25 @@ export function loadEnv(file = path.join(here, ".env")) {
   return env;
 }
 
+/** How long the suite waits for one call. Past the MCP function's own
+ *  kill (`TimeoutSeconds: 25` on elixir-mcp-mcp-web), so the server's
+ *  answer is always the one read: every read-only tool races the
+ *  function's deadline (25 s less 1.5 s) and answers query_timeout with a
+ *  request id, and only the analytical tools stop at 18 s. At 20 s the
+ *  suite abandoned elixir_timeline reads the server answered at 22-24 s
+ *  (2026-11-12, gym/215.2), and the case then read the abandonment as its
+ *  answer. A test pins this above the template's timeout. */
+export const DOOR_TIMEOUT_MS = 30_000;
+
+/** The code a call the suite abandoned at its own deadline answers with:
+ *  not a refusal the server made, and never an answer a case asserts on. */
+export const REQUEST_TIMEOUT = "request_timeout";
+
 export function makeDoor({
   url,
   token,
   fetchImpl = fetch,
-  timeoutMs = 20_000,
+  timeoutMs = DOOR_TIMEOUT_MS,
 }) {
   let seq = 0;
   async function rpc(method, params) {
@@ -48,7 +62,10 @@ export function makeDoor({
           work,
           new Promise((_, reject) => {
             timer = setTimeout(() => {
-              const error = new Error(`${method}: request timeout`);
+              const error = new Error(
+                `${method}: request timeout after ${timeoutMs} ms`,
+              );
+              error.code = REQUEST_TIMEOUT;
               controller.abort(error);
               void onTimeout();
               reject(error);
@@ -68,8 +85,8 @@ export function makeDoor({
           authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ jsonrpc: "2.0", id: ++seq, method, params }),
-        // The server has an 18 s analytical budget. Keep the acceptance runner
-        // bounded when a connection or proxy fails to deliver its whole response.
+        // Keep the acceptance runner bounded when a connection or proxy
+        // fails to deliver its whole response (DOOR_TIMEOUT_MS).
         signal: controller.signal,
       }),
     );
@@ -117,9 +134,15 @@ export function makeDoor({
       ({ result, ms } = await rpc("tools/call", { name, arguments: args }));
     } catch (err) {
       // A JSON-RPC level refusal (scope, unknown tool) is an answer the
-      // suite asserts on, not a throw.
+      // suite asserts on, not a throw. The suite's own deadline is not a
+      // refusal: it carries its own code, so no case reads it as one.
       return {
-        body: { error: { code: "rpc_error", message: err.message } },
+        body: {
+          error: {
+            code: err?.code === REQUEST_TIMEOUT ? REQUEST_TIMEOUT : "rpc_error",
+            message: err.message,
+          },
+        },
         isError: true,
         ms: null,
       };
