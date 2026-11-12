@@ -124,6 +124,46 @@ test.describe("arriving at a clan", () => {
     await expect(page).toHaveURL(/\/members\/20qql8ccru$/);
   });
 
+  test("another of your players in the clan keeps its Clan tab", async ({
+    page,
+  }) => {
+    // Ben as your second player there, Ada the one you act as (Codex on
+    // #831): his page draws the Clan tab; Ada's place stays in Clan.
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/player": [
+          200,
+          {
+            player: {
+              tag: "#UQ8LP2R9C",
+              name: "Ben",
+              clan_tag: "#2PQRJ8LV",
+              clan_name: "Example Clan",
+              trophies: 7600,
+              recorded: true,
+            },
+            you: { own: true, following: false, relationship: "alt" },
+            badges: { verified_player: true, discord: false },
+            follows: null,
+            followers: null,
+            window_days: 30,
+            timeline: [],
+            timeline_more: 0,
+            moments: [],
+            highlights: [],
+          },
+        ],
+      }),
+    );
+    await page.goto("/clan/2PQRJ8LV/members/uq8lp2r9c");
+    await expect(page).toHaveURL(/\/home\/player\/UQ8LP2R9C\?tab=clan$/);
+    await expect(page.getByRole("tab", { name: "Clan" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
   test("picking a clan lands on its Feed; Back is the chooser", async ({
     page,
   }) => {
