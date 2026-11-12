@@ -30,11 +30,6 @@ const ROLE_COUNT = {
   coLeader: ["co-leader", "co-leaders"],
   elder: ["elder", "elders"],
 };
-const TYPE = {
-  open: "Open to anyone",
-  inviteOnly: "Invite only",
-  closed: "Closed",
-};
 /** Above this many members the roster opens on the first SHOWN rows and
  *  offers the rest, as the canvas does. */
 const LONG = 30;
@@ -184,24 +179,10 @@ export function RosterTable({
   );
 }
 
-function ClanHeader({ roster }) {
-  return (
-    <PageHead
-      title="Roster"
-      lede={
-        roster
-          ? [
-              TYPE[roster.type],
-              roster.required_trophies != null
-                ? `${num(roster.required_trophies)} trophies to join`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")
-          : null
-      }
-    />
-  );
+/** The roster's head. How the clan takes members and its trophy floor
+ *  are the clan card's line, above every page (G5). */
+function ClanHeader() {
+  return <PageHead title="Roster" />;
 }
 
 /** The clan's own figures as tiles: what the roster read returned. */
@@ -406,7 +387,7 @@ export function Clan({ me, clan, navigate, search = "", fromRun = false }) {
 
   return (
     <ZoneProvider zone={roster?.meta?.timezone_applied ?? null}>
-      <ClanHeader roster={roster} />
+      <ClanHeader />
       {fromRun ? (
         <div className="mb-[22px]">
           <div className="callout callout--info mb-3" role="status">
