@@ -149,5 +149,15 @@ test.describe("clan directory @narrow", () => {
     await expect(tiles(page)).toHaveCount(3);
     await expect(page).toHaveURL(/\/clan\/directory$/);
     await fitsTheScreen(page);
+    // A clan's address (an old mail link, a Discord post) finds it there
+    // too, rather than the gate's refusal (Codex on #828).
+    await page.goto("/clan/Q8G0LVPY");
+    await expect(page).toHaveURL(/\/clan\/directory\?q=Q8G0LVPY$/);
+    await expect(page.getByRole("searchbox", { name: "Search" })).toHaveValue(
+      "Q8G0LVPY",
+    );
+    // Its pages are still the gate's.
+    await page.goto("/clan/clans");
+    await expect(page).toHaveURL(/\/clan\/refused\/no_clan$/);
   });
 });
