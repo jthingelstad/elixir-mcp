@@ -20,7 +20,7 @@ in those servers, so quality is judged only from what Elixir kept
 
 Never stored, so never looked for: the webhook URL (only its
 fingerprint), the clan's Anthropic key, any tag the record does not
-already hold. Admin ▸ Discord in the Console shows the same numbers to
+already hold. Settings ▸ Admin ▸ Discord (`/settings/admin/discord`) shows the same numbers to
 Jamie; this skill is the agent's path to them.
 
 ## Rules

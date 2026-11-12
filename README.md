@@ -7,7 +7,7 @@ timelines, no battle archive beyond a rotating log of about 30 battles, no
 per-season history. Elixir MCP records those observations continuously and
 keeps them. It records the players and clans its accounts track and the
 members of the clans it tracks. The record is served on one origin: the
-Home, Ladder and Elixir Clan in the browser, an authenticated remote MCP
+Home, Stats and Elixir Clan in the browser, an authenticated remote MCP
 server for agents, and a versioned JSON API.
 
 - Web: <https://elixir.poapkings.com>

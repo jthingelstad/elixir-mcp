@@ -1,10 +1,9 @@
 # Ladder
 
 *Overtaken in part, 2026-11-12: Ladder is Stats under You, and Stats opens
-for the players you follow, so "A friend's or a watched player's season
-is theirs, not on Ladder" and "show a friend's season" under what it never
-does no longer hold (DECISIONS "Stats opens for the players you
-follow").*
+for the players you follow (DECISIONS "Stats opens for the players you
+follow"). Who it serves and what it never does are corrected below; the
+rest of the brief is not rewritten.*
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
@@ -24,8 +23,10 @@ without an agent. [Jamie, 2026-10-02, 2026-10-03]
 
 ## Who it serves
 
-The signed-in person, for their own players: the primary and any alt.
-A friend's or a watched player's season is theirs, not on Ladder.
+The signed-in person, for their own players (the primary and any alt)
+and for the players they follow, opened from that player's page. A
+watched player's season, and a stranger's, is not on Stats. [Jamie,
+2026-10-03, 2026-11-12]
 Orientation is part of release readiness: someone opening Elixir
 understands it is a recorder and sees their next step. [Jamie,
 2026-10-03]
@@ -59,7 +60,8 @@ understands it is a recorder and sees their next step. [Jamie,
 
 ## What it never does
 
-Coach, judge or pace; show a friend's season; pool modes; run a model;
+Coach, judge or pace; show the season of a player you do not follow
+(a watched player or a stranger); pool modes; run a model;
 show a number without its count.
 
 ## A person's own reads are unmetered

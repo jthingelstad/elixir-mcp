@@ -9,7 +9,13 @@ Four product kinds are active (`ACTIVE_PRODUCT_EMAIL_KINDS` in
 the one digest, weekly or daily by the reader's choice, and
 `collector_activity` weekly, only for collector operators) and two that
 come when something happens (`clan_actions_waiting`, `feedback_answer`).
-The collector upgrade notice is part of `collector_activity`.
+The collector upgrade notice is part of `collector_activity`. The digest
+is the one scheduled mail to members; `collector_activity` (to the
+people running a collector) and `clan_actions_waiting` (to leaders with
+an Action waiting, at most once a day per clan) are operational mail to
+a role and stand outside it (DECISIONS "The digest is the one scheduled
+mail; leaders' Actions mail stays apart"). Sign-in codes, the welcome
+and staff notices are transactional, from the relay.
 
 Retired (`RETIRED_EMAIL_KINDS`): `top_100`, `card_of_week`, and since
 2026-11-12 `clan_report`, `arena_week` and `milestone`, folded into the
@@ -164,11 +170,11 @@ Every report carries the coverage caveat; the numbers are honest only
 with the note.
 
 Links go to the paths that serve the page: a player's page at
-`/home/player/<tag>`, a clan's record still written as
-`/console/explore/clan/<tag>` (the app redirects it to the clan directory
-since the Console folded on 2026-11-12), Settings
-under `/settings`, Ladder at `/ladder?player=<tag>` (Stats under You since
-2026-11-12; the app redirects `/ladder` to `/home/you/stats`, query kept), battles at
+`/home/player/<tag>` for every reader, a clan at `/clan/<tag>` (its War
+tab for a reader in the clan; Clan sends anyone else to the clan
+directory), Settings
+under `/settings`, Stats as `/ladder?player=<tag>` (the app redirects
+`/ladder` to `/home/you/stats`, query kept), battles at
 `/battle/<short id>`, cards at `/cards/<id>`. The manage link is
 `/settings/emails`. A bulk mail never carries a magic link.
 
@@ -203,7 +209,8 @@ is later cleanup.
 
 The digest of the people you follow replaced the friends mail on
 2026-11-12 (social slice 9, #767; Jamie's ruling is quoted in
-`docs/DECISIONS.md`, "Seven product kinds"). It keeps the kind key, so
+`docs/DECISIONS.md`, "The digest is the one scheduled mail; leaders'
+Actions mail stays apart"). It keeps the kind key, so
 the switch, every opt-out and every old unsubscribe link carry over; the
 HMAC covers the kind.
 
@@ -256,8 +263,8 @@ friends mail counted them. Attested facts never enter
   never gets a digest for clan news alone; one who had turned
   `arena_week` off gets alts as a name and battle count, as before. No
   one gets more mail than before the merge; digest off stays off.
-- Names link to the current player door (`playerDoor`); a player page
-  from slice 6 is not on main yet.
+- Names link to the player page (`playerDoor`, `/home/player/<tag>`),
+  for every reader.
 - Everything a person typed (names, nicknames, words) is escaped at the
   render (`packages/mail/test/hostile-names.test.mjs`).
 
@@ -402,8 +409,8 @@ sign-in code, welcome and operator notices included:
   rose; gold is the brand and the button, never a figure.
 - **One preheader:** each renderer hands the shell the preheader it
   returns.
-- **Size:** the clan report links the roster rather than tabling it; a
-  test renders a 50-member week under 95,000 bytes (Gmail clips at
+- **Size:** the retired clan report's stored form links the roster
+  rather than tabling it; a test renders a 50-member week under 95,000 bytes (Gmail clips at
   ~102 KB).
 - **Layout:** one content panel, normal-case section headings, at most
   two open headline figures across, and fluid rows. The war bracket
@@ -426,9 +433,9 @@ sign-in code, welcome and operator notices included:
 Every figure a mail shows is one a tool returned; what a board drew that
 no tool returns is left out, not estimated.
 
-## The console page
+## The Settings page
 
-Account › Emails from Elixir (`apps/web/src/views/account/EmailPage.jsx`):
+Settings › Emails (`apps/web/src/views/account/EmailPage.jsx`):
 the two scheduled kinds (the digest with its cadence, and collector
 activity) as rows showing the day each arrives in the account's zone,
 the two event kinds below them, the last

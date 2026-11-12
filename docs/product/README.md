@@ -57,7 +57,7 @@ consumes from Elixir is the JSON API and integrations brief.
 | [Home](home.md) | a person's day: one feed beside their week and clan, Find and You, and the first steps of a new account |
 | [Console](console.md) | the account's machinery, now Settings; the Console folds into You, player pages and Settings (2026-11-12) |
 | [Timeline](timeline.md) | what a story is, the newsfeed, delivery to Discord, who narrates |
-| [Mail](mail.md) | each kind, who gets it, what it may say; its set is overtaken by the one digest (2026-11-12) |
+| [Mail](mail.md) | the digest and the operational mails, who gets each, what it may say; rewritten 2026-11-12 for the one digest |
 | [Ladder](ladder.md) | a mirror of a person's play, now Stats under You, open for the players you follow (2026-11-12) |
 | [Clan](clan.md) | the clan vertical, with its sub-briefs (its arrangement to be rewritten at step 4, see Structure) |
 | [JSON API and integrations](integrations.md) | the family seam, keys, what is first-party |

@@ -119,7 +119,7 @@ day. Walk `../consistency/facets.md` section 3, and grep the field and
 its column across `services/`, `apps/web/src/` and `packages/mail/`:
 
 - **Timeline entries** (`packages/tools/src/activity/entries.mjs`,
-  `summary.mjs`), which the milestone, arena and clan mail import too.
+  `summary.mjs`), which the digest imports too.
 - **Mail builders** (`services/jobs/src/email/build-*.mjs`). They call
   tools through `callTool` and read fields by name, so a rename breaks
   them. Some also run SQL of their own. Fixtures are in
