@@ -41,7 +41,12 @@ export function Cheers({ it }) {
       </p>
     ) : null;
 
+  // One write at a time per item: a second tap waits for the first's
+  // answer, so answers can never land out of order or roll back a newer
+  // cheer.
+  const busy = cheer.isPending;
   const tap = (key) => {
+    if (busy) return;
     const next = nextCheer(mine, key);
     setOpen(false);
     cheer.mutate({ item: it, next, shown: withMyCheer(it, next) });
@@ -54,6 +59,7 @@ export function Cheers({ it }) {
             key={c.key}
             type="button"
             className="kit-chip"
+            disabled={busy}
             aria-pressed={mine === c.key}
             aria-label={label(c)}
             onClick={() => tap(c.key)}
@@ -64,6 +70,7 @@ export function Cheers({ it }) {
         <button
           type="button"
           className="kit-chip"
+          disabled={busy}
           aria-expanded={open}
           aria-controls={open ? pickId : undefined}
           onClick={() => setOpen(!open)}
@@ -89,6 +96,7 @@ export function Cheers({ it }) {
               key={c.key}
               type="button"
               className="kit-chip"
+              disabled={busy}
               aria-pressed={mine === c.key}
               onClick={() => tap(c.key)}
             >

@@ -37,8 +37,9 @@ with an [engineering, 2026-11-12 (#765)] tail. Briefs: `docs/product/home.md`,
   read-only.
 - **The page.** `apps/web/src/home/Cheers.jsx` under each item that carries
   `cheers`: a chip per cheer the item has (count, pressed when yours), Cheer
-  opening the six, "You and 2 others" / "3 people", and an alert when a
-  cheer is not saved. `useCheer` (`lib/queries.js`) shows the change at once
+  opening the six, "You and 2 others" / "3 people", an alert when a
+  cheer is not saved, and one write at a time per item (its chips wait for
+  the answer, so answers never land out of order). `useCheer` (`lib/queries.js`) shows the change at once
   and puts the server's counts, or the old item back on a failure.
 - **The RSS link.** `GET|POST|DELETE /api/me/rss` read, make or reset, and
   turn off the link (resets 10 an hour on `rsslink#<account>`). The token is
