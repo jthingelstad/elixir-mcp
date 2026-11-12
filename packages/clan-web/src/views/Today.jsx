@@ -362,9 +362,7 @@ function Decided({ clan, navigate }) {
           </span>
         </CardHead>
         {shown.length ? (
-          <ul className="m-0 list-none divide-y divide-line-row p-0">
-            {shown.map(row)}
-          </ul>
+          <ul className="m-0 list-none p-0">{shown.map(row)}</ul>
         ) : (
           <p className="panel__body m-0 text-ink-dim">
             No action decided in the last 30 days.
@@ -375,9 +373,7 @@ function Decided({ clan, navigate }) {
             <summary className="cursor-pointer">
               Older actions · {older.length}
             </summary>
-            <ul className="m-0 mt-2 list-none divide-y divide-line-row p-0">
-              {older.map(row)}
-            </ul>
+            <ul className="m-0 mt-2 list-none p-0">{older.map(row)}</ul>
           </details>
         ) : null}
       </Panel>
@@ -388,7 +384,7 @@ function Decided({ clan, navigate }) {
           </span>
         </CardHead>
         {timeline.length ? (
-          <ul className="m-0 list-none divide-y divide-line-row p-0">
+          <ul className="m-0 list-none p-0">
             {timeline.map((e) => (
               <li
                 key={`${e.type}-${e.player_tag}-${e.at}`}
@@ -424,7 +420,7 @@ function Decided({ clan, navigate }) {
       {data.holds.length ? (
         <Panel aria-labelledby="decided-holds">
           <CardHead id="decided-holds" title="Holds" />
-          <ul className="m-0 list-none divide-y divide-line-row p-0">
+          <ul className="m-0 list-none p-0">
             {data.holds.map((h) => (
               <li key={h.player_tag} className="clan-row">
                 <span className="clan-row__main">

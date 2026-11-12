@@ -181,7 +181,7 @@ function How({ d, clan, who, navigate }) {
       </div>
       <div className="panel__body grid gap-4">
         {d.weights?.length ? (
-          <div className="grid gap-3 pb-4 border-b border-line-soft">
+          <div className="grid gap-3 pb-4">
             {d.weights.map((w) => {
               const pct = Math.round(w.share * 100);
               return (

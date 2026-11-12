@@ -16,7 +16,7 @@ import {
 function Copyable({ text, label, channel, multiline = false }) {
   const [done, flash] = useFlash();
   return (
-    <div className="flex items-start gap-2 rounded-control border border-line-soft bg-ground-sunken px-2.5 py-2 text-[13px]">
+    <div className="flex items-start gap-2 rounded-control bg-ground-sunken px-2.5 py-2 text-[13px]">
       <span
         className={`min-w-0 flex-auto break-words ${multiline ? "whitespace-pre-line" : ""}`}
       >

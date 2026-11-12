@@ -198,7 +198,7 @@ export function CopyLine({
 }) {
   const [done, flash] = useFlash();
   return (
-    <div className="flex items-start gap-2 rounded-control border border-line-soft bg-ground-sunken px-2.5 py-2 text-[13px]">
+    <div className="flex items-start gap-2 rounded-control bg-ground-sunken px-2.5 py-2 text-[13px]">
       <span className="flex-auto">
         <TagText>{text}</TagText>
       </span>
@@ -417,7 +417,7 @@ function ChatMessage({
   const [drafting, setDrafting] = useState(false);
   const lines = value.length ? value : [""];
   return (
-    <div className="grid gap-2.5 rounded-block border border-line-soft bg-ground-sunken p-4">
+    <div className="grid gap-2.5 rounded-block bg-ground-sunken p-4">
       <span className="text-[13.5px] font-semibold">Clan chat</span>
       <div className="page-head__note">
         {kind === "removal"
@@ -475,7 +475,7 @@ function ChatMessage({
  *  was sent; on its own it keeps them itself. */
 export function LeaderMessageNotice({ count = 1, children }) {
   return (
-    <div className="rounded-control border border-line-soft bg-panel-raised p-3 text-[13px] leading-[1.5]">
+    <div className="rounded-control bg-panel-raised p-3 text-[13px] leading-[1.5]">
       <strong>Leader Message availability: check in the game</strong>
       <p className="my-1">
         Reported limit: one Leader Message per day. Elixir cannot see sends
@@ -615,7 +615,7 @@ function DeliveryComposer({
           />
         </>
       ) : (
-        <div className="grid gap-2.5 rounded-block border border-line-soft bg-ground-sunken p-4">
+        <div className="grid gap-2.5 rounded-block bg-ground-sunken p-4">
           <strong className="text-[13.5px]">Clan chat</strong>
           <p className="page-head__note m-0">
             Send in the clan&rsquo;s chat, where members normally talk. Each
@@ -722,7 +722,7 @@ function LeaderMessage({
     !filtered(title, LEADER_MESSAGE.title) &&
     !filtered(body, LEADER_MESSAGE.body);
   return (
-    <div className="grid gap-2.5 rounded-block border border-line-soft bg-ground-sunken p-4">
+    <div className="grid gap-2.5 rounded-block bg-ground-sunken p-4">
       <div className="flex items-center gap-2.5">
         <span className="text-accent-bright">
           <Icon name="megaphone" size={15} />
@@ -868,7 +868,7 @@ export function ActionLog({ action, clan, onChanged }) {
         {(action.log ?? []).map((e, i) => (
           <li
             key={e.entry_id ?? `${e.kind}-${i}`}
-            className="grid gap-1 border-b border-line-row py-2 text-[13.5px] last:border-b-0"
+            className="grid gap-1 py-2 text-[13.5px]"
           >
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="text-accent-bright">
@@ -1412,7 +1412,7 @@ function BoundActionCard({
             {shownFacts.map((f) => (
               <div
                 key={f.key}
-                className="flex flex-wrap gap-x-4 gap-y-0.5 border-b border-line-row py-2 last:border-b-0"
+                className="flex flex-wrap gap-x-4 gap-y-0.5 py-2"
               >
                 <span className="w-[110px] shrink-0 text-[12.5px] text-ink-faint">
                   {f.label}
@@ -1782,7 +1782,7 @@ function UpdateMessage({ message, action, clan, who, onChanged }) {
     }
   };
   return (
-    <section className="grid gap-2 border-t border-line-row pt-3">
+    <section className="grid gap-2 pt-3">
       <div className="label">
         Message {message.part} of {action.evidence.messages.length}
       </div>

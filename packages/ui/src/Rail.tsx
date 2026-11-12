@@ -218,7 +218,7 @@ export function Rail({
       head
     )
   ) : narrow ? null : (
-    <div className="mb-[6px] flex h-10 items-center gap-[9px] border-0 border-b border-solid border-line-soft px-[11px]">
+    <div className="mb-[6px] flex h-10 items-center gap-[9px] px-[11px]">
       <span className="truncate text-[13.5px] font-semibold" title={title}>
         {title}
       </span>

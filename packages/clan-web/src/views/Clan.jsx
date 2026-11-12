@@ -312,7 +312,7 @@ function Comings({ roster, clan, history, navigate }) {
             return (
               <div
                 key={`${e.type}-${e.at}-${e.player_tag ?? i}`}
-                className="flex items-center gap-3 py-2.5 border-b border-line-row last:border-b-0"
+                className="flex items-center gap-3 py-2.5"
               >
                 <span className={`shrink-0 ${tone}`} aria-hidden="true">
                   <Icon name={icon} size={16} />

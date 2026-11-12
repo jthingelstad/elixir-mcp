@@ -193,10 +193,7 @@ export function FirstAnswer({
       )}
       <div className="flex flex-col">
         {shown.map((s) => (
-          <div
-            key={s.label}
-            className="flex items-start gap-3 border-b border-line-row py-3"
-          >
+          <div key={s.label} className="flex items-start gap-3 py-3">
             <span className={s.done ? "text-ok" : "text-ink-quiet-icon"}>
               <Icon name={s.done ? "circle-check" : "circle-dashed"} />
             </span>

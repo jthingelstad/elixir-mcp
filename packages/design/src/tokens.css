@@ -120,15 +120,21 @@
   --panel-raised: #241d3b; /* secondary buttons, tag pills */
   --panel-head: #171229; /* header strip inside a code panel */
   --panel-float: #1b1630; /* a card that floats: auth, the transcript */
+  --control: #352c55; /* a solid button or chip: filled, never outlined */
+  --control-hover: #433870;
 
   /* The page wash. One gradient, same on every surface. */
   --page-wash: none;
 
-  /* ---- Line: three weights, each with a job ----------------------- */
-  --line: #393047; /* panel borders, table header rule */
-  --line-soft: #30283f; /* chrome dividers, panel internals */
+  /* ---- Line: only where a line says something ----------------------
+     Flat (Jamie, 2026-11-11): "minimize unnecessary boxes and borders.
+     Flat is better." Panels sit on the ground by tone, not outlines; a
+     line marks an input, a table's rows, focus, a qualification (dashed)
+     or a state. --line-soft is kept for the few that remain. */
+  --line: #393047; /* inputs, a table's header rule */
+  --line-soft: #30283f; /* a quiet inner edge that still says something */
   --line-row: #292238; /* the rule under a table row */
-  --line-strong: #625079; /* emphasised panel, input border */
+  --line-strong: #625079; /* a text field's edge, a dashed caveat */
 
   /* ---- Ink -------------------------------------------------------- */
   --ink: #f2eff8; /* primary text, numbers, active nav */
@@ -203,6 +209,7 @@
   --hover-child: rgba(139, 92, 246, 0.1);
   --mark-current: inset 3px 0 0 var(--accent-bright); /* current rail item */
   --mark-tab: inset 0 -2px 0 var(--gold); /* current header tab */
+  --edge-clan: inset 3px 0 0 var(--gold); /* the clan's gold edge, never a gold outline */
 
   --focus-glow: rgba(139, 92, 246, 0.28);
   --ring: 0 0 0 3px var(--focus-glow);
@@ -288,6 +295,8 @@
   --color-panel-raised: var(--panel-raised);
   --color-panel-head: var(--panel-head);
   --color-panel-float: var(--panel-float);
+  --color-control: var(--control);
+  --color-control-hover: var(--control-hover);
   --color-line: var(--line);
   --color-line-soft: var(--line-soft);
   --color-line-row: var(--line-row);
