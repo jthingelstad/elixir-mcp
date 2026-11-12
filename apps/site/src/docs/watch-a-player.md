@@ -7,7 +7,7 @@ order: 2
 navTitle: "Watch any player"
 icon: eye
 lede: "Any player with a tag can be tracked. Adding one is recording it, from the next read on, and a watched player who played or posted is in your digest."
-reviewed: "2026-11-12 the digest replaces Your friends this week; 2026-10-01 against contract 9.17.1"
+reviewed: "2026-11-12 your digest; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Settings › Players & tracking", "/settings/players", "Open Players & tracking"]
 ---
 

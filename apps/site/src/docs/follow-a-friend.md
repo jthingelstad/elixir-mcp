@@ -7,7 +7,7 @@ order: 1
 navTitle: "Follow a friend"
 icon: heart
 lede: "A friend is a player you follow on purpose. Elixir records them like anyone you track, and puts them first in your digest."
-reviewed: "2026-11-12 the digest replaces Your friends this week; 2026-10-01 against contract 9.17.1"
+reviewed: "2026-11-12 your digest; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Settings › Players & tracking", "/settings/players", "Open Players & tracking"]
 ---
 

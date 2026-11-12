@@ -291,3 +291,112 @@ test("the window: a week or a day back, starting no earlier than the last digest
     now.getTime() - day,
   );
 });
+
+// Readers of their own, so the leader's counts above stay as they are.
+const W2 = {
+  fromMs: Date.parse("2026-10-01T00:00:00Z"),
+  toMs: Date.parse("2026-10-08T00:00:00Z"),
+};
+async function reader(label, claims) {
+  const id = (
+    await db.query(
+      `insert into account (email_hash, status) values ($1, 'approved') returning account_id`,
+      [`digest-${label}`],
+    )
+  ).rows[0].account_id;
+  for (const [tag, relationship] of claims) {
+    await db.query(
+      `insert into player (player_tag, name) values ($1, $1) on conflict do nothing`,
+      [tag],
+    );
+    await db.query(
+      `insert into claim (account_id, player_tag, status, is_primary, relationship, notify)
+       values ($1, $2, $3, $4, $5, true)`,
+      [
+        id,
+        tag,
+        relationship === "friend" ? "unverified" : "verified",
+        relationship === "primary",
+        relationship,
+      ],
+    );
+  }
+  return id;
+}
+
+test("a followed player who only posted is told: a highlight of an older battle, with no battles in the window", async () => {
+  const QUIET = "#2Y8Q0LPV";
+  const POSTER = "#9PQJ2CUV";
+  const id = await reader("post-only", [
+    [QUIET, "primary"],
+    [POSTER, "friend"],
+  ]);
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, created_at)
+     values ('b3', '2026-08-20T20:00:00Z', 'PvP', 'pvp', '2026-08-20T20:30:00Z')`,
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, crowns, type, type_class)
+     values ('b3', $1, 0, '2026-08-20T20:00:00Z', 'win', 2, 'PvP', 'pvp')`,
+    [POSTER],
+  );
+  await db.query(
+    `insert into battle_highlight (player_tag, battle_id, account_id, words, created_at, updated_at)
+     values ($1, 'b3', $2, 'Still my best game', '2026-10-03T12:00:00Z', '2026-10-03T12:00:00Z')`,
+    [POSTER, id],
+  );
+  const mail = await buildDigest({
+    db,
+    account: { accountId: id, timezone: "UTC" },
+    cadence: "weekly",
+    window: W2,
+  });
+  assert.ok(mail, "a post alone is a digest");
+  const [p] = mail.people;
+  assert.equal(p.tag, POSTER);
+  assert.equal(p.name, POSTER);
+  assert.equal(p.battles, 0);
+  assert.equal(p.items[0].kind, "battle_highlight");
+  assert.equal(p.items[0].words, "Still my best game");
+  assert.equal(mail.you, null, "a quiet reader with no alt has no line");
+  const out = renderMail("tracking_report", mail, {
+    unsubscribe: "https://elixir.example/u",
+    manage: "/settings/emails",
+    period: "2026-10-08",
+    pixel: false,
+  });
+  assert.match(out.html, /No battles recorded/);
+  assert.match(out.html, /Still my best game/);
+});
+
+test("an alt that played makes the reader's own stretch when the primary was quiet", async () => {
+  const MAIN = "#LQ0G8YRV";
+  const ALT = "#UV2C9JPQ";
+  const id = await reader("alt-only", [
+    [MAIN, "primary"],
+    [ALT, "alt"],
+  ]);
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, created_at)
+     values ('b4', '2026-10-04T18:00:00Z', 'PvP', 'pvp', '2026-10-04T18:20:00Z')`,
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, crowns, type, type_class)
+     values ('b4', $1, 0, '2026-10-04T18:00:00Z', 'win', 1, 'PvP', 'pvp')`,
+    [ALT],
+  );
+  const mail = await buildDigest({
+    db,
+    account: { accountId: id, timezone: "UTC" },
+    cadence: "weekly",
+    window: W2,
+  });
+  assert.ok(mail, "an alt's battles are a digest");
+  assert.deepEqual(mail.people, []);
+  assert.equal(mail.you.tag, MAIN);
+  assert.equal(mail.you.battles, 0);
+  assert.deepEqual(
+    mail.you.alts.map((a) => [a.tag, a.battles]),
+    [[ALT, 1]],
+  );
+});

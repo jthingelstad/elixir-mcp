@@ -147,7 +147,42 @@ export async function buildDigest({ db, account, cadence, window }) {
     progress: progressOf(e),
     ...itemsFor(e.subject_tag),
   });
-  const players = entries.filter((e) => e.kind === "player_activity");
+  // The timeline's entries are the subjects that played (or moved) in
+  // the window; an item can still come from a subject with no entry: a
+  // highlight of an older battle, posted or edited now. Such a subject
+  // stands with no battles, so a post alone is still told (Codex on
+  // #783).
+  const entered = new Set(
+    entries
+      .filter((e) => e.kind === "player_activity")
+      .map((e) => e.subject_tag),
+  );
+  const told = new Set(items.map((it) => it.subject_tag));
+  const bare = subjects.filter(
+    (s) => s.kind === "player" && !entered.has(s.tag) && told.has(s.tag),
+  );
+  const names = bare.length
+    ? new Map(
+        (
+          await db.query(
+            `select player_tag, name from player where player_tag = any($1::text[])`,
+            [bare.map((s) => s.tag)],
+          )
+        ).rows.map((r) => [r.player_tag, r.name]),
+      )
+    : new Map();
+  const players = [
+    ...entries.filter((e) => e.kind === "player_activity"),
+    ...bare.map((s) => ({
+      kind: "player_activity",
+      subject_tag: s.tag,
+      name: names.get(s.tag) ?? null,
+      nickname: s.nickname,
+      relationship: s.relationship,
+      battles: {},
+      trophies: null,
+    })),
+  ];
   const followed = players
     .filter((e) => e.relationship === "friend" || e.relationship === "watching")
     .map(person)
@@ -162,12 +197,31 @@ export async function buildDigest({ db, account, cadence, window }) {
         b.battles - a.battles,
     );
   const primary = players.find((e) => e.relationship === "primary");
-  const you = primary ? person(primary) : null;
   const alts = players
     .filter((e) => e.relationship === "alt")
     .map(person)
     .filter((p) => p.battles > 0 || p.items.length > 0)
     .map((p) => ({ tag: p.tag, name: p.name, battles: p.battles }));
+  // A quiet primary has no entry; an alt that played still makes the
+  // reader's own stretch, under the primary's name (Codex on #783).
+  const primarySubject = subjects.find(
+    (s) => s.kind === "player" && s.relationship === "primary",
+  );
+  let you = primary ? person(primary) : null;
+  if (!you && alts.length > 0 && primarySubject) {
+    const { rows } = await db.query(
+      `select name from player where player_tag = $1`,
+      [primarySubject.tag],
+    );
+    you = person({
+      subject_tag: primarySubject.tag,
+      name: rows[0]?.name ?? null,
+      nickname: null,
+      relationship: "primary",
+      battles: {},
+      trophies: null,
+    });
+  }
   const youHas = Boolean(
     you && (you.battles > 0 || you.items.length > 0 || alts.length > 0),
   );
@@ -208,7 +262,7 @@ export async function buildDigest({ db, account, cadence, window }) {
     you: youHas
       ? {
           ...you,
-          clan: primary.clan?.tag ? { tag: primary.clan.tag } : null,
+          clan: primary?.clan?.tag ? { tag: primary.clan.tag } : null,
           alts,
         }
       : null,

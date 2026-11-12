@@ -7,7 +7,7 @@ order: 4
 navTitle: "Email"
 icon: mail
 lede: "Seven kinds, each a switch and a turn-off link: three weekly reports, your digest, milestones, clan actions waiting and answers to your feedback."
-reviewed: "2026-11-12 the digest replaces Your friends this week, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday, and one a day is for scheduled email only; 2026-10-12 no email is composed by a model; 2026-10-08 for legendary badges as milestones, contract 11.5.2"
+reviewed: "2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday, and one a day is for scheduled email only; 2026-10-12 no email is composed by a model; 2026-10-08 for legendary badges as milestones, contract 11.5.2"
 ---
 
 # Email
@@ -114,8 +114,7 @@ check that went through, up to a week, so a first is late rather than lost.
 
 Your digest is the [timeline](/docs/timeline) of the people you follow,
 rendered for your inbox: the email chooses what to say, and the timeline
-keeps everything. It replaced Your friends this week on 2026-11-12, under
-the same switch, so if you had turned that email off, the digest is off.
+keeps everything.
 
 - **When:** weekly, on Wednesdays at 14:30 UTC, by default. In
   [Settings › Emails](/settings/emails) you can make it daily (every day
