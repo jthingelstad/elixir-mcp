@@ -551,8 +551,9 @@ export function SignInWall({ navigate }) {
       <div className="panel__body text-center">
         <h1 className="page__title mb-2">Sign in first</h1>
         <p className="text-[13px] text-ink-faint">
-          This part of Elixir shows your recorded history. Verify your email to
-          create an account or sign in.
+          Elixir&rsquo;s record opens to members: every player, clan and
+          timeline needs an account. Verify your email to sign in, or to create
+          an account if you are new.
         </p>
         <button className="btn btn--primary mt-2" onClick={signIn}>
           Sign in
