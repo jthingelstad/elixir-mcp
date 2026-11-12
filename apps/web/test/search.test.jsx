@@ -135,6 +135,18 @@ describe("every name opens the player page (#764)", () => {
       groups.find((g) => g.h === "Settings").rows.map((r) => r.href),
     ).toEqual(["/settings/emails"]);
   });
+  test("Admin is found by staff only, as on Settings' rail", () => {
+    const settings = (me) =>
+      (
+        typedGroups("admin", sources({ me })).find((g) => g.h === "Settings")
+          ?.rows ?? []
+      ).map((r) => r.href);
+    expect(settings(ME)).toEqual([]);
+    expect(settings({ ...ME, is_admin: false })).toEqual([]);
+    expect(settings({ ...ME, is_admin: true })).toEqual([
+      "/settings/admin/requests",
+    ]);
+  });
 });
 
 describe("a deck hash or a war week", () => {
