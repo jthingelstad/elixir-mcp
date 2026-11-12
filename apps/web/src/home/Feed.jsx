@@ -25,6 +25,7 @@ import {
   timelineDays,
 } from "./logic.js";
 import { Sparkline } from "./Sparkline.jsx";
+import { Cheers } from "./Cheers.jsx";
 
 /**
  * Home's one feed (slice 7, #765): the last seven days of everyone you
@@ -35,7 +36,8 @@ import { Sparkline } from "./Sparkline.jsx";
  *
  * An item is a sitting with its sparkline, a moment with its battle, a
  * highlight in its player's words, or a clan's line, which wears the gold
- * edge. Every player's name opens their page.
+ * edge. Every player's name opens their page. Every item but the
+ * account's own administration carries its cheers (Cheers.jsx).
  */
 export function HomeFeed() {
   const { day, dayHeading } = useClock();
@@ -235,6 +237,7 @@ function FeedItem({ it, open, onToggle }) {
           </button>
         ) : null}
       </span>
+      {"cheers" in it ? <Cheers it={it} /> : null}
     </article>
   );
 }

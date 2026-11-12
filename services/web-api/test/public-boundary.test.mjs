@@ -59,6 +59,11 @@ const PUBLIC = {
   // import reads it with no key.
   "GET /api/public/cards": "reference",
   "GET /api/public/cards/*": "reference",
+  // A private link: your timeline's RSS feed (#765, DECISIONS "Your
+  // timeline is an RSS feed"). A feed reader cannot sign in, so the
+  // link's token is the credential; a token that opens nothing is a 404
+  // (cheers-rss.test.mjs pins it, and that the feed is its owner's own).
+  "GET /api/rss/*": "private link",
   // Plumbing: signing in and up, signing out, a mail's stop link.
   "GET /api/me": "plumbing",
   "POST /api/request-access": "plumbing",
@@ -75,7 +80,13 @@ const PUBLIC = {
   "POST /api/email/unsubscribe": "plumbing",
 };
 
-const CLASSES = new Set(["record", "status", "reference", "plumbing"]);
+const CLASSES = new Set([
+  "record",
+  "status",
+  "reference",
+  "private link",
+  "plumbing",
+]);
 
 /** The record that opens with no account, exactly: a battle link and a
  *  shared post (slice 4, #762). Growing this is a product decision. */

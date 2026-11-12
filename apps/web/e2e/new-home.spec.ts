@@ -300,6 +300,98 @@ for (const [label, width] of [
       await accessible(page, "You");
     });
 
+    test("cheers: one of six on a friend's moment, counted, never who", async ({
+      page,
+    }) => {
+      const sent: unknown[] = [];
+      await mockApi(
+        page,
+        homeApi({
+          "PUT /api/me/cheers": (route) => {
+            sent.push(route.request().postDataJSON());
+            return [
+              200,
+              {
+                item_id: "o1",
+                cheers: { on_fire: 2, royal: 1 },
+                my_cheer: "royal",
+              },
+            ];
+          },
+        }),
+      );
+      await page.goto("/home");
+      const item = page
+        .locator(".kit-feed__item")
+        .filter({ hasText: "Reached Path of Legends." });
+      await expect(
+        item.getByRole("button", { name: "On fire, 2" }),
+      ).toHaveAttribute("aria-pressed", "false");
+      await expect(item.getByText("2 people")).toBeVisible();
+      await item.getByRole("button", { name: "Cheer" }).click();
+      const picker = item.getByRole("group", { name: "Choose a cheer" });
+      await expect(picker.getByRole("button")).toHaveCount(6);
+      await accessible(page, "Home, cheer picker");
+      await picker.getByRole("button", { name: /Royal/ }).click();
+      await expect(
+        item.getByRole("button", { name: "Royal, 1, yours" }),
+      ).toHaveAttribute("aria-pressed", "true");
+      await expect(item.getByText("You and 2 others")).toBeVisible();
+      expect(sent).toEqual([
+        { item_id: "o1", cheer: "royal", subjects: ["#2YG98VVQ"] },
+      ]);
+      await noSideways(page);
+      await accessible(page, "Home, cheered");
+    });
+
+    test("Connections: your RSS link, shown once, then reset or turned off", async ({
+      page,
+    }) => {
+      let on = false;
+      await mockApi(
+        page,
+        homeApi({
+          "GET /api/me/rss": () => [
+            200,
+            on
+              ? { on: true, created_at: "2026-11-12T15:00:00.000Z" }
+              : { on: false, created_at: null },
+          ],
+          "POST /api/me/rss": () => {
+            on = true;
+            return [
+              200,
+              {
+                on: true,
+                url: "https://elixir.example.test/api/rss/AbCdEfGhIjKlMnOpQrStUvWxYz012345.xml",
+                created_at: "2026-11-12T15:00:00.000Z",
+              },
+            ];
+          },
+        }),
+      );
+      await page.goto("/settings/connections");
+      const panel = page
+        .locator(".panel")
+        .filter({ has: page.getByRole("heading", { name: "Your RSS link" }) });
+      await expect(
+        panel.getByText("Off: no link reads your timeline."),
+      ).toBeVisible();
+      await panel.getByRole("button", { name: "Make my link" }).click();
+      await expect(
+        panel.getByText(/AbCdEfGhIjKlMnOpQrStUvWxYz012345\.xml$/),
+      ).toBeVisible();
+      await expect(panel.getByText(/keeps only a fingerprint/)).toBeVisible();
+      await expect(
+        panel.getByRole("button", { name: "Reset link" }),
+      ).toBeVisible();
+      await expect(
+        panel.getByRole("button", { name: "Turn off" }),
+      ).toBeVisible();
+      await noSideways(page);
+      await accessible(page, "Connections, RSS link");
+    });
+
     test("the tabs: Home, Find, Clan, You and the bell", async ({ page }) => {
       await mockApi(page, homeApi());
       await page.goto("/home");

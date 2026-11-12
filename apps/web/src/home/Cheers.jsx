@@ -1,0 +1,102 @@
+import { useId, useState } from "react";
+import { useCheer } from "../lib/queries.js";
+import { useScope } from "../lib/scope.js";
+import {
+  CHEERS,
+  cheerCounts,
+  cheeredBy,
+  nextCheer,
+  withMyCheer,
+} from "./cheer-set.js";
+
+/**
+ * A feed item's cheers (#765): the cheers it has, each with its count, the
+ * one that is yours pressed; Cheer opens the six. One per person per item:
+ * another cheer changes yours, the same one takes it back. Counts only:
+ * "You and 2 others", never who. Under an agent's scope (if it is ever
+ * drawn there) the counts show and nothing can be pressed: an agent never
+ * cheers.
+ */
+export function Cheers({ it }) {
+  const scope = useScope();
+  const cheer = useCheer();
+  const [open, setOpen] = useState(false);
+  const pickId = useId();
+  const mine = it.my_cheer ?? null;
+  const counts = cheerCounts(it.cheers);
+  const who = cheeredBy(it.cheers, mine);
+  const label = (c) =>
+    `${c.label}, ${c.count}${mine === c.key ? ", yours" : ""}`;
+
+  if (scope)
+    return counts.length ? (
+      <p className="kit-cheers__row kit-tiny">
+        {counts.map((c) => (
+          <span key={c.key} aria-label={label(c)} role="img">
+            <span aria-hidden="true">
+              {c.emoji} {c.count}
+            </span>
+          </span>
+        ))}
+      </p>
+    ) : null;
+
+  const tap = (key) => {
+    const next = nextCheer(mine, key);
+    setOpen(false);
+    cheer.mutate({ item: it, next, shown: withMyCheer(it, next) });
+  };
+  return (
+    <div className="kit-cheers">
+      <div className="kit-cheers__row">
+        {counts.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            className="kit-chip"
+            aria-pressed={mine === c.key}
+            aria-label={label(c)}
+            onClick={() => tap(c.key)}
+          >
+            <span aria-hidden="true">{c.emoji}</span> {c.count}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="kit-chip"
+          aria-expanded={open}
+          aria-controls={open ? pickId : undefined}
+          onClick={() => setOpen(!open)}
+        >
+          Cheer
+        </button>
+        {who ? <span className="kit-tiny">{who}</span> : null}
+        {cheer.isError ? (
+          <span role="alert" className="field-error">
+            Your cheer was not saved. Try again.
+          </span>
+        ) : null}
+      </div>
+      {open ? (
+        <div
+          id={pickId}
+          role="group"
+          aria-label="Choose a cheer"
+          className="kit-cheers__row"
+        >
+          {CHEERS.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              className="kit-chip"
+              aria-pressed={mine === c.key}
+              onClick={() => tap(c.key)}
+            >
+              <span aria-hidden="true">{c.emoji}</span> {c.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}

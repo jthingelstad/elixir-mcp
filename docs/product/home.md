@@ -35,6 +35,15 @@ tabs Today, Timeline and Friends are replaced:
 - **You** (`/home/you`): your players' pages, their stats in Ladder, Settings
   and signing out.
 - **The bell**, on every page: Needs you, moved out of Home.
+- **Cheers** (the same ruling's six): one per person per item, on an item
+  about someone or a clan the person follows, shown as counts and never as
+  who; a second tap on yours takes it back. Not on the account's own items,
+  and nowhere but Home's feed: no bell, mail, Discord, agent or MCP.
+  [engineering, 2026-11-12]
+- **Your RSS link** (DECISIONS "Your timeline is an RSS feed"): one private
+  link per person to their own feed, made, reset or turned off in Settings ›
+  Connections & agents, shown once because Elixir keeps only its
+  fingerprint. [engineering, 2026-11-12]
 
 `/home/timeline` opens Home and `/home/friends` opens Find. Friends' week
 cards left Home; Wednesday's digest tells that week. [engineering,
@@ -69,5 +78,9 @@ cards left Home; Wednesday's digest tells that week. [engineering,
 ## Open
 
 - Needs you's lag against Clan (above).
-- Reactions (six cheers) and the RSS token link, slice 7's second pull
-  request.
+- Cheers on the player page and the battle page: the ruling names Home's
+  feed; the canvas also shows them elsewhere.
+- Whether the bell should carry cheers on your own items, as the design
+  canvas draws ("Reactions to your items"); it carries none now.
+- Whether the RSS link should be shown again later, which would mean
+  keeping the link itself rather than its fingerprint.

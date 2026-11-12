@@ -51,6 +51,7 @@ import { deadlineMs } from "./deadline.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";
 import { battleRoutes } from "./routes/battle.mjs";
 import { highlightRoutes } from "./routes/highlight.mjs";
+import { cheersRoutes } from "./routes/cheers.mjs";
 import {
   CONTRACT_HEADER,
   json,
@@ -447,6 +448,7 @@ export function makeHandler({
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleActivityRoutes({ resolveAccount }),
     ...battleRoutes({ siteShell, shareImage }),
+    ...cheersRoutes({ resolveAccount }),
     ...highlightRoutes({
       resolveAccount,
       siteShell,

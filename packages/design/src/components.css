@@ -7663,6 +7663,18 @@ button.kit-row {
   align-items: center;
   gap: 4px 12px;
 }
+/* A feed item's cheers (#765): the kit's chips, in a row that wraps. */
+.kit-cheers {
+  display: grid;
+  gap: 6px;
+}
+.kit-cheers__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
 .kit-spark {
   display: block;
   max-width: 100%;

@@ -202,6 +202,17 @@ before(async () => {
      values ('#2PP0V9PP', 'remove-highlight', $1, 'gg', 'abcdefghij23456', now())`,
     [ids.person],
   );
+  // A cheer they gave and their RSS link (0243, #765).
+  await db.query(
+    `insert into timeline_cheer (account_id, item_id, cheer)
+     values ($1, 'tl_0123456789abcdef0123', 'royal')`,
+    [ids.person],
+  );
+  await db.query(
+    `insert into timeline_feed_link (account_id, token_hash)
+     values ($1, repeat('a', 64))`,
+    [ids.person],
+  );
   // A linked Discord and a link round trip still open (0233, #531).
   await db.query(
     `insert into account_discord (account_id, discord_user_id, username)
@@ -320,6 +331,8 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     account_clan_declined: 1,
     player_nickname: 1,
     battle_highlight: 1,
+    timeline_cheer: 1,
+    timeline_feed_link: 1,
     timeline_reader: 0,
     timeline_discord_told: 2,
     timeline_discord: 1,
@@ -462,6 +475,8 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "email_send",
     "player_nickname",
     "battle_highlight",
+    "timeline_cheer",
+    "timeline_feed_link",
     "credential_refusal",
     "mcp_call_audit",
     "timeline_discord",
