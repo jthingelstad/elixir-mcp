@@ -44,7 +44,7 @@ test("routes collapse tags, ids and uuids so they aggregate", () => {
     "GET /battle/69dcc4e93f15": "GET /battle/*",
     "GET /api/me/email/sends/12c74397-b7a5-4bbc-baef-29c5469af6a4":
       "GET /api/me/email/sends/*",
-    "GET /api/me/home/latest": "GET /api/me/home/latest",
+    "GET /api/me/home/feed": "GET /api/me/home/feed",
     "GET /api/me/clans": "GET /api/me/clans",
     "GET /api/agent/*": "GET /api/agent/*",
     "GET /api/me/home?x=1": "GET /api/me/home",
@@ -79,7 +79,7 @@ test("ceilings: exact first, then the longest glob; unnamed routes unjudged", ()
   assert.equal(ceilingFor(ceilings, "web", "GET /api/me"), 500);
   assert.equal(ceilingFor(ceilings, "web", "GET /api/me/first-answer"), 500);
   assert.equal(ceilingFor(ceilings, "web", "GET /api/me/home"), 2000);
-  assert.equal(ceilingFor(ceilings, "web", "GET /api/me/home/latest"), 2000);
+  assert.equal(ceilingFor(ceilings, "web", "GET /api/me/home/feed"), 2000);
   assert.equal(
     ceilingFor(ceilings, "web", "GET /api/clan/clans/*/actions/*"),
     1500,

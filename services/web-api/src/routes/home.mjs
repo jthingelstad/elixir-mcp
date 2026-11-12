@@ -40,7 +40,6 @@ import { homeClan, myClans } from "./clans.mjs";
  *  A visit still spends one charge on the hourly bucket /mcp and Explore share:
  *  the head's. The panels count on a bucket of their own (`panelRate`). */
 
-const LATEST = 5;
 /** Below about this many battles a "most played" deck says little (the
  *  board's rule). */
 const DECK_FROM = 5;
@@ -421,31 +420,6 @@ async function readNeedsPanel({ db, account, event, clan, requestId }) {
   };
 }
 
-async function readLatest(db, account) {
-  const now = Date.now();
-  const subjects = await subjectsFor(db, account.accountId);
-  const perf = {};
-  const built = await buildTimeline(db, subjects, {
-    fromMs: now - 7 * 86_400_000,
-    toMs: now,
-    timezone: account.timezone ?? "UTC",
-    accountId: account.accountId,
-    interactive: true,
-    perf,
-  });
-  // Where this panel's time goes: each builder's name beside its ms.
-  console.info(
-    JSON.stringify({ at: "home_panel", panel: "latest_parts", parts: perf }),
-  );
-  return {
-    items: (built.timeline ?? []).slice(0, LATEST).map((it) => ({
-      id: it.id ?? null,
-      at: shownAt(it) || null,
-      text: String(it.text ?? ""),
-    })),
-  };
-}
-
 /** How many items a page of Home's feed carries (G1, 2026-11-12). */
 const FEED_PAGE = 30;
 const FEED_DAYS_MS = HOME_WEEK_MS;
@@ -819,15 +793,6 @@ export function homeRoutes({
       const cursor = q.cursor ? readCursor(q.cursor) : null;
       if (q.cursor && !cursor) return json(400, { error: "invalid_cursor" });
       return json(200, await readFeed(db, account, cursor, wake));
-    },
-
-    "GET /api/me/home/latest": async (db, event) => {
-      const account = await resolveAccount(db, event);
-      if (!account) return json(401, { error: "unauthenticated" });
-      if (!(await panelRate(db, account)))
-        return json(429, { error: "rate_limited" });
-      const latest = await panel("latest", () => readLatest(db, account));
-      return json(200, { latest });
     },
 
     /** Home › Friends: the mail's builder, the mail's week. */
