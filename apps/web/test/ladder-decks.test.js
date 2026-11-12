@@ -136,4 +136,9 @@ test("a deck's forms and its level gap, in words", () => {
   expect(gapLine(-1)).toBe("your cards 1.00 level below theirs");
   expect(gapLine(0)).toBe("your cards level with theirs");
   expect(gapLine(null)).toBe(null);
+  // A player you follow: whose cards, and against whom, said outright.
+  expect(gapLine(0.6, false)).toBe(
+    "their cards 0.60 levels above their opponents'",
+  );
+  expect(gapLine(0, false)).toBe("their cards level with their opponents'");
 });

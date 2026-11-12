@@ -503,7 +503,7 @@ function TopDeck({ mode, args, hrefFor }) {
     top.tower_troop_name ? `${top.tower_troop_name}.` : null,
     `${fmt(top.wins)}–${fmt(top.losses)}${top.win_rate != null ? `, ${pct(top.win_rate)} won` : ""}.`,
     (() => {
-      const gap = gapLine(top.mean_level_gap);
+      const gap = gapLine(top.mean_level_gap, whose.own);
       return gap ? `${gap[0].toUpperCase()}${gap.slice(1)}.` : null;
     })(),
   ]
