@@ -1,7 +1,7 @@
 ---
 slug: your-account
 title: "Your account"
-description: "Your Elixir account: creating an account, signing in with an emailed code or link, how long a sign-in lasts, your primary player and the others you track, installing Elixir on your phone, your time zone, your role, the feedback you send and its answers, what stays private, and how to have the account removed."
+description: "Your Elixir account: creating an account, signing in with an emailed code or link, how long a sign-in lasts, your primary player and the others you track, installing Elixir on your phone, your time zone, your role, the feedback you send and its answers, what members see of you, what stays private, and how to have the account removed."
 section: start
 order: 3
 navTitle: "Your account"
@@ -235,12 +235,62 @@ unless you have already read it on the item's page
 ([Answers to your feedback](/docs/email)). An agent's feedback is the
 agent's: it is answered on the agent's page and timeline, never mailed.
 
+## What members see
+
+[Settings › What members see](/settings/what-members-see) gathers, on one
+page, who sees what of you as Elixir works today. It changes nothing
+itself: each choice it names links to the page that owns it.
+
+- **Members who are signed in** see your players' games: each player's
+  game name, tag, clan, profile, battles, decks and timeline. That is
+  public game data, and every member can look up any player Elixir
+  records. No page shows them yet that a player is yours, though who an
+  account follows, who follows it and its verified player are for members
+  to see by Elixir's rule. Two answers say only
+  that *some* account is behind a player, never which: making a player
+  you verified their own says another account has verified it, and
+  following a player you follow can cost them no slot because another
+  account followed first. A highlight you post is on that player's
+  timeline for every member who follows the player, with the player's
+  game name, your words and the battle, not your account; a follower who
+  cross-posts their timeline to Discord sends it there too. A collector you run is credited to your main
+  player's game name and tag, on the public status page too. In Clan,
+  your clan's verified members see your place on its map if you added
+  one, its leaders see an away you mark, and what you decide as a leader
+  or elder shows under your player's game name. With Discord connected,
+  an AI agent that tracks a clan your main player or an alt is in can
+  ask which player you are by your Discord user id, and learns that
+  player's tag and whether it is verified, never your Discord name or
+  your email ([Knowing which human is
+  asking](/docs/agents#knowing-which-human-is-asking)).
+- **Someone with a link you send** opens it without an account. A
+  battle link shows both sides' game names, clans, trophies and decks,
+  the towers, how it ended, the left player's other battles in that
+  session and earlier battles between the two. A highlight you share
+  shows your player's game name and your words over that battle, and its
+  picture carries the name, the words and the link; delete the highlight
+  and the link stops opening within about a minute ([Highlight a
+  battle](/docs/battles#highlight-a-battle)). A link carries the battle's
+  or the highlight's id and nothing else: no account id, nickname or
+  email.
+- **Only you, or nobody else:** the nicknames you give players, your
+  email address, your Discord name and profile, and your account's
+  machinery: sign-ins, agents and their keys, connections,
+  usage, the mail sent to you and your feedback.
+
+The page also shows your follow slots, as [Players &
+tracking](/settings/players) counts them, and a lens: your main player's
+latest battle drawn by the battle page for a signed-in member who is not
+you, and for someone holding the link with no account.
+
 ## What stays private
 
 Your email address is never shown anywhere public. The players on your
 account, what each one is to you and the nicknames you give them are
-yours: what you connect to Elixir as yourself reads them, and nobody
-else does. So is your own view in Clan (your standing line and
+yours: what you connect to Elixir as yourself reads them. No other
+member reads your nicknames, and no page shows another member which
+players are yours today, but for the lines [What members
+see](#what-members-see) lists. So is your own view in Clan (your standing line and
 the Actions waiting for you): your own connection reads it, for a
 player you have verified, and no agent or integration does
 ([Your own view](/docs/clan-your-own-view#your-own-view)). The game record

@@ -174,7 +174,10 @@ export function BattlePage() {
   );
 }
 
-export function Battle({ battleRef, me }) {
+/** `standIn`: `me` stands in for another viewer (Settings › What members
+ *  see draws this page as a member or a link holder would), so nothing
+ *  that reads the real reader's own things is drawn. */
+export function Battle({ battleRef, me, standIn = false }) {
   const query = useQuery({
     queryKey: ["public", "battle", battleRef],
     queryFn: answered(() => api.publicBattle(battleRef)),
@@ -221,7 +224,7 @@ export function Battle({ battleRef, me }) {
         </ul>
       </Empty>
     );
-  return <BattleView read={read} me={me} />;
+  return <BattleView read={read} me={me} standIn={standIn} />;
 }
 
 function Empty({ title, children }) {
@@ -234,8 +237,16 @@ function Empty({ title, children }) {
 }
 
 /** `follow` and `invite` let a page that wraps the battle (a shared post)
- *  draw its own Follow suggestions and its own way in, above it. */
-export function BattleView({ read, me, follow = true, invite = true }) {
+ *  draw its own Follow suggestions and its own way in, above it.
+ *  `standIn` draws the page as somebody else sees it (Settings' lens):
+ *  none of the reader's own controls. */
+export function BattleView({
+  read,
+  me,
+  follow = true,
+  invite = true,
+  standIn = false,
+}) {
   const { battle, sides, games } = read;
   const clock = useClock();
   const narrow = useMedia("(max-width: 760px)");
@@ -288,6 +299,9 @@ export function BattleView({ read, me, follow = true, invite = true }) {
         signedIn={signedIn}
         mode={mode}
         when={when}
+        // Drawn inside another page (a stand-in lens), the battle is a
+        // section under that page's h2, never a second h1.
+        heading={standIn ? "h3" : "h1"}
       />
 
       {games && (
@@ -333,9 +347,13 @@ export function BattleView({ read, me, follow = true, invite = true }) {
         />
       )}
 
-      {signedIn && <BattleHighlight battle={battle} sides={sides} />}
+      {signedIn && !standIn && (
+        <BattleHighlight battle={battle} sides={sides} />
+      )}
 
-      {signedIn && follow && <FollowFromHere sides={sides} me={me} />}
+      {signedIn && follow && !standIn && (
+        <FollowFromHere sides={sides} me={me} />
+      )}
 
       {signedOut && invite && <Invite />}
 
@@ -480,7 +498,16 @@ function Crown({ n, outcome }) {
   );
 }
 
-function Scoreboard({ battle, sides, games, mine, signedIn, mode, when }) {
+function Scoreboard({
+  battle,
+  sides,
+  games,
+  mine,
+  signedIn,
+  mode,
+  when,
+  heading: Heading = "h1",
+}) {
   const [l, r] = sides;
   const won = (w) => games?.filter((x) => x.winner === w).length ?? 0;
   const score = games ? [won("left"), won("right")] : [l.crowns, r.crowns];
@@ -500,11 +527,11 @@ function Scoreboard({ battle, sides, games, mine, signedIn, mode, when }) {
   const dur = DURATION[battle.duration?.basis];
   return (
     <section className="battle__score" aria-labelledby="battle-result">
-      <h1 id="battle-result" className="sr-only">
+      <Heading id="battle-result" className="sr-only">
         {namesOf(l)} {verb} {namesOf(r)} {score[0]} to {score[1]}
         {unit}
         {mode ? ` on ${mode}` : ""}, {when}
-      </h1>
+      </Heading>
       <SideBlock
         side={l}
         align="left"
