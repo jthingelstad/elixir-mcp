@@ -428,3 +428,118 @@ test("your account's lines leave Home's feed for the bell, a burst folded into o
   assert.equal(seen.body.account.new, 0);
   assert.equal(seen.body.new, 0);
 });
+
+test("the bell reads its stored week (bell_week, #649): built once, served, rebuilt when your players change or it is stale", async () => {
+  // The reads above built the owner's week.
+  const row = async () =>
+    (
+      await db.query(
+        `select built_at, own_key, items from bell_week where account_id = $1`,
+        [ids.owner],
+      )
+    ).rows[0];
+  const first = await row();
+  assert.ok(first, "the first read stored the week");
+  // Highlights are read live over the row: one the row holds but the
+  // record no longer does never reaches the bell.
+  const GONE = "tl_00000000000000000a1c";
+  const was = new Date(Date.now() - 7_200_000).toISOString();
+  await db.query(
+    `update bell_week set items = items || $2::jsonb where account_id = $1`,
+    [
+      ids.owner,
+      JSON.stringify([
+        {
+          id: GONE,
+          kind: "battle_highlight",
+          section: "battles",
+          subject_tag: PLAYER,
+          at: was,
+          sort_at: was,
+          observed_at: was,
+          text: "A highlight since removed",
+          facts: {},
+        },
+      ]),
+    ],
+  );
+  await db.query(
+    `insert into timeline_cheer (account_id, item_id, cheer) values ($1, $2, 'grind')`,
+    [ids.fan, GONE],
+  );
+  // A served read leaves the row as it was: an item only the stored week
+  // holds, cheered by someone else, reaches the bell from it.
+  const STORED = "tl_00000000000000000a1b";
+  const at = new Date(Date.now() - 3_600_000).toISOString();
+  await db.query(
+    `update bell_week set items = items || $2::jsonb where account_id = $1`,
+    [
+      ids.owner,
+      JSON.stringify([
+        {
+          id: STORED,
+          kind: "battle_session",
+          section: "battles",
+          subject_tag: PLAYER,
+          at,
+          sort_at: at,
+          observed_at: at,
+          text: "Invented Owner played a stored sitting",
+          facts: {},
+        },
+      ]),
+    ],
+  );
+  await db.query(
+    `insert into timeline_cheer (account_id, item_id, cheer) values ($1, $2, 'grind')`,
+    [ids.fan, STORED],
+  );
+  const served = await call("GET", "/api/me/bell", { who: "owner" });
+  assert.equal(served.status, 200);
+  const stored = served.body.reactions.items.find((i) => i.item_id === STORED);
+  assert.ok(stored, JSON.stringify(served.body.reactions));
+  assert.deepEqual(stored.cheers, { grind: 1 });
+  assert.equal(stored.text, "Invented Owner played a stored sitting");
+  assert.equal(
+    served.body.reactions.items.some((i) => i.item_id === GONE),
+    false,
+  );
+  assert.deepEqual((await row()).built_at, first.built_at);
+  // Another verified player of your own: the week is built again.
+  await db.query(
+    `insert into player (player_tag, name) values ('#8RQ2PQ0LU', 'Invented Alt')
+     on conflict do nothing`,
+  );
+  await db.query(
+    `insert into claim (account_id, player_tag, is_primary, relationship,
+                        notify, status, verified_at)
+     values ($1, '#8RQ2PQ0LU', false, 'alt', true, 'verified', now())`,
+    [ids.owner],
+  );
+  const rebuilt = await call("GET", "/api/me/bell", { who: "owner" });
+  assert.equal(rebuilt.status, 200);
+  assert.equal(
+    rebuilt.body.reactions.items.some((i) => i.item_id === STORED),
+    false,
+    "the rebuilt week no longer holds the stored-only item",
+  );
+  const after = await row();
+  assert.notEqual(after.own_key, first.own_key);
+  // The background wake rebuilds a stale row (refreshHomeWeek).
+  await db.query(
+    `update bell_week set built_at = now() - interval '1 hour' where account_id = $1`,
+    [ids.owner],
+  );
+  const { refreshHomeWeek } =
+    await import("../../../packages/tools/src/activity/home-feed.mjs");
+  const out = await refreshHomeWeek(db, ids.owner);
+  assert.ok(
+    out.bell && typeof out.bell.items === "number",
+    JSON.stringify(out),
+  );
+  assert.ok(Date.now() - (await row()).built_at.getTime() < 60_000);
+  await db.query(
+    `delete from claim where account_id = $1 and player_tag = '#8RQ2PQ0LU'`,
+    [ids.owner],
+  );
+});

@@ -25,15 +25,21 @@
  *    their own section.
  *
  * Nothing here goes to mail, Discord, MCP or `/api/v1`, and an agent has no
- * bell. Reads are bounded: one rebuild of your own players' last seven days
- * (the window a cheer can be given in) and four small queries.
+ * bell. Reads are bounded: your own players' last seven days (the window a
+ * cheer can be given in) come from their stored week (bell_week, 0247;
+ * readBellWeek), built on the read only when there is none, your players
+ * changed or it is past three hours, and four small queries. Highlights,
+ * attested facts and cheers are read live. Clan's waiting Actions are not
+ * here: Home's needs read asks Clan on every request.
  */
 import { battleLinks } from "@elixir-mcp/record/battle-links";
-import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
+import { shownAt } from "@elixir-mcp/tools/activity/entries";
+import {
+  ownVerifiedPlayers,
+  readBellWeek,
+} from "@elixir-mcp/tools/activity/home-feed";
 import { proofOf } from "./feed.mjs";
 
-/** Reactions come from items of the last seven days: the cheer window. */
-const REACTION_DAYS = 7;
 /** Followers and answers look back thirty days. */
 const BELL_DAYS = 30;
 const LIST_CAP = 20;
@@ -52,21 +58,6 @@ const NOT_ACCOUNT_LINES = ["signed_in", "feedback_responded"];
 /** How many reads of the bell one person may make in an hour: the dot reads
  *  it every few minutes, and opening the sheet reads it again. */
 export const BELL_READS_PER_HOUR = 120;
-
-const cheerable = (it) => Boolean(it?.id) && it.section !== "account";
-
-/** Your own players that you verified: the only players the bell speaks of. */
-async function ownVerified(db, accountId) {
-  const { rows } = await db.query(
-    `select c.player_tag, p.name
-       from claim c left join player p using (player_tag)
-      where c.account_id = $1 and c.status = 'verified'
-        and (c.is_primary or c.relationship in ('primary', 'alt'))
-      order by c.is_primary desc, c.player_tag`,
-    [accountId],
-  );
-  return rows.map((r) => ({ tag: r.player_tag, name: r.name ?? null }));
-}
 
 /** When the account last opened the bell, or null for never. */
 async function seenAt(db, accountId) {
@@ -88,30 +79,16 @@ export async function markBellSeen(db, accountId) {
   return rows[0].seen_at;
 }
 
-/** Other people's cheers on your own players' items, grouped by item. */
-async function readReactions(db, accountId, own, seen) {
+/** Other people's cheers on your own players' items of the last seven
+ *  days (the cheer window), grouped by item. */
+async function readReactions(db, accountId, own, seen, { wake, perf }) {
   if (own.length === 0) return { items: [], new: 0 };
-  const toMs = Date.now();
-  const built = await buildTimeline(
-    db,
-    own.map((p) => ({
-      kind: "player",
-      tag: p.tag,
-      relationship: "primary",
-      nickname: null,
-    })),
-    {
-      fromMs: toMs - REACTION_DAYS * 86_400_000,
-      toMs,
-      accountId,
-      interactive: true,
-      // Your account's own lines take no cheers (and are read below).
-      accountLines: false,
-    },
-  );
-  const byId = new Map(
-    built.timeline.filter(cheerable).map((it) => [it.id, it]),
-  );
+  const week = await readBellWeek(db, accountId, { own, wake });
+  if (perf) {
+    perf.stored = week.stored;
+    perf.age_ms = week.ageMs;
+  }
+  const byId = new Map(week.items.map((it) => [it.id, it]));
   if (byId.size === 0) return { items: [], new: 0 };
   const { rows } = await db.query(
     `select item_id, cheer, count(*)::int as n,
@@ -305,10 +282,17 @@ function clip(text, max) {
 }
 
 /** The bell's four sections and how many things in them are new. */
-export async function readBell(db, accountId) {
+export async function readBell(
+  db,
+  accountId,
+  { wake = null, perf = null } = {},
+) {
   const seen = await seenAt(db, accountId);
-  const own = await ownVerified(db, accountId);
-  const reactions = await readReactions(db, accountId, own, seen);
+  const own = await ownVerifiedPlayers(db, accountId);
+  const reactions = await readReactions(db, accountId, own, seen, {
+    wake,
+    perf,
+  });
   const followers = await readFollowers(db, accountId, own, seen);
   const answers = await readAnswers(db, accountId);
   const account = await readAccountLines(db, accountId, seen);
