@@ -181,6 +181,22 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
   });
 }
 
+/** The race now, as the clan card and the Feed's race bar read it. */
+const RACE = {
+  season_id: 136,
+  section_index: 1,
+  is_colosseum: false,
+  day_kind: "war",
+  war_day: 2,
+  finished: false,
+  place: 2,
+  fame: 4820,
+  clans: 5,
+  closes_at: "2026-09-14T10:00:00.000Z",
+  war_day_opens_at: "2026-09-13T10:00:00.000Z",
+  decks: { used: 13, asked: 24 },
+};
+
 /** The clan's last seven days, as the Feed reads them. */
 const FEED = {
   clan_tag: "#2PQRJ8LV",
@@ -310,6 +326,8 @@ export function signedIn(
     "GET /api/clan/clans/2PQRJ8LV/me/away": [200, { away: null }],
     // The Feed's timeline and Run's one question (slice 8, #766).
     "GET /api/clan/clans/2PQRJ8LV/feed": [200, FEED],
+    // The race now, for the clan card and the Feed's race bar (G5).
+    "GET /api/clan/clans/2PQRJ8LV/race": [200, { race: RACE }],
     "GET /api/clan/clans/2PQRJ8LV/run": [
       200,
       { clan_tag: "#2PQRJ8LV", run: true },

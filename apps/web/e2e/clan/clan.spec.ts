@@ -394,9 +394,18 @@ test.describe("signed in", () => {
     ).toBeVisible();
     await accessible(page, "chooser");
 
-    // Picking one is remembered and lands on its Feed.
+    // Picking one is remembered and lands on its Feed, the race on top
+    // and the clan card's chips in the head (G5).
     await page.getByText("Example Clan").first().click();
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
+    await expect(
+      page.getByText("Clan Wars · race open, day 2 of 4"),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("progressbar", { name: "13 of 24 war decks this week" }),
+    ).toBeVisible();
+    const chips = page.getByRole("list", { name: "This clan" });
+    await expect(chips).toContainText("2nd in the river race · 4,820 fame");
     await clanTab(page, "Members").click();
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members$/);
     await expect(page.getByText("Ben")).toBeVisible();
@@ -404,7 +413,7 @@ test.describe("signed in", () => {
     // The clan's own figures, its comings and goings in the account's zone,
     // and a roster that finds a member.
     await expect(
-      page.getByText("Invite only · 5,000 trophies to join", { exact: false }),
+      page.getByText(/invite only · 5,000 trophies to join$/),
     ).toBeVisible();
     const tiles = page.getByRole("group", { name: "The clan in numbers" });
     await expect(tiles).toContainText("1,220");
