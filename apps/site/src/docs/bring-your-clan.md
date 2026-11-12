@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -110,8 +110,9 @@ Below it, the tabs:
 
 - **Feed**: what is waiting for you first, then the clan's last seven days,
   newest first: joins, departures and role changes, members' moments, and the
-  highlights its members post, each with its battle. Your own numbers and the
-  week so far sit beside it. The Feed shows you what Elixir's timeline would
+  highlights its members post, each with its battle, thirty lines at a time
+  with **More** for the next thirty. Your own numbers and the week so far sit
+  beside it, and above it on a phone. The Feed shows you what Elixir's timeline would
   show you about this clan, no more: a member reads the clan's facts, and the
   leader and co-leaders also the ones that are theirs.
 - **Standings**: each season's races and its winners, and your own trophy
