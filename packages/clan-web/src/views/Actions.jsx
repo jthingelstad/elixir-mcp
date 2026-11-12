@@ -136,7 +136,7 @@ export function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
         </h2>
         <span className={`chip ${tone}`}>{actions.length}</span>
       </div>
-      <ul className="m-0 list-none divide-y divide-line-row p-0">
+      <ul className="m-0 list-none p-0">
         {actions.map((a) => (
           <ActionRow
             key={a.card_id}

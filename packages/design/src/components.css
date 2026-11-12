@@ -270,7 +270,6 @@ html[data-session="in"] [data-session-face="out"] {
   width: 344px;
   max-width: calc(100vw - 32px);
   overflow: hidden;
-  border: 1px solid var(--line-strong);
   border-radius: var(--r-panel);
   background: var(--panel-float);
   box-shadow: var(--shadow-float);
@@ -280,7 +279,6 @@ html[data-session="in"] [data-session-face="out"] {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  border-bottom: 1px solid var(--line-soft);
 }
 .account-menu__name {
   font-size: 15px;
@@ -304,7 +302,6 @@ html[data-session="in"] [data-session-face="out"] {
   display: flex;
   flex-direction: column;
   padding: 8px;
-  border-bottom: 1px solid var(--line-soft);
 }
 .account-menu__label {
   padding: 6px 8px 4px;
@@ -382,15 +379,12 @@ html[data-session="in"] [data-session-face="out"] {
   gap: 8px;
   width: 100%;
   height: var(--hit);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: var(--r-control);
-  background: var(--panel);
+  background: var(--control);
   color: var(--ink);
   font-size: 14px;
   font-weight: 600;
-}
-.account-menu__out:hover {
-  border-color: var(--line-strong);
 }
 .account-menu__note {
   margin: 8px 0 0;
@@ -419,7 +413,6 @@ html[data-session="in"] [data-session-face="out"] {
   display: flex;
   flex-direction: column;
   background: var(--ground-chrome);
-  border-right: 1px solid var(--line-soft);
 }
 
 /* Wide, the column runs the page's height and what is in it sticks
@@ -559,17 +552,16 @@ button.rail__switch-head {
   cursor: pointer;
 }
 button.rail__switch-head:hover {
-  border-color: var(--line-strong);
+  background: var(--hover-rail);
 }
 /* A choice is being made: the face says which, and nothing opens. */
 button.rail__switch-head[aria-disabled="true"] {
   cursor: progress;
 }
 button.rail__switch-head[aria-disabled="true"]:hover {
-  border-color: transparent;
+  background: none;
 }
 .rail__switch[data-scoped="true"] .rail__switch-head {
-  border-color: var(--accent);
   box-shadow: inset 3px 0 0 var(--accent-bright);
 }
 .rail__switch-mark {
@@ -597,7 +589,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   flex-direction: column;
   padding: 4px;
   background: var(--panel-float);
-  border: 1px solid var(--line);
   border-radius: var(--r-control);
   box-shadow: var(--shadow-float);
 }
@@ -627,7 +618,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 }
 .rail__switch-manage {
   margin-top: 4px;
-  border-top: 1px solid var(--line-soft);
   border-radius: 0;
   color: var(--ink-link);
 }
@@ -660,7 +650,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 .rail__foot {
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid var(--line-soft);
 }
 .rail__item--foot {
   width: 100%;
@@ -677,8 +666,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
      it. The closed row names the section and where you are in it. */
   .rail {
     flex: 0 0 auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--line-soft);
     padding: 10px 12px 12px;
   }
   /* Narrow draws no pin (Rail.tsx); this holds for the first paint,
@@ -703,8 +690,8 @@ button.rail__switch-head[aria-disabled="true"]:hover {
     width: 100%;
     height: var(--hit-touch);
     box-sizing: border-box;
-    background: var(--panel);
-    border: 1px solid var(--line);
+    background: var(--control);
+    border: 1px solid transparent;
     border-radius: var(--r-control);
     padding: 0 11px;
     color: var(--ink);
@@ -829,12 +816,11 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 }
 .panel[role="menu"] {
   background: var(--panel-float);
-  border: 1px solid var(--line);
   border-radius: var(--r-control);
+  box-shadow: var(--shadow-float);
 }
 .panel__head {
   padding: 13px 16px;
-  border-bottom: 1px solid var(--line-soft);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -852,7 +838,7 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 .feedback-sheet {
   width: min(560px, calc(100vw - 32px));
   padding: 0;
-  border: 1px solid var(--line-strong);
+  border: 0;
   border-radius: var(--r-panel);
   background: var(--panel);
   color: var(--ink-body);
@@ -871,7 +857,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   font-size: 13.5px;
 }
 .panel__foot {
-  border-top: 1px solid var(--line-soft);
   padding: 11px 16px;
   font-size: 12.5px;
   color: var(--ink-faint);
@@ -890,23 +875,20 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 }
 .callout--warn {
   background: var(--warn-fill);
-  border: 1px solid var(--warn-edge);
 }
 .callout--info {
   background: var(--info-fill);
-  border: 1px solid var(--info-edge);
 }
 .callout--bad {
   background: var(--bad-fill);
-  border: 1px solid var(--bad-edge);
 }
 
 /* An empty state says WHY it is empty, then offers one action. */
 .empty {
-  border: 1px dashed var(--line);
   border-radius: var(--r-block);
   padding: 16px;
   max-width: 60ch;
+  background: var(--panel);
 }
 .empty__title {
   font-size: 14px;
@@ -981,7 +963,7 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 }
 
 /* ==================================================================
-   Chips — ink, fill and border ALWAYS derive from one tone.
+   Chips — ink and fill ALWAYS derive from one tone; no outline.
    ================================================================== */
 
 .chip {
@@ -1004,28 +986,23 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 .chip--ok {
   color: var(--ok);
   background: var(--ok-fill);
-  border: 1px solid var(--ok-edge);
 }
 .chip--warn {
   color: var(--warn);
   background: var(--warn-fill);
-  border: 1px solid var(--warn-edge);
 }
 .chip--bad {
   color: var(--bad);
   background: var(--bad-fill);
-  border: 1px solid var(--bad-edge);
 }
 .chip--info {
   color: var(--accent-bright);
   background: var(--info-fill);
-  border: 1px solid var(--info-edge);
 }
 /* A count or a label that carries no state: present, and quiet. */
 .chip--mute {
   color: var(--ink-dim);
   background: var(--panel-raised);
-  border: 1px solid var(--line);
 }
 
 /* Gold is not a state. This is the tier badge and nothing else. */
@@ -1044,7 +1021,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   height: 8px;
   border-radius: var(--r-pill);
   background: var(--ground-sunken);
-  border: 1px solid var(--line-soft);
   overflow: hidden;
 }
 .meter__fill {
@@ -1059,7 +1035,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   height: 12px;
   border-radius: var(--r-pill);
   background: var(--ground-sunken);
-  border: 1px solid var(--line-soft);
 }
 .meter--marked .meter__fill {
   border-radius: var(--r-pill);
@@ -1105,7 +1080,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 }
 .stats__cell {
   padding: 12px 16px 12px 0;
-  border-right: 1px solid var(--line-soft);
 }
 .stats__value {
   font-family: var(--font-mono);
@@ -1133,6 +1107,13 @@ button.rail__switch-head[aria-disabled="true"]:hover {
    Controls
    ================================================================== */
 
+/* Three weights, told apart at a glance (Jamie, 2026-11-11: "Buttons
+   should be easy to distinguish"). Gold, filled, is the one thing to do
+   on a screen (.btn--primary, and .btn--gold, its older name). Solid,
+   the raised neutral fill, is any other action (.btn). A link is the
+   way out (.btn--quiet, .btn--text, button.link). No button is
+   outlined: the border stays transparent so every weight is the same
+   size, and focus draws its own ring. */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -1140,32 +1121,46 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   font-size: var(--t-body-sm);
   border-radius: var(--r-control);
   padding: 9px 14px;
-  border: 1px solid var(--line);
-  background: var(--panel-raised);
+  border: 1px solid transparent;
+  background: var(--control);
   color: var(--ink);
 }
 .btn:hover {
-  border-color: var(--accent-deep);
+  background: var(--control-hover);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
 }
 .btn--primary {
-  background: var(--accent-bright);
-  color: var(--ground);
-  font-weight: 600;
-  border: 1px solid transparent;
+  background: var(--gold-grad);
+  color: var(--gold-on);
+  font-weight: 700;
   padding: 9px 15px;
 }
-.btn--selected {
-  background: var(--accent-deep);
-  border-color: var(--accent);
+.btn--primary:hover {
+  background: var(--gold-light);
 }
 .btn--quiet {
   background: transparent;
-  color: var(--ink-dim);
+  color: var(--ink-link);
+}
+.btn--quiet:hover {
+  background: var(--hover-row);
+  color: var(--ink-link-hover);
+}
+/* A chosen option among buttons (a quiet one included): filled, so the
+   choice is the fill and not an edge. */
+.btn.btn--selected {
+  background: var(--accent-deep);
+  color: var(--ink);
 }
 .btn--danger {
   background: var(--bad-fill);
-  border-color: var(--bad-edge);
   color: var(--bad);
+}
+.btn--danger:hover {
+  background: color-mix(in srgb, var(--bad) 22%, transparent);
 }
 .btn--sm {
   font-size: 12.5px;
@@ -1196,7 +1191,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
    ================================================================== */
 
 .code {
-  border: 1px solid var(--line);
   border-radius: var(--r-block);
   background: var(--ground-sunken);
   overflow: hidden;
@@ -1207,7 +1201,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   gap: 10px;
   flex-wrap: wrap;
   padding: 11px 15px;
-  border-bottom: 1px solid var(--line-soft);
   background: var(--panel-head);
 }
 .code__body {
@@ -1250,7 +1243,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
    long answer pushes older messages up and out instead of growing the
    box and shoving the page down while somebody is reading it. */
 .transcript__window {
-  border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--panel-float);
   overflow: hidden;
@@ -1261,7 +1253,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   align-items: center;
   gap: 9px;
   padding: 11px 15px;
-  border-bottom: 1px solid var(--line-soft);
   background: var(--ground-chrome);
 }
 .transcript__pip {
@@ -1288,7 +1279,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   align-self: flex-end;
   max-width: 82%;
   background: var(--line-soft);
-  border: 1px solid var(--line-strong);
   border-radius: 14px 14px 4px 14px;
   padding: 11px 14px;
   font-size: 14.5px;
@@ -1311,7 +1301,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   font-size: 11.5px;
   color: var(--ink-dim);
   background: var(--panel);
-  border: 1px solid var(--line);
   border-radius: var(--r-chip);
   padding: 4px 9px;
 }
@@ -1361,7 +1350,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 }
 .transcript__tools {
   padding: 11px 15px;
-  border-top: 1px solid var(--line-soft);
   background: var(--ground-chrome);
   display: flex;
   align-items: center;
@@ -1530,7 +1518,6 @@ main.wrap {
   gap: 2px;
   padding: 3px;
   background: var(--ground-sunken);
-  border: 1px solid var(--line);
   border-radius: var(--r-control);
   max-width: 100%;
   overflow-x: auto;
@@ -1547,8 +1534,7 @@ main.wrap {
   cursor: pointer;
 }
 .segmented button[aria-selected="true"] {
-  background: var(--panel-raised);
-  border-color: var(--line-strong);
+  background: var(--control);
   color: var(--ink);
   font-weight: 600;
 }
@@ -1579,7 +1565,6 @@ main.wrap {
   gap: var(--s-2);
   align-items: center;
   padding: 12px var(--s-4);
-  border-top: 1px solid var(--line-soft);
   background: var(--panel-head);
   flex-wrap: wrap;
 }
@@ -1588,7 +1573,6 @@ main.wrap {
    tooltip — a caveat you have to hover for is a caveat you hid. */
 .panel__note {
   padding: 10px var(--s-4);
-  border-top: 1px solid var(--line-soft);
   font-size: 12px;
   line-height: 1.5;
   color: var(--ink-faint);
@@ -1661,7 +1645,6 @@ tr.yours td {
 /* Scope, role, kind — neutral square mono tags, no dot */
 .tag-chip {
   padding: 2px var(--s-2);
-  border: 1px solid var(--line);
   border-radius: var(--r-chip);
   background: var(--ground-sunken);
   font: 11.5px var(--font-mono);
@@ -1669,11 +1652,11 @@ tr.yours td {
 }
 .kind-chip {
   padding: 3px 7px;
-  border: 1px solid var(--line);
   border-radius: var(--r-chip);
   font: 600 10px var(--font-mono);
   letter-spacing: 0.1em;
   color: var(--ink-faint);
+  background: var(--panel-raised);
 }
 
 /* ── The honesty set ─────────────────────────────────────────
@@ -1684,10 +1667,10 @@ tr.yours td {
    thin sample without hiding the number. */
 .sample {
   padding: 1px 6px;
-  border: 1px solid var(--line);
   border-radius: var(--r-chip);
   font: 11px var(--font-mono);
   color: var(--ink-faint);
+  background: var(--panel-raised);
 }
 
 /* Caveat — dashed edge, always lowercase, in the panel head or a column
@@ -1720,18 +1703,17 @@ tr.yours td {
   gap: 10px;
   align-items: flex-start;
   padding: var(--s-4) var(--s-6) var(--s-6);
-  border-top: 1px solid var(--line-soft);
   flex-wrap: wrap;
 }
 .disclaimer__tag {
   flex: none;
   margin-top: 1px;
   padding: 2px 6px;
-  border: 1px solid var(--line);
   border-radius: var(--r-chip);
   font: 600 10px var(--font-mono);
   letter-spacing: 0.08em;
   color: var(--ink-faint);
+  background: var(--panel-raised);
 }
 .disclaimer__text {
   flex: 1 1 320px;
@@ -1755,20 +1737,25 @@ button {
   padding: 4px var(--s-2);
   background: transparent;
   border: 1px solid transparent;
-  color: var(--ink-faint);
+  color: var(--ink-link);
   font-size: 12px;
   font-weight: 400;
   box-shadow: none;
 }
-/* Gold is reserved for the brand moments: request access, raise my hand
-   to run a collector, and the nav's Sign in — the one thing a returning
-   visitor is looking for. NOT ordinary primary actions, including the
-   submit inside the sign-in form itself; those are .btn. */
+.btn--text:hover {
+  background: none;
+  color: var(--ink-link-hover);
+}
+/* The gold weight's older name (the brand moments: Sign in, request
+   access); since the flat kit it is .btn--primary's twin. */
 .btn--gold {
   background: var(--gold-grad);
   color: var(--gold-on);
   font-weight: 700;
   box-shadow: none;
+}
+.btn--gold:hover {
+  background: var(--gold-light);
 }
 .btn:disabled {
   background: var(--line);
@@ -1882,7 +1869,6 @@ input[aria-invalid="true"] {
   padding: 10px 14px;
   border-radius: var(--r-block);
   background: var(--panel);
-  border: 1px solid var(--line);
 }
 .mailall__label {
   display: flex;
@@ -1906,12 +1892,8 @@ input[aria-invalid="true"] {
   align-items: center;
   gap: 12px;
   padding: 11px 0;
-  border-bottom: 1px solid var(--line-soft);
   color: var(--ink-faint);
   text-decoration: none;
-}
-.mailsent:last-child {
-  border-bottom: 0;
 }
 .mailsent__day {
   width: 96px;
@@ -1938,8 +1920,7 @@ input[aria-invalid="true"] {
   display: flex;
   gap: 10px;
   padding: 10px var(--s-3);
-  background: var(--ground);
-  border: 1px solid var(--line);
+  background: var(--panel);
   border-radius: var(--r-control);
   font-size: 12.5px;
   color: var(--ink-body);
@@ -1959,10 +1940,10 @@ input[aria-invalid="true"] {
   width: 36px;
   height: 36px;
   margin: 0 auto var(--s-3);
-  border: 1px solid var(--line-strong);
   border-radius: 50%;
   font: 600 14px var(--font-mono);
   color: var(--ink-faint);
+  background: var(--panel-raised);
 }
 
 /* ── Record browser (Explore) ─────────────────────────────── */
@@ -1988,7 +1969,6 @@ input[aria-invalid="true"] {
 }
 .fields dt {
   padding: 9px var(--s-3);
-  border-top: 1px solid var(--line-soft);
   background: var(--panel-head);
   font: 11px var(--font-mono);
   color: var(--ink-faint);
@@ -1996,7 +1976,6 @@ input[aria-invalid="true"] {
 .fields dd {
   margin: 0;
   padding: 9px var(--s-3);
-  border-top: 1px solid var(--line-soft);
   font-size: 12.5px;
 }
 .fields dd .hint {
@@ -2017,12 +1996,9 @@ input[aria-invalid="true"] {
   flex-direction: column;
   gap: 2px;
   padding: 10px var(--s-3);
-  border: 1px solid var(--line);
   border-radius: var(--r-control);
   color: var(--ink);
-}
-.tile[href] {
-  border-color: var(--line-strong);
+  background: var(--panel);
 }
 .tile[href]:hover {
   background: var(--hover-row);
@@ -2051,7 +2027,6 @@ input[aria-invalid="true"] {
 }
 .raw {
   padding: var(--s-3) var(--s-4);
-  border-top: 1px solid var(--line-soft);
   background: var(--ground-sunken);
   font: 11.5px/1.6 var(--font-mono);
   color: var(--ink-body);
@@ -2074,7 +2049,6 @@ input[aria-invalid="true"] {
 
 .chart {
   padding: 14px var(--s-4) 6px;
-  border-top: 1px solid var(--line-soft);
 }
 .chart__head {
   display: flex;
@@ -2181,7 +2155,6 @@ input[aria-invalid="true"] {
   z-index: 5;
   min-width: 150px;
   padding: 8px 10px;
-  border: 1px solid var(--line);
   border-radius: var(--r-chip);
   background: var(--panel-raised);
   box-shadow: 0 6px 20px rgb(0 0 0 / 45%);
@@ -2214,7 +2187,6 @@ input[aria-invalid="true"] {
 .charttip__foot {
   margin-top: 5px;
   padding-top: 5px;
-  border-top: 1px solid var(--line-soft);
   color: var(--ink-faint);
 }
 .chart-legend {
@@ -2325,7 +2297,6 @@ input[aria-invalid="true"] {
 .docs__body pre {
   padding: var(--s-3);
   background: var(--ground-sunken);
-  border: 1px solid var(--line);
   border-radius: var(--r-control);
   overflow-x: auto;
 }
@@ -2352,12 +2323,10 @@ input[aria-invalid="true"] {
     grid-template-columns: 1fr;
   }
   .fields dt {
-    border-top: 1px solid var(--line-soft);
     padding-bottom: 0;
     background: transparent;
   }
   .fields dd {
-    border-top: 0;
     padding-top: 2px;
   }
   .tiles {
@@ -2373,7 +2342,6 @@ input[aria-invalid="true"] {
   height: 10px;
   border-radius: 5px;
   background: var(--ground-sunken);
-  border: 1px solid var(--line);
   overflow: hidden;
 }
 .gauge__fill {
@@ -2406,7 +2374,8 @@ input[aria-invalid="true"] {
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  background: var(--control);
   border-radius: 999px;
   font-size: 12px;
   color: var(--ink-faint);
@@ -2414,7 +2383,6 @@ input[aria-invalid="true"] {
 }
 .feed-link:hover {
   color: var(--gold);
-  border-color: var(--gold);
 }
 
 /* A nav-sized gold button. The full-size one is a page CTA; in a navigation
@@ -2472,9 +2440,9 @@ input[aria-invalid="true"] {
   gap: 12px;
 }
 .first-answer__questions article {
-  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 16px;
+  background: var(--panel);
 }
 .first-answer__questions h3 {
   margin: 0;
@@ -2542,7 +2510,6 @@ input[aria-invalid="true"] {
 .siterail__foot {
   margin-top: 22px;
   padding: 14px 11px 0;
-  border-top: 1px solid var(--line-soft);
   font-size: 13px;
   color: var(--ink-faint);
   display: flex;
@@ -2703,11 +2670,10 @@ input[aria-invalid="true"] {
   padding: 22px;
   border-radius: 16px;
   background: var(--panel);
-  border: 1px solid var(--line);
   color: var(--ink);
 }
 .home-tile:has(.home-tile__cta:hover) {
-  border-color: var(--accent-deep);
+  background: var(--panel-raised);
 }
 .home-tile__head {
   display: flex;
@@ -2753,7 +2719,6 @@ input[aria-invalid="true"] {
   list-style: none;
   border-radius: var(--r-block);
   background: var(--ground-sunken);
-  border: 1px solid var(--line-row);
 }
 .home-tile__row {
   display: flex;
@@ -2931,7 +2896,6 @@ input[aria-invalid="true"] {
   list-style: none;
   border-radius: 16px;
   background: var(--panel);
-  border: 1px solid var(--line);
 }
 .home-strip__item {
   display: flex;
@@ -3041,7 +3005,6 @@ input[aria-invalid="true"] {
   padding: 0 11px;
   margin-bottom: 6px;
   border: 0;
-  border-bottom: 1px solid var(--line-soft);
   background: none;
   color: var(--ink);
   text-align: left;
@@ -3093,13 +3056,13 @@ input[aria-invalid="true"] {
   gap: 6px;
   font-size: 12.5px;
   color: var(--ink-dim);
-  background: var(--panel);
-  border: 1px solid var(--line);
+  background: var(--control);
+  border: 1px solid transparent;
   border-radius: 8px;
   padding: 5px 9px;
 }
 .siterail__chips a:hover {
-  border-color: var(--accent-deep);
+  background: var(--control-hover);
   color: var(--ink);
 }
 /* "gen" on the Tools item: generated from the registry, never hand-edited. */
@@ -3108,9 +3071,9 @@ input[aria-invalid="true"] {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--ink-faint);
-  border: 1px solid var(--line);
   border-radius: 5px;
   padding: 1px 5px;
+  background: var(--panel-raised);
 }
 .docs-search {
   display: flex;
@@ -3166,7 +3129,6 @@ input[aria-invalid="true"] {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  border-left: 1px solid var(--line-soft);
   padding-left: 12px;
 }
 .docs__onpage-list a {
@@ -3179,7 +3141,6 @@ input[aria-invalid="true"] {
 .docs__onpage-foot {
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid var(--line-soft);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -3217,7 +3178,6 @@ input[aria-invalid="true"] {
   justify-content: space-between;
   gap: 6px 12px;
   background: var(--panel);
-  border: 1px solid var(--line);
   border-radius: var(--r-block);
   padding: 9px 14px;
   margin: 0 0 16px;
@@ -3262,7 +3222,6 @@ input[aria-invalid="true"] {
   grid-template-columns: 190px minmax(0, 1fr) auto;
   gap: 3px 14px;
   padding: 11px 16px;
-  border-top: 1px solid var(--line-row);
   font-size: 14px;
   color: var(--ink-dim);
   text-decoration: none;
@@ -3378,7 +3337,6 @@ input[aria-invalid="true"] {
   gap: 10px 16px;
   margin-top: 32px;
   padding-top: 18px;
-  border-top: 1px solid var(--line-soft);
   font-size: 13.5px;
   color: var(--ink-faint);
 }
@@ -3420,7 +3378,6 @@ input[aria-invalid="true"] {
   padding: 20px;
   border-radius: var(--r-panel);
   background: var(--panel);
-  border: 1px solid var(--line);
 }
 .docs-task__head {
   display: flex;
@@ -3449,7 +3406,6 @@ input[aria-invalid="true"] {
   padding: 2px 9px;
   border-radius: var(--r-pill);
   background: var(--panel-raised);
-  border: 1px solid var(--line);
   font-size: 11.5px;
   font-weight: 500;
   color: var(--ink-dim);
@@ -3467,7 +3423,6 @@ input[aria-invalid="true"] {
   flex-wrap: wrap;
   gap: 6px 16px;
   padding-top: 12px;
-  border-top: 1px solid var(--line-soft);
   font-size: 13.5px;
 }
 .docs-new {
@@ -3477,7 +3432,6 @@ input[aria-invalid="true"] {
   padding: 16px 20px;
   border-radius: var(--r-panel);
   background: var(--ground-sunken);
-  border: 1px solid var(--line);
 }
 .docs-new > svg {
   flex: 0 0 auto;
@@ -3525,13 +3479,13 @@ input[aria-invalid="true"] {
   min-height: 36px;
   padding: 0 14px;
   border-radius: var(--r-control);
-  background: var(--panel);
-  border: 1px solid var(--line);
+  background: var(--control);
+  border: 1px solid transparent;
   color: var(--ink-dim);
   font-size: 13.5px;
 }
 .docs-ref__links a:hover {
-  border-color: var(--accent-deep);
+  background: var(--control-hover);
   color: var(--ink);
 }
 @media (max-width: 1180px) {
@@ -3553,13 +3507,12 @@ input[aria-invalid="true"] {
   display: block;
   text-align: left;
   background: var(--panel);
-  border: 1px solid var(--line);
   border-radius: 13px;
   padding: 15px;
   color: inherit;
 }
 .rail-card:hover {
-  border-color: var(--accent-deep);
+  background: var(--panel-raised);
   color: inherit;
 }
 .rail-card__title {
@@ -3585,7 +3538,7 @@ input[aria-invalid="true"] {
     height: 44px;
     margin: 0;
     background: var(--panel);
-    border: 1px solid var(--line);
+    border: 0;
     border-radius: var(--r-control);
     cursor: pointer;
   }
@@ -3708,7 +3661,6 @@ input[aria-invalid="true"] {
   font-size: 12.5px;
   color: var(--ink-code);
   background: var(--ground-sunken);
-  border: 1px solid var(--line-soft);
   border-radius: 5px;
   padding: 1px 5px;
 }
@@ -3762,14 +3714,12 @@ input[aria-invalid="true"] {
   font-size: 12.5px;
   color: var(--ink-code);
   background: var(--ground-sunken);
-  border: 1px solid var(--line-soft);
   border-radius: 5px;
   padding: 1px 5px;
 }
 .md pre {
   padding: 10px 12px;
   background: var(--ground-sunken);
-  border: 1px solid var(--line);
   border-radius: var(--r-control);
   overflow-x: auto;
 }
@@ -3804,7 +3754,6 @@ input[aria-invalid="true"] {
   overflow-y: auto;
   padding: 8px;
   background: var(--ground-sunken);
-  border: 1px solid var(--line);
   border-radius: var(--r-control);
 }
 .cardpick__card {
@@ -3986,9 +3935,6 @@ input[aria-invalid="true"] {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-.verify__list .verify__row + .verify__row {
-  border-top: 1px solid var(--line);
 }
 .verify__who {
   display: inline-flex;
@@ -4196,10 +4142,10 @@ input[aria-invalid="true"] {
 }
 .activity__chip {
   cursor: pointer;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   /* A button's default grey is not the surface (console walk 2: the
      selected chip read near-white on light grey). */
-  background: transparent;
+  background: var(--control);
   color: var(--ink-body);
 }
 .activity__chip--on {
@@ -4706,13 +4652,11 @@ a.card-art:hover .card-art__img {
   padding: 14px 16px;
   border-radius: 14px;
   background: var(--panel);
-  border: 1px solid var(--line);
   color: var(--ink);
   text-decoration: none;
 }
 .card-tile:hover {
   background: var(--hover-row);
-  border-color: var(--line-strong);
 }
 .card-tile__art {
   position: relative;
@@ -4852,7 +4796,6 @@ a.card-art:hover .card-art__img {
   overflow-x: auto;
   border-radius: var(--r-control);
   background: var(--ground);
-  border: 1px solid var(--line-row);
   font: 12.5px/1.6 var(--font-mono);
   color: var(--ink-code);
   white-space: pre-wrap;
@@ -4867,7 +4810,6 @@ a.card-art:hover .card-art__img {
   padding: 4px;
   border-radius: var(--r-block);
   background: var(--ground-sunken);
-  border: 1px solid var(--line-row);
 }
 .card-modes button {
   height: 34px;
@@ -4896,8 +4838,8 @@ a.card-art:hover .card-art__img {
   height: 30px;
   padding: 0 12px;
   border-radius: var(--r-pill);
-  background: var(--panel);
-  border: 1px solid var(--line);
+  background: var(--control);
+  border: 1px solid transparent;
   color: var(--ink-dim);
   font: inherit;
   font-size: 13px;
@@ -4908,7 +4850,6 @@ a.card-art:hover .card-art__img {
 }
 .card-filter[aria-pressed="true"] {
   background: var(--accent-deep);
-  border-color: var(--accent-deep);
   color: var(--ink);
 }
 .card-search {
@@ -4946,7 +4887,6 @@ a.card-art:hover .card-art__img {
   padding: 16px 18px;
   border-radius: 14px;
   background: var(--panel);
-  border: 1px solid var(--line);
 }
 .card-stat__label {
   font-size: 11px;
@@ -5047,7 +4987,7 @@ a.card-art:hover .card-art__img {
   padding: 0 11px;
   border-radius: var(--r-pill);
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   font-size: 13px;
   color: var(--ink-body);
   white-space: nowrap;
@@ -5081,7 +5021,6 @@ a.card-art:hover .card-art__img {
   padding: 26px 32px;
   border-radius: 18px;
   background: radial-gradient(40rem 14rem at 50% 0%, #2a1d63, var(--panel) 70%);
-  border: 1px solid var(--line);
 }
 .battle__side {
   display: flex;
@@ -5141,16 +5080,16 @@ a.card-art:hover .card-art__img {
   color: var(--ink-body);
 }
 .trophy-pill--change {
-  background: transparent;
-  border: 1.5px solid var(--line-strong);
+  background: var(--line-row);
+  border: 1.5px solid transparent;
   color: var(--ink-dim);
 }
 .trophy-pill--win {
-  border-color: rgba(127, 182, 248, 0.6);
+  background: rgba(127, 182, 248, 0.14);
   color: #7fb6f8;
 }
 .trophy-pill--loss {
-  border-color: rgba(251, 113, 133, 0.55);
+  background: var(--bad-fill);
   color: #fb7185;
 }
 .battle__mid {
@@ -5201,17 +5140,15 @@ a.card-art:hover .card-art__img {
   font-weight: 600;
   white-space: nowrap;
   background: var(--panel-raised);
-  border: 1px solid var(--line-strong);
+  border: 1px solid transparent;
   color: var(--ink-body);
 }
 .result-chip--win {
   background: rgba(127, 182, 248, 0.14);
-  border-color: rgba(127, 182, 248, 0.5);
   color: #cfe3fd;
 }
 .result-chip--loss {
   background: rgba(251, 113, 133, 0.12);
-  border-color: rgba(251, 113, 133, 0.45);
   color: #fecdd3;
 }
 .battle__grid {
@@ -5293,7 +5230,6 @@ a.card-art:hover .card-art__img {
   padding: 8px 10px;
   border-radius: 10px;
   background: var(--ground-sunken);
-  border: 1px solid var(--line-row);
   font-size: 13.5px;
   color: var(--ink);
 }
@@ -5319,11 +5255,9 @@ a.card-art:hover .card-art__img {
   padding: 10px 12px;
   border-radius: 10px;
   background: #19143a;
-  border: 1px solid var(--line);
 }
 .tower--down {
   background: rgba(251, 113, 133, 0.1);
-  border-color: rgba(251, 113, 133, 0.4);
 }
 .tower__kind {
   font-size: 12px;
@@ -5369,12 +5303,8 @@ a.card-art:hover .card-art__img {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--line-row);
   color: var(--ink);
   text-decoration: none;
-}
-.battle-rows li:last-child .battle-row {
-  border-bottom: 0;
 }
 .battle-row .chip {
   white-space: nowrap;
@@ -5447,7 +5377,6 @@ a.card-art:hover .card-art__img {
   align-items: baseline;
   flex-wrap: wrap;
   padding-top: 14px;
-  border-top: 1px solid var(--line-row);
   font-size: 12px;
   color: var(--ink-faint);
 }
@@ -5747,7 +5676,7 @@ a.card-art:hover .card-art__img {
   min-width: 0;
   min-height: 56px;
   padding: 6px 8px;
-  border: 1px solid var(--line-row);
+  border: 1px solid transparent;
   border-radius: var(--r-s);
   font-size: 12px;
   overflow-wrap: anywhere;
@@ -5757,23 +5686,18 @@ a.card-art:hover .card-art__img {
 }
 .ladder-day--l1 {
   background: #33275a;
-  border-color: #33275a;
 }
 .ladder-day--l2 {
   background: #46347c;
-  border-color: #46347c;
 }
 .ladder-day--l3 {
   background: #5d45a3;
-  border-color: #5d45a3;
 }
 .ladder-day--other {
   background: var(--panel-raised);
-  border-color: var(--line-soft);
 }
 .ladder-day--quiet {
   background: var(--ground-sunken);
-  border-color: var(--line);
 }
 .ladder-day--part {
   background: repeating-linear-gradient(
@@ -5820,7 +5744,6 @@ a.card-art:hover .card-art__img {
   gap: 6px 18px;
   margin: 0;
   padding: 10px 18px;
-  border-top: 1px solid var(--line-row);
   font-size: 12.5px;
   color: var(--ink-dim);
   list-style: none;
@@ -5834,7 +5757,7 @@ a.card-art:hover .card-art__img {
   flex: none;
   width: 14px;
   height: 14px;
-  border: 1px solid var(--line-row);
+  border: 1px solid transparent;
   border-radius: 3px;
 }
 
@@ -5847,11 +5770,7 @@ a.card-art:hover .card-art__img {
 .ladder-wk {
   display: block;
   padding: 10px 18px;
-  border-top: 1px solid var(--line-row);
   font-size: 13.5px;
-}
-.ladder-wk:first-child {
-  border-top: 0;
 }
 .ladder-wk__label {
   display: block;
@@ -5907,12 +5826,8 @@ a.card-art:hover .card-art__img {
   gap: 2px 12px;
   min-height: 44px;
   padding: 11px 18px;
-  border-top: 1px solid var(--line-row);
   cursor: pointer;
   font-size: 14px;
-}
-.ladder-sit:first-child > summary {
-  border-top: 0;
 }
 .ladder-sit__when {
   font-weight: 600;
@@ -5933,7 +5848,6 @@ a.card-art:hover .card-art__img {
   gap: 2px 10px;
   min-height: 44px;
   padding: 8px 18px;
-  border-top: 1px solid var(--line-row);
   font-size: 13.5px;
 }
 .ladder-row__t {
@@ -5982,10 +5896,6 @@ a.card-art:hover .card-art__img {
   display: grid;
   gap: 6px;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--line-row);
-}
-.ladder-deckrow:last-child {
-  border-bottom: 0;
 }
 .ladder-deckrow p {
   margin: 0;
@@ -6011,11 +5921,7 @@ a.card-art:hover .card-art__img {
   justify-content: space-between;
   gap: 2px 12px;
   padding: 10px 18px;
-  border-top: 1px solid var(--line-row);
   font-size: 13.5px;
-}
-.ladder-duel:first-child {
-  border-top: 0;
 }
 .ladder-duel__name {
   min-width: 0;
@@ -6197,10 +6103,6 @@ a.card-art:hover .card-art__img {
 /* Application workspace patterns: unframed data, contextual controls. */
 .disclosure {
   min-width: 0;
-  border-block: 1px solid var(--line-soft);
-}
-.disclosure + .disclosure {
-  border-top: 0;
 }
 .disclosure > summary {
   padding: 14px 0;
@@ -6227,7 +6129,6 @@ a.card-art:hover .card-art__img {
   color: var(--ink);
   background: var(--ground-chrome);
   border: 0;
-  border-left: 1px solid var(--line);
   box-shadow: var(--shadow-modal);
 }
 .detail-sheet::backdrop {
@@ -6243,7 +6144,6 @@ a.card-art:hover .card-art__img {
   justify-content: space-between;
   gap: 16px;
   padding: 22px 24px;
-  border-bottom: 1px solid var(--line-soft);
 }
 .detail-sheet__head h2 {
   margin: 0;
@@ -6261,7 +6161,6 @@ a.card-art:hover .card-art__img {
   gap: 20px;
   min-height: 88px;
   padding: 20px 0;
-  border-bottom: 1px solid var(--line-soft);
 }
 .settings-row__title {
   margin: 0 0 4px;
@@ -6323,7 +6222,6 @@ a.card-art:hover .card-art__img {
 }
 .delivery-row {
   padding: 12px 0;
-  border-bottom: 1px solid var(--line-row);
 }
 .timeline-list {
   padding: 0;
@@ -6336,14 +6234,12 @@ a.card-art:hover .card-art__img {
   gap: 16px;
   align-items: start;
   padding: 18px 0;
-  border-bottom: 1px solid var(--line-row);
 }
 /* A row the page draws whole (Feedback's kit Row) takes the whole line,
    not the 150 px time column. */
 .timeline-list__row > .kit-row {
   grid-column: 1 / -1;
   padding: 0;
-  border-top: 0;
 }
 .timeline-list__time {
   color: var(--ink-faint);
@@ -6395,7 +6291,8 @@ a.card-art:hover .card-art__img {
     min-height: 44px;
   }
   .rail__toggle {
-    border-color: transparent;
+    border: 1px solid transparent;
+    background: var(--control);
   }
   .settings-row {
     gap: 12px;
@@ -6415,8 +6312,6 @@ a.card-art:hover .card-art__img {
 
 /* One action, the board's one column: folds, then the buttons. */
 .disclosure.action-fold {
-  border-block: 0;
-  border-top: 1px solid var(--line-row);
   padding-inline: 20px;
 }
 .action-decline {
@@ -6424,7 +6319,6 @@ a.card-art:hover .card-art__img {
   gap: 10px;
   max-width: 520px;
   padding: 14px 20px;
-  border-top: 1px solid var(--line-row);
 }
 .clan-decide {
   display: flex;
@@ -6432,7 +6326,6 @@ a.card-art:hover .card-art__img {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  border-top: 1px solid var(--line-row);
 }
 
 .permission-details {
@@ -6491,7 +6384,6 @@ a.card-art:hover .card-art__img {
   gap: 18px;
   align-items: center;
   padding-block: 15px;
-  border-bottom: 1px solid var(--line-soft);
 }
 .mail-pref__body {
   min-width: 0;
@@ -6550,7 +6442,6 @@ a.card-art:hover .card-art__img {
   align-items: baseline;
   gap: 8px 24px;
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--line-soft);
   font-size: 13.5px;
   color: var(--ink-dim);
 }
@@ -6643,7 +6534,8 @@ a.card-art:hover .card-art__img {
   gap: 6px;
   min-height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  background: var(--panel);
   border-radius: var(--r-pill);
   list-style: none;
   cursor: pointer;
@@ -6666,7 +6558,7 @@ a.card-art:hover .card-art__img {
   background: var(--warn);
 }
 .kit-fresh > summary:hover {
-  border-color: var(--line-strong);
+  background: var(--panel-raised);
 }
 .kit-fresh__pop {
   position: absolute;
@@ -6676,11 +6568,11 @@ a.card-art:hover .card-art__img {
   margin-top: 6px;
   padding: 12px;
   background: var(--panel-raised);
-  border: 1px solid var(--line-strong);
   border-radius: var(--r-panel);
   color: var(--ink-body);
   font-size: 13px;
   line-height: 1.5;
+  box-shadow: var(--shadow-float);
 }
 
 .kit-tabs {
@@ -6689,7 +6581,6 @@ a.card-art:hover .card-art__img {
   gap: 2px;
   max-width: 100%;
   margin-bottom: 20px;
-  border-bottom: 1px solid var(--line);
   overflow-x: auto;
 }
 .kit-tabs--wrap {
@@ -6752,21 +6643,25 @@ a.card-art:hover .card-art__img {
 .kit-chip {
   min-height: 34px;
   padding: 6px 12px;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: var(--r-pill);
-  background: none;
+  background: var(--control);
   color: var(--ink-dim);
   font: inherit;
   font-size: 13.5px;
   white-space: nowrap;
   cursor: pointer;
 }
+.kit-chip:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
 .kit-chip:hover {
-  border-color: var(--line-strong);
+  background: var(--control-hover);
   color: var(--ink);
 }
+/* The chosen chip keeps a gold edge: a line that says "this one". */
 .kit-chip[aria-pressed="true"] {
-  background: var(--panel-raised);
   border-color: var(--gold);
   color: var(--ink);
   font-weight: 600;
@@ -6779,7 +6674,6 @@ a.card-art:hover .card-art__img {
 
 .kit-panel {
   background: var(--panel);
-  border: 1px solid var(--line);
   border-radius: var(--r-block);
 }
 .kit-panel__head {
@@ -6810,7 +6704,6 @@ a.card-art:hover .card-art__img {
 }
 .kit-panel .panel__head {
   padding: 14px 18px 10px;
-  border-bottom: 0;
 }
 .kit-panel .panel__body {
   padding-right: 18px;
@@ -6834,10 +6727,6 @@ a.card-art:hover .card-art__img {
 .kit-panel .table td:last-child {
   padding-right: 18px;
 }
-
-.kit-rows > .kit-row:first-child {
-  border-top: 0;
-}
 .kit-row {
   display: flex;
   align-items: center;
@@ -6847,7 +6736,6 @@ a.card-art:hover .card-art__img {
   min-height: 46px;
   padding: 11px 18px;
   border: 0;
-  border-top: 1px solid var(--line-row);
   background: none;
   color: var(--ink-body);
   font: inherit;
@@ -6923,12 +6811,10 @@ button.kit-row {
 .empty.kit-empty {
   max-width: none;
   padding: 26px 18px;
-  border: 1px solid var(--line);
   background: var(--panel);
   text-align: center;
 }
 .kit-panel .empty.kit-empty {
-  border: 0;
   background: none;
 }
 .kit-empty .empty__body:last-child {
@@ -7215,7 +7101,6 @@ button.kit-row {
 .kit-top {
   position: relative;
   z-index: 30;
-  border-bottom: 1px solid var(--line);
   background: var(--panel);
   padding-top: env(safe-area-inset-top);
 }
@@ -7247,14 +7132,7 @@ button.kit-row {
    .kit-top__out stays plain site links, because that is what they are. */
 .kit-top__nav {
   align-self: stretch;
-}
-.kit-top__nav::before {
-  content: "";
-  align-self: center;
-  width: 1px;
-  height: 24px;
-  margin-right: 12px;
-  background: var(--line);
+  margin-left: 13px;
 }
 .kit-top__nav a {
   display: inline-flex;
@@ -7353,8 +7231,8 @@ button.kit-row {
   display: none;
 }
 .kit-foot {
-  border-top: 1px solid var(--line);
   padding-top: 16px;
+  background: var(--ground-chrome);
 }
 .kit-foot__links {
   display: flex;
@@ -7428,13 +7306,21 @@ button.kit-row {
   gap: 4px 12px;
   margin: 0;
   padding: 10px 14px;
-  border: 1px solid var(--line);
+  border: 0;
   border-left: 3px solid var(--gold);
   border-radius: 8px;
   background: var(--panel);
 }
-.kit-needs {
-  border-color: var(--gold);
+/* The clan's gold edge: an inset rule on the leading side, never a gold
+   outline. Needs you is the clan asking. */
+.kit-needs,
+.kit-panel--clan {
+  box-shadow: var(--edge-clan);
+}
+/* A leader's decision keeps a dashed border, the one panel edge that
+   carries meaning (game facts and clan decisions stay distinguishable). */
+.kit-panel--decision {
+  border: 1px dashed var(--line-strong);
 }
 .kit-week__quiet {
   margin: 12px 0 0;
@@ -7467,7 +7353,6 @@ button.kit-row {
   max-width: 100%;
 }
 .kit-setup {
-  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
   padding: 10px 14px;
@@ -7493,7 +7378,6 @@ button.kit-row {
   display: flex;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
 }
@@ -7533,7 +7417,6 @@ button.kit-row {
 }
 .kit-inbox {
   padding: 14px;
-  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
 }
@@ -7596,7 +7479,6 @@ button.kit-row {
 }
 .kit-follow {
   padding: 14px;
-  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
 }
@@ -7623,7 +7505,6 @@ button.kit-row {
 .kit-fcard {
   min-width: 0;
   padding: 12px 14px;
-  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
 }
@@ -7632,7 +7513,6 @@ button.kit-row {
   gap: 8px 6px;
 }
 .kit-fsec .kit-rows {
-  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
 }
@@ -7732,7 +7612,6 @@ button.kit-row {
     z-index: 25;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    border-top: 1px solid var(--line-strong);
     background: var(--panel-raised);
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
     padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom)
@@ -7903,10 +7782,6 @@ button.kit-row {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-top: 1px solid var(--line-soft);
-}
-.clan-row:first-child {
-  border-top: 0;
 }
 .clan-row--stack {
   display: grid;
@@ -7953,9 +7828,9 @@ button.kit-row {
   display: grid;
   gap: 4px;
   padding: 12px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid transparent;
   border-radius: var(--radius-control, 8px);
-  background: transparent;
+  background: var(--control);
   color: var(--ink);
   font: inherit;
   text-align: left;
@@ -8077,7 +7952,6 @@ button.kit-row {
     display: grid;
     gap: 8px;
     padding: 12px;
-    border-top: 1px solid var(--line-soft);
     background: var(--panel-float);
   }
   .clan-save {
@@ -8136,7 +8010,7 @@ button.kit-row {
   padding: 20px;
   color: var(--ink);
   background: var(--ground-chrome);
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: var(--r-card, 10px);
 }
 .kit-confirm::backdrop {
@@ -8177,12 +8051,7 @@ button.kit-row {
 .st-facts > dd {
   margin: 0;
   padding: 12px 16px;
-  border-top: 1px solid var(--line-soft);
   font-size: 13.5px;
-}
-.st-facts > dt:first-of-type,
-.st-facts > dt:first-of-type + dd {
-  border-top: 0;
 }
 .st-facts > dt {
   color: var(--ink-faint);
@@ -8256,7 +8125,6 @@ button.kit-row {
   display: block;
   padding: 10px 12px;
   background: var(--ground-sunken);
-  border: 1px solid var(--line);
   border-radius: var(--r-control);
   overflow-wrap: anywhere;
 }
@@ -8285,7 +8153,6 @@ button.kit-row {
   }
   .st-facts > dd {
     padding-top: 2px;
-    border-top: 0;
   }
   .st-form input,
   .st-form select {
@@ -8354,7 +8221,6 @@ button.kit-row {
   justify-content: space-between;
   gap: 4px 12px;
   padding: 8px 16px;
-  border-top: 1px solid var(--line-soft);
 }
 /* Clan's answer to "am I OK?": the first thing in You in the clan. */
 .kit-step__ahead {
@@ -8383,11 +8249,7 @@ button.kit-row {
   align-items: center;
   gap: 6px 14px;
   padding: 10px 16px;
-  border-top: 1px solid var(--line-soft);
   font-size: 13px;
-}
-.st-meter:first-child {
-  border-top: 0;
 }
 .st-meter__name {
   flex: 0 1 180px;
@@ -8459,7 +8321,7 @@ button.kit-row {
   padding: 0;
   color: var(--ink);
   background: var(--ground-chrome);
-  border: 1px solid var(--line);
+  border: 0;
 }
 .kit-search::backdrop,
 .kit-help::backdrop {
@@ -8549,7 +8411,6 @@ button.kit-row {
   width: min(420px, 100%);
   height: 100%;
   margin: 0 0 0 auto;
-  border-width: 0 0 0 1px;
 }
 .kit-help__box {
   display: flex;
@@ -8599,7 +8460,6 @@ button.kit-row {
     width: 100%;
     height: 100%;
     margin: 0;
-    border: 0;
     border-radius: 0;
   }
   .kit-search__box {
@@ -8608,7 +8468,6 @@ button.kit-row {
   }
   .kit-help {
     width: 100%;
-    border: 0;
   }
   /* Full-screen sheets keep clear of the clock and the home indicator. */
   .kit-search__box,
@@ -8668,16 +8527,12 @@ button.kit-row {
   display: grid;
   gap: 4px 16px;
   padding: 10px 14px;
-  border-top: 1px solid var(--line-soft);
   font-size: 14px;
   min-width: 0;
 }
 .data-rows__row > * {
   min-width: 0;
   overflow-wrap: anywhere;
-}
-.data-rows__row:first-child {
-  border-top: 0;
 }
 .data-rows__row--head {
   color: var(--ink-faint);
@@ -8727,7 +8582,6 @@ button.kit-row {
   gap: 16px;
   margin: 0 0 18px;
   padding: 12px 14px;
-  border: 1px solid var(--line-soft);
   border-radius: 8px;
   cursor: pointer;
 }

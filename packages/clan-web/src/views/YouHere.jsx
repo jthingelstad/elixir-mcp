@@ -387,7 +387,7 @@ export function YouHere({ clan, navigate }) {
                 {d.trophies.map((g) => (
                   <li
                     key={`${g.season_id}-${g.award_id}`}
-                    className="flex items-center gap-2.5 px-4 py-2.5 border-b border-line-row last:border-b-0"
+                    className="flex items-center gap-2.5 px-4 py-2.5"
                   >
                     <span className="text-accent-bright">
                       <Icon name="award" size={16} />

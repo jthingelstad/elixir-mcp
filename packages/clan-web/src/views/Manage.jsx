@@ -291,7 +291,7 @@ export function Review({ clan, navigate, who }) {
                 {says}
               </span>
             </div>
-            <ul className="m-0 list-none divide-y divide-line-row p-0">
+            <ul className="m-0 list-none p-0">
               {rows.map((m) => (
                 <MemberRow key={m.player_tag} m={m} {...props} />
               ))}

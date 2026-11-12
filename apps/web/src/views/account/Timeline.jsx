@@ -146,7 +146,7 @@ export function Timeline({ crumb = null } = {}) {
               aria-label="Timeline evidence"
               ref={panelRef}
               tabIndex={-1}
-              className="mb-6 space-y-3 border-b border-rule pb-5"
+              className="mb-6 space-y-3 pb-5"
             >
               <h2 className="text-lg">Recorded evidence</h2>
               <p className="break-words">{selected.text}</p>
