@@ -166,3 +166,73 @@ test(
     expect(stats).toEqual(["Stats"]);
   },
 );
+
+test(
+  "a player you follow: their page opens Their stats, which read through Stats' own door, with no You tabs",
+  { timeout: 20000 },
+  async () => {
+    // Jamie, 2026-11-12: "Stats opens for the players you follow".
+    const posted = [];
+    global.fetch = vi.fn(async (path, init) => {
+      const p = String(path);
+      if (p === "/api/me") return reply(me);
+      if (p.startsWith("/api/player?"))
+        return reply({
+          ...PAGE,
+          player: {
+            ...PAGE.player,
+            tag: FRIEND.player_tag,
+            name: "Copper Fern",
+          },
+          you: { own: false, following: true, relationship: "friend" },
+        });
+      if (p === "/api/me/stats" || p === "/api/explore") {
+        posted.push([p, JSON.parse(init.body)]);
+        return reply({ is_error: false, body: {} });
+      }
+      return reply({});
+    });
+    window.history.pushState({}, "", "/home/player/qq8822");
+    render(<App />);
+    const door = await screen.findByRole("link", { name: "Their stats" });
+    expect(door.getAttribute("href")).toBe("/home/you/stats?player=QQ8822");
+    expect(screen.queryByRole("link", { name: "Your stats" })).toBeNull();
+
+    cleanup();
+    window.history.pushState({}, "", "/home/you/stats?player=QQ8822");
+    render(<App />);
+    const back = await screen.findByRole("navigation", { name: "Whose stats" });
+    expect(back.textContent).toContain("Copper Fern");
+    expect(screen.queryByRole("tablist", { name: "You" })).toBeNull();
+    await waitFor(() => expect(posted.length).toBeGreaterThan(0));
+    // Every read names the followed player, and none rides the open bridge.
+    expect(posted.every(([p]) => p === "/api/me/stats")).toBe(true);
+    expect(
+      posted.every(([, b]) => b.args.player_tag === FRIEND.player_tag),
+    ).toBe(true);
+  },
+);
+
+test(
+  "a watched player's tag in ?player never opens their Stats",
+  { timeout: 20000 },
+  async () => {
+    me = {
+      ...ME,
+      claims: [
+        ...ME.claims,
+        {
+          player_tag: "#WW2299",
+          name: "Slate Heron",
+          relationship: "watching",
+        },
+      ],
+    };
+    window.history.pushState({}, "", "/home/you/stats?player=WW2299");
+    render(<App />);
+    await screen.findByRole("tablist", { name: "You" });
+    expect(
+      screen.queryByRole("navigation", { name: "Whose stats" }),
+    ).toBeNull();
+  },
+);

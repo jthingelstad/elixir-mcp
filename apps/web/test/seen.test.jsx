@@ -158,7 +158,8 @@ beforeEach(() => {
   global.fetch = vi.fn(async (path, init) => {
     const p = String(path);
     if (p === "/api/me") return reply(me);
-    if (p === "/api/explore") {
+    // Your own battles read through Stats' door (2026-11-12).
+    if (p === "/api/me/stats") {
       const body = JSON.parse(init.body);
       explored.push(body);
       return reply({ tool: body.tool, is_error: false, body: { battles } });

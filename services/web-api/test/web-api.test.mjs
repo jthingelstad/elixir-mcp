@@ -1104,6 +1104,103 @@ test("explorer bridge: registry tools with session auth, audited as surface web"
   assert.ok(rows[0].n >= 2, "explorer calls audited as web");
 });
 
+test("Stats opens for your own players and the players you follow, and refuses the rest", async () => {
+  // Jamie, 2026-11-12: "Stats opens for the players you follow", only
+  // those and your own; anyone else is refused server-side. Invented tags.
+  const cookie = memberCookie;
+  const {
+    rows: [acct],
+  } = await db.query(`select account_id from account where email_hash = $1`, [
+    emailHash(NEWCOMER),
+  ]);
+  const FOLLOWED = "#2Y0QV8C";
+  const WATCHED = "#8LGPRJQ";
+  const STRANGER = "#9CJUVRL";
+  for (const tag of [FOLLOWED, WATCHED, STRANGER])
+    await db.query(
+      `insert into player (player_tag) values ($1) on conflict do nothing`,
+      [tag],
+    );
+  await db.query(
+    `insert into claim (account_id, player_tag, is_primary, relationship, status)
+     values ($1, $2, false, 'friend', 'unverified'),
+            ($1, $3, false, 'watching', 'unverified')`,
+    [acct.account_id, FOLLOWED, WATCHED],
+  );
+  const {
+    rows: [own],
+  } = await db.query(
+    `select player_tag from claim where account_id = $1 and is_primary`,
+    [acct.account_id],
+  );
+  const stats = (tool, args) =>
+    handler(event({ path: "/api/me/stats", cookie, body: { tool, args } }));
+
+  for (const tag of [own?.player_tag, FOLLOWED].filter(Boolean)) {
+    const ok = await stats("battles_query", { player_tag: tag });
+    assert.equal(ok.statusCode, 200, `${tag} opens`);
+    assert.equal(parse(ok).is_error, false);
+  }
+  // A tag in its own spelling reaches the same claim.
+  const loose = await stats("players_summary", {
+    player_tag: FOLLOWED.slice(1).toLowerCase(),
+  });
+  assert.equal(loose.statusCode, 200);
+
+  for (const tag of [WATCHED, STRANGER]) {
+    const refused = await stats("battles_query", { player_tag: tag });
+    assert.equal(refused.statusCode, 403, `${tag} is refused`);
+    assert.equal(parse(refused).error, "not_followed");
+  }
+  // Unfollowing closes it again.
+  await db.query(
+    `delete from claim where account_id = $1 and player_tag = $2`,
+    [acct.account_id, FOLLOWED],
+  );
+  assert.equal(
+    (await stats("battles_query", { player_tag: FOLLOWED })).statusCode,
+    403,
+  );
+
+  // No tag, a bad tag, a tool Stats never reads, a segment: refused.
+  assert.equal((await stats("battles_query", {})).statusCode, 400);
+  assert.equal(
+    (await stats("battles_query", { player_tag: "not a tag!" })).statusCode,
+    400,
+  );
+  assert.equal(
+    (await stats("elixir_my_players", { player_tag: STRANGER })).statusCode,
+    400,
+  );
+  assert.equal(
+    (
+      await stats("battles_performance", {
+        player_tag: own?.player_tag ?? STRANGER,
+        segment: "mine",
+      })
+    ).statusCode,
+    400,
+  );
+  assert.equal(
+    (
+      await stats("war_current", {
+        clan_tag: "#J2RGCRVG",
+        player_tag: STRANGER,
+      })
+    ).statusCode,
+    400,
+  );
+
+  // Signed out: nothing.
+  const anon = await handler(
+    event({
+      path: "/api/me/stats",
+      body: { tool: "battles_query", args: { player_tag: FOLLOWED } },
+    }),
+  );
+  assert.equal(anon.statusCode, 401);
+});
+
 test("feedback: web form + MCP tool land attributed rows; admin triages", async () => {
   const cookie = memberCookie;
   const web = await handler(

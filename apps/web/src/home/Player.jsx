@@ -172,6 +172,8 @@ export function PlayerView({
       <nav className="kit-player__doors" aria-label="More about this player">
         {you.own && !self ? (
           <Link to={ladderHref("season", { player: p.tag })}>Your stats</Link>
+        ) : you.following && !you.own ? (
+          <Link to={ladderHref("season", { player: p.tag })}>Their stats</Link>
         ) : null}
         {p.clan_tag && !you.own ? (
           <FollowAll

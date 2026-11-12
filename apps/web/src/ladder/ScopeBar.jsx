@@ -10,6 +10,7 @@ import { useId } from "react";
 import {
   LADDER_PAGES,
   fmt,
+  isOwnClaim,
   modeChips,
   modeWords,
   playerName,
@@ -163,7 +164,8 @@ export function PlayerPick({ player, players, hrefFor, navigate }) {
         <OptionGroups
           groups={[
             ["Your main player", players.filter((p) => p.is_primary)],
-            ["Also you", players.filter((p) => !p.is_primary)],
+            ["Also you", players.filter((p) => !p.is_primary && isOwnClaim(p))],
+            ["Following", players.filter((p) => !isOwnClaim(p))],
           ]}
           option={(p) => (
             <option key={p.player_tag} value={p.player_tag}>
@@ -177,7 +179,8 @@ export function PlayerPick({ player, players, hrefFor, navigate }) {
 }
 
 /** Whose season, which season, which game, and how fresh. Each choice is an
- *  address: a link, a reload or a mail keeps it. A friend is never in the list. */
+ *  address: a link, a reload or a mail keeps it. A player you follow is in
+ *  the list only when their player page opened Stats for them. */
 function ScopeBar({
   player,
   players,

@@ -94,7 +94,12 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
       routes[`${req.method()} ${url.pathname}${url.search}`] ??
       (key === "GET /api/me/home/feed"
         ? routes["GET /api/me/timeline"]
-        : undefined);
+        : // Stats reads through its own door (2026-11-12), which gates
+          // the tag and then answers as the bridge does: a fixture that
+          // answers the bridge answers Stats too, unless it names Stats.
+          key === "POST /api/me/stats"
+          ? routes["POST /api/explore"]
+          : undefined);
     const [status, body] =
       typeof answer === "function"
         ? answer(route)

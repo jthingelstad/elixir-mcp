@@ -282,24 +282,40 @@ export function pickSeason(param, { seasons, currentBattles } = {}) {
 export const seasonWords = (season) =>
   !season || season.current ? "this season" : `in ${season.name}`;
 
-/** The players Ladder can show: the reader's own, primary first, then
- *  alts. A friend or a watched player is somebody else's season, and
- *  "your record is yours" (the Ladder brief) keeps them out. */
-export function ladderPlayers(claims) {
-  const own = (claims ?? []).filter(
-    (c) =>
-      c?.player_tag &&
-      (c.is_primary ||
-        c.relationship === "primary" ||
-        c.relationship === "alt"),
+/** A claim that is the reader's own player: the primary or an alt. */
+export const isOwnClaim = (c) =>
+  Boolean(
+    c?.is_primary || c?.relationship === "primary" || c?.relationship === "alt",
   );
-  return [...own].sort(
+
+/** A claim on a player the reader follows (Follow means Friend). */
+export const isFollowedClaim = (c) =>
+  Boolean(c && !isOwnClaim(c) && c.relationship === "friend");
+
+/** The players Stats can show: the reader's own, primary first, then alts,
+ *  and, when `?player=` names one, a player the reader follows (Jamie,
+ *  2026-11-12: "Stats opens for the players you follow", from their player
+ *  page). A watched player or a stranger is never listed, and the server
+ *  refuses their reads (`POST /api/me/stats`). */
+export function ladderPlayers(claims, param) {
+  const own = (claims ?? []).filter((c) => c?.player_tag && isOwnClaim(c));
+  const sorted = [...own].sort(
     (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
   );
+  const want = param == null ? "" : tagPath(String(param)).toUpperCase();
+  const followed = want
+    ? (claims ?? []).find(
+        (c) =>
+          c?.player_tag &&
+          isFollowedClaim(c) &&
+          tagPath(c.player_tag).toUpperCase() === want,
+      )
+    : null;
+  return followed ? [...sorted, followed] : sorted;
 }
 
-/** The player a `?player=` names, when it is one of yours; otherwise the
- *  primary. A tag that is not yours never reads someone else's season. */
+/** The player a `?player=` names, when it is listed; otherwise the
+ *  primary. A tag that is neither yours nor followed never reads a season. */
 export function pickPlayer(players, param) {
   const want = param == null ? "" : tagPath(String(param)).toUpperCase();
   return (

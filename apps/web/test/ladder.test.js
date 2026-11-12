@@ -26,6 +26,8 @@ import {
   ladderLegal,
   ladderMoved,
   ladderSlug,
+  isFollowedClaim,
+  isOwnClaim,
   ladderPlayers,
   ladderTitle,
   monthName,
@@ -173,6 +175,27 @@ test("?player picks one of yours, and anything else reads your primary", () => {
   expect(pickPlayer(players, "FRIEND1").player_tag).toBe("#20JJJ2CCRU");
   expect(pickPlayer(players, undefined).player_tag).toBe("#20JJJ2CCRU");
   expect(pickPlayer([], "X")).toBe(null);
+});
+
+test("?player opens a player you follow, and never a watched one or a stranger", () => {
+  // Jamie, 2026-11-12: "Stats opens for the players you follow".
+  const friend = ladderPlayers(CLAIMS, "friend1");
+  expect(friend.map((p) => p.player_tag)).toEqual([
+    "#20JJJ2CCRU",
+    "#VJQV8G8RL",
+    "#FRIEND1",
+  ]);
+  expect(pickPlayer(friend, "friend1").player_tag).toBe("#FRIEND1");
+  expect(isOwnClaim(pickPlayer(friend, "friend1"))).toBe(false);
+  expect(isFollowedClaim(CLAIMS[0])).toBe(true);
+  for (const tag of ["WATCHED", "STRANGER"]) {
+    const players = ladderPlayers(CLAIMS, tag);
+    expect(players.map((p) => p.player_tag)).toEqual([
+      "#20JJJ2CCRU",
+      "#VJQV8G8RL",
+    ]);
+    expect(pickPlayer(players, tag).player_tag).toBe("#20JJJ2CCRU");
+  }
 });
 
 test("the mode is the one asked for, else the one with the most recorded battles", () => {
