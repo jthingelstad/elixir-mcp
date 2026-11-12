@@ -11,9 +11,10 @@
  *   server refuses its reads to anyone else (`GET /api/clans/<tag>/run`).
  * - Members has no row of its own since G6 (2026-11-12): the roster with a
  *   Follow on each row, the Map for verified members while the clan keeps it
- *   on, Spread the word with Recruit's pitch for every member (A11), and
- *   Scout at its foot for elders and up. Standing is on Standings for every
- *   member; Review is in Run, the leaders'. Who sees what did not change.
+ *   on, Spread the word, and at its foot Recruit's pitch and Scout for
+ *   elders and up (Jamie, 2026-11-12: members keep Standing; Recruit and
+ *   Scout are leaders' and elders' tools). Standing is on Standings for
+ *   every member; Review is in Run, the leaders'.
  */
 import { appPath, clanPath, tagOf } from "./base.js";
 

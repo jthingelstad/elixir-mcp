@@ -56,7 +56,7 @@ describe("spread the word", () => {
     ).toBeTruthy();
   });
 
-  test("below 10 members the card points at Recruit, for everyone", () => {
+  test("below 10 members the card points a leader at Recruit", () => {
     renderWithProviders(
       <SpreadWord
         me={me({ set: false, active: false })}
@@ -70,7 +70,7 @@ describe("spread the word", () => {
     expect(screen.getByRole("link", { name: "Open Recruit" })).toBeTruthy();
   });
 
-  test("small-clan leaders can prepare policy, while members keep the recruiting path", () => {
+  test("small-clan leaders can prepare policy; elders and up keep the recruiting path, members are not sent to it", () => {
     for (const role of ["leader", "coLeader", "elder", "member"]) {
       const navigate = vi.fn();
       renderWithProviders(
@@ -81,7 +81,9 @@ describe("spread the word", () => {
           navigate={navigate}
         />,
       );
-      expect(screen.getByRole("link", { name: "Open Recruit" })).toBeTruthy();
+      const open = screen.queryByRole("link", { name: "Open Recruit" });
+      if (role === "member") expect(open).toBeNull();
+      else expect(open).toBeTruthy();
       const link = screen.queryByRole("link", { name: "Prepare the policy" });
       if (["leader", "coLeader"].includes(role)) {
         expect(link.getAttribute("href")).toBe("/clan/2PQRJ8LV/run/about");
@@ -95,7 +97,7 @@ describe("spread the word", () => {
     }
   });
 
-  test("with an active policy, anyone can bring clanmates in, at the roster's foot", () => {
+  test("with an active policy, anyone can bring clanmates in, at the roster's foot; Recruit is the elders' and up", () => {
     const { container } = renderWithProviders(
       <SpreadWord
         me={me({ set: true, active: true })}
@@ -109,6 +111,20 @@ describe("spread the word", () => {
       <SpreadWordFoot
         me={me({ set: true, active: true })}
         clan={clan("member")}
+        roster={roster(30)}
+        recruit={null}
+        onRecruit={onRecruit}
+      />,
+    );
+    expect(screen.getByText("Bring your clanmates")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /recruiting copy/ }),
+    ).toBeNull();
+    cleanup();
+    renderWithProviders(
+      <SpreadWordFoot
+        me={me({ set: true, active: true })}
+        clan={clan("elder")}
         roster={roster(30)}
         recruit={null}
         onRecruit={onRecruit}
@@ -139,5 +155,42 @@ describe("spread the word", () => {
         .getByRole("button", { name: "Hide the recruiting copy" })
         .getAttribute("aria-expanded"),
     ).toBe("true");
+  });
+
+  test("a member with no active policy has no foot, and Recruit's address gives its role line", () => {
+    const { container } = renderWithProviders(
+      <SpreadWordFoot
+        me={me({ set: false, active: false })}
+        clan={clan("member")}
+        roster={roster(24)}
+        recruit={<p>The pitch</p>}
+      />,
+    );
+    expect(container.textContent).toBe("");
+    cleanup();
+    renderWithProviders(
+      <SpreadWordFoot
+        me={me({ set: false, active: false })}
+        clan={clan("member")}
+        roster={roster(24)}
+        recruit={<p>The pitch</p>}
+        show="recruit"
+      />,
+    );
+    expect(
+      screen.getByText(/Recruit is for elders, co-leaders and the leader/),
+    ).toBeTruthy();
+    expect(screen.queryByText("The pitch")).toBeNull();
+  });
+
+  test("an unverified elder is a member here", () => {
+    const { container } = renderWithProviders(
+      <SpreadWordFoot
+        me={me({ set: false, active: false })}
+        clan={{ ...clan("elder"), verified: false }}
+        roster={roster(24)}
+      />,
+    );
+    expect(container.textContent).toBe("");
   });
 });

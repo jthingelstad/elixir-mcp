@@ -1,6 +1,7 @@
 /**
- * Recruiting over the real handler: every member reads the pitch, the
- * facts and the copy; a live read of the clan is cached for hours and a
+ * Recruiting over the real handler: an elder, co-leader or leader reads
+ * the pitch, the facts and the copy, and a member is refused (Jamie,
+ * 2026-11-12: Recruit and Scout are leaders' and elders' tools); a live read of the clan is cached for hours and a
  * pending one is passed through with the recorded roster standing in;
  * leaders save a versioned pitch, validated in words.
  */
@@ -110,11 +111,9 @@ const api = async (h, cookies, method, path, body) => {
 const signedIn = async (h) => cookieHeader((await signIn(h)).sessionCookie);
 const PATH = "/api/clans/2PQRJ8LV/recruit";
 
-test("recruit: a member gets the pitch, live facts and both formats, passing the checks; the live read is cached", async () => {
+test("recruit: an elder gets the pitch, live facts and both formats, passing the checks; the live read is cached", async () => {
   const h = harness({
-    players: [
-      player({ player_tag: "#8QCV", name: "Amy", clan_role: "member" }),
-    ],
+    players: [player({ player_tag: "#8QCV", name: "Amy", clan_role: "elder" })],
   });
   const c = await signedIn(h);
   const r = await api(h, c, "GET", PATH);
@@ -138,7 +137,7 @@ test("recruit: a member gets the pitch, live facts and both formats, passing the
   assert.equal(again.body.facts_cached, false);
 });
 
-test("recruit: a pending live read is passed through with the recorded roster standing in; a member's refresh does not spend a read", async () => {
+test("recruit: a pending live read is passed through with the recorded roster standing in; a refresh inside the floor does not spend a read", async () => {
   const h = harness({
     live: {
       ok: false,
@@ -173,7 +172,7 @@ test("recruit: a pending live read is passed through with the recorded roster st
   assert.equal(h.state.liveCalls, calls, "inside the ten-minute floor");
 });
 
-test("recruit: a leader saves a pitch as a new version and the copy follows; bad pitches are refused in words; members cannot", async () => {
+test("recruit: a leader saves a pitch as a new version and the copy follows; bad pitches are refused in words; an elder cannot", async () => {
   const ledger = createMemoryLedger();
   const lead = harness({ ledger });
   const lc = await signedIn(lead);
@@ -216,25 +215,24 @@ test("recruit: a leader saves a pitch as a new version and the copy follows; bad
   assert.equal(bad.status, 400);
   assert.match(bad.body.errors.tagline, /needed/);
 
-  const member = harness({
-    players: [
-      player({ player_tag: "#8QCV", name: "Amy", clan_role: "member" }),
-    ],
+  const elder = harness({
+    players: [player({ player_tag: "#8QCV", name: "Amy", clan_role: "elder" })],
     ledger,
   });
-  const mc = await signedIn(member);
+  const ec = await signedIn(elder);
   assert.equal(
-    (await api(member, mc, "POST", PATH, { values: {} })).status,
+    (await api(elder, ec, "POST", PATH, { values: {} })).status,
     403,
+    "an elder reads, never writes",
   );
   assert.equal(
-    (await api(member, mc, "GET", PATH)).body.pitch_version,
+    (await api(elder, ec, "GET", PATH)).body.pitch_version,
     1,
-    "members read the clan's pitch",
+    "elders read the clan's pitch",
   );
 });
 
-test("recruit: a leader writing the first pitch starts from a draft of the clan's goals; a member gets none", async () => {
+test("recruit: a leader writing the first pitch starts from a draft of the clan's goals; an elder gets none", async () => {
   const { policyFromGoals } = await import("@elixir-mcp/clan-engine");
   const ledger = seedVersion(
     createMemoryLedger(),
@@ -252,12 +250,36 @@ test("recruit: a leader writing the first pitch starts from a draft of the clan'
     "Clan Wars every week",
     "Generous donations, every week",
   ]);
+  const elder = harness({
+    players: [player({ player_tag: "#8QCV", name: "Amy", clan_role: "elder" })],
+    ledger,
+  });
+  const ec = await signedIn(elder);
+  assert.equal((await api(elder, ec, "GET", PATH)).body.suggested, null);
+});
+
+test("recruit is the leaders' and elders' tool: a member is refused, spending no live read; an elder reads it", async () => {
   const member = harness({
     players: [
       player({ player_tag: "#8QCV", name: "Amy", clan_role: "member" }),
     ],
-    ledger,
   });
   const mc = await signedIn(member);
-  assert.equal((await api(member, mc, "GET", PATH)).body.suggested, null);
+  const read = await api(member, mc, "GET", PATH);
+  assert.equal(read.status, 403);
+  assert.equal(read.body.error, "elders_only");
+  assert.equal(member.state.liveCalls, 0, "a refusal spends no live read");
+  const refresh = await api(member, mc, "GET", `${PATH}?refresh=1`);
+  assert.equal(refresh.status, 403);
+  assert.equal(member.state.liveCalls, 0);
+  assert.equal(
+    (await api(member, mc, "POST", PATH, { values: {} })).status,
+    403,
+  );
+
+  const elder = harness({
+    players: [player({ player_tag: "#8QCV", name: "Amy", clan_role: "elder" })],
+  });
+  const ec = await signedIn(elder);
+  assert.equal((await api(elder, ec, "GET", PATH)).status, 200);
 });

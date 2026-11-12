@@ -847,6 +847,28 @@ test("scout: a pasted tag is read live, pending is passed through, and the polic
   assert.equal(badTag.status, 400);
 });
 
+test("scout is the leaders' and elders' tool: a member is refused before any live read, an elder is answered", async () => {
+  const member = harness({
+    players: [player({ clan_role: "member" })],
+    part: partClan(),
+  });
+  const mc = await leader(member);
+  const refused = await api(member, mc, "POST", "/api/clans/2PQRJ8LV/scout", {
+    tag: "2pp",
+  });
+  assert.equal(refused.status, 403);
+  assert.equal(refused.body.error, "elders_only");
+  const elder = harness({
+    players: [player({ clan_role: "elder" })],
+    part: partClan(),
+  });
+  const ec = await leader(elder);
+  const answered = await api(elder, ec, "POST", "/api/clans/2PQRJ8LV/scout", {
+    tag: "2pp",
+  });
+  assert.equal(answered.status, 200);
+});
+
 test("ManageError carries a status and code", () => {
   const e = new ManageError(403, "leaders_only");
   assert.equal(e.status, 403);
