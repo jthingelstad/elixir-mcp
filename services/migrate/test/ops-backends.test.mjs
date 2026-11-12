@@ -79,9 +79,17 @@ test("terminate_backends keeps a five-minute floor and filters by application_na
     application_name: "elixir-mcp-test-sleeper",
   });
   await sleeper.connect();
-  const sleeping = sleeper.query("select pg_sleep(3)").catch(() => {});
+  // Long enough to outlast a loaded host (verify, 2026-11-12: a 3 s
+  // sleep had ended before the listing ran); cancelled in finally.
+  const sleeping = sleeper.query("select pg_sleep(120)").catch(() => {});
   try {
-    await new Promise((r) => setTimeout(r, 300));
+    for (let i = 0; i < 100; i += 1) {
+      const { rows } = await db.query(
+        "select 1 from pg_stat_activity where application_name = 'elixir-mcp-test-sleeper' and state = 'active' and query like '%pg_sleep%'",
+      );
+      if (rows.length) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
     const young = await terminateBackends(SCRATCH_URL, {
       like: "%pg_sleep%",
       older_than_s: 1,
@@ -101,6 +109,9 @@ test("terminate_backends keeps a five-minute floor and filters by application_na
       "elixir-mcp-test-sleeper": { backends: 1, active: 1 },
     });
   } finally {
+    await db.query(
+      "select pg_cancel_backend(pid) from pg_stat_activity where application_name = 'elixir-mcp-test-sleeper'",
+    );
     await sleeping;
     await sleeper.end();
   }
