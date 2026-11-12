@@ -104,70 +104,44 @@ let newcomerCookie;
 let memberCookie;
 let bossCookie;
 
-test("the full journey: request -> approve -> sign in -> claim -> record", async () => {
-  // 1. A newcomer requests access; the owner is notified; response is neutral.
-  const req = await handler(
+test("the full journey: sign up -> prove the address -> claim -> record", async () => {
+  // 1. A newcomer signs up with the tag they play under. Signup is public
+  // since the approval era retired (2026-11-12: no request form, no
+  // queue); nothing is opened or claimed until the address is proved.
+  const signup = await handler(
     event({
-      path: "/api/request-access",
-      body: { email: NEWCOMER, player_tag: "2ppOv90y", note: "hi" },
+      path: "/api/auth",
+      body: { age_13: true, email: NEWCOMER, player_tag: "2ppOv90y" },
     }),
   );
-  assert.equal(req.statusCode, 200);
-  assert.match(parse(req).message, /If your request is approved/);
-  assert.equal(ownerNotes.length, 1);
+  assert.equal(parse(signup).ok, true);
+  assert.equal(sentEmails.length, 1, "the code is mailed");
+  assert.equal(ownerNotes.length, 0, "no staff notice: nobody decides");
+  const { rows: none } = await db.query(
+    `select 1 from account where email_hash = $1`,
+    [emailHash(NEWCOMER)],
+  );
+  assert.equal(none.length, 0, "no account before the proof");
 
-  // 2. Ordinary pending members may now verify email without owner approval.
-  const preAuth = await handler(
-    event({ path: "/api/auth", body: { age_13: true, email: NEWCOMER } }),
+  // 2. The code proves the address and opens the account, with the
+  // welcome sent to the newcomer.
+  const { code } = sentEmails.at(-1);
+  const proved = await handler(
+    event({ path: "/api/auth/code", body: { email: NEWCOMER, code } }),
   );
-  assert.equal(parse(preAuth).ok, true);
-  assert.equal(sentEmails.length, 1, "pending members can verify their email");
-
-  // 3. Owner signs in and approves from the admin queue.
-  const ownerCookie = await signIn(JAMIE);
-  const list = await handler(
-    event({
-      method: "GET",
-      path: "/api/admin/requests",
-      cookie: ownerCookie,
-      body: undefined,
-    }),
-  );
-  const pending = parse(list).requests;
-  assert.equal(pending.length, 1);
-  assert.equal(
-    pending[0].requested_player_tag,
-    "#2PP0V90Y",
-    "tag normalized at the door",
-  );
-  const decide = await handler(
-    event({
-      path: "/api/admin/decide",
-      cookie: ownerCookie,
-      body: { email_hash: pending[0].email_hash, decision: "approved" },
-    }),
-  );
-  assert.equal(parse(decide).status, "approved");
-  // The request page promises "if your request is approved, you'll hear
-  // from us by email". Approval used to notify the OWNER instead, so an
-  // approved applicant heard nothing: the welcome template existed and
-  // nothing ever queued it.
-  assert.equal(parse(decide).notified, true, "the applicant was told");
+  assert.equal(proved.statusCode, 200, proved.body);
+  const cookie = proved.headers["set-cookie"].split(";")[0];
+  newcomerCookie = cookie;
+  assert.match(cookie, /^__Host-elixir_session=/);
   assert.deepEqual(
     welcomeEmails.map((m) => m.email),
     [NEWCOMER.toLowerCase()],
-    "the welcome goes to the applicant, not the owner",
+    "the welcome goes to the newcomer",
   );
 
-  // 4. Newcomer signs in with the emailed code and lands a __Host- cookie.
-  const cookie = await signIn(NEWCOMER);
-  newcomerCookie = cookie;
-  assert.match(cookie, /^__Host-elixir_session=/);
-
-  // 5. The console is NOT empty. Approval claims the tag they asked with
-  // and starts recording it (0065) — the request form's second field was
-  // read by nothing for months, and the newcomer's first act was typing
-  // in a tag they had already given us.
+  // 3. The account is NOT empty. The proof claims the tag they signed up
+  // with and starts recording it (0065), so the newcomer's first act is
+  // never typing in a tag they had already given us.
   const me = parse(
     await handler(
       event({ method: "GET", path: "/api/me", cookie, body: undefined }),
@@ -175,7 +149,7 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
   );
   assert.equal(me.authenticated, true);
   assert.equal(me.is_owner, false);
-  assert.equal(me.claims.length, 1, "the requested player is already claimed");
+  assert.equal(me.claims.length, 1, "the signup's player is already claimed");
   assert.equal(me.claims[0].player_tag, "#2PP0V90Y");
   assert.equal(me.claims[0].is_primary, true);
   assert.equal(me.recordings.length, 1);
@@ -226,7 +200,7 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
   assert.equal(
     me2.claims[0].is_primary,
     true,
-    "the approval-time claim stays primary",
+    "the signup's claim stays primary",
   );
   assert.equal(me2.recordings.length, 2);
 });
@@ -277,7 +251,7 @@ test("admin routes refuse non-owners", async () => {
   const res = await handler(
     event({
       method: "GET",
-      path: "/api/admin/requests",
+      path: "/api/admin/accounts",
       cookie,
       body: undefined,
     }),
@@ -303,19 +277,19 @@ test("sign-out revokes: the same cookie stops resolving (last — consumes the s
   assert.equal(parse(me).authenticated, false);
 });
 
-test("request-access is rate limited per IP", async () => {
-  let limited = 0;
-  for (let i = 0; i < 8; i += 1) {
+test("the approval era's doors are gone (2026-11-12)", async () => {
+  const ownerCookie = await signIn(JAMIE, "3.3.3.3");
+  for (const [method, p, body] of [
+    ["POST", "/api/request-access", { email: "someone@example.com" }],
+    ["GET", "/api/admin/requests", undefined],
+    ["POST", "/api/admin/decide", { email_hash: "x", decision: "approved" }],
+    ["GET", "/api/admin/pulse", undefined],
+  ]) {
     const res = await handler(
-      event({
-        path: "/api/request-access",
-        ip: "3.3.3.3",
-        body: { email: `x${i}@example.com` },
-      }),
+      event({ method, path: p, body, cookie: ownerCookie }),
     );
-    if (res.statusCode === 429) limited += 1;
+    assert.equal(res.statusCode, 404, `${method} ${p}`);
   }
-  assert.ok(limited > 0);
 });
 
 // GET /api/clan is gone (2026-09-25: no caller; the console reads clans
@@ -2313,64 +2287,6 @@ test("the address is kept, and sign-in fills it in for older accounts", async ()
   assert.equal(backfilled.rows[0].email, NEWCOMER.toLowerCase());
 });
 
-// --------------------------------------------------------------- #14
-test("an admin cannot deny the owner or a peer out of the service", async () => {
-  // Reported: /api/admin/decide checked only that the ACTOR was an
-  // admin. An admin could read the owner's email hash off
-  // /api/admin/accounts and deny them, revoking a live owner session —
-  // the very move /api/admin/accounts refuses for role changes.
-  const ADMIN = "decide-admin@example.com";
-  const PEER = "decide-peer@example.com";
-  const PLAIN = "decide-plain@example.com";
-  for (const [addr, role] of [
-    [ADMIN, "admin"],
-    [PEER, "admin"],
-    [PLAIN, "member"],
-  ]) {
-    await db.query(
-      `insert into account (email_hash, status, role) values ($1, 'approved', $2)`,
-      [emailHash(addr), role],
-    );
-  }
-  const adminCookie = await signIn(ADMIN, "203.0.113.14");
-
-  const atOwner = await handler(
-    event({
-      path: "/api/admin/decide",
-      cookie: adminCookie,
-      body: { email_hash: emailHash(JAMIE), decision: "denied" },
-    }),
-  );
-  assert.equal(atOwner.statusCode, 403, atOwner.body);
-  assert.equal(parse(atOwner).error, "owner_protected");
-  const { rows: owner } = await db.query(
-    `select status from account where email_hash = $1`,
-    [emailHash(JAMIE)],
-  );
-  assert.equal(owner[0].status, "approved", "the owner keeps their access");
-
-  const atPeer = await handler(
-    event({
-      path: "/api/admin/decide",
-      cookie: adminCookie,
-      body: { email_hash: emailHash(PEER), decision: "denied" },
-    }),
-  );
-  assert.equal(atPeer.statusCode, 403);
-  assert.equal(parse(atPeer).error, "admin_protected");
-
-  // Ordinary moderation is untouched.
-  const atPlain = await handler(
-    event({
-      path: "/api/admin/decide",
-      cookie: adminCookie,
-      body: { email_hash: emailHash(PLAIN), decision: "denied" },
-    }),
-  );
-  assert.equal(atPlain.statusCode, 200);
-  assert.equal(parse(atPlain).status, "denied");
-});
-
 // --------------------------------------------------------------- #16
 
 // --------------------------------------------------------------- #17
@@ -3947,33 +3863,6 @@ test("retired personal and admin Collection routes are absent", async () => {
       assert.equal(r.statusCode, 404);
     }
   }
-});
-
-test("admin beta pulse: counts by signup week for an admin, refused to a member", async () => {
-  const res = await handler(
-    event({
-      method: "GET",
-      path: "/api/admin/pulse",
-      cookie: bossCookie,
-      body: undefined,
-    }),
-  );
-  assert.equal(res.statusCode, 200);
-  const pulse = parse(res);
-  assert.equal(pulse.weeks.length, 8);
-  assert.ok(pulse.weeks.every((w) => /^\d{4}-W\d{2}$/.test(w.week)));
-  assert.ok(pulse.totals.signed_up >= 1, "the newcomer signed up this week");
-  assert.ok(!res.body.includes("@"), "no address in the pulse");
-  assert.equal(pulse.opens.measured_here, false);
-  const member = await handler(
-    event({
-      method: "GET",
-      path: "/api/admin/pulse",
-      cookie: memberCookie,
-      body: undefined,
-    }),
-  );
-  assert.equal(member.statusCode, 403);
 });
 
 test("admin Discord: the window's numbers and one clan's posts for an admin, refused to a member", async () => {

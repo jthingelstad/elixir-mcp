@@ -2,7 +2,6 @@ import {
   authLog,
   emailRef,
   emailHash,
-  requestAccess,
   publicLoginAccount,
   startMagicLogin,
   redeemMagicToken,
@@ -33,40 +32,8 @@ export function authRoutes({
   resolveAccount,
   mintSessionResponse,
   sendLoginEmail,
-  notifyOwner,
 }) {
   return {
-    "POST /api/request-access": async (db, event, body) => {
-      const ip = viewerIp(event) ?? "unknown";
-      if (!(await checkRateLimit(db, { bucket: `reqaccess#${ip}`, max: 5 }))) {
-        return json(429, { error: "rate_limited" });
-      }
-      const email = String(body.email ?? "").trim();
-      if (!email.includes("@")) return json(400, { error: "bad_request" });
-      let playerTag = null;
-      try {
-        playerTag = body.player_tag
-          ? normalizeTag(String(body.player_tag))
-          : null;
-      } catch {
-        return json(400, { error: "invalid_tag" });
-      }
-      const result = await requestAccess(db, {
-        emailHash: emailHash(email),
-        playerTag,
-        note: String(body.note ?? "").slice(0, 500) || null,
-        email: email.toLowerCase(),
-      });
-      if (result.created) {
-        await notifyOwner({ kind: "access_request", playerTag });
-      }
-      // Identical response for new, repeat, denied, and already-approved.
-      return json(200, {
-        ok: true,
-        message: "If your request is approved, you will hear from us by email.",
-      });
-    },
-
     "POST /api/auth": async (db, event, body) => {
       const ip = viewerIp(event) ?? "unknown";
       if (

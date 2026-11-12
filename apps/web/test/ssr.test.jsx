@@ -27,7 +27,7 @@ test("every record page signed out renders the sign-in wall, never the page", as
     "/home/timeline",
     "/home/friends",
     "/settings",
-    "/settings/admin/requests",
+    "/settings/admin/accounts",
     "/console/explore",
     "/console/explore/players/%232PQRJ8LV",
     "/console/explore/clans/%232PQRJ8LV",

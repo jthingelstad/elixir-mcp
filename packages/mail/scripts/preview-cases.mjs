@@ -305,13 +305,10 @@ export function mailPreviewCases({ retired = false } = {}) {
   );
   cases.push(relay("welcome", { kind: "welcome" }));
   for (const notify_kind of [
-    "access_request",
     "feedback",
-    "role_upgrade_request",
     "gateway_request",
     "gateway_quarantined",
     "gateway_silent",
-    "approved_welcome",
     "generic",
   ])
     cases.push(

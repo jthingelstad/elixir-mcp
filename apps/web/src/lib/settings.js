@@ -14,9 +14,7 @@ export const ADMIN = `${SETTINGS}/admin`;
 
 /** Admin's pages, by slug; the ones that open a record take an id. */
 export const ADMIN_PAGES = {
-  requests: "Requests",
   accounts: "Accounts",
-  pulse: "Beta pulse",
   feedback: "Feedback",
   emails: "Emails",
   discord: "Discord",
@@ -103,7 +101,7 @@ export const SETTINGS_RAIL = [
     key: "admin",
     label: "Admin",
     icon: "shield",
-    to: `${ADMIN}/requests`,
+    to: `${ADMIN}/accounts`,
     adminOnly: true,
   },
 ];
@@ -165,7 +163,7 @@ export function settingsHere(path) {
     case "admin":
       // Admin keeps its own rail: `key` is its page there.
       if (!second)
-        return at("requests", "admin", { rail: "admin", admin: "requests" });
+        return at("accounts", "admin", { rail: "admin", admin: "accounts" });
       if (!ADMIN_PAGES[second] || fourth) return null;
       if (third && !ADMIN_RECORDS.has(second)) return null;
       return at(second, "admin", {
@@ -212,10 +210,11 @@ export function settingsLegal(path) {
   const clean = path.length > 1 ? path.replace(/\/$/, "") : path;
   if (clean === SETTINGS) return `${SETTINGS}/profile`;
   if (clean === `${SETTINGS}/agents`) return `${SETTINGS}/connections`;
-  if (clean === ADMIN) return `${ADMIN}/requests`;
-  // A page Admin never had lands on its first one, as it always did.
+  if (clean === ADMIN) return `${ADMIN}/accounts`;
+  // A page Admin never had, or no longer has (Requests and Beta pulse went
+  // with the approval era, 2026-11-12), lands on its first one.
   if (clean.startsWith(`${ADMIN}/`) && !settingsHere(clean))
-    return `${ADMIN}/requests`;
+    return `${ADMIN}/accounts`;
   const here = settingsHere(clean);
   if (!here) return null;
   if (here.agent && clean.split("/").length === 4) return `${clean}/overview`;

@@ -62,7 +62,7 @@ export const REDIRECTS = {
   [`${CONSOLE}/status/service`]: PUBLIC_STATUS,
   [`${CONSOLE}/status/collectors`]: PUBLIC_STATUS,
   [`${CONSOLE}/status/efficiency`]: `${ADMIN}/efficiency`,
-  [`${CONSOLE}/admin`]: `${ADMIN}/requests`,
+  [`${CONSOLE}/admin`]: `${ADMIN}/accounts`,
   // The in-app charts joined the site's Status and data page (step 7).
   [`${CONSOLE}/data`]: "/data",
   [`${CONSOLE}/data/dashboard`]: "/data",

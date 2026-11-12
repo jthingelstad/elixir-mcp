@@ -214,7 +214,6 @@ export const api = {
   setPrincipalScope: (account_id, scope) =>
     request("POST", "/api/me/principals/scope", { account_id, scope }),
   adminUsage: () => request("GET", "/api/admin/usage"),
-  adminPulse: () => request("GET", "/api/admin/pulse"),
   // The Discord quality ledger (2026-10-11): a window's numbers, and one
   // clan's or one timeline's posts whole.
   adminDiscord: (days) => request("GET", `/api/admin/discord?days=${days}`),
@@ -223,9 +222,6 @@ export const api = {
       "GET",
       `/api/admin/discord/${encodeURIComponent(key)}${feature ? `?feature=${encodeURIComponent(feature)}` : ""}`,
     ),
-  adminRequests: () => request("GET", "/api/admin/requests"),
-  adminDecide: (email_hash, decision) =>
-    request("POST", "/api/admin/decide", { email_hash, decision }),
   adminGateways: () => request("GET", "/api/admin/gateways"),
   adminGatewayAction: (gateway_id, action) =>
     request("POST", "/api/admin/gateways", { gateway_id, action }),

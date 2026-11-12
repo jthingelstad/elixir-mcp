@@ -1,8 +1,4 @@
-import {
-  decideAccess,
-  pendingRequests,
-  setAccountRole,
-} from "@elixir-mcp/auth";
+import { setAccountRole } from "@elixir-mcp/auth";
 import {
   isRole,
   ROLE_ORDER,
@@ -14,7 +10,6 @@ import {
 } from "@elixir-mcp/contracts";
 
 import { UUID_RE, ID_RE, json } from "../http.mjs";
-import { onboardAccount } from "@elixir-mcp/tools/onboard";
 import { loadCallRecord } from "../call-record.mjs";
 import {
   SENDS_COLS,
@@ -22,7 +17,6 @@ import {
   sendRow,
   loadSendRecord,
 } from "../send-record.mjs";
-import { betaPulse } from "../beta-pulse.mjs";
 import {
   qualityDetail,
   qualitySummary,
@@ -33,13 +27,7 @@ const SETTABLE_BY_OWNER = ROLE_ORDER.filter(
   (r) => r !== "owner" && (r === "member" || !EARNED_ROLES.includes(r)),
 );
 
-export function adminRoutes({
-  resolveAccount,
-  logEvent,
-  notifyOwner,
-  sendWelcomeEmail,
-  capture = null,
-}) {
+export function adminRoutes({ resolveAccount, logEvent, capture = null }) {
   return {
     "GET /api/admin/calls/*": async (db, event) => {
       // The same record as /api/me/activity/calls/<id>, over every
@@ -182,14 +170,6 @@ export function adminRoutes({
       });
       if (!detail) return json(404, { error: "not_found" });
       return json(200, detail);
-    },
-
-    "GET /api/admin/pulse": async (db, event) => {
-      // The beta pulse: counts by signup week, never a person
-      // (beta-pulse.mjs). Accounts is the page that names accounts.
-      const account = await resolveAccount(db, event);
-      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
-      return json(200, await betaPulse(db));
     },
 
     "GET /api/admin/usage": async (db, event) => {
@@ -345,49 +325,6 @@ export function adminRoutes({
         message:
           "Person-bound service keys are no longer issued. Create an agent (Account -> Agents) or an integration (Admin -> Integrations) for its own key.",
       });
-    },
-
-    "GET /api/admin/requests": async (db, event) => {
-      const account = await resolveAccount(db, event);
-      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
-      return json(200, { requests: await pendingRequests(db) });
-    },
-
-    "POST /api/admin/decide": async (db, event, body) => {
-      const account = await resolveAccount(db, event, {
-        requireContractHeader: true,
-      });
-      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
-      const decided = await decideAccess(db, {
-        emailHash: String(body.email_hash ?? ""),
-        decision: String(body.decision ?? ""),
-        actorRole: account.role,
-      });
-      if (!decided) return json(404, { error: "not_found" });
-      // The hierarchy refused: an admin cannot deny the owner or
-      // another admin out of the service. Never report that as done.
-      if (decided.refused) return json(403, { error: decided.refused });
-      let notified = false;
-      if (decided.status === "approved") {
-        // The applicant is the one who was promised an email. Sending
-        // this to the owner instead is why an approved account heard
-        // nothing at all.
-        if (decided.email) {
-          await sendWelcomeEmail({ email: decided.email });
-          notified = true;
-        }
-        await notifyOwner({
-          kind: "approved_welcome",
-          emailHash: body.email_hash,
-        });
-        // What they asked for on the form: claim the player they named
-        // and follow their clan, so the console has something in it the
-        // first time they open it. Never fails the approval.
-        await onboardAccount(db, decided.account_id);
-      }
-      // Say whether they were actually told. An account approved before
-      // the address was held has none, and re-approving cannot resend.
-      return json(200, { ok: true, status: decided.status, notified });
     },
 
     "GET /api/admin/accounts": async (db, event) => {

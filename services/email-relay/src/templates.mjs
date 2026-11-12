@@ -175,22 +175,16 @@ export function renderEmail(msg) {
     // One subject per event, so the inbox reads as a log. A message with
     // no notify_kind predates 2026-09-09 and gets the generic line.
     const subjects = {
-      access_request: "Elixir: new access request",
       feedback: "Elixir: new feedback",
-      role_upgrade_request: "Elixir: tier upgrade request",
       gateway_request: "Elixir: collector enrolled",
       gateway_quarantined: "Elixir: collector quarantined",
       gateway_silent: "Elixir: collector silent",
-      approved_welcome: "Elixir: account approved",
     };
     const leads = {
-      access_request: "Access requested.",
       feedback: "New feedback.",
-      role_upgrade_request: "Tier upgrade requested.",
       gateway_request: "Collector enrolled.",
       gateway_quarantined: "Collector quarantined.",
       gateway_silent: "Collector silent.",
-      approved_welcome: "Account approved.",
     };
     const kind = msg.notify_kind;
     const category = msg.detail?.category;
@@ -201,7 +195,7 @@ export function renderEmail(msg) {
     const facts = Object.entries(msg.detail ?? {})
       .map(([k, v]) => `${k}: ${v}`)
       .join("\n");
-    const link = msg.link ?? `${SITE}/console/admin`;
+    const link = msg.link ?? `${SITE}/settings/admin`;
     const lead = leads[kind] ?? "Service notice.";
     return {
       subject,

@@ -66,7 +66,6 @@ const PUBLIC = {
   "GET /api/rss/*": "private link",
   // Plumbing: signing in and up, signing out, a mail's stop link.
   "GET /api/me": "plumbing",
-  "POST /api/request-access": "plumbing",
   "POST /api/auth": "plumbing",
   "POST /api/auth/redeem": "plumbing",
   "POST /api/auth/poll": "plumbing",

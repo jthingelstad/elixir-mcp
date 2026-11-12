@@ -77,22 +77,6 @@ const PAGES = [
     },
   ],
   [
-    "Admin ▸ Requests",
-    () => <Admin me={ME} page="requests" navigate={() => {}} />,
-    {
-      "admin/requests": {
-        requests: [
-          {
-            email_hash: "abcdef0123456789",
-            requested_player_tag: "#P0Y",
-            request_note: "clan leader",
-            created_at: "2026-09-08T00:00:00Z",
-          },
-        ],
-      },
-    },
-  ],
-  [
     "Admin ▸ Accounts",
     () => <Admin me={ME} page="accounts" navigate={() => {}} />,
     {

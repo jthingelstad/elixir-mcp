@@ -536,7 +536,7 @@ test("an HTML body is a failure however it is numbered", async () => {
     },
     text: async () => "<!doctype html><html><body>app shell</body></html>",
   }));
-  const res = await api.adminRequests();
+  const res = await api.adminAccounts();
   expect(res.ok).toBe(false);
   expect(res.error).toBe("bad_response");
   expect(res.data).toEqual({});
@@ -592,7 +592,7 @@ test(
     window.history.pushState({}, "", "/console/admin?x=1");
     render(<App />);
     await waitFor(() =>
-      expect(window.location.pathname).toBe("/settings/admin/requests"),
+      expect(window.location.pathname).toBe("/settings/admin/accounts"),
     );
     expect(window.location.search).toBe("?x=1");
   },

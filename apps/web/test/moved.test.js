@@ -31,7 +31,7 @@ const MAP = [
   ["/console/status/service", "/data"],
   ["/console/status/collectors", "/data"],
   ["/console/status/efficiency", "/settings/admin/efficiency"],
-  ["/console/admin", "/settings/admin/requests"],
+  ["/console/admin", "/settings/admin/accounts"],
 ];
 
 // Every address mail can carry, today or from the archive. packages/mail,
@@ -158,7 +158,7 @@ describe("the map of moved addresses", () => {
       "/settings/collectors/Knight",
       "/settings/emails/s1",
       "/settings/feedback/7",
-      "/settings/admin/requests",
+      "/settings/admin/accounts",
       "/settings/admin/service",
       "/settings/admin/fleet",
       "/settings/admin/efficiency",
@@ -168,7 +168,6 @@ describe("the map of moved addresses", () => {
 
   test("every Admin address moved under Settings, its record with it", () => {
     for (const [from, to] of [
-      ["/console/admin/requests", "/settings/admin/requests"],
       ["/console/admin/accounts/acct-1", "/settings/admin/accounts/acct-1"],
       ["/console/admin/discord/k1", "/settings/admin/discord/k1"],
       ["/console/admin/service-tokens", "/settings/admin/service-tokens"],
@@ -176,11 +175,22 @@ describe("the map of moved addresses", () => {
       expect(movedTo(from), from).toBe(to);
       expect(legalRoute(to), to).toBe(to);
     }
-    // A page Admin never had lands on its first page.
+    // A page Admin never had lands on its first page, and so do Requests
+    // and Beta pulse, retired with the approval era (2026-11-12): staff
+    // bookmarks and old staff mail name them.
     expect(legalRoute("/settings/admin/not-a-page")).toBe(
-      "/settings/admin/requests",
+      "/settings/admin/accounts",
     );
-    expect(legalRoute("/settings/admin")).toBe("/settings/admin/requests");
+    expect(legalRoute("/settings/admin")).toBe("/settings/admin/accounts");
+    for (const old of [
+      "/settings/admin/requests",
+      "/settings/admin/pulse",
+      "/console/admin/requests",
+      "/console/admin/pulse",
+    ])
+      expect(legalRoute(movedTo(old) ?? old), old).toBe(
+        "/settings/admin/accounts",
+      );
   });
 
   test("no old Console address is a dead link", () => {

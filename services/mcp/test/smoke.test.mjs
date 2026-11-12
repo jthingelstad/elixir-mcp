@@ -82,7 +82,7 @@ function healthy() {
       text("Sitemap: https://elixir.poapkings.com/sitemap.xml\n", {
         "content-type": "text/plain; charset=utf-8",
       }),
-    "/api/admin/requests": () =>
+    "/api/admin/accounts": () =>
       text(
         JSON.stringify({ error: "forbidden" }),
         { "content-type": "application/json" },
@@ -159,7 +159,7 @@ test("smoke: each regression fails the check written for it", async () => {
     ],
     [
       "the edge's error mapping turning API refusals into the shell (2026-09)",
-      { "/api/admin/requests": shell },
+      { "/api/admin/accounts": shell },
       ["api refusal keeps its status", "api refusal keeps its json"],
     ],
     [

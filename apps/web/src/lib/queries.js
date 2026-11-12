@@ -54,10 +54,8 @@ export const keys = {
   gatewayCards: ["gateway-cards"],
   gatewayDetail: (id) => ["me", "gateways", id],
   adminGateways: ["admin", "gateways"],
-  adminRequests: ["admin", "requests"],
   adminAccounts: ["admin", "accounts"],
   adminUsage: ["admin", "usage"],
-  adminPulse: ["admin", "pulse"],
   adminDiscord: (days) => ["admin", "discord", days],
   adminDiscordDetail: (key, feature) => [
     "admin",
@@ -574,17 +572,11 @@ export const useAdminGateways = ({ enabled = true } = {}) =>
 const adminRead = (queryKey, call) => () =>
   useQuery({ queryKey, queryFn: payload(call) });
 
-export const useAdminRequests = adminRead(
-  keys.adminRequests,
-  api.adminRequests,
-);
 export const useAdminAccounts = adminRead(
   keys.adminAccounts,
   api.adminAccounts,
 );
 export const useAdminUsage = adminRead(keys.adminUsage, api.adminUsage);
-/** The beta pulse: counts by signup week, never a person. */
-export const useAdminPulse = adminRead(keys.adminPulse, api.adminPulse);
 /** The Discord features' quality over a window (the ledger, 0222). */
 export const useAdminDiscord = (days) =>
   useQuery({
