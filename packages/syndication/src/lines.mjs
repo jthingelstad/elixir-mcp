@@ -17,12 +17,13 @@ const tagPath = (tag) =>
 // A player's name opens their player page, everywhere (Jamie, 2026-11-12,
 // #764: "Yes, one page"; apps/web lib/player.js).
 const playerUrl = (tag) => `${ELIXIR_ORIGIN}/home/player/${tagPath(tag)}`;
-const clanUrl = (tag) =>
-  `${ELIXIR_ORIGIN}/console/explore/clan/${tagPath(tag)}`;
-// /explore/week/<tag>~<season>~<section index>, the week counted from 0
-// (apps/web views/Explore.jsx, the mail's raceWeekUrl).
+// A clan's own address: Clan for its members, the clan directory searched
+// for it for anyone else (packages/clan-web App.jsx, 2026-11-12).
+const clanUrl = (tag) => `${ELIXIR_ORIGIN}/clan/${tagPath(tag)}`;
+// That week of the clan's War tab, `/war/<season>-<n>`, the week counted
+// from 1 (packages/clan-web views/Season.jsx; the mail's raceWeekUrl).
 const weekUrl = (tag, season, sectionIndex) =>
-  `${ELIXIR_ORIGIN}/console/explore/week/${tagPath(tag)}~${encodeURIComponent(season)}~${Number(sectionIndex)}`;
+  `${ELIXIR_ORIGIN}/clan/${tagPath(tag)}/war/${encodeURIComponent(season)}-${Number(sectionIndex) + 1}`;
 
 /** Discord markdown, mentions, timestamps and masked-link brackets, made
  *  literal (one rule with Clan's Actions, kept in the engine). Line

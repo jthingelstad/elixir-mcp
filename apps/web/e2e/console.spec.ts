@@ -77,7 +77,7 @@ test.describe("signed out", () => {
       ["/console/explore", /\/home\/find$/],
       ["/console/explore/player", /\/home\/find$/],
       ["/console/explore/player/%2320JJJ2CCRU", /\/home\/player\/20JJJ2CCRU$/],
-      ["/console/explore/clan/J2RGCRVG", /\/clan\/directory$/],
+      ["/console/explore/clan/J2RGCRVG", /\/clan\/J2RGCRVG\/feed$/],
       ["/console/explore/deck/abc123", /\/home\/you\/stats\/decks$/],
     ] as const) {
       await page.goto(old);

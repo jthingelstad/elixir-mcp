@@ -99,13 +99,13 @@ test.describe("clan directory @narrow", () => {
     expect(new Set(lefts).size).toBe(1);
     await fitsTheScreen(page);
 
-    // Your own clan opens in Clan; another clan on its record.
+    // Your own clan opens in Clan; another clan has no page, so no link.
     await expect(
       page.getByRole("link", { name: "Example Clan" }),
     ).toHaveAttribute("href", "/clan/2PQRJ8LV");
-    await expect(
-      page.getByRole("link", { name: "Zulu Example" }),
-    ).toHaveAttribute("href", "/console/explore/clan/8QCV");
+    await expect(page.getByRole("link", { name: "Zulu Example" })).toHaveCount(
+      0,
+    );
 
     // A filter hides tiles and keeps the order.
     await page

@@ -1,6 +1,6 @@
 import { CATEGORY_LABELS } from "@elixir-mcp/clan-engine";
 import { Panel, Table, Tag, TagText, useClock } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MemberLink } from "../components/MemberLink.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
@@ -26,6 +26,8 @@ const DAY_MS = 86_400_000;
 /** The members the war list opens with. */
 const TOP = 5;
 const ISO = /^\d{4}-w\d{1,2}$/i;
+/** A season's week by its number, `136-2`: never an ISO week (`2026-w40`). */
+const SEASON_WEEK = /^(\d{1,5})-(\d{1,2})$/;
 const after = (a, b) => Date.parse(a ?? "") > Date.parse(b ?? "");
 const list = (items) =>
   items.length <= 1
@@ -111,6 +113,31 @@ function periodOptions(weekRead, seasonRead) {
       }`,
     });
   return options;
+}
+
+/** The week page a season's race opens on: the ISO week of the week read
+ *  that the race falls in, or null when the read holds no such week. One
+ *  week of a season by its number (`/war/<season>-<n>`) is the address
+ *  mail and Discord write, since they know the race and not the
+ *  ISO week (2026-11-12). */
+export function raceWeekPage(weekRead, seasonRead, seasonId, weekNumber) {
+  const index = Number(weekNumber) - 1;
+  if (!Number.isInteger(index) || index < 0) return null;
+  const season = (seasonRead?.seasons ?? []).find(
+    (s) => String(s.season_id) === String(seasonId),
+  );
+  const race = season?.races?.find((r) => r.section_index === index);
+  if (!race?.from || !race?.to) return null;
+  const weeks = [weekRead?.so_far, ...(weekRead?.weeks ?? [])].filter(
+    (w) => w?.iso_week && w.from,
+  );
+  const week = weeks.find((w) => {
+    const t = Date.parse(w.from);
+    return (
+      Date.parse(race.from) <= t + DAY_MS && t < Date.parse(race.to) - DAY_MS
+    );
+  });
+  return week ? String(week.iso_week).toLowerCase() : null;
 }
 
 /** The one war list: who played decks and scored points, top five first. */
@@ -624,14 +651,22 @@ function WholeSeason({ s, current }) {
  * War (Season until Clan became one view, 2026-11-12): the week and the
  * season on one tab, behind one picker (structure.md, A14). `/war` is the
  * running week or, if none runs, the latest to close; `/war/<iso week>` a
- * week; `/war/<number>` all of a season. Weekly totals only. Every member
+ * week; `/war/<number>` all of a season, and `/war/<number>-<n>` that
+ * season's nth week, which opens its week page when the read holds it and
+ * otherwise shows the season. Weekly totals only. Every member
  * reads it, whatever the clan's policy; it raises no action and holds no
  * standing.
  */
 export function Season({ clan, period, navigate }) {
   const base = `${clanPath(clan.clan_tag)}/war`;
   const iso = period && ISO.test(period) ? period : null;
-  const seasonId = period && /^\d{1,5}$/.test(period) ? period : null;
+  // `<season>-<n>`: that season's nth week, as mail and Discord name it.
+  const seasonWeekAsked = period ? SEASON_WEEK.exec(period) : null;
+  const seasonId =
+    period && /^\d{1,5}$/.test(period)
+      ? period
+      : (seasonWeekAsked?.[1] ?? null);
+  const week = seasonWeekAsked?.[2] ?? null;
   const latest = useWeek(clan.clan_tag, null);
   const asked = useWeek(clan.clan_tag, iso, { enabled: Boolean(iso) });
   const season = useSeason(clan.clan_tag);
@@ -644,13 +679,23 @@ export function Season({ clan, period, navigate }) {
   const d = read.data;
   const data = latest.state.data;
   const seasonData = season.state.data;
+  // One week of a season, by its number: its week page once both reads
+  // can place it; otherwise the season stays, with the week as one of its
+  // rows.
+  const weekPage =
+    seasonId && week != null
+      ? raceWeekPage(data, seasonData, seasonId, week)
+      : null;
+  useEffect(() => {
+    if (weekPage) navigate?.(`${base}/${weekPage}`, { replace: true });
+  }, [weekPage, base, navigate]);
   if (read.signedOut || season.state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
   const options = periodOptions(data, seasonData);
   const current =
-    period ??
+    (seasonWeekAsked ? seasonId : period) ??
     runningIso ??
     (data?.week ? String(data.week.iso_week).toLowerCase() : "");
   const picker = options.length ? (

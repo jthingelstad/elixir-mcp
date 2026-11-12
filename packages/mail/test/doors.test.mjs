@@ -47,7 +47,7 @@ test("a player's name opens the player page for every reader: own, clanmate, fri
   assert.ok(!mate.includes(`/ladder?player=${bare(own)}`));
 });
 
-test("the clan report's links follow the reader: member to Clan, Season and Members; everyone else to the record", () => {
+test("the clan report's links follow the reader: member to Clan, Season and Members; everyone else to the clan's address", () => {
   const facts = load("clan_report");
   const tag = bare(facts.clan.tag);
   const member = renderMail("clan_report", facts, {
@@ -61,7 +61,9 @@ test("the clan report's links follow the reader: member to Clan, Season and Memb
 
   const outside = renderMail("clan_report", facts, links);
   assert.ok(!outside.html.includes(`/clan/${tag}/war?`));
-  assert.ok(outside.html.includes(`/console/explore/clan/${tag}?`));
+  // The clan's own address: Clan's shell sends anyone not in it to the
+  // clan directory, searched for it (2026-11-12).
+  assert.ok(outside.html.includes(`/clan/${tag}?`));
   // The facts are one for both: nothing per reader was stored, the subject
   // does not move.
   assert.equal(member.subject, outside.subject);
