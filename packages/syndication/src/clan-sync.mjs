@@ -14,7 +14,9 @@
  *  minutes (a wake on the timeline-hold queue, which delays it five), and
  *  edits a story's post in place only when the story truly grows.
  *  Elixir writes each story itself (`renderStory`, with what the record
- *  adds: `storyContext`), with no clock time and no link; the timeline
+ *  adds: `storyContext`), with no clock time; each post ends with one
+ *  link back to Elixir that Discord never previews (`story-link.mjs`,
+ *  Jamie 2026-11-12); the timeline
  *  cross-post (sync.mjs) keeps its one line per item, links and all.
  *
  *  Run by the timeline-sync Lambda when a wake (wake.mjs) names the clan.
@@ -86,6 +88,13 @@ import {
 } from "@elixir-mcp/tools/activity/entries";
 import { postRevision, readCapped } from "./sync.mjs";
 import { clanStoryFacts } from "./story-facts.mjs";
+import { battleLinks } from "@elixir-mcp/record/battle-links";
+import {
+  clanPageUrl,
+  storyBattleIds,
+  storyLink,
+  withLink,
+} from "./story-link.mjs";
 import { storyContext } from "./story-context.mjs";
 import { agoWords, editorResearch, unescape } from "./editor-research.mjs";
 import {
@@ -137,9 +146,18 @@ export const clanWakeId = (clanTag) => `clan-${String(clanTag).slice(1)}`;
 
 /** A post's content: the story's words escaped for Discord (a name is
  *  shown as typed and never starts a heading or a list), within
- *  Discord's limit. No stamp and no link. */
-const postContent = (text) =>
-  leadSafe(escapeDiscord(text)).slice(0, DISCORD_CONTENT_MAX);
+ *  Discord's limit, and, for a post, the one link back to Elixir on its
+ *  own line, never previewed (`story-link.mjs`). No stamp. A skip's
+ *  excerpt is never posted and carries no link. */
+const postContent = (text, link = null) =>
+  withLink(leadSafe(escapeDiscord(text)).slice(0, DISCORD_CONTENT_MAX), link);
+
+/** A model post telling several stories links where they all do, or to
+ *  the clan's Feed when they differ. */
+const mergedLink = (links, clanTag) => {
+  const set = new Set(links.filter(Boolean));
+  return set.size === 1 ? [...set][0] : clanPageUrl(clanTag, "feed");
+};
 
 async function inTransaction(db, fn) {
   await db.query("begin");
@@ -808,6 +826,13 @@ async function planRun(
     nowMs: now,
   });
   for (const p of posts) p.render = renderStory(p.story, ctxFor(p.story));
+  // The page each post links back to: the record's battles, one read.
+  const battles = await battleLinks(
+    db,
+    storyBattleIds(posts.map((p) => p.story)),
+  );
+  for (const p of posts)
+    p.link = storyLink(p.story.items, { clanTag, battles });
   const skipped = recorded.map((k) => ({
     key: k.item.id,
     reason: STORY_SKIPS[k.reason] ?? k.reason,
@@ -1017,7 +1042,15 @@ async function writeRun(
       revision: e
         ? Math.max(...e.keys.map((k) => byKey.get(k)?.revision ?? 1))
         : p.revision,
-      content: postContent(e ? e.text : p.render),
+      content: postContent(
+        e ? e.text : p.render,
+        e
+          ? mergedLink(
+              e.keys.map((k) => byKey.get(k)?.link),
+              clanTag,
+            )
+          : p.link,
+      ),
       ...(e ? { rewritten: true } : {}),
       ledger_id: newLedgerId(),
     });

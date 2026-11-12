@@ -471,10 +471,12 @@ function ActivityEditor({
                     words. A post that drops or changes a name, carries a number
                     or a name it was not given, says a time of day, carries a
                     link or a mention, or runs long keeps Elixir&rsquo;s own
-                    words. Uses the clan&rsquo;s key, at most{" "}
-                    {d.editor_runs_per_day} runs a day (a run edits up to 12
-                    stories ready then; any more are Elixir&rsquo;s own), and
-                    never past the clan&rsquo;s monthly cap.
+                    words. Either way Elixir ends the post with one link back to
+                    Elixir, which Discord does not preview. Uses the
+                    clan&rsquo;s key, at most {d.editor_runs_per_day} runs a day
+                    (a run edits up to 12 stories ready then; any more are
+                    Elixir&rsquo;s own), and never past the clan&rsquo;s monthly
+                    cap.
                   </p>
                 </Disclosure>
                 <div className="grid gap-1">

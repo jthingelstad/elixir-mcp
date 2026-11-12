@@ -14,7 +14,8 @@
  * neither posts nor skips is posted in Elixir's words, and so is a post
  * the checks refuse.
  *
- * The checks (`editorProblem`): no link, mention or clock time; within
+ * The checks (`editorProblem`): no link (the sync adds the post's one
+ * link back to Elixir after the checks), mention or clock time; within
  * `EDITOR_POST_MAX`; every name a story's render says kept exactly; no
  * number and no proper name that neither the clan, the stories nor the
  * lookups it made hold; a departure keeps Elixir's sentence for it word

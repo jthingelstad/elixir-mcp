@@ -27,7 +27,9 @@
  * `renderStory` is Elixir's own words for a story (code mode, the
  * default, and what any refused model post falls back to): deterministic
  * prose from the items' facts and the record context the sync read, no
- * clock time and no link. Pure: items, told rows and context in.
+ * clock time and no link of its own: the sync ends each post with the
+ * one link back to Elixir (syndication `story-link.mjs`, Jamie
+ * 2026-11-12). Pure: items, told rows and context in.
  */
 
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
@@ -742,7 +744,8 @@ export const leadSafe = (s) => (/^(?:#|-|\+|\d+\.)/.test(s) ? `\\${s}` : s);
 
 /**
  * Elixir's own post for a story: one or two sentences, no clock time
- * (a story told over three hours late says when in words), no link.
+ * (a story told over three hours late says when in words), no link (the
+ * sync adds the post's one link).
  * `ctx`: what the sync read for it (`deck`, `promotions`, `mates`,
  * `mates_total`) and the members' records (`members`, story-facts), and
  * `nowMs`, the time it is told at. Without `nowMs` it says no when: the

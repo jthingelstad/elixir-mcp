@@ -217,6 +217,10 @@ test("the webhook client allows no mentions or previews, waits out a 429, and ne
   );
   assert.equal(seen.at(-1)[0], `${HOOK}/messages/111111111111111111`);
   assert.equal(seen.at(-1)[1], "PATCH");
+  // An edit suppresses previews too (Jamie, 2026-11-12: "make sure they
+  // do not have previews"): an activity post is edited in place.
+  assert.equal(seen.at(-1)[2].flags, 4);
+  assert.deepEqual(seen.at(-1)[2].allowed_mentions, { parse: [] });
 });
 
 test("a forum channel gets a post of its own, named; edits find it in its thread; Discord's words come back", async () => {

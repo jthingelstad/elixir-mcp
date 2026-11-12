@@ -65,6 +65,16 @@ function recorder() {
   return { sent, outbox };
 }
 
+/** A post's words, without the one link back to Elixir it ends with. */
+const words = (content) =>
+  content.replace(/\n\[Open in Elixir\]\(<[^>]+>\)$/, "");
+/** Every address a post holds, and the one it links back to. */
+const urls = (content) => content.match(/https?:\/\/[^\s>)]+/g) ?? [];
+const linkOf = (content) =>
+  /\n\[Open in Elixir\]\(<(https:\/\/elixir\.poapkings\.com\/[^>]+)>\)$/.exec(
+    content,
+  )?.[1] ?? null;
+
 const sync = (now, extra = {}) => {
   const r = recorder();
   return syncClan(db, CLAN, {
@@ -654,8 +664,13 @@ test("same-kind milestones are one story under its first item's key; a refused p
   // no time and no link (2026-10-11, the editor).
   const story = refused.sent[0].message.posts[0].content;
   assert.equal(
-    story,
+    words(story),
     "Joiner and Stayer took the clan's Shield for Season 136.",
+  );
+  // Two members: the post links back to the clan's Feed.
+  assert.equal(
+    linkOf(story),
+    "https://elixir.poapkings.com/clan/J2RGCRVG/feed",
   );
   assert.equal("rewritten" in refused.sent[0].message.posts[0], false);
   // The ledger keeps the refusal with the words the checks stopped, and
@@ -779,8 +794,14 @@ test("the editor: a badge level-up below the top is skipped with its reason; a s
   assert.equal(quiet.posted, 1);
   assert.equal(quiet.skips, 0, "a skip is handed over once");
   const [post] = quiet.sent[0].message.posts;
-  assert.match(post.content, /^Stayer took .+ to its top level, 2\.$/);
-  assert.doesNotMatch(post.content, /<t:|https?:/, "no time and no link");
+  assert.match(words(post.content), /^Stayer took .+ to its top level, 2\.$/);
+  assert.doesNotMatch(post.content, /<t:/, "no time");
+  // One member's badge, no battle: their player page, the one link.
+  assert.equal(
+    linkOf(post.content),
+    "https://elixir.poapkings.com/home/player/PYL0Q2GR",
+  );
+  assert.equal(urls(post.content).length, 1);
   assert.equal(quiet.sent.length, 1, "no further hold");
 
   const again = await sync(T + 96 * H + 12 * MIN);
@@ -1049,9 +1070,10 @@ test("one member's morning is one post: a move told before its battle names who 
   assert.equal(moved.posted, 1);
   const [first] = moved.sent[0].message.posts;
   assert.equal(
-    first.content,
+    words(first.content),
     "Stayer moved up to Summit of Heroes, joining Matey there.",
   );
+  assert.ok(linkOf(first.content), "it links back to Elixir");
 
   // Twenty minutes on, the rung that battle crossed: the same sitting.
   await emitEvent(db, "best_trophies_band", {
@@ -1223,6 +1245,99 @@ test("a post told for two members is each one's own: another's move is not this 
   const out = await sync(B + 30 * MIN);
   assert.equal(out.posted, 1, "Ann's rung is her own news");
   assert.match(out.sent[0].message.posts[0].content, /^Ann /);
+});
+
+test("every post ends with one link back to Elixir that Discord never previews; a rewritten post cannot bring a bare address", async () => {
+  const B = T + 800 * H;
+  await award(JOINER, "Crown", B);
+  let n = 0;
+  const bare = await sync(B + 10 * MIN, {
+    editor: true,
+    rewrite: async (_db, _tag, req) => {
+      n += 1;
+      const key = /^STORY (tl_[a-f0-9]{20})/m.exec(req.messages[0].content)[1];
+      return {
+        ok: true,
+        answer: {
+          posts: [
+            {
+              keys: [key],
+              text: "Joiner took the Crown! https://elixir.poapkings.com/home",
+            },
+          ],
+          skips: [],
+        },
+      };
+    },
+  });
+  assert.equal(n, 1);
+  assert.equal(bare.posted, 1);
+  assert.deepEqual(bare.refused, { link: 1 });
+  const [own] = bare.sent[0].message.posts;
+  assert.equal("rewritten" in own, false, "Elixir's own words instead");
+  assert.doesNotMatch(words(own.content), /https?:|www\.|poapkings/);
+  // An award the clan granted: its Standings, in angle brackets.
+  assert.equal(
+    linkOf(own.content),
+    "https://elixir.poapkings.com/clan/J2RGCRVG/standings",
+  );
+  assert.equal(urls(own.content).length, 1);
+
+  for (const text of [
+    "Joiner took the Crown! <https://elixir.poapkings.com/home>",
+    "Joiner took the Crown! See elixir.poapkings.com",
+    "Joiner took the [Crown](https://example.com)!",
+  ]) {
+    await award(JOINER, `Crown ${n}`, B + n * H);
+    const run = await sync(B + n * H + 10 * MIN, {
+      editor: true,
+      rewrite: async (_db, _tag, req) => ({
+        ok: true,
+        answer: {
+          posts: [
+            {
+              keys: [
+                /^STORY (tl_[a-f0-9]{20})/m.exec(req.messages[0].content)[1],
+              ],
+              text,
+            },
+          ],
+          skips: [],
+        },
+      }),
+    });
+    n += 1;
+    assert.deepEqual(run.refused, { link: 1 }, text);
+    const [post] = run.sent[0].message.posts;
+    assert.equal(urls(post.content).length, 1, text);
+    assert.ok(linkOf(post.content), text);
+  }
+
+  // A rewritten post that passes the checks gets Elixir's link, once.
+  await award(JOINER, "Sword", B + 10 * H);
+  const ok = await sync(B + 10 * H + 10 * MIN, {
+    editor: true,
+    rewrite: async (_db, _tag, req) => ({
+      ok: true,
+      answer: {
+        posts: [
+          {
+            keys: [
+              /^STORY (tl_[a-f0-9]{20})/m.exec(req.messages[0].content)[1],
+            ],
+            text: "The Sword goes to Joiner!",
+          },
+        ],
+        skips: [],
+      },
+    }),
+  });
+  const [mine] = ok.sent[0].message.posts;
+  assert.equal(mine.rewritten, true);
+  assert.equal(
+    mine.content,
+    "The Sword goes to Joiner!\n[Open in Elixir](<https://elixir.poapkings.com/clan/J2RGCRVG/standings>)",
+  );
 });
 
 test("refusals and removal", async () => {
