@@ -62,7 +62,7 @@ test.describe("signed out", () => {
       ["/console/status", /\/data$/],
       ["/console/status/service", /\/data$/],
       ["/data/service", /\/data$/],
-      ["/console/admin", /\/settings\/admin\/requests$/],
+      ["/console/admin", /\/settings\/admin\/accounts$/],
       ["/console/admin/accounts", /\/settings\/admin\/accounts$/],
       ["/console/account", /\/home$/],
       ["/console/account/overview", /\/home$/],
