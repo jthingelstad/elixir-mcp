@@ -422,14 +422,30 @@ test.describe("Ladder signed in", () => {
     ).toEqual([]);
   });
 
-  test("the player select lists your players only, and switching is an address", async ({
+  test("the player select lists your players, and a followed one when asked, and switching is an address", async ({
     page,
   }) => {
     const calls: ToolCall[] = [];
     await mockApi(
       page,
       signedIn({
-        "GET /api/me": [200, { ...ME, claims: [...ME.claims, ALT, FRIEND] }],
+        "GET /api/me": [
+          200,
+          {
+            ...ME,
+            claims: [
+              ...ME.claims,
+              ALT,
+              FRIEND,
+              {
+                player_tag: "#2RQ9LPV",
+                name: "A Watched One",
+                is_primary: false,
+                relationship: "watching",
+              },
+            ],
+          },
+        ],
         "POST /api/explore": explore(calls),
       }),
     );
@@ -470,9 +486,24 @@ test.describe("Ladder signed in", () => {
     await select.selectOption("#20JJJ2CCRU");
     await expect(page).toHaveURL(/\/home\/you\/stats\?mode=war$/);
 
-    // A tag that is not yours reads your primary instead.
+    // A player you follow opens from their page (Jamie, 2026-11-12):
+    // listed under Following, with a way back in place of You's tabs.
     await page.goto("/home/you/stats?player=8LQ2R9P");
-    await expect(select).toHaveValue("#20JJJ2CCRU");
+    await expect(select).toHaveValue("#8LQ2R9P");
+    await expect(select.locator("optgroup").last()).toHaveAttribute(
+      "label",
+      "Following",
+    );
+    await expect(
+      page.getByRole("navigation", { name: "Whose stats" }),
+    ).toContainText("A Friend");
+    await expect(page.getByRole("tablist", { name: "You" })).toHaveCount(0);
+
+    // A watched player or a stranger reads your primary instead.
+    for (const tag of ["2RQ9LPV", "9VVV2Q"]) {
+      await page.goto(`/home/you/stats?player=${tag}`);
+      await expect(select).toHaveValue("#20JJJ2CCRU");
+    }
   });
 
   test("the season slug and a stale page resolve to the season home", async ({
