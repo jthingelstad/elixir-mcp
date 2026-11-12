@@ -126,7 +126,14 @@ export function PlayerView({
   const cheered = usePageCheered({ player: p.tag });
   const you = page.you;
   const clanOpen = me?.features?.clan_internal === true;
-  const inClan = useClanOf(p.clan_tag, clanOpen && !you.own);
+  // Your page (You) never draws it. Another of your players does, when it
+  // is not the one you act as in that clan: that one's place in Clan is
+  // its own page there (Codex on #831).
+  const clanEntry = useClanOf(p.clan_tag, clanOpen && !self);
+  const inClan =
+    clanEntry.clan && clanEntry.clan.acting_as === p.tag
+      ? { clan: null, pending: false }
+      : clanEntry;
   // An address asking for Clan before Clan answers waits for it; once it
   // has, a viewer outside the clan reads the timeline.
   const shown =
