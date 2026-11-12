@@ -77,6 +77,25 @@ const when = (v) => {
 const intOr = (v, d = null) => (Number.isInteger(v) ? v : d);
 
 /**
+ * Whether `db` is inside an open transaction block: "T", or "E" when that
+ * transaction has already failed, or "I" outside one. A pg Client says so
+ * itself (`getTransactionStatus`); a pool or a lease asks the server,
+ * whose transaction and statement times differ only after the first
+ * command of an explicit block (each command outside one is its own
+ * transaction). Never a statement that fails on purpose: the RDS log
+ * logged every `savepoint` tried outside a block as an ERROR, and a lease
+ * that sees an error discards its connection (2026-11-12).
+ */
+async function transactionStatus(db) {
+  const own = db.getTransactionStatus?.();
+  if (own === "I" || own === "T" || own === "E") return own;
+  const { rows } = await db.query(
+    "select statement_timestamp() <> transaction_timestamp() as in_block",
+  );
+  return rows[0]?.in_block ? "T" : "I";
+}
+
+/**
  * A write beside a delivery: inside a transaction, under a savepoint, so
  * a failure here never aborts the caller's work; outside one, as is.
  * Logged and dropped on failure; returns the write's result or null.
@@ -84,14 +103,17 @@ const intOr = (v, d = null) => (Number.isInteger(v) ? v : d);
 export async function aside(db, what, fn, log = console) {
   let saved = false;
   try {
-    await db.query("savepoint discord_quality");
-    saved = true;
-  } catch (err) {
-    // 25P01: not in a transaction, where a failure aborts nothing.
-    if (err?.code !== "25P01") {
-      log.error?.("discord_quality_failed", what, err?.code ?? err?.name);
-      return null;
+    const status = await transactionStatus(db);
+    // A failed transaction takes no more statements, this write included.
+    if (status === "E")
+      throw Object.assign(new Error("transaction aborted"), { code: "25P02" });
+    if (status === "T") {
+      await db.query("savepoint discord_quality");
+      saved = true;
     }
+  } catch (err) {
+    log.error?.("discord_quality_failed", what, err?.code ?? err?.name);
+    return null;
   }
   try {
     const out = await fn();
