@@ -60,6 +60,7 @@ export function searchSources({ me, clans, roster, cards }) {
     following: claims.filter((c) => !c.is_primary && c.relationship !== "alt"),
     home,
     clanOpen,
+    staff: me?.is_admin === true,
     mates,
     clans: clans?.clans ?? [],
     cards: cards ?? [],
@@ -187,10 +188,12 @@ const DOC_TITLES = (() => {
   return [...seen.values()];
 })();
 
+// Admin is staff's (adminOnly): offered to staff, as on Settings' rail.
 const SETTINGS_PAGES = SETTINGS_RAIL.map((r) => ({
   t: r.label,
   d: "Settings",
   href: r.to,
+  adminOnly: r.adminOnly === true,
 }));
 
 const hits = (q) => (text) =>
@@ -261,7 +264,7 @@ export function typedGroups(raw, s, found = null) {
     ),
     group(
       "Settings",
-      SETTINGS_PAGES.filter((r) => match(r.t)),
+      SETTINGS_PAGES.filter((r) => match(r.t) && (s.staff || !r.adminOnly)),
       TYPED,
     ),
     lookup.length
