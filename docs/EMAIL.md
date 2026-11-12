@@ -42,9 +42,8 @@ alone. See [Buttondown's subscriber API](https://docs.buttondown.com/api-subscri
 The two doors that mail an address someone typed (`POST /api/auth` and
 the OAuth door's email step) take a Cloudflare Turnstile token, against
 subscription bombing (Jamie, 2026-10-14). The other mail is safe without
-it: welcome goes only after a proved code, `request-access` mails only
-the owner and only for a new row, and every report goes to an account's
-own verified address. The doors cannot reach Cloudflare from the
+it: welcome goes only after a proved code, and every report goes to an
+account's own verified address. The doors cannot reach Cloudflare from the
 NAT-free VPC, so a login message carries `turnstile: { surface, token }`
 (`packages/contracts/src/queue.ts`) and the relay, the one function with
 internet, calls siteverify before it sends.
@@ -364,10 +363,9 @@ lead to a family app.
   feedback. Those links carry the mail's `utm_` tags: a send id is a
   product identifier, not a tracking identifier (`docs/DECISIONS.md`).
   `apps/web/src/analytics.js` reports a record page without its id.
-- Maintainer side: `GET /api/admin/email/sends` and `/<id>`; Admin →
-  Emails sent (`send-record.mjs`, shared with the person's routes).
-  Admin → Beta pulse counts sends per kind per week (`beta-pulse.mjs`);
-  opens stay in Tinylytics.
+- Maintainer side: `GET /api/admin/email/sends` and `/<id>`; Settings ▸
+  Admin ▸ Emails (`send-record.mjs`, shared with the person's routes).
+  Opens stay in Tinylytics.
 - Badge names: `packages/record/src/badge-names.mjs` serves the badge as a
   player says it beside the identifier (timeline `badge_label`, tool
   `label`, the mails' text).

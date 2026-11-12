@@ -99,7 +99,6 @@ describe("analyticsLocation", () => {
       ["/settings/connections/discord", "/settings/connections/discord"],
       ["/settings/agents/a1b2c3d4e5f6/reads", "/settings/agents/reads"],
       ["/settings/agents/a1b2c3d4e5f6", "/settings/agents"],
-      ["/settings/admin/requests", "/settings/admin/requests"],
       ["/settings/admin/accounts/42", "/settings/admin/accounts"],
       ["/settings/admin/emails/5c1c5dbf", "/settings/admin/emails"],
     ]) {

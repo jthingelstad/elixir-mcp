@@ -298,9 +298,9 @@ export async function runSmoke({
 
   // The edge must not rewrite the API's own answers. Distribution-wide
   // CustomErrorResponses used to turn every 403/404 into a 200 app shell,
-  // including the API's refusals: an unauthenticated /api/admin/requests
-  // came back 200 text/html and the web client read it as success.
-  const refused = await fetch(`${mcpBase}/api/admin/requests`);
+  // including the API's refusals: an unauthenticated admin read came back
+  // 200 text/html and the web client read it as success.
+  const refused = await fetch(`${mcpBase}/api/admin/accounts`);
   check(
     "api refusal keeps its status",
     refused.status === 403,

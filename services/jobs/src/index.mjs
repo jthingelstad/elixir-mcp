@@ -354,14 +354,7 @@ function unsubscribeKeys() {
 }
 
 export async function handler(event, context) {
-  if (
-    isRetiredEmailKind(String(event?.email ?? "")) ||
-    event?.top100_generate ||
-    event?.top100_accept ||
-    event?.issue_accept ||
-    event?.card_of_week_generate ||
-    event?.card_of_week_preview
-  )
+  if (isRetiredEmailKind(String(event?.email ?? "")))
     return { skipped: "retired" };
 
   if (event?.clan_evaluate) {

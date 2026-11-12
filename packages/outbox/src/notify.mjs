@@ -39,12 +39,6 @@ export function ownerNotifyMessage(spec) {
     notify_kind: kind,
   };
   switch (kind) {
-    case "access_request":
-      return {
-        ...base,
-        note: `New access request${spec.playerTag ? ` from ${spec.playerTag}` : ""}.`,
-        link: `${SITE}/console/admin`,
-      };
     case "feedback":
       return {
         ...base,
@@ -56,25 +50,19 @@ export function ownerNotifyMessage(spec) {
           from: spec.from ?? "an account",
           ...(spec.feedbackId ? { feedback_id: String(spec.feedbackId) } : {}),
         },
-        link: `${SITE}/console/admin/feedback`,
+        link: `${SITE}/settings/admin/feedback`,
       };
     case "gateway_request":
       return {
         ...base,
         note: `Collector enrolled: "${spec.playerTag}". Enrollment is open, so it is approved and its token is staged for the operator; drain or revoke it in Admin if it should not run (${SITE}/docs/operators).`,
-        link: `${SITE}/console/admin`,
+        link: `${SITE}/settings/admin/collectors`,
       };
     case "gateway_quarantined":
       return {
         ...base,
         note: `Collector "${spec.playerTag}" QUARANTINED: too many leases expired unsubmitted; now draining.`,
-        link: `${SITE}/console/admin`,
-      };
-    case "approved_welcome":
-      return {
-        ...base,
-        note: `Account approved (${String(spec.emailHash ?? "").slice(0, 8)}).`,
-        link: `${SITE}/console/admin`,
+        link: `${SITE}/settings/admin/collectors`,
       };
     default:
       return {

@@ -244,13 +244,6 @@ export const DOC_LINKS = {
       ["Limits", "/docs/limits"],
     ],
   ],
-  "admin:requests": [
-    "Admission",
-    [
-      ["Roles", "/docs/roles"],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
   "admin:accounts": [
     "Accounts & roles",
     [
@@ -286,13 +279,6 @@ export const DOC_LINKS = {
     [
       ["Integrations", "/docs/integrations"],
       ["Integration API", "/docs/integrations#provisioning-and-administration"],
-    ],
-  ],
-  "admin:pulse": [
-    "What is counted",
-    [
-      ["Privacy", "/docs/privacy"],
-      ["What the mail counts", "/docs/email#what-the-mail-counts"],
     ],
   ],
   "admin:feedback": ["Feedback queue", [["About the project", "/docs/about"]]],

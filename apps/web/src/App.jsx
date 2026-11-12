@@ -109,23 +109,10 @@ export const STATIC_LINKS = {
 export const ADMIN_RAIL = [
   {
     group: "People",
-    key: "requests",
-    label: "Requests",
-    icon: "inbox",
-    to: `${ADMIN}/requests`,
-  },
-  {
     key: "accounts",
     label: "Accounts",
     icon: "users",
     to: `${ADMIN}/accounts`,
-  },
-  // Counts by signup week only; Accounts is the page that names people.
-  {
-    key: "pulse",
-    label: "Beta pulse",
-    icon: "chart-line",
-    to: `${ADMIN}/pulse`,
   },
   {
     key: "feedback",

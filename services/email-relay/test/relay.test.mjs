@@ -407,22 +407,19 @@ test("owner_notify subjects and bodies are per kind", () => {
       notify_kind,
       ...extra,
     });
-  assert.equal(render("access_request").subject, "Elixir: new access request");
   assert.equal(
     render("feedback", { detail: { category: "bug" } }).subject,
     "Elixir: new feedback - bug",
   );
   assert.equal(render("feedback").subject, "Elixir: new feedback");
-  assert.equal(
-    render("role_upgrade_request").subject,
-    "Elixir: tier upgrade request",
-  );
   assert.equal(render("gateway_request").subject, "Elixir: collector enrolled");
   assert.equal(
     render("gateway_quarantined").subject,
     "Elixir: collector quarantined",
   );
-  assert.equal(render("approved_welcome").subject, "Elixir: account approved");
+  // The approval era's kinds retired (2026-11-12): one still queued at the
+  // deploy renders generically rather than failing.
+  assert.equal(render("access_request").subject, "Elixir: notification");
   // A message from before the kind existed still renders, generically.
   assert.equal(render(undefined).subject, "Elixir: notification");
   const fb = render("feedback", {

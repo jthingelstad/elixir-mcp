@@ -193,7 +193,7 @@ test(
     );
     expect(
       within(staff).getByRole("link", { name: /Admin/ }).getAttribute("href"),
-    ).toBe("/settings/admin/requests");
+    ).toBe("/settings/admin/accounts");
     cleanup();
     global.fetch = vi.fn(async (path) => {
       const body = String(path) === "/api/me" ? { ...ME, is_admin: false } : {};

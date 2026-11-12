@@ -32,8 +32,6 @@ import {
   useAdminFeedback,
   useAdminFeedbackItem,
   useAdminGateways,
-  useAdminPulse,
-  useAdminRequests,
   useAdminServiceTokens,
   useAdminUsage,
   useInvalidate,
@@ -42,7 +40,6 @@ import { ADMIN, SETTINGS } from "../lib/settings.js";
 import { Status } from "./Status.jsx";
 import { Fleet } from "./Collectors.jsx";
 import { Efficiency } from "./Efficiency.jsx";
-import { PULSE_STEPS, pulseRows } from "../lib/pulse.js";
 
 /**
  * Admin, nine pages.
@@ -98,7 +95,7 @@ function principalLabel(a) {
   return a.account_id ? a.account_id.slice(0, 8) : "unknown";
 }
 
-export function Admin({ me, page = "requests", navigate, itemId }) {
+export function Admin({ me, page = "accounts", navigate, itemId }) {
   if (!me?.is_admin)
     return <p className="callout callout--warn">Admins only.</p>;
   if (page === "integrations") return <Integrations />;
@@ -109,7 +106,6 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
       <AdminAccounts navigate={navigate} />
     );
   if (page === "usage") return <AdminUsage />;
-  if (page === "pulse") return <AdminPulse />;
   if (page === "collectors") return <AdminCollectors navigate={navigate} />;
   if (page === "connections") return <AdminConnections />;
   if (page === "service-tokens") return <AdminServiceTokens />;
@@ -133,7 +129,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
   if (page === "service") return <Status navigate={navigate} />;
   if (page === "fleet") return <Fleet navigate={navigate} />;
   if (page === "efficiency") return <Efficiency navigate={navigate} />;
-  return <AdminRequests />;
+  return <AdminAccounts navigate={navigate} />;
 }
 
 /** The card catalog with its archetype roles, read-only (design
@@ -654,50 +650,6 @@ function AdminEmailRecord({ id }) {
   );
 }
 
-/** Access requests. Granted by hand, oldest first — the queue is short
- *  and the decision is a judgement, so there is no bulk action. */
-function AdminRequests() {
-  const { day } = useClock();
-  const requests = useAdminRequests().data?.requests ?? [];
-  // Approve and deny say when they did not take; the queue refetches
-  // only after one that did.
-  const decision = useWrite(api.adminDecide, {
-    invalidate: [keys.adminRequests],
-  });
-  const decide = (hash, status) => decision.run(hash, status);
-
-  const rows = requests.map((r) => [
-    day(r.created_at),
-    r.email_hash ? r.email_hash.slice(0, 10) : "—",
-    r.requested_player_tag ?? "—",
-    r.request_note ?? "",
-    { text: "Approve", action: () => decide(r.email_hash, "approved") },
-    { text: "Deny", action: () => decide(r.email_hash, "denied") },
-  ]);
-
-  return (
-    <LogTable
-      admin
-      crumb="Admin"
-      title="Access requests"
-      note="Granted by hand, oldest first."
-      above={<WriteError error={decision.error} className="field-error mb-3" />}
-      cols={[
-        ["ASKED", "left"],
-        ["ACCOUNT", "left"],
-        ["WANTS", "left"],
-        ["NOTE", "left"],
-        ["", "right"],
-        ["", "right"],
-      ]}
-      rows={rows}
-      monoCols={[0, 1, 2]}
-      empty="Queue is empty."
-      footnote="An address is never shown here, only the first ten characters of its hash — enough to match a person to the email they wrote from, and not reversible."
-    />
-  );
-}
-
 /** Accounts and tiers. The three override columns are read-only and say
  *  so: they are set in the ops lane, and a control here would be a
  *  second way to write them. */
@@ -802,116 +754,6 @@ function AdminUsage() {
           : undefined
       }
     />
-  );
-}
-
-/** The beta pulse: how each signup week's people got on, as counts and
- *  shares of that week's signups. Aggregate only: no cell names, lists
- *  or links an account (Accounts does that). Mail opens are Tinylytics'
- *  and are never read back here. */
-function AdminPulse() {
-  const query = useAdminPulse();
-  const pulse = query.data ?? null;
-  const rows = pulseRows(pulse);
-  const excluded = pulse?.excluded;
-  const mail = pulse?.mail ?? { weeks: [], kinds: [] };
-  const recent = mail.weeks.slice(-4);
-  return (
-    <>
-      <LogTable
-        admin
-        crumb="Admin"
-        title="Beta pulse"
-        note="People who signed up each ISO week (UTC), and how far they got: a count and its share of that week's signups. Counts only; Accounts is where an account is named."
-        cols={[
-          ["WEEK", "left"],
-          ["SIGNED UP", "right"],
-          ...PULSE_STEPS.map(([, label]) => [label, "right"]),
-          ["BACK WK 1", "right"],
-          ["BACK WK 2", "right"],
-        ]}
-        rows={rows}
-        monoCols={[0]}
-        minWidth={1080}
-        loading={query.isLoading}
-        error={query.isError ? "The pulse did not load." : null}
-        empty="No weeks yet."
-        footnote={
-          <>
-            People only: agents and integrations are never counted
-            {excluded
-              ? `, and ${excluded.staff} ${noun(excluded.staff, "staff account", "staff accounts")} and ${excluded.test} ${noun(excluded.test, "staff test mailbox", "staff test mailboxes")} (a staff address with a +tag) are left out`
-              : ""}
-            .{" "}
-            {PULSE_STEPS.map(
-              ([, label, title]) => `${label}: ${title.toLowerCase()}`,
-            ).join("; ")}
-            . BACK WK 1 and 2: a sign-in or a call of their own (the website,
-            Ladder, MCP or API) on a day 1-7 or 8-14 days after the signup day,
-            both days on the account&rsquo;s own time zone (UTC when it has
-            none), from the sign-in events and call log Elixir already keeps. A
-            session only seen, such as a tab left open past midnight, is not
-            coming back, and an agent&rsquo;s calls are not its owner&rsquo;s.
-            &ldquo;Open&rdquo; counts people still inside that window.
-          </>
-        }
-      />
-      <section className="panel mt-[18px]">
-        <div className="panel__head">
-          <span className="panel-title">Mail sent, by kind</span>
-          <span className="caveat ml-auto">
-            the last {recent.length} {noun(recent.length, "week", "weeks")}, to
-            the same people
-          </span>
-        </div>
-        {mail.kinds.length === 0 ? (
-          <p className="footnote m-0">No product mail in the window.</p>
-        ) : (
-          <div className="table__scroll" tabIndex={0}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Kind</th>
-                  {recent.map((w) => (
-                    <th key={w} className="text-right">
-                      {w}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {mail.kinds.map((k) => (
-                  <tr key={k.kind}>
-                    <td>{k.label}</td>
-                    {k.sends.slice(-recent.length).map((n, i) => (
-                      <td
-                        key={recent[i]}
-                        className="table__td--num text-right font-mono"
-                      >
-                        {n}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <p className="footnote mt-[14px] mb-0">
-          Sends, from each mail&rsquo;s send record. Opens are counted by the
-          mail&rsquo;s pixel in{" "}
-          <a
-            href="https://tinylytics.app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Tinylytics
-          </a>{" "}
-          (path <span className="mono">/mail/&lt;kind&gt;/&lt;period&gt;</span>
-          ), per mail and never per reader; Elixir never reads them back.
-        </p>
-      </section>
-    </>
   );
 }
 

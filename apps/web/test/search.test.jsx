@@ -144,7 +144,7 @@ describe("every name opens the player page (#764)", () => {
     expect(settings(ME)).toEqual([]);
     expect(settings({ ...ME, is_admin: false })).toEqual([]);
     expect(settings({ ...ME, is_admin: true })).toEqual([
-      "/settings/admin/requests",
+      "/settings/admin/accounts",
     ]);
   });
 });

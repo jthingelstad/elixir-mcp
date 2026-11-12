@@ -418,7 +418,6 @@ export function makeHandler({
       resolveAccount,
       mintSessionResponse,
       sendLoginEmail,
-      notifyOwner,
     }),
     ...accountRoutes({
       resolveAccount,
@@ -451,8 +450,6 @@ export function makeHandler({
     ...adminRoutes({
       resolveAccount,
       logEvent,
-      notifyOwner,
-      sendWelcomeEmail,
       capture,
     }),
     ...principalsRoutes({ resolveAccount, logEvent }),

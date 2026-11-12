@@ -42,6 +42,9 @@ test("scheduled, forced and direct entry points of every retired mail perform no
       "retired",
     );
   }
+  // Their old manual entry points (Top 100, Card of the Week, the issue
+  // queue) went with the tombstones (2026-11-12): an event naming one is
+  // no recognized op, and nothing runs.
   for (const event of [
     { top100_generate: true },
     { top100_accept: { key: "old" } },
@@ -49,5 +52,5 @@ test("scheduled, forced and direct entry points of every retired mail perform no
     { card_of_week_preview: true },
     { card_of_week_generate: true },
   ])
-    assert.equal((await handler(event)).skipped, "retired");
+    await assert.rejects(handler(event), /no recognized op/);
 });

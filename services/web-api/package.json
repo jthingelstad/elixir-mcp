@@ -1,7 +1,7 @@
 {
   "name": "@elixir-mcp/web-api",
   "version": "0.1.0",
-  "description": "Site API for elixir.poapkings.com (DESIGN \u00a72, \u00a76.1): request access, magic-link sign-in + __Host- session cookie, claims, recordings, timezone, owner admin (approvals, gateway roster).",
+  "description": "Site API for elixir.poapkings.com (DESIGN \u00a72, \u00a76.1): signup and magic-link sign-in + __Host- session cookie, claims, recordings, timezone, staff admin (accounts, gateway roster).",
   "type": "module",
   "main": "src/handler.mjs",
   "scripts": {
