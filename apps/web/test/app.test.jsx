@@ -242,7 +242,10 @@ test(
     });
     render(<App />);
     // The list: what is tracked, how it relates to you, and how fresh it is.
-    await screen.findByText(/Your main player/);
+    // The first paint loads the Settings chunk cold; on a loaded CI runner
+    // that outlasted the 5 s wait with the page still "Reading your
+    // settings." (main, 2026-11-12), so this first wait is longer.
+    await screen.findByText(/Your main player/, {}, { timeout: 15000 });
     // In the page; the bar's account button says the name too.
     expect(
       within(document.querySelector("main")).getByText("Jamie"),
