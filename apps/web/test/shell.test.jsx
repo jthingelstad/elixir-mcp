@@ -251,7 +251,7 @@ describe("the bar on a page", () => {
     "an address the app never had says so, in its own shell",
     { timeout: 20000 },
     async () => {
-      window.history.pushState({}, "", "/console/not-a-place");
+      window.history.pushState({}, "", "/home/not-a-place");
       render(<App />);
       expect(await screen.findByText("Nothing at this address")).toBeTruthy();
       expect(document.querySelector(".kit-top")).toBeTruthy();

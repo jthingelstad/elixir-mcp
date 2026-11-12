@@ -497,7 +497,8 @@ test(
     assert.ok(!existsSync(path.join(out, "console")));
     assert.equal(route("/consoles"), "/consoles/index.html");
 
-    // Sign in and the service page are the app's, alone: /data stays a
+    // Sign in and the old service address are the app's, alone (the old
+    // address only redirects to /data since 2026-11-12): /data stays a
     // document, and its sibling pages with it.
     for (const uri of ["/signin", "/data/service"]) assertNativeApp(uri);
     assert.ok(!existsSync(path.join(out, "signin")));

@@ -8,11 +8,12 @@ import {
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { usePublicStatus } from "../lib/queries.js";
-import { CONSOLE } from "../lib/console.js";
+import { ADMIN } from "../lib/settings.js";
 
-/** The service page at /data/service (Jamie, 2026-09-06): the operational dashboard,
- *  mobile-first, behind sign-in since 2026-09-09 (the public health
- *  views are /data and /api/public/status). Collectors and roughly an hour of system health, refreshed
+/** The service page, Admin ▸ Service (Jamie, 2026-09-06; every member's at
+ *  /data/service until the Console folded on 2026-11-12): the operational
+ *  dashboard, mobile-first (the public health views are /data and
+ *  /api/public/status). Collectors and roughly an hour of system health, refreshed
  *  every 60s. Health is derived from data, never vibes.
  *
  *  The SQS queue panel was dropped 2026-09-06: migration 0040 replaced
@@ -398,8 +399,8 @@ export function Status() {
   return (
     <>
       <PageHead
-        title="Status"
-        sub="The service, not your account. Everyone sees the same numbers."
+        title="Service"
+        sub="The service as it runs, not one account: the numbers the public status page is drawn from."
         aside={
           <span
             style={{
@@ -428,9 +429,9 @@ export function Status() {
       />
 
       <p className="footnote">
-        <Link to={`${CONSOLE}/status/collectors`}>Collectors</Link>
+        <Link to={`${ADMIN}/fleet`}>Fleet</Link>
         {" · "}
-        <Link to={`${CONSOLE}/status/efficiency`}>Efficiency</Link>
+        <Link to={`${ADMIN}/efficiency`}>Efficiency</Link>
         {" · "}
         <a href="/data">Status and data</a>
       </p>
@@ -498,7 +499,7 @@ export function Status() {
 
       <Link
         className="panel"
-        to={`${CONSOLE}/status/collectors`}
+        to={`${ADMIN}/fleet`}
         style={{
           display: "flex",
           alignItems: "center",

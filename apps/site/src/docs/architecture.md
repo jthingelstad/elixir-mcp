@@ -102,9 +102,10 @@ at a cabin. What makes the fleet interesting:
 
 - **Card identities.** Every collector is named after a Clash Royale
   card, the operator's pick, and one collector per card, and appears
-  publicly only by that card name; machine labels and IPs stay private. The signed-in [service](/data/service) page shows
-  each card's heartbeat and hourly fetch rate, and `/api/public/status`
-  publishes the same fleet without a session.
+  publicly only by that card name; machine labels and IPs stay private.
+  [Status and data](/data#collectors) credits each card to its operator,
+  and `/api/public/status` publishes the fleet's heartbeats and hourly
+  fetch rates without a session.
 - **The Family role.** An operator whose collector is active holds the
   Family role while it stays active; there are no points, credits or bonus
   slots, and more collectors never buy more of the rate budget. See
@@ -270,9 +271,8 @@ Profiles are read once a day, because the record keeps one reading per
 game day, and once after a session: a battle log that delivered battles
 asks for the profile unless one was read in the last eight hours. The
 one time-critical profile read, the pre-reset read of the weekly
-donation counter, is forced separately. The signed-in
-[efficiency](/console/status/efficiency) page shows what the schedule costs
-and what it loses, per day. Clan rosters follow the clan's own day, every 15
+donation counter, is forced separately. Elixir's staff read what the
+schedule costs and what it loses, per day, on an Admin page. Clan rosters follow the clan's own day, every 15
 minutes while members of a tracked clan are in the game, coasting to
 hourly and then four-hourly as the roster's `lastSeen` stamps go quiet,
 and a few times a day for a clan read only because a recorded player is
@@ -290,8 +290,7 @@ compares the lifetime battle counter against what was recorded over each
 reading interval and says so when they disagree, and the public
 health views report how many of the last day's polls found the log had
 already rolled: `capture_audit_24h` in `/api/public/status`, with no
-sign-in, and [Status and data](/data#right-now) for the live strip. The signed-in
-[service](/data/service) page shows the same to a signed-in account. When you need the state of play right
+sign-in, and [Status and data](/data#right-now) for the live strip. When you need the state of play right
 now rather than the recorded history, `live: true` spends your live
 allowance on a fresh read instead of waiting for the schedule;
 `live_fetch` returns a raw read and stores nothing.

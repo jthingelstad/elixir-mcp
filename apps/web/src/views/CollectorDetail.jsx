@@ -22,7 +22,7 @@ import {
 } from "../lib/queries.js";
 import { SignatureBadge } from "../components/ReleaseSignature.jsx";
 import { CardPicker } from "../components/CardPicker.jsx";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 import { ConfirmAction } from "@elixir-mcp/ui";
 
 /**
@@ -404,13 +404,13 @@ function NewToken({ own }) {
   );
 }
 
-/** `home` is the frame this page is read in: the public fleet under Status,
- *  or your own under Settings. */
+/** `home` is the frame this page is read in: Settings' Collectors, the one
+ *  address a collector has (its /console/status twin folded 2026-11-12). */
 export function CollectorPage({
   id,
   navigate,
   me,
-  home = `${CONSOLE}/status/collectors`,
+  home = `${SETTINGS}/collectors`,
 }) {
   // Stamped once per load rather than read during render:
   // a clock read while rendering makes every re-render a new answer.

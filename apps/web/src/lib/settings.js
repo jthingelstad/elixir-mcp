@@ -7,6 +7,31 @@
  */
 export const SETTINGS = "/settings";
 
+/** Admin, for Elixir's staff, under Settings since 2026-11-12 (the Console
+ *  folded). The client only hides it; every read behind it is gated on the
+ *  server. */
+export const ADMIN = `${SETTINGS}/admin`;
+
+/** Admin's pages, by slug; the ones that open a record take an id. */
+export const ADMIN_PAGES = {
+  requests: "Requests",
+  accounts: "Accounts",
+  pulse: "Beta pulse",
+  feedback: "Feedback",
+  emails: "Emails",
+  discord: "Discord",
+  connections: "Connections",
+  integrations: "Integrations",
+  usage: "Usage",
+  service: "Service",
+  fleet: "Fleet",
+  efficiency: "Efficiency",
+  cards: "Cards",
+  collectors: "Collectors",
+  "service-tokens": "Service tokens",
+};
+const ADMIN_RECORDS = new Set(["accounts", "feedback", "emails", "discord"]);
+
 export const isSettings = (path) =>
   path === SETTINGS || path.startsWith(`${SETTINGS}/`);
 
@@ -73,6 +98,14 @@ export const SETTINGS_RAIL = [
     to: `${SETTINGS}/collectors`,
     runsOne: true,
   },
+  // Staff only: the client hides it, the server gates every read behind it.
+  {
+    key: "admin",
+    label: "Admin",
+    icon: "shield",
+    to: `${ADMIN}/requests`,
+    adminOnly: true,
+  },
 ];
 
 /** The parts of a Settings path: `key` is the rail item it belongs to, `page`
@@ -129,6 +162,17 @@ export function settingsHere(path) {
         : at("collectors", "collectors");
     case "agents":
       return agentHere(second, third, fourth, clean);
+    case "admin":
+      // Admin keeps its own rail: `key` is its page there.
+      if (!second)
+        return at("requests", "admin", { rail: "admin", admin: "requests" });
+      if (!ADMIN_PAGES[second] || fourth) return null;
+      if (third && !ADMIN_RECORDS.has(second)) return null;
+      return at(second, "admin", {
+        rail: "admin",
+        admin: second,
+        ...(third ? { id: third } : {}),
+      });
     default:
       return null;
   }
@@ -168,6 +212,10 @@ export function settingsLegal(path) {
   const clean = path.length > 1 ? path.replace(/\/$/, "") : path;
   if (clean === SETTINGS) return `${SETTINGS}/profile`;
   if (clean === `${SETTINGS}/agents`) return `${SETTINGS}/connections`;
+  if (clean === ADMIN) return `${ADMIN}/requests`;
+  // A page Admin never had lands on its first one, as it always did.
+  if (clean.startsWith(`${ADMIN}/`) && !settingsHere(clean))
+    return `${ADMIN}/requests`;
   const here = settingsHere(clean);
   if (!here) return null;
   if (here.agent && clean.split("/").length === 4) return `${clean}/overview`;
@@ -200,5 +248,8 @@ const TITLES = {
 };
 
 /** The tab title's lead for a Settings path. */
-export const settingsTitle = (path) =>
-  TITLES[settingsHere(path)?.page] ?? "Settings";
+export const settingsTitle = (path) => {
+  const here = settingsHere(path);
+  if (here?.page === "admin") return ADMIN_PAGES[here.admin];
+  return TITLES[here?.page] ?? "Settings";
+};

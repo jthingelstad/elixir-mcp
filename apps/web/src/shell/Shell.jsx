@@ -12,8 +12,7 @@ import {
   Link,
   initialsOf,
 } from "@elixir-mcp/ui";
-import { CONSOLE } from "../lib/console.js";
-import { SETTINGS } from "../lib/settings.js";
+import { ADMIN, SETTINGS } from "../lib/settings.js";
 import { ladderHref } from "../ladder/ladder.js";
 import { rememberSession } from "../lib/session-hint.js";
 import { BellButton, BellSheet, useBell } from "./Bell.jsx";
@@ -36,7 +35,7 @@ const PLACES = {
   createAccount: FAMILY_PLACES.createAccount.path,
   verify: `${SETTINGS}/players/verify`,
   settings: FAMILY_PLACES.settings,
-  admin: `${CONSOLE}/admin`,
+  admin: `${ADMIN}/requests`,
 };
 
 /** The places a signed-in reader moves between (slice 7, #765): Home, Find,

@@ -57,8 +57,13 @@ test.describe("signed out", () => {
   }) => {
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
     for (const [old, now] of [
-      ["/console/status", /\/data\/service$/],
-      ["/console/status/service", /\/data\/service$/],
+      // The Console folded (2026-11-12): the service page's public half
+      // is the site's /data, its staff half is under Settings > Admin.
+      ["/console/status", /\/data$/],
+      ["/console/status/service", /\/data$/],
+      ["/data/service", /\/data$/],
+      ["/console/admin", /\/settings\/admin\/requests$/],
+      ["/console/admin/accounts", /\/settings\/admin\/accounts$/],
       ["/console/account", /\/home$/],
       ["/console/account/overview", /\/home$/],
       ["/console/account/timeline", /\/home$/],
@@ -84,8 +89,8 @@ test.describe("signed out", () => {
     page,
   }) => {
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-    await page.goto("/console/not-a-place");
-    await expect(page).toHaveURL(/\/console\/not-a-place$/);
+    await page.goto("/home/not-a-place");
+    await expect(page).toHaveURL(/\/home\/not-a-place$/);
     await expect(
       page.getByRole("heading", { name: "Nothing at this address" }),
     ).toBeVisible();
@@ -224,11 +229,14 @@ test.describe("signed in", () => {
     await expect(
       page.getByRole("navigation", { name: "Explore sections" }),
     ).toBeVisible();
-    await page.goto("/data/service");
+    // Admin is drawn for staff only: a member's rail has no Admin, and
+    // an Admin address says it is for staff, never what is on it.
+    await expect(rail.getByRole("link", { name: /^Admin/ })).toHaveCount(0);
+    await page.goto("/settings/admin/service");
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "Status",
+      "This page is for Elixir",
     );
-    await rendered(page);
+    await expect(page.getByRole("link", { name: /^Fleet/ })).toHaveCount(0);
     // Home's feed (#765), for an account whose player is on record.
     await mockApi(page, signedIn(HOME_READS));
     await page.goto("/home");
@@ -474,11 +482,17 @@ test.describe("signed in", () => {
     await accessible(page, "timeline, form unlock");
   });
 
-  test("Status: the service page draws the capture charts and auto-refresh is off and visible", async ({
+  test("Service: Admin's service page draws the capture charts and auto-refresh is off and visible", async ({
     page,
   }) => {
-    await page.goto("/data/service");
-    await expect(page.getByRole("heading", { name: "Status" })).toBeVisible();
+    await mockApi(page, {
+      ...signedIn(),
+      "GET /api/me": [200, { ...ME, is_admin: true }],
+    });
+    await page.goto("/settings/admin/service");
+    await expect(
+      page.getByRole("heading", { name: "Service", level: 1 }),
+    ).toBeVisible();
     await expect(
       page.getByRole("group", { name: /fetches per 5 minutes/ }),
     ).toBeVisible();

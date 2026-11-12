@@ -132,7 +132,7 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
     "/console",
     "/console/account/overview",
     "/home",
-    "/data/service",
+    "/settings/admin/requests",
     "/signin?signup",
     "/settings/players",
     "/settings/connections",

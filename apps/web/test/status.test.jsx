@@ -404,7 +404,7 @@ test("an operator can re-pick their own collector's card, and the record follows
     within(panel).getByRole("button", { name: "Make it Knight" }),
   );
   await waitFor(() =>
-    expect(navigate).toHaveBeenCalledWith("/console/status/collectors/Knight"),
+    expect(navigate).toHaveBeenCalledWith("/settings/collectors/Knight"),
   );
   const post = fetchMock.mock.calls.find(([p]) =>
     String(p).includes("me/gateway-card"),

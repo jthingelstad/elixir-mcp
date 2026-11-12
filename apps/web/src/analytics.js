@@ -185,6 +185,10 @@ function settingsLocation(pathname, origin) {
   let path = first ? `/settings/${first}` : "/settings";
   if (first === "agents") {
     if (third) path += `/${third}`;
+  } else if (first === "admin") {
+    // Admin's pages are pages; an account, an email or a note under one
+    // reports as that page.
+    if (second) path += `/${second}`;
   } else if (SETTINGS_PAGES.has(second)) path += `/${second}`;
   else if (third === "verify") path += "/verify";
   return { path, url: new URL(path, origin).toString() };

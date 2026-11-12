@@ -280,7 +280,7 @@ test(
       "update account set role='admin' where account_id=$1",
       [accountId],
     );
-    open("/console/admin/integrations");
+    open("/settings/admin/integrations");
     fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: "ui-platform" },
     });

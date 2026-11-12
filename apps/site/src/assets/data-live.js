@@ -67,6 +67,43 @@
         );
       put("hour", (b.health.battles_last_hour ?? 0).toLocaleString("en-US"));
       put("collectors", (b.collectors || []).length || null);
+      // Each collector, credited to its operator: its card name, who runs it
+      // and whether it is keeping up. textContent only, never markup.
+      const rows = document.querySelector("[data-live-collector-rows]");
+      const fleet = b.collectors || [];
+      if (rows && fleet.length) {
+        rows.textContent = "";
+        fleet.forEach(function (c) {
+          const row = document.createElement("div");
+          row.className = "data-rows__row";
+          const name = document.createElement("span");
+          name.textContent = c.name || "A collector";
+          const who = document.createElement("span");
+          const beat = c.last_heartbeat_at
+            ? (Date.now() - Date.parse(c.last_heartbeat_at)) / 1000
+            : null;
+          const keeping =
+            c.status === "active" &&
+            beat !== null &&
+            isFinite(beat) &&
+            beat <= 600;
+          const signed = {
+            signed: "signed",
+            dev_build: "dev build",
+            unverified: "unverified",
+            mismatch: "mismatch",
+          }[c.signature];
+          who.textContent =
+            "Run by " +
+            (c.operator || "an operator") +
+            (keeping ? " · keeping up" : " · behind") +
+            (signed ? " · " + signed : "");
+          row.appendChild(name);
+          row.appendChild(who);
+          rows.appendChild(row);
+        });
+        show("[data-live-collectors]", true);
+      }
       // The headline the budget is held to: fetches in the last 24 hours
       // against the bulk share of the one global bucket.
       const bg = b.budget;

@@ -78,7 +78,8 @@ test("the app owns /console and disowns everything else", async () => {
   // The charts joined the site's /data page: a section the app no longer has.
   expect(legalRoute("/console/data/nonsense")).toBe(null);
   expect(legalRoute("/signin")).toBe("/signin");
-  expect(legalRoute("/data/service")).toBe("/data/service");
+  // The service page folded into Admin and the public /data (2026-11-12).
+  expect(legalRoute("/data/service")).toBe(null);
   expect(legalRoute("/console/explore/player/%2320JJJ2CCRU")).toBe(
     "/console/explore/player/%2320JJJ2CCRU",
   );
@@ -461,7 +462,7 @@ test(
 );
 
 test("admin view is admin-gated in the UI", { timeout: 20000 }, async () => {
-  window.history.pushState({}, "", "/console/admin");
+  window.history.pushState({}, "", "/settings/admin/service");
   global.fetch = mockFetch({
     "GET /api/me": [
       200,
@@ -469,7 +470,12 @@ test("admin view is admin-gated in the UI", { timeout: 20000 }, async () => {
     ],
   });
   render(<App />);
-  expect(await screen.findByText("Sign in first")).toBeTruthy();
+  expect(
+    await screen.findByText("This page is for Elixir\u2019s staff"),
+  ).toBeTruthy();
+  // Not even Admin's rail: its pages are named to staff only.
+  expect(screen.queryByText("Fleet")).toBeNull();
+  expect(screen.queryByText("Beta pulse")).toBeNull();
 });
 
 test(
@@ -506,11 +512,9 @@ test("the tab title names the page, most specific part first", async () => {
     return titleFor(section, SECTIONS[section], path);
   };
   expect(t("/")).toBe("Elixir");
-  expect(titleFor(undefined, undefined, "/data/service")).toBe(
-    "Status - Elixir",
-  );
-  expect(t("/console/admin/collectors")).toBe("Collectors - Admin - Elixir");
-  expect(t("/console/status/collectors")).toBe("Collectors - Status - Elixir");
+  expect(t("/settings/admin/collectors")).toBe("Collectors - Admin - Elixir");
+  expect(t("/settings/admin/fleet")).toBe("Fleet - Admin - Elixir");
+  expect(t("/settings/profile")).toBe("Profile - Settings - Elixir");
   // Explore owns its sub-pages, so a record beats the page slug: it is
   // the most specific thing shown.
   expect(t("/console/explore/player/%2320JJJ2CCRU")).toBe(
@@ -571,12 +575,14 @@ test(
     // The old REDIRECTS rendered the new page under the old address, so a
     // link to /status credited the old path in the report and
     // /status/service looked unvisited. The router replaces the entry.
-    window.history.pushState({}, "", "/console/status");
+    window.history.pushState({}, "", "/console/status/efficiency");
     global.fetch = mockFetch({
       "GET /api/me": [200, { authenticated: false }],
     });
     render(<App />);
-    await waitFor(() => expect(window.location.pathname).toBe("/data/service"));
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/settings/admin/efficiency"),
+    );
     // The bare old address is Home, with or without the trailing slash.
     for (const bare of ["/console", "/console/"]) {
       cleanup();
@@ -594,7 +600,7 @@ test(
     window.history.pushState({}, "", "/console/admin?x=1");
     render(<App />);
     await waitFor(() =>
-      expect(window.location.pathname).toBe("/console/admin/requests"),
+      expect(window.location.pathname).toBe("/settings/admin/requests"),
     );
     expect(window.location.search).toBe("?x=1");
   },
@@ -642,7 +648,6 @@ test("every app section in the route table has a route under /console, and nothi
       .sort(),
   ).toEqual([
     "battle/$ref",
-    "data/service",
     "h/$id",
     "home",
     "home/find",
@@ -651,6 +656,7 @@ test("every app section in the route table has a route under /console, and nothi
     "home/you",
     "home/you/stats/{-$page}",
     "settings/$",
+    "settings/admin/$",
     "signin",
   ]);
   const segments = all.filter((s) => s[0] === "console");

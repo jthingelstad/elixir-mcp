@@ -1,7 +1,7 @@
 # apps/web: the signed-in app and the shared shell
 
 The React application behind every path a session or a live read draws:
-Home (`/home`), the pages still under `/console`, Stats (Ladder, `/home/you/stats`, guide in `src/ladder/`), Elixir
+Home (`/home`), Settings (`/settings`, Admin under it for staff), Stats (Ladder, `/home/you/stats`, guide in `src/ladder/`), Elixir
 Clan (`/clan`, views from `packages/clan-web`) and the public battle page
 (`/battle/<id>`). The root `AGENTS.md` golden rules apply; product
 behaviour is in `apps/site/src/docs/`, not here.
@@ -75,15 +75,17 @@ and the feed's extra fields are `services/web-api/src/feed.mjs`.
 
 ## The Console's sections
 
-The word Console is retired from what a reader sees; `/console/` still holds
-Explore, Status's collectors and Admin. `src/views/` holds the pages,
+The Console folds (2026-11-12): `/console/` holds only Explore until it
+folds into Find, You and the player pages; every other old Console
+address redirects. `src/views/` holds the pages,
 `src/views/account/` the Settings and agent pages; the route table is in
 `App.jsx`. `src/lib/settings.js` is Settings' rail and paths, and
 `src/lib/moved.js` redirects every old account address (mail in inboxes names
 them; an entry leaves only when no archived mail can). Sections: Explore
 (players, clans, decks, weeks, record pages), Settings (`/settings`: profile,
 players, emails, connections and agents, sign-ins, usage, feedback, collectors),
-an agent's own page (`/settings/agents/<public_id>`, five tabs), the service
-page (`/data/service`, with collectors and efficiency under
-`/console/status/`), and Admin. Admin pages are gated on the server; the client
-only hides them.
+an agent's own page (`/settings/agents/<public_id>`, five tabs), and Admin
+(`/settings/admin/<page>`, its own route, rail and lazy chunk, with Service, Fleet
+and Efficiency; Settings offers it to staff only). Admin pages are gated on
+the server; the client only hides them. The service's public half is the
+site's `/data`.

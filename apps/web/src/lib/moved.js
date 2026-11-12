@@ -16,9 +16,10 @@ import { clanMoved } from "@elixir-mcp/clan-web/lib/moved.js";
  */
 import { CONSOLE } from "./console.js";
 import { ladderMoved } from "../ladder/paths.js";
-import { SETTINGS } from "./settings.js";
+import { ADMIN, SETTINGS } from "./settings.js";
 
-export const SERVICE_STATUS = "/data/service";
+/** The public status page, a site document. */
+const PUBLIC_STATUS = "/data";
 export const SIGN_IN = "/signin";
 export const HOME = "/home";
 
@@ -51,11 +52,17 @@ export const REDIRECTS = {
   [`${HOME}/timeline`]: HOME,
   [`${HOME}/friends`]: `${HOME}/find`,
   [`${CONSOLE}/signin`]: SIGN_IN,
-  [`${CONSOLE}/status`]: SERVICE_STATUS,
-  [`${CONSOLE}/status/service`]: SERVICE_STATUS,
-  // Partial addresses: a bare section to its first page, a partial record
-  // path to the lookup.
-  [`${CONSOLE}/admin`]: `${CONSOLE}/admin/requests`,
+  // The Console folded (Jamie, 2026-11-12). The service page, the fleet and
+  // Efficiency are Admin's; everyone else reads the public status page, which
+  // credits each collector to its operator. One collector's page is
+  // Settings' (accountMoved).
+  "/data/service": PUBLIC_STATUS,
+  [`${CONSOLE}/status`]: PUBLIC_STATUS,
+  [`${CONSOLE}/status/service`]: PUBLIC_STATUS,
+  [`${CONSOLE}/status/collectors`]: PUBLIC_STATUS,
+  [`${CONSOLE}/status/efficiency`]: `${ADMIN}/efficiency`,
+  [`${CONSOLE}/admin`]: `${ADMIN}/requests`,
+  // Partial addresses: a partial record path to the lookup.
   [`${CONSOLE}/explore/player`]: `${CONSOLE}/explore`,
   [`${CONSOLE}/explore/clan`]: `${CONSOLE}/explore`,
   // The in-app charts joined the site's Status and data page (step 7).
@@ -79,8 +86,30 @@ export function movedTo(pathname, hash = "") {
     // mail's `/ladder?player=` and `/ladder?season=` among them.
     ladderMoved(path) ??
     accountMoved(path) ??
-    agentMoved(path)
+    agentMoved(path) ??
+    adminMoved(path) ??
+    consoleMoved(path)
   );
+}
+
+/** Admin under Settings (2026-11-12): every Admin address, its record ids
+ *  with it. Staff mail and alerts name these. */
+function adminMoved(path) {
+  const prefix = `${CONSOLE}/admin/`;
+  return path.startsWith(prefix)
+    ? `${ADMIN}/${path.slice(prefix.length)}`
+    : null;
+}
+
+/** The Console's last pages (2026-11-12): what has no page of its own now
+ *  lands on Home, so no old link is "Nothing at this address". */
+function consoleMoved(path) {
+  if (path === CONSOLE || !path.startsWith(`${CONSOLE}/`)) return null;
+  const [section, page, id] = path.slice(CONSOLE.length + 1).split("/");
+  if (section === "status" && page === "collectors" && id)
+    return `${SETTINGS}/collectors/${id}`;
+  if (section === "explore") return null;
+  return HOME;
 }
 
 /** Your own account's pages (redesign step 6), every one of which mail, a

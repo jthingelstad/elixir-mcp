@@ -100,7 +100,15 @@ canonical: /data
       <div class="stats__note">of the day&rsquo;s</div>
     </div>
   </div>
-  <p class="footnote" data-session-face="in"><a href="/data/service">See the service in detail ›</a></p>
+  {#- Each collector credited to its operator (DECISIONS "Operator credit
+      stays on the public status"): the fleet list every member read under
+      /console/status until 2026-11-12, drawn here from /api/public/status by
+      data-live.js. Names are Clash Royale cards and operators' chosen
+      credits; machine labels and endpoints never reach this read. -#}
+  <section class="panel" id="collectors" data-live-collectors hidden>
+    <div class="data-rows data-rows--two" data-live-collector-rows></div>
+  </section>
+  <p class="footnote" data-session-face="in"><a href="/settings/collectors/new">Run a collector ›</a></p>
 </section>
 
 <section class="data-sec" id="the-record">
