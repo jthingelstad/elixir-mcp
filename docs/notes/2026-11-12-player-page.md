@@ -38,12 +38,20 @@ because of you", "Search's Follow is the same confirmed action as Home's".
   (`packages/syndication/src/lines.mjs`) build the same address; the mail
   reader no longer reads clanmates. Clan doors in mail still follow the
   reader. Explore's record keeps its address and is linked as Full record.
+  The digest (#783) linked the reader's own name to Ladder on the season
+  now; that name opens the player page too, so the digest no longer
+  carries a season (`services/jobs/src/email/index.mjs`).
 - **Following several.** `GET /api/me/follow-plan` (`player_tags` or
   `clan_tag`) prices each player with `playerCosts` and sums free, slots and
   slots left; `POST /api/me/follow-all` re-prices and refuses whole with 429
   `quota_exceeded` and the reason when the slots are not left, else follows
   each (`addPlayer`, follow) and asks a first read only for players whose
   recording started. At most 50 players; a clan is its current members.
+  "Following" in a plan and on the page is the reader's own friend claim,
+  never the pool's: a player the reader watches, or only their agent
+  tracks, is priced free and followed (watching becomes friend). A plan
+  that needs no slot fits even with the pool over its limit, as a single
+  free follow does (both from Codex on #784).
 - **Follow me links.** `/home/follow/<tag>,<tag>` (`FollowMe.jsx`): tags only.
   Signed out, Home's sign-in wall shows Join Elixir
   (`/signin?signup&return_to=<link>`) and Sign in, naming no player. Signed

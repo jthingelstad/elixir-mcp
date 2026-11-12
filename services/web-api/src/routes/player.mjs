@@ -164,7 +164,9 @@ async function readerSide(db, accountId, tag, clanTag) {
   const home = await homeClan(db, accountId);
   return {
     own,
-    following: Boolean(claim) && !own,
+    // Following is the reader's own Follow, a friend claim. A watched
+    // player is recorded, not followed: the page still offers Follow.
+    following: !own && claim?.relationship === "friend",
     relationship: own ? "own" : (claim?.relationship ?? null),
     clanmate:
       !own && home && clanTag && home.clan_tag === clanTag
@@ -254,7 +256,13 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
 
 /** What following each of `tags` would cost the reader's pool, as one plan:
  *  each player priced, and how many are free, how many take a slot, how
- *  many the pool follows already, against the slots left. */
+ *  many the reader follows already, against the slots left.
+ *
+ *  "Following" is the reader's own Follow (a friend claim), never the pool's
+ *  recording: a player the reader only watches, or one only their agent
+ *  tracks, is still theirs to follow, and free, since the pool records them
+ *  already (addPlayer, playerCost). A plan that needs no slot always fits,
+ *  even with the pool over its limit, as a single free follow does. */
 export async function followPlan(db, accountId, tags) {
   const owner = await poolOwner(db, accountId);
   const limits = poolLimits(owner);
@@ -271,13 +279,22 @@ export async function followPlan(db, accountId, tags) {
     [wanted],
   );
   const nameOf = new Map(names.map((r) => [r.player_tag, r.name]));
+  const { rows: friends } = await db.query(
+    `select player_tag from claim
+      where account_id = $1 and relationship = 'friend' and not is_primary
+        and player_tag = any($2::text[])`,
+    [accountId, wanted],
+  );
+  const followed = new Set(friends.map((r) => r.player_tag));
   const used = (await pooledUsage(db, owner.account_id)).players_used;
   const players = costs.map((c) => ({
     player_tag: c.player_tag,
     name: nameOf.get(c.player_tag) ?? null,
-    following: c.following,
-    free: c.free,
-    reason: c.reason,
+    following: followed.has(c.player_tag),
+    // Recorded for this pool already (watched, or an agent's): following
+    // them takes no slot.
+    free: c.free || c.following,
+    reason: c.reason ?? (c.following ? "recorded_for_you" : null),
   }));
   const fresh = players.filter((p) => !p.following);
   const slots = fresh.filter((p) => !p.free).length;
@@ -291,7 +308,7 @@ export async function followPlan(db, accountId, tags) {
     following: players.length - fresh.length,
     used,
     limit,
-    fits: limit == null || used + slots <= limit,
+    fits: limit == null || slots === 0 || used + slots <= limit,
   };
 }
 
