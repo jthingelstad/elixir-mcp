@@ -166,8 +166,7 @@ export async function runEmail({
         : now;
       const season = await seasonOf(db, recipients[0], seasonAt);
       if (kind === "clan_report") await runClans(run, recipients, season);
-      else if (kind === "tracking_report")
-        await runDigest(run, recipients, season);
+      else if (kind === "tracking_report") await runDigest(run, recipients);
       else await runPerAccount(run, recipients, season);
     }
     return result;
@@ -348,7 +347,7 @@ async function lastDigests(db, accountIds) {
  *  takes the daily readers every day and the weekly ones on Wednesday;
  *  an ops run (one account, or force) sends whatever the reader's
  *  cadence covers, any day. Nothing to tell is no mail. */
-async function runDigest(run, recipients, season) {
+async function runDigest(run, recipients) {
   const { db, kind, now, result } = run;
   const periodKey = now.toISOString().slice(0, 10);
   const ids = recipients.map((a) => a.accountId);
@@ -387,7 +386,6 @@ async function runDigest(run, recipients, season) {
         result.skipped += 1;
         continue;
       }
-      facts.season = season;
       const subjectKey = account.accountId;
       const issueId = await upsertIssue(db, {
         kind,

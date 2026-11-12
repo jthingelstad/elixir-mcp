@@ -41,10 +41,10 @@ test("a player's name opens the player page for every reader: own, clanmate, fri
   const mate = read({ mine: [own], member_clans: [clanTag] });
   assert.ok(mate.includes(`/home/player/${bare(friend)}?`));
   assert.ok(!mate.includes(`/members/${bare(friend)}`));
-  if (mate.includes(`title="${own}"`))
-    assert.ok(mate.includes(`/home/player/${bare(own)}?`));
-  // Ladder stays a door of its own beside the name, as the digest's button.
-  assert.ok(stranger.includes(`/ladder?player=${bare(own)}`));
+  // The reader's own name opens the player page too, never Ladder: Ladder
+  // is reachable from the page (Jamie, 2026-11-12).
+  assert.ok(mate.includes(`/home/player/${bare(own)}?`));
+  assert.ok(!mate.includes(`/ladder?player=${bare(own)}`));
 });
 
 test("the clan report's links follow the reader: member to Clan, Season and Members; everyone else to the record", () => {
