@@ -84,7 +84,7 @@ export function Timeline({ crumb = null } = {}) {
       when(it.sort_at ?? it.at),
       it.subject_name ?? it.subject_tag ?? "your account",
       // Time-free (11.8.0): the WHEN column says the time in the
-      // account's zone (DECISIONS: the console tells time in it).
+      // account's zone (DECISIONS: the app tells time in it).
       String(it.text ?? ""),
       state,
       it.evidence
