@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Directory } from "../src/views/Directory.jsx";
 import {
@@ -181,6 +181,23 @@ describe("the page", () => {
     expect(screen.getByRole("alert").textContent).toMatch(/did not load/);
     rerender(<Directory state={{ data: { clans: CLANS, truncated: true } }} />);
     expect(screen.getByText(/first 3 clans by name/)).toBeTruthy();
+  });
+  test("a refused or signed-out read is said, never left loading", () => {
+    const onSignedOut = vi.fn();
+    const { rerender } = render(
+      <Directory
+        state={{ forbidden: "not_a_person" }}
+        onSignedOut={onSignedOut}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toMatch(/approved account/);
+    expect(screen.queryByText(/Reading the directory/)).toBeNull();
+    expect(onSignedOut).not.toHaveBeenCalled();
+    rerender(
+      <Directory state={{ signedOut: true }} onSignedOut={onSignedOut} />,
+    );
+    expect(onSignedOut).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/Reading the directory/)).toBeNull();
   });
 });
 
