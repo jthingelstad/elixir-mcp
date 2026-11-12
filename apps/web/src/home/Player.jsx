@@ -18,7 +18,6 @@ import {
 import { useMe } from "../App.jsx";
 import { trackEvent } from "../analytics.js";
 import { ladderHref } from "../ladder/ladder.js";
-import { CONSOLE } from "../lib/console.js";
 import { followMeHref, playerHref } from "../lib/player.js";
 import {
   usePlayerEvidence,
@@ -30,6 +29,7 @@ import { TimelineEvidence } from "../views/account/timeline-shared.jsx";
 import { Cheers, usePageCheered } from "./Cheers.jsx";
 import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
 import { FollowAll, FollowButton } from "./follow.jsx";
+import { PlayerRecord } from "./PlayerRecord.jsx";
 
 /**
  * A player's page (slice 6, #764): the one page every player name opens
@@ -47,10 +47,12 @@ export const PLAYER_TABS = [
   { key: "highlights", label: "Highlights" },
   { key: "moments", label: "Moments" },
   { key: "follows", label: "Follows" },
+  // Explore's player and profile records, folded in (2026-11-12).
+  { key: "record", label: "Record" },
 ];
 
 export function PlayerPage() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const tag = tagFromPath(pathname.replace(/\/$/, "").split("/")[3] ?? "");
   const query = usePlayerPage(tag);
   // An address that names no tag reads nothing: the query never runs.
@@ -87,11 +89,16 @@ export function PlayerPage() {
         </Empty>
       </>
     );
-  return <PlayerView page={env.data} />;
+  return (
+    <PlayerView
+      page={env.data}
+      initialTab={typeof search?.tab === "string" ? search.tab : undefined}
+    />
+  );
 }
 
 /** The page itself. You (`/home/you`) draws your primary player's with its
- *  own tabs after the four (Stats, 2026-11-12), each an address, and opens
+ *  own tabs after its five (Stats, 2026-11-12), each an address, and opens
  *  on the tab the address names. */
 export function PlayerView({
   page,
@@ -157,9 +164,6 @@ export function PlayerView({
             Open in Clan
           </Link>
         ) : null}
-        <Link to={`${CONSOLE}/explore/player/${tagPath(p.tag)}`}>
-          Full record
-        </Link>
         {p.clan_tag && !you.own ? (
           <FollowAll
             ask={{ clan_tag: p.clan_tag }}
@@ -198,6 +202,8 @@ export function PlayerView({
           cheered={cheered}
           tag={p.tag}
         />
+      ) : tab === "record" ? (
+        <PlayerRecord tag={p.tag} />
       ) : (
         <Follows page={page} />
       )}

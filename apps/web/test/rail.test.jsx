@@ -18,13 +18,7 @@ import {
   within,
   configure,
 } from "@testing-library/react";
-import {
-  ADMIN_RAIL,
-  App,
-  EXPLORE_RAIL,
-  legalRoute,
-  railPosition,
-} from "../src/App.jsx";
+import { ADMIN_RAIL, App, legalRoute } from "../src/App.jsx";
 import {
   AGENT_TABS,
   SETTINGS_RAIL,
@@ -73,7 +67,7 @@ afterEach(() => {
 });
 
 /** Every destination the rails offer, as [railKey, sub, path]. */
-const RAILS = [EXPLORE_RAIL, ADMIN_RAIL, SETTINGS_RAIL];
+const RAILS = [ADMIN_RAIL, SETTINGS_RAIL];
 const destinations = RAILS.flat().flatMap((row) => [
   [row.key, undefined, row.to],
   ...(row.subs ?? []).map(([slug, , to]) => [row.key, slug, to]),
@@ -91,7 +85,7 @@ test("every rail item and sub-item routes somewhere", () => {
 
 test("a rail destination marks the item that offered it", () => {
   for (const [key, sub, to] of destinations) {
-    const at = settingsHere(to) ?? railPosition(to);
+    const at = settingsHere(to);
     // Settings' Admin row is a door: it opens Admin's own rail, which
     // marks the Admin page it lands on.
     if (key === "admin") {
@@ -163,9 +157,7 @@ test("Settings' rail: eight places, Collectors for who runs one, Admin for staff
   ]);
 });
 
-test("Explore is its own rail, and a page says which rail it wears", () => {
-  expect(EXPLORE_RAIL[0].to).toBe("/console/explore");
-  expect(railPosition("/console/explore/player/2ABC").rail).toBe("explore");
+test("a page says which rail it wears", () => {
   expect(settingsHere("/settings/usage").key).toBe("usage");
   expect(settingsHere("/settings/admin/emails").rail).toBe("admin");
 });

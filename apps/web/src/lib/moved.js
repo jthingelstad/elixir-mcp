@@ -15,8 +15,9 @@ import { clanMoved } from "@elixir-mcp/clan-web/lib/moved.js";
  * `#login_token=` still arrive.
  */
 import { CONSOLE } from "./console.js";
-import { ladderMoved } from "../ladder/paths.js";
+import { LADDER, ladderMoved } from "../ladder/paths.js";
 import { ADMIN, SETTINGS } from "./settings.js";
+import { normTag, tagPath } from "./tag-url.js";
 
 /** The public status page, a site document. */
 const PUBLIC_STATUS = "/data";
@@ -62,9 +63,6 @@ export const REDIRECTS = {
   [`${CONSOLE}/status/collectors`]: PUBLIC_STATUS,
   [`${CONSOLE}/status/efficiency`]: `${ADMIN}/efficiency`,
   [`${CONSOLE}/admin`]: `${ADMIN}/requests`,
-  // Partial addresses: a partial record path to the lookup.
-  [`${CONSOLE}/explore/player`]: `${CONSOLE}/explore`,
-  [`${CONSOLE}/explore/clan`]: `${CONSOLE}/explore`,
   // The in-app charts joined the site's Status and data page (step 7).
   [`${CONSOLE}/data`]: "/data",
   [`${CONSOLE}/data/dashboard`]: "/data",
@@ -101,15 +99,66 @@ function adminMoved(path) {
     : null;
 }
 
-/** The Console's last pages (2026-11-12): what has no page of its own now
- *  lands on Home, so no old link is "Nothing at this address". */
+/** The Console's last pages (2026-11-12): /console only redirects. What has
+ *  no page of its own now lands on Home, so no old link is "Nothing at this
+ *  address". */
 function consoleMoved(path) {
   if (path === CONSOLE || !path.startsWith(`${CONSOLE}/`)) return null;
   const [section, page, id] = path.slice(CONSOLE.length + 1).split("/");
   if (section === "status" && page === "collectors" && id)
     return `${SETTINGS}/collectors/${id}`;
-  if (section === "explore") return null;
+  if (section === "explore") return exploreMoved(page, id);
   return HOME;
+}
+
+const FIND = `${HOME}/find`;
+const CLAN_DIRECTORY = "/clan/directory";
+const TAG_SEGMENT = /^(?:%23|#)?[0-9A-Za-z]{3,12}$/;
+
+/** A tag from an old record address, as a path segment; null when it is not
+ *  one, so a broken link lands on Find rather than a guess. */
+function tagSegment(raw) {
+  if (!TAG_SEGMENT.test(raw ?? "")) return null;
+  return tagPath(normTag(decodeURIComponent(raw)));
+}
+
+/** Explore folded (Jamie, 2026-11-12). Its lookup and Players browse are
+ *  Find; a player's record and profile are the player page (its Record
+ *  tab); a battle's is the battle page; a clan's is the clan directory (a
+ *  clan you are in opens itself there); war weeks are the clan's War tab;
+ *  decks are Stats' Decks. Mail and Discord lines in inboxes name these. */
+function exploreMoved(page, id) {
+  const player = (raw) => {
+    const tag = tagSegment(raw);
+    return tag ? `${HOME}/player/${tag}` : FIND;
+  };
+  if (!page || page === "players" || page === "clans") return FIND;
+  if (page === "meta" || page === "deck") return `${LADDER}/decks`;
+  if (page === "weeks") return "/clan";
+  if (page === "player" || page === "profile") return player(id);
+  if (page === "clan") return CLAN_DIRECTORY;
+  if (page === "battle")
+    return /^[0-9a-f]{12,64}$/.test(id ?? "") ? `/battle/${id}` : HOME;
+  if (page === "week") {
+    // <clan>~<season>~<section>: the clan's War tab on that season.
+    const [raw, season] = String(id ?? "").split("~");
+    const tag = tagSegment(raw);
+    if (!tag) return "/clan";
+    return /^\d{1,4}$/.test(season ?? "")
+      ? `/clan/${tag}/war/${season}`
+      : `/clan/${tag}/war`;
+  }
+  if (page === "list") {
+    const [kind, rest] = String(id ?? "").split(":");
+    if (kind === "battles" || kind === "decks") return player(rest);
+    if (kind === "deckbattles") return `${LADDER}/decks`;
+    if (kind === "members") return CLAN_DIRECTORY;
+    if (kind === "weeks") {
+      const tag = tagSegment(rest);
+      return tag ? `/clan/${tag}/war` : "/clan";
+    }
+  }
+  return FIND;
 }
 
 /** Your own account's pages (redesign step 6), every one of which mail, a

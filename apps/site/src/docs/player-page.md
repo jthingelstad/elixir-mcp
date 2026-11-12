@@ -13,7 +13,7 @@ reviewed: "2026-11-12 against contract 11.21.0"
 # A player's page
 
 A player's name opens their page, wherever the name is: Home, Find, the
-search sheet, a battle, Stats, Explore and the email. The address is
+search sheet, a battle, Stats and the email. The address is
 `/home/player/<tag>`, the tag without its `#`. You need to be signed in, as
 for every read of Elixir.
 
@@ -25,6 +25,7 @@ The page leads with the player's game name, tag, clan and trophies. Under it:
 | Highlights | the battles the player chose to highlight, with their own words |
 | Moments | the timeline's moments: a new arena, a promotion in Path of Legends, a badge, a clan joined or left |
 | Follows | who the player's account follows, and who follows it |
+| Record | the recorded profile: the last 30 days in battles, wins, losses, trophies and the deck played most, and the profile's trophies, best and lifetime counts as of its last capture |
 
 A sitting on the Timeline tab looks as it does on Home: its small bar chart
 of wins and losses, its battles, won and lost, the trophies it moved and the
@@ -37,10 +38,9 @@ player or clan you follow ([Cheers](/docs/timeline#cheers)). Older items,
 and items on the page of a player you do not follow, show no cheers.
 
 Your own primary player's page, once you have verified it, is **You**
-(`/home/you`), with a fifth tab, **Stats**: [your season, read back](/docs/ladder).
+(`/home/you`), with a sixth tab, **Stats**: [your season, read back](/docs/ladder).
 Your players' pages opened by name offer **Your stats**, and a clanmate's page
-**Open in Clan** when your clan runs Clan. Every page links to the **Full record** in
-Explore, which stays at its old address.
+**Open in Clan** when your clan runs Clan.
 
 ## Follows, followers and badges
 

@@ -42,8 +42,8 @@ clan and what its leaders saved as its rules:
 A tile never shows who saved the policy, the note on a save, a minimum, a
 member's standing or any Action. The clan's Recruit pitch is not on it.
 
-The tile's name opens your own clan in Clan, and any other clan on its
-record in Explore.
+The tile's name opens your own clan in Clan. Elixir has no page of its
+own for a clan you are not in; its tile is what the directory shows.
 
 ## Filters and order
 

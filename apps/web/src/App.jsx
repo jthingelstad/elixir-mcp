@@ -42,7 +42,7 @@ import { createClanRoutes } from "@elixir-mcp/clan-web/routes";
 import { api } from "./api.js";
 import { useMyGateways } from "./lib/queries.js";
 import { CardArtSource } from "./components/CardArtSource.jsx";
-import { CONSOLE, appPath } from "./lib/console.js";
+import { appPath } from "./lib/console.js";
 import {
   ADMIN,
   SETTINGS,
@@ -99,53 +99,10 @@ export const STATIC_LINKS = {
 };
 
 /**
- * Sections and their pages — the app's route table.
- *
- * The rail is built from RAIL below rather than from this, because the
- * two answer different questions: this one says which paths resolve,
- * that one says what the reader is offered and in what order.
+ * The rails. Settings' is lib/settings.js; Admin has its own, reached from
+ * Settings' Admin row (staff only). The Console's sections folded on
+ * 2026-11-12: every /console address redirects (lib/moved.js).
  */
-export const SECTIONS = {
-  explore: { label: "Explore", authed: true, pages: [] },
-};
-
-/**
- * The rails. Settings' is lib/settings.js. Explore has its own, reached from
- * search; Admin has its own, reached from the avatar's menu.
- */
-export const EXPLORE_RAIL = [
-  {
-    key: "lookup",
-    label: "Look up",
-    icon: "search",
-    to: `${CONSOLE}/explore`,
-  },
-  {
-    key: "players",
-    label: "Players",
-    icon: "user-round",
-    to: `${CONSOLE}/explore/players`,
-  },
-  {
-    key: "clans",
-    label: "Clans & wars",
-    icon: "users",
-    to: `${CONSOLE}/explore/clans`,
-  },
-  {
-    key: "meta",
-    label: "Decks",
-    icon: "layout-grid",
-    to: `${CONSOLE}/explore/meta`,
-  },
-  {
-    key: "weeks",
-    label: "War weeks",
-    icon: "calendar-days",
-    to: `${CONSOLE}/explore/weeks`,
-  },
-];
-
 /** Admin's rail, under Settings since 2026-11-12: bare labels again, because
  *  nothing else is on screen beside them. Collectors and Service tokens are
  *  the owner's. */
@@ -257,24 +214,6 @@ export const ADMIN_RAIL = [
   },
 ];
 
-/** Which rail item a path belongs to. Read on the app path (the prefix off),
- *  so the segments keep their indexes. Settings' pages say it themselves
- *  (lib/settings.js). */
-export function railPosition(path) {
-  const app = appPath(path) ?? "";
-  const [, section, page, rest] = app.split("/");
-  if (section === "explore") {
-    const explore = { rail: "explore" };
-    const kinds = ["players", "clans", "meta", "weeks"];
-    if (kinds.includes(page)) return { ...explore, key: page };
-    if (page === "player" && rest) return { ...explore, key: "players" };
-    if (page === "clan" && rest) return { ...explore, key: "clans" };
-    if (page === "week" && rest) return { ...explore, key: "weeks" };
-    return { ...explore, key: "lookup" };
-  }
-  return {};
-}
-
 /** A battle's public page (2026-10-01): /battle/<short id>, a 12 to 64
  *  character hex prefix of the battle id. */
 const BATTLE_PATH = /^\/battle\/[0-9a-f]{12,64}$/;
@@ -285,8 +224,7 @@ const POST_PATH = /^\/h\/[a-z2-7]{15}$/;
 
 /** Which place the bar marks as the one you are in, from the route. A battle's
  *  public page is in no place, nor are Settings' pages: the Search tab opens
- *  a sheet over whichever page you are on, and stands for Explore's records
- *  while you are reading one. */
+ *  a sheet over whichever page you are on. */
 export function barArea(path) {
   const clean = path.replace(/(.)\/$/, "$1");
   if (clean === FIND) return "find";
@@ -295,8 +233,7 @@ export function barArea(path) {
   // Ladder is You's Stats tab (2026-11-12).
   if (isLadder(path)) return "you";
   if (isClan(path)) return "clan";
-  const section = (appPath(path) ?? "").split("/")[1];
-  return section === "explore" ? "find" : undefined;
+  return undefined;
 }
 
 /** Find and You (slice 7, #765): pages under /home, which the distribution
@@ -327,21 +264,12 @@ export function legalRoute(path) {
   if (POST_PATH.test(path)) return path;
   // Ladder resolves its own paths.
   if (isLadder(path)) return ladderLegal(path);
-  const app = appPath(path);
-  if (app === null) return null;
-  const [, section, page] = app.split("/");
-  const sec = SECTIONS[section];
-  if (!sec) return null;
-  // Explore's records are addressable, so it resolves its own paths.
-  if (section === "explore") return path;
-  if (sec.pages.some((p) => p.slug === page)) return path;
-  return `${CONSOLE}/${section}/${sec.pages[0].slug}`;
+  return null;
 }
 
 /** Tab titles. The distinguishing word goes FIRST, because a browser
  *  tab truncates from the right - "Elixir - Status" is useless at tab
- *  width, "Status - Elixir" is not. Sections that own their own
- *  sub-pages (explore records, docs) name the record instead. The site
+ *  width, "Status - Elixir" is not. The site
  *  is "Elixir" on every surface, the same suffix apps/site's pages and
  *  a battle's page wear. */
 const SITE = "Elixir";
@@ -360,7 +288,7 @@ const prettify = (seg) =>
         .replace(/-/g, " ")
         .replace(/^./, (c) => c.toUpperCase());
 
-export function titleFor(section, sec, path) {
+export function titleFor(path) {
   if (path === SIGN_IN) return `Sign in - ${SITE}`;
   if (isSettings(path)) {
     // Admin keeps its own name in the tab, as it had under /console.
@@ -384,17 +312,7 @@ export function titleFor(section, sec, path) {
     const lead = CLAN_PAGES.has(first) ? first : first && second;
     return lead ? `${prettify(lead)} - Clan - ${SITE}` : `Clan - ${SITE}`;
   }
-  const parts = (appPath(path) ?? "").split("/").filter(Boolean);
-  if (parts.length === 0) return SITE;
-  if (!sec) return SITE;
-  const pageSlug = parts[1];
-  const known = sec.pages?.find((p) => p.slug === pageSlug)?.label;
-  // A record deeper than the page slug is the most specific thing on
-  // screen, so it wins the front of the title.
-  const record = parts[2] ? prettify(parts[2]) : null;
-  const lead = record ?? known ?? (pageSlug ? prettify(pageSlug) : null);
-  if (!lead || lead === sec.label) return `${sec.label} - ${SITE}`;
-  return `${lead} - ${sec.label} - ${SITE}`;
+  return SITE;
 }
 
 /** `navigate(to)` for the views: a path, with a query string riding
@@ -457,16 +375,13 @@ function Rail({
   // Admin's rail is drawn for staff only; anyone else on an Admin address
   // sees Settings' own rail beside the page that says it is staff only.
   const admin = here.rail === "admin" && me?.is_admin === true;
-  const explore = here.rail === "explore";
   const rail = admin
     ? ADMIN_RAIL.filter((r) => !r.ownerOnly || me?.is_owner)
-    : explore
-      ? EXPLORE_RAIL
-      : SETTINGS_RAIL.filter(
-          (r) =>
-            (!r.runsOne || runsCollector) &&
-            (!r.adminOnly || me?.is_admin === true),
-        );
+    : SETTINGS_RAIL.filter(
+        (r) =>
+          (!r.runsOne || runsCollector) &&
+          (!r.adminOnly || me?.is_admin === true),
+      );
   const items = rail.map((row) => ({
     key: row.key,
     label: row.label,
@@ -476,7 +391,7 @@ function Rail({
     meta: row.meta ?? counts[row.key],
     dot: dots[row.key] ?? null,
   }));
-  const name = admin ? "Admin" : explore ? "Explore" : "Settings";
+  const name = admin ? "Admin" : "Settings";
   return (
     <RailList
       label={`${name} sections`}
@@ -782,15 +697,6 @@ const adminRoute = createRoute({
   ),
 });
 
-const exploreRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: `${CONSOLE}/explore/$`,
-  component: lazyRouteComponent(
-    () => import("./pages/ExplorePage.jsx"),
-    "ExplorePage",
-  ),
-});
-
 const battleRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/battle/$ref",
@@ -869,7 +775,6 @@ export const routeTree = rootRoute.addChildren([
   signInRoute,
   settingsRoute,
   adminRoute,
-  exploreRoute,
   battleRoute,
   postRoute,
   ladderRoute,
@@ -908,23 +813,9 @@ export function useHere() {
       here: { rail: "settings", ...settingsHere(pathname) },
       search: search ?? {},
     };
-  // Segments are read on the app path (the prefix off); `path` stays the
-  // real one, since it is what the page keys and titles on.
-  const app = appPath(pathname) ?? "";
-  const [, section, page, itemId, recordId] = app.split("/");
-  const sec = SECTIONS[section];
-  const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
-  const here = railPosition(pathname);
-  return {
-    path: pathname,
-    section,
-    sec,
-    activePage,
-    here,
-    itemId,
-    recordId,
-    search: search ?? {},
-  };
+  // Home, Find, You, the player page, Clan and the battle and post pages
+  // say where they are themselves.
+  return { path: pathname, here: {}, search: search ?? {} };
 }
 
 /** The app is its own providers: one query cache and one router per
@@ -1044,7 +935,7 @@ function HomeOutlet() {
   const { pathname } = useLocation();
   const { me, unreachable, retrying, refresh } = useMe();
   useEffect(() => {
-    document.title = titleFor("home", null, pathname);
+    document.title = titleFor(pathname);
   }, [pathname]);
   const authed = me?.authenticated === true;
   return (
@@ -1077,7 +968,7 @@ function SharedClanOutlet() {
   const navigate = useNav();
   const { pathname } = useLocation();
   useEffect(() => {
-    document.title = titleFor("clan", null, pathname);
+    document.title = titleFor(pathname);
   }, [pathname]);
   return (
     <ZoneProvider zone={me?.timezone}>
@@ -1100,8 +991,8 @@ function ConsoleShell() {
     // A battle's page and a post's name themselves once they have loaded.
     if (BATTLE_PATH.test(effectivePath) || POST_PATH.test(effectivePath))
       return;
-    document.title = titleFor(section, sec, effectivePath);
-  }, [section, sec, effectivePath]);
+    document.title = titleFor(effectivePath);
+  }, [effectivePath]);
 
   // Counts on the rail are the reader's own things, derived once here so two
   // screens cannot disagree (house rule). Omitted while /api/me has not

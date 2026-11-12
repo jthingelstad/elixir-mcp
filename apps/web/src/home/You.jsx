@@ -28,7 +28,7 @@ export const YOU = "/home/you";
 /**
  * You (2026-11-12, Jamie's go: "You with Stats"): your own player page, the
  * one every player name opens, for your primary verified player, with a
- * Stats tab after its four. Stats is Ladder, unchanged (its scope bar and
+ * Stats tab after its five. Stats is Ladder, unchanged (its scope bar and
  * four tabs), at LADDER; its old `/ladder` addresses redirect there.
  *
  * Alts [engineering, 2026-11-12, the narrow option]: You is the primary
@@ -62,7 +62,7 @@ export function youPlayer(claims) {
 /** Stats as a tab of You, an address. */
 const STATS_TAB = { key: "stats", label: "Stats", href: LADDER };
 
-/** You's tabs over Stats (LadderPage): the player page's four, each back
+/** You's tabs over Stats (LadderPage): the player page's five, each back
  *  on You, then Stats, open. */
 export function YouTabs() {
   const items = [

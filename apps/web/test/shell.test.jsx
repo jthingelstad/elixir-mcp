@@ -62,7 +62,7 @@ describe("the bar on a page", () => {
         text: async () => JSON.stringify(body),
       };
     });
-    window.history.pushState({}, "", "/console/explore");
+    window.history.pushState({}, "", "/home/find");
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -126,7 +126,7 @@ describe("the bar on a page", () => {
       expect(
         [...tabs.querySelectorAll("a, button")].map((a) => a.textContent),
       ).toEqual(["Home", "Find", "Clan", "You", "Bell"]);
-      // On Explore's charts, Find is the lit tab.
+      // On Find, Find is the lit tab.
       expect(tabs.querySelector("[aria-current]").textContent).toBe("Find");
     },
   );
@@ -281,7 +281,6 @@ describe("the bar on a page", () => {
     // Ladder is your stats, reached from You.
     expect(barArea("/home/you/stats/decks")).toBe("you");
     expect(barArea("/clan/you")).toBe("clan");
-    expect(barArea("/console/explore/player/2ABC")).toBe("find");
     expect(barArea("/console/account/profile")).toBeUndefined();
     expect(barArea("/signin")).toBeUndefined();
     expect(barArea("/battle/a1b2c3d4e5f6")).toBeUndefined();

@@ -40,7 +40,7 @@ export default [
         uses: "Recorded member by member by Elixir, the most complete clan in the record.",
         links: [
           ["Visit the clan page", "external", "https://poapkings.com"],
-          ["Open the clan record", "record", "/console/explore/clan/J2RGCRVG"],
+          ["Find it in the clan directory", "record", "/clan/directory"],
         ],
       },
     ],

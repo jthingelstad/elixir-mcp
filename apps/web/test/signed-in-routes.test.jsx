@@ -20,7 +20,7 @@ import {
   cleanup,
   configure,
 } from "@testing-library/react";
-import { App, SECTIONS } from "../src/App.jsx";
+import { App } from "../src/App.jsx";
 import { ADMIN, ADMIN_PAGES } from "../src/lib/settings.js";
 
 // This file renders the whole App, routes and all, from a cold module
@@ -67,16 +67,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const routes = [];
-for (const [section, def] of Object.entries(SECTIONS)) {
-  // An agent's console carries the agent's public id before its page.
-  const base = def.scoped
-    ? `/console/${section}/abcd1234`
-    : `/console/${section}`;
-  if (def.pages.length === 0) routes.push(base);
-  for (const page of def.pages)
-    if (!page.static) routes.push(`${base}/${page.slug}`);
-}
+// The Console folded (2026-11-12): its old addresses redirect, so a sweep
+// of them lands on the pages that replaced them.
+const routes = ["/console/explore", "/home/find", "/home/you"];
 // Admin's pages, under Settings since the Console folded (2026-11-12).
 for (const page of Object.keys(ADMIN_PAGES)) routes.push(`${ADMIN}/${page}`);
 
@@ -94,6 +87,7 @@ routes.push(
   "/settings/admin/accounts/00000000-0000-0000-0000-000000000001",
   "/console/explore/player/2ABC",
   "/home/player/2ABC",
+  "/home/player/2ABC?tab=record",
   "/home/follow/2ABC,9XYZ",
 );
 

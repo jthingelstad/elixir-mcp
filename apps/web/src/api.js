@@ -251,7 +251,6 @@ export const api = {
       "GET",
       `/api/me/battle-activity/${encodeURIComponent(String(player_tag).replace(/^#/, ""))}`,
     ),
-  publicStats: () => request("GET", "/api/public/stats"),
   publicStatus: () => request("GET", "/api/public/status"),
   publicEfficiency: () => request("GET", "/api/public/efficiency"),
   publicCards: () => request("GET", "/api/public/cards"),

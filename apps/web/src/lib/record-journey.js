@@ -1,5 +1,5 @@
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
-import { CONSOLE } from "./console.js";
+import { playerHref } from "./player.js";
 import { SETTINGS } from "./settings.js";
 import { tagPath } from "./tag-url.js";
 
@@ -68,11 +68,11 @@ export function recordJourney(data) {
           : "Your tag is saved. Your profile and roughly your last 30 battles usually arrive within a minute; at busy times it can take a few.";
   const profile = {
     action: "View recorded profile",
-    to: `${CONSOLE}/explore/profile/${tagPath(p.player_tag)}`,
+    to: `${playerHref(p.player_tag)}?tab=record`,
   };
   const battles = {
-    action: "Browse recorded battles",
-    to: `${CONSOLE}/explore/list/battles:${tagPath(p.player_tag)}`,
+    action: "Open the player page",
+    to: playerHref(p.player_tag),
   };
   const destination = notFound
     ? { action: "Fix the tag", to: `${tracking}/${tagPath(p.player_tag)}` }

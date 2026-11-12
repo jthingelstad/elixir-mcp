@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Icon, Link, TagText } from "@elixir-mcp/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api.js";
@@ -36,7 +36,6 @@ export function SearchSheet({ me, onClose }) {
   const box = useRef(null);
   const [q, setQ] = useState("");
   const [settled, setSettled] = useState("");
-  const queryClient = useQueryClient();
   const clans = useMyClans();
   const roster = useHomeRoster(clans.data?.home_clan?.clan_tag ?? null);
   const cards = useCardCatalog({ enabled: q.trim().length > 0 });
@@ -66,11 +65,7 @@ export function SearchSheet({ me, onClose }) {
     enabled: Boolean(settled),
     staleTime: 60 * 1000,
     retry: false,
-    queryFn: () =>
-      readSearch(settled, api.explore, (kind, id, tool, args, body) =>
-        // Opening what was found costs no second read.
-        queryClient.setQueryData(["explore", kind, id], { tool, args, body }),
-      ),
+    queryFn: () => readSearch(settled, api.explore),
   });
 
   const sources = useMemo(

@@ -27,6 +27,31 @@ const profile = {
     lifetime: { battle_count: 1234, wins: 800, losses: 400 },
   },
 };
+const summary = {
+  player_tag: player.player_tag,
+  name: player.name,
+  last_30_days: { battles: 0, wins: 0, losses: 0 },
+  top_deck: null,
+};
+const PLAYER_PAGE = {
+  player: {
+    tag: player.player_tag,
+    name: player.name,
+    clan_tag: null,
+    clan_name: null,
+    trophies: 9001,
+    recorded: true,
+  },
+  you: { own: true, following: false, relationship: "primary", clanmate: null },
+  badges: {},
+  follows: { count: 0, players: [] },
+  followers: { count: 0, players: [] },
+  window_days: 30,
+  timeline: [],
+  timeline_more: 0,
+  moments: [],
+  highlights: [],
+};
 const battle = {
   battle_id: "abc123abc123",
   battle_time: "2026-07-01T13:00:00Z",
@@ -76,7 +101,7 @@ const cases = [
     player: { ...player, profile_available: true },
     clan: null,
     action: "View recorded profile",
-    to: "/console/explore/profile/20JJJ2CCRU",
+    to: "/home/player/20JJJ2CCRU?tab=record",
     state: "Recorded and ready to read",
   },
   {
@@ -87,16 +112,16 @@ const cases = [
       last_battle_at: battle.battle_time,
     },
     clan: null,
-    action: "Browse recorded battles",
-    to: "/console/explore/list/battles:20JJJ2CCRU",
+    action: "Open the player page",
+    to: "/home/player/20JJJ2CCRU",
     state: "Recording stopped",
   },
   {
     name: "war-only battles",
     player: { ...player, battles_30d: 1, battles_7d: 1 },
     clan: null,
-    action: "Browse recorded battles",
-    to: "/console/explore/list/battles:20JJJ2CCRU",
+    action: "Open the player page",
+    to: "/home/player/20JJJ2CCRU",
     state: "Recorded and ready to read",
   },
   {
@@ -114,7 +139,7 @@ const cases = [
     },
     clan: null,
     action: "View recorded profile",
-    to: "/console/explore/profile/20JJJ2CCRU",
+    to: "/home/player/20JJJ2CCRU?tab=record",
     state: "The last read failed",
   },
   {
@@ -149,8 +174,8 @@ const cases = [
       },
     },
     clan: null,
-    action: "Browse recorded battles",
-    to: "/console/explore/list/battles:20JJJ2CCRU",
+    action: "Open the player page",
+    to: "/home/player/20JJJ2CCRU",
     state: "Recorded and ready to read",
   },
   {
@@ -225,64 +250,6 @@ for (const width of [390, 1280]) {
     ).toContainText("First read pending");
     expect(adds).toBe(1);
   });
-  test(`retained battles retry, paginate, Back and reload at ${width}px`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width, height: 900 });
-    let unavailable = true;
-    const calls: Record<string, unknown>[] = [];
-    const token = "opaque/+cursor=";
-    await mockApi(
-      page,
-      signedIn({
-        "POST /api/explore": (route) => {
-          const call = route.request().postDataJSON();
-          expect(call.tool).toBe("battles_query");
-          expect(call.args.live).not.toBe(true);
-          expect(call.args.season_id).toBeUndefined();
-          expect(call.args.mode).toBeUndefined();
-          calls.push(call.args);
-          if (unavailable) return [503, { error: "unavailable" }];
-          const older = Boolean(call.args.cursor);
-          if (older) expect(call.args.cursor).toBe(token);
-          return [
-            200,
-            {
-              body: {
-                battles: [
-                  {
-                    ...battle,
-                    opponents: [
-                      {
-                        player_tag: "#P0Y",
-                        name: older ? "Earlier rival" : "Recorded rival",
-                      },
-                    ],
-                  },
-                ],
-                next_cursor: older ? null : token,
-              },
-            },
-          ];
-        },
-      }),
-    );
-    await page.goto("/console/explore/list/battles:20JJJ2CCRU");
-    await expect(page.getByText("Could not load this record")).toBeVisible();
-    unavailable = false;
-    await page.getByRole("button", { name: "Try again" }).click();
-    await expect(page.locator("main")).toContainText("Recorded rival");
-    await page.getByRole("link", { name: "Older battles ›" }).click();
-    await expect(page).toHaveURL(/cursor=opaque%2F%2Bcursor%3D$/);
-    await expect(page.locator("main")).toContainText("Earlier rival");
-    await page.reload();
-    await expect(page.locator("main")).toContainText("Earlier rival");
-    await page.getByRole("link", { name: "Newest battles ›" }).click();
-    await expect(page.locator("main")).toContainText("Recorded rival");
-    await page.goBack();
-    await expect(page.locator("main")).toContainText("Earlier rival");
-    expect(calls.some((args) => args.cursor === token)).toBe(true);
-  });
   for (const state of cases) {
     test(`first recorded value: ${state.name} at ${width}px`, async ({
       page,
@@ -330,12 +297,15 @@ for (const width of [390, 1280]) {
             },
           ],
           "GET /api/me/clans": [200, { clans: [], home_clan: null }],
+          "GET /api/player": [200, PLAYER_PAGE],
           "POST /api/explore": (route) => {
             const call = route.request().postDataJSON();
             calls.push(call);
             expect(call.args.live).not.toBe(true);
             if (call.tool === "players_profile")
               return [200, { body: profile }];
+            if (call.tool === "players_summary")
+              return [200, { body: summary }];
             if (call.tool === "battles_query")
               return [
                 200,
@@ -370,17 +340,6 @@ for (const width of [390, 1280]) {
         await expect(
           page.getByRole("textbox", { name: "Player tag", exact: true }),
         ).toBeFocused();
-        if (state.clan) {
-          await page.goto("/console/explore/week/2PQRJ8LV~120~1");
-          await expect(
-            page.getByRole("heading", { name: "Season 120, week 2" }),
-          ).toBeVisible();
-          await expect(page.locator("main")).toContainText("3456");
-          expect(calls.at(-1)).toEqual({
-            tool: "war_history",
-            args: { clan_tag: clan.clan_tag, season_id: 120, section_index: 1 },
-          });
-        }
         expect(writes).toEqual([]);
         expect(errors).toEqual([]);
         return;
@@ -429,25 +388,21 @@ for (const width of [390, 1280]) {
         ),
       ).toBeLessThanOrEqual(0);
       await next.click();
-      await expect(page).toHaveURL(new RegExp(`${state.to}$`));
+      await expect(page).toHaveURL(
+        new RegExp(`${state.to.replace(/[?]/g, "\\?")}$`),
+      );
+      // The record folded into the player page (2026-11-12): the profile
+      // is its Record tab, read only once that tab is open.
       if (state.action === "View recorded profile") {
-        await expect(
-          page.getByRole("heading", {
-            name: "Recorded profile · Example player",
-          }),
-        ).toBeVisible();
-        await expect(page.locator("main")).toContainText("9,001");
-        await expect(page.locator("main")).toContainText(
-          "Lifetime battle count",
+        await expect(page.getByRole("tab", { name: /Record/ })).toHaveAttribute(
+          "aria-selected",
+          "true",
         );
-      } else if (state.action === "Browse recorded battles") {
-        await expect(page.locator("main")).toContainText("Recorded rival");
-        await expect(page.locator("main")).toContainText("River Race");
-        expect(calls.at(-1)?.args).toEqual({
-          player_tag: player.player_tag,
-          verbosity: "compact",
-          include_total: true,
-        });
+        await expect(page.locator("main")).toContainText("9,001");
+        await expect(page.locator("main")).toContainText("Battles, all time");
+      } else if (state.action === "Open the player page") {
+        await expect(page.locator("main")).toContainText("Example player");
+        expect(calls.some((c) => c.tool === "players_profile")).toBe(false);
       }
       await page.goBack();
       await expect(recording).toContainText(state.state);
@@ -540,11 +495,12 @@ for (const width of [390, 1280]) {
           authed = false;
           return [200, { ok: true }];
         },
+        "GET /api/player": [200, PLAYER_PAGE],
         "POST /api/explore": (route) => {
-          expect(route.request().postDataJSON()).toEqual({
-            tool: "players_profile",
-            args: { player_tag: player.player_tag.replace(/^#/, "") },
-          });
+          const call = route.request().postDataJSON();
+          expect(call.args).toEqual({ player_tag: player.player_tag });
+          if (call.tool === "players_summary") return [200, { body: summary }];
+          expect(call.tool).toBe("players_profile");
           return [200, { body: profile }];
         },
       }),
@@ -591,9 +547,11 @@ for (const width of [390, 1280]) {
     await recording
       .getByRole("link", { name: "View recorded profile ›" })
       .click();
-    await expect(
-      page.getByRole("heading", { name: "Recorded profile · Example player" }),
-    ).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Record/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.locator("main")).toContainText("9,001");
     await page.goBack();
     await page.reload();
     await expect(

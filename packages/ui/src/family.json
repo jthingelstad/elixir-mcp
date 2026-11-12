@@ -98,7 +98,7 @@
   "search": {
     "label": "Search",
     "prompt": "Search players, clans, cards, help",
-    "path": "/console/explore",
+    "path": "/home/find",
     "staticPath": "/home?search",
     "icon": "search"
   },

@@ -18,8 +18,6 @@ import {
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useMe, useNav } from "../App.jsx";
-import { CONSOLE } from "../lib/console.js";
-import { tagPath } from "../lib/tag-url.js";
 import { playerHref } from "../lib/player.js";
 import { ladderPlayers } from "../ladder/ladder.js";
 import { BattleCheers } from "./BattleCheers.jsx";
@@ -164,9 +162,7 @@ export function BattlePage() {
   const { me } = useMe();
   const zone = me?.authenticated ? (me.timezone ?? null) : browserZone();
   const go = (to) =>
-    to.startsWith("/battle/") ||
-    to.startsWith(`${CONSOLE}/`) ||
-    to.startsWith("/home/")
+    to.startsWith("/battle/") || to.startsWith("/home/")
       ? navigate(to)
       : window.location.assign(to);
   return (
@@ -416,19 +412,13 @@ function PlayerName({ p, signedIn }) {
   );
 }
 
-function ClanName({ p, signedIn }) {
+/** The clan by name, unlinked: its record folded with the Console
+ *  (2026-11-12), and the player's name opens their page. */
+function ClanName({ p }) {
   if (!p.clan_tag) return <span className="battle__clan">No clan</span>;
-  const label = p.clan_name ?? p.clan_tag;
-  return signedIn ? (
-    <Link
-      className="battle__clan"
-      to={`${CONSOLE}/explore/clan/${tagPath(p.clan_tag)}`}
-    >
-      <TagText>{label}</TagText>
-    </Link>
-  ) : (
+  return (
     <span className="battle__clan">
-      <TagText>{label}</TagText>
+      <TagText>{p.clan_name ?? p.clan_tag}</TagText>
     </span>
   );
 }
@@ -473,7 +463,7 @@ function SideBlock({ side, align, mine, signedIn, mode }) {
               <span className="chip chip--ok">you</span>
             )}
           </span>
-          <ClanName p={p} signedIn={signedIn} />
+          <ClanName p={p} />
           <TrophyPills p={p} outcome={side.outcome} mode={mode} />
           {mode === "ladder" &&
             side.outcome === "loss" &&

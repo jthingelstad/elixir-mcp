@@ -27,31 +27,6 @@ export const DOC_LINKS = {
       ["Roles and quotas", "/docs/roles"],
     ],
   ],
-  explore: [
-    "Reading the record",
-    [
-      ["Methodology", "/docs/methodology"],
-      ["Tool reference", "/docs/tools"],
-      ["Responses", "/docs/responses"],
-    ],
-  ],
-  // A record page names the tool that produced it; its strip points at
-  // how to read what came back.
-  "explore:player": [
-    "Player records",
-    [
-      ["players_summary", "/docs/tools/players#players_summary"],
-      ["Methodology", "/docs/methodology"],
-    ],
-  ],
-  "explore:record": [
-    "Reading a record",
-    [
-      ["Responses", "/docs/responses"],
-      ["Coverage", "/docs/responses#coverage-and-result-limits"],
-      ["Methodology", "/docs/methodology"],
-    ],
-  ],
   tracking: [
     "What we record for you",
     [

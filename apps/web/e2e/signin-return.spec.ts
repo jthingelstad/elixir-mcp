@@ -8,8 +8,10 @@ const email = `/console/account/activity/e/${sendId}?report=1`;
 const paths = [
   {
     name: "player",
+    // An old Explore link from mail lands on the player page, and sign-in
+    // returns there (the Console folded, 2026-11-12).
     from: "/console/explore/player/20JJJ2CCRU",
-    to: "/console/explore/player/20JJJ2CCRU",
+    to: "/home/player/20JJJ2CCRU",
   },
   {
     name: "clan",

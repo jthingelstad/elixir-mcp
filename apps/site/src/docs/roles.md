@@ -39,7 +39,7 @@ their agents, a member's away only to the clan's leaders.
 | Agents | 3 | 5 | 10 | 25 | unlimited | unlimited |
 
 Tool calls are what your agents and connected apps spend at the MCP door.
-Your own reads on Elixir's website, record pages and Stats, never count
+Your own reads on Elixir's website, Find, player pages and Stats, never count
 against them; they share only the hourly limit ([Limits](/docs/limits)).
 
 Member, Leader and Family are **earned in the game**, and checked every
@@ -185,7 +185,7 @@ ask through feedback.
 
 - Quotas reset at midnight UTC. Recorded-data reads are only bounded by
   the daily tool-call budget, never by role, and your own reads on the
-  Record pages and Stats are not bounded by it at all.
+  Find, player pages and Stats are not bounded by it at all.
 - Feedback has no limit of its own. Sent from the website it costs
   nothing; sent by your agent it is one tool call like any other.
   Telling us what's wrong should always be close to free.

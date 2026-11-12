@@ -78,12 +78,11 @@ with a deck Elixir names proves the player is yours, and Clan needs
 it before you can act in your game role. Clan war history and AI clients
 follow as optional lines.
 
-**View recorded profile** opens the saved profile and its dated trophies and
-lifetime counters. **Browse recorded battles** opens recorded battles newest
-first, including retained history older than 30 days; **Older battles** reads
-the next page. A profile alone does not establish recorded battle history.
-Recorded clan history links to a specific saved war week, independently of
-private Clan actions. AI setup is optional and follows these browser reads.
+**View recorded profile** opens the player page's **Record** tab: the saved
+profile, its dated trophies and lifetime counters, and the last 30 days as
+recorded. **Open the player page** opens the player's timeline. A profile
+alone does not establish recorded battle history. AI setup is optional and
+follows these browser reads.
 
 Read attempts and saved facts are separate: a recent failed fetch does not
 make a tag invalid or remove retained information. An incomplete measured

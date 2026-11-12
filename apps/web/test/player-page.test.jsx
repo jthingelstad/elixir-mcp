@@ -157,6 +157,43 @@ beforeEach(() => {
         limit: 50,
       });
     if (p.startsWith("/api/me/follow-plan")) return reply(plan);
+    if (p === "/api/explore") {
+      const { tool, args } = JSON.parse(init.body);
+      posted.push([p, { tool, args }]);
+      if (tool === "players_summary")
+        return reply({
+          body: {
+            player_tag: "#QQ8822",
+            name: "Copper Fern",
+            nickname: "Hidden Moss",
+            last_30_days: {
+              battles: 42,
+              wins: 25,
+              losses: 16,
+              draws: 1,
+              net_trophies: 118,
+              capture: { captured_battles: 42, expected_battles: 44 },
+            },
+            top_deck: { battles: 20, archetype: { label: "Hog Rider cycle" } },
+          },
+        });
+      if (tool === "players_profile")
+        return reply({
+          body: {
+            player_tag: "#QQ8822",
+            attributes: { best_trophies: 7600 },
+            snapshot: {
+              date: "2026-11-09",
+              trophies: 7400,
+              lifetime: {
+                battle_count: 3100,
+                wins: 1700,
+                three_crown_wins: 640,
+              },
+            },
+          },
+        });
+    }
     if (p === "/api/me/follow-all" || p === "/api/claims") {
       posted.push([p, JSON.parse(init.body)]);
       return reply({ ok: true, followed: [] });
@@ -203,9 +240,9 @@ test(
     expect(screen.getByText("Verified in Discord")).toBeTruthy();
     expect(screen.getByText(/Following 1 · Followers 3/)).toBeTruthy();
     expect(screen.getByText("Copper Fern won five in a row")).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "Full record" }).getAttribute("href"),
-    ).toBe("/console/explore/player/QQ8822");
+    // Explore folded into the page (2026-11-12): no link out to it.
+    expect(screen.queryByRole("link", { name: "Full record" })).toBeNull();
+    expect(document.querySelector('a[href^="/console"]')).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: /Follows/ }));
     const follower = await screen.findByRole("link", {
       name: /Birch Lantern/,
@@ -410,3 +447,40 @@ test(
     expect(screen.queryByRole("button", { name: "Cheer" })).toBeNull();
   },
 );
+
+test(
+  "the Record tab: the last 30 days and the profile, read only when opened, no nickname",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/home/player/QQ8822");
+    render(<App />);
+    await screen.findByText("Copper Fern won five in a row");
+    expect(posted.some(([p]) => p === "/api/explore")).toBe(false);
+    fireEvent.click(screen.getByRole("tab", { name: /Record/ }));
+    await screen.findByText("Hog Rider cycle");
+    expect(screen.getByText("25 won, 16 lost, 1 drawn")).toBeTruthy();
+    expect(screen.getByText("+118")).toBeTruthy();
+    expect(screen.getByText("7,600")).toBeTruthy();
+    expect(screen.getByText("3,100")).toBeTruthy();
+    expect(screen.getByText(/42 of about 44 battles/)).toBeTruthy();
+    expect(
+      posted
+        .filter(([p]) => p === "/api/explore")
+        .map(([, b]) => b.tool)
+        .sort(),
+    ).toEqual(["players_profile", "players_summary"]);
+    expect(posted.find(([p]) => p === "/api/explore")[1].args.player_tag).toBe(
+      "#QQ8822",
+    );
+    expect(document.body.textContent).not.toContain("Hidden Moss");
+  },
+);
+
+test("?tab=record opens the Record tab", { timeout: 20000 }, async () => {
+  window.history.pushState({}, "", "/home/player/QQ8822?tab=record");
+  render(<App />);
+  await screen.findByText("Hog Rider cycle");
+  expect(
+    screen.getByRole("tab", { name: /Record/ }).getAttribute("aria-selected"),
+  ).toBe("true");
+});
