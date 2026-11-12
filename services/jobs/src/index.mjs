@@ -20,6 +20,10 @@ import { newsletterSync } from "./newsletter-sync.mjs";
 import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
 import { makeOutbox } from "@elixir-mcp/outbox";
 import { wakeClosingSittings } from "@elixir-mcp/syndication";
+import {
+  homeWeeksToWake,
+  homeWeekWake,
+} from "@elixir-mcp/tools/activity/home-feed";
 import { runFeedbackAnswers } from "./email/feedback-answers.mjs";
 import { runCollectorUpgrades } from "./email/collector-upgrades.mjs";
 import { runEmail } from "./email/index.mjs";
@@ -149,6 +153,23 @@ async function closingSittings(databaseUrl, { wakeOutbox = outbox } = {}) {
   await db.connect();
   try {
     return { woken: await wakeClosingSittings(db, { outbox: wakeOutbox }) };
+  } finally {
+    await db.end();
+  }
+}
+
+/** Wake the timeline-sync lane for each account that read Home lately and
+ *  whose stored week is past fresh (home_feed, 0245; #649). */
+export async function homeFeeds(databaseUrl, { wakeOutbox = outbox } = {}) {
+  const wake = homeWeekWake(wakeOutbox);
+  if (!wake) return { skipped: "no_outbox" };
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const now = Date.now();
+    const accounts = await homeWeeksToWake(db, { now });
+    for (const accountId of accounts) await wake(accountId, now);
+    return { woken: accounts.length };
   } finally {
     await db.end();
   }
@@ -363,6 +384,13 @@ export async function handler(event, context) {
   if (event?.discord_sittings) {
     const result = await closingSittings(process.env.DATABASE_URL);
     console.log(JSON.stringify({ discord_sittings: result }));
+    return result;
+  }
+  // Home's stored weeks: its own five-minute rule wakes the builds of the
+  // accounts that read Home lately (0245, #649).
+  if (event?.home_feeds) {
+    const result = await homeFeeds(process.env.DATABASE_URL);
+    console.log(JSON.stringify({ home_feeds: result }));
     return result;
   }
   if (event?.collector_upgrades) {

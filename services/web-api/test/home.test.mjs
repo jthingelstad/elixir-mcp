@@ -1011,6 +1011,53 @@ test("Home's feed comes thirty a page: More reads on in the same week, the first
   }
 });
 
+test("Home's feed serves its stored week until it is past serving, then builds it again (#649)", async () => {
+  const id = await person("home-feed-stored");
+  const { db } = scratch;
+  const tag = "#8QLQ2Y2";
+  const now = Date.now();
+  await db.query(
+    `insert into player(player_tag,name) values ($1,'Stored') on conflict do nothing`,
+    [tag],
+  );
+  await db.query(
+    `insert into claim(account_id,player_tag,relationship,is_primary)
+     values ($1,$2,'friend',false)`,
+    [id, tag],
+  );
+  // Two records with different scores (the same facts twice are one).
+  const record = (ref, ms, score) =>
+    db.query(
+      `insert into attested_fact
+         (subject_kind,player_tag,fact_type,detail,visibility,source,source_ref,occurred_at,recorded_at)
+       values ('player',$1,'personal_record',$4,'player',
+               'drop.poapkings.com',$2,$3,$3)`,
+      [tag, ref, new Date(ms).toISOString(), { game: "drop", score }],
+    );
+  await record("home-feed-stored-1", now - 10 * 60_000, 10);
+  const feed = async () => {
+    const r = await call(handler, id, "GET", "/api/me/home/feed");
+    assert.equal(r.statusCode, 200, r.body);
+    return data(r);
+  };
+  const first = await feed();
+  assert.equal(first.total, 1);
+  // Learned after the build: the stored week does not have it yet.
+  await record("home-feed-stored-2", Date.now(), 20);
+  const second = await feed();
+  assert.deepEqual(second.window, first.window, "the same stored week");
+  assert.equal(second.total, 1);
+  // Past serving, the read builds the week again and has it.
+  await db.query(
+    `update home_feed set built_at = built_at - interval '4 hours'
+      where account_id = $1`,
+    [id],
+  );
+  const third = await feed();
+  assert.equal(third.total, 2);
+  assert.notDeepEqual(third.window, first.window);
+});
+
 test("your week counts the cheers other people gave your player's items this week, in the opening read only (G4)", async () => {
   const id = await person("home-week-cheers");
   const a = await person("home-week-cheers-a");

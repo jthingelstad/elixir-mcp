@@ -29,6 +29,13 @@
  * clan an invocation: the model's rounds may take two minutes, and no
  * other wake waits behind them.
  *
+ * Home's stored week (home_feed, 0245; #649) is rebuilt by
+ * `{ v: 1, home_feed: <account> }`, which a Home read writes when its
+ * row is past fresh and the jobs' five-minute run writes for the
+ * accounts that read Home lately. A build that fails is logged and
+ * dropped, never retried: the next wake builds it, and a read whose row
+ * is too old builds it itself.
+ *
  * The relay's receipts for the quality ledger (0222: what Discord
  * answered for each post) arrive on discord-receipt/ and are read into
  * the ledger here, the one place in the VPC its notifications reach.
@@ -54,6 +61,7 @@ const LANES = [
  *   syncClan?: (db: any, clanTag: string, opts: { remainingMs: () => number, editor: boolean }) => Promise<object>,
  *   shareClanDiscord?: (db: any, clanTag: string) => Promise<object>,
  *   receipts?: ((db: any, msg: object) => Promise<object | null>) | null,
+ *   homeFeed?: ((db: any, accountId: string) => Promise<object>) | null,
  *   readObject: (obj: {bucket: string, key: string}) => Promise<string | null>,
  *   deleteObject: (obj: {bucket: string, key: string}) => Promise<unknown>,
  * }} deps
@@ -64,6 +72,7 @@ export function makeHandler({
   syncClan = null,
   shareClanDiscord = null,
   receipts = null,
+  homeFeed = null,
   readObject,
   deleteObject,
 }) {
@@ -95,6 +104,19 @@ export function makeHandler({
         // A receipt the ledger cannot read is dropped, never retried.
         if (out === null) console.error("discord_receipt_bad");
         else console.log("discord_receipt", JSON.stringify(out));
+      } else if (msg?.v === 1 && typeof msg.home_feed === "string") {
+        if (!UUID.test(msg.home_feed) || !homeFeed) return "bad_message";
+        try {
+          const out = await homeFeed(await db(), msg.home_feed);
+          console.log("home_feed_built", msg.home_feed, JSON.stringify(out));
+        } catch (err) {
+          console.error(
+            "home_feed_failed",
+            msg.home_feed,
+            err?.code ?? err?.name ?? "error",
+            err?.message,
+          );
+        }
       } else if (msg?.v === 1 && typeof msg.clan_discord === "string") {
         if (!isCanonicalTag(msg.clan_discord) || !shareClanDiscord)
           return "bad_message";

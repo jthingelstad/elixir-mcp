@@ -219,6 +219,8 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     ],
     // When they last opened the bell (0244).
     ["bell_seen", `bell_seen where account_id = any($1::uuid[])`],
+    // Their stored Home week (0245, #649).
+    ["home_feed", `home_feed where account_id = any($1::uuid[])`],
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
     [
       "timeline_discord_told",

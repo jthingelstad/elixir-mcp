@@ -230,6 +230,10 @@ export function makeHandler({
   /** The live lane for first reads (tools live.mjs makeLive); null = the
    *  ledger's, charged to nobody, as Tracking's add uses. */
   live = null,
+  /** (accountId, now) => a wake for the account's stored Home week
+   *  (tools activity/home-feed.mjs homeWeekWake); null = a stale week is
+   *  served until it is past serving, then the read builds it. */
+  homeWake = null,
 }) {
   database ??= makeDatabase({
     connectionString: databaseUrl,
@@ -435,7 +439,13 @@ export function makeHandler({
     ...publicRoutes({ deadLetters }),
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),
     ...exploreRoutes({ resolveAccount, exploreRegistry }),
-    ...homeRoutes({ resolveAccount, exploreRegistry, clan }),
+    ...homeRoutes({
+      resolveAccount,
+      exploreRegistry,
+      clan,
+      // A stored week past fresh asks the timeline-sync lane for a new one.
+      wake: homeWake,
+    }),
     ...playerRoutes({ resolveAccount, live: liveRead }),
     ...feedbackRoutes({ resolveAccount, notifyOwner }),
     ...adminRoutes({

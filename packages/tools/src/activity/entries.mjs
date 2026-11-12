@@ -490,6 +490,23 @@ const SPARK = Symbol("session spark");
 /** The battles of a battle_session or session_standout item, in order, or
  *  null for any other item. */
 export const sessionSpark = (item) => item?.[SPARK] ?? null;
+/** A finished item as Home's stored week keeps it (home_feed, 0245): its
+ *  two server-only fields as plain keys, so they survive JSON. Never
+ *  served: `restoredItem` puts them back under their symbols. */
+export function storedItem(it) {
+  const out = { ...it };
+  if (it[SPARK] !== undefined) out._spark = it[SPARK];
+  if (it[EVIDENCE] !== undefined) out._evidence_source = it[EVIDENCE];
+  return out;
+}
+/** A stored item as the builder finished it: its server-only fields back
+ *  under their symbols, and nothing else changed. */
+export function restoredItem(stored) {
+  const { _spark, _evidence_source, ...it } = stored;
+  if (_spark !== undefined) it[SPARK] = _spark;
+  if (_evidence_source !== undefined) it[EVIDENCE] = _evidence_source;
+  return it;
+}
 const evidenceVersion = (...parts) =>
   `ev_${createHash("sha256").update(JSON.stringify(parts)).digest("hex").slice(0, 24)}`;
 const CROSSINGS = new Set([
@@ -3082,16 +3099,40 @@ export async function playerHighlights(
   return items
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
     .slice(0, limit)
-    .map((it) => {
-      const { [STORY]: story, ...rest } = it;
-      const out = {
-        id: storyId(...story.key),
-        revision: story.revision ?? 1,
-        ...rest,
-      };
-      finishItem(out, { fromMs: -1, basis: "occurred", timezone });
-      return out;
-    });
+    .map((it) => finishedHighlight(it, -1, "occurred", timezone));
+}
+
+/** A highlight as the timeline serves it: its story as id and revision,
+ *  then the fields every served item carries. */
+function finishedHighlight(it, fromMs, basis, timezone) {
+  const { [STORY]: story, ...rest } = it;
+  const out = {
+    id: storyId(...story.key),
+    revision: story.revision ?? 1,
+    ...rest,
+  };
+  out.observed_at ??= out.at;
+  finishItem(out, { fromMs, basis, timezone });
+  return out;
+}
+
+/**
+ * The highlights a window of the subjects' timeline holds, finished as
+ * buildTimeline finishes them (observed basis), for Home's stored week
+ * (0245): the read serves these live in place of the stored ones, so a
+ * highlight posted, edited or removed shows at once.
+ */
+export async function windowHighlights(
+  db,
+  subjects,
+  { accountId, fromMs, toMs, timezone = "UTC" },
+) {
+  const items = await highlightItems(db, subjects, {
+    accountId,
+    fromMs,
+    toMs,
+  });
+  return items.map((it) => finishedHighlight(it, fromMs, "observed", timezone));
 }
 
 /**

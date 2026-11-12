@@ -10,6 +10,7 @@ import { currentAndPrevious } from "@elixir-mcp/auth";
 import { makeHandler } from "./handler.mjs";
 import { makeCaptureStore } from "@elixir-mcp/tools/capture";
 import { makeOutbox, countStuck } from "@elixir-mcp/outbox";
+import { homeWeekWake } from "@elixir-mcp/tools/activity/home-feed";
 import { makeCardArt, makeSiteShell, shareAssetsIn } from "./routes/battle.mjs";
 import { makeSiteMiss } from "./routes/site-miss.mjs";
 import { makeShareImage } from "./share-image.mjs";
@@ -102,6 +103,8 @@ const handler = makeHandler({
     }),
   deadLetters,
   notifyOwner,
+  // Home's stored week, rebuilt by the timeline-sync lane (0245, #649).
+  homeWake: homeWeekWake(outbox),
   // The timeline's Discord cross-post: the webhook sealed as it is saved
   // (under the sealing secret Clan's webhooks use, for this use only),
   // the hello line a save sends, and the relay's last word on it.
