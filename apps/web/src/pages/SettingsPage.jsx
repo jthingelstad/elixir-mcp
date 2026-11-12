@@ -23,6 +23,7 @@ import { Feedback, FeedbackItem } from "../views/account/Feedback.jsx";
 import { AgentEvents, Requests, Sent } from "../views/account/Logs.jsx";
 import { Crumb } from "../views/account/parts.jsx";
 import { Profile } from "../views/account/Profile.jsx";
+import { Seen } from "../views/account/Seen.jsx";
 import { SignIns } from "../views/account/SignIns.jsx";
 import { Timeline } from "../views/account/Timeline.jsx";
 import { DiscordPage } from "../views/account/TimelineDiscord.jsx";
@@ -58,6 +59,8 @@ export function SettingsPage() {
   switch (here.page) {
     case "profile":
       return <Profile me={me} refresh={refresh} />;
+    case "seen":
+      return <Seen me={me} />;
     case "sign-ins":
       return <SignIns />;
     case "players":

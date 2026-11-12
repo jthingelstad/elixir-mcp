@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { BATTLE } from "./battle-fixture.ts";
 import { ME, mockApi, signedIn } from "./fixtures.ts";
 
 /**
@@ -36,6 +37,20 @@ const mocks = signedIn({
     200,
     { ...ME, kind: "agent", name: AGENT.name, email: null, claims: [] },
   ],
+  // What members see: its lens reads the main player's latest battle, then
+  // draws it from the public battle answer. Other tools stay unmocked.
+  "POST /api/explore": (route) =>
+    route.request().postDataJSON()?.tool === "battles_query"
+      ? [
+          200,
+          {
+            tool: "battles_query",
+            is_error: false,
+            body: { battles: [{ url: BATTLE.battle.url }] },
+          },
+        ]
+      : [404, { error: "unmocked" }],
+  [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
 });
 
 async function fits(page: Page, name: string) {
@@ -64,6 +79,7 @@ test.describe("@narrow Settings at phone width", () => {
 
   for (const [path, heading] of [
     ["/settings/profile", "Profile"],
+    ["/settings/what-members-see", "What members see"],
     ["/settings/players", "Players"],
     ["/settings/players?view=clans", "Players"],
     ["/settings/players/verify", "Verify"],
@@ -90,6 +106,21 @@ test.describe("@narrow Settings at phone width", () => {
       await fits(page, path);
     });
   }
+
+  test("What members see draws its lens at phone width, both ways", async ({
+    page,
+  }) => {
+    await page.goto("/settings/what-members-see");
+    const lens = page.getByRole("region", { name: "See it as they do" });
+    await expect(lens.getByRole("button", { name: "A member" })).toBeVisible();
+    await expect(lens.locator(".battle__grid").first()).toBeVisible();
+    await fits(page, "lens as a member");
+    await lens.getByRole("button", { name: "Someone with the link" }).click();
+    await expect(
+      lens.getByRole("link", { name: "Create your account" }),
+    ).toBeVisible();
+    await fits(page, "lens as someone with the link");
+  });
 
   test("search opens in place, and a miss offers the tag; nothing is written by typing", async ({
     page,

@@ -7,6 +7,14 @@ export const SETTINGS_HELP = {
       "Profile is who you are here: your email, your main player, your time zone and your limits. Every time Elixir prints is on your zone.",
     ],
   },
+  seen: {
+    title: "What members see",
+    docs: "profile:seen",
+    lines: [
+      "Who sees what of you: other members, someone you send a link to, and only you. Each line is what Elixir does today.",
+      "The lens draws your main player's latest battle with the battle page itself, as a member sees it and as someone with the link sees it.",
+    ],
+  },
   "sign-ins": {
     title: "Sign-ins & devices",
     docs: "profile:devices",

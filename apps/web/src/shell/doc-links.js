@@ -198,6 +198,14 @@ export const DOC_LINKS = {
       ["Privacy", "/docs/privacy"],
     ],
   ],
+  "profile:seen": [
+    "What members see",
+    [
+      ["What members see", "/docs/your-account#what-members-see"],
+      ["Identity map", "/docs/agents#knowing-which-human-is-asking"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
   "profile:email": [
     "The emails Elixir sends",
     [

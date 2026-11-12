@@ -30,6 +30,12 @@ export const SETTINGS_RAIL = [
     to: `${SETTINGS}/profile`,
   },
   {
+    key: "seen",
+    label: "What members see",
+    icon: "eye",
+    to: `${SETTINGS}/what-members-see`,
+  },
+  {
     key: "players",
     label: "Players & tracking",
     icon: "radar",
@@ -87,6 +93,8 @@ export function settingsHere(path) {
     case "profile":
     case "sign-ins":
       return second ? null : at(first, first);
+    case "what-members-see":
+      return second ? null : at("seen", "seen");
     case "players":
       if (!second) return at("players", "players");
       if (second === "verify") return third ? null : at("players", "verify");
@@ -168,6 +176,7 @@ export function settingsLegal(path) {
 
 const TITLES = {
   profile: "Profile",
+  seen: "What members see",
   players: "Players & tracking",
   player: "Player",
   verify: "Verify",

@@ -135,9 +135,10 @@ test("no two items at the same level share a label", () => {
   }
 });
 
-test("Settings' rail: seven places, and Collectors for who runs one", () => {
+test("Settings' rail: eight places, and Collectors for who runs one", () => {
   expect(SETTINGS_RAIL.map((r) => r.label)).toEqual([
     "Profile",
+    "What members see",
     "Players & tracking",
     "Emails",
     "Connections & agents",
