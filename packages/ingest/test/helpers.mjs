@@ -82,15 +82,15 @@ async function buildTemplate(admin, { name, buildKey }) {
       databaseUrl: ADMIN_URL.replace(/\/postgres$/, `/${building}`),
       migrationsDir: MIGRATIONS_DIR,
     });
-    await admin.query(`alter database ${building} rename to ${name}`);
-    // A template takes no connections, so nothing (autovacuum included)
-    // is ever in it when a run clones it.
+    // Configured and stamped before the rename, so it enters the
+    // template prefix whole: another checkout's pruning never sees it
+    // unstamped. A template takes no connections, so nothing (autovacuum
+    // included) is ever in it when a run clones it.
     await admin.query(
-      `alter database ${name} with is_template true allow_connections false`,
+      `alter database ${building} with is_template true allow_connections false`,
     );
-    // Stamped at once, or another checkout's pruning would read it as
-    // unused before its first clone.
-    await admin.query(`comment on database ${name} is '${Date.now()}'`);
+    await admin.query(`comment on database ${building} is '${Date.now()}'`);
+    await admin.query(`alter database ${building} rename to ${name}`);
   } finally {
     await admin.query("select pg_advisory_unlock($1)", [buildKey]);
   }
