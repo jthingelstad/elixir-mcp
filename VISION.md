@@ -74,7 +74,8 @@ can read a player's timeline without signing in".)
 | Nicknames you give players | Only you |
 | Your Discord username and profile | Nobody; it shows only as a "verified in Discord" badge, and Elixir never helps anyone find a person in Discord |
 
-Every player is an RSS feed, read through a private token link. A "Follow me in
+Your timeline, everyone you follow together, is an RSS feed, read
+through a private token link. There is no feed per player. A "Follow me in
 Elixir" link carries one or more player tags, for "follow me and my alts"
 or "follow this group", from any page on the web.
 
