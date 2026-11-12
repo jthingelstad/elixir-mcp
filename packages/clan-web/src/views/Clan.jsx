@@ -9,19 +9,23 @@ import {
   noun,
   useClock,
 } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRoster } from "../lib/queries.js";
 import { ELIXIR_LINKS } from "../lib/links.js";
 import {
   InviteLeaders,
   SpreadWord,
+  SpreadWordFoot,
   spreadState,
 } from "../components/SpreadWord.jsx";
+import { MembersFind } from "./Members.jsx";
+import { Recruit } from "./Recruit.jsx";
+import { Scout } from "./Scout.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
 import { MemberLink } from "../components/MemberLink.jsx";
 import { ordinal, seasonWeek } from "../lib/words.js";
-import { leads } from "../lib/tabs.js";
+import { eldersUp, leads } from "../lib/tabs.js";
 import { useHost } from "../lib/host.js";
 
 const ROLE_ORDER = ["leader", "coLeader", "elder", "member"];
@@ -48,6 +52,7 @@ export function RosterTable({
   navigate,
 }) {
   const { when } = useClock();
+  const { FollowMember } = useHost();
   const shown = limit === null ? members : members.slice(0, limit);
   const hidden = members.slice(shown.length);
   const groups = [...ROLE_ORDER, ...new Set(members.map((m) => m.role))]
@@ -158,6 +163,23 @@ export function RosterTable({
                 <span className="nil">—</span>
               ),
           },
+          // Follow, row by row (G6, 2026-11-12): the app's own Follow,
+          // priced by the clan's one follow plan (lib/host.js).
+          ...(FollowMember && clanTag
+            ? [
+                {
+                  head: <span className="sr-only">Follow</span>,
+                  className: "roster-table__follow",
+                  cell: (m) => (
+                    <FollowMember
+                      clanTag={clanTag}
+                      playerTag={m.player_tag}
+                      name={m.name ?? null}
+                    />
+                  ),
+                },
+              ]
+            : []),
         ]}
         foot={
           hidden.length ? (
@@ -326,7 +348,7 @@ function Comings({ roster, clan, history, navigate }) {
  * The roster's head (the canvas's Members panel, 2026-11-12): how many
  * members, and for every member who reads it, not only leaders, Follow
  * everyone (lent by the app, lib/host.js) and the way to the clan map,
- * where the Map chip is offered (lib/tabs.js membersPages).
+ * for a verified member while the clan keeps the map on.
  */
 function MembersHead({ me, clan, roster }) {
   const { FollowClan } = useHost();
@@ -356,13 +378,31 @@ function MembersHead({ me, clan, roster }) {
   );
 }
 
-export function Clan({ me, clan, navigate, search = "", fromRun = false }) {
+export function Clan({
+  me,
+  clan,
+  navigate,
+  search = "",
+  show = null,
+  fromRun = false,
+}) {
   const tag = clan.clan_tag;
   const gated = useRoster(tag);
   const state = { ...gated.state, roster: gated.state.data };
   const load = gated.load;
   const [all, setAll] = useState(false);
+  const [recruit, setRecruit] = useState(show === "recruit");
   const find = search;
+  const loaded = Boolean(state.roster);
+  // Recruit's and Scout's old addresses open their place at the foot
+  // (`?show=`), once the roster has drawn the page above it.
+  useEffect(() => {
+    if (show === "recruit") setRecruit(true);
+    if (!show || !loaded) return;
+    document
+      .getElementById(show === "recruit" ? "spread-word" : "scout")
+      ?.scrollIntoView?.({ block: "start" });
+  }, [show, loaded]);
 
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -388,6 +428,7 @@ export function Clan({ me, clan, navigate, search = "", fromRun = false }) {
   return (
     <ZoneProvider zone={roster?.meta?.timezone_applied ?? null}>
       <ClanHeader />
+      <MembersFind navigate={navigate} find={find} clan={clan} />
       {fromRun ? (
         <div className="mb-[22px]">
           <div className="callout callout--info mb-3" role="status">
@@ -483,13 +524,34 @@ export function Clan({ me, clan, navigate, search = "", fromRun = false }) {
               history={history}
               navigate={navigate}
             />
-            {spread === "active" ? (
-              <SpreadWord
+            {!fromRun ? (
+              <SpreadWordFoot
                 me={me}
                 clan={clan}
                 roster={roster}
-                navigate={navigate}
+                recruit={
+                  recruit ? <Recruit clan={clan} navigate={navigate} /> : null
+                }
+                onRecruit={setRecruit}
               />
+            ) : null}
+            {/* Elders and up; anyone else only when the address asks, and
+                then Scout answers with its role line. */}
+            {eldersUp(clan) || show === "scout" ? (
+              <section
+                id="scout"
+                className="clan-foot"
+                aria-labelledby="scout-head"
+              >
+                <h2 id="scout-head" className="clan-foot__head">
+                  Scout
+                </h2>
+                <p className="page-head__note m-0">
+                  For elders, co-leaders and the leader: a player&rsquo;s
+                  numbers before they join.
+                </p>
+                <Scout clan={clan} />
+              </section>
             ) : null}
           </div>
         </>

@@ -9,6 +9,8 @@ import { createContext, useContext } from "react";
  * - `FollowClan({ clanTag, clanName })`: Members' "Follow everyone", the
  *   same confirmed follow-all, priced by the same plan, as the player
  *   page's (apps/web src/home/FollowClan.jsx).
+ * - `FollowMember({ clanTag, playerTag, name })`: a roster row's Follow
+ *   (G6), priced by that same clan plan, one read for the whole roster.
  *
  * Absent (a test, or a host that lends nothing), the view leaves it out.
  */

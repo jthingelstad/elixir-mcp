@@ -262,9 +262,8 @@ test("an unverified Leader: the notice first, then the clan as a member with the
   await expect(clanTab(page, "Run")).toHaveCount(0);
   await clanTab(page, "Members").click();
   await expect(page.getByText("Ben")).toBeVisible();
-  const rows = page.getByRole("navigation", { name: "Members" });
-  await expect(rows.getByRole("link", { name: "Review" })).toHaveCount(0);
-  await expect(rows.getByRole("link", { name: "Map" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Clan map" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Scout" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Verify Ada" })).toBeVisible();
   await rendered(page);
   await accessible(page, "unverified clan page");
@@ -432,17 +431,20 @@ test.describe("signed in", () => {
     await expect(roster).not.toContainText("Ben");
     await find.fill("");
     await find.press("Enter");
-    // The tabs carry the clan: Run and Review for a leader.
-    const rows = page.getByRole("navigation", { name: "Members" });
-    await expect(rows.getByRole("link", { name: "Review" })).toBeVisible();
+    // The tabs carry the clan: Run for a leader, and Scout at the roster's
+    // foot (elders and up, G6).
     await expect(clanTab(page, "Run")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Scout" })).toBeVisible();
     await rendered(page);
     await accessible(page, "clan page");
 
-    // Standing, on Members' row.
-    await rows.getByRole("link", { name: "Standing" }).click();
-    await expect(page).toHaveURL(/\/members\/standing$/);
-    await expect(page.getByRole("heading", { name: "Standing" })).toBeVisible();
+    // Standing, first on Standings (G6, 2026-11-12).
+    await clanTab(page, "Standings").click();
+    await expect(page).toHaveURL(/\/standings$/);
+    const standing = page.getByRole("region", { name: "Standing" });
+    await expect(
+      standing.getByRole("heading", { name: "Standing" }),
+    ).toBeVisible();
     await expect(
       page.getByText(/^How it works here · Policy v1/),
     ).toBeVisible();
@@ -471,7 +473,7 @@ test.describe("signed in", () => {
 
     // Report this: a standing that reads wrong files a judgment item
     // pointing at the clan and the policy, read back in the Console.
-    await page.getByRole("button", { name: "Report this" }).click();
+    await standing.getByRole("button", { name: "Report this" }).click();
     const sheet = page.getByRole("dialog", { name: "Report this" });
     await expect(sheet).toBeVisible();
     await expect(sheet.getByLabel("Category")).toHaveValue("judgment");
@@ -489,7 +491,7 @@ test.describe("signed in", () => {
       message: "Zed played every deck last week.",
       category: "judgment",
       area: "clan",
-      context: { path: "/clan/2PQRJ8LV/members/standing" },
+      context: { path: "/clan/2PQRJ8LV/standings" },
     });
     expect(body.refs).toContainEqual({ kind: "clan", ref: "#2PQRJ8LV" });
     await expect(sheet.getByRole("status")).toContainText("Received");
@@ -1010,11 +1012,9 @@ test.describe("signed in", () => {
         () => document.documentElement.scrollWidth <= window.innerWidth,
       ),
     ).toBe(true);
-    await page
-      .getByRole("navigation", { name: "Members" })
-      .getByRole("link", { name: "Standing" })
-      .click();
-    await expect(page).toHaveURL(/\/standing$/);
+    await clanTab(page, "Standings").click();
+    await expect(page).toHaveURL(/\/standings$/);
+    await expect(page.getByRole("region", { name: "Standing" })).toBeVisible();
     await accessible(page, "narrow standing");
   });
 

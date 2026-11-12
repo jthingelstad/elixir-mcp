@@ -8,9 +8,10 @@ import { CLAN, clanPath } from "../lib/base.js";
 import { untilWritten } from "../lib/pending.js";
 
 /**
- * Recruit: a page every member can use. The clan's pitch (a leader's
- * words), the facts the game states today (one live read, cached), and
- * copy in two formats: a personal note for one person by email or
+ * Recruit: every member can use it, in Spread the word at the roster's
+ * foot since G6 (2026-11-12), under that section's head. The clan's pitch
+ * (a leader's words), the facts the game states today (one live read,
+ * cached), and copy in two formats: a personal note for one person by email or
  * message, and a public post for a recruiting forum. The post carries the
  * forums' requirements itself: the required trophies in brackets, and no
  * invite link in the body. Every piece is editable before it is copied and
@@ -65,7 +66,6 @@ export function Recruit({ clan, navigate }) {
 
   return (
     <div className="grid gap-5">
-      <PageHead title="Recruit" />
       <div className="recruit-facts" role="group" aria-label="Recruiting facts">
         <span>
           {f?.members ?? "?"} {noun(f?.members, "member")}

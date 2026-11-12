@@ -2,7 +2,8 @@
  * Every Clan address that moved: when the rail became five tabs (redesign
  * step 4, 2026-11-06), and when the five became Clan as one view (slice 8,
  * 2026-11-12: Today to Feed, Season to War, Awards to Standings, Decided
- * into Run). `apps/web/src/lib/moved.js` asks this after its own map, so
+ * into Run), and when Members' row went (G6, 2026-11-12: Standing to
+ * Standings, Review into Run). `apps/web/src/lib/moved.js` asks this after its own map, so
  * the root route is still the one place a redirect happens: a link in archived
  * mail, a bookmark and a return path all land the same way, and the query and
  * the fragment ride along.
@@ -23,7 +24,7 @@ import { CLAN, appPath, tagOf } from "./base.js";
 const SECTIONS = {
   roster: "members",
   me: "members/me",
-  standing: "members/standing",
+  standing: "standings",
   trophies: "standings",
   recruit: "members/recruit",
   map: "members/map",
@@ -31,7 +32,7 @@ const SECTIONS = {
 };
 const MANAGE = {
   inbox: "feed",
-  board: "members/review",
+  board: "run/review",
   history: "run/decided",
   policy: "run/about",
   settings: "run/settings",
@@ -39,6 +40,10 @@ const MANAGE = {
   scout: "members/scout",
   awards: "standings",
 };
+/** Members' row of pages, cleared on 2026-11-12 (G6): Standing is on
+ *  Standings, Review in Run. Recruit and Scout stay addresses Clan's shell
+ *  answers, since where they open depends on the session (App.jsx). */
+const MEMBERS = { standing: "standings", review: "run/review" };
 /** The five tabs' sections that became a tab of one view, keeping the page
  *  under them (a week, a season). Today's Decided is the leaders', in Run. */
 const RENAMED = { season: "war", week: "war", awards: "standings" };
@@ -58,6 +63,7 @@ export function clanMoved(pathname) {
   if (section === "today")
     return at(tab === "decided" ? "run/decided" : "feed");
   if (section === "manage") return tab ? at(MANAGE[tab] ?? "feed") : at("feed");
+  if (section === "members") return MEMBERS[tab] ? at(MEMBERS[tab]) : null;
   if (RENAMED[section])
     return at(tab ? `${RENAMED[section]}/${tab}` : RENAMED[section]);
   const moved = SECTIONS[section];

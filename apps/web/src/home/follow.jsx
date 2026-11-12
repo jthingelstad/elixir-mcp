@@ -135,6 +135,7 @@ export function FollowButton({
   onDone,
   label = "Follow",
   cost: known = null,
+  className = "btn btn--sm btn--primary",
 }) {
   // A list that priced its people already (People to follow, Find) passes
   // the price in, so a list of thirty is not thirty reads.
@@ -148,7 +149,7 @@ export function FollowButton({
   return (
     <ConfirmAction
       label={label}
-      className="btn btn--sm btn--primary"
+      className={className}
       danger={false}
       title={`Follow ${who}?`}
       body={

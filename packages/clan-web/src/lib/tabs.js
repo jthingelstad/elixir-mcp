@@ -9,9 +9,11 @@
  *   size, with or without a policy. Each page says what waits on a policy.
  * - Run is for a verified leader or co-leader, with or without a policy; the
  *   server refuses its reads to anyone else (`GET /api/clans/<tag>/run`).
- * - Inside Members: Review for a verified leader or co-leader, Scout also for
- *   elders, Map for verified members while the clan keeps it on, Recruit for
- *   every member (A11).
+ * - Members has no row of its own since G6 (2026-11-12): the roster with a
+ *   Follow on each row, the Map for verified members while the clan keeps it
+ *   on, Spread the word with Recruit's pitch for every member (A11), and
+ *   Scout at its foot for elders and up. Standing is on Standings for every
+ *   member; Review is in Run, the leaders'. Who sees what did not change.
  */
 import { appPath, clanPath, tagOf } from "./base.js";
 
@@ -70,27 +72,6 @@ export function clanTabs(me) {
   ];
   if (leads(clan)) tabs.push({ key: "run", label: "Run", href: `${base}/run` });
   return tabs;
-}
-
-/** Members' pages, as chips (the main row) and buttons (the side), for this
- *  person. The Map chip goes when the clan turned it off or the player is not
- *  verified; its address then explains. */
-export function membersPages(me) {
-  const clan = me?.selected ?? null;
-  if (!clan) return { chips: [], side: [] };
-  const base = `${clanPath(clan.clan_tag)}/members`;
-  const chips = [
-    { key: "roster", label: "Roster", to: base },
-    { key: "standing", label: "Standing", to: `${base}/standing` },
-  ];
-  if (leads(clan))
-    chips.push({ key: "review", label: "Review", to: `${base}/review` });
-  if (clan.verified !== false && me?.social?.enabled !== false)
-    chips.push({ key: "map", label: "Map", to: `${base}/map` });
-  const side = [{ key: "recruit", label: "Recruit", to: `${base}/recruit` }];
-  if (eldersUp(clan))
-    side.push({ key: "scout", label: "Scout", to: `${base}/scout` });
-  return { chips, side };
 }
 
 /** `/clan/<TAG>/<section>[/<tab>]` as its parts, or null. */

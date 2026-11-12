@@ -311,15 +311,15 @@ for (const size of ["wide", "@narrow"])
       await mockApi(page, roleRoutes(role));
       await page.goto(`${base}/members`);
       await expect(clanTab(page, "Run")).toHaveCount(0);
-      const row = page.getByRole("navigation", { name: "Members" });
-      await expect(row.getByRole("link", { name: "Standing" })).toBeVisible();
-      await expect(row.getByRole("link", { name: "Review" })).toHaveCount(0);
-      await expect(row.getByRole("link", { name: "Scout" })).toHaveCount(
+      // One page since G6: Scout at its foot for an elder, never a member.
+      await expect(page.getByRole("region", { name: "Scout" })).toHaveCount(
         role === "elder" ? 1 : 0,
       );
+      // Review moved into Run, which stays the leaders'.
       await page.goto(`${base}/members/review`);
+      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/run\/review$/);
       await expect(page.getByRole("alert")).toContainText(
-        "Review is for the leader and co-leaders",
+        "Run is for the clan’s leader and co-leaders",
       );
       // Run is the leaders' (slice 8, #766): a member who types its
       // address is told so, with nothing to change, and sent to Policy.
@@ -332,12 +332,16 @@ for (const size of ["wide", "@narrow"])
       ).toHaveCount(0);
       await page.getByRole("link", { name: "Open Policy" }).click();
       await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/policy$/);
+      // Standing is on Standings, open to every member as before.
       await page.goto(`${base}/members/standing`);
+      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/standings$/);
       await expect(page.getByText(/^How it works here/).first()).toBeVisible();
       // A name opens the player page; the member's page in this clan keeps
       // its address.
       await expect(
-        page.getByRole("link", { name: "Ben", exact: true }),
+        page
+          .getByRole("region", { name: "Standing" })
+          .getByRole("link", { name: "Ben", exact: true }),
       ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
       await page.goto(`${base}/members/uq8lp2r9c`);
       await expect(
@@ -415,12 +419,12 @@ for (const size of ["wide", "@narrow"])
       for (const name of [/^Feed/, "Standings", "War", "Members", "Policy"])
         await expect(clanTab(page, name)).toBeVisible();
       await clanTab(page, "Members").click();
-      const row = page.getByRole("navigation", { name: "Members" });
-      for (const name of ["Roster", "Map", "Recruit"])
-        await expect(
-          row.getByRole("link", { name, exact: true }),
-        ).toBeVisible();
-      await expect(row.getByRole("link", { name: "Review" })).toHaveCount(0);
+      await expect(
+        page.getByRole("link", { name: "Clan map", exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("region", { name: "Spread the word" }),
+      ).toBeVisible();
     });
   }
 
@@ -512,6 +516,9 @@ for (const size of ["wide", "@narrow"])
       await mockApi(page, routes);
       await page.goto(`${base}/members/scout`);
       if (role === "member") {
+        // Scout's old address opens the roster's foot, where Scout says
+        // whose it is.
+        await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\?show=scout$/);
         await expect(page.getByRole("alert")).toContainText(
           "Scout is for elders, co-leaders and the leader",
         );
@@ -525,8 +532,7 @@ for (const size of ["wide", "@narrow"])
           0,
         );
       } else {
-        // The page's own button: on a phone the rail's row is named Scout
-        // too.
+        await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\?show=scout$/);
         await expect(
           page.getByRole("main").getByRole("button", {
             name: "Scout",

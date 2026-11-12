@@ -3,7 +3,6 @@ import {
   clanTabs,
   leads,
   eldersUp,
-  membersPages,
   pageOf,
   policyActive,
   tabOf,
@@ -67,7 +66,6 @@ describe("Clan as one view: six tabs", () => {
 
   test("no selected clan, no tabs", () => {
     expect(clanTabs({ selected: null })).toEqual([]);
-    expect(membersPages({ selected: null })).toEqual({ chips: [], side: [] });
   });
 
   test("a clan's own addresses are all under its tag", () => {
@@ -79,35 +77,6 @@ describe("Clan as one view: six tabs", () => {
       `${BASE}/policy`,
       `${BASE}/run`,
     ]);
-  });
-});
-
-describe("the pages inside Members", () => {
-  const chips = (m) => membersPages(m).chips.map((c) => c.key);
-  const side = (m) => membersPages(m).side.map((c) => c.key);
-
-  test("who sees which", () => {
-    expect(chips(me("member"))).toEqual(["roster", "standing", "map"]);
-    expect(side(me("member"))).toEqual(["recruit"]);
-    expect(chips(me("elder"))).toEqual(["roster", "standing", "map"]);
-    expect(side(me("elder"))).toEqual(["recruit", "scout"]);
-    expect(chips(me("leader"))).toEqual([
-      "roster",
-      "standing",
-      "review",
-      "map",
-    ]);
-    expect(side(me("coLeader"))).toEqual(["recruit", "scout"]);
-  });
-
-  test("the map goes when the clan turns it off or the player is not verified", () => {
-    expect(chips(me("member", { social: { enabled: false } }))).not.toContain(
-      "map",
-    );
-    const m = me("member");
-    m.selected.verified = false;
-    expect(chips(m)).not.toContain("map");
-    expect(side(m)).toEqual(["recruit"]);
   });
 });
 
@@ -183,14 +152,16 @@ describe("every Clan address that moved", () => {
     ["/me", "members/me"],
     ["/week", "war"],
     ["/week/136-2", "war/136-2"],
-    ["/standing", "members/standing"],
+    ["/standing", "standings"],
     ["/trophies", "standings"],
     ["/recruit", "members/recruit"],
     ["/map", "members/map"],
     ["/discord", "run/discord"],
     ["/manage", "feed"],
     ["/manage/inbox", "feed"],
-    ["/manage/board", "members/review"],
+    ["/manage/board", "run/review"],
+    ["/members/standing", "standings"],
+    ["/members/review", "run/review"],
     ["/manage/history", "run/decided"],
     ["/manage/policy", "run/about"],
     ["/manage/settings", "run/settings"],
@@ -208,7 +179,10 @@ describe("every Clan address that moved", () => {
       `${BASE}/feed`,
       `${BASE}/actions/37`,
       `${BASE}/members`,
-      `${BASE}/members/standing`,
+      `${BASE}/members/map`,
+      `${BASE}/members/recruit`,
+      `${BASE}/members/scout`,
+      `${BASE}/members/uq8lp2r9c`,
       `${BASE}/war`,
       `${BASE}/war/136`,
       `${BASE}/standings`,
@@ -235,6 +209,9 @@ describe("every Clan address that moved", () => {
       "/season/136",
       "/awards",
       "/manage/history",
+      "/standing",
+      "/members/standing",
+      "/members/review",
     ]) {
       const to = clanMoved(`${BASE}${from}`);
       expect(clanMoved(to)).toBeNull();

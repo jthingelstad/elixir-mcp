@@ -21,10 +21,11 @@ import { Sharing } from "./Sharing.jsx";
 import { SocialSetting } from "./SocialSetting.jsx";
 import { VoiceSetting } from "./VoiceSetting.jsx";
 import { ActionsNow, Decided, RefreshSuggestions } from "./Waiting.jsx";
+import { Review } from "./Manage.jsx";
 
 /** Run's list, in the order a leader reads it. */
 const SIDE = [
-  { head: "Actions", items: ["actions", "decided"] },
+  { head: "Actions", items: ["actions", "decided", "review"] },
   { head: "Policy", items: ["about"] },
   {
     head: "What counts",
@@ -40,6 +41,7 @@ const SIDE = [
 const ELSEWHERE = {
   actions: "Waiting",
   decided: "Decided",
+  review: "Review",
   "awards-setup": "Awards setup",
   discord: "Discord",
   "model-voice": "Model & voice",
@@ -202,6 +204,10 @@ function Elsewhere({ clan, who, slug, navigate }) {
         <Decided clan={clan} navigate={navigate} />
       </div>
     );
+  // The leaders' working view of the clan, under Members until G6
+  // (2026-11-12); the API refuses it to everyone else, as before.
+  if (slug === "review")
+    return <Review clan={clan} who={who} navigate={navigate} />;
   if (slug === "awards-setup")
     return (
       <div className="grid gap-4">
@@ -279,8 +285,8 @@ function Elsewhere({ clan, who, slug, navigate }) {
       </section>
       <p className="page-head__note m-0">
         Other clan settings live with what they change: the policy under Policy,
-        What counts and People; the recruiting pitch in Members › Recruit;
-        Discord and Model &amp; voice above.
+        What counts and People; the recruiting pitch in Members › Spread the
+        word; Discord and Model &amp; voice above.
       </p>
     </div>
   );

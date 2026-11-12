@@ -26,7 +26,13 @@ import { ordinal } from "../lib/words.js";
  * kind, name, parameters and help text, versioned like policy. Members read;
  * elders grant what elders may; leaders edit.
  */
-export function Awards({ clan, who, season: seasonParam, navigate }) {
+export function Awards({
+  clan,
+  who,
+  season: seasonParam,
+  navigate,
+  afterStanding = false,
+}) {
   const { whenDay } = useClock();
   const base = clanPath(clan.clan_tag);
   const { state, load, query } = useAwards(clan.clan_tag);
@@ -39,6 +45,22 @@ export function Awards({ clan, who, season: seasonParam, navigate }) {
       <div className="callout callout--warn" role="alert">
         <span>Awards are unavailable for your current clan access.</span>
       </div>
+    );
+  // On Standings, under Standing: one plain line, not a second box saying
+  // the same thing. It is Awards' own answer, so it holds even when
+  // Standing's read said otherwise.
+  if (afterStanding && state.error === "too_few_members")
+    return (
+      <p className="page-head__note m-0">
+        Awards wait: clan management starts at{" "}
+        {query.data?.data?.min_members ?? 10} members.
+      </p>
+    );
+  if (afterStanding && state.error === "no_policy")
+    return (
+      <p className="page-head__note m-0">
+        Awards start with the clan&rsquo;s policy.
+      </p>
     );
   if (state.error === "too_few_members") {
     const d = query.data?.data ?? {};

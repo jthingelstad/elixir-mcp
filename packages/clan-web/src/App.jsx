@@ -35,13 +35,10 @@ import {
 import { Clan } from "./views/Clan.jsx";
 import { Clans } from "./views/Clans.jsx";
 import { Directory } from "./views/Directory.jsx";
-import { Review } from "./views/Manage.jsx";
 import { Standing } from "./views/Standing.jsx";
 import { Landing } from "./views/Landing.jsx";
 import { Refused } from "./views/Refused.jsx";
 import { Away } from "./views/Away.jsx";
-import { Recruit } from "./views/Recruit.jsx";
-import { Scout } from "./views/Scout.jsx";
 import { MemberActivity } from "./views/MemberActivity.jsx";
 import { Awards } from "./views/Awards.jsx";
 import { ActionDetail } from "./views/Actions.jsx";
@@ -50,7 +47,7 @@ import { ClanPolicy } from "./views/ClanPolicy.jsx";
 import { YouHere } from "./views/YouHere.jsx";
 import { Season } from "./views/Season.jsx";
 import { Run } from "./views/Run.jsx";
-import { MembersNav } from "./views/Members.jsx";
+import { MembersBack } from "./views/Members.jsx";
 import { VerifyNotice } from "./views/VerifyNotice.jsx";
 import { ELIXIR_LINKS } from "./lib/links.js";
 // The clan map brings Leaflet and the place lists: loaded when opened.
@@ -215,17 +212,12 @@ function Replace({ to, navigate }) {
   return null;
 }
 
-/** Members' page, under its row of chips. */
-function MembersPage({ me, clan, page, children, navigate, search }) {
+/** A page under Members (the Map, Away): its way back to the roster, now
+ *  that Members has no row of its own (G6, 2026-11-12). */
+function MembersPage({ clan, children, navigate }) {
   return (
     <>
-      <MembersNav
-        me={me}
-        page={page}
-        navigate={navigate}
-        find={search}
-        clan={clan}
-      />
+      <MembersBack clan={clan} navigate={navigate} />
       {children}
     </>
   );
@@ -292,16 +284,33 @@ export function ClanPage() {
         navigate={navigate}
       />
     );
+  // Standings: where everyone stands under the policy, then the season's
+  // awards. Standing was under Members until G6 (2026-11-12); it is still
+  // every member's.
   if (section === "standings")
     return (
-      <Awards
-        key={clan.clan_tag}
-        clan={clan}
-        who={who}
-        me={me}
-        season={tab}
-        navigate={navigate}
-      />
+      <div className="grid gap-10">
+        <section id="standing" aria-label="Standing">
+          <Standing
+            key={clan.clan_tag}
+            clan={clan}
+            who={who}
+            navigate={navigate}
+            fromRun={search.from === "run"}
+          />
+        </section>
+        <section id="awards" aria-label="Awards">
+          <Awards
+            key={clan.clan_tag}
+            clan={clan}
+            who={who}
+            me={me}
+            season={tab}
+            navigate={navigate}
+            afterStanding
+          />
+        </section>
+      </div>
     );
   if (section === "policy")
     return <ClanPolicy key={clan.clan_tag} clan={clan} navigate={navigate} />;
@@ -329,62 +338,21 @@ export function ClanPage() {
         navigate={navigate}
       />
     );
-  const page = (name, body) => (
-    <MembersPage
-      me={me}
-      clan={clan}
-      page={name}
-      navigate={navigate}
-      search={find}
-    >
+  const page = (body) => (
+    <MembersPage clan={clan} navigate={navigate}>
       {body}
     </MembersPage>
   );
-  if (tab === "standing")
-    return page(
-      "standing",
-      <Standing
-        key={clan.clan_tag}
-        clan={clan}
-        who={who}
-        navigate={navigate}
-        fromRun={search.from === "run"}
-      />,
-    );
-  if (tab === "review")
-    return leads(clan)
-      ? page(
-          "review",
-          <Review
-            key={clan.clan_tag}
-            clan={clan}
-            who={who}
-            navigate={navigate}
-          />,
-        )
-      : page(
-          "review",
-          <div className="callout callout--warn" role="alert">
-            <span>
-              Review is for the leader and co-leaders. Standing is how every
-              member sees the clan.
-            </span>
-          </div>,
-        );
-  if (tab === "map")
-    return page("map", <MapWhenInBrowser clan={clan} me={me} />);
-  if (tab === "recruit")
-    return page(
-      "recruit",
-      <Recruit key={clan.clan_tag} clan={clan} navigate={navigate} />,
-    );
-  if (tab === "scout")
-    return page(
-      "scout",
-      <Scout key={clan.clan_tag} clan={clan} navigate={navigate} />,
-    );
+  // Members' old row (G6, 2026-11-12): Standing and Review are redirected
+  // before the page reads them (lib/moved.js). Recruit's pitch is in Spread
+  // the word and Scout at the roster's foot, opened where the address asks;
+  // Scout stays the elders' and up, as before: anyone else who follows its
+  // address gets its role line there, not the form.
+  if (tab === "recruit" || tab === "scout")
+    return <Replace to={`${base}/members?show=${tab}`} navigate={navigate} />;
+  if (tab === "map") return page(<MapWhenInBrowser clan={clan} me={me} />);
   if (tab === "away")
-    return page("away", <Away key={clan.clan_tag} me={me} clan={clan} />);
+    return page(<Away key={clan.clan_tag} me={me} clan={clan} />);
   if (tab && tagOf(tab)) {
     const own = tagOf(tab) === clan.acting_as;
     return own ? (
@@ -400,16 +368,20 @@ export function ClanPage() {
       />
     );
   }
-  return page(
-    "roster",
+  return (
     <Clan
       key={clan.clan_tag}
       me={me}
       clan={clan}
       search={find}
+      show={
+        search.show === "recruit" || search.show === "scout"
+          ? search.show
+          : null
+      }
       fromRun={search.from === "run" && !policyActive(me)}
       navigate={navigate}
-    />,
+    />
   );
 }
 
@@ -550,6 +522,7 @@ export function ClanShell({
   Frame = PlainFrame,
   rememberAfterSignIn = () => {},
   FollowClan = null,
+  FollowMember = null,
 }) {
   const { pathname: path, searchStr } = useLocation();
   // The path under the prefix: "/" is the landing, "/you" your page.
@@ -623,7 +596,10 @@ export function ClanShell({
   }, [me, path, app, navigate, select, selecting, rememberAfterSignIn]);
 
   // What the joining app lends the views (lib/host.js), held still.
-  const host = useMemo(() => ({ FollowClan }), [FollowClan]);
+  const host = useMemo(
+    () => ({ FollowClan, FollowMember }),
+    [FollowClan, FollowMember],
+  );
 
   // The head and tabs belong to the clan being read.
   const inClan =
