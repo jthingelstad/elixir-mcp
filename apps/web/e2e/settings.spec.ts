@@ -116,9 +116,7 @@ test.describe("@narrow Settings at phone width", () => {
     await expect(lens.locator(".battle__grid").first()).toBeVisible();
     await fits(page, "lens as a member");
     await lens.getByRole("button", { name: "Someone with the link" }).click();
-    await expect(
-      lens.getByRole("link", { name: "Join Elixir" }),
-    ).toBeVisible();
+    await expect(lens.getByRole("link", { name: "Join Elixir" })).toBeVisible();
     await fits(page, "lens as someone with the link");
   });
 
