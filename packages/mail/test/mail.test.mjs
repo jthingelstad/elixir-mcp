@@ -119,9 +119,9 @@ test("names are links into Browse carrying the campaign tag, tags only in the ti
   const { html } = renderMail("arena_week", facts, links);
   assert.ok(
     html.includes(
-      'href="https://elixir.poapkings.com/console/explore/player/20JJJ2CCRU?utm_source=email&utm_medium=arena_week&utm_campaign=arena_week-2026-W37"',
+      'href="https://elixir.poapkings.com/home/player/20JJJ2CCRU?utm_source=email&utm_medium=arena_week&utm_campaign=arena_week-2026-W37"',
     ),
-    html.match(/explore\/player\/20JJJ2CCRU[^"]*/)?.[0],
+    html.match(/home\/player\/20JJJ2CCRU[^"]*/)?.[0],
   );
   assert.ok(html.includes('title="#20JJJ2CCRU"'));
   // The manage link is tagged; the one-click unsubscribe is not (an API

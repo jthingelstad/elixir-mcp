@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { DeckGrid, Empty, ErrorState, Link, TagText } from "@elixir-mcp/ui";
-import { CONSOLE } from "../lib/console.js";
-import { tagPath } from "../lib/tag-url.js";
+import { playerHref } from "../lib/player.js";
 import { FollowCost, Followed, useFollow } from "./follow.jsx";
 import { familyLine, friendsView, names } from "./logic.js";
 
@@ -51,8 +50,8 @@ export function HomeFriends({ query }) {
         </Empty>
       ) : (
         <>
-          <FriendsSection view={view} ownClan={data.own_clan_tag} />
-          <WatchingSection view={view} ownClan={data.own_clan_tag} />
+          <FriendsSection view={view} />
+          <WatchingSection view={view} />
           <p className="kit-tiny">
             A deck&rsquo;s count is battles with exactly those eight cards.
           </p>
@@ -73,14 +72,7 @@ function FriendsLoading() {
 
 const nameOf = (p) => p.nickname ?? p.name ?? p.tag;
 
-/** A name opens the record, or the member's page for a clanmate. */
-function recordOf(p, ownClan) {
-  return ownClan && p.clan_tag === ownClan
-    ? `/clan/${tagPath(ownClan)}/members/${tagPath(p.tag).toLowerCase()}`
-    : `${CONSOLE}/explore/player/${tagPath(p.tag)}`;
-}
-
-function FriendsSection({ view, ownClan }) {
+function FriendsSection({ view }) {
   if (view.friendsTotal === 0) return null;
   return (
     <section className="kit-fsec">
@@ -92,7 +84,7 @@ function FriendsSection({ view, ownClan }) {
       </header>
       <div className="kit-fcards">
         {view.friends.map((p) => (
-          <FriendCard key={p.tag} person={p} ownClan={ownClan} />
+          <FriendCard key={p.tag} person={p} />
         ))}
       </div>
       {view.friendsQuiet.length > 0 ? (
@@ -105,11 +97,12 @@ function FriendsSection({ view, ownClan }) {
   );
 }
 
-function FriendCard({ person: p, ownClan }) {
+/** A name opens the player page (#764). */
+function FriendCard({ person: p }) {
   return (
     <article className="kit-fcard">
       <div className="kit-fcard__head">
-        <Link to={recordOf(p, ownClan)} className="kit-fcard__who">
+        <Link to={playerHref(p.tag)} className="kit-fcard__who">
           <TagText>{nameOf(p)}</TagText>
         </Link>
         <span>
@@ -149,7 +142,7 @@ function FriendCard({ person: p, ownClan }) {
   );
 }
 
-function WatchingSection({ view, ownClan }) {
+function WatchingSection({ view }) {
   const total =
     view.watching.length + view.watchingQuiet.length + view.watchingLong.length;
   if (total === 0) return null;
@@ -164,7 +157,7 @@ function WatchingSection({ view, ownClan }) {
           {view.watching.map((p) => (
             <div key={p.tag} className="kit-row">
               <span className="kit-row__main">
-                <Link to={recordOf(p, ownClan)} className="kit-row__title">
+                <Link to={playerHref(p.tag)} className="kit-row__title">
                   <TagText>{nameOf(p)}</TagText>
                 </Link>
                 <span className="kit-row__detail">

@@ -22,7 +22,7 @@ import { tagFromPath, tagPath } from "../../lib/tag-url.js";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 import { CONSOLE } from "../../lib/console.js";
 import { SETTINGS } from "../../lib/settings.js";
-import { ladderHref } from "../../ladder/ladder.js";
+import { playerHref } from "../../lib/player.js";
 import { Crumb, Facts, Note } from "./parts.jsx";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { HomeClanOffer } from "../../components/HomeClanOffer.jsx";
@@ -175,13 +175,10 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
     : (claim.nickname ?? claim.name ?? claim.player_tag);
   const fresh = secsSince(rec?.freshest_poll, now);
   const recording = isClan ? clan.recording_status : rec?.status;
-  // One name, one door: your own player opens in Ladder, anyone else on
-  // the record.
+  // Every player name opens the player page (#764); Ladder is a door on it.
   const open = isClan
     ? [`${CONSOLE}/explore/clan/${tagPath(wanted)}`, "Open its record"]
-    : you
-      ? [ladderHref("season", { player: wanted }), "Open in Ladder"]
-      : [`${CONSOLE}/explore/player/${tagPath(wanted)}`, "Open their record"];
+    : [playerHref(wanted), you ? "Open your page" : "Open their page"];
   const stop = (
     <StopTracking
       name={plainName}

@@ -37,6 +37,7 @@ import { wakeAfterFact, wakeAfterHighlight } from "@elixir-mcp/syndication";
 import { emailRoutes } from "./routes/email.mjs";
 import { clansRoutes } from "./routes/clans.mjs";
 import { homeRoutes } from "./routes/home.mjs";
+import { playerRoutes } from "./routes/player.mjs";
 import { publicRoutes } from "./routes/public.mjs";
 import { gatewaysRoutes } from "./routes/gateways.mjs";
 import { exploreRoutes } from "./routes/explore.mjs";
@@ -432,6 +433,7 @@ export function makeHandler({
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),
     ...exploreRoutes({ resolveAccount, exploreRegistry }),
     ...homeRoutes({ resolveAccount, exploreRegistry, clan }),
+    ...playerRoutes({ resolveAccount, live: liveRead }),
     ...feedbackRoutes({ resolveAccount, notifyOwner }),
     ...adminRoutes({
       resolveAccount,

@@ -54,7 +54,7 @@ test("a fresh item carries no time, and every link is masked around <address>", 
   );
   assert.equal(
     line,
-    `King\\_Thing was promoted to Champion on a battle. · [battle](<${ORIGIN}/battle/abababababab>) · [King\\_Thing](<${ORIGIN}/console/explore/player/20JJJ2CCRU>) · [POAP KINGS](<${ORIGIN}/console/explore/clan/J2RGCRVG>)`,
+    `King\\_Thing was promoted to Champion on a battle. · [battle](<${ORIGIN}/battle/abababababab>) · [King\\_Thing](<${ORIGIN}/home/player/20JJJ2CCRU>) · [POAP KINGS](<${ORIGIN}/console/explore/clan/J2RGCRVG>)`,
   );
   // Every address in the line sits inside angle brackets.
   for (const m of line.matchAll(/https:\/\/\S+/g))

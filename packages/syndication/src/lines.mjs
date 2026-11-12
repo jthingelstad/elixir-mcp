@@ -14,8 +14,9 @@ import { escapeDiscord } from "@elixir-mcp/clan-engine";
 
 const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
-const playerUrl = (tag) =>
-  `${ELIXIR_ORIGIN}/console/explore/player/${tagPath(tag)}`;
+// A player's name opens their player page, everywhere (Jamie, 2026-11-12,
+// #764: "Yes, one page"; apps/web lib/player.js).
+const playerUrl = (tag) => `${ELIXIR_ORIGIN}/home/player/${tagPath(tag)}`;
 const clanUrl = (tag) =>
   `${ELIXIR_ORIGIN}/console/explore/clan/${tagPath(tag)}`;
 // /explore/week/<tag>~<season>~<section index>, the week counted from 0

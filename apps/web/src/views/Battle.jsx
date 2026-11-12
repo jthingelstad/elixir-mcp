@@ -20,6 +20,7 @@ import { api } from "../api.js";
 import { useMe, useNav } from "../App.jsx";
 import { CONSOLE } from "../lib/console.js";
 import { tagPath } from "../lib/tag-url.js";
+import { playerHref } from "../lib/player.js";
 import { ladderPlayers } from "../ladder/ladder.js";
 import { BattleHighlight } from "./BattleHighlight.jsx";
 import { FollowFromHere } from "./FollowFromHere.jsx";
@@ -162,7 +163,9 @@ export function BattlePage() {
   const { me } = useMe();
   const zone = me?.authenticated ? (me.timezone ?? null) : browserZone();
   const go = (to) =>
-    to.startsWith("/battle/") || to.startsWith(`${CONSOLE}/`)
+    to.startsWith("/battle/") ||
+    to.startsWith(`${CONSOLE}/`) ||
+    to.startsWith("/home/")
       ? navigate(to)
       : window.location.assign(to);
   return (
@@ -395,13 +398,10 @@ function interleave(left, right) {
 }
 
 function PlayerName({ p, signedIn }) {
-  // A player's record is the console's, so the name links there for a
-  // reader who can open it; signed out it is just the name.
+  // A name opens the player page (#764), for a reader who can open it;
+  // signed out it is just the name.
   return signedIn ? (
-    <Link
-      className="battle__name"
-      to={`${CONSOLE}/explore/player/${tagPath(p.player_tag)}`}
-    >
+    <Link className="battle__name" to={playerHref(p.player_tag)}>
       <TagText>{nameOf(p)}</TagText>
     </Link>
   ) : (

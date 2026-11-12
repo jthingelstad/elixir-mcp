@@ -57,7 +57,6 @@ export async function deliver({
     ...(account.verifiedClans?.length
       ? { verified_clans: account.verifiedClans }
       : {}),
-    ...(account.clanmates ? { clanmates: account.clanmates } : {}),
   };
   const drawn = cardArt ? await resolveCardArt(facts, cardArt) : facts;
   const { subject, html } = renderMail(kind, drawn, links);

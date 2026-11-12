@@ -268,7 +268,7 @@ test("a silent clan's week has nothing to tell; a race, a departure or a battle 
     assert.equal(nothingHappened({ ...silent, ...news }), false);
 });
 
-test("a reader's doors: their players, the clans they are in today, who else is there", async () => {
+test("a reader's doors: their players and the clans they are in today", async () => {
   const doors = await readerDoors(db, acct.old);
   assert.ok(doors.tags.includes(OLD_TAG));
   const { rows } = await db.query(
@@ -280,8 +280,8 @@ test("a reader's doors: their players, the clans they are in today, who else is 
     [...doors.memberClans].sort(),
     rows.map((r) => r.clan_tag).sort(),
   );
-  for (const clan of Object.values(doors.clanmates))
-    assert.ok(doors.memberClans.includes(clan));
+  // A name opens the player page for everyone (#764): no clanmate map.
+  assert.equal(doors.clanmates, undefined);
 });
 
 test("an unverified claim on a member opens the clan's door and admits no clan-visible fact", async () => {

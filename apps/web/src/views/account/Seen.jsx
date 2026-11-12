@@ -14,10 +14,9 @@ import {
   ZoneProvider,
   browserZone,
 } from "@elixir-mcp/ui";
-import { CONSOLE } from "../../lib/console.js";
 import { useToolRead } from "../../lib/queries.js";
 import { SETTINGS } from "../../lib/settings.js";
-import { tagPath } from "../../lib/tag-url.js";
+import { playerHref } from "../../lib/player.js";
 import { Battle } from "../Battle.jsx";
 import { Facts, Note } from "./parts.jsx";
 
@@ -333,11 +332,7 @@ function Lens({ main }) {
         Your main player’s latest battle, drawn by the battle page from the
         answer everyone gets. Your player’s own page reads the record every
         member reads; a nickname you gave shows only to you.{" "}
-        {tag ? (
-          <Link to={`${CONSOLE}/explore/player/${tagPath(tag)}`}>
-            Open your player’s page
-          </Link>
-        ) : null}
+        {tag ? <Link to={playerHref(tag)}>Open your player’s page</Link> : null}
       </p>
       {body}
     </Panel>

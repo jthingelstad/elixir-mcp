@@ -1,6 +1,7 @@
 /** Mail's links, footer and the rulings the render owns (structure, "Mail
- *  links and footer"): one door per name, chosen per reader, the facts the
- *  same for everyone. Rendering only: nothing here sends. */
+ *  links and footer"): a player's name opens the player page, a clan's door
+ *  is chosen per reader, the facts the same for everyone. Rendering only:
+ *  nothing here sends. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -23,7 +24,7 @@ const DISCLAIMER =
   "This material is unofficial and is not endorsed by Supercell. For more information see Supercell’s Fan Content Policy: www.supercell.com/fan-content-policy.";
 const bare = (tag) => tag.slice(1);
 
-test("a player's name opens the reader's door: own to Ladder, clanmate to the member page, anyone else to the record", () => {
+test("a player's name opens the player page for every reader: own, clanmate, friend and stranger alike (#764)", () => {
   const facts = load("tracking_report");
   const friend = facts.people[0].tag;
   const own = facts.you.tag;
@@ -31,18 +32,18 @@ test("a player's name opens the reader's door: own to Ladder, clanmate to the me
   const read = (extra) =>
     renderMail("tracking_report", facts, { ...links, ...extra }).html;
 
-  const stranger = read({ mine: [own] });
-  assert.ok(stranger.includes(`/console/explore/player/${bare(friend)}?`));
+  const stranger = read({});
+  assert.ok(stranger.includes(`/home/player/${bare(friend)}?`));
+  assert.ok(!stranger.includes(`/console/explore/player/`));
 
-  // A friend who is also a clanmate opens in Clan (A22).
-  const mate = read({
-    mine: [own],
-    member_clans: [clanTag],
-    clanmates: { [friend]: clanTag },
-  });
-  assert.ok(mate.includes(`/clan/${bare(clanTag)}/members/${bare(friend)}?`));
-  assert.ok(!mate.includes(`/console/explore/player/${bare(friend)}?`));
-  // The reader's own player opens Ladder.
+  // Jamie, 2026-11-12: one page, replacing "Mail links follow the reader"
+  // for names. A friend who is a clanmate opens it too, and so does your own.
+  const mate = read({ mine: [own], member_clans: [clanTag] });
+  assert.ok(mate.includes(`/home/player/${bare(friend)}?`));
+  assert.ok(!mate.includes(`/members/${bare(friend)}`));
+  if (mate.includes(`title="${own}"`))
+    assert.ok(mate.includes(`/home/player/${bare(own)}?`));
+  // Ladder stays a door of its own beside the name, as the digest's button.
   assert.ok(stranger.includes(`/ladder?player=${bare(own)}`));
 });
 

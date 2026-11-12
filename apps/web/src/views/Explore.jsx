@@ -28,6 +28,7 @@ import {
 } from "../lib/tag-url.js";
 import { CONSOLE, appPath } from "../lib/console.js";
 import { SETTINGS } from "../lib/settings.js";
+import { playerHref } from "../lib/player.js";
 
 /**
  * Explore — the record browser (design handoff 2026-09-05). Not a
@@ -525,7 +526,7 @@ function Lookup({ me, navigate, browse }) {
                 {matches.found.map((m) => (
                   <Link
                     key={m.player_tag}
-                    to={`${CONSOLE}/explore/player/${encTag(m.player_tag)}`}
+                    to={playerHref(m.player_tag)}
                     onClick={restartTrail}
                     style={{
                       display: "flex",
@@ -1229,7 +1230,7 @@ function buildView(kind, rawId, res, me, zone) {
         label: "player",
         value: myTag,
         mono: true,
-        href: `${CONSOLE}/explore/player/${encTag(myTag)}`,
+        href: playerHref(myTag),
         hint: myName,
       },
       ...(opp
@@ -1238,7 +1239,7 @@ function buildView(kind, rawId, res, me, zone) {
               label: "opponent_tag",
               value: opp.player_tag,
               mono: true,
-              href: `${CONSOLE}/explore/player/${encTag(opp.player_tag)}`,
+              href: playerHref(opp.player_tag),
               hint: opp.name,
             },
           ]
@@ -1435,7 +1436,7 @@ function buildView(kind, rawId, res, me, zone) {
           rows: members.map((m) => [
             {
               text: m.name ?? m.player_tag,
-              href: `${CONSOLE}/explore/player/${encTag(m.player_tag)}`,
+              href: playerHref(m.player_tag),
             },
             { text: m.player_tag, mono: true },
             n(m.points),
@@ -1493,19 +1494,19 @@ function buildListView(rawId, res, zone) {
               bt.me.name
                 ? {
                     text: bt.me.name,
-                    href: `${CONSOLE}/explore/player/${encTag(myTag)}`,
+                    href: playerHref(myTag),
                   }
                 : {
                     text: myTag,
                     mono: true,
-                    href: `${CONSOLE}/explore/player/${encTag(myTag)}`,
+                    href: playerHref(myTag),
                   },
             ]
           : [
               opp
                 ? {
                     text: `${opp.name ?? opp.player_tag}`,
-                    href: `${CONSOLE}/explore/player/${encTag(opp.player_tag)}`,
+                    href: playerHref(opp.player_tag),
                   }
                 : { text: "—", nil: true },
             ]),
@@ -1609,7 +1610,7 @@ function buildListView(rawId, res, zone) {
         rows: (b.members ?? []).map((m) => [
           {
             text: m.name ?? "—",
-            href: `${CONSOLE}/explore/player/${encTag(m.player_tag)}`,
+            href: playerHref(m.player_tag),
           },
           { text: m.player_tag, mono: true },
           { text: m.role ?? "—" },

@@ -149,7 +149,7 @@ on a phone it folds into one row above the page.
 | Page | What it does |
 |---|---|
 | Home | what needs you, your week, your clan and the latest, with Timeline and Friends as its tabs; a new account gets its steps until the first read lands. Timeline shows what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`. Viewing it marks what is new since your last visit; it never changes what your connections have read ([its own place](#home-keeps-its-own-place-in-the-timeline)) |
-| Search | the magnifier on the top bar: your players and clans as you type, a tag finds anyone on record, **Follow this tag** asks before it follows, and a deck hash or war week opens its record |
+| Search | the magnifier on the top bar: your players and clans as you type, a tag finds anyone on record, each player row naming the tag, clan and trophies and opening the [player page](/docs/player-page), **Follow this tag** asks before it follows, and a deck hash or war week opens its record |
 | Record pages | a player, clan, deck or war week as the record holds it, reached from search; the one write is nicknames |
 | [Service](/data/service) | recording health, budget gauge, missed battles, linked from Status and data, and signed in |
 | Help | the question mark on the top bar: what the page you are on is for, a link to read more, and **Send feedback**, which carries the page along. **Feedback**, in Settings, keeps what you filed and what the maintainer answered |

@@ -182,6 +182,31 @@ export const useHomeFriends = () =>
     queryFn: payload(api.homeFriends),
   });
 
+/** A player's page (#764). Under ["me"]: who you follow changes it. */
+export const usePlayerPage = (tag) =>
+  useQuery({
+    queryKey: ["me", "player", tag ?? ""],
+    queryFn: answered(() => api.playerPage(tag)),
+    enabled: Boolean(tag),
+    staleTime: 30_000,
+  });
+
+/** What following a list of players, or a clan, costs (#764). */
+export const useFollowPlan = (ask, enabled = true) =>
+  useQuery({
+    queryKey: [
+      "me",
+      "follow-plan",
+      ask?.clan_tag ?? "",
+      (ask?.player_tags ?? []).join(","),
+    ],
+    queryFn: payload(() => api.followPlan(ask)),
+    enabled:
+      enabled && Boolean(ask?.clan_tag || (ask?.player_tags ?? []).length),
+    staleTime: 15_000,
+    retry: false,
+  });
+
 export const useBattleActivity = (tag) =>
   useQuery({
     queryKey: keys.activity(tag),

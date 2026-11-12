@@ -84,6 +84,8 @@ routes.push(
   "/console/account/feedback/1",
   "/console/admin/accounts/00000000-0000-0000-0000-000000000001",
   "/console/explore/player/2ABC",
+  "/home/player/2ABC",
+  "/home/follow/2ABC,9XYZ",
 );
 
 for (const route of routes) {

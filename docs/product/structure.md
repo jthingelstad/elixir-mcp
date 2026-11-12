@@ -130,15 +130,20 @@ Footer: Cards, Docs, Updates, Status and data, Support Elixir, Privacy, Terms,
 the disclaimer, "a POAP KINGS product". Docs have three groups: Use Elixir,
 Connect an AI, Build and reference. A Help drawer replaces the docs strip.
 
-### One name, one door [Jamie, 2026-11-05; steps 3 to 6]
+### Every name opens the player page [Jamie, 2026-11-12; slice 6]
 
-Your own player goes to Ladder. A clanmate goes to the Clan member page. Anyone
-else goes to the record page in Explore.
+Asked "Slice 6, the player page: should every player name anywhere open one
+player page (Timeline, Highlights, Moments, Follows, Follow me link), replacing
+your 11-05 rules "One name, one door" and "Mail links follow the reader" (own
+player to Ladder, clanmate to Clan, others to the record)?", Jamie answered
+"Yes, one page (Recommended)": "Every name opens the player page; Ladder and
+Clan stay reachable from it. Members see follows, followers and badges, as
+DECISIONS already says." It replaces "One name, one door" [Jamie, 2026-11-05].
 
 ### Mail links and footer [Jamie, 2026-11-05; step 8]
 
-Own player to Ladder; clanmate to the Clan member page; friend or opponent to
-the record page; a clan's name to Clan, Season; "Open the roster" to Members;
+A player's name to the player page, for every reader [Jamie, 2026-11-12]; a
+clan's name to Clan, Season; "Open the roster" to Members;
 the button names the clan; a battle's link is unchanged; an action to Clan,
 Today on that action; signed out, an explanation and a sign-in link, then back.
 
@@ -261,7 +266,7 @@ All [Jamie, 2026-11-05].
 | A19 | "Gone quiet" in the clan report goes to verified members only (Jamie, 2026-11-06); the line comes out for everyone else | 8 |
 | A20 | A race counts as something happening: a racing clan with no joins or departures still mails, and a silent clan skips | 8 |
 | A21 | Firsts on an alt when Arena week is off reach only the timeline | 8 |
-| A22 | A friend who is also a clanmate links to Clan | 8 |
+| A22 | A friend who is also a clanmate links to Clan; replaced by "Every name opens the player page" [Jamie, 2026-11-12] | 8 |
 | A23 | The action's number comes out of mail, and stays in Discord | 8 |
 
 ### Settings and service

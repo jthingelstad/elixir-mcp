@@ -65,10 +65,11 @@ never mailed; an agent's feedback is answered to the agent. [Jamie,
    page (sharing is forwarding). [Jamie, 2026-09-18, 2026-09-19]
 8. **Trends compare recorded weeks only.** A week the record lacks is
    left out, never a zero. [Jamie, 2026-10-08]
-9. **One door per name, chosen per reader.** Own player to Ladder, clanmate
-   to the Clan member page (a friend who is a clanmate included), anyone else
-   to the record; a clan the reader is in to Clan, Season. The facts stay one
-   for every reader; the choice is in the links. [Jamie, 2026-11-05]
+9. **A name opens the player page; a clan's door is chosen per reader.**
+   Every player's name opens the player page, for every reader (Jamie,
+   2026-11-12: "Yes, one page"); a clan the reader is in to Clan, Season. The
+   facts stay one for every reader; the clan's choice is in the links.
+   [Jamie, 2026-11-05, 2026-11-12]
 10. **A quiet clan sends no report.** Nothing happened, nothing mailed; a race
     counts as something, and a failed read still sends with the gap noted.
     [Jamie, 2026-11-05]

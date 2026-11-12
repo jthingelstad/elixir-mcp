@@ -99,7 +99,7 @@ test("signed in: your side says so, names open the record, another battle stays 
   await expect(page.locator(".battle__score .chip--ok")).toHaveText("you");
   await expect(page.locator("a.battle__name").first()).toHaveAttribute(
     "href",
-    `/console/explore/player/${tag.slice(1)}`,
+    `/home/player/${tag.slice(1)}`,
   );
   await expect(page.getByRole("link", { name: "Join Elixir" })).toHaveCount(0);
   // The session: this battle marked, the other one a link that loads

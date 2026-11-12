@@ -944,6 +944,16 @@ test("players_search: corpus-wide names resolve; unknowns honest-empty", async (
     hit.body.matches.some((m) => m.player_tag === member.player_tag),
     "clanmate found by name fragment",
   );
+  // 11.21.0: each match carries the trophies on its latest snapshot.
+  const latest = (
+    await db.query(
+      `select trophies from player_snapshot_daily where player_tag = $1
+        order by snapshot_date desc, snapshot_kind desc limit 1`,
+      [member.player_tag],
+    )
+  ).rows[0];
+  const row = hit.body.matches.find((m) => m.player_tag === member.player_tag);
+  assert.equal(row.trophies, latest?.trophies ?? null);
   const miss = await call(invoke, "players_search", {
     query: "KenDoesNotExist",
   });
