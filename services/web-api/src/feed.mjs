@@ -21,7 +21,8 @@ import { sessionSpark } from "@elixir-mcp/tools/activity/entries";
 
 /** The facts a moment names its proving battle under (follow.mjs). */
 const PROOFS = ["promoted_by", "crossed_by", "best_win"];
-const proofOf = (it) => {
+/** The battle that proved a moment, or null (the bell reads it too). */
+export const proofOf = (it) => {
   for (const k of PROOFS) {
     const id = it.facts?.[k]?.battle_id;
     if (id) return String(id);

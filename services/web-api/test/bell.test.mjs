@@ -241,6 +241,10 @@ test("the bell: reactions as counts, followers named only by a verified player, 
   assert.deepEqual(r.cheers, { royal: 1, wow: 1 });
   assert.equal(r.total, 2);
   assert.equal(r.new, true);
+  // The row opens the highlight's battle, as the feed does.
+  assert.ok(item.facts?.battle?.url);
+  assert.equal(r.battle_url, item.facts.battle.url);
+  assert.match(r.battle_url, /\/battle\/[0-9a-f]{12}$/);
   // Followers: the fan by their own verified player, the friend counted.
   assert.equal(bell.body.followers.count, 2);
   assert.equal(bell.body.followers.unnamed, 1);
@@ -305,6 +309,31 @@ test("an account with no verified player: no reactions or followers, its own ans
   // The friend follows the owner's player, but it is not theirs.
   const friend = await call("GET", "/api/me/bell", { who: "friend" });
   assert.deepEqual(friend.body.reactions, { items: [], new: 0 });
+});
+
+test("an unread answer is never pushed past the cap by newer read ones", async () => {
+  // One unread answer from five days ago, then more read answers since
+  // than the bell shows.
+  await db.query(
+    `insert into feedback (account_id, surface, message, status, response, responded_at)
+     values ($1, 'web', 'The old unread one', 'planned', 'Answered.', now() - interval '5 days')`,
+    [ids.stranger],
+  );
+  await db.query(
+    `insert into feedback (account_id, surface, message, status, response,
+                           responded_at, response_seen_at)
+     select $1, 'web', 'Read answer ' || n, 'done', 'Answered.',
+            now() - make_interval(hours => n), now()
+       from generate_series(1, 25) n`,
+    [ids.stranger],
+  );
+  const bell = await call("GET", "/api/me/bell", { who: "stranger" });
+  assert.equal(bell.status, 200, JSON.stringify(bell.body));
+  assert.equal(bell.body.answers.new, 1);
+  assert.equal(bell.body.answers.items[0].about, "The old unread one");
+  assert.equal(bell.body.answers.items[0].new, true);
+  assert.equal(bell.body.answers.items.length, 20);
+  assert.equal(bell.body.new, 1);
 });
 
 test("the bell's refusals: signed out, no contract header, agents, the hour's cap", async () => {
