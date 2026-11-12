@@ -335,3 +335,33 @@ export function gameLine(b) {
   const mode = b.mode_group ? `, ${modeWord(b.mode_group)}` : "";
   return `${outcome}${score}${against}${mode}`;
 }
+
+/**
+ * Home's welcome steps (G4, 2026-11-12): add your player, verify it, follow a
+ * few people, choose your digest. Each is read from state the account already
+ * keeps (the first answer: its player, `welcome.following` and
+ * `welcome.digest`), never a second record of onboarding. Null when the
+ * answer carries no welcome state (an older server): no steps beat guessed
+ * ones. Following one player counts as begun [engineering, 2026-11-12].
+ */
+export function welcomeSteps(first) {
+  const w = first?.welcome;
+  if (!w) return null;
+  const steps = {
+    player: Boolean(first.player),
+    verify: first.player?.verified === true,
+    follow: (w.following ?? 0) > 0,
+    digest: Boolean(w.digest),
+  };
+  const done = Object.values(steps).filter(Boolean).length;
+  return { steps, done, total: 4, all: done === 4 };
+}
+
+/** The digest step's line once chosen, from the person's own setting. */
+export function digestLine(digest) {
+  if (!digest) return null;
+  if (digest.enabled === false) return "Your digest is off.";
+  return digest.cadence === "daily"
+    ? "Your digest comes daily."
+    : "Your digest comes weekly.";
+}

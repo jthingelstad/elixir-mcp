@@ -141,9 +141,11 @@ export function NewAccount({
   );
 }
 
-function Step({
+/** One step, as Welcome draws them and Home's welcome steps reuse (G4). */
+export function Step({
   n,
   title,
+  heading: Heading = "h2",
   optional,
   done,
   waiting,
@@ -157,10 +159,10 @@ function Step({
         {done ? "✓" : n}
       </span>
       <div className="kit-step__body">
-        <h2>
+        <Heading>
           {title}
           {optional ? <span className="kit-step__opt"> Optional</span> : null}
-        </h2>
+        </Heading>
         {done ? (
           <p>{doneLine}</p>
         ) : waiting ? (

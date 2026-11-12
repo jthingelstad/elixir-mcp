@@ -231,3 +231,23 @@ export async function cheersOnPage(
     subjects: found.tags,
   };
 }
+
+/** Your week's cheers (G4, 2026-11-12): how many cheers other people gave
+ *  the items about your player since `fromMs` (Monday's reset), one number,
+ *  never who. The items are rebuilt for the one player (the bell's way), so
+ *  the count is of this week's items as anyone's feed shows them. */
+export async function cheersReceived(db, accountId, tag, fromMs, toMs) {
+  const built = await buildTimeline(
+    db,
+    [{ kind: "player", tag, relationship: "primary", nickname: null }],
+    { fromMs, toMs, accountId, interactive: true, accountLines: false },
+  );
+  const ids = (built.timeline ?? []).filter(cheerable).map((it) => it.id);
+  if (ids.length === 0) return 0;
+  const { rows } = await db.query(
+    `select count(*)::int as n from timeline_cheer
+      where item_id = any($1::text[]) and account_id <> $2`,
+    [ids, accountId],
+  );
+  return rows[0].n;
+}

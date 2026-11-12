@@ -1010,3 +1010,66 @@ test("Home's feed comes thirty a page: More reads on in the same week, the first
     assert.equal(data(bad).error, "invalid_cursor");
   }
 });
+
+test("your week counts the cheers other people gave your player's items this week, in the opening read only (G4)", async () => {
+  const id = await person("home-week-cheers");
+  const a = await person("home-week-cheers-a");
+  const b = await person("home-week-cheers-b");
+  const { db } = scratch;
+  const tag = "#8Y2PYL2Y";
+  const now = Date.now();
+  const monday = gameWeekStartMs(now);
+  await db.query("insert into player(player_tag,name) values ($1,'Cheered')", [
+    tag,
+  ]);
+  await db.query(
+    `insert into claim(account_id,player_tag,relationship,is_primary)
+     values ($1,$2,'primary',true)`,
+    [id, tag],
+  );
+  // One record this week, and one last week whose cheers are not this week's.
+  for (const [ref, at] of [
+    ["home-week-cheers-now", Math.floor((monday + now) / 2)],
+    ["home-week-cheers-old", monday - 2 * 86_400_000],
+  ])
+    await db.query(
+      `insert into attested_fact
+         (subject_kind,player_tag,fact_type,detail,visibility,source,source_ref,occurred_at,recorded_at)
+       values ('player',$1,'personal_record','{"game":"drop","score":10}','player',
+               'drop.poapkings.com',$2,$3,$3)`,
+      [tag, ref, new Date(at).toISOString()],
+    );
+  const items = async (fromMs, toMs) =>
+    (
+      await buildTimeline(
+        db,
+        [{ kind: "player", tag, relationship: "primary", nickname: null }],
+        { fromMs, toMs, accountId: id, interactive: true, accountLines: false },
+      )
+    ).timeline.map((it) => it.id);
+  const [mine] = await items(monday, now);
+  const [old] = await items(monday - 3 * 86_400_000, monday);
+  assert.ok(mine && old && mine !== old);
+  // Two other people cheer this week's item, one last week's; the person's
+  // own row (a cheer of their own is never counted) is left out.
+  await db.query(
+    `insert into timeline_cheer(account_id,item_id,cheer) values
+       ($1,$4,'well_played'),($2,$4,'on_fire'),($1,$5,'wow'),($3,$4,'royal')`,
+    [a, b, id, mine, old],
+  );
+  const opening = data(await call(handler, id, "GET", "/api/me/home/week"));
+  assert.equal(opening.week.cheers, 2);
+  const chip = data(
+    await handler({
+      path: "/api/me/home/week",
+      method: "GET",
+      headers: {
+        cookie: `__Host-elixir_session=${sessions.get(id)}`,
+        "x-elixir-client": "web",
+        "cloudfront-viewer-address": "8.8.4.4:443",
+      },
+      queryStringParameters: { mode: "ladder" },
+    }),
+  );
+  assert.equal(chip.week.cheers, undefined, "a chip's read leaves them out");
+});

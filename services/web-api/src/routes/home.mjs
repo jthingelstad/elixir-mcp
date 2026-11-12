@@ -15,7 +15,7 @@ import { lastGameWeek } from "@elixir-mcp/record/game-week";
 import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
 import { annotateFeed, groupsOf } from "../feed.mjs";
-import { withCheers } from "../cheers.mjs";
+import { cheersReceived, withCheers } from "../cheers.mjs";
 import { firstAnswer } from "../first-answer.mjs";
 import { homeClan, myClans } from "./clans.mjs";
 
@@ -718,9 +718,30 @@ export function homeRoutes({ resolveAccount, exploreRegistry, clan }) {
       const tag = await primaryTag(db, account.accountId);
       if (!tag) return json(404, { error: "no_player" });
       const read = toolReader(db, account, exploreRegistry(), event);
-      const week = await panel("week", () =>
-        readWeek(read, db, tag, event.queryStringParameters?.mode ?? null),
-      );
+      const wanted = event.queryStringParameters?.mode ?? null;
+      const week = await panel("week", async () => {
+        const out = await readWeek(read, db, tag, wanted);
+        // Cheers received this week (G4) are the same in every mode: the
+        // opening read counts them and a chip's read leaves them out. A
+        // failed count is unknown, never zero, and never fails the week.
+        if (!wanted)
+          out.cheers = await cheersReceived(
+            db,
+            account.accountId,
+            tag,
+            Date.parse(out.from),
+            Date.now(),
+          ).catch((err) => {
+            console.error(
+              JSON.stringify({
+                at: "home_week_cheers_failed",
+                code: err?.code ?? null,
+              }),
+            );
+            return null;
+          });
+        return out;
+      });
       return json(200, { week });
     },
 

@@ -59,13 +59,23 @@ A moment links its battle when the record has one, a highlight shows its
 player's own words, and a clan's own line has a gold edge. Every player's
 name opens their [player page](/docs/player-page).
 
+### Welcome to Elixir
+
+Until you have done four things, Home opens with them above the feed:
+**Welcome to Elixir, 2 of 4 done**. They are adding your player, verifying
+it's you (one battle with a deck Elixir names), following a few people,
+and choosing your [digest](/docs/email). Each step says what was done or
+links to where you do it, and is worked out from your account each time
+you open Home. Once all four are done the steps are gone.
+
 ### Beside the feed
 
 On a wide screen three panels sit beside the feed; on a phone they follow
 it. Each reads on its own, so the feed never waits for them.
 
 - **Your week:** your own battles this week, by mode, with your trophies
-  and the deck you played most. Facts only.
+  and the deck you played most, and how many cheers other people gave the
+  items about you since Monday. Facts only.
 - **Your clan:** your player's clan, with **This week's race** while a
   river race runs ("Season 137, week 2, war day 2: 2nd by fame, 8,200
   fame", or training days, or finished), the last race's place, and your

@@ -111,10 +111,28 @@ export async function firstAnswer(db, accountId, playerTag = null) {
      order by ac.is_primary desc, ac.clan_tag limit 1`,
     [accountId],
   );
+  // Home's welcome steps that are not the player's (G4, 2026-11-12), from
+  // state the account already keeps: the players it follows (Follow means
+  // Friend) and whether the person has chosen their digest, which is a
+  // tracking_report row of their own (the table holds a row only where a
+  // person changed the default; an operator's row is not their choice).
+  const welcome = await db.query(
+    `select (select count(*)::int from claim
+              where account_id = $1 and relationship = 'friend'
+                and not is_primary) as following,
+            (select json_build_object('chosen_at', changed_at,
+                                      'enabled', enabled,
+                                      'cadence', coalesce(cadence, 'weekly'))
+               from account_email_pref
+              where account_id = $1 and kind = 'tracking_report'
+                and via <> 'ops') as digest`,
+    [accountId],
+  );
   return {
     as_of: new Date().toISOString(),
     player: capturedPlayer,
     connection: connection.rows[0],
     clan: clan.rows[0] ?? null,
+    welcome: welcome.rows[0],
   };
 }

@@ -135,8 +135,9 @@ On the smallest screens, the top bar shows the Elixir logo as the home link
 so the product and account controls keep their room. Your full account name
 wraps inside its menu. The same controls remain available by keyboard.
 
-On Home, **Setup details** holds completed setup. Incomplete setup and
-recording problems are under the bell, **Needs you**.
+On Home, setup you have not finished opens the page as
+[Welcome to Elixir](/docs/timeline#welcome-to-elixir) until it is done.
+Recording problems are under the bell, **Needs you**.
 
 Signed out, the top bar is the logo, **Docs**, **Sign in** and **Create
 account**, and the front page is the way in: sign in, or create an account.
