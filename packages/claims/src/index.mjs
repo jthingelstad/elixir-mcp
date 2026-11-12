@@ -1155,6 +1155,24 @@ export async function setAgentStatus(
         where account_id = $1`,
       [agentAccountId, status],
     );
+    // Settle the agent's recordings first, then price the pool: a clan
+    // recording the resume restores makes its members free again (#760),
+    // so the check must see it running. A refusal rolls all of it back.
+    const { rows: subjects } = await db.query(
+      `select 'player' as kind, player_tag as tag from claim where account_id = $1
+       union
+       select 'clan', clan_tag from account_clan where account_id = $1
+       order by tag, kind`,
+      [agentAccountId],
+    );
+    let started = 0;
+    let stopped = 0;
+    for (const { kind, tag } of subjects) {
+      await lockSubject(db, tag);
+      const r = await reconcileRecording(db, kind, tag, agentAccountId);
+      if (r.started) started += 1;
+      if (r.stopped) stopped += 1;
+    }
     if (before) {
       const after = await pooledUsage(db, owner.account_id);
       for (const [used, limit, noun] of BUCKETS) {
@@ -1171,21 +1189,6 @@ export async function setAgentStatus(
           };
         }
       }
-    }
-    const { rows: subjects } = await db.query(
-      `select 'player' as kind, player_tag as tag from claim where account_id = $1
-       union
-       select 'clan', clan_tag from account_clan where account_id = $1
-       order by tag, kind`,
-      [agentAccountId],
-    );
-    let started = 0;
-    let stopped = 0;
-    for (const { kind, tag } of subjects) {
-      await lockSubject(db, tag);
-      const r = await reconcileRecording(db, kind, tag, agentAccountId);
-      if (r.started) started += 1;
-      if (r.stopped) stopped += 1;
     }
     await db.query("commit");
     return {
