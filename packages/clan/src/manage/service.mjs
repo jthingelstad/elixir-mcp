@@ -68,6 +68,7 @@ import {
   effectivePolicyValues,
   ownStandingLine,
   policySummaryOf,
+  policyChips,
 } from "@elixir-mcp/clan-engine";
 import { newId } from "@elixir-mcp/clan-state";
 import { createActionStore } from "./actions.mjs";
@@ -440,6 +441,9 @@ export function createManageService({
         // A field added since the version was saved takes its starting
         // value; a field retired since is dropped.
         values: effectivePolicyValues(current.values),
+        // What the leaders saved, before any starting value fills a field
+        // added since: the clan card's chips read only this (G5).
+        saved_values: current.values ?? null,
         version: current.version,
         saved_at: current.saved_at,
         saved_by: current.saved_by,
@@ -448,6 +452,7 @@ export function createManageService({
     return {
       set: false,
       values: defaults(),
+      saved_values: null,
       version: 0,
       saved_at: null,
       saved_by: null,
@@ -1413,12 +1418,16 @@ export function createManageService({
     async policySummary(clanTag) {
       const policy = await policyFor(clanTag);
       const members = (await ledger.clanSize(clanTag))?.members ?? null;
-      return policySummaryOf({
-        set: policy.set,
-        version: policy.version,
-        values: policy.values,
-        members,
-      });
+      return {
+        ...policySummaryOf({
+          set: policy.set,
+          version: policy.version,
+          values: policy.values,
+          members,
+        }),
+        // The clan card's rule chips, from what the leaders saved (G5).
+        chips: policyChips(policy.saved_values),
+      };
     },
 
     /** The policy editor's data: fields with help, groups, current values,
@@ -1478,6 +1487,7 @@ export function createManageService({
         big_enough: members === null || members >= MIN_MEMBERS,
         current: {
           ...policy,
+          saved_values: undefined,
           saved_by_name:
             policy.saved_by_name ?? names.get(policy.saved_by) ?? null,
         },

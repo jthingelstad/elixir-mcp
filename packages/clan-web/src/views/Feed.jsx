@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { Empty, Link, Panel, TagText, useClock } from "@elixir-mcp/ui";
 import { CLAN, clanPath } from "../lib/base.js";
-import { useActions, useFeed, useMemberView, useWeek } from "../lib/queries.js";
+import {
+  useActions,
+  useFeed,
+  useMemberView,
+  useRace,
+  useWeek,
+} from "../lib/queries.js";
+import { n, ordinal } from "../lib/words.js";
 import { ActionsNow, WeekCard, YouCard } from "./Waiting.jsx";
 
 /** A battle's own page on this origin, or null: the record serves the
@@ -153,15 +160,91 @@ function ClanTimeline({ clan, enabled = true }) {
  * it starts only once what waits for you, You here and This week have
  * answered. Those reads are shared with the cards through their query keys.
  */
+/** "Monday about 4:00 am": a nominal instant the game reaches in the half
+ *  hour before it, in the reader's zone (UTC, said so, with none). */
+function aboutAt(ts, { dayHeading, clock, zone }) {
+  if (!ts) return null;
+  const day = dayHeading(ts).split(",")[0];
+  return `${day} about ${clock(ts)}${zone ? "" : " UTC"}`;
+}
+
+/**
+ * The race bar on top of the Feed (G5): which day of the race it is, the
+ * clan's war decks this race week against four a war day for each member
+ * so far (weekly, never a day's split: DECISIONS, "War facts are weekly
+ * aggregates"), the clan's place of the clans and its fame, and when the
+ * race closes. Nothing between races or while the read has not answered.
+ */
+export function RaceBar({ race }) {
+  const time = useClock();
+  if (!race) return null;
+  const name = race.is_colosseum ? "Colosseum" : "Clan Wars";
+  if (race.day_kind === "training") {
+    const opens = aboutAt(race.war_day_opens_at, time);
+    return (
+      <section className="clan-race" aria-label="This week's race">
+        <p className="clan-race__head m-0">{name} · training days</p>
+        {opens ? (
+          <p className="clan-race__line m-0">The race opens {opens}</p>
+        ) : null}
+      </section>
+    );
+  }
+  const decks = race.decks ?? null;
+  const day = race.finished
+    ? "race finished"
+    : race.war_day
+      ? `race open, day ${race.war_day} of 4`
+      : "race open";
+  const closes = race.finished ? null : aboutAt(race.closes_at, time);
+  const line = [
+    race.place && race.clans
+      ? `${ordinal(race.place)} of ${race.clans} clans${race.finished ? "" : " so far"}`
+      : race.clans
+        ? `${race.clans} clans in the race`
+        : null,
+    race.fame > 0 ? `${n(race.fame)} fame` : null,
+    closes ? `the race closes ${closes}` : null,
+  ].filter(Boolean);
+  return (
+    <section className="clan-race" aria-label="This week's race">
+      <div className="clan-race__top">
+        <p className="clan-race__head m-0">
+          {name} · {day}
+        </p>
+        {decks ? (
+          <p className="clan-race__decks m-0">
+            {n(decks.used)} of {n(decks.asked)} war decks this week
+          </p>
+        ) : null}
+      </div>
+      {decks ? (
+        <progress
+          className="clan-race__bar"
+          value={Math.min(decks.used, decks.asked)}
+          max={decks.asked}
+          aria-label={`${n(decks.used)} of ${n(decks.asked)} war decks this week`}
+        />
+      ) : null}
+      {line.length ? (
+        <p className="clan-race__line m-0">{line.join(" · ")}</p>
+      ) : null}
+    </section>
+  );
+}
+
 export function Feed({ clan, who, closedOpen, navigate }) {
   const base = clanPath(clan.clan_tag);
   const actions = useActions(clan.clan_tag).state;
   const you = useMemberView(clan.clan_tag).state;
   const week = useWeek(clan.clan_tag, null).state;
-  const ready = settled(actions) && settled(you) && settled(week);
+  const race = useRace(clan.clan_tag).state;
+  const ready =
+    settled(actions) && settled(you) && settled(week) && settled(race);
   return (
     <>
       <h2 className="sr-only">Feed</h2>
+      <RaceBar race={race.data?.race ?? null} />
       <div className="clan-today">
         <div className="clan-today__waiting">
           <div className="clan-today__now">

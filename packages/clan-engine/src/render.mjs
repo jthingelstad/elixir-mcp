@@ -406,6 +406,62 @@ export function nextSteps(v, policy) {
 }
 
 /**
+ * The clan card's rule chips (G5, 2026-11-12): a few words each, from the
+ * values the leaders SAVED, never the starting values a field takes when
+ * it was added after the save. A chip whose field the saved policy has no
+ * value for is left out, so no clan ever shows another clan's numbers or
+ * Elixir's starting points. `null` or nothing saved gives no chips.
+ */
+export function policyChips(saved) {
+  if (!saved || typeof saved !== "object") return [];
+  const has = (k) => saved[k] !== undefined && saved[k] !== null;
+  const count = (k) => has(k) && Number.isFinite(saved[k]) && saved[k] > 0;
+  const counted = (k, one) => `${n(k)} ${k === 1 ? one : `${one}s`}`;
+  const chips = [];
+  if (saved.war_intent === "participating")
+    chips.push({ key: "war_intent", text: "In Clan Wars" });
+  if (saved.war_intent === "not_participating")
+    chips.push({ key: "war_intent", text: "No Clan Wars" });
+  const weeks = count("minimums_window_weeks")
+    ? saved.minimums_window_weeks
+    : null;
+  const over = weeks === 1 ? " a week" : weeks ? ` in ${weeks} weeks` : null;
+  const minimums = [];
+  if (saved.war_enabled === true && count("war_min_decks") && over)
+    minimums.push({
+      key: "war_min_decks",
+      text: `${counted(saved.war_min_decks, "war deck")}${over}`,
+    });
+  if (saved.ranked_enabled === true && count("ranked_min_battles") && over)
+    minimums.push({
+      key: "ranked_min_battles",
+      text: `${counted(saved.ranked_min_battles, "ranked battle")}${over}`,
+    });
+  // The donation minimum is a weekly average whatever the window.
+  if (saved.donations_enabled === true && count("donations_min_weekly"))
+    minimums.push({
+      key: "donations_min_weekly",
+      text: `${n(saved.donations_min_weekly)} donations a week`,
+    });
+  if (saved.trophies_enabled === true && count("trophies_min"))
+    minimums.push({
+      key: "trophies_min",
+      text: `${n(saved.trophies_min)} trophies`,
+    });
+  chips.push(...minimums);
+  // Two or more minimums met by any one of them: say so, or the row reads
+  // as all of them.
+  if (minimums.length > 1 && saved.minimums_rule === "any")
+    chips.push({ key: "minimums_rule", text: "Any one minimum" });
+  if (saved.removal_enabled === true && count("at_risk_days")) {
+    const day = has("confirm_days") ? removalDay(saved) : saved.at_risk_days;
+    // The leaders decide a removal; Clan never makes one.
+    chips.push({ key: "removal", text: `Removal at ${day} quiet days` });
+  }
+  return chips;
+}
+
+/**
  * How this clan runs, in a member's words, straight from its policy: what
  * it counts, how Elder is chosen, what the minimums are, and whether
  * inactivity is tracked. Sections a policy leaves off are omitted.

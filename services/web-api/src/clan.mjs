@@ -36,6 +36,7 @@ import {
 import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemberActivity } from "@elixir-mcp/clan/member-activity.mjs";
 import { readClanFeed } from "./clan-feed.mjs";
+import { readClanRace } from "./clan-race.mjs";
 import { createAccountContext } from "@elixir-mcp/clan/account.mjs";
 import { createRecordedClient } from "@elixir-mcp/clan/recorded-client.mjs";
 import { sharedRead } from "./shared-read.mjs";
@@ -462,6 +463,8 @@ export function createClanRequest({
       directory: () => readClanDirectory(db, account),
       // Clan's Feed (#766): the clan's timeline as this reader reads it.
       feed: (clanTag) => readClanFeed(db, account, clanTag),
+      // The clan card's race chip and the Feed's race bar (G5).
+      race: (clanTag) => readClanRace(invoke, clanTag),
       appUrl,
       elixirUrl: origin,
     });
@@ -479,7 +482,7 @@ export function createClanRequest({
     // Their only shared metadata write is an atomic, monotonic observation.
     const pureView =
       method === "GET" &&
-      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|season|me|home|needs|feed|run|members\/[0-9A-Za-z]{3,12}\/activity)$/.test(
+      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|season|me|home|needs|feed|race|run|members\/[0-9A-Za-z]{3,12}\/activity)$/.test(
         path,
       );
     const lock =

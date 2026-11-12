@@ -33,6 +33,7 @@ const RUN_READS = [
 
 function harness(role, { verified = true } = {}) {
   const feedCalls = [];
+  const raceCalls = [];
   const mcp = fakeMcp({
     players: [
       player({
@@ -51,12 +52,16 @@ function harness(role, { verified = true } = {}) {
       feedCalls.push(clanTag);
       return { clan_tag: clanTag, window_days: 7, items: [], more: 0 };
     },
+    race: async (clanTag) => {
+      raceCalls.push(clanTag);
+      return { race: null };
+    },
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now: () => Date.parse("2026-11-12T12:00:00Z"),
     log: { info() {}, warn() {}, error() {} },
   });
-  return { handler, feedCalls };
+  return { handler, feedCalls, raceCalls };
 }
 
 async function as(h) {
@@ -93,6 +98,17 @@ test("run: an unverified leader is refused Run and each of its reads", async () 
     const r = await call(path);
     assert.equal(r.status, 403, path);
     assert.equal(r.body.error, "leaders_only", path);
+  }
+});
+
+test("race: every member reads the race now, for this clan", async () => {
+  for (const role of ["member", "elder", "leader"]) {
+    const h = harness(role);
+    const call = await as(h);
+    const r = await call("/race");
+    assert.equal(r.status, 200, `${role} ${JSON.stringify(r.body)}`);
+    assert.deepEqual(r.body, { race: null });
+    assert.deepEqual(h.raceCalls, [TAG]);
   }
 });
 

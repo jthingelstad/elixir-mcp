@@ -32,6 +32,7 @@ export const keys = {
   manage: (tag) => ["me", "clan", "record", tag, "manage"],
   history: (tag) => ["me", "clan", "record", tag, "history"],
   feed: (tag) => ["me", "clan", "record", tag, "feed"],
+  race: (tag) => ["me", "clan", "record", tag, "race"],
   run: (tag) => ["me", "clan", "record", tag, "run"],
   policy: (tag) => ["me", "clan", "record", tag, "policy"],
   awards: (tag) => ["me", "clan", "record", tag, "awards"],
@@ -189,6 +190,11 @@ export const useMyPlace = () => useGated(keys.place, () => api.myPlace());
  *  highlights, newest first, as this reader reads them. */
 export const useFeed = (tag, enabled = true) =>
   useGated(keys.feed(tag), () => manageApi.feed(tag), { enabled });
+
+/** The race now (the clan card's chip, the Feed's bar): weekly facts,
+ *  `{race: null}` between races or before any is recorded. */
+export const useRace = (tag, enabled = true) =>
+  useGated(keys.race(tag), () => manageApi.race(tag), { enabled });
 
 /** Whether the server lets this person into Run: 403 is its refusal. */
 export const useRunGate = (tag, enabled = true) =>

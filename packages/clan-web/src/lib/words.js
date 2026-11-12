@@ -48,3 +48,22 @@ export function raceSentence(war) {
   const change = trophyChange(r);
   return `finished ${ordinal(r.rank)}${war.is_colosseum ? " in the Colosseum" : ""}, ${seasonWeek(war)}${r.fame !== null && r.fame !== undefined ? `, with ${n(r.fame)} fame` : ""}${change ? ` (${change})` : ""}`;
 }
+
+/** Where a race is: the Colosseum, or the river race. */
+const raceWhere = (race) =>
+  race.is_colosseum ? "the Colosseum" : "the river race";
+
+/** The clan card's race chip (G5): "2nd in the Colosseum · 84,200 fame".
+ *  A place only when the read gives one; fame only once some is banked.
+ *  Null between races. */
+export function raceChip(race) {
+  if (!race) return null;
+  if (race.day_kind === "training") return "Clan Wars · training days";
+  const fame = race.fame > 0 ? `${n(race.fame)} fame` : null;
+  const head = race.finished
+    ? `Finished ${raceWhere(race)}`
+    : race.place
+      ? `${ordinal(race.place)} in ${raceWhere(race)}`
+      : `In ${raceWhere(race)}`;
+  return [head, fame].filter(Boolean).join(" · ");
+}

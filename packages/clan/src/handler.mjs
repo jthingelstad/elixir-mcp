@@ -67,6 +67,7 @@ export function createHandler({
   /** the clan's timeline for the reader (`readClanFeed` in web-api): Clan's
    *  Feed, slice 8 (#766) */
   feed = null,
+  race = null,
   /** the clan directory's tiles for the signed-in person, read through the
    *  approved seam (`@elixir-mcp/auth/clan-context`, #768) */
   directory = null,
@@ -473,6 +474,10 @@ export function createHandler({
       // The Feed: the clan's timeline as this member reads it.
       if (feed && method === "GET" && rest === "/feed")
         return json(200, await feed(tag));
+      // The race now, for the clan card and the Feed's race bar (G5): the
+      // clan's week as weekly facts, read as this member reads war_current.
+      if (race && method === "GET" && rest === "/race")
+        return json(200, await race(tag));
       const memberPath = /^\/members\/([0-9A-Za-z]{3,12})\/activity$/.exec(
         rest,
       );
@@ -930,7 +935,8 @@ export function createHandler({
           activity ||
           voice ||
           memberActivity ||
-          feed) &&
+          feed ||
+          race) &&
         path.startsWith("/api/clans/")
       ) {
         const answered = await manageRoute(event, method, path);

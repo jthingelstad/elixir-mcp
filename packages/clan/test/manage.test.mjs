@@ -1373,6 +1373,37 @@ test("below 10 members leaders prepare policy while operational management stays
   assert.equal(me.body.policy.active, false);
 });
 
+test("the clan card's chips come from the saved policy, never a starting value", async () => {
+  const h = harness({ part: partClan() });
+  const cookies = await leader(h);
+  const me = await api(h, cookies, "GET", "/api/me");
+  assert.deepEqual(
+    me.body.policy.chips.map((c) => c.text),
+    [
+      "1 war deck in 2 weeks",
+      "5 ranked battles in 2 weeks",
+      "Any one minimum",
+      "Removal at 8 quiet days",
+    ],
+  );
+  // Saved before the removal days existed: the engine judges with the
+  // starting values, the card shows no removal chip.
+  const older = { ...EXAMPLE_POLICY };
+  delete older.at_risk_days;
+  delete older.confirm_days;
+  const old = harness({ part: partClan(), policy: older });
+  const oc = await leader(old);
+  const chips = (await api(old, oc, "GET", "/api/me")).body.policy.chips;
+  assert.ok(!chips.some((c) => c.key === "removal"), JSON.stringify(chips));
+  // No policy saved: no chips.
+  const none = harness({ part: partClan(), policy: null });
+  const nc = await leader(none);
+  assert.deepEqual(
+    (await api(none, nc, "GET", "/api/me")).body.policy.chips,
+    [],
+  );
+});
+
 test("policy save refuses an older browser version and retains the current version", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
