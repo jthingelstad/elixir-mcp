@@ -28,9 +28,14 @@ tabs Today, Timeline and Friends are replaced:
   with the chips Everyone, Friends, Clan and You, and State (All, New) as
   before. Thirty items a page with More, the chips counting the whole week; a
   read that fails says so with Try again [G1, Jamie's approval 2026-11-12;
-  engineering: the page size, and no automatic retry]. A sitting carries its sparkline. Your week, the clan panel (with
-  this week's race), People to follow and Setup details sit beside it, below
-  it on a phone. People to follow names up to five players in turn from your
+  engineering: the page size, and no automatic retry]. A sitting carries its sparkline. Your week (with the
+  cheers others gave your items since Monday), the clan panel (with
+  this week's race) and People to follow sit beside it, below
+  it on a phone. Above the feed, "Welcome to Elixir, N of 4 done" (add your
+  player, verify it, follow a few people, choose your digest) shows until
+  all four are done, in place of the folded Setup details [G4, Jamie's
+  approval 2026-11-12; engineering: following one player counts, a digest is
+  chosen when the person has a setting of their own, nothing is stored]. People to follow names up to five players in turn from your
   battles of the last week, your clan and the players your follows follow,
   each with why as a fact and what following costs; never ranked by skill,
   never a nickname. [engineering, 2026-11-12] A new account gets its steps

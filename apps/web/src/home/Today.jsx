@@ -16,6 +16,7 @@ import {
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { PeopleToFollow } from "./People.jsx";
+import { Step } from "./NewAccount.jsx";
 import { ladderHref } from "../ladder/ladder.js";
 import { SETTINGS } from "../lib/settings.js";
 import { tagPath } from "../lib/tag-url.js";
@@ -29,17 +30,20 @@ import {
   LEADS,
   STANDING,
   actionsFrom,
+  digestLine,
   lastRaceLine,
   modeWord,
   raceNowLine,
   panelOf,
   weekChips,
+  welcomeSteps,
 } from "./logic.js";
 
 const DASH = "–";
 
 /** Home (slice 7, #765): the one feed beside your week, your clan and People
- *  to follow (2026-11-12). Each
+ *  to follow (2026-11-12), under the welcome steps until they are done (G4).
+ *  Each
  *  side panel reads for itself and draws its own loading state; a panel that
  *  failed says so, the rest render. Needs you moved to the bell, which every
  *  page wears (shell/Bell.jsx); the unlock notice stays here, at the top. */
@@ -52,12 +56,14 @@ export function HomePanels({ first, player, feed }) {
     <div className="kit-home">
       {unlock ? <Unlock player={player} /> : null}
       <div className="kit-home__two">
-        <div className="kit-home__main">{feed}</div>
+        <div className="kit-home__main">
+          <Welcome first={first} player={player} />
+          {feed}
+        </div>
         <div className="kit-home__side">
           <YourWeek player={player} />
           <ClanPanel clan={clan} player={player} />
           <PeopleToFollow />
-          <SetupDetails first={first} clan={clan} player={player} />
         </div>
       </div>
     </div>
@@ -88,6 +94,9 @@ function YourWeek({ player }) {
   const modes = week?.modes ?? initial?.modes ?? {};
   const open = chosen ?? week?.mode ?? "ladder";
   const link = ladderHref("season", { player: player.player_tag, mode: open });
+  // Cheers received this week (G4) are every mode's: the opening read counts
+  // them. Null when unread or not countable just now: shown as nothing.
+  const cheers = initial?.cheers ?? null;
   return (
     <Panel
       title="Your week"
@@ -114,6 +123,7 @@ function YourWeek({ player }) {
           {week.last_battle_at
             ? ` Your last one was ${when(week.last_battle_at)}.`
             : ""}
+          {cheers ? ` ${cheersWords(cheers)} since Monday.` : ""}
         </p>
       ) : (
         <>
@@ -134,6 +144,13 @@ function YourWeek({ player }) {
                 label="Trophies"
                 value={signed(week.net_trophies)}
                 note="in recorded battles"
+              />
+            ) : null}
+            {cheers != null ? (
+              <Stat
+                label="Cheers"
+                value={cheers}
+                note="from others on your items since Monday"
               />
             ) : null}
           </Stats>
@@ -163,6 +180,7 @@ function YourWeek({ player }) {
 }
 
 const signed = (n) => `${n > 0 ? "+" : ""}${n}`;
+const cheersWords = (n) => `${n} ${n === 1 ? "cheer" : "cheers"} from others`;
 
 function trophyNote(net, player, clock) {
   const asOf = player.battlelog_observed_at
@@ -288,75 +306,67 @@ function TrackClan({ clan }) {
   );
 }
 
-function SetupDetails({ first, clan, player }) {
-  const { whenDay } = useClock();
-  const conn = first?.connection;
-  const tracked = first?.clan;
+/** Home's welcome steps (G4, 2026-11-12): what a new account has left to
+ *  do, until all four are done; then nothing, in place of the folded Setup
+ *  details. Worked out from the first answer each time (logic.js). */
+function Welcome({ first, player }) {
+  const state = welcomeSteps(first);
+  if (!state || state.all) return null;
+  const name = player.name ?? player.player_tag;
+  const following = first.welcome.following ?? 0;
   return (
-    <details className="kit-setup">
-      <summary>Setup details</summary>
-      <Rows>
-        <Row
-          title="Your player"
-          right={
+    <section className="kit-welcome" aria-labelledby="kit-welcome-head">
+      <h2 id="kit-welcome-head">
+        Welcome to Elixir
+        <span className="kit-welcome__count">
+          , {state.done} of {state.total} done
+        </span>
+      </h2>
+      <ol className="kit-steps">
+        <Step
+          n={1}
+          heading="h3"
+          title="Add your player"
+          done={state.steps.player}
+          doneLine={
             <>
-              <TagText>{player.name}</TagText>, your main player
+              <TagText>{name}</TagText>, your main player.
             </>
           }
         />
-        <Row
-          title="Recording"
-          right={<FreshInline ts={player.battlelog_observed_at} />}
-        />
-        <Row
-          title="Proved it’s you"
-          right={
-            player.verified ? (
-              player.verified_at ? (
-                `Verified ${whenDay(player.verified_at)}`
-              ) : (
-                "Verified"
-              )
-            ) : (
-              <Link to={`${SETTINGS}/players/verify`}>
-                Not yet. One battle proves it.
-              </Link>
-            )
-          }
-        />
-        <Row
-          title="Your clan"
-          right={
-            tracked?.name
-              ? `${tracked.name}${tracked.war_weeks ? `, ${tracked.war_weeks} race ${tracked.war_weeks === 1 ? "week" : "weeks"}` : ""}`
-              : clan === undefined
-                ? null
-                : clan.ok && clan.state === "none"
-                  ? "None right now"
-                  : "Not tracked yet"
-          }
-        />
-        <Row
-          title="Connected AI"
-          right={
-            (conn?.active_connections ?? 0) > 0 ? (
-              <Link to={`${SETTINGS}/connections`}>
-                {conn.active_connections}{" "}
-                {conn.active_connections === 1 ? "connection" : "connections"}
-              </Link>
-            ) : (
-              "No connections yet"
-            )
-          }
-        />
-      </Rows>
-    </details>
+        <Step
+          n={2}
+          heading="h3"
+          title="Verify it’s you"
+          done={state.steps.verify}
+          doneLine={`${name} is verified.`}
+        >
+          Play one battle with a deck Elixir names, win or lose.{" "}
+          <Link to={`${SETTINGS}/players/verify`}>Verify {name}</Link>
+        </Step>
+        <Step
+          n={3}
+          heading="h3"
+          title="Follow a few people"
+          done={state.steps.follow}
+          doneLine={`You follow ${following} ${following === 1 ? "player" : "players"}.`}
+        >
+          Their battles and moments fill your feed.{" "}
+          <Link to="/home/find">Find people</Link>
+        </Step>
+        <Step
+          n={4}
+          heading="h3"
+          title="Choose your digest"
+          done={state.steps.digest}
+          doneLine={digestLine(first.welcome.digest)}
+        >
+          The people you follow in one email, weekly unless you choose daily or
+          off. <Link to={`${SETTINGS}/emails`}>Choose your digest</Link>
+        </Step>
+      </ol>
+    </section>
   );
-}
-
-function FreshInline({ ts }) {
-  const { when } = useClock();
-  return ts ? `Battle log read ${when(ts)}` : "Battle log not read yet";
 }
 
 /** The chip's words: what the age of the read means for this page. */

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   clanStepLine,
+  digestLine,
   feedShown,
   gameLine,
   lastRaceLine,
@@ -8,6 +9,7 @@ import {
   sparkWords,
   timelineDays,
   weekChips,
+  welcomeSteps,
 } from "../src/home/logic.js";
 
 const clock = { when: (ts) => `at ${ts}` };
@@ -289,4 +291,43 @@ describe("One recorded game in words", () => {
 test("step 3 names a player only when there is one", () => {
   expect(clanStepLine("Clan", true)).toBe("Clan, your player’s clan.");
   expect(clanStepLine("Clan", false)).toBe("Clan, a clan you track.");
+});
+
+describe("Home's welcome steps (G4)", () => {
+  const first = (player, welcome) => ({ player, welcome });
+  test("each step from the account's own state, counted", () => {
+    const s = welcomeSteps(
+      first({ verified: false }, { following: 0, digest: null }),
+    );
+    expect(s.steps).toEqual({
+      player: true,
+      verify: false,
+      follow: false,
+      digest: false,
+    });
+    expect([s.done, s.total, s.all]).toEqual([1, 4, false]);
+    const all = welcomeSteps(
+      first(
+        { verified: true },
+        { following: 1, digest: { enabled: false, cadence: "weekly" } },
+      ),
+    );
+    expect([all.done, all.all]).toEqual([4, true]);
+  });
+  test("no welcome state, no steps: never guessed", () => {
+    expect(welcomeSteps({ player: { verified: true } })).toBeNull();
+    expect(welcomeSteps(undefined)).toBeNull();
+  });
+  test("the digest's line is the person's own setting", () => {
+    expect(digestLine(null)).toBeNull();
+    expect(digestLine({ enabled: false, cadence: "daily" })).toBe(
+      "Your digest is off.",
+    );
+    expect(digestLine({ enabled: true, cadence: "daily" })).toBe(
+      "Your digest comes daily.",
+    );
+    expect(digestLine({ enabled: true, cadence: "weekly" })).toBe(
+      "Your digest comes weekly.",
+    );
+  });
 });

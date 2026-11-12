@@ -344,3 +344,32 @@ test("selected capture state is claim-bound; roster-only data never promises a p
   assert.equal(p.capture_interval.ratio, 0.1);
   assert.ok(p.capture_interval.observed_from && p.capture_interval.observed_to);
 });
+
+test("first-answer carries Home's welcome state: the players followed and the digest, once chosen (G4)", async () => {
+  let w = JSON.parse((await read()).body).welcome;
+  assert.deepEqual(w, { following: 0, digest: null });
+  await db.query(
+    "insert into player (player_tag) values ('#2Y0PYLQ8'), ('#2Y2PYLQ8') on conflict do nothing",
+  );
+  // A friend each, and one the other account follows: only this account's.
+  await db.query(
+    "insert into claim (account_id, player_tag, relationship) values ($1, '#2Y0PYLQ8', 'friend'), ($1, '#2Y2PYLQ8', 'friend'), ($2, '#2Y2PYLQ8', 'friend')",
+    [accountId, otherId],
+  );
+  // An operator's row is not the person's choice.
+  await db.query(
+    "insert into account_email_pref (account_id, kind, enabled, via) values ($1, 'tracking_report', true, 'ops')",
+    [accountId],
+  );
+  w = JSON.parse((await read()).body).welcome;
+  assert.equal(w.following, 2);
+  assert.equal(w.digest, null);
+  await db.query(
+    "update account_email_pref set via = 'profile', cadence = 'daily' where account_id = $1 and kind = 'tracking_report'",
+    [accountId],
+  );
+  w = JSON.parse((await read()).body).welcome;
+  assert.equal(w.digest.cadence, "daily");
+  assert.equal(w.digest.enabled, true);
+  assert.ok(w.digest.chosen_at);
+});

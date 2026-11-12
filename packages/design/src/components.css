@@ -7345,14 +7345,28 @@ button.kit-row {
 .kit-deck .deck-grid {
   max-width: 100%;
 }
-.kit-setup {
+/* Home's welcome steps (G4): one quiet panel above the feed, its steps flat
+   rows inside it rather than boxes of their own. */
+.kit-welcome {
+  margin-bottom: 16px;
+  padding: 12px 14px 4px;
   border-radius: 10px;
   background: var(--panel);
-  padding: 10px 14px;
 }
-.kit-setup summary {
-  cursor: pointer;
-  color: var(--ink-body);
+.kit-welcome > h2 {
+  margin: 0 0 4px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+.kit-welcome__count {
+  color: var(--ink-dim);
+  font-weight: 400;
+}
+.kit-welcome .kit-step {
+  padding: 8px 0;
+  border-radius: 0;
+  background: none;
 }
 .kit-skeleton {
   min-height: 120px;
@@ -7394,7 +7408,7 @@ button.kit-row {
   min-width: 0;
   flex: 1 1 auto;
 }
-.kit-step__body h2 {
+.kit-step__body :is(h2, h3) {
   margin: 0 0 4px;
   color: var(--ink);
   font-size: 15px;
