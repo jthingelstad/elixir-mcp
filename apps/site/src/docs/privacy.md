@@ -26,11 +26,14 @@ clan's awards, a leader's note on why a member left, a best score in
 one of the apps). Each one says which app it came from, and only the
 people it is meant for can see it.
 
-**Without an account.** One page of the record opens to anyone: a
+**Without an account.** Every read of the record needs a free account:
+players, clans, timelines and profiles, on the website, over MCP and
+through the JSON API. One page of the record opens to anyone: a
 battle's own page, with its link and share picture, so a battle can be
 shared. [The status page](/data) and its JSON count what the recorder holds and name no player or clan,
 except that each collector is credited to its operator's primary player.
-Everything else needs a free account.
+The game's card list, this site and its docs, and signing in open too.
+Any other page of the record asks you to sign in, or to create an account.
 
 **Your account.** Signing in keeps your email address, so the service
 can send you sign-in codes and mail about your account. A new account

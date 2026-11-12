@@ -16,6 +16,35 @@ test("signed-out deep links and redirect roots render complete documents without
   }
 });
 
+// #759, DECISIONS "Everyone signs in; shared posts stay public": a
+// signed-out visit to any page of the record is the sign-in-or-join wall
+// (Ladder says what it is first, then the same way in), never the page.
+test("every record page signed out renders the sign-in wall, never the page", async () => {
+  const { SECTIONS } = await import("../src/App.jsx");
+  const me = { ok: true, status: 200, data: { authenticated: false } };
+  const urls = [
+    "/home",
+    "/home/timeline",
+    "/home/friends",
+    "/settings",
+    "/data/service",
+    "/console/explore",
+    "/console/explore/players/%232PQRJ8LV",
+    "/console/explore/clans/%232PQRJ8LV",
+    ...Object.entries(SECTIONS).flatMap(([section, spec]) =>
+      spec.pages.map((page) => `/console/${section}/${page.slug}`),
+    ),
+  ];
+  for (const url of urls) {
+    const html = await renderApp({ url, me });
+    expect(html, url).toContain("Sign in first");
+    expect(html, url).toContain("create an account");
+    expect(html, url).not.toContain("Nothing at this address");
+  }
+  const ladder = await renderApp({ url: "/ladder/battles", me });
+  expect(ladder).toContain("Your season, read back");
+});
+
 test("sign-in and signup render useful forms on the server", async () => {
   const me = { ok: true, status: 200, data: { authenticated: false } };
   const login = await renderApp({ url: "/console/signin", me });

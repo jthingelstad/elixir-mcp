@@ -1,9 +1,16 @@
 /**
- * What opens with no sign-in (#526; DECISIONS "Accounts read the record;
- * one battle page is public"). The record opens at one page, a battle's;
- * status pages count the recorder and name no subject but the operator
- * credit; everything else needs an account. The audit's table is
- * docs/notes/2026-10-12-w1-public.md.
+ * What opens with no sign-in (#759; DECISIONS "Everyone signs in; shared
+ * posts stay public", which replaced "Accounts read the record; one
+ * battle page is public" of #526). Every read of the record needs an
+ * account. Open without one: a battle link someone sends (its page, its
+ * JSON and its picture), a post its owner shares (slice 4, #762, not
+ * built yet), status pages that count the recorder, the game's card
+ * list, and signing in. The site and docs are the site bucket's, never
+ * this router's; the collector door, MCP and keyed /api/v1 calls each
+ * refuse a missing credential in their own tests
+ * (integration-routing.test.mjs: every /api/v1 operation answers 401).
+ * The audits' tables: docs/notes/2026-10-12-w1-public.md and
+ * docs/notes/2026-11-11-sign-in-gate-measured.md.
  *
  * This walks every route the web API registers with no credential. A
  * route that answers unsigned must be listed in PUBLIC with its class,
@@ -26,19 +33,28 @@ const name = `elixir_mcp_test_public_boundary_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 let db, handler;
 
-/** Every route that answers with no sign-in, and why. */
+/** Every route that answers with no sign-in, and why. The classes are
+ *  closed (CLASSES); "record" is the record itself and stays the
+ *  shortest list of all. */
 const PUBLIC = {
-  // The record: one battle's page, its JSON and its picture.
+  // The record: a battle link someone sends. Its page, its JSON (the
+  // page reads it, so it opens with it) and its share picture
+  // (DECISIONS "A battle has its own page").
   "GET /battle/*": "record",
   "GET /api/public/battles/*": "record",
+  // The record: a post its owner shares, with its preview. Slice 4
+  // (#762) adds its routes here, class "record", and to RECORD below.
   // Status: counts of what the recorder holds, no subject named but
-  // the operator credit on /api/public/status.
+  // the operator credit on /api/public/status. /data and its live
+  // figures read these; the site build bakes /api/public/stats.
   "GET /api/public/status": "status",
   "GET /api/public/stats": "status",
   "GET /api/public/efficiency": "status",
   // The game's card list: reference, no subject, no play statistic.
-  "GET /api/public/cards": "status",
-  "GET /api/public/cards/*": "status",
+  // The site build bakes /cards from it and poapkings.com's roster
+  // import reads it with no key.
+  "GET /api/public/cards": "reference",
+  "GET /api/public/cards/*": "reference",
   // Plumbing: signing in and up, signing out, a mail's stop link.
   "GET /api/me": "plumbing",
   "POST /api/request-access": "plumbing",
@@ -54,6 +70,12 @@ const PUBLIC = {
   "GET /api/email/unsubscribe": "plumbing",
   "POST /api/email/unsubscribe": "plumbing",
 };
+
+const CLASSES = new Set(["record", "status", "reference", "plumbing"]);
+
+/** The record that opens with no account, exactly: a battle link today,
+ *  a shared post from slice 4. Growing this is a product decision. */
+const RECORD = ["GET /api/public/battles/*", "GET /battle/*"];
 
 const PRIMARY = "#9QJ2YLR0";
 const ALT = "#8GRUV2Q0";
@@ -133,6 +155,25 @@ test("every listed public route exists", () => {
   const keys = new Set(handler.routeKeys);
   for (const key of Object.keys(PUBLIC))
     assert.ok(keys.has(key), `${key} is listed public but not registered`);
+});
+
+test("the public list is classed, and the record in it is a battle link", () => {
+  for (const [key, cls] of Object.entries(PUBLIC))
+    assert.ok(CLASSES.has(cls), `${key} has an unknown class ${cls}`);
+  assert.deepEqual(
+    Object.keys(PUBLIC)
+      .filter((key) => PUBLIC[key] === "record")
+      .sort(),
+    RECORD,
+  );
+});
+
+test("signed out, /api/me says so and carries nothing of the record", async () => {
+  const res = await call("GET", "/api/me");
+  assert.equal(res.statusCode, 200);
+  const body = parse(res);
+  assert.equal(body.authenticated, false);
+  assert.deepEqual(Object.keys(body).sort(), ["authenticated", "features"]);
 });
 
 test("every other route refuses a request with no credential", async () => {
