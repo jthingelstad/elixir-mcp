@@ -17,6 +17,7 @@ import {
 } from "../lib/queries.js";
 import { SETTINGS } from "../lib/settings.js";
 import {
+  accountRows,
   answerRows,
   bellCount,
   bellLabel,
@@ -31,6 +32,8 @@ import {
  * followers (named by their verified player, else counted), Needs you (your
  * clan's actions waiting on you as a leader, and an old key still trying to
  * connect: Home's old Needs you, as before) and answers to your feedback.
+ * Since 2026-11-12 also your account's own lines, out of Home's feed: a burst
+ * is one line ("Recording started for 24 players").
  *
  * The dot is lit while something needs you or something came since you last
  * opened the bell; opening it moves your seen marker. Nothing here goes to
@@ -121,6 +124,7 @@ export function BellSheet({ me, onClose }) {
   const reactions = (bell?.reactions?.items ?? []).map(reactionRow);
   const followers = followerRows(bell?.followers);
   const answers = answerRows(bell?.answers);
+  const account = accountRows(bell?.account);
   const nothing =
     bell &&
     needs !== undefined &&
@@ -128,7 +132,8 @@ export function BellSheet({ me, onClose }) {
     reactions.length === 0 &&
     followers.rows.length === 0 &&
     !followers.counted &&
-    answers.length === 0;
+    answers.length === 0 &&
+    account.length === 0;
   return (
     <dialog
       ref={box}
@@ -274,6 +279,26 @@ export function BellSheet({ me, onClose }) {
                     </>
                   }
                   detail={a.detail}
+                />
+              ))}
+            </Rows>
+          </Section>
+        ) : null}
+        {account.length ? (
+          <Section title="Your account">
+            <Rows>
+              {account.map((a) => (
+                <Row
+                  key={a.key}
+                  href={a.to}
+                  onClick={onClose}
+                  title={
+                    <>
+                      <New on={a.new} />
+                      <TagText>{a.title}</TagText>
+                    </>
+                  }
+                  detail={a.detail ?? clock.when(a.at)}
                 />
               ))}
             </Rows>

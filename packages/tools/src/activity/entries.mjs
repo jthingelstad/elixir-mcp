@@ -3257,6 +3257,11 @@ export async function buildTimeline(
     // their own: Clan's Feed passes its current members (slice 8, #766),
     // whose highlights a clan subject alone does not carry.
     highlightTags = [],
+    // The account's own administration (claims, recording started or
+    // stopped, sign-ins, answers to feedback): served unless the caller
+    // says not. Home's feed and the RSS feed leave it out at the read;
+    // the bell tells it (2026-11-12). Every other door keeps it.
+    accountLines = true,
   },
 ) {
   const entries = [];
@@ -3321,7 +3326,8 @@ export async function buildTimeline(
         days_since_poll: e.presence.days_since_poll,
       });
   }
-  items.push(...(await accountItems(db, accountId, fromMs, toMs)));
+  if (accountLines)
+    items.push(...(await accountItems(db, accountId, fromMs, toMs)));
   items.push(
     ...(await highlightItems(db, subjects, {
       accountId,

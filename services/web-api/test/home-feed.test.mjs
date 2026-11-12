@@ -100,3 +100,30 @@ test("annotateFeed adds the chips, the battle's page, and keeps the rest", async
     [{ ...items[1], groups: ["you"] }],
   );
 });
+
+test("foldAccountLines: one line per kind and burst, however the kinds interleave", async () => {
+  const { foldAccountLines } = await import("../src/bell.mjs");
+  const at = (min) => new Date(Date.UTC(2026, 10, 12, 17, min)).toISOString();
+  const rows = [
+    // Newest first, as the read orders them.
+    { kind: "recording_started", created_at: at(40), player_tag: "#2PYLQ0" },
+    { kind: "claim_added", created_at: at(40), player_tag: "#2PYLQ0" },
+    { kind: "recording_started", created_at: at(39), player_tag: "#2PYLQ2" },
+    { kind: "claim_added", created_at: at(39), player_tag: "#2PYLQ2" },
+    { kind: "clan_added", created_at: at(38), clan_tag: "#2PYLQJ" },
+    // Twenty minutes before: a burst of its own.
+    { kind: "claim_added", created_at: at(18), player_tag: "#2PYLQ8" },
+  ];
+  const out = foldAccountLines(rows, at(30));
+  assert.deepEqual(
+    out.items.map((l) => [l.kind, l.players, l.clans, l.new]),
+    [
+      ["recording_started", 2, 0, true],
+      ["claim_added", 2, 0, true],
+      ["clan_added", 0, 1, true],
+      ["claim_added", 1, 0, false],
+    ],
+  );
+  assert.equal(out.new, 3);
+  assert.equal(out.items[0].at, at(40));
+});

@@ -359,3 +359,72 @@ test("the bell's refusals: signed out, no contract header, agents, the hour's ca
   );
   assert.equal((await call("GET", "/api/me/bell", { who: "fan" })).status, 429);
 });
+
+test("your account's lines leave Home's feed for the bell, a burst folded into one line per kind", async () => {
+  // A run of follows, as the live burst of 2026-11-12 logged it: each adds
+  // the claim and then starts its recording, so the two kinds interleave.
+  const BUSY = "bell-busy@example.com";
+  ids.busy = await account(BUSY);
+  cookies.busy = await signIn(BUSY);
+  const tags = Array.from(
+    { length: 24 },
+    (_, i) => `#2PP0V${"0289PYLQGRJCUV"[i % 14]}${"PYLQ"[Math.floor(i / 14)]}`,
+  );
+  assert.equal(new Set(tags).size, 24);
+  let n = 0;
+  for (const tag of tags)
+    for (const kind of ["claim_added", "recording_started"])
+      await db.query(
+        `insert into account_event (account_id, kind, detail, created_at)
+         values ($1, $2, $3, now() - make_interval(secs => $4))`,
+        [ids.busy, kind, JSON.stringify({ player_tag: tag }), 600 - n++],
+      );
+  // An hour before: one player another account verified.
+  await db.query(
+    `insert into account_event (account_id, kind, detail, created_at)
+     values ($1, 'claim_ended', $2, now() - interval '1 hour')`,
+    [ids.busy, JSON.stringify({ player_tag: PLAYER, was_primary: false })],
+  );
+
+  // Home's feed has none of it; Settings › Timeline still does.
+  const feed = await call("GET", "/api/me/home/feed", { who: "busy" });
+  assert.equal(feed.status, 200, JSON.stringify(feed.body));
+  assert.equal(
+    feed.body.timeline.filter((it) => it.section === "account").length,
+    0,
+  );
+  assert.ok(feed.body.window?.to);
+  assert.ok("seen_to" in feed.body);
+  const timeline = await call("GET", "/api/me/timeline", { who: "busy" });
+  assert.ok(
+    timeline.body.timeline.some((it) => it.kind === "account_claim_added"),
+  );
+
+  const bell = await call("GET", "/api/me/bell", { who: "busy" });
+  assert.equal(bell.status, 200, JSON.stringify(bell.body));
+  const lines = bell.body.account.items;
+  assert.deepEqual(
+    lines.map((l) => [l.kind, l.players, l.events]),
+    [
+      ["recording_started", 24, 24],
+      ["claim_added", 24, 24],
+      ["claim_ended", 1, 1],
+    ],
+  );
+  // One line about one player names it; a burst names a few, not all.
+  assert.deepEqual(lines[2].subjects, [
+    { tag: PLAYER, name: "Invented Owner", kind: "player" },
+  ]);
+  assert.equal(lines[0].subjects.length, 3);
+  // Sign-ins stay in Settings, never the bell.
+  assert.equal(
+    lines.some((l) => l.kind === "signed_in"),
+    false,
+  );
+  assert.equal(bell.body.account.new, 3);
+  assert.equal(bell.body.new, 3);
+  await call("PUT", "/api/me/bell/seen", { who: "busy" });
+  const seen = await call("GET", "/api/me/bell", { who: "busy" });
+  assert.equal(seen.body.account.new, 0);
+  assert.equal(seen.body.new, 0);
+});

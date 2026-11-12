@@ -11,7 +11,7 @@ import {
 } from "@elixir-mcp/ui";
 import { SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
-import { useMyTimeline, useTimelineEvidence } from "../lib/queries.js";
+import { useHomeFeed, useTimelineEvidence } from "../lib/queries.js";
 import {
   TimelineEvidence,
   useRowTime,
@@ -36,12 +36,14 @@ import { Cheers } from "./Cheers.jsx";
  *
  * An item is a sitting with its sparkline, a moment with its battle, a
  * highlight in its player's words, or a clan's line, which wears the gold
- * edge. Every player's name opens their page. Every item but the
- * account's own administration carries its cheers (Cheers.jsx).
+ * edge. Every player's name opens their page, and every item carries its
+ * cheers (Cheers.jsx). Your account's own lines (claims, recording started
+ * or stopped) are not here: the read leaves them out and the bell tells
+ * them (2026-11-12).
  */
 export function HomeFeed() {
   const { day, dayHeading } = useClock();
-  const query = useMyTimeline();
+  const query = useHomeFeed();
   const timeline = query.data ?? null;
   const { openedMs } = useTimelinePlace(timeline);
   const [show, setShow] = useState("everyone");

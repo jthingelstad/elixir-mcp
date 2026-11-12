@@ -189,6 +189,9 @@ export function cheersRoutes({ resolveAccount }) {
         toMs,
         timezone: owner.timezone ?? "UTC",
         accountId: owner.account_id,
+        // Never the account's administration: left out at the read, so it
+        // spends none of the timeline's cap either.
+        accountLines: false,
       });
       const items = await annotateFeed(db, feedItems(built.timeline), subjects);
       return {

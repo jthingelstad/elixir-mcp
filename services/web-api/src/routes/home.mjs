@@ -13,6 +13,8 @@ import { lastGameWeek } from "@elixir-mcp/record/game-week";
 
 import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
+import { annotateFeed } from "../feed.mjs";
+import { withCheers } from "../cheers.mjs";
 import { firstAnswer } from "../first-answer.mjs";
 import { homeClan, myClans } from "./clans.mjs";
 
@@ -436,6 +438,41 @@ async function readLatest(db, account) {
   };
 }
 
+/** Home's feed (2026-11-12): the last seven days of everyone you follow,
+ *  your clan and you, as GET /api/me/timeline builds them, without the
+ *  account's own administration. Claims, recording started or stopped and
+ *  the like are about the account, not anyone's play, so the read leaves
+ *  them out and the bell tells them (bell.mjs). Settings › Timeline, an
+ *  agent's console and elixir_timeline keep them. */
+async function readFeed(db, account) {
+  const { rows } = await db.query(
+    `select console_timeline_seen_at, timezone from account
+      where account_id = $1`,
+    [account.accountId],
+  );
+  const subjects = await subjectsFor(db, account.accountId);
+  const toMs = Date.now();
+  const built = await buildTimeline(db, subjects, {
+    fromMs: toMs - 7 * 86_400_000,
+    toMs,
+    timezone: account.timezone ?? rows[0]?.timezone ?? "UTC",
+    accountId: account.accountId,
+    interactive: true,
+    accountLines: false,
+  });
+  return {
+    ...built,
+    // The chips, sparklines and battle links, and each item's cheers:
+    // counts and the reader's own, never who (slice 7, #765).
+    timeline: await withCheers(
+      db,
+      await annotateFeed(db, built.timeline, subjects),
+      account.accountId,
+    ),
+    seen_to: rows[0]?.console_timeline_seen_at?.toISOString() ?? null,
+  };
+}
+
 async function rate(db, account) {
   // The hourly bucket /mcp and Explore use, charged once for the whole page.
   return checkRateLimit(db, {
@@ -553,6 +590,25 @@ export function homeRoutes({ resolveAccount, exploreRegistry, clan }) {
         readWeek(read, db, tag, event.queryStringParameters?.mode ?? null),
       );
       return json(200, { week });
+    },
+
+    // The feed. Its place ("New since your last visit") is the timeline's,
+    // moved by POST /api/me/timeline/seen as before; its evidence reads are
+    // GET /api/me/timeline's.
+    "GET /api/me/home/feed": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const started = Date.now();
+      const feed = await readFeed(db, account);
+      console.info(
+        JSON.stringify({
+          at: "home_panel",
+          panel: "feed",
+          ms: Date.now() - started,
+          items: feed.timeline.length,
+        }),
+      );
+      return json(200, feed);
     },
 
     "GET /api/me/home/latest": async (db, event) => {

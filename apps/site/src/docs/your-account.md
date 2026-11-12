@@ -162,9 +162,16 @@ your friends. Each part shows only when it has something:
 - **Answers to your feedback**: each answer the maintainer gave in the last
   thirty days, and any you have not read; it opens the answer in Settings ›
   Feedback.
+- **Your account**: what changed on your account in the last seven days,
+  such as players and clans added, recording started or stopped, or a
+  player another account verified. A burst is one line per kind
+  ("Recording started for 24 players"). A line about one player opens
+  their page; the rest open Settings. Sign-ins stay in Settings › Sign-ins
+  & devices.
 
 A dot shows on the bell while something needs you or something came since
-you last opened it. Opening the bell marks reactions and followers as seen;
+you last opened it. Opening the bell marks reactions, followers and your
+account's lines as seen;
 an answer stays new until you open it. With no verified player, the bell
 says how to verify one. Nothing in the bell is mailed or posted to Discord.
 

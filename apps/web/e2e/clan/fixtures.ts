@@ -160,8 +160,15 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
     const req = route.request();
     const url = new URL(req.url());
     const key = `${req.method()} ${url.pathname}`;
+    // Home's feed is the timeline's read without the account's own lines
+    // (2026-11-12): a fixture that answers the timeline answers the feed
+    // too, unless it names the feed itself.
     const answer =
-      routes[key] ?? routes[`${req.method()} ${url.pathname}${url.search}`];
+      routes[key] ??
+      routes[`${req.method()} ${url.pathname}${url.search}`] ??
+      (key === "GET /api/me/home/feed"
+        ? routes["GET /api/me/timeline"]
+        : undefined);
     const [status, body] =
       typeof answer === "function"
         ? answer(route)

@@ -46,7 +46,9 @@ tabs Today, Timeline and Friends are replaced:
 - **The bell**, on every page: what is about you, not your friends. Needs you,
   moved out of Home, and since 2026-11-12 reactions to your items (counts,
   never who), new followers (named by their verified player, else counted)
-  and answers to your feedback, with a seen marker. [Jamie, 2026-11-12, the
+  and answers to your feedback, with a seen marker; since G2 of 2026-11-12
+  also your account's own lines, which left Home's feed (a burst is one
+  line). [Jamie, 2026-11-12, the
   same go; engineering: the windows, DECISIONS "The bell is what is about
   you"]
 - **Cheers** (the same ruling's six): one per person per item, on an item

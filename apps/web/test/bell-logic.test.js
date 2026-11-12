@@ -4,6 +4,7 @@
  */
 import { test, expect } from "vitest";
 import {
+  accountRows,
   answerRows,
   bellCount,
   bellLabel,
@@ -88,4 +89,84 @@ test("answers open their page in Settings", () => {
       new: false,
     },
   ]);
+});
+
+test("your account's lines: a burst is one line, one player opens their page", () => {
+  const rows = accountRows({
+    new: 2,
+    items: [
+      {
+        kind: "recording_started",
+        at: "2026-11-12T17:10:00.000Z",
+        events: 24,
+        players: 24,
+        clans: 0,
+        subjects: [{ tag: "#2PYLQ0", name: "Invented One", kind: "player" }],
+        new: true,
+      },
+      {
+        kind: "claim_added",
+        at: "2026-11-12T17:00:00.000Z",
+        events: 1,
+        players: 1,
+        clans: 0,
+        subjects: [{ tag: "#2PYLQ2", name: "Invented Two", kind: "player" }],
+        new: true,
+      },
+      {
+        kind: "claim_ended",
+        at: "2026-11-12T16:00:00.000Z",
+        events: 1,
+        players: 1,
+        clans: 0,
+        subjects: [{ tag: "#2PYLQ8", name: null, kind: "player" }],
+        new: false,
+      },
+      {
+        kind: "recording_stopped",
+        at: "2026-11-12T15:00:00.000Z",
+        events: 3,
+        players: 2,
+        clans: 1,
+        subjects: [],
+        new: false,
+      },
+      {
+        kind: "connection_revoked",
+        at: "2026-11-12T14:00:00.000Z",
+        events: 6,
+        players: 0,
+        clans: 0,
+        subjects: [],
+        new: false,
+      },
+    ],
+  });
+  expect(rows.map((r) => r.title)).toEqual([
+    "Recording started for 24 players",
+    "Added Invented Two",
+    "No longer yours: #2PYLQ8",
+    "Recording stopped for 2 players and 1 clan",
+    "App disconnected, 6 times",
+  ]);
+  expect(rows[0].to).toBe("/settings/players");
+  expect(rows[1].to).toMatch(/^\/home\/player\//);
+  // A player no longer yours is said with why, and opens Settings.
+  expect(rows[2].to).toBe("/settings/players");
+  expect(rows[2].detail).toMatch(/Another account verified it/);
+  expect(rows[4].to).toBe("/settings/sign-ins");
+  expect(rows.map((r) => r.new)).toEqual([true, true, false, false, false]);
+  const seen = bellSeenAt(
+    {
+      new: 2,
+      reactions: { items: [] },
+      followers: { players: [] },
+      answers: { new: 0, items: [] },
+      account: { new: 2, items: [{ kind: "claim_added", new: true }] },
+    },
+    "2026-11-12T18:00:00.000Z",
+  );
+  expect(seen.account.items[0].new).toBe(false);
+  expect(seen.account.new).toBe(0);
+  expect(seen.new).toBe(0);
 });

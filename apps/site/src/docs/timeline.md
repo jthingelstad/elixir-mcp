@@ -31,11 +31,16 @@ the same cap on items, and reading it moves no pointer.
 
 Home is your timeline as one feed, newest first, in days. Chips choose
 whose items it shows: **Everyone**, **Friends** (the players you follow as
-friends), **Clan** (the clans you follow), or **You** (your own players and
-your account's own items), each with its count. A player you only watch is
-under Everyone. **All** or **New** chooses between everything and what
-came since your last visit. Nothing is filtered at the source: the chips
-only choose what the page draws.
+friends), **Clan** (the clans you follow), or **You** (your own players),
+each with its count. A player you only watch is under Everyone. **All** or
+**New** chooses between everything and what came since your last visit. The
+chips only choose what the page draws.
+
+Your account's own items (a player or clan added, recording started or
+stopped, a player no longer yours, an answer to your feedback) are not in
+Home's feed: they are about your account, not anyone's play, so [the
+bell](/docs/your-account#the-bell) tells them instead, a burst of them as
+one line. Settings' Timeline page and `elixir_timeline` still carry them.
 
 A sitting of battles carries a small bar chart, one bar per battle in the
 order played: up for a win and down for a loss, as tall as the crown margin

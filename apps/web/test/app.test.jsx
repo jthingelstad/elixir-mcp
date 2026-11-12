@@ -681,7 +681,7 @@ test(
             recordings: [],
           },
         ],
-        "GET /api/me/timeline": [200, timeline],
+        "GET /api/me/home/feed": [200, timeline],
         "POST /api/me/timeline/seen": [200, { seen_to: timeline.window.to }],
       });
 
@@ -722,7 +722,7 @@ test(
         200,
         { authenticated: true, claims: FOLLOWS_A_FRIEND, recordings: [] },
       ],
-      "GET /api/me/timeline": [
+      "GET /api/me/home/feed": [
         200,
         {
           seen_to: null,
@@ -778,7 +778,7 @@ test(
           signals: { tracking: 1, timeline_pending: pending },
         },
       ],
-      "GET /api/me/timeline": [
+      "GET /api/me/home/feed": [
         200,
         {
           window: { from: "2026-09-06T02:30:00.000Z", to: TO },

@@ -113,6 +113,8 @@ async function feedItemsFor(db, { accountId, tags, subjects }) {
     toMs,
     accountId,
     interactive: true,
+    // Home's feed leaves the account's administration out; so does this.
+    accountLines: false,
   });
   return {
     items: (built.timeline ?? []).filter(cheerable),
