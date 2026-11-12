@@ -25,9 +25,9 @@ const STEPS = {
 /**
  * One next step on the season home while the record is young (under
  * YOUNG_RECORD_DAYS, ladder.js youngRecord): how old the record is and
- * a link. Plain facts; nothing about play. Its clan read is the one
- * Bring your clanmates already makes (`/api/me/clans`, cached), and the
- * record's start is the summary's meta, so it adds no request.
+ * a link. Plain facts; nothing about play. Its clan read is `/api/me/clans`
+ * (cached, shared with Find's Bring your clanmates), and the record's
+ * start is the summary's meta, so it adds no request.
  */
 export function YoungRecord({ player, summary, className = "" }) {
   const [now] = useInitialTime();

@@ -34,7 +34,6 @@ import {
 } from "./ladder-days.js";
 import { gapLine, formNames } from "./ladder-decks.js";
 import { api } from "../api.js";
-import { BringClanmates } from "../components/BringClanmates.jsx";
 import { SETTINGS } from "../lib/settings.js";
 import { useBattleSweep, useToolRead, useToolReads } from "../lib/queries.js";
 import { DeckForm, SeasonForm, WeekForm } from "./Form.jsx";
@@ -70,7 +69,6 @@ export function Season(ctx) {
         <OneMode {...ctx} body={reads[0].data} args={args} />
       )}
       {whose.own ? <YoungRecord player={player} summary={summary} /> : null}
-      <BringClanmates />
       <SeasonExtras player={player} search={search} />
     </>
   );
