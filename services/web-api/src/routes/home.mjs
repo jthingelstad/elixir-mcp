@@ -395,23 +395,34 @@ async function readClanPanel({ db, account, event, read, clan, requestId }) {
 }
 
 /** Needs you and the unlock notice: Clan's store reads through the same door,
- *  gate and role checks as the card, and none of the card's record reads. */
+ *  gate and role checks as the card, and none of the card's record reads.
+ *  The bell draws it. Its Actions are read live from Clan's store on every
+ *  request, never from a stored copy: a waiting Action closes the moment a
+ *  leader decides it.
+ *
+ *  Whether the account tracks the clan does not decide it (2026-11-12,
+ *  "a leader with a waiting Action sees it in the bell"): Clan's own gate
+ *  admits a member of their clan whether or not Elixir records it, and an
+ *  Action waiting on a leader is theirs to see either way. */
 async function readNeedsPanel({ db, account, event, clan, requestId }) {
   const home = await homeClan(db, account.accountId);
   if (!home) return { state: "none" };
-  const tracked = await tracksClan(db, account.accountId, home.clan_tag);
-  const view =
-    tracked && clan
-      ? await readClanView(clan, {
-          db,
-          account,
-          event,
-          clanTag: home.clan_tag,
-          requestId,
-          read: "needs",
-        })
-      : null;
-  if (!view) return { state: tracked ? "tracked" : "untracked" };
+  const view = clan
+    ? await readClanView(clan, {
+        db,
+        account,
+        event,
+        clanTag: home.clan_tag,
+        requestId,
+        read: "needs",
+      })
+    : null;
+  if (!view)
+    return {
+      state: (await tracksClan(db, account.accountId, home.clan_tag))
+        ? "tracked"
+        : "untracked",
+    };
   return {
     state: "member",
     clan_tag: view.clan_tag,

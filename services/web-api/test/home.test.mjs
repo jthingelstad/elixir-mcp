@@ -439,7 +439,7 @@ test("a failed clan panel says so and the rest of Home still renders", async () 
   assert.equal(needs.needs_total, clan.needs_total);
 });
 
-test("Needs you asks nothing of a person whose clan is untracked or absent", async () => {
+test("Needs you reaches a leader whose clan Elixir does not track, and nobody without a clan", async () => {
   const none = await person("home-needs-none");
   assert.equal(
     data(await call(handler, none, "GET", "/api/me/home/needs")).needs.state,
@@ -456,11 +456,16 @@ test("Needs you asks nothing of a person whose clan is untracked or absent", asy
      values ($1,$2,'leader',now()) on conflict do nothing`,
     [CLAN, OWN],
   );
+  // Clan's gate admits them untracked: their Actions waiting reach the bell
+  // (2026-11-12), read live through Clan's door.
   const needs = data(
     await call(handler, id, "GET", "/api/me/home/needs"),
   ).needs;
-  assert.equal(needs.state, "untracked");
-  assert.equal(needs.needs, undefined);
+  assert.equal(needs.ok, true);
+  assert.equal(needs.state, "member");
+  assert.equal(needs.clan_tag, CLAN);
+  assert.deepEqual(needs.needs, []);
+  assert.equal(needs.needs_total, 0);
   const clan = data(await call(handler, id, "GET", "/api/me/home/clan")).clan;
   assert.equal(clan.state, "untracked");
   assert.equal(clan.slots.limit > 0, true, "the Track button's slots stay");
