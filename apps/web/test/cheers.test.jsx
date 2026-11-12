@@ -174,3 +174,28 @@ test("the RSS link shows once after it is made, then only that it is on", async 
   expect(screen.getByRole("button", { name: "Turn off" })).toBeTruthy();
   expect(calls.some((c) => c.method === "POST")).toBe(true);
 });
+
+test("one cheer write at a time per item: the chips wait for the answer", async () => {
+  let answer;
+  global.fetch = vi.fn((path, init = {}) => {
+    calls.push({ path: String(path), method: init.method, body: init.body });
+    return new Promise((resolve) => {
+      answer = () =>
+        resolve(
+          reply({ item_id: ITEM.id, cheers: { on_fire: 1 }, my_cheer: null }),
+        );
+    });
+  });
+  renderWithProviders(<Cheers it={ITEM} />);
+  const mine = screen.getByRole("button", { name: "On fire, 2, yours" });
+  fireEvent.click(mine);
+  await waitFor(() => expect(calls).toHaveLength(1));
+  for (const b of screen.getAllByRole("button")) expect(b.disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: /Royal, 1/ }));
+  expect(calls).toHaveLength(1);
+  answer();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Cheer" }).disabled).toBe(false),
+  );
+  expect(calls).toHaveLength(1);
+});
