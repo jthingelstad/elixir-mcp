@@ -154,6 +154,29 @@ test("clan.learned: the two counts count what the join counted, without scanning
       !nodes.some((n) => n["Node Type"].includes("Seq Scan")),
       "no sequential scan",
     );
+    // late: false (a read that serves no activity, #649): the same narrated
+    // count, no late count, and nothing walks the window's battles.
+    for (const [f, t] of windows)
+      for (const tag of ["#BIG", "#FOE", "#ELSE", "#NONE"]) {
+        const args = { tag, fromMs: f, toMs: t };
+        const full = (await db.query(clanLearnedQuery(args))).rows[0];
+        const lean = (
+          await db.query(clanLearnedQuery({ ...args, late: false }))
+        ).rows[0];
+        assert.deepEqual(lean, { recent: full.recent, late: null });
+      }
+    const lean = await planNodes(
+      db,
+      clanLearnedQuery({ tag: "#BIG", fromMs, toMs, late: false }),
+    );
+    assert.ok(
+      !lean.some(
+        (n) =>
+          n["Index Name"] === "battle_participant_pkey" ||
+          n["Index Name"] === "battle_created_at",
+      ),
+      "no walk of the window's battles",
+    );
     // The occurred basis keeps the clan's own range.
     const occurred = await planNodes(
       db,
