@@ -1,6 +1,7 @@
 import {
   addPlayer,
   setRelationship,
+  playerCosts,
   poolLimits,
   poolOwner,
   pooledUsage,
@@ -128,8 +129,9 @@ export function accountRoutes({
         primary_player_tag: r.promotedPrimary,
       });
     }
-    // 'add': added = recorded (Jamie, 2026-09-05). Slots count what
-    // you've ADDED (your claims); the MCP door runs the same function.
+    // 'add': added = recorded (Jamie, 2026-09-05). Slots count the players
+    // Elixir records because of you (#760): one already recorded for
+    // another reason is free. The MCP door runs the same function.
     // relationship "friend" is Home's Follow: never the primary, and never
     // with make_primary. "alt" and "watching" are the add form's Add as.
     const asked = body.relationship ?? null;
@@ -150,10 +152,14 @@ export function accountRoutes({
         error: r.error,
         message: "Add your own player first.",
       });
+    // Refused, never queued, saying why (#760): how many of how many, and
+    // that following a player Elixir already records stays free.
     if (!r.ok && r.error === "quota_exceeded") {
       return json(429, {
         error: "quota_exceeded",
-        message: `You're tracking ${r.limit} players, the most this account allows. Stop tracking one.`,
+        message: r.message,
+        used: r.used,
+        limit: r.limit,
       });
     }
     if (!r.ok && r.error === "not_entitled")
@@ -178,8 +184,20 @@ export function accountRoutes({
       first_read: first.requested,
       not_found: first.not_found === true,
       clan_followed: r.clanFollowed ?? null,
+      slot: slotWire(r.slot),
       ...(follow ? { added: r.added, relationship: r.relationship } : {}),
     });
+  }
+
+  /** What a follow costs, on the wire: Infinity is null (unlimited). */
+  function slotWire(slot) {
+    return {
+      took: slot.took,
+      free: slot.free,
+      reason: slot.reason,
+      used: slot.used,
+      limit: slot.limit === Infinity ? null : slot.limit,
+    };
   }
 
   return {
@@ -247,6 +265,22 @@ export function accountRoutes({
       const limits = poolLimits(owner);
       const used = await pooledUsage(db, owner.account_id);
       const q = roleQuotas(owner.role);
+      // Each player's standing in the pool's slots (#760): free when Elixir
+      // records them for another reason, else the slot it takes.
+      const costs = new Map(
+        (
+          await playerCosts(
+            db,
+            owner.account_id,
+            claims.rows.map((c) => c.player_tag),
+          )
+        ).map((c) => [c.player_tag, c]),
+      );
+      for (const c of claims.rows) {
+        const cost = costs.get(c.player_tag);
+        c.slot = cost?.free ? "free" : "used";
+        c.slot_reason = cost?.reason ?? null;
+      }
       // So are the daily budgets: an agent spends its owner's calls.
       const budget = account.owner
         ? {
@@ -307,6 +341,8 @@ export function accountRoutes({
         player_slots: {
           used: used.players_used,
           limit: lim(limits.player_slots),
+          // Followed players that take no slot (#760).
+          free: used.players_free,
         },
         activity_clans: {
           used: used.activity_used,
@@ -463,6 +499,34 @@ export function accountRoutes({
       return json(200, { ok: true, timezone: tz });
     },
 
+    // What a Follow would cost, said before the tap (#760): free when
+    // Elixir already records the player, else one of the pool's slots.
+    "GET /api/me/follow-cost": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      let tag;
+      try {
+        tag = normalizeTag(
+          String(event.queryStringParameters?.player_tag ?? ""),
+        );
+      } catch (err) {
+        if (err instanceof InvalidTagError)
+          return json(400, { error: "invalid_tag" });
+        throw err;
+      }
+      const owner = await poolOwner(db, account.accountId);
+      const limits = poolLimits(owner);
+      const [cost] = await playerCosts(db, owner.account_id, [tag]);
+      const used = await pooledUsage(db, owner.account_id);
+      return json(200, {
+        player_tag: tag,
+        following: cost.following,
+        free: cost.free,
+        reason: cost.reason,
+        used: used.players_used,
+        limit: limits.player_slots === Infinity ? null : limits.player_slots,
+      });
+    },
     "POST /api/claims": trackPlayer,
     // The same writer at a /api/me address, so an agent's console can run it
     // as the agent (/api/agent/<id>/players; 2026-09-23).

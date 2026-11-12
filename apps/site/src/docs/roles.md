@@ -132,8 +132,10 @@ recording stops only when no account tracks it.
 One every-member clan watch already records about fifty players, so tracking
 fifty individually costs the service exactly what a single every-member slot
 costs. And most of them are already recorded anyway: **a recording
-is shared by everyone watching it**, so tracking a clanmate of a clan already
-being recorded is free.
+is shared by everyone watching it**, so a player slot is spent only when
+Elixir records the player because of you. A member of a clan recorded in
+full, or a player another account already follows, is free ([What a player
+slot costs](/docs/recording#what-a-player-slot-costs)).
 
 That is also what makes relationships worth having. Each player you track is your
 **primary** (you), an **alt** (also you, another tag), a **friend** you follow,

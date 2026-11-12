@@ -73,6 +73,33 @@ is still recorded, and its first read comes with the scheduler's next round.
 
 Slots are the only gate; see [Limits](/docs/limits).
 
+## What a player slot costs
+
+A player slot pays for what Elixir records because of you, so following a
+player Elixir already records is free. A player is free when either is true:
+
+- they are a current member of a clan Elixir records at `comprehensive`
+  scope (every member), whoever tracks that clan;
+- another account followed them before you did. Your agents are part of
+  your account here, and a suspended agent's follow counts for nothing.
+
+A clan tracked at `activity` scope, including the clan Elixir follows for
+your primary player, records the clan and not its members, so following one
+of its members takes a slot. Whoever followed a player first pays for them,
+so two accounts can never make each other's follows free.
+
+The web says what a Follow costs before you tap it: **Free · already
+recorded**, or **Uses 1 of your 50 player slots** with the number in use.
+`elixir_track_player` and `POST /api/me/players` return a `slot` block
+(`took`, `free`, `free_because`, `used`, `limit`), and Settings › Players &
+tracking marks each player as free or using a slot.
+
+If a free player's reason goes away (they leave the clan, or the other
+account stops following), they keep recording and start using one of your
+slots. Nobody is removed for it: an account that ends up over its limit
+keeps everything it tracks, and only a new follow that would take a slot is
+refused, with the count and the reason. Free follows are never refused.
+
 If your clans cannot be read, Home and the clans view of Players & tracking say
 so and offer **Try again**. A failed read does not mean that you stopped
 tracking a clan; any previously read clans stay available. Trying again reads

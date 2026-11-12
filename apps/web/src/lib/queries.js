@@ -120,6 +120,20 @@ export const useEmailRecord = (id) =>
     enabled: Boolean(id),
   });
 
+/** What a Follow of `tag` would cost (#760), or nothing until there is a
+ *  plausible tag. A tag already normalized by the caller keys the read, so
+ *  "#abc" and "ABC" share one answer. */
+export const useFollowCost = (tag) => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: scopedKey(agent, "follow-cost", tag ?? ""),
+    queryFn: payload(() => api.followCost(tag, agent)),
+    enabled: Boolean(tag),
+    staleTime: 30_000,
+    retry: false,
+  });
+};
+
 export const useMyClans = () => {
   const agent = useScope();
   return useQuery({

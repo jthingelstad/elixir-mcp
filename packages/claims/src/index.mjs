@@ -1,15 +1,25 @@
 export { createPrincipal, normalizePrincipalName } from "./principals.mjs";
 import { readMembershipCapture } from "@elixir-mcp/record/membership-capture";
 import {
+  COUNTS,
+  playerCost,
   poolLimits,
   poolOwner,
   pooledClanWidth,
   pooledUsage,
   scopeWidth,
+  slotsFullMessage,
   widthScope,
 } from "./pool.mjs";
 
-export { poolLimits, poolOwner, pooledUsage } from "./pool.mjs";
+export {
+  playerCost,
+  playerCosts,
+  poolLimits,
+  poolOwner,
+  pooledUsage,
+  slotsFullMessage,
+} from "./pool.mjs";
 
 /**
  * Who is subscribed to what, and therefore what gets recorded.
@@ -97,10 +107,6 @@ export async function verifiedElsewhere(db, accountId, tag) {
   );
   return rows.length > 0;
 }
-
-/** An account `a` whose tracking is a reason to record: anyone but a
- *  suspended agent. */
-const COUNTS = `(a.kind <> 'agent' or a.status = 'approved')`;
 
 /**
  * Make the recording match the reasons to record.
@@ -212,11 +218,13 @@ export async function reconcileRecording(
 /**
  * Add (subscribe to) a player.
  *
- * Returns {ok:false, error:"quota_exceeded", limit, role},
+ * Returns {ok:false, error:"quota_exceeded", limit, used, role, message},
  * {ok:false, error:"verified_elsewhere", message} (a self claim on a tag
  * another account has verified, #556) or
- * {ok:true, added, isPrimary, recordingStarted}. `added` is false on a
- * re-add, which stays idempotent.
+ * {ok:true, added, isPrimary, recordingStarted, slot}. `added` is false on
+ * a re-add, which stays idempotent. `slot` is what the follow costs (#760):
+ * {took, free, reason, used, limit}; `took` is true only when this add
+ * spent a slot, `used` the pool's count after it.
  */
 export async function addPlayer(
   db,
@@ -296,18 +304,24 @@ export async function addPlayer(
       return { ok: false, ...VERIFIED_ELSEWHERE };
     }
 
+    // A follow takes a slot only when Elixir would record this player
+    // because of this pool (#760, playerCost): a player the pool already
+    // follows, or one already recorded for another reason, is never
+    // refused, even over the ceiling. Only a follow that would cost a slot
+    // is checked, and over the ceiling it is refused, never queued.
     const limits = poolLimits(owner);
-    if (!limits.exempt) {
-      const used = await pooledUsage(db, owner.account_id, {
-        exceptPlayer: tag,
-      });
+    const cost = await playerCost(db, owner.account_id, tag);
+    if (!limits.exempt && !cost.following && !cost.free) {
+      const used = await pooledUsage(db, owner.account_id);
       if (used.players_used >= limits.player_slots) {
         await db.query("rollback");
         return {
           ok: false,
           error: "quota_exceeded",
           limit: limits.player_slots,
+          used: used.players_used,
           role: owner.role ?? "member",
+          message: slotsFullMessage(used.players_used, limits.player_slots),
         };
       }
     }
@@ -403,6 +417,19 @@ export async function addPlayer(
       });
     }
 
+    // What this follow costs now, and the pool's count with it: read in
+    // the transaction, so it is the count the next add will be checked
+    // against. A follow already in the pool keeps the standing it had.
+    const after = await playerCost(db, owner.account_id, tag);
+    const usage = await pooledUsage(db, owner.account_id);
+    const slot = {
+      took: claimed > 0 && !cost.following && !after.free,
+      free: after.free,
+      reason: after.reason,
+      used: usage.players_used,
+      limit: limits.player_slots,
+    };
+
     await db.query("commit");
     // A new primary is "you", so its clan is yours: follow it when the
     // record already knows it (Jamie, 2026-10-08). Its own transaction,
@@ -412,6 +439,7 @@ export async function addPlayer(
       : null;
     return {
       ok: true,
+      slot,
       added: claimed > 0,
       isPrimary: wantPrimary,
       noOwnPlayer: first && !wantPrimary,

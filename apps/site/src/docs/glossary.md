@@ -23,7 +23,8 @@ with no account, only a battle's own page opens (see [Privacy](/docs/privacy)).
 
 **tracked**: a subject on *your* account: you asked for it to be recorded
 with `elixir_track_player` or `elixir_track_clan`, and it occupies one of
-your slots. Tracked means recorded; there is no separate watch step. See [Recording](/docs/recording#added-means-recorded).
+your slots, unless Elixir already records the player for another reason
+([What a player slot costs](/docs/recording#what-a-player-slot-costs)). Tracked means recorded; there is no separate watch step. See [Recording](/docs/recording#added-means-recorded).
 
 **claim**: the link between your account and a player tag you track. Claims
 are taken at your word (`claim_status: unverified`) until

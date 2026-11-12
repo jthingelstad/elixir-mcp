@@ -85,6 +85,13 @@ export const api = {
     request("GET", `/api/me/email/sends/${encodeURIComponent(send_id)}`),
   addClaim: (player_tag) => request("POST", "/api/claims", { player_tag }),
   claimAction: (body) => request("POST", "/api/claims", body),
+  /** What following this tag would cost, before the tap (#760): free when
+   *  Elixir already records the player, else one of the pool's slots. */
+  followCost: (player_tag, agent) =>
+    request(
+      "GET",
+      `${home(agent)}/follow-cost?player_tag=${encodeURIComponent(player_tag)}`,
+    ),
   usage: (agent) => request("GET", `${home(agent)}/usage`),
   explore: (tool, args) => request("POST", "/api/explore", { tool, args }),
   // A private nickname is a WRITE through the tool bridge. The bridge

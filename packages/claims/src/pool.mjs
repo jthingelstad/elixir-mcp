@@ -14,6 +14,12 @@
  * should count against usage slots."). A suspended agent's subjects free
  * their slots and stop being a reason to record (reconcileRecording), and
  * resuming it is refused when it would take the pool past a ceiling.
+ *
+ * A followed player costs a slot only when Elixir records them because of
+ * this pool (Jamie, 2026-11-11, #760: quotas built in from the start, and
+ * "a clan all following each other is flat cost"). playerCostSql below is
+ * the one statement of when a follow is free; every count and every check
+ * reads it.
  */
 import { roleQuotas, tierSql } from "@elixir-mcp/contracts";
 
@@ -51,10 +57,52 @@ export function poolLimits(owner) {
   };
 }
 
+/** An account `a` whose tracking is a reason to record: anyone but a
+ *  suspended agent. reconcileRecording (index.mjs) and the slot count
+ *  read this one text, so what records and what pays cannot disagree. */
+export const COUNTS = `(a.kind <> 'agent' or a.status = 'approved')`;
+
 /**
- * What the pool records, leaving out one player and one clan when asked:
- * a slot check counts everything BUT the subject being added, so re-adding
- * something the pool already has never fails.
+ * Why Elixir records the player `tag` (a SQL expression) apart from the
+ * pool whose account ids `pool` (a subquery) selects, read from what the
+ * planner polls (packages/ledger plan.mjs selectEligible; the same set as
+ * RECORDED_PLAYERS_SQL in packages/tools):
+ *
+ *  - in_recorded_clan: an open member of a clan recorded at comprehensive
+ *    scope, whose members' profiles and battle logs are polled whoever
+ *    follows them. An activity-scope clan (the automatic follow of your
+ *    primary's clan) polls only its roster, so its members are not
+ *    recorded on its account.
+ *  - followed_by_others: the player's FIRST follow that is a reason to
+ *    record (the oldest claim, ties by account id) is outside this pool.
+ *    First follower pays: exactly one pool carries a player no clan pays
+ *    for, so two accounts cannot make each other's follows free and
+ *    record without limit. When that follow goes, the next oldest pays
+ *    from then on (#760: it keeps recording and starts counting; nobody
+ *    is forced off).
+ *
+ * A follow is free when either holds. For a player the pool does not
+ * follow yet, "first follow outside the pool" is simply "someone follows
+ * them", so the same columns price a follow before the tap.
+ */
+const playerCostSql = (tag, pool) => `
+  exists (select 1 from clan_membership cm
+            join recording r on r.subject_type = 'clan'
+             and r.subject_tag = cm.clan_tag and r.status = 'active'
+             and r.scope = 'comprehensive'
+           where cm.player_tag = ${tag} and cm.left_observed_at is null)
+    as in_recorded_clan,
+  coalesce((select c.account_id not in (${pool})
+              from claim c join account a using (account_id)
+             where c.player_tag = ${tag} and ${COUNTS}
+             order by c.created_at, c.account_id
+             limit 1), false)
+    as followed_by_others`;
+
+/**
+ * What the pool records, leaving out one player and one clan when asked.
+ * players_used is the slots its follows take; players_free the players it
+ * follows that take none (playerCostSql); players_followed both.
  */
 export async function pooledUsage(
   db,
@@ -69,15 +117,66 @@ export async function pooledUsage(
          from account_clan
         where account_id in (select account_id from pool)
           and clan_tag is distinct from $3
-        group by clan_tag)
-     select (select count(distinct player_tag)::int from claim
-              where account_id in (select account_id from pool)
-                and player_tag is distinct from $2) as players_used,
+        group by clan_tag),
+     followed as (
+       select distinct player_tag from claim
+        where account_id in (select account_id from pool)
+          and player_tag is distinct from $2),
+     priced as (
+       select f.player_tag,
+              ${playerCostSql("f.player_tag", "select account_id from pool")}
+         from followed f)
+     select (select count(*)::int from priced
+              where not in_recorded_clan and not followed_by_others) as players_used,
+            (select count(*)::int from priced
+              where in_recorded_clan or followed_by_others) as players_free,
+            (select count(*)::int from priced) as players_followed,
             (select count(*)::int from clans where width = 1) as activity_used,
             (select count(*)::int from clans where width = 2) as comprehensive_used`,
     [ownerId, exceptPlayer, exceptClan],
   );
   return rows[0];
+}
+
+/**
+ * What following each of `tags` costs the pool of owner `ownerId`, now:
+ * {player_tag, following (the pool already follows them), free, reason}.
+ * reason is `in_recorded_clan` or `followed_by_others` when free, else
+ * null. One read for a whole list (Players & tracking, a search's row).
+ */
+export async function playerCosts(db, ownerId, tags) {
+  if (!tags.length) return [];
+  const { rows } = await db.query(
+    `with pool as (${POOL})
+     select t.tag as player_tag,
+            exists (select 1 from claim c
+                     where c.player_tag = t.tag
+                       and c.account_id in (select account_id from pool)) as following,
+            ${playerCostSql("t.tag", "select account_id from pool")}
+       from unnest($2::text[]) as t(tag)`,
+    [ownerId, tags],
+  );
+  return rows.map((r) => ({
+    player_tag: r.player_tag,
+    following: r.following,
+    free: r.in_recorded_clan || r.followed_by_others,
+    reason: r.in_recorded_clan
+      ? "in_recorded_clan"
+      : r.followed_by_others
+        ? "followed_by_others"
+        : null,
+  }));
+}
+
+/** playerCosts for one tag. */
+export async function playerCost(db, ownerId, tag) {
+  return (await playerCosts(db, ownerId, [tag]))[0];
+}
+
+/** The plain words for a refused follow (#760): how many are used of how
+ *  many, and that following a player Elixir already records stays free. */
+export function slotsFullMessage(used, limit) {
+  return `All ${limit} of your player slots are in use (${used} of ${limit}). Following a player Elixir already records stays free: a member of a clan recorded in full, or a player another account follows. Stop following someone who uses a slot to make room.`;
 }
 
 const WIDTH = { activity: 1, comprehensive: 2 };

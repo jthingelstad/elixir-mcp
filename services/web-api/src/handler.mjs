@@ -111,6 +111,8 @@ export const AGENT_SCOPED_ROUTES = new Set([
   "GET /api/me/clans",
   "POST /api/me/clans",
   "POST /api/me/players",
+  // What a follow would cost before the tap (#760), priced in the pool.
+  "GET /api/me/follow-cost",
 ]);
 
 const AGENT_PATH = /^\/api\/agent\/([a-z0-9]{8,16})(\/.*)?$/;

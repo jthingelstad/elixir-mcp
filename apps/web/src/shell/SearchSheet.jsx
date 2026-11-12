@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Icon, Link, TagText } from "@elixir-mcp/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api.js";
-import { Followed, useFollow } from "../home/follow.jsx";
+import { FollowCost, Followed, useFollow } from "../home/follow.jsx";
 import { useCardCatalog, useMyClans } from "../lib/queries.js";
 import {
   readSearch,
@@ -203,14 +203,17 @@ function Miss({ tag }) {
       {result ? (
         <Followed result={result} />
       ) : (
-        <button
-          type="button"
-          className="btn btn--primary"
-          disabled={busy}
-          onClick={() => follow(tag)}
-        >
-          Follow {tag}
-        </button>
+        <>
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={busy}
+            onClick={() => follow(tag)}
+          >
+            Follow {tag}
+          </button>
+          <FollowCost tag={tag} />
+        </>
       )}
       {error ? (
         <p className="kit-form__err" role="alert">

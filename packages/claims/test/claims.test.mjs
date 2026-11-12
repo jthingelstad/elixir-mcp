@@ -16,6 +16,7 @@ import {
   addClan,
   removeClan,
   followClanForPlayer,
+  playerCost,
   pooledUsage,
   setAgentStatus,
   setRelationship,
@@ -116,6 +117,7 @@ beforeEach(async () => {
   await db.query(`delete from recording`);
   await db.query(`delete from account`);
   await db.query(`delete from player_profile_membership`);
+  await db.query(`delete from clan_membership`);
   await db.query(`update player set last_known_clan_tag = null`);
   alice = await account(`alice-${Math.random()}`, { slots: 10 });
   bob = await account(`bob-${Math.random()}`, { slots: 10 });
@@ -343,10 +345,15 @@ test("only active agents count: suspending frees the slot and stops its recordin
   const agent = { accountId: row.account_id };
   assert.equal((await addPlayer(db, owner, { tag: A, via: "test" })).ok, true);
   assert.equal((await addPlayer(db, agent, { tag: C, via: "test" })).ok, true);
-  // Bob tracks D too, so D outlives the agent's suspension.
+  // Bob tracks D too, so D outlives the agent's suspension. Bob followed
+  // D first, so D is recorded because of Bob and takes none of this
+  // pool's slots (#760).
   assert.equal((await addPlayer(db, bob, { tag: D, via: "test" })).ok, true);
   await addPlayer(db, agent, { tag: D, via: "test" });
-  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 3);
+  const held = await pooledUsage(db, owner.accountId);
+  assert.equal(held.players_used, 2);
+  assert.equal(held.players_free, 1);
+  assert.equal(held.players_followed, 3);
 
   const off = await setAgentStatus(
     db,
@@ -361,7 +368,7 @@ test("only active agents count: suspending frees the slot and stops its recordin
   assert.equal((await pooledUsage(db, owner.accountId)).players_used, 1);
 
   // The freed slot is the owner's to spend; with a ceiling of 2, resuming
-  // would be 4 of 2.
+  // would be 3 of 2 (D stays free).
   assert.equal((await addPlayer(db, owner, { tag: B, via: "test" })).ok, true);
   await db.query(
     `update account set max_player_recordings = 2 where account_id = $1`,
@@ -375,7 +382,7 @@ test("only active agents count: suspending frees the slot and stops its recordin
   );
   assert.equal(refused.error, "quota_exceeded");
   assert.equal(refused.limit, 2);
-  assert.match(refused.message, /Free 2 first/);
+  assert.match(refused.message, /Free 1 first/);
   const {
     rows: [still],
   } = await db.query(`select status from account where account_id = $1`, [
@@ -399,7 +406,7 @@ test("only active agents count: suspending frees the slot and stops its recordin
   assert.equal(on.ok, true, JSON.stringify(on));
   assert.equal(on.recordings_started, 1);
   assert.equal(await isRecording(C), true);
-  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 3);
+  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 2);
 
   // Somebody else's agent is not found.
   assert.equal(
@@ -1119,4 +1126,157 @@ test("markVerified on a claim that is gone verifies nothing and ends nothing", a
   const r = await verify(bob, A);
   assert.deepEqual(r, { verified: false, ended: [] });
   assert.equal((await relOf(alice, A)).is_primary, true);
+});
+
+// ------------------------------------------------------- #760 slots
+// A follow costs a slot only when Elixir records that player because of
+// you (Jamie, 2026-11-11: "a clan all following each other is flat cost").
+
+/** A clan recorded at `scope`, with `members` open on its roster. */
+async function recordedClan(clanTag, scope, members) {
+  await db.query(
+    `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+    [clanTag],
+  );
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, origin, scope)
+     values ('clan', $1, $2, 'claim', $3)`,
+    [clanTag, bob.accountId, scope],
+  );
+  for (const tag of members) {
+    await db.query(
+      `insert into player (player_tag) values ($1) on conflict do nothing`,
+      [tag],
+    );
+    await db.query(
+      `insert into clan_membership (clan_tag, player_tag, joined_observed_at)
+       values ($1, $2, now())`,
+      [clanTag, tag],
+    );
+  }
+}
+
+test("slots: a member of a clan recorded in full is free; an activity clan's member is not", async () => {
+  await recordedClan("#2PYQ8GJ0", "comprehensive", [A]);
+  await recordedClan("#9GQ8LUYJ", "activity", [C]);
+  assert.deepEqual(await playerCost(db, alice.accountId, A), {
+    player_tag: A,
+    following: false,
+    free: true,
+    reason: "in_recorded_clan",
+  });
+  // Its roster is polled, its members' battles are not: following one
+  // starts recording them, so it takes a slot.
+  assert.equal((await playerCost(db, alice.accountId, C)).free, false);
+
+  const a = await addPlayer(db, alice, { tag: A, via: "test" });
+  assert.equal(a.slot.took, false);
+  assert.equal(a.slot.free, true);
+  assert.equal(a.slot.reason, "in_recorded_clan");
+  const c = await addPlayer(db, alice, { tag: C, via: "test" });
+  assert.equal(c.slot.took, true);
+  assert.equal(c.slot.used, 1);
+  const u = await pooledUsage(db, alice.accountId);
+  assert.deepEqual(
+    [u.players_used, u.players_free, u.players_followed],
+    [1, 1, 2],
+  );
+});
+
+test("slots: the first follower pays; a later follow of the same player is free", async () => {
+  const b = await addPlayer(db, bob, { tag: B, via: "test" });
+  assert.equal(b.slot.took, true, "nobody recorded B before Bob");
+  assert.deepEqual(await playerCost(db, alice.accountId, B), {
+    player_tag: B,
+    following: false,
+    free: true,
+    reason: "followed_by_others",
+  });
+  const a = await addPlayer(db, alice, { tag: B, via: "test" });
+  assert.equal(a.slot.took, false);
+  assert.equal(a.slot.reason, "followed_by_others");
+  assert.equal((await pooledUsage(db, alice.accountId)).players_used, 0);
+  // Bob still pays: two accounts never make each other's follows free.
+  assert.equal((await pooledUsage(db, bob.accountId)).players_used, 1);
+  assert.equal((await playerCost(db, bob.accountId, B)).free, false);
+});
+
+test("slots: at the limit a slot-costing follow is refused with the reason; a free one is not", async () => {
+  const capped = await account(`cap760-${Math.random()}`, { slots: 1 });
+  assert.equal((await addPlayer(db, capped, { tag: A, via: "test" })).ok, true);
+  const refused = await addPlayer(db, capped, { tag: C, via: "test" });
+  assert.equal(refused.ok, false);
+  assert.equal(refused.error, "quota_exceeded");
+  assert.equal(refused.limit, 1);
+  assert.equal(refused.used, 1);
+  assert.match(refused.message, /All 1 of your player slots are in use/);
+  assert.match(refused.message, /already records stays free/);
+  assert.equal(await isRecording(C), false, "refused, never queued");
+
+  // Bob follows D, and a clan recorded in full has B: both stay open.
+  await addPlayer(db, bob, { tag: D, via: "test" });
+  await recordedClan("#2PYQ8GJ0", "comprehensive", [B]);
+  assert.equal((await addPlayer(db, capped, { tag: D, via: "test" })).ok, true);
+  assert.equal((await addPlayer(db, capped, { tag: B, via: "test" })).ok, true);
+  // A re-add of what you follow is never refused.
+  assert.equal((await addPlayer(db, capped, { tag: A, via: "test" })).ok, true);
+  const u = await pooledUsage(db, capped.accountId);
+  assert.deepEqual([u.players_used, u.players_free], [1, 2]);
+});
+
+test("slots: a free follow whose reason goes away keeps recording and starts counting", async () => {
+  const capped = await account(`gone760-${Math.random()}`, { slots: 1 });
+  await addPlayer(db, capped, { tag: A, via: "test" });
+  await addPlayer(db, bob, { tag: D, via: "test" });
+  await recordedClan("#2PYQ8GJ0", "comprehensive", [B]);
+  await addPlayer(db, capped, { tag: D, via: "test" });
+  await addPlayer(db, capped, { tag: B, via: "test" });
+  assert.equal((await pooledUsage(db, capped.accountId)).players_used, 1);
+
+  // Bob stops following D, and B leaves the clan.
+  await removePlayer(db, bob, { tag: D, via: "test" });
+  await db.query(
+    `update clan_membership set left_observed_at = now() where player_tag = $1`,
+    [B],
+  );
+  assert.equal(await isRecording(D), true, "the follow keeps D recorded");
+  assert.equal(await isRecording(B), true);
+  const u = await pooledUsage(db, capped.accountId);
+  assert.deepEqual(
+    [u.players_used, u.players_free],
+    [3, 0],
+    "both now count, three against one: nobody is forced off",
+  );
+  assert.equal((await claims(capped)).length, 3);
+  // Over the limit, only a new slot-costing follow is refused.
+  assert.equal(
+    (await addPlayer(db, capped, { tag: C, via: "test" })).error,
+    "quota_exceeded",
+  );
+  await addPlayer(db, bob, { tag: "#2PP", via: "test" });
+  assert.equal(
+    (await addPlayer(db, capped, { tag: "#2PP", via: "test" })).ok,
+    true,
+  );
+});
+
+test("slots: a suspended agent's follow is no reason, so it makes nothing free", async () => {
+  const {
+    rows: [row],
+  } = await db.query(
+    `insert into account (status, role, kind, owned_by_account_id, public_id)
+     values ('disabled', 'member', 'agent', $1, $2) returning account_id`,
+    [bob.accountId, `sus${String(Math.random()).slice(2, 10)}`],
+  );
+  await db.query(
+    `insert into player (player_tag) values ($1) on conflict do nothing`,
+    [C],
+  );
+  await db.query(
+    `insert into claim (account_id, player_tag, relationship) values ($1, $2, 'watching')`,
+    [row.account_id, C],
+  );
+  assert.equal((await playerCost(db, alice.accountId, C)).free, false);
+  const a = await addPlayer(db, alice, { tag: C, via: "test" });
+  assert.equal(a.slot.took, true);
 });

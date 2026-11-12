@@ -41,7 +41,10 @@ your account, change it under Settings › Players & tracking. An [agent](/docs/
 tracks players as watching only.
 
 A friend takes one of your player slots, the same as a watched
-player.
+player, unless Elixir already records them: a member of a clan recorded in
+full, or a player another account followed first, is free. Home's Follow and
+the search sheet say which before you tap ([What a player slot
+costs](/docs/recording#what-a-player-slot-costs)).
 
 ## What a friend gets
 

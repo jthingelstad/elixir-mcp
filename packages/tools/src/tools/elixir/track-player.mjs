@@ -6,7 +6,7 @@ import { RECORDING_DOCS } from "./common.mjs";
 
 export const elixir_track_player = {
   description:
-    "Track a player on your account: claims the tag AND starts recording in one act (tracked means recorded), within your player slots (an agent spends its owner's). Say who they are to you with relationship (primary = you, alt = also you, friend, watching); a first player is your primary unless named friend or watching. A tag another account verified is theirs: you may only follow it (friend or watching). An agent tracks as watching only. action remove releases the claim (recording stops if you were its only reason); notify_on / notify_off control whether the player feeds your elixir_timeline.",
+    "Track a player on your account: claims the tag AND starts recording in one act (tracked means recorded). It spends a player slot only when Elixir records them because of you (an agent spends its owner's); the result's slot says. Say who they are to you with relationship (primary = you, alt = also you, friend, watching); a first player is your primary unless named friend or watching. A tag another account verified is theirs: friend or watching only. An agent tracks as watching only. action remove releases the claim; notify_on / notify_off set whether the player feeds your elixir_timeline.",
   inputSchema: {
     type: "object",
     properties: {
@@ -23,7 +23,7 @@ export const elixir_track_player = {
         type: "string",
         enum: ["primary", "alt", "friend", "watching"],
         description:
-          "Who this player is TO YOU: primary is you (exactly one; setting it on another tag moves it), alt is also you, friend is someone you follow, watching is everyone else (default). All four share your tier's player slots.",
+          "Who this player is TO YOU: primary is you (exactly one; setting it on another tag moves it), alt is also you, friend is someone you follow, watching is everyone else (default). All four share your player slots, and none costs one for a player Elixir already records.",
       },
     },
     required: ["player_tag"],
@@ -82,9 +82,10 @@ export const elixir_track_player = {
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     }
-    // 'add': tracked = recorded. Slots count what you track (your
-    // claims); owner/admin exempt - the website applies the same rule
-    // through the same function.
+    // 'add': tracked = recorded. A follow costs a slot only when Elixir
+    // records the player because of you (#760, claims pool.mjs); owner and
+    // admin are exempt. The website applies the same rule through the same
+    // function.
     const r = await addPlayer(ctx.db, ctx.account, {
       tag,
       makePrimary: args.relationship === "primary",
@@ -94,8 +95,8 @@ export const elixir_track_player = {
     if (!r.ok && r.error === "quota_exceeded") {
       throw new ToolFailure(
         "quota_exceeded",
-        `Tracked players are capped at ${r.limit} for the ${r.role} tier.`,
-        "Remove one, or raise your tier: lead a clan you track (Leader) or run a collector (Family).",
+        r.message,
+        "Remove a player who uses a slot (elixir_my_players lists them), or follow players Elixir already records, which stays free.",
       );
     }
     if (!r.ok && r.error === "not_entitled")
@@ -127,12 +128,23 @@ export const elixir_track_player = {
         })
       : { requested: false };
     const battlesToo = first.battles?.requested === true;
+    const slot = r.slot;
+    const limit = slot.limit === Infinity ? null : slot.limit;
+    const of =
+      limit === null ? `${slot.used} used` : `${slot.used} of ${limit}`;
     return {
       player_tag: tag,
       added: r.added,
       recording: "active",
       recording_started: r.recordingStarted,
       notify: true,
+      slot: {
+        took: slot.took,
+        free: slot.free,
+        free_because: slot.reason,
+        used: slot.used,
+        limit,
+      },
       applied: appliedBlock({
         player_tag: tag,
         action,
@@ -160,6 +172,11 @@ export const elixir_track_player = {
         r.clanFollowed
           ? `Your primary player's clan ${r.clanFollowed} is now followed at activity scope (roster, members coming and going, river races). Stop tracking it with elixir_track_clan action remove and it is not followed again.`
           : null,
+        slot.free
+          ? `Free: no slot taken, because Elixir already records this player (${slot.reason === "in_recorded_clan" ? "a member of a clan recorded at comprehensive scope" : "another account followed them first"}). If that stops, they keep recording and start using a slot. Player slots: ${of}.`
+          : slot.took
+            ? `This used 1 of your player slots: ${of}.`
+            : `This player uses one of your player slots: ${of}.`,
         "Captures appear on your elixir_timeline while notify is on.",
       ),
       docs: RECORDING_DOCS,

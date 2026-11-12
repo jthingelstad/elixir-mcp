@@ -960,11 +960,79 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
     `update account set max_player_recordings = 1 where email_hash = $1`,
     [emailHash(NEWCOMER)],
   );
+  // The cost is said before the tap (#760): this one would need a slot.
+  const cost = (tag, c = cookie) =>
+    handler({
+      ...event({
+        method: "GET",
+        path: "/api/me/follow-cost",
+        cookie: c,
+        body: undefined,
+      }),
+      queryStringParameters: { player_tag: tag },
+    });
+  const before = parse(await cost("#PLC220"));
+  assert.deepEqual(
+    {
+      free: before.free,
+      following: before.following,
+      used: before.used,
+      limit: before.limit,
+    },
+    { free: false, following: false, used: 1, limit: 1 },
+  );
+  assert.equal((await cost("not a tag")).statusCode, 400);
+  assert.equal((await cost("#PLC220", null)).statusCode, 401);
   const refused = await handler(
     event({ path: "/api/claims", cookie, body: { player_tag: "#PLC220" } }),
   );
   assert.equal(refused.statusCode, 429);
-  assert.match(parse(refused).message, /tracking 1 players, the most/);
+  const no = parse(refused);
+  assert.match(no.message, /All 1 of your player slots are in use \(1 of 1\)/);
+  assert.match(no.message, /already records stays free/);
+  assert.equal(no.used, 1);
+  assert.equal(no.limit, 1);
+  // A member of a clan recorded in full (the seeded one) is free, even at
+  // the limit, and the add says so.
+  const freeCost = parse(await cost("#YYYYY"));
+  assert.equal(freeCost.free, true);
+  assert.equal(freeCost.reason, "in_recorded_clan");
+  const added = await handler(
+    event({
+      path: "/api/claims",
+      cookie,
+      body: { player_tag: "#YYYYY", relationship: "friend" },
+    }),
+  );
+  assert.equal(added.statusCode, 200);
+  assert.deepEqual(parse(added).slot, {
+    took: false,
+    free: true,
+    reason: "in_recorded_clan",
+    used: 1,
+    limit: 1,
+  });
+  const mine = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me", cookie, body: undefined }),
+    ),
+  );
+  const row = mine.claims.find((c) => c.player_tag === "#YYYYY");
+  assert.equal(row.slot, "free");
+  assert.equal(row.slot_reason, "in_recorded_clan");
+  assert.ok(mine.claims.some((c) => c.slot === "used"));
+  assert.equal(mine.entitlements.player_slots.used, 1);
+  // The main player is a member of that clan too, so two are free.
+  assert.equal(mine.entitlements.player_slots.free, 2);
+  // Leave the account as later tests expect it.
+  const gone = await handler(
+    event({
+      path: "/api/claims",
+      cookie,
+      body: { player_tag: "#YYYYY", action: "remove" },
+    }),
+  );
+  assert.equal(gone.statusCode, 200);
   await db.query(
     `update account set max_player_recordings = null where email_hash = $1`,
     [emailHash(NEWCOMER)],

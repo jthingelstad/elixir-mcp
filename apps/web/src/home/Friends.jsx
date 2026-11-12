@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DeckGrid, Empty, ErrorState, Link, TagText } from "@elixir-mcp/ui";
 import { CONSOLE } from "../lib/console.js";
 import { tagPath } from "../lib/tag-url.js";
-import { Followed, useFollow } from "./follow.jsx";
+import { FollowCost, Followed, useFollow } from "./follow.jsx";
 import { familyLine, friendsView, names } from "./logic.js";
 
 /**
@@ -227,11 +227,14 @@ function FollowForm() {
             {err}
           </p>
         ) : (
-          <p className="kit-tiny">
-            Anyone with a player tag can be followed. They aren&rsquo;t told.
-            Recording starts at once; the first read usually lands within a
-            minute.
-          </p>
+          <>
+            <FollowCost tag={tag} />
+            <p className="kit-tiny">
+              Anyone with a player tag can be followed. They aren&rsquo;t told.
+              Recording starts at once; the first read usually lands within a
+              minute.
+            </p>
+          </>
         )}
       </form>
       {result ? <Followed result={result} /> : null}
