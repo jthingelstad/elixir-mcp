@@ -224,10 +224,7 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     // Their stored bell week (0247, #649).
     ["bell_week", `bell_week where account_id = any($1::uuid[])`],
     // Their stored Home clan card (0248, #649).
-    [
-      "home_clan_card",
-      `home_clan_card where account_id = any($1::uuid[])`,
-    ],
+    ["home_clan_card", `home_clan_card where account_id = any($1::uuid[])`],
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
     [
       "timeline_discord_told",
