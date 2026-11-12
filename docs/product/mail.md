@@ -1,5 +1,13 @@
 # Mail
 
+*Overtaken, 2026-11-12: the mail set here no longer holds. The digest is the
+one scheduled mail, merging the clan's week and the players you follow;
+the clan report, Arena week and the milestone mail stop as separate mails
+(the friends mail was already the digest); the leaders' Actions mail
+stays, sent when there is an Action to perform (DECISIONS "The digest is
+the one scheduled mail; leaders' Actions mail stays apart"). The
+collector mail was not part of that ruling.*
+
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
 *Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing

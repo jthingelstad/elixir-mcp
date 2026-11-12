@@ -1,7 +1,8 @@
 # AGENTS.md
 
-Elixir records Clash Royale history for players and their clans (the
-official API is current-state only) and serves it on one origin,
+Elixir is the missing social layer of Clash Royale: a timeline of the
+players you follow, built on a recorder of players and their clans (the
+official API is current-state only), served on one origin,
 `elixir.poapkings.com`:
 
 | Path | What | Code |
@@ -10,7 +11,7 @@ official API is current-state only) and serves it on one origin,
 | `/home` | Home: one feed beside your week and clan, with Find and You; where signing in lands | `apps/web/src/home` |
 | `/signin`, `/data/service` | signing in, and the signed-in service page | `apps/web` |
 | `/settings` | Settings: your account and agents, with its left rail | `apps/web` |
-| `/console` | what is not yet moved: Explore, collectors, Admin; the word is retired from what a reader sees, and `apps/web/src/lib/moved.js` redirects what moved | `apps/web` |
+| `/console` | folding (Jamie, 2026-11-12): Explore's useful reads into You and the player pages, collectors and Admin into Settings, then only redirects; `apps/web/src/lib/moved.js` redirects what moved | `apps/web` |
 | `/home/you/stats` | Stats (Ladder until 2026-11-12; `/ladder` redirects): your season, read back, You's last tab | `apps/web/src/ladder` |
 | `/clan`, `/api/clan` | Elixir Clan: running a clan on its policy | `packages/clan*` |
 | `/battle/<id>` | a battle's public page | `services/web-api` |
@@ -40,13 +41,16 @@ not a feature to preserve.
 - **Product behaviour:** the public docs, `apps/site/src/docs/` (served at
   `/docs`, and to agents by `elixir_docs`). They are the only description
   of what the service does; do not write a second one here.
-- **`docs/product/`:** one brief per surface, ratified by Jamie: what it
-  is for, who it serves, its principles, what it never does, what is
-  open. Intent, not behaviour: read the brief before building on a
-  surface, list the product questions a change raises with the brief's
-  answer in its design note, and take the brief's default mid-build
-  (tagged `[engineering]`, listed in the pull request) rather than
-  asking one question at a time.
+- **`docs/product/`:** one brief per surface, ratified by Jamie on
+  2026-10-12, before the social layer: what it is for, who it serves,
+  its principles, what it never does, what is open. Intent, not
+  behaviour. Until a brief is rewritten, `VISION.md` and DECISIONS steer
+  mid-build work, not the brief's default ("VISION steers until a brief
+  is rewritten", Jamie, 2026-11-12); a dated banner at a brief's top
+  names what no longer holds. Read the brief for its principles, list
+  the product questions a change raises in its design note, and take
+  VISION's direction mid-build (tagged `[engineering]`, listed in the
+  pull request) rather than asking one question at a time.
 - **`docs/DECISIONS.md`:** what stands, one line each, each tagged with
   who decided it. A **[Jamie]** line is not re-litigated, and a surface
   that disagrees with it is the defect; an **[engineering]** line is a
@@ -133,8 +137,8 @@ Skills and tests cite these by number; keep the numbering.
   Jamie in US Central.
 - An MCP token never authenticates at `/api/v1`, nor the reverse.
 - Private Clan state never reaches MCP or public tools. The two
-  exceptions, `clans_context` (an agent's) and `clans_my_view` (a person's
-  own view), read through `@elixir-mcp/auth/clan-context` (pinned by
+  exceptions, `clans_context` (an agent's, retiring under DECISIONS
+  "`clans_context` retires") and `clans_my_view` (a person's own view), read through `@elixir-mcp/auth/clan-context` (pinned by
   `services/web-api/test/clan-boundary.test.mjs`). Clan's own web API
   reads the clan directory through the same seam (`readClanDirectory`),
   pinned there too.

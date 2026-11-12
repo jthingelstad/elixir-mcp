@@ -1,5 +1,11 @@
 # Ladder
 
+*Overtaken in part, 2026-11-12: Ladder is Stats under You, and Stats opens
+for the players you follow, so "A friend's or a watched player's season
+is theirs, not on Ladder" and "show a friend's season" under what it never
+does no longer hold (DECISIONS "Stats opens for the players you
+follow").*
+
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
 *Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing

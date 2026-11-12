@@ -1,5 +1,16 @@
 # Structure
 
+*No longer the structure record, 2026-11-12: `VISION.md` steers Elixir's
+structure and this page is the record of the 2026-11-05 redesign
+(DECISIONS "`VISION.md` steers Elixir's structure; `docs/product/structure.md`
+is the 2026-11-05 record"). No longer holds: A4's "they aren't told" (the
+bell tells a player of a new follower); the Console and Explore as places
+of their own ("Console folds into You, player pages and Settings"); D12
+and A21, alts' firsts in Tuesday's mail ("The digest is the one scheduled
+mail; leaders' Actions mail stays apart"); a member's page in Clan apart
+from the player page ("Clan's Actions are notifications and timeline
+items").*
+
 *Ratified by Jamie, 2026-11-05: "Approved: all 55 Elixir detail design
 questions as recommended; build steps 1-3 in elixir-mcp, then stop for my
 review"; and 2026-11-06: "Approved: build Elixir redesign steps 4-8 in

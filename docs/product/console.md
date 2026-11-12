@@ -1,5 +1,12 @@
 # Console (what becomes Settings)
 
+*Overtaken, 2026-11-12: the Console folds entirely. Explore's useful reads
+move into You and the player pages and the rest retires; collectors and
+Admin become Settings sections for operators; `/console` only redirects
+(DECISIONS "Console folds into You, player pages and Settings"). Principle
+5, Explore as the power-user corner, no longer holds, and "track" is
+"follow" everywhere ("Follow, never track").*
+
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
 *Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing
