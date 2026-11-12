@@ -38,7 +38,7 @@ const unread = { ok: false, status: 502, data: {} };
 /** Every read the Feed's side cards make, unread: these tests are about
  *  the timeline. */
 function sideCardsUnread() {
-  for (const read of ["memberView", "week", "actions", "manage"])
+  for (const read of ["memberView", "week", "actions", "manage", "race"])
     if (typeof manageApi[read] === "function")
       vi.spyOn(manageApi, read).mockResolvedValue(unread);
 }

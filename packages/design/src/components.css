@@ -7904,6 +7904,65 @@ button.kit-row {
   gap: 8px;
   align-items: flex-end;
 }
+/* The clan card (G5, 2026-11-12): the clan's own line under its name and
+   a flat row of chips, the race and the saved rules. No box around it. */
+.clan-head__line {
+  color: var(--ink-dim);
+  font-size: 13.5px;
+}
+.clan-head__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* The race bar on top of the Feed: a line, a native progress drawn like
+   .meter, and the race in one sentence. Flat, no panel. */
+.clan-race {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.clan-race__top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.clan-race__head {
+  font-weight: 600;
+}
+.clan-race__decks,
+.clan-race__line {
+  color: var(--ink-dim);
+  font-size: 13.5px;
+}
+.clan-race__bar {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--ground-sunken);
+  color: var(--accent);
+  overflow: hidden;
+  appearance: none;
+}
+.clan-race__bar::-webkit-progress-bar {
+  background: var(--ground-sunken);
+  border-radius: var(--r-pill);
+}
+.clan-race__bar::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: var(--r-pill);
+}
+.clan-race__bar::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: var(--r-pill);
+}
 .clan-subnav {
   display: flex;
   flex-wrap: wrap;

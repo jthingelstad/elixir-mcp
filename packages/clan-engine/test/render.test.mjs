@@ -9,6 +9,7 @@ import {
   nextSteps,
   judgmentReasons,
   describePolicy,
+  policyChips,
   inGameCopy,
   REMOVAL_UNSEEN,
 } from "../src/render.mjs";
@@ -409,4 +410,64 @@ test("invite lines fit clan chat, carry no link and name the clan", async () => 
   }
   assert.match(inviteCopy("clanmates"), /our clan/);
   assert.equal(inviteCopy("nonsense"), null);
+});
+
+test("policy chips come from the saved values, one per rule the leaders set", () => {
+  const saved = {
+    ...defaults(),
+    war_intent: "participating",
+    war_enabled: true,
+    war_min_decks: 16,
+    minimums_window_weeks: 2,
+    donations_enabled: true,
+    donations_min_weekly: 40,
+    minimums_rule: "all",
+    removal_enabled: true,
+    at_risk_days: 7,
+    confirm_days: 10,
+  };
+  assert.deepEqual(
+    policyChips(saved).map((c) => c.text),
+    [
+      "In Clan Wars",
+      "16 war decks in 2 weeks",
+      "40 donations a week",
+      "Removal at 10 quiet days",
+    ],
+  );
+  assert.deepEqual(
+    policyChips({ ...saved, minimums_window_weeks: 1, minimums_rule: "any" })
+      .map((c) => c.text)
+      .slice(1, 4),
+    ["16 war decks a week", "40 donations a week", "Any one minimum"],
+  );
+});
+
+test("a chip the saved policy has no value for is left out, never a starting value", () => {
+  assert.deepEqual(policyChips(null), []);
+  assert.deepEqual(policyChips({}), []);
+  // Saved before war intent or the removal day existed: neither chip.
+  assert.deepEqual(
+    policyChips({
+      war_enabled: true,
+      war_min_decks: 8,
+      minimums_window_weeks: 1,
+      removal_enabled: true,
+    }).map((c) => c.text),
+    ["8 war decks a week"],
+  );
+  // Switched off or zero: no chip.
+  assert.deepEqual(
+    policyChips({
+      war_intent: "unknown",
+      war_enabled: false,
+      war_min_decks: 16,
+      minimums_window_weeks: 2,
+      trophies_enabled: true,
+      trophies_min: 0,
+      removal_enabled: false,
+      at_risk_days: 7,
+    }),
+    [],
+  );
 });
