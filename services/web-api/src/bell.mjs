@@ -21,7 +21,9 @@
  * bell. Reads are bounded: one rebuild of your own players' last seven days
  * (the window a cheer can be given in) and three small queries.
  */
+import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
+import { proofOf } from "./feed.mjs";
 
 /** Reactions come from items of the last seven days: the cheer window. */
 const REACTION_DAYS = 7;
@@ -115,21 +117,28 @@ async function readReactions(db, accountId, own, seen) {
     if (r.last_at > g.last_at) g.last_at = r.last_at;
     grouped.set(r.item_id, g);
   }
-  const items = [...grouped.values()]
+  const top = [...grouped.values()]
     .sort((a, b) => b.last_at - a.last_at)
-    .slice(0, LIST_CAP)
-    .map((g) => {
-      const it = byId.get(g.item_id);
-      return {
-        item_id: g.item_id,
-        text: String(it.text ?? ""),
-        at: shownAt(it) || null,
-        battle_url: it.battle_url ?? null,
-        cheers: g.cheers,
-        total: g.total,
-        new: g.fresh > 0,
-      };
-    });
+    .slice(0, LIST_CAP);
+  // Each row opens its battle, as the feed does: a highlight's own, else
+  // the battle that proved a moment (feed.mjs annotateFeed's read).
+  const proofs = top.map((g) => proofOf(byId.get(g.item_id)));
+  const links = await battleLinks(db, proofs.filter(Boolean));
+  const items = top.map((g, i) => {
+    const it = byId.get(g.item_id);
+    return {
+      item_id: g.item_id,
+      text: String(it.text ?? ""),
+      at: shownAt(it) || null,
+      battle_url:
+        it.facts?.battle?.url ??
+        (proofs[i] ? links.get(proofs[i])?.url : null) ??
+        null,
+      cheers: g.cheers,
+      total: g.total,
+      new: g.fresh > 0,
+    };
+  });
   return { items, new: items.filter((i) => i.new).length };
 }
 
@@ -173,16 +182,20 @@ async function readFollowers(db, accountId, own, seen) {
 }
 
 /** Answers to your own feedback: every unread one, and those of the last
- *  thirty days. Reading one in Settings marks it read, as it always has. */
+ *  thirty days. Reading one in Settings marks it read, as it always has.
+ *  Unread ones come first, so read answers never push one past the cap,
+ *  and the unread count is over them all, not the rows shown. */
 async function readAnswers(db, accountId) {
   const { rows } = await db.query(
     `select feedback_id, message, status, responded_at,
-            response_seen_at is null as unread
+            response_seen_at is null as unread,
+            (count(*) filter (where response_seen_at is null) over ())::int
+              as unread_total
        from feedback
       where account_id = $1 and responded_at is not null
         and (response_seen_at is null
              or responded_at > now() - make_interval(days => $2))
-      order by responded_at desc
+      order by (response_seen_at is null) desc, responded_at desc
       limit $3`,
     [accountId, BELL_DAYS, LIST_CAP],
   );
@@ -193,7 +206,7 @@ async function readAnswers(db, accountId) {
     responded_at: r.responded_at,
     new: r.unread,
   }));
-  return { items, new: items.filter((i) => i.new).length };
+  return { items, new: rows[0]?.unread_total ?? 0 };
 }
 
 function clip(text, max) {
