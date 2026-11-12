@@ -342,7 +342,9 @@ export function gameLine(b) {
  * keeps (the first answer: its player, `welcome.following` and
  * `welcome.digest`), never a second record of onboarding. Null when the
  * answer carries no welcome state (an older server): no steps beat guessed
- * ones. Following one player counts as begun [engineering, 2026-11-12].
+ * ones. Jamie, 2026-11-12: one follow completes the follow step, turning the
+ * digest off counts as choosing it, and once all four are done the stored
+ * `welcome.finished_at` keeps the steps gone for good, whatever changes later.
  */
 export function welcomeSteps(first) {
   const w = first?.welcome;
@@ -354,7 +356,7 @@ export function welcomeSteps(first) {
     digest: Boolean(w.digest),
   };
   const done = Object.values(steps).filter(Boolean).length;
-  return { steps, done, total: 4, all: done === 4 };
+  return { steps, done, total: 4, all: done === 4 || Boolean(w.finished_at) };
 }
 
 /** The digest step's line once chosen, from the person's own setting. */

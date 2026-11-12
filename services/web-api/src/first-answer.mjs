@@ -125,14 +125,35 @@ export async function firstAnswer(db, accountId, playerTag = null) {
                                       'cadence', coalesce(cadence, 'weekly'))
                from account_email_pref
               where account_id = $1 and kind = 'tracking_report'
-                and via <> 'ops') as digest`,
+                and via <> 'ops') as digest,
+            (select exists (select 1 from claim
+                             where account_id = $1 and is_primary
+                               and status = 'verified')) as verified,
+            (select welcome_finished_at from account
+              where account_id = $1) as finished_at`,
     [accountId],
   );
+  const { verified, ...steps } = welcome.rows[0];
+  // Finished for good (Jamie, 2026-11-12, migration 0246): the first read
+  // that sees all four done stamps the account once, and the stamp is
+  // never cleared, so unfollowing everyone later does not bring the steps
+  // back. "Done" is the same four the steps draw: a verified primary
+  // player, one follow, and a digest setting of the person's own (off
+  // included).
+  if (!steps.finished_at && verified && steps.following > 0 && steps.digest) {
+    const stamped = await db.query(
+      `update account set welcome_finished_at = now()
+        where account_id = $1 and welcome_finished_at is null
+        returning welcome_finished_at`,
+      [accountId],
+    );
+    steps.finished_at = stamped.rows[0]?.welcome_finished_at ?? null;
+  }
   return {
     as_of: new Date().toISOString(),
     player: capturedPlayer,
     connection: connection.rows[0],
     clan: clan.rows[0] ?? null,
-    welcome: welcome.rows[0],
+    welcome: steps,
   };
 }

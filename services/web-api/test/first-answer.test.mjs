@@ -347,7 +347,7 @@ test("selected capture state is claim-bound; roster-only data never promises a p
 
 test("first-answer carries Home's welcome state: the players followed and the digest, once chosen (G4)", async () => {
   let w = JSON.parse((await read()).body).welcome;
-  assert.deepEqual(w, { following: 0, digest: null });
+  assert.deepEqual(w, { following: 0, digest: null, finished_at: null });
   await db.query(
     "insert into player (player_tag) values ('#2Y0PYLQ8'), ('#2Y2PYLQ8') on conflict do nothing",
   );
@@ -372,4 +372,55 @@ test("first-answer carries Home's welcome state: the players followed and the di
   assert.equal(w.digest.cadence, "daily");
   assert.equal(w.digest.enabled, true);
   assert.ok(w.digest.chosen_at);
+});
+
+test("the welcome checklist finishes for good: stamped once all four are done, never undone (Jamie, 2026-11-12)", async () => {
+  await db.query("update account set welcome_finished_at = null");
+  await db.query("delete from claim where account_id = $1 and not is_primary", [
+    accountId,
+  ]);
+  await db.query(
+    "update claim set status = 'unverified', verified_at = null where account_id = $1 and is_primary",
+    [accountId],
+  );
+  await db.query(
+    "insert into account_email_pref (account_id, kind, enabled, via) values ($1, 'tracking_report', false, 'profile') on conflict (account_id, kind) do update set enabled = false, via = 'profile'",
+    [accountId],
+  );
+  await db.query(
+    "insert into player (player_tag) values ('#2Y0PYLQ8') on conflict do nothing",
+  );
+  await db.query(
+    "insert into claim (account_id, player_tag, relationship) values ($1, '#2Y0PYLQ8', 'friend')",
+    [accountId],
+  );
+  // Three of four (the primary is not verified): not finished.
+  let w = JSON.parse((await read()).body).welcome;
+  assert.equal(w.finished_at, null);
+  await db.query(
+    "update claim set status = 'verified', verified_at = now() where account_id = $1 and is_primary",
+    [accountId],
+  );
+  // One follow and a digest turned off complete it, and the read stamps it.
+  w = JSON.parse((await read()).body).welcome;
+  assert.ok(w.finished_at, "the read stamps the finish");
+  const stamped = w.finished_at;
+  const stored = await db.query(
+    "select welcome_finished_at from account where account_id = $1",
+    [accountId],
+  );
+  assert.ok(stored.rows[0].welcome_finished_at);
+  // Unfollowing everyone keeps it finished, with the first stamp.
+  await db.query("delete from claim where account_id = $1 and not is_primary", [
+    accountId,
+  ]);
+  w = JSON.parse((await read()).body).welcome;
+  assert.equal(w.following, 0);
+  assert.equal(w.finished_at, stamped);
+  // Another account's finish is its own.
+  const other = await db.query(
+    "select welcome_finished_at from account where account_id = $1",
+    [otherId],
+  );
+  assert.equal(other.rows[0].welcome_finished_at, null);
 });
