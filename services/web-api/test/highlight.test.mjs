@@ -36,7 +36,8 @@ const OWNER = "highlight-owner@example.com";
 const FRIEND = "highlight-friend@example.com";
 const STRANGER = "highlight-stranger@example.com";
 const HOSTILE_NAME = '<script>alert("n")</script> & "co"';
-const HOSTILE_WORDS = 'What a game </title><img src=x onerror="alert(1)"> & more';
+const HOSTILE_WORDS =
+  'What a game </title><img src=x onerror="alert(1)"> & more';
 const SHELL = `<!doctype html><html><head>
     <title>Elixir</title>
     <meta name="description" content="The app" />
@@ -92,7 +93,13 @@ async function account(email, claim) {
       `insert into claim (account_id, player_tag, is_primary, relationship,
                           notify, status)
        values ($1, $2, $3, $4, true, $5)`,
-      [a.account_id, PLAYER, claim === "verified", claim === "verified" ? "primary" : "friend", claim],
+      [
+        a.account_id,
+        PLAYER,
+        claim === "verified",
+        claim === "verified" ? "primary" : "friend",
+        claim,
+      ],
     );
   return a.account_id;
 }
@@ -267,7 +274,9 @@ test("only a verified player of yours who played the battle can be posted as", a
     body: { battle: battleId },
   });
   assert.notEqual(bare.status, 201);
-  const count = await db.query(`select count(*)::int as n from battle_highlight`);
+  const count = await db.query(
+    `select count(*)::int as n from battle_highlight`,
+  );
   assert.equal(count.rows[0].n, 0);
 });
 
@@ -364,14 +373,21 @@ test("create, edit, share, then delete: the link is a 404", async () => {
   assert.equal(gone.status, 200);
   assert.equal((await request("GET", `/h/${shareId}`)).statusCode, 404);
   assert.equal((await request("GET", `/h/${shareId}.png`)).statusCode, 404);
-  assert.equal((await call("GET", `/api/public/highlights/${shareId}`)).status, 404);
+  assert.equal(
+    (await call("GET", `/api/public/highlights/${shareId}`)).status,
+    404,
+  );
   const after = await call("GET", `/api/me/highlights?battle=${battleId}`, {
     who: "owner",
   });
   assert.deepEqual(after.body.highlights, []);
-  const again404 = await call("DELETE", `/api/me/highlights/${h.highlight_id}`, {
-    who: "owner",
-  });
+  const again404 = await call(
+    "DELETE",
+    `/api/me/highlights/${h.highlight_id}`,
+    {
+      who: "owner",
+    },
+  );
   assert.equal(again404.status, 404);
 });
 
@@ -417,7 +433,10 @@ test("the timeline item carries the words, and the link only for its owner", asy
   assert.equal(item.facts.player_tag, PLAYER);
   assert.equal(item.facts.words, HOSTILE_WORDS);
   assert.equal(item.facts.battle.battle_id, otherBattleId);
-  assert.match(item.facts.battle.url, /^https:\/\/elixir\.poapkings\.com\/battle\//);
+  assert.match(
+    item.facts.battle.url,
+    /^https:\/\/elixir\.poapkings\.com\/battle\//,
+  );
   assert.match(item.facts.share_url, /^https:\/\/elixir\.poapkings\.com\/h\//);
   assert.ok(item.text.includes(HOSTILE_WORDS));
 
@@ -425,7 +444,9 @@ test("the timeline item carries the words, and the link only for its owner", asy
   // share link (theirs to hand out).
   const theirs = await call("GET", "/api/me/timeline", { who: "friend" });
   assert.equal(theirs.status, 200);
-  const seen = theirs.body.timeline.find((it) => it.kind === "battle_highlight");
+  const seen = theirs.body.timeline.find(
+    (it) => it.kind === "battle_highlight",
+  );
   assert.ok(seen);
   assert.equal(seen.facts.words, HOSTILE_WORDS);
   assert.equal("share_url" in seen.facts, false);

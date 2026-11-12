@@ -2887,7 +2887,8 @@ async function highlightItems(db, subjects, { accountId, fromMs, toMs }) {
           outcome: r.outcome ?? null,
           crowns: r.crowns ?? null,
           crowns_against: r.opponents.reduce(
-            (m, o) => (typeof o.crowns === "number" ? Math.max(m ?? 0, o.crowns) : m),
+            (m, o) =>
+              typeof o.crowns === "number" ? Math.max(m ?? 0, o.crowns) : m,
             null,
           ),
           trophy_change: r.trophy_change ?? null,

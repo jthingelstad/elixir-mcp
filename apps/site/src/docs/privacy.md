@@ -28,9 +28,12 @@ people it is meant for can see it.
 
 **Without an account.** Every read of the record needs a free account:
 players, clans, timelines and profiles, on the website, over MCP and
-through the JSON API. One page of the record opens to anyone: a
+through the JSON API. Two pages of the record open to anyone: a
 battle's own page, with its link and share picture, so a battle can be
-shared. [The status page](/data) and its JSON count what the recorder holds and name no player or clan,
+shared; and a highlight its poster has shared, at its own
+link, with the player's game name, their words and that battle, never a
+nickname or anything of the account
+([Highlight a battle](/docs/battles#highlight-a-battle)). [The status page](/data) and its JSON count what the recorder holds and name no player or clan,
 except that each collector is credited to its operator's primary player.
 The game's card list, this site and its docs, and signing in open too.
 Any other page of the record asks you to sign in, or to create an account.
@@ -139,7 +142,7 @@ Your machine's own name and address are not published.
 is for. To remove your account and your address, email
 [admin@poapkings.com](mailto:admin@poapkings.com) or use the feedback
 form. Removing an account deletes the account, not the record: your
-address, claims, nicknames, agents, connections, mail and usage go
+address, claims, nicknames, highlights, agents, connections, mail and usage go
 ([your account](/docs/your-account#removing-the-account) lists them).
 The players' game history is public game data, as it is in the game
 itself, and stays as any untracked player's does, under the

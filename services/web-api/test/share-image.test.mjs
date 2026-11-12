@@ -154,7 +154,10 @@ test("a shared highlight's picture: the owner's name and words, escaped, over th
   assert.ok(svg.includes("&lt;/text&gt;&lt;script&gt;"));
   assert.ok(svg.includes(">elixir.poapkings.com/h/abcdefghijk2345<"));
   // The post's picture carries the post's link, not the battle's.
-  assert.equal(svg.includes(">elixir.poapkings.com/battle/abababababab<"), false);
+  assert.equal(
+    svg.includes(">elixir.poapkings.com/battle/abababababab<"),
+    false,
+  );
   assert.ok(svg.includes("not endorsed by Supercell."));
 });
 

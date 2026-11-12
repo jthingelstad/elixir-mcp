@@ -27,6 +27,16 @@ agent that comes back after a month gets a month's timeline (capped at 30 days,
 and at the newest 150 items). Home's Timeline shows the last seven days, with
 the same cap on items, and reading it moves no pointer.
 
+## Highlights
+
+A highlight is a battle a player chose to put on their timeline, with their
+own words: the timeline's one item about a single battle. Only a person whose
+verified player played the battle can post it, from the battle's page
+([Highlight a battle](/docs/battles#highlight-a-battle)). Everyone who follows
+the player reads it in their timeline, with a link to the battle. Its owner's
+timeline also carries the post's share link once they have shared it; nobody
+else's does. A deleted highlight leaves every timeline.
+
 ## Cross-posting to Discord
 
 Your own timeline's sharing is **Timeline to Discord**, on Settings › Connections & agents › Discord. For an agent,

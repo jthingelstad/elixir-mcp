@@ -595,7 +595,8 @@ test(
 
 test("every app section in the route table has a route under /console, and nothing else does", async () => {
   const { routeTree, SECTIONS } = await import("../src/App.jsx");
-  // Outside the console: a battle's public page (2026-10-01), and Ladder,
+  // Outside the console: a battle's public page (2026-10-01), a shared
+  // post's (#762), and Ladder,
   // the one section beside the Console (2026-09-28), with one route under
   // its own prefix, and Home at its new address (redesign step 3).
   const clan = routeTree.children.find((r) => r.options.id === "clan");
@@ -611,6 +612,7 @@ test("every app section in the route table has a route under /console, and nothi
   ).toEqual([
     "battle/$ref",
     "data/service",
+    "h/$id",
     "home/{-$tab}",
     "ladder/{-$page}",
     "settings/$",

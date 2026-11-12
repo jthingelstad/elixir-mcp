@@ -52,6 +52,11 @@ test("a shared highlight's link names only the post (#762)", async () => {
     "https://elixir.poapkings.com/h/abcdefghij23456",
   );
   assert.ok(POST_ID_PATTERN.test("abcdefghij23456"));
-  for (const bad of ["abc", "ABCDEFGHIJ23456", "abcdefghij23451", "abcdefghij234567"])
+  for (const bad of [
+    "abc",
+    "ABCDEFGHIJ23456",
+    "abcdefghij23451",
+    "abcdefghij234567",
+  ])
     assert.ok(!POST_ID_PATTERN.test(bad), bad);
 });

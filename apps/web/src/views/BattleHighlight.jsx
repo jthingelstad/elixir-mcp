@@ -25,9 +25,8 @@ export function BattleHighlight({ battle, sides }) {
   const open = players.filter((tag) => !posted.has(tag));
   if (highlights.length === 0 && open.length === 0) return null;
   const nameOf = (tag) =>
-    sides
-      .flatMap((s) => s.players)
-      .find((p) => p.player_tag === tag)?.name ?? tag;
+    sides.flatMap((s) => s.players).find((p) => p.player_tag === tag)?.name ??
+    tag;
   const invalidate = [keys.highlights(battle.id), FEED];
   return (
     <section className="panel" aria-label="Highlight this battle">
@@ -154,12 +153,7 @@ function Posted({ h, name, invalidate }) {
             if (r.ok) setEditing(false);
           }}
         >
-          <Words
-            id={id}
-            value={words}
-            onChange={setWords}
-            label="Your words"
-          />
+          <Words id={id} value={words} onChange={setWords} label="Your words" />
           <WriteError error={edit.error} />
           <div className="share-actions">
             <button className="btn" type="submit" disabled={edit.busy}>
@@ -239,8 +233,8 @@ function Posted({ h, name, invalidate }) {
       )}
       {h.share_url && (
         <p className="footnote">
-          Anyone with the link can open the post, no account needed: your
-          words, {name}’s game name and the battle.
+          Anyone with the link can open the post, no account needed: your words,{" "}
+          {name}’s game name and the battle.
         </p>
       )}
     </div>

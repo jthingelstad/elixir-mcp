@@ -36,17 +36,22 @@ const page = (statusCode, body, maxAge) => ({
 
 /** How a shared post unfurls: whose post it is and their words, over the
  *  battle's own preview. Plain strings; namedShell escapes each. */
-export function postPreview(read) {
+function postPreview(read) {
   const battle = previewOf(read);
   const h = read.highlight;
   const who = h.name ?? h.player_tag;
   const words = String(h.words ?? "")
     .replace(/\s+/g, " ")
     .trim();
-  const clipped = [...words].length > 180 ? `${[...words].slice(0, 179).join("").trimEnd()}…` : words;
+  const clipped =
+    [...words].length > 180
+      ? `${[...words].slice(0, 179).join("").trimEnd()}…`
+      : words;
   return {
     title: `${who} on Elixir: ${battle.title}`,
-    description: clipped ? `“${clipped}”  ${battle.description}` : battle.description,
+    description: clipped
+      ? `“${clipped}”  ${battle.description}`
+      : battle.description,
   };
 }
 
