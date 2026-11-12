@@ -18,7 +18,8 @@ const ABOUT = {
     note: "skipped in a week none of your players battled",
   },
   tracking_report: {
-    what: "How everyone you follow played.",
+    what: "What the people you follow played and posted, and your own stretch.",
+    note: "skipped when no one played or posted",
   },
   collector_activity: {
     what: "What your collectors recorded.",
@@ -37,6 +38,7 @@ const ABOUT = {
 };
 
 const SOURCE_ICON = {
+  Home: "house",
   Clan: "users",
   Ladder: "chart-line",
   Friends: "users-round",
@@ -65,6 +67,36 @@ function Source({ product }) {
   );
 }
 
+/** The digest's how-often: weekly (the default) or daily; off is its
+ *  switch. */
+const CADENCES = [
+  ["weekly", "Weekly"],
+  ["daily", "Daily"],
+];
+
+function Cadence({ value, disabled, onPick }) {
+  return (
+    <div
+      className="segmented mail-pref__cadence"
+      role="radiogroup"
+      aria-label="How often the digest comes"
+    >
+      {CADENCES.map(([v, label]) => (
+        <button
+          key={v}
+          type="button"
+          role="radio"
+          aria-checked={value === v ? "true" : "false"}
+          disabled={disabled}
+          onClick={() => value !== v && onPick(v)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function Switch({ on, label, disabled = false, onFlip }) {
   return (
     <button
@@ -86,6 +118,9 @@ export function EmailPage() {
   const { data, isLoading } = query;
   const kinds = data?.kinds ?? [];
   const pref = useWrite(api.setEmailPref, { invalidate: [keys.email] });
+  const cadence = useWrite(api.setDigestCadence, {
+    invalidate: [keys.email],
+  });
   const flip = (kind, enabled) => pref.run(kind, enabled);
   const weekly = kinds
     .filter((k) => k.sends)
@@ -107,6 +142,8 @@ export function EmailPage() {
     ) : null;
   const when_ = (k) => {
     const note = ABOUT[k.kind]?.note;
+    if (k.sends && k.cadence === "daily")
+      return `Daily, ${k.sends.time} ${k.sends.zone}${note ? ` · ${note}` : ""}`;
     if (k.sends)
       return `${k.sends.weekday}s, ${k.sends.time} ${k.sends.zone}${note ? ` · ${note}` : ""}`;
     if (k.kind === "milestone") return "Checked hourly";
@@ -121,6 +158,13 @@ export function EmailPage() {
           {k.label} <Source product={k.product} />
         </h3>
         <p className="mail-pref__what">{ABOUT[k.kind]?.what}</p>
+        {k.cadence && k.enabled ? (
+          <Cadence
+            value={k.cadence}
+            disabled={cadence.busy}
+            onPick={(v) => cadence.run(v)}
+          />
+        ) : null}
         {latest(k)}
       </div>
       <span className="mail-pref__when">{when_(k)}</span>
@@ -158,6 +202,7 @@ export function EmailPage() {
         className="mailprefs__head"
       />
       <WriteError error={pref.error} className="field-error mb-3" />
+      <WriteError error={cadence.error} className="field-error mb-3" />
       {query.isError ? (
         <div className="callout callout--warn" role="alert">
           <span>

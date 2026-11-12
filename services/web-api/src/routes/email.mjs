@@ -5,7 +5,9 @@
  *       the last one sent to this account
  *  PUT  /api/me/email          {kind, enabled}; kind "all" is the
  *       page's Every email switch: every kind at once, the flip an
- *       "all" unsubscribe token makes
+ *       "all" unsubscribe token makes. The digest (tracking_report)
+ *       also takes {cadence: "weekly" | "daily"} (0242), with or
+ *       without enabled; a turn-off keeps the cadence
  *  GET  /api/me/email/sends    every product email sent to me, newest
  *       first (the Activity page's Emails view)
  *  GET  /api/me/email/sends/<send_id>  one of them with its archived
@@ -31,6 +33,7 @@ import {
   KIND_LABELS,
   MAIL_SOURCE,
   mailSendTime,
+  DIGEST_CADENCES,
 } from "@elixir-mcp/mail";
 import { MAIL_PATHS } from "@elixir-mcp/mail/paths";
 import {
@@ -175,6 +178,24 @@ async function setPref(
     });
 }
 
+/** The digest's cadence (0242): set on its pref row, a row made on (the
+ *  default) when the person has none, so choosing daily never turns the
+ *  digest on or off by itself. */
+async function setCadence(db, accountId, cadence) {
+  await db.query(
+    `insert into account_email_pref (account_id, kind, enabled, via, changed_at, cadence)
+     values ($1, 'tracking_report', true, 'profile', now(), $2)
+     on conflict (account_id, kind) do update set cadence = excluded.cadence, changed_at = now()`,
+    [accountId, cadence],
+  );
+  await db
+    .query(
+      `insert into account_event (account_id, kind, detail) values ($1, 'email_pref', $2)`,
+      [accountId, JSON.stringify({ kind: "tracking_report", cadence })],
+    )
+    .catch(() => {});
+}
+
 /** The labels read as names ("Milestones", "every Elixir email"); a
  *  sentence that opens with one starts with a capital. */
 const upper = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -216,7 +237,7 @@ export function emailRoutes({
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
-        `select kind, enabled, changed_at, via from account_email_pref where account_id = $1`,
+        `select kind, enabled, changed_at, via, cadence from account_email_pref where account_id = $1`,
         [account.accountId],
       );
       const { rows: ops } = await db.query(
@@ -252,6 +273,11 @@ export function emailRoutes({
           last_send_id: last.get(kind) ?? null,
           enabled: by.get(kind)?.enabled ?? true,
           changed_at: by.get(kind)?.changed_at ?? null,
+          // The digest's how-often; null for every other kind.
+          cadence:
+            kind === "tracking_report"
+              ? (by.get(kind)?.cadence ?? "weekly")
+              : null,
           applies:
             kind === "collector_activity"
               ? Boolean(ops[0]?.operator)
@@ -295,12 +321,28 @@ export function emailRoutes({
       const kind = String(body?.kind ?? "");
       if (kind !== "all" && !isProductEmailKind(kind))
         return json(400, { error: "bad_kind" });
-      if (typeof body?.enabled !== "boolean")
+      const cadence = body?.cadence;
+      if (cadence !== undefined) {
+        if (kind !== "tracking_report")
+          return json(400, { error: "no_cadence" });
+        if (!DIGEST_CADENCES.includes(cadence))
+          return json(400, { error: "bad_cadence" });
+      }
+      if (cadence === undefined && typeof body?.enabled !== "boolean")
+        return json(400, { error: "bad_enabled" });
+      if (body.enabled !== undefined && typeof body.enabled !== "boolean")
         return json(400, { error: "bad_enabled" });
       if (body.enabled && isRetiredEmailKind(kind))
         return json(410, { error: "kind_retired" });
-      await setPref(db, account.accountId, kind, body.enabled, "profile");
-      return json(200, { kind, enabled: body.enabled });
+      if (cadence !== undefined)
+        await setCadence(db, account.accountId, cadence);
+      if (typeof body.enabled === "boolean")
+        await setPref(db, account.accountId, kind, body.enabled, "profile");
+      return json(200, {
+        kind,
+        ...(typeof body.enabled === "boolean" ? { enabled: body.enabled } : {}),
+        ...(cadence !== undefined ? { cadence } : {}),
+      });
     },
     "GET /api/email/unsubscribe": async (db, event) => {
       const c = claim(event);

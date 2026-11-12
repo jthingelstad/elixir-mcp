@@ -38,7 +38,7 @@ const at = (weekday) => ({ weekday, time: "9:00 am", zone: "Central" });
 const KINDS = [
   ["clan_report", "Clan report", "Clan", at("Monday")],
   ["arena_week", "Your week in the Arena", "Ladder", at("Tuesday")],
-  ["tracking_report", "Your friends this week", "Friends", at("Wednesday")],
+  ["tracking_report", "Your digest", "Home", at("Wednesday")],
   ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
   ["milestone", "Milestones", "Ladder", null],
   ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
@@ -49,6 +49,7 @@ const KINDS = [
   product,
   sends,
   enabled: kind !== "tracking_report",
+  cadence: kind === "tracking_report" ? "weekly" : null,
   changed_at: null,
   applies: kind !== "collector_activity",
   last_send_id:
@@ -67,7 +68,9 @@ const RECENT = [
 ];
 
 let puts;
+let kinds = KINDS;
 beforeEach(() => {
+  kinds = KINDS;
   cleanup();
   puts = [];
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -80,7 +83,7 @@ beforeEach(() => {
         : p === "/api/me/email"
           ? init?.method === "PUT"
             ? JSON.parse(init.body)
-            : { kinds: KINDS, recent: RECENT }
+            : { kinds, recent: RECENT }
           : {};
     return {
       ok: true,
@@ -111,7 +114,7 @@ test(
     expect(clan.getAttribute("aria-checked")).toBe("true");
     expect(
       screen
-        .getByRole("switch", { name: "Your friends this week email" })
+        .getByRole("switch", { name: "Your digest email" })
         .getAttribute("aria-checked"),
     ).toBe("false");
     // A collector's email with no collector: shown, and not switchable.
@@ -192,3 +195,24 @@ test(
     ).toBe("/settings/emails/sent");
   },
 );
+
+test("the digest's how-often shows while it is on, and a choice is its own write", async () => {
+  // While off, there is no how-often to choose.
+  await open();
+  expect(
+    screen.queryByRole("radiogroup", { name: "How often the digest comes" }),
+  ).toBeNull();
+  cleanup();
+  kinds = KINDS.map((k) =>
+    k.kind === "tracking_report" ? { ...k, enabled: true } : k,
+  );
+  await open();
+  const group = screen.getByRole("radiogroup", {
+    name: "How often the digest comes",
+  });
+  const weekly = within(group).getByRole("radio", { name: "Weekly" });
+  expect(weekly.getAttribute("aria-checked")).toBe("true");
+  fireEvent.click(within(group).getByRole("radio", { name: "Daily" }));
+  await waitFor(() => expect(puts).toHaveLength(1));
+  expect(puts[0]).toEqual({ kind: "tracking_report", cadence: "daily" });
+});

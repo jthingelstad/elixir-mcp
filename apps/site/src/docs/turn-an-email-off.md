@@ -22,9 +22,12 @@ lands.
 
 **Settings › Emails**
 ([/settings/emails](/settings/emails)),
-reached from the account menu, lists the four weekly kinds under **Scheduled**, each
+reached from the account menu, lists the four scheduled kinds under **Scheduled**, each
 with the day and time it arrives in your time zone: the Clan report, Your week in
-the Arena, Your friends this week and Collector activity. The three that come when something happens,
+the Arena, Your digest and Collector activity. While Your digest is on, it
+also offers **Weekly** or **Daily**: weekly comes on Wednesdays, daily every
+day, at the same time ([Your digest](/docs/email#your-digest)). Choosing one
+never turns the digest back on, and turning it off keeps your choice. The three that come when something happens,
 Milestones, Clan actions waiting and Answers to your feedback, sit below under
 **When something happens**. Each has a
 line on what it is and a switch; turn one off and it stops. A kind
@@ -56,8 +59,8 @@ whether it came from the page or from a link.
 The switches are per kind, never per player or per clan. To hear less
 about one subject:
 
-- **Your friends this week**: switch off the player's **Notifications** on its
-  page under Settings › Players & tracking, and it leaves the report and your timeline while
+- **Your digest**: switch off the player's **Notifications** on its
+  page under Settings › Players & tracking, and it leaves the digest and your timeline while
   recording carries on ([Follow a friend](/docs/follow-a-friend#the-notifications-switch)).
 - **Clan report**: it comes for each clan you track, one report per
   clan. Stopping tracking a clan stops its report, and its recording

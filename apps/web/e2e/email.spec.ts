@@ -27,7 +27,7 @@ const KINDS = (
   [
     ["clan_report", "Clan report", "Clan", at("Monday")],
     ["arena_week", "Your week in the Arena", "Ladder", at("Tuesday")],
-    ["tracking_report", "Your friends this week", "Friends", at("Wednesday")],
+    ["tracking_report", "Your digest", "Home", at("Wednesday")],
     ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
     ["milestone", "Milestones", "Ladder", null],
     ["clan_actions_waiting", "Clan actions waiting", "Clan", null],

@@ -390,18 +390,71 @@ test("one shell: the wordmark, the product source, the why-line in the reader's 
   }
 });
 
-test("the friends mail is called what it is: Your friends this week (Jamie, 2026-10-01)", () => {
+test("the digest replaces the friends mail under its kind: Your week in Elixir, weekly by default (#767)", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
   );
-  const out = renderMail("tracking_report", facts, links);
-  assert.equal(KIND_LABELS.tracking_report, "Your friends this week");
-  assert.match(out.subject, /^Your friends this week/);
-  assert.ok(!/Tracking report/.test(out.html));
+  const out = renderMail("tracking_report", facts, {
+    ...links,
+    timezone: "America/Chicago",
+  });
+  assert.equal(KIND_LABELS.tracking_report, "Your digest");
+  assert.match(
+    out.subject,
+    /^Your week in Elixir: 3 people you follow, 73 battles$/,
+  );
+  assert.ok(!/Your friends this week|Tracking report/.test(out.html));
   assert.match(out.html, /Turn off this mail/);
+  // The inbox preview leads with a highlight's words.
+  assert.match(out.preheader, /^Jolly Stoat: “Finally beat the log bait/);
+  const text = htmlToText(out.html);
+  // A highlight: the timeline's sentence, the words, the battle.
+  assert.match(
+    text,
+    /Jolly Stoat highlighted a 3-0 win against Brass Newt \(Trophy Road\)\. See the battle/,
+  );
+  assert.match(
+    text,
+    /“Finally beat the log bait I keep losing to\. Three crowns!”/,
+  );
+  assert.match(
+    text,
+    /\/battle\/a1b2c3d4e5f6\?utm_source=email&utm_medium=tracking_report/,
+  );
+  // A moment with no battle on record has no battle link; the rest are counted.
+  assert.match(text, /passed 5,000 career wins\.\n/);
+  assert.match(text, /2 more on your timeline/);
+  assert.match(text, /4 sittings · 23 battles · 15–8/);
+  assert.match(text, /1 card unlocked\./);
+  // The clans and the reader's own week, then the feed.
+  assert.match(text, /Around you/);
+  assert.match(text, /You, King Thing/);
+  assert.match(text, /With Spry Kestrel/);
+  assert.match(text, /Open your feed/);
+  assert.match(
+    text,
+    /You get this on Wednesdays at \d:30 am Central, in a week when someone you follow played or posted, or you did\./,
+  );
+  assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
 });
 
-test("the friends mail: a clan is a headline and at most three bullets, a month quiet is one line, and a full stop never doubles (Jamie, 2026-10-08)", () => {
+test("a daily digest says its day and its cadence (#767)", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
+  );
+  facts.cadence = "daily";
+  const out = renderMail("tracking_report", facts, {
+    ...links,
+    timezone: "America/Chicago",
+  });
+  assert.match(out.subject, /^Your day in Elixir/);
+  assert.match(
+    htmlToText(out.html),
+    /You get this each day at \d:30 am Central, in a day when someone you follow/,
+  );
+});
+
+test("the digest: a clan is a headline and at most three bullets, and a full stop never doubles (Jamie, 2026-10-08)", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
   );
@@ -417,33 +470,6 @@ test("the friends mail: a clan is a headline and at most three bullets, a month 
   assert.equal(block.match(/^• /gm)?.length, 3, block);
   assert.match(block, /^• Week 3 finished in place 1 with 10,305 fame$/m);
   assert.match(block, /4 more/);
-  assert.ok(!block.includes(";\u0020week"), "one clause per bullet");
-  // Quiet a month or more: one line, longest first, no day counts.
-  assert.match(
-    text,
-    /Quiet for 30 days or more: Lunar Vole[^\n]*, Maple Ibis[^\n]*\./,
-  );
-  assert.doesNotMatch(text, /169 days/);
-  assert.match(text, /No battle recorded this week: Ivory Toad/);
-  // The moment ends its own sentence; the mail adds no second stop.
-  assert.match(
-    text,
-    /reached Legendary Arena · 3 cards unlocked, 2 badge levels\./,
-  );
-  assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
-  // An issue stored before 2026-10-08 keeps its one line.
-  const old = structuredClone(facts);
-  old.clans = [
-    {
-      tag: "#J2RGCRVG",
-      name: "POAP KINGS",
-      line: "3,200 battles; war week 3 finished",
-    },
-  ];
-  assert.match(
-    htmlToText(renderMail("tracking_report", old, links).html),
-    /3,200 battles; war week 3 finished/,
-  );
 });
 
 test("the Arena week counts each player's card unlocks and badge levels, and links the timeline", () => {
@@ -525,11 +551,23 @@ test("the weekly send times are the EventBridge crons", () => {
       hour: Number(m[2]),
       minute: Number(m[1]),
     });
+  // The digest's rule fires every day; it keeps Wednesday for the
+  // weekly default (runDigest's DIGEST_WEEKLY_DAY).
+  for (const m of template.matchAll(
+    /ScheduleExpression: cron\((\d+) (\d+) \* \* \? \*\)\n(?:.*\n){0,8}?\s*Input: '\{"email": "(\w+)"\}'/g,
+  ))
+    crons.set(m[3], {
+      day: 3,
+      hour: Number(m[2]),
+      minute: Number(m[1]),
+      daily: true,
+    });
   for (const [kind, slot] of Object.entries(MAIL_SCHEDULE)) {
     if (isRetiredEmailKind(kind)) assert.equal(crons.has(kind), false);
     else assert.deepEqual(slot, crons.get(kind), kind);
   }
   assert.equal(Object.keys(MAIL_SCHEDULE).length, 4);
+  assert.equal(MAIL_SCHEDULE.tracking_report.daily, true);
 });
 
 test("renderMail refuses a kind it does not know and a send without links", () => {

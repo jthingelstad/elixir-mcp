@@ -2091,11 +2091,14 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt EmailArenaWeekRule.Arn
+  # The digest (tracking_report, #767) runs every day: daily readers get
+  # it each day, weekly ones (the default) on Wednesday (runDigest). At
+  # 14:30 UTC, after the 14:00 weekly kinds.
   EmailTrackingReportRule:
     Type: AWS::Events::Rule
     Properties:
       Name: elixir-mcp-email-tracking-report
-      ScheduleExpression: cron(0 14 ? * WED *)
+      ScheduleExpression: cron(30 14 * * ? *)
       Targets:
         - Arn: !GetAtt JobsFunction.Arn
           Id: email-tracking-report

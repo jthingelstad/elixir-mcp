@@ -62,7 +62,7 @@ export const eventGroup = (kind) => GROUP[kind] ?? "access";
 export function eventDetail(e) {
   const d = e.detail ?? {};
   if (e.kind === "email_pref")
-    return `${upper(d.label ?? d.kind ?? "")}: ${d.enabled ? "on" : "off"}`;
+    return `${upper(d.label ?? d.kind ?? "")}: ${d.cadence ?? (d.enabled ? "on" : "off")}`;
   const tag = d.player_tag ?? d.clan_tag ?? null;
   if (tag) return d.subject_name ? `${d.subject_name} ${tag}` : tag;
   return d.username ?? d.client_name ?? d.role ?? d.name ?? "";

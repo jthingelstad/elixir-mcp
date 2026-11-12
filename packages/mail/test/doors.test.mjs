@@ -25,8 +25,8 @@ const bare = (tag) => tag.slice(1);
 
 test("a player's name opens the reader's door: own to Ladder, clanmate to the member page, anyone else to the record", () => {
   const facts = load("tracking_report");
-  const friend = facts.friends[0].tag;
-  const own = facts.primary.tag;
+  const friend = facts.people[0].tag;
+  const own = facts.you.tag;
   const clanTag = facts.clans[0].tag;
   const read = (extra) =>
     renderMail("tracking_report", facts, { ...links, ...extra }).html;
@@ -42,6 +42,8 @@ test("a player's name opens the reader's door: own to Ladder, clanmate to the me
   });
   assert.ok(mate.includes(`/clan/${bare(clanTag)}/members/${bare(friend)}?`));
   assert.ok(!mate.includes(`/console/explore/player/${bare(friend)}?`));
+  // The reader's own player opens Ladder.
+  assert.ok(stranger.includes(`/ladder?player=${bare(own)}`));
 });
 
 test("the clan report's links follow the reader: member to Clan, Season and Members; everyone else to the record", () => {

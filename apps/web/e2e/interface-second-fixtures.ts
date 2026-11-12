@@ -90,7 +90,7 @@ export const EMAILS = {
   kinds: [
     ["clan_report", "Clan report", "Clan", "Monday"],
     ["arena_week", "Your week in the Arena", "Ladder", "Tuesday"],
-    ["tracking_report", "Your friends this week", "Friends", "Wednesday"],
+    ["tracking_report", "Your digest", "Home", "Wednesday"],
     ["collector_activity", "Collector activity", "Collectors", "Sunday"],
     ["milestone", "Milestones", "Ladder", null],
     ["clan_actions_waiting", "Clan actions waiting", "Clan", null],

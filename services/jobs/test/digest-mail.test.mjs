@@ -1,6 +1,7 @@
 /**
- * The weekly tracking mail over a scratch database: attested facts never
- * enter it. A clan's attested facts are for the
+ * The digest (tracking_report, #767) over a scratch database: a followed
+ * friend's highlight with their words and the battle's page, a nothing
+ * window with no mail, and attested facts never entering it. A clan's attested facts are for the
  * people who read the clan's timeline, and an away is for a leader
  * reading it themselves, never a mail (DECISIONS, "Attested facts"). The
  * mail's moments are filtered BEFORE the timeline's 150-item cap, so a
@@ -14,22 +15,27 @@ import pg from "pg";
 import { ATTESTED_FACT_KINDS } from "@elixir-mcp/contracts";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { buildTimeline } from "../../../packages/tools/src/activity/entries.mjs";
-import { buildTracking } from "../src/email/build-tracking.mjs";
+import { buildDigest, digestWindow } from "../src/email/build-digest.mjs";
+import { renderMail } from "../../../packages/mail/src/render.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
-const NAME = `elixir_mcp_test_tracking_${process.pid}`;
+const NAME = `elixir_mcp_test_digest_mail_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
 const CLAN = "#2PQRJ8LV";
 const LEADER = "#20QQL8CC";
 const MEMBER = "#8QQ8QQ8Q";
 const OPP = "#9RRYR9RR";
+// A friend the leader follows, with a name a person typed to break mail.
+const FRIEND = "#Q2L8P0YV";
+const FRIEND_NAME = `<img src=x onerror=alert(1)>Stoat`;
+const WORDS = `Three crowns <b>at last</b> & "finally"`;
 const FROM = new Date("2026-09-14T10:00:00Z");
 const TO = new Date("2026-09-21T10:00:00Z");
-const week = { from: FROM, to: TO, label: "Sep 14 to 21", key: "2026-W38" };
+const window = { fromMs: FROM.getTime(), toMs: TO.getTime() };
 // More clan facts than the timeline's cap, all newer than the moment.
 const MESSAGES = 160;
 
@@ -60,11 +66,20 @@ before(async () => {
     await db.query(`insert into player (player_tag, name) values ($1, $1)`, [
       tag,
     ]);
+  await db.query(`insert into player (player_tag, name) values ($1, $2)`, [
+    FRIEND,
+    FRIEND_NAME,
+  ]);
   // The recipient: a verified leader of the clan, tracking it too.
   await db.query(
     `insert into claim (account_id, player_tag, status, is_primary, relationship, notify)
      values ($1, $2, 'verified', true, 'primary', true)`,
     [accountId, LEADER],
+  );
+  await db.query(
+    `insert into claim (account_id, player_tag, status, is_primary, relationship, notify)
+     values ($1, $2, 'unverified', false, 'friend', true)`,
+    [accountId, FRIEND],
   );
   await db.query(
     `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
@@ -86,6 +101,29 @@ before(async () => {
      values ('b1', $1, 0, '2026-09-15T11:00:00Z', 'win', 'PvP', 'pvp'),
             ('b1', $2, 1, '2026-09-15T11:00:00Z', 'loss', 'PvP', 'pvp')`,
     [LEADER, OPP],
+  );
+  // The friend's win, and their highlight of it with their own words,
+  // posted by the friend's own account.
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, created_at)
+     values ('b2', '2026-09-16T20:00:00Z', 'PvP', 'pvp', '2026-09-16T20:30:00Z')`,
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, crowns, type, type_class)
+     values ('b2', $1, 0, '2026-09-16T20:00:00Z', 'win', 3, 'PvP', 'pvp'),
+            ('b2', $2, 1, '2026-09-16T20:00:00Z', 'loss', 0, 'PvP', 'pvp')`,
+    [FRIEND, OPP],
+  );
+  const poster = (
+    await db.query(
+      `insert into account (email_hash, status) values ('digest-friend', 'approved')
+       returning account_id`,
+    )
+  ).rows[0].account_id;
+  await db.query(
+    `insert into battle_highlight (player_tag, battle_id, account_id, words, created_at, updated_at)
+     values ($1, 'b2', $2, $3, '2026-09-16T21:00:00Z', '2026-09-16T21:00:00Z')`,
+    [FRIEND, poster, WORDS],
   );
   await db.query(
     `insert into player_event
@@ -170,20 +208,86 @@ test("control: unfiltered, the recipient's timeline carries the facts and the ca
   assert.ok(!kinds.has("career_wins_step"), "the cap spent on facts");
 });
 
-test("a leader's tracking mail holds no attested kind, and the facts do not crowd out their moments", async () => {
-  const mail = await buildTracking({
+test("a leader's digest holds no attested kind, and the facts do not crowd out their moments", async () => {
+  const mail = await buildDigest({
     db,
     account: { accountId, timezone: "UTC" },
-    week,
-    season: null,
+    cadence: "weekly",
+    window,
   });
-  assert.ok(mail?.primary, "the leader has a primary section");
+  assert.ok(mail?.you, "the leader has their own week");
   assert.ok(
-    mail.primary.moments.some((m) => /career wins/.test(m.text)),
-    `the career-wins moment survives the cap: ${JSON.stringify(mail.primary.moments)}`,
+    mail.you.items.some((m) => /career wins/.test(m.text)),
+    `the career-wins moment survives the cap: ${JSON.stringify(mail.you.items)}`,
   );
   const body = JSON.stringify(mail);
   for (const kind of ATTESTED_FACT_KINDS)
     assert.ok(!body.includes(kind), `${kind} is not in the mail`);
   assert.ok(!/private line|away from|personal best/.test(body), body);
+});
+
+test("a followed friend's highlight comes with their words and the battle's page, never their share link", async () => {
+  const mail = await buildDigest({
+    db,
+    account: { accountId, timezone: "UTC" },
+    cadence: "weekly",
+    window,
+  });
+  const friend = mail.people.find((p) => p.tag === FRIEND);
+  assert.ok(friend, JSON.stringify(mail.people));
+  assert.equal(friend.relationship, "friend");
+  assert.equal(friend.battles, 1);
+  const [h] = friend.items;
+  assert.equal(h.kind, "battle_highlight");
+  // The words as typed: escaping is the render's, at its output.
+  assert.equal(h.words, WORDS);
+  assert.match(h.text, /highlighted a 3-0 win/);
+  assert.ok(
+    !h.text.includes("at last"),
+    "the words are not in the sentence too",
+  );
+  assert.match(String(h.battle_url), /\/battle\/b2$/);
+  assert.ok(!("share_url" in h));
+  assert.equal(mail.following, 1);
+  // Rendered, the name and the words are text, never markup.
+  const out = renderMail("tracking_report", mail, {
+    unsubscribe: "https://elixir.example/u",
+    manage: "/settings/emails",
+    period: "2026-09-21",
+    pixel: false,
+  });
+  assert.doesNotMatch(out.html, /<img src=x|<b>at last/);
+  assert.match(out.html, /&lt;img src=x onerror=alert\(1\)&gt;Stoat/);
+  assert.match(
+    out.html,
+    /Three crowns &lt;b&gt;at last&lt;\/b&gt; &amp; &quot;finally&quot;/,
+  );
+});
+
+test("a window where nothing happened is no mail", async () => {
+  const mail = await buildDigest({
+    db,
+    account: { accountId, timezone: "UTC" },
+    cadence: "daily",
+    window: digestWindow(new Date("2026-07-01T00:00:00Z"), "daily"),
+  });
+  assert.equal(mail, null);
+});
+
+test("the window: a week or a day back, starting no earlier than the last digest", () => {
+  const now = new Date("2026-11-18T14:30:00Z");
+  const day = 86400_000;
+  assert.deepEqual(digestWindow(now, "weekly"), {
+    fromMs: now.getTime() - 7 * day,
+    toMs: now.getTime(),
+  });
+  assert.equal(digestWindow(now, "daily").fromMs, now.getTime() - day);
+  // Yesterday's daily digest bounds today's weekly one: nothing twice.
+  const last = new Date(now.getTime() - day + 60_000);
+  assert.equal(digestWindow(now, "weekly", last).fromMs, last.getTime());
+  // A digest older than the span leaves the span.
+  assert.equal(
+    digestWindow(now, "daily", new Date(now.getTime() - 3 * day)).fromMs,
+    now.getTime() - day,
+  );
 });

@@ -1533,7 +1533,8 @@ main.wrap {
   white-space: nowrap;
   cursor: pointer;
 }
-.segmented button[aria-selected="true"] {
+.segmented button[aria-selected="true"],
+.segmented button[aria-checked="true"] {
   background: var(--control);
   color: var(--ink);
   font-weight: 600;
@@ -6545,6 +6546,10 @@ a.card-art:hover .card-art__img {
 .mail-pref__last {
   font-size: 12.5px;
   color: var(--ink-faint);
+}
+.mail-pref__cadence {
+  display: flex;
+  margin-top: 8px;
 }
 .mail-pref__last {
   display: inline-block;

@@ -21,7 +21,7 @@ first time, and it is only ever about you.
 
 Your **primary player**. Your other players' firsts wait for Tuesday (see
 [below](#your-other-players)). A friend's or a watched player's moments go to
-Wednesday's Your friends this week instead, never here.
+your [digest](/docs/email#your-digest) instead, never here.
 
 ## What counts
 

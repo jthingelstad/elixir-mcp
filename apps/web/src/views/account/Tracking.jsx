@@ -280,8 +280,8 @@ function Players({ me, refresh, navigate, hash }) {
         first={claims.length === 0}
       />
       {group("You", null, you)}
-      {group("Friends", "Their own card in Wednesday's mail", friends)}
-      {group("Watching", "A card if busy, otherwise a line", watching)}
+      {group("Friends", "First in your digest", friends)}
+      {group("Watching", "In your digest when they played or posted", watching)}
       <HomeClanOffer />
     </>
   );

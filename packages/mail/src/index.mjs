@@ -22,6 +22,7 @@ export {
   MONO as MAIL_MONO,
   MAIL_SCHEDULE,
   MAIL_SOURCE,
+  DIGEST_CADENCES,
   sendTime as mailSendTime,
 } from "./shell.mjs";
 export { cardAsset, resolveCardArt } from "./cards.mjs";
