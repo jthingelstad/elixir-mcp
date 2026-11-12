@@ -56,17 +56,17 @@ test.describe("arriving at a clan", () => {
     );
   });
 
-  test("the clan's own address lands on Today, and Back never returns to bounce", async ({
+  test("the clan's own address lands on the Feed, and Back never returns to bounce", async ({
     page,
   }) => {
     await page.goto("/clan/2PQRJ8LV/members/standing");
     await expect(page.getByRole("heading", { name: "Standing" })).toBeVisible();
     await page.goto("/clan/2PQRJ8LV");
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
     await expect(
-      page.getByRole("heading", { name: "Today", exact: true }),
+      page.getByRole("heading", { name: "Feed", exact: true }),
     ).toBeAttached();
-    await expect(clanTab(page, /^Today/)).toHaveAttribute(
+    await expect(clanTab(page, /^Feed/)).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -74,13 +74,13 @@ test.describe("arriving at a clan", () => {
     await page.goBack();
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\/standing$/);
     await page.goForward();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
   });
 
   test("/clan lands on the remembered clan's Today", async ({ page }) => {
     await page.goto("/clan/2PQRJ8LV/members/standing");
     await page.goto("/clan/");
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
     await page.goBack();
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\/standing$/);
   });
@@ -109,7 +109,12 @@ test.describe("arriving at a clan", () => {
     await find.fill("Ben");
     await find.press("Enter");
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\?find=Ben$/);
-    await page.getByRole("link", { name: "Ben", exact: true }).click();
+    // A name opens the player page (slice 8, #766); the member's page in
+    // this clan keeps its address, and the roster's search.
+    await expect(
+      page.getByRole("link", { name: "Ben", exact: true }),
+    ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
+    await page.goto("/clan/2PQRJ8LV/members/uq8lp2r9c?find=Ben");
     await expect(page).toHaveURL(/\/members\/uq8lp2r9c\?find=Ben$/);
     // Back to the roster from a member: the roster, not the landing.
     await page.getByRole("link", { name: /Back to Members/ }).click();
@@ -121,18 +126,18 @@ test.describe("arriving at a clan", () => {
     await expect(page).toHaveURL(/\/members\/uq8lp2r9c$/);
   });
 
-  test("picking a clan lands on its Today; Back is the chooser", async ({
+  test("picking a clan lands on its Feed; Back is the chooser", async ({
     page,
   }) => {
     await mockApi(page, signedIn(ACTIONS));
     await page.goto("/clan/clans");
     await page.getByText("Example Clan").first().click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
     await page.goBack();
     await expect(page).toHaveURL(/\/clan\/clans$/);
   });
 
-  test("the Clan picker from another clan's roster lands on Today", async ({
+  test("the Clan picker from another clan's roster lands on the Feed", async ({
     page,
   }) => {
     // Selected: Second Clan, where the person is a member.
@@ -157,7 +162,7 @@ test.describe("arriving at a clan", () => {
     await page
       .getByRole("combobox", { name: "Clan" })
       .selectOption("#2PQRJ8LV");
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Example Clan",
     );
@@ -166,7 +171,7 @@ test.describe("arriving at a clan", () => {
   });
 });
 
-test("coming back from sign-in lands on Today", async ({ page }) => {
+test("coming back from sign-in lands on the Feed", async ({ page }) => {
   let authed = false;
   const answers = signedIn(ACTIONS);
   const calls: string[] = [];
@@ -197,14 +202,14 @@ test("coming back from sign-in lands on Today", async ({ page }) => {
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
   // Clan's own sign-in door is never opened: it is a write.
   expect(calls.filter((path) => path.startsWith("/api/clan/auth/"))).toEqual(
     [],
   );
 });
 
-test.describe("everyone lands on Today", () => {
+test.describe("everyone lands on the Feed", () => {
   const CASES: [string, string, number][] = [
     ["a leader with no Actions waiting", "leader", 0],
     ["a co-leader with Actions waiting", "coLeader", 1],
@@ -219,12 +224,12 @@ test.describe("everyone lands on Today", () => {
         signedIn({ ...ACTIONS, "GET /api/clan/me": [200, as(role, open)] }),
       );
       await page.goto("/clan/2PQRJ8LV");
-      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
-      await expect(clanTab(page, /^Today/)).toBeVisible();
+      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
+      await expect(clanTab(page, /^Feed/)).toBeVisible();
       await expect(clanTab(page, "Run")).toHaveCount(
         ["leader", "coLeader"].includes(role) ? 1 : 0,
       );
       await page.goto("/clan/");
-      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
     });
 });

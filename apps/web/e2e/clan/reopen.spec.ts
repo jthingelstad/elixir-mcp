@@ -198,7 +198,7 @@ for (const size of ["wide", "@narrow"])
       });
       if (entry === "history") {
         await page.goBack();
-        await expect(page).toHaveURL(/\/today\/decided$/);
+        await expect(page).toHaveURL(/\/run\/decided$/);
         await expect(
           page.getByText("No action decided in the last 30 days.", {
             exact: true,

@@ -7,12 +7,12 @@ order: 2
 navTitle: "The week"
 icon: calendar-range
 lede: "A report on each closed week of the clan: what the clan did in Clan Wars, donations, ranked play and battles, who took part, and who came and went."
-reviewed: "2026-11-06; a week now lives under the Season tab; 2026-10-04; Clan browsing context and read clarity, contracts unchanged"
+reviewed: "2026-11-12; a week now lives under the War tab; 2026-11-06; a week now lives under the Season tab; 2026-10-04; Clan browsing context and read clarity, contracts unchanged"
 ---
 
 # The week in your clan
 
-A week, under **Season** in Clan, is a report on one week of the clan, read
+A week, under **War** in Clan, is a report on one week of the clan, read
 from the record. Every member sees it, verified or not, and it needs no
 policy: it is there from the clan's first closed week.
 
@@ -71,4 +71,4 @@ who has since departed, the same number as the clan report. Donations and war de
 took part are named, so the report never lists who did nothing. Your own
 "this week" on your page in Clan and on Home reads the same window. It
 raises no actions and shows no standing; those are on
-[Today](/docs/clan-actions) and [Standing](/docs/standing).
+the [Feed](/docs/clan-actions) and [Standing](/docs/standing).

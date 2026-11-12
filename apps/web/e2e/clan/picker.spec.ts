@@ -6,7 +6,7 @@ import { ME, mockApi, signedIn } from "./fixtures.ts";
  * The Clan picker: a plain select beside the clan's name, only with two or
  * more clans (docs/DECISIONS.md, the picker reversal of 2026-11-05). The
  * fixture's person leads Example Clan and is a member of Second Clan; picking
- * lands on Today.
+ * lands on the Feed.
  */
 const ACTIONS = {
   "GET /api/clan/clans/2PQRJ8LV/actions": [
@@ -63,22 +63,22 @@ for (const [size, viewport] of SIZES)
     ).toBeLessThanOrEqual(0);
     await accessible(page, `the picker, ${size}`);
 
-    // Everyone lands on Today.
+    // Everyone lands on the Feed.
     await picker.selectOption("#2PQRJ8LV");
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Example Clan",
     );
     await expect(picker).toHaveValue("#2PQRJ8LV");
     await picker.selectOption("#GQ08RJPL");
-    await expect(page).toHaveURL(/\/clan\/GQ08RJPL\/today$/);
+    await expect(page).toHaveURL(/\/clan\/GQ08RJPL\/feed$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Second Clan",
     );
 
     // Each pick was a step in history.
     await page.goBack();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
     await expect(picker).toHaveValue("#2PQRJ8LV");
   });
 

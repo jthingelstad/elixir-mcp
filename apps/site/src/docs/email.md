@@ -24,7 +24,7 @@ readers the tools answer with, no language model anywhere in them.
 Every number is the number a tool would give you, and every one of
 them carries the coverage note the tools carry, because a report that
 hides a gap in the record is a report that lies. Clan actions waiting carries
-Clan's own words about your clan, the lines its Today tab shows,
+Clan's own words about your clan, the lines its Feed shows,
 and an answer to your feedback is the maintainer's answer as it was
 written. An answer email leads with the response, followed by what you
 wrote for context; a question asks you to reply on the same item. Elixir
@@ -214,7 +214,7 @@ pages as "an email record", never which one. [Privacy](/docs/privacy)
 covers the rest.
 
 A player's name opens their [player page](/docs/player-page), for every
-reader. A clan you are in opens at Clan, Season, and its roster link at
+reader. A clan you are in opens at Clan, War, and its roster link at
 Members; another clan opens its record. A battle opens its own page, and
 an action opens in Clan. Signed out, a page says why it needs you to sign in,
 and signing in brings you back to it. Tags appear only where a name alone could

@@ -7,7 +7,7 @@ order: 4
 navTitle: "Standing"
 icon: chart-no-axes-column
 lede: "Standing is taking part in what your clan counts, compared across its members. Everyone sees how it works and where they stand; nobody below co-leader sees a removal action or anyone else's clock."
-reviewed: "2026-10-12; inactivity runs from the battle log and raises removal Actions again; 2026-10-01 against contract 9.17.1"
+reviewed: "2026-11-12; Today is the Feed; 2026-10-12; inactivity runs from the battle log and raises removal Actions again; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Clan › Members › Standing", "/clan", "Open Standing"]
 ---
 
@@ -108,7 +108,7 @@ Once the clan has a policy, every member's **Standing** page shows:
   terms ("100% war decks over 4 war weeks, 12 ranked battles, ~213
   donations a week"), their war decks race by race when the clan counts
   war, the activity clock and its uncertainty, and any hold a leader has set.
-  What the clan counts and the minimums, each met or not, are on Today and
+  What the clan counts and the minimums, each met or not, are on the Feed and
   their own page.
 
 When the clan ranks Elder and the policy lets members see where everyone
@@ -136,7 +136,7 @@ inactivity clock.** A member sees only their own activity clock and its uncertai
 
 Clan reads every clan with a policy each morning from 11:00 UTC. Opening
 Standing or the leaders' Review reads it again when the last reading is
-more than five minutes old. Today opens the last reading, and reads
+more than five minutes old. The Feed and Run › Waiting open the last reading, and read
 again when someone chooses **Refresh suggestions** or the policy has a
 new version. A reading can raise or withdraw
 [actions](/docs/clan-actions). A new version of the policy is read

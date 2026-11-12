@@ -16,9 +16,9 @@ guide: clan-policy
 
 **Run › Clan settings**, **Run › Discord** and **Run › Model & voice** hold
 what belongs to the whole clan, with or without a policy, and each setting
-saves on its own. Only the leader and co-leaders open Run; a member who
-follows an old link to it lands on [Standing](/docs/standing), or the roster
-when the clan has no policy yet:
+saves on its own. Only the leader and co-leaders open Run, once verified; anyone else who
+follows a link to it is told so, with a way to the clan's **Policy**, and
+Elixir refuses Run's pages to them:
 
 - **Recording and visibility**, under Clan settings: the kinds of facts shared
   with Elixir, when each is shared and who sees it there. Kicks and

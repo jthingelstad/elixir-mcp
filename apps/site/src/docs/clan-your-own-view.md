@@ -22,13 +22,13 @@ switch. It reads exactly three things:
 - **The policy summary:** whether the leaders have saved a policy, its
   revision, whether it is active (ten members or more), and which parts
   are switched on.
-- **Your own standing line:** the line Clan shows you on Today and
+- **Your own standing line:** the line Clan shows you on the Feed and
   your own page: your status, what counted, the next step, your minimums and,
   when removal is on, your own inactivity state (at risk, never more).
-- **The Actions waiting for you,** as the lines Clan's Today tab
+- **The Actions waiting for you,** as the lines Clan's Feed
   shows: number, type, label, the member it is about and when it was
   raised, each with a link to open it in Clan. An Action Clan has not
-  numbered yet has no number and links to Today.
+  numbered yet has no number and links to the Feed.
 
 It never shows another member's line, clock, hold or note; never a
 removal Action, to anyone, a leader who would decide it included; never

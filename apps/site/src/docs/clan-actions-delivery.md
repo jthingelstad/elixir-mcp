@@ -69,6 +69,6 @@ again.
   and a note if they like: feedback to Elixir about that message from
   their own account (Elixir cannot see the channel), and each sees only
   their own.
-- Until a webhook is connected, **Today** suggests one to the
+- Until a webhook is connected, the **Feed** suggests one to the
   leader and co-leaders. If Discord stops taking it (the webhook was
-  deleted, say), posting stops and **Run › Discord** and **Today** say so.
+  deleted, say), posting stops and **Run › Discord** and the **Feed** say so.

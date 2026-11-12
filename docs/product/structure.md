@@ -56,31 +56,42 @@ Battles, Decks and Cards. Routes `/ladder`, `/ladder/battles`,
 `/ladder/decks`, `/ladder/cards`. The battle page `/battle/<id>` keeps its
 layout.
 
-### Clan [Jamie, 2026-11-05; step 4]
+### Clan [Jamie, 2026-11-05; step 4; Jamie, 2026-11-12; slice 8]
 
 The page head has the clan's name, and a picker when the person has two or
 more clans. One clan at a time stays.
 
+Asked "Slice 8, Clan: replace Clan's five tabs with the canvas tabs Feed,
+Standings, War, Members, Policy and Run (leaders only)?", Jamie answered
+"Yes, the canvas tabs (Recommended)" [Jamie, 2026-11-12]. They replace
+Today, Members, Season, Awards and Run. What each holds and who sees it is
+as built [engineering, 2026-11-12, #766]:
+
 | Tab | What it holds | Who |
 | --- | --- | --- |
-| Today | Count badge; Waiting and Decided | Decided for co-leaders up |
+| Feed | Count badge; what waits for you, then the clan's last seven days (its items, members' moments and highlights, newest first); You here and The week beside them | Every member; the timeline's own reader rules |
+| Standings | A season picker merging races and history (was Awards) | Every member |
+| War | A period picker merging The week and Season (was Season) | Every member |
 | Members | Roster, Standing, Review, Map; Recruit, Scout; find a member | Review for co-leaders up; Scout for elders up; Recruit per A11 |
-| Season | A period picker merging The week and Season | Every member |
-| Awards | A season picker merging races and history | Every member |
-| Run | A grouped side list | Co-leaders up |
+| Policy | The policy in every member's words, its weights, its version and who saved it | Every member (public per A2) |
+| Run | A grouped side list | Leader and co-leaders, verified; refused on the server to everyone else |
 
 Run's side list:
 
+- **Actions:** Waiting, Decided.
 - **Policy:** About.
 - **What counts:** Minimums, Clan Wars, Ranked, Donations, Trophy Road.
 - **People:** Elder, Inactivity, Arrivals, Departures.
 - **Telling the clan:** Announcements.
 - **Elsewhere:** Awards setup, Discord, Model & voice, Clan settings.
 
-Routes: `/clan/<TAG>/today`, `/members`, `/members/standing`,
-`/members/review`, `/members/map`, `/members/recruit`, `/members/scout`,
-`/members/away`, `/members/<player>`, `/season`, `/awards`, `/run/<section>`.
-`/clan/<TAG>/actions/<n>` stays. The chooser for someone with no clan open is
+Routes: `/clan/<TAG>/feed`, `/standings`, `/war`, `/members`,
+`/members/standing`, `/members/review`, `/members/map`, `/members/recruit`,
+`/members/scout`, `/members/away`, `/members/<player>`, `/policy`,
+`/run/<section>` (`/run/actions` is Waiting, `/run/decided` Decided).
+`/clan/<TAG>/actions/<n>` stays. The old `/today`, `/season` and `/awards`
+addresses redirect to the Feed, War and Standings, and `/today/decided` to
+`/run/decided`. The chooser for someone with no clan open is
 `/clan`.
 
 An action's page leads with its reason, then facts, then "What this comes

@@ -143,7 +143,7 @@ const ROSTER = {
   ],
 };
 
-/** One of Clan's five tabs. */
+/** One of Clan's tabs: Feed, Standings, War, Members, Policy and Run. */
 export const clanTab = (page: Page, name: string | RegExp) =>
   page
     .getByRole("tablist", { name: "Clan" })
@@ -173,6 +173,29 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
     });
   });
 }
+
+/** The clan's last seven days, as the Feed reads them. */
+const FEED = {
+  clan_tag: "#2PQRJ8LV",
+  window_days: 7,
+  more: 0,
+  items: [
+    {
+      id: "hl-1",
+      kind: "battle_highlight",
+      at: "2026-09-12T15:00:00Z",
+      text: "Zed posted a highlight",
+      words: "Three crowns with seconds left",
+      battle_url: "https://elixir.test/battle/example-1",
+    },
+    {
+      id: "join-1",
+      kind: "clan_member_joined",
+      at: "2026-09-11T09:00:00Z",
+      text: "Dee joined Example Clan",
+    },
+  ],
+};
 
 /** Signed in, with the reads the tabs' pages make. `select` is stateful:
  *  picking a clan changes what /api/clan/me answers, as the Lambda does. */
@@ -278,6 +301,12 @@ export function signedIn(
     // the shared door, with the shared session.
     "POST /api/feedback": [200, { ok: true, feedback_id: 41 }],
     "GET /api/clan/clans/2PQRJ8LV/me/away": [200, { away: null }],
+    // The Feed's timeline and Run's one question (slice 8, #766).
+    "GET /api/clan/clans/2PQRJ8LV/feed": [200, FEED],
+    "GET /api/clan/clans/2PQRJ8LV/run": [
+      200,
+      { clan_tag: "#2PQRJ8LV", run: true },
+    ],
     ...overrides,
   };
 }

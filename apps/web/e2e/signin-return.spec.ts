@@ -13,8 +13,8 @@ const paths = [
   },
   {
     name: "clan",
-    from: "/clan/2PQRJ8LV/today",
-    to: "/clan/2PQRJ8LV/today",
+    from: "/clan/2PQRJ8LV/feed",
+    to: "/clan/2PQRJ8LV/feed",
   },
   {
     name: "battle",
