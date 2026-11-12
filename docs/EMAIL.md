@@ -5,8 +5,9 @@ this file is the design, not the description (AGENTS.md). Composition is
 structured from recorded facts, without model generation.
 
 Seven product kinds are active (`ACTIVE_PRODUCT_EMAIL_KINDS` in
-`packages/contracts/src/queue.ts`): four weekly (`clan_report`,
-`arena_week`, `tracking_report`, `collector_activity`) and three that come
+`packages/contracts/src/queue.ts`): four scheduled (`clan_report`,
+`arena_week` and `collector_activity` weekly, and `tracking_report`, the
+digest, weekly or daily by the reader's choice) and three that come
 when something happens (`milestone`, `clan_actions_waiting`,
 `feedback_answer`). The
 collector upgrade notice is part of `collector_activity`. `top_100` and
@@ -102,8 +103,13 @@ The validator refuses a bulk message without `unsubscribe.url`.
 
 ### Preferences
 
-`account_email_pref (account_id, kind, enabled, changed_at, via)` with
-`via ∈ {profile, one_click, ops}`; absent row means enabled. Every change
+`account_email_pref (account_id, kind, enabled, changed_at, via, cadence)` with
+`via ∈ {profile, one_click, ops}`; absent row means enabled. `cadence`
+(0242) is the digest's how-often, `weekly` or `daily`, null meaning
+weekly and on no other kind; off is still `enabled = false`, so choosing
+a cadence never turns the digest on, and turning it off keeps the
+cadence. `PUT /api/me/email` takes `{kind: "tracking_report", cadence}`
+with or without `enabled`. Every change
 writes an `account_event`. Person principals only: agents and
 integrations have no inbox. The ops op is the test path; there is no
 "send me this now" button. `collector_activity` can be flipped only by an
@@ -116,8 +122,8 @@ unsubscribe token makes.
 
 `email_issue (kind, period_key, subject_key, status, composed_at)` and
 `email_send (issue_id, account_id, enqueued_at)`. `subject_key` is the
-clan tag for `clan_report` (one issue per clan per week, N sends), null
-otherwise (one issue per account).
+clan tag for `clan_report` (one issue per clan per week, N sends), the
+account id otherwise (one issue per account).
 
 A run asks the ledger first: one query drops the recipients (and, for
 `clan_report`, the clans) already sent for the period, and an issue some
@@ -162,8 +168,9 @@ under `/settings`, Ladder at `/ladder?player=<tag>`, battles at
 ### Schedule and plumbing
 
 EventBridge rules invoke the jobs Lambda (reserved concurrency one): the
-four weekly kinds at 14:00 UTC (`MAIL_SCHEDULE` in
-`packages/mail/src/shell.mjs`, pinned to the crons by test), `milestone`
+three weekly kinds at 14:00 UTC and the digest every day at 14:30 UTC
+(`MAIL_SCHEDULE` in `packages/mail/src/shell.mjs`, pinned to the crons
+by test), `milestone`
 hourly, and the collector upgrade drain every minute. `clan_actions_waiting`
 is sent from Clan's morning run. Composers write to the email outbox; the
 relay sends over SES. No editorial queue, model or brief-build rule exists.
@@ -254,37 +261,58 @@ rounded percents' order, never a verdict word. Below the minimum on
 either side `form` is null and there is no line; a stored issue from
 before has no `form` and renders without it.
 
-### `tracking_report`: Wednesday ("Your friends this week")
+### `tracking_report`: the digest, Wednesday or daily ("Your digest")
 
-`elixir_timeline` for the week, ordered by relationship depth. Friends,
-then the busiest watched players, ten in all (`CARD_CAP`): a card each
-with a record per mode family, two moments and the most-played deck.
-Other watchers: one line each. Never empty for an account with a claim.
+The digest of the people you follow replaced the friends mail on
+2026-11-12 (social slice 9, #767; Jamie's ruling is quoted in
+`docs/DECISIONS.md`, "Seven product kinds"). It keeps the kind key, so
+the switch, every opt-out and every old unsubscribe link carry over; the
+HMAC covers the kind.
 
-What the mail says is chosen from the timeline, never by changing it
-(2026-10-08):
-- **Moments** are the big firsts (`MILESTONE_MAIL_KINDS`) plus clan
-  moves and returns (`MOMENT_KINDS`, chosen before the cap); card unlocks and badges are a
-  count from the entry (`progress`), after the two moments.
-- **A clan** is `clanSummaryParts` (the clauses `summarizeClan` joins,
-  in its order): the first as the headline, the next three
-  (`CLAN_BULLETS`) as bullets, the rest counted with a link to the clan.
-  An issue stored before then carries the sentence as `line` and renders
-  it as before.
-- **Quiet** players with `days_quiet` of 30 or more are one line, longest
-  quiet first, with no day counts (`LONG_QUIET_DAYS` in the renderer).
-- **No attested facts:** what the family's apps attest (Clan's
-  departures, role changes, awards, standings, aways and messages, Drop's
-  personal records; `ATTESTED_FACT_KINDS`) stays out of the tracking mail,
-  so the cap is spent on game moments (`services/jobs/test/tracking.test.mjs`).
-  This is an engineering choice about what the mail is for, not a
-  visibility rule; the timeline still carries them to their readers.
-- **Full stops:** a moment's text is a sentence; the renderer joins
-  clauses (`clause`) and ends a sentence once (`sentence`), so "level
-  10.." cannot recur.
+**When.** One rule, every day at 14:30 UTC (`MAIL_SCHEDULE`,
+`daily: true`). A scheduled run takes readers whose cadence is weekly
+only on a UTC Wednesday (`DIGEST_WEEKLY_DAY`), and daily readers every
+day; an ops run for one account, or a forced one, ignores the day. The
+period key is the UTC date, so the ledger allows one digest a day per
+account (`~m<ms>` on a manual send, as elsewhere).
 
-**Friends is everyone you follow; Arena is your own battles**, plus the
-count of your own small firsts. Neither shows the other's numbers.
+**The window** (`digestWindow` in `services/jobs/src/email/build-digest.mjs`)
+is the week or the day before the run, starting no earlier than the last
+scheduled digest (`email_send.enqueued_at`, manual sends excluded), so a
+switch from daily to weekly never tells an item twice.
+
+**What it reads.** `buildTimeline` in-process over the reader's subjects
+(`subjectsFor`: claims and clans with notify on), basis `observed` (what
+the record learned since the last digest, so a battle captured late is
+told once, never skipped), filtered before the cap to `DIGEST_KINDS`:
+`battle_highlight`, the big firsts (`MILESTONE_MAIL_KINDS`), clan moves
+and returns. Card unlocks and badges stay a count (`progress`), as the
+friends mail counted them. Attested facts never enter
+(`services/jobs/test/digest-mail.test.mjs`).
+
+**What it says.**
+- **From people you follow:** friends first, then whoever has the most
+  to tell, then the busiest, at most twelve (`PEOPLE_CAP`), the rest
+  counted. Each has their sittings, battles and record, their trophies,
+  and up to three items (`ITEMS_PER_PERSON`), highlights first: a
+  highlight is the timeline's sentence with the words carried apart and
+  drawn as a quote; each item links the battle's public page when the
+  record knows the battle. A highlight's share link is never carried.
+- **Around you:** each tracked clan that had battles, roster moves or a
+  resolved race, as `clanSummaryParts` (headline and three bullets, the
+  rest counted), and you, with any alt that played.
+- **Never empty:** null (no mail) when no one followed played or posted
+  and neither did the reader. Clans alone never send one.
+- Names link to the current player door (`playerDoor`); a player page
+  from slice 6 is not on main yet.
+- Everything a person typed (names, nicknames, words) is escaped at the
+  render (`packages/mail/test/hostile-names.test.mjs`).
+
+The subject names no one: "Your week in Elixir: 3 people you follow, 41
+battles". The preheader leads with the first highlight's words.
+
+`packages/tools/src/friends-week.mjs` still builds Home's Friends; the
+mail no longer reads it.
 
 ### `collector_activity`: Sunday, plus upgrade notices
 

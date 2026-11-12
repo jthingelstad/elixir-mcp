@@ -15,6 +15,16 @@ test("an email choice reads as what changed, in the page's words", () => {
       detail: { kind: "all", enabled: true, label: "every Elixir email" },
     }),
   ).toBe("Every Elixir email: on");
+  expect(
+    eventDetail({
+      kind: "email_pref",
+      detail: {
+        kind: "tracking_report",
+        cadence: "daily",
+        label: "Your digest",
+      },
+    }),
+  ).toBe("Your digest: daily");
 });
 
 test("a kind nobody named reads as its own words", () => {

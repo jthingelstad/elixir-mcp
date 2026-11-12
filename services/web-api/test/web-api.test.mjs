@@ -1404,7 +1404,11 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   assert.equal(kind("arena_week").last_send_id, mine[1].send_id);
   assert.equal(kind("clan_report").last_send_id, null);
   assert.equal(kind("arena_week").product, "Ladder");
-  assert.equal(kind("tracking_report").product, "Friends");
+  assert.equal(kind("tracking_report").product, "Home");
+  // The digest carries its cadence, weekly until chosen; no other kind does.
+  assert.equal(kind("tracking_report").cadence, "weekly");
+  assert.equal(kind("arena_week").cadence, null);
+  assert.match(kind("tracking_report").sends.time, /^\d{1,2}:30 (am|pm)$/);
   assert.equal(kind("milestone").sends, null);
   assert.deepEqual(Object.keys(kind("clan_report").sends).sort(), [
     "time",
@@ -1432,6 +1436,54 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   );
   assert.equal(choice.detail.enabled, true);
   assert.equal(choice.detail.label, "every Elixir email");
+  // The digest's cadence: daily or weekly, on the digest only; a turn-off
+  // keeps it, and choosing one never turns the mail back on.
+  const digest = async () =>
+    parse(await get("/api/me/email")).kinds.find(
+      (k) => k.kind === "tracking_report",
+    );
+  assert.equal(
+    (await put({ kind: "tracking_report", cadence: "daily" })).statusCode,
+    200,
+  );
+  assert.equal((await digest()).cadence, "daily");
+  assert.equal((await digest()).enabled, true);
+  assert.equal(
+    (await put({ kind: "tracking_report", enabled: false })).statusCode,
+    200,
+  );
+  assert.equal((await digest()).cadence, "daily");
+  assert.equal(
+    (await put({ kind: "tracking_report", cadence: "weekly" })).statusCode,
+    200,
+  );
+  assert.deepEqual(
+    [(await digest()).enabled, (await digest()).cadence],
+    [false, "weekly"],
+  );
+  assert.equal(
+    parse(await put({ kind: "arena_week", cadence: "daily" })).error,
+    "no_cadence",
+  );
+  assert.equal(
+    parse(await put({ kind: "tracking_report", cadence: "hourly" })).error,
+    "bad_cadence",
+  );
+  assert.equal(
+    (await put({ kind: "tracking_report", enabled: true })).statusCode,
+    200,
+  );
+  // A cadence choice reads back as its own event, the digest named.
+  const chose = parse(await get("/api/me/activity")).events.filter(
+    (e) => e.kind === "email_pref" && e.detail.cadence,
+  );
+  assert.deepEqual(
+    chose.map((e) => [e.detail.label, e.detail.cadence]),
+    [
+      ["Your digest", "weekly"],
+      ["Your digest", "daily"],
+    ],
+  );
 
   // Without a store: the row answers, the body is null.
   const bare = parse(await get(`/api/me/email/sends/${mine[0].send_id}`));

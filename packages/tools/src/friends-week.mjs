@@ -1,6 +1,6 @@
-/** The week for everyone a person follows: the builder behind Wednesday's
- *  mail (tracking_report, "Your friends this week") and Home's Friends, one
- *  shape and one set of numbers. Its frame IS elixir_timeline's window,
+/** The week for everyone a person follows: the builder behind Home's
+ *  Friends (Wednesday's friends mail read it too until the digest,
+ *  services/jobs/src/email/build-digest.mjs, replaced it on 2026-11-12). Its frame IS elixir_timeline's window,
  *  built in-process (buildTimeline) so the 48 KB door cap never applies;
  *  each person who played then gets the board's card (EmailFriends): a
  *  record per mode from battles_performance and the deck they played most

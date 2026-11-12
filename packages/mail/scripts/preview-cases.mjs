@@ -90,30 +90,29 @@ export function mailPreviewCases() {
       },
     }),
   );
-  const friends = read("tracking_report");
+  const digest = read("tracking_report");
   cases.push(
-    product("tracking_report-quiet", "tracking_report", {
-      ...friends,
-      primary: null,
-      alts: [],
+    product("tracking_report-daily", "tracking_report", {
+      ...digest,
+      cadence: "daily",
+      window: {
+        from: "2026-11-10T14:30:00.000Z",
+        to: "2026-11-11T14:30:00.000Z",
+      },
+      people: digest.people.slice(0, 1),
       clans: [],
-      watching: [],
-      friends: friends.friends
-        .slice(0, 2)
-        .map((f) => ({ ...f, battles: 0, by_family: [] })),
-      quiet: friends.friends
-        .slice(0, 2)
-        .map((f, i) => ({ tag: f.tag, name: f.name, days: i ? 45 : 3 })),
+      coverage:
+        "You follow 5 people; 1 has something recorded this day. A gap means unknown. It does not mean they didn’t play.",
     }),
   );
   cases.push(
-    product("tracking_report-tagless", "tracking_report", {
-      ...friends,
-      primary: null,
-      alts: [],
+    product("tracking_report-you-only", "tracking_report", {
+      ...digest,
+      people: [],
       clans: [],
-      friends: [],
-      quiet: [],
+      following: 0,
+      coverage:
+        "You follow nobody yet, so this week is yours alone. A gap means unknown. It does not mean they didn’t play.",
     }),
   );
   const collector = read("collector_activity");

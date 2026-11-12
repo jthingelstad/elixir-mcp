@@ -25,7 +25,7 @@ import { lastGameWeek, lastCollectorWeek } from "./week.mjs";
 import { upsertIssue } from "@elixir-mcp/mail/ledger";
 import { deliver } from "@elixir-mcp/mail/deliver";
 import { buildArena } from "./build-arena.mjs";
-import { buildTracking } from "./build-tracking.mjs";
+import { buildDigest, digestWindow } from "./build-digest.mjs";
 import { buildClan } from "./build-clan.mjs";
 import { buildCollector } from "./build-collector.mjs";
 import { buildMilestone, recordMilestones } from "./build-milestone.mjs";
@@ -160,15 +160,14 @@ export async function runEmail({
     {
       // Weekly mail describes the completed period, not the send-time season.
       // The Monday boundary belongs to the next week/season on game_clock.
-      const seasonAt = [
-        "clan_report",
-        "arena_week",
-        "tracking_report",
-      ].includes(kind)
+      // The digest (tracking_report) is the window ending now.
+      const seasonAt = ["clan_report", "arena_week"].includes(kind)
         ? new Date(lastGameWeek(now).to.getTime() - 1)
         : now;
       const season = await seasonOf(db, recipients[0], seasonAt);
       if (kind === "clan_report") await runClans(run, recipients, season);
+      else if (kind === "tracking_report")
+        await runDigest(run, recipients, season);
       else await runPerAccount(run, recipients, season);
     }
     return result;
@@ -313,13 +312,110 @@ export function milestonePeriodKey(now, moments) {
   return `${now.toISOString().slice(0, 10)}.${hash}`;
 }
 
-/** The per-account kinds: arena_week, tracking_report,
- *  collector_activity and milestone. */
+/** The digest's own day: Wednesday, the friends mail's day, kept for
+ *  the weekly default; a daily reader gets one every day. The rule
+ *  fires daily (infra/template.yaml, EmailTrackingReportRule) and a
+ *  scheduled run takes the weekly readers only on this UTC weekday. */
+const DIGEST_WEEKLY_DAY = 3;
+
+/** Each recipient's digest cadence (0242): absent or null is weekly. */
+async function digestCadences(db, accountIds) {
+  const { rows } = await db.query(
+    `select account_id, cadence from account_email_pref
+      where kind = 'tracking_report' and account_id = any($1::uuid[])
+        and cadence is not null`,
+    [accountIds],
+  );
+  return new Map(rows.map((r) => [r.account_id, r.cadence]));
+}
+
+/** When each recipient last had a scheduled digest (a manual send, with
+ *  its ~m suffix, never moves the window). */
+async function lastDigests(db, accountIds) {
+  const { rows } = await db.query(
+    `select s.account_id, max(s.enqueued_at) as at
+       from email_send s join email_issue i on i.issue_id = s.issue_id
+      where i.kind = 'tracking_report' and i.period_key not like '%~m%'
+        and s.account_id = any($1::uuid[])
+      group by s.account_id`,
+    [accountIds],
+  );
+  return new Map(rows.map((r) => [r.account_id, r.at]));
+}
+
+/** tracking_report, the digest of the people you follow (#767): one
+ *  issue per account per UTC day, the day its period. A scheduled run
+ *  takes the daily readers every day and the weekly ones on Wednesday;
+ *  an ops run (one account, or force) sends whatever the reader's
+ *  cadence covers, any day. Nothing to tell is no mail. */
+async function runDigest(run, recipients, season) {
+  const { db, kind, now, result } = run;
+  const periodKey = now.toISOString().slice(0, 10);
+  const ids = recipients.map((a) => a.accountId);
+  const cadences = await digestCadences(db, ids);
+  const cadenceOf = (a) => cadences.get(a.accountId) ?? "weekly";
+  let todo = recipients;
+  if (run.scheduled && now.getUTCDay() !== DIGEST_WEEKLY_DAY) {
+    todo = todo.filter((a) => cadenceOf(a) === "daily");
+    result.skipped += recipients.length - todo.length;
+  }
+  if (!run.force) {
+    const sent = await sentForPeriod(db, kind, periodKey);
+    const before = todo.length;
+    todo = todo.filter((a) => !sent.get(a.accountId)?.has(a.accountId));
+    result.already_sent += before - todo.length;
+  }
+  const lastSent = await lastDigests(
+    db,
+    todo.map((a) => a.accountId),
+  );
+  for (let i = 0; i < todo.length; i++) {
+    const account = todo[i];
+    if (run.outOfTime()) {
+      stop(run, todo.length - i);
+      break;
+    }
+    try {
+      const cadence = cadenceOf(account);
+      const facts = await buildDigest({
+        db,
+        account,
+        cadence,
+        window: digestWindow(now, cadence, lastSent.get(account.accountId)),
+      });
+      if (!facts) {
+        result.skipped += 1;
+        continue;
+      }
+      facts.season = season;
+      const subjectKey = account.accountId;
+      const issueId = await upsertIssue(db, {
+        kind,
+        periodKey: periodKey + run.manual,
+        subjectKey,
+        facts,
+        status: "queued",
+      });
+      result.composed += 1;
+      await run.send({
+        issueId,
+        issueKey: `${kind}/${periodKey}/${subjectKey}`,
+        period: periodKey,
+        account,
+        facts,
+      });
+    } catch (err) {
+      failed(run, { account: account.accountId }, err);
+    }
+  }
+}
+
+/** The per-account kinds: arena_week, collector_activity and
+ *  milestone. */
 async function runPerAccount(run, recipients, season) {
   const { db, kind, now, result } = run;
   const weekOf = {
     arena_week: () => lastGameWeek(now),
-    tracking_report: () => lastGameWeek(now),
     collector_activity: () => lastCollectorWeek(now),
   }[kind];
   if (!weekOf && kind !== "milestone") throw new Error(`unknown kind ${kind}`);
@@ -359,8 +455,6 @@ async function runPerAccount(run, recipients, season) {
       let period = periodKey;
       if (kind === "arena_week")
         facts = await buildArena({ db, account, week, season });
-      else if (kind === "tracking_report")
-        facts = await buildTracking({ db, account, week, season });
       else if (kind === "collector_activity")
         facts = await buildCollector({ db, account, week, now });
       else {

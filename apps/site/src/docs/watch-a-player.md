@@ -1,13 +1,13 @@
 ---
 slug: watch-a-player
 title: "Watch any player"
-description: "Track any player by tag, friend or not: adding one starts recording, what the record holds before and after, how a watched player shows in your timeline and Wednesday's Your friends this week, your player slots, and how an Elixir agent tracks."
+description: "Track any player by tag, friend or not: adding one starts recording, what the record holds before and after, how a watched player shows in your timeline and your digest, your player slots, and how an Elixir agent tracks."
 section: friends
 order: 2
 navTitle: "Watch any player"
 icon: eye
-lede: "Any player with a tag can be tracked. Adding one is recording it, from the next read on, and a watched player gets a line in your Wednesday email."
-reviewed: "2026-10-01 against contract 9.17.1"
+lede: "Any player with a tag can be tracked. Adding one is recording it, from the next read on, and a watched player who played or posted is in your digest."
+reviewed: "2026-11-12 the digest replaces Your friends this week; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Settings › Players & tracking", "/settings/players", "Open Players & tracking"]
 ---
 
@@ -46,15 +46,13 @@ A watched player is a subject of your **timeline** while its
 **Notifications** switch is on: sittings, new arenas, promotions, clan
 changes, on Home and through `elixir_timeline`.
 
-In Wednesday's **Your friends this week**, the players you watch come
-after your [friends](/docs/follow-a-friend), busiest first. The busiest
-get a card each, as a friend does: the week's battles in each mode with
-wins and losses, a moment or two, and the deck they played most, drawn
-card by card. Ten full cards a week in all, friends first; a watched
-player past those gets one line: the week's battles with wins and
-losses and the modes, with a note when they came back after quiet days,
-joined or left a clan, reached an arena or were promoted. Players with
-nothing recorded all week are named together in one quiet line.
+In **[your digest](/docs/email#your-digest)**, the players you watch
+come after your [friends](/docs/follow-a-friend), whoever has the most
+to tell first, then the busiest, shown as a friend is: their battles
+with wins and losses, their trophies, and up to three things (their
+highlights, a new arena or league, a clan joined or left, a return),
+twelve people in all with the rest counted. A player who neither played
+nor posted is left out.
 
 The opening a connected app reads lists the players you watch with
 their tags (or counts them, when the list is long), so you can ask about

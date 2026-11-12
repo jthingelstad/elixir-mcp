@@ -1,13 +1,13 @@
 ---
 slug: follow-a-friend
 title: "Follow a friend"
-description: "Mark a player you track as a friend: how to add one on the website or through a connected app, what a friend gets that a watched player does not (a card of their own, first, in Wednesday's Your friends this week, a name in your connection's opening), nicknames, the notifications switch, and stopping."
+description: "Mark a player you track as a friend: how to add one on the website or through a connected app, what a friend gets that a watched player does not (first in your digest, a name in your connection's opening), nicknames, the notifications switch, and stopping."
 section: friends
 order: 1
 navTitle: "Follow a friend"
 icon: heart
-lede: "A friend is a player you follow on purpose. Elixir records them like anyone you track, and gives them a paragraph of their own in your Wednesday email."
-reviewed: "2026-10-01 against contract 9.17.1"
+lede: "A friend is a player you follow on purpose. Elixir records them like anyone you track, and puts them first in your digest."
+reviewed: "2026-11-12 the digest replaces Your friends this week; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Settings › Players & tracking", "/settings/players", "Open Players & tracking"]
 ---
 
@@ -52,18 +52,18 @@ costs](/docs/recording#what-a-player-slot-costs)).
 |---|---|---|
 | Recording | the same | the same |
 | Your timeline | yes, while notifications are on | yes, while notifications are on |
-| Wednesday's Your friends this week | a card of their own, first | a card if among the busiest, otherwise a line |
+| [Your digest](/docs/email#your-digest) | first, when they played or posted | after your friends, when they played or posted |
 | Your connection's opening | named under "Friends you follow" | named under "You are also watching" |
 
-In **Your friends this week** each friend who played gets a card under
-their name and your nickname for them: the week's battles in each mode
-with the wins and losses (each mode on its own line, never pooled),
-their trophies, up to two moments such as a new arena, a promotion in
-Path of Legends, a badge or a clan joined or left, and the deck they
-played most, drawn card by card with how many of their battles it
-carried. Friends come first, then the players you watch, busiest first:
-ten full cards a week in all. A watched player past those gets one line;
-anyone with no battle recorded is named once, together, at the end.
+In **[your digest](/docs/email#your-digest)** (weekly on Wednesdays, or
+daily by your choice) each friend who played or posted is shown under
+their name and your nickname for them: their battles with the wins and
+losses, their trophies, and up to three things, their
+[highlights](/docs/timeline#highlights) first with their own words, then
+a big first such as a new arena or a clan joined or left, each with a
+link to its battle when the record knows it. Friends come first, then
+the players you watch, up to twelve in all with the rest counted. Anyone
+who neither played nor posted is left out.
 [Watch any player](/docs/watch-a-player) has that side.
 
 Some things are only ever about you. A friend never gets
@@ -75,7 +75,7 @@ belong to your primary player and your alts.
 
 Give a friend a nickname on their page (**Nickname**, 1 to 40
 characters) or through a connected app with `elixir_nickname`. It is private
-to you (apps you connect as yourself see it; an agent keeps its own), and Your friends this week uses it. A nickname
+to you (apps you connect as yourself see it; an agent keeps its own), and your digest uses it. A nickname
 stays when you stop tracking the player, and an empty one clears it.
 
 ## The notifications switch
@@ -84,7 +84,7 @@ Each tracked player has a **Notifications** switch, on from the start;
 a connected app can flip it with `elixir_track_player` and `action:
 "notify_off"` or `"notify_on"`. With it on, the player is a subject of your timeline, which your connected apps
 and Home read. With it off, the player leaves your timeline and
-Wednesday's Your friends this week too, while recording carries on.
+your digest too, while recording carries on.
 
 ## Stopping
 

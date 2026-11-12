@@ -283,9 +283,7 @@ test(
     });
     render(<App />);
     await screen.findByRole("switch", { name: "On your timeline" });
-    expect(
-      screen.getByText(/whether they appear in Your friends this week/),
-    ).toBeTruthy();
+    expect(screen.getByText(/whether they appear in your digest/)).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "Email settings" }).getAttribute("href"),
     ).toBe("/settings/emails");

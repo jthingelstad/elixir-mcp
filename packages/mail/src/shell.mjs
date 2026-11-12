@@ -81,7 +81,7 @@ export const esc = (v) =>
 export const MAIL_SOURCE = {
   clan_report: { product: "Clan", when: "Monday" },
   arena_week: { product: "Ladder", when: "Tuesday" },
-  tracking_report: { product: "Friends", when: "Wednesday" },
+  tracking_report: { product: "Home", when: "Digest" },
   collector_activity: { product: "Collectors", when: "Sunday" },
   milestone: { product: "Ladder", when: "Milestone" },
   clan_actions_waiting: { product: "Clan", when: "Actions" },
@@ -92,14 +92,23 @@ export const MAIL_SOURCE = {
 };
 
 /** When each weekly kind is sent: the EventBridge crons in
- *  infra/template.yaml (pinned by test), every one at 14:00 UTC. A
- *  footer says it in the reader's own zone. day is 0 = Sunday. */
+ *  infra/template.yaml (pinned by test). A footer says it in the
+ *  reader's own zone. day is 0 = Sunday. The digest (tracking_report)
+ *  runs every day at 14:30 UTC, half an hour after the other weekly
+ *  kinds so the runs never share the jobs Lambda's one slot: a daily
+ *  reader gets it each day, a weekly one (the default) on Wednesdays,
+ *  the friends mail's day. [engineering, 2026-11-12] */
 export const MAIL_SCHEDULE = {
   clan_report: { day: 1, hour: 14, minute: 0 },
   arena_week: { day: 2, hour: 14, minute: 0 },
-  tracking_report: { day: 3, hour: 14, minute: 0 },
+  tracking_report: { day: 3, hour: 14, minute: 30, daily: true },
   collector_activity: { day: 0, hour: 14, minute: 0 },
 };
+
+/** How often a reader gets the digest: their choice, weekly when they
+ *  have made none (Jamie, 2026-11-12: "Weekly by default, daily or off by
+ *  choice"). */
+export const DIGEST_CADENCES = ["weekly", "daily"];
 
 /** "Central", "Eastern", "UTC": a zone's everyday name. */
 function zoneName(timezone, at) {
@@ -176,7 +185,7 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
     case "collector_activity":
       return `You get this ${on}, while you run a collector.`;
     case "tracking_report":
-      return `You get this ${on}.`;
+      return digestWhy("weekly", t);
     case "milestone":
       return "You get this when your main player reaches a big first. Elixir checks every hour. Your other players’ firsts come in Tuesday’s mail.";
     case "clan_actions_waiting":
@@ -192,6 +201,26 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
     default:
       return "You get this because it is on for your Elixir account.";
   }
+}
+
+/** The digest's why-line by cadence: when it comes, and that a period
+ *  with nothing in it sends nothing. */
+function digestWhy(cadence, t) {
+  const when =
+    cadence === "daily"
+      ? t
+        ? `each day at ${t.time} ${t.zone}`
+        : "each day"
+      : t
+        ? `on ${t.weekday}s at ${t.time} ${t.zone}`
+        : "weekly";
+  const span = cadence === "daily" ? "day" : "week";
+  return `You get this ${when}, in a ${span} when someone you follow played or posted, or you did. Choose weekly, daily or off in Manage emails.`;
+}
+
+/** The footer's why-line for a digest of this cadence. */
+export function digestWhyLine(cadence, timezone = "UTC", now = new Date()) {
+  return digestWhy(cadence, sendTime("tracking_report", timezone, now));
 }
 
 /** The short id a footer shows: a person can quote it, and the link carries

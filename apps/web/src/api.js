@@ -83,6 +83,9 @@ export const api = {
   emailPrefs: () => request("GET", "/api/me/email"),
   setEmailPref: (kind, enabled) =>
     request("PUT", "/api/me/email", { kind, enabled }),
+  /** How often the digest comes (tracking_report): "weekly" or "daily". */
+  setDigestCadence: (cadence) =>
+    request("PUT", "/api/me/email", { kind: "tracking_report", cadence }),
   myEmailSends: () => request("GET", "/api/me/email/sends"),
   emailRecord: (send_id) =>
     request("GET", `/api/me/email/sends/${encodeURIComponent(send_id)}`),
