@@ -1,6 +1,7 @@
 import { cheerCounts } from "../home/cheer-set.js";
 import { playerHref } from "../lib/player.js";
 import { SETTINGS } from "../lib/settings.js";
+import { eventGroup, eventLabel } from "../views/account/events.js";
 
 /**
  * What the bell works out on its own, away from the drawing (2026-11-12).
@@ -32,6 +33,10 @@ export function bellSeenAt(bell, seenAt) {
     new: false,
   }));
   const answers = bell.answers ?? { items: [], new: 0 };
+  const account = (bell.account?.items ?? []).map((a) => ({
+    ...a,
+    new: false,
+  }));
   return {
     ...bell,
     seen_at: seenAt ?? bell.seen_at ?? null,
@@ -39,8 +44,77 @@ export function bellSeenAt(bell, seenAt) {
     reactions: { ...bell.reactions, items: reactions, new: 0 },
     followers: { ...bell.followers, players: followers, new: 0 },
     answers,
+    account: { ...bell.account, items: account, new: 0 },
   };
 }
+
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+/** Who a line of your account's names: one by name, else how many. */
+function accountWho(a) {
+  const one = a.players + a.clans === 1 ? a.subjects?.[0] : null;
+  if (one) return one.name ?? one.tag;
+  return [
+    a.players ? plural(a.players, "player", "players") : null,
+    a.clans ? plural(a.clans, "clan", "clans") : null,
+  ]
+    .filter(Boolean)
+    .join(" and ");
+}
+
+/** What a line of your account's says, by kind; any other kind is its
+ *  Settings label with whom it names. */
+const ACCOUNT_LINE = {
+  claim_added: (who) => `Added ${who}`,
+  recording_started: (who) => `Recording started for ${who}`,
+  recording_stopped: (who) => `Recording stopped for ${who}`,
+  clan_added: (who) => `Added ${who}`,
+  clan_removed: (who) => `Removed ${who}`,
+  claim_verified: (who) => `Verified ${who}`,
+  claim_ended: (who) => `No longer yours: ${who}`,
+  claim_refused: (who) => `Not added: ${who}`,
+};
+
+/** Why a line matters, where the line alone does not say. */
+const ACCOUNT_DETAIL = {
+  claim_ended:
+    "Another account verified it. If it is yours, tell us through the feedback form.",
+  claim_refused:
+    "Another account verified it. If it is yours, tell us through the feedback form.",
+};
+
+/** Your account's lines (2026-11-12): each burst one line, "Recording
+ *  started for 24 players". One player opens their page; the rest open
+ *  Settings, where the account's whole log is. */
+export const accountRows = (account) =>
+  (account?.items ?? []).map((a, i) => {
+    const who = accountWho(a);
+    const say = ACCOUNT_LINE[a.kind];
+    const title =
+      who && say
+        ? say(who)
+        : who
+          ? `${eventLabel(a.kind)}: ${who}`
+          : a.events > 1
+            ? `${eventLabel(a.kind)}, ${a.events} times`
+            : eventLabel(a.kind);
+    const one =
+      a.players === 1 && a.clans === 0 && a.subjects?.[0]?.kind === "player"
+        ? a.subjects[0].tag
+        : null;
+    const tracking = eventGroup(a.kind) === "tracking";
+    return {
+      key: `${a.kind}-${a.at}-${i}`,
+      title,
+      at: a.at,
+      detail: ACCOUNT_DETAIL[a.kind] ?? null,
+      to:
+        one && a.kind !== "claim_ended"
+          ? playerHref(one)
+          : `${SETTINGS}/${tracking ? "players" : "sign-ins"}`,
+      new: a.new === true,
+    };
+  });
 
 /** One reaction row: the item's sentence and its counts, never who. */
 export function reactionRow(r) {

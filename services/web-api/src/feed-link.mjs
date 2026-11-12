@@ -123,11 +123,11 @@ function linkOf(it) {
   return `${ELIXIR_ORIGIN}/home`;
 }
 
-/** The feed's items: Home's, without the account's own administration,
- *  newest first, at most FEED_ITEMS. */
+/** The feed's items: Home's (the read leaves out the account's own
+ *  administration, accountLines: false), newest first, at most FEED_ITEMS. */
 export const feedItems = (timeline) =>
   (timeline ?? [])
-    .filter((it) => it.section !== "account" && it.id)
+    .filter((it) => it.id)
     .sort(
       (a, b) =>
         Date.parse(b.observed_at ?? b.at) - Date.parse(a.observed_at ?? a.at),

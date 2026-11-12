@@ -17,9 +17,16 @@
  *  - Answers: your own feedback's answers, which you already read in
  *    Settings › Feedback.
  *
+ *  - Your account: the account's own administration of the last seven days
+ *    (players and clans added, recording started or stopped, a player no
+ *    longer yours, connections and the like), out of Home's feed since
+ *    2026-11-12. A burst is one line per kind ("Recording started for 24
+ *    players"). Sign-ins stay in Settings › Sign-ins & devices; answers are
+ *    their own section.
+ *
  * Nothing here goes to mail, Discord, MCP or `/api/v1`, and an agent has no
  * bell. Reads are bounded: one rebuild of your own players' last seven days
- * (the window a cheer can be given in) and three small queries.
+ * (the window a cheer can be given in) and four small queries.
  */
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
@@ -30,6 +37,18 @@ const REACTION_DAYS = 7;
 /** Followers and answers look back thirty days. */
 const BELL_DAYS = 30;
 const LIST_CAP = 20;
+/** Your account's lines look back as far as Home's feed did. */
+const ACCOUNT_DAYS = 7;
+/** Events of one kind this close together are one burst, one line, however
+ *  other kinds interleave (adding a player logs "claim added" and then
+ *  "recording started", so a run of follows alternates the two). */
+const ACCOUNT_BURST_MS = 10 * 60_000;
+/** How many of an account's events one read folds: a burst past this is
+ *  still one line, counted from what was read. */
+const ACCOUNT_READ_CAP = 500;
+/** Kinds the bell does not tell: sign-ins are in Settings › Sign-ins &
+ *  devices, and answers to feedback are their own section. */
+const NOT_ACCOUNT_LINES = ["signed_in", "feedback_responded"];
 /** How many reads of the bell one person may make in an hour: the dot reads
  *  it every few minutes, and opening the sheet reads it again. */
 export const BELL_READS_PER_HOUR = 120;
@@ -86,6 +105,8 @@ async function readReactions(db, accountId, own, seen) {
       toMs,
       accountId,
       interactive: true,
+      // Your account's own lines take no cheers (and are read below).
+      accountLines: false,
     },
   );
   const byId = new Map(
@@ -209,24 +230,95 @@ async function readAnswers(db, accountId) {
   return { items, new: rows[0]?.unread_total ?? 0 };
 }
 
+/** Your account's own lines, each burst of one kind folded into one: what
+ *  it is, how many players and clans it names (a few by name, for a line
+ *  about one), when it last moved, and whether that was since you last
+ *  opened the bell. Names are the game's, never a nickname. */
+async function readAccountLines(db, accountId, seen) {
+  const { rows } = await db.query(
+    `select e.kind, e.created_at,
+            e.detail->>'player_tag' as player_tag,
+            e.detail->>'clan_tag' as clan_tag,
+            coalesce(p.name, c.name) as name
+       from account_event e
+       left join player p on p.player_tag = e.detail->>'player_tag'
+       left join clan c
+         on e.detail->>'player_tag' is null
+        and c.clan_tag = e.detail->>'clan_tag'
+      where e.account_id = $1
+        and e.created_at > now() - make_interval(days => $2)
+        and e.kind <> all($3::text[])
+      order by e.created_at desc, e.event_id desc
+      limit $4`,
+    [accountId, ACCOUNT_DAYS, NOT_ACCOUNT_LINES, ACCOUNT_READ_CAP],
+  );
+  return foldAccountLines(rows, seen);
+}
+
+/** Rows newest first → lines newest first. Pure, for the tests. */
+export function foldAccountLines(rows, seen) {
+  const seenMs = seen ? new Date(seen).getTime() : null;
+  const lines = [];
+  const open = new Map();
+  for (const r of rows) {
+    const at = new Date(r.created_at).getTime();
+    let line = open.get(r.kind);
+    if (!line || line.oldestMs - at > ACCOUNT_BURST_MS) {
+      line = {
+        kind: r.kind,
+        at: new Date(at).toISOString(),
+        oldestMs: at,
+        events: 0,
+        players: new Map(),
+        clans: new Map(),
+      };
+      open.set(r.kind, line);
+      lines.push(line);
+    }
+    line.oldestMs = at;
+    line.events += 1;
+    if (r.player_tag) line.players.set(r.player_tag, r.name ?? null);
+    else if (r.clan_tag) line.clans.set(r.clan_tag, r.name ?? null);
+  }
+  const items = lines.slice(0, LIST_CAP).map((l) => {
+    const named = [...l.players, ...l.clans].slice(0, 3);
+    return {
+      kind: l.kind,
+      at: l.at,
+      events: l.events,
+      players: l.players.size,
+      clans: l.clans.size,
+      subjects: named.map(([tag, name]) => ({
+        tag,
+        name,
+        kind: l.players.has(tag) ? "player" : "clan",
+      })),
+      new: seenMs === null || Date.parse(l.at) > seenMs,
+    };
+  });
+  return { items, new: items.filter((i) => i.new).length };
+}
+
 function clip(text, max) {
   const one = text.replace(/\s+/g, " ").trim();
   return one.length > max ? `${one.slice(0, max - 1).trimEnd()}…` : one;
 }
 
-/** The bell's three sections and how many things in them are new. */
+/** The bell's four sections and how many things in them are new. */
 export async function readBell(db, accountId) {
   const seen = await seenAt(db, accountId);
   const own = await ownVerified(db, accountId);
   const reactions = await readReactions(db, accountId, own, seen);
   const followers = await readFollowers(db, accountId, own, seen);
   const answers = await readAnswers(db, accountId);
+  const account = await readAccountLines(db, accountId, seen);
   return {
     seen_at: seen,
     players: own.length,
-    new: reactions.new + followers.new + answers.new,
+    new: reactions.new + followers.new + answers.new + account.new,
     reactions,
     followers,
     answers,
+    account,
   };
 }

@@ -86,8 +86,15 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
     const req = route.request();
     const url = new URL(req.url());
     const key = `${req.method()} ${url.pathname}`;
+    // Home's feed is the timeline's read without the account's own lines
+    // (2026-11-12): a fixture that answers the timeline answers the feed
+    // too, unless it names the feed itself.
     const answer =
-      routes[key] ?? routes[`${req.method()} ${url.pathname}${url.search}`];
+      routes[key] ??
+      routes[`${req.method()} ${url.pathname}${url.search}`] ??
+      (key === "GET /api/me/home/feed"
+        ? routes["GET /api/me/timeline"]
+        : undefined);
     const [status, body] =
       typeof answer === "function"
         ? answer(route)
@@ -104,7 +111,7 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
 export function signedIn(
   overrides: Record<string, Answer> = {},
 ): Record<string, Answer> {
-  return {
+  const routes: Record<string, Answer> = {
     "GET /api/me": [200, ME],
     "GET /api/me/first-answer": [200, {}],
     // Home's head, as a new account answers it; home-fixture.ts has a full one.
@@ -202,6 +209,7 @@ export function signedIn(
     ],
     ...overrides,
   };
+  return routes;
 }
 
 /** Wide, the rail stays in view as a long page scrolls (2026-10-20): its

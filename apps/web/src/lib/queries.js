@@ -281,6 +281,12 @@ export const useMyTimeline = (enabled = true) => {
   });
 };
 
+/** Home's feed (2026-11-12): the timeline's items without your account's
+ *  own lines, which the bell tells. Yours, never an agent's. */
+export const HOME_FEED_KEY = ["me", "home", "feed"];
+export const useHomeFeed = () =>
+  useQuery({ queryKey: HOME_FEED_KEY, queryFn: payload(api.homeFeed) });
+
 /** Your timeline's RSS link (#765): on or off, and since when. */
 export const useRssLink = () =>
   useQuery({ queryKey: keys.rss, queryFn: payload(api.rssLink) });
@@ -291,7 +297,7 @@ export const useRssLink = () =>
  *  player page or a battle page passes its own cheers read
  *  (`usePageCheers`): `{ key, list: "items" }`. */
 /** Home's feed, where most cheers are given. */
-const CHEER_FEED_KEY = scopedKey(null, "feed");
+const CHEER_FEED_KEY = HOME_FEED_KEY;
 
 export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
   const queryClient = useQueryClient();
@@ -405,9 +411,11 @@ export function useMarkTimelineSeen() {
     async (to) => {
       const res = await api.markTimelineSeen(to, agent);
       if (!res.ok) return res;
-      queryClient.setQueryData(scopedKey(agent, "feed"), (old) =>
-        old ? { ...old, seen_to: res.data.seen_to } : old,
-      );
+      const place = (old) =>
+        old ? { ...old, seen_to: res.data.seen_to } : old;
+      queryClient.setQueryData(scopedKey(agent, "feed"), place);
+      // Home's feed shares your place (never an agent's).
+      if (!agent) queryClient.setQueryData(HOME_FEED_KEY, place);
       const queryKey = rootFor(agent);
       await queryClient.cancelQueries({ queryKey, exact: true });
       await queryClient.invalidateQueries({ queryKey, exact: true });

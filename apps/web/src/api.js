@@ -156,6 +156,8 @@ export const api = {
   // Home's head, what the page paints from; each slow panel reads for itself.
   home: () => request("GET", "/api/me/home"),
   homeClan: () => request("GET", "/api/me/home/clan"),
+  // Home's feed: the timeline without your account's own lines (the bell's).
+  homeFeed: () => request("GET", "/api/me/home/feed"),
   homeNeeds: () => request("GET", "/api/me/home/needs"),
   // The bell (2026-11-12): reactions to your items, new followers and your
   // feedback's answers; opening it moves your seen marker. Yours alone.

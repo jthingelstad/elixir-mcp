@@ -21,7 +21,7 @@ import {
 import { Cheers } from "../src/home/Cheers.jsx";
 import { RssLinkPanel } from "../src/views/account/RssLink.jsx";
 import { ScopeProvider } from "../src/lib/scope.js";
-import { pageCheersKey, scopedKey } from "../src/lib/queries.js";
+import { HOME_FEED_KEY, pageCheersKey } from "../src/lib/queries.js";
 
 const reply = (body, status = 200) => ({
   ok: status < 400,
@@ -142,24 +142,22 @@ test("a cheer on a player page reaches Home's copy and every page's copy (Codex 
   );
   queryClient.setQueryData(page, { items: [ITEM], subjects: ["#PYLQ88"] });
   queryClient.setQueryData(battle, { items: [ITEM, other] });
-  queryClient.setQueryData(scopedKey(null, "feed"), {
+  queryClient.setQueryData(HOME_FEED_KEY, {
     timeline: [ITEM, other],
   });
   fireEvent.click(screen.getByRole("button", { name: "Cheer" }));
   fireEvent.click(screen.getByRole("button", { name: /Royal$/ }));
   const want = { cheers: { on_fire: 1, royal: 2 }, my_cheer: "royal" };
   await waitFor(() =>
-    expect(
-      queryClient.getQueryData(scopedKey(null, "feed")).timeline[0],
-    ).toMatchObject(want),
+    expect(queryClient.getQueryData(HOME_FEED_KEY).timeline[0]).toMatchObject(
+      want,
+    ),
   );
   expect(queryClient.getQueryData(page).items[0]).toMatchObject(want);
   expect(queryClient.getQueryData(battle).items[0]).toMatchObject(want);
   // Another item keeps its own.
   expect(queryClient.getQueryData(battle).items[1]).toEqual(other);
-  expect(queryClient.getQueryData(scopedKey(null, "feed")).timeline[1]).toEqual(
-    other,
-  );
+  expect(queryClient.getQueryData(HOME_FEED_KEY).timeline[1]).toEqual(other);
 });
 
 test("a cheer the server refuses says so", async () => {

@@ -2,7 +2,7 @@ import { useId, useState } from "react";
 import { useWrite } from "@elixir-mcp/client";
 import { ConfirmAction, Icon, WriteError, useFlash } from "@elixir-mcp/ui";
 import { api } from "../api.js";
-import { keys, useMyHighlights } from "../lib/queries.js";
+import { HOME_FEED_KEY, keys, useMyHighlights } from "../lib/queries.js";
 
 /**
  * Highlight it (social slice 4, #762): a signed-in person whose own
@@ -27,7 +27,7 @@ export function BattleHighlight({ battle, sides }) {
   const nameOf = (tag) =>
     sides.flatMap((s) => s.players).find((p) => p.player_tag === tag)?.name ??
     tag;
-  const invalidate = [keys.highlights(battle.id), FEED];
+  const invalidate = [keys.highlights(battle.id), FEED, HOME_FEED_KEY];
   return (
     <section className="panel" aria-label="Highlight this battle">
       <div className="panel__head">Highlight this battle</div>
