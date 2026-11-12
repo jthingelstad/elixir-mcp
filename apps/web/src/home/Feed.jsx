@@ -68,7 +68,12 @@ export function HomeFeed() {
     );
   // Only a first page that failed is the feed's failure: a More that failed
   // keeps the pages already read and says so beside More (Codex on #800).
-  if (query.isError && pages.length === 0)
+  // A refetch that failed with nothing to keep is a failure too (#802).
+  const refetchFailed = query.isRefetchError && !query.isFetchNextPageError;
+  if (
+    query.isError &&
+    (pages.length === 0 || (refetchFailed && items.length === 0))
+  )
     return (
       <ErrorState
         title="Your feed didn’t load"
@@ -113,6 +118,24 @@ export function HomeFeed() {
   const total = timeline.total ?? items.length;
   return (
     <div className="kit-feed">
+      {refetchFailed ? (
+        // A refetch that failed keeps what was read, and says it may be
+        // behind, with a way to try again (Codex on #802).
+        <div className="kit-feed__more" role="status">
+          <span className="kit-tiny">
+            The newest items didn’t load; these are from your last read.
+          </span>
+          <button
+            type="button"
+            className="btn btn--sm"
+            onClick={() => query.refetch()}
+            disabled={query.isFetching}
+            aria-busy={query.isFetching}
+          >
+            {query.isFetching ? "Reading…" : "Try again"}
+          </button>
+        </div>
+      ) : null}
       <div className="kit-home__filters">
         <Chips
           label="Show"
