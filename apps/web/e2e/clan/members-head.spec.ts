@@ -324,6 +324,35 @@ test.describe("Members as one page", () => {
     await accessible(page, "members foot, elder");
   });
 
+  test("Recruit and Scout stay open when the roster read fails", async ({
+    page,
+  }) => {
+    const selected = { ...ME.clans[0], role: "elder", role_label: "Elder" };
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/clan/me": [
+          200,
+          { ...ME, selected, clans: [selected, ME.clans[1]] },
+        ],
+        "GET /api/clan/roster": [500, { error: "internal" }],
+        "GET /api/me/follow-plan": [200, PLAN],
+      }),
+    );
+    await page.goto(`${base}/members/recruit`);
+    await expect(
+      page.getByText("Elixir did not answer the roster read"),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("region", { name: "Spread the word" })
+        .getByRole("button", { name: "Hide the recruiting copy" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Scout" }).getByRole("textbox").first(),
+    ).toBeVisible();
+  });
+
   test("Standing's old address opens Standings, for every member", async ({
     page,
   }) => {
