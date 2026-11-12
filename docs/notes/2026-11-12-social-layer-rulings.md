@@ -62,3 +62,13 @@ longer holds. The briefs themselves are not rewritten here.
 - The collector mail was not named in the mail ruling; its lines stand.
 - Which of the clan report's own lines carry into the digest's clan week
   is for the change that merges it to propose.
+
+## Answered later the same day
+
+Jamie answered three open points, recorded in `docs/DECISIONS.md`. The
+collector mail stays: "the one scheduled mail" means mail to members, and
+operational mail to a role (people running a collector, leaders with an
+Action waiting) is separate. The leaders' Actions mail goes when an Action
+waits, at most once a day. An agent may follow a player for its person
+when the person asks, with the follow tool `elixir_track_player` becomes;
+cheers and highlights stay app-only. Docs only, like the rest of this note.
