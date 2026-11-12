@@ -9,7 +9,12 @@ of their own ("Console folds into You, player pages and Settings"); D12
 and A21, alts' firsts in Tuesday's mail ("The digest is the one scheduled
 mail; leaders' Actions mail stays apart"); a member's page in Clan apart
 from the player page ("Clan's Actions are notifications and timeline
-items").*
+items"); A11, Recruit for every member ("Members is one page; members
+keep Standing, and Recruit and Scout are leaders' and elders' tools");
+A30 and the Invite clanmates row, now under Find's Your clan ("Invite
+clanmates is not on Home"); D9, D11, A19 and Q4's Explore, which went
+with the clan report and the Console. The rows those touch say so in
+place.*
 
 *Ratified by Jamie, 2026-11-05: "Approved: all 55 Elixir detail design
 questions as recommended; build steps 1-3 in elixir-mcp, then stop for my
@@ -84,7 +89,9 @@ Battles, Decks and Cards. Since 2026-11-12 it is You's Stats tab (Jamie: "You
 with Stats", in the go above): routes `/home/you/stats`,
 `/home/you/stats/battles`, `/home/you/stats/decks`, `/home/you/stats/cards`,
 each old `/ladder` address redirecting to the same page. [engineering,
-2026-11-12] The battle page `/battle/<id>` keeps its layout.
+2026-11-12] Stats also opens for the players you follow, from their player
+page, and never for a watched player or a stranger (DECISIONS "Stats opens
+for the players you follow"). [Jamie, 2026-11-12] The battle page `/battle/<id>` keeps its layout.
 
 ### Clan [Jamie, 2026-11-05; step 4; Jamie, 2026-11-12; slice 8]
 
@@ -102,7 +109,7 @@ as built [engineering, 2026-11-12, #766]:
 | Feed | Count badge; what waits for you, then the clan's last seven days (its items, members' moments and highlights, newest first); You here and The week beside them | Every member; the timeline's own reader rules |
 | Standings | Standing, then a season picker merging races and history (was Awards) | Every member |
 | War | A period picker merging The week and Season (was Season) | Every member |
-| Members | Roster, Map; Recruit and Scout at the foot; find a member; Follow per row (G6, 2026-11-12: Standing went to Standings, Review to Run) | Scout for elders up; Recruit per A11 |
+| Members | Roster, Map; Recruit and Scout at the foot; find a member; Follow per row (G6, 2026-11-12: Standing went to Standings, Review to Run) | Recruit and Scout for elders and up (Jamie, 2026-11-12, replacing A11); every member keeps the active policy's lines at the foot |
 | Policy | The policy in every member's words, its weights, its version and who saved it | Every member (public per A2) |
 | Run | A grouped side list | Leader and co-leaders, verified; refused on the server to everyone else |
 
@@ -142,8 +149,13 @@ limits; Feedback; Collectors, only if you run one.
 
 Routes under `/settings`: `/profile`, `/players`, `/players/<tag>`, `/emails`,
 `/emails/sent`, `/emails/<id>`, `/connections`, `/agents/<id>/<tab>`, `/usage`,
-`/usage/requests`, `/sign-ins`, `/feedback`, `/collectors`. Explore's pages stay
-at their paths, reached from search. Admin is unchanged and staff only.
+`/usage/requests`, `/sign-ins`, `/feedback`, `/collectors`. Since the Console
+folded (Jamie, 2026-11-12) Explore's pages are gone: a player's record is
+the player page's Record tab, lookups are Find and search, a clan's record
+is the clan directory, and every old address redirects. Admin is under
+Settings at `/settings/admin/*`, staff only, with the service page, Fleet
+and Efficiency in it; Requests and Beta pulse were removed (Jamie,
+2026-11-12, "Approval-era and retired code goes").
 
 Where each real page that the first structure dropped goes:
 
@@ -155,7 +167,7 @@ Where each real page that the first structure dropped goes:
 | Sent emails and each email's record | Settings, Emails, Sent to you |
 | A tracked player's page and its battle activity graph | Settings, Players and tracking, the player |
 | Track a clan, what to record, slot counts | Players and tracking, Clans |
-| Invite clanmates | Clan, Members (Spread the word), and folded on Ladder's Season (A30). Not on Home: its first steps end the moment a read names the clan, so an invite there would never be seen |
+| Invite clanmates | Find, Your clan, folded below the clan's members (Jamie, 2026-11-12: "Bring your clanmates moves to Find"); Clan's Members keeps its own Spread the word. Not on Home: its first steps end the moment a read names the clan, so an invite there would never be seen. Until 2026-11-12 folded on Stats' Season (A30) |
 | Connect Discord, Timeline to Discord and its delivery log | Connections and agents, Discord; Timeline links there |
 | Refusal notices and each connection's permissions | Connections and agents, the connection |
 | Agent keys, suspend and restore, who it answers for, its logs | The agent's tabs; logs under Usage; Timeline and Feedback are links |
@@ -208,9 +220,9 @@ All answered yes. [Jamie, 2026-11-05]
 | D6 | Casual is a fifth Ladder mode. It needs a mode entry and a chip | 5 |
 | D7 | Policy is a grouped side list, not top tabs. The sections stay separate | 4 |
 | D8 | Examples move into Docs; Data and Support move into the footer | 7 |
-| D9 | A clan report is skipped when nothing happened in that clan | 8 |
+| D9 | A clan report is skipped when nothing happened in that clan; the clan report folded into the digest on 2026-11-12, which gives a clan a part only when it has news | 8 |
 | D10 | Actions waiting carries a reason line per action, for people who can already see the action; the subject leads with the action | 8 |
-| D11 | The clan report has a "You" line, only if the reader used at least 1 deck | 8 |
+| D11 | The clan report has a "You" line, only if the reader used at least 1 deck; ended with the clan report on 2026-11-12 | 8 |
 | D12 | Alts' milestones wait for Tuesday's mail; the main player's arrive as they happen | 8 |
 
 ## Rulings this reverses
@@ -244,8 +256,9 @@ The seen marker is independent of agents. An action is one decide, Done or
 Decline. War is weekly on clan war surfaces, and Ladder treats a person's battles
 individually. Clan chat is 200 characters. A kick is "was removed", never "left".
 No model picker. One origin, paths and no subdomains. Native dialogs and details.
-Paths keep working through redirects. The battle page's layout, Explore's pages
-("kept and linked, not polished") and Admin stay as they are. Card art is never
+Paths keep working through redirects. The battle page's layout stays as it
+is; Explore's pages ("kept and linked, not polished") folded with the Console
+on 2026-11-12, and Admin moved under Settings. Card art is never
 altered. The disclaimer is on every surface, word for word.
 
 ## Answers: gaps (Q1 to Q16)
@@ -257,7 +270,7 @@ All [Jamie, 2026-11-05].
 | Q1 | A member sees their own removal clock, and never another's | 1 (brief); no build |
 | Q2 | Every member can see each other's last battle date, as a date. Never a day count or an at-risk mark below co-leader | 4 |
 | Q3 | A member at a Run address goes to Standing's "How it works here" | 4 |
-| Q4 | A clan link in mail is decided per reader: members go to Clan, Season; everyone else to the clan's page in Explore | 8 |
+| Q4 | A clan link in mail is decided per reader: members go to Clan, Season; everyone else to the clan's page in Explore. Since 2026-11-12 members go to Clan's War and everyone else to the clan's address, which opens the clan directory | 8 |
 | Q5 | War on Ladder lists each war battle like any other, with one line above: decks used and points this week. No "of N", and no tool change | 5 |
 | Q6 | Casual everywhere, never Friendly. On the battle page only the word changes | 1 (word); 5 (chip) |
 | Q7 | Challenge and Tournament battles get a sixth chip, "Other", shown only to a player who has such battles this season | 5 |
@@ -294,7 +307,7 @@ All [Jamie, 2026-11-05].
 | --- | --- | --- |
 | A9 | The rank rule extends to leaders: "In line for promotion on 3 weekly reviews", "Another member takes the seat", "Elder order" | 1 |
 | A10 | The Slipping and Rising chips stay, tied to the fact: Slipping shows "demotion building", as Standing defines it | 4 |
-| A11 | Every member reads Recruit and sees the button, as today | No build |
+| A11 | Every member reads Recruit and sees the button, as today. Replaced 2026-11-12: Recruit and Scout are for elders and up (Jamie) | No build |
 | A12 | Elders and members land on Today, and a leader or co-leader with nothing waiting does too | 1 (brief); 4 |
 | A13 | Battle counts line up on Monday's reset and this clan only | 1 |
 | A14 | Race results are kept for every week, not only the newest six | 4 |
@@ -307,7 +320,7 @@ All [Jamie, 2026-11-05].
 
 | # | Ruling | Step |
 | --- | --- | --- |
-| A19 | "Gone quiet" in the clan report goes to verified members only (Jamie, 2026-11-06); the line comes out for everyone else | 8 |
+| A19 | "Gone quiet" in the clan report goes to verified members only (Jamie, 2026-11-06); the line comes out for everyone else. Ended with the clan report on 2026-11-12: the digest names no one quiet | 8 |
 | A20 | A race counts as something happening: a racing clan with no joins or departures still mails, and a silent clan skips | 8 |
 | A21 | Firsts on an alt when Arena week is off reach only the timeline | 8 |
 | A22 | A friend who is also a clanmate links to Clan; replaced by "Every name opens the player page" [Jamie, 2026-11-12] | 8 |
@@ -328,7 +341,7 @@ All [Jamie, 2026-11-05].
 | # | Ruling | Step |
 | --- | --- | --- |
 | A29 | A league on Path of Legends stays out of Ladder | No build |
-| A30 | Invite clanmates on Ladder is folded on Season | 5 |
+| A30 | Invite clanmates on Ladder is folded on Season. Moved 2026-11-12 to Find's Your clan (Jamie) | 5 |
 | A31 | An opponent's tag on Cards shows only when two names clash | 5 |
 | A32 | When the check on a just-added player fails: "Elixir could not check just now. It will try again." | 3 |
 | A33 | The new-player line in Ladder: "Clan asks for it before you act as an Elder or above." | 1 |

@@ -234,7 +234,8 @@ reading. Run them with `npm run op -- '<payload>' --function jobs`.
 One is a read for checking a mail change against the live record:
 `{"clan_report_preview": {"clan_tag": "#TAG", "at": "<ISO>"}}` composes
 that clan's Monday report for the week before `at` as its oldest tracker,
-beside the issue stored for that week, and returns both as text in a
+beside the issue stored for that week (the clan report is retired since
+2026-11-12, #823; the op stays for its tests and old issues), and returns both as text in a
 read-only session (no issue, no send).
 
 ## Choosing the read
