@@ -41,9 +41,7 @@ Ask for one mode and you get one game. Ask with no mode and an answer
 that mixes modes carries the split beside the number and a note that
 starts **Pooled across modes**; when the modes it mixed match players
 differently, the note says so and asks for a mode before a row is read
-as a strength or a weakness. Your agent is told to repeat that note. The emails
-keep modes apart the same way: Your week in the Arena gives a record per
-mode, never one record for the week.
+as a strength or a weakness. Your agent is told to repeat that note.
 
 A deck can appear in more than one mode. `battles_decks` keeps the mode split
 beside its recorded results so the same eight cards are not mistaken for the

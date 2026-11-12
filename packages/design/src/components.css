@@ -7458,10 +7458,8 @@ button.kit-row {
   font-size: 15px;
   font-weight: 600;
 }
-.kit-inbox ul {
+.kit-inbox p {
   margin: 0 0 8px;
-  padding: 0;
-  list-style: none;
 }
 .kit-form label {
   display: block;

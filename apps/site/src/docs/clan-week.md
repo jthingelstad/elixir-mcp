@@ -67,7 +67,7 @@ are shown.
 A week runs from Monday's reset to the next, 10:00 UTC, so battles,
 donations and the race close line up. Battles and ranked play count this
 clan's battles by when they were played, each battle once, including anyone
-who has since departed, the same number as the clan report. Donations and war decks are for today's members. Only those who
+who has since departed. Donations and war decks are for today's members. Only those who
 took part are named, so the report never lists who did nothing. Your own
 "this week" on your page in Clan and on Home reads the same window. It
 raises no actions and shows no standing; those are on

@@ -1,85 +1,100 @@
 ---
 slug: email
 title: "Email"
-description: "The seven emails Elixir sends: three weekly reports built from your record, your digest of the people you follow (weekly or daily), a milestone note when you or an alt reach a big first, Clan's note when something new in your clan is yours to do, and the answer to feedback you filed. Every one is a switch in Settings; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
+description: "Elixir's email: one digest of the people you follow and your clan's week, weekly or daily, with each player told once; Clan's note when an action is yours to do; your collector's week if you run one; and the answer to feedback you filed. Every one is a switch in Settings; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
 section: friends
 order: 4
 navTitle: "Email"
 icon: mail
-lede: "Seven kinds, each a switch and a turn-off link: three weekly reports, your digest, milestones, clan actions waiting and answers to your feedback."
-reviewed: "2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday, and one a day is for scheduled email only; 2026-10-12 no email is composed by a model; 2026-10-08 for legendary badges as milestones, contract 11.5.2"
+lede: "One digest of the people you follow and your clan, weekly or daily. Besides it, only mail with something for you to do or read: clan actions waiting, your collector's week, and answers to your feedback."
+reviewed: "2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
 ---
 
 # Email
 
-Elixir sends seven kinds of email. All seven start **on by default** for an active
-person account, and all seven are **a switch**
-([Settings › Emails](/settings/emails)), with a *turn off* link in every
-issue and one-click unsubscribe in mail clients that support it. Sign-in codes and account notices are service mail and arrive
-whatever you choose here.
+Elixir sends **one digest**: the people you follow and your clan's week,
+in one email, weekly by default. It is the only scheduled email most
+people get. Besides it, Elixir mails you only when there is something for
+you: a clan action that is yours to do, your collector's week if you run
+one, and an answer to feedback you filed.
 
-Three of the seven are weekly **reports**, and your digest and the
-milestone note are built the same way: structured, built from your record by the same
-readers the tools answer with, no language model anywhere in them.
-Every number is the number a tool would give you, and every one of
-them carries the coverage note the tools carry, because a report that
-hides a gap in the record is a report that lies. Clan actions waiting carries
-Clan's own words about your clan, the lines its Feed shows,
-and an answer to your feedback is the maintainer's answer as it was
-written. An answer email leads with the response, followed by what you
-wrote for context; a question asks you to reply on the same item. Elixir
-composes no email with a language model.
-
-## The week
-
-The reports cover the **game week**: Monday 10:00 UTC to Monday 10:00
-UTC, the day every clan's war, donation reset and season roll share.
-Whichever day a report lands, it covers the week that closed on Monday,
-so Tuesday's and Wednesday's mail agree with each other. The season label
-belongs to that covered week, even after a new season starts. A clan report
-with a closed race names that race's own season and river race week together;
-a report without a closed race uses the season just before the covered week's
-Monday boundary. A subject names that week the same way: "Your Clan,
-Season 137, week 4: 2nd in war, 1 departed, 2 joined". Every weekly report sends at 14:00 UTC.
-Your digest is not a game week: it covers the week (or the day) before
-it comes, [below](#your-digest).
-
-Battles in the clan report count what was
-played in the game week by `battle_time`, each battle once, boat defenses
-out: the same number as [a week in Season](/docs/clan-week). Times in mail
-are written like the rest of Elixir ("Sat 8:42 pm", "Fri Oct 23, 5:07 pm")
-in your own time zone, with "UTC" beside them when no zone is set.
-
-The collector report is the one exception. It still comes on Sunday, and
-it covers **Saturday 00:00 UTC to the next Saturday 00:00 UTC** (Friday
-evening in US time zones), so Sunday's email is the week that closed the
-night before, and its dates name the days it holds, Saturday to Friday.
-
-Scheduled email comes at most once a day for each kind and subject: one
-clan report for each clan you track where something happened that week (two
-clans, two reports on Monday; a clan with nothing to tell sends none, and a
-report with a gap in its reading still comes, saying so),
-one Clan actions waiting a day for each clan, one digest a day at most,
-and one of every other weekly kind per account. Email about something that happened is not
-scheduled, and comes when it happens: milestones as the moments do, and
-each answer to your feedback on its own.
-
-| Day | Kind | What it is |
+| Kind | When | What it is |
 |---|---|---|
-| Monday | **Clan report** | Your clan's week: the war result if a war week closed (the clan's place, fame and war trophies, the race as it finished, the top five who raced and your own players, and the clan's war decks used out of those possible beside the races before), who joined and departed and when, who has gone quiet (verified members of the clan only, with the date of their last battle), and the week in battles, promotions, new bests and donations, with the battles and members who battled set against the weeks before, with a link to the roster and one to the clan's war in Clan. One report per clan you track, the same one to every member who tracks it, with its days named in your own timezone and your own players marked *you*. Elixir tracks your primary player's clan for you as soon as it sees it, when you have a clan slot free ([Your player's clan](/docs/recording#your-players-clan)). |
-| Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the most-used deck in your busiest non-war mode drawn card by card, with its record and level gap from that mode alone (with fewer than five battles in the week, a link to your decks instead), one line setting that mode's win rate this week beside the four game weeks before it, each with its battle count (left out when either side has fewer than 10 decided battles; the same numbers as Stats' [This week vs your last 4](/docs/ladder#this-week-vs-your-last-4)), who you faced and who came round more than once, and a line for each alt. It links the week's season on [Stats](/docs/ladder), and every deck of it on Stats' Decks. **Cards and badges** counts, for each of your players, the week's cards unlocked and badge levels, which no longer come as milestone emails, with a link to your [timeline](/docs/timeline) where each one is listed. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
-| Wednesday, or daily | **Your digest** | What the people you follow played and posted, and your own stretch: [below](#your-digest). Weekly on Wednesdays at 14:30 UTC by default; daily at 14:30 UTC, or off, by your choice. Skipped when nothing happened. |
-| Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the collector page's security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and how many of them added new facts to the record; how much was blocked as already recorded, and your limits: an active collector raises them to [Family](/docs/roles#upgrades). One mail per account, every collector you run pooled. Covers Saturday 00:00 UTC to the next Saturday 00:00 UTC, the week that closed the night before ([above](#the-week)). |
-| Mornings | **Clan actions waiting** | From [Clan](/clan), each morning, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
-| When answered | **Answers to your feedback** | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed, from anywhere in Elixir (Settings, Stats, Clan, an email's footer, the docs), and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. It is written from the answer's item on your [timeline](/docs/timeline) (`account_feedback_responded`), so the email and the timeline say the same thing. One mail per answer, however many come in a day; an answer is mailed after ten quiet minutes, so a correction made straight away is one mail. Getting the email does not count as reading the answer: opening the item does. An agent's feedback is answered to the agent, never mailed. |
-| As it happens | **Milestones** | Congratulations when your main player reaches a big first (another of your players' firsts wait for Tuesday's mail): a new arena, a new league in Path of Legends, a new personal-best trophy band, an Evolution or Hero form unlocked, a legendary badge, or a career milestone (every 1,000 career wins, and each Collection Level step). A new arena or league comes with the battle that did it and a link to [that battle's page](/docs/battles#a-battles-page); a form comes as its art. Its button opens Stats on the season the moment happened in. Cards unlocked and badge levels never send one on their own: Tuesday's Arena email counts them. Checked hourly; everything new since the last note rides together. |
+| **Your digest** | Wednesdays at 14:30 UTC, or daily, or off: your choice | The people you follow and your clan's week in one story, each player once: [below](#your-digest). Skipped when nothing happened. |
+| **Clan actions waiting** | When an action becomes yours | From [Clan](/clan), when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Clan checks each morning, after its daily read, and mails only when something new is yours since your last one: nothing waiting, nothing sent, and at most one a day per clan. Only if you can act on it, only to the account that verified the player. Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
+| **Collector activity** | Sundays at 14:00 UTC | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the collector page's security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and how many of them added new facts to the record; how much was blocked as already recorded, and your limits: an active collector raises them to [Family](/docs/roles#upgrades). One mail per account, every collector you run pooled. Covers Saturday 00:00 UTC to the next Saturday 00:00 UTC, the week that closed the night before. |
+| **Answers to your feedback** | When answered | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. One mail per answer, sent after ten quiet minutes, so a correction made straight away is one mail. Getting the email does not count as reading the answer: opening the item does. An agent's feedback is answered to the agent, never mailed. |
 
-For Arena's featured deck, equal mode counts use alphabetical mode-group
-order, and equal deck counts use the recorded deck hash order. If the selected
-mode or the deck's card art cannot be established, that card is omitted. Both
-the headline and the featured deck cover the same completed game week.
+All of them start **on** for an active person account, and each is **a
+switch** ([Settings › Emails](/settings/emails)), with a *turn off* link
+in every issue and one-click unsubscribe in mail clients that support it.
+Sign-in codes and account notices are service mail and arrive whatever
+you choose here.
 
-### Collector upgrade notices
+Every email is built from your record by the same readers the tools
+answer with, with no language model anywhere in it. Every number is the
+number a tool would give you, with the coverage note the tools carry,
+because a report that hides a gap in the record is a report that lies.
+Clan actions waiting carries Clan's own words, the lines its Feed shows,
+and an answer to your feedback is the maintainer's answer as it was
+written.
+
+## Your digest
+
+Your digest is your [timeline](/docs/timeline) for your inbox: the
+people you follow and the clans you track, told as one story. The email
+chooses what to say, and the timeline keeps everything.
+
+- **When:** weekly, on Wednesdays at 14:30 UTC, by default. In
+  [Settings › Emails](/settings/emails) you can make it daily (every day
+  at 14:30 UTC) or turn it off. The choice shows while it is on.
+- **What it covers:** the week (or the day) before it comes, starting no
+  earlier than your last digest, so nothing is told twice. It tells what
+  the record learned in that time, so a battle recorded late still
+  arrives, once.
+- **From people you follow:** each friend and watched player who played
+  or posted, friends first, up to twelve with the rest counted. Each has
+  their battles and record, their trophies, and up to three things:
+  their [highlights](/docs/timeline#highlights) first, with their own
+  words, then the big [firsts](/docs/milestones) (a new arena, league,
+  best band, form, legendary badge or career step), a move between clans
+  or a return, each with a link to the battle that did it when the record
+  knows it. Cards unlocked and badge levels are a count. A clanmate you
+  follow says which of your clans they are in.
+- **Your clan:** each clan you track with news of its own: a river race
+  that finished (its place and fame), who joined and departed, and role
+  changes, as a headline and at most three facts with the rest counted.
+- **You:** your own week, your firsts, your cards and badges counted, and
+  each alt that played, with its firsts.
+- **Never an empty week:** when no one you follow played or posted,
+  neither did you, and no clan you track has news, no digest comes.
+
+**Each player once.** Following everyone in your clan is common, so the
+digest never tells a player's week twice: their battles, firsts and
+highlights are told under them, and the clan's part keeps to the clan's
+own news. A clanmate you follow who left the clan is told in the clan's
+part, not again under them. A clan's battle count and who went quiet are
+on [Clan](/docs/clan-week), not in the mail.
+
+What an app attests (Clan's departures, roles, awards and messages,
+Drop's personal records) stays out of the digest; the timeline still
+carries them to their readers. Anything a person typed, a name, a
+nickname or a highlight's words, is shown as text.
+
+### The digest replaced three emails
+
+Until 2026-11-12 Elixir also sent a clan report on Mondays, Your week in
+the Arena on Tuesdays, and a milestone note within the hour of a big
+first. Those are now parts of the digest: the clan's race and roster
+moves in its clan part, your firsts and your alts' firsts with you, and
+your cards and badges counted. Your season's numbers are on
+[Stats](/docs/ladder), and a clan's whole week is on
+[Clan](/docs/clan-week). If you had turned the clan report off, your
+digest never comes for a clan's news alone; if you had turned Arena week
+off, your alts stay a name and a count, as they were. An old email's
+turn-off link still opens and says the email has ended.
+
+## Collector upgrade notices
 
 The collector email switch also controls upgrade notices: one email for each
 collector whose installed version Elixir sees change to a higher released
@@ -98,61 +113,15 @@ Security status uses the same self-reported version/hash comparison as the
 dashboard, and is not remote attestation. A signed collector can still be behind
 the current release.
 
-## Milestones are firsts
-
-A milestone mails once, ever, per account and subject, keyed by the
-moment's own identity: the arena, the league, the band, the career step,
-the card's form, the legendary badge. Only the big firsts mail (2026-10-08): a card unlocked
-or a badge level is a count in Tuesday's Arena email and an item on your
-[timeline](/docs/timeline), never an email of its own. A season's re-climb of an arena you have already been
-congratulated for is silent; a higher one is news. A move down never mails. Friends' and
-watchers' moments belong to your digest, not here. If a check is
-missed (an outage, a failed send), the next one reads back to the last
-check that went through, up to a week, so a first is late rather than lost.
-
-## Your digest
-
-Your digest is the [timeline](/docs/timeline) of the people you follow,
-rendered for your inbox: the email chooses what to say, and the timeline
-keeps everything.
-
-- **When:** weekly, on Wednesdays at 14:30 UTC, by default. In
-  [Settings › Emails](/settings/emails) you can make it daily (every day
-  at 14:30 UTC) or turn it off. The choice shows while it is on.
-- **What it covers:** the week (or the day) before it comes, starting no
-  earlier than your last digest, so nothing is told twice. It tells what
-  the record learned in that time, so a battle recorded late still
-  arrives, once.
-- **From people you follow:** each friend and watched player who played
-  or posted, friends first, up to twelve with the rest counted. Each has
-  their battles and record, their trophies, and up to three things:
-  their [highlights](/docs/timeline#highlights) first, with their own words, then
-  the big firsts (a new arena, league, best band, form, legendary badge
-  or career step), a move between clans or a return, each with a link to
-  the battle that did it when the record knows it. Cards unlocked and
-  badge levels are a count.
-- **Around you:** each clan you track that had battles, members joining
-  or leaving, or a finished race, as a headline and at most three facts
-  with the rest counted; then you, and any alt that played.
-- **Never an empty week:** when no one you follow played or posted, and
-  neither did you, no digest comes. A clan's week alone does not send one.
-
-What an app attests (Clan's departures, roles, awards and messages,
-Drop's personal records) stays out of the digest; the timeline still
-carries them to their readers. Anything a person typed, a name, a
-nickname or a highlight's words, is shown as text.
-
 ## What every email looks like
 
 Every email Elixir sends wears the same frame, so a sign-in code and a
-clan report are plainly from the same sender: Elixir's logo and name at
+digest are plainly from the same sender: Elixir's logo and name at
 the top with a plain label naming the part of Elixir it comes from,
 the mail itself, and a footer that
 says why you got it and when the next scheduled one comes, in your own timezone.
-The report leads with its figures and uses readable headings and rows;
-its coverage note remains visible below the main link. An activity-scope
-clan report records rosters and wars and leaves battle activity unknown.
-A weekly email's footer then has one line, **Turn off this mail · Manage
+Each mail uses readable headings and rows, and its coverage note stays
+visible below the main link. A scheduled email's footer then has one line, **Turn off this mail · Manage
 emails · Send feedback · Mail** and the first six characters of its id, then the
 disclaimer; a sign-in code or a welcome has no such line, because you asked
 for it. The logo and card art are PNGs served from
@@ -160,14 +129,14 @@ elixir.poapkings.com, never Supercell's servers, and each card says its name
 to a mail client that does not show images. The one other image is the open
 pixel ([below](#what-the-mail-counts)). A deck is drawn the way the
 game draws it, eight cards in a row, with the tower troop named under
-it. A clan report stays small enough that Gmail never cuts it short,
-even for a full clan: it links the roster rather than printing it.
+it. A digest stays small enough that Gmail never cuts it short: it
+counts what it leaves out and links the rest.
 
 ## Turning one off
 
 Each kind has its own switch on [Emails](/settings/emails)
-(Settings › Emails). Each scheduled kind shows its local
-day and time beside its switch. Event-driven kinds follow below, then the
+(Settings › Emails). The digest shows its local day and time and its
+cadence beside its switch. The other kinds follow below, then the
 latest sent records. **Every email** turns them all off, or all back on. Every issue's
 footer has a
 *turn off* link for that kind, which opens a page with one button to
@@ -201,7 +170,7 @@ audited without waiting for anyone to report it.
 Mail is counted by issue, never by reader, through
 [Tinylytics](https://tinylytics.app), the same cookie-free analytics the
 site uses. A 1×1 GIF from Tinylytics in each mail counts an **open** at a
-path that names the mail, not the reader (`/mail/clan_report/2026-W37`); it is an
+path that names the mail, not the reader (`/mail/tracking_report/2026-W37`); it is an
 estimate, and a low one, since image blocking and caching both cut
 against it. The other images, the logo and card art, are plain files
 and count nothing. Links into the site carry a **campaign tag** (the mail's
@@ -220,7 +189,7 @@ an action opens in Clan. Signed out, a page says why it needs you to sign in,
 and signing in brings you back to it. Tags appear only where a name alone could
 be ambiguous. A link to a season or a race names it:
 Stats links carry the season the mail describes (`/home/you/stats?season=136`),
-and the clan report's race link its Season and Week, so a mail opened
+and a finished race's link its Season and Week, so a mail opened
 after the next roll still opens what it described. Nothing in a report is
 advice.
 

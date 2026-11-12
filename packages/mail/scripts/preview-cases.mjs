@@ -2,6 +2,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (name) =>
@@ -11,8 +12,13 @@ const read = (name) =>
 const product = (name, kind, facts) => ({ name, kind, facts });
 const relay = (name, message) => ({ name, kind: message.kind, message });
 
-/** @returns {Array<{name: string, kind: string, facts?: any, message?: any}>} */
-export function mailPreviewCases() {
+/** The gallery is what Elixir sends. A retired kind's specimens (the
+ *  clan report, Arena week and milestone, folded into the digest on
+ *  2026-11-12) are asked for by name: a stored issue still renders on its
+ *  record, so the escaping tests keep reading them.
+ *  @param {{retired?: boolean}} [opts]
+ *  @returns {Array<{name: string, kind: string, facts?: any, message?: any}>} */
+export function mailPreviewCases({ retired = false } = {}) {
   const cases = ["../fixtures", "../test/fixtures"].flatMap((dir) =>
     readdirSync(path.join(here, dir))
       .filter((f) => f.endsWith(".json"))
@@ -329,5 +335,7 @@ export function mailPreviewCases() {
               },
       }),
     );
-  return cases;
+  return retired
+    ? cases
+    : cases.filter((x) => x.message || !isRetiredEmailKind(x.kind));
 }

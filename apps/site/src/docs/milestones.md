@@ -1,86 +1,56 @@
 ---
 slug: milestones
 title: "Milestones"
-description: "The milestone email: whose moments it covers (your primary player), which firsts count and at what steps, why it never mails a move down or a repeat, how often it is checked, what one email holds, and its switch."
+description: "Firsts: which moments count and at what steps, why a move down or a repeat never counts, and where they reach you: your timeline as the record learns them, and your one digest email. There is no milestone email of its own since 2026-11-12."
 section: friends
 order: 5
 navTitle: "Milestones"
 icon: sparkles
-lede: "A short note when you reach a big first: a new arena, a promotion, a new best, a legendary badge. Never a move down, never the same moment twice."
-reviewed: "2026-10-08 for legendary badges as milestones, contract 11.5.2"
-callout: ["Open it at Settings › Emails", "/settings/emails", "Open Emails"]
+lede: "A big first (a new arena, a promotion, a new best, a legendary badge) is told on your timeline and in your digest, for you and for the people you follow. Never a move down."
+reviewed: "2026-11-12 the milestone email folded into the one digest; 2026-10-08 for legendary badges as milestones, contract 11.5.2"
+callout: ["Choose your digest at Settings › Emails", "/settings/emails", "Open Emails"]
 ---
 
 # Milestones
 
-The milestone email is the one Elixir email that is not on a weekly
-schedule. It arrives when the record shows something you did for the
-first time, and it is only ever about you.
+A milestone is something a player did for the first time on record. Your
+[timeline](/docs/timeline) shows it as soon as the record learns it, and
+your [digest](/docs/email#your-digest) tells it once, with the rest of
+the people you follow and your clan's week.
 
 ## Whose moments
 
-Your **primary player**. Your other players' firsts wait for Tuesday (see
-[below](#your-other-players)). A friend's or a watched player's moments go to
-your [digest](/docs/email#your-digest) instead, never here.
+Yours, your alts', and those of the friends and players you follow. Each
+reaches you the same way: on the timeline, and in the next digest under
+the player it belongs to.
 
 ## What counts
 
 | Moment | Counts when |
 |---|---|
-| A new arena | you reach an arena higher than the one you left |
-| A promotion in Path of Legends | you reach a higher league |
-| A new best | your best trophies pass a multiple of 500 for the first time on record |
+| A new arena | a player reaches an arena higher than the one they left |
+| A promotion in Path of Legends | a player reaches a higher league |
+| A new best | best trophies pass a multiple of 500 for the first time on record |
 | Career wins | every 1,000 wins |
 | Collection Level | every 5 levels below 100, every 50 up to 1,000, every 100 above |
-| An Evolution or Hero | a form of a card new to your collection (an Evolution and a Hero of one card are two firsts) |
+| An Evolution or Hero | a form of a card new to the collection (an Evolution and a Hero of one card are two firsts) |
 | A legendary badge | a one-off legendary badge earned |
 
-A card unlocked and a badge level never send a milestone email on their
-own: Tuesday's [Arena email](/docs/email) counts them for each of your
-players, and your [timeline](/docs/timeline) lists every one.
+A card unlocked and a badge level are items on the timeline and a count
+in the digest, never a headline of their own.
 
 ## Firsts only
 
-Each moment mails **once, ever**: the arena, the league, the band, the
-step, the card's form or the legendary badge is remembered for your account
-and that player, and the same moment never mails again. Climbing back
-into an arena you were already congratulated on is silent. **A move
-down never mails.**
+A first is told once. Climbing back into an arena already reached is not
+news, and **a move down never counts**. A new arena and a promotion carry
+the battle that decided them when the record has it, with a link to [the
+battle's own page](/docs/battles#a-battles-page).
 
-## When it comes
+## No email of its own
 
-The record is checked every hour for moments it learned since the last
-check. Everything new rides in one email, so a good evening is one note,
-not five. If a check is missed (an outage, a failed send), the next one
-reads back to the last check that went through, up to a week, so a first
-can be late but is not lost. Moments come from the record as it is
-read, usually within the hour of the battle.
-
-## Your other players
-
-Milestones as they happen are your main player's. A first on another of your
-players waits for [Your week in the Arena](/docs/email#the-week) on Tuesday,
-one line under that player, once. With Tuesday's mail off, it stays on your
-[timeline](/docs/timeline).
-
-## What one email holds
-
-The biggest moments lead, up to four of them: a new arena, a promotion,
-a new best or a legendary badge. A new arena and a promotion carry the
-battle that decided them when the record has it: the score, who it was
-against and where they started, and the trophies it moved, with **See
-the battle** opening [the battle's own page](/docs/battles#a-battles-page),
-the same link `battles_query` hands a connected app. A new
-Evolution or Hero is shown as its art, in the form you unlocked, and opens the
-card's page in Elixir. With none of those,
-the first three of anything lead. The rest are listed under **Also**. The subject is the first
-headline, with how many more ride along. The button at the foot opens
-that player's season on [Stats](/docs/ladder).
-
-## Turning it off
-
-**Milestones** is one switch on
-[Settings › Emails](/settings/emails), and every milestone
-email has a link to turn it off. The switch is for all your players at
-once. [Turn an email off](/docs/turn-an-email-off) has the rest, and
-[Email](/docs/email) every other kind.
+Until 2026-11-12 your own firsts also came as a milestone email within
+the hour. That email ended when Elixir moved to [one
+digest](/docs/email#the-digest-replaced-three-emails): your firsts and
+your alts' now lead your part of it. To hear sooner, make the digest
+daily on [Settings › Emails](/settings/emails); to hear at once, open
+your timeline.

@@ -25,11 +25,8 @@ async function accessible(page: Page, name: string) {
 const at = (weekday: string) => ({ weekday, time: "9:00 am", zone: "Central" });
 const KINDS = (
   [
-    ["clan_report", "Clan report", "Clan", at("Monday")],
-    ["arena_week", "Your week in the Arena", "Ladder", at("Tuesday")],
     ["tracking_report", "Your digest", "Home", at("Wednesday")],
     ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
-    ["milestone", "Milestones", "Ladder", null],
     ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
   ] as const
 ).map(([kind, label, product, sends]) => ({
@@ -41,23 +38,23 @@ const KINDS = (
   changed_at: null,
   applies: kind !== "collector_activity",
   last_send_id:
-    kind === "arena_week" ? "3f2a9c1b-0000-4000-8000-000000000001" : null,
+    kind === "tracking_report" ? "3f2a9c1b-0000-4000-8000-000000000001" : null,
 }));
 const RECENT = [
   {
     send_id: "3f2a9c1b-0000-4000-8000-000000000001",
-    kind: "arena_week",
-    label: "Your week in the Arena",
-    subject: "Your week in the Arena: Trophy Road 4–6, war 3–3",
+    kind: "tracking_report",
+    label: "Your digest",
+    subject: "Your week: 4 people you follow played",
     period: "2026-W39",
-    sent_at: "2026-09-29T14:00:00Z",
+    sent_at: "2026-09-30T14:00:00Z",
     archived: true,
   },
   {
     send_id: "3f2a9c1b-0000-4000-8000-000000000002",
-    kind: "clan_report",
-    label: "Clan report",
-    subject: "POAP KINGS, Sep 21 – 28: 1st in war, 4 left, 2 joined",
+    kind: "collector_activity",
+    label: "Collector activity",
+    subject: "Collector activity: 1,204 battles recorded",
     period: "2026-W39",
     sent_at: "2026-09-28T14:00:00Z",
     archived: true,
@@ -89,8 +86,15 @@ test("scheduled and event-driven mail, with a switch that writes", async ({
 }) => {
   const puts = await open(page);
   const week = page.getByRole("region", { name: "Scheduled" });
-  await expect(week.getByText("Your week in the Arena")).toBeVisible();
-  await expect(week.getByRole("listitem")).toHaveCount(4);
+  await expect(week.getByText("Your digest")).toBeVisible();
+  await expect(week.getByRole("listitem")).toHaveCount(2);
+  // The clan report, Arena week and milestones ended (2026-11-12).
+  await expect(
+    page.getByRole("switch", { name: "Clan report email" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("switch", { name: "Milestones email" }),
+  ).toHaveCount(0);
   await expect(week.getByText("nothing")).toHaveCount(0);
   await expect(page.getByRole("switch", { name: "Top 100 email" })).toHaveCount(
     0,
@@ -105,14 +109,16 @@ test("scheduled and event-driven mail, with a switch that writes", async ({
   ).toBeDisabled();
   await accessible(page, "emails from elixir");
 
-  await page.getByRole("switch", { name: "Clan report email" }).click();
+  await page
+    .getByRole("switch", { name: "Clan actions waiting email" })
+    .click();
   await expect.poll(() => puts.length).toBe(1);
-  expect(puts[0]).toEqual({ kind: "clan_report", enabled: false });
+  expect(puts[0]).toEqual({ kind: "clan_actions_waiting", enabled: false });
 
   // A sent row opens that email's record.
   await page
     .getByRole("region", { name: "Sent to you" })
-    .getByRole("link", { name: /Trophy Road 4–6/ })
+    .getByRole("link", { name: /4 people you follow played/ })
     .click();
   await expect(page).toHaveURL(
     /\/settings\/emails\/3f2a9c1b-0000-4000-8000-000000000001$/,

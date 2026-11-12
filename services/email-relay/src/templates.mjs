@@ -42,7 +42,7 @@ const esc = (value) =>
 
 /**
  * The one mail shell (packages/mail, shell.mjs), the same one every
- * report and milestone wears, so a login and a clan report are
+ * report wears, so a login and a digest are
  * recognisably the same sender (2026-10-01). `preheader` is the hidden
  * line inboxes show as a preview. `pixel` is the Tinylytics path the
  * open counts under (/mail/login, /mail/welcome); the owner's own
@@ -116,18 +116,21 @@ export function renderEmail(msg) {
     };
   }
   if (msg.kind === "welcome") {
+    // Social first (VISION, 2026-11-11): follow people, and one digest
+    // brings their week and your clan's to your inbox. Since 2026-11-12
+    // the digest is the one scheduled mail (Jamie: "One digest email");
+    // nothing here promises a mail on a day of its own.
     return {
       subject: "Your Elixir account is ready",
       text:
         `You're in.\n\n` +
-        `Keep your Clash Royale history in one place: Home, Ladder and Clan, on one account.\n\n` +
-        `Add your player on Home to start your record. If a player is already on your account, its recording stays in place.\n` +
-        `Your profile and roughly your last 30 battles usually arrive within a minute of adding it.\n` +
+        `Elixir is where you keep up with your friends and your clan in Clash Royale: see their battles, cheer their firsts, and share your own.\n\n` +
+        `Add your player on Home, then follow the people you play with. Your clan is one click: follow it and Elixir keeps up with whoever is in it.\n` +
+        `Your profile and roughly your last 30 battles usually arrive within a minute of adding your player.\n` +
         `Open ${SITE}/home to get started.\n\n` +
         `What comes next\n\n` +
-        `Monday: your clan's week. The river race, who joined and departed. Elixir follows your player's clan for you when it can.\n` +
-        `Tuesday: your week in the Arena. Your record by mode, your decks, and who you battled.\n` +
-        `Wednesday: your friends. Follow anyone with a player tag, and hear how they played.\n` +
+        `Your feed: everyone you follow, newest first, on Home.\n` +
+        `One digest a week: the people you follow and your clan's week (its race, who joined and departed) in one email, each player once. Make it daily, or turn it off, in Settings.\n` +
         `Your own agent: connect it to ${SITE}/mcp and ask what the game can't answer.\n\n` +
         `The five-minute version: ${SITE}/docs/quickstart\n\n` +
         `${DISCLAIMER}\n`,
@@ -137,28 +140,24 @@ export function renderEmail(msg) {
         title: "You’re in.",
         subtitle: "Your Elixir account is ready",
         preheader:
-          "You’re in. Add your player on Home to start your record, then read it in Ladder and Clan.",
+          "You’re in. Add your player on Home, then follow the people you play with.",
         body: [
           p(
-            "Keep your Clash Royale history in one place: Home, Ladder and Clan, on one account.",
+            "Elixir is where you keep up with your friends and your clan in Clash Royale: see their battles, cheer their firsts, and share your own.",
           ),
           p(
-            "Add your player on Home to start your record. If a player is already on your account, its recording stays in place. Your profile and roughly your last 30 battles usually arrive within a minute of adding it.",
+            "Add your player on Home, then follow the people you play with. Your clan is one click: follow it and Elixir keeps up with whoever is in it. Your profile and roughly your last 30 battles usually arrive within a minute of adding your player.",
           ),
-          button(`${SITE}/home`, "Start your record"),
+          button(`${SITE}/home`, "Open Home"),
           h2("What comes next"),
           rows([
             {
-              title: "Monday: your clan&rsquo;s week",
-              text: "The river race, who joined and departed. Elixir follows your player&rsquo;s clan for you when it can.",
+              title: "Your feed",
+              text: "Everyone you follow, newest first, on Home.",
             },
             {
-              title: "Tuesday: your week in the Arena",
-              text: "Your record by mode, your decks, and who you battled.",
-            },
-            {
-              title: "Wednesday: your friends",
-              text: "Follow anyone with a player tag, and hear how they played.",
+              title: "One digest a week",
+              text: "The people you follow and your clan&rsquo;s week (its race, who joined and departed) in one email, each player once. Make it daily, or turn it off, in Settings.",
             },
             {
               title: "Your own agent",

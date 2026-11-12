@@ -36,11 +36,8 @@ const ME = {
 
 const at = (weekday) => ({ weekday, time: "9:00 am", zone: "Central" });
 const KINDS = [
-  ["clan_report", "Clan report", "Clan", at("Monday")],
-  ["arena_week", "Your week in the Arena", "Ladder", at("Tuesday")],
   ["tracking_report", "Your digest", "Home", at("Wednesday")],
   ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
-  ["milestone", "Milestones", "Ladder", null],
   ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
   ["feedback_answer", "Answers to your feedback", "Account", null],
 ].map(([kind, label, product, sends]) => ({
@@ -53,14 +50,16 @@ const KINDS = [
   changed_at: null,
   applies: kind !== "collector_activity",
   last_send_id:
-    kind === "arena_week" ? "3f2a9c1b-0000-4000-8000-000000000001" : null,
+    kind === "collector_activity"
+      ? "3f2a9c1b-0000-4000-8000-000000000001"
+      : null,
 }));
 const RECENT = [
   {
     send_id: "3f2a9c1b-0000-4000-8000-000000000001",
-    kind: "arena_week",
-    label: "Your week in the Arena",
-    subject: "Your week in the Arena: Trophy Road 4–6, war 3–3",
+    kind: "collector_activity",
+    label: "Collector activity",
+    subject: "Collector activity: 1,204 battles recorded",
     period: "2026-W39",
     sent_at: "2026-09-29T14:00:00Z",
     archived: true,
@@ -99,7 +98,7 @@ async function open() {
   window.history.pushState({}, "", "/settings/emails");
   render(<App />);
   await waitFor(() => screen.getByRole("heading", { name: "Emails" }));
-  await waitFor(() => screen.getByText("Clan report"));
+  await waitFor(() => screen.getByText("Your digest"));
 }
 
 test(
@@ -109,9 +108,13 @@ test(
     await open();
     const week = screen.getByRole("region", { name: "Scheduled" });
     // The send time is the account's, from the API.
-    expect(within(week).getByText(/Mondays, 9:00 am Central/)).toBeTruthy();
-    const clan = screen.getByRole("switch", { name: "Clan report email" });
-    expect(clan.getAttribute("aria-checked")).toBe("true");
+    expect(within(week).getByText(/Sundays, 9:00 am Central/)).toBeTruthy();
+    // One scheduled mail: the clan report, Arena week and milestones ended
+    // (2026-11-12) and have no switch.
+    for (const gone of ["Clan report", "Your week in the Arena", "Milestones"])
+      expect(
+        screen.queryByRole("switch", { name: `${gone} email` }),
+      ).toBeNull();
     expect(
       screen
         .getByRole("switch", { name: "Your digest email" })
@@ -121,7 +124,7 @@ test(
     expect(
       screen.getByRole("switch", { name: "Collector activity email" }).disabled,
     ).toBe(true);
-    expect(within(week).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(week).getAllByRole("listitem")).toHaveLength(2);
     expect(within(week).queryByText("nothing")).toBeNull();
     expect(screen.queryByRole("switch", { name: "Top 100 email" })).toBeNull();
     expect(
@@ -143,14 +146,15 @@ test(
     const happens = screen.getByRole("region", {
       name: "When something happens",
     });
-    expect(within(happens).getByText("Milestones")).toBeTruthy();
+    expect(within(happens).queryByText("Milestones")).toBeNull();
     expect(within(happens).getByText("Clan actions waiting")).toBeTruthy();
     expect(within(happens).getByText("Answers to your feedback")).toBeTruthy();
     expect(
       screen.queryByText(/The two below|a card or a card form unlocked/),
     ).toBeNull();
-    const week = screen.getByRole("region", { name: "Scheduled" });
-    expect(within(week).queryByText("Milestones")).toBeNull();
+    expect(
+      within(happens).getByText(/When an action becomes yours/),
+    ).toBeTruthy();
   },
 );
 
@@ -159,14 +163,16 @@ test(
   { timeout: 20000 },
   async () => {
     await open();
-    fireEvent.click(screen.getByRole("switch", { name: "Clan report email" }));
+    fireEvent.click(
+      screen.getByRole("switch", { name: "Clan actions waiting email" }),
+    );
     await waitFor(() => expect(puts.length).toBe(1));
-    expect(puts[0]).toEqual({ kind: "clan_report", enabled: false });
+    expect(puts[0]).toEqual({ kind: "clan_actions_waiting", enabled: false });
     // Friends is off in the fixture, so Every email is off and says how
     // many are on.
     const all = screen.getByRole("switch", { name: "Every email" });
     expect(all.getAttribute("aria-checked")).toBe("false");
-    expect(screen.getByText("6 of 7 on")).toBeTruthy();
+    expect(screen.getByText("3 of 4 on")).toBeTruthy();
     fireEvent.click(all);
     await waitFor(() => expect(puts.length).toBe(2));
     expect(puts[1]).toEqual({ kind: "all", enabled: true });
@@ -180,14 +186,14 @@ test(
     await open();
     const sent = screen.getByRole("region", { name: "Sent to you" });
     const row = within(sent).getByRole("link", {
-      name: /Trophy Road 4–6, war 3–3/,
+      name: /1,204 battles recorded/,
     });
     expect(row.getAttribute("href")).toBe(
       "/settings/emails/3f2a9c1b-0000-4000-8000-000000000001",
     );
     // Tuesday 14:00 UTC is Tuesday morning in Chicago.
     expect(within(row).getByText("Tue Sep 29")).toBeTruthy();
-    expect(within(row).getByText("Ladder")).toBeTruthy();
+    expect(within(row).getByText("Collectors")).toBeTruthy();
     expect(
       within(sent)
         .getByRole("link", { name: "All sent ›" })

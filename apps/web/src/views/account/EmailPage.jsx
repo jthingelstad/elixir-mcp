@@ -9,27 +9,16 @@ import { SETTINGS } from "../../lib/settings.js";
  *  and the send time are the API's too, from the mail package, so the
  *  page and the mail's own pill and footer cannot disagree. */
 const ABOUT = {
-  clan_report: {
-    what: "Your clan's week: the war race, joins and departures.",
-    note: "for each clan you track",
-  },
-  arena_week: {
-    what: "Your record by mode, decks and opponents.",
-    note: "skipped in a week none of your players battled",
-  },
   tracking_report: {
-    what: "What the people you follow played and posted, and your own stretch.",
-    note: "skipped when no one played or posted",
+    what: "The people you follow and your clan's week in one email: who played, what they posted and reached, your clan's race, joins and departures, and your own week. Each player once.",
+    note: "skipped when there is no news",
   },
   collector_activity: {
     what: "What your collectors recorded.",
     note: "only if you run one",
   },
-  milestone: {
-    what: "Big firsts in your main player's record.",
-  },
   clan_actions_waiting: {
-    what: "Actions in your clan waiting for your decision.",
+    what: "Actions in your clan waiting for you to act on.",
     note: "only if you can act on it",
   },
   feedback_answer: {
@@ -148,9 +137,8 @@ export function EmailPage() {
       return `Daily, ${k.sends.time} ${k.sends.zone}${note ? ` · ${note}` : ""}`;
     if (k.sends)
       return `${k.sends.weekday}s, ${k.sends.time} ${k.sends.zone}${note ? ` · ${note}` : ""}`;
-    if (k.kind === "milestone") return "Checked hourly";
     if (k.kind === "clan_actions_waiting")
-      return `Each morning, when something waits · ${note}`;
+      return `When an action becomes yours · ${note}`;
     return "When answered";
   };
   const row = (k) => (

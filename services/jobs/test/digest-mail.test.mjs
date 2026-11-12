@@ -6,6 +6,8 @@
  * reading it themselves, never a mail (DECISIONS, "Attested facts"). The
  * mail's moments are filtered BEFORE the timeline's 150-item cap, so a
  * busy clan's facts can neither reach the mail nor crowd its moments out.
+ * Since 2026-11-12 it is the one digest: the clan's own news and the
+ * people you follow in one story, each player once.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -15,7 +17,11 @@ import pg from "pg";
 import { ATTESTED_FACT_KINDS } from "@elixir-mcp/contracts";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { buildTimeline } from "../../../packages/tools/src/activity/entries.mjs";
-import { buildDigest, digestWindow } from "../src/email/build-digest.mjs";
+import {
+  buildDigest,
+  clanNews,
+  digestWindow,
+} from "../src/email/build-digest.mjs";
 import { renderMail } from "../../../packages/mail/src/render.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -406,4 +412,217 @@ test("an alt that played makes the reader's own stretch when the primary was qui
     mail.you.alts.map((a) => [a.tag, a.battles]),
     [[ALT, 1]],
   );
+});
+
+// The merge (2026-11-12): a clan the reader tracks and members they
+// follow. Invented players and clan, as every fixture here.
+const C2 = "#P0LYJC8Q";
+const MATE = "#Y2PQ8LJV";
+const GONE = "#C9QJ0YL2";
+const NEWBIE = "#J8YV2Q0C";
+const SELF = "#R2YQ9PLU";
+
+async function played(id, tag, at) {
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, created_at)
+     values ($1, $2, 'PvP', 'pvp', $2::timestamptz + interval '10 minutes')`,
+    [id, at],
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, crowns, type, type_class)
+     values ($1, $2, 0, $3, 'win', 1, 'PvP', 'pvp')`,
+    [id, tag, at],
+  );
+}
+
+let mergeReader, clanOnlyReader;
+test("setup: a clan with a join and a departure, two clanmates followed", async () => {
+  await db.query(`insert into clan (clan_tag, name) values ($1, 'Otters')`, [
+    C2,
+  ]);
+  for (const [tag, name] of [
+    [MATE, "Mate"],
+    [GONE, "Gone"],
+    [NEWBIE, "Newbie"],
+  ])
+    await db.query(`insert into player (player_tag, name) values ($1, $2)`, [
+      tag,
+      name,
+    ]);
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, left_observed_at, role)
+     values ($1, $2, '2026-08-01T00:00:00Z', null, 'member'),
+            ($1, $3, '2026-08-01T00:00:00Z', '2026-10-03T08:00:00Z', 'member'),
+            ($1, $4, '2026-10-02T08:00:00Z', null, 'member')`,
+    [C2, MATE, GONE, NEWBIE],
+  );
+  await db.query(
+    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, occurred_at, player_tag, role_after)
+     values ($1, 'member_joined', 'estimated', '2026-10-02T08:00:00Z', '2026-10-02T08:00:00Z', '2026-10-02T08:00:00Z', $2, 'member')`,
+    [C2, NEWBIE],
+  );
+  await db.query(
+    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, occurred_at, player_tag)
+     values ($1, 'member_left', 'estimated', '2026-10-03T08:00:00Z', '2026-10-03T08:00:00Z', '2026-10-03T08:00:00Z', $2)`,
+    [C2, GONE],
+  );
+  await played("m1", MATE, "2026-10-04T12:00:00Z");
+  await played("m2", GONE, "2026-10-02T12:00:00Z");
+  mergeReader = await reader("merge", [
+    [SELF, "primary"],
+    [MATE, "friend"],
+    [GONE, "friend"],
+  ]);
+  clanOnlyReader = await reader("clan-only", [["#V2LQ8RJY", "primary"]]);
+  for (const id of [mergeReader, clanOnlyReader])
+    await db.query(
+      `insert into account_clan (account_id, clan_tag, notify) values ($1, $2, true)`,
+      [id, C2],
+    );
+});
+
+test("each player once: a followed clanmate is told under themselves, the clan part keeps to its own news", async () => {
+  const mail = await buildDigest({
+    db,
+    account: { accountId: mergeReader, timezone: "UTC" },
+    cadence: "weekly",
+    window: W2,
+  });
+  assert.ok(mail);
+  const [clan] = mail.clans;
+  assert.equal(clan.tag, C2);
+  const told = [clan.headline, ...clan.bullets].join(" | ");
+  assert.match(told, /joined: Newbie/);
+  assert.match(told, /departed: Gone/);
+  // The clan part never repeats its members' play.
+  assert.doesNotMatch(told, /battle|quiet/i);
+  const mate = mail.people.find((p) => p.tag === MATE);
+  assert.deepEqual(mate.clanmate, { tag: C2, name: "Otters" });
+  assert.equal(mate.battles, 1);
+  // The departure is the clan's news; it is not told again under Gone.
+  const gone = mail.people.find((p) => p.tag === GONE);
+  assert.ok(gone, JSON.stringify(mail.people));
+  assert.ok(
+    !gone.items.some((it) => it.kind === "clan_left"),
+    JSON.stringify(gone.items),
+  );
+  // Each player appears once in the whole mail.
+  const out = renderMail("tracking_report", mail, {
+    unsubscribe: "https://elixir.example/u",
+    manage: "/settings/emails",
+    period: "2026-10-08",
+    pixel: false,
+  });
+  assert.equal(out.html.match(/>Mate</g)?.length, 1, out.html);
+  assert.match(out.html, /In <a [^>]*>Otters<\/a>/);
+});
+
+test("a clan's news alone sends a weekly digest, never one for a reader who had the clan report off", async () => {
+  const args = {
+    db,
+    account: { accountId: clanOnlyReader, timezone: "UTC" },
+    window: W2,
+  };
+  const weekly = await buildDigest({ ...args, cadence: "weekly" });
+  assert.ok(weekly, "the clan's week is a digest");
+  assert.deepEqual(weekly.people, []);
+  assert.equal(weekly.clans[0].tag, C2);
+  const out = renderMail("tracking_report", weekly, {
+    unsubscribe: "https://elixir.example/u",
+    manage: "/settings/emails",
+    period: "2026-10-08",
+    pixel: false,
+  });
+  assert.match(out.subject, /Otters/);
+  // Clan report off before the merge: no more mail than before.
+  assert.equal(
+    await buildDigest({
+      ...args,
+      cadence: "weekly",
+      fold: { clan: false, arena: true },
+    }),
+    null,
+  );
+  // A daily reader is not mailed every day for roster moves alone.
+  assert.equal(await buildDigest({ ...args, cadence: "daily" }), null);
+});
+
+test("an alt is a name and a count for a reader who had Arena week off", async () => {
+  const MAIN = "#G0Q2YPLV";
+  const ALT = "#Q8LJ2YCV";
+  const id = await reader("arena-off", [
+    [MAIN, "primary"],
+    [ALT, "alt"],
+  ]);
+  await played("a1", ALT, "2026-10-05T18:00:00Z");
+  const base = {
+    db,
+    account: { accountId: id, timezone: "UTC" },
+    cadence: "weekly",
+    window: W2,
+  };
+  const on = await buildDigest(base);
+  assert.ok("items" in on.you.alts[0]);
+  const off = await buildDigest({
+    ...base,
+    fold: { clan: true, arena: false },
+  });
+  assert.deepEqual(off.you.alts, [{ tag: ALT, name: ALT, battles: 1 }]);
+});
+
+test("a finished race is a daily reader's clan news; the clan line names its place and fame", async () => {
+  await db.query(
+    `insert into war_week (clan_tag, season_id, section_index, is_colosseum, started_observed_at, finished_observed_at, closed_at)
+     values ($1, 136, 3, false, '2026-09-28T10:00:00Z', '2026-10-05T09:40:00Z', '2026-10-05T09:38:00Z')`,
+    [C2],
+  );
+  await db.query(
+    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, occurred_at, war_season_id, section_index, fame, rank)
+     values ($1, 'week_resolved', 'estimated', '2026-10-05T09:40:00Z', '2026-10-05T09:40:00Z', '2026-10-05T09:40:00Z', 136, 3, 10000, 2)`,
+    [C2],
+  );
+  const mail = await buildDigest({
+    db,
+    account: { accountId: clanOnlyReader, timezone: "UTC" },
+    cadence: "daily",
+    window: W2,
+  });
+  assert.ok(mail);
+  assert.equal(mail.clans[0].race, true);
+  assert.equal(
+    mail.clans[0].headline,
+    "River race (season 136, week 4): finished 2nd with 10,000 fame",
+  );
+});
+
+test("the clan's news, as a line: Colosseum named, names capped, roles", () => {
+  const names = (n) => ({
+    items: Array.from({ length: n }, (_, i) => ({
+      tag: `#T${i}`,
+      name: `P${i}`,
+    })),
+    more: 0,
+  });
+  const { race, parts } = clanNews({
+    war: {
+      resolved: [
+        { season_id: 141, week: 4, is_colosseum: true, rank: 1, fame: 52000 },
+      ],
+    },
+    roster: {
+      joined: names(7),
+      left: { items: [], more: 0 },
+      role_changes: {
+        items: [{ name: "P1", from: "member", to: "elder" }],
+        more: 0,
+      },
+    },
+  });
+  assert.equal(race, true);
+  assert.deepEqual(parts, [
+    "Colosseum (season 141, week 4): finished 1st with 52,000 fame",
+    "joined: P0, P1, P2, P3, P4 +2 more",
+    "roles: P1 member → elder",
+  ]);
+  assert.deepEqual(clanNews({}), { race: false, parts: [] });
 });

@@ -235,9 +235,8 @@ channels tells it twice.
   war-only agent, and a person reading the website. Each reads the sections
   it cares about.
 - **It never changes for the mail.** The mail chooses what to say from
-  it: the milestone email sends only the big firsts (a legendary badge
-  among them), the weekly emails count card unlocks and badge levels
-  rather than listing them, and the friends
-  email draws a clan's summary as a headline and its next three clauses
-  ([Email](/docs/email)). The timeline itself keeps every item, newest
+  it: the digest tells only the big firsts (a legendary badge among
+  them), counts card unlocks and badge levels rather than listing them,
+  tells each player once, and draws a clan's own news as a headline and
+  its next three facts ([Email](/docs/email#your-digest)). The timeline itself keeps every item, newest
   first.

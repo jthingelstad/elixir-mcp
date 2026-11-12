@@ -31,7 +31,7 @@ const hostile = (value, key = "") => {
 
 test("no mail carries a hostile name as markup", () => {
   let escaped = 0;
-  for (const specimen of mailPreviewCases()) {
+  for (const specimen of mailPreviewCases({ retired: true })) {
     const mail = specimen.message
       ? renderEmail({
           v: 1,

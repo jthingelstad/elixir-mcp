@@ -343,7 +343,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                   />
                   <Note>
                     {isClan
-                      ? "Include this clan in your timeline. Clan report emails are separate."
+                      ? "Include this clan in your timeline. It also decides whether its news appears in your digest."
                       : "Include this player in your timeline. It also decides whether they appear in your digest."}{" "}
                     <Link to={`${SETTINGS}/emails`}>Email settings</Link>
                   </Note>

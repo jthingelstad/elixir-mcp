@@ -624,7 +624,7 @@ function digestPerson(x, c) {
     : "";
   return c.box(
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td valign="top" style="font-family:${FONT};font-size:15.5px;font-weight:700;">${c.P(x.tag, x.name)}${x.nickname ? ` <span style="font-weight:400;color:${M.faint};">(${esc(x.nickname)})</span>` : ""}</td>
+      <td valign="top" style="font-family:${FONT};font-size:15.5px;font-weight:700;">${c.P(x.tag, x.name)}${x.nickname ? ` <span style="font-weight:400;color:${M.faint};">(${esc(x.nickname)})</span>` : ""}${x.clanmate ? `<br><span style="font-weight:400;font-size:12.5px;color:${M.faint};">In ${c.K(x.clanmate.tag, x.clanmate.name ?? x.clanmate.tag)}</span>` : ""}</td>
       <td align="right" valign="top" style="font-family:${FONT};font-size:12.5px;color:${M.faint};white-space:nowrap;">${record}${trophies}</td></tr></table>
     ${(x.items ?? []).map((it) => digestItem(it, c)).join("")}${progress ? c.small(esc(sentence(capFirst(progress))), "margin-top:4px;") : ""}${more}`,
     { mt: 10 },
@@ -655,7 +655,15 @@ function digest(f, c) {
     : "";
   const you = f.you;
   const youText = you
-    ? `${you.battles ? `${n(you.sessions)} sitting${you.sessions === 1 ? "" : "s"}, ${n(you.battles)} battle${you.battles === 1 ? "" : "s"}, ${recHtml(you.wins, you.losses)}` : "No battles recorded"}${you.trophies && you.trophies.to !== you.trophies.from ? `, ${signed(you.trophies.to - you.trophies.from)} trophies` : ""}.${you.alts?.length ? ` With ${you.alts.map((a) => `${c.P(a.tag, a.name)} (${n(a.battles)})`).join(" and ")}.` : ""}${(you.items ?? []).map((it) => `<br>${digestItem(it, c)}`).join("")}`
+    ? `${you.battles ? `${n(you.sessions)} sitting${you.sessions === 1 ? "" : "s"}, ${n(you.battles)} battle${you.battles === 1 ? "" : "s"}, ${recHtml(you.wins, you.losses)}` : "No battles recorded"}${you.trophies && you.trophies.to !== you.trophies.from ? `, ${signed(you.trophies.to - you.trophies.from)} trophies` : ""}.${you.alts?.length ? ` With ${you.alts.map((a) => `${c.P(a.tag, a.name)} (${n(a.battles)})`).join(" and ")}.` : ""}${(you.items ?? []).map((it) => `<br>${digestItem(it, c)}`).join("")}${you.progress ? c.small(esc(sentence(capFirst(progressText(you.progress)))), "margin-top:4px;") : ""}${(
+        you.alts ?? []
+      )
+        .filter((a) => a.items?.length || a.progress)
+        .map(
+          (a) =>
+            `<div style="margin-top:8px;font-family:${FONT};font-size:13.5px;font-weight:600;color:${M.ink};">${c.P(a.tag, a.name)}</div>${(a.items ?? []).map((it) => digestItem(it, c)).join("")}${a.progress ? c.small(esc(sentence(capFirst(progressText(a.progress)))), "margin-top:4px;") : ""}`,
+        )
+        .join("")}`
     : "";
   const around = [
     ...(f.clans ?? []).map((k) => ({
@@ -690,8 +698,11 @@ function digest(f, c) {
     : `Your ${span} in Elixir.`;
   const title = daily ? "Your day in Elixir" : "Your week in Elixir";
   const since = c.date(f.window?.from);
+  // With no one you follow in it, a clan's news names the clan (its
+  // name is the clan's, never a person's); otherwise "your week".
+  const clansOnly = !people.length && !you && (f.clans ?? []).length;
   return {
-    subject: `${title}: ${people.length ? `${n(people.length)} ${people.length === 1 ? "person" : "people"} you follow, ${n(total)} battle${total === 1 ? "" : "s"}` : `your ${span}`}`,
+    subject: `${title}: ${people.length ? `${n(people.length)} ${people.length === 1 ? "person" : "people"} you follow, ${n(total)} battle${total === 1 ? "" : "s"}` : clansOnly ? `${f.clans[0].name}${f.clans.length > 1 ? ` and ${n(f.clans.length - 1)} more` : ""}` : `your ${span}`}`,
     preheader,
     html: (links) =>
       c.shell({

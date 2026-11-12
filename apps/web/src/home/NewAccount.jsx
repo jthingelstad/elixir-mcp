@@ -122,19 +122,12 @@ export function NewAccount({
           </Step>
         </ol>
         <aside className="kit-inbox">
-          <h2>In your inbox each week</h2>
-          <ul>
-            <li>
-              <b>Monday</b> your clan&rsquo;s week
-            </li>
-            <li>
-              <b>Tuesday</b> your own week
-            </li>
-            <li>
-              <b>Wednesday</b> the people you follow
-            </li>
-          </ul>
-          <Link to={`${SETTINGS}/emails`}>Choose which ones you get</Link>
+          <h2>In your inbox</h2>
+          <p>
+            <b>One digest a week</b>: the people you follow and your
+            clan&rsquo;s week in one email, each player once.
+          </p>
+          <Link to={`${SETTINGS}/emails`}>Make it daily, or turn it off</Link>
         </aside>
       </div>
     </div>

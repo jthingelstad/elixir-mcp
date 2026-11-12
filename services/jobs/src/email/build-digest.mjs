@@ -1,5 +1,16 @@
-/** The digest of the people you follow (social slice 9, #767): the mail
- *  that replaces the friends mail under its kind, `tracking_report`.
+/** The digest (social slice 9, #767): Elixir's one scheduled mail, under
+ *  the friends mail's kind, `tracking_report`. Since 2026-11-12 it is also
+ *  the clan's week and your own: Jamie, "One digest email and merging clan
+ *  and those you follow is really needed since it will be common for
+ *  someone to follow all members of their clan." The Monday clan report,
+ *  Tuesday's Arena week and the milestone mail stopped as mails that day.
+ *  The merge: each player's week is told once, under the person (a
+ *  clanmate you follow is marked as one), and the clan has a short part of
+ *  its own news only: its finished race, who joined and departed, role
+ *  changes. A clan's battle count and gone-quiet list are its members'
+ *  play, so they are left to the people and to Clan.
+ *
+ *  The first ruling (slice 9):
  *  Jamie, 2026-11-12, asked "Slice 9, the digest: should a digest of the
  *  people you follow replace the friends (tracking) mail, so there are
  *  still seven mail kinds? And what cadence?", answered "Weekly default
@@ -11,14 +22,15 @@
  *  person they follow, their sittings and battles counted, then the
  *  moments worth a line, each with the battle that made it when the
  *  record knows it, and their highlights with their own words. Then the
- *  clans they track, as the timeline's clan sentence, and their own
- *  week. Nothing is derived a second time: every number is the timeline
- *  entry's, every sentence the timeline's (itemText).
+ *  clans they track, their own news only (clanNews), and their own week.
+ *  Nothing is derived a second time: every number is the timeline
+ *  entry's, every person's sentence the timeline's (itemText).
  *
- *  Null when nothing happened: no one followed played or posted, and
- *  neither did the reader. A null is no mail (never an empty week). */
+ *  Null when nothing happened: no one followed played or posted, the
+ *  reader did not, and no clan has news that sends (see `fold`). A null
+ *  is no mail (never an empty week). */
 import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
-import { clanSummaryParts, itemText } from "@elixir-mcp/tools/activity/summary";
+import { itemText } from "@elixir-mcp/tools/activity/summary";
 import {
   MILESTONE_MAIL_KINDS,
   progressOf,
@@ -55,6 +67,53 @@ const PEOPLE_CAP = 12;
 /** A clan's block: its headline and at most three bullets, as the
  *  friends mail drew it (DECISIONS "Mail collapses"). */
 const CLAN_BULLETS = 3;
+/** Names a clan line lists before "+N more". */
+const CLAN_NAMES = 5;
+
+const ordinal = (k) => {
+  const t = k % 100;
+  if (t >= 11 && t <= 13) return `${k}th`;
+  return `${k}${{ 1: "st", 2: "nd", 3: "rd" }[k % 10] ?? "th"}`;
+};
+
+/** A list of members as a clan line names them, the rest counted. */
+function memberNames(list) {
+  const items = list?.items ?? [];
+  const rest = Math.max(0, items.length - CLAN_NAMES) + (list?.more ?? 0);
+  return `${items
+    .slice(0, CLAN_NAMES)
+    .map((m) => m.name ?? m.tag)
+    .join(", ")}${rest ? ` +${rest} more` : ""}`;
+}
+
+/** The clan's own news for the digest, from the clan entry's structured
+ *  facts: a finished river race, who joined and departed, role changes.
+ *  Never its battles or who went quiet: that is its members' play, told
+ *  once under each person you follow (2026-11-12, the merge). Each part
+ *  is plain text; the render escapes it. [engineering, 2026-11-12] */
+export function clanNews(e) {
+  const parts = [];
+  for (const x of e.war?.resolved ?? [])
+    parts.push(
+      `${x.is_colosseum ? "Colosseum" : "River race"}${x.season_id ? ` (season ${x.season_id}, week ${x.week})` : ""}: finished${x.rank ? ` ${ordinal(x.rank)}` : ""}${x.fame != null ? ` with ${Number(x.fame).toLocaleString("en-US")} fame` : ""}`,
+    );
+  const r = e.roster ?? {};
+  if (r.joined?.items?.length) parts.push(`joined: ${memberNames(r.joined)}`);
+  if (r.left?.items?.length) parts.push(`departed: ${memberNames(r.left)}`);
+  if (r.role_changes?.items?.length)
+    parts.push(
+      `roles: ${r.role_changes.items
+        .slice(0, 3)
+        .map((m) => `${m.name ?? m.tag} ${m.from} → ${m.to}`)
+        .join(
+          ", ",
+        )}${r.role_changes.items.length > 3 || r.role_changes.more ? " and more" : ""}`,
+    );
+  return {
+    race: (e.war?.resolved?.length ?? 0) > 0,
+    parts,
+  };
+}
 
 /** The window a digest covers for one reader. */
 export function digestWindow(now, cadence, lastSentAt = null) {
@@ -93,7 +152,21 @@ function digestItem(it, tz, links) {
   };
 }
 
-export async function buildDigest({ db, account, cadence, window }) {
+/** What the digest folds in for this reader. A reader who had turned
+ *  the clan report off (`clan: false`) gets no more clan mail than before:
+ *  their digest never comes for a clan's news alone. One who had turned
+ *  Arena week off (`arena: false`) gets their alts as before, a name and
+ *  a count, with no firsts or progress under them. Both default on, as
+ *  the switches did. [engineering, 2026-11-12] */
+const FOLD_ALL = { clan: true, arena: true };
+
+export async function buildDigest({
+  db,
+  account,
+  cadence,
+  window,
+  fold = FOLD_ALL,
+}) {
   const subjects = await subjectsFor(db, account.accountId);
   if (subjects.length === 0) return null;
   const tz = account.timezone;
@@ -114,9 +187,34 @@ export async function buildDigest({ db, account, cadence, window }) {
     db,
     items.map((it) => battleRef(it.facts)).filter(Boolean),
   );
+  // The clan's own news, one block a clan you track, each told once: a
+  // clan with none (only battles, or nothing) has no block.
+  const clans = entries
+    .filter((e) => e.kind === "clan_activity")
+    .map((e) => ({ e, news: clanNews(e) }))
+    .filter(({ news }) => news.parts.length > 0)
+    .map(({ e, news }) => ({
+      tag: e.subject_tag,
+      name: e.name ?? e.subject_tag,
+      race: news.race,
+      headline: news.parts[0],
+      bullets: news.parts.slice(1, 1 + CLAN_BULLETS),
+      more: Math.max(0, news.parts.length - 1 - CLAN_BULLETS),
+    }));
+  const clanTags = new Set(
+    subjects.filter((s) => s.kind === "clan").map((s) => s.tag),
+  );
+  const toldClans = new Set(clans.map((k) => k.tag));
+  // A move into or out of a clan whose block names it is that block's
+  // news, never the person's too.
+  const toldByClan = (it) =>
+    (it.kind === "clan_joined" || it.kind === "clan_left") &&
+    toldClans.has(it.facts?.clan_tag);
   const itemsFor = (tag) => {
     const mine = items.filter(
-      (it) => it.subject_tag === tag || it.subjects?.some((s) => s.tag === tag),
+      (it) =>
+        (it.subject_tag === tag || it.subjects?.some((s) => s.tag === tag)) &&
+        !toldByClan(it),
     );
     // Highlights first (the player's own post), then the rest; each
     // group newest first, the timeline's own order.
@@ -145,6 +243,11 @@ export async function buildDigest({ db, account, cadence, window }) {
         ? { from: e.trophies.from, to: e.trophies.to }
         : null,
     progress: progressOf(e),
+    // In a clan you track: the person's week is told here, once, and the
+    // clan's block keeps to the clan's own news.
+    ...(e.clan?.tag && clanTags.has(e.clan.tag)
+      ? { clanmate: { tag: e.clan.tag, name: e.clan.name ?? null } }
+      : {}),
     ...itemsFor(e.subject_tag),
   });
   // The timeline's entries are the subjects that played (or moved) in
@@ -197,11 +300,28 @@ export async function buildDigest({ db, account, cadence, window }) {
         b.battles - a.battles,
     );
   const primary = players.find((e) => e.relationship === "primary");
+  // Your alts: Arena week's part that had no other mail (D12, an alt's
+  // firsts), so each alt that played or reached something carries its
+  // firsts and its cards and badges counted. With Arena week off, as
+  // before: a name and a count.
   const alts = players
     .filter((e) => e.relationship === "alt")
     .map(person)
-    .filter((p) => p.battles > 0 || p.items.length > 0)
-    .map((p) => ({ tag: p.tag, name: p.name, battles: p.battles }));
+    .filter((p) => p.battles > 0 || (fold.arena && p.items.length > 0))
+    .map((p) =>
+      fold.arena
+        ? {
+            tag: p.tag,
+            name: p.name,
+            battles: p.battles,
+            wins: p.wins,
+            losses: p.losses,
+            progress: p.progress,
+            items: p.items,
+            more_items: p.more_items,
+          }
+        : { tag: p.tag, name: p.name, battles: p.battles },
+    );
   // A quiet primary has no entry; an alt that played still makes the
   // reader's own stretch, under the primary's name (Codex on #783).
   const primarySubject = subjects.find(
@@ -225,28 +345,15 @@ export async function buildDigest({ db, account, cadence, window }) {
   const youHas = Boolean(
     you && (you.battles > 0 || you.items.length > 0 || alts.length > 0),
   );
+  // A clan's news sends a digest of its own only where the clan report
+  // would have come: the reader kept it on, and for a daily reader only a
+  // finished race (once a week), so no one gets more mail than the
+  // Monday report gave them. [engineering, 2026-11-12]
+  const clanSends =
+    fold.clan && clans.some((k) => cadence !== "daily" || k.race);
   // Never an empty week (Jamie, 2026-11-12): no one followed played or
-  // posted and neither did the reader, so no mail.
-  if (followed.length === 0 && !youHas) return null;
-  const clans = entries
-    .filter((e) => e.kind === "clan_activity")
-    .filter(
-      (e) =>
-        (e.activity?.battles ?? 0) > 0 ||
-        e.roster?.joined?.items?.length ||
-        e.roster?.left?.items?.length ||
-        e.war?.resolved?.length,
-    )
-    .map((e) => {
-      const parts = clanSummaryParts(e, tz);
-      return {
-        tag: e.subject_tag,
-        name: e.name ?? e.subject_tag,
-        headline: parts[0] ?? "",
-        bullets: parts.slice(1, 1 + CLAN_BULLETS),
-        more: Math.max(0, parts.length - 1 - CLAN_BULLETS),
-      };
-    });
+  // posted, neither did the reader, and no clan has news, so no mail.
+  if (followed.length === 0 && !youHas && !clanSends) return null;
   const following = subjects.filter(
     (s) => s.kind === "player" && !["primary", "alt"].includes(s.relationship),
   ).length;

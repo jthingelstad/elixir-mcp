@@ -89,14 +89,15 @@ export interface CrResultMessage {
 /** Email queue message — VPC Lambdas enqueue, the non-VPC relay sends
  *  (DESIGN §7 NAT-free posture). Plaintext email address rides the queue
  *  (SSE-encrypted at rest) because the relay must address the mail. */
-/** The eight product mail kinds (docs/EMAIL.md): six weekly reports,
- *  the event-driven milestone mail, and a family app's own mail sent
- *  through Elixir (clan_actions_waiting, Elixir Clan, 2026-09-25). Every
- *  one is bulk: switchable per kind on the account page, one-click
- *  unsubscribable. The body is RENDERED upstream (packages/mail, by the
- *  jobs Lambda or, for a family app's kind, the web-api from the app's
- *  plain lines) and rides the message; the relay sends what it is given
- *  and never composes a report. */
+/** Every product mail kind ever sent (docs/EMAIL.md), retired ones
+ *  included (RETIRED_EMAIL_KINDS). Active since 2026-11-12: the digest
+ *  (tracking_report, the one scheduled mail for everyone), the collector
+ *  week, Clan's actions waiting (a family app's own mail sent through
+ *  Elixir), and answers to feedback. Every one is bulk: switchable per
+ *  kind on the account page, one-click unsubscribable. The body is
+ *  RENDERED upstream (packages/mail, by the jobs Lambda or, for a family
+ *  app's kind, the web-api from the app's plain lines) and rides the
+ *  message; the relay sends what it is given and never composes one. */
 export const PRODUCT_EMAIL_KINDS = [
   "clan_report",
   "arena_week",
@@ -109,8 +110,21 @@ export const PRODUCT_EMAIL_KINDS = [
   "feedback_answer",
 ] as const;
 export type ProductEmailKind = (typeof PRODUCT_EMAIL_KINDS)[number];
+/** Kinds Elixir no longer sends. `top_100` and `card_of_week` were
+ *  retired with the recorder era; `clan_report`, `arena_week` and
+ *  `milestone` folded into the digest on 2026-11-12 (Jamie: "One digest
+ *  email and merging clan and those you follow is really needed").
+ *  Their names stay so sent records, stored switches and old unsubscribe
+ *  links still resolve; generation and send refuse before I/O. */
+export const RETIRED_EMAIL_KINDS: readonly ProductEmailKind[] = [
+  "top_100",
+  "card_of_week",
+  "clan_report",
+  "arena_week",
+  "milestone",
+];
 export function isRetiredEmailKind(kind: string): boolean {
-  return kind === "top_100" || kind === "card_of_week";
+  return (RETIRED_EMAIL_KINDS as readonly string[]).includes(kind);
 }
 /** Historical kinds stay valid for sent records and old unsubscribe links. */
 export const ACTIVE_PRODUCT_EMAIL_KINDS = PRODUCT_EMAIL_KINDS.filter(

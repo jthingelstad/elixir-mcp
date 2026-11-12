@@ -91,16 +91,15 @@ export const MAIL_SOURCE = {
   owner_notify: { product: "Admin", when: "Notice" },
 };
 
-/** When each weekly kind is sent: the EventBridge crons in
+/** When each scheduled kind is sent: the EventBridge crons in
  *  infra/template.yaml (pinned by test). A footer says it in the
- *  reader's own zone. day is 0 = Sunday. The digest (tracking_report)
- *  runs every day at 14:30 UTC, half an hour after the other weekly
- *  kinds so the runs never share the jobs Lambda's one slot: a daily
- *  reader gets it each day, a weekly one (the default) on Wednesdays,
- *  the friends mail's day. [engineering, 2026-11-12] */
+ *  reader's own zone. day is 0 = Sunday. The digest (tracking_report),
+ *  the one scheduled mail for everyone since 2026-11-12, runs every day
+ *  at 14:30 UTC: a daily reader gets it each day, a weekly one (the
+ *  default) on Wednesdays, the friends mail's day. The clan report
+ *  (Monday) and Arena week (Tuesday) folded into it and have no slot.
+ *  [engineering, 2026-11-12] */
 export const MAIL_SCHEDULE = {
-  clan_report: { day: 1, hour: 14, minute: 0 },
-  arena_week: { day: 2, hour: 14, minute: 0 },
   tracking_report: { day: 3, hour: 14, minute: 30, daily: true },
   collector_activity: { day: 0, hour: 14, minute: 0 },
 };
@@ -178,16 +177,16 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
   const t = sendTime(kind, timezone, now);
   const on = t ? `on ${t.weekday}s at ${t.time} ${t.zone}` : "";
   switch (kind) {
+    // Retired 2026-11-12: a stored issue still renders on its record,
+    // and says where its news went instead of promising a next one.
     case "clan_report":
-      return `You get this ${on}, for each clan you track where something happened that week.`;
     case "arena_week":
-      return `You get this ${on}, in a week you or one of your players battled.`;
+    case "milestone":
+      return "This email has ended. Its news is in your digest.";
     case "collector_activity":
       return `You get this ${on}, while you run a collector.`;
     case "tracking_report":
       return digestWhy("weekly", t);
-    case "milestone":
-      return "You get this when your main player reaches a big first. Elixir checks every hour. Your other players’ firsts come in Tuesday’s mail.";
     case "clan_actions_waiting":
       return "You get this when an action in your clan waits for your decision.";
     case "feedback_answer":
@@ -215,7 +214,9 @@ function digestWhy(cadence, t) {
         ? `on ${t.weekday}s at ${t.time} ${t.zone}`
         : "weekly";
   const span = cadence === "daily" ? "day" : "week";
-  return `You get this ${when}, in a ${span} when someone you follow played or posted, or you did. Choose weekly, daily or off in Manage emails.`;
+  const clan =
+    cadence === "daily" ? "your clan finished a race" : "your clan had news";
+  return `You get this ${when}, in a ${span} when someone you follow played or posted, you did, or ${clan}. Choose weekly, daily or off in Manage emails.`;
 }
 
 /** The footer's why-line for a digest of this cadence. */
