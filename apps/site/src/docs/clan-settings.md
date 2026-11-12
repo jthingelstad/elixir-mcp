@@ -28,7 +28,9 @@ Elixir refuses Run's pages to them:
   only to the leaders.
 - **Member map**: the clan map, where members add a city or region and see
   each other's local time. Only the clan's members with a verified player here see it, and
-  it stays out of the game record. Only the leader and co-leaders can change
+  it stays out of the game record, Elixir's tools and the clan's agent.
+  Members reach it from **Clan map** over the roster, and set or remove
+  their place there or under **Location** in Settings › What members see. Only the leader and co-leaders can change
   whether the member map is on. The clan's activity
   channel is under **Run › Discord** ([The
   clan's activity in Discord](/docs/clan-discord#the-clans-activity-in-discord)).

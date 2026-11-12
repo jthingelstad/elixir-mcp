@@ -8555,6 +8555,50 @@ button.kit-row {
 .st-meter .meter {
   flex: 1 1 120px;
 }
+/* Your follow slots (Settings, 2026-11-12): a native progress, so the
+   bar's width is its value without an inline style. Drawn like .meter. */
+.st-slot-meter {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--ground-sunken);
+  color: var(--accent);
+  overflow: hidden;
+  appearance: none;
+}
+.st-slot-meter::-webkit-progress-bar {
+  background: var(--ground-sunken);
+  border-radius: var(--r-pill);
+}
+.st-slot-meter::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: var(--r-pill);
+}
+.st-slot-meter::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: var(--r-pill);
+}
+/* Clan › Members' head (2026-11-12): the count, Follow everyone and the
+   clan map, wrapping under the count at phone width. */
+.clan-members-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.follow-clan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.follow-clan__note {
+  flex-basis: 100%;
+  margin: 0;
+  max-width: 52ch;
+}
 .st-two {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

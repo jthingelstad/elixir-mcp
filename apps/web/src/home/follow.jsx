@@ -176,6 +176,14 @@ export function FollowButton({ tag, name = null, onDone, label = "Follow" }) {
  *  how many take a slot, against the slots left; or why it cannot go. */
 export function followPlanLine(plan) {
   if (!plan) return null;
+  const line = planLine(plan);
+  // Your own players are in the list a clan names, and never followed.
+  const own = plan.yours?.length ?? 0;
+  if (!own) return line;
+  return `${line}${line.endsWith(".") ? "" : "."} ${own === 1 ? "Your own player is" : "Your own players are"} left out.`;
+}
+
+function planLine(plan) {
   const n = (v) => v.toLocaleString();
   const many = (k, one, other) => `${n(k)} ${k === 1 ? one : other}`;
   if (plan.to_follow === 0)

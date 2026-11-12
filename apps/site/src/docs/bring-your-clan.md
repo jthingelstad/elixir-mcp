@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -121,11 +121,17 @@ Below it, the tabs:
 - **Members**: **Roster**; [Standing](/docs/standing), once the clan has a
   policy and 10 members; **Review** for the leader and co-leaders; **Map**,
   where verified members add a city or region and see each other's local
-  time; **Recruit**, editable copy in one selected format, a personal note or
+  time, and nobody outside the clan sees it; **Recruit**, editable copy in one selected format, a personal note or
   a recruiting post; and **Scout** for elders and up. A name opens that
   player's [page](/docs/player-page), and its **Open in Clan** opens their
   page in this clan; your own has **Away** beside it when the clan lets
-  members mark themselves away.
+  members mark themselves away. Over the roster, every member reads how
+  many members there are, how many of them you follow, **Follow everyone**
+  and **Clan map** (when the map is on and you are verified here). **Follow
+  everyone** is the player page's: it asks first, saying how many are free
+  and how many take one of your player slots, leaves your own players out,
+  and is refused whole past your limit with the reason beside it
+  ([Following players](/docs/player-page#following-from-the-page)).
 - **Policy**: [the policy](/docs/clan-policy) in every member's words: what
   the clan counts, its minimums, how Elder is earned and the removal clock,
   with Elder's weights, the version and who saved it. Anyone in the

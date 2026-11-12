@@ -4,6 +4,7 @@ import {
   playerCosts,
   poolLimits,
   poolOwner,
+  pooledFollows,
   pooledUsage,
 } from "@elixir-mcp/claims";
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
@@ -312,6 +313,71 @@ export async function followPlan(db, accountId, tags) {
   };
 }
 
+/** Your follow slots (Settings, 2026-11-12): every player your pool
+ *  follows, as pooledUsage counts them, so `used` and the rows that use a
+ *  slot are the same number the Follow dialogs say. Each row says who in
+ *  the pool follows the player: you (and how), or an agent of yours by its
+ *  name; the reader's own claim decides whether this page can stop it.
+ *  Only the reader's own account and agents appear: nothing here names
+ *  another account. */
+async function followSlots(db, accountId) {
+  const owner = await poolOwner(db, accountId);
+  const limits = poolLimits(owner);
+  const [rows, usage] = [
+    await pooledFollows(db, owner.account_id),
+    await pooledUsage(db, owner.account_id),
+  ];
+  const tags = rows.map((r) => r.player_tag);
+  const { rows: names } = await db.query(
+    `select player_tag, name from player where player_tag = any($1::text[])`,
+    [tags],
+  );
+  const nameOf = new Map(names.map((r) => [r.player_tag, r.name]));
+  const agentIds = [
+    ...new Set(
+      rows.flatMap((r) =>
+        r.claims.filter((c) => c.kind === "agent").map((c) => c.account_id),
+      ),
+    ),
+  ];
+  const { rows: agents } = agentIds.length
+    ? await db.query(
+        `select a.account_id,
+                (select t.name from service_token t
+                  where t.account_id = a.account_id
+                  order by (t.revoked_at is null) desc, t.created_at desc
+                  limit 1) as name
+           from account a where a.account_id = any($1::uuid[])`,
+        [agentIds],
+      )
+    : { rows: [] };
+  const agentName = new Map(agents.map((a) => [a.account_id, a.name]));
+  const players = rows.map((r) => {
+    const mine = r.claims.find((c) => c.account_id === accountId) ?? null;
+    return {
+      player_tag: r.player_tag,
+      name: nameOf.get(r.player_tag) ?? null,
+      slot: r.free ? "free" : "used",
+      reason: r.reason,
+      // The reader's own claim: primary, alt, friend or watching.
+      yours: mine?.relationship ?? null,
+      agents: r.claims
+        .filter((c) => c.kind === "agent")
+        .map((c) => ({
+          public_id: c.public_id,
+          name: agentName.get(c.account_id) ?? null,
+          relationship: c.relationship,
+        })),
+    };
+  });
+  return {
+    used: usage.players_used,
+    free: usage.players_free,
+    limit: limits.player_slots === Infinity ? null : limits.player_slots,
+    players,
+  };
+}
+
 /** The plain words for a follow-all refused at the limit. */
 export function followAllRefusal(plan) {
   const left = Math.max(0, plan.limit - plan.used);
@@ -387,6 +453,13 @@ export function playerRoutes({ resolveAccount, live = null }) {
       if (asked.error) return named(asked);
       const plan = await followPlan(db, account.accountId, asked.tags);
       return json(200, { clan_tag: asked.clan_tag, ...plan });
+    },
+
+    // Your follow slots, player by player, for Settings' meter.
+    "GET /api/me/follow-slots": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      return json(200, await followSlots(db, account.accountId));
     },
 
     // Follow every one of them, in one confirmed act. Priced again here, and

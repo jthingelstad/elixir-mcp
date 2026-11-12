@@ -8,8 +8,6 @@ import {
   Panel,
   Row,
   Rows,
-  Stat,
-  Stats,
   TagText,
   ZoneProvider,
   browserZone,
@@ -18,7 +16,9 @@ import { useToolRead } from "../../lib/queries.js";
 import { SETTINGS } from "../../lib/settings.js";
 import { playerHref } from "../../lib/player.js";
 import { Battle } from "../Battle.jsx";
+import { YourPlace } from "@elixir-mcp/clan-web/views/YourPlace.jsx";
 import { Facts, Note } from "./parts.jsx";
+import { FollowSlots } from "./Slots.jsx";
 
 /**
  * What members see (#769): who sees what of you, gathered on one page from
@@ -26,8 +26,11 @@ import { Facts, Note } from "./parts.jsx";
  * it runs, checked against the route or query that serves it
  * (docs/notes/2026-11-12-what-members-see.md lists each one); a line that
  * stops being true is a defect of this page, never of the surface it
- * describes. Nothing here is a control: the choices link to the pages that
- * own them.
+ * describes. Two controls live here, as the canvas draws them
+ * (2026-11-12): Location, your place on the clan map (the same control the
+ * map draws, packages/clan-web YourPlace.jsx), and your follow slots, each
+ * slot-using follow with its way to stop (Slots.jsx). The other choices
+ * link to the pages that own them.
  */
 
 /** The viewers the lens can stand in for. Neither is you: a member is
@@ -48,7 +51,6 @@ const refOf = (url) => /\/battle\/([0-9a-f]{12,64})$/.exec(url ?? "")?.[1];
 
 export function Seen({ me }) {
   const main = (me?.claims ?? []).find((c) => c.is_primary) ?? null;
-  const slots = me?.entitlements?.player_slots ?? null;
   return (
     <div className="st-page">
       <PageHead
@@ -229,6 +231,28 @@ export function Seen({ me }) {
         </p>
       </Panel>
       <Panel title="Your choices" titleAs="h2">
+        <section aria-labelledby="seen-location" id="location">
+          <h3 id="seen-location" className="st-group">
+            Location
+          </h3>
+          <div className="st-inset">
+            <YourPlace
+              verify={
+                <p className="m-0">
+                  A place belongs to a verified player.{" "}
+                  <Link to={`${SETTINGS}/players`}>Verify your player</Link> on
+                  Players &amp; tracking to add one.
+                </p>
+              }
+            />
+            <p className="st-foot mt-2">
+              Who sees it: only the verified members of each clan your verified
+              player is in, on that clan&rsquo;s map, while its leaders keep the
+              map on. Nobody else: not other members, not anyone with a link,
+              and not an agent.
+            </p>
+          </div>
+        </section>
         <Rows>
           <Row
             title="Discord"
@@ -250,40 +274,9 @@ export function Seen({ me }) {
             detail="Who you follow, and your main player, which a collector’s credit names."
             href={`${SETTINGS}/players`}
           />
-          <Row
-            title="Your place on the clan map"
-            detail="Add or remove it under Members › Map in Clan."
-            href="/clan"
-          />
         </Rows>
       </Panel>
-      <Panel
-        title="Your follow slots"
-        titleAs="h2"
-        action={
-          <Link className="btn btn--sm" to={`${SETTINGS}/players`}>
-            Manage
-          </Link>
-        }
-      >
-        <Stats label="Your follow slots">
-          <Stat
-            label="Using a slot"
-            value={(slots?.used ?? 0).toLocaleString()}
-            of={slots?.limit == null ? undefined : `of ${slots.limit}`}
-          />
-          <Stat
-            label="Free, already recorded"
-            value={(slots?.free ?? 0).toLocaleString()}
-          />
-        </Stats>
-        <p className="st-foot">
-          A follow takes a slot only when Elixir records the player because of
-          you. A member of a clan Elixir records in full, or a player another
-          account followed first, is free. You and your agents share these
-          slots.
-        </p>
-      </Panel>
+      <FollowSlots />
       <Lens main={main} />
     </div>
   );

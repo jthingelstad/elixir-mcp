@@ -376,7 +376,7 @@ for (const size of ["wide", "@narrow"])
       await expect(
         page.getByRole("heading", { name: "Clan map", exact: true }),
       ).toBeVisible();
-      await expect(page.getByText(/only signed-in members/)).toBeVisible();
+      await expect(page.getByText(/only verified members/)).toBeVisible();
       const axe = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa"])
         .analyze();

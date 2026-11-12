@@ -17,6 +17,7 @@ export {
   playerCosts,
   poolLimits,
   poolOwner,
+  pooledFollows,
   pooledUsage,
   slotsFullMessage,
 } from "./pool.mjs";

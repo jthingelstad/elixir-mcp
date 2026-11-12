@@ -181,8 +181,9 @@ export const useClanMap = (tag) =>
   useGated(keys.map(tag), () => manageApi.map(tag));
 export const useSocial = (tag) =>
   useGated(keys.social(tag), () => manageApi.social(tag));
-export const useMyPlace = () =>
-  useQuery({ queryKey: keys.place, queryFn: payload(() => api.myPlace()) });
+/** Your place, gated: 403 `unverified` is a person with no verified
+ *  player, which Settings' Location says in words (2026-11-12). */
+export const useMyPlace = () => useGated(keys.place, () => api.myPlace());
 
 /** The Feed's timeline: the clan's items, its members' moments and
  *  highlights, newest first, as this reader reads them. */

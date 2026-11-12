@@ -1,6 +1,8 @@
 /**
  * Settings › What members see (#769): the page gathers who sees what, the
- * slots come from /api/me as Players & tracking reads them, and the lens is
+ * slots come from /api/me/follow-slots (the pool priced as every Follow
+ * dialog prices it, 2026-11-12), Location is the clan map's own control
+ * on /api/clan/me/place, and the lens is
  * the battle page itself drawn for a viewer who is not you, from the public
  * battle answer. Invented players only.
  */
@@ -93,6 +95,45 @@ const BATTLE = {
 let me;
 let battles;
 let explored;
+let place;
+let posted;
+
+// Two use a slot (one you follow, one only your agent tracks) and one is
+// free because its clan is recorded in full: `used` is the rows that use
+// a slot, as the Follow dialogs count them.
+const SLOTS = {
+  used: 2,
+  free: 1,
+  limit: 50,
+  players: [
+    {
+      player_tag: "#QQ8822",
+      name: "Copper Fern",
+      slot: "used",
+      reason: null,
+      yours: "friend",
+      agents: [],
+    },
+    {
+      player_tag: "#UUU2",
+      name: "Umber Kite",
+      slot: "used",
+      reason: null,
+      yours: null,
+      agents: [
+        { public_id: "ag_test1", name: "Scout Bot", relationship: "watching" },
+      ],
+    },
+    {
+      player_tag: "#VVV9",
+      name: "Violet Reed",
+      slot: "free",
+      reason: "in_recorded_clan",
+      yours: "friend",
+      agents: [],
+    },
+  ],
+};
 
 const reply = (body, status = 200) => ({
   ok: status < 400,
@@ -106,6 +147,8 @@ beforeEach(() => {
   me = ME;
   battles = [{ battle_id: BATTLE.battle.id, url: URL }];
   explored = [];
+  place = [200, { place: null }];
+  posted = [];
   vi.spyOn(console, "error").mockImplementation(() => {});
   global.fetch = vi.fn(async (path, init) => {
     const p = String(path);
@@ -116,6 +159,12 @@ beforeEach(() => {
       return reply({ tool: body.tool, is_error: false, body: { battles } });
     }
     if (p === `/api/public/battles/${SHORT}`) return reply(BATTLE);
+    if (p === "/api/me/follow-slots") return reply(SLOTS);
+    if (p === "/api/clan/me/place") return reply(place[1], place[0]);
+    if (p === "/api/claims") {
+      posted.push(JSON.parse(init.body));
+      return reply({ ok: true, removed: true });
+    }
     if (p.startsWith("/api/me/highlights"))
       return reply({ can_highlight_as: ["#PYLQ88"], highlights: [] });
     return reply({});
@@ -124,7 +173,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 test(
-  "the page says who sees what, with the slots /api/me holds",
+  "the page says who sees what, with your follow slots and your place",
   { timeout: 20000 },
   async () => {
     window.history.pushState({}, "", "/settings/what-members-see");
@@ -137,18 +186,68 @@ test(
       "Someone with a link you send",
       "Only you, or nobody",
       "Your choices",
+      "Location",
       "Your follow slots",
       "See it as they do",
     ])
       expect(screen.getByRole("heading", { name })).toBeTruthy();
-    const slots = screen.getByRole("group", { name: "Your follow slots" });
-    expect(within(slots).getByText("3")).toBeTruthy();
-    expect(within(slots).getByText("of 50")).toBeTruthy();
-    expect(within(slots).getByText("2")).toBeTruthy();
-    // The choices link to the pages that own them; no control lives here.
+    // The meter says what the Follow dialogs say: used of limit.
+    const meter = await screen.findByLabelText("Follow slots: 2 of 50 used");
+    expect(meter.getAttribute("value")).toBe("2");
+    expect(meter.getAttribute("max")).toBe("50");
+    const using = screen.getByRole("generic", { name: "Players using a slot" });
+    expect(within(using).getByText("Copper Fern")).toBeTruthy();
+    expect(within(using).getByText("Umber Kite")).toBeTruthy();
+    expect(
+      within(using).getByText(/Your agent Scout Bot tracks them/),
+    ).toBeTruthy();
+    // An agent's follow is the agent's to stop.
+    expect(
+      within(using).getByRole("link", { name: "Agent" }).getAttribute("href"),
+    ).toBe("/settings/agents/ag_test1/reads");
+    const free = screen.getByRole("generic", { name: "Free follows" });
+    expect(within(free).getByText("Violet Reed")).toBeTruthy();
+    expect(
+      within(free).getByText(/In a clan Elixir records in full/),
+    ).toBeTruthy();
+    expect(within(free).queryByRole("button")).toBeNull();
+    // Your own follow stops here, asked first.
+    fireEvent.click(
+      within(using).getByRole("button", { name: "Stop following" }),
+    );
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Stop following" }),
+    );
+    await waitFor(() =>
+      expect(posted).toEqual([{ player_tag: "#QQ8822", action: "remove" }]),
+    );
+    // Location is the map's own control, and says who sees it.
+    await screen.findByText("Add yourself to the map");
+    expect(
+      screen.getByText(
+        /only the verified members of each clan your verified player is in/,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/near/i)).toBeNull();
+    // The other choices link to the pages that own them.
     expect(
       screen.getByRole("link", { name: /Discord/ }).getAttribute("href"),
     ).toBe("/settings/connections/discord");
+  },
+);
+
+test(
+  "Location with no verified player says how to get one",
+  { timeout: 20000 },
+  async () => {
+    place = [403, { error: "gate", reason: "unverified" }];
+    window.history.pushState({}, "", "/settings/what-members-see");
+    render(<App />);
+    const link = await screen.findByRole("link", {
+      name: "Verify your player",
+    });
+    expect(link.getAttribute("href")).toBe("/settings/players");
   },
 );
 

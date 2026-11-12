@@ -7,7 +7,7 @@ order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your limits, and it shows nobody your address."
-reviewed: "2026-10-13 against contract 11.12.0"
+reviewed: "2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
 callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"]
 ---
 
@@ -239,8 +239,9 @@ agent's: it is answered on the agent's page and timeline, never mailed.
 ## What members see
 
 [Settings › What members see](/settings/what-members-see) gathers, on one
-page, who sees what of you as Elixir works today. It changes nothing
-itself: each choice it names links to the page that owns it.
+page, who sees what of you as Elixir works today. Two choices
+live on it, **Location** and your follow slots; each other choice it names
+links to the page that owns it.
 
 - **Members who are signed in** see your players' games: each player's
   game name, tag, clan, profile, battles, decks and timeline. That is
@@ -280,10 +281,22 @@ itself: each choice it names links to the page that owns it.
   machinery: sign-ins, agents and their keys, connections,
   usage, the mail sent to you and your feedback.
 
-The page also shows your follow slots, as [Players &
-tracking](/settings/players) counts them, and a lens: your main player's
-latest battle drawn by the battle page for a signed-in member who is not
-you, and for someone holding the link with no account.
+**Location** is your place on the clan map: a country, its region and, if
+you like, a city, picked from lists, never an address or your device's
+location. It needs a verified player. Only the verified members of each
+clan your verified player is in see it, on that clan's map, while the
+clan's leaders keep the map on; nobody else does, no link carries it, and
+no agent or tool reads it. Add it, change it or remove it here or on the
+map; it is the same one place.
+
+**Your follow slots** shows the slots in use out of your limit, the same
+number every Follow says, the players using one because of you with
+**Stop following** on each you follow, and the free follows apart
+([What a player slot costs](/docs/recording#what-a-player-slot-costs)).
+
+Last, a lens: your main player's latest battle drawn by the battle page
+for a signed-in member who is not you, and for someone holding the link
+with no account.
 
 ## What stays private
 
