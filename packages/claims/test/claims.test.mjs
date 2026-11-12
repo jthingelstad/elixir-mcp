@@ -1280,3 +1280,62 @@ test("slots: a suspended agent's follow is no reason, so it makes nothing free",
   const a = await addPlayer(db, alice, { tag: C, via: "test" });
   assert.equal(a.slot.took, true);
 });
+
+test("slots: resuming an agent prices its restored clan first, so the members stay free", async () => {
+  // Codex on #774: the resume check ran before the agent's recordings
+  // were restored, so the clan it alone records looked stopped and every
+  // member it follows was charged a slot.
+  const owner = await account(`resume760-${Math.random()}`, { slots: 1 });
+  // Partner, so the pool may hold a clan recorded in full.
+  await db.query(`update account set role = 'partner' where account_id = $1`, [
+    owner.accountId,
+  ]);
+  const {
+    rows: [row],
+  } = await db.query(
+    `insert into account (status, role, kind, owned_by_account_id, public_id)
+     values ('approved', 'member', 'agent', $1, $2) returning account_id`,
+    [owner.accountId, `res${String(Math.random()).slice(2, 10)}`],
+  );
+  const agent = { accountId: row.account_id };
+  const clanTag = "#8QJ2UV0L";
+  await db.query(
+    `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+    [clanTag],
+  );
+  await db.query(
+    `insert into player (player_tag) values ($1) on conflict do nothing`,
+    [C],
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at)
+     values ($1, $2, now())`,
+    [clanTag, C],
+  );
+  await addedClan(agent, clanTag, "comprehensive");
+  await reconcileRecording(db, "clan", clanTag, agent.accountId);
+  assert.equal((await addPlayer(db, owner, { tag: A, via: "test" })).ok, true);
+  const c = await addPlayer(db, agent, { tag: C, via: "test" });
+  assert.equal(c.ok, true, JSON.stringify(c));
+  assert.equal(c.slot.free, true);
+  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 1);
+
+  const off = await setAgentStatus(
+    db,
+    owner.accountId,
+    agent.accountId,
+    "disabled",
+  );
+  assert.equal(off.ok, true);
+  assert.equal(await clanRecording(clanTag), undefined);
+
+  const on = await setAgentStatus(
+    db,
+    owner.accountId,
+    agent.accountId,
+    "approved",
+  );
+  assert.equal(on.ok, true, JSON.stringify(on));
+  assert.equal((await clanRecording(clanTag)).scope, "comprehensive");
+  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 1);
+});
