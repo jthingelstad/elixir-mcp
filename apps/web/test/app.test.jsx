@@ -823,6 +823,135 @@ test(
 );
 
 test(
+  "a More that fails keeps the pages read and says so beside More (Codex on #800)",
+  { timeout: 20000 },
+  async () => {
+    const item = (id, at, text) => ({
+      id,
+      at,
+      subject_tag: "#2FRND",
+      subject_name: "Fixture Friend",
+      kind: "personal_record",
+      section: "moments",
+      text,
+      facts: {},
+    });
+    let more = 0;
+    window.history.pushState({}, "", "/home");
+    global.fetch = mockFetch({
+      ...NO_PLAYER_YET,
+      "GET /api/me": [
+        200,
+        { authenticated: true, claims: FOLLOWS_A_FRIEND, recordings: [] },
+      ],
+      "GET /api/me/home/feed": [
+        200,
+        {
+          seen_to: null,
+          timeline: [
+            item("tl_00000000000000000001", "2026-09-12T10:00:00Z", "Kept."),
+          ],
+          total: 2,
+          next: "c1",
+          timeline_more: 0,
+        },
+      ],
+      "GET /api/me/home/feed?cursor=c1": () => {
+        more += 1;
+        return more === 1
+          ? [504, { error: "timeout", message: "The read took too long." }]
+          : [
+              200,
+              {
+                seen_to: null,
+                timeline: [
+                  item(
+                    "tl_00000000000000000002",
+                    "2026-09-11T10:00:00Z",
+                    "Read on the second try.",
+                  ),
+                ],
+                total: 2,
+                next: null,
+                timeline_more: 0,
+              },
+            ];
+      },
+    });
+    render(<App />);
+    await screen.findByText("Kept.");
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    await screen.findByText("The next items didn’t load. Try again.");
+    expect(screen.getByText("Kept.")).toBeTruthy();
+    expect(screen.queryByText("Your feed didn’t load")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    await screen.findByText("Read on the second try.");
+    expect(more).toBe(2);
+  },
+);
+
+for (const [label, since, want] of [
+  ["the place it counted from", "2026-09-12T00:00:00.000Z", "7"],
+  ["an earlier place, so the loaded items", "2026-09-10T00:00:00.000Z", "1"],
+]) {
+  test(`the New chip counts from ${label} (Codex on #800)`, async () => {
+    window.history.pushState({}, "", "/home");
+    global.fetch = mockFetch({
+      ...NO_PLAYER_YET,
+      "GET /api/me": [
+        200,
+        { authenticated: true, claims: FOLLOWS_A_FRIEND, recordings: [] },
+      ],
+      "GET /api/me/home/feed": [
+        200,
+        {
+          window: {
+            from: "2026-09-06T02:30:00.000Z",
+            to: "2026-09-13T02:30:00.000Z",
+          },
+          seen_to: "2026-09-12T00:00:00.000Z",
+          timeline: [
+            {
+              id: "tl_00000000000000000003",
+              at: "2026-09-12T10:00:00Z",
+              observed_at: "2026-09-12T10:05:00Z",
+              subject_tag: "#2FRND",
+              subject_name: "Fixture Friend",
+              kind: "personal_record",
+              section: "moments",
+              text: "Learned after the place.",
+              facts: {},
+            },
+          ],
+          total: 40,
+          next: "c1",
+          counts: {
+            everyone: 40,
+            you: 0,
+            friends: 40,
+            clan: 0,
+            new: 7,
+            new_since: since,
+          },
+          timeline_more: 0,
+        },
+      ],
+      "POST /api/me/timeline/seen": [
+        200,
+        { seen_to: "2026-09-13T02:30:00.000Z" },
+      ],
+    });
+    render(<App />);
+    await screen.findByText("Learned after the place.");
+    const state = screen.getByRole("group", { name: "State" });
+    const chip = [...state.querySelectorAll("button")].find((b) =>
+      b.textContent.startsWith("New"),
+    );
+    expect(chip.textContent.replace("New", "").trim()).toBe(want);
+  });
+}
+
+test(
   "a feed that did not load says so and Try again reads it once more, never on its own (G1)",
   { timeout: 20000 },
   async () => {

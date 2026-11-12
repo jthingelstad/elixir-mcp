@@ -555,7 +555,7 @@ async function readFeed(db, account, cursor) {
       if (seenMs !== null && Date.parse(it.observed_at ?? it.at) > seenMs)
         fresh += 1;
     }
-    out.counts = { ...counts, new: fresh };
+    out.counts = { ...counts, new: fresh, new_since: seen_to };
   }
   console.info(
     JSON.stringify({
