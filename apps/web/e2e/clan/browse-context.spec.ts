@@ -141,20 +141,18 @@ for (const size of ["wide", "@narrow"]) {
     await page.getByRole("searchbox", { name: "Find a member" }).fill("Ben");
     await page.getByRole("searchbox", { name: "Find a member" }).press("Enter");
     await expect(page).toHaveURL(/\?find=Ben$/);
-    // A name opens the player page (slice 8, #766); the member's page in
-    // this clan keeps its address and the roster's search.
+    // A name opens the player page (slice 8, #766); the member's old page
+    // here is its Clan tab (2026-11-12), and Back is the roster's search.
     await expect(
       page.getByRole("link", { name: "Ben", exact: true }),
     ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
     await page.goto(`${base}/members/uq8lp2r9c?find=Ben`);
-    await expect(
-      page.getByRole("heading", { name: "Ben", exact: true }),
-    ).toBeVisible();
+    await expect(page).toHaveURL(/\/home\/player\/UQ8LP2R9C\?tab=clan$/);
     await page.getByText("Recent battles in this clan").click();
     await expect(page.getByText(/^War · win/)).toBeVisible();
     await expect(page.getByText(/^Path of Legends · loss/)).toBeVisible();
     await expect(page.getByText(/^New mode · draw/)).toBeVisible();
-    await page.getByRole("link", { name: "‹ Back to Members" }).click();
+    await page.goBack();
     await expect(
       page.getByRole("searchbox", { name: "Find a member" }),
     ).toHaveValue("Ben");

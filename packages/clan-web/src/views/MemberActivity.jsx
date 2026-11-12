@@ -107,15 +107,18 @@ function ActivityClock({ clan, playerTag, navigate, who }) {
 }
 
 /**
- * Another member's page in this clan: who they are here, then the numbers
+ * Another member's record in this clan: who they are here, then the numbers
  * every member may read. Facts only; a dash where the record holds nothing,
- * and a gap is unknown, never a claim they did not play.
+ * and a gap is unknown, never a claim they did not play. Since 2026-11-12 it
+ * is drawn on the player page's Clan tab (PlayerInClan.jsx); its old address
+ * here redirects there.
  */
 export function MemberActivity({
   clan,
   playerTag,
   navigate,
   rosterSearch = "",
+  embedded = false,
 }) {
   const { when } = useClock();
   const [pages, setPages] = useState([{ cursor: null, to: null }]);
@@ -148,7 +151,15 @@ export function MemberActivity({
     </Link>
   );
   const name = d?.name ?? row?.name;
-  const head = (
+  // On the player page (2026-11-12) the page's own head names them: only
+  // who they are here is said.
+  const head = embedded ? (
+    row ? (
+      <p className="page__lede mt-0">
+        {`${ROLE[row.role] ?? row.role} in ${clan.name ?? "this clan"}${lead && row.joined_observed_at ? ` · here since ${when(row.joined_observed_at)}` : ""}`}
+      </p>
+    ) : null
+  ) : (
     <>
       {back}
       <div className="page-head mt-3">

@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useLocation } from "@tanstack/react-router";
 import {
+  PlayerInClan,
+  useClanOf,
+} from "@elixir-mcp/clan-web/views/PlayerInClan.jsx";
+import {
   Empty,
   ErrorState,
   Icon,
@@ -15,7 +19,7 @@ import {
   useClock,
   useFlash,
 } from "@elixir-mcp/ui";
-import { useMe } from "../App.jsx";
+import { useMe, useNav } from "../App.jsx";
 import { trackEvent } from "../analytics.js";
 import { ladderHref } from "../ladder/ladder.js";
 import { followMeHref, playerHref } from "../lib/player.js";
@@ -24,7 +28,7 @@ import {
   usePlayerPage,
   useRefreshPlayerPage,
 } from "../lib/queries.js";
-import { tagFromPath, tagPath } from "../lib/tag-url.js";
+import { tagFromPath } from "../lib/tag-url.js";
 import { TimelineEvidence } from "../views/account/timeline-shared.jsx";
 import { Cheers, usePageCheered } from "./Cheers.jsx";
 import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
@@ -39,8 +43,9 @@ import { PlayerRecord } from "./PlayerRecord.jsx";
  * What it shows is DECISIONS "What is public about an account" and no more:
  * the player's game record, and for a player an account verified, that
  * account's follows, followers and badges. Game names and tags only: never a
- * nickname (yours included), a Discord username or an email. Ladder and Clan
- * stay reachable from here, as links.
+ * nickname (yours included), a Discord username or an email. Ladder stays
+ * reachable from here, as a link. Clan's member page folded in as the Clan
+ * tab (2026-11-12), for a viewer with a player in their clan only.
  */
 export const PLAYER_TABS = [
   { key: "timeline", label: "Timeline" },
@@ -51,6 +56,10 @@ export const PLAYER_TABS = [
   { key: "record", label: "Record" },
 ];
 
+/** Their record in your clan, the member page Clan kept until 2026-11-12:
+ *  drawn only for a viewer with a player in that clan. */
+const CLAN_TAB = { key: "clan", label: "Clan" };
+const OWN_TABS = new Set([...PLAYER_TABS.map((t) => t.key), CLAN_TAB.key]);
 export function PlayerPage() {
   const { pathname, search } = useLocation();
   const tag = tagFromPath(pathname.replace(/\/$/, "").split("/")[3] ?? "");
@@ -107,8 +116,9 @@ export function PlayerView({
   self = false,
 }) {
   const { me } = useMe();
+  const nav = useNav();
   const [tab, setTab] = useState(
-    PLAYER_TABS.some((t) => t.key === initialTab) ? initialTab : "timeline",
+    OWN_TABS.has(initialTab) ? initialTab : "timeline",
   );
   const p = page.player;
   // Cheers only on what is in your own feed now: a player you follow, or
@@ -116,6 +126,11 @@ export function PlayerView({
   const cheered = usePageCheered({ player: p.tag });
   const you = page.you;
   const clanOpen = me?.features?.clan_internal === true;
+  const inClan = useClanOf(p.clan_tag, clanOpen && !you.own);
+  // An address asking for Clan before Clan answers waits for it; once it
+  // has, a viewer outside the clan reads the timeline.
+  const shown =
+    tab === "clan" && !inClan.clan && !inClan.pending ? "timeline" : tab;
   const sub = [
     p.tag,
     p.clan_name ?? (p.clan_tag ? p.clan_tag : "No clan"),
@@ -133,6 +148,7 @@ export function PlayerView({
             ? page.moments.length
             : null,
     })),
+    ...(inClan.clan ? [CLAN_TAB] : []),
     ...extraTabs,
   ];
   return (
@@ -157,13 +173,6 @@ export function PlayerView({
         {you.own && !self ? (
           <Link to={ladderHref("season", { player: p.tag })}>Your stats</Link>
         ) : null}
-        {you.clanmate && clanOpen ? (
-          <Link
-            to={`/clan/${tagPath(you.clanmate)}/members/${tagPath(p.tag).toLowerCase()}`}
-          >
-            Open in Clan
-          </Link>
-        ) : null}
         {p.clan_tag && !you.own ? (
           <FollowAll
             ask={{ clan_tag: p.clan_tag }}
@@ -176,11 +185,17 @@ export function PlayerView({
       <Tabs
         label="Player"
         items={items}
-        value={tab}
+        value={shown}
         // A tab that is an address (You's Stats) leaves this page instead.
-        onSelect={(k) => PLAYER_TABS.some((t) => t.key === k) && setTab(k)}
+        onSelect={(k) => OWN_TABS.has(k) && setTab(k)}
       />
-      {tab === "timeline" ? (
+      {shown === "clan" ? (
+        inClan.clan ? (
+          <PlayerInClan clan={inClan.clan} playerTag={p.tag} navigate={nav} />
+        ) : (
+          <div className="kit-skeleton" aria-busy="true" />
+        )
+      ) : shown === "timeline" ? (
         <ItemList
           items={page.timeline}
           empty={`Nothing recorded in the last ${page.window_days} days.`}
@@ -188,21 +203,21 @@ export function PlayerView({
           cheered={cheered}
           tag={p.tag}
         />
-      ) : tab === "highlights" ? (
+      ) : shown === "highlights" ? (
         <ItemList
           items={page.highlights}
           empty="No highlights posted yet."
           words
           cheered={cheered}
         />
-      ) : tab === "moments" ? (
+      ) : shown === "moments" ? (
         <ItemList
           items={page.moments}
           empty={`No moments in the last ${page.window_days} days.`}
           cheered={cheered}
           tag={p.tag}
         />
-      ) : tab === "record" ? (
+      ) : shown === "record" ? (
         <PlayerRecord tag={p.tag} />
       ) : (
         <Follows page={page} />

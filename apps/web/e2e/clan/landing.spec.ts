@@ -108,19 +108,20 @@ test.describe("arriving at a clan", () => {
     await find.fill("Ben");
     await find.press("Enter");
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\?find=Ben$/);
-    // A name opens the player page (slice 8, #766); the member's page in
-    // this clan keeps its address, and the roster's search.
+    // A name opens the player page (slice 8, #766), and the member's old
+    // page here is its Clan tab (2026-11-12).
     await expect(
       page.getByRole("link", { name: "Ben", exact: true }),
     ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
     await page.goto("/clan/2PQRJ8LV/members/uq8lp2r9c?find=Ben");
-    await expect(page).toHaveURL(/\/members\/uq8lp2r9c\?find=Ben$/);
-    // Back to the roster from a member: the roster, not the landing.
-    await page.getByRole("link", { name: /Back to Members/ }).click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\?find=Ben$/);
-    await expect(find).toHaveValue("Ben");
-    await page.goto("/clan/2PQRJ8LV/members/uq8lp2r9c");
-    await expect(page).toHaveURL(/\/members\/uq8lp2r9c$/);
+    await expect(page).toHaveURL(/\/home\/player\/UQ8LP2R9C\?tab=clan$/);
+    await expect(page.getByRole("tab", { name: "Clan" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    // Your own place in the clan keeps its address.
+    await page.goto("/clan/2PQRJ8LV/members/20qql8ccru");
+    await expect(page).toHaveURL(/\/members\/20qql8ccru$/);
   });
 
   test("picking a clan lands on its Feed; Back is the chooser", async ({

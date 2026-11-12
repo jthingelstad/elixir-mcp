@@ -84,8 +84,8 @@ export const keys = {
 const payload = (call) => () => call().then(unwrap);
 
 /** The session envelope: 401 is "signed out", and the view reads it. */
-export const useMeQuery = () =>
-  useQuery({ queryKey: keys.me, queryFn: answered(() => api.me()) });
+export const useMeQuery = (enabled = true) =>
+  useQuery({ queryKey: keys.me, queryFn: answered(() => api.me()), enabled });
 
 function gate(env) {
   if (env.status === 401) return { signedOut: true };

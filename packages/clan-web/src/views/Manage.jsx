@@ -4,7 +4,7 @@ import { useManage } from "../lib/queries.js";
 import { MemberSheet } from "../components/MemberSheet.jsx";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { PageHead } from "../components/PageHead.jsx";
-import { CLAN, clanPath, memberPath } from "../lib/base.js";
+import { CLAN, clanPath, playerInClanPath } from "../lib/base.js";
 import { ROLE } from "../lib/words.js";
 
 /** A demotion's reason as a leader reads it; the stored value stays. */
@@ -58,9 +58,9 @@ function whyLines(m) {
 
 /** One member, as a row a phone can read: name, role, why they are here and
  *  the evidence; the row opens their notes and hold. */
-function MemberRow({ m, who, clan, open, setOpen, sheet, navigate, action }) {
+function MemberRow({ m, who, open, setOpen, sheet, navigate, action }) {
   const { calendar } = useClock();
-  const page = memberPath(clan.clan_tag, m.player_tag);
+  const page = playerInClanPath(m.player_tag);
   const expanded = open === m.player_tag;
   return (
     <li

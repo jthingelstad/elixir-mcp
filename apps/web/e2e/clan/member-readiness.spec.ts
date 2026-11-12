@@ -68,6 +68,19 @@ for (const width of [390, 1280]) {
           200,
           body,
         ],
+        // The leaders' clock comes along to the player page.
+        "GET /api/clan/clans/2PQRJ8LV/manage": [
+          200,
+          {
+            board: [
+              {
+                player_tag: "#UQ8LP2R9C",
+                name: "Ben",
+                removal: { days_idle: 3, at_risk_days: 7, removal_day: 10 },
+              },
+            ],
+          },
+        ],
         "GET /api/clan/clans/2PQRJ8LV/policy": [
           200,
           {
@@ -89,11 +102,14 @@ for (const width of [390, 1280]) {
     await expect(
       page.getByRole("link", { name: "Ben", exact: true }),
     ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
+    // The member's old page here is their player page's Clan tab
+    // (2026-11-12): the page's own head names them.
     await page.goto("/clan/2PQRJ8LV/members/uq8lp2r9c");
-    await expect(page).toHaveURL(/\/members\/uq8lp2r9c$/);
+    await expect(page).toHaveURL(/\/home\/player\/UQ8LP2R9C\?tab=clan$/);
     await expect(
-      page.getByRole("heading", { name: "Ben", exact: true }),
+      page.getByRole("heading", { level: 1, name: "Ben" }),
     ).toBeVisible();
+    await expect(page.getByText("Activity clock, leaders only")).toBeVisible();
     await page.getByText("Recent battles in this clan").click();
     await page.getByText("How these are counted").click();
     await expect(

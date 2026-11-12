@@ -2,9 +2,10 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { MemberActivity } from "../src/views/MemberActivity.jsx";
-import { manageApi } from "../src/api.js";
+import { api, manageApi } from "../src/api.js";
+import { PlayerInClan, useClanOf } from "../src/views/PlayerInClan.jsx";
 import { analyticsLocation, routeLabel } from "../src/analytics.js";
-import { memberPath } from "../src/lib/base.js";
+import { memberPath, playerInClanPath } from "../src/lib/base.js";
 import { parseClanPath } from "../src/App.jsx";
 
 afterEach(() => {
@@ -68,4 +69,59 @@ test("member deep links parse and analytics never includes the player tag", () =
       "/api/clan/clans/2PQRJ8LV/members/UQ8LP2R9C/activity?cursor=secret",
     ),
   ).toBe("GET /api/clan/clans/*/members/*/activity");
+});
+
+test("on the player page it drops the Members head and keeps the record", async () => {
+  vi.spyOn(manageApi, "memberActivity").mockResolvedValue({
+    ok: true,
+    status: 200,
+    data,
+  });
+  renderWithProviders(
+    <PlayerInClan clan={clan} playerTag="#9QY" navigate={() => {}} />,
+  );
+  await screen.findByText("Season 136, week 4");
+  // The player page's own head names them; no way back to a roster.
+  expect(screen.queryByRole("heading", { name: /Test member/ })).toBeNull();
+  expect(screen.queryByText(/Back to Members/)).toBeNull();
+});
+
+test("the Clan tab is drawn only for a clan the viewer has a player in", async () => {
+  vi.spyOn(api, "me").mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: {
+      ok: true,
+      clans: [{ clan_tag: "#2PQRJ8LV", role: "member", name: "Example Clan" }],
+    },
+  });
+  function Probe({ tag, on = true }) {
+    const { clan, pending } = useClanOf(tag, on);
+    return <p>{pending ? "pending" : (clan?.name ?? "none")}</p>;
+  }
+  renderWithProviders(
+    <>
+      <Probe tag="#2PQRJ8LV" />
+      <Probe tag="#8ZZQ2YLL" />
+    </>,
+  );
+  await screen.findByText("Example Clan");
+  expect(screen.getByText("none")).toBeTruthy();
+});
+
+test("a closed Clan never reads Clan's session", () => {
+  const me = vi.spyOn(api, "me");
+  function Probe() {
+    const { clan, pending } = useClanOf("#2PQRJ8LV", false);
+    return <p>{pending ? "pending" : (clan?.name ?? "none")}</p>;
+  }
+  renderWithProviders(<Probe />);
+  expect(screen.getByText("none")).toBeTruthy();
+  expect(me).not.toHaveBeenCalled();
+});
+
+test("another member's page is their player page's Clan tab", () => {
+  expect(playerInClanPath("#UQ8LP2R9C")).toBe(
+    "/home/player/UQ8LP2R9C?tab=clan",
+  );
 });
