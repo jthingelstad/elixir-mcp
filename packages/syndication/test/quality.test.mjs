@@ -189,6 +189,30 @@ test("a failed ledger write never aborts the delivery's transaction", async () =
   assert.equal(await aside(ctx.db, "test", async () => 7, log), 7);
 });
 
+test("outside a transaction no savepoint is tried, through a client or a pool's lease", async () => {
+  const sent = [];
+  const spy = (db, own) => ({
+    ...(own ? { getTransactionStatus: () => db.getTransactionStatus() } : {}),
+    query: (...a) => {
+      sent.push(String(a[0]));
+      return db.query(...a);
+    },
+  });
+  const log = { error: (...a) => assert.fail(`logged ${a.join(" ")}`) };
+  for (const own of [true, false]) {
+    sent.length = 0;
+    assert.equal(await aside(spy(ctx.db, own), "t", async () => 7, log), 7);
+    assert.ok(!sent.some((q) => /savepoint/.test(q)), sent.join("; "));
+    // Inside one, the savepoint is there, and released.
+    await ctx.db.query("begin");
+    sent.length = 0;
+    assert.equal(await aside(spy(ctx.db, own), "t", async () => 8, log), 8);
+    await ctx.db.query("commit");
+    assert.ok(sent.includes("savepoint discord_quality"), sent.join("; "));
+    assert.ok(sent.includes("release savepoint discord_quality"));
+  }
+});
+
 test("a run is recorded once with its refusals and the raw record's key", async () => {
   const at = Date.parse("2026-10-11T14:00:00Z");
   const run = {
