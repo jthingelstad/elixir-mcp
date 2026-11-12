@@ -5605,6 +5605,13 @@ a.card-art:hover .card-art__img {
   flex-direction: column;
   gap: 14px;
 }
+/* You › Stats (2026-11-12): You's tabs over Ladder's own frame. */
+.kit-you-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
 .ladder-head.kit-head {
   margin-bottom: 0;
 }
@@ -7712,6 +7719,26 @@ button.kit-row {
 .kit-bottom .kit-bell__dot {
   top: 3px;
   right: 13px;
+}
+/* The bell's sheet (2026-11-12): sections by tone, no outlines; a new row
+   carries the dot's own gold. */
+.kit-bell__sec {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kit-bell__new {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: var(--gold);
+  vertical-align: middle;
+}
+.kit-bell__cheer {
+  margin-right: 10px;
+  white-space: nowrap;
 }
 /* Find's search: the bar's search, as a page's own button. */
 .kit-find__search {

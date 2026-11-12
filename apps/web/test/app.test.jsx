@@ -459,6 +459,7 @@ test(
   "signed-out Ladder says what it is and offers an account",
   { timeout: 20000 },
   async () => {
+    // The old address lands on Stats, which says what it is.
     window.history.pushState({}, "", "/ladder/cards");
     global.fetch = mockFetch({
       "GET /api/me": [200, { authenticated: false }],
@@ -470,7 +471,7 @@ test(
       screen
         .getByRole("link", { name: "Create your account" })
         .getAttribute("href"),
-    ).toBe("/signin?signup&return_to=%2Fladder%2Fcards");
+    ).toBe("/signin?signup&return_to=%2Fhome%2Fyou%2Fstats%2Fcards");
     expect(
       screen
         .getByRole("link", { name: "How Ladder works" })
@@ -504,7 +505,8 @@ test("the tab title names the page, most specific part first", async () => {
   expect(t("/clan/you")).toBe("You - Clan - Elixir");
   expect(t("/clan/J2RGCRVG")).toBe("Clan - Elixir");
   expect(t("/clan/J2RGCRVG/actions")).toBe("Actions - Clan - Elixir");
-  expect(t("/ladder")).toBe("Season - Ladder - Elixir");
+  expect(t("/home/you/stats")).toBe("Season - Stats - Elixir");
+  expect(t("/home/you/stats/decks")).toBe("Decks - Stats - Elixir");
 });
 
 test("an HTML body is a failure however it is numbered", async () => {
@@ -630,7 +632,7 @@ test("every app section in the route table has a route under /console, and nothi
     "home/follow/$tags",
     "home/player/$tag",
     "home/you",
-    "ladder/{-$page}",
+    "home/you/stats/{-$page}",
     "settings/$",
     "signin",
   ]);

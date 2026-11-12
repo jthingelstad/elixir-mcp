@@ -117,9 +117,11 @@ describe("the bar on a page", () => {
       const bell = within(bar).getByRole("button", { name: "Notifications" });
       expect(bell.getAttribute("aria-haspopup")).toBe("dialog");
       expect(bell.querySelector(".kit-bell__dot")).toBeNull();
-      expect(within(bar).getByRole("link", { name: /Play Drop/ }).target).toBe(
-        "_blank",
-      );
+      // Play Drop left the bar (2026-11-12): it is in the You menu and the
+      // footer.
+      expect(within(bar).queryByRole("link", { name: /Play Drop/ })).toBeNull();
+      const foot = document.querySelector("footer");
+      expect(within(foot).getByRole("link", { name: /Drop/ })).toBeTruthy();
       const tabs = screen.getByRole("navigation", { name: "Main, phone" });
       expect(
         [...tabs.querySelectorAll("a, button")].map((a) => a.textContent),
@@ -149,17 +151,19 @@ describe("the bar on a page", () => {
   );
 
   test(
-    "signed out: the public places, Sign in and Create account, and no tabs",
+    "signed out: Docs, Sign in and Create account, and no tabs",
     { timeout: 20000 },
     async () => {
       render(<App />);
       const nav = await screen.findByRole("navigation", { name: "Main" });
+      // The canvas's signed-out bar (2026-11-12): Logo, Docs, Sign in,
+      // Create account. Cards and Updates are in the footer, still public.
       expect([...nav.querySelectorAll("a")].map((a) => a.textContent)).toEqual([
-        "Home",
-        "Cards",
         "Docs",
-        "Updates",
       ]);
+      const foot = document.querySelector("footer");
+      for (const name of ["Cards", "Updates"])
+        expect(within(foot).getByRole("link", { name })).toBeTruthy();
       const bar = document.querySelector(".kit-top");
       expect(
         within(bar).getByRole("link", { name: "Sign in" }).getAttribute("href"),
@@ -275,7 +279,7 @@ describe("the bar on a page", () => {
     expect(barArea("/home/find")).toBe("find");
     expect(barArea("/home/you/")).toBe("you");
     // Ladder is your stats, reached from You.
-    expect(barArea("/ladder/season")).toBe("you");
+    expect(barArea("/home/you/stats/decks")).toBe("you");
     expect(barArea("/clan/you")).toBe("clan");
     expect(barArea("/console/explore/player/2ABC")).toBe("find");
     expect(barArea("/console/account/profile")).toBeUndefined();

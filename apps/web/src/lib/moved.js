@@ -15,6 +15,7 @@ import { clanMoved } from "@elixir-mcp/clan-web/lib/moved.js";
  * `#login_token=` still arrive.
  */
 import { CONSOLE } from "./console.js";
+import { ladderMoved } from "../ladder/ladder.js";
 import { SETTINGS } from "./settings.js";
 
 export const SERVICE_STATUS = "/data/service";
@@ -60,8 +61,6 @@ export const REDIRECTS = {
   // The in-app charts joined the site's Status and data page (step 7).
   [`${CONSOLE}/data`]: "/data",
   [`${CONSOLE}/data/dashboard`]: "/data",
-  // Ladder's Days played became Battles; the calendar moved to Season.
-  "/ladder/days": "/ladder/battles",
 };
 
 /** Where a pathname now lives, or null when it stays put. A trailing slash
@@ -74,7 +73,13 @@ export function movedTo(pathname, hash = "") {
   )
     return `${SETTINGS}/connections/discord`;
   return (
-    REDIRECTS[path] ?? clanMoved(path) ?? accountMoved(path) ?? agentMoved(path)
+    REDIRECTS[path] ??
+    clanMoved(path) ??
+    // Ladder became You's Stats tab (2026-11-12): every old Ladder address,
+    // mail's `/ladder?player=` and `/ladder?season=` among them.
+    ladderMoved(path) ??
+    accountMoved(path) ??
+    agentMoved(path)
   );
 }
 

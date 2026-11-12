@@ -56,6 +56,7 @@ import {
   isLadder,
   ladderHere,
   ladderLegal,
+  ladderMoved,
   ladderTitle,
 } from "./ladder/ladder.js";
 import { HOME, SERVICE_STATUS, SIGN_IN, movedTo } from "./lib/moved.js";
@@ -297,7 +298,7 @@ export function barArea(path) {
   if (clean === FIND) return "find";
   if (clean === YOU) return "you";
   if (isHome(path)) return "home";
-  // Ladder is your stats, reached from You (slice 7, #765).
+  // Ladder is You's Stats tab (2026-11-12).
   if (isLadder(path)) return "you";
   if (isClan(path)) return "clan";
   const section = (appPath(path) ?? "").split("/")[1];
@@ -516,6 +517,8 @@ const signedInPath = (path) => {
         appPath(url.pathname) ?? "",
       ) ||
       isLadder(url.pathname) ||
+      // An old Ladder address remembered before it moved under You.
+      ladderMoved(url.pathname) !== null ||
       isClan(url.pathname) ||
       isHome(url.pathname) ||
       isSettings(url.pathname) ||
@@ -817,7 +820,7 @@ const postRoute = createRoute({
   component: lazyRouteComponent(() => import("./views/Post.jsx"), "PostPage"),
 });
 
-/** Ladder: its own rail in the shell. Signed in only. */
+/** Stats, You's tab (Ladder until 2026-11-12): no rail. Signed in only. */
 const ladderRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: `${LADDER}/{-$page}`,
@@ -844,7 +847,7 @@ const findRoute = createRoute({
   component: lazyRouteComponent(() => import("./home/Find.jsx"), "FindPage"),
 });
 
-/** You: your players' pages, your stats, your account. */
+/** You: your own player page with its Stats tab, and your account. */
 const youRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: YOU,

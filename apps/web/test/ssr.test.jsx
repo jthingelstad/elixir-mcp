@@ -6,6 +6,7 @@ test("signed-out deep links and redirect roots render complete documents without
   const me = { ok: true, status: 200, data: { authenticated: false } };
   for (const [url, expected] of [
     ["/ladder", "Your season, read back"],
+    ["/home/you/stats", "Your season, read back"],
     ["/console/account/profile", "Sign in first"],
     ["/console", "Sign in first"],
   ]) {
@@ -41,7 +42,7 @@ test("every record page signed out renders the sign-in wall, never the page", as
     expect(html, url).toContain("create an account");
     expect(html, url).not.toContain("Nothing at this address");
   }
-  const ladder = await renderApp({ url: "/ladder/battles", me });
+  const ladder = await renderApp({ url: "/home/you/stats/battles", me });
   expect(ladder).toContain("Your season, read back");
 });
 
