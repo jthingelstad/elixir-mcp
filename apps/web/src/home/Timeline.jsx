@@ -5,8 +5,10 @@ import {
   ErrorState,
   Link,
   Panel,
+  Icon,
   TagText,
   useClock,
+  useFlash,
 } from "@elixir-mcp/ui";
 import { SETTINGS } from "../lib/settings.js";
 import { useMyTimeline, useTimelineEvidence } from "../lib/queries.js";
@@ -105,6 +107,9 @@ export function HomeTimeline() {
                       <span className="kit-row__title">
                         <TagText>{it.text}</TagText>
                       </span>
+                      {it.kind === "battle_highlight" ? (
+                        <HighlightLinks facts={it.facts} />
+                      ) : null}
                       {it.evidence ? (
                         <button
                           type="button"
@@ -154,6 +159,38 @@ export function HomeTimeline() {
           : ""}
       </p>
     </div>
+  );
+}
+
+/** A highlight's row (#762): its battle, and its share link when it is
+ *  yours and shared (the server sends share_url to its owner only). */
+function HighlightLinks({ facts }) {
+  const [copied, flash] = useFlash();
+  const battle = String(facts?.battle?.url ?? "").replace(
+    /^https?:\/\/[^/]+/,
+    "",
+  );
+  return (
+    <span className="share-actions">
+      {battle.startsWith("/battle/") ? (
+        <Link to={battle} className="link kit-tl__more">
+          Open the battle
+        </Link>
+      ) : null}
+      {facts?.share_url ? (
+        <button
+          type="button"
+          className="link kit-tl__more"
+          onClick={() => {
+            navigator.clipboard?.writeText(facts.share_url);
+            flash();
+          }}
+        >
+          <Icon name={copied ? "check" : "copy"} size={14} />
+          {copied ? "Copied" : "Copy share link"}
+        </button>
+      ) : null}
+    </span>
   );
 }
 

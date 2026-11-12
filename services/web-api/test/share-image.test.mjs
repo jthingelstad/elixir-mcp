@@ -134,6 +134,30 @@ test("a 1v1: both names, both decks, the score, the towers, the link", () => {
   );
 });
 
+test("a shared highlight's picture: the owner's name and words, escaped, over the post's link", () => {
+  const svg = draw({
+    ...READ,
+    highlight: {
+      share_id: "abcdefghijk2345",
+      url: "https://elixir.poapkings.com/h/abcdefghijk2345",
+      image: "https://elixir.poapkings.com/h/abcdefghijk2345.png",
+      player_tag: "#9ABC",
+      name: '<b>"Ana"</b> & co',
+      side: "left",
+      outcome: "win",
+      words: 'Finally </text><script>alert(1)</script> & "done"',
+    },
+  });
+  assert.equal(svg.includes("<script>"), false);
+  assert.equal(svg.includes('<b>"Ana"'), false);
+  assert.ok(svg.includes("&lt;b&gt;&quot;Ana&quot;&lt;/b&gt; &amp; co:"));
+  assert.ok(svg.includes("&lt;/text&gt;&lt;script&gt;"));
+  assert.ok(svg.includes(">elixir.poapkings.com/h/abcdefghijk2345<"));
+  // The post's picture carries the post's link, not the battle's.
+  assert.equal(svg.includes(">elixir.poapkings.com/battle/abababababab<"), false);
+  assert.ok(svg.includes("not endorsed by Supercell."));
+});
+
 test("art where the mirror has it, the card's name where it does not", () => {
   const svg = draw(
     READ,

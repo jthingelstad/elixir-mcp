@@ -37,6 +37,7 @@ import {
   ATTESTED_FACT_TYPES,
   FAMILY_APP_NAMES,
   modeGroupOf,
+  postUrl,
 } from "@elixir-mcp/contracts";
 import { periodAt } from "../war-period.mjs";
 import { finishInstant } from "../time.mjs";
@@ -119,6 +120,8 @@ const CLAN_LEDGER_KINDS = [
 export const ITEM_KINDS = [
   "battle_session",
   "session_standout",
+  // A battle its player highlighted with their words (#762).
+  "battle_highlight",
   ...PLAYER_MOMENT_KINDS,
   "clan_joined",
   "clan_left",
@@ -2816,6 +2819,88 @@ async function accountItems(db, accountId, fromMs, toMs) {
 }
 
 /**
+ * The highlights the followed players posted in the window (social slice
+ * 4, #762): each the one single-battle item, carrying the player's words
+ * and the battle it names. Selected by when it was posted, whatever the
+ * basis: a post happens when it is written. Its share link is the
+ * owner's alone: served only when the reader is the account that posted
+ * it, or one of its agents. Section "battles"; public, like the battle
+ * it names.
+ */
+async function highlightItems(db, subjects, { accountId, fromMs, toMs }) {
+  const players = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
+  if (players.length === 0) return [];
+  const { rows } = await db.query(
+    `select h.highlight_id, h.player_tag, h.battle_id, h.words, h.share_id,
+            h.created_at, p.name,
+            (h.account_id = (select coalesce(a.owned_by_account_id, a.account_id)
+                               from account a where a.account_id = $2::uuid)) as yours,
+            b.battle_time, b.type, b.event_tag, b.game_mode_name,
+            me.side, me.crowns, me.outcome, me.trophy_change,
+            (select coalesce(jsonb_agg(jsonb_build_object(
+                      'player_tag', o.player_tag, 'name', op.name,
+                      'crowns', o.crowns,
+                      'starting_trophies', o.starting_trophies)
+                    order by o.player_tag), '[]'::jsonb)
+               from battle_participant o
+               left join player op on op.player_tag = o.player_tag
+              where o.battle_id = h.battle_id and o.side <> me.side) as opponents
+       from battle_highlight h
+       join player p on p.player_tag = h.player_tag
+       join battle b on b.battle_id = h.battle_id
+       join battle_participant me
+         on me.battle_id = h.battle_id and me.player_tag = h.player_tag
+      where h.player_tag = any($1::text[])
+        and h.created_at >= ${ts(fromMs + 1)} and h.created_at < ${ts(toMs + 1)}
+      order by h.created_at`,
+    [players, accountId],
+  );
+  if (rows.length === 0) return [];
+  const links = await battleLinks(
+    db,
+    rows.map((r) => r.battle_id),
+  );
+  return rows.map((r) => {
+    const opponents = r.opponents.map((o) => ({
+      player_tag: o.player_tag,
+      name: o.name ?? null,
+      starting_trophies: o.starting_trophies ?? null,
+    }));
+    return {
+      subject_tag: r.player_tag,
+      subject_name: r.name ?? r.player_tag,
+      subjects: [{ tag: r.player_tag, kind: "player", name: r.name ?? null }],
+      at: iso(r.created_at),
+      kind: "battle_highlight",
+      section: "battles",
+      facts: {
+        player_tag: r.player_tag,
+        name: r.name ?? null,
+        highlight_id: r.highlight_id,
+        words: r.words,
+        battle: {
+          battle_id: r.battle_id,
+          url: links.get(r.battle_id)?.url ?? null,
+          battle_time: iso(r.battle_time),
+          mode_group: modeGroupOf(r.type, r.event_tag),
+          game_mode: r.game_mode_name ?? null,
+          outcome: r.outcome ?? null,
+          crowns: r.crowns ?? null,
+          crowns_against: r.opponents.reduce(
+            (m, o) => (typeof o.crowns === "number" ? Math.max(m ?? 0, o.crowns) : m),
+            null,
+          ),
+          trophy_change: r.trophy_change ?? null,
+          opponents,
+        },
+        ...(r.yours && r.share_id ? { share_url: postUrl(r.share_id) } : {}),
+      },
+      [STORY]: moment("battle_highlight", r.highlight_id),
+    };
+  });
+}
+
+/**
  * One answer to feedback as its item (#536 stage 2): the item as filed
  * and the answer as given. Its story is the feedback item, so a revised
  * answer is the same id at a higher revision. The words are the event's
@@ -3159,6 +3244,9 @@ export async function buildTimeline(
   }
   items.push(...(await accountItems(db, accountId, fromMs, toMs)));
   items.push(
+    ...(await highlightItems(db, subjects, { accountId, fromMs, toMs })),
+  );
+  items.push(
     ...(await factItems(db, subjects, {
       accountId,
       fromMs,
@@ -3473,6 +3561,8 @@ export const NEWS_SOURCES = {
   player_moments: PLAYER_MOMENT_KINDS,
   player_clan_moves: ["clan_joined", "clan_left"],
   player_quiet: ["quiet_crossed"],
+  // highlightItems: a followed player's highlights posted in the window.
+  player_highlights: ["battle_highlight"],
   // buildClanEntry: the ledger (role_changed is served as
   // member_role_changed), member moments, sessions and returns from
   // member battles the window learned, and quiet rungs.
@@ -3553,6 +3643,11 @@ export async function timelineNews(
                 where cm.player_tag = any(p.players)
                   and ((${inWindow("cm.joined_observed_at")}) or (${inWindow("cm.left_observed_at")})))`,
     player_quiet: players.length && quietSql("select unnest(p.players)"),
+    player_highlights:
+      players.length &&
+      `exists (select 1 from battle_highlight h
+                where h.player_tag = any(p.players)
+                  and ${inWindow("h.created_at")})`,
     clan_ledger:
       clans.length &&
       `exists (select 1 from clan_event e

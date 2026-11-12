@@ -215,6 +215,20 @@ export const api = {
   publicCards: () => request("GET", "/api/public/cards"),
   publicBattle: (ref) =>
     request("GET", `/api/public/battles/${encodeURIComponent(ref)}`),
+  // Highlights (#762): a person's own posts of their verified players'
+  // battles, and a shared post's public read.
+  myHighlights: (battle) =>
+    request("GET", `/api/me/highlights?battle=${encodeURIComponent(battle)}`),
+  postHighlight: ({ battle, player_tag, words }) =>
+    request("POST", "/api/me/highlights", { battle, player_tag, words }),
+  editHighlight: (id, words) =>
+    request("PUT", `/api/me/highlights/${encodeURIComponent(id)}`, { words }),
+  deleteHighlight: (id) =>
+    request("DELETE", `/api/me/highlights/${encodeURIComponent(id)}`),
+  shareHighlight: (id) =>
+    request("POST", "/api/me/highlights/share", { highlight_id: id }),
+  publicPost: (id) =>
+    request("GET", `/api/public/highlights/${encodeURIComponent(id)}`),
   myRequests: (agent) => request("GET", `${home(agent)}/requests`),
   callRecord: (request_id, agent) =>
     request(

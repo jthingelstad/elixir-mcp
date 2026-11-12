@@ -48,6 +48,7 @@ import { resolveOwnedAgent } from "./agent-scope.mjs";
 import { deadlineMs } from "./deadline.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";
 import { battleRoutes } from "./routes/battle.mjs";
+import { highlightRoutes } from "./routes/highlight.mjs";
 import {
   CONTRACT_HEADER,
   json,
@@ -431,6 +432,7 @@ export function makeHandler({
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleActivityRoutes({ resolveAccount }),
     ...battleRoutes({ siteShell, shareImage }),
+    ...highlightRoutes({ resolveAccount, siteShell, shareImage }),
     ...emailRoutes({
       resolveAccount,
       secret: unsubscribeKeys,

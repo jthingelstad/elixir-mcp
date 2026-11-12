@@ -79,6 +79,7 @@ const SEEDED = {
   clan_ledger: T + 5 * H,
   clan_member_moments: T + 6 * H,
   clan_member_battles: T + 7 * H,
+  player_highlights: T + 8 * H,
   clan_quiet: T + 9 * H,
   account: T + 10 * H,
   attested: T + 11 * H,
@@ -208,6 +209,13 @@ before(async () => {
       outcome: "loss",
     },
   );
+  // player_highlights: a highlight of the friend's first battle, posted
+  // at T+8h, long after the battle was learned (#762).
+  await db.query(
+    `insert into battle_highlight (player_tag, battle_id, account_id, words, created_at)
+     values ($1, 'skip-empty-1', $2, 'what a finish', $3)`,
+    [FRIEND, owner, at(SEEDED.player_highlights)],
+  );
   // account: an account event.
   await db.query(
     `insert into account_event (account_id, kind, detail, created_at)
@@ -321,6 +329,7 @@ test("sweep: a window the build serves an item in is never news-free, for every 
   for (const kind of [
     "battle_session",
     "session_standout",
+    "battle_highlight",
     "card_unlocked",
     "badge_earned",
     "clan_joined",

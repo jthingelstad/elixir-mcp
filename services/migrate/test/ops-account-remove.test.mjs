@@ -188,6 +188,20 @@ before(async () => {
      values ($1, '#2PP0V9QQ', 'buddy')`,
     [ids.person],
   );
+  // A highlight the person posted, and its share link (0239, #762).
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class)
+     values ('remove-highlight', now(), 'PvP', 'pvp')`,
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, type, type_class, outcome)
+     values ('remove-highlight', '#2PP0V9PP', now(), 0, 'PvP', 'pvp', 'win')`,
+  );
+  await db.query(
+    `insert into battle_highlight (player_tag, battle_id, account_id, words, share_id, shared_at)
+     values ('#2PP0V9PP', 'remove-highlight', $1, 'gg', 'abcdefghij23456', now())`,
+    [ids.person],
+  );
   // A linked Discord and a link round trip still open (0233, #531).
   await db.query(
     `insert into account_discord (account_id, discord_user_id, username)
@@ -305,6 +319,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     account_clan: 2,
     account_clan_declined: 1,
     player_nickname: 1,
+    battle_highlight: 1,
     timeline_reader: 0,
     timeline_discord_told: 2,
     timeline_discord: 1,
@@ -446,6 +461,7 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "feedback",
     "email_send",
     "player_nickname",
+    "battle_highlight",
     "credential_refusal",
     "mcp_call_audit",
     "timeline_discord",

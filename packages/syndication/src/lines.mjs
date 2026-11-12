@@ -37,7 +37,13 @@ const literalLead = (s) =>
 /** The battle an item names (a promotion, a crossing), if any. */
 export function itemBattleId(it) {
   const f = it.facts ?? {};
-  return f.promoted_by?.battle_id ?? f.crossed_by?.battle_id ?? null;
+  return (
+    f.promoted_by?.battle_id ??
+    f.crossed_by?.battle_id ??
+    // A highlight names its battle (#762).
+    (it.kind === "battle_highlight" ? f.battle?.battle_id : null) ??
+    null
+  );
 }
 
 const WAR_KINDS = new Set([

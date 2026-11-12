@@ -3,8 +3,8 @@
  * posts stay public", which replaced "Accounts read the record; one
  * battle page is public" of #526). Every read of the record needs an
  * account. Open without one: a battle link someone sends (its page, its
- * JSON and its picture), a post its owner shares (slice 4, #762, not
- * built yet), status pages that count the recorder, the game's card
+ * JSON and its picture), a post its owner shares (slice 4, #762: its
+ * page, JSON and picture, highlight.test.mjs), status pages that count the recorder, the game's card
  * list, and signing in. The site and docs are the site bucket's, never
  * this router's; the collector door, MCP and keyed /api/v1 calls each
  * refuse a missing credential in their own tests
@@ -42,8 +42,12 @@ const PUBLIC = {
   // (DECISIONS "A battle has its own page").
   "GET /battle/*": "record",
   "GET /api/public/battles/*": "record",
-  // The record: a post its owner shares, with its preview. Slice 4
-  // (#762) adds its routes here, class "record", and to RECORD below.
+  // The record: a post its owner shares, with its preview (slice 4,
+  // #762): its page (and picture, /h/<id>.png) and its JSON. The owner's
+  // game name, words and the battle; never an account, nickname or
+  // sender (highlight.test.mjs pins the shape).
+  "GET /h/*": "record",
+  "GET /api/public/highlights/*": "record",
   // Status: counts of what the recorder holds, no subject named but
   // the operator credit on /api/public/status. /data and its live
   // figures read these; the site build bakes /api/public/stats.
@@ -73,9 +77,14 @@ const PUBLIC = {
 
 const CLASSES = new Set(["record", "status", "reference", "plumbing"]);
 
-/** The record that opens with no account, exactly: a battle link today,
- *  a shared post from slice 4. Growing this is a product decision. */
-const RECORD = ["GET /api/public/battles/*", "GET /battle/*"];
+/** The record that opens with no account, exactly: a battle link and a
+ *  shared post (slice 4, #762). Growing this is a product decision. */
+const RECORD = [
+  "GET /api/public/battles/*",
+  "GET /api/public/highlights/*",
+  "GET /battle/*",
+  "GET /h/*",
+];
 
 const PRIMARY = "#9QJ2YLR0";
 const ALT = "#8GRUV2Q0";
@@ -157,7 +166,7 @@ test("every listed public route exists", () => {
     assert.ok(keys.has(key), `${key} is listed public but not registered`);
 });
 
-test("the public list is classed, and the record in it is a battle link", () => {
+test("the public list is classed, and its record is a battle link or a shared post", () => {
   for (const [key, cls] of Object.entries(PUBLIC))
     assert.ok(CLASSES.has(cls), `${key} has an unknown class ${cls}`);
   assert.deepEqual(

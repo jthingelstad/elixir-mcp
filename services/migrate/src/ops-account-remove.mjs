@@ -15,8 +15,8 @@
  * sessions, OAuth grants and codes and tokens,
  * service tokens and the policy-context grants bound to them, the call
  * log and its refusal log and the rate counters, feedback, account
- * events, mail sent and its switches and milestones, nicknames, timeline
- * read pointers, the timeline's Discord cross-post (its sealed webhook,
+ * events, mail sent and its switches and milestones, nicknames, battle
+ * highlights (their words and share links), timeline read pointers, the timeline's Discord cross-post (its sealed webhook,
  * what it told, and its posts in the quality ledger), Clan's remembered
  * clan, agent identities, and pending sign-in links. Removing an account
  * deletes the account, not the record (DECISIONS).
@@ -207,6 +207,9 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
       `account_clan_declined where account_id = any($1::uuid[])`,
     ],
     ["player_nickname", `player_nickname where account_id = any($1::uuid[])`],
+    // A highlight is the person's post: its words go with them, and its
+    // share link with it (#762). The battle stays.
+    ["battle_highlight", `battle_highlight where account_id = any($1::uuid[])`],
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
     [
       "timeline_discord_told",
