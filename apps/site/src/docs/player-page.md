@@ -59,7 +59,10 @@ Nothing is followed until you confirm.
 A player in a clan also offers **Follow everyone in** that clan: one question
 for the clan's current members (at most 50), saying how many are free and how
 many take a slot, against the slots you have left. Past your limit it is
-refused whole, and says why; nobody is followed in part.
+refused whole, and says why; nobody is followed in part. One that needs no
+slot always goes ahead. A player you only watch, or one only your agent
+tracks, is not one you follow yet: following them is free, since Elixir
+records them for you already.
 
 ## Follow me links
 

@@ -311,3 +311,88 @@ test("the refusal's words count what is left", () => {
     /needs 3 player slots and 1 of your 5 is left \(4 in use\)\. Nobody was followed\./,
   );
 });
+
+// A second reader, W, whose pool records two players W does not follow: one
+// W only watches, one only W's agent tracks (Codex on #784).
+const W_OWN = "#PQ2Y8LVU";
+const WATCHED = "#PQ2Y8LVY";
+const AGENTS = "#PQ2Y8LVQ";
+let W;
+async function secondReader() {
+  if (W) return W;
+  const { db } = scratch;
+  for (const [tag, name] of [
+    [W_OWN, "Willow"],
+    [WATCHED, "Walnut"],
+    [AGENTS, "Wisteria"],
+  ])
+    await db.query("insert into player(player_tag,name) values ($1,$2)", [
+      tag,
+      name,
+    ]);
+  W = await person("player-w");
+  await claim(W, W_OWN, "primary");
+  await claim(W, WATCHED, "watching");
+  const agent = (
+    await db.query(
+      "insert into account(kind,owned_by_account_id,status,role) values ('agent',$1,'approved','member') returning account_id",
+      [W],
+    )
+  ).rows[0].account_id;
+  await claim(agent, AGENTS, "watching");
+  return W;
+}
+
+test("following is the reader's own Follow: a watched player, or one only their agent tracks, is not followed, and following them is free", async () => {
+  const w = await secondReader();
+  const page = data(
+    await call(w, "GET", `/api/player?tag=${encodeURIComponent(WATCHED)}`),
+  );
+  assert.equal(page.you.following, false, "watching is not following");
+  assert.equal(page.you.relationship, "watching");
+
+  const plan = await followPlan(scratch.db, w, [WATCHED, AGENTS]);
+  assert.deepEqual(
+    plan.players.map((p) => [p.player_tag, p.following, p.free]),
+    [
+      [WATCHED, false, true],
+      [AGENTS, false, true],
+    ],
+  );
+  assert.equal(plan.to_follow, 2);
+  assert.equal(plan.following, 0);
+  assert.equal(plan.slots, 0, "the pool records both already");
+
+  const ok = await call(w, "POST", "/api/me/follow-all", {
+    player_tags: [WATCHED, AGENTS],
+  });
+  assert.equal(ok.statusCode, 200, ok.body);
+  assert.deepEqual(data(ok).followed, [WATCHED, AGENTS]);
+  const { rows } = await scratch.db.query(
+    "select player_tag, relationship from claim where account_id = $1 and player_tag = any($2) order by player_tag",
+    [w, [WATCHED, AGENTS]],
+  );
+  assert.deepEqual(
+    rows.map((r) => [r.player_tag, r.relationship]),
+    [AGENTS, WATCHED].sort().map((t) => [t, "friend"]),
+  );
+  const after = await followPlan(scratch.db, w, [WATCHED, AGENTS]);
+  assert.equal(after.following, 2);
+  assert.equal(after.to_follow, 0);
+});
+
+test("a plan that needs no slot fits, even with the pool over its limit (Codex on #784)", async () => {
+  const w = await secondReader();
+  // Over the limit: W's pool uses more slots than its ceiling of one.
+  await scratch.db.query(
+    "update account set max_player_recordings = 1 where account_id = $1",
+    [w],
+  );
+  const plan = await followPlan(scratch.db, w, [A]);
+  assert.ok(plan.used > plan.limit, JSON.stringify(plan));
+  assert.equal(plan.slots, 0, "others follow A, so A is free");
+  assert.equal(plan.fits, true);
+  const ok = await call(w, "POST", "/api/me/follow-all", { player_tags: [A] });
+  assert.equal(ok.statusCode, 200, ok.body);
+  assert.deepEqual(data(ok).followed, [A]);
+});
