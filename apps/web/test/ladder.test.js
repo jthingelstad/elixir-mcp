@@ -107,7 +107,7 @@ test("every Ladder page has a rail position, a title and a docs strip entry", ()
     });
     expect(DOC_LINKS[here.doc], `${path} has no read more`).toBeTruthy();
     expect(ladderTitle(path)).toBe(`${p.label} - Stats - Elixir`);
-    expect(titleFor("ladder", {}, path)).toBe(`${p.label} - Stats - Elixir`);
+    expect(titleFor(path)).toBe(`${p.label} - Stats - Elixir`);
   }
   for (const [, links] of LADDER_PAGES.map(
     (p) => DOC_LINKS[`ladder:${p.slug}`],

@@ -78,7 +78,6 @@ export const keys = {
   adminIntegrations: ["admin", "integrations"],
   status: ["status"],
   efficiency: ["efficiency"],
-  stats: ["stats"],
   cards: ["cards"],
 };
 
@@ -221,6 +220,30 @@ export const usePlayerPage = (tag) =>
     queryFn: answered(() => api.playerPage(tag)),
     enabled: Boolean(tag),
     staleTime: 30_000,
+  });
+
+/** A player's record, the Record tab of their page (2026-11-12, from
+ *  Explore's player and profile records): what Elixir recorded over 30
+ *  days and the last profile read, through the bridge Find's search uses.
+ *  Read only when the tab is open: each is one call on the hourly bucket. */
+export const usePlayerRecord = (tag, enabled) =>
+  useQuery({
+    queryKey: ["me", "player-record", tag ?? ""],
+    enabled: Boolean(tag) && enabled,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const read = async (tool) => {
+        const r = await api.explore(tool, { player_tag: tag });
+        if (!r.ok) throw new Error("request failed");
+        // A tool's refusal (not recorded yet) is an absent half, not a failure.
+        return r.data?.is_error ? null : (r.data?.body ?? null);
+      };
+      const [summary, profile] = await Promise.all([
+        read("players_summary"),
+        read("players_profile"),
+      ]);
+      return { summary, profile };
+    },
   });
 
 /** Read a player's page again (its games changed under an open View games). */
@@ -683,9 +706,6 @@ export const usePublicEfficiency = () =>
     queryKey: keys.efficiency,
     queryFn: payload(api.publicEfficiency),
   });
-
-export const usePublicStats = () =>
-  useQuery({ queryKey: keys.stats, queryFn: payload(api.publicStats) });
 
 /** Public: the card catalog, read once a session for each card's art
  *  (2026-10-08, Jamie: "Card art should be in the api response for

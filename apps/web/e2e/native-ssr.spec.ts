@@ -110,19 +110,6 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
     page,
     signedIn({ "GET /api/me": [200, { ...ME, timezone: null }] }),
   );
-  await page.addInitScript(() =>
-    localStorage.setItem(
-      "elixir-recent",
-      JSON.stringify([
-        {
-          href: "/console/explore/player/20JJJ2CCRU",
-          tag: "#20JJJ2CCRU",
-          name: "Fictional recent player",
-          kind: "player",
-        },
-      ]),
-    ),
-  );
   const meRequests: string[] = [];
   page.on("request", (r) => {
     if (new URL(r.url()).pathname === "/api/me") meRequests.push(r.url());
@@ -138,6 +125,7 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
     "/settings/connections",
     "/settings/usage/requests?tool=players_summary",
     "/console/explore",
+    "/home/find",
     "/console/signin?signup",
     "/clan",
   ]) {
@@ -152,7 +140,7 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
     await expect(page.locator("#elixir-bootstrap")).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("failed to render");
     if (route === "/console/explore")
-      await expect(page.getByText("Fictional recent player")).toBeVisible();
+      await expect(page).toHaveURL(/\/home\/find$/);
     if (route.includes("signin"))
       await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
     if (route === "/clan")

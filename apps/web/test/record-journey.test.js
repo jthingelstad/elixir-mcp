@@ -15,14 +15,14 @@ test("saved tags stay pending; profiles and older battles have destinations that
   expect(journey({}).text).toContain("at busy times it can take a few");
   expect(journey({}).text).toContain("last 30 battles");
   expect(journey({ profile_available: true }).to).toBe(
-    "/console/explore/profile/P0Y",
+    "/home/player/P0Y?tab=record",
   );
   const old = journey({
     recording_status: "stopped",
     last_battle_at: "2026-07-01T00:00:00Z",
   });
   expect(old.state).toBe("Recording stopped");
-  expect(old.to).toBe("/console/explore/list/battles:P0Y");
+  expect(old.to).toBe("/home/player/P0Y");
   expect(old.text).toContain("retained record");
 });
 
@@ -39,7 +39,7 @@ test("a newer failed attempt is independent from retained facts and each endpoin
   ).toBe("The last read failed");
   expect(
     journey({ capture_attempts: attempts, profile_available: true }).to,
-  ).toContain("/profile/");
+  ).toContain("?tab=record");
   expect(
     journey({
       capture_attempts: [

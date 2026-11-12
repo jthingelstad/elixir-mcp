@@ -21,7 +21,6 @@ test("signed-out deep links and redirect roots render complete documents without
 // signed-out visit to any page of the record is the sign-in-or-join wall
 // (Ladder says what it is first, then the same way in), never the page.
 test("every record page signed out renders the sign-in wall, never the page", async () => {
-  const { SECTIONS } = await import("../src/App.jsx");
   const me = { ok: true, status: 200, data: { authenticated: false } };
   const urls = [
     "/home",
@@ -32,9 +31,10 @@ test("every record page signed out renders the sign-in wall, never the page", as
     "/console/explore",
     "/console/explore/players/%232PQRJ8LV",
     "/console/explore/clans/%232PQRJ8LV",
-    ...Object.entries(SECTIONS).flatMap(([section, spec]) =>
-      spec.pages.map((page) => `/console/${section}/${page.slug}`),
-    ),
+    "/console/explore/player/%232PQRJ8LV",
+    "/home/find",
+    "/home/player/2PQRJ8LV",
+    "/home/player/2PQRJ8LV?tab=record",
   ];
   for (const url of urls) {
     const html = await renderApp({ url, me });
@@ -79,8 +79,7 @@ test("concurrent server renders never share session query data", async () => {
   expect(two).not.toContain("FictionalAlpha");
 });
 
-test("every Console section can render a signed-in initial document without a browser", async () => {
-  const { SECTIONS } = await import("../src/App.jsx");
+test("Find, the player page and the Console's old addresses render a signed-in initial document without a browser", async () => {
   const me = {
     ok: true,
     status: 200,
@@ -95,19 +94,11 @@ test("every Console section can render a signed-in initial document without a br
       signals: {},
     },
   };
-  for (const [section, spec] of Object.entries(SECTIONS)) {
-    for (const page of spec.pages) {
-      const url = `/console/${section}/${page.slug}`;
-      const html = await renderApp({
-        url,
-        me,
-        renderedAt: Date.UTC(2026, 9, 13, 12),
-      });
-      expect(html, url).toContain("not endorsed by Supercell");
-    }
-  }
   for (const url of [
+    "/home/find",
+    "/home/player/2PQRJ8LV?tab=record",
     "/console/explore",
+    "/console/explore/player/2PQRJ8LV",
     "/console/account/activity/requests?tool=players_summary",
     "/console/account/activity/e/fictional?report=1",
     "/console/account/feedback?send_id=fictional",

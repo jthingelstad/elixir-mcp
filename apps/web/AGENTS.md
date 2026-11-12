@@ -14,9 +14,8 @@ behaviour is in `apps/site/src/docs/`, not here.
   reader's own things are keyed under `["me", ...]`, so invalidating the
   session refetches all of them (Clan's keys start `["me", "clan"]`,
   Ladder's `["me", "ladder"]`).
-- **Paths carry their prefix.** Every Console path is written with
-  `CONSOLE` (`src/lib/console.js`) and every Ladder path with `LADDER`, not
-  a router basepath, because the kit's `Link` renders `to` verbatim.
+- **Paths carry their prefix.** Every Stats path is written with `LADDER`,
+  not a router basepath, because the kit's `Link` renders `to` verbatim.
 - **One build serves three surfaces.** CloudFront routes `/home`, `/signin`,
   `/data/service`, `/console`, `/ladder`, `/clan` and their descendants to the web/API Web Function for
   session-aware server rendering; every other path is a site document
@@ -73,19 +72,20 @@ route; every path that moves goes there. Home's rules are in
 `docs/product/home.md`; its reads are `services/web-api/src/routes/home.mjs`,
 and the feed's extra fields are `services/web-api/src/feed.mjs`.
 
-## The Console's sections
+## The Console folded
 
-The Console folds (2026-11-12): `/console/` holds only Explore until it
-folds into Find, You and the player pages; every other old Console
-address redirects. `src/views/` holds the pages,
+The Console folded (2026-11-12): no page lives under `/console/`, and
+`src/lib/moved.js` redirects every old address (Explore's to Find, the
+player page, the battle page, Clan and Stats; Admin's to Settings). Find's
+search and a player page's Record tab still read through `POST
+/api/explore`, the tool bridge. `src/views/` holds the pages,
 `src/views/account/` the Settings and agent pages; the route table is in
 `App.jsx`. `src/lib/settings.js` is Settings' rail and paths, and
 `src/lib/moved.js` redirects every old account address (mail in inboxes names
-them; an entry leaves only when no archived mail can). Sections: Explore
-(players, clans, decks, weeks, record pages), Settings (`/settings`: profile,
-players, emails, connections and agents, sign-ins, usage, feedback, collectors),
-an agent's own page (`/settings/agents/<public_id>`, five tabs), and Admin
-(`/settings/admin/<page>`, its own route, rail and lazy chunk, with Service, Fleet
-and Efficiency; Settings offers it to staff only). Admin pages are gated on
-the server; the client only hides them. The service's public half is the
-site's `/data`.
+them; an entry leaves only when no archived mail can). Settings (`/settings`:
+profile, players, emails, connections and agents, sign-ins, usage, feedback,
+collectors), an agent's own page (`/settings/agents/<public_id>`, five tabs),
+and Admin (`/settings/admin/<page>`, its own route, rail and lazy chunk, with
+Service, Fleet and Efficiency; Settings offers it to staff only). Admin pages
+are gated on the server; the client only hides them. The service's public
+half is the site's `/data`.

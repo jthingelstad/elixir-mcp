@@ -116,10 +116,7 @@ describe("every name opens the player page (#764)", () => {
   });
   test("the clan directory is a door before typing and by name (#768)", () => {
     const look = beforeTyping(sources()).find((g) => g.h === "Look up");
-    expect(look.rows.map((r) => r.href)).toEqual([
-      "/console/explore",
-      "/clan/directory",
-    ]);
+    expect(look.rows.map((r) => r.href)).toEqual(["/clan/directory"]);
     for (const q of ["directory", "find a clan", "join"])
       expect(
         typedGroups(q, sources())
@@ -142,34 +139,29 @@ describe("every name opens the player page (#764)", () => {
 
 describe("a deck hash or a war week", () => {
   const first = (q, over) => typedGroups(q, sources(over))[0];
-  test("a hash opens its deck on Explore, for no read", () => {
+  test("a hash opens nothing: the deck record retired (2026-11-12)", () => {
     const hash = "ABCDEF0123456789abcdef";
     expect(readable(hash)).toBe(false);
-    expect(first(`deck:${hash}`).rows[0].href).toBe(
-      `/console/explore/deck/${hash.toLowerCase()}`,
-    );
+    expect(typedGroups(`deck:${hash}`, sources())).toEqual([]);
   });
   test.each(["S135 W3", "s135w3", "135-3"])(
-    "%s is the home clan's week, for no read",
+    "%s is the home clan's War tab on its season, for no read",
     (q) => {
       expect(readable(q)).toBe(false);
       expect(first(q).rows[0]).toMatchObject({
         t: "Season 135, week 3",
-        d: "Example Clan",
-        href: "/console/explore/week/2PQRJ8LV~135~2",
+        d: "Example Clan, War",
+        href: "/clan/2PQRJ8LV/war/135",
       });
     },
   );
-  test("with no home clan, a week goes to the lookup to say which", () => {
-    const row = first("S135 W3", { clans: {} }).rows[0];
-    expect(row.href).toBe("/console/explore");
-  });
-  test("the lookup is found by name, and a plain miss stays a miss", () => {
+  test("with no home clan, or no Clan, a week opens nothing", () => {
+    expect(typedGroups("S135 W3", sources({ clans: {} }))).toEqual([]);
     expect(
-      typedGroups("deck", sources())
-        .flatMap((g) => g.rows)
-        .map((r) => r.href),
-    ).toContain("/console/explore");
+      typedGroups("S135 W3", sources({ me: { ...ME, features: {} } })),
+    ).toEqual([]);
+  });
+  test("a plain miss stays a miss", () => {
     expect(typedGroups("zzzz", sources())).toEqual([]);
   });
 });

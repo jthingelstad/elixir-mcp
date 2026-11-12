@@ -148,7 +148,7 @@ test.describe("@narrow Settings at phone width", () => {
     await expect(sheet).toHaveCount(0);
   });
 
-  test("a deck hash typed in search lands on Explore's record", async ({
+  test("a deck hash typed in search opens nothing: the deck record retired", async ({
     page,
   }) => {
     const hash = "abcdef0123456789";
@@ -161,9 +161,8 @@ test.describe("@narrow Settings at phone width", () => {
     await page.locator(".kit-find__search").click();
     const sheet = page.getByRole("dialog");
     await sheet.getByRole("searchbox").fill(hash);
-    await sheet.getByRole("link", { name: /^Deck abcdef012345/ }).click();
-    await expect(page).toHaveURL(new RegExp(`/console/explore/deck/${hash}$`));
-    await expect(sheet).toHaveCount(0);
+    await expect(sheet.getByRole("link", { name: /^Deck/ })).toHaveCount(0);
+    await expect(sheet.locator('a[href^="/console"]')).toHaveCount(0);
   });
 
   test("an agent's overview counts the feedback it has sent", async ({

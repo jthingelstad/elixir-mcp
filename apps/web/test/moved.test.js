@@ -32,8 +32,6 @@ const MAP = [
   ["/console/status/collectors", "/data"],
   ["/console/status/efficiency", "/settings/admin/efficiency"],
   ["/console/admin", "/settings/admin/requests"],
-  ["/console/explore/player", "/console/explore"],
-  ["/console/explore/clan", "/console/explore"],
 ];
 
 // Every address mail can carry, today or from the archive. packages/mail,
@@ -66,11 +64,14 @@ const MAIL_MOVED = [
   ["/console/admin/feedback", "/settings/admin/feedback"],
   ["/console/admin/feedback/7", "/settings/admin/feedback/7"],
   ["/console/admin/emails/s1", "/settings/admin/emails/s1"],
+  // Explore folded (2026-11-12): a player's record is their page, a clan's
+  // the directory, a war week the clan's War tab on its season.
+  ["/console/explore/player/%232PQRJ8LV", "/home/player/2PQRJ8LV"],
+  ["/console/explore/clan/%23Q8G0LVPY", "/clan/directory"],
+  ["/console/explore/week/2026-W40", "/clan"],
+  ["/console/explore/week/J2RGCRVG~136~2", "/clan/J2RGCRVG/war/136"],
 ];
 const MAIL_STAYS = [
-  "/console/explore/player/%232PQRJ8LV",
-  "/console/explore/clan/%23Q8G0LVPY",
-  "/console/explore/week/2026-W40",
   "/settings/collectors",
   "/settings/emails/s1",
   "/settings/feedback/7",
@@ -82,7 +83,6 @@ const MAIL_STAYS = [
   "/home/find",
   "/home/you",
   "/signin",
-  "/console/explore/week/J2RGCRVG~136~2",
   "/clan/J2RGCRVG/feed",
   "/clan/J2RGCRVG/war",
   "/clan/J2RGCRVG/members",
@@ -222,6 +222,40 @@ describe("the map of moved addresses", () => {
   ])("Clan's %s goes to %s", (from, to) => {
     expect(movedTo(from)).toBe(to);
     expect(legalRoute(to)).toBe(to);
+  });
+
+  // Explore, page by page, with where each landed.
+  test.each([
+    ["/console/explore", "/home/find"],
+    ["/console/explore/players", "/home/find"],
+    ["/console/explore/clans", "/home/find"],
+    ["/console/explore/player", "/home/find"],
+    ["/console/explore/player/2PQRJ8LV", "/home/player/2PQRJ8LV"],
+    ["/console/explore/profile/%232PQRJ8LV", "/home/player/2PQRJ8LV"],
+    ["/console/explore/player/not a tag!", "/home/find"],
+    ["/console/explore/clan", "/clan/directory"],
+    ["/console/explore/clan/J2RGCRVG", "/clan/directory"],
+    ["/console/explore/weeks", "/clan"],
+    ["/console/explore/week/J2RGCRVG~x~2", "/clan/J2RGCRVG/war"],
+    ["/console/explore/meta", "/home/you/stats/decks"],
+    ["/console/explore/deck/abc123", "/home/you/stats/decks"],
+    ["/console/explore/list/battles:2PQRJ8LV", "/home/player/2PQRJ8LV"],
+    ["/console/explore/list/decks:2PQRJ8LV", "/home/player/2PQRJ8LV"],
+    ["/console/explore/list/deckbattles:abc", "/home/you/stats/decks"],
+    ["/console/explore/list/members:J2RGCRVG", "/clan/directory"],
+    ["/console/explore/list/weeks:J2RGCRVG", "/clan/J2RGCRVG/war"],
+    ["/console/explore/not-a-page", "/home/find"],
+  ])("Explore's %s goes to %s", (from, to) => {
+    expect(movedTo(from)).toBe(to);
+    expect(movedTo(to)).toBeNull();
+    expect(legalRoute(to)).toBe(to);
+  });
+
+  test("a battle's record is its own page", () => {
+    expect(movedTo("/console/explore/battle/0123456789abcdef")).toBe(
+      "/battle/0123456789abcdef",
+    );
+    expect(movedTo("/console/explore/battle/nope")).toBe("/home");
   });
 
   test("an account page that no longer exists goes Home", () => {

@@ -20,7 +20,6 @@ import {
 } from "../../lib/queries.js";
 import { tagFromPath, tagPath } from "../../lib/tag-url.js";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
-import { CONSOLE } from "../../lib/console.js";
 import { SETTINGS } from "../../lib/settings.js";
 import { playerHref } from "../../lib/player.js";
 import { Crumb, Facts, Note } from "./parts.jsx";
@@ -177,7 +176,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   const recording = isClan ? clan.recording_status : rec?.status;
   // Every player name opens the player page (#764); Ladder is a door on it.
   const open = isClan
-    ? [`${CONSOLE}/explore/clan/${tagPath(wanted)}`, "Open its record"]
+    ? ["/clan/directory", "Clan directory"]
     : [playerHref(wanted), you ? "Open your page" : "Open their page"];
   const stop = (
     <StopTracking

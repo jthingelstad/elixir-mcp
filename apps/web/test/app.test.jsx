@@ -80,9 +80,8 @@ test("the app owns /console and disowns everything else", async () => {
   expect(legalRoute("/signin")).toBe("/signin");
   // The service page folded into Admin and the public /data (2026-11-12).
   expect(legalRoute("/data/service")).toBe(null);
-  expect(legalRoute("/console/explore/player/%2320JJJ2CCRU")).toBe(
-    "/console/explore/player/%2320JJJ2CCRU",
-  );
+  // Explore folded (2026-11-12): /console/ holds no page of its own.
+  expect(legalRoute("/console/explore/player/%2320JJJ2CCRU")).toBe(null);
   expect(legalRoute("/console/bogus")).toBe(null);
   // Disowned: every static path, and every path outside the prefix,
   // the Console's old addresses at the root included (2026-09-28: no
@@ -506,22 +505,15 @@ test(
 test("the tab title names the page, most specific part first", async () => {
   // A browser tab truncates from the right, so the distinguishing word
   // has to lead or every Elixir tab looks identical.
-  const { titleFor, SECTIONS } = await import("../src/App.jsx");
-  const t = (path) => {
-    const section = path.split("/")[2];
-    return titleFor(section, SECTIONS[section], path);
-  };
+  const { titleFor } = await import("../src/App.jsx");
+  const t = (path) => titleFor(path);
   expect(t("/")).toBe("Elixir");
   expect(t("/settings/admin/collectors")).toBe("Collectors - Admin - Elixir");
   expect(t("/settings/admin/fleet")).toBe("Fleet - Admin - Elixir");
   expect(t("/settings/profile")).toBe("Profile - Settings - Elixir");
-  // Explore owns its sub-pages, so a record beats the page slug: it is
-  // the most specific thing shown.
-  expect(t("/console/explore/player/%2320JJJ2CCRU")).toBe(
-    "#20JJJ2CCRU - Explore - Elixir",
-  );
+  expect(t("/home/player/20JJJ2CCRU")).toBe("Player - Home - Elixir");
   // Every surface wears the site's own name, never "Elixir MCP".
-  expect(titleFor(undefined, undefined, "/signin")).toBe("Sign in - Elixir");
+  expect(titleFor("/signin")).toBe("Sign in - Elixir");
   expect(t("/clan")).toBe("Clan - Elixir");
   expect(t("/clan/you")).toBe("You - Clan - Elixir");
   expect(t("/clan/J2RGCRVG")).toBe("Clan - Elixir");
@@ -629,8 +621,8 @@ test(
   },
 );
 
-test("every app section in the route table has a route under /console, and nothing else does", async () => {
-  const { routeTree, SECTIONS } = await import("../src/App.jsx");
+test("the route table has no page under /console: the Console folded and only redirects", async () => {
+  const { routeTree } = await import("../src/App.jsx");
   // Outside the console: a battle's public page (2026-10-01), a shared
   // post's (#762), and Ladder,
   // the one section beside the Console (2026-09-28), with one route under
@@ -659,14 +651,9 @@ test("every app section in the route table has a route under /console, and nothi
     "settings/admin/$",
     "signin",
   ]);
-  const segments = all.filter((s) => s[0] === "console");
-  // Explicit, not a router basepath: the kit's Link renders `to` as the
-  // href, so every route and every link carries the prefix itself.
-  for (const s of segments) expect(s[0]).toBe("console");
-  const routed = new Set(segments.map((s) => s[1]));
-  for (const section of Object.keys(SECTIONS))
-    expect(routed.has(section), `${section} has no route`).toBe(true);
-  expect(routed.size).toBe(Object.keys(SECTIONS).length);
+  // Explore folded (2026-11-12): every /console address is a redirect
+  // in moved.js, read by the root route, never a page.
+  expect(all.filter((s) => s[0] === "console")).toEqual([]);
 });
 
 test(

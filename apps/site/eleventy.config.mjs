@@ -462,7 +462,7 @@ export default function (eleventyConfig) {
     "Choose a recording scope": "/docs/recording#scope-what-is-actually-polled",
     "Track your clan, every member": "/settings/players",
     "Read about scopes": "/docs/recording#scope-what-is-actually-polled",
-    "Look up a clan tag": "/console/explore",
+    "Look up a clan tag": "/home/find",
     "Read the privacy posture": "/docs/privacy",
     "Create an agent": "/settings/connections",
     "Read the agents doc": "/docs/agents",

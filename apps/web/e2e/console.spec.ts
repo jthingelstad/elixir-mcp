@@ -72,7 +72,13 @@ test.describe("signed out", () => {
       ["/home/friends", /\/home\/find$/],
       ["/console/signin", /\/signin$/],
       ["/console/signin?signup", /\/signin\?signup/],
-      ["/console/explore/player", /\/console\/explore$/],
+      // Explore folded (2026-11-12) into Find, the player page, the
+      // battle page and Clan.
+      ["/console/explore", /\/home\/find$/],
+      ["/console/explore/player", /\/home\/find$/],
+      ["/console/explore/player/%2320JJJ2CCRU", /\/home\/player\/20JJJ2CCRU$/],
+      ["/console/explore/clan/J2RGCRVG", /\/clan\/directory$/],
+      ["/console/explore/deck/abc123", /\/home\/you\/stats\/decks$/],
     ] as const) {
       await page.goto(old);
       await expect(page, old).toHaveURL(now);
@@ -219,16 +225,6 @@ test.describe("signed in", () => {
       );
       await rendered(page);
     }
-    // Places outside the rail, each its own chunk: Search opens Explore,
-    // and the service page has its own address.
-    await page.goto("/console/explore");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "Explore",
-    );
-    await rendered(page);
-    await expect(
-      page.getByRole("navigation", { name: "Explore sections" }),
-    ).toBeVisible();
     // Admin is drawn for staff only: a member's rail has no Admin, and
     // an Admin address says it is for staff, never what is on it.
     await expect(rail.getByRole("link", { name: /^Admin/ })).toHaveCount(0);
@@ -249,12 +245,12 @@ test.describe("signed in", () => {
     await expect(session).not.toContainText("Unread by connections");
     await expect(page.locator(".kit-newmark")).toHaveCount(0);
     // Help opens over the page you are on, and links what you have filed.
-    await page.goto("/console/explore");
+    await page.goto("/home/find");
     await page.getByRole("button", { name: "Help for this page" }).click();
     const help = page.getByRole("dialog");
     await expect(help).toBeVisible();
     await expect(help.getByLabel("Something wrong, or missing?")).toBeVisible();
-    await expect(page).toHaveURL(/\/console\/explore$/);
+    await expect(page).toHaveURL(/\/home\/find$/);
     await accessible(page, "help drawer");
     await help.getByRole("link", { name: /feedback/i }).click();
     await expect(page).toHaveURL(/\/settings\/feedback$/);
@@ -799,7 +795,7 @@ test("@narrow a player's record page leads with the recorded profile, and Connec
   });
   await expect(
     readiness.getByRole("link", { name: /View recorded profile/ }),
-  ).toHaveAttribute("href", "/console/explore/profile/20JJJ2CCRU");
+  ).toHaveAttribute("href", "/home/player/20JJJ2CCRU?tab=record");
   await accessible(page, "first-use record page");
   await page.goto("/settings/connections");
   const questions = page.getByRole("region", { name: "Try asking…" });

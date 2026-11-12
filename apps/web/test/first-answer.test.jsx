@@ -215,7 +215,7 @@ test("readiness carries the window on every number it shows", async () => {
   );
   render(<FirstAnswer claimsKey="a" />);
   await screen.findByRole("link", {
-    name: /Browse recorded battles/,
+    name: /Open the player page/,
   });
   // A bare "1,284" is a claim; the window makes it a fact.
   expect(
@@ -228,7 +228,7 @@ test("a browser-only profile opens the saved profile", async () => {
   respond({ ...player, profile_available: true });
   render(<FirstAnswer claimsKey="a" />);
   await screen.findByRole("link", {
-    name: /Browse recorded battles|View recorded profile/,
+    name: /Open the player page|View recorded profile/,
   });
   expect(screen.getByText("read, at a time Elixir did not keep")).toBeTruthy();
   expect(screen.queryByText("snapshot never")).toBeNull();
@@ -296,10 +296,10 @@ test("older retained battles remain usable when recording stopped and the profil
   expect(
     screen
       .getByRole("link", {
-        name: /Browse recorded battles|View recorded profile/,
+        name: /Open the player page|View recorded profile/,
       })
       .getAttribute("href"),
-  ).toBe("/console/explore/list/battles:2PP0V90Y");
+  ).toBe("/home/player/2PP0V90Y");
   expect(
     screen.getByRole("link", { name: /Manage recording/ }).getAttribute("href"),
   ).toBe("/settings/players");
@@ -313,7 +313,7 @@ test("paused recording without capture points to status instead of promising the
   expect(screen.queryByText(/Waiting for the first/)).toBeNull();
   expect(
     screen.queryByRole("link", {
-      name: /Browse recorded battles|View recorded profile/,
+      name: /Open the player page|View recorded profile/,
     }),
   ).toBeNull();
   expect(screen.queryByRole("button", { name: /Copy question/ })).toBeNull();
@@ -333,7 +333,7 @@ test("partial capture is unavailable rather than an invented zero", async () => 
   await screen.findByText("recent battle counts unavailable");
   expect(
     screen.getByRole("link", {
-      name: /Browse recorded battles|View recorded profile/,
+      name: /Open the player page|View recorded profile/,
     }),
   ).toBeTruthy();
   expect(screen.queryByText(/0 in the last 30 days/)).toBeNull();

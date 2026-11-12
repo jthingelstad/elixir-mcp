@@ -237,8 +237,8 @@ Settings › Sign-ins & devices.
 `elixir_nickname({ player_tag, nickname })` stores a private label (1 to 40
 characters, `null` clears) that only your account, and what you connect as
 yourself, sees (an agent is an account of its own and keeps its own);
-`players_search` ranks your nicknames first. It is the one write the website's
-record page performs.
+`players_search` ranks your nicknames first. On the website it is set in
+**Settings › Players & tracking**, on the player's row.
 
 ## Events
 

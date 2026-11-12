@@ -1,4 +1,3 @@
-import { CONSOLE } from "../lib/console.js";
 import { playerHref } from "../lib/player.js";
 import { SETTINGS_RAIL } from "../lib/settings.js";
 import { HASH_RE, WEEK_RE, normTag, tagPath } from "../lib/tag-url.js";
@@ -104,15 +103,14 @@ export function doorFor(tag, s, name = tag, detail = null) {
   return { t: name, d: detail ?? tag, href };
 }
 
+/** Your clan opens in Clan; any other in the clan directory, where a clan
+ *  that runs on Elixir is found by its rules (the Console's clan record
+ *  folded, 2026-11-12). */
 function clanRow(clan, s, name = clan.name ?? clan.clan_tag) {
   const mine = s.clanOpen && s.home?.clan_tag === clan.clan_tag;
   return mine
     ? { t: name, d: "Clan", href: `/clan/${tagPath(clan.clan_tag)}` }
-    : {
-        t: name,
-        d: "Record",
-        href: `${CONSOLE}/explore/clan/${tagPath(clan.clan_tag)}`,
-      };
+    : { t: name, d: "Clan directory", href: "/clan/directory" };
 }
 
 function people(s) {
@@ -144,14 +142,6 @@ function people(s) {
 const group = (h, rows, cap) =>
   rows.length ? { h, rows: rows.slice(0, cap) } : null;
 
-/** [engineering, 2026-11-06] Explore has no other door from the app. */
-const EXPLORE_LOOKUP = {
-  t: "Look up a tag, deck or war week",
-  d: "Explore",
-  href: `${CONSOLE}/explore`,
-};
-const MEANS_LOOKUP = /look|explor|deck|hash|\bwar\b|week/;
-
 /** [engineering, 2026-11-12] The clan directory's door from search (#768),
  *  until the Find tab carries it: a clan is found there by its rules. */
 const CLAN_DIRECTORY = {
@@ -161,31 +151,17 @@ const CLAN_DIRECTORY = {
 };
 const MEANS_DIRECTORY = /director|find|join|recruit|clans?\b/;
 
-/** A typed deck hash or war week, opened as Explore's lookup opens it: a week
- *  on its own names the home clan's race, and with no home clan the lookup is
- *  where to say which. */
+/** A typed war week opens your clan's War tab on its season (the
+ *  Console's week record folded, 2026-11-12). A deck hash opens nothing:
+ *  the deck record retired. */
 function lookupRows(raw, s) {
-  const t = String(raw ?? "").trim();
-  if (HASH_RE.test(t)) {
-    const hash = t.replace(/^deck:/i, "").toLowerCase();
-    return [
-      {
-        t: `Deck ${hash.slice(0, 12)}…`,
-        d: "Record",
-        href: `${CONSOLE}/explore/deck/${hash}`,
-      },
-    ];
-  }
-  const week = WEEK_RE.exec(t);
-  if (!week) return [];
-  if (!s.home?.clan_tag) return [EXPLORE_LOOKUP];
-  const season = Number(week[1]);
-  const section = Number(week[2]) - 1;
+  const week = WEEK_RE.exec(String(raw ?? "").trim());
+  if (!week || !s.clanOpen || !s.home?.clan_tag) return [];
   return [
     {
-      t: `Season ${season}, week ${section + 1}`,
-      d: s.home.name ?? "Your clan",
-      href: `${CONSOLE}/explore/week/${tagPath(s.home.clan_tag)}~${season}~${section}`,
+      t: `Season ${Number(week[1])}, week ${Number(week[2])}`,
+      d: `${s.home.name ?? "Your clan"}, War`,
+      href: `/clan/${tagPath(s.home.clan_tag)}/war/${Number(week[1])}`,
     },
   ];
 }
@@ -198,7 +174,7 @@ export function beforeTyping(s) {
     group("Clanmates", mates, BEFORE_TYPING),
     group("People you follow", following, BEFORE_TYPING),
     group("Clans", clans, BEFORE_TYPING),
-    group("Look up", [EXPLORE_LOOKUP, CLAN_DIRECTORY], BEFORE_TYPING),
+    group("Look up", [CLAN_DIRECTORY], BEFORE_TYPING),
   ].filter(Boolean);
 }
 
@@ -292,10 +268,7 @@ export function typedGroups(raw, s, found = null) {
       ? null
       : group(
           "Look up",
-          [
-            ...(MEANS_LOOKUP.test(q) ? [EXPLORE_LOOKUP] : []),
-            ...(MEANS_DIRECTORY.test(q) ? [CLAN_DIRECTORY] : []),
-          ],
+          MEANS_DIRECTORY.test(q) ? [CLAN_DIRECTORY] : [],
           TYPED,
         ),
   ].filter(Boolean);
