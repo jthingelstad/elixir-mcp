@@ -1,50 +1,26 @@
 import { Navigate, useLocation } from "@tanstack/react-router";
-import { PageHead, Tabs, TagText } from "@elixir-mcp/ui";
+import { PageHead, TagText } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
-import {
-  useHome,
-  useHomeClan,
-  useHomeFriends,
-  useTimelineNews,
-} from "../lib/queries.js";
-import { HOME_TABS, panelOf } from "../home/logic.js";
+import { useHome, useHomeClan } from "../lib/queries.js";
+import { panelOf } from "../home/logic.js";
 import { NewAccount } from "../home/NewAccount.jsx";
 import { useFirstRead } from "../home/first-read.js";
-import { TodayError, TodayFresh, TodayPanels } from "../home/Today.jsx";
-import { HomeTimeline } from "../home/Timeline.jsx";
-import { HomeFriends } from "../home/Friends.jsx";
+import { HomeFeed } from "../home/Feed.jsx";
+import { HomePanels, TodayError, TodayFresh } from "../home/Today.jsx";
 
-/** /home, /home/timeline and /home/friends: one head, three tabs. */
+const followsSomeone = (me) =>
+  (me?.claims ?? []).some(
+    (c) =>
+      !(
+        c.is_primary ||
+        c.relationship === "alt" ||
+        c.relationship === "primary"
+      ),
+  );
+
+/** /home: one feed, beside your week and your clan (slice 7, #765). Its three
+ *  tabs went; their old addresses land here (lib/moved.js). */
 export function HomePage() {
-  const { pathname } = useLocation();
-  const tab = pathname.replace(/\/$/, "").split("/")[2] ?? "today";
-  return tab === "timeline" ? (
-    <TimelineTab />
-  ) : tab === "friends" ? (
-    <FriendsTab />
-  ) : (
-    <TodayTab />
-  );
-}
-
-/** The Timeline tab's mark says something was learned since the page was last
- *  opened. Only a mark: the real count takes the feed itself to build, and the
- *  page's New chip carries it, so the tab and the page cannot disagree. */
-function HomeTabs({ value }) {
-  const news = useTimelineNews();
-  const items = HOME_TABS.map((t) =>
-    t.key === "timeline"
-      ? {
-          ...t,
-          mark: news.data?.unread === true,
-          markLabel: "New since you last opened it",
-        }
-      : t,
-  );
-  return <Tabs label="Home" items={items} value={value} />;
-}
-
-function TodayTab() {
   const { me } = useMe();
   const { hash } = useLocation();
   const query = useHome();
@@ -58,8 +34,7 @@ function TodayTab() {
   if (query.isError || data?.first?.ok === false)
     return (
       <>
-        <PageHead title="Today" />
-        <HomeTabs value="today" />
+        <PageHead title="Home" />
         <TodayError busy={query.isFetching} onRetry={() => query.refetch()} />
       </>
     );
@@ -70,8 +45,7 @@ function TodayTab() {
   if (query.isPending)
     return (
       <>
-        <PageHead title="Today" />
-        <HomeTabs value="today" />
+        <PageHead title="Home" />
         <div className="kit-skeleton" aria-busy="true" />
       </>
     );
@@ -88,13 +62,20 @@ function TodayTab() {
           landed={ready}
           zoneMissing={!me?.timezone}
         />
+        {/* Someone followed before a player of your own: their feed is
+            here already, as the Timeline tab was [engineering, 2026-11-12]. */}
+        {followsSomeone(me) ? (
+          <section className="kit-home__main" aria-label="Your feed">
+            <HomeFeed />
+          </section>
+        ) : null}
       </>
     );
   const clanName = clan?.ok ? clan.name : null;
   return (
     <>
       <PageHead
-        title="Today"
+        title="Home"
         sub={
           <>
             <TagText>
@@ -110,37 +91,7 @@ function TodayTab() {
         }
         aside={<TodayFresh player={player} />}
       />
-      <HomeTabs value="today" />
-      <TodayPanels first={live} me={me} player={player} />
-    </>
-  );
-}
-
-function TimelineTab() {
-  return (
-    <>
-      <PageHead title="Timeline" sub="The last seven days, newest first." />
-      <HomeTabs value="timeline" />
-      <HomeTimeline />
-    </>
-  );
-}
-
-function FriendsTab() {
-  const query = useHomeFriends();
-  const week = query.data?.week?.label;
-  return (
-    <>
-      <PageHead
-        title="Friends"
-        sub={
-          week
-            ? `Week of ${week}, the same week as Wednesday's mail.`
-            : "The people you follow, the same week as Wednesday's mail."
-        }
-      />
-      <HomeTabs value="friends" />
-      <HomeFriends query={query} />
+      <HomePanels first={live} player={player} feed={<HomeFeed />} />
     </>
   );
 }

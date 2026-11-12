@@ -39,6 +39,20 @@ beforeEach(() => {
   window.history.pushState({}, "", "/");
 });
 
+// An account that follows a friend and has no player of its own: Home is its
+// steps and, below them, its feed (#765). Fixture names only.
+const FOLLOWS_A_FRIEND = [
+  {
+    player_tag: "#2FRND",
+    name: "Fixture Friend",
+    is_primary: false,
+    relationship: "friend",
+  },
+];
+const NO_PLAYER_YET = {
+  "GET /api/me/home": [200, { first: { ok: true, player: null } }],
+};
+
 test(
   "a path the app does not own leaves for the static site",
   { timeout: 20000 },
@@ -578,9 +592,8 @@ test(
       "GET /api/me": [200, { authenticated: false }],
     });
     render(<App />);
-    await waitFor(() =>
-      expect(window.location.pathname).toBe("/home/timeline"),
-    );
+    // Home is one feed now (#765): the timeline is Home itself.
+    await waitFor(() => expect(window.location.pathname).toBe("/home"));
     // Activity's own pages moved to Usage in Settings.
     cleanup();
     window.history.pushState({}, "", "/console/account/activity/requests");
@@ -612,9 +625,11 @@ test("every app section in the route table has a route under /console, and nothi
     "battle/$ref",
     "data/service",
     "h/$id",
+    "home",
+    "home/find",
     "home/follow/$tags",
     "home/player/$tag",
-    "home/{-$tab}",
+    "home/you",
     "ladder/{-$page}",
     "settings/$",
     "signin",
@@ -654,9 +669,15 @@ test(
     };
     const signedIn = (timezone) =>
       mockFetch({
+        ...NO_PLAYER_YET,
         "GET /api/me": [
           200,
-          { authenticated: true, timezone, claims: [], recordings: [] },
+          {
+            authenticated: true,
+            timezone,
+            claims: FOLLOWS_A_FRIEND,
+            recordings: [],
+          },
         ],
         "GET /api/me/timeline": [200, timeline],
         "POST /api/me/timeline/seen": [200, { seen_to: timeline.window.to }],
@@ -692,9 +713,13 @@ test(
       text,
       facts: {},
     });
-    window.history.pushState({}, "", "/home/timeline");
+    window.history.pushState({}, "", "/home");
     global.fetch = mockFetch({
-      "GET /api/me": [200, { authenticated: true, claims: [], recordings: [] }],
+      ...NO_PLAYER_YET,
+      "GET /api/me": [
+        200,
+        { authenticated: true, claims: FOLLOWS_A_FRIEND, recordings: [] },
+      ],
       "GET /api/me/timeline": [
         200,
         {
@@ -711,7 +736,7 @@ test(
     });
     render(<App />);
     await screen.findByText("The newer session.");
-    const texts = [...document.querySelectorAll(".kit-tl .kit-row__title")].map(
+    const texts = [...document.querySelectorAll(".kit-feed__text")].map(
       (tr) => tr.textContent,
     );
     expect(texts).toEqual(["The newer session.", "The older session."]);
@@ -741,11 +766,12 @@ test(
     const posts = [];
     let pending = 1;
     global.fetch = mockFetch({
+      ...NO_PLAYER_YET,
       "GET /api/me": () => [
         200,
         {
           authenticated: true,
-          claims: [],
+          claims: FOLLOWS_A_FRIEND,
           recordings: [],
           signals: { tracking: 1, timeline_pending: pending },
         },
@@ -783,7 +809,7 @@ test(
         return [200, { seen_to: TO }];
       },
     });
-    window.history.pushState({}, "", "/home/timeline");
+    window.history.pushState({}, "", "/home");
     render(<App />);
     await screen.findByText("Learned since.");
     await waitFor(() => expect(posts).toEqual([{ to: TO }]));
@@ -797,7 +823,7 @@ test(
     );
     // One rule, under the last new row.
     expect(document.querySelectorAll(".kit-newmark").length).toBe(1);
-    const page = document.querySelector(".kit-home").textContent;
+    const page = document.querySelector(".kit-feed").textContent;
     expect(page.indexOf("Learned since.")).toBeLessThan(
       page.indexOf("Seen before."),
     );

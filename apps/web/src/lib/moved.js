@@ -40,10 +40,15 @@ export const REDIRECTS = {
   [`${CONSOLE}/account/agents`]: `${SETTINGS}/connections`,
   [`${CONSOLE}/account/feedback`]: `${SETTINGS}/feedback`,
   [`${CONSOLE}/agent`]: `${SETTINGS}/connections`,
-  [`${CONSOLE}/account/timeline`]: `${HOME}/timeline`,
+  [`${CONSOLE}/account/timeline`]: HOME,
   // The bare Activity path was the timeline until 2026-09-23, and links to it
   // still mean that.
-  [`${CONSOLE}/account/activity`]: `${HOME}/timeline`,
+  [`${CONSOLE}/account/activity`]: HOME,
+  // Home was three tabs until slice 7 (#765): it is one feed now. Mail names
+  // both old tabs: the timeline is the feed, and Friends' follow form moved
+  // to Find [engineering, 2026-11-12].
+  [`${HOME}/timeline`]: HOME,
+  [`${HOME}/friends`]: `${HOME}/find`,
   [`${CONSOLE}/signin`]: SIGN_IN,
   [`${CONSOLE}/status`]: SERVICE_STATUS,
   [`${CONSOLE}/status/service`]: SERVICE_STATUS,

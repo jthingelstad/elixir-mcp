@@ -1075,11 +1075,12 @@ test("one application and account survive Home and Clan navigation at phone, tab
   // From one place to another through the shared shell. At 760px and below
   // the places are the phone's tabs (components.css), so the width says
   // which to use. Never ask whether the bar's link is visible yet: that
-  // check does not wait (CI, 2026-10-21).
+  // check does not wait (CI, 2026-10-21). Home's name may carry ", new
+  // items" while the feed has news (slice 7).
   const switchTo = async (to: string, width: number) =>
     page
       .locator(width > 760 ? "header" : ".kit-bottom")
-      .getByRole("link", { name: to, exact: true })
+      .getByRole("link", { name: new RegExp(`^${to}(, new items)?$`) })
       .click();
   for (const viewport of [
     { width: 390, height: 844 },

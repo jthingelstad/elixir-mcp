@@ -7618,6 +7618,108 @@ button.kit-row {
   border-left: 2px solid var(--line);
   overflow-wrap: anywhere;
 }
+/* Home's one feed (slice 7, #765). Flat: an item is a rule and its words, no
+   box; a clan's line wears the gold edge. */
+.kit-home__main {
+  min-width: 0;
+}
+.kit-feed {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.kit-feed__item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.kit-feed__item--clan {
+  padding-left: 12px;
+  border-left: 3px solid var(--gold);
+}
+.kit-feed__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.kit-feed__name {
+  color: var(--ink);
+  font-weight: 600;
+}
+.kit-feed__time {
+  color: var(--ink-dim);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.kit-feed__text {
+  margin: 0;
+}
+.kit-feed__sitting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+.kit-spark {
+  display: block;
+  max-width: 100%;
+}
+.kit-spark__base {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.kit-spark__win {
+  fill: var(--win);
+}
+.kit-spark__loss {
+  fill: var(--loss);
+}
+.kit-spark__draw {
+  fill: var(--ink-dim);
+}
+.kit-spark__unknown {
+  opacity: 0.45;
+}
+/* The bell's dot: lit while something needs you. */
+.kit-bell__mark {
+  position: relative;
+  display: inline-flex;
+}
+.kit-bell__dot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--gold);
+}
+.kit-bottom .kit-bell__dot {
+  top: 3px;
+  right: 13px;
+}
+/* Find's search: the bar's search, as a page's own button. */
+.kit-find__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-dim);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.kit-find__link {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
 .kit-newmark {
   margin: 6px 0;
   padding-top: 4px;
@@ -7784,7 +7886,7 @@ button.kit-row {
     left: 0;
     z-index: 25;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     background: var(--panel-raised);
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
     padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom)
@@ -7815,7 +7917,7 @@ button.kit-row {
   }
   .kit-bottom svg {
     box-sizing: content-box;
-    padding: 4px 18px;
+    padding: 4px 14px;
     border-radius: 999px;
     transition: background-color 120ms ease;
   }
@@ -7841,6 +7943,10 @@ button.kit-row {
   }
   .kit-deck .deck-grid--8 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  /* The phone's bell is a tab; the bar's would be a second one. */
+  .kit-top .kit-bell {
+    display: none;
   }
 }
 

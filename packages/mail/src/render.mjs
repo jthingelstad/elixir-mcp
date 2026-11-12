@@ -381,7 +381,7 @@ function progressText(p) {
 
 // A reader's own timeline on Home: every moment, newest first, the small
 // ones the mail only counts.
-const timelineUrl = () => `${SITE}/home/timeline`;
+const timelineUrl = () => `${SITE}/home`;
 
 /** A mode family's name in a subject line: proper names keep their
  *  capitals, the rest read as words ("Trophy Road 4–6, war 3–3"). */
@@ -670,7 +670,7 @@ function digest(f, c) {
   const body = `${from}
     ${around.length ? `${c.h2("Around you")}${c.rows(around)}` : ""}
     ${c.button("Open your feed", `${SITE}/home`)}
-    ${c.small(`Anyone with a player tag can be followed: ${c.link(`${SITE}/home/friends`, "follow a friend")}. Everyone you follow: <a href="${c.T(MAIL_PATHS.players)}" style="color:${M.link};">Settings › Players</a>.`)}
+    ${c.small(`Anyone with a player tag can be followed: ${c.link(`${SITE}/home/find`, "follow a friend")}. Everyone you follow: <a href="${c.T(MAIL_PATHS.players)}" style="color:${M.link};">Settings › Players</a>.`)}
     ${c.cov(esc(f.coverage ?? ""))}`;
   // The inbox preview: a highlight's words first, else who played.
   const lead = posted[0]

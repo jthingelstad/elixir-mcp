@@ -123,14 +123,12 @@ test.describe("Ladder signed in", () => {
       "King Thing · 24 days in. The season ends Mon Oct 5, 5:00 am.",
     );
 
-    // The bar marks Ladder as the place you are in, not Home.
+    // Ladder is your stats, reached from You (#765): not a place on the
+    // bar, and not Home.
     const places = page
       .getByRole("banner")
       .getByRole("navigation", { name: "Main" });
-    await expect(places.getByRole("link", { name: "Ladder" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    await expect(places.getByRole("link", { name: "Ladder" })).toHaveCount(0);
     await expect(
       places.getByRole("link", { name: "Home" }),
     ).not.toHaveAttribute("aria-current", "page");

@@ -30,6 +30,7 @@ import {
 import { json, UUID_RE, ID_RE } from "../http.mjs";
 import { labelOf as emailChoiceLabel } from "./email.mjs";
 import { loadCallRecord } from "../call-record.mjs";
+import { annotateFeed } from "../feed.mjs";
 
 /** An audit row the daily tool-call limiter charged (`mcpday#`,
  *  packages/tools/quota.mjs): every call at /mcp. Not /api/v1 (`rest`,
@@ -997,6 +998,8 @@ export function accountRoutes({
       }
       return json(200, {
         ...built,
+        // Home's chips, sparklines and battle links (slice 7, #765).
+        timeline: await annotateFeed(db, built.timeline, subjects),
         seen_to: rows[0]?.console_timeline_seen_at?.toISOString() ?? null,
       });
     },

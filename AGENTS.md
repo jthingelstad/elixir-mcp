@@ -7,7 +7,7 @@ official API is current-state only) and serves it on one origin,
 | Path | What | Code |
 | --- | --- | --- |
 | `/`, `/docs`, `/updates` | the site and the public docs | `apps/site` (Eleventy) |
-| `/home` | Home: your day, timeline and friends; where signing in lands | `apps/web/src/home` |
+| `/home` | Home: one feed beside your week and clan, with Find and You; where signing in lands | `apps/web/src/home` |
 | `/signin`, `/data/service` | signing in, and the signed-in service page | `apps/web` |
 | `/settings` | Settings: your account and agents, with its left rail | `apps/web` |
 | `/console` | what is not yet moved: Explore, collectors, Admin; the word is retired from what a reader sees, and `apps/web/src/lib/moved.js` redirects what moved | `apps/web` |

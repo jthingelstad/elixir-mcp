@@ -62,11 +62,14 @@ behaviour is in `apps/site/src/docs/`, not here.
 
 ## Home and the shell
 
-`src/home/` is Home (`/home`, `/home/timeline`, `/home/friends`), and
-`src/shell/Shell.jsx` is the top bar, bottom tabs and footer every page wears.
+`src/home/` is Home (`/home`, one feed), Find (`/home/find`), You
+(`/home/you`) and the player page (`/home/player/<tag>`), and
+`src/shell/Shell.jsx` is the top bar, bottom tabs and footer every page wears,
+with the bell (`src/shell/Bell.jsx`).
 `src/lib/moved.js` is the one map of old paths to new ones, read by the root
 route; every path that moves goes there. Home's rules are in
-`docs/product/home.md`; its reads are `services/web-api/src/routes/home.mjs`.
+`docs/product/home.md`; its reads are `services/web-api/src/routes/home.mjs`,
+and the feed's extra fields are `services/web-api/src/feed.mjs`.
 
 ## The Console's sections
 

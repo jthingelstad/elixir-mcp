@@ -62,7 +62,27 @@ export const FAMILY_PLACES = {
   settings: manifest.account.path,
   search: manifest.search,
   help: manifest.help,
+  bell: manifest.bell,
 };
+
+export interface FamilyTab {
+  key: string;
+  label: string;
+  /** On this origin. */
+  path: string;
+  icon: IconName;
+  /** False for You, which the top bar draws as its avatar. */
+  bar?: boolean;
+}
+
+/** The places a signed-in reader moves between, in order (slice 7, #765:
+ *  Home, Find, Clan, You). The phone draws all four and the bell; the top
+ *  bar draws all but You, which is its avatar. Ladder is a product, not a
+ *  tab: You leads to it. */
+export const FAMILY_TABS: ReadonlyArray<FamilyTab> = manifest.tabs.map((t) => ({
+  ...t,
+  icon: t.icon as IconName,
+}));
 
 /** The bar's places for somebody signed out. */
 export const FAMILY_SIGNED_OUT: { key: string; label: string; path: string }[] =

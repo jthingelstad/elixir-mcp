@@ -157,7 +157,6 @@ export const api = {
   home: () => request("GET", "/api/me/home"),
   homeClan: () => request("GET", "/api/me/home/clan"),
   homeNeeds: () => request("GET", "/api/me/home/needs"),
-  homeLatest: () => request("GET", "/api/me/home/latest"),
   homeWeek: (mode) =>
     request(
       "GET",
@@ -165,7 +164,6 @@ export const api = {
         ? `/api/me/home/week?mode=${encodeURIComponent(mode)}`
         : "/api/me/home/week",
     ),
-  homeFriends: () => request("GET", "/api/me/home/friends"),
   /** A player's page (#764): their record, follows, followers and badges. */
   playerPage: (tag) =>
     request("GET", `/api/player?tag=${encodeURIComponent(tag)}`),
@@ -259,7 +257,6 @@ export const api = {
   timelineEvidence: (params, agent) =>
     request("GET", `${home(agent)}/timeline?${new URLSearchParams(params)}`),
   myTimeline: (agent) => request("GET", `${home(agent)}/timeline`),
-  timelineNews: () => request("GET", "/api/me/timeline?news=1"),
   // The Console's own place in the timeline (2026-10-20): the window end
   // the page showed. Never an agent's read pointer.
   markTimelineSeen: (to, agent) =>

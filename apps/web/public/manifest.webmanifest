@@ -33,9 +33,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Timeline",
-      "short_name": "Timeline",
-      "url": "/home/timeline",
+      "name": "Find",
+      "short_name": "Find",
+      "url": "/home/find",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {

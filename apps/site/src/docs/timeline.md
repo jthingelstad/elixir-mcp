@@ -7,7 +7,7 @@ order: 3
 navTitle: "The timeline"
 icon: bell
 lede: "What happened to the players and clans you track, newest first, written so a person can read it and an agent can act on it."
-callout: ["Open it at Home › Timeline", "/home/timeline", "Open Timeline"]
+callout: ["Read it on Home", "/home", "Open Home"]
 ---
 
 # The timeline
@@ -24,8 +24,28 @@ entries are on [The timeline tool](/docs/timeline-tool).
 It is **synthesized when you read it**, from the record and what Elixir
 keeps for each player and clan. Nothing is queued, fanned out or pruned. An
 agent that comes back after a month gets a month's timeline (capped at 30 days,
-and at the newest 150 items). Home's Timeline shows the last seven days, with
+and at the newest 150 items). Home's feed shows the last seven days, with
 the same cap on items, and reading it moves no pointer.
+
+## Home's feed
+
+Home is your timeline as one feed, newest first, in days. Chips choose
+whose items it shows: **Everyone**, **Friends** (the players you follow as
+friends), **Clan** (the clans you follow), or **You** (your own players and
+your account's own items), each with its count. A player you only watch is
+under Everyone. **All** or **New** chooses between everything and what
+came since your last visit. Nothing is filtered at the source: the chips
+only choose what the page draws.
+
+A sitting of battles carries a small bar chart, one bar per battle in the
+order played: up for a win and down for a loss, as tall as the crown margin
+(one to three). A draw is a flat tick, and a battle whose crowns the record
+lacks is a short, faint bar. The same facts are written out for a screen
+reader. **View games** opens the sitting's battles in place.
+
+A moment links its battle when the record has one, a highlight shows its
+player's own words, and a clan's own line has a gold edge. Every player's
+name opens their [player page](/docs/player-page).
 
 ## Highlights
 

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mockApi, signedIn } from "./fixtures.ts";
+import { HOME_READS } from "./home-fixture.ts";
 
 for (const width of [390, 1280]) {
   test(`Timeline evidence reads ordered pages and offers a changed-evidence recovery at ${width}px`, async ({
@@ -34,6 +35,7 @@ for (const width of [390, 1280]) {
     await mockApi(
       page,
       signedIn({
+        ...HOME_READS,
         "GET /api/me/timeline": (route) => {
           const params = new URL(route.request().url()).searchParams;
           if (!params.has("evidence_item_id"))
@@ -84,7 +86,7 @@ for (const width of [390, 1280]) {
         },
       }),
     );
-    await page.goto("/home/timeline");
+    await page.goto("/home");
     await page.getByRole("button", { name: "View games", exact: true }).click();
     const panel = page.locator(".kit-tl__evidence");
     await expect(panel).toBeVisible();
@@ -165,6 +167,7 @@ for (const status of ["unknown", "proved"]) {
     await mockApi(
       page,
       signedIn({
+        ...HOME_READS,
         "GET /api/me/timeline": (route) => {
           if (
             !new URL(route.request().url()).searchParams.has("evidence_item_id")
@@ -204,7 +207,7 @@ for (const status of ["unknown", "proved"]) {
         },
       }),
     );
-    await page.goto("/home/timeline");
+    await page.goto("/home");
     await page
       .getByRole("button", { name: "View crossing", exact: true })
       .click();
@@ -260,6 +263,7 @@ for (const [summaryCount, evidenceCount] of [
     await mockApi(
       page,
       signedIn({
+        ...HOME_READS,
         "GET /api/me/timeline": (route) => {
           const params = new URL(route.request().url()).searchParams;
           if (!params.has("evidence_item_id"))
@@ -293,8 +297,10 @@ for (const [summaryCount, evidenceCount] of [
         },
       }),
     );
-    await page.goto("/home/timeline");
-    const row = page.locator(".kit-tl", { hasText: "Example Player 12" });
+    await page.goto("/home");
+    const row = page.locator(".kit-feed__item", {
+      hasText: "Example Player 12",
+    });
     await expect(row).toBeVisible();
     expect(
       await page.evaluate(

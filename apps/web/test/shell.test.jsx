@@ -91,7 +91,7 @@ describe("the bar on a page", () => {
   };
 
   test(
-    "signed in: the four places, the search prompt, help, Drop, and tabs for the phone",
+    "signed in: Home, Find and Clan, the search prompt, help, the bell, Drop, and tabs for the phone",
     { timeout: 20000 },
     async () => {
       me = SIGNED_IN;
@@ -104,7 +104,7 @@ describe("the bar on a page", () => {
         ]),
       ).toEqual([
         ["Home", "/home"],
-        ["Ladder", "/ladder"],
+        ["Find", "/home/find"],
         ["Clan", "/clan"],
       ]);
       const bar = document.querySelector(".kit-top");
@@ -113,15 +113,38 @@ describe("the bar on a page", () => {
       expect(
         within(bar).getByRole("button", { name: "Help for this page" }),
       ).toBeTruthy();
+      // The bell opens what needs you in place; nothing does, so no dot.
+      const bell = within(bar).getByRole("button", { name: "Notifications" });
+      expect(bell.getAttribute("aria-haspopup")).toBe("dialog");
+      expect(bell.querySelector(".kit-bell__dot")).toBeNull();
       expect(within(bar).getByRole("link", { name: /Play Drop/ }).target).toBe(
         "_blank",
       );
       const tabs = screen.getByRole("navigation", { name: "Main, phone" });
       expect(
         [...tabs.querySelectorAll("a, button")].map((a) => a.textContent),
-      ).toEqual(["Home", "Ladder", "Clan", "Search"]);
-      // On Explore's charts, Search is the lit tab.
-      expect(tabs.querySelector("[aria-current]").textContent).toBe("Search");
+      ).toEqual(["Home", "Find", "Clan", "You", "Bell"]);
+      // On Explore's charts, Find is the lit tab.
+      expect(tabs.querySelector("[aria-current]").textContent).toBe("Find");
+    },
+  );
+
+  test(
+    "news since Home was last opened marks the Home tab, in words too",
+    { timeout: 20000 },
+    async () => {
+      me = { ...SIGNED_IN, signals: { timeline_pending: 3 } };
+      render(<App />);
+      const nav = await screen.findByRole("navigation", { name: "Main" });
+      const home = [...nav.querySelectorAll("a")].find(
+        (a) => a.getAttribute("href") === "/home",
+      );
+      expect(home.querySelector(".kit-bell__dot")).toBeTruthy();
+      expect(home.getAttribute("aria-label")).toBe("Home, new items");
+      const find = [...nav.querySelectorAll("a")].find(
+        (a) => a.getAttribute("href") === "/home/find",
+      );
+      expect(find.querySelector(".kit-bell__dot")).toBeNull();
     },
   );
 
@@ -249,10 +272,12 @@ describe("the bar on a page", () => {
 
   test("the bar's place follows the route, and a battle's page lights none", () => {
     expect(barArea("/home")).toBe("home");
-    expect(barArea("/home/timeline")).toBe("home");
-    expect(barArea("/ladder/season")).toBe("ladder");
+    expect(barArea("/home/find")).toBe("find");
+    expect(barArea("/home/you/")).toBe("you");
+    // Ladder is your stats, reached from You.
+    expect(barArea("/ladder/season")).toBe("you");
     expect(barArea("/clan/you")).toBe("clan");
-    expect(barArea("/console/explore/player/2ABC")).toBe("search");
+    expect(barArea("/console/explore/player/2ABC")).toBe("find");
     expect(barArea("/console/account/profile")).toBeUndefined();
     expect(barArea("/signin")).toBeUndefined();
     expect(barArea("/battle/a1b2c3d4e5f6")).toBeUndefined();

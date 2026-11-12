@@ -20,7 +20,6 @@ import { SETTINGS } from "../lib/settings.js";
 import { tagPath } from "../lib/tag-url.js";
 import {
   useHomeClan,
-  useHomeLatest,
   useHomeNeeds,
   useHomeWeek,
   useInvalidate,
@@ -31,44 +30,32 @@ import {
   actionsFrom,
   lastRaceLine,
   modeWord,
-  needsYou,
   panelOf,
   weekChips,
 } from "./logic.js";
 
 const DASH = "–";
 
-/** Home › Today's panels, in the order they read. Each reads for itself and
- *  draws its own loading state; a panel that failed says so, the rest render.
- *  Needs you has its own read, ahead of the card's slower one, and takes no room
- *  until it has something to say, so when it comes late it opens rather than
- *  jumps. */
-export function TodayPanels({ first, me, player }) {
-  const clock = useClock();
+/** Home (slice 7, #765): the one feed beside your week and your clan. Each
+ *  side panel reads for itself and draws its own loading state; a panel that
+ *  failed says so, the rest render. Needs you moved to the bell, which every
+ *  page wears (shell/Bell.jsx); the unlock notice stays here, at the top. */
+export function HomePanels({ first, player, feed }) {
   const clan = panelOf(useHomeClan(), "clan");
   const needs = panelOf(useHomeNeeds(), "needs");
-  const [late] = useState(needs === undefined);
-  const { rows, more } = needsYou({ clan, needs, signals: me?.signals, clock });
   const actions = actionsFrom({ clan, needs });
   const unlock = actions?.ok ? actions.unlock : null;
   return (
     <div className="kit-home">
-      {unlock || rows.length > 0 ? (
-        <div className={`kit-home__top${late ? " kit-home__top--late" : ""}`}>
-          <div className="kit-home__top-in">
-            {unlock ? <Unlock player={player} /> : null}
-            {rows.length > 0 ? <NeedsYou rows={rows} more={more} /> : null}
-          </div>
-        </div>
-      ) : null}
+      {unlock ? <Unlock player={player} /> : null}
       <div className="kit-home__two">
-        <YourWeek player={player} />
+        <div className="kit-home__main">{feed}</div>
         <div className="kit-home__side">
+          <YourWeek player={player} />
           <ClanPanel clan={clan} player={player} />
-          <Latest />
+          <SetupDetails first={first} clan={clan} player={player} />
         </div>
       </div>
-      <SetupDetails first={first} clan={clan} player={player} />
     </div>
   );
 }
@@ -82,28 +69,6 @@ function Unlock({ player }) {
       </span>
       <Link to={`${SETTINGS}/players/verify`}>Verify {player.name}</Link>
     </p>
-  );
-}
-
-function NeedsYou({ rows, more }) {
-  return (
-    <Panel title="Needs you" className="kit-needs">
-      <Rows>
-        {rows.map((r) => (
-          <Row
-            key={r.key}
-            title={<TagText>{r.title}</TagText>}
-            detail={r.detail}
-            right={
-              <Link to={r.to} className="btn btn--sm">
-                {r.cta}
-              </Link>
-            }
-          />
-        ))}
-        {more ? <Row quiet href={more.to} title={more.title} /> : null}
-      </Rows>
-    </Panel>
   );
 }
 
@@ -317,35 +282,6 @@ function TrackClan({ clan }) {
   );
 }
 
-function Latest() {
-  const { when } = useClock();
-  const latest = panelOf(useHomeLatest(), "latest");
-  const items = latest?.items ?? [];
-  return (
-    <Panel title="Latest" action={<Link to="/home/timeline">All of it</Link>}>
-      {latest === undefined ? (
-        <div className="kit-skeleton" aria-busy="true" />
-      ) : !latest.ok ? (
-        <p className="kit-week__quiet" role="alert">
-          The timeline could not be read just now. Try again shortly.
-        </p>
-      ) : items.length === 0 ? (
-        <p className="kit-week__quiet">Nothing in the last seven days.</p>
-      ) : (
-        <Rows>
-          {items.map((it, i) => (
-            <Row
-              key={it.id ?? i}
-              title={<TagText>{it.text}</TagText>}
-              right={when(it.at)}
-            />
-          ))}
-        </Rows>
-      )}
-    </Panel>
-  );
-}
-
 function SetupDetails({ first, clan, player }) {
   const { whenDay } = useClock();
   const conn = first?.connection;
@@ -438,7 +374,7 @@ export function TodayFresh({ player }) {
 export function TodayError({ onRetry, busy }) {
   return (
     <ErrorState
-      title="Today could not be read just now"
+      title="Home could not be read just now"
       onRetry={onRetry}
       busy={busy}
     >

@@ -16,7 +16,8 @@ callout: ["Open it at Ladder › Season", "/ladder", "Open Ladder"]
 The game forgets: its battle log holds roughly your last 30 battles. Elixir keeps
 every battle it records, and **Ladder**, at `/ladder`, reads that record
 back to you as a season: what you played, in which mode, and how it went.
-It sits beside Home, signed in like Home. A bar at the top says whose
+Reach it from **You** (the account menu on a wide screen, a tab on a phone)
+or from a player's page; it is signed in like Home. A bar at the top says whose
 season, which season and which mode you are reading; four tabs under it are
 the pages: **Season**, **Battles**, **Decks** and **Cards**.
 

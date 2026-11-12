@@ -71,8 +71,8 @@
             {%- endfor %}
           </nav>
           <nav class="kit-top__nav" data-session-face="in" aria-label="Main">
-            {%- for product in familyBar.products %}{% if not product.game %}
-            <a href="{{ product.path }}">{% chromeIcon product.icon, 18 %}{{ product.label }}</a>
+            {%- for tab in familyBar.tabs %}{% if tab.bar != false %}
+            <a href="{{ tab.path }}">{% chromeIcon tab.icon, 18 %}{{ tab.label }}</a>
             {%- endif %}{% endfor %}
           </nav>
           <a class="kit-top__search" data-session-face="in" href="{{ familyBar.search.staticPath }}">
@@ -85,6 +85,9 @@
           <button type="button" class="kit-top__icon" data-session-face="in" data-help-open aria-label="{{ familyBar.help.label }}">
             {% chromeIcon familyBar.help.icon, 18 %}
           </button>
+          <a class="kit-top__icon kit-bell" data-session-face="in" href="{{ familyBar.bell.staticPath }}" aria-label="{{ familyBar.bell.label }}">
+            {% chromeIcon familyBar.bell.icon, 18 %}
+          </a>
           {%- for product in familyBar.products %}{% if product.game %}
           <a class="kit-top__drop" data-session-face="in" href="{{ product.href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ product.action }}, {{ product.about }}, opens in a new window">
             {% chromeIcon product.icon, 18 %}
@@ -125,15 +128,15 @@
 
       {#- The phone's tabs, signed in only, as the app draws them. -#}
       <nav class="kit-bottom" data-session-face="in" aria-label="Main, phone">
-        {%- for product in familyBar.products %}{% if not product.game %}
-        <a href="{{ product.path }}">
-          {% chromeIcon product.icon, 22 %}
-          <span>{{ product.label }}</span>
+        {%- for tab in familyBar.tabs %}
+        <a href="{{ tab.path }}">
+          {% chromeIcon tab.icon, 22 %}
+          <span>{{ tab.label }}</span>
         </a>
-        {%- endif %}{% endfor %}
-        <a href="{{ familyBar.search.staticPath }}">
-          {% chromeIcon familyBar.search.icon, 22 %}
-          <span>{{ familyBar.search.label }}</span>
+        {%- endfor %}
+        <a href="{{ familyBar.bell.staticPath }}">
+          {% chromeIcon familyBar.bell.icon, 22 %}
+          <span>{{ familyBar.bell.tab }}</span>
         </a>
       </nav>
     </div>

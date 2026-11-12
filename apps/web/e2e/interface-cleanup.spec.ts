@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, mockApi, signedIn } from "./clan/fixtures.ts";
+import { HOME_READS } from "./home-fixture.ts";
 
 // A configured UI is exercised entirely against the existing route fixtures.
 // Merely opening editors must not change the clan's settings or send messages.
@@ -145,6 +146,7 @@ test("@narrow a timeline event keeps its reading width when evidence and the New
   await mockApi(
     page,
     signedIn({
+      ...HOME_READS,
       "GET /api/me/timeline/discord": [
         200,
         { enabled: false, webhook: null, delivery: null },
@@ -180,8 +182,8 @@ test("@narrow a timeline event keeps its reading width when evidence and the New
       ],
     }),
   );
-  await page.goto("/home/timeline");
-  const sentence = page.locator(".kit-tl .kit-row__title");
+  await page.goto("/home");
+  const sentence = page.locator(".kit-feed__text");
   const controls = page.locator(".kit-tl__more");
   await expect(controls).toHaveText("View games");
   await expect(page.locator(".kit-newmark")).toContainText("New since");

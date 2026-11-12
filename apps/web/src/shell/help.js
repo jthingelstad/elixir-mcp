@@ -12,7 +12,7 @@ import { settingsHere } from "../lib/settings.js";
  */
 const FALLBACK = {
   title: "this page",
-  docs: "home:today",
+  docs: "home",
   lines: ["Elixir records your Clash Royale battles and reads them back."],
 };
 

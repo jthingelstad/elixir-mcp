@@ -37,17 +37,27 @@ Each step ships alone.
 
 ## The arrangement
 
-### Top bar and phone tabs [Jamie, 2026-11-05; step 3]
+### Top bar and phone tabs [Jamie, 2026-11-05, 2026-11-12; step 3, slice 7]
 
-- **Top bar, signed in:** Logo, Home, Ladder, Clan, search, Help, Play Drop,
-  avatar with the player's name.
-- **Phone bottom tabs:** Home, Ladder, Clan, Search.
+Asked "Slice 7, Home: one feed with chips Everyone, Friends, Clan and You, session sparklines, a new top bar and phone tabs (Home, Find, Clan, You, bell) replacing Home's three tabs, and reactions. Which reactions?", Jamie answered "Yes, six cheers (Recommended)". It replaces
+the signed-in top bar and phone tabs of 2026-11-05 (Home, Ladder, Clan; Search
+as the fourth phone tab).
+
+- **Top bar, signed in:** Logo, Home, Find, Clan, search, Help, the bell, Play
+  Drop, avatar with the player's name. The avatar's menu is You on a wide
+  screen. [engineering, 2026-11-12]
+- **Phone bottom tabs:** Home, Find, Clan, You, the bell.
+- **Ladder** leaves the tabs: it is reached from You and from each player's
+  page. [engineering, 2026-11-12]
 - **Top bar, signed out:** Logo, Home, Cards, Docs, Updates, Sign in, Create
   account.
 
-### Home [Jamie, 2026-11-05; step 3]
+### Home [Jamie, 2026-11-05, 2026-11-12; step 3, slice 7]
 
-`/home`, with tabs Today, Timeline and Friends.
+`/home` is one feed with the chips Everyone, Friends, Clan and You (the same
+ruling); its tabs Today, Timeline and Friends are gone, and their old addresses
+redirect. Find is `/home/find` and You is `/home/you`. The brief is
+[Home](home.md).
 
 ### Ladder [Jamie, 2026-11-05; step 5]
 
@@ -170,7 +180,7 @@ All answered yes. [Jamie, 2026-11-05]
 | D1 | The word "Console" retires. Paths keep working through redirects | 3 |
 | D2 | Clan has five tabs, with the picker in the page head | 4 |
 | D3 | An agent is a page in Settings, not a console you switch into | 6 |
-| D4 | Home gains a Friends tab, mirroring Wednesday's mail | 3 |
+| D4 | Home gains a Friends tab, mirroring Wednesday's mail; replaced by Home's one feed [Jamie, 2026-11-12] | 3 |
 | D5 | The player's name everywhere; the account's email only in Settings | 3 |
 | D6 | Casual is a fifth Ladder mode. It needs a mode entry and a chip | 5 |
 | D7 | Policy is a grouped side list, not top tabs. The sections stay separate | 4 |
@@ -228,9 +238,9 @@ All [Jamie, 2026-11-05].
 | Q5 | War on Ladder lists each war battle like any other, with one line above: decks used and points this week. No "of N", and no tool change | 5 |
 | Q6 | Casual everywhere, never Friendly. On the battle page only the word changes | 1 (word); 5 (chip) |
 | Q7 | Challenge and Tournament battles get a sixth chip, "Other", shown only to a player who has such battles this season | 5 |
-| Q8 | Timeline keeps today's Who and State filters, drawn as chips, starting on Everything. Nothing is dropped unless the person asks | 3 |
+| Q8 | Timeline keeps today's Who and State filters, drawn as chips, starting on Everything. Nothing is dropped unless the person asks. Since 2026-11-12 the Who chips are Everyone, Friends, Clan and You [Jamie, 2026-11-12]; State stays | 3, slice 7 |
 | Q9 | One timeline wording everywhere, improved at the source, with a contract note. "departed (was Member)" stays with no tenure, and "was removed" once a leader says so | 1 |
-| Q10 | Follow on Friends means Friend, with one small API change. The tab shows both lists, like Wednesday's mail. With no player of your own, it asks for yours first | 3 |
+| Q10 | Follow on Friends means Friend, with one small API change. The tab shows both lists, like Wednesday's mail. With no player of your own, it asks for yours first. Since slice 7 the Follow form is on Find, and the lists are the digest's [engineering, 2026-11-12] | 3 |
 | Q11 | Settings gains Usage and limits and Feedback. Clan Today gains Waiting and Decided for co-leaders up. Minimums goes first under What counts | 3, 4, 6 |
 | Q12 | `/data` is the one public status page, and the signed-in detail links from it | 3, 7 |
 | Q13 | Updates shows product news by default, with a "Show contract versions" switch for builders. Agents keep `elixir_changelog` | 7 |
@@ -249,7 +259,7 @@ All [Jamie, 2026-11-05].
 | A1 | Product news has no switch in Emails. Buttondown sends it, and Elixir never reads an unsubscribe back. A line in Emails, outside the count, points to the unsubscribe link in every issue | 6 |
 | A2 | Say the trim now: "History stays for at least a year after the last person stops tracking." | 1 |
 | A3 | The privacy page's status line names "The status page", and its lines about changing a time zone and disconnecting Discord name the new place | 1 |
-| A4 | Friends says "they aren't told" | 3 |
+| A4 | Friends says "they aren't told"; Find says it since slice 7 | 3 |
 | A5 | Support says "every daily reading", and the Standing doc is corrected | 1 |
 | A6 | What running a collector earns: "raises your limits to Family, and nothing else" | 1 |
 | A7 | A short support line in the footer, as long as the full promise stays on Support | 1, 8 |

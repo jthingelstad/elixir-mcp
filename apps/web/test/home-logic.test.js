@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vitest";
 import {
   clanStepLine,
-  friendsView,
+  feedShown,
   gameLine,
   lastRaceLine,
   needsYou,
+  sparkWords,
   timelineDays,
   weekChips,
 } from "../src/home/logic.js";
@@ -167,35 +168,38 @@ test("last race: season, week, place and fame", () => {
   expect(lastRaceLine(null)).toBe(null);
 });
 
-describe("Friends' lists", () => {
-  const played = { tag: "#A", name: "Ada", battles: 3 };
-  test("a quiet friend is named however long; a quiet watch splits at thirty days", () => {
-    const v = friendsView({
-      friends: [played],
-      watching: [],
-      quiet: [
-        { tag: "#B", name: "Old friend", days: 90, relationship: "friend" },
-        { tag: "#C", name: "Recent", days: 29, relationship: "watching" },
-        { tag: "#D", name: "Long", days: 30, relationship: "watching" },
-      ],
-    });
-    expect(v.friendsTotal).toBe(2);
-    expect(v.friendsQuiet).toEqual(["Old friend"]);
-    expect(v.watchingQuiet).toEqual(["Recent"]);
-    expect(v.watchingLong).toEqual(["Long"]);
+describe("Home's one feed", () => {
+  const items = [
+    { id: "a", groups: ["you"] },
+    { id: "b", groups: ["friends"] },
+    { id: "c", groups: ["clan", "friends"] },
+    { id: "d", groups: [] },
+  ];
+  const ids = (list) => list.map((it) => it.id);
+  test("Everyone is every item, in the feed's order", () => {
+    expect(ids(feedShown(items, "everyone"))).toEqual(["a", "b", "c", "d"]);
   });
-
-  test("nobody at all, and nobody who played, are different pages", () => {
-    expect(friendsView({ friends: [], watching: [], quiet: [] }).empty).toBe(
-      true,
+  test("a chip shows the items in its group, and an item can be in two", () => {
+    expect(ids(feedShown(items, "friends"))).toEqual(["b", "c"]);
+    expect(ids(feedShown(items, "clan"))).toEqual(["c"]);
+    expect(ids(feedShown(items, "you"))).toEqual(["a"]);
+  });
+  test("a chip it does not know shows everything rather than nothing", () => {
+    expect(ids(feedShown(items, "nobody"))).toEqual(["a", "b", "c", "d"]);
+  });
+  test("a sparkline in words: wins, losses, then each battle in order with its margin", () => {
+    expect(
+      sparkWords([
+        { r: "w", m: 3 },
+        { r: "l", m: 1 },
+        { r: "w", m: 1 },
+      ]),
+    ).toBe(
+      "3 battles: 2 wins, 1 loss. In order: won by 3 crowns, lost by 1 crown, won by 1 crown",
     );
-    const quiet = friendsView({
-      friends: [],
-      watching: [],
-      quiet: [{ tag: "#B", name: "B", days: 1, relationship: "friend" }],
-    });
-    expect(quiet.empty).toBe(false);
-    expect(quiet.nobody).toBe(true);
+    expect(sparkWords([{ r: "d", m: null }])).toBe(
+      "1 battle: 0 wins, 0 losses, 1 draw. In order: draw",
+    );
   });
 });
 

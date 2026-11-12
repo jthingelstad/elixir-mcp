@@ -136,13 +136,14 @@ so the product and account controls keep their room. Your full account name
 wraps inside its menu. The same controls remain available by keyboard.
 
 On Home, **Setup details** holds completed setup. Incomplete setup and
-recording problems stay visible under **Needs you**.
+recording problems are under the bell, **Needs you**, which shows a dot
+while any of them does.
 
 ## Elixir on your phone
 
 Elixir installs on a phone's home screen and opens like an app: full
-screen, with its own icon, and **Home**, **Ladder**, **Clan** and
-**Search** as tabs at the foot.
+screen, with its own icon, and **Home**, **Find**, **Clan**, **You** and
+the bell as tabs at the foot.
 
 - **iPhone or iPad:** open [elixir.poapkings.com](/home) in Safari, tap
   **Share**, then **Add to Home Screen**.
@@ -153,7 +154,7 @@ The installed app opens on Home. It keeps a sign-in of its own, apart
 from the browser's, so sign in once inside it: type the code from the
 email, or open its link, and the app's sign-in page signs in too, as
 [above](#signing-in). On Android, a long press on the icon offers
-**Timeline**, **Ladder** and **Clan**. It needs a connection, as the
+**Find**, **Ladder** and **Clan**. It needs a connection, as the
 site does.
 
 ## Your players

@@ -119,6 +119,8 @@ export function signedIn(
         },
       },
     ],
+    // The bell's read, on every signed-in page (#765): nothing needs you.
+    "GET /api/me/home/needs": [200, { needs: { ok: true, state: "none" } }],
     "GET /api/me/timeline/discord": [
       200,
       { enabled: false, webhook: null, delivery: null },

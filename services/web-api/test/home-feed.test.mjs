@@ -1,0 +1,102 @@
+/**
+ * Home's one feed (slice 7, #765): what the website adds to each timeline
+ * item, and nothing else. Which chips an item sits under, a sitting's
+ * sparkline, and the battle that proved a moment. Synthetic tags and names.
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { annotateFeed, groupsOf, sparkBars, sparkOf } from "../src/feed.mjs";
+
+const ME = "#2PYLQ0";
+const ALT = "#2PYLQ2";
+const FRIEND = "#2PYLQ8";
+const CLAN = "#2PYLQJ";
+const MEMBER = "#2PYLQC";
+const SUBJECTS = [
+  { tag: ME, kind: "player", relationship: "primary" },
+  { tag: ALT, kind: "player", relationship: "alt" },
+  { tag: FRIEND, kind: "player", relationship: "friend" },
+  { tag: CLAN, kind: "clan" },
+];
+
+test("an item sits under the chips its subjects make it", () => {
+  const about = (...tags) => ({
+    subject_tag: tags[0],
+    subjects: tags.map((tag) => ({ tag })),
+  });
+  assert.deepEqual(groupsOf(about(ME), SUBJECTS), ["you"]);
+  assert.deepEqual(groupsOf(about(ALT), SUBJECTS), ["you"]);
+  assert.deepEqual(groupsOf(about(FRIEND), SUBJECTS), ["friends"]);
+  // A clanmate's line names the clan among its subjects.
+  assert.deepEqual(groupsOf(about(MEMBER, CLAN), SUBJECTS), ["clan"]);
+  assert.deepEqual(groupsOf(about(CLAN), SUBJECTS), ["clan"]);
+  // A friend in your clan is under both.
+  assert.deepEqual(groupsOf(about(FRIEND, CLAN), SUBJECTS), [
+    "friends",
+    "clan",
+  ]);
+  // About nobody followed: the account's own (a feedback answer).
+  assert.deepEqual(groupsOf({ subjects: [] }, SUBJECTS), ["you"]);
+});
+
+test("a sparkline is outcome and crown margin, one to three", () => {
+  assert.deepEqual(
+    sparkBars([
+      { outcome: "win", margin: 3 },
+      { outcome: "loss", margin: -1 },
+      { outcome: "draw", margin: 0 },
+      { outcome: "win", margin: null },
+      // A margin past three (a crown count the game never gives) is three.
+      { outcome: "loss", margin: -4 },
+    ]),
+    [
+      { r: "w", m: 3 },
+      { r: "l", m: 1 },
+      { r: "d", m: 1 },
+      { r: "w", m: null },
+      { r: "l", m: 3 },
+    ],
+  );
+  assert.equal(sparkBars([]), null);
+  // The spark rides a symbol entries.mjs sets; an item without one has none.
+  assert.equal(sparkOf({ kind: "battle_session", spark: [{}] }), null);
+});
+
+test("annotateFeed adds the chips, the battle's page, and keeps the rest", async () => {
+  const BATTLE = "a".repeat(64);
+  const db = {
+    async query(sql, [ids]) {
+      assert.match(sql, /unnest/);
+      assert.deepEqual(ids, [BATTLE]);
+      return { rows: [{ id: BATTLE, prev: null, next: null }] };
+    },
+  };
+  const items = [
+    {
+      kind: "trophy_milestone",
+      subject_tag: FRIEND,
+      subjects: [{ tag: FRIEND, kind: "player" }],
+      text: "Crossed 6,000 trophies.",
+      facts: { crossed_by: { battle_id: BATTLE } },
+    },
+    { kind: "feedback_answer", subjects: [], text: "An answer.", facts: {} },
+  ];
+  const out = await annotateFeed(db, items, SUBJECTS);
+  assert.deepEqual(out[0].groups, ["friends"]);
+  assert.match(out[0].battle_url, /\/battle\/a{12}$/);
+  assert.equal(out[0].text, "Crossed 6,000 trophies.");
+  assert.deepEqual(out[1].groups, ["you"]);
+  assert.equal(out[1].battle_url, undefined);
+  assert.equal(out[1].spark, undefined);
+  // Nothing to look up: no read at all.
+  assert.deepEqual(
+    await annotateFeed(
+      {
+        query: () => assert.fail("no battle to link"),
+      },
+      [items[1]],
+      SUBJECTS,
+    ),
+    [{ ...items[1], groups: ["you"] }],
+  );
+});

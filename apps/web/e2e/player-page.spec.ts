@@ -124,7 +124,7 @@ for (const [label, width] of [
           },
         }),
       );
-      await page.goto("/home/friends");
+      await page.goto("/home");
       await page.getByRole("link", { name: "Ada", exact: true }).click();
       await expect(page).toHaveURL(/\/home\/player\/2YG98VVQ$/);
       await expect(

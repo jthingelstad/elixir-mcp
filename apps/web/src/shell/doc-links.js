@@ -3,18 +3,20 @@
  * shell/help.js names a page. A page with a help entry names its own key here.
  */
 export const DOC_LINKS = {
-  "home:today": [
-    "Today",
+  home: [
+    "Home",
     [
       ["Get started with Elixir", "/docs/quickstart"],
+      ["The timeline", "/docs/timeline"],
       ["Recording and coverage", "/docs/recording"],
       ["Roles and quotas", "/docs/roles"],
     ],
   ],
-  "home:friends": [
-    "Friends",
+  "home:find": [
+    "Find",
     [
       ["Follow a friend", "/docs/follow-a-friend"],
+      ["A player's page", "/docs/player-page"],
       ["Roles and quotas", "/docs/roles"],
     ],
   ],
