@@ -30,19 +30,17 @@ test("front door focuses on recording and has no global statistics request", asy
       name: "Keep up with your friends in Clash Royale",
     }),
   ).toBeVisible();
-  await expect(page.locator(".home-tile__product")).toHaveText([
-    "Your record",
-    "Clan",
-    "Friends",
-    "Emails",
-    "Your AI",
+  await expect(page.locator(".home-row__title")).toHaveText([
+    "Follow your friends",
+    "Your clan’s week",
+    "Share a battle you are proud of",
   ]);
   await expect(page.locator("[data-home-top3], [data-home-strip]")).toHaveCount(
     0,
   );
-  const play = page
-    .getByRole("region", { name: "Drop" })
-    .getByRole("link", { name: /Play Drop/ });
+  const play = page.locator(".home-next").getByRole("link", {
+    name: /Play Drop/,
+  });
   await expect(play).toHaveAttribute("href", "https://drop.poapkings.com/");
   await expect(play).toHaveAttribute("target", "_blank");
   expect(calls).toEqual([]);
@@ -53,14 +51,13 @@ test("@narrow recorder home fits a phone and tablet", async ({ page }) => {
     await page.setViewportSize({ width, height: 860 });
     await page.goto("/");
     for (const name of [
-      "Get started ›",
-      "Bring your clan ›",
       "Follow a friend ›",
-      "See every email ›",
-      "Connect your agent ›",
+      "Bring your clan ›",
+      "The clan directory ›",
+      "Highlight a battle ›",
     ])
       await expect(
-        page.locator(".home-tile").getByRole("link", { name }),
+        page.locator(".home-row").getByRole("link", { name }),
       ).toBeVisible();
     expect(
       await page.evaluate(

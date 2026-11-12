@@ -7,6 +7,7 @@ order: 2
 navTitle: "Connect a client, step by step"
 icon: plug
 lede: "Point Claude, ChatGPT or any MCP client at Elixir and sign in once. Connecting an AI is optional."
+demo: true
 ---
 
 # Connect a client, step by step

@@ -19,6 +19,8 @@ navActive: docs
     id) — that is what the outline and the rail's third level list, and
     what a link to a specific tool lands on. -#}
 {%- set outline = content | headings(3) if toolFamily else content | headings %}
+{#- A page that carries the agent exchange (doc-demo.njk) lists it first. -#}
+{%- if demo %}{% set outline = [{ id: "ask-in-plain-language", text: "Ask in plain language" }].concat(outline) %}{% endif %}
 {%- set body = content | withoutH1 %}
 {%- set isTools = slug and ("tools" == slug or "tools-" in slug) %}
 {%- set here = collections.docSections | docGroup(section) %}
@@ -61,6 +63,7 @@ navActive: docs
         </nav>
         {%- endif %}
         {%- endif %}
+        {%- if demo %}{% include "doc-demo.njk" %}{% endif %}
         {{ body | safe }}
         {%- if slug %}
         {%- set near = collections.docSections | docNeighbours(slug) %}

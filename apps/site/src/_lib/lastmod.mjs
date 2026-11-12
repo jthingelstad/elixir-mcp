@@ -100,9 +100,19 @@ const EXTRA = [
     ["_data/examples.js", "_data/examplesFlat.js", "_data/transcript.js"],
   ],
   [/^\/family(\/|$)/, ["_data/family.js", "_data/familyFlat.js"]],
+  // The agent exchange (doc-demo.njk) is drawn from the examples.
+  [
+    /^\/docs\/connect-a-client$/,
+    [
+      "_includes/doc-demo.njk",
+      "_includes/transcript.njk",
+      "_data/examples.js",
+      "_data/transcript.js",
+    ],
+  ],
 ];
 /** Pages that print the stats snapshot. */
-const STATS = /^\/(|support|data|data\/growth|data\/now|data\/collect)$/;
+const STATS = /^\/(support|data|data\/growth|data\/now|data\/collect)$/;
 
 /**
  * Make the lastmod function for one build. `pages` are the sitemap's

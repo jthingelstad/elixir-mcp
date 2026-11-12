@@ -8,15 +8,16 @@ navActive: home
 ---
 {#- The front door, signed out: sign in or join (the canvas's signed-out
     shell, Jamie's go 2026-11-12: "Approved: build the remaining canvas
-    pieces (…, signed-out shell, …)"). The gate leads; below it, what each
-    part of Elixir does, Drop next door, an agent exchange and the totals
-    baked from /api/public/stats at build, all still public. Signed in, the
-    same page offers Open Elixir.
+    pieces (…, signed-out shell, …)"). The gate leads. Below it, Jamie's
+    trim of 2026-11-12 ("trim the signed-out front page to the gate, three
+    flat rows and a Drop line, moving the agent demo and counts to Docs and
+    Status"): friends, your clan and highlights as three flat rows, Drop as
+    one line, and the call to join. The agent exchange lives on Connect a
+    client (/docs/connect-a-client), the record's counts on /data. Signed
+    in, the same page offers Open Elixir.
 
-    No number on this page is invented. The tiles describe a part of
-    Elixir instead of showing a record, because a visitor here has none
-    and the page has nobody's to show. -#}
-{%- set t = stats.totals %}
+    A row promises only what is live, and shows no number: a visitor here
+    has no record and the page has nobody's to show. -#}
 {%- set drop = familyBar.products | selectattr("game") | first %}
 <div data-home>
 <section class="grid items-center gap-6 pt-6 wide:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] wide:gap-10 wide:pt-10" aria-labelledby="home-gate">
@@ -46,167 +47,64 @@ navActive: home
   </div>
 </section>
 
-<section class="home-band" aria-labelledby="home-caps">
-  <div class="home-band__head">
-    <h2 class="home-band__title" id="home-caps">What Elixir does for you</h2>
-    <span class="home-band__note">one account, every piece</span>
-  </div>
-  <div class="grid gap-5 wide:grid-cols-3">
-    <article class="home-tile">
-      <span class="home-tile__head"><span class="home-tile__icon">{% icon "user-round", 18 %}</span><span class="home-tile__product">Your record</span></span>
-      <h3 class="home-tile__question">Start your record here</h3>
-      <p class="home-tile__text">Add your player, alts and friends. Choose what to record, manage your emails and connect an agent if you want one.</p>
-      <ul class="home-tile__sample" aria-label="Your first steps">
-        <li class="home-tile__row">Create your account with an email</li>
-        <li class="home-tile__row">Add your player, and history starts with the first read</li>
-        <li class="home-tile__caption">An agent is optional</li>
-      </ul>
-      <a class="home-tile__cta" href="/home">Get started ›</a>
-    </article>
+<section class="home-rows" aria-label="What Elixir does">
+  <article class="home-row">
+    <span class="home-row__icon">{% icon "heart", 20 %}</span>
+    <h2 class="home-row__title">Follow your friends</h2>
+    <p class="home-row__text">
+      Follow friends and the players you like. Their sessions, their firsts
+      and their highlights come in one feed, newest first, and you can cheer
+      them on. Your digest tells you what they played every Wednesday, or
+      every day if you choose.
+    </p>
+    <a class="home-row__link" href="/docs/follow-a-friend">Follow a friend ›</a>
+  </article>
 
-    <article class="home-tile">
-      <span class="home-tile__head"><span class="home-tile__icon">{% icon "users", 18 %}</span><span class="home-tile__product">Clan</span></span>
-      <h3 class="home-tile__question">Run the clan without a spreadsheet</h3>
-      <p class="home-tile__text">Write your rules once. Elixir reads each week against them and hands leaders the calls: promotions, welcomes, departures.</p>
-      <ul class="home-tile__sample" aria-label="Two of the calls Clan hands leaders">
-        <li class="home-tile__row">{% icon "award", 14 %}<span class="grow">Promote to Elder</span><span class="chip chip--warn">waiting</span></li>
-        <li class="home-tile__row">{% icon "user-plus", 14 %}<span class="grow">Welcome a newcomer</span><span class="chip chip--warn">waiting</span></li>
-        <li class="home-tile__caption">Add your player, then verify it to act in your game role</li>
-      </ul>
-      <a class="home-tile__cta" href="/docs/bring-your-clan">Bring your clan ›</a>
-    </article>
+  <article class="home-row">
+    <span class="home-row__icon">{% icon "users", 20 %}</span>
+    <h2 class="home-row__title">Your clan&rsquo;s week</h2>
+    <p class="home-row__text">
+      The river race as it runs, where everyone stands, and the rules your
+      clan plays by. Leaders write the rules once and run the clan from one
+      place: promotions, welcomes and departures wait for them there.
+      Looking for a clan? The clan directory lists them by their rules.
+    </p>
+    <span class="home-row__links">
+      <a class="home-row__link" href="/docs/bring-your-clan">Bring your clan ›</a>
+      <a class="home-row__link" href="/docs/clan-directory">The clan directory ›</a>
+    </span>
+  </article>
 
-    <article class="home-tile">
-      <span class="home-tile__head"><span class="home-tile__icon">{% icon "heart", 18 %}</span><span class="home-tile__product">Friends</span></span>
-      <h3 class="home-tile__question">How are my friends doing?</h3>
-      <p class="home-tile__text">Follow friends and players you like. Every Wednesday, or every day if you choose, your digest tells you what they played and posted.</p>
-      <ul class="home-tile__sample" aria-label="What a friend gets in your digest">
-        <li class="home-tile__row">First in your digest</li>
-        <li class="home-tile__row">Their highlights, in their own words</li>
-        <li class="home-tile__row">The battle behind each big first</li>
-        <li class="home-tile__caption">Your digest, weekly or daily</li>
-      </ul>
-      <a class="home-tile__cta" href="/docs/follow-a-friend">Follow a friend ›</a>
-    </article>
-
-    <article class="home-tile">
-      <span class="home-tile__head"><span class="home-tile__icon">{% icon "mail", 18 %}</span><span class="home-tile__product">Emails</span></span>
-      <h3 class="home-tile__question">Tell me without me asking</h3>
-      <p class="home-tile__text">Short emails for each part of your week, each with its own switch. Milestones arrive within the hour.</p>
-      <ul class="home-tile__sample" aria-label="The weekly emails">
-        <li class="home-tile__row"><span class="home-tile__day">Mon</span>Clan report</li>
-        <li class="home-tile__row"><span class="home-tile__day">Tue</span>Your week in the Arena</li>
-        <li class="home-tile__row"><span class="home-tile__day">Wed</span>Your digest</li>
-      </ul>
-      <a class="home-tile__cta" href="/docs/email">See every email ›</a>
-    </article>
-
-    <article class="home-tile">
-      <span class="home-tile__head"><span class="home-tile__icon">{% icon "bot", 18 %}</span><span class="home-tile__product">Your AI</span></span>
-      <h3 class="home-tile__question">Ask anything about your game</h3>
-      <p class="home-tile__text">Connect Claude or any MCP client to your whole record. It answers from the numbers and shows its work.</p>
-      <div class="home-tile__sample">
-        <span class="home-tile__ask">Am I getting better, or just grinding?</span>
-        <span class="home-tile__tools">players_summary · battles_performance</span>
-      </div>
-      <a class="home-tile__cta" href="/docs/quickstart">Connect your agent ›</a>
-    </article>
-
-
-  </div>
+  <article class="home-row">
+    <span class="home-row__icon">{% icon "message-square-quote", 20 %}</span>
+    <h2 class="home-row__title">Share a battle you are proud of</h2>
+    <p class="home-row__text">
+      Once your player is verified, pick one of your battles and say what
+      happened in your own words. It goes on your timeline for everyone who
+      follows you. Share it, and the link opens for anyone, no account needed.
+    </p>
+    <a class="home-row__link" href="/docs/battles#highlight-a-battle">Highlight a battle ›</a>
+  </article>
 </section>
 
 {%- if drop %}
-<section class="home-drop" aria-labelledby="home-drop">
-  <span class="home-drop__mark">{% icon drop.icon, 44 %}</span>
-  <div class="home-drop__body">
-    <h2 class="home-drop__title" id="home-drop">{{ drop.label }}, a game next door</h2>
-    <p class="home-drop__text">Know your elixir costs cold. Ranked games, Practice, badges and seasons, signed in with your Elixir account.</p>
-  </div>
-  <a class="home-drop__play" href="{{ drop.href }}" target="_blank" rel="noopener" aria-label="{{ drop.action }}, {{ drop.about }} (opens {{ drop.href | host }} in a new window)">
-    {% chromeIcon drop.icon, 20 %}{{ drop.action }}{% chromeIcon "arrow-up-right", 18 %}
-  </a>
-</section>
+<p class="home-next">
+  <span class="home-next__mark">{% icon drop.icon, 16 %}</span>
+  <span>{{ drop.label }}, the game next door: learn your elixir costs cold, signed in with your Elixir account.
+  <a href="{{ drop.href }}" target="_blank" rel="noopener" aria-label="{{ drop.action }}, {{ drop.about }} (opens {{ drop.href | host }} in a new window)">{{ drop.action }} ›</a></span>
+</p>
 {%- endif %}
 
-
-
-<section class="home-band" aria-labelledby="home-ask">
-  <div class="grid items-start gap-8 wide:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] wide:gap-10">
-    <div class="flex min-w-0 flex-col items-start gap-4">
-      <h2 class="home-band__title" id="home-ask">Ask in plain language</h2>
-      <p class="m-0 text-[15px] leading-[1.6] text-ink-body">
-        Your agent gets the tools, what your account allows, and
-        every answer with its sample size. You ask the way you would ask a
-        clanmate; the answer comes from the record, with the numbers
-        behind it.
-      </p>
-      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-[14px]">
-        <a href="/docs/quickstart">Connect your agent ›</a>
-        <a href="/examples/play">Every example, start to finish ›</a>
-      </div>
-    </div>
-    <div class="min-w-0">
-      {%- set scripts = transcript %}
-      {% include "transcript.njk" %}
-      <p class="footnote mx-0.5 mb-0 mt-3">
-        A real exchange, recorded Sep 10: each question was put to
-        the live service, the tools under the window are the ones that
-        answered it, and every number came back from them.
-      </p>
-    </div>
-  </div>
-</section>
-
-<section class="home-band" aria-labelledby="home-corpus">
-  <div class="home-band__head">
-    <h2 class="home-band__title home-band__title--plain" id="home-corpus">What it is reading</h2>
-    <span class="home-band__note">the whole record, when this page was published</span>
-    <a class="text-[14px]" href="/data">Status and data ›</a>
-  </div>
-  {#- The one place a number is gold on the home page. Baked at deploy from
-      the same stats /data draws. -#}
-  <div class="stats">
-    <div class="stats__cell">
-      <div class="label">Battles</div>
-      <div class="stats__value stats__value--brand">{% if t %}{{ t.battles | number }}{% else %}unknown{% endif %}</div>
-      <div class="stats__note">{% if t %}since {{ t.oldest_battle | shortDay }}{% else %}recorded{% endif %}</div>
-    </div>
-    <div class="stats__cell">
-      <div class="label">Players</div>
-      <div class="stats__value stats__value--brand">{% if t %}{{ t.players_recording | number }}{% else %}unknown{% endif %}</div>
-      <div class="stats__note">recorded</div>
-    </div>
-    <div class="stats__cell">
-      <div class="label">Clans</div>
-      <div class="stats__value stats__value--brand">{% if t %}{{ t.clans_recording | number }}{% else %}unknown{% endif %}</div>
-      <div class="stats__note">recorded</div>
-    </div>
-    <div class="stats__cell">
-      <div class="label">War weeks</div>
-      <div class="stats__value stats__value--brand">{% if t %}{{ t.war_weeks | number }}{% else %}unknown{% endif %}</div>
-      <div class="stats__note">recorded races</div>
-    </div>
-  </div>
-</section>
-
 {#- The FORM LIVES IN THE APP (2026-09-10), on the sign-in card: signing
-    in and asking to are one decision, and this half once had a second
-    implementation of the same POST that broke silently. This panel
-    posts nothing; signup and sign-in share one email verification door. -#}
-<section class="panel panel--cta mt-14" id="request" data-session-face="out" aria-labelledby="home-request">
-  <div class="panel__body flex flex-col items-start gap-3 wide:flex-row wide:items-center wide:gap-6">
-    <div class="flex min-w-0 flex-auto flex-col gap-1">
-      <h2 class="panel-title m-0" id="home-request">Create your account</h2>
-      <p class="footnote m-0">
-        Free signup. Verify your email, then add your player.
-        Running a collector is optional and open to anyone; recording has limits.
-      </p>
-    </div>
-    <a class="btn btn--primary" href="/signin?signup">Create your account</a>
+    in and asking to are one decision. This call posts nothing; signup and
+    sign-in share one email verification door. -#}
+<section class="home-join" id="request" data-session-face="out" aria-labelledby="home-request">
+  <div class="flex min-w-0 flex-col gap-1">
+    <h2 class="home-join__title" id="home-request">Create your account</h2>
+    <p class="footnote m-0">Free. Verify your email, then add your player.</p>
   </div>
+  <a class="btn btn--primary" href="/signin?signup">Create your account</a>
 </section>
 </div>
 
-<script src="{{ "/assets/transcript.js" | asset }}" defer></script>
 <script src="{{ "/assets/home-status.js" | asset }}" defer></script>

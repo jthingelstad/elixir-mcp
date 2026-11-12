@@ -122,10 +122,13 @@ test("@narrow invitation entry and signup fit phone and desktop without changing
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    for (const name of ["Your record", "Clan", "Friends"])
+    for (const name of [
+      "Follow your friends",
+      "Share a battle you are proud of",
+    ])
       await expect(
         page
-          .locator(".home-tile__product")
+          .locator(".home-row__title")
           .filter({ hasText: new RegExp(`^${name}$`) }),
       ).toBeVisible();
     expect(
