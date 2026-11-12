@@ -7,7 +7,7 @@ const ALL = "__all__";
  * The Clan picker: a plain select beside the clan's name, only with two or
  * more clans (the ruling of 2026-11-05 on the old rail picker). Most players
  * are in one clan and never see it. One clan at a time stays: choosing one
- * remembers it on the server, then goes to its Today. While a selection is
+ * remembers it on the server, then goes to its Feed. While a selection is
  * pending the picker is busy, so a second pick never races the first.
  */
 export function ClanPicker({ me, navigate, select, selecting }) {

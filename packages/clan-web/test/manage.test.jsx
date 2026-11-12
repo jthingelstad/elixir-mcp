@@ -140,9 +140,9 @@ describe("clan paths", () => {
       section: "members",
       tab: "review",
     });
-    expect(parseClanPath("/clan/2PQRJ8LV/season")).toEqual({
+    expect(parseClanPath("/clan/2PQRJ8LV/war")).toEqual({
       tag: "#2PQRJ8LV",
-      section: "season",
+      section: "war",
       tab: null,
     });
     // Clan publishes no public pages (Jamie, 2026-09-25).

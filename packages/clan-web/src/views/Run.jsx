@@ -1,7 +1,8 @@
 import { useBlocker } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { clanPath } from "../lib/base.js";
-import { useAwards } from "../lib/queries.js";
+import { useAwards, useRunGate } from "../lib/queries.js";
+import { leads } from "../lib/tabs.js";
 import { PageHead } from "../components/PageHead.jsx";
 import { ActivityDiscordSetting } from "./ActivityDiscordSetting.jsx";
 import { AwardsConfig } from "./Awards.jsx";
@@ -19,9 +20,11 @@ import {
 import { Sharing } from "./Sharing.jsx";
 import { SocialSetting } from "./SocialSetting.jsx";
 import { VoiceSetting } from "./VoiceSetting.jsx";
+import { ActionsNow, Decided, RefreshSuggestions } from "./Waiting.jsx";
 
 /** Run's list, in the order a leader reads it. */
 const SIDE = [
+  { head: "Actions", items: ["actions", "decided"] },
   { head: "Policy", items: ["about"] },
   {
     head: "What counts",
@@ -35,6 +38,8 @@ const SIDE = [
   },
 ];
 const ELSEWHERE = {
+  actions: "Waiting",
+  decided: "Decided",
   "awards-setup": "Awards setup",
   discord: "Discord",
   "model-voice": "Model & voice",
@@ -177,7 +182,26 @@ function AwardsSetup({ clan }) {
 }
 
 /** What is not the policy: each saves on its own. */
-function Elsewhere({ clan, slug, navigate }) {
+function Elsewhere({ clan, who, slug, navigate }) {
+  // The leaders' Actions (Today's Waiting and Decided until 2026-11-12).
+  if (slug === "actions")
+    return (
+      <div className="grid gap-4">
+        <PageHead
+          title="Waiting"
+          fresh={<RefreshSuggestions clan={clan} />}
+          lede="What the clan's policy suggests you can do. The same actions are first in the Feed."
+        />
+        <ActionsNow clan={clan} who={who} navigate={navigate} />
+      </div>
+    );
+  if (slug === "decided")
+    return (
+      <div className="grid gap-4">
+        <PageHead title="Decided" />
+        <Decided clan={clan} navigate={navigate} />
+      </div>
+    );
   if (slug === "awards-setup")
     return (
       <div className="grid gap-4">
@@ -290,16 +314,58 @@ function useOldSettingsAnchor({ slug, base, navigate }) {
   }, [slug, base, navigate]);
 }
 
+/** Run refused: a member, an unverified leader, or anyone the server said
+ *  no to. How the clan runs is every member's, under Policy. */
+function RunRefused({ clan, navigate }) {
+  const policy = `${clanPath(clan.clan_tag)}/policy`;
+  return (
+    <div className="grid gap-4">
+      <PageHead title="Run" />
+      <div className="callout callout--warn" role="alert">
+        <span>
+          Run is for the clan&rsquo;s leader and co-leaders, verified in Elixir.
+          How the clan runs is under Policy, for every member.
+        </span>
+        <a
+          className="btn btn--sm"
+          href={policy}
+          onClick={(ev) => {
+            ev.preventDefault();
+            navigate?.(policy);
+          }}
+        >
+          Open Policy
+        </a>
+      </div>
+    </div>
+  );
+}
+
 /**
- * Run: how the clan is run, for the leader and co-leaders. On a wide screen
- * the list stands beside the section and `/run` opens About; on a phone `/run`
- * is the list and each section has a way back to it. The two are one page, so
- * a draft outlives every move between sections, and CSS alone picks what shows.
+ * Run: how the clan is run, for the leader and co-leaders, with their
+ * Actions first (Clan as one view, slice 8, #766). The tab is hidden from
+ * everyone else, and the server refuses its reads to them (`GET .../run`,
+ * 403 leaders_only); a refusal draws as one.
  */
-export function Run({ clan, section, navigate }) {
+export function Run(props) {
+  const { clan, navigate } = props;
+  const lead = leads(clan);
+  const { state } = useRunGate(clan.clan_tag, lead);
+  if (!lead || state.forbidden)
+    return <RunRefused clan={clan} navigate={navigate} />;
+  return <RunSections {...props} />;
+}
+
+/**
+ * Run's sections. On a wide screen the list stands beside the section and
+ * `/run` opens Waiting; on a phone `/run` is the list and each section has a
+ * way back to it. The two are one page, so a draft outlives every move
+ * between sections, and CSS alone picks what shows.
+ */
+function RunSections({ clan, who, section, navigate }) {
   const e = usePolicyDraft(clan);
   const base = `${clanPath(clan.clan_tag)}/run`;
-  const slug = titleOf(section) ? section : "about";
+  const slug = titleOf(section) ? section : "actions";
   const go = (s) => navigate?.(`${base}/${s}`);
   const isPolicy = Boolean(POLICY_SECTIONS[slug]);
   const dirty = Boolean(e.view && e.dirty);
@@ -345,7 +411,7 @@ export function Run({ clan, section, navigate }) {
           ‹ Run
         </a>
         {!isPolicy ? (
-          <Elsewhere clan={clan} slug={slug} navigate={navigate} />
+          <Elsewhere clan={clan} who={who} slug={slug} navigate={navigate} />
         ) : failed ? (
           <>
             <PageHead title={titleOf(slug)} />

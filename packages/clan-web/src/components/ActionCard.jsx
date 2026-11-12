@@ -1505,12 +1505,12 @@ function BoundActionCard({
               <>
                 <a
                   className="btn w-fit"
-                  href={`${clanPath(clan.clan_tag)}/today`}
+                  href={`${clanPath(clan.clan_tag)}/feed`}
                   onClick={(e) => {
                     if (!navigate || e.metaKey || e.ctrlKey || e.shiftKey)
                       return;
                     e.preventDefault();
-                    navigate(`${clanPath(clan.clan_tag)}/today`);
+                    navigate(`${clanPath(clan.clan_tag)}/feed`);
                   }}
                 >
                   Review later · leave open

@@ -18,7 +18,7 @@ import {
   spreadState,
 } from "../components/SpreadWord.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
-import { CLAN, clanPath, memberPath } from "../lib/base.js";
+import { CLAN, clanPath, playerPath } from "../lib/base.js";
 import { ordinal, seasonWeek } from "../lib/words.js";
 import { leads } from "../lib/tabs.js";
 
@@ -49,7 +49,6 @@ export function RosterTable({
   onMore,
   clanTag,
   navigate,
-  search = "",
 }) {
   const { when } = useClock();
   const shown = limit === null ? members : members.slice(0, limit);
@@ -87,15 +86,7 @@ export function RosterTable({
                     }
                   >
                     {clanTag ? (
-                      <Link
-                        to={
-                          memberPath(clanTag, m.player_tag) +
-                          (search
-                            ? `?${new URLSearchParams({ find: search })}`
-                            : "")
-                        }
-                        navigate={navigate}
-                      >
+                      <Link to={playerPath(m.player_tag)} navigate={navigate}>
                         {m.name ?? <Tag tag={m.player_tag} />}
                       </Link>
                     ) : (
@@ -267,7 +258,7 @@ function Comings({ roster, clan, history, navigate }) {
   const { when } = useClock();
   const base = clanPath(clan.clan_tag);
   // Decided is the leaders'; everyone else reads the same week by week.
-  const more = history ? `${base}/today/decided` : `${base}/season`;
+  const more = history ? `${base}/run/decided` : `${base}/war`;
   const go = (path) => (e) => {
     e.preventDefault();
     navigate?.(path);
@@ -449,7 +440,6 @@ export function Clan({ me, clan, navigate, search = "", fromRun = false }) {
                 ) : (
                   <RosterTable
                     clanTag={clan.clan_tag}
-                    search={find}
                     navigate={navigate}
                     members={found}
                     limit={limit}

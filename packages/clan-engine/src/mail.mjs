@@ -176,11 +176,11 @@ export function actionsWaitingMail({
       player_tag: who.player_tag,
       subject: subject.slice(0, SUBJECT_MAX),
       lines,
-      // One action waiting: its own page; more: Today.
+      // One action waiting: its own page; more: the Feed, where they wait.
       link:
         mine.length === 1 && Number.isInteger(mine[0].number)
           ? `${base}/actions/${mine[0].number}`
-          : `${base}/today`,
+          : `${base}/feed`,
       card_ids: mine.map((c) => c.card_id),
       new_card_ids: [...fresh],
     });

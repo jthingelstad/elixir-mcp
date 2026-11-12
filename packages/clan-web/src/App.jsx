@@ -43,7 +43,8 @@ import { Scout } from "./views/Scout.jsx";
 import { MemberActivity } from "./views/MemberActivity.jsx";
 import { Awards } from "./views/Awards.jsx";
 import { ActionDetail } from "./views/Actions.jsx";
-import { Today } from "./views/Today.jsx";
+import { Feed } from "./views/Feed.jsx";
+import { ClanPolicy } from "./views/ClanPolicy.jsx";
 import { YouHere } from "./views/YouHere.jsx";
 import { Season } from "./views/Season.jsx";
 import { Run } from "./views/Run.jsx";
@@ -78,9 +79,11 @@ function MapWhenInBrowser({ clan, me }) {
 /**
  * Routes, all under Elixir's /clan (CLAN, lib/base.js): `/clan` (the signed-out
  * landing, or the chooser for someone with no clan open), `/clan/clans` (the
- * whole chooser), `/clan/<TAG>/<tab>` with its pages, `/clan/verify` (the
- * notice after sign-in) and `/clan/refused/<reason>`. The app's own pages win
- * over a tag. Every address that moved with the five tabs is in lib/moved.js.
+ * whole chooser), `/clan/<TAG>/<tab>` with its pages (Feed, Standings, War,
+ * Members, Policy and the leaders' Run), `/clan/verify` (the notice after
+ * sign-in) and `/clan/refused/<reason>`. The app's own pages win over a tag.
+ * Every address that moved, with the five tabs and with one view, is in
+ * lib/moved.js.
  * The router owns history and params; the GATE - where a signed-in person
  * belongs, whatever address they arrived at - is the Shell's effect below,
  * because it is a session state machine (a refresh, a select) and not a
@@ -92,7 +95,7 @@ function MapWhenInBrowser({ clan, me }) {
  *  (`/clan/<TAG>/actions/37`). */
 export function parseClanPath(path) {
   const m =
-    /^\/([^/]+)(?:\/(today|members|season|awards|run|actions)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
+    /^\/([^/]+)(?:\/(feed|standings|war|members|policy|run|actions)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
       appPath(path) ?? "",
     );
   const tag = m ? tagOf(m[1]) : null;
@@ -242,7 +245,7 @@ export function ClanPage() {
   };
   const find = typeof search.find === "string" ? search.find.slice(0, 100) : "";
   const { section, tab } = parsed;
-  if (section === "today") {
+  if (section === "feed") {
     // A roster search at the clan's old bare address names the roster.
     if (typeof search.find === "string")
       return (
@@ -251,19 +254,15 @@ export function ClanPage() {
           navigate={navigate}
         />
       );
-    const decided =
-      leads(clan) && (tab === "decided" || search.show === "closed");
-    if (decided && tab !== "decided")
-      return <Replace to={`${base}/today/decided`} navigate={navigate} />;
-    if (tab === "decided" && !decided)
-      return <Replace to={`${base}/today`} navigate={navigate} />;
+    // Today's closed fold was the leaders' Decided: it is in Run now.
+    if (search.show === "closed" && leads(clan))
+      return <Replace to={`${base}/run/decided`} navigate={navigate} />;
     return (
-      <Today
+      <Feed
         key={clan.clan_tag}
         me={me}
         clan={clan}
         who={who}
-        decided={decided}
         closedOpen={search.show === "closed"}
         navigate={navigate}
       />
@@ -280,9 +279,9 @@ export function ClanPage() {
         navigate={navigate}
       />
     ) : (
-      <Replace to={`${base}/today`} navigate={navigate} />
+      <Replace to={`${base}/feed`} navigate={navigate} />
     );
-  if (section === "season")
+  if (section === "war")
     return (
       <Season
         key={`${clan.clan_tag}-${tab ?? "latest"}`}
@@ -291,7 +290,7 @@ export function ClanPage() {
         navigate={navigate}
       />
     );
-  if (section === "awards")
+  if (section === "standings")
     return (
       <Awards
         key={clan.clan_tag}
@@ -302,25 +301,19 @@ export function ClanPage() {
         navigate={navigate}
       />
     );
+  if (section === "policy")
+    return <ClanPolicy key={clan.clan_tag} clan={clan} navigate={navigate} />;
   if (section === "run") {
-    // A member's "Run" is how the clan runs; a clan with no policy has none
-    // to read, so it is the roster with the invite panel (A15).
-    if (!leads(clan))
-      return (
-        <Replace
-          to={
-            me.policy?.set
-              ? `${base}/members/standing?from=run`
-              : `${base}/members?from=run`
-          }
-          navigate={navigate}
-        />
-      );
+    // Run is the leaders'. Old mail's Decided and Waiting were every
+    // member's Today: a member following one lands on the Feed.
+    if (!leads(clan) && (tab === "decided" || tab === "actions"))
+      return <Replace to={`${base}/feed`} navigate={navigate} />;
     return (
       <Run
         key={clan.clan_tag}
         clan={clan}
         me={me}
+        who={who}
         section={tab}
         navigate={navigate}
       />
@@ -599,7 +592,7 @@ export function ClanShell({
     }
     const atClan = clanFromPath(path, me.clans);
     const segment = app.split("/")[1];
-    // The landing is no page for a signed-in person with a clan: its Today, or
+    // The landing is no page for a signed-in person with a clan: its Feed, or
     // the chooser at /clan when none is selected. A redirect, so it replaces
     // the address and Back never comes back to bounce.
     if (app === "/" || app === "/verify" || app.startsWith("/refused")) {

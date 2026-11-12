@@ -31,6 +31,8 @@ export const keys = {
   roster: (tag) => ["me", "clan", "record", tag, "roster"],
   manage: (tag) => ["me", "clan", "record", tag, "manage"],
   history: (tag) => ["me", "clan", "record", tag, "history"],
+  feed: (tag) => ["me", "clan", "record", tag, "feed"],
+  run: (tag) => ["me", "clan", "record", tag, "run"],
   policy: (tag) => ["me", "clan", "record", tag, "policy"],
   awards: (tag) => ["me", "clan", "record", tag, "awards"],
   recruit: (tag) => ["me", "clan", "record", tag, "recruit"],
@@ -181,6 +183,15 @@ export const useSocial = (tag) =>
   useGated(keys.social(tag), () => manageApi.social(tag));
 export const useMyPlace = () =>
   useQuery({ queryKey: keys.place, queryFn: payload(() => api.myPlace()) });
+
+/** The Feed's timeline: the clan's items, its members' moments and
+ *  highlights, newest first, as this reader reads them. */
+export const useFeed = (tag) =>
+  useGated(keys.feed(tag), () => manageApi.feed(tag));
+
+/** Whether the server lets this person into Run: 403 is its refusal. */
+export const useRunGate = (tag, enabled = true) =>
+  useGated(keys.run(tag), () => manageApi.run(tag), { enabled });
 
 export const useHistory = (tag) =>
   useQuery({

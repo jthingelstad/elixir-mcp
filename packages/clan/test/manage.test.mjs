@@ -697,6 +697,36 @@ test("standing for members: evidence in a player's terms, no internals; private 
   );
 });
 
+test("policy tab: a member reads how the clan runs and Elder's weights, as Standing words them", async () => {
+  const h = harness({
+    players: [player({ player_tag: "#O2", clan_role: "member" })],
+    part: partClan(),
+  });
+  const cookies = await leader(h);
+  const view = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/policy");
+  assert.equal(view.status, 200);
+  assert.equal(view.body.can_edit, false);
+  const standing = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/standing");
+  assert.deepEqual(view.body.how, standing.body.how);
+  assert.deepEqual(view.body.weights, standing.body.weights);
+  assert.equal(view.body.weights[0].key, "war");
+  // No policy: nothing to describe, and no weights.
+  const none = harness({
+    players: [player({ player_tag: "#O2", clan_role: "member" })],
+    part: partClan(),
+    policy: null,
+  });
+  const empty = await api(
+    none,
+    await leader(none),
+    "GET",
+    "/api/clans/2PQRJ8LV/policy",
+  );
+  assert.equal(empty.body.set, false);
+  assert.deepEqual(empty.body.how, []);
+  assert.equal(empty.body.weights, null);
+});
+
 test("nothing under a clan answers without a session: no public pages or documents", async () => {
   const h = harness({ part: partClan() });
   for (const path of [

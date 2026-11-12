@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { ActionDetail } from "../src/views/Actions.jsx";
-import { Today } from "../src/views/Today.jsx";
+import { Feed } from "../src/views/Feed.jsx";
 import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
 import { ActionCard, ActionLog } from "../src/components/ActionCard.jsx";
@@ -70,8 +70,14 @@ const removal = {
     },
   ],
 };
-/** Today, its side cards unread: this file is about the actions. */
+/** The Feed, its side cards and timeline unread: this file is about the
+ *  actions. */
 const today = (props) => {
+  vi.spyOn(manageApi, "feed").mockResolvedValue({
+    ok: false,
+    status: 502,
+    data: {},
+  });
   vi.spyOn(manageApi, "memberView").mockResolvedValue({
     ok: false,
     status: 502,
@@ -82,7 +88,7 @@ const today = (props) => {
     status: 502,
     data: {},
   });
-  return renderWithProviders(<Today me={{ open_actions: 0 }} {...props} />);
+  return renderWithProviders(<Feed {...props} />);
 };
 /** The same action, as its own page answers it. */
 const one = (extra = {}) => {
@@ -379,7 +385,7 @@ describe("actions", () => {
       }),
     ).toBeTruthy();
     fireEvent.click(screen.getByText(/History, 1 entry/));
-    expect(screen.getByText("‹ Today")).toBeTruthy();
+    expect(screen.getByText("‹ Feed")).toBeTruthy();
     expect(
       screen.getByText(
         /Earlier: declined \w+ Sep [12]( 2026)? \(knows the member\)/,
@@ -818,7 +824,7 @@ describe("clan leader messages", () => {
     fireEvent.click(
       screen.getByRole("link", { name: "Review later · leave open" }),
     );
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/today");
+    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/feed");
     expect(decide).not.toHaveBeenCalled();
     expect(sent).not.toHaveBeenCalled();
   });

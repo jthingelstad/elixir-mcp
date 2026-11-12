@@ -285,7 +285,7 @@ export function Review({ clan, navigate, who }) {
               </h3>
               <span className="chip">
                 {rows.length}
-                {bucket === "actionable" ? ", also on Today" : ""}
+                {bucket === "actionable" ? ", also in the Feed" : ""}
               </span>
               <span className="grow text-[12.5px] font-normal text-ink-faint">
                 {says}

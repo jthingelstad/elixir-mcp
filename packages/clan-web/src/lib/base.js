@@ -47,5 +47,15 @@ export function tagOf(segment) {
 /** A clan's page: the tag without its #. */
 export const clanPath = (tag) => `${CLAN}/${String(tag).replace(/^#/, "")}`;
 
+/** A player's one page in Elixir, `/home/player/<tag>` (slice 6, #764):
+ *  every player name opens it ("Every player name opens one player page",
+ *  Jamie, 2026-11-12), and for a clanmate it links back to the member's page
+ *  here. Built as apps/web's `playerHref` builds it; Clan imports nothing
+ *  from the app it joins. */
+export const playerPath = (playerTag) =>
+  `/home/player/${String(playerTag).replace(/^#/, "")}`;
+
+/** A member's page in this clan: their record here, and for the leaders
+ *  their notes and hold. Review and an Action's "Open their page" open it. */
 export const memberPath = (clanTag, playerTag) =>
   `${clanPath(clanTag)}/members/${String(playerTag).replace(/^#/, "").toLowerCase()}`;

@@ -20,7 +20,6 @@ import {
   ActionLog,
   CopyLine,
 } from "../components/ActionCard.jsx";
-import { SubNav } from "../components/SubNav.jsx";
 import {
   InviteLeaders,
   SetupPolicy,
@@ -96,7 +95,7 @@ function YouCard({ clan, base, navigate }) {
     );
   const chip = d.clan?.status ? statusChip(d.clan.status) : null;
   const own = `${base}/members/${String(clan.acting_as).slice(1)}`;
-  const how = `${base}/members/standing`;
+  const how = `${base}/policy`;
   const away = `${base}/members/away`;
   return (
     <Panel aria-labelledby="today-you">
@@ -132,7 +131,7 @@ function YouCard({ clan, base, navigate }) {
 function WeekCard({ clan, base, navigate }) {
   const { state } = useWeek(clan.clan_tag, null);
   const d = state.data;
-  const season = `${base}/season`;
+  const season = `${base}/war`;
   const open = (
     <a
       className="btn btn--sm"
@@ -142,7 +141,7 @@ function WeekCard({ clan, base, navigate }) {
         navigate?.(season);
       }}
     >
-      Open Season
+      Open War
     </a>
   );
   if (state.error || state.forbidden)
@@ -535,22 +534,71 @@ function Waiting({ d, clan, who, navigate, closedOpen, state, load }) {
 }
 
 /**
- * Today, Clan's first tab for everyone (structure.md): what waits for you, you
- * in this clan and the clan's week. A leader or co-leader also reads what was
- * decided here. A clan with no policy or under ten members says what that
- * means where the actions would be; the numbers stay.
+ * What waits for this person in the clan, in the state the clan is in: the
+ * Feed shows it first to everyone (Clan as one view, 2026-11-12), and Run's
+ * Waiting shows it to the leaders with "Refresh suggestions". A clan with no
+ * policy or under ten members says what that means where the actions would
+ * be.
  */
-export function Today({ me, clan, who, decided, closedOpen, navigate }) {
+export function ActionsNow({ clan, who, closedOpen, navigate }) {
   const { state, query, load } = useActions(clan.clan_tag);
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
-  const base = clanPath(clan.clan_tag);
   const lead = leads(clan);
   const d = state.data;
-  const waiting = d?.open?.length ?? (Number(me.open_actions) || 0);
-  const refresh = (
+  if (state.error === "no_policy")
+    return lead ? (
+      <SetupPolicy clan={clan} navigate={navigate} />
+    ) : (
+      <InviteLeaders clan={clan} />
+    );
+  if (state.error === "too_few_members") {
+    const e = query.data?.data ?? {};
+    return (
+      <SmallClan
+        clan={clan}
+        members={e.members}
+        min={e.min_members}
+        navigate={navigate}
+      />
+    );
+  }
+  if (state.forbidden)
+    return (
+      <div className="callout callout--warn" role="alert">
+        <span>These Actions are unavailable for your current clan access.</span>
+      </div>
+    );
+  if (state.error)
+    return (
+      <div className="callout callout--warn" role="alert">
+        <span>
+          {state.error === "clan_not_recorded"
+            ? "Elixir is not recording this clan yet."
+            : "Elixir did not answer. Try again in a minute."}
+        </span>
+      </div>
+    );
+  if (!d) return <p className="page__lede">Reading the record…</p>;
+  return (
+    <Waiting
+      d={d}
+      clan={clan}
+      who={who}
+      navigate={navigate}
+      closedOpen={closedOpen}
+      state={state}
+      load={load}
+    />
+  );
+}
+
+/** Run's "Refresh suggestions": the actions read again, with `refresh=1`. */
+export function RefreshSuggestions({ clan }) {
+  const { state, load } = useActions(clan.clan_tag);
+  return (
     <button
       type="button"
       className="btn btn--sm"
@@ -560,87 +608,6 @@ export function Today({ me, clan, who, decided, closedOpen, navigate }) {
       {state.loading ? "Refreshing…" : "Refresh suggestions"}
     </button>
   );
-  const nav = lead ? (
-    <SubNav
-      label="Today"
-      current={decided ? "decided" : "waiting"}
-      navigate={navigate}
-      items={[
-        {
-          key: "waiting",
-          label: "Waiting",
-          to: `${base}/today`,
-          count: waiting || null,
-        },
-        { key: "decided", label: "Decided", to: `${base}/today/decided` },
-      ]}
-      aside={decided ? null : refresh}
-    />
-  ) : null;
-  if (decided)
-    return (
-      <>
-        {nav}
-        <Decided clan={clan} navigate={navigate} />
-      </>
-    );
-  let top;
-  if (state.error === "no_policy")
-    top = lead ? (
-      <SetupPolicy clan={clan} navigate={navigate} />
-    ) : (
-      <InviteLeaders clan={clan} />
-    );
-  else if (state.error === "too_few_members") {
-    const e = query.data?.data ?? {};
-    top = (
-      <SmallClan
-        clan={clan}
-        members={e.members}
-        min={e.min_members}
-        navigate={navigate}
-      />
-    );
-  } else if (state.forbidden)
-    top = (
-      <div className="callout callout--warn" role="alert">
-        <span>These Actions are unavailable for your current clan access.</span>
-      </div>
-    );
-  else if (state.error)
-    top = (
-      <div className="callout callout--warn" role="alert">
-        <span>
-          {state.error === "clan_not_recorded"
-            ? "Elixir is not recording this clan yet."
-            : "Elixir did not answer. Try again in a minute."}
-        </span>
-      </div>
-    );
-  else if (!d) top = <p className="page__lede">Reading the record…</p>;
-  else
-    top = (
-      <Waiting
-        d={d}
-        clan={clan}
-        who={who}
-        navigate={navigate}
-        closedOpen={closedOpen}
-        state={lead ? null : state}
-        load={load}
-      />
-    );
-  return (
-    <>
-      <h2 className="sr-only">Today</h2>
-      {nav}
-      <div className="clan-today">
-        <div className="clan-today__waiting">{top}</div>
-        <div className="clan-today__cards">
-          <YouCard clan={clan} base={base} navigate={navigate} />
-          <WeekCard clan={clan} base={base} navigate={navigate} />
-        </div>
-      </div>
-    </>
-  );
 }
+
+export { Decided, WeekCard, YouCard };

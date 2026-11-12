@@ -2833,9 +2833,14 @@ async function accountItems(db, accountId, fromMs, toMs) {
 async function highlightItems(
   db,
   subjects,
-  { accountId, fromMs, toMs, basis = "observed" },
+  { accountId, fromMs, toMs, basis = "observed", alsoTags = [] },
 ) {
-  const players = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
+  const players = [
+    ...new Set([
+      ...subjects.filter((s) => s.kind === "player").map((s) => s.tag),
+      ...alsoTags,
+    ]),
+  ];
   if (players.length === 0) return [];
   const col = basis === "occurred" ? "created_at" : "updated_at";
   const { rows } = await db.query(
@@ -3222,6 +3227,10 @@ export async function buildTimeline(
     // Each player entry also carries battles.mode_records. Off for every
     // door: elixir_timeline's entries do not have it.
     modeRecords = false,
+    // Players whose highlights the read also serves, with no entry of
+    // their own: Clan's Feed passes its current members (slice 8, #766),
+    // whose highlights a clan subject alone does not carry.
+    highlightTags = [],
   },
 ) {
   const entries = [];
@@ -3293,6 +3302,7 @@ export async function buildTimeline(
       fromMs,
       toMs,
       basis,
+      alsoTags: highlightTags,
     })),
   );
   items.push(

@@ -85,7 +85,7 @@ describe("selecting a clan", () => {
       await first;
     });
     expect(setMe.mock.calls).toEqual([[me(SECOND)]]);
-    expect(navigate.mock.calls).toEqual([["/clan/GQ08RJPL/today"]]);
+    expect(navigate.mock.calls).toEqual([["/clan/GQ08RJPL/feed"]]);
     expect(result.current.selecting).toBe(false);
 
     // Once it lands, the next selection runs.
@@ -97,7 +97,7 @@ describe("selecting a clan", () => {
       answer[THIRD.clan_tag]();
       await third;
     });
-    expect(navigate.mock.calls.at(-1)).toEqual(["/clan/9QJ0YJPU/today"]);
+    expect(navigate.mock.calls.at(-1)).toEqual(["/clan/9QJ0YJPU/feed"]);
   });
 
   test("the Clan picker is busy while a pick is pending, and free once it lands", async () => {
@@ -125,6 +125,6 @@ describe("selecting a clan", () => {
 
     await act(async () => answer[SECOND.clan_tag]());
     await waitFor(() => expect(box().disabled).toBe(false));
-    expect(navigate.mock.calls).toEqual([["/clan/GQ08RJPL/today"]]);
+    expect(navigate.mock.calls).toEqual([["/clan/GQ08RJPL/feed"]]);
   });
 });

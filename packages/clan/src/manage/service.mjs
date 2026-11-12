@@ -1481,6 +1481,20 @@ export function createManageService({
           saved_by_name:
             policy.saved_by_name ?? names.get(policy.saved_by) ?? null,
         },
+        // How the clan runs, in every member's words (Standing's "How it
+        // works here"), for Clan's Policy tab (slice 8, #766): the policy
+        // and its description are public in the clan directory (A2).
+        how: policy.set ? describePolicy(policy.values) : [],
+        weights:
+          policy.set && ranksElder(policy.values)
+            ? Object.entries(elderWeights(policy.values))
+                .sort((a, b) => b[1] - a[1])
+                .map(([key, share]) => ({
+                  key,
+                  label: CATEGORY_LABELS[key],
+                  share,
+                }))
+            : null,
         tabs: TABS,
         groups: GROUPS,
         fields: FIELDS,

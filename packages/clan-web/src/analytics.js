@@ -69,7 +69,7 @@ export function analyticsLocation(
       url.searchParams.set("id", rest[1]);
       rest[1] = "detail";
     }
-    if (["awards", "season"].includes(rest[0]) && rest[1])
+    if (["standings", "war"].includes(rest[0]) && rest[1])
       url.searchParams.set("id", rest.pop());
     // A member's page is one page, whoever it is; Members' own pages are not.
     if (rest[0] === "members" && rest[1] && !MEMBERS_PAGES.has(rest[1]))

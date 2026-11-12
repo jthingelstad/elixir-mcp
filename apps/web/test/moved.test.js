@@ -67,8 +67,8 @@ const MAIL_STAYS = [
   "/home/friends",
   "/signin",
   "/console/explore/week/J2RGCRVG~136~2",
-  "/clan/J2RGCRVG/today",
-  "/clan/J2RGCRVG/season",
+  "/clan/J2RGCRVG/feed",
+  "/clan/J2RGCRVG/war",
   "/clan/J2RGCRVG/members",
   "/clan/J2RGCRVG/members/2PQRJ8LV",
 ];
@@ -157,8 +157,24 @@ describe("the map of moved addresses", () => {
     expect(legalRoute(path)).toBe(path);
   });
 
-  test("Clan's old list of Actions, in mail from the archive, goes to Today", () => {
-    expect(movedTo("/clan/J2RGCRVG/actions")).toBe("/clan/J2RGCRVG/today");
+  test("Clan's old list of Actions, in mail from the archive, goes to the Feed", () => {
+    expect(movedTo("/clan/J2RGCRVG/actions")).toBe("/clan/J2RGCRVG/feed");
+  });
+
+  // Clan as one view (slice 8, #766): the five tabs' addresses, in mail and
+  // in Discord posts already sent, each land on the tab that replaced it.
+  test.each([
+    ["/clan/J2RGCRVG", "/clan/J2RGCRVG/feed"],
+    ["/clan/J2RGCRVG/today", "/clan/J2RGCRVG/feed"],
+    ["/clan/J2RGCRVG/today/decided", "/clan/J2RGCRVG/run/decided"],
+    ["/clan/J2RGCRVG/season", "/clan/J2RGCRVG/war"],
+    ["/clan/J2RGCRVG/season/2026-W45", "/clan/J2RGCRVG/war/2026-W45"],
+    ["/clan/J2RGCRVG/season/136", "/clan/J2RGCRVG/war/136"],
+    ["/clan/J2RGCRVG/awards", "/clan/J2RGCRVG/standings"],
+    ["/clan/J2RGCRVG/awards/136", "/clan/J2RGCRVG/standings/136"],
+  ])("Clan's %s goes to %s", (from, to) => {
+    expect(movedTo(from)).toBe(to);
+    expect(legalRoute(to)).toBe(to);
   });
 
   test("an account page that no longer exists goes Home", () => {

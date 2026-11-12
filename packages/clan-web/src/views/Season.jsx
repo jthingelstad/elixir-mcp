@@ -621,14 +621,15 @@ function WholeSeason({ s, current }) {
 }
 
 /**
- * Season: the week and the season on one tab, behind one picker (structure.md,
- * A14). `/season` is the running week or, if none runs, the latest to close;
- * `/season/<iso week>` a week; `/season/<number>` all of a season. Every member
+ * War (Season until Clan became one view, 2026-11-12): the week and the
+ * season on one tab, behind one picker (structure.md, A14). `/war` is the
+ * running week or, if none runs, the latest to close; `/war/<iso week>` a
+ * week; `/war/<number>` all of a season. Weekly totals only. Every member
  * reads it, whatever the clan's policy; it raises no action and holds no
  * standing.
  */
 export function Season({ clan, period, navigate }) {
-  const base = `${clanPath(clan.clan_tag)}/season`;
+  const base = `${clanPath(clan.clan_tag)}/war`;
   const iso = period && ISO.test(period) ? period : null;
   const seasonId = period && /^\d{1,5}$/.test(period) ? period : null;
   const latest = useWeek(clan.clan_tag, null);

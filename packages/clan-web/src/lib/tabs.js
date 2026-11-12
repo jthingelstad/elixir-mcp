@@ -1,13 +1,14 @@
 /**
- * Clan's five tabs (structure.md, redesign step 4): Today, Members, Season,
- * Awards and, for the leader and co-leaders, Run. The tabs replace the rail;
- * what used to be a rail item is a page under one of them. This is only what
- * goes on them and which one a path is on.
+ * Clan as one view (slice 8, #766): Feed, Standings, War, Members, Policy
+ * and, for the leader and co-leaders, Run. They replaced the five tabs of
+ * redesign step 4 (Today, Members, Season, Awards, Run) on 2026-11-12. This
+ * is only what goes on them and which one a path is on.
  *
  * Who sees what:
- * - Today, Members, Season and Awards are every member's, at any size, with
- *   or without a policy. Each page says what waits on a policy.
- * - Run is for a verified leader or co-leader, with or without a policy.
+ * - Feed, Standings, War, Members and Policy are every member's, at any
+ *   size, with or without a policy. Each page says what waits on a policy.
+ * - Run is for a verified leader or co-leader, with or without a policy; the
+ *   server refuses its reads to anyone else (`GET /api/clans/<tag>/run`).
  * - Inside Members: Review for a verified leader or co-leader, Scout also for
  *   elders, Map for verified members while the clan keeps it on, Recruit for
  *   every member (A11).
@@ -37,8 +38,18 @@ export const policyActive = (me) =>
 export const waitingFor = (me) =>
   policyActive(me) ? Number(me.open_actions ?? 0) : 0;
 
-/** The tabs, in order, for the selected clan. Today's count is attention: the
- *  actions waiting for you. */
+/** The tabs' keys, in order, the leaders' Run last. */
+export const TAB_KEYS = [
+  "feed",
+  "standings",
+  "war",
+  "members",
+  "policy",
+  "run",
+];
+
+/** The tabs, in order, for the selected clan. Feed's count is attention: the
+ *  actions waiting for you, which the feed shows first. */
 export function clanTabs(me) {
   const clan = me?.selected ?? null;
   if (!clan) return [];
@@ -46,15 +57,16 @@ export function clanTabs(me) {
   const waiting = waitingFor(me);
   const tabs = [
     {
-      key: "today",
-      label: "Today",
-      href: `${base}/today`,
+      key: "feed",
+      label: "Feed",
+      href: `${base}/feed`,
       count: waiting || null,
       countLabel: "waiting for you",
     },
+    { key: "standings", label: "Standings", href: `${base}/standings` },
+    { key: "war", label: "War", href: `${base}/war` },
     { key: "members", label: "Members", href: `${base}/members` },
-    { key: "season", label: "Season", href: `${base}/season` },
-    { key: "awards", label: "Awards", href: `${base}/awards` },
+    { key: "policy", label: "Policy", href: `${base}/policy` },
   ];
   if (leads(clan)) tabs.push({ key: "run", label: "Run", href: `${base}/run` });
   return tabs;
@@ -90,14 +102,13 @@ function parts(path) {
   return { section: m[2] ?? null, tab: m[3] ?? null };
 }
 
-/** Which tab a path is on. An action's own page is under Today. */
+/** Which tab a path is on. An action's own page is under Feed, where it
+ *  waits. */
 export function tabOf(path) {
   const p = parts(path);
   if (!p) return null;
-  if (p.section === "actions") return "today";
-  return ["today", "members", "season", "awards", "run"].includes(p.section)
-    ? p.section
-    : null;
+  if (p.section === "actions") return "feed";
+  return TAB_KEYS.includes(p.section) ? p.section : null;
 }
 
 const MEMBER_PAGES = new Set([
@@ -116,7 +127,7 @@ export function pageOf(path) {
   if (app === "/clans" || app === "/") return "clans";
   const p = parts(path);
   if (!p) return null;
-  if (p.section === "actions") return p.tab ? "action" : "today";
+  if (p.section === "actions") return p.tab ? "action" : "feed";
   if (p.section === "members") {
     if (!p.tab) return "roster";
     return MEMBER_PAGES.has(p.tab) ? p.tab : "member";

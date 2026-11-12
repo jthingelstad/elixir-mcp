@@ -54,13 +54,13 @@ test("the clan report's links follow the reader: member to Clan, Season and Memb
     ...links,
     member_clans: [facts.clan.tag],
   });
-  assert.ok(member.html.includes(`/clan/${tag}/season?`), "the clan's name");
+  assert.ok(member.html.includes(`/clan/${tag}/war?`), "the clan's name");
   assert.ok(member.html.includes(`/clan/${tag}/members?`), "Open the roster");
   assert.match(member.html, new RegExp(`>Open ${facts.clan.name}<`));
   assert.doesNotMatch(member.html, /in the console/);
 
   const outside = renderMail("clan_report", facts, links);
-  assert.ok(!outside.html.includes(`/clan/${tag}/season?`));
+  assert.ok(!outside.html.includes(`/clan/${tag}/war?`));
   assert.ok(outside.html.includes(`/console/explore/clan/${tag}?`));
   // The facts are one for both: nothing per reader was stored, the subject
   // does not move.
