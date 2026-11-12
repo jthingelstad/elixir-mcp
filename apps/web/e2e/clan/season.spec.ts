@@ -112,7 +112,7 @@ for (const width of [390, 1280]) {
       await page
         .getByRole("combobox", { name: "Period", exact: true })
         .selectOption("137");
-      await expect(page).toHaveURL(`${base}/season/137`);
+      await expect(page).toHaveURL(`${base}/war/137`);
       await expect(
         page.getByRole("heading", { name: /^All of Season 137/ }),
       ).toBeVisible();
@@ -129,11 +129,8 @@ for (const width of [390, 1280]) {
         page.getByRole("heading", { name: /^All of Season 136/ }),
       ).toBeVisible();
       expect(reads).toBe(2);
-      // The Season tab keeps its address on a phone and a desktop alike.
-      await expect(clanTab(page, "Season")).toHaveAttribute(
-        "href",
-        `${base}/season`,
-      );
+      // The War tab keeps its address on a phone and a desktop alike.
+      await expect(clanTab(page, "War")).toHaveAttribute("href", `${base}/war`);
       expect(writes).toEqual([]);
       expect(errors).toEqual([]);
     });

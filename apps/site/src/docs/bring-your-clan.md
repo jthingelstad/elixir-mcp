@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-11-06; five tabs (Today, Members, Season, Awards, Run), the picker beside the clan's name, everyone lands on Today; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -106,40 +106,51 @@ each clan with your role there, and **All your clans…** for the full list.
 Picking a clan keeps you on the page you were on. With one clan there is
 nothing to pick.
 
-Below it, five tabs:
+Below it, the tabs:
 
-- **Today**: what is waiting for you, your own numbers and the week so far.
-  The leader and co-leaders also have **Waiting** and **Decided**, the record
-  of every decision ([Actions](/docs/clan-actions)).
+- **Feed**: what is waiting for you first, then the clan's last seven days,
+  newest first: joins, departures and role changes, members' moments, and the
+  highlights its members post, each with its battle. Your own numbers and the
+  week so far sit beside it. The Feed shows you what Elixir's timeline would
+  show you about this clan, no more: a member reads the clan's facts, and the
+  leader and co-leaders also the ones that are theirs.
+- **Standings**: each season's races and its winners, and your own trophy
+  case ([Awards and trophies](/docs/clan-awards)).
+- **War** ([War and the week](/docs/clan-season)): the running week and
+  season, and each closed [week](/docs/clan-week) and season.
 - **Members**: **Roster**; [Standing](/docs/standing), once the clan has a
   policy and 10 members; **Review** for the leader and co-leaders; **Map**,
   where verified members add a city or region and see each other's local
   time; **Recruit**, editable copy in one selected format, a personal note or
-  a recruiting post; and **Scout** for elders and up. Your own name on the
-  roster opens your page, with **Away** beside it when the clan lets members
-  mark themselves away.
-- [Season](/docs/clan-season): the running week and season, and each closed
-  [week](/docs/clan-week) and season.
-- **Awards**: each season's races and its winners, and your own trophy case
-  ([Awards and trophies](/docs/clan-awards)).
-- **Run**, for the leader and co-leaders only: [the policy](/docs/clan-policy),
-  section by section, then **Awards setup**, **Discord**, **Model & voice**
-  and **Clan settings**.
+  a recruiting post; and **Scout** for elders and up. A name opens that
+  player's [page](/docs/player-page), and its **Open in Clan** opens their
+  page in this clan; your own has **Away** beside it when the clan lets
+  members mark themselves away.
+- **Policy**: [the policy](/docs/clan-policy) in every member's words: what
+  the clan counts, its minimums, how Elder is earned and the removal clock,
+  with Elder's weights, the version and who saved it. Anyone in the
+  [clan directory](/docs/clan-directory) reads the same.
+- **Run**, for the leader and co-leaders only, once verified: **Waiting** and
+  **Decided**, the record of every decision ([Actions](/docs/clan-actions));
+  the policy, section by section; then **Awards setup**, **Discord**,
+  **Model & voice** and **Clan settings**. Anyone else who opens Run's
+  address is told it is the leaders', and Elixir refuses its pages to them.
 
 **Send feedback**, at the foot of the page, and **Report this** beside an
 action, Standing and the award races both file into Elixir's one feedback
 record, about Clan and the thing on screen, and the answer comes to your
 [feedback](/docs/your-account#feedback) and your inbox.
 
-On a phone the five tabs stay in one row under the clan's name, with a count
-on Today when something is waiting for you, and Run opens as its list of
-sections.
+On a phone the tabs stay in one row under the clan's name, scrolling
+sideways when they do not all fit, with a count on the Feed when something is
+waiting for you, and Run opens as its list of sections.
 
 Coming to a clan (its address, [/clan](/clan) or coming back from sign-in)
-opens **Today**, for every member and whether or not something is waiting.
+opens the **Feed**, for every member and whether or not something is waiting.
 With several clans and none chosen yet, [/clan](/clan) asks which. An address
 that names a page always opens that page, and addresses from before the tabs
-still arrive at the page that holds the thing now.
+still arrive at the page that holds the thing now: Today's at the Feed (its
+Decided at Run's), Season's at War and Awards' at Standings.
 
 ## When the clan is not on Elixir
 

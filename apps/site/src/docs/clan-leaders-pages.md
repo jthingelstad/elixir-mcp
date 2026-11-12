@@ -14,7 +14,7 @@ guide: clan-policy
 
 ## The leaders pages
 
-Under **Members** and **Today**:
+Under **Members** and **Run**:
 
 - **Review**: every member as the policy reads them today, grouped as
   actionable, building, held or clear. Group links jump to the members;
@@ -24,13 +24,13 @@ Under **Members** and **Today**:
   Open a member for their evidence,
   a note, and a **hold**, which shields removal eligibility for a member
   who said they will be away, until a date or until cleared.
-- **Decided**, under Today: the joins, leaves and role changes the record saw, with
+- **Decided**, under Run, beside **Waiting**: the joins, leaves and role changes the record saw, with
   how each leave was answered; every action the clan has had, with its
   outcome and who decided it; and the holds.
 - **Scout**: paste an applicant's tag and see their numbers; with a
   policy, also whether they would meet its minimums today. Elders see it
   too, and it works before a policy.
 
-**Awards** is a tab every member sees; the leaders set the awards up under
+**Standings** is a tab every member sees; the leaders set the awards up under
 **Run › Awards setup** and grant leaders' picks on the tab
 ([Awards and trophies](/docs/clan-awards)).

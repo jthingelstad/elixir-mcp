@@ -7,7 +7,7 @@ order: 8
 navTitle: "Awards"
 icon: award
 lede: "A clan names its own awards, and Clan decides them from the record when each war season closes. Every member has a trophy case; leaders announce the winners in the game."
-reviewed: "2026-11-10; leaders' picks in the current season; a member left off the race is a known zero, not unknown; 2026-10-04; resolved award places and explicit update season, contracts unchanged"
+reviewed: "2026-11-12; the Awards tab is now Standings; 2026-11-10; leaders' picks in the current season; a member left off the race is a known zero, not unknown; 2026-10-04; resolved award places and explicit update season, contracts unchanged"
 ---
 
 # Awards and trophies
@@ -40,7 +40,7 @@ Awards follow Clan Wars seasons as the record saw them. A season is
 judged once it has **closed** (every week finished, its Colosseum week
 last or the next season begun) and Clan holds it **whole** (unique sections
 from zero through a recorded final Colosseum week, with no gaps). The first reading after that writes the
-season's winners: the morning run, or anyone opening **Awards**. A season still being fought shows on **Awards** as
+season's winners: the morning run, or anyone opening **Standings**. A season still being fought shows on **Standings** as
 provisional: nothing Clan decides is granted until it closes, though a
 leaders' pick can be (below). Missing evidence holds the affected award,
 not every award in the season: points need the possible contenders' counters,
@@ -66,7 +66,7 @@ so later recording or configuration changes do not rewrite the podium.
 ## Who does what
 
 - The leader and co-leaders set up the clan's awards.
-- Every member sees **Awards**, with one season selected at a time.
+- Every member sees **Standings**, with one season selected at a time.
   The newest recorded season is selected first; choose a previous season to
   read its saved grants.
 - A **Leaders' pick** is granted by the leader and co-leaders, or by
@@ -83,7 +83,7 @@ so later recording or configuration changes do not rewrite the podium.
 
 ## Where members see them
 
-**Awards** shows the selected season's provisional races or final saved grants, with award setup for leaders under **Run › Awards setup**.
+**Standings** shows the selected season's provisional races or final saved grants, with award setup for leaders under **Run › Awards setup**.
 Equal points use known season donations to break ties, and equal in both share
 a place. The displayed place includes this donation tiebreak; `=` means a
 shared place after both values match. The season donation totals shown alongside
@@ -97,14 +97,14 @@ Current members' names in the award races open their
 the clan. A previous recipient who has left stays a saved name, without a
 current-member activity link.
 
-**Awards** also holds every member's own trophy case, what the clan awards,
+**Standings** also holds every member's own trophy case, what the clan awards,
 and each decided season's winners, place by place.
 
 ## How they reach the clan
 
 **Weekly progress.** After a war week is recorded as closed, the normal
 morning evaluation gives leaders one Action with provisional standings through
-that completed week. Opening **Awards** can also raise it. Only the
+that completed week. Opening **Standings** can also raise it. Only the
 newest recorded closed week of the newest recorded season is eligible, and
 its recorded finish must be within the last seven days. A finished Colosseum
 uses the final season path. Later open

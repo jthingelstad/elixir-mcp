@@ -182,7 +182,7 @@ email is for by player tag:
       "player_tag": "#PYLQ88",
       "subject": "2 actions waiting for you in Example Clan",
       "lines": ["Promote to Elder: Ada (new)", "Welcome a newcomer: Newbie"],
-      "link": "https://elixir.poapkings.com/clan/2PQRJ8LV/today"
+      "link": "https://elixir.poapkings.com/clan/2PQRJ8LV/feed"
     }
   ]
 }

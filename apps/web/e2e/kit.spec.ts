@@ -37,7 +37,7 @@ test("a tabbed page stays inside a phone's width, and its tabs take the keyboard
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await clanApi(page, clanIn());
-  await page.goto("/clan/2PQRJ8LV/today");
+  await page.goto("/clan/2PQRJ8LV/feed");
   const tabs = page.getByRole("tablist", { name: "Clan" }).getByRole("tab");
   await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
   await tabs.first().focus();

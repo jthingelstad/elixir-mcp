@@ -7,7 +7,7 @@ order: 5
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-20; one voice for the clan's drafts, set in Settings; the drafted entry keeps the model's words for leaders; the leader and co-leaders open on Actions while Actions wait for them; 2026-10-12; a removal says what it rests on and what it cannot see; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
+reviewed: "2026-11-12; what waits is first on the Feed; Waiting and Decided are under Run; 2026-10-20; one voice for the clan's drafts, set in Settings; the drafted entry keeps the model's words for leaders; the leader and co-leaders open on Actions while Actions wait for them; 2026-10-12; a removal says what it rests on and what it cannot see; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
 guide: clan-actions
 ---
 
@@ -78,8 +78,8 @@ Award standings have no switch: they come with the clan's
 ## When one appears
 
 Clan reads the clan every morning from 11:00 UTC, and again when someone
-opens Standing or chooses **Refresh suggestions** in Today. Today normally
-opens the saved evaluation with its as-of time, keeping decisions quick; its
+opens Standing or chooses **Refresh suggestions** in Run › Waiting. The Feed
+and Waiting normally open the saved evaluation with its as-of time, keeping decisions quick; its
 first reading or a changed policy also evaluates the record.
 A member has at most one open action of each
 kind. An action that stops being true is **withdrawn**, with the reason
@@ -108,7 +108,7 @@ a week past the join.
   policy.
 - **Award standings** are raised after a war week closes, when the clan
   has at least one award set up; a leader can also ask for the current
-  season's standings from **Awards**.
+  season's standings from **Standings**.
 
 ## Deciding one
 
@@ -117,10 +117,10 @@ comes from**, its message, and **History**, the saved log and comment form.
 The buttons come last. These labels do not
 change which decisions your role may make.
 
-**Today** lists what is waiting for you. A member or elder also has a fold,
-**Closed in the last 30 days**, under it, and a closed Action opened from there
-links back to it. The leader and co-leaders have **Decided** beside Waiting
-instead: every decision, newest first. Its **Who came and went** shows recent
+The **Feed** lists what is waiting for you first. A member or elder also has
+a fold, **Closed in the last 30 days**, under it, and a closed Action opened
+from there links back to it. The leader and co-leaders have **Waiting** and
+**Decided** under **Run** instead: every decision, newest first. Its **Who came and went** shows recent
 recorded roster changes, capped at the newest twenty events, rather than the
 entire history since roster recording began. Earlier changes are not listed in
 that section.
@@ -322,14 +322,14 @@ an existing object still fails without starting another model call.
 
 ## Who sees what
 
-**Today** lists what is waiting for you and, for a member or elder, what
+The **Feed** lists what is waiting for you and, for a member or elder, what
 closed in the last 30 days. You see the actions that are yours, by your name or by your
 role, and no others: another's action number answers that there is no
 such action. **Nobody below co-leader ever sees a removal action or who
-is on the clock.** The leader and co-leaders also have **Decided**,
-every action the clan has had with its outcome, and the holds.
+is on the clock.** The leader and co-leaders also have **Decided**, under
+Run, every action the clan has had with its outcome, and the holds.
 
-Everyone opens a clan on **Today**
+Everyone opens a clan on the **Feed**
 ([Finding your way](/docs/bring-your-clan#finding-your-way)).
 
 You need a verified player to decide or comment; until then you can

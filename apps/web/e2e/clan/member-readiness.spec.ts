@@ -86,7 +86,10 @@ for (const width of [390, 1280]) {
       }),
     );
     await page.goto("/clan/2PQRJ8LV/members");
-    await page.getByRole("link", { name: "Ben", exact: true }).click();
+    await expect(
+      page.getByRole("link", { name: "Ben", exact: true }),
+    ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
+    await page.goto("/clan/2PQRJ8LV/members/uq8lp2r9c");
     await expect(page).toHaveURL(/\/members\/uq8lp2r9c$/);
     await expect(
       page.getByRole("heading", { name: "Ben", exact: true }),
@@ -163,7 +166,7 @@ test("switching back from two small clans restores the active clan's navigation 
     await expect(
       page.getByRole("heading", { level: 1, name: clan.name }),
     ).toBeVisible();
-    await expect(clanTab(page, /^Today/)).toBeVisible();
+    await expect(clanTab(page, /^Feed/)).toBeVisible();
     await expect(clanTab(page, "Members")).toBeVisible();
   }
 });

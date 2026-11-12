@@ -318,17 +318,25 @@ for (const size of ["wide", "@narrow"])
       await expect(page.getByRole("alert")).toContainText(
         "Review is for the leader and co-leaders",
       );
-      // Run is the leaders'. A member's "Run" is how the clan runs, in
-      // their words, with the section open and nothing to change.
+      // Run is the leaders' (slice 8, #766): a member who types its
+      // address is told so, with nothing to change, and sent to Policy.
       await page.goto(`${base}/run/about`);
-      await expect(page).toHaveURL(/\/members\/standing\?from=run$/);
+      await expect(page.getByRole("alert")).toContainText(
+        "Run is for the clan’s leader and co-leaders",
+      );
       await expect(
         page.getByRole("button", { name: "Save this clan's policy" }),
       ).toHaveCount(0);
+      await page.getByRole("link", { name: "Open Policy" }).click();
+      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/policy$/);
+      await page.goto(`${base}/members/standing`);
+      await expect(page.getByText(/^How it works here/).first()).toBeVisible();
+      // A name opens the player page; the member's page in this clan keeps
+      // its address.
       await expect(
-        page.getByRole("heading", { name: "How it works here" }),
-      ).toBeVisible();
-      await page.getByRole("link", { name: "Ben", exact: true }).click();
+        page.getByRole("link", { name: "Ben", exact: true }),
+      ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
+      await page.goto(`${base}/members/uq8lp2r9c`);
       await expect(
         page.getByText(
           /^A gap is unknown\. No battle here does not prove no play/,
@@ -343,10 +351,9 @@ for (const size of ["wide", "@narrow"])
           name: /edit the awards|update to clan/,
         }),
       ).toHaveCount(0);
-      await page.getByRole("link", { name: "Ben", exact: true }).click();
       await expect(
-        page.getByRole("heading", { name: "Ben", exact: true }),
-      ).toBeVisible();
+        page.getByRole("link", { name: "Ben", exact: true }).first(),
+      ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
       await page.goto(`${base}/today`);
       await expect(
         page.getByText("Nothing waiting for you", { exact: true }),
@@ -402,7 +409,7 @@ for (const size of ["wide", "@narrow"])
       await page.goto(`${base}/awards`);
       await expect(page.getByText(/starts at 10 members/)).toBeVisible();
       await expect(clanTab(page, "Run")).toHaveCount(0);
-      for (const name of [/^Today/, "Members", "Season", "Awards"])
+      for (const name of [/^Feed/, "Standings", "War", "Members", "Policy"])
         await expect(clanTab(page, name)).toBeVisible();
       await clanTab(page, "Members").click();
       const row = page.getByRole("navigation", { name: "Members" });
@@ -536,7 +543,7 @@ for (const size of ["wide", "@narrow"])
 
 for (const size of ["wide", "@narrow"])
   for (const role of ["member", "elder"] as const)
-    test(`${role} direct Run entry lands on Standing with no leader controls ${size}`, async ({
+    test(`${role} direct Run entry is refused, with no leader controls ${size}`, async ({
       page,
     }) => {
       const errors: string[] = [];
@@ -559,7 +566,9 @@ for (const size of ["wide", "@narrow"])
         "awards-setup",
       ]) {
         await page.goto(`${base}/run/${slug}`);
-        await expect(page).toHaveURL(/\/members\/standing\?from=run$/);
+        await expect(page.getByRole("alert")).toContainText(
+          "Run is for the clan’s leader and co-leaders",
+        );
       }
       await expect(
         page.getByRole("button", { name: /Turn the member map/ }),

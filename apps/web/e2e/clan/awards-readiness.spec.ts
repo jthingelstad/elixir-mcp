@@ -626,7 +626,7 @@ for (const size of ["wide", "@narrow"]) {
     await expect(complete).toHaveCount(0);
   });
 
-  test(`Today defaults to Waiting and refreshes suggestions explicitly ${size}`, async ({
+  test(`the Feed shows what waits, Run holds Waiting and Decided and refreshes explicitly ${size}`, async ({
     page,
   }) => {
     const open = {
@@ -678,15 +678,20 @@ for (const size of ["wide", "@narrow"]) {
     await expect(
       page.getByRole("link", { name: /Earlier welcome/ }),
     ).toHaveCount(0);
-    await page.getByRole("link", { name: /^Decided/ }).click();
-    await expect(page).toHaveURL(/\/today\/decided$/);
+    // Waiting and Decided are Run's (slice 8, #766); the old address of
+    // Decided lands there.
+    await page.goto("/clan/2PQRJ8LV/today/decided");
+    await expect(page).toHaveURL(/\/run\/decided$/);
     await expect(
       page.getByRole("link", { name: /Earlier welcome/ }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /Welcome the newcomer/ }),
     ).toHaveCount(0);
-    await page.getByRole("link", { name: /^Waiting/ }).click();
+    await page.goto("/clan/2PQRJ8LV/run/actions");
+    await expect(
+      page.getByRole("link", { name: /Welcome the newcomer/ }),
+    ).toBeVisible();
     await page
       .getByRole("button", { name: "Refresh suggestions", exact: true })
       .click();
@@ -753,7 +758,7 @@ for (const size of ["wide", "@narrow"]) {
       signedIn({ "GET /api/clan/clans/2PQRJ8LV/awards": [200, data] }),
     );
     await page.goto("/clan/2PQRJ8LV/awards");
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/awards$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/standings$/);
     await expect(
       page.getByRole("heading", { name: "Awards", exact: true }),
     ).toBeVisible();

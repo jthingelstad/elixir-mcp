@@ -81,7 +81,7 @@ two things, and `basis` says which:
 
 A clan entry's `activity` follows the basis too: on an occurred read it
 counts the battles played in the window by `battle_time`, boat defenses out
-(`activity.basis` is `played`), as [a week in Season](/docs/clan-week) does.
+(`activity.basis` is `played`), as [a week in War](/docs/clan-week) does.
 
 ### One pointer per reader
 

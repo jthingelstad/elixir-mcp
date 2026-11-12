@@ -162,13 +162,16 @@ for (const season of [138, 137])
       ];
       await mockApi(page, responses);
       await page.setViewportSize({ width, height: 812 });
-      await page.goto(`/clan/2PQRJ8LV/awards/${season}`);
+      await page.goto(`/clan/2PQRJ8LV/standings/${season}`);
       await expect(
         page.getByRole("heading", { name: "Awards", exact: true }),
       ).toBeVisible();
       await expect(page.locator(".awards-race tbody tr").first()).toBeVisible();
       const report = await page.evaluate(() => {
+        // Clan's six tabs scroll inside the kit's tab bar on a phone (slice
+        // 8, #766), clipped there with a fade; the page itself must not.
         const wide = [...document.querySelectorAll("body *")].filter((el) => {
+          if (el.closest(".kit-tabs")) return false;
           const r = el.getBoundingClientRect();
           return r.width > 0 && r.right > innerWidth + 0.5;
         }).length;

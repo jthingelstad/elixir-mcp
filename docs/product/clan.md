@@ -8,7 +8,11 @@ social layer of Clash Royale. Where this brief disagrees with the vision or
 Design session (#752).*
 
 *Its arrangement (rail, tabs, Policy's sections) is to be rewritten at step 4 of
-the redesign ([Structure](structure.md)).*
+the redesign ([Structure](structure.md)).* Asked "Slice 8, Clan: replace
+Clan's five tabs with the canvas tabs Feed, Standings, War, Members, Policy
+and Run (leaders only)?", Jamie answered "Yes, the canvas tabs
+(Recommended)" [Jamie, 2026-11-12]; [Structure](structure.md) has the tabs
+as built.
 
 ## What it is for
 
@@ -49,8 +53,9 @@ Where a person lands follows the same roles. Asked whether leaders
 should land on Actions instead of Roster, Jamie answered: "If there are
 actions to take, yes. Otherwise no." A leader or co-leader with Actions
 waiting for them lands on Actions. With none, they land on Today, as elders
-and members do; Today is built at step 4, and until then that is the roster.
-[Jamie, 2026-10-20; 2026-11-05, A12]
+and members do. [Jamie, 2026-10-20; 2026-11-05, A12] Since the canvas tabs,
+Today is the Feed, where what waits for each person comes first.
+[engineering, 2026-11-12, #766]
 
 ## Principles that decide the details
 

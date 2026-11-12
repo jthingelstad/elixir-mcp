@@ -91,13 +91,13 @@ for (const size of ["wide", "@narrow"]) {
         ],
       }),
     );
-    await page.goto(`${base}/today`);
-    await page.getByRole("link", { name: /^Decided/ }).click();
-    await expect(page).toHaveURL(/\/today\/decided$/);
+    // Decided is Run's (slice 8, #766).
+    await page.goto(`${base}/run/decided`);
+    await expect(page).toHaveURL(/\/run\/decided$/);
     await page.getByRole("link", { name: /Earlier welcome/ }).click();
     await expect(page).toHaveURL(/\/actions\/44$/);
     await page.goBack();
-    await expect(page).toHaveURL(/\/today\/decided$/);
+    await expect(page).toHaveURL(/\/run\/decided$/);
     await expect(
       page.getByRole("link", { name: /Earlier welcome/ }),
     ).toBeVisible();
@@ -108,8 +108,8 @@ for (const size of ["wide", "@narrow"]) {
         .first(),
     ).toBeVisible();
     await page.reload();
-    await page.getByRole("link", { name: "‹ Today" }).click();
-    await expect(page).toHaveURL(/\/today$/);
+    await page.getByRole("link", { name: "‹ Feed" }).click();
+    await expect(page).toHaveURL(/\/feed$/);
     await expect(
       page.getByText("Nothing waiting for you", { exact: true }),
     ).toBeVisible();
@@ -141,7 +141,12 @@ for (const size of ["wide", "@narrow"]) {
     await page.getByRole("searchbox", { name: "Find a member" }).fill("Ben");
     await page.getByRole("searchbox", { name: "Find a member" }).press("Enter");
     await expect(page).toHaveURL(/\?find=Ben$/);
-    await page.getByRole("link", { name: "Ben", exact: true }).click();
+    // A name opens the player page (slice 8, #766); the member's page in
+    // this clan keeps its address and the roster's search.
+    await expect(
+      page.getByRole("link", { name: "Ben", exact: true }),
+    ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
+    await page.goto(`${base}/members/uq8lp2r9c?find=Ben`);
     await expect(
       page.getByRole("heading", { name: "Ben", exact: true }),
     ).toBeVisible();

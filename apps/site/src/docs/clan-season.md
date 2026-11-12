@@ -4,15 +4,15 @@ title: "Your clan's season record"
 description: "Recorded Clan Wars decks, war points and contributors across a season, with race-by-race totals and clear limits when reads are partial."
 section: clan
 order: 3
-navTitle: "Season"
+navTitle: "War"
 icon: calendar-days
 lede: "See the recorded season so far or a closed season, and follow its races in order."
-reviewed: "2026-10-06; member-visible season record, contracts unchanged"
+reviewed: "2026-11-12; the Season tab is now War; 2026-10-06; member-visible season record, contracts unchanged"
 ---
 
 # Your clan's season record
 
-**Season**, a tab in Clan that also holds each [week](/docs/clan-week), shows recorded
+**War**, a tab in Clan that also holds each [week](/docs/clan-week), shows recorded
 war decks, member war points and contributors. Every clan member can read
 it, verified or not, with or without a clan policy. Each contributor counts
 once in the season total even when they played in several races.

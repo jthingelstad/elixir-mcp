@@ -151,12 +151,12 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
     },
   });
   await page.goto("/clan/2PQRJ8LV/today");
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
   await expect
     .poll(() =>
       page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
     )
-    .toBe("/clan/2PQRJ8LV/today");
+    .toBe("/clan/2PQRJ8LV/feed");
   await page
     .getByRole("main")
     .getByRole("link", { name: "Sign in", exact: true })
@@ -164,16 +164,13 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
   await expect(page).toHaveURL(/\/signin$/);
   expect(
     await page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
-  ).toBe("/clan/2PQRJ8LV/today");
+  ).toBe("/clan/2PQRJ8LV/feed");
   await page.getByLabel("Email").fill("ada@example.com");
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
-  await expect(clanTab(page, /^Today/)).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
+  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
+  await expect(clanTab(page, /^Feed/)).toHaveAttribute("aria-selected", "true");
   await accessible(page, "shared sign-in return");
 });
 
@@ -261,7 +258,7 @@ test("an unverified Leader: the notice first, then the clan as a member with the
   await page
     .getByRole("button", { name: "I understand, continue as a member" })
     .click();
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
   await expect(clanTab(page, "Run")).toHaveCount(0);
   await clanTab(page, "Members").click();
   await expect(page.getByText("Ben")).toBeVisible();
@@ -397,9 +394,9 @@ test.describe("signed in", () => {
     ).toBeVisible();
     await accessible(page, "chooser");
 
-    // Picking one is remembered and lands on its Today.
+    // Picking one is remembered and lands on its Feed.
     await page.getByText("Example Clan").first().click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
     await clanTab(page, "Members").click();
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members$/);
     await expect(page.getByText("Ben")).toBeVisible();
@@ -499,7 +496,7 @@ test.describe("signed in", () => {
     page,
   }) => {
     await page.goto("/clan/GQ08RJPL");
-    await expect(page).toHaveURL(/\/clan\/GQ08RJPL\/today$/);
+    await expect(page).toHaveURL(/\/clan\/GQ08RJPL\/feed$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Second Clan",
     );
@@ -520,9 +517,9 @@ test.describe("signed in", () => {
       ),
     );
     await page.goto("/clan/2PQRJ8LV");
-    for (const name of ["Members", "Season", "Awards", "Run"])
+    for (const name of ["Standings", "War", "Members", "Policy", "Run"])
       await expect(clanTab(page, name)).toBeVisible();
-    await expect(clanTab(page, /^Today/)).toBeVisible();
+    await expect(clanTab(page, /^Feed/)).toBeVisible();
     await expect(page.locator(".clan-today")).toContainText(/policy/i);
   });
 
@@ -844,8 +841,8 @@ test.describe("signed in", () => {
       }),
     );
     await page.goto("/clan/2PQRJ8LV/members");
-    await clanTab(page, /^Today/).click();
-    await expect(page).toHaveURL(/\/today$/);
+    await clanTab(page, /^Feed/).click();
+    await expect(page).toHaveURL(/\/feed$/);
     const row = page.getByRole("link", { name: /#37.*Remove from the clan/ });
     await expect(row).toContainText("1 comment");
     await expect(
@@ -865,7 +862,7 @@ test.describe("signed in", () => {
     await expect(page.getByText("I messaged them yesterday.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
     // An action's page is under Today.
-    await expect(clanTab(page, /^Today/)).toHaveAttribute(
+    await expect(clanTab(page, /^Feed/)).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -876,8 +873,8 @@ test.describe("signed in", () => {
     await expect(
       page.getByRole("heading", { name: "Remove from the clan: Sleepy" }),
     ).toBeVisible();
-    await page.getByRole("link", { name: "‹ Today" }).click();
-    await expect(page).toHaveURL(/\/today$/);
+    await page.getByRole("link", { name: "‹ Feed" }).click();
+    await expect(page).toHaveURL(/\/feed$/);
     await page.goto("/clan/2PQRJ8LV/actions/99");
     await expect(page.getByText("No action #99 here")).toBeVisible();
   });
@@ -928,12 +925,12 @@ test.describe("signed in", () => {
       }),
     );
     await page.goto("/clan/2PQRJ8LV/week");
-    await expect(page).toHaveURL(/\/season$/);
+    await expect(page).toHaveURL(/\/war$/);
     await expect(page.getByText(/what this clan counts/)).toBeVisible();
     await page
       .getByLabel("Period")
       .selectOption({ label: "The week of Aug 31" });
-    await expect(page).toHaveURL(/\/season\/2026-w36$/);
+    await expect(page).toHaveURL(/\/war\/2026-w36$/);
     const war = page
       .getByRole("region", { name: "War decks and points" })
       .first();
@@ -946,15 +943,12 @@ test.describe("signed in", () => {
     await page
       .getByLabel("Period")
       .selectOption({ label: "The week of Aug 24" });
-    await expect(page).toHaveURL(/\/season\/2026-w35$/);
-    await expect(clanTab(page, "Season")).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    await expect(page).toHaveURL(/\/war\/2026-w35$/);
+    await expect(clanTab(page, "War")).toHaveAttribute("aria-selected", "true");
     await rendered(page);
     // A week's old address keeps naming the week.
     await page.goto("/clan/2PQRJ8LV/week/2026-w35");
-    await expect(page).toHaveURL(/\/season\/2026-w35$/);
+    await expect(page).toHaveURL(/\/war\/2026-w35$/);
   });
 
   test("you here: your week, your races, what the policy makes of them", async ({
@@ -965,10 +959,14 @@ test.describe("signed in", () => {
       signedIn({ "GET /api/clan/clans/2PQRJ8LV/me": [200, memberView()] }),
     );
     await page.goto("/clan/2PQRJ8LV/members");
-    await page
-      .getByRole("region", { name: "Members" })
-      .getByRole("link", { name: "Ada", exact: true })
-      .click();
+    // A name opens the player page (slice 8, #766); your record in this
+    // clan is the player page's Open in Clan, at its own address.
+    await expect(
+      page
+        .getByRole("region", { name: "Members" })
+        .getByRole("link", { name: "Ada", exact: true }),
+    ).toHaveAttribute("href", "/home/player/20QQL8CCRU");
+    await page.goto("/clan/2PQRJ8LV/members/20qql8ccru");
     await expect(page).toHaveURL(/\/members\/20qql8ccru$/i);
     await expect(page.getByText("only you see this page")).toBeVisible();
     await expect(page.getByText(/Aug 20: Co-leader → Leader/)).toBeVisible();
@@ -991,14 +989,14 @@ test.describe("signed in", () => {
     await expect(page).toHaveURL(/\/members\/20qql8ccru$/i);
   });
 
-  test("@narrow the five tabs fit a phone and the count of what waits rides on Today", async ({
+  test("@narrow the six tabs fit a phone and the count of what waits rides on Feed", async ({
     page,
   }) => {
     await page.goto("/clan/2PQRJ8LV/members");
-    await expect(clanTab(page, /^Today/)).toHaveAccessibleName(
-      /^Today 2 waiting for you$/,
+    await expect(clanTab(page, /^Feed/)).toHaveAccessibleName(
+      /^Feed 2 waiting for you$/,
     );
-    for (const name of ["Members", "Season", "Awards", "Run"])
+    for (const name of ["Standings", "War", "Members", "Policy", "Run"])
       await expect(clanTab(page, name)).toBeAttached();
     expect(
       await page.evaluate(
@@ -1099,16 +1097,16 @@ test("one application and account survive Home and Clan navigation at phone, tab
     });
     await switchTo("Clan", viewport.width);
     // The chooser, then the clan's landing: Today.
-    await expect(page).toHaveURL(/\/clan(\/2PQRJ8LV\/today|\/)?$/);
+    await expect(page).toHaveURL(/\/clan(\/2PQRJ8LV\/feed|\/)?$/);
     expect(
       await page.evaluate(
         () =>
           (window as Window & { applicationMarker?: string }).applicationMarker,
       ),
     ).toBe("same-app");
-    if (!page.url().endsWith("/today"))
+    if (!page.url().endsWith("/feed"))
       await page.getByText("Example Clan", { exact: true }).first().click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
     await expect(
       page.getByRole("button", { name: "Account: Ada", exact: true }),
     ).toHaveCount(1);
