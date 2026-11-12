@@ -41,6 +41,16 @@ submit an address. Repeated submissions do not create extra accounts.
 Existing denied or disabled accounts do not reopen through signup, and no
 privileged role is granted.
 
+Elixir accounts are for people 13 or older, and the signup form asks.
+Answer **No** and nothing is sent or saved. Answer **Yes** and the
+account keeps when you said so, beside the account, from the moment you
+asked for the email. Plain sign-in does not ask, so it opens no new
+account: a code or link from it for an address with no account brings
+you back to the signup form, your address still in it, to answer the
+question and send a new email. Every way an account opens asks the same
+question: the signup form, **Continue with Discord** from the signup
+form, and the page an app sends you to.
+
 The signup form has an optional **Your player tag** field; plain sign-in
 does not. A malformed tag is refused on the form before any email is sent,
 and an empty field is fine. The tag is kept with the request and applied
@@ -102,8 +112,10 @@ account per Elixir account, and one Elixir account per Discord account;
 
 With no Discord connected yet, **Continue with Discord** uses the email
 address Discord has verified: it signs you in to the Elixir account with
-that address, or creates one (with the product news box and time zone
-from the page), and connects the Discord account to it. An address
+that address, or creates one (with the product news box, time zone and
+13-or-older answer from the signup form), and connects the Discord
+account to it. From plain sign-in, with no account for that address, it
+brings you back to the signup form to answer the question first. An address
 Discord has not verified cannot sign you in; sign in with your email,
 then connect Discord from Profile. If the account for that address is
 already connected to a different Discord account, sign in with your

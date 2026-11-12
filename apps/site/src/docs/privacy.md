@@ -41,7 +41,8 @@ Any other page of the record asks you to sign in, or to create an account.
 **Your account.** Signing in keeps your email address, so the service
 can send you sign-in codes and mail about your account. A new account
 also keeps the time zone the signup browser reports, so its times read
-on your clock; change it in your account's settings. It also keeps
+on your clock; change it in your account's settings. A new account keeps
+when you said you are 13 or older; answering no keeps nothing. It also keeps
 the records the product is made of: what you claimed and recorded, your
 agents and connected apps and the calls they make, where they connected
 from, and the mail it sent you. You can see these records on your

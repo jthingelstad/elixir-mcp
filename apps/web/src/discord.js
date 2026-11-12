@@ -5,11 +5,19 @@
 /** Where a "Continue with Discord" or "Connect Discord" link goes. A
  *  sign-in carries what the email form would: the browser's zone and the
  *  product-news box, used only if the sign-in opens a new account. */
-export function discordStartHref({ intent, zone = null, news = false }) {
+export function discordStartHref({
+  intent,
+  zone = null,
+  news = false,
+  age = false,
+}) {
   const q = new URLSearchParams({ intent });
   if (intent === "signin") {
     if (zone) q.set("tz", zone);
     if (news) q.set("news", "1");
+    // The signup form's "I am 13 or older" (#763): a new account opens
+    // only with it.
+    if (age) q.set("age", "1");
   }
   return `/api/auth/discord/start?${q}`;
 }
@@ -32,6 +40,7 @@ const SIGNIN = {
   other:
     "The Elixir account for that email is connected to a different Discord account. Sign in with your email.",
   not_approved: "This account can’t sign in.",
+  age: "There’s no Elixir account for your Discord’s email yet. To create one, say you’re 13 or older below, then continue with Discord again.",
 };
 
 const LINK = {

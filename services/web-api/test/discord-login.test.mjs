@@ -50,7 +50,9 @@ const pair = (c) => c.split(";")[0];
 const locationOf = (res) => new URL(res.headers.location, "https://x.test");
 
 async function signInByEmail(email) {
-  await handler(event({ method: "POST", path: "/api/auth", body: { email } }));
+  await handler(
+    event({ method: "POST", path: "/api/auth", body: { age_13: true, email } }),
+  );
   const { token } = sentEmails.at(-1);
   const res = await handler(
     event({ method: "POST", path: "/api/auth/redeem", body: { token } }),
@@ -143,7 +145,7 @@ test("unconfigured, both ways in say so and nothing is started", async () => {
 test("a new verified address opens an account, linked, with the form's choices", async () => {
   const res = await roundTrip({
     intent: "signin",
-    query: { tz: "America/Chicago", news: "1" },
+    query: { tz: "America/Chicago", news: "1", age: "1" },
     user: {
       id: "300000000000000001",
       username: "newbie",
@@ -182,6 +184,31 @@ test("a new verified address opens an account, linked, with the form's choices",
     },
   });
   assert.equal(again.headers.location, "/signin?discord=signed_in");
+});
+
+test("plain sign-in with Discord opens no new account; the signup form asks first (#763)", async () => {
+  const email = "no-age-discord@example.com";
+  const res = await roundTrip({
+    intent: "signin",
+    query: { tz: "America/Chicago" },
+    user: {
+      id: "300000000000000009",
+      username: "noage",
+      email,
+      verified: true,
+    },
+  });
+  assert.equal(res.headers.location, "/signin?signup&discord=age");
+  assert.ok(
+    !res.cookies.some((c) => c.startsWith("__Host-elixir_session=")),
+    "no session",
+  );
+  const { rows } = await db.query(
+    `select 1 from account where email = $1
+     union all select 1 from account_discord where discord_user_id = $2`,
+    [email, "300000000000000009"],
+  );
+  assert.equal(rows.length, 0, "no account and no link");
 });
 
 test("a verified address reaches its existing account and links it", async () => {

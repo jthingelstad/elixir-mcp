@@ -39,6 +39,8 @@ export const api = {
     timezone = null,
     playerTag = "",
     turnstileToken = "",
+    // The signup form's "I am 13 or older" (#763); plain sign-in sends none.
+    age13 = false,
   ) =>
     request("POST", "/api/auth", {
       email,
@@ -46,6 +48,7 @@ export const api = {
       ...(timezone ? { timezone } : {}),
       ...(playerTag?.trim() ? { player_tag: playerTag.trim() } : {}),
       ...(turnstileToken ? { turnstile_token: turnstileToken } : {}),
+      ...(age13 === true ? { age_13: true } : {}),
     }),
   redeemToken: (token) => request("POST", "/api/auth/redeem", { token }),
   redeemCode: (email, code) =>

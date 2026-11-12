@@ -268,6 +268,7 @@ test("signup sends the tag with the email; a refused tag is a form error, not a 
   fireEvent.change(screen.getByLabelText("Your player tag (optional)"), {
     target: { value: " #2pyq8gj0 " },
   });
+  fireEvent.click(screen.getByLabelText("Yes"));
   fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
   expect(
     await screen.findByText(/doesn't look like a player tag/),
@@ -301,10 +302,72 @@ test("an empty tag is not sent, and a new account's landing reaches onAuthed", a
   fireEvent.change(screen.getByLabelText("Your player tag (optional)"), {
     target: { value: "   " },
   });
+  fireEvent.click(screen.getByLabelText("Yes"));
   fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
   const code = await screen.findByLabelText("6-digit code");
   expect("player_tag" in sent[0][1]).toBe(false);
+  expect(sent[0][1].age_13).toBe(true);
   fireEvent.change(code, { target: { value: "123456" } });
   fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
   await waitFor(() => expect(done).toHaveBeenCalledWith({ player_tag: null }));
+});
+
+// Social slice 5 (#763): signup asks "Are you 13 or older?". A "no" sends
+// nothing at all; plain sign-in asks nothing and sends no answer.
+test("a no to the 13-or-older question sends nothing and says so", async () => {
+  window.history.pushState({}, "", "/console/signin?signup");
+  global.fetch = vi.fn();
+  render(<SignIn onAuthed={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText("Email"), {
+    target: { value: "young@example.com" },
+  });
+  fireEvent.click(screen.getByLabelText("No"));
+  expect(screen.getByText(/Nothing was sent or saved/)).toBeTruthy();
+  const send = screen.getByRole("button", { name: "Send sign-in email" });
+  expect(send.disabled).toBe(true);
+  fireEvent.submit(send.closest("form"));
+  await new Promise((r) => setTimeout(r, 20));
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test("plain sign-in sends no answer; a proof for a new address comes back to the question", async () => {
+  window.history.pushState({}, "", "/console/signin");
+  const sent = [];
+  const done = vi.fn();
+  global.fetch = vi.fn(async (path, init) => {
+    sent.push([path, JSON.parse(init.body)]);
+    const [status, body] =
+      path === "/api/auth/code"
+        ? [403, { error: "age_attestation_required" }]
+        : [200, { ok: true }];
+    return {
+      ok: status === 200,
+      status,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+  render(<SignIn onAuthed={done} />);
+  expect(screen.queryByText("Are you 13 or older?")).toBeNull();
+  fireEvent.change(screen.getByLabelText("Email"), {
+    target: { value: "brand-new@example.com" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
+  const code = await screen.findByLabelText("6-digit code");
+  expect("age_13" in sent[0][1]).toBe(false);
+  fireEvent.change(code, { target: { value: "123456" } });
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  expect(
+    await screen.findByText(/no Elixir account for that address yet/),
+  ).toBeTruthy();
+  expect(screen.getByText("Are you 13 or older?")).toBeTruthy();
+  expect(screen.getByLabelText("Email").value).toBe("brand-new@example.com");
+  expect(done).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByLabelText("Yes"));
+  fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
+  await waitFor(() => expect(sent.length).toBe(3));
+  expect(sent[2]).toEqual([
+    "/api/auth",
+    expect.objectContaining({ email: "brand-new@example.com", age_13: true }),
+  ]);
 });

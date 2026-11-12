@@ -114,8 +114,19 @@ On the smallest phones, the players' deck panels stack in their existing
 order, each keeping two rows of four cards. Larger phones and desktop show
 the panels side by side.
 
-If you choose **Create your account** from a battle, sign-in returns to that
-battle so you can continue reading it with your account.
+Signed out, a battle's page and a shared highlight carry one way in:
+**Join Elixir** opens the signup form and **Sign in** the sign-in form,
+and either brings you back to the page you were reading. The link names
+only the battle or the post, never who sent it to you.
+
+Signed in, **Follow from here** lists the page's players: a shared
+highlight's player first, then the rest of its battle; on a battle's page
+the left side first, then the right. Each says before the tap whether a
+Follow is free or uses one of your player slots ([What a player slot
+costs](/docs/recording#what-a-player-slot-costs)), and **Follow** adds
+the player as a friend, as Home's Follow does. Your own players are left
+out. An account with no player of its own is asked to add it first, as
+Home's Friends tab asks.
 
 Add `.png` to the link for the battle's picture: the page drawn as one 1200 by
 630 image, with the names left and right, both decks two by four with their

@@ -43,6 +43,11 @@ const PRODUCT_NEWS_DRAFT = "elixir.signup_product_news";
 // (TURNSTILE_REFUSED_MESSAGE in packages/auth).
 const TURNSTILE_REFUSED =
   "Elixir could not confirm a person asked for this email. Reload the page and try again.";
+// A proof for an address with no account, from plain sign-in, which does
+// not ask the 13-or-older question (#763): the signup form asks it, and a
+// new email follows.
+const AGE_NOTICE =
+  "There’s no Elixir account for that address yet. To create one, answer the question below and we’ll send a new email.";
 
 /** What a send is waiting for while Cloudflare's box is on screen: the form
  *  says so beside the box, never a bare "Sending…" (turnstile.js, 2026-11-09). */
@@ -118,8 +123,14 @@ export function SignIn({
   const [creating, setCreating] = useState(
     () =>
       new URLSearchParams(search).has("signup") ||
-      new URLSearchParams(search).has("request"),
+      new URLSearchParams(search).has("request") ||
+      fromDiscord?.outcome === "age",
   );
+  // The signup form's "Are you 13 or older?" (VISION; #763): null until
+  // answered. A "no" sends nothing and keeps nothing: the form stops here.
+  const [age, setAge] = useState(null);
+  // Why the form came back after a proof (AGE_NOTICE), or "".
+  const [notice, setNotice] = useState("");
   const [playerTag, setPlayerTag] = useState("");
   // What the proof said about a new account, held while a cross-device
   // handoff is answered first.
@@ -166,6 +177,7 @@ export function SignIn({
         );
         return setStep("link_error");
       }
+      if (res.data?.error === "age_attestation_required") return askAge();
       if (!res.ok)
         return setStep(
           res.data?.error === "not_approved" ? "pending" : "expired",
@@ -202,9 +214,22 @@ export function SignIn({
     };
   }, [step, asked]);
 
+  /** Back to the signup form, with the question, after a proof that would
+   *  have opened an account nobody said was 13 or older. */
+  function askAge() {
+    setCreating(true);
+    setAge(null);
+    setCode("");
+    setError("");
+    setNotice(AGE_NOTICE);
+    setStep("email");
+  }
+
   async function sendEmail(e) {
     e?.preventDefault();
     if (submitting.current) return;
+    // The signup form sends nothing until the question has a yes.
+    if (creating && age !== "yes") return;
     submitting.current = true;
     setError("");
     setBusy(true);
@@ -214,6 +239,7 @@ export function SignIn({
       browserZone(),
       creating ? playerTag : "",
       await turnstileToken(email),
+      creating && age === "yes",
     );
     submitting.current = false;
     setBusy(false);
@@ -428,6 +454,7 @@ export function SignIn({
             if (res.ok)
               return finishSignIn(onAuthed, res.data?.new_account ?? null);
             if (res.data?.error === "not_approved") return setStep("pending");
+            if (res.data?.error === "age_attestation_required") return askAge();
             setError(
               res.status >= 500 || res.error
                 ? writeErrorText({
@@ -527,9 +554,14 @@ export function SignIn({
         We’ll email you a sign-in link and a six-digit code. Use either to
         continue.
       </p>
-      {fromDiscord && (
+      {fromDiscord && !notice && (
         <p className="field-error" role="alert">
           {fromDiscord.text}
+        </p>
+      )}
+      {notice && (
+        <p className="field-error" role="alert">
+          {notice}
         </p>
       )}
       <form onSubmit={sendEmail}>
@@ -570,6 +602,42 @@ export function SignIn({
               below your name. Elixir starts recording it once you verify your
               email. Leave it empty to add your player after signing in.
             </p>
+            <fieldset className="m-0 mb-4 border-0 p-0">
+              <legend className="field-label">Are you 13 or older?</legend>
+              <div className="flex gap-5 text-[14px] text-ink-body">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="signin-age"
+                    value="yes"
+                    required
+                    checked={age === "yes"}
+                    onChange={() => setAge("yes")}
+                  />
+                  Yes
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="signin-age"
+                    value="no"
+                    checked={age === "no"}
+                    onChange={() => setAge("no")}
+                  />
+                  No
+                </label>
+              </div>
+              {age === "no" ? (
+                <p className="footnote mt-2 mb-0" role="status">
+                  Elixir accounts are for people 13 or older, so we can’t create
+                  one for you. Nothing was sent or saved.
+                </p>
+              ) : (
+                <p className="footnote mt-2 mb-0">
+                  Elixir accounts are for people 13 or older.
+                </p>
+              )}
+            </fieldset>
           </>
         )}
         <label className="mb-2 flex items-start gap-2 text-[13px] text-ink-body">
@@ -607,7 +675,7 @@ export function SignIn({
         <button
           className="btn btn--primary"
           type="submit"
-          disabled={busy}
+          disabled={busy || (creating && age === "no")}
           style={primary}
         >
           {!busy
@@ -617,13 +685,15 @@ export function SignIn({
               : "Sending…"}
         </button>
       </form>
-      {discordLogin && (
+      {/* On the signup form, only once the question has a yes. */}
+      {discordLogin && (!creating || age === "yes") && (
         <a
           className="btn mt-3 w-full justify-center py-3 text-[15px]"
           href={discordStartHref({
             intent: "signin",
             zone: browserZone(),
             news: productNews,
+            age: creating && age === "yes",
           })}
         >
           Continue with Discord

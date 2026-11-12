@@ -22,6 +22,7 @@ import { CONSOLE } from "../lib/console.js";
 import { tagPath } from "../lib/tag-url.js";
 import { ladderPlayers } from "../ladder/ladder.js";
 import { BattleHighlight } from "./BattleHighlight.jsx";
+import { FollowFromHere } from "./FollowFromHere.jsx";
 import { PlayerBattleShare } from "./PlayerBattleShare.jsx";
 
 /**
@@ -232,7 +233,9 @@ function Empty({ title, children }) {
   );
 }
 
-export function BattleView({ read, me }) {
+/** `follow` and `invite` let a page that wraps the battle (a shared post)
+ *  draw its own Follow suggestions and its own way in, above it. */
+export function BattleView({ read, me, follow = true, invite = true }) {
   const { battle, sides, games } = read;
   const clock = useClock();
   const narrow = useMedia("(max-width: 760px)");
@@ -332,6 +335,10 @@ export function BattleView({ read, me }) {
 
       {signedIn && <BattleHighlight battle={battle} sides={sides} />}
 
+      {signedIn && follow && <FollowFromHere sides={sides} me={me} />}
+
+      {signedOut && invite && <Invite />}
+
       <div className="battle__grid battle__grid--three">
         <Meetings read={read} />
         <Sitting read={read} />
@@ -348,8 +355,6 @@ export function BattleView({ read, me }) {
           }
         />
       </div>
-
-      {signedOut && <Invite />}
 
       <div className="battle__foot">
         <span>
@@ -951,27 +956,36 @@ function Share({ battle, sides, own }) {
   );
 }
 
-/** For a reader with no account: what Elixir is, and the way in. */
-function Invite() {
+/** For a reader with no account: what Elixir is, and the way in (#763).
+ *  Both links carry this page as where to come back to, and nothing else:
+ *  never who sent the link ("Invites carry no referral ids"). */
+export function Invite({ who = null }) {
+  const back = encodeURIComponent(
+    window.location.pathname + window.location.search,
+  );
+  const title = who
+    ? `Follow ${who} on Elixir`
+    : "Follow these players on Elixir";
   return (
-    <section
-      className="panel panel--cta"
-      aria-label="Your battles, on the record"
-    >
+    <section className="panel panel--cta" aria-label={title}>
       <div className="panel__body battle-ended">
-        <span className="battle-deck__label">Your battles, on the record</span>
+        <span className="battle-deck__label">{title}</span>
         <p>
-          Elixir keeps every battle it records and reads it back: your record by
-          mode, your decks, a short email each week.
+          Elixir is where Clash Royale players follow each other’s battles and
+          celebrate them. It’s free. Join or sign in and you come back to this
+          page, ready to follow.
         </p>
         <div className="share-actions">
           <a
-            className="btn btn--gold"
-            href={`/signin?signup&return_to=${encodeURIComponent(window.location.pathname + window.location.search)}`}
+            className="btn btn--primary"
+            href={`/signin?signup&return_to=${back}`}
           >
-            Create your account
+            Join Elixir
           </a>
-          <a className="btn" href="/">
+          <a className="btn" href={`/signin?return_to=${back}`}>
+            Sign in
+          </a>
+          <a className="btn btn--quiet" href="/">
             What is Elixir?
           </a>
         </div>

@@ -75,7 +75,7 @@ const call = async (method, p, opts) => {
 };
 
 async function signIn(email) {
-  await request("POST", "/api/auth", { body: { email } });
+  await request("POST", "/api/auth", { body: { age_13: true, email } });
   const { code } = sent.at(-1);
   const res = await request("POST", "/api/auth/code", {
     body: { email, code },

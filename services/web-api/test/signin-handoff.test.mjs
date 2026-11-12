@@ -100,7 +100,7 @@ after(async () => {
 
 test("same address: the link opened elsewhere hands the session to the screen that asked", async () => {
   const ask = await handler(
-    event({ path: "/api/auth", body: { email: MEMBER } }),
+    event({ path: "/api/auth", body: { age_13: true, email: MEMBER } }),
   );
   const { poll_id } = parse(ask);
   assert.match(poll_id, /^[A-Za-z0-9_-]{32,}$/);
@@ -146,9 +146,13 @@ test("same address: the link opened elsewhere hands the session to the screen th
 });
 
 test("different address: the redeeming screen is asked, and nothing moves until it says yes", async () => {
-  await handler(event({ path: "/api/auth", body: { email: MEMBER } }));
+  await handler(
+    event({ path: "/api/auth", body: { age_13: true, email: MEMBER } }),
+  );
   const { poll_id } = parse(
-    await handler(event({ path: "/api/auth", body: { email: MEMBER } })),
+    await handler(
+      event({ path: "/api/auth", body: { age_13: true, email: MEMBER } }),
+    ),
   );
   const { token } = sentEmails.at(-1);
   const redeem = await handler(
@@ -172,7 +176,9 @@ test("different address: the redeeming screen is asked, and nothing moves until 
   assert.deepEqual(parse(waiting), { ready: false });
 
   // A confirm from somebody else's session is a no-op.
-  await handler(event({ path: "/api/auth", body: { email: OTHER } }));
+  await handler(
+    event({ path: "/api/auth", body: { age_13: true, email: OTHER } }),
+  );
   const otherRedeem = await handler(
     event({
       path: "/api/auth/redeem",
@@ -210,7 +216,7 @@ test("different address: the redeeming screen is asked, and nothing moves until 
 
 test("the answer's shape is the same for an unknown address, and a foreign poll id collects nothing", async () => {
   const ask = await handler(
-    event({ path: "/api/auth", body: { email: NOBODY } }),
+    event({ path: "/api/auth", body: { age_13: true, email: NOBODY } }),
   );
   const body = parse(ask);
   assert.equal(body.ok, true);
@@ -229,12 +235,14 @@ test("the sixth sign-in mail in an hour is answered plainly, approved or not", a
   const email = "limited-handoff@example.com";
   for (let i = 0; i < 5; i += 1) {
     const res = parse(
-      await handler(event({ path: "/api/auth", body: { email } })),
+      await handler(
+        event({ path: "/api/auth", body: { age_13: true, email } }),
+      ),
     );
     assert.equal(res.limited, undefined);
   }
   const sixth = parse(
-    await handler(event({ path: "/api/auth", body: { email } })),
+    await handler(event({ path: "/api/auth", body: { age_13: true, email } })),
   );
   assert.equal(sixth.ok, true);
   assert.equal(sixth.limited, true);
@@ -247,7 +255,7 @@ test("the device list shows every live session, this one marked, and revokes the
   await handler(
     event({
       path: "/api/auth",
-      body: { email: OTHER },
+      body: { age_13: true, email: OTHER },
       viewer: "10.0.4.1:5000",
     }),
   );
@@ -270,7 +278,7 @@ test("the device list shows every live session, this one marked, and revokes the
   await handler(
     event({
       path: "/api/auth",
-      body: { email: OTHER },
+      body: { age_13: true, email: OTHER },
       viewer: "10.0.4.2:5000",
     }),
   );

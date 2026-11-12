@@ -44,7 +44,12 @@ const parse = (r) => JSON.parse(r.body);
 const cookieOf = (r) => r.headers["set-cookie"].split(";")[0];
 async function ask(email, ip, choice = undefined) {
   const response = await handler(
-    event("/api/auth", { email, newsletter_opt_in: choice }, null, ip),
+    event(
+      "/api/auth",
+      { age_13: true, email, newsletter_opt_in: choice },
+      null,
+      ip,
+    ),
   );
   return { response, mail: mails.findLast((m) => m.email === email) };
 }
@@ -284,7 +289,7 @@ test("invalid choice cannot issue mail; existing approved and pending accounts p
 // time zone at signup". The zone rides the request, like the news choice.
 async function askZoned(email, timezone, ip) {
   const response = await handler(
-    event("/api/auth", { email, timezone }, null, ip),
+    event("/api/auth", { age_13: true, email, timezone }, null, ip),
   );
   assert.equal(response.statusCode, 200, response.body);
   return { response, mail: mails.findLast((m) => m.email === email) };
@@ -731,7 +736,7 @@ test("distinct concurrent verified links keep one identity and send one welcome"
 // applied only after the address is proved.
 async function askTagged(email, player_tag, ip) {
   const response = await tagged(
-    event("/api/auth", { email, player_tag }, null, ip),
+    event("/api/auth", { age_13: true, email, player_tag }, null, ip),
   );
   return { response, mail: mails.findLast((m) => m.email === email) };
 }
@@ -937,7 +942,12 @@ test("Turnstile: observe carries the page's token to the relay and refuses nobod
   const send = async (email, extra = {}) => {
     const before = mails.length;
     const response = await handler(
-      event("/api/auth", { email, ...extra }, null, "203.0.113.77"),
+      event(
+        "/api/auth",
+        { age_13: true, email, ...extra },
+        null,
+        "203.0.113.77",
+      ),
     );
     return { response, mail: mails.length > before ? mails.at(-1) : null };
   };
@@ -978,4 +988,114 @@ test("Turnstile: observe carries the page's token to the relay and refuses nobod
   process.env.TURNSTILE_MODE = "off";
   ({ mail } = await send("ts-off@example.com", { turnstile_token: "x" }));
   assert.equal(mail.turnstile, null, "off carries nothing to check");
+});
+
+// Social slice 5 (#763): signup asks the person to attest they are 13 or
+// older (VISION; DECISIONS "Free public signup"). A "no" stores nothing;
+// plain sign-in, which does not ask, opens no new account.
+test("a no to the 13-or-older question is refused before anything is kept", async () => {
+  const email = "under-thirteen@example.com";
+  const counts = async () => ({
+    account: (
+      await db.query("select 1 from account where email_hash=$1", [
+        emailHash(email),
+      ])
+    ).rowCount,
+    login: (
+      await db.query("select 1 from magic_login where email_hash=$1", [
+        emailHash(email),
+      ])
+    ).rowCount,
+    limits: (
+      await db.query("select 1 from rate_limit where bucket like $1", [
+        `%${emailHash(email)}%`,
+      ])
+    ).rowCount,
+  });
+  const before = mails.length;
+  const refused = await handler(
+    event("/api/auth", { email, age_13: false, player_tag: "#CCCCC" }),
+  );
+  assert.equal(refused.statusCode, 403, refused.body);
+  assert.equal(parse(refused).error, "under_13");
+  assert.equal(mails.length, before, "no mail");
+  assert.deepEqual(await counts(), { account: 0, login: 0, limits: 0 });
+  // Only a boolean is an answer.
+  const odd = await handler(event("/api/auth", { email, age_13: "yes" }));
+  assert.equal(odd.statusCode, 400);
+  assert.deepEqual(await counts(), { account: 0, login: 0, limits: 0 });
+});
+
+test("plain sign-in's proof opens no new account; the signup form's attestation is kept", async () => {
+  for (const method of ["code", "redeem"]) {
+    const email = `plain-new-${method}@example.com`;
+    const hash = emailHash(email);
+    const sent = await handler(event("/api/auth", { email }));
+    assert.equal(sent.statusCode, 200, sent.body);
+    const mail = mails.findLast((m) => m.email === email);
+    const proof = await handler(
+      event(
+        `/api/auth/${method}`,
+        method === "code"
+          ? { email, code: mail.code, age_13: true }
+          : { token: mail.token, age_13: true },
+      ),
+    );
+    // The proof's own body never attests: only the form that asked does.
+    assert.equal(proof.statusCode, 403, proof.body);
+    assert.equal(parse(proof).error, "age_attestation_required");
+    assert.equal(proof.headers?.["set-cookie"], undefined, "no session");
+    assert.equal(
+      (await db.query("select 1 from account where email_hash=$1", [hash]))
+        .rowCount,
+      0,
+    );
+    assert.equal(welcomes.filter((m) => m.email === email).length, 0);
+
+    // The signup form asks; its yes is kept, with when it was given.
+    const asked = Date.now();
+    await handler(event("/api/auth", { email, age_13: true }));
+    const again = mails.findLast((m) => m.email === email);
+    const opened = await handler(
+      event(
+        `/api/auth/${method}`,
+        method === "code"
+          ? { email, code: again.code }
+          : { token: again.token },
+      ),
+    );
+    assert.equal(opened.statusCode, 200, opened.body);
+    const {
+      rows: [row],
+    } = await db.query(
+      "select age_attested_at from account where email_hash=$1",
+      [hash],
+    );
+    assert.ok(row.age_attested_at, "the attestation is stored");
+    assert.ok(row.age_attested_at.getTime() >= asked - 1000);
+    assert.ok(row.age_attested_at.getTime() <= Date.now() + 1000);
+
+    // Plain sign-in signs the open account in, and changes nothing kept.
+    await handler(event("/api/auth", { email }));
+    const later = mails.findLast((m) => m.email === email);
+    const signedIn = await handler(
+      event(
+        `/api/auth/${method}`,
+        method === "code"
+          ? { email, code: later.code }
+          : { token: later.token },
+      ),
+    );
+    assert.equal(signedIn.statusCode, 200, signedIn.body);
+    const {
+      rows: [after],
+    } = await db.query(
+      "select age_attested_at from account where email_hash=$1",
+      [hash],
+    );
+    assert.equal(
+      after.age_attested_at.getTime(),
+      row.age_attested_at.getTime(),
+    );
+  }
 });
