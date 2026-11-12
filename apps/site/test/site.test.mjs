@@ -1178,7 +1178,9 @@ test("nothing in the built site relies on inline script", { skip }, () => {
   // The pattern that keeps it that way: page behaviour is an external
   // file. (The home page's form handler was the first to move out; the
   // form itself has since gone to the app entirely.)
-  assert.ok(read("index.html").includes("/assets/transcript.js"));
+  assert.ok(
+    read("docs/connect-a-client/index.html").includes("/assets/transcript.js"),
+  );
   assert.ok(existsSync(path.join(out, "assets/transcript.js")));
 });
 
@@ -1312,8 +1314,8 @@ test(
   "every tool a transcript names is in the registry, and links to its heading",
   { skip },
   async () => {
-    // The home page and the use-case pages promise that every tool under
-    // a transcript window is real. Eight of the design's placeholder
+    // Connect a client and the use-case pages promise that every tool
+    // under a transcript window is real. Eight of the design's placeholder
     // names were not (2026-09-10); the copy claimed they were anyway.
     const { makeRegistry } = await import(
       path.join(repoRoot, "packages/tools/src/tools.mjs")
@@ -1324,7 +1326,7 @@ test(
         .map((d) => d.name),
     );
     const pages = [
-      "index.html",
+      "docs/connect-a-client/index.html",
       ...STATIC_PAGES.filter((p) => p.startsWith("/examples/")).map(
         (p) => `${p.slice(1)}/index.html`,
       ),
@@ -1543,12 +1545,12 @@ test(
 );
 
 test(
-  "the front door is the board's: six tiles, Drop next door, no record in it",
+  "the front door is the gate, three flat rows, a Drop line and the call to join",
   { skip },
   async () => {
-    // The Site board (2026-09-29). The page is built whole; the cards'
-    // numbers are drawn by home-live.js from the public endpoint, so the
-    // built page holds none and the strip waits hidden.
+    // Jamie, 2026-11-12: "trim the signed-out front page to the gate,
+    // three flat rows and a Drop line, moving the agent demo and counts
+    // to Docs and Status".
     const { JSDOM } = await import("jsdom");
     const doc = new JSDOM(read("index.html")).window.document;
     assert.match(
@@ -1558,38 +1560,73 @@ test(
     const art = doc.querySelector(".home-art img");
     assert.equal(art.getAttribute("src"), "/assets/elixir-logo-288.webp");
     assert.ok(existsSync(path.join(out, "assets/elixir-logo-288.webp")));
-    // Six parts of Elixir, each with one way in and nothing else to
-    // click (the call stretches over its tile).
-    const tiles = [...doc.querySelectorAll(".home-tile")];
+    // Three rows: friends, your clan, highlights, each with its way in.
+    const rows = [...doc.querySelectorAll(".home-row")];
     assert.deepEqual(
-      tiles.map((t) => t.querySelector(".home-tile__product").textContent),
-      ["Your record", "Clan", "Friends", "Emails", "Your AI"],
-    );
-    assert.deepEqual(
-      tiles.map((t) => t.querySelector(".home-tile__cta").getAttribute("href")),
+      rows.map((r) => r.querySelector(".home-row__title").textContent),
       [
-        "/home",
-        "/docs/bring-your-clan",
-        "/docs/follow-a-friend",
-        "/docs/email",
-        "/docs/quickstart",
+        "Follow your friends",
+        "Your clan\u2019s week",
+        "Share a battle you are proud of",
       ],
     );
-    for (const t of tiles) assert.equal(t.querySelectorAll("a").length, 1);
-    // A tile describes; it never shows a record. No win-loss, no share,
-    // no count is baked into one.
-    for (const t of tiles)
-      assert.doesNotMatch(t.textContent, /\d+\s*[–-]\s*\d+|\d%|\d,\d{3}/);
+    assert.deepEqual(
+      rows.map((r) =>
+        [...r.querySelectorAll("a")].map((a) => a.getAttribute("href")),
+      ),
+      [
+        ["/docs/follow-a-friend"],
+        ["/docs/bring-your-clan", "/docs/clan-directory"],
+        ["/docs/battles#highlight-a-battle"],
+      ],
+    );
+    // A row describes; it never shows a record or a count.
+    for (const r of rows)
+      assert.doesNotMatch(r.textContent, /\d+\s*[–-]\s*\d+|\d%|\d,\d{3}/);
+    // Near you is not live, so nothing here promises it.
+    assert.doesNotMatch(
+      doc.querySelector("[data-home]").textContent,
+      /near you/i,
+    );
 
-    // Drop's band links the manifest's own Drop, in a new window.
+    // Drop is one line, linking the manifest's own Drop in a new window.
     const { default: family } = await import(
       path.join(repoRoot, "packages/ui/src/family.json"),
       { with: { type: "json" } }
     );
     const drop = family.products.find((p) => p.game);
-    const play = doc.querySelector(".home-drop__play");
+    const next = doc.querySelector(".home-next");
+    assert.equal(next.tagName, "P");
+    const play = next.querySelector("a");
     assert.equal(play.getAttribute("href"), drop.href);
     assert.equal(play.getAttribute("target"), "_blank");
+
+    // The rest moved: the exchange to Connect a client, the counts to /data.
+    assert.equal(doc.querySelector("[data-transcript]"), null);
+    assert.equal(doc.querySelector(".stats"), null);
+    assert.equal(doc.querySelector(".home-tile, .home-drop"), null);
+    const connect = new JSDOM(read("docs/connect-a-client/index.html")).window
+      .document;
+    const demo = connect.querySelector(".doc-demo");
+    assert.ok(demo.querySelector("[data-transcript] [data-script]"));
+    assert.deepEqual(
+      [...demo.querySelectorAll(".doc-demo__links a")].map((a) =>
+        a.getAttribute("href"),
+      ),
+      ["#connect", "/examples/play"],
+    );
+    assert.ok(connect.getElementById("connect"));
+    assert.equal(
+      connect.querySelector(".docs__onpage-list a").getAttribute("href"),
+      "#ask-in-plain-language",
+    );
+    const data = new JSDOM(read("data/index.html")).window.document;
+    assert.deepEqual(
+      [...data.querySelectorAll("#the-record .stats__cell .label")].map(
+        (l) => l.textContent,
+      ),
+      ["Battles", "Players", "Clans", "War weeks", "Daily player records"],
+    );
 
     assert.equal(doc.querySelector("[data-home-strip]"), null);
     assert.equal(doc.querySelector("[data-home-top3]"), null);

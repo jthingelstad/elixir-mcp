@@ -1,0 +1,28 @@
+{#-
+  The agent exchange, on the page about connecting one (moved from the
+  front page, Jamie 2026-11-12: "moving the agent demo and counts to Docs
+  and Status"). A layout piece, not Markdown: the docs corpus an agent
+  reads and llms-full.txt render a page's Markdown alone, and an agent has
+  no use for a typing window. The three exchanges are the examples'
+  own (_data/transcript.js), so this and /examples cannot disagree.
+-#}
+<section class="doc-demo" aria-labelledby="ask-in-plain-language">
+  <h2 id="ask-in-plain-language">Ask in plain language</h2>
+  <p>
+    Your agent gets the tools, what your account allows, and every answer
+    with its sample size. You ask the way you would ask a clanmate; the
+    answer comes from the record, with the numbers behind it.
+  </p>
+  {%- set scripts = transcript %}
+  {% include "transcript.njk" %}
+  <p class="footnote">
+    A real exchange, recorded Sep 10: each question was put to the live
+    service, the tools under the window are the ones that answered it, and
+    every number came back from them.
+  </p>
+  <p class="doc-demo__links">
+    <a href="#connect">Connect your agent ›</a>
+    <a href="/examples/play">Every example, start to finish ›</a>
+  </p>
+</section>
+<script defer src="{{ "/assets/transcript.js" | asset }}"></script>
