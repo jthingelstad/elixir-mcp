@@ -119,6 +119,44 @@ test("successful aggregation restores the connection timeout", async () => {
   );
 });
 
+test("a restore cancelled by the call's own leftover timeout is tried again, so the next caller never inherits it", async () => {
+  // Verify, 2026-11-12: under load the restore's set_config outlasted the
+  // last per-query timeout, was cancelled, and the next caller on the
+  // connection ran with a 1 ms statement_timeout.
+  const attempts = [];
+  const flaky = {
+    query: async (sql, params) => {
+      if (
+        String(sql).startsWith("select set_config($1, $2") &&
+        params?.[0] === "statement_timeout"
+      ) {
+        attempts.push(params[1]);
+        if (attempts.length === 1) {
+          const err = new Error("canceling statement due to statement timeout");
+          err.code = "57014";
+          throw err;
+        }
+      }
+      return db.query(sql, params);
+    },
+  };
+  const invoke = makeInvoker({
+    db: flaky,
+    account,
+    queryBudgetMs: 1000,
+    registry: {
+      invoke: async (_name, ctx) =>
+        (await ctx.db.query("select 1 as n")).rows[0],
+    },
+  });
+  assert.equal((await invoke("clans_standings", {})).isError, false);
+  assert.deepEqual(attempts, ["0", "0"]);
+  assert.equal(
+    (await db.query("show statement_timeout")).rows[0].statement_timeout,
+    "0",
+  );
+});
+
 test("the analytical budget never interrupts an account mutation", async () => {
   const statements = [];
   const fake = {

@@ -262,16 +262,29 @@ async function restoreBudget(db, budget) {
   const previous = budget.previous;
   if (!previous) return;
   budget.previous = null;
-  await db.query("select set_config('statement_timeout', $1, false)", [
-    previous.statement_timeout,
-  ]);
-  await db.query("select set_config('lock_timeout', $1, false)", [
-    previous.lock_timeout,
-  ]);
+  // The first restore runs under the call's last timeout, which may be a
+  // few milliseconds; on a busy host even set_config can outlast it
+  // (verify, 2026-11-12: the restore was cancelled and the next caller
+  // inherited a 1 ms timeout). Once it lands, the rest run unbounded.
+  await restoreSetting(db, "statement_timeout", previous.statement_timeout);
+  await restoreSetting(db, "lock_timeout", previous.lock_timeout);
   if (previous.work_mem)
-    await db.query("select set_config('work_mem', $1, false)", [
-      previous.work_mem,
-    ]);
+    await restoreSetting(db, "work_mem", previous.work_mem);
+}
+
+const RESTORE_ATTEMPTS = 5;
+
+/** One setting put back, tried again only when the leftover
+ *  statement_timeout cancelled the attempt (57014). */
+async function restoreSetting(db, setting, value) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await db.query("select set_config($1, $2, false)", [setting, value]);
+      return;
+    } catch (err) {
+      if (err?.code !== "57014" || attempt >= RESTORE_ATTEMPTS) throw err;
+    }
+  }
 }
 
 export function timedDb(db, t, budget = null) {
