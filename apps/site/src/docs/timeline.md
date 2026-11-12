@@ -46,6 +46,13 @@ marker are always read live, and following or unfollowing someone, changing a
 nickname or your time zone builds the week again on your next visit. After
 three days away the first visit builds it while you wait.
 
+Your clan's card beside the feed is kept the same way: your standing, your
+week and the war line are rebuilt in the background at most fifteen minutes
+after you last saw them, so they can trail the record by up to about twenty
+minutes. Whether you may see the card, your role, and the Actions waiting for
+you are read live on every visit, and a role change, a policy change, a hold
+or leaving the clan builds the card again at once.
+
 The feed shows the newest thirty items, and **More** reads the next thirty of
 the same week, so an item never appears twice or goes missing between pages.
 The counts on the chips are the whole week's; the chips filter what is

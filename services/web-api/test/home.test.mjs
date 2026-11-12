@@ -436,6 +436,125 @@ test("a failed clan panel says so and the rest of Home still renders", async () 
   assert.equal(needs.needs_total, clan.needs_total);
 });
 
+test("the clan card is kept per account; Clan's gate, Actions and role are read live", async () => {
+  const { db } = scratch;
+  const tag = "#9GQLV2Y";
+  await db.query(
+    "insert into player(player_tag,name) values ($1,'Kept') on conflict do nothing",
+    [tag],
+  );
+  const id = await person("home-clan-kept");
+  await db.query(
+    `insert into claim(account_id,player_tag,status,relationship,is_primary)
+     values ($1,$2,'verified','primary',true)`,
+    [id, tag],
+  );
+  await db.query(
+    `insert into clan_membership(clan_tag,player_tag,role,joined_observed_at)
+     values ($1,$2,'elder',now())`,
+    [CLAN, tag],
+  );
+  await db.query(
+    `insert into account_clan(account_id,clan_tag,scope) values ($1,$2,'activity')
+     on conflict do nothing`,
+    [id, CLAN],
+  );
+  const read = async (query = undefined) => {
+    const r = await handler({
+      path: "/api/me/home/clan",
+      method: "GET",
+      ...(query ? { queryStringParameters: query } : {}),
+      headers: {
+        cookie: `__Host-elixir_session=${sessions.get(id)}`,
+        "x-elixir-client": "web",
+        "cloudfront-viewer-address": "8.8.4.4:443",
+      },
+    });
+    assert.equal(r.statusCode, 200, r.body);
+    return data(r).clan;
+  };
+  const row = async () =>
+    (await db.query("select * from home_clan_card where account_id = $1", [id]))
+      .rows[0];
+
+  // The first read builds and keeps the record half, never the live half.
+  const first = await read();
+  assert.equal(first.ok, true);
+  assert.equal(first.state, "member");
+  assert.equal(first.role, "elder");
+  assert.equal(first.refresh, false);
+  const kept = await row();
+  assert.equal(kept.clan_tag, CLAN);
+  assert.match(kept.basis, /^member:[0-9a-f]{64}$/);
+  for (const live of ["needs", "needs_total", "unlock", "role", "verified"])
+    assert.equal(live in kept.card, false, `${live} is never stored`);
+
+  // The next read serves the kept card (a marker only the row carries).
+  await db.query(
+    `update home_clan_card set card = card || '{"members": 999}'
+      where account_id = $1`,
+    [id],
+  );
+  const served = await read();
+  assert.equal(served.members, 999);
+  assert.equal(served.role, "elder", "the role is the gate's");
+  assert.deepEqual(served.needs, [], "Actions are the gate's");
+  assert.equal(served.refresh, false);
+
+  // Past fresh it is still served, and says so; the page's rebuild builds.
+  await db.query(
+    `update home_clan_card set built_at = now() - interval '20 minutes'
+      where account_id = $1`,
+    [id],
+  );
+  const stale = await read();
+  assert.equal(stale.members, 999);
+  assert.equal(stale.refresh, true);
+  const rebuilt = await read({ rebuild: "1" });
+  assert.notEqual(rebuilt.members, 999);
+  assert.equal(rebuilt.refresh, false);
+  assert.ok(Date.now() - Date.parse((await row()).built_at) < 60_000);
+
+  // A role change is a new basis: built again at once.
+  await db.query(
+    `update home_clan_card set card = card || '{"members": 999}'
+      where account_id = $1`,
+    [id],
+  );
+  await db.query(
+    "update clan_membership set role = 'coLeader' where clan_tag = $1 and player_tag = $2",
+    [CLAN, tag],
+  );
+  const promoted = await read();
+  assert.equal(promoted.role, "coLeader");
+  assert.notEqual(promoted.members, 999);
+  assert.equal(promoted.standing, null, "a co-leader has no standing row");
+
+  // Past three hours the read builds it itself.
+  await db.query(
+    `update home_clan_card set card = card || '{"members": 999}',
+            built_at = now() - interval '4 hours' where account_id = $1`,
+    [id],
+  );
+  assert.notEqual((await read()).members, 999);
+
+  // A departure: Clan's gate refuses, and the kept member card is not shown.
+  await db.query(
+    `update home_clan_card set card = card || '{"members": 999}'
+      where account_id = $1`,
+    [id],
+  );
+  await db.query(
+    `update clan_membership set left_observed_at = now()
+      where clan_tag = $1 and player_tag = $2`,
+    [CLAN, tag],
+  );
+  const left = await read();
+  assert.notEqual(left.state, "member");
+  assert.notEqual(left.members, 999);
+  assert.equal(left.needs?.length ?? 0, 0);
+});
+
 test("Needs you reaches a leader whose clan Elixir does not track, and nobody without a clan", async () => {
   const none = await person("home-needs-none");
   assert.equal(

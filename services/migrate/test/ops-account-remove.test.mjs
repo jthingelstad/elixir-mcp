@@ -231,6 +231,12 @@ before(async () => {
      values ($1, now() - interval '7 days', now(), 1, 'k', '[]')`,
     [ids.person],
   );
+  // Their stored Home clan card (0248, #649).
+  await db.query(
+    `insert into home_clan_card (account_id, clan_tag, basis, build_ms, card)
+     values ($1, '#J2RGCRVG', 'k', 1, '{}')`,
+    [ids.person],
+  );
   // A linked Discord and a link round trip still open (0233, #531).
   await db.query(
     `insert into account_discord (account_id, discord_user_id, username)
@@ -354,6 +360,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     bell_seen: 1,
     home_feed: 1,
     bell_week: 1,
+    home_clan_card: 1,
     timeline_reader: 0,
     timeline_discord_told: 2,
     timeline_discord: 1,
@@ -501,6 +508,7 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "bell_seen",
     "home_feed",
     "bell_week",
+    "home_clan_card",
     "credential_refusal",
     "mcp_call_audit",
     "timeline_discord",
