@@ -314,6 +314,19 @@ describe("Home's welcome steps (G4)", () => {
     );
     expect([all.done, all.all]).toEqual([4, true]);
   });
+  test("finished once, gone for good: unfollowing everyone does not bring it back", () => {
+    const after = welcomeSteps(
+      first(
+        { verified: true },
+        {
+          following: 0,
+          digest: { enabled: true, cadence: "weekly" },
+          finished_at: "2026-11-12T20:00:00Z",
+        },
+      ),
+    );
+    expect([after.done, after.all]).toEqual([3, true]);
+  });
   test("no welcome state, no steps: never guessed", () => {
     expect(welcomeSteps({ player: { verified: true } })).toBeNull();
     expect(welcomeSteps(undefined)).toBeNull();

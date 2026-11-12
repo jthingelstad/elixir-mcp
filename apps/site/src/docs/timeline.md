@@ -76,9 +76,12 @@ Until you have done four things, Home opens with them above the feed:
 it's you (one battle with a deck Elixir names), following a few people,
 and choosing your [digest](/docs/email). Each step says what was done or
 links to where you do it, and is worked out from your account each time
-you open Home. Choosing your digest is picking Daily or Weekly, or turning
-it off, in Settings › Emails; picking Weekly counts even though it is the
-default. Once all four are done the steps are gone.
+you open Home. Following one player completes the follow step. Choosing
+your digest is picking Daily or Weekly, or turning it off, in Settings ›
+Emails; picking Weekly counts even though it is the default, and so does
+turning it off. Once all four are done the steps are gone for good: Elixir
+notes that you finished, so unfollowing everyone later does not bring them
+back.
 
 ### Beside the feed
 
