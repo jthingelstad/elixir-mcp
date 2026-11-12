@@ -16,9 +16,11 @@ import {
   itemVisibility,
   NEWS_SOURCES,
   playerHighlights,
+  readTimelineEvidence,
   shownAt,
 } from "@elixir-mcp/tools/activity/entries";
 
+import { sparkOf } from "../feed.mjs";
 import { json } from "../http.mjs";
 import { homeClan } from "./clans.mjs";
 
@@ -176,20 +178,69 @@ async function readerSide(db, accountId, tag, clanTag) {
   };
 }
 
-/** One item, as the page draws it: its sentence and, for a highlight, its
- *  battle. Never its facts whole: the page needs none of the rest. */
-const pageItem = (it) => ({
-  id: it.id ?? null,
-  kind: it.kind,
-  at: shownAt(it) || it.at || null,
-  text: String(it.text ?? ""),
-  ...(it.kind === "battle_highlight"
-    ? {
-        words: it.facts?.words ?? null,
-        battle_url: it.facts?.battle?.url ?? null,
-      }
-    : {}),
+/** The kinds that are a sitting: Home's session row draws them. */
+const SITTINGS = new Set(["battle_session", "session_standout"]);
+
+/** A sitting's numbers, as Home's session row says them, and nothing else
+ *  of its facts: battles, won, lost, the trophies it moved, its modes, its
+ *  most-played deck's label, and when it ended (the games' read says so). */
+const sittingFacts = (f = {}) => ({
+  battles: f.battles ?? null,
+  won: f.won ?? null,
+  lost: f.lost ?? null,
+  trophy_net: f.trophy_net ?? null,
+  by_mode: f.by_mode ?? {},
+  decks: f.decks?.[0]?.label ? [{ label: f.decks[0].label }] : [],
+  ended_at: f.ended_at ?? null,
 });
+
+/** One item, as the page draws it: its sentence; for a highlight, its
+ *  battle; for a sitting, what Home's session row draws (G7, 2026-11-12):
+ *  its sparkline, its numbers and its games' evidence handle. Never its
+ *  facts whole: the page needs none of the rest. */
+const pageItem = (it) => {
+  const spark = SITTINGS.has(it.kind) ? sparkOf(it) : null;
+  return {
+    id: it.id ?? null,
+    kind: it.kind,
+    at: shownAt(it) || it.at || null,
+    text: String(it.text ?? ""),
+    ...(it.kind === "battle_highlight"
+      ? {
+          words: it.facts?.words ?? null,
+          battle_url: it.facts?.battle?.url ?? null,
+        }
+      : {}),
+    ...(SITTINGS.has(it.kind)
+      ? {
+          facts: sittingFacts(it.facts),
+          ...(spark ? { spark } : {}),
+          ...(it.evidence?.kind === "session" ? { evidence: it.evidence } : {}),
+        }
+      : {}),
+  };
+};
+
+/** The page's timeline as the record has it now: the player's public items
+ *  in the page's window. The page and its games' read build the same one,
+ *  so an item's id and evidence version agree between them. */
+const pageTimeline = (db, tag, timezone, now) =>
+  buildTimeline(
+    db,
+    // The reader's own nickname for this player never reaches the page, and
+    // nobody else's does either: the subject goes in with no nickname.
+    [{ kind: "player", tag, relationship: null, nickname: null }],
+    {
+      fromMs: now - PAGE_DAYS * 86_400_000,
+      toMs: now,
+      timezone,
+      // No account: none of the reader's own items, and no attested fact,
+      // which has its own reader rules. The page is the public record.
+      accountId: null,
+      basis: "occurred",
+      filter: (it) => itemVisibility(it) === "public",
+    },
+  );
 
 /** The whole page, for one signed-in reader. */
 async function readPlayerPage(db, account, tag, now = Date.now()) {
@@ -210,21 +261,7 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
   if (!p) return null;
   const timezone = account.timezone ?? "UTC";
   const self = await verifiedAccount(db, tag);
-  // The reader's own nickname for this player never reaches the page, and
-  // nobody else's does either: the subject goes in with no nickname.
-  const subjects = [
-    { kind: "player", tag, relationship: null, nickname: null },
-  ];
-  const built = await buildTimeline(db, subjects, {
-    fromMs: now - PAGE_DAYS * 86_400_000,
-    toMs: now,
-    timezone,
-    // No account: none of the reader's own items, and no attested fact,
-    // which has its own reader rules. The page is the public record.
-    accountId: null,
-    basis: "occurred",
-    filter: (it) => itemVisibility(it) === "public",
-  });
+  const built = await pageTimeline(db, tag, timezone, now);
   const timeline = (built.timeline ?? []).map(pageItem);
   const highlights = (
     await playerHighlights(db, tag, { timezone, limit: HIGHLIGHTS, now })
@@ -441,6 +478,45 @@ export function playerRoutes({ resolveAccount, live = null }) {
           message: "Elixir has not recorded that player.",
         });
       return json(200, page);
+    },
+
+    // A sitting's games on the player page (View games, G7): the page's
+    // own timeline rebuilt, the item found by its id, and its evidence read
+    // as Home reads its own. Public game facts only; one charge, as the
+    // page's.
+    "GET /api/player/evidence": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const q = event.queryStringParameters ?? {};
+      const tag = tagOf(q.tag);
+      if (!tag) return json(400, { error: "invalid_tag" });
+      if (!q.evidence_item_id) return json(400, { error: "invalid_item" });
+      if (!(await rate(db, account)))
+        return json(429, { error: "rate_limited" });
+      const built = await pageTimeline(
+        db,
+        tag,
+        account.timezone ?? "UTC",
+        Date.now(),
+      );
+      const item = built.timeline.find(
+        (it) => it.id === q.evidence_item_id && SITTINGS.has(it.kind),
+      );
+      const evidence = await readTimelineEvidence(db, item, {
+        offset: q.evidence_offset === undefined ? 0 : Number(q.evidence_offset),
+        limit: 25,
+        expectedVersion: q.expected_evidence_version,
+      });
+      return json(
+        evidence.error
+          ? evidence.error === "evidence_changed"
+            ? 409
+            : evidence.error === "evidence_unavailable"
+              ? 404
+              : 400
+          : 200,
+        evidence,
+      );
     },
 
     // What following several players would cost, said before the tap: a

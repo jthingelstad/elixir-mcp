@@ -123,6 +123,20 @@ beforeEach(() => {
     const p = String(path);
     if (p === "/api/me") return reply(ME);
     if (p.startsWith("/api/player?")) return reply(page);
+    if (p.startsWith("/api/player/evidence?")) {
+      posted.push([p, null]);
+      return reply({
+        kind: "session",
+        observed_at: "2026-11-10T15:00:00.000Z",
+        observed_at_basis: "recorded_capture",
+        count: 2,
+        from: "2026-11-10T14:00:00.000Z",
+        through: "2026-11-10T14:40:00.000Z",
+        open: false,
+        completeness: "recorded_sitting",
+        battles: [],
+      });
+    }
     if (p.startsWith("/api/me/cheers?")) return reply(pageCheers);
     if (p === "/api/me/cheers" && init?.method === "PUT") {
       const body = JSON.parse(init.body);
@@ -204,6 +218,57 @@ test(
     expect(document.querySelector("main").textContent).not.toContain(
       "Private Owl",
     );
+  },
+);
+
+test(
+  "a sitting draws as Home draws it: sparkline, numbers, and its games in place",
+  { timeout: 20000 },
+  async () => {
+    page = {
+      ...PAGE,
+      timeline: [
+        {
+          id: "s1",
+          kind: "battle_session",
+          at: "2026-11-10T14:00:00.000Z",
+          text: "Copper Fern played two battles",
+          facts: {
+            battles: 2,
+            won: 1,
+            lost: 1,
+            trophy_net: 4,
+            by_mode: { ladder: 2 },
+            decks: [{ label: "Hog Rider cycle" }],
+            ended_at: "2026-11-10T14:40:00.000Z",
+          },
+          spark: [
+            { r: "w", m: 3 },
+            { r: "l", m: 1 },
+          ],
+          evidence: { kind: "session", version: "ev_1", count: 2 },
+        },
+      ],
+    };
+    window.history.pushState({}, "", "/home/player/QQ8822");
+    render(<App />);
+    await screen.findByText("Copper Fern played two battles");
+    expect(
+      screen.getByText(/2 battles · 1 won · 1 lost · \+4 trophies/),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("img", { name: /won|lost|win|loss/i }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "View games" }));
+    await screen.findByText(/2 recorded games/);
+    expect(posted[0][0]).toMatch(
+      /^\/api\/player\/evidence\?tag=%23QQ8822&evidence_item_id=s1&expected_evidence_version=ev_1&evidence_offset=0$/,
+    );
+    expect(
+      screen
+        .getByRole("button", { name: "Close games" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
   },
 );
 

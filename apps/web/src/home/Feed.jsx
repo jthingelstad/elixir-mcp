@@ -17,14 +17,8 @@ import {
   useRowTime,
   useTimelinePlace,
 } from "../views/account/timeline-shared.jsx";
-import {
-  FEED_CHIPS,
-  feedShown,
-  modeWord,
-  shownAt,
-  timelineDays,
-} from "./logic.js";
-import { Sparkline } from "./Sparkline.jsx";
+import { FEED_CHIPS, feedShown, shownAt, timelineDays } from "./logic.js";
+import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
 import { Cheers } from "./Cheers.jsx";
 
 /**
@@ -169,8 +163,6 @@ export function HomeFeed() {
   );
 }
 
-const SITTINGS = new Set(["battle_session", "session_standout"]);
-
 /** Who an item is about, as the feed names them: a player's game name opens
  *  their page; a clan's line names the clan; the account's own items are
  *  yours. Never a nickname here: the sentence below says it the way the
@@ -235,41 +227,12 @@ function FeedItem({ it, open, onToggle }) {
             aria-expanded={open}
             onClick={onToggle}
           >
-            {open ? closeWord(it) : openWord(it)}
+            {evidenceWord(it, open)}
           </button>
         ) : null}
       </span>
       {"cheers" in it ? <Cheers it={it} /> : null}
     </article>
-  );
-}
-
-/** A sitting's numbers and its sparkline: battles, won, lost and, on
- *  Trophy Road, the trophies it moved; the deck it was played with most. */
-function Sitting({ it }) {
-  const f = it.facts ?? {};
-  const modes = Object.keys(f.by_mode ?? {});
-  const trophies =
-    typeof f.trophy_net === "number" && (f.by_mode?.ladder ?? 0) > 0
-      ? `${f.trophy_net > 0 ? "+" : ""}${f.trophy_net} trophies`
-      : null;
-  const line = [
-    `${f.battles ?? 0} battles`,
-    `${f.won ?? 0} won`,
-    `${f.lost ?? 0} lost`,
-    trophies,
-    modes.length === 1 ? modeWord(modes[0]) : null,
-    f.decks?.[0]?.label ?? null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  return (
-    <div className="kit-feed__sitting">
-      <Sparkline spark={it.spark} />
-      <span className="kit-tiny">
-        <TagText>{line}</TagText>
-      </span>
-    </div>
   );
 }
 
@@ -304,11 +267,6 @@ function HighlightLinks({ facts }) {
     </>
   );
 }
-
-const openWord = (it) =>
-  it.evidence.kind === "session" ? "View games" : "View crossing";
-const closeWord = (it) =>
-  it.evidence.kind === "session" ? "Close games" : "Close crossing";
 
 function InPlaceEvidence({ item, window, onRefresh }) {
   const [offset, setOffset] = useState(0);

@@ -222,6 +222,23 @@ export const usePlayerPage = (tag) =>
     staleTime: 30_000,
   });
 
+/** Read a player's page again (its games changed under an open View games). */
+export const useRefreshPlayerPage = (tag) => {
+  const queryClient = useQueryClient();
+  return () =>
+    queryClient.invalidateQueries({ queryKey: ["me", "player", tag ?? ""] });
+};
+
+/** A sitting's games on a player's page (View games, G7): the page's own
+ *  read, so it works for any player the page shows. */
+export const usePlayerEvidence = (params) =>
+  useQuery({
+    queryKey: ["me", "player-evidence", params],
+    staleTime: 0,
+    queryFn: payload(() => api.playerEvidence(params)),
+    enabled: Boolean(params),
+  });
+
 /** What following a list of players, or a clan, costs (#764). */
 export const useFollowPlan = (ask, enabled = true) =>
   useQuery({

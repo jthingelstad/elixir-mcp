@@ -173,6 +173,10 @@ export const api = {
   /** A player's page (#764): their record, follows, followers and badges. */
   playerPage: (tag) =>
     request("GET", `/api/player?tag=${encodeURIComponent(tag)}`),
+  /** A sitting's games on a player's page (View games): `tag` and the
+   *  evidence params Home's timeline read takes. */
+  playerEvidence: (params) =>
+    request("GET", `/api/player/evidence?${new URLSearchParams(params)}`),
   /** What following several players costs, before the tap: `player_tags`
    *  (a Follow me link's) or `clan_tag` (everyone in it now). */
   followPlan: ({ player_tags = null, clan_tag = null }) =>
