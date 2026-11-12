@@ -30,8 +30,8 @@ ledger should drain, and both doors should serve.
 
 - **The verdict.** `curl -s https://elixir.poapkings.com/api/public/status`
   (about 60 s edge-cached; `/data` is the other public health read;
-  the Console's `/console/status` is signed-in): the health verdict, last
-  admission age, battles in the last hour, the budget line
+  the service page is staff-only, Settings ▸ Admin ▸ Service): the
+  health verdict, last admission age, battles in the last hour, the budget line
   (`useful_hour / measured_hour`: how much of the hour's spend changed
   the record), the job ledger (`queue`: due, queued, leased, done this
   hour; `jobs.dead`), `health.dlq_messages`, the capture audit's 24 h

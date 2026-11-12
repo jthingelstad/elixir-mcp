@@ -151,7 +151,8 @@ inside a request. Non-database work (S3 calls) still parallelises.
   `infra/template.yaml`, a ceiling just under that function's Lambda kill.
 - A read-only tool waits at most 5 s for a lock and answers
   `query_timeout` with a request id when its deadline passes, on every door
-  (MCP, Explore, `/api/v1`) (`packages/tools/src/invoker.mjs`). Writes never
+  (MCP, the app's tool bridge `POST /api/explore`, `/api/v1`)
+  (`packages/tools/src/invoker.mjs`). Writes never
   race a deadline.
 - An MCP result over `MCP_RESULT_MAX_CHARS`
   (`packages/tools/src/result-text.mjs`) is `result_too_large`, with its
@@ -370,7 +371,7 @@ point at records the holder can open and are not tracking identifiers.
 *Measurement* is Tinylytics: per page, per mail issue, per campaign, never
 per account or recipient. The analytics bridge (`apps/web/src/analytics.js`)
 reports a record page as its kind for report hygiene. The one URL that
-skips analytics entirely carries a credential (`/console/signin`). No
+skips analytics entirely carries a credential (`/signin`). No
 per-recipient open or click tracking, engagement scoring, or automation on
 read state.
 
@@ -440,7 +441,7 @@ message). The collector door answers its generic 503 with no
 `Retry-After` only on a retryable 4xx.
 SIGTERM has one second; durable work still goes through the outbox/ledger.
 
-Console, Ladder and Clan use request-local React/router/query state. The
+Home, Settings and Clan use request-local React/router/query state. The
 server resolves the session once, renders the initial screen and embeds a
 safely escaped, non-executable JSON bootstrap. The browser hydrates that
 session without a second initial `/api/me` fetch. Fragment login tokens
@@ -479,7 +480,7 @@ imported by name.
 
 | Service (Lambda) | Serves |
 | --- | --- |
-| `web-api` | the site's API, `/api/v1`, `/api/clan`, Explore, `/battle/*`, OAuth consent |
+| `web-api` | the site's API, `/api/v1`, `/api/clan`, the app's tool bridge (`/api/explore`), `/battle/*`, OAuth consent |
 | `mcp` | the MCP and OAuth doors |
 | `collector` | the collector door |
 | `scheduler` | the ledger tick |

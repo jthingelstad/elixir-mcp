@@ -8,10 +8,10 @@ official API is current-state only), served on one origin,
 | Path | What | Code |
 | --- | --- | --- |
 | `/`, `/docs`, `/updates` | the site and the public docs | `apps/site` (Eleventy) |
-| `/home` | Home: one feed beside your week and clan, with Find and You; where signing in lands | `apps/web/src/home` |
-| `/signin`, `/data/service` | signing in, and the signed-in service page | `apps/web` |
-| `/settings` | Settings: your account and agents, with its left rail | `apps/web` |
-| `/console` | folding (Jamie, 2026-11-12): Explore's useful reads into You and the player pages, collectors and Admin into Settings, then only redirects; `apps/web/src/lib/moved.js` redirects what moved | `apps/web` |
+| `/home` | Home: one feed beside your week and clan, with Find (`/home/find`) and You; a player's page (`/home/player/<tag>`, its Record tab the game record); where signing in lands | `apps/web/src/home` |
+| `/signin` | signing in | `apps/web` |
+| `/settings` | Settings: your account and agents, with its left rail; Admin (`/settings/admin/*`) for staff | `apps/web` |
+| `/console`, `/data/service` | only redirect: the Console folded on 2026-11-12 (Jamie) and `apps/web/src/lib/moved.js` maps every old address; `/data/service` goes to `/data`, the public status page | `apps/web` |
 | `/home/you/stats` | Stats (Ladder until 2026-11-12; `/ladder` redirects): your season, read back, You's last tab | `apps/web/src/ladder` |
 | `/clan`, `/api/clan` | Elixir Clan: running a clan on its policy | `packages/clan*` |
 | `/battle/<id>` | a battle's public page | `services/web-api` |
@@ -71,7 +71,7 @@ not a feature to preserve.
 
 | Area | Guide |
 | --- | --- |
-| Home, Settings, Explore and the shared web shell | `apps/web/AGENTS.md` |
+| Home, Settings, Admin and the shared web shell | `apps/web/AGENTS.md` |
 | Ladder | `apps/web/src/ladder/AGENTS.md` |
 | Elixir Clan | `packages/clan/AGENTS.md` (engine, state and views: their own short guides) |
 | MCP tools and the JSON API operations | `packages/tools/AGENTS.md` |

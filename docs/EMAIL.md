@@ -163,8 +163,10 @@ Facts come from the readers the tools use, never re-derived
 Every report carries the coverage caveat; the numbers are honest only
 with the note.
 
-Links go to the paths that serve the page: the console under `/console`
-(`/console/explore/player/<tag>`, `/console/explore/clan/<tag>`), Settings
+Links go to the paths that serve the page: a player's page at
+`/home/player/<tag>`, a clan's record still written as
+`/console/explore/clan/<tag>` (the app redirects it to the clan directory
+since the Console folded on 2026-11-12), Settings
 under `/settings`, Ladder at `/ladder?player=<tag>` (Stats under You since
 2026-11-12; the app redirects `/ladder` to `/home/you/stats`, query kept), battles at
 `/battle/<short id>`, cards at `/cards/<id>`. The manage link is
