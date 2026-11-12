@@ -94,7 +94,10 @@ export function Seen({ me }) {
                 account.
                 <Note>
                   A follower who cross-posts their timeline to a Discord channel
-                  sends it there too, where everyone in the channel reads it.
+                  sends it there too, where everyone in the channel reads it,
+                  and an edit to your words is edited there. Deleting the
+                  highlight takes it off the timeline; a line already posted to
+                  Discord stays.
                 </Note>
               </>,
             ],

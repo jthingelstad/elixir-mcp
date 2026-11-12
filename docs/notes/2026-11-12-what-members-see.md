@@ -26,8 +26,10 @@ A line on this page that stops being true is a defect of the page.
 - **A highlight you post** is on the player's timeline for its followers,
   with no account in it (`highlightItems` in
   `packages/tools/src/activity/entries.mjs`; `share_url` only for the
-  posting account), and a follower's Discord cross-post carries it (slice
-  4's default, `2026-11-11-social-slice-4-highlight.md`).
+  posting account), and a follower's Discord cross-post carries it, edits
+  included, and keeps a posted line after a deletion (slice 4's default,
+  `2026-11-11-social-slice-4-highlight.md`;
+  `2026-11-12-highlight-edits-reach-readers.md`).
 - **A collector you run** is credited to the operator's primary player on
   the collectors list and the public status
   (`packages/tools/src/public-status.mjs`).
