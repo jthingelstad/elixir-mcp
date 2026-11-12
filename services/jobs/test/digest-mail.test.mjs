@@ -262,6 +262,13 @@ test("a followed friend's highlight comes with their words and the battle's page
     out.html,
     /Three crowns &lt;b&gt;at last&lt;\/b&gt; &amp; &quot;finally&quot;/,
   );
+  // The friend's name opens the player page, the one door for every
+  // reader (#764); the record pages are no longer a name's door.
+  assert.ok(
+    out.html.includes(`/home/player/${FRIEND.slice(1)}?`),
+    "the friend's name opens the player page",
+  );
+  assert.doesNotMatch(out.html, /\/console\/explore\/player\//);
 });
 
 test("a window where nothing happened is no mail", async () => {

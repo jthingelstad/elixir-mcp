@@ -779,7 +779,7 @@ test("rollover mail binds closed-race identity and uses the covered season befor
   );
 });
 
-test("Tuesday Arena keeps the previous covered season after rollover; Wednesday's digest links your Ladder to the season now", async () => {
+test("Tuesday Arena keeps the previous covered season after rollover; Wednesday's digest names you on your player page", async () => {
   const BATTLE = `deed${"0".repeat(60)}`;
   // Learned when it was played: the digest reads what the record learned.
   await db.query(
@@ -809,9 +809,10 @@ test("Tuesday Arena keeps the previous covered season after rollover; Wednesday'
   assert.match(arena.html, /Sep 28 – Oct 5 · Season 136/);
   assert.doesNotMatch(arena.html, /Sep 28 – Oct 5 · Season 137/);
   const digest = await send("tracking_report", "2026-10-07T14:30:00Z");
-  // The digest is not a season's week: your Ladder opens on the season
-  // now, the one the reader is climbing. [engineering, 2026-11-12]
-  assert.match(digest.html, /\/ladder\?player=20QQL8CC&season=137/);
+  // Every name opens the player page, the reader's own included (#764);
+  // Ladder is reachable from there, so the digest carries no season.
+  assert.match(digest.html, /\/home\/player\/20QQL8CC\?/);
+  assert.doesNotMatch(digest.html, /\/ladder\?player=/);
 });
 
 test("the digest goes out weekly on Wednesday, daily to who chose it, once a day, and never to an opt-out or an empty week", async () => {
