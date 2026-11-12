@@ -7904,6 +7904,17 @@ button.kit-row {
   padding: 0;
   list-style: none;
 }
+/* At phone width the card sits tighter, so a page's own content still
+   starts on the first screen. */
+@media (max-width: 760px) {
+  .clan-head {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .clan-head__top {
+    row-gap: 6px;
+  }
+}
 /* The race bar on top of the Feed: a line, a native progress drawn like
    .meter, and the race in one sentence. Flat, no panel. */
 .clan-race {
