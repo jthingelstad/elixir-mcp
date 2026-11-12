@@ -111,6 +111,14 @@ describe("this week's race", () => {
     expect(
       raceNowLine({ ...base, is_colosseum: true, day_kind: "war", place: 3 }),
     ).toBe("Season 137, Colosseum, war day 2: 3rd by fame");
+    // No place (nothing banked yet, or level with another clan): the fame
+    // alone, or the day alone.
+    expect(raceNowLine({ ...base, day_kind: "war", fame: 4000 })).toBe(
+      "Season 137, week 2, war day 2: 4,000 fame",
+    );
+    expect(raceNowLine({ ...base, day_kind: "war", fame: 0 })).toBe(
+      "Season 137, week 2, war day 2",
+    );
     expect(raceNowLine(null)).toBeNull();
   });
 });

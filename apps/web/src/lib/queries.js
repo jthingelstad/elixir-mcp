@@ -290,10 +290,10 @@ export const useRssLink = () =>
  *  if it was refused. Yours, never an agent's. Home's feed by default; a
  *  player page or a battle page passes its own cheers read
  *  (`usePageCheers`): `{ key, list: "items" }`. */
-export function useCheer({
-  key = scopedKey(null, "feed"),
-  list = "timeline",
-} = {}) {
+/** Home's feed, where most cheers are given. */
+const CHEER_FEED_KEY = scopedKey(null, "feed");
+
+export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
   const queryClient = useQueryClient();
   const put = (item) =>
     queryClient.setQueryData(key, (old) =>
@@ -331,8 +331,24 @@ export function useCheer({
       put(shown);
       return { item };
     },
-    onSuccess: (data, { shown }) =>
-      put({ ...shown, cheers: data.cheers, my_cheer: data.my_cheer }),
+    onSuccess: (data, { shown }) => {
+      put({ ...shown, cheers: data.cheers, my_cheer: data.my_cheer });
+      // Every other copy of the item (Home's feed, a player page's or a
+      // battle page's cheers read) takes the server's counts too, so a
+      // stale copy never shows the old cheer or sends it again.
+      const patch = (rows) =>
+        rows?.map((it) =>
+          it.id === shown.id
+            ? { ...it, cheers: data.cheers, my_cheer: data.my_cheer }
+            : it,
+        );
+      queryClient.setQueryData(CHEER_FEED_KEY, (old) =>
+        old?.timeline ? { ...old, timeline: patch(old.timeline) } : old,
+      );
+      queryClient.setQueriesData({ queryKey: ["me", "cheers"] }, (old) =>
+        old?.items ? { ...old, items: patch(old.items) } : old,
+      );
+    },
     onError: (_err, _vars, context) => {
       if (context?.item) put(context.item);
     },

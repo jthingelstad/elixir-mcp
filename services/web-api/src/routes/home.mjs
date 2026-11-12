@@ -278,18 +278,24 @@ export function shapeRaceNow(current, clanTag, now = Date.now()) {
     war_day: current.war_day ?? null,
   };
   if (current.day_kind === "training") return base;
-  const boats = [...(current.standings ?? [])].sort(
-    (a, b) => (b.fame ?? 0) - (a.fame ?? 0),
-  );
-  const at = boats.findIndex((r) => r.participant_clan_tag === clanTag);
-  const own = at >= 0 ? boats[at] : null;
+  const boats = current.standings ?? [];
+  const own = boats.find((r) => r.participant_clan_tag === clanTag) ?? null;
+  const fame = own?.fame ?? null;
+  // A place only when it is one: fame banked, and no other clan level with
+  // it. Before any fame (a first war day) or on a tie, the place is unknown
+  // rather than an order the sort happened to give (Codex on #792).
+  const others = boats.filter((r) => r !== own);
+  const place =
+    fame != null && fame > 0 && !others.some((r) => (r.fame ?? 0) === fame)
+      ? 1 + others.filter((r) => (r.fame ?? 0) > fame).length
+      : null;
   return {
     ...base,
     finished:
       current.race_finished_at != null &&
       Date.parse(current.race_finished_at) <= now,
-    place: own ? at + 1 : null,
-    fame: own?.fame ?? null,
+    place,
+    fame,
   };
 }
 
