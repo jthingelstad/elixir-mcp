@@ -1,5 +1,13 @@
 # Home
 
+*Overtaken in part, 2026-11-12: principle 7's "They aren't told" no longer
+holds, because the bell tells a player of a new follower (DECISIONS "The
+bell is what is about you"); the welcome checklist's follow step
+completes on one follow, turning the digest off counts as choosing it,
+and a finished checklist stays hidden for good ("The welcome checklist
+finishes for good"); the feed shows only people's play ("The feed shows
+only people's play").*
+
 *Rewritten from the Console's brief at step 3 of the redesign, under the
 rulings in [Structure](structure.md). Home lives at `/home` and, since step 3b,
 is where signing in lands and where `/console` goes.*

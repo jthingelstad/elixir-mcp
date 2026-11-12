@@ -1,5 +1,13 @@
 # Timeline
 
+*Overtaken in part, 2026-11-12: the feed shows only people's play, with the
+account's own lines held back, so "almost no editorial filtering" and
+never "thin itself for editorial reasons" no longer hold for the feed
+(DECISIONS "The feed shows only people's play"); a built feed may be
+stored if computing it on read cannot reach 2 s at p95 ("Whether the
+timeline is stored is a performance choice, not a rule"); Discord lines
+link back to Elixir with no preview.*
+
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
 *Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing

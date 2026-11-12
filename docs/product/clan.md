@@ -1,5 +1,15 @@
 # Clan
 
+*Overtaken in part, 2026-11-12: a Discord story links back to Elixir with
+no link preview, so its "no link" no longer holds (DECISIONS "A clan's
+activity goes to a Discord channel of its own, as an editor"); Recruit is
+for leaders and elders, not every member, and members keep Standing
+("Members is one page; members keep Standing, and Recruit and Scout are
+leaders' and elders' tools"); Actions become bell notifications and
+timeline items, a decided Action shows on the clan's timeline for leaders
+only, Review folds into Run and Clan's member page into the player page
+("Clan's Actions are notifications and timeline items").*
+
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
 *Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing

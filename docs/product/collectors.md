@@ -1,5 +1,9 @@
 # Collectors and operators
 
+*Overtaken in part, 2026-11-12: Admin's collector pages become a Settings
+section for operators (DECISIONS "Console folds into You, player pages
+and Settings").*
+
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
 *Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing
