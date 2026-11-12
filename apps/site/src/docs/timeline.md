@@ -54,7 +54,8 @@ page. Connections and agent pages show whether sharing is on.
   of the subjects, the timeline is read from the cross-post's own place
   in it and anything new is posted. Nothing polls. An attested fact (a
   leader's word in Clan, a family app's record) wakes it the same
-  way. A quiet rung crossed by the clock posts with the next thing the
+  way, and so does a highlight when it is posted or its words change.
+  A quiet rung crossed by the clock posts with the next thing the
   record learns about that subject. Nothing from before it was turned on
   is posted. The cross-post's place never moves your read pointer, a
   reader's, or `meta.timeline_pending`.
@@ -65,9 +66,11 @@ page. Connections and agent pages show whether sharing is on.
   (`<t:{at_unix}:R>`, from a sitting's last battle). Nothing pings
   anyone.
 - **Edited, never repeated.** When an item grows (a sitting adds
-  battles, or closes), its message is edited in place; a sitting posted
-  while going is edited to its final count within about 45 minutes of
-  its last battle. A message deleted in the channel stays deleted. A
+  battles, or closes, or a highlight's words change), its message is
+  edited in place; a sitting posted while going is edited to its final
+  count within about 45 minutes of its last battle. A message deleted
+  in the channel stays deleted, and a line already posted stays when
+  its item leaves the timeline (a highlight deleted on Elixir). A
   post whose answer from Discord is lost is never sent again: a missing
   line beats a duplicate.
 - **The webhook.** Only Discord's own webhook address is accepted;
