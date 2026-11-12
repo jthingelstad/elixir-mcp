@@ -253,7 +253,8 @@ itself: each choice it names links to the page that owns it.
   account followed first. A highlight you post is on that player's
   timeline for every member who follows the player, with the player's
   game name, your words and the battle, not your account; a follower who
-  cross-posts their timeline to Discord sends it there too. A collector you run is credited to your main
+  cross-posts their timeline to Discord sends it there too, and a line
+  posted there stays if you delete the highlight. A collector you run is credited to your main
   player's game name and tag, on the public status page too. In Clan,
   your clan's verified members see your place on its map if you added
   one, its leaders see an away you mark, and what you decide as a leader
