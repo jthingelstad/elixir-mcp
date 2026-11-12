@@ -71,7 +71,8 @@ so this widens nothing.
 - The Standings page keeps its "Awards" heading.
 - A name opens the player page (`/home/player/<tag>`); Review and an
   Action's "Open their page" keep the member page, which the player page
-  reaches through "Open in Clan".
+  reaches through "Open in Clan". Your own name opens your page in the
+  clan, since the player page has no "Open in Clan" for your own player.
 - Six tabs scroll sideways on a phone, with the kit's fade hints.
 - `apps/web`'s `home/logic.js` and `ladder/common.jsx` still link the old
   addresses; the redirects cover them, and slice 7 owns that code.
