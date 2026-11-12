@@ -50,6 +50,20 @@ test("an open race: place of the clans, fame, the week's decks and the close", (
   assert.deepEqual(r.decks, { used: 13, asked: 24 });
 });
 
+test("a member left out of the race roster is asked for decks too", () => {
+  const r = shapeClanRace(
+    race({
+      members_not_in_race: [
+        { player_tag: "#Q0RLV8C", reason: "not_in_race_roster" },
+      ],
+    }),
+    OURS,
+    NOW,
+  );
+  // Four current members, two war days: 32 asked, still 13 played.
+  assert.deepEqual(r.decks, { used: 13, asked: 32 });
+});
+
 test("a finished race asks no decks after the finish", () => {
   const r = shapeClanRace(
     race({

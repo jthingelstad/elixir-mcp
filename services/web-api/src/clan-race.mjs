@@ -10,7 +10,9 @@ import { shapeRaceNow } from "./routes/home.mjs";
  * - `clans` is how many boats are in the race.
  * - `decks` is the clan's war decks this race week over four a war day
  *   for each current member up to the finish, the same ask Clan's war
- *   judgments use; only current members count on either side.
+ *   judgments use; only current members count on either side, and a
+ *   member missing from the race roster (`members_not_in_race`) is asked
+ *   too.
  * - `closes_at` is the policy grid's end of the race week; the race
  *   itself closes in the half hour before it, so the page says "about".
  *
@@ -39,16 +41,19 @@ export function shapeClanRace(current, clanTag, now = Date.now()) {
     war_day_opens_at: current.next_war_day_opens_at ?? null,
   };
   if (race.day_kind !== "war") return out;
-  const members = (current.participants ?? []).filter((p) => p.in_clan);
+  const playing = (current.participants ?? []).filter((p) => p.in_clan);
+  // A current member the game left out of the race roster plays no deck
+  // but is still asked for them, as Clan judges them.
+  const members = playing.length + (current.members_not_in_race ?? []).length;
   const lastDay =
     race.finished && current.finish_war_day != null
       ? current.finish_war_day
       : race.war_day;
   out.decks =
-    members.length && lastDay
+    members && lastDay
       ? {
-          used: members.reduce((sum, p) => sum + (p.decks_used ?? 0), 0),
-          asked: 4 * lastDay * members.length,
+          used: playing.reduce((sum, p) => sum + (p.decks_used ?? 0), 0),
+          asked: 4 * lastDay * members,
         }
       : null;
   return out;
