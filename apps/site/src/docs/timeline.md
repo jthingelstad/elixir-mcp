@@ -25,7 +25,7 @@ It is **synthesized when you read it**, from the record and what Elixir
 keeps for each player and clan. Nothing is queued, fanned out or pruned. An
 agent that comes back after a month gets a month's timeline (capped at 30 days,
 and at the newest 150 items). Home's feed shows the last seven days, with
-the same cap on items, and reading it moves no pointer.
+the same cap on items, thirty at a time, and reading it moves no pointer.
 
 ## Home's feed
 
@@ -35,6 +35,13 @@ friends), **Clan** (the clans you follow), or **You** (your own players),
 each with its count. A player you only watch is under Everyone. **All** or
 **New** chooses between everything and what came since your last visit. The
 chips only choose what the page draws.
+
+The feed shows the newest thirty items, and **More** reads the next thirty of
+the same week, so an item never appears twice or goes missing between pages.
+The counts on the chips are the whole week's; the chips filter what is
+loaded. If the feed doesn't load (the read took too long or the connection
+dropped), it says so and offers **Try again**. It never asks again on its own,
+and the panels beside it read on regardless.
 
 Your account's own items (a player or clan added, recording started or
 stopped, a player no longer yours, an answer to your feedback) are not in

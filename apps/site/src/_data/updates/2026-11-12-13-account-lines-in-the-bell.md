@@ -7,7 +7,7 @@ under **Your account**, and a burst of them is one line, such as "Recording
 started for 24 players". Following many players at once no longer fills
 your feed with notices or pushes play out of it.
 
-Sign-ins stay in Settings › Sign-ins & devices. Settings' Timeline page and
-your RSS link are unchanged.
+Sign-ins stay in Settings › Sign-ins & devices. Settings' Timeline page is
+unchanged. Your RSS link follows Home's feed, so it leaves them out too.
 
 MCP and the JSON API unchanged.

@@ -16,6 +16,7 @@
  */
 import { useCallback } from "react";
 import {
+  useInfiniteQuery,
   useMutation,
   useQueries,
   useQuery,
@@ -299,10 +300,43 @@ export const useMyTimeline = (enabled = true) => {
 };
 
 /** Home's feed (2026-11-12): the timeline's items without your account's
- *  own lines, which the bell tells. Yours, never an agent's. */
+ *  own lines, which the bell tells, thirty a page (G1). Yours, never an
+ *  agent's. A read that timed out is not asked again on its own: the feed
+ *  says so and offers Try again, rather than a blank box for 40 s. */
 export const HOME_FEED_KEY = ["me", "home", "feed"];
 export const useHomeFeed = () =>
-  useQuery({ queryKey: HOME_FEED_KEY, queryFn: payload(api.homeFeed) });
+  useInfiniteQuery({
+    queryKey: HOME_FEED_KEY,
+    queryFn: ({ pageParam }) => api.homeFeed(pageParam).then(unwrap),
+    initialPageParam: null,
+    getNextPageParam: (last) => last?.next ?? undefined,
+    retry: false,
+  });
+
+/** One of Home's items' evidence (View games, View crossing). */
+export const useHomeFeedEvidence = (params) =>
+  useQuery({
+    queryKey: ["me", "home", "feed-evidence", params],
+    staleTime: 0,
+    queryFn: payload(() => api.homeFeedEvidence(params)),
+    enabled: Boolean(params),
+  });
+
+/** Each item of a cached list, changed by `fn`: a plain read's `list`, or
+ *  every page's of a paged one (Home's feed). */
+const mapItems = (old, list, fn) =>
+  !old
+    ? old
+    : Array.isArray(old.pages)
+      ? {
+          ...old,
+          pages: old.pages.map((p) =>
+            p?.[list] ? { ...p, [list]: p[list].map(fn) } : p,
+          ),
+        }
+      : old[list]
+        ? { ...old, [list]: old[list].map(fn) }
+        : old;
 
 /** Your timeline's RSS link (#765): on or off, and since when. */
 export const useRssLink = () =>
@@ -320,14 +354,7 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
   const queryClient = useQueryClient();
   const put = (item) =>
     queryClient.setQueryData(key, (old) =>
-      old
-        ? {
-            ...old,
-            [list]: (old[list] ?? []).map((it) =>
-              it.id === item.id ? item : it,
-            ),
-          }
-        : old,
+      mapItems(old, list, (it) => (it.id === item.id ? item : it)),
     );
   return useMutation({
     mutationFn: async ({ item, next }) => {
@@ -359,17 +386,15 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
       // Every other copy of the item (Home's feed, a player page's or a
       // battle page's cheers read) takes the server's counts too, so a
       // stale copy never shows the old cheer or sends it again.
-      const patch = (rows) =>
-        rows?.map((it) =>
-          it.id === shown.id
-            ? { ...it, cheers: data.cheers, my_cheer: data.my_cheer }
-            : it,
-        );
+      const patch = (it) =>
+        it.id === shown.id
+          ? { ...it, cheers: data.cheers, my_cheer: data.my_cheer }
+          : it;
       queryClient.setQueryData(CHEER_FEED_KEY, (old) =>
-        old?.timeline ? { ...old, timeline: patch(old.timeline) } : old,
+        mapItems(old, "timeline", patch),
       );
       queryClient.setQueriesData({ queryKey: ["me", "cheers"] }, (old) =>
-        old?.items ? { ...old, items: patch(old.items) } : old,
+        mapItems(old, "items", patch),
       );
     },
     onError: (_err, _vars, context) => {
@@ -431,8 +456,14 @@ export function useMarkTimelineSeen() {
       const place = (old) =>
         old ? { ...old, seen_to: res.data.seen_to } : old;
       queryClient.setQueryData(scopedKey(agent, "feed"), place);
-      // Home's feed shares your place (never an agent's).
-      if (!agent) queryClient.setQueryData(HOME_FEED_KEY, place);
+      // Home's feed shares your place (never an agent's); its first page
+      // carries it.
+      if (!agent)
+        queryClient.setQueryData(HOME_FEED_KEY, (old) =>
+          old?.pages?.length
+            ? { ...old, pages: [place(old.pages[0]), ...old.pages.slice(1)] }
+            : old,
+        );
       const queryKey = rootFor(agent);
       await queryClient.cancelQueries({ queryKey, exact: true });
       await queryClient.invalidateQueries({ queryKey, exact: true });

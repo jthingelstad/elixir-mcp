@@ -142,22 +142,26 @@ test("a cheer on a player page reaches Home's copy and every page's copy (Codex 
   );
   queryClient.setQueryData(page, { items: [ITEM], subjects: ["#PYLQ88"] });
   queryClient.setQueryData(battle, { items: [ITEM, other] });
+  // Home's feed is pages (G1): a cheer reaches the item on whichever page.
   queryClient.setQueryData(HOME_FEED_KEY, {
-    timeline: [ITEM, other],
+    pages: [{ timeline: [other] }, { timeline: [ITEM] }],
+    pageParams: [null, "c1"],
   });
   fireEvent.click(screen.getByRole("button", { name: "Cheer" }));
   fireEvent.click(screen.getByRole("button", { name: /Royal$/ }));
   const want = { cheers: { on_fire: 1, royal: 2 }, my_cheer: "royal" };
   await waitFor(() =>
-    expect(queryClient.getQueryData(HOME_FEED_KEY).timeline[0]).toMatchObject(
-      want,
-    ),
+    expect(
+      queryClient.getQueryData(HOME_FEED_KEY).pages[1].timeline[0],
+    ).toMatchObject(want),
   );
   expect(queryClient.getQueryData(page).items[0]).toMatchObject(want);
   expect(queryClient.getQueryData(battle).items[0]).toMatchObject(want);
   // Another item keeps its own.
   expect(queryClient.getQueryData(battle).items[1]).toEqual(other);
-  expect(queryClient.getQueryData(HOME_FEED_KEY).timeline[1]).toEqual(other);
+  expect(queryClient.getQueryData(HOME_FEED_KEY).pages[0].timeline[0]).toEqual(
+    other,
+  );
 });
 
 test("a cheer the server refuses says so", async () => {

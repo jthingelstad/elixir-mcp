@@ -11,7 +11,7 @@ import {
 } from "@elixir-mcp/ui";
 import { SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
-import { useHomeFeed, useTimelineEvidence } from "../lib/queries.js";
+import { useHomeFeed, useHomeFeedEvidence } from "../lib/queries.js";
 import {
   TimelineEvidence,
   useRowTime,
@@ -34,16 +34,24 @@ import { Cheers } from "./Cheers.jsx";
  * cheers (Cheers.jsx). Your account's own lines (claims, recording started
  * or stopped) are not here: the read leaves them out and the bell tells
  * them (2026-11-12).
+ *
+ * Thirty items a page, and More for the next thirty of the same week (G1,
+ * 2026-11-12: a busy week was 150 items, 15 to 25 s to read and 20,870 px
+ * of page). The chips count the whole week; they show what is loaded.
  */
 export function HomeFeed() {
   const { day, dayHeading } = useClock();
   const query = useHomeFeed();
-  const timeline = query.data ?? null;
+  const pages = query.data?.pages ?? [];
+  const timeline = pages[0] ?? null;
   const { openedMs } = useTimelinePlace(timeline);
   const [show, setShow] = useState("everyone");
   const [state, setState] = useState("all");
   const [openId, setOpenId] = useState(null);
-  const items = useMemo(() => timeline?.timeline ?? [], [timeline]);
+  const items = useMemo(
+    () => (query.data?.pages ?? []).flatMap((p) => p?.timeline ?? []),
+    [query.data],
+  );
   const isNew = (it) =>
     openedMs !== null && Date.parse(it.observed_at ?? it.at) > openedMs;
   // Q8 keeps the State chips; the four Show chips replace its Who chips
@@ -52,16 +60,21 @@ export function HomeFeed() {
     (it) => state === "all" || isNew(it),
   );
   const more = timeline?.timeline_more ?? 0;
-  if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;
+  if (query.isPending)
+    return (
+      <p className="kit-feed__reading" aria-busy="true">
+        Reading the last seven days…
+      </p>
+    );
   if (query.isError)
     return (
       <ErrorState
-        title="Your feed could not be read just now"
+        title="Your feed didn’t load"
         onRetry={() => query.refetch()}
         busy={query.isFetching}
-        retryLabel="Refresh feed"
+        retryLabel="Try again"
       >
-        Try again shortly. Nothing was lost.
+        It took too long or the connection dropped. Nothing was lost.
       </ErrorState>
     );
   if (items.length === 0)
@@ -79,10 +92,15 @@ export function HomeFeed() {
       </Empty>
     );
   const days = timelineDays(shown, { day, openedMs });
+  // The week's counts, from the first page; what is loaded, if it has none.
   const counts = Object.fromEntries(
-    FEED_CHIPS.map((c) => [c.key, feedShown(items, c.key).length]),
+    FEED_CHIPS.map((c) => [
+      c.key,
+      timeline.counts?.[c.key] ?? feedShown(items, c.key).length,
+    ]),
   );
-  const newCount = items.filter(isNew).length;
+  const newCount = timeline.counts?.new ?? items.filter(isNew).length;
+  const total = timeline.total ?? items.length;
   return (
     <div className="kit-feed">
       <div className="kit-home__filters">
@@ -152,11 +170,29 @@ export function HomeFeed() {
           </section>
         ))
       )}
+      {query.hasNextPage ? (
+        <div className="kit-feed__more">
+          <button
+            type="button"
+            className="btn btn--sm"
+            onClick={() => query.fetchNextPage()}
+            disabled={query.isFetchingNextPage}
+            aria-busy={query.isFetchingNextPage}
+          >
+            {query.isFetchingNextPage ? "Reading…" : "More"}
+          </button>
+          <span className="kit-tiny">
+            {query.isFetchNextPageError
+              ? "The next items didn’t load. Try again."
+              : `${items.length} of ${total.toLocaleString("en-US")} shown`}
+          </span>
+        </div>
+      ) : null}
       <p className="kit-tiny">
         New means learned since you last opened Home. Opening it changes nothing
         your connections have read.
-        {more > 0
-          ? ` A busy week: the ${items.length} newest are shown, and ${more.toLocaleString("en-US")} more this week are not.`
+        {more > 0 && !query.hasNextPage
+          ? ` A busy week: the ${total} newest are shown, and ${more.toLocaleString("en-US")} more this week are not.`
           : ""}
       </p>
     </div>
@@ -271,7 +307,7 @@ function HighlightLinks({ facts }) {
 function InPlaceEvidence({ item, window, onRefresh }) {
   const [offset, setOffset] = useState(0);
   const selected = { ...item, window };
-  const query = useTimelineEvidence({
+  const query = useHomeFeedEvidence({
     evidence_item_id: item.id,
     from: window.from,
     to: window.to,

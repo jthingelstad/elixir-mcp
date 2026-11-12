@@ -7473,6 +7473,20 @@ button.kit-row {
   gap: 4px;
   min-width: 0;
 }
+/* While the first page reads: words, not an empty grey box (G1). */
+.kit-feed__reading {
+  margin: 12px 0;
+  color: var(--ink-dim);
+}
+/* More, under the last item: the next thirty of the same week. */
+.kit-feed__more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
 .kit-feed__item {
   display: grid;
   gap: 4px;

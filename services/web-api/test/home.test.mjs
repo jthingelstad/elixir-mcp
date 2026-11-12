@@ -929,3 +929,81 @@ test("clan card: your own clock only, and only while you are at risk", () => {
     { days_idle: 8, at_risk_days: 7 },
   );
 });
+
+test("Home's feed comes thirty a page: More reads on in the same week, the first page counts it all (G1)", async () => {
+  const id = await person("home-feed-pages");
+  const { db } = scratch;
+  const now = Date.now();
+  const iso = (ms) => new Date(ms).toISOString();
+  // Thirty-five invented friends, each with one personal record, a minute
+  // apart: thirty-five items, newest first.
+  const tags = Array.from(
+    { length: 35 },
+    (_, i) => `#8${"0289PYLQGRJCUV"[i % 14]}${"PYLQ"[Math.floor(i / 14)]}2Y2`,
+  );
+  assert.equal(new Set(tags).size, 35);
+  for (const [i, tag] of tags.entries()) {
+    await db.query(
+      `insert into player(player_tag,name) values ($1,$2) on conflict do nothing`,
+      [tag, `Paged ${i}`],
+    );
+    await db.query(
+      `insert into claim(account_id,player_tag,relationship,is_primary)
+       values ($1,$2,'friend',false)`,
+      [id, tag],
+    );
+    await db.query(
+      `insert into attested_fact
+         (subject_kind,player_tag,fact_type,detail,visibility,source,source_ref,occurred_at,recorded_at)
+       values ('player',$1,'personal_record','{"game":"drop","score":10}','player',
+               'drop.poapkings.com',$2,$3,$3)`,
+      [tag, `home-feed-pages-${i}`, iso(now - (i + 5) * 60_000)],
+    );
+  }
+  const feed = (query) =>
+    handler({
+      path: "/api/me/home/feed",
+      method: "GET",
+      headers: {
+        cookie: `__Host-elixir_session=${sessions.get(id)}`,
+        "x-elixir-client": "web",
+        "cloudfront-viewer-address": "8.8.4.4:443",
+      },
+      queryStringParameters: query,
+    });
+
+  const first = await feed({});
+  assert.equal(first.statusCode, 200, first.body);
+  const one = data(first);
+  assert.equal(one.timeline.length, 30);
+  assert.equal(one.total, 35);
+  assert.equal(typeof one.next, "string");
+  // The chips count the whole week, not the page.
+  assert.equal(one.counts.everyone, 35);
+  assert.equal(one.counts.friends, 35);
+
+  const more = await feed({ cursor: one.next });
+  assert.equal(more.statusCode, 200, more.body);
+  const two = data(more);
+  assert.equal(two.timeline.length, 5);
+  assert.equal(two.next, null);
+  assert.equal(two.counts, undefined);
+  assert.deepEqual(two.window, one.window);
+  const ids = [...one.timeline, ...two.timeline].map((it) => it.id);
+  assert.equal(new Set(ids).size, 35, "no item twice, none lost");
+  const at = [...one.timeline, ...two.timeline].map((it) => shownAt(it));
+  assert.deepEqual(at, [...at].sort().reverse(), "newest first across pages");
+
+  // A cursor the server did not make is refused, and so is a window wider
+  // than the week.
+  for (const cursor of [
+    "not-a-cursor",
+    Buffer.from(
+      JSON.stringify({ f: now - 30 * 86_400_000, t: now, o: 30 }),
+    ).toString("base64url"),
+  ]) {
+    const bad = await feed({ cursor });
+    assert.equal(bad.statusCode, 400);
+    assert.equal(data(bad).error, "invalid_cursor");
+  }
+});
