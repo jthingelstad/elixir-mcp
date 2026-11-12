@@ -105,8 +105,15 @@ test(
   "sign-in flow: email step then code step authenticates",
   { timeout: 20000 },
   async () => {
+    // Signed out until the code is redeemed, signed in after: the journey
+    // ends on Home, and the test waits for it there.
+    let redeemed = false;
     global.fetch = mockFetch({
-      "GET /api/me": [200, { authenticated: false }],
+      "GET /api/me": () =>
+        redeemed
+          ? [200, { authenticated: true, claims: [], recordings: [] }]
+          : [200, { authenticated: false }],
+      ...NO_PLAYER_YET,
       "GET /api/public/stats": [
         200,
         {
@@ -129,6 +136,7 @@ test(
           email: "j@x.com",
           code: "123456",
         });
+        redeemed = true;
         return [200, { authenticated: true }];
       },
     });
@@ -155,6 +163,12 @@ test(
         expect.anything(),
       ),
     );
+    // Wait for the journey's end, signed in on Home. Ended at the POST,
+    // the sign-in finished during the NEXT test (its session read and its
+    // move to Home), and on a slow runner that move took the next test's
+    // page away (CI on 80dc908c, "tracking renders claims").
+    expect(await screen.findByText("Welcome to Elixir")).toBeTruthy();
+    expect(window.location.pathname).toBe("/home");
   },
 );
 
