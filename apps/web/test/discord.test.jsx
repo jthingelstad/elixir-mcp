@@ -15,6 +15,11 @@ import {
 } from "@testing-library/react";
 import { SignIn } from "../src/views/SignIn.jsx";
 import { App } from "../src/App.jsx";
+// Settings is a lazy chunk. Imported here, its module graph compiles while
+// the file loads, where no wait is bounded, instead of inside the first
+// test's wait for the page: on a loaded host the compile was most of a
+// first paint and outran the 5 s wait (2026-11-12).
+import "../src/pages/SettingsPage.jsx";
 import { discordOutcome, discordStartHref } from "../src/discord.js";
 
 configure({ asyncUtilTimeout: 5000 });

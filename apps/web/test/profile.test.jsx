@@ -12,6 +12,11 @@ import {
   configure,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
+// Settings is a lazy chunk. Imported here, its module graph compiles while
+// the file loads, where no wait is bounded, instead of inside the first
+// test's wait for the page: on a loaded host the compile was most of a
+// first paint and outran the 5 s wait (2026-11-12).
+import "../src/pages/SettingsPage.jsx";
 
 // This file renders the whole App, routes and all, from a cold module
 // graph. Testing Library's 1 s default wait reads a slow first paint on a
