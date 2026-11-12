@@ -50,6 +50,15 @@ export const TIMELINE_KIND_SCHEMAS = {
     facts: [...SITTING, "crossed", "newly", "crossings"],
     optional: ["teammate", "best_win"],
   },
+  // A battle its player highlighted with their own words (social slice
+  // 4, #762): the one single-battle item. share_url only for the owner's
+  // own reads (the account that posted it, or its agents), once shared.
+  battle_highlight: {
+    version: 1,
+    at: "when the player posted it; the battle's own time is battle.battle_time",
+    facts: [...MEMBER, "highlight_id", "words", "battle"],
+    optional: ["share_url"],
+  },
   badge_earned: {
     version: 2,
     at: "the profile read that saw the level",

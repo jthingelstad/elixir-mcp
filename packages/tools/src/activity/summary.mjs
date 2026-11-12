@@ -455,6 +455,24 @@ export function itemText(it, timeZone = "UTC") {
   switch (it.kind) {
     case "battle_session":
       return `${member || subj} played ${plural(f.battles, "battle")}${f.battles > 1 ? " in one sitting" : ""} (${sitting(f)})${played(f)}${f.open ? ", still going" : ""}.`;
+    // A highlight is the player's post: the battle, then their words as
+    // they wrote them (escaped at each output that needs it, never here).
+    case "battle_highlight": {
+      const b = f.battle ?? {};
+      const result =
+        b.outcome === "win"
+          ? "win"
+          : b.outcome === "loss"
+            ? "loss"
+            : b.outcome === "draw"
+              ? "draw"
+              : "battle";
+      const mode = MODE_WORDS[b.mode_group] ?? b.game_mode ?? null;
+      const words = String(f.words ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
+      return `${member || subj} highlighted a ${b.crowns ?? "?"}-${b.crowns_against ?? "?"} ${result} against ${against(b)}${mode ? ` (${mode})` : ""}${words ? `: “${words}”` : "."}`;
+    }
     case "session_standout": {
       const run =
         f.won_in_a_row >= 5 ? `, ${f.won_in_a_row} wins in a row` : "";

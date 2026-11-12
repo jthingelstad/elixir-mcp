@@ -2817,6 +2817,21 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
+          # A shared highlight's page, /h/<share id>, and its picture
+          # (social slice 4, #762): public like a battle's page, the same
+          # shell with the post's preview tags. The origin says max-age=60
+          # on every answer, so a deleted post stops opening within about
+          # a minute.
+          - PathPattern: /h/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /api/v1/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only

@@ -21,6 +21,7 @@ import { useMe, useNav } from "../App.jsx";
 import { CONSOLE } from "../lib/console.js";
 import { tagPath } from "../lib/tag-url.js";
 import { ladderPlayers } from "../ladder/ladder.js";
+import { BattleHighlight } from "./BattleHighlight.jsx";
 import { PlayerBattleShare } from "./PlayerBattleShare.jsx";
 
 /**
@@ -231,7 +232,7 @@ function Empty({ title, children }) {
   );
 }
 
-function BattleView({ read, me }) {
+export function BattleView({ read, me }) {
   const { battle, sides, games } = read;
   const clock = useClock();
   const narrow = useMedia("(max-width: 760px)");
@@ -328,6 +329,8 @@ function BattleView({ read, me }) {
           title={g ? `How game ${g.round} ended` : "How it ended"}
         />
       )}
+
+      {signedIn && <BattleHighlight battle={battle} sides={sides} />}
 
       <div className="battle__grid battle__grid--three">
         <Meetings read={read} />

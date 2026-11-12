@@ -1239,7 +1239,7 @@ test("every behaviour compresses; only identical-for-everyone reads are cached (
   );
   assert.deepEqual(
     cached.map(([path]) => path),
-    ["/api/public/*", "/battle/*", "/.well-known/*"],
+    ["/api/public/*", "/battle/*", "/h/*", "/.well-known/*"],
   );
   for (const [path, block] of cached) {
     // Nothing but the path reaches the origin, so one cached object is

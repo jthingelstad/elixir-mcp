@@ -37,6 +37,8 @@ export const keys = {
   connections: ["me", "connections"],
   principals: ["me", "principals"],
   feedback: ["me", "feedback"],
+  // Your highlights of one battle, and the players you may post it as.
+  highlights: (battle) => ["me", "highlights", battle],
   verifyList: ["me", "verify"],
   callRecord: (id) => ["me", "requests", id],
   principalIdentities: (id) => ["me", "principals", id, "identities"],
@@ -213,6 +215,15 @@ export const useMyTimeline = (enabled = true) => {
     enabled,
   });
 };
+
+/** The battle page's highlight panel (#762): your posts of this battle
+ *  and the verified players you may post it as. Yours, never an agent's. */
+export const useMyHighlights = (battle, enabled = true) =>
+  useQuery({
+    queryKey: keys.highlights(battle),
+    queryFn: payload(() => api.myHighlights(battle)),
+    enabled: enabled && Boolean(battle),
+  });
 
 /** Whether anything was learned since the page's place: Home's tab mark. */
 export const useTimelineNews = () =>

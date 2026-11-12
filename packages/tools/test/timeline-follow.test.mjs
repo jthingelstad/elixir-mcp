@@ -44,6 +44,11 @@ const VALUES = {
     battle_time: "2026-10-10T14:21:00.000Z",
   },
   teammate: { player_tag: "#2PYLQ8", name: "Example Mate", battles: 3 },
+  // A highlight's battle (#762).
+  battle: {
+    battle_id: "example-battle",
+    battle_time: "2026-10-10T14:21:00.000Z",
+  },
   card_id: 26000011,
   clan_tag: CLAN,
   season_id: 136,

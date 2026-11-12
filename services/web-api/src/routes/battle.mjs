@@ -59,13 +59,18 @@ export function previewOf(read) {
 const SHELL_TAGS =
   /<title>[\s\S]*?<\/title>|<meta\s[^>]*?(?:property="og:[^"]*"|name="(?:twitter:[^"]*|description|robots)")[^>]*>/g;
 
-export function namedShell(shell, read) {
-  const { title, description } = previewOf(read);
-  const url = read.battle.url;
+/** The shell named for a battle, or for whatever `named` says it is (a
+ *  shared highlight, routes/highlight.mjs: its own title, words, link
+ *  and picture). Every value is escaped here, as it is written. */
+export function namedShell(shell, read, named = null) {
+  const { title, description } = named ?? previewOf(read);
+  const url = named?.url ?? read.battle.url;
   // The battle's own picture; the site's when it has no link to hang
   // one on.
   const image =
-    read.battle.image ?? "https://elixir.poapkings.com/assets/og.png";
+    named?.image ??
+    read.battle.image ??
+    "https://elixir.poapkings.com/assets/og.png";
   const tags = [
     `<title>${esc(title)} - Elixir</title>`,
     `<meta name="description" content="${esc(description)}" />`,

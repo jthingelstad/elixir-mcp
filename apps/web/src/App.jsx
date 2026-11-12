@@ -281,6 +281,10 @@ export function railPosition(path) {
  *  character hex prefix of the battle id. */
 const BATTLE_PATH = /^\/battle\/[0-9a-f]{12,64}$/;
 
+/** A shared post's public page (#762): /h/<share id>, 15 base32
+ *  characters (POST_ID_PATTERN in @elixir-mcp/contracts). */
+const POST_PATH = /^\/h\/[a-z2-7]{15}$/;
+
 /** Which place the bar marks as the one you are in, from the route. A battle's
  *  public page is in no place, nor are Settings' pages: the Search tab opens
  *  a sheet over whichever page you are on, and stands for Explore's records
@@ -311,6 +315,7 @@ export function legalRoute(path) {
   if (isSettings(path)) return settingsLegal(path);
   // A battle's public page is the app's too.
   if (BATTLE_PATH.test(path)) return path;
+  if (POST_PATH.test(path)) return path;
   // Ladder resolves its own paths.
   if (isLadder(path)) return ladderLegal(path);
   const app = appPath(path);
@@ -499,7 +504,8 @@ const signedInPath = (path) => {
       isHome(url.pathname) ||
       isSettings(url.pathname) ||
       url.pathname === SERVICE_STATUS ||
-      BATTLE_PATH.test(url.pathname)
+      BATTLE_PATH.test(url.pathname) ||
+      POST_PATH.test(url.pathname)
     );
   } catch {
     return false;
@@ -650,7 +656,7 @@ function Unavailable({ onRetry, busy }) {
  */
 /** What the distribution routes to this app; the rest is the static site. */
 const APP_PATHS =
-  /^\/(home|signin|settings|console|ladder|clan|battle|data\/service)(\/|$)/;
+  /^\/(home|signin|settings|console|ladder|clan|battle|h|data\/service)(\/|$)/;
 
 const rootRoute = createRootRoute({
   beforeLoad: ({ location }) => {
@@ -786,6 +792,12 @@ const battleRoute = createRoute({
   ),
 });
 
+const postRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/h/$id",
+  component: lazyRouteComponent(() => import("./views/Post.jsx"), "PostPage"),
+});
+
 /** Ladder: its own rail in the shell. Signed in only. */
 const ladderRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -814,6 +826,7 @@ export const routeTree = rootRoute.addChildren([
   serviceRoute,
   adminRoute,
   battleRoute,
+  postRoute,
   ladderRoute,
   createClanRoutes(rootRoute, {
     Frame: ClanFrame,
@@ -1045,8 +1058,9 @@ function ConsoleShell() {
   const authed = me?.authenticated === true;
 
   useEffect(() => {
-    // A battle's page names itself once the battle has loaded.
-    if (BATTLE_PATH.test(effectivePath)) return;
+    // A battle's page and a post's name themselves once they have loaded.
+    if (BATTLE_PATH.test(effectivePath) || POST_PATH.test(effectivePath))
+      return;
     document.title = titleFor(section, sec, effectivePath);
   }, [section, sec, effectivePath]);
 

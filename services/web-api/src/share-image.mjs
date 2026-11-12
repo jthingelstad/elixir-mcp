@@ -349,7 +349,50 @@ export function drawBattle(read, f) {
   push(
     `<line x1="0" y1="578" x2="${SHARE_WIDTH}" y2="578" stroke="${C.lineSoft}"/>`,
   );
-  if (battle.url)
+  const cut = DISCLAIMER.indexOf(". ") + 1;
+  // A shared highlight (#762) says whose post it is and their words on
+  // one line, fitted beside the disclaimer, over the post's own link;
+  // a battle's picture carries the battle's link alone. Each string is
+  // escaped by text() as it is written, never before.
+  const h = read.highlight ?? null;
+  if (h) {
+    const room =
+      RIGHT_X -
+      Math.max(
+        f.regular.width(DISCLAIMER.slice(0, cut), 12),
+        f.regular.width(DISCLAIMER.slice(cut).trim(), 12),
+      ) -
+      32 -
+      PAD;
+    const who = `${h.name ?? h.player_tag}`;
+    const words = String(h.words ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const whoW = f.bold.width(`${who}${words ? ":" : ""}`, 16);
+    push(
+      text(PAD, 600, fit(`${who}${words ? ":" : ""}`, f.bold, 16, room), {
+        size: 16,
+        weight: 700,
+        fill: C.body,
+      }),
+    );
+    if (words && whoW + 8 < room)
+      push(
+        text(
+          PAD + whoW + 8,
+          600,
+          fit(`“${words}”`, f.regular, 16, room - whoW - 8),
+          { size: 16, fill: C.dim },
+        ),
+      );
+    push(
+      text(PAD, 621, h.url.replace(/^https:\/\//, ""), {
+        size: 14,
+        weight: 700,
+        fill: C.link,
+      }),
+    );
+  } else if (battle.url)
     push(
       text(PAD, 612, battle.url.replace(/^https:\/\//, ""), {
         size: 18,
@@ -357,7 +400,6 @@ export function drawBattle(read, f) {
         fill: C.link,
       }),
     );
-  const cut = DISCLAIMER.indexOf(". ") + 1;
   push(
     text(RIGHT_X, 600, DISCLAIMER.slice(0, cut), {
       size: 12,

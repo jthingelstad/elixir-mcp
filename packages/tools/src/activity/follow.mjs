@@ -80,6 +80,9 @@ export function followFor(it, window) {
         // A standout's best win, by its id (2026-10-11).
         ...battle(tag, f.best_win),
       ];
+    // A highlight's battle, by its id (#762).
+    case "battle_highlight":
+      return [...battle(tag, f.battle), ...summary(tag)];
     case "ranked_promotion":
     case "arena_changed":
       return [...battle(tag, f.promoted_by), ...summary(tag)];
