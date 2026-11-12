@@ -46,11 +46,9 @@ news, and **a move down never counts**. A new arena and a promotion carry
 the battle that decided them when the record has it, with a link to [the
 battle's own page](/docs/battles#a-battles-page).
 
-## No email of its own
+## In your digest
 
-Until 2026-11-12 your own firsts also came as a milestone email within
-the hour. That email ended when Elixir moved to [one
-digest](/docs/email#the-digest-replaced-three-emails): your firsts and
-your alts' now lead your part of it. To hear sooner, make the digest
-daily on [Settings › Emails](/settings/emails); to hear at once, open
-your timeline.
+Firsts have no email of their own: yours and your alts' lead your part
+of [the digest](/docs/email#your-digest). To hear sooner, make the
+digest daily on [Settings › Emails](/settings/emails); to hear at once,
+open your timeline.

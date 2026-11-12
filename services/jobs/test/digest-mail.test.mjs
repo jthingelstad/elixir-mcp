@@ -624,5 +624,34 @@ test("the clan's news, as a line: Colosseum named, names capped, roles", () => {
     "joined: P0, P1, P2, P3, P4 +2 more",
     "roles: P1 member → elder",
   ]);
-  assert.deepEqual(clanNews({}), { race: false, parts: [] });
+  assert.deepEqual(clanNews({}), { race: false, parts: [], named: [] });
+});
+
+test("clanNews names the people you follow first, and says which moves it named", () => {
+  const joined = {
+    items: Array.from({ length: 7 }, (_, i) => ({
+      tag: `#T${i}`,
+      name: `P${i}`,
+    })),
+    more: 0,
+  };
+  // The reader follows the sixth to join: named, not hidden in "+N more"
+  // (Codex on #823).
+  const { parts, named } = clanNews(
+    {
+      roster: {
+        joined,
+        left: { items: [{ tag: "#L0", name: "Gone" }], more: 0 },
+      },
+    },
+    new Set(["#T5"]),
+  );
+  assert.deepEqual(parts, [
+    "joined: P5, P0, P1, P2, P3 +2 more",
+    "departed: Gone",
+  ]);
+  assert.deepEqual(named, [
+    ["joined|#T5", "joined|#T0", "joined|#T1", "joined|#T2", "joined|#T3"],
+    ["left|#L0"],
+  ]);
 });

@@ -66,13 +66,6 @@ about one subject:
   out of your digest, and stops its recording too unless something else
   keeps it recorded.
 
-The clan report, Your week in the Arena and Milestones emails ended on
-2026-11-12, when their news moved into the digest. Their switches are
-gone; if you had turned the clan report off, the digest never comes for
-a clan's news alone, and if you had turned Arena week off, your alts in
-it stay a name and a count. A turn-off link in one of their old issues
-still opens and says the email has ended.
-
 To stop them all, turn **Every email** off; turn it back on to have all
 four again.
 

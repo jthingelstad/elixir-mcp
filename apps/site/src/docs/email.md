@@ -81,19 +81,6 @@ Drop's personal records) stays out of the digest; the timeline still
 carries them to their readers. Anything a person typed, a name, a
 nickname or a highlight's words, is shown as text.
 
-### The digest replaced three emails
-
-Until 2026-11-12 Elixir also sent a clan report on Mondays, Your week in
-the Arena on Tuesdays, and a milestone note within the hour of a big
-first. Those are now parts of the digest: the clan's race and roster
-moves in its clan part, your firsts and your alts' firsts with you, and
-your cards and badges counted. Your season's numbers are on
-[Stats](/docs/ladder), and a clan's whole week is on
-[Clan](/docs/clan-week). If you had turned the clan report off, your
-digest never comes for a clan's news alone; if you had turned Arena week
-off, your alts stay a name and a count, as they were. An old email's
-turn-off link still opens and says the email has ended.
-
 ## Collector upgrade notices
 
 The collector email switch also controls upgrade notices: one email for each
