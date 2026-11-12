@@ -1629,6 +1629,11 @@ export const OUTPUT_SCHEMAS = {
             nickname: {},
             player_tag: { type: ["string", "null"] },
             source: { type: ["string", "null"] },
+            trophies: {
+              type: ["integer", "null"],
+              description:
+                "11.21.0: Trophy Road trophies on the player's latest snapshot; null when none is recorded.",
+            },
           },
         },
       },

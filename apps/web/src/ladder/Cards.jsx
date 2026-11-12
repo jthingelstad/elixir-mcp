@@ -9,7 +9,6 @@ import {
   Table,
 } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
-import { CONSOLE } from "../lib/console.js";
 import {
   OTHER,
   fmt,
@@ -31,7 +30,7 @@ import {
   times,
 } from "./ladder-cards.js";
 import { useToolRead } from "../lib/queries.js";
-import { tagPath } from "../lib/tag-url.js";
+import { playerHref } from "../lib/player.js";
 import { useNav } from "../App.jsx";
 import { Loading, ReadError, Record } from "./common.jsx";
 
@@ -335,11 +334,7 @@ function Opponents({ read, label, when, order }) {
               <ul className="ladder-opponents">
                 {repeats.map((o) => (
                   <li key={o.player_tag}>
-                    <Link
-                      to={`${CONSOLE}/explore/player/${tagPath(o.player_tag)}`}
-                    >
-                      {opponentName(o)}
-                    </Link>
+                    <Link to={playerHref(o.player_tag)}>{opponentName(o)}</Link>
                     {clashes(o) ? (
                       <>
                         {" "}

@@ -211,9 +211,7 @@ test("a war week is read by name and shows the race: five clans, the days, who f
     .closest("section");
   const member = screen.getByRole("link", { name: "King Thing" });
   expect(members.contains(member)).toBe(true);
-  expect(member.getAttribute("href")).toBe(
-    "/console/explore/player/20JJJ2CCRU",
-  );
+  expect(member.getAttribute("href")).toBe("/home/player/20JJJ2CCRU");
 });
 
 test("a week the record does not hold says why, in the tool's own words", async () => {

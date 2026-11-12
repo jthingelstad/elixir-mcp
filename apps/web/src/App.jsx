@@ -59,8 +59,10 @@ import {
   ladderTitle,
 } from "./ladder/ladder.js";
 import { HOME, SERVICE_STATUS, SIGN_IN, movedTo } from "./lib/moved.js";
+import { FOLLOW_ME, isPlayerPath } from "./lib/player.js";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { LadderInvite } from "./ladder/Invite.jsx";
+import { FollowInvite } from "./home/FollowMe.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { takeLoginToken } from "./url-hygiene.js";
 
@@ -298,7 +300,9 @@ export function barArea(path) {
 }
 
 const HOME_PATHS = new Set([HOME, `${HOME}/timeline`, `${HOME}/friends`]);
-const isHome = (path) => HOME_PATHS.has(path.replace(/(.)\/$/, "$1"));
+/** Home's tabs, and the player page and Follow me links under it (#764). */
+const isHome = (path) =>
+  HOME_PATHS.has(path.replace(/(.)\/$/, "$1")) || isPlayerPath(path);
 
 const isClan = (path) =>
   path === "/clan" ||
@@ -359,7 +363,15 @@ export function titleFor(section, sec, path) {
   if (isHome(path)) {
     const tab = path.split("/")[2];
     const name =
-      tab === "timeline" ? "Timeline" : tab === "friends" ? "Friends" : "Today";
+      tab === "timeline"
+        ? "Timeline"
+        : tab === "friends"
+          ? "Friends"
+          : tab === "player"
+            ? "Player"
+            : tab === "follow"
+              ? "Follow"
+              : "Today";
     return `${name} - Home - ${SITE}`;
   }
   if (isLadder(path)) return ladderTitle(path, SITE);
@@ -552,6 +564,9 @@ export function SignInWall({ navigate }) {
   // Ladder says what it is first: a visitor may not know yet.
   if (isLadder(pathname))
     return <LadderInvite returnTo={here} onSignIn={signIn} />;
+  // A Follow me link opens on Join (slice 5's flow), back to the link.
+  if (pathname.startsWith(`${FOLLOW_ME}/`))
+    return <FollowInvite returnTo={here} onSignIn={signIn} />;
   return (
     <div className="panel mx-auto mt-12 max-w-[420px]">
       <div className="panel__body text-center">
@@ -817,8 +832,30 @@ const homeRoute = createRoute({
   ),
 });
 
+/** A player's page (#764): every player name opens it. */
+const playerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/home/player/$tag",
+  component: lazyRouteComponent(
+    () => import("./home/Player.jsx"),
+    "PlayerPage",
+  ),
+});
+
+/** A "Follow me in Elixir" link: the players it names, to follow. */
+const followMeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/home/follow/$tags",
+  component: lazyRouteComponent(
+    () => import("./home/FollowMe.jsx"),
+    "FollowMePage",
+  ),
+});
+
 export const routeTree = rootRoute.addChildren([
   homeRoute,
+  playerRoute,
+  followMeRoute,
   signInRoute,
   settingsRoute,
   exploreRoute,

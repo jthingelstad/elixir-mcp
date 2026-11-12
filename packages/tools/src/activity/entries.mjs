@@ -2914,6 +2914,37 @@ async function highlightItems(
 }
 
 /**
+ * A player's highlights, newest first, for their player page (slice 6,
+ * #764): every one they posted, not a window's, finished as the timeline
+ * serves an item. Read with no account, so no share link is served.
+ */
+export async function playerHighlights(
+  db,
+  tag,
+  { timezone = "UTC", limit = 30, now = Date.now() } = {},
+) {
+  const items = await highlightItems(db, [{ kind: "player", tag }], {
+    accountId: null,
+    fromMs: -1,
+    toMs: now,
+    basis: "occurred",
+  });
+  return items
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+    .slice(0, limit)
+    .map((it) => {
+      const { [STORY]: story, ...rest } = it;
+      const out = {
+        id: storyId(...story.key),
+        revision: story.revision ?? 1,
+        ...rest,
+      };
+      finishItem(out, { fromMs: -1, basis: "occurred", timezone });
+      return out;
+    });
+}
+
+/**
  * One answer to feedback as its item (#536 stage 2): the item as filed
  * and the answer as given. Its story is the feedback item, so a revised
  * answer is the same id at a higher revision. The words are the event's

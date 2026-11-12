@@ -160,7 +160,7 @@ test(
     render(<App />);
     // A member: names link to the players' pages, and nothing says "you".
     const name = await screen.findByRole("link", { name: "Birch Lantern" });
-    expect(name.getAttribute("href")).toBe("/console/explore/player/PYLQ88");
+    expect(name.getAttribute("href")).toBe("/home/player/PYLQ88");
     // (The top bar names the reader; the lens is the panel under its heading.)
     const lens = screen
       .getByRole("heading", { name: "See it as they do" })

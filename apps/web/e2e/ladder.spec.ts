@@ -993,7 +993,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
         "POST /api/explore": explore(),
       }),
     );
-    // Home's Open in Ladder, and the same shape from Friends and mail.
+    // The player page's Open in Ladder, and the same shape from Home and mail.
     await page.goto("/ladder?player=9PQ2R8L&mode=casual");
     await expect(page.getByLabel("Player", { exact: true })).toHaveValue(
       "#9PQ2R8L",
@@ -1391,7 +1391,7 @@ test.describe("Ladder cards", () => {
     );
     await expect(opp.getByRole("link", { name: "A Rival" })).toHaveAttribute(
       "href",
-      "/console/explore/player/2Q8L9V0P",
+      "/home/player/2Q8L9V0P",
     );
     await expect(opp).toContainText("A Rival, twice,");
     await accessible(page, "ladder cards");

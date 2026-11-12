@@ -166,6 +166,21 @@ export const api = {
         : "/api/me/home/week",
     ),
   homeFriends: () => request("GET", "/api/me/home/friends"),
+  /** A player's page (#764): their record, follows, followers and badges. */
+  playerPage: (tag) =>
+    request("GET", `/api/player?tag=${encodeURIComponent(tag)}`),
+  /** What following several players costs, before the tap: `player_tags`
+   *  (a Follow me link's) or `clan_tag` (everyone in it now). */
+  followPlan: ({ player_tags = null, clan_tag = null }) =>
+    request(
+      "GET",
+      clan_tag
+        ? `/api/me/follow-plan?clan_tag=${encodeURIComponent(clan_tag)}`
+        : `/api/me/follow-plan?player_tags=${encodeURIComponent(player_tags.join(","))}`,
+    ),
+  /** Follow every one of them, in one confirmed act; refused whole at the
+   *  limit. */
+  followAll: (body) => request("POST", "/api/me/follow-all", body),
   firstAnswer: (playerTag) =>
     request(
       "GET",

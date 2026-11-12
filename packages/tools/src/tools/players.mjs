@@ -1025,7 +1025,7 @@ export const playersTools = {
              and nn.player_tag = p.player_tag
            where p.name ilike $2 or nn.nickname ilike $2)
          select h.player_tag, h.name, h.nickname, h.source,
-                cl.clan_tag, cl.name as clan_name,
+                cl.clan_tag, cl.name as clan_name, tr.trophies,
                 count(*) over ()::int as total_matches
          from hits h
          left join lateral (
@@ -1033,6 +1033,13 @@ export const playersTools = {
            left join clan c on c.clan_tag = cm.clan_tag
            where cm.player_tag = h.player_tag and cm.left_observed_at is null
            limit 1) cl on true
+         -- Trophy Road trophies on the latest snapshot, so a row can tell
+         -- two players with one name apart (11.21.0).
+         left join lateral (
+           select s.trophies from player_snapshot_daily s
+           where s.player_tag = h.player_tag
+           order by s.snapshot_date desc, s.snapshot_kind desc
+           limit 1) tr on true
          order by case h.source when 'nickname' then -1 when 'claim' then 0 when 'clanmate' then 1 else 2 end,
                   -- A whole-name match before a substring one.
                   (lower(h.name) = lower($4)) desc,

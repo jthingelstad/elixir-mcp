@@ -12,7 +12,7 @@ interface Outcome {
 
 /**
  * A button that asks first. A mis-click must not delete, so a destructive
- * action opens one native dialog: it says what happens, Cancel holds the
+ * action opens one native dialog (and so does a Follow, which spends a slot): it says what happens, Cancel holds the
  * focus, Escape and Cancel do nothing, and only the named button writes. A
  * refused write stays open and says why under its text.
  */
@@ -25,6 +25,7 @@ export function ConfirmAction({
   run,
   onDone,
   disabled = false,
+  danger = true,
 }: {
   /** The trigger's words. */
   label: ReactNode;
@@ -36,6 +37,9 @@ export function ConfirmAction({
   run: () => Promise<Outcome | undefined> | Outcome | undefined;
   onDone?: (outcome: Outcome | undefined) => void;
   disabled?: boolean;
+  /** A write that removes something is red; one that adds (a Follow, #764)
+   *  asks first in the plain button. */
+  danger?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -124,7 +128,9 @@ export function ConfirmAction({
             </button>
             <button
               type="button"
-              className="btn btn--sm btn--danger"
+              className={
+                danger ? "btn btn--sm btn--danger" : "btn btn--sm btn--primary"
+              }
               disabled={busy}
               onClick={go}
             >

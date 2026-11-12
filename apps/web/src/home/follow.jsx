@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Tag } from "@elixir-mcp/ui";
+import { ConfirmAction, Tag } from "@elixir-mcp/ui";
 import { api } from "../api.js";
-import { useFollowCost, useInvalidate } from "../lib/queries.js";
+import { useFollowCost, useFollowPlan, useInvalidate } from "../lib/queries.js";
 
 const BAD_TAG =
   "That doesn't look like a player tag. Tags use only these characters: 0 2 8 9 C G J L P Q R U V Y.";
@@ -120,4 +120,118 @@ export function followCostLine(c) {
   if (c.used >= c.limit)
     return `All ${n(c.limit)} player slots in use. Following a player Elixir already records stays free.`;
   return `Uses 1 of your ${n(c.limit)} player slots · ${n(c.used)} used`;
+}
+
+/**
+ * Follow, asked first (#764: "Follow from the page always asks first and shows
+ * its cost"). One dialog: who, that they are not told, and what it costs, from
+ * the same read as every other Follow. A follow that would take a slot when
+ * none is left is not offered; the server refuses it anyway.
+ */
+export function FollowButton({ tag, name = null, onDone, label = "Follow" }) {
+  const { data } = useFollowCost(tag);
+  const invalidate = useInvalidate();
+  const cost = data && data.player_tag === tag ? data : null;
+  const full = Boolean(
+    cost && !cost.free && cost.limit != null && cost.used >= cost.limit,
+  );
+  const who = name ?? tag;
+  return (
+    <ConfirmAction
+      label={label}
+      className="btn btn--sm btn--primary"
+      danger={false}
+      title={`Follow ${who}?`}
+      body={
+        <>
+          <p className="m-0">
+            {name ? (
+              <>
+                {name} <Tag tag={tag} />
+              </>
+            ) : (
+              <Tag tag={tag} />
+            )}
+            . They are not told. Their sessions start in your feed.
+          </p>
+          <p className="kit-tiny" role="status">
+            {cost
+              ? (followCostLine(cost) ?? "You already follow them.")
+              : "Checking what this costs…"}
+          </p>
+        </>
+      }
+      confirm="Follow"
+      disabled={full}
+      run={() => api.claimAction({ player_tag: tag, relationship: "friend" })}
+      onDone={(answer) => {
+        invalidate();
+        onDone?.(answer?.data ?? null);
+      }}
+    />
+  );
+}
+
+/** A follow plan in words (#764): how many to follow, how many are free and
+ *  how many take a slot, against the slots left; or why it cannot go. */
+export function followPlanLine(plan) {
+  if (!plan) return null;
+  const n = (v) => v.toLocaleString();
+  const many = (k, one, other) => `${n(k)} ${k === 1 ? one : other}`;
+  if (plan.to_follow === 0)
+    return plan.following > 0
+      ? "You already follow every one of them."
+      : "Nobody here to follow.";
+  const parts = [
+    `${many(plan.to_follow, "player", "players")} to follow`,
+    `${n(plan.free)} free`,
+    `${many(plan.slots, "uses a slot", "use a slot")}`,
+  ];
+  const head = parts.join(" · ");
+  if (plan.limit == null) return head;
+  const left = Math.max(0, plan.limit - plan.used);
+  if (!plan.fits)
+    return `${head}. Only ${n(left)} of your ${n(plan.limit)} player slots are left, so nobody would be followed. Following a player Elixir already records stays free.`;
+  return `${head} · ${n(plan.used)} of ${n(plan.limit)} slots used now`;
+}
+
+/**
+ * Follow everyone a list names, in one confirmed act (#764): a clan's current
+ * members, or a Follow me link's players. Priced before the tap, refused whole
+ * past the limit, never in part.
+ */
+export function FollowAll({ ask, label, title, onDone }) {
+  const plan = useFollowPlan(ask);
+  const invalidate = useInvalidate();
+  const p = plan.data ?? null;
+  return (
+    <ConfirmAction
+      label={label}
+      className="btn btn--sm"
+      danger={false}
+      title={title}
+      body={
+        <>
+          <p className="m-0">
+            Nobody is told. Their sessions start in your feed, and you can stop
+            following anyone on Players &amp; tracking.
+          </p>
+          <p className="kit-tiny" role="status">
+            {p
+              ? followPlanLine(p)
+              : plan.isError
+                ? "What this costs could not be read just now."
+                : "Checking what this costs…"}
+          </p>
+        </>
+      }
+      confirm="Follow everyone"
+      disabled={!p || !p.fits || p.to_follow === 0}
+      run={() => api.followAll(ask)}
+      onDone={(answer) => {
+        invalidate();
+        onDone?.(answer?.data ?? null);
+      }}
+    />
+  );
 }

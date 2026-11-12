@@ -97,12 +97,13 @@ const n = (v) => (v == null ? "—" : Number(v).toLocaleString("en-US"));
 const signed = (v) =>
   v == null ? "—" : v > 0 ? `+${n(v)}` : v < 0 ? `−${n(-v)}` : "0";
 const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
-// Record pages: /console/explore/player/<tag without #> (apps/web
-// views/Explore.jsx, tagPath). A name in mail opens one of these unless the
-// reader has a better door to it (make: playerDoor, clanDoor).
+// A player's name opens their player page for every reader (Jamie,
+// 2026-11-12, #764: "Yes, one page"): /home/player/<tag without #> (apps/web
+// lib/player.js). A clan's name still opens Clan or its record per reader
+// (make: clanDoor).
 const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
-const playerUrl = (tag) => `${SITE}/console/explore/player/${tagPath(tag)}`;
+const playerUrl = (tag) => `${SITE}/home/player/${tagPath(tag)}`;
 const clanUrl = (tag) => `${SITE}/console/explore/clan/${tagPath(tag)}`;
 // Ladder, a player's own season (apps/web pages/LadderPage.jsx):
 // `?player=` names one of the reader's own players, so only the Arena
@@ -113,8 +114,6 @@ const ladderUrl = (tag, page = "", season = null) =>
   `${SITE}/ladder${page ? `/${page}` : ""}?player=${tagPath(tag)}${season != null ? `&season=${encodeURIComponent(season)}` : ""}`;
 // Clan's own pages (packages/clan-web, routes.jsx): the tag without its #.
 const clanPageUrl = (tag, page) => `${SITE}/clan/${tagPath(tag)}/${page}`;
-const clanMemberUrl = (clanTag, tag) =>
-  clanPageUrl(clanTag, `members/${tagPath(tag)}`);
 // A clan's river race week in the console (apps/web views/Explore.jsx):
 // /explore/week/<tag>~<season>~<section index>, the week counted from 0.
 const raceWeekUrl = (tag, season, week) =>
@@ -168,27 +167,21 @@ function make(
     mine = [],
     memberClans = [],
     verifiedClans = [],
-    clanmates = {},
-    season = null,
     now = Date.now(),
   } = {},
 ) {
   // The reader's own players: the clan report marks their rows "you".
   const isMine = (tag) => mine.includes(tag);
-  // One door per name, chosen per reader (structure, Mail links; A22, Q4): the
+  // A clan's door is chosen per reader (structure, Mail links; A22, Q4): the
   // facts are the same for everyone a report goes to, so the choice is made
   // here and never stored. A render with no reader context (a page's preview,
   // an old send's replay) falls through to the record pages, which open for
-  // anyone signed in.
+  // anyone signed in. A player's name has one door for everyone (#764).
   const isMember = (clanTag) => memberClans.includes(clanTag);
   // A clan-visible fact needs more than a door: a verified claim, as the
   // record's own reader asks (reader.mjs). No answer means no fact.
   const readsClanFacts = (clanTag) => verifiedClans.includes(clanTag);
-  const playerDoor = (tag) => {
-    if (isMine(tag)) return ladderUrl(tag, "", season);
-    const shared = clanmates[tag];
-    return shared ? clanMemberUrl(shared, tag) : playerUrl(tag);
-  };
+  const playerDoor = (tag) => playerUrl(tag);
   const clanDoor = (tag) =>
     isMember(tag) ? clanPageUrl(tag, "season") : clanUrl(tag);
   const rosterDoor = (tag) =>
@@ -1523,11 +1516,6 @@ export function renderMail(kind, facts, links) {
       verifiedClans: Array.isArray(links.verified_clans)
         ? links.verified_clans
         : [],
-      clanmates: links.clanmates ?? {},
-      // The season the mail describes: an own player's Ladder link opens it,
-      // not the one running when the link is clicked (2026-10-08).
-      season:
-        facts?.week?.season ?? facts?.war?.season ?? facts?.season ?? null,
       ...(links.now === undefined ? {} : { now: Number(links.now) }),
     }),
   );

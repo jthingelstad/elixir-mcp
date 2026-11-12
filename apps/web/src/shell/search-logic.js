@@ -1,7 +1,7 @@
 import { CONSOLE } from "../lib/console.js";
+import { playerHref } from "../lib/player.js";
 import { SETTINGS_RAIL } from "../lib/settings.js";
 import { HASH_RE, WEEK_RE, normTag, tagPath } from "../lib/tag-url.js";
-import { ladderHref } from "../ladder/ladder.js";
 import { DOC_LINKS } from "./doc-links.js";
 
 /**
@@ -10,8 +10,10 @@ import { DOC_LINKS } from "./doc-links.js";
  * on every keystroke. What costs a read (a tag, a name) waits for readSearch,
  * debounced by the sheet.
  *
- * One name, one door: you open in Ladder, a clanmate on their Clan member page,
- * anyone else on their record. A clan is found by tag or from your own list,
+ * Every player opens their player page (Jamie, 2026-11-12, #764: "Yes, one
+ * page"), wherever they were found; the row's right side says who they are to
+ * you, or for a searched player their tag, clan and trophies. Ladder and Clan
+ * are reached from the page. A clan is found by tag or from your own list,
  * never searched by name across the record. A deck hash or a war week is a
  * lookup of its own: it costs no read here, and Explore opens the record.
  */
@@ -67,27 +69,39 @@ export function searchSources({ me, clans, roster, cards }) {
 
 const nameOf = (p) => p.nickname ?? p.name ?? p.player_tag;
 
-/** The one door for a player, whichever way they were found. */
-export function doorFor(tag, s, name = tag) {
+/** A searched player's row detail: tag, clan and trophies (#764), so two
+ *  players with one name can be told apart. */
+export function playerDetail(p) {
+  const clan = p.clan_name ?? p.clan?.name ?? (p.clan_tag ? p.clan_tag : null);
+  return [
+    p.player_tag,
+    clan ?? "No clan",
+    p.trophies != null
+      ? `${Number(p.trophies).toLocaleString("en-US")} trophies`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** The one door for a player, whichever way they were found: their player
+ *  page. `detail` is what the row says on its right when the player is
+ *  nobody to you. */
+export function doorFor(tag, s, name = tag, detail = null) {
+  const href = playerHref(tag);
   if (s.own.some((c) => c.player_tag === tag))
-    return {
-      t: name,
-      d: "Ladder",
-      href: ladderHref("season", { player: tag }),
-    };
+    return { t: name, d: "You", href };
   const mate = s.mates.get(tag);
-  if (mate && s.home && s.clanOpen)
+  if (mate && s.home)
     return {
       t: name,
       d: s.home.name ?? "Clan",
       role: ROLE[mate.role] ?? null,
-      href: `/clan/${tagPath(s.home.clan_tag)}/members/${tagPath(tag).toLowerCase()}`,
+      href,
     };
-  return {
-    t: name,
-    d: "Record",
-    href: `${CONSOLE}/explore/player/${tagPath(tag)}`,
-  };
+  if (s.following.some((c) => c.player_tag === tag))
+    return { t: name, d: detail ?? "Following", href };
+  return { t: name, d: detail ?? tag, href };
 }
 
 function clanRow(clan, s, name = clan.name ?? clan.clan_tag) {
@@ -110,7 +124,7 @@ function people(s) {
       match: `${m.name ?? ""} ${m.player_tag}`,
       ...doorFor(m.player_tag, s, m.name ?? m.player_tag),
     }));
-  // A clanmate you also follow is a clanmate: one name, one door.
+  // A clanmate you also follow is listed once, as a clanmate.
   const following = s.following
     .filter((c) => !s.mates.has(c.player_tag))
     .map((c) => ({
@@ -234,7 +248,7 @@ export function typedGroups(raw, s, found = null) {
   const fresh = [];
   for (const p of found?.players ?? []) {
     const label = p.label ?? nameOf(p);
-    const row = doorFor(p.player_tag, s, label);
+    const row = doorFor(p.player_tag, s, label, playerDetail(p));
     if (seen.has(row.href)) continue;
     seen.add(row.href);
     fresh.push(row);
@@ -331,7 +345,10 @@ export async function readSearch(raw, explore, seen = () => {}) {
         players: [
           {
             player_tag: tag,
-            label: name ? `${name} ${tag}` : tag,
+            label: name ?? tag,
+            clan_name: player.clan?.name ?? null,
+            clan_tag: player.clan?.clan_tag ?? null,
+            trophies: player.trophies ?? null,
           },
         ],
       };

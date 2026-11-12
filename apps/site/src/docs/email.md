@@ -213,10 +213,9 @@ because they open one of your own records; the website counts those
 pages as "an email record", never which one. [Privacy](/docs/privacy)
 covers the rest.
 
-A name opens the page that is your door to it. Your own player opens Ladder;
-someone in a clan with you opens their page in Clan, friends included; anyone
-else opens their record. A clan you are in opens at Clan, Season, and its roster
-link at Members; another clan opens its record. A battle opens its own page, and
+A player's name opens their [player page](/docs/player-page), for every
+reader. A clan you are in opens at Clan, Season, and its roster link at
+Members; another clan opens its record. A battle opens its own page, and
 an action opens in Clan. Signed out, a page says why it needs you to sign in,
 and signing in brings you back to it. Tags appear only where a name alone could
 be ambiguous. A link to a season or a race names it:

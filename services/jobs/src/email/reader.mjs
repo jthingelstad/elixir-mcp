@@ -1,7 +1,8 @@
-/** Who a reader is to the names in a mail, for the render's one door per name
- *  (packages/mail, render.mjs): their own players, the clans those players are
- *  in today, and who else is in those clans. Facts are composed once for every
- *  reader; this is read per reader and never stored with them.
+/** Who a reader is to the names in a mail (packages/mail, render.mjs): their
+ *  own players and the clans those players are in today. A player's name
+ *  opens the player page for every reader (Jamie, 2026-11-12, #764), so who
+ *  else is in those clans is no longer read. Facts are composed once for
+ *  every reader; this is read per reader and never stored with them.
  *
  *  Two answers on purpose. `memberClans` picks links, and any primary or alt
  *  claim counts, because the page behind a link makes its own check.
@@ -30,14 +31,5 @@ export async function readerDoors(db, accountId) {
     [accountId],
   );
   const verifiedClans = seats.map((r) => r.clan_tag);
-  if (!memberClans.length)
-    return { tags, memberClans, verifiedClans, clanmates: {} };
-  const { rows: mates } = await db.query(
-    `select player_tag, clan_tag from clan_membership
-      where clan_tag = any($1::text[]) and left_observed_at is null`,
-    [memberClans],
-  );
-  const clanmates = {};
-  for (const r of mates) clanmates[r.player_tag] = r.clan_tag;
-  return { tags, memberClans, verifiedClans, clanmates };
+  return { tags, memberClans, verifiedClans };
 }

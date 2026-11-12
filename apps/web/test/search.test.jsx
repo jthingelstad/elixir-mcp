@@ -1,5 +1,5 @@
 /**
- * The search sheet: one name, one door. Typing reads only past three letters,
+ * The search sheet: every name opens the player page. Typing reads only past three letters,
  * a tag finds anyone on record, a failed read is never "no record", and Follow
  * is a click, never a keystroke.
  */
@@ -10,6 +10,7 @@ import { SearchSheet } from "../src/shell/SearchSheet.jsx";
 import {
   beforeTyping,
   doorFor,
+  playerDetail,
   isTagQuery,
   readSearch,
   readable,
@@ -62,16 +63,31 @@ describe("what counts as a tag, and what is worth a read", () => {
   });
 });
 
-describe("one name, one door", () => {
-  test("yours opens in Ladder, a clanmate in Clan, anyone else on the record", () => {
+describe("every name opens the player page (#764)", () => {
+  test("yours, a clanmate and anyone else open the one page; the row says who they are to you", () => {
     const s = sources();
-    expect(doorFor("#2PP0V90Y", s).href).toContain("/ladder");
-    expect(doorFor("#LUGGQ", s).href).toBe("/clan/2PQRJ8LV/members/luggq");
-    expect(doorFor("#CCCC", s).href).toBe("/console/explore/player/CCCC");
+    expect(doorFor("#2PP0V90Y", s)).toMatchObject({
+      href: "/home/player/2PP0V90Y",
+      d: "You",
+    });
+    expect(doorFor("#LUGGQ", s).href).toBe("/home/player/LUGGQ");
+    expect(doorFor("#CCCC", s).href).toBe("/home/player/CCCC");
   });
-  test("with Clan off, a clanmate opens on the record", () => {
+  test("with Clan off, a clanmate still opens the player page", () => {
     const s = sources({ me: { ...ME, features: {} } });
-    expect(doorFor("#LUGGQ", s).href).toBe("/console/explore/player/LUGGQ");
+    expect(doorFor("#LUGGQ", s).href).toBe("/home/player/LUGGQ");
+  });
+  test("a searched player's row carries tag, clan and trophies", () => {
+    expect(
+      playerDetail({
+        player_tag: "#CCCC",
+        clan_name: "Some Clan",
+        trophies: 7123,
+      }),
+    ).toBe("#CCCC · Some Clan · 7,123 trophies");
+    expect(playerDetail({ player_tag: "#CCCC", trophies: null })).toBe(
+      "#CCCC · No clan",
+    );
   });
   test("before typing: You, Clanmates, People you follow, Clans, each once", () => {
     const groups = beforeTyping(sources());
