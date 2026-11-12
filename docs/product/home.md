@@ -44,7 +44,7 @@ cards left Home; Wednesday's digest tells that week. [engineering,
 
 1. **Needs you is Clan's list, not a second one.** It is the bell's sheet
    since slice 7. The top two open Actions in
-   Clan's own order and "and N more in Clan › Today". Opening Home evaluates,
+   Clan's own order and "and N more waiting in Clan" (Run's Waiting since slice 8). Opening Home evaluates,
    raises and numbers nothing, so the list can lag Clan by up to the next
    morning's run or Clan visit. Other kinds appear only with a real source.
    [engineering, 2026-11-05]
