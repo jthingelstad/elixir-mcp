@@ -752,7 +752,7 @@ export const OUTPUT_SCHEMAS = {
   elixir_track_player: {
     type: "object",
     description:
-      "One shape per action: add (added, relationship, recording, notify, recording_started), remove (recording_stopped, primary_player_tag), notify_on / notify_off (notify).",
+      "One shape per action: add (added, relationship, recording, notify, recording_started, slot), remove (recording_stopped, primary_player_tag), notify_on / notify_off (notify).",
     properties: {
       applied: { type: "object" },
       player_tag: TAG,
@@ -761,6 +761,22 @@ export const OUTPUT_SCHEMAS = {
       recording: { type: "string" },
       notify: { type: "boolean" },
       recording_started: { type: "boolean" },
+      slot: {
+        type: "object",
+        description:
+          "What this follow costs in your player slots: took (this add spent one), free (the player takes none, because Elixir already records them), free_because (in_recorded_clan: a member of a clan recorded at comprehensive scope; followed_by_others: another account followed them first; null when not free), used and limit (null is unlimited) after the add.",
+        properties: {
+          took: { type: "boolean" },
+          free: { type: "boolean" },
+          free_because: {
+            type: ["string", "null"],
+            enum: ["in_recorded_clan", "followed_by_others", null],
+          },
+          used: { type: "integer" },
+          limit: { type: ["integer", "null"] },
+        },
+        required: ["took", "free", "free_because", "used", "limit"],
+      },
       recording_stopped: { type: "boolean" },
       primary_player_tag: { type: ["string", "null"] },
       docs: DOCS,

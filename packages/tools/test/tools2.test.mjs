@@ -597,11 +597,24 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   assert.equal(add.body.added, true);
   assert.equal(add.body.recording_started, true);
   assert.equal(add.body.notify, true);
+  // It spent a slot (#760): nothing else records this player.
+  assert.deepEqual(add.body.slot, {
+    took: true,
+    free: false,
+    free_because: null,
+    used: 2,
+    limit: 50,
+  });
+  assert.match(
+    add.body.notes.join(" "),
+    /This used 1 of your player slots: 2 of 50/,
+  );
 
   // Adding again: idempotent, shares the existing record.
   const again = await call("elixir_track_player", { player_tag: "#2PP0V90Y" });
   assert.equal(again.body.added, false);
   assert.equal(again.body.recording_started, false);
+  assert.equal(again.body.slot.took, false, "a re-add spends nothing");
   // One recording_started per start (the tool used to log a second).
   const { rows: started } = await db.query(
     `select count(*)::int as n from account_event
@@ -627,7 +640,8 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
     action: "remove",
   });
 
-  // Slots count what you've ADDED (claims); the web door agrees.
+  // Slots count the players Elixir records because of you (#760); the web
+  // door runs the same function.
   await db.query(
     `update account set max_player_recordings = 2 where account_id = $1`,
     [account.accountId],
@@ -635,6 +649,46 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   const capped = await call("elixir_track_player", { player_tag: "#2PL" });
   assert.equal(capped.isError, true);
   assert.equal(capped.body.error.code, "quota_exceeded");
+  // Refused with the reason, never queued (#760): used of limit, and that
+  // a player Elixir already records stays free.
+  assert.match(
+    capped.body.error.message,
+    /All 2 of your player slots are in use \(2 of 2\)/,
+  );
+  assert.match(capped.body.error.message, /already records stays free/);
+  // ...and at the limit a member of a clan recorded in full still goes in.
+  await db.query(
+    `insert into clan (clan_tag, name) values ('#9QRL', 'Free Clan') on conflict do nothing`,
+  );
+  await db.query(
+    `insert into player (player_tag, name) values ('#2PL', 'Clanmate') on conflict do nothing`,
+  );
+  const {
+    rows: [clanRec],
+  } = await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, status, scope)
+     values ('clan', '#9QRL', $1, 'active', 'comprehensive') returning recording_id`,
+    [account.accountId],
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
+     values ('#9QRL', '#2PL', now(), 'member')`,
+  );
+  const free = await call("elixir_track_player", { player_tag: "#2PL" });
+  assert.equal(free.isError, false, JSON.stringify(free.body));
+  assert.deepEqual(free.body.slot, {
+    took: false,
+    free: true,
+    free_because: "in_recorded_clan",
+    used: 2,
+    limit: 2,
+  });
+  assert.match(free.body.notes.join(" "), /Free: no slot taken/);
+  await call("elixir_track_player", { player_tag: "#2PL", action: "remove" });
+  await db.query(`delete from clan_membership where clan_tag = '#9QRL'`);
+  await db.query(`delete from recording where recording_id = $1`, [
+    clanRec.recording_id,
+  ]);
   await db.query(
     `update account set max_player_recordings = null where account_id = $1`,
     [account.accountId],

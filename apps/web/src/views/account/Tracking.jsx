@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
 import { ClaimNotice } from "../../components/ClaimNotice.jsx";
+import { FollowCost } from "../../home/follow.jsx";
 import { HomeClanOffer } from "../../components/HomeClanOffer.jsx";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
@@ -45,6 +46,14 @@ function readLine(what, rec, now) {
   return `${what} read ${ago(rec.freshest_poll, now)}, ${reads} ${reads === 1 ? "read" : "reads"} in 24 hours`;
 }
 
+/** Where a player stands in the account's slots (#760): free while Elixir
+ *  records them for another reason, else one slot. */
+function slotLine(c) {
+  if (c.slot === "free") return " Free: Elixir already records them.";
+  if (c.slot === "used") return " Uses a player slot.";
+  return "";
+}
+
 function PlayerRow({ claim: c, rec, now }) {
   const you = c.is_primary || c.relationship === "alt";
   const name = c.name ?? null;
@@ -68,6 +77,7 @@ function PlayerRow({ claim: c, rec, now }) {
           {status ? `${status} ` : ""}
           {readLine("Battle log", rec, now)}
           {c.notify === false ? " Off your timeline." : ""}
+          {slotLine(c)}
         </>
       }
       right={
@@ -184,6 +194,7 @@ function AddPlayer({ refresh, navigate, input, first }) {
         <button className="btn btn--sm" disabled={busy}>
           {busy ? "Adding…" : "Track"}
         </button>
+        {first ? null : <FollowCost tag={tag} />}
         <Note id="add-player-tag-hint">
           In Clash Royale, open your profile: the tag starting with # is below
           your name. Adding a tag starts recording, usually within a few
@@ -436,6 +447,11 @@ export function Tracking({ me, refresh, navigate, hash, search = "" }) {
           label="Players"
           value={(e?.player_slots?.used ?? 0).toLocaleString()}
           of={ofLimit(e?.player_slots)}
+          note={
+            e?.player_slots?.free
+              ? `+${e.player_slots.free.toLocaleString()} free, already recorded`
+              : undefined
+          }
         />
         <Stat
           label="Clans, the clan only"

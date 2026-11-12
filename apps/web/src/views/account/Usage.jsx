@@ -153,7 +153,7 @@ function Allows({ me, usage }) {
             },
           ]}
           rows={[
-            ["Players tracked", e.player_slots?.used, e.player_slots?.limit],
+            ["Player slots used", e.player_slots?.used, e.player_slots?.limit],
             [
               "Clans, the clan only",
               e.activity_clans?.used,

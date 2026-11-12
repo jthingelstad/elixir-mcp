@@ -198,6 +198,8 @@ describe("the sheet", () => {
         const sent = init.body ? JSON.parse(init.body) : {};
         body = handlers.explore?.(sent) ?? { is_error: true, body: {} };
       } else if (p === "/api/claims") body = handlers.claim?.(init) ?? {};
+      else if (p.startsWith("/api/me/follow-cost"))
+        body = handlers.cost?.(p) ?? {};
       return {
         ok: true,
         status: 200,
@@ -241,6 +243,36 @@ describe("the sheet", () => {
       relationship: "friend",
     });
     await screen.findByText("Recording");
+  });
+
+  test("a miss says what the Follow costs before the tap (#760)", async () => {
+    const fetch = respond({
+      cost: () => ({
+        player_tag: "#2PP0V90Y",
+        following: false,
+        free: false,
+        reason: null,
+        used: 3,
+        limit: 50,
+      }),
+    });
+    renderWithProviders(<SearchSheet me={{ claims: [] }} onClose={vi.fn()} />);
+    fireEvent.change(
+      screen.getByRole("searchbox", { name: /Search players/, hidden: true }),
+      { target: { value: "#2PP0V90Y" } },
+    );
+    await screen.findByText(
+      "Uses 1 of your 50 player slots · 3 used",
+      {},
+      { timeout: 3000 },
+    );
+    // Asking the price is a read; nothing was added.
+    expect(posts(fetch, "/api/claims")).toEqual([]);
+    expect(
+      fetch.mock.calls.some(([p]) =>
+        String(p).startsWith("/api/me/follow-cost?player_tag=%232PP0V90Y"),
+      ),
+    ).toBe(true);
   });
 
   test("two letters read nothing, however long they sit", async () => {
