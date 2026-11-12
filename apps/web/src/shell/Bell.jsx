@@ -110,7 +110,9 @@ export function BellSheet({ me, onClose }) {
                 }
               />
             ))}
-            {more ? <Row quiet href={more.to} title={more.title} /> : null}
+            {more ? (
+              <Row quiet href={more.to} title={more.title} onClick={onClose} />
+            ) : null}
           </Rows>
         )}
         {needs?.ok === false ? (
