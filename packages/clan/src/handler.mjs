@@ -47,6 +47,9 @@ export function createHandler({
    *  Discord editor (`manage/voice.mjs`) */
   voice = null,
   memberActivity = null,
+  /** the clan directory's tiles for the signed-in person, read through the
+   *  approved seam (`@elixir-mcp/auth/clan-context`, #768) */
+  directory = null,
   now = () => Date.now(),
   log = console,
 }) {
@@ -879,6 +882,16 @@ export function createHandler({
     );
   };
 
+  /** The clan directory: any signed-in person, a clan or none. No gate:
+   *  someone looking for a clan has none to pass it with. */
+  async function directoryRoute(event) {
+    const session = await loadSession(event);
+    if (!session) return signedOut();
+    const got = await directory();
+    if (got?.refused) return json(403, { error: got.refused });
+    return json(200, got.directory);
+  }
+
   async function dispatch(event, method, path) {
     try {
       if (
@@ -910,6 +923,8 @@ export function createHandler({
         return await acknowledgeVerify(event);
       if (method === "GET" && path === "/api/roster")
         return await roster(event);
+      if (directory && method === "GET" && path === "/api/directory")
+        return await directoryRoute(event);
       if (social && path === "/api/me/place")
         return await placeRoute(event, method);
       return json(404, { error: "not_found" });

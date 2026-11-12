@@ -52,6 +52,7 @@ import { diskGeo } from "@elixir-mcp/clan/geo.mjs";
 import { normalizeTag } from "@elixir-mcp/clan/gate.mjs";
 import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
 import { myPlayers } from "@elixir-mcp/record/players";
+import { readClanDirectory } from "@elixir-mcp/auth/clan-context";
 import { readMembershipCapture } from "@elixir-mcp/record/membership-capture";
 import { membershipCapture } from "@elixir-mcp/record/capture-state";
 import {
@@ -456,6 +457,8 @@ export function createClanRequest({
         weeklyCounts: (...args) => memberActivityWeeks(db, ...args),
         warBounds: (weeks) => memberActivityWarBounds(db, weeks),
       }),
+      // The clan directory, through the approved seam (#768).
+      directory: () => readClanDirectory(db, account),
       appUrl,
       elixirUrl: origin,
     });

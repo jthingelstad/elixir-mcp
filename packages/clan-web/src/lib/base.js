@@ -27,6 +27,7 @@ const PAGES = new Set([
   "verify",
   "feedback",
   "maintain",
+  "directory",
 ]);
 
 /** Whether a first segment under the prefix is where a clan's tag goes:

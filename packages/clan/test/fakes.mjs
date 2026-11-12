@@ -232,6 +232,7 @@ export function harness(opts = {}) {
     identity,
     store,
     memberActivity: opts.memberActivity ?? null,
+    directory: opts.directory ?? null,
     manage: opts.manage ?? null,
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",

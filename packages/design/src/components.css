@@ -2034,6 +2034,148 @@ input[aria-invalid="true"] {
   word-break: break-word;
 }
 
+/* ── Clan directory (#768) ──────────────────────────────────
+   A grid of flat tiles, listed by name. Tone, not outlines: a tile is the
+   panel's fill on the page, its facts quiet chips. One column on a phone. */
+.clan-dir {
+  display: grid;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.clan-dir__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--s-3) var(--s-4);
+  padding: var(--s-4);
+  border-radius: var(--r-block);
+  background: var(--panel);
+}
+.clan-dir__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.clan-dir__field--wide {
+  grid-column: 1 / -1;
+}
+.clan-dir__label {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+}
+.clan-dir__count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+.clan-dir__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.clan-dir__tile {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  min-width: 0;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-block);
+  background: var(--panel);
+}
+.clan-dir__tile:hover {
+  background: var(--hover-row);
+}
+.clan-dir__tile:focus-within {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+.clan-dir__top {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.clan-dir__crest {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-control);
+  background: var(--control);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 14px;
+}
+.clan-dir__who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--s-2);
+  min-width: 0;
+}
+.clan-dir__name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+/* The name is the tile's one link; it reaches over the whole tile. */
+.clan-dir__link {
+  color: var(--ink);
+  text-decoration: none;
+}
+.clan-dir__link:focus-visible {
+  outline: none;
+}
+.clan-dir__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.clan-dir__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.clan-dir__about {
+  margin: 0;
+  color: var(--ink-body);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.clan-dir__kv {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2) var(--s-3);
+  margin: 0;
+}
+.clan-dir__kv dt {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+.clan-dir__kv dd {
+  margin: 0;
+  color: var(--ink-body);
+  font-size: 13px;
+}
+.clan-dir__foot {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 12.5px;
+}
+
 /* ── Charts (Data section only) ───────────────────────────────
    Inline SVG, no libraries. Plot bars at --purple-bright 85%; today's
    partial bar at 35% so an unfinished day never reads as a drop.

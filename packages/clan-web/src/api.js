@@ -211,6 +211,8 @@ export const api = {
     return get(`${API}/roster${qs ? `?${qs}` : ""}`);
   },
   select: (clanTag) => post(`${API}/select`, { clan_tag: clanTag }),
+  /** The clan directory: every clan with a saved policy (#768). */
+  directory: () => get(`${API}/directory`),
   /** "I understand" on the notice after sign-in. */
   acknowledgeVerify: () => post(`${API}/verify-notice`, {}),
   // Where you play from, for every clan map you are on (one per person).
