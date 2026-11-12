@@ -158,7 +158,6 @@ on a phone it folds into one row above the page.
 | The bell | what is about you, not your friends: cheers on your items (counts, never who), new followers, your clan's Actions waiting on you as a leader, an old key still trying to connect, answers to your feedback, and what changed on your account ([the bell](/docs/your-account#the-bell)). A dot shows while something needs you or something came since you last opened it |
 | Search | the magnifier on the top bar: your players and clans as you type, a tag finds anyone on record, each player row naming the tag, clan and trophies and opening the [player page](/docs/player-page), **Follow this tag** asks before it follows, and a deck hash or war week opens its record |
 | Record pages | a player, clan, deck or war week as the record holds it, reached from search; the one write is nicknames |
-| [Service](/data/service) | recording health, budget gauge, missed battles, linked from Status and data, and signed in |
 | Help | the question mark on the top bar: what the page you are on is for, a link to read more, and **Send feedback**, which carries the page along. **Feedback**, in Settings, keeps what you filed and what the maintainer answered |
 
 **Settings**, in the account menu at the top, has its own rail:

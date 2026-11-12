@@ -21,6 +21,7 @@ import {
   configure,
 } from "@testing-library/react";
 import { App, SECTIONS } from "../src/App.jsx";
+import { ADMIN, ADMIN_PAGES } from "../src/lib/settings.js";
 
 // This file renders the whole App, routes and all, from a cold module
 // graph. Testing Library's 1 s default wait reads a slow first paint on a
@@ -76,6 +77,8 @@ for (const [section, def] of Object.entries(SECTIONS)) {
   for (const page of def.pages)
     if (!page.static) routes.push(`${base}/${page.slug}`);
 }
+// Admin's pages, under Settings since the Console folded (2026-11-12).
+for (const page of Object.keys(ADMIN_PAGES)) routes.push(`${ADMIN}/${page}`);
 
 /**
  * Detail pages, which the section walk above cannot discover.
@@ -88,7 +91,7 @@ for (const [section, def] of Object.entries(SECTIONS)) {
 routes.push(
   "/console/account/agents/00000000-0000-0000-0000-0000000000ag",
   "/console/account/feedback/1",
-  "/console/admin/accounts/00000000-0000-0000-0000-000000000001",
+  "/settings/admin/accounts/00000000-0000-0000-0000-000000000001",
   "/console/explore/player/2ABC",
   "/home/player/2ABC",
   "/home/follow/2ABC,9XYZ",
@@ -168,7 +171,7 @@ test(
       };
     });
 
-    window.history.pushState({}, "", "/console/admin/accounts");
+    window.history.pushState({}, "", "/settings/admin/accounts");
     render(<App />);
     // Named, not dashed: a table that says who did what must say who.
     await waitFor(() =>

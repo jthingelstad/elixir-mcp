@@ -38,7 +38,10 @@ import {
   useAdminUsage,
   useInvalidate,
 } from "../lib/queries.js";
-import { CONSOLE } from "../lib/console.js";
+import { ADMIN, SETTINGS } from "../lib/settings.js";
+import { Status } from "./Status.jsx";
+import { Fleet } from "./Collectors.jsx";
+import { Efficiency } from "./Efficiency.jsx";
 import { PULSE_STEPS, pulseRows } from "../lib/pulse.js";
 
 /**
@@ -125,6 +128,11 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
   if (page === "discord")
     return itemId ? <AdminDiscordDetail id={itemId} /> : <AdminDiscord />;
   if (page === "cards") return <AdminCards />;
+  // The service page, the fleet and Efficiency were every member's under
+  // /data/service and /console/status until 2026-11-12; staff pages now.
+  if (page === "service") return <Status navigate={navigate} />;
+  if (page === "fleet") return <Fleet navigate={navigate} />;
+  if (page === "efficiency") return <Efficiency navigate={navigate} />;
   return <AdminRequests />;
 }
 
@@ -212,14 +220,14 @@ function AdminEmails() {
     {
       text: m.subject ?? "—",
       title: m.subject ?? "",
-      href: `${CONSOLE}/admin/emails/${m.send_id}`,
+      href: `${ADMIN}/emails/${m.send_id}`,
     },
     m.archived ? "kept" : { text: "not kept", tone: "warn" },
     m.reports > 0 ? { text: String(m.reports), tone: "warn" } : "—",
     {
       text: m.send_id.slice(0, 8),
       title: m.send_id,
-      href: `${CONSOLE}/admin/emails/${m.send_id}`,
+      href: `${ADMIN}/emails/${m.send_id}`,
     },
   ]);
   return (
@@ -317,7 +325,7 @@ function AdminDiscord() {
     {
       text: d.clan_tag ?? d.account_id ?? d.key,
       title: d.key,
-      href: `${CONSOLE}/admin/discord/${encodeURIComponent(discordKey(d))}?feature=${d.feature}`,
+      href: `${ADMIN}/discord/${encodeURIComponent(discordKey(d))}?feature=${d.feature}`,
     },
     d.rows,
     d.delivered,
@@ -479,7 +487,7 @@ function AdminDiscordDetail({ id }) {
     return {
       text: `${last.rating === "up" ? "👍" : "👎"}${note ? ` ${note}` : ""}${list.length > 1 ? ` (${list.length} ratings)` : ""}`,
       title: list.map((r) => `${r.rating} ${r.message}`).join("\n"),
-      href: `${CONSOLE}/admin/feedback/${last.feedback_id}`,
+      href: `${ADMIN}/feedback/${last.feedback_id}`,
     };
   };
   const posts = (data?.posts ?? []).map((p) => [
@@ -528,7 +536,7 @@ function AdminDiscordDetail({ id }) {
     <>
       <LogTable
         admin
-        crumb={<Link to={`${CONSOLE}/admin/discord`}>‹ Discord</Link>}
+        crumb={<Link to={`${ADMIN}/discord`}>‹ Discord</Link>}
         title={<TagText text={who} />}
         note={
           feature
@@ -602,7 +610,7 @@ function AdminEmailRecord({ id }) {
   const rec = record.data ?? null;
   const back = (
     <div className="page__crumb">
-      <Link to={`${CONSOLE}/admin/emails`}>‹ Emails sent</Link>
+      <Link to={`${ADMIN}/emails`}>‹ Emails sent</Link>
     </div>
   );
   if (record.isError || (record.isSuccess && !rec?.send))
@@ -714,7 +722,7 @@ function AdminAccounts() {
       {
         text: a.email ?? principalLabel(a),
         title: a.account_id,
-        href: `${CONSOLE}/admin/accounts/${a.account_id}`,
+        href: `${ADMIN}/accounts/${a.account_id}`,
       },
       a.status,
       {
@@ -939,8 +947,7 @@ function AdminAccountDetail({ id }) {
     return (
       <div className="panel">
         <div className="panel__body">
-          No account {id}.{" "}
-          <Link to={`${CONSOLE}/admin/accounts`}>All accounts ›</Link>
+          No account {id}. <Link to={`${ADMIN}/accounts`}>All accounts ›</Link>
         </div>
       </div>
     );
@@ -995,7 +1002,7 @@ function AdminAccountDetail({ id }) {
         <Link
           className="mono"
           style={{ fontSize: "12px" }}
-          to={`${CONSOLE}/admin/accounts`}
+          to={`${ADMIN}/accounts`}
         >
           ‹ All accounts
         </Link>
@@ -1094,7 +1101,7 @@ function AdminAccountDetail({ id }) {
               <Fragment key={c.account_id}>
                 <dt>{c.kind ?? "principal"}</dt>
                 <dd>
-                  <Link to={`${CONSOLE}/admin/accounts/${c.account_id}`}>
+                  <Link to={`${ADMIN}/accounts/${c.account_id}`}>
                     {c.principal_name ??
                       c.public_id ??
                       c.account_id.slice(0, 8)}
@@ -1114,7 +1121,7 @@ function AdminAccountDetail({ id }) {
       {parent && (
         <p className="footnote" style={{ margin: "14px 0 0" }}>
           This {a.kind ?? "principal"} belongs to{" "}
-          <Link to={`${CONSOLE}/admin/accounts/${parent.account_id}`}>
+          <Link to={`${ADMIN}/accounts/${parent.account_id}`}>
             <TagText>{parent.email ?? principalLabel(parent)}</TagText>
           </Link>{" "}
           — it spends their entitlements and their daily budget.
@@ -1235,7 +1242,7 @@ function AdminFeedback() {
   const rows = feedback.map((f) => [
     {
       text: `fb_${f.feedback_id}`,
-      href: `${CONSOLE}/admin/feedback/${f.feedback_id}`,
+      href: `${ADMIN}/feedback/${f.feedback_id}`,
     },
     day(f.created_at),
     f.from_player ??
@@ -1388,7 +1395,7 @@ function AdminCollectors() {
     {
       text: g.card_name ?? g.name ?? "unnamed",
       title: g.name,
-      href: `${CONSOLE}/status/collectors/${encodeURIComponent(g.card_name ?? g.name)}`,
+      href: `${SETTINGS}/collectors/${encodeURIComponent(g.card_name ?? g.name)}`,
     },
     g.owner_account_id
       ? (g.owner_player_name ?? g.owner_email_hash?.slice(0, 10) ?? "claimed")
@@ -1504,8 +1511,8 @@ function AdminServiceTokens() {
           Headless keys issued by hand before 2026-09-27, each acting as the
           account it is bound to. No new ones are issued: a bot or service gets
           its own identity as an agent (Account &rarr; Agents) or an integration
-          (<a href={`${CONSOLE}/admin/integrations`}>Integrations</a>). Revoke
-          any still listed here once its caller has moved. Calls audit as{" "}
+          (<a href={`${ADMIN}/integrations`}>Integrations</a>). Revoke any still
+          listed here once its caller has moved. Calls audit as{" "}
           <code>svc:&lt;name&gt;</code>.
         </p>
       </div>
@@ -1664,8 +1671,7 @@ function AttachedEmail({ sendId }) {
       style={{ borderTop: "1px solid var(--line-soft)" }}
     >
       <div className="mono text-[11px] text-ink-faint mb-[6px]">
-        THE EMAIL ·{" "}
-        <Link to={`${CONSOLE}/admin/emails/${sendId}`}>{sendId}</Link>
+        THE EMAIL · <Link to={`${ADMIN}/emails/${sendId}`}>{sendId}</Link>
       </div>
       {mail.isError && (
         <p className="caveat m-0">That send is no longer in the ledger.</p>
@@ -1742,7 +1748,7 @@ function AdminFeedbackItem({ id, navigate }) {
       <div className="panel">
         <div className="panel__body">
           No feedback item #{id}.{" "}
-          <Link to={`${CONSOLE}/admin/feedback`}>All feedback ›</Link>
+          <Link to={`${ADMIN}/feedback`}>All feedback ›</Link>
         </div>
       </div>
     );
@@ -1799,7 +1805,7 @@ function AdminFeedbackItem({ id, navigate }) {
         <Link
           className="mono"
           style={{ fontSize: "12px" }}
-          to={`${CONSOLE}/admin/feedback`}
+          to={`${ADMIN}/feedback`}
         >
           ‹ All feedback
         </Link>
@@ -1848,7 +1854,7 @@ function AdminFeedbackItem({ id, navigate }) {
                   <Link
                     key={t.feedback_id}
                     className="mono"
-                    to={`${CONSOLE}/admin/feedback/${t.feedback_id}`}
+                    to={`${ADMIN}/feedback/${t.feedback_id}`}
                   >
                     {t.rel === "follows" ? "replies to " : "replied in "}fb_
                     {t.feedback_id}

@@ -13,8 +13,7 @@ import {
 } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
 import { LADDER, ladderPlayers } from "../ladder/ladder.js";
-import { CONSOLE } from "../lib/console.js";
-import { SETTINGS } from "../lib/settings.js";
+import { ADMIN, SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
 import { usePlayerPage } from "../lib/queries.js";
 import { useSignOut } from "../shell/sign-out.js";
@@ -180,7 +179,11 @@ function YouAccount({ me, primary }) {
           />
           <Row href={DROP} title="Play Drop" detail="The elixir-cost game." />
           {me?.is_admin === true ? (
-            <Row href={`${CONSOLE}/admin`} title="Admin" detail="Staff only." />
+            <Row
+              href={`${ADMIN}/requests`}
+              title="Admin"
+              detail="Staff only."
+            />
           ) : null}
         </Rows>
       </Panel>

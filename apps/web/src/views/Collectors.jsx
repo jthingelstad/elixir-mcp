@@ -6,11 +6,11 @@ import {
   SignatureBadge,
   signatureCounts,
 } from "../components/ReleaseSignature.jsx";
-import { CONSOLE } from "../lib/console.js";
-import { SETTINGS } from "../lib/settings.js";
+import { ADMIN, SETTINGS } from "../lib/settings.js";
 
 /**
- * Service ▸ Status ▸ Collectors — the whole fleet, and one machine.
+ * Admin ▸ Fleet — the whole fleet (every member's under /console/status until
+ * 2026-11-12; the public /data page credits each collector to its operator).
  *
  * Health and share are PUBLIC: a collector is named for its Clash Royale
  * card and credited to its operator, and anyone can see whether the
@@ -70,7 +70,7 @@ export function Fleet({ navigate }) {
   return (
     <>
       <div className="page__crumb">
-        <Link to="/data/service">‹ Status</Link>
+        <Link to={`${ADMIN}/service`}>‹ Service</Link>
       </div>
       <PageHead
         title="Collectors"
@@ -135,7 +135,7 @@ export function Fleet({ navigate }) {
                     fontWeight: 600,
                     color: mineIds.has(c.name) ? "var(--gold)" : undefined,
                   }}
-                  to={`${CONSOLE}/status/collectors/${encodeURIComponent(c.name)}`}
+                  to={`${SETTINGS}/collectors/${encodeURIComponent(c.name)}`}
                 >
                   {c.name}
                 </Link>

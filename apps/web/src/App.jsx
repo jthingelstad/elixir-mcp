@@ -44,6 +44,7 @@ import { useMyGateways } from "./lib/queries.js";
 import { CardArtSource } from "./components/CardArtSource.jsx";
 import { CONSOLE, appPath } from "./lib/console.js";
 import {
+  ADMIN,
   SETTINGS,
   SETTINGS_RAIL,
   isSettings,
@@ -59,7 +60,7 @@ import {
   ladderMoved,
   ladderTitle,
 } from "./ladder/ladder.js";
-import { HOME, SERVICE_STATUS, SIGN_IN, movedTo } from "./lib/moved.js";
+import { HOME, SIGN_IN, movedTo } from "./lib/moved.js";
 import { FOLLOW_ME, isPlayerPath } from "./lib/player.js";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { LadderInvite } from "./ladder/Invite.jsx";
@@ -106,33 +107,6 @@ export const STATIC_LINKS = {
  */
 export const SECTIONS = {
   explore: { label: "Explore", authed: true, pages: [] },
-  status: {
-    label: "Status",
-    authed: true,
-    pages: [
-      { slug: "collectors", label: "Collectors" },
-      { slug: "efficiency", label: "Efficiency" },
-    ],
-  },
-  admin: {
-    label: "Admin",
-    authed: true,
-    adminOnly: true,
-    pages: [
-      { slug: "requests", label: "Requests" },
-      { slug: "accounts", label: "Accounts" },
-      { slug: "pulse", label: "Beta pulse" },
-      { slug: "integrations", label: "Integrations" },
-      { slug: "connections", label: "Connections" },
-      { slug: "feedback", label: "Feedback" },
-      { slug: "emails", label: "Emails" },
-      { slug: "discord", label: "Discord" },
-      { slug: "usage", label: "Usage" },
-      { slug: "cards", label: "Cards" },
-      { slug: "collectors", label: "Collectors", ownerOnly: true },
-      { slug: "service-tokens", label: "Service tokens", ownerOnly: true },
-    ],
-  },
 };
 
 /**
@@ -172,40 +146,41 @@ export const EXPLORE_RAIL = [
   },
 ];
 
-/** Admin's rail: bare labels again, because nothing else is
- *  on screen beside them. Collectors and Service tokens are the owner's. */
+/** Admin's rail, under Settings since 2026-11-12: bare labels again, because
+ *  nothing else is on screen beside them. Collectors and Service tokens are
+ *  the owner's. */
 export const ADMIN_RAIL = [
   {
     group: "People",
     key: "requests",
     label: "Requests",
     icon: "inbox",
-    to: `${CONSOLE}/admin/requests`,
+    to: `${ADMIN}/requests`,
   },
   {
     key: "accounts",
     label: "Accounts",
     icon: "users",
-    to: `${CONSOLE}/admin/accounts`,
+    to: `${ADMIN}/accounts`,
   },
   // Counts by signup week only; Accounts is the page that names people.
   {
     key: "pulse",
     label: "Beta pulse",
     icon: "chart-line",
-    to: `${CONSOLE}/admin/pulse`,
+    to: `${ADMIN}/pulse`,
   },
   {
     key: "feedback",
     label: "Feedback",
     icon: "message-square",
-    to: `${CONSOLE}/admin/feedback`,
+    to: `${ADMIN}/feedback`,
   },
   {
     key: "emails",
     label: "Emails",
     icon: "mail",
-    to: `${CONSOLE}/admin/emails`,
+    to: `${ADMIN}/emails`,
   },
   // What Elixir posted to Discord, across clans and timelines, and how
   // it fared: the quality ledger (2026-10-11), never the channels.
@@ -213,26 +188,47 @@ export const ADMIN_RAIL = [
     key: "discord",
     label: "Discord",
     icon: "megaphone",
-    to: `${CONSOLE}/admin/discord`,
+    to: `${ADMIN}/discord`,
   },
   {
     group: "Access",
     key: "connections",
     label: "Connections",
     icon: "plug",
-    to: `${CONSOLE}/admin/connections`,
+    to: `${ADMIN}/connections`,
   },
   {
     key: "integrations",
     label: "Integrations",
     icon: "wrench",
-    to: `${CONSOLE}/admin/integrations`,
+    to: `${ADMIN}/integrations`,
   },
   {
     key: "usage",
     label: "Usage",
     icon: "chart-column",
-    to: `${CONSOLE}/admin/usage`,
+    to: `${ADMIN}/usage`,
+  },
+  // The service as it runs (Status, the collector fleet and Efficiency
+  // until 2026-11-12, when the Console folded): staff pages now.
+  {
+    group: "Service",
+    key: "service",
+    label: "Service",
+    icon: "activity",
+    to: `${ADMIN}/service`,
+  },
+  {
+    key: "fleet",
+    label: "Fleet",
+    icon: "server",
+    to: `${ADMIN}/fleet`,
+  },
+  {
+    key: "efficiency",
+    label: "Efficiency",
+    icon: "gauge",
+    to: `${ADMIN}/efficiency`,
   },
   // Read-only: the archetype vocabulary in force and the unattested
   // queue; the file is edited in cr-agent-api-docs.
@@ -241,13 +237,13 @@ export const ADMIN_RAIL = [
     key: "cards",
     label: "Cards",
     icon: "layout-grid",
-    to: `${CONSOLE}/admin/cards`,
+    to: `${ADMIN}/cards`,
   },
   {
     key: "collectors",
     label: "Collectors",
     icon: "server",
-    to: `${CONSOLE}/admin/collectors`,
+    to: `${ADMIN}/collectors`,
     meta: "owner",
     ownerOnly: true,
   },
@@ -255,7 +251,7 @@ export const ADMIN_RAIL = [
     key: "service-tokens",
     label: "Service tokens",
     icon: "key-round",
-    to: `${CONSOLE}/admin/service-tokens`,
+    to: `${ADMIN}/service-tokens`,
     meta: "owner",
     ownerOnly: true,
   },
@@ -276,8 +272,6 @@ export function railPosition(path) {
     if (page === "week" && rest) return { ...explore, key: "weeks" };
     return { ...explore, key: "lookup" };
   }
-  // Admin's rail's items are its pages.
-  if (section === "admin") return { rail: "admin", key: page ?? "requests" };
   return {};
 }
 
@@ -326,7 +320,7 @@ const isClan = (path) =>
 export function legalRoute(path) {
   if (isClan(path)) return path;
   if (isHome(path)) return path;
-  if (path === SIGN_IN || path === SERVICE_STATUS) return path;
+  if (path === SIGN_IN) return path;
   if (isSettings(path)) return settingsLegal(path);
   // A battle's public page is the app's too.
   if (BATTLE_PATH.test(path)) return path;
@@ -341,7 +335,6 @@ export function legalRoute(path) {
   // Explore's records are addressable, so it resolves its own paths.
   if (section === "explore") return path;
   if (sec.pages.some((p) => p.slug === page)) return path;
-  if (section === "status") return SERVICE_STATUS;
   return `${CONSOLE}/${section}/${sec.pages[0].slug}`;
 }
 
@@ -369,8 +362,12 @@ const prettify = (seg) =>
 
 export function titleFor(section, sec, path) {
   if (path === SIGN_IN) return `Sign in - ${SITE}`;
-  if (path === SERVICE_STATUS) return `Status - ${SITE}`;
-  if (isSettings(path)) return `${settingsTitle(path)} - Settings - ${SITE}`;
+  if (isSettings(path)) {
+    // Admin keeps its own name in the tab, as it had under /console.
+    if (settingsHere(path)?.page === "admin")
+      return `${settingsTitle(path)} - Admin - ${SITE}`;
+    return `${settingsTitle(path)} - Settings - ${SITE}`;
+  }
   if (isHome(path)) {
     const tab = path.split("/")[2];
     if (tab === "find") return `Find - ${SITE}`;
@@ -457,13 +454,19 @@ function Rail({
   dots = {},
   runsCollector,
 }) {
-  const admin = here.rail === "admin";
+  // Admin's rail is drawn for staff only; anyone else on an Admin address
+  // sees Settings' own rail beside the page that says it is staff only.
+  const admin = here.rail === "admin" && me?.is_admin === true;
   const explore = here.rail === "explore";
   const rail = admin
     ? ADMIN_RAIL.filter((r) => !r.ownerOnly || me?.is_owner)
     : explore
       ? EXPLORE_RAIL
-      : SETTINGS_RAIL.filter((r) => !r.runsOne || runsCollector);
+      : SETTINGS_RAIL.filter(
+          (r) =>
+            (!r.runsOne || runsCollector) &&
+            (!r.adminOnly || me?.is_admin === true),
+        );
   const items = rail.map((row) => ({
     key: row.key,
     label: row.label,
@@ -522,7 +525,6 @@ const signedInPath = (path) => {
       isClan(url.pathname) ||
       isHome(url.pathname) ||
       isSettings(url.pathname) ||
-      url.pathname === SERVICE_STATUS ||
       BATTLE_PATH.test(url.pathname) ||
       POST_PATH.test(url.pathname)
     );
@@ -672,9 +674,9 @@ function Unavailable({ onRetry, busy }) {
  * or partial one is REDIRECTED (lib/moved.js, the one map), so the address bar
  * changes with it and the query and fragment ride along.
  *
- * Sections are split by route: Admin, Explore, Status and the Account pages
- * each arrive as their own chunk, so the sign-in wall does not carry Admin
- * with it.
+ * Sections are split by route: Explore and Settings each arrive as their own
+ * chunk, and Admin is a chunk of its own inside Settings, so the sign-in wall
+ * does not carry Admin with it.
  */
 /** What the distribution routes to this app; the rest is the static site. */
 const APP_PATHS =
@@ -768,40 +770,24 @@ const settingsRoute = createRoute({
   ),
 });
 
+/** Admin (2026-11-12, under /console/admin before): a Settings section with
+ *  a route of its own, so its chunk is its own and a member's Settings never
+ *  carries it, and so a server render waits for it rather than suspending. */
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: `${ADMIN}/$`,
+  component: lazyRouteComponent(
+    () => import("./pages/AdminPage.jsx"),
+    "AdminRoutePage",
+  ),
+});
+
 const exploreRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: `${CONSOLE}/explore/$`,
   component: lazyRouteComponent(
     () => import("./pages/ExplorePage.jsx"),
     "ExplorePage",
-  ),
-});
-
-const statusRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: `${CONSOLE}/status/{-$page}/{-$itemId}`,
-  component: lazyRouteComponent(
-    () => import("./pages/StatusPage.jsx"),
-    "StatusPage",
-  ),
-});
-
-/** The service detail: signed in only, linked from the public /data. */
-const serviceRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: SERVICE_STATUS,
-  component: lazyRouteComponent(
-    () => import("./pages/StatusPage.jsx"),
-    "StatusPage",
-  ),
-});
-
-const adminRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: `${CONSOLE}/admin/{-$page}/{-$itemId}`,
-  component: lazyRouteComponent(
-    () => import("./pages/AdminPage.jsx"),
-    "AdminPage",
   ),
 });
 
@@ -882,10 +868,8 @@ export const routeTree = rootRoute.addChildren([
   followMeRoute,
   signInRoute,
   settingsRoute,
-  exploreRoute,
-  statusRoute,
-  serviceRoute,
   adminRoute,
+  exploreRoute,
   battleRoute,
   postRoute,
   ladderRoute,
@@ -922,15 +906,6 @@ export function useHere() {
       section: "settings",
       sec: SETTINGS_SECTION,
       here: { rail: "settings", ...settingsHere(pathname) },
-      search: search ?? {},
-    };
-  if (pathname === SERVICE_STATUS)
-    return {
-      path: pathname,
-      section: "status",
-      sec: SECTIONS.status,
-      activePage: "service",
-      here: {},
       search: search ?? {},
     };
   // Segments are read on the app path (the prefix off); `path` stays the

@@ -92,6 +92,12 @@ test("every rail item and sub-item routes somewhere", () => {
 test("a rail destination marks the item that offered it", () => {
   for (const [key, sub, to] of destinations) {
     const at = settingsHere(to) ?? railPosition(to);
+    // Settings' Admin row is a door: it opens Admin's own rail, which
+    // marks the Admin page it lands on.
+    if (key === "admin") {
+      expect(at.rail, `${to} opens Admin's rail`).toBe("admin");
+      continue;
+    }
     expect(at.key, `${to} marks ${at.key}, not ${key}`).toBe(key);
     if (sub) expect(at.sub, `${to} marks sub ${at.sub}`).toBe(sub);
   }
@@ -135,7 +141,7 @@ test("no two items at the same level share a label", () => {
   }
 });
 
-test("Settings' rail: eight places, and Collectors for who runs one", () => {
+test("Settings' rail: eight places, Collectors for who runs one, Admin for staff", () => {
   expect(SETTINGS_RAIL.map((r) => r.label)).toEqual([
     "Profile",
     "What members see",
@@ -146,9 +152,14 @@ test("Settings' rail: eight places, and Collectors for who runs one", () => {
     "Usage and limits",
     "Feedback",
     "Collectors",
+    "Admin",
   ]);
   expect(SETTINGS_RAIL.filter((r) => r.runsOne).map((r) => r.key)).toEqual([
     "collectors",
+  ]);
+  // Admin is drawn for staff only (the server gates every Admin read).
+  expect(SETTINGS_RAIL.filter((r) => r.adminOnly).map((r) => r.key)).toEqual([
+    "admin",
   ]);
 });
 
@@ -156,7 +167,7 @@ test("Explore is its own rail, and a page says which rail it wears", () => {
   expect(EXPLORE_RAIL[0].to).toBe("/console/explore");
   expect(railPosition("/console/explore/player/2ABC").rail).toBe("explore");
   expect(settingsHere("/settings/usage").key).toBe("usage");
-  expect(railPosition("/console/admin/emails").rail).toBe("admin");
+  expect(settingsHere("/settings/admin/emails").rail).toBe("admin");
 });
 
 test(
@@ -173,6 +184,41 @@ test(
     expect(rail.querySelector(".rail__toggle")).toBeNull();
     expect(within(rail).queryAllByRole("button")).toEqual([]);
     expect(within(rail).getByRole("link", { name: /Players/ })).toBeTruthy();
+  },
+);
+
+// The Console folded (2026-11-12): Admin is a Settings section drawn for
+// staff only. The server gates every Admin read; the client must not
+// offer the door to anyone else.
+test(
+  "Settings' rail offers Admin to staff, and to nobody else",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/settings/profile");
+    render(<App />);
+    const staff = await waitFor(() =>
+      screen.getByRole("navigation", { name: "Settings sections" }),
+    );
+    expect(
+      within(staff).getByRole("link", { name: /Admin/ }).getAttribute("href"),
+    ).toBe("/settings/admin/requests");
+    cleanup();
+    global.fetch = vi.fn(async (path) => {
+      const body = String(path) === "/api/me" ? { ...ME, is_admin: false } : {};
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    });
+    window.history.pushState({}, "", "/settings/profile");
+    render(<App />);
+    const member = await waitFor(() =>
+      screen.getByRole("navigation", { name: "Settings sections" }),
+    );
+    expect(within(member).getByRole("link", { name: /Profile/ })).toBeTruthy();
+    expect(within(member).queryByRole("link", { name: /Admin/ })).toBeNull();
   },
 );
 

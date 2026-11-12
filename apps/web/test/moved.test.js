@@ -26,9 +26,12 @@ const MAP = [
   ["/home/timeline", "/home"],
   ["/home/friends", "/home/find"],
   ["/console/signin", "/signin"],
-  ["/console/status", "/data/service"],
-  ["/console/status/service", "/data/service"],
-  ["/console/admin", "/console/admin/requests"],
+  ["/data/service", "/data"],
+  ["/console/status", "/data"],
+  ["/console/status/service", "/data"],
+  ["/console/status/collectors", "/data"],
+  ["/console/status/efficiency", "/settings/admin/efficiency"],
+  ["/console/admin", "/settings/admin/requests"],
   ["/console/explore/player", "/console/explore"],
   ["/console/explore/clan", "/console/explore"],
 ];
@@ -57,12 +60,17 @@ const MAIL_MOVED = [
   ["/ladder/decks", "/home/you/stats/decks"],
   ["/ladder/cards", "/home/you/stats/cards"],
   ["/ladder/days", "/home/you/stats/battles"],
+  // The Console folded (2026-11-12): the fleet is credited on the public
+  // status page, one collector is Settings', staff alerts open Admin there.
+  ["/console/status/collectors/Knight", "/settings/collectors/Knight"],
+  ["/console/admin/feedback", "/settings/admin/feedback"],
+  ["/console/admin/feedback/7", "/settings/admin/feedback/7"],
+  ["/console/admin/emails/s1", "/settings/admin/emails/s1"],
 ];
 const MAIL_STAYS = [
   "/console/explore/player/%232PQRJ8LV",
   "/console/explore/clan/%23Q8G0LVPY",
   "/console/explore/week/2026-W40",
-  "/console/status/collectors",
   "/settings/collectors",
   "/settings/emails/s1",
   "/settings/feedback/7",
@@ -144,20 +152,51 @@ describe("the map of moved addresses", () => {
     );
   });
 
-  test("the public fleet stays at Status; your own is Settings'", () => {
+  test("Settings' own pages stay put, Admin's among them", () => {
     for (const path of [
-      "/console/status/collectors",
       "/settings/collectors",
+      "/settings/collectors/Knight",
       "/settings/emails/s1",
       "/settings/feedback/7",
-      "/console/status/collectors/Knight",
-      "/console/status/efficiency",
+      "/settings/admin/requests",
+      "/settings/admin/service",
+      "/settings/admin/fleet",
+      "/settings/admin/efficiency",
     ])
       expect(movedTo(path), path).toBeNull();
   });
 
+  test("every Admin address moved under Settings, its record with it", () => {
+    for (const [from, to] of [
+      ["/console/admin/requests", "/settings/admin/requests"],
+      ["/console/admin/accounts/acct-1", "/settings/admin/accounts/acct-1"],
+      ["/console/admin/discord/k1", "/settings/admin/discord/k1"],
+      ["/console/admin/service-tokens", "/settings/admin/service-tokens"],
+    ]) {
+      expect(movedTo(from), from).toBe(to);
+      expect(legalRoute(to), to).toBe(to);
+    }
+    // A page Admin never had lands on its first page.
+    expect(legalRoute("/settings/admin/not-a-page")).toBe(
+      "/settings/admin/requests",
+    );
+    expect(legalRoute("/settings/admin")).toBe("/settings/admin/requests");
+  });
+
+  test("no old Console address is a dead link", () => {
+    for (const path of [
+      "/console/status/not-a-page",
+      "/console/not-a-place",
+      "/console/status/collectors/Knight/extra",
+    ]) {
+      const to = movedTo(path);
+      expect(to, path).not.toBeNull();
+      expect(legalRoute(to), path).not.toBeNull();
+    }
+  });
+
   test("an address that stays put is not in it", () => {
-    for (const path of ["/home", "/signin", "/data/service", ...MAIL_STAYS])
+    for (const path of ["/home", "/signin", ...MAIL_STAYS])
       expect(movedTo(path), path).toBeNull();
   });
 
@@ -198,12 +237,8 @@ describe("the map of moved addresses", () => {
     expect(legalRoute("/settings/not-a-page")).toBeNull();
   });
 
-  test("a status page that no longer exists goes to the service page", () => {
-    expect(legalRoute("/console/status/not-a-page")).toBe("/data/service");
-  });
-
   test("an address that was never a page is the app's missing page", () => {
-    for (const path of ["/console/not-a-place", "/home/nope"])
+    for (const path of ["/home/nope", "/settings/nope"])
       expect(legalRoute(path)).toBeNull();
   });
 });

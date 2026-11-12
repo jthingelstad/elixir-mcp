@@ -27,9 +27,8 @@ Why 30 minutes and two hours: a battle is about three minutes, and the
 API's battle log holds your last 30, so a sitting fills it in about 90
 minutes. Read inside a third of that and a session cannot roll past the
 recorder; read at least every two hours and a sitting that starts the
-moment after a read still fits. The signed-in
-[efficiency](/console/status/efficiency) page measures what is still lost,
-per day, against the game's own lifetime battle counter.
+moment after a read still fits. Elixir's staff measure what is still
+lost, per day, against the game's own lifetime battle counter.
 
 | Subject | Rule | Bounds |
 |---|---|---|
@@ -60,9 +59,8 @@ API answers 404 for is tried once a day.
 A sitting can still, rarely, roll past a
 read; the public status endpoint publishes how many of the last day's
 reads found that it had (`capture_audit_24h` in `/api/public/status`, with
-no sign-in; [Status and data](/data#right-now) is the public page), and the
-signed-in [service](/data/service) and
-[efficiency](/console/status/efficiency) pages turn that into battles lost per day.
+no sign-in; [Status and data](/data#right-now) is the public page), and
+Elixir's staff turn that into battles lost per day.
 
 ## Freshness, as the envelope reports it
 

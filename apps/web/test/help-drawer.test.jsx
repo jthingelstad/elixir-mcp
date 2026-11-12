@@ -17,9 +17,9 @@ test("every place has its own words and a read-more that exists", () => {
     "/home/you/stats/battles",
     "/clan",
     "/console/explore",
-    "/console/status",
-    "/console/admin/accounts",
-    "/data/service",
+    "/settings/admin/accounts",
+    "/settings/admin/service",
+    "/settings/admin/fleet",
     ...SETTINGS_RAIL.map((r) => r.to),
   ];
   for (const path of places) {

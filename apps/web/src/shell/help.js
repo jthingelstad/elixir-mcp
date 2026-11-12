@@ -3,7 +3,7 @@ import { HOME_HELP } from "../home/help.js";
 import { LADDER_HELP } from "../ladder/help.js";
 import { isLadder, ladderSlug } from "../ladder/ladder.js";
 import { SETTINGS_HELP } from "../views/account/help.js";
-import { ADMIN_HELP, EXPLORE_HELP, STATUS_HELP } from "../views/help.js";
+import { ADMIN_HELP, EXPLORE_HELP } from "../views/help.js";
 import { settingsHere } from "../lib/settings.js";
 
 /**
@@ -29,11 +29,9 @@ export function helpFor(path) {
   if (first === "clan") return area(CLAN_HELP, "clan");
   if (first === "settings") {
     const here = settingsHere(clean);
+    if (here?.page === "admin") return area(ADMIN_HELP);
     return area(SETTINGS_HELP[here?.page] ?? SETTINGS_HELP.profile);
   }
   if (first === "console" && second === "explore") return area(EXPLORE_HELP);
-  if (first === "console" && second === "admin") return area(ADMIN_HELP);
-  if (first === "console" && second === "status") return area(STATUS_HELP);
-  if (clean === "/data/service") return area(STATUS_HELP);
   return area(FALLBACK);
 }

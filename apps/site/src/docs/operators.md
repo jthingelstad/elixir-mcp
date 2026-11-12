@@ -148,8 +148,8 @@ publishes the same line, with how to verify a release by hand. If the
 two ever disagree, do not install, and tell the maintainer.
 
 **The signed badge.** Your collector tells this server, on every call, the SHA-256 of the binary it is running and the
-fingerprint of the release key it trusts. The fleet page on
-https://elixir.poapkings.com (`/console/status/collectors`) then marks each
+fingerprint of the release key it trusts. [Status and data](/data#collectors)
+then marks each
 collector **signed** when that binary is exactly a release this server
 named for its version, **dev build** for a local build, **unverified**
 when the collector does not report its hash yet (an older release), and
