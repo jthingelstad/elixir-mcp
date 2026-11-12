@@ -8110,14 +8110,42 @@ button.kit-row {
     padding-right: 0;
   }
 }
+/* Clan > Feed: what waits for you and the clan's timeline in the main
+   column, You here and This week in a side column beside them. On a phone
+   the main column opens up (display: contents) so the side cards sit
+   between what waits for you and the timeline, before the feed. */
 .clan-today {
   display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: 20px;
+  align-items: start;
 }
 .clan-today__waiting,
 .clan-today__cards {
   display: grid;
   gap: 12px;
+  min-width: 0;
+}
+.clan-today__now:empty {
+  display: none;
+}
+@media (max-width: 760px) {
+  .clan-today {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .clan-today__waiting {
+    display: contents;
+  }
+  .clan-today__now {
+    order: 1;
+  }
+  .clan-today__cards {
+    order: 2;
+  }
+  .clan-today__timeline {
+    order: 3;
+  }
 }
 .clan-row {
   display: flex;

@@ -5,7 +5,7 @@
  * the server's answer. Synthetic names only.
  */
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createQueryClient } from "@elixir-mcp/client";
 import { renderWithProviders } from "./helpers.jsx";
@@ -101,6 +101,52 @@ describe("Feed", () => {
     vi.spyOn(manageApi, "feed").mockResolvedValue(unread);
     renderWithProviders(<Feed clan={member} navigate={vi.fn()} />);
     expect(await screen.findByText(/timeline could not be read/)).toBeTruthy();
+  });
+
+  test("a busy week shows thirty lines, and More shows thirty more", async () => {
+    sideCardsUnread();
+    const items = Array.from({ length: 45 }, (_, i) => ({
+      id: `j${i}`,
+      kind: "clan_join",
+      at: "2026-11-11T09:00:00Z",
+      text: `Member ${i + 1} joined the clan`,
+    }));
+    vi.spyOn(manageApi, "feed").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { clan_tag: "#2PQRJ8LV", window_days: 7, more: 0, items },
+    });
+    renderWithProviders(<Feed clan={member} navigate={vi.fn()} />);
+    expect(await screen.findByText("Member 30 joined the clan")).toBeTruthy();
+    expect(screen.queryByText("Member 31 joined the clan")).toBeNull();
+    expect(screen.getByText("30 of 45 shown")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    expect(screen.getByText("Member 45 joined the clan")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "More" })).toBeNull();
+  });
+
+  test("the timeline is read only once the reads beside it have answered", async () => {
+    let answer;
+    const held = new Promise((resolve) => {
+      answer = resolve;
+    });
+    vi.spyOn(manageApi, "memberView").mockReturnValue(held);
+    for (const read of ["week", "actions", "manage"])
+      if (typeof manageApi[read] === "function")
+        vi.spyOn(manageApi, read).mockResolvedValue(unread);
+    const feed = vi.spyOn(manageApi, "feed").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { clan_tag: "#2PQRJ8LV", window_days: 7, more: 0, items: [] },
+    });
+    renderWithProviders(<Feed clan={member} navigate={vi.fn()} />);
+    expect(await screen.findByText(/Reading your numbers/)).toBeTruthy();
+    expect(feed).not.toHaveBeenCalled();
+    answer(unread);
+    expect(
+      await screen.findByText("Nothing in the last seven days"),
+    ).toBeTruthy();
+    expect(feed).toHaveBeenCalledTimes(1);
   });
 });
 

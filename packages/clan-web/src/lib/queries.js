@@ -187,8 +187,8 @@ export const useMyPlace = () => useGated(keys.place, () => api.myPlace());
 
 /** The Feed's timeline: the clan's items, its members' moments and
  *  highlights, newest first, as this reader reads them. */
-export const useFeed = (tag) =>
-  useGated(keys.feed(tag), () => manageApi.feed(tag));
+export const useFeed = (tag, enabled = true) =>
+  useGated(keys.feed(tag), () => manageApi.feed(tag), { enabled });
 
 /** Whether the server lets this person into Run: 403 is its refusal. */
 export const useRunGate = (tag, enabled = true) =>

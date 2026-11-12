@@ -42,6 +42,8 @@ async function currentMembers(db, clanTag) {
 }
 
 export async function readClanFeed(db, account, clanTag, now = Date.now()) {
+  const perf = {};
+  const started = Date.now();
   const built = await buildTimeline(
     db,
     [{ kind: "clan", tag: clanTag, scope: "comprehensive" }],
@@ -53,7 +55,17 @@ export async function readClanFeed(db, account, clanTag, now = Date.now()) {
       interactive: true,
       highlightTags: await currentMembers(db, clanTag),
       filter: (it) => it.section !== "account",
+      perf,
     },
+  );
+  // Where the Feed's time goes, each builder's name beside its ms, as Home's
+  // timeline logs it (#649): the read is the timeline's own, shared.
+  console.info(
+    JSON.stringify({
+      at: "clan_feed",
+      ms: Date.now() - started,
+      parts: perf,
+    }),
   );
   return {
     clan_tag: clanTag,
