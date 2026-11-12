@@ -3,12 +3,41 @@ import { SETTINGS } from "../lib/settings.js";
 
 /** What Home works out on its own, away from the drawing. */
 
-const HOME = "/home";
-export const HOME_TABS = [
-  { key: "today", label: "Today", href: HOME },
-  { key: "timeline", label: "Timeline", href: `${HOME}/timeline` },
-  { key: "friends", label: "Friends", href: `${HOME}/friends` },
+/** Home's chips over its one feed (slice 7, #765). Everyone is every item:
+ *  the people you follow, your clan and you. The rest are the groups the
+ *  server puts each item in (services/web-api/src/feed.mjs). */
+export const FEED_CHIPS = [
+  { key: "everyone", label: "Everyone" },
+  { key: "friends", label: "Friends" },
+  { key: "clan", label: "Clan" },
+  { key: "you", label: "You" },
 ];
+
+/** The items a chip shows, in the feed's own order. */
+export const feedShown = (items, show) =>
+  show === "everyone" || !FEED_CHIPS.some((c) => c.key === show)
+    ? items
+    : items.filter((it) => (it.groups ?? []).includes(show));
+
+/** What a sparkline says to somebody who cannot see it: the wins and the
+ *  losses, then each battle in order with its crown margin, the same facts
+ *  the bars draw. */
+export function sparkWords(spark = []) {
+  const won = spark.filter((b) => b.r === "w").length;
+  const lost = spark.filter((b) => b.r === "l").length;
+  const drawn = spark.length - won - lost;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const one = (b) =>
+    b.r === "d"
+      ? "draw"
+      : `${b.r === "w" ? "won" : "lost"}${b.m == null ? "" : ` by ${plural(b.m, "crown", "crowns")}`}`;
+  return [
+    `${plural(spark.length, "battle", "battles")}: `,
+    `${plural(won, "win", "wins")}, ${plural(lost, "loss", "losses")}`,
+    drawn > 0 ? `, ${plural(drawn, "draw", "draws")}` : "",
+    `. In order: ${spark.map(one).join(", ")}`,
+  ].join("");
+}
 
 export const LEADS = new Set(["leader", "coLeader"]);
 
@@ -182,46 +211,6 @@ function ordinal(n) {
   return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 }
 
-/** A family's line on a friend's card: "Trophy Road 24W-9L · War 5W-3L". */
-export function familyLine(families = []) {
-  return families
-    .map((f) => `${modeWord(f.mode)} ${f.wins}W-${f.losses}L`)
-    .join(" · ");
-}
-
-/** How a person sees the friends read: two lists and their quiet people,
- *  split the way the page says them. Under thirty days a quiet watch is
- *  "No battle recorded this week"; from thirty it is "Quiet for 30 days or
- *  more". Friends are always named, however long. */
-export function friendsView(data) {
-  const friends = data?.friends ?? [];
-  const watching = data?.watching ?? [];
-  const quiet = data?.quiet ?? [];
-  const named = (q) => q.name ?? q.tag;
-  const noBattle = (list) => list.filter((p) => p.battles === 0);
-  const played = (list) => list.filter((p) => p.battles > 0);
-  const quietFriends = quiet.filter((q) => q.relationship === "friend");
-  const quietWatching = quiet.filter((q) => q.relationship === "watching");
-  const long = quietWatching.filter((q) => (q.days ?? 0) >= 30);
-  const short = quietWatching.filter((q) => (q.days ?? 0) < 30);
-  return {
-    friends: played(friends),
-    friendsTotal: friends.length + quietFriends.length,
-    friendsQuiet: [...noBattle(friends).map(named), ...quietFriends.map(named)],
-    watching: played(watching),
-    watchingQuiet: [...noBattle(watching).map(named), ...short.map(named)],
-    watchingLong: long.map(named),
-    nobody:
-      played(friends).length + played(watching).length === 0 &&
-      friends.length + watching.length + quiet.length > 0,
-    empty: friends.length + watching.length + quiet.length === 0,
-    everyone: [...friends, ...watching, ...quiet].map(named),
-  };
-}
-
-/** A list of names as the page says them. */
-export const names = (list) => list.join(", ");
-
 /** The timeline's rows under their day, with the "new" line placed under the
  *  last row learned since this visit's place. `openedMs` null: a first visit,
  *  which marks nothing new. */
@@ -268,6 +257,3 @@ export function gameLine(b) {
   const mode = b.mode_group ? `, ${modeWord(b.mode_group)}` : "";
   return `${outcome}${score}${against}${mode}`;
 }
-
-export const whoOf = (it) =>
-  it.subject_name ?? it.subject_tag ?? "Your account";

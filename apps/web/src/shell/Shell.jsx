@@ -7,19 +7,20 @@ import {
   FAMILY_PLACES,
   FAMILY_PRODUCTS,
   FAMILY_SIGNED_OUT,
+  FAMILY_TABS,
   Icon,
   Link,
   initialsOf,
-  onOrigin,
-  writeErrorText,
 } from "@elixir-mcp/ui";
-import { api } from "../api.js";
 import { CONSOLE } from "../lib/console.js";
 import { SETTINGS } from "../lib/settings.js";
 import { ladderHref } from "../ladder/ladder.js";
-import { forgetSession, rememberSession } from "../lib/session-hint.js";
+import { rememberSession } from "../lib/session-hint.js";
+import { BellButton, BellSheet, useBell } from "./Bell.jsx";
 import { HelpDrawer } from "./HelpDrawer.jsx";
 import { SearchSheet } from "./SearchSheet.jsx";
+import { SheetContext } from "./sheet.js";
+import { useSignOut } from "./sign-out.js";
 
 /**
  * The shell on every page of the app: the top bar, the avatar's menu, the
@@ -29,11 +30,8 @@ import { SearchSheet } from "./SearchSheet.jsx";
  * Help is a small drawer of its own (assets/site-help.js) and its Search comes
  * here as `/home?search`.
  */
-const product = (key) => FAMILY_PRODUCTS.find((p) => p.key === key);
 const PLACES = {
-  home: onOrigin(product("home").href),
-  ladder: onOrigin(product("ladder").href),
-  clan: onOrigin(product("clan").href),
+  ...Object.fromEntries(FAMILY_TABS.map((t) => [t.key, t.path])),
   signIn: FAMILY_PLACES.signIn.path,
   createAccount: FAMILY_PLACES.createAccount.path,
   verify: `${SETTINGS}/players/verify`,
@@ -41,20 +39,14 @@ const PLACES = {
   admin: `${CONSOLE}/admin`,
 };
 
-/** The phone's tabs and the bar's places, with the manifest's glyph. */
-const TABS = [
-  { key: "home", label: "Home", icon: product("home").icon },
-  { key: "ladder", label: "Ladder", icon: product("ladder").icon },
-  { key: "clan", label: "Clan", icon: product("clan").icon },
-  { key: "search", label: "Search", icon: FAMILY_PLACES.search.icon },
-];
+/** The places a signed-in reader moves between (slice 7, #765): Home, Find,
+ *  Clan and You, from the manifest. The phone draws all four and the bell;
+ *  the top bar all but You, which is its avatar. */
+const TABS = FAMILY_TABS;
 
 const DROP =
   FAMILY_PRODUCTS.find((p) => p.key === "drop")?.href ??
   "https://drop.poapkings.com/";
-
-const SIGN_OUT_NOTE =
-  "Ends this browser's Elixir session. Drop manages its own sign-in.";
 
 /** The primary player's name, otherwise "Your account". */
 function barName(me) {
@@ -83,6 +75,12 @@ export function barAccount(me, signOut) {
     players,
     playersFoot: add,
     links: [
+      {
+        key: "you",
+        icon: "user-round",
+        label: "You",
+        href: PLACES.you,
+      },
       // The player group, and the line under it, only draw with a player.
       ...(players.length === 0
         ? [{ key: "add", icon: "user-round", ...add }]
@@ -131,27 +129,6 @@ function Brand() {
       <span>Elixir</span>
     </Link>
   );
-}
-
-/** Sign out, as the bar has always done it: a failure says so in the menu,
- *  and the browser stays where it is. */
-function useSignOut() {
-  const [failed, setFailed] = useState(null);
-  return {
-    label: "Sign out",
-    note: SIGN_OUT_NOTE,
-    error: failed,
-    onClick: async () => {
-      setFailed(null);
-      const r = await api.signOut();
-      if (!r.ok)
-        return setFailed(
-          `Not signed out. ${writeErrorText({ status: r.status, transport: r.error, data: r.data })}`,
-        );
-      forgetSession();
-      window.location.assign("/");
-    },
-  };
 }
 
 function Avatar({ me }) {
@@ -205,7 +182,7 @@ function Avatar({ me }) {
 
 /** The top bar. `me` is the session, null while it has not answered and for
  *  an address nobody has signed in to see. */
-function TopBar({ me, area, open }) {
+function TopBar({ me, area, open, bell }) {
   const signedIn = me?.authenticated === true;
   // Not answered yet, or no answer: the bar claims neither state.
   if (me === null || me === undefined)
@@ -243,9 +220,14 @@ function TopBar({ me, area, open }) {
       <div className="kit-top__row">
         <Brand />
         <nav className="kit-top__nav" aria-label="Main">
-          {TABS.filter((t) => t.key !== "search").map((t) => (
-            <Link key={t.key} to={PLACES[t.key]} {...here(t.key, area)}>
-              <Icon name={t.icon} size={18} />
+          {TABS.filter((t) => t.bar !== false).map((t) => (
+            <Link
+              key={t.key}
+              to={PLACES[t.key]}
+              aria-label={tabName(t, me)}
+              {...here(t.key, area)}
+            >
+              <TabIcon tab={t} me={me} size={18} />
               {t.label}
             </Link>
           ))}
@@ -269,6 +251,7 @@ function TopBar({ me, area, open }) {
         >
           <Icon name={FAMILY_PLACES.help.icon} size={18} />
         </button>
+        <BellButton bell={bell} onOpen={() => open("bell")} />
         <a
           href={DROP}
           target="_blank"
@@ -285,29 +268,44 @@ function TopBar({ me, area, open }) {
   );
 }
 
+/** Home's mark (#765): the old Timeline tab's, moved to Home. It is lit
+ *  while the recorder has learned something since Home's own place, which
+ *  `me` already carries, so it costs no read [engineering, 2026-11-12]. */
+const homeNews = (tab, me) =>
+  tab.key === "home" && (me?.signals?.timeline_pending ?? 0) > 0;
+
+function TabIcon({ tab, me, size }) {
+  return (
+    <span className="kit-bell__mark">
+      <Icon name={tab.icon} size={size} />
+      {homeNews(tab, me) ? (
+        <span className="kit-bell__dot" aria-hidden="true" />
+      ) : null}
+    </span>
+  );
+}
+
+/** The dot in words, as the tab's name: an sr-only span would be read as a
+ *  block of its own ("Home , new items"). Undefined keeps the label. */
+const tabName = (tab, me) =>
+  homeNews(tab, me) ? `${tab.label}, new items` : undefined;
+
 /** The phone's tabs, under the page. Signed in only. */
-function BottomTabs({ area, open }) {
+function BottomTabs({ me, area, open, bell }) {
   return (
     <nav className="kit-bottom" aria-label="Main, phone">
-      {TABS.map((t) =>
-        t.key === "search" ? (
-          <button
-            key={t.key}
-            type="button"
-            aria-haspopup="dialog"
-            {...here(t.key, area)}
-            onClick={() => open("search")}
-          >
-            <Icon name={t.icon} size={22} />
-            <span>{t.label}</span>
-          </button>
-        ) : (
-          <Link key={t.key} to={PLACES[t.key]} {...here(t.key, area)}>
-            <Icon name={t.icon} size={22} />
-            <span>{t.label}</span>
-          </Link>
-        ),
-      )}
+      {TABS.map((t) => (
+        <Link
+          key={t.key}
+          to={PLACES[t.key]}
+          aria-label={tabName(t, me)}
+          {...here(t.key, area)}
+        >
+          <TabIcon tab={t} me={me} size={22} />
+          <span>{t.label}</span>
+        </Link>
+      ))}
+      <BellButton bell={bell} onOpen={() => open("bell")} phone />
     </nav>
   );
 }
@@ -344,27 +342,36 @@ export function ShellFrame({ me, unreachable = false, area, children }) {
   // for search until someone opens it.
   const [sheet, setSheet] = useState(null);
   const close = () => setSheet(null);
-  // The static half's Search lands here as ?search, since a static page has no
-  // sheet of its own. [engineering, 2026-11-06]
+  // The static half's Search and bell land here as ?search and ?bell, since a
+  // static page has no sheet of its own. [engineering, 2026-11-06]
   useEffect(() => {
     if (!signedIn) return;
     const url = new URL(window.location.href);
-    if (!url.searchParams.has("search")) return;
-    url.searchParams.delete("search");
+    const asked = ["search", "bell"].find((k) => url.searchParams.has(k));
+    if (!asked) return;
+    url.searchParams.delete(asked);
     window.history.replaceState(null, "", url);
-    setSheet("search");
+    setSheet(asked);
   }, [signedIn]);
+  const bell = useBell(me, signedIn);
   return (
-    <div className={`kit-shell${signedIn ? " kit-shell--in" : ""}`}>
-      <TopBar me={me} area={area} open={setSheet} />
-      {children}
-      <SiteFoot />
-      {signedIn ? <BottomTabs area={area} open={setSheet} /> : null}
-      {signedIn && sheet === "search" ? (
-        <SearchSheet me={me} onClose={close} />
-      ) : null}
-      {signedIn && sheet === "help" ? <HelpDrawer onClose={close} /> : null}
-    </div>
+    <SheetContext.Provider value={signedIn ? setSheet : () => {}}>
+      <div className={`kit-shell${signedIn ? " kit-shell--in" : ""}`}>
+        <TopBar me={me} area={area} open={setSheet} bell={bell} />
+        {children}
+        <SiteFoot />
+        {signedIn ? (
+          <BottomTabs me={me} area={area} open={setSheet} bell={bell} />
+        ) : null}
+        {signedIn && sheet === "search" ? (
+          <SearchSheet me={me} onClose={close} />
+        ) : null}
+        {signedIn && sheet === "help" ? <HelpDrawer onClose={close} /> : null}
+        {signedIn && sheet === "bell" ? (
+          <BellSheet me={me} onClose={close} />
+        ) : null}
+      </div>
+    </SheetContext.Provider>
   );
 }
 

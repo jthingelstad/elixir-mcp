@@ -482,6 +482,14 @@ const sittingStory = (playerTag, anchored, fallbackStart) => ({
 /** Server-only provenance. Evidence requests resolve an authorized item first;
  * a caller cannot supply a player, bounds or a battle as authority. */
 const EVIDENCE = Symbol("evidence source");
+/** A sitting's battles in order, for Home's sparkline (slice 7, #765): each
+ *  battle's outcome and its crown margin (crowns minus the other side's;
+ *  null when the record lacks either). Web-only and never on the wire: JSON
+ *  drops a symbol, so MCP's battle_session shape does not change. */
+const SPARK = Symbol("session spark");
+/** The battles of a battle_session or session_standout item, in order, or
+ *  null for any other item. */
+export const sessionSpark = (item) => item?.[SPARK] ?? null;
 const evidenceVersion = (...parts) =>
   `ev_${createHash("sha256").update(JSON.stringify(parts)).digest("hex").slice(0, 24)}`;
 const CROSSINGS = new Set([
@@ -799,6 +807,7 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
         newly: [],
         decks: new Map(),
         events: new Map(),
+        spark: [],
         // When the record LEARNED this session (Gym #162): the latest
         // commit of a battle this window learned, the instant that
         // selects the session into a window.
@@ -812,6 +821,13 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
       if (cur.learnedMs === null || c > cur.learnedMs) cur.learnedMs = c;
     }
     cur.battles += 1;
+    cur.spark.push({
+      outcome: b.outcome ?? null,
+      margin:
+        typeof b.crowns === "number" && typeof b.crowns_against === "number"
+          ? b.crowns - b.crowns_against
+          : null,
+    });
     if (b.outcome === "win") {
       cur.won += 1;
       cur.run += 1;
@@ -887,6 +903,7 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     newly: s.newly,
     deckCounts: s.decks,
     eventCounts: s.events,
+    spark: s.spark,
     learned_at: s.learnedMs === null ? null : iso(s.learnedMs),
   }));
 }
@@ -963,6 +980,7 @@ function sessionFacts({
   learned_at: _l,
   deckCounts: _d,
   eventCounts: _e,
+  spark: _s,
   ...rest
 }) {
   return rest;
@@ -1059,6 +1077,8 @@ async function playerBattles(db, tag, fromMs, toMs, basis = "observed") {
         and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`;
   const { rows: wide } = await db.query(
     `select b.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.crowns,
+            (select max(o.crowns) from battle_participant o
+              where o.battle_id = bp.battle_id and o.side <> bp.side) as crowns_against,
             bp.trophy_change, bp.clan_tag, bp.deck_hash
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
@@ -1535,6 +1555,7 @@ export async function buildPlayerEntry(
       kind: "battle_session",
       section: "battles",
       facts: { ...self, ...sessionFacts(s) },
+      [SPARK]: s.spark,
       [STORY]: sittingStory(tag, anchored[i], s.started_at),
       ...sessionEvidence(tag, anchored[i], s.ended_at, s.open),
     });
@@ -1668,6 +1689,9 @@ export function clanMemberBattlesQuery({
   const occurred = basis === "occurred";
   return {
     text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.trophy_change, bp.deck_hash,
+                  bp.crowns,
+                  (select max(o.crowns) from battle_participant o
+                    where o.battle_id = bp.battle_id and o.side <> bp.side) as crowns_against,
                   (${
                     occurred
                       ? `bp.battle_time >= ${ts(fromMs + 1)}`
@@ -2642,6 +2666,7 @@ export async function buildClanEntry(
         name: memberName.get(memberTag) ?? null,
         ...sessionFacts(sess),
       },
+      [SPARK]: sess.spark,
       [STORY]: sittingStory(memberTag, memberAnchored[i], sess.started_at),
       ...sessionEvidence(
         memberTag,
@@ -2673,6 +2698,7 @@ export async function buildClanEntry(
         crossings: sess.crossings,
         ...standoutDetails[i],
       },
+      [SPARK]: sess.spark,
       [STORY]: sittingStory(
         sess.player_tag,
         standoutAnchored[i],

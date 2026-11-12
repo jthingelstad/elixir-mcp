@@ -140,15 +140,21 @@ refused rather than quietly answering about the wrong subject.
 
 ## Where things are
 
-The top bar holds **Home**, **Ladder** and **Clan**, with the same three as
-tabs at the foot of a phone. **Settings**, in the account menu, holds what we
+The top bar holds **Home**, **Find** and **Clan**, with search, Help and the
+bell beside them. A phone has **Home**, **Find**, **Clan**, **You** and the
+bell as tabs at its foot; on a wide screen the account menu is You. Ladder
+is reached from **You** and from each player's page. **Settings**, in the
+account menu, holds what we
 record for you and who can call on your behalf, and each agent you own has a
 page of its own there (below). On a wide screen a rail stays in view as a page scrolls;
 on a phone it folds into one row above the page.
 
 | Page | What it does |
 |---|---|
-| Home | what needs you, your week, your clan and the latest, with Timeline and Friends as its tabs; a new account gets its steps until the first read lands. Timeline shows what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`. Viewing it marks what is new since your last visit; it never changes what your connections have read ([its own place](#home-keeps-its-own-place-in-the-timeline)) |
+| Home | one feed of the last seven days, newest first, beside your week and your clan: what happened to the players and clans you follow, your clan and you, the same items your connections read with `elixir_timeline` ([Home's feed](/docs/timeline#homes-feed)). A new account gets its steps until the first read lands. Opening Home marks what is new since your last visit; it never changes what your connections have read ([its own place](#home-keeps-its-own-place-in-the-timeline)) |
+| Find | search, **Follow a friend** by tag, the clan directory and your own follow link |
+| You | your players' pages, their stats in Ladder, Settings, Play Drop and signing out |
+| The bell | what needs you: your clan's Actions waiting on you as a leader, and an old key still trying to connect. A dot shows while anything does |
 | Search | the magnifier on the top bar: your players and clans as you type, a tag finds anyone on record, each player row naming the tag, clan and trophies and opening the [player page](/docs/player-page), **Follow this tag** asks before it follows, and a deck hash or war week opens its record |
 | Record pages | a player, clan, deck or war week as the record holds it, reached from search; the one write is nicknames |
 | [Service](/data/service) | recording health, budget gauge, missed battles, linked from Status and data, and signed in |
@@ -184,10 +190,10 @@ is filed as you).
 
 ### Home keeps its own place in the timeline
 
-Home › Timeline has a place of its own in the
+Home's feed has a place of its own in the
 [timeline](/docs/timeline), apart from every read pointer. Showing the
-page moves it to the end of the window the page showed; it never moves
-back. The count on Home's Timeline tab shows while the recorder has admitted
+feed moves it to the end of the window the feed showed; it never moves
+back. A dot on the Home tab shows while the recorder has admitted
 something for one of your subjects since that place. The page marks each
 item the record learned since the place it opened from (by `observed_at`)
 **New**, and draws a **New since your last visit** rule under the last of

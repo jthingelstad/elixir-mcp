@@ -1,27 +1,26 @@
-/** Help for Home's three tabs. */
+/** Help for Home and the pages beside it (slice 7, #765). */
 export const HOME_HELP = {
   today: {
-    title: "Today",
-    docs: "home:today",
+    title: "Home",
+    docs: "home",
     lines: [
-      "Today is your week so far, from your own battle log. Anything that needs you sits at the top. If nothing does, there's no box.",
-      "A week runs from Monday's reset, 4:00 am your time, to the next.",
+      "Home is one feed: the last seven days of everyone you follow, your clan and you, newest first. The chips choose whose: Everyone, Friends, Clan or You.",
+      "A session's bars are its battles in order, up for a win and down for a loss, as tall as the crown margin. New means learned since you last opened Home.",
     ],
   },
-  timeline: {
-    title: "Timeline",
-    docs: "timeline",
+  find: {
+    title: "Find",
+    docs: "home:find",
     lines: [
-      "The Timeline is the last seven days of what happened to you, your clan and the people you follow, newest first.",
-      "New means learned since you last opened it. To share yours with Discord, go to Settings, Connections & agents.",
+      "Find is where you look for people: search, a friend's tag, the clan directory and your own follow link.",
+      "Anyone with a player tag can be followed. They aren't told.",
     ],
   },
-  friends: {
-    title: "Friends",
-    docs: "home:friends",
+  you: {
+    title: "You",
+    docs: "home",
     lines: [
-      "Friends is the week of the people you follow, the same week as Wednesday's mail. They aren't told you follow them.",
-      "A friend's deck count is battles with exactly those eight cards.",
+      "You holds your own players' pages, their stats in Ladder, Settings and signing out.",
     ],
   },
 };

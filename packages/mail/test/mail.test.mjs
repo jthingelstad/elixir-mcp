@@ -479,7 +479,8 @@ test("the Arena week counts each player's card unlocks and badge levels, and lin
   const text = htmlToText(renderMail("arena_week", facts, links).html);
   assert.match(text, /King Thing[^\n]*: 1 card unlocked, 2 badge levels/);
   assert.match(text, /Spry Kestrel[^\n]*: 3 cards unlocked, 1 badge level\b/);
-  assert.match(text, /\/home\/timeline\?utm_source=email/);
+  // Home is the feed since slice 7 (#765).
+  assert.match(text, /\/home\?utm_source=email/);
   delete facts.progress;
   assert.doesNotMatch(
     htmlToText(renderMail("arena_week", facts, links).html),

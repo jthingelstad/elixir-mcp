@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { FIELDS, GROUPS, TABS, defaults } from "@elixir-mcp/clan-engine";
 import { clanTab, ME, mockApi, signedIn } from "./fixtures.ts";
+import { HOME_READS } from "../home-fixture.ts";
 
 const base = "/clan/2PQRJ8LV";
 const apiBase = "/api/clan/clans/2PQRJ8LV";
@@ -116,6 +117,8 @@ function roleRoutes(role: "member" | "elder", small = false) {
     ],
   };
   return signedIn({
+    // Home draws its feed for a player on record (#765).
+    ...HOME_READS,
     "GET /api/clan/me": [200, me],
     "GET /api/me/timeline": [
       200,
@@ -386,13 +389,13 @@ for (const size of ["wide", "@narrow"])
         path: `/tmp/elixir-${role}-map-${size.replace("@", "")}.png`,
         fullPage: true,
       });
-      await page.goto("/home/timeline");
+      await page.goto("/home");
       await expect(
-        page.getByRole("heading", { name: "Timeline", exact: true }),
+        page.getByRole("heading", { level: 1, name: "Home", exact: true }),
       ).toBeVisible();
       await expect(
         page
-          .locator(".kit-tl .kit-row__title")
+          .locator(".kit-feed__text")
           .getByText("Ada played recorded games.", { exact: true }),
       ).toBeVisible();
       await expect(

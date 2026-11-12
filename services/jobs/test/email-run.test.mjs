@@ -505,7 +505,7 @@ test("an unlock-only week sends no milestone mail and Tuesday's Arena week count
   const tuesday = await send("arena_week", "2026-10-13T14:00:00Z");
   assert.equal(tuesday.r.sent, 1, JSON.stringify(tuesday.r));
   assert.match(tuesday.out[0].html, /3 cards unlocked, 2 badge levels/);
-  assert.match(tuesday.out[0].html, /\/home\/timeline\?/);
+  assert.match(tuesday.out[0].html, /\/home\?utm_source=/);
 });
 
 test("a legendary badge mails when it happens and is not counted on Tuesday; a badge level only counts (Jamie, 2026-10-08)", async () => {

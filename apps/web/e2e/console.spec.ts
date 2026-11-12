@@ -7,6 +7,7 @@ import {
   signedIn,
   railStaysInView,
 } from "./fixtures.ts";
+import { HOME_READS } from "./home-fixture.ts";
 
 /** Nothing serious or critical, on every page a journey lands on. */
 async function accessible(page: Page, name: string) {
@@ -60,8 +61,10 @@ test.describe("signed out", () => {
       ["/console/status/service", /\/data\/service$/],
       ["/console/account", /\/home$/],
       ["/console/account/overview", /\/home$/],
-      ["/console/account/timeline", /\/home\/timeline$/],
-      ["/console/account/activity", /\/home\/timeline$/],
+      ["/console/account/timeline", /\/home$/],
+      ["/console/account/activity", /\/home$/],
+      ["/home/timeline", /\/home$/],
+      ["/home/friends", /\/home\/find$/],
       ["/console/signin", /\/signin$/],
       ["/console/signin?signup", /\/signin\?signup/],
       ["/console/explore/player", /\/console\/explore$/],
@@ -226,9 +229,11 @@ test.describe("signed in", () => {
       "Status",
     );
     await rendered(page);
-    await page.goto("/home/timeline");
+    // Home's feed (#765), for an account whose player is on record.
+    await mockApi(page, signedIn(HOME_READS));
+    await page.goto("/home");
     const session = page
-      .locator(".kit-tl")
+      .locator(".kit-feed__item")
       .filter({ hasText: "Played a battle session." });
     await expect(session).toBeVisible();
     // Rows say nothing of what connections have read (2026-10-20); a first
@@ -332,7 +337,7 @@ test.describe("signed in", () => {
     await accessible(page, "agent page");
   });
 
-  test("opening the Timeline clears its count and rules off what is new since the last visit; an empty week says so", async ({
+  test("opening Home's feed clears its count and rules off what is new since the last visit; an empty week says so", async ({
     page,
   }) => {
     // Jamie, 2026-10-20: "timeline should be independent of what agents
@@ -363,7 +368,7 @@ test.describe("signed in", () => {
         writes.push(`${r.method()} ${new URL(r.url()).pathname}`);
     });
     await mockApi(page, {
-      ...signedIn(),
+      ...signedIn(HOME_READS),
       // The server's count: news since the Console's own place.
       "GET /api/me": () => [
         200,
@@ -387,15 +392,13 @@ test.describe("signed in", () => {
         return [200, { seen_to: seenTo }];
       },
     });
-    await page.goto("/home/timeline");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "Timeline",
-    );
+    await page.goto("/home");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Home");
     // The page marks the window it showed, once, and the dot follows.
     await expect.poll(() => marks).toEqual([{ to: TO }]);
     // The rule sits under the last new row, drawn from the place as the
     // page opened, so it holds after the write moved it.
-    const list = page.locator(".kit-tl, .kit-newmark");
+    const list = page.locator(".kit-feed__text, .kit-newmark");
     await expect(list).toHaveText([
       /The latest sitting\./,
       /A sitting since\./,
@@ -407,21 +410,7 @@ test.describe("signed in", () => {
       "Unread by connections",
     );
     await rendered(page);
-    await accessible(page, "timeline, new since your last visit");
-    // The State filter narrows to the new rows, with their rule.
-    await page
-      .getByRole("group", { name: "State" })
-      .getByRole("button", { name: /^New/ })
-      .click();
-    await expect(list).toHaveText([
-      /The latest sitting\./,
-      /A sitting since\./,
-      /New since your last visit/,
-    ]);
-    await page
-      .getByRole("group", { name: "State" })
-      .getByRole("button", { name: /^All/ })
-      .click();
+    await accessible(page, "Home's feed, new since your last visit");
     // The page's one write is the Console's own place: nothing an
     // agent reads moves.
     expect(writes).toEqual(["POST /api/me/timeline/seen"]);
@@ -449,7 +438,7 @@ test.describe("signed in", () => {
     // The server writes the text (itemText), time-free since 11.8.0
     // (#373); the console shows it after its own WHEN column.
     await mockApi(page, {
-      ...signedIn(),
+      ...signedIn(HOME_READS),
       "GET /api/me/timeline": [
         200,
         {
@@ -475,12 +464,12 @@ test.describe("signed in", () => {
       ],
     });
     await page.goto("/console/account/timeline");
-    await expect(page).toHaveURL(/\/home\/timeline$/);
-    const row = page.locator(".kit-tl").filter({
+    await expect(page).toHaveURL(/\/home$/);
+    const row = page.locator(".kit-feed__item").filter({
       hasText: "King Thing unlocked Hero Valkyrie.",
     });
     await expect(row).toHaveCount(1);
-    await expect(row.locator(".kit-row__title")).toBeVisible();
+    await expect(row.locator(".kit-feed__text")).toBeVisible();
     await rendered(page);
     await accessible(page, "timeline, form unlock");
   });
@@ -683,9 +672,9 @@ test.describe("signed in", () => {
       "aria-current",
       "page",
     );
-    for (const name of ["Ladder", "Clan"])
+    for (const name of ["Find", "Clan", "You"])
       await expect(tabs.getByRole("link", { name })).toBeVisible();
-    await expect(tabs.getByRole("button", { name: /Search/ })).toBeVisible();
+    await expect(tabs.getByRole("button", { name: /Bell/ })).toBeVisible();
     // The bar's own places are the tabs here; the account stays on the bar.
     await expect(page.locator(".kit-top__nav")).toBeHidden();
     await expect(

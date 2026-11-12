@@ -12,7 +12,7 @@ reviewed: "2026-11-12 against contract 11.21.0"
 
 # A player's page
 
-A player's name opens their page, wherever the name is: Home, Friends, the
+A player's name opens their page, wherever the name is: Home, Find, the
 search sheet, a battle, Ladder, Explore and the email. The address is
 `/home/player/<tag>`, the tag without its `#`. You need to be signed in, as
 for every read of Elixir.

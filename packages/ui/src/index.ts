@@ -27,6 +27,7 @@ export {
   FAMILY_FOOT,
   FAMILY_PLACES,
   FAMILY_SIGNED_OUT,
+  FAMILY_TABS,
   FAMILY_WORDMARK,
   onOrigin,
   type FamilyProduct,

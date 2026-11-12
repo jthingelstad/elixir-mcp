@@ -11,7 +11,11 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
-import { buildTimeline, subjectsFor } from "../src/activity/entries.mjs";
+import {
+  buildTimeline,
+  sessionSpark,
+  subjectsFor,
+} from "../src/activity/entries.mjs";
 import { clanSummaryParts, itemText } from "../src/activity/summary.mjs";
 import { followFor } from "../src/activity/follow.mjs";
 
@@ -232,6 +236,22 @@ test("a 2v2 pair's sittings are both told, each naming the other as teammate", a
     bea.text,
     /^Bea played 5 battles in one sitting with Ann in 2v2 \(/,
   );
+});
+
+test("a sitting carries its battles in order for Home's sparkline, never on the wire", async () => {
+  // Slice 7 (#765): one bar per battle, its outcome and crown margin. The
+  // spark rides a symbol, so the item MCP serializes is unchanged.
+  const cal = (await standouts()).find((it) => it.facts.player_tag === CAL);
+  assert.deepEqual(sessionSpark(cal), [
+    { outcome: "win", margin: 1 },
+    { outcome: "win", margin: 2 },
+    { outcome: "win", margin: 3 },
+    { outcome: "win", margin: 1 },
+    { outcome: "win", margin: 1 },
+    { outcome: "loss", margin: -1 },
+  ]);
+  assert.ok(!JSON.stringify(cal).includes("spark"));
+  assert.equal(sessionSpark({ kind: "battle_session" }), null);
 });
 
 test("best_win is the win over the highest-rated opponent, with its battle", async () => {

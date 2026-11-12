@@ -32,6 +32,17 @@ test.describe("Search from a static page", () => {
     await expect(page.getByRole("dialog", { name: "Search" })).toBeVisible();
   });
 
+  test("/home?bell opens what needs you, as a static page's bell links it", async ({
+    page,
+  }) => {
+    await signedInFace(page);
+    await mockApi(page, signedIn());
+    await page.goto("/docs");
+    await page.locator("a.kit-bell").click();
+    await expect(page.getByRole("dialog", { name: "Needs you" })).toBeVisible();
+    await expect(page).toHaveURL(/\/home$/);
+  });
+
   test("signed out, ?search opens nothing", async ({ page }) => {
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
     await page.goto("/home?search");

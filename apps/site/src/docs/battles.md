@@ -124,9 +124,9 @@ highlight's player first, then the rest of its battle; on a battle's page
 the left side first, then the right. Each says before the tap whether a
 Follow is free or uses one of your player slots ([What a player slot
 costs](/docs/recording#what-a-player-slot-costs)), and **Follow** adds
-the player as a friend, as Home's Follow does. Your own players are left
+the player as a friend, as Find's Follow does. Your own players are left
 out. An account with no player of its own is asked to add it first, as
-Home's Friends tab asks.
+Find asks.
 
 Add `.png` to the link for the battle's picture: the page drawn as one 1200 by
 630 image, with the names left and right, both decks two by four with their

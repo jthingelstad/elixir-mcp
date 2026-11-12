@@ -162,10 +162,14 @@ export const useHomeNeeds = () =>
     queryFn: payload(api.homeNeeds),
   });
 
-export const useHomeLatest = () =>
+/** The bell's dot (slice 7): Home's Needs you read, shared with Home, and
+ *  read again at most every few minutes as you move between pages. */
+export const useBellNeeds = (enabled = true) =>
   useQuery({
-    queryKey: ["me", "home", "latest"],
-    queryFn: payload(api.homeLatest),
+    queryKey: ["me", "home", "needs"],
+    queryFn: payload(api.homeNeeds),
+    staleTime: 5 * 60 * 1000,
+    enabled,
   });
 
 /** No mode is the week's opening mode, which the read works out. */
@@ -174,12 +178,6 @@ export const useHomeWeek = (mode, enabled = true) =>
     queryKey: ["me", "home", "week", mode ?? null],
     queryFn: payload(() => api.homeWeek(mode)),
     enabled,
-  });
-
-export const useHomeFriends = () =>
-  useQuery({
-    queryKey: ["me", "home", "friends"],
-    queryFn: payload(api.homeFriends),
   });
 
 /** A player's page (#764). Under ["me"]: who you follow changes it. */
@@ -250,13 +248,6 @@ export const useMyHighlights = (battle, enabled = true) =>
     enabled: enabled && Boolean(battle),
   });
 
-/** Whether anything was learned since the page's place: Home's tab mark. */
-export const useTimelineNews = () =>
-  useQuery({
-    queryKey: scopedKey(null, "feed-news"),
-    queryFn: payload(() => api.timelineNews()),
-  });
-
 /** Move the Console's place in the timeline to the window end the page
  *  showed (Jamie, 2026-10-20: independent of what agents have read via
  *  MCP). The page's own copy takes the new place, so a return visit
@@ -273,9 +264,6 @@ export function useMarkTimelineSeen() {
       queryClient.setQueryData(scopedKey(agent, "feed"), (old) =>
         old ? { ...old, seen_to: res.data.seen_to } : old,
       );
-      queryClient.invalidateQueries({
-        queryKey: scopedKey(agent, "feed-news"),
-      });
       const queryKey = rootFor(agent);
       await queryClient.cancelQueries({ queryKey, exact: true });
       await queryClient.invalidateQueries({ queryKey, exact: true });

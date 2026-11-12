@@ -671,6 +671,9 @@ test("the bar has one source: the kit's product manifest", async () => {
   assert.equal(kit.FAMILY_PLACES.signIn, manifest.signIn);
   assert.equal(kit.FAMILY_SIGNED_OUT, manifest.signedOut);
   assert.equal(kit.FAMILY_FOOT, manifest.foot);
+  // The bar's places and the phone's tabs (slice 7, #765), and the bell.
+  assert.deepEqual(kit.FAMILY_TABS, manifest.tabs);
+  assert.equal(kit.FAMILY_PLACES.bell, manifest.bell);
 
   // And the template keeps nothing of its own: no label, key, path or
   // href from the manifest is spelled out in it. (The logo's home link is
@@ -687,11 +690,14 @@ test("the bar has one source: the kit's product manifest", async () => {
       manifest.createAccount,
       manifest.search,
       manifest.help,
+      manifest.bell,
+      ...manifest.tabs,
     ].flatMap((p) => [
       `>${p.label}<`,
+      ...(p.tab ? [`>${p.tab}<`] : []),
       ...(p.key ? [`"${p.key}"`] : []),
       ...(p.action ? [`>${p.action}<`] : []),
-      `"${p.path ?? p.href}"`,
+      `"${p.path ?? p.href ?? p.staticPath}"`,
       `"${p.icon}"`,
     ]),
     ...[...manifest.signedOut, ...manifest.foot]
@@ -718,9 +724,11 @@ test(
         a.textContent.trim().replace(/\s+/g, " "),
         a.getAttribute("href"),
       ]);
-    const places = kit.FAMILY_PRODUCTS.filter((p) => !p.game).map((p) => [
-      p.label,
-      kit.onOrigin(p.href),
+    // The bar's places are the tabs the bar shows (slice 7, #765: Home,
+    // Find, Clan); the phone has all four, and the bell after them.
+    const places = kit.FAMILY_TABS.filter((t) => t.bar !== false).map((t) => [
+      t.label,
+      t.path,
     ]);
     // Signed out: the public places, Sign in, Create account.
     assert.deepEqual(
@@ -763,10 +771,14 @@ test(
         .getAttribute("href"),
       kit.FAMILY_PLACES.settings,
     );
-    // The phone's tabs are the signed-in face only, and are the app's four.
+    // A static page has no bell sheet either: it opens the one on Home.
+    const bell = site.querySelector('.kit-bell[data-session-face="in"]');
+    assert.equal(bell.getAttribute("href"), kit.FAMILY_PLACES.bell.staticPath);
+    assert.equal(bell.getAttribute("aria-label"), kit.FAMILY_PLACES.bell.label);
+    // The phone's tabs are the signed-in face only, and are the app's five.
     assert.deepEqual(hrefs('nav.kit-bottom[data-session-face="in"] a'), [
-      ...places,
-      [kit.FAMILY_PLACES.search.label, kit.FAMILY_PLACES.search.staticPath],
+      ...kit.FAMILY_TABS.map((t) => [t.label, t.path]),
+      [kit.FAMILY_PLACES.bell.tab, kit.FAMILY_PLACES.bell.staticPath],
     ]);
     // The logo, on both faces.
     for (const img of site.querySelectorAll(".kit-top__brand img"))

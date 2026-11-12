@@ -28,7 +28,8 @@ On the website:
    Open the player from the Players table, and under **How you track
    it** set **Relationship** to **friend**.
 
-Or on Home's **Friends** tab: **Follow a friend** takes the tag and adds
+Or on **Find** (on the top bar, and a tab on a phone): **Follow a friend**
+takes the tag and adds
 the player as a friend in one step. It asks for your own player first if you
 have none, and never makes the player your primary. They aren't told.
 
@@ -42,7 +43,7 @@ tracks players as watching only.
 
 A friend takes one of your player slots, the same as a watched
 player, unless Elixir already records them: a member of a clan recorded in
-full, or a player another account followed first, is free. Home's Follow and
+full, or a player another account followed first, is free. Find's Follow and
 the search sheet say which before you tap ([What a player slot
 costs](/docs/recording#what-a-player-slot-costs)).
 

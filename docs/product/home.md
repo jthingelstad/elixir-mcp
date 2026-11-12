@@ -19,18 +19,31 @@ Elixir is a recorder, so Home says facts and leaves the judging to the person.
 
 The signed-in person. An agent has no Home.
 
-## Its three tabs
+## One feed [Jamie, 2026-11-12]
 
-- **Today** (`/home`): Needs you, Your week, the clan panel, Latest and Setup
-  details. A new account gets its steps instead until the first read lands;
-  they are worked out from the record each time and nothing is stored.
-- **Timeline** (`/home/timeline`): the last seven days, by day, newest first.
-- **Friends** (`/home/friends`): the week Wednesday's mail tells, from the
-  mail's own builder.
+Asked "Slice 7, Home: one feed with chips Everyone, Friends, Clan and You, session sparklines, a new top bar and phone tabs (Home, Find, Clan, You, bell) replacing Home's three tabs, and reactions. Which reactions?", Jamie answered "Yes, six cheers (Recommended)". The three
+tabs Today, Timeline and Friends are replaced:
+
+- **Home** (`/home`): one feed of the last seven days, newest first, in days,
+  with the chips Everyone, Friends, Clan and You, and State (All, New) as
+  before. A sitting carries its sparkline. Your week, the clan panel and Setup
+  details sit beside it. A new account gets its steps instead until the first
+  read lands; they are worked out from the record each time and nothing is
+  stored.
+- **Find** (`/home/find`): search, Follow a friend, the clan directory and your
+  follow link. Friends' follow form moved here.
+- **You** (`/home/you`): your players' pages, their stats in Ladder, Settings
+  and signing out.
+- **The bell**, on every page: Needs you, moved out of Home.
+
+`/home/timeline` opens Home and `/home/friends` opens Find. Friends' week
+cards left Home; Wednesday's digest tells that week. [engineering,
+2026-11-12]
 
 ## Principles that decide the details
 
-1. **Needs you is Clan's list, not a second one.** The top two open Actions in
+1. **Needs you is Clan's list, not a second one.** It is the bell's sheet
+   since slice 7. The top two open Actions in
    Clan's own order and "and N more in Clan › Today". Opening Home evaluates,
    raises and numbers nothing, so the list can lag Clan by up to the next
    morning's run or Clan visit. Other kinds appear only with a real source.
@@ -48,13 +61,13 @@ The signed-in person. An agent has no Home.
    2026-11-05]
 5. **A gap is unknown.** "No battle recorded this week", never that someone did
    not play. [Jamie, standing]
-6. **The place in the Timeline is the page's own.** Opening it clears the mark
+6. **The place in the timeline is the feed's own.** Opening Home clears the mark
    and changes nothing a connection has read. [Jamie, 2026-10-20]
-7. **Follow means Friend, and never you.** With no player of your own, Friends
+7. **Follow means Friend, and never you.** With no player of your own, Find
    asks for yours first. They aren't told. [Jamie's ruling Q10, A4, 2026-11-05]
 
 ## Open
 
 - Needs you's lag against Clan (above).
-- Friends' cost on a full account: up to thirty tool calls on the same builder
-  as the mail. It stops adding decks near the request's deadline.
+- Reactions (six cheers) and the RSS token link, slice 7's second pull
+  request.

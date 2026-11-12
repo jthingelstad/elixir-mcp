@@ -32,6 +32,39 @@
       "game": true
     }
   ],
+  "tabs": [
+    {
+      "key": "home",
+      "label": "Home",
+      "path": "/home",
+      "icon": "house"
+    },
+    {
+      "key": "find",
+      "label": "Find",
+      "path": "/home/find",
+      "icon": "search"
+    },
+    {
+      "key": "clan",
+      "label": "Clan",
+      "path": "/clan",
+      "icon": "users"
+    },
+    {
+      "key": "you",
+      "label": "You",
+      "path": "/home/you",
+      "icon": "user-round",
+      "bar": false
+    }
+  ],
+  "bell": {
+    "label": "Notifications",
+    "tab": "Bell",
+    "staticPath": "/home?bell",
+    "icon": "bell"
+  },
   "docs": {
     "key": "docs",
     "label": "Docs",

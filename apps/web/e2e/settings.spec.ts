@@ -132,11 +132,13 @@ test.describe("@narrow Settings at phone width", () => {
       )
         writes.push(r.url());
     });
+    // The phone's search is Find's (#765).
     await page.goto("/home");
     await page
       .locator(".kit-bottom")
-      .getByRole("button", { name: /Search/ })
+      .getByRole("link", { name: "Find" })
       .click();
+    await page.locator(".kit-find__search").click();
     const sheet = page.getByRole("dialog");
     await expect(sheet).toBeVisible();
     await sheet.getByRole("searchbox").fill("#2PQRJ8LV");
@@ -150,11 +152,13 @@ test.describe("@narrow Settings at phone width", () => {
     page,
   }) => {
     const hash = "abcdef0123456789";
+    // The phone's search is Find's (#765).
     await page.goto("/home");
     await page
       .locator(".kit-bottom")
-      .getByRole("button", { name: /Search/ })
+      .getByRole("link", { name: "Find" })
       .click();
+    await page.locator(".kit-find__search").click();
     const sheet = page.getByRole("dialog");
     await sheet.getByRole("searchbox").fill(hash);
     await sheet.getByRole("link", { name: /^Deck abcdef012345/ }).click();

@@ -101,58 +101,12 @@ export const HOME = {
     deck: DECK,
     last_battle_at: null,
   },
-  latest: {
-    ok: true,
-    items: [
-      { id: "a", at: AGO(30), text: "Crossed 9,400 trophies." },
-      { id: "b", at: AGO(300), text: "Won 3 of 5 in Path of Legends." },
-    ],
-  },
-};
-
-export const FRIENDS = {
-  own_clan_tag: CLAN,
-  week: { label: "Oct 26 – Nov 2", key: "2026-10-26" },
-  friends: [
-    {
-      tag: "#2YG98VVQ",
-      name: "Ada",
-      nickname: null,
-      clan_tag: CLAN,
-      battles: 41,
-      wins: 29,
-      losses: 12,
-      by_family: [
-        { mode: "ladder", battles: 33, wins: 24, losses: 9 },
-        { mode: "war", battles: 8, wins: 5, losses: 3 },
-      ],
-      moments: [{ text: "Reached Path of Legends." }],
-      deck: { ...DECK, battles: 19 },
-      line: null,
-    },
-  ],
-  watching: [
-    {
-      tag: "#PYLQGRJC",
-      name: "Grace",
-      nickname: null,
-      clan_tag: null,
-      battles: 63,
-      wins: 34,
-      losses: 29,
-      by_family: [],
-      moments: [],
-      deck: null,
-      line: "63 battles, 34W-29L; back after 12 quiet days",
-    },
-  ],
-  quiet: [
-    { tag: "#9VUP08YL", name: "Edsger", days: 8, relationship: "friend" },
-    { tag: "#2PP0V9PP", name: "Barbara", days: 40, relationship: "watching" },
-  ],
 };
 
 const window = { from: AGO(10_080), to: AGO(0) };
+/** Home's one feed (#765): your sitting with its sparkline, your clan's
+ *  line, a friend's moment with its battle. Synthetic friends and clans. */
+const FRIEND = "#2YG98VVQ";
 const TIMELINE = {
   window,
   seen_to: AGO(120),
@@ -162,17 +116,52 @@ const TIMELINE = {
       id: "n1",
       at: AGO(30),
       observed_at: AGO(29),
+      subject_tag: TAG,
       subject_name: "King Thing",
+      subjects: [{ tag: TAG, kind: "player", name: "King Thing" }],
       text: "Won 3 of 5 in Trophy Road.",
-      kind: "session",
+      kind: "battle_session",
+      facts: {
+        battles: 5,
+        won: 3,
+        lost: 2,
+        by_mode: { ladder: 5 },
+        trophy_net: 28,
+      },
+      groups: ["you"],
+      spark: [
+        { r: "w", m: 3 },
+        { r: "l", m: 1 },
+        { r: "w", m: 2 },
+        { r: "w", m: 1 },
+        { r: "l", m: 2 },
+      ],
       evidence: { kind: "session", version: "v1" },
+    },
+    {
+      id: "c1",
+      at: AGO(600),
+      observed_at: AGO(599),
+      subject_tag: CLAN,
+      subject_name: "Ada's Clan",
+      subjects: [{ tag: CLAN, kind: "clan", name: "Ada's Clan" }],
+      text: "Ada's Clan finished 2nd in the river race.",
+      kind: "war_race_finished",
+      facts: {},
+      groups: ["clan"],
     },
     {
       id: "o1",
       at: AGO(4000),
       observed_at: AGO(3999),
+      subject_tag: FRIEND,
       subject_name: "Ada",
+      subjects: [{ tag: FRIEND, kind: "player", name: "Ada" }],
       text: "Reached Path of Legends.",
+      kind: "pol_league",
+      facts: {},
+      groups: ["friends"],
+      battle_url: "https://elixir.example.test/battle/b2c3d4e5f6a7",
     },
   ],
 };
@@ -199,15 +188,19 @@ const EVIDENCE: [number, unknown] = [
   },
 ];
 
+/** Home's own reads for an account whose player is on record, so /home
+ *  draws its feed rather than a new account's steps. */
+export const HOME_READS = {
+  "GET /api/me/home": [200, { first: HOME.first }],
+  "GET /api/me/home/clan": [200, { clan: HOME.clan }],
+  "GET /api/me/home/needs": [200, { needs: HOME.clan }],
+  "GET /api/me/home/week": [200, { week: HOME.week }],
+} satisfies Parameters<typeof signedIn>[0];
+
 export const homeApi = (overrides: Parameters<typeof signedIn>[0] = {}) =>
   signedIn({
     "GET /api/me": [200, ME],
-    "GET /api/me/home": [200, { first: HOME.first }],
-    "GET /api/me/home/clan": [200, { clan: HOME.clan }],
-    "GET /api/me/home/needs": [200, { needs: HOME.clan }],
-    "GET /api/me/home/week": [200, { week: HOME.week }],
-    "GET /api/me/home/latest": [200, { latest: HOME.latest }],
-    "GET /api/me/home/friends": [200, FRIENDS],
+    ...HOME_READS,
     "GET /api/me/timeline": (route) =>
       new URL(route.request().url()).searchParams.has("evidence_item_id")
         ? EVIDENCE

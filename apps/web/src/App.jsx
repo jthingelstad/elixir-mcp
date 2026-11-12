@@ -292,15 +292,24 @@ const POST_PATH = /^\/h\/[a-z2-7]{15}$/;
  *  a sheet over whichever page you are on, and stands for Explore's records
  *  while you are reading one. */
 export function barArea(path) {
+  const clean = path.replace(/(.)\/$/, "$1");
+  if (clean === FIND) return "find";
+  if (clean === YOU) return "you";
   if (isHome(path)) return "home";
-  if (isLadder(path)) return "ladder";
+  // Ladder is your stats, reached from You (slice 7, #765).
+  if (isLadder(path)) return "you";
   if (isClan(path)) return "clan";
   const section = (appPath(path) ?? "").split("/")[1];
-  return section === "explore" ? "search" : undefined;
+  return section === "explore" ? "find" : undefined;
 }
 
-const HOME_PATHS = new Set([HOME, `${HOME}/timeline`, `${HOME}/friends`]);
-/** Home's tabs, and the player page and Follow me links under it (#764). */
+/** Find and You (slice 7, #765): pages under /home, which the distribution
+ *  already sends to this app [engineering, 2026-11-12]. */
+const FIND = `${HOME}/find`;
+const YOU = `${HOME}/you`;
+const HOME_PATHS = new Set([HOME, FIND, YOU]);
+/** Home, Find and You, and the player page and Follow me links under Home
+ *  (#764). */
 const isHome = (path) =>
   HOME_PATHS.has(path.replace(/(.)\/$/, "$1")) || isPlayerPath(path);
 
@@ -362,17 +371,11 @@ export function titleFor(section, sec, path) {
   if (isSettings(path)) return `${settingsTitle(path)} - Settings - ${SITE}`;
   if (isHome(path)) {
     const tab = path.split("/")[2];
+    if (tab === "find") return `Find - ${SITE}`;
+    if (tab === "you") return `You - ${SITE}`;
     const name =
-      tab === "timeline"
-        ? "Timeline"
-        : tab === "friends"
-          ? "Friends"
-          : tab === "player"
-            ? "Player"
-            : tab === "follow"
-              ? "Follow"
-              : "Today";
-    return `${name} - Home - ${SITE}`;
+      tab === "player" ? "Player" : tab === "follow" ? "Follow" : null;
+    return name ? `${name} - Home - ${SITE}` : `Home - ${SITE}`;
   }
   if (isLadder(path)) return ladderTitle(path, SITE);
   if (isClan(path)) {
@@ -825,11 +828,26 @@ const ladderRoute = createRoute({
 
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/home/{-$tab}",
+  path: HOME,
   component: lazyRouteComponent(
     () => import("./pages/HomePage.jsx"),
     "HomePage",
   ),
+});
+
+/** Find (slice 7, #765): search, a friend's tag, the clan directory, your
+ *  follow link. */
+const findRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: FIND,
+  component: lazyRouteComponent(() => import("./home/Find.jsx"), "FindPage"),
+});
+
+/** You: your players' pages, your stats, your account. */
+const youRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: YOU,
+  component: lazyRouteComponent(() => import("./home/You.jsx"), "YouPage"),
 });
 
 /** A player's page (#764): every player name opens it. */
@@ -854,6 +872,8 @@ const followMeRoute = createRoute({
 
 export const routeTree = rootRoute.addChildren([
   homeRoute,
+  findRoute,
+  youRoute,
   playerRoute,
   followMeRoute,
   signInRoute,
@@ -1051,7 +1071,7 @@ function HomeOutlet() {
         <AppShell
           me={unreachable ? null : me}
           unreachable={unreachable}
-          area="home"
+          area={barArea(pathname)}
         >
           <ErrorBoundary key={pathname}>
             {authed ? (

@@ -1,10 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { mockApi, SIGNED_OUT } from "./fixtures.ts";
-import { HOME, FRIENDS, homeApi } from "./home-fixture.ts";
+import { HOME, homeApi } from "./home-fixture.ts";
 
 /**
- * Home at its new address (redesign step 3a): Today, Timeline, Friends, at
- * desktop and phone widths, with nothing scrolling the page sideways.
+ * Home (slice 7, #765): one feed beside your week and your clan, its chips,
+ * the bell where Needs you went, and Find and You, at desktop and phone
+ * widths, with nothing scrolling the page sideways. Invented players only.
  */
 async function noSideways(page: Page) {
   const over = await page.evaluate(
@@ -13,8 +15,26 @@ async function noSideways(page: Page) {
   expect(over).toBeLessThanOrEqual(0);
 }
 
+async function accessible(page: Page, name: string) {
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa"])
+    .analyze();
+  const serious = results.violations.filter((v) =>
+    ["serious", "critical"].includes(v.impact ?? ""),
+  );
+  expect(
+    serious.map(
+      (v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`,
+    ),
+    `${name}: accessibility`,
+  ).toEqual([]);
+}
+
 const DISCLAIMER =
   "This material is unofficial and is not endorsed by Supercell. For more information see Supercell’s Fan Content Policy: www.supercell.com/fan-content-policy.";
+
+const SPARK_WORDS =
+  "5 battles: 3 wins, 2 losses. In order: won by 3 crowns, lost by 1 crown, won by 2 crowns, won by 1 crown, lost by 2 crowns";
 
 for (const [label, width] of [
   ["desktop", 1180],
@@ -25,144 +45,158 @@ for (const [label, width] of [
       await page.setViewportSize({ width, height: 844 });
     });
 
-    test("Today: needs you in Clan's order, your week, your clan, latest", async ({
-      page,
-    }) => {
+    test("Home: one feed beside your week and your clan", async ({ page }) => {
       await mockApi(page, homeApi());
       await page.goto("/home");
-      await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
-      const needs = page.locator(".kit-needs");
-      await expect(needs.locator(".kit-row__title").first()).toContainText(
-        "Departure: kicked, left, or ignore? Ada",
-      );
-      await expect(needs).toContainText("and 3 more in Clan › Today");
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Home" }),
+      ).toBeVisible();
+      // The three tabs are gone.
+      await expect(page.getByRole("tab", { name: "Timeline" })).toHaveCount(0);
+      const feed = page.locator(".kit-feed");
+      await expect(feed.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
+      await expect(
+        feed.getByText("Ada's Clan finished 2nd in the river race."),
+      ).toBeVisible();
+      await expect(feed.getByText("Reached Path of Legends.")).toBeVisible();
+      // A sitting's sparkline, and the same facts in words.
+      await expect(feed.getByRole("img", { name: SPARK_WORDS })).toBeVisible();
+      await expect(
+        feed.getByText("5 battles · 3 won · 2 lost · +28 trophies"),
+      ).toBeVisible();
+      // A clan's line wears the gold edge; a moment links its battle.
+      await expect(page.locator(".kit-feed__item--clan")).toHaveCount(1);
+      await expect(
+        feed.getByRole("link", { name: "The battle" }),
+      ).toHaveAttribute("href", "/battle/b2c3d4e5f6a7");
+      // A name opens the player page.
+      await expect(
+        feed.getByRole("link", { name: "Ada", exact: true }),
+      ).toHaveAttribute("href", "/home/player/2YG98VVQ");
       await expect(page.getByText("23–14")).toBeVisible();
-      await expect(page.getByText("Giant beatdown")).toBeVisible();
       await expect(
         page.getByText("Season 137, week 4: 2nd, 84,200 fame"),
       ).toBeVisible();
-      await expect(page.getByText("Crossed 9,400 trophies.")).toBeVisible();
       await expect(page.locator(".disclaimer__text")).toHaveText(DISCLAIMER);
       await expect(
         page.getByRole("navigation", { name: "Main, phone" }),
       ).toBeVisible({ visible: width === 390 });
       await noSideways(page);
+      await accessible(page, "Home");
     });
 
-    test("Today: a failed panel says so and the rest render", async ({
+    test("the chips choose what the feed shows, with their counts", async ({
+      page,
+    }) => {
+      await mockApi(page, homeApi());
+      await page.goto("/home");
+      const chips = page.getByRole("group", { name: "Show" });
+      const feed = page.locator(".kit-feed");
+      await expect(feed.locator(".kit-feed__item")).toHaveCount(3);
+      await chips.getByRole("button", { name: /^Friends/ }).click();
+      await expect(feed.locator(".kit-feed__item")).toHaveCount(1);
+      await expect(feed.getByText("Reached Path of Legends.")).toBeVisible();
+      await chips.getByRole("button", { name: /^Clan/ }).click();
+      await expect(feed.locator(".kit-feed__item")).toHaveCount(1);
+      await expect(
+        feed.getByText("Ada's Clan finished 2nd in the river race."),
+      ).toBeVisible();
+      await chips.getByRole("button", { name: /^You/ }).click();
+      await expect(feed.locator(".kit-feed__item")).toHaveCount(1);
+      await expect(feed.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
+      await expect(chips.getByRole("button", { name: /^You/ })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      await chips.getByRole("button", { name: /^Everyone/ }).click();
+      await expect(feed.locator(".kit-feed__item")).toHaveCount(3);
+      // State stays (structure Q8): New is what came since the last visit.
+      const state = page.getByRole("group", { name: "State" });
+      await state.getByRole("button", { name: /^New/ }).click();
+      await expect(feed.locator(".kit-feed__item")).toHaveCount(1);
+      await state.getByRole("button", { name: /^All/ }).click();
+      await expect(feed.locator(".kit-feed__item")).toHaveCount(3);
+      await noSideways(page);
+      await accessible(page, "Home, chips");
+    });
+
+    test("the feed: days, the new line, games in place, the cap line", async ({
+      page,
+    }) => {
+      await mockApi(page, homeApi());
+      await page.goto("/home");
+      await expect(page.getByText("New since your last visit")).toBeVisible();
+      await expect(
+        page.getByText(/the 3 newest are shown, and 46 more/),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "View games" }).click();
+      await expect(page.getByText(/^Win, Trophy Road$/)).toBeVisible();
+      await noSideways(page);
+    });
+
+    test("the bell: lit while something needs you, and the sheet lists it", async ({
+      page,
+    }) => {
+      await mockApi(page, homeApi());
+      await page.goto("/home");
+      const bell =
+        width === 390
+          ? page
+              .getByRole("navigation", { name: "Main, phone" })
+              .getByRole("button", { name: /Bell/ })
+          : page.getByRole("button", {
+              name: /^Notifications, \d+ needs? you$/,
+            });
+      await expect(bell.locator(".kit-bell__dot")).toBeVisible();
+      await bell.click();
+      const sheet = page.getByRole("dialog", { name: "Needs you" });
+      await expect(sheet).toBeVisible();
+      await expect(sheet.locator(".kit-row__title").first()).toContainText(
+        "Departure: kicked, left, or ignore? Ada",
+      );
+      await expect(sheet).toContainText("and 3 more in Clan › Today");
+      await accessible(page, "the bell");
+      await sheet.getByRole("button", { name: "Close" }).click();
+      await expect(sheet).toHaveCount(0);
+    });
+
+    test("Home: a failed panel says so and the rest render", async ({
       page,
     }) => {
       await mockApi(
         page,
         homeApi({
           "GET /api/me/home/clan": [200, { clan: { ok: false } }],
-          "GET /api/me/home/needs": [200, { needs: { ok: false } }],
-        }),
-      );
-      await page.goto("/home");
-      await expect(
-        page.getByText("Your clans could not be read just now."),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: "Try again" }),
-      ).toBeVisible();
-      await expect(page.getByText("23–14")).toBeVisible();
-      await expect(page.locator(".kit-needs")).toHaveCount(0);
-      await noSideways(page);
-    });
-
-    test("Today: the card failing leaves Needs you, and its read failing leaves the card's copy", async ({
-      page,
-    }) => {
-      await mockApi(
-        page,
-        homeApi({ "GET /api/me/home/clan": [200, { clan: { ok: false } }] }),
-      );
-      await page.goto("/home");
-      await expect(
-        page.getByText("Your clans could not be read just now."),
-      ).toBeVisible();
-      await expect(page.locator(".kit-needs")).toContainText(
-        "and 3 more in Clan › Today",
-      );
-
-      await mockApi(
-        page,
-        homeApi({ "GET /api/me/home/needs": [500, { error: "boom" }] }),
-      );
-      await page.reload();
-      await expect(
-        page.getByText("Season 137, week 4: 2nd, 84,200 fame"),
-      ).toBeVisible();
-      await expect(page.locator(".kit-needs")).toContainText(
-        "and 3 more in Clan › Today",
-      );
-      await expect(page.getByRole("alert")).toHaveCount(0);
-    });
-
-    test("Today: Needs you settles while the clan card is still reading", async ({
-      page,
-    }) => {
-      const held: Array<() => void> = [];
-      await mockApi(page, homeApi());
-      await page.route("**/api/me/home/clan", async (route) => {
-        await new Promise<void>((go) => held.push(go));
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({ clan: HOME.clan }),
-        });
-      });
-      await page.goto("/home");
-      await expect(page.locator(".kit-needs")).toContainText(
-        "and 3 more in Clan › Today",
-      );
-      await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(1);
-      // Once it has finished opening, the card answering moves nothing below.
-      await page
-        .locator(".kit-home__top")
-        .evaluate((el) =>
-          Promise.all(
-            el.getAnimations({ subtree: true }).map((a) => a.finished),
-          ),
-        );
-      const top = await page.locator(".kit-home__two").boundingBox();
-      await expect.poll(() => held.length).toBe(1);
-      held[0]!();
-      await expect(
-        page.getByText("Season 137, week 4: 2nd, 84,200 fame"),
-      ).toBeVisible();
-      expect((await page.locator(".kit-home__two").boundingBox())?.y).toBe(
-        top?.y,
-      );
-      await noSideways(page);
-    });
-
-    test("Today: a panel's request that fails is that panel's alone", async ({
-      page,
-    }) => {
-      await mockApi(
-        page,
-        homeApi({
           "GET /api/me/home/week": [504, { error: "timeout" }],
-          "GET /api/me/home/latest": [500, { error: "boom" }],
         }),
       );
       await page.goto("/home");
+      await expect(
+        page.getByText("Your clans could not be read just now."),
+      ).toBeVisible();
       await expect(
         page.getByText("Your week could not be read just now."),
       ).toBeVisible();
-      await expect(
-        page.getByText("The timeline could not be read just now."),
-      ).toBeVisible();
-      await expect(
-        page.getByText("Season 137, week 4: 2nd, 84,200 fame"),
-      ).toBeVisible();
-      await expect(page.locator(".kit-needs")).toBeVisible();
+      await expect(page.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
       await noSideways(page);
     });
 
-    test("Today: paints before a slow panel, which then fills in alone", async ({
+    test("Home: the feed failing is the feed's alone", async ({ page }) => {
+      await mockApi(
+        page,
+        homeApi({ "GET /api/me/timeline": [500, { error: "boom" }] }),
+      );
+      await page.goto("/home");
+      await expect(
+        page.getByText("Your feed could not be read just now"),
+      ).toBeVisible();
+      await expect(page.getByText("23–14")).toBeVisible();
+      await expect(
+        page.getByText("Season 137, week 4: 2nd, 84,200 fame"),
+      ).toBeVisible();
+    });
+
+    test("Home: paints before a slow panel, which then fills in alone", async ({
       page,
     }) => {
       // Each panel is held until its turn is released, so nothing here hangs
@@ -179,46 +213,31 @@ for (const [label, width] of [
           });
         });
       await hold("/api/me/home/clan", { clan: HOME.clan });
-      await hold("/api/me/home/needs", { needs: HOME.clan });
       await hold("/api/me/home/week", { week: HOME.week });
       await page.goto("/home");
       await expect(
         page.locator(".kit-head").getByText("King Thing"),
       ).toBeVisible();
-      await expect(page.getByText("Crossed 9,400 trophies.")).toBeVisible();
-      await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(2);
-      await expect(page.locator(".kit-needs")).toHaveCount(0);
+      await expect(page.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
+      await expect(
+        page.locator('.kit-home__side [aria-busy="true"]'),
+      ).toHaveCount(2);
       await expect(page.getByRole("alert")).toHaveCount(0);
-      await expect.poll(() => held.size).toBe(3);
-      held.get("/api/me/home/needs")!();
-      await expect(page.locator(".kit-needs")).toBeVisible();
-      await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(2);
+      await expect.poll(() => held.size).toBe(2);
       held.get("/api/me/home/clan")!();
       await expect(page.getByText("Ada's Clan").first()).toBeVisible();
-      await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(1);
+      await expect(
+        page.locator('.kit-home__side [aria-busy="true"]'),
+      ).toHaveCount(1);
       held.get("/api/me/home/week")!();
       await expect(page.getByText("23–14")).toBeVisible();
-      await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(0);
-      await noSideways(page);
-    });
-
-    test("Timeline: days, chips, new line, games in place, the cap line", async ({
-      page,
-    }) => {
-      await mockApi(page, homeApi());
-      await page.goto("/home/timeline");
-      await expect(page.getByText("New since your last visit")).toBeVisible();
       await expect(
-        page.getByText(/the 2 newest are shown, and 46 more/),
-      ).toBeVisible();
-      await page.getByRole("button", { name: "View games" }).click();
-      await expect(page.getByText(/^Win, Trophy Road$/)).toBeVisible();
-      await page.getByRole("button", { name: "New" }).click();
-      await expect(page.getByText("Reached Path of Legends.")).toHaveCount(0);
+        page.locator('.kit-home__side [aria-busy="true"]'),
+      ).toHaveCount(0);
       await noSideways(page);
     });
 
-    test("Friends: both lists, the quiet lines, and Follow", async ({
+    test("Find: search, Follow, the clan directory and your follow link", async ({
       page,
     }) => {
       await mockApi(
@@ -237,55 +256,151 @@ for (const [label, width] of [
           ],
         }),
       );
-      await page.goto("/home/friends");
-      await expect(page.getByText("1 of 2 played")).toBeVisible();
+      await page.goto("/home/find");
       await expect(
-        page.getByText("No battle recorded this week: Edsger."),
+        page.getByRole("heading", { level: 1, name: "Find" }),
       ).toBeVisible();
       await expect(
-        page.getByText("Quiet for 30 days or more: Barbara."),
-      ).toBeVisible();
+        page.getByRole("link", { name: /Clan directory/ }),
+      ).toHaveAttribute("href", "/clan/directory");
+      await expect(page.locator(".kit-find__link code")).toContainText(
+        "/home/follow/",
+      );
       await expect(
         page.getByText("They aren’t told.", { exact: false }),
       ).toBeVisible();
       await noSideways(page);
+      await accessible(page, "Find");
       await page.getByLabel("Follow a friend").fill("#QQQQQQQ");
       await page.getByRole("button", { name: "Follow", exact: true }).click();
       await expect(page.getByText("Recording", { exact: true })).toBeVisible();
+      // Search opens the sheet every page has.
+      await page.locator(".kit-find__search").click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+    });
+
+    test("You: your players, their stats, Settings and Sign out", async ({
+      page,
+    }) => {
+      await mockApi(page, homeApi());
+      await page.goto("/home/you");
+      await expect(
+        page.getByRole("heading", { level: 1, name: "You" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /Settings/ }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /^Stats for / }).first(),
+      ).toHaveAttribute("href", /^\/ladder\?player=/);
+      await expect(
+        page.getByRole("button", { name: /Sign out/ }),
+      ).toBeVisible();
+      await noSideways(page);
+      await accessible(page, "You");
+    });
+
+    test("the tabs: Home, Find, Clan, You and the bell", async ({ page }) => {
+      await mockApi(page, homeApi());
+      await page.goto("/home");
+      if (width === 390) {
+        const tabs = page.getByRole("navigation", { name: "Main, phone" });
+        for (const name of ["Home", "Find", "Clan", "You"])
+          await expect(tabs.getByRole("link", { name })).toBeVisible();
+        await expect(tabs.getByRole("button", { name: /Bell/ })).toBeVisible();
+        await tabs.getByRole("link", { name: "Find" }).click();
+        await expect(page).toHaveURL(/\/home\/find$/);
+        await expect(tabs.getByRole("link", { name: "Find" })).toHaveAttribute(
+          "aria-current",
+          "page",
+        );
+        await tabs.getByRole("link", { name: "You" }).click();
+        await expect(page).toHaveURL(/\/home\/you$/);
+      } else {
+        const nav = page.getByRole("navigation", {
+          name: "Main",
+          exact: true,
+        });
+        for (const name of ["Home", "Find", "Clan"])
+          await expect(
+            nav.getByRole("link", { name }).locator("svg"),
+          ).toBeVisible();
+        // The feed has news (timeline_pending), so Home wears its dot and
+        // says so in words; Find does not.
+        await expect(
+          nav
+            .getByRole("link", { name: "Home, new items" })
+            .locator(".kit-bell__dot"),
+        ).toHaveCount(1);
+        await expect(
+          nav.getByRole("link", { name: "Find" }).locator(".kit-bell__dot"),
+        ).toHaveCount(0);
+        // You is the avatar's on a wide screen.
+        await expect(nav.getByRole("link", { name: "You" })).toHaveCount(0);
+        await nav.getByRole("link", { name: "Find" }).click();
+        await expect(page).toHaveURL(/\/home\/find$/);
+      }
+      await accessible(page, "the tabs");
     });
   });
 }
 
-test("Friends: with no player of your own it asks for yours first", async ({
+test("Home's old tabs land on the feed, and Friends' follow form on Find", async ({
+  page,
+}) => {
+  await mockApi(page, homeApi());
+  await page.goto("/home/timeline");
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
+  await page.goto("/home/friends");
+  await expect(page).toHaveURL(/\/home\/find$/);
+  await expect(page.getByLabel("Follow a friend")).toBeVisible();
+});
+
+test("following someone before a player of your own: the steps, then the feed", async ({
   page,
 }) => {
   await mockApi(
     page,
-    homeApi({ "GET /api/me/home/friends": [200, { no_player: true }] }),
+    homeApi({
+      "GET /api/me/home": [200, { first: { ok: true, player: null } }],
+      "GET /api/me": [
+        200,
+        {
+          authenticated: true,
+          role: "owner",
+          email: "reader@example.test",
+          claims: [
+            {
+              player_tag: "#2YG98VVQ",
+              name: "Ada",
+              is_primary: false,
+              relationship: "friend",
+            },
+          ],
+          recordings: [],
+          signals: {},
+        },
+      ],
+    }),
   );
-  await page.goto("/home/friends");
-  await expect(page.getByText("Add your own player first")).toBeVisible();
-  await expect(page.getByLabel("Follow a friend")).toHaveCount(0);
-});
-
-test("Friends: a read that failed says so", async ({ page }) => {
-  await mockApi(
-    page,
-    homeApi({ "GET /api/me/home/friends": [500, { error: "boom" }] }),
-  );
-  await page.goto("/home/friends");
+  await page.goto("/home");
   await expect(
-    page.getByText("Friends could not be read just now."),
+    page.getByRole("heading", { name: "Welcome to Elixir" }),
   ).toBeVisible();
-  expect(FRIENDS.friends.length).toBe(1);
+  await expect(
+    page
+      .getByRole("region", { name: "Your feed" })
+      .getByText("Reached Path of Legends."),
+  ).toBeVisible();
 });
 
-test("a new account gets the steps, not Today, and reads no panel", async ({
+test("a new account gets the steps, not the feed, and reads no panel", async ({
   page,
 }) => {
   const panels: string[] = [];
   page.on("request", (req) => {
-    if (/\/api\/me\/home\/(clan|week|latest)/.test(req.url()))
+    if (/\/api\/me\/(home\/(clan|week)|timeline)/.test(req.url()))
       panels.push(req.url());
   });
   await mockApi(
@@ -334,9 +449,9 @@ test("adding your player from Ladder's or Clan's link stays on Home's steps", as
 });
 
 // 2026-11-09, a production walk: the tag added was already on record as an
-// opponent (one battle from another player's log). Home drew Today with
+// opponent (one battle from another player's log). Home drew its panels with
 // "Battle log read: never" at once and never read again.
-test("a player known as an opponent waits for their own battle log, then Today draws without a reload", async ({
+test("a player known as an opponent waits for their own battle log, then Home draws without a reload", async ({
   page,
 }) => {
   const stub = {
@@ -386,15 +501,13 @@ test("a player known as an opponent waits for their own battle log, then Today d
   await expect(page.getByText("Battle log read: never")).toHaveCount(0);
   await expect.poll(() => checks).toBeGreaterThan(0);
   read = true;
-  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Home" }),
+  ).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/^Battle log read /).first()).toBeVisible();
 });
 
-test("the head leads with your nickname, as Ladder and Friends do", async ({
-  page,
-}) => {
+test("the head leads with your nickname, as Ladder does", async ({ page }) => {
   await mockApi(
     page,
     homeApi({
@@ -417,14 +530,14 @@ test("signed out, /home is the wall and remembers where it was", async ({
   page,
 }) => {
   await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-  await page.goto("/home/friends");
+  await page.goto("/home/find");
   await expect(
     page.getByRole("heading", { name: "Sign in first" }),
   ).toBeVisible();
   await expect(page.locator(".disclaimer__text")).toHaveText(DISCLAIMER);
   expect(
     await page.evaluate(() => sessionStorage.getItem("elixir.after_sign_in")),
-  ).toBe("/home/friends");
+  ).toBe("/home/find");
 });
 
 test("the old Overview address lands on Home, with no offer to try it", async ({
@@ -445,7 +558,7 @@ test("the signed-in bar shows the app's places as tabs, and Help has no stray bo
   await mockApi(page, homeApi());
   await page.goto("/home");
   const nav = page.getByRole("navigation", { name: "Main", exact: true });
-  for (const name of ["Home", "Ladder", "Clan"])
+  for (const name of ["Home", "Find", "Clan"])
     await expect(nav.getByRole("link", { name }).locator("svg")).toBeVisible();
   await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute(
     "aria-current",
