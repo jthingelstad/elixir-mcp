@@ -1,11 +1,13 @@
 /**
  * The recruiting service: the clan's pitch (a leader's words, versioned
  * like policy), the facts the copy uses (one live read of the clan through
- * Elixir's live_fetch, cached for hours because every member's page open
+ * Elixir's live_fetch, cached for hours because every elder's page open
  * must not spend a live read; the recorded roster fills in while a fresh
  * read is pending), and the copy from the engine: a personal note and a
- * public post. Recruit works before a clan has a policy; the copy waits on
- * a pitch, which every clan starts without. With the clan's own model
+ * public post. Reading it is for elders and up, writing it for the leaders
+ * (the handler refuses a member, Jamie, 2026-11-12). Recruit works
+ * before a clan has a policy; the copy waits on a pitch, which every clan
+ * starts without. With the clan's own model
  * (`model.mjs`), a leader can have the pitch drafted from the clan's facts,
  * goals and policy, to edit and save; the draft is never saved by itself.
  */

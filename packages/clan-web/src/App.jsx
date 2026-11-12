@@ -346,8 +346,8 @@ export function ClanPage() {
   // Members' old row (G6, 2026-11-12): Standing and Review are redirected
   // before the page reads them (lib/moved.js). Recruit's pitch is in Spread
   // the word and Scout at the roster's foot, opened where the address asks;
-  // Scout stays the elders' and up, as before: anyone else who follows its
-  // address gets its role line there, not the form.
+  // both are the elders' and up (Jamie, 2026-11-12): anyone else who follows
+  // either address gets its role line there, not the form or a read.
   if (tab === "recruit" || tab === "scout")
     return <Replace to={`${base}/members?show=${tab}`} navigate={navigate} />;
   if (tab === "map") return page(<MapWhenInBrowser clan={clan} me={me} />);

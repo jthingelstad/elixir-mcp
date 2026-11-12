@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-11-12; Members is one page: Standing on Standings, Review in Run, Recruit and Scout at the roster's foot, Follow on each row; 2026-11-12; the clan card: its line, race and rule chips, and the Feed's race bar; 2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-11-12; Recruit and Scout are for elders, co-leaders and the leader, members keep Standing; 2026-11-12; Members is one page: Standing on Standings, Review in Run, Recruit and Scout at the roster's foot, Follow on each row; 2026-11-12; the clan card: its line, race and rule chips, and the Feed's race bar; 2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -134,9 +134,12 @@ Below it, the tabs:
   your own players have none). **Clan map** opens the **Map**, where
   verified members add a city or region and see each other's local time,
   and nobody outside the clan sees it. At the foot, **Spread the word**
-  holds **Recruit**'s editable copy in one selected format, a personal note
-  or a recruiting post, for every member, and **Scout** follows for elders
-  and up. A name opens that
+  gives every member the clan's tag and a line to bring clanmates in once
+  the policy is active; for elders, co-leaders and the leader it also holds
+  **Recruit**'s editable copy in one selected format, a personal note or a
+  recruiting post, and **Scout** follows for them. Recruit and Scout are
+  leaders' and elders' tools: a member who opens either address sees the
+  role it needs, and Elixir refuses its reads to them. A name opens that
   player's [page](/docs/player-page), and its **Open in Clan** opens their
   page in this clan; your own has **Away** beside it when the clan lets
   members mark themselves away. Over the roster, every member reads how
@@ -198,9 +201,9 @@ and watched players do not decide your membership or grant roles.
 
 Clan management starts at **10 members**. Below that, like Clan Wars,
 leaders can prepare and save Policy; actions, standing and awards wait. Clan shows the roster
-and every member's numbers, Recruit works for everyone and Scout for
-elders and up. A Member who opens Scout’s address sees the role requirement
-before any live read can be requested. A policy saved before the clan dropped below 10 is kept
+and every member's numbers, and Recruit and Scout work for elders,
+co-leaders and the leader. A Member who opens Recruit's or Scout’s address
+sees the role requirement before any live read can be requested. A policy saved before the clan dropped below 10 is kept
 and picks up again at 10.
 
 ## Before the leaders write a policy

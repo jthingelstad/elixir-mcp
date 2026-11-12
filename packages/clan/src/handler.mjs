@@ -27,6 +27,9 @@ const RUN_READS = new Set([
 const RUNS_THE_CLAN = new Set(["leader", "coLeader"]);
 const runsTheClan = (who) =>
   RUNS_THE_CLAN.has(who.role) && who.verified !== false;
+/** Recruit and Scout: a verified elder, co-leader or leader. */
+const ELDERS_UP = new Set(["leader", "coLeader", "elder"]);
+const eldersUp = (who) => ELDERS_UP.has(who.role) && who.verified !== false;
 
 const json = (statusCode, body, extra = {}) => ({
   statusCode,
@@ -508,8 +511,13 @@ export function createHandler({
           }),
         );
       }
-      // Recruiting: every member reads and copies; leaders write the pitch.
+      // Recruiting is the leaders' and elders' tool (Jamie, 2026-11-12,
+      // DECISIONS "Members is one page; members keep Standing, and Recruit
+      // and Scout are leaders' and elders' tools"): a verified elder,
+      // co-leader or leader reads and copies; leaders write the pitch.
       if (recruit && rest === "/recruit") {
+        if (method === "GET" && !eldersUp(who))
+          return json(403, { error: "elders_only" });
         if (method === "GET")
           return json(
             200,
@@ -858,8 +866,7 @@ export function createHandler({
         }
       }
       if (method === "POST" && rest === "/scout") {
-        if (!["leader", "coLeader", "elder"].includes(who.role))
-          return json(403, { error: "elders_only" });
+        if (!eldersUp(who)) return json(403, { error: "elders_only" });
         // Scout works before a clan has a policy: the applicant's own
         // statistics, with nothing of the clan's to check them against.
         const policy = await manage.policyFor(tag);

@@ -281,18 +281,27 @@ for (const [label, width] of [
   });
 }
 
-/** Members' row of pages went on 2026-11-12 (G6); who sees what did not. */
+/** Members' row of pages went on 2026-11-12 (G6); Recruit and Scout are
+ *  leaders' and elders' tools (Jamie, 2026-11-12). */
 test.describe("Members as one page", () => {
-  test("a member finds Recruit's copy at the foot, and no Scout", async ({
+  test("a member gets Recruit's and Scout's role lines, never their reads", async ({
     page,
   }) => {
+    const reads: string[] = [];
+    page.on("request", (r) => {
+      if (/\/recruit|\/scout/.test(new URL(r.url()).pathname))
+        reads.push(r.url());
+    });
     await mockApi(page, asMember({ "GET /api/me/follow-plan": [200, PLAN] }));
     await page.goto(`${base}/members/recruit`);
     await expect(page).toHaveURL(new RegExp(`${base}/members\\?show=recruit$`));
     const foot = page.getByRole("region", { name: "Spread the word" });
+    await expect(foot.getByTestId("recruit-role-line")).toContainText(
+      "Recruit is for elders, co-leaders and the leader",
+    );
     await expect(
-      foot.getByRole("button", { name: "Hide the recruiting copy" }),
-    ).toHaveAttribute("aria-expanded", "true");
+      foot.getByRole("button", { name: /recruiting copy/ }),
+    ).toHaveCount(0);
     await expect(page.getByRole("region", { name: "Scout" })).toHaveCount(0);
     // Scout's old address: its role line, never the form.
     await page.goto(`${base}/members/scout`);
@@ -302,6 +311,7 @@ test.describe("Members as one page", () => {
       "Scout is for elders, co-leaders and the leader",
     );
     await expect(scout.getByRole("textbox")).toHaveCount(0);
+    expect(reads).toEqual([]);
     await accessible(page, "members foot, member");
   });
 

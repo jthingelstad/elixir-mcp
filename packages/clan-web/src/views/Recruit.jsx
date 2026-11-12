@@ -8,8 +8,9 @@ import { CLAN, clanPath } from "../lib/base.js";
 import { untilWritten } from "../lib/pending.js";
 
 /**
- * Recruit: every member can use it, in Spread the word at the roster's
- * foot since G6 (2026-11-12), under that section's head. The clan's pitch
+ * Recruit: the leaders' and elders' (Jamie, 2026-11-12), in Spread the
+ * word at the roster's foot since G6 (2026-11-12), under that section's
+ * head. The clan's pitch
  * (a leader's words), the facts the game states today (one live read,
  * cached), and copy in two formats: a personal note for one person by email or
  * message, and a public post for a recruiting forum. The post carries the

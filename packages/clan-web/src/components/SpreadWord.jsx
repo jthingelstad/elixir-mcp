@@ -2,6 +2,7 @@ import { Panel } from "@elixir-mcp/ui";
 import { inviteCopy } from "@elixir-mcp/clan-engine";
 import { CopyLine } from "./ActionCard.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
+import { eldersUp } from "../lib/tabs.js";
 
 const LEADERS = new Set(["leader", "coLeader"]);
 const MIN_MEMBERS = 10;
@@ -36,6 +37,9 @@ export function SmallClan({ clan, members, min = MIN_MEMBERS, navigate }) {
     navigate?.(path);
   };
   const lead = LEADERS.has(clan.role) && clan.verified !== false;
+  // Recruit is the leaders' and elders' (Jamie, 2026-11-12): a member is
+  // not sent to it.
+  const recruiter = eldersUp(clan);
   const recruit = `${base}/members?show=recruit`;
   const policy = `${base}/run/about`;
   return (
@@ -49,16 +53,18 @@ export function SmallClan({ clan, members, min = MIN_MEMBERS, navigate }) {
         {lead ? (
           <p className="m-0">Leaders can prepare and save the policy now.</p>
         ) : null}
-        <div className="flex flex-wrap gap-2">
-          <a className="btn btn--sm" href={recruit} onClick={go(recruit)}>
-            Open Recruit
-          </a>
-          {lead ? (
-            <a className="btn btn--sm" href={policy} onClick={go(policy)}>
-              Prepare the policy
+        {recruiter ? (
+          <div className="flex flex-wrap gap-2">
+            <a className="btn btn--sm" href={recruit} onClick={go(recruit)}>
+              Open Recruit
             </a>
-          ) : null}
-        </div>
+            {lead ? (
+              <a className="btn btn--sm" href={policy} onClick={go(policy)}>
+                Prepare the policy
+              </a>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </Panel>
   );
@@ -139,16 +145,26 @@ export function SpreadWord({ me, clan, roster, navigate }) {
 }
 
 /**
- * Spread the word at the roster's foot, for every member at any size.
- * Once the policy is active, the clan's own words and its tag beside the
- * line for chat (the October 2026 canvas). Always, Recruit's pitch: the
- * copy in a note or a post, opened here since Members' row went (G6,
- * 2026-11-12). It opens on a tap, or when the address asks
+ * Spread the word at the roster's foot. Once the policy is active, every
+ * member gets the clan's own words and its tag beside the line for chat
+ * (the October 2026 canvas). Recruit's pitch, the copy in a note or a
+ * post, is the leaders' and elders' (Jamie, 2026-11-12; the server refuses
+ * anyone else): it opens on a tap, or when the address asks
  * (`/members?show=recruit`), since its read asks the game for the clan's
- * numbers.
+ * numbers. A member who follows that address gets its role line, as at
+ * Scout's, and no read; with neither part there is no foot.
  */
-export function SpreadWordFoot({ me, clan, roster, recruit, onRecruit }) {
+export function SpreadWordFoot({
+  me,
+  clan,
+  roster,
+  recruit,
+  onRecruit,
+  show = null,
+}) {
   const active = spreadState({ me, clan, roster }) === "active";
+  const recruiter = eldersUp(clan);
+  if (!active && !recruiter && show !== "recruit") return null;
   // The app's own address to share: Clan's landing on Elixir's origin.
   const link =
     typeof window !== "undefined" ? `${window.location.origin}${CLAN}` : "";
@@ -191,21 +207,32 @@ export function SpreadWordFoot({ me, clan, roster, recruit, onRecruit }) {
             <CopyLine text={link} event="clan.invite_copied" value="link" />
           </>
         ) : null}
-        <div className="label">Recruit</div>
-        <p className="m-0 text-[13px] text-ink-dim">
-          The clan&rsquo;s pitch as a personal note or a public post for a
-          recruiting forum, with today&rsquo;s numbers from the game.
-        </p>
-        <button
-          type="button"
-          className="btn btn--sm w-fit"
-          aria-expanded={Boolean(recruit)}
-          aria-controls="spread-word-recruit"
-          onClick={() => onRecruit?.(!recruit)}
-        >
-          {recruit ? "Hide the recruiting copy" : "Write the recruiting copy"}
-        </button>
-        <div id="spread-word-recruit">{recruit}</div>
+        {recruiter ? (
+          <>
+            <div className="label">Recruit</div>
+            <p className="m-0 text-[13px] text-ink-dim">
+              The clan&rsquo;s pitch as a personal note or a public post for a
+              recruiting forum, with today&rsquo;s numbers from the game.
+            </p>
+            <button
+              type="button"
+              className="btn btn--sm w-fit"
+              aria-expanded={Boolean(recruit)}
+              aria-controls="spread-word-recruit"
+              onClick={() => onRecruit?.(!recruit)}
+            >
+              {recruit
+                ? "Hide the recruiting copy"
+                : "Write the recruiting copy"}
+            </button>
+            <div id="spread-word-recruit">{recruit}</div>
+          </>
+        ) : show === "recruit" ? (
+          <p className="page-head__note m-0" data-testid="recruit-role-line">
+            Recruit is for elders, co-leaders and the leader: the clan&rsquo;s
+            pitch for recruiting forums and players they invite.
+          </p>
+        ) : null}
       </div>
     </section>
   );

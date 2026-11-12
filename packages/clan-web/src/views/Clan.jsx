@@ -537,8 +537,11 @@ export function Clan({
               me={me}
               clan={clan}
               roster={roster}
+              show={show}
               recruit={
-                recruit ? <Recruit clan={clan} navigate={navigate} /> : null
+                recruit && eldersUp(clan) ? (
+                  <Recruit clan={clan} navigate={navigate} />
+                ) : null
               }
               onRecruit={setRecruit}
             />

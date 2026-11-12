@@ -422,9 +422,11 @@ for (const size of ["wide", "@narrow"])
       await expect(
         page.getByRole("link", { name: "Clan map", exact: true }),
       ).toBeVisible();
+      // Recruit is the elders' and up (Jamie, 2026-11-12); with no active
+      // policy a member's foot has nothing else, so it is not drawn.
       await expect(
         page.getByRole("region", { name: "Spread the word" }),
-      ).toBeVisible();
+      ).toHaveCount(role === "elder" ? 1 : 0);
     });
   }
 

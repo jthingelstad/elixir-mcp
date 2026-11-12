@@ -14,7 +14,7 @@ guide: clan-policy
 
 ## The leaders pages
 
-Under **Run**, with **Scout** also at the foot of **Members**:
+Under **Run**, with **Recruit** and **Scout** also at the foot of **Members**:
 
 - **Review**, under Run beside **Waiting** and **Decided**: every member as the policy reads them today, grouped as
   actionable, building, held or clear. Group links jump to the members;
@@ -30,6 +30,11 @@ Under **Run**, with **Scout** also at the foot of **Members**:
 - **Scout**, at the foot of **Members**: paste an applicant's tag and see
   their numbers; with a policy, also whether they would meet its minimums
   today. Elders see it too, and it works before a policy.
+- **Recruit**, in **Spread the word** at the foot of **Members**: the
+  clan's pitch as a personal note or a recruiting post, with today's
+  numbers from the game. Elders read and copy it too; the leader and
+  co-leaders write the pitch. It works before a policy. A member who opens
+  its address sees the role it needs.
 
 **Standings** is a tab every member sees; the leaders set the awards up under
 **Run › Awards setup** and grant leaders' picks on the tab
