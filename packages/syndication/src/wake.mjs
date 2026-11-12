@@ -11,7 +11,8 @@
  *  admissions is one sync. The collector calls this after its commit and
  *  never fails a submission on it; so does Elixir Clan after a leader's
  *  attested fact (a departure's answer, an award), which no collector
- *  admits.
+ *  admits, and so does a person's highlight when it is posted or its
+ *  words change (wakeAfterHighlight).
  *
  *  A clan that posts its activity to a channel of its own (Clan
  *  Settings, Social) is woken the same way, by its own tag or a
@@ -96,6 +97,25 @@ export async function wakeAfterFact(db, fact, { outbox, now = Date.now() }) {
   if (!outbox || !clanTag) return 0;
   try {
     return await wakeSyndication(db, clanTag, { outbox, now });
+  } catch (err) {
+    console.error("syndication_wake_failed", err?.code ?? err?.name ?? "error");
+    return 0;
+  }
+}
+
+/** After a highlight is posted or its words change (#762): wake what its
+ *  player reaches, as an admission about that player does. A deletion
+ *  wakes nothing: no sync takes a line back. Never fails the write it
+ *  follows. */
+export async function wakeAfterHighlight(
+  db,
+  highlight,
+  { outbox, now = Date.now() },
+) {
+  const playerTag = highlight?.player_tag;
+  if (!outbox || !playerTag) return 0;
+  try {
+    return await wakeSyndication(db, playerTag, { outbox, now });
   } catch (err) {
     console.error("syndication_wake_failed", err?.code ?? err?.name ?? "error");
     return 0;

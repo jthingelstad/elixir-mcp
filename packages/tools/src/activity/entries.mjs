@@ -2821,18 +2821,26 @@ async function accountItems(db, accountId, fromMs, toMs) {
 /**
  * The highlights the followed players posted in the window (social slice
  * 4, #762): each the one single-battle item, carrying the player's words
- * and the battle it names. Selected by when it was posted, whatever the
- * basis: a post happens when it is written. Its share link is the
- * owner's alone: served only when the reader is the account that posted
- * it, or one of its agents. Section "battles"; public, like the battle
- * it names.
+ * and the battle it names. It happened when it was posted (`at`, and the
+ * occurred window); the record last learned it when its words last
+ * changed (`observed_at`, and the observed window), so an edit is the
+ * same story, at the same instant, grown to the highlight's revision
+ * (0240): a poller is served the correction and a cross-posted line is
+ * edited in place. Its share link is the owner's alone: served only when
+ * the reader is the account that posted it, or one of its agents.
+ * Section "battles"; public, like the battle it names.
  */
-async function highlightItems(db, subjects, { accountId, fromMs, toMs }) {
+async function highlightItems(
+  db,
+  subjects,
+  { accountId, fromMs, toMs, basis = "observed" },
+) {
   const players = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
   if (players.length === 0) return [];
+  const col = basis === "occurred" ? "created_at" : "updated_at";
   const { rows } = await db.query(
     `select h.highlight_id, h.player_tag, h.battle_id, h.words, h.share_id,
-            h.created_at, p.name,
+            h.created_at, h.updated_at, h.revision, p.name,
             (h.account_id = (select coalesce(a.owned_by_account_id, a.account_id)
                                from account a where a.account_id = $2::uuid)) as yours,
             b.battle_time, b.type, b.event_tag, b.game_mode_name,
@@ -2851,8 +2859,8 @@ async function highlightItems(db, subjects, { accountId, fromMs, toMs }) {
        join battle_participant me
          on me.battle_id = h.battle_id and me.player_tag = h.player_tag
       where h.player_tag = any($1::text[])
-        and h.created_at >= ${ts(fromMs + 1)} and h.created_at < ${ts(toMs + 1)}
-      order by h.created_at`,
+        and h.${col} >= ${ts(fromMs + 1)} and h.${col} < ${ts(toMs + 1)}
+      order by h.${col}`,
     [players, accountId],
   );
   if (rows.length === 0) return [];
@@ -2871,6 +2879,7 @@ async function highlightItems(db, subjects, { accountId, fromMs, toMs }) {
       subject_name: r.name ?? r.player_tag,
       subjects: [{ tag: r.player_tag, kind: "player", name: r.name ?? null }],
       at: iso(r.created_at),
+      observed_at: iso(r.updated_at),
       kind: "battle_highlight",
       section: "battles",
       facts: {
@@ -2896,7 +2905,10 @@ async function highlightItems(db, subjects, { accountId, fromMs, toMs }) {
         },
         ...(r.yours && r.share_id ? { share_url: postUrl(r.share_id) } : {}),
       },
-      [STORY]: moment("battle_highlight", r.highlight_id),
+      [STORY]: {
+        ...moment("battle_highlight", r.highlight_id),
+        revision: Math.max(1, Number(r.revision) || 1),
+      },
     };
   });
 }
@@ -3245,7 +3257,12 @@ export async function buildTimeline(
   }
   items.push(...(await accountItems(db, accountId, fromMs, toMs)));
   items.push(
-    ...(await highlightItems(db, subjects, { accountId, fromMs, toMs })),
+    ...(await highlightItems(db, subjects, {
+      accountId,
+      fromMs,
+      toMs,
+      basis,
+    })),
   );
   items.push(
     ...(await factItems(db, subjects, {
@@ -3562,7 +3579,8 @@ export const NEWS_SOURCES = {
   player_moments: PLAYER_MOMENT_KINDS,
   player_clan_moves: ["clan_joined", "clan_left"],
   player_quiet: ["quiet_crossed"],
-  // highlightItems: a followed player's highlights posted in the window.
+  // highlightItems: a followed player's highlights posted or edited in
+  // the window.
   player_highlights: ["battle_highlight"],
   // buildClanEntry: the ledger (role_changed is served as
   // member_role_changed), member moments, sessions and returns from
@@ -3646,9 +3664,10 @@ export async function timelineNews(
     player_quiet: players.length && quietSql("select unnest(p.players)"),
     player_highlights:
       players.length &&
+      // Observed when its words last changed: a post, or an edit (0240).
       `exists (select 1 from battle_highlight h
                 where h.player_tag = any(p.players)
-                  and ${inWindow("h.created_at")})`,
+                  and ${inWindow("h.updated_at")})`,
     clan_ledger:
       clans.length &&
       `exists (select 1 from clan_event e

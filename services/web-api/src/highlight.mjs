@@ -156,19 +156,29 @@ export async function createHighlight(
   return { status: 201, highlight: own(rows[0]) };
 }
 
-/** Change a highlight's words. Only the account that posted it. */
+/** Change a highlight's words. Only the account that posted it. Words
+ *  that change count up its revision (0240) and stamp updated_at, so the
+ *  timeline serves the same item grown and a cross-posted line is edited
+ *  in place; the same words again change nothing. `changed` says which,
+ *  for the caller's syndication wake. */
 export async function editHighlight(db, accountId, highlightId, { words }) {
   const clean = cleanWords(words);
   if (clean === null)
     return fail(400, "too_long", `Up to ${WORDS_MAX} characters.`);
+  // SET reads the row as it was; RETURNING reads it as written, so a
+  // changed updated_at (now() is the transaction's instant) says the
+  // words changed.
   const { rows } = await db.query(
-    `update battle_highlight set words = $3, updated_at = now()
+    `update battle_highlight
+        set revision = revision + case when words <> $3 then 1 else 0 end,
+            updated_at = case when words <> $3 then now() else updated_at end,
+            words = $3
       where highlight_id = $1 and account_id = $2
-      returning ${OWN_COLUMNS}`,
+      returning ${OWN_COLUMNS}, updated_at = now() as changed`,
     [highlightId, accountId, clean],
   );
   if (rows.length === 0) return fail(404, "not_found", "No such highlight.");
-  return { status: 200, highlight: own(rows[0]) };
+  return { status: 200, highlight: own(rows[0]), changed: rows[0].changed };
 }
 
 /** Delete a highlight and its words; its link, if shared, is a 404. */
