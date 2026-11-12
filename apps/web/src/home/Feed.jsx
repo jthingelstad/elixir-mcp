@@ -66,7 +66,9 @@ export function HomeFeed() {
         Reading the last seven days…
       </p>
     );
-  if (query.isError)
+  // Only a first page that failed is the feed's failure: a More that failed
+  // keeps the pages already read and says so beside More (Codex on #800).
+  if (query.isError && pages.length === 0)
     return (
       <ErrorState
         title="Your feed didn’t load"
@@ -99,7 +101,15 @@ export function HomeFeed() {
       timeline.counts?.[c.key] ?? feedShown(items, c.key).length,
     ]),
   );
-  const newCount = timeline.counts?.new ?? items.filter(isNew).length;
+  // The server's New count is against the place it read; once a visit opens
+  // on a later place (the page marked it), count what is loaded instead, so
+  // the chip and the items it filters agree (Codex on #800).
+  const countedFrom = timeline.counts?.new_since ?? null;
+  const newCount =
+    timeline.counts?.new !== undefined &&
+    (countedFrom ? Date.parse(countedFrom) : null) === openedMs
+      ? timeline.counts.new
+      : items.filter(isNew).length;
   const total = timeline.total ?? items.length;
   return (
     <div className="kit-feed">

@@ -981,6 +981,9 @@ test("Home's feed comes thirty a page: More reads on in the same week, the first
   // The chips count the whole week, not the page.
   assert.equal(one.counts.everyone, 35);
   assert.equal(one.counts.friends, 35);
+  // New is counted from the place the read found, and says which (Codex on
+  // #800): this person has none yet.
+  assert.equal(one.counts.new_since, null);
 
   const more = await feed({ cursor: one.next });
   assert.equal(more.statusCode, 200, more.body);
