@@ -60,7 +60,7 @@ export function LadderFrame({
         navigate={navigate}
       />
       <Tabs
-        label="Ladder"
+        label="Stats"
         value={slug}
         items={LADDER_PAGES.map((p) => ({
           key: p.slug,

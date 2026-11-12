@@ -39,9 +39,9 @@
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Ladder",
-      "short_name": "Ladder",
-      "url": "/ladder",
+      "name": "Stats",
+      "short_name": "Stats",
+      "url": "/home/you/stats",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {

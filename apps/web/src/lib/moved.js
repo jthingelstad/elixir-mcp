@@ -15,7 +15,7 @@ import { clanMoved } from "@elixir-mcp/clan-web/lib/moved.js";
  * `#login_token=` still arrive.
  */
 import { CONSOLE } from "./console.js";
-import { ladderMoved } from "../ladder/ladder.js";
+import { ladderMoved } from "../ladder/paths.js";
 import { SETTINGS } from "./settings.js";
 
 export const SERVICE_STATUS = "/data/service";

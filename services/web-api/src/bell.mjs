@@ -24,9 +24,9 @@
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
 
 /** Reactions come from items of the last seven days: the cheer window. */
-export const REACTION_DAYS = 7;
+const REACTION_DAYS = 7;
 /** Followers and answers look back thirty days. */
-export const BELL_DAYS = 30;
+const BELL_DAYS = 30;
 const LIST_CAP = 20;
 /** How many reads of the bell one person may make in an hour: the dot reads
  *  it every few minutes, and opening the sheet reads it again. */
@@ -48,7 +48,7 @@ async function ownVerified(db, accountId) {
 }
 
 /** When the account last opened the bell, or null for never. */
-export async function seenAt(db, accountId) {
+async function seenAt(db, accountId) {
   const { rows } = await db.query(
     `select seen_at from bell_seen where account_id = $1`,
     [accountId],

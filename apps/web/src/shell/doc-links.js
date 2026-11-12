@@ -360,29 +360,29 @@ export const DOC_LINKS = {
   // Ladder's pages: the section's own page first, then the tool each
   // page reads.
   "ladder:season": [
-    "Ladder",
+    "Stats",
     [
-      ["Ladder", "/docs/ladder"],
+      ["Stats", "/docs/ladder"],
       ["battles_performance", "/docs/tools/battles#battles_performance"],
       ["players_summary", "/docs/tools/players#players_summary"],
     ],
   ],
   "ladder:battles": [
-    "Ladder",
+    "Stats",
     [
       ["Battles", "/docs/ladder-battles#battles"],
       ["battles_query", "/docs/tools/battles#battles_query"],
     ],
   ],
   "ladder:decks": [
-    "Ladder",
+    "Stats",
     [
       ["Decks", "/docs/ladder-decks#decks"],
       ["battles_decks", "/docs/tools/battles#battles_decks"],
     ],
   ],
   "ladder:cards": [
-    "Ladder",
+    "Stats",
     [
       ["Cards", "/docs/ladder-cards#cards"],
       ["battles_cards", "/docs/tools/battles#battles_cards"],

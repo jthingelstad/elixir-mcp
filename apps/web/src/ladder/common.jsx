@@ -145,11 +145,11 @@ export function NoPlayers() {
     <div className="ladder-page">
       <PageHead
         className="ladder-head"
-        title="Ladder"
+        title="Stats"
         sub="Your season, read back"
       />
       <Empty
-        title="Ladder starts with your player"
+        title="Stats start with your player"
         titleAs="h2"
         action={
           <Link className="btn btn--primary" to="/home#add-player">

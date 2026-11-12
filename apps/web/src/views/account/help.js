@@ -27,7 +27,7 @@ export const SETTINGS_HELP = {
     docs: "tracking",
     lines: [
       "The players and clans you added. Added means recorded. Each one takes a slot from the pool you share with your agents.",
-      "Your main player is who Ladder and Home open on. Verify is what makes a player yours: one battle proves it.",
+      "Your main player is who You, Stats and Home open on. Verify is what makes a player yours: one battle proves it.",
     ],
   },
   player: {

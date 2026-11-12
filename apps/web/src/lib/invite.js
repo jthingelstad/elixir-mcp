@@ -54,7 +54,7 @@ export function clanChatLine(clanName) {
 export function clanMessage(clanName) {
   const name = (clanName ?? "").trim() || null;
   return [
-    `I've been keeping my Clash Royale battle history on Elixir. The game shows roughly your last 30 battles; Elixir records them as they come in, keeps them, and reads your season back on Ladder.`,
+    `I've been keeping my Clash Royale battle history on Elixir. The game shows roughly your last 30 battles; Elixir records them as they come in, keeps them, and reads your season back in Stats.`,
     `Sign up free with an email and add your player tag, and you also get ${week(name)} by email every Monday: the river race, who joined and left, and the week in battles.`,
     `It's an unofficial fan project, not endorsed by Supercell.`,
   ].join("\n\n");

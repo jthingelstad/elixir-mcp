@@ -474,7 +474,7 @@ test(
     ).toBe("/signin?signup&return_to=%2Fhome%2Fyou%2Fstats%2Fcards");
     expect(
       screen
-        .getByRole("link", { name: "How Ladder works" })
+        .getByRole("link", { name: "How Stats works" })
         .getAttribute("href"),
     ).toBe("/docs/ladder");
   },

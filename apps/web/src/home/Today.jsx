@@ -87,7 +87,7 @@ function YourWeek({ player }) {
   return (
     <Panel
       title="Your week"
-      action={<Link to={link}>Open in Ladder</Link>}
+      action={<Link to={link}>Open in Stats</Link>}
       className="kit-week"
       pad
     >

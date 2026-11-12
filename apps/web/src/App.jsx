@@ -902,7 +902,7 @@ export const routeTree = rootRoute.addChildren([
  *  falls back to the section's first page), the rail position, the
  *  ids. Route components read this rather than re-deriving it. */
 /** Ladder's place in the route table: one section, signed in. */
-const LADDER_SECTION = { label: "Ladder", authed: true, pages: [] };
+const LADDER_SECTION = { label: "Stats", authed: true, pages: [] };
 const SETTINGS_SECTION = { label: "Settings", authed: true, pages: [] };
 
 export function useHere() {

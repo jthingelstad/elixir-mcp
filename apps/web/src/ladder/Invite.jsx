@@ -28,12 +28,12 @@ export function LadderInvite({ returnTo, onSignIn }) {
       className="mx-auto mt-8 max-w-[640px]"
       aria-labelledby="ladder-invite"
     >
-      <p className="eyebrow">Ladder</p>
+      <p className="eyebrow">Stats</p>
       <h1 className="hero-title" id="ladder-invite">
         Your season, read back
       </h1>
       <p className="lede">
-        Ladder reads your own battles back to you, one season and one mode at a
+        Stats reads your own battles back to you, one season and one mode at a
         time, from what Elixir has recorded.
       </p>
       <p className="page__lede">
@@ -63,7 +63,7 @@ export function LadderInvite({ returnTo, onSignIn }) {
       </div>
       <p className="footnote mt-4">
         Free signup with an email, then add your player.{" "}
-        <a href="/docs/ladder">How Ladder works</a> ·{" "}
+        <a href="/docs/ladder">How Stats works</a> ·{" "}
         <a href={FAMILY_SAMPLE_BATTLE.path}>{FAMILY_SAMPLE_BATTLE.label}</a>
       </p>
     </section>
