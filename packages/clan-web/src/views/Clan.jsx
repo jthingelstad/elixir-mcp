@@ -393,9 +393,9 @@ export function Clan({
   const [all, setAll] = useState(false);
   const [recruit, setRecruit] = useState(show === "recruit");
   const find = search;
-  const loaded = Boolean(state.roster);
+  const loaded = Boolean(state.roster) || Boolean(state.error);
   // Recruit's and Scout's old addresses open their place at the foot
-  // (`?show=`), once the roster has drawn the page above it.
+  // (`?show=`), once the roster read has settled above it.
   useEffect(() => {
     if (show === "recruit") setRecruit(true);
     if (!show || !loaded) return;
@@ -524,38 +524,45 @@ export function Clan({
               history={history}
               navigate={navigate}
             />
-            {!fromRun ? (
-              <SpreadWordFoot
-                me={me}
-                clan={clan}
-                roster={roster}
-                recruit={
-                  recruit ? <Recruit clan={clan} navigate={navigate} /> : null
-                }
-                onRecruit={setRecruit}
-              />
-            ) : null}
-            {/* Elders and up; anyone else only when the address asks, and
-                then Scout answers with its role line. */}
-            {eldersUp(clan) || show === "scout" ? (
-              <section
-                id="scout"
-                className="clan-foot"
-                aria-labelledby="scout-head"
-              >
-                <h2 id="scout-head" className="clan-foot__head">
-                  Scout
-                </h2>
-                <p className="page-head__note m-0">
-                  For elders, co-leaders and the leader: a player&rsquo;s
-                  numbers before they join.
-                </p>
-                <Scout clan={clan} />
-              </section>
-            ) : null}
           </div>
         </>
       ) : null}
+      {/* The foot stands apart from the roster read: Recruit and Scout make
+          their own reads, so a clan Elixir does not record yet, or a roster
+          read that failed, still has both. */}
+      {state.loading && !roster ? null : (
+        <>
+          {!fromRun ? (
+            <SpreadWordFoot
+              me={me}
+              clan={clan}
+              roster={roster}
+              recruit={
+                recruit ? <Recruit clan={clan} navigate={navigate} /> : null
+              }
+              onRecruit={setRecruit}
+            />
+          ) : null}
+          {/* Elders and up; anyone else only when the address asks, and
+          then Scout answers with its role line. */}
+          {eldersUp(clan) || show === "scout" ? (
+            <section
+              id="scout"
+              className="clan-foot"
+              aria-labelledby="scout-head"
+            >
+              <h2 id="scout-head" className="clan-foot__head">
+                Scout
+              </h2>
+              <p className="page-head__note m-0">
+                For elders, co-leaders and the leader: a player&rsquo;s numbers
+                before they join.
+              </p>
+              <Scout clan={clan} />
+            </section>
+          ) : null}
+        </>
+      )}
     </ZoneProvider>
   );
 }
