@@ -541,3 +541,66 @@ test("the setting: a Discord webhook only, a hello on each new start, never the 
   assert.equal(sent.length, 3);
   assert.notEqual(open(sent[2].message.webhook, owner), HOOK);
 });
+
+test("a highlight is posted once, and edited in place when its words change", async () => {
+  const db = ctx.db;
+  await enable(person, "2026-09-10T00:00Z");
+  const {
+    rows: [{ battle_id: battleId }],
+  } = await db.query(
+    `select battle_id from battle_participant where player_tag = $1
+      order by battle_time desc limit 1`,
+    [OBSERVER],
+  );
+  const {
+    rows: [{ highlight_id: highlightId }],
+  } = await db.query(
+    `insert into battle_highlight (player_tag, battle_id, account_id, words,
+                                   created_at, updated_at)
+     values ($1, $2, $3, 'first words', '2026-09-10T12:00Z', '2026-09-10T12:00Z')
+     returning highlight_id`,
+    [OBSERVER, battleId, person],
+  );
+  const { sent, outbox } = recorder();
+  const lines = () =>
+    sent.flatMap((s) => s.message.posts).filter((p) => /words/.test(p.content));
+  await syncAccount(db, person, {
+    outbox,
+    now: Date.parse("2026-09-10T12:02Z"),
+  });
+  const [posted] = lines();
+  assert.ok(posted, "the highlight is posted");
+  assert.match(posted.content, /first words/);
+
+  // The owner edits the words (as editHighlight writes them): the next
+  // sync edits the same line at a higher revision.
+  await db.query(
+    `update battle_highlight
+        set words = 'better words', revision = revision + 1,
+            updated_at = '2026-09-10T15:00Z'
+      where highlight_id = $1`,
+    [highlightId],
+  );
+  await syncAccount(db, person, {
+    outbox,
+    now: Date.parse("2026-09-10T15:02Z"),
+  });
+  const [, edited] = lines();
+  assert.ok(edited, "the edit is handed to the relay");
+  assert.equal(edited.key, posted.key);
+  assert.ok(edited.revision > posted.revision);
+  assert.match(edited.content, /better words/);
+  const row = (await told(person)).find((r) => r.item_id === posted.key);
+  assert.equal(row.revision, edited.revision);
+
+  // Read again with nothing new: nothing is handed over.
+  const before = lines().length;
+  await syncAccount(db, person, {
+    outbox,
+    now: Date.parse("2026-09-10T15:30Z"),
+  });
+  assert.equal(lines().length, before);
+  await db.query(`delete from battle_highlight where highlight_id = $1`, [
+    highlightId,
+  ]);
+});

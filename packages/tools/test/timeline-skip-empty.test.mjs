@@ -212,8 +212,8 @@ before(async () => {
   // player_highlights: a highlight of the friend's first battle, posted
   // at T+8h, long after the battle was learned (#762).
   await db.query(
-    `insert into battle_highlight (player_tag, battle_id, account_id, words, created_at)
-     values ($1, 'skip-empty-1', $2, 'what a finish', $3)`,
+    `insert into battle_highlight (player_tag, battle_id, account_id, words, created_at, updated_at)
+     values ($1, 'skip-empty-1', $2, 'what a finish', $3, $3)`,
     [FRIEND, owner, at(SEEDED.player_highlights)],
   );
   // account: an account event.
