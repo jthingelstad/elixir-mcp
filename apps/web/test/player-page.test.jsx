@@ -85,9 +85,11 @@ const reply = (body, status = 200) => ({
 let page;
 let plan;
 let posted;
+let pageCheers;
 beforeEach(() => {
   cleanup();
   page = PAGE;
+  pageCheers = {};
   posted = [];
   plan = {
     clan_tag: null,
@@ -121,6 +123,16 @@ beforeEach(() => {
     const p = String(path);
     if (p === "/api/me") return reply(ME);
     if (p.startsWith("/api/player?")) return reply(page);
+    if (p.startsWith("/api/me/cheers?")) return reply(pageCheers);
+    if (p === "/api/me/cheers" && init?.method === "PUT") {
+      const body = JSON.parse(init.body);
+      posted.push([p, body]);
+      return reply({
+        item_id: body.item_id,
+        cheers: { on_fire: 2 },
+        my_cheer: body.cheer,
+      });
+    }
     if (p.startsWith("/api/me/follow-cost"))
       return reply({
         player_tag: "#QQ8822",
@@ -275,5 +287,61 @@ test(
         ["/api/me/follow-all", { player_tags: ["#QQ8822", "#UUU2"] }],
       ]),
     );
+  },
+);
+
+test(
+  "cheers on the page: only on an item in your own feed, sent with its follows",
+  { timeout: 20000 },
+  async () => {
+    page = {
+      ...PAGE,
+      timeline: [
+        ...PAGE.timeline,
+        {
+          id: "t2",
+          kind: "pol_league_up",
+          at: "2026-10-20T14:00:00.000Z",
+          text: "Copper Fern reached Path of Legends",
+        },
+      ],
+    };
+    pageCheers = {
+      items: [{ id: "t1", cheers: { on_fire: 1 }, my_cheer: null }],
+      subjects: ["#GRC2"],
+    };
+    window.history.pushState({}, "", "/home/player/QQ8822");
+    render(<App />);
+    await screen.findByText("Copper Fern reached Path of Legends");
+    const cheer = await screen.findByRole("button", { name: "Cheer" });
+    // One item in your feed, one Cheer: the older item has none, and no
+    // counts.
+    expect(screen.getAllByRole("button", { name: "Cheer" })).toHaveLength(1);
+    expect(screen.getByText("1 person")).toBeTruthy();
+    fireEvent.click(cheer);
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Choose a cheer" })).getByRole(
+        "button",
+        { name: /Royal/ },
+      ),
+    );
+    await waitFor(() =>
+      expect(posted).toContainEqual([
+        "/api/me/cheers",
+        { item_id: "t1", cheer: "royal", subjects: ["#GRC2"] },
+      ]),
+    );
+  },
+);
+
+test(
+  "no cheers on the page when nothing on it is in your feed",
+  { timeout: 20000 },
+  async () => {
+    pageCheers = { items: [], subjects: [] };
+    window.history.pushState({}, "", "/home/player/QQ8822");
+    render(<App />);
+    await screen.findByText("Copper Fern won five in a row");
+    expect(screen.queryByRole("button", { name: "Cheer" })).toBeNull();
   },
 );

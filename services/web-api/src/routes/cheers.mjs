@@ -5,17 +5,25 @@
  *  (an agent is refused, and no agent console reaches it:
  *  AGENT_SCOPED_ROUTES does not list it), rate limited.
  *
+ *  `GET /api/me/cheers?player=<tag>` or `?battle=<ref>` answers which of a
+ *  player page's or a battle page's items take cheers for this reader (the
+ *  ones in their own feed now) and their counts. Read separately, so the
+ *  page itself and the public battle JSON stay as they are.
+ *
  *  `/api/me/rss` is the person's private RSS link: GET says whether it is
  *  on, POST makes or resets it (answering the link, the one time it is
  *  shown), DELETE turns it off. `GET /api/rss/<token>` is the feed itself:
  *  the token is its credential, and a token that opens nothing is a 404
  *  (class "private link" in the public-boundary test). */
 import { checkRateLimit } from "@elixir-mcp/auth";
+import { normalizeTag } from "@elixir-mcp/contracts";
 import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import { json } from "../http.mjs";
 import { annotateFeed } from "../feed.mjs";
 import {
   CHEERS_PER_HOUR,
+  CHEER_READS_PER_HOUR,
+  cheersOnPage,
   inOwnFeed,
   readCheerBody,
   setCheer,
@@ -96,6 +104,42 @@ export function cheersRoutes({ resolveAccount }) {
         200,
         await setCheer(db, account.accountId, asked.itemId, asked.cheer),
       );
+    },
+
+    // A page's cheers: which of its items are in the reader's feed now.
+    "GET /api/me/cheers": async (db, event) => {
+      const { account, refused } = await person(db, event, false);
+      if (refused) return refused;
+      const q = event.queryStringParameters ?? {};
+      let player = null;
+      if (q.player != null) {
+        try {
+          player = normalizeTag(String(q.player));
+        } catch {
+          return json(400, { error: "invalid_tag" });
+        }
+      }
+      const battle = player ? null : String(q.battle ?? "").trim();
+      if (!player && !battle)
+        return json(400, {
+          error: "bad_request",
+          message: "Name a player or a battle.",
+        });
+      if (
+        !(await checkRateLimit(db, {
+          bucket: `cheerread#${account.accountId}`,
+          max: CHEER_READS_PER_HOUR,
+        }))
+      )
+        return limited();
+      const page = await cheersOnPage(db, {
+        accountId: account.accountId,
+        subjects: await subjectsFor(db, account.accountId),
+        player,
+        battle,
+      });
+      if (!page) return json(404, { error: "not_found" });
+      return json(200, page);
     },
 
     "GET /api/me/rss": async (db, event) => {

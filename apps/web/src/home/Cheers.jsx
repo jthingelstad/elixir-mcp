@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { useCheer } from "../lib/queries.js";
+import { pageCheersKey, useCheer, usePageCheers } from "../lib/queries.js";
 import { useScope } from "../lib/scope.js";
 import {
   CHEERS,
@@ -16,10 +16,13 @@ import {
  * "You and 2 others", never who. Under an agent's scope (if it is ever
  * drawn there) the counts show and nothing can be pressed: an agent never
  * cheers.
+ *
+ * Home's feed by default; `where` names another cached list the item lives
+ * in (a player page's or a battle page's cheers read, `usePageCheered`).
  */
-export function Cheers({ it }) {
+export function Cheers({ it, where }) {
   const scope = useScope();
-  const cheer = useCheer();
+  const cheer = useCheer(where);
   const [open, setOpen] = useState(false);
   const pickId = useId();
   const mine = it.my_cheer ?? null;
@@ -107,4 +110,31 @@ export function Cheers({ it }) {
       ) : null}
     </div>
   );
+}
+
+/**
+ * A player page's or a battle page's cheers (2026-11-12): an item there
+ * takes cheers, and shows its counts, only while it is in your own feed
+ * (the server's `cheersOnPage` says which: `items`). `of(item)` is the item ready
+ * for <Cheers>, or null for one that has none; `where` is the list it lives
+ * in. Signed out, or before the read answers, nothing has cheers.
+ */
+export function usePageCheered(ask, enabled = true) {
+  const read = usePageCheers(ask, enabled);
+  const byId = new Map((read.data?.items ?? []).map((c) => [c.id, c]));
+  return {
+    items: read.data?.items ?? [],
+    where: { key: pageCheersKey(ask), list: "items" },
+    of: (it) => {
+      const c = it?.id ? byId.get(it.id) : null;
+      return c
+        ? {
+            ...it,
+            cheers: c.cheers ?? {},
+            my_cheer: c.my_cheer ?? null,
+            cheer_subjects: read.data.subjects ?? [],
+          }
+        : null;
+    },
+  };
 }

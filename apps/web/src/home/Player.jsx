@@ -22,6 +22,7 @@ import { CONSOLE } from "../lib/console.js";
 import { followMeHref, playerHref } from "../lib/player.js";
 import { usePlayerPage } from "../lib/queries.js";
 import { tagFromPath, tagPath } from "../lib/tag-url.js";
+import { Cheers, usePageCheered } from "./Cheers.jsx";
 import { FollowAll, FollowButton } from "./follow.jsx";
 
 /**
@@ -97,6 +98,9 @@ export function PlayerView({
     PLAYER_TABS.some((t) => t.key === initialTab) ? initialTab : "timeline",
   );
   const p = page.player;
+  // Cheers only on what is in your own feed now: a player you follow, or
+  // your clan's member, in the last week.
+  const cheered = usePageCheered({ player: p.tag });
   const you = page.you;
   const clanOpen = me?.features?.clan_internal === true;
   const sub = [
@@ -171,17 +175,20 @@ export function PlayerView({
           items={page.timeline}
           empty={`Nothing recorded in the last ${page.window_days} days.`}
           more={page.timeline_more}
+          cheered={cheered}
         />
       ) : tab === "highlights" ? (
         <ItemList
           items={page.highlights}
           empty="No highlights posted yet."
           words
+          cheered={cheered}
         />
       ) : tab === "moments" ? (
         <ItemList
           items={page.moments}
           empty={`No moments in the last ${page.window_days} days.`}
+          cheered={cheered}
         />
       ) : (
         <Follows page={page} />
@@ -217,7 +224,7 @@ function Counts({ page }) {
   );
 }
 
-function ItemList({ items, empty, more = 0, words = false }) {
+function ItemList({ items, empty, more = 0, words = false, cheered }) {
   const { when } = useClock();
   if (items.length === 0)
     return (
@@ -232,6 +239,7 @@ function ItemList({ items, empty, more = 0, words = false }) {
           /^https?:\/\/[^/]+/,
           "",
         );
+        const withCheers = cheered?.of(it);
         return (
           <div key={it.id ?? i} className="kit-row kit-tl">
             <span className="kit-row__main">
@@ -245,6 +253,9 @@ function ItemList({ items, empty, more = 0, words = false }) {
                 <Link to={battle} className="link kit-tl__more">
                   Open the battle
                 </Link>
+              ) : null}
+              {withCheers ? (
+                <Cheers it={withCheers} where={cheered.where} />
               ) : null}
             </span>
             <span className="kit-row__right">{it.at ? when(it.at) : null}</span>

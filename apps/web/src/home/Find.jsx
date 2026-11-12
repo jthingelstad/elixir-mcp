@@ -6,6 +6,7 @@ import {
   Panel,
   Row,
   Rows,
+  Tabs,
   TagText,
   useFlash,
 } from "@elixir-mcp/ui";
@@ -13,22 +14,74 @@ import { useMe } from "../App.jsx";
 import { followMeHref } from "../lib/player.js";
 import { useSheet } from "../shell/sheet.js";
 import { FollowCost, Followed, useFollow } from "./follow.jsx";
+import { FromYourBattles, YourClanPeople } from "./People.jsx";
 
 /**
- * Find (slice 7, #765): where you go to find people and be found. Search
- * opens the sheet every page has; a tag follows a friend; the clan
- * directory lists clans on Elixir; your Follow me link is how a friend
- * finds you. Near you waits on its legal question and is not here.
+ * Find (slice 7, #765; its sections 2026-11-12): where you go to find people
+ * and be found. Your clan lists its members with what following each costs,
+ * and Follow my clan; Search opens the sheet every page has, and a tag
+ * follows a friend; From your battles lists the players you met; the clan
+ * directory lists clans on Elixir; your Follow me link is how a friend finds
+ * you. Near you waits on its legal question and is not here, not even as a
+ * placeholder.
  */
+export const FIND_SECTIONS = [
+  { key: "clan", label: "Your clan", own: true },
+  { key: "search", label: "Search" },
+  { key: "battles", label: "From your battles", own: true },
+  { key: "directory", label: "Clan directory" },
+  { key: "link", label: "Your link", own: true },
+];
+
+/** The sections a reader has: the ones about your own players only when
+ *  you have one. */
+export const findSections = (hasOwn) =>
+  FIND_SECTIONS.filter((t) => hasOwn || !t.own).map(({ key, label }) => ({
+    key,
+    label,
+  }));
+
 export function FindPage() {
   const { me } = useMe();
-  const open = useSheet();
   const own = (me?.claims ?? []).filter(
     (c) => c.is_primary || c.relationship === "alt",
   );
+  const sections = findSections(own.length > 0);
+  // Search first: Find is the phone's search, and the old Friends address
+  // lands here for its follow form [engineering, 2026-11-12].
+  const [tab, setTab] = useState("search");
   return (
     <div className="kit-home kit-home--read">
       <PageHead title="Find" sub="People to follow, and the way to you." />
+      <Tabs label="Find" items={sections} value={tab} onSelect={setTab} wrap />
+      {tab === "clan" ? (
+        <YourClanPeople />
+      ) : tab === "battles" ? (
+        <FromYourBattles />
+      ) : tab === "directory" ? (
+        <Panel title="Clans">
+          <Rows>
+            <Row
+              href="/clan/directory"
+              title="Clan directory"
+              detail="Every clan on Elixir, by name, with its open seats."
+            />
+          </Rows>
+        </Panel>
+      ) : tab === "link" ? (
+        <FollowMeLink players={own} />
+      ) : (
+        <Search />
+      )}
+    </div>
+  );
+}
+
+/** Search: the sheet every page opens, and a tag to follow. */
+function Search() {
+  const open = useSheet();
+  return (
+    <>
       <button
         type="button"
         className="kit-find__search"
@@ -39,17 +92,7 @@ export function FindPage() {
         <span>{FAMILY_PLACES.search.prompt}</span>
       </button>
       <FollowForm />
-      <Panel title="Clans">
-        <Rows>
-          <Row
-            href="/clan/directory"
-            title="Clan directory"
-            detail="Every clan on Elixir, by name, with its open seats."
-          />
-        </Rows>
-      </Panel>
-      {own.length > 0 ? <FollowMeLink players={own} /> : null}
-    </div>
+    </>
   );
 }
 

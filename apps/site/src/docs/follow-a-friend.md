@@ -33,6 +33,23 @@ takes the tag and adds
 the player as a friend in one step. It asks for your own player first if you
 have none, and never makes the player your primary. They aren't told.
 
+## Find
+
+Find is where you look for people to follow, in sections:
+
+| Section | What it holds |
+|---|---|
+| Your clan | your player's clan now: each member, what following them costs, and **Follow my clan**, asked once with the same pricing and refusal as following a clan from a player's page |
+| Search | the search sheet, and **Follow a friend** by tag. Find opens here |
+| From your battles | the players your own players met in the last 30 days, opponents and 2v2 teammates, most met first: how often, how it went for you ("Met 3 times · 2 wins, 1 loss") and when last. From the log only, never a rating. Players you follow are marked, never hidden |
+| Clan directory | every clan on Elixir |
+| Your link | your Follow me link ([A player's page](/docs/player-page#follow-me-links)) |
+
+Your clan, From your battles and Your link need a player of your own.
+Each person shows their game name and tag, never a nickname. Home's
+**People to follow** draws from the same places
+([Beside the feed](/docs/timeline#beside-the-feed)).
+
 A first player named `friend` or `watching` stays that, and the account has no
 player of its own until you name one with `relationship: "primary"`.
 Through a [connected app](/docs/connections), `elixir_track_player` takes a `relationship`, so

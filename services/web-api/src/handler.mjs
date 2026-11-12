@@ -53,6 +53,7 @@ import { battleRoutes } from "./routes/battle.mjs";
 import { highlightRoutes } from "./routes/highlight.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
+import { peopleRoutes } from "./routes/people.mjs";
 import {
   CONTRACT_HEADER,
   json,
@@ -451,6 +452,7 @@ export function makeHandler({
     ...battleRoutes({ siteShell, shareImage }),
     ...cheersRoutes({ resolveAccount }),
     ...bellRoutes({ resolveAccount }),
+    ...peopleRoutes({ resolveAccount }),
     ...highlightRoutes({
       resolveAccount,
       siteShell,

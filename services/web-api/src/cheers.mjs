@@ -14,9 +14,17 @@
  * rebuilds the last seven days for the item's subjects the person follows
  * (one to a few subjects, not the whole feed) and finds the id there.
  * Taking a cheer back needs no such check.
+ *
+ * The player page and the battle page (2026-11-12) carry cheers by the same
+ * rule: an item there takes cheers, and shows its counts, only while it is
+ * in the reader's own feed, so a page never lets anyone cheer what Home
+ * would not show them [engineering, 2026-11-12: the narrow reading].
+ * `cheersOnPage` names those items; everything else on the page has none.
  */
 import { normalizeTag } from "@elixir-mcp/contracts";
-import { buildTimeline } from "@elixir-mcp/tools/activity/entries";
+import { resolveBattleRef } from "@elixir-mcp/record/battle-links";
+import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
+import { proofOf } from "./feed.mjs";
 
 /** The six, in the order the picker shows them. The web app names them
  *  (apps/web/src/home/cheer-set.js); this list is what the database allows
@@ -30,6 +38,10 @@ export const CHEER_KEYS = [
   "grind",
 ];
 const KEYS = new Set(CHEER_KEYS);
+
+/** Pages' cheer reads one person may make in an hour: one for each player
+ *  page or battle page opened, each a slice of the feed rebuilt. */
+export const CHEER_READS_PER_HOUR = 240;
 
 const ITEM_ID_RE = /^tl_[0-9a-f]{20}$/;
 
@@ -87,14 +99,14 @@ export async function withCheers(db, items, accountId) {
   );
 }
 
-/** Is this item in the person's own feed, as of now? The item's subjects
- *  the account follows (the page sends the item's subject tags; only the
- *  account's own follows count), the last seven days, the same build the
- *  feed made. */
-export async function inOwnFeed(db, { accountId, itemId, tags, subjects }) {
+/** The person's own feed now, for some of its subjects: the last seven
+ *  days, the same build the feed made, only the items that take cheers.
+ *  `tags` names the subjects (a page sends the item's subject tags; only the
+ *  account's own follows count). Empty when the person follows none. */
+async function feedItemsFor(db, { accountId, tags, subjects }) {
   const asked = new Set(tags);
   const mine = subjects.filter((s) => asked.has(s.tag));
-  if (mine.length === 0) return false;
+  if (mine.length === 0) return { items: [], tags: [] };
   const toMs = Date.now();
   const built = await buildTimeline(db, mine, {
     fromMs: toMs - 7 * 86_400_000,
@@ -102,7 +114,16 @@ export async function inOwnFeed(db, { accountId, itemId, tags, subjects }) {
     accountId,
     interactive: true,
   });
-  return built.timeline.some((it) => it.id === itemId && cheerable(it));
+  return {
+    items: (built.timeline ?? []).filter(cheerable),
+    tags: mine.map((s) => s.tag),
+  };
+}
+
+/** Is this item in the person's own feed, as of now? */
+export async function inOwnFeed(db, { accountId, itemId, tags, subjects }) {
+  const { items } = await feedItemsFor(db, { accountId, tags, subjects });
+  return items.some((it) => it.id === itemId);
 }
 
 /** Set, change or take back the person's cheer on an item; `cheer` null
@@ -151,4 +172,60 @@ export function readCheerBody(body) {
     }
   }
   return { itemId, cheer, tags };
+}
+
+/** The page's items that are in the reader's feed now, each with its
+ *  cheers: `{ items: [{ id, kind, at, text, cheers, my_cheer }], subjects }`
+ *  (the sentence in game names, as the feed says it; never a nickname). `subjects` are
+ *  the tags the page sends back with a cheer (the follows the items came
+ *  through). A player page asks for the player (followed, or through the
+ *  clan they are in now); a battle page for the battle's players and their
+ *  clans, keeping only the items that battle proves or that highlight it.
+ *  Null when the page names nothing (an unknown battle). */
+export async function cheersOnPage(
+  db,
+  { accountId, subjects, player, battle },
+) {
+  let tags;
+  let about;
+  if (player) {
+    const { rows } = await db.query(
+      `select clan_tag from clan_membership
+        where player_tag = $1 and left_observed_at is null limit 1`,
+      [player],
+    );
+    tags = [player, rows[0]?.clan_tag].filter(Boolean);
+    about = (it) =>
+      it.subject_tag === player ||
+      (it.subjects ?? []).some((s) => s.tag === player);
+  } else {
+    const ids = await resolveBattleRef(db, battle, 2);
+    if (ids.length !== 1) return null;
+    const id = ids[0];
+    const { rows } = await db.query(
+      `select bp.player_tag, bp.clan_tag, cm.clan_tag as clan_now
+         from battle_participant bp
+         left join clan_membership cm on cm.player_tag = bp.player_tag
+          and cm.left_observed_at is null
+        where bp.battle_id = $1`,
+      [id],
+    );
+    tags = [
+      ...new Set(rows.flatMap((r) => [r.player_tag, r.clan_tag, r.clan_now])),
+    ].filter(Boolean);
+    about = (it) => it.facts?.battle?.battle_id === id || proofOf(it) === id;
+  }
+  const found = await feedItemsFor(db, { accountId, tags, subjects });
+  const items = await withCheers(db, found.items.filter(about), accountId);
+  return {
+    items: items.map((it) => ({
+      id: it.id,
+      kind: it.kind,
+      at: shownAt(it) || it.at || null,
+      text: String(it.text ?? ""),
+      cheers: it.cheers,
+      my_cheer: it.my_cheer,
+    })),
+    subjects: found.tags,
+  };
 }

@@ -15,6 +15,7 @@ import {
   useClock,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
+import { PeopleToFollow } from "./People.jsx";
 import { ladderHref } from "../ladder/ladder.js";
 import { SETTINGS } from "../lib/settings.js";
 import { tagPath } from "../lib/tag-url.js";
@@ -30,13 +31,15 @@ import {
   actionsFrom,
   lastRaceLine,
   modeWord,
+  raceNowLine,
   panelOf,
   weekChips,
 } from "./logic.js";
 
 const DASH = "–";
 
-/** Home (slice 7, #765): the one feed beside your week and your clan. Each
+/** Home (slice 7, #765): the one feed beside your week, your clan and People
+ *  to follow (2026-11-12). Each
  *  side panel reads for itself and draws its own loading state; a panel that
  *  failed says so, the rest render. Needs you moved to the bell, which every
  *  page wears (shell/Bell.jsx); the unlock notice stays here, at the top. */
@@ -53,6 +56,7 @@ export function HomePanels({ first, player, feed }) {
         <div className="kit-home__side">
           <YourWeek player={player} />
           <ClanPanel clan={clan} player={player} />
+          <PeopleToFollow />
           <SetupDetails first={first} clan={clan} player={player} />
         </div>
       </div>
@@ -204,12 +208,14 @@ function ClanPanel({ clan, player }) {
   if (clan.state === "untracked") return <TrackClan clan={clan} />;
   const base = `/clan/${tagPath(clan.clan_tag)}/feed`;
   const race = lastRaceLine(clan.last_race);
+  const now = raceNowLine(clan.race_now);
   return (
     <Panel
       title={clan.name ?? "Your clan"}
       action={<Link to={base}>Open Clan</Link>}
     >
       <Rows>
+        {now ? <Row title="This week’s race" detail={now} /> : null}
         {race ? <Row title="Last race" right={race} /> : null}
         {clan.war_decks ? (
           <Row

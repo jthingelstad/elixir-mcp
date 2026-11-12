@@ -269,6 +269,17 @@ export const api = {
   // Yours alone: never an agent's console.
   cheer: ({ item_id, cheer, subjects }) =>
     request("PUT", "/api/me/cheers", { item_id, cheer, subjects }),
+  // Which of a player page's or a battle page's items take your cheers.
+  pageCheers: ({ player = null, battle = null }) =>
+    request(
+      "GET",
+      player
+        ? `/api/me/cheers?player=${encodeURIComponent(player)}`
+        : `/api/me/cheers?battle=${encodeURIComponent(battle)}`,
+    ),
+  // People to follow ("suggested"), Find's From your battles ("battles")
+  // and Your clan ("clan").
+  people: (which) => request("GET", `/api/me/people/${which}`),
   // Your timeline's private RSS link (#765): whether it is on; making or
   // resetting it answers the link, the one time it is shown; off ends it.
   rssLink: () => request("GET", "/api/me/rss"),

@@ -285,18 +285,22 @@ export const useMyTimeline = (enabled = true) => {
 export const useRssLink = () =>
   useQuery({ queryKey: keys.rss, queryFn: payload(api.rssLink) });
 
-/** Your cheer on a feed item, shown at once: the feed's copy takes the
- *  change before the write, the server's counts after it, and the copy
- *  from before if it was refused. Yours, never an agent's. */
-export function useCheer() {
+/** Your cheer on an item, shown at once: the cached copy takes the change
+ *  before the write, the server's counts after it, and the copy from before
+ *  if it was refused. Yours, never an agent's. Home's feed by default; a
+ *  player page or a battle page passes its own cheers read
+ *  (`usePageCheers`): `{ key, list: "items" }`. */
+export function useCheer({
+  key = scopedKey(null, "feed"),
+  list = "timeline",
+} = {}) {
   const queryClient = useQueryClient();
-  const key = scopedKey(null, "feed");
   const put = (item) =>
     queryClient.setQueryData(key, (old) =>
       old
         ? {
             ...old,
-            timeline: (old.timeline ?? []).map((it) =>
+            [list]: (old[list] ?? []).map((it) =>
               it.id === item.id ? item : it,
             ),
           }
@@ -308,8 +312,9 @@ export function useCheer() {
         item_id: item.id,
         cheer: next,
         // The item's subjects, so the server rebuilds only their days to
-        // find it (feed.mjs reads the same two fields).
-        subjects: [
+        // find it (feed.mjs reads the same two fields). A page's item
+        // carries the follows its cheers read came through instead.
+        subjects: item.cheer_subjects ?? [
           ...new Set(
             [
               item.subject_tag,
@@ -333,6 +338,34 @@ export function useCheer() {
     },
   });
 }
+
+/** Which of a player page's or a battle page's items take cheers for you
+ *  (the ones in your feed now), with their counts: `{ player }` or
+ *  `{ battle }`. Signed in only; the page asks only then. */
+export const pageCheersKey = ({ player = null, battle = null }) => [
+  "me",
+  "cheers",
+  player ? "player" : "battle",
+  player ?? battle ?? "",
+];
+export const usePageCheers = (ask, enabled = true) =>
+  useQuery({
+    queryKey: pageCheersKey(ask),
+    queryFn: payload(() => api.pageCheers(ask)),
+    enabled: enabled && Boolean(ask.player || ask.battle),
+    staleTime: 30_000,
+    retry: false,
+  });
+
+/** Home's People to follow, and Find's From your battles and Your clan
+ *  (2026-11-12): each its own read. */
+export const usePeople = (which, enabled = true) =>
+  useQuery({
+    queryKey: ["me", "people", which],
+    queryFn: payload(() => api.people(which)),
+    enabled,
+    staleTime: 60_000,
+  });
 
 /** The battle page's highlight panel (#762): your posts of this battle
  *  and the verified players you may post it as. Yours, never an agent's. */

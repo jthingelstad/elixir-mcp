@@ -26,6 +26,11 @@ The page leads with the player's game name, tag, clan and trophies. Under it:
 | Moments | the timeline's moments: a new arena, a promotion in Path of Legends, a badge, a clan joined or left |
 | Follows | who the player's account follows, and who follows it |
 
+An item on the Timeline, Highlights or Moments tab takes a cheer, with its
+counts, while it is in your own feed: from the last seven days, about a
+player or clan you follow ([Cheers](/docs/timeline#cheers)). Older items,
+and items on the page of a player you do not follow, show no cheers.
+
 Your own primary player's page, once you have verified it, is **You**
 (`/home/you`), with a fifth tab, **Stats**: [your season, read back](/docs/ladder).
 Your players' pages opened by name offer **Your stats**, and a clanmate's page
