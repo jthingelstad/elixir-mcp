@@ -3116,6 +3116,60 @@ function finishedStory(it, fromMs, basis, timezone) {
   return out;
 }
 
+// Roster moves are real repeats, never a duplicated row, unless they
+// share their instant (Gym #246: a same-day rejoin collapsed into the
+// first join, and the feed ended on "alex left").
+const ROSTER_KINDS = new Set([
+  "member_joined",
+  "member_left",
+  "member_role_changed",
+  "clan_joined",
+  "clan_left",
+  // A second absence at the same rung, or a second return, is a new
+  // moment with the same facts (Gym #272).
+  "quiet_crossed",
+  "returned",
+]);
+const dedupeKey = (it) =>
+  `${it.subject_tag}|${it.kind}|${ROSTER_KINDS.has(it.kind) ? it.at : ""}|${JSON.stringify(it.facts ?? null)}`;
+/** The same moment written twice (feedback #48, Gym #121) is one: kept at
+ *  its first instant (`items` sorted by `at`), with the newer evidence and
+ *  the lowest ledger row's story (#111). The builder's, and Home's live
+ *  facts' (Codex on #824), so both name one fact by one id. */
+function collapseRepeats(items) {
+  const seen = new Map();
+  return items.filter((it) => {
+    const key = dedupeKey(it);
+    const kept = seen.get(key);
+    if (kept) {
+      if (
+        it.evidence &&
+        kept.evidence &&
+        it.evidence.observed_at > kept.evidence.observed_at
+      )
+        Object.assign(kept, {
+          evidence: it.evidence,
+          [EVIDENCE]: it[EVIDENCE],
+          observed_at: it.observed_at,
+        });
+      // The collapsed row's story is the lower ledger row's, whichever
+      // of the two came first by instant (#111).
+      const [a, b] = [kept[STORY]?.key, it[STORY]?.key];
+      if (
+        a &&
+        b &&
+        a[0] === b[0] &&
+        LEDGERS.has(a[0]) &&
+        BigInt(b[1]) < BigInt(a[1])
+      )
+        kept[STORY] = it[STORY];
+      return false;
+    }
+    seen.set(key, it);
+    return true;
+  });
+}
+
 /**
  * The highlights a window of the subjects' timeline holds, finished as
  * buildTimeline finishes them (observed basis), for Home's stored week
@@ -3156,15 +3210,10 @@ export async function windowFacts(
     interactive: true,
   });
   items.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
-  const seen = new Set();
-  return items
-    .filter((it) => {
-      const key = `${it.subject_tag}|${it.kind}|${JSON.stringify(it.facts ?? null)}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .map((it) => finishedStory(it, fromMs, "observed", timezone));
+  for (const it of items) it.observed_at ??= it.at;
+  return collapseRepeats(items).map((it) =>
+    finishedStory(it, fromMs, "observed", timezone),
+  );
 }
 
 /**
@@ -3562,53 +3611,7 @@ export async function buildTimeline(
   // Every item says when the record observed it; an item that is not a
   // polled moment (a battle session, a join) was observed at its instant.
   for (const it of items) it.observed_at ??= it.at;
-  // Roster moves are real repeats, never a duplicated row, unless they
-  // share their instant (Gym #246: a same-day rejoin collapsed into the
-  // first join, and the feed ended on "alex left").
-  const ROSTER_KINDS = new Set([
-    "member_joined",
-    "member_left",
-    "member_role_changed",
-    "clan_joined",
-    "clan_left",
-    // A second absence at the same rung, or a second return, is a new
-    // moment with the same facts (Gym #272).
-    "quiet_crossed",
-    "returned",
-  ]);
-  const dedupeKey = (it) =>
-    `${it.subject_tag}|${it.kind}|${ROSTER_KINDS.has(it.kind) ? it.at : ""}|${JSON.stringify(it.facts ?? null)}`;
-  const seen = new Map();
-  items = items.filter((it) => {
-    const key = dedupeKey(it);
-    const kept = seen.get(key);
-    if (kept) {
-      if (
-        it.evidence &&
-        kept.evidence &&
-        it.evidence.observed_at > kept.evidence.observed_at
-      )
-        Object.assign(kept, {
-          evidence: it.evidence,
-          [EVIDENCE]: it[EVIDENCE],
-          observed_at: it.observed_at,
-        });
-      // The collapsed row's story is the lower ledger row's, whichever
-      // of the two came first by instant (#111).
-      const [a, b] = [kept[STORY]?.key, it[STORY]?.key];
-      if (
-        a &&
-        b &&
-        a[0] === b[0] &&
-        LEDGERS.has(a[0]) &&
-        BigInt(b[1]) < BigInt(a[1])
-      )
-        kept[STORY] = it[STORY];
-      return false;
-    }
-    seen.set(key, it);
-    return true;
-  });
+  items = collapseRepeats(items);
   // The story fields, after the dedupe (#111), first on each item. An
   // item no builder named (none today) is the story its dedupe key says.
   const told = (it) => {

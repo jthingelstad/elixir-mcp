@@ -38,3 +38,12 @@ owner's week 12.3 s at 21:07Z; `elixir_timeline#1` 8.7 s at 21:09Z) and the
 after numbers were read with credits unthrottled and the EBS balance above
 75 percent, except the 18.3 s cold read at 19:58Z, at the edge of the
 drained window.
+
+## One fact, one id (Codex on #824)
+
+The live facts collapsed a fact written twice with a dedupe of their own,
+which kept the first by instant. The builder keeps the first by instant
+too, but names it by the lower ledger row's story (#111), so a backdated
+second row gave Home an id the builder did not serve, and a cheer on it
+failed the cheers route's check against the builder. Home's live facts now
+collapse repeats with the builder's own function (`collapseRepeats`).
