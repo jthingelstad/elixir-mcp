@@ -52,7 +52,7 @@ test("slow aggregation is canceled, answered with a reportable timeout, and audi
     queryBudgetMs: 150,
     registry: {
       invoke: async (_name, ctx) => {
-        await ctx.db.query("select pg_sleep(1)");
+        await ctx.db.query("select pg_sleep(10)");
         return { ok: true };
       },
     },
@@ -66,8 +66,11 @@ test("slow aggregation is canceled, answered with a reportable timeout, and audi
   assert.equal(result.body.error.code, "query_timeout");
   assert.equal(result.body.error.class, "retry");
   assert.match(result.body.error.hint, /battles_trends\(/);
+  // Ten seconds of sleep against a 5 s bound: a cancel lands in well under
+  // a second, a query left to run takes all ten. The bound used to be 900
+  // ms against a 1 s sleep, which a loaded machine missed (2026-11-12).
   assert.ok(
-    Date.now() - start < 900,
+    Date.now() - start < 5000,
     "the server cancels the query rather than merely abandoning its promise",
   );
   const { rows } = await db.query(
@@ -146,7 +149,7 @@ test("the Lambda deadline answers a slow read tool with query_timeout and audits
     deadlineMs: 150,
     registry: {
       invoke: async (_name, ctx) => {
-        await ctx.db.query("select pg_sleep(1)");
+        await ctx.db.query("select pg_sleep(10)");
         return { ok: true };
       },
     },
@@ -158,7 +161,12 @@ test("the Lambda deadline answers a slow read tool with query_timeout and audits
   assert.equal(result.isError, true);
   assert.equal(result.body.error.code, "query_timeout");
   assert.ok(result.body.meta.request_id);
-  assert.ok(Date.now() - start < 900, "cancelled in PostgreSQL, not abandoned");
+  // As above: a 10 s sleep and a 5 s bound, so a slow runner is not read
+  // as an abandoned query (1077 ms against 900 failed a verify, 2026-11-12).
+  assert.ok(
+    Date.now() - start < 5000,
+    "cancelled in PostgreSQL, not abandoned",
+  );
   const { rows } = await db.query(
     "select request_id, error_code from mcp_call_audit order by created_at desc limit 1",
   );
