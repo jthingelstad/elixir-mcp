@@ -551,7 +551,17 @@ export function ClanShell({
       return;
     }
     if (me.unavailable) return;
+    const segment = app.split("/")[1];
+    const searched = (tag) =>
+      `${CLAN}/directory?q=${encodeURIComponent(tag.slice(1))}`;
     if (!me.ok) {
+      // A clan's address, for someone Clan's gate turns away (no clan any
+      // more, no player): the directory, searched for it, as a member of
+      // another clan gets below. Its pages stay the gate's (Codex on #828).
+      if (tagOf(segment)) {
+        navigate(searched(tagOf(segment)), { replace: true });
+        return;
+      }
       if (
         !app.startsWith("/refused/") &&
         !app.startsWith("/you") &&
@@ -575,7 +585,6 @@ export function ClanShell({
       return;
     }
     const atClan = clanFromPath(path, me.clans);
-    const segment = app.split("/")[1];
     // The landing is no page for a signed-in person with a clan: its Feed, or
     // the chooser at /clan when none is selected. A redirect, so it replaces
     // the address and Back never comes back to bounce.
@@ -586,12 +595,9 @@ export function ClanShell({
       // A clan that is not theirs: the clan directory, searched for it, which
       // is open to anyone signed in (a link in mail lands here for a clan the
       // reader has left). Elixir has no page for a clan you are not in.
-      navigate(
-        tagOf(segment)
-          ? `${CLAN}/directory?q=${encodeURIComponent(tagOf(segment).slice(1))}`
-          : `${CLAN}/clans`,
-        { replace: true },
-      );
+      navigate(tagOf(segment) ? searched(tagOf(segment)) : `${CLAN}/clans`, {
+        replace: true,
+      });
     } else if (
       atClan &&
       me.selected?.clan_tag !== atClan.clan_tag &&
