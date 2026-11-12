@@ -30,7 +30,10 @@ Social slice 9 (#767), the digest half. Jamie's ruling is quoted on the
   filtered to `DIGEST_KINDS` before the cap; the window is the week or
   day before the run, starting no earlier than the last scheduled
   digest. Null when no one followed played or posted and neither did the
-  reader: no mail. The renderer (`digest` in `packages/mail/src/render.mjs`)
+  reader: no mail. A followed player whose only news is a highlight
+  (of an older battle, posted or edited in the window) stands with no
+  battles, and an alt that played makes the reader's line when the
+  primary was quiet (both from Codex on #783). The renderer (`digest` in `packages/mail/src/render.mjs`)
   draws people, a highlight's words as a quote, "See the battle" links,
   clans as a headline and three bullets, and you. Everything a person
   typed is escaped at the render (hostile-name tests).
