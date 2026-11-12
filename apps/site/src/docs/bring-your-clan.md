@@ -42,7 +42,7 @@ a signed-out visit returns there after the common sign-in.
 
 ## Bring your clanmates
 
-Once your primary player's clan is on record, Ladder's Season tab has
+Once your primary player's clan is on record, Stats' Season tab has
 **Invite clanmates**, folded and named for the clan:
 
 - **A line for clan chat**, within the game's 200 characters and written

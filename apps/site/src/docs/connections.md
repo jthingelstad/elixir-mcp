@@ -142,8 +142,9 @@ refused rather than quietly answering about the wrong subject.
 
 The top bar holds **Home**, **Find** and **Clan**, with search, Help and the
 bell beside them. A phone has **Home**, **Find**, **Clan**, **You** and the
-bell as tabs at its foot; on a wide screen the account menu is You. Ladder
-is reached from **You** and from each player's page. **Settings**, in the
+bell as tabs at its foot; on a wide screen the account menu is You. **You**
+is your own player's page, with **Stats** (your season, read back; it was
+Ladder) as its last tab. **Settings**, in the
 account menu, holds what we
 record for you and who can call on your behalf, and each agent you own has a
 page of its own there (below). On a wide screen a rail stays in view as a page scrolls;
@@ -153,8 +154,8 @@ on a phone it folds into one row above the page.
 |---|---|
 | Home | one feed of the last seven days, newest first, beside your week and your clan: what happened to the players and clans you follow, your clan and you, the same items your connections read with `elixir_timeline` ([Home's feed](/docs/timeline#homes-feed)). A new account gets its steps until the first read lands. Opening Home marks what is new since your last visit; it never changes what your connections have read ([its own place](#home-keeps-its-own-place-in-the-timeline)) |
 | Find | search, **Follow a friend** by tag, the clan directory and your own follow link |
-| You | your players' pages, their stats in Ladder, Settings, Play Drop and signing out |
-| The bell | what needs you: your clan's Actions waiting on you as a leader, and an old key still trying to connect. A dot shows while anything does |
+| You | your primary player's own page once you have [verified](/docs/verify) it, with a **Stats** tab ([your season, read back](/docs/ladder)); your other players, listed to you alone; Settings, Play Drop and signing out. With no verified player, You says how to verify one |
+| The bell | what is about you, not your friends: cheers on your items (counts, never who), new followers, your clan's Actions waiting on you as a leader, an old key still trying to connect, and answers to your feedback ([the bell](/docs/your-account#the-bell)). A dot shows while something needs you or something came since you last opened it |
 | Search | the magnifier on the top bar: your players and clans as you type, a tag finds anyone on record, each player row naming the tag, clan and trophies and opening the [player page](/docs/player-page), **Follow this tag** asks before it follows, and a deck hash or war week opens its record |
 | Record pages | a player, clan, deck or war week as the record holds it, reached from search; the one write is nicknames |
 | [Service](/data/service) | recording health, budget gauge, missed battles, linked from Status and data, and signed in |

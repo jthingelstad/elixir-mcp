@@ -14,7 +14,7 @@ lede: "Point Claude, ChatGPT or any MCP client at Elixir and sign in once. Conne
 ## Connect
 
 Connect a client if you want an AI agent to ask Elixir about your
-record. You can do this while recording is pending, or keep using Ladder and Clan
+record. You can do this while recording is pending, or keep using Stats and Clan
 in your browser. A connection authorizes access; it does not prove that a
 successful data read has happened. Each connection's row under Settings ›
 Connections & agents shows its last call and its calls in the last seven days.

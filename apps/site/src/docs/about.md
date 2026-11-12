@@ -27,7 +27,7 @@ The Clash Royale API only answers "what is true right now": your last
 ~30 battles, your current trophies. Elixir reads continuously,
 stores every battle once (no matter how many members saw it),
 derives daily readings, war records, and timeline moments from the stream, and
-makes the record available on [Ladder](/ladder), in [Clan](/clan), and in
+makes the record available on [Stats](/home/you/stats), in [Clan](/clan), and in
 [emails](/docs/email) about your play and the people you follow. Keeping you
 up to date is part of the service, even when you do not open the website.
 Add your player and the first read usually lands within a minute,
@@ -55,7 +55,7 @@ Every issue has an unsubscribe
 link, and unsubscribing sticks.
 
 **Who writes the words:** Elixir's own voice (the emails, the timeline's
-lines, Ladder and this site) is written from the record by code, and
+lines, Stats and this site) is written from the record by code, and
 Elixir pays for no language model. A model writes only where someone
 brings their own: a clan's leaders can add the clan's own key in
 [Clan](/docs/clan-policy) to draft messages, and your own AI agent writes
@@ -63,7 +63,7 @@ its own answers from the record it reads here.
 
 **Inside Elixir:** [Clan](/clan) helps you run your clan: standing, the
 Elder band and the actions leaders decide, using your clan's own policy.
-[Ladder](/ladder) explores your own play, mode by mode.
+[Stats](/home/you/stats) explores your own play, mode by mode.
 [Elixir Drop](https://drop.poapkings.com) is a separate elixir-cost learning
 game. A clan can also run its own
 [Discord bot](/family/discord), an agent that reads its game facts from

@@ -1,7 +1,7 @@
 ---
 slug: ladder-season
-title: "Ladder season"
-description: "The Season tab in Ladder: your record, the week against your last four, before and since your main deck, and this season against the last."
+title: "Stats season"
+description: "The Season tab in Stats: your record, the week against your last four, before and since your main deck, and this season against the last."
 section: ladder
 order: 2
 navTitle: "Season"

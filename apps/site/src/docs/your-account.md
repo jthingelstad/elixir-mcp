@@ -13,7 +13,7 @@ callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"
 
 # Your account
 
-Everything in Elixir hangs off one account: Home, Ladder, Elixir
+Everything in Elixir hangs off one account: Home, Stats, Elixir
 Clan, the emails and the AI apps you connect all act as the same person. The
 account is an email address, the players you track and a few settings.
 There is no password.
@@ -71,7 +71,7 @@ opened there reads in UTC until you set a zone in Profile. See
 [Sign in with Elixir](/docs/sign-in-with-elixir).
 
 Then add your player in [Settings › Players & tracking](/settings/players) if
-you have not, read your recorded play in [Ladder](/ladder), or follow
+you have not, read your recorded play in [Stats](/home/you/stats), or follow
 [Bring your clan](/docs/bring-your-clan).
 A collector is not required to join. Running one is open to any account
 ([Running a collector](/docs/operators)); recording allowances and the fleet's
@@ -136,8 +136,37 @@ so the product and account controls keep their room. Your full account name
 wraps inside its menu. The same controls remain available by keyboard.
 
 On Home, **Setup details** holds completed setup. Incomplete setup and
-recording problems are under the bell, **Needs you**, which shows a dot
-while any of them does.
+recording problems are under the bell, **Needs you**.
+
+Signed out, the top bar is the logo, **Docs**, **Sign in** and **Create
+account**, and the front page is the way in: sign in, or create an account.
+**Cards**, **Updates** and **Status and data** are in the footer, as public
+as they were, and **Play Drop** is in the footer too (and, signed in, in the
+account menu).
+
+## The bell
+
+The bell, on the top bar (a tab on a phone), holds what is about you, not
+your friends. Each part shows only when it has something:
+
+- **Reactions to your items**: the cheers others gave, in the last seven
+  days, to the [timeline](/docs/timeline#cheers) items about players you
+  have [verified](/docs/verify) as yours. Counts only, each cheer with its
+  number: never who cheered.
+- **New followers**: accounts that started following one of your verified
+  players in the last thirty days. One is named by its own verified
+  player's game name and tag, as its [player page](/docs/player-page)
+  would name it; one with no verified player is counted, not named.
+- **Needs you**: your clan's Actions waiting on you as a leader, and an old
+  key still trying to connect, as before.
+- **Answers to your feedback**: each answer the maintainer gave in the last
+  thirty days, and any you have not read; it opens the answer in Settings ›
+  Feedback.
+
+A dot shows on the bell while something needs you or something came since
+you last opened it. Opening the bell marks reactions and followers as seen;
+an answer stays new until you open it. With no verified player, the bell
+says how to verify one. Nothing in the bell is mailed or posted to Discord.
 
 ## Elixir on your phone
 
@@ -154,7 +183,7 @@ The installed app opens on Home. It keeps a sign-in of its own, apart
 from the browser's, so sign in once inside it: type the code from the
 email, or open its link, and the app's sign-in page signs in too, as
 [above](#signing-in). On Android, a long press on the icon offers
-**Find**, **Ladder** and **Clan**. It needs a connection, as the
+**Find**, **Stats** and **Clan**. It needs a connection, as the
 site does.
 
 ## Your players
@@ -196,7 +225,7 @@ zone of the browser that asked for its sign-up email, whichever device
 opens the link; if that browser gives none, or gives UTC, the account
 starts at UTC. Signing in never changes a zone you already have: only
 Profile does. An account with no zone reads in UTC, and Home and
-Ladder say so and offer your browser's zone in one click. A battle's page
+Stats say so and offer your browser's zone in one click. A battle's page
 reads on your account's clock when you are signed in, and on your
 browser's when you are not.
 
@@ -216,7 +245,7 @@ track stays. Partner is granted by hand. The roles and their numbers are on
 Every part of Elixir takes feedback, and all of it lands in one place:
 **Help** on the top bar, on any page once you are signed in; **Send
 feedback** at the foot of Clan's pages and on Settings' Feedback page; **Send
-feedback about Ladder** at the foot of Ladder's Season tab; **Report this**
+feedback about Stats** at the foot of Stats' Season tab; **Report this**
 beside a Clan action, Standing and the award races; **Something wrong on this
 page?** on every docs page; and **Send feedback** in every product email's
 footer. Each

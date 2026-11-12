@@ -1,7 +1,7 @@
 ---
 slug: ladder-decks
-title: "Ladder decks"
-description: "The Decks tab in Ladder: the decks recorded in your season, how often each was played and how each went."
+title: "Stats decks"
+description: "The Decks tab in Stats: the decks recorded in your season, how often each was played and how each went."
 section: ladder
 order: 4
 navTitle: "Decks"
@@ -14,7 +14,7 @@ guide: ladder
 
 ## Decks
 
-**Decks**, at `/ladder/decks`, is every deck you played in the season in the
+**Decks**, at `/home/you/stats/decks`, is every deck you played in the season in the
 chosen mode, most played first, from
 [battles_decks](/docs/tools/battles#battles_decks) with that one `mode` and the
 season: one read for the list and one per shown deck for its cards (six show until **Show all**), so a deck you took

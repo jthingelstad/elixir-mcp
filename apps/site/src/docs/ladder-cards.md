@@ -1,7 +1,7 @@
 ---
 slug: ladder-cards
-title: "Ladder cards"
-description: "The Cards tab in Ladder: the cards recorded in your season and how they went."
+title: "Stats cards"
+description: "The Cards tab in Stats: the cards recorded in your season and how they went."
 section: ladder
 order: 5
 navTitle: "Cards"
@@ -14,7 +14,7 @@ guide: ladder
 
 ## Cards
 
-**Cards**, at `/ladder/cards`, is one mode's season card by card, with
+**Cards**, at `/home/you/stats/cards`, is one mode's season card by card, with
 the same chips as every tab. An evolution or a hero is a
 different card from its base form, so each keeps its own row, as the tools
 keep it. Each card's name opens its public page, which holds the card's
@@ -44,6 +44,6 @@ catalog facts: rarity, elixir cost and forms.
   the most battles. A card is listed only from three battles and a player
   from two meetings, and the page says so beside the choice, so a single
   loss does not lead the list. The order is part of the address
-  (`/ladder/cards?order=losses`), and the chips and the Season list
+  (`/home/you/stats/cards?order=losses`), and the chips and the Season list
   keep it. It puts no label on any row: the record, in the order you
   asked for.

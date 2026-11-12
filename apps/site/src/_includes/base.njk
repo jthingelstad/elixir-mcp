@@ -88,12 +88,8 @@
           <a class="kit-top__icon kit-bell" data-session-face="in" href="{{ familyBar.bell.staticPath }}" aria-label="{{ familyBar.bell.label }}">
             {% chromeIcon familyBar.bell.icon, 18 %}
           </a>
-          {%- for product in familyBar.products %}{% if product.game %}
-          <a class="kit-top__drop" data-session-face="in" href="{{ product.href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ product.action }}, {{ product.about }}, opens in a new window">
-            {% chromeIcon product.icon, 18 %}
-            {{ product.action }}
-          </a>
-          {%- endif %}{% endfor %}
+          {#- Play Drop is in the account menu and the footer, not the bar
+              (the canvas's shell, 2026-11-12). -#}
           <a class="kit-top__avatar" data-session-face="in" href="{{ familyBar.account.path }}">
             <span class="sr-only">{{ familyBar.account.label }}: </span>
             <span class="chrome__avatar chrome__avatar--hint" aria-hidden="true"></span>

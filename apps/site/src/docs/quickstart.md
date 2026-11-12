@@ -1,19 +1,19 @@
 ---
 slug: quickstart
 title: "Get started with Elixir"
-description: "Create your account, track your player and read recorded history in Ladder. Clan war history and AI clients are optional, with connection instructions when you want them."
+description: "Create your account, track your player and read recorded history in Stats. Clan war history and AI clients are optional, with connection instructions when you want them."
 section: start
 order: 2
 navTitle: "Quickstart"
 icon: rocket
-lede: "Create your account, track your player, and read recorded history in Ladder. Add clan war history or an AI client when you want them."
+lede: "Create your account, track your player, and read recorded history in Stats. Add clan war history or an AI client when you want them."
 reviewed: "2026-10-12 against contract 11.11.2"
 ---
 
 # Get started with Elixir
 
 Start with an account and the player you play as. You can read your recorded
-record in [Ladder](/ladder) with this account, without connecting an AI client.
+record in [Stats](/home/you/stats) with this account, without connecting an AI client.
 Clan war history and AI clients are optional. The steps below tell you what
 to do next and what the current record can show.
 
@@ -61,14 +61,14 @@ verification](/docs/verify) separately proves ownership for the features that
 require it. An ordinary member account includes activity clan recording, not
 recording every member as well. Settings › Players & tracking shows the available slots.
 
-Read your personal season in [Ladder](/ladder). Adding a tag opens
+Read your personal season in [Stats](/home/you/stats). Adding a tag opens
 your player's record in Settings › Players & tracking. **Player tag saved** means
 the tag is on your account, not that a profile has arrived or ownership has
 been proved. This page checks saved data every few seconds for the first
 minutes after you add a tag, then about once a minute while recording is
 pending; **Check again** reads the record without forcing a game fetch. The
 first read usually lands within a minute; until both your profile and
-your battle log have been read, Ladder says it is on its way rather than
+your battle log have been read, Stats says it is on its way rather than
 showing an empty season.
 
 **Home** lists what is done and what is next: the tag
@@ -104,7 +104,7 @@ your hand approves it); it does not multiply the shared fetch budget.
 **Optional: ask through an AI client.** [Connect a client](/docs/connect-a-client) first if you want one.
 
 **Home** shows what is recorded for your primary so far,
-links to your next step in Settings or Ladder, and offers an optional first
+links to your next step in Settings or Stats, and offers an optional first
 question matched to that record. A profile is enough to start. Active client
 connections and successful data reads in the last seven days are reported
 separately: authorizing a connection alone does not confirm a data read.

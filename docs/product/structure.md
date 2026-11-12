@@ -43,14 +43,19 @@ Asked "Slice 7, Home: one feed with chips Everyone, Friends, Clan and You, sessi
 the signed-in top bar and phone tabs of 2026-11-05 (Home, Ladder, Clan; Search
 as the fourth phone tab).
 
-- **Top bar, signed in:** Logo, Home, Find, Clan, search, Help, the bell, Play
-  Drop, avatar with the player's name. The avatar's menu is You on a wide
-  screen. [engineering, 2026-11-12]
+- **Top bar, signed in:** Logo, Home, Find, Clan, search, Help, the bell,
+  avatar with the player's name. The avatar's menu is You on a wide screen.
+  [engineering, 2026-11-12] Play Drop left the bar on 2026-11-12 for the menu
+  and the footer (Jamie, 2026-11-12: "Approved: build the remaining canvas pieces (bell, cheers on battle and player pages, Home side panel, Find, You with Stats, Clan Members follow-all and map, signed-out shell, Settings slots)").
 - **Phone bottom tabs:** Home, Find, Clan, You, the bell.
 - **Ladder** leaves the tabs: it is reached from You and from each player's
-  page. [engineering, 2026-11-12]
-- **Top bar, signed out:** Logo, Home, Cards, Docs, Updates, Sign in, Create
-  account.
+  page. [engineering, 2026-11-12] Since 2026-11-12 it is **Stats**, You's
+  last tab (below).
+- **Top bar, signed out:** Logo, Docs, Sign in, Create account; the signed-out
+  home is sign in or join; Cards and Updates are in the footer at the same
+  public addresses. Until 2026-11-12: Logo, Home, Cards, Docs, Updates, Sign
+  in, Create account. [Jamie, 2026-11-12, the go above; engineering: the
+  signed-out home is the site's front page with the gate on top]
 
 ### Home [Jamie, 2026-11-05, 2026-11-12; step 3, slice 7]
 
@@ -61,12 +66,14 @@ link to the same feed is in Settings › Connections & agents. [engineering,
 2026-11-12] Find is `/home/find` and You is `/home/you`. The brief is
 [Home](home.md).
 
-### Ladder [Jamie, 2026-11-05; step 5]
+### Stats, which was Ladder [Jamie, 2026-11-05; step 5; Jamie, 2026-11-12]
 
 A scope bar (player, season, mode chips, freshness chip) over the tabs Season,
-Battles, Decks and Cards. Routes `/ladder`, `/ladder/battles`,
-`/ladder/decks`, `/ladder/cards`. The battle page `/battle/<id>` keeps its
-layout.
+Battles, Decks and Cards. Since 2026-11-12 it is You's Stats tab (Jamie: "You
+with Stats", in the go above): routes `/home/you/stats`,
+`/home/you/stats/battles`, `/home/you/stats/decks`, `/home/you/stats/cards`,
+each old `/ladder` address redirecting to the same page. [engineering,
+2026-11-12] The battle page `/battle/<id>` keeps its layout.
 
 ### Clan [Jamie, 2026-11-05; step 4; Jamie, 2026-11-12; slice 8]
 

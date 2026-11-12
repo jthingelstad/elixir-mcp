@@ -32,13 +32,20 @@ tabs Today, Timeline and Friends are replaced:
   stored.
 - **Find** (`/home/find`): search, Follow a friend, the clan directory and your
   follow link. Friends' follow form moved here.
-- **You** (`/home/you`): your players' pages, their stats in Ladder, Settings
-  and signing out.
-- **The bell**, on every page: Needs you, moved out of Home.
+- **You** (`/home/you`): your primary verified player's page with a Stats
+  tab (Ladder, unchanged), your other players listed to you alone, Settings
+  and signing out; with no verified player, how to verify one. [Jamie,
+  2026-11-12: "Approved: build the remaining canvas pieces (bell, cheers on battle and player pages, Home side panel, Find, You with Stats, Clan Members follow-all and map, signed-out shell, Settings slots)"; engineering: the primary player only]
+- **The bell**, on every page: what is about you, not your friends. Needs you,
+  moved out of Home, and since 2026-11-12 reactions to your items (counts,
+  never who), new followers (named by their verified player, else counted)
+  and answers to your feedback, with a seen marker. [Jamie, 2026-11-12, the
+  same go; engineering: the windows, DECISIONS "The bell is what is about
+  you"]
 - **Cheers** (the same ruling's six): one per person per item, on an item
   about someone or a clan the person follows, shown as counts and never as
   who; a second tap on yours takes it back. Not on the account's own items,
-  and nowhere but Home's feed: no bell, mail, Discord, agent or MCP.
+  and no mail, Discord, agent or MCP; the bell counts them on your own items.
   [engineering, 2026-11-12]
 - **Your RSS link** (DECISIONS "Your timeline is an RSS feed"): one private
   link per person to their own feed, made, reset or turned off in Settings ›
@@ -80,7 +87,8 @@ cards left Home; Wednesday's digest tells that week. [engineering,
 - Needs you's lag against Clan (above).
 - Cheers on the player page and the battle page: the ruling names Home's
   feed; the canvas also shows them elsewhere.
-- Whether the bell should carry cheers on your own items, as the design
-  canvas draws ("Reactions to your items"); it carries none now.
+- Whether the bell should name who cheered (it counts, as Home does), show
+  when someone followed, or have answers marked read by opening it.
+- Whether an alt should have a You page of its own; You is the primary player.
 - Whether the RSS link should be shown again later, which would mean
   keeping the link itself rather than its fingerprint.

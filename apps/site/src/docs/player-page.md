@@ -6,14 +6,14 @@ section: friends
 order: 7
 navTitle: "A player's page"
 icon: user-round
-lede: "Every player's name on Elixir opens one page: what the player has done lately, and who follows whom. Ladder and Clan are a link away from it."
+lede: "Every player's name on Elixir opens one page: what the player has done lately, and who follows whom. Stats and Clan are a link away from it."
 reviewed: "2026-11-12 against contract 11.21.0"
 ---
 
 # A player's page
 
 A player's name opens their page, wherever the name is: Home, Find, the
-search sheet, a battle, Ladder, Explore and the email. The address is
+search sheet, a battle, Stats, Explore and the email. The address is
 `/home/player/<tag>`, the tag without its `#`. You need to be signed in, as
 for every read of Elixir.
 
@@ -26,8 +26,10 @@ The page leads with the player's game name, tag, clan and trophies. Under it:
 | Moments | the timeline's moments: a new arena, a promotion in Path of Legends, a badge, a clan joined or left |
 | Follows | who the player's account follows, and who follows it |
 
-Your own page offers **Open in Ladder**, and a clanmate's page **Open in
-Clan** when your clan runs Clan. Every page links to the **Full record** in
+Your own primary player's page, once you have verified it, is **You**
+(`/home/you`), with a fifth tab, **Stats**: [your season, read back](/docs/ladder).
+Your players' pages opened by name offer **Your stats**, and a clanmate's page
+**Open in Clan** when your clan runs Clan. Every page links to the **Full record** in
 Explore, which stays at its old address.
 
 ## Follows, followers and badges

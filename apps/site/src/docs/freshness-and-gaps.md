@@ -181,7 +181,7 @@ modes the battle log never shows, so a ratio under 1.0 is an upper bound on
 loss; and `unmeasured_tail_hours` is not part of the ratio. Missing coverage is
 unknown, not evidence of absence.
 
-Ladder's calendar uses the individual intervals, not the average or poll
+Stats' calendar uses the individual intervals, not the average or poll
 freshness, to support quiet days. A zero requires comparable complete intervals
 covering the whole closed local day and a complete read of its battles. Gaps,
 unbracketed tails, unread pages and clipped season days stay unknown. Recorded

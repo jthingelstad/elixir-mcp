@@ -296,7 +296,7 @@ in its hint.
 ## Feedback and the changelog, over the wire
 
 Feedback is one record for all of Elixir: an item filed here, over the
-JSON API (`POST /api/v1/feedback`), from Settings, Ladder, Clan,
+JSON API (`POST /api/v1/feedback`), from Settings, Stats, Clan,
 the docs or an email's footer lands in the same queue, is answered there,
 and is listed by `elixir_my_feedback` wherever it was filed.
 

@@ -11,7 +11,7 @@ official API is current-state only) and serves it on one origin,
 | `/signin`, `/data/service` | signing in, and the signed-in service page | `apps/web` |
 | `/settings` | Settings: your account and agents, with its left rail | `apps/web` |
 | `/console` | what is not yet moved: Explore, collectors, Admin; the word is retired from what a reader sees, and `apps/web/src/lib/moved.js` redirects what moved | `apps/web` |
-| `/ladder` | Ladder: your season, read back | `apps/web/src/ladder` |
+| `/home/you/stats` | Stats (Ladder until 2026-11-12; `/ladder` redirects): your season, read back, You's last tab | `apps/web/src/ladder` |
 | `/clan`, `/api/clan` | Elixir Clan: running a clan on its policy | `packages/clan*` |
 | `/battle/<id>` | a battle's public page | `services/web-api` |
 | `/mcp`, `/a/<id>/mcp`, `/oauth/*`, `/.well-known/*` | the MCP and OAuth doors | `services/mcp`, `packages/tools` |

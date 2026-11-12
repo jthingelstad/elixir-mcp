@@ -58,7 +58,7 @@ seconds for the first minutes), and never shows that tag as recording or
 freshly polled: check the tag, which is on the player's profile in the game
 below the name, and type the right one in the same place (Elixir tracks it
 instead, as your primary if the wrong one was) or stop tracking the wrong
-one. Ladder says **Tag not found** too, with the way to that fix. Any other failed read is only a failed attempt, retried on
+one. Stats says **Tag not found** too, with the way to that fix. Any other failed read is only a failed attempt, retried on
 the schedule below. A tag read or refused in the last day is not asked for
 again. You and your agents together get one of these first reads a day for
 each player slot you have ([Limits](/docs/limits)); a player added past that
