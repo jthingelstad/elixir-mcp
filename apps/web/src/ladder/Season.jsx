@@ -40,6 +40,7 @@ import { useBattleSweep, useToolRead, useToolReads } from "../lib/queries.js";
 import { DeckForm, SeasonForm, WeekForm } from "./Form.jsx";
 import { YoungRecord } from "./YoungRecord.jsx";
 import { Loading, ReadError, Record, Tile, useSeasonEdge } from "./common.jsx";
+import { useWhose } from "./whose.js";
 
 /** The season tab: one chip's season so far, as battles_performance reads it,
  *  its days on the account's calendar, week by week, and its deck played most.
@@ -47,6 +48,7 @@ import { Loading, ReadError, Record, Tile, useSeasonEdge } from "./common.jsx";
  *  verdict. Other holds two games, so it is two panels and nothing else. */
 export function Season(ctx) {
   const { player, mode, modeReady, season, summary, search } = ctx;
+  const whose = useWhose();
   const args = { player_tag: player.player_tag, season: season.arg };
   const reads = useToolReads(
     "battles_performance",
@@ -67,7 +69,7 @@ export function Season(ctx) {
       ) : (
         <OneMode {...ctx} body={reads[0].data} args={args} />
       )}
-      <YoungRecord player={player} summary={summary} />
+      {whose.own ? <YoungRecord player={player} summary={summary} /> : null}
       <BringClanmates />
       <SeasonExtras player={player} search={search} />
     </>
@@ -136,6 +138,7 @@ function OneMode({
  *  from when the record begins when that is later than the season. */
 function Summary({ mode, season, body, head }) {
   const { when } = useClock();
+  const whose = useWhose();
   const w = body.window ?? {};
   const fourth = fourthTile(mode, w, body.trophy_floor);
   const observed = body.meta?.source_polls?.player_battlelog?.observed_at;
@@ -175,7 +178,7 @@ function Summary({ mode, season, body, head }) {
             !season.current
               ? `in ${head.name}`
               : from
-                ? `since ${when(begins ? body.meta.recorded_since : from)}${begins ? ", when your record begins" : ""}`
+                ? `since ${when(begins ? body.meta.recorded_since : from)}${begins ? `, when ${whose.your} record begins` : ""}`
                 : null
           }
         >
@@ -481,6 +484,7 @@ function WeekByWeek({ mode, args, running }) {
  *  read, so moving between the two reads it once. */
 function TopDeck({ mode, args, hrefFor }) {
   const { when } = useClock();
+  const whose = useWhose();
   const base = { ...args, mode };
   const list = useToolRead("battles_decks", { ...base, limit: 100 });
   const top = list.data?.decks?.[0] ?? null;
@@ -511,7 +515,9 @@ function TopDeck({ mode, args, hrefFor }) {
     <Panel
       title="Most played deck"
       action={
-        <Link to={hrefFor({ slug: "decks" })}>Every deck you played ›</Link>
+        <Link to={hrefFor({ slug: "decks" })}>
+          Every deck {whose.you} played ›
+        </Link>
       }
     >
       <div className="panel__body ladder-top">

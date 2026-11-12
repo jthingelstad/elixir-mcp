@@ -1,12 +1,16 @@
 import { useLocation } from "@tanstack/react-router";
+import { Link, TagText } from "@elixir-mcp/ui";
 import { useMe, useNav } from "../App.jsx";
+import { playerHref } from "../lib/player.js";
 import {
   MODES,
   OTHER,
   capturePending,
+  isOwnClaim,
   ladderPlayers,
   scopeHref,
   ladderSlug,
+  playerName,
   pickMode,
   pickPlayer,
   pickSeason,
@@ -21,6 +25,7 @@ import { Decks } from "../ladder/Decks.jsx";
 import { LadderFrame } from "../ladder/ScopeBar.jsx";
 import { Season } from "../ladder/Season.jsx";
 import { YouTabs } from "../home/You.jsx";
+import { Whose, whoseWords } from "../ladder/whose.js";
 
 /**
  * You › Stats (2026-11-12; Ladder, at /ladder until then), under You's tabs.
@@ -34,20 +39,35 @@ import { YouTabs } from "../home/You.jsx";
  * dates, the chips their Other, and the bar its freshness.
  */
 export function LadderPage() {
+  const { me } = useMe();
+  const { search } = useLocation();
+  const players = ladderPlayers(me?.claims, search?.player);
+  const player = pickPlayer(players, search?.player);
+  // A player you follow is theirs, not yours: no You tabs above it, a way
+  // back to their player page, and "their" where your own says "your".
+  const own = !player || isOwnClaim(player);
   return (
-    <div className="kit-you-stats">
-      <YouTabs />
-      <LadderBody />
-    </div>
+    <Whose.Provider value={whoseWords(own)}>
+      <div className="kit-you-stats">
+        {own ? (
+          <YouTabs />
+        ) : (
+          <nav className="kit-you-stats__back" aria-label="Whose stats">
+            <Link to={playerHref(player.player_tag)}>
+              ‹ <TagText>{playerName(player)}</TagText>
+            </Link>
+          </nav>
+        )}
+        <LadderBody players={players} player={player} />
+      </div>
+    </Whose.Provider>
   );
 }
 
-function LadderBody() {
+function LadderBody({ players, player }) {
   const { me } = useMe();
   const navigate = useNav();
   const { pathname, search } = useLocation();
-  const players = ladderPlayers(me?.claims);
-  const player = pickPlayer(players, search?.player);
   const summary = useToolRead(
     "players_summary",
     { player_tag: player?.player_tag },

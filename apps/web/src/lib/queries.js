@@ -723,7 +723,8 @@ export const useCardCatalog = ({ enabled = true } = {}) =>
     enabled,
   });
 
-/** One tool's answer through the explore bridge, as Ladder reads it:
+/** One tool's answer through Stats' door (`/api/me/stats`, the explore
+ *  bridge for your own players and those you follow), as Ladder reads it:
  *  the body, or a thrown error carrying the tool's code when the tool
  *  refused. Keyed under the reader's root, because what it reads is
  *  theirs and a timezone change (the days a battle falls on) or a sign
@@ -731,7 +732,7 @@ export const useCardCatalog = ({ enabled = true } = {}) =>
  *  a person's own reads spend no daily quota (#538) but do share the
  *  hourly bucket with their own MCP clients. */
 async function toolRead(tool, args) {
-  const r = unwrap(await api.explore(tool, args));
+  const r = unwrap(await api.stats(tool, args));
   if (r?.is_error) {
     const e = new Error(r.body?.error?.message ?? `${tool} refused`);
     e.code = r.body?.error?.code;

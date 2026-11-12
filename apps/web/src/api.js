@@ -100,6 +100,9 @@ export const api = {
     ),
   usage: (agent) => request("GET", `${home(agent)}/usage`),
   explore: (tool, args) => request("POST", "/api/explore", { tool, args }),
+  // Stats' door (2026-11-12): the same tools, for your own players and the
+  // players you follow only; anyone else is refused before a tool runs.
+  stats: (tool, args) => request("POST", "/api/me/stats", { tool, args }),
   // A private nickname is a WRITE through the tool bridge. The bridge
   // answers 200 with is_error for a tool's own refusal, so that is
   // turned into the failed envelope every other write returns, and

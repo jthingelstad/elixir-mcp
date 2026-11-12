@@ -10,6 +10,7 @@ import {
 } from "./ladder-decks.js";
 import { useToolReads } from "../lib/queries.js";
 import { Loading, ReadError, Record } from "./common.jsx";
+import { useWhose } from "./whose.js";
 
 /** Decks a panel shows with their cards before "Show all"; each shown deck is
  *  one read for its cards. */
@@ -24,6 +25,7 @@ const LIMIT = 100;
  * Challenge and Tournament read apart, a section each.
  */
 export function Decks({ player, mode, modeReady, season }) {
+  const whose = useWhose();
   const groups = readModes(mode);
   const base = { player_tag: player.player_tag, season: season.arg };
   const reads = useToolReads(
@@ -32,9 +34,10 @@ export function Decks({ player, mode, modeReady, season }) {
     { enabled: modeReady },
   );
   if (!modeReady || reads.some((r) => r.isPending))
-    return <Loading what="your decks" />;
+    return <Loading what={`${whose.your} decks`} />;
   const failed = reads.find((r) => r.isError);
-  if (failed) return <ReadError error={failed.error} what="your decks" />;
+  if (failed)
+    return <ReadError error={failed.error} what={`${whose.your} decks`} />;
   const count = (r) =>
     (r.data?.decks?.length ?? 0) + (r.data?.duel_decks?.length ?? 0);
   if (!reads.some((r) => count(r) > 0))

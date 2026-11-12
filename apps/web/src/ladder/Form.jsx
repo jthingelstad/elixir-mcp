@@ -22,6 +22,7 @@ import {
 } from "./ladder.js";
 import { useToolRead } from "../lib/queries.js";
 import { Loading, ReadError } from "./common.jsx";
+import { useWhose } from "./whose.js";
 
 /**
  * "Am I improving?" (2026-10-08), read back as numbers: the game week
@@ -40,6 +41,7 @@ import { Loading, ReadError } from "./common.jsx";
  *  "this week" means nothing on a season that has closed. */
 export function WeekForm({ player, mode }) {
   const { when } = useClock();
+  const whose = useWhose();
   // The week this page was opened in; a page left open across Monday's
   // reset keeps the week it said it was showing.
   const [start] = useState(() => gameWeekStartMs());
@@ -53,7 +55,7 @@ export function WeekForm({ player, mode }) {
   const from = windows.week.from;
   return (
     <FormPanel
-      title="This week vs your last 4"
+      title={`This week vs ${whose.your} last 4`}
       aside={modeLabel(mode)}
       cols={["This week", "Last 4 weeks"]}
       a={form.week}
@@ -70,6 +72,7 @@ export function WeekForm({ player, mode }) {
  *  sides reach the minimum. */
 export function DeckForm({ player, mode, season }) {
   const { when, zone } = useClock();
+  const whose = useWhose();
   const base = { player_tag: player.player_tag, season: season.arg, mode };
   // The Decks page's own read of this mode's season (the same key), so
   // moving between the two pages reads it once.
@@ -96,20 +99,20 @@ export function DeckForm({ player, mode, season }) {
     { enabled: Boolean(form && opened) },
   );
   if (!change || !form) return null;
-  const name = change.label ?? "Your most-played deck";
+  const name = change.label ?? `${whose.Your} most-played deck`;
   const before = earlier.data?.decks?.[0]?.archetype_label ?? null;
   return (
     <FormPanel
       title={`Before and since ${name}`}
       aside={modeLabel(mode)}
-      lede={`${name} is the deck you played most ${seasonWords(season)} in ${modeLabel(mode)} (${change.battles} ${change.battles === 1 ? "battle" : "battles"}). Its first battle was ${when(change.since)}. Your ${modeLabel(mode)} record before it, and since, every deck included:`}
+      lede={`${name} is the deck ${whose.you} played most ${seasonWords(season)} in ${modeLabel(mode)} (${change.battles} ${change.battles === 1 ? "battle" : "battles"}). Its first battle was ${when(change.since)}. ${whose.Your} ${modeLabel(mode)} record before it, and since, every deck included:`}
       cols={[
         `Before ${shortDay(change.since, zone)}`,
         `Since ${shortDay(change.since, zone)}`,
       ]}
       a={form.before}
       b={form.since}
-      foot={`${before && before !== change.label ? `Before it, the deck you played most was ${before}. ` : ""}Each number is shown once both sides have at least ${FORM_MIN_BATTLES} battles; each count is the battles it is over. A deck's name describes its cards, never how well it plays.`}
+      foot={`${before && before !== change.label ? `Before it, the deck ${whose.you} played most was ${before}. ` : ""}Each number is shown once both sides have at least ${FORM_MIN_BATTLES} battles; each count is the battles it is over. A deck's name describes its cards, never how well it plays.`}
     />
   );
 }
@@ -147,6 +150,7 @@ function stretch(ms) {
  */
 export function SeasonForm({ player, mode, season, seasons, body, summary }) {
   const { when: at, whenDay } = useClock();
+  const whose = useWhose();
   // The hour this page was opened in: the same-point window holds still
   // while the page is open.
   const [nowMs] = useState(() => Date.now());
@@ -224,7 +228,7 @@ export function SeasonForm({ player, mode, season, seasons, body, summary }) {
   );
   if (prev === null)
     return say(
-      `Elixir's record of you holds no season before ${name}, so there is nothing to set beside it.`,
+      `Elixir's record of ${whose.them} holds no season before ${name}, so there is nothing to set beside it.`,
     );
   if (!enough)
     return say(
@@ -236,7 +240,7 @@ export function SeasonForm({ player, mode, season, seasons, body, summary }) {
   const since = Date.parse(summary?.data?.meta?.recorded_since ?? "");
   const partial =
     Number.isFinite(since) && since > Date.parse(prev.startsAt ?? "")
-      ? `Elixir's record of you begins ${whenDay(since)}, partway through ${prev.name}, so not all of that season is on record.`
+      ? `Elixir's record of ${whose.them} begins ${whenDay(since)}, partway through ${prev.name}, so not all of that season is on record.`
       : null;
   const pending =
     last.isPending ||
@@ -321,12 +325,12 @@ export function SeasonForm({ player, mode, season, seasons, body, summary }) {
   ].filter(Boolean);
   const floor =
     mode === "ladder" && floored.length
-      ? `In ${floored.join(" and ")} you stood on an arena floor, where a loss costs no trophies.`
+      ? `In ${floored.join(" and ")} ${whose.you} stood on an arena floor, where a loss costs no trophies.`
       : null;
   return (
     <FormPanel
       {...panel}
-      lede={`Your ${label} record ${running ? "so far this season" : `in ${name}`}, beside ${prev.name}'s.`}
+      lede={`${whose.Your} ${label} record ${running ? "so far this season" : `in ${name}`}, beside ${prev.name}'s.`}
       cols={cols}
       rows={seasonRows(sides)}
       foot={[

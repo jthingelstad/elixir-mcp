@@ -14,6 +14,7 @@ import {
 } from "./ladder-days.js";
 import { useBattleSweep } from "../lib/queries.js";
 import { Loading, ReadError } from "./common.jsx";
+import { useWhose } from "./whose.js";
 
 /** Days a page lists before "Show older days". */
 const DAYS_SHOWN = 7;
@@ -78,12 +79,15 @@ function ModeBattles({ player, group, titled, modeReady, season, startsAt }) {
   const battles = sweep.data?.battles;
   const days = useMemo(() => battleDays(battles ?? [], zone), [battles, zone]);
   const [older, setOlder] = useState(false);
+  const whose = useWhose();
   const words = modeWords(group);
   const title = titled ? <h2 className="ladder-group">{words}</h2> : null;
   if (!modeReady || sweep.isPending)
     return <Loading what={`the season's ${words} battles`} />;
   if (sweep.isError)
-    return <ReadError error={sweep.error} what={`your ${words} battles`} />;
+    return (
+      <ReadError error={sweep.error} what={`${whose.your} ${words} battles`} />
+    );
   if (!days.length)
     return (
       <Empty

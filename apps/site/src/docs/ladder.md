@@ -107,9 +107,15 @@ that those records are missing.
 
 Stats reads your own players: your primary, and any alt you track as
 yours. The first thing in the bar is whose season you are reading: a name and
-a tag with one player, a list to switch with more than one. A friend's or a
-watched player's season is not on Stats; it is theirs. With no player of your
+a tag with one player, a list to switch with more than one. With no player of your
 own yet, Stats offers **Add your player**.
+
+Stats also opens for a player you follow: their player page has a
+**Their stats** link. Their season reads the same way as yours, the same
+pages and the same numbers, with "their" where yours says "your", and a
+link back to their player page in place of You's tabs. Stats opens only
+for your own players and the players you follow; a player you watch, or
+anyone else, is refused, and unfollowing closes it again.
 
 Beside the chips, a small chip says when this player's battle log was last read.
 Open it for what that means: the game keeps about the last 30 battles, so a long
