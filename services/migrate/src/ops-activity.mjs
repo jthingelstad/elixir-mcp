@@ -90,7 +90,7 @@ export async function activityPreview(databaseUrl, spec = {}) {
  * timeline's counts (never its items) and the EXPLAIN ANALYZE plans.
  */
 export async function explainTimeline(databaseUrl, spec = {}) {
-  const { clanLearnedQuery, clanMemberBattlesQuery } =
+  const { clanLearnedQuery, clanMemberBattlesQuery, prefetchStatements } =
     await import("@elixir-mcp/tools/activity/entries");
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
@@ -152,15 +152,40 @@ export async function explainTimeline(databaseUrl, spec = {}) {
       });
     }
     if (subjects.length === 0) return { error: "no subjects" };
+    // The plans of the players' batched reads (players.batch, G1), taken
+    // before the read and without running them, so a read that runs past
+    // the timeout still says how it was planned.
+    const playerTags = subjects
+      .filter((x) => x.kind !== "clan")
+      .map((x) => x.tag);
+    const batch_plans = {};
+    if (playerTags.length > 1) {
+      const q = prefetchStatements({ fromMs, toMs });
+      for (const [name, text] of [
+        ["wide", q.wide],
+        ["late", q.late],
+      ]) {
+        const { rows } = await db.query(`explain (format text) ${text}`, [
+          playerTags,
+        ]);
+        batch_plans[name] = rows.map((r) => r["QUERY PLAN"]).join("\n");
+      }
+    }
     const perf = {};
     const t0 = Date.now();
-    const out = await buildTimeline(db, subjects, {
-      fromMs,
-      toMs,
-      timezone,
-      accountId,
-      perf,
-    });
+    let out;
+    try {
+      out = await buildTimeline(db, subjects, {
+        fromMs,
+        toMs,
+        timezone,
+        accountId,
+        perf,
+      });
+    } catch (e) {
+      // A read past the statement timeout still reports how it was planned.
+      return { error: e.message, ms: Date.now() - t0, perf, batch_plans };
+    }
     const elapsed = Date.now() - t0;
     const kinds = Array.isArray(args.kinds) ? args.kinds : null;
     const items = kinds
@@ -187,6 +212,7 @@ export async function explainTimeline(databaseUrl, spec = {}) {
       }
     }
     return {
+      batch_plans,
       request_id: audit?.request_id ?? null,
       surface: audit?.surface ?? null,
       audited: audit

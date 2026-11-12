@@ -1075,28 +1075,28 @@ async function playerLedger(db, tag, fromMs, toMs, basis) {
  * 2026-09-24; 0171): an enemy attacked their boat and their defense deck
  * answered, so it never counts here.
  */
-/** The battles statement playerBattles reads, for one player (`$1`) or a
- *  batch (`any($1::text[])`, each row naming its player). */
-function playerBattlesSql(tagCond, fromMs, toMs, basis, batch = false) {
+/** The battles statement playerBattles reads, for one player: `tagSql`
+ *  names it (`$1`, or a batch's lateral column, `t.tag`). */
+function playerBattlesSql(tagSql, fromMs, toMs, basis) {
   const occurred = basis === "occurred";
   const selected = occurred
     ? `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}`
     : `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
         and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`;
   return {
-    wide: `select ${batch ? "bp.player_tag as batch_tag, " : ""}b.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.crowns,
+    wide: `select b.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.crowns,
             (select max(o.crowns) from battle_participant o
               where o.battle_id = bp.battle_id and o.side <> bp.side) as crowns_against,
             bp.trophy_change, bp.clan_tag, bp.deck_hash
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
-      where bp.player_tag ${tagCond}
+      where bp.player_tag = ${tagSql}
         and ${selected}
         and b.battle_time >= b.created_at - interval '1 day'
         and not (b.boat_battle_side is not null
                  and (b.boat_battle_side = 'defender') = (bp.side = 0))
-      order by ${batch ? "bp.player_tag, " : ""}b.battle_time`,
-    late: `select ${batch ? "bp.player_tag as batch_tag, " : ""}count(*)::int as n
+      order by b.battle_time`,
+    late: `select count(*)::int as n
        from battle b
        join battle_participant bp on bp.battle_id = b.battle_id
       where ${
@@ -1105,9 +1105,22 @@ function playerBattlesSql(tagCond, fromMs, toMs, basis, batch = false) {
           : `b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`
       }
         and b.battle_time < b.created_at - interval '1 day'
-        and bp.player_tag ${tagCond}${batch ? "\n      group by bp.player_tag" : ""}`,
+        and bp.player_tag = ${tagSql}`,
   };
 }
+
+/** A per-player statement run once for every tag of a batch: each tag's
+ *  rows come from the statement its player alone would run, on its
+ *  player's own index. OFFSET 0 keeps the lateral a per-tag subquery the
+ *  planner cannot flatten into one join over everyone's week: flattened,
+ *  `player_tag = any(...)` on the owner's 52 players ran past a 120 s
+ *  statement timeout in production (2026-11-12), where 52 single reads
+ *  take seconds. */
+const perTag = (sql, then = null) =>
+  `select t.tag as batch_tag, x.*
+     from unnest($1::text[]) with ordinality as t(tag, ord)
+     cross join lateral (${sql} offset 0) x
+    order by t.ord${then ? `, ${then}` : ""}`;
 
 async function playerBattles(
   db,
@@ -1129,7 +1142,7 @@ async function playerBattles(
     wide = prefetched.wide;
     lateN = prefetched.late;
   } else {
-    const sql = playerBattlesSql("= $1", fromMs, toMs, basis);
+    const sql = playerBattlesSql("$1", fromMs, toMs, basis);
     wide = (await db.query(sql.wide, [tag])).rows;
     lateN = (await db.query(sql.late, [tag])).rows[0]?.n ?? 0;
   }
@@ -1139,17 +1152,29 @@ async function playerBattles(
   return { rows, wide, late: lateN };
 }
 
+/** The statements prefetchPlayers runs, each over `$1`, a tag array.
+ *  Exported so {explain_timeline} can EXPLAIN what Home runs. */
+export function prefetchStatements({ fromMs, toMs, basis = "observed" }) {
+  const sql = playerBattlesSql("t.tag", fromMs, toMs, basis);
+  return {
+    wide: perTag(sql.wide, "x.battle_time"),
+    late: perTag(sql.late),
+    snapshot: (atMs) => perTag(snapshotSql("t.tag", atMs)),
+  };
+}
+
 /**
  * The per-player reads a timeline of many players makes once for all of
  * them (Home's feed, G1 2026-11-12): each player's battles, late count,
  * profile before and after the window, and the names of every deck and
  * event those battles carry. One player read them in seven statements; a
  * feed of fifty paid 350 round trips, about half its time, for the same
- * rows. The statements are playerBattles' and snapshotAt's own, over a tag
- * array, so a batched entry is the entry its player alone would get.
+ * rows. The statements are playerBattles' and snapshotAt's own, run once per
+ * tag inside one statement (perTag), so a batched entry is the entry its
+ * player alone would get, read on the same index.
  */
 async function prefetchPlayers(db, tags, { fromMs, toMs, basis }) {
-  const sql = playerBattlesSql("= any($1::text[])", fromMs, toMs, basis, true);
+  const sql = prefetchStatements({ fromMs, toMs, basis });
   const battles = new Map(tags.map((t) => [t, { wide: [], late: 0 }]));
   for (const { batch_tag: t, ...row } of (await db.query(sql.wide, [tags]))
     .rows)
@@ -1159,12 +1184,7 @@ async function prefetchPlayers(db, tags, { fromMs, toMs, basis }) {
     if (b) b.late = r.n;
   }
   const snapshots = async (atMs) => {
-    const { rows } = await db.query(
-      `select t.tag as batch_tag, s.*
-         from unnest($1::text[]) as t(tag)
-         cross join lateral (${snapshotSql("t.tag", atMs)}) s`,
-      [tags],
-    );
+    const { rows } = await db.query(sql.snapshot(atMs), [tags]);
     return new Map(rows.map(({ batch_tag, ...r }) => [batch_tag, r]));
   };
   const before = await snapshots(fromMs);
