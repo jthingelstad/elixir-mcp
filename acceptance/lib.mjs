@@ -28,6 +28,15 @@ export function answered(r, what) {
   return r.body;
 }
 
+/** A call that ran out of time: the server's query_timeout (an analytical
+ *  budget or the function's deadline) or the suite's own request_timeout
+ *  (door.mjs). Never the answer a case asserts on, whatever it asserts:
+ *  the failure names the timeout instead. */
+const TIMEOUTS = new Set(["query_timeout", "timeout", "request_timeout"]);
+export function timedOut(r) {
+  return r.isError === true && TIMEOUTS.has(r.body?.error?.code);
+}
+
 /** A result_too_large that says what would fit: the #56/#64 behaviour,
  *  an answer in its own right when the ask was a page no one made. */
 export function pricedRefusal(r) {

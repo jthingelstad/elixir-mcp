@@ -123,8 +123,11 @@ export async function runSuite(
     });
     if (counts) report.failures += 1;
     if (skip) report.skipped = (report.skipped ?? 0) + 1;
+    // A failure has no `ms` of its own (it threw), so it shows its wall
+    // time: a FAIL at the door's deadline reads as the timeout it was.
+    const shown = ms ?? (error ? wall : null);
     log(
-      `${skip ? "SKIP" : !error ? "ok  " : counts ? "FAIL" : "KNOWN"} ${id}${skip ? ` - ${skip}` : ""}${ms !== null ? ` (${ms} ms)` : ""}${error ? `\n     ${error}` : ""}${known && !expired ? `\n     known until ${known.until}: ${known.reason}` : ""}${expired ? `\n     the known-failure entry expired ${known.until}` : ""}`,
+      `${skip ? "SKIP" : !error ? "ok  " : counts ? "FAIL" : "KNOWN"} ${id}${skip ? ` - ${skip}` : ""}${shown !== null ? ` (${shown} ms)` : ""}${error ? `\n     ${error}` : ""}${known && !expired ? `\n     known until ${known.until}: ${known.reason}` : ""}${expired ? `\n     the known-failure entry expired ${known.until}` : ""}`,
     );
   };
   // A per-family gate (2026-09-23): the cases that read a tool of that

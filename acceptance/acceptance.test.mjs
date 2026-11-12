@@ -10,7 +10,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { makeDoor } from "./door.mjs";
+import { makeDoor, DOOR_TIMEOUT_MS, REQUEST_TIMEOUT } from "./door.mjs";
 import { shapeCatalogue } from "./catalogue.mjs";
 import { identities } from "./checks/identities.mjs";
 import { noteTokens, notesNameFields, deepKeys } from "./lib.mjs";
@@ -301,6 +301,98 @@ test("the door bounds a stalled request", async () => {
   const stalled = await door.call("game_clock", {});
   assert.equal(stalled.isError, true);
   assert.match(stalled.body.error.message, /timeout/i);
+  assert.equal(stalled.body.error.code, REQUEST_TIMEOUT, "its own code");
+});
+
+test("the door waits past the MCP function's own timeout", () => {
+  // 2026-11-12, gym/215.2: the door gave up at 20 s while the function
+  // answers every read-only tool up to its 25 s kill (less 1.5 s), so
+  // timeline reads the server answered at 22-24 s were read as failures.
+  const template = readFileSync(
+    new URL("../infra/template.yaml", import.meta.url),
+    "utf8",
+  );
+  const mcp = template.slice(
+    template.indexOf("FunctionName: elixir-mcp-mcp-web\n      Description"),
+  );
+  const seconds = Number(/TimeoutSeconds: (\d+)/.exec(mcp)?.[1]);
+  assert.ok(seconds > 0, "the MCP web function declares TimeoutSeconds");
+  assert.ok(
+    DOOR_TIMEOUT_MS > seconds * 1000,
+    `the door's ${DOOR_TIMEOUT_MS} ms outlasts the function's ${seconds} s`,
+  );
+});
+
+test("a timed-out read fails its gym case as a timeout, never as an assertion", async () => {
+  const { gymCases } = await import("./gym-interp.mjs");
+  const blocks = JSON.parse(
+    readFileSync(new URL("./gym.json", import.meta.url), "utf8"),
+  );
+  // 215.2 as filed: a `when` over entries[] and a notes_match. On a
+  // timeout body the `when` held over an absent list and the case failed
+  // "no note says it" (2026-11-12, three times in one morning).
+  const filed = blocks.find((b) => b.id === "215.2");
+  assert.ok(filed, "gym.json still files 215.2");
+  const [single] = gymCases([filed, { ...filed, id: "215.9", control: true }]);
+  const multi = gymCases([
+    {
+      id: "215.8",
+      control: true,
+      calls: { t: { tool: filed.tool, args: filed.args } },
+      assert: [{ notes_match: ["t", "recorded from"] }],
+    },
+  ])[0];
+  const timeouts = [
+    {
+      code: REQUEST_TIMEOUT,
+      message: "tools/call: request timeout after 30000 ms",
+    },
+    {
+      code: "query_timeout",
+      message:
+        "Tool elixir_timeline exceeded its query time budget; no analytical result was returned.",
+    },
+  ];
+  for (const error of timeouts) {
+    const ctx = {
+      read: async () => ({ isError: true, body: { error }, ms: null }),
+    };
+    for (const c of [single, multi])
+      await assert.rejects(
+        c.run(ctx),
+        (err) =>
+          new RegExp(`refused ${error.code}`).test(err.message) &&
+          !/no note says it/.test(err.message),
+        `${c.id} names ${error.code}`,
+      );
+  }
+  // A refusal still reaches the notes verbs, which read its words on
+  // purpose (Gym 93.3-93.5 asserted refused-and-right).
+  const refusal = (message) => ({
+    read: async () => ({
+      isError: true,
+      body: { error: { code: "bad_request", message } },
+    }),
+  });
+  await single.run(refusal("war moments begin with the ledger"));
+  await assert.rejects(
+    single.run(refusal("from must be before to")),
+    /no note says it/,
+  );
+  // And the answer itself passes.
+  const answer = {
+    read: async () => ({
+      isError: false,
+      ms: 5,
+      body: {
+        entries: [{ kind: "clan_activity", war: { resolved: [] } }],
+        notes: [
+          "War moments (bracket_observed, race_finished, week_resolved) and a clan entry's war.resolved are recorded from 2026-09-08T09:52:18.000Z.",
+        ],
+      },
+    }),
+  };
+  assert.deepEqual(await single.run(answer), { ms: 5 });
 });
 
 test("the door bounds a stalled response body", async () => {
