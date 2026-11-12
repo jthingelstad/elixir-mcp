@@ -153,7 +153,10 @@ your friends. Each part shows only when it has something:
 - **Reactions to your items**: the cheers others gave, in the last seven
   days, to the [timeline](/docs/timeline#cheers) items about players you
   have [verified](/docs/verify) as yours. Counts only, each cheer with its
-  number: never who cheered.
+  number: never who cheered. The bell keeps your week's items for up to
+  fifteen minutes while you use Elixir (three hours if no one opens it),
+  so cheers on an item made since can reach the timeline before the bell.
+  Cheers on items it already holds show at once.
 - **New followers**: accounts that started following one of your verified
   players in the last thirty days. One is named by its own verified
   player's game name and tag, as its [player page](/docs/player-page)
