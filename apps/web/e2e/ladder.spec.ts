@@ -594,13 +594,20 @@ test.describe("Ladder signed in", () => {
     await page.goto("/ladder?player=9PQ2R8L");
     const select = page.getByLabel("Player", { exact: true });
     await expect(select).toBeVisible();
-    expect((await select.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
-      44,
-    );
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - window.innerWidth,
-    );
-    expect(overflow).toBeLessThanOrEqual(0);
+    // The list re-renders as the pending player's first answer arrives, so
+    // a single boundingBox() read can land between two renders and see
+    // none (null, read as 0: flaky on main 2026-11-12). Poll the
+    // measurement until the list settles at its height.
+    await expect
+      .poll(async () => (await select.boundingBox())?.height ?? 0)
+      .toBeGreaterThanOrEqual(44);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth - window.innerWidth,
+        ),
+      )
+      .toBeLessThanOrEqual(0);
   });
 
   test("with no player of your own, Ladder says so and offers the way in", async ({
