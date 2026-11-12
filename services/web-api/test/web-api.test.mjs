@@ -982,6 +982,11 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
     { free: false, following: false, used: 1, limit: 1 },
   );
   assert.equal((await cost("not a tag")).statusCode, 400);
+  // No tag asks only for the count.
+  const count = parse(await cost(""));
+  assert.equal(count.player_tag, null);
+  assert.equal(count.free, null);
+  assert.equal(count.used, 1);
   assert.equal((await cost("#PLC220", null)).statusCode, 401);
   const refused = await handler(
     event({ path: "/api/claims", cookie, body: { player_tag: "#PLC220" } }),
