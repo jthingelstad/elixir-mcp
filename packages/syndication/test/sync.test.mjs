@@ -130,7 +130,7 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   );
   assert.match(
     sitting.content,
-    /\]\(<https:\/\/elixir\.poapkings\.com\/console\/explore\/player\/UVQ8RJYG9>\)$/,
+    /\]\(<https:\/\/elixir\.poapkings\.com\/home\/player\/UVQ8RJYG9>\)$/,
     "links are masked around an angle-bracketed address, which Discord never previews",
   );
   const [row] = await told(person);
