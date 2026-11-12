@@ -861,7 +861,7 @@ test("the clan report links the race's own week, by Season and Week", () => {
   const { html } = renderMail("clan_report", facts, links);
   assert.match(
     html,
-    /href="https:\/\/elixir\.poapkings\.com\/console\/explore\/week\/J2RGCRVG~136~2\?utm_source=email[^"]*"[^>]*>the week’s page<\/a>/,
+    /href="https:\/\/elixir\.poapkings\.com\/clan\/J2RGCRVG\/war\/136-3\?utm_source=email[^"]*"[^>]*>the week’s page<\/a>/,
   );
   assert.match(html, /Season 136, week 3 are on/);
   // No race, no week link.
@@ -870,7 +870,7 @@ test("the clan report links the race's own week, by Season and Week", () => {
     { ...facts, war: { present: false } },
     links,
   ).html;
-  assert.doesNotMatch(quiet, /explore\/week\//);
+  assert.doesNotMatch(quiet, /\/war\/\d+-\d+/);
 });
 
 test("the clan report sets the race and the week beside the weeks before", () => {

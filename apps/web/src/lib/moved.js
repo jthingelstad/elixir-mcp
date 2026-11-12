@@ -124,9 +124,12 @@ function tagSegment(raw) {
 
 /** Explore folded (Jamie, 2026-11-12). Its lookup and Players browse are
  *  Find; a player's record and profile are the player page (its Record
- *  tab); a battle's is the battle page; a clan's is the clan directory (a
- *  clan you are in opens itself there); war weeks are the clan's War tab;
- *  decks are Stats' Decks. Mail and Discord lines in inboxes name these. */
+ *  tab); a battle's is the battle page; a clan's is the clan's own address,
+ *  which opens Clan for its members and the clan directory, searched for
+ *  it, for anyone else (Clan's shell decides, since only the session
+ *  knows); a war week is that week of the clan's War tab
+ *  (`/war/<season>-<n>`); decks are Stats' Decks. Mail and Discord lines in
+ *  inboxes name these. */
 function exploreMoved(page, id) {
   const player = (raw) => {
     const tag = tagSegment(raw);
@@ -136,23 +139,31 @@ function exploreMoved(page, id) {
   if (page === "meta" || page === "deck") return `${LADDER}/decks`;
   if (page === "weeks") return "/clan";
   if (page === "player" || page === "profile") return player(id);
-  if (page === "clan") return CLAN_DIRECTORY;
+  if (page === "clan") {
+    const tag = tagSegment(id);
+    return tag ? `/clan/${tag}/feed` : CLAN_DIRECTORY;
+  }
   if (page === "battle")
     return /^[0-9a-f]{12,64}$/.test(id ?? "") ? `/battle/${id}` : HOME;
   if (page === "week") {
-    // <clan>~<season>~<section>: the clan's War tab on that season.
-    const [raw, season] = String(id ?? "").split("~");
+    // <clan>~<season>~<section>: that week of the clan's War tab, counted
+    // from 1 there; its season when the section is not a number.
+    const [raw, season, section] = String(id ?? "").split("~");
     const tag = tagSegment(raw);
     if (!tag) return "/clan";
-    return /^\d{1,4}$/.test(season ?? "")
-      ? `/clan/${tag}/war/${season}`
-      : `/clan/${tag}/war`;
+    if (!/^\d{1,4}$/.test(season ?? "")) return `/clan/${tag}/war`;
+    return /^\d{1,2}$/.test(section ?? "")
+      ? `/clan/${tag}/war/${season}-${Number(section) + 1}`
+      : `/clan/${tag}/war/${season}`;
   }
   if (page === "list") {
     const [kind, rest] = String(id ?? "").split(":");
     if (kind === "battles" || kind === "decks") return player(rest);
     if (kind === "deckbattles") return `${LADDER}/decks`;
-    if (kind === "members") return CLAN_DIRECTORY;
+    if (kind === "members") {
+      const tag = tagSegment(rest);
+      return tag ? `/clan/${tag}/members` : CLAN_DIRECTORY;
+    }
     if (kind === "weeks") {
       const tag = tagSegment(rest);
       return tag ? `/clan/${tag}/war` : "/clan";

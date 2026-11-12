@@ -200,8 +200,15 @@ export function DirectoryPage() {
   const { me } = useSession();
   const signedIn = Boolean(me?.signed_in && !me.unavailable);
   const { state, load } = useDirectory(signedIn);
+  const { search } = useLocation();
   if (!signedIn) return null;
-  return <Directory state={state} onRetry={() => load()} />;
+  return (
+    <Directory
+      state={state}
+      onRetry={() => load()}
+      query={typeof search.q === "string" ? search.q : ""}
+    />
+  );
 }
 
 /** One redirect the session has to answer, once it can. */
@@ -462,7 +469,7 @@ export function FeedbackPage() {
 
 export function MaintainPage() {
   useEffect(() => {
-    window.location.replace("/console/admin/feedback");
+    window.location.replace("/settings/admin/feedback");
   }, []);
   return null;
 }
@@ -575,11 +582,12 @@ export function ClanShell({
       if (me.selected) navigate(landingPath(me), { replace: true });
       else if (app !== "/") navigate(CLAN, { replace: true });
     } else if (isClanSegment(segment) && !atClan) {
-      // A clan that is not theirs: its record, which is open to anyone signed
-      // in (a link in mail lands here for a clan the reader has left).
+      // A clan that is not theirs: the clan directory, searched for it, which
+      // is open to anyone signed in (a link in mail lands here for a clan the
+      // reader has left). Elixir has no page for a clan you are not in.
       navigate(
         tagOf(segment)
-          ? `/console/explore/clan/${tagOf(segment).slice(1)}`
+          ? `${CLAN}/directory?q=${encodeURIComponent(tagOf(segment).slice(1))}`
           : `${CLAN}/clans`,
         { replace: true },
       );

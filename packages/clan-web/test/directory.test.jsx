@@ -110,9 +110,9 @@ describe("the filters", () => {
 });
 
 describe("a tile", () => {
-  test("your clan opens in Clan, any other on its record", () => {
+  test("your clan opens in Clan; any other has no page, so no link", () => {
     expect(tileHref(CLANS[2])).toBe("/clan/8QCV");
-    expect(tileHref(CLANS[0])).toBe("/console/explore/clan/2PQRJ8LV");
+    expect(tileHref(CLANS[0])).toBe(null);
   });
   test("the crest is the name's letters, else the tag's", () => {
     expect(crestOf(CLANS[0])).toBe("AE");
@@ -164,6 +164,14 @@ describe("the page", () => {
       screen.getAllByRole("button", { name: "Clear the filters" })[0],
     );
     expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(3);
+  });
+  test("a clan's address opens it searched for, and its name links nowhere", () => {
+    render(<Directory state={ready} query="PYLQ2" />);
+    expect(screen.getByLabelText("Search").value).toBe("PYLQ2");
+    expect(
+      screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent),
+    ).toEqual(["Beta Example"]);
+    expect(screen.queryByRole("link", { name: "Beta Example" })).toBe(null);
   });
   test("the trophies field keeps digits only", () => {
     render(<Directory state={ready} />);

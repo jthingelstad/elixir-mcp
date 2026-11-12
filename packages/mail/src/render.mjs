@@ -104,7 +104,9 @@ const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
 const playerUrl = (tag) => `${SITE}/home/player/${tagPath(tag)}`;
-const clanUrl = (tag) => `${SITE}/console/explore/clan/${tagPath(tag)}`;
+// A clan's own address: Clan for its members, the clan directory searched
+// for it for anyone else (packages/clan-web App.jsx, 2026-11-12).
+const clanUrl = (tag) => `${SITE}/clan/${tagPath(tag)}`;
 // Ladder, a player's own season (apps/web pages/LadderPage.jsx):
 // `?player=` names one of the reader's own players, so only the Arena
 // week and Milestones, which are about the reader's own, link it.
@@ -114,10 +116,10 @@ const ladderUrl = (tag, page = "", season = null) =>
   `${SITE}/ladder${page ? `/${page}` : ""}?player=${tagPath(tag)}${season != null ? `&season=${encodeURIComponent(season)}` : ""}`;
 // Clan's own pages (packages/clan-web, routes.jsx): the tag without its #.
 const clanPageUrl = (tag, page) => `${SITE}/clan/${tagPath(tag)}/${page}`;
-// A clan's river race week in the console (apps/web views/Explore.jsx):
-// /explore/week/<tag>~<season>~<section index>, the week counted from 0.
+// A clan's river race week, that week of its War tab (packages/clan-web
+// views/Season.jsx): /clan/<tag>/war/<season>-<week>, counted from 1.
 const raceWeekUrl = (tag, season, week) =>
-  `${SITE}/console/explore/week/${tagPath(tag)}~${encodeURIComponent(season)}~${Number(week) - 1}`;
+  `${SITE}/clan/${tagPath(tag)}/war/${encodeURIComponent(season)}-${Number(week)}`;
 // The footer links a sent mail's record by its id, and Send feedback opens
 // feedback with the mail attached (Jamie, 2026-09-19: "something not right?
 // send feedback", one click). The send id is a product identifier, not a

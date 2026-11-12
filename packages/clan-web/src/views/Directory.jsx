@@ -20,8 +20,19 @@ import {
  * a grid of tiles, with filters on facts the tiles show. Listed by name and
  * never ranked; a filter hides tiles and never reorders them.
  */
-export function Directory({ state, onRetry, onSignedOut = sessionExpired }) {
-  const [f, setF] = useState(NO_FILTERS);
+export function Directory({
+  state,
+  onRetry,
+  onSignedOut = sessionExpired,
+  query = "",
+}) {
+  // A clan's address for someone not in it opens here with its tag in the
+  // search (`/clan/directory?q=<tag>`): Elixir has no page for a clan you
+  // are not in, and the directory lists it when it saved its rules.
+  const [f, setF] = useState(() => ({
+    ...NO_FILTERS,
+    q: String(query ?? "").slice(0, 100),
+  }));
   // A finished read that refused is not a read still running (#782 review):
   // signed out goes where Clan's other views send it.
   useEffect(() => {
@@ -229,9 +240,13 @@ function ClanTile({ clan }) {
         </span>
         <div className="clan-dir__who">
           <h2 className="clan-dir__name">
-            <Link to={tileHref(clan)} className="clan-dir__link">
-              {name}
-            </Link>
+            {tileHref(clan) ? (
+              <Link to={tileHref(clan)} className="clan-dir__link">
+                {name}
+              </Link>
+            ) : (
+              name
+            )}
           </h2>
           <span className="tag">{clan.clan_tag}</span>
           {clan.yours ? <span className="chip chip--info">yours</span> : null}

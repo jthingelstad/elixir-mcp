@@ -9,7 +9,7 @@ import {
   EXAMPLE_POLICY,
 } from "@elixir-mcp/clan-engine/fixtures";
 import { renderWithProviders } from "./helpers.jsx";
-import { Season } from "../src/views/Season.jsx";
+import { Season, raceWeekPage } from "../src/views/Season.jsx";
 import { manageApi } from "../src/api.js";
 import { analyticsLocation } from "../src/analytics.js";
 import { parseClanPath } from "../src/App.jsx";
@@ -221,4 +221,83 @@ test("its addresses sit on the War tab and collapse in analytics", () => {
     analyticsLocation("/clan/2PQRJ8LV/war/2026-w36", "https://elixir.test")
       .path,
   ).toBe("/clan/war");
+});
+
+describe("one week of a season, by its number", () => {
+  const seasonRead = {
+    seasons: [
+      {
+        season_id: 140,
+        races: [
+          {
+            section_index: 0,
+            from: "2026-11-02T09:40:00Z",
+            to: "2026-11-09T09:40:00Z",
+          },
+          {
+            section_index: 1,
+            from: "2026-11-09T09:40:00Z",
+            to: "2026-11-16T09:40:00Z",
+          },
+        ],
+      },
+    ],
+  };
+  const weekRead = {
+    so_far: { iso_week: "2026-W46", from: "2026-11-09T00:00:00Z" },
+    weeks: [{ iso_week: "2026-W45", from: "2026-11-02T00:00:00Z" }],
+  };
+  test("a season's nth week is the week page the race falls in", () => {
+    expect(raceWeekPage(weekRead, seasonRead, "140", "1")).toBe("2026-w45");
+    expect(raceWeekPage(weekRead, seasonRead, "140", 2)).toBe("2026-w46");
+  });
+  test("a week the reads cannot place has no page", () => {
+    expect(raceWeekPage(weekRead, seasonRead, "140", "3")).toBe(null);
+    expect(raceWeekPage(weekRead, seasonRead, "139", "1")).toBe(null);
+    expect(raceWeekPage(weekRead, seasonRead, "140", "0")).toBe(null);
+    expect(raceWeekPage({ weeks: [] }, seasonRead, "140", "1")).toBe(null);
+  });
+  test("the address is a War tab page, never an ISO week", () => {
+    expect(parseClanPath("/clan/2PQRJ8LV/war/136-2")).toEqual({
+      tag: "#2PQRJ8LV",
+      section: "war",
+      tab: "136-2",
+    });
+  });
+  test("a week the read holds opens its week page in place of the address", async () => {
+    const navigate = vi.fn();
+    const week = weekAnswer(EXAMPLE_POLICY);
+    const season = seasonAnswer();
+    const s = season.data.seasons[0];
+    const target = s.races
+      .map((r) => ({
+        r,
+        page: raceWeekPage(
+          week.data,
+          season.data,
+          s.season_id,
+          r.section_index + 1,
+        ),
+      }))
+      .find((x) => x.page);
+    reads(week, season);
+    draw(`${s.season_id}-${(target?.r.section_index ?? 0) + 1}`, navigate);
+    if (target) {
+      await vi.waitFor(() =>
+        expect(navigate).toHaveBeenCalledWith(
+          `/clan/2PQRJ8LV/war/${target.page}`,
+          { replace: true },
+        ),
+      );
+    } else {
+      await heading(new RegExp(`All of Season ${s.season_id}`));
+    }
+  });
+  test("a week outside the read stays on its season, honestly", async () => {
+    reads();
+    draw("100-2");
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "outside this read",
+    );
+  });
 });

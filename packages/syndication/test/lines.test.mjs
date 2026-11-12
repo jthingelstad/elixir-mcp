@@ -54,7 +54,7 @@ test("a fresh item carries no time, and every link is masked around <address>", 
   );
   assert.equal(
     line,
-    `King\\_Thing was promoted to Champion on a battle. · [battle](<${ORIGIN}/battle/abababababab>) · [King\\_Thing](<${ORIGIN}/home/player/20JJJ2CCRU>) · [POAP KINGS](<${ORIGIN}/console/explore/clan/J2RGCRVG>)`,
+    `King\\_Thing was promoted to Champion on a battle. · [battle](<${ORIGIN}/battle/abababababab>) · [King\\_Thing](<${ORIGIN}/home/player/20JJJ2CCRU>) · [POAP KINGS](<${ORIGIN}/clan/J2RGCRVG>)`,
   );
   // Every address in the line sits inside angle brackets.
   for (const m of line.matchAll(/https:\/\/\S+/g))
@@ -73,10 +73,7 @@ test("a race week links its week; an older item says how long ago, after its sen
   };
   assert.deepEqual(
     itemLinks(it, { clanTags: new Set(["#J2RGCRVG"]) }).map((l) => l.url),
-    [
-      `${ORIGIN}/console/explore/week/J2RGCRVG~136~1`,
-      `${ORIGIN}/console/explore/clan/J2RGCRVG`,
-    ],
+    [`${ORIGIN}/clan/J2RGCRVG/war/136-2`, `${ORIGIN}/clan/J2RGCRVG`],
   );
   assert.ok(
     discordLine(it, { nowMs: NOW }).startsWith(
@@ -101,7 +98,7 @@ test("a long sentence is cut, its links kept, inside Discord's 2,000 characters"
   assert.ok(line.length <= 2000);
   assert.match(
     line,
-    /… · \[POAP KINGS\]\(<https:\/\/elixir\.poapkings\.com\/console\/explore\/clan\/J2RGCRVG>\)$/,
+    /… · \[POAP KINGS\]\(<https:\/\/elixir\.poapkings\.com\/clan\/J2RGCRVG>\)$/,
   );
 });
 

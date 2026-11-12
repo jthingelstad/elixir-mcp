@@ -123,11 +123,10 @@ export const removalWords = (day) =>
     ? "No removal rule"
     : `A removal comes after ${day} days with no battle`;
 
-/** Where a tile goes: your own clan opens in Clan, any other its record. */
-export const tileHref = (clan) =>
-  clan.yours
-    ? clanPath(clan.clan_tag)
-    : `/console/explore/clan/${clan.clan_tag.replace(/^#/, "")}`;
+/** Where a tile goes: your own clan opens in Clan. Any other has no page
+ *  in Elixir (its Explore record went with the Console, 2026-11-12), so its
+ *  tile is the whole of it and links nowhere. */
+export const tileHref = (clan) => (clan.yours ? clanPath(clan.clan_tag) : null);
 
 /** Two letters for the crest: the name's, else the tag's. */
 export function crestOf(clan) {
