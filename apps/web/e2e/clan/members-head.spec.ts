@@ -289,7 +289,8 @@ test.describe("Members as one page", () => {
   }) => {
     const reads: string[] = [];
     page.on("request", (r) => {
-      if (/\/recruit|\/scout/.test(new URL(r.url()).pathname))
+      // The API's reads only; the old page addresses are navigations.
+      if (/^\/api\/.*\/(recruit|scout)/.test(new URL(r.url()).pathname))
         reads.push(r.url());
     });
     await mockApi(page, asMember({ "GET /api/me/follow-plan": [200, PLAN] }));
