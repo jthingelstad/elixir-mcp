@@ -22,10 +22,20 @@ a person's [timeline cross-post](/docs/timeline). From then on the
 channel tells what happens in the clan, as its members read it. It is an
 editor, not a copy of the timeline: Elixir gathers what one moment
 produced into one story and writes it as a sentence or two, with no
-time and no link, for example "Ada moved up to Magic Academy with a 3-0
+time, for example "Ada moved up to Magic Academy with a 3-0
 win over keyluis and set a new best of 12,005 trophies, joining Bo
 there. Their Hog Rider cycle deck is 9-2 on ladder this season." A story
 told more than three hours late says when in words ("Yesterday").
+
+Every post ends with one link back to Elixir, **Open in Elixir**, and
+Discord shows no preview of it: the address is in angle brackets and
+each post and edit is sent with previews turned off. It opens the most
+specific page a clan member may read once signed in: the battle's page
+for one member's battle the record holds, the clan's **War** for a war
+story, its **Standings** for an award, the member's player page for
+another story about one member, and the clan's **Feed** for a join, a
+departure, a role change or a story about several members. A post edited
+in place keeps its link.
 
 - **What makes a story**: one member's one battle (the arena it moved
   them into, the new best it set, the league it promoted them to, all in
@@ -118,7 +128,8 @@ told more than three hours late says when in words ("Yesterday").
   number or a name it was neither given nor looked up, says a time of
   day, leaves out when a story over three hours late happened ("earlier
   today", "yesterday"), changes a departure's sentence or adds more than a thank-you or a farewell to it, tells a
-  story another post already told, carries a link or a mention, or runs
+  story another post already told, carries a link of its own (Elixir
+  adds the one link) or a mention, or runs
   past 600 characters is refused, and its stories are Elixir's own. So is every
   story the model leaves out, and every story when the model cannot be
   used or has not answered in time. At most 50 editor runs a day (a run
