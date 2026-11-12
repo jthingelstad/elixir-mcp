@@ -235,8 +235,12 @@ export const usePlayerRecord = (tag, enabled) =>
       const read = async (tool) => {
         const r = await api.explore(tool, { player_tag: tag });
         if (!r.ok) throw new Error("request failed");
-        // A tool's refusal (not recorded yet) is an absent half, not a failure.
-        return r.data?.is_error ? null : (r.data?.body ?? null);
+        if (!r.data?.is_error) return r.data?.body ?? null;
+        // Only "not recorded" is an absent half; a timeout or a server
+        // failure is the tab's error state, with its retry.
+        const code = r.data.body?.error?.code;
+        if (code === "not_recorded" || code === "not_found") return null;
+        throw new Error(code ?? "refused");
       };
       const [summary, profile] = await Promise.all([
         read("players_summary"),
