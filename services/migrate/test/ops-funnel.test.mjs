@@ -44,8 +44,12 @@ after(async () => {
   await admin.end();
 });
 
+// One clock for the file: each ago() read Date.now() afresh, so two instants
+// meant to be 120 s apart could land 121 s apart when the calls straddled a
+// second under load (2026-11-12, median 361 for 360).
+const NOW = Date.now();
 const ago = (days, seconds = 0) =>
-  new Date(Date.now() - days * 86_400_000 - seconds * 1000).toISOString();
+  new Date(NOW - days * 86_400_000 - seconds * 1000).toISOString();
 
 test("days is bounded", async () => {
   for (const days of [0, -1, 1.5, "90", 3651])
