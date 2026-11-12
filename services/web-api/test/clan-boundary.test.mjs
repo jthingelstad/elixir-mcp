@@ -81,3 +81,21 @@ test("the approved reader serves exactly two tools, each to its own principal", 
   assert.ok(PERSON_ONLY_TOOLS.includes("clans_my_view"));
   assert.ok(NOT_FOR_PERSONS.includes("clans_context"));
 });
+
+// The clan directory (#768) reads through the same seam, and only Clan's
+// web wiring calls it: never MCP, a public tool or /api/v1.
+test("only Clan's web wiring reads the clan directory", async () => {
+  const callers = [];
+  for (const top of ["services", "packages", "apps"]) {
+    for await (const file of files(path.join(ROOT, top))) {
+      const rel = path.relative(ROOT, file);
+      if (/(^|\/)(test|e2e)\//.test(rel)) continue;
+      const text = await readFile(file, "utf8");
+      if (/\breadClanDirectory\b/.test(text)) callers.push(rel);
+    }
+  }
+  assert.deepEqual(callers.sort(), [
+    "packages/auth/src/clan-context.mjs",
+    "services/web-api/src/clan.mjs",
+  ]);
+});

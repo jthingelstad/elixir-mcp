@@ -219,6 +219,8 @@ test("the doors by prefix refuse with no credential", async () => {
     "GET /api/clan/health",
   ]);
   assert.equal((await call("GET", "/api/clan/home")).statusCode, 401);
+  // The clan directory is for signed-in members only (#768).
+  assert.equal((await call("GET", "/api/clan/directory")).statusCode, 401);
   assert.equal((await call("POST", "/api/clan/actions")).statusCode, 401);
   assert.equal((await call("POST", "/api/clan/health")).statusCode, 401);
   assert.equal((await call("POST", "/api/clan/auth/login")).statusCode, 401);

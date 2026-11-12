@@ -2,6 +2,7 @@ import { Link, Tag, Panel, PageHead } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
+import { CLAN } from "../lib/base.js";
 
 /**
  * The chooser: one card per clan the person holds a player in, with the
@@ -25,6 +26,11 @@ export function Clans({ me, onSelect, selecting }) {
             Every clan you hold a player in. Pick one to work in; it is
             remembered.
           </>
+        }
+        aside={
+          <Link className="btn btn--sm" to={`${CLAN}/directory`}>
+            Clan directory
+          </Link>
         }
       />
       <div className="grid gap-3">

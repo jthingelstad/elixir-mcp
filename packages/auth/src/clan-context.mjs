@@ -1,8 +1,10 @@
 /** Approved private-context seam. Public game tools never read private Clan
- * state. Two readers, each authorizing and projecting in one statement:
+ * state. Three readers, each authorizing and projecting in one statement:
  * `readAgentPolicyContext` gives an agent eight fields after an explicit,
  * credential-bound grant and current recorded ownership/verified membership
- * checks; `readOwnClanView` gives a person their own view of one clan (#535). */
+ * checks; `readOwnClanView` gives a person their own view of one clan (#535);
+ * `readClanDirectory` gives a signed-in person the clan directory's tiles,
+ * the policy's public part only (#768). */
 import {
   ELIXIR_ORIGIN,
   OAUTH_SCOPE,
@@ -10,6 +12,7 @@ import {
 } from "@elixir-mcp/contracts";
 import {
   actionsWaitingFor,
+  countedCategories,
   effectivePolicyValues,
   ownStandingLine,
   policySummaryOf,
@@ -272,6 +275,140 @@ export async function readOwnClanView(db, account, clanTag) {
       policy,
       standing,
       actions,
+      read_at: new Date().toISOString(),
+    },
+  };
+}
+
+// ---- the clan directory (#768) ---------------------------------------------
+
+/** The policy fields a directory tile carries, and nothing else. A saved
+ *  version also holds who saved it, their note, and every minimum and clock;
+ *  none of those leaves the database here. */
+const DIRECTORY_POLICY_FIELDS = [
+  "war_intent",
+  "posture",
+  "goal_together",
+  "war_enabled",
+  "ranked_enabled",
+  "donations_enabled",
+  "trophies_enabled",
+  "removal_enabled",
+  "confirm_days",
+];
+
+/** [engineering, 2026-11-12] A bound on one read; the page says when it is
+ *  reached rather than dropping clans without a word. */
+export const DIRECTORY_LIMIT = 500;
+
+// Authorization and projection in one statement: only an approved person
+// reads, and the policy leaves the database already cut to the tile's
+// fields. Listed: every recorded clan whose policy pointer names a saved
+// version (saving a policy is how a clan opts in, DECISIONS). Ordered by
+// name, then tag: never by size, trophies or anything a ranking could read.
+const DIRECTORY_SQL = `
+with allowed as (
+  select a.account_id from account a
+   where a.account_id = $1 and a.kind = 'person' and a.status = 'approved'
+), listed as (
+  select substr(pointer.pk, length('policy#') + 1) as clan_tag,
+         v.body -> 'values' as saved,
+         coalesce(v.body ->> 'saved_at', pointer.body ->> 'saved_at') as saved_at
+    from allowed, clan_state pointer
+    join clan_state v on v.pk = pointer.pk || '#v' || (pointer.body ->> 'version')
+   where pointer.pk ~ '^policy##[0289PYLQGRJCUV]{3,12}$'
+)
+select l.clan_tag, c.name, c.type, c.description,
+       (select jsonb_object_agg(f, l.saved -> f)
+          from unnest($2::text[]) f where l.saved ? f) as policy,
+       l.saved_at,
+       s.members, s.required_trophies,
+       exists (
+         select 1 from claim cl
+           join clan_membership m on m.player_tag = cl.player_tag
+          where cl.account_id = $1 and cl.status = 'verified'
+            and (cl.is_primary or cl.relationship in ('primary', 'alt'))
+            and m.clan_tag = l.clan_tag and m.left_observed_at is null
+       ) as yours
+  from listed l
+  join clan c on c.clan_tag = l.clan_tag
+  left join lateral (
+    select d.members, d.required_trophies from clan_snapshot_daily d
+     where d.clan_tag = l.clan_tag
+     order by d.day desc, d.observed_at desc limit 1
+  ) s on true
+ order by lower(coalesce(c.name, '')), l.clan_tag
+ limit $3`;
+
+const CLAN_TYPES = new Set(["open", "inviteOnly", "closed"]);
+const POSTURES = new Set(["relaxed", "standard", "strict"]);
+const INTENTS = new Set(["participating", "not_participating"]);
+
+/** One tile's facts. The record's facts as the record has them (null when
+ *  not recorded); the policy as the clan saved it, defaults filled in. */
+function directoryTile(row) {
+  const values = effectivePolicyValues(row.policy ?? {});
+  const removal = values.removal_enabled === true;
+  const confirm = Number(values.confirm_days);
+  return {
+    clan_tag: row.clan_tag,
+    name: row.name ?? null,
+    type: CLAN_TYPES.has(row.type) ? row.type : null,
+    description: row.description?.trim() || null,
+    members: Number.isInteger(row.members) ? row.members : null,
+    required_trophies: Number.isInteger(row.required_trophies)
+      ? row.required_trophies
+      : null,
+    yours: row.yours === true,
+    policy: {
+      war_intent: INTENTS.has(values.war_intent)
+        ? values.war_intent
+        : "unknown",
+      posture: POSTURES.has(values.posture) ? values.posture : null,
+      together: values.goal_together === true,
+      counted: countedCategories(values),
+      removal_day:
+        removal && Number.isInteger(confirm) && confirm > 0 ? confirm : null,
+      saved_at:
+        row.saved_at === null || row.saved_at === undefined
+          ? null
+          : new Date(row.saved_at).toISOString(),
+    },
+  };
+}
+
+/**
+ * The clan directory (#768): every recorded clan with a saved policy, for a
+ * signed-in, approved person. A tile is the clan's recorded name, type, size,
+ * trophies to join and in-game description, and its policy's public part:
+ * Clan Wars intent, how strict, playing together, what counts, and the day a
+ * removal Action comes. Never who saved it, a note, a minimum, a member's
+ * standing, the Recruit pitch, or any other Clan state.
+ *
+ * `{ refused: "not_a_person" }` for an agent or an integration, and for a
+ * person not approved; otherwise `{ directory }`.
+ */
+export async function readClanDirectory(db, account) {
+  if ((account?.kind ?? null) !== "person" || !account.accountId)
+    return { refused: "not_a_person" };
+  const { rows } = await db.query(DIRECTORY_SQL, [
+    account.accountId,
+    DIRECTORY_POLICY_FIELDS,
+    DIRECTORY_LIMIT + 1,
+  ]);
+  if (rows.length === 0) {
+    // An unapproved account reads no row at all; say so rather than "none".
+    const ok = await db.query(
+      "select 1 from account where account_id = $1 and kind = 'person' and status = 'approved'",
+      [account.accountId],
+    );
+    if (ok.rows.length === 0) return { refused: "not_a_person" };
+  }
+  return {
+    directory: {
+      schema_version: 1,
+      clans: rows.slice(0, DIRECTORY_LIMIT).map(directoryTile),
+      truncated: rows.length > DIRECTORY_LIMIT,
       read_at: new Date().toISOString(),
     },
   };

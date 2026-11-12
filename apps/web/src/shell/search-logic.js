@@ -138,6 +138,15 @@ const EXPLORE_LOOKUP = {
 };
 const MEANS_LOOKUP = /look|explor|deck|hash|\bwar\b|week/;
 
+/** [engineering, 2026-11-12] The clan directory's door from search (#768),
+ *  until the Find tab carries it: a clan is found there by its rules. */
+const CLAN_DIRECTORY = {
+  t: "Clan directory",
+  d: "Find a clan",
+  href: "/clan/directory",
+};
+const MEANS_DIRECTORY = /director|find|join|recruit|clans?\b/;
+
 /** A typed deck hash or war week, opened as Explore's lookup opens it: a week
  *  on its own names the home clan's race, and with no home clan the lookup is
  *  where to say which. */
@@ -175,7 +184,7 @@ export function beforeTyping(s) {
     group("Clanmates", mates, BEFORE_TYPING),
     group("People you follow", following, BEFORE_TYPING),
     group("Clans", clans, BEFORE_TYPING),
-    group("Look up", [EXPLORE_LOOKUP], BEFORE_TYPING),
+    group("Look up", [EXPLORE_LOOKUP, CLAN_DIRECTORY], BEFORE_TYPING),
   ].filter(Boolean);
 }
 
@@ -265,9 +274,16 @@ export function typedGroups(raw, s, found = null) {
       SETTINGS_PAGES.filter((r) => match(r.t)),
       TYPED,
     ),
-    lookup.length || !MEANS_LOOKUP.test(q)
+    lookup.length
       ? null
-      : group("Look up", [EXPLORE_LOOKUP], TYPED),
+      : group(
+          "Look up",
+          [
+            ...(MEANS_LOOKUP.test(q) ? [EXPLORE_LOOKUP] : []),
+            ...(MEANS_DIRECTORY.test(q) ? [CLAN_DIRECTORY] : []),
+          ],
+          TYPED,
+        ),
   ].filter(Boolean);
 }
 

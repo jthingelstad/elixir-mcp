@@ -19,7 +19,7 @@ import {
 } from "@tanstack/react-router";
 import { Disclaimer, ErrorBoundary, FeedbackSheet } from "@elixir-mcp/ui";
 import { api, feedbackApi } from "./api.js";
-import { keys, useMeQuery } from "./lib/queries.js";
+import { keys, useDirectory, useMeQuery } from "./lib/queries.js";
 import { leads, pageOf, policyActive } from "./lib/tabs.js";
 import { landingPath } from "./lib/landing.js";
 import { useSelectClan } from "./lib/select.js";
@@ -32,6 +32,7 @@ import {
 } from "./components/ReportThis.jsx";
 import { Clan } from "./views/Clan.jsx";
 import { Clans } from "./views/Clans.jsx";
+import { Directory } from "./views/Directory.jsx";
 import { Review } from "./views/Manage.jsx";
 import { Standing } from "./views/Standing.jsx";
 import { Landing } from "./views/Landing.jsx";
@@ -189,6 +190,16 @@ export function ClansPage() {
   const { me, select, selecting } = useSession();
   if (!me?.ok) return null;
   return <Clans me={me} onSelect={select} selecting={selecting} />;
+}
+
+/** The clan directory (#768): signed in is enough. Signed out, the shell
+ *  shows the landing and this draws nothing. */
+export function DirectoryPage() {
+  const { me } = useSession();
+  const signedIn = Boolean(me?.signed_in && !me.unavailable);
+  const { state, load } = useDirectory(signedIn);
+  if (!signedIn) return null;
+  return <Directory state={state} onRetry={() => load()} />;
 }
 
 /** One redirect the session has to answer, once it can. */
@@ -536,6 +547,10 @@ function PlainFrame({ children }) {
   );
 }
 
+/** Pages any signed-in person reads, with a clan or none, before the
+ *  notice after sign-in: the clan directory (#768) is for finding one. */
+const OPEN_TO_ALL = new Set(["/directory"]);
+
 export function ClanShell({
   Frame = PlainFrame,
   rememberAfterSignIn = () => {},
@@ -563,7 +578,8 @@ export function ClanShell({
       if (
         !app.startsWith("/refused/") &&
         !app.startsWith("/you") &&
-        !app.startsWith("/feedback")
+        !app.startsWith("/feedback") &&
+        !OPEN_TO_ALL.has(app)
       )
         navigate(`${CLAN}/refused/${me.reason}`);
       return;
@@ -575,7 +591,8 @@ export function ClanShell({
       if (
         app !== "/verify" &&
         !app.startsWith("/you") &&
-        !app.startsWith("/feedback")
+        !app.startsWith("/feedback") &&
+        !OPEN_TO_ALL.has(app)
       )
         navigate(`${CLAN}/verify`);
       return;

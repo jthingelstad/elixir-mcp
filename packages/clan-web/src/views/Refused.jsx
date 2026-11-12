@@ -27,8 +27,9 @@ export const REFUSALS = {
     title: "No clan in your recorded profiles",
     body: "The latest recorded profiles for your own players show no clan. These are observations, not a live check.",
     action:
-      "If that is still accurate, join a clan in the game. Otherwise wait for a fresh profile and clan roster, then check again.",
+      "If that is still accurate, join a clan in the game; the clan directory lists the clans that saved their rules in Elixir. Otherwise wait for a fresh profile and clan roster, then check again.",
     link: [ELIXIR_LINKS.elixirHome, "Your Elixir account"],
+    also: [`${CLAN}/directory`, "Clan directory"],
   },
   membership_unknown: {
     title: "Waiting for your clan record",
@@ -132,6 +133,11 @@ export function Refused({ reason, me, onRecheck, checking }) {
             {page.link[1]} ›
           </a>
         )}
+        {page.also ? (
+          <Link className="btn" to={page.also[0]}>
+            {page.also[1]}
+          </Link>
+        ) : null}
         {page.retry ? (
           <a className="btn" href={page.retry}>
             Sign in again

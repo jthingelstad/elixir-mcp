@@ -98,6 +98,24 @@ describe("one name, one door", () => {
     expect(groups.map((g) => g.h)).toEqual(["Clanmates", "Players"]);
     expect(groups[1].rows.map((r) => r.t)).toEqual(["Clanmate Elsewhere"]);
   });
+  test("the clan directory is a door before typing and by name (#768)", () => {
+    const look = beforeTyping(sources()).find((g) => g.h === "Look up");
+    expect(look.rows.map((r) => r.href)).toEqual([
+      "/console/explore",
+      "/clan/directory",
+    ]);
+    for (const q of ["directory", "find a clan", "join"])
+      expect(
+        typedGroups(q, sources())
+          .flatMap((g) => g.rows)
+          .map((r) => r.href),
+      ).toContain("/clan/directory");
+    expect(
+      typedGroups("clanmate", sources())
+        .flatMap((g) => g.rows)
+        .map((r) => r.href),
+    ).not.toContain("/clan/directory");
+  });
   test("Settings pages and docs titles are found by name", () => {
     const groups = typedGroups("emails", sources());
     expect(

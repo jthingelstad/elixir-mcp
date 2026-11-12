@@ -26,6 +26,7 @@ export const keys = {
   me: ["me", "clan"],
   away: (tag) => ["me", "clan", "away", tag],
   place: ["me", "clan", "place"],
+  directory: ["me", "clan", "directory"],
   clan: (tag) => ["me", "clan", "record", tag],
   roster: (tag) => ["me", "clan", "record", tag, "roster"],
   manage: (tag) => ["me", "clan", "record", tag, "manage"],
@@ -126,6 +127,10 @@ function useGated(queryKey, read, { enabled = true, refetchInterval } = {}) {
   };
   return { state, load, updatedAt: query.dataUpdatedAt, query };
 }
+
+/** The clan directory (#768): any signed-in person, a clan or none. */
+export const useDirectory = (enabled = true) =>
+  useGated(keys.directory, () => api.directory(), { enabled });
 
 export const useRoster = (tag) =>
   useGated(keys.roster(tag), (refresh) => api.roster(tag, refresh));
