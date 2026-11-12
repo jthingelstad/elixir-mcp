@@ -13,8 +13,9 @@
  * - A read builds it itself, as before, when there is no row, the
  *   account's subjects or time zone changed since it was built, or it is
  *   past SERVE.
- * - Highlights are read live over the stored items (a post shows at once),
- *   and cheers, counts and the seen marker stay the read's own.
+ * - Highlights and attested facts are read live over the stored items (a
+ *   post shows at once; who may see a fact is decided at the read), and
+ *   cheers, counts and the seen marker stay the read's own.
  *
  * Nothing here changes what an item says or who may see it: the items are
  * the builder's, for the same reader, at most SERVE old.
@@ -26,6 +27,7 @@ import {
   shownAt,
   storedItem,
   subjectsFor,
+  windowFacts,
   windowHighlights,
 } from "./entries.mjs";
 
@@ -204,19 +206,29 @@ export async function readHomeWeek(
       stored: false,
     };
   }
-  // Highlights live: one statement, so a post, an edit or a removal shows
-  // at once, not at the next build.
-  const live = await windowHighlights(db, subjects, {
+  // Read live over the stored items, a statement each: highlights, so a
+  // post, an edit or a removal shows at once; attested facts, because who
+  // may see a clan or leaders' fact is decided at the read (factItems),
+  // and a reader who left the clan or lost the role must stop seeing it
+  // now, not at the next build (Codex on #818).
+  const live = { fromMs: week.fromMs, toMs: Math.max(now, week.toMs) };
+  const highlights = await windowHighlights(db, subjects, {
     accountId,
-    fromMs: week.fromMs,
-    toMs: Math.max(now, week.toMs),
+    ...live,
     timezone,
   });
-  const ms = (it) => Date.parse(shownAt(it));
-  const items = [
-    ...week.items.filter((it) => it.kind !== "battle_highlight"),
+  const facts = await windowFacts(db, subjects, {
+    accountId,
     ...live,
-  ].sort((a, b) => ms(b) - ms(a));
+    timezone,
+  });
+  const items = [
+    ...week.items.filter(
+      (it) => it.kind !== "battle_highlight" && it.section !== "attested",
+    ),
+    ...highlights,
+    ...facts,
+  ].sort(feedOrder);
   return {
     subjects,
     fromMs: week.fromMs,
@@ -227,6 +239,22 @@ export async function readHomeWeek(
     ageMs: week.stored ? age : 0,
   };
 }
+
+/** Newest first by the instant shown, then by id: one total order, so a
+ *  page's place can be the last item it served (feedAfter). */
+export function feedOrder(a, b) {
+  return (
+    Date.parse(shownAt(b)) - Date.parse(shownAt(a)) ||
+    (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+  );
+}
+
+/** Whether `it` comes after the item a page ended on ({ at: ms, id }) in
+ *  feedOrder. */
+export const feedAfter = (it, last) => {
+  const ms = Date.parse(shownAt(it));
+  return ms < last.at || (ms === last.at && it.id > last.id);
+};
 
 const fromRow = (row) => ({
   fromMs: row.window_from.getTime(),

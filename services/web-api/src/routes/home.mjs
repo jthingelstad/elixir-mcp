@@ -11,6 +11,8 @@ import {
 } from "@elixir-mcp/tools/activity/entries";
 import {
   HOME_WEEK_MS,
+  feedAfter,
+  feedOrder,
   homeAccount,
   readHomeWeek,
 } from "@elixir-mcp/tools/activity/home-feed";
@@ -480,14 +482,25 @@ async function buildFeed(db, account, { fromMs, toMs }) {
   return feed;
 }
 
-/** A page's place: the week it reads and how far in. Opaque to the page. */
-const feedCursor = (fromMs, toMs, offset) =>
-  Buffer.from(JSON.stringify({ f: fromMs, t: toMs, o: offset })).toString(
-    "base64url",
-  );
+/** A page's place: the week it reads, how far in, and the item it ended
+ *  on (its shown instant and id). The next page starts after that item, so
+ *  a highlight or fact posted or removed between pages, which the read
+ *  serves live, never repeats or skips one (Codex on #818). A cursor from
+ *  before carries no item and reads by offset. Opaque to the page. */
+const feedCursor = (fromMs, toMs, offset, last) =>
+  Buffer.from(
+    JSON.stringify({
+      f: fromMs,
+      t: toMs,
+      o: offset,
+      a: Date.parse(shownAt(last)),
+      i: last.id,
+    }),
+  ).toString("base64url");
 function readCursor(raw) {
   try {
     const c = JSON.parse(Buffer.from(String(raw), "base64url").toString());
+    const keyed = c?.a !== undefined || c?.i !== undefined;
     const ok =
       Number.isSafeInteger(c?.f) &&
       Number.isSafeInteger(c?.t) &&
@@ -496,8 +509,20 @@ function readCursor(raw) {
       c.o <= 10_000 &&
       c.f < c.t &&
       c.t - c.f <= FEED_DAYS_MS &&
-      c.t <= Date.now() + 1000;
-    return ok ? { fromMs: c.f, toMs: c.t, offset: c.o } : null;
+      c.t <= Date.now() + 1000 &&
+      (!keyed ||
+        (Number.isSafeInteger(c.a) &&
+          typeof c.i === "string" &&
+          c.i.length > 0 &&
+          c.i.length <= 128));
+    return ok
+      ? {
+          fromMs: c.f,
+          toMs: c.t,
+          offset: c.o,
+          last: keyed ? { at: c.a, id: c.i } : null,
+        }
+      : null;
   } catch {
     return null;
   }
@@ -522,10 +547,14 @@ async function readFeed(db, account, cursor, wake) {
     wake,
     perf,
   });
-  const offset = cursor?.offset ?? 0;
-  const all = week.items;
-  const page = all.slice(offset, offset + FEED_PAGE);
-  const next = offset + FEED_PAGE < all.length ? offset + FEED_PAGE : null;
+  const all = [...week.items].sort(feedOrder);
+  let start = cursor?.offset ?? 0;
+  if (cursor?.last) {
+    const after = all.findIndex((it) => feedAfter(it, cursor.last));
+    start = after === -1 ? all.length : after;
+  }
+  const page = all.slice(start, start + FEED_PAGE);
+  const next = start + FEED_PAGE < all.length ? start + FEED_PAGE : null;
   const out = {
     window: {
       from: new Date(week.fromMs).toISOString(),
@@ -540,7 +569,10 @@ async function readFeed(db, account, cursor, wake) {
       account.accountId,
     ),
     total: all.length,
-    next: next === null ? null : feedCursor(week.fromMs, week.toMs, next),
+    next:
+      next === null
+        ? null
+        : feedCursor(week.fromMs, week.toMs, next, page[page.length - 1]),
     timeline_more: week.more,
   };
   if (!cursor) {
