@@ -247,6 +247,8 @@ reviewed step. Removing the account deletes the account:
   Discord account included;
 - **your claims**: the players and clans you track;
 - **your nicknames** for players;
+- **your highlights**: the battles you posted to a player's timeline,
+  their words, and their share links, which stop opening;
 - **your agents**, their keys and the identities they map;
 - **your connections**: sessions, apps you allowed, a timeline
   cross-post's Discord webhook, and the clan Clan remembers you

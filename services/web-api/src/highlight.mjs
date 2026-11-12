@@ -24,7 +24,7 @@ import { readPublicBattle } from "./battle-page.mjs";
 
 /** The most a highlight's words run to, in characters (code points, as
  *  Postgres counts them in 0239's check). */
-export const WORDS_MAX = 500;
+const WORDS_MAX = 500;
 
 const BASE32 = "abcdefghijklmnopqrstuvwxyz234567";
 
@@ -41,9 +41,12 @@ export function mintShareId(bytes = randomBytes(15)) {
  *  characters dropped (Postgres refuses NUL in text), ends trimmed.
  *  Null when they run past WORDS_MAX; markup is kept as typed. */
 export function cleanWords(words) {
-  const s = String(words ?? "")
-    .replace(/\r\n?/g, "\n")
-    .replace(/[\x00-\x09\x0b-\x1f\x7f]/g, "")
+  const s = [...String(words ?? "").replace(/\r\n?/g, "\n")]
+    .filter((c) => {
+      const n = c.codePointAt(0);
+      return n === 10 || (n > 31 && n !== 127);
+    })
+    .join("")
     .trim();
   return [...s].length > WORDS_MAX ? null : s;
 }

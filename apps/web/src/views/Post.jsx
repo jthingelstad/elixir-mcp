@@ -81,7 +81,9 @@ export function Post({ shareId, me }) {
         <div className="panel__body">
           <span className="battle-deck__label">{who}, on Elixir</span>
           {h.words ? (
-            <blockquote className="mt-2 whitespace-pre-line">“{h.words}”</blockquote>
+            <blockquote className="mt-2 whitespace-pre-line">
+              “{h.words}”
+            </blockquote>
           ) : (
             <p className="mt-2">{who} highlighted this battle.</p>
           )}

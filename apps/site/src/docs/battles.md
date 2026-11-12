@@ -124,6 +124,34 @@ link under it. It is what the link shows when it unfurls, and it can be posted
 on its own with the link beside it. Its time is in UTC, since a picture has no
 reader's clock.
 
+### Highlight a battle
+
+On a battle's page, a signed-in person whose own **verified** player played
+it can highlight it: write up to 500 characters about it, or nothing, and
+choose **Post to your timeline**. The highlight goes on that player's
+timeline as this battle with your words, where the people who follow the
+player read it ([The timeline](/docs/timeline)). An unverified claim never
+lets anyone post as a player ([Verify](/docs/verify)). One highlight per
+player per battle; when two of your verified players played it, you choose
+which one posts.
+
+Your highlight stays on the battle's page for you: **Edit words** changes
+them, **Delete** takes the highlight off the timeline and deletes the words.
+Only the account that posted it can change, share or delete it.
+
+**Share** gives the highlight its own link, `/h/<id>`. The id is random and
+names only the post, never you or whoever opens it. Anyone with the link can
+open it without an account: the player's game name, your words, and the
+battle as its own page shows it, both decks, the score and how it ended. It
+never shows a nickname, an email or anything of your account. The link
+unfurls in a chat with your words, and adding `.png` to it gives the battle's
+picture with the player's name, your words and the link. The same post is
+JSON at `/api/public/highlights/<id>`. Sharing again gives the same link.
+Deleting the highlight makes the link answer "No post at this link" within
+about a minute.
+
+### Share with your context
+
 In Ladder › Battles, choose a recorded battle. Inspect
 its facts, then choose **Share with your context** for a primary or alt on
 your account. Write up to 500 characters about why it mattered, or leave it
