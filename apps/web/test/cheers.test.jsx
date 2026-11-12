@@ -21,6 +21,7 @@ import {
 import { Cheers } from "../src/home/Cheers.jsx";
 import { RssLinkPanel } from "../src/views/account/RssLink.jsx";
 import { ScopeProvider } from "../src/lib/scope.js";
+import { pageCheersKey, scopedKey } from "../src/lib/queries.js";
 
 const reply = (body, status = 200) => ({
   ok: status < 400,
@@ -123,6 +124,42 @@ test("tapping a cheer sends it with the item's subjects and shows the server's c
     cheer: "royal",
     subjects: ["#PYLQ88", "#QQ8822"],
   });
+});
+
+test("a cheer on a player page reaches Home's copy and every page's copy (Codex on #792)", async () => {
+  global.fetch = vi.fn(async () =>
+    reply({
+      item_id: ITEM.id,
+      cheers: { on_fire: 1, royal: 2 },
+      my_cheer: "royal",
+    }),
+  );
+  const page = pageCheersKey({ player: "#PYLQ88" });
+  const battle = pageCheersKey({ battle: "abcdef012345" });
+  const other = { ...ITEM, id: "tl_ffffffffffffffffffff" };
+  const { queryClient } = renderWithProviders(
+    <Cheers it={ITEM} where={{ key: page, list: "items" }} />,
+  );
+  queryClient.setQueryData(page, { items: [ITEM], subjects: ["#PYLQ88"] });
+  queryClient.setQueryData(battle, { items: [ITEM, other] });
+  queryClient.setQueryData(scopedKey(null, "feed"), {
+    timeline: [ITEM, other],
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Cheer" }));
+  fireEvent.click(screen.getByRole("button", { name: /Royal$/ }));
+  const want = { cheers: { on_fire: 1, royal: 2 }, my_cheer: "royal" };
+  await waitFor(() =>
+    expect(
+      queryClient.getQueryData(scopedKey(null, "feed")).timeline[0],
+    ).toMatchObject(want),
+  );
+  expect(queryClient.getQueryData(page).items[0]).toMatchObject(want);
+  expect(queryClient.getQueryData(battle).items[0]).toMatchObject(want);
+  // Another item keeps its own.
+  expect(queryClient.getQueryData(battle).items[1]).toEqual(other);
+  expect(queryClient.getQueryData(scopedKey(null, "feed")).timeline[1]).toEqual(
+    other,
+  );
 });
 
 test("a cheer the server refuses says so", async () => {

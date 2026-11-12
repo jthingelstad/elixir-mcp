@@ -476,3 +476,45 @@ test("this week's race: a place by fame on a war day, never the day's decks", ()
   assert.equal(shapeRaceNow({ ...current, day_kind: null }, CLAN), null);
   assert.equal(shapeRaceNow(null, CLAN), null);
 });
+
+test("this week's race: no place before any fame, nor on a tie (Codex on #792)", () => {
+  const race = (standings) =>
+    shapeRaceNow(
+      {
+        season_id: 137,
+        section_index: 0,
+        is_colosseum: false,
+        day_kind: "war",
+        war_day: 1,
+        race_finished_at: null,
+        standings,
+      },
+      CLAN,
+    );
+  // The first war day, nothing banked: all five level at zero.
+  const zero = race(
+    ["#AAA", CLAN, "#CCC", "#DDD", "#EEE"].map((t) => ({
+      participant_clan_tag: t,
+      fame: 0,
+    })),
+  );
+  assert.equal(zero.place, null);
+  assert.equal(zero.fame, 0);
+  // Level with another clan: no place, the fame still said.
+  const tied = race([
+    { participant_clan_tag: "#AAA", fame: 9000 },
+    { participant_clan_tag: CLAN, fame: 4000 },
+    { participant_clan_tag: "#CCC", fame: 4000 },
+  ]);
+  assert.equal(tied.place, null);
+  assert.equal(tied.fame, 4000);
+  // A tie elsewhere does not move a place that is one.
+  assert.equal(
+    race([
+      { participant_clan_tag: "#AAA", fame: 4000 },
+      { participant_clan_tag: "#CCC", fame: 4000 },
+      { participant_clan_tag: CLAN, fame: 9000 },
+    ]).place,
+    1,
+  );
+});

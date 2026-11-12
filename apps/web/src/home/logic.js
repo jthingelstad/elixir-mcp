@@ -219,10 +219,10 @@ export function raceNowLine(race) {
   if (race.day_kind === "training") return `${head}: training days`;
   if (race.finished) return `${head}: finished`;
   const day = race.war_day != null ? `, war day ${race.war_day}` : "";
-  if (race.place == null) return `${head}${day}`;
-  const fame =
-    race.fame != null ? `, ${race.fame.toLocaleString("en-US")} fame` : "";
-  return `${head}${day}: ${ordinal(race.place)} by fame${fame}`;
+  const fame = race.fame ? `${race.fame.toLocaleString("en-US")} fame` : null;
+  if (race.place == null)
+    return fame ? `${head}${day}: ${fame}` : `${head}${day}`;
+  return `${head}${day}: ${ordinal(race.place)} by fame${fame ? `, ${fame}` : ""}`;
 }
 
 const times = (n) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
