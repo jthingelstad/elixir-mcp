@@ -143,8 +143,7 @@ function Posted({ h, name, invalidate }) {
   const share = useWrite(api.shareHighlight, { invalidate });
   const remove = useWrite(api.deleteHighlight, { invalidate });
   return (
-    <div className="mb-4">
-      <span className="battle-deck__label">On {name}’s timeline</span>
+    <div className="highlight-posted">
       {editing ? (
         <form
           onSubmit={async (event) => {
@@ -172,10 +171,15 @@ function Posted({ h, name, invalidate }) {
           </div>
         </form>
       ) : (
-        <p className="mt-2 mb-3 whitespace-pre-line">
+        <p
+          className={`highlight-posted__words${h.words ? "" : " highlight-posted__words--none"}`}
+        >
           {h.words ? `“${h.words}”` : "No words, just the battle."}
         </p>
       )}
+      {/* The words lead (G9, 2026-11-12); where they are posted is the
+          line under them, and the actions are ordinary-sized beside it. */}
+      <p className="highlight-posted__where">On {name}’s timeline</p>
       {h.share_url && (
         <div className="share-link">
           <Icon name="link-2" size={15} />
@@ -196,10 +200,10 @@ function Posted({ h, name, invalidate }) {
       <WriteError error={share.error} />
       <WriteError error={remove.error} />
       {!editing && (
-        <div className="share-actions">
+        <div className="highlight-posted__actions">
           {!h.share_url && (
             <button
-              className="btn"
+              className="btn btn--sm"
               type="button"
               disabled={share.busy}
               onClick={() => share.run(h.highlight_id)}
@@ -208,7 +212,7 @@ function Posted({ h, name, invalidate }) {
             </button>
           )}
           <button
-            className="btn"
+            className="btn btn--sm"
             type="button"
             onClick={() => {
               setWords(h.words);
@@ -219,7 +223,7 @@ function Posted({ h, name, invalidate }) {
           </button>
           <ConfirmAction
             label="Delete"
-            className="link"
+            className="link highlight-posted__delete"
             title="Delete this highlight?"
             body={
               h.share_url

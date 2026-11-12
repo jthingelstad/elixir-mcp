@@ -437,10 +437,9 @@ test("an integration records its game's fact for a player with facts:write", asy
 });
 
 test("the timeline shows each fact only to the reader its type allows; a departure reaches the clan and its agent, an away only leaders", async () => {
-  const window = { fromMs: Date.now() - 86_400_000, toMs: Date.now() + 1000 };
   const clanSubject = [{ kind: "clan", tag: CLAN, scope: "activity" }];
   const leader = await grant(accounts.leader, "cr:read clans:attest");
-  await request(
+  const awarded = await request(
     "POST",
     facts,
     {
@@ -451,7 +450,8 @@ test("the timeline shows each fact only to the reader its type allows; a departu
     },
     leader,
   );
-  await request(
+  assert.equal(awarded.statusCode, 201, awarded.body);
+  const kick = await request(
     "POST",
     facts,
     {
@@ -462,6 +462,10 @@ test("the timeline shows each fact only to the reader its type allows; a departu
     },
     leader,
   );
+  assert.equal(kick.statusCode, 201, kick.body);
+  // The window closes after the writes: taken before them, a slow machine
+  // records the kick past its end and the leader seems not to see it.
+  const window = { fromMs: Date.now() - 86_400_000, toMs: Date.now() + 1000 };
   const kinds = async (accountId, subjects = clanSubject, interactive = true) =>
     (await factItems(db, subjects, { accountId, interactive, ...window }))
       .map((i) => `${i.kind}${i.facts.kind ? `:${i.facts.kind}` : ""}`)

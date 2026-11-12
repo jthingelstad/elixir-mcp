@@ -5510,6 +5510,45 @@ a.card-art:hover .card-art__img {
   flex: 1 1 0;
   justify-content: center;
 }
+/* A posted highlight on the battle page (G9, 2026-11-12): the words lead,
+   where they went is a quiet line under them, Share and Edit words are
+   ordinary small buttons, and Delete is a quiet link. */
+.highlight-posted + .highlight-posted {
+  margin-top: 18px;
+}
+.highlight-posted__words {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--ink);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.highlight-posted__words--none {
+  font-size: var(--t-body-sm);
+  color: var(--ink-dim);
+}
+.highlight-posted__where {
+  margin: 4px 0 10px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.highlight-posted__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-top: 10px;
+}
+.highlight-posted__actions .highlight-posted__delete {
+  margin-left: 4px;
+  padding: 6px 4px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.highlight-posted__actions .highlight-posted__delete:hover {
+  color: var(--bad);
+}
 /* A side-by-side row's name wraps; its two values do not. */
 .table td.battle__measure {
   white-space: normal;
@@ -6928,6 +6967,35 @@ button.kit-row {
 .kit-row--quiet .kit-row__title {
   color: var(--ink-faint);
   font-weight: 400;
+}
+/* A row that is one target (G8, 2026-11-12): its title's link covers the
+   whole row, so the row is what a thumb taps, and a control on its right
+   sits above that link as a target of its own. */
+.kit-row--target {
+  position: relative;
+}
+.kit-row--target:hover {
+  background: var(--panel-raised);
+}
+.kit-row--target .kit-row__link {
+  color: inherit;
+  text-decoration: none;
+}
+.kit-row--target .kit-row__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.kit-row--target .kit-row__link:focus-visible {
+  outline: none;
+}
+.kit-row--target .kit-row__link:focus-visible::after {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: -2px;
+}
+.kit-row--target .kit-row__right {
+  position: relative;
+  z-index: 1;
 }
 
 .kit-table-box {
@@ -8492,6 +8560,30 @@ button.kit-row {
 .st-group span {
   margin-left: 8px;
   font-weight: 400;
+}
+/* What members see (G8, 2026-11-12): at phone width every control on the
+   page, the lens's battle included, is a comfortable target, at least
+   44 px tall. Flat: sizes only, no new edges. */
+.st-seen__out {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+@media (max-width: 760px) {
+  .st-seen .btn,
+  .st-seen input,
+  .st-seen select,
+  .st-seen .battle-row {
+    min-height: 44px;
+  }
+  .st-seen .btn {
+    justify-content: center;
+  }
+  .st-seen a.battle__name,
+  .st-seen a.battle__clan {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
 }
 .st-code {
   display: block;
