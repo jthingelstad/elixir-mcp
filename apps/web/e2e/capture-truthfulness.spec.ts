@@ -83,7 +83,7 @@ for (const suffix of ["", " @narrow"]) {
           },
         }),
       );
-      await page.goto("/ladder");
+      await page.goto("/home/you/stats");
       const panel = page
         .locator("section")
         .filter({ has: page.getByRole("heading", { name: "Days played" }) });

@@ -41,11 +41,11 @@ const FRIEND = {
 };
 
 test.describe("Ladder signed out", () => {
-  test("/ladder says what it is and offers an account, with no rail", async ({
+  test("Stats says what it is and offers an account, with no rail", async ({
     page,
   }) => {
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-    await page.goto("/ladder/decks?mode=ranked");
+    await page.goto("/home/you/stats/decks?mode=ranked");
     await expect(
       page.getByRole("heading", { name: "Your season, read back" }),
     ).toBeVisible();
@@ -55,10 +55,10 @@ test.describe("Ladder signed out", () => {
       page.getByRole("link", { name: "Create your account" }),
     ).toHaveAttribute(
       "href",
-      "/signin?signup&return_to=%2Fladder%2Fdecks%3Fmode%3Dranked",
+      "/signin?signup&return_to=%2Fhome%2Fyou%2Fstats%2Fdecks%3Fmode%3Dranked",
     );
     await expect(
-      page.getByRole("link", { name: "How Ladder works" }),
+      page.getByRole("link", { name: "How Stats works" }),
     ).toHaveAttribute("href", "/docs/ladder");
     await expect(
       page.getByRole("link", { name: "See a recorded battle" }),
@@ -85,7 +85,7 @@ test.describe("Ladder signed in", () => {
           }),
         }),
       );
-      await page.goto("/ladder");
+      await page.goto("/home/you/stats");
       await expect(
         page.getByRole("group", { name: "Mode" }).getByRole("button", {
           name: mode === "war" ? "War" : "Events",
@@ -112,12 +112,12 @@ test.describe("Ladder signed in", () => {
   }) => {
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
 
     await expect(
       page.getByRole("heading", { level: 1, name: "Season 136" }),
     ).toBeVisible();
-    await expect(page).toHaveTitle("Season - Ladder - Elixir");
+    await expect(page).toHaveTitle("Season - Stats - Elixir");
     // Times are prose in the account's zone: 10:00Z is 5:00 am Central.
     await expect(page.locator(".kit-head__sub")).toContainText(
       "King Thing · 24 days in. The season ends Mon Oct 5, 5:00 am.",
@@ -206,7 +206,7 @@ test.describe("Ladder signed in", () => {
     // Help names Ladder's own page.
     await page.getByRole("button", { name: "Help for this page" }).click();
     await expect(
-      page.getByRole("dialog").getByRole("link", { name: "Ladder" }),
+      page.getByRole("dialog").getByRole("link", { name: "Stats" }),
     ).toHaveAttribute("href", "/docs/ladder");
     await page.keyboard.press("Escape");
 
@@ -239,7 +239,7 @@ test.describe("Ladder signed in", () => {
     await page.clock.setFixedTime(new Date("2026-10-01T21:00:00Z"));
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
 
     const week = page.getByRole("region", { name: "This week vs your last 4" });
     await expect(week).toContainText("Trophy Road");
@@ -320,7 +320,7 @@ test.describe("Ladder signed in", () => {
         }),
       }),
     );
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     const change = page.getByRole("region", {
       name: "Before and since Royal Hogs bridge spam",
     });
@@ -342,7 +342,7 @@ test.describe("Ladder signed in", () => {
       .getByRole("group", { name: "Mode" })
       .getByRole("button", { name: "War" })
       .click();
-    await expect(page).toHaveURL(/\/ladder\?mode=war$/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\?mode=war$/);
     await expect(page.locator(".ladder-tile").nth(3)).toContainText("Crowns");
     // Neither the week nor the deck panel: the one form panel is the
     // season's, with no War battle in Season 135 to set beside.
@@ -357,12 +357,12 @@ test.describe("Ladder signed in", () => {
   }) => {
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     await page
       .getByRole("group", { name: "Mode" })
       .getByRole("button", { name: "Path of Legends" })
       .click();
-    await expect(page).toHaveURL(/\/ladder\?mode=ranked$/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\?mode=ranked$/);
     await expect(
       page.getByRole("heading", {
         name: "No Path of Legends battles this season",
@@ -382,7 +382,7 @@ test.describe("Ladder signed in", () => {
       .getByRole("group", { name: "Mode" })
       .getByRole("button", { name: "War" })
       .click();
-    await expect(page).toHaveURL(/\/ladder\?mode=war$/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\?mode=war$/);
     await expect(page.locator(".ladder-tile").nth(3)).toContainText("Crowns");
     await expect(page.locator(".ladder-tile").nth(3)).toContainText("61–44");
     await expect(page.getByText("This week:")).toHaveCount(0);
@@ -403,7 +403,7 @@ test.describe("Ladder signed in", () => {
         }),
       }),
     );
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     await expect(
       page
         .getByRole("group", { name: "Mode" })
@@ -433,7 +433,7 @@ test.describe("Ladder signed in", () => {
         "POST /api/explore": explore(calls),
       }),
     );
-    await page.goto("/ladder?mode=war");
+    await page.goto("/home/you/stats?mode=war");
     const select = page.getByLabel("Player", { exact: true });
     await expect(select.locator("option")).toHaveText([
       "King Thing",
@@ -447,7 +447,9 @@ test.describe("Ladder signed in", () => {
     );
     await accessible(page, "ladder player list");
     await select.selectOption("#9PQ2R8L");
-    await expect(page).toHaveURL(/\/ladder\?player=9PQ2R8L&mode=war$/);
+    await expect(page).toHaveURL(
+      /\/home\/you\/stats\?player=9PQ2R8L&mode=war$/,
+    );
     await expect(select).toHaveValue("#9PQ2R8L");
     await expect
       .poll(() =>
@@ -461,15 +463,15 @@ test.describe("Ladder signed in", () => {
     // The tabs keep whose season and which mode as you move.
     await expect(page.getByRole("tab", { name: "Decks" })).toHaveAttribute(
       "href",
-      "/ladder/decks?player=9PQ2R8L&mode=war",
+      "/home/you/stats/decks?player=9PQ2R8L&mode=war",
     );
 
     // The main player needs no name in the address.
     await select.selectOption("#20JJJ2CCRU");
-    await expect(page).toHaveURL(/\/ladder\?mode=war$/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\?mode=war$/);
 
     // A tag that is not yours reads your primary instead.
-    await page.goto("/ladder?player=8LQ2R9P");
+    await page.goto("/home/you/stats?player=8LQ2R9P");
     await expect(select).toHaveValue("#20JJJ2CCRU");
   });
 
@@ -477,10 +479,10 @@ test.describe("Ladder signed in", () => {
     page,
   }) => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-    await page.goto("/ladder/season?mode=war");
-    await expect(page).toHaveURL(/\/ladder\?mode=war$/);
-    await page.goto("/ladder/not-a-page");
-    await expect(page).toHaveURL(/\/ladder$/);
+    await page.goto("/home/you/stats/season?mode=war");
+    await expect(page).toHaveURL(/\/home\/you\/stats\?mode=war$/);
+    await page.goto("/home/you/stats/not-a-page");
+    await expect(page).toHaveURL(/\/home\/you\/stats$/);
     await expect(
       page.getByRole("heading", { level: 1, name: /Season 136/ }),
     ).toBeVisible();
@@ -544,7 +546,7 @@ test.describe("Ladder signed in", () => {
           },
         }),
       );
-      await page.goto("/ladder/decks?player=9PQ2R8L&mode=war");
+      await page.goto("/home/you/stats/decks?player=9PQ2R8L&mode=war");
       await expect(page.getByRole("heading", { name: words })).toBeVisible();
       const select = page.getByLabel("Player", { exact: true });
       await expect(select).toHaveValue("#9PQ2R8L");
@@ -552,7 +554,7 @@ test.describe("Ladder signed in", () => {
 
       // The way out keeps the page and the mode, and the main needs no name.
       await select.selectOption("#20JJJ2CCRU");
-      await expect(page).toHaveURL(/\/ladder\/decks\?mode=war$/);
+      await expect(page).toHaveURL(/\/home\/you\/stats\/decks\?mode=war$/);
       await expect(
         page.getByRole("heading", { level: 1, name: "Decks" }),
       ).toBeVisible();
@@ -589,7 +591,7 @@ test.describe("Ladder signed in", () => {
         },
       }),
     );
-    await page.goto("/ladder?player=9PQ2R8L");
+    await page.goto("/home/you/stats?player=9PQ2R8L");
     const select = page.getByLabel("Player", { exact: true });
     await expect(select).toBeVisible();
     // The list re-renders as the pending player's first answer arrives, so
@@ -618,9 +620,9 @@ test.describe("Ladder signed in", () => {
         "POST /api/explore": explore(),
       }),
     );
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     await expect(
-      page.getByRole("heading", { name: "Ladder starts with your player" }),
+      page.getByRole("heading", { name: "Stats start with your player" }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Add your player" }),
@@ -638,7 +640,7 @@ test.describe("Ladder signed in", () => {
         "POST /api/explore": explore(),
       }),
     );
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     await expect(
       page.getByRole("heading", { level: 1, name: "Season 136" }),
     ).toBeVisible();
@@ -671,7 +673,7 @@ test.describe("Ladder days and battles", () => {
     await page.clock.setFixedTime(TODAY);
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     const panel = page
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Days played" }) });
@@ -704,7 +706,7 @@ test.describe("Ladder days and battles", () => {
       .getByRole("group", { name: "Mode" })
       .getByRole("button", { name: "War" })
       .click();
-    await expect(page).toHaveURL(/\/ladder\?mode=war$/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\?mode=war$/);
     await expect(panel.locator(".panel__foot")).toContainText(
       "Other modes show as a count, never pooled into this one.",
     );
@@ -744,7 +746,7 @@ test.describe("Ladder days and battles", () => {
         },
       }),
     );
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     const days = page.locator(".ladder-day");
     await expect(days.nth(6)).toContainText("Sep 13");
     await expect(days.nth(6)).toContainText("No battles");
@@ -781,7 +783,7 @@ test.describe("Ladder days and battles", () => {
         },
       }),
     );
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     await expect(page.getByText("Coverage could not be checked")).toBeVisible();
     await expect(page.locator(".ladder-day--quiet")).toHaveCount(0);
   });
@@ -792,11 +794,11 @@ test.describe("Ladder days and battles", () => {
     await page.clock.setFixedTime(TODAY);
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder/battles");
+    await page.goto("/home/you/stats/battles");
     await expect(
       page.getByRole("heading", { level: 1, name: "Battles" }),
     ).toBeVisible();
-    await expect(page).toHaveTitle("Battles - Ladder - Elixir");
+    await expect(page).toHaveTitle("Battles - Stats - Elixir");
     await expect(page.locator(".kit-head__sub")).toHaveText(
       "King Thing · Season 136, Trophy Road",
     );
@@ -858,7 +860,7 @@ test.describe("Ladder days and battles", () => {
       page,
       signedIn({ "POST /api/explore": explore(calls, { fits: 23 }) }),
     );
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     await expect(page.locator(".ladder-day")).toHaveCount(28);
     // One refusal, then the season from the top at the limit that fits.
     const reads = calls.filter(
@@ -876,7 +878,7 @@ test.describe("Ladder days and battles", () => {
   test("a battle without a page is a row, not a link", async ({ page }) => {
     await page.clock.setFixedTime(TODAY);
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-    await page.goto("/ladder/battles?mode=war");
+    await page.goto("/home/you/stats/battles?mode=war");
     await expect(page.locator(".ladder-row").first()).toBeVisible();
     // The fixture's fifty-fifth battle, a war loss on the 26th, has no url.
     const day = page
@@ -889,7 +891,7 @@ test.describe("Ladder days and battles", () => {
   test("a mode with no battles says so on Battles", async ({ page }) => {
     await page.clock.setFixedTime(TODAY);
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-    await page.goto("/ladder/battles?mode=ranked");
+    await page.goto("/home/you/stats/battles?mode=ranked");
     await expect(
       page.getByRole("heading", {
         name: "No Path of Legends battles recorded this season yet",
@@ -903,7 +905,7 @@ test.describe("Ladder days and battles", () => {
   }) => {
     await page.clock.setFixedTime(TODAY);
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     // Today leads: the days to come are one line under the played ones.
     await expect(page.locator(".ladder-day:visible")).toHaveCount(23);
     await expect(page.locator(".ladder-day:visible").first()).toBeVisible();
@@ -924,7 +926,7 @@ test.describe("Ladder days and battles", () => {
       );
     expect(await fits()).toBeLessThanOrEqual(0);
     await accessible(page, "ladder calendar narrow");
-    await page.goto("/ladder/battles");
+    await page.goto("/home/you/stats/battles");
     await expect(page.locator(".ladder-row").first()).toBeVisible();
     // Time and result stay on one line, and the row is still a 44 px target.
     const row = page.locator(".ladder-row").first();
@@ -959,10 +961,14 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
   };
 
   for (const [from, to] of [
-    ["/ladder/days", "/ladder/battles"],
+    ["/ladder/days", "/home/you/stats/battles"],
     [
       "/ladder/days?player=9PQ2R8L&mode=war&season=135",
-      "/ladder/battles?player=9PQ2R8L&mode=war&season=135",
+      "/home/you/stats/battles?player=9PQ2R8L&mode=war&season=135",
+    ],
+    [
+      "/ladder/decks?player=9PQ2R8L&mode=war",
+      "/home/you/stats/decks?player=9PQ2R8L&mode=war",
     ],
   ] as const) {
     test(`${from} lands on ${to}`, async ({ page }) => {
@@ -976,7 +982,10 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
       await page.goto(from);
       await expect(page).toHaveURL(new RegExp(`${to.replace(/[?]/g, "\\?")}$`));
       await expect(
-        page.getByRole("heading", { level: 1, name: "Battles" }),
+        page.getByRole("heading", {
+          level: 1,
+          name: to.includes("decks") ? "Decks" : "Battles",
+        }),
       ).toBeVisible();
     });
   }
@@ -992,7 +1001,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
       }),
     );
     // The player page's Open in Ladder, and the same shape from Home and mail.
-    await page.goto("/ladder?player=9PQ2R8L&mode=casual");
+    await page.goto("/home/you/stats?player=9PQ2R8L&mode=casual");
     await expect(page.getByLabel("Player", { exact: true })).toHaveValue(
       "#9PQ2R8L",
     );
@@ -1001,7 +1010,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
         .getByRole("group", { name: "Mode" })
         .getByRole("button", { name: "Casual" }),
     ).toHaveAttribute("aria-pressed", "true");
-    await page.goto("/ladder/decks?season=135");
+    await page.goto("/home/you/stats/decks?season=135");
     await expect(page.getByLabel("Season", { exact: true })).toHaveValue("135");
   });
 
@@ -1021,7 +1030,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
         ],
       }),
     );
-    await page.goto("/ladder?mode=war");
+    await page.goto("/home/you/stats?mode=war");
     const line = page.locator(".ladder-war");
     await expect(line).toContainText(
       "This week: 12 war decks used, 2,150 points.",
@@ -1041,7 +1050,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
     ).toBeVisible();
     await accessible(page, "ladder war line");
     // Not on Trophy Road, and no line where the clan's war cannot be read.
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     await expect(page.locator(".ladder-tile").first()).toBeVisible();
     await expect(line).toHaveCount(0);
   });
@@ -1102,7 +1111,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
         },
       }),
     );
-    await page.goto("/ladder/battles?mode=other");
+    await page.goto("/home/you/stats/battles?mode=other");
 
     const main = page.getByRole("main");
     await expect(
@@ -1134,7 +1143,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
   }) => {
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     const modes = page.getByRole("group", { name: "Mode" });
     await expect(modes.getByRole("button")).toHaveCount(5);
 
@@ -1149,9 +1158,9 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
         }),
       }),
     );
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     await modes.getByRole("button", { name: "Other" }).click();
-    await expect(page).toHaveURL(/\/ladder\?mode=other$/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\?mode=other$/);
     const challenge = page.locator("section").filter({
       has: page.getByRole("heading", { name: "Challenge this season" }),
     });
@@ -1186,12 +1195,12 @@ test.describe("Ladder decks", () => {
   }) => {
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder/decks?mode=ladder");
+    await page.goto("/home/you/stats/decks?mode=ladder");
 
     await expect(
       page.getByRole("heading", { level: 1, name: "Decks" }),
     ).toBeVisible();
-    await expect(page).toHaveTitle("Decks - Ladder - Elixir");
+    await expect(page).toHaveTitle("Decks - Stats - Elixir");
     await expect(
       page.getByRole("tab", { name: "Decks", exact: true }),
     ).toHaveAttribute("aria-selected", "true");
@@ -1266,7 +1275,7 @@ test.describe("Ladder decks", () => {
   }) => {
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder/decks?mode=war");
+    await page.goto("/home/you/stats/decks?mode=war");
     const war = page.locator("section").filter({
       has: page.getByRole("heading", { name: "3 decks in War" }),
     });
@@ -1289,9 +1298,9 @@ test.describe("Ladder decks", () => {
 
   test("the season home links to every deck", async ({ page }) => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     await page.getByRole("link", { name: "Every deck you played ›" }).click();
-    await expect(page).toHaveURL(/\/ladder\/decks(\?mode=ladder)?$/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\/decks(\?mode=ladder)?$/);
     await expect(
       page.getByRole("heading", { level: 1, name: "Decks" }),
     ).toBeVisible();
@@ -1301,7 +1310,7 @@ test.describe("Ladder decks", () => {
     page,
   }) => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-    await page.goto("/ladder/decks");
+    await page.goto("/home/you/stats/decks");
     await expect(page.locator(".ladder-deckrow .card-art")).toHaveCount(16);
     const grid = page.locator(".ladder-deckrow .deck-grid").first();
     const columns = await grid.evaluate(
@@ -1322,7 +1331,7 @@ test.describe("Ladder cards", () => {
   }) => {
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder/cards");
+    await page.goto("/home/you/stats/cards");
 
     await expect(
       page.getByRole("heading", {
@@ -1330,7 +1339,7 @@ test.describe("Ladder cards", () => {
         name: "Cards",
       }),
     ).toBeVisible();
-    await expect(page).toHaveTitle("Cards - Ladder - Elixir");
+    await expect(page).toHaveTitle("Cards - Stats - Elixir");
     await expect(page.locator(".kit-head__sub")).toContainText(
       "King Thing · Season 136, Trophy Road",
     );
@@ -1414,7 +1423,7 @@ test.describe("Ladder cards", () => {
   }) => {
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder/cards");
+    await page.goto("/home/you/stats/cards");
 
     // The default is the tools' own order, and says its floors.
     const order = page.getByRole("group", {
@@ -1452,7 +1461,7 @@ test.describe("Ladder cards", () => {
     // Choosing most losses is going to its address, and the reads ask
     // the tools for that order.
     await order.getByRole("button", { name: "Most losses" }).click();
-    await expect(page).toHaveURL(/\/ladder\/cards\?.*order=losses/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\/cards\?.*order=losses/);
     await expect(
       order.getByRole("button", { name: "Most losses" }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -1505,7 +1514,7 @@ test.describe("Ladder cards", () => {
 
   test("a mode with no battles says so", async ({ page }) => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-    await page.goto("/ladder/cards?mode=war");
+    await page.goto("/home/you/stats/cards?mode=war");
     await expect(
       page.getByRole("heading", { name: "No War battles this season" }),
     ).toBeVisible();
@@ -1514,7 +1523,7 @@ test.describe("Ladder cards", () => {
 
   test("@narrow the card tables fit a phone", async ({ page }) => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-    await page.goto("/ladder/cards");
+    await page.goto("/home/you/stats/cards");
     await expect(
       page.locator(".ladder-cards").nth(0).locator("tbody tr"),
     ).toHaveCount(12);
@@ -1532,7 +1541,7 @@ test.describe("Ladder seasons", () => {
   }) => {
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder?mode=ladder");
+    await page.goto("/home/you/stats?mode=ladder");
     const picker = page.getByLabel("Season", { exact: true });
     await expect(picker).toHaveValue("136");
     await expect(picker.locator("option")).toHaveText([
@@ -1546,7 +1555,7 @@ test.describe("Ladder seasons", () => {
 
     // Choosing one goes to its address, and the page reads that season.
     await picker.selectOption("135");
-    await expect(page).toHaveURL(/\/ladder\?mode=ladder&season=135$/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\?mode=ladder&season=135$/);
     await expect(
       page.getByRole("heading", { level: 1, name: "Season 135" }),
     ).toBeVisible();
@@ -1556,7 +1565,7 @@ test.describe("Ladder seasons", () => {
     // Its most played deck is that season's, a link from all of them.
     await expect(
       page.getByRole("link", { name: "Every deck you played ›" }),
-    ).toHaveAttribute("href", "/ladder/decks?mode=ladder&season=135");
+    ).toHaveAttribute("href", "/home/you/stats/decks?mode=ladder&season=135");
     await expect
       .poll(() =>
         calls.some(
@@ -1570,7 +1579,9 @@ test.describe("Ladder seasons", () => {
 
     // The tabs keep the season, and so does a chip.
     await page.getByRole("tab", { name: "Decks", exact: true }).click();
-    await expect(page).toHaveURL(/\/ladder\/decks\?mode=ladder&season=135$/);
+    await expect(page).toHaveURL(
+      /\/home\/you\/stats\/decks\?mode=ladder&season=135$/,
+    );
     await expect(page.getByLabel("Season", { exact: true })).toHaveValue("135");
     await expect(
       page.getByRole("heading", { level: 1, name: "Decks" }),
@@ -1599,7 +1610,7 @@ test.describe("Ladder seasons", () => {
         "POST /api/explore": explore(calls, { emptyCurrent: true }),
       }),
     );
-    await page.goto("/ladder?mode=ladder");
+    await page.goto("/home/you/stats?mode=ladder");
     const note = page.locator(".ladder-season-note");
     await expect(note).toContainText(
       "Season 136 has no recorded battles yet, so this is Season 135.",
@@ -1614,7 +1625,7 @@ test.describe("Ladder seasons", () => {
 
     // The empty season itself, one click away, says it is empty.
     await note.getByRole("link", { name: "Show Season 136 ›" }).click();
-    await expect(page).toHaveURL(/\/ladder\?mode=ladder&season=136$/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\?mode=ladder&season=136$/);
     await expect(
       page.getByRole("heading", {
         name: "No Trophy Road battles this season",
@@ -1645,7 +1656,7 @@ test.describe("Ladder this season vs last", () => {
     await page.clock.setFixedTime(NOW);
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
 
     const panel = page.getByRole("region", { name: "This season vs last" });
     await expect(panel).toContainText("Trophy Road");
@@ -1758,7 +1769,7 @@ test.describe("Ladder this season vs last", () => {
     await page.clock.setFixedTime(NOW);
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder?mode=war");
+    await page.goto("/home/you/stats?mode=war");
     const panel = page.getByRole("region", { name: "This season vs last" });
     await expect(panel).toContainText("War");
     await expect(panel).toContainText(
@@ -1791,7 +1802,7 @@ test.describe("Ladder this season vs last", () => {
     // Events: three battles this season.
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder?mode=event");
+    await page.goto("/home/you/stats?mode=event");
     await expect(
       page.getByRole("region", { name: "This season vs last" }),
     ).toContainText(
@@ -1816,7 +1827,7 @@ test.describe("Ladder this season vs last", () => {
         }),
       }),
     );
-    await page.goto("/ladder?mode=ladder");
+    await page.goto("/home/you/stats?mode=ladder");
     const panel = page.getByRole("region", { name: "This season vs last" });
     await expect(panel).toContainText(
       "Elixir recorded fewer than 10 decided Trophy Road battles in Season 135, so it is not set beside this season.",
@@ -1838,7 +1849,7 @@ test.describe("Ladder this season vs last", () => {
         }),
       }),
     );
-    await page.goto("/ladder?mode=ladder");
+    await page.goto("/home/you/stats?mode=ladder");
     const panel = page.getByRole("region", { name: "This season vs last" });
     await expect(panel.locator("thead th")).toHaveText([
       "Number",
@@ -1868,7 +1879,7 @@ test.describe("Ladder this season vs last", () => {
     await page.clock.setFixedTime(new Date("2026-09-07T10:40:00Z"));
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder?mode=ladder");
+    await page.goto("/home/you/stats?mode=ladder");
     const panel = page.getByRole("region", { name: "This season vs last" });
     await expect(panel.locator("thead th")).toHaveText([
       "Number",
@@ -1908,7 +1919,7 @@ test.describe("Ladder this season vs last", () => {
         "POST /api/explore": explore(calls, { pastStart: false }),
       }),
     );
-    await page.goto("/ladder?mode=ladder");
+    await page.goto("/home/you/stats?mode=ladder");
     const panel = page.getByRole("region", { name: "This season vs last" });
     await expect(panel.locator("thead th")).toHaveText([
       "Number",
@@ -1931,7 +1942,7 @@ test.describe("Ladder this season vs last", () => {
       page,
       signedIn({ "POST /api/explore": explore(calls, { earlier: true }) }),
     );
-    await page.goto("/ladder?mode=ladder&season=135");
+    await page.goto("/home/you/stats?mode=ladder&season=135");
     const panel = page.getByRole("region", {
       name: "Season 135 vs Season 134",
     });
@@ -1984,7 +1995,7 @@ test.describe("Ladder this season vs last", () => {
 
     // Opening Season 134 reads its record from the same cache entry.
     await page.getByLabel("Season", { exact: true }).selectOption("134");
-    await expect(page).toHaveURL(/\/ladder\?mode=ladder&season=134$/);
+    await expect(page).toHaveURL(/\/home\/you\/stats\?mode=ladder&season=134$/);
     await expect(
       page.getByRole("heading", { level: 1, name: "Season 134" }),
     ).toBeVisible();
@@ -2010,7 +2021,7 @@ test.describe("Ladder this season vs last", () => {
     await page.clock.setFixedTime(NOW);
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
-    await page.goto("/ladder?mode=ladder&season=135");
+    await page.goto("/home/you/stats?mode=ladder&season=135");
     await expect(
       page.getByRole("region", { name: "Season 135 vs the season before" }),
     ).toContainText(
@@ -2025,7 +2036,7 @@ test.describe("Ladder this season vs last", () => {
   }) => {
     await page.clock.setFixedTime(NOW);
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     const panel = page.getByRole("region", { name: "This season vs last" });
     await expect(panel.locator("thead th")).toHaveCount(4);
     await expect(panel.locator("tbody tr")).toHaveCount(4);

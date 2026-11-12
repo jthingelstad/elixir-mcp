@@ -103,7 +103,7 @@ test("choose a captured battle, inspect facts, preview and copy only deliberate 
       },
     }),
   );
-  await page.goto("/ladder/battles");
+  await page.goto("/home/you/stats/battles");
   await page.locator(".ladder-row a").first().click();
   await expect(page).toHaveURL(new RegExp(`${path}$`));
   await expect(page.getByRole("heading", { level: 1 })).toContainText("2 to 1");

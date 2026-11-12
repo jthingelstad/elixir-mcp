@@ -121,6 +121,19 @@ export function signedIn(
     ],
     // The bell's read, on every signed-in page (#765): nothing needs you.
     "GET /api/me/home/needs": [200, { needs: { ok: true, state: "none" } }],
+    // The bell's own read (2026-11-12): nothing about you yet.
+    "GET /api/me/bell": [
+      200,
+      {
+        seen_at: null,
+        players: 0,
+        new: 0,
+        reactions: { new: 0, items: [] },
+        followers: { count: 0, new: 0, unnamed: 0, players: [] },
+        answers: { new: 0, items: [] },
+      },
+    ],
+    "PUT /api/me/bell/seen": [200, { seen_at: "2026-11-12T12:00:00.000Z" }],
     "GET /api/me/timeline/discord": [
       200,
       { enabled: false, webhook: null, delivery: null },

@@ -122,7 +122,7 @@ test("@narrow invitation entry and signup fit phone and desktop without changing
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    for (const name of ["Your record", "Ladder", "Clan"])
+    for (const name of ["Your record", "Clan", "Friends"])
       await expect(
         page
           .locator(".home-tile__product")
@@ -276,10 +276,11 @@ for (const width of [390, 1280]) {
       // An element inside a label is judged as the label's control, here the
       // select, by toBeDisabled; the option's own property is what counts.
     ).toHaveJSProperty("disabled", true);
-    // Ladder and Clan say one thing and go to one place: Home's first step.
+    // Stats and Clan say one thing and go to one place: Home's first step.
     await page.goto("/ladder");
+    await expect(page).toHaveURL(/\/home\/you\/stats$/);
     await expect(
-      page.getByRole("heading", { name: "Ladder starts with your player" }),
+      page.getByRole("heading", { name: "Stats start with your player" }),
     ).toBeVisible();
     await page.getByRole("link", { name: "Add your player" }).click();
     await expect(page).toHaveURL(/\/home#add-player$/);

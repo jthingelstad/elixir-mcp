@@ -145,11 +145,11 @@ for (const [label, width] of [
               .getByRole("navigation", { name: "Main, phone" })
               .getByRole("button", { name: /Bell/ })
           : page.getByRole("button", {
-              name: /^Notifications, \d+ needs? you$/,
+              name: /^Notifications, \d+ new$/,
             });
       await expect(bell.locator(".kit-bell__dot")).toBeVisible();
       await bell.click();
-      const sheet = page.getByRole("dialog", { name: "Needs you" });
+      const sheet = page.getByRole("dialog", { name: "Notifications" });
       await expect(sheet).toBeVisible();
       await expect(sheet.locator(".kit-row__title").first()).toContainText(
         "Departure: kicked, left, or ignore? Ada",
@@ -279,9 +279,11 @@ for (const [label, width] of [
       await expect(page.getByRole("dialog")).toBeVisible();
     });
 
-    test("You: your players, their stats, Settings and Sign out", async ({
+    test("You with no verified player: how to verify, Settings and Sign out", async ({
       page,
     }) => {
+      // The fixture's claim is not verified (it has no `status`): You says
+      // how to verify one (canvas-shell.spec.ts has the verified page).
       await mockApi(page, homeApi());
       await page.goto("/home/you");
       await expect(
@@ -291,8 +293,8 @@ for (const [label, width] of [
         page.getByRole("link", { name: /Settings/ }).first(),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /^Stats for / }).first(),
-      ).toHaveAttribute("href", /^\/ladder\?player=/);
+        page.getByRole("link", { name: /Verify a player/ }),
+      ).toHaveAttribute("href", "/settings/players/verify");
       await expect(
         page.getByRole("button", { name: /Sign out/ }),
       ).toBeVisible();
