@@ -11,8 +11,8 @@
     },
     {
       "key": "ladder",
-      "label": "Ladder",
-      "path": "/ladder",
+      "label": "Stats",
+      "path": "/home/you/stats",
       "icon": "chart-line"
     },
     {
@@ -90,24 +90,9 @@
   },
   "signedOut": [
     {
-      "key": "home",
-      "label": "Home",
-      "path": "/"
-    },
-    {
-      "key": "cards",
-      "label": "Cards",
-      "path": "/cards"
-    },
-    {
       "key": "docs",
       "label": "Docs",
       "path": "/docs"
-    },
-    {
-      "key": "updates",
-      "label": "Updates",
-      "path": "/updates"
     }
   ],
   "search": {

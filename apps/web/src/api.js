@@ -157,6 +157,10 @@ export const api = {
   home: () => request("GET", "/api/me/home"),
   homeClan: () => request("GET", "/api/me/home/clan"),
   homeNeeds: () => request("GET", "/api/me/home/needs"),
+  // The bell (2026-11-12): reactions to your items, new followers and your
+  // feedback's answers; opening it moves your seen marker. Yours alone.
+  bell: () => request("GET", "/api/me/bell"),
+  bellSeen: () => request("PUT", "/api/me/bell/seen"),
   homeWeek: (mode) =>
     request(
       "GET",

@@ -31,7 +31,6 @@ const MAP = [
   ["/console/admin", "/console/admin/requests"],
   ["/console/explore/player", "/console/explore"],
   ["/console/explore/clan", "/console/explore"],
-  ["/ladder/days", "/ladder/battles"],
 ];
 
 // Every address mail can carry, today or from the archive. packages/mail,
@@ -52,6 +51,12 @@ const MAIL_MOVED = [
   ["/console/account/connections", "/settings/connections"],
   ["/console/account/usage", "/settings/usage"],
   ["/console/account/profile", "/settings/profile"],
+  // Ladder became Stats under You (2026-11-12); mail's Ladder links land
+  // on the same page there, their ?player= and ?season= riding along.
+  ["/ladder", "/home/you/stats"],
+  ["/ladder/decks", "/home/you/stats/decks"],
+  ["/ladder/cards", "/home/you/stats/cards"],
+  ["/ladder/days", "/home/you/stats/battles"],
 ];
 const MAIL_STAYS = [
   "/console/explore/player/%232PQRJ8LV",
@@ -62,9 +67,8 @@ const MAIL_STAYS = [
   "/settings/emails/s1",
   "/settings/feedback/7",
   "/clan/J2RGCRVG/actions/12",
-  "/ladder",
-  "/ladder/decks",
-  "/ladder/cards",
+  "/home/you/stats",
+  "/home/you/stats/decks",
   "/settings/emails",
   "/settings/players",
   "/home/find",

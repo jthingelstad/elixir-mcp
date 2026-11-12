@@ -13,8 +13,8 @@ test("every place has its own words and a read-more that exists", () => {
   const places = [
     "/home",
     "/home/friends",
-    "/ladder",
-    "/ladder/battles",
+    "/home/you/stats",
+    "/home/you/stats/battles",
     "/clan",
     "/console/explore",
     "/console/status",
@@ -30,7 +30,7 @@ test("every place has its own words and a read-more that exists", () => {
 });
 
 test("a note files under its product; the rest stay under the stored console", () => {
-  expect(helpFor("/ladder").area).toBe("ladder");
+  expect(helpFor("/home/you/stats").area).toBe("ladder");
   expect(helpFor("/clan").area).toBe("clan");
   expect(helpFor("/settings/profile").area).toBe("console");
   expect(helpFor("/home").area).toBe("console");

@@ -24,6 +24,7 @@ import {
 import { answered, unwrap } from "@elixir-mcp/client";
 import { api } from "../api.js";
 import { sweepBattles } from "./battle-sweep.js";
+import { bellSeenAt } from "../shell/bell-logic.js";
 import { useScope } from "./scope.js";
 
 export const keys = {
@@ -178,6 +179,31 @@ export const useBellNeeds = (enabled = true) =>
     staleTime: 5 * 60 * 1000,
     enabled,
   });
+
+/** The bell's other sections (2026-11-12): reactions, followers, answers and
+ *  how many are new since you last opened it. Read as often as the dot. */
+export const useBell = (enabled = true, { fresh = false } = {}) =>
+  useQuery({
+    queryKey: ["me", "bell"],
+    queryFn: payload(api.bell),
+    staleTime: 5 * 60 * 1000,
+    // The open sheet reads it again, whatever the dot last read.
+    ...(fresh ? { refetchOnMount: "always" } : {}),
+    enabled,
+  });
+
+/** Opening the bell: what is in it now is seen. The dot goes out at once;
+ *  the sheet keeps showing what was new while it stays open. */
+export function useBellSeen() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.bellSeen().then(unwrap),
+    onSuccess: (data) =>
+      queryClient.setQueryData(["me", "bell"], (old) =>
+        old ? bellSeenAt(old, data?.seen_at ?? null) : old,
+      ),
+  });
+}
 
 /** No mode is the week's opening mode, which the read works out. */
 export const useHomeWeek = (mode, enabled = true) =>

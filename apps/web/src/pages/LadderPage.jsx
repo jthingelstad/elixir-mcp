@@ -20,9 +20,11 @@ import { Pending } from "../ladder/Pending.jsx";
 import { Decks } from "../ladder/Decks.jsx";
 import { LadderFrame } from "../ladder/ScopeBar.jsx";
 import { Season } from "../ladder/Season.jsx";
+import { YouTabs } from "../home/You.jsx";
 
 /**
- * /ladder/{page}: whose season (`?player=`, one of yours, the primary by
+ * You › Stats (2026-11-12; Ladder, at /ladder until then), under You's tabs.
+ * LADDER/{page}: whose season (`?player=`, one of yours, the primary by
  * default), which game (`?mode=`, else the mode played most) and which
  * season (`?season=`, else the current one, or the last with battles
  * while the current has none: pickSeason), then the page inside the scope
@@ -32,6 +34,15 @@ import { Season } from "../ladder/Season.jsx";
  * dates, the chips their Other, and the bar its freshness.
  */
 export function LadderPage() {
+  return (
+    <div className="kit-you-stats">
+      <YouTabs />
+      <LadderBody />
+    </div>
+  );
+}
+
+function LadderBody() {
   const { me } = useMe();
   const navigate = useNav();
   const { pathname, search } = useLocation();

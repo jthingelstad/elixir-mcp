@@ -91,7 +91,8 @@ export function barAccount(me, signOut) {
         label: "Settings",
         href: PLACES.settings,
       },
-      // A35: the phone's bar has no room for it.
+      // Play Drop's place on a wide screen too since 2026-11-12: the bar
+      // has Home, Find, Clan, search, help, the bell and you.
       {
         key: "drop",
         icon: "droplet",
@@ -252,16 +253,8 @@ function TopBar({ me, area, open, bell }) {
           <Icon name={FAMILY_PLACES.help.icon} size={18} />
         </button>
         <BellButton bell={bell} onOpen={() => open("bell")} />
-        <a
-          href={DROP}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="kit-top__drop"
-          aria-label="Play Drop, the elixir-cost game, opens in a new window"
-        >
-          <Icon name="droplet" size={18} />
-          Play Drop
-        </a>
+        {/* Play Drop is in the avatar's menu and the footer, not the bar
+            (Structure "Proposed", 2026-11-12). */}
         <Avatar me={me} />
       </div>
     </header>

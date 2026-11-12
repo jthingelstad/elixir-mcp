@@ -18,9 +18,13 @@ import { clockAt, monthDayAt, seasonWeek, zoneShort } from "@elixir-mcp/ui";
 import { logRead } from "../lib/record-journey.js";
 import { tagPath } from "../lib/tag-url.js";
 
-export const LADDER = "/ladder";
+/** Ladder is You's Stats tab since 2026-11-12 (Jamie's go: "You with
+ *  Stats"); its old address, `/ladder`, redirects here (lib/moved.js). */
+export const LADDER = "/home/you/stats";
+/** Where Ladder used to be: every path under it still lands (moved.js). */
+export const OLD_LADDER = "/ladder";
 
-/** The pages, in tab order. `slug` "season" is the bare /ladder. */
+/** The pages, in tab order. `slug` "season" is the bare LADDER. */
 export const LADDER_PAGES = [
   { slug: "season", label: "Season", icon: "chart-line" },
   { slug: "battles", label: "Battles", icon: "calendar-days" },
@@ -69,10 +73,29 @@ export function modeChips(modes, current) {
 export const isLadder = (path) =>
   path === LADDER || String(path ?? "").startsWith(`${LADDER}/`);
 
+/** A Ladder path's segments after LADDER: ["", page, ...rest]. */
+const after = (path) =>
+  String(path ?? "")
+    .slice(LADDER.length)
+    .split("/");
+
 /** The page slug a Ladder path names, "season" for the bare one. */
 export function ladderSlug(path) {
-  const [, , page] = String(path ?? "").split("/");
+  if (!isLadder(path)) return "season";
+  const [, page] = after(path);
   return LADDER_PAGES.some((p) => p.slug === page) ? page : "season";
+}
+
+/** Where an old Ladder address now lives, or null for any other path: the
+ *  same page under You's Stats; Days played became Battles (2026-11-06); a
+ *  page Ladder never had is the season. */
+export function ladderMoved(path) {
+  if (path !== OLD_LADDER && !path.startsWith(`${OLD_LADDER}/`)) return null;
+  const [, , page = ""] = path.split("/");
+  if (page === "days") return `${LADDER}/battles`;
+  return LADDER_PAGES.some((p) => p.slug === page) && page !== "season"
+    ? `${LADDER}/${page}`
+    : LADDER;
 }
 
 /** A Ladder path resolved to one this section serves: the bare /ladder
@@ -82,7 +105,7 @@ export function ladderSlug(path) {
 export function ladderLegal(path) {
   if (!isLadder(path)) return null;
   if (path === LADDER) return path;
-  const [, , page = "", ...rest] = path.split("/");
+  const [, page = "", ...rest] = after(path);
   if (page === "" || page === "season") return LADDER;
   if (!LADDER_PAGES.some((p) => p.slug === page)) return LADDER;
   return rest.length ? `${LADDER}/${page}` : path;
@@ -97,7 +120,7 @@ export function ladderHere(path) {
 /** Tab title: the page first, because a tab truncates from the right. */
 export function ladderTitle(path, site = "Elixir") {
   const page = LADDER_PAGES.find((p) => p.slug === ladderSlug(path));
-  return `${page?.label ?? "Season"} - Ladder - ${site}`;
+  return `${page?.label ?? "Season"} - Stats - ${site}`;
 }
 
 /** A Ladder address: the page, then the player (no hash, as every tag

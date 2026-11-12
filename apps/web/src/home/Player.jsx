@@ -83,9 +83,19 @@ export function PlayerPage() {
   return <PlayerView page={env.data} />;
 }
 
-function PlayerView({ page }) {
+/** The page itself. You (`/home/you`) draws your primary player's with its
+ *  own tabs after the four (Stats, 2026-11-12), each an address, and opens
+ *  on the tab the address names. */
+export function PlayerView({
+  page,
+  extraTabs = [],
+  initialTab = "timeline",
+  self = false,
+}) {
   const { me } = useMe();
-  const [tab, setTab] = useState("timeline");
+  const [tab, setTab] = useState(
+    PLAYER_TABS.some((t) => t.key === initialTab) ? initialTab : "timeline",
+  );
   const p = page.player;
   const you = page.you;
   const clanOpen = me?.features?.clan_internal === true;
@@ -96,15 +106,18 @@ function PlayerView({ page }) {
   ]
     .filter(Boolean)
     .join(" · ");
-  const items = PLAYER_TABS.map((t) => ({
-    ...t,
-    count:
-      t.key === "highlights"
-        ? page.highlights.length
-        : t.key === "moments"
-          ? page.moments.length
-          : null,
-  }));
+  const items = [
+    ...PLAYER_TABS.map((t) => ({
+      ...t,
+      count:
+        t.key === "highlights"
+          ? page.highlights.length
+          : t.key === "moments"
+            ? page.moments.length
+            : null,
+    })),
+    ...extraTabs,
+  ];
   return (
     <div className="kit-home kit-player">
       <PageHead
@@ -124,10 +137,8 @@ function PlayerView({ page }) {
         <Counts page={page} />
       </PageHead>
       <nav className="kit-player__doors" aria-label="More about this player">
-        {you.own ? (
-          <Link to={ladderHref("season", { player: p.tag })}>
-            Open in Ladder
-          </Link>
+        {you.own && !self ? (
+          <Link to={ladderHref("season", { player: p.tag })}>Your stats</Link>
         ) : null}
         {you.clanmate && clanOpen ? (
           <Link
@@ -148,7 +159,13 @@ function PlayerView({ page }) {
         ) : null}
         {you.own ? <CopyFollowMe tag={p.tag} /> : null}
       </nav>
-      <Tabs label="Player" items={items} value={tab} onSelect={setTab} />
+      <Tabs
+        label="Player"
+        items={items}
+        value={tab}
+        // A tab that is an address (You's Stats) leaves this page instead.
+        onSelect={(k) => PLAYER_TABS.some((t) => t.key === k) && setTab(k)}
+      />
       {tab === "timeline" ? (
         <ItemList
           items={page.timeline}

@@ -24,6 +24,8 @@ import {
   ladderHere,
   ladderHref,
   ladderLegal,
+  ladderMoved,
+  ladderSlug,
   ladderPlayers,
   ladderTitle,
   monthName,
@@ -46,34 +48,57 @@ import { DOC_LINKS } from "../src/shell/doc-links.js";
 
 const CHI = "America/Chicago";
 
-test("Ladder owns /ladder and its pages, and nothing beside them", () => {
-  expect(isLadder("/ladder")).toBe(true);
-  expect(isLadder("/ladder/days")).toBe(true);
-  expect(isLadder("/ladders")).toBe(false);
-  expect(isLadder("/console/ladder")).toBe(false);
+test("Stats owns its address under You and its pages, and nothing beside them", () => {
+  const S = "/home/you/stats";
+  expect(isLadder(S)).toBe(true);
+  expect(isLadder(`${S}/decks`)).toBe(true);
+  expect(isLadder("/home/you/statsx")).toBe(false);
+  expect(isLadder("/home/you")).toBe(false);
+  // The old address is not Stats' own: it moves (lib/moved.js).
+  expect(isLadder("/ladder")).toBe(false);
 
-  expect(ladderLegal("/ladder")).toBe("/ladder");
+  expect(ladderLegal(S)).toBe(S);
   // The season home is the bare path; its slug and a trailing slash
   // resolve to it, as does a page that does not exist.
-  expect(ladderLegal("/ladder/")).toBe("/ladder");
-  expect(ladderLegal("/ladder/season")).toBe("/ladder");
-  expect(ladderLegal("/ladder/nonsense")).toBe("/ladder");
-  expect(ladderLegal("/ladders")).toBe(null);
+  expect(ladderLegal(`${S}/`)).toBe(S);
+  expect(ladderLegal(`${S}/season`)).toBe(S);
+  expect(ladderLegal(`${S}/nonsense`)).toBe(S);
+  expect(ladderLegal("/home/you/statsx")).toBe(null);
   for (const p of LADDER_PAGES.filter((p) => p.slug !== "season")) {
-    expect(ladderLegal(`/ladder/${p.slug}`)).toBe(`/ladder/${p.slug}`);
-    expect(ladderLegal(`/ladder/${p.slug}/extra`)).toBe(`/ladder/${p.slug}`);
+    expect(ladderLegal(`${S}/${p.slug}`)).toBe(`${S}/${p.slug}`);
+    expect(ladderLegal(`${S}/${p.slug}/extra`)).toBe(`${S}/${p.slug}`);
+    expect(ladderSlug(`${S}/${p.slug}`)).toBe(p.slug);
   }
+  expect(ladderSlug(S)).toBe("season");
 
-  // The app's guard hands Ladder its own paths and still sends a
+  // The app's guard hands Stats its own paths and still sends a
   // look-alike to the static site.
-  expect(legalRoute("/ladder")).toBe("/ladder");
-  expect(legalRoute("/ladder/season")).toBe("/ladder");
+  expect(legalRoute(S)).toBe(S);
+  expect(legalRoute(`${S}/season`)).toBe(S);
   expect(legalRoute("/ladders")).toBe(null);
+});
+
+test("every old Ladder address lands on the same page under You's Stats", () => {
+  const S = "/home/you/stats";
+  for (const [from, to] of [
+    ["/ladder", S],
+    ["/ladder/season", S],
+    ["/ladder/battles", `${S}/battles`],
+    ["/ladder/decks", `${S}/decks`],
+    ["/ladder/cards", `${S}/cards`],
+    ["/ladder/days", `${S}/battles`],
+    ["/ladder/nonsense", S],
+    ["/ladder/decks/extra", `${S}/decks`],
+  ])
+    expect(ladderMoved(from), from).toBe(to);
+  expect(ladderMoved("/ladders")).toBe(null);
+  expect(ladderMoved("/home/you/stats")).toBe(null);
 });
 
 test("every Ladder page has a rail position, a title and a docs strip entry", () => {
   for (const p of LADDER_PAGES) {
-    const path = p.slug === "season" ? "/ladder" : `/ladder/${p.slug}`;
+    const path =
+      p.slug === "season" ? "/home/you/stats" : `/home/you/stats/${p.slug}`;
     const here = ladderHere(path);
     expect(here).toEqual({
       key: p.slug,
@@ -81,8 +106,8 @@ test("every Ladder page has a rail position, a title and a docs strip entry", ()
       doc: `ladder:${p.slug}`,
     });
     expect(DOC_LINKS[here.doc], `${path} has no read more`).toBeTruthy();
-    expect(ladderTitle(path)).toBe(`${p.label} - Ladder - Elixir`);
-    expect(titleFor("ladder", {}, path)).toBe(`${p.label} - Ladder - Elixir`);
+    expect(ladderTitle(path)).toBe(`${p.label} - Stats - Elixir`);
+    expect(titleFor("ladder", {}, path)).toBe(`${p.label} - Stats - Elixir`);
   }
   for (const [, links] of LADDER_PAGES.map(
     (p) => DOC_LINKS[`ladder:${p.slug}`],
@@ -93,28 +118,30 @@ test("every Ladder page has a rail position, a title and a docs strip entry", ()
 });
 
 test("an address carries the player without its hash and only what was given", () => {
-  expect(ladderHref("season")).toBe("/ladder");
+  expect(ladderHref("season")).toBe("/home/you/stats");
   expect(ladderHref("season", { player: "#VJQV8G8RL" })).toBe(
-    "/ladder?player=VJQV8G8RL",
+    "/home/you/stats?player=VJQV8G8RL",
   );
   expect(ladderHref("days", { mode: "ranked" })).toBe(
-    "/ladder/days?mode=ranked",
+    "/home/you/stats/days?mode=ranked",
   );
   expect(ladderHref("decks", { player: undefined, mode: undefined })).toBe(
-    "/ladder/decks",
+    "/home/you/stats/decks",
   );
 });
 
 test("Cards keeps a chosen order in its address, and only most losses", () => {
   expect(ladderHref("cards", { mode: "ladder", order: "losses" })).toBe(
-    "/ladder/cards?mode=ladder&order=losses",
+    "/home/you/stats/cards?mode=ladder&order=losses",
   );
   // The default order is no parameter at all.
   expect(ladderHref("cards", { mode: "ladder", order: "battles" })).toBe(
-    "/ladder/cards?mode=ladder",
+    "/home/you/stats/cards?mode=ladder",
   );
   // Another page never carries Cards' order.
-  expect(ladderHref("decks", { order: "losses" })).toBe("/ladder/decks");
+  expect(ladderHref("decks", { order: "losses" })).toBe(
+    "/home/you/stats/decks",
+  );
 });
 
 const CLAIMS = [
@@ -249,9 +276,9 @@ describe("the season a page reads (2026-10-08)", () => {
     expect(seasonName({ war: null, month: "2026-10" })).toBe("October season");
     expect(seasonName(null)).toBe("This season");
     expect(ladderHref("decks", { player: "#VJQV8G8RL", season: 136 })).toBe(
-      "/ladder/decks?player=VJQV8G8RL&season=136",
+      "/home/you/stats/decks?player=VJQV8G8RL&season=136",
     );
-    expect(ladderHref("season", { season: "" })).toBe("/ladder");
+    expect(ladderHref("season", { season: "" })).toBe("/home/you/stats");
   });
 
   const LISTED = {
