@@ -213,6 +213,10 @@ before(async () => {
      values ($1, repeat('a', 64))`,
     [ids.person],
   );
+  // When they last opened the bell (0244).
+  await db.query(`insert into bell_seen (account_id) values ($1)`, [
+    ids.person,
+  ]);
   // A linked Discord and a link round trip still open (0233, #531).
   await db.query(
     `insert into account_discord (account_id, discord_user_id, username)
@@ -333,6 +337,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     battle_highlight: 1,
     timeline_cheer: 1,
     timeline_feed_link: 1,
+    bell_seen: 1,
     timeline_reader: 0,
     timeline_discord_told: 2,
     timeline_discord: 1,
@@ -477,6 +482,7 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "battle_highlight",
     "timeline_cheer",
     "timeline_feed_link",
+    "bell_seen",
     "credential_refusal",
     "mcp_call_audit",
     "timeline_discord",
