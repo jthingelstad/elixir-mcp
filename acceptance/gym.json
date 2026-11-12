@@ -15286,6 +15286,8 @@
   },
   {
     "id": "338.1",
+    "fresh": true,
+    "amended": "2026-11-12: refresh both live reads for this comparison. A full run otherwise reuses a read from minutes earlier, and a profile poll that lands between them (23:07Z during the 11-12 run) makes the earlier stamp read stale. The invariant is unchanged.",
     "feedback": 338,
     "stability": "live",
     "calls": {
@@ -15316,6 +15318,8 @@
   },
   {
     "id": "338.2",
+    "fresh": true,
+    "amended": "2026-11-12: refresh both live reads for this comparison. A full run otherwise reuses a read from minutes earlier, and a profile poll that lands between them (23:07Z during the 11-12 run) makes the earlier stamp read stale. The invariant is unchanged.",
     "feedback": 338,
     "control": true,
     "stability": "live",
