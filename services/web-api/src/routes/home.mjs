@@ -361,8 +361,8 @@ async function tracksClan(db, accountId, clanTag) {
  *  and how long it is served at all. Past fresh, the answer says
  *  `refresh` and the page asks for the card built again while it shows
  *  this one; past kept, the read builds it itself. */
-export const CLAN_CARD_FRESH_MS = 15 * 60_000;
-export const CLAN_CARD_KEEP_MS = 3 * 60 * 60_000;
+const CLAN_CARD_FRESH_MS = 15 * 60_000;
+const CLAN_CARD_KEEP_MS = 3 * 60 * 60_000;
 /** The card's fields that are never stored: Clan's gate answers them on
  *  every read (Actions, the unlock notice, the reader's role). */
 const CLAN_CARD_LIVE = ["needs", "needs_total", "unlock", "role", "verified"];
