@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Dev seed — local development only, never production (prod's first account
- * arrives through the real request-access flow).
+ * arrives through the real signup).
  *
  * Creates the owner account (approved, is_owner), the owner's player row,
  * a verified primary claim, and an active recording. Idempotent.

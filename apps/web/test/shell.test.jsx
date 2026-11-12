@@ -263,12 +263,12 @@ describe("the bar on a page", () => {
     "a staff page: the wall signed out, staff-only signed in, and never its content",
     { timeout: 20000 },
     async () => {
-      window.history.pushState({}, "", "/console/admin/requests");
+      window.history.pushState({}, "", "/console/admin/accounts");
       render(<App runtime={createAppRuntime()} />);
       expect(await screen.findByText("Sign in first")).toBeTruthy();
       cleanup();
       me = { authenticated: true, email: "reader@example.test", signals: {} };
-      window.history.pushState({}, "", "/console/admin/requests");
+      window.history.pushState({}, "", "/console/admin/accounts");
       render(<App runtime={createAppRuntime()} />);
       expect(await screen.findByText(/for Elixir’s staff/)).toBeTruthy();
     },
