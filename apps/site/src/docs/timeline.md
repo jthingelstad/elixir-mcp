@@ -47,6 +47,41 @@ A moment links its battle when the record has one, a highlight shows its
 player's own words, and a clan's own line has a gold edge. Every player's
 name opens their [player page](/docs/player-page).
 
+## Cheers
+
+Any item about a player or clan you follow can take a cheer from you, one
+of six that celebrate: 👏 **Well played**, 🔥 **On fire**, 👑 **Royal**,
+😮 **Wow**, 😂 **Ha** and 💪 **Grind**. There is nothing to boo with. You
+give one cheer per item: another cheer changes yours, and tapping yours
+again takes it back. **Cheer** under the item opens the six.
+
+An item shows its cheers as counts, each with its number, and says how many
+cheered in words ("You and 2 others", "3 people"): never who. Every member
+whose feed shows the item sees the same counts. Your account's own items
+(a sign-in, a feedback answer) take no cheers.
+
+A cheer stays on Home. It goes to no Discord channel, mail, bell or agent,
+and `elixir_timeline` does not carry it; an agent cannot cheer. You can give
+up to 120 cheers an hour.
+
+## Your RSS link
+
+Your timeline can also be read in a feed reader app. **Settings ›
+Connections & agents › Your RSS link** makes one private link for your
+account: it opens your own timeline, everyone you follow together, the last
+seven days and at most 50 items, newest first.
+
+- **The link is its own key.** Anyone holding it reads your timeline with
+  no sign-in, so keep it like a password. Elixir keeps only a fingerprint of
+  it, so it is shown once, when you make it: copy it then.
+- **Reset** makes a new link and stops the old one at once; **Turn off**
+  ends it. Closing your account ends it too.
+- **What it carries:** each item's words with players by their game names,
+  a link to the battle or the player, and when. Never your nicknames for
+  players, your email, your account's own items, leaders-only facts or
+  cheers.
+- A feed reader may read it up to 60 times an hour.
+
 ## Highlights
 
 A highlight is a battle a player chose to put on their timeline, with their

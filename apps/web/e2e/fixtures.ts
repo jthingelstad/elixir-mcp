@@ -125,6 +125,8 @@ export function signedIn(
       200,
       { enabled: false, webhook: null, delivery: null },
     ],
+    // Connections' RSS link panel (#765): off.
+    "GET /api/me/rss": [200, { on: false, created_at: null }],
     "GET /api/me/usage": [
       200,
       {

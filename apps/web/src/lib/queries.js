@@ -15,7 +15,12 @@
  * envelope.
  */
 import { useCallback } from "react";
-import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { answered, unwrap } from "@elixir-mcp/client";
 import { api } from "../api.js";
 import { sweepBattles } from "./battle-sweep.js";
@@ -37,6 +42,8 @@ export const keys = {
   connections: ["me", "connections"],
   principals: ["me", "principals"],
   feedback: ["me", "feedback"],
+  // Whether your timeline's RSS link is on (never the link itself).
+  rss: ["me", "rss"],
   // Your highlights of one battle, and the players you may post it as.
   highlights: (battle) => ["me", "highlights", battle],
   verifyList: ["me", "verify"],
@@ -238,6 +245,59 @@ export const useMyTimeline = (enabled = true) => {
     enabled,
   });
 };
+
+/** Your timeline's RSS link (#765): on or off, and since when. */
+export const useRssLink = () =>
+  useQuery({ queryKey: keys.rss, queryFn: payload(api.rssLink) });
+
+/** Your cheer on a feed item, shown at once: the feed's copy takes the
+ *  change before the write, the server's counts after it, and the copy
+ *  from before if it was refused. Yours, never an agent's. */
+export function useCheer() {
+  const queryClient = useQueryClient();
+  const key = scopedKey(null, "feed");
+  const put = (item) =>
+    queryClient.setQueryData(key, (old) =>
+      old
+        ? {
+            ...old,
+            timeline: (old.timeline ?? []).map((it) =>
+              it.id === item.id ? item : it,
+            ),
+          }
+        : old,
+    );
+  return useMutation({
+    mutationFn: async ({ item, next }) => {
+      const res = await api.cheer({
+        item_id: item.id,
+        cheer: next,
+        // The item's subjects, so the server rebuilds only their days to
+        // find it (feed.mjs reads the same two fields).
+        subjects: [
+          ...new Set(
+            [
+              item.subject_tag,
+              ...(item.subjects ?? []).map((s) => s.tag),
+            ].filter(Boolean),
+          ),
+        ],
+      });
+      if (!res.ok) throw new Error(res.data?.message ?? "Not saved");
+      return res.data;
+    },
+    onMutate: async ({ item, shown }) => {
+      await queryClient.cancelQueries({ queryKey: key, exact: true });
+      put(shown);
+      return { item };
+    },
+    onSuccess: (data, { shown }) =>
+      put({ ...shown, cheers: data.cheers, my_cheer: data.my_cheer }),
+    onError: (_err, _vars, context) => {
+      if (context?.item) put(context.item);
+    },
+  });
+}
 
 /** The battle page's highlight panel (#762): your posts of this battle
  *  and the verified players you may post it as. Yours, never an agent's. */

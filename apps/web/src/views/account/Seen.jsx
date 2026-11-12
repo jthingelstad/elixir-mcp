@@ -101,6 +101,17 @@ export function Seen({ me }) {
               </>,
             ],
             [
+              "A cheer you give",
+              <>
+                A count on that item, for every member whose feed shows it: how
+                many gave each cheer, never who. You see your own as yours.
+                <Note>
+                  A cheer goes nowhere else: not to Discord, mail, the bell or
+                  an agent's tools.
+                </Note>
+              </>,
+            ],
+            [
               "A collector you run",
               <>
                 Credited to your main player’s game name and tag, with its card
@@ -193,6 +204,15 @@ export function Seen({ me }) {
               <>Nobody else. Profile and Connections show it to you.</>,
             ],
             [
+              "Your RSS link",
+              <>
+                Only you, and anyone you give it to: whoever holds the link
+                reads your timeline in a feed reader, by game names, with no
+                nicknames, email or account business. Turning it off or
+                resetting it stops it at once.
+              </>,
+            ],
+            [
               "Your account’s machinery",
               <>
                 Only you: sign-ins and devices, agents and their keys,
@@ -219,6 +239,11 @@ export function Seen({ me }) {
             title="Your highlights"
             detail="Post, edit, share or delete one on the battle’s own page; your feed on Home links each battle."
             href="/home"
+          />
+          <Row
+            title="Your RSS link"
+            detail="Make, reset or turn off the private link to your timeline."
+            href={`${SETTINGS}/connections`}
           />
           <Row
             title="Players & tracking"

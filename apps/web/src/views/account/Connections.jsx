@@ -30,6 +30,7 @@ import { useScope } from "../../lib/scope.js";
 import { SETTINGS } from "../../lib/settings.js";
 import { NewAgent } from "./Agents.jsx";
 import { TimelineDiscordState } from "./TimelineDiscord.jsx";
+import { RssLinkPanel } from "./RssLink.jsx";
 import { Facts } from "./parts.jsx";
 
 /**
@@ -465,6 +466,7 @@ export function Connections({ me, navigate }) {
         ) : null}
       </Panel>
       <DiscordPanel me={me} />
+      <RssLinkPanel />
       <p className="st-foot">
         A client signed in as you sees your players, your clans and your news.
         An agent sees what its own key allows and, if it is a clan&rsquo;s

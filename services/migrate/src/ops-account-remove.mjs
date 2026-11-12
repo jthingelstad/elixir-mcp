@@ -210,6 +210,13 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     // A highlight is the person's post: its words go with them, and its
     // share link with it (#762). The battle stays.
     ["battle_highlight", `battle_highlight where account_id = any($1::uuid[])`],
+    // Their cheers leave the counts with them, and their RSS link stops
+    // (0243, #765).
+    ["timeline_cheer", `timeline_cheer where account_id = any($1::uuid[])`],
+    [
+      "timeline_feed_link",
+      `timeline_feed_link where account_id = any($1::uuid[])`,
+    ],
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
     [
       "timeline_discord_told",

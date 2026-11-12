@@ -56,7 +56,9 @@ as the fourth phone tab).
 
 `/home` is one feed with the chips Everyone, Friends, Clan and You (the same
 ruling); its tabs Today, Timeline and Friends are gone, and their old addresses
-redirect. Find is `/home/find` and You is `/home/you`. The brief is
+redirect. Its items take the ruling's six cheers, under each item; the RSS
+link to the same feed is in Settings › Connections & agents. [engineering,
+2026-11-12] Find is `/home/find` and You is `/home/you`. The brief is
 [Home](home.md).
 
 ### Ladder [Jamie, 2026-11-05; step 5]

@@ -257,6 +257,16 @@ export const api = {
   timelineEvidence: (params, agent) =>
     request("GET", `${home(agent)}/timeline?${new URLSearchParams(params)}`),
   myTimeline: (agent) => request("GET", `${home(agent)}/timeline`),
+  // Your cheer on a timeline item (#765): one of six, or null to take it
+  // back. The item's subject tags let the server find it in your feed.
+  // Yours alone: never an agent's console.
+  cheer: ({ item_id, cheer, subjects }) =>
+    request("PUT", "/api/me/cheers", { item_id, cheer, subjects }),
+  // Your timeline's private RSS link (#765): whether it is on; making or
+  // resetting it answers the link, the one time it is shown; off ends it.
+  rssLink: () => request("GET", "/api/me/rss"),
+  resetRssLink: () => request("POST", "/api/me/rss"),
+  rssLinkOff: () => request("DELETE", "/api/me/rss"),
   // The Console's own place in the timeline (2026-10-20): the window end
   // the page showed. Never an agent's read pointer.
   markTimelineSeen: (to, agent) =>

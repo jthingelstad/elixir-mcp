@@ -162,6 +162,9 @@ const TIMELINE = {
       facts: {},
       groups: ["friends"],
       battle_url: "https://elixir.example.test/battle/b2c3d4e5f6a7",
+      // Cheers (#765): counts only, and none of them yours yet.
+      cheers: { on_fire: 2 },
+      my_cheer: null,
     },
   ],
 };
