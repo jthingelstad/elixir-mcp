@@ -170,6 +170,55 @@ for (const [label, width] of [
       expect(posted).toEqual([]);
     });
 
+    test("a row's Follow shows its cost first and follows that one player", async ({
+      page,
+    }) => {
+      const posted: unknown[] = [];
+      await mockApi(
+        page,
+        asMember({
+          "GET /api/me/follow-plan": [
+            200,
+            {
+              ...PLAN,
+              players: [
+                { ...PLAN.players[0], following: true },
+                PLAN.players[1],
+              ],
+              to_follow: 1,
+              following: 1,
+            },
+          ],
+          "POST /api/claims": (route) => {
+            posted.push(route.request().postDataJSON());
+            return [
+              201,
+              { ok: true, player_tag: "#M1", relationship: "friend" },
+            ];
+          },
+        }),
+      );
+      await page.goto(`${base}/members`);
+      const roster = page.getByRole("region", { name: "3 members" });
+      const row = (name: string) =>
+        roster.getByRole("row").filter({ hasText: name });
+      // Your own player has no Follow; one you follow says so.
+      await expect(row("Ada").getByRole("button")).toHaveCount(0);
+      await expect(row("Ben")).toContainText("Following");
+      await expect(row("Ben").getByRole("button")).toHaveCount(0);
+      await noSideways(page);
+      await accessible(page, `row follow ${label}`);
+
+      await row("Zed").getByRole("button", { name: "Follow" }).click();
+      const dialog = page.getByRole("dialog", { name: "Follow Zed?" });
+      await expect(dialog).toContainText(
+        "Uses 1 of your 50 player slots · 3 used",
+      );
+      await dialog.getByRole("button", { name: "Follow" }).click();
+      await expect(dialog).toHaveCount(0);
+      expect(posted).toEqual([{ player_tag: "#M1", relationship: "friend" }]);
+    });
+
     test("the clan map opens from Members, with your place on it", async ({
       page,
     }) => {
@@ -231,3 +280,56 @@ for (const [label, width] of [
     });
   });
 }
+
+/** Members' row of pages went on 2026-11-12 (G6); who sees what did not. */
+test.describe("Members as one page", () => {
+  test("a member finds Recruit's copy at the foot, and no Scout", async ({
+    page,
+  }) => {
+    await mockApi(page, asMember({ "GET /api/me/follow-plan": [200, PLAN] }));
+    await page.goto(`${base}/members/recruit`);
+    await expect(page).toHaveURL(new RegExp(`${base}/members\\?show=recruit$`));
+    const foot = page.getByRole("region", { name: "Spread the word" });
+    await expect(
+      foot.getByRole("button", { name: "Hide the recruiting copy" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByRole("region", { name: "Scout" })).toHaveCount(0);
+    // Scout's old address: its role line, never the form.
+    await page.goto(`${base}/members/scout`);
+    await expect(page).toHaveURL(new RegExp(`${base}/members\\?show=scout$`));
+    const scout = page.getByRole("region", { name: "Scout" });
+    await expect(scout.getByRole("alert")).toContainText(
+      "Scout is for elders, co-leaders and the leader",
+    );
+    await expect(scout.getByRole("textbox")).toHaveCount(0);
+    await accessible(page, "members foot, member");
+  });
+
+  test("an elder keeps Scout, at the foot of Members", async ({ page }) => {
+    const selected = { ...ME.clans[0], role: "elder", role_label: "Elder" };
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/clan/me": [
+          200,
+          { ...ME, selected, clans: [selected, ME.clans[1]] },
+        ],
+        "GET /api/me/follow-plan": [200, PLAN],
+      }),
+    );
+    await page.goto(`${base}/members/scout`);
+    await expect(page).toHaveURL(new RegExp(`${base}/members\\?show=scout$`));
+    const scout = page.getByRole("region", { name: "Scout" });
+    await expect(scout.getByRole("textbox").first()).toBeVisible();
+    await accessible(page, "members foot, elder");
+  });
+
+  test("Standing's old address opens Standings, for every member", async ({
+    page,
+  }) => {
+    await mockApi(page, asMember({ "GET /api/me/follow-plan": [200, PLAN] }));
+    await page.goto(`${base}/members/standing`);
+    await expect(page).toHaveURL(new RegExp(`${base}/standings$`));
+    await expect(page.getByRole("region", { name: "Standing" })).toBeVisible();
+  });
+});

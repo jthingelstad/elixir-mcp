@@ -64,7 +64,7 @@ import { FOLLOW_ME, isPlayerPath } from "./lib/player.js";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { LadderInvite } from "./ladder/Invite.jsx";
 import { FollowInvite } from "./home/FollowMe.jsx";
-import { FollowClan } from "./home/FollowClan.jsx";
+import { FollowClan, FollowMember } from "./home/FollowClan.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { takeLoginToken } from "./url-hygiene.js";
 
@@ -894,6 +894,7 @@ export const routeTree = rootRoute.addChildren([
     rememberAfterSignIn,
     // Members' Follow everyone is Home's follow-all (2026-11-12).
     FollowClan,
+    FollowMember,
   }),
 ]);
 

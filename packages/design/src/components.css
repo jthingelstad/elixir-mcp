@@ -7031,6 +7031,32 @@ button.kit-row {
     position: absolute;
     inset: 0;
   }
+  /* The row's Follow sits beside the trophies, above the row's one tap. */
+  .clan-rows.roster-table
+    .kit-table--cards
+    > tbody
+    > tr:has(> .roster-table__follow) {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    column-gap: 10px;
+  }
+  .clan-rows.roster-table
+    .kit-table--cards
+    > tbody
+    > tr
+    > .roster-table__follow {
+    grid-area: 1 / 3;
+    position: relative;
+    z-index: 1;
+    padding: 0;
+    width: auto;
+  }
+  .clan-rows.roster-table
+    .kit-table--cards
+    > tbody
+    > tr
+    > .roster-table__follow::before {
+    content: none;
+  }
   .roster-table__line {
     display: flex;
     flex-wrap: wrap;
@@ -8030,6 +8056,46 @@ button.kit-row {
 .clan-subnav__find {
   width: 200px;
   max-width: 100%;
+}
+/* Clan ▸ Members since G6 (2026-11-12): one page, no row of pages. The
+   find sits above the roster, a page under it goes back with one link,
+   and its two foot sections are flat: a heading and a rule, no box. */
+.clan-members-find {
+  margin-bottom: 12px;
+}
+.clan-members-find .clan-subnav__find {
+  width: 240px;
+}
+.clan-members-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 4px;
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+.clan-members-back:hover {
+  color: var(--ink);
+}
+.clan-foot {
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.clan-foot__head {
+  margin: 0;
+  font-size: var(--t-h2);
+  font-weight: 600;
+}
+.roster-table__follow {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+.roster-follow__on {
+  color: var(--ink-faint);
 }
 /* Clan ▸ Awards: a race is a short list of place, member and figure.
    It keeps its three columns on a phone ("fit"), the figure's second

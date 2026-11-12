@@ -15,6 +15,7 @@ import { Clans } from "../src/views/Clans.jsx";
 import { VerifyNotice } from "../src/views/VerifyNotice.jsx";
 import { clanFromPath, parseClanPath } from "../src/App.jsx";
 import { clanPath } from "../src/lib/base.js";
+import { HostContext } from "../src/lib/host.js";
 
 afterEach(cleanup);
 
@@ -131,6 +132,33 @@ describe("the clan page", () => {
     const cells = [...amy.querySelectorAll("td")].map((td) => td.textContent);
     expect(cells[2]).toBe("—"); // trophies unknown
     expect(cells[3]).toBe("0"); // donations really zero
+  });
+
+  test("each row carries the app's Follow when the app lends one, and none without", () => {
+    const members = [
+      { player_tag: "#C1", name: "Bo", role: "coLeader", trophies: 1 },
+      { player_tag: "#M1", name: "Zed", role: "member", trophies: 2 },
+    ];
+    const asked = [];
+    const FollowMember = ({ clanTag, playerTag, name }) => {
+      asked.push([clanTag, playerTag, name]);
+      return <button type="button">Follow {name}</button>;
+    };
+    const { container } = renderWithProviders(
+      <HostContext.Provider value={{ FollowMember }}>
+        <RosterTable members={members} clanTag="#2PQRJ8LV" />
+      </HostContext.Provider>,
+    );
+    expect(container.querySelectorAll("td.roster-table__follow").length).toBe(
+      2,
+    );
+    expect(screen.getByRole("button", { name: "Follow Zed" })).toBeTruthy();
+    expect(asked).toContainEqual(["#2PQRJ8LV", "#M1", "Zed"]);
+    cleanup();
+    const bare = renderWithProviders(
+      <RosterTable members={members} clanTag="#2PQRJ8LV" />,
+    );
+    expect(bare.container.querySelector(".roster-table__follow")).toBeNull();
   });
 
   test("an empty clan renders no rows and no groups", () => {

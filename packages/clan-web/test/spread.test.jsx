@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
-import { SpreadWord } from "../src/components/SpreadWord.jsx";
+import { SpreadWord, SpreadWordFoot } from "../src/components/SpreadWord.jsx";
 
 afterEach(() => {
   cleanup();
@@ -95,14 +95,49 @@ describe("spread the word", () => {
     }
   });
 
-  test("with an active policy, anyone can bring clanmates in", () => {
-    renderWithProviders(
+  test("with an active policy, anyone can bring clanmates in, at the roster's foot", () => {
+    const { container } = renderWithProviders(
       <SpreadWord
         me={me({ set: true, active: true })}
         clan={clan("member")}
         roster={roster(30)}
       />,
     );
+    expect(container.textContent).toBe("");
+    const onRecruit = vi.fn();
+    renderWithProviders(
+      <SpreadWordFoot
+        me={me({ set: true, active: true })}
+        clan={clan("member")}
+        roster={roster(30)}
+        recruit={null}
+        onRecruit={onRecruit}
+      />,
+    );
     expect(screen.getByText("Bring your clanmates")).toBeTruthy();
+    const open = screen.getByRole("button", {
+      name: "Write the recruiting copy",
+    });
+    expect(open.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(open);
+    expect(onRecruit).toHaveBeenCalledWith(true);
+  });
+
+  test("before the policy, the foot still offers the recruiting copy, open when asked", () => {
+    renderWithProviders(
+      <SpreadWordFoot
+        me={me({ set: false, active: false })}
+        clan={clan("elder")}
+        roster={roster(24)}
+        recruit={<p>The pitch</p>}
+      />,
+    );
+    expect(screen.queryByText("Bring your clanmates")).toBeNull();
+    expect(screen.getByText("The pitch")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: "Hide the recruiting copy" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
   });
 });

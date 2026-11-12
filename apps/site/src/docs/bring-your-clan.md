@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-11-12; the clan card: its line, race and rule chips, and the Feed's race bar; 2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-11-12; Members is one page: Standing on Standings, Review in Run, Recruit and Scout at the roster's foot, Follow on each row; 2026-11-12; the clan card: its line, race and rule chips, and the Feed's race bar; 2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -124,15 +124,19 @@ Below it, the tabs:
   beside it, and above it on a phone. The Feed shows you what Elixir's timeline would
   show you about this clan, no more: a member reads the clan's facts, and the
   leader and co-leaders also the ones that are theirs.
-- **Standings**: each season's races and its winners, and your own trophy
-  case ([Awards and trophies](/docs/clan-awards)).
+- **Standings**: [Standing](/docs/standing) first, once the clan has a
+  policy and 10 members; then each season's races and its winners, and
+  your own trophy case ([Awards and trophies](/docs/clan-awards)).
 - **War** ([War and the week](/docs/clan-season)): the running week and
   season, and each closed [week](/docs/clan-week) and season.
-- **Members**: **Roster**; [Standing](/docs/standing), once the clan has a
-  policy and 10 members; **Review** for the leader and co-leaders; **Map**,
-  where verified members add a city or region and see each other's local
-  time, and nobody outside the clan sees it; **Recruit**, editable copy in one selected format, a personal note or
-  a recruiting post; and **Scout** for elders and up. A name opens that
+- **Members**: one page, the roster, with **Find a member** over it and
+  **Follow** on each row (the player page's, asked first with its cost;
+  your own players have none). **Clan map** opens the **Map**, where
+  verified members add a city or region and see each other's local time,
+  and nobody outside the clan sees it. At the foot, **Spread the word**
+  holds **Recruit**'s editable copy in one selected format, a personal note
+  or a recruiting post, for every member, and **Scout** follows for elders
+  and up. A name opens that
   player's [page](/docs/player-page), and its **Open in Clan** opens their
   page in this clan; your own has **Away** beside it when the clan lets
   members mark themselves away. Over the roster, every member reads how
@@ -146,8 +150,9 @@ Below it, the tabs:
   the clan counts, its minimums, how Elder is earned and the removal clock,
   with Elder's weights, the version and who saved it. Anyone in the
   [clan directory](/docs/clan-directory) reads the same.
-- **Run**, for the leader and co-leaders only, once verified: **Waiting** and
-  **Decided**, the record of every decision ([Actions](/docs/clan-actions));
+- **Run**, for the leader and co-leaders only, once verified: **Waiting**,
+  **Decided**, the record of every decision ([Actions](/docs/clan-actions)),
+  and **Review** ([the leaders pages](/docs/clan-leaders-pages));
   the policy, section by section; then **Awards setup**, **Discord**,
   **Model & voice** and **Clan settings**. Anyone else who opens Run's
   address is told it is the leaders', and Elixir refuses its pages to them.

@@ -151,14 +151,16 @@ for (const width of [390, 820, 1280]) {
         "GET /api/clan/clans/2PQRJ8LV/recruit": [200, RECRUIT],
       }),
     );
+    // Recruit's old address opens the copy at the roster's foot (G6).
     await page.goto("/clan/2PQRJ8LV/members/recruit");
+    await expect(page).toHaveURL(/\/members\?show=recruit$/);
     const note = page.getByRole("textbox", {
       name: "Personal note",
       exact: true,
     });
     await expect(note).toBeVisible();
     const box = await note.boundingBox();
-    // The copy begins on the first screen, under the tabs and Members' row.
+    // The copy is on screen when it opens: the page scrolls to it.
     expect(box!.y).toBeLessThan(800);
     await page.screenshot({
       path: `/tmp/elixir-second-recruit-${width}.png`,

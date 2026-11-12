@@ -190,7 +190,7 @@ export function YouHere({ clan, navigate }) {
   const asked = closed.every((w) => w.decks !== null && w.decks_asked !== null)
     ? closed.reduce((k, w) => k + w.decks_asked, 0)
     : null;
-  const elder = `${base}/members/standing`;
+  const elder = `${base}/standings`;
   return (
     <>
       {head}

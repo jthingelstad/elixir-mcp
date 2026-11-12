@@ -7,8 +7,8 @@ order: 4
 navTitle: "Standing"
 icon: chart-no-axes-column
 lede: "Standing is taking part in what your clan counts, compared across its members. Everyone sees how it works and where they stand; nobody below co-leader sees a removal action or anyone else's clock."
-reviewed: "2026-11-12; Today is the Feed; 2026-10-12; inactivity runs from the battle log and raises removal Actions again; 2026-10-01 against contract 9.17.1"
-callout: ["Open it at Clan › Members › Standing", "/clan", "Open Standing"]
+reviewed: "2026-11-12; Standing is on Standings; 2026-11-12; Today is the Feed; 2026-10-12; inactivity runs from the battle log and raises removal Actions again; 2026-10-01 against contract 9.17.1"
+callout: ["Open it at Clan › Standings", "/clan", "Open Standing"]
 ---
 
 # Standing and the Elder band

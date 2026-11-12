@@ -93,7 +93,13 @@ beforeEach(() => {
     return reply({});
   });
 });
-afterEach(() => vi.restoreAllMocks());
+// Unmount after each test, the last one too: a page left mounted when the
+// file's window is torn down gets the query cache's batched notify after
+// it, and React throws "window is not defined" (seen under load, 11-12).
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 test("You is the primary player only when it is verified", () => {
   expect(youPlayer(ME.claims)).toBe(VERIFIED);

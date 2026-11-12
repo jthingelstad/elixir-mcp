@@ -1,5 +1,5 @@
 import { useFollowPlan } from "../lib/queries.js";
-import { FollowAll, followPlanLine } from "./follow.jsx";
+import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
 
 /**
  * Follow everyone in a clan, from Clan › Members (2026-11-12, the canvas's
@@ -43,5 +43,35 @@ export function FollowClan({ clanTag, clanName = null }) {
         </p>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * One member's Follow, on a roster row (G6, 2026-11-12). Priced by the
+ * clan's own follow plan, the read FollowClan already makes (one read for
+ * the roster, never one per row), so the dialog says the cost from the
+ * same count and the slot limits as every other Follow. Your own players
+ * get nothing; one you follow already reads "Following".
+ */
+export function FollowMember({ clanTag, playerTag, name = null }) {
+  const plan = useFollowPlan({ clan_tag: clanTag });
+  const p = plan.data ?? null;
+  if (!p || (p.yours ?? []).includes(playerTag)) return null;
+  const row = (p.players ?? []).find((x) => x.player_tag === playerTag);
+  if (!row) return null;
+  if (row.following)
+    return <span className="kit-tiny roster-follow__on">Following</span>;
+  return (
+    <FollowButton
+      tag={playerTag}
+      name={name}
+      className="btn btn--sm"
+      cost={{
+        free: row.free,
+        following: row.following,
+        used: p.used,
+        limit: p.limit,
+      }}
+    />
   );
 }

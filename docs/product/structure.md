@@ -89,25 +89,28 @@ as built [engineering, 2026-11-12, #766]:
 | Tab | What it holds | Who |
 | --- | --- | --- |
 | Feed | Count badge; what waits for you, then the clan's last seven days (its items, members' moments and highlights, newest first); You here and The week beside them | Every member; the timeline's own reader rules |
-| Standings | A season picker merging races and history (was Awards) | Every member |
+| Standings | Standing, then a season picker merging races and history (was Awards) | Every member |
 | War | A period picker merging The week and Season (was Season) | Every member |
-| Members | Roster, Standing, Review, Map; Recruit, Scout; find a member | Review for co-leaders up; Scout for elders up; Recruit per A11 |
+| Members | Roster, Map; Recruit and Scout at the foot; find a member; Follow per row (G6, 2026-11-12: Standing went to Standings, Review to Run) | Scout for elders up; Recruit per A11 |
 | Policy | The policy in every member's words, its weights, its version and who saved it | Every member (public per A2) |
 | Run | A grouped side list | Leader and co-leaders, verified; refused on the server to everyone else |
 
 Run's side list:
 
-- **Actions:** Waiting, Decided.
+- **Actions:** Waiting, Decided, Review.
 - **Policy:** About.
 - **What counts:** Minimums, Clan Wars, Ranked, Donations, Trophy Road.
 - **People:** Elder, Inactivity, Arrivals, Departures.
 - **Telling the clan:** Announcements.
 - **Elsewhere:** Awards setup, Discord, Model & voice, Clan settings.
 
-Routes: `/clan/<TAG>/feed`, `/standings`, `/war`, `/members`,
-`/members/standing`, `/members/review`, `/members/map`, `/members/recruit`,
-`/members/scout`, `/members/away`, `/members/<player>`, `/policy`,
-`/run/<section>` (`/run/actions` is Waiting, `/run/decided` Decided).
+Routes: `/clan/<TAG>/feed`, `/standings`, `/war`, `/members`
+(`?show=recruit` and `?show=scout` open the foot), `/members/map`,
+`/members/away`, `/members/<player>`, `/policy`, `/run/<section>`
+(`/run/actions` is Waiting, `/run/decided` Decided, `/run/review` Review).
+Since G6 (2026-11-12) `/members/standing` redirects to `/standings`,
+`/members/review` to `/run/review`, and `/members/recruit` and
+`/members/scout` to the roster's foot.
 `/clan/<TAG>/actions/<n>` stays. The old `/today`, `/season` and `/awards`
 addresses redirect to the Feed, War and Standings, and `/today/decided` to
 `/run/decided`. The chooser for someone with no clan open is

@@ -36,7 +36,7 @@ export function SmallClan({ clan, members, min = MIN_MEMBERS, navigate }) {
     navigate?.(path);
   };
   const lead = LEADERS.has(clan.role) && clan.verified !== false;
-  const recruit = `${base}/members/recruit`;
+  const recruit = `${base}/members?show=recruit`;
   const policy = `${base}/run/about`;
   return (
     <Panel as="div" title={`Clan management starts at ${min} members`}>
@@ -124,69 +124,89 @@ export function InviteLeaders({ clan, name }) {
  * Spread the word (round 5, 2026-09-25): the one panel on the clan page
  * that fits where the clan is. Below 10 members, Recruit helps it reach
  * 10. With 10 and no policy, a member or elder gets a line inviting the
- * leaders, and a leader gets the way to set it up. Once the policy is
- * active, anyone can bring clanmates in, with the clan's own words and
- * its tag beside the line for chat (the October 2026 canvas).
+ * leaders, and a leader gets the way to set it up. Those three stand above
+ * the roster, where they are the next step.
  */
 export function SpreadWord({ me, clan, roster, navigate }) {
   const members = roster?.member_count ?? roster?.members?.length ?? null;
   const state = spreadState({ me, clan, roster });
-  const base = clanPath(clan.clan_tag);
-  // The app's own address to share: Clan's landing on Elixir's origin.
-  const link =
-    typeof window !== "undefined" ? `${window.location.origin}${CLAN}` : "";
-  const go = (path) => (e) => {
-    e.preventDefault();
-    navigate?.(path);
-  };
   const name = roster?.name ?? clan.name ?? null;
-
   if (state === "small")
     return <SmallClan clan={clan} members={members} navigate={navigate} />;
   if (state === "setup") return <SetupPolicy clan={clan} navigate={navigate} />;
   if (state === "invite") return <InviteLeaders clan={clan} name={name} />;
-
-  if (state === "active")
-    return (
-      <Panel aria-labelledby="spread-word">
-        <div className="panel__head">
-          <h2 id="spread-word" className="m-0 text-[14px] font-semibold">
-            Spread the word
-          </h2>
-        </div>
-        <div className="panel__body grid gap-2.5">
-          {roster?.description ? (
-            <p className="m-0 text-[13.5px] text-ink-body">
-              {roster.description}
-            </p>
-          ) : null}
-          <div className="label">The clan tag</div>
-          <CopyLine
-            text={clan.clan_tag}
-            event="clan.invite_copied"
-            value="tag"
-            label="Copy the clan tag"
-          />
-          <div className="label">Bring your clanmates</div>
-          <p className="m-0 text-[13px] text-ink-dim">
-            Everyone in the clan can sign in with Elixir and see how the clan
-            runs and where they stand.
-          </p>
-          <CopyLine
-            text={inviteCopy("clanmates", { clanName: name })}
-            event="clan.invite_copied"
-            value="clanmates"
-          />
-          <div className="label">The link, for Discord or a message</div>
-          <CopyLine text={link} event="clan.invite_copied" value="link" />
-          <a
-            href={`${base}/members/recruit`}
-            onClick={go(`${base}/members/recruit`)}
-          >
-            Recruit writes the pitch ›
-          </a>
-        </div>
-      </Panel>
-    );
   return null;
+}
+
+/**
+ * Spread the word at the roster's foot, for every member at any size.
+ * Once the policy is active, the clan's own words and its tag beside the
+ * line for chat (the October 2026 canvas). Always, Recruit's pitch: the
+ * copy in a note or a post, opened here since Members' row went (G6,
+ * 2026-11-12). It opens on a tap, or when the address asks
+ * (`/members?show=recruit`), since its read asks the game for the clan's
+ * numbers.
+ */
+export function SpreadWordFoot({ me, clan, roster, recruit, onRecruit }) {
+  const active = spreadState({ me, clan, roster }) === "active";
+  // The app's own address to share: Clan's landing on Elixir's origin.
+  const link =
+    typeof window !== "undefined" ? `${window.location.origin}${CLAN}` : "";
+  const name = roster?.name ?? clan.name ?? null;
+  return (
+    <section
+      id="spread-word"
+      className="clan-foot"
+      aria-labelledby="spread-word-head"
+    >
+      <h2 id="spread-word-head" className="clan-foot__head">
+        Spread the word
+      </h2>
+      <div className="grid gap-2.5">
+        {active ? (
+          <>
+            {roster?.description ? (
+              <p className="m-0 text-[13.5px] text-ink-body">
+                {roster.description}
+              </p>
+            ) : null}
+            <div className="label">The clan tag</div>
+            <CopyLine
+              text={clan.clan_tag}
+              event="clan.invite_copied"
+              value="tag"
+              label="Copy the clan tag"
+            />
+            <div className="label">Bring your clanmates</div>
+            <p className="m-0 text-[13px] text-ink-dim">
+              Everyone in the clan can sign in with Elixir and see how the clan
+              runs and where they stand.
+            </p>
+            <CopyLine
+              text={inviteCopy("clanmates", { clanName: name })}
+              event="clan.invite_copied"
+              value="clanmates"
+            />
+            <div className="label">The link, for Discord or a message</div>
+            <CopyLine text={link} event="clan.invite_copied" value="link" />
+          </>
+        ) : null}
+        <div className="label">Recruit</div>
+        <p className="m-0 text-[13px] text-ink-dim">
+          The clan&rsquo;s pitch as a personal note or a public post for a
+          recruiting forum, with today&rsquo;s numbers from the game.
+        </p>
+        <button
+          type="button"
+          className="btn btn--sm w-fit"
+          aria-expanded={Boolean(recruit)}
+          aria-controls="spread-word-recruit"
+          onClick={() => onRecruit?.(!recruit)}
+        >
+          {recruit ? "Hide the recruiting copy" : "Write the recruiting copy"}
+        </button>
+        <div id="spread-word-recruit">{recruit}</div>
+      </div>
+    </section>
+  );
 }

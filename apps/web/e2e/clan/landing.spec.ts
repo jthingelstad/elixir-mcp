@@ -59,7 +59,7 @@ test.describe("arriving at a clan", () => {
   test("the clan's own address lands on the Feed, and Back never returns to bounce", async ({
     page,
   }) => {
-    await page.goto("/clan/2PQRJ8LV/members/standing");
+    await page.goto("/clan/2PQRJ8LV/standings");
     await expect(page.getByRole("heading", { name: "Standing" })).toBeVisible();
     await page.goto("/clan/2PQRJ8LV");
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
@@ -72,17 +72,17 @@ test.describe("arriving at a clan", () => {
     );
     // The redirect replaced the clan's address: Back is the page before.
     await page.goBack();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\/standing$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/standings$/);
     await page.goForward();
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
   });
 
   test("/clan lands on the remembered clan's Today", async ({ page }) => {
-    await page.goto("/clan/2PQRJ8LV/members/standing");
+    await page.goto("/clan/2PQRJ8LV/standings");
     await page.goto("/clan/");
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
     await page.goBack();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\/standing$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/standings$/);
   });
 
   test("an address that names a page opens it: the roster, a member, an action", async ({
@@ -99,10 +99,9 @@ test.describe("arriving at a clan", () => {
       "href",
       "/clan/2PQRJ8LV/members",
     );
-    const rows = page.getByRole("navigation", { name: "Members" });
-    await expect(rows.getByRole("link", { name: "Roster" })).toHaveAttribute(
-      "aria-current",
-      "page",
+    // One page since G6 (2026-11-12): no row of pages under the tab.
+    await expect(page.getByRole("navigation", { name: "Members" })).toHaveCount(
+      0,
     );
     // A search is the roster's address.
     const find = page.getByRole("searchbox", { name: "Find a member" });
@@ -120,8 +119,6 @@ test.describe("arriving at a clan", () => {
     await page.getByRole("link", { name: /Back to Members/ }).click();
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\?find=Ben$/);
     await expect(find).toHaveValue("Ben");
-    await rows.getByRole("link", { name: "Standing" }).click();
-    await expect(page).toHaveURL(/\/members\/standing$/);
     await page.goto("/clan/2PQRJ8LV/members/uq8lp2r9c");
     await expect(page).toHaveURL(/\/members\/uq8lp2r9c$/);
   });
