@@ -22,6 +22,7 @@ import { CLAN, clanPath } from "../lib/base.js";
 import { MemberLink } from "../components/MemberLink.jsx";
 import { ordinal, seasonWeek } from "../lib/words.js";
 import { leads } from "../lib/tabs.js";
+import { useHost } from "../lib/host.js";
 
 const ROLE_ORDER = ["leader", "coLeader", "elder", "member"];
 const ROLE_COUNT = {
@@ -340,6 +341,40 @@ function Comings({ roster, clan, history, navigate }) {
 /** The roster. Reads /api/roster once per mount; the API caches it per session
  *  for a few minutes, and "Check again" is rate-limited there. `search` is the
  *  address's own (`/members?find=`), which Members' row writes. */
+/**
+ * The roster's head (the canvas's Members panel, 2026-11-12): how many
+ * members, and for every member who reads it, not only leaders, Follow
+ * everyone (lent by the app, lib/host.js) and the way to the clan map,
+ * where the Map chip is offered (lib/tabs.js membersPages).
+ */
+function MembersHead({ me, clan, roster }) {
+  const { FollowClan } = useHost();
+  const map = clan.verified !== false && me?.social?.enabled !== false;
+  return (
+    <div className="kit-panel__head">
+      <h3 id="clan-roster" className="kit-panel__title">
+        {roster.member_count} {noun(roster.member_count, "member")}
+      </h3>
+      <div className="kit-panel__action clan-members-head">
+        {FollowClan ? (
+          <FollowClan
+            clanTag={roster.clan_tag ?? clan.clan_tag}
+            clanName={roster.name ?? clan.name ?? null}
+          />
+        ) : null}
+        {map ? (
+          <Link
+            className="btn btn--sm"
+            to={`${clanPath(clan.clan_tag)}/members/map`}
+          >
+            Clan map
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function Clan({ me, clan, navigate, search = "", fromRun = false }) {
   const tag = clan.clan_tag;
   const gated = useRoster(tag);
@@ -429,9 +464,7 @@ export function Clan({ me, clan, navigate, search = "", fromRun = false }) {
           ) : null}
           <div className="grid gap-4 items-start">
             <Panel className="min-w-0" aria-labelledby="clan-roster">
-              <h3 id="clan-roster" className="sr-only">
-                Members
-              </h3>
+              <MembersHead me={me} clan={clan} roster={roster} />
               <div className="px-1.5 pb-1.5">
                 {members.length === 0 ? (
                   <Empty title="No members on the record">
@@ -453,9 +486,6 @@ export function Clan({ me, clan, navigate, search = "", fromRun = false }) {
                 )}
               </div>
               <div className="panel__foot flex flex-wrap items-center gap-2">
-                <span>
-                  {roster.member_count} {noun(roster.member_count, "member")}
-                </span>
                 <button
                   type="button"
                   className="btn btn--sm"

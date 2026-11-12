@@ -179,6 +179,9 @@ export const api = {
   /** Follow every one of them, in one confirmed act; refused whole at the
    *  limit. */
   followAll: (body) => request("POST", "/api/me/follow-all", body),
+  /** Your follow slots, player by player: what uses a slot because of you
+   *  and what is recorded anyway, as the Follow dialogs count them. */
+  followSlots: () => request("GET", "/api/me/follow-slots"),
   firstAnswer: (playerTag) =>
     request(
       "GET",

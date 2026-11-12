@@ -3,17 +3,16 @@ import { PageHead } from "../components/PageHead.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { api } from "../api.js";
-import { keys, useClanMap, useInvalidate, useMyPlace } from "../lib/queries.js";
-import { geo, localTime, placeLabel } from "../lib/geo.js";
-import { trackEvent } from "../analytics.js";
+import { useClanMap } from "../lib/queries.js";
+import { localTime, placeLabel } from "../lib/geo.js";
+import { YourPlace } from "./YourPlace.jsx";
 
 /**
  * The clan map (Social, Jamie 2026-09-26): where the clan plays from.
  * A member adds a place picked from the lists (a country, its region and,
  * if they like, a city: never an address, never the device's location)
  * and sees everyone else who has, with each one's local time. Only the
- * clan's signed-in members see it, and it stays in Elixir Clan.
+ * clan's verified members see it, and it stays in Elixir Clan.
  */
 export function ClanMap({ clan }) {
   const { state } = useClanMap(clan.clan_tag);
@@ -51,10 +50,13 @@ export function ClanMap({ clan }) {
     <Page>
       <p className="page__lede m-0">
         Where the clan plays from, and what time it is there. Add your city or
-        region to appear; only signed-in members of{" "}
-        {clan.name ?? <Tag tag={clan.clan_tag} />} see this, and it stays here.
+        region to appear; only verified members of{" "}
+        {clan.name ?? <Tag tag={clan.clan_tag} />} see this map, and it stays
+        here.
       </p>
-      <YourPlace clan={clan} />
+      <Panel title="Your place" titleAs="h2" pad>
+        <YourPlace clanTag={clan.clan_tag} />
+      </Panel>
       {d.not_recorded ? (
         <p className="page-head__note">
           Elixir isn&rsquo;t recording this clan yet, so there is no roster to
@@ -213,191 +215,6 @@ function People({ entries, now }) {
             })}
           </div>
         ))}
-      </div>
-    </Panel>
-  );
-}
-
-/** Your place: picked from the lists, set or removed by you alone. */
-function YourPlace({ clan }) {
-  const { data } = useMyPlace();
-  const invalidate = useInvalidate();
-  const [editing, setEditing] = useState(false);
-  const place = data?.place ?? null;
-  const done = () => {
-    invalidate(keys.place);
-    invalidate(keys.map(clan.clan_tag));
-    setEditing(false);
-  };
-  if (data === undefined) return null;
-  if (place && !editing)
-    return (
-      <Panel as="div">
-        <div className="panel__body flex flex-wrap items-center gap-3">
-          <span>
-            You&rsquo;re on the map at <strong>{placeLabel(place)}</strong>
-          </span>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setEditing(true)}
-          >
-            Change
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={async () => {
-              await api.clearMyPlace();
-              trackEvent("clan.place_cleared");
-              done();
-            }}
-          >
-            Remove me
-          </button>
-        </div>
-      </Panel>
-    );
-  return (
-    <PlacePicker
-      initial={place}
-      onCancel={place ? () => setEditing(false) : null}
-      onSaved={(saved) => {
-        trackEvent("clan.place_set", saved.precision);
-        done();
-      }}
-    />
-  );
-}
-
-function PlacePicker({ initial, onCancel, onSaved }) {
-  const [countries, setCountries] = useState([]);
-  const [country, setCountry] = useState(initial?.country ?? "");
-  const [data, setData] = useState(null);
-  const [region, setRegion] = useState(initial?.region ?? "");
-  const [city, setCity] = useState(initial?.city ? String(initial.city) : "");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    geo.countries().then(setCountries);
-  }, []);
-  useEffect(() => {
-    setData(null);
-    if (country) geo.country(country).then(setData);
-  }, [country]);
-  const cities = useMemo(
-    () =>
-      (data?.cities ?? []).filter((c) =>
-        data?.regions.length ? c.region === region : true,
-      ),
-    [data, region],
-  );
-  const needsRegion = Boolean(data?.regions.length);
-  return (
-    <Panel
-      as="form"
-      title={initial ? "Change your place" : "Add yourself to the map"}
-      titleAs="div"
-
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setBusy(true);
-        setError("");
-        const r = await api.setMyPlace({
-          country,
-          region: needsRegion ? region : null,
-          city: city ? Number(city) : null,
-        });
-        setBusy(false);
-        if (!r.ok) return setError(r.data?.message ?? "That did not work.");
-        onSaved(r.data.place);
-      }}
-    >
-      <div className="panel__body grid gap-2">
-        <p className="page-head__note m-0">
-          A city or just a region, from the list. It shows in every clan
-          you&rsquo;re in, to its members only, and you can remove it any time.
-        </p>
-        <label className="field-label" htmlFor="place-country">
-          Country
-        </label>
-        <select
-          id="place-country"
-          className="input"
-          value={country}
-          onChange={(e) => {
-            setCountry(e.target.value);
-            setRegion("");
-            setCity("");
-          }}
-        >
-          <option value="">Choose…</option>
-          {countries.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        {needsRegion ? (
-          <>
-            <label className="field-label" htmlFor="place-region">
-              State or region
-            </label>
-            <select
-              id="place-region"
-              className="input"
-              value={region}
-              onChange={(e) => {
-                setRegion(e.target.value);
-                setCity("");
-              }}
-            >
-              <option value="">Choose…</option>
-              {data.regions.map((r) => (
-                <option key={r.code} value={r.code}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </>
-        ) : null}
-        {data && (!needsRegion || region) ? (
-          <>
-            <label className="field-label" htmlFor="place-city">
-              City <span className="page-head__note">(optional)</span>
-            </label>
-            <select
-              id="place-city"
-              className="input"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-            >
-              <option value="">
-                {needsRegion ? "Just the region" : "Just the country"}
-              </option>
-              {cities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </>
-        ) : null}
-        {error ? <p className="field-error">{error}</p> : null}
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            className="btn btn--primary"
-            disabled={busy || !country || (needsRegion && !region)}
-          >
-            {initial ? "Save" : "Add me"}
-          </button>
-          {onCancel ? (
-            <button type="button" className="btn" onClick={onCancel}>
-              Cancel
-            </button>
-          ) : null}
-        </div>
       </div>
     </Panel>
   );

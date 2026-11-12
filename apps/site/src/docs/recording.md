@@ -94,6 +94,16 @@ recorded**, or **Uses 1 of your 50 player slots** with the number in use.
 (`took`, `free`, `free_because`, `used`, `limit`), and Settings › Players &
 tracking marks each player as free or using a slot.
 
+[Settings › What members see](/settings/what-members-see) has your slots
+in one place: a meter of the slots in use out of your limit, the same
+number every Follow says, then the players using a slot because of you
+(each with who follows them: you, or an agent of yours by name) and,
+apart from them, the free follows with why each is free. A player you
+follow or watch has **Stop following** there; your own players open on
+Players & tracking, and a player only your agent tracks opens that agent's
+page. A player your agent also tracks keeps its slot until the agent stops
+too.
+
 If a free player's reason goes away (they leave the clan, or the other
 account stops following), they keep recording and start using one of your
 slots. Nobody is removed for it: an account that ends up over its limit

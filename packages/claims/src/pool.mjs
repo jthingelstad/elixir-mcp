@@ -168,6 +168,53 @@ export async function playerCosts(db, ownerId, tags) {
   }));
 }
 
+/**
+ * Every player the pool of owner `ownerId` follows, priced as pooledUsage
+ * prices them: the same set (a player once, however many of the pool
+ * follow them) and the same playerCostSql, so the rows that are not free
+ * are exactly pooledUsage's players_used. Each row names who in the pool
+ * follows the player: `claims`, one per account, with its kind, its
+ * relationship and, for an agent, its public id. Settings' slot meter
+ * reads it (2026-11-12): what uses a slot because of you, and what is
+ * recorded anyway.
+ */
+export async function pooledFollows(db, ownerId) {
+  const { rows } = await db.query(
+    `with pool as (${POOL}),
+     followed as (
+       select distinct player_tag from claim
+        where account_id in (select account_id from pool)),
+     priced as (
+       select f.player_tag,
+              ${playerCostSql("f.player_tag", "select account_id from pool")}
+         from followed f)
+     select p.player_tag, p.in_recorded_clan, p.followed_by_others,
+            (select json_agg(json_build_object(
+                       'account_id', a.account_id,
+                       'kind', a.kind,
+                       'public_id', a.public_id,
+                       'relationship', case when c.is_primary then 'primary'
+                                            else c.relationship end)
+                     order by a.kind = 'agent', a.created_at)
+               from claim c join account a using (account_id)
+              where c.player_tag = p.player_tag
+                and c.account_id in (select account_id from pool)) as claims
+       from priced p
+      order by p.player_tag`,
+    [ownerId],
+  );
+  return rows.map((r) => ({
+    player_tag: r.player_tag,
+    free: r.in_recorded_clan || r.followed_by_others,
+    reason: r.in_recorded_clan
+      ? "in_recorded_clan"
+      : r.followed_by_others
+        ? "followed_by_others"
+        : null,
+    claims: r.claims ?? [],
+  }));
+}
+
 /** playerCosts for one tag. */
 export async function playerCost(db, ownerId, tag) {
   return (await playerCosts(db, ownerId, [tag]))[0];

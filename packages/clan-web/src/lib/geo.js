@@ -39,6 +39,4 @@ export function localTime(tz, at = new Date()) {
   return { time, away };
 }
 
-/** A place in words, most specific first. */
-export const placeLabel = (p) =>
-  [p.city_name, p.region_name, p.country_name].filter(Boolean).join(", ");
+export { placeLabel } from "./place-label.js";

@@ -7,6 +7,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -23,6 +24,7 @@ import { keys, useDirectory, useMeQuery } from "./lib/queries.js";
 import { leads, pageOf, policyActive } from "./lib/tabs.js";
 import { landingPath } from "./lib/landing.js";
 import { useSelectClan } from "./lib/select.js";
+import { HostContext } from "./lib/host.js";
 import { CLAN, appPath, clanPath, isClanSegment, tagOf } from "./lib/base.js";
 import { ClanHead } from "./components/ClanHead.jsx";
 import { RoleConfirming } from "./components/RoleConfirming.jsx";
@@ -547,6 +549,7 @@ const OPEN_TO_ALL = new Set(["/directory"]);
 export function ClanShell({
   Frame = PlainFrame,
   rememberAfterSignIn = () => {},
+  FollowClan = null,
 }) {
   const { pathname: path, searchStr } = useLocation();
   // The path under the prefix: "/" is the landing, "/you" your page.
@@ -619,6 +622,9 @@ export function ClanShell({
     }
   }, [me, path, app, navigate, select, selecting, rememberAfterSignIn]);
 
+  // What the joining app lends the views (lib/host.js), held still.
+  const host = useMemo(() => ({ FollowClan }), [FollowClan]);
+
   // The head and tabs belong to the clan being read.
   const inClan =
     Boolean(me?.signed_in && me.ok && me.selected) &&
@@ -628,46 +634,48 @@ export function ClanShell({
     <SessionContext.Provider
       value={{ me, checking, refresh, setMe, select, selecting }}
     >
-      <Frame>
-        <main className="page">
-          <div className="page__inner page__inner--solo">
-            {inClan ? (
-              <ClanHead
-                me={me}
-                path={path}
-                navigate={navigate}
-                select={select}
-                selecting={selecting}
-              />
-            ) : null}
-            <RoleConfirming />
-            <ErrorBoundary key={path}>
-              {me && !me.signed_in && app !== "/" ? (
-                <Landing
-                  error={me.expired ? "session_expired" : null}
-                  here={path + searchStr}
+      <HostContext.Provider value={host}>
+        <Frame>
+          <main className="page">
+            <div className="page__inner page__inner--solo">
+              {inClan ? (
+                <ClanHead
+                  me={me}
+                  path={path}
+                  navigate={navigate}
+                  select={select}
+                  selecting={selecting}
                 />
               ) : null}
-              {me?.signed_in && me.unavailable ? (
-                <div
-                  className="callout callout--warn mx-auto mt-10 max-w-[560px]"
-                  role="alert"
-                >
-                  <span>
-                    Elixir did not answer. Your sign-in is fine; try again in a
-                    minute.
-                  </span>
-                </div>
-              ) : (
-                <Outlet />
-              )}
-            </ErrorBoundary>
-            {me?.signed_in && !me.unavailable ? (
-              <SendFeedback me={me} path={path} />
-            ) : null}
-          </div>
-        </main>
-      </Frame>
+              <RoleConfirming />
+              <ErrorBoundary key={path}>
+                {me && !me.signed_in && app !== "/" ? (
+                  <Landing
+                    error={me.expired ? "session_expired" : null}
+                    here={path + searchStr}
+                  />
+                ) : null}
+                {me?.signed_in && me.unavailable ? (
+                  <div
+                    className="callout callout--warn mx-auto mt-10 max-w-[560px]"
+                    role="alert"
+                  >
+                    <span>
+                      Elixir did not answer. Your sign-in is fine; try again in
+                      a minute.
+                    </span>
+                  </div>
+                ) : (
+                  <Outlet />
+                )}
+              </ErrorBoundary>
+              {me?.signed_in && !me.unavailable ? (
+                <SendFeedback me={me} path={path} />
+              ) : null}
+            </div>
+          </main>
+        </Frame>
+      </HostContext.Provider>
     </SessionContext.Provider>
   );
 }

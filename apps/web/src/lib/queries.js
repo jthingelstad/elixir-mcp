@@ -212,6 +212,15 @@ export const useFollowPlan = (ask, enabled = true) =>
     retry: false,
   });
 
+/** Your follow slots, player by player (Settings, 2026-11-12). Under
+ *  ["me"], so a Follow or a stop anywhere refreshes the meter. */
+export const useFollowSlots = () =>
+  useQuery({
+    queryKey: ["me", "follow-slots"],
+    queryFn: payload(() => api.followSlots()),
+    staleTime: 15_000,
+  });
+
 export const useBattleActivity = (tag) =>
   useQuery({
     queryKey: keys.activity(tag),

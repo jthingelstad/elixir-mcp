@@ -60,7 +60,10 @@ A player in a clan also offers **Follow everyone in** that clan: one question
 for the clan's current members (at most 50), saying how many are free and how
 many take a slot, against the slots you have left. Past your limit it is
 refused whole, and says why; nobody is followed in part. One that needs no
-slot always goes ahead. A player you only watch, or one only your agent
+slot always goes ahead. Your own players are left out, and the question says
+so. The same **Follow everyone** is over the roster in [Clan ›
+Members](/docs/bring-your-clan), for every member; past your limit it stays
+shut there, with the reason beside it. A player you only watch, or one only your agent
 tracks, is not one you follow yet: following them is free, since Elixir
 records them for you already.
 
