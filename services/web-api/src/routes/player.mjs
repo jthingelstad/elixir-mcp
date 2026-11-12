@@ -189,7 +189,7 @@ const pageItem = (it) => ({
 });
 
 /** The whole page, for one signed-in reader. */
-export async function readPlayerPage(db, account, tag, now = Date.now()) {
+async function readPlayerPage(db, account, tag, now = Date.now()) {
   const { rows } = await db.query(
     `select p.player_tag, p.name, cm.clan_tag, cl.name as clan_name,
             exists (select 1 from recording r where r.subject_type = 'player'

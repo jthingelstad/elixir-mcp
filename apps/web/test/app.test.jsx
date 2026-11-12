@@ -596,7 +596,8 @@ test("every app section in the route table has a route under /console, and nothi
   // Outside the console: a battle's public page (2026-10-01), a shared
   // post's (#762), and Ladder,
   // the one section beside the Console (2026-09-28), with one route under
-  // its own prefix, and Home at its new address (redesign step 3).
+  // its own prefix, and Home at its new address (redesign step 3), with
+  // the player page and Follow me links under it (#764).
   const clan = routeTree.children.find((r) => r.options.id === "clan");
   expect(clan.children.every((r) => r.fullPath.startsWith("/clan"))).toBe(true);
   const all = routeTree.children
@@ -611,6 +612,8 @@ test("every app section in the route table has a route under /console, and nothi
     "battle/$ref",
     "data/service",
     "h/$id",
+    "home/follow/$tags",
+    "home/player/$tag",
     "home/{-$tab}",
     "ladder/{-$page}",
     "settings/$",
