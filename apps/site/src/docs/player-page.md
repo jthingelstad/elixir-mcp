@@ -26,6 +26,11 @@ The page leads with the player's game name, tag, clan and trophies. Under it:
 | Moments | the timeline's moments: a new arena, a promotion in Path of Legends, a badge, a clan joined or left |
 | Follows | who the player's account follows, and who follows it |
 
+A sitting on the Timeline tab looks as it does on Home: its small bar chart
+of wins and losses, its battles, won and lost, the trophies it moved and the
+deck played most, and **View games**, which opens its battles in place
+([Your timeline](/docs/timeline)). You's Timeline is the same.
+
 An item on the Timeline, Highlights or Moments tab takes a cheer, with its
 counts, while it is in your own feed: from the last seven days, about a
 player or clan you follow ([Cheers](/docs/timeline#cheers)). Older items,

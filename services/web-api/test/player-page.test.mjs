@@ -396,3 +396,94 @@ test("a plan that needs no slot fits, even with the pool over its limit (Codex o
   assert.equal(ok.statusCode, 200, ok.body);
   assert.deepEqual(data(ok).followed, [A]);
 });
+
+test("a sitting carries Home's session row: sparkline, numbers, and its games by the page's own read", async () => {
+  const { db } = scratch;
+  const now = Date.now();
+  const iso = (ms) => new Date(ms).toISOString();
+  for (const [i, [minutes, outcome, crowns]] of [
+    [50, "win", 3],
+    [45, "loss", 0],
+    [40, "win", 1],
+  ].entries()) {
+    const id = `player-sitting-${i}`;
+    await db.query(
+      `insert into battle(battle_id,battle_time,type,type_class,created_at)
+       values ($1,$2,'PvP','pvp',$3)`,
+      [id, iso(now - minutes * 60_000), iso(now - 30 * 60_000)],
+    );
+    await db.query(
+      `insert into battle_participant(battle_id,player_tag,battle_time,side,type,type_class,crowns,trophy_change,outcome)
+       values ($1,$2,$3,0,'PvP','pvp',$4,$5,$6)`,
+      [
+        id,
+        A,
+        iso(now - minutes * 60_000),
+        crowns,
+        outcome === "win" ? 30 : -30,
+        outcome,
+      ],
+    );
+  }
+  const page = data(
+    await call(R, "GET", `/api/player?tag=${encodeURIComponent(A)}`),
+  );
+  const sitting = page.timeline.find((it) => it.kind === "battle_session");
+  assert.ok(sitting, JSON.stringify(page.timeline));
+  assert.equal(sitting.spark.length, 3);
+  assert.deepEqual(
+    sitting.spark.map((b) => b.r),
+    ["w", "l", "w"],
+  );
+  assert.deepEqual(Object.keys(sitting.facts).sort(), [
+    "battles",
+    "by_mode",
+    "decks",
+    "ended_at",
+    "lost",
+    "trophy_net",
+    "won",
+  ]);
+  assert.equal(sitting.facts.battles, 3);
+  assert.equal(sitting.evidence.kind, "session");
+
+  const ask = (q) =>
+    call(R, "GET", `/api/player/evidence?${new URLSearchParams(q)}`);
+  const games = await ask({
+    tag: A,
+    evidence_item_id: sitting.id,
+    expected_evidence_version: sitting.evidence.version,
+    evidence_offset: "0",
+  });
+  assert.equal(games.statusCode, 200, games.body);
+  assert.equal(data(games).battles.length, 3);
+  assert.ok(!games.body.includes(NICK));
+  assert.equal(
+    (
+      await ask({
+        tag: A,
+        evidence_item_id: sitting.id,
+        expected_evidence_version: "ev_stale",
+      })
+    ).statusCode,
+    409,
+  );
+  assert.equal(
+    (await ask({ tag: A, evidence_item_id: "nothing" })).statusCode,
+    404,
+  );
+  assert.equal(
+    (await ask({ tag: "nope", evidence_item_id: "x" })).statusCode,
+    400,
+  );
+  assert.equal(
+    (
+      await call(
+        null,
+        "GET",
+        `/api/player/evidence?tag=${encodeURIComponent(A)}&evidence_item_id=x`,
+      )
+    ).statusCode,
+    401,
+  );
+});

@@ -20,9 +20,15 @@ import { trackEvent } from "../analytics.js";
 import { ladderHref } from "../ladder/ladder.js";
 import { CONSOLE } from "../lib/console.js";
 import { followMeHref, playerHref } from "../lib/player.js";
-import { usePlayerPage } from "../lib/queries.js";
+import {
+  usePlayerEvidence,
+  usePlayerPage,
+  useRefreshPlayerPage,
+} from "../lib/queries.js";
 import { tagFromPath, tagPath } from "../lib/tag-url.js";
+import { TimelineEvidence } from "../views/account/timeline-shared.jsx";
 import { Cheers, usePageCheered } from "./Cheers.jsx";
+import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
 import { FollowAll, FollowButton } from "./follow.jsx";
 
 /**
@@ -176,6 +182,7 @@ export function PlayerView({
           empty={`Nothing recorded in the last ${page.window_days} days.`}
           more={page.timeline_more}
           cheered={cheered}
+          tag={p.tag}
         />
       ) : tab === "highlights" ? (
         <ItemList
@@ -189,6 +196,7 @@ export function PlayerView({
           items={page.moments}
           empty={`No moments in the last ${page.window_days} days.`}
           cheered={cheered}
+          tag={p.tag}
         />
       ) : (
         <Follows page={page} />
@@ -224,8 +232,9 @@ function Counts({ page }) {
   );
 }
 
-function ItemList({ items, empty, more = 0, words = false, cheered }) {
+function ItemList({ items, empty, more = 0, words = false, cheered, tag }) {
   const { when } = useClock();
+  const [openId, setOpenId] = useState(null);
   if (items.length === 0)
     return (
       <Panel pad>
@@ -240,6 +249,11 @@ function ItemList({ items, empty, more = 0, words = false, cheered }) {
           "",
         );
         const withCheers = cheered?.of(it);
+        // A sitting draws as Home draws it (G7): its sparkline, its numbers
+        // and its games, read in place.
+        const sitting = SITTINGS.has(it.kind);
+        const games = sitting && tag && it.id && it.evidence;
+        const open = games && openId === it.id;
         return (
           <div key={it.id ?? i} className="kit-row kit-tl">
             <span className="kit-row__main">
@@ -249,10 +263,28 @@ function ItemList({ items, empty, more = 0, words = false, cheered }) {
               {words && it.words ? (
                 <span className="kit-row__detail">“{it.words}”</span>
               ) : null}
+              {sitting ? <Sitting it={it} /> : null}
               {battle.startsWith("/battle/") ? (
                 <Link to={battle} className="link kit-tl__more">
                   Open the battle
                 </Link>
+              ) : null}
+              {games ? (
+                <button
+                  type="button"
+                  className="link kit-tl__more"
+                  aria-expanded={Boolean(open)}
+                  onClick={() => setOpenId(open ? null : it.id)}
+                >
+                  {evidenceWord(it, open)}
+                </button>
+              ) : null}
+              {open ? (
+                <PlayerGames
+                  tag={tag}
+                  item={it}
+                  onClose={() => setOpenId(null)}
+                />
               ) : null}
               {withCheers ? (
                 <Cheers it={withCheers} where={cheered.where} />
@@ -269,6 +301,33 @@ function ItemList({ items, empty, more = 0, words = false, cheered }) {
         </p>
       ) : null}
     </Panel>
+  );
+}
+
+/** A sitting's games, read in place from the player page's own read, as
+ *  Home's feed reads its own. */
+function PlayerGames({ tag, item, onClose }) {
+  const [offset, setOffset] = useState(0);
+  const refresh = useRefreshPlayerPage(tag);
+  const query = usePlayerEvidence({
+    tag,
+    evidence_item_id: item.id,
+    expected_evidence_version: item.evidence.version,
+    evidence_offset: String(offset),
+  });
+  return (
+    <div className="kit-tl__evidence">
+      <TimelineEvidence
+        selected={item}
+        query={query}
+        offset={offset}
+        setOffset={setOffset}
+        onRefresh={() => {
+          onClose();
+          refresh();
+        }}
+      />
+    </div>
   );
 }
 
