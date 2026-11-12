@@ -148,9 +148,8 @@ waiting for you, and Run opens as its list of sections.
 Coming to a clan (its address, [/clan](/clan) or coming back from sign-in)
 opens the **Feed**, for every member and whether or not something is waiting.
 With several clans and none chosen yet, [/clan](/clan) asks which. An address
-that names a page always opens that page, and addresses from before the tabs
-still arrive at the page that holds the thing now: Today's at the Feed (its
-Decided at Run's), Season's at War and Awards' at Standings.
+that names a page always opens that page, and an older link to a clan page,
+from mail or Discord, still opens the page that holds the thing.
 
 ## When the clan is not on Elixir
 

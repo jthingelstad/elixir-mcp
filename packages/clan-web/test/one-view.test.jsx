@@ -5,12 +5,16 @@
  * the server's answer. Synthetic names only.
  */
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createQueryClient } from "@elixir-mcp/client";
 import { renderWithProviders } from "./helpers.jsx";
 import { Feed } from "../src/views/Feed.jsx";
 import { ClanPolicy } from "../src/views/ClanPolicy.jsx";
 import { Run } from "../src/views/Run.jsx";
 import { manageApi } from "../src/api.js";
+import { MemberLink } from "../src/components/MemberLink.jsx";
+import { keys } from "../src/lib/queries.js";
 
 vi.mock("@tanstack/react-router", async (actual) => ({
   ...(await actual()),
@@ -188,5 +192,36 @@ describe("Run", () => {
       await screen.findByText(/Run is for the clan.s leader and co-leaders/),
     ).toBeTruthy();
     expect(screen.queryByRole("navigation", { name: "Run" })).toBeNull();
+  });
+});
+
+describe("a name in Clan", () => {
+  function nameLink(playerTag) {
+    const client = createQueryClient();
+    client.setQueryData(keys.me, {
+      ok: true,
+      status: 200,
+      data: { identities: [{ player_tag: "#20QQL8CCRU", name: "Ada" }] },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemberLink
+          clanTag="#2PQRJ8LV"
+          playerTag={playerTag}
+          navigate={vi.fn()}
+        >
+          name
+        </MemberLink>
+      </QueryClientProvider>,
+    );
+    return screen.getByRole("link", { name: "name" }).getAttribute("href");
+  }
+
+  test("a clanmate's name opens their player page", () => {
+    expect(nameLink("#8QCVLQ2")).toBe("/home/player/8QCVLQ2");
+  });
+
+  test("your own name opens your page in this clan, which the player page cannot reach", () => {
+    expect(nameLink("#20QQL8CCRU")).toBe("/clan/2PQRJ8LV/members/20qql8ccru");
   });
 });

@@ -18,7 +18,8 @@ import {
   spreadState,
 } from "../components/SpreadWord.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
-import { CLAN, clanPath, playerPath } from "../lib/base.js";
+import { CLAN, clanPath } from "../lib/base.js";
+import { MemberLink } from "../components/MemberLink.jsx";
 import { ordinal, seasonWeek } from "../lib/words.js";
 import { leads } from "../lib/tabs.js";
 
@@ -86,9 +87,13 @@ export function RosterTable({
                     }
                   >
                     {clanTag ? (
-                      <Link to={playerPath(m.player_tag)} navigate={navigate}>
+                      <MemberLink
+                        clanTag={clanTag}
+                        playerTag={m.player_tag}
+                        navigate={navigate}
+                      >
                         {m.name ?? <Tag tag={m.player_tag} />}
-                      </Link>
+                      </MemberLink>
                     ) : (
                       (m.name ?? <Tag tag={m.player_tag} />)
                     )}

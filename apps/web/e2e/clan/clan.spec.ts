@@ -959,14 +959,12 @@ test.describe("signed in", () => {
       signedIn({ "GET /api/clan/clans/2PQRJ8LV/me": [200, memberView()] }),
     );
     await page.goto("/clan/2PQRJ8LV/members");
-    // A name opens the player page (slice 8, #766); your record in this
-    // clan is the player page's Open in Clan, at its own address.
-    await expect(
-      page
-        .getByRole("region", { name: "Members" })
-        .getByRole("link", { name: "Ada", exact: true }),
-    ).toHaveAttribute("href", "/home/player/20QQL8CCRU");
-    await page.goto("/clan/2PQRJ8LV/members/20qql8ccru");
+    // A clanmate's name opens the player page (slice 8, #766); your own
+    // name opens your record in this clan, which the player page cannot.
+    await page
+      .getByRole("region", { name: "Members" })
+      .getByRole("link", { name: "Ada", exact: true })
+      .click();
     await expect(page).toHaveURL(/\/members\/20qql8ccru$/i);
     await expect(page.getByText("only you see this page")).toBeVisible();
     await expect(page.getByText(/Aug 20: Co-leader → Leader/)).toBeVisible();
