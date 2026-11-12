@@ -38,7 +38,7 @@ export function Pending({ player, players, hrefFor, navigate }) {
     <div className="ladder-page">
       <PageHead
         className="ladder-head"
-        title="Ladder"
+        title="Stats"
         sub="Your season, read back"
       />
       <div className="ladder-scope">

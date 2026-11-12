@@ -1,7 +1,10 @@
-# Ladder
+# Ladder (Stats)
 
-`/ladder`: a player's season, read back. A section of the Elixir app
-in the shared shell, with a scope bar instead of a rail (`ScopeBar.jsx`:
+`/home/you/stats` (`LADDER` in `paths.js`, which imports nothing; `ladder.js` re-exports it): a player's season, read back,
+called Stats to a reader since 2026-11-12, the last tab of You. The code keeps
+the name Ladder. Every old `/ladder` address redirects to the same page under
+it (`ladderMoved` in `paths.js`, read by `src/lib/moved.js`). A section of the Elixir app
+in the shared shell, under You's tabs (`YouTabs` in `src/home/You.jsx`), with a scope bar instead of a rail (`ScopeBar.jsx`:
 Player, Season, mode chips, freshness) and four tabs: Season, Battles, Decks,
 Cards. The route is in `src/App.jsx`, the page chunk
 `src/pages/LadderPage.jsx`, which owns the scope read and each tab's href; the

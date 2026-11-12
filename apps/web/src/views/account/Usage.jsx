@@ -364,7 +364,7 @@ export function Usage({ me }) {
           ? ` Your agents spent ${usage.agent_calls_today.toLocaleString()} of today's calls, and they draw on the same budget you do.`
           : ""}
         {usage.web_calls_today > 0
-          ? ` Ladder and these pages also read ${usage.web_calls_today.toLocaleString()} ${noun(usage.web_calls_today, "time")} for you today. Your own reads on Elixir's website aren't counted against the budget.`
+          ? ` Stats and these pages also read ${usage.web_calls_today.toLocaleString()} ${noun(usage.web_calls_today, "time")} for you today. Your own reads on Elixir's website aren't counted against the budget.`
           : ""}
       </p>
       <Stats>

@@ -1,7 +1,7 @@
 # apps/web: the signed-in app and the shared shell
 
 The React application behind every path a session or a live read draws:
-Home (`/home`), the pages still under `/console`, Ladder (`/ladder`, guide in `src/ladder/`), Elixir
+Home (`/home`), the pages still under `/console`, Stats (Ladder, `/home/you/stats`, guide in `src/ladder/`), Elixir
 Clan (`/clan`, views from `packages/clan-web`) and the public battle page
 (`/battle/<id>`). The root `AGENTS.md` golden rules apply; product
 behaviour is in `apps/site/src/docs/`, not here.
@@ -63,9 +63,11 @@ behaviour is in `apps/site/src/docs/`, not here.
 ## Home and the shell
 
 `src/home/` is Home (`/home`, one feed), Find (`/home/find`), You
-(`/home/you`) and the player page (`/home/player/<tag>`), and
+(`/home/you`, your primary verified player's page with the Stats tab) and the
+player page (`/home/player/<tag>`), and
 `src/shell/Shell.jsx` is the top bar, bottom tabs and footer every page wears,
-with the bell (`src/shell/Bell.jsx`).
+with the bell (`src/shell/Bell.jsx`, its logic `bell-logic.js`, its read
+`services/web-api/src/bell.mjs`).
 `src/lib/moved.js` is the one map of old paths to new ones, read by the root
 route; every path that moves goes there. Home's rules are in
 `docs/product/home.md`; its reads are `services/web-api/src/routes/home.mjs`,

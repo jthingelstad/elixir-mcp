@@ -111,7 +111,8 @@ test("the record renders the note and the reply as Markdown, safely", async () =
 test("the record names its area, what it points at and its thread", async () => {
   renderWithProviders(<FeedbackItem id="14" />);
   await screen.findByText("call 0e6c1f7a");
-  expect(document.body.textContent).toContain("Ladder");
+  // Ladder's area reads as Stats since 2026-11-12.
+  expect(document.body.textContent).toContain("Stats");
   expect(screen.getByText("call 0e6c1f7a")).toBeTruthy();
   expect(document.body.textContent).toContain("Player #20JJJ2CCRU");
   expect(screen.getByText("fb_3")).toBeTruthy();

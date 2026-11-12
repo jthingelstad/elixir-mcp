@@ -565,7 +565,7 @@ function SeasonExtras({ player, search }) {
         <FeedbackSheet
           area="ladder"
           categories={FEEDBACK_CATEGORIES}
-          about={`About Ladder, ${playerName(player)}'s season. The page you are on rides along.`}
+          about={`About Stats, ${playerName(player)}'s season. The page you are on rides along.`}
           refs={[{ kind: "player", ref: player.player_tag }]}
           context={{
             page: "season",

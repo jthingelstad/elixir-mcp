@@ -81,7 +81,7 @@ const AREA_LABEL = {
   mcp: "MCP",
   api: "JSON API",
   console: "Elixir",
-  ladder: "Ladder",
+  ladder: "Stats",
   clan: "Clan",
   mail: "Email",
   docs: "Docs",

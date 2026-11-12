@@ -20,7 +20,7 @@ export const HOME_HELP = {
     title: "You",
     docs: "home",
     lines: [
-      "You holds your own players' pages, their stats in Ladder, Settings and signing out.",
+      "You is your own player's page, with your season in its Stats tab, your other players, Settings and signing out.",
     ],
   },
 };
