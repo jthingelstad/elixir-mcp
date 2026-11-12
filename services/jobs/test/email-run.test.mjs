@@ -1,9 +1,10 @@
 /**
  * The mail run over a scratch database: the
  * ledger is asked before anything is composed, a run stops with time to
- * spare and says how far it got, a second milestone on one UTC day is a
- * second mail, a written issue goes out only for its own period, and a
- * clan report is the same whoever tracked the clan first.
+ * spare and says how far it got, a written issue goes out only for its
+ * own period, and the digest keeps its cadence. The clan report, Arena
+ * week and milestone mails are retired (2026-11-12); their composers
+ * are still pinned here until they are removed.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -11,11 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import {
-  runEmail,
-  milestoneFromMs,
-  milestonePeriodKey,
-} from "../src/email/index.mjs";
+import { runEmail } from "../src/email/index.mjs";
 import {
   buildClan,
   lastBattlesOf,
@@ -119,24 +116,25 @@ after(async () => {
   await admin.end();
 });
 
-test("a weekly run asks the ledger first: an account already sent is not recomposed, and its issue keeps its facts", async () => {
-  const now = new Date("2026-09-22T14:00:00Z");
-  const week = lastGameWeek(now);
+test("a run asks the ledger first: an account already sent is not recomposed, and its issue keeps its facts", async () => {
+  // A Wednesday: every weekly reader is due.
+  const now = new Date("2026-09-23T14:30:00Z");
   const {
     rows: [{ issue_id }],
   } = await db.query(
     `insert into email_issue (kind, period_key, subject_key, facts, status)
-     values ('arena_week', $1, $2, '{"marker": true}', 'queued') returning issue_id`,
-    [week.key, acct.old],
+     values ('tracking_report', $1, $2, '{"marker": true}', 'queued') returning issue_id`,
+    ["2026-09-23", acct.old],
   );
+  // Sent at its own hour, so a later digest's window starts after it.
   await db.query(
-    `insert into email_send (send_id, issue_id, account_id) values (gen_random_uuid(), $1, $2)`,
-    [issue_id, acct.old],
+    `insert into email_send (send_id, issue_id, account_id, enqueued_at) values (gen_random_uuid(), $1, $2, $3)`,
+    [issue_id, acct.old, now],
   );
   const { enqueue, out } = sink();
   const r = await runEmail({
     db,
-    kind: "arena_week",
+    kind: "tracking_report",
     now,
     enqueue,
     secret: "s",
@@ -159,7 +157,7 @@ test("a run with under 90 s left stops before composing, and says how many remai
   const r = await runEmail({
     db,
     kind: "tracking_report",
-    now: new Date("2026-09-23T14:00:00Z"),
+    now: new Date("2026-09-30T14:30:00Z"),
     enqueue,
     secret: "s",
     remainingMs: () => 60_000,
@@ -168,53 +166,6 @@ test("a run with under 90 s left stops before composing, and says how many remai
   assert.equal(r.remaining, 2);
   assert.equal(r.composed, 0);
   assert.equal(out.length, 0);
-});
-
-test("two milestones on one UTC day are two mails; the same moments again are not", async () => {
-  const step = (n, from, to) =>
-    db.query(
-      `insert into player_event
-         (player_tag, event_type, timing, window_start, window_end, value_after, step)
-       values ($1, 'career_wins_step', 'estimated', $2, $3, $4, $4)`,
-      [NEW_TAG, from, to, n],
-    );
-  const run = (at) => {
-    const { enqueue, out } = sink();
-    return runEmail({
-      db,
-      kind: "milestone",
-      now: new Date(at),
-      enqueue,
-      secret: "s",
-      accountId: acct.new,
-    }).then((r) => ({ r, out }));
-  };
-  await step(5000, "2026-09-15T08:00:00Z", "2026-09-15T09:00:00Z");
-  const first = await run("2026-09-15T09:20:00Z");
-  assert.equal(first.r.sent, 1, JSON.stringify(first.r));
-  await step(6000, "2026-09-15T14:00:00Z", "2026-09-15T15:00:00Z");
-  const second = await run("2026-09-15T15:20:00Z");
-  assert.equal(second.r.sent, 1, JSON.stringify(second.r));
-  const third = await run("2026-09-15T16:20:00Z");
-  assert.equal(third.r.sent, 0);
-  const { rows } = await db.query(
-    `select period_key from email_issue where kind = 'milestone' order by composed_at`,
-  );
-  assert.equal(rows.length, 2);
-  assert.ok(rows.every((x) => x.period_key.startsWith("2026-09-15.")));
-  // The campaign period on the pixel and links stays the date.
-  assert.match(first.out[0].html, /path=%2Fmail%2Fmilestone%2F2026-09-15"/);
-});
-
-test("the milestone key is the moments', not the order they came in", () => {
-  const a = { subject_tag: "#A", kind: "badge_earned", key: "badge:x" };
-  const b = { subject_tag: "#A", kind: "career_wins_step", key: "wins:5000" };
-  const now = new Date("2026-09-15T09:20:00Z");
-  assert.equal(
-    milestonePeriodKey(now, [a, b]),
-    milestonePeriodKey(now, [b, a]),
-  );
-  assert.notEqual(milestonePeriodKey(now, [a]), milestonePeriodKey(now, [b]));
 });
 
 test("a clan report is the clan's, not its first tracker's: the same facts under either account, at the recording's scope", async () => {
@@ -330,361 +281,7 @@ test("a last battle is read as of the week's close, its last instant included", 
   assert.equal(await asOf(Date.parse("2026-09-01T00:00:00Z")), null);
 });
 
-// Last: the account it adds would be one more recipient for the tests above.
-test("a moment from a day the milestone job failed is mailed by the next run that works (#130)", async () => {
-  const TAG = "#9GGQ9QQ9";
-  const id = await person("gap", TAG, "2026-09-01T00:00:00Z", null);
-  const step = (n, from, to) =>
-    db.query(
-      `insert into player_event
-         (player_tag, event_type, timing, window_start, window_end, value_after, step)
-       values ($1, 'career_wins_step', 'estimated', $2, $3, $4, $4)`,
-      [TAG, from, to, n],
-    );
-  const run = (at, enqueue = sink().enqueue) =>
-    runEmail({
-      db,
-      kind: "milestone",
-      now: new Date(at),
-      enqueue,
-      secret: "s",
-      accountId: id,
-    });
-  const lookedAt = async () =>
-    (
-      await db.query(
-        `select looked_at from email_milestone_look where account_id = $1`,
-        [id],
-      )
-    ).rows[0]?.looked_at?.toISOString() ?? null;
-
-  // A clean look with nothing new: the window's anchor moves.
-  const quiet = await run("2026-09-19T09:20:00Z");
-  assert.equal(quiet.sent, 0);
-  assert.equal(await lookedAt(), "2026-09-19T09:20:00.000Z");
-
-  await step(7000, "2026-09-19T10:00:00Z", "2026-09-19T11:00:00Z");
-  // The next run fails at the send: nothing recorded, the anchor stays.
-  const broken = await run("2026-09-19T11:20:00Z", async () => {
-    throw new Error("queue down");
-  });
-  assert.equal(broken.failed, 1, JSON.stringify(broken));
-  assert.equal(await lookedAt(), "2026-09-19T09:20:00.000Z");
-
-  // Two days of nothing, then a run that works: 52 hours after the
-  // moment, past the old fixed 26 hours, and it is mailed.
-  const { enqueue, out } = sink();
-  const back = await run("2026-09-21T15:20:00Z", enqueue);
-  assert.equal(back.sent, 1, JSON.stringify(back));
-  assert.match(out[0].subject, /7,000/);
-  assert.equal(await lookedAt(), "2026-09-21T15:20:00.000Z");
-
-  // Mailed once: the next look is quiet.
-  const again = await run("2026-09-21T16:20:00Z");
-  assert.equal(again.sent, 0);
-});
-
-test("card unlocks and badge levels never mail on their own; a new form does, as its art (Jamie, 2026-10-08)", async () => {
-  const TAG = "#9QQ2GG8Q";
-  const id = await person("cards", TAG, "2026-09-01T00:00:00Z", null);
-  await db.query(
-    `insert into card (card_id, name, kind, rarity) values
-       (26000047, 'Royal Recruits', 'card', 'common'),
-       (26000006, 'Balloon', 'card', 'epic'),
-       (26000021, 'Hog Rider', 'card', 'rare')
-     on conflict (card_id) do nothing`,
-  );
-  const at = ["2026-09-23T17:00:00Z", "2026-09-23T18:00:00Z"];
-  await db.query(
-    `insert into player_event
-       (player_tag, event_type, timing, window_start, window_end, card_id, badge_name, level)
-     values ($1, 'card_unlocked', 'estimated', $2, $3, 26000047, null, null),
-            ($1, 'card_unlocked', 'estimated', $2, $3, 26000006, null, null),
-            ($1, 'badge_earned', 'estimated', $2, $3, null, 'MasteryArrows', 10)`,
-    [TAG, ...at],
-  );
-  const run = async (now) => {
-    const { enqueue, out } = sink();
-    const r = await runEmail({
-      db,
-      kind: "milestone",
-      now: new Date(now),
-      enqueue,
-      secret: "s",
-      accountId: id,
-    });
-    return { r, out };
-  };
-  const quiet = await run("2026-09-23T18:20:00Z");
-  assert.equal(quiet.r.sent, 0, JSON.stringify(quiet.r));
-  assert.equal(quiet.out.length, 0);
-  // A form is a big first: it mails, as its own art, and the unlocks
-  // beside it stay out of the mail (the Arena week counts them).
-  await db.query(
-    `insert into player_event
-       (player_tag, event_type, timing, window_start, window_end, card_id, step)
-     values ($1, 'card_form_unlocked', 'estimated', $2, $3, 26000021, 1)`,
-    [TAG, "2026-09-23T19:00:00Z", "2026-09-23T19:10:00Z"],
-  );
-  const { r, out } = await run("2026-09-23T19:20:00Z");
-  assert.equal(r.sent, 1, JSON.stringify(r));
-  const { html } = out[0];
-  assert.ok(html.includes("/assets/cards/26000021_evo.png"));
-  assert.match(html, new RegExp(`href="[^"]*/cards/26000021\\?`));
-  for (const file of ["26000047", "26000006"])
-    assert.ok(!html.includes(`/assets/cards/${file}.png`), file);
-  assert.doesNotMatch(html, /Arrows Mastery/);
-  const { rows } = await db.query(
-    `select kind from email_milestone where account_id = $1`,
-    [id],
-  );
-  assert.deepEqual(
-    rows.map((x) => x.kind),
-    ["card_form_unlocked"],
-  );
-});
-
-test("an unlock-only week sends no milestone mail and Tuesday's Arena week counts it; an arena first mails", async () => {
-  const TAG = "#8YQQ2PLL";
-  const id = await person("digest", TAG, "2026-09-01T00:00:00Z", null);
-  await db.query(
-    `insert into card (card_id, name, kind, rarity) values
-       (26000030, 'Ice Spirit', 'card', 'common'),
-       (26000047, 'Royal Recruits', 'card', 'common'),
-       (26000006, 'Balloon', 'card', 'epic')
-     on conflict (card_id) do nothing`,
-  );
-  const BATTLE = `d16e${"0".repeat(60)}`;
-  await db.query(
-    `insert into battle (battle_id, battle_time, type, type_class) values ($1, '2026-10-08T12:00:00Z', 'PvP', 'pvp')`,
-    [BATTLE],
-  );
-  await db.query(
-    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class, crowns, trophy_change, starting_trophies)
-     values ($1, $2, 0, '2026-10-08T12:00:00Z', 'win', 'PvP', 'pvp', 1, 29, 2000)`,
-    [BATTLE, TAG],
-  );
-  const at = ["2026-10-08T12:00:00Z", "2026-10-08T12:30:00Z"];
-  await db.query(
-    `insert into player_event
-       (player_tag, event_type, timing, window_start, window_end, card_id, badge_name, level)
-     values ($1, 'card_unlocked', 'estimated', $2, $3, 26000030, null, null),
-            ($1, 'card_unlocked', 'estimated', $2, $3, 26000047, null, null),
-            ($1, 'card_unlocked', 'estimated', $2, $3, 26000006, null, null),
-            ($1, 'badge_earned', 'estimated', $2, $3, null, 'MasteryArrows', 4),
-            ($1, 'badge_earned', 'estimated', $2, $3, null, 'MasteryArrows', 5)`,
-    [TAG, ...at],
-  );
-  const send = async (kind, now) => {
-    const { enqueue, out } = sink();
-    const r = await runEmail({
-      db,
-      kind,
-      now: new Date(now),
-      enqueue,
-      secret: "s",
-      accountId: id,
-    });
-    return { r, out };
-  };
-  const hourly = await send("milestone", "2026-10-08T13:20:00Z");
-  assert.equal(hourly.r.sent, 0, JSON.stringify(hourly.r));
-  // An arena first, the same day: it mails, and only it.
-  await db.query(
-    `insert into player_event
-       (player_tag, event_type, timing, window_start, window_end,
-        arena_from, arena_to, arena_to_name)
-     values ($1, 'arena_changed', 'exact', '2026-10-08T14:00:00Z', '2026-10-08T14:00:00Z', 11, 12, 'Spell Valley')`,
-    [TAG],
-  );
-  const arenaFirst = await send("milestone", "2026-10-08T14:20:00Z");
-  assert.equal(arenaFirst.r.sent, 1, JSON.stringify(arenaFirst.r));
-  assert.match(arenaFirst.out[0].subject, /Spell Valley/);
-  assert.doesNotMatch(arenaFirst.out[0].html, /Ice Spirit|Mastery/);
-  // Tuesday: the week's unlocks and badge levels, as counts.
-  const tuesday = await send("arena_week", "2026-10-13T14:00:00Z");
-  assert.equal(tuesday.r.sent, 1, JSON.stringify(tuesday.r));
-  assert.match(tuesday.out[0].html, /3 cards unlocked, 2 badge levels/);
-  assert.match(tuesday.out[0].html, /\/home\?utm_source=/);
-});
-
-test("a legendary badge mails when it happens and is not counted on Tuesday; a badge level only counts (Jamie, 2026-10-08)", async () => {
-  const TAG = "#2LQQ9PYV";
-  const id = await person("legendary", TAG, "2026-09-01T00:00:00Z", null);
-  const BATTLE = `1e9e${"0".repeat(60)}`;
-  await db.query(
-    `insert into battle (battle_id, battle_time, type, type_class) values ($1, '2026-10-08T12:00:00Z', 'PvP', 'pvp')`,
-    [BATTLE],
-  );
-  await db.query(
-    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class, crowns, trophy_change, starting_trophies)
-     values ($1, $2, 0, '2026-10-08T12:00:00Z', 'win', 'PvP', 'pvp', 1, 29, 2000)`,
-    [BATTLE, TAG],
-  );
-  const send = async (kind, now) => {
-    const { enqueue, out } = sink();
-    const r = await runEmail({
-      db,
-      kind,
-      now: new Date(now),
-      enqueue,
-      secret: "s",
-      accountId: id,
-    });
-    return { r, out };
-  };
-  // A badge level alone: no mail.
-  await db.query(
-    `insert into player_event
-       (player_tag, event_type, timing, window_start, window_end, badge_name, level)
-     values ($1, 'badge_earned', 'estimated', '2026-10-08T12:00:00Z', '2026-10-08T12:30:00Z', 'MasteryArrows', 5)`,
-    [TAG],
-  );
-  const level = await send("milestone", "2026-10-08T13:20:00Z");
-  assert.equal(level.r.sent, 0, JSON.stringify(level.r));
-  // A legendary badge: it mails, by the badge's name, and only it.
-  await db.query(
-    `insert into player_event
-       (player_tag, event_type, timing, window_start, window_end, badge_name)
-     values ($1, 'legendary_badge_earned', 'estimated', '2026-10-08T14:00:00Z', '2026-10-08T14:10:00Z', 'BeatingDeathBadge')`,
-    [TAG],
-  );
-  const legendary = await send("milestone", "2026-10-08T14:20:00Z");
-  assert.equal(legendary.r.sent, 1, JSON.stringify(legendary.r));
-  const { html } = legendary.out[0];
-  assert.match(html, /You earned Beating Death/);
-  assert.match(html, /A legendary badge\./);
-  assert.doesNotMatch(html, /Arrows Mastery/);
-  const { rows } = await db.query(
-    `select kind, moment_key from email_milestone where account_id = $1`,
-    [id],
-  );
-  assert.deepEqual(rows, [
-    { kind: "legendary_badge_earned", moment_key: "badge:BeatingDeathBadge" },
-  ]);
-  // Once ever: the next look sends nothing.
-  const again = await send("milestone", "2026-10-08T15:20:00Z");
-  assert.equal(again.r.sent, 0, JSON.stringify(again.r));
-  // Tuesday counts the badge level, never the legendary badge it mailed.
-  const tuesday = await send("arena_week", "2026-10-13T14:00:00Z");
-  assert.equal(tuesday.r.sent, 1, JSON.stringify(tuesday.r));
-  assert.match(tuesday.out[0].html, /1 badge level\b/);
-  assert.doesNotMatch(tuesday.out[0].html, /legendary badge/i);
-});
-
-test("a form the art mirror lacks reaches the mail as the base card's art", async () => {
-  // 2026-10-08: Supercell lists a new form about two weeks before its
-  // image answers, and a mail client cannot fall back as a page does.
-  const TAG = "#9QQ2GG8R";
-  const id = await person("form-art", TAG, "2026-09-01T00:00:00Z", null);
-  await db.query(
-    `insert into card (card_id, name, kind, rarity) values
-       (26000021, 'Hog Rider', 'card', 'rare')
-     on conflict (card_id) do nothing`,
-  );
-  await db.query(
-    `insert into player_event
-       (player_tag, event_type, timing, window_start, window_end, card_id, step)
-     values ($1, 'card_form_unlocked', 'estimated', $2, $3, 26000021, 1)`,
-    [TAG, "2026-09-23T17:00:00Z", "2026-09-23T18:00:00Z"],
-  );
-  const { enqueue, out } = sink();
-  const asked = [];
-  const r = await runEmail({
-    db,
-    kind: "milestone",
-    now: new Date("2026-09-23T18:20:00Z"),
-    enqueue,
-    secret: "s",
-    accountId: id,
-    cardArt: async (p) => {
-      asked.push(p);
-      return false;
-    },
-  });
-  assert.equal(r.sent, 1, JSON.stringify(r));
-  const { html } = out[0];
-  assert.deepEqual(asked, ["/assets/cards/26000021_evo.png"]);
-  assert.ok(html.includes("/assets/cards/26000021.png"));
-  assert.ok(!html.includes("/assets/cards/26000021_evo.png"));
-  assert.match(html, /alt="Evo Hog Rider"/);
-});
-
-test("the battle that did it links its page, the short id battles_query hands out", async () => {
-  const TAG = "#2RQQ9LG8";
-  const OPP = "#2PGQ8Y0L";
-  const id = await person("arena", TAG, "2026-09-01T00:00:00Z", null);
-  await db.query(
-    `insert into player (player_tag, name) values ($1, 'Sandy Lemur')`,
-    [OPP],
-  );
-  const BATTLE = `aad68079b0fa${"0".repeat(52)}`;
-  const at = "2026-09-24T17:00:00Z";
-  await db.query(
-    `insert into battle (battle_id, battle_time, type, type_class)
-     values ($1, $2, 'PvP', 'pvp')`,
-    [BATTLE, at],
-  );
-  await db.query(
-    `insert into battle_participant
-       (battle_id, player_tag, side, battle_time, outcome, type, type_class,
-        crowns, trophy_change, starting_trophies)
-     values ($1, $2, 0, $4, 'win', 'PvP', 'pvp', 1, 29, 1992),
-            ($1, $3, 1, $4, 'loss', 'PvP', 'pvp', 0, -29, 1991)`,
-    [BATTLE, TAG, OPP, at],
-  );
-  await db.query(
-    `insert into player_event
-       (player_tag, event_type, timing, window_start, window_end,
-        arena_from, arena_to, arena_to_name, battle_id)
-     values ($1, 'arena_changed', 'exact', $2, $2, 10, 11, 'Royal Arena', $3)`,
-    [TAG, at, BATTLE],
-  );
-  const { enqueue, out } = sink();
-  const r = await runEmail({
-    db,
-    kind: "milestone",
-    now: new Date("2026-09-24T17:20:00Z"),
-    enqueue,
-    secret: "s",
-    accountId: id,
-  });
-  assert.equal(r.sent, 1, JSON.stringify(r));
-  const { html } = out[0];
-  assert.match(html, /The battle that did it/);
-  assert.match(html, /Sandy Lemur/);
-  assert.match(
-    html,
-    /href="https:\/\/elixir\.poapkings\.com\/battle\/aad68079b0fa\?[^"]*"[^>]*>See the battle ›/,
-  );
-  // The Ladder link names the season the milestone happened in, from
-  // game_clock at its instant (2026-10-08).
-  assert.match(html, /\/ladder\?player=2RQQ9LG8&amp;season=1\d\d&amp;/);
-});
-
-test("the milestone window reaches back to the last clean look, never more than seven days", () => {
-  const now = new Date("2026-09-21T15:20:00Z");
-  const h = 3600_000;
-  // No look on record: the 26 hours it always read.
-  assert.equal(milestoneFromMs(now, null), now.getTime() - 26 * h);
-  // An hour since the last look: 26 hours before it.
-  assert.equal(
-    milestoneFromMs(now, new Date(now.getTime() - h)),
-    now.getTime() - 27 * h,
-  );
-  // Ten days since: capped at seven.
-  assert.equal(
-    milestoneFromMs(now, new Date(now.getTime() - 240 * h)),
-    now.getTime() - 168 * h,
-  );
-  // A look stamped after now (a clock step) reads as now.
-  assert.equal(
-    milestoneFromMs(now, new Date(now.getTime() + h)),
-    now.getTime() - 26 * h,
-  );
-});
-
-test("rollover mail binds closed-race identity and uses the covered season before, at and after Monday's boundary", async () => {
+test("the clan composer binds closed-race identity and uses the covered season after Monday's boundary", async () => {
   const NO_RACE = "#2GQ0QG0G";
   await db.query(
     `insert into clan (clan_tag, name) values ($1, 'No race recorded')`,
@@ -733,53 +330,9 @@ test("rollover mail binds closed-race identity and uses the covered season befor
     [1, 12345, 100],
   );
   assert.equal(direct.war.raced[0].points, 2345);
-  const run = async (at) => {
-    const { out, enqueue } = sink();
-    const result = await runEmail({
-      db,
-      kind: "clan_report",
-      accountId: acct.old,
-      now: new Date(at),
-      enqueue,
-      secret: "s",
-    });
-    assert.equal(result.failed, 0, JSON.stringify(result));
-    return { result, out };
-  };
-  // Before the boundary the covered week is the one before, and nothing
-  // happened in either clan that week: no mail (D9).
-  const before = await run("2026-10-05T09:59:59.999Z");
-  assert.equal(before.out.length, 0);
-  const boundary = await run("2026-10-05T10:00:00Z");
-  // The clan that raced mails; the one with no race and no news skips (A20).
-  assert.equal(boundary.out.length, 1);
-  assert.ok(
-    boundary.out.every((m) => /Sep 28 – Oct 5 · Season 136/.test(m.html)),
-  );
-  assert.ok(boundary.out.some((m) => /river race week 4/.test(m.html)));
-  const facts = (
-    await db.query(
-      `select facts from email_issue where kind='clan_report' and period_key=$1 order by subject_key`,
-      [week.key],
-    )
-  ).rows;
-  assert.ok(facts.every((r) => r.facts.week.season === 136));
-  const again = await run("2026-10-05T14:00:00Z");
-  assert.equal(again.result.already_sent, 1);
-  assert.equal(again.result.composed, 0);
-  assert.equal(again.out.length, 0);
-  assert.deepEqual(
-    (
-      await db.query(
-        `select facts from email_issue where kind='clan_report' and period_key=$1 order by subject_key`,
-        [week.key],
-      )
-    ).rows,
-    facts,
-  );
 });
 
-test("Tuesday Arena keeps the previous covered season after rollover; Wednesday's digest names you on your player page", async () => {
+test("Wednesday's digest names you on your player page", async () => {
   const BATTLE = `deed${"0".repeat(60)}`;
   // Learned when it was played: the digest reads what the record learned.
   await db.query(
@@ -805,9 +358,6 @@ test("Tuesday Arena keeps the previous covered season after rollover; Wednesday'
     assert.equal(out.length, 1, JSON.stringify(result));
     return out[0];
   };
-  const arena = await send("arena_week", "2026-10-06T14:00:00Z");
-  assert.match(arena.html, /Sep 28 – Oct 5 · Season 136/);
-  assert.doesNotMatch(arena.html, /Sep 28 – Oct 5 · Season 137/);
   const digest = await send("tracking_report", "2026-10-07T14:30:00Z");
   // Every name opens the player page, the reader's own included (#764);
   // Ladder is reachable from there, so the digest carries no season.

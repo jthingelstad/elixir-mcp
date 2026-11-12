@@ -84,10 +84,10 @@ the players you watch, up to twelve in all with the rest counted. Anyone
 who neither played nor posted is left out.
 [Watch any player](/docs/watch-a-player) has that side.
 
-Some things are only ever about you. A friend never gets
-[milestone emails](/docs/milestones), never appears in "Your week in the
-Arena", and cannot be [verified](/docs/verify) from your account: those
-belong to your primary player and your alts.
+Some things are only ever about you. A friend's
+[firsts](/docs/milestones) are told under the friend in your digest, never
+in your own part of it, and a friend cannot be [verified](/docs/verify)
+from your account: that belongs to your primary player and your alts.
 
 ## Nicknames
 

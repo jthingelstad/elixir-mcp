@@ -373,14 +373,25 @@ test("one shell: the wordmark, the product source, the why-line in the reader's 
   assert.match(html, />Elixir</, "the wordmark is Elixir");
   assert.ok(!/Elixir MCP|ELIXIR/.test(html), "never the old wordmark");
   assert.ok(html.includes(">Clan</span>"), "the product source");
-  // 14:00 UTC is 9:00 am in daylight time and 8:00 am in standard.
-  assert.match(
-    html,
-    /You get this on Mondays at [89]:00 am Central, for each clan you track where something happened that week\./,
-  );
+  // A retired kind's stored issue promises no next one (2026-11-12).
+  assert.match(html, /This email has ended\. Its news is in your digest\./);
   assert.match(html, /Turn off this mail/);
-  const utc = renderMail("clan_report", facts, links).html;
-  assert.match(utc, /on Mondays at 2:00 pm UTC/);
+  // The digest's why-line is in the reader's zone: 14:30 UTC is 9:30 am
+  // in daylight time and 8:30 am in standard.
+  const digest = JSON.parse(
+    readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
+  );
+  assert.match(
+    renderMail("tracking_report", digest, {
+      ...links,
+      timezone: "America/Chicago",
+    }).html,
+    /You get this on Wednesdays at [89]:30 am Central/,
+  );
+  assert.match(
+    renderMail("tracking_report", digest, links).html,
+    /on Wednesdays at 2:30 pm UTC/,
+  );
   // Mail is tables: no flex, no grid, no background image anywhere.
   for (const { kind, facts: f } of allFixtures()) {
     const out = renderMail(kind, f, links).html;
@@ -433,9 +444,11 @@ test("the digest replaces the friends mail under its kind: Your week in Elixir, 
   assert.match(text, /Open your feed/);
   assert.match(
     text,
-    /You get this on Wednesdays at \d:30 am Central, in a week when someone you follow played or posted, or you did\./,
+    /You get this on Wednesdays at \d:30 am Central, in a week when someone you follow played or posted, you did, or your clan had news\./,
   );
   assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
+  // Each player once: a followed clanmate is marked, never told twice.
+  assert.match(text, /Jolly Stoat[^\n]*\n+In POAP KINGS/);
 });
 
 test("a daily digest says its day and its cadence (#767)", () => {
@@ -461,15 +474,18 @@ test("the digest: a clan is a headline and at most three bullets, and a full sto
   const text = htmlToText(renderMail("tracking_report", facts, links).html);
   const block = text.slice(
     text.indexOf("Around you"),
-    text.indexOf("28 battles in 6 sessions"),
+    text.indexOf("You, King Thing"),
   );
+  // The clan's own news only (2026-11-12): its race, its roster, roles;
+  // never its battles, which are told under each person.
   assert.match(
     block,
-    /3,200 battles in 410 sessions by 46 of 47 members since Mon Sep 21\.\n/,
+    /River race \(season 136, week 3\): finished 1st with 10,305 fame\.\n/,
   );
   assert.equal(block.match(/^• /gm)?.length, 3, block);
-  assert.match(block, /^• Week 3 finished in place 1 with 10,305 fame$/m);
-  assert.match(block, /4 more/);
+  assert.match(block, /^• Departed: Cy$/m);
+  assert.doesNotMatch(block, /battles|quiet/);
+  assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
 });
 
 test("the Arena week counts each player's card unlocks and badge levels, and links the timeline", () => {
@@ -567,7 +583,11 @@ test("the weekly send times are the EventBridge crons", () => {
     if (isRetiredEmailKind(kind)) assert.equal(crons.has(kind), false);
     else assert.deepEqual(slot, crons.get(kind), kind);
   }
-  assert.equal(Object.keys(MAIL_SCHEDULE).length, 4);
+  // One scheduled digest and the operators' collector mail (2026-11-12).
+  assert.deepEqual(Object.keys(MAIL_SCHEDULE).sort(), [
+    "collector_activity",
+    "tracking_report",
+  ]);
   assert.equal(MAIL_SCHEDULE.tracking_report.daily, true);
 });
 

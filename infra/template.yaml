@@ -2059,41 +2059,11 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt ClanEvaluateRule.Arn
 
-  EmailClanReportRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: elixir-mcp-email-clan-report
-      ScheduleExpression: cron(0 14 ? * MON *)
-      Targets:
-        - Arn: !GetAtt JobsFunction.Arn
-          Id: email-clan-report
-          Input: '{"email": "clan_report"}'
-  EmailClanReportPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref JobsFunction
-      Action: lambda:InvokeFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt EmailClanReportRule.Arn
-  EmailArenaWeekRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: elixir-mcp-email-arena-week
-      ScheduleExpression: cron(0 14 ? * TUE *)
-      Targets:
-        - Arn: !GetAtt JobsFunction.Arn
-          Id: email-arena-week
-          Input: '{"email": "arena_week"}'
-  EmailArenaWeekPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref JobsFunction
-      Action: lambda:InvokeFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt EmailArenaWeekRule.Arn
   # The digest (tracking_report, #767) runs every day: daily readers get
   # it each day, weekly ones (the default) on Wednesday (runDigest). At
-  # 14:30 UTC, after the 14:00 weekly kinds.
+  # 14:30 UTC. Since 2026-11-12 it is the one scheduled mail for everyone:
+  # the Monday clan report, Tuesday's Arena week and the hourly milestone
+  # mail folded into it and have no rule.
   EmailTrackingReportRule:
     Type: AWS::Events::Rule
     Properties:
@@ -2183,22 +2153,6 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt HomeFeedsRule.Arn
-  EmailMilestoneRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: elixir-mcp-email-milestone
-      ScheduleExpression: cron(20 * * * ? *)
-      Targets:
-        - Arn: !GetAtt JobsFunction.Arn
-          Id: email-milestone
-          Input: '{"email": "milestone"}'
-  EmailMilestonePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref JobsFunction
-      Action: lambda:InvokeFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt EmailMilestoneRule.Arn
 
   # Hourly Postgres payload sweep: superseded
   # payload rows leave Postgres once their S3 twin is HEAD-verified, and

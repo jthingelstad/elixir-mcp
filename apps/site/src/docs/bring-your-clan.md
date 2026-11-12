@@ -55,7 +55,7 @@ Once your primary player's clan is on record, Stats' Season tab has
 A clanmate who signs up and adds their player gets their own battle
 history kept from then on and, because Elixir follows a new member's
 clan for them ([Your player's clan](/docs/recording#your-players-clan)),
-the clan's week in Monday's email. Elixir is free.
+the clan's week in their digest. Elixir is free.
 
 The link is Elixir's plain signup address, the same for everyone: no
 invite code, nothing in it that says who sent it, and nothing records

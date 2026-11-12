@@ -22,7 +22,6 @@ test("the offline gallery covers active mail, current event variants and each se
     "login-code-only",
     "collector_activity-upgrade",
     "collector_activity-upgrade-test",
-    "clan_report-activity",
     "feedback_answer-needs_info",
     "owner_notify-gateway_silent",
     "owner_notify-gateway_quarantined",

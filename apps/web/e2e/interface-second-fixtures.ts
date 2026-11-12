@@ -88,11 +88,8 @@ export const RECRUIT = {
 
 export const EMAILS = {
   kinds: [
-    ["clan_report", "Clan report", "Clan", "Monday"],
-    ["arena_week", "Your week in the Arena", "Ladder", "Tuesday"],
     ["tracking_report", "Your digest", "Home", "Wednesday"],
     ["collector_activity", "Collector activity", "Collectors", "Sunday"],
-    ["milestone", "Milestones", "Ladder", null],
     ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
     ["feedback_answer", "Answers to your feedback", "Account", null],
   ].map(([kind, label, product, weekday]) => ({
@@ -106,15 +103,15 @@ export const EMAILS = {
   })),
   recent: [
     {
-      send_id: "fixture-arena",
-      kind: "arena_week",
-      subject: "Your week in the Arena: Trophy Road 5–4",
-      sent_at: "2026-10-13T14:00:00Z",
+      send_id: "fixture-digest",
+      kind: "tracking_report",
+      subject: "Your week: 3 people you follow played",
+      sent_at: "2026-10-14T14:00:00Z",
     },
     {
-      send_id: "fixture-clan",
-      kind: "clan_report",
-      subject: "Example Clan: the week’s war and arrivals",
+      send_id: "fixture-collector",
+      kind: "collector_activity",
+      subject: "Collector activity: 1,204 battles recorded",
       sent_at: "2026-10-12T14:00:00Z",
     },
   ],

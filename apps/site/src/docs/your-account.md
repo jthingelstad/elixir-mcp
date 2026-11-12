@@ -210,7 +210,7 @@ Your first player is your primary, which the pages call your main player.
 primary becomes watching. Your primary
 cannot be removed while you track other players: make another one
 primary first. Your primary and your alts are the players you can
-[prove are yours](/docs/verify), and the ones your milestone emails and
+[prove are yours](/docs/verify), and the ones your own part of the digest and
 Clan go by. A player another account has verified cannot be your
 primary or an alt; you can still follow it as a friend or watch it. If
 another account verifies a player that was your primary or an alt, it

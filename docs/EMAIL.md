@@ -4,16 +4,21 @@ The kinds and delivery behavior are documented publicly at `/docs/email`;
 this file is the design, not the description (AGENTS.md). Composition is
 structured from recorded facts, without model generation.
 
-Seven product kinds are active (`ACTIVE_PRODUCT_EMAIL_KINDS` in
-`packages/contracts/src/queue.ts`): four scheduled (`clan_report`,
-`arena_week` and `collector_activity` weekly, and `tracking_report`, the
-digest, weekly or daily by the reader's choice) and three that come
-when something happens (`milestone`, `clan_actions_waiting`,
-`feedback_answer`). The
-collector upgrade notice is part of `collector_activity`. `top_100` and
-`card_of_week` are retired: they stay in `PRODUCT_EMAIL_KINDS` so sent
-records and old unsubscribe links still resolve, and their generation
-and send requests refuse before I/O.
+Four product kinds are active (`ACTIVE_PRODUCT_EMAIL_KINDS` in
+`packages/contracts/src/queue.ts`): two scheduled (`tracking_report`,
+the one digest, weekly or daily by the reader's choice, and
+`collector_activity` weekly, only for collector operators) and two that
+come when something happens (`clan_actions_waiting`, `feedback_answer`).
+The collector upgrade notice is part of `collector_activity`.
+
+Retired (`RETIRED_EMAIL_KINDS`): `top_100`, `card_of_week`, and since
+2026-11-12 `clan_report`, `arena_week` and `milestone`, folded into the
+digest (Jamie: "One digest email and merging clan and those you follow
+is really needed"; `docs/notes/2026-11-12-one-email.md`). They stay in
+`PRODUCT_EMAIL_KINDS` so sent records and old unsubscribe links still
+resolve; generation, `deliver`, the relay and `PUT /api/me/email`
+(enabling one answers 410) refuse them before I/O, and Settings no
+longer lists them.
 
 ## The shared foundation
 
@@ -122,11 +127,11 @@ unsubscribe token makes.
 
 `email_issue (kind, period_key, subject_key, status, composed_at)` and
 `email_send (issue_id, account_id, enqueued_at)`. `subject_key` is the
-clan tag for `clan_report` (one issue per clan per week, N sends), the
-account id otherwise (one issue per account).
+account id (one issue per account); the retired `clan_report` keyed by
+clan tag (one issue per clan per week, N sends), and its rows remain.
 
-A run asks the ledger first: one query drops the recipients (and, for
-`clan_report`, the clans) already sent for the period, and an issue some
+A run asks the ledger first: one query drops the recipients already
+sent for the period, and an issue some
 recipients already have is sent as stored, never recomposed. It then
 composes, writes each message to the outbox, and inserts the send row
 **after** a successful write (the outbox object is the durable point). A
@@ -168,99 +173,30 @@ under `/settings`, Ladder at `/ladder?player=<tag>` (Stats under You since
 
 ### Schedule and plumbing
 
-EventBridge rules invoke the jobs Lambda (reserved concurrency one): the
-three weekly kinds at 14:00 UTC and the digest every day at 14:30 UTC
-(`MAIL_SCHEDULE` in `packages/mail/src/shell.mjs`, pinned to the crons
-by test), `milestone`
-hourly, and the collector upgrade drain every minute. `clan_actions_waiting`
+EventBridge rules invoke the jobs Lambda (reserved concurrency one):
+`collector_activity` on Sundays at 14:00 UTC and the digest every day at
+14:30 UTC (`MAIL_SCHEDULE` in `packages/mail/src/shell.mjs`, pinned to
+the crons by test), and the collector upgrade and feedback-answer drain
+every minute. The clan report, Arena week and milestone rules were
+removed on 2026-11-12. `clan_actions_waiting`
 is sent from Clan's morning run. Composers write to the email outbox; the
 relay sends over SES. No editorial queue, model or brief-build rule exists.
 
 ## Per kind
 
-### `clan_report`: Monday
+### Retired 2026-11-12: `clan_report`, `arena_week`, `milestone`
 
-`clans_timeline` + `clans_members_timeline` + `clans_roster` +
-`war_history` for the week, at the clan's recording scope (the widest
-active tracker requested). **Activity** gives roster, trophies,
-donations, joins and leaves, war; **comprehensive** adds per-member
-battle performance. The war section appears only when a war week
-completed. Battle counts stay unknown at activity scope, including older stored facts
-that filled those counts with zero; neither the body nor the inbox preview
-claims a zero-battle week. Roster departures say "departed" until a leader
-classifies them, and the classified word goes only to the clan's own readers.
-Composed once per clan, sent to every person account tracking
-that clan; `nothingHappened` skips the issue for everyone (D9, A20), never when
-a read failed. Links and the You line and Gone quiet are per reader, at render,
-from `reader.mjs` (`mine`, `member_clans`, `verified_clans`, `clanmates`), never in the facts. Since 2026-10-08 an account made after 0205 tracks its primary
-player's clan automatically at activity scope when a slot is free
-(`followPrimaryClan` in packages/claims), which is what makes the welcome
-mail's "Monday: your clan's week" true for a new member. Days are carried as instants (`membership[].at`,
-`{{day:<instant>}}` in a standout's text) and named in the recipient's
-`account.timezone` (`links.timezone`, set by `deliver`).
-
-**Trend** (`trend`, 2026-10-08): the week beside the four before it,
-only as far back as the record holds.
-- **War decks:** the race's decks used (the sum of every participant's
-  weekly `decks_used` from `war_history`'s exact week, departed members
-  included) of those possible: four a war day (`WAR_DECKS_PER_DAY`) for
-  `warDaysAsked` days (up to `finish_war_day`, all four in Colosseum;
-  `record/war-clock`, the rule Elixir Clan's rates read) for each member
-  on the roster at the race's close (`clanRosterAt`, membership
-  intervals). Weekly totals only: training days are not war days and
-  never count. A prior race is the races that closed in the four weeks
-  before; one with no participants recorded, a capped participant list
-  (60), or no roster observed at its close is left out, never a zero.
-  The render shows each share capped at 100% (decks played by members
-  who left before the close can exceed the roster's possible), the pooled
-  share of the races before, and a table, with no member named.
-- **Activity** (comprehensive scope): battles and members who battled,
-  by `battle_time` with boat defenses excluded (`clanActivityWeeks`),
-  for the report week and the four before; a prior week counts once the
-  clan's active recording had begun and it holds a battle. The headline's
-  battles and members active read the same count.
-- The words say how many weeks are compared ("the four races before",
-  "the 2 recorded races before"); with none, the race stands alone and
-  the clan's week has no comparison. An issue stored before has no
-  `trend` and renders without it.
-
-`{"clan_report_preview": {"clan_tag", "at"}}` on the jobs Lambda composes
-one clan's report read-only beside the stored issue for that week.
-
-### `arena_week`: Tuesday ("Your week in the Arena")
-
-`battles_performance` + `battles_opponents` + `battles_decks` for the
-primary and each alt, sectioned by mode family. Who you battled, how the
-week went, the deck used most. The headline is per mode family, never one
-win rate pooled across modes (`docs/DECISIONS.md`, mode discipline).
-Skipped when zero battles across all the account's own tags and no alt's
-first is waiting. An alt's firsts (`heldAltFirsts`, same moments and journal as
-milestones) sit under the alt, which is drawn even with no battle, and are
-journalled when the mail sends, so each is told once (D12).
-
-**Cards and badges** (`progress`, 2026-10-08): per own tag, the week's
-card unlocks and badge level-ups as counts, read off the timeline
-entry (`collection.unlocked`, `badges.earned`; `progressOf` in
-`shared.mjs`), with a link to the timeline on Home. These are the small
-firsts the milestone mail no longer sends; a legendary badge mails as a
-milestone and is not counted (an issue stored before then may carry
-`legendary_badges`, and renders it); a week with none has no section. Every alt's entry is read
-for it, including an alt with no battles; a week with no battles at all
-still sends nothing.
-
-**The week beside the four before it** (`form`, 2026-10-08): one more
-`battles_performance` read for the primary, in the featured mode (war
-when the week had only war), with the week as its window and the four
-game weeks before as `compare_from`/`compare_to`. `weekForm` in
-`@elixir-mcp/record/form` shapes it, the same function Ladder's "This
-week vs your last 4" strip uses, so the windows and the minimum
-(`FORM_MIN_BATTLES`, 10 decided battles a side) are one definition. The
-renderer's `formSentence` makes one line under the tiles: the mode's win
-rate this week and its decided-battle count, "up from", "down from" or
-"level with" the four before and their count. Directions are the
-rounded percents' order, never a verdict word. Below the minimum on
-either side `form` is null and there is no line; a stored issue from
-before has no `form` and renders without it.
+The Monday clan report, Tuesday "Your week in the Arena" and the hourly
+milestone note have no rule and no send path in `services/jobs/src/email/index.mjs`.
+What they told that the digest keeps: a clan's finished race, joins,
+departures and role changes (its clan part), the big firsts of the
+reader and their alts, and card and badge counts (the reader's part).
+What it does not: the war decks-used trend, per-member performance, the
+Arena form line, opponents and decks; those are on Clan and Stats.
+`build-clan.mjs`, `build-arena.mjs`, `build-milestone.mjs` and the
+`clan_report_preview` op remain for their tests and the read-only
+preview; removing them, the `email_milestone*` tables and the kind names
+is later cleanup.
 
 ### `tracking_report`: the digest, Wednesday or daily ("Your digest")
 
@@ -299,18 +235,33 @@ friends mail counted them. Attested facts never enter
   highlight is the timeline's sentence with the words carried apart and
   drawn as a quote; each item links the battle's public page when the
   record knows the battle. A highlight's share link is never carried.
-- **Around you:** each tracked clan that had battles, roster moves or a
-  resolved race, as `clanSummaryParts` (headline and three bullets, the
-  rest counted), and you, with any alt that played.
-- **Never empty:** null (no mail) when no one followed played or posted
-  and neither did the reader. Clans alone never send one.
+- **Each player once (2026-11-12).** Following a whole clan is common,
+  so people are told only under themselves: a followed clanmate carries
+  `clanmate: {tag, name}` ("In <clan>"), and a `clan_joined`/`clan_left`
+  item whose clan has a clan part is told there, not again under the
+  person.
+- **Your clan:** each tracked clan with news of its own (`clanNews`): a
+  resolved race (place and fame, Colosseum named), joins, departures and
+  role changes, as a headline and three bullets with the rest counted.
+  A clan's battle count and gone-quiet are members' play and are not
+  repeated here. An account made after 0205 tracks its primary player's
+  clan automatically (`followPrimaryClan`), so a new member gets it.
+- **You:** your items and progress, and each alt that played or has a
+  first, with its items and progress.
+- **Never empty:** null (no mail) when no one followed played or posted,
+  the reader has nothing, and no clan part would send. A clan part alone
+  sends a weekly digest; a daily one only when a race finished.
+- **The fold (`foldedOff`).** A reader who had turned `clan_report` off
+  never gets a digest for clan news alone; one who had turned
+  `arena_week` off gets alts as a name and battle count, as before. No
+  one gets more mail than before the merge; digest off stays off.
 - Names link to the current player door (`playerDoor`); a player page
   from slice 6 is not on main yet.
 - Everything a person typed (names, nicknames, words) is escaped at the
   render (`packages/mail/test/hostile-names.test.mjs`).
 
 The subject names no one: "Your week in Elixir: 3 people you follow, 41
-battles". The preheader leads with the first highlight's words.
+battles"; with only clan news it names the first clan. The preheader leads with the first highlight's words.
 
 `packages/tools/src/friends-week.mjs` still builds Home's Friends; the
 mail no longer reads it.
@@ -379,21 +330,12 @@ deduplicated by collector/from/to. Optional `release` needs an exact
 collector GitHub release or compare URL and stays on the test event.
 Subject and body say historical test. No force bypass exists.
 
-### `milestone`: hourly
+### `clan_actions_waiting`: on demand, after Clan's morning run
 
-What a recipient gets is `/docs/email` (Milestones are firsts).
-`buildMilestone` in `services/jobs/src/email/build-milestone.mjs`
-(`MILESTONE_MAIL_KINDS`, `momentKey`), composed through
-`services/jobs/src/email/digest.mjs` (`windowItems`, `digest`; #536
-stage 1). Tables: `email_milestone` (account, subject, kind, moment key:
-the firsts told) and `email_milestone_look` (0194; `milestoneFromMs`).
-Period key: `milestonePeriodKey`. Rule: `elixir-mcp-email-milestone`.
-
-### `clan_actions_waiting`: after Clan's morning run
-
-Clan's engine (`packages/clan-engine/src/mail.mjs`) composes "actions
-waiting for you" for each person who can act on an open action, only when
-something became theirs since their last email, listing everything
+Never on a fixed day: Clan's engine (`packages/clan-engine/src/mail.mjs`)
+composes "actions waiting for you" for each person who can act on an
+open action, only when something became theirs since their last email
+(nothing waiting, nothing sent), listing everything
 waiting newest first with the new ones marked (at most 10 lines, the rest
 counted). `sendClanMail` (`packages/mail/src/clan-mail.mjs`) finds the
 account whose verified claim is that player, checks the player is in the
@@ -437,9 +379,9 @@ sign-in code, welcome and operator notices included:
 
 - **Masthead:** the logo PNG (`apps/site/src/assets/mail/elixir-48.png`
   and `-96.png`) and the wordmark "Elixir", with a plain label naming the
-  product (`MAIL_SOURCE`: Clan · Monday, Ladder · Tuesday,
-  Friends · Wednesday, Collectors · Sunday, Ladder · Milestone,
-  Clan · Actions, Account · Sign in and Welcome, Console · Notice). The
+  product (`MAIL_SOURCE`: Home · Digest, Collectors · Sunday,
+  Clan · Actions, Account · Feedback, and the retired kinds' labels for
+  their old records, Account · Sign in and Welcome, Console · Notice). The
   logo has `alt=""`.
 - **Images:** https PNGs on elixir.poapkings.com only, never a data URI
   and never Supercell's CDN. Every content image carries alt text, which
@@ -476,7 +418,7 @@ sign-in code, welcome and operator notices included:
   directory. Product text is derived from the HTML; service text is the
   relay's actual returned text, never a substitute derived for preview.
   Specimens include all active kinds, collector upgrades and historical
-  tests, current milestone forms, sparse/partial reports, questions and
+  tests, the retired kinds' stored forms, sparse/partial reports, questions and
   every operator-notice category. `apps/web/e2e/mail-layout.spec.ts`
   checks them at phone, tablet, desktop and landscape widths with images
   blocked, without sending or loading a tracking pixel.
@@ -487,17 +429,17 @@ no tool returns is left out, not estimated.
 ## The console page
 
 Account › Emails from Elixir (`apps/web/src/views/account/EmailPage.jsx`):
-the four weekly kinds as rows showing the day each arrives in the
-account's zone, the three event kinds below them, the last
+the two scheduled kinds (the digest with its cadence, and collector
+activity) as rows showing the day each arrives in the account's zone,
+the two event kinds below them, the last
 four sends beside them, and an Every email switch at the top. The page
 computes no schedule of its own: `GET /api/me/email` returns, per active
 kind, `product` (`MAIL_SOURCE`), `sends` (`{weekday, time, zone}` from
 `mailSendTime`, the footer's function; null for the event kinds),
-`last_send_id` and `applies`. Every email is on only when all seven are,
+`last_send_id` and `applies`. Every email is on only when all four are,
 and writes `"all"`.
 
 ## Not built
 
-- A multi-clan Clan Report for one account (one mail per tracked clan
-  today).
-- Local-morning delivery: every weekly kind sends at 14:00 UTC.
+- Local-morning delivery: the digest sends at 14:30 UTC and collector
+  activity at 14:00 UTC.

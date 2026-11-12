@@ -23,7 +23,6 @@
  */
 import {
   DISCLAIMER,
-  PRODUCT_EMAIL_KINDS,
   ACTIVE_PRODUCT_EMAIL_KINDS,
   isProductEmailKind,
   isRetiredEmailKind,
@@ -154,10 +153,11 @@ async function setPref(
   via,
   { inTx = false } = {},
 ) {
-  const kinds =
-    kind === "all"
-      ? [...(enabled ? ACTIVE_PRODUCT_EMAIL_KINDS : PRODUCT_EMAIL_KINDS)]
-      : [kind];
+  // "all" is the active kinds, on or off. A retired kind's row is left
+  // as it stood when the kind ended (2026-11-12): the digest reads the
+  // clan report's and Arena week's rows so no one gets more mail than
+  // before, and Every email off and on again must not change that.
+  const kinds = kind === "all" ? [...ACTIVE_PRODUCT_EMAIL_KINDS] : [kind];
   for (const k of kinds)
     await db.query(
       `insert into account_email_pref (account_id, kind, enabled, via, changed_at)

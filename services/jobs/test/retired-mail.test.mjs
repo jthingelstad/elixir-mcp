@@ -4,11 +4,19 @@ import { runEmail } from "../src/email/index.mjs";
 import { deliver } from "@elixir-mcp/mail/deliver";
 import { handler } from "../src/index.mjs";
 
-test("scheduled, forced and direct editorial entry points perform no IO", async () => {
+test("scheduled, forced and direct entry points of every retired mail perform no IO", async () => {
   const forbidden = () => {
     throw new Error("retired mail performed IO");
   };
-  for (const kind of ["top_100", "card_of_week"]) {
+  // The clan report, Arena week and milestone folded into the one digest
+  // (Jamie, 2026-11-12): a rule left behind or a forced run sends nothing.
+  for (const kind of [
+    "top_100",
+    "card_of_week",
+    "clan_report",
+    "arena_week",
+    "milestone",
+  ]) {
     for (const force of [false, true]) {
       const result = await runEmail({
         kind,

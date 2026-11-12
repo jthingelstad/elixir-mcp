@@ -624,12 +624,12 @@ test("a product kind rides the queue rendered: sent as given with the one-click 
   const record = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
   const report = {
     v: 1,
-    kind: "clan_report",
+    kind: "tracking_report",
     to: "a@b.com",
-    subject: "POAP KINGS, Sep 7 – 14: 1st in war",
+    subject: "Your week in Elixir: POAP KINGS",
     text: "the text part",
     html: "<p>the html part</p>",
-    issue_key: "clan_report/2026-W37/#J2RGCRVG",
+    issue_key: "tracking_report/2026-11-18/acct",
     unsubscribe: {
       url: "https://elixir.poapkings.com/api/email/unsubscribe?t=abc",
     },
@@ -661,7 +661,13 @@ test("a product kind rides the queue rendered: sent as given with the one-click 
 });
 
 test("retired direct, outbox and malformed editorial messages are consumed without sending", async () => {
-  for (const kind of ["top_100", "card_of_week"]) {
+  for (const kind of [
+    "top_100",
+    "card_of_week",
+    "clan_report",
+    "arena_week",
+    "milestone",
+  ]) {
     const deleted = [];
     const handler = makeHandler({
       send: () => {
@@ -807,11 +813,17 @@ test("code-only OAuth mail describes the client without promising a link or anot
   assert.match(html, /This code expires in 15 minutes/);
 });
 
-test("welcome starts the record and every service mail includes the disclaimer in both alternatives", () => {
+test("welcome leads with following people and the one digest, and every service mail includes the disclaimer in both alternatives", () => {
   const welcome = renderEmail({ kind: "welcome" });
   assert.match(
     welcome.html,
-    /href="https:\/\/elixir.poapkings.com\/home"[^>]*>Start your record/,
+    /href="https:\/\/elixir.poapkings.com\/home"[^>]*>Open Home/,
+  );
+  // One digest, never three mails on three days (Jamie, 2026-11-12).
+  assert.match(welcome.text, /One digest a week/);
+  assert.doesNotMatch(
+    welcome.html + welcome.text,
+    /Monday|Tuesday|Ladder|Start your record|milestone/i,
   );
   assert.doesNotMatch(welcome.html, /when your access is approved/);
   for (const kind of ["login", "welcome", "owner_notify"]) {

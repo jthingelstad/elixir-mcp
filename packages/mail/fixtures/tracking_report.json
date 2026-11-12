@@ -38,7 +38,11 @@
      "battle_url": "https://elixir.poapkings.com/battle/0f9e8d7c6b5a"
     }
    ],
-   "more_items": 0
+   "more_items": 0,
+   "clanmate": {
+    "tag": "#J2RGCRVG",
+    "name": "POAP KINGS"
+   }
   },
   {
    "tag": "#Q8V2C9L0",
@@ -96,19 +100,13 @@
   {
    "tag": "#J2RGCRVG",
    "name": "POAP KINGS",
-   "headline": "3,200 battles in 410 sessions by 46 of 47 members since Mon Sep 21",
+   "race": true,
+   "headline": "River race (season 136, week 3): finished 1st with 10,305 fame",
    "bullets": [
-    "joined: Ana, Bo; left: Cy",
-    "week 3 finished in place 1 with 10,305 fame",
-    "quiet past 10d: Dee (12d)"
+    "joined: Ana, Bo",
+    "departed: Cy",
+    "roles: Dee member → elder"
    ],
-   "more": 4
-  },
-  {
-   "tag": "#GJ09RJP8",
-   "name": "Elixir Kings",
-   "headline": "28 battles in 6 sessions by 2 of 41 members since Mon Sep 21",
-   "bullets": [],
    "more": 0
   }
  ],

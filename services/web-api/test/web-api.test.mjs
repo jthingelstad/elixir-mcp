@@ -1400,22 +1400,29 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   // Each kind carries its product, when it comes in the account's zone,
   // and the last one sent here, which the page opens as its example.
   const kind = (k) => prefs.kinds.find((x) => x.kind === k);
-  assert.equal(kind("milestone").last_send_id, mine[0].send_id);
-  assert.equal(kind("arena_week").last_send_id, mine[1].send_id);
-  assert.equal(kind("clan_report").last_send_id, null);
-  assert.equal(kind("arena_week").product, "Ladder");
+  // The retired kinds keep their records above and leave the switches
+  // (2026-11-12, the one digest).
+  for (const k of ["milestone", "arena_week", "clan_report"])
+    assert.equal(kind(k), undefined, k);
+  assert.deepEqual(prefs.kinds.map((x) => x.kind).sort(), [
+    "clan_actions_waiting",
+    "collector_activity",
+    "feedback_answer",
+    "tracking_report",
+  ]);
+  assert.equal(kind("tracking_report").last_send_id, null);
   assert.equal(kind("tracking_report").product, "Home");
   // The digest carries its cadence, weekly until chosen; no other kind does.
   assert.equal(kind("tracking_report").cadence, "weekly");
-  assert.equal(kind("arena_week").cadence, null);
+  assert.equal(kind("collector_activity").cadence, null);
   assert.match(kind("tracking_report").sends.time, /^\d{1,2}:30 (am|pm)$/);
-  assert.equal(kind("milestone").sends, null);
-  assert.deepEqual(Object.keys(kind("clan_report").sends).sort(), [
+  assert.equal(kind("clan_actions_waiting").sends, null);
+  assert.deepEqual(Object.keys(kind("collector_activity").sends).sort(), [
     "time",
     "weekday",
     "zone",
   ]);
-  assert.match(kind("clan_report").sends.time, /^\d{1,2}:00 (am|pm)$/);
+  assert.match(kind("collector_activity").sends.time, /^\d{1,2}:00 (am|pm)$/);
 
   // The page's Every email switch is the footer's "all": every kind at
   // once, and back.
@@ -3705,7 +3712,7 @@ test("a turn-off link is answered in Elixir's own page, and the button gets a pa
   const token = signUnsubscribe({
     secret: SECRET,
     accountId: person.account_id,
-    kind: "milestone",
+    kind: "tracking_report",
   });
   const call = (method, { t = token, body, accept } = {}) => {
     // As the edge delivers it: no Accept header ever reaches /api/*.
@@ -3719,7 +3726,7 @@ test("a turn-off link is answered in Elixir's own page, and the button gets a pa
   const ask = await call("GET");
   assert.equal(ask.statusCode, 200);
   assert.match(ask.headers["content-type"], /^text\/html/);
-  assert.match(ask.body, /<title>Turn off Milestones\? - Elixir<\/title>/);
+  assert.match(ask.body, /<title>Turn off Your digest\? - Elixir<\/title>/);
   assert.match(ask.body, /class="kit-top"/, "the site's own bar");
   assert.match(ask.body, /site\.css/, "the site's own stylesheet");
   assert.match(
@@ -3737,7 +3744,7 @@ test("a turn-off link is answered in Elixir's own page, and the button gets a pa
   const pressed = await call("POST");
   assert.equal(pressed.statusCode, 200);
   assert.match(pressed.headers["content-type"], /^text\/html/);
-  assert.match(pressed.body, /<title>Milestones: off - Elixir<\/title>/);
+  assert.match(pressed.body, /<title>Your digest: off - Elixir<\/title>/);
   for (const href of ["/home", "/settings/emails", "/signin", "/"])
     assert.ok(pressed.body.includes(`href="${href}"`), `no way on to ${href}`);
   assert.match(pressed.body, /data-session-face="in"/);
@@ -3745,7 +3752,7 @@ test("a turn-off link is answered in Elixir's own page, and the button gets a pa
   const {
     rows: [pref],
   } = await db.query(
-    `select enabled, via from account_email_pref where account_id = $1 and kind = 'milestone'`,
+    `select enabled, via from account_email_pref where account_id = $1 and kind = 'tracking_report'`,
     [person.account_id],
   );
   assert.deepEqual(pref, { enabled: false, via: "one_click" });
@@ -3806,7 +3813,42 @@ test("retired email switches cannot be restored, while history and old unsubscri
     emailHash(NEWCOMER),
   ]);
   const accountId = account.account_id;
-  for (const kind of ["top_100", "card_of_week"]) {
+  // Every email off and on again leaves a retired row as it stood: the
+  // digest reads the clan report's to send no more than before.
+  await db.query(
+    `insert into account_email_pref (account_id, kind, enabled, via)
+     values ($1, 'clan_report', false, 'profile')
+     on conflict (account_id, kind) do update set enabled = false`,
+    [accountId],
+  );
+  for (const enabled of [false, true])
+    assert.equal(
+      (
+        await handler(
+          event({
+            method: "PUT",
+            path: "/api/me/email",
+            cookie: memberCookie,
+            body: { kind: "all", enabled },
+          }),
+        )
+      ).statusCode,
+      200,
+    );
+  const {
+    rows: [held],
+  } = await db.query(
+    `select enabled from account_email_pref where account_id = $1 and kind = 'clan_report'`,
+    [accountId],
+  );
+  assert.equal(held.enabled, false);
+  for (const kind of [
+    "top_100",
+    "card_of_week",
+    "clan_report",
+    "arena_week",
+    "milestone",
+  ]) {
     const response = await handler(
       event({
         method: "PUT",

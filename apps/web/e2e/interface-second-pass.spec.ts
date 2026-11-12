@@ -34,31 +34,37 @@ for (const width of [390, 820, 1280]) {
       name: "Scheduled",
       exact: true,
     });
-    await expect(scheduled.getByRole("switch")).toHaveCount(4);
+    await expect(scheduled.getByRole("switch")).toHaveCount(2);
     await expect(
       page
         .getByRole("region", { name: "When something happens" })
         .getByRole("switch"),
-    ).toHaveCount(3);
+    ).toHaveCount(2);
     await expect(
-      scheduled.getByText(/^Mondays, 9:00 am Central/),
+      scheduled.getByText(/^Sundays, 9:00 am Central/),
     ).toBeVisible();
-    await expect(page.getByRole("switch")).toHaveCount(8);
+    await expect(page.getByRole("switch")).toHaveCount(5);
     await page
-      .getByRole("switch", { name: "Clan report email", exact: true })
+      .getByRole("switch", { name: "Clan actions waiting email", exact: true })
       .click();
     await expect(
-      page.getByRole("switch", { name: "Clan report email", exact: true }),
+      page.getByRole("switch", {
+        name: "Clan actions waiting email",
+        exact: true,
+      }),
     ).toHaveAttribute("aria-checked", "false");
-    expect(writes).toEqual([{ kind: "clan_report", enabled: false }]);
+    expect(writes).toEqual([{ kind: "clan_actions_waiting", enabled: false }]);
     await page
       .getByRole("switch", { name: "Every email", exact: true })
       .click();
     await expect(
-      page.getByRole("switch", { name: "Clan report email", exact: true }),
+      page.getByRole("switch", {
+        name: "Clan actions waiting email",
+        exact: true,
+      }),
     ).toHaveAttribute("aria-checked", "true");
     expect(writes).toEqual([
-      { kind: "clan_report", enabled: false },
+      { kind: "clan_actions_waiting", enabled: false },
       { kind: "all", enabled: true },
     ]);
     expect(

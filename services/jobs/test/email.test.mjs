@@ -10,6 +10,18 @@ import {
 import { momentKey } from "../src/email/build-milestone.mjs";
 import { deckCardLabels } from "../src/email/build-arena.mjs";
 import { modeLabel } from "../src/email/shared.mjs";
+import { readFileSync } from "node:fs";
+
+// The digest specimen: invented players, the one scheduled mail.
+const DIGEST = JSON.parse(
+  readFileSync(
+    new URL(
+      "../../../packages/mail/fixtures/tracking_report.json",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+);
 
 test("the game week is Monday 10:00Z to Monday 10:00Z, the last completed one", () => {
   // Friday 2026-09-18 22:00Z: the week that closed Monday 09-14 10:00Z.
@@ -152,27 +164,12 @@ test("deliver: the send has its own id, in the footer, in the queue message, in 
     db,
     enqueue: async (m) => void enqueued.push(m),
     secret: "s",
-    kind: "milestone",
+    kind: "tracking_report",
     issueId: 7,
-    issueKey: "milestone/2026-09-19/acct",
+    issueKey: "tracking_report/2026-09-19/acct",
     period: "2026-09-19",
     account: { accountId: "acct", email: "a@example.com", timezone: "UTC" },
-    facts: {
-      account: { name: "Jamie" },
-      milestones: [
-        {
-          kind: "badge_earned",
-          subject: { tag: "#1", name: "King Thing", relationship: "primary" },
-          at: "Thu 20:02",
-          headline: "You took Guards Mastery to level 5",
-          big: "5",
-          big_label: "Guards Mastery, level",
-          lines: [],
-          next: null,
-        },
-      ],
-      also: [],
-    },
+    facts: DIGEST,
     archive,
     now: new Date("2026-09-19T10:00:00Z"),
   });
@@ -180,15 +177,15 @@ test("deliver: the send has its own id, in the footer, in the queue message, in 
   assert.match(r.send_id, /^[0-9a-f-]{36}$/);
   const msg = enqueued[0];
   assert.equal(msg.send_id, r.send_id);
-  assert.equal(msg.issue_key, "milestone/2026-09-19/acct");
+  assert.equal(msg.issue_key, "tracking_report/2026-09-19/acct");
   // The footer carries the short id and links the whole one; the pixel names
   // the mail by period, which is what was throwing before (period was
   // not defined: every product send failed from the 09-18 pixel deploy
   // until this test existed).
   assert.ok(msg.html.includes(`/settings/emails/${r.send_id}?report=1`));
   assert.ok(msg.html.includes(`>Mail ${r.send_id.slice(0, 6)}<`));
-  assert.ok(msg.html.includes("path=%2Fmail%2Fmilestone%2F2026-09-19"));
-  assert.ok(msg.html.includes("Guards Mastery"));
+  assert.ok(msg.html.includes("path=%2Fmail%2Ftracking_report%2F2026-09-19"));
+  assert.ok(msg.html.includes("Jolly Stoat"));
   assert.equal(
     put[0].Key,
     `mail/sent/dt=2026-09-19/send_id=${r.send_id}.json.gz`,
@@ -221,26 +218,12 @@ test("deliver: a failed archive write still sends, and the row says so", async (
       db,
       enqueue: async (m) => void enqueued.push(m),
       secret: "s",
-      kind: "milestone",
+      kind: "tracking_report",
       issueId: 7,
       issueKey: "k",
       period: "2026-09-19",
       account: { accountId: "acct", email: "a@example.com", timezone: "UTC" },
-      facts: {
-        account: { name: "J" },
-        milestones: [
-          {
-            kind: "card_unlocked",
-            subject: { tag: "#1", name: "J", relationship: "primary" },
-            at: "Thu 23:17",
-            headline: "You unlocked Goblin Hut",
-            big: null,
-            lines: [],
-            next: null,
-          },
-        ],
-        also: [],
-      },
+      facts: DIGEST,
       archive: {
         bucket: "b",
         s3: {

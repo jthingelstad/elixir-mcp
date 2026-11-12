@@ -7,14 +7,14 @@ order: 6
 navTitle: "Turn an email off"
 icon: bell-off
 lede: "Every kind of email is one switch, all on to start. Turn one off from Settings › Emails or from the link at the foot of any issue, and turn it back on the same way."
-reviewed: "2026-10-08 against contract 11.3.0"
+reviewed: "2026-11-12 one digest; the clan report, Arena week and milestone emails ended; 2026-10-08 against contract 11.3.0"
 callout: ["Open it at Settings › Emails", "/settings/emails", "Open Emails"]
 ---
 
 # Turn an email off
 
-Elixir sends seven kinds of email, and every one is on for a new
-account. Each kind is one switch, and turning one off is immediate and
+Elixir sends four kinds of email, and every one is on for a new
+account. Most people get only one of them: [the digest](/docs/email#your-digest). Each kind is one switch, and turning one off is immediate and
 yours to undo. [Email](/docs/email) has what each one holds and when it
 lands.
 
@@ -22,20 +22,20 @@ lands.
 
 **Settings › Emails**
 ([/settings/emails](/settings/emails)),
-reached from the account menu, lists the four scheduled kinds under **Scheduled**, each
-with the day and time it arrives in your time zone: the Clan report, Your week in
-the Arena, Your digest and Collector activity. While Your digest is on, it
+reached from the account menu, lists the scheduled kinds under **Scheduled**, each
+with the day and time it arrives in your time zone: Your digest and Collector
+activity. While Your digest is on, it
 also offers **Weekly** or **Daily**: weekly comes on Wednesdays, daily every
 day, at the same time ([Your digest](/docs/email#your-digest)). Choosing one
-never turns the digest back on, and turning it off keeps your choice. The three that come when something happens,
-Milestones, Clan actions waiting and Answers to your feedback, sit below under
+never turns the digest back on, and turning it off keeps your choice. The two that come when something happens,
+Clan actions waiting and Answers to your feedback, sit below under
 **When something happens**. Each has a
 line on what it is and a switch; turn one off and it stops. A kind
 already sent to you links the last one, and the page lists the last
 few emails sent to you, with **All sent** for the rest.
 
-**Every email**, at the top of the page, turns all seven off at once,
-or all seven back on. While some are on and some are off it says how
+**Every email**, at the top of the page, turns all four off at once,
+or all four back on. While some are on and some are off it says how
 many are on.
 
 Two of the switches only matter to some accounts, and are dimmed for
@@ -62,13 +62,19 @@ about one subject:
 - **Your digest**: switch off the player's **Notifications** on its
   page under Settings › Players & tracking, and it leaves the digest and your timeline while
   recording carries on ([Follow a friend](/docs/follow-a-friend#the-notifications-switch)).
-- **Clan report**: it comes for each clan you track, one report per
-  clan. Stopping tracking a clan stops its report, and its recording
-  too unless something else keeps it recorded.
-- **Milestones**: one switch covers your primary and every alt.
+- **A clan in your digest**: stopping tracking a clan takes its news
+  out of your digest, and stops its recording too unless something else
+  keeps it recorded.
+
+The clan report, Your week in the Arena and Milestones emails ended on
+2026-11-12, when their news moved into the digest. Their switches are
+gone; if you had turned the clan report off, the digest never comes for
+a clan's news alone, and if you had turned Arena week off, your alts in
+it stay a name and a count. A turn-off link in one of their old issues
+still opens and says the email has ended.
 
 To stop them all, turn **Every email** off; turn it back on to have all
-six again.
+four again.
 
 ## Mail that has no switch
 
@@ -78,7 +84,7 @@ codes are not in the list of emails sent to you.
 
 ## The newsletter
 
-The product newsletter is not one of the six. It goes out through a
+The product newsletter is not one of the four. It goes out through a
 separate service, Buttondown, and you leave it with the unsubscribe link
 in any newsletter issue.
 

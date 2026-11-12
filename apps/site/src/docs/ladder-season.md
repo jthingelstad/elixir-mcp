@@ -54,8 +54,7 @@ says so.
 
 In the current season, the Season tab sets the game week so far beside
 the four whole game weeks before it, in the chosen mode only. A game week
-runs Monday 10:00 UTC to Monday 10:00 UTC, the week the Arena email
-reports; the page names when this one began in your own timezone. It is
+runs Monday 10:00 UTC to Monday 10:00 UTC; the page names when this one began in your own timezone. It is
 one [battles_performance](/docs/tools/battles#battles_performance) read,
 the week as its window and the four before as `compare_from`/`compare_to`,
 and it shows three of the tool's own numbers, each with the battles it is
