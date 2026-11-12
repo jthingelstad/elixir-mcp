@@ -47,6 +47,27 @@ A moment links its battle when the record has one, a highlight shows its
 player's own words, and a clan's own line has a gold edge. Every player's
 name opens their [player page](/docs/player-page).
 
+### Beside the feed
+
+On a wide screen three panels sit beside the feed; on a phone they follow
+it. Each reads on its own, so the feed never waits for them.
+
+- **Your week:** your own battles this week, by mode, with your trophies
+  and the deck you played most. Facts only.
+- **Your clan:** your player's clan, with **This week's race** while a
+  river race runs ("Season 137, week 2, war day 2: 2nd by fame, 8,200
+  fame", or training days, or finished), the last race's place, and your
+  war decks and donations this week.
+- **People to follow:** up to five players, each with why they are there
+  as a fact and what following them costs. They come in turn from three
+  places: players your own players met in the last seven days (twice or
+  more, or as a 2v2 teammate: "You played them twice this week"), your
+  clan's members ("In your clan"), and players followed by the verified
+  players you follow ("Followed by Ada, who you follow"). Players you
+  already follow, watch or own are never suggested. Nobody is ranked by
+  trophies, wins or any rating, and names are game names, never a
+  nickname. **Find more people** opens [Find](/docs/follow-a-friend#find).
+
 ## Cheers
 
 Any item about a player or clan you follow can take a cheer from you, one
@@ -59,6 +80,13 @@ An item shows its cheers as counts, each with its number, and says how many
 cheered in words ("You and 2 others", "3 people"): never who. Every member
 whose feed shows the item sees the same counts. Your account's own items
 (a sign-in, a feedback answer) take no cheers.
+
+The same item takes cheers on a [player's page](/docs/player-page) and on
+its battle's page ([Battles](/docs/battles#cheers)), with the same counts,
+but only while it is in your own feed: an item from the last seven days
+about a player or clan you follow. An item older than that, or about
+someone you do not follow, shows no cheers and no counts there. A battle's
+page signed out shows neither.
 
 A cheer stays in Elixir. It goes to no Discord channel, mail or agent,
 and `elixir_timeline` does not carry it; an agent cannot cheer. The bell

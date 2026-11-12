@@ -128,6 +128,16 @@ the player as a friend, as Find's Follow does. Your own players are left
 out. An account with no player of its own is asked to add it first, as
 Find asks.
 
+### Cheers
+
+Signed in, a battle's page has **In your feed** when an item in your own
+feed is about this battle: a highlight of it, or a moment it proved, such
+as the win that reached a new league. Each takes your cheer and shows its
+counts as it does on Home ([Cheers](/docs/timeline#cheers)). A battle with
+no such item for you shows no cheers at all, and signed out the page shows
+neither cheers nor how many there are. A shared highlight's page (`/h/<id>`)
+carries no cheers.
+
 Add `.png` to the link for the battle's picture: the page drawn as one 1200 by
 630 image, with the names left and right, both decks two by four with their
 levels, the elixir numbers, the towers' hitpoints and how it ended, and the

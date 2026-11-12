@@ -7682,6 +7682,32 @@ button.kit-row {
   gap: 6px;
   margin: 0;
 }
+/* People to follow and Find's people (2026-11-12): why on one line, the
+   cost on the next, the Follow on the right. Flat: the rows' own rules. */
+.kit-people__row .kit-row__detail {
+  display: grid;
+  gap: 2px;
+}
+.kit-people__cost {
+  font-size: 13px;
+}
+.kit-people__quiet,
+.kit-people__slots {
+  padding: 8px 16px;
+  margin: 0;
+}
+/* A battle page's cheers: the items in your feed it proves. */
+.kit-battle-cheers {
+  display: grid;
+  gap: 12px;
+}
+.kit-battle-cheers__item {
+  display: grid;
+  gap: 6px;
+}
+.kit-battle-cheers__item .kit-feed__text {
+  margin: 0;
+}
 .kit-spark {
   display: block;
   max-width: 100%;

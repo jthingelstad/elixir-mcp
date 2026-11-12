@@ -207,6 +207,82 @@ export function lastRaceLine(race) {
   return `Season ${race.season_id}, ${week}: ${ordinal(race.rank)}${fame}`;
 }
 
+/** This week's race as facts (`race_now` from Home's clan read): which week
+ *  and day, and on a war day the clan's place by fame and its fame. Never
+ *  the day's decks, and no "of N". */
+export function raceNowLine(race) {
+  if (!race) return null;
+  const week = race.is_colosseum
+    ? "Colosseum"
+    : `week ${(race.section_index ?? 0) + 1}`;
+  const head = `Season ${race.season_id}, ${week}`;
+  if (race.day_kind === "training") return `${head}: training days`;
+  if (race.finished) return `${head}: finished`;
+  const day = race.war_day != null ? `, war day ${race.war_day}` : "";
+  if (race.place == null) return `${head}${day}`;
+  const fame =
+    race.fame != null ? `, ${race.fame.toLocaleString("en-US")} fame` : "";
+  return `${head}${day}: ${ordinal(race.place)} by fame${fame}`;
+}
+
+const times = (n) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
+
+/** Why a person is suggested, one fact per reason, in game names: never a
+ *  nickname, never a rating. */
+export function whyLine(why) {
+  if (why.kind === "clan") return "In your clan";
+  if (why.kind === "followed_by") {
+    const who = why.via?.name ?? why.via?.tag ?? "a player";
+    return why.others > 0
+      ? `Followed by ${who} and ${why.others} other${why.others === 1 ? "" : "s"} you follow`
+      : `Followed by ${who}, who you follow`;
+  }
+  if (why.kind === "battles") {
+    const span = why.days === 7 ? "this week" : `in ${why.days} days`;
+    const parts = [];
+    if (why.against > 0) parts.push(`You played them ${times(why.against)}`);
+    if (why.with_you > 0)
+      parts.push(
+        `${parts.length ? "teamed up" : "Your 2v2 teammate"} ${times(why.with_you)}`,
+      );
+    return parts.length ? `${parts.join(", ")} ${span}` : null;
+  }
+  return null;
+}
+
+/** A person's reasons, joined. */
+export const whyLines = (whys) =>
+  (whys ?? []).map(whyLine).filter(Boolean).join(" · ");
+
+/** A suggested person's cost mark: free, or a slot. Following is its own
+ *  word. */
+export function costMark(p) {
+  if (p.following) return "Following";
+  return p.free ? "Free · already recorded" : "Uses a slot";
+}
+
+/** Find's From your battles: how often you met and how it went, from the
+ *  log only. `when` writes the last time. */
+export function metLine(p, when) {
+  const parts = [];
+  if (p.against > 0) {
+    parts.push(`Met ${times(p.against)}`);
+    const rec = [
+      p.wins ? `${p.wins} win${p.wins === 1 ? "" : "s"}` : null,
+      p.losses ? `${p.losses} loss${p.losses === 1 ? "" : "es"}` : null,
+      p.draws ? `${p.draws} draw${p.draws === 1 ? "" : "s"}` : null,
+    ].filter(Boolean);
+    if (rec.length) parts.push(rec.join(", "));
+  }
+  if (p.with_you > 0) parts.push(`Your 2v2 teammate ${times(p.with_you)}`);
+  if (p.last_met) parts.push(`last ${when(p.last_met)}`);
+  return parts.join(" · ");
+}
+
+/** The slots line under a list of people: "Your follows: 12 of 50 slots". */
+export const slotsLine = (used, limit) =>
+  limit == null ? null : `Your follows: ${used} of ${limit} slots`;
+
 function ordinal(n) {
   const tens = n % 100;
   if (tens >= 11 && tens <= 13) return `${n}th`;

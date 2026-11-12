@@ -198,6 +198,11 @@ export const HOME_READS = {
   "GET /api/me/home/clan": [200, { clan: HOME.clan }],
   "GET /api/me/home/needs": [200, { needs: HOME.clan }],
   "GET /api/me/home/week": [200, { week: HOME.week }],
+  // People to follow (2026-11-12): nobody new, and the slots line.
+  "GET /api/me/people/suggested": [
+    200,
+    { ok: true, people: [], used: 3, limit: 50 },
+  ],
 } satisfies Parameters<typeof signedIn>[0];
 
 export const homeApi = (overrides: Parameters<typeof signedIn>[0] = {}) =>

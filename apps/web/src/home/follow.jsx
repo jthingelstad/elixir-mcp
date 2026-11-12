@@ -126,12 +126,21 @@ export function followCostLine(c) {
  * Follow, asked first (#764: "Follow from the page always asks first and shows
  * its cost"). One dialog: who, that they are not told, and what it costs, from
  * the same read as every other Follow. A follow that would take a slot when
- * none is left is not offered; the server refuses it anyway.
+ * none is left is not offered; the server refuses it anyway. `cost` is the
+ * price when the list read it already: `{ free, following, used, limit }`.
  */
-export function FollowButton({ tag, name = null, onDone, label = "Follow" }) {
-  const { data } = useFollowCost(tag);
+export function FollowButton({
+  tag,
+  name = null,
+  onDone,
+  label = "Follow",
+  cost: known = null,
+}) {
+  // A list that priced its people already (People to follow, Find) passes
+  // the price in, so a list of thirty is not thirty reads.
+  const { data } = useFollowCost(known ? null : tag);
   const invalidate = useInvalidate();
-  const cost = data && data.player_tag === tag ? data : null;
+  const cost = known ?? (data && data.player_tag === tag ? data : null);
   const full = Boolean(
     cost && !cost.free && cost.limit != null && cost.used >= cost.limit,
   );

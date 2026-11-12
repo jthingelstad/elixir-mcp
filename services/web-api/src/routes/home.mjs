@@ -190,7 +190,7 @@ export async function readWeek(read, db, tag, wanted, now = Date.now()) {
 /** What Clan's own `/home` answers, shaped for the card. Own clock only: no
  *  other member's days reach anyone below co-leader except through an Action
  *  they may already take. */
-export function shapeClan(view, { lastRace = null } = {}) {
+export function shapeClan(view, { lastRace = null, raceNow = null } = {}) {
   const m = view?.member ?? null;
   const you = m?.you ?? null;
   const open = you?.this_war_week ?? null;
@@ -207,6 +207,7 @@ export function shapeClan(view, { lastRace = null } = {}) {
     min_members: view.min_members,
     as_of: m?.as_of ?? null,
     last_race: lastRace,
+    race_now: raceNow,
     war_decks: open
       ? { decks: open.decks, asked: null, open: true }
       : lastFinished(you?.war_weeks),
@@ -262,6 +263,49 @@ async function readLastRace(read, clanTag) {
     : null;
 }
 
+/** The race this week, as facts: which week and day, and on a war day the
+ *  boat's place by fame among the clans in it and its fame. A training day
+ *  says so and nothing more; no race recorded, or no day known, is none.
+ *  Never the day's decks: war surfaces count decks by the week (DECISIONS
+ *  "Decks, not days"). */
+export function shapeRaceNow(current, clanTag, now = Date.now()) {
+  if (!current || !["war", "training"].includes(current.day_kind)) return null;
+  const base = {
+    season_id: current.season_id,
+    section_index: current.section_index,
+    is_colosseum: current.is_colosseum === true,
+    day_kind: current.day_kind,
+    war_day: current.war_day ?? null,
+  };
+  if (current.day_kind === "training") return base;
+  const boats = [...(current.standings ?? [])].sort(
+    (a, b) => (b.fame ?? 0) - (a.fame ?? 0),
+  );
+  const at = boats.findIndex((r) => r.participant_clan_tag === clanTag);
+  const own = at >= 0 ? boats[at] : null;
+  return {
+    ...base,
+    finished:
+      current.race_finished_at != null &&
+      Date.parse(current.race_finished_at) <= now,
+    place: own ? at + 1 : null,
+    fame: own?.fame ?? null,
+  };
+}
+
+/** The race now, or none: a clan with no race recorded keeps the rest of
+ *  the card. */
+async function readRaceNow(read, clanTag) {
+  const current = await read("war_current", {
+    clan_tag: clanTag,
+    verbosity: "compact",
+  }).catch((err) => {
+    if (err.code === "not_recorded") return null;
+    throw err;
+  });
+  return shapeRaceNow(current, clanTag);
+}
+
 /** Clan's own read, called in-process as its door calls it: the same gate,
  *  role checks and closed reader, with the person this request authenticated. */
 async function readClanView(
@@ -308,6 +352,7 @@ async function readClanPanel({ db, account, event, read, clan, requestId }) {
       slots: (await myClans(db, account)).slots.activity,
     };
   const lastRace = await readLastRace(read, home.clan_tag);
+  const raceNow = await readRaceNow(read, home.clan_tag);
   const view = clan
     ? await readClanView(clan, {
         db,
@@ -323,12 +368,13 @@ async function readClanPanel({ db, account, event, read, clan, requestId }) {
       clan_tag: home.clan_tag,
       name: home.name ?? null,
       last_race: lastRace,
+      race_now: raceNow,
       needs: [],
       needs_total: 0,
     };
   return {
     state: "member",
-    ...shapeClan({ name: home.name, ...view }, { lastRace }),
+    ...shapeClan({ name: home.name, ...view }, { lastRace, raceNow }),
   };
 }
 

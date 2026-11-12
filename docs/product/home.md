@@ -26,12 +26,19 @@ tabs Today, Timeline and Friends are replaced:
 
 - **Home** (`/home`): one feed of the last seven days, newest first, in days,
   with the chips Everyone, Friends, Clan and You, and State (All, New) as
-  before. A sitting carries its sparkline. Your week, the clan panel and Setup
-  details sit beside it. A new account gets its steps instead until the first
-  read lands; they are worked out from the record each time and nothing is
-  stored.
-- **Find** (`/home/find`): search, Follow a friend, the clan directory and your
-  follow link. Friends' follow form moved here.
+  before. A sitting carries its sparkline. Your week, the clan panel (with
+  this week's race), People to follow and Setup details sit beside it, below
+  it on a phone. People to follow names up to five players in turn from your
+  battles of the last week, your clan and the players your follows follow,
+  each with why as a fact and what following costs; never ranked by skill,
+  never a nickname. [engineering, 2026-11-12] A new account gets its steps
+  instead until the first read lands; they are worked out from the record
+  each time and nothing is stored.
+- **Find** (`/home/find`): Your clan (with Follow my clan), Search and Follow a
+  friend, From your battles, the clan directory and your follow link, in the
+  design canvas's Structure order without Near you (#768, waiting on its
+  legal view); it opens on Search. Friends'
+  follow form moved here. [engineering, 2026-11-12]
 - **You** (`/home/you`): your primary verified player's page with a Stats
   tab (Ladder, unchanged), your other players listed to you alone, Settings
   and signing out; with no verified player, how to verify one. [Jamie,
@@ -44,8 +51,10 @@ tabs Today, Timeline and Friends are replaced:
   you"]
 - **Cheers** (the same ruling's six): one per person per item, on an item
   about someone or a clan the person follows, shown as counts and never as
-  who; a second tap on yours takes it back. Not on the account's own items,
-  and no mail, Discord, agent or MCP; the bell counts them on your own items.
+  who; a second tap on yours takes it back. Not on the account's own items.
+  On Home's feed, and on a player page and a battle page only for an item in
+  the reader's own feed now; no mail, Discord, agent or MCP; the bell counts
+  them on your own items.
   [engineering, 2026-11-12]
 - **Your RSS link** (DECISIONS "Your timeline is an RSS feed"): one private
   link per person to their own feed, made, reset or turned off in Settings ›
@@ -85,8 +94,14 @@ cards left Home; Wednesday's digest tells that week. [engineering,
 ## Open
 
 - Needs you's lag against Clan (above).
-- Cheers on the player page and the battle page: the ruling names Home's
-  feed; the canvas also shows them elsewhere.
+- Cheers on the player page and the battle page are on, narrowly: only an
+  item in the reader's own feed now takes them. Whether an older item, or
+  one about a player the reader does not follow, should show its counts or
+  take a cheer there, and whether a shared highlight (`/h/<id>`) shows them.
+- People to follow beside "No recommendations from Elixir": read here as
+  game advice, so the panel states facts and scores nobody. Whether the
+  thresholds (met twice in a week; a 2v2 teammate once), the
+  friends-follow source and clanmates in name order are the right ones.
 - Whether the bell should name who cheered (it counts, as Home does), show
   when someone followed, or have answers marked read by opening it.
 - Whether an alt should have a You page of its own; You is the primary player.

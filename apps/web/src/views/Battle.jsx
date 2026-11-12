@@ -22,6 +22,7 @@ import { CONSOLE } from "../lib/console.js";
 import { tagPath } from "../lib/tag-url.js";
 import { playerHref } from "../lib/player.js";
 import { ladderPlayers } from "../ladder/ladder.js";
+import { BattleCheers } from "./BattleCheers.jsx";
 import { BattleHighlight } from "./BattleHighlight.jsx";
 import { FollowFromHere } from "./FollowFromHere.jsx";
 import { PlayerBattleShare } from "./PlayerBattleShare.jsx";
@@ -240,7 +241,8 @@ function Empty({ title, children }) {
 }
 
 /** `follow` and `invite` let a page that wraps the battle (a shared post)
- *  draw its own Follow suggestions and its own way in, above it.
+ *  draw its own Follow suggestions and its own way in, above it; `cheers`
+ *  off leaves the cheers to the battle's own page.
  *  `standIn` draws the page as somebody else sees it (Settings' lens):
  *  none of the reader's own controls. */
 export function BattleView({
@@ -248,6 +250,7 @@ export function BattleView({
   me,
   follow = true,
   invite = true,
+  cheers = true,
   standIn = false,
 }) {
   const { battle, sides, games } = read;
@@ -353,6 +356,8 @@ export function BattleView({
       {signedIn && !standIn && (
         <BattleHighlight battle={battle} sides={sides} />
       )}
+
+      {signedIn && cheers && !standIn && <BattleCheers battle={battle} />}
 
       {signedIn && follow && !standIn && (
         <FollowFromHere sides={sides} me={me} />

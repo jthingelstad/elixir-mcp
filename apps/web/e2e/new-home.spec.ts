@@ -260,12 +260,18 @@ for (const [label, width] of [
       await expect(
         page.getByRole("heading", { level: 1, name: "Find" }),
       ).toBeVisible();
+      // Its sections are tabs (2026-11-12); canvas-social.spec.ts walks
+      // Your clan and From your battles.
+      const find = page.getByRole("tablist", { name: "Find" });
+      await find.getByRole("tab", { name: "Clan directory" }).click();
       await expect(
         page.getByRole("link", { name: /Clan directory/ }),
       ).toHaveAttribute("href", "/clan/directory");
+      await find.getByRole("tab", { name: "Your link" }).click();
       await expect(page.locator(".kit-find__link code")).toContainText(
         "/home/follow/",
       );
+      await find.getByRole("tab", { name: "Search" }).click();
       await expect(
         page.getByText("They aren’t told.", { exact: false }),
       ).toBeVisible();

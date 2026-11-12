@@ -96,7 +96,13 @@ export function Post({ shareId, me }) {
       {me?.authenticated === true && (
         <FollowFromHere sides={read.sides} me={me} first={h.player_tag} />
       )}
-      <BattleView read={read} me={me} follow={false} invite={false} />
+      <BattleView
+        read={read}
+        me={me}
+        follow={false}
+        invite={false}
+        cheers={false}
+      />
     </>
   );
 }
