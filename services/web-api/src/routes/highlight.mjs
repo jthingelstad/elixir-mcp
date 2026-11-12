@@ -82,7 +82,14 @@ async function picture(db, shareId, shareImage) {
   };
 }
 
-export function highlightRoutes({ resolveAccount, siteShell, shareImage }) {
+/** `wake(db, highlight)`: wakes the Discord syndication its player reaches
+ *  (syndication wakeAfterHighlight); null without the outbox. */
+export function highlightRoutes({
+  resolveAccount,
+  siteShell,
+  shareImage,
+  wake = null,
+}) {
   const person = (db, event, write) =>
     resolveAccount(db, event, { requireContractHeader: write });
   const unauthenticated = () => json(401, { error: "unauthenticated" });
@@ -115,14 +122,13 @@ export function highlightRoutes({ resolveAccount, siteShell, shareImage }) {
     "POST /api/me/highlights": async (db, event, body) => {
       const account = await person(db, event, true);
       if (!account) return unauthenticated();
-      return reply(
-        await createHighlight(db, account.accountId, {
-          battle: body.battle,
-          player_tag: body.player_tag,
-          words: body.words,
-        }),
-        (r) => ({ highlight: r.highlight }),
-      );
+      const made = await createHighlight(db, account.accountId, {
+        battle: body.battle,
+        player_tag: body.player_tag,
+        words: body.words,
+      });
+      if (!made.error && wake) await wake(db, made.highlight);
+      return reply(made, (r) => ({ highlight: r.highlight }));
     },
 
     "PUT /api/me/highlights/*": async (db, event, body) => {
@@ -130,10 +136,12 @@ export function highlightRoutes({ resolveAccount, siteShell, shareImage }) {
       if (!account) return unauthenticated();
       const id = idOf(event);
       if (!id) return notFound();
-      return reply(
-        await editHighlight(db, account.accountId, id, { words: body.words }),
-        (r) => ({ highlight: r.highlight }),
-      );
+      const edited = await editHighlight(db, account.accountId, id, {
+        words: body.words,
+      });
+      if (!edited.error && edited.changed && wake)
+        await wake(db, edited.highlight);
+      return reply(edited, (r) => ({ highlight: r.highlight }));
     },
 
     "DELETE /api/me/highlights/*": async (db, event) => {

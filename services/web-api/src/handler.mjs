@@ -32,7 +32,7 @@ import { authRoutes } from "./routes/auth.mjs";
 import { accountRoutes } from "./routes/account.mjs";
 import { discordRoutes } from "./routes/discord.mjs";
 import { timelineDiscordRoutes } from "./routes/timeline-discord.mjs";
-import { wakeAfterFact } from "@elixir-mcp/syndication";
+import { wakeAfterFact, wakeAfterHighlight } from "@elixir-mcp/syndication";
 import { emailRoutes } from "./routes/email.mjs";
 import { clansRoutes } from "./routes/clans.mjs";
 import { homeRoutes } from "./routes/home.mjs";
@@ -432,7 +432,17 @@ export function makeHandler({
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleActivityRoutes({ resolveAccount }),
     ...battleRoutes({ siteShell, shareImage }),
-    ...highlightRoutes({ resolveAccount, siteShell, shareImage }),
+    ...highlightRoutes({
+      resolveAccount,
+      siteShell,
+      shareImage,
+      // A post, or words that change, wakes the Discord syndication of
+      // the timelines its player reaches, as an admission does.
+      wake: discord?.outbox
+        ? (d, highlight) =>
+            wakeAfterHighlight(d, highlight, { outbox: discord.outbox })
+        : null,
+    }),
     ...emailRoutes({
       resolveAccount,
       secret: unsubscribeKeys,

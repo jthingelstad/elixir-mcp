@@ -11,6 +11,7 @@ export {
   accountsToWake,
   clansToWake,
   wakeAfterFact,
+  wakeAfterHighlight,
   wakeClosingSittings,
   wakeSyndication,
 } from "./wake.mjs";
