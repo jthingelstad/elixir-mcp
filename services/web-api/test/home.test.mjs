@@ -1040,14 +1040,25 @@ test("Home's feed serves its stored week until it is past serving, then builds i
     assert.equal(r.statusCode, 200, r.body);
     return data(r);
   };
+  const storedCount = async () =>
+    (
+      await db.query(
+        `select jsonb_array_length(items) as n from home_feed
+          where account_id = $1`,
+        [id],
+      )
+    ).rows[0].n;
   const first = await feed();
   assert.equal(first.total, 1);
-  // Learned after the build: the stored week does not have it yet.
+  assert.equal(await storedCount(), 1);
+  // Learned after the build: the stored week does not have it, and the
+  // read serves it anyway, because facts are read live (Codex on #818).
   await record("home-feed-stored-2", Date.now(), 20);
   const second = await feed();
   assert.deepEqual(second.window, first.window, "the same stored week");
-  assert.equal(second.total, 1);
-  // Past serving, the read builds the week again and has it.
+  assert.equal(second.total, 2);
+  assert.equal(await storedCount(), 1, "the row is not rebuilt");
+  // Past serving, the read builds the week again.
   await db.query(
     `update home_feed set built_at = built_at - interval '4 hours'
       where account_id = $1`,
@@ -1056,6 +1067,116 @@ test("Home's feed serves its stored week until it is past serving, then builds i
   const third = await feed();
   assert.equal(third.total, 2);
   assert.notDeepEqual(third.window, first.window);
+  assert.equal(await storedCount(), 2);
+});
+
+test("a stored week never outlives who may see a clan's fact: leave the clan and it goes at once (Codex on #818)", async () => {
+  const id = await person("home-feed-left");
+  const { db } = scratch;
+  const clan = "#8QLQ2Y8";
+  const tag = "#8QLQ2YJ";
+  await db.query(
+    `insert into clan(clan_tag,name) values ($1,'Left') on conflict do nothing`,
+    [clan],
+  );
+  await db.query(
+    `insert into player(player_tag,name) values ($1,'Leaver') on conflict do nothing`,
+    [tag],
+  );
+  await db.query(
+    `insert into claim(account_id,player_tag,status,relationship,is_primary)
+     values ($1,$2,'verified','primary',true)`,
+    [id, tag],
+  );
+  await db.query(
+    `insert into clan_membership(clan_tag,player_tag,role,joined_observed_at)
+     values ($1,$2,'member',now() - interval '30 days')`,
+    [clan, tag],
+  );
+  await db.query(
+    `insert into account_clan(account_id,clan_tag,scope) values ($1,$2,'activity')`,
+    [id, clan],
+  );
+  const at = new Date(Date.now() - 20 * 60_000).toISOString();
+  await db.query(
+    `insert into attested_fact
+       (subject_kind,clan_tag,player_tag,fact_type,detail,visibility,source,source_ref,occurred_at,recorded_at)
+     values ('clan',$1,null,'clan_message','{"channel":"clan_chat","body":"War day"}',
+             'clan','clan.poapkings.com','home-feed-left-1',$2,$2)`,
+    [clan, at],
+  );
+  const messages = async () => {
+    const r = await call(handler, id, "GET", "/api/me/home/feed");
+    assert.equal(r.statusCode, 200, r.body);
+    return data(r).timeline.filter((it) => it.kind === "clan_message");
+  };
+  assert.equal((await messages()).length, 1, "a member reads the clan's word");
+  const stored = (
+    await db.query(`select built_at from home_feed where account_id = $1`, [id])
+  ).rows[0].built_at;
+  await db.query(
+    `update clan_membership set left_observed_at = now()
+      where clan_tag = $1 and player_tag = $2`,
+    [clan, tag],
+  );
+  assert.deepEqual(await messages(), [], "gone on the next read");
+  const after = (
+    await db.query(`select built_at from home_feed where account_id = $1`, [id])
+  ).rows[0].built_at;
+  assert.deepEqual(after, stored, "from the stored week, not a rebuild");
+});
+
+test("More reads on after the last item served: a fact posted between pages repeats nothing (Codex on #818)", async () => {
+  const id = await person("home-feed-keyset");
+  const { db } = scratch;
+  const now = Date.now();
+  const tags = Array.from({ length: 31 }, (_, i) => {
+    const a = "0289PYLQGRJCUV";
+    return `#9${a[i % 14]}${a[Math.floor(i / 14)]}Q2Y`;
+  });
+  assert.equal(new Set(tags).size, 31);
+  const record = (tag, ref, ms) =>
+    db.query(
+      `insert into attested_fact
+         (subject_kind,player_tag,fact_type,detail,visibility,source,source_ref,occurred_at,recorded_at)
+       values ('player',$1,'personal_record','{"game":"drop","score":10}','player',
+               'drop.poapkings.com',$2,$3,$3)`,
+      [tag, ref, new Date(ms).toISOString()],
+    );
+  for (const [i, tag] of tags.entries()) {
+    await db.query(
+      `insert into player(player_tag,name) values ($1,$2) on conflict do nothing`,
+      [tag, `Keyset ${i}`],
+    );
+    await db.query(
+      `insert into claim(account_id,player_tag,relationship,is_primary)
+       values ($1,$2,'friend',false)`,
+      [id, tag],
+    );
+    await record(tag, `home-feed-keyset-${i}`, now - (i + 5) * 60_000);
+  }
+  const feed = (query) =>
+    handler({
+      path: "/api/me/home/feed",
+      method: "GET",
+      headers: {
+        cookie: `__Host-elixir_session=${sessions.get(id)}`,
+        "x-elixir-client": "web",
+        "cloudfront-viewer-address": "8.8.4.4:443",
+      },
+      queryStringParameters: query,
+    });
+  const one = data(await feed({}));
+  assert.equal(one.timeline.length, 30);
+  assert.equal(one.total, 31);
+  // A new record lands at the top between the two pages.
+  await record(tags[0], "home-feed-keyset-new", now - 60_000);
+  const more = await feed({ cursor: one.next });
+  assert.equal(more.statusCode, 200, more.body);
+  const two = data(more);
+  assert.equal(two.timeline.length, 1);
+  const ids = [...one.timeline, ...two.timeline].map((it) => it.id);
+  assert.equal(new Set(ids).size, 31, "nothing served twice");
 });
 
 test("your week counts the cheers other people gave your player's items this week, in the opening read only (G4)", async () => {

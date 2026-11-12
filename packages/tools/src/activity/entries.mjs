@@ -3099,12 +3099,12 @@ export async function playerHighlights(
   return items
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
     .slice(0, limit)
-    .map((it) => finishedHighlight(it, -1, "occurred", timezone));
+    .map((it) => finishedStory(it, -1, "occurred", timezone));
 }
 
-/** A highlight as the timeline serves it: its story as id and revision,
- *  then the fields every served item carries. */
-function finishedHighlight(it, fromMs, basis, timezone) {
+/** A highlight or an attested fact as the timeline serves it: its story
+ *  as id and revision, then the fields every served item carries. */
+function finishedStory(it, fromMs, basis, timezone) {
   const { [STORY]: story, ...rest } = it;
   const out = {
     id: storyId(...story.key),
@@ -3132,7 +3132,39 @@ export async function windowHighlights(
     fromMs,
     toMs,
   });
-  return items.map((it) => finishedHighlight(it, fromMs, "observed", timezone));
+  return items.map((it) => finishedStory(it, fromMs, "observed", timezone));
+}
+
+/**
+ * The attested facts a window of the subjects' timeline holds for this
+ * reader, finished as buildTimeline finishes them (observed basis, the
+ * same fact twice served once), for Home's stored week (0245): who may
+ * see a clan or leaders' fact is decided when it is read (factItems), so
+ * the read serves these live in place of the stored ones, and a reader
+ * who left a clan or lost a role stops seeing them at once (Codex on
+ * #818).
+ */
+export async function windowFacts(
+  db,
+  subjects,
+  { accountId, fromMs, toMs, timezone = "UTC" },
+) {
+  const items = await factItems(db, subjects, {
+    accountId,
+    fromMs,
+    toMs,
+    interactive: true,
+  });
+  items.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
+  const seen = new Set();
+  return items
+    .filter((it) => {
+      const key = `${it.subject_tag}|${it.kind}|${JSON.stringify(it.facts ?? null)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((it) => finishedStory(it, fromMs, "observed", timezone));
 }
 
 /**
