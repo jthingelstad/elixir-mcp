@@ -102,14 +102,27 @@ export async function runSmoke({
     "the corpus page carries live totals",
     /battles/.test(corpus) && /[0-9],[0-9]{3}/.test(corpus),
   );
-  // Home leads with the exchange rather than a counter, and the page wears
-  // the one bar, its phone tabs and the footer's disclaimer.
-  check("home leads with the transcript", /data-transcript/.test(home));
+  // Home is the gate and three flat rows (Jamie, 2026-11-12: "trim the
+  // signed-out front page to the gate, three flat rows and a Drop line,
+  // moving the agent demo and counts to Docs and Status"), and the page
+  // wears the one bar, its phone tabs and the footer's disclaimer.
+  check(
+    "home leads with the gate and three rows",
+    /id="home-gate"/.test(home) &&
+      (home.match(/class="home-row"/g) ?? []).length === 3,
+  );
   check(
     "the page wears the top bar, the phone tabs and the footer",
     /class="kit-top"/.test(home) &&
       /class="kit-bottom"/.test(home) &&
       /class="kit-foot"/.test(home),
+  );
+  // The agent exchange moved to the page about connecting one.
+  const connect = await fresh(`${mcpBase}/docs/connect-a-client`);
+  check("connect a client serves", connect.ok, String(connect.status));
+  check(
+    "connect a client carries the agent exchange",
+    /data-transcript/.test(connect.ok ? await connect.text() : ""),
   );
 
   // Browser security headers (#25). Checked on a real response because

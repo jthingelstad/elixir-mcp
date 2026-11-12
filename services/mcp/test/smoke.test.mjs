@@ -23,7 +23,8 @@ const SITE_HEADERS = {
   "permissions-policy": "camera=(), microphone=()",
   "strict-transport-security": "max-age=31536000; includeSubDomains",
 };
-const HOME = `<html><body><header class="kit-top"><a href="/home">Home</a></header><main><section data-transcript>...</section></main><footer class="kit-foot"></footer><nav class="kit-bottom"></nav></body></html>`;
+const HOME = `<html><body><header class="kit-top"><a href="/home">Home</a></header><main><h1 id="home-gate">Keep up</h1><article class="home-row"></article><article class="home-row"></article><article class="home-row"></article></main><footer class="kit-foot"></footer><nav class="kit-bottom"></nav></body></html>`;
+const CONNECT = `<html><body><main><section class="doc-demo"><div class="transcript" data-transcript>...</div></section></main></body></html>`;
 const APP = `<html><body><div id="root"><p>Sign in first</p></div><script type="application/json" id="elixir-bootstrap">{}</script></body></html>`;
 const APP_CSP =
   "default-src 'self'; script-src 'self' https://tinylytics.app https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'";
@@ -61,6 +62,7 @@ function healthy() {
       ),
     "/": () => text(HOME, SITE_HEADERS),
     "/data": () => text("<main>12,345 battles recorded</main>", SITE_HEADERS),
+    "/docs/connect-a-client": () => text(CONNECT, SITE_HEADERS),
     "/oauth/authorize": () =>
       text("<form>", { "content-security-policy": CONSENT_CSP }),
     "/api/public/status": cached(),
@@ -165,9 +167,31 @@ test("smoke: each regression fails the check written for it", async () => {
       { "/": () => ({ ...shell(), headers: SITE_HEADERS }) },
       [
         "home is a real document",
-        "home leads with the transcript",
+        "home leads with the gate and three rows",
         "the page wears the top bar, the phone tabs and the footer",
       ],
+    ],
+    [
+      "the old front page, its tiles and the exchange, back on / (2026-11-12)",
+      {
+        "/": () => ({
+          status: 200,
+          body: '<html><body><header class="kit-top"></header><main><h1 id="home-gate">Keep up</h1><article class="home-tile"></article><section data-transcript></section></main><footer class="kit-foot"></footer><nav class="kit-bottom"></nav></body></html>',
+          headers: SITE_HEADERS,
+        }),
+      },
+      ["home leads with the gate and three rows"],
+    ],
+    [
+      "the agent exchange missing from Connect a client",
+      {
+        "/docs/connect-a-client": () => ({
+          status: 200,
+          body: "<html><body><main>Connect</main></body></html>",
+          headers: SITE_HEADERS,
+        }),
+      },
+      ["connect a client carries the agent exchange"],
     ],
     [
       "llms.txt read as Latin-1 (2026-09-10)",
