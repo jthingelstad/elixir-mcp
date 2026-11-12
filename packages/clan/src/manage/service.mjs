@@ -1282,6 +1282,33 @@ export function createManageService({
     },
 
     /**
+     * What Home's stored clan card (home_clan_card, 0248) was judged on,
+     * as one digest: the reader's player, role and verification, the
+     * policy's version and the clan's holds. Home keeps the record half
+     * of the card and builds it again whenever this differs, so a role
+     * change, a new policy or a hold reaches the card at once. Two store
+     * reads, nothing from the record.
+     */
+    async cardBasis(clanTag, who) {
+      const policy = await policyFor(clanTag);
+      const holds = (await ledger.holds(clanTag))
+        .map((h) => JSON.stringify(h))
+        .sort();
+      return createHash("sha256")
+        .update(
+          JSON.stringify([
+            who.player_tag ?? null,
+            who.role ?? null,
+            who.verified !== false,
+            policy.set,
+            policy.version,
+            holds,
+          ]),
+        )
+        .digest("hex");
+    },
+
+    /**
      * Home's "Needs you" on its own: the store's reads and nothing from the
      * record, so the top of Home need not wait on a participation read.
      * Raises, withdraws and numbers nothing, as `homeView`.

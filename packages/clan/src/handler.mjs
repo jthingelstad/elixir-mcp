@@ -679,10 +679,19 @@ export function createHandler({
           unlock: clan.unlock ?? null,
         });
       // "Needs you" alone, so it need not wait for the card's record reads.
+      // `?basis=1` (Home's clan card) adds the reader's role and what the
+      // stored card was judged on, so the card's live half is this read.
       if (method === "GET" && rest === "/needs")
         return json(200, {
           ...(await manage.needsView(tag, who)),
           unlock: clan.unlock ?? null,
+          ...(event.queryStringParameters?.basis === "1"
+            ? {
+                role: who.role,
+                verified: who.verified !== false,
+                basis: await manage.cardBasis(tag, who),
+              }
+            : {}),
         });
       // The week in the clan: every member's, any clan, any size.
       if (method === "GET" && rest === "/week") {

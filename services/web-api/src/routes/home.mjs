@@ -50,7 +50,7 @@ const WEEK_MODES = ["ladder", "ranked", "war", "casual", "event"];
 /** One panel's read: its answer, or that it could not be read. Either way one
  *  line names the panel and how long it took, so the slow one can be read off
  *  the log. Never a tag or a name in it. */
-export async function panel(name, read) {
+export async function panel(name, read, meta = null) {
   const started = Date.now();
   try {
     const answer = { ok: true, ...(await read()) };
@@ -59,6 +59,7 @@ export async function panel(name, read) {
         at: "home_panel",
         panel: name,
         ms: Date.now() - started,
+        ...meta,
       }),
     );
     return answer;
@@ -325,7 +326,7 @@ async function readRaceNow(read, clanTag) {
  *  role checks and closed reader, with the person this request authenticated. */
 async function readClanView(
   clan,
-  { db, account, event, clanTag, requestId, read = "home" },
+  { db, account, event, clanTag, requestId, read = "home", query = {} },
 ) {
   const res = await clan({
     db,
@@ -336,7 +337,7 @@ async function readClanView(
       method: "GET",
       path: `/api/clan/clans/${clanTag.replace(/^#/, "")}/${read}`,
       body: undefined,
-      queryStringParameters: {},
+      queryStringParameters: query,
     },
     signout: async () => null,
   });
@@ -356,27 +357,70 @@ async function tracksClan(db, accountId, clanTag) {
   return rows.length > 0;
 }
 
-async function readClanPanel({ db, account, event, read, clan, requestId }) {
-  const home = await homeClan(db, account.accountId);
-  if (!home) return { state: "none" };
-  if (!(await tracksClan(db, account.accountId, home.clan_tag)))
-    return {
-      state: "untracked",
-      clan_tag: home.clan_tag,
-      name: home.name ?? null,
-      slots: (await myClans(db, account)).slots.activity,
-    };
+/** How long a stored clan card is served as it is (home_clan_card, 0248),
+ *  and how long it is served at all. Past fresh, the answer says
+ *  `refresh` and the page asks for the card built again while it shows
+ *  this one; past kept, the read builds it itself. */
+export const CLAN_CARD_FRESH_MS = 15 * 60_000;
+export const CLAN_CARD_KEEP_MS = 3 * 60 * 60_000;
+/** The card's fields that are never stored: Clan's gate answers them on
+ *  every read (Actions, the unlock notice, the reader's role). */
+const CLAN_CARD_LIVE = ["needs", "needs_total", "unlock", "role", "verified"];
+
+async function storedClanCard(db, accountId) {
+  const { rows } = await db.query(
+    `select clan_tag, basis, card, built_at from home_clan_card
+      where account_id = $1`,
+    [accountId],
+  );
+  return rows[0] ?? null;
+}
+
+/** Keep the card's record half. A build that started before the stored
+ *  one never replaces it. */
+async function storeClanCard(db, accountId, { clanTag, basis, card, started }) {
+  const kept = Object.fromEntries(
+    Object.entries(card).filter(([k]) => !CLAN_CARD_LIVE.includes(k)),
+  );
+  await db.query(
+    `insert into home_clan_card (account_id, clan_tag, basis, built_at, build_ms, card)
+     values ($1, $2, $3, $4, $5, $6)
+     on conflict (account_id) do update
+       set clan_tag = excluded.clan_tag, basis = excluded.basis,
+           built_at = excluded.built_at, build_ms = excluded.build_ms,
+           card = excluded.card
+     where home_clan_card.built_at <= excluded.built_at`,
+    [
+      accountId,
+      clanTag,
+      basis,
+      new Date(started),
+      Date.now() - started,
+      JSON.stringify(kept),
+    ],
+  );
+}
+
+/** The card as it is built from the record: the war reads and Clan's own
+ *  "You here". `gate` is Clan's live answer for this reader (null when
+ *  it holds no place Clan can show). */
+async function buildClanCard(
+  { db, account, event, read, clan, requestId },
+  home,
+  gate,
+) {
   const lastRace = await readLastRace(read, home.clan_tag);
   const raceNow = await readRaceNow(read, home.clan_tag);
-  const view = clan
-    ? await readClanView(clan, {
-        db,
-        account,
-        event,
-        clanTag: home.clan_tag,
-        requestId,
-      })
-    : null;
+  const view =
+    clan && gate
+      ? await readClanView(clan, {
+          db,
+          account,
+          event,
+          clanTag: home.clan_tag,
+          requestId,
+        })
+      : null;
   if (!view)
     return {
       state: "tracked",
@@ -390,6 +434,91 @@ async function readClanPanel({ db, account, event, read, clan, requestId }) {
   return {
     state: "member",
     ...shapeClan({ name: home.name, ...view }, { lastRace, raceNow }),
+  };
+}
+
+/** Home's clan card. Its record half (the race, your week, your standing)
+ *  is kept per account and served while fresh; Clan's gate is asked on
+ *  every read, and what it answers (Actions waiting on you, the unlock
+ *  notice, your role) is laid over the kept half. The gate's basis (your
+ *  player, role and verification, the policy's version, the clan's
+ *  holds) is kept beside it: a read whose basis differs, a departure the
+ *  gate refuses, another clan, or a card past three hours builds now.
+ *  `rebuild` builds it whatever its age (the page's ask past fresh). */
+async function readClanPanel(ctx, { rebuild = false, meta = null } = {}) {
+  const { db, account, event, clan, requestId } = ctx;
+  const home = await homeClan(db, account.accountId);
+  if (!home) return { state: "none" };
+  if (!(await tracksClan(db, account.accountId, home.clan_tag)))
+    return {
+      state: "untracked",
+      clan_tag: home.clan_tag,
+      name: home.name ?? null,
+      slots: (await myClans(db, account)).slots.activity,
+    };
+  const gate = clan
+    ? await readClanView(clan, {
+        db,
+        account,
+        event,
+        clanTag: home.clan_tag,
+        requestId,
+        read: "needs",
+        query: { basis: "1" },
+      })
+    : null;
+  const basis = gate?.basis ? `member:${gate.basis}` : "tracked";
+  const live = gate
+    ? {
+        role: gate.role,
+        verified: gate.verified,
+        unlock: gate.unlock ?? null,
+        needs: gate.needs ?? [],
+        needs_total: gate.needs_total ?? 0,
+      }
+    : { needs: [], needs_total: 0 };
+  const row = rebuild ? null : await storedClanCard(db, account.accountId);
+  const age = row ? Date.now() - Date.parse(row.built_at) : null;
+  if (
+    row &&
+    row.clan_tag === home.clan_tag &&
+    row.basis === basis &&
+    age >= 0 &&
+    age < CLAN_CARD_KEEP_MS &&
+    row.card?.state === (gate ? "member" : "tracked")
+  ) {
+    if (meta) Object.assign(meta, { stored: true, age_ms: age });
+    return {
+      ...row.card,
+      name: home.name ?? row.card.name ?? null,
+      ...(gate ? live : { needs: [], needs_total: 0 }),
+      built_at: new Date(row.built_at).toISOString(),
+      refresh: age >= CLAN_CARD_FRESH_MS,
+    };
+  }
+  const started = Date.now();
+  const card = await buildClanCard(ctx, home, gate);
+  // Clan's gate is the authority on the live half, even when the card's
+  // own read raced it.
+  const out = gate && card.state === "member" ? { ...card, ...live } : card;
+  await storeClanCard(db, account.accountId, {
+    clanTag: home.clan_tag,
+    basis,
+    card: out,
+    started,
+  }).catch((err) =>
+    console.error(
+      JSON.stringify({
+        at: "home_clan_card_store_failed",
+        code: err?.code ?? null,
+      }),
+    ),
+  );
+  if (meta) Object.assign(meta, { stored: false });
+  return {
+    ...out,
+    built_at: new Date(started).toISOString(),
+    refresh: false,
   };
 }
 
@@ -743,15 +872,25 @@ export function homeRoutes({
       if (!(await panelRate(db, account)))
         return json(429, { error: "rate_limited" });
       const read = toolReader(db, account, exploreRegistry(), event);
-      const clanPanel = await panel("clan", () =>
-        readClanPanel({
-          db,
-          account,
-          event,
-          read,
-          clan,
-          requestId: context?.requestId ?? null,
-        }),
+      // `rebuild=1`: the page's ask when the card it was served is past
+      // fresh; it builds now and keeps the build.
+      const rebuild = event.queryStringParameters?.rebuild === "1";
+      const meta = {};
+      const clanPanel = await panel(
+        rebuild ? "clan_rebuild" : "clan",
+        () =>
+          readClanPanel(
+            {
+              db,
+              account,
+              event,
+              read,
+              clan,
+              requestId: context?.requestId ?? null,
+            },
+            { rebuild, meta },
+          ),
+        meta,
       );
       return json(200, { clan: clanPanel });
     },

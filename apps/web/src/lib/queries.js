@@ -155,12 +155,27 @@ export const useMyClans = () => {
 export const useHome = () =>
   useQuery({ queryKey: ["me", "home"], queryFn: payload(api.home) });
 
-export const useHomeClan = (enabled = true) =>
-  useQuery({
+/** Home's clan card. It opens from the copy kept on an earlier visit; when
+ *  that copy says `refresh` (past fifteen minutes), the card is built again
+ *  while the page shows it, and the new one takes its place. One build per
+ *  read however many places draw the card (Home, the bell); a build that
+ *  fails leaves the kept card. */
+export const useHomeClan = (enabled = true) => {
+  const kept = useQuery({
     queryKey: ["me", "home", "clan"],
-    queryFn: payload(api.homeClan),
+    queryFn: payload(() => api.homeClan()),
     enabled,
   });
+  const due = kept.data?.clan?.refresh === true;
+  const built = useQuery({
+    queryKey: ["home-clan-rebuild", kept.dataUpdatedAt],
+    queryFn: payload(() => api.homeClan(true)),
+    enabled: enabled && due,
+    staleTime: Infinity,
+    retry: false,
+  });
+  return due && built.data?.clan?.ok ? { ...kept, data: built.data } : kept;
+};
 
 export const useHomeNeeds = () =>
   useQuery({

@@ -158,7 +158,13 @@ export const api = {
   connections: (agent) => request("GET", `${home(agent)}/connections`),
   // Home's head, what the page paints from; each slow panel reads for itself.
   home: () => request("GET", "/api/me/home"),
-  homeClan: () => request("GET", "/api/me/home/clan"),
+  // `rebuild`: the card was served from its stored copy past fresh; build
+  // it again (home_clan_card, #649).
+  homeClan: (rebuild = false) =>
+    request(
+      "GET",
+      rebuild ? "/api/me/home/clan?rebuild=1" : "/api/me/home/clan",
+    ),
   // Home's feed: the timeline without your account's own lines (the bell's).
   // Thirty items a page; `cursor` reads on in the same week (G1).
   homeFeed: (cursor) =>
