@@ -84,6 +84,15 @@ test("a posted highlight shows its words as text, with Share and Edit words", as
   expect(screen.getByRole("button", { name: "Edit words" })).toBeTruthy();
   expect(container.querySelector("img")).toBeNull();
   expect(container.textContent).toContain("<img src=x onerror=alert(1)>");
+  // The words lead (G9): they come before where they went, Share and Edit
+  // words are ordinary small buttons, and Delete is a quiet link.
+  const text = container.textContent;
+  expect(text.indexOf("<img src=x")).toBeLessThan(text.indexOf("timeline"));
+  for (const name of ["Share", "Edit words"])
+    expect(screen.getByRole("button", { name }).className).toBe("btn btn--sm");
+  expect(screen.getByRole("button", { name: "Delete" }).className).toContain(
+    "link",
+  );
   // One per player per battle: no second compose for the same player.
   expect(
     screen.queryByRole("button", { name: "Post to your timeline" }),

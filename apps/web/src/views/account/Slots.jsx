@@ -105,11 +105,14 @@ function Stop({ p }) {
   ) : null;
 }
 
+/** One player: the whole row opens their page (its name's link covers the
+ *  row), and its way to stop sits above that, a control of its own. */
 function Player({ p, action = null, why = null }) {
   return (
     <Row
+      className="kit-row--target"
       title={
-        <Link to={playerHref(p.player_tag)}>
+        <Link className="kit-row__link" to={playerHref(p.player_tag)}>
           <TagText>{p.name ?? p.player_tag}</TagText>
         </Link>
       }

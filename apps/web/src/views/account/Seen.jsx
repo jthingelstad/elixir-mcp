@@ -52,7 +52,7 @@ const refOf = (url) => /\/battle\/([0-9a-f]{12,64})$/.exec(url ?? "")?.[1];
 export function Seen({ me }) {
   const main = (me?.claims ?? []).find((c) => c.is_primary) ?? null;
   return (
-    <div className="st-page">
+    <div className="st-page st-seen">
       <PageHead
         title="What members see"
         sub="Who sees what of you on Elixir, as it works today."
@@ -349,9 +349,13 @@ function Lens({ main }) {
       <p className="m-0">
         Your main player’s latest battle, drawn by the battle page from the
         answer everyone gets. Your player’s own page reads the record every
-        member reads; a nickname you gave shows only to you.{" "}
-        {tag ? <Link to={playerHref(tag)}>Open your player’s page</Link> : null}
+        member reads; a nickname you gave shows only to you.
       </p>
+      {tag ? (
+        <Link className="btn btn--quiet st-seen__out" to={playerHref(tag)}>
+          Open your player’s page
+        </Link>
+      ) : null}
       {body}
     </Panel>
   );
