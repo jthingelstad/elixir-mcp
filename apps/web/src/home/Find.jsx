@@ -12,6 +12,7 @@ import {
 } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
 import { followMeHref } from "../lib/player.js";
+import { BringClanmates } from "../components/BringClanmates.jsx";
 import { useSheet } from "../shell/sheet.js";
 import { FollowCost, Followed, useFollow } from "./follow.jsx";
 import { FromYourBattles, YourClanPeople } from "./People.jsx";
@@ -19,7 +20,9 @@ import { FromYourBattles, YourClanPeople } from "./People.jsx";
 /**
  * Find (slice 7, #765; its sections 2026-11-12): where you go to find people
  * and be found. Your clan lists its members with what following each costs,
- * and Follow my clan; Search opens the sheet every page has, and a tag
+ * and Follow my clan, then Bring your clanmates (moved from Stats' Season,
+ * Jamie 2026-11-12: "Bring your clanmates moves to Find"); Search opens
+ * the sheet every page has, and a tag
  * follows a friend; From your battles lists the players you met; the clan
  * directory lists clans on Elixir; your Follow me link is how a friend finds
  * you. Near you waits on its legal question and is not here, not even as a
@@ -55,7 +58,10 @@ export function FindPage() {
       <PageHead title="Find" sub="People to follow, and the way to you." />
       <Tabs label="Find" items={sections} value={tab} onSelect={setTab} wrap />
       {tab === "clan" ? (
-        <YourClanPeople />
+        <>
+          <YourClanPeople />
+          <BringClanmates />
+        </>
       ) : tab === "battles" ? (
         <FromYourBattles />
       ) : tab === "directory" ? (

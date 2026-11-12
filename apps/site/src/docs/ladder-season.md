@@ -128,6 +128,5 @@ No panel says which side is better: no arrow, colour, score or word
 leans either way. The numbers are the tool's, and so is the conclusion
 yours.
 
-Below the season, once your primary player's clan is on record, the page
-offers [Invite clanmates](/docs/bring-your-clan#bring-your-clanmates):
-words to invite your clan.
+Words to invite your clan, [Invite clanmates](/docs/bring-your-clan#bring-your-clanmates),
+are on Find's **Your clan**, not here.

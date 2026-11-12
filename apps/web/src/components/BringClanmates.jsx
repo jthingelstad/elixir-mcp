@@ -44,8 +44,8 @@ function Copyable({ text, label, channel, multiline = false }) {
 }
 
 /**
- * Invite clanmates, folded on Ladder's Season tab; Clan has its own in
- * Spread the word. Shown only when the account's primary player has a recorded clan
+ * Invite clanmates, folded under Find's Your clan (2026-11-12; on Stats'
+ * Season until then, never on Home); Clan has its own in Spread the word. Shown only when the account's primary player has a recorded clan
  * (`/api/me/clans` home_clan), and named for it. A line for clan chat,
  * a longer note for Discord or a message, and the device's share sheet
  * where there is one. Without a clan it draws nothing.

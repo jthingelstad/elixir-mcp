@@ -39,7 +39,7 @@ Find is where you look for people to follow, in sections:
 
 | Section | What it holds |
 |---|---|
-| Your clan | your player's clan now: each member, what following them costs, and **Follow my clan**, asked once with the same pricing and refusal as following a clan from a player's page |
+| Your clan | your player's clan now: each member, what following them costs, and **Follow my clan**, asked once with the same pricing and refusal as following a clan from a player's page; then **Invite clanmates**, words to bring the rest of your clan to Elixir ([Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates)) |
 | Search | the search sheet, and **Follow a friend** by tag. Find opens here |
 | From your battles | the players your own players met in the last 30 days, opponents and 2v2 teammates, most met first: how often, how it went for you ("Met 3 times · 2 wins, 1 loss") and when last. From the log only, never a rating. Players you follow are marked, never hidden |
 | Clan directory | every clan on Elixir |

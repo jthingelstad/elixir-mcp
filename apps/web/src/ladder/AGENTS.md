@@ -33,9 +33,8 @@ are in `src/lib/moved.js`. Public docs:
   the profile AND a battle-log read (`capturePending` / `captureLanded`
   in `ladder.js`); the profile alone arrives seconds after an add and
   sets `recorded_since`, which is not a capture. A tag the game answered
-  404 never lands, and Pending says "Tag not found"; and Bring your clanmates, below the season home,
-  reads the account's home clan from `/api/me/clans` (cached, never
-  polled) to name the clan it invites to.
+  404 never lands, and Pending says "Tag not found". Bring your
+  clanmates is not on Stats: it moved to Find's Your clan (2026-11-12).
   A number Ladder needs that no tool returns is a tool change
   (`.claude/skills/tool-change/`), never a client derivation.
 - **Facts, never verdicts.** Everything on a page is something a tool
