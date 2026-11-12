@@ -58,7 +58,13 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   global.fetch = permissiveFetch();
 });
-afterEach(() => vi.restoreAllMocks());
+// Unmount after each test too: left mounted, the last test's App outlives
+// jsdom, and a query settling after teardown calls into React with no
+// window (an unhandled error that fails the run).
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const routes = [];
 for (const [section, def] of Object.entries(SECTIONS)) {
