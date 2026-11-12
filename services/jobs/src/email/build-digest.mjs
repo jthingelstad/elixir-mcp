@@ -76,31 +76,52 @@ const ordinal = (k) => {
   return `${k}${{ 1: "st", 2: "nd", 3: "rd" }[k % 10] ?? "th"}`;
 };
 
-/** A list of members as a clan line names them, the rest counted. */
-function memberNames(list) {
-  const items = list?.items ?? [];
+/** A list of members as a clan line names them, the people the reader
+ *  follows first, the rest counted; `tags` are the ones it names. */
+function memberNames(list, first) {
+  const all = list?.items ?? [];
+  const items = [
+    ...all.filter((m) => first.has(m.tag)),
+    ...all.filter((m) => !first.has(m.tag)),
+  ];
+  const shown = items.slice(0, CLAN_NAMES);
   const rest = Math.max(0, items.length - CLAN_NAMES) + (list?.more ?? 0);
-  return `${items
-    .slice(0, CLAN_NAMES)
-    .map((m) => m.name ?? m.tag)
-    .join(", ")}${rest ? ` +${rest} more` : ""}`;
+  return {
+    text: `${shown.map((m) => m.name ?? m.tag).join(", ")}${rest ? ` +${rest} more` : ""}`,
+    tags: shown.map((m) => m.tag),
+  };
 }
 
 /** The clan's own news for the digest, from the clan entry's structured
  *  facts: a finished river race, who joined and departed, role changes.
  *  Never its battles or who went quiet: that is its members' play, told
  *  once under each person you follow (2026-11-12, the merge). Each part
- *  is plain text; the render escapes it. [engineering, 2026-11-12] */
-export function clanNews(e) {
+ *  is plain text; the render escapes it. `named` lists, beside each
+ *  part, the moves it names by tag (`joined` or `left`), so a person's
+ *  own move is dropped only when a line the reader sees names it; the
+ *  people in `first` (those the reader follows) are named first.
+ *  [engineering, 2026-11-12] */
+export function clanNews(e, first = new Set()) {
   const parts = [];
-  for (const x of e.war?.resolved ?? [])
+  const named = [];
+  for (const x of e.war?.resolved ?? []) {
+    named.push([]);
     parts.push(
       `${x.is_colosseum ? "Colosseum" : "River race"}${x.season_id ? ` (season ${x.season_id}, week ${x.week})` : ""}: finished${x.rank ? ` ${ordinal(x.rank)}` : ""}${x.fame != null ? ` with ${Number(x.fame).toLocaleString("en-US")} fame` : ""}`,
     );
+  }
   const r = e.roster ?? {};
-  if (r.joined?.items?.length) parts.push(`joined: ${memberNames(r.joined)}`);
-  if (r.left?.items?.length) parts.push(`departed: ${memberNames(r.left)}`);
-  if (r.role_changes?.items?.length)
+  for (const [key, label] of [
+    ["joined", "joined"],
+    ["left", "departed"],
+  ]) {
+    if (!r[key]?.items?.length) continue;
+    const { text, tags } = memberNames(r[key], first);
+    parts.push(`${label}: ${text}`);
+    named.push(tags.map((tag) => `${key}|${tag}`));
+  }
+  if (r.role_changes?.items?.length) {
+    named.push([]);
     parts.push(
       `roles: ${r.role_changes.items
         .slice(0, 3)
@@ -109,9 +130,11 @@ export function clanNews(e) {
           ", ",
         )}${r.role_changes.items.length > 3 || r.role_changes.more ? " and more" : ""}`,
     );
+  }
   return {
     race: (e.war?.resolved?.length ?? 0) > 0,
     parts,
+    named,
   };
 }
 
@@ -189,9 +212,12 @@ export async function buildDigest({
   );
   // The clan's own news, one block a clan you track, each told once: a
   // clan with none (only battles, or nothing) has no block.
-  const clans = entries
+  const followedTags = new Set(
+    subjects.filter((s) => s.kind === "player").map((s) => s.tag),
+  );
+  const blocks = entries
     .filter((e) => e.kind === "clan_activity")
-    .map((e) => ({ e, news: clanNews(e) }))
+    .map((e) => ({ e, news: clanNews(e, followedTags) }))
     .filter(({ news }) => news.parts.length > 0)
     .map(({ e, news }) => ({
       tag: e.subject_tag,
@@ -200,16 +226,26 @@ export async function buildDigest({
       headline: news.parts[0],
       bullets: news.parts.slice(1, 1 + CLAN_BULLETS),
       more: Math.max(0, news.parts.length - 1 - CLAN_BULLETS),
+      // The moves the drawn lines name: a line counted in "more" names
+      // no one the reader can see.
+      told: new Set(news.named.slice(0, 1 + CLAN_BULLETS).flat()),
     }));
   const clanTags = new Set(
     subjects.filter((s) => s.kind === "clan").map((s) => s.tag),
   );
-  const toldClans = new Set(clans.map((k) => k.tag));
-  // A move into or out of a clan whose block names it is that block's
-  // news, never the person's too.
+  const toldClans = new Map(blocks.map((k) => [k.tag, k.told]));
+  const clans = blocks.map(({ told: _told, ...k }) => k);
+  // A move into or out of a clan whose block names that person is that
+  // block's news, never the person's too; one the block only counts in
+  // "+N more" stays under the person.
   const toldByClan = (it) =>
     (it.kind === "clan_joined" || it.kind === "clan_left") &&
-    toldClans.has(it.facts?.clan_tag);
+    (toldClans
+      .get(it.facts?.clan_tag)
+      ?.has(
+        `${it.kind === "clan_joined" ? "joined" : "left"}|${it.subject_tag}`,
+      ) ??
+      false);
   const itemsFor = (tag) => {
     const mine = items.filter(
       (it) =>
