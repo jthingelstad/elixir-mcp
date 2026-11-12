@@ -1,5 +1,6 @@
 import { Chips, Empty, ErrorState, Link, PageHead } from "@elixir-mcp/ui";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CLAN } from "../lib/base.js";
 import {
   CLAN_FULL,
   FILTERS,
@@ -19,8 +20,13 @@ import {
  * a grid of tiles, with filters on facts the tiles show. Listed by name and
  * never ranked; a filter hides tiles and never reorders them.
  */
-export function Directory({ state, onRetry }) {
+export function Directory({ state, onRetry, onSignedOut = sessionExpired }) {
   const [f, setF] = useState(NO_FILTERS);
+  // A finished read that refused is not a read still running (#782 review):
+  // signed out goes where Clan's other views send it.
+  useEffect(() => {
+    if (state.signedOut) onSignedOut();
+  }, [state.signedOut, onSignedOut]);
   const set = (k) => (v) => setF((was) => ({ ...was, [k]: v }));
   const clans = useMemo(() => state.data?.clans ?? [], [state.data]);
   const shown = useMemo(() => visible(clans, f), [clans, f]);
@@ -31,6 +37,27 @@ export function Directory({ state, onRetry }) {
       sub="Every clan here has saved its rules in Elixir. Find one whose rules fit how you play."
     />
   );
+  if (state.signedOut)
+    return (
+      <div className="clan-dir">
+        {head}
+        <p className="page-head__note" role="status">
+          Your session ended. Taking you to sign in…
+        </p>
+      </div>
+    );
+  if (state.forbidden)
+    return (
+      <div className="clan-dir">
+        {head}
+        <div className="callout callout--warn" role="alert">
+          <span>
+            The clan directory is for people signed in to Elixir with an
+            approved account.
+          </span>
+        </div>
+      </div>
+    );
   if (state.error && !state.data)
     return (
       <div className="clan-dir">
@@ -184,6 +211,10 @@ export function Directory({ state, onRetry }) {
       </p>
     </div>
   );
+}
+
+function sessionExpired() {
+  window.location.assign(`${CLAN}?error=session_expired`);
 }
 
 function ClanTile({ clan }) {
