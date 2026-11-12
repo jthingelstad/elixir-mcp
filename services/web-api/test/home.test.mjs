@@ -1126,6 +1126,48 @@ test("a stored week never outlives who may see a clan's fact: leave the clan and
   assert.deepEqual(after, stored, "from the stored week, not a rebuild");
 });
 
+test("Home names a fact written twice by the builder's id, the lower ledger row's (Codex on #824)", async () => {
+  const id = await person("home-feed-twice");
+  const { db } = scratch;
+  const tag = "#8QLQ2YV";
+  await db.query(
+    `insert into player(player_tag,name) values ($1,'Twice') on conflict do nothing`,
+    [tag],
+  );
+  await db.query(
+    `insert into claim(account_id,player_tag,relationship,is_primary)
+     values ($1,$2,'friend',false)`,
+    [id, tag],
+  );
+  // The same record twice: the later row (higher id) is backdated, so it
+  // comes first by instant.
+  const now = Date.now();
+  for (const [ref, ms] of [
+    ["home-feed-twice-1", now - 5 * 60_000],
+    ["home-feed-twice-2", now - 10 * 60_000],
+  ])
+    await db.query(
+      `insert into attested_fact
+         (subject_kind,player_tag,fact_type,detail,visibility,source,source_ref,occurred_at,recorded_at)
+       values ('player',$1,'personal_record','{"game":"drop","score":30}','player',
+               'drop.poapkings.com',$2,$3,$3)`,
+      [tag, ref, new Date(ms).toISOString()],
+    );
+  const r = await call(handler, id, "GET", "/api/me/home/feed");
+  assert.equal(r.statusCode, 200, r.body);
+  const served = data(r).timeline.filter((it) => it.kind === "personal_record");
+  assert.equal(served.length, 1);
+  const built = await buildTimeline(db, await subjectsFor(db, id), {
+    fromMs: now - 86_400_000,
+    toMs: Date.now(),
+    accountId: id,
+    interactive: true,
+  });
+  const theirs = built.timeline.filter((it) => it.kind === "personal_record");
+  assert.equal(theirs.length, 1);
+  assert.equal(served[0].id, theirs[0].id, "one fact, one id");
+});
+
 test("More reads on after the last item served: a fact posted between pages repeats nothing (Codex on #818)", async () => {
   const id = await person("home-feed-keyset");
   const { db } = scratch;
