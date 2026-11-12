@@ -458,7 +458,8 @@ export function makeHandler({
     ...battleActivityRoutes({ resolveAccount }),
     ...battleRoutes({ siteShell, shareImage }),
     ...cheersRoutes({ resolveAccount }),
-    ...bellRoutes({ resolveAccount }),
+    // The bell's stored week rides the same wake (bell_week, 0247).
+    ...bellRoutes({ resolveAccount, wake: homeWake }),
     ...peopleRoutes({ resolveAccount }),
     ...highlightRoutes({
       resolveAccount,

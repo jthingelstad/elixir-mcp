@@ -275,8 +275,11 @@ export async function refreshHomeWeek(
   { now = Date.now() } = {},
 ) {
   const row = await storedWeek(db, accountId);
+  // The bell's week rides the same wake (bell_week, 0247): rebuilt here
+  // when the bell has been read (a row exists) and it is past FRESH.
+  const bell = await refreshBellWeek(db, accountId, { now });
   if (row && now - row.built_at.getTime() < HOME_FRESH_MS)
-    return { skipped: "fresh" };
+    return { skipped: "fresh", ...(bell ? { bell } : {}) };
   const { timezone } = await homeAccount(db, accountId);
   const subjects = await subjectsFor(db, accountId);
   const week = await buildHomeWeek(db, accountId, {
@@ -284,6 +287,157 @@ export async function refreshHomeWeek(
     timezone,
     now,
   });
+  return {
+    items: week.items.length,
+    build_ms: week.buildMs,
+    ...(bell ? { bell } : {}),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* The bell's week (bell_week, 0247)                                   */
+/* ------------------------------------------------------------------ */
+
+/** Your own players that you verified: the only players the bell speaks
+ *  of, primary first. */
+export async function ownVerifiedPlayers(db, accountId) {
+  const { rows } = await db.query(
+    `select c.player_tag, p.name
+       from claim c left join player p using (player_tag)
+      where c.account_id = $1 and c.status = 'verified'
+        and (c.is_primary or c.relationship in ('primary', 'alt'))
+      order by c.is_primary desc, c.player_tag`,
+    [accountId],
+  );
+  return rows.map((r) => ({ tag: r.player_tag, name: r.name ?? null }));
+}
+
+/** The subjects the bell's week is built for: each own player as your
+ *  own, whatever Home calls an alt. */
+const ownSubjects = (own) =>
+  own.map((p) => ({
+    kind: "player",
+    tag: p.tag,
+    relationship: "primary",
+    nickname: null,
+  }));
+
+/** Items another person can cheer: an id, and never your account's own
+ *  lines. */
+export const cheerable = (it) => Boolean(it?.id) && it.section !== "account";
+
+/**
+ * Build the seven days of the account's own players ending `now` and
+ * store the items that take cheers. The build is the one the bell made on
+ * every read before 2026-11-12: the same subjects, reader and window.
+ */
+export async function buildBellWeek(db, accountId, { own, now = Date.now() }) {
+  const fromMs = now - HOME_WEEK_MS;
+  const started = Date.now();
+  const built = await buildTimeline(db, ownSubjects(own), {
+    fromMs,
+    toMs: now,
+    accountId,
+    interactive: true,
+    // Your account's own lines take no cheers.
+    accountLines: false,
+  });
+  const buildMs = Date.now() - started;
+  const items = (built.timeline ?? []).filter(cheerable);
+  await db.query(
+    `insert into bell_week
+       (account_id, window_from, window_to, built_at, build_ms, own_key, items)
+     values ($1, $2, $3, $3, $4, $5, $6::jsonb)
+     on conflict (account_id) do update
+        set window_from = excluded.window_from,
+            window_to = excluded.window_to,
+            built_at = excluded.built_at,
+            build_ms = excluded.build_ms,
+            own_key = excluded.own_key,
+            items = excluded.items
+      where bell_week.built_at < excluded.built_at`,
+    [
+      accountId,
+      new Date(fromMs),
+      new Date(now),
+      buildMs,
+      subjectsKey(ownSubjects(own)),
+      JSON.stringify(items.map(storedItem)),
+    ],
+  );
+  return { fromMs, toMs: now, items, buildMs };
+}
+
+async function storedBellWeek(db, accountId) {
+  const { rows } = await db.query(
+    `select window_from, window_to, built_at, own_key, items
+       from bell_week where account_id = $1`,
+    [accountId],
+  );
+  return rows[0] ?? null;
+}
+
+/**
+ * The bell's week for a read: the stored one when it was built for these
+ * own players and is no older than SERVE (past FRESH it also wakes the
+ * background build), else built now and stored. Highlights and attested
+ * facts are read live over it, as Home reads them. Returns cheerable
+ * items, newest first.
+ */
+export async function readBellWeek(
+  db,
+  accountId,
+  { own, now = Date.now(), wake = null },
+) {
+  if (own.length === 0) return { items: [], stored: false, ageMs: 0 };
+  const subjects = ownSubjects(own);
+  const row = await storedBellWeek(db, accountId);
+  const age = row ? now - row.built_at.getTime() : Infinity;
+  let week;
+  if (row && row.own_key === subjectsKey(subjects) && age <= HOME_SERVE_MS) {
+    week = { ...fromRow(row), more: 0 };
+    if (age > HOME_FRESH_MS && wake)
+      await wake(accountId, now).catch((err) =>
+        console.error(
+          JSON.stringify({
+            at: "bell_week_wake_failed",
+            code: err?.code ?? err?.name ?? null,
+          }),
+        ),
+      );
+  } else {
+    week = {
+      ...(await buildBellWeek(db, accountId, { own, now })),
+      stored: false,
+    };
+  }
+  const live = { fromMs: week.fromMs, toMs: Math.max(now, week.toMs) };
+  const highlights = await windowHighlights(db, subjects, {
+    accountId,
+    ...live,
+  });
+  const facts = await windowFacts(db, subjects, { accountId, ...live });
+  const items = [
+    ...week.items.filter(
+      (it) => it.kind !== "battle_highlight" && it.section !== "attested",
+    ),
+    ...highlights,
+    ...facts,
+  ]
+    .filter(cheerable)
+    .sort(feedOrder);
+  return { items, stored: week.stored, ageMs: week.stored ? age : 0 };
+}
+
+/** The background rebuild of a bell week already read: null when there is
+ *  none or it is fresh. */
+async function refreshBellWeek(db, accountId, { now }) {
+  const row = await storedBellWeek(db, accountId);
+  if (!row || now - row.built_at.getTime() < HOME_FRESH_MS) return null;
+  const own = await ownVerifiedPlayers(db, accountId);
+  // No own player left: the read answers empty without the row.
+  if (own.length === 0) return { skipped: "no_players" };
+  const week = await buildBellWeek(db, accountId, { own, now });
   return { items: week.items.length, build_ms: week.buildMs };
 }
 
