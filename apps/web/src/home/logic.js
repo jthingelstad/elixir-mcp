@@ -65,7 +65,9 @@ export function weekChips(modes = {}) {
   return keys.map((key) => ({ key, label: modeWord(key) }));
 }
 
-const clanToday = (tag) => `/clan/${tagPath(tag)}/today`;
+// Clan as one view (slice 8): the leaders' open Actions are Run's Waiting;
+// a member sent there lands on the Feed. One Action keeps its number.
+const clanWaiting = (tag) => `/clan/${tagPath(tag)}/run/actions`;
 const clanActions = (tag) => `/clan/${tagPath(tag)}/actions`;
 
 /** One open Action as a row, in the words its kind is drawn with. A kind with
@@ -73,7 +75,7 @@ const clanActions = (tag) => `/clan/${tagPath(tag)}/actions`;
 function actionRow(need, clan, { when }) {
   const list = clanActions(clan.clan_tag);
   const to =
-    need.number != null ? `${list}/${need.number}` : clanToday(clan.clan_tag);
+    need.number != null ? `${list}/${need.number}` : clanWaiting(clan.clan_tag);
   const who = need.subject_name;
   const key = `action-${need.type}-${need.number ?? who ?? ""}`;
   const named = (title) => (who ? `${title} ${who}` : title);
@@ -154,8 +156,8 @@ export function needsYou({ clan, needs, signals, clock }) {
     const rest = (actions.needs_total ?? 0) - (actions.needs?.length ?? 0);
     if (rest > 0)
       more = {
-        title: `and ${rest} more in Clan › Today`,
-        to: clanToday(actions.clan_tag),
+        title: `and ${rest} more waiting in Clan`,
+        to: clanWaiting(actions.clan_tag),
       };
   }
   // Only the card's read knows the clan's size, so this row comes with it.

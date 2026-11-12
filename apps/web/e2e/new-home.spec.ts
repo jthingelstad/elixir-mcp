@@ -154,7 +154,7 @@ for (const [label, width] of [
       await expect(sheet.locator(".kit-row__title").first()).toContainText(
         "Departure: kicked, left, or ignore? Ada",
       );
-      await expect(sheet).toContainText("and 3 more in Clan › Today");
+      await expect(sheet).toContainText("and 3 more waiting in Clan");
       await accessible(page, "the bell");
       await sheet.getByRole("button", { name: "Close" }).click();
       await expect(sheet).toHaveCount(0);

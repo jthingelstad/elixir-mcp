@@ -202,7 +202,7 @@ function ClanPanel({ clan, player }) {
       </Panel>
     );
   if (clan.state === "untracked") return <TrackClan clan={clan} />;
-  const base = `/clan/${tagPath(clan.clan_tag)}`;
+  const base = `/clan/${tagPath(clan.clan_tag)}/feed`;
   const race = lastRaceLine(clan.last_race);
   return (
     <Panel

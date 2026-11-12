@@ -38,7 +38,7 @@ describe("Needs you", () => {
   test("its own read says it, before the card has answered", () => {
     const { rows, more } = needsYou({ needs: panel(), clock });
     expect(rows.map((r) => r.title)).toEqual(["Welcome a newcomer: Grace"]);
-    expect(more.title).toBe("and 2 more in Clan › Today");
+    expect(more.title).toBe("and 2 more waiting in Clan");
   });
 
   test("its own read wins over the card's copy", () => {
@@ -95,10 +95,10 @@ describe("Needs you", () => {
       "Remove from the clan: Grace",
     ]);
     expect(rows[0].to).toBe("/clan/2PQRJ8LV/actions/4");
-    expect(more.title).toBe("and 3 more in Clan › Today");
+    expect(more.title).toBe("and 3 more waiting in Clan");
   });
 
-  test("an Action not numbered yet goes to Today", () => {
+  test("an Action not numbered yet goes to Run's Waiting", () => {
     const { rows } = needsYou({
       clan: clan({
         needs: [{ type: "welcome", number: null, subject_name: "Ada" }],
@@ -106,7 +106,7 @@ describe("Needs you", () => {
       }),
       clock,
     });
-    expect(rows[0].to).toBe("/clan/2PQRJ8LV/today");
+    expect(rows[0].to).toBe("/clan/2PQRJ8LV/run/actions");
   });
 
   test("Away goes to your own switch", () => {
