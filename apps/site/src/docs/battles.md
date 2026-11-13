@@ -108,7 +108,11 @@ Tower, the Princess Towers in the order the game reports them), how it ended, th
 sides' numbers next to each other, the left player's session around it when
 it holds other battles, and, for a one-on-one battle, the two players' other
 recorded meetings when there are any. A duel reads game by game: tap a game
-for its decks, and its crowns and towers where the record kept them. The
+for its decks, and its crowns and towers where the record kept them. In a
+game where one side took three crowns, the game leaves the other side's King
+Tower value out, so the page and its picture show that King Tower as
+destroyed; the page's JSON marks it `king: 0` with `king_inferred: true`
+beside it. Any other missing value reads as not recorded. The
 score at the top is the games won when the games agree with the battle's
 result, else the crowns summed over the games. The page shows
 game names only, never a nickname or anything of an account, and its link

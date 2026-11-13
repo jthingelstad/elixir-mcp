@@ -760,6 +760,10 @@ export function PolicyFoot({ e, go }) {
                 value={e.note}
                 onChange={(ev) => e.setNote(ev.target.value)}
               />
+              <p className="m-0 text-[13.5px]">
+                Saving lists this clan in Elixir&rsquo;s clan directory, with
+                its policy&rsquo;s public part.
+              </p>
               <details>
                 <summary className="label cursor-pointer">
                   What saving does

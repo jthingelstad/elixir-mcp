@@ -14,10 +14,16 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { makeHandler } from "../src/handler.mjs";
-import { cycle4, readPublicBattle, scoreOf } from "../src/battle-page.mjs";
+import {
+  cycle4,
+  readPublicBattle,
+  scoreOf,
+  withFallenKing,
+} from "../src/battle-page.mjs";
 import { battles_query } from "@elixir-mcp/tools/tools/battles/query";
 import { namedShell, previewOf } from "../src/routes/battle.mjs";
-import { makeShareImage } from "../src/share-image.mjs";
+import { drawBattle, makeShareImage } from "../src/share-image.mjs";
+import { fontMetrics } from "../src/font-metrics.mjs";
 import { shareSources } from "../src/share-files.mjs";
 import {
   createScratch,
@@ -48,6 +54,15 @@ const get = (p) =>
     method: "GET",
     headers: {},
   });
+
+const metrics = async () => {
+  const f = shareSources();
+  return {
+    regular: fontMetrics(await readFile(f.interRegular)),
+    bold: fontMetrics(await readFile(f.interBold)),
+    clash: fontMetrics(await readFile(f.clash)),
+  };
+};
 
 const fixture = async (rel) =>
   JSON.parse(await readFile(path.join(repoRoot, "fixtures", rel), "utf8"));
@@ -327,6 +342,107 @@ test("a duel whose game results were never kept shows its decks, no score", asyn
         ],
       );
   }
+});
+
+test("a duel game's King left out under three crowns reads fallen; any other gap stays missing", async () => {
+  // Jamie, 2026-11-13: show it "Down". The game omits a round's
+  // kingTowerHitPoints for the side whose opponent took three crowns.
+  const id = await battleOf("trail");
+  const before = await readPublicBattle(db, id);
+  const [leftTag, rightTag] = before.sides.map((s) => s.players[0].player_tag);
+  const { rows: kept } = await db.query(
+    `select player_tag, round, crowns, king_tower_hp
+       from battle_participant_round where battle_id = $1`,
+    [id],
+  );
+  const set = (tag, round, col, v) =>
+    db.query(
+      `update battle_participant_round set ${col} = $4
+        where battle_id = $1 and player_tag = $2 and round = $3`,
+      [id, tag, round, v],
+    );
+  // Game 3, which the left side won 2-1: now a three-crown win, the
+  // loser's King left out as the game sends it. Game 1, which the right
+  // side lost 0-1: the left side's King missing with one crown against.
+  await set(leftTag, 3, "crowns", 3);
+  await set(rightTag, 3, "king_tower_hp", null);
+  await set(leftTag, 1, "king_tower_hp", null);
+  try {
+    const read = await readPublicBattle(db, id);
+    const [g1, , g3] = read.games;
+    assert.equal(g3.sides[1].tower_hp.king, 0);
+    assert.equal(g3.sides[1].tower_hp.king_inferred, true);
+    // The Princess Towers stay as recorded.
+    assert.deepEqual(
+      g3.sides[1].tower_hp.princess,
+      before.games[2].sides[1].tower_hp.princess,
+    );
+    // The winning side's own King is untouched.
+    assert.deepEqual(g3.sides[0].tower_hp, before.games[2].sides[0].tower_hp);
+    // Fewer than three crowns against: still not recorded.
+    assert.equal(g1.sides[0].tower_hp.king, undefined);
+    assert.equal(g1.sides[0].tower_hp.king_inferred, undefined);
+    // Winners and the score are what they were.
+    assert.deepEqual(
+      read.games.map((g) => g.winner),
+      before.games.map((g) => g.winner),
+    );
+    assert.deepEqual(read.score, before.score);
+    // The picture draws the last game from the same projection: the
+    // right side's King reads Down (share-image.test.mjs reads the tiles).
+    const svg = drawBattle(read, { ...(await metrics()), art: new Map() });
+    const texts = [
+      ...svg.matchAll(/<text x="([\d.]+)" y="([\d.]+)"[^>]*>([^<]*)<\/text>/g),
+    ].map((m) => ({ x: Number(m[1]), y: Number(m[2]), t: m[3] }));
+    const kings = texts
+      .filter((e) => e.t === "King Tower")
+      .sort((a, b) => a.x - b.x)
+      .map((e) => texts.find((v) => v.x === e.x && v.y === e.y + 27)?.t);
+    assert.equal(kings.length, 2);
+    assert.equal(kings[1], "Down");
+    assert.notEqual(kings[0], "Down");
+  } finally {
+    for (const k of kept) {
+      await set(k.player_tag, k.round, "crowns", k.crowns);
+      await set(k.player_tag, k.round, "king_tower_hp", k.king_tower_hp);
+    }
+  }
+});
+
+test("withFallenKing: only a missing King under three crowns against", () => {
+  const side = (king, crowns = 0) => ({
+    crowns,
+    tower_hp: {
+      ...(king === undefined ? {} : { king }),
+      princess: [0, 1200],
+    },
+  });
+  assert.deepEqual(withFallenKing(side(undefined), { crowns: 3 }).tower_hp, {
+    king: 0,
+    princess: [0, 1200],
+    king_inferred: true,
+  });
+  assert.deepEqual(withFallenKing(side(null), { crowns: 3 }).tower_hp, {
+    king: 0,
+    princess: [0, 1200],
+    king_inferred: true,
+  });
+  // A King the game sent is never touched, 0 or not.
+  for (const king of [0, 4000]) {
+    const s = side(king);
+    assert.equal(withFallenKing(s, { crowns: 3 }), s);
+  }
+  // Fewer than three crowns against, or no result for the other side.
+  for (const other of [{ crowns: 2 }, { crowns: null }, null]) {
+    const s = side(undefined);
+    assert.equal(withFallenKing(s, other), s);
+  }
+  // No tower state at all, or no side: left as it is.
+  assert.equal(
+    withFallenKing({ crowns: 0, tower_hp: null }, { crowns: 3 }).tower_hp,
+    null,
+  );
+  assert.equal(withFallenKing(null, { crowns: 3 }), null);
 });
 
 test("a deck is null only where the stored row holds no cards", async () => {

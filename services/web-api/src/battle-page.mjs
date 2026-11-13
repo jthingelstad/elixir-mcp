@@ -111,6 +111,22 @@ function roundWinner(a, b) {
   return la > lb ? 0 : 1;
 }
 
+/** A duel game's side with its King Tower read as fallen when the game
+ *  left the value out because the opponent took three crowns in that
+ *  game (Jamie, 2026-11-13: show it "Down"). The game omits a round's
+ *  kingTowerHitPoints rather than sending 0 for that side
+ *  (cr-agent-api-docs, models/battles.md, Duel Rounds). The rule lives
+ *  here alone, so the page and the picture read one answer: king 0, the
+ *  same as a King the game reported destroyed, with king_inferred true
+ *  beside it to say Elixir filled it in. Every other missing value stays
+ *  missing, and the Princess Towers are never touched. A side with no
+ *  tower state at all is left as it is. */
+export function withFallenKing(side, other) {
+  const t = side?.tower_hp;
+  if (!t || typeof t.king === "number" || other?.crowns !== 3) return side;
+  return { ...side, tower_hp: { ...t, king: 0, king_inferred: true } };
+}
+
 /** The score the page leads with. A duel's is the games each side won,
  *  when every game's result is recorded and they agree with the battle's
  *  recorded outcome; otherwise the crowns, which for a duel are summed
@@ -224,10 +240,13 @@ export async function readPublicBattle(db, ref, { around = true } = {}) {
         a && z && typeof a.crowns === "number" && typeof z.crowns === "number"
           ? roundWinner(a, z)
           : null;
+      // The winner is read first, from the values as recorded: a game
+      // with three crowns on one side is decided by the crowns, so the
+      // fallen King below never moves a winner, a score or a count.
       return {
         round: i + 1,
         winner: w === null ? null : w === 0 ? "left" : "right",
-        sides: [a, z],
+        sides: [withFallenKing(a, z), withFallenKing(z, a)],
       };
     });
     if (games.length === 0) games = null;
