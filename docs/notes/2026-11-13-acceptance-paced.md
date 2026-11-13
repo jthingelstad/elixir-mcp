@@ -7,8 +7,8 @@ it dropped connections: MCP and the collector door answered 5xx, ingest
 hit statement timeouts and a deploy failed at its migrate step. The same
 had happened at 19:00 UTC the day before, ahead of a restart. A
 whole-suite run cost 10 to 15 points of byte balance (29 at worst), a
-one-family run 4 to 7, and the bucket refills only about 4 to 6 points
-an hour at idle.
+one-family run 4 to 7, and the bucket refills only 1 to 6 points an
+hour at quiet times.
 
 What changed (no contract, API or migration change):
 
