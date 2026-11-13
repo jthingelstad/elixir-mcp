@@ -1,5 +1,5 @@
 import { noun } from "@elixir-mcp/ui";
-import { removalDay, setMinimums } from "@elixir-mcp/clan-engine";
+import { ranksElder, removalDay, setMinimums } from "@elixir-mcp/clan-engine";
 
 /**
  * A clan's policy as its house rules: one card a rule, its numbers big
@@ -85,6 +85,50 @@ function numbersFor(key, values) {
   return null;
 }
 
+/**
+ * Who sees what about you under each rule (Jamie, 2026-11-13), read from
+ * the saved values and true to what the server enforces:
+ *  - the week's numbers are every member's (`weekView`);
+ *  - where everyone stands is on Standing when Elder is ranked and the
+ *    policy shows it (`members_see_standing`; `standing()` always shows a
+ *    leader), else only your own line;
+ *  - your days without a battle, your clock and your hold or away are
+ *    yours and the leaders' (`standing().you`, `manageView`), and a
+ *    removal Action reaches the clan's Discord when leaders connect one
+ *    (`discordShareable`); completed promotions, demotions and removals
+ *    are shared with the clan (`sharing.mjs`);
+ *  - a welcome Action, naming the newcomer, is for Elders and leaders.
+ * Null without saved values (Standing shows the rules alone).
+ */
+export function seesFor(key, values) {
+  if (!values) return null;
+  const ranked = ranksElder(values);
+  const board = ranked && Boolean(values.members_see_standing);
+  const done =
+    "A promotion or demotion is shared with the clan once it's done.";
+  if (key === "about")
+    return "Nothing here is about you: every member reads it, and so does Elixir's clan directory.";
+  if (key === "counts")
+    return "Every member sees your war decks, donations and battles each week.";
+  if (key === "minimums")
+    return board
+      ? "Every member sees on Standing where you are against them."
+      : "Only you and the Leader and Co-Leaders see where you are against them.";
+  if (key === "elder")
+    return !ranked
+      ? done
+      : board
+        ? `Every member sees on Standing who's rising and who's slipping, with their numbers. ${done}`
+        : `Only you and the Leader and Co-Leaders see where you stand. ${done}`;
+  if (key === "removal")
+    return `Only you and the Leader and Co-Leaders see your days without a battle, whether you're at risk${
+      values.away_max_days > 0 ? ", and your away" : ""
+    }. If they post the clan's Actions to Discord, a removal goes there too. A removal is shared with the clan once it's done.`;
+  if (key === "welcome")
+    return "Elders and the Leader and Co-Leaders get an Action naming you when you join.";
+  return null;
+}
+
 function Numbers({ numbers }) {
   return (
     <ul className="kit-rule__nums">
@@ -146,8 +190,9 @@ export function ordered(how) {
 }
 
 /** One rule: its title, its numbers, its sentences. */
-function Rule({ section, values, weights, mark }) {
+function Rule({ section, values, weights, mark, sees }) {
   const numbers = numbersFor(section.key, values);
+  const who = sees ? seesFor(section.key, values) : null;
   const id = ruleId(section.key);
   return (
     <article
@@ -169,12 +214,20 @@ function Rule({ section, values, weights, mark }) {
           <p key={line}>{line}</p>
         ))}
       </div>
+      {who ? <p className="kit-rule__sees">{who}</p> : null}
     </article>
   );
 }
 
-/** Every rule of a policy, one card each. */
-export function HouseRules({ how, values = null, weights = null, mark = {} }) {
+/** Every rule of a policy, one card each; `sees` adds who sees what
+ *  about you under each (Policy, which has the saved values). */
+export function HouseRules({
+  how,
+  values = null,
+  weights = null,
+  mark = {},
+  sees = false,
+}) {
   return (
     <div className="kit-rules">
       {ordered(how).map((section) => (
@@ -184,6 +237,7 @@ export function HouseRules({ how, values = null, weights = null, mark = {} }) {
           values={values}
           weights={weights}
           mark={mark[section.key]}
+          sees={sees}
         />
       ))}
     </div>

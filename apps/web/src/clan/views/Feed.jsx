@@ -233,7 +233,7 @@ export function RaceBar({ race }) {
   );
 }
 
-export function Feed({ clan, who, closedOpen, navigate }) {
+export function Feed({ clan, who, navigate }) {
   const base = clanPath(clan.clan_tag);
   const actions = useActions(clan.clan_tag).state;
   const you = useMemberView(clan.clan_tag).state;
@@ -248,12 +248,7 @@ export function Feed({ clan, who, closedOpen, navigate }) {
         <div className="clan-today__waiting">
           <RaceBar race={race.data?.race ?? null} />
           <div className="clan-today__now">
-            <ActionsNow
-              clan={clan}
-              who={who}
-              closedOpen={closedOpen}
-              navigate={navigate}
-            />
+            <ActionsNow clan={clan} who={who} navigate={navigate} />
           </div>
           <div className="clan-today__timeline">
             <ClanTimeline clan={clan} enabled={ready} />

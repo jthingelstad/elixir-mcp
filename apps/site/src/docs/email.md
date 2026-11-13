@@ -7,7 +7,7 @@ order: 4
 navTitle: "Email"
 icon: mail
 lede: "One digest of the people you follow and your clan, weekly or daily. Besides it, only mail with something for you to do or read: clan actions waiting, your collector's week, and answers to your feedback."
-reviewed: "2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
+reviewed: "2026-11-13 the digest's clan news is its own switch; 2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
 ---
 
 # Email
@@ -65,6 +65,10 @@ chooses what to say, and the timeline keeps everything.
 - **Your clan:** each clan you follow with news of its own: a river race
   that finished (its place and fame), who joined and departed, and role
   changes, as a headline and at most three facts with the rest counted.
+  It's yours to turn off: **Clan news** under the digest on
+  [Emails](/settings/emails). Off, the digest has no clan part, and a
+  clanmate you follow who joined, left or changed role is told under
+  them instead.
 - **You:** your own week, your firsts, your cards and badges counted, and
   each alt that played, with its firsts.
 - **Never an empty week:** when no one you follow played or posted,
@@ -124,7 +128,7 @@ counts what it leaves out and links the rest.
 
 Each kind has its own switch on [Emails](/settings/emails)
 (Settings › Emails). The digest shows its local day and time and its
-cadence beside its switch. The other kinds follow below, then the
+cadence beside its switch, and its **Clan news** switch under it. The other kinds follow below, then the
 latest sent records. **Every email** turns them all off, or all back on. Every issue's
 footer has a
 *turn off* link for that kind, which opens a page with one button to

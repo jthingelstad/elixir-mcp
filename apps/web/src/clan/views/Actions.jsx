@@ -294,8 +294,9 @@ export function ActionDetail({ clan, who, number, navigate }) {
       <>
         {head}
         <Empty title={<>No action #{number} here</>}>
-          It is not one of this clan&rsquo;s actions, or it is for someone else
-          to take.
+          It is not one of this clan&rsquo;s actions, it is for someone else to
+          take, or it is closed. Closed actions are for the Leader and
+          Co-Leaders.
         </Empty>
       </>
     );

@@ -265,7 +265,6 @@ export function ClanPage() {
         me={me}
         clan={clan}
         who={who}
-        closedOpen={search.show === "closed"}
         navigate={navigate}
       />
     );

@@ -757,6 +757,41 @@ test("policy tab: a member reads how the clan runs and Elder's weights, as Stand
   assert.equal(empty.body.weights, null);
 });
 
+test("policy tab: past versions are the Leader's and Co-Leaders' only, refused to a member and an Elder", async () => {
+  const ledger = ledgerWithPolicy(
+    createMemoryLedger(),
+    "#0QC8RCGY",
+    EXAMPLE_POLICY,
+  );
+  const hl = harness({ part: partClan(), ledger });
+  const lCookies = await leader(hl);
+  const saved = await api(hl, lCookies, "POST", "/api/clans/0QC8RCGY/policy", {
+    values: { ...EXAMPLE_POLICY, at_risk_days: 6 },
+    note: "a little more rope",
+  });
+  assert.equal(saved.status, 200);
+  const lead = await api(hl, lCookies, "GET", "/api/clans/0QC8RCGY/policy");
+  assert.ok(lead.body.versions.length >= 2);
+  assert.equal(lead.body.versions[0].note, "a little more rope");
+  for (const role of ["member", "elder"]) {
+    const h = harness({
+      players: [player({ player_tag: "#O2", clan_role: role })],
+      part: partClan(),
+      ledger,
+    });
+    const view = await api(
+      h,
+      await leader(h),
+      "GET",
+      "/api/clans/0QC8RCGY/policy",
+    );
+    assert.equal(view.status, 200, role);
+    // The policy as it stands, and none of its history.
+    assert.equal(view.body.current.version, lead.body.current.version, role);
+    assert.deepEqual(view.body.versions, [], role);
+  }
+});
+
 test("nothing under a clan answers without a session: no public pages or documents", async () => {
   const h = harness({ part: partClan() });
   for (const path of [
@@ -1769,6 +1804,81 @@ test("actions: a quiet member is asked if they are away, on their own actions, a
     ![...leaderView.body.open, ...leaderView.body.recent].some(
       (a) => a.type === "away",
     ),
+  );
+});
+
+test("actions: closed ones are the Leader's and Co-Leaders' only, refused to a member and an Elder on the server", async () => {
+  const ledger = ledgerWithPolicy(
+    createMemoryLedger(),
+    "#0QC8RCGY",
+    EXAMPLE_POLICY,
+  );
+  const at = (days) => new Date(NOW.getTime() - days * DAY).toISOString();
+  const closed = (number, type, extra = {}) => ({
+    card_id: `closed-${number}`,
+    number,
+    clan_tag: "#0QC8RCGY",
+    type,
+    status: "done",
+    raised_at: at(3),
+    decided_at: at(2),
+    policy_version: 1,
+    evidence: { rationale: { headline: "Closed for the test." } },
+    ...extra,
+  });
+  // One closed action for each audience: the member's own, the elders',
+  // the leaders'. (A member's open ones stay theirs: the away test above.)
+  await ledger.putCard(
+    "#0QC8RCGY",
+    closed(901, "away", { player_tag: "#0RJL", player_name: "Sleepy" }),
+  );
+  await ledger.putCard(
+    "#0QC8RCGY",
+    closed(902, "welcome", { player_tag: "#O3", player_name: "Newbie" }),
+  );
+  await ledger.putCard(
+    "#0QC8RCGY",
+    closed(903, "removal", { player_tag: "#GONE", player_name: "Gone" }),
+  );
+  for (const [role, tag, own] of [
+    ["member", "#0RJL", 901],
+    ["elder", "#O1", 902],
+  ]) {
+    const h = harness({
+      players: [player({ player_tag: tag, name: "Someone", clan_role: role })],
+      part: partClan(),
+      ledger,
+    });
+    const c = await leader(h);
+    const view = await api(h, c, "GET", "/api/clans/0QC8RCGY/actions");
+    assert.equal(view.status, 200, JSON.stringify(view.body));
+    assert.deepEqual(view.body.recent, [], `${role}: no closed actions`);
+    // Not by number, and not by commenting on one, even its own.
+    const byNumber = await api(
+      h,
+      c,
+      "GET",
+      `/api/clans/0QC8RCGY/actions/${own}`,
+    );
+    assert.equal(byNumber.status, 404, `${role} #${own}`);
+    assert.equal(byNumber.body.error, "no_action");
+    const said = await api(
+      h,
+      c,
+      "POST",
+      `/api/clans/0QC8RCGY/actions/closed-${own}/comments`,
+      { text: "late" },
+    );
+    assert.equal(said.status, 404, `${role} comment`);
+  }
+  // The Leader still looks back on the ones they could have taken.
+  const lh = harness({ part: partClan(), ledger });
+  const lc = await leader(lh);
+  const lead = await api(lh, lc, "GET", "/api/clans/0QC8RCGY/actions");
+  assert.deepEqual(lead.body.recent.map((a) => a.number).sort(), [902, 903]);
+  assert.equal(
+    (await api(lh, lc, "GET", "/api/clans/0QC8RCGY/actions/903")).status,
+    200,
   );
 });
 

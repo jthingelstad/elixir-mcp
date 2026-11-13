@@ -94,6 +94,13 @@ export const api = {
         ? { kind: "tracking_report", enabled: false }
         : { kind: "tracking_report", cadence: choice, enabled: true },
     ),
+  /** The digest's clan part on or off (the clan report's stored row,
+   *  which the digest reads). */
+  setDigestClanPart: (on) =>
+    request("PUT", "/api/me/email", {
+      kind: "tracking_report",
+      clan_part: on,
+    }),
   myEmailSends: () => request("GET", "/api/me/email/sends"),
   emailRecord: (send_id) =>
     request("GET", `/api/me/email/sends/${encodeURIComponent(send_id)}`),

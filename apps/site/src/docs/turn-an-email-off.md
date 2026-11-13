@@ -7,7 +7,7 @@ order: 6
 navTitle: "Turn an email off"
 icon: bell-off
 lede: "Every kind of email is one switch, all on to start. Turn one off from Settings › Emails or from the link at the foot of any issue, and turn it back on the same way."
-reviewed: "2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest; the clan report, Arena week and milestone emails ended; 2026-10-08 against contract 11.3.0"
+reviewed: "2026-11-13 the digest's Clan news switch; 2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest; the clan report, Arena week and milestone emails ended; 2026-10-08 against contract 11.3.0"
 callout: ["Open it at Settings › Emails", "/settings/emails", "Open Emails"]
 ---
 
@@ -27,7 +27,10 @@ with the day and time it arrives in your time zone: Your digest and Collector
 activity. Your digest is three choices instead of a switch: **Weekly**
 (Mondays, right after the weekly reset), **Daily** (every day, at the same time) or **Off**
 ([Your digest](/docs/email#your-digest)). Tapping Weekly or Daily turns it
-on at that pace, and Off turns it off. The two that come when something happens,
+on at that pace, and Off turns it off. Under it, **Clan news** is a
+switch for the digest's clan part: your clans' races, joins, departures
+and role changes. Turn it off and the digest keeps the people you follow
+and your own week. **Every email** leaves Clan news as you set it. The two that come when something happens,
 Clan actions waiting and Answers to your feedback, sit below under
 **When something happens**. Each has a
 line on what it is and a switch; turn one off and it stops. A kind
@@ -62,6 +65,8 @@ about one subject:
 - **Your digest**: switch off the player's **Notifications** on its
   page under Settings › Players & following, and it leaves the digest and your timeline while
   recording carries on ([Follow a friend](/docs/follow-a-friend#the-notifications-switch)).
+- **Your clans in your digest**: switch **Clan news** off under the
+  digest and no clan's part is in it.
 - **A clan in your digest**: stopping following a clan takes its news
   out of your digest, and stops its recording too unless something else
   keeps it recorded.

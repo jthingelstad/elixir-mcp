@@ -446,7 +446,10 @@ function Decided({ clan, navigate }) {
 
 /** Waiting: what this person can act on, in the engine's order, one line each;
  *  each line opens the action's own page. */
-function Waiting({ d, clan, who, navigate, closedOpen, state, load }) {
+/** Closed Actions are the Leader's and Co-Leaders' to look back on (Jamie,
+ *  2026-11-13), on Run's Decided: the API sends `recent` to no one else,
+ *  and the leaders' own copy of it feeds only the leader-message notice. */
+function Waiting({ d, clan, who, navigate, state, load }) {
   const lead = leads(clan);
   const open = [...d.open].sort(
     (a, b) => rank(a.type) - rank(b.type) || (a.number ?? 0) - (b.number ?? 0),
@@ -511,24 +514,6 @@ function Waiting({ d, clan, who, navigate, closedOpen, state, load }) {
           navigate={navigate}
         />
       )}
-      {!lead && d.recent.length ? (
-        <details open={closedOpen} className="clan-fold">
-          <summary className="label cursor-pointer">
-            Closed in the last 30 days · {d.recent.length}
-          </summary>
-          <div className="mt-2">
-            <ActionList
-              id="actions-closed"
-              title="Closed"
-              tone="chip--mute"
-              actions={d.recent}
-              clan={clan}
-              who={who}
-              navigate={navigate}
-            />
-          </div>
-        </details>
-      ) : null}
     </div>
   );
 }
@@ -540,7 +525,7 @@ function Waiting({ d, clan, who, navigate, closedOpen, state, load }) {
  * policy or under ten members says what that means where the actions would
  * be.
  */
-export function ActionsNow({ clan, who, closedOpen, navigate }) {
+export function ActionsNow({ clan, who, navigate }) {
   const { state, query, load } = useActions(clan.clan_tag);
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -588,7 +573,6 @@ export function ActionsNow({ clan, who, closedOpen, navigate }) {
       clan={clan}
       who={who}
       navigate={navigate}
-      closedOpen={closedOpen}
       state={state}
       load={load}
     />

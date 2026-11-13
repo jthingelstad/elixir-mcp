@@ -281,6 +281,13 @@ export function emailRoutes({
             kind === "tracking_report"
               ? (by.get(kind)?.cadence ?? "weekly")
               : null,
+          // The digest's clan part: the clan report's stored switch, the
+          // row the digest reads (jobs `foldedOff`); null on every other
+          // kind.
+          clan_part:
+            kind === "tracking_report"
+              ? (by.get("clan_report")?.enabled ?? true)
+              : null,
           applies:
             kind === "collector_activity"
               ? Boolean(ops[0]?.operator)
@@ -331,7 +338,20 @@ export function emailRoutes({
         if (!DIGEST_CADENCES.includes(cadence))
           return json(400, { error: "bad_cadence" });
       }
-      if (cadence === undefined && typeof body?.enabled !== "boolean")
+      // The digest's clan part (2026-11-13): written to the clan report's
+      // row, which the digest reads; that kind stays retired as a mail.
+      const clanPart = body?.clan_part;
+      if (clanPart !== undefined) {
+        if (kind !== "tracking_report")
+          return json(400, { error: "no_clan_part" });
+        if (typeof clanPart !== "boolean")
+          return json(400, { error: "bad_clan_part" });
+      }
+      if (
+        cadence === undefined &&
+        clanPart === undefined &&
+        typeof body?.enabled !== "boolean"
+      )
         return json(400, { error: "bad_enabled" });
       if (body.enabled !== undefined && typeof body.enabled !== "boolean")
         return json(400, { error: "bad_enabled" });
@@ -341,10 +361,19 @@ export function emailRoutes({
         await setCadence(db, account.accountId, cadence);
       if (typeof body.enabled === "boolean")
         await setPref(db, account.accountId, kind, body.enabled, "profile");
+      if (clanPart !== undefined)
+        await setPref(
+          db,
+          account.accountId,
+          "clan_report",
+          clanPart,
+          "profile",
+        );
       return json(200, {
         kind,
         ...(typeof body.enabled === "boolean" ? { enabled: body.enabled } : {}),
         ...(cadence !== undefined ? { cadence } : {}),
+        ...(clanPart !== undefined ? { clan_part: clanPart } : {}),
       });
     },
     "GET /api/email/unsubscribe": async (db, event) => {

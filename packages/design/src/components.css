@@ -5793,6 +5793,16 @@ a.card-art:hover .card-art__img {
   max-width: 100%;
   margin-top: 8px;
 }
+/* The digest's clan part: a quiet line under its cadence, its own switch
+   at the end. */
+.mail-pref__part {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 420px;
+  margin-top: 10px;
+}
 .mail-pref__last {
   display: inline-block;
   margin-top: 5px;
@@ -9769,6 +9779,13 @@ a.kit-mbattle:hover {
   color: var(--ink-body);
   font-size: 14.5px;
   line-height: 1.55;
+}
+/* Who sees what about you under a rule (Policy): quiet, under its lines. */
+.kit-rule__sees {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: var(--t-body-sm);
+  line-height: 1.45;
 }
 /* The rule behind a member's group (Standing's You). */
 .kit-why {

@@ -517,6 +517,24 @@ test("each player once: a followed clanmate is told under themselves, the clan p
   assert.match(out.html, /In <a [^>]*>Otters<\/a>/);
 });
 
+test("the clan part turned off: no clan part, and the moves are told under the people", async () => {
+  const mail = await buildDigest({
+    db,
+    account: { accountId: mergeReader, timezone: "UTC" },
+    cadence: "weekly",
+    window: W2,
+    fold: { clan: false, arena: true },
+  });
+  assert.ok(mail, "the people followed still make a digest");
+  assert.deepEqual(mail.clans, []);
+  const gone = mail.people.find((p) => p.tag === GONE);
+  assert.ok(gone, JSON.stringify(mail.people));
+  assert.ok(
+    gone.items.some((it) => it.kind === "clan_left"),
+    JSON.stringify(gone.items),
+  );
+});
+
 test("a clan's news alone sends a weekly digest, never one for a reader who had the clan report off", async () => {
   const args = {
     db,

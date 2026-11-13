@@ -226,6 +226,12 @@ export function createManageService({
   exclusive = (_clanTag, fn) => fn(),
 }) {
   const isLeader = (who) => LEADERS.has(who.role);
+  /** Closed Actions are the Leader's and Co-Leaders' to look back on
+   *  (Jamie, 2026-11-13): anyone else reads only the open ones they may
+   *  take, in the list, by number and in its log. */
+  const mayRead = (card, who) =>
+    canAct(card, who) &&
+    (card.status === "proposed" || (isLeader(who) && who.verified !== false));
   const requireLeader = (who) => {
     if (!isLeader(who) || who.verified === false)
       throw new ManageError(403, "leaders_only");
@@ -1408,9 +1414,9 @@ export function createManageService({
 
     /**
      * Actions, for everyone in a clan with a policy: the open ones this
-     * person may take (assigned to them, or open to their role), and the
-     * ones closed in the last 30 days they could have taken, each with its
-     * log. Reuse the saved evaluation while processing Actions; an explicit
+     * person may take (assigned to them, or open to their role), and, for
+     * the Leader and Co-Leaders only, the ones closed in the last 30 days
+     * they could have taken, each with its log (`mayRead`). Reuse the saved evaluation while processing Actions; an explicit
      * refresh or a missing/current-policy snapshot evaluates the record.
      */
     async actionsView(clanTag, who, { refresh = false } = {}) {
@@ -1436,6 +1442,7 @@ export function createManageService({
         .filter(
           (c) =>
             c.status !== "proposed" &&
+            mayRead(c, who) &&
             t - Date.parse(closedAt(c)) < 30 * DAY_MS,
         )
         .sort((a, b) => (closedAt(a) < closedAt(b) ? 1 : -1))
@@ -1461,15 +1468,15 @@ export function createManageService({
       };
     },
 
-    /** One action by its number ("take a look at action 37"), open or
-     *  closed, for anyone who may see it; anyone else is told there is no
-     *  such action. */
+    /** One action by its number ("take a look at action 37"): an open one
+     *  for anyone who may take it, a closed one for the Leader and
+     *  Co-Leaders it was for; anyone else is told there is no such action. */
     async actionByNumber(clanTag, who, number) {
       await requirePolicy(clanTag);
       let card = await ledger.cardByNumber(clanTag, number);
       if (!card)
         card = (await numberedCards(clanTag)).find((c) => c.number === number);
-      if (!card || !canAct(card, who)) throw new ManageError(404, "no_action");
+      if (!card || !mayRead(card, who)) throw new ManageError(404, "no_action");
       const safety = (await removalSafety(clanTag, [card])).get(card.card_id);
       return {
         clan_tag: clanTag,
@@ -1483,12 +1490,12 @@ export function createManageService({
       };
     },
 
-    /** A comment in an action's log, from anyone who may see the action,
-     *  open or closed. */
+    /** A comment in an action's log, from anyone who may see the action:
+     *  an open one they may take, or a closed one for the leaders. */
     async comment(clanTag, who, cardId, text) {
       await requirePolicy(clanTag);
       const card = await ledger.card(clanTag, cardId);
-      if (!card || !canAct(card, who)) throw new ManageError(404, "no_action");
+      if (!card || !mayRead(card, who)) throw new ManageError(404, "no_action");
       const body = String(text ?? "").trim();
       if (!body || body.length > 1000)
         throw new ManageError(400, "bad_comment");
@@ -1551,7 +1558,12 @@ export function createManageService({
     async policyView(clanTag, who) {
       const policy = await policyFor(clanTag);
       const members = await currentSize(clanTag);
-      const versions = await ledger.policyVersions(clanTag);
+      // Past versions are the Leader's and Co-Leaders' (Jamie,
+      // 2026-11-13): a member reads the policy as it stands, never its
+      // history. The list stays, empty, so every reader gets one shape.
+      const versions = isLeader(who)
+        ? await ledger.policyVersions(clanTag)
+        : [];
       const names = await knownNames(clanTag);
       const latest = await ledger.latestVerdicts(clanTag);
       return {

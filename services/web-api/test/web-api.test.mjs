@@ -3898,6 +3898,80 @@ test("retired email switches cannot be restored, while history and old unsubscri
   assert.equal(parse(detail).send.kind, "top_100");
 });
 
+test("the digest's clan part is the person's to turn on and off, on the clan report's row", async () => {
+  const {
+    rows: [account],
+  } = await db.query("select account_id from account where email_hash = $1", [
+    emailHash(NEWCOMER),
+  ]);
+  const accountId = account.account_id;
+  const put = async (body) =>
+    handler(
+      event({
+        method: "PUT",
+        path: "/api/me/email",
+        cookie: memberCookie,
+        body,
+      }),
+    );
+  const digest = async () =>
+    parse(
+      await handler(
+        event({ method: "GET", path: "/api/me/email", cookie: memberCookie }),
+      ),
+    ).kinds.find((k) => k.kind === "tracking_report");
+  const stored = async () =>
+    (
+      await db.query(
+        `select enabled from account_email_pref where account_id = $1 and kind = 'clan_report'`,
+        [accountId],
+      )
+    ).rows[0]?.enabled;
+  // Turned off before the merge, it stays off until the person says so.
+  await db.query(
+    `insert into account_email_pref (account_id, kind, enabled, via)
+     values ($1, 'clan_report', false, 'profile')
+     on conflict (account_id, kind) do update set enabled = false`,
+    [accountId],
+  );
+  assert.equal((await digest()).clan_part, false);
+  const on = await put({ kind: "tracking_report", clan_part: true });
+  assert.equal(on.statusCode, 200, on.body);
+  assert.deepEqual(parse(on), { kind: "tracking_report", clan_part: true });
+  assert.equal(await stored(), true);
+  assert.equal((await digest()).clan_part, true);
+  // The digest's own switch and cadence are untouched by it.
+  assert.equal((await digest()).cadence, "weekly");
+  assert.equal(
+    (await put({ kind: "tracking_report", clan_part: false })).statusCode,
+    200,
+  );
+  assert.equal(await stored(), false);
+  // Only the digest has a clan part, and it is a yes or a no.
+  assert.equal(
+    parse(await put({ kind: "collector_activity", clan_part: true })).error,
+    "no_clan_part",
+  );
+  assert.equal(
+    parse(await put({ kind: "tracking_report", clan_part: "on" })).error,
+    "bad_clan_part",
+  );
+  // The clan report stays retired as a mail of its own.
+  assert.equal(
+    (await put({ kind: "clan_report", enabled: true })).statusCode,
+    410,
+  );
+  assert.equal(await stored(), false);
+  // Every other kind carries no clan part.
+  const kinds = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/email", cookie: memberCookie }),
+    ),
+  ).kinds;
+  for (const k of kinds.filter((x) => x.kind !== "tracking_report"))
+    assert.equal(k.clan_part, null, k.kind);
+});
+
 test("retired personal and admin Collection routes are absent", async () => {
   for (const path of ["/api/me/collections", "/api/admin/collections"]) {
     for (const method of ["GET", "POST"]) {
