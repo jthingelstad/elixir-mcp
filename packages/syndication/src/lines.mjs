@@ -116,7 +116,7 @@ export function discordStamp(it, nowMs = Date.now()) {
 
 /** The item's own sentence: time-free since 11.8.0. A post carries no
  *  other time unless the item is over three hours old (discordStamp). */
-export const itemSentence = (it) => String(it.text ?? "");
+const itemSentence = (it) => String(it.text ?? "");
 
 /** The item as one Discord message's content, at most 2,000 characters:
  *  the sentence, the stamp when the item is old (discordStamp), then
