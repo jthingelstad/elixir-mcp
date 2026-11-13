@@ -84,10 +84,10 @@ where what waits for each person comes first. [engineering, 2026-11-12]
    policy version that raised it, the words to send. Make the change in
    the game, then mark it; Clan watches the record for the outcome. An
    Action waiting reaches its leaders in the bell, in Discord if
-   connected, and in mail at most once a day; a decided one is for
-   leaders only. A member sees their own removal clock; nobody below
+   connected, and in mail at most once a day; a decided one stays in Run
+   for leaders only. Actions are not timeline items. A member sees their own removal clock; nobody below
    co-leader sees another member's removal or clock. [Jamie, 2026-10-03,
-   2026-10-05, 2026-11-05, 2026-11-12]
+   2026-10-05, 2026-11-05, 2026-11-12, 2026-11-13]
 6. **Messages start in chat.** Routine recognition and updates default to
    clan chat; awards, standings and rule changes offer a durable Inbox
    alternative. A receipt is a human record of what was sent, never
@@ -159,8 +159,6 @@ Actions and awards, and a leader switches between them. [Jamie,
 
 ## Open
 
-- **Clan Actions as timeline items**: ruled, not built (see
-  [Timeline](timeline.md), Open).
 - **Acting from Discord** stays undecided on purpose. [Jamie, 2026-10-12]
 - **The clan map and young players**: the map shows a place only to the
   clan's verified members while its leaders keep it on; a player map

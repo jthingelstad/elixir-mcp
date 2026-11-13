@@ -44,13 +44,13 @@ in to a family app with Elixir. [Jamie, 2026-09-23, 2026-09-25]
    [Jamie, 2026-09-25]
 5. **No OIDC layer.** Family apps sign in with Elixir's OAuth; no
    separate issuer or SSO. [Jamie, 2026-09-28]
-6. **Drop is a different app on the same account.** Its scores and rules
-   are its own. You can play Drop without an account, but an account in
-   Drop is an Elixir account, and Drop's email-only route goes. Drop
-   moves to only signing a person in and getting their verified Clash
-   Royale player: "we should move drop to doing no writing to Elixir and
-   ONLY authenticating and getting a verified clash Royale account".
-   [Jamie, 2026-10-02, 2026-10-12, 2026-11-13]
+6. **Drop only signs in and reads.** Drop is a different app on the same
+   account: its scores and rules are its own. You can play Drop without
+   an account, but an account in Drop is an Elixir account, and Drop's
+   email-only route goes. Drop uses Elixir to sign a person in and get
+   their verified Clash Royale player, and writes nothing to Elixir: no
+   follows or player claims, no attested facts. "Drop can stop writing
+   now." [Jamie, 2026-10-02, 2026-10-12, 2026-11-13]
 7. **Sign in with Elixir signs in or creates an account.** The page a
    family app sends a person to admits someone new, because "Elixir Drop
    gets new users into Elixir", with the same 13 or older question as
@@ -72,9 +72,9 @@ website asks; Partner stays Jamie's gate. [Jamie, 2026-09-25, 2026-10-12]
 
 ## Open
 
-- **Drop's writes.** Today Drop still asks for `follows:write` (as
-  `recordings:write`) and adds a person's tag as an alt
-  (`POST /api/v1/me/players`), and writes personal records as attested
-  facts (`POST /api/v1/players/{tag}/facts`, `facts:write`). Jamie's
-  direction of 2026-11-13 ends both; DECISIONS does not record it yet,
-  and Drop's own change does it.
+- **Removing Drop's writes.** Ruled, not yet built: Drop still asks for
+  `follows:write` (as `recordings:write`) and adds a person's tag as an
+  alt (`POST /api/v1/me/players`), and writes personal records as
+  attested facts (`POST /api/v1/players/{tag}/facts`, `facts:write`).
+  Drop stops calling them first; then Elixir withdraws Drop's grant and
+  key permission and the `personal_record` fact type.
