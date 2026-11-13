@@ -95,6 +95,13 @@ Invariants, never a value that changes daily:
 | `budgets`    | the known-heavy calls answer inside a ceiling well under the 18 s budget, so creep is caught before it is a timeout; every duration is printed                                                                                                                                                                                                               |
 | `gym`        | the Gym's filed blocks (`gym.json`) and a few hand-written repros, with the acceptance criteria it wrote — its regression pass, automated                                                                                                                                                                                                                                                                                                     |
 
+The `gym` suite is not part of the gate (Jamie, 2026-11-13: it "should
+only be used for extensive testing in gym sessions"). It is 666 of the
+800 cases and most of the reads, and running it on deploys drained the
+database's burst balance. A deploy's `--acceptance` and `npm run
+acceptance` run the other suites; a Gym session runs the regression pass
+alone with `--gym`.
+
 It never writes, never passes `live: true` (CR budget), and its token
 cannot: `cr:read` only. A test pins that no case names a write tool.
 
@@ -130,8 +137,10 @@ never skips silently.
 ## Running
 
 ```sh
-npm run acceptance                       # every case, durations printed
+npm run acceptance                       # the gate: every suite but gym
 node acceptance/run.mjs --only budgets   # one suite or one case by substring
+node acceptance/run.mjs --gym --family battles  # the Gym's pass, one family (Gym sessions)
+node acceptance/run.mjs --only gym/304.1 # one Gym case, named with its suite
 node acceptance/run.mjs --json           # the report as JSON
 ```
 

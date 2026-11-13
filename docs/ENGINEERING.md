@@ -672,7 +672,9 @@ after the smoke gate when a deploy asks (`--acceptance`,
 the database headroom preflight in `infra/scripts/lib/db-headroom.mjs`)
 and any time with `npm run acceptance`; it never
 writes and never passes `live: true`. A Gym finding's criterion goes under
-its feedback id in `acceptance/checks/gym.mjs`.
+its feedback id in `acceptance/checks/gym.mjs`; that suite is the Gym's
+regression pass, run in a Gym session with `node acceptance/run.mjs --gym`
+and never by a deploy.
 
 Metadata rules live in `packages/contracts/src/meta.ts`; producers validate
 there and at the registry boundary, and a new metadata field needs its type

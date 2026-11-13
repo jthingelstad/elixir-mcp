@@ -597,6 +597,29 @@ test("gym.json loads: unique ids, every finding has a control, the verbs are kno
   assert.throws(() => assertOne({ bogus: "x" }, body, body), /unknown verb/);
 });
 
+test("the gate leaves the Gym's pass out; --gym runs it instead", async () => {
+  // Jamie, 2026-11-13: the Gym's regression pass is for Gym sessions,
+  // never a deploy gate. It was five sixths of the reads.
+  const saved = { ...SUITES };
+  for (const k of Object.keys(SUITES)) delete SUITES[k];
+  const case_ = (id) => ({ id, run: async () => {} });
+  SUITES.contracts = [case_("a")];
+  SUITES.gym = [case_("101.1"), case_("102.1")];
+  const door = fakeDoor({});
+  const ids = async (opts) =>
+    (await runSuite(door, { quiet: true, ...opts })).cases.map((c) => c.id);
+  try {
+    assert.deepEqual(await ids({}), ["contracts/a"]);
+    assert.deepEqual(await ids({ gym: true }), ["gym/101.1", "gym/102.1"]);
+    // A bite replay names its Gym case and gets it.
+    assert.deepEqual(await ids({ only: "gym/102.1" }), ["gym/102.1"]);
+    assert.deepEqual(await ids({ only: "102.1" }), []);
+  } finally {
+    for (const k of Object.keys(SUITES)) delete SUITES[k];
+    Object.assign(SUITES, saved);
+  }
+});
+
 test("every real case is read-only: no write tool, no live: true", () => {
   // The arguments a case sends, not the prose it asserts on: a case may
   // check that a note never OFFERS live: true.

@@ -19,10 +19,16 @@
  *   budgets    - the known-heavy calls answer inside a ceiling well
  *                under the 18 s query budget, so creep is caught before
  *                it is a timeout
- *   gym        - the Elixir Gym's filed repros with their acceptance
- *                criteria, its Pass 2 automated
  *
- * Usage: node acceptance/run.mjs [--only <substring>] [--family <family>] [--json] [--no-pace]
+ * The Gym's regression pass (the `gym` suite: the Elixir Gym's filed
+ * repros with their acceptance criteria, its Pass 2 automated) is NOT
+ * part of the gate (Jamie, 2026-11-13: it "should only be used for
+ * extensive testing in gym sessions"). It is five sixths of the cases
+ * and of the reads; a Gym session asks for it with --gym.
+ *
+ * Usage: node acceptance/run.mjs [--gym] [--only <substring>] [--family <family>] [--json] [--no-pace]
+ *   --gym runs the Gym's regression pass INSTEAD of the gate, in a Gym
+ *   session only; --family and --only narrow it the same way.
  *   --family battles runs only the cases that read a battles_* tool: the
  *   per-family deploy gate (deploy.mjs --acceptance=<family>).
  *   Paced by default (PACE below); --no-pace for a local server only.
@@ -56,6 +62,9 @@ export const SUITES = {
   catalogue,
   ground,
 };
+/** The suites the gate leaves out: run only when asked for by name
+ *  (--gym, or an --only that starts with the suite's name). */
+export const GYM_SUITES = new Set(["gym"]);
 /** Failures filed for a decision rather than a fix, each with a reason
  *  and an expiry: reported as KNOWN and not counted until the date. */
 const KNOWN = new Map(
@@ -135,6 +144,8 @@ export async function runSuite(
   {
     only = null,
     family = null,
+    // The Gym's regression pass instead of the gate (GYM_SUITES).
+    gym: gymPass = false,
     quiet = false,
     tools: given = null,
     recordedFixtures = false,
@@ -222,7 +233,12 @@ export async function runSuite(
       caseTools(c).some((t) =>
         family.split(",").some((f) => t.startsWith(`${f.trim()}_`)),
       ));
+  // The gate or the Gym's pass, never both in one run. An `only` that
+  // names a Gym case (a bite replay: "gym/304.1") is asking for it.
+  const wantsGym =
+    gymPass || [...GYM_SUITES].some((name) => only?.startsWith(`${name}/`));
   for (const [suite, cases] of Object.entries(SUITES)) {
+    if (GYM_SUITES.has(suite) !== wantsGym) continue;
     const picked = cases.filter(
       (c) => (!only || `${suite}/${c.id}`.includes(only)) && inFamily(c),
     );
@@ -289,6 +305,7 @@ if (isMain) {
     ? args[args.indexOf("--family") + 1]
     : null;
   const json = args.includes("--json");
+  const gymPass = args.includes("--gym");
   const pace = args.includes("--no-pace") ? null : PACE;
   const updateShapes = args.includes("--update-shapes");
   const reason = args.includes("--reason")
@@ -310,7 +327,17 @@ if (isMain) {
         ? `acceptance: paced (rest ${pace.ratio}x each call, ${pace.minRestMs}-${pace.maxRestMs} ms) so the database's burst balance refills during the run`
         : "acceptance: UNPACED (--no-pace): never against production",
     );
-  const report = await runSuite(door, { only, family, quiet: json, pace });
+  if (!json && gymPass)
+    console.log(
+      "acceptance: the Gym's regression pass (--gym), not the deploy gate",
+    );
+  const report = await runSuite(door, {
+    only,
+    family,
+    gym: gymPass,
+    quiet: json,
+    pace,
+  });
   const status = baselineStatus(report.ctx.tools);
   if (updateShapes) {
     const contract =
