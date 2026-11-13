@@ -144,7 +144,41 @@ test("the no-deck line appears only for the side whose row holds no cards", () =
 
 /** Towers stand as in the arena (Jamie, 2026-11-13): Princess, King,
  *  Princess on both sides, the King in the middle even when its value is
- *  missing (a duel game whose King fell: the API leaves the field out). */
+ *  missing. A King the game left out under three crowns against comes
+ *  from the projection as king 0 with king_inferred (Jamie, 2026-11-13:
+ *  "Down"); the page draws it destroyed like any 0. */
+const tilesOf = (container) =>
+  [...container.querySelectorAll(".towers")].map((row) =>
+    [...row.querySelectorAll(".tower")].map((t) => [
+      t.querySelector(".tower__kind").textContent,
+      t.querySelector(".tower__hp").textContent,
+      t.classList.contains("tower--king"),
+    ]),
+  );
+
+test("a missing King with fewer than three crowns against still reads not recorded", () => {
+  const { container } = view(
+    readOf({
+      games: [
+        {
+          round: 1,
+          winner: "left",
+          sides: [
+            {
+              crowns: 2,
+              tower_hp: { king: 5000, princess: [1000, 0] },
+              elixir_leaked: 1.5,
+            },
+            { crowns: 0, tower_hp: { princess: [0, 0] }, elixir_leaked: 2 },
+          ],
+        },
+      ],
+      score: { left: 1, right: 0, unit: "games" },
+    }),
+  );
+  expect(tilesOf(container)[1][1]).toEqual(["King Tower", "—", true]);
+});
+
 test("each side's towers read Princess, King, Princess, the King in the middle", () => {
   const { container } = view(
     readOf({
@@ -160,7 +194,7 @@ test("each side's towers read Princess, King, Princess, the King in the middle",
             },
             {
               crowns: 0,
-              tower_hp: { princess: [0, 0] },
+              tower_hp: { king: 0, princess: [0, 0], king_inferred: true },
               elixir_leaked: 2,
             },
           ],
@@ -169,14 +203,7 @@ test("each side's towers read Princess, King, Princess, the King in the middle",
       score: { left: 1, right: 0, unit: "games" },
     }),
   );
-  const rows = [...container.querySelectorAll(".towers")].map((row) =>
-    [...row.querySelectorAll(".tower")].map((t) => [
-      t.querySelector(".tower__kind").textContent,
-      t.querySelector(".tower__hp").textContent,
-      t.classList.contains("tower--king"),
-    ]),
-  );
-  expect(rows).toEqual([
+  expect(tilesOf(container)).toEqual([
     [
       ["Princess Tower", "1,000", false],
       ["King Tower", "5,000", true],
@@ -184,8 +211,12 @@ test("each side's towers read Princess, King, Princess, the King in the middle",
     ],
     [
       ["Princess Tower", "destroyed", false],
-      ["King Tower", "—", true],
+      ["King Tower", "destroyed", true],
       ["Princess Tower", "destroyed", false],
     ],
   ]);
+  // The note says why, under a duel game's towers.
+  expect(container.textContent).toContain(
+    "A King Tower shows as destroyed when the other side took three crowns in that game, since the game leaves its value out.",
+  );
 });

@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { drawBattle, makeShareImage } from "../src/share-image.mjs";
 import { fontMetrics } from "../src/font-metrics.mjs";
+import { withFallenKing } from "../src/battle-page.mjs";
 import { SHARE_FILES, shareSources } from "../src/share-files.mjs";
 
 const sources = shareSources();
@@ -275,6 +276,33 @@ test("towers stand as in the arena: Princess, King, Princess on both sides", () 
       ["Princess Tower", "—"],
     ],
   );
+});
+
+test("a duel game's King left out under three crowns draws Down; under fewer, not recorded", () => {
+  // Jamie, 2026-11-13. The projection decides it (withFallenKing); the
+  // picture draws what it is handed.
+  const duelOf = (crownsAgainst) => {
+    const a = {
+      crowns: crownsAgainst,
+      tower_hp: { king: 5000, princess: [800, 0] },
+    };
+    const z = { crowns: 0, tower_hp: { princess: [0, 0] } };
+    return {
+      ...READ,
+      battle: { ...READ.battle, kind: "duel", mode_group: "war" },
+      games: [
+        {
+          round: 1,
+          winner: "left",
+          sides: [withFallenKing(a, z), withFallenKing(z, a)],
+        },
+      ],
+    };
+  };
+  const kingOf = (svg) =>
+    towerTiles(svg).filter((t) => t.label === "King Tower")[1].value;
+  assert.equal(kingOf(draw(duelOf(3))), "Down");
+  assert.equal(kingOf(draw(duelOf(2))), "—");
 });
 
 test("a 2v2 names the winning side, never one of its players", () => {

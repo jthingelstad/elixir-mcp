@@ -770,6 +770,8 @@ function Ended({ battle, sides, game, title }) {
           "A game that runs to time lasts between 3:00 and 5:00; whether it reached overtime is not recorded. "}
         Princess Towers are listed in the order the game reports them, not by
         lane.
+        {game &&
+          " A King Tower shows as destroyed when the other side took three crowns in that game, since the game leaves its value out."}
       </div>
     </section>
   );
