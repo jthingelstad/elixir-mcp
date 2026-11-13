@@ -11,6 +11,7 @@ import {
 } from "@elixir-mcp/tools/activity/entries";
 import {
   HOME_WEEK_MS,
+  buildOnce,
   feedAfter,
   feedOrder,
   homeAccount,
@@ -360,9 +361,11 @@ async function tracksClan(db, accountId, clanTag) {
 /** How long a stored clan card is served as it is (home_clan_card, 0248),
  *  and how long it is served at all. Past fresh, the answer says
  *  `refresh` and the page asks for the card built again while it shows
- *  this one; past kept, the read builds it itself. */
+ *  this one, up to a week old (an expiry or a deploy never makes the
+ *  reader wait); past that, or on another basis, the read builds it
+ *  itself. */
 const CLAN_CARD_FRESH_MS = 15 * 60_000;
-const CLAN_CARD_KEEP_MS = 3 * 60 * 60_000;
+const CLAN_CARD_KEEP_MS = 7 * 24 * 60 * 60_000;
 /** The card's fields that are never stored: Clan's gate answers them on
  *  every read (Actions, the unlock notice, the reader's role). */
 const CLAN_CARD_LIVE = ["needs", "needs_total", "unlock", "role", "verified"];
@@ -443,8 +446,10 @@ async function buildClanCard(
  *  notice, your role) is laid over the kept half. The gate's basis (your
  *  player, role and verification, the policy's version, the clan's
  *  holds) is kept beside it: a read whose basis differs, a departure the
- *  gate refuses, another clan, or a card past three hours builds now.
- *  `rebuild` builds it whatever its age (the page's ask past fresh). */
+ *  gate refuses, another clan, or a card past a week builds now.
+ *  `rebuild` builds it whatever its age (the page's ask past fresh). One
+ *  build per account at a time: a second reader waits for it and is
+ *  served the card it stored. */
 async function readClanPanel(ctx, { rebuild = false, meta = null } = {}) {
   const { db, account, event, clan, requestId } = ctx;
   const home = await homeClan(db, account.accountId);
@@ -477,16 +482,16 @@ async function readClanPanel(ctx, { rebuild = false, meta = null } = {}) {
         needs_total: gate.needs_total ?? 0,
       }
     : { needs: [], needs_total: 0 };
-  const row = rebuild ? null : await storedClanCard(db, account.accountId);
-  const age = row ? Date.now() - Date.parse(row.built_at) : null;
-  if (
-    row &&
-    row.clan_tag === home.clan_tag &&
-    row.basis === basis &&
-    age >= 0 &&
-    age < CLAN_CARD_KEEP_MS &&
-    row.card?.state === (gate ? "member" : "tracked")
-  ) {
+  const serve = (row, within) => {
+    const age = row ? Date.now() - Date.parse(row.built_at) : null;
+    if (
+      !row ||
+      row.clan_tag !== home.clan_tag ||
+      row.basis !== basis ||
+      !(age >= 0 && age < within) ||
+      row.card?.state !== (gate ? "member" : "tracked")
+    )
+      return null;
     if (meta) Object.assign(meta, { stored: true, age_ms: age });
     return {
       ...row.card,
@@ -495,7 +500,23 @@ async function readClanPanel(ctx, { rebuild = false, meta = null } = {}) {
       built_at: new Date(row.built_at).toISOString(),
       refresh: age >= CLAN_CARD_FRESH_MS,
     };
-  }
+  };
+  // A rebuild that finds a fresh card (another page's rebuild stored it)
+  // serves that one.
+  const kept = serve(
+    await storedClanCard(db, account.accountId),
+    rebuild ? CLAN_CARD_FRESH_MS : CLAN_CARD_KEEP_MS,
+  );
+  if (kept) return kept;
+  return buildOnce(db, "home_clan_card", account.accountId, {
+    build: () => buildAndStoreClanCard(ctx, { home, gate, live, basis, meta }),
+    reuse: async () =>
+      serve(await storedClanCard(db, account.accountId), CLAN_CARD_FRESH_MS),
+  });
+}
+
+async function buildAndStoreClanCard(ctx, { home, gate, live, basis, meta }) {
+  const { db, account } = ctx;
   const started = Date.now();
   const card = await buildClanCard(ctx, home, gate);
   // Clan's gate is the authority on the live half, even when the card's

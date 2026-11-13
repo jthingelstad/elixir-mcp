@@ -9,6 +9,7 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import pg from "pg";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import {
   readTimelineEvidence,
@@ -18,7 +19,9 @@ import {
 } from "../src/activity/entries.mjs";
 import {
   HOME_FRESH_MS,
+  HOME_IDLE_REBUILD_MS,
   HOME_SERVE_MS,
+  buildOnce,
   homeWeeksToWake,
   homeWeekWake,
   readHomeWeek,
@@ -226,7 +229,20 @@ test("an older build never replaces a newer one", async () => {
 
 test("the background build skips a fresh row and builds a stale one", async () => {
   const built = (await row()).built_at.getTime();
-  assert.deepEqual(await refreshHomeWeek(db, owner, { now: built + 60_000 }), {
+  const bellRow = async () =>
+    (
+      await db.query(`select built_at from bell_week where account_id = $1`, [
+        owner,
+      ])
+    ).rows[0] ?? null;
+  assert.equal(await bellRow(), null, "the bell has not been read");
+  // A missing bell row is built by the same wake, so its first read is
+  // never cold.
+  const first = await refreshHomeWeek(db, owner, { now: built + 60_000 });
+  assert.equal(first.skipped, "fresh");
+  assert.ok(first.bell?.items >= 0, JSON.stringify(first));
+  assert.equal((await bellRow()).built_at.getTime(), built + 60_000);
+  assert.deepEqual(await refreshHomeWeek(db, owner, { now: built + 120_000 }), {
     skipped: "fresh",
   });
   const out = await refreshHomeWeek(db, owner, {
@@ -234,4 +250,79 @@ test("the background build skips a fresh row and builds a stale one", async () =
   });
   assert.ok(out.items > 0, JSON.stringify(out));
   assert.equal((await row()).built_at.getTime(), built + HOME_FRESH_MS + 1);
+});
+
+test("an account away for days is still rebuilt, under serving, for a week", async () => {
+  const { read_at } = await row();
+  const readAt = read_at.getTime();
+  await db.query(`update home_feed set built_at = $2 where account_id = $1`, [
+    owner,
+    new Date(readAt + 4 * 24 * H),
+  ]);
+  // Four days after the last read: not past the idle rebuild yet.
+  assert.deepEqual(
+    await homeWeeksToWake(db, { now: readAt + 4 * 24 * H + 60_000 }),
+    [],
+  );
+  // Past it, still within the week: woken, so the row stays under SERVE.
+  assert.ok(HOME_IDLE_REBUILD_MS < HOME_SERVE_MS);
+  assert.deepEqual(
+    await homeWeeksToWake(db, {
+      now: readAt + 4 * 24 * H + HOME_IDLE_REBUILD_MS + 1,
+    }),
+    [owner],
+  );
+  // More than a week away: left alone; the first read back builds.
+  assert.deepEqual(await homeWeeksToWake(db, { now: readAt + 8 * 24 * H }), []);
+});
+
+test("two builds of one account's row never run at once", async () => {
+  const other = new pg.Client({ connectionString: ctx.url });
+  await other.connect();
+  try {
+    let builds = 0;
+    let release;
+    const gate = new Promise((r) => (release = r));
+    const first = buildOnce(db, "home_feed", owner, {
+      build: async () => {
+        builds += 1;
+        await gate;
+        return "built";
+      },
+      reuse: async () => "reused",
+    });
+    // Let the first take the lock before the second asks.
+    await new Promise((r) => setTimeout(r, 50));
+    const second = buildOnce(other, "home_feed", owner, {
+      build: async () => {
+        builds += 1;
+        return "built twice";
+      },
+      reuse: async () => "reused",
+    });
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal(builds, 1, "the second waits for the first");
+    release();
+    assert.equal(await first, "built");
+    assert.equal(await second, "reused");
+    assert.equal(builds, 1);
+    // Another row of the same account is not held by it.
+    assert.equal(
+      await buildOnce(other, "bell_week", owner, {
+        build: async () => "own",
+        reuse: async () => "reused",
+      }),
+      "own",
+    );
+    // With nothing running, it builds at once.
+    assert.equal(
+      await buildOnce(other, "home_feed", owner, {
+        build: async () => "built",
+        reuse: async () => null,
+      }),
+      "built",
+    );
+  } finally {
+    await other.end();
+  }
 });

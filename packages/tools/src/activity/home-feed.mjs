@@ -8,11 +8,16 @@
  *
  * - The timeline-sync Lambda builds it when a wake names the account: the
  *   jobs' five-minute run wakes every account that read Home in the last
- *   three days and whose row is past FRESH, and a read that finds its row
- *   past FRESH wakes it too.
+ *   three days and whose row is past FRESH, and every account that read
+ *   Home in the last seven days whose row is past HOME_IDLE_REBUILD_MS
+ *   (under SERVE, so a week away still opens on a stored row); a read that
+ *   finds its row past FRESH wakes it too. The same build makes a missing
+ *   bell row.
  * - A read builds it itself, as before, when there is no row, the
  *   account's subjects or time zone changed since it was built, or it is
  *   past SERVE.
+ * - One build per account at a time (buildOnce): a second reader or wake
+ *   waits for the first build and reads its row.
  * - Highlights and attested facts are read live over the stored items (a
  *   post shows at once; who may see a fact is decided at the read), and
  *   cheers, counts and the seen marker stay the read's own.
@@ -39,6 +44,14 @@ export const HOME_FRESH_MS = 15 * 60_000;
 export const HOME_SERVE_MS = 3 * 3_600_000;
 /** Accounts the five-minute wake keeps fresh: read Home this recently. */
 export const HOME_READ_RECENT_MS = 3 * 86_400_000;
+/** Accounts away longer, up to a week, are kept under SERVE instead: their
+ *  week is rebuilt once it is this old, so a return within a week never
+ *  waits for a build (round four, #649). */
+export const HOME_READ_IDLE_MS = 7 * 86_400_000;
+export const HOME_IDLE_REBUILD_MS = 2 * 3_600_000;
+/** How long a read waits for another build of the same account's row to
+ *  finish before it builds one itself. */
+const BUILD_WAIT_MS = 12_000;
 /** read_at moves at most this often (one write an hour, not a read). */
 const READ_MARK_MS = 3_600_000;
 /** Wakes per five-minute run, oldest row first: the lane runs two at a
@@ -63,6 +76,58 @@ export function subjectsKey(subjects) {
     .update(rows.join("\n"))
     .digest("hex")
     .slice(0, 32);
+}
+
+/**
+ * One build of an account's stored row at a time. Two cold reads of one
+ * account (two panels, two tabs, a read and the background lane) used to
+ * build the same row side by side, each holding a pool client and the
+ * database for seconds. `build` runs under a session advisory lock keyed
+ * by `name` and the account; a second caller waits for it (at most
+ * BUILD_WAIT_MS, holding no lock of its own) and then asks `reuse` for
+ * what the first stored, building only when that answers null.
+ */
+export async function buildOnce(db, name, accountId, { build, reuse }) {
+  const key = [name, String(accountId)];
+  const { rows } = await db.query(
+    `select pg_try_advisory_lock(hashtext($1), hashtext($2)) as ok`,
+    key,
+  );
+  if (rows[0]?.ok) {
+    try {
+      return await build();
+    } finally {
+      await db
+        .query(`select pg_advisory_unlock(hashtext($1), hashtext($2))`, key)
+        .catch(() => {});
+    }
+  }
+  // Another build of this row is running: wait for it, then read it.
+  const waited = await waitForBuild(db, key);
+  if (waited) {
+    const kept = await reuse();
+    if (kept) return kept;
+  }
+  return build();
+}
+
+/** Wait until the holder of `key` lets go, never holding it: true when it
+ *  did within BUILD_WAIT_MS. */
+async function waitForBuild(db, key) {
+  const until = Date.now() + BUILD_WAIT_MS;
+  for (let pause = 100; Date.now() < until; pause = Math.min(pause * 2, 800)) {
+    await new Promise((r) => setTimeout(r, pause));
+    const { rows } = await db.query(
+      `select not exists (
+         select 1 from pg_locks
+          where locktype = 'advisory' and granted
+            and classid = hashtext($1)::oid and objid = hashtext($2)::oid
+            and objsubid = 2) as free`,
+      key,
+    );
+    if (rows[0]?.free) return true;
+  }
+  return false;
 }
 
 /** The account's time zone and seen marker, as the feed reads them. */
@@ -163,7 +228,12 @@ export async function readHomeWeek(
   const subjects = await subjectsFor(db, accountId);
   const key = subjectsKey(subjects);
   const row = await storedWeek(db, accountId);
-  const age = row ? now - row.built_at.getTime() : Infinity;
+  let age = row ? now - row.built_at.getTime() : Infinity;
+  const serves = (r) =>
+    r &&
+    r.subjects_key === key &&
+    r.timezone === timezone &&
+    now - r.built_at.getTime() <= HOME_SERVE_MS;
   let week;
   if (window) {
     if (
@@ -173,12 +243,7 @@ export async function readHomeWeek(
     )
       return null;
     week = fromRow(row);
-  } else if (
-    row &&
-    row.subjects_key === key &&
-    row.timezone === timezone &&
-    age <= HOME_SERVE_MS
-  ) {
+  } else if (serves(row)) {
     week = fromRow(row);
     if (age > HOME_FRESH_MS && wake)
       await wake(accountId, now).catch((err) =>
@@ -195,16 +260,26 @@ export async function readHomeWeek(
         [accountId, new Date(now)],
       );
   } else {
-    week = {
-      ...(await buildHomeWeek(db, accountId, {
-        subjects,
-        timezone,
-        now,
-        readAt: now,
-        perf,
-      })),
-      stored: false,
-    };
+    // One build at a time: a read that finds another building this
+    // account's week waits for it and serves what it stored.
+    week = await buildOnce(db, "home_feed", accountId, {
+      build: async () => ({
+        ...(await buildHomeWeek(db, accountId, {
+          subjects,
+          timezone,
+          now,
+          readAt: now,
+          perf,
+        })),
+        stored: false,
+      }),
+      reuse: async () => {
+        const kept = await storedWeek(db, accountId);
+        if (!serves(kept)) return null;
+        age = Math.max(0, now - kept.built_at.getTime());
+        return fromRow(kept);
+      },
+    });
   }
   // Read live over the stored items, a statement each: highlights, so a
   // post, an edit or a removal shows at once; attested facts, because who
@@ -275,17 +350,22 @@ export async function refreshHomeWeek(
   { now = Date.now() } = {},
 ) {
   const row = await storedWeek(db, accountId);
-  // The bell's week rides the same wake (bell_week, 0247): rebuilt here
-  // when the bell has been read (a row exists) and it is past FRESH.
+  // The bell's week rides the same wake (bell_week, 0247): built here
+  // when it is missing or past FRESH, so the first bell is never cold.
   const bell = await refreshBellWeek(db, accountId, { now });
   if (row && now - row.built_at.getTime() < HOME_FRESH_MS)
     return { skipped: "fresh", ...(bell ? { bell } : {}) };
   const { timezone } = await homeAccount(db, accountId);
   const subjects = await subjectsFor(db, accountId);
-  const week = await buildHomeWeek(db, accountId, {
-    subjects,
-    timezone,
-    now,
+  const week = await buildOnce(db, "home_feed", accountId, {
+    build: () => buildHomeWeek(db, accountId, { subjects, timezone, now }),
+    // A read built it meanwhile: nothing left to do.
+    reuse: async () => {
+      const kept = await storedWeek(db, accountId);
+      return kept && now - kept.built_at.getTime() < HOME_FRESH_MS
+        ? { items: kept.items, buildMs: 0 }
+        : null;
+    },
   });
   return {
     items: week.items.length,
@@ -392,9 +472,13 @@ export async function readBellWeek(
   if (own.length === 0) return { items: [], stored: false, ageMs: 0 };
   const subjects = ownSubjects(own);
   const row = await storedBellWeek(db, accountId);
-  const age = row ? now - row.built_at.getTime() : Infinity;
+  let age = row ? now - row.built_at.getTime() : Infinity;
+  const serves = (r) =>
+    r &&
+    r.own_key === subjectsKey(subjects) &&
+    now - r.built_at.getTime() <= HOME_SERVE_MS;
   let week;
-  if (row && row.own_key === subjectsKey(subjects) && age <= HOME_SERVE_MS) {
+  if (serves(row)) {
     week = { ...fromRow(row), more: 0 };
     if (age > HOME_FRESH_MS && wake)
       await wake(accountId, now).catch((err) =>
@@ -406,10 +490,18 @@ export async function readBellWeek(
         ),
       );
   } else {
-    week = {
-      ...(await buildBellWeek(db, accountId, { own, now })),
-      stored: false,
-    };
+    week = await buildOnce(db, "bell_week", accountId, {
+      build: async () => ({
+        ...(await buildBellWeek(db, accountId, { own, now })),
+        stored: false,
+      }),
+      reuse: async () => {
+        const kept = await storedBellWeek(db, accountId);
+        if (!serves(kept)) return null;
+        age = Math.max(0, now - kept.built_at.getTime());
+        return { ...fromRow(kept), more: 0 };
+      },
+    });
   }
   const live = { fromMs: week.fromMs, toMs: Math.max(now, week.toMs) };
   const highlights = await windowHighlights(db, subjects, {
@@ -429,28 +521,44 @@ export async function readBellWeek(
   return { items, stored: week.stored, ageMs: week.stored ? age : 0 };
 }
 
-/** The background rebuild of a bell week already read: null when there is
- *  none or it is fresh. */
+/** The background build of the bell's week: null when it is fresh, or
+ *  when there is no row and no own player to build one for. A missing row
+ *  is built too, so the bell's first read after its table is new, or after
+ *  a first verification, finds one waiting (round four, #649). */
 async function refreshBellWeek(db, accountId, { now }) {
   const row = await storedBellWeek(db, accountId);
-  if (!row || now - row.built_at.getTime() < HOME_FRESH_MS) return null;
+  if (row && now - row.built_at.getTime() < HOME_FRESH_MS) return null;
   const own = await ownVerifiedPlayers(db, accountId);
-  // No own player left: the read answers empty without the row.
-  if (own.length === 0) return { skipped: "no_players" };
-  const week = await buildBellWeek(db, accountId, { own, now });
+  // No own player: the read answers empty without the row.
+  if (own.length === 0) return row ? { skipped: "no_players" } : null;
+  const week = await buildOnce(db, "bell_week", accountId, {
+    build: () => buildBellWeek(db, accountId, { own, now }),
+    reuse: async () => {
+      const kept = await storedBellWeek(db, accountId);
+      return kept && now - kept.built_at.getTime() < HOME_FRESH_MS
+        ? { items: kept.items, buildMs: 0 }
+        : null;
+    },
+  });
   return { items: week.items.length, build_ms: week.buildMs };
 }
 
-/** The accounts the five-minute run wakes: read Home in the last three
- *  days, built more than FRESH ago, oldest first. */
+/** The accounts the five-minute run wakes, recent readers first and then
+ *  the oldest row: read Home in
+ *  the last three days and built more than FRESH ago, or read it in the
+ *  last week and built more than two hours ago. A week away keeps the row
+ *  under SERVE, so the first read back serves it rather than building. */
 export async function homeWeeksToWake(db, { now = Date.now() } = {}) {
   const { rows } = await db.query(
     `select account_id from home_feed
-      where read_at > $1 and built_at < $2
-      order by built_at limit $3`,
+      where (read_at > $1 and built_at < $2)
+         or (read_at > $3 and built_at < $4)
+      order by read_at > $1 desc, built_at limit $5`,
     [
       new Date(now - HOME_READ_RECENT_MS),
       new Date(now - HOME_FRESH_MS),
+      new Date(now - HOME_READ_IDLE_MS),
+      new Date(now - HOME_IDLE_REBUILD_MS),
       WAKES_PER_RUN,
     ],
   );

@@ -66,6 +66,8 @@ export function PeopleToFollow() {
         <div className="kit-skeleton" aria-busy="true" />
       </Panel>
     );
+  // A slow or failed read never fails the page: the panel says so and
+  // offers to read again (#649).
   if (query.isError || !data?.ok)
     return (
       <Panel title="People to follow" pad>
@@ -73,6 +75,15 @@ export function PeopleToFollow() {
           Suggestions could not be read just now.{" "}
           <Link to="/home/find">Find people</Link>
         </p>
+        <button
+          type="button"
+          className="btn btn--sm"
+          onClick={() => query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching}
+        >
+          {query.isFetching ? "Reading…" : "Try again"}
+        </button>
       </Panel>
     );
   const slots = slotsLine(data.used, data.limit);
