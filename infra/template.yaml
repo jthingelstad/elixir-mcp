@@ -2060,15 +2060,17 @@ Resources:
       SourceArn: !GetAtt ClanEvaluateRule.Arn
 
   # The digest (tracking_report, #767) runs every day: daily readers get
-  # it each day, weekly ones (the default) on Wednesday (runDigest). At
-  # 14:30 UTC. Since 2026-11-12 it is the one scheduled mail for everyone:
+  # it each day, weekly ones (the default) on Monday (runDigest). At 11:00
+  # UTC, an hour after the game's 10:00 UTC weekly reset, so the week and
+  # its river race have closed and been read (Jamie, 2026-11-13: "right
+  # after the weekly reset"). Since 2026-11-12 it is the one scheduled mail for everyone:
   # the Monday clan report, Tuesday's Arena week and the hourly milestone
   # mail folded into it and have no rule.
   EmailTrackingReportRule:
     Type: AWS::Events::Rule
     Properties:
       Name: elixir-mcp-email-tracking-report
-      ScheduleExpression: cron(30 14 * * ? *)
+      ScheduleExpression: cron(0 11 * * ? *)
       Targets:
         - Arn: !GetAtt JobsFunction.Arn
           Id: email-tracking-report

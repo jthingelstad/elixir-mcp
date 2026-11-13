@@ -25,7 +25,7 @@ lands.
 reached from the account menu, lists the scheduled kinds under **Scheduled**, each
 with the day and time it arrives in your time zone: Your digest and Collector
 activity. Your digest is three choices instead of a switch: **Weekly**
-(Wednesdays), **Daily** (every day, at the same time) or **Off**
+(Mondays, right after the weekly reset), **Daily** (every day, at the same time) or **Off**
 ([Your digest](/docs/email#your-digest)). Tapping Weekly or Daily turns it
 on at that pace, and Off turns it off. The two that come when something happens,
 Clan actions waiting and Answers to your feedback, sit below under

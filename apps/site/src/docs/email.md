@@ -20,7 +20,7 @@ one, and an answer to feedback you filed.
 
 | Kind | When | What it is |
 |---|---|---|
-| **Your digest** | Wednesdays at 14:30 UTC, or daily, or off: your choice | The people you follow and your clan's week in one story, each player once: [below](#your-digest). Skipped when nothing happened. |
+| **Your digest** | Mondays at 11:00 UTC, right after the weekly reset, or daily, or off: your choice | The people you follow and your clan's week in one story, each player once: [below](#your-digest). Skipped when nothing happened. |
 | **Clan actions waiting** | When an action becomes yours | From [Clan](/clan), when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Clan checks each morning, after its daily read, and mails only when something new is yours since your last one: nothing waiting, nothing sent, and at most one a day per clan. Only if you can act on it, only to the account that verified the player. Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
 | **Collector activity** | Sundays at 14:00 UTC | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the collector page's security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and how many of them added new facts to the record; how much was blocked as already recorded, and your limits: an active collector raises them to [Family](/docs/roles#upgrades). One mail per account, every collector you run pooled. Covers Saturday 00:00 UTC to the next Saturday 00:00 UTC, the week that closed the night before. |
 | **Answers to your feedback** | When answered | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. One mail per answer, sent after ten quiet minutes, so a correction made straight away is one mail. Getting the email does not count as reading the answer: opening the item does. An agent's feedback is answered to the agent, never mailed. |
@@ -45,9 +45,10 @@ Your digest is your [timeline](/docs/timeline) for your inbox: the
 people you follow and the clans you follow, told as one story. The email
 chooses what to say, and the timeline keeps everything.
 
-- **When:** weekly, on Wednesdays at 14:30 UTC, by default. In
+- **When:** weekly, on Mondays at 11:00 UTC, by default: an hour after
+  the game's weekly reset, so the week and its River Race are done. In
   [Settings › Emails](/settings/emails) it is three choices, **Weekly**,
-  **Daily** (every day at 14:30 UTC) or **Off**: tap one.
+  **Daily** (every day at 11:00 UTC) or **Off**: tap one.
 - **What it covers:** the week (or the day) before it comes, starting no
   earlier than your last digest, so nothing is told twice. It tells what
   the record learned in that time, so a battle recorded late still

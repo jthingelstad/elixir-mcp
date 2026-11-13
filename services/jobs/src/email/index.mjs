@@ -161,11 +161,11 @@ function failed(run, who, err) {
   );
 }
 
-/** The digest's own day: Wednesday, the friends mail's day, kept for
- *  the weekly default; a daily reader gets one every day. The rule
+/** The digest's own day: Monday, right after the game's weekly reset
+ *  (Jamie, 2026-11-13); a daily reader gets one every day. The rule
  *  fires daily (infra/template.yaml, EmailTrackingReportRule) and a
  *  scheduled run takes the weekly readers only on this UTC weekday. */
-const DIGEST_WEEKLY_DAY = 3;
+const DIGEST_WEEKLY_DAY = 1;
 
 /** Each recipient's digest cadence (0242): absent or null is weekly. */
 async function digestCadences(db, accountIds) {
@@ -218,7 +218,7 @@ async function lastDigests(db, accountIds) {
 
 /** tracking_report, the digest of the people you follow (#767): one
  *  issue per account per UTC day, the day its period. A scheduled run
- *  takes the daily readers every day and the weekly ones on Wednesday;
+ *  takes the daily readers every day and the weekly ones on Monday;
  *  an ops run (one account, or force) sends whatever the reader's
  *  cadence covers, any day. Nothing to tell is no mail. */
 async function runDigest(run, recipients) {

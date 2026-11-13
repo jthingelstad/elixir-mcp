@@ -376,8 +376,8 @@ test("one shell: the wordmark, the product source, the why-line in the reader's 
   // A retired kind's stored issue promises no next one (2026-11-12).
   assert.match(html, /This email has ended\. Its news is in your digest\./);
   assert.match(html, /Turn off this mail/);
-  // The digest's why-line is in the reader's zone: 14:30 UTC is 9:30 am
-  // in daylight time and 8:30 am in standard.
+  // The digest's why-line is in the reader's zone: 11:00 UTC is 6:00 am
+  // in daylight time and 5:00 am in standard.
   const digest = JSON.parse(
     readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
   );
@@ -386,11 +386,11 @@ test("one shell: the wordmark, the product source, the why-line in the reader's 
       ...links,
       timezone: "America/Chicago",
     }).html,
-    /You get this on Wednesdays at [89]:30 am Central/,
+    /You get this on Mondays at [56]:00 am Central/,
   );
   assert.match(
     renderMail("tracking_report", digest, links).html,
-    /on Wednesdays at 2:30 pm UTC/,
+    /on Mondays at 11:00 am UTC/,
   );
   // Mail is tables: no flex, no grid, no background image anywhere.
   for (const { kind, facts: f } of allFixtures()) {
@@ -444,7 +444,7 @@ test("the digest replaces the friends mail under its kind: Your week in Elixir, 
   assert.match(text, /Open your feed/);
   assert.match(
     text,
-    /You get this on Wednesdays at \d:30 am Central, in a week when someone you follow played or posted, you did, or your clan had news\./,
+    /You get this on Mondays at \d:00 am Central, in a week when someone you follow played or posted, you did, or your clan had news\./,
   );
   assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
   // Each player once: a followed clanmate is marked, never told twice.
@@ -463,7 +463,7 @@ test("a daily digest says its day and its cadence (#767)", () => {
   assert.match(out.subject, /^Your day in Elixir/);
   assert.match(
     htmlToText(out.html),
-    /You get this each day at \d:30 am Central, in a day when someone you follow/,
+    /You get this each day at \d:00 am Central, in a day when someone you follow/,
   );
 });
 
@@ -568,13 +568,13 @@ test("the weekly send times are the EventBridge crons", () => {
       hour: Number(m[2]),
       minute: Number(m[1]),
     });
-  // The digest's rule fires every day; it keeps Wednesday for the
+  // The digest's rule fires every day; it keeps Monday for the
   // weekly default (runDigest's DIGEST_WEEKLY_DAY).
   for (const m of template.matchAll(
     /ScheduleExpression: cron\((\d+) (\d+) \* \* \? \*\)\n(?:.*\n){0,8}?\s*Input: '\{"email": "(\w+)"\}'/g,
   ))
     crons.set(m[3], {
-      day: 3,
+      day: 1,
       hour: Number(m[2]),
       minute: Number(m[1]),
       daily: true,
