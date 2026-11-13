@@ -1200,7 +1200,6 @@ describe("an agent's pages in Settings", () => {
         "Connections",
         "Settings",
       ]);
-      expect(document.querySelector(".rail__switch")).toBeNull();
       // Its Timeline reads the agent's route and never yours.
       fireEvent.click(screen.getByRole("link", { name: "Open its timeline" }));
       await screen.findByText("The agent's.");

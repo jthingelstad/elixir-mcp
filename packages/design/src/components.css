@@ -134,91 +134,6 @@ table {
    Shell
    ================================================================== */
 
-/* Drop's promotion keeps its game styling. The chrome link has a quiet
-   override below; both open the game on its own host. */
-.drop-card__play {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 38px;
-  padding: 0 14px 0 12px;
-  border-radius: 12px;
-  background: var(--drop-grad);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    0 3px 0 var(--drop-edge),
-    0 5px 12px var(--drop-glow);
-  color: #fff;
-  font-family: var(--font-display);
-  font-size: 15px;
-  letter-spacing: 0.02em;
-  text-shadow:
-    0 2px 0 var(--drop-edge),
-    1px 1px 0 var(--drop-edge),
-    -1px 1px 0 var(--drop-edge);
-  white-space: nowrap;
-}
-.drop-card__play > svg:first-child {
-  fill: currentColor;
-}
-.drop-card:hover .drop-card__play {
-  filter: brightness(1.06);
-}
-.drop-card:active .drop-card__play {
-  transform: translateY(2px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    0 1px 0 var(--drop-edge),
-    0 3px 8px var(--drop-glow);
-}
-
-/* Drop's tile beside the record (Console Overview, canvas 2026-09-29):
-   the game's own magenta, the one place outside the bar it appears, and
-   the same candy button. The whole tile is the link; it opens Drop's
-   host in a new window. */
-.drop-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px 20px;
-  border-radius: var(--r-panel);
-  background:
-    radial-gradient(22rem 12rem at 100% 0%, var(--drop-glow), transparent),
-    linear-gradient(160deg, var(--drop-deep), var(--drop-ground));
-  border: 1px solid var(--drop-line);
-  box-shadow: inset 0 1px 0 rgba(240, 171, 252, 0.25);
-  color: var(--ink);
-  overflow: hidden;
-}
-.drop-card:hover {
-  color: var(--ink);
-}
-.drop-card__name {
-  flex: 1 1 auto;
-  font-family: var(--font-display);
-  font-size: 20px;
-  line-height: 1;
-  letter-spacing: 0.02em;
-  text-shadow: 0 2px 0 var(--drop-edge);
-}
-.drop-card__kind {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--drop-ink);
-}
-.drop-card__about {
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--drop-ink);
-}
-.drop-card__play {
-  align-self: flex-start;
-  margin-top: auto;
-}
-
 /* The static half's two faces: session-hint.js sets data-session before the
    first paint, so a page never shows one and then the other. */
 html:not([data-session="in"]) [data-session-face="in"],
@@ -521,117 +436,6 @@ html[data-session="in"] [data-session-face="out"] {
   box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.22);
 }
 
-/* The head as the console switcher (2026-09-23, redrawn 2026-09-29): a
-   tile with the console's glyph, its name and whose it is. Tinted while
-   the console is not the person's own (an agent's, Admin), so whose
-   console this is reads at a glance. */
-.rail__switch {
-  position: relative;
-  margin: 0 0 12px;
-}
-.rail__switch-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 52px;
-  box-sizing: border-box;
-  padding: 9px 10px;
-  background: var(--panel);
-  border: 1px solid transparent;
-  border-radius: var(--r-control);
-  color: var(--ink);
-  font: inherit;
-  text-align: left;
-}
-button.rail__switch-head {
-  cursor: pointer;
-}
-button.rail__switch-head:hover {
-  background: var(--hover-rail);
-}
-/* A choice is being made: the face says which, and nothing opens. */
-button.rail__switch-head[aria-disabled="true"] {
-  cursor: progress;
-}
-button.rail__switch-head[aria-disabled="true"]:hover {
-  background: none;
-}
-.rail__switch[data-scoped="true"] .rail__switch-head {
-  box-shadow: inset 3px 0 0 var(--accent-bright);
-}
-.rail__switch-mark {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: var(--line-soft);
-  color: var(--gold);
-}
-.rail__switch-mark .chrome__avatar {
-  width: 32px;
-  height: 32px;
-}
-.rail__switch-list {
-  position: absolute;
-  z-index: 20;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 6px;
-  display: flex;
-  flex-direction: column;
-  padding: 4px;
-  background: var(--panel-float);
-  border-radius: var(--r-control);
-  box-shadow: var(--shadow-float);
-}
-.rail__switch-group {
-  padding: 10px 9px 4px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink-faint);
-}
-.rail__switch-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 9px;
-  border-radius: var(--r-rail);
-  font-size: var(--t-body-sm);
-  color: var(--ink-dim);
-}
-.rail__switch-item:hover {
-  background: var(--hover-rail);
-  color: var(--ink);
-}
-.rail__switch-item[aria-current="true"] {
-  background: var(--panel);
-}
-.rail__switch-manage {
-  margin-top: 4px;
-  border-radius: 0;
-  color: var(--ink-link);
-}
-/* A switcher's second line can carry chips (Clan's role, "unverified"):
-   drawn small, and wrapping under the tag rather than past the rail. */
-.rail__switch-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 6px;
-  font-size: 12px;
-  color: var(--ink-faint);
-}
-.rail__switch .chip {
-  padding: 1px 7px;
-  font-size: 11.5px;
-}
-
 /* A settings rail's way back to its console, above the head. */
 .rail__back {
   display: inline-flex;
@@ -693,35 +497,8 @@ button.rail__switch-head[aria-disabled="true"]:hover {
     color: var(--ink);
     text-align: left;
   }
-  .rail__switch {
-    margin-top: 10px;
-  }
   .rail__foot {
     margin-top: 8px;
-  }
-  /* A switcher that is the rail's head (Clan's clan) sits beside the
-     row's toggle, as Ladder's player does: it names what the rail
-     belongs to while the list is folded. Its open list spans the row. */
-  .rail:has(> .rail__switch--head) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
-    gap: 4px;
-  }
-  .rail:has(> .rail__switch--head) > :not(.rail__switch--head, .rail__toggle) {
-    grid-column: 1 / -1;
-  }
-  .rail .rail__switch--head {
-    margin: 0;
-  }
-  .rail__switch--head .rail__switch-head {
-    padding: 5px 4px;
-  }
-  .rail__switch--head .rail__switch-mark {
-    display: none;
-  }
-  .rail__switch--head .rail__switch-list {
-    right: calc(-100% - 4px);
   }
 }
 
@@ -1025,25 +802,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   background: var(--accent);
 }
 
-/* The budget variant carries a pace marker, so no overflow:hidden. */
-.meter--marked {
-  position: relative;
-  height: 12px;
-  border-radius: var(--r-pill);
-  background: var(--ground-sunken);
-}
-.meter--marked .meter__fill {
-  border-radius: var(--r-pill);
-}
-.meter__mark {
-  position: absolute;
-  top: -4px;
-  bottom: -4px;
-  width: 2px;
-  background: var(--ink);
-  border-radius: 1px;
-}
-
 /* Spark — a count out of a whole, one bar per period (the kit's Spark):
    bars only, accent when the whole was nearly met, dimmer below; a period
    the record could not read is a flat dash in the line colour. */
@@ -1313,19 +1071,6 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   color: var(--ink-body);
   text-wrap: pretty;
 }
-/* The citation under an answer. An answer with no sample behind it is an
-   opinion, so this is not decoration. */
-.transcript__cite {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 9px;
-  font-size: 11.5px;
-  color: var(--ink-dim);
-  background: var(--panel);
-  border-radius: var(--r-chip);
-  padding: 4px 9px;
-}
 /* :not([hidden]) because a class that sets `display` beats the UA's
    [hidden] rule — which is how the thinking dots stayed on screen
    underneath an answer that had already finished typing. */
@@ -1415,30 +1160,9 @@ h1,
   font-weight: 600;
 }
 
-/* Big single numerals — Clash. Grouped stat values only; never a table
-   cell, and never a non-numeric value (a clan name in the display face
-   next to 1,204 reads wrong — use .stat__value--text). */
-.stat__value {
-  font: 400 27px/1.1 var(--font-display);
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.stat__value--big {
-  font-size: 42px;
-  line-height: 1;
-}
-.stat__value--text {
-  font: 600 13px/1.3 var(--font);
-  letter-spacing: 0;
-}
 .stat__label {
   font: 600 11px var(--font-mono);
   letter-spacing: 0.06em;
-  color: var(--ink-faint);
-}
-.stat__sub {
-  margin-top: 6px;
-  font: 11px var(--font-mono);
   color: var(--ink-faint);
 }
 
@@ -1572,9 +1296,6 @@ main.wrap {
   font: 11.5px var(--font-mono);
   flex-wrap: wrap;
 }
-.trail__sep {
-  color: var(--line-strong);
-}
 .trail a[aria-current] {
   color: var(--ink);
   cursor: default;
@@ -1582,15 +1303,6 @@ main.wrap {
 
 /* ── Panel ────────────────────────────────────────────────── */
 
-/* Action bar at the foot of a panel (add-a-player, add-a-clan) */
-.panel__actions {
-  display: flex;
-  gap: var(--s-2);
-  align-items: center;
-  padding: 12px var(--s-4);
-  background: var(--panel-head);
-  flex-wrap: wrap;
-}
 /* The honesty footnote. Every panel that shows a derived number gets
    one. 12px, --dim, keyed with † to the value it qualifies. Never a
    tooltip — a caveat you have to hover for is a caveat you hid. */
@@ -1599,9 +1311,6 @@ main.wrap {
   font-size: 12px;
   line-height: 1.5;
   color: var(--ink-faint);
-}
-.panel--cta {
-  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
 }
 
 /* ── Stat strip ───────────────────────────────────────────── */
@@ -1654,15 +1363,6 @@ tr.yours td {
    noise. */
 .outcome {
   font: 600 11.5px var(--font-mono);
-}
-.outcome--win {
-  color: var(--ok);
-}
-.outcome--loss {
-  color: var(--bad);
-}
-.outcome--draw {
-  color: var(--ink-faint);
 }
 
 /* Scope, role, kind — neutral square mono tags, no dot */
@@ -1881,10 +1581,6 @@ input[aria-invalid="true"] {
   flex-wrap: wrap;
   margin-bottom: 18px;
 }
-.mailprefs__intro {
-  flex: 1 1 420px;
-  min-width: 0;
-}
 .mailall {
   display: flex;
   align-items: center;
@@ -1956,19 +1652,6 @@ input[aria-invalid="true"] {
   background: var(--accent);
 }
 
-.empty__mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  margin: 0 auto var(--s-3);
-  border-radius: 50%;
-  font: 600 14px var(--font-mono);
-  color: var(--ink-faint);
-  background: var(--panel-raised);
-}
-
 /* ── Record browser (Explore) ─────────────────────────────── */
 
 .record__head {
@@ -2025,10 +1708,6 @@ input[aria-invalid="true"] {
 }
 .tile[href]:hover {
   background: var(--hover-row);
-}
-.tile__label {
-  font-size: 12px;
-  color: var(--ink-faint);
 }
 
 /* Tool-call bar: the call that produced this page, plus raw JSON and a
@@ -2255,24 +1934,6 @@ input[aria-invalid="true"] {
 .chart {
   padding: 14px var(--s-4) 6px;
 }
-.chart__head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
-}
-.chart__value {
-  margin-left: auto;
-  font-size: 20px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-.chart__at {
-  min-width: 80px;
-  font: 11.5px var(--font-mono);
-  color: var(--ink-faint);
-}
 .chart svg {
   display: block;
   width: 100%;
@@ -2281,9 +1942,6 @@ input[aria-invalid="true"] {
 }
 .chart .bar {
   fill: rgba(139, 92, 246, 0.85);
-}
-.chart .bar--hover {
-  fill: #c4b5fd;
 }
 .chart .bar--partial {
   fill: rgba(139, 92, 246, 0.35);
@@ -2302,21 +1960,6 @@ input[aria-invalid="true"] {
 .chart .rule {
   stroke: var(--ink-body);
   stroke-dasharray: 3 3;
-}
-.chart .line-yours {
-  fill: none;
-  stroke: var(--gold-light);
-  stroke-width: 2;
-  stroke-linejoin: round;
-}
-.chart .line-corpus {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 2;
-  stroke-linejoin: round;
-}
-.chart .sample-bar {
-  fill: rgba(139, 92, 246, 0.22);
 }
 .chart text {
   font: 10px var(--font-mono);
@@ -2408,25 +2051,6 @@ input[aria-invalid="true"] {
   color: var(--ink-faint);
 }
 
-/* ── Placeholders ─────────────────────────────────────────────
-   Card art comes from Elixir’s byte-identical mirror. Until an icon
-   loads, this striped fill holds the slot — do not draw card art. */
-.card-slot {
-  aspect-ratio: 5 / 6;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: repeating-linear-gradient(
-    135deg,
-    var(--panel-raised) 0 4px,
-    var(--panel) 4px 8px
-  );
-}
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-  gap: var(--s-2);
-}
-
 /* ── Docs ─────────────────────────────────────────────────── */
 
 .docs {
@@ -2434,12 +2058,6 @@ input[aria-invalid="true"] {
   flex-wrap: wrap;
   gap: var(--s-6);
   align-items: flex-start;
-}
-.docs__toc {
-  flex: 0 0 180px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 /* The docs outline: a definition list, because that is what it is — a page
    name and what is in it. Cards made six items look like a product grid and
@@ -2458,38 +2076,6 @@ input[aria-invalid="true"] {
   line-height: 1.5;
 }
 
-/* Section headings in the docs sidebar. Quiet and small: they orient, they
-   are not destinations, and a reader scanning for a page name should pass
-   over them without stopping. */
-.docs__toc-section {
-  padding: 14px 10px 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.docs__toc-section:first-of-type {
-  padding-top: 8px;
-}
-.docs__toc a {
-  padding: 7px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--ink-faint);
-}
-/* Third level: a tool family under Tools. Indented rather than given a
-   heading of its own, because it is one page's children, not a new
-   section of the documentation. */
-.docs__toc-child {
-  padding-left: 18px;
-  font-size: 12.5px;
-}
-
-.docs__toc a[aria-current] {
-  background: var(--panel-raised);
-  color: var(--ink);
-}
 .docs__body {
   flex: 1 1 420px;
   min-width: 0;
@@ -2566,27 +2152,6 @@ input[aria-invalid="true"] {
   background: var(--ground-sunken);
   overflow: hidden;
 }
-.gauge__fill {
-  height: 100%;
-  border-radius: 5px 0 0 5px;
-  transition: width 0.4s ease;
-}
-.gauge__pace {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 2px;
-  background: var(--ink);
-  opacity: 0.55;
-}
-.gauge__foot {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--ink-faint);
-}
 
 /* Feed link. Sits with the page heading rather than in the footer, because a
    feed is only useful to somebody already reading the thing it feeds. */
@@ -2621,41 +2186,10 @@ input[aria-invalid="true"] {
 .first-answer .panel-title {
   margin: 0;
 }
-.first-answer__steps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  list-style: none;
-  padding: 0;
-  margin: 0 0 20px;
-}
-.first-answer__steps li {
-  border-left: 2px solid var(--gold);
-  padding-left: 12px;
-}
-.first-answer__steps strong,
-.first-answer__steps span {
-  display: block;
-}
-.first-answer__steps span {
-  margin-top: 6px;
-  color: var(--ink-faint);
-}
-.first-answer__sample {
-  line-height: 1.6;
-}
-.first-answer__times,
-.first-answer__readout {
+.first-answer__times {
   font-size: 12px;
   color: var(--ink-faint);
   line-height: 1.7;
-}
-.first-answer__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
-  margin: 18px 0;
 }
 .first-answer__questions {
   display: grid;
@@ -2684,9 +2218,6 @@ input[aria-invalid="true"] {
   width: 100%;
   min-height: 130px;
   margin-top: 8px;
-}
-.first-answer__readout {
-  margin-bottom: 0;
 }
 
 .first-answer__questions details {
@@ -3494,47 +3025,6 @@ input[aria-invalid="true"] {
 .docs-new b {
   color: var(--ink);
 }
-.docs-ref {
-  margin-top: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.docs-ref__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
-}
-.docs-ref__head h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-.docs-ref__head span {
-  font-size: 13px;
-  color: var(--ink-faint);
-}
-.docs-ref__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.docs-ref__links a {
-  display: flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: var(--r-control);
-  background: var(--control);
-  border: 1px solid transparent;
-  color: var(--ink-dim);
-  font-size: 13.5px;
-}
-.docs-ref__links a:hover {
-  background: var(--control-hover);
-  color: var(--ink);
-}
 @media (max-width: 1180px) {
   .docs-tasks {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4048,18 +3538,6 @@ input[aria-invalid="true"] {
 .verify__actions .btn {
   min-height: var(--hit-touch);
 }
-.verify__form {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.verify__form .input {
-  flex: 1 1 200px;
-  min-height: var(--hit-touch);
-}
-.verify__form .btn {
-  min-height: var(--hit-touch);
-}
 .verify__burst {
   position: relative;
   text-align: center;
@@ -4175,30 +3653,6 @@ input[aria-invalid="true"] {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--s-3);
   padding: var(--s-4);
-}
-.activity__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.activity__who {
-  display: inline-flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.activity__chip {
-  cursor: pointer;
-  border: 1px solid transparent;
-  /* A button's default grey is not the surface (console walk 2: the
-     selected chip read near-white on light grey). */
-  background: var(--control);
-  color: var(--ink-body);
-}
-.activity__chip--on {
-  border-color: var(--gold);
-  color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--gold);
 }
 .activity__empty {
   margin: 0;
@@ -4820,10 +4274,6 @@ a.card-art:hover .card-art__img {
   gap: 6px;
   min-width: 0;
 }
-.card-tile__rank {
-  font: 11.5px var(--font-mono);
-  color: var(--ink-faint);
-}
 .card-tile__name {
   overflow: hidden;
   font-size: 14.5px;
@@ -4834,45 +4284,6 @@ a.card-art:hover .card-art__img {
 .card-tile__kind {
   font-size: 12px;
   color: var(--ink-faint);
-}
-.card-tile__share {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.card-tile__bar {
-  display: flex;
-  flex: 1 1 auto;
-  height: 5px;
-  overflow: hidden;
-  border-radius: var(--r-pill);
-  background: var(--line-row);
-}
-.card-tile__fill {
-  width: 0;
-  border-radius: var(--r-pill);
-  background: var(--accent);
-}
-.card-tile__pct {
-  font: 12.5px var(--font-mono);
-  color: var(--ink);
-}
-.card-tile__line {
-  font-size: 12px;
-  color: var(--ink-dim);
-}
-/* Under 2,000 battles a share or a rate is a thin reading: said, not
-   hidden. */
-.card-thin {
-  display: inline-flex;
-  align-items: center;
-  height: 18px;
-  padding: 0 7px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--line-strong);
-  color: var(--ink-faint);
-  font-size: 11px;
-  white-space: nowrap;
 }
 /* The elixir drop on a card's art: the game's own elixir colour. */
 .card-elixir {
@@ -4919,59 +4330,6 @@ a.card-art:hover .card-art__img {
 .card-figure .card-art {
   --card-w: 92px;
 }
-/* The By mode table's row for the mode the page is reading. */
-.card-mode-row[aria-current="true"] td {
-  background: var(--hover-rail);
-  color: var(--ink);
-  font-weight: 600;
-}
-.card-thin-rate {
-  color: var(--ink-faint);
-}
-/* The call an agent makes for the same numbers. */
-.card-call {
-  margin: 0;
-  padding: 14px 16px;
-  overflow-x: auto;
-  border-radius: var(--r-control);
-  background: var(--ground);
-  font: 12.5px/1.6 var(--font-mono);
-  color: var(--ink-code);
-  white-space: pre-wrap;
-}
-/* The mode switch: one mode at a time, never pooled. */
-.card-modes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-self: flex-start;
-  max-width: 100%;
-  padding: 4px;
-  border-radius: var(--r-block);
-  background: var(--ground-sunken);
-}
-.card-modes button {
-  height: 34px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--ink-dim);
-  font: inherit;
-  font-size: 13.5px;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.card-modes button:hover {
-  background: var(--hover-rail);
-  color: var(--ink);
-}
-.card-modes button[aria-pressed="true"] {
-  background: var(--panel-raised);
-  color: var(--ink);
-  font-weight: 600;
-}
 .card-filter {
   min-width: 30px;
   height: 30px;
@@ -5017,75 +4375,6 @@ a.card-art:hover .card-art__img {
 }
 .card-search:focus-within {
   border-color: var(--accent);
-}
-/* A card's page: its four figures in one mode. */
-.card-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 16px 18px;
-  border-radius: 14px;
-  background: var(--panel);
-}
-.card-stat__label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.card-stat__value {
-  font: 600 26px/1.2 var(--font-mono);
-  color: var(--ink);
-}
-.card-stat__note {
-  font-size: 12.5px;
-  color: var(--ink-dim);
-}
-/* A card's months: share of decks as bars, wins under each. */
-.card-months {
-  display: flex;
-  gap: 12px;
-  padding: 4px 8px;
-  overflow-x: auto;
-}
-.card-months__col {
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-width: 44px;
-}
-.card-months__pct {
-  font: 12px var(--font-mono);
-  color: var(--ink);
-}
-.card-months__track {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 100%;
-  height: 180px;
-}
-.card-months__bar {
-  width: 100%;
-  max-width: 46px;
-  height: 0;
-  border-radius: 6px 6px 0 0;
-  background: var(--line-strong);
-}
-.card-months__col:last-child .card-months__bar {
-  background: var(--accent);
-}
-.card-months__label {
-  font-size: 12.5px;
-  color: var(--ink-body);
-}
-.card-months__wins {
-  font-size: 11.5px;
-  color: var(--ink-faint);
-  white-space: nowrap;
 }
 
 /* ---------------------------------------------------------------- battle
@@ -6356,19 +5645,6 @@ a.card-art:hover .card-art__img {
   color: var(--ink-dim);
   font-size: var(--t-body-sm);
 }
-.workspace-status {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-block: 12px;
-  margin-bottom: 20px;
-  font-size: var(--t-body-sm);
-  color: var(--ink-dim);
-}
-.workspace-status > :last-child {
-  margin-left: auto;
-}
 .fact-strip {
   display: flex;
   flex-wrap: wrap;
@@ -6381,19 +5657,6 @@ a.card-art:hover .card-art__img {
 .fact-strip .label {
   text-transform: none;
   letter-spacing: 0;
-}
-.recording-summary {
-  margin-bottom: 24px;
-}
-.recording-summary > summary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.recording-summary__detail {
-  margin-left: auto;
-  color: var(--ink-link);
 }
 .delivery-preview {
   min-width: 0;
@@ -6465,15 +5728,8 @@ a.card-art:hover .card-art__img {
   .page__title {
     font-size: 24px;
   }
-  .rail__switch-head,
   .rail__toggle {
     background: transparent;
-  }
-  .rail__switch {
-    margin-block: 0;
-  }
-  .rail__switch-head {
-    min-height: 44px;
   }
   .rail__toggle {
     border: 1px solid transparent;
@@ -6537,21 +5793,6 @@ a.card-art:hover .card-art__img {
 .account-menu__head > div {
   min-width: 0;
   flex: 1;
-}
-
-.workspace-status a {
-  min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-.activity__who {
-  max-width: 100%;
-  min-width: 0;
-}
-.activity__who .chip {
-  max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
 }
 
 /* Email choices use the same reading rows on every screen. */
@@ -6949,8 +6190,7 @@ a.card-art:hover .card-art__img {
   padding-left: 16px;
 }
 .kit-panel .panel__foot,
-.kit-panel .panel__note,
-.kit-panel .panel__actions {
+.kit-panel .panel__note {
   padding-right: 16px;
   padding-left: 16px;
   background: none;
@@ -7207,8 +6447,7 @@ button.kit-row {
     padding-left: 14px;
   }
   .kit-panel .panel__foot,
-  .kit-panel .panel__note,
-  .kit-panel .panel__actions {
+  .kit-panel .panel__note {
     padding-right: 14px;
     padding-left: 14px;
   }
@@ -7542,19 +6781,6 @@ button.kit-row {
   background: var(--hover-rail);
   color: var(--ink);
 }
-.kit-top__drop {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--drop-edge);
-  border-radius: 8px;
-  background: var(--drop-grad);
-  color: var(--ink);
-  font-size: 13px;
-  text-decoration: none;
-  white-space: nowrap;
-}
 .kit-top__account {
   position: relative;
 }
@@ -7623,10 +6849,6 @@ button.kit-row {
   gap: 16px;
   min-width: 0;
 }
-/* A page you read keeps its lines short inside the frame. */
-.kit-home--read {
-  max-width: 860px;
-}
 .kit-home__filters {
   display: flex;
   flex-wrap: wrap;
@@ -7691,35 +6913,6 @@ button.kit-row {
     text-align: left;
   }
 }
-/* Needs you, when the clan read brings it after the page has painted: it opens,
-   so what is below moves down instead of jumping. */
-.kit-home__top {
-  display: grid;
-  grid-template-rows: 1fr;
-  min-width: 0;
-}
-.kit-home__top-in {
-  display: grid;
-  gap: 16px;
-  min-width: 0;
-  min-height: 0;
-  overflow: clip;
-  overflow-clip-margin: 8px;
-}
-.kit-home__top--late {
-  animation: kit-home-opens 180ms ease-out;
-}
-@keyframes kit-home-opens {
-  from {
-    grid-template-rows: 0fr;
-    opacity: 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .kit-home__top--late {
-    animation: none;
-  }
-}
 .kit-notice {
   display: flex;
   flex-wrap: wrap;
@@ -7734,7 +6927,6 @@ button.kit-row {
 }
 /* The clan's gold edge: an inset rule on the leading side, never a gold
    outline. Needs you is the clan asking. */
-.kit-needs,
 .kit-panel--clan {
   box-shadow: var(--edge-clan);
 }
@@ -8602,40 +7794,6 @@ a.kit-mbattle:hover {
   border-radius: 10px;
   background: var(--panel);
 }
-.kit-fsec__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-  color: var(--ink-dim);
-  font-size: 13px;
-}
-.kit-fsec__head h2 {
-  margin: 0;
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 600;
-}
-.kit-fcards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-  gap: 12px;
-}
-.kit-fcard {
-  min-width: 0;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--panel);
-}
-.kit-fcard .deck-grid--8 {
-  grid-template-columns: repeat(4, max-content);
-  gap: 8px 6px;
-}
-.kit-fsec .kit-rows {
-  border-radius: 10px;
-  background: var(--panel);
-}
 /* The player page (#764; canvas Player, Round 3 flat, 2026-11-13). Its head
    is a card with the violet wash (canvas .phead): the avatar, the name in
    the display face, the line, the verified badge, the three counts that
@@ -8988,30 +8146,6 @@ a.kit-mbattle:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-.kit-fcard__head {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--ink-dim);
-}
-.kit-fcard__who {
-  color: var(--ink);
-  font-weight: 600;
-}
-.kit-fcard__line {
-  margin: 4px 0 0;
-  color: var(--ink-body);
-  font-size: 13px;
-}
-.kit-fcard__moments {
-  margin: 8px 0 0;
-  padding-left: 16px;
-  font-size: 13px;
-}
-.kit-fsec__quiet {
-  margin: 8px 0 0;
-  color: var(--ink-dim);
-}
 @media (max-width: 760px) {
   /* Room under the page for the tab bar (.kit-bottom: 60px of tabs and
      its top rule) and the phone's home indicator under it. */
@@ -9048,8 +8182,7 @@ a.kit-mbattle:hover {
     text-align: left;
   }
   .kit-top__nav,
-  .kit-top__search,
-  .kit-top__drop {
+  .kit-top__search {
     display: none;
   }
   /* Out of sight, still the button's name. */
@@ -9320,37 +8453,6 @@ a.kit-mbattle:hover {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
-}
-.clan-subnav__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-width: 0;
-}
-.clan-subnav__link {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  min-height: 36px;
-  padding: 4px 12px;
-  border-radius: var(--radius-control, 8px);
-  color: var(--ink-dim);
-  text-decoration: none;
-}
-.clan-subnav__link[aria-current="page"] {
-  background: var(--panel-raised);
-  color: var(--ink);
-  font-weight: 600;
-}
-.clan-subnav__count {
-  color: var(--ink-faint);
-  font-size: var(--t-body-sm);
-}
-.clan-subnav__aside {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
 }
 .clan-subnav__find {
   width: 200px;
@@ -10037,15 +9139,6 @@ a.kit-mbattle:hover {
   align-items: center;
   gap: 8px;
 }
-.st-chip-note {
-  margin-left: 8px;
-  font-size: 11.5px;
-  font-weight: 400;
-  color: var(--ink-faint);
-}
-.st-chip-note--gold {
-  color: var(--gold);
-}
 @media (max-width: 720px) {
   .st-facts {
     grid-template-columns: minmax(0, 1fr);
@@ -10136,9 +9229,6 @@ a.kit-mbattle:hover {
   font-size: 17px;
   font-weight: 600;
   color: var(--ink);
-}
-.st-tools {
-  margin: 0;
 }
 .st-meters {
   margin: 0;
