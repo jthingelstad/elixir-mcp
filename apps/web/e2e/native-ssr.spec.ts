@@ -108,7 +108,14 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
   );
   await mockApi(
     page,
-    signedIn({ "GET /api/me": [200, { ...ME, timezone: null }] }),
+    signedIn({
+      "GET /api/me": [200, { ...ME, timezone: null }],
+      // Find's side panel reads your follow slots.
+      "GET /api/me/follow-slots": [
+        200,
+        { ok: true, used: 0, limit: 50, players: [] },
+      ],
+    }),
   );
   const meRequests: string[] = [];
   page.on("request", (r) => {
