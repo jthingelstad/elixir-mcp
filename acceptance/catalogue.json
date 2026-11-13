@@ -93,7 +93,7 @@
           "args": {
             "days": 30,
             "group_by": "game_mode",
-            "player_tag": "#C920YGLC2"
+            "player_tag": "$CLANMATE_1"
           },
           "calls": 1
         },
@@ -136,7 +136,7 @@
             "days": 30,
             "game_mode": "Challenge_AllCards",
             "limit": 6,
-            "player_tag": "#C920YGLC2",
+            "player_tag": "$CLANMATE_1",
             "verbosity": "compact"
           },
           "calls": 1
@@ -338,13 +338,13 @@
         },
         {
           "args": {
-            "player_tag": "#VJG0J29QP"
+            "player_tag": "$CLANMATE_2"
           },
           "calls": 1
         },
         {
           "args": {
-            "player_tag": "#VJQV8G8RL"
+            "player_tag": "$CLANMATE_3"
           },
           "calls": 1
         }
@@ -395,7 +395,7 @@
       "sets": [
         {
           "args": {
-            "player_tag": "#UL2V9QRG0"
+            "player_tag": "$COLLECTION_1"
           },
           "calls": 0,
           "seed": "a full collection under the result cap (the owner's is not: filed)"

@@ -11,6 +11,10 @@
  *
  *   AWS_PROFILE=cloud-engineer node acceptance/catalogue.mjs --refresh [--days 7] [--per-tool 3]
  *
+ * No player but the owner is named: every other player_tag becomes a
+ * placeholder (`$CLANMATE_n`) the run resolves from the roster
+ * (subjects.mjs), and a set naming any other tag is dropped.
+ *
  * What is dropped: write tools (the token could not call them anyway),
  * live-lane reads, caller identity (the op already drops on_behalf_of and
  * display_name), and the two tools whose answer is the caller's own
@@ -25,8 +29,50 @@ import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { TOOL_GROUPS } from "@elixir-mcp/contracts";
 import { makeRegistry } from "../packages/tools/src/tools.mjs";
 import { validateArgs } from "../packages/tools/src/validate.mjs";
-import { JAMIE } from "./lib.mjs";
+import { CLAN, JAMIE } from "./lib.mjs";
 import { canonical } from "./replay.mjs";
+import { placeholdersIn, substitute } from "./subjects.mjs";
+
+/** Tag-shaped: the CR alphabet after a hash. */
+const TAG = /^#[0289PYLQGRJCUV]{3,14}$/;
+/** The only tags a committed file may name (many players are minors). */
+const NAMEABLE = new Set([JAMIE, CLAN]);
+
+/** A set's arguments with every other player named by a placeholder
+ *  (`$CLANMATE_n`, resolved at run time by subjects.mjs), numbered in the
+ *  order the refresh meets them so one player keeps one placeholder
+ *  across sets. A tag anywhere else (another clan, an opponent) has no
+ *  run-time source: the set is dropped with that reason. */
+export function withoutRealTags(args, players) {
+  let dropped = null;
+  const walk = (value, key) => {
+    if (typeof value === "string" && TAG.test(value) && !NAMEABLE.has(value)) {
+      if (key !== "player_tag") {
+        dropped = `names ${key}, which the suite may not name`;
+        return value;
+      }
+      if (!players.has(value))
+        players.set(value, `$CLANMATE_${players.size + 1}`);
+      return players.get(value);
+    }
+    if (Array.isArray(value)) return value.map((v) => walk(v, key));
+    if (value && typeof value === "object")
+      return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, walk(v, k)]),
+      );
+    return value;
+  };
+  const out = walk(args, null);
+  return dropped ? { dropped } : { args: out };
+}
+
+/** Validation sees the owner where a placeholder stands: a placeholder is
+ *  a player tag the run supplies. */
+const forValidation = (args) =>
+  substitute(
+    args,
+    new Map([...placeholdersIn(args)].map((name) => [name, JAMIE])),
+  );
 
 const sortKeys = (o) =>
   Object.fromEntries(
@@ -53,6 +99,7 @@ export function loadCatalogue() {
 /** Shape the op's rows into the catalogue. Exported for the test. */
 export function shapeCatalogue(raw, declarations, { stale = [] } = {}) {
   const byName = new Map(declarations.map((d) => [d.name, d]));
+  const players = new Map();
   const timing = new Map(raw.timing.map((t) => [t.tool, t]));
   const tools = {};
   for (const row of raw.sets) {
@@ -65,7 +112,12 @@ export function shapeCatalogue(raw, declarations, { stale = [] } = {}) {
     // correctly answered live_pending). Any other tool called with
     // `live: true` loses the flag below and is kept as the recorded read.
     if (row.tool === "live_fetch") continue;
-    const args = { ...row.args };
+    const named = withoutRealTags({ ...row.args }, players);
+    if (named.dropped) {
+      stale.push(`${row.tool}: ${named.dropped}`);
+      continue;
+    }
+    const args = named.args;
     delete args.live;
     // A caller-default read (omit player_tag to mean you) has no "you"
     // on an agent principal: the owner's primary player stands in.
@@ -81,7 +133,7 @@ export function shapeCatalogue(raw, declarations, { stale = [] } = {}) {
       args.player_tag = JAMIE;
     // A set the current contract refuses is stale usage (a call from
     // before the argument became required), not a case: listed, dropped.
-    const problem = validateArgs(decl.inputSchema, args);
+    const problem = validateArgs(decl.inputSchema, forValidation(args));
     if (problem) {
       stale.push(`${row.tool} ${JSON.stringify(args)}: ${problem}`);
       continue;
@@ -151,7 +203,10 @@ if (isMain) {
       sets: [],
     });
     for (const seed of sets) {
-      const problem = validateArgs(byName.get(tool).inputSchema, seed.args);
+      const problem = validateArgs(
+        byName.get(tool).inputSchema,
+        forValidation(seed.args),
+      );
       if (problem) {
         stale.push(`${tool} seed: ${problem}`);
         continue;
