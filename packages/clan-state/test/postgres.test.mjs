@@ -182,8 +182,10 @@ test("canonical membership SQL keeps race absence separate from full donation-we
       war: { "#0LGYR": [true] },
       donations: { "#0LGYR": [false] },
     });
-    // Evidence reads the read facts (0259), so take the read after the
-    // finish out of those.
+    // Take the read after the finish out of the receipts and of the read
+    // facts (0259) alike: evidence reads one or the other.
+    await db.query(`delete from api_receipt where entity_key='#00UQG'
+      and fetched_at >= '2026-09-14T10:00:00Z'`);
     await db.query(`update admitted_read_day
       set read_at = array(select x from unnest(read_at) x
                           where x < '2026-09-14T10:00:00Z')

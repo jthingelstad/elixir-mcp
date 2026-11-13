@@ -18,12 +18,6 @@
  * Elixir's scale.
  */
 
-import {
-  roleHistorySinceSql,
-  rosterReadAtOrAfter,
-  rosterReadAtOrBefore,
-} from "./read-facts.mjs";
-
 import { notBoatDefense } from "./boat-defense-sql.mjs";
 
 // The player/time cover has no side. Retrieve it only for the boat
@@ -223,23 +217,33 @@ export function rosterHistoryQueries({ clanTag, tags, finishes, since }) {
       values: [clanTag, since, tags],
     },
     {
-      // The admitted roster reads either side of each finish, from the
-      // read facts (0259; receipts are kept 28 days). Imported reads
-      // count: they are the reads the imported tenure was walked from.
+      // The admitted roster reads either side of each finish, on
+      // api_receipt_entity_fetched (0256). Backfilled reads count: they are
+      // the reads the imported tenure was walked from.
       name: "finish_reads",
       text: `select t.i::int as i,
-                    ${rosterReadAtOrBefore("$1", "t.at")} as prev_read,
-                    ${rosterReadAtOrAfter("$1", "t.at")} as next_read
+                    (select max(r.fetched_at) from api_receipt r
+                      where r.entity_key = $1 and r.endpoint = 'clan'
+                        and r.admission = 'admitted' and r.fetched_at <= t.at) as prev_read,
+                    (select min(r.fetched_at) from api_receipt r
+                      where r.entity_key = $1 and r.endpoint = 'clan'
+                        and r.admission = 'admitted' and r.fetched_at >= t.at) as next_read
              from unnest($2::timestamptz[]) with ordinality as t(at, i)`,
       values: [clanTag, finishes],
     },
     {
       // Role changes are events only from the record's own first live
       // roster read: the imported history (the backfill gateway) wrote
-      // tenure and no events. The read facts keep each day's first live
-      // read (0259).
+      // tenure and no events. Per gateway on the receipt idempotency
+      // index (0003), so the backfill's reads are never walked.
       name: "role_history_since",
-      text: roleHistorySinceSql("$1"),
+      text: `select min(x.first_read) as role_history_since
+             from gateway g
+             cross join lateral (
+               select min(r.fetched_at) as first_read from api_receipt r
+               where r.gateway_id = g.gateway_id and r.endpoint = 'clan'
+                 and r.entity_key = $1 and r.admission = 'admitted') x
+             where g.name <> 'backfill-elixir-bot'`,
       values: [clanTag],
     },
   ];

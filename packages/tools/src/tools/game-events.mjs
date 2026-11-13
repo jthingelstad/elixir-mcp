@@ -16,12 +16,6 @@ import {
 import { seasonFromDate } from "@elixir-mcp/record/war-clock";
 const seasonStartOf = (at) => seasonFromDate(at.getTime()).seasonStartMs;
 
-// The admitted events reads, one instant `x` per read (0259's read facts;
-// receipts are kept 28 days, the calendar a year). A game day runs 10:00Z
-// to 10:00Z, so its reads sit on its own UTC day and the next.
-const EVENT_READS = `admitted_read_day d cross join lateral unnest(d.read_at) as x
-           where d.endpoint = 'events'`;
-
 export const game_events = {
   description:
     "What was ON: the in-game events (modes, challenges, side modes) the API listed as running, recorded from daily sightings (sparser before 2026-09-11) with the days each was seen. The API shows only today's and gives no dates, so this is the season's calendar built from sightings - the thing that explains a spike of some mode in a battle log. Default window: the current season so far.",
@@ -64,15 +58,17 @@ export const game_events = {
     const limit = Math.min(200, Math.max(1, Number(args.limit ?? 50)));
     // game_days_seen (3.17.0, call 6): a sighting is one /events read,
     // and game_event_day keeps only its UTC day; the read's instant is
-    // in the read facts (admitted_read_day, 0259: receipts are kept 28
-    // days), so the game day (10:00Z grid) is the read's. A UTC day with
-    // no read on record (the elixir-bot backfill's sparser reads) keeps
-    // the UTC day as its game day.
+    // on its receipt, so the game day (10:00Z grid) is the receipt's.
+    // A UTC day with no receipt on record (the elixir-bot backfill's
+    // sparser reads) keeps the UTC day as its game day.
     const { rows } = await ctx.db.query(
       `with sighting as (
-           select distinct d.day, game_day(x) as game_day
-           from ${EVENT_READS}
-             and d.day >= $1::date - 1 and d.day < $2::date + 2)
+           select distinct (r.fetched_at at time zone 'UTC')::date as day,
+                  game_day(r.fetched_at) as game_day
+           from api_receipt r
+           where r.endpoint = 'events' and r.admission = 'admitted'
+             and r.fetched_at >= $1::date - interval '1 day'
+             and r.fetched_at < $2::date + interval '2 days')
          select e.event_tag, e.title, e.description, e.first_seen_at, e.last_seen_at,
                 array_agg(distinct d.day::text order by d.day::text) as days,
                 array_agg(distinct coalesce(s.game_day, d.day)::text order by coalesce(s.game_day, d.day)::text) as game_days,
@@ -86,11 +82,9 @@ export const game_events = {
          -- window's instants, not the UTC dates around them, so a window
          -- holding no read returns nothing rather than yesterday's rows.
          where d.day in (
-           select d2.day from admitted_read_day d2 cross join lateral unnest(d2.read_at) as x
-            where d2.endpoint = 'events'
-              and d2.day >= ($4::timestamptz at time zone 'UTC')::date
-              and d2.day <= ($5::timestamptz at time zone 'UTC')::date
-              and x >= $4 and x < $5)
+           select (r.fetched_at at time zone 'UTC')::date from api_receipt r
+            where r.endpoint = 'events' and r.admission = 'admitted'
+              and r.fetched_at >= $4 and r.fetched_at < $5)
          group by e.event_tag
          order by max(d.day) desc, min(d.day) desc
          limit $3`,
@@ -107,11 +101,10 @@ export const game_events = {
     // The game days a read inside the window covered (Gym #126), served:
     // a day missing here is a day nothing was read, not a day of nothing.
     const { rows: readDays } = await ctx.db.query(
-      `select distinct game_day(x)::text as day
-         from ${EVENT_READS}
-          and d.day >= ($1::timestamptz at time zone 'UTC')::date
-          and d.day <= ($2::timestamptz at time zone 'UTC')::date
-          and x >= $1 and x < $2
+      `select distinct game_day(r.fetched_at)::text as day
+         from api_receipt r
+        where r.endpoint = 'events' and r.admission = 'admitted'
+          and r.fetched_at >= $1 and r.fetched_at < $2
         order by 1`,
       [from, to],
     );
@@ -122,9 +115,9 @@ export const game_events = {
          from generate_series(game_day($1::timestamptz), game_day($2::timestamptz), interval '1 day') gd
         where gd::date < game_day(now())
           and not exists (
-            select 1 from ${EVENT_READS}
-               and d.day between gd::date and gd::date + 1
-               and game_day(x) = gd::date)`,
+            select 1 from api_receipt r
+             where r.endpoint = 'events' and r.admission = 'admitted'
+               and game_day(r.fetched_at) = gd::date)`,
       [from, new Date(to.getTime() - 1)],
     );
     // The game days the window touches whose reads all fall OUTSIDE it
@@ -135,9 +128,9 @@ export const game_events = {
       `select gd::date::text as day
          from generate_series(game_day($1::timestamptz), game_day($2::timestamptz), interval '1 day') gd
         where exists (
-          select 1 from ${EVENT_READS}
-             and d.day between gd::date and gd::date + 1
-             and game_day(x) = gd::date)`,
+          select 1 from api_receipt r
+           where r.endpoint = 'events' and r.admission = 'admitted'
+             and game_day(r.fetched_at) = gd::date)`,
       [from, new Date(to.getTime() - 1)],
     );
     const readOutside = touched

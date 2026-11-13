@@ -24,6 +24,9 @@ const ROOT = path.resolve(
   "../../..",
 );
 
+/** The four year-long readers stay on receipts while the receipt trim is
+ *  held; they move onto the read facts in the change that lifts it, once
+ *  {read_facts_backfill} is done, and their pins go with them. */
 const PINNED = {
   "packages/ingest/src/admission.mjs": [
     1,
@@ -34,6 +37,22 @@ const PINNED = {
     "the writer: inserts the receipt and stamps its own row",
   ],
   "packages/ledger/src/ledger.mjs": [1, "fetches in the last hour"],
+  "packages/record/src/participation-sql.mjs": [
+    3,
+    "role history and the reads around each finish, until the read-facts backfill is done: a year-long reader, moved onto 0259's read facts with the receipt trim's lift, never before (expand and contract)",
+  ],
+  "packages/record/src/war-membership.mjs": [
+    2,
+    "war award absence evidence, until the read-facts backfill is done: a year-long reader, moved onto 0259's read facts with the receipt trim's lift, never before (expand and contract)",
+  ],
+  "packages/tools/src/tools/game-events.mjs": [
+    5,
+    "the event calendar's read days, until the read-facts backfill is done: a year-long reader, moved onto 0259's read facts with the receipt trim's lift, never before (expand and contract)",
+  ],
+  "packages/tools/src/activity/entries.mjs": [
+    2,
+    "a quiet member's days_since_poll, until the read-facts backfill is done: a year-long reader, moved onto 0259's read facts with the receipt trim's lift, never before (expand and contract)",
+  ],
   "packages/record/src/read-facts.mjs": [
     11,
     "the backfill and check of the read facts, over the receipts still held",
@@ -146,16 +165,4 @@ test("every source file that names api_receipt is pinned with its reason", () =>
     [],
     "a pinned file names api_receipt a different number of times: say how far back the new read looks, or lower the pin",
   );
-});
-
-test("the year-long readers read the read facts, not receipts", () => {
-  for (const file of [
-    "packages/record/src/participation-sql.mjs",
-    "packages/record/src/war-membership.mjs",
-    "packages/tools/src/tools/game-events.mjs",
-    "packages/tools/src/activity/entries.mjs",
-  ]) {
-    const text = readFileSync(path.join(ROOT, file), "utf8");
-    assert.doesNotMatch(text, /\bapi_receipt\b/, file);
-  }
 });

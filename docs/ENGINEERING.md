@@ -102,8 +102,9 @@ Consecutive 403s open a per-collector breaker and drain it.
 
 - **Canonical tables are lossless for what Elixir retains.** Battles,
   snapshots and the read facts are the system of record and never need a
-  rebuild. Receipts are an operational log kept 28 days: a reader that
-  needs a read older than that reads the fact kept for it
+  rebuild. Receipts are an operational log kept 28 days (the trim is held
+  until the readers below move): a reader that needs a read older than
+  that reads the fact kept for it
   (`admitted_read_day`, `battlelog_read_gap`; 0259,
   `packages/record/src/read-facts.mjs`), and
   `services/jobs/test/receipt-readers.test.mjs` pins every receipt reader
