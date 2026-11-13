@@ -2,7 +2,7 @@
 // none; the reader (the approved seam) decides who reads and what a tile is.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cookieHeader, fakeMcp, harness, req, signIn } from "./fakes.mjs";
+import { cookieHeader, fakeRecord, harness, req, signIn } from "./fakes.mjs";
 
 const TILES = { schema_version: 1, clans: [], truncated: false };
 
@@ -22,7 +22,7 @@ test("signed out reads nothing, and the reader is never asked", async () => {
 test("a signed-in person reads the tiles, at the mounted path too", async () => {
   let reads = 0;
   const h = harness({
-    mcp: fakeMcp(),
+    record: fakeRecord(),
     directory: async () => {
       reads++;
       return { directory: TILES };
@@ -44,7 +44,7 @@ test("a signed-in person reads the tiles, at the mounted path too", async () => 
 
 test("the reader's refusal is a 403 with its reason", async () => {
   const h = harness({
-    mcp: fakeMcp(),
+    record: fakeRecord(),
     directory: async () => ({ refused: "not_a_person" }),
   });
   const { sessionCookie } = await signIn(h);
@@ -56,7 +56,7 @@ test("the reader's refusal is a 403 with its reason", async () => {
 });
 
 test("without the reader wired the route does not exist", async () => {
-  const h = harness({ mcp: fakeMcp() });
+  const h = harness({ record: fakeRecord() });
   const { sessionCookie } = await signIn(h);
   const r = await h.handler(
     req("GET", "/api/directory", { cookies: cookieHeader(sessionCookie) }),

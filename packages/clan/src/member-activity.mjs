@@ -19,21 +19,17 @@ const atReset = (value) => {
 };
 
 export function createMemberActivity({
-  mcp,
+  record,
   weeklyCounts = async () => [],
   warBounds = async () => [],
   now = () => Date.now(),
 }) {
-  return async (clanTag, token, input, { cursor = null, to = null } = {}) => {
+  return async (clanTag, input, { cursor = null, to = null } = {}) => {
     const playerTag = normalizeTag(input);
     if (!playerTag) throw new ManageError(400, "invalid_tag");
     const call = async (name, args) => {
-      const r = await mcp.callTool(token, name, args);
-      if (!r.ok)
-        throw new ManageError(
-          r.status === 401 ? 401 : 502,
-          r.status === 401 ? "session_expired" : "elixir_unavailable",
-        );
+      const r = await record.read(name, args);
+      if (!r.ok) throw new ManageError(502, "elixir_unavailable");
       return r.body;
     };
     const roster = await call("clans_roster", { clan_tag: clanTag });
@@ -95,7 +91,7 @@ export function createMemberActivity({
       }));
     // Coverage is independent evidence, not permission to call an empty
     // page inactivity. Its global history/counts and account extras stay out.
-    const r = await mcp.callTool(token, "elixir_coverage", {
+    const r = await record.read("elixir_coverage", {
       player_tag: playerTag,
     });
     const intervals = r.ok

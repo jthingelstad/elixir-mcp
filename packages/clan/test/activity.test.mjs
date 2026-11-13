@@ -25,7 +25,7 @@ import {
 import {
   cookieHeader,
   createTestAccount,
-  fakeMcp,
+  fakeRecord,
   ledgerWithPolicy,
   player,
   req,
@@ -148,7 +148,7 @@ function harness({
   const now = () => clock.t;
   const ledger = createMemoryLedger();
   if (policy) ledgerWithPolicy(ledger, TAG, policy);
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [player({ clan_role: role })],
     roster: rosterBody([
       { player_tag: ADA, name: "Ada", role, trophies: 9000 },
@@ -159,13 +159,13 @@ function harness({
     ledger,
     anthropic,
     secret: "test-secret",
-    rosterFor: (token, clanTag) => fetchRoster(mcp, token, clanTag),
+    rosterFor: (clanTag) => fetchRoster(record, clanTag),
     now,
   });
   const store = fakeStore();
   const voice = createVoiceService({ ledger, now });
   const handler = createHandler({
-    mcp,
+    record,
     ...createTestAccount(),
     model,
     voice,

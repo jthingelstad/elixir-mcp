@@ -1,7 +1,7 @@
 /**
  * Sharing with Elixir (door 3, 2026-09-25; Jamie): what the clan did goes
- * back to Elixir as ATTESTED FACTS, on the acting person's own grant
- * (JSON API 2.2.0, scope clans:attest). Elixir keeps them apart from the
+ * back to Elixir's record as ATTESTED FACTS, written as the acting
+ * person (`writeClanFactInClan`). Elixir keeps them apart from the
  * game record, labelled as this person's word through Clan, and
  * shows each only to the readers its type allows: a departure (kick or
  * leave) to the clan and its agent since Elixir 9.3.0 (Jamie, 2026-09-25:
@@ -18,8 +18,7 @@
  * that made it is completed (a departure answered, a promotion done, a
  * welcome said, an announcement sent) or when a member marks themselves
  * away; it is best effort, never holds up the action, and the action's log
- * says whether it was shared. A sign-in from before `clans:attest` shares
- * nothing until the person signs in again; the app says so on every page.
+ * says whether it was shared.
  * Only facts cross, never a judgment: a removal's chat line (it names an
  * inactive member) is never shared as a message.
  */
@@ -221,14 +220,13 @@ export function factsOfAction(
   return facts;
 }
 
-export function createSharing({ ledger, mcp, logAction }) {
+export function createSharing({ ledger, record, logAction }) {
   /** Share every fact; each outcome goes into the action's log. */
-  async function share(clanTag, token, who, facts, { cardId = null } = {}) {
-    if (!facts.length || !token || typeof mcp.writeFact !== "function")
-      return [];
+  async function share(clanTag, who, facts, { cardId = null } = {}) {
+    if (!facts.length || typeof record.writeFact !== "function") return [];
     const out = [];
     for (const fact of facts) {
-      const r = await mcp.writeFact(token, clanTag, fact);
+      const r = await record.writeFact(clanTag, fact);
       const entry = r.ok
         ? {
             text: `Shared with Elixir: ${SHARE_TYPES[fact.type].label.toLowerCase()}.`,
@@ -270,7 +268,6 @@ export function createSharing({ ledger, mcp, logAction }) {
     /** After a decision: the facts it attests, shared. */
     async afterDecision(
       clanTag,
-      token,
       who,
       card,
       decided,
@@ -280,7 +277,6 @@ export function createSharing({ ledger, mcp, logAction }) {
         card.type === "awards_announcement" ? await ledger.grants(clanTag) : [];
       return share(
         clanTag,
-        token,
         who,
         factsOfAction(card, decided, { sent, grants, message_part }),
         { cardId: card.card_id },
@@ -288,10 +284,9 @@ export function createSharing({ ledger, mcp, logAction }) {
     },
 
     /** A member's own away, shared while it lasts; cleared, taken back. */
-    async away(clanTag, token, who, hold, { cardId = null } = {}) {
+    async away(clanTag, who, hold, { cardId = null } = {}) {
       return share(
         clanTag,
-        token,
         who,
         [
           {
@@ -307,9 +302,9 @@ export function createSharing({ ledger, mcp, logAction }) {
     },
     /** Taken back when the member is back. One Elixir never held (a
      *  sign-in that could not share) is already gone. */
-    async awayCleared(clanTag, token, who) {
-      if (!token || typeof mcp.removeFact !== "function") return;
-      await mcp.removeFact(token, clanTag, `away:${who.player_tag}`);
+    async awayCleared(clanTag, who) {
+      if (typeof record.removeFact !== "function") return;
+      await record.removeFact(clanTag, `away:${who.player_tag}`);
     },
   };
 }

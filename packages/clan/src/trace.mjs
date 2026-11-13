@@ -4,12 +4,11 @@
  * and REPORT: 146 invocations in six hours, p90 2.7 s, five of them 16 to
  * 22 s, and not one line saying where the time went).
  *
- * A request opens a trace; every Elixir call, every call to a clan's own
- * model and every table operation made on its behalf is timed into it (AsyncLocalStorage, so nothing is
- * threaded through arguments); the handler closes it with ONE JSON line
- * (the route, the status, the total, each upstream call with its
- * duration and Elixir's own request_id for correlation) and a
- * Server-Timing header so
+ * A request opens a trace; every read of Elixir's record, every call to a
+ * clan's own model and every table operation made on its behalf is timed
+ * into it (AsyncLocalStorage, so nothing is threaded through arguments);
+ * the handler closes it with ONE JSON line (the route, the status, the
+ * total, each read with its duration) and a Server-Timing header so
  * the browser's own timing can be read against the server's. Time spent
  * in front of the edge is the difference.
  *
@@ -52,8 +51,8 @@ export function annotate(fields) {
   if (t) Object.assign(t.meta, fields);
 }
 
-/** Time one Elixir call into the trace. `describe(result)` names it. */
-export async function timedElixir(label, fn) {
+/** Time one read of Elixir's record (a tool, in process) into the trace. */
+export async function timedRead(label, fn) {
   const t = current();
   const started = Date.now();
   const result = await fn();
@@ -64,12 +63,6 @@ export async function timedElixir(label, fn) {
     ok: result?.ok !== false,
     ...(result?.status ? { status: result.status } : {}),
     ...(result?.code ? { code: result.code } : {}),
-    ...(result?.rpcCode !== undefined ? { rpc: result.rpcCode } : {}),
-    // Elixir stamps meta.request_id on every tool answer: the key that
-    // opens ITS call log for this same call.
-    ...(result?.body?.meta?.request_id
-      ? { request_id: result.body.meta.request_id }
-      : {}),
     ...(result?.bytes ? { bytes: result.bytes } : {}),
   };
   if (t) t.elixir.push(entry);

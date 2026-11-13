@@ -272,7 +272,7 @@ export function createModelService({
   ledger,
   anthropic,
   secret,
-  /** (token, clanTag) → the clans_roster answer, or null */
+  /** (clanTag) → the clans_roster answer, or null */
   rosterFor,
   now = () => Date.now(),
 }) {
@@ -335,8 +335,8 @@ export function createModelService({
   }
 
   /** Is the person who added the key still a leader here? null: unknown. */
-  async function ownerLeads(clanTag, stored, token) {
-    const roster = token ? await rosterFor(token, clanTag) : null;
+  async function ownerLeads(clanTag, stored) {
+    const roster = await rosterFor(clanTag);
     if (!roster) return null;
     const m = (roster.members ?? []).find(
       (x) => x.player_tag === stored.set_by,
@@ -428,7 +428,7 @@ export function createModelService({
     },
 
     /** What leaders see about the key: never the key. */
-    async status(clanTag, who, token) {
+    async status(clanTag, who) {
       requireLeader(who);
       const stored = await ledger.modelKey(clanTag);
       const t = now();
@@ -493,7 +493,7 @@ export function createModelService({
       if (!stored) return { ...base, set: false };
       const readable =
         box.open(stored.sealed, boundTo(clanTag, stored.set_by)) !== null;
-      const leads = await ownerLeads(clanTag, stored, token);
+      const leads = await ownerLeads(clanTag, stored);
       return {
         ...base,
         set: true,
@@ -574,7 +574,7 @@ export function createModelService({
      * any other failure (429, an error, no answer, no Claude model)
      * keeps the old list and records the failure.
      */
-    async refreshModels(clanTag, who, token) {
+    async refreshModels(clanTag, who) {
       requireLeader(who);
       const stored = await ledger.modelKey(clanTag);
       if (!stored) throw new ManageError(409, "no_model_key");
@@ -588,7 +588,7 @@ export function createModelService({
       const key = box.open(stored.sealed, boundTo(clanTag, stored.set_by));
       if (!key) return skip("key_unreadable");
       // The key is used only while the person who added it leads here.
-      if ((await ownerLeads(clanTag, stored, token)) !== true)
+      if ((await ownerLeads(clanTag, stored)) !== true)
         return skip("owner_unconfirmed");
       const at = iso();
       if (
@@ -671,7 +671,7 @@ export function createModelService({
      * (`words.mjs`) on the clan's key. Returns the tool's input; the
      * caller checks it and a person edits it.
      */
-    async write(clanTag, who, token, request, { defer = false } = {}) {
+    async write(clanTag, who, request, { defer = false } = {}) {
       requireLeader(who);
       if (!PURPOSES[request?.purpose])
         throw new ManageError(400, "unknown_purpose");
@@ -680,7 +680,7 @@ export function createModelService({
       if (stored.refused_at) throw new ManageError(409, "model_key_refused");
       const key = box.open(stored.sealed, boundTo(clanTag, stored.set_by));
       if (!key) throw new ManageError(409, "model_key_unreadable");
-      const leads = await ownerLeads(clanTag, stored, token);
+      const leads = await ownerLeads(clanTag, stored);
       if (leads === false)
         throw new ManageError(409, "model_key_owner_left", null, {
           set_by_name: stored.set_by_name ?? stored.set_by,

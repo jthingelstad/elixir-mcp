@@ -2,8 +2,8 @@
  * The gate, in order. Each step has one refusal and the first refusal
  * wins, so a person is told one thing to do, not four:
  *
- *   1. the principal is a PERSON (`kind: "person"`); an agent's or an
- *      integration's grant is refused
+ *   1. the principal is a PERSON (`kind: "person"`); anything else is
+ *      refused
  *   2. at least one of their own players (a primary or an alt) is on the
  *      account
  *   3. at least one of those players is currently in a clan
@@ -146,8 +146,8 @@ export function verifyNotice(gate) {
  *   | {ok:false, reason, principal?, identities?}
  *   | {ok:false, error, status?}>}
  */
-export async function runGate({ mcp, token }) {
-  const init = await mcp.initialize(token);
+export async function runGate({ record }) {
+  const init = await record.identity();
   if (!init.ok) return { ok: false, error: init.error, status: init.status };
 
   const principal = init.principal;
@@ -166,7 +166,7 @@ export async function runGate({ mcp, token }) {
   // that answers without them is asked for them.
   const mine = Array.isArray(init.body?.players)
     ? { ok: true, body: { players: init.body.players } }
-    : await mcp.callTool(token, "elixir_my_players", {});
+    : await record.read("elixir_my_players", {});
   if (!mine.ok) return { ok: false, error: mine.error, status: mine.status };
 
   const players = Array.isArray(mine.body?.players) ? mine.body.players : [];

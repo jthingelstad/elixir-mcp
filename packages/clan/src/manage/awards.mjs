@@ -6,7 +6,7 @@
  * trophy case every member sees.
  *
  * Pure engine in (evaluateAwards), ledger and Elixir out. Evaluation is on
- * demand with the signed-in person's token and cached five minutes per
+ * demand for the signed-in person and cached five minutes per
  * clan, like the management evaluation; any member opening the trophy
  * case runs it, so grants do not wait on a leader visiting Manage. Like
  * every management function, nothing here runs until the clan has a
@@ -65,8 +65,8 @@ export function createAwardsService({
   ledger,
   participationFor,
   membershipFor = null,
-  // Elixir's client, for the morning run's award standings (JSON API
-  // 2.6.0, on the integration key with facts:write); none, none shared.
+  // Elixir's record, for the morning run's award standings (written as
+  // Elixir's own attested facts); none, none shared.
   elixir = null,
   now = () => Date.now(),
   /** Runs `fn` holding the clan's lock, as the manage service's: grants,
@@ -300,8 +300,8 @@ export function createAwardsService({
     }
   }
 
-  async function readParticipation(clanTag, token) {
-    const participation = await participationFor(token, clanTag);
+  async function readParticipation(clanTag) {
+    const participation = await participationFor(clanTag);
     if (membershipFor) {
       const evidence = await membershipFor(clanTag, participation);
       participation.members = participation.members.map((m) => ({
@@ -351,7 +351,7 @@ export function createAwardsService({
    * snapshot are read again and written inside it (`exclusive`). A
    * snapshot from an evaluation that started later is taken as it is.
    */
-  async function evaluateClan({ clanTag, token, force = false }) {
+  async function evaluateClan({ clanTag, force = false }) {
     const t = now();
     const config = await configFor(clanTag);
     const cached = await ledger.latestAwardsSnapshot(clanTag);
@@ -366,7 +366,7 @@ export function createAwardsService({
       t - Date.parse(cached.evaluated_at) < EVALUATION_TTL_MS
     )
       return { result: cached, config, cached: true };
-    const participation = await readParticipation(clanTag, token);
+    const participation = await readParticipation(clanTag);
     // Too small for awards: remember the size and grant nothing.
     await noteClanSize(ledger, clanTag, participation.members.length, t);
     if (participation.members.length < MIN_MEMBERS)
@@ -466,13 +466,13 @@ export function createAwardsService({
    * standing no longer held is taken back (manage/standings.mjs). A write
    * that fails is left out of what was shared, so the next run retries it.
    */
-  async function shareStandings(clanTag, key, result) {
+  async function shareStandings(clanTag, result) {
     const prev = await ledger.sharedStandings(clanTag);
     const current = standingsFrom(result);
     const { writes, removes, next } = planStandings(prev, current);
     let failed = 0;
     for (const fact of writes) {
-      const r = await elixir.writeFact(key, clanTag, fact);
+      const r = await elixir.writeFact(clanTag, fact);
       if (!r.ok) {
         failed += 1;
         // What Elixir may hold under this ref stays in the record, so it is
@@ -487,7 +487,7 @@ export function createAwardsService({
       }
     }
     for (const ref of removes) {
-      const r = await elixir.removeFact(key, clanTag, ref);
+      const r = await elixir.removeFact(clanTag, ref);
       if (!r.ok) {
         failed += 1;
         next.refs[ref] = prev.refs[ref];
@@ -529,18 +529,17 @@ export function createAwardsService({
     /** The morning evaluation (door 1): a closed season's grants are
      *  written, and its announcement raised, without anyone visiting; the
      *  standings go to Elixir as the app's own facts. */
-    async evaluateOnSchedule(clanTag, key) {
+    async evaluateOnSchedule(clanTag) {
       await requirePolicy(clanTag, { size: false });
       const { result } = await evaluateClan({
         clanTag,
-        token: key,
         force: true,
       });
-      const shared = elixir ? await shareStandings(clanTag, key, result) : null;
+      const shared = elixir ? await shareStandings(clanTag, result) : null;
       return { awards_evaluated: true, ...(shared ?? {}) };
     },
 
-    async currentUpdate(clanTag, who, token, requestId) {
+    async currentUpdate(clanTag, who, requestId) {
       if (!isLeader(who) || who.verified === false)
         throw new ManageError(403, "leaders_only");
       if (
@@ -551,7 +550,7 @@ export function createAwardsService({
       let plan = await ledger.currentAwardUpdate(clanTag, requestId);
       if (!plan) {
         const config = await configFor(clanTag);
-        const participation = await readParticipation(clanTag, token);
+        const participation = await readParticipation(clanTag);
         if (participation.members.length < MIN_MEMBERS)
           throw tooFewMembers(participation.members.length);
         const update = currentAwardUpdate({
@@ -580,11 +579,10 @@ export function createAwardsService({
     },
 
     /** Manage ▸ Awards: races, seasons, grants, and the document. */
-    async manageView(clanTag, who, token, { refresh = false } = {}) {
+    async manageView(clanTag, who, { refresh = false } = {}) {
       await requirePolicy(clanTag, { size: false });
       const { result, config, cached } = await evaluateClan({
         clanTag,
-        token,
         force: refresh,
       });
       // Who granted, by name: rows since 2026-09-20 carry it; older ones
@@ -805,9 +803,9 @@ export function createAwardsService({
      * the viewer's own. Opening it evaluates, so a closed season's grants
      * are written by whoever looks first.
      */
-    async trophyCase(clanTag, who, token) {
+    async trophyCase(clanTag, who) {
       await requirePolicy(clanTag, { size: false });
-      const { config } = await evaluateClan({ clanTag, token });
+      const { config } = await evaluateClan({ clanTag });
       const grants = (await ledger.grants(clanTag)).map(shape);
       const seasons = new Map();
       for (const g of grants) {

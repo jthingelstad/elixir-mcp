@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createMemberActivity } from "../src/member-activity.mjs";
 import {
   harness,
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   signIn,
@@ -32,8 +32,8 @@ function reader({
     opponents: [{ name: "Opponent private extra", crowns: 0 }],
     url: "https://elixir.poapkings.com/battle/012345abcdef",
   });
-  const mcp = {
-    callTool: async (_token, name, args) => {
+  const record = {
+    read: async (name, args) => {
       calls.push([name, args]);
       const bodies = {
         clans_roster: { clan_tag: clan, members: rosterMember ? [member] : [] },
@@ -103,7 +103,7 @@ function reader({
   return {
     calls,
     read: createMemberActivity({
-      mcp,
+      record,
       now,
       warBounds: async () => [
         {
@@ -139,7 +139,7 @@ function reader({
 
 test("member evidence clips a returner's stint and projects only this clan's battle facts", async () => {
   const h = reader();
-  const r = await h.read(clan, "token", tag);
+  const r = await h.read(clan, tag);
   assert.deepEqual(
     r.battles.map((b) => b.battle_id),
     ["allowed"],
@@ -174,7 +174,7 @@ test("member evidence clips a returner's stint and projects only this clan's bat
 });
 test("a former or non-member refuses before any player history read", async () => {
   const h = reader({ rosterMember: false });
-  await assert.rejects(h.read(clan, "token", tag), (e) => e.status === 404);
+  await assert.rejects(h.read(clan, tag), (e) => e.status === 404);
   assert.deepEqual(
     h.calls.map((c) => c[0]),
     ["clans_roster"],
@@ -182,7 +182,7 @@ test("a former or non-member refuses before any player history read", async () =
 });
 test("coverage failure stays unknown and pagination fixes its read window", async () => {
   const h = reader({ coverage: false });
-  const r = await h.read(clan, "token", tag, {
+  const r = await h.read(clan, tag, {
     cursor: "next",
     to: "2026-10-03T00:00:00Z",
   });
@@ -190,14 +190,14 @@ test("coverage failure stays unknown and pagination fixes its read window", asyn
   assert.deepEqual(r.coverage.intervals, []);
   assert.equal(h.calls.find((c) => c[0] === "battles_query")[1].cursor, "next");
   await assert.rejects(
-    h.read(clan, "token", tag, { to: "2027-01-01T00:00:00Z" }),
+    h.read(clan, tag, { to: "2027-01-01T00:00:00Z" }),
     (e) => e.code === "invalid_window",
   );
 });
 test("member activity HTTP route preserves sign-in and own-clan admission", async () => {
   let reads = 0;
   const h = harness({
-    mcp: fakeMcp({ players: [player()] }),
+    record: fakeRecord({ players: [player()] }),
     memberActivity: async () => {
       reads++;
       return { safe: true };
@@ -233,13 +233,13 @@ test("member activity HTTP route preserves sign-in and own-clan admission", asyn
 
 test("a same-day rejoin withholds cumulative counters and omits earlier weeks", async () => {
   const h = reader({ joined: "2026-10-01T15:00:00Z" });
-  const r = await h.read(clan, "token", tag);
+  const r = await h.read(clan, tag);
   assert.equal(r.weeks[0].from, "2026-10-01T15:00:00.000Z");
   assert.equal(r.weeks[0].donations, null);
   assert.equal(r.war_weeks.length, 1);
   assert.equal(r.war_weeks[0].decks, null);
   assert.equal(r.war_weeks[0].points, null);
-  const older = await reader().read(clan, "token", tag, {
+  const older = await reader().read(clan, tag, {
     to: "2026-10-02T00:00:00Z",
   });
   assert.equal(
@@ -296,8 +296,8 @@ test("a member's weeks run reset to reset, so every battle listed falls in a wee
   const read = (joinedAt) =>
     createMemberActivity({
       now,
-      mcp: {
-        callTool: async (_t, name) => ({
+      record: {
+        read: async (name) => ({
           ok: true,
           status: 200,
           body: bodies(joinedAt)[name],
@@ -312,7 +312,7 @@ test("a member's weeks run reset to reset, so every battle listed falls in a wee
           donations: 5,
         }));
       },
-    })(clan, "token", tag);
+    })(clan, tag);
 
   // Joined Monday before the reset: the morning belongs to the week closing.
   const r = await read(joined);

@@ -14,7 +14,7 @@ import {
 } from "@elixir-mcp/clan/manage/service.mjs";
 import { createAwardsService } from "@elixir-mcp/clan/manage/awards.mjs";
 import {
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   signIn,
@@ -27,11 +27,7 @@ import {
   NOW,
   EXAMPLE_POLICY,
 } from "@elixir-mcp/clan-engine/fixtures";
-import {
-  serverTiming,
-  summarize,
-  timedElixir,
-} from "@elixir-mcp/clan/trace.mjs";
+import { serverTiming, summarize, timedRead } from "@elixir-mcp/clan/trace.mjs";
 import { routeKey } from "@elixir-mcp/clan/handler.mjs";
 
 /** The logger the handler is given: the request story, captured. */
@@ -52,7 +48,7 @@ const capture = async (fn, cap) => {
   return { r, lines: [...cap.lines] };
 };
 
-test("every request ends with one JSON line naming the route, the status, the time, and each Elixir call with its request_id; plus Server-Timing", async () => {
+test("every request ends with one JSON line naming the route, the status, the time, and each read of the record; plus Server-Timing", async () => {
   const now = () => NOW.getTime();
   const part = participation(
     [
@@ -63,13 +59,12 @@ test("every request ends with one JSON line naming the route, the status, the ti
       clan_tag: "#2PQRJ8LV",
     },
   );
-  part.meta.request_id = "req-elixir-1";
-  const mcp = fakeMcp({ players: [player()] });
-  const inner = mcp.rawCallTool.bind(mcp);
-  mcp.callTool = (token, name, args) =>
-    timedElixir(name, async () => {
+  const record = fakeRecord({ players: [player()] });
+  const inner = record.rawRead.bind(record);
+  record.read = (name, args) =>
+    timedRead(name, async () => {
       if (name === "clans_participation") return { ok: true, body: part };
-      return inner(token, name, args);
+      return inner(name, args);
     });
   const ledger = ledgerWithPolicy(
     createMemoryLedger(),
@@ -78,13 +73,13 @@ test("every request ends with one JSON line naming the route, the status, the ti
   );
   const cap = capturing();
   const handler = createHandler({
-    mcp,
+    record,
     ...createTestAccount(),
-    manage: createManageService({ ledger, mcp, now }),
+    manage: createManageService({ ledger, record, now }),
     awards: createAwardsService({
       ledger,
       now,
-      participationFor: (t, c) => fetchParticipation(mcp, t, c),
+      participationFor: (c) => fetchParticipation(record, c),
     }),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
@@ -118,19 +113,19 @@ test("every request ends with one JSON line naming the route, the status, the ti
   assert.ok(line.ms >= 0 && line.elixir_calls >= 2, JSON.stringify(line));
   const calls = line.elixir.map((c) => c.call);
   assert.ok(calls.includes("clans_participation"), calls.join(","));
+  // A read in process has no request id of its own: the request's is
+  // the one id the line carries.
   assert.equal(
-    line.elixir.find((c) => c.call === "clans_participation").request_id,
-    "req-elixir-1",
-    "Elixir's own request id rides on the call",
+    "request_id" in line.elixir.find((c) => c.call === "clans_participation"),
+    false,
   );
-  assert.ok(!JSON.stringify(line).includes("eat_"), "never a token");
 });
 
 test("route keys hide ids and tags; a slow or failed request logs at warn", async () => {
   const now = () => NOW.getTime();
   const cap = capturing();
   const handler = createHandler({
-    mcp: fakeMcp(),
+    record: fakeRecord(),
     ...createTestAccount(),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
@@ -197,7 +192,7 @@ test("route keys hide ids and tags; a slow or failed request logs at warn", asyn
 test("trusted lock timing is included in total and separated from handler work", async () => {
   const cap = capturing();
   const handler = createHandler({
-    mcp: fakeMcp(),
+    record: fakeRecord(),
     ...createTestAccount(),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",

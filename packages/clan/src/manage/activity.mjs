@@ -198,7 +198,7 @@ export function createActivityService({
      * refused). A preview that outlasts the request is `{ pending }`;
      * asking again with it collects it.
      */
-    async preview(clanTag, who, token, { voice, pending = null } = {}) {
+    async preview(clanTag, who, { voice, pending = null } = {}) {
       requireLeader(who);
       if (!model || !store.preview) throw new ManageError(404, "not_found");
       if (voice !== undefined && voice !== null && typeof voice !== "string")
@@ -211,7 +211,7 @@ export function createActivityService({
       if (built.empty) return { empty: true, reason: built.reason, posts: [] };
       const answer = pending
         ? await model.collect(clanTag, who, pending)
-        : await model.write(clanTag, who, token, built.request, {
+        : await model.write(clanTag, who, built.request, {
             defer: true,
           });
       if (answer.pending) return { pending: answer.pending };

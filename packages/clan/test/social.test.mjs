@@ -12,7 +12,7 @@ import { createMemoryLedger } from "@elixir-mcp/clan-state";
 import { createSocialService } from "@elixir-mcp/clan/manage/social.mjs";
 import { diskGeo } from "@elixir-mcp/clan/geo.mjs";
 import {
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   signIn,
@@ -38,10 +38,10 @@ const rosterOf = (...members) =>
 function harness() {
   const clock = { t: Date.parse("2026-09-26T12:00:00Z") };
   const now = () => clock.t;
-  const mcp = fakeMcp({ players: [ADA], roster: rosterOf(ADA, BEN) });
+  const record = fakeRecord({ players: [ADA], roster: rosterOf(ADA, BEN) });
   const ledger = createMemoryLedger();
   const handler = createHandler({
-    mcp,
+    record,
     ...createTestAccount(),
     social: createSocialService({ ledger, geo: diskGeo(), now }),
     appUrl: "https://elixir.test/clan",
@@ -49,11 +49,11 @@ function harness() {
     now,
     log: { warn() {}, error() {} },
   });
-  return { clock, mcp, ledger, handler };
+  return { clock, record, ledger, handler };
 }
 
 async function as(h, who) {
-  h.mcp.state.players = [who];
+  h.record.state.players = [who];
   const { sessionCookie } = await signIn(h);
   const cookies = cookieHeader(sessionCookie);
   return async (method, path, body) => {
@@ -103,7 +103,7 @@ test("a member picks a place from the lists; the clan's members see it, with its
   assert.equal(map.body.yours.region_name, region.body.place.region_name);
   assert.match(map.body.attribution, /OpenStreetMap/);
   // Nothing of it goes to Elixir.
-  assert.equal(h.mcp.calls.filter((c) => c[0] === "writeFact").length, 0);
+  assert.equal(h.record.calls.filter((c) => c[0] === "writeFact").length, 0);
 });
 
 test("a place is checked against the lists, in words a person can act on", async () => {
@@ -129,11 +129,11 @@ test("off the roster is off the map; a cleared place is gone", async () => {
   await ben("PUT", "/api/me/place", { country: "CA", region: "08" });
   assert.equal((await ada("GET", "/api/clans/2PQRJ8LV/map")).body.on_map, 1);
   // Ben leaves the clan: the next roster read no longer has him.
-  h.mcp.state.roster = rosterOf(ADA);
+  h.record.state.roster = rosterOf(ADA);
   h.clock.t += 4 * 60_000;
   assert.equal((await ada("GET", "/api/clans/2PQRJ8LV/map")).body.on_map, 0);
   // Back, then he removes his place himself.
-  h.mcp.state.roster = rosterOf(ADA, BEN);
+  h.record.state.roster = rosterOf(ADA, BEN);
   h.clock.t += 4 * 60_000;
   assert.equal((await ada("GET", "/api/clans/2PQRJ8LV/map")).body.on_map, 1);
   assert.equal((await ben("DELETE", "/api/me/place")).status, 200);
@@ -151,7 +151,7 @@ test("one place per person: written under each verified tag, shown in each of th
     clan_tag: "#8PYLQG0",
     clan_role: "member",
   });
-  h.mcp.state.players = [ADA, alt];
+  h.record.state.players = [ADA, alt];
   const { sessionCookie } = await signIn(h);
   const r = await h.handler(
     req("PUT", "/api/me/place", {
@@ -209,7 +209,7 @@ test("a person in two clans sees each clan's own members on its map, never the o
   });
   // The default roster (what the tool answers when no clan is named) is
   // Ada's home clan; the other clan answers only when asked for by tag.
-  h.mcp.state.rosters = {
+  h.record.state.rosters = {
     [OTHER]: {
       ...rosterOf(alt, CY),
       clan_tag: OTHER,
@@ -221,7 +221,7 @@ test("a person in two clans sees each clan's own members on its map, never the o
   const cy = await as(h, CY);
   await cy("PUT", "/api/me/place", { country: "US", region: "TX" });
 
-  h.mcp.state.players = [ADA, alt];
+  h.record.state.players = [ADA, alt];
   const { sessionCookie } = await signIn(h);
   const ada = async (method, path, body) => {
     const r = await h.handler(
@@ -248,8 +248,8 @@ test("a person in two clans sees each clan's own members on its map, never the o
     "only the requested clan's members, with their places",
   );
   assert.equal(map.body.entries[0].place.region_name, "Texas");
-  const asked = h.mcp.calls.filter((c) => c[0] === "clans_roster").at(-1);
-  assert.equal(asked[2].clan_tag, OTHER, "the roster read names the clan");
+  const asked = h.record.calls.filter((c) => c[0] === "clans_roster").at(-1);
+  assert.equal(asked[1].clan_tag, OTHER, "the roster read names the clan");
   // The home clan's map stays off for everyone.
   assert.equal((await ada("GET", "/api/clans/2PQRJ8LV/map")).status, 409);
 });

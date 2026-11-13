@@ -43,7 +43,7 @@ const json = (statusCode, body, extra = {}) => ({
 });
 
 export function createHandler({
-  mcp,
+  record,
   identity,
   store,
   appUrl,
@@ -78,7 +78,7 @@ export function createHandler({
   log = console,
 }) {
   for (const [k, v] of Object.entries({
-    mcp,
+    record,
     identity,
     store,
     appUrl,
@@ -88,20 +88,11 @@ export function createHandler({
   }
   const loadSession = (event) => identity.load(event);
 
-  async function withToken(session, fn) {
-    const credential = identity.credential(session);
-    if (!credential) return { signInRequired: true };
-    const result = await fn(credential);
-    return result?.status === 401 ? { signInRequired: true } : { result };
-  }
-
-  async function gateFor(session) {
-    const ran = await withToken(session, (credential) =>
-      runGate({ mcp, token: credential }),
-    );
-    if (ran.signInRequired) return { signInRequired: true };
-    if (ran.result?.error) return { error: "elixir_unavailable" };
-    return { gate: ran.result, checkedAt: now() };
+  async function gateFor() {
+    const gate = await runGate({ record });
+    if (gate?.status === 401) return { signInRequired: true };
+    if (gate?.error) return { error: "elixir_unavailable" };
+    return { gate, checkedAt: now() };
   }
 
   /** The preference key: the primary's tag, or the first tag on the
@@ -184,7 +175,7 @@ export function createHandler({
   async function me(event) {
     const session = await loadSession(event);
     if (!session) return signedOut();
-    const answer = await gateFor(session);
+    const answer = await gateFor();
     if (answer.signInRequired) return signedOut({ reason: "session_expired" });
     if (answer.error)
       return json(502, { signed_in: true, error: "elixir_unavailable" });
@@ -224,7 +215,7 @@ export function createHandler({
   async function acknowledgeVerify(event) {
     const session = await loadSession(event);
     if (!session) return signedOut();
-    const gated = await gateFor(session);
+    const gated = await gateFor();
     if (gated.signInRequired) return signedOut({ reason: "session_expired" });
     if (gated.error) return json(502, { error: "elixir_unavailable" });
     const notice = gated.gate.ok ? verifyNotice(gated.gate) : null;
@@ -254,7 +245,7 @@ export function createHandler({
     }
     const tag = normalizeTag(body.clan_tag);
     if (!tag) return json(400, { error: "bad_request", hint: "clan_tag" });
-    const gated = await gateFor(session);
+    const gated = await gateFor();
     if (gated.signInRequired) return signedOut({ reason: "session_expired" });
     if (gated.error) return json(502, { error: "elixir_unavailable" });
     if (!gated.gate.ok)
@@ -285,7 +276,7 @@ export function createHandler({
   async function roster(event) {
     const session = await loadSession(event);
     if (!session) return signedOut();
-    const gated = await gateFor(session);
+    const gated = await gateFor();
     if (gated.signInRequired) return signedOut({ reason: "session_expired" });
     if (gated.error) return json(502, { error: "elixir_unavailable" });
     if (!gated.gate.ok)
@@ -316,14 +307,7 @@ export function createHandler({
     // The clan is named explicitly rather than left to the tool's default,
     // which is the first RECORDED clan among the account's claims and can
     // be an alt's clan when the primary's is not recorded.
-    const ran = await withToken(session, (token) =>
-      mcp.callTool(token, "clans_roster", { clan_tag: clanTag }),
-    );
-    if (ran.signInRequired)
-      return { response: signedOut({ reason: "session_expired" }) };
-    if (ran.unavailable)
-      return { response: json(502, { error: "elixir_unavailable" }) };
-    const r = ran.result;
+    const r = await record.read("clans_roster", { clan_tag: clanTag });
     if (!r.ok) {
       if (r.code === "not_recorded" || r.code === "no_subject")
         return {
@@ -360,7 +344,7 @@ export function createHandler({
   async function placeRoute(event, method) {
     const session = await loadSession(event);
     if (!session) return signedOut();
-    const gated = await gateFor(session);
+    const gated = await gateFor();
     if (gated.signInRequired) return signedOut({ reason: "session_expired" });
     if (gated.error) return json(502, { error: "elixir_unavailable" });
     const tags = verifiedTags(gated.gate);
@@ -392,7 +376,7 @@ export function createHandler({
   async function clanContext(event, tagInput) {
     const session = await loadSession(event);
     if (!session) return { response: signedOut() };
-    const gated = await gateFor(session);
+    const gated = await gateFor();
     if (gated.signInRequired)
       return { response: signedOut({ reason: "session_expired" }) };
     if (gated.error)
@@ -410,13 +394,10 @@ export function createHandler({
           clan_tag: tag ?? tagInput,
         }),
       };
-    const token = identity.credential(session);
-    if (!token) return { response: signedOut({ reason: "session_expired" }) };
     return {
       session,
       gate: gated.gate,
       clan,
-      token,
       who: {
         player_tag: clan.acting_as,
         name: clan.acting_as_name ?? null,
@@ -442,7 +423,7 @@ export function createHandler({
     // clan's members and publishes nothing (Jamie, 2026-09-25).
     const ctx = await clanContext(event, m[1]);
     if (ctx.response) return ctx.response;
-    const { clan, token } = ctx;
+    const { clan } = ctx;
     let { who } = ctx;
     const tag = clan.clan_tag;
     annotate({ clan: tag, role: who.role });
@@ -459,7 +440,7 @@ export function createHandler({
       // A leader's role is the record's; before acting on it, the record
       // must have read the roster within the hour (role-freshness.mjs).
       if (isLeaderMutation(method, rest, who.role)) {
-        await confirmRole({ mcp, token, clanTag: tag, now: now() });
+        await confirmRole({ record, clanTag: tag, now: now() });
         // A roster read admitted between the gate above and that check
         // would be fresh while `who` is not (Codex on #519): read the
         // role again, after the read that found the roster fresh.
@@ -487,7 +468,7 @@ export function createHandler({
       if (memberActivity && method === "GET" && memberPath)
         return json(
           200,
-          await memberActivity(tag, token, memberPath[1], {
+          await memberActivity(tag, memberPath[1], {
             cursor: event.queryStringParameters?.cursor ?? null,
             to: event.queryStringParameters?.to ?? null,
           }),
@@ -521,7 +502,7 @@ export function createHandler({
         if (method === "GET")
           return json(
             200,
-            await recruit.view(tag, who, token, {
+            await recruit.view(tag, who, {
               refresh: event.queryStringParameters?.refresh === "1",
             }),
           );
@@ -540,7 +521,7 @@ export function createHandler({
       if (recruit && method === "POST" && rest === "/recruit/draft")
         return json(
           200,
-          await recruit.draft(tag, who, token, body.note ?? null, {
+          await recruit.draft(tag, who, body.note ?? null, {
             pending: body.pending ?? null,
           }),
         );
@@ -549,8 +530,7 @@ export function createHandler({
       // policy (Recruit does). Which model each use runs on is Elixir
       // Clan's choice (2026-10-11), so a leader's choice of model is gone.
       if (model && rest === "/model") {
-        if (method === "GET")
-          return json(200, await model.status(tag, who, token));
+        if (method === "GET") return json(200, await model.status(tag, who));
         if (method === "PUT" && body.key)
           return json(200, await model.setKey(tag, who, { key: body.key }));
         if (method === "PUT" && Object.hasOwn(body ?? {}, "model"))
@@ -602,7 +582,7 @@ export function createHandler({
       if (activity && method === "POST" && rest === "/activity-discord/preview")
         return json(
           200,
-          await activity.preview(tag, who, token, {
+          await activity.preview(tag, who, {
             voice: body.voice,
             pending: body.pending ?? null,
           }),
@@ -637,14 +617,14 @@ export function createHandler({
       // The key's model list, read again when it is due (Settings asks
       // after it has drawn; `refreshModels` bounds it to once a day).
       if (model && method === "POST" && rest === "/model/refresh")
-        return json(200, await model.refreshModels(tag, who, token));
+        return json(200, await model.refreshModels(tag, who));
       // An action's message in the clan's voice, by the clan's own model.
       const draft = /^\/actions\/([A-Za-z0-9_-]+)\/draft$/.exec(rest);
       if (method === "POST" && draft) {
         if (!drafts) return json(404, { error: "not_found" });
         return json(
           200,
-          await drafts.leaderMessage(tag, who, token, draft[1], {
+          await drafts.leaderMessage(tag, who, draft[1], {
             note: body.note ?? null,
             // A chat draft's tone, from `CHAT_TONES`.
             tone: body.tone ?? null,
@@ -660,19 +640,19 @@ export function createHandler({
       if (method === "GET" && rest === "/manage")
         return json(
           200,
-          await manage.manageView(tag, who, token, {
+          await manage.manageView(tag, who, {
             refresh: event.queryStringParameters?.refresh === "1",
           }),
         );
       if (method === "GET" && rest === "/history")
-        return json(200, await manage.history(tag, who, token));
+        return json(200, await manage.history(tag, who));
       // "You here": a member's own numbers and place in this clan.
       if (method === "GET" && rest === "/me")
-        return json(200, await manage.memberView(tag, who, token));
+        return json(200, await manage.memberView(tag, who));
       // Home's clan card and "Needs you"; web-api calls it in-process.
       if (method === "GET" && rest === "/home")
         return json(200, {
-          ...(await manage.homeView(tag, who, token)),
+          ...(await manage.homeView(tag, who)),
           name: clan.name ?? null,
           role: who.role,
           verified: who.verified !== false,
@@ -698,17 +678,17 @@ export function createHandler({
         const week = event.queryStringParameters?.week ?? null;
         if (week !== null && !/^[0-9]{4}-[Ww][0-9]{2}$/.test(week))
           return json(400, { error: "bad_request" });
-        return json(200, await manage.weekView(tag, who, token, { week }));
+        return json(200, await manage.weekView(tag, who, { week }));
       }
       if (method === "GET" && rest === "/season")
-        return json(200, await manage.seasonView(tag, who, token));
+        return json(200, await manage.seasonView(tag, who));
       // A member's own away: their page, their word, the policy's cap.
       if (rest === "/me/away") {
         if (method === "GET") return json(200, await manage.myAway(tag, who));
         if (method === "PUT")
-          return json(200, await manage.setAway(tag, who, body, token));
+          return json(200, await manage.setAway(tag, who, body));
         if (method === "DELETE") {
-          await manage.clearAway(tag, who, token);
+          await manage.clearAway(tag, who);
           return json(200, { ok: true });
         }
       }
@@ -720,7 +700,7 @@ export function createHandler({
         return json(200, await manage.policyContext(tag, who));
       }
       if (method === "GET" && rest === "/policy")
-        return json(200, await manage.policyView(tag, who, token));
+        return json(200, await manage.policyView(tag, who));
       if (method === "POST" && rest === "/policy")
         return json(
           200,
@@ -729,17 +709,16 @@ export function createHandler({
             who,
             body.values ?? {},
             body.note ?? null,
-            token,
             body.expected_version ?? null,
           ),
         );
       if (method === "POST" && rest === "/policy/preview")
         return json(
           200,
-          await manage.previewPolicy(tag, who, token, body.values ?? {}),
+          await manage.previewPolicy(tag, who, body.values ?? {}),
         );
       if (method === "GET" && rest === "/actions") {
-        const view = await manage.actionsView(tag, who, token, {
+        const view = await manage.actionsView(tag, who, {
           refresh: event.queryStringParameters?.refresh === "1",
         });
         // Leaders are told whether the clan's model can draft messages,
@@ -753,19 +732,14 @@ export function createHandler({
       // One action by its number, for "take a look at action 37".
       const byNumber = /^\/actions\/([0-9]{1,7})$/.exec(rest);
       if (method === "GET" && byNumber) {
-        const view = await manage.actionByNumber(
-          tag,
-          who,
-          Number(byNumber[1]),
-          token,
-        );
+        const view = await manage.actionByNumber(tag, who, Number(byNumber[1]));
         if (model && ["leader", "coLeader"].includes(who.role))
           view.model = await model.summary(tag);
         return json(200, view);
       }
       const reopen = /^\/actions\/([A-Za-z0-9_-]+)\/reopen$/.exec(rest);
       if (method === "POST" && reopen)
-        return json(200, await manage.reopen(tag, who, reopen[1], body, token));
+        return json(200, await manage.reopen(tag, who, reopen[1], body));
       const decide = /^\/actions\/([A-Za-z0-9_-]+)\/decide$/.exec(rest);
       const sentMessage =
         /^\/actions\/([A-Za-z0-9_-]+)\/messages\/([0-9]{1,3})\/sent$/.exec(
@@ -780,11 +754,10 @@ export function createHandler({
             sentMessage[1],
             Number(sentMessage[2]),
             body,
-            token,
           ),
         );
       if (method === "POST" && decide)
-        return json(200, await manage.decide(tag, who, decide[1], body, token));
+        return json(200, await manage.decide(tag, who, decide[1], body));
       // What the clan records in Elixir (door 3): read-only, always on.
       if (rest === "/sharing" && method === "GET")
         return json(200, await manage.sharingView(tag, who));
@@ -798,7 +771,7 @@ export function createHandler({
         if (method === "PUT")
           return json(200, await manage.setHold(tag, who, ptag, body));
         if (method === "DELETE") {
-          await manage.clearHold(tag, who, ptag, token);
+          await manage.clearHold(tag, who, ptag);
           return json(200, { ok: true });
         }
       }
@@ -817,17 +790,17 @@ export function createHandler({
         return json(200, { ok: true });
       }
       if (method === "GET" && rest === "/standing")
-        return json(200, await manage.standing(tag, who, token));
+        return json(200, await manage.standing(tag, who));
       if (awards) {
         if (method === "POST" && rest === "/awards/update")
           return json(
             200,
-            await awards.currentUpdate(tag, who, token, body.request_id),
+            await awards.currentUpdate(tag, who, body.request_id),
           );
         if (method === "GET" && ["/awards", "/awards/manage"].includes(rest))
           return json(
             200,
-            await awards.manageView(tag, who, token, {
+            await awards.manageView(tag, who, {
               refresh: event.queryStringParameters?.refresh === "1",
             }),
           );
@@ -865,7 +838,7 @@ export function createHandler({
         }
         // The clan's trophy case, for every member.
         if (method === "GET" && rest === "/trophies")
-          return json(200, await awards.trophyCase(tag, who, token));
+          return json(200, await awards.trophyCase(tag, who));
         // One member's trophy case.
         const trophy = /^\/members\/([0-9A-Za-z]{3,12})\/grants$/.exec(rest);
         if (method === "GET" && trophy) {
@@ -880,11 +853,10 @@ export function createHandler({
         // statistics, with nothing of the clan's to check them against.
         const policy = await manage.policyFor(tag);
         const r = await scout({
-          token,
           tagInput: body.tag,
           policy: policy.set ? policy.values : null,
         });
-        return json(r.ok ? 200 : r.status === 401 ? 401 : 400, r);
+        return json(r.ok ? 200 : 400, r);
       }
       return json(404, { error: "not_found" });
     } catch (err) {

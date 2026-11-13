@@ -12,7 +12,7 @@ import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import {
   cookieHeader,
   createTestAccount,
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   rosterBody,
@@ -34,7 +34,7 @@ const RUN_READS = [
 function harness(role, { verified = true } = {}) {
   const feedCalls = [];
   const raceCalls = [];
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({
         clan_role: role,
@@ -46,7 +46,7 @@ function harness(role, { verified = true } = {}) {
     ]),
   });
   const handler = createHandler({
-    mcp,
+    record,
     ...createTestAccount(),
     feed: async (clanTag) => {
       feedCalls.push(clanTag);

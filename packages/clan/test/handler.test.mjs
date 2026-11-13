@@ -5,7 +5,7 @@ import {
   req,
   signIn,
   cookieHeader,
-  fakeMcp,
+  fakeRecord,
   player,
   rosterBody,
 } from "./fakes.mjs";
@@ -95,8 +95,8 @@ test("roster: names the primary's clan explicitly, marks your row, groups by rol
   const r = await h.handler(req("GET", "/api/roster", { cookies }));
   assert.equal(r.statusCode, 200);
   const body = JSON.parse(r.body);
-  const call = h.mcp.calls.find((c) => c[0] === "clans_roster");
-  assert.deepEqual(call[2], { clan_tag: "#2PQRJ8LV" });
+  const call = h.record.calls.find((c) => c[0] === "clans_roster");
+  assert.deepEqual(call[1], { clan_tag: "#2PQRJ8LV" });
   assert.deepEqual(
     body.members.map((m) => m.player_tag),
     ["#20QQL8CCRU", "#C2", "#C1", "#E1", "#M1"],
@@ -118,10 +118,10 @@ test("roster: names the primary's clan explicitly, marks your row, groups by rol
 
   const again = await h.handler(req("GET", "/api/roster", { cookies }));
   assert.equal(JSON.parse(again.body).cached_at, body.cached_at);
-  assert.equal(h.mcp.calls.filter((c) => c[0] === "clans_roster").length, 2);
+  assert.equal(h.record.calls.filter((c) => c[0] === "clans_roster").length, 2);
   h.clock.t += 1;
   await h.handler(req("GET", "/api/roster", { cookies }));
-  assert.equal(h.mcp.calls.filter((c) => c[0] === "clans_roster").length, 3);
+  assert.equal(h.record.calls.filter((c) => c[0] === "clans_roster").length, 3);
 });
 
 test("roster: an empty clan renders as a roster with no members", async () => {
@@ -159,13 +159,13 @@ test("roster: a clan Elixir does not record is said plainly, not as an outage", 
 });
 
 test("roster: a door outage is a 502, is reported", async () => {
-  const mcp = fakeMcp({ roster: rosterBody([]) });
-  const h = harness({ mcp });
+  const record = fakeRecord({ roster: rosterBody([]) });
+  const h = harness({ record });
   const { sessionCookie } = await signIn(h);
   const cookies = cookieHeader(sessionCookie);
   await h.handler(req("GET", "/api/roster", { cookies }));
   h.clock.t += 1;
-  mcp.state.roster = { error: { code: "bad_request", message: "nope" } };
+  record.state.roster = { error: { code: "bad_request", message: "nope" } };
   const r = await h.handler(req("GET", "/api/roster", { cookies }));
   assert.equal(r.statusCode, 502);
 });
@@ -349,11 +349,11 @@ test("a remembered clan the person is no longer in is ignored", async () => {
 });
 
 test("roster by clan: ?clan= names any clan in the set, reads per clan, refuses others", async () => {
-  const mcp = fakeMcp(twoClans());
-  const h = harness({ mcp });
+  const record = fakeRecord(twoClans());
+  const h = harness({ record });
   const { sessionCookie } = await signIn(h);
   const cookies = cookieHeader(sessionCookie);
-  mcp.state.roster = rosterBody([
+  record.state.roster = rosterBody([
     { player_tag: "#ALT", name: "Ada's other", role: "member" },
   ]);
   const other = JSON.parse(
@@ -368,12 +368,12 @@ test("roster by clan: ?clan= names any clan in the set, reads per clan, refuses 
     req("GET", "/api/roster", { cookies, query: { clan: "#2PQRJ8LV" } }),
   );
   assert.equal(main.statusCode, 200);
-  assert.equal(h.mcp.calls.filter((c) => c[0] === "clans_roster").length, 2);
+  assert.equal(h.record.calls.filter((c) => c[0] === "clans_roster").length, 2);
   await h.handler(
     req("GET", "/api/roster", { cookies, query: { clan: "PYLQ2" } }),
   );
   assert.equal(
-    h.mcp.calls.filter((c) => c[0] === "clans_roster").length,
+    h.record.calls.filter((c) => c[0] === "clans_roster").length,
     3,
     "each request rechecks its recorded roster",
   );
@@ -437,13 +437,13 @@ test("core policy context refuses cross-clan, unverified, revoked and agent acce
   assert.equal((await call("2PQRJ8LV")).statusCode, 200);
   assert.equal((await call("PYLQ2")).statusCode, 403);
   assert.equal(reads, 1);
-  h.mcp.state.players = [
+  h.record.state.players = [
     player({ claim_status: "unverified", clan_role: "member" }),
   ];
   assert.equal((await call("2PQRJ8LV")).statusCode, 403);
-  h.mcp.state.players = [player({ clan_tag: "#PYLQ2" })];
+  h.record.state.players = [player({ clan_tag: "#PYLQ2" })];
   assert.equal((await call("2PQRJ8LV")).statusCode, 403);
-  h.mcp.state.principal = { kind: "agent" };
+  h.record.state.principal = { kind: "agent" };
   assert.equal((await call("PYLQ2")).statusCode, 403);
   assert.equal(reads, 1);
 });

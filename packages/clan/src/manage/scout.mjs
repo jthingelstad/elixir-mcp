@@ -24,11 +24,11 @@ function badge(profile, name) {
   return b ? (b.progress ?? null) : null;
 }
 
-export function createScout({ mcp, now = () => Date.now() }) {
-  return async function scout({ token, tagInput, policy = null }) {
+export function createScout({ record, now = () => Date.now() }) {
+  return async function scout({ tagInput, policy = null }) {
     const tag = normalizeTag(tagInput);
     if (!tag) return { ok: false, code: "invalid_tag" };
-    const profile = await mcp.callTool(token, "players_profile", {
+    const profile = await record.read("players_profile", {
       player_tag: tag,
       live: true,
     });
@@ -40,7 +40,7 @@ export function createScout({ mcp, now = () => Date.now() }) {
         hint: profile.hint,
         status: profile.status,
       };
-    const log = await mcp.callTool(token, "battles_query", {
+    const log = await record.read("battles_query", {
       player_tag: tag,
       live: true,
       limit: 25,

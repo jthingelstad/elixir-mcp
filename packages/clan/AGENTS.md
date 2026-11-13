@@ -18,7 +18,7 @@ client is a defect to remove.
 | Piece | Owns |
 | --- | --- |
 | `packages/clan-engine` | the pure engine: policy, evaluation, standing, actions, awards, words. No I/O, no clock |
-| `packages/clan` (here) | orchestration: request handler, gate, roles, the manage service (`src/manage/`), the closed recorded reader, model drafting, sealing |
+| `packages/clan` (here) | orchestration: request handler, gate, roles, the manage service (`src/manage/`), the closed record reader, model drafting, sealing |
 | `packages/clan-state` | the private management ledger (`clan_state`, migration 0196) and its Postgres adapter |
 | `packages/clan-web` | the views and routes, joined into the one `apps/web` router |
 | `services/web-api/src/clan.mjs` | the request adapter: the authenticated person plus the request's connected client |
@@ -26,10 +26,18 @@ client is a defect to remove.
 
 ## Rules
 
-- **Clan reads the record in process** (`src/recorded-client.mjs`), for
-  the person Elixir has already signed in. Membership, verification and
-  role are current checks on every request, and a leader's change also
-  needs the roster read within the hour (`src/role-freshness.mjs`).
+- **Clan reads the record in process** (`src/record.mjs`, over
+  `makeRecordReader` in `@elixir-mcp/tools/invoker`): the same tools
+  every door answers from, closed to the reads Clan makes, with no
+  credential, audit row or client name. The web path reads as the person
+  Elixir has already signed in; the morning run as Elixir itself
+  (`SYSTEM_READER`). The reader enforces nothing about the clan, so
+  membership, verification and role are current checks on every request
+  (the gate, `RUN_READS`, the elder and leader checks), and a leader's
+  change also needs the roster read within the hour
+  (`src/role-freshness.mjs`). `services/web-api/test/clan-record-reads.test.mjs`
+  holds the reads to what the audited invoker answered, and
+  `clan-record-access.test.mjs` holds who is refused.
 - **Private Clan state** (leader notes, holds, decisions) **reaches only
   those the clan's policy allows, and never MCP or public tools.** The one
   exception reads through `@elixir-mcp/auth/clan-context`: `clans_my_view`,

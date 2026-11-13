@@ -14,7 +14,7 @@ import { createVoiceService } from "@elixir-mcp/clan/manage/voice.mjs";
 import {
   cookieHeader,
   createTestAccount,
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   rosterBody,
@@ -28,7 +28,7 @@ function harness(role = "leader", { verified = true } = {}) {
   const clock = { t: Date.parse("2026-10-20T12:00:00Z") };
   const now = () => clock.t;
   const ledger = createMemoryLedger();
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({
         clan_role: role,
@@ -40,7 +40,7 @@ function harness(role = "leader", { verified = true } = {}) {
     ]),
   });
   const handler = createHandler({
-    mcp,
+    record,
     ...createTestAccount(),
     voice: createVoiceService({ ledger, now }),
     appUrl: "https://elixir.test/clan",

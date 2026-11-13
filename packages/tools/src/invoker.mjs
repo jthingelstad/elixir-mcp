@@ -371,6 +371,115 @@ function stampRequestId(body, requestId) {
   return body;
 }
 
+/**
+ * A tool call's budget, or null for an unbudgeted one. These are
+ * read-only aggregations, never a partly applied account write: the
+ * analytical budget (statement_timeout + work_mem) is theirs, and the
+ * Lambda deadline covers every other read-only tool. A write is never
+ * cancelled: nothing here races it, so a retry after a query_timeout
+ * cannot double-apply it.
+ */
+function budgetFor(
+  name,
+  args,
+  { registry, queryBudgetMs, deadlineMs, lockTimeoutMs },
+) {
+  const analytical = analyticalCall(name, args);
+  const readOnly = TOOL_GROUPS[name]?.readOnly ?? true;
+  const budgetMs = analytical
+    ? queryBudgetMs === null
+      ? deadlineMs
+      : deadlineMs === null
+        ? queryBudgetMs
+        : Math.min(queryBudgetMs, deadlineMs)
+    : readOnly
+      ? deadlineMs
+      : null;
+  if (budgetMs === null) return null;
+  return {
+    deadline: performance.now() + budgetMs,
+    // The audit row says which guard fired: the tool's own
+    // analytical budget, or the Lambda's deadline.
+    auditCode:
+      analytical && (deadlineMs === null || queryBudgetMs <= deadlineMs)
+        ? "query_timeout"
+        : "timeout",
+    workMem: analytical,
+    lockTimeoutMs,
+    // applyBudget's: the setup in flight, what it replaced, and
+    // whether the call has been answered (restoreBudget).
+    setup: null,
+    previous: null,
+    closed: false,
+    failure: () =>
+      new ToolFailure(
+        "query_timeout",
+        `Tool ${name} exceeded its query time budget; no analytical result was returned.`,
+        `Retry ${name}(${JSON.stringify(args ?? {})}) after a few seconds${registry.accepts?.(name, "from") ? ", or narrow from/to first" : ""}; quote meta.request_id if it persists.`,
+      ),
+  };
+}
+
+/**
+ * The race: the tool against its deadline. A tool that is past it (a
+ * live-lane wait, a slow query the statement_timeout has not yet
+ * cancelled) is abandoned and answered; its next database call throws
+ * on the same deadline, so the abandoned promise settles quickly and
+ * quietly. `answer` is the tool's body or its failure; `settle()`, in
+ * the caller's finally, clears the timer and keeps the abandoned side
+ * from surfacing as an unhandled rejection after the answer has gone.
+ */
+function raceTool({ db, registry, name, args, budget, timings, ctx }) {
+  const run = registry.invoke(
+    name,
+    { ...ctx, db: timedDb(db, timings, budget) },
+    args,
+  );
+  if (!budget) return { answer: run, settle: () => run.catch(() => {}) };
+  let deadlineTimer = null;
+  const answer = Promise.race([
+    run.catch((err) => {
+      if (performance.now() >= budget.deadline) throw budget.failure();
+      throw err;
+    }),
+    new Promise((_, reject) => {
+      deadlineTimer = setTimeout(
+        () => reject(budget.failure()),
+        Math.max(1, Math.ceil(budget.deadline - performance.now())),
+      );
+    }),
+  ]);
+  return {
+    answer,
+    settle: () => {
+      if (deadlineTimer) clearTimeout(deadlineTimer);
+      answer.catch(() => {});
+    },
+  };
+}
+
+/** A ToolFailure as every door renders it: code, class, message, hint
+ *  and the machine-readable fields beside them. */
+function failureBody(err, requestId) {
+  return {
+    error: {
+      code: err.code,
+      // The code's class (3.18.0): retry | input | subject |
+      // server | budget, so a consumer branches on one word.
+      class: ERROR_CLASS[err.code],
+      message: err.message,
+      ...(err.hint ? { hint: err.hint } : {}),
+      // Machine-readable fields beside the prose (retry_after_s
+      // on live_pending, 3.14.0).
+      ...(err.data ?? {}),
+    },
+    meta: responseMeta({
+      as_of: new Date().toISOString(),
+      ...(requestId ? { request_id: requestId } : {}),
+    }),
+  };
+}
+
 export function makeInvoker({
   db,
   account,
@@ -413,101 +522,36 @@ export function makeInvoker({
     // the try/catch; everything that records it runs in the finally, so
     // capture and audit are behind the answer, never in front of it.
     let outcome;
-    // These are read-only aggregations, never a partly applied account write:
-    // the analytical budget (statement_timeout + work_mem) is theirs, and
-    // the Lambda deadline covers every other read-only tool. A write is
-    // never cancelled: nothing here races it, so a retry after a
-    // query_timeout cannot double-apply it.
-    const analytical = analyticalCall(name, args);
-    const readOnly = TOOL_GROUPS[name]?.readOnly ?? true;
-    const budgetMs = analytical
-      ? queryBudgetMs === null
-        ? deadlineMs
-        : deadlineMs === null
-          ? queryBudgetMs
-          : Math.min(queryBudgetMs, deadlineMs)
-      : readOnly
-        ? deadlineMs
-        : null;
-    const budget =
-      budgetMs !== null
-        ? {
-            deadline: performance.now() + budgetMs,
-            // The audit row says which guard fired: the tool's own
-            // analytical budget, or the Lambda's deadline.
-            auditCode:
-              analytical && (deadlineMs === null || queryBudgetMs <= deadlineMs)
-                ? "query_timeout"
-                : "timeout",
-            workMem: analytical,
-            lockTimeoutMs,
-            // applyBudget's: the setup in flight, what it replaced, and
-            // whether the call has been answered (restoreBudget).
-            setup: null,
-            previous: null,
-            closed: false,
-            failure: () =>
-              new ToolFailure(
-                "query_timeout",
-                `Tool ${name} exceeded its query time budget; no analytical result was returned.`,
-                `Retry ${name}(${JSON.stringify(args ?? {})}) after a few seconds${registry.accepts?.(name, "from") ? ", or narrow from/to first" : ""}; quote meta.request_id if it persists.`,
-              ),
-          }
-        : null;
+    const budget = budgetFor(name, args, {
+      registry,
+      queryBudgetMs,
+      deadlineMs,
+      lockTimeoutMs,
+    });
     const restoreTimeout = () => restoreBudget(db, budget);
-    // The race: the tool against its deadline. A tool that is past it
-    // (a live-lane wait, a slow query the statement_timeout has not yet
-    // cancelled) is abandoned here and answered; its next database call
-    // throws on the same deadline, so the abandoned promise settles
-    // quickly and quietly.
-    let deadlineTimer = null;
-    const raced = budget
-      ? Promise.race([
-          registry
-            .invoke(
-              name,
-              {
-                db: timedDb(db, timings, budget),
-                account,
-                live: live ? timedLive(live, timings) : null,
-                notifyOwner,
-                surface,
-                requestId,
-                clientName,
-              },
-              args,
-            )
-            .catch((err) => {
-              if (performance.now() >= budget.deadline) throw budget.failure();
-              throw err;
-            }),
-          new Promise((_, reject) => {
-            deadlineTimer = setTimeout(
-              () => reject(budget.failure()),
-              Math.max(1, Math.ceil(budget.deadline - performance.now())),
-            );
-          }),
-        ])
-      : registry.invoke(
-          name,
-          {
-            db: timedDb(db, timings, budget),
-            account,
-            live: live ? timedLive(live, timings) : null,
-            notifyOwner,
-            // The door the call came through: a tool may lay out its
-            // answer for the door's reader (clans_participation's table
-            // for MCP, #124), never change what it says.
-            surface,
-            // This call's own id and client, for a tool that records who
-            // asked through what (elixir_send_feedback's via, 0204).
-            requestId,
-            clientName,
-          },
-          args,
-        );
+    const raced = raceTool({
+      db,
+      registry,
+      name,
+      args,
+      budget,
+      timings,
+      ctx: {
+        account,
+        live: live ? timedLive(live, timings) : null,
+        notifyOwner,
+        // The door the call came through: a tool may lay out its
+        // answer for the door's reader (clans_participation's table
+        // for MCP, #124), never change what it says.
+        surface,
+        // This call's own id and client, for a tool that records who
+        // asked through what (elixir_send_feedback's via, 0204).
+        requestId,
+        clientName,
+      },
+    });
     try {
-      const body = await raced;
+      const body = await raced.answer;
       await restoreTimeout();
       // The two pending hints ride EVERY response: they used
       // to ride only the tools that built a full envelope, so the consumer
@@ -543,23 +587,7 @@ export function makeInvoker({
     } catch (err) {
       if (err instanceof ToolFailure) {
         outcome = {
-          body: {
-            error: {
-              code: err.code,
-              // The code's class (3.18.0): retry | input | subject |
-              // server | budget, so a consumer branches on one word.
-              class: ERROR_CLASS[err.code],
-              message: err.message,
-              ...(err.hint ? { hint: err.hint } : {}),
-              // Machine-readable fields beside the prose (retry_after_s
-              // on live_pending, 3.14.0).
-              ...(err.data ?? {}),
-            },
-            meta: responseMeta({
-              as_of: new Date().toISOString(),
-              request_id: requestId,
-            }),
-          },
+          body: failureBody(err, requestId),
           isError: true,
           errorCode:
             err.code === "query_timeout" && budget
@@ -596,10 +624,7 @@ export function makeInvoker({
         };
       }
     } finally {
-      if (deadlineTimer) clearTimeout(deadlineTimer);
-      // The abandoned side of the race, if any, must not surface as an
-      // unhandled rejection after the answer has gone out.
-      raced.catch(() => {});
+      raced.settle();
       await restoreTimeout().catch((err) =>
         console.error("query_timeout_restore_failed", name, err?.message),
       );
@@ -665,5 +690,77 @@ export function makeInvoker({
       });
     }
     return { body: outcome.body, isError: outcome.isError };
+  };
+}
+
+/**
+ * Elixir's own features reading the record in process (Clan, 2026-11-13):
+ * the same registry, the same tools and the same query budget as
+ * makeInvoker, for the account the feature acts for, with nothing a
+ * client's call carries. A feature's read is not a tool call: no audit
+ * row, no capture, no pending hints, no request id and no client name,
+ * so it never appears in anyone's usage or in the call log. Answers as
+ * the invoker does: `{ body, isError }`, a ToolFailure rendered as every
+ * door renders it, anything else opaque and logged as
+ * tool_failed_unexpectedly (the handled-failure metric counts it).
+ */
+export function makeRecordReader({
+  db,
+  account,
+  registry,
+  live = null,
+  surface = "web",
+  queryBudgetMs = null,
+  deadlineMs = null,
+  lockTimeoutMs = READ_LOCK_TIMEOUT_MS,
+}) {
+  return async function read(name, args = {}) {
+    const timings = {
+      db_ms: 0,
+      db_queries: 0,
+      live_wait_ms: null,
+      serialize_ms: null,
+    };
+    const budget = budgetFor(name, args, {
+      registry,
+      queryBudgetMs,
+      deadlineMs,
+      lockTimeoutMs,
+    });
+    const raced = raceTool({
+      db,
+      registry,
+      name,
+      args,
+      budget,
+      timings,
+      ctx: { account, live, notifyOwner: null, surface },
+    });
+    try {
+      const body = await raced.answer;
+      await restoreBudget(db, budget);
+      return { body, isError: false };
+    } catch (err) {
+      if (err instanceof ToolFailure)
+        return { body: failureBody(err, null), isError: true };
+      console.error("tool_failed_unexpectedly", name, null, err?.message);
+      return {
+        body: {
+          error: {
+            code: "internal",
+            class: "server",
+            message: `Reading ${name} failed unexpectedly.`,
+            hint: "Try again in a moment.",
+          },
+          meta: responseMeta({ as_of: new Date().toISOString() }),
+        },
+        isError: true,
+      };
+    } finally {
+      raced.settle();
+      await restoreBudget(db, budget).catch((err) =>
+        console.error("query_timeout_restore_failed", name, err?.message),
+      );
+    }
   };
 }

@@ -361,7 +361,6 @@ export function createDrafts({
     async leaderMessage(
       clanTag,
       who,
-      token,
       cardId,
       {
         note = null,
@@ -389,7 +388,7 @@ export function createDrafts({
         if (card.type !== "removal") return;
         if (!requireRemovalSafety)
           throw new ManageError(409, "removal_evidence_held");
-        const proof = await requireRemovalSafety(clanTag, card, token);
+        const proof = await requireRemovalSafety(clanTag, card);
         if (removalVersion && proof.evidence_version !== removalVersion)
           throw new ManageError(409, "draft_changed");
         removalVersion = proof.evidence_version;
@@ -411,7 +410,7 @@ export function createDrafts({
       await unchanged();
       const answer = pending
         ? await model.collect(clanTag, who, pending)
-        : await model.write(clanTag, who, token, request, { defer: true });
+        : await model.write(clanTag, who, request, { defer: true });
       if (answer.pending)
         return { pending: answer.pending, draft_context_version: version };
       await unchanged();

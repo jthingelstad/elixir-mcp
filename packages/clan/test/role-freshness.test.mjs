@@ -15,7 +15,7 @@ import {
 } from "@elixir-mcp/clan/role-freshness.mjs";
 import {
   createTestAccount,
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   signIn,
@@ -26,9 +26,9 @@ const T = Date.parse("2026-10-12T12:00:00Z");
 const ago = (ms) => new Date(T - ms).toISOString();
 
 function harness(who = player()) {
-  const mcp = fakeMcp({ players: [who] });
+  const record = fakeRecord({ players: [who] });
   const handler = createHandler({
-    mcp,
+    record,
     ...createTestAccount(),
     social: createSocialService({
       ledger: createMemoryLedger(),
@@ -40,7 +40,7 @@ function harness(who = player()) {
     now: () => T,
     log: { warn() {}, error() {}, info() {} },
   });
-  return { mcp, handler };
+  return { record, handler };
 }
 
 async function as(h) {
@@ -58,7 +58,7 @@ async function as(h) {
 }
 
 const rosterCalls = (h) =>
-  h.mcp.calls.filter(([name]) => name === "clans_roster").map(([, , a]) => a);
+  h.record.calls.filter(([name]) => name === "clans_roster").map(([, a]) => a);
 
 test("leader mutations are every non-GET a leader or co-leader sends, except a member's own away and the two read-only POSTs", () => {
   for (const role of ["leader", "coLeader"]) {
@@ -100,7 +100,7 @@ test("leader mutations are every non-GET a leader or co-leader sends, except a m
 
 test("a roster read inside the hour lets a leader act, with one compact read and no live ask", async () => {
   const h = harness();
-  h.mcp.state.rosterObservedAt = ago(ROLE_CONFIRM_MAX_AGE_MS - 60_000);
+  h.record.state.rosterObservedAt = ago(ROLE_CONFIRM_MAX_AGE_MS - 60_000);
   const ada = await as(h);
   const r = await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false });
   assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -111,7 +111,7 @@ test("a roster read inside the hour lets a leader act, with one compact read and
 
 test("an older roster asks for a live read and refuses role_unconfirmed; a read is not held", async () => {
   const h = harness();
-  h.mcp.state.rosterObservedAt = ago(ROLE_CONFIRM_MAX_AGE_MS + 60_000);
+  h.record.state.rosterObservedAt = ago(ROLE_CONFIRM_MAX_AGE_MS + 60_000);
   const ada = await as(h);
   const r = await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false });
   assert.equal(r.status, 409);
@@ -125,7 +125,7 @@ test("an older roster asks for a live read and refuses role_unconfirmed; a read 
     { clan_tag: "#2PQRJ8LV", verbosity: "compact" },
     { clan_tag: "#2PQRJ8LV", verbosity: "compact", live: true },
   ]);
-  h.mcp.calls.length = 0;
+  h.record.calls.length = 0;
   const read = await ada("GET", "/api/clans/2PQRJ8LV/social");
   assert.equal(read.status, 200);
   assert.deepEqual(rosterCalls(h), []);
@@ -134,12 +134,12 @@ test("an older roster asks for a live read and refuses role_unconfirmed; a read 
 
 test("a live read already in hand answers at once; a roster with no read at all is unconfirmed", async () => {
   const h = harness();
-  h.mcp.state.rosterObservedAt = ago(2 * ROLE_CONFIRM_MAX_AGE_MS);
+  h.record.state.rosterObservedAt = ago(2 * ROLE_CONFIRM_MAX_AGE_MS);
   const ada = await as(h);
   // The live ask's answer carries the record a fresh read just moved.
-  const inner = h.mcp.rawCallTool.bind(h.mcp);
-  h.mcp.rawCallTool = async (token, name, args) => {
-    const r = await inner(token, name, args);
+  const inner = h.record.rawRead.bind(h.record);
+  h.record.rawRead = async (name, args) => {
+    const r = await inner(name, args);
     if (name === "clans_roster" && args?.live === true) {
       r.body.meta.source_polls.clan.observed_at = ago(30_000);
       r.body.live_status = { state: "fresh", fetched_at: ago(30_000) };
@@ -153,9 +153,9 @@ test("a live read already in hand answers at once; a roster with no read at all 
 
   const none = harness();
   const ben = await as(none);
-  const inner2 = none.mcp.rawCallTool.bind(none.mcp);
-  none.mcp.rawCallTool = async (token, name, args) => {
-    const r = await inner2(token, name, args);
+  const inner2 = none.record.rawRead.bind(none.record);
+  none.record.rawRead = async (name, args) => {
+    const r = await inner2(name, args);
     if (name === "clans_roster")
       r.body.meta.source_polls.clan.observed_at = null;
     return r;
@@ -168,7 +168,7 @@ test("a live read already in hand answers at once; a roster with no read at all 
 test("an elder's and a member's requests are never held for the roster", async () => {
   for (const role of ["elder", "member"]) {
     const h = harness(player({ clan_role: role }));
-    h.mcp.state.rosterObservedAt = ago(10 * ROLE_CONFIRM_MAX_AGE_MS);
+    h.record.state.rosterObservedAt = ago(10 * ROLE_CONFIRM_MAX_AGE_MS);
     const who = await as(h);
     const r = await who("PUT", "/api/clans/2PQRJ8LV/social", {
       enabled: false,
@@ -182,7 +182,7 @@ test("an elder's and a member's requests are never held for the roster", async (
 test("a roster read that fails is elixir_unavailable", async () => {
   const h = harness();
   const ada = await as(h);
-  h.mcp.state.roster = { error: { code: "internal", message: "down" } };
+  h.record.state.roster = { error: { code: "internal", message: "down" } };
   const r = await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false });
   assert.equal(r.status, 502);
   assert.equal(r.body.error, "elixir_unavailable");
@@ -192,18 +192,18 @@ test("a role the roster changed between the gate and the freshness read is read 
   const h = harness();
   const ada = await as(h);
   // The admission lands just as the freshness check reads the roster.
-  const inner = h.mcp.rawCallTool.bind(h.mcp);
-  h.mcp.rawCallTool = async (token, name, args) => {
+  const inner = h.record.rawRead.bind(h.record);
+  h.record.rawRead = async (name, args) => {
     if (name === "clans_roster")
-      h.mcp.state.players = [player({ clan_role: "member" })];
-    return inner(token, name, args);
+      h.record.state.players = [player({ clan_role: "member" })];
+    return inner(name, args);
   };
-  const before = h.mcp.calls.filter(([n]) => n === "initialize").length;
+  const before = h.record.calls.filter(([n]) => n === "identity").length;
   const r = await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false });
   assert.equal(r.status, 403, JSON.stringify(r.body));
   assert.equal(r.body.error, "leaders_only");
   assert.equal(
-    h.mcp.calls.filter(([n]) => n === "initialize").length - before,
+    h.record.calls.filter(([n]) => n === "identity").length - before,
     2,
     "the gate, then the gate again after the freshness read",
   );
@@ -211,11 +211,11 @@ test("a role the roster changed between the gate and the freshness read is read 
   // Left the clan in that moment: the clan is no longer theirs.
   const g = harness();
   const ben = await as(g);
-  const inner2 = g.mcp.rawCallTool.bind(g.mcp);
-  g.mcp.rawCallTool = async (token, name, args) => {
+  const inner2 = g.record.rawRead.bind(g.record);
+  g.record.rawRead = async (name, args) => {
     if (name === "clans_roster")
-      g.mcp.state.players = [player({ clan_tag: null, clan_role: null })];
-    return inner2(token, name, args);
+      g.record.state.players = [player({ clan_tag: null, clan_role: null })];
+    return inner2(name, args);
   };
   const gone = await ben("PUT", "/api/clans/2PQRJ8LV/social", {
     enabled: false,
