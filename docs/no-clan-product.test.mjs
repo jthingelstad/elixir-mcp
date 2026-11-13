@@ -124,7 +124,26 @@ test("Clan has no sign-in route of its own", () => {
   assert.deepEqual(hits(tracked().filter(SURFACE), CLAN_AUTH_ROUTE), []);
 });
 
+// Clan's one-time import from its former store, and the table that held
+// its receipt: dropped in 0263.
+const CLAN_IMPORT = new RegExp(
+  ["clan_state", "_import|import", "Snapshot\\b|clan-state/", "import\\b"].join(
+    "",
+  ),
+);
+
+test("Clan's one-time import from its old store is gone", () => {
+  assert.deepEqual(hits(tracked(), CLAN_IMPORT), []);
+});
+
 test("the guard sees each shape", () => {
+  for (const shape of [
+    `${"clan_state"}_import`,
+    `${"import"}Snapshot(db)`,
+    `"@elixir-mcp/${"clan-state"}/import"`,
+  ])
+    assert.ok(CLAN_IMPORT.test(shape), shape);
+  assert.ok(!CLAN_IMPORT.test("clan_state_policy"));
   assert.ok(CLAN_FAMILY_APP.test(`provision: { app: "clan" }`));
   assert.ok(CLAN_FAMILY_APP.test(`{"app": "clan"}`));
   assert.ok(

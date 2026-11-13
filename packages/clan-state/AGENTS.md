@@ -12,5 +12,3 @@ as items of one clan in `clan_state` (migration 0196). Read
 - This state is private: nothing here is imported by MCP, the tools or any
   public game package.
 - A policy version is immutable; a change is a new version.
-- `src/import.mjs` is the one-time digest-bound import from Clan's former
-  store, kept with its test; nothing runs it.
