@@ -72,7 +72,7 @@ export function Cheers({ it, where }) {
         ))}
         <button
           type="button"
-          className="kit-chip"
+          className="kit-chip kit-cheers__add"
           disabled={busy}
           aria-expanded={open}
           aria-controls={open ? pickId : undefined}
@@ -80,7 +80,7 @@ export function Cheers({ it, where }) {
         >
           Cheer
         </button>
-        {who ? <span className="kit-tiny">{who}</span> : null}
+        {who ? <span className="kit-cheers__who">{who}</span> : null}
         {cheer.isError ? (
           <span role="alert" className="field-error">
             Your cheer was not saved. Try again.

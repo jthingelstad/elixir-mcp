@@ -94,10 +94,13 @@ const pageHeight = (page: Page) =>
 for (const [label, width, tallest] of [
   // Measured with this fixture on 2026-11-12: thirty items and the panels
   // are 3,471 px wide and 4,676 px on a phone; the week's 150 at once were
-  // 15,137 and 16,342. The bound leaves room for a panel growing, never for
-  // the feed drawing the week at once.
-  ["desktop", 1180, 5_000],
-  ["phone", 390, 6_500],
+  // 15,137 and 16,342. Since 2026-11-13 each item is the canvas's card (its
+  // avatar row and reactions on their own lines): thirty are 6,512 px wide
+  // and 6,945 on a phone, so 150 would be about five times that. The bound
+  // leaves room for a panel growing, never for the feed drawing the week at
+  // once.
+  ["desktop", 1180, 7_500],
+  ["phone", 390, 8_000],
 ] as const) {
   test(`${label}: a busy week's Home is thirty items tall, its panels ${
     label === "desktop" ? "beside the feed" : "after it"

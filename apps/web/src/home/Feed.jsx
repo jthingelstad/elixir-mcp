@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  Avatar,
   Chips,
   Empty,
   ErrorState,
@@ -232,27 +233,34 @@ export function HomeFeed() {
   );
 }
 
-/** Who an item is about, as the feed names them: a player's game name opens
- *  their page; a clan's line names the clan; the account's own items are
- *  yours. Never a nickname here: the sentence below says it the way the
- *  timeline does. */
-function Who({ it }) {
+/** Who an item is about: the player it names, else its clan, else you. */
+function subjectOf(it) {
   const player =
     (it.subjects ?? []).find((s) => s.kind === "player") ??
     (it.facts?.player_tag
       ? { tag: it.facts.player_tag, name: it.facts.name ?? null }
       : null);
-  if (player)
+  if (player) return { ...player, kind: "player" };
+  const clan = (it.subjects ?? []).find((s) => s.kind === "clan");
+  if (clan) return { ...clan, name: clan.name ?? it.subject_name ?? clan.tag };
+  return null;
+}
+
+/** Who an item is about, as the feed names them: a player's game name opens
+ *  their page; a clan's line names the clan; the account's own items are
+ *  yours. Never a nickname here: the sentence below says it the way the
+ *  timeline does. */
+function Who({ who }) {
+  if (who?.kind === "player")
     return (
-      <Link to={playerHref(player.tag)} className="kit-feed__name">
-        <TagText>{player.name ?? player.tag}</TagText>
+      <Link to={playerHref(who.tag)} className="kit-feed__name">
+        <TagText>{who.name ?? who.tag}</TagText>
       </Link>
     );
-  const clan = (it.subjects ?? []).find((s) => s.kind === "clan");
-  if (clan)
+  if (who)
     return (
       <span className="kit-feed__name">
-        <TagText>{clan.name ?? it.subject_name ?? clan.tag}</TagText>
+        <TagText>{who.name}</TagText>
       </span>
     );
   return <span className="kit-feed__name">You</span>;
@@ -262,45 +270,149 @@ const isClanLine = (it) =>
   (it.subjects ?? []).length > 0 &&
   (it.subjects ?? []).every((s) => s.kind === "clan");
 
+/** A clan's own item, or a member's coming, going or role in it: these wear
+ *  the clan's band and gold edge (canvas .item.clan). */
+const CLAN_MEMBER_KINDS = new Set([
+  "member_joined",
+  "member_left",
+  "member_role_changed",
+]);
+const isClanItem = (it) =>
+  isClanLine(it) ||
+  (CLAN_MEMBER_KINDS.has(it.kind) &&
+    (it.subjects ?? []).some((s) => s.kind === "clan"));
+
+/** The word after the clan's name on its band. */
+const BAND_WORDS = {
+  member_joined: "arrival",
+  member_left: "departure",
+  member_role_changed: "role",
+  race_finished: "Clan Wars",
+  week_resolved: "Clan Wars",
+  bracket_observed: "Clan Wars",
+};
+
+/** A moment's medal: violet for a card's first, gold for the rest. */
+const VIOLET = new Set(["card_unlocked", "card_form_unlocked"]);
+
+/** A moment's battle, as its line under the moment (canvas .mbattle): the
+ *  result and score when the record names them, and one way in. */
+function MomentBattle({ it }) {
+  const by = it.facts?.promoted_by ?? null;
+  const known =
+    by &&
+    typeof by.crowns === "number" &&
+    typeof by.crowns_against === "number";
+  const won = known && by.crowns > by.crowns_against;
+  return (
+    <Link
+      to={it.battle_url.replace(/^https?:\/\/[^/]+/, "")}
+      className="kit-mbattle"
+    >
+      {known ? (
+        <>
+          <span
+            className={`kit-mbattle__res kit-mbattle__res--${won ? "won" : "lost"}`}
+          >
+            {won ? "Won" : "Lost"}
+          </span>
+          <b>
+            {by.crowns}-{by.crowns_against}
+            {by.opponent?.name ? (
+              <>
+                {" over "}
+                <TagText>{by.opponent.name}</TagText>
+              </>
+            ) : null}
+          </b>
+        </>
+      ) : null}
+      <span className="kit-mbattle__go">The battle</span>
+    </Link>
+  );
+}
+
 function FeedItem({ it, open, onToggle }) {
   const rowTime = useRowTime();
   const sitting = SITTINGS.has(it.kind);
+  const clan = isClanItem(it);
+  const who = subjectOf(it);
+  const clanSubject = clan
+    ? (it.subjects ?? []).find((s) => s.kind === "clan")
+    : null;
+  const moment = !sitting && !clan && it.kind !== "battle_highlight";
+  const band = BAND_WORDS[it.kind];
+  const text = (
+    <p className="kit-feed__text">
+      <TagText>{it.text}</TagText>
+    </p>
+  );
+  const links = (
+    <>
+      {it.battle_url && !moment ? (
+        <Link
+          to={it.battle_url.replace(/^https?:\/\/[^/]+/, "")}
+          className="link kit-tl__more"
+        >
+          The battle
+        </Link>
+      ) : null}
+      {it.kind === "battle_highlight" ? (
+        <HighlightLinks facts={it.facts} />
+      ) : null}
+      {it.evidence ? (
+        <button
+          type="button"
+          className="link kit-tl__more"
+          aria-expanded={open}
+          onClick={onToggle}
+        >
+          {evidenceWord(it, open)}
+        </button>
+      ) : null}
+    </>
+  );
   return (
-    <article
-      className={`kit-feed__item${isClanLine(it) ? " kit-feed__item--clan" : ""}`}
-    >
+    <article className={`kit-feed__item${clan ? " kit-feed__item--clan" : ""}`}>
+      {clanSubject ? (
+        <p className="kit-feed__band">
+          <Icon name="shield" size={16} />
+          <TagText>
+            {clanSubject.name ?? it.subject_name ?? clanSubject.tag}
+          </TagText>
+          {band ? ` · ${band}` : null}
+        </p>
+      ) : null}
       <header className="kit-feed__head">
-        <Who it={it} />
-        <span className="kit-feed__time">{rowTime(shownAt(it))}</span>
+        <Avatar
+          name={who?.name ?? who?.tag ?? "You"}
+          tag={who?.tag}
+          clan={who ? who.kind !== "player" : false}
+        />
+        <div className="kit-feed__who">
+          <Who who={who} />
+          <span className="kit-feed__time">{rowTime(shownAt(it))}</span>
+        </div>
       </header>
-      <p className="kit-feed__text">
-        <TagText>{it.text}</TagText>
-      </p>
+      {moment ? (
+        <div className="kit-feed__moment">
+          <span
+            className={`kit-medal${VIOLET.has(it.kind) ? " kit-medal--violet" : ""}`}
+            aria-hidden="true"
+          >
+            <Icon name="star" size={26} />
+          </span>
+          {text}
+        </div>
+      ) : (
+        text
+      )}
       {sitting ? <Sitting it={it} /> : null}
-      <span className="share-actions">
-        {it.battle_url ? (
-          <Link
-            to={it.battle_url.replace(/^https?:\/\/[^/]+/, "")}
-            className="link kit-tl__more"
-          >
-            The battle
-          </Link>
-        ) : null}
-        {it.kind === "battle_highlight" ? (
-          <HighlightLinks facts={it.facts} />
-        ) : null}
-        {it.evidence ? (
-          <button
-            type="button"
-            className="link kit-tl__more"
-            aria-expanded={open}
-            onClick={onToggle}
-          >
-            {evidenceWord(it, open)}
-          </button>
-        ) : null}
-      </span>
-      {"cheers" in it ? <Cheers it={it} /> : null}
+      {moment && it.battle_url ? <MomentBattle it={it} /> : null}
+      <footer className="kit-feed__foot">
+        {"cheers" in it ? <Cheers it={it} /> : null}
+        <span className="share-actions kit-feed__links">{links}</span>
+      </footer>
     </article>
   );
 }

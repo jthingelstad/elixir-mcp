@@ -8285,6 +8285,11 @@ a.kit-mbattle:hover {
   .kit-feed__item {
     padding: 14px 14px 12px;
   }
+  /* The phone board draws a moment without its medal: the sentence keeps
+     the card's whole reading width. */
+  .kit-medal {
+    display: none;
+  }
   .kit-spark {
     height: 48px;
   }

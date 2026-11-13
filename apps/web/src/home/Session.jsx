@@ -11,31 +11,63 @@ import { Sparkline } from "./Sparkline.jsx";
  */
 export const SITTINGS = new Set(["battle_session", "session_standout"]);
 
-/** A sitting's numbers and its sparkline: battles, won, lost and, on
- *  Trophy Road, the trophies it moved; the deck it was played with most. */
+/** A sitting's numbers and its sparkline (the canvas's session tile,
+ *  2026-11-13): battles, won, lost and, on Trophy Road, the trophies it
+ *  moved, as figures; its bars; and the deck it was played with most. */
 export function Sitting({ it }) {
   const f = it.facts ?? {};
   const modes = Object.keys(f.by_mode ?? {});
-  const trophies =
+  const net =
     typeof f.trophy_net === "number" && (f.by_mode?.ladder ?? 0) > 0
-      ? `${f.trophy_net > 0 ? "+" : ""}${f.trophy_net} trophies`
+      ? f.trophy_net
       : null;
-  const line = [
-    `${f.battles ?? 0} battles`,
-    `${f.won ?? 0} won`,
-    `${f.lost ?? 0} lost`,
-    trophies,
-    modes.length === 1 ? modeWord(modes[0]) : null,
-    f.decks?.[0]?.label ?? null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const deck = f.decks?.[0] ?? null;
   return (
     <div className="kit-feed__sitting">
+      {modes.length > 0 ? (
+        <p className="kit-feed__sub">
+          {modes.length === 1
+            ? modeWord(modes[0])
+            : `${modes.slice(0, -1).map(modeWord).join(", ")} and ${modeWord(modes.at(-1))}`}
+        </p>
+      ) : null}
+      <dl className="kit-sfacts">
+        <div>
+          <dt>Battles</dt>
+          <dd>{f.battles ?? 0}</dd>
+        </div>
+        <div>
+          <dt>Won</dt>
+          <dd className="kit-sfacts--won">{f.won ?? 0}</dd>
+        </div>
+        <div>
+          <dt>Lost</dt>
+          <dd>{f.lost ?? 0}</dd>
+        </div>
+        {net !== null ? (
+          <div>
+            <dt>Trophies</dt>
+            <dd
+              className={
+                net > 0 ? "kit-sfacts--up" : net < 0 ? "kit-sfacts--down" : ""
+              }
+            >
+              {net > 0 ? `+${net}` : net}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
       <Sparkline spark={it.spark} />
-      <span className="kit-tiny">
-        <TagText>{line}</TagText>
-      </span>
+      {deck?.label ? (
+        <p className="kit-decklabel">
+          <b>
+            <TagText>{deck.label}</TagText>
+          </b>
+          {typeof deck.battles === "number"
+            ? ` · in ${deck.battles} of ${f.battles ?? deck.battles} battles`
+            : ""}
+        </p>
+      ) : null}
     </div>
   );
 }
