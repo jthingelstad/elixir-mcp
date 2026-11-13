@@ -7,7 +7,7 @@
     "./*": "./src/*.mjs"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test --test-force-exit"
   },
   "dependencies": {
     "@hono/node-server": "2.1.8",

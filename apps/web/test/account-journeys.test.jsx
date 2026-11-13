@@ -18,6 +18,7 @@ import "./warm-routes.js";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { makeHandler } from "../../../services/web-api/src/handler.mjs";
 import { createSession, emailHash } from "../../../packages/auth/src/index.mjs";
+import { warmPools } from "../../../services/web-api/test/warm-pools.mjs";
 
 // These assertions include real PostgreSQL round trips, not resolved mocks.
 // Bound the wait, but do not turn Testing Library's unit-test default (1s)
@@ -51,6 +52,10 @@ beforeAll(async () => {
     secret: "scratch-only",
     sendLoginEmail: async () => {},
   });
+  // The pool opens here, not on a page's first burst of requests: a new
+  // connection took 1.2 s of a 5.1 s POST /api/claims on a loaded host
+  // (2026-11-13), inside the 5 s wait below.
+  await warmPools([handler]);
   vi.stubGlobal("fetch", (path, init = {}) => {
     const url = new URL(path, "http://localhost");
     const promise = handler({

@@ -1,17 +1,15 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
 import pg from "pg";
-import { fileURLToPath } from "node:url";
 import { emailHash, startMagicLogin } from "@elixir-mcp/auth";
 import { addPlayer } from "@elixir-mcp/claims";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { makeHandler } from "../src/handler.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
+import { warmPools } from "./warm-pools.mjs";
 
-const root = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../..",
-);
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_mcp_test_signup_${process.pid}`;
@@ -60,14 +58,7 @@ async function signup(email) {
   return cookieOf(r);
 }
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: path.join(root, "db/migrations"),
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   handler = makeHandler({
@@ -85,13 +76,17 @@ before(async () => {
     sendWelcomeEmail: async (m) => welcomes.push(m),
     live: fakeLive,
   });
+  // Each handler opens its whole pool here, in setup, so no test below
+  // opens a connection inside its own requests. The concurrent tests need
+  // two at once, and a connection that takes longer than the doors'
+  // connect bound (2.5 s, tried twice) to open on a loaded host answered
+  // 5xx in a test that never meant to measure it (2026-11-13).
+  await warmPools([handler, tagged]);
 });
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database ${name} with (force)`);
-  await admin.end();
+  await Promise.all([handler?.close?.(), tagged?.close?.()]);
+  await dropScratch(name);
 });
 
 test("public signup creates only a member after email proof; a failed code and a replay create nothing", async () => {

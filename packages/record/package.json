@@ -32,7 +32,7 @@
     "./retention": "./src/retention.mjs"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test --test-force-exit"
   },
   "dependencies": {
     "@elixir-mcp/contracts": "0.1.0"

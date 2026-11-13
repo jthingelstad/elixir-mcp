@@ -6,6 +6,7 @@
  *   node infra/scripts/test.mjs                  every unit, a bounded pool
  *   node infra/scripts/test.mjs --shard 2/3      the units shard 2 of 3 holds
  *   node infra/scripts/test.mjs --jobs 2         a smaller pool
+ *   node infra/scripts/test.mjs --db-slots 4     fewer scratch databases at once
  *   node infra/scripts/test.mjs web tools        only these units
  *   node infra/scripts/test.mjs --list --shard 1/3   the plan; runs nothing
  *
@@ -25,6 +26,16 @@
  * test process (`elixir_mcp_test_<name>_<pid>`) and servers listen on
  * port 0.
  *
+ * One cap is shared: scratch databases. Every test file that holds one
+ * also holds its connections, and several sessions' verify runs share one
+ * local PostgreSQL (max_connections 100). The run makes a slot directory
+ * and hands it to every unit (ELIXIR_TEST_DB_SLOTS_DIR,
+ * ELIXIR_TEST_DB_SLOTS); `createScratch` in
+ * packages/ingest/test/helpers.mjs waits for a free slot before it clones
+ * a database, so the run holds at most DB_SLOTS of them at once, whatever
+ * the units and node --test's own file concurrency would start. Files
+ * with no database never wait.
+ *
  * Output is held per unit and printed whole when the unit ends (folded in
  * a GitHub Actions group when it passed), then a summary by duration.
  * Exit 1 if any unit failed.
@@ -35,7 +46,13 @@
  * table weighs DEFAULT_WEIGHT; add it when the summary shows its time.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import {
+  readFileSync,
+  readdirSync,
+  existsSync,
+  mkdtempSync,
+  rmSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -123,8 +140,21 @@ export function defaultJobs(cores = os.availableParallelism()) {
   return Math.max(2, Math.min(6, Math.floor(cores / 2)));
 }
 
+/** Scratch databases one run may hold at once. A file holding one keeps
+ *  about two connections (its own client, a handler's pool) and briefly
+ *  a third (the admin client that clones or drops it), so ten keep a
+ *  run near 20 of PostgreSQL's 100: room for four runs side by side.
+ *  Measured 2026-11-13 (docs/notes/2026-11-13-test-db-slots.md). */
+export const DEFAULT_DB_SLOTS = 10;
+
 function parseArgs(argv) {
-  const opts = { jobs: defaultJobs(), shard: null, list: false, only: [] };
+  const opts = {
+    jobs: defaultJobs(),
+    dbSlots: DEFAULT_DB_SLOTS,
+    shard: null,
+    list: false,
+    only: [],
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const value = () => {
@@ -139,6 +169,10 @@ function parseArgs(argv) {
       opts.jobs = Number(value());
       if (!Number.isInteger(opts.jobs) || opts.jobs < 1)
         throw new Error("--jobs wants a whole number of at least 1");
+    } else if (a.startsWith("--db-slots")) {
+      opts.dbSlots = Number(value());
+      if (!Number.isInteger(opts.dbSlots) || opts.dbSlots < 1)
+        throw new Error("--db-slots wants a whole number of at least 1");
     } else if (a === "-h" || a === "--help") opts.help = true;
     else if (a.startsWith("-")) throw new Error(`unknown option ${a}`);
     else opts.only.push(a);
@@ -177,16 +211,28 @@ function run(cmd, args, label) {
   }
 }
 
-function runUnit(unit) {
+function runUnit(unit, env) {
   const [cmd, args] = unit.workspace
     ? ["npm", ["test", "--ignore-scripts", "-w", unit.workspace]]
-    : ["node", ["--test", "docs/*.test.mjs", "acceptance/**/*.test.mjs"]];
+    : [
+        "node",
+        [
+          "--test",
+          "--test-force-exit",
+          "docs/*.test.mjs",
+          "acceptance/**/*.test.mjs",
+        ],
+      ];
   const started = Date.now();
   return new Promise((resolve) => {
     const child = spawn(cmd, args, {
       cwd: repoRoot,
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, FORCE_COLOR: process.env.FORCE_COLOR ?? "0" },
+      env: {
+        ...process.env,
+        ...env,
+        FORCE_COLOR: process.env.FORCE_COLOR ?? "0",
+      },
     });
     const chunks = [];
     child.stdout.on("data", (c) => chunks.push(c));
@@ -216,13 +262,13 @@ function report(r) {
     );
 }
 
-async function pool(list, jobs) {
+async function pool(list, jobs, env) {
   const results = [];
   let next = 0;
   async function worker() {
     while (next < list.length) {
       const unit = list[next++];
-      const r = await runUnit(unit);
+      const r = await runUnit(unit, env);
       report(r);
       results.push(r);
     }
@@ -239,7 +285,7 @@ async function main() {
     console.log(
       readFileSync(fileURLToPath(import.meta.url), "utf8")
         .split("\n")
-        .slice(2, 13)
+        .slice(2, 14)
         .map((l) => l.replace(/^ \* ?/, ""))
         .join("\n"),
     );
@@ -263,7 +309,7 @@ async function main() {
     ? `shard ${opts.shard.index}/${opts.shard.count}: `
     : "";
   console.error(
-    `test: ${where}${chosen.length} units, ${opts.jobs} at a time: ${chosen.map((u) => u.name).join(" ")}`,
+    `test: ${where}${chosen.length} units, ${opts.jobs} at a time, at most ${opts.dbSlots} scratch databases: ${chosen.map((u) => u.name).join(" ")}`,
   );
   if (opts.list) return;
   warnNode();
@@ -277,7 +323,20 @@ async function main() {
     );
   else run("npm", ["run", "build"], "build the packages tests read");
 
-  const results = await pool(chosen, opts.jobs);
+  const slots = mkdtempSync(path.join(os.tmpdir(), "elixir-mcp-db-slots-"));
+  let results;
+  try {
+    results = await pool(chosen, opts.jobs, {
+      ELIXIR_TEST_DB_SLOTS_DIR: slots,
+      ELIXIR_TEST_DB_SLOTS: String(opts.dbSlots),
+      // The handlers' pools (web-api, mcp, collector), as the smallest
+      // production function runs: a test file's requests queue for two
+      // connections rather than open four.
+      DB_POOL_MAX: process.env.DB_POOL_MAX ?? "2",
+    });
+  } finally {
+    rmSync(slots, { recursive: true, force: true });
+  }
   const failed = results.filter((r) => !r.ok);
   const wall = (Date.now() - started) / 1000;
   const sum = results.reduce((s, r) => s + r.seconds, 0);

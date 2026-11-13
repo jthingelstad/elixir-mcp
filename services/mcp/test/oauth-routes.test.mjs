@@ -1,10 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import {
   emailHash,
   FIRST_PARTY_ORIGINS,
@@ -14,9 +11,11 @@ import {
 } from "../../../packages/auth/src/index.mjs";
 import { familyClientsOn } from "../../migrate/src/ops-family-clients.mjs";
 import { makeHandler } from "../src/handler.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_oroutes_${process.pid}`;
@@ -52,15 +51,7 @@ function event({
 }
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: DB_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
   await db.query(
@@ -76,10 +67,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 test("discovery documents are well-formed and cacheable", async () => {

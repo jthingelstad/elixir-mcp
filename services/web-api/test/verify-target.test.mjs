@@ -7,7 +7,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { verifyRoutes, DECK_SIZE } from "../src/routes/verify.mjs";
 import { deckKey } from "../src/routes/verify-draw.mjs";
 import {
@@ -15,6 +14,10 @@ import {
   seedDeck,
   hashFor,
 } from "../../../packages/tools/test/deck-rows.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -76,15 +79,7 @@ async function battle(tag, ids, at) {
 }
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: new URL("../../../db/migrations", import.meta.url).pathname,
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   person = (
@@ -127,10 +122,7 @@ before(async () => {
 });
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 
 test("start: the most-played deck with two marked swaps of similar cost, never a deck played this month; the poll carries the marks", async () => {

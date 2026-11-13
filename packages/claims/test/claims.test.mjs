@@ -5,10 +5,7 @@
  */
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import {
   addPlayer,
   removePlayer,
@@ -23,9 +20,8 @@ import {
   markVerified,
   VERIFIED_ELSEWHERE,
 } from "../src/index.mjs";
+import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_claims_${process.pid}`;
@@ -89,25 +85,14 @@ const latestRecording = async (tag) =>
   ).rows[0];
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: URL });
   await db.connect();
-  await migrate({
-    databaseUrl: URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
 });
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 beforeEach(async () => {

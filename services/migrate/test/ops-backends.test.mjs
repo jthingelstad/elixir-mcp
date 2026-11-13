@@ -8,42 +8,35 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../src/migrate.mjs";
 import { terminateBackends, listBackends } from "../src/deck-backfill.mjs";
 import { oauthGrants } from "../src/ops-grants.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const SCRATCH = `elixir_mcp_test_backends_${process.pid}`;
 const SCRATCH_URL = ADMIN_URL.replace(/\/postgres$/, `/${SCRATCH}`);
 // A refusal returns before connecting; this URL proves it.
 const NOWHERE = "postgres://nobody@127.0.0.1:1/none";
+// lambda.mjs takes the function's name from PGAPPNAME once, at import,
+// and the assertions below name the default: a PGAPPNAME set in the
+// shell that runs the suite must not reach it.
+delete process.env.PGAPPNAME;
 
 let db;
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`create database ${SCRATCH}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: SCRATCH_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(SCRATCH);
   db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
 });
 
 after(async () => {
   await db?.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${SCRATCH} with (force)`);
-  await admin.end();
+  await dropScratch(SCRATCH);
 });
 
 test("terminate_backends refuses true and a pattern that names no query, before connecting", async () => {

@@ -11,7 +11,6 @@ import {
 } from "../../../packages/tools/test/deck-rows.mjs";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import {
   addPlayer,
@@ -26,6 +25,10 @@ import {
   LIVE_READS_PER_TAG_PER_DAY,
   STARTS_PER_HOUR,
 } from "../src/routes/verify.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -139,15 +142,7 @@ async function playBattle(
 }
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: new URL("../../../db/migrations", import.meta.url).pathname,
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   person = (
@@ -182,10 +177,7 @@ before(async () => {
 });
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 
 test("deckMatches: the set of eight ids, order and duplicates aside", () => {

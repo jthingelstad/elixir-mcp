@@ -1,10 +1,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { ensureSeason } from "../../../packages/record/src/season.mjs";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import {
   planTick,
   CADENCE,
@@ -20,9 +17,11 @@ import {
 } from "../../../packages/ledger/src/plan.mjs";
 import { tickOnce } from "../src/handler.mjs";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_sched_${process.pid}`;
@@ -84,15 +83,7 @@ async function setTokens(tokens) {
 }
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: URL });
   await db.connect();
   const {
@@ -111,10 +102,7 @@ beforeEach(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 test("new subject seeds both player endpoints plus the followed clan", async () => {

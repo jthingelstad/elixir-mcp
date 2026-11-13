@@ -695,7 +695,11 @@ reads built output, and anything two test processes share (a database, a
 port, a file) is named per process. Knip entries name
 actual executable roots per workspace; remove obsolete entries instead of
 suppressing hints. Account journeys use the real web API and per-run scratch
-Postgres databases.
+Postgres databases. A scratch database is a clone of a template migrated
+once, and one run holds at most ten at a time (`--db-slots`), each file's
+pools at two connections, so four sessions verifying at once stay under
+the local server's 100 connections
+(`docs/notes/2026-11-13-test-db-slots.md`).
 
 **The acceptance suite** (`acceptance/`, layers in `acceptance/README.md`)
 reads the deployed door as a read-only agent principal with its own token

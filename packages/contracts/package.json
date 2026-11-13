@@ -8,7 +8,7 @@
   "scripts": {
     "build": "node scripts/changes-index.mjs && tsc -p tsconfig.json",
     "pretest": "npm run build",
-    "test": "node --test"
+    "test": "node --test --test-force-exit"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

@@ -19,14 +19,13 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { CLAN_UNSIGNED, makeHandler } from "../src/handler.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_mcp_test_public_boundary_${process.pid}`;
@@ -112,15 +111,7 @@ const call = async (method, p, { body } = {}) => {
 const parse = (res) => JSON.parse(res.body);
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   const {
@@ -165,10 +156,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 
 test("every listed public route exists", () => {

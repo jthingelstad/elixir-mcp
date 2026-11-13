@@ -5,10 +5,13 @@ import { gzipSync } from "node:zlib";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../src/migrate.mjs";
 import { tagFootprintCensus } from "../src/ops-diagnostics.mjs";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { enqueueJob } from "../../../packages/ledger/src/ledger.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 /**
  * {tag_footprint}: everything the database holds for a player tag, read
@@ -26,15 +29,7 @@ let gatewayId;
 let accountId;
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${SCRATCH} with (force)`);
-  await admin.query(`create database ${SCRATCH}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: SCRATCH_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(SCRATCH);
   db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
   const {
@@ -55,10 +50,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${SCRATCH} with (force)`);
-  await admin.end();
+  await dropScratch(SCRATCH);
 });
 
 async function admitProfile(profile) {

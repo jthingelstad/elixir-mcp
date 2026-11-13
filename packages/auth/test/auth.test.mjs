@@ -1,9 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import {
   emailHash,
   startMagicLogin,
@@ -23,9 +20,8 @@ import {
   originAllowed,
   openVerifiedAccount,
 } from "../src/index.mjs";
+import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_auth_${process.pid}`;
@@ -36,25 +32,14 @@ let db;
 const JAMIE = emailHash("Owner.Test@example.com ");
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: URL });
   await db.connect();
 });
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 test("email hashing normalizes case and whitespace", () => {

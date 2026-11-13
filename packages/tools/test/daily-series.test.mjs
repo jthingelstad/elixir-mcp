@@ -10,11 +10,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 import pg from "pg";
-import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
 import { ensureSeasonsAround } from "@elixir-mcp/record/season";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
+import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -35,15 +35,7 @@ const fixture = async (rel) =>
 const call = async (name, args = {}) => invoke(name, args);
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: DB_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
   await ensureSeasonsAround(db);
@@ -122,10 +114,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 test("players_series: every metric, the stamps, kind, progress_key, the season echo", async () => {

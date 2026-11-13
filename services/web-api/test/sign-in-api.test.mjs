@@ -13,7 +13,6 @@ import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
 import { readFile } from "node:fs/promises";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { makeInvoker } from "../../../packages/tools/src/invoker.mjs";
 import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
@@ -27,6 +26,10 @@ import { myPlayers } from "@elixir-mcp/record/players";
 import { ensureSeasonsAround } from "@elixir-mcp/record/season";
 import { makeHandler } from "../src/handler.mjs";
 import { signInApi, secondsLeftInHour } from "../src/sign-in-api.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -56,14 +59,7 @@ const grant = async (client, scope, resource = API) =>
   ).accessToken;
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: new URL("../../../db/migrations", import.meta.url).pathname,
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   await ensureSeasonsAround(db);
@@ -138,10 +134,7 @@ before(async () => {
 });
 after(async () => {
   await db?.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 
 test("Drop's sign-in read: who the person is, their account id, their players and their address", async () => {

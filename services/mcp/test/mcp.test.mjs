@@ -5,7 +5,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { CONTRACT_VERSION } from "@elixir-mcp/contracts";
@@ -21,6 +20,10 @@ import {
   localDayRange,
   formatLocal,
 } from "../../../packages/tools/src/time.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -63,15 +66,7 @@ async function callTool(name, args = {}) {
 }
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: URL });
   await db.connect();
 
@@ -134,10 +129,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 test("initialize: cache-busting version, listChanged true, disclaimer in instructions", async () => {

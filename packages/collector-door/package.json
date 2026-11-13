@@ -10,7 +10,7 @@
     "./signature": "./src/signature.mjs"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test --test-force-exit"
   },
   "dependencies": {
     "@elixir-mcp/auth": "0.1.0",

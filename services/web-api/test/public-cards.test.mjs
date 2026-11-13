@@ -1,14 +1,13 @@
 /** Public card catalog facts stay available after global statistics retire. */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { makeHandler } from "../src/handler.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_mcp_test_public_cards_${process.pid}`;
@@ -28,15 +27,7 @@ const KNIGHT = 26000000;
 const ARCHERS = 26000001;
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   for (const [id, cardName, rarity, cost] of [
@@ -58,10 +49,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 
 test("catalog and card detail serve facts without season statistics", async () => {

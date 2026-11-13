@@ -11,12 +11,15 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../src/migrate.mjs";
 import {
   REINDEX_TIMEOUTS,
   estimateBtreeBytes,
   reindex,
 } from "../src/ops-reindex.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -29,14 +32,7 @@ const NOWHERE = "postgres://nobody@127.0.0.1:1/none";
 
 let db;
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`create database ${SCRATCH}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: SCRATCH_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(SCRATCH);
   db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
   // 60,000 battles, then nine in ten deleted: the indexes keep the pages
@@ -55,10 +51,7 @@ before(async () => {
 
 after(async () => {
   await db?.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${SCRATCH} with (force)`);
-  await admin.end();
+  await dropScratch(SCRATCH);
 });
 
 const sizeOf = async (name) =>

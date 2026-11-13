@@ -9,9 +9,12 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -20,14 +23,7 @@ const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 let db, handler, cookie;
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: new URL("../../../db/migrations", import.meta.url).pathname,
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   const person = (
@@ -45,10 +41,7 @@ before(async () => {
 });
 after(async () => {
   await db?.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 
 test("a tool behind a lock answers query_timeout on Explore before the handler's 504", async () => {

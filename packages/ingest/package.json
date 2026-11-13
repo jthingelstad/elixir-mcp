@@ -10,7 +10,7 @@
     "./*": "./src/*.mjs"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test --test-force-exit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1161.0",

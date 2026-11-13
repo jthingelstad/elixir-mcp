@@ -10,9 +10,9 @@ import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import pg from "pg";
-import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
 import { makeRegistry } from "../src/tools.mjs";
+import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -32,15 +32,7 @@ const fixture = async (rel) =>
   JSON.parse(await readFile(path.join(repoRoot, "fixtures", rel), "utf8"));
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: DB_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
   const {
@@ -108,10 +100,7 @@ let PROFILE;
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 test("battles_query rows carry mode_group, context and, on a boat battle, boat (Phase 2 item 1, 8)", async () => {

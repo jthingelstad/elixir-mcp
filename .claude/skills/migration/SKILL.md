@@ -182,8 +182,11 @@ constraint is written on its column (0108). Comments move no pin.
 
 Scratch databases per run on brew `postgresql@17`, no Docker locally
 (AGENTS.md rule 9; CI uses a `postgres:17` service). Every database
-suite builds its own through the whole ladder (`scratchDb()` in
-`packages/ingest/test/helpers.mjs`, or `migrate()`), so all run the file.
+suite clones its own from a template built once through the whole ladder
+(`createScratch()`/`scratchDb()` in `packages/ingest/test/helpers.mjs`;
+the template is named by a hash of the migrations, so a new file builds a
+new one), so all run the file. A test of the ladder itself (a partial set,
+a rerun) makes a bare database and calls `migrate()`.
 
 ```sh
 node --test services/migrate/test/migration-rules.test.mjs services/migrate/test/migration-lock.test.mjs

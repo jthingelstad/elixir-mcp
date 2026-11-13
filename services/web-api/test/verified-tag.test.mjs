@@ -8,7 +8,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import {
   addPlayer,
@@ -19,6 +18,10 @@ import {
 import { onboardAccount } from "@elixir-mcp/tools/onboard";
 import { itemText } from "@elixir-mcp/tools/activity/summary";
 import { makeHandler } from "../src/handler.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -67,25 +70,14 @@ async function verify(accountId, tag) {
 }
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: new URL("../../../db/migrations", import.meta.url).pathname,
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   handler = makeHandler({ databaseUrl, secret: "test" });
 });
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 
 test("the console refuses a self claim on another account's verified tag, with the one answer, and lets a follow through", async () => {
