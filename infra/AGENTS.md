@@ -69,9 +69,12 @@ and the record.
   its own build fingerprint; a one-door code change keeps the other
   revisions unchanged, while shared configuration still updates its users.
 - **Vocabulary:** the import reads `../cr-agent-api-docs` and refuses an
-  uncommitted `data/card-roles.json` or `data/deck-aliases.json`; it also
-  refreshes `fixtures/card-roles.snapshot.json`, which is committed with the
-  change. `--verify-reference-seed` compares the live reference tables with
+  uncommitted `data/card-roles.json` or `data/deck-aliases.json`. The
+  deploy only checks `fixtures/card-roles.snapshot.json` and warns when it
+  is behind; `import-card-roles.mjs --snapshot-only` refreshes it, on a
+  branch. A deploy never modifies a tracked file: it checks the tree after
+  its build (stops before upload) and at its end (exits 1), naming the
+  files. `--verify-reference-seed` compares the live reference tables with
   the seed before anything is written and stops on a mismatch.
 - **Origin secret:** `--rotate-origin-secret` mints a new one; the doors
   keep the old one as `OriginSecretPrevious` until it is cleared.
