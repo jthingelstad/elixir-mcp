@@ -1985,7 +1985,16 @@ export function clanMemberBattlesQuery({
                    and b.battle_time >= b.created_at - interval '1 day') as learned,
                   (bp.battle_time >= ${ts(fromMs)} and bp.battle_time < ${ts(toMs)}) as played
              from battle_participant bp
-             join battle b on b.battle_id = bp.battle_id
+             -- Each row's battle by key, off battle_timeline_cover (0249):
+             -- joined, the planner scanned battle whole for one clan's
+             -- week (2026-11-13, the Clan landing budget test; a parallel
+             -- sequential scan live, note 2026-11-12). LIMIT keeps it a
+             -- per-row probe; battle_id is the key, so the rows are the
+             -- join's.
+             cross join lateral (
+               select b.type, b.event_tag, b.game_mode_name, b.battle_time,
+                      b.created_at, b.boat_battle_side
+                 from battle b where b.battle_id = bp.battle_id limit 1) b
             where bp.clan_tag = $1
               and not (b.boat_battle_side is not null
                        and (b.boat_battle_side = 'defender') = (bp.side = 0))
@@ -2011,7 +2020,10 @@ export function clanMostQuery({ tag, fromMs, toMs, basis = "observed" }) {
     text: `select m.player_tag, p.name, m.battles
              from (select bp.player_tag, count(distinct bp.battle_id)::int as battles
                      from battle_participant bp
-                     join battle b on b.battle_id = bp.battle_id
+                     -- Each row's battle by key, as clanMemberBattlesQuery.
+                     cross join lateral (
+                       select b.battle_time, b.created_at from battle b
+                        where b.battle_id = bp.battle_id limit 1) b
                     where bp.clan_tag = $1
                       and ${
                         occurred
@@ -2739,8 +2751,13 @@ export async function buildClanEntry(
                  group by s.player_tag)
      select coalesce(sum(latest.donations), 0)::int as total,
             count(*)::int as counted,
-            (select json_build_object('tag', l.player_tag, 'name', p.name, 'given', l.donations)
-               from latest l join player p on p.player_tag = l.player_tag
+            -- The top giver named by key: joined, the planner could hash
+            -- the whole player table for one name (2026-11-13).
+            (select json_build_object('tag', l.player_tag,
+                      'name', (select p.name from player p where p.player_tag = l.player_tag),
+                      'given', l.donations)
+               from latest l
+              where exists (select 1 from player p where p.player_tag = l.player_tag)
               order by l.donations desc nulls last limit 1) as leader
        from latest`,
       [tag],

@@ -125,7 +125,9 @@ describe("Feed", () => {
     expect(screen.queryByRole("button", { name: "More" })).toBeNull();
   });
 
-  test("the timeline is read only once the reads beside it have answered", async () => {
+  // Since 2026-11-13 the timeline reads the clan's own rows, as cheap as
+  // the panels beside it: it is asked at once, never behind them.
+  test("the timeline is asked at once, while the reads beside it are still out", async () => {
     let answer;
     const held = new Promise((resolve) => {
       answer = resolve;
@@ -141,12 +143,12 @@ describe("Feed", () => {
     });
     renderWithProviders(<Feed clan={member} navigate={vi.fn()} />);
     expect(await screen.findByText(/Reading your numbers/)).toBeTruthy();
-    expect(feed).not.toHaveBeenCalled();
-    answer(unread);
     expect(
       await screen.findByText("Nothing in the last seven days"),
     ).toBeTruthy();
     expect(feed).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/Reading your numbers/)).toBeTruthy();
+    answer(unread);
   });
 });
 

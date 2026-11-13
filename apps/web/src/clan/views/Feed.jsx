@@ -1,13 +1,7 @@
 import { useState } from "react";
 import { Empty, Link, Panel, TagText, useClock } from "@elixir-mcp/ui";
 import { CLAN, clanPath } from "../lib/base.js";
-import {
-  useActions,
-  useFeed,
-  useMemberView,
-  useRace,
-  useWeek,
-} from "../lib/queries.js";
+import { useFeed, useRace } from "../lib/queries.js";
 import { n, ordinal } from "../lib/words.js";
 import { ActionsNow, WeekCard, YouCard } from "./Waiting.jsx";
 
@@ -21,10 +15,6 @@ const battlePath = (url) => {
 /** How many of the feed's lines show at first, and how many more each More
  *  shows: a busy week was 150 lines, 8,600 px of page (G3). */
 const FEED_PAGE = 30;
-
-/** Whether a gated read has answered, either way. */
-const settled = (state) =>
-  Boolean(state.data || state.error || state.forbidden || state.signedOut);
 
 /** The items grouped by the reader's day, newest first, as Home draws its
  *  timeline. */
@@ -41,11 +31,10 @@ function byDay(items, dayHeading) {
 
 /** The clan's timeline: its items, its members' moments and highlights,
  *  newest first, as this reader reads them (`GET .../feed`), thirty lines
- *  at a time. It reads once `enabled`: the Feed holds it until the reads
- *  above and beside it have answered, so they never wait behind it. */
-function ClanTimeline({ clan, enabled = true }) {
+ *  at a time. */
+function ClanTimeline({ clan }) {
   const { dayHeading, clock } = useClock();
-  const { state } = useFeed(clan.clan_tag, enabled);
+  const { state } = useFeed(clan.clan_tag);
   const [shown, setShown] = useState(FEED_PAGE);
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -155,10 +144,10 @@ function ClanTimeline({ clan, enabled = true }) {
  * phone, above the timeline). Run holds the leaders' Waiting and Decided; an
  * action waiting for a leader is in both.
  *
- * The timeline is the heavy read. Asked at once beside the others it slowed
- * every one of them until all four timed out together (2026-11-12, G3), so
- * it starts only once what waits for you, You here and This week have
- * answered. Those reads are shared with the cards through their query keys.
+ * Every panel asks for its read at once. The timeline waited for the others
+ * from 2026-11-12 (G3), when it walked every battle the record learned in
+ * the week; since 2026-11-13 it reads the clan's own rows, in the same cost
+ * class as the panels beside it, so the wait was a round trip for nothing.
  */
 /** "Monday about 4:00 am": a nominal instant the game reaches in the half
  *  hour before it, in the reader's zone (UTC, said so, with none). */
@@ -235,12 +224,7 @@ export function RaceBar({ race }) {
 
 export function Feed({ clan, who, navigate }) {
   const base = clanPath(clan.clan_tag);
-  const actions = useActions(clan.clan_tag).state;
-  const you = useMemberView(clan.clan_tag).state;
-  const week = useWeek(clan.clan_tag, null).state;
   const race = useRace(clan.clan_tag).state;
-  const ready =
-    settled(actions) && settled(you) && settled(week) && settled(race);
   return (
     <>
       <h2 className="sr-only">Feed</h2>
@@ -251,7 +235,7 @@ export function Feed({ clan, who, navigate }) {
             <ActionsNow clan={clan} who={who} navigate={navigate} />
           </div>
           <div className="clan-today__timeline">
-            <ClanTimeline clan={clan} enabled={ready} />
+            <ClanTimeline clan={clan} />
           </div>
         </div>
         <div className="clan-today__cards">
