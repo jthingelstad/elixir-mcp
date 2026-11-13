@@ -12,6 +12,18 @@
  * history. Each update is guarded by IS DISTINCT FROM, so a second call
  * writes nothing.
  *
+ * The history fill passes `unfilledOnly`, and it is what makes the fill
+ * safe beside ingest (Codex on #916). The update builds the arrays from
+ * the card rows as of its statement's start. If ingest is enriching the
+ * same participant, the update waits for ingest's row lock and then
+ * writes those stale arrays over the ones ingest just committed.
+ * `unfilledOnly` adds "the target is still null" to the update's WHERE.
+ * Postgres re-checks that WHERE against the newest row version after the
+ * wait, so a row ingest filled meanwhile is skipped. Ingest itself needs
+ * no guard: it locks the owning row (the participant upsert) before it
+ * writes any card row, so two ingests of one participant run in turn,
+ * and the second reads the first's committed rows.
+ *
  * The shape, lossless for every row:
  *   - the four card arrays are parallel and indexed by slot: element i is
  *     the row with slot i. A slot with no row is a NULL element in all
@@ -90,6 +102,7 @@ update battle_participant bp
        tower_level = b.tower_level, tower_star = b.tower_star
   from built b
  where bp.battle_id = b.battle_id and bp.player_tag = b.player_tag
+   and (not $2::boolean or bp.cards is null)
    and (bp.cards, bp.card_forms, bp.card_levels, bp.card_stars,
         bp.tower_troop_id, bp.tower_form, bp.tower_level, bp.tower_star)
        is distinct from
@@ -133,6 +146,7 @@ update battle_participant_round r
        card_stars = b.stars, cards_used = b.used
   from built b
  where r.battle_id = b.battle_id and r.player_tag = b.player_tag and r.round = b.round
+   and (not $2::boolean or r.cards is null)
    and (r.cards, r.card_forms, r.card_levels, r.card_stars, r.cards_used)
        is distinct from (b.cards, b.forms, b.levels, b.stars, b.used)`;
 
@@ -151,24 +165,31 @@ update deck d
    set card_ids = b.card_ids, card_forms = b.card_forms
   from built b
  where d.deck_hash = b.deck_hash
+   and (not $2::boolean or d.card_ids is null)
    and (d.card_ids, d.card_forms) is distinct from (b.card_ids, b.card_forms)`;
 
 /** Fill battle_participant's card arrays and tower columns for
  *  `keys` ([{battle_id, player_tag}]) from their round-0 card rows.
+ *  `unfilledOnly` writes only rows still null (the history fill).
  *  Returns the rows changed. */
-export async function fillParticipantArrays(db, keys) {
+export async function fillParticipantArrays(
+  db,
+  keys,
+  { unfilledOnly = false } = {},
+) {
   if (keys.length === 0) return 0;
   const { rowCount } = await db.query(PARTICIPANT_FILL, [
     keysJson(
       keys.map((k) => ({ battle_id: k.battle_id, player_tag: k.player_tag })),
     ),
+    unfilledOnly,
   ]);
   return rowCount;
 }
 
 /** Fill battle_participant_round's card arrays for `keys`
  *  ([{battle_id, player_tag, round}]) from that round's card rows. */
-export async function fillRoundArrays(db, keys) {
+export async function fillRoundArrays(db, keys, { unfilledOnly = false } = {}) {
   if (keys.length === 0) return 0;
   const { rowCount } = await db.query(ROUND_FILL, [
     keysJson(
@@ -178,15 +199,21 @@ export async function fillRoundArrays(db, keys) {
         round: k.round,
       })),
     ),
+    unfilledOnly,
   ]);
   return rowCount;
 }
 
 /** Fill deck.card_ids / card_forms for `hashes` from deck_card. */
-export async function fillDeckArrays(db, hashes) {
+export async function fillDeckArrays(
+  db,
+  hashes,
+  { unfilledOnly = false } = {},
+) {
   if (hashes.length === 0) return 0;
   const { rowCount } = await db.query(DECK_FILL, [
     JSON.stringify([...new Set(hashes)].sort()),
+    unfilledOnly,
   ]);
   return rowCount;
 }

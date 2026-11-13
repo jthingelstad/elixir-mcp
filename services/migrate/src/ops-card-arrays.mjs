@@ -101,13 +101,17 @@ async function withRetry(fn, tally) {
   }
 }
 
+// unfilledOnly: a row ingest filled while this batch waited for its lock
+// is skipped, never overwritten with arrays read before the wait.
+const ONLY_UNFILLED = { unfilledOnly: true };
 const FILLERS = {
-  participants: fillParticipantArrays,
-  rounds: fillRoundArrays,
+  participants: (db, keys) => fillParticipantArrays(db, keys, ONLY_UNFILLED),
+  rounds: (db, keys) => fillRoundArrays(db, keys, ONLY_UNFILLED),
   decks: (db, keys) =>
     fillDeckArrays(
       db,
       keys.map((k) => k.deck_hash),
+      ONLY_UNFILLED,
     ),
 };
 
