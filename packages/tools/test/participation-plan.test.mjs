@@ -4,6 +4,20 @@ import pg from "pg";
 import { participationQueries } from "../../record/src/participation-sql.mjs";
 import { notBoatDefense } from "../../record/src/boat-defense-sql.mjs";
 
+// The flat battles statement before 2026-11-13 (#649), with the
+// original EXISTS boat predicate: the row reference and the plan control.
+const flatBattles = (name) => {
+  const former = name === "former_battles_by_week";
+  return `select bp.player_tag, date_trunc('week', bp.battle_time) as week_start,
+                count(*)::int as battles,
+                count(*) filter (where bp.type = any(${former ? "$4" : "$3"}))::int as ranked_battles
+         from battle_participant bp
+         where bp.player_tag = any($1) and bp.battle_time >= $2
+           ${former ? "and bp.clan_tag = $3" : ""}
+           and ${notBoatDefense()}
+         group by bp.player_tag, date_trunc('week', bp.battle_time)`;
+};
+
 test("weekly participation keeps boat counts and bounds battle lookups", async () => {
   const db = new pg.Client({
     connectionString:
@@ -55,15 +69,10 @@ test("weekly participation keeps boat counts and bounds battle lookups", async (
     });
     for (const name of ["battles_by_week", "former_battles_by_week"]) {
       const q = queries.find((x) => x.name === name);
-      const legacy = q.text.replace(
-        /and not \(bp\.type = 'boatBattle'[\s\S]*?(?=\n             group by)/,
-        `and ${notBoatDefense()}`,
-      );
-      assert.notEqual(
-        legacy,
-        q.text,
-        "reference uses the original EXISTS predicate",
-      );
+      // The flat statement with the original EXISTS predicate, as it
+      // stood before the boat lookup (0171) and the per-member read
+      // (#649): the rows the per-member read must equal.
+      const legacy = flatBattles(name);
       const oldRows = (await db.query(legacy, q.values)).rows;
       const newRows = (await db.query(q.text, q.values)).rows;
       const sort = (rows) =>
@@ -178,6 +187,9 @@ test("weekly participation keeps the wide participant scan index-only and side l
       );
       assert.equal(cover?.["Node Type"], "Index Only Scan", name);
       assert.equal(cover["Heap Fetches"], 0, name);
+      // One range per distinct member (#649), never the clan's tags as
+      // one bitmap over the window.
+      assert.equal(cover["Actual Loops"], new Set(q.values[0]).size, name);
       const side = nodes.find(
         (node) => node["Index Name"] === "battle_participant_pkey",
       );
@@ -234,6 +246,9 @@ test("weekly donations read each member's key range, never the whole table, with
         player_tag text not null, snapshot_date date not null,
         snapshot_kind text not null, donations int, clan_tag text,
         padding text, primary key (player_tag, snapshot_date, snapshot_kind));
+      create index player_snapshot_daily_donations_cover
+        on player_snapshot_daily (player_tag, snapshot_date)
+        include (snapshot_kind, donations, clan_tag);
       insert into player_snapshot_daily
         select 'p-' || p, '2026-11-09'::date - d, 'daily',
                case when (p + d) % 11 = 0 then null else (p * 7 + d * 13) % 500 end,
@@ -291,7 +306,100 @@ test("weekly donations read each member's key range, never the whole table, with
       );
       assert.equal(reads.length, 1, name);
       assert.equal(reads[0]["Actual Loops"], new Set(q.values[0]).size, name);
+      // On 0250's cover, never the wide heap (#649).
+      assert.equal(reads[0]["Node Type"], "Index Only Scan", name);
+      assert.equal(
+        reads[0]["Index Name"],
+        "player_snapshot_daily_donations_cover",
+        name,
+      );
+      assert.equal(reads[0]["Heap Fetches"], 0, name);
     }
+  } finally {
+    await db.end();
+  }
+});
+
+test("war participation reads each window week's key range, with the IN form's rows", async () => {
+  const db = new pg.Client({
+    connectionString:
+      process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres",
+  });
+  await db.connect();
+  try {
+    // Many clans' weeks: the IN form planned a sequential scan of the
+    // whole table (live, 2026-11-13: 477 pages from disk).
+    await db.query(`create temporary table war_week (
+        clan_tag text, season_id int, section_index int,
+        started_observed_at timestamptz, finished_observed_at timestamptz,
+        primary key (clan_tag, season_id, section_index));
+      create temporary table war_participation (
+        clan_tag text, season_id int, section_index int, player_tag text,
+        points int, decks_used int, padding text,
+        primary key (clan_tag, season_id, section_index, player_tag));
+      insert into war_week
+        select '#C' || c, s, w, '2026-01-01'::timestamptz + ((s * 4 + w) * 7) * interval '1 day',
+               case when s = 12 and w = 3 then null
+                    else '2026-01-01'::timestamptz + ((s * 4 + w) * 7 + 4) * interval '1 day' end
+          from generate_series(1, 200) c, generate_series(0, 12) s, generate_series(0, 3) w;
+      insert into war_participation
+        select w.clan_tag, w.season_id, w.section_index, 'm-' || m,
+               (m * 37) % 3600, m % 17, repeat('x', 200)
+          from war_week w, generate_series(1, 50) m;`);
+    await db.query("vacuum analyze war_week");
+    await db.query("vacuum analyze war_participation");
+    const tags = Array.from({ length: 40 }, (_, i) => `m-${i + 1}`);
+    const q = participationQueries({
+      clanTag: "#C7",
+      tags,
+      formerTags: ["m-45", "m-none"],
+      from: "2026-10-01T00:00:00Z",
+      rankedTypes: ["ranked"],
+    }).find((x) => x.name === "war_participation");
+    const legacy = `select wp.player_tag, wp.season_id, wp.section_index, wp.decks_used, wp.points
+             from war_participation wp
+             where wp.clan_tag = $1 and wp.player_tag = any($2)
+               and (wp.season_id, wp.section_index) in (
+                 select w.season_id, w.section_index from war_week w
+                 where w.clan_tag = $1
+                   and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $3)`;
+    const key = (r) => `${r.player_tag}|${r.season_id}|${r.section_index}`;
+    const sorted = (rows) => rows.sort((a, b) => key(a).localeCompare(key(b)));
+    const newRows = sorted((await db.query(q.text, q.values)).rows);
+    assert.ok(newRows.length > 100);
+    assert.deepEqual(newRows, sorted((await db.query(legacy, q.values)).rows));
+    const r = await db.query(
+      `explain (analyze, format json) ${q.text}`,
+      q.values,
+    );
+    const nodes = [];
+    const walk = (node) => {
+      nodes.push(node);
+      for (const child of node.Plans ?? []) walk(child);
+    };
+    walk(r.rows[0]["QUERY PLAN"][0].Plan);
+    assert.ok(
+      !nodes.some(
+        (n) =>
+          n["Relation Name"] === "war_participation" &&
+          n["Node Type"] === "Seq Scan",
+      ),
+    );
+    // The window's weeks, one key range each; the tags are not a key.
+    const weeks = (
+      await db.query(
+        `select count(*)::int as n from war_week where clan_tag = $1
+          and coalesce(finished_observed_at, started_observed_at, now()) >= $2`,
+        [q.values[0], q.values[2]],
+      )
+    ).rows[0].n;
+    assert.ok(weeks > 1);
+    const ranges = nodes.filter(
+      (n) => n["Index Name"] === "war_participation_pkey",
+    );
+    assert.equal(ranges.length, 1);
+    assert.equal(ranges[0]["Actual Loops"], weeks);
+    assert.ok(!ranges[0]["Index Cond"].includes("player_tag"));
   } finally {
     await db.end();
   }

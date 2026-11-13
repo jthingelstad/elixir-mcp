@@ -59,6 +59,34 @@ where cm.clan_tag = $1 and cm.left_observed_at >= $2
                     and o.left_observed_at is null)
 order by cm.player_tag, cm.left_observed_at desc`;
 
+/** A member's battles per ISO week, ranked counted beside all, grouped
+ *  inside a lateral per distinct tag (2026-11-13, #649): each member is
+ *  one range of battle_participant_player_time_cover, index-only (0100
+ *  carries type and clan_tag), never `player_tag = any(...)` over the
+ *  clan. The flat statement read a former member's battles through a
+ *  bitmap of the clan's whole window and its heap (550 pages from disk
+ *  for 17 players, explain 2026-11-13); a grouped lateral cannot be
+ *  flattened into that join. Rows and groups are the flat statement's.
+ *  Boat defenses are not the member's battle (0171), and the boat
+ *  predicate looks up participant side and battle by primary key. Keep
+ *  the bounded scalar lookup: EXISTS can hash a full battle-table scan.
+ *  `extra` narrows the rows (a former member's: this clan's only);
+ *  `ranked` names the ranked types' parameter. */
+const BATTLES_BY_MEMBER = (
+  extra,
+  ranked,
+) => `select t.player_tag, w.week_start, w.battles, w.ranked_battles
+             from (select distinct unnest($1::text[]) as player_tag) t
+             cross join lateral (
+               select date_trunc('week', bp.battle_time) as week_start,
+                      count(*)::int as battles,
+                      count(*) filter (where bp.type = any(${ranked}))::int as ranked_battles
+                 from battle_participant bp
+                where bp.player_tag = t.player_tag and bp.battle_time >= $2
+                  ${extra}
+                  and ${OWN_BATTLES}
+                group by date_trunc('week', bp.battle_time)) w`;
+
 /** A week's donation high-water mark per member: `max(donations)` and
  *  the snapshot count per ISO week, grouped inside a lateral per
  *  distinct tag so the read is the primary key's (player_tag,
@@ -86,20 +114,10 @@ export function participationQueries({
 }) {
   return [
     {
-      // Battles per member per ISO week, ranked counted beside all, in
-      // one pass index-only on battle_participant_player_time_cover (0100
-      // carries type); boat defenses are not the member's battle (0171),
-      // and the boat predicate looks up participant side and battle by
-      // primary key. Keep the bounded scalar lookup: EXISTS can hash a
-      // full battle-table scan.
+      // Battles per member per ISO week, ranked counted beside all: one
+      // index-only range per member (BATTLES_BY_MEMBER).
       name: "battles_by_week",
-      text: `select bp.player_tag, date_trunc('week', bp.battle_time) as week_start,
-                    count(*)::int as battles,
-                    count(*) filter (where bp.type = any($3))::int as ranked_battles
-             from battle_participant bp
-             where bp.player_tag = any($1) and bp.battle_time >= $2
-               and ${OWN_BATTLES}
-             group by bp.player_tag, date_trunc('week', bp.battle_time)`,
+      text: BATTLES_BY_MEMBER("", "$3"),
       values: [tags, from, rankedTypes],
     },
     {
@@ -132,28 +150,32 @@ export function participationQueries({
       values: [clanTag, from],
     },
     {
+      // The members' rows of each war week inside the window: the week's
+      // primary key range, then the tag filter (2026-11-13, #649). The IN
+      // form planned a sequential scan of the whole table (477 pages from
+      // disk, explain 2026-11-13); OFFSET 0 keeps the lateral a per-week
+      // read and the tags out of its index condition. war_week is keyed
+      // by (clan_tag, season_id, section_index), so the rows are the IN
+      // form's.
       name: "war_participation",
       text: `select wp.player_tag, wp.season_id, wp.section_index, wp.decks_used, wp.points
-             from war_participation wp
-             where wp.clan_tag = $1 and wp.player_tag = any($2)
-               and (wp.season_id, wp.section_index) in (
-                 select w.season_id, w.section_index from war_week w
-                 where w.clan_tag = $1
-                   and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $3)`,
+             from war_week w
+             cross join lateral (
+               select p.player_tag, p.season_id, p.section_index, p.decks_used, p.points
+                 from war_participation p
+                where p.clan_tag = w.clan_tag and p.season_id = w.season_id
+                  and p.section_index = w.section_index
+               offset 0) wp
+             where w.clan_tag = $1
+               and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $3
+               and wp.player_tag = any($2::text[])`,
       values: [clanTag, [...tags, ...formerTags], from],
     },
     {
       // A former member's battles in THIS clan only (issue #46): the
       // participant row's clan_tag is the clan the battle was played for.
       name: "former_battles_by_week",
-      text: `select bp.player_tag, date_trunc('week', bp.battle_time) as week_start,
-                    count(*)::int as battles,
-                    count(*) filter (where bp.type = any($4))::int as ranked_battles
-             from battle_participant bp
-             where bp.player_tag = any($1) and bp.battle_time >= $2
-               and bp.clan_tag = $3
-               and ${OWN_BATTLES}
-             group by bp.player_tag, date_trunc('week', bp.battle_time)`,
+      text: BATTLES_BY_MEMBER("and bp.clan_tag = $3", "$4"),
       values: [formerTags, from, clanTag, rankedTypes],
     },
     {
