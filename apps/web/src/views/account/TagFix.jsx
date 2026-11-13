@@ -23,7 +23,7 @@ export function StopFollowing({ name, run, busy, onDone }) {
       className="btn btn--sm btn--danger"
       disabled={busy}
       title={<>Stop following {name}?</>}
-      body="History stays for at least a year after the last person stops following. Elixir stops recording them for you, and they leave your timeline and Wednesday's mail."
+      body="History stays for at least a year after the last person stops following. Elixir stops recording them for you, and they leave your timeline and your digest."
       confirm="Yes, stop"
       run={run}
       onDone={(r) => {
