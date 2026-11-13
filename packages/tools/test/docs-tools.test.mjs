@@ -69,17 +69,18 @@ test("the tool-choice guide counts live flags from the current registry", async 
   assert.equal(Number(count[1]), liveTools.length);
 });
 
-test("elixir_docs: a section that moved answers from its new page", async () => {
-  const moved = await elixirTools.elixir_docs.handler(ctx, {
-    page: "protocol",
-    section: "oauth-2-1",
-  });
-  assert.equal(moved.slug, "connecting");
-  assert.match(moved.markdown ?? moved.section?.markdown ?? "", /OAuth/);
+test("elixir_docs: an old page#section that moved is not found (2026-11-13)", async () => {
+  await assert.rejects(
+    elixirTools.elixir_docs.handler(ctx, {
+      page: "battles",
+      section: "war-weeks-points-and-fame",
+    }),
+    (e) => e.code === "not_found",
+  );
 
   // What the acceptance suite's elixir_docs-section case reads.
   const war = await elixirTools.elixir_docs.handler(ctx, {
-    page: "battles",
+    page: "decks-and-war",
     section: "war-weeks-points-and-fame",
   });
   assert.equal(war.slug, "decks-and-war");
@@ -87,13 +88,13 @@ test("elixir_docs: a section that moved answers from its new page", async () => 
     assert.ok(JSON.stringify(war).includes(field), field);
 });
 
-test("elixir_docs: a moved section answers to its old title as well as its slug", async () => {
+test("elixir_docs: a section answers to its title as well as its slug", async () => {
   const bySlug = await elixirTools.elixir_docs.handler(ctx, {
-    page: "recording",
+    page: "freshness-and-gaps",
     section: "daily-series",
   });
   const byTitle = await elixirTools.elixir_docs.handler(ctx, {
-    page: "recording",
+    page: "freshness-and-gaps",
     section: "Daily series",
   });
   assert.equal(byTitle.slug, "freshness-and-gaps");

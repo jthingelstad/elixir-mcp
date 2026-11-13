@@ -133,7 +133,7 @@ for (const size of ["wide", "@narrow"])
       );
       await page.goto(
         entry === "history"
-          ? "/clan/2PQRJ8LV/today/decided"
+          ? "/clan/2PQRJ8LV/run/decided"
           : "/clan/2PQRJ8LV/actions/33",
       );
       if (entry === "history") {

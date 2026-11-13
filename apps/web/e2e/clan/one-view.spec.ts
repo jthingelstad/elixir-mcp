@@ -129,16 +129,12 @@ test("a leader the server refuses is shown the refusal, never Run's tools", asyn
   await expect(page.getByRole("navigation", { name: "Run" })).toHaveCount(0);
 });
 
-test.describe("every old address lands on its new tab", () => {
+// The two addresses Elixir still sends that are not pages themselves; the
+// old tab addresses stopped forwarding on 2026-11-13.
+test.describe("a clan's own address and its Actions list land on the Feed", () => {
   const MOVES: [string, RegExp][] = [
     ["/clan/2PQRJ8LV", /\/clan\/2PQRJ8LV\/feed$/],
-    ["/clan/2PQRJ8LV/today", /\/clan\/2PQRJ8LV\/feed$/],
     ["/clan/2PQRJ8LV/actions", /\/clan\/2PQRJ8LV\/feed$/],
-    ["/clan/2PQRJ8LV/today/decided", /\/clan\/2PQRJ8LV\/run\/decided$/],
-    ["/clan/2PQRJ8LV/season", /\/clan\/2PQRJ8LV\/war$/],
-    ["/clan/2PQRJ8LV/season/136", /\/clan\/2PQRJ8LV\/war\/136$/],
-    ["/clan/2PQRJ8LV/awards", /\/clan\/2PQRJ8LV\/standings$/],
-    ["/clan/2PQRJ8LV/awards/136", /\/clan\/2PQRJ8LV\/standings\/136$/],
   ];
   for (const [from, to] of MOVES)
     test(from, async ({ page }) => {

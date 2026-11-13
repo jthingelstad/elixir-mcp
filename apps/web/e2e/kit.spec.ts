@@ -51,7 +51,7 @@ test("a ladder table keeps its columns on a phone and fits", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-  await page.goto("/ladder/cards");
+  await page.goto("/home/you/stats/cards");
   await expect(page.locator(".ladder-cards").first()).toBeVisible();
   await expectNoSidewaysScroll(page);
 });

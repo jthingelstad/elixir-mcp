@@ -58,5 +58,3 @@ the top says.
 
 A defense of your clan's boat is not your battle, so Battles leaves it out, as
 the Season tab does.
-
-The old addresses, `/ladder/days` and `/ladder/battles`, land here with its player, mode and season.

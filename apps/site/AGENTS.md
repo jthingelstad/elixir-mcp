@@ -4,8 +4,8 @@ The Eleventy build behind every content path on `elixir.poapkings.com`:
 home, `/docs/*`, `/updates`, `/data`, `/cards`, `/examples`,
 and the machine-readable surfaces (`llms.txt`, `llms-full.txt`,
 `tools.json`, `sitemap.xml`, `feed.xml`). Paths under `/home`, `/signin`, `/data/service`, `/settings`, `/console`,
-`/ladder` and `/clan` are the React app (`apps/web`); `/ladder` redirects to
-Stats, `/home/you/stats`, and `/data/service` to `/data`, in the app.
+`/ladder` and `/clan` are the React app (`apps/web`); `/console`, `/ladder` and
+`/data/service` stopped forwarding on 2026-11-13 and draw the app's missing page.
 
 ## The docs are the product description
 

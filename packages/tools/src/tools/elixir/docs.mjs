@@ -1,5 +1,5 @@
 import { responseMeta } from "@elixir-mcp/contracts";
-import { corpus, movedSection, searchDocs } from "@elixir-mcp/docs";
+import { corpus, searchDocs } from "@elixir-mcp/docs";
 import { ToolFailure, appliedBlock, notes, docsRef } from "../shared.mjs";
 
 export const elixir_docs = {
@@ -34,14 +34,10 @@ export const elixir_docs = {
     // was built rides in the body, not in meta.
     const meta = responseMeta({ as_of: new Date().toISOString() });
     if (args.page) {
-      let slug = String(args.page).toLowerCase().trim();
-      // A section that moved when its page split answers from its new page,
-      // and says so.
+      const slug = String(args.page).toLowerCase().trim();
       const asked = args.section
         ? String(args.section).toLowerCase().trim()
         : null;
-      const moved = asked ? await movedSection(slug, asked) : null;
-      if (moved) slug = moved.page;
       const doc = pages.find((d) => d.slug === slug);
       if (!doc)
         throw new ToolFailure(
@@ -50,7 +46,7 @@ export const elixir_docs = {
           `Call elixir_docs with no arguments for the index; slugs are: ${pages.map((d) => d.slug).join(", ")}.`,
         );
       if (args.section) {
-        const want = moved?.section ?? asked;
+        const want = asked;
         const sec = doc.sections.find(
           (x) => x.slug === want || x.title.toLowerCase() === want,
         );
@@ -70,9 +66,6 @@ export const elixir_docs = {
           markdown: sec.markdown,
           corpus_built_at: built_at,
           notes: notes(
-            ...(moved
-              ? [`This section moved to page "${doc.slug}"; read it there.`]
-              : []),
             "One section of the page; page alone reads all of it, and url is the same section on the site.",
           ),
           docs: docsRef(doc.slug, sec.slug),

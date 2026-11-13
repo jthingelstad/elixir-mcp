@@ -2,8 +2,6 @@
  * Where Settings lives (redesign step 6): every page of your account under one
  * prefix, the route table's shape in one place. The left rail stays here and
  * only here; Home, Ladder and Clan have none of it.
- *
- * Every old address reaches these through lib/moved.js.
  */
 export const SETTINGS = "/settings";
 

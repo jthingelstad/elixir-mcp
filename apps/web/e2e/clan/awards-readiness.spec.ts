@@ -172,7 +172,7 @@ for (const size of ["wide", "@narrow"]) {
       { ...roster[1], member_count: 12 },
     ];
     await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/awards");
+    await page.goto("/clan/2PQRJ8LV/standings");
     await expect(
       page.getByRole("heading", { name: "Awards", exact: true }),
     ).toBeVisible();
@@ -281,7 +281,7 @@ for (const size of ["wide", "@narrow"]) {
       { ...roster[1], member_count: 12 },
     ];
     await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/awards");
+    await page.goto("/clan/2PQRJ8LV/standings");
     await expect(page.getByRole("combobox", { name: "Season" })).toHaveValue(
       "136",
     );
@@ -334,7 +334,7 @@ for (const size of ["wide", "@narrow"]) {
       { ...roster[1], member_count: 12 },
     ];
     await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/awards");
+    await page.goto("/clan/2PQRJ8LV/standings");
     await expect(page.getByRole("combobox", { name: "Season" })).toHaveValue(
       "136",
     );
@@ -464,7 +464,7 @@ for (const size of ["wide", "@narrow"]) {
         "GET /api/clan/clans/2PQRJ8LV/awards": [200, data],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/awards");
+    await page.goto("/clan/2PQRJ8LV/standings");
     await expect(page.getByRole("combobox", { name: "Season" })).toHaveValue(
       "136",
     );
@@ -570,7 +570,7 @@ for (const size of ["wide", "@narrow"]) {
       },
     });
     await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/awards");
+    await page.goto("/clan/2PQRJ8LV/standings");
     const prepare = page.getByRole("button", {
       name: "Send Season 136 update to clan",
       exact: true,
@@ -671,16 +671,15 @@ for (const size of ["wide", "@narrow"]) {
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/today");
+    await page.goto("/clan/2PQRJ8LV/feed");
     await expect(
       page.getByRole("link", { name: /Welcome the newcomer/ }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /Earlier welcome/ }),
     ).toHaveCount(0);
-    // Waiting and Decided are Run's (slice 8, #766); the old address of
-    // Decided lands there.
-    await page.goto("/clan/2PQRJ8LV/today/decided");
+    // Waiting and Decided are Run's (slice 8, #766).
+    await page.goto("/clan/2PQRJ8LV/run/decided");
     await expect(page).toHaveURL(/\/run\/decided$/);
     await expect(
       page.getByRole("link", { name: /Earlier welcome/ }),
@@ -757,7 +756,7 @@ for (const size of ["wide", "@narrow"]) {
       page,
       signedIn({ "GET /api/clan/clans/2PQRJ8LV/awards": [200, data] }),
     );
-    await page.goto("/clan/2PQRJ8LV/awards");
+    await page.goto("/clan/2PQRJ8LV/standings");
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/standings$/);
     await expect(
       page.getByRole("heading", { name: "Awards", exact: true }),

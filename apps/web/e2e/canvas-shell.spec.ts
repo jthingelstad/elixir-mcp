@@ -244,9 +244,7 @@ for (const [label, width] of [
       ).toBeVisible();
     });
 
-    test("an old Ladder address lands on Stats, its player and mode kept", async ({
-      page,
-    }) => {
+    test("Stats' address keeps its mode", async ({ page }) => {
       await mockApi(
         page,
         homeApi({
@@ -254,11 +252,9 @@ for (const [label, width] of [
           "POST /api/explore": explore(),
         }),
       );
-      await page.goto("/ladder/cards?mode=war");
+      await page.goto("/home/you/stats/cards?mode=war");
       await expect(page).toHaveURL(/\/home\/you\/stats\/cards\?mode=war$/);
       await expect(page).toHaveTitle("Cards - Stats - Elixir");
-      await page.goto("/ladder");
-      await expect(page).toHaveURL(/\/home\/you\/stats$/);
     });
 
     test("the bell: cheers as counts, followers named or counted, answers; opening it marks them seen", async ({

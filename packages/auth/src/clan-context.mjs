@@ -115,10 +115,11 @@ select
       and starts_with(s.sort_key, 'card#')
       and s.body ->> 'status' = 'proposed') as cards`;
 
-/** Clan's page for one Action, or its Actions list for one not numbered. */
+/** Clan's page for one Action, or the clan's Feed, where Actions wait, for
+ *  one not numbered. */
 const actionUrl = (clanTag, number) =>
-  `${ELIXIR_ORIGIN}/clan/${clanTag.replace(/^#/, "")}/actions${
-    Number.isInteger(number) ? `/${number}` : ""
+  `${ELIXIR_ORIGIN}/clan/${clanTag.replace(/^#/, "")}/${
+    Number.isInteger(number) ? `actions/${number}` : "feed"
   }`;
 
 /**

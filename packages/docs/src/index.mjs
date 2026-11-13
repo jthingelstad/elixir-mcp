@@ -5,8 +5,6 @@
  * site — one source, never a second copy.
  */
 
-import { slugOf } from "./slug.mjs";
-
 let loaded;
 
 /**
@@ -29,22 +27,6 @@ export async function corpus() {
   loaded ??= (await import("../dist/corpus.json", { with: { type: "json" } }))
     .default;
   return loaded;
-}
-
-/**
- * Where a section that moved now lives: `{ page, section }`, or null when the
- * address has not moved. Responses and mail already sent name the old place,
- * so `battles` + `war-weeks-points-and-fame` keeps answering after the split.
- * A section can be asked for by its slug or its title, so the title "Daily
- * series" finds the key `recording#daily-series` too.
- */
-export async function movedSection(page, section) {
-  const { forwards = {} } = await corpus();
-  const to =
-    forwards[`${page}#${section}`] ?? forwards[`${page}#${slugOf(section)}`];
-  if (!to) return null;
-  const [p, s] = to.split("#");
-  return { page: p, section: s };
 }
 
 /** Query terms: lower-case words of two or more characters. A plural's

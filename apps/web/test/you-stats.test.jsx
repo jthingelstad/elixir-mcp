@@ -150,24 +150,6 @@ test(
 );
 
 test(
-  "an old Ladder address lands on the same Stats page, its query kept",
-  { timeout: 20000 },
-  async () => {
-    window.history.pushState({}, "", "/ladder/decks?player=PYLQ88");
-    render(<App />);
-    await waitFor(() =>
-      expect(window.location.pathname).toBe("/home/you/stats/decks"),
-    );
-    expect(window.location.search).toBe("?player=PYLQ88");
-    const tabs = await screen.findByRole("tablist", { name: "You" });
-    const stats = [...tabs.querySelectorAll("[aria-selected='true']")].map(
-      (t) => t.textContent,
-    );
-    expect(stats).toEqual(["Stats"]);
-  },
-);
-
-test(
   "a player you follow: their page opens Their stats, which read through Stats' own door, with no You tabs",
   { timeout: 20000 },
   async () => {

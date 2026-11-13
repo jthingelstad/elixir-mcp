@@ -8,7 +8,6 @@ import {
   tabOf,
   waitingFor,
 } from "../src/lib/tabs.js";
-import { clanMoved } from "../src/lib/moved.js";
 import { parseClanPath } from "../src/App.jsx";
 
 const BASE = "/clan/2PQRJ8LV";
@@ -128,93 +127,9 @@ describe("which tab and page a path is", () => {
       tab: "model-voice",
     });
     expect(parseClanPath(`${BASE}/discord`)).toBeNull();
-    // The five tabs' addresses are redirected before the page reads them.
+    // The old tabs' addresses stopped working on 2026-11-13.
     expect(parseClanPath(`${BASE}/today`)).toBeNull();
     expect(parseClanPath(`${BASE}/season`)).toBeNull();
     expect(parseClanPath("/clan/clans")).toBeNull();
-  });
-});
-
-describe("every Clan address that moved", () => {
-  for (const [from, to] of [
-    ["", "feed"],
-    ["/", "feed"],
-    ["/actions", "feed"],
-    ["/today", "feed"],
-    ["/today/decided", "run/decided"],
-    ["/today/anything", "feed"],
-    ["/season", "war"],
-    ["/season/2026-W45", "war/2026-W45"],
-    ["/season/136", "war/136"],
-    ["/awards", "standings"],
-    ["/awards/135", "standings/135"],
-    ["/roster", "members"],
-    ["/me", "members/me"],
-    ["/week", "war"],
-    ["/week/136-2", "war/136-2"],
-    ["/standing", "standings"],
-    ["/trophies", "standings"],
-    ["/recruit", "members/recruit"],
-    ["/map", "members/map"],
-    ["/discord", "run/discord"],
-    ["/manage", "feed"],
-    ["/manage/inbox", "feed"],
-    ["/manage/board", "run/review"],
-    ["/members/standing", "standings"],
-    ["/members/review", "run/review"],
-    ["/manage/history", "run/decided"],
-    ["/manage/policy", "run/about"],
-    ["/manage/settings", "run/settings"],
-    ["/manage/model", "run/model-voice"],
-    ["/manage/scout", "members/scout"],
-    ["/manage/awards", "standings"],
-    ["/manage/gone", "feed"],
-  ])
-    test(`${from || "(the clan)"} goes to ${to}`, () => {
-      expect(clanMoved(`${BASE}${from}`)).toBe(`${BASE}/${to}`);
-    });
-
-  test("what did not move stays, and nothing else is asked", () => {
-    for (const path of [
-      `${BASE}/feed`,
-      `${BASE}/actions/37`,
-      `${BASE}/members`,
-      `${BASE}/members/map`,
-      `${BASE}/members/recruit`,
-      `${BASE}/members/scout`,
-      `${BASE}/members/uq8lp2r9c`,
-      `${BASE}/war`,
-      `${BASE}/war/136`,
-      `${BASE}/standings`,
-      `${BASE}/policy`,
-      `${BASE}/run`,
-      `${BASE}/run/decided`,
-      "/clan",
-      "/clan/clans",
-      "/clan/you",
-      "/clan/you/away",
-      "/ladder/2PQRJ8LV",
-      "/console",
-    ])
-      expect(clanMoved(path)).toBeNull();
-  });
-
-  test("a moved page is never moved again", () => {
-    for (const from of [
-      "/roster",
-      "/manage/board",
-      "/week/136-2",
-      "/discord",
-      "/today/decided",
-      "/season/136",
-      "/awards",
-      "/manage/history",
-      "/standing",
-      "/members/standing",
-      "/members/review",
-    ]) {
-      const to = clanMoved(`${BASE}${from}`);
-      expect(clanMoved(to)).toBeNull();
-    }
   });
 });

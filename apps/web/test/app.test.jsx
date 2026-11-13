@@ -481,8 +481,7 @@ test(
   "signed-out Ladder says what it is and offers an account",
   { timeout: 20000 },
   async () => {
-    // The old address lands on Stats, which says what it is.
-    window.history.pushState({}, "", "/ladder/cards");
+    window.history.pushState({}, "", "/home/you/stats/cards");
     global.fetch = mockFetch({
       "GET /api/me": [200, { authenticated: false }],
     });
@@ -565,63 +564,30 @@ test(
   { timeout: 20000 },
   async () => {
     // The old REDIRECTS rendered the new page under the old address, so a
-    // link to /status credited the old path in the report and
-    // /status/service looked unvisited. The router replaces the entry.
-    window.history.pushState({}, "", "/console/status/efficiency");
+    // link credited the old path in the report and the new one looked
+    // unvisited. The router replaces the entry, and the query rides along.
+    window.history.pushState({}, "", "/settings/agents?x=1");
     global.fetch = mockFetch({
       "GET /api/me": [200, { authenticated: false }],
     });
     render(<App />);
     await waitFor(() =>
-      expect(window.location.pathname).toBe("/settings/admin/efficiency"),
-    );
-    // The bare old address is Home, with or without the trailing slash.
-    for (const bare of ["/console", "/console/"]) {
-      cleanup();
-      window.history.pushState({}, "", bare);
-      render(<App />);
-      await waitFor(() => expect(window.location.pathname).toBe("/home"));
-    }
-    // A partial path lands on the section's first page the same way.
-    cleanup();
-    window.history.pushState({}, "", "/console/account");
-    render(<App />);
-    await waitFor(() => expect(window.location.pathname).toBe("/home"));
-    // And the query string rides along.
-    cleanup();
-    window.history.pushState({}, "", "/console/admin?x=1");
-    render(<App />);
-    await waitFor(() =>
-      expect(window.location.pathname).toBe("/settings/admin/accounts"),
+      expect(window.location.pathname).toBe("/settings/connections"),
     );
     expect(window.location.search).toBe("?x=1");
+    // The folded Console's addresses stopped forwarding (2026-11-13): one
+    // stays where it is and is the missing page.
+    for (const old of ["/console", "/console/status/efficiency"]) {
+      cleanup();
+      window.history.pushState({}, "", old);
+      render(<App />);
+      expect(await screen.findByText("Nothing at this address")).toBeTruthy();
+      expect(window.location.pathname).toBe(old);
+    }
   },
 );
 
-test(
-  "the bare Activity path was the timeline's address, and still opens it",
-  { timeout: 20000 },
-  async () => {
-    // The timeline left Activity for its own rail item (2026-09-23); a
-    // bookmark or a docs link to /account/activity meant the timeline.
-    window.history.pushState({}, "", "/console/account/activity");
-    global.fetch = mockFetch({
-      "GET /api/me": [200, { authenticated: false }],
-    });
-    render(<App />);
-    // Home is one feed now (#765): the timeline is Home itself.
-    await waitFor(() => expect(window.location.pathname).toBe("/home"));
-    // Activity's own pages moved to Usage in Settings.
-    cleanup();
-    window.history.pushState({}, "", "/console/account/activity/requests");
-    render(<App />);
-    await waitFor(() =>
-      expect(window.location.pathname).toBe("/settings/usage/requests"),
-    );
-  },
-);
-
-test("the route table has no page under /console: the Console folded and only redirects", async () => {
+test("the route table has no page under /console: the Console folded", async () => {
   const { routeTree } = await import("../src/App.jsx");
   // Outside the console: a battle's public page (2026-10-01), a shared
   // post's (#762), and Ladder,
@@ -651,8 +617,8 @@ test("the route table has no page under /console: the Console folded and only re
     "settings/admin/$",
     "signin",
   ]);
-  // Explore folded (2026-11-12): every /console address is a redirect
-  // in moved.js, read by the root route, never a page.
+  // Explore folded (2026-11-12): no /console address is a page, and since
+  // 2026-11-13 none forwards.
   expect(all.filter((s) => s[0] === "console")).toEqual([]);
 });
 
@@ -695,7 +661,7 @@ test(
         "POST /api/me/timeline/seen": [200, { seen_to: timeline.window.to }],
       });
 
-    window.history.pushState({}, "", "/console/account/timeline");
+    window.history.pushState({}, "", "/home");
     global.fetch = signedIn("America/Chicago");
     render(<App />);
     // The evening before, in Chicago, and named as Chicago's clock. The
@@ -708,7 +674,7 @@ test(
     ).toBeTruthy();
 
     cleanup();
-    window.history.pushState({}, "", "/console/account/timeline");
+    window.history.pushState({}, "", "/home");
     global.fetch = signedIn(null);
     render(<App />);
     expect(

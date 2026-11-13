@@ -277,8 +277,7 @@ for (const width of [390, 1280]) {
       // select, by toBeDisabled; the option's own property is what counts.
     ).toHaveJSProperty("disabled", true);
     // Stats and Clan say one thing and go to one place: Home's first step.
-    await page.goto("/ladder");
-    await expect(page).toHaveURL(/\/home\/you\/stats$/);
+    await page.goto("/home/you/stats");
     await expect(
       page.getByRole("heading", { name: "Stats start with your player" }),
     ).toBeVisible();

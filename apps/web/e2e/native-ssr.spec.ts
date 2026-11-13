@@ -65,8 +65,7 @@ test.beforeAll(async () => {
       const signedOut =
         url.pathname.includes("signin") ||
         url.pathname.startsWith("/clan") ||
-        url.pathname.startsWith("/ladder") ||
-        url.pathname === "/console";
+        url.pathname === "/home/you/stats";
       const response = await pages(
         {
           method: "GET",
@@ -122,18 +121,14 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
     if (new URL(r.url()).pathname === "/api/me") meRequests.push(r.url());
   });
   for (const route of [
-    "/ladder",
-    "/console",
-    "/console/account/overview",
+    "/home/you/stats",
     "/home",
     "/settings/admin/accounts",
     "/signin?signup",
     "/settings/players",
     "/settings/connections",
     "/settings/usage/requests?tool=players_summary",
-    "/console/explore",
     "/home/find",
-    "/console/signin?signup",
     "/clan",
   ]) {
     const document = await request.get(origin + route);
@@ -146,8 +141,6 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
     await page.goto(origin + route);
     await expect(page.locator("#elixir-bootstrap")).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("failed to render");
-    if (route === "/console/explore")
-      await expect(page).toHaveURL(/\/home\/find$/);
     if (route.includes("signin"))
       await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
     if (route === "/clan")
@@ -156,7 +149,7 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
           .getByRole("main")
           .getByRole("link", { name: "Sign in", exact: true }),
       ).toBeVisible();
-    if (route === "/ladder")
+    if (route === "/home/you/stats")
       await expect(
         page.getByRole("heading", { name: "Your season, read back" }),
       ).toBeVisible();

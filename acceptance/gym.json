@@ -2171,7 +2171,7 @@
     "stability": "live",
     "tool": "elixir_docs",
     "args": {
-      "page": "timeline",
+      "page": "timeline-tool",
       "section": "entries",
       "verbosity": "compact"
     },
@@ -5563,7 +5563,7 @@
     "stability": "live",
     "tool": "elixir_docs",
     "args": {
-      "page": "battles",
+      "page": "decks-and-war",
       "section": "war-weeks-points-and-fame"
     },
     "request_id": "f96e9b9a-eb58-4c8a-b151-642d08a48eaf",
@@ -8098,7 +8098,7 @@
     "stability": "live",
     "tool": "elixir_docs",
     "args": {
-      "page": "battles",
+      "page": "decks-and-war",
       "section": "war-weeks-points-and-fame"
     },
     "request_id": "6ec9cd5a-e8c2-49ce-b365-fada439b1e78",
@@ -8163,7 +8163,7 @@
     "control": true,
     "tool": "elixir_docs",
     "args": {
-      "page": "battles",
+      "page": "decks-and-war",
       "section": "war-weeks-points-and-fame"
     },
     "request_id": "6ec9cd5a-e8c2-49ce-b365-fada439b1e78",
@@ -11459,7 +11459,7 @@
     "stability": "live",
     "tool": "elixir_docs",
     "args": {
-      "page": "recording",
+      "page": "freshness-and-gaps",
       "section": "daily-series"
     },
     "request_id": "a5918c70-34f8-4b18-8578-2ca62b7e41f5",
@@ -11476,7 +11476,7 @@
     "control": true,
     "tool": "elixir_docs",
     "args": {
-      "page": "recording",
+      "page": "freshness-and-gaps",
       "section": "daily-series"
     },
     "request_id": "a5918c70-34f8-4b18-8578-2ca62b7e41f5",
@@ -13262,7 +13262,7 @@
     "stability": "live",
     "tool": "elixir_docs",
     "args": {
-      "page": "battles",
+      "page": "decks-and-war",
       "section": "war-weeks-points-and-fame"
     },
     "request_id": "3edad15a-1f1d-4554-8af6-9cf5606e6485",
@@ -14114,7 +14114,7 @@
     "stability": "live",
     "tool": "elixir_docs",
     "args": {
-      "page": "protocol",
+      "page": "connecting",
       "section": "oauth-2-1"
     },
     "request_id": "639408eb-bb90-4759-a8ec-079055404620",
@@ -14131,7 +14131,7 @@
     "stability": "live",
     "tool": "elixir_docs",
     "args": {
-      "page": "protocol",
+      "page": "connecting",
       "section": "oauth-2-1"
     },
     "request_id": "639408eb-bb90-4759-a8ec-079055404620",

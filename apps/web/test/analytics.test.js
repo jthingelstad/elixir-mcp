@@ -22,71 +22,34 @@ const at = (p) => analyticsLocation(p, ORIGIN);
 
 describe("analyticsLocation", () => {
   test("the sign-in page reports nothing at all", () => {
-    expect(at("/console/signin")).toBeNull();
-    expect(at("/console/signin/code")).toBeNull();
+    expect(at("/signin")).toBeNull();
+    expect(at("/signin/code")).toBeNull();
   });
 
   test("a plain section reports itself", () => {
-    expect(at("/console/account")).toEqual({
-      path: "/console/account",
-      url: `${ORIGIN}/console/account`,
+    expect(at("/home")).toEqual({
+      path: "/home",
+      url: `${ORIGIN}/home`,
     });
-    expect(at("/console")).toEqual({
-      path: "/console",
-      url: `${ORIGIN}/console`,
-    });
+    expect(at("/")).toEqual({ path: "/", url: `${ORIGIN}/` });
   });
 
   test("a two-segment page keeps both segments", () => {
-    expect(at("/console/status/collectors")).toEqual({
-      path: "/console/status/collectors",
-      url: `${ORIGIN}/console/status/collectors`,
+    expect(at("/home/find")).toEqual({
+      path: "/home/find",
+      url: `${ORIGIN}/home/find`,
     });
   });
 
   test("a record id becomes a query parameter, never a page", () => {
-    const seen = at("/console/explore/player/2ABC");
-    expect(seen.path).toBe("/console/explore/player");
+    const seen = at("/home/player/2ABC");
+    expect(seen.path).toBe("/home/player");
     expect(new URL(seen.url).searchParams.get("id")).toBe("2ABC");
   });
 
-  test("a private record (a call, a sent email) reports its kind of page and never its id", () => {
+  test("Settings reports the kind of page, never which player, agent or record", () => {
     // Report hygiene: one row per kind of record page, never one per
     // record (docs/ENGINEERING.md, "Product identifiers versus measurement").
-    const id = "5c1c5dbf-b0d0-4843-b751-8d6a60e535c7";
-    expect(at(`/console/account/activity/e/${id}`)).toEqual({
-      path: "/console/account/activity/e",
-      url: `${ORIGIN}/console/account/activity/e`,
-    });
-    expect(at(`/console/account/activity/c/${id}`)).toEqual({
-      path: "/console/account/activity/c",
-      url: `${ORIGIN}/console/account/activity/c`,
-    });
-    expect(at(`/console/admin/emails/${id}`)).toEqual({
-      path: "/console/admin/emails",
-      url: `${ORIGIN}/console/admin/emails`,
-    });
-    // The lists themselves are ordinary pages.
-    expect(at("/console/account/activity/emails").path).toBe(
-      "/console/account/activity",
-    );
-    expect(at("/console/admin/emails").path).toBe("/console/admin/emails");
-  });
-
-  test("an agent's console never reports which agent, and its records report their kind (2026-09-25)", () => {
-    const id = "5c1c5dbf-b0d0-4843-b751-8d6a60e535c7";
-    expect(at("/console/agent/a1b2c3d4e5f6/overview")).toEqual({
-      path: "/console/agent/overview",
-      url: `${ORIGIN}/console/agent/overview`,
-    });
-    expect(at(`/console/agent/a1b2c3d4e5f6/activity/c/${id}`)).toEqual({
-      path: "/console/agent/activity/c",
-      url: `${ORIGIN}/console/agent/activity/c`,
-    });
-    expect(at("/console/agent/a1b2c3d4e5f6").path).toBe("/console/agent");
-  });
-
-  test("Settings reports the kind of page, never which player, agent or record", () => {
     for (const [path, kind] of [
       ["/settings", "/settings"],
       ["/settings/players", "/settings/players"],
@@ -108,35 +71,15 @@ describe("analyticsLocation", () => {
     }
   });
 
-  test("feedback, tracked subjects and admin accounts report their page, never the record", () => {
-    for (const [path, kind] of [
-      ["/console/account/feedback/812", "/console/account/feedback"],
-      ["/console/account/tracking/2ABC", "/console/account/tracking"],
-      ["/console/admin/accounts/42", "/console/admin/accounts"],
-    ]) {
-      const seen = at(path);
-      expect(seen.path).toBe(kind);
-      expect(new URL(seen.url).search).toBe("");
-    }
-  });
-
   test("an encoded tag is reported decoded", () => {
-    // Explore strips the leading '#' when it builds hrefs, but a bookmark
-    // or a hand-typed URL can still carry %23.
-    const seen = at("/console/explore/player/%232ABC");
+    // Links strip the leading '#', but a bookmark or a hand-typed URL can
+    // still carry %23.
+    const seen = at("/home/player/%232ABC");
     expect(new URL(seen.url).searchParams.get("id")).toBe("#2ABC");
   });
 
-  test("a compound record id survives whole", () => {
-    const seen = at("/console/explore/week/2ABC~135~4");
-    expect(seen.path).toBe("/console/explore/week");
-    expect(new URL(seen.url).searchParams.get("id")).toBe("2ABC~135~4");
-  });
-
   test("two different records are two different views", () => {
-    expect(at("/console/explore/player/2ABC").url).not.toBe(
-      at("/console/explore/player/9XYZ").url,
-    );
+    expect(at("/home/player/2ABC").url).not.toBe(at("/home/player/9XYZ").url);
   });
 });
 
@@ -146,7 +89,7 @@ describe("analyticsLocation", () => {
  * The embed and the route bridge do different jobs — one records the document
  * load, the other records navigation — and /signin only has a reason
  * to skip the first. When it skipped both, a magic-link session reported
- * nothing at all: the app lands on /signin and moves into the console
+ * nothing at all: the app lands on /signin and moves into the app
  * without ever loading another document.
  *
  * A view's beacon waits until the view settles (the reader's first pointer
@@ -196,27 +139,23 @@ describe("loadTinylytics", () => {
   };
 
   test("a session that starts on /signin reports every page AFTER it", async () => {
-    await load("/console/signin");
+    await load("/signin");
     // The embed reads the address bar as it runs, and the magic token is in it.
     expect(embeds()).toEqual([]);
 
-    window.history.pushState({}, "", "/console/account/overview");
+    window.history.pushState({}, "", "/home");
     settle();
 
     expect(beacons).toHaveLength(1);
     const sent = new URL(beacons[0]);
     expect(sent.host).toBe("tinylytics.app");
     expect(sent.pathname).toBe(`/collector/${SITE_ID}`);
-    expect(sent.searchParams.get("path")).toBe("/console/account/overview");
+    expect(sent.searchParams.get("path")).toBe("/home");
   });
 
   test("the beacon carries the route, never the address bar", async () => {
-    await load("/console/signin");
-    window.history.pushState(
-      {},
-      "",
-      "/console/account/overview?login_token=secret",
-    );
+    await load("/signin");
+    window.history.pushState({}, "", "/home?login_token=secret");
     settle();
     expect(beacons).toHaveLength(1);
     expect(beacons[0]).not.toContain("secret");
@@ -308,7 +247,7 @@ describe("loadTinylytics", () => {
   });
 
   test.each([
-    [`${ORIGIN}/console/signin?login_token=secret`, ""],
+    [`${ORIGIN}/signin?login_token=secret`, ""],
     ["https://example.com/source", "https://example.com/source"],
   ])(
     "a new document measures referrer %s safely",
@@ -329,7 +268,7 @@ describe("loadTinylytics", () => {
   );
 
   test("an ordinary start loads the embed and bridges as well", async () => {
-    await load("/console/account/overview");
+    await load("/home");
     expect(embeds()).toEqual(["https://tinylytics.app/js/script.js"]);
     const [script] = document.body.querySelectorAll("script");
     expect(script.dataset.site).toBe(SITE_ID);
@@ -339,19 +278,17 @@ describe("loadTinylytics", () => {
     expect(window.Turbo).toBeUndefined();
 
     // The embed already recorded this document; only the NEXT page beacons.
-    window.history.pushState({}, "", "/console/account/usage");
+    window.history.pushState({}, "", "/home/find");
     settle();
     expect(beacons).toHaveLength(1);
-    expect(new URL(beacons[0]).searchParams.get("path")).toBe(
-      "/console/account/usage",
-    );
+    expect(new URL(beacons[0]).searchParams.get("path")).toBe("/home/find");
   });
 
   test("signing out and back in counts the landing page again", async () => {
-    await load("/console/account/overview");
-    window.history.pushState({}, "", "/console/signin");
+    await load("/home");
+    window.history.pushState({}, "", "/signin");
     expect(beacons).toHaveLength(0);
-    window.history.pushState({}, "", "/console/account/overview");
+    window.history.pushState({}, "", "/home");
     settle();
     expect(beacons).toHaveLength(1);
   });
@@ -360,7 +297,7 @@ describe("loadTinylytics", () => {
   // navigation is redirected to its Actions with a replace, which the
   // bridge did not see, so the visit counted the bare address.
   test("a redirect counts the page it lands on, once", async () => {
-    await load("/console/account/overview");
+    await load("/home");
     settle();
     window.history.pushState({}, "", "/clan/2PQRJ8LV");
     expect(beacons).toHaveLength(0);
@@ -370,7 +307,7 @@ describe("loadTinylytics", () => {
     const sent = new URL(beacons[0]).searchParams;
     expect(sent.get("url")).toBe(at("/clan/2PQRJ8LV/actions").url);
     expect(sent.get("url")).not.toContain("/clan/2PQRJ8LV");
-    expect(sent.get("referrer")).toBe(at("/console/account/overview").url);
+    expect(sent.get("referrer")).toBe(at("/home").url);
   });
 
   test("a document's redirect is no second count, and the next page names where it landed", async () => {
@@ -389,35 +326,31 @@ describe("loadTinylytics", () => {
   });
 
   test("a record's landing beacon follows its redirect: one view, where it landed", async () => {
-    await load("/console/account/activity/e/abc123?report=1");
+    await load("/settings/emails/abc123?report=1");
     expect(embeds()).toEqual([]);
-    window.history.replaceState(
-      {},
-      "",
-      "/console/account/feedback?send_id=abc123",
-    );
+    window.history.replaceState({}, "", "/settings/feedback?send_id=abc123");
     settle();
-    expect(paths()).toEqual(["/console/account/feedback"]);
+    expect(paths()).toEqual(["/settings/feedback"]);
     expect(beacons[0]).not.toContain("abc123");
   });
 
   test("a replace after the reader acts is a new view", async () => {
-    await load("/console/account/overview");
+    await load("/home");
     window.dispatchEvent(new Event("pointerdown"));
     window.history.replaceState({}, "", "/clan/2PQRJ8LV");
     expect(beacons).toHaveLength(0);
     settle();
     expect(paths()).toEqual(["/clan"]);
     expect(new URL(beacons[0]).searchParams.get("referrer")).toBe(
-      at("/console/account/overview").url,
+      at("/home").url,
     );
   });
 
   test("the page sign-in lands on counts, though it replaces /signin", async () => {
-    await load("/console/signin");
-    window.history.replaceState({}, "", "/console/account/overview");
+    await load("/signin");
+    window.history.replaceState({}, "", "/home");
     settle();
-    expect(paths()).toEqual(["/console/account/overview"]);
+    expect(paths()).toEqual(["/home"]);
   });
 
   test("a replace that stays on the page is nothing", async () => {
@@ -432,19 +365,16 @@ describe("loadTinylytics", () => {
   test("an open view is sent when its time is up", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
-      await load("/console/account/overview");
-      window.history.pushState({}, "", "/console/account/usage");
+      await load("/home");
+      window.history.pushState({}, "", "/home/find");
       vi.advanceTimersByTime(2999);
       expect(beacons).toHaveLength(0);
       vi.advanceTimersByTime(1);
-      expect(paths()).toEqual(["/console/account/usage"]);
+      expect(paths()).toEqual(["/home/find"]);
       // Settled: a replace now is the reader going on, a new view.
-      window.history.replaceState({}, "", "/console/account/tracking");
+      window.history.replaceState({}, "", "/home/you");
       vi.advanceTimersByTime(3000);
-      expect(paths()).toEqual([
-        "/console/account/usage",
-        "/console/account/tracking",
-      ]);
+      expect(paths()).toEqual(["/home/find", "/home/you"]);
     } finally {
       settle();
       vi.useRealTimers();
@@ -473,11 +403,7 @@ describe("loadTinylytics", () => {
     trackEvent(event, value);
   };
 
-  test.each([
-    "/signin#login_token=secret",
-    "/signin?login_token=secret",
-    "/console/signin#login_token=secret",
-  ])(
+  test.each(["/signin#login_token=secret", "/signin?login_token=secret"])(
     "a session that starts at %s delivers its events once it leaves, and never the token",
     async (start) => {
       await load(start);
@@ -535,7 +461,7 @@ describe("loadTinylytics", () => {
   });
 
   test.each([
-    ["/console/account/activity/e/abc123", "/console/account/activity/e"],
+    ["/settings/emails/abc123", "/settings/emails"],
     ["/settings/players/2ABC", "/settings/players"],
     ["/clan/2PQRJ8LV?find=Private%20search", "/clan"],
   ])(

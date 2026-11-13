@@ -41,7 +41,7 @@ Record as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 {% endfor %}{% endfor %}
 ## Interactive pages (JavaScript application, not in this index)
 - {{ site.url }}/signin, /home, /settings: require a session
-- {{ site.url }}/home/you/stats: Stats (Ladder until 2026-11-12; /ladder redirects), one of your players' season read back, a tab of You; requires a session
+- {{ site.url }}/home/you/stats: Stats (Ladder until 2026-11-12), one of your players' season read back, a tab of You; requires a session
 - {{ site.url }}/clan: Clan, on the same Elixir account and session
 - {{ site.url }}/battle/<short id>: one recorded battle, public; its JSON is {{ site.url }}/api/public/battles/<id>
 

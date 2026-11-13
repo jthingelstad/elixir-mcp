@@ -23,7 +23,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import DOC_GROUPS, { DOC_TOPS } from "./src/_data/docGroups.js";
-import DOC_FORWARDS from "./src/_data/docForwards.js";
 import { firstParagraph } from "./src/_lib/plain-text.mjs";
 import { makeLastmod } from "./src/_lib/lastmod.mjs";
 
@@ -188,15 +187,6 @@ export default function (eleventyConfig) {
   /** The pages of one guide, in order: the chip row of a split long page. */
   eleventyConfig.addFilter("docGuide", (docs, guide) =>
     guide ? (docs ?? []).filter((d) => d.data.guide === guide) : [],
-  );
-  /** This page's old anchors and where they went, for the browser's
-   *  forward. Empty on every page nothing moved out of. */
-  eleventyConfig.addFilter("docForwards", (slug) =>
-    Object.fromEntries(
-      Object.entries(DOC_FORWARDS)
-        .filter(([from]) => from.startsWith(`${slug}#`))
-        .map(([from, to]) => [from.slice(slug.length + 1), `/docs/${to}`]),
-    ),
   );
   /** The rail: three parents, each with its sub-groups, each with its rows.
    *  The ten examples live here too, seven under Connect an AI and the three

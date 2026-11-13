@@ -150,7 +150,7 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
       return [200, { ok: true }];
     },
   });
-  await page.goto("/clan/2PQRJ8LV/today");
+  await page.goto("/clan/2PQRJ8LV/feed");
   await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
   await expect
     .poll(() =>
@@ -564,7 +564,7 @@ test.describe("signed in", () => {
         { policy: { set: false, active: false, members: 6 } },
       ),
     );
-    await page.goto("/clan/2PQRJ8LV/manage/policy");
+    await page.goto("/clan/2PQRJ8LV/run/about");
     await expect(page).toHaveURL(/\/run\/about$/);
     await expect(
       page.getByText(/Leaders can prepare and save its policy now/),
@@ -663,12 +663,11 @@ test.describe("signed in", () => {
       "type",
       "password",
     );
-    // The old Settings anchors land on the section they named, which moved.
-    await page.goto("/clan/2PQRJ8LV/manage/settings#settings-voice");
+    // The voice section is on Model and voice, by its anchor.
+    await page.goto("/clan/2PQRJ8LV/run/model-voice#settings-voice");
     await expect(page).toHaveURL(/\/run\/model-voice#settings-voice$/);
     await expect(page.locator("#settings-voice")).toBeInViewport();
-    // The model's old address lands on the page.
-    await page.goto("/clan/2PQRJ8LV/manage/model");
+    await page.goto("/clan/2PQRJ8LV/run/model-voice");
     await expect(page).toHaveURL(/\/run\/model-voice$/);
     await accessible(page, "model and voice");
   });
@@ -782,7 +781,7 @@ test.describe("signed in", () => {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/today");
+    await page.goto("/clan/2PQRJ8LV/feed");
     await page.getByRole("link", { name: "Set it up in Run" }).click();
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/run\/discord$/);
     await expect(
@@ -935,7 +934,7 @@ test.describe("signed in", () => {
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/week");
+    await page.goto("/clan/2PQRJ8LV/war");
     await expect(page).toHaveURL(/\/war$/);
     await expect(page.getByText(/what this clan counts/)).toBeVisible();
     await page
@@ -957,8 +956,8 @@ test.describe("signed in", () => {
     await expect(page).toHaveURL(/\/war\/2026-w35$/);
     await expect(clanTab(page, "War")).toHaveAttribute("aria-selected", "true");
     await rendered(page);
-    // A week's old address keeps naming the week.
-    await page.goto("/clan/2PQRJ8LV/week/2026-w35");
+    // A week's address names the week.
+    await page.goto("/clan/2PQRJ8LV/war/2026-w35");
     await expect(page).toHaveURL(/\/war\/2026-w35$/);
   });
 
@@ -993,8 +992,8 @@ test.describe("signed in", () => {
     await expect(page.getByText(/War Champ · 1st/)).toBeVisible();
     await rendered(page);
     await accessible(page, "you here");
-    // The old address of your record still finds it.
-    await page.goto("/clan/2PQRJ8LV/me");
+    // Your record's own address finds it.
+    await page.goto("/clan/2PQRJ8LV/members/me");
     await expect(page).toHaveURL(/\/members\/20qql8ccru$/i);
   });
 

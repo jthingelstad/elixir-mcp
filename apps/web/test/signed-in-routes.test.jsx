@@ -67,9 +67,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// The Console folded (2026-11-12): its old addresses redirect, so a sweep
-// of them lands on the pages that replaced them.
-const routes = ["/console/explore", "/home/find", "/home/you"];
+const routes = ["/home/find", "/home/you"];
 // Admin's pages, under Settings since the Console folded (2026-11-12).
 for (const page of Object.keys(ADMIN_PAGES)) routes.push(`${ADMIN}/${page}`);
 
@@ -82,10 +80,9 @@ for (const page of Object.keys(ADMIN_PAGES)) routes.push(`${ADMIN}/${page}`);
  * tests.
  */
 routes.push(
-  "/console/account/agents/00000000-0000-0000-0000-0000000000ag",
-  "/console/account/feedback/1",
+  "/settings/agents/00000000-0000-0000-0000-0000000000ag",
+  "/settings/feedback/1",
   "/settings/admin/accounts/00000000-0000-0000-0000-000000000001",
-  "/console/explore/player/2ABC",
   "/home/player/2ABC",
   "/home/player/2ABC?tab=record",
   "/home/follow/2ABC,9XYZ",
@@ -207,12 +204,7 @@ test(
       };
     });
 
-    // The old address of the agent page opens the agent.
-    window.history.pushState(
-      {},
-      "",
-      `/console/account/agents/${AGENT.account_id}`,
-    );
+    window.history.pushState({}, "", `/settings/agents/${AGENT.account_id}`);
     render(<App />);
 
     // The agent's own door, not the personal /mcp. Asserting the whole path
@@ -284,11 +276,7 @@ test(
       };
     });
 
-    window.history.pushState(
-      {},
-      "",
-      `/console/account/agents/${AGENT.account_id}`,
-    );
+    window.history.pushState({}, "", `/settings/agents/${AGENT.account_id}`);
     render(<App />);
     expect(
       await screen.findByText(/current key has never been used/i),

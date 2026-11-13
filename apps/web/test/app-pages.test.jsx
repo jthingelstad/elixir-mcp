@@ -8,7 +8,7 @@ import "../src/entry-server.jsx";
 
 const request = {
   method: "GET",
-  path: "/console/signin",
+  path: "/signin",
   headers: { cookie: "fictional" },
   rawQueryString: "signup",
 };
@@ -34,7 +34,7 @@ test("native app HTML carries a private, escaped, request-local session bootstra
     headers: request.headers,
   });
   expect(response.headers["cache-control"]).toBe("private, no-store");
-  expect(response.body).toContain("/console/signin?signup");
+  expect(response.body).toContain("/signin?signup");
   const serialized = response.body.match(
     /id="elixir-bootstrap">(.*?)<\/script>/,
   )[1];
@@ -85,10 +85,7 @@ test("a failed server session read keeps the retry page and the 503 status", asy
     },
     shell: async () => '<div id="root"></div>',
   });
-  const response = await page(
-    { ...request, path: "/console/account/overview" },
-    {},
-  );
+  const response = await page({ ...request, path: "/settings/profile" }, {});
   expect(response.statusCode).toBe(503);
   expect(response.body).toContain("Try again");
   expect(response.body).not.toContain("Sign in first");

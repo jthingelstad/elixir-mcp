@@ -991,18 +991,12 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
     },
   };
 
-  for (const [from, to] of [
-    ["/ladder/days", "/home/you/stats/battles"],
-    [
-      "/ladder/days?player=9PQ2R8L&mode=war&season=135",
-      "/home/you/stats/battles?player=9PQ2R8L&mode=war&season=135",
-    ],
-    [
-      "/ladder/decks?player=9PQ2R8L&mode=war",
-      "/home/you/stats/decks?player=9PQ2R8L&mode=war",
-    ],
+  for (const to of [
+    "/home/you/stats/battles",
+    "/home/you/stats/battles?player=9PQ2R8L&mode=war&season=135",
+    "/home/you/stats/decks?player=9PQ2R8L&mode=war",
   ] as const) {
-    test(`${from} lands on ${to}`, async ({ page }) => {
+    test(`${to} opens its page`, async ({ page }) => {
       await mockApi(
         page,
         signedIn({
@@ -1010,7 +1004,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
           "POST /api/explore": explore(),
         }),
       );
-      await page.goto(from);
+      await page.goto(to);
       await expect(page).toHaveURL(new RegExp(`${to.replace(/[?]/g, "\\?")}$`));
       await expect(
         page.getByRole("heading", {
@@ -1072,8 +1066,8 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
     );
     await expect(line).not.toHaveText(/\d of \d/);
     await expect(
-      line.getByRole("link", { name: "See the race in Clan › Season" }),
-    ).toHaveAttribute("href", "/clan/CLAN/season");
+      line.getByRole("link", { name: "See the race in Clan › War" }),
+    ).toHaveAttribute("href", "/clan/CLAN/war");
     await page.getByRole("tab", { name: "Battles", exact: true }).click();
     await expect(line).toContainText("This week: 12 war decks used");
     await expect(

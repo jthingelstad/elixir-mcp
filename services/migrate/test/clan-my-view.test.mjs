@@ -214,7 +214,7 @@ test("a leader who would decide a removal never sees it; counts exclude it; the 
   assert.equal(r.view.actions.count, 2);
   const unnumbered = r.view.actions.waiting[1];
   assert.equal(unnumbered.number, null);
-  assert.equal(unnumbered.url, "https://elixir.poapkings.com/clan/028/actions");
+  assert.equal(unnumbered.url, "https://elixir.poapkings.com/clan/028/feed");
   const text = JSON.stringify(r);
   // `policy.removal` is the policy switch; no Action of the type appears.
   for (const leak of [

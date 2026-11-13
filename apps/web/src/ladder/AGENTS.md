@@ -2,14 +2,13 @@
 
 `/home/you/stats` (`LADDER` in `paths.js`, which imports nothing; `ladder.js` re-exports it): a player's season, read back,
 called Stats to a reader since 2026-11-12, the last tab of You. The code keeps
-the name Ladder. Every old `/ladder` address redirects to the same page under
-it (`ladderMoved` in `paths.js`, read by `src/lib/moved.js`). A section of the Elixir app
+the name Ladder. The old `/ladder` addresses stopped forwarding on
+2026-11-13. A section of the Elixir app
 in the shared shell, under You's tabs (`YouTabs` in `src/home/You.jsx`), with a scope bar instead of a rail (`ScopeBar.jsx`:
 Player, Season, mode chips, freshness) and four tabs: Season, Battles, Decks,
 Cards. The route is in `src/App.jsx`, the page chunk
 `src/pages/LadderPage.jsx`, which owns the scope read and each tab's href; the
-views and their shaping functions (`ladder*.js`) live here. Paths that moved
-are in `src/lib/moved.js`. Public docs:
+views and their shaping functions (`ladder*.js`) live here. Public docs:
 `apps/site/src/docs/ladder.md`.
 
 - **Ladder has no API of its own.** Every read is an MCP tool answered

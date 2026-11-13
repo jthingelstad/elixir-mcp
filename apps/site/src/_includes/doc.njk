@@ -34,7 +34,7 @@ navActive: docs
 
   <div class="siterail__body">
     <div class="docs-layout">
-      <article class="docs__body{% if not slug %} docs__body--home{% endif %}"{% if slug %} data-doc-forwards="{{ slug | docForwards | dump }}"{% endif %}>
+      <article class="docs__body{% if not slug %} docs__body--home{% endif %}">
         {%- if slug %}
         <nav class="docs__crumb" aria-label="Breadcrumb">
           <a href="/docs">Docs</a>{% icon "chevron-right", 12 %}

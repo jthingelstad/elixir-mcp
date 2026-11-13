@@ -619,9 +619,8 @@ test("Quickstart starts with browser use and retains client deep links", async (
       .getByRole("link", { name: "Stats", exact: true })
       .first(),
   ).toHaveAttribute("href", "/home/you/stats");
-  // The client steps moved to their own page; the old deep link still lands.
-  await page.goto("/docs/quickstart#3-connect");
-  await expect(page).toHaveURL(/\/docs\/connect-a-client#connect$/);
+  // The client steps are on their own page.
+  await page.goto("/docs/connect-a-client#connect");
   await expect(page.locator("#claude-desktop")).toBeAttached();
   await page.goto("/docs");
   await expect(page.locator("main")).toContainText("follow a few people");

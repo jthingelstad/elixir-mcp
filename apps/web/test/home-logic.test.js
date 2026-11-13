@@ -120,7 +120,7 @@ describe("Needs you", () => {
       }),
       clock,
     });
-    expect(rows[0].to).toBe("/clan/you/away");
+    expect(rows[0].to).toBe("/clan/2PQRJ8LV/members/away");
     expect(rows[0].detail).toContain("8 days since your last recorded battle.");
   });
 

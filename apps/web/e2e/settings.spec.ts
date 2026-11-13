@@ -187,29 +187,3 @@ test.describe("@narrow Settings at phone width", () => {
     await expect(help).toHaveCount(0);
   });
 });
-
-test("a turn-off, a sent mail and a request in old mail all land in Settings", async ({
-  page,
-}) => {
-  await mockApi(page, mocks);
-  for (const [old, now] of [
-    ["/console/account/profile/email", "/settings/emails"],
-    ["/console/account/activity/emails", "/settings/emails/sent"],
-    [
-      "/console/account/tracking#add-player-tag",
-      "/settings/players#add-player-tag",
-    ],
-    ["/console/account/verify", "/settings/players/verify"],
-    ["/console/account/usage", "/settings/usage"],
-    ["/console/account/connections", "/settings/connections"],
-    [
-      `/console/agent/${AGENT.public_id}/overview`,
-      `/settings/agents/${AGENT.public_id}/overview`,
-    ],
-  ] as const) {
-    await page.goto(old);
-    await expect(page).toHaveURL(
-      new RegExp(`${now.replace(/[#/]/g, "\\$&")}$`),
-    );
-  }
-});

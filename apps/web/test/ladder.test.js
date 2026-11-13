@@ -24,7 +24,6 @@ import {
   ladderHere,
   ladderHref,
   ladderLegal,
-  ladderMoved,
   ladderSlug,
   isFollowedClaim,
   isOwnClaim,
@@ -56,7 +55,7 @@ test("Stats owns its address under You and its pages, and nothing beside them", 
   expect(isLadder(`${S}/decks`)).toBe(true);
   expect(isLadder("/home/you/statsx")).toBe(false);
   expect(isLadder("/home/you")).toBe(false);
-  // The old address is not Stats' own: it moves (lib/moved.js).
+  // The old address is not Stats' own, and no longer forwards.
   expect(isLadder("/ladder")).toBe(false);
 
   expect(ladderLegal(S)).toBe(S);
@@ -78,23 +77,6 @@ test("Stats owns its address under You and its pages, and nothing beside them", 
   expect(legalRoute(S)).toBe(S);
   expect(legalRoute(`${S}/season`)).toBe(S);
   expect(legalRoute("/ladders")).toBe(null);
-});
-
-test("every old Ladder address lands on the same page under You's Stats", () => {
-  const S = "/home/you/stats";
-  for (const [from, to] of [
-    ["/ladder", S],
-    ["/ladder/season", S],
-    ["/ladder/battles", `${S}/battles`],
-    ["/ladder/decks", `${S}/decks`],
-    ["/ladder/cards", `${S}/cards`],
-    ["/ladder/days", `${S}/battles`],
-    ["/ladder/nonsense", S],
-    ["/ladder/decks/extra", `${S}/decks`],
-  ])
-    expect(ladderMoved(from), from).toBe(to);
-  expect(ladderMoved("/ladders")).toBe(null);
-  expect(ladderMoved("/home/you/stats")).toBe(null);
 });
 
 test("every Ladder page has a rail position, a title and a docs strip entry", () => {

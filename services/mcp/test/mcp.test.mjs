@@ -436,11 +436,11 @@ test("collector points no longer raise the daily quota (#539)", async () => {
   await db.query(`delete from gateway where name = 'credit-gw'`);
 });
 
-test("a moved doc section reads from its new page, by old slug or old title", async () => {
+test("a doc section reads by its slug or its title", async () => {
   const read = async (uri) =>
     (await handleMcpMessage(rpc("resources/read", { uri }), context())).payload;
-  const bySlug = await read("elixir://docs/recording#daily-series");
-  const byTitle = await read("elixir://docs/recording#Daily series");
+  const bySlug = await read("elixir://docs/freshness-and-gaps#daily-series");
+  const byTitle = await read("elixir://docs/freshness-and-gaps#Daily series");
   const text = bySlug.result.contents[0].text;
   assert.match(text, /Source: .*\/docs\/freshness-and-gaps#daily-series/);
   assert.equal(byTitle.result.contents[0].text, text);

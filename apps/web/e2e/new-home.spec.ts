@@ -451,18 +451,6 @@ for (const [label, width] of [
   });
 }
 
-test("Home's old tabs land on the feed, and Friends' follow form on Find", async ({
-  page,
-}) => {
-  await mockApi(page, homeApi());
-  await page.goto("/home/timeline");
-  await expect(page).toHaveURL(/\/home$/);
-  await expect(page.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
-  await page.goto("/home/friends");
-  await expect(page).toHaveURL(/\/home\/find$/);
-  await expect(page.getByLabel("Follow a friend")).toBeVisible();
-});
-
 test("following someone before a player of your own: the steps, then the feed", async ({
   page,
 }) => {
@@ -640,17 +628,6 @@ test("signed out, /home is the wall and remembers where it was", async ({
   expect(
     await page.evaluate(() => sessionStorage.getItem("elixir.after_sign_in")),
   ).toBe("/home/find");
-});
-
-test("the old Overview address lands on Home, with no offer to try it", async ({
-  page,
-}) => {
-  await mockApi(page, homeApi());
-  await page.goto("/console/account/overview");
-  await expect(page).toHaveURL(/\/home$/);
-  await expect(
-    page.getByRole("link", { name: /Try the new Home/ }),
-  ).toHaveCount(0);
 });
 
 test("the signed-in bar shows the app's places as tabs, and Help has no stray border", async ({

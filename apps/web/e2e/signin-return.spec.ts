@@ -4,13 +4,12 @@ import { ME as CLAN_ME, signedIn as clanSignedIn } from "./clan/fixtures.ts";
 import { BATTLE } from "./battle-fixture.ts";
 
 const sendId = "5c1c5dbf-0000-4000-8000-000000000001";
-const email = `/console/account/activity/e/${sendId}?report=1`;
+const email = `/settings/emails/${sendId}?report=1`;
 const paths = [
   {
     name: "player",
-    // An old Explore link from mail lands on the player page, and sign-in
-    // returns there (the Console folded, 2026-11-12).
-    from: "/console/explore/player/20JJJ2CCRU",
+    // A player link from mail: sign-in returns to the player page.
+    from: "/home/player/20JJJ2CCRU",
     to: "/home/player/20JJJ2CCRU",
   },
   {
@@ -184,7 +183,7 @@ for (const width of [390, 1280]) {
           // Model a fresh email-link document, avoiding a fragment-only
           // navigation or a reload racing a redeemed one-shot proof.
           await page.goto("about:blank");
-          await page.goto("/console/signin#login_token=" + "t".repeat(40));
+          await page.goto("/signin#login_token=" + "t".repeat(40));
         }
         await arrived(page, path.to);
         expect(new URL(page.url()).hash).toBe("");
@@ -212,7 +211,7 @@ for (const width of [390, 1280]) {
     await expect(page.getByLabel("6-digit code")).toBeVisible();
     const link = await context.newPage();
     await mockApi(link, routes);
-    await link.goto("/console/signin#login_token=" + "t".repeat(40));
+    await link.goto("/signin#login_token=" + "t".repeat(40));
     await arrived(link, path.to);
     await arrived(page, path.to);
     await page.reload();
@@ -267,7 +266,7 @@ for (const width of [390, 1280]) {
           return [200, { ok: true }];
         },
       });
-      await link.goto("/console/signin#login_token=" + "t".repeat(40));
+      await link.goto("/signin#login_token=" + "t".repeat(40));
       await link.getByRole("button", { name: "Yes, that was me" }).click();
       await arrived(page, paths[0]!.to);
       await page.reload();

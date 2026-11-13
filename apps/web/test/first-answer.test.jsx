@@ -126,11 +126,7 @@ test(
     // The router scrolls a hash's element into view; jsdom has no
     // scrolling.
     Element.prototype.scrollIntoView ??= () => {};
-    window.history.pushState(
-      {},
-      "",
-      "/console/account/tracking#add-player-tag",
-    );
+    window.history.pushState({}, "", "/settings/players#add-player-tag");
     render(<App />);
 
     // On the field it came for, ready to type in. The first paint loads
@@ -152,7 +148,7 @@ test(
     );
     cleanup();
     captured = true;
-    window.history.pushState({}, "", "/console/account/connections");
+    window.history.pushState({}, "", "/settings/connections");
     render(<App />);
     fireEvent.click(
       await screen.findByRole("button", {

@@ -170,11 +170,10 @@ Every report carries the coverage caveat; the numbers are honest only
 with the note.
 
 Links go to the paths that serve the page: a player's page at
-`/home/player/<tag>` for every reader, a clan at `/clan/<tag>` (its War
-tab for a reader in the clan; Clan sends anyone else to the clan
+`/home/player/<tag>` for every reader, a clan at `/clan/<tag>/feed` (Clan
+for a reader in the clan; Clan sends anyone else to the clan
 directory), Settings
-under `/settings`, Stats as `/ladder?player=<tag>` (the app redirects
-`/ladder` to `/home/you/stats`, query kept), battles at
+under `/settings`, battles at
 `/battle/<short id>`, cards at `/cards/<id>`. The manage link is
 `/settings/emails`. A bulk mail never carries a magic link.
 

@@ -20,8 +20,8 @@ import { tagPath } from "../lib/tag-url.js";
 import { LADDER, LADDER_PAGES } from "./paths.js";
 
 // Stats' address and pages live in paths.js, which imports nothing, so the
-// redirect map (lib/moved.js) and the site's tests can read them.
-export { LADDER, LADDER_PAGES, ladderMoved } from "./paths.js";
+// site's tests can read them.
+export { LADDER, LADDER_PAGES } from "./paths.js";
 
 /** The mode groups a Ladder page reads, one at a time, in chip order.
  *  `key` is the tools' `mode` argument. */

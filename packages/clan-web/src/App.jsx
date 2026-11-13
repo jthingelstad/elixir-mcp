@@ -87,8 +87,8 @@ function MapWhenInBrowser({ clan, me }) {
  * whole chooser), `/clan/<TAG>/<tab>` with its pages (Feed, Standings, War,
  * Members, Policy and the leaders' Run), `/clan/verify` (the notice after
  * sign-in) and `/clan/refused/<reason>`. The app's own pages win over a tag.
- * Every address that moved, with the five tabs and with one view, is in
- * lib/moved.js.
+ * The old tab addresses stopped working on 2026-11-13; apps/web's lib/moved.js
+ * forwards only a clan's bare address and its Actions list.
  * The router owns history and params; the GATE - where a signed-in person
  * belongs, whatever address they arrived at - is the Shell's effect below,
  * because it is a session state machine (a refresh, a select) and not a
@@ -356,8 +356,8 @@ export function ClanPage() {
       {body}
     </MembersPage>
   );
-  // Members' old row (G6, 2026-11-12): Standing and Review are redirected
-  // before the page reads them (lib/moved.js). Recruit's pitch is in Spread
+  // Members' old row (G6, 2026-11-12): Standing and Review stopped working
+  // on 2026-11-13. Recruit's pitch is in Spread
   // the word and Scout at the roster's foot, opened where the address asks;
   // both are the elders' and up (Jamie, 2026-11-12): anyone else who follows
   // either address gets its role line there, not the form or a read.
