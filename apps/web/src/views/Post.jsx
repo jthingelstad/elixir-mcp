@@ -17,7 +17,13 @@ import {
 import { api } from "../api.js";
 import { useMe, useNav } from "../App.jsx";
 import { CONSOLE } from "../lib/console.js";
-import { DURATION, endedSentence, hpLeft, Invite } from "./Battle.jsx";
+import {
+  BattleView,
+  DURATION,
+  endedSentence,
+  hpLeft,
+  Invite,
+} from "./Battle.jsx";
 import { FollowFromHere } from "./FollowFromHere.jsx";
 
 /**
@@ -91,7 +97,7 @@ export function Post({ shareId, me }) {
     );
   return (
     <div className="kit-post">
-      <PostCard read={read} h={h} who={who} />
+      <PostCard read={read} h={h} who={who} viewer={me} />
       {/* The way in, or the Follow, sits under the post: its player first
           (#763), read from the post itself, never from who sent it. */}
       {me?.authenticated === false && <Invite who={who} />}
@@ -109,7 +115,7 @@ const num = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "—");
 const VERB = { win: "beat", loss: "lost to", draw: "drew with" };
 
 /** The post itself, from its player's side: theirs first. */
-function PostCard({ read, h, who }) {
+function PostCard({ read, h, who, viewer }) {
   const { when } = useClock();
   const { battle, games } = read;
   const flip = h.side === "right";
@@ -190,22 +196,35 @@ function PostCard({ read, h, who }) {
           score={said}
           scoreLabel={`${score[0] ?? "?"} to ${score[1] ?? "?"}${games ? " games" : " crowns"}`}
         />
+      ) : (
+        // A duel reads game by game and a 2v2 has teammates: the battle's
+        // own view draws those decks, as the post did before the canvas.
+        <BattleView
+          read={read}
+          me={viewer}
+          follow={false}
+          invite={false}
+          cheers={false}
+          heading="h2"
+        />
+      )}
+      {decks ? (
+        <dl className="kit-nums">
+          {nums.map(([k, a, b]) => (
+            <div key={k}>
+              <dt>{k}</dt>
+              <dd>
+                {a}{" "}
+                <span className="kit-nums__vs">
+                  <span aria-hidden="true">v</span>
+                  <span className="kit-vs__said">against</span> {b}
+                </span>
+              </dd>
+            </div>
+          ))}
+        </dl>
       ) : null}
-      <dl className="kit-nums">
-        {nums.map(([k, a, b]) => (
-          <div key={k}>
-            <dt>{k}</dt>
-            <dd>
-              {a}{" "}
-              <span className="kit-nums__vs">
-                <span aria-hidden="true">v</span>
-                <span className="kit-vs__said">against</span> {b}
-              </span>
-            </dd>
-          </div>
-        ))}
-      </dl>
-      {dur ? (
+      {decks && dur ? (
         <p className="kit-tiny kit-post__length">
           <Icon name="timer" size={14} />
           <span>
