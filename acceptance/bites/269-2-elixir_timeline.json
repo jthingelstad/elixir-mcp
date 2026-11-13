@@ -73,7 +73,7 @@
           "from": "2026-09-23T05:19:59.822Z",
           "to": "2026-09-24T05:19:59.826Z"
         },
-        "summary": "POAP KINGS: 297 battles in 85 sessions by 36 of 48 members since Wed 05:19; joined: alex, alex, Gem; left: alex; roster 46→48; training day; quiet past 10d: VVSBUDGET (10d), Brotherinpants (5d); most battles: Vijay 57, sikander sidhu 39, MONICA 16; new bests: Gem 6,003; 1 arena promotion (Gem → Royal Crypt); ranked: sniperhendo → Master 2; standout sessions: Vijay 7W-0L (7 in a row), sniperhendo 5W-2L (5 in a row); badges: ryguy67 5 (Spear Goblins Mastery, Lumberjack Mastery, Tombstone Mastery), Mega Goblin 4 (Wizard Mastery, The Log Mastery, Royal Ghost Mastery), God Bless You 2 (Spear Goblins Mastery, Ronin Mastery); donations this week 3,672, led by Vijay (463).",
+        "summary": "POAP KINGS: 297 battles in 85 sessions by 36 of 48 members since Wed 05:19; joined: alex, alex, Gem; left: alex; roster 46→48; training day; quiet past 10d: EVERGREEN (10d), ThunderboltDew (5d); most battles: Acorn 57, flamingo crane 39, OSPREY 16; new bests: Gem 6,003; 1 arena promotion (Gem → Royal Crypt); ranked: sniperhendo → Master 2; standout sessions: Acorn 7W-0L (7 in a row), sniperhendo 5W-2L (5 in a row); badges: heron82 5 (Spear Goblins Mastery, Lumberjack Mastery, Tombstone Mastery), Mega Goblin 4 (Wizard Mastery, The Log Mastery, Royal Ghost Mastery), Bee Eager Eel 2 (Spear Goblins Mastery, Ronin Mastery); donations this week 3,672, led by Acorn (463).",
         "activity": {
           "battles": 297,
           "members_active": 36,
@@ -95,20 +95,20 @@
           "joined": {
             "items": [
               {
-                "tag": "#P8URQGR2U",
-                "name": "alex",
+                "tag": "#0C2L90UG9",
+                "name": "goat",
                 "role": "member",
                 "at": "2026-09-23T22:23:11.000Z"
               },
               {
-                "tag": "#P8URQGR2U",
-                "name": "alex",
+                "tag": "#0C2L90UG9",
+                "name": "goat",
                 "role": "member",
                 "at": "2026-09-23T20:38:09.000Z"
               },
               {
-                "tag": "#20GQUGPRC2",
-                "name": "Gem",
+                "tag": "#0J0P0RJUQ8",
+                "name": "Fig",
                 "role": "member",
                 "at": "2026-09-23T17:38:17.000Z"
               }
@@ -118,8 +118,8 @@
           "left": {
             "items": [
               {
-                "tag": "#P8URQGR2U",
-                "name": "alex",
+                "tag": "#0C2L90UG9",
+                "name": "goat",
                 "role": "member",
                 "at": "2026-09-23T20:58:06.000Z",
                 "tenure_days": 0
@@ -153,16 +153,16 @@
           "quiet_crossed": {
             "items": [
               {
-                "tag": "#20CLVPLG8R",
-                "name": "VVSBUDGET",
+                "tag": "#00RJQU2GC0",
+                "name": "EVERGREEN",
                 "role": "member",
                 "days_quiet": 10,
                 "days_since_poll": 0,
                 "rung": 10
               },
               {
-                "tag": "#RRU9PGJQ9",
-                "name": "Brotherinpants",
+                "tag": "#0JR80UJVJ",
+                "name": "ThunderboltDew",
                 "role": "member",
                 "days_quiet": 5,
                 "days_since_poll": 0,
@@ -181,36 +181,36 @@
         "standouts": {
           "most_battles": [
             {
-              "tag": "#C920YGLC2",
-              "name": "Vijay",
+              "tag": "#0GQ2CLQQJ",
+              "name": "Acorn",
               "battles": 57
             },
             {
-              "tag": "#JYRQ8U92C",
-              "name": "sikander sidhu",
+              "tag": "#0QRVVG22J",
+              "name": "flamingo crane",
               "battles": 39
             },
             {
-              "tag": "#VGC22YGP",
-              "name": "MONICA",
+              "tag": "#0990UQVG",
+              "name": "OSPREY",
               "battles": 16
             },
             {
-              "tag": "#JRVV9VC0C",
-              "name": "NOBITA",
+              "tag": "#0CC2QGGUU",
+              "name": "STURDY",
               "battles": 16
             },
             {
-              "tag": "#U92P8PQG0",
-              "name": "God Bless You",
+              "tag": "#0CJ9UPPR2",
+              "name": "Bee Eager Eel",
               "battles": 15
             }
           ],
           "new_bests": {
             "items": [
               {
-                "tag": "#20GQUGPRC2",
-                "name": "Gem",
+                "tag": "#0J0P0RJUQ8",
+                "name": "Fig",
                 "best": 6003
               }
             ],
@@ -219,8 +219,8 @@
           "arena_promotions": {
             "items": [
               {
-                "tag": "#20GQUGPRC2",
-                "name": "Gem",
+                "tag": "#0J0P0RJUQ8",
+                "name": "Fig",
                 "arena": "Royal Crypt"
               }
             ],
@@ -229,10 +229,10 @@
           "ranked_promotions": {
             "items": [
               {
-                "tag": "#YC8LLR8Q2",
-                "name": "sniperhendo",
+                "tag": "#0YUG82UQC",
+                "name": "grasshopper",
                 "league": "Master 2",
-                "over": "todosan",
+                "over": "compass",
                 "score": "1-0"
               }
             ],
@@ -244,8 +244,8 @@
           },
           "badges": [
             {
-              "tag": "#V8Q8PUL0U",
-              "name": "ryguy67",
+              "tag": "#082YLQRRV",
+              "name": "heron82",
               "count": 5,
               "names": [
                 "MasterySpearGoblins",
@@ -254,26 +254,26 @@
               ]
             },
             {
-              "tag": "#229QY8UL9U",
+              "tag": "#00GGLLCLLQ",
               "name": "Mega Goblin",
               "count": 4,
               "names": ["MasteryWizard", "MasteryLog", "MasteryGhost"]
             },
             {
-              "tag": "#U92P8PQG0",
-              "name": "God Bless You",
+              "tag": "#0CJ9UPPR2",
+              "name": "Bee Eager Eel",
               "count": 2,
               "names": ["MasterySpearGoblins", "MasteryRonin"]
             },
             {
-              "tag": "#20GQUGPRC2",
-              "name": "Gem",
+              "tag": "#0J0P0RJUQ8",
+              "name": "Fig",
               "count": 1,
               "names": ["BannerCollection"]
             },
             {
-              "tag": "#PLCCYUQL",
-              "name": "TDuck",
+              "tag": "#0L990RRV",
+              "name": "Rapid",
               "count": 1,
               "names": ["MasteryDarkPrince"]
             }
@@ -281,9 +281,9 @@
           "sessions": {
             "items": [
               {
-                "tag": "#C920YGLC2",
-                "name": "Vijay",
-                "player_tag": "#C920YGLC2",
+                "tag": "#0GQ2CLQQJ",
+                "name": "Acorn",
+                "player_tag": "#0GQ2CLQQJ",
                 "started_at": "2026-09-23T17:37:51.000Z",
                 "ended_at": "2026-09-23T17:59:01.000Z",
                 "battles": 7,
@@ -300,9 +300,9 @@
                 "crossed": ["won_in_a_row>=5"]
               },
               {
-                "tag": "#YC8LLR8Q2",
-                "name": "sniperhendo",
-                "player_tag": "#YC8LLR8Q2",
+                "tag": "#0YUG82UQC",
+                "name": "grasshopper",
+                "player_tag": "#0YUG82UQC",
                 "started_at": "2026-09-24T02:28:03.000Z",
                 "ended_at": "2026-09-24T02:54:33.000Z",
                 "battles": 7,
@@ -330,8 +330,8 @@
           "week_total": 3672,
           "members_counted": 48,
           "leader": {
-            "tag": "#C920YGLC2",
-            "name": "Vijay",
+            "tag": "#0GQ2CLQQJ",
+            "name": "Acorn",
             "given": 463
           },
           "as_of": "2026-09-24T05:19:59.826Z"

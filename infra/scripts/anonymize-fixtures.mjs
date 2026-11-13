@@ -212,7 +212,9 @@ function main() {
     }
   const seen = new Set([...ref.seen, ...known]);
   const inventor = tagInventor(key, seen);
-  for (const t of [...known].sort()) inventor(t);
+  // Invent for every real tag in one fixed order, whatever this run
+  // replaces, so a short tag's invention never depends on the run.
+  for (const t of [...seen].sort()) inventor(t);
   const written = new Set();
   const invent = (t) => {
     const out = inventor(t);

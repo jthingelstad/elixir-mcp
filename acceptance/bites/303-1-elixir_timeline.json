@@ -57,8 +57,8 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#20GQUGPRC2",
-          "name": "Gem",
+          "player_tag": "#0J0P0RJUQ8",
+          "name": "Fig",
           "after_days": 13
         },
         "text": "Wed 17:33 Gem played again after 13 quiet days."
@@ -70,15 +70,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#RRU9PGJQ9",
-          "name": "Brotherinpants",
+          "player_tag": "#0JR80UJVJ",
+          "name": "ThunderboltDew",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-23T15:44:53.000Z",
-        "text": "Wed 15:44 Brotherinpants passed 5 recorded-quiet days."
+        "text": "Wed 15:44 ThunderboltDew passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -87,15 +87,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20CLVPLG8R",
-          "name": "VVSBUDGET",
+          "player_tag": "#00RJQU2GC0",
+          "name": "EVERGREEN",
           "role": "member",
           "rung": 10,
           "days_quiet": 10,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-23T11:28:02.000Z",
-        "text": "Wed 11:28 VVSBUDGET passed 10 recorded-quiet days."
+        "text": "Wed 11:28 EVERGREEN passed 10 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -104,8 +104,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20G0JGQLPL",
-          "name": "alex",
+          "player_tag": "#0Y2VC9PYL9",
+          "name": "goat",
           "role": "member",
           "rung": 10,
           "days_quiet": 10,
@@ -121,15 +121,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20G9RY299P",
-          "name": "Waltadr",
+          "player_tag": "#0YC9LP8JYL",
+          "name": "Compass",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-23T00:40:28.000Z",
-        "text": "Wed 00:40 Waltadr passed 5 recorded-quiet days."
+        "text": "Wed 00:40 Compass passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -138,8 +138,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#V0CRYP2GG",
-          "name": "pokemon",
+          "player_tag": "#0RC8G2CYG",
+          "name": "buffalo",
           "role": "member",
           "rung": 10,
           "days_quiet": 10,
@@ -155,15 +155,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#2P9GRU2Q0",
-          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "player_tag": "#090QYUG02",
+          "name": "Pélican Çedar🌟",
           "role": "elder",
           "rung": 10,
           "days_quiet": 10,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-21T13:18:57.000Z",
-        "text": "Mon 13:18 Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ passed 10 recorded-quiet days."
+        "text": "Mon 13:18 Pélican Çedar🌟 passed 10 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -173,11 +173,11 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#G2CUUJQ8V",
-          "name": "kiruba⚜️",
+          "player_tag": "#0JL99P2UR",
+          "name": "dapper🐢",
           "after_days": 10
         },
-        "text": "Mon 09:32 kiruba⚜️ played again after 10 quiet days."
+        "text": "Mon 09:32 dapper🐢 played again after 10 quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -186,15 +186,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#G2CUUJQ8V",
-          "name": "kiruba⚜️",
+          "player_tag": "#0JL99P2UR",
+          "name": "dapper🐢",
           "role": "member",
           "rung": 10,
           "days_quiet": 10,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-21T02:33:43.000Z",
-        "text": "Mon 02:33 kiruba⚜️ passed 10 recorded-quiet days."
+        "text": "Mon 02:33 dapper🐢 passed 10 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -203,8 +203,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20GQUGPRC2",
-          "name": "Gem",
+          "player_tag": "#0J0P0RJUQ8",
+          "name": "Fig",
           "role": "member",
           "rung": 10,
           "days_quiet": 10,
@@ -220,8 +220,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#UL2V9QRG0",
-          "name": "raquaza",
+          "player_tag": "#0G9L8QCVV",
+          "name": "dolphin",
           "role": "coLeader",
           "rung": 5,
           "days_quiet": 5,
@@ -238,11 +238,11 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#RRU9PGJQ9",
-          "name": "Brotherinpants",
+          "player_tag": "#0JR80UJVJ",
+          "name": "ThunderboltDew",
           "after_days": 7
         },
-        "text": "Fri 15:37 Brotherinpants played again after 7 quiet days."
+        "text": "Fri 15:37 ThunderboltDew played again after 7 quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -251,15 +251,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20CLVPLG8R",
-          "name": "VVSBUDGET",
+          "player_tag": "#00RJQU2GC0",
+          "name": "EVERGREEN",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-18T11:28:02.000Z",
-        "text": "Fri 11:28 VVSBUDGET passed 5 recorded-quiet days."
+        "text": "Fri 11:28 EVERGREEN passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -268,8 +268,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20G0JGQLPL",
-          "name": "alex",
+          "player_tag": "#0Y2VC9PYL9",
+          "name": "goat",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -285,15 +285,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#U08P889Y0",
-          "name": "Tere",
+          "player_tag": "#0QLG889LG",
+          "name": "Fern",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-17T23:45:07.000Z",
-        "text": "Thu 23:45 Tere passed 5 recorded-quiet days."
+        "text": "Thu 23:45 Fern passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -302,8 +302,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#V0CRYP2GG",
-          "name": "pokemon",
+          "player_tag": "#0RC8G2CYG",
+          "name": "buffalo",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -319,15 +319,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#2P9GRU2Q0",
-          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "player_tag": "#090QYUG02",
+          "name": "Pélican Çedar🌟",
           "role": "elder",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-16T13:18:57.000Z",
-        "text": "Wed 13:18 Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ passed 5 recorded-quiet days."
+        "text": "Wed 13:18 Pélican Çedar🌟 passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -336,15 +336,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#RRU9PGJQ9",
-          "name": "Brotherinpants",
+          "player_tag": "#0JR80UJVJ",
+          "name": "ThunderboltDew",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-16T02:42:11.000Z",
-        "text": "Wed 02:42 Brotherinpants passed 5 recorded-quiet days."
+        "text": "Wed 02:42 ThunderboltDew passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -353,15 +353,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#G2CUUJQ8V",
-          "name": "kiruba⚜️",
+          "player_tag": "#0JL99P2UR",
+          "name": "dapper🐢",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-16T02:33:43.000Z",
-        "text": "Wed 02:33 kiruba⚜️ passed 5 recorded-quiet days."
+        "text": "Wed 02:33 dapper🐢 passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -370,8 +370,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20GQUGPRC2",
-          "name": "Gem",
+          "player_tag": "#0J0P0RJUQ8",
+          "name": "Fig",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -388,8 +388,8 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#YC8LLR8Q2",
-          "name": "sniperhendo",
+          "player_tag": "#0YUG82UQC",
+          "name": "grasshopper",
           "after_days": 7
         },
         "text": "Tue 00:08 sniperhendo played again after 7 quiet days."
@@ -402,11 +402,11 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#VR0QRP2PG",
-          "name": "round hamster",
+          "player_tag": "#0988PUGPY",
+          "name": "acorn lantern",
           "after_days": 7
         },
-        "text": "Sun 02:04 round hamster played again after 7 quiet days."
+        "text": "Sun 02:04 acorn lantern played again after 7 quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -415,8 +415,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#YC8LLR8Q2",
-          "name": "sniperhendo",
+          "player_tag": "#0YUG82UQC",
+          "name": "grasshopper",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -432,15 +432,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#VR0QRP2PG",
-          "name": "round hamster",
+          "player_tag": "#0988PUGPY",
+          "name": "acorn lantern",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-10T18:09:15.000Z",
-        "text": "Thu 18:09 round hamster passed 5 recorded-quiet days."
+        "text": "Thu 18:09 acorn lantern passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -449,15 +449,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#2P9GRU2Q0",
-          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "player_tag": "#090QYUG02",
+          "name": "Pélican Çedar🌟",
           "role": "elder",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-10T15:54:49.000Z",
-        "text": "Thu 15:54 Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ passed 5 recorded-quiet days."
+        "text": "Thu 15:54 Pélican Çedar🌟 passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -467,8 +467,8 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#V0CRYP2GG",
-          "name": "pokemon",
+          "player_tag": "#0RC8G2CYG",
+          "name": "buffalo",
           "after_days": 10
         },
         "text": "Wed 23:19 pokemon played again after 10 quiet days."
@@ -480,8 +480,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#V0CRYP2GG",
-          "name": "pokemon",
+          "player_tag": "#0RC8G2CYG",
+          "name": "buffalo",
           "role": "member",
           "rung": 10,
           "days_quiet": 10,
@@ -498,11 +498,11 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#20CLVPLG8R",
-          "name": "VVSBUDGET",
+          "player_tag": "#00RJQU2GC0",
+          "name": "EVERGREEN",
           "after_days": 14
         },
-        "text": "Wed 09:01 VVSBUDGET played again after 14 quiet days."
+        "text": "Wed 09:01 EVERGREEN played again after 14 quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -511,8 +511,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20G0JGQLPL",
-          "name": "alex",
+          "player_tag": "#0Y2VC9PYL9",
+          "name": "goat",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -528,8 +528,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20CGPVUL92",
-          "name": "pigsareus",
+          "player_tag": "#08L2PYLPLY",
+          "name": "evergreen",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -546,11 +546,11 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#RRU9PGJQ9",
-          "name": "Brotherinpants",
+          "player_tag": "#0JR80UJVJ",
+          "name": "ThunderboltDew",
           "after_days": 19
         },
-        "text": "Mon 14:00 Brotherinpants played again after 19 quiet days."
+        "text": "Mon 14:00 ThunderboltDew played again after 19 quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -559,15 +559,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20CLVPLG8R",
-          "name": "VVSBUDGET",
+          "player_tag": "#00RJQU2GC0",
+          "name": "EVERGREEN",
           "role": "member",
           "rung": 10,
           "days_quiet": 10,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-05T07:10:58.000Z",
-        "text": "Sat 07:10 VVSBUDGET passed 10 recorded-quiet days."
+        "text": "Sat 07:10 EVERGREEN passed 10 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -576,8 +576,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#V0CRYP2GG",
-          "name": "pokemon",
+          "player_tag": "#0RC8G2CYG",
+          "name": "buffalo",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -593,8 +593,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20G0JGQLPL",
-          "name": "alex",
+          "player_tag": "#0Y2VC9PYL9",
+          "name": "goat",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -611,11 +611,11 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#CV20JCY0V",
-          "name": "BigNorton",
+          "player_tag": "#08UJ89CQ9",
+          "name": "Butterfly",
           "after_days": 49
         },
-        "text": "Mon 17:54 BigNorton played again after 49 quiet days."
+        "text": "Mon 17:54 Butterfly played again after 49 quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -624,15 +624,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20CLVPLG8R",
-          "name": "VVSBUDGET",
+          "player_tag": "#00RJQU2GC0",
+          "name": "EVERGREEN",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-08-31T07:10:58.000Z",
-        "text": "Mon 07:10 VVSBUDGET passed 5 recorded-quiet days."
+        "text": "Mon 07:10 EVERGREEN passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -641,15 +641,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#RRU9PGJQ9",
-          "name": "Brotherinpants",
+          "player_tag": "#0JR80UJVJ",
+          "name": "ThunderboltDew",
           "role": "member",
           "rung": 10,
           "days_quiet": 10,
           "days_since_poll": 0
         },
         "observed_at": "2026-08-29T05:13:53.000Z",
-        "text": "Sat 05:13 Brotherinpants passed 10 recorded-quiet days."
+        "text": "Sat 05:13 ThunderboltDew passed 10 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -658,8 +658,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#UL2V9QRG0",
-          "name": "raquaza",
+          "player_tag": "#0G9L8QCVV",
+          "name": "dolphin",
           "role": "coLeader",
           "rung": 5,
           "days_quiet": 5,
@@ -675,8 +675,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#V0CRYP2GG",
-          "name": "pokemon",
+          "player_tag": "#0RC8G2CYG",
+          "name": "buffalo",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -692,8 +692,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20GQUGPRC2",
-          "name": "Gem",
+          "player_tag": "#0J0P0RJUQ8",
+          "name": "Fig",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -709,8 +709,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20G0JGQLPL",
-          "name": "alex",
+          "player_tag": "#0Y2VC9PYL9",
+          "name": "goat",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -726,15 +726,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#U08P889Y0",
-          "name": "Tere",
+          "player_tag": "#0QLG889LG",
+          "name": "Fern",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-08-27T13:04:20.000Z",
-        "text": "Thu 13:04 Tere passed 5 recorded-quiet days."
+        "text": "Thu 13:04 Fern passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -744,11 +744,11 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#20LP8UPJ8R",
-          "name": "I Hate Witch",
+          "player_tag": "#0QVY0J0YR0",
+          "name": "O Keen Quiet",
           "after_days": 11
         },
-        "text": "Tue 11:30 I Hate Witch played again after 11 quiet days."
+        "text": "Tue 11:30 O Keen Quiet played again after 11 quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -758,8 +758,8 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#UL2V9QRG0",
-          "name": "raquaza",
+          "player_tag": "#0G9L8QCVV",
+          "name": "dolphin",
           "after_days": 8
         },
         "text": "Sat 07:36 raquaza played again after 8 quiet days."
@@ -772,11 +772,11 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#2LRYLQPL",
-          "name": "Andy",
+          "player_tag": "#00J00U28",
+          "name": "Warm",
           "after_days": 7
         },
-        "text": "Thu 16:16 Andy played again after 7 quiet days."
+        "text": "Thu 16:16 Warm played again after 7 quiet days."
       }
     ],
     "timeline_more": 0,
@@ -790,53 +790,53 @@
           "from": "2026-08-25T00:00:00.000Z",
           "to": "2026-09-24T00:00:00.000Z"
         },
-        "summary": "POAP KINGS: 8979 battles in 2262 sessions by 50 players who were members during the window (roster now 48) since Aug 25; joined: alex, alex, Gem, duki suzuki, VVSBUDGET +3; left: alex, Gem, blackberry, ㅤᴀɴᴅᴇʀㅤ:), Th15_Guy +4; roles: Mega Goblin member→elder, L-Drxgo⚡ member→elder, Th15_Guy elder→member; roster 50→48; week 1 finished in place 1 with 10,134 fame; week 2 finished in place 1 with 10,146 fame; training day; quiet past 10d: Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ (12d), pokemon (11d), VVSBUDGET (10d), alex (10d); quiet past 5d: Brotherinpants (5d); back: Gem after 13d, kiruba⚜️ after 10d, Brotherinpants after 7d; most battles: Aaqib Javed 976, Vijay 932, sikander sidhu 658; new bests: sikander sidhu 14,000, Ak 11,509, nyje47 9,056 +2; 6 arena promotions (x.x.hari.x.x → Royal Crypt, x.x.hari.x.x → Silent Sanctuary, Ak → Summit of Heroes); ranked: Aaqib Javed → Master 2, TDuck → Master 2, MONICA → Master 3; standout sessions: sikander sidhu 17W-5L +318 (7 in a row), NOBITA 10W-34L -34, sikander sidhu 22W-22L +7 (6 in a row); badges: bonus 23 (Miner Mastery, Dark Prince Mastery, Sparky Mastery), Mega Goblin 20 (Barbarian Barrel Mastery, Golden Knight Mastery, Battle Ram Mastery), sikander sidhu 13 (Ice Wizard Mastery, 2v2, Royal Hogs Mastery); donations this week 2,651, led by Vijay (300).",
+        "summary": "POAP KINGS: 8979 battles in 2262 sessions by 50 players who were members during the window (roster now 48) since Aug 25; joined: alex, alex, Gem, moth dapper, EVERGREEN +3; left: alex, Gem, blackberry, 바람:), Ox72_Cod +4; roles: Mega Goblin member→elder, O-Bison🎈 member→elder, Ox72_Cod elder→member; roster 50→48; week 1 finished in place 1 with 10,134 fame; week 2 finished in place 1 with 10,146 fame; training day; quiet past 10d: Pélican Çedar🌟 (12d), pokemon (11d), EVERGREEN (10d), alex (10d); quiet past 5d: ThunderboltDew (5d); back: Gem after 13d, dapper🐢 after 10d, ThunderboltDew after 7d; most battles: Happy Tiger 976, Acorn 932, flamingo crane 658; new bests: flamingo crane 14,000, Ak 11,509, moth31 9,056 +2; 6 arena promotions (o.o.crab.o.o → Royal Crypt, o.o.crab.o.o → Silent Sanctuary, Ak → Summit of Heroes); ranked: Happy Tiger → Master 2, Rapid → Master 2, OSPREY → Master 3; standout sessions: flamingo crane 17W-5L +318 (7 in a row), STURDY 10W-34L -34, flamingo crane 22W-22L +7 (6 in a row); badges: bonus 23 (Miner Mastery, Dark Prince Mastery, Sparky Mastery), Mega Goblin 20 (Barbarian Barrel Mastery, Golden Knight Mastery, Battle Ram Mastery), flamingo crane 13 (Ice Wizard Mastery, 2v2, Royal Hogs Mastery); donations this week 2,651, led by Acorn (300).",
         "presence": {
           "quiet_crossed": {
             "items": [
               {
-                "tag": "#2P9GRU2Q0",
-                "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+                "tag": "#090QYUG02",
+                "name": "Pélican Çedar🌟",
                 "role": "elder",
                 "days_quiet": 12,
                 "days_since_poll": 0,
                 "rung": 10
               },
               {
-                "tag": "#V0CRYP2GG",
-                "name": "pokemon",
+                "tag": "#0RC8G2CYG",
+                "name": "buffalo",
                 "role": "member",
                 "days_quiet": 11,
                 "days_since_poll": 0,
                 "rung": 10
               },
               {
-                "tag": "#20CLVPLG8R",
-                "name": "VVSBUDGET",
+                "tag": "#00RJQU2GC0",
+                "name": "EVERGREEN",
                 "role": "member",
                 "days_quiet": 10,
                 "days_since_poll": 0,
                 "rung": 10
               },
               {
-                "tag": "#20G0JGQLPL",
-                "name": "alex",
+                "tag": "#0Y2VC9PYL9",
+                "name": "goat",
                 "role": "member",
                 "days_quiet": 10,
                 "days_since_poll": 0,
                 "rung": 10
               },
               {
-                "tag": "#RRU9PGJQ9",
-                "name": "Brotherinpants",
+                "tag": "#0JR80UJVJ",
+                "name": "ThunderboltDew",
                 "role": "member",
                 "days_quiet": 5,
                 "days_since_poll": 0,
                 "rung": 5
               },
               {
-                "tag": "#20G9RY299P",
-                "name": "Waltadr",
+                "tag": "#0YC9LP8JYL",
+                "name": "Compass",
                 "role": "member",
                 "days_quiet": 5,
                 "days_since_poll": 0,
@@ -848,63 +848,63 @@
           "returned": {
             "items": [
               {
-                "tag": "#20GQUGPRC2",
-                "name": "Gem",
+                "tag": "#0J0P0RJUQ8",
+                "name": "Fig",
                 "after_days": 13
               },
               {
-                "tag": "#G2CUUJQ8V",
-                "name": "kiruba⚜️",
+                "tag": "#0JL99P2UR",
+                "name": "dapper🐢",
                 "after_days": 10
               },
               {
-                "tag": "#RRU9PGJQ9",
-                "name": "Brotherinpants",
+                "tag": "#0JR80UJVJ",
+                "name": "ThunderboltDew",
                 "after_days": 7
               },
               {
-                "tag": "#YC8LLR8Q2",
-                "name": "sniperhendo",
+                "tag": "#0YUG82UQC",
+                "name": "grasshopper",
                 "after_days": 7
               },
               {
-                "tag": "#VR0QRP2PG",
-                "name": "round hamster",
+                "tag": "#0988PUGPY",
+                "name": "acorn lantern",
                 "after_days": 7
               },
               {
-                "tag": "#V0CRYP2GG",
-                "name": "pokemon",
+                "tag": "#0RC8G2CYG",
+                "name": "buffalo",
                 "after_days": 10
               },
               {
-                "tag": "#20CLVPLG8R",
-                "name": "VVSBUDGET",
+                "tag": "#00RJQU2GC0",
+                "name": "EVERGREEN",
                 "after_days": 14
               },
               {
-                "tag": "#RRU9PGJQ9",
-                "name": "Brotherinpants",
+                "tag": "#0JR80UJVJ",
+                "name": "ThunderboltDew",
                 "after_days": 19
               },
               {
-                "tag": "#CV20JCY0V",
-                "name": "BigNorton",
+                "tag": "#08UJ89CQ9",
+                "name": "Butterfly",
                 "after_days": 49
               },
               {
-                "tag": "#20LP8UPJ8R",
-                "name": "I Hate Witch",
+                "tag": "#0QVY0J0YR0",
+                "name": "O Keen Quiet",
                 "after_days": 11
               },
               {
-                "tag": "#UL2V9QRG0",
-                "name": "raquaza",
+                "tag": "#0G9L8QCVV",
+                "name": "dolphin",
                 "after_days": 8
               },
               {
-                "tag": "#2LRYLQPL",
-                "name": "Andy",
+                "tag": "#00J00U28",
+                "name": "Warm",
                 "after_days": 7
               }
             ],

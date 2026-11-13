@@ -87,8 +87,8 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#YC8LLR8Q2",
-          "name": "sniperhendo",
+          "player_tag": "#0YUG82UQC",
+          "name": "grasshopper",
           "badge": "MasteryBabyDragon",
           "badge_label": "Baby Dragon Mastery",
           "level": 5,
@@ -105,8 +105,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#YC8LLR8Q2",
-          "name": "sniperhendo",
+          "player_tag": "#0YUG82UQC",
+          "name": "grasshopper",
           "started_at": "2026-09-24T02:28:03.000Z",
           "ended_at": "2026-09-24T02:54:33.000Z",
           "battles": 7,
@@ -132,8 +132,8 @@
         "kind": "ranked_promotion",
         "section": "standouts",
         "facts": {
-          "player_tag": "#YC8LLR8Q2",
-          "name": "sniperhendo",
+          "player_tag": "#0YUG82UQC",
+          "name": "grasshopper",
           "from": 1,
           "to": 2,
           "promoted_by": {
@@ -141,8 +141,8 @@
             "battle_time": "2026-09-24T02:32:23.000Z",
             "type": "pathOfLegend",
             "opponent": {
-              "player_tag": "#UQLJCGJPY",
-              "name": "todosan",
+              "player_tag": "#0PJCPG229",
+              "name": "compass",
               "starting_trophies": null
             },
             "crowns": 1,
@@ -162,15 +162,15 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#PLCCYUQL",
-          "name": "TDuck",
+          "player_tag": "#0L990RRV",
+          "name": "Rapid",
           "badge": "MasteryDarkPrince",
           "badge_label": "Dark Prince Mastery",
           "level": 5,
           "max_level": 10,
           "prior_level": 4
         },
-        "text": "Wed 21:12 TDuck took Dark Prince Mastery to level 5."
+        "text": "Wed 21:12 Rapid took Dark Prince Mastery to level 5."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -179,8 +179,8 @@
         "kind": "member_left",
         "section": "roster",
         "facts": {
-          "player_tag": "#P8URQGR2U",
-          "name": "alex",
+          "player_tag": "#0C2L90UG9",
+          "name": "goat",
           "role_at_departure": "member",
           "joined_observed_at": "2026-09-23T20:38:09.000Z",
           "roster_size_before": 48,
@@ -196,8 +196,8 @@
         "kind": "member_joined",
         "section": "roster",
         "facts": {
-          "player_tag": "#P8URQGR2U",
-          "name": "alex",
+          "player_tag": "#0C2L90UG9",
+          "name": "goat",
           "role": "member",
           "roster_size_before": 47,
           "roster_size_after": 48
@@ -213,8 +213,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#C920YGLC2",
-          "name": "Vijay",
+          "player_tag": "#0GQ2CLQQJ",
+          "name": "Acorn",
           "started_at": "2026-09-23T17:37:51.000Z",
           "ended_at": "2026-09-23T17:59:01.000Z",
           "battles": 7,
@@ -231,7 +231,7 @@
           "crossed": ["won_in_a_row>=5"],
           "newly": ["won_in_a_row>=5"]
         },
-        "text": "Wed 17:52 Vijay played 7 battles in one sitting (7W-0L; 6 casual, 1 ranked, 7 wins in a row)."
+        "text": "Wed 17:52 Acorn played 7 battles in one sitting (7W-0L; 6 casual, 1 ranked, 7 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -241,8 +241,8 @@
         "kind": "arena_changed",
         "section": "standouts",
         "facts": {
-          "player_tag": "#20GQUGPRC2",
-          "name": "Gem",
+          "player_tag": "#0J0P0RJUQ8",
+          "name": "Fig",
           "from": 54000013,
           "to": 54000014,
           "to_name": "Royal Crypt",
@@ -257,8 +257,8 @@
         "kind": "member_joined",
         "section": "roster",
         "facts": {
-          "player_tag": "#20GQUGPRC2",
-          "name": "Gem",
+          "player_tag": "#0J0P0RJUQ8",
+          "name": "Fig",
           "role": "member",
           "roster_size_before": 46,
           "roster_size_after": 47
@@ -274,8 +274,8 @@
         "kind": "best_trophies_band",
         "section": "standouts",
         "facts": {
-          "player_tag": "#20GQUGPRC2",
-          "name": "Gem",
+          "player_tag": "#0J0P0RJUQ8",
+          "name": "Fig",
           "best": 6003,
           "band": 6000,
           "crossed_by": {
@@ -283,8 +283,8 @@
             "battle_time": "2026-09-23T17:33:23.000Z",
             "type": "PvP",
             "opponent": {
-              "player_tag": "#VRL9LLURV",
-              "name": "MORiArty49|",
+              "player_tag": "#0JQUV0LVP",
+              "name": "Spirited92|",
               "starting_trophies": 6000
             },
             "crowns": 1,
@@ -293,7 +293,7 @@
             "trophies_after": 6003
           }
         },
-        "text": "Wed 17:33 Gem set a new best of 6,003 trophies, crossing 6,000, on a 1-0 win over MORiArty49| (6,000), +32 to 6,003."
+        "text": "Wed 17:33 Gem set a new best of 6,003 trophies, crossing 6,000, on a 1-0 win over Spirited92| (6,000), +32 to 6,003."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -302,15 +302,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#RRU9PGJQ9",
-          "name": "Brotherinpants",
+          "player_tag": "#0JR80UJVJ",
+          "name": "ThunderboltDew",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-23T15:44:53.000Z",
-        "text": "Wed 15:44 Brotherinpants passed 5 recorded-quiet days."
+        "text": "Wed 15:44 ThunderboltDew passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -320,15 +320,15 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#U92P8PQG0",
-          "name": "God Bless You",
+          "player_tag": "#0CJ9UPPR2",
+          "name": "Bee Eager Eel",
           "badge": "MasterySpearGoblins",
           "badge_label": "Spear Goblins Mastery",
           "level": 5,
           "max_level": 10,
           "prior_level": 4
         },
-        "text": "Wed 15:07 God Bless You took Spear Goblins Mastery to level 5."
+        "text": "Wed 15:07 Bee Eager Eel took Spear Goblins Mastery to level 5."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -338,15 +338,15 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#V8Q8PUL0U",
-          "name": "ryguy67",
+          "player_tag": "#082YLQRRV",
+          "name": "heron82",
           "badge": "MasteryTombstone",
           "badge_label": "Tombstone Mastery",
           "level": 5,
           "max_level": 10,
           "prior_level": 4
         },
-        "text": "Wed 12:07 ryguy67 took Tombstone Mastery to level 5."
+        "text": "Wed 12:07 heron82 took Tombstone Mastery to level 5."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -355,15 +355,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20CLVPLG8R",
-          "name": "VVSBUDGET",
+          "player_tag": "#00RJQU2GC0",
+          "name": "EVERGREEN",
           "role": "member",
           "rung": 10,
           "days_quiet": 10,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-23T11:28:02.000Z",
-        "text": "Wed 11:28 VVSBUDGET passed 10 recorded-quiet days."
+        "text": "Wed 11:28 EVERGREEN passed 10 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -373,8 +373,8 @@
         "kind": "best_trophies_band",
         "section": "standouts",
         "facts": {
-          "player_tag": "#JRVV9VC0C",
-          "name": "NOBITA",
+          "player_tag": "#0CC2QGGUU",
+          "name": "STURDY",
           "best": 9014,
           "band": 9000,
           "crossed_by": {
@@ -382,8 +382,8 @@
             "battle_time": "2026-09-23T02:56:31.000Z",
             "type": "PvP",
             "opponent": {
-              "player_tag": "#VRL2GRU0Y",
-              "name": "Arun",
+              "player_tag": "#0GGRCJQJQ",
+              "name": "Tall",
               "starting_trophies": 9000
             },
             "crowns": 1,
@@ -392,7 +392,7 @@
             "trophies_after": 9014
           }
         },
-        "text": "Wed 02:56 NOBITA set a new best of 9,014 trophies, crossing 9,000, on a 1-0 win over Arun (9,000), +31 to 9,014."
+        "text": "Wed 02:56 STURDY set a new best of 9,014 trophies, crossing 9,000, on a 1-0 win over Tall (9,000), +31 to 9,014."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -402,8 +402,8 @@
         "kind": "arena_changed",
         "section": "standouts",
         "facts": {
-          "player_tag": "#JRVV9VC0C",
-          "name": "NOBITA",
+          "player_tag": "#0CC2QGGUU",
+          "name": "STURDY",
           "from": 54000019,
           "to": 54000020,
           "to_name": "Valkalla",
@@ -412,8 +412,8 @@
             "battle_time": "2026-09-23T02:56:31.000Z",
             "type": "PvP",
             "opponent": {
-              "player_tag": "#VRL2GRU0Y",
-              "name": "Arun",
+              "player_tag": "#0GGRCJQJQ",
+              "name": "Tall",
               "starting_trophies": 9000
             },
             "crowns": 1,
@@ -424,7 +424,7 @@
           },
           "from_name": "PANCAKES!"
         },
-        "text": "Wed 02:56 NOBITA moved to Valkalla from PANCAKES!, on a 1-0 win over Arun (9,000), +31 to 9,014."
+        "text": "Wed 02:56 STURDY moved to Valkalla from PANCAKES!, on a 1-0 win over Tall (9,000), +31 to 9,014."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -433,8 +433,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20G0JGQLPL",
-          "name": "alex",
+          "player_tag": "#0Y2VC9PYL9",
+          "name": "goat",
           "role": "member",
           "rung": 10,
           "days_quiet": 10,
@@ -450,15 +450,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20G9RY299P",
-          "name": "Waltadr",
+          "player_tag": "#0YC9LP8JYL",
+          "name": "Compass",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-23T00:40:28.000Z",
-        "text": "Wed 00:40 Waltadr passed 5 recorded-quiet days."
+        "text": "Wed 00:40 Compass passed 5 recorded-quiet days."
       }
     ],
     "timeline_more": 32,
@@ -472,7 +472,7 @@
           "from": "2026-09-21T00:00:00.000Z",
           "to": "2026-09-24T04:43:00.427Z"
         },
-        "summary": "POAP KINGS: 1143 battles in 282 sessions by 41 of 48 members since Sep 21; joined: alex, alex, Gem; left: alex; roster 46→48; week 2 finished in place 1 with 10,146 fame; training day; quiet past 10d: Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ (12d), pokemon (11d), alex (11d), VVSBUDGET (10d), Waltadr (6d); back: kiruba⚜️ after 10d; most battles: sikander sidhu 177, Vijay 151, Chanco 62; new bests: sikander sidhu 14,000, NOBITA 9,014, Gem 6,003; 2 arena promotions (NOBITA → Valkalla, Gem → Royal Crypt); ranked: TDuck → Master 3, OllieTurtle → Grand Champion, dez42 → Master 3; standout sessions: sikander sidhu 17W-5L +318 (7 in a row), sikander sidhu 10W-45L, Aaqib Javed 7W-1L (7 in a row); badges: Mega Goblin 13 (2v2 League Completion, Mini P.E.K.K.A Mastery, Spear Goblins Mastery), sniperhendo 13 (Witch Mastery, Mini P.E.K.K.A Mastery, Zap Mastery), ryguy67 6 (2v2 League Completion, Spear Goblins Mastery, Lumberjack Mastery); donations this week 3,498, led by Vijay (463)."
+        "summary": "POAP KINGS: 1143 battles in 282 sessions by 41 of 48 members since Sep 21; joined: alex, alex, Gem; left: alex; roster 46→48; week 2 finished in place 1 with 10,146 fame; training day; quiet past 10d: Pélican Çedar🌟 (12d), pokemon (11d), alex (11d), EVERGREEN (10d), Compass (6d); back: dapper🐢 after 10d; most battles: flamingo crane 177, Acorn 151, Cheery 62; new bests: flamingo crane 14,000, STURDY 9,014, Gem 6,003; 2 arena promotions (STURDY → Valkalla, Gem → Royal Crypt); ranked: Rapid → Master 3, Thunderbolt → Grand Champion, yak41 → Master 3; standout sessions: flamingo crane 17W-5L +318 (7 in a row), flamingo crane 10W-45L, Happy Tiger 7W-1L (7 in a row); badges: Mega Goblin 13 (2v2 League Completion, Mini P.E.K.K.A Mastery, Spear Goblins Mastery), sniperhendo 13 (Witch Mastery, Mini P.E.K.K.A Mastery, Zap Mastery), heron82 6 (2v2 League Completion, Spear Goblins Mastery, Lumberjack Mastery); donations this week 3,498, led by Acorn (463)."
       }
     ],
     "quiet": [],

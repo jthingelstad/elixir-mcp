@@ -43,8 +43,8 @@
         "kind": "member_left",
         "section": "roster",
         "facts": {
-          "player_tag": "#P8URQGR2U",
-          "name": "alex",
+          "player_tag": "#0C2L90UG9",
+          "name": "goat",
           "role_at_departure": "member",
           "joined_observed_at": "2026-09-23T20:38:09.000Z",
           "roster_size_before": 48,
@@ -60,8 +60,8 @@
         "kind": "member_joined",
         "section": "roster",
         "facts": {
-          "player_tag": "#P8URQGR2U",
-          "name": "alex",
+          "player_tag": "#0C2L90UG9",
+          "name": "goat",
           "role": "member",
           "roster_size_before": 47,
           "roster_size_after": 48
@@ -81,7 +81,7 @@
           "from": "2026-09-23T20:00:00.000Z",
           "to": "2026-09-23T23:00:00.000Z"
         },
-        "summary": "POAP KINGS: 39 battles in 11 sessions by 11 of 48 members since Wed 20:00; joined: alex, alex; left: alex; roster 47→48; training day; most battles: Vijay 17, x.x.hari.x.x 5, 1spaceO2 4; badges: TDuck 1 (Dark Prince Mastery), raquaza 1 (Battle Wins), BigNorton 1 (Sparky Mastery); donations this week 2,697, led by Vijay (300).",
+        "summary": "POAP KINGS: 39 battles in 11 sessions by 11 of 48 members since Wed 20:00; joined: alex, alex; left: alex; roster 47→48; training day; most battles: Acorn 17, o.o.crab.o.o 5, Penguin4 4; badges: Rapid 1 (Dark Prince Mastery), raquaza 1 (Battle Wins), Butterfly 1 (Sparky Mastery); donations this week 2,697, led by Acorn (300).",
         "activity": {
           "battles": 39,
           "members_active": 11,
@@ -99,14 +99,14 @@
           "joined": {
             "items": [
               {
-                "tag": "#P8URQGR2U",
-                "name": "alex",
+                "tag": "#0C2L90UG9",
+                "name": "goat",
                 "role": "member",
                 "at": "2026-09-23T22:23:11.000Z"
               },
               {
-                "tag": "#P8URQGR2U",
-                "name": "alex",
+                "tag": "#0C2L90UG9",
+                "name": "goat",
                 "role": "member",
                 "at": "2026-09-23T20:38:09.000Z"
               }
@@ -116,8 +116,8 @@
           "left": {
             "items": [
               {
-                "tag": "#P8URQGR2U",
-                "name": "alex",
+                "tag": "#0C2L90UG9",
+                "name": "goat",
                 "role": "member",
                 "at": "2026-09-23T20:58:06.000Z",
                 "tenure_days": 0
@@ -162,28 +162,28 @@
         "standouts": {
           "most_battles": [
             {
-              "tag": "#C920YGLC2",
-              "name": "Vijay",
+              "tag": "#0GQ2CLQQJ",
+              "name": "Acorn",
               "battles": 17
             },
             {
-              "tag": "#URPCLR8UQ",
-              "name": "x.x.hari.x.x",
+              "tag": "#0QLLUVPVL",
+              "name": "o.o.crab.o.o",
               "battles": 5
             },
             {
-              "tag": "#VQUQJP8Q9",
-              "name": "1spaceO2",
+              "tag": "#0Q98R28PV",
+              "name": "Penguin4",
               "battles": 4
             },
             {
-              "tag": "#2YG98VVQ",
-              "name": "Alfablack",
+              "tag": "#00C298UC",
+              "name": "Sunflower",
               "battles": 3
             },
             {
-              "tag": "#RJ9RRQPVU",
-              "name": "OllieTurtle",
+              "tag": "#0PUJYGGQ8",
+              "name": "Thunderbolt",
               "battles": 3
             }
           ],
@@ -205,20 +205,20 @@
           },
           "badges": [
             {
-              "tag": "#PLCCYUQL",
-              "name": "TDuck",
+              "tag": "#0L990RRV",
+              "name": "Rapid",
               "count": 1,
               "names": ["MasteryDarkPrince"]
             },
             {
-              "tag": "#UL2V9QRG0",
-              "name": "raquaza",
+              "tag": "#0G9L8QCVV",
+              "name": "dolphin",
               "count": 1,
               "names": ["BattleWins"]
             },
             {
-              "tag": "#CV20JCY0V",
-              "name": "BigNorton",
+              "tag": "#08UJ89CQ9",
+              "name": "Butterfly",
               "count": 1,
               "names": ["MasteryZapMachine"]
             }
@@ -237,8 +237,8 @@
           "week_total": 2697,
           "members_counted": 47,
           "leader": {
-            "tag": "#C920YGLC2",
-            "name": "Vijay",
+            "tag": "#0GQ2CLQQJ",
+            "name": "Acorn",
             "given": 300
           },
           "as_of": "2026-09-23T23:00:00.000Z"

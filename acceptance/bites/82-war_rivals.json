@@ -10,13 +10,13 @@
     "clan_tag": "#J2RGCRVG",
     "applied": {
       "clan_tag": "#J2RGCRVG",
-      "rival_tags": ["#G2P0PPGQ", "#L0Y2CJ8J", "#QUGRGLU2", "#YY20VJLU"],
+      "rival_tags": ["#0P0PCL0Q", "#0J2JQVUR", "#00CJ099R", "#00VJCQRG"],
       "source": "current_bracket"
     },
     "rivals": [
       {
-        "clan_tag": "#QUGRGLU2",
-        "name": "Happy Win",
+        "clan_tag": "#00CJ099R",
+        "name": "Llama Hen",
         "races_observed": 2,
         "colosseum_races": 0,
         "races_shared_with_you": 2,
@@ -30,8 +30,8 @@
         "clan_score": 1177
       },
       {
-        "clan_tag": "#G2P0PPGQ",
-        "name": "De stichting",
+        "clan_tag": "#0P0PCL0Q",
+        "name": "Ox dragonfly",
         "races_observed": 2,
         "colosseum_races": 0,
         "races_shared_with_you": 2,
@@ -45,8 +45,8 @@
         "clan_score": 1152
       },
       {
-        "clan_tag": "#L0Y2CJ8J",
-        "name": "Legend Royale",
+        "clan_tag": "#0J2JQVUR",
+        "name": "Sturdy Pebble",
         "races_observed": 2,
         "colosseum_races": 0,
         "races_shared_with_you": 2,
@@ -60,8 +60,8 @@
         "clan_score": 1156
       },
       {
-        "clan_tag": "#YY20VJLU",
-        "name": "Les champs",
+        "clan_tag": "#00VJCQRG",
+        "name": "Eel lively",
         "races_observed": 2,
         "colosseum_races": 0,
         "races_shared_with_you": 2,
