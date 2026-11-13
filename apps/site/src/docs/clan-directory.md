@@ -60,6 +60,10 @@ The filters use only those facts:
 - **Your trophies:** clans whose trophies to join are at or under yours. A
   clan whose requirement is not recorded is left out while this is set.
 
+On a phone, every filter but search sits behind **Filters**, which says
+how many are set, so the clans are on your first screen. Tap it to open
+them.
+
 Clans are listed by name, then by tag. Nothing in the directory is a
 rating: no clan is placed above another for its size, trophies or
 anything else, and a filter only hides tiles, it never reorders them.

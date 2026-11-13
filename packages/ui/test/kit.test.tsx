@@ -17,7 +17,9 @@ import {
   Stats,
   Table,
   Tabs,
+  useScrollHint,
 } from "../src/index.ts";
+import { useRef } from "react";
 
 afterEach(cleanup);
 
@@ -366,5 +368,69 @@ describe("Row's lead", () => {
     expect(container.querySelector(".kit-row__lead .kit-av")).toBeTruthy();
     const bare = render(<Row title="Pell" />).container;
     expect(bare.querySelector(".kit-row__lead")).toBeNull();
+  });
+});
+
+describe("useScrollHint", () => {
+  function Row({ focusable }: { focusable?: boolean }) {
+    const row = useRef<HTMLUListElement>(null);
+    useScrollHint(row, { focusable });
+    return (
+      <ul ref={row} aria-label="Facts">
+        <li>One</li>
+      </ul>
+    );
+  }
+  const widths = (scroll: number, client: number) => {
+    const proto = HTMLElement.prototype;
+    const was = {
+      scroll: Object.getOwnPropertyDescriptor(proto, "scrollWidth"),
+      client: Object.getOwnPropertyDescriptor(proto, "clientWidth"),
+    };
+    Object.defineProperty(proto, "scrollWidth", {
+      configurable: true,
+      get: () => scroll,
+    });
+    Object.defineProperty(proto, "clientWidth", {
+      configurable: true,
+      get: () => client,
+    });
+    return () => {
+      if (was.scroll) Object.defineProperty(proto, "scrollWidth", was.scroll);
+      if (was.client) Object.defineProperty(proto, "clientWidth", was.client);
+    };
+  };
+  test("a row of facts that scrolls is a tab stop and fades its far edge", () => {
+    const restore = widths(300, 100);
+    try {
+      render(<Row focusable />);
+      const row = screen.getByRole("list", { name: "Facts" });
+      expect(row.getAttribute("tabindex")).toBe("0");
+      expect(row.hasAttribute("data-more-right")).toBe(true);
+      expect(row.hasAttribute("data-more-left")).toBe(false);
+    } finally {
+      restore();
+    }
+  });
+  test("a row that fits is no tab stop, and a row of controls never is", () => {
+    const restore = widths(100, 100);
+    try {
+      render(<Row focusable />);
+      expect(
+        screen.getByRole("list", { name: "Facts" }).hasAttribute("tabindex"),
+      ).toBe(false);
+    } finally {
+      restore();
+    }
+    cleanup();
+    const again = widths(300, 100);
+    try {
+      render(<Row />);
+      expect(
+        screen.getByRole("list", { name: "Facts" }).hasAttribute("tabindex"),
+      ).toBe(false);
+    } finally {
+      again();
+    }
   });
 });

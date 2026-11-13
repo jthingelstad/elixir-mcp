@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ACTION_ORDER as ORDER } from "@elixir-mcp/clan-engine";
 import {
-  Empty,
   ErrorState,
   Fresh,
   Panel,
@@ -485,10 +484,11 @@ function Waiting({ d, clan, who, navigate, state, load }) {
         </LeaderMessageNotice>
       ) : null}
       {open.length === 0 ? (
-        <Empty title="Nothing waiting for you">
-          An action appears here when the clan&rsquo;s policy suggests something
-          you can do. Elixir reads the clan each morning, and again when someone
-          opens Standing or chooses Refresh suggestions.
+        // One quiet line, not a box (2026-11-13): on a phone the timeline
+        // under it is what the Feed is for.
+        <p className="page-head__note m-0">
+          <span>Nothing waiting for you</span>: an action appears here when the
+          clan&rsquo;s policy suggests something you can do.
           {state ? (
             <>
               {" "}
@@ -502,7 +502,7 @@ function Waiting({ d, clan, who, navigate, state, load }) {
               </button>
             </>
           ) : null}
-        </Empty>
+        </p>
       ) : (
         <ActionList
           id="actions-waiting"

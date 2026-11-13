@@ -1019,6 +1019,35 @@ test.describe("signed in", () => {
     await accessible(page, "narrow standing");
   });
 
+  test("@narrow the Feed puts the timeline first and the head's chips in one row", async ({
+    page,
+  }) => {
+    await page.goto("/clan/0QC8RCGY/feed");
+    const timeline = page.locator('section[aria-labelledby="feed-timeline"]');
+    const cards = page.locator(".clan-today__cards");
+    await expect(timeline).toBeVisible();
+    await expect(cards).toBeVisible();
+    // The side cards come after the timeline on a phone (2026-11-13).
+    const [t, c] = await Promise.all([
+      timeline.boundingBox(),
+      cards.boundingBox(),
+    ]);
+    expect(t && c && t.y < c.y).toBe(true);
+    // The chips are one row that scrolls inside the head, never the page.
+    const chips = page.getByRole("list", { name: "This clan" });
+    await expect(chips).toBeVisible();
+    const tops = await chips
+      .locator("li")
+      .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().top));
+    expect(new Set(tops).size).toBe(1);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await accessible(page, "narrow feed");
+  });
+
   test("@narrow Run is a list, then a section with a way back", async ({
     page,
   }) => {

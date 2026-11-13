@@ -107,6 +107,20 @@ test.describe("clan directory @narrow", () => {
       0,
     );
 
+    // On a phone the filters but search fold behind Filters, closed at
+    // first, so the tiles are on the first screen (2026-11-13).
+    const toggle = page.getByRole("button", { name: /^Filters/ });
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByLabel("Search")).toBeVisible();
+    await expect(page.getByLabel("Your trophies")).toBeHidden();
+    const firstTile = await page
+      .locator(".clan-dir__tile")
+      .first()
+      .boundingBox();
+    expect(firstTile?.y ?? Infinity).toBeLessThan(844);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+
     // A filter hides tiles and keeps the order.
     await page
       .getByRole("group", { name: "Days with no battle before a removal" })
@@ -114,6 +128,7 @@ test.describe("clan directory @narrow", () => {
       .click();
     await expect(tiles(page)).toHaveText(["Alpha Example", "Zulu Example"]);
     await expect(page.getByText(/^2 of 3 listed clans fit/)).toBeVisible();
+    await expect(toggle).toHaveText("Filters · 1 set");
     await page.getByLabel("Your trophies").fill("4000");
     await expect(page.getByText("No clan fits all of that")).toBeVisible();
     await page
