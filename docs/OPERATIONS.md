@@ -392,8 +392,8 @@ Sample real values against the game.
   Colosseum boundary is where drift shows. Time-derived identity comes
   from the calendar, never a state machine.
 - **API drift.** Fields, enums, modes or cards in fresh payloads that
-  `cr-agent-api-docs` does not describe (`{enum_census}`,
-  `{mode_shape_census}`, the `reference-audit` skill). `npm run cr`
+  `cr-agent-api-docs` does not describe (the `reference-audit` skill).
+  `npm run cr`
   checks a claim before it is written there.
 - **Honesty.** Coverage tools disclose when recording started, unknowns
   are null rather than zero, and every rate carries its sample size.
@@ -413,19 +413,15 @@ Sample real values against the game.
   `npm run op -- '{"vacuum": {"table": "<table>"}}'` (WRITE) on each
   table it touched and read `relallvisible` before and after. Never run a
   backfill and a deploy together.
-- **Card arrays (0255).** Ingest writes a participant's, a duel round's
-  and a deck's cards both as rows (`battle_participant_card`,
-  `deck_card`) and as arrays on the row that owns them. History is filled
-  by `npm run op -- '{"card_arrays": true}'` (WRITE), passed its returned
-  `next` until `done`: participants, then rounds, then decks, 2,000 keys
-  a batch inside 45 s, idempotent and resumable from any cursor. Then
-  vacuum `battle_participant`, `battle_participant_round` and `deck`.
-  `{"card_arrays_census": true}` (Read), paged the same way, compares
-  every element with its row; `pass: true` on the last page, every
-  mismatch and orphan count 0 and rows equal to elements, was the gate
-  for moving readers to the arrays (passed 2026-11-13; every reader has
-  read them since). A failure names its counts; a placed
-  slot that is wrong is a defect in the fill, fixed there, never by hand.
+- **Card arrays (0255, contracted in 0256).** A participant's, a duel
+  round's and a deck's cards live only as arrays on the row that owns
+  them (`battle_participant`, `battle_participant_round`, `deck`), and
+  ingest writes them in the statement that writes the row. 0091's
+  per-card tables and their fill and census ops are gone; a guard test
+  (`services/migrate/test/card-tables-gone.test.mjs`) keeps their names
+  out of the source. A wrong array is a projector defect, fixed in
+  `packages/ingest/src/deck-cards.mjs` and repaired from the payload
+  archive, never by hand.
 - **Clan policy.** A standing or award that disagrees with its saved
   policy version and the record is a defect in Clan's code, fixed there.
   Read actual grant rows, not only the evaluation's `grants_due`. No
@@ -611,7 +607,7 @@ layer transitions while Elixir has only beta users, 2026-11-12).
   `battle` 175 MB, `deck` 109 MB, `player_snapshot_daily` 105 MB,
   `player_daily_battle_rollup` 73 MB, `player_badge` 55 MB, `player`
   54 MB; read `{tables}` for the rest and for the day's sizes. On
-  2026-10-07 the small rewrote the 3.8 GB `battle_participant_card` in
+  2026-10-07 the small rewrote a 3.8 GB card table (dropped since, 0256) in
   22 s with burst I/O, so each of these should take seconds. With `elixir-mcp-db-ebs-byte-balance` spent
   the volume falls to about 4.7 MB/s, and a rewrite reads and writes the
   table and builds its indexes: `api_receipt` would then come near the

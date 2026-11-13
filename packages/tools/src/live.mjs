@@ -97,7 +97,7 @@ export function makeLive({
             where f.endpoint = $1 and f.entity_key = $2
               and f.fetched_at >= now() - make_interval(secs => $3)) x
            order by (payload_json is not null) desc, fetched_at desc limit 1`
-        : `${recorded} order by r.receipt_id desc limit 1`,
+        : `${recorded} order by r.fetched_at desc, r.receipt_id desc limit 1`,
       [endpoint, entityKey, maxAge],
     );
     const latest = fresh[0];

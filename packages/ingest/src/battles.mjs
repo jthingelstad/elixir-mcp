@@ -23,8 +23,8 @@
 import { createHash } from "node:crypto";
 import { normalizeTag, deckHash, displayLevel } from "@elixir-mcp/contracts";
 import {
+  participantArrays,
   projectDecks,
-  projectPlayedCards,
   projectRounds,
 } from "./deck-cards.mjs";
 import { canonicalBattleTime } from "./battle-time.mjs";
@@ -85,8 +85,8 @@ function participantDeck(entry) {
   return { deck, hash };
 }
 
-/** A duel's rounds, one row per game (0151). `round` is 1-based to match
- *  battle_participant_card.round, which already holds that round's deck.
+/** A duel's rounds, one row per game (0151). `round` is 1-based; the
+ *  round's cards ride its row (0255, deck-cards.mjs projectRounds).
  *  Each round carries its own deck identity and result (0182): its eight
  *  cards' deck_hash with no tower troop (the identity every Clan Wars
  *  battle has: the API sends no tower troop on a war battle), and win,
@@ -280,8 +280,12 @@ export function canonicalizeBattle(entry) {
         crowns: p.crowns ?? null,
         trophy_change: p.trophyChange ?? null,
         starting_trophies: p.startingTrophies ?? null,
-        deck, // not a column since 0097: the card rows are cut from it (deck-cards.mjs)
+        deck, // not a column since 0097: the card arrays are cut from it (deck-cards.mjs)
         deck_hash: hash,
+        // What this participant played, as arrays on its own row (0255):
+        // written by the participant upsert itself, so the cards cost no
+        // second row version.
+        ...participantArrays(deck),
         elixir_leaked: p.elixirLeaked ?? null,
         // Null unless the player was globally ranked at battle time
         // (0151): the API rides it on every participant of every battle.
@@ -395,6 +399,14 @@ const PARTICIPANT_COLS = [
   "princess_tower_hp_2",
   "outcome",
   "clan_tag",
+  "cards",
+  "card_forms",
+  "card_levels",
+  "card_stars",
+  "tower_troop_id",
+  "tower_form",
+  "tower_level",
+  "tower_star",
 ];
 const PARTICIPANT_KEY = [
   "battle_id",
@@ -624,13 +636,12 @@ export async function ingestBattlelog(
       affected.add(
         `${r.player_tag}|${parts.get(`${r.battle_id}|${r.player_tag}`).battle_time.slice(0, 10)}`,
       );
-    // What each written participant played, as rows (0091) - only for
-    // rows that were inserted or changed, so a resubmission writes nothing.
+    // A duel's per-round results and cards (0151, 0255) - only for
+    // participant rows that were inserted or changed, so a resubmission
+    // writes nothing.
     const writtenKeys = new Set(
       partsWritten.map((r) => `${r.battle_id}|${r.player_tag}`),
     );
-    await projectPlayedCards(db, partRows, writtenKeys);
-    // A duel's per-round results (0151), beside the round decks.
     await projectRounds(db, partRows, writtenKeys);
 
     // battle_observation is no longer written (2026-09-12): the receipt

@@ -2,7 +2,12 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { ingestBattlelog, canonicalizeBattle } from "../src/battles.mjs";
 import { projectCardCatalog, projectPlayerCards } from "../src/cards.mjs";
-import { participantCardRows, ensureCards } from "../src/deck-cards.mjs";
+import {
+  participantCardRows,
+  participantArrays,
+  roundArrays,
+  ensureCards,
+} from "../src/deck-cards.mjs";
 import { fixture, fixtureMeta, scratchDb, seedReceipt } from "./helpers.mjs";
 
 let ctx;
@@ -19,6 +24,29 @@ before(async () => {
 });
 
 after(async () => ctx.drop());
+
+/** Every played card as a (battle, tag, round, slot) row, read back from
+ *  the arrays on the rows that own them (0255): round 0 and the tower
+ *  troop (slot 0) from battle_participant, a duel's rounds from
+ *  battle_participant_round. */
+const PLAYED = `
+  select bp.battle_id, bp.player_tag, 0 as round, c.slot::int as slot,
+         c.card_id, c.form, c.level, c.star_level
+  from battle_participant bp
+  cross join lateral unnest(bp.cards, bp.card_forms, bp.card_levels, bp.card_stars)
+    with ordinality as c(card_id, form, level, star_level, slot)
+  where c.card_id is not null
+  union all
+  select bp.battle_id, bp.player_tag, 0, 0, bp.tower_troop_id, bp.tower_form,
+         bp.tower_level, bp.tower_star
+  from battle_participant bp where bp.tower_troop_id is not null
+  union all
+  select r.battle_id, r.player_tag, r.round, c.slot::int,
+         c.card_id, c.form, c.level, c.star_level
+  from battle_participant_round r
+  cross join lateral unnest(r.cards, r.card_forms, r.card_levels, r.card_stars)
+    with ordinality as c(card_id, form, level, star_level, slot)
+  where c.card_id is not null`;
 
 const LOGS = [
   "player_battlelog/with_boat_and_duel.json",
@@ -43,7 +71,7 @@ async function fixtureCards() {
   return out;
 }
 
-test("played cards land as rows that agree with the deck JSON, before the catalog knows the cards", async () => {
+test("played cards land on their rows' arrays, agreeing with the deck JSON, before the catalog knows the cards", async () => {
   // 0091 is a stub-only world here: the catalog fixture is NOT loaded,
   // so every card in every battle is unknown - ingest must not pause.
   for (const name of LOGS) {
@@ -57,8 +85,7 @@ test("played cards land as rows that agree with the deck JSON, before the catalo
 
   const expected = await fixtureCards();
   const { rows: played } = await ctx.db.query(
-    `select battle_id, player_tag, round, card_id, form, slot, level, star_level
-     from battle_participant_card order by battle_id, player_tag, round, slot`,
+    `select * from (${PLAYED}) p order by battle_id, player_tag, round, slot`,
   );
   const byKey = new Map();
   for (const r of played) {
@@ -94,10 +121,10 @@ test("played cards land as rows that agree with the deck JSON, before the catalo
   // Every deck_hash a participant carries has its deck row, with the
   // identity's cards - eight of them, plus the tower troop as a FK.
   // A pvp deck is eight cards; a boat defense lists twelve. card_count
-  // records what was played, deck_card holds exactly those.
+  // records what was played, card_ids holds exactly those.
   const { rows: decks } = await ctx.db.query(
     `select distinct bp.deck_hash, b.type_class, d.card_count, d.tower_troop_id,
-            (select count(*)::int from deck_card dc where dc.deck_hash = d.deck_hash) as cards
+            cardinality(d.card_ids) as cards
      from battle_participant bp
      join battle b on b.battle_id = bp.battle_id
      join deck d on d.deck_hash = bp.deck_hash
@@ -105,7 +132,7 @@ test("played cards land as rows that agree with the deck JSON, before the catalo
   );
   assert.ok(decks.length > 0);
   for (const d of decks) {
-    assert.equal(d.cards, d.card_count, `${d.deck_hash} deck_card rows`);
+    assert.equal(d.cards, d.card_count, `${d.deck_hash} card_ids`);
     if (d.type_class === "pvp")
       assert.equal(d.card_count, 8, `${d.deck_hash} pvp card_count`);
   }
@@ -121,12 +148,17 @@ test("played cards land as rows that agree with the deck JSON, before the catalo
   );
   assert.equal(orphans.n, 0, "no participant without its deck row");
 
-  // Duels: rows per round, no deck identity.
+  // Duels: cards per round, none on the participant row.
   const { rows: duel } = await ctx.db.query(
-    `select count(distinct c.round)::int as rounds
-     from battle_participant_card c join battle b on b.battle_id = c.battle_id
-     where b.type like 'riverRaceDuel%'`,
+    `select count(distinct c.round)::int as rounds,
+            count(*) filter (where bp.cards is not null)::int as on_participant
+     from battle_participant_round c
+     join battle b on b.battle_id = c.battle_id
+     join battle_participant bp
+       on bp.battle_id = c.battle_id and bp.player_tag = c.player_tag
+     where b.type like 'riverRaceDuel%' and c.cards is not null`,
   );
+  assert.equal(duel[0].on_participant, 0, "a duel's cards ride its rounds");
   assert.ok(duel[0].rounds >= 2, "duel rounds are distinct decks");
 
   // Every card is a stub until /cards confirms it, and the stub queued
@@ -169,10 +201,10 @@ test("re-ingest writes nothing to the projections", async () => {
       await ctx.db.query(`
         select 'd' as t, deck_hash as k, xmin::text as v from deck
         union all
-        select 'dc', deck_hash || '|' || card_id || '|' || form, xmin::text from deck_card
+        select 'bp', battle_id || '|' || player_tag, xmin::text from battle_participant
         union all
-        select 'pc', battle_id || '|' || player_tag || '|' || round || '|' || card_id || '|' || form, xmin::text
-          from battle_participant_card
+        select 'r', battle_id || '|' || player_tag || '|' || round, xmin::text
+          from battle_participant_round
         union all
         select 'c', card_id::text, xmin::text from card
         order by 1, 2`)
@@ -188,6 +220,148 @@ test("re-ingest writes nothing to the projections", async () => {
     `select count(*)::int as n from job where endpoint = 'cards'`,
   );
   assert.equal(jobs[0].n, 1, "still one queued catalog job");
+});
+
+test("participantArrays: slots as listed, gaps and missing levels as NULL elements, the first tower troop", () => {
+  const card = (id, extra = {}) => ({ id, name: `c${id}`, ...extra });
+  assert.deepEqual(
+    participantArrays({
+      cards: [
+        card(26000000, { level: 14, evolutionLevel: 1, starLevel: 2 }),
+        { name: "no id" },
+        card(26000001),
+      ],
+      supportCards: [card(159000000, { level: 11 }), card(159000001)],
+    }),
+    {
+      cards: [26000000, null, 26000001],
+      card_forms: [1, null, 0],
+      card_levels: [14, null, null],
+      card_stars: [2, null, null],
+      tower_troop_id: 159000000,
+      tower_form: 0,
+      tower_level: 11,
+      tower_star: null,
+    },
+    "a second support card is ignored, the first wins",
+  );
+  // A tower troop alone: an empty deck, not a missing one.
+  assert.deepEqual(
+    participantArrays({ cards: [], supportCards: [card(159000000)] }).cards,
+    [],
+  );
+  const none = {
+    cards: null,
+    card_forms: null,
+    card_levels: null,
+    card_stars: null,
+    tower_troop_id: null,
+    tower_form: null,
+    tower_level: null,
+    tower_star: null,
+  };
+  assert.deepEqual(participantArrays(null), none, "no deck");
+  assert.deepEqual(
+    participantArrays({ rounds: [{ cards: [card(26000000)] }] }),
+    none,
+    "a duel: its rounds hold the decks",
+  );
+});
+
+test("roundArrays: each duel round's slots, with used beside them", () => {
+  const rounds = roundArrays({
+    rounds: [
+      {
+        cards: [
+          { id: 26000000, used: true },
+          { id: 26000001, level: 9 },
+        ],
+      },
+      { cards: [] },
+      { cards: [{ id: 26000002, evolutionLevel: 2, used: false }] },
+    ],
+  });
+  assert.deepEqual(
+    [...rounds.keys()],
+    [1, 3],
+    "a round with no cards is absent",
+  );
+  assert.deepEqual(rounds.get(1), {
+    cards: [26000000, 26000001],
+    card_forms: [0, 0],
+    card_levels: [null, 9],
+    card_stars: [null, null],
+    cards_used: [true, null],
+  });
+  assert.deepEqual(rounds.get(3).card_forms, [2]);
+  assert.deepEqual(rounds.get(3).cards_used, [false]);
+  assert.equal(roundArrays({ cards: [{ id: 26000000 }] }).size, 0);
+});
+
+test("a participant whose arrays are NULL is filled by re-ingest in one row version", async () => {
+  const name = "player_battlelog/with_boat_and_duel.json";
+  const ingest = async () =>
+    ingestBattlelog(ctx.db, {
+      observerTag: meta[name].entity_key,
+      receiptId,
+      payload: await fixture(name),
+    });
+  await ingest();
+  const {
+    rows: [target],
+  } = await ctx.db.query(
+    `select battle_id, player_tag, cards, card_forms, card_levels, card_stars,
+            tower_troop_id, tower_form, tower_level, tower_star
+       from battle_participant
+      where player_tag = $1 and cards is not null and cardinality(cards) > 0
+        and tower_troop_id is not null
+      order by battle_id limit 1`,
+    [meta[name].entity_key],
+  );
+  assert.ok(target, "the observer has a battle with a deck and a tower");
+  const key = [target.battle_id, target.player_tag];
+  await ctx.db.query(
+    `update battle_participant
+        set cards = null, card_forms = null, card_levels = null,
+            card_stars = null, tower_troop_id = null, tower_form = null,
+            tower_level = null, tower_star = null
+      where battle_id = $1 and player_tag = $2`,
+    key,
+  );
+  await ctx.db.query(`create table bp_updates (n int)`);
+  await ctx.db.query(`create function bp_updates_count() returns trigger
+    language plpgsql as $$ begin insert into bp_updates values (1); return null; end $$`);
+  await ctx.db
+    .query(`create trigger bp_updates_count after update on battle_participant
+    for each row when (old.battle_id = '${target.battle_id}')
+    execute function bp_updates_count()`);
+  try {
+    await ingest();
+    const {
+      rows: [after],
+    } = await ctx.db.query(
+      `select battle_id, player_tag, cards, card_forms, card_levels, card_stars,
+              tower_troop_id, tower_form, tower_level, tower_star
+         from battle_participant where battle_id = $1 and player_tag = $2`,
+      key,
+    );
+    assert.deepEqual(after, target, "filled from the payload");
+    const {
+      rows: [{ n }],
+    } = await ctx.db.query(`select count(*)::int as n from bp_updates`);
+    assert.equal(n, 1, "one update of the battle's rows: the filled one");
+    // A third ingest finds nothing to fill and writes nothing.
+    await ingest();
+    assert.equal(
+      (await ctx.db.query(`select count(*)::int as n from bp_updates`)).rows[0]
+        .n,
+      1,
+    );
+  } finally {
+    await ctx.db.query(`drop trigger bp_updates_count on battle_participant`);
+    await ctx.db.query(`drop function bp_updates_count()`);
+    await ctx.db.query(`drop table bp_updates`);
+  }
 });
 
 test("the catalog heals stubs: catalog_seen_at stamped, fields filled, nothing else rewritten", async () => {
@@ -265,8 +439,8 @@ test("a collection naming a card the catalog lacks stubs it instead of failing t
 test("the table aggregate equals the payload aggregate the readers used to run (old vs new pin)", async () => {
   // battles_meta_cards' old shape: one row per (card, form) over
   // participants with a deck, from the payload's cards array (round 0,
-  // deck cards only). The new shape reads battle_participant_card at
-  // round 0, slot > 0. Same rows.
+  // deck cards only). The new shape unnests battle_participant.cards
+  // (0255). Same rows.
   const expected = await fixtureCards();
   const agg = new Map();
   for (const { deck_hash, cards } of expected.values()) {
@@ -293,17 +467,16 @@ test("the table aggregate equals the payload aggregate the readers used to run (
       `select pc.card_id, pc.form::int as form, count(*)::int as n,
               count(*) filter (where pc.slot = 1)::int as firsts
        from battle_participant bp
-       join battle_participant_card pc
-         on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag
-        and pc.round = 0 and pc.slot > 0
-       where bp.deck_hash is not null
+       cross join lateral unnest(bp.cards, bp.card_forms)
+         with ordinality as pc(card_id, form, slot)
+       where bp.deck_hash is not null and pc.card_id is not null
        group by 1, 2 order by 1, 2`,
     )
   ).rows;
   assert.ok(oldRows.length > 30, "enough cards to mean something");
   assert.deepEqual(newRows, oldRows);
 
-  // And the with_card filter: payload membership vs the index probe.
+  // And the with_card filter: payload membership vs array containment.
   const anyCard = oldRows[0].card_id;
   const oldMatch = [...expected.values()].filter(({ cards }) =>
     cards.some((c) => c.round === 0 && c.slot > 0 && c.card_id === anyCard),
@@ -311,9 +484,7 @@ test("the table aggregate equals the payload aggregate the readers used to run (
   const newMatch = (
     await ctx.db.query(
       `select count(*)::int as n from battle_participant bp
-       where exists (select 1 from battle_participant_card c
-                     where c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
-                       and c.round = 0 and c.slot > 0 and c.card_id = $1)`,
+       where bp.cards @> array[$1::int]`,
       [anyCard],
     )
   ).rows[0].n;

@@ -260,13 +260,8 @@ before(async () => {
   );
 
   // Connections and delivery state that hang off the account row with no
-  // cascade the tombstone ever fires (0202, 0213, 0222), the rate
+  // cascade the tombstone ever fires (0213, 0222), the rate
   // counters (text-keyed), and Clan's remembered clan.
-  await db.query(
-    `insert into agent_policy_context_grant (agent_account_id, owner_account_id, clan_tag, token_id)
-     values ($1, $2, '#028RJP2U', $3)`,
-    [ids.agent, ids.person, tok.token_id],
-  );
   const sealed = JSON.stringify({ v: 1, sealed: "x" });
   await db.query(
     `insert into timeline_discord (account_id, webhook_sealed, webhook_fp, webhook_display)
@@ -342,7 +337,6 @@ test("a dry run is the default: it reports what would go and writes nothing", as
   assert.deepEqual(dry.removed, {
     mcp_call_audit: 4,
     credential_refusal: 1,
-    agent_policy_context_grant: 1,
     service_token: 1,
     oauth_token: 2,
     oauth_family: 1,
@@ -372,10 +366,8 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     feedback: 1,
     collector_version_event: 0,
     email_send: 1,
-    email_milestone: 0,
-    email_milestone_look: 0,
     account_email_pref: 0,
-    account_event: 2, // signed_in, and the grant's agent_connected
+    account_event: 2, // signed_in, and agent_connected
     rate_limit: 6,
   });
   assert.deepEqual(dry.kept, {
@@ -532,19 +524,6 @@ test("the run removes the person and their agent, keeps the game record, and lea
       [emailHash(ADDRESS)],
     ),
     0,
-  );
-  assert.equal(
-    await count(
-      `select count(*)::int as n from agent_policy_context_grant
-        where agent_account_id = any($1::uuid[]) or owner_account_id = any($1::uuid[])`,
-      [[ids.person, ids.agent]],
-    ),
-    0,
-  );
-  assert.equal(
-    r.removed.agent_policy_context_grant,
-    1,
-    "counted, not cascaded",
   );
   assert.deepEqual(
     (await db.query(`select pk from clan_state order by pk`)).rows.map(

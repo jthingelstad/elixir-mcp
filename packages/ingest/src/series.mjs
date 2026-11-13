@@ -6,7 +6,7 @@
  * profile read of up to fifty players made up to 96 times a day, and
  * until 2026-09-17 the projector kept four identity columns of it. Two
  * functions here are the series half of two projectors, called by the
- * live path (pipeline.mjs) and by the archive backfill ({series_backfill})
+ * live path (pipeline.mjs) and by the archive backfill (retired 2026-11-13)
  * alike, with `observedAt` the receipt's fetched_at:
  *
  *   projectClanSeries    the clan row (clan_snapshot_daily) and the roster

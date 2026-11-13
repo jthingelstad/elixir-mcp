@@ -1,6 +1,7 @@
 /**
  * {integration} after JSON API 5.0.0 took the integration door away: the
- * stored rows stay readable (`list`) and their keys revocable (`revoke`),
+ * stored rows stay readable (`list`) and their keys revocable (`revoke`,
+ * and `revoke_legacy` for the MCP key one ran on before it had its own),
  * and nothing creates, configures, rotates, suspends or resumes one.
  */
 import { test, before, after } from "node:test";
@@ -108,6 +109,7 @@ test("every other action is refused and writes nothing", async () => {
     "rotate",
     "suspend",
     "resume",
+    "retire_legacy",
   ]) {
     const r = await integrationOp(SCRATCH_URL, {
       action,
@@ -124,4 +126,56 @@ test("every other action is refused and writes nothing", async () => {
     [integration.account_id],
   );
   assert.deepEqual(counts, { integrations: 1, tokens: 1, status: "approved" });
+});
+
+test("revoke_legacy revokes the owner's live MCP key named as the integration, and answers ids only", async () => {
+  // Beside the legacy key, keys it must leave alone: another name on the
+  // owner, and one of the same name already revoked. (A second live key
+  // of the same name on the same account cannot exist: 0056.)
+  const keys = (
+    await db.query(
+      `insert into service_token (account_id, name, token_hash, audience, revoked_at) values
+         ($1, 'old-site', $2, 'mcp', null),
+         ($1, 'old-site-other', $3, 'mcp', null),
+         ($1, 'old-site', $4, 'mcp', now())
+       returning token_id, name, revoked_at`,
+      [owner, "c".repeat(64), "d".repeat(64), "e".repeat(64)],
+    )
+  ).rows;
+  const target = keys.find((k) => k.name === "old-site" && !k.revoked_at);
+  assert.equal(
+    (await integrationOp(SCRATCH_URL, { action: "revoke_legacy" })).error,
+    "id_required",
+  );
+  assert.equal(
+    (
+      await integrationOp(SCRATCH_URL, {
+        action: "revoke_legacy",
+        id: "nope",
+      })
+    ).error,
+    "not_found",
+  );
+  const spec = { action: "revoke_legacy", id: integration.public_id };
+  const r = await integrationOp(SCRATCH_URL, spec);
+  assert.deepEqual(r, { revoked: 1, token_ids: [String(target.token_id)] });
+  assert.ok(!JSON.stringify(r).includes("c".repeat(64)), "no hash");
+  const after = (
+    await db.query(
+      `select token_id, revoked_at is not null as revoked from service_token
+        where token_id = any($1::bigint[])`,
+      [keys.map((k) => k.token_id)],
+    )
+  ).rows;
+  for (const k of keys)
+    assert.equal(
+      after.find((x) => x.token_id === k.token_id).revoked,
+      k === target || k.revoked_at !== null,
+      `${k.name} ${k.token_id}`,
+    );
+  // A second run finds nothing live.
+  assert.deepEqual(await integrationOp(SCRATCH_URL, spec), {
+    revoked: 0,
+    token_ids: [],
+  });
 });

@@ -6,7 +6,6 @@ import os from "node:os";
 import pg from "pg";
 import { fileURLToPath } from "node:url";
 import { migrate, loadMigrations } from "../src/migrate.mjs";
-import { membershipBaselineCensus } from "../src/ops-diagnostics.mjs";
 
 /**
  * 0208 (Jamie, 2026-10-08: "Approved: mark the 35 first-read membership
@@ -14,8 +13,8 @@ import { membershipBaselineCensus } from "../src/ops-diagnostics.mjs";
  * 0207, exactly the rows the census counts (opened on their clan's first
  * membership observation, not yet baseline) become baseline. A join
  * observed later, a row already baseline and other clans' rows are left
- * as they were; nothing is deleted; a second run changes nothing; and the
- * census afterwards reads zero first-read rows and names what 0208 marked.
+ * as they were; nothing is deleted; and a second run changes nothing.
+ * (The census op that counted those rows retired in 0256.)
  */
 const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const MIGRATION = "0208_membership_first_read_baseline.sql";
@@ -63,7 +62,7 @@ async function databaseThrough0207() {
 }
 
 test("0208 marks exactly the census's first-read rows baseline, and nothing else", async () => {
-  const { db, url, drop } = await databaseThrough0207();
+  const { db, drop } = await databaseThrough0207();
   try {
     // Every row here predates 0207's applied_at (now), as production's do,
     // except the one a post-0207 read opened.
@@ -100,18 +99,13 @@ test("0208 marks exactly the census's first-read rows baseline, and nothing else
     await row("#0JU", "#0QC", "-1 minute", { baseline: true });
     await row("#0JU", "#0C9", "-2 minutes");
 
-    const before = await membershipBaselineCensus(url);
-    assert.equal(before.first_read_rows.rows, 4);
-    assert.equal(before.first_read_rows.clans, 2);
-    assert.equal(before.marked_first_read_rows.rows, 0);
-
     await db.query("begin");
     const ran = await db.query(sql);
     await db.query("commit");
     const update = (Array.isArray(ran) ? ran : [ran]).find(
       (r) => r.command === "UPDATE",
     );
-    assert.equal(update.rowCount, 4, "the census's four rows");
+    assert.equal(update.rowCount, 4, "the four first-read rows");
 
     const { rows } = await db.query(
       `select clan_tag, player_tag, baseline from clan_membership
@@ -131,13 +125,6 @@ test("0208 marks exactly the census's first-read rows baseline, and nothing else
         "#0J8 #0J0 false",
       ].sort(),
     );
-
-    const after = await membershipBaselineCensus(url);
-    assert.equal(after.first_read_rows.rows, 0);
-    assert.equal(after.marked_first_read_rows.rows, 4);
-    assert.equal(after.marked_first_read_rows.clans, 2);
-    const one = await membershipBaselineCensus(url, { clan_tag: "#0J8" });
-    assert.equal(one.marked_first_read_rows.rows, 1);
 
     // Idempotent: a second run marks nothing.
     const again = await db.query(

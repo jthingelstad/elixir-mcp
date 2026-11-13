@@ -203,7 +203,7 @@ Their builders, renderers, specimens and the `clan_report_preview` op
 went on 2026-11-13: a sent one's record shows the HTML archived when it
 was sent (`mail/sent/`), so nothing renders a retired kind again. The
 kind names stay in the label tables, `RETIRED_EMAIL_KINDS` and
-`foldedOff()`, and the `email_milestone*` tables keep their rows.
+`foldedOff()`; the `email_milestone*` tables went in migration 0256.
 
 ### `tracking_report`: the digest, Monday or daily ("Your digest")
 

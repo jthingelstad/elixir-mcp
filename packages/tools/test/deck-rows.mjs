@@ -1,7 +1,6 @@
 /**
  * Tests that seed a battle by hand write what a participant played the
- * way ingest does: a deck row (identity), its deck_card rows and the
- * battle_participant_card rows, and the same cards as arrays on the
+ * way ingest does: a deck row (identity) and the cards as arrays on the
  * deck, participant and round rows (0255), with catalog stubs for cards
  * the test never loaded. The participant row itself is the test's to insert with
  * this deck_hash (hashFor), before or after - nothing here references it
@@ -32,7 +31,7 @@ export function hashFor(cards, towerTroopId) {
  *  A test that inserts a participant by hand with a deck_hash writes
  *  this FIRST, as ingest does (0108: the participant references the
  *  deck), then the participant, then seedPlayedDeck for the card rows
- *  (which reference the participant). Returns the deck_hash. */
+ *  (arrays on the participant row). Returns the deck_hash. */
 export async function seedDeck(
   db,
   { battle_time = null, cards = [], supportCards = [], rounds = null },
@@ -61,11 +60,6 @@ export async function seedDeck(
          last_seen_at = greatest(deck.last_seen_at, excluded.last_seen_at)`,
       [hash, supportCards[0]?.id ?? null, cards.length, at],
     );
-    for (const c of cards)
-      await db.query(
-        `insert into deck_card (deck_hash, card_id, form) values ($1, $2, $3) on conflict do nothing`,
-        [hash, c.id, c.evolutionLevel ?? 0],
-      );
     // The identity as arrays (0255), in canonical (card_id, form) order.
     const sorted = cards
       .map((c) => [c.id, c.evolutionLevel ?? 0])
@@ -96,31 +90,6 @@ export async function seedPlayedDeck(
     supportCards,
     rounds,
   });
-  const rows = rounds
-    ? rounds.flatMap((r, i) =>
-        r.map((c, slot) => ({ ...c, round: i + 1, slot: slot + 1 })),
-      )
-    : [
-        ...cards.map((c, slot) => ({ ...c, round: 0, slot: slot + 1 })),
-        ...supportCards.map((c) => ({ ...c, round: 0, slot: 0 })),
-      ];
-  for (const r of rows)
-    await db.query(
-      `insert into battle_participant_card
-         (battle_id, player_tag, round, card_id, form, slot, level, star_level)
-       values ($1, $2, $3, $4, $5, $6, $7, $8) on conflict do nothing`,
-      [
-        battle_id,
-        player_tag,
-        r.round,
-        r.id,
-        r.evolutionLevel ?? 0,
-        r.slot,
-        r.level ?? null,
-        r.starLevel ?? null,
-      ],
-    );
-
   // The same cards as arrays on the rows that own them (0255), indexed
   // by slot: round 0 and the tower troop on the participant, a duel's
   // rounds on their round rows (which the test writes first).

@@ -214,7 +214,7 @@ export async function raceMatchmakingAt(db, clanTag, live) {
   } = await db.query(
     `select admission, fetched_at from api_receipt
       where endpoint = 'currentriverrace' and entity_key = $1
-      order by receipt_id desc limit 1`,
+      order by fetched_at desc, receipt_id desc limit 1`,
     [clanTag],
   );
   return latest?.admission === "matchmaking"

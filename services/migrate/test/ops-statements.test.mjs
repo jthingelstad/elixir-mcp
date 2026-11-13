@@ -41,9 +41,9 @@ after(async () => {
   await admin.end();
 });
 
-const TUNED = ["deck", "deck_card", "battle_participant_card"];
+const TUNED = ["deck"];
 
-test("0189 autovacuum tuning remains on retained deck and played-card tables", async () => {
+test("0189 autovacuum tuning remains on the deck table", async () => {
   const { rows } = await db.query(
     `select relname, reloptions from pg_class
       where relname = any($1) and relkind = 'r'`,
@@ -88,18 +88,16 @@ test("0253 vacuums the battle and snapshot tables after a fixed count of inserts
 });
 
 test("{tables} shows each table's visibility-map cover and its storage options", async () => {
-  await db.query(`vacuum (analyze) deck_card`);
+  await db.query(`vacuum (analyze) deck`);
   const result = await tables(SCRATCH_URL);
-  const deckCard = result.tables.find((t) => t.table_name === "deck_card");
-  assert.ok(deckCard, "deck_card is listed");
-  assert.equal(typeof deckCard.pages, "number");
-  assert.equal(typeof deckCard.all_visible_pages, "number");
+  const deck = result.tables.find((t) => t.table_name === "deck");
+  assert.ok(deck, "deck is listed");
+  assert.equal(typeof deck.pages, "number");
+  assert.equal(typeof deck.all_visible_pages, "number");
   // An empty table has no pages, so no fraction to report.
-  assert.equal(deckCard.all_visible_pct, deckCard.pages > 0 ? 100 : null);
+  assert.equal(deck.all_visible_pct, deck.pages > 0 ? 100 : null);
   assert.ok(
-    deckCard.table_options.includes(
-      "autovacuum_vacuum_insert_scale_factor=0.02",
-    ),
+    deck.table_options.includes("autovacuum_vacuum_insert_scale_factor=0.02"),
   );
 });
 

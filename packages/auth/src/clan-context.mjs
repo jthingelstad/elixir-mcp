@@ -3,10 +3,10 @@
  * `readOwnClanView` gives a person their own view of one clan (#535);
  * `readClanDirectory` gives a signed-in person, or an agent reading for its
  * approved owner (12.0.0), the clan directory's tiles, the policy's public
- * part only (#768). `agentContextEligibility` stays for the operator's grant
- * op; the agent policy-context reader retired with `clans_context` in
- * 12.0.0 (DECISIONS "`clans_context` retires"). */
-import { ELIXIR_ORIGIN, FULL_OAUTH_SCOPE } from "@elixir-mcp/contracts";
+ * part only (#768). The agent policy-context reader retired with
+ * `clans_context` in 12.0.0, and its grant storage and op in 0256
+ * (DECISIONS "`clans_context` retires"). */
+import { ELIXIR_ORIGIN } from "@elixir-mcp/contracts";
 import {
   actionsWaitingFor,
   countedCategories,
@@ -14,62 +14,6 @@ import {
   ownStandingLine,
   policySummaryOf,
 } from "@elixir-mcp/clan-engine";
-
-const CONTEXT_ELIGIBILITY_SQL = `
-select a.account_id as agent_account_id, a.public_id, a.owned_by_account_id as owner_account_id,
-       ac.clan_tag, t.token_id, a.kind as agent_kind, a.status as agent_status,
-       o.kind as owner_kind, o.status as owner_status,
-       a.kind = 'agent' and a.status = 'approved' and o.kind = 'person'
-       and o.status = 'approved' and ac.clan_tag is not null
-       and t.token_id is not null and exists (
-         select 1 from claim c join clan_membership m on m.player_tag = c.player_tag
-          where c.account_id = o.account_id and c.status = 'verified'
-            and (c.is_primary or c.relationship = 'alt')
-            and m.clan_tag = ac.clan_tag and m.left_observed_at is null
-            and m.role in ('member','elder','coLeader','leader')
-       ) as eligible
-  from account a
-  left join account o on o.account_id = a.owned_by_account_id
-  left join account_clan ac on ac.account_id = a.account_id and ac.is_primary
-  left join lateral (
-    select min(st.token_id) as token_id
-      from service_token st where st.account_id = a.account_id
-        and st.revoked_at is null and st.audience = 'mcp'
-      having count(*) = 1 and bool_and('cr:read' = any(string_to_array(coalesce(st.scope,$2),' ')))
-  ) t on true
- where a.public_id = any($1::text[])`;
-
-export async function agentContextEligibility(db, publicIds) {
-  const { rows } = await db.query(CONTEXT_ELIGIBILITY_SQL, [
-    publicIds,
-    FULL_OAUTH_SCOPE,
-  ]);
-  return publicIds.map((public_id) => {
-    const row = rows.find((r) => r.public_id === public_id);
-    return row
-      ? {
-          ...row,
-          eligible: row.eligible === true,
-          reason:
-            row.eligible === true
-              ? null
-              : row.agent_kind !== "agent"
-                ? "not_an_agent"
-                : row.agent_status !== "approved"
-                  ? "agent_not_approved"
-                  : row.owner_kind !== "person"
-                    ? "invalid_owner"
-                    : row.owner_status !== "approved"
-                      ? "owner_not_approved"
-                      : !row.clan_tag
-                        ? "no_primary_assignment"
-                        : !row.token_id
-                          ? "credential_missing_ambiguous_or_without_read"
-                          : "no_verified_owner_membership",
-        }
-      : { public_id, eligible: false, reason: "identity_not_found" };
-  });
-}
 
 // ---- a person's own view of their clan (#535) ------------------------------
 

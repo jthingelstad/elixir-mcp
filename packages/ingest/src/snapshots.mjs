@@ -330,7 +330,7 @@ export async function projectPlayerSnapshot(
     fetchedAt,
     receiptId = null,
     kind = "daily",
-    // false for a projection rebuild ({series_backfill}): the rows,
+    // false for a projection rebuild (the retired series backfill): the rows,
     // never the moments - the settled rule ("replays and backfills write
     // rows, never moments"), applied to the profile path on 2026-09-18.
     moments = true,

@@ -298,6 +298,20 @@ test("a payload no op knows is refused and migrates nothing; {} still migrates",
     { retire_collection_recordings: { apply: true } },
     { retire_board_recordings: { apply: true } },
     { clan_import: { apply: true } },
+    // Retired with the card-arrays contract (0256).
+    { card_arrays: true },
+    { card_arrays_census: true },
+    { deck_census: true },
+    { series_backfill: { lane: "clan" } },
+    { series_census_self: {} },
+    { explain_series: {} },
+    { clan_context: { agents: [] } },
+    { enum_census: true },
+    { mode_shape_census: true },
+    { battle_fidelity_census: true },
+    { role_history_census: true },
+    { membership_baseline_census: true },
+    { live_fetch_strays: { days: 7 } },
   ]) {
     const out = await handler(payload);
     assert.equal(out.error, "unknown_op", JSON.stringify(payload));
@@ -308,13 +322,6 @@ test("a payload no op knows is refused and migrates nothing; {} still migrates",
   // proof that {} still migrates.
   process.env.DATABASE_URL = SCRATCH_URL;
   await assert.rejects(handler({}), /migrations/);
-});
-
-test("mode_shape_census splits Ranked by league and outcome", async () => {
-  process.env.DATABASE_URL = SCRATCH_URL;
-  const { handler } = await import("../src/lambda.mjs");
-  const out = await handler({ mode_shape_census: true });
-  assert.ok(Array.isArray(out.ranked_by_league));
 });
 
 test("tables op: every user table's size and churn, the memory settings, no payloads", async () => {
@@ -743,55 +750,6 @@ test("poll_replay reads an empty week as zero counts with every section present"
   assert.equal(out.loss.intervals, 0);
   assert.equal(out.loss.estimated_lost_battles, 0);
   assert.equal(out.loss.estimated_lost_share, null);
-});
-
-// The 0091 backfill rehearsal (batches rebuild the projections from the
-// deck JSON and agree with the dual-write) retired with the JSON column
-// in 0097; the backfill ran once in production on 2026-09-15. What
-// remains testable is the census and the closing-FK gate.
-test("0091 census: ingest leaves no participant without its deck or played rows, and the closing FKs would validate", async () => {
-  await migrate({ databaseUrl: SCRATCH_URL, migrationsDir: MIGRATIONS_DIR });
-  const { ingestBattlelog } =
-    await import("../../../packages/ingest/src/battles.mjs");
-  const { deckCensus } = await import("../src/deck-backfill.mjs");
-  const metaJson = JSON.parse(
-    await readFile(path.join(repoRoot, "fixtures/meta.json"), "utf8"),
-  );
-  const db = new pg.Client({ connectionString: SCRATCH_URL });
-  await db.connect();
-  try {
-    for (const name of [
-      "player_battlelog/with_boat_and_duel.json",
-      "player_battlelog/with_path_of_legend.json",
-    ]) {
-      await ingestBattlelog(db, {
-        observerTag: metaJson[name].entity_key,
-        payload: JSON.parse(
-          await readFile(path.join(repoRoot, "fixtures", name), "utf8"),
-        ),
-      });
-    }
-    const census = await deckCensus(SCRATCH_URL);
-    assert.ok(census.participants_with_deck > 20);
-    assert.equal(census.participants_without_deck, 0);
-    assert.equal(census.participants_without_played_rows, 0);
-    assert.equal(census.collection_rows_without_card, 0);
-    assert.ok(census.stub_cards > 0, "no catalog loaded: everything is a stub");
-    await db.query(
-      `alter table battle_participant add constraint rehearsal_deck_fk
-       foreign key (deck_hash) references deck`,
-    );
-    await db.query(
-      `alter table player_card add constraint rehearsal_card_fk
-       foreign key (card_id) references card`,
-    );
-    await db.query(
-      `alter table battle_participant drop constraint rehearsal_deck_fk`,
-    );
-    await db.query(`alter table player_card drop constraint rehearsal_card_fk`);
-  } finally {
-    await db.end();
-  }
 });
 
 test("service_token_limits sets a key's own ceilings by name, clears with null, refuses junk", async () => {

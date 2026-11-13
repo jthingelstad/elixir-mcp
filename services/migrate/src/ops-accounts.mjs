@@ -240,15 +240,15 @@ export async function serviceTokenLimitsOp(databaseUrl, spec) {
  *  their door away ("No integrations: Elixir has users and agents"): the
  *  stored rows stay readable and their keys revocable. `list` names each
  *  integration with its keys; `revoke` revokes an integration's keys by
- *  its public id; `retire_legacy` revokes the MCP key an integration
- *  replaced (by digest). Nothing creates, configures, rotates, suspends or
+ *  its public id; `revoke_legacy` revokes the MCP key the integration
+ *  ran on before it had its own (by name, on its owner). Nothing creates, configures, rotates, suspends or
  *  resumes one any more. */
 export async function integrationOp(databaseUrl, spec) {
   const action = spec?.action;
-  if (!["list", "revoke", "retire_legacy"].includes(action))
+  if (!["list", "revoke", "revoke_legacy"].includes(action))
     return {
       error: "invalid_action",
-      actions: ["list", "revoke", "retire_legacy"],
+      actions: ["list", "revoke", "revoke_legacy"],
     };
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
@@ -262,19 +262,33 @@ export async function integrationOp(databaseUrl, spec) {
       );
       return { status: 200, integrations: JSON.parse(JSON.stringify(rows)) };
     }
-    if (action === "retire_legacy") {
-      if (!/^[a-f0-9]{64}$/.test(spec?.token_hash ?? ""))
-        return { error: "token_hash_required" };
+    if (action === "revoke_legacy") {
+      // The MCP key an integration ran on before it had its own account:
+      // a live service_token on the integration's owner, named as the
+      // integration, audience 'mcp'. Answers the count and the ids only,
+      // never a value or a hash.
+      if (typeof spec?.id !== "string" || !spec.id)
+        return { error: "id_required" };
+      const found = (
+        await db.query(
+          `select i.name, a.owned_by_account_id as owner
+             from integration i join account a on a.account_id = i.account_id
+            where a.public_id = $1`,
+          [spec.id],
+        )
+      ).rows[0];
+      if (!found) return { error: "not_found" };
       const result = await db.query(
-        `update service_token t set revoked_at=coalesce(t.revoked_at,now())
-        from integration i join account a on a.account_id=i.account_id
-        where a.public_id=$1 and t.token_hash=$2 and t.audience='mcp'
-          and t.name=i.name and t.account_id=a.owned_by_account_id
-          and exists(select 1 from mcp_call_audit m where m.account_id=i.account_id and m.surface='rest' and m.http_status=200)
-        returning t.token_id,t.name,t.revoked_at`,
-        [spec.id, spec.token_hash],
+        `update service_token set revoked_at = now()
+          where account_id = $1 and name = $2 and audience = 'mcp'
+            and revoked_at is null
+          returning token_id`,
+        [found.owner, found.name],
       );
-      return { retired: result.rowCount, ...result.rows[0] };
+      return {
+        revoked: result.rowCount,
+        token_ids: result.rows.map((r) => String(r.token_id)).sort(),
+      };
     }
     const owner = (
       await db.query(

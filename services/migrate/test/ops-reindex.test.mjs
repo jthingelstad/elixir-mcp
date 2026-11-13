@@ -164,7 +164,7 @@ test("the report reads every index, what it backs and its bloat", async () => {
 test("an index that is not the table's, or not anywhere, is refused", async () => {
   const other = await reindex(SCRATCH_URL, {
     table: "battle",
-    index: "battle_participant_player",
+    index: "battle_participant_pkey",
     apply: true,
   });
   assert.equal(other.error, "index_not_on_table");
@@ -183,7 +183,7 @@ test("an index that is not the table's, or not anywhere, is refused", async () =
     (
       await reindex(SCRATCH_URL, {
         table: "battle",
-        drop_invalid: "battle_participant_player",
+        drop_invalid: "battle_participant_pkey",
       })
     ).error,
     "index_not_on_table",

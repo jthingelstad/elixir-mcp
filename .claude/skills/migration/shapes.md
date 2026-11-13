@@ -64,7 +64,7 @@ alter table t drop constraint t_c_nn;
 ```
 
 Before step two deploys, a read-only census says there are 0 nulls
-(`{enum_census}` did it for 0115-0119).
+(`{enum_census}`, retired 2026-11-13, did it for 0115-0119).
 
 ## A foreign key or a CHECK (0108 then 0113; 0118, 0119)
 
@@ -103,10 +103,11 @@ row and having readers skip it (0173's `superseded_at`).
 
 Read two real ones first:
 
-- `seriesBackfill` in `services/migrate/src/ops-series.mjs` (live): the
-  cursor in a state table (`series_backfill_state`, 0131), S3 reads
-  before the transaction opens, a batch retried on deadlock, and a local
-  driver, `infra/scripts/series-backfill.mjs`.
+- `seriesBackfill` (retired 2026-11-13; `git show
+  665c3c21:services/migrate/src/ops-series.mjs`): the cursor in a state
+  table (`series_backfill_state`, 0131, dropped in 0256), S3 reads before
+  the transaction opens, a batch retried on deadlock, and a local driver,
+  `infra/scripts/series-backfill.mjs`.
 - `oppLevelBackfill` for 0156 (retired): `git show
   b01fc4bb^:services/migrate/src/deck-backfill.mjs`, and its test at
   `b01fc4bb^:services/migrate/test/opp-level-backfill.test.mjs`. A
@@ -133,7 +134,7 @@ The anatomy:
   `budget_ms`, then return `{batches, filled, after, done, remaining,
   ms}`; the caller passes `after` back until `done`. 45 s stays clear of
   the 90 s `elixir-mcp-migrate-duration` alarm (`{series_backfill}` and its
-  driver default to 45 s since 2026-09-25; they defaulted to 240 s and
+  driver defaulted to 45 s from 2026-09-25; they defaulted to 240 s and
   tripped it). A real `remaining` lets anyone tell done from
   stuck.
 - **Deadlocks retry.** A batch Postgres picks as the victim (`40P01`) is

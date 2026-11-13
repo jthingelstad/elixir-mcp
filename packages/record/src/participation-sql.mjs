@@ -218,7 +218,7 @@ export function rosterHistoryQueries({ clanTag, tags, finishes, since }) {
     },
     {
       // The admitted roster reads either side of each finish, on
-      // api_receipt_entity_time (0079). Backfilled reads count: they are
+      // api_receipt_entity_fetched (0256). Backfilled reads count: they are
       // the reads the imported tenure was walked from.
       name: "finish_reads",
       text: `select t.i::int as i,

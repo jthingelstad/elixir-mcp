@@ -45,17 +45,15 @@ function cardFields(
   target,
   { count = false, played = false, within = false, arrays = null } = {},
 ) {
-  // 0255: during the transition a played card lands twice, as a row and
-  // as an element of the owning row's arrays.
-  const also = (key) => (arrays ? ` + ${arrays.table}.${arrays[key]}` : "");
+  // 0255: a played card is an element of the owning row's arrays (or
+  // the tower troop's columns); a held card is a row of `target`.
+  const at = (column, key) =>
+    arrays ? `${arrays.table}.${arrays[key]}` : `${target}.${column}`;
   const fields = {
-    [`${prefix}.id`]: to(`${target}.card_id${also("id")}`),
-    [`${prefix}.level`]: to(`${target}.level${also("level")}`),
-    [`${prefix}.starLevel`]: to(`${target}.star_level${also("star")}`, opt),
-    [`${prefix}.evolutionLevel`]: to(
-      `${target}.evolution_level${also("form")}`,
-      opt,
-    ),
+    [`${prefix}.id`]: to(at("card_id", "id")),
+    [`${prefix}.level`]: to(at("level", "level")),
+    [`${prefix}.starLevel`]: to(at("star_level", "star"), opt),
+    [`${prefix}.evolutionLevel`]: to(at("evolution_level", "form"), opt),
     [`${prefix}.name`]: derived(CARD_CATALOG),
     [`${prefix}.rarity`]: derived(CARD_CATALOG),
     [`${prefix}.maxLevel`]: derived(CARD_CATALOG),
@@ -67,10 +65,7 @@ function cardFields(
     ...(count ? { [`${prefix}.count`]: to(`${target}.count`) } : {}),
     ...(played
       ? {
-          [`${prefix}.used`]: to(
-            `battle_participant_card.used${also("used")}`,
-            opt,
-          ),
+          [`${prefix}.used`]: to(at("used", "used"), opt),
         }
       : {}),
   };
@@ -132,13 +127,9 @@ function participant(side) {
       opt,
     ),
     [`${p}.clan.badgeId`]: derived("the clan row when it exists", opt),
-    ...cardFields(`${p}.cards[]`, "battle_participant_card", {
-      arrays: PARTICIPANT_ARRAYS,
-    }),
-    ...cardFields(`${p}.supportCards[]`, "battle_participant_card", {
-      arrays: TOWER_COLUMNS,
-    }),
-    ...cardFields(`${p}.rounds[].cards[]`, "battle_participant_card (round)", {
+    ...cardFields(`${p}.cards[]`, null, { arrays: PARTICIPANT_ARRAYS }),
+    ...cardFields(`${p}.supportCards[]`, null, { arrays: TOWER_COLUMNS }),
+    ...cardFields(`${p}.rounds[].cards[]`, null, {
       played: true,
       within: true,
       arrays: ROUND_ARRAYS,
