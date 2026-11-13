@@ -492,10 +492,10 @@ export function TodayFresh({ player }) {
         ? `Your battle log was last read ${when(ts)}. `
         : // Not read yet: what is on record came from elsewhere (a battle
           // against someone Elixir records), and this page checks again.
-          "Your profile and last 30 battles usually show up within a minute (a few at busy times). "}
-      The game only keeps your last 30 battles, so a long session between reads
-      can leave a gap. A gap means Elixir didn&rsquo;t see those battles, not
-      that you didn&rsquo;t play.
+          "Your profile and about your last 30 battles usually show up within a minute (a few at busy times). "}
+      The game only keeps about your last 30 battles, so a long session between
+      reads can leave a gap. A gap means Elixir didn&rsquo;t see those battles,
+      not that you didn&rsquo;t play.
     </FreshChip>
   );
 }

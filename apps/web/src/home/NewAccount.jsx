@@ -65,7 +65,7 @@ export function NewAccount({
             title="First read"
             done={Boolean(landed)}
             waiting={!added}
-            ahead="Your profile and last 30 battles usually show up within a minute."
+            ahead="Your profile and about your last 30 battles usually show up within a minute."
             doneLine={
               landed
                 ? player.battles_30d > 0
@@ -334,8 +334,8 @@ function FirstRead({ player, journey, onCheck, busy, onStopped }) {
   return (
     <>
       <p>
-        Your tag is saved. Your profile and last 30 battles usually show up
-        within a minute (a few at busy times).
+        Your tag is saved. Your profile and about your last 30 battles usually
+        show up within a minute (a few at busy times).
       </p>
       <p className="kit-tiny">
         This page checks again every few seconds for the first minutes, then

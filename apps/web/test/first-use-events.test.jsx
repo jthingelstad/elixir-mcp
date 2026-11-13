@@ -152,14 +152,14 @@ test("the First read step says what is true now: profile and battles, usually wi
   const before = renderWithProviders(<NewAccount first={first(null)} />);
   expect(
     screen.getByText(
-      "Your profile and last 30 battles usually show up within a minute.",
+      "Your profile and about your last 30 battles usually show up within a minute.",
     ),
   ).toBeTruthy();
   before.unmount();
   renderWithProviders(<NewAccount first={first(player)} />);
   expect(
     screen.getByText(
-      /Your profile and last 30 battles usually show up within a minute \(a few at busy times\)\./,
+      /Your profile and about your last 30 battles usually show up within a minute \(a few at busy times\)\./,
     ),
   ).toBeTruthy();
   // useFirstAnswer: every 5 s for three minutes, then every minute.
