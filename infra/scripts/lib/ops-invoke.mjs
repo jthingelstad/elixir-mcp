@@ -75,6 +75,7 @@ const MIGRATE_READS = {
   battle_fidelity_census: anyArgs,
   mode_shape_census: anyArgs,
   deck_census: anyArgs,
+  card_arrays_census: anyArgs,
   audit_census: anyArgs,
   args_census: anyArgs,
   call_sequence_census: anyArgs,

@@ -43,13 +43,19 @@ const CARD_CATALOG =
 function cardFields(
   prefix,
   target,
-  { count = false, played = false, within = false } = {},
+  { count = false, played = false, within = false, arrays = null } = {},
 ) {
+  // 0255: during the transition a played card lands twice, as a row and
+  // as an element of the owning row's arrays.
+  const also = (key) => (arrays ? ` + ${arrays.table}.${arrays[key]}` : "");
   const fields = {
-    [`${prefix}.id`]: to(`${target}.card_id`),
-    [`${prefix}.level`]: to(`${target}.level`),
-    [`${prefix}.starLevel`]: to(`${target}.star_level`, opt),
-    [`${prefix}.evolutionLevel`]: to(`${target}.evolution_level`, opt),
+    [`${prefix}.id`]: to(`${target}.card_id${also("id")}`),
+    [`${prefix}.level`]: to(`${target}.level${also("level")}`),
+    [`${prefix}.starLevel`]: to(`${target}.star_level${also("star")}`, opt),
+    [`${prefix}.evolutionLevel`]: to(
+      `${target}.evolution_level${also("form")}`,
+      opt,
+    ),
     [`${prefix}.name`]: derived(CARD_CATALOG),
     [`${prefix}.rarity`]: derived(CARD_CATALOG),
     [`${prefix}.maxLevel`]: derived(CARD_CATALOG),
@@ -61,7 +67,10 @@ function cardFields(
     ...(count ? { [`${prefix}.count`]: to(`${target}.count`) } : {}),
     ...(played
       ? {
-          [`${prefix}.used`]: to("battle_participant_card.used", opt),
+          [`${prefix}.used`]: to(
+            `battle_participant_card.used${also("used")}`,
+            opt,
+          ),
         }
       : {}),
   };
@@ -70,6 +79,32 @@ function cardFields(
     Object.entries(fields).map(([k, d]) => [k, { ...d, optional: true }]),
   );
 }
+
+/** Where 0255 puts a played card: arrays indexed by slot on the
+ *  participant (round 0) and on the round row (a duel), and the tower
+ *  troop (supportCards, slot 0) in columns of its own. */
+const PARTICIPANT_ARRAYS = {
+  table: "battle_participant",
+  id: "cards[]",
+  level: "card_levels[]",
+  star: "card_stars[]",
+  form: "card_forms[]",
+};
+const TOWER_COLUMNS = {
+  table: "battle_participant",
+  id: "tower_troop_id",
+  level: "tower_level",
+  star: "tower_star",
+  form: "tower_form",
+};
+const ROUND_ARRAYS = {
+  table: "battle_participant_round",
+  id: "cards[]",
+  level: "card_levels[]",
+  star: "card_stars[]",
+  form: "card_forms[]",
+  used: "cards_used[]",
+};
 
 /** A battle participant, on either side. */
 function participant(side) {
@@ -97,11 +132,16 @@ function participant(side) {
       opt,
     ),
     [`${p}.clan.badgeId`]: derived("the clan row when it exists", opt),
-    ...cardFields(`${p}.cards[]`, "battle_participant_card"),
-    ...cardFields(`${p}.supportCards[]`, "battle_participant_card"),
+    ...cardFields(`${p}.cards[]`, "battle_participant_card", {
+      arrays: PARTICIPANT_ARRAYS,
+    }),
+    ...cardFields(`${p}.supportCards[]`, "battle_participant_card", {
+      arrays: TOWER_COLUMNS,
+    }),
     ...cardFields(`${p}.rounds[].cards[]`, "battle_participant_card (round)", {
       played: true,
       within: true,
+      arrays: ROUND_ARRAYS,
     }),
     [`${p}.rounds[].crowns`]: to("battle_participant_round.crowns", opt),
     [`${p}.rounds[].kingTowerHitPoints`]: to(

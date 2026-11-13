@@ -13,6 +13,7 @@ import {
   listBackends,
 } from "./deck-backfill.mjs";
 import { migrate } from "./migrate.mjs";
+import { cardArrays, cardArraysCensus } from "./ops-card-arrays.mjs";
 import { explainTimeline } from "./ops-activity.mjs";
 import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
 import { profileRead, profileTool } from "./ops-profile.mjs";
@@ -523,6 +524,22 @@ async function dispatch(event) {
   }
   if (event?.deck_census) {
     const result = await deckCensus(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.card_arrays_census) {
+    const result = await cardArraysCensus(
+      process.env.DATABASE_URL,
+      event.card_arrays_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.card_arrays) {
+    const result = await cardArrays(
+      process.env.DATABASE_URL,
+      event.card_arrays,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

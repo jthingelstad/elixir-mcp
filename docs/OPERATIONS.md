@@ -413,6 +413,18 @@ Sample real values against the game.
   `npm run op -- '{"vacuum": {"table": "<table>"}}'` (WRITE) on each
   table it touched and read `relallvisible` before and after. Never run a
   backfill and a deploy together.
+- **Card arrays (0255).** Ingest writes a participant's, a duel round's
+  and a deck's cards both as rows (`battle_participant_card`,
+  `deck_card`) and as arrays on the row that owns them. History is filled
+  by `npm run op -- '{"card_arrays": true}'` (WRITE), passed its returned
+  `next` until `done`: participants, then rounds, then decks, 2,000 keys
+  a batch inside 45 s, idempotent and resumable from any cursor. Then
+  vacuum `battle_participant`, `battle_participant_round` and `deck`.
+  `{"card_arrays_census": true}` (Read), paged the same way, compares
+  every element with its row; `pass: true` on the last page, every
+  mismatch and orphan count 0 and rows equal to elements, is the gate for
+  moving readers to the arrays. A failure names its counts; a placed
+  slot that is wrong is a defect in the fill, fixed there, never by hand.
 - **Clan policy.** A standing or award that disagrees with its saved
   policy version and the record is a defect in Clan's code, fixed there.
   Read actual grant rows, not only the evaluation's `grants_due`. No
