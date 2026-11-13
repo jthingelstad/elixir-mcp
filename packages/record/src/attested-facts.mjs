@@ -459,11 +459,14 @@ const APP_CLAN_TYPES = Object.keys(ATTESTED_FACT_TYPES).filter(
     ATTESTED_FACT_TYPES[k].attesters.includes("app"),
 );
 
-/** A family app's own computed clan fact, on its integration key
- *  (facts:write, 9.6.0): what the app worked out from its own rules,
- *  labelled as the app's, never a person's. A person's kind of fact is
- *  refused here, as the app's kind is refused on a person's grant. */
-export async function writeClanFactAsApp(db, integration, clanInput, body) {
+/** The source key Clan's own computed facts are stored under: the name of
+ *  the integration row Clan once wrote through, kept as an identifier so
+ *  Clan still corrects and removes the facts it wrote then. */
+export const CLAN_FACT_SOURCE = "elixir-clan";
+
+/** A clan fact computed by its writer (an app, or Elixir's own Clan),
+ *  stored under the writer's source and account. */
+async function writeComputedClanFact(db, writer, clanInput, body) {
   const clanTag = tagOf(clanInput, "clan_tag");
   const type = String(body.type ?? "");
   if (!APP_CLAN_TYPES.includes(type))
@@ -491,22 +494,17 @@ export async function writeClanFactAsApp(db, integration, clanInput, body) {
     fact_type: type,
     detail,
     visibility: t.visibility,
-    source: integration.name,
+    source: writer.source,
     source_ref: ref,
-    attester_account_id: integration.accountId,
+    attester_account_id: writer.accountId,
     attester_tag: null,
     attester_role: null,
     occurred_at: occurredAt,
   });
 }
 
-/** Take back a clan fact the app wrote itself, by its ref. */
-export async function removeClanFactAsApp(
-  db,
-  integration,
-  clanInput,
-  refInput,
-) {
+/** Take back a computed clan fact its writer wrote, by its ref. */
+async function removeComputedClanFact(db, writer, clanInput, refInput) {
   const clanTag = tagOf(clanInput, "clan_tag");
   const ref = refOf(refInput);
   const { rows } = await db.query(
@@ -514,10 +512,62 @@ export async function removeClanFactAsApp(
       where source = $1 and source_ref = $2 and clan_tag = $3
         and fact_type = any($4)
       returning fact_id`,
-    [integration.name, ref, clanTag, APP_CLAN_TYPES],
+    [writer.source, ref, clanTag, APP_CLAN_TYPES],
   );
   if (!rows[0]) throw new FactError(404, "not_found");
   return { removed: true, id: String(rows[0].fact_id), ref };
+}
+
+/** A family app's own computed clan fact, on its integration key
+ *  (facts:write, 9.6.0): what the app worked out from its own rules,
+ *  labelled as the app's, never a person's. A person's kind of fact is
+ *  refused here, as the app's kind is refused on a person's grant. */
+export function writeClanFactAsApp(db, integration, clanInput, body) {
+  return writeComputedClanFact(
+    db,
+    { source: integration.name, accountId: integration.accountId },
+    clanInput,
+    body,
+  );
+}
+
+/** Take back a clan fact the app wrote itself, by its ref. */
+export function removeClanFactAsApp(db, integration, clanInput, refInput) {
+  return removeComputedClanFact(
+    db,
+    { source: integration.name, accountId: integration.accountId },
+    clanInput,
+    refInput,
+  );
+}
+
+/** Clan's own computed clan fact (award standings), written by Elixir
+ *  itself from the clan's rules on the morning run (Jamie, 2026-11-12:
+ *  Clan is features inside Elixir, never an integration). Stored as it
+ *  always was: under `CLAN_FACT_SOURCE`, attested by the account of the
+ *  row Clan once wrote through (`attesterAccountId`), with no person. */
+export function writeClanFactBySystem(db, attesterAccountId, clanInput, body) {
+  return writeComputedClanFact(
+    db,
+    { source: CLAN_FACT_SOURCE, accountId: attesterAccountId },
+    clanInput,
+    body,
+  );
+}
+
+/** Take back a fact Clan computed itself, by its ref. */
+export function removeClanFactBySystem(
+  db,
+  attesterAccountId,
+  clanInput,
+  refInput,
+) {
+  return removeComputedClanFact(
+    db,
+    { source: CLAN_FACT_SOURCE, accountId: attesterAccountId },
+    clanInput,
+    refInput,
+  );
 }
 
 /** A family app's own game fact for a player, on its integration key. */
