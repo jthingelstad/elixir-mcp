@@ -20,8 +20,10 @@ import {
   BattleView,
   DURATION,
   endedSentence,
+  gamesOf,
   hpLeft,
   Invite,
+  scoreOf,
 } from "./Battle.jsx";
 import { FollowFromHere } from "./FollowFromHere.jsx";
 
@@ -116,18 +118,16 @@ const VERB = { win: "beat", loss: "lost to", draw: "drew with" };
 /** The post itself, from its player's side: theirs first. */
 function PostCard({ read, h, who, viewer }) {
   const { when } = useClock();
-  const { battle, games } = read;
+  const { battle } = read;
+  const games = gamesOf(read);
   const flip = h.side === "right";
   const [mine, theirs] = flip
     ? [read.sides[1], read.sides[0]]
     : [read.sides[0], read.sides[1]];
   const [me, them] = [mine.players[0] ?? {}, theirs.players[0] ?? {}];
-  const wonBy = (w) => games?.filter((g) => g.winner === w).length ?? 0;
-  const score = games
-    ? flip
-      ? [wonBy("right"), wonBy("left")]
-      : [wonBy("left"), wonBy("right")]
-    : [mine.crowns, theirs.crowns];
+  // The read's one score (games won, or crowns), from this side.
+  const s = scoreOf(read, games);
+  const score = flip ? [s.right, s.left] : [s.left, s.right];
   const said = score.map((n) => n ?? "?").join("-");
   const title = `${namesOf(mine)} ${VERB[mine.outcome] ?? "played"} ${namesOf(theirs)} ${said}`;
   const mode = MODE_LABEL[battle.mode_group] ?? battle.game_mode?.name ?? null;
@@ -193,7 +193,7 @@ function PostCard({ read, h, who, viewer }) {
             cards: them.deck.cards,
           }}
           score={said}
-          scoreLabel={`${score[0] ?? "?"} to ${score[1] ?? "?"}${games ? " games" : " crowns"}`}
+          scoreLabel={`${score[0] ?? "?"} to ${score[1] ?? "?"}${s.unit === "games" ? " games" : " crowns"}`}
         />
       ) : (
         // A duel reads game by game and a 2v2 has teammates: the battle's

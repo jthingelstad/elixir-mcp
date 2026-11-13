@@ -251,7 +251,8 @@ export function BattleView({
   standIn = false,
   heading = standIn ? "h3" : "h1",
 }) {
-  const { battle, sides, games } = read;
+  const { battle, sides } = read;
+  const games = gamesOf(read);
   const clock = useClock();
   const narrow = useMedia("(max-width: 760px)");
   const [game, setGame] = useState(0);
@@ -299,6 +300,7 @@ export function BattleView({
         battle={battle}
         sides={sides}
         games={games}
+        score={read.score}
         mine={mine}
         signedIn={signedIn}
         mode={mode}
@@ -318,8 +320,11 @@ export function BattleView({
               aria-selected={i === game}
               onClick={() => setGame(i)}
             >
-              Game {x.round} · {x.sides[0]?.crowns ?? "?"}–
-              {x.sides[1]?.crowns ?? "?"}
+              Game {x.round}
+              {typeof x.sides[0]?.crowns === "number" &&
+              typeof x.sides[1]?.crowns === "number"
+                ? ` · ${x.sides[0].crowns}–${x.sides[1].crowns}`
+                : ""}
             </button>
           ))}
         </div>
@@ -387,6 +392,37 @@ export function BattleView({
       </div>
     </article>
   );
+}
+
+/** A duel's games. The read sends them (one per round deck, a result
+ *  where the record holds one); a read cached from before it did, for a
+ *  duel whose type is not a river race duel, sent none, so the games are
+ *  the round decks the players carry, with no result. */
+export function gamesOf(read) {
+  if (read.games) return read.games;
+  const n = Math.max(
+    0,
+    ...read.sides.flatMap((s) => s.players.map((p) => p.rounds?.length ?? 0)),
+  );
+  if (n === 0) return null;
+  return Array.from({ length: n }, (_, i) => ({
+    round: i + 1,
+    winner: null,
+    sides: [null, null],
+  }));
+}
+
+/** The score the page leads with: the read's own (battle-page.mjs
+ *  scoreOf), or for a read cached from before it carried one, the games
+ *  won on a duel whose games all have a result, else the crowns. */
+export function scoreOf(read, games) {
+  if (read.score) return read.score;
+  const [l, r] = read.sides;
+  if (games?.length && games.every((g) => g.winner)) {
+    const won = (w) => games.filter((g) => g.winner === w).length;
+    return { left: won("left"), right: won("right"), unit: "games" };
+  }
+  return { left: l.crowns ?? null, right: r.crowns ?? null, unit: "crowns" };
 }
 
 /** Left then right, player by player: in a 2v2 each row of the grid is
@@ -499,6 +535,7 @@ function Scoreboard({
   battle,
   sides,
   games,
+  score: given,
   mine,
   signedIn,
   mode,
@@ -506,8 +543,8 @@ function Scoreboard({
   heading: Heading = "h1",
 }) {
   const [l, r] = sides;
-  const won = (w) => games?.filter((x) => x.winner === w).length ?? 0;
-  const score = games ? [won("left"), won("right")] : [l.crowns, r.crowns];
+  const s = scoreOf({ sides, score: given }, games);
+  const score = [s.left, s.right];
   const result =
     l.outcome === "win"
       ? { text: `${namesOf(l)} won`, cls: " result-chip--win" }
@@ -520,7 +557,7 @@ function Scoreboard({
       : l.outcome === "loss"
         ? "lost to"
         : "drew with";
-  const unit = games ? " games" : "";
+  const unit = s.unit === "games" ? " games" : "";
   const dur = DURATION[battle.duration?.basis];
   return (
     <section className="battle__score" aria-labelledby="battle-result">
@@ -545,10 +582,12 @@ function Scoreboard({
         <span className={`result-chip${result.cls}`}>
           <TagText>{result.text}</TagText>
         </span>
-        {games ? (
+        {games && s.unit === "games" ? (
           <span className="battle__sub">
             games · crowns {l.crowns ?? "?"}–{r.crowns ?? "?"}
           </span>
+        ) : games ? (
+          <span className="battle__sub">crowns over {games.length} games</span>
         ) : dur ? (
           <span className="battle__sub battle__sub--length">
             <Icon name="timer" size={14} />
@@ -671,6 +710,7 @@ function Ended({ battle, sides, game, title }) {
   const basis = game ? null : battle.duration?.basis;
   const dur = DURATION[basis];
   const sentence = game ? null : endedSentence(basis, sides);
+  const noResult = game && !game.sides[0] && !game.sides[1];
   return (
     <section className="panel" aria-label={title}>
       <div className="panel__head">
@@ -688,33 +728,37 @@ function Ended({ battle, sides, game, title }) {
             <TagText>{sentence}</TagText>
           </p>
         )}
-        {sides.map((s, i) => {
-          const left = hpLeft(s.tower_hp);
-          const leak = game
-            ? game.sides[i]?.elixir_leaked
-            : s.players.length === 1
-              ? s.players[0].elixir_leaked
-              : null;
-          return (
-            <div key={i} className="battle-ended">
-              <span className="battle-ended__who">
-                <span
-                  className={`battle-deck__dot${s.outcome === "loss" ? " battle-deck__dot--loss" : s.outcome === "win" ? "" : " battle-deck__dot--draw"}`}
-                />
-                <TagText>{namesOf(s)}</TagText>
-                {left !== null && (
-                  <span className="battle-ended__left">
-                    <span className="mono">{num(left)}</span> hitpoints left
-                    {game && typeof leak === "number"
-                      ? ` · ${fixed(leak, 2)} elixir leaked`
-                      : ""}
-                  </span>
-                )}
-              </span>
-              <Towers hp={s.tower_hp} />
-            </div>
-          );
-        })}
+        {noResult && (
+          <p className="nil">The record holds no result for this game.</p>
+        )}
+        {!noResult &&
+          sides.map((s, i) => {
+            const left = hpLeft(s.tower_hp);
+            const leak = game
+              ? game.sides[i]?.elixir_leaked
+              : s.players.length === 1
+                ? s.players[0].elixir_leaked
+                : null;
+            return (
+              <div key={i} className="battle-ended">
+                <span className="battle-ended__who">
+                  <span
+                    className={`battle-deck__dot${s.outcome === "loss" ? " battle-deck__dot--loss" : s.outcome === "win" ? "" : " battle-deck__dot--draw"}`}
+                  />
+                  <TagText>{namesOf(s)}</TagText>
+                  {left !== null && (
+                    <span className="battle-ended__left">
+                      <span className="mono">{num(left)}</span> hitpoints left
+                      {game && typeof leak === "number"
+                        ? ` · ${fixed(leak, 2)} elixir leaked`
+                        : ""}
+                    </span>
+                  )}
+                </span>
+                <Towers hp={s.tower_hp} />
+              </div>
+            );
+          })}
       </div>
       <div className="panel__note">
         {basis === "regulation_ran" &&

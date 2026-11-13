@@ -253,6 +253,53 @@ export const contracts = [
     },
   },
   {
+    // 2026-11-13: an event's multi-deck duel (not a riverRaceDuel type)
+    // carried its round decks and no rounds[], so its battle page said
+    // "The record holds no deck for this side." on both sides. Every row
+    // whose decks sit under deck.rounds[] carries rounds[] for the same
+    // games, on both sides, whatever its type. Live invariant; a page
+    // with no duel says so.
+    id: "battles_query-duel-games",
+    tools: ["battles_query"],
+    run: async (ctx) => {
+      let ms = 0;
+      let duels = 0;
+      for (const mode of [undefined, "event"]) {
+        const r = await ctx.read("battles_query", {
+          player_tag: JAMIE,
+          days: 30,
+          limit: 25,
+          ...(mode ? { mode } : {}),
+        });
+        ms += r.ms ?? 0;
+        const body = answered(r, `battles_query ${mode ?? "all modes"}`);
+        for (const b of body.battles ?? []) {
+          for (const [who, p] of [
+            ["me", b.me],
+            ...(b.opponents ?? []).map((o, i) => [`opponents[${i}]`, o]),
+          ]) {
+            if (!Array.isArray(p.deck?.rounds)) continue;
+            duels++;
+            ok(
+              Array.isArray(p.rounds),
+              `${b.type} ${b.battle_id.slice(0, 12)} ${who}: round decks and no rounds[]`,
+            );
+            eq(
+              p.rounds.length,
+              p.deck.rounds.length,
+              `${b.type} ${b.battle_id.slice(0, 12)} ${who}: one result row per round deck`,
+            );
+            if (p.elixir)
+              eq(p.elixir.differential, null, `${who}: a duel sums its leak`);
+          }
+        }
+      }
+      if (duels === 0)
+        return { skip: "No duel in the last 30 days on either page." };
+      return { ms };
+    },
+  },
+  {
     id: "recorder-retired-refusals",
     tools: ["cards_catalog", "battles_performance", "battles_query"],
     run: async (ctx) => {

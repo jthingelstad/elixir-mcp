@@ -15,6 +15,7 @@ import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import { DISCLAIMER } from "@elixir-mcp/contracts";
 import { whenAt } from "@elixir-mcp/ui/time";
 import { fontMetrics } from "./font-metrics.mjs";
+import { scoreOf } from "./battle-page.mjs";
 
 const SHARE_WIDTH = 1200;
 const SHARE_HEIGHT = 630;
@@ -231,12 +232,10 @@ export function drawBattle(read, f) {
   });
 
   // ---- between them: the score and how it ended
-  const crowns = games
-    ? [
-        games.filter((g) => g.winner === "left").length,
-        games.filter((g) => g.winner === "right").length,
-      ]
-    : [l.crowns, r.crowns];
+  // The read's one score: games won where the record holds them and
+  // they agree with the result, else the crowns (battle-page.mjs).
+  const score = read.score ?? scoreOf(l, r, games);
+  const crowns = [score.left, score.right];
   push(
     text(MID_X - 44, 252, crowns[0] ?? "?", {
       family: "Clash",
@@ -286,11 +285,18 @@ export function drawBattle(read, f) {
   let y = 334;
   if (games) {
     push(
-      text(MID_X, y, `games · crowns ${l.crowns ?? "?"}–${r.crowns ?? "?"}`, {
-        size: 15,
-        fill: C.dim,
-        anchor: "middle",
-      }),
+      text(
+        MID_X,
+        y,
+        score.unit === "games"
+          ? `games · crowns ${l.crowns ?? "?"}–${r.crowns ?? "?"}`
+          : `crowns over ${games.length} games`,
+        {
+          size: 15,
+          fill: C.dim,
+          anchor: "middle",
+        },
+      ),
     );
     y += 26;
   }

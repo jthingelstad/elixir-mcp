@@ -369,18 +369,25 @@ export const battles_query = {
     // The tower troop's level (slot 0, rendered as supportCards): towers
     // one level apart start 1,564 HP apart (Gym #97).
     const towerLevel = (o) => deckOf(o)?.supportCards?.[0]?.level ?? null;
+    // A duel is a battle played as games, each on its own deck: a river
+    // race duel, and any other battle the API sends rounds[] for (the
+    // 1v1 Duel friendly, an event's multi-deck mode). The record says
+    // which by the rows it holds, so a duel is known by its round decks
+    // as well as by its type: a type list alone left an event duel with
+    // no games on its page.
+    const duelRow = (r) => isDuel(r.type) || Array.isArray(deckOf(r)?.rounds);
     // A duel's round results (0151). Only a duel has them, and only
     // full verbosity carries them, so the read is skipped entirely on
     // a page without one.
     const roundRows = new Map();
-    if (!compact && rows.some((r) => isDuel(r.type))) {
+    if (!compact && rows.some(duelRow)) {
       const { rows: rr } = await ctx.db.query(
         `select battle_id, player_tag, round, crowns, king_tower_hp,
                   princess_tower_hp_1, princess_tower_hp_2, elixir_leaked
              from battle_participant_round
             where battle_id = any($1)
             order by player_tag, round`,
-        [rows.filter((r) => isDuel(r.type)).map((r) => r.battle_id)],
+        [rows.filter(duelRow).map((r) => r.battle_id)],
       );
       for (const x of rr) {
         const k = `${x.battle_id}|${x.player_tag}`;
@@ -410,7 +417,7 @@ export const battles_query = {
     let floorLosses = 0;
     let duelRows = 0;
     const battles = rows.map((r) => {
-      if (isDuel(r.type)) duelRows++;
+      if (duelRow(r)) duelRows++;
       const rest = others.get(r.battle_id) ?? [];
       // The other side's leak (feedback #58): the log row carries both
       // sides' counters and the record kept both; a caller was paying
@@ -448,7 +455,7 @@ export const battles_query = {
       const myLeak = leakOf(r);
       const oppLeak = opponents.length === 1 ? leakOf(opponents[0]) : null;
       if (!compact && myLeak !== null) leakRows++;
-      if (!compact && opponents.length === 1 && !isDuel(r.type)) {
+      if (!compact && opponents.length === 1 && !duelRow(r)) {
         const a = towerLevel(r);
         const b = towerLevel(opponents[0]);
         if (a !== null && b !== null && a !== b) towerGapRows++;
@@ -553,7 +560,7 @@ export const battles_query = {
                   : {}),
                 // The differences the row always held both halves of.
                 vs:
-                  opponents.length === 1
+                  opponents.length === 1 && !duelRow(r)
                     ? versusOf(
                         { ...r, tower_level: towerLevel(r) },
                         {
@@ -677,7 +684,7 @@ export const battles_query = {
         // rounds_played and rounds[], which only a duel row carries.
         duelRows === 0
           ? null
-          : "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept).",
+          : "Duel rows (riverRaceDuel*, and any battle whose decks sit under deck.rounds[], such as an event's multi-deck mode) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept).",
         compact
           ? null
           : "Deck card levels are the in-game 1-16 scale; form is the FORM played (base, evolution or hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
