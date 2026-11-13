@@ -19,6 +19,7 @@ import {
   DEFAULT_OAUTH_SCOPE,
   OAUTH_SCOPES,
   FULL_OAUTH_SCOPE,
+  LEGACY_OAUTH_SCOPES,
   tierSql,
 } from "@elixir-mcp/contracts";
 
@@ -114,17 +115,25 @@ export function validCodeChallenge(value) {
 export function normalizeScope(value) {
   const raw = String(value ?? "").trim();
   if (!raw) return FULL_OAUTH_SCOPE;
-  const unique = [
-    ...new Set(
-      raw.split(/\s+/).filter((scope) => scope !== "collections:write"),
-    ),
-  ];
+  const unique = [...new Set(currentScopeNames(raw))];
   if (
     !unique.includes(DEFAULT_OAUTH_SCOPE) ||
     unique.some((s) => !OAUTH_SCOPES.includes(s))
   )
     return "";
   return OAUTH_SCOPES.filter((scope) => unique.includes(scope)).join(" ");
+}
+
+/** A space-separated scope string as today's names: collections:write
+ *  (retired with Collections) is dropped and an old name becomes the one
+ *  it was renamed to (recordings:write is follows:write since 2026-11-13).
+ *  Every read of a scope goes through here, so a grant, code or key
+ *  stored under an old name keeps its authority and is never rewritten. */
+export function currentScopeNames(value) {
+  return String(value ?? "")
+    .split(/\s+/)
+    .filter((scope) => scope && scope !== "collections:write")
+    .map((scope) => LEGACY_OAUTH_SCOPES[scope] ?? scope);
 }
 
 /** Canonical absolute HTTPS resource URI (RFC 8707). Queries, fragments,
@@ -780,13 +789,8 @@ function serviceAccount(row) {
     // the ability to change account settings.
     // "Every capability" for a key is the STANDARD set: account:email is
     // a person's address, and a service key is never a person.
-    scope: (row.token_scope ?? FULL_OAUTH_SCOPE)
-      .split(/\s+/)
-      .filter((scope) => scope !== "collections:write")
-      .join(" "),
-    scopes: (row.token_scope ?? FULL_OAUTH_SCOPE)
-      .split(/\s+/)
-      .filter((scope) => scope !== "collections:write"),
+    scope: currentScopeNames(row.token_scope ?? FULL_OAUTH_SCOPE).join(" "),
+    scopes: currentScopeNames(row.token_scope ?? FULL_OAUTH_SCOPE),
     kind: row.kind,
     ownedByAccountId: row.owned_by_account_id,
     publicId: row.public_id,

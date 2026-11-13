@@ -44,7 +44,7 @@ calls, and answer with that tool's result.
 | Operation | Callers | Mirrors |
 |---|---|---|
 | `GET /me` | person | who you are to Elixir and the players you follow |
-| `POST /me/players` | person (`recordings:write`) | `elixir_follow_player` |
+| `POST /me/players` | person (`follows:write`) | `elixir_follow_player` |
 | `GET /players/{tag}/profile` | person | `players_profile` |
 | `GET /players/{tag}/battles` | person | `battles_query`, compact, up to 50; each battle's `url` is [its public page](/docs/battles#a-battles-page) |
 | `GET /players/{tag}/follows` | person | `players_follows`: who they follow and who follows them, as [their page](/docs/player-page#follows-followers-and-badges) shows it (3.6.0) |
@@ -90,10 +90,11 @@ OpenAPI document's `info.version`. Adding an operation or a field is a
 minor version. Removing or renaming a field is a major version, and the
 path stays `/api/v1` whatever the version, because the path is what a
 person's grant is for. What changed in each version is in the OpenAPI
-document and on [Updates](/updates). The current version is 3.6.0, which
-added the four social reads above (follows, highlights, cheers and the
-clan directory) for a person's own grant; an integration reads none of
-them.
+document and on [Updates](/updates). The current version is 3.7.0, which
+names following's scope `follows:write` (it was `recordings:write`, still
+accepted). 3.6.0 added the four social reads above (follows, highlights,
+cheers and the clan directory) for a person's own grant; an integration
+reads none of them.
 
 ## Limits
 

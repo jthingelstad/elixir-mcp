@@ -15,7 +15,7 @@ test("OAuth scope catalog is closed and read is the safe default", () => {
   assert.equal(DEFAULT_OAUTH_SCOPE, "cr:read");
   assert.deepEqual(OAUTH_SCOPES, [
     "cr:read",
-    "recordings:write",
+    "follows:write",
     "account:write",
     "feedback:write",
     "account:email",
@@ -35,8 +35,8 @@ test("OAuth scope catalog is closed and read is the safe default", () => {
 
 test("every tool has exactly the capability its behavior requires", () => {
   const expectedWrites = {
-    elixir_follow_clan: OAUTH_SCOPE.RECORDINGS_WRITE,
-    elixir_follow_player: OAUTH_SCOPE.RECORDINGS_WRITE,
+    elixir_follow_clan: OAUTH_SCOPE.FOLLOWS_WRITE,
+    elixir_follow_player: OAUTH_SCOPE.FOLLOWS_WRITE,
     // The feed advances the caller's own bookmark and nothing else; the
     // scheduled read-only routine is what it exists for (feedback #16).
     elixir_timeline: OAUTH_SCOPE.READ,

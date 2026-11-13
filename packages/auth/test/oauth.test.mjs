@@ -292,7 +292,7 @@ test("refresh rotation preserves scope/resource and replaying the old token revo
   const first = await mintTokens(db, {
     clientId,
     accountId,
-    scope: "cr:read recordings:write",
+    scope: "cr:read follows:write",
     resource: RESOURCE,
   });
   const rotated = await redeemRefreshToken(db, {
@@ -301,14 +301,14 @@ test("refresh rotation preserves scope/resource and replaying the old token revo
     resource: RESOURCE,
   });
   assert.equal(rotated.status, "ok");
-  assert.equal(rotated.tokens.scope, "cr:read recordings:write");
+  assert.equal(rotated.tokens.scope, "cr:read follows:write");
   assert.equal(rotated.tokens.resource, RESOURCE);
   const rotatedContext = await validateAccessToken(
     db,
     rotated.tokens.accessToken,
     { resource: RESOURCE },
   );
-  assert.deepEqual(rotatedContext.scopes, ["cr:read", "recordings:write"]);
+  assert.deepEqual(rotatedContext.scopes, ["cr:read", "follows:write"]);
 
   const replay = await redeemRefreshToken(db, {
     refreshToken: first.refreshToken,
@@ -391,7 +391,7 @@ test("absolute family lifetime forces re-consent", async () => {
 });
 
 test("old Collection scope is removed without losing retained OAuth permissions", async () => {
-  const retained = "cr:read recordings:write account:write feedback:write";
+  const retained = "cr:read follows:write account:write feedback:write";
   assert.equal(normalizeScope(retained + " collections:write"), retained);
   assert.equal(normalizeScope("cr:read collections:write unknown:write"), "");
   const client = await registerClient(db, {
@@ -419,6 +419,59 @@ test("old Collection scope is removed without losing retained OAuth permissions"
   });
   assert.equal(renewed.status, "ok");
   assert.equal(renewed.tokens.scope, retained);
+});
+
+test("recordings:write, follows:write's old name, keeps every grant, code and key working and is never rewritten (2026-11-13)", async () => {
+  // A client still asking for the old name gets the new one.
+  assert.equal(
+    normalizeScope("cr:read recordings:write account:email"),
+    "cr:read follows:write account:email",
+  );
+  assert.equal(
+    normalizeScope("cr:read recordings:write follows:write"),
+    "cr:read follows:write",
+  );
+  const client = await registerClient(db, {
+    clientName: "old-scope-name",
+    redirectUris: ["https://example.com/callback"],
+  });
+  const tokens = await mintTokens(db, {
+    clientId: client.clientId,
+    accountId,
+    scope: "cr:read follows:write",
+    resource: RESOURCE,
+  });
+  // A grant stored before the rename, as production holds them.
+  await db.query(
+    "update oauth_family set scope='cr:read recordings:write account:email' where family_id=$1",
+    [tokens.familyId],
+  );
+  const access = await validateAccessToken(db, tokens.accessToken, {
+    resource: RESOURCE,
+  });
+  assert.equal(access.scope, "cr:read follows:write account:email");
+  assert.ok(access.scopes.includes("follows:write"));
+  const renewed = await redeemRefreshToken(db, {
+    refreshToken: tokens.refreshToken,
+    clientId: client.clientId,
+    resource: RESOURCE,
+  });
+  assert.equal(renewed.status, "ok");
+  assert.equal(renewed.tokens.scope, "cr:read follows:write account:email");
+  const {
+    rows: [stored],
+  } = await db.query("select scope from oauth_family where family_id=$1", [
+    tokens.familyId,
+  ]);
+  assert.equal(stored.scope, "cr:read recordings:write account:email");
+  // A key stored with the old name holds the new one.
+  const key = await issueServiceToken(db, {
+    accountId,
+    name: "old-scope-key",
+    scope: "cr:read recordings:write",
+  });
+  const keyed = await validateServiceToken(db, key);
+  assert.deepEqual(keyed.scopes, ["cr:read", "follows:write"]);
 });
 
 test("service keys retain write-only permissions while the retired scope is filtered", async () => {

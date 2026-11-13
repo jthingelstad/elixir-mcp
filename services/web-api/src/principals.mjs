@@ -8,7 +8,11 @@
  * cannot drift on the rules that matter (whose clan, which tier, how many).
  */
 
-import { mintServiceTokenValue, normalizeScope } from "@elixir-mcp/auth";
+import {
+  currentScopeNames,
+  mintServiceTokenValue,
+  normalizeScope,
+} from "@elixir-mcp/auth";
 import { tierSql } from "@elixir-mcp/contracts";
 import {
   createPrincipal,
@@ -102,7 +106,16 @@ export async function listPrincipals(db, ownerAccountId) {
      order by a.created_at desc`,
     [ownerAccountId],
   );
-  return rows;
+  // A key's scope is shown and edited in today's names: a key stored with
+  // recordings:write holds follows:write, and the editor must tick it.
+  return rows.map((row) => ({
+    ...row,
+    tokens: row.tokens.map((token) => ({
+      ...token,
+      scope:
+        token.scope == null ? null : currentScopeNames(token.scope).join(" "),
+    })),
+  }));
 }
 
 async function create(db, owner, kind, { name, clanTag = null, scope = null }) {

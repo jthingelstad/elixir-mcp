@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "3.6.0",
+    "version": "3.7.0",
     "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Integrations do not enroll players or clans for recording; people manage who they follow. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
@@ -1151,12 +1151,12 @@
       "post": {
         "operationId": "meTrackPlayer",
         "summary": "Follow a player as the signed-in person: the elixir_follow_player add (followed means recorded). relationship alt, friend or watching; the primary is chosen in Settings.",
-        "x-permission": "recordings:write",
+        "x-permission": "follows:write",
         "x-principals": ["person"],
         "x-tool": "elixir_follow_player",
         "security": [
           {
-            "personOAuth": ["recordings:write"]
+            "personOAuth": ["follows:write"]
           }
         ],
         "requestBody": {
@@ -1992,7 +1992,7 @@
             "tokenUrl": "https://elixir.poapkings.com/oauth/token",
             "scopes": {
               "cr:read": "Read the record as the signed-in person",
-              "recordings:write": "Track players as the signed-in person",
+              "follows:write": "Follow players as the signed-in person (named recordings:write until 3.7.0, and that name is still accepted)",
               "account:email": "The account's address, family apps only",
               "clans:attest": "Record what the person does in their clan as attested facts, family apps only",
               "feedback:write": "File feedback with the Elixir maintainer and read its answers as the signed-in person"

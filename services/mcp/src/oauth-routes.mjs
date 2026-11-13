@@ -50,6 +50,7 @@ import {
   validRedirectUri,
   validState,
   validCodeChallenge,
+  currentScopeNames,
   normalizeScope,
   canonicalResource,
   resourceForPath,
@@ -348,7 +349,8 @@ function codeFailure(reason) {
  *  and the confirmation (Jamie 2026-09-24: say what an unticked box
  *  will stop). */
 const WITHOUT = {
-  "recordings:write": "follow or stop following players and clans for you",
+  [OAUTH_SCOPE.FOLLOWS_WRITE]:
+    "follow or stop following players and clans for you",
   "account:write": "set your private nicknames",
   "feedback:write": "send feedback to the Elixir maintainer for you",
 };
@@ -361,8 +363,13 @@ function defaultTicked(kind) {
   return kind === "person" || kind === "api"
     ? []
     : STANDARD_OAUTH_SCOPES.filter(
-        (s) => s !== OAUTH_SCOPE.READ && s !== OAUTH_SCOPE.RECORDINGS_WRITE,
+        (s) => s !== OAUTH_SCOPE.READ && s !== OAUTH_SCOPE.FOLLOWS_WRITE,
       );
+}
+
+/** The consent form's ticked boxes in today's scope names. */
+function grantValues(event) {
+  return currentScopeNames(formValues(event, "grant").join(" "));
 }
 
 /** The standard capabilities a request did not ask for: the checkboxes. */
@@ -698,7 +705,8 @@ export function makeOauthRoutes({
   const confirmGate = (event, v, form, backPage) => {
     // A family sign-in has no boxes, so nothing to confirm.
     if (signsInOnly(v)) return null;
-    const ticked = formValues(event, "grant").filter((s) =>
+    // A page rendered before a rename can post an old name.
+    const ticked = grantValues(event).filter((s) =>
       STANDARD_OAUTH_SCOPES.includes(s),
     );
     const missing = uncheckedDefaults(v, ticked);
@@ -753,7 +761,7 @@ export function makeOauthRoutes({
     // ?scope=, so nothing can move the grant behind the checkboxes.
     // ...and only to a STANDARD capability: account:email is never
     // widened into, whatever the form posts.
-    const added = (signsInOnly(v) ? [] : formValues(event, "grant")).filter(
+    const added = (signsInOnly(v) ? [] : grantValues(event)).filter(
       (value) =>
         STANDARD_OAUTH_SCOPES.includes(value) && !boundScope.includes(value),
     );
