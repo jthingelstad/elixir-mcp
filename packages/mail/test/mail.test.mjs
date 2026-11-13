@@ -751,7 +751,7 @@ test("the actions mail says Clan, not Elixir Clan", () => {
     "clan_actions_waiting",
     {
       clan: { tag: "#A", name: "Example" },
-      app: "Elixir Clan",
+      app: "Clan",
       subject: "One action is waiting",
       lines: ["Promote Ann to Elder (new)"],
       link: "https://elixir.poapkings.com/clan",

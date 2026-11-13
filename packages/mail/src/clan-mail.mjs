@@ -12,7 +12,7 @@
  * kind switched on, and sends at most one of the kind per clan per account
  * per UTC day, under a lock so two calls cannot both pass the check. The
  * words are plain lines that the renderer escapes; the link must lead to
- * Elixir or a family app. Each send is recorded like every Elixir email
+ * Elixir. Each send is recorded like every Elixir email
  * (the issue, the archive, the send id in the footer, the console's
  * record), and a message that cannot be sent says why.
  */
@@ -129,12 +129,13 @@ async function recipientOf(db, playerTag, clanTag, kind) {
   return { account: { accountId: r.account_id, email: r.email } };
 }
 
-/** The source and label Clan's own mail is recorded under: the name of
- *  the integration row Clan once sent through, and its old label, kept so
- *  the issue and the send's facts read as they always have. */
+/** The source and label Clan's own mail is recorded under. The source
+ *  is the name of the integration row Clan once sent through, a stored
+ *  identifier the issue's facts keep; the label is Clan, a part of Elixir
+ *  (Jamie, 2026-11-12), never a product of its own. */
 const CLAN_SENDER = Object.freeze({
   source: "elixir-clan",
-  app: "Elixir Clan",
+  app: "Clan",
 });
 
 /** Clan's morning mail, sent by Elixir itself. */
@@ -229,7 +230,7 @@ async function sendMail(
             : { player_tag: m.player_tag, status: "already_sent_today" },
         );
       } catch (err) {
-        // The compose-failure alarm reads this line in the web-api log.
+        // The compose-failure alarm reads this line in the jobs log.
         console.error(
           JSON.stringify({
             level: "error",

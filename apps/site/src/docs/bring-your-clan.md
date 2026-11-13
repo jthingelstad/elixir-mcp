@@ -71,8 +71,7 @@ your player is [verified](/docs/verify)**. Until then you are a member
 who reads, whatever your role in the game: you see what members see,
 and nothing is done in your player's name, so no away notice, no
 comments, and no place on the clan map. Verifying is one battle with a
-deck Elixir names, usually under a minute; sign in to Clan again
-afterwards.
+deck Elixir names, usually under a minute; then come back to Clan.
 
 A leader, co-leader or elder signing in unverified is asked to verify
 first, or to go on as a member for now.

@@ -3,7 +3,7 @@
  *  told there, and whether the clan's model edits the channel in the
  *  leaders' voice (the `rewrite` column; the voice itself is the clan's
  *  one setting since 2026-10-20, `voice#<clan>` in the Clan ledger, and
- *  the `voice` column is no longer read or written). Leaders' alone, through Elixir Clan; never MCP or
+ *  the `voice` column is no longer read or written). Leaders' alone, through Clan; never MCP or
  *  `/api/v1`. The webhook is sealed as it is saved, bound to a random
  *  channel id that a new webhook replaces, and never read back whole:
  *  leaders see its shortened form, and only the relay opens it. What the
@@ -32,7 +32,7 @@ const escape = escapeDiscord;
  *  webhook works and the channel learns what will appear in it. */
 export function clanHelloContent(clanName, nowMs = Date.now()) {
   return [
-    `Elixir will post ${clanName ? escape(clanName) : "the clan"}'s activity to this channel from <t:${Math.floor(nowMs / 1000)}:f>, as it happens. [Elixir Clan](<${ELIXIR_ORIGIN}/clan>)`,
+    `Elixir will post ${clanName ? escape(clanName) : "the clan"}'s activity to this channel from <t:${Math.floor(nowMs / 1000)}:f>, as it happens. [Clan in Elixir](<${ELIXIR_ORIGIN}/clan>)`,
     `-# ${DISCLAIMER}`,
   ].join("\n");
 }

@@ -9,7 +9,7 @@
  *  A wake is one outbox object per account per minute (written once),
  *  and the queue holds it a minute before the sync runs, so a burst of
  *  admissions is one sync. The collector calls this after its commit and
- *  never fails a submission on it; so does Elixir Clan after a leader's
+ *  never fails a submission on it; so does Clan after a leader's
  *  attested fact (a departure's answer, an award), which no collector
  *  admits, and so does a person's highlight when it is posted or its
  *  words change (wakeAfterHighlight).

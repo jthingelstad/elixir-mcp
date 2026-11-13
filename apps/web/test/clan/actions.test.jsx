@@ -933,7 +933,7 @@ describe("clan leader messages", () => {
             copy: null,
             message: {
               title: "How our clan runs",
-              body: "We now run the clan with Elixir Clan.",
+              body: "We now run the clan with Elixir.",
             },
             evidence: { version: 1, changes: [] },
             log: [],
@@ -965,7 +965,7 @@ describe("clan leader messages", () => {
         sent: {
           channel: "leader_message",
           title: "Our rules",
-          body: "We now run the clan with Elixir Clan.",
+          body: "We now run the clan with Elixir.",
         },
       }),
     );
@@ -1056,7 +1056,7 @@ describe("the clan's model on a Leader Message", () => {
             copy: null,
             message: {
               title: "How our clan runs",
-              body: "We now run the clan with Elixir Clan.",
+              body: "We now run the clan with Elixir.",
             },
             evidence: { version: 1, changes: [] },
             log: [],
@@ -1069,7 +1069,7 @@ describe("the clan's model on a Leader Message", () => {
       status: 200,
       data: {
         title: "Our way, in brief",
-        body: "We run the clan with Elixir Clan now. Sign in to see where you stand.",
+        body: "We run the clan with Elixir now. Sign in to see where you stand.",
         warnings: [],
         model: "claude-sonnet-5",
       },
