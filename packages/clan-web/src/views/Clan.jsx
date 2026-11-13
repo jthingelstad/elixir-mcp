@@ -1,4 +1,5 @@
 import {
+  Avatar,
   Empty,
   Icon,
   Link,
@@ -82,6 +83,11 @@ export function RosterTable({
             cell: (m) => (
               <>
                 <span className="inline-flex items-center gap-2">
+                  <Avatar
+                    name={m.name ?? m.player_tag}
+                    tag={m.player_tag}
+                    small
+                  />
                   <span
                     className={
                       m.you ? "font-semibold text-ink" : "font-medium text-ink"

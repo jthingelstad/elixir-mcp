@@ -192,7 +192,7 @@ function WeekCard({ clan, base, navigate }) {
               : "No member took part in anything Elixir recorded this week."}
           </p>
         ) : (
-          <dl className="fields m-0">
+          <dl className="fields kit-kv m-0">
             {war ? (
               <>
                 <dt className="label">War decks played</dt>

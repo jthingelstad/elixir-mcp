@@ -129,7 +129,7 @@ function ActionRow({ action, clan, navigate }) {
 /** A list of actions in its own panel: its name, its count, its lines. */
 export function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
   return (
-    <Panel className="overflow-hidden" aria-labelledby={id}>
+    <Panel className="overflow-hidden kit-panel--decision" aria-labelledby={id}>
       <div className="panel__head">
         <h2 id={id} className="m-0 grow text-[14px] font-semibold">
           {title}

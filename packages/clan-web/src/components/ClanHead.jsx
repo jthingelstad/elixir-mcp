@@ -1,4 +1,4 @@
-import { FreshChip, Link, Tabs, Tag } from "@elixir-mcp/ui";
+import { Avatar, FreshChip, Link, Tabs, Tag } from "@elixir-mcp/ui";
 import { useRace, useRoster } from "../lib/queries.js";
 import { clanTabs, tabOf } from "../lib/tabs.js";
 import { ELIXIR_LINKS } from "../lib/links.js";
@@ -49,43 +49,53 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
   const racing = raceChip(race);
   return (
     <header className="clan-head">
-      <div className="clan-head__top">
-        <div className="clan-head__who">
-          <h1 className="kit-head__title m-0">
-            {clan.name ?? <Tag tag={clan.clan_tag} />}
-          </h1>
-          <p className="clan-head__line m-0">{clanLine(clan, roster)}</p>
-          {who ? <p className="page__lede m-0">{who}</p> : null}
-        </div>
-        <div className="clan-head__side">
-          <ClanPicker
-            me={me}
-            navigate={navigate}
-            select={select}
-            selecting={selecting}
-          />
-          {roster?.meta?.as_of ? (
-            <FreshChip
-              label="Roster read"
-              ts={roster.meta.as_of}
-              seconds={roster.meta.freshness_seconds}
-            >
-              Elixir reads the clan from the game on a schedule. A gap means
-              unknown. It does not mean nobody played.
-            </FreshChip>
-          ) : null}
+      <div className="clan-head__card">
+        <Avatar
+          name={clan.name ?? clan.clan_tag}
+          tag={clan.clan_tag}
+          clan
+          large
+        />
+        <div className="clan-head__top">
+          <div className="clan-head__who">
+            {who ? <p className="clan-head__role m-0">{who}</p> : null}
+            <h1 className="kit-head__title clan-head__name m-0">
+              {clan.name ?? <Tag tag={clan.clan_tag} />}
+            </h1>
+            <p className="clan-head__line m-0">{clanLine(clan, roster)}</p>
+            {racing || ruleChips.length ? (
+              <ul className="clan-head__chips kit-facts" aria-label="This clan">
+                {racing ? (
+                  <li className="kit-fact kit-fact--gold">{racing}</li>
+                ) : null}
+                {ruleChips.map((c) => (
+                  <li key={c.key} className="kit-fact">
+                    {c.text}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          <div className="clan-head__side">
+            <ClanPicker
+              me={me}
+              navigate={navigate}
+              select={select}
+              selecting={selecting}
+            />
+            {roster?.meta?.as_of ? (
+              <FreshChip
+                label="Roster read"
+                ts={roster.meta.as_of}
+                seconds={roster.meta.freshness_seconds}
+              >
+                Elixir reads the clan from the game on a schedule. A gap means
+                unknown. It does not mean nobody played.
+              </FreshChip>
+            ) : null}
+          </div>
         </div>
       </div>
-      {racing || ruleChips.length ? (
-        <ul className="clan-head__chips" aria-label="This clan">
-          {racing ? <li className="chip chip--info">{racing}</li> : null}
-          {ruleChips.map((c) => (
-            <li key={c.key} className="chip chip--mute">
-              {c.text}
-            </li>
-          ))}
-        </ul>
-      ) : null}
       {clan.verified === false || clan.unlock ? (
         <div className="callout callout--info" role="status">
           <span>

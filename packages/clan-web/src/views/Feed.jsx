@@ -244,9 +244,9 @@ export function Feed({ clan, who, closedOpen, navigate }) {
   return (
     <>
       <h2 className="sr-only">Feed</h2>
-      <RaceBar race={race.data?.race ?? null} />
       <div className="clan-today">
         <div className="clan-today__waiting">
+          <RaceBar race={race.data?.race ?? null} />
           <div className="clan-today__now">
             <ActionsNow
               clan={clan}
@@ -260,8 +260,8 @@ export function Feed({ clan, who, closedOpen, navigate }) {
           </div>
         </div>
         <div className="clan-today__cards">
-          <YouCard clan={clan} base={base} navigate={navigate} />
           <WeekCard clan={clan} base={base} navigate={navigate} />
+          <YouCard clan={clan} base={base} navigate={navigate} />
         </div>
       </div>
     </>
