@@ -141,3 +141,51 @@ test("the no-deck line appears only for the side whose row holds no cards", () =
   expect(screen.getAllByText(NIL)).toHaveLength(1);
   expect(screen.getByText("Deck 0 A")).toBeTruthy();
 });
+
+/** Towers stand as in the arena (Jamie, 2026-11-13): Princess, King,
+ *  Princess on both sides, the King in the middle even when its value is
+ *  missing (a duel game whose King fell: the API leaves the field out). */
+test("each side's towers read Princess, King, Princess, the King in the middle", () => {
+  const { container } = view(
+    readOf({
+      games: [
+        {
+          round: 1,
+          winner: "left",
+          sides: [
+            {
+              crowns: 3,
+              tower_hp: { king: 5000, princess: [1000, 0] },
+              elixir_leaked: 1.5,
+            },
+            {
+              crowns: 0,
+              tower_hp: { princess: [0, 0] },
+              elixir_leaked: 2,
+            },
+          ],
+        },
+      ],
+      score: { left: 1, right: 0, unit: "games" },
+    }),
+  );
+  const rows = [...container.querySelectorAll(".towers")].map((row) =>
+    [...row.querySelectorAll(".tower")].map((t) => [
+      t.querySelector(".tower__kind").textContent,
+      t.querySelector(".tower__hp").textContent,
+      t.classList.contains("tower--king"),
+    ]),
+  );
+  expect(rows).toEqual([
+    [
+      ["Princess Tower", "1,000", false],
+      ["King Tower", "5,000", true],
+      ["Princess Tower", "destroyed", false],
+    ],
+    [
+      ["Princess Tower", "destroyed", false],
+      ["King Tower", "—", true],
+      ["Princess Tower", "destroyed", false],
+    ],
+  ]);
+});

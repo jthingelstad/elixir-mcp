@@ -102,7 +102,9 @@ Every battle has a page anyone can open, no account needed: the `url` above,
 `/battle/<short id>`. The player whose battle log the record read first is on
 the left and the opponent on the right; then both decks as the game lays them
 out (each with the game's own copy-deck link, which opens Clash Royale with
-the deck ready to save), the towers each side kept, how it ended, the two
+the deck ready to save), the towers each side kept (laid out as the arena
+has them: a Princess Tower, the King Tower in the middle, the other Princess
+Tower, the Princess Towers in the order the game reports them), how it ended, the two
 sides' numbers next to each other, the left player's session around it when
 it holds other battles, and, for a one-on-one battle, the two players' other
 recorded meetings when there are any. A duel reads game by game: tap a game
@@ -143,8 +145,8 @@ carries no cheers.
 
 Add `.png` to the link for the battle's picture: the page drawn as one 1200 by
 630 image, with the names left and right, both decks two by four with their
-levels, the elixir numbers, the towers' hitpoints and how it ended, and the
-link under it. It is what the link shows when it unfurls, and it can be posted
+levels, the elixir numbers, the towers' hitpoints (the King Tower in the
+middle, as on the page) and how it ended, and the link under it. It is what the link shows when it unfurls, and it can be posted
 on its own with the link beside it. Its time is in UTC, since a picture has no
 reader's clock.
 

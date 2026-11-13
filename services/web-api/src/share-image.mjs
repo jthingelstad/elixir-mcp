@@ -543,23 +543,31 @@ function drawSide(push, f, read, side, isLeft, { towers, leak, text, fit }) {
     });
   }
 
-  // The three towers: hitpoints left, as the game reports them (never
-  // "left" and "right": position carries no lane).
+  // The three towers as the arena has them (Jamie, 2026-11-13): a
+  // Princess Tower, the King Tower in the middle, the other Princess
+  // Tower. Hitpoints left, as the game reports them; the Princess Towers
+  // keep the game's order, first on the left (never a lane). A missing
+  // value is drawn as not recorded, so the King always sits in the middle.
   const tiles = towers
     ? [
+        ["Princess Tower", towers.princess?.[0] ?? null],
         ["King Tower", towers.king ?? null],
-        ...(towers.princess ?? []).map((v) => ["Princess Tower", v ?? null]),
+        ["Princess Tower", towers.princess?.[1] ?? null],
       ]
     : [];
   const ty = 470;
   const tw = (SIDE_W - 20) / 3;
-  tiles.slice(0, 3).forEach(([label, hp], k) => {
+  tiles.forEach(([label, hp], k) => {
     const tx = isLeft ? x0 + k * (tw + 10) : RIGHT_X - (3 - k) * (tw + 10) + 10;
     const down = hp === 0;
+    // The King, in the middle, a touch heavier: a firmer edge, a brighter label.
+    const king = k === 1;
     push(
-      `<rect x="${tx}" y="${ty}" width="${tw}" height="64" rx="10" fill="${down ? C.ground : C.panel}" stroke="${down ? C.lineSoft : C.line}"/>`,
+      `<rect x="${tx}" y="${ty}" width="${tw}" height="64" rx="10" fill="${down ? C.ground : C.panel}" stroke="${down ? C.lineSoft : king ? C.lineStrong : C.line}"/>`,
     );
-    push(text(tx + 14, ty + 24, label, { size: 13, fill: C.faint }));
+    push(
+      text(tx + 14, ty + 24, label, { size: 13, fill: king ? C.dim : C.faint }),
+    );
     push(
       text(tx + 14, ty + 51, down ? "Down" : hp === null ? "—" : num(hp), {
         size: 22,
