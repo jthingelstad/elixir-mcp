@@ -217,6 +217,48 @@ test("the Lambda deadline answers a slow read tool with query_timeout and audits
   assert.equal((await db.query("select 1 as n")).rows[0].n, 1);
 });
 
+test("a query whose timeout was still being set when the deadline fired is never sent", async () => {
+  // A loaded run, 2026-11-13: the per-query statement_timeout answered
+  // after the deadline, the restore had already put 0 back, and the
+  // abandoned pg_sleep(10) then ran unbounded and held the connection,
+  // so the audit insert behind it waited ten seconds. Here the set's
+  // reply is held until the call has answered: no clock involved.
+  let answered;
+  const callAnswered = new Promise((resolve) => (answered = resolve));
+  const sent = [];
+  const held = {
+    query: async (sql, params) => {
+      sent.push(String(sql));
+      const result = await db.query(sql, params);
+      if (String(sql).startsWith("select set_config('statement_timeout'"))
+        await callAnswered;
+      return result;
+    },
+  };
+  let toolRun;
+  const invoke = makeInvoker({
+    db: held,
+    account,
+    deadlineMs: 150,
+    registry: {
+      invoke: (_name, ctx) =>
+        (toolRun = (async () => {
+          await ctx.db.query("select pg_sleep(10)");
+          return { ok: true };
+        })()),
+    },
+  });
+  const result = await invoke("war_current", {});
+  assert.equal(result.body.error.code, "query_timeout");
+  answered();
+  await assert.rejects(toolRun, (err) => err.code === "query_timeout");
+  assert.ok(!sent.some((sql) => sql.includes("pg_sleep")));
+  assert.equal(
+    (await db.query("show statement_timeout")).rows[0].statement_timeout,
+    "0",
+  );
+});
+
 test("the deadline covers work outside the database, such as a live-lane wait", async () => {
   const invoke = makeInvoker({
     db,

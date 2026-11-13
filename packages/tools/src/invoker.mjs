@@ -321,6 +321,12 @@ export function timedDb(db, t, budget = null) {
               "select set_config('statement_timeout', $1, false)",
               [String(remaining)],
             );
+            // Checked again, with no await before the send: a deadline that
+            // fired while that set_config was in flight has already queued
+            // the restore, so a query sent now would run unbounded behind
+            // it and hold the connection (a loaded test run, 2026-11-13).
+            if (budget.closed || performance.now() >= budget.deadline)
+              throw budget.failure();
           }
           const result = await target.query(...a);
           if (budget && performance.now() >= budget.deadline)
