@@ -168,7 +168,12 @@
       "season_id": 136,
       "section_index": 1
     },
-    "pick": "member_weeks[21].player_tag"
+    "pick": "member_weeks[21].player_tag",
+    "where": {
+      "boat_attacks": 4,
+      "decks_used": 4,
+      "points": 350
+    }
   },
   "$MEMBER_2": {
     "what": "row 11 of war week 136/1's member_weeks",
@@ -177,7 +182,11 @@
       "season_id": 136,
       "section_index": 1
     },
-    "pick": "member_weeks[11].player_tag"
+    "pick": "member_weeks[11].player_tag",
+    "where": {
+      "boat_attacks": 8,
+      "points": 1600
+    }
   },
   "$MEMBER_3": {
     "what": "row 12 of war week 136/1's member_weeks",
@@ -186,7 +195,11 @@
       "season_id": 136,
       "section_index": 1
     },
-    "pick": "member_weeks[12].player_tag"
+    "pick": "member_weeks[12].player_tag",
+    "where": {
+      "decks_used": 12
+    },
+    "ties": "tag"
   },
   "$MEMBER_4": {
     "what": "row 30 of war week 136/1's member_weeks",
@@ -195,7 +208,11 @@
       "season_id": 136,
       "section_index": 1
     },
-    "pick": "member_weeks[30].player_tag"
+    "pick": "member_weeks[30].player_tag",
+    "where": {
+      "decks_used": 4
+    },
+    "ties": "tag"
   },
   "$MEMBER_5": {
     "what": "row 8 of the clan's event standings for 2026-09-07 to 09-21",
@@ -321,7 +338,10 @@
       "season_id": 136,
       "section_index": 1
     },
-    "pick": "member_weeks[1].player_tag"
+    "pick": "member_weeks[1].player_tag",
+    "where": {
+      "points": 2550
+    }
   },
   "$MEMBER_17": {
     "what": "row 27 of the clan's donations series for 2026-09-13 to 09-20",

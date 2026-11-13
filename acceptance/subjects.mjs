@@ -15,8 +15,10 @@
  *   for the record of the day.
  * - a pick (`picks.json`): one read of closed data and the path of the
  *   tag in its answer (`$RIVAL_3` is the second row of a closed war
- *   week's standings). Closed data does not move, so a frozen case keeps
- *   reading the same subject it was filed against.
+ *   week's standings). Closed data does not move, but its order can: a
+ *   rename reorders tied rows, and a departure shrinks a standings
+ *   population (#907). A pick whose cases assert frozen values on its
+ *   row names them in `where`, and the row is found by them (pickRow).
  *
  * `$NAME_n.name` is that subject's current name (players_names), for a
  * case that checks a player is named in a text. A placeholder that
@@ -198,10 +200,66 @@ export function seedSubjects(ctx, map = {}) {
   }
 }
 
+/** `rows[12].player_tag`: the array, the position and the tag's field. */
+const ROW_PICK = /^([A-Za-z_][\w.]*)\[(\d+)\]\.([A-Za-z_]\w*)$/;
+
+/** Whether a row holds every frozen value a pick's `where` names. */
+function rowMatches(row, where) {
+  return Object.entries(where).every(([key, want]) => {
+    try {
+      return resolve(row, key) === want;
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
+ * A pick with `where` (#907): the frozen values its cases assert on the
+ * row. A position moves when a rename reorders tied rows or a departure
+ * shrinks a population; the values do not. The positional row is kept
+ * while it still matches, so a pick never changes subject needlessly;
+ * otherwise the one row that matches; with `ties: "tag"` (a pick whose
+ * cases hold for any matching row) the lowest tag among several;
+ * otherwise a reason, and the case SKIPs rather than read someone else.
+ */
+export function pickRow(body, name, spec) {
+  const m = ROW_PICK.exec(spec.pick);
+  if (!m) return { reason: `${name}: where needs a pick like rows[3].tag` };
+  const [, rowsPath, index, field] = m;
+  let rows;
+  try {
+    rows = resolve(body, rowsPath);
+  } catch {
+    rows = undefined;
+  }
+  if (!Array.isArray(rows))
+    return { reason: `${name}: ${rowsPath} is not a list (${spec.what})` };
+  const tagOf = (row) => row?.[field];
+  const isTag = (v) => typeof v === "string" && v.startsWith("#");
+  const at = rows[Number(index)];
+  if (at && rowMatches(at, spec.where) && isTag(tagOf(at)))
+    return { tag: tagOf(at) };
+  const found = rows
+    .filter((row) => rowMatches(row, spec.where) && isTag(tagOf(row)))
+    .map(tagOf);
+  const want = JSON.stringify(spec.where);
+  if (found.length === 1) return { tag: found[0] };
+  if (found.length === 0)
+    return {
+      reason: `${name}: no row of ${rowsPath} holds ${want} (${spec.what})`,
+    };
+  if (spec.ties === "tag") return { tag: [...found].sort()[0] };
+  return {
+    reason: `${name}: row ${index} of ${rowsPath} no longer holds ${want}, and ${found.length} rows do (${spec.what})`,
+  };
+}
+
 async function resolvePick(ctx, name, spec) {
   const r = await ctx.read(spec.tool, spec.args ?? {});
   if (r.isError)
     return { reason: `${name}: ${spec.tool} did not answer (${spec.what})` };
+  if (spec.where) return pickRow(r.body, name, spec);
   let value;
   try {
     value = resolve(r.body, spec.pick);
