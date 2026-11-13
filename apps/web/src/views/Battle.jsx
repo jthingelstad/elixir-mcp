@@ -770,7 +770,7 @@ function SideBySide({ battle, sides }) {
     ["Elixir leaked", fixed(l.elixir_leaked, 2), fixed(r.elixir_leaked, 2)],
   ];
   return (
-    <section className="panel battle__side" aria-label="Side by side">
+    <section className="panel battle__compare" aria-label="Side by side">
       <div className="panel__head">Side by side</div>
       <div className="table__scroll" tabIndex={0}>
         <table className="table">
