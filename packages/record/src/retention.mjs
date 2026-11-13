@@ -70,7 +70,7 @@ export const TRIMMED = Object.freeze([
   {
     ...plain("api_receipt", "fetched_at", DAYS_28),
     kind: "api_receipt",
-    held: "until {read_facts_backfill} has filled 0259's read facts in production: role history, war award absence evidence, the game_events calendar and days_since_poll read admitted_read_day and battlelog_read_gap now, which hold nothing older than the deploy until the backfill is done",
+    note: "an operational log; every reader looks back 28 days or less (services/jobs/test/receipt-readers.test.mjs), and what a year-long reader needs is 0259's read facts",
   },
 
   // The record, one year.

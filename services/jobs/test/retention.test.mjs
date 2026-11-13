@@ -186,7 +186,11 @@ test("the trim takes what is past its window, with what goes with it", async () 
   });
   assert.equal(due.mcp_call_audit.rows_due, 1);
   assert.equal(due.api_receipt.rows_due, 1);
-  assert.equal(due.api_receipt.held, true);
+  assert.equal(
+    due.api_receipt.held,
+    false,
+    "0259's read facts lifted the hold",
+  );
   assert.equal(due.war_week.rows_due, 1);
   assert.equal(due.feedback.rows_due, 1);
   assert.equal(due.clan_membership.rows_due, 1);
@@ -195,8 +199,19 @@ test("the trim takes what is past its window, with what goes with it", async () 
     JSON.stringify(before),
   );
 
+  // The trim takes the audit row before its receipt.
+  const { rows: r } = await db.query(
+    `select receipt_id from api_receipt limit 1`,
+  );
+  await db.query(
+    `insert into capture_audit (receipt_id, subject_tag, gap, fetched_at)
+     values ($1, $2, false, now() - interval '40 days')`,
+    [r[0].receipt_id, A],
+  );
   const out = await retentionTrim(db);
-  assert.deepEqual(out.held, ["api_receipt"]);
+  assert.deepEqual(out.held, []);
+  assert.equal(out.tables.capture_audit.deleted, 1);
+  assert.equal(out.tables.api_receipt.deleted, 1);
   assert.equal(out.tables.battle.deleted, 1);
   assert.deepEqual(out.tables.battle.children, {
     player_event: 1,
@@ -254,24 +269,6 @@ test("the trim takes what is past its window, with what goes with it", async () 
     1,
   );
   assert.equal(await count(`select count(*) n from war_participation`), 1);
-  assert.equal(
-    await count(`select count(*) n from api_receipt`),
-    1,
-    "a held entry is not run",
-  );
-
-  // Held entries, when run, take the audit row before its receipt.
-  const { rows: r } = await db.query(
-    `select receipt_id from api_receipt limit 1`,
-  );
-  await db.query(
-    `insert into capture_audit (receipt_id, subject_tag, gap, fetched_at)
-     values ($1, $2, false, now() - interval '40 days')`,
-    [r[0].receipt_id, A],
-  );
-  const held = await retentionTrim(db, { runHeld: true });
-  assert.equal(held.tables.capture_audit.deleted, 1);
-  assert.equal(held.tables.api_receipt.deleted, 1);
   assert.equal(await count(`select count(*) n from api_receipt`), 0);
 
   const again = await retentionTrim(db);
