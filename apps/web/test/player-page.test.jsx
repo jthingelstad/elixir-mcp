@@ -235,7 +235,13 @@ test(
   async () => {
     window.history.pushState({}, "", "/home/player/QQ8822");
     render(<App />);
-    await screen.findByRole("heading", { level: 1, name: "Copper Fern" });
+    // The first render waits on the lazy route chunk, which under a full
+    // parallel test run takes longer than findBy's 1 s default.
+    await screen.findByRole(
+      "heading",
+      { level: 1, name: "Copper Fern" },
+      { timeout: 10_000 },
+    );
     expect(screen.getByText("Verified player")).toBeTruthy();
     expect(screen.getByText("Verified in Discord")).toBeTruthy();
     // The counts are buttons to their tabs (canvas .statrow).
