@@ -165,10 +165,9 @@ export function canonicalResource(value) {
  *
  * Three shapes, and only three: the personal door, an agent's door and the
  * JSON API. This pattern is the code half of the CHECK constraint in
- * migrations 0054 and 0160, and a test holds every audience it names inside
- * that constraint. The constraint still admits `/i/<id>/mcp`, an
- * integration's MCP door, which no credential ever opened and which closed
- * with the integration keys (JSON API 5.0.0). The host is a hard-coded
+ * migrations 0054, 0160 and 0257, and a test holds every audience it names
+ * inside that constraint. The constraint names the same three; 0257 took
+ * out the integration door, which no credential ever opened. The host is a hard-coded
  * literal on both sides: nothing a caller sends can steer the audience off
  * this origin.
  *

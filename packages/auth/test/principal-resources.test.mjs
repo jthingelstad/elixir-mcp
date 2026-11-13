@@ -19,11 +19,10 @@ import {
 } from "../src/oauth.mjs";
 
 const ISSUER = "https://elixir.poapkings.com";
-// Kept identical to the CHECK in db/migrations/0160_oauth_api_resource.sql.
-// It still admits /i/<id>/mcp, an integration's MCP door; the code names
-// no such audience since JSON API 5.0.0, so no door accepts one.
+// Kept identical to the CHECK in db/migrations/0257_pivot_leftovers_contract.sql
+// (0160's, less the integration door /i/<id>/mcp that 0257 closed).
 const SQL_PATTERN =
-  /^https:\/\/elixir\.poapkings\.com\/(mcp|api\/v1|[ai]\/[a-z0-9]{8,16}\/mcp)$/;
+  /^https:\/\/elixir\.poapkings\.com\/(mcp|api\/v1|a\/[a-z0-9]{8,16}\/mcp)$/;
 
 const CASES = [
   ["/mcp", "person", null],
