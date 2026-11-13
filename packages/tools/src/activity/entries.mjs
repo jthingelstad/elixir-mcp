@@ -1301,11 +1301,13 @@ async function presenceOf(db, tag, played, fromMs, toMs) {
     // Null only when no read at or before the window's end exists (Gym
     // #119: a negative day count read as nonsense). The last battle-log read at or before the window's end, from the
     // receipts (Gym #163): poll_state holds only the latest read, so a
-    // past window had read null whenever a later poll existed.
+    // past window had read null whenever a later poll existed. Admitted
+    // reads only: a rejected one observed nothing.
     `select floor(extract(epoch from (${ts(toMs)} - max(r.fetched_at))) / 86400)::int
               as days_since_poll
        from api_receipt r
       where r.entity_key = $1 and r.endpoint = 'player_battlelog'
+        and r.admission = 'admitted'
         and r.fetched_at < ${ts(toMs + 1)}`,
     [tag],
   );
@@ -2355,6 +2357,7 @@ export async function buildClanEntry(
             (select floor(extract(epoch from (${ts(toMs)} - max(r.fetched_at))) / 86400)::int
                from api_receipt r
               where r.entity_key = cm.player_tag and r.endpoint = 'player_battlelog'
+                and r.admission = 'admitted'
                 and r.fetched_at < ${ts(toMs + 1)})
               as days_since_poll
        from membership cm
