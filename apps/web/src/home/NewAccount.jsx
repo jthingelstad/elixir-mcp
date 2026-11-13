@@ -65,7 +65,7 @@ export function NewAccount({
             title="First read"
             done={Boolean(landed)}
             waiting={!added}
-            ahead="Elixir reads your profile and your last 30 battles, usually within a minute."
+            ahead="Your profile and last 30 battles usually show up within a minute."
             doneLine={
               landed
                 ? player.battles_30d > 0
@@ -87,14 +87,14 @@ export function NewAccount({
             title="Your clan"
             done={Boolean(live?.clan?.name)}
             waiting={!added}
-            ahead="If you’re in a clan, it appears here."
+            ahead="In a clan? It shows up here."
             doneLine={
               live?.clan?.name ? clanStepLine(live.clan.name, added) : null
             }
           >
             {live?.clan?.name
               ? null
-              : "Elixir follows your player’s clan once a read names it: its roster, who joins and leaves, and its races."}
+              : "Once Elixir sees your clan, it follows it for you: your clanmates, who joins and leaves, and the River Race."}
           </Step>
           <Step
             n={4}
@@ -102,12 +102,12 @@ export function NewAccount({
             optional
             done={player?.verified === true}
             waiting={!added}
-            ahead="One battle with a deck Elixir names, for elders and leaders."
+            ahead="One battle with a deck Elixir picks. Unlocks your clan role."
             doneLine={player?.verified ? "Proved." : null}
           >
-            Play one battle with a deck Elixir gives you, win or lose. Elixir
-            then knows this player is yours, and you can act as Elder, Co-leader
-            or Leader in your clan.{" "}
+            Play one battle with the deck Elixir gives you. Win or lose, it
+            counts. Then Elixir knows this player is yours, and you can act as
+            Elder, Co-Leader or Leader in your clan.{" "}
             <Link to={`${SETTINGS}/players/verify`}>Prove it</Link>
           </Step>
           <Step
@@ -117,15 +117,14 @@ export function NewAccount({
             done={(live?.connection?.active_connections ?? 0) > 0}
             doneLine="Connected."
           >
-            Ask Claude or ChatGPT about your own record.{" "}
+            Ask Claude or ChatGPT about your battles.{" "}
             <a href="/docs/quickstart">Show me how</a>
           </Step>
         </ol>
         <aside className="kit-inbox">
           <h2>In your inbox</h2>
           <p>
-            <b>One digest a week</b>: the people you follow and your
-            clan&rsquo;s week in one email, each player once.
+            <b>One digest a week</b>: your friends and your clan in one email.
           </p>
           <Link to={`${SETTINGS}/emails`}>Make it daily, or turn it off</Link>
         </aside>
@@ -335,8 +334,8 @@ function FirstRead({ player, journey, onCheck, busy, onStopped }) {
   return (
     <>
       <p>
-        Your tag is saved. Your profile and roughly your last 30 battles usually
-        arrive within a minute; at busy times it can take a few.
+        Your tag is saved. Your profile and last 30 battles usually show up
+        within a minute (a few at busy times).
       </p>
       <p className="kit-tiny">
         This page checks again every few seconds for the first minutes, then

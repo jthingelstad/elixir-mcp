@@ -602,7 +602,9 @@ test("a player known as an opponent waits for their own battle log, then Home dr
     page.getByRole("heading", { name: "Welcome to Elixir" }),
   ).toBeVisible();
   await expect(
-    page.getByText(/usually arrive within a minute; at busy times/).first(),
+    page
+      .getByText(/usually show up within a minute \(a few at busy times\)/)
+      .first(),
   ).toBeVisible();
   await expect(page.getByText("Battle log read: never")).toHaveCount(0);
   await expect.poll(() => checks).toBeGreaterThan(0);

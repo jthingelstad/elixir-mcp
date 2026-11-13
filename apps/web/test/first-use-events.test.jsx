@@ -112,7 +112,7 @@ test("an opponent stub's battle is not the first read: the steps wait, then the 
   const view = renderWithProviders(<Home first={first(stub)} />);
   expect(screen.queryByText("Today is drawn")).toBeNull();
   expect(
-    screen.getByText(/usually arrive within a minute; at busy times/),
+    screen.getByText(/usually show up within a minute \(a few at busy times\)/),
   ).toBeTruthy();
   // No "1 battle on record." while the player's own log is unread.
   expect(screen.queryByText(/on record\./)).toBeNull();
@@ -152,14 +152,14 @@ test("the First read step says what is true now: profile and battles, usually wi
   const before = renderWithProviders(<NewAccount first={first(null)} />);
   expect(
     screen.getByText(
-      "Elixir reads your profile and your last 30 battles, usually within a minute.",
+      "Your profile and last 30 battles usually show up within a minute.",
     ),
   ).toBeTruthy();
   before.unmount();
   renderWithProviders(<NewAccount first={first(player)} />);
   expect(
     screen.getByText(
-      /Your profile and roughly your last 30 battles usually arrive within a minute; at busy times it can take a few\./,
+      /Your profile and last 30 battles usually show up within a minute \(a few at busy times\)\./,
     ),
   ).toBeTruthy();
   // useFirstAnswer: every 5 s for three minutes, then every minute.

@@ -11,8 +11,8 @@ const journey = (p) =>
 
 test("saved tags stay pending; profiles and older battles have destinations that actually hold them", () => {
   expect(journey({}).state).toBe("First read pending");
-  expect(journey({}).text).toContain("usually arrive within a minute");
-  expect(journey({}).text).toContain("at busy times it can take a few");
+  expect(journey({}).text).toContain("usually show up within a minute");
+  expect(journey({}).text).toContain("(a few at busy times)");
   expect(journey({}).text).toContain("last 30 battles");
   expect(journey({ profile_available: true }).to).toBe(
     "/home/player/P0Y?tab=record",

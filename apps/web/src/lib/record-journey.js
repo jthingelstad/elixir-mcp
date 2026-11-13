@@ -65,7 +65,7 @@ export function recordJourney(data) {
         ? "A recent read failed. What was saved is still here; check again for anything new."
         : recorded
           ? "Read what has been recorded below. Gaps, and any time Elixir did not read, stay unknown."
-          : "Your tag is saved. Your profile and roughly your last 30 battles usually arrive within a minute; at busy times it can take a few.";
+          : "Your tag is saved. Your profile and last 30 battles usually show up within a minute (a few at busy times).";
   const profile = {
     action: "View recorded profile",
     to: `${playerHref(p.player_tag)}?tab=record`,

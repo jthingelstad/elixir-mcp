@@ -598,9 +598,8 @@ export function SignIn({
               style={field}
             />
             <p id="signin-player-tag-hint" className="footnote -mt-2 mb-4">
-              In Clash Royale, open your profile: the tag starting with # is
-              below your name. Elixir starts recording it once you verify your
-              email. Leave it empty to add your player after signing in.
+              In Clash Royale, open your profile. Your tag starts with # and
+              sits below your name. Leave it empty to add it later.
             </p>
             <fieldset className="m-0 mb-4 border-0 p-0">
               <legend className="field-label">Are you 13 or older?</legend>
@@ -662,8 +661,8 @@ export function SignIn({
           Send me Elixir product news
         </label>
         <p id="signin-product-news-note" className="footnote mb-4">
-          For a new account only. Existing newsletter choices stay the same.
-          Sign-in and welcome mail still arrive; reports have separate controls.
+          New accounts only. Sign-in and welcome emails still come, and your
+          digest has its own switch.
         </p>
         {error && (
           <p className="field-error" role="alert">
@@ -701,7 +700,7 @@ export function SignIn({
       )}
       <p className="footnote mt-4 mb-0 text-pretty">
         {creating ? (
-          "A tag you give is for a new account only; one you already have keeps its players. "
+          "A tag here only counts for a new account. An existing account keeps its players. "
         ) : (
           <>
             New here?{" "}
@@ -715,7 +714,7 @@ export function SignIn({
             and add your player tag as you do.{" "}
           </>
         )}
-        Reports have their own off switches. See{" "}
+        Your digest has its own off switch. See{" "}
         <a href="/docs/privacy">Privacy</a>, <a href="/docs/email">Emails</a>{" "}
         and <a href="/docs/terms">Terms</a>.
       </p>
