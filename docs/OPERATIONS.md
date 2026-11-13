@@ -123,8 +123,8 @@ ledger should drain, and both doors should serve.
   connections and the doors answered 5xx. A whole-suite run had cost 10
   to 15 points (29 at worst), a family 4 to 7. Those were read off the
   balance graph by hand; no deploy logged a balance after its run, and
-  the logged runs on 2026-11-13 were all on the small, so the floors are
-  unchanged until the micro has measured runs. Each run now prints an
+  the logged runs on 2026-11-13 were all on the small, so the floors (set
+  for the micro) are unchanged until the micro has measured runs. Each run now prints an
   `acceptance cost:` line (before, lowest during, drop, minutes, instance
   class) and the deploy record keeps it as `acceptance_headroom`
   (`docs/notes/2026-11-13-acceptance-cost-recorded.md`).
@@ -134,14 +134,23 @@ ledger should drain, and both doors should serve.
   sessions"): `--acceptance` no longer runs it, and
   `node acceptance/run.mjs --gym` runs it alone, paced, in a Gym
   session. The gate's own cost has not been measured since.
-- **The database.** db.t4g.micro (on db.t4g.small again for the evening of 2026-11-13, one build session, then back). It was a db.t4g.small on 2026-11-13
-  for the data layer refactor, which took it from 2.4 GB to 0.8 GB
-  (`docs/notes/2026-11-13-db-small-for-transition.md`). Its limit is
-  `EBSByteBalance%` (no alarm since 2026-11-03): a heavy batch, a
-  Gym sweep or a full acceptance gate can drain it, so space them. On
+- **The database.** db.t4g.small since the evening of 2026-11-13, for
+  a few days while the pivot settles (Jamie); back to db.t4g.micro, the
+  class the reserved instance covers, is a later optimization, not
+  scheduled. It was also a db.t4g.small earlier on 2026-11-13 for the
+  data layer refactor, which took it from 2.4 GB to 0.8 GB
+  (`docs/notes/2026-11-13-db-small-for-transition.md`), then the micro
+  again until that evening. On the micro, seven deploy gates in a day
+  drew the EBS byte balance to 42%, under the whole suite's 50% floor;
+  after the resize it read 99% with about 858 MB freeable memory, and
+  the full gate passed 131 of 131 with the timeline's first read at
+  1.9 s (4.8 to 7.8 s on the micro).
+  The micro's limit, and the one the gate's floors were set for, is
+  `EBSByteBalance%` (no alarm since 2026-11-03): a heavy batch, a Gym
+  sweep or a full acceptance gate can drain it, so space them. On
   2026-09-23 a full gate on every deploy drained it in an afternoon, and
   on 2026-11-12/13 again (above). It refills only a few points an hour
-  at idle.
+  at idle. The small has the same kind of balance; read it the same way.
   Also `FreeableMemory`, `SwapUsage`, the Enhanced
   Monitoring OS split (on since 2026-09-11) and storage headroom
   (autoscaling from 20 GB to 100 GB). What spends its time and reads is
