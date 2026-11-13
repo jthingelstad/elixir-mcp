@@ -7,6 +7,9 @@ export const RETIRED_RECORDING_ENDPOINTS = [
   "rankings_clanwars",
   "leaderboards",
   "leaderboard",
+  // Global tournaments: fetched daily and archived, projected by nothing
+  // since 0094; retired 2026-11-13.
+  "globaltournaments",
 ] as const;
 
 export function isRetiredRecordingEndpoint(endpoint: string): boolean {

@@ -75,15 +75,6 @@ export const EVIDENCE_ENUMS = {
     "supportItems[].maxLevel",
   ],
   events: ["[].eventTag", "[].title"],
-  globaltournaments: [
-    "items[].gameMode.id",
-    "items[].gameMode.name",
-    "items[].milestoneRewards[].type",
-    "items[].freeTierRewards[].type",
-    "items[].freeTierRewards[].resource",
-    "items[].freeTierRewards[].rarity",
-    "items[].topRankReward[].type",
-  ],
 };
 
 /** `endpoint:path` name and tag paths that are game content (a badge, an
@@ -97,7 +88,6 @@ export const GAME_CONTENT_NAME_PATHS = new Set([
   "player:badges[].name",
   "player:achievements[].name",
   "player_battlelog:[].gameMode.name",
-  "globaltournaments:items[].gameMode.name",
 ]);
 
 const MAPS = ["progress"];

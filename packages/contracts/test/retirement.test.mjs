@@ -14,6 +14,12 @@ test("obsolete capture has no collector path while retained paths still work", (
     assert.equal(isRetiredRecordingEndpoint(endpoint), true);
     assert.equal(crPathForJob({ endpoint, entity_key: "global" }), null);
   }
+  // Retired 2026-11-13: a stale tournaments job gets no path.
+  assert.ok(RETIRED_RECORDING_ENDPOINTS.includes("globaltournaments"));
+  assert.equal(
+    crPathForJob({ endpoint: "globaltournaments", entity_key: "GLOBAL" }),
+    null,
+  );
   assert.equal(
     crPathForJob({ endpoint: "player", entity_key: "#00J" }),
     "/players/%2300J",

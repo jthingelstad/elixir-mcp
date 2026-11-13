@@ -142,11 +142,6 @@ function admitRiverraceLog(payload, errors) {
   });
 }
 
-function admitListItems(payload, errors) {
-  // Global tournament listings use { items: [...] }; an empty list is valid.
-  if (!Array.isArray(payload?.items)) errors.push("items:missing");
-}
-
 /** /events is a BARE ARRAY of { eventTag, title, description } - the one
  *  list endpoint the API does not wrap in items (cr-agent-api-docs). */
 function admitEvents(payload, errors) {
@@ -166,7 +161,6 @@ const VALIDATORS = {
   riverracelog: admitRiverraceLog,
   cards: admitCards,
   events: admitEvents,
-  globaltournaments: admitListItems,
 };
 
 /** Payload identity per endpoint - who this payload is ABOUT. Used to

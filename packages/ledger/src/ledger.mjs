@@ -59,7 +59,7 @@ export async function stampRetry(db, keys, at = null) {
 /** Matches the planner's retained bulk subjects. Live requests and archive
  * rebuilds have separate authority and must not use today's follow list. */
 export const BULK_JOB_WANTED_SQL = `
-  (job.endpoint in ('cards', 'events', 'globaltournaments') and job.entity_key = 'GLOBAL')
+  (job.endpoint in ('cards', 'events') and job.entity_key = 'GLOBAL')
   or (job.endpoint in ('player', 'player_battlelog') and (
     exists (select 1 from recording r where r.subject_type = 'player'
       and r.subject_tag = job.entity_key and r.status = 'active'

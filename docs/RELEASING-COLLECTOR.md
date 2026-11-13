@@ -120,7 +120,7 @@ AWS_PROFILE=cloud-engineer node infra/scripts/payload-field-audit.mjs all       
 
 The endpoint names are the keys of `PAYLOAD_KEYS` (`player`, `clan`,
 `currentriverrace`, `riverracelog`, `player_battlelog`, `cards`,
-`events`, `globaltournaments`). It lists the whole archive, so it is slow on
+`events`). It lists the whole archive, so it is slow on
 `player_battlelog`; run it once, not in a loop. A non-zero exit stops the
 release: the missing disposition is a server-side change that lands here
 first (a manifest entry plus its projection or written reason), and the

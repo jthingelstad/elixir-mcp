@@ -43,7 +43,7 @@ import {
   seasonMismatchEmf,
 } from "@elixir-mcp/record/season";
 import { projectClanSeries, projectPlayerProgress } from "./series.mjs";
-import { projectEvents, projectTournaments } from "./game-events.mjs";
+import { projectEvents } from "./game-events.mjs";
 
 function subjectTag(_endpoint, entityKey) {
   if (entityKey === "GLOBAL") return null;
@@ -454,9 +454,6 @@ const PROJECTORS = {
   },
   async events(db, { payload, fetchedAt }) {
     return projectEvents(db, { payload, fetchedAt });
-  },
-  async globaltournaments(db, { payload, fetchedAt }) {
-    return projectTournaments(db, { payload, fetchedAt });
   },
   async cards(db, { payload, fetchedAt }) {
     // The catalog is a table (0076); cards_catalog and the resources door

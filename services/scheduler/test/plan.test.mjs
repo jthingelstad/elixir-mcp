@@ -63,13 +63,13 @@ async function setState(tag, endpoint, { yieldBph, admitted, planned } = {}) {
 }
 
 /** Park the always-eligible GLOBAL rows - the card catalog and, since
- *  0069, the game-mode board list, the events and the tournaments - so
- *  job-set assertions stay about their own subjects. */
+ *  0069, the events - so job-set assertions stay about their own
+ *  subjects. */
 async function freshenCards(at) {
   await db.query(
     `insert into poll_state (subject_tag, endpoint, last_admitted_at, last_planned_at)
      select 'GLOBAL', e, $1, $1
-     from unnest(array['cards', 'leaderboards', 'events', 'globaltournaments']) e
+     from unnest(array['cards', 'events']) e
      on conflict (subject_tag, endpoint)
        do update set last_admitted_at = $1, last_planned_at = $1`,
     [at],
@@ -123,13 +123,12 @@ test("new subject seeds both player endpoints plus the followed clan", async () 
   const { jobs } = await planTick(db, NOW);
   const keys = jobs.map((j) => `${j.endpoint}:${j.entity_key}`).sort();
   // A fresh tick also plans every subject-less daily read once: the card
-  // catalog, and since 0069 the game-mode board list, the events and the
-  // tournaments.
+  // catalog and, since 0069, the events. The tournaments read retired on
+  // 2026-11-13 (RETIRED_RECORDING_ENDPOINTS).
   assert.deepEqual(keys, [
     "cards:GLOBAL",
     "clan:#J2RGCRVG",
     "events:GLOBAL",
-    "globaltournaments:GLOBAL",
     "player:#20JJJ2CCRU",
     "player_battlelog:#20JJJ2CCRU",
   ]);
@@ -1080,6 +1079,9 @@ test("retired board poll states and retries cannot restart capture", async () =>
       endpoint,
     );
   }
+  // The tournaments read was planned under the GLOBAL key (0069 to
+  // 2026-11-13); that old row must stay dormant too.
+  await setState("GLOBAL", "globaltournaments");
   await db.query(
     "update poll_state set retry_at = $1 where endpoint = any($2::text[])",
     [min(60), RETIRED_RECORDING_ENDPOINTS],
