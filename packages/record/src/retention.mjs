@@ -70,7 +70,7 @@ export const TRIMMED = Object.freeze([
   {
     ...plain("api_receipt", "fetched_at", DAYS_28),
     kind: "api_receipt",
-    held: "role history starts at the first recorded roster read (participation-sql.mjs role_history_since), war award absence reads the before-start and after-finish reads (war-membership.mjs), and game_events derives which days the calendar was read from them; each would shrink to 28 days",
+    held: "until {read_facts_backfill} has filled 0259's read facts in production: role history, war award absence evidence, the game_events calendar and days_since_poll read admitted_read_day and battlelog_read_gap now, which hold nothing older than the deploy until the backfill is done",
   },
 
   // The record, one year.
@@ -117,6 +117,14 @@ export const TRIMMED = Object.freeze([
     note: "its SQL lives with the facts' own module (attested-facts.mjs)",
   },
   plain("api_payload", "last_fetched_at", YEAR),
+  {
+    ...plain("admitted_read_day", "day", YEAR),
+    note: "the roster and events reads a year-long reader needs (0259), kept while their receipts go at 28 days",
+  },
+  {
+    ...plain("battlelog_read_gap", "next_read_at", YEAR),
+    note: "a player's stretches of a day or more with no battle-log read (0259)",
+  },
 
   // Accounts' own history, one year.
   plain("account_event", "created_at", YEAR),

@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { schemaFingerprint } from "../../../services/migrate/src/fingerprint.mjs";
 import { createPostgresStore, createPostgresLedger } from "../src/postgres.mjs";
 import { warMembershipEvidence } from "../../record/src/war-membership.mjs";
+import { backfillReadFacts } from "../../record/src/read-facts.mjs";
 import {
   inspectSnapshot,
   importSnapshot,
@@ -164,6 +165,7 @@ test("canonical membership SQL keeps race absence separate from full donation-we
         ],
       ],
     );
+    await backfillReadFacts(db, {});
     const participation = {
       recording_active_since: "2026-08-01",
       first_roster_observed_at: "2026-08-01",
@@ -180,8 +182,12 @@ test("canonical membership SQL keeps race absence separate from full donation-we
       war: { "#0LGYR": [true] },
       donations: { "#0LGYR": [false] },
     });
-    await db.query(`delete from api_receipt where entity_key='#00UQG'
-      and fetched_at >= '2026-09-14T10:00:00Z'`);
+    // Evidence reads the read facts (0259), so take the read after the
+    // finish out of those.
+    await db.query(`update admitted_read_day
+      set read_at = array(select x from unnest(read_at) x
+                          where x < '2026-09-14T10:00:00Z')
+      where entity_key='#00UQG'`);
     assert.deepEqual(await warMembershipEvidence(db, "#00UQG", participation), {
       war: { "#0LGYR": [null] },
       donations: { "#0LGYR": [null] },

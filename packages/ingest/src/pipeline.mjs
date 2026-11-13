@@ -44,6 +44,7 @@ import {
 } from "@elixir-mcp/record/season";
 import { projectClanSeries, projectPlayerProgress } from "./series.mjs";
 import { projectEvents } from "./game-events.mjs";
+import { recordReadFacts } from "@elixir-mcp/record/read-facts";
 
 function subjectTag(_endpoint, entityKey) {
   if (entityKey === "GLOBAL") return null;
@@ -854,6 +855,17 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
          where gateway_id::text = $1`,
         [msg.gateway_id, facts],
       );
+
+      // The read's own fact, kept a year while its receipt goes at 28
+      // days (0259): roster and events reads by day, battle-log stretches
+      // of a day or more unread. Before poll_state moves: the battle-log
+      // stretch is measured from the read before this one.
+      await recordReadFacts(db, {
+        endpoint,
+        entityKey,
+        fetchedAt: msg.fetched_at,
+        gatewayId: msg.gateway_id,
+      });
 
       // Freshness advances on admission only. GLOBAL (the card catalog)
       // is a subject too — without this it replans on cadence alone and

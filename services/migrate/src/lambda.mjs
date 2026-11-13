@@ -63,7 +63,11 @@ import {
 import { discordReview } from "./ops-discord.mjs";
 import { seriesStatus } from "./ops-series.mjs";
 import { reindex } from "./ops-reindex.mjs";
-import { retentionDryRunOp } from "./ops-retention.mjs";
+import {
+  readFactsBackfillOp,
+  readFactsCheckOp,
+  retentionDryRunOp,
+} from "./ops-retention.mjs";
 
 /** The function's own application_name (PGAPPNAME in
  *  infra/template.yaml), read once, before any op renames it. */
@@ -166,6 +170,21 @@ async function dispatch(event) {
   if (event?.retention_dry_run) {
     // Counts and sizes per declared table; deletes nothing.
     const result = await retentionDryRunOp(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.read_facts_check) {
+    // Read only: what the read facts do not cover yet.
+    const result = await readFactsCheckOp(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.read_facts_backfill) {
+    // Writes admitted_read_day and battlelog_read_gap only (0259).
+    const result = await readFactsBackfillOp(
+      process.env.DATABASE_URL,
+      event.read_facts_backfill === true ? {} : event.read_facts_backfill,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

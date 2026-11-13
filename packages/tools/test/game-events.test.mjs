@@ -3,6 +3,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
 import { projectEvents } from "../../ingest/src/game-events.mjs";
+import { backfillReadFacts } from "@elixir-mcp/record/read-facts";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
@@ -57,6 +58,9 @@ before(async () => {
             ('events', 'GLOBAL', '2026-09-13T04:00:00Z', 'h-events-3', $1, 'admitted')`,
     [gw.gateway_id, T1],
   );
+  // ...and the read facts game_events actually reads (0259), filled from
+  // those receipts the way {read_facts_backfill} fills them.
+  await backfillReadFacts(db, {});
   await projectEvents(db, {
     fetchedAt: "2026-09-13T04:00:00Z",
     payload: [

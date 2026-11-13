@@ -101,8 +101,13 @@ Consecutive 403s open a per-collector breaker and drain it.
 ## The canonical record and the archive
 
 - **Canonical tables are lossless for what Elixir retains.** Battles,
-  snapshots and receipts are the system of record and never need a
-  rebuild; projections rebuild from the S3 payload archive. History leaves
+  snapshots and the read facts are the system of record and never need a
+  rebuild. Receipts are an operational log kept 28 days: a reader that
+  needs a read older than that reads the fact kept for it
+  (`admitted_read_day`, `battlelog_read_gap`; 0259,
+  `packages/record/src/read-facts.mjs`), and
+  `services/jobs/test/receipt-readers.test.mjs` pins every receipt reader
+  with how far back it looks; projections rebuild from the S3 payload archive. History leaves
   only through a reviewed, Jamie-approved manifest run as bounded migrate
   ops, which also deletes the selected archive object versions (a delete
   marker is not deletion).

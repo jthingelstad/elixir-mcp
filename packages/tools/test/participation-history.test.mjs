@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import pg from "pg";
 import { ingestClanRoster } from "../../ingest/src/roster.mjs";
 import { ensureSeasonsAround } from "@elixir-mcp/record/season";
+import { recordReadFacts } from "@elixir-mcp/record/read-facts";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { atWarFinishes } from "../src/role-history.mjs";
@@ -68,8 +69,8 @@ function roster(members) {
   };
 }
 
-/** One admitted roster read, as the pipeline writes it: the receipt, then
- *  the projection with the previous admitted read as the window start. */
+/** One admitted roster read, as the pipeline writes it: the receipt and
+ *  its read fact, then the projection with the previous admitted read as the window start. */
 async function read(fetchedAt, members, { windowStart, gateway } = {}) {
   seq += 1;
   await db.query(
@@ -77,6 +78,12 @@ async function read(fetchedAt, members, { windowStart, gateway } = {}) {
      values ('clan', $1, $2, $3, $4, 'admitted')`,
     [CLAN, fetchedAt, `h${seq}`, gateway ?? liveGateway],
   );
+  await recordReadFacts(db, {
+    endpoint: "clan",
+    entityKey: CLAN,
+    fetchedAt,
+    gatewayId: gateway ?? liveGateway,
+  });
   await ingestClanRoster(db, {
     payload: roster(members),
     observedAt: fetchedAt,
@@ -119,6 +126,12 @@ before(async () => {
      values ('clan', $1, $2, 'backfill', $3, 'admitted')`,
     [CLAN, BACKFILL_READ, backfillGateway],
   );
+  await recordReadFacts(db, {
+    endpoint: "clan",
+    entityKey: CLAN,
+    fetchedAt: BACKFILL_READ,
+    gatewayId: backfillGateway,
+  });
 
   const start = [
     [A, "member"],
