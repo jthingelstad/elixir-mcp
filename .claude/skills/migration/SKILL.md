@@ -168,7 +168,8 @@ constraint is written on its column (0108). Comments move no pin.
 
 ## The record is lossless
 
-- Battles, snapshots and receipts are the system of record; projections
+- Battles, snapshots and the read facts (0259) are the system of record
+  (receipts are a 28-day operational log, `receipt-readers.test.mjs`); projections
   rebuild from the retained S3 payload archive, kept a year. The ratified 2026-10-02 right-sizing is an explicit, exact-manifest exception for retired automatic history; it is not general permission to prune records. Mark, don't delete
   (0173 keeps a suspect board; readers skip it). Deleting production
   rows is Jamie's call: 0176's ~726 rows were one of "Jamie's twenty

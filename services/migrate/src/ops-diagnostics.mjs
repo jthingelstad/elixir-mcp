@@ -760,6 +760,9 @@ const VACUUMABLE = new Set([
   "war_period_log",
   "war_week_clan",
   "war_week",
+  // 0259's read facts, after {read_facts_backfill}.
+  "admitted_read_day",
+  "battlelog_read_gap",
 ]);
 
 /**

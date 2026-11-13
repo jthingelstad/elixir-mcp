@@ -29,7 +29,8 @@
     "./war-membership": "./src/war-membership.mjs",
     "./attested-facts": "./src/attested-facts.mjs",
     "./event-origin": "./src/event-origin.mjs",
-    "./retention": "./src/retention.mjs"
+    "./retention": "./src/retention.mjs",
+    "./read-facts": "./src/read-facts.mjs"
   },
   "scripts": {
     "test": "node --test --test-force-exit"
