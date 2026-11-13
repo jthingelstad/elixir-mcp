@@ -308,7 +308,18 @@ export async function buildDigest({
       .filter((e) => e.kind === "player_activity")
       .map((e) => e.subject_tag),
   );
-  const told = new Set(items.map((it) => it.subject_tag));
+  // A role change kept with the clan part off is the clan's item, about
+  // the member: it tells that member too, so one promoted with nothing
+  // else in the window still stands in the digest (Codex on #922).
+  const told = new Set(
+    items.flatMap((it) =>
+      it.kind === "member_role_changed"
+        ? (it.subjects ?? [])
+            .filter((s) => s.kind === "player")
+            .map((s) => s.tag)
+        : [it.subject_tag],
+    ),
+  );
   const bare = subjects.filter(
     (s) => s.kind === "player" && !entered.has(s.tag) && told.has(s.tag),
   );
