@@ -424,6 +424,8 @@ test("core policy context refuses cross-clan, unverified, revoked and agent acce
   const h = harness({
     door,
     manage: {
+      policySummary: async () => null,
+      openActionCount: async () => 0,
       policyContext: async () => {
         reads++;
         return { status: "unknown" };

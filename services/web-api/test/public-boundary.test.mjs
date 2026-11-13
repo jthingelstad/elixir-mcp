@@ -77,6 +77,8 @@ const PUBLIC = {
   "POST /api/session/signout": "plumbing",
   "GET /api/email/unsubscribe": "plumbing",
   "POST /api/email/unsubscribe": "plumbing",
+  // Clan's liveness check (CLAN_UNSIGNED): it reads nothing.
+  "GET /api/clan/health": "plumbing",
 };
 
 const CLASSES = new Set([

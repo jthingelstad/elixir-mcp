@@ -7,11 +7,13 @@
  * The web-api door logs two lines per request. The outer one
  * (`packages/http/src/server.mjs`, `event: "http_request"`) carries the
  * real path, the status, `ms` and the build, and is what this report
- * times. The handler's own line carries a coarser route key and
- * `timed_out`; only its timeouts are read, joined to the outer line by
- * `request_id` (the handler's key is `GET /api/clan/*` or
- * `GET /api/v1/*` for whole families, so it cannot name the route). The Clan door logs a third,
- * stringified line with `elixir_ms` and `store_ms`.
+ * times. The handler's own line carries a route key and `timed_out`;
+ * only its timeouts are read, joined to the outer line by `request_id`
+ * (the key is `GET /api/v1/*` for the whole JSON API, so it cannot name
+ * the route). For Clan's routes the handler's line also carries Clan's
+ * story, `elixir_ms` and `store_ms` among it (2026-11-13; until then Clan
+ * logged a third, stringified line of its own, which the Clan split
+ * still reads in a window from before).
  */
 
 export const LOG_GROUPS = {
@@ -154,7 +156,8 @@ export function rowObject(row) {
   );
 }
 
-/** The Clan door's trace line, stringified inside the log envelope:
+/** A Clan request's line (the web API's, with Clan's story folded in; or,
+ * before 2026-11-13, Clan's own, stringified inside the log envelope):
  * `{http, ms, elixir_ms, store_ms, status}`, or null when it is not one. */
 export function parseClanLine(raw) {
   try {
@@ -473,7 +476,7 @@ export function renderReport(report) {
       ]),
     ),
     "",
-    "Clan door split (its trace line: total vs Elixir calls vs its store)",
+    "Clan split (its requests' lines: total vs record reads vs its store)",
     report.clan_split.length
       ? table(
           [
@@ -497,7 +500,7 @@ export function renderReport(report) {
             row.store_share ?? "-",
           ]),
         )
-      : "(no Clan trace lines in the window)",
+      : "(no Clan request lines in the window)",
     "",
     report.over
       ? `${report.over} judged route(s) or tool(s) over their p95 ceiling.`

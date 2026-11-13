@@ -332,7 +332,6 @@ async function readClanView(
   const res = await clan({
     db,
     account,
-    requestId,
     event: {
       ...event,
       method: "GET",
@@ -341,6 +340,17 @@ async function readClanView(
       queryStringParameters: query,
     },
   });
+  // Clan's story for a read inside Home: its own line, with the request's
+  // id, as the web API's line carries it for Clan's own routes.
+  if (res.trace) {
+    const story = { ...res.trace, at: new Date().toISOString() };
+    delete story.level;
+    (res.trace.level === "warn" ? console.warn : console.info)({
+      ...story,
+      in_process: true,
+      ...(requestId ? { request_id: requestId } : {}),
+    });
+  }
   if (res.statusCode === 200) return JSON.parse(res.body);
   // Tracked, but the person holds no place Clan can show (no role seen yet).
   if (res.statusCode === 403 || res.statusCode === 404) return null;

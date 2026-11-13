@@ -543,6 +543,13 @@ The invariants:
   Clan's own checks: the gate, `RUN_READS` and the roles, the role's
   freshness, the leader checks
   (`services/web-api/test/clan-record-access.test.mjs`).
+- Clan's routes are entries in the web API's route table
+  (`services/web-api/src/routes/clan.mjs`), at the addresses mail links
+  to: the same sign-in, deadline, thrown-error handling and one line per
+  request as every route. A clan's own pages are one family,
+  `/api/clan/clans/**`, which Clan's handler dispatches and names in that
+  line (`GET /api/clan/clans/*/week`) beside its record reads, table
+  operations and lock wait. Clan writes no line of its own.
 - Award absence evidence reads `@elixir-mcp/record/war-membership`:
   canonical membership intervals and admitted roster observations bracket
   the whole week, with recording active before it. Finish presence or a

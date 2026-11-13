@@ -59,6 +59,7 @@ import { highlightRoutes } from "./routes/highlight.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
 import { peopleRoutes } from "./routes/people.mjs";
+import { clanRoutes } from "./routes/clan.mjs";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import {
   CONTRACT_HEADER,
@@ -134,15 +135,7 @@ export const AGENT_SCOPED_ROUTES = new Set([
 
 const AGENT_PATH = /^\/api\/agent\/([a-z0-9]{8,16})(\/.*)?$/;
 
-/**
- * Clan's one answer that needs no sign-in (#526): its health check, keyed
- * "METHOD path" or "ANY path". Everything else under /api/clan/ is
- * resolved to a person first, so an unsigned exception is added here or
- * nowhere; the public-boundary test pins this list.
- */
-export const CLAN_UNSIGNED = Object.freeze({
-  "GET /api/clan/health": () => json(200, { ok: true }),
-});
+export { CLAN_UNSIGNED } from "./routes/clan.mjs";
 
 /** The answer when no database connection could be had: the JSON API's
  *  documented problem (integrations.md, 503 temporarily_unavailable), and
@@ -171,6 +164,20 @@ function unavailable(isIntegration, lambdaRequestId) {
       );
 }
 
+/**
+ * A family registered as `METHOD /prefix/**` answers every path under the
+ * prefix, at any depth, and dispatches it itself: Clan's
+ * `/api/clan/clans/<tag>/...` (routes/clan.mjs). The nearest prefix wins.
+ */
+function familyRoute(routes, method, path) {
+  for (let cut = path.lastIndexOf("/"); cut > 0;) {
+    const key = `${method} ${path.slice(0, cut)}/**`;
+    if (routes[key]) return { route: routes[key], key };
+    cut = path.lastIndexOf("/", cut - 1);
+  }
+  return null;
+}
+
 /** The route for a path and the key it is registered under. */
 function findRoute(routes, method, path, event) {
   const exact = `${method} ${path}`;
@@ -178,7 +185,7 @@ function findRoute(routes, method, path, event) {
   const route = wildcardRoute(routes, method, path, event);
   return route
     ? { route, key: `${method} ${path.slice(0, path.lastIndexOf("/"))}/*` }
-    : null;
+    : familyRoute(routes, method, path);
 }
 
 async function withDeadline(ms, run, onTimeout) {
@@ -232,8 +239,8 @@ export function makeHandler({
    *  round trip to the relay, which alone reaches Discord; null = the
    *  Console offers neither. */
   discordLogin = null,
-  /** Internal Clan request handler. Null until the reviewed state cutover;
-   * the old origin continues to serve Clan during preparation. */
+  /** Clan's request adapter (clan.mjs createClanRequest), behind its
+   *  routes (routes/clan.mjs); null = Clan is off (`ClanInternal`). */
   clan = null,
   /** The live lane for first reads (tools live.mjs makeLive); null = the
    *  ledger's, charged to nobody, as Tracking's add uses. */
@@ -493,6 +500,8 @@ export function makeHandler({
           }
         : null,
     }),
+    // Clan, a part of Elixir: its routes under /api/clan (routes/clan.mjs).
+    ...clanRoutes({ clan, resolvePerson }),
     ...emailRoutes({
       resolveAccount,
       secret: unsubscribeKeys,
@@ -509,13 +518,6 @@ export function makeHandler({
     const method = event.method ?? "GET";
     const path = event.path ?? "/";
     const isIntegration = path.startsWith("/api/v1/");
-    const isClan = clan && path.startsWith("/api/clan/");
-    // The Clan door's unsigned answers read nothing, so they take no
-    // database lease: the health check stays a liveness check when the
-    // pool is full or the instance is away.
-    const unsignedClan = isClan
-      ? (CLAN_UNSIGNED[`${method} ${path}`] ?? CLAN_UNSIGNED[`ANY ${path}`])
-      : null;
     const agentPath = isIntegration ? null : AGENT_PATH.exec(path);
     const found = isIntegration
       ? {
@@ -531,32 +533,12 @@ export function makeHandler({
           // The line names the operation the key cannot (review 2026-10-21).
           operation: v1Operation(method, path),
         }
-      : isClan
-        ? {
-            key: `${method} /api/clan/*`,
-            route: async (db, event, body) => {
-              if (unsignedClan) return unsignedClan();
-              const person = await resolvePerson(db, event, {
-                requireContractHeader: !["GET", "HEAD"].includes(method),
-              });
-              if (!person) return json(401, { signed_in: false });
-              return clan({
-                db,
-                account: person,
-                requestId: context?.requestId ?? null,
-                event: {
-                  ...event,
-                  body: event.body ? JSON.stringify(body) : undefined,
-                },
-              });
-            },
-          }
-        : findRoute(
-            routes,
-            method,
-            agentPath ? `/api/me${agentPath[2] ?? ""}` : path,
-            event,
-          );
+      : findRoute(
+          routes,
+          method,
+          agentPath ? `/api/me${agentPath[2] ?? ""}` : path,
+          event,
+        );
     // The site bucket missed and the edge failed over here: the site's
     // own 404 page, never for a path under /api/, whose callers read JSON.
     if (
@@ -610,7 +592,12 @@ export function makeHandler({
     let status = 500;
     let connectMs = 0;
     let timedOut = false;
-    const db = unsignedClan ? null : database.lease();
+    // What a route adds to the line (Clan's reads, table operations and
+    // lock, routes/clan.mjs): never a body, a key or a token.
+    let trace = null;
+    // A route that reads nothing (Clan's health check) takes no lease: it
+    // stays an answer when the pool is full or the instance is away.
+    const db = route.withoutDatabase ? null : database.lease();
     const soft = deadlineMs(context, event);
     // A route that runs a tool races the invoker's deadline inside this
     // one (deadline.mjs), so the tool answers query_timeout with its
@@ -649,7 +636,11 @@ export function makeHandler({
         },
       );
       status = res?.statusCode ?? 200;
-      return res;
+      if (!res?.trace) return res;
+      ({ trace } = res);
+      const answer = { ...res };
+      delete answer.trace;
+      return answer;
     } finally {
       // A timed-out route may still hold a query. The pool destroys a
       // busy or failed lease; PostgreSQL notices a closed socket only
@@ -658,15 +649,22 @@ export function makeHandler({
       // its statement_timeout: the invoker's for a tool, and the
       // connection's PGOPTIONS ceiling (infra/template.yaml) for the rest.
       await db?.end().catch(() => {});
-      console.info({
+      // A route's story folds into this one line. Its own route key (a
+      // family's exact route, `GET /api/clan/clans/*/week`) names it; its
+      // timings and counts ride beside; a slow or failing one is a warn.
+      const story = { ...trace };
+      for (const own of ["at", "level", "status", "ms", "http"])
+        delete story[own];
+      (trace?.level === "warn" ? console.warn : console.info)({
         at: new Date().toISOString(),
-        http: routeKey,
+        http: trace?.http ?? routeKey,
         ...(found.operation ? { operation: found.operation } : {}),
         status,
         ms: Date.now() - started,
         connect_ms: connectMs,
         ...(requestId ? { request_id: requestId } : {}),
         ...(timedOut ? { timed_out: true } : {}),
+        ...story,
       });
     }
   }

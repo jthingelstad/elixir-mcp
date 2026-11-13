@@ -155,7 +155,7 @@ Stamps are UTC; Jamie reads US Central.
 - **Why is the web slow?** `npm run web-latency -- --days 7`
   (`infra/scripts/web-latency.mjs`, read-only) reads the web-api door's
   outer `http_request` lines (real path, `ms`, `status`, `build`), its
-  handler's `timed_out` lines, the Clan door's trace line (`elixir_ms`,
+  handler's `timed_out` lines (for Clan's routes carrying `elixir_ms` and
   `store_ms`) and the MCP door's tool lines, and prints per route and per
   tool samples, p50, p95, max, over 3 s, 5xx and a verdict against
   `infra/web-latency-ceilings.json` (`thin` under the minimum samples is

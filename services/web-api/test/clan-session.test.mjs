@@ -73,7 +73,7 @@ before(async () => {
 });
 after(async () => scratch.drop());
 
-test("native HTTP and the trusted Clan adapter share one request correlation ID", async (t) => {
+test("a Clan request is one line of the web API's: its route, its reads and the request's id", async (t) => {
   const lines = [];
   t.mock.method(console, "info", (line) => lines.push(line));
   t.mock.method(console, "warn", (line) => lines.push(line));
@@ -84,18 +84,72 @@ test("native HTTP and the trusted Clan adapter share one request correlation ID"
       "x-request-id": "viewer-supplied",
     },
   });
-  assert.equal(res.status, 200, await res.text());
-  const records = lines.map((line) =>
-    typeof line === "string" ? JSON.parse(line) : line,
+  const text = await res.text();
+  assert.equal(res.status, 200, text);
+  // The answer carries no story; its Server-Timing header does.
+  assert.equal(text.includes("elixir_calls"), false);
+  assert.match(res.headers.get("server-timing"), /^total;dur=\d+, elixir;/);
+  // Clan writes no line of its own (2026-11-13): no stringified story.
+  assert.deepEqual(
+    lines.filter((line) => typeof line === "string"),
+    [],
   );
-  const native = records.find((line) => line.event === "http_request");
-  const clan = records.find(
-    (line) => line.http === "GET /api/me" && line.elixir_calls !== undefined,
-  );
+  const native = lines.find((line) => line.event === "http_request");
+  const handled = lines.filter((line) => line.http && !line.event);
+  assert.equal(handled.length, 1, JSON.stringify(handled));
+  const [line] = handled;
+  // The route Clan answered, never the family's key or a tag.
+  assert.equal(line.http, "GET /api/clan/me");
+  assert.equal(line.status, 200);
+  assert.ok(Number.isFinite(line.connect_ms));
+  assert.ok(line.elixir_calls >= 1 && Number.isFinite(line.elixir_ms));
+  assert.ok(Number.isFinite(line.store_ms));
   assert.ok(native.request_id);
-  assert.ok(clan, "the Clan trace was recorded");
-  assert.equal(clan.request_id, native.request_id);
-  assert.notEqual(clan.request_id, "viewer-supplied");
+  assert.equal(line.request_id, native.request_id);
+  assert.notEqual(line.request_id, "viewer-supplied");
+});
+
+test("a Clan route that throws is the web API's 500 handling: its line says 500, the caller is told to retry", async (t) => {
+  const lines = [];
+  t.mock.method(console, "info", (line) => lines.push(line));
+  t.mock.method(console, "warn", (line) => lines.push(line));
+  t.mock.method(console, "error", () => {});
+  const throwing = makeHandler({
+    databaseUrl: scratch.url,
+    secret: "test",
+    clan: async () => {
+      throw new Error("clan broke");
+    },
+  });
+  const app = makeHttpApp({ dispatch: throwing });
+  const res = await app.request(
+    `https://elixir.test/api/clan/clans/${CLAN.slice(1)}/week`,
+    { headers: { cookie: `__Host-elixir_session=${token}` } },
+  );
+  assert.equal(res.status, 503);
+  assert.deepEqual(await res.json(), { error: "unavailable" });
+  const line = lines.find((l) => l.http && !l.event);
+  assert.equal(line.status, 500);
+  assert.equal(line.http, "GET /api/clan/clans/**");
+  await throwing.close();
+});
+
+test("Clan's health check answers with no database lease", async () => {
+  const noDatabase = makeHandler({
+    secret: "test",
+    database: {
+      lease() {
+        throw new Error("no lease for the health check");
+      },
+      close: async () => {},
+    },
+    clan: async () => {
+      throw new Error("never reached");
+    },
+  });
+  const r = await noDatabase({ path: "/api/clan/health", method: "GET" });
+  assert.equal(r.statusCode, 200);
+  assert.deepEqual(data(r), { ok: true });
 });
 
 test("the browser session advertises the actual cutover switch for signed-in and signed-out people", async () => {

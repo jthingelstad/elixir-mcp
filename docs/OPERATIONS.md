@@ -68,8 +68,8 @@ ledger should drain, and both doors should serve.
   the tool, then reproduce its arguments read-only. Route by route and
   tool by tool, `npm run web-latency -- --days 7` (read-only) gives p50,
   p95, max, over 3 s and 5xx against the p95 ceilings in
-  `infra/web-latency-ceilings.json`, Home by build and the Clan door's
-  Elixir and store split; `--check` exits 1 when a judged route is over.
+  `infra/web-latency-ceilings.json`, Home by build and Clan's record-read
+  and store split; `--check` exits 1 when a judged route is over.
   It is a read, not a gate: natural traffic is tens of requests per route
   a week. A door answering 429
   for capacity (its Web Function's MaxEnvironments or RateLimit) shows
