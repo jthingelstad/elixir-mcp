@@ -118,7 +118,6 @@ const STATIC_PAGES = [
   "/docs/operators",
   "/docs/player-page",
   "/docs/verify",
-  "/docs/activity",
   "/docs/ladder",
   "/docs/email",
   "/docs/your-account",

@@ -377,7 +377,6 @@ test(
         },
       ],
       "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
-      "GET /api/me/battle-activity/09CV8UVL": [200, { days: [] }],
       "GET /api/me/first-answer?player_tag=%2309CV8UVL": [
         200,
         {

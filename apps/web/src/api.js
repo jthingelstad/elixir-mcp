@@ -256,6 +256,7 @@ export const api = {
   pickGatewayCard: (id, card) =>
     request("POST", "/api/me/gateway-card", { id, card }),
   adminAccounts: () => request("GET", "/api/admin/accounts"),
+  adminEfficiency: () => request("GET", "/api/admin/efficiency"),
   adminSetRole: (account_id, role) =>
     request("POST", "/api/admin/accounts", { account_id, role }),
   myClans: (agent) => request("GET", `${home(agent)}/clans`),
@@ -264,14 +265,7 @@ export const api = {
     request("POST", "/api/me/verify", { player_tag }),
   verifyStatus: (id) =>
     request("GET", `/api/me/verify/${encodeURIComponent(id)}`),
-  // Tags travel without their hash (lib/tag-url.js): the reader puts it back.
-  battleActivity: (player_tag) =>
-    request(
-      "GET",
-      `/api/me/battle-activity/${encodeURIComponent(String(player_tag).replace(/^#/, ""))}`,
-    ),
   publicStatus: () => request("GET", "/api/public/status"),
-  publicEfficiency: () => request("GET", "/api/public/efficiency"),
   publicCards: () => request("GET", "/api/public/cards"),
   publicBattle: (ref) =>
     request("GET", `/api/public/battles/${encodeURIComponent(ref)}`),

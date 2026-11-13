@@ -746,7 +746,6 @@ const VACUUMABLE = new Set([
   "email_issue",
   "battlelog_high_water",
   "player_daily_battle_rollup",
-  "player_activity",
   "player_badge",
   "player_card",
   "player_event",

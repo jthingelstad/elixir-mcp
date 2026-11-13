@@ -1,5 +1,5 @@
 /**
- * Status ▸ Efficiency: the rule in words, the seven-day tiles, one row
+ * Settings ▸ Admin ▸ Efficiency: the rule in words, the seven-day tiles, one row
  * per closed day newest first, today's row with its loss left blank,
  * and no player named anywhere.
  */
@@ -71,6 +71,10 @@ test("the rule, the week's tiles and the days, newest first, today blank on loss
   mockFetch();
   renderWithProviders(<Efficiency navigate={() => {}} />);
   await waitFor(() => screen.getByText("Efficiency"));
+  // Staff only: the Admin read, never the retired public one.
+  const urls = global.fetch.mock.calls.map(([u]) => String(u));
+  expect(urls.some((u) => u.endsWith("/api/admin/efficiency"))).toBe(true);
+  expect(urls.some((u) => u.includes("/api/public/efficiency"))).toBe(false);
   expect(screen.getByText(/read every 30 minutes/)).toBeTruthy();
   expect(screen.getByText(/never passes 120 minutes/)).toBeTruthy();
   // Seven-day tiles over the two closed days: 19,200 reads, 1,020 lost.

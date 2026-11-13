@@ -3,13 +3,13 @@ import { runClanEvaluation } from "./clan.mjs";
 import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** The jobs Lambda — scheduled product work, split out of the migrate
  *  Lambda (2026-09-05): EventBridge fires the sweeps and
- *  the nightly activity histogram here, so the function that can
+ *  the nightly archetype stamp here, so the function that can
  *  alter schema is never also the one running on a timer. Same VPC and
  *  role; deliberately no migration or seeding code paths.
  *
  *  Ops payloads: {sweep_payloads: true,
  *  sweep_operational: true} · {sweep_operational: true} ·
- *  {activity_histogram: true} · {capture_efficiency: true} ·
+ *  {archetype_stamp: true} · {capture_efficiency: true} ·
  *  {shape_census: true} · {email: "<kind>", account_id?, force?}.
  *  Retired editorial payloads refuse before I/O. */
 
@@ -27,7 +27,6 @@ import {
 import { runFeedbackAnswers } from "./email/feedback-answers.mjs";
 import { runCollectorUpgrades } from "./email/collector-upgrades.mjs";
 import { runEmail } from "./email/index.mjs";
-import { activityHistogram } from "./activity.mjs";
 import { captureEfficiency } from "./efficiency.mjs";
 import { warBattlesUnresolved, warUnresolvedEmf } from "./war-calendar.mjs";
 import { shapeCensus } from "./shape-census.mjs";
@@ -446,12 +445,14 @@ export async function handler(event, context) {
     return result;
   }
   if (event?.public_stats) return publishPublicStats(process.env.DATABASE_URL);
-  if (event?.activity_histogram) {
-    const result = await activityHistogram(process.env.DATABASE_URL);
-    result.archetype_stamp = await archetypeStampNightly(
-      process.env.DATABASE_URL,
-    );
-    console.log(JSON.stringify({ activity_histogram: result }));
+  // The nightly catch-up of deck archetype stamps (0148). It rode the
+  // battle-activity histogram's 05:30Z rule until that retired
+  // (2026-11-13); the time and the work are unchanged.
+  if (event?.archetype_stamp) {
+    const result = {
+      archetype_stamp: await archetypeStampNightly(process.env.DATABASE_URL),
+    };
+    console.log(JSON.stringify(result));
     return result;
   }
   if (event?.sweep_payloads) {

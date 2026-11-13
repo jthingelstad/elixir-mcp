@@ -165,7 +165,7 @@ Where each real page that the first structure dropped goes:
 | Your MCP requests and call records, with "Report this call" | Usage and limits, Requests |
 | Your feedback list and each item | Settings, Feedback; "Send feedback" also in Help and the footer |
 | Sent emails and each email's record | Settings, Emails, Sent to you |
-| A tracked player's page and its battle activity graph | Settings, Players and tracking, the player |
+| A tracked player's page (its battle activity graph retired 2026-11-13) | Settings, Players and tracking, the player |
 | Track a clan, what to record, slot counts | Players and tracking, Clans |
 | Invite clanmates | Find, Your clan, folded below the clan's members (Jamie, 2026-11-12: "Bring your clanmates moves to Find"); Clan's Members keeps its own Spread the word. Not on Home: its first steps end the moment a read names the clan, so an invite there would never be seen. Until 2026-11-12 folded on Stats' Season (A30) |
 | Connect Discord, Timeline to Discord and its delivery log | Connections and agents, Discord; Timeline links there |

@@ -362,7 +362,6 @@ test("a magic link is redeemed ONCE, however many times the page re-renders whil
     ],
     "GET /api/me/first-answer": [200, {}],
     "GET /api/me/clans": [200, { clans: [] }],
-    "GET /api/me/battle-activity/20JJJ2CCRU": [200, {}],
   });
   render(<FreshApp />);
   await waitFor(() => expect(window.location.pathname).toBe("/home"));

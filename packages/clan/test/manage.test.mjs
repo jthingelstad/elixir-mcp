@@ -1647,7 +1647,7 @@ test("actions: a re-raised action names the earlier one it follows; a withdrawal
   );
 });
 
-test("actions: members and elders see only what is theirs; a leader's action is refused to them", async () => {
+test("actions: members and elders see only what is theirs; a leader's action is not found to them", async () => {
   const lh = harness({ part: partClan() });
   const lc = await leader(lh);
   await historicalRemoval(lh);
@@ -1670,7 +1670,7 @@ test("actions: members and elders see only what is theirs; a leader's action is 
     `/api/clans/0QC8RCGY/actions/${removal.card_id}/decide`,
     { status: "done" },
   );
-  assert.equal(refused.status, 403);
+  assert.deepEqual(refused, { status: 404, body: { error: "no_action" } });
   const hidden = await api(
     eh,
     ec,
@@ -1957,7 +1957,13 @@ test("actions: a pending promotion or demotion is the Leader's and Co-Leaders' o
         `${base}/actions/${a.card_id}/decide`,
         { status: "done" },
       );
-      assert.equal(decided.status, 403, `${role} decide ${a.type}`);
+      // Not found, as a card that does not exist (2026-11-13): a 403
+      // would say the card is there.
+      assert.deepEqual(
+        decided,
+        { status: 404, body: { error: "no_action" } },
+        `${role} decide ${a.type}`,
+      );
       assert.ok(
         !JSON.stringify(decided.body).includes(a.player_name),
         `${role} decide ${a.type} names no one`,
@@ -2708,6 +2714,35 @@ test("actions: each has a number in the clan, and its own address answers it to 
     await api(eh, ec, "GET", `/api/clans/0QC8RCGY/actions/${removal.number}`),
     { status: 404, body: { error: "no_action" } },
   );
+});
+
+test("actions: an Elder deciding a leaders' action by its id gets the not-found a missing card gets (2026-11-13)", async () => {
+  const lh = harness({ part: partClan() });
+  const lc = await leader(lh);
+  await historicalRemoval(lh);
+  const removal = (
+    await api(lh, lc, "GET", "/api/clans/0QC8RCGY/actions")
+  ).body.open.find((a) => a.type === "removal");
+  assert.ok(removal, "a pending removal");
+  const eh = harness({
+    players: [player({ player_tag: "#O1", clan_role: "elder" })],
+    part: partClan(),
+    ledger: lh.ledger,
+  });
+  const ec = await leader(eh);
+  const decide = (id) =>
+    api(eh, ec, "POST", `/api/clans/0QC8RCGY/actions/${id}/decide`, {
+      status: "done",
+    });
+  const held = await decide(removal.card_id);
+  const missing = await decide("no-such-card");
+  assert.deepEqual(held, { status: 404, body: { error: "no_action" } });
+  assert.deepEqual(held, missing, "same status, same body");
+  // Nothing moved: the leaders still see it open.
+  const after = (await lh.ledger.cards("#0QC8RCGY")).find(
+    (c) => c.card_id === removal.card_id,
+  );
+  assert.equal(after.status, "proposed");
 });
 
 test("actions: those raised before numbers existed are numbered once, oldest first, and keep their numbers", async () => {

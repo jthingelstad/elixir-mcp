@@ -40,7 +40,6 @@ import {
   GROUPS,
   TABS,
   MIN_MEMBERS,
-  audienceOf,
   awayCandidates,
   actionLabel,
   canAct,
@@ -2048,12 +2047,11 @@ export function createManageService({
     ) {
       await requirePolicy(clanTag);
       const card = await ledger.card(clanTag, cardId);
-      // Only the people an action is for may take it (or see it at all).
-      if (!card || !canAct(card, who)) {
-        if (card && audienceOf(card).kind === "leaders")
-          throw new ManageError(403, "leaders_only");
-        throw new ManageError(404, "no_action");
-      }
+      // Only the people an action is for may take it, or see it at all:
+      // a card the person may not read answers exactly as a card that
+      // does not exist (2026-11-13), so an Elder holding a promotion's,
+      // demotion's or removal's id learns nothing from deciding it.
+      if (!card || !mayRead(card, who)) throw new ManageError(404, "no_action");
       if (who.verified === false) throw new ManageError(403, "unverified");
       // A decided action is frozen; a withdrawn one cannot be resurrected.
       if (card.status !== "proposed")

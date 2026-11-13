@@ -50,9 +50,10 @@ ledger should drain, and both doors should serve.
   retry on `TooManyRequestsException`.
 - **Scheduled jobs** (`/aws/lambda/elixir-mcp-jobs`): the nightly
   efficiency row (05:20Z, `{capture_efficiency}`, yesterday's
-  `lost_battles` in `capture_efficiency_daily`), the nightly activity row
-  (05:30Z), the shape census (05:05Z) and Monday's sweeps. The activity
-  log carries `archetype_stamp`, the decks re-stamped after a vocabulary
+  `lost_battles` in `capture_efficiency_daily`), the nightly archetype
+  stamp (05:30Z, `{archetype_stamp}`), the shape census (05:05Z) and
+  Monday's sweeps. The stamp's log carries `archetype_stamp`, the decks
+  re-stamped after a vocabulary
   or grammar change: a non-zero `written` on a day with neither, and no
   deploy, needs a reason. The hourly operational sweep carries the war
   calendar's health read. `ElixirMCP/Record` `SeasonWarIdMismatch` counts a race
@@ -365,8 +366,9 @@ Sample real values against the game.
   30 minutes after a read that delivered battles, doubling to a 2 h
   ceiling after empty ones (`SESSION_FOLLOWUP_MINUTES`,
   `SESSION_CEILING_MINUTES` in `packages/ledger/src/plan.mjs`). The
-  number to read is Status, Efficiency (`/api/public/efficiency`,
-  nightly `capture_efficiency_daily`): battles lost per day against the
+  number to read is Settings › Admin › Efficiency
+  (`/api/admin/efficiency`, staff only since 2026-11-13; nightly
+  `capture_efficiency_daily`): battles lost per day against the
   game's own lifetime counter. Lost battles not near zero, or gaps above
   about one an hour, mean a sitting shape the ceiling does not cover:
   name the players and their interval lengths, never silence the audit.

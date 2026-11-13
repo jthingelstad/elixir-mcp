@@ -37,7 +37,6 @@ test("routes collapse tags, ids and uuids so they aggregate", () => {
       "POST /api/clan/clans/*/actions/*/decide",
     "GET /api/clan/clans/J2RGCRVG/members/00JRQGUCG/activity":
       "GET /api/clan/clans/*/members/*/activity",
-    "GET /api/me/battle-activity/20JJJ2CCRU": "GET /api/me/battle-activity/*",
     "GET /api/v1/players/%230G9L8QCVV": "GET /api/v1/players/*",
     "GET /api/v1/clans/%23J2RGCRVG/war-history":
       "GET /api/v1/clans/*/war-history",
