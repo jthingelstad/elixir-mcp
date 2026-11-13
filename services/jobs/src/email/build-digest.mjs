@@ -172,9 +172,11 @@ function digestItem(it, tz, links) {
   };
 }
 
-/** What the digest folds in for this reader. A reader who had turned
- *  the clan report off (`clan: false`) gets no more clan mail than before:
- *  their digest never comes for a clan's news alone. One who had turned
+/** What the digest folds in for this reader. `clan: false` is the clan
+ *  part turned off: the clan report's switch, kept off for a reader who
+ *  turned that mail off before the merge, and set since 2026-11-13 by
+ *  Settings › Emails' Clan news control. The digest then has no clan part
+ *  and never comes for a clan's news alone. One who had turned
  *  Arena week off (`arena: false`) gets their alts as before, a name and
  *  a count, with no firsts or progress under them. Both default on, as
  *  the switches did. [engineering, 2026-11-12] */
@@ -212,8 +214,11 @@ export async function buildDigest({
   const followedTags = new Set(
     subjects.filter((s) => s.kind === "player").map((s) => s.tag),
   );
+  // The clan part is the reader's to turn off (Settings › Emails, the
+  // clan report's stored switch): off, the digest has no clan part at
+  // all, and moves are told under the people they are about.
   const blocks = entries
-    .filter((e) => e.kind === "clan_activity")
+    .filter((e) => fold.clan && e.kind === "clan_activity")
     .map((e) => ({ e, news: clanNews(e, followedTags) }))
     .filter(({ news }) => news.parts.length > 0)
     .map(({ e, news }) => ({

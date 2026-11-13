@@ -265,3 +265,31 @@ test("clicking the digest's selected cadence saves it, so the default can be cho
     enabled: true,
   });
 });
+
+test("the digest's clan news is its own switch, kept off for someone who said no", async () => {
+  kinds = KINDS.map((k) =>
+    k.kind === "tracking_report"
+      ? { ...k, enabled: true, clan_part: false }
+      : { ...k, clan_part: null },
+  );
+  await open();
+  const sw = screen.getByRole("switch", { name: "Clan news in the digest" });
+  expect(sw.getAttribute("aria-checked")).toBe("false");
+  expect(
+    screen.getByText("Your clans' races, joins, departures and role changes"),
+  ).toBeTruthy();
+  fireEvent.click(sw);
+  await waitFor(() => expect(puts).toHaveLength(1));
+  expect(puts[0]).toEqual({ kind: "tracking_report", clan_part: true });
+  // Only the digest has one.
+  expect(screen.getAllByRole("switch", { name: /Clan news/ })).toHaveLength(1);
+  // With the digest off there is nothing to put clan news in.
+  cleanup();
+  kinds = KINDS.map((k) =>
+    k.kind === "tracking_report" ? { ...k, clan_part: true } : k,
+  );
+  await open();
+  expect(
+    screen.getByRole("switch", { name: "Clan news in the digest" }).disabled,
+  ).toBe(true);
+});

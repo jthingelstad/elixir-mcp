@@ -11,7 +11,9 @@ import { HouseRules } from "../components/HouseRules.jsx";
  * clan runs, as its house rules. One card a rule, its numbers big, then the
  * policy's own sentences; the version and who saved it. The policy and its
  * description are public in the clan directory (A2), so this shows no
- * member's standing, clock or hold. Editing it is Run's, for the leader and
+ * member's standing, clock or hold. Each rule says who sees what about you
+ * under it (Jamie, 2026-11-13; `seesFor`); past versions are the leaders'
+ * (the server sends a member none). Editing it is Run's, for the leader and
  * co-leaders.
  */
 export function ClanPolicy({ clan, navigate }) {
@@ -90,7 +92,13 @@ export function ClanPolicy({ clan, navigate }) {
         how={data.how}
         values={current.values ?? null}
         weights={data.weights}
+        sees
       />
+      <p className="kit-rules__saved">
+        Notes about a member: Elders read the Elders&rsquo; notes, and the
+        Leader and Co-Leaders read every note. Closed Actions and this
+        policy&rsquo;s past versions are for the Leader and Co-Leaders.
+      </p>
     </div>
   );
 }

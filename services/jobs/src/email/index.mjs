@@ -178,9 +178,11 @@ async function digestCadences(db, accountIds) {
   return new Map(rows.map((r) => [r.account_id, r.cadence]));
 }
 
-/** The folded kinds each recipient had turned off (clan_report,
- *  arena_week): their stored switches, inert as mail since 2026-11-12,
- *  still keep the digest from telling more than those mails did. */
+/** The folded kinds each recipient has off (clan_report, arena_week):
+ *  inert as mail since 2026-11-12. Arena week's keeps the digest from
+ *  telling more about alts than that mail did; the clan report's is the
+ *  digest's clan part, which Settings › Emails turns on and off since
+ *  2026-11-13 (`clan_part` on `PUT /api/me/email`). */
 async function foldedOff(db, accountIds) {
   const { rows } = await db.query(
     `select account_id, kind from account_email_pref

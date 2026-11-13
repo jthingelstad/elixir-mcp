@@ -7,7 +7,7 @@ order: 9
 navTitle: "Write how your clan runs"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-20; How our messages sound: one voice for the drafts and the activity editor, set in Clan settings; 2026-10-13; Your own view, read by your own connection (contract 11.12.0); 2026-10-12; one sitting a member, one activity post a day, a move told before its battle names who is there; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
+reviewed: "2026-11-13; the Policy tab says who sees what about you under each rule, and past versions are the leaders' only; 2026-10-20; How our messages sound: one voice for the drafts and the activity editor, set in Clan settings; 2026-10-13; Your own view, read by your own connection (contract 11.12.0); 2026-10-12; one sitting a member, one activity post a day, a move told before its battle names who is there; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
 guide: clan-policy
 ---
 
@@ -28,7 +28,31 @@ clan size; the small-clan page offers leaders **Prepare the policy** alongside
 below 10 members and resume at 10. Saving below ten creates no announcement
 Action. Policy is Elixir's agreement for the clan, not a game setting.
 Every member reads an active policy on
-[Standing](/docs/standing), under **How it works here**.
+[Standing](/docs/standing), under **How it works here**, and on the
+clan's **Policy** tab, one card a rule.
+
+On the Policy tab, each rule ends with a quiet line on who sees what
+about you under it:
+
+- **About this clan**: nothing about you; every member reads it, and so
+  does the [clan directory](/docs/clan-directory).
+- **What this clan counts**: every member sees your war decks, donations
+  and battles each week, on [the week](/docs/clan-week).
+- **Minimums** and **Becoming an Elder**: when Elder is earned by
+  participation and **Members see where everyone stands** is on, every
+  member sees on Standing who's rising and who's slipping. Otherwise only
+  you and the leader and co-leaders see where you stand. A promotion or
+  demotion is shared with the clan once it's done.
+- **When you go quiet**: only you and the leader and co-leaders see your
+  days without a battle, whether you're at risk, and your away. A leader
+  who posts the clan's Actions to [Discord](/docs/clan-actions-delivery#actions-in-the-clans-discord) posts a
+  removal there too, and a removal is shared with the clan once it's done.
+- **Newcomers**: Elders and the leader and co-leaders get an Action
+  naming each newcomer.
+
+Under the rules: Elders read the Elders' notes about a member, and the
+leader and co-leaders read every note. Closed Actions and the policy's
+past versions are for the leader and co-leaders.
 
 ## Starting points
 
@@ -94,7 +118,8 @@ not an exact forecast of pending Actions. Editing any setting clears it.
 ## Saving
 
 Saving makes a new version; the first is version 1. Add a line on why,
-if you like; the versions list keeps who saved each and when. A setting
+if you like; the versions list, for the leader and co-leaders only,
+keeps who saved each and when. A setting
 out of range is refused, with the section that holds it opened and the
 field marked. The clan is read afresh under the new version, which can
 raise or withdraw pending Actions at the next evaluation, including reviews

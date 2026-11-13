@@ -115,6 +115,9 @@ export function EmailPage() {
   const cadence = useWrite(api.setDigest, {
     invalidate: [keys.email],
   });
+  const clanPart = useWrite(api.setDigestClanPart, {
+    invalidate: [keys.email],
+  });
   const flip = (kind, enabled) => pref.run(kind, enabled);
   /** The digest's control, one write: Weekly or Daily turns it on at
    *  that cadence, Off turns it off (`setDigest`, Home's write too). */
@@ -161,6 +164,22 @@ export function EmailPage() {
             onPick={pick}
           />
         ) : null}
+        {typeof k.clan_part === "boolean" ? (
+          <div className="mail-pref__part">
+            <span className="mailall__label">
+              <span className="mailall__name">Clan news</span>
+              <span className="mailall__note">
+                Your clans' races, joins, departures and role changes
+              </span>
+            </span>
+            <Switch
+              on={k.clan_part}
+              label="Clan news in the digest"
+              disabled={!k.applies || !k.enabled || clanPart.busy}
+              onFlip={(on) => clanPart.run(on)}
+            />
+          </div>
+        ) : null}
         {latest(k)}
       </div>
       <span className="mail-pref__when">{when_(k)}</span>
@@ -201,6 +220,7 @@ export function EmailPage() {
       />
       <WriteError error={pref.error} className="field-error mb-3" />
       <WriteError error={cadence.error} className="field-error mb-3" />
+      <WriteError error={clanPart.error} className="field-error mb-3" />
       {query.isError ? (
         <div className="callout callout--warn" role="alert">
           <span>
