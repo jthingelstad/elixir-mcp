@@ -237,7 +237,7 @@ the database's EBS byte and I/O balances from CloudWatch before it
 builds and again before the run (`infra/scripts/lib/db-headroom.mjs`).
 Under 50% (whole suite) or 25% (a family) it refuses: at the first read
 nothing is deployed (exit 2); at the second the deploy is live, the
-record says acceptance was refused, and it exits 1. Then wait (about 4
+record says acceptance was refused, and it exits 1. Then wait (about 3
 points an hour) and run `npm run acceptance` later, or deploy with one
 family; never retry in a loop. `--skip-headroom-check` only in an
 outage, and the report says so. A preflight SKIPPED line (CloudWatch

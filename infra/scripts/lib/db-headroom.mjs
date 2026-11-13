@@ -2,9 +2,9 @@
  * The database's burst headroom, read before the acceptance gate
  * (2026-11-13). The instance is a db.t4g.micro: its EBS bandwidth bursts
  * from a bucket (`EBSByteBalance%`, `EBSIOBalance%`) that refills only
- * slowly at idle, about 4 to 6 points an hour on 2026-11-12/13. About ten
- * deploys with acceptance in one evening took the byte balance from 89%
- * to 0, and at 0 the database dropped connections, the doors answered
+ * slowly at quiet times, 1 to 6 points an hour on 2026-11-12/13
+ * depending on the traffic behind it. About ten deploys with acceptance
+ * in one evening took the byte balance from 89% to 0, and at 0 the database dropped connections, the doors answered
  * 5xx and ingest hit statement timeouts. A whole-suite run cost about 10
  * to 15 points of balance (29 at worst), a one-family run about 4 to 7.
  *
@@ -28,9 +28,10 @@ export const DB_INSTANCE = "elixir-mcp-enc";
  *  (29 points) with a margin; one family's run costs a fraction. */
 export const HEADROOM_FLOOR = { whole: 50, family: 25 };
 
-/** Idle refill, points an hour: the low end of what 2026-11-12/13
- *  showed, so the wait it suggests is not optimistic. */
-const REFILL_PER_HOUR = 4;
+/** Quiet-time refill, points an hour: below the middle of what
+ *  2026-11-12/13 showed (1 to 6), so the wait it suggests is not
+ *  optimistic. */
+const REFILL_PER_HOUR = 3;
 
 const METRICS = [
   ["byteBalance", "EBSByteBalance%"],

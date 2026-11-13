@@ -113,7 +113,7 @@ test("a refusal says how to proceed: wait, one family, or the override", () => {
   assert.equal(whole.ok, false);
   const text = whole.lines.join("\n");
   assert.match(text, /REFUSED/);
-  assert.match(text, /about 5 h/, "(50 - 30) / 4 points an hour");
+  assert.match(text, /about 7 h/, "(50 - 30) / 3 points an hour, rounded up");
   assert.match(
     text,
     /--acceptance=<family> needs 25% \(there is room for that\)/,

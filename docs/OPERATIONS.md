@@ -111,7 +111,7 @@ ledger should drain, and both doors should serve.
   when the lower balance is under 50% for the whole suite or 25% for a
   family: before anything ships, the deploy exits 2 having deployed
   nothing; on the second read, the deploy goes live, records acceptance
-  as refused and exits 1. Then wait (idle refill is about 4 points an
+  as refused and exits 1. Then wait (quiet-time refill is about 3 points an
   hour) and run `npm run acceptance` later, or run one family.
   `--skip-headroom-check` runs it anyway, in an outage only. A balance
   CloudWatch cannot give is a logged skip. CPU credits are printed,
