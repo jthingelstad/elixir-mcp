@@ -239,13 +239,7 @@ export function createClanRequest({
   const activitySeal = modelSecret
     ? clanActivitySeal(createBox(modelSecret, CLAN_ACTIVITY_PURPOSE)).seal
     : null;
-  return async ({
-    db,
-    account,
-    event,
-    requestId = null,
-    modelFactory = null,
-  }) => {
+  return async ({ db, account, event, modelFactory = null }) => {
     // Clan reads the record in process, as the signed-in person: the
     // same tools and budget as any door, but no tool call of anyone's (no
     // audit row, quota or client name). Its live reads (Scout, Recruit,
@@ -525,7 +519,7 @@ export function createClanRequest({
     if (lock) await db.query("select pg_advisory_lock(hashtext($1))", [lock]);
     const lockMs = lock ? Date.now() - lockStarted : null;
     try {
-      const response = await handler(event, { lockMs, requestId });
+      const response = await handler(event, { lockMs });
       // Anything that can raise or decide an Action brings the clan's
       // Discord up to date under the clan's lock (a write route already
       // holds it). Best effort: the morning run sweeps again.

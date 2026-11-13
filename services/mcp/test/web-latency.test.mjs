@@ -105,7 +105,7 @@ test("verdict: thin is never judged, over is strictly past the ceiling", () => {
   assert.equal(verdict({ samples: 50, p95: 1 }, null, 10), "none");
 });
 
-test("the Clan trace line parses from its stringified envelope", () => {
+test("a Clan request line parses, folded into the web API's or stringified as it was", () => {
   const inner = {
     http: "GET /api/clans/*/awards",
     status: 200,
@@ -121,6 +121,28 @@ test("the Clan trace line parses from its stringified envelope", () => {
     store_ms: 137,
     status: 200,
   });
+  // Since 2026-11-13 the story is folded into the web API's own line,
+  // an object in the envelope, keyed by the route under /api/clan.
+  assert.deepEqual(
+    parseClanLine(
+      JSON.stringify({
+        level: "INFO",
+        message: {
+          ...inner,
+          http: "GET /api/clan/clans/*/awards",
+          connect_ms: 3,
+          request_id: "r1",
+        },
+      }),
+    ),
+    {
+      http: "GET /api/clan/clans/*/awards",
+      ms: 1961,
+      elixir_ms: 1753,
+      store_ms: 137,
+      status: 200,
+    },
+  );
   assert.equal(parseClanLine("not json"), null);
   assert.equal(
     parseClanLine(JSON.stringify({ message: { http: "GET /x", ms: 1 } })),

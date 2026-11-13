@@ -116,7 +116,7 @@ skill), `build-site.mjs`, `smoke.mjs` (the smoke phase; its checks are
 `web-latency.mjs` (`npm run web-latency -- --days 7`, read-only Logs
 Insights over the web-api and MCP doors: per route and per tool p50, p95,
 max, over 3 s and 5xx against `infra/web-latency-ceilings.json`, Home by
-build, the Clan door's Elixir and store split; `--check` exits 1 when a
+build, Clan's record-read and store split; `--check` exits 1 when a
 judged route is over; not a deploy or CI gate, since natural traffic is
 too sparse; tested offline in `services/mcp/test/web-latency.test.mjs`),
 `test-workflows.sh` (the

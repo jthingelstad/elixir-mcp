@@ -494,7 +494,8 @@ test("awards: an interrupted batch resumes its frozen winners after capture chan
     if (++calls === 2) throw new Error("interrupted");
     return put(...args);
   };
-  assert.equal((await api(h, cookies, "GET", `${BASE}/manage`)).status, 500);
+  // A thrown error is the web API's to answer (its 500 handling).
+  await assert.rejects(api(h, cookies, "GET", `${BASE}/manage`), /interrupted/);
   assert.equal((await h.ledger.grants("#2PQRJ8LV")).length, 1);
   const original = (await h.ledger.grants("#2PQRJ8LV"))[0];
   part.members[0].war_points.fill(0);
@@ -993,7 +994,8 @@ test("awards: an id cannot change kind after a frozen plan, and removed configur
   h.ledger.putGrant = async () => {
     throw new Error("interrupted");
   };
-  assert.equal((await api(h, cookies, "GET", `${BASE}/manage`)).status, 500);
+  // A thrown error is the web API's to answer (its 500 handling).
+  await assert.rejects(api(h, cookies, "GET", `${BASE}/manage`), /interrupted/);
   const changed = structuredClone(EXAMPLE_AWARDS);
   changed.awards[0].kind = "donations_podium";
   changed.awards[0].params = { podium: 3 };
@@ -1042,7 +1044,10 @@ test("awards: a revoke retries announcement reconciliation after deletion alread
     throw new Error("reconcile unavailable");
   };
   const path = `${BASE}/grants/135/clan_honour/UQ8LP2R9C`;
-  assert.equal((await api(h, cookies, "DELETE", path)).status, 500);
+  await assert.rejects(
+    api(h, cookies, "DELETE", path),
+    /reconcile unavailable/,
+  );
   assert.ok(
     !(await h.ledger.grants("#2PQRJ8LV")).some(
       (g) => g.award_id === "clan_honour",

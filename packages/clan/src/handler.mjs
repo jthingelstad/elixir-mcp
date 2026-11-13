@@ -1,5 +1,7 @@
-/** Clan routes use the authenticated Elixir account. Gate and roster state
- * live only for a request; no OAuth grant or second session is stored here. */
+/** Clan's routes, behind the web API's own entries (services/web-api
+ * src/routes/clan.mjs), for the Elixir person it signed in. Gate and roster
+ * state live only for a request; no OAuth grant or second session is
+ * stored here. */
 import { normalizeTag, runGate, verifyNotice } from "./gate.mjs";
 import {
   withTrace,
@@ -873,13 +875,18 @@ export function createHandler({
     }
   }
 
-  return function handler(event, { lockMs = null, requestId = null } = {}) {
+  /**
+   * One Clan request. The answer carries its story as `trace` (the route,
+   * each read of the record, the table's operations, the lock): the web
+   * API's one line per request folds it in (2026-11-13), so Clan writes
+   * no line of its own. A thrown error is the web API's to answer.
+   */
+  return function handler(event, { lockMs = null } = {}) {
     const method = event.method;
     const path = mountedPath(event.path ?? "/");
     return withTrace(
       {
-        http: routeKey(method, path),
-        request_id: requestId,
+        http: routeKey(method, path).replace(" /api/", " /api/clan/"),
         ...(Number.isFinite(lockMs) && lockMs >= 0 ? { lock_ms: lockMs } : {}),
       },
       async () => {
@@ -888,15 +895,13 @@ export function createHandler({
         trace.started -= trace.meta.lock_ms ?? 0;
         const res = await dispatch(event, method, path);
         const summary = summarize(trace, res.statusCode ?? 200);
-        (summary.level === "warn" ? log.warn : log.info)?.(
-          JSON.stringify(summary),
-        );
         return {
           ...res,
           headers: {
             ...(res.headers ?? {}),
             "server-timing": serverTiming(summary),
           },
+          trace: summary,
         };
       },
     );
@@ -913,41 +918,34 @@ export function createHandler({
   }
 
   async function dispatch(event, method, path) {
-    try {
-      if (
-        (manage ||
-          awards ||
-          recruit ||
-          social ||
-          discord ||
-          activity ||
-          voice ||
-          memberActivity ||
-          feed ||
-          race) &&
-        path.startsWith("/api/clans/")
-      ) {
-        const answered = await manageRoute(event, method, path);
-        if (answered) return answered;
-      }
-      if (method === "GET" && path === "/api/health")
-        return json(200, { ok: true });
-      if (method === "GET" && path === "/api/me") return await me(event);
-      if (method === "POST" && path === "/api/select")
-        return await select(event);
-      if (method === "POST" && path === "/api/verify-notice")
-        return await acknowledgeVerify(event);
-      if (method === "GET" && path === "/api/roster")
-        return await roster(event);
-      if (directory && method === "GET" && path === "/api/directory")
-        return await directoryRoute(event);
-      if (social && path === "/api/me/place")
-        return await placeRoute(event, method);
-      return json(404, { error: "not_found" });
-    } catch (error) {
-      log.error?.("unhandled", { path, error: error?.message });
-      return json(500, { error: "internal" });
+    if (
+      (manage ||
+        awards ||
+        recruit ||
+        social ||
+        discord ||
+        activity ||
+        voice ||
+        memberActivity ||
+        feed ||
+        race) &&
+      path.startsWith("/api/clans/")
+    ) {
+      const answered = await manageRoute(event, method, path);
+      if (answered) return answered;
     }
+    if (method === "GET" && path === "/api/health")
+      return json(200, { ok: true });
+    if (method === "GET" && path === "/api/me") return await me(event);
+    if (method === "POST" && path === "/api/select") return await select(event);
+    if (method === "POST" && path === "/api/verify-notice")
+      return await acknowledgeVerify(event);
+    if (method === "GET" && path === "/api/roster") return await roster(event);
+    if (directory && method === "GET" && path === "/api/directory")
+      return await directoryRoute(event);
+    if (social && path === "/api/me/place")
+      return await placeRoute(event, method);
+    return json(404, { error: "not_found" });
   }
 }
 

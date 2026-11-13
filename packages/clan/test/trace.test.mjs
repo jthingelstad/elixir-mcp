@@ -1,7 +1,9 @@
 /**
- * One story per request: the log line and the Server-Timing header.
- * A log group holding only START/END/REPORT told nobody where 20 seconds
- * went; this is what says it.
+ * One story per request: the trace and the Server-Timing header. A log
+ * group holding only START/END/REPORT told nobody where 20 seconds went;
+ * this is what says it. Clan writes no line of its own (2026-11-13): the
+ * answer carries the story as `trace`, and the web API's one line per
+ * request folds it in (services/web-api/test/clan-session.test.mjs).
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -48,7 +50,7 @@ const capture = async (fn, cap) => {
   return { r, lines: [...cap.lines] };
 };
 
-test("every request ends with one JSON line naming the route, the status, the time, and each read of the record; plus Server-Timing", async () => {
+test("every request carries one story naming the route, the status, the time, and each read of the record; plus Server-Timing", async () => {
   const now = () => NOW.getTime();
   const part = participation(
     [
@@ -101,27 +103,32 @@ test("every request ends with one JSON line naming the route, the status, the ti
     r.headers["server-timing"],
     /^total;dur=\d+, elixir;dur=\d+;desc="\d+ calls", store;dur=\d+;desc="\d+ ops", own;dur=\d+/,
   );
-  const story = lines
-    .filter(([k]) => k === "log" || k === "warn")
-    .map(([, l]) => JSON.parse(l));
-  assert.equal(story.length, 1, "one line per request");
-  const line = story[0];
-  assert.equal(line.http, "GET /api/clans/*/manage", "the route, not the tag");
+  assert.deepEqual(
+    lines.filter(([k]) => k === "log"),
+    [],
+    "Clan writes no line of its own",
+  );
+  const line = r.trace;
+  assert.equal(
+    line.http,
+    "GET /api/clan/clans/*/manage",
+    "the route, not the tag",
+  );
   assert.equal(line.status, 200);
   assert.equal(line.clan, "#2PQRJ8LV");
   assert.equal(line.role, "leader");
   assert.ok(line.ms >= 0 && line.elixir_calls >= 2, JSON.stringify(line));
   const calls = line.elixir.map((c) => c.call);
   assert.ok(calls.includes("clans_participation"), calls.join(","));
-  // A read in process has no request id of its own: the request's is
-  // the one id the line carries.
+  // A read in process has no request id of its own: the web API's line
+  // carries the request's.
   assert.equal(
     "request_id" in line.elixir.find((c) => c.call === "clans_participation"),
     false,
   );
 });
 
-test("route keys hide ids and tags; a slow or failed request logs at warn", async () => {
+test("route keys hide ids and tags; a slow or failed request is a warn", async () => {
   const now = () => NOW.getTime();
   const cap = capturing();
   const handler = createHandler({
@@ -132,12 +139,12 @@ test("route keys hide ids and tags; a slow or failed request logs at warn", asyn
     now,
     log: cap.log,
   });
-  const { lines } = await capture(
+  const { r } = await capture(
     () => handler(req("GET", "/api/roster", {})),
     cap,
   );
-  const line = JSON.parse(lines.find(([k]) => k === "log" || k === "warn")[1]);
-  assert.equal(line.http, "GET /api/roster");
+  const line = r.trace;
+  assert.equal(line.http, "GET /api/clan/roster");
   assert.equal(line.status, 401);
   assert.equal(
     routeKey("GET", "/api/clans/2PQRJ8LV/members/8QCV/notes"),
@@ -200,11 +207,12 @@ test("trusted lock timing is included in total and separated from handler work",
   });
   const result = await handler(
     { ...req("GET", "/api/roster", {}), requestId: "viewer-supplied" },
-    { lockMs: 750, requestId: "trusted-native-request" },
+    { lockMs: 750 },
   );
-  const line = JSON.parse(cap.lines[0][1]);
+  const line = result.trace;
   assert.equal(line.lock_ms, 750);
-  assert.equal(line.request_id, "trusted-native-request");
+  // The request id is the web API's line's own, never the viewer's.
+  assert.equal("request_id" in line, false);
   assert.ok(line.ms >= 750);
   assert.match(result.headers["server-timing"], /lock;dur=750/);
   const headerOwn = Number(
@@ -214,7 +222,8 @@ test("trusted lock timing is included in total and separated from handler work",
     headerOwn,
     Math.max(0, line.ms - line.elixir_ms - line.store_ms - 750),
   );
-  cap.lines.length = 0;
-  await handler(req("GET", "/api/roster", {}), { lockMs: "untrusted-fixture" });
-  assert.equal(JSON.parse(cap.lines[0][1]).lock_ms, undefined);
+  const untrusted = await handler(req("GET", "/api/roster", {}), {
+    lockMs: "untrusted-fixture",
+  });
+  assert.equal(untrusted.trace.lock_ms, undefined);
 });

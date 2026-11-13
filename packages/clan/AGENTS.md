@@ -21,7 +21,8 @@ client is a defect to remove.
 | `packages/clan` (here) | orchestration: request handler, gate, roles, the manage service (`src/manage/`), the closed record reader, model drafting, sealing |
 | `packages/clan-state` | the private management ledger (`clan_state`, migration 0196) and its Postgres adapter |
 | `packages/clan-web` | the views and routes, joined into the one `apps/web` router |
-| `services/web-api/src/clan.mjs` | the request adapter: the authenticated person plus the request's connected client |
+| `services/web-api/src/routes/clan.mjs` | Clan's routes in the web API's route table: sign-in first, then the adapter |
+| `services/web-api/src/clan.mjs` | the request adapter: the authenticated person plus the request's connected client, and the clan's lock (`clanLockPlan`) |
 | `services/jobs/src/clan.mjs` | the morning run, one recorded clan per tick |
 
 ## Rules
