@@ -2,13 +2,13 @@
  * Feedback, one system for all of Elixir (2026-10-08, Jamie: "one general
  * feedback system that can work for all of the types of feedback that we
  * want to collect"). Every door files the same record: the MCP tool, the
- * JSON API, the Console, Ladder, Elixir Clan, the docs and the email
+ * JSON API, the Console, Ladder, Clan, the docs and the email
  * footer. These lists are that record's vocabulary, and the database's
  * CHECKs, the tool schemas and the web forms all read them from here.
  */
 
 /** What the person says it is. `judgment`: Elixir judged someone wrongly
- *  (Elixir Clan's standing, an award, a removal clock). */
+ *  (Clan's standing, an award, a removal clock). */
 export const FEEDBACK_CATEGORIES = [
   "general",
   "bug",

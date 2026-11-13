@@ -48,8 +48,8 @@ agents and connected apps and the calls they make, where they connected
 from, and the mail it sent you. You can see these records on your
 account pages. Some are trimmed after a while; the [Limits](/docs/limits)
 page lists how long. Your address is never public, and it goes to one
-kind of app only: an Elixir family app you sign in to and allow to see
-it.
+kind of app only: an app of Elixir's own, like Elixir Drop, that you sign
+in to and allow to see it.
 
 **Connecting Discord.** If you connect Discord or sign in with it, Elixir
 keeps your Discord user id and username, to sign you in and to tell your

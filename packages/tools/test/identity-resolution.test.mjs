@@ -403,7 +403,7 @@ test("the clan named at initialize is the primary player's, and it is what an om
 test("3.18.0: when the primary player's clan is not recorded, an omitted clan_tag is refused as not_recorded, never an alt's clan", async () => {
   // The two-clan account above, with the primary's clan no longer
   // recorded: the old default slid to the alt's recorded clan (the reason
-  // Elixir Clan pinned the tag on every call); now it says which clan is
+  // Clan pinned the tag on every call); now it says which clan is
   // missing and how to record it, and the alt's clan stays reachable by
   // name.
   const {

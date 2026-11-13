@@ -87,11 +87,6 @@ const STATUS = {
   server: 502,
 };
 
-const redirect = (location) => ({
-  statusCode: 303,
-  headers: { location, "cache-control": "no-store" },
-  body: "",
-});
 const answer = async (fn) => {
   try {
     return { ok: true, body: await fn() };
@@ -252,7 +247,6 @@ export function createClanRequest({
     account,
     event,
     requestId = null,
-    signout,
     modelFactory = null,
   }) => {
     const credential = Object.freeze({});
@@ -313,8 +307,6 @@ export function createClanRequest({
       account,
       state,
       credential,
-      login: async () => redirect(appUrl),
-      logout: signout,
     });
     const exclusive = clanExclusive(db);
     const manage = createManageService({

@@ -68,7 +68,7 @@ export const elixir_send_feedback = {
         type: "array",
         maxItems: 20,
         description:
-          "Beside the calls (11.3.0): what else this is about. kind email (a send id from a mail's footer), feedback (one of your own feedback_ids this item belongs with, such as another facet of one review; not a reply, 11.10.0), player or clan (a tag), clan_action, award or policy (Elixir Clan ids). A pointer that is malformed or not yours is dropped and named in notes; the report is kept.",
+          "Beside the calls (11.3.0): what else this is about. kind email (a send id from a mail's footer), feedback (one of your own feedback_ids this item belongs with, such as another facet of one review; not a reply, 11.10.0), player or clan (a tag), clan_action, award or policy (Clan ids). A pointer that is malformed or not yours is dropped and named in notes; the report is kept.",
         items: {
           type: "object",
           properties: {

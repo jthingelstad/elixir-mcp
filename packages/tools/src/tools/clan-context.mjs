@@ -37,7 +37,7 @@ const OWN_VIEW_REFUSALS = {
 export const clanContextTools = {
   clans_directory: {
     description:
-      "The clan directory, as Home's Clans page lists it: every recorded clan whose leaders saved a policy in Elixir Clan, each with its recorded name, type, size, trophies to join and description, and the policy's public part (Clan Wars intent, posture, playing together, what counts, the removal day). yours marks a clan one of your verified players is in (an agent reads as its owner). Ordered by name, never ranked. For a person's own connection and their agents.",
+      "The clan directory, as Home's Clans page lists it: every recorded clan whose leaders saved a policy in Clan, each with its recorded name, type, size, trophies to join and description, and the policy's public part (Clan Wars intent, posture, playing together, what counts, the removal day). yours marks a clan one of your verified players is in (an agent reads as its owner). Ordered by name, never ranked. For a person's own connection and their agents.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -54,7 +54,7 @@ export const clanContextTools = {
         truncated: directory.truncated,
         applied: {},
         notes: notes(
-          "A clan is listed once its leaders save a policy in Elixir Clan; policy is the saved policy's public part, never who saved it, a note, a minimum or a member's standing.",
+          "A clan is listed once its leaders save a policy in Clan; policy is the saved policy's public part, never who saved it, a note, a minimum or a member's standing.",
           ctx.account?.kind === "agent"
             ? "yours is your owner's: a clan one of their verified players is in now."
             : null,
@@ -69,7 +69,7 @@ export const clanContextTools = {
   },
   clans_my_view: {
     description:
-      "Your own view of your clan in Elixir Clan, your primary player's clan by default: the policy summary, your own standing line, and the Actions waiting for you as summary lines, each with a url to open it in Clan. For your own connection and a player you have verified. From Clan's last evaluation; never another member's line or clock, never a removal Action, never an Action's evidence or log. Read-only: deciding happens in Clan.",
+      "Your own view of your clan in Clan, your primary player's clan by default: the policy summary, your own standing line, and the Actions waiting for you as summary lines, each with a url to open it in Clan. For your own connection and a player you have verified. From Clan's last evaluation; never another member's line or clock, never a removal Action, never an Action's evidence or log. Read-only: deciding happens in Clan.",
     inputSchema: {
       type: "object",
       properties: {
@@ -105,7 +105,7 @@ export const clanContextTools = {
               ? "Clan has not evaluated the clan under its current policy for your player yet, so standing and actions are null; Clan's own page evaluates when it is opened."
               : null,
           LEADERS.has(view.you.role)
-            ? "Some Actions are shown only in Elixir Clan: open the clan's Actions list there for every Action waiting for you."
+            ? "Some Actions are shown only in Clan: open the clan's Actions list there for every Action waiting for you."
             : null,
         ),
         docs: docsRef("clan-your-own-view", "your-own-view"),

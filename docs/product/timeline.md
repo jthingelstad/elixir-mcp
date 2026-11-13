@@ -38,7 +38,7 @@ got right in one place. [Jamie, 2026-10-12]
 - **An agent**, over `elixir_timeline`: the players and clans it
   follows, with its own read pointer; a consumer may name a `reader` for a
   pointer of its own. [Jamie, 2026-09-13, 2026-10-08]
-- **The editors.** Elixir Clan's Discord stories read the same items and
+- **The editors.** Clan's Discord stories read the same items and
   decide what to tell. [Jamie, 2026-10-11]
 
 ## Principles that decide the details
@@ -99,7 +99,7 @@ got right in one place. [Jamie, 2026-10-12]
 
 - **Elixir** serves every item, in words written by code, and makes items
   easier to expand, never shorter. [Jamie, 2026-10-11]
-- **Elixir Clan's Discord** is an editor: code, or the clan's own model
+- **Clan's Discord** is an editor: code, or the clan's own model
   in a voice its leaders write, frames stories for the clan's channel,
   each linking back to Elixir with no preview. [Jamie, 2026-10-11,
   2026-11-12]

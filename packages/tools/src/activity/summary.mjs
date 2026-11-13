@@ -402,17 +402,13 @@ function carried(members) {
   return `, led by ${list}`;
 }
 
-/** Who attested a fact, and through which app. */
+/** Who attested a fact, and where (Clan, or a family app). */
 const attester = (f) =>
   f.attested_by?.name ?? f.attested_by?.player_tag ?? f.attested_by?.app;
 const by = (f) => attester(f) ?? "A leader";
-/** A family app as the sentence names it: the product is Clan, and the
- *  stored `attested_by.app` stays what it was. */
-const appWord = (app) => (app === "Elixir Clan" ? "Clan" : app);
 const said = (f) =>
-  `${attester(f) ?? "A leader"} said${f.attested_by?.app ? ` (in ${appWord(f.attested_by.app)})` : ""}`;
-const via = (f) =>
-  f.attested_by?.app ? ` (via ${appWord(f.attested_by.app)})` : "";
+  `${attester(f) ?? "A leader"} said${f.attested_by?.app ? ` (in ${f.attested_by.app})` : ""}`;
+const via = (f) => (f.attested_by?.app ? ` (via ${f.attested_by.app})` : "");
 
 /** A card's form as a player says it (#110): "Evolution Valkyrie",
  *  "Hero Knight". Reads a ledger payload (`name`) or an item's facts

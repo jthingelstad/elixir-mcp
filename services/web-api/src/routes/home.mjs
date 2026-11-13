@@ -340,7 +340,6 @@ async function readClanView(
       body: undefined,
       queryStringParameters: query,
     },
-    signout: async () => null,
   });
   if (res.statusCode === 200) return JSON.parse(res.body);
   // Tracked, but the person holds no place Clan can show (no role seen yet).

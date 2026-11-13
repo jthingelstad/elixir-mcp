@@ -1,5 +1,5 @@
 /**
- * Actions: what Elixir Clan suggests a person in the clan do (Jamie,
+ * Actions: what Clan suggests a person in the clan do (Jamie,
  * 2026-09-25). An action is ASSIGNED to one member or AVAILABLE to a role
  * (any leader, any elder and up); the person completes it or declines it.
  * In code and storage an action is still a `card` (`card#<clan>#<id>`);

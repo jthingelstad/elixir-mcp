@@ -13,7 +13,7 @@ official API is current-state only), served on one origin,
 | `/settings` | Settings: your account and agents, with its left rail; Admin (`/settings/admin/*`) for staff | `apps/web` |
 | `/console`, `/data/service` | only redirect: the Console folded on 2026-11-12 (Jamie) and `apps/web/src/lib/moved.js` maps every old address; `/data/service` goes to `/data`, the public status page | `apps/web` |
 | `/home/you/stats` | Stats (Ladder until 2026-11-12; `/ladder` redirects): your season, read back, You's last tab | `apps/web/src/ladder` |
-| `/clan`, `/api/clan` | Elixir Clan: running a clan on its policy | `packages/clan*` |
+| `/clan`, `/api/clan` | Clan, a part of Elixir: running a clan on its policy | `packages/clan*` |
 | `/battle/<id>` | a battle's public page | `services/web-api` |
 | `/mcp`, `/a/<id>/mcp`, `/oauth/*`, `/.well-known/*` | the MCP and OAuth doors | `services/mcp`, `packages/tools` |
 | `/api/v1` | the JSON API | `services/web-api`, `packages/tools` |
@@ -72,7 +72,7 @@ not a feature to preserve.
 | --- | --- |
 | Home, Settings, Admin and the shared web shell | `apps/web/AGENTS.md` |
 | Ladder | `apps/web/src/ladder/AGENTS.md` |
-| Elixir Clan | `packages/clan/AGENTS.md` (engine, state and views: their own short guides) |
+| Clan | `packages/clan/AGENTS.md` (engine, state and views: their own short guides) |
 | MCP tools and the JSON API operations | `packages/tools/AGENTS.md` |
 | The site and public docs | `apps/site/AGENTS.md` |
 | Infrastructure and deploy | `infra/AGENTS.md` |
@@ -135,8 +135,10 @@ Skills and tests cite these by number; keep the numbering.
 - Store UTC everywhere; a time zone is display only. Report times to
   Jamie in US Central.
 - An MCP token never authenticates at `/api/v1`, nor the reverse.
-- Private Clan state never reaches MCP or public tools. The one
-  exception, `clans_my_view` (a person's own view), reads through
+- Clan is a set of features inside Elixir, never a separate product or
+  an integration (Jamie, 2026-11-12). Private Clan state (leader notes,
+  holds, decisions) reaches only those the clan's policy allows and never
+  MCP or public tools. The one exception, `clans_my_view` (a person's own view), reads through
   `@elixir-mcp/auth/clan-context` (pinned by
   `services/web-api/test/clan-boundary.test.mjs`); `clans_context`
   retired in 12.0.0. The clan directory (`clans_directory` and Clan's own

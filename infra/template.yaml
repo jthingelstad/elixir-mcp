@@ -2819,18 +2819,6 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          # Elixir Clan's API, listed before /api/*, which would take it.
-          - PathPattern: /api/clan/*
-            TargetOriginId: api
-            ViewerProtocolPolicy: https-only
-            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
-            CachePolicyId: !Ref WebPrivateCachePolicy
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            Compress: true
-            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
-            FunctionAssociations:
-              - EventType: viewer-request
-                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /api/collector/*
             TargetOriginId: collector
             ViewerProtocolPolicy: https-only
@@ -2842,6 +2830,8 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
+          # Every other site API, Clan's /api/clan/* included: Clan is part
+          # of Elixir and takes the same door.
           - PathPattern: /api/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only

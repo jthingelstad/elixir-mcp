@@ -1,6 +1,6 @@
 # clan-web
 
-Elixir Clan's views. Read `packages/clan/AGENTS.md` first, and
+Clan's views. Read `packages/clan/AGENTS.md` first, and
 `apps/web/AGENTS.md` for the shell they join.
 
 - **No app of its own.** `createClanRoutes()` (`src/routes.jsx`) adds Clan's

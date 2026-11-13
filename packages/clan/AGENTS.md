@@ -1,4 +1,4 @@
-# Elixir Clan
+# Clan
 
 `/clan` (API `/api/clan`): running a clan on its own versioned policy
 against Elixir's record. Standing, the Elder band, the removal clock,
@@ -9,9 +9,11 @@ of `docs/DECISIONS.md`.
 
 ## Where it lives
 
-Clan is part of Elixir: one session, one React app, one web API, one
-Postgres, one jobs runtime, one stack and deploy. No OAuth, store, build
-or workflow of its own.
+Clan is a set of features inside Elixir, not a separate product or an
+integration (Jamie, 2026-11-12): one session, one React app, one web API,
+one Postgres, one jobs runtime, one stack and deploy. No OAuth, store,
+build or workflow of its own. A remnant that treats Clan as a separate
+client is a defect to remove.
 
 | Piece | Owns |
 | --- | --- |
@@ -24,13 +26,12 @@ or workflow of its own.
 
 ## Rules
 
-- **Clan reads Elixir through a closed in-process reader**
-  (`src/recorded-client.mjs`): a fixed set of reads with a request-local
-  credential made after Elixir authenticates the person, never a browser
-  token, OAuth grant or integration key. Membership, verification and role
-  are current checks on every request, and a leader's change also needs
-  the roster read within the hour (`src/role-freshness.mjs`).
-- **Private Clan state never reaches MCP or public tools.** The one
+- **Clan reads the record in process** (`src/recorded-client.mjs`), for
+  the person Elixir has already signed in. Membership, verification and
+  role are current checks on every request, and a leader's change also
+  needs the roster read within the hour (`src/role-freshness.mjs`).
+- **Private Clan state** (leader notes, holds, decisions) **reaches only
+  those the clan's policy allows, and never MCP or public tools.** The one
   exception reads through `@elixir-mcp/auth/clan-context`: `clans_my_view`,
   a person's own view
   (the policy summary, their own standing line, the Actions waiting for
@@ -39,7 +40,7 @@ or workflow of its own.
   (`docs/notes/2026-10-13-w3-my-clan-view.md`).
   `services/web-api/test/clan-boundary.test.mjs` pins the boundary.
 - **Facts versus judgments.** Game facts come from the record; Clan's own
-  results that other apps read (`award_standing`, clan facts) are attested
+  results that the rest of Elixir reads (`award_standing`, clan facts) are attested
   facts written through `@elixir-mcp/record/attested-facts`, labelled and
   apart from the game record.
 - **Nothing runs until a clan has a policy**, and reviews, Actions,
@@ -56,7 +57,7 @@ or workflow of its own.
   answer is logged. The sealing secret (`clan_sealing_secret` in the app secret) keeps its
   derivation and AAD until its own reviewed rotation (`docs/SECRETS.md`).
   The key's model list refreshes itself (`refreshModels`, at most daily,
-  asked for by Settings after it draws). Elixir Clan chooses the model
+  asked for by Settings after it draws). Clan chooses the model
   for each use from `MODEL_FOR` (clan-engine `words.mjs`) against that
   list; leaders choose the key and the monthly cap, never the model.
 - **Actions in Discord** go the same way, under `clan-discord/`
@@ -85,7 +86,7 @@ or workflow of its own.
   every round's answer and lookups, the checks) an archive object under
   `discord-runs/` for 30 days: anything added to the editor's request
   lands there too, never a key or a webhook.
-- **Clan posts to Discord; the family's Discord agent converses**
+- **Clan posts to Discord; the separate Discord agent converses**
   (`docs/product/clan.md` principle 10, `docs/product/timeline.md`).
   Actions and activity stories reach a clan's Discord through webhooks
   its leaders connect in Clan, for any clan, sealed per clan. Clan has

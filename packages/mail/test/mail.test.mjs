@@ -1006,7 +1006,7 @@ test("actions waiting: action rows, the app's count of the rest, and one primary
   ];
   const { html, preheader } = renderMail("clan_actions_waiting", facts, links);
   assert.match(html, /15 actions waiting/);
-  assert.match(html, /And 5 more in .*Clan › Today/);
+  assert.match(html, /And 5 more in .*\/feed.*Clan › Feed/);
   assert.doesNotMatch(html, /Decide ›/);
   assert.equal(html.match(/>Review in Clan</g).length, 1);
   assert.equal(

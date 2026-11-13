@@ -225,7 +225,7 @@ test("a leader who would decide a removal never sees it; counts exclude it; the 
     'days_idle":9',
   ])
     assert.ok(!text.includes(leak), `no ${leak} in a leader's view`);
-  assert.ok(r.notes.some((n) => /only in Elixir Clan/.test(n)));
+  assert.ok(r.notes.some((n) => /only in Clan/.test(n)));
   // No Action was numbered by the read.
   assert.equal((await ledger.card(CLAN, "wl")).number, undefined);
 });

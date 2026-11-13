@@ -1051,7 +1051,7 @@ const FEEDBACK_AREA_LABEL = {
   api: "JSON API",
   console: "Elixir",
   ladder: "Ladder",
-  clan: "Elixir Clan",
+  clan: "Clan",
   mail: "Email",
   docs: "Docs",
   recorder: "Recorder",
@@ -1106,7 +1106,7 @@ function AdminFeedback() {
       admin
       crumb="Admin"
       title="Feedback queue"
-      note="Every door files here: MCP, the JSON API, Elixir's pages, Ladder, Elixir Clan, the docs and the email footer."
+      note="Every door files here: MCP, the JSON API, Elixir's pages, Ladder, Clan, the docs and the email footer."
       loading={query.isPending}
       error={query.isError ? "The queue could not be read just now." : null}
       above={

@@ -22,7 +22,7 @@ export interface ClientOptions {
   onSlow?: (info: SlowRequest) => void;
   /** How a request is named in an event. The default collapses
    *  anything past three path segments; a surface whose routes carry a
-   *  tag earlier than that (Elixir Clan's /api/clans/<tag>/...) passes
+   *  tag earlier than that (Clan's /api/clans/<tag>/...) passes
    *  its own, so no tag reaches the analytics. */
   routeLabel?: (method: string, path: string) => string;
 }

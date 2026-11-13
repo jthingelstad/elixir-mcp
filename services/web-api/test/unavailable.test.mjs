@@ -84,7 +84,7 @@ test("the JSON API answers it with its documented problem, temporarily_unavailab
   assert.equal(res.headers["x-request-id"], body.request_id);
 });
 
-test("the Clan door's health check and retired callback take no lease", async () => {
+test("the Clan door's health check takes no lease", async () => {
   const { database, leases } = unreachable();
   const clan = async () => {
     throw new Error("the Clan handler is never reached unsigned");
@@ -95,10 +95,6 @@ test("the Clan door's health check and retired callback take no lease", async ()
   );
   assert.equal(health.statusCode, 200);
   assert.deepEqual(JSON.parse(health.body), { ok: true });
-  const { result: callback } = await quietly(() =>
-    handler({ path: "/api/clan/auth/callback", method: "POST", headers: {} }),
-  );
-  assert.equal(callback.statusCode, 410);
   assert.deepEqual(leases, { taken: 0, ended: 0 });
   // Anything else under /api/clan/ still resolves a person first, so it
   // needs the database.

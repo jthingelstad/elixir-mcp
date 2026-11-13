@@ -1,6 +1,6 @@
 /**
  * Where the Console lives on the one origin (2026-09-28): the site and
- * docs own the root, the Console owns this prefix, and Elixir Clan and
+ * docs own the root, the Console owns this prefix, and Clan and
  * Ladder take their own beside it. Every Console path is written with
  * it, explicitly, rather than through a router basepath: the kit's Link
  * renders `to` as the href verbatim, so a path without the prefix would

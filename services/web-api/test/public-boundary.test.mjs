@@ -221,13 +221,10 @@ test("the doors by prefix refuse with no credential", async () => {
     (await call("GET", "/api/agent/abcdefgh/timeline")).statusCode,
     401,
   );
-  // Clan: its health and the retired callback are its only unsigned
-  // answers, both in CLAN_UNSIGNED; a GET of auth/login with no session
-  // is sent to sign in, and everything else resolves a person first.
-  assert.deepEqual(Object.keys(CLAN_UNSIGNED).sort(), [
-    "ANY /api/clan/auth/callback",
-    "GET /api/clan/health",
-  ]);
+  // Clan: its health is its only unsigned answer (CLAN_UNSIGNED), and
+  // everything else resolves a person first. Its retired OAuth routes are
+  // gone, so they are ordinary signed-out paths.
+  assert.deepEqual(Object.keys(CLAN_UNSIGNED).sort(), ["GET /api/clan/health"]);
   assert.equal((await call("GET", "/api/clan/home")).statusCode, 401);
   // The clan directory is for signed-in members only (#768).
   assert.equal((await call("GET", "/api/clan/directory")).statusCode, 401);
@@ -238,11 +235,9 @@ test("the doors by prefix refuse with no credential", async () => {
   for (const method of ["GET", "POST"])
     assert.equal(
       (await call(method, "/api/clan/auth/callback")).statusCode,
-      410,
+      401,
     );
-  const login = await call("GET", "/api/clan/auth/login");
-  assert.equal(login.statusCode, 303);
-  assert.match(login.headers.location, /^\/signin/);
+  assert.equal((await call("GET", "/api/clan/auth/login")).statusCode, 401);
 });
 
 test("public stats carry only counts of what the recorder holds", async () => {

@@ -6,16 +6,10 @@ import { useEffect } from "react";
 /**
  * One page per gate refusal, in gate order. Each says exactly what to do
  * and links to where, then looks again when you come back; nothing here
- * guesses.
+ * guesses. A non-person never gets here: Elixir answers 401 before Clan
+ * runs (clan-session.test.mjs).
  */
 export const REFUSALS = {
-  not_a_person: {
-    title: "That was an agent's connection, not yours",
-    body: "Clan signs people in. An agent or integration credential cannot open the personal clan dashboard.",
-    action: "Sign in to Elixir as yourself.",
-    link: [ELIXIR_LINKS.connectionsDocs, "Users, agents and integrations"],
-    retry: "/signin",
-  },
   no_primary_player: {
     title: "Clan starts with your player",
     body: "Add the player you play as, and their clan shows up here.",
@@ -43,7 +37,7 @@ export const REFUSALS = {
 export function Refused({ reason, me, onRecheck, checking }) {
   const { when } = useClock();
   const page = REFUSALS[reason];
-  const canRecheck = Boolean(page && !page.retry);
+  const canRecheck = Boolean(page);
   useEffect(() => {
     if (!canRecheck) return undefined;
     const look = () => {
@@ -95,7 +89,7 @@ export function Refused({ reason, me, onRecheck, checking }) {
         </p>
       ) : null}
       <p className="lede">{page.body}</p>
-      {players.length > 0 && reason !== "not_a_person" ? (
+      {players.length > 0 ? (
         <ul
           style={{
             margin: "12px 0 0",
@@ -138,20 +132,14 @@ export function Refused({ reason, me, onRecheck, checking }) {
             {page.also[1]}
           </Link>
         ) : null}
-        {page.retry ? (
-          <a className="btn" href={page.retry}>
-            Sign in again
-          </a>
-        ) : (
-          <button
-            type="button"
-            className="btn"
-            onClick={onRecheck}
-            disabled={checking}
-          >
-            {checking ? "Checking…" : "Check again"}
-          </button>
-        )}
+        <button
+          type="button"
+          className="btn"
+          onClick={onRecheck}
+          disabled={checking}
+        >
+          {checking ? "Checking…" : "Check again"}
+        </button>
       </div>
     </div>
   );

@@ -458,23 +458,6 @@ export function VerifyPage() {
   );
 }
 
-/** Clan's own feedback pages retired into Elixir's one system
- *  (2026-10-08): an old address goes to the person's feedback in
- *  Settings, and the maintainer's lane to the one queue. */
-export function FeedbackPage() {
-  useEffect(() => {
-    window.location.replace("/settings/feedback");
-  }, []);
-  return null;
-}
-
-export function MaintainPage() {
-  useEffect(() => {
-    window.location.replace("/settings/admin/feedback");
-  }, []);
-  return null;
-}
-
 /** Feedback is Elixir's one system (2026-10-08): a quiet button under the
  *  page opens the shared sheet, about this clan and the page it was on. */
 export function SendFeedback({ me, path }) {

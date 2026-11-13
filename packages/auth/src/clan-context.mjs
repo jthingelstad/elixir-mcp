@@ -122,7 +122,7 @@ const actionUrl = (clanTag, number) =>
   }`;
 
 /**
- * A person's own view of one clan in Elixir Clan, for their own connection
+ * A person's own view of one clan in Clan, for their own connection
  * (Jamie, 2026-10-12, #535): the policy summary, their own standing line and
  * the Actions waiting for them, each a summary line with a url. Never another
  * member's line or clock, never a removal Action, never evidence, a log or a

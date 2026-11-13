@@ -1,6 +1,6 @@
 # clan-engine
 
-Elixir Clan's management engine: a pure function of Elixir's record and a
+Clan's management engine: a pure function of Elixir's record and a
 clan's policy. Read `packages/clan/AGENTS.md` first.
 
 - **No I/O and no clock of its own.** Every input, the time included, is an

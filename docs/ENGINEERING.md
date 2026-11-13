@@ -474,7 +474,7 @@ imported by name.
 | `auth` | sessions, OAuth, tokens, integration accounts, the `clans_my_view` and clan directory readers |
 | `mail`, `outbox` | rendering, the send ledger and archive, delivery; the S3 outbox |
 | `syndication` | the timeline cross-posted to Discord and a clan's activity channel: the setting, the wake, the sync, its lines, the relay's worker and the quality ledger (`quality.mjs`) |
-| `clan-engine`, `clan`, `clan-state`, `clan-web` | Elixir Clan (`packages/clan/AGENTS.md`) |
+| `clan-engine`, `clan`, `clan-state`, `clan-web` | Clan, a set of features inside Elixir (`packages/clan/AGENTS.md`) |
 | `docs` | the public docs as a corpus the MCP door serves |
 | `design`, `ui`, `client` | the web kit (`apps/web/AGENTS.md`) |
 
@@ -521,19 +521,20 @@ behavior (the only door route that sees the session cookie is
 
 ## Clan inside Elixir
 
-`packages/clan/AGENTS.md` is the guide. The invariants:
+Clan is a set of features inside Elixir, never a separate product or an
+integration (Jamie, 2026-11-12). `packages/clan/AGENTS.md` is the guide.
+The invariants:
 
-- Private Clan state (`clan_state`, `packages/clan-state`) is never imported
-  by MCP, the tools or any public game package. The one exception is
+- Private Clan state (`clan_state`, `packages/clan-state`) reaches only
+  those the clan's policy allows, and is never imported by MCP, the tools or any public game package. The one exception is
   `clans_my_view` (and the directory's public part, `clans_directory`), through
   `@elixir-mcp/auth/clan-context`, pinned by
   `services/web-api/test/clan-boundary.test.mjs`.
 - The Postgres adapter receives the request's connected client; the caller
   owns transactions and the serialization of multi-item changes.
-- The internal Clan path receives only the resolved Elixir person and the
-  connected client; a request-local opaque credential keeps the closed
-  reader inside the process, and no OAuth grant or integration key is
-  fabricated.
+- Clan's request path receives only the resolved Elixir person and the
+  connected client, and reads the record in process; it holds no OAuth
+  grant or key of its own.
 - Award absence evidence reads `@elixir-mcp/record/war-membership`:
   canonical membership intervals and admitted roster observations bracket
   the whole week, with recording active before it. Finish presence or a

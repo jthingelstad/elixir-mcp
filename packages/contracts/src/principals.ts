@@ -30,7 +30,7 @@ export type PrincipalKind = "person" | "agent" | "integration";
  * clan it acts for.
  *
  * `clans_my_view` (11.12.0, #535) is a person's own view of their clan in
- * Elixir Clan, for the person's own connection only, never an owned agent
+ * Clan, for the person's own connection only, never an owned agent
  * (Jamie's ruling on #535, 2026-10-12).
  */
 export const PERSON_ONLY_TOOLS: readonly string[] = [

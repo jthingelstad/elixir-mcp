@@ -129,7 +129,7 @@ the [timeline](/docs/timeline) of the readers their type allows.
 | `member_away` | clan, about a member | leader, co-leader, or the member | the clan's leaders and co-leaders | `until` (an instant, or null) |
 | `clan_message` | clan | leader, co-leader, elder (a Clan Leader Message: leaders and co-leaders) | the clan | `channel` (`leader_message` or `clan_chat`), `title` (24), `body` (200) |
 | `personal_record` | player | an integration with `facts:write` | whoever has the player on their timeline | `game` (40), `score`, `previous_best` |
-| `award_standing` | clan, about a member | the app itself (Clan, or an integration with `facts:write`) | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
+| `award_standing` | clan, about a member | Clan itself, from the clan's own rules (or an integration with `facts:write`) | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
 
 "The clan" is anyone whose verified player is in it today, and an agent
 whose owner's player is. A fact for the clan's leaders reaches only a
@@ -139,9 +139,9 @@ there.
 
 A clan fact is written by a **person**: in Clan, or through a family
 app (its provisioned client) whose grant holds `clans:attest`, with
-`POST /clans/{tag}/facts`. The one exception is what the app itself
-computes from its own rules: `award_standing`, where a member stands in one
-of the clan's own awards for a season still running (Clan writes it
+`POST /clans/{tag}/facts`. The one exception is what Clan itself
+computes from the clan's own rules: `award_standing`, where a member stands
+in one of the clan's own awards for a season still running (Clan writes it
 each morning). An integration holding `facts:write` writes and takes back
 only those types, on the same paths, labelled as the app's and never as a
 person's; a person's kinds are refused on its key, and the app's kind on a

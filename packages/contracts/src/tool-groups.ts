@@ -301,7 +301,7 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   },
   clans_my_view: {
     group: "Clans",
-    title: "My view in Elixir Clan",
+    title: "My view in Clan",
     readOnly: true,
   },
   clans_roster: {

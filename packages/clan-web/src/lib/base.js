@@ -1,5 +1,5 @@
 /**
- * Where Elixir Clan lives on Elixir's origin (one origin, 2026-09-28):
+ * Where Clan lives on Elixir's origin (one origin, 2026-09-28):
  * the site and docs own the root, the Console /console, and Clan this
  * prefix. Every Clan path is written with it, explicitly, rather than
  * through a router basepath: the kit's Link renders `to` as the href
@@ -20,15 +20,7 @@ export function appPath(pathname) {
 /** The app's own pages. Their names come first under the prefix, where a
  *  clan's tag also goes, and they win: `/clan/verify` is the notice after
  *  sign-in, never a clan #VERIFY. */
-const PAGES = new Set([
-  "clans",
-  "you",
-  "refused",
-  "verify",
-  "feedback",
-  "maintain",
-  "directory",
-]);
+const PAGES = new Set(["clans", "you", "refused", "verify", "directory"]);
 
 /** Whether a first segment under the prefix is where a clan's tag goes:
  *  anything but one of the app's own pages. */

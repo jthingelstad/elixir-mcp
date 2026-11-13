@@ -151,7 +151,7 @@ export function seasonArg(param) {
   return "current";
 }
 
-/** A season as Elixir names it everywhere (the mail, Elixir Clan,
+/** A season as Elixir names it everywhere (the mail, Clan,
  *  Explore's war weeks): "Season 136". A season row with no river race
  *  number yet falls back to its month. */
 export function seasonName(season) {
@@ -691,7 +691,7 @@ export const YOUNG_RECORD_DAYS = 28;
  * The season home's next step while the record is young (2026-10-12):
  * the record's age in whole days from the recording's start
  * (`recording_active_since`, the tools' meta) and one step, in this
- * order: not verified, Verify (Elixir Clan's role powers wait for it);
+ * order: not verified, Verify (Clan's role powers wait for it);
  * verified and in a recorded clan, open Clan; otherwise, follow a
  * friend. The order is engineering's default, not a ranking of the
  * player. `clanRecorded` null means not known yet, which shows nothing

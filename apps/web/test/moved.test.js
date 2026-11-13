@@ -71,6 +71,12 @@ const MAIL_MOVED = [
   ["/console/explore/clan/%23Q8G0LVPY", "/clan/Q8G0LVPY/feed"],
   ["/console/explore/week/2026-W40", "/clan"],
   ["/console/explore/week/J2RGCRVG~136~2", "/clan/J2RGCRVG/war/136-3"],
+  // Clan's own feedback pages went into Elixir's one system (2026-10-08):
+  // Clan mail of that time links them.
+  ["/clan/feedback", "/settings/feedback"],
+  ["/clan/feedback/abc123", "/settings/feedback"],
+  ["/clan/maintain", "/settings/admin/feedback"],
+  ["/clan/maintain/feedback/abc123", "/settings/admin/feedback"],
 ];
 const MAIL_STAYS = [
   "/settings/collectors",

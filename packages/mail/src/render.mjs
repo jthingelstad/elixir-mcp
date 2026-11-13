@@ -81,8 +81,8 @@ export const KIND_LABELS = {
 
 /** The family's apps: a family app's own mail links back to it, and
  *  those links carry the campaign tag too (2026-09-25). Read from the
- *  kit's product manifest, the list the top bar draws: the family origin
- *  (the Console, and Elixir Clan at /clan since 2026-09-28) and every
+ *  kit's product manifest, the list the top bar draws: Elixir's own origin
+ *  (Clan, part of Elixir, at /clan since 2026-09-28) and every
  *  product's own, so a product added there is tagged here too. */
 const FAMILY_ORIGINS = [
   ...new Set([
@@ -1357,17 +1357,17 @@ function milestone(f, c) {
 }
 
 /**
- * clan_actions_waiting (2026-09-25; Jamie): Elixir Clan's morning mail to
- * a person who can act on something new in their clan. The app composes
- * the words (a subject, a few plain lines, a link into the app); Elixir
- * holds the address, the switch and the unsubscribe, and renders the
- * lines itself, escaped: no markup crosses from an app.
+ * clan_actions_waiting (2026-09-25; Jamie): Clan's morning mail to a
+ * person who can act on something new in their clan. Clan composes the
+ * words (a subject, a few plain lines, a link into Clan); the mail holds
+ * the address, the switch and the unsubscribe, and renders the lines
+ * itself, escaped: no markup crosses from the words.
  */
 function clanActions(f, c) {
   const clan = f.clan?.name ?? f.clan?.tag ?? "your clan";
   const tag = f.clan.tag;
-  const today = clanPageUrl(tag, "today");
-  // The app's lines are one action each, newest first, and past ten a last
+  const feed = clanPageUrl(tag, "feed");
+  // Clan's lines are one action each, newest first, and past ten a last
   // line counting the rest. A line that is a string came from a Clan of
   // before 2026-11-06, new ones marked "(new)": it draws with no reason.
   const more = /^And (\d+) more\.$/;
@@ -1401,7 +1401,7 @@ function clanActions(f, c) {
       text: l.reason ? esc(reasonOf(l)) : "",
     })),
   )}
-    ${rest ? c.small(`And ${n(rest)} more in ${c.link(today, "Clan › Today")}.`) : ""}
+    ${rest ? c.small(`And ${n(rest)} more in ${c.link(feed, "Clan › Feed")}.`) : ""}
     ${c.button("Review in Clan", f.link)}
     ${c.cov(`Clan sends this each morning when something new is yours to decide. Only people who can act on these actions get it.`)}`;
   const preheader =
@@ -1418,7 +1418,7 @@ function clanActions(f, c) {
       c.shell({
         kind: "clan_actions_waiting",
         title: `${total === 1 ? "One action" : `${n(total)} actions`} waiting`,
-        subtitle: `${c.K(tag, clan, today)}`,
+        subtitle: `${c.K(tag, clan, feed)}`,
         preheader: preheader || f.subject,
         body,
         links,
