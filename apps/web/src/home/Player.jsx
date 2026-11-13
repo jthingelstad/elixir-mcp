@@ -328,14 +328,9 @@ function byDay(items, dayKey) {
 }
 
 function ItemList({ items, empty, more = 0, cheered, tag }) {
-  const { when, day, dayHeading } = useClock();
+  const { when, feedWhen, day, feedDayHeading: dayHeading } = useClock();
   const [openId, setOpenId] = useState(null);
-  if (items.length === 0)
-    return (
-      <Panel pad>
-        <p className="kit-week__quiet">{empty}</p>
-      </Panel>
-    );
+  if (items.length === 0) return <p className="kit-week__quiet">{empty}</p>;
   return (
     <>
       {byDay(items, day).map((d) => (
@@ -364,9 +359,15 @@ function ItemList({ items, empty, more = 0, cheered, tag }) {
                     <p className="kit-feed__text">
                       <TagText>{it.text}</TagText>
                     </p>
-                    <span className="kit-feed__time">
-                      {it.at ? when(it.at) : null}
-                    </span>
+                    {it.at ? (
+                      <time
+                        className="kit-feed__time"
+                        dateTime={it.at}
+                        title={when(it.at)}
+                      >
+                        {feedWhen(it.at)}
+                      </time>
+                    ) : null}
                     {it.words ? (
                       <p className="kit-feed__words">{it.words}</p>
                     ) : null}
@@ -389,7 +390,7 @@ function ItemList({ items, empty, more = 0, cheered, tag }) {
                       {games ? (
                         <button
                           type="button"
-                          className="link kit-tl__more"
+                          className="btn btn--sm"
                           aria-expanded={Boolean(open)}
                           onClick={() => setOpenId(open ? null : it.id)}
                         >
@@ -422,13 +423,9 @@ function ItemList({ items, empty, more = 0, cheered, tag }) {
 /** The Highlights tab (canvas .hcard): each the player's pick, with their
  *  words, its cheers and its battle. */
 function Highlights({ items, cheered }) {
-  const { when } = useClock();
+  const { when, feedWhen } = useClock();
   if (items.length === 0)
-    return (
-      <Panel pad>
-        <p className="kit-week__quiet">No highlights posted yet.</p>
-      </Panel>
-    );
+    return <p className="kit-week__quiet">No highlights posted yet.</p>;
   return items.map((it, i) => {
     const battle = battlePath(it);
     const withCheers = cheered?.of(it);
@@ -436,7 +433,11 @@ function Highlights({ items, cheered }) {
       <article key={it.id ?? i} className="kit-hcard">
         <p className="kit-hcard__when">
           <Icon name="crown" size={18} />
-          {it.at ? when(it.at) : null}
+          {it.at ? (
+            <time dateTime={it.at} title={when(it.at)}>
+              {feedWhen(it.at)}
+            </time>
+          ) : null}
         </p>
         <p className="kit-hcard__title">
           <TagText>{it.text}</TagText>
@@ -463,41 +464,38 @@ function Highlights({ items, cheered }) {
 
 /** The Moments tab: sunken tiles, a medal each (canvas Player moments). */
 function Moments({ items, empty, cheered }) {
-  const { when } = useClock();
-  if (items.length === 0)
-    return (
-      <Panel pad>
-        <p className="kit-week__quiet">{empty}</p>
-      </Panel>
-    );
+  const { when, feedWhen } = useClock();
+  if (items.length === 0) return <p className="kit-week__quiet">{empty}</p>;
   return (
-    <Panel pad>
-      <ul className="kit-moments">
-        {items.map((it, i) => {
-          const battle = battlePath(it);
-          const withCheers = cheered?.of(it);
-          return (
-            <li key={it.id ?? i} className="kit-moment">
-              <Medal kind={it.kind} tile={false} />
-              <div className="kit-moment__main">
-                <span className="kit-moment__title">
-                  <TagText>{it.text}</TagText>
-                </span>
-                <span className="kit-tiny">{it.at ? when(it.at) : null}</span>
-                {battle.startsWith("/battle/") ? (
-                  <Link to={battle} className="link kit-tl__more">
-                    Open the battle
-                  </Link>
-                ) : null}
-                {withCheers ? (
-                  <Cheers it={withCheers} where={cheered.where} />
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </Panel>
+    <ul className="kit-moments">
+      {items.map((it, i) => {
+        const battle = battlePath(it);
+        const withCheers = cheered?.of(it);
+        return (
+          <li key={it.id ?? i} className="kit-moment">
+            <Medal kind={it.kind} tile={false} />
+            <div className="kit-moment__main">
+              <span className="kit-moment__title">
+                <TagText>{it.text}</TagText>
+              </span>
+              {it.at ? (
+                <time className="kit-tiny" dateTime={it.at} title={when(it.at)}>
+                  {feedWhen(it.at)}
+                </time>
+              ) : null}
+              {battle.startsWith("/battle/") ? (
+                <Link to={battle} className="link kit-tl__more">
+                  Open the battle
+                </Link>
+              ) : null}
+              {withCheers ? (
+                <Cheers it={withCheers} where={cheered.where} />
+              ) : null}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -530,13 +528,11 @@ function PlayerGames({ tag, item, onClose }) {
 function Follows({ page }) {
   if (!page.follows)
     return (
-      <Panel pad>
-        <p className="kit-week__quiet">
-          No account has verified this player, so there are no follows to show.
-          Follows belong to an account, and a page shows them for the player its
-          account verified.
-        </p>
-      </Panel>
+      <p className="kit-week__quiet">
+        No account has verified this player, so there are no follows to show.
+        Follows belong to an account, and a page shows them for the player its
+        account verified.
+      </p>
     );
   const people = (list) =>
     list.map((f) => (

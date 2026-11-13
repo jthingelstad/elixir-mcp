@@ -103,13 +103,14 @@ export function sittingNote(f, scores) {
   return parts.join(" · ");
 }
 
-/** What an item's evidence toggle says, open or closed: a sitting's games,
- *  or a moment's crossing. */
+/** What an item's evidence toggle says, open or closed, on Home and on a
+ *  player's page alike (design canvas, 2026-11-13): a sitting opens as a
+ *  session, a moment's crossing as its crossing. */
 export const evidenceWord = (it, open) =>
   it.evidence.kind === "session"
     ? open
-      ? "Close games"
-      : "View games"
+      ? "Close session"
+      : "Open session"
     : open
       ? "Close crossing"
-      : "View crossing";
+      : "Open crossing";

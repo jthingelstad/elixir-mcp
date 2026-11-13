@@ -28,7 +28,7 @@ import {
   timelineDays,
 } from "./logic.js";
 import { FollowButton } from "./follow.jsx";
-import { Sitting, SITTINGS } from "./Session.jsx";
+import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
 import { SessionGames } from "./SessionGames.jsx";
 import { Cheers } from "./Cheers.jsx";
 import { RacePlace } from "./RacePlace.jsx";
@@ -368,17 +368,6 @@ function MomentBattle({ it }) {
   );
 }
 
-/** What an item's open button says (design canvas, 2026-11-13): a sitting
- *  opens as a session, a moment's crossing as its crossing. */
-const openWord = (it, open) =>
-  it.evidence.kind === "session"
-    ? open
-      ? "Close session"
-      : "Open session"
-    : open
-      ? "Close crossing"
-      : "Open crossing";
-
 /** When an item happened, as the feed says it ("Tonight, 7:40 to 8:32 pm"),
  *  with the exact instant for a pointer and a screen reader. A sitting
  *  shows its range. */
@@ -433,7 +422,7 @@ function FeedItem({ it, open, onToggle }) {
           aria-expanded={open}
           onClick={onToggle}
         >
-          {openWord(it, open)}
+          {evidenceWord(it, open)}
         </button>
       ) : null}
     </>

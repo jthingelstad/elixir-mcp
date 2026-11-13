@@ -4958,6 +4958,8 @@ a.card-art:hover .card-art__img {
 .ladder-form__table th,
 .ladder-form__table td {
   padding: 8px 10px 8px 0;
+  font-family: var(--font);
+  letter-spacing: 0;
   text-align: left;
   vertical-align: top;
   border-bottom: 1px solid var(--line);
@@ -4980,9 +4982,9 @@ a.card-art:hover .card-art__img {
 }
 .ladder-form__value {
   display: block;
-  font-family: var(--font-mono);
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1.25;
 }
 .ladder-form__count {
@@ -5129,8 +5131,8 @@ a.card-art:hover .card-art__img {
 }
 .ladder-wk__note {
   display: block;
-  font-family: var(--font-mono);
   font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
   color: var(--ink-dim);
 }
 
@@ -7843,24 +7845,16 @@ a.kit-mbattle:hover {
   background: var(--panel);
 }
 /* The player page (#764; canvas Player, Round 3 flat, 2026-11-13). Its head
-   is a card with the violet wash (canvas .phead): the avatar, the name in
-   the display face, the line, the verified badge, the three counts that
-   open their tabs, and the actions on the right. */
+   sits on the page as Home's title and Clan's head do (flat since
+   2026-11-13: no card, no wash): the avatar, the name in the display face,
+   the line, the verified badge, the three counts that open their tabs, and
+   the actions on the right. */
 .kit-phead {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 16px 20px;
-  margin-bottom: 16px;
-  padding: 22px;
-  border-radius: 14px;
-  background:
-    radial-gradient(
-      120% 160% at 0% 0%,
-      rgba(139, 92, 246, 0.28),
-      rgba(139, 92, 246, 0) 55%
-    ),
-    var(--panel);
+  padding: 4px 0 0;
 }
 .kit-phead__main {
   display: grid;
@@ -7987,19 +7981,14 @@ a.kit-mbattle:hover {
 .kit-pitem .kit-feed__foot {
   margin-top: 4px;
 }
-/* A highlight on the Highlights tab (canvas .hcard). */
+/* A highlight on the Highlights tab (canvas .hcard): Home's card surface,
+   flat since 2026-11-13; the gold crown line and the display face carry it. */
 .kit-hcard {
   display: grid;
   gap: 6px;
   padding: 18px;
   border-radius: 14px;
-  background:
-    radial-gradient(
-      120% 120% at 100% 0%,
-      rgba(139, 92, 246, 0.35),
-      rgba(139, 92, 246, 0) 60%
-    ),
-    linear-gradient(180deg, #221a3d, #151026);
+  background: var(--panel);
   color: var(--ink);
   overflow-wrap: anywhere;
 }
@@ -8023,7 +8012,8 @@ a.kit-mbattle:hover {
   color: var(--ink-body);
   font-size: 15px;
 }
-/* Moments (canvas Player moments): sunken tiles, a medal each. */
+/* Moments (canvas Player moments): tiles on Home's card surface, a medal
+   each, straight on the page (no panel round them since 2026-11-13). */
 .kit-moments {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -8037,9 +8027,9 @@ a.kit-mbattle:hover {
   align-items: center;
   gap: 10px;
   min-width: 0;
-  padding: 10px;
-  border-radius: 10px;
-  background: var(--ground-sunken);
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel);
   overflow-wrap: anywhere;
 }
 .kit-moment .kit-medal {
@@ -8056,6 +8046,16 @@ a.kit-mbattle:hover {
   color: var(--ink);
   font-size: var(--t-body-sm);
   font-weight: 700;
+}
+/* A player's page and You start where Home's title does: their head is
+   inside the grid, so the grid adds no space above it. */
+.kit-home.kit-player,
+.kit-home.kit-you {
+  margin-top: 0;
+}
+/* You: your account's panels under your page keep its reading column. */
+.kit-you > :not(.kit-player) {
+  max-width: 820px;
 }
 /* Follows: the two lists side by side (canvas .grid2). */
 .kit-pfollows {
@@ -8154,17 +8154,24 @@ a.kit-mbattle:hover {
   flex: 0 0 auto;
 }
 @media (max-width: 760px) {
-  /* The phone board stacks the head and keeps the moments' medals. */
+  /* On a phone the avatar sits beside the name, smaller, as Clan's crest
+     does, and the actions take their own row under it, so the timeline
+     starts on the first screen. */
   .kit-phead {
-    flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
-    padding: 16px;
+    gap: 10px 12px;
+  }
+  .kit-phead > .kit-av--l {
+    width: 56px;
+    height: 56px;
+    font-size: 20px;
   }
   .kit-phead__name {
     font-size: 24px;
   }
-  .kit-phead__main,
+  .kit-phead__main {
+    flex: 1 1 0;
+  }
   .kit-phead__actions {
     flex: none;
     width: 100%;

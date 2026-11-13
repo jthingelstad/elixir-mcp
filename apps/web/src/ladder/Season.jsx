@@ -551,7 +551,7 @@ function SeasonExtras({ player, search }) {
     <>
       <Disclosure title="About this record">
         <p className="m-0 text-[13.5px] text-ink-body">
-          Each mode is its own game and keeps its own record. Ladder reads the
+          Each mode is its own game and keeps its own record. Stats reads the
           recorded battles, without pooling modes or rating players. Counts and
           gaps in the record are shown with the figures they affect.
         </p>
@@ -562,7 +562,7 @@ function SeasonExtras({ player, search }) {
           className="btn btn--sm btn--quiet"
           onClick={() => setFeedback(true)}
         >
-          Send feedback about Ladder
+          Send feedback about Stats
         </button>
       </div>
       {feedback ? (
