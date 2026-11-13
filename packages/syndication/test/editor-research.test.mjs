@@ -55,7 +55,7 @@ before(async () => {
   for (const [tag, name] of [
     [ADA, "Ada"],
     [GONE, "Gone"],
-    [OPP, "Tawny Newt"],
+    [OPP, "Sunny Moon"],
     [TWIN_A, "Twin"],
     [TWIN_B, "twin"],
   ])
@@ -107,9 +107,9 @@ test("a member's battles this week, newest first, by mode, with the opponent, th
     all.text,
     [
       "Ada's battles, newest first:",
-      "- win 3-0 against Tawny Newt, ladder, Hog Rider cycle, +31 trophies, within the hour",
-      "- loss 1-2 against Tawny Newt, ranked, Hog Rider cycle, earlier today",
-      "- win 2-1 against Tawny Newt, ladder, Hog Rider cycle, +29 trophies, yesterday",
+      "- win 3-0 against Sunny Moon, ladder, Hog Rider cycle, +31 trophies, within the hour",
+      "- loss 1-2 against Sunny Moon, ranked, Hog Rider cycle, earlier today",
+      "- win 2-1 against Sunny Moon, ladder, Hog Rider cycle, +29 trophies, yesterday",
     ].join("\n"),
   );
   assert.doesNotMatch(all.text, /\d{1,2}:\d{2}|#PYL/, "no clock time, no tag");

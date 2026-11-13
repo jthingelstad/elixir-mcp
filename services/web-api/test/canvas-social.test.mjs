@@ -30,7 +30,7 @@ const name = `elixir_mcp_test_canvas_social_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 
 // The fixture's own player (fixtures/player_battlelog).
-const PLAYER = "#JYRQ8U92C";
+const PLAYER = "#0QRVVG22J";
 const CLAN = "#GRC2PQ";
 const CLANMATE = "#UUU2CC";
 const PICKED = "#QQ8822";

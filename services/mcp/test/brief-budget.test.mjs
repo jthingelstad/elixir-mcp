@@ -146,8 +146,8 @@ test("a heavy identity is counted, a light one named", async () => {
   const light = await brief("person", {
     kind: "person",
     grouped: {
-      primary: [{ player_tag: "#UL2V9QRG0", name: "Plum Heron" }],
-      alt: [{ player_tag: "#U8RYG9Y2U", name: "Jolly Stoat" }],
+      primary: [{ player_tag: "#0G9L8QCVV", name: "Dove Sunny" }],
+      alt: [{ player_tag: "#08Q80C99R", name: "Rapid Clear" }],
     },
     clans: [
       { clan_tag: "#J2RGCRVG", name: "POAP KINGS" },
@@ -155,7 +155,7 @@ test("a heavy identity is counted, a light one named", async () => {
     ],
     primaryClan: { clan_tag: "#J2RGCRVG", name: "POAP KINGS", recorded: true },
   });
-  assert.match(light, /Also you, under another tag: Jolly Stoat #U8RYG9Y2U/);
+  assert.match(light, /Also you, under another tag: Rapid Clear #08Q80C99R/);
   assert.match(light, /You also follow Ship It! #GCYQR9VY/);
   assert.ok(light.length <= INSTRUCTIONS_BUDGET);
 });

@@ -55,8 +55,8 @@ before(async () => {
       acct.account_id,
       [
         "#20JJJ2CCRU",
-        "#PLCCYUQL",
-        "#U08P889Y0",
+        "#0L990RRV",
+        "#0QLG889LG",
         "#2QUR9PQ8",
         "#DUPSUBJ1",
         "#ABND1",
@@ -93,7 +93,7 @@ test("lease order: live first, then oldest bulk; lanes gate operators", async ()
   });
   await enqueueJob(db, {
     endpoint: "player",
-    entity_key: "#2YG98VVQ",
+    entity_key: "#00C298UC",
     lane: "live",
   });
 
@@ -125,7 +125,7 @@ test("lease order: live first, then oldest bulk; lanes gate operators", async ()
 test("expiry requeues with attempt cap; exhaustion goes dead; twins fold", async () => {
   await enqueueJob(db, {
     endpoint: "player",
-    entity_key: "#PLCCYUQL",
+    entity_key: "#0L990RRV",
     lane: "bulk",
   });
   const j = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
@@ -151,7 +151,7 @@ test("expiry requeues with attempt cap; exhaustion goes dead; twins fold", async
   // to done instead of violating one-queued-per-subject.
   await enqueueJob(db, {
     endpoint: "player",
-    entity_key: "#U08P889Y0",
+    entity_key: "#0QLG889LG",
     lane: "bulk",
   });
   const j3 = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
@@ -161,7 +161,7 @@ test("expiry requeues with attempt cap; exhaustion goes dead; twins fold", async
   );
   await enqueueJob(db, {
     endpoint: "player",
-    entity_key: "#U08P889Y0",
+    entity_key: "#0QLG889LG",
     lane: "bulk",
   });
   const s3 = await settleLeases(db);

@@ -30,7 +30,7 @@ const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 
 // The fixture's own player (fixtures/player_battlelog), and an invented one
 // the fan verified.
-const PLAYER = "#JYRQ8U92C";
+const PLAYER = "#0QRVVG22J";
 const FAN_PLAYER = "#2PP0V9PP";
 const FAN_NAME = "Invented Fan";
 const OWNER = "bell-owner@example.com";

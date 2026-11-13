@@ -32,7 +32,7 @@ async function accessible(page: Page, name: string) {
 
 const ADA = {
   player: {
-    tag: "#2YG98VVQ",
+    tag: "#00C298UC",
     name: "Ada",
     clan_tag: "#9GQLV20",
     clan_name: "Grove",
@@ -69,7 +69,7 @@ const ADA = {
 };
 
 const COST = {
-  player_tag: "#2YG98VVQ",
+  player_tag: "#00C298UC",
   following: false,
   free: false,
   reason: null,
@@ -116,7 +116,7 @@ for (const [label, width] of [
               200,
               {
                 ok: true,
-                player_tag: "#2YG98VVQ",
+                player_tag: "#00C298UC",
                 added: true,
                 relationship: "friend",
               },
@@ -126,7 +126,7 @@ for (const [label, width] of [
       );
       await page.goto("/home");
       await page.getByRole("link", { name: "Ada", exact: true }).click();
-      await expect(page).toHaveURL(/\/home\/player\/2YG98VVQ$/);
+      await expect(page).toHaveURL(/\/home\/player\/00C298UC$/);
       await expect(
         page.getByRole("heading", { level: 1, name: "Ada" }),
       ).toBeVisible();
@@ -145,7 +145,7 @@ for (const [label, width] of [
       await dialog.getByRole("button", { name: "Follow", exact: true }).click();
       await expect(dialog).toBeHidden();
       expect(posted).toEqual([
-        { player_tag: "#2YG98VVQ", relationship: "friend" },
+        { player_tag: "#00C298UC", relationship: "friend" },
       ]);
     });
 
@@ -153,7 +153,7 @@ for (const [label, width] of [
       page,
     }) => {
       await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-      await page.goto("/home/follow/2YG98VVQ,PYLQGRJC");
+      await page.goto("/home/follow/00C298UC,PYLQGRJC");
       await expect(
         page.getByRole("heading", { name: "Follow these players on Elixir" }),
       ).toBeVisible();
@@ -161,9 +161,9 @@ for (const [label, width] of [
         page.getByRole("link", { name: "Join Elixir" }),
       ).toHaveAttribute(
         "href",
-        `/signin?signup&return_to=${encodeURIComponent("/home/follow/2YG98VVQ,PYLQGRJC")}`,
+        `/signin?signup&return_to=${encodeURIComponent("/home/follow/00C298UC,PYLQGRJC")}`,
       );
-      await expect(page.getByRole("main")).not.toContainText("2YG98VVQ");
+      await expect(page.getByRole("main")).not.toContainText("00C298UC");
       await noSideways(page);
       await accessible(page, "follow me, signed out");
     });

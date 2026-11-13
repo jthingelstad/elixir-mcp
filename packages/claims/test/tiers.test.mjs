@@ -28,7 +28,7 @@ const ADMIN_URL =
 const NAME = `elixir_mcp_test_tiers_${process.pid}`;
 const URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
-const P = "#2YG98VVQ";
+const P = "#00C298UC";
 const Q = "#20JJJ2CCRU";
 const CLAN = "#J2RGCRVG";
 const OTHER = "#GCYQR9VY";

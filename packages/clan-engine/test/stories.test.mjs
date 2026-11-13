@@ -44,7 +44,7 @@ const WIN = {
   crowns: 3,
   crowns_against: 0,
   opponent: {
-    name: "Tawny Newt",
+    name: "Sunny Moon",
     player_tag: "#OPP",
     starting_trophies: 11980,
   },
@@ -77,7 +77,7 @@ test("one member's one battle is one story; its arena move, new best and promoti
   });
   assert.equal(
     text,
-    "Ada moved up to Magic Academy with a 3-0 win over Tawny Newt and set a new best of 12,005 trophies, passing 12,000, joining Bo and Cy there. It's their second promotion in a day. Their Evo P.E.K.K.A control deck is 9-2 on ladder this season.",
+    "Ada moved up to Magic Academy with a 3-0 win over Sunny Moon and set a new best of 12,005 trophies, passing 12,000, joining Bo and Cy there. It's their second promotion in a day. Their Evo P.E.K.K.A control deck is 9-2 on ladder this season.",
   );
   assert.doesNotMatch(text, /<t:|https?:|#OPP|#AAA/, "no time, link or tag");
 });
@@ -91,7 +91,7 @@ test("a new best told as it happened: the crossing, then the peak after it", () 
   });
   assert.equal(
     renderStory({ key: best.id, items: [best] }, { nowMs: T }),
-    "Ada passed 12,000 trophies for the first time with a 3-0 win over Tawny Newt. They went on to a best of 12,032.",
+    "Ada passed 12,000 trophies for the first time with a 3-0 win over Sunny Moon. They went on to a best of 12,032.",
   );
 });
 
@@ -192,7 +192,7 @@ test("a sitting is one story that grows: edited only when its best win or its ru
   const first = buildStories([sit]).stories[0];
   assert.equal(
     renderStory(first, { nowMs: T }),
-    "Ada went 5-1 over 6 battles in one sitting playing Hog Rider cycle (4 ladder, 2 ranked), +120 trophies, winning 4 in a row. The best was a 3-0 win over Tawny Newt.",
+    "Ada went 5-1 over 6 battles in one sitting playing Hog Rider cycle (4 ladder, 2 ranked), +120 trophies, winning 4 in a row. The best was a 3-0 win over Sunny Moon.",
   );
   const told = new Map([
     [
@@ -344,7 +344,7 @@ test("the clanmates there are counted whole; without a time to tell it at, no wh
       { key: arena.id, items: [arena] },
       { mates: ["Bo", "Cy", "Di"], mates_total: 14, nowMs: T },
     ),
-    "Ada moved up to Magic Academy with a 3-0 win over Tawny Newt, joining 14 clanmates there.",
+    "Ada moved up to Magic Academy with a 3-0 win over Sunny Moon, joining 14 clanmates there.",
   );
   const late = item(
     "card_unlocked",
@@ -456,8 +456,8 @@ test("told today: the same sitting edits a recent post, told with what it told",
   );
   assert.equal(edit.digest, storyDigest(edit));
   assert.equal(
-    renderStory(edit, { mates: ["Bold Raven", "Slate Crane"], mates_total: 2 }),
-    "Har moved up to Summit of Heroes, joining Bold Raven and Slate Crane there. They also set a new best of 11,510 trophies, passing 11,500 with a 2-1 win over Zed. In the same sitting they went 3-1 over 4 battles, winning 3 in a row.",
+    renderStory(edit, { mates: ["Rain Brave", "Zebra Tawny"], mates_total: 2 }),
+    "Har moved up to Summit of Heroes, joining Rain Brave and Zebra Tawny there. They also set a new best of 11,510 trophies, passing 11,500 with a 2-1 win over Zed. In the same sitting they went 3-1 over 4 battles, winning 3 in a row.",
   );
 });
 
@@ -570,9 +570,9 @@ test("a move the roster saw before its battle is still told who is there", () =>
   assert.equal(
     renderStory(
       { key: arena.id, items: [arena] },
-      { mates: ["Bold Raven", "Slate Crane"], mates_total: 2, promotions: 2 },
+      { mates: ["Rain Brave", "Zebra Tawny"], mates_total: 2, promotions: 2 },
     ),
-    "Har moved up to Summit of Heroes, joining Bold Raven and Slate Crane there. It's their second promotion in a day.",
+    "Har moved up to Summit of Heroes, joining Rain Brave and Zebra Tawny there. It's their second promotion in a day.",
   );
 });
 
@@ -587,7 +587,7 @@ test("reaching Ultimate Champion is told as the whole climb; any other league is
   });
   assert.equal(
     renderStory({ key: uc.id, items: [uc] }, { nowMs: T }),
-    "Ada made it all the way to Ultimate Champion with a 3-0 win over Tawny Newt.",
+    "Ada made it all the way to Ultimate Champion with a 3-0 win over Sunny Moon.",
   );
   const royal = item("ranked_promotion", {
     ...BO,
@@ -598,6 +598,6 @@ test("reaching Ultimate Champion is told as the whole climb; any other league is
   });
   assert.equal(
     renderStory({ key: royal.id, items: [royal] }, { nowMs: T }),
-    "Bo was promoted to Royal Champion with a 3-0 win over Tawny Newt.",
+    "Bo was promoted to Royal Champion with a 3-0 win over Sunny Moon.",
   );
 });

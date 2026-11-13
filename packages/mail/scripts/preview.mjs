@@ -64,7 +64,7 @@ for (const specimen of mailPreviewCases()) {
         send_id: "00000000-0000-4000-8000-000000000000",
         timezone: tz,
         pixel: false,
-        mine: ["#20JJJ2CCRU", "#VJQV8G8RL", "#VJG0J29QP"],
+        mine: ["#20JJJ2CCRU", "#0RPG0RYRP", "#0YQYQPLQR"],
       });
   const pre =
     mail.preheader ??

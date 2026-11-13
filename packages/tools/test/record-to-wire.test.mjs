@@ -21,8 +21,8 @@ const ADMIN_URL =
 const NAME = `elixir_mcp_test_record_wire_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
-const BOATS = "#2YG98VVQ"; // with_boat_and_duel.json
-const EVENTS = "#VGC22YGP"; // with_clanmate_2v2.json: eventTag, draft picks
+const BOATS = "#00C298UC"; // with_boat_and_duel.json
+const EVENTS = "#0990UQVG"; // with_clanmate_2v2.json: eventTag, draft picks
 
 let db;
 let account;

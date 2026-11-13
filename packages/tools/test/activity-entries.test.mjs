@@ -27,8 +27,8 @@ import { periodAt } from "../src/war-period.mjs";
 import { ensureSeasonsAround } from "@elixir-mcp/record/season";
 
 const CLAN = "#J2RGCRVG";
-const OBSERVER = "#UVQ8RJYG9"; // the battlelog fixture's own player
-const PROFILE = "#JYRQ8U92C"; // the profile fixture's player
+const OBSERVER = "#0QG2JG928"; // the battlelog fixture's own player
+const PROFILE = "#0QRVVG22J"; // the profile fixture's player
 const FROM = Date.parse("2026-09-03T00:00:00Z");
 let ctx;
 let owner;
@@ -140,7 +140,7 @@ test("a player entry is a diff of state plus the battles the record learned", as
     ),
     "13000 -> 13772 crosses a 500 band",
   );
-  assert.match(e.summary, /Sage Ferret/);
+  assert.match(e.summary, /Mist Gentle/);
   assert.match(e.summary, /13,000 → 13,621/);
   assert.match(e.summary, /new best 13,772/);
   assert.doesNotMatch(

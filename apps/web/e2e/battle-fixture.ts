@@ -459,7 +459,7 @@ export const DUEL = {
         {
           player_tag: "#PYLQ77",
           name: "Hydra",
-          clan_tag: "#GQVLU28J",
+          clan_tag: "#0JLJ9VYL",
           clan_name: null,
           starting_trophies: 12115,
           trophy_change: null,

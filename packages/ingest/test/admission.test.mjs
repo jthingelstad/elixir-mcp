@@ -119,7 +119,7 @@ test("identity binding: a payload about someone else never admits (sol-6 F4)", a
     battleCount: 5000,
   };
   assert.equal(admit("player", player, "#20JJJ2CCRU").ok, true);
-  const wrong = admit("player", player, "#2YG98VVQ");
+  const wrong = admit("player", player, "#00C298UC");
   assert.equal(wrong.ok, false);
   assert.ok(wrong.errors.some((e) => e.startsWith("identity:mismatch")));
 
@@ -128,13 +128,13 @@ test("identity binding: a payload about someone else never admits (sol-6 F4)", a
     battleTime: "20260905T120000.000Z",
     type: "PvP",
     team: [{ tag, cards: [] }],
-    opponent: [{ tag: "#2YG98VVQ", cards: [] }],
+    opponent: [{ tag: "#00C298UC", cards: [] }],
   });
   const own = admit("player_battlelog", [battle("#20JJJ2CCRU")], "#20JJJ2CCRU");
   assert.equal(own.ok, true);
   const foreign = admit(
     "player_battlelog",
-    [battle("#20JJJ2CCRU"), battle("#8U2P0JPR")],
+    [battle("#20JJJ2CCRU"), battle("#0JY8UYYG")],
     "#20JJJ2CCRU",
   );
   assert.equal(foreign.ok, false);

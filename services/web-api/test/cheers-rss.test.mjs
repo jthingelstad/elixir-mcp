@@ -30,7 +30,7 @@ const name = `elixir_mcp_test_cheers_rss_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 
 // The fixture's own player (fixtures/player_battlelog).
-const PLAYER = "#JYRQ8U92C";
+const PLAYER = "#0QRVVG22J";
 const OWNER = "cheers-owner@example.com";
 const FRIEND = "cheers-friend@example.com";
 const STRANGER = "cheers-stranger@example.com";

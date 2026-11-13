@@ -31,7 +31,7 @@ const URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
 let db;
 let account; // Jamie-like approved account with a claim on the fixture observer
-const OBSERVER = "#UVQ8RJYG9"; // with_path_of_legend.json battlelog observer
+const OBSERVER = "#0QG2JG928"; // with_path_of_legend.json battlelog observer
 let registry;
 
 async function fixture(rel) {
@@ -127,7 +127,7 @@ before(async () => {
     "2026-09-03T14:00:34Z",
   );
   const profile = await fixture("player/profile.json");
-  await send("player", "#JYRQ8U92C", profile, "2026-09-03T14:40:34Z");
+  await send("player", "#0QRVVG22J", profile, "2026-09-03T14:40:34Z");
 
   registry = makeRegistry();
 });
@@ -274,7 +274,7 @@ test("elixir_coverage: polls, appearances, recording_active_since", async () => 
 test("players_profile: serves the recorded snapshot; live is honestly unavailable", async () => {
   // Universal reads (2026-09-05): unclaimed tags resolve for anyone.
   const other = await callTool("players_profile", {
-    player_tag: "#JYRQ8U92C",
+    player_tag: "#0QRVVG22J",
   });
   assert.equal(other.isError, false, JSON.stringify(other.body));
 

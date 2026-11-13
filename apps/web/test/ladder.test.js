@@ -121,8 +121,8 @@ test("every Ladder page has a rail position, a title and a docs strip entry", ()
 
 test("an address carries the player without its hash and only what was given", () => {
   expect(ladderHref("season")).toBe("/home/you/stats");
-  expect(ladderHref("season", { player: "#VJQV8G8RL" })).toBe(
-    "/home/you/stats?player=VJQV8G8RL",
+  expect(ladderHref("season", { player: "#0RPG0RYRP" })).toBe(
+    "/home/you/stats?player=0RPG0RYRP",
   );
   expect(ladderHref("days", { mode: "ranked" })).toBe(
     "/home/you/stats/days?mode=ranked",
@@ -148,7 +148,7 @@ test("Cards keeps a chosen order in its address, and only most losses", () => {
 
 const CLAIMS = [
   { player_tag: "#FRIEND1", relationship: "friend" },
-  { player_tag: "#VJQV8G8RL", name: "Spry Kestrel", relationship: "alt" },
+  { player_tag: "#0RPG0RYRP", name: "Hare Pelican", relationship: "alt" },
   {
     player_tag: "#20JJJ2CCRU",
     name: "King Thing",
@@ -162,15 +162,15 @@ test("the players are yours alone, primary first", () => {
   const players = ladderPlayers(CLAIMS);
   expect(players.map((p) => p.player_tag)).toEqual([
     "#20JJJ2CCRU",
-    "#VJQV8G8RL",
+    "#0RPG0RYRP",
   ]);
   expect(ladderPlayers(undefined)).toEqual([]);
 });
 
 test("?player picks one of yours, and anything else reads your primary", () => {
   const players = ladderPlayers(CLAIMS);
-  expect(pickPlayer(players, "VJQV8G8RL").player_tag).toBe("#VJQV8G8RL");
-  expect(pickPlayer(players, "#vjqv8g8rl").player_tag).toBe("#VJQV8G8RL");
+  expect(pickPlayer(players, "0RPG0RYRP").player_tag).toBe("#0RPG0RYRP");
+  expect(pickPlayer(players, "#0rpg0ryrp").player_tag).toBe("#0RPG0RYRP");
   // A friend's tag is not yours: their season is not shown.
   expect(pickPlayer(players, "FRIEND1").player_tag).toBe("#20JJJ2CCRU");
   expect(pickPlayer(players, undefined).player_tag).toBe("#20JJJ2CCRU");
@@ -182,7 +182,7 @@ test("?player opens a player you follow, and never a watched one or a stranger",
   const friend = ladderPlayers(CLAIMS, "friend1");
   expect(friend.map((p) => p.player_tag)).toEqual([
     "#20JJJ2CCRU",
-    "#VJQV8G8RL",
+    "#0RPG0RYRP",
     "#FRIEND1",
   ]);
   expect(pickPlayer(friend, "friend1").player_tag).toBe("#FRIEND1");
@@ -192,7 +192,7 @@ test("?player opens a player you follow, and never a watched one or a stranger",
     const players = ladderPlayers(CLAIMS, tag);
     expect(players.map((p) => p.player_tag)).toEqual([
       "#20JJJ2CCRU",
-      "#VJQV8G8RL",
+      "#0RPG0RYRP",
     ]);
     expect(pickPlayer(players, tag).player_tag).toBe("#20JJJ2CCRU");
   }
@@ -298,8 +298,8 @@ describe("the season a page reads (2026-10-08)", () => {
     expect(seasonName({ war: 137, month: "2026-10" })).toBe("Season 137");
     expect(seasonName({ war: null, month: "2026-10" })).toBe("October season");
     expect(seasonName(null)).toBe("This season");
-    expect(ladderHref("decks", { player: "#VJQV8G8RL", season: 136 })).toBe(
-      "/home/you/stats/decks?player=VJQV8G8RL&season=136",
+    expect(ladderHref("decks", { player: "#0RPG0RYRP", season: 136 })).toBe(
+      "/home/you/stats/decks?player=0RPG0RYRP&season=136",
     );
     expect(ladderHref("season", { season: "" })).toBe("/home/you/stats");
   });

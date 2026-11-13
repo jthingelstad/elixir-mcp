@@ -29,7 +29,7 @@ const PRODUCT = [
 // members' names, in a public repo): case-insensitive names, award ids in
 // snake_case, and a poapkings.com host other than the family's products
 // (elixir., clan., drop.) and the account's wildcard certificate.
-const SPECIFIC_CASED = /POAP|J2RGCRVG|20JJJ2CCRU|U8RYG9Y2U|VJQV8G8RL/;
+const SPECIFIC_CASED = /POAP|J2RGCRVG|20JJJ2CCRU|08Q80C99R|0RPG0RYRP/;
 const SPECIFIC_ANY_CASE =
   /poap[ _-]kings|free[ _]pass|war[ _]champ|iron[ _]king|rookie[ _]mvp|elixir-bot|(?<!(?:\b(?:elixir|clan|drop)|\*)\.)poapkings\.com/i;
 const specific = (line) =>

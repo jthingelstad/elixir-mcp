@@ -1987,7 +1987,7 @@ test("6.11.0: war_current says the boat finished and names the day; decks past i
       assert.ok(Number.isInteger(r.current_race_fame));
     }
     assert.equal(
-      rivals.rivals.find((r) => r.clan_tag === "#RJQQLLV9").mean_fame,
+      rivals.rivals.find((r) => r.clan_tag === "#0JJ0V89V").mean_fame,
       5400,
       "the two earlier projections of the same bracket, finished",
     );
@@ -2005,7 +2005,7 @@ test("6.11.0: war_current says the boat finished and names the day; decks past i
       assert.equal(r.finished_races, r.races_observed);
       assert.equal(r.current_race_fame, null);
     }
-    const rjqq = closed.rivals.find((r) => r.clan_tag === "#RJQQLLV9");
+    const rjqq = closed.rivals.find((r) => r.clan_tag === "#0JJ0V89V");
     assert.equal(
       rjqq.mean_fame,
       5400,
@@ -2055,7 +2055,7 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
     await db.query(`select player_tag from player order by player_tag limit 2`)
   ).rows.map((r) => r.player_tag);
   await db.query(
-    // Quiet Weasel's shape from feedback #89: a week that FINISHED, 8 decks
+    // Brisk Parrot's shape from feedback #89: a week that FINISHED, 8 decks
     // used with a poll seeing 4 on war day 4 (after the day-3 finish),
     // boat_attacks 1. The poll no longer splits the week (2026-09-25).
     `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)

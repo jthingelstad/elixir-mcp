@@ -48,7 +48,7 @@ const name = `elixir_mcp_test_hl_discord_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 
 // The fixture's own player (fixtures/player_battlelog), in an invented clan.
-const PLAYER = "#JYRQ8U92C";
+const PLAYER = "#0QRVVG22J";
 const CLAN = "#2PQ8VCJ0";
 const CLAN_NAME = "Invented Crowns";
 const CHANNEL = "6f1d3c2a-4b5e-4f60-8a71-92b3c4d5e6f7";

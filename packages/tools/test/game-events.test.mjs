@@ -40,7 +40,7 @@ before(async () => {
   await projectEvents(db, {
     fetchedAt: T1,
     payload: [
-      { eventTag: "#R8U2RCJ", title: "C.H.A.O.S", description: "modifiers" },
+      { eventTag: "#0Y0GVQP", title: "C.H.A.O.S", description: "modifiers" },
       { eventTag: "#R8UURVL", title: "Merge Tactics", description: null },
     ],
   });

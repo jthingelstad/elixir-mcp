@@ -23,8 +23,8 @@ const ADMIN_URL =
 const NAME = `elixir_mcp_test_identity_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 const CLAN = "#J2RGCRVG";
-const ME = "#UL2V9QRG0";
-const ALT = "#U8RYG9Y2U";
+const ME = "#0G9L8QCVV";
+const ALT = "#08Q80C99R";
 const OTHER = "#20JJJ2CCRU";
 
 let db;
@@ -49,8 +49,8 @@ before(async () => {
     [CLAN],
   );
   for (const [tag, name] of [
-    [ME, "Plum Heron"],
-    [ALT, "Jolly Stoat"],
+    [ME, "Dove Sunny"],
+    [ALT, "Rapid Clear"],
     [OTHER, "King Thing"],
   ]) {
     await db.query(`insert into player (player_tag, name) values ($1, $2)`, [
@@ -134,13 +134,13 @@ test("3.18.0: an unmapped on_behalf_of with a display_name carries the whole-nam
     () =>
       resolveSubject(db, agent, undefined, "full", {
         onBehalfOf: "discord:77",
-        displayName: "jolly stoat",
+        displayName: "rapid clear",
       }),
     (e) =>
       e.code === "no_subject" &&
       e.data.candidates.length === 1 &&
       e.data.candidates[0].player_tag === ALT &&
-      e.data.candidates[0].name === "Jolly Stoat" &&
+      e.data.candidates[0].name === "Rapid Clear" &&
       e.data.candidates[0].clan_tag === CLAN &&
       /pass player_tag "#/.test(e.hint),
   );
@@ -233,8 +233,8 @@ test("the id is opaque: any surface's namespace works", async () => {
 
 test("a person's block names them, their alt, and their clan", async () => {
   const text = identitySentences(await describeIdentity(db, person));
-  assert.match(text, /YOU ARE Plum Heron #UL2V9QRG0/);
-  assert.match(text, /Also you, under another tag: Jolly Stoat #U8RYG9Y2U/);
+  assert.match(text, /YOU ARE Dove Sunny #0G9L8QCVV/);
+  assert.match(text, /Also you, under another tag: Rapid Clear #08Q80C99R/);
   assert.match(text, /POAP KINGS #J2RGCRVG/);
 });
 

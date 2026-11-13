@@ -1226,7 +1226,7 @@ test("departures: a member_left that carries only a tag is named from Elixir's c
             .filter((t) => t === "#VGJJ")
             .map((t) => ({
               player_tag: t,
-              name: "Fern Finch",
+              name: "Toad Swift",
               source: "roster",
             })),
           unknown: args.player_tags
@@ -1243,7 +1243,7 @@ test("departures: a member_left that carries only a tag is named from Elixir's c
     (c) => c.type === "departure" && c.player_tag === "#VGJJ",
   );
   assert.ok(card, "the departure is carded");
-  assert.equal(card.player_name, "Fern Finch", "named from players_names");
+  assert.equal(card.player_name, "Toad Swift", "named from players_names");
   assert.equal(card.role_at_raise, "elder", "role_at_departure is read");
   const named = first.body.inbox.find((c) => c.player_tag === "#GONE1");
   assert.equal(named.player_name, "Gone One", "an event with a name keeps it");
@@ -1260,13 +1260,13 @@ test("departures: a member_left that carries only a tag is named from Elixir's c
   );
   assert.equal(
     again.body.inbox.find((c) => c.player_tag === "#VGJJ").player_name,
-    "Fern Finch",
+    "Toad Swift",
   );
   assert.equal(h.record.calls.filter(([n]) => n === "players_names").length, 1);
   // The timeline names the row from the card it raised.
   const hist = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/history");
   const row = hist.body.timeline.find((e) => e.player_tag === "#VGJJ");
-  assert.equal(row.name, "Fern Finch");
+  assert.equal(row.name, "Toad Swift");
   assert.equal(row.role, "elder");
 });
 

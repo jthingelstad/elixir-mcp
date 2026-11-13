@@ -182,7 +182,7 @@ test("refresh retries share the job, stay principal-bound, and require an admitt
     refresh_limit: 1,
   });
   const { token, integration } = data(provision);
-  const post = (playerTag = "#UL2V9QRG0", key = "first") =>
+  const post = (playerTag = "#0G9L8QCVV", key = "first") =>
     handler({
       path: "/api/v1/profile-refreshes",
       method: "POST",
@@ -221,13 +221,13 @@ test("refresh retries share the job, stay principal-bound, and require an admitt
     )
   ).rows[0].gateway_id;
   await db.query(
-    "insert into player(player_tag,name) values('#UL2V9QRG0','Example')",
+    "insert into player(player_tag,name) values('#0G9L8QCVV','Example')",
   );
   await db.query(
-    "insert into player_snapshot_daily(player_tag,snapshot_date,observed_at,profile_observed_at) values('#UL2V9QRG0',current_date,now(),now())",
+    "insert into player_snapshot_daily(player_tag,snapshot_date,observed_at,profile_observed_at) values('#0G9L8QCVV',current_date,now(),now())",
   );
   await db.query(
-    "insert into api_receipt(endpoint,entity_key,payload_hash,gateway_id,admission,job_id,fetched_at) values('player','#UL2V9QRG0','test',$1,'admitted',$2,'2026-09-08T10:00:00Z')",
+    "insert into api_receipt(endpoint,entity_key,payload_hash,gateway_id,admission,job_id,fetched_at) values('player','#0G9L8QCVV','test',$1,'admitted',$2,'2026-09-08T10:00:00Z')",
     [gateway, row.job_id],
   );
   const complete = data(await request("GET", path, undefined, token)).data;

@@ -80,7 +80,7 @@ test("a correct manifest files nothing; an added field is filed once; an absent 
   const roster = JSON.parse(
     await readFile(path.join(repoRoot, "fixtures/clan/roster.json"), "utf8"),
   );
-  await archived("player", "#JYRQ8U92C", profile, "2026-09-17T14:40:34Z");
+  await archived("player", "#0QRVVG22J", profile, "2026-09-17T14:40:34Z");
   await archived("clan", "#J2RGCRVG", roster, "2026-09-17T14:40:34Z");
 
   const d1 = deps();
@@ -105,7 +105,7 @@ test("a correct manifest files nothing; an added field is filed once; an absent 
   // was exactly this): filed once, with the sample count in context.
   const grown = structuredClone(profile);
   grown.towerTroopLevel = 12;
-  await archived("player", "#JYRQ8U92C", grown, "2026-09-17T22:40:34Z");
+  await archived("player", "#0QRVVG22J", grown, "2026-09-17T22:40:34Z");
   const d2 = deps();
   const second = await shapeCensus(DB_URL, d2);
   assert.deepEqual(
@@ -163,7 +163,7 @@ test("a correct manifest files nothing; an added field is filed once; an absent 
   const shrunk = structuredClone(profile);
   delete shrunk.kingTowerLevel;
   await db.query(`delete from api_payload where endpoint = 'player'`);
-  await archived("player", "#JYRQ8U92C", shrunk, "2026-09-17T23:40:34Z");
+  await archived("player", "#0QRVVG22J", shrunk, "2026-09-17T23:40:34Z");
   const soon = await shapeCensus(DB_URL, deps());
   assert.deepEqual(soon.endpoints.player.absent_fields, []);
   await db.query(
@@ -212,7 +212,7 @@ test("one shape change is one item listing its fields, and a field an open item 
   grown.towerTroopName = "Dagger Duchess";
   grown.towerTroopRarity = "legendary";
   grown.alreadyOpen = true;
-  await archived("player", "#JYRQ8U92C", grown, "2026-09-17T22:40:34Z");
+  await archived("player", "#0QRVVG22J", grown, "2026-09-17T22:40:34Z");
   const run = await shapeCensus(DB_URL, deps());
   const newFields = run.findings.filter(
     (f) => f.endpoint === "player" && f.sample_type === "new_field",
