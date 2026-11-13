@@ -111,7 +111,7 @@ trophies and the ranked standing, so the two sides of it are not one series.
   for); when that clan is not recorded, or there is none, the call is
   refused with the fixing call in the hint, never answered for another
   clan. Nothing is looked up first.
-- **Every read names a player or a clan.** No tool reads the whole record: there are no corpus statistics.
+- **Every read names a player or a clan.** No tool reads the whole record or totals every player who ran a deck.
 - **Windows are `from`/`to`**, ISO instants or `YYYY-MM-DD` resolved in the
   account's timezone; a date-only `to` covers that whole day. The daily
   series (`players_series`, `clans_series`, `clans_members_series`)

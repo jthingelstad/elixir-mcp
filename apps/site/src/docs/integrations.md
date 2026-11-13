@@ -104,7 +104,10 @@ operation is a minor. (MCP versions differently: its callers are agents
 reading the current declaration.) The path stays `/api/v1` across majors,
 because it is also the OAuth audience a person's token is issued for. What
 changed in each version is in the OpenAPI document and on
-[Updates](/updates). 4.0.0 (2026-11-13) removed the clan fact and clan mail
+[Updates](/updates). 4.0.1 (2026-11-13) dropped the retired `clans:attest`
+scope from the scopes it lists; no response changed, because
+`/players/{tag}/battles` always names its player and so never served the
+retired `deck_stats`. 4.0.0 (2026-11-13) removed the clan fact and clan mail
 operations: a clan's facts and its mail are Clan's, inside Elixir.
 3.6.0 added four reads for a person's own grant
 (a player's follows and highlights, your cheers, the clan directory); an

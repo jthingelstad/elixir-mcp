@@ -36,9 +36,9 @@ const call = (kind, name) =>
     context(kind),
   );
 
-test("a person sees everything but the agent's identity map (12.0.0: 46 of 47)", () => {
-  assert.equal(registry.declarations().length, 47);
-  assert.equal(names("person").length, 46);
+test("a person sees everything but the agent's identity map (13.0.0: 43 of 44)", () => {
+  assert.equal(registry.declarations().length, 44);
+  assert.equal(names("person").length, 43);
   assert.ok(!names("person").includes("elixir_my_identities"));
   // The social reads are a person's own (DECISIONS "Agents read the
   // social layer and never write it").
@@ -57,9 +57,9 @@ test("a person sees everything but the agent's identity map (12.0.0: 46 of 47)",
   );
 });
 
-test("an agent has no personal identity tools, and follows for its clan (12.0.0: 45 of 47)", () => {
+test("an agent has no personal identity tools, and follows for its clan (13.0.0: 42 of 44)", () => {
   const agent = names("agent");
-  assert.equal(agent.length, 45);
+  assert.equal(agent.length, 42);
   assert.ok(!agent.includes("elixir_my_players"));
   // A person's own Clan view is never an agent's, its owner's agent
   // included (Jamie's ruling on #535, 2026-10-12).
@@ -83,9 +83,9 @@ test("an agent has no personal identity tools, and follows for its clan (12.0.0:
     assert.ok(agent.includes(social), social);
 });
 
-test("an integration has no 'me' at all (12.0.0: 36 of 47)", () => {
+test("an integration has no 'me' at all (13.0.0: 33 of 44)", () => {
   const integration = names("integration");
-  assert.equal(integration.length, 36);
+  assert.equal(integration.length, 33);
   assert.ok(!integration.includes("elixir_my_players"));
   assert.ok(!integration.includes("elixir_nickname"), "nobody to nickname");
   assert.ok(
