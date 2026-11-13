@@ -218,6 +218,11 @@ export const HOME_READS = {
   ],
   // Home's suggested follows (2026-11-13): not offered unless a test says.
   "GET /api/me/people/starter": [200, { ok: true, offer: false, people: [] }],
+  // Find's Suggested (2026-11-13): nobody yet unless a test says.
+  "GET /api/me/people/find": [
+    200,
+    { ok: true, days: 30, people: [], more: 0, used: 3, limit: 50 },
+  ],
 } satisfies Parameters<typeof signedIn>[0];
 
 export const homeApi = (overrides: Parameters<typeof signedIn>[0] = {}) =>

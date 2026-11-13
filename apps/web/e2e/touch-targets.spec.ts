@@ -140,6 +140,47 @@ test("Home with its suggested follows: the ticks, Follow these and Not now", asy
   expect(await misses(page)).toEqual([]);
 });
 
+test("Find's Suggested: each row's Follow and Show more", async ({ page }) => {
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me/people/find": [
+        200,
+        {
+          ok: true,
+          days: 30,
+          more: 0,
+          used: 1,
+          limit: 50,
+          people: [
+            "#0YP8U0Y0",
+            "#080J2V9Q",
+            "#02G2PJC0",
+            "#08VP8VYY",
+            "#0J9YCYL2",
+            "#09VURCVC",
+            "#0VJLCPJ0",
+            "#00JRG2RU",
+            "#0LJR0G22",
+            "#0U082URG",
+            "#00092VJ2",
+          ].map((tag, i) => ({
+            tag,
+            name: `Invented ${i + 1}`,
+            why: [{ kind: "clan", clan_name: "Grove" }],
+            free: false,
+          })),
+        },
+      ],
+    }),
+  );
+  await page.goto("/home/find");
+  await expect(page.locator(".kit-findsuggest .kit-people__row")).toHaveCount(
+    10,
+  );
+  expect(await misses(page)).toEqual([]);
+});
+
 for (const tab of ["feed", "members", "war", "standings"]) {
   test(`Clan's ${tab}`, async ({ page }) => {
     await clan.mockApi(page, clan.signedIn());

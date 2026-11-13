@@ -280,6 +280,29 @@ export async function suggestedPeople(db, accountId) {
   return out;
 }
 
+/** Find's Suggested (2026-11-13): the same sources over a month, enough to
+ *  click through. Jamie: "give me a list to just click on of suggested
+ *  follows and give me a line on why". */
+const FIND_DAYS = BATTLES_DAYS;
+const FIND_MAX = 30;
+
+/**
+ * Find's Suggested: up to FIND_MAX players from the last month's battles
+ * (a friendly battle, your 2v2 teammate, or met twice or more), the players
+ * your follows' accounts follow, and your clan, in turn; `more` counts the
+ * rest the sources held.
+ */
+export async function findPeople(db, accountId) {
+  return {
+    ...(await suggest(db, accountId, {
+      days: FIND_DAYS,
+      max: FIND_MAX,
+      keep: (r) => r.against >= MET_AT_LEAST || knownFromBattles(r),
+    })),
+    days: FIND_DAYS,
+  };
+}
+
 /** The starter set's caps (2026-11-13): about ten that would take a slot,
  *  and never more in all than one follow-all names. */
 const STARTER_SLOTS = 10;

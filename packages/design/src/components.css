@@ -7451,6 +7451,17 @@ a.kit-mbattle:hover {
 .kit-people__slots p {
   margin: 0;
 }
+/* Find's Suggested (2026-11-13): Show more under the rows, and with nobody
+   to suggest, the ways to find people side by side. */
+.kit-findsuggest__more {
+  padding: 8px 16px 0;
+}
+.kit-findsuggest__ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
 /* Following, where it is a fact and not a control (canvas .follow.on): the
    pill a Follow becomes, on the raised fill. */
 .kit-following {
