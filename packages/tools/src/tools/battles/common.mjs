@@ -217,9 +217,12 @@ export const DENOMINATOR_DOCS = docsRef(
  *  clanmate battle, which is casual even when tagged (#109). The
  *  permanent groups must therefore also exclude event content, or
  *  `casual` would keep collecting the events that used to fold into it. */
-/** A member's own battles only: boat defenses are not theirs (0171). */
+/** A member's own battles only: boat defenses are not theirs (0171).
+ *  Looked up by key, per boat row: the EXISTS form let the planner hash
+ *  every boat battle in the record, a Seq Scan of `battle` under every
+ *  battles_* read however narrow its window (2026-11-13). */
 export function ownBattlesClause(add) {
-  add(notBoatDefense(), undefined);
+  add(notBoatDefense("bp", { lookupByKey: true }), undefined);
 }
 
 export function modeClause(args, add) {

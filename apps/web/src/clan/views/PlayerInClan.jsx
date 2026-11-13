@@ -29,6 +29,13 @@ export function useClanOf(clanTag, enabled = true) {
   };
 }
 
+/** The same `/api/clan/me` read, started by a page that does not know the
+ *  player's clan yet: it needs no answer of the player page's, so it runs
+ *  beside that read rather than after it (2026-11-13). */
+export function useClansOfViewer(enabled = true) {
+  useMeQuery(enabled);
+}
+
 /** The member's record in the clan, without the page head the player page
  *  already draws. */
 export function PlayerInClan({ clan, playerTag, navigate }) {

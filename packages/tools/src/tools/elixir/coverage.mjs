@@ -37,8 +37,11 @@ export const elixir_coverage = {
       [tag],
     );
     const battles = await ctx.db.query(
-      `select count(*)::int as appearances, min(b.battle_time) as first_seen, max(b.battle_time) as last_seen
-         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+      // The participant row carries its battle's time (0014: canonical and
+      // immutable), so the count is one index-only range of the player's
+      // cover; joined to battle, a long record hash-joined the whole table.
+      `select count(*)::int as appearances, min(bp.battle_time) as first_seen, max(bp.battle_time) as last_seen
+         from battle_participant bp
          where bp.player_tag = $1`,
       [tag],
     );

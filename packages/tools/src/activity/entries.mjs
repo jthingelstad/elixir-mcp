@@ -3250,8 +3250,15 @@ async function highlightItems(
        from battle_highlight h
        join player p on p.player_tag = h.player_tag
        join battle b on b.battle_id = h.battle_id
-       join battle_participant me
-         on me.battle_id = h.battle_id and me.player_tag = h.player_tag
+       -- The highlighted player's row, by its primary key: joined plainly,
+       -- the planner can read it off the player's whole battle history
+       -- once per highlight (16,500 buffers for 40 highlights over a
+       -- year, 2026-11-13). The limit keeps the lateral a probe.
+       cross join lateral (
+         select bp.side, bp.crowns, bp.outcome, bp.trophy_change, bp.deck_hash
+           from battle_participant bp
+          where bp.battle_id = h.battle_id and bp.player_tag = h.player_tag
+          limit 1) me
       where h.player_tag = any($1::text[])
         and h.${col} >= ${ts(fromMs + 1)} and h.${col} < ${ts(toMs + 1)}
       order by h.${col}`,

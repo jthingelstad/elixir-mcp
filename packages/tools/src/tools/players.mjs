@@ -174,12 +174,14 @@ export const playersTools = {
              and bp.battle_time > now() - interval '30 days'
              -- A deck the player chose (Gym #130): an event that issues
              -- the deck is not the player's deck, as the meta rules.
-             and exists (select 1 from battle cb where cb.battle_id = bp.battle_id
-                          and (cb.deck_selection is null
-                               or cb.deck_selection in ('collection', 'warDeckPick'))
-                          -- Nor a boat defense (Gym #262.1).
-                          and not (cb.boat_battle_side is not null
-                                   and (cb.boat_battle_side = 'defender') = (bp.side = 0)))
+             -- Looked up by key, one row's battle at a time: as an EXISTS
+             -- the planner could hash every battle in the record (2026-11-13).
+             and coalesce((select (cb.deck_selection is null
+                                   or cb.deck_selection in ('collection', 'warDeckPick'))
+                                  -- Nor a boat defense (Gym #262.1).
+                                  and not (cb.boat_battle_side is not null
+                                           and (cb.boat_battle_side = 'defender') = (bp.side = 0))
+                             from battle cb where cb.battle_id = bp.battle_id), false)
            group by bp.deck_hash order by count(*) desc limit 2`,
         [tag],
       );
@@ -215,12 +217,14 @@ export const playersTools = {
              and bp.battle_time > now() - interval '30 days'
              -- A deck the player chose (Gym #130): an event that issues
              -- the deck is not the player's deck, as the meta rules.
-             and exists (select 1 from battle cb where cb.battle_id = bp.battle_id
-                          and (cb.deck_selection is null
-                               or cb.deck_selection in ('collection', 'warDeckPick'))
-                          -- Nor a boat defense (Gym #262.1).
-                          and not (cb.boat_battle_side is not null
-                                   and (cb.boat_battle_side = 'defender') = (bp.side = 0)))
+             -- Looked up by key, one row's battle at a time: as an EXISTS
+             -- the planner could hash every battle in the record (2026-11-13).
+             and coalesce((select (cb.deck_selection is null
+                                   or cb.deck_selection in ('collection', 'warDeckPick'))
+                                  -- Nor a boat defense (Gym #262.1).
+                                  and not (cb.boat_battle_side is not null
+                                           and (cb.boat_battle_side = 'defender') = (bp.side = 0))
+                             from battle cb where cb.battle_id = bp.battle_id), false)
            group by bp.deck_hash
            having count(*) >= 10 and count(*) filter (where bp.outcome in ('win','loss')) > 0
            order by (count(*) filter (where bp.outcome = 'win'))::numeric

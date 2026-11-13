@@ -59,6 +59,6 @@ test("duelSql: the same rule in SQL, by type or by stored round rows", () => {
   );
   assert.match(
     sql,
-    /or exists \(select 1 from battle_participant_round duel_r\s+where duel_r\.battle_id = bp\.battle_id\)/,
+    /or \(select true from battle_participant_round duel_r\s+where duel_r\.battle_id = bp\.battle_id limit 1\) is not null\)/,
   );
 });
