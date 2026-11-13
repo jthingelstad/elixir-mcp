@@ -12,8 +12,19 @@ import { sparkWords } from "./logic.js";
  */
 export function Sparkline({ spark }) {
   if (!Array.isArray(spark) || spark.length === 0) return null;
+  // A long sitting closes the gaps so its bars keep their width.
+  const density =
+    spark.length > 60
+      ? " kit-spark--packed"
+      : spark.length > 30
+        ? " kit-spark--dense"
+        : "";
   return (
-    <div className="kit-spark" role="img" aria-label={sparkWords(spark)}>
+    <div
+      className={`kit-spark${density}`}
+      role="img"
+      aria-label={sparkWords(spark)}
+    >
       {spark.map((b, i) => {
         const kind = b.r === "d" ? "draw" : b.r === "w" ? "win" : "loss";
         const unknown = b.r !== "d" && b.m == null;
