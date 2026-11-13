@@ -251,6 +251,7 @@ preview went with the retired clan report's builder on 2026-11-13.
 | What is the database doing right now? | `{backends}` |
 | Where is the database's weight? | `{tables}` |
 | How bloated are `battle`'s indexes? | `{reindex}` with only `table` |
+| How much dead space does a table carry, and can a rewrite return it? | `{tables}` (heap, index and dead tuples); `{rewrite_table}` is the WRITE that returns it, Jamie's window only |
 | Did the series backfill land? | `{series_status}`, `{series_census_self}` |
 
 ## Adding or removing an op

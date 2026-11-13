@@ -8,10 +8,11 @@
  *     FKs.
  *
  *   {rewrite_table: "battle_participant"}
- *     VACUUM FULL one named table - the space a dropped column (0097)
- *     held comes back only with a rewrite, and a rewrite takes an
- *     exclusive lock for its duration, so it is a deliberate op, never a
- *     migration. Collector submits block and retry meanwhile.
+ *     VACUUM FULL one named table - the space a dropped column (0097) or
+ *     a purge (2026-10-07) held comes back only with a rewrite, and a
+ *     rewrite takes an exclusive lock for its duration, so it is a
+ *     deliberate op, never a migration. Collector submits block and retry
+ *     meanwhile. Statement and lock timeouts keep it inside one Lambda.
  *
  *   {backends: true}, {terminate_backends: {...}}
  *     What this user's connections are doing, and the lever to end one.
@@ -23,13 +24,50 @@
 
 import pg from "pg";
 
+/** The tables {rewrite_table} may name: a closed list, because the op
+ *  takes the name into SQL. The first three are 0097's dropped column;
+ *  the rest carry the 2026-10-07 purge's dead space. */
 const REWRITABLE = new Set([
   "battle_participant",
   "battle_participant_card",
   "deck_card",
+  "battle",
+  "battle_participant_round",
+  "deck",
+  "player",
+  "player_snapshot_daily",
+  "player_daily_battle_rollup",
+  "player_badge",
+  "api_receipt",
+  "mcp_call_audit",
+  "capture_audit",
+  "job",
 ]);
 
-export async function rewriteTable(databaseUrl, spec) {
+/** The migrate Lambda times out at 300 s (MigrateFunction in
+ *  infra/template.yaml). The statement stops at 240 s, so the Lambda
+ *  outlives it and answers; a VACUUM FULL the Lambda outlived would keep
+ *  its ACCESS EXCLUSIVE lock after the Lambda died (2026-09-15). A
+ *  cancelled VACUUM FULL drops its new copy and leaves the table as it
+ *  was. The lock timeout is short because a waiting ACCESS EXCLUSIVE
+ *  request queues every later read and write of the table behind it:
+ *  10 s waits out an ordinary submit or door read, and past that the op
+ *  gives up rather than stall the table. */
+export const REWRITE_TIMEOUTS = Object.freeze({
+  statementMs: 240_000,
+  lockMs: 10_000,
+});
+
+/**
+ * @param {string} databaseUrl
+ * @param {string | {table: string}} spec
+ * @param {{statementMs: number, lockMs: number}} [timeouts] tests only
+ */
+export async function rewriteTable(
+  databaseUrl,
+  spec,
+  timeouts = REWRITE_TIMEOUTS,
+) {
   const table = String(spec?.table ?? spec ?? "");
   if (!REWRITABLE.has(table))
     throw new Error(`rewrite_table: not one of ${[...REWRITABLE].join(", ")}`);
@@ -39,15 +77,48 @@ export async function rewriteTable(databaseUrl, spec) {
     const size = async () =>
       (
         await db.query(
-          `select pg_total_relation_size($1)::bigint as bytes, pg_relation_size($1)::bigint as heap`,
+          `select pg_total_relation_size(c.oid)::bigint as bytes,
+                  pg_relation_size(c.oid)::bigint as heap,
+                  pg_indexes_size(c.oid)::bigint as indexes,
+                  c.reltuples::bigint as rows
+             from pg_class c where c.oid = $1::regclass`,
           [table],
         )
       ).rows[0];
     const before = await size();
+    const timeoutsOut = {
+      statement_timeout_ms: timeouts.statementMs,
+      lock_timeout_ms: timeouts.lockMs,
+    };
+    await db.query(`set statement_timeout = ${Number(timeouts.statementMs)}`);
+    await db.query(`set lock_timeout = ${Number(timeouts.lockMs)}`);
     const started = Date.now();
-    await db.query(`vacuum (full, analyze) ${table}`);
+    try {
+      await db.query(`vacuum (full, analyze) ${pg.escapeIdentifier(table)}`);
+    } catch (error) {
+      // 55P03: the lock was not granted in time; 57014: the statement
+      // timeout cancelled the rewrite. Either way the table is unchanged.
+      return {
+        error: "rewrite_failed",
+        table,
+        code: error.code ?? null,
+        message: error.message,
+        ms: Date.now() - started,
+        before,
+        timeouts: timeoutsOut,
+      };
+    }
+    const ms = Date.now() - started;
+    await db.query("reset statement_timeout");
     const after = await size();
-    return { table, ms: Date.now() - started, before, after };
+    return {
+      table,
+      ms,
+      before,
+      after,
+      freed_bytes: before.bytes - after.bytes,
+      timeouts: timeoutsOut,
+    };
   } finally {
     await db.end();
   }

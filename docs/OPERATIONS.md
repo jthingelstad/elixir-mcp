@@ -583,9 +583,36 @@ tool.
   ```
 
 `{rewrite_table}` is not an incident tool: it holds an ACCESS EXCLUSIVE
-lock for its whole run and, past the Lambda's 300 s, keeps it after the
-Lambda dies (the shape of the 2026-09-15 outage). It runs only in a
-window Jamie chooses.
+lock for its whole run, so every read and write of the table waits. It
+runs only in a window Jamie chooses (downtime is acceptable for data
+layer transitions while Elixir has only beta users, 2026-11-12).
+
+- **Bounds.** The op sets a 240 s statement timeout under the migrate
+  Lambda's 300 s, so the backend is cancelled before the Lambda dies and
+  never keeps the lock afterwards (the shape of the 2026-09-15 outage),
+  and a 10 s lock timeout, so a lock request queued behind a long reader
+  gives up instead of stalling the table. A cancelled or refused rewrite
+  answers `rewrite_failed` and leaves the table as it was; read
+  `{backends}` before running it again.
+- **Which tables matter.** The 2026-11-13 census: `api_receipt` 341 MB,
+  `battle` 175 MB, `deck` 109 MB, `player_snapshot_daily` 105 MB,
+  `player_daily_battle_rollup` 73 MB, `player_badge` 55 MB, `player`
+  54 MB; read `{tables}` for the rest and for the day's sizes. On
+  2026-10-07 the small rewrote the 3.8 GB `battle_participant_card` in
+  22 s with burst I/O, so each of these should take seconds. With `elixir-mcp-db-ebs-byte-balance` spent
+  the volume falls to about 4.7 MB/s, and a rewrite reads and writes the
+  table and builds its indexes: `api_receipt` would then come near the
+  240 s bound. Check the balance first and run the largest only with it
+  healthy.
+- **Space.** VACUUM FULL writes a new copy of the live rows and indexes
+  before it drops the old files, so free storage must hold that copy.
+- **Order.** One table per invocation, smallest first, reading
+  `freed_bytes` after each. Submits ingest inline, so a rewrite of a
+  table they write makes them wait and retry; past the 90 s lease the
+  lease expires and charges the collector's missed streak. At the
+  expected seconds no collector needs draining; if the balance is spent,
+  drain each collector (`{gateway_drain}`, then `{gateway_recover}`) or
+  wait for the balance.
 
 ## Clan maintenance
 
