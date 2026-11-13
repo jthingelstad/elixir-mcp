@@ -290,8 +290,10 @@ export const contracts = [
       ok(r.isError, "a segment argument refuses");
       eq(r.body?.error?.code, "bad_request", "segment refusal");
       ok(
-        !("deck_stats" in
-          (ctx.tools.get("battles_query")?.outputSchema?.properties ?? {})),
+        !(
+          "deck_stats" in
+          (ctx.tools.get("battles_query")?.outputSchema?.properties ?? {})
+        ),
         "battles_query declares no deck_stats",
       );
     },

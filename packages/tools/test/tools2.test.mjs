@@ -1210,11 +1210,10 @@ test("battles_query addressing modes: battle_id alone, deck_hash narrows a playe
   });
   assert.equal(byDeck.isError, false, JSON.stringify(byDeck.body));
   assert.ok(!("deck_stats" in byDeck.body), "no corpus deck_stats");
+  assert.equal(byDeck.body.player_tag, owner.player_tag, "one subject");
   assert.ok(byDeck.body.battles.length > 0);
-  for (const battle of byDeck.body.battles) {
-    assert.equal(battle.me.player_tag, owner.player_tag);
+  for (const battle of byDeck.body.battles)
     assert.equal(battle.me.deck_hash, one[0].deck_hash);
-  }
 });
 
 test("nicknames: private to the account, matched first in search, shown in summary and roster", async () => {

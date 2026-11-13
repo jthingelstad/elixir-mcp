@@ -234,8 +234,9 @@ test("13.0.0: the analysis-era tools and modes are gone, and no name brings them
   assert.ok(!("deck_stats" in query.outputSchema.properties));
   assert.doesNotMatch(query.description, /corpus/);
   // elixir_collectors' always-zero economy fields.
-  const fleet = byName.get("elixir_collectors").outputSchema.properties
-    .collectors.items.properties;
+  const fleet =
+    byName.get("elixir_collectors").outputSchema.properties.collectors.items
+      .properties;
   for (const field of ["points", "quota_credits"])
     assert.ok(!(field in fleet), `elixir_collectors has no ${field}`);
   // In current sources, a retired name is history only.
