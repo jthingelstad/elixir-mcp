@@ -535,6 +535,42 @@ test("the clan part turned off: no clan part, and the moves are told under the p
   );
 });
 
+test("the clan part turned off: a followed clanmate's role change is told under them (Codex on #919)", async () => {
+  await db.query(
+    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, occurred_at, player_tag, role_before, role_after)
+     values ($1, 'role_changed', 'estimated', '2026-10-04T09:00:00Z', '2026-10-04T09:00:00Z', '2026-10-04T09:00:00Z', $2, 'member', 'elder')`,
+    [C2, MATE],
+  );
+  const args = {
+    db,
+    account: { accountId: mergeReader, timezone: "UTC" },
+    cadence: "weekly",
+    window: W2,
+  };
+  const off = await buildDigest({
+    ...args,
+    fold: { clan: false, arena: true },
+  });
+  const mate = off.people.find((p) => p.tag === MATE);
+  assert.ok(
+    mate.items.some(
+      (it) => it.kind === "member_role_changed" && /Elder/.test(it.text),
+    ),
+    JSON.stringify(mate.items),
+  );
+  // On, the role change is the clan part's news and never told twice.
+  const on = await buildDigest(args);
+  assert.match(
+    [on.clans[0].headline, ...on.clans[0].bullets].join(" | "),
+    /roles/,
+  );
+  assert.ok(
+    !on.people
+      .find((p) => p.tag === MATE)
+      .items.some((it) => it.kind === "member_role_changed"),
+  );
+});
+
 test("a clan's news alone sends a weekly digest, never one for a reader who had the clan report off", async () => {
   const args = {
     db,

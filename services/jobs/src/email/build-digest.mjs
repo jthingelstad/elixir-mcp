@@ -192,6 +192,9 @@ export async function buildDigest({
   const subjects = await subjectsFor(db, account.accountId);
   if (subjects.length === 0) return null;
   const tz = account.timezone;
+  const followedTags = new Set(
+    subjects.filter((s) => s.kind === "player").map((s) => s.tag),
+  );
   const { entries, timeline: items } = await buildTimeline(db, subjects, {
     fromMs: window.fromMs,
     toMs: window.toMs,
@@ -203,7 +206,16 @@ export async function buildDigest({
     accountId: account.accountId,
     // The mail goes to the person's own address, nowhere else.
     interactive: true,
-    filter: (it) => DIGEST_KINDS.has(it.kind),
+    // With the clan part off, a followed player's role change is told
+    // under them, as their joins and departures are (Codex on #919): the
+    // clan's item about them, kept only when they are someone followed.
+    filter: (it) =>
+      DIGEST_KINDS.has(it.kind) ||
+      (!fold.clan &&
+        it.kind === "member_role_changed" &&
+        (it.subjects ?? []).some(
+          (s) => s.kind === "player" && followedTags.has(s.tag),
+        )),
   });
   const links = await battleLinks(
     db,
@@ -211,12 +223,10 @@ export async function buildDigest({
   );
   // The clan's own news, one block a clan you track, each told once: a
   // clan with none (only battles, or nothing) has no block.
-  const followedTags = new Set(
-    subjects.filter((s) => s.kind === "player").map((s) => s.tag),
-  );
   // The clan part is the reader's to turn off (Settings › Emails, the
   // clan report's stored switch): off, the digest has no clan part at
-  // all, and moves are told under the people they are about.
+  // all, and moves (joins, departures, role changes) are told under the
+  // people they are about.
   const blocks = entries
     .filter((e) => fold.clan && e.kind === "clan_activity")
     .map((e) => ({ e, news: clanNews(e, followedTags) }))
