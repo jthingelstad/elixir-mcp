@@ -200,6 +200,8 @@ const NOT_NAMES = new Set(["rawName", "file_name", "tool_name", "kind_name"]);
  * tag-shaped key, and the strings of a `names` list. A name paired with
  * one of the two named tags (or one of their names) is left alone.
  */
+const GAME_KEY = /^(arena|league|game_?mode|mode|archetype)(_?[nN]ame)?$/;
+
 export function collectNames(
   value,
   out = { names: new Set(), descriptions: new Set() },
@@ -250,6 +252,10 @@ export function collectNames(
   }
   for (const k of keys) {
     const v = value[k];
+    // An arena, league or mode named in a string is the game's word too.
+    if (GAME_KEY.test(k) && typeof v === "string" && v.trim())
+      for (const w of [v, ...v.split(/\s+/)])
+        if (w.trim()) out.vocabulary.add(w.trim().toLowerCase());
     if (/(^|_)names$/.test(k) && Array.isArray(v))
       for (const n of v) {
         if (typeof n === "string" && n && !NAMED_NAMES.includes(n))
@@ -268,7 +274,7 @@ export function collectNames(
 }
 
 const NON_HEX = /[PYLQGRJUVO]/i;
-const TOKEN = /(?<![0-9A-Za-z&])(#|%23)?([0-9A-Za-z]{3,10})(?![0-9A-Za-z])/g;
+const TOKEN = /(?<![0-9A-Za-z&])(#|%23)?([0-9A-Za-z]{3,12})(?![0-9A-Za-z])/g;
 
 /**
  * Replace every tag `invent` knows in `text`. `known` is the set of real

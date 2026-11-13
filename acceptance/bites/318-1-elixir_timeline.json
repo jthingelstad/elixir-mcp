@@ -47,7 +47,7 @@
           "from": "2026-09-20T03:00:00.000Z",
           "to": "2026-09-20T03:37:44.000Z"
         },
-        "summary": "POAP KINGS: 1 battle in 1 session by 1 of 46 members since Sun 03:00; war day 3 (6,870 fame, place 1 of 5): 30 untouched, 3 partial, 14 finished of 47; quiet past 10d: Gem (10d); most battles: round hamster 1; donations this week 7,657, led by Vijay (875).",
+        "summary": "POAP KINGS: 1 battle in 1 session by 1 of 46 members since Sun 03:00; war day 3 (6,870 fame, place 1 of 5): 30 untouched, 3 partial, 14 finished of 47; quiet past 10d: Gem (10d); most battles: acorn lantern 1; donations this week 7,657, led by Acorn (875).",
         "activity": {
           "battles": 1,
           "members_active": 1,
@@ -103,8 +103,8 @@
           "quiet_crossed": {
             "items": [
               {
-                "tag": "#20GQUGPRC2",
-                "name": "Gem",
+                "tag": "#0J0P0RJUQ8",
+                "name": "Fig",
                 "role": "member",
                 "days_quiet": 10,
                 "days_since_poll": 1,
@@ -123,8 +123,8 @@
         "standouts": {
           "most_battles": [
             {
-              "tag": "#VR0QRP2PG",
-              "name": "round hamster",
+              "tag": "#0988PUGPY",
+              "name": "acorn lantern",
               "battles": 1
             }
           ],
@@ -159,8 +159,8 @@
           "week_total": 7657,
           "members_counted": 45,
           "leader": {
-            "tag": "#C920YGLC2",
-            "name": "Vijay",
+            "tag": "#0GQ2CLQQJ",
+            "name": "Acorn",
             "given": 875
           },
           "as_of": "2026-09-20T03:37:44.000Z"

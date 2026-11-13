@@ -64,6 +64,19 @@ test("a tag is replaced in every spelling, and colours and numbers are not", () 
   assert.equal(count, 5);
 });
 
+test("a keyed tag of eleven or twelve characters is replaced too", () => {
+  const known = new Set(["#0PYLQGRJCUV"]);
+  const invent = tagInventor(SALT);
+  const { text, count } = replaceTags(
+    '{"player_tag":"#0PYLQGRJCUV"}',
+    known,
+    invent,
+  );
+  assert.equal(count, 1);
+  assert.equal(text, `{"player_tag":"${invent("#0PYLQGRJCUV")}"}`);
+  assert.equal(invent("#0PYLQGRJCUV").length, 12);
+});
+
 test("an invented name keeps the shape of the real one", () => {
   const cases = [
     ["Brisk Otter", /^[A-Z][a-z]+ [A-Z][a-z]+$/],
@@ -98,6 +111,7 @@ test("names are collected beside a tag, never from cards or badges", () => {
     names: ["Old Otter"],
     subject_tag: "#0Q2L8",
     subject_name: "Lucky Lynx",
+    battles: [{ arena: "Frozen Peak", tag: "#0YY9P", name: "Brisk Otter" }],
   });
   assert.deepEqual(
     [...found.names].sort(),
@@ -106,6 +120,7 @@ test("names are collected beside a tag, never from cards or badges", () => {
   assert.deepEqual([...found.descriptions], ["hi all"]);
   assert.ok(found.vocabulary.has("masteryknight"));
   assert.ok(found.vocabulary.has("knight"));
+  assert.ok(found.vocabulary.has("frozen peak"));
 });
 
 test("names are replaced as values everywhere, as words only when safe", () => {

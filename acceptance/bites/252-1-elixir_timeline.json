@@ -44,15 +44,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#VR0QRP2PG",
-          "name": "round hamster",
+          "player_tag": "#0988PUGPY",
+          "name": "acorn lantern",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-10T18:09:15.000Z",
-        "text": "Thu 18:09 round hamster passed 5 recorded-quiet days."
+        "text": "Thu 18:09 acorn lantern passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -61,15 +61,15 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#2P9GRU2Q0",
-          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "player_tag": "#090QYUG02",
+          "name": "Pélican Çedar🌟",
           "role": "elder",
           "rung": 5,
           "days_quiet": 5,
           "days_since_poll": 0
         },
         "observed_at": "2026-09-10T15:54:49.000Z",
-        "text": "Thu 15:54 Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ passed 5 recorded-quiet days."
+        "text": "Thu 15:54 Pélican Çedar🌟 passed 5 recorded-quiet days."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -78,8 +78,8 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#V0CRYP2GG",
-          "name": "pokemon",
+          "player_tag": "#0RC8G2CYG",
+          "name": "buffalo",
           "after_days": 10
         },
         "observed_at": "2026-09-09T23:19:45.000Z",
@@ -97,7 +97,7 @@
           "from": "2026-09-10T00:00:00.000Z",
           "to": "2026-09-11T00:00:00.000Z"
         },
-        "summary": "POAP KINGS: 507 battles in 131 sessions by 39 of 49 members since Thu 00:00; war day 1 (0 fame, place null of 5): 32 untouched, 1 partial, 13 finished of 46; quiet past 5d: Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ (5d), round hamster (5d); back: pokemon after 10d; most battles: Vijay 74, Aaqib Javed 68, bonus 47; standout sessions: MONICA 10W-6L +205 (7 in a row), MONICA 6W-1L +148 (6 in a row), bonus 15W-13L +40; donations this week 4,734, led by Aaqib Javed (501)."
+        "summary": "POAP KINGS: 507 battles in 131 sessions by 39 of 49 members since Thu 00:00; war day 1 (0 fame, place null of 5): 32 untouched, 1 partial, 13 finished of 46; quiet past 5d: Pélican Çedar🌟 (5d), acorn lantern (5d); back: pokemon after 10d; most battles: Acorn 74, Happy Tiger 68, bonus 47; standout sessions: OSPREY 10W-6L +205 (7 in a row), OSPREY 6W-1L +148 (6 in a row), bonus 15W-13L +40; donations this week 4,734, led by Happy Tiger (501)."
       }
     ],
     "quiet": [],

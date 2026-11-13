@@ -59,8 +59,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#20GPQPC9RV",
-          "name": "bonus",
+          "player_tag": "#0VC0V2V908",
+          "name": "zebra",
           "started_at": "2026-09-16T00:02:47.000Z",
           "ended_at": "2026-09-16T01:43:33.000Z",
           "battles": 21,
@@ -86,12 +86,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#V8Q8PUL0U",
-          "name": "ryguy67",
+          "player_tag": "#082YLQRRV",
+          "name": "heron82",
           "level": 1697,
           "step": null
         },
-        "text": "Wed 01:32 ryguy67 reached collection level 1697."
+        "text": "Wed 01:32 heron82 reached collection level 1697."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -101,12 +101,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2G09Q20QC",
-          "name": "Kurd Paraw",
+          "player_tag": "#0VQ2VCVP2",
+          "name": "Glad Storm",
           "level": 2120,
           "step": null
         },
-        "text": "Wed 00:57 Kurd Paraw reached collection level 2120."
+        "text": "Wed 00:57 Glad Storm reached collection level 2120."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -116,14 +116,14 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#RJ9RRQPVU",
-          "name": "OllieTurtle",
+          "player_tag": "#0PUJYGGQ8",
+          "name": "Thunderbolt",
           "badge": "MasteryIceWizard",
           "badge_label": "Ice Wizard Mastery",
           "level": 5,
           "prior_level": 4
         },
-        "text": "Wed 00:22 OllieTurtle took Ice Wizard Mastery to level 5."
+        "text": "Wed 00:22 Thunderbolt took Ice Wizard Mastery to level 5."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -133,13 +133,13 @@
         "kind": "card_unlocked",
         "section": "standouts",
         "facts": {
-          "player_tag": "#URPCLR8UQ",
-          "name": "x.x.hari.x.x",
+          "player_tag": "#0QLLUVPVL",
+          "name": "o.o.crab.o.o",
           "card": "Archer Queen",
           "card_id": 26000072,
           "rarity": "champion"
         },
-        "text": "Tue 22:47 x.x.hari.x.x unlocked Archer Queen."
+        "text": "Tue 22:47 o.o.crab.o.o unlocked Archer Queen."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -149,12 +149,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#URPCLR8UQ",
-          "name": "x.x.hari.x.x",
+          "player_tag": "#0QLLUVPVL",
+          "name": "o.o.crab.o.o",
           "level": 1044,
           "step": null
         },
-        "text": "Tue 22:47 x.x.hari.x.x reached collection level 1044."
+        "text": "Tue 22:47 o.o.crab.o.o reached collection level 1044."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -164,8 +164,8 @@
         "kind": "ranked_promotion",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2G09Q20QC",
-          "name": "Kurd Paraw",
+          "player_tag": "#0VQ2VCVP2",
+          "name": "Glad Storm",
           "from": 1,
           "to": 2,
           "promoted_by": {
@@ -173,8 +173,8 @@
             "battle_time": "2026-09-15T21:21:37.000Z",
             "type": "pathOfLegend",
             "opponent": {
-              "player_tag": "#L02G8LQ0G",
-              "name": "우리",
+              "player_tag": "#0P8L8UVL0",
+              "name": "바람",
               "starting_trophies": null
             },
             "crowns": 3,
@@ -184,7 +184,7 @@
           "from_name": "Master 1",
           "to_name": "Master 2"
         },
-        "text": "Tue 21:21 Kurd Paraw was promoted to Master 2, on a 3-0 win over 우리, +30."
+        "text": "Tue 21:21 Glad Storm was promoted to Master 2, on a 3-0 win over 우리, +30."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -194,12 +194,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2YG98VVQ",
-          "name": "Alfablack",
+          "player_tag": "#00C298UC",
+          "name": "Sunflower",
           "level": 1569,
           "step": null
         },
-        "text": "Tue 20:37 Alfablack reached collection level 1569."
+        "text": "Tue 20:37 Sunflower reached collection level 1569."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -209,12 +209,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2CY2RJL9G",
-          "name": "L-Drxgo⚡",
+          "player_tag": "#0GC9P98LQ",
+          "name": "O-Bison🎈",
           "level": 1900,
           "step": null
         },
-        "text": "Tue 19:37 L-Drxgo⚡ reached collection level 1900."
+        "text": "Tue 19:37 O-Bison🎈 reached collection level 1900."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -224,8 +224,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#C920YGLC2",
-          "name": "Vijay",
+          "player_tag": "#0GQ2CLQQJ",
+          "name": "Acorn",
           "started_at": "2026-09-15T16:09:27.000Z",
           "ended_at": "2026-09-15T16:49:52.000Z",
           "battles": 12,
@@ -241,7 +241,7 @@
           "crossed": ["won_in_a_row>=5"],
           "newly": ["won_in_a_row>=5"]
         },
-        "text": "Tue 16:27 Vijay played 12 battles in one sitting (9W-3L; 12 event, 6 wins in a row)."
+        "text": "Tue 16:27 Acorn played 12 battles in one sitting (9W-3L; 12 event, 6 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -251,8 +251,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#VGC22YGP",
-          "name": "MONICA",
+          "player_tag": "#0990UQVG",
+          "name": "OSPREY",
           "started_at": "2026-09-15T15:44:19.000Z",
           "ended_at": "2026-09-15T16:58:43.000Z",
           "battles": 19,
@@ -268,7 +268,7 @@
           "crossed": ["won_in_a_row>=5", "won_in_a_row>=10"],
           "newly": ["won_in_a_row>=5", "won_in_a_row>=10"]
         },
-        "text": "Tue 16:09 MONICA played 19 battles in one sitting (13W-6L; 19 ranked, 11 wins in a row)."
+        "text": "Tue 16:09 OSPREY played 19 battles in one sitting (13W-6L; 19 ranked, 11 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -278,8 +278,8 @@
         "kind": "ranked_promotion",
         "section": "standouts",
         "facts": {
-          "player_tag": "#VGC22YGP",
-          "name": "MONICA",
+          "player_tag": "#0990UQVG",
+          "name": "OSPREY",
           "from": 2,
           "to": 3,
           "promoted_by": {
@@ -287,8 +287,8 @@
             "battle_time": "2026-09-15T16:03:44.000Z",
             "type": "pathOfLegend",
             "opponent": {
-              "player_tag": "#2CGJUY2",
-              "name": "jawad",
+              "player_tag": "#0U8C0RG",
+              "name": "fleet",
               "starting_trophies": null
             },
             "crowns": 2,
@@ -298,7 +298,7 @@
           "from_name": "Master 2",
           "to_name": "Master 3"
         },
-        "text": "Tue 16:03 MONICA was promoted to Master 3, on a 2-1 win over jawad, +30."
+        "text": "Tue 16:03 OSPREY was promoted to Master 3, on a 2-1 win over jawad, +30."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -308,12 +308,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2G09Q20QC",
-          "name": "Kurd Paraw",
+          "player_tag": "#0VQ2VCVP2",
+          "name": "Glad Storm",
           "level": 2119,
           "step": null
         },
-        "text": "Tue 15:57 Kurd Paraw reached collection level 2119."
+        "text": "Tue 15:57 Glad Storm reached collection level 2119."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -323,12 +323,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#20R8QRLYLP",
-          "name": "Chanco",
+          "player_tag": "#0829VC9GG8",
+          "name": "Cheery",
           "level": 1825,
           "step": null
         },
-        "text": "Tue 15:27 Chanco reached collection level 1825."
+        "text": "Tue 15:27 Cheery reached collection level 1825."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -338,8 +338,8 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#20GPQPC9RV",
-          "name": "bonus",
+          "player_tag": "#0VC0V2V908",
+          "name": "zebra",
           "level": 1515,
           "step": null
         },
@@ -353,8 +353,8 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#20GPQPC9RV",
-          "name": "bonus",
+          "player_tag": "#0VC0V2V908",
+          "name": "zebra",
           "badge": "MasterySkeletonDragons",
           "badge_label": "Skeleton Dragons Mastery",
           "level": 5,
@@ -370,11 +370,11 @@
         "kind": "best_trophies_band",
         "section": "standouts",
         "facts": {
-          "player_tag": "#URPCLR8UQ",
-          "name": "x.x.hari.x.x",
+          "player_tag": "#0QLLUVPVL",
+          "name": "o.o.crab.o.o",
           "best": 6087
         },
-        "text": "Tue 14:27 x.x.hari.x.x set a new best of 6,087 trophies."
+        "text": "Tue 14:27 o.o.crab.o.o set a new best of 6,087 trophies."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -384,14 +384,14 @@
         "kind": "arena_changed",
         "section": "standouts",
         "facts": {
-          "player_tag": "#URPCLR8UQ",
-          "name": "x.x.hari.x.x",
+          "player_tag": "#0QLLUVPVL",
+          "name": "o.o.crab.o.o",
           "from": 54000013,
           "to": 54000014,
           "to_name": "Royal Crypt",
           "from_name": "Executioner's Kitchen"
         },
-        "text": "Tue 14:27 x.x.hari.x.x moved to Royal Crypt from Executioner's Kitchen."
+        "text": "Tue 14:27 o.o.crab.o.o moved to Royal Crypt from Executioner's Kitchen."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -401,14 +401,14 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#URPCLR8UQ",
-          "name": "x.x.hari.x.x",
+          "player_tag": "#0QLLUVPVL",
+          "name": "o.o.crab.o.o",
           "badge": "MasteryAngryBarbarians",
           "badge_label": "Elite Barbarians Mastery",
           "level": 5,
           "prior_level": 4
         },
-        "text": "Tue 14:27 x.x.hari.x.x took Elite Barbarians Mastery to level 5."
+        "text": "Tue 14:27 o.o.crab.o.o took Elite Barbarians Mastery to level 5."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -418,8 +418,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#C920YGLC2",
-          "name": "Vijay",
+          "player_tag": "#0GQ2CLQQJ",
+          "name": "Acorn",
           "started_at": "2026-09-15T12:00:45.000Z",
           "ended_at": "2026-09-15T13:22:07.000Z",
           "battles": 16,
@@ -435,7 +435,7 @@
           "crossed": ["won_in_a_row>=5"],
           "newly": ["won_in_a_row>=5"]
         },
-        "text": "Tue 12:38 Vijay played 16 battles in one sitting (9W-7L; 16 event, 5 wins in a row)."
+        "text": "Tue 12:38 Acorn played 16 battles in one sitting (9W-7L; 16 event, 5 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -445,8 +445,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2CY2RJL9G",
-          "name": "L-Drxgo⚡",
+          "player_tag": "#0GC9P98LQ",
+          "name": "O-Bison🎈",
           "started_at": "2026-09-15T11:15:46.000Z",
           "ended_at": "2026-09-15T13:11:10.000Z",
           "battles": 19,
@@ -463,7 +463,7 @@
           "crossed": ["won_in_a_row>=5"],
           "newly": ["won_in_a_row>=5"]
         },
-        "text": "Tue 12:38 L-Drxgo⚡ played 19 battles in one sitting (12W-7L; 14 event, 5 ranked, 5 wins in a row)."
+        "text": "Tue 12:38 O-Bison🎈 played 19 battles in one sitting (12W-7L; 14 event, 5 ranked, 5 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -473,13 +473,13 @@
         "kind": "card_unlocked",
         "section": "standouts",
         "facts": {
-          "player_tag": "#VC8VY8R29",
-          "name": "nyje47",
+          "player_tag": "#02L2JV2QJ",
+          "name": "moth31",
           "card": "Boss Bandit",
           "card_id": 26000103,
           "rarity": "champion"
         },
-        "text": "Tue 11:42 nyje47 unlocked Boss Bandit."
+        "text": "Tue 11:42 moth31 unlocked Boss Bandit."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -489,12 +489,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#VC8VY8R29",
-          "name": "nyje47",
+          "player_tag": "#02L2JV2QJ",
+          "name": "moth31",
           "level": 1475,
           "step": null
         },
-        "text": "Tue 11:42 nyje47 reached collection level 1475."
+        "text": "Tue 11:42 moth31 reached collection level 1475."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -504,8 +504,8 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2209PJPVGG",
-          "name": "shimmeringhost",
+          "player_tag": "#0P9GPLYPC2",
+          "name": "hummingbirdelk",
           "level": 1566,
           "step": null
         },
@@ -519,8 +519,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#URPCLR8UQ",
-          "name": "x.x.hari.x.x",
+          "player_tag": "#0QLLUVPVL",
+          "name": "o.o.crab.o.o",
           "started_at": "2026-09-15T06:24:35.000Z",
           "ended_at": "2026-09-15T06:52:20.000Z",
           "battles": 6,
@@ -536,7 +536,7 @@
           "crossed": ["won_in_a_row>=5"],
           "newly": ["won_in_a_row>=5"]
         },
-        "text": "Tue 06:46 x.x.hari.x.x played 6 battles in one sitting (5W-1L; 6 ladder, +146 trophies, 5 wins in a row)."
+        "text": "Tue 06:46 o.o.crab.o.o played 6 battles in one sitting (5W-1L; 6 ladder, +146 trophies, 5 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -546,14 +546,14 @@
         "kind": "ranked_promotion",
         "section": "standouts",
         "facts": {
-          "player_tag": "#PLCCYUQL",
-          "name": "TDuck",
+          "player_tag": "#0L990RRV",
+          "name": "Rapid",
           "from": 1,
           "to": 2,
           "from_name": "Master 1",
           "to_name": "Master 2"
         },
-        "text": "Tue 05:07 TDuck was promoted to Master 2."
+        "text": "Tue 05:07 Rapid was promoted to Master 2."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -562,8 +562,8 @@
         "kind": "quiet_crossed",
         "section": "presence",
         "facts": {
-          "player_tag": "#20GQUGPRC2",
-          "name": "Gem",
+          "player_tag": "#0J0P0RJUQ8",
+          "name": "Fig",
           "role": "member",
           "rung": 5,
           "days_quiet": 5,
@@ -579,7 +579,7 @@
         "kind": "member_role_changed",
         "section": "roster",
         "facts": {
-          "player_tag": "#229QY8UL9U",
+          "player_tag": "#00GGLLCLLQ",
           "name": "Mega Goblin",
           "role_before": "member",
           "role_after": "elder",
@@ -597,8 +597,8 @@
         "kind": "member_role_changed",
         "section": "roster",
         "facts": {
-          "player_tag": "#2CY2RJL9G",
-          "name": "L-Drxgo⚡",
+          "player_tag": "#0GC9P98LQ",
+          "name": "O-Bison🎈",
           "role_before": "member",
           "role_after": "elder",
           "direction": "promoted",
@@ -606,7 +606,7 @@
           "roster_size_after": 47
         },
         "observed_at": "2026-09-15T02:32:59.000Z",
-        "text": "Tue 02:32 L-Drxgo⚡ was promoted from member to elder in POAP KINGS."
+        "text": "Tue 02:32 O-Bison🎈 was promoted from member to elder in POAP KINGS."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -616,8 +616,8 @@
         "kind": "returned",
         "section": "presence",
         "facts": {
-          "player_tag": "#YC8LLR8Q2",
-          "name": "sniperhendo",
+          "player_tag": "#0YUG82UQC",
+          "name": "grasshopper",
           "after_days": 7
         },
         "text": "Tue 00:08 sniperhendo played again after 7 quiet days."
@@ -630,12 +630,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#CV20JCY0V",
-          "name": "BigNorton",
+          "player_tag": "#08UJ89CQ9",
+          "name": "Butterfly",
           "level": 1666,
           "step": null
         },
-        "text": "Mon 22:17 BigNorton reached collection level 1666."
+        "text": "Mon 22:17 Butterfly reached collection level 1666."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -645,8 +645,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2CY2RJL9G",
-          "name": "L-Drxgo⚡",
+          "player_tag": "#0GC9P98LQ",
+          "name": "O-Bison🎈",
           "started_at": "2026-09-14T20:46:07.000Z",
           "ended_at": "2026-09-14T21:39:14.000Z",
           "battles": 10,
@@ -662,7 +662,7 @@
           "crossed": ["won_in_a_row>=5"],
           "newly": ["won_in_a_row>=5"]
         },
-        "text": "Mon 21:39 L-Drxgo⚡ played 10 battles in one sitting (6W-4L; 10 ranked, 5 wins in a row)."
+        "text": "Mon 21:39 O-Bison🎈 played 10 battles in one sitting (6W-4L; 10 ranked, 5 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -672,12 +672,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#JRVV9VC0C",
-          "name": "NOBITA",
+          "player_tag": "#0CC2QGGUU",
+          "name": "STURDY",
           "level": 1368,
           "step": null
         },
-        "text": "Mon 21:17 NOBITA reached collection level 1368."
+        "text": "Mon 21:17 STURDY reached collection level 1368."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -687,8 +687,8 @@
         "kind": "card_unlocked",
         "section": "standouts",
         "facts": {
-          "player_tag": "#UL2V9QRG0",
-          "name": "raquaza",
+          "player_tag": "#0G9L8QCVV",
+          "name": "dolphin",
           "card": "Minion Giant",
           "card_id": 26000107,
           "rarity": "rare"
@@ -703,8 +703,8 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#UL2V9QRG0",
-          "name": "raquaza",
+          "player_tag": "#0G9L8QCVV",
+          "name": "dolphin",
           "level": 1722,
           "step": null
         },
@@ -718,13 +718,13 @@
         "kind": "card_unlocked",
         "section": "standouts",
         "facts": {
-          "player_tag": "#VQUQJP8Q9",
-          "name": "1spaceO2",
+          "player_tag": "#0Q98R28PV",
+          "name": "Penguin4",
           "card": "Lava Hound",
           "card_id": 26000029,
           "rarity": "legendary"
         },
-        "text": "Mon 20:57 1spaceO2 unlocked Lava Hound."
+        "text": "Mon 20:57 Penguin4 unlocked Lava Hound."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -734,12 +734,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#VQUQJP8Q9",
-          "name": "1spaceO2",
+          "player_tag": "#0Q98R28PV",
+          "name": "Penguin4",
           "level": 1208,
           "step": null
         },
-        "text": "Mon 20:57 1spaceO2 reached collection level 1208."
+        "text": "Mon 20:57 Penguin4 reached collection level 1208."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -749,12 +749,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#VGC22YGP",
-          "name": "MONICA",
+          "player_tag": "#0990UQVG",
+          "name": "OSPREY",
           "level": 1740,
           "step": null
         },
-        "text": "Mon 20:27 MONICA reached collection level 1740."
+        "text": "Mon 20:27 OSPREY reached collection level 1740."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -764,8 +764,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#C920YGLC2",
-          "name": "Vijay",
+          "player_tag": "#0GQ2CLQQJ",
+          "name": "Acorn",
           "started_at": "2026-09-14T19:09:26.000Z",
           "ended_at": "2026-09-14T20:32:43.000Z",
           "battles": 10,
@@ -781,7 +781,7 @@
           "crossed": ["won_in_a_row>=5"],
           "newly": ["won_in_a_row>=5"]
         },
-        "text": "Mon 19:39 Vijay played 10 battles in one sitting (7W-3L; 10 ranked, 5 wins in a row)."
+        "text": "Mon 19:39 Acorn played 10 battles in one sitting (7W-3L; 10 ranked, 5 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -791,14 +791,14 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2LRYLQPL",
-          "name": "Andy",
+          "player_tag": "#00J00U28",
+          "name": "Warm",
           "badge": "MasteryMinions",
           "badge_label": "Minions Mastery",
           "level": 5,
           "prior_level": 4
         },
-        "text": "Mon 16:42 Andy took Minions Mastery to level 5."
+        "text": "Mon 16:42 Warm took Minions Mastery to level 5."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -808,14 +808,14 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#UQ2R9RGVP",
-          "name": "Sandeep",
+          "player_tag": "#0QQLUJRY9",
+          "name": "Lantern",
           "badge": "MasteryFirespiritHut",
           "badge_label": "Furnace Mastery",
           "level": 5,
           "prior_level": 4
         },
-        "text": "Mon 16:42 Sandeep took Furnace Mastery to level 5."
+        "text": "Mon 16:42 Lantern took Furnace Mastery to level 5."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -825,7 +825,7 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#229QY8UL9U",
+          "player_tag": "#00GGLLCLLQ",
           "name": "Mega Goblin",
           "level": 1365,
           "step": null
@@ -840,7 +840,7 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#229QY8UL9U",
+          "player_tag": "#00GGLLCLLQ",
           "name": "Mega Goblin",
           "badge": "MasteryBarbLog",
           "badge_label": "Barbarian Barrel Mastery",
@@ -874,14 +874,14 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2P9GRU2Q0",
-          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "player_tag": "#090QYUG02",
+          "name": "Pélican Çedar🌟",
           "badge": "MasteryRoyalHogs",
           "badge_label": "Royal Hogs Mastery",
           "level": 5,
           "prior_level": 4
         },
-        "text": "Mon 12:57 Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ took Royal Hogs Mastery to level 5."
+        "text": "Mon 12:57 Pélican Çedar🌟 took Royal Hogs Mastery to level 5."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -891,8 +891,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2G2RPVPP",
-          "name": "Aaqib Javed",
+          "player_tag": "#0UG2YYVY",
+          "name": "Happy Tiger",
           "started_at": "2026-09-14T12:22:14.000Z",
           "ended_at": "2026-09-14T15:16:41.000Z",
           "battles": 32,
@@ -908,7 +908,7 @@
           "crossed": ["won_in_a_row>=5", "battles>=20"],
           "newly": ["won_in_a_row>=5", "battles>=20"]
         },
-        "text": "Mon 12:51 Aaqib Javed played 32 battles in one sitting (19W-13L; 32 event, 5 wins in a row)."
+        "text": "Mon 12:51 Happy Tiger played 32 battles in one sitting (19W-13L; 32 event, 5 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -918,8 +918,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#JYRQ8U92C",
-          "name": "sikander sidhu",
+          "player_tag": "#0QRVVG22J",
+          "name": "flamingo crane",
           "started_at": "2026-09-14T09:46:47.000Z",
           "ended_at": "2026-09-14T11:56:44.000Z",
           "battles": 23,
@@ -936,7 +936,7 @@
           "crossed": ["battles>=20"],
           "newly": ["battles>=20"]
         },
-        "text": "Mon 11:45 sikander sidhu played 23 battles in one sitting (13W-10L; 20 ladder, 3 war, +66 trophies)."
+        "text": "Mon 11:45 flamingo crane played 23 battles in one sitting (13W-10L; 20 ladder, 3 war, +66 trophies)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -963,12 +963,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2LRYLQPL",
-          "name": "Andy",
+          "player_tag": "#00J00U28",
+          "name": "Warm",
           "level": 1451,
           "step": null
         },
-        "text": "Mon 09:17 Andy reached collection level 1451."
+        "text": "Mon 09:17 Warm reached collection level 1451."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -978,14 +978,14 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#V8Q8PUL0U",
-          "name": "ryguy67",
+          "player_tag": "#082YLQRRV",
+          "name": "heron82",
           "badge": "MasteryIceGolemite",
           "badge_label": "Ice Golem Mastery",
           "level": 5,
           "prior_level": 4
         },
-        "text": "Mon 08:22 ryguy67 took Ice Golem Mastery to level 5."
+        "text": "Mon 08:22 heron82 took Ice Golem Mastery to level 5."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -995,8 +995,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2G2RPVPP",
-          "name": "Aaqib Javed",
+          "player_tag": "#0UG2YYVY",
+          "name": "Happy Tiger",
           "started_at": "2026-09-14T07:07:00.000Z",
           "ended_at": "2026-09-14T07:38:44.000Z",
           "battles": 6,
@@ -1013,7 +1013,7 @@
           "crossed": ["won_in_a_row>=5"],
           "newly": ["won_in_a_row>=5"]
         },
-        "text": "Mon 07:34 Aaqib Javed played 6 battles in one sitting (6W-0L; 4 event, 2 ranked, 6 wins in a row)."
+        "text": "Mon 07:34 Happy Tiger played 6 battles in one sitting (6W-0L; 4 event, 2 ranked, 6 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -1023,8 +1023,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#UQ2R9RGVP",
-          "name": "Sandeep",
+          "player_tag": "#0QQLUJRY9",
+          "name": "Lantern",
           "started_at": "2026-09-14T07:10:21.000Z",
           "ended_at": "2026-09-14T08:22:22.000Z",
           "battles": 19,
@@ -1040,7 +1040,7 @@
           "crossed": ["won_in_a_row>=5"],
           "newly": ["won_in_a_row>=5"]
         },
-        "text": "Mon 07:33 Sandeep played 19 battles in one sitting (11W-8L; 19 event, 5 wins in a row)."
+        "text": "Mon 07:33 Lantern played 19 battles in one sitting (11W-8L; 19 event, 5 wins in a row)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -1050,14 +1050,14 @@
         "kind": "ranked_promotion",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2G2RPVPP",
-          "name": "Aaqib Javed",
+          "player_tag": "#0UG2YYVY",
+          "name": "Happy Tiger",
           "from": 1,
           "to": 2,
           "from_name": "Master 1",
           "to_name": "Master 2"
         },
-        "text": "Mon 07:22 Aaqib Javed was promoted to Master 2."
+        "text": "Mon 07:22 Happy Tiger was promoted to Master 2."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -1067,12 +1067,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2G2RPVPP",
-          "name": "Aaqib Javed",
+          "player_tag": "#0UG2YYVY",
+          "name": "Happy Tiger",
           "level": 2140,
           "step": null
         },
-        "text": "Mon 07:22 Aaqib Javed reached collection level 2140."
+        "text": "Mon 07:22 Happy Tiger reached collection level 2140."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -1082,12 +1082,12 @@
         "kind": "collection_level_step",
         "section": "standouts",
         "facts": {
-          "player_tag": "#JRVV9VC0C",
-          "name": "NOBITA",
+          "player_tag": "#0CC2QGGUU",
+          "name": "STURDY",
           "level": 1365,
           "step": null
         },
-        "text": "Mon 06:52 NOBITA reached collection level 1365."
+        "text": "Mon 06:52 STURDY reached collection level 1365."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -1097,8 +1097,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#JYRQ8U92C",
-          "name": "sikander sidhu",
+          "player_tag": "#0QRVVG22J",
+          "name": "flamingo crane",
           "started_at": "2026-09-14T03:36:35.000Z",
           "ended_at": "2026-09-14T05:01:00.000Z",
           "battles": 21,
@@ -1114,7 +1114,7 @@
           "crossed": ["trophy_net>=150", "battles>=20"],
           "newly": ["trophy_net>=150", "battles>=20"]
         },
-        "text": "Mon 04:48 sikander sidhu played 21 battles in one sitting (12W-9L; 21 ladder, +98 trophies)."
+        "text": "Mon 04:48 flamingo crane played 21 battles in one sitting (12W-9L; 21 ladder, +98 trophies)."
       },
       {
         "subject_tag": "#J2RGCRVG",
@@ -1124,8 +1124,8 @@
         "kind": "badge_earned",
         "section": "standouts",
         "facts": {
-          "player_tag": "#20GPQPC9RV",
-          "name": "bonus",
+          "player_tag": "#0VC0V2V908",
+          "name": "zebra",
           "badge": "MasteryMiner",
           "badge_label": "Miner Mastery",
           "level": 5,
@@ -1141,8 +1141,8 @@
         "kind": "session_standout",
         "section": "standouts",
         "facts": {
-          "player_tag": "#2CY2RJL9G",
-          "name": "L-Drxgo⚡",
+          "player_tag": "#0GC9P98LQ",
+          "name": "O-Bison🎈",
           "started_at": "2026-09-13T20:22:15.000Z",
           "ended_at": "2026-09-13T22:13:40.000Z",
           "battles": 27,
@@ -1159,7 +1159,7 @@
           "crossed": ["won_in_a_row>=5", "battles>=20"],
           "newly": ["won_in_a_row>=5", "battles>=20"]
         },
-        "text": "Sun 21:30 L-Drxgo⚡ played 27 battles in one sitting (17W-10L; 15 ranked, 12 event, 6 wins in a row)."
+        "text": "Sun 21:30 O-Bison🎈 played 27 battles in one sitting (17W-10L; 15 ranked, 12 event, 6 wins in a row)."
       }
     ],
     "timeline_more": 0,
@@ -1173,7 +1173,7 @@
           "from": "2026-09-14T00:00:00.000Z",
           "to": "2026-09-16T02:33:43.000Z"
         },
-        "summary": "POAP KINGS: 863 battles in 229 sessions by 35 of 47 members since Sep 14; roles: Mega Goblin member→elder, L-Drxgo⚡ member→elder; week 1 finished in place 1 with 10,134 fame; training day; quiet past 5d: kiruba⚜️ (5d), Gem (5d); back: sniperhendo after 7d; most battles: Aaqib Javed 109, Vijay 99, L-Drxgo⚡ 79; new bests: x.x.hari.x.x 6,087; 1 arena promotion (x.x.hari.x.x → Royal Crypt); ranked: Aaqib Javed → Master 2, TDuck → Master 2, MONICA → Master 3 +1; standout sessions: MONICA 13W-6L (11 in a row), x.x.hari.x.x 5W-1L +146 (5 in a row), sikander sidhu 12W-9L +98 +11; badges: BigNorton 5 (Musketeer Mastery, Rage Mastery, Heal Spirit Mastery), bonus 4 (Miner Mastery, Dark Prince Mastery, Sparky Mastery), Sandeep 3 (Furnace Mastery, Goblin Gang Mastery, Furnace Mastery); donations this week 2,069, led by Chanco (188).",
+        "summary": "POAP KINGS: 863 battles in 229 sessions by 35 of 47 members since Sep 14; roles: Mega Goblin member→elder, O-Bison🎈 member→elder; week 1 finished in place 1 with 10,134 fame; training day; quiet past 5d: dapper🐢 (5d), Gem (5d); back: sniperhendo after 7d; most battles: Happy Tiger 109, Acorn 99, O-Bison🎈 79; new bests: o.o.crab.o.o 6,087; 1 arena promotion (o.o.crab.o.o → Royal Crypt); ranked: Happy Tiger → Master 2, Rapid → Master 2, OSPREY → Master 3 +1; standout sessions: OSPREY 13W-6L (11 in a row), o.o.crab.o.o 5W-1L +146 (5 in a row), flamingo crane 12W-9L +98 +11; badges: Butterfly 5 (Musketeer Mastery, Rage Mastery, Heal Spirit Mastery), bonus 4 (Miner Mastery, Dark Prince Mastery, Sparky Mastery), Lantern 3 (Furnace Mastery, Goblin Gang Mastery, Furnace Mastery); donations this week 2,069, led by Cheery (188).",
         "activity": {
           "battles": 863,
           "members_active": 35,
@@ -1203,7 +1203,7 @@
           "role_changes": {
             "items": [
               {
-                "tag": "#229QY8UL9U",
+                "tag": "#00GGLLCLLQ",
                 "name": "Mega Goblin",
                 "from": "member",
                 "to": "elder",
@@ -1211,8 +1211,8 @@
                 "at": "2026-09-15T02:32:59.000Z"
               },
               {
-                "tag": "#2CY2RJL9G",
-                "name": "L-Drxgo⚡",
+                "tag": "#0GC9P98LQ",
+                "name": "O-Bison🎈",
                 "from": "member",
                 "to": "elder",
                 "direction": "promoted",
@@ -1254,16 +1254,16 @@
           "quiet_crossed": {
             "items": [
               {
-                "tag": "#G2CUUJQ8V",
-                "name": "kiruba⚜️",
+                "tag": "#0JL99P2UR",
+                "name": "dapper🐢",
                 "role": "member",
                 "days_quiet": 5,
                 "days_since_poll": 0,
                 "rung": 5
               },
               {
-                "tag": "#20GQUGPRC2",
-                "name": "Gem",
+                "tag": "#0J0P0RJUQ8",
+                "name": "Fig",
                 "role": "member",
                 "days_quiet": 5,
                 "days_since_poll": 0,
@@ -1275,8 +1275,8 @@
           "returned": {
             "items": [
               {
-                "tag": "#YC8LLR8Q2",
-                "name": "sniperhendo",
+                "tag": "#0YUG82UQC",
+                "name": "grasshopper",
                 "after_days": 7
               }
             ],
@@ -1288,36 +1288,36 @@
         "standouts": {
           "most_battles": [
             {
-              "tag": "#2G2RPVPP",
-              "name": "Aaqib Javed",
+              "tag": "#0UG2YYVY",
+              "name": "Happy Tiger",
               "battles": 109
             },
             {
-              "tag": "#C920YGLC2",
-              "name": "Vijay",
+              "tag": "#0GQ2CLQQJ",
+              "name": "Acorn",
               "battles": 99
             },
             {
-              "tag": "#2CY2RJL9G",
-              "name": "L-Drxgo⚡",
+              "tag": "#0GC9P98LQ",
+              "name": "O-Bison🎈",
               "battles": 79
             },
             {
-              "tag": "#JYRQ8U92C",
-              "name": "sikander sidhu",
+              "tag": "#0QRVVG22J",
+              "name": "flamingo crane",
               "battles": 78
             },
             {
-              "tag": "#20GPQPC9RV",
-              "name": "bonus",
+              "tag": "#0VC0V2V908",
+              "name": "zebra",
               "battles": 71
             }
           ],
           "new_bests": {
             "items": [
               {
-                "tag": "#URPCLR8UQ",
-                "name": "x.x.hari.x.x",
+                "tag": "#0QLLUVPVL",
+                "name": "o.o.crab.o.o",
                 "best": 6087
               }
             ],
@@ -1326,8 +1326,8 @@
           "arena_promotions": {
             "items": [
               {
-                "tag": "#URPCLR8UQ",
-                "name": "x.x.hari.x.x",
+                "tag": "#0QLLUVPVL",
+                "name": "o.o.crab.o.o",
                 "arena": "Royal Crypt"
               }
             ],
@@ -1336,27 +1336,27 @@
           "ranked_promotions": {
             "items": [
               {
-                "tag": "#2G2RPVPP",
-                "name": "Aaqib Javed",
+                "tag": "#0UG2YYVY",
+                "name": "Happy Tiger",
                 "league": "Master 2"
               },
               {
-                "tag": "#PLCCYUQL",
-                "name": "TDuck",
+                "tag": "#0L990RRV",
+                "name": "Rapid",
                 "league": "Master 2"
               },
               {
-                "tag": "#VGC22YGP",
-                "name": "MONICA",
+                "tag": "#0990UQVG",
+                "name": "OSPREY",
                 "league": "Master 3",
-                "over": "jawad",
+                "over": "fleet",
                 "score": "2-1"
               },
               {
-                "tag": "#2G09Q20QC",
-                "name": "Kurd Paraw",
+                "tag": "#0VQ2VCVP2",
+                "name": "Glad Storm",
                 "league": "Master 2",
-                "over": "우리",
+                "over": "바람",
                 "score": "3-0"
               }
             ],
@@ -1365,28 +1365,28 @@
           "collection_levels": {
             "items": [
               {
-                "tag": "#JRVV9VC0C",
-                "name": "NOBITA",
+                "tag": "#0CC2QGGUU",
+                "name": "STURDY",
                 "level": 1365
               },
               {
-                "tag": "#2G2RPVPP",
-                "name": "Aaqib Javed",
+                "tag": "#0UG2YYVY",
+                "name": "Happy Tiger",
                 "level": 2140
               },
               {
-                "tag": "#2LRYLQPL",
-                "name": "Andy",
+                "tag": "#00J00U28",
+                "name": "Warm",
                 "level": 1451
               },
               {
-                "tag": "#229QY8UL9U",
+                "tag": "#00GGLLCLLQ",
                 "name": "Mega Goblin",
                 "level": 1365
               },
               {
-                "tag": "#VGC22YGP",
-                "name": "MONICA",
+                "tag": "#0990UQVG",
+                "name": "OSPREY",
                 "level": 1740
               }
             ],
@@ -1394,14 +1394,14 @@
           },
           "badges": [
             {
-              "tag": "#CV20JCY0V",
-              "name": "BigNorton",
+              "tag": "#08UJ89CQ9",
+              "name": "Butterfly",
               "count": 5,
               "names": ["MasteryMusketeer", "MasteryRage", "MasteryHeal"]
             },
             {
-              "tag": "#20GPQPC9RV",
-              "name": "bonus",
+              "tag": "#0VC0V2V908",
+              "name": "zebra",
               "count": 4,
               "names": [
                 "MasteryMiner",
@@ -1410,8 +1410,8 @@
               ]
             },
             {
-              "tag": "#UQ2R9RGVP",
-              "name": "Sandeep",
+              "tag": "#0QQLUJRY9",
+              "name": "Lantern",
               "count": 3,
               "names": [
                 "MasteryFirespiritHut",
@@ -1420,8 +1420,8 @@
               ]
             },
             {
-              "tag": "#VC8VY8R29",
-              "name": "nyje47",
+              "tag": "#02L2JV2QJ",
+              "name": "moth31",
               "count": 3,
               "names": [
                 "MasteryGoblinGang",
@@ -1430,8 +1430,8 @@
               ]
             },
             {
-              "tag": "#URPCLR8UQ",
-              "name": "x.x.hari.x.x",
+              "tag": "#0QLLUVPVL",
+              "name": "o.o.crab.o.o",
               "count": 3,
               "names": [
                 "MasteryGiant",
@@ -1443,9 +1443,9 @@
           "sessions": {
             "items": [
               {
-                "tag": "#VGC22YGP",
-                "name": "MONICA",
-                "player_tag": "#VGC22YGP",
+                "tag": "#0990UQVG",
+                "name": "OSPREY",
+                "player_tag": "#0990UQVG",
                 "started_at": "2026-09-15T15:44:19.000Z",
                 "ended_at": "2026-09-15T16:58:43.000Z",
                 "battles": 19,
@@ -1461,9 +1461,9 @@
                 "crossed": ["won_in_a_row>=5", "won_in_a_row>=10"]
               },
               {
-                "tag": "#URPCLR8UQ",
-                "name": "x.x.hari.x.x",
-                "player_tag": "#URPCLR8UQ",
+                "tag": "#0QLLUVPVL",
+                "name": "o.o.crab.o.o",
+                "player_tag": "#0QLLUVPVL",
                 "started_at": "2026-09-15T06:24:35.000Z",
                 "ended_at": "2026-09-15T06:52:20.000Z",
                 "battles": 6,
@@ -1479,9 +1479,9 @@
                 "crossed": ["won_in_a_row>=5"]
               },
               {
-                "tag": "#JYRQ8U92C",
-                "name": "sikander sidhu",
-                "player_tag": "#JYRQ8U92C",
+                "tag": "#0QRVVG22J",
+                "name": "flamingo crane",
+                "player_tag": "#0QRVVG22J",
                 "started_at": "2026-09-14T03:36:35.000Z",
                 "ended_at": "2026-09-14T05:01:00.000Z",
                 "battles": 21,
@@ -1497,9 +1497,9 @@
                 "crossed": ["trophy_net>=150", "battles>=20"]
               },
               {
-                "tag": "#JYRQ8U92C",
-                "name": "sikander sidhu",
-                "player_tag": "#JYRQ8U92C",
+                "tag": "#0QRVVG22J",
+                "name": "flamingo crane",
+                "player_tag": "#0QRVVG22J",
                 "started_at": "2026-09-14T09:46:47.000Z",
                 "ended_at": "2026-09-14T11:56:44.000Z",
                 "battles": 23,
@@ -1516,9 +1516,9 @@
                 "crossed": ["battles>=20"]
               },
               {
-                "tag": "#20GPQPC9RV",
-                "name": "bonus",
-                "player_tag": "#20GPQPC9RV",
+                "tag": "#0VC0V2V908",
+                "name": "zebra",
+                "player_tag": "#0VC0V2V908",
                 "started_at": "2026-09-16T00:02:47.000Z",
                 "ended_at": "2026-09-16T01:43:33.000Z",
                 "battles": 21,
@@ -1546,8 +1546,8 @@
           "week_total": 2069,
           "members_counted": 47,
           "leader": {
-            "tag": "#20R8QRLYLP",
-            "name": "Chanco",
+            "tag": "#0829VC9GG8",
+            "name": "Cheery",
             "given": 188
           },
           "as_of": "2026-09-16T02:33:43.000Z"

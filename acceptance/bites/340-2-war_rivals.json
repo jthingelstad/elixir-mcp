@@ -10,13 +10,13 @@
     "clan_tag": "#J2RGCRVG",
     "applied": {
       "clan_tag": "#J2RGCRVG",
-      "rival_tags": ["#YY20VJLU", "#QUGRGLU2", "#L0Y2CJ8J", "#G2P0PPGQ"],
+      "rival_tags": ["#00VJCQRG", "#00CJ099R", "#0J2JQVUR", "#0P0PCL0Q"],
       "source": "current_bracket"
     },
     "rivals": [
       {
-        "clan_tag": "#QUGRGLU2",
-        "name": "Happy Win",
+        "clan_tag": "#00CJ099R",
+        "name": "Llama Hen",
         "races_observed": 3,
         "finished_races": 2,
         "colosseum_races": 0,
@@ -35,8 +35,8 @@
         "points_vs_ours": 0.075
       },
       {
-        "clan_tag": "#L0Y2CJ8J",
-        "name": "Legend Royale",
+        "clan_tag": "#0J2JQVUR",
+        "name": "Sturdy Pebble",
         "races_observed": 3,
         "finished_races": 2,
         "colosseum_races": 0,
@@ -55,8 +55,8 @@
         "points_vs_ours": 0.019
       },
       {
-        "clan_tag": "#G2P0PPGQ",
-        "name": "De stichting",
+        "clan_tag": "#0P0PCL0Q",
+        "name": "Ox dragonfly",
         "races_observed": 3,
         "finished_races": 2,
         "colosseum_races": 0,
@@ -75,8 +75,8 @@
         "points_vs_ours": 0
       },
       {
-        "clan_tag": "#YY20VJLU",
-        "name": "Les champs",
+        "clan_tag": "#00VJCQRG",
+        "name": "Eel lively",
         "races_observed": 3,
         "finished_races": 2,
         "colosseum_races": 0,
