@@ -23,7 +23,7 @@
  *    an anchor or a hashtag that happens to spell over the alphabet
  *    (`#url`, `#color`) is not a tag; real tags are written in capitals.
  * 2. A keyed value: a JSON or JS key named `tag`, `*_tag` or `*Tag`
- *    (`"player_tag": "..."`, `clanTag: '...'`) whose string value passes
+ *    (`"player_tag": "..."`, `previous_player_tag`, `clanTag: '...'`) whose string value passes
  *    the repo's own `normalizeTag`, with or without its `#`. In that
  *    context the hex and lower-case exclusions do not apply: the key says
  *    it is a tag.
@@ -85,7 +85,7 @@ const BARE = new RegExp(
   "gi",
 );
 const KEYED =
-  /["']?\b(tag|[A-Za-z0-9]+_tag|[a-z][A-Za-z0-9]*Tag)\b["']?\s*:\s*["']([^"'\n]{3,16})["']/g;
+  /["']?\b(tag|\w+_tag|[a-z]\w*Tag)\b["']?\s*:\s*["']([^"'\n]{3,16})["']/g;
 const NON_HEX = /[PYLQGRJUVO]/i;
 
 function canonical(raw) {

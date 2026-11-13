@@ -390,7 +390,7 @@
     "services/web-api/test/battle-activity.test.mjs": 3,
     "services/web-api/test/battle-page.test.mjs": 1,
     "services/web-api/test/bell.test.mjs": 4,
-    "services/web-api/test/canvas-social.test.mjs": 4,
+    "services/web-api/test/canvas-social.test.mjs": 5,
     "services/web-api/test/cheers-rss.test.mjs": 1,
     "services/web-api/test/clan-feed.test.mjs": 4,
     "services/web-api/test/clan-lock.test.mjs": 4,

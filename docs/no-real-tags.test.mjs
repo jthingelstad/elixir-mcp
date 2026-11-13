@@ -64,6 +64,15 @@ test("a keyed value counts with or without its #, hex or not", () => {
     ["#0C2C8", "#0GRJCUV", "#0LUVR2", "#0Q2L8", "#0YY9P"].sort(),
   );
   assert.deepEqual([...tagsIn("{ tag: 'not a tag' }")], []);
+  // Codex on #882: a multi-word snake_case key, value without its #.
+  assert.deepEqual(
+    [...tagsIn('{"previous_player_tag":"0PYLQ2"}')],
+    ["#0PYLQ2"],
+  );
+  assert.deepEqual(
+    [...tagsIn('{"participant_clan_tag": "0LUVR2"}')],
+    ["#0LUVR2"],
+  );
 });
 
 test("the two named tags and the invented list are allowed", () => {
