@@ -6,9 +6,9 @@ export default {
   // manifest's: familyBar.wordmark, from packages/ui/src/family.json.
   url: "https://elixir.poapkings.com",
   mcpUrl: "https://elixir.poapkings.com/mcp",
-  tagline: "Clash Royale history, recorded.",
+  tagline: "The missing social layer of Clash Royale.",
   description:
-    "Your Clash Royale history, your friends and your clan, recorded for you to explore.",
+    "Elixir is the missing social layer of Clash Royale: follow your friends and your clan, see how they play, and cheer them on.",
   repo: "https://github.com/jthingelstad/elixir-mcp",
   family: "a POAP KINGS product",
   tinylyticsId: "Yzx8dUUvUPn9AEJpTMeU",

@@ -1,14 +1,17 @@
 # Elixir MCP
 
-Clash Royale history, recorded, and served to your own agent.
+Elixir is the missing social layer of Clash Royale: follow your friends and
+your clan, see how they play, and cheer them on.
 
-The Clash Royale API only answers "what is true right now": no trophy
-timelines, no battle archive beyond a rotating log of about 30 battles, no
-per-season history. Elixir MCP records those observations continuously and
-keeps them. It records the players and clans its accounts track and the
-members of the clans it tracks. The record is served on one origin: the
-Home, Stats and Elixir Clan in the browser, an authenticated remote MCP
-server for agents, and a versioned JSON API.
+Members follow players and clans and read a feed of their sessions, firsts
+and highlights on the web, with one digest email. Underneath is a record
+the official Clash Royale API does not keep: it answers only "what is true
+right now", with no trophy timelines, no battle archive beyond a rotating
+log of about 30 battles and no per-season history. Elixir's collectors
+record the players and clans its accounts follow and the members of the
+clans they follow, and keep those observations. The record is served on one
+origin: Home, Stats and Elixir Clan in the browser, an authenticated remote
+MCP server for a person's own agent, and a versioned JSON API.
 
 - Web: <https://elixir.poapkings.com>
 - MCP: `https://elixir.poapkings.com/mcp`

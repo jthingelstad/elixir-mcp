@@ -87,7 +87,7 @@ highest value seen in its game days (Monday 10:00 to Monday 10:00 UTC).
 Clash Royale does not publish a calendar. The river race resets once a day
 and the reset **drifts per race**: each race (the five clans matched into
 it) rolls at its own moment in the half hour before the nominal hour, and
-the moment differs from race to race. Elixir MCP therefore keeps one
+the moment differs from race to race. Elixir therefore keeps one
 **policy day** for every clan: the day rolls at **10:00 UTC**, the same hour
 the season rolls, and the recorder follows that one global grid rather than
 any race's drifted start. There is no per-clan war clock. One clock means

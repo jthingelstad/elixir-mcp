@@ -1,7 +1,7 @@
 ---
 slug: roles
 title: "Roles and quotas"
-description: "Roles never gate what you can read. Every active account reads all recorded game data; your role sets how much Elixir MCP records for you and how many tool calls you get per day."
+description: "Roles never gate what you can read. Every active account reads all recorded game data; your role sets how much Elixir records for you and how many tool calls you get per day."
 section: policy
 order: 30
 navTitle: "Roles"
@@ -79,7 +79,7 @@ fleet. No admin can change the owner's account, or another admin's.
 
 ## Three kinds of principal
 
-Not everything that calls Elixir MCP is a person.
+Not everything that calls Elixir is a person.
 
 **You** are a person. You sign in with your email and connect the apps you
 choose (Claude, ChatGPT and others) over OAuth; the tools answer about *your* players, your clans, your

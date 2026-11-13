@@ -1,7 +1,7 @@
 ---
 slug: operators
 title: "Running a collector"
-description: "A collector fetches Clash Royale data for Elixir MCP with your own API key and posts it back over HTTPS. No AWS access, no queues, two secrets. Anyone signed in may run one. What you need, how to enroll, and what it earns you."
+description: "A collector fetches Clash Royale data for Elixir with your own API key and posts it back over HTTPS. No AWS access, no queues, two secrets. Anyone signed in may run one. What you need, how to enroll, and what it earns you."
 section: build
 order: 4
 navTitle: "Run a collector"
@@ -13,10 +13,10 @@ callout: ["Open it at Settings › Collectors", "/settings/collectors", "Open Co
 # Running a collector
 
 A collector is a small program that fetches Clash Royale data for
-Elixir MCP with YOUR API key and posts the results back to us over
+Elixir with YOUR API key and posts the results back to us over
 HTTPS. It has **no AWS credentials, no cloud access, no queues**: it
 is a pure API client holding exactly two secrets: your Clash Royale
-key and the bearer token Elixir MCP issues you.
+key and the bearer token Elixir issues you.
 
 The fleet shares one rate budget; extra collectors add resilience, not
 quota.

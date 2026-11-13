@@ -14,14 +14,14 @@ callout: ["Open it at Settings › Players & following", "/settings/players", "O
 
 The official Clash Royale API answers only "what is true right now": a
 profile, a clan roster, and a battle log of roughly the last 30 battles
-(most commonly exactly 30). Elixir MCP records those readings
+(most commonly exactly 30). Elixir records those readings
 continuously and keeps them. This page is what that promise means precisely.
 
 
 ## The game's own "last seen"
 
 Clash Royale reports `lastSeen` for each member **inside a clan's member
-list only**, a player's own endpoint does not carry it. Elixir MCP records
+list only**, a player's own endpoint does not carry it. Elixir records
 it on every clan roster poll and serves it as `last_seen_in_game` on
 `players_profile` and on each `clans_roster` member.
 
@@ -162,7 +162,7 @@ it costs proportionally more to run: the member role has none, so
 `scope: "activity"` there.
 
 Players you follow are always recorded in full. A recorded player's current clan is
-also read for roster and membership tracking, a few times a day, following
+also read for its roster and membership, a few times a day, following
 the clan's own liveliness, without a slot and without polling the other
 members. When nobody follows that clan, the read keeps only what concerns
 the players you follow: their membership and role, their roster row, and the
@@ -211,7 +211,7 @@ make another player primary.
 Elixir follows your primary player's clan for you, at activity scope (its
 roster, its members coming and going, its river races), as soon as a read
 of your player's profile shows which clan they are in. That is what puts
-your clan's week in your Monday email. The rules:
+your clan's news in your digest. The rules:
 
 - **Only your primary.** An alt, a friend or a player you watch never
   brings their clan with them.

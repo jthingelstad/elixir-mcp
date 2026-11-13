@@ -1,50 +1,52 @@
 ---
 slug: about
 title: "About Elixir"
-description: "Elixir records Clash Royale history for you, your friends and your clan, so you can explore it, follow what happens and run your clan. Connect your own AI agent over MCP when you want to bring the record into a conversation."
+description: "Elixir is the missing social layer of Clash Royale: follow your friends and your clan, see how they play, and cheer them on. What it is, how you use it, what feeds it, and who runs it."
 section: start
 order: 1
 navTitle: "Welcome"
 icon: info
-lede: "Your Clash Royale history, your friends and your clan, kept for you to explore."
-reviewed: "2026-10-12 who writes the words; 2026-10-02 recorder scope, contract 11.0.0"
+lede: "Follow your friends and your clan, see how they play, and cheer them on."
+reviewed: "2026-11-13 the social layer first; 2026-10-12 who writes the words"
 callout: ["Open it at Status and data", "/data", "Status and data"]
 ---
 
 # About Elixir
 
-Elixir is a **Clash Royale recorder** for players and clans who enjoy the
-game and want to keep their history. Record yourself, follow your friends,
-and keep your clan's weeks: explore what happened, learn from your own
-play, and run the clan with its history in front of you.
+Elixir is the missing social layer of Clash Royale: follow your friends and
+your clan, see how they play, and cheer them on.
 
-The focus is recording what you and the people you follow do, sending
-notifications about that record, making it available to your agents, and
-giving you a dashboard where you can explore what happened. Your primary,
-alt, friend and watching relationships organize the players you follow.
+Clash Royale is played mostly alone. You can add someone as a friend in the
+game, but it does not show you their battles or let you celebrate what they
+did. In Elixir you follow the players you care about, and their sessions,
+their firsts and the battles they are proud of come to one feed on
+[Home](/home), newest first, with your own play in it. You cheer an item
+with one of six cheers, and highlight a battle of your own with a few words
+about it. Your clan is a group of friends too: follow it to see its week,
+and if you lead it, run it on a policy in [Clan](/clan). One digest email
+brings the people you follow and your clan's news to your inbox, weekly or
+daily, so you keep up even when you do not open the website.
 
-The Clash Royale API only answers "what is true right now": your last
-~30 battles, your current trophies. Elixir reads continuously,
-stores every battle once (no matter how many members saw it),
-derives daily readings, war records, and timeline moments from the stream, and
-makes the record available on [Stats](/home/you/stats), in [Clan](/clan), and in
-[emails](/docs/email) about your play and the people you follow. Keeping you
-up to date is part of the service, even when you do not open the website.
-Add your player and the first read usually lands within a minute,
-with roughly those last 30 battles; everything after is recorded as it
-happens, and your player's clan is followed for you.
+**How you use it:** sign in, add your player tag, follow a few people and
+choose your digest. The [Quickstart](/docs/quickstart) walks it through.
+Everything inside needs an account; a highlight someone shares, or a battle
+link someone sends, opens without one.
 
-You can also connect your own AI agent through MCP and bring the same
-record into a conversation: *"how has my ladder win rate trended since I
-swapped Cannon for Musketeer?"* is a real, answerable question here. MCP is
-one way to use Elixir; you do not need an agent to use the recorder.
+**What feeds it:** the Clash Royale API only answers "what is true right
+now": your last ~30 battles, your current trophies. Elixir reads
+continuously through its [collectors](/docs/operators), stores every battle
+once (no matter how many members saw it), and derives daily readings, war
+records and timeline moments from the stream. Following a player is what
+starts recording them ([Recording and coverage](/docs/recording)). The same
+record is your season in [Stats](/home/you/stats), your clan's week in
+[Clan](/clan), and the facts behind every feed item and digest.
 
-**How you use it:** verify your email, add your player tag, adding *is*
-recording, there is no separate opt-in. Open your record, follow a friend,
-or bring your clan. To connect an agent, use
-`https://elixir.poapkings.com/mcp` with Claude or another MCP client. The
-[Quickstart](/docs/quickstart) walks it through; search, in the
-top bar, opens the recorded facts directly.
+You can also connect your own AI agent through MCP and bring that record
+into a conversation: *"how has my ladder win rate trended since I swapped
+Cannon for Musketeer?"* is a real, answerable question here. An agent is
+optional; you do not need one to use Elixir. Connect it at
+`https://elixir.poapkings.com/mcp` with Claude or another MCP client
+([Connect a client](/docs/connect-a-client)).
 
 **Who runs it:** this is a hobby service operated by Jamie Thingelstad
 for the POAP KINGS clan and friends. It is free, and no paid version is

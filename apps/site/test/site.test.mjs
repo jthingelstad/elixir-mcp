@@ -1558,6 +1558,28 @@ test(
       doc.querySelector("h1").textContent,
       /Keep up with your friends in Clash Royale/,
     );
+    // The front-door sentence (Jamie, 2026-11-12: "The public story opens
+    // with the social layer"), first in the lede, the title and the meta.
+    const front =
+      "Elixir is the missing social layer of Clash Royale: follow your friends and your clan, see how they play, and cheer them on.";
+    assert.ok(
+      doc
+        .querySelector(".home-lede")
+        .textContent.replace(/\s+/g, " ")
+        .trim()
+        .startsWith(front),
+      "the lede opens with the front-door sentence",
+    );
+    assert.equal(
+      doc.querySelector("title").textContent,
+      "The missing social layer of Clash Royale - Elixir",
+    );
+    assert.ok(
+      doc
+        .querySelector('meta[name="description"]')
+        .getAttribute("content")
+        .startsWith(front),
+    );
     const art = doc.querySelector(".home-art img");
     assert.equal(art.getAttribute("src"), "/assets/elixir-logo-288.webp");
     assert.ok(existsSync(path.join(out, "assets/elixir-logo-288.webp")));

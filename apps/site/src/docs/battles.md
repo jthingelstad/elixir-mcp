@@ -21,7 +21,7 @@ level gaps and coverage limits are read is on [How the numbers are made](/docs/m
 ## What a battle record holds
 
 A battle is **one row, seen from both sides**. The game's battle log shows a
-battle from the player whose log it is; Elixir MCP records both logs when it
+battle from the player whose log it is; Elixir records both logs when it
 has them and folds them into one `battle_id` (a SHA-256 of the canonical
 battle time, the sorted participant tags and the battle class), so the same
 battle read from two logs is one record with two perspectives. `battles_query`
