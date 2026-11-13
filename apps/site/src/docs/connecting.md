@@ -51,7 +51,7 @@ Refusals:
 
 | Case | Status | Body | Header |
 |---|---|---|---|
-| No `Authorization: Bearer` | 401 | `{"error":"invalid_token"}` | `WWW-Authenticate: Bearer resource_metadata="<issuer>/.well-known/oauth-protected-resource[<door path>]", scope="cr:read recordings:write account:write feedback:write"` |
+| No `Authorization: Bearer` | 401 | `{"error":"invalid_token"}` | `WWW-Authenticate: Bearer resource_metadata="<issuer>/.well-known/oauth-protected-resource[<door path>]", scope="cr:read follows:write account:write feedback:write"` |
 | Unknown, expired, revoked, or suspended credential, or an OAuth token at a door it was not issued for | 401 | same | same |
 | Valid key (`svt_`) at a door not its own | 403 | `{"error":"wrong_resource","message":"This credential is not for <resource>.","hint":"…"}` | none |
 | Tool needs a scope the token lacks | 403 | JSON-RPC error `-32003` (below) | `WWW-Authenticate: Bearer error="insufficient_scope", scope="<granted + required>", resource_metadata="…"` |
@@ -80,7 +80,7 @@ the call log.
   "code_challenge_methods_supported": ["S256"],
   "token_endpoint_auth_methods_supported": ["none", "client_secret_post"],
   "revocation_endpoint_auth_methods_supported": ["none", "client_secret_post"],
-  "scopes_supported": ["cr:read", "recordings:write", "account:write", "feedback:write", "account:email", "clans:attest"]
+  "scopes_supported": ["cr:read", "follows:write", "account:write", "feedback:write", "account:email", "clans:attest"]
 }
 ```
 
@@ -91,7 +91,7 @@ the call log.
 {
   "resource": "https://elixir.poapkings.com/mcp",
   "authorization_servers": ["https://elixir.poapkings.com"],
-  "scopes_supported": ["cr:read", "recordings:write", "account:write", "feedback:write", "account:email", "clans:attest"],
+  "scopes_supported": ["cr:read", "follows:write", "account:write", "feedback:write", "account:email", "clans:attest"],
   "bearer_methods_supported": ["header"]
 }
 ```
@@ -105,7 +105,7 @@ client asks for is granted; every other standard capability is a checkbox the
 person decides on the consent page**, and a client that names no scope asks
 for `cr:read` alone. On a person's own connection the checkboxes start
 unticked; on an agent or integration every write starts ticked except
-`recordings:write`, which spends the owner's following slots. Each box
+`follows:write`, which spends the owner's following slots. Each box
 says what the connection cannot do without it, and unticking one that started
 ticked asks for confirmation, naming what will not work, before the grant is
 made. What you tick is added to the grant, so a person can allow
@@ -228,11 +228,16 @@ grant. Refreshing never widens scope.
 | Scope | Grants | Tools that need it |
 |---|---|---|
 | `cr:read` | every read tool, `live_fetch`, and `elixir_timeline` (moving your read pointer is a bookmark, not an account change) | all others |
-| `recordings:write` | follow or stop following players and clans | `elixir_follow_player`, `elixir_follow_clan` |
+| `follows:write` | follow or stop following players and clans | `elixir_follow_player`, `elixir_follow_clan` |
 | `account:write` | private nicknames for the players you follow | `elixir_nickname` |
 | `feedback:write` | file attributed feedback | `elixir_send_feedback` |
 | `account:email` | read the account's email address at `/oauth/userinfo` (and `GET /api/v1/me`); granted only to the Elixir family's own apps | no tool; see below |
 | `clans:attest` | record what you do in your clan as [attested facts](/docs/integrations#attested-facts) (`POST /api/v1/clans/{tag}/facts`); granted only to the Elixir family's own apps, when they ask for it | no tool |
+
+`follows:write` was named `recordings:write` until 12.1.0. The old name
+is still accepted: a client may still ask for it and is granted
+`follows:write`, and every connection and key made with it keeps working
+with no new consent.
 
 Canonical order is the order above. A call to a tool outside the token's
 scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
@@ -240,9 +245,9 @@ scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
 ```json
 { "jsonrpc": "2.0", "id": 7,
   "error": { "code": -32003,
-    "message": "The access token lacks the capability required by this tool: recordings:write.",
-    "data": { "required_scope": "recordings:write", "granted_scope": "cr:read",
-              "hint": "Reconnect this client and tick 'recordings:write' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Settings, Connections & agents, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read." } } }
+    "message": "The access token lacks the capability required by this tool: follows:write.",
+    "data": { "required_scope": "follows:write", "granted_scope": "cr:read",
+              "hint": "Reconnect this client and tick 'follows:write' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Settings, Connections & agents, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read." } } }
 ```
 
 The challenge's `scope` is the granted set plus the missing one, so a client

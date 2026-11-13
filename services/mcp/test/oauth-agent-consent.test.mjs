@@ -454,7 +454,7 @@ test("an agent's writes start ticked but tracking; unticking one asks first, and
     );
   assert.match(
     emailStep.body,
-    /name="grant" value="recordings:write">/,
+    /name="grant" value="follows:write">/,
     "tracking spends the owner's slots: unticked",
   );
   const code = sentEmails.at(-1).code;

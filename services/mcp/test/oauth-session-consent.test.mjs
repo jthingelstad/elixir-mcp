@@ -181,7 +181,7 @@ test("a signed-in browser consents in one POST, with no email step and no mail",
   // unticked on a person's own connection (Jamie 2026-09-24).
   assert.match(
     page.body,
-    /<input type="checkbox" name="grant" value="recordings:write">/,
+    /<input type="checkbox" name="grant" value="follows:write">/,
   );
 
   const mailBefore = sentEmails.length;

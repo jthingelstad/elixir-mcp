@@ -23,7 +23,7 @@ of Elixir and uses your Elixir session directly.
 
 | App | Where | Asks for |
 |---|---|---|
-| Elixir Drop | [drop.poapkings.com](https://drop.poapkings.com) | `cr:read`, `recordings:write` and `account:email` |
+| Elixir Drop | [drop.poapkings.com](https://drop.poapkings.com) | `cr:read`, `recordings:write` (the old name of `follows:write`) and `account:email` |
 
 Drop is a **family app**: a client Elixir provisioned itself, with a
 secret it sends at `/oauth/token` (`client_secret_post`), and every return
@@ -102,7 +102,7 @@ is no OpenID Connect: no ID token. Who the person is comes from
 | Scope | What the page says | Who can ask |
 |---|---|---|
 | `cr:read` | Read recorded game data | any app; always included |
-| `recordings:write` | Change what you follow | any app |
+| `follows:write` | Change who you follow | any app |
 | `account:write` | Update account preferences | any app |
 | `feedback:write` | Send feedback | any app |
 | `account:email` | Know your email address | family apps only |

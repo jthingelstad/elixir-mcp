@@ -16,7 +16,9 @@
 
 export const OAUTH_SCOPE = {
   READ: "cr:read",
-  RECORDINGS_WRITE: "recordings:write",
+  /** Named recordings:write until 2026-11-13 ("follow, never track");
+   *  the old name is still accepted, see LEGACY_OAUTH_SCOPES. */
+  FOLLOWS_WRITE: "follows:write",
   ACCOUNT_WRITE: "account:write",
   FEEDBACK_WRITE: "feedback:write",
   /** The one scope that is never offered unless asked for (2026-09-12):
@@ -50,7 +52,7 @@ export const OAUTH_SCOPE_DETAILS: ReadonlyArray<{
     standard: true,
   },
   {
-    scope: OAUTH_SCOPE.RECORDINGS_WRITE,
+    scope: OAUTH_SCOPE.FOLLOWS_WRITE,
     title: "Change who you follow",
     description:
       "Follow or stop following players and clans for you. Each player or clan followed uses one of your slots.",
@@ -96,6 +98,14 @@ export const STANDARD_OAUTH_SCOPES: readonly OAuthScope[] =
     ({ scope }) => scope,
   );
 export const DEFAULT_OAUTH_SCOPE: OAuthScope = OAUTH_SCOPE.READ;
+
+/** Old scope names still accepted wherever a scope is read: a client's
+ *  request, a consent form, a stored grant, code or key. Each maps to the
+ *  name it became; storage is never rewritten, so every grant and token
+ *  made under the old name keeps working with no re-consent (2026-11-13). */
+export const LEGACY_OAUTH_SCOPES: Readonly<Record<string, OAuthScope>> = {
+  "recordings:write": OAUTH_SCOPE.FOLLOWS_WRITE,
+};
 
 /** What a client that asks for nothing in particular gets (1.0.0): every
  *  capability, ticked on the consent page where the person can untick any
@@ -155,14 +165,14 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Follow a player",
     readOnly: false,
     destructive: true,
-    oauthScope: OAUTH_SCOPE.RECORDINGS_WRITE,
+    oauthScope: OAUTH_SCOPE.FOLLOWS_WRITE,
   },
   elixir_follow_clan: {
     group: "Account",
     title: "Follow a clan",
     readOnly: false,
     destructive: true,
-    oauthScope: OAUTH_SCOPE.RECORDINGS_WRITE,
+    oauthScope: OAUTH_SCOPE.FOLLOWS_WRITE,
   },
   elixir_nickname: {
     group: "Account",

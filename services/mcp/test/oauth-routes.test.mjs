@@ -97,7 +97,7 @@ test("discovery documents are well-formed and cacheable", async () => {
   assert.equal(meta.revocation_endpoint, `${ISSUER}/oauth/revoke`);
   assert.deepEqual(meta.scopes_supported, [
     "cr:read",
-    "recordings:write",
+    "follows:write",
     "account:write",
     "feedback:write",
     "account:email",
@@ -111,7 +111,7 @@ test("discovery documents are well-formed and cacheable", async () => {
   assert.deepEqual(prMeta.authorization_servers, [ISSUER]);
   assert.deepEqual(prMeta.scopes_supported, [
     "cr:read",
-    "recordings:write",
+    "follows:write",
     "account:write",
     "feedback:write",
     "account:email",
@@ -192,7 +192,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   // connection cannot do without it (Jamie 2026-09-24).
   assert.match(
     emailStep.body,
-    /<input type="checkbox" name="grant" value="recordings:write">/,
+    /<input type="checkbox" name="grant" value="follows:write">/,
     "on a person's connection a write starts unticked",
   );
   assert.match(emailStep.body, /Unticked, it will not be able to follow/);
@@ -378,8 +378,8 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
     `select count from rate_limit where bucket like 'mcp#%' order by window_start desc limit 1`,
   );
   const requiredScopes = {
-    elixir_follow_clan: "recordings:write",
-    elixir_follow_player: "recordings:write",
+    elixir_follow_clan: "follows:write",
+    elixir_follow_player: "follows:write",
     elixir_send_feedback: "feedback:write",
     elixir_nickname: "account:write",
   };
@@ -505,7 +505,7 @@ test("consent enumerates every requested mutation capability", async () => {
           .update("s".repeat(43))
           .digest("base64url"),
         code_challenge_method: "S256",
-        scope: "feedback:write account:write cr:read recordings:write",
+        scope: "feedback:write account:write cr:read follows:write",
         resource: RESOURCE,
       },
     }),
@@ -761,7 +761,7 @@ test("an unknown OAuth access token is refused with 401 and a challenge, never 5
   );
   assert.match(
     response.headers["www-authenticate"],
-    /scope="cr:read recordings:write account:write feedback:write"/,
+    /scope="cr:read follows:write account:write feedback:write"/,
   );
   const { rows } = await db.query(
     `select 1 from credential_refusal where credential_hash = $1`,

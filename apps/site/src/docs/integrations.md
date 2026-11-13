@@ -32,7 +32,7 @@ Agents use MCP. Programs use the **JSON API at
   capability is offered to the family's own apps only; see
   [Signing a person in](/docs/connecting#signing-a-person-in-with-elixir)).
   `POST /api/v1/me/players` follows a player for the signed-in person, the
-  JSON API's `elixir_follow_player`, and needs `recordings:write` on the
+  JSON API's `elixir_follow_player`, and needs `follows:write` on the
   grant. A person's read operations answer with the structured result of
   the Elixir tool they mirror, the same fields as its outputSchema on the
   [tools page](/docs/tools), without the agent response cap:

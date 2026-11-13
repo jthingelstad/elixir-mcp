@@ -66,10 +66,10 @@ is still recorded, and its first read comes with the scheduler's next round.
 
 | Act | Tool | Web | Scope needed |
 |---|---|---|---|
-| Record a player | `elixir_follow_player({ player_tag, relationship?, action? })` | Settings › Players & following | `recordings:write` |
-| Record a clan | `elixir_follow_clan({ clan_tag, scope?, action? })` | Settings › Players & following | `recordings:write` |
-| Stop | the same tools with `action: "remove"` | same | `recordings:write` |
-| Silence the feed without stopping | `action: "notify_off"` / `"notify_on"` | same | `recordings:write` |
+| Record a player | `elixir_follow_player({ player_tag, relationship?, action? })` | Settings › Players & following | `follows:write` |
+| Record a clan | `elixir_follow_clan({ clan_tag, scope?, action? })` | Settings › Players & following | `follows:write` |
+| Stop | the same tools with `action: "remove"` | same | `follows:write` |
+| Silence the feed without stopping | `action: "notify_off"` / `"notify_on"` | same | `follows:write` |
 
 Slots are the only gate; see [Limits](/docs/limits).
 
