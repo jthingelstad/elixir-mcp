@@ -69,6 +69,9 @@ export function createAwardsService({
   // 2.6.0, on the integration key with facts:write); none, none shared.
   elixir = null,
   now = () => Date.now(),
+  /** Runs `fn` holding the clan's lock, as the manage service's: grants,
+   *  plans, award Actions and the snapshot change only inside it. */
+  exclusive = (_clanTag, fn) => fn(),
 }) {
   const isLeader = (who) => LEADERS.has(who.role);
   const { raiseAction, withdrawAction } = createActionStore({ ledger, now });
@@ -342,7 +345,12 @@ export function createAwardsService({
     };
   }
 
-  /** Evaluate the record (or reuse a fresh snapshot) and write grants due. */
+  /**
+   * Evaluate the record (or reuse a fresh snapshot) and write grants due.
+   * The record is read outside the clan's lock; grants, plans and the
+   * snapshot are read again and written inside it (`exclusive`). A
+   * snapshot from an evaluation that started later is taken as it is.
+   */
   async function evaluateClan({ clanTag, token, force = false }) {
     const t = now();
     const config = await configFor(clanTag);
@@ -363,6 +371,22 @@ export function createAwardsService({
     await noteClanSize(ledger, clanTag, participation.members.length, t);
     if (participation.members.length < MIN_MEMBERS)
       throw tooFewMembers(participation.members.length);
+    return exclusive(clanTag, async () => {
+      // The document as it is now: a save while the record was read wins.
+      const current = await configFor(clanTag);
+      const latest = await ledger.latestAwardsSnapshot(clanTag);
+      if (
+        latest &&
+        latest.config_version === current.version &&
+        Date.parse(latest.evaluated_at) > t
+      )
+        return { result: latest, config: current, cached: true };
+      return applyAwards(clanTag, participation, current, t);
+    });
+  }
+
+  /** The locked half: grants due against the ledger as it is now. */
+  async function applyAwards(clanTag, participation, config, t) {
     const grants = await ledger.grants(clanTag);
     const result = evaluateAwards({
       participation,
