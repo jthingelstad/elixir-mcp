@@ -403,6 +403,56 @@ test("rate limit: counts within the hourly window", async () => {
   );
 });
 
+test("rate limit: asks that truly overlap each take their own count (#972)", async () => {
+  // Every door's sign-in mail ceiling is this counter. The overlap is
+  // forced, not timed: one transaction holds the bucket's row, the
+  // contenders queue on its lock (seen in pg_stat_activity), and only
+  // then is it released. A check-then-write counter lets every contender
+  // read the same count here; the one-statement upsert cannot.
+  const bucket = "auth#race-972";
+  const now = Date.now();
+  const max = 3;
+  const contenders = 5;
+  const holder = new pg.Client({ connectionString: URL });
+  const clients = Array.from(
+    { length: contenders },
+    () => new pg.Client({ connectionString: URL }),
+  );
+  await Promise.all([holder, ...clients].map((c) => c.connect()));
+  try {
+    await holder.query("begin");
+    assert.equal(await checkRateLimit(holder, { bucket, max, now }), true);
+    const pids = (
+      await Promise.all(clients.map((c) => c.query("select pg_backend_pid()")))
+    ).map((r) => r.rows[0].pg_backend_pid);
+    const answers = Promise.all(
+      clients.map((c) => checkRateLimit(c, { bucket, max, now })),
+    );
+    for (let waiting = 0; waiting < contenders;) {
+      ({
+        rows: [{ waiting }],
+      } = await db.query(
+        `select count(*)::int as waiting from pg_stat_activity
+         where pid = any($1) and wait_event_type = 'Lock'`,
+        [pids],
+      ));
+      if (waiting < contenders) await new Promise((r) => setTimeout(r, 20));
+    }
+    await holder.query("commit");
+    const allowed = await answers;
+    assert.equal(allowed.filter(Boolean).length, max - 1);
+    assert.equal(allowed.filter((ok) => !ok).length, contenders - (max - 1));
+    const {
+      rows: [row],
+    } = await db.query("select count from rate_limit where bucket = $1", [
+      bucket,
+    ]);
+    assert.equal(row.count, contenders + 1);
+  } finally {
+    await Promise.all([holder, ...clients].map((c) => c.end()));
+  }
+});
+
 // --------------------------------------------------------------- #29
 test("a role change cannot ride authorization that went stale mid-flight", async () => {
   const TARGET = emailHash("race-target@example.com");
