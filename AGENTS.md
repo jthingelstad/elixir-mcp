@@ -174,6 +174,16 @@ Developer and agent pages (protocol, tools, the JSON API, operators) stay
 plain and precise rather than playful. Legal lines (the unofficiality
 notice, privacy, terms) change only with Jamie's word.
 
+## Real tags
+
+No real player's tag in code, tests, fixtures, docs or pull requests,
+except King Thing #20JJJ2CCRU and POAP KINGS #J2RGCRVG: many players are
+minors. Invent one over the alphabet `0289PYLQGRJCUV`, starting `#0`, and
+add it to `docs/invented-tags.json`. `docs/no-real-tags.test.mjs` fails
+when a file gains a tag that is none of these (the captured ones already
+here are counted in `docs/no-real-tags.baseline.json` and may only fall;
+`node infra/scripts/no-real-tags.mjs --update` lowers it).
+
 ## Working style
 
 - **A session is one worktree, one branch, one pull request.** The main
