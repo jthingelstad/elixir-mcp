@@ -13,7 +13,12 @@
  *
  *   docs         - every field the response's docs section names, in
  *                  backticks, is on some response of the tool this run
- *                  (the Gym's I7: documented but not served)
+ *                  (the Gym's I7: documented but not served), or is
+ *                  declared vocabulary (an enum, a word or an `x_*`
+ *                  family an argument describes); and, for a tool that
+ *                  filters by `kinds`, every kind its responses carried
+ *                  is documented. Never that every documented kind
+ *                  appeared this run: that is the day's data.
  *
  *  Allowances (tokens a note or a doc uses as prose, or a field that is
  *  conditional by design) live in catalogue-allow.json with a reason
@@ -78,6 +83,60 @@ export function describedWords(schema, out = new Set()) {
         describedWords(x, out);
   }
   return out;
+}
+
+/** The open families an argument's description declares: "or an
+ *  account_* kind" gives the prefix `account_`. A doc naming
+ *  `account_feedback_responded` names a member of a declared family,
+ *  whether or not this run's account had one in its window. */
+export function declaredFamilies(schema, out = new Set()) {
+  if (!schema || typeof schema !== "object") return out;
+  if (typeof schema.description === "string")
+    for (const m of schema.description.matchAll(
+      /(?<![a-z0-9_])([a-z][a-z0-9]*(?:_[a-z0-9]+)*)_\*/g,
+    ))
+      out.add(`${m[1]}_`);
+  for (const k of ["properties", "items", "anyOf", "oneOf"]) {
+    const v = schema[k];
+    if (Array.isArray(v)) for (const x of v) declaredFamilies(x, out);
+    else if (v && typeof v === "object")
+      for (const x of k === "properties" ? Object.values(v) : [v])
+        declaredFamilies(x, out);
+  }
+  return out;
+}
+
+const inFamily = (families, t) =>
+  [...families].some((p) => t.length > p.length && t.startsWith(p));
+
+/** The kinds a response's items carry: an item names its `kind` and the
+ *  shape its facts follow, `schema` as `<kind>/<version>`. */
+export function carriedKinds(value, out = new Set()) {
+  if (Array.isArray(value)) for (const v of value) carriedKinds(v, out);
+  else if (value && typeof value === "object") {
+    if (
+      typeof value.kind === "string" &&
+      typeof value.schema === "string" &&
+      value.schema.startsWith(`${value.kind}/`)
+    )
+      out.add(value.kind);
+    for (const v of Object.values(value)) carriedKinds(v, out);
+  }
+  return out;
+}
+
+/** Every name a docs page sets in backticks, single words included
+ *  (`returned`), and the families it names with a trailing `_*`. */
+export function docsNames(markdown) {
+  const names = new Set();
+  const families = new Set();
+  for (const m of String(markdown ?? "").matchAll(
+    /`([a-z][a-z0-9_]*?)(_\*)?`/g,
+  )) {
+    if (m[2]) families.add(`${m[1]}_`);
+    else names.add(m[1]);
+  }
+  return { names, families };
 }
 
 /** Every enum value any argument of a tool declares (metrics names,
@@ -288,6 +347,7 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
           ...Object.keys(ALLOW.docs ?? {}),
         ]);
         const toolNames = await allToolNames(ctx);
+        const families = declaredFamilies(ctx.tools.get(tool)?.inputSchema);
         const { keys: everyKey, values: everyValue } = seenSoFar(ctx);
         const missing = [...docsTokens(doc.markdown)].filter(
           (t) =>
@@ -295,6 +355,7 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
             !everyValue.has(t) &&
             !allArgs.has(t) &&
             !allEnums.has(t) &&
+            !inFamily(families, t) &&
             !toolNames.has(t) &&
             !VOCABULARY.has(t) &&
             !allow.has(t),
@@ -303,6 +364,23 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
           missing.length === 0,
           `${pointer} documents ${missing.join(", ")} and no response this run carried it`,
         );
+        // The other direction, for a tool that filters by kind: every
+        // kind a response carried is one its docs name, by itself or by
+        // a family (`account_*`). Never that every documented kind
+        // appeared: which kinds a window holds is the day's data.
+        if (ctx.tools.get(tool)?.inputSchema?.properties?.kinds) {
+          const docs = docsNames(doc.markdown);
+          const carried = new Set();
+          for (const { body } of bodies.get(tool) ?? [])
+            carriedKinds(body, carried);
+          const undocumented = [...carried].filter(
+            (k) => !docs.names.has(k) && !inFamily(docs.families, k),
+          );
+          ok(
+            undocumented.length === 0,
+            `${tool} carried kind ${undocumented.join(", ")} and ${pointer} does not document it`,
+          );
+        }
       },
     });
   }

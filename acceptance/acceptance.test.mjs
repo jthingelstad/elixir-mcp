@@ -143,6 +143,84 @@ test("docs audit distinguishes conditional output vocabulary from unserved field
   await assert.rejects(() => audit.run(ctx), /invented_missing_field/);
 });
 
+test("docs audit of kinds holds on any day: declared, never required to appear", async () => {
+  const markdown = [
+    "| `kind` | what |",
+    "| `battle_session` | a sitting |",
+    "| `returned` | back after a break |",
+    "| `account_*` | your account: answers (`account_feedback_responded`) |",
+  ].join("\n");
+  // The window holds one sitting: no account item, no `returned`.
+  let body = {
+    docs: "feed",
+    timeline: [
+      {
+        kind: "battle_session",
+        schema: "battle_session/2",
+        subjects: [{ kind: "player" }],
+      },
+    ],
+  };
+  const ctx = {
+    tools: new Map([
+      [
+        "feed_tool",
+        {
+          inputSchema: {
+            properties: {
+              kinds: {
+                type: "array",
+                description:
+                  "Keep only items of these kinds: battle_session, returned, or an account_* kind.",
+              },
+            },
+          },
+        },
+      ],
+    ]),
+    allTools: new Set(["feed_tool"]),
+    cache: new Map(),
+    read: async (tool) =>
+      tool === "elixir_docs" ? { body: { markdown }, ms: 1 } : { body, ms: 1 },
+  };
+  const run = async () => {
+    ctx.cache = new Map([["feed", { body }]]);
+    const c = buildCatalogueCases({
+      tools: { feed_tool: { sets: [{ args: {} }], p95_ms: 1 } },
+    });
+    await c.find((x) => x.id === "feed_tool#0").run(ctx);
+    return c.find((x) => x.id === "feed_tool#docs").run(ctx);
+  };
+  // A documented account kind no response carried is declared vocabulary.
+  await run();
+  // A carried kind the docs name only by family is documented.
+  body = {
+    ...body,
+    timeline: [
+      ...body.timeline,
+      { kind: "account_role_changed", schema: "account_role_changed/1" },
+    ],
+  };
+  await run();
+  // A carried kind the docs never name fails.
+  body = {
+    ...body,
+    timeline: [
+      ...body.timeline,
+      { kind: "invented_moment", schema: "invented_moment/1" },
+    ],
+  };
+  await assert.rejects(run, /carried kind invented_moment/);
+  // A documented kind outside every declared family still fails.
+  body = { docs: "feed", timeline: [] };
+  const withStray = markdown + "\nAlso `invented_kind_name`.";
+  ctx.read = async (tool) =>
+    tool === "elixir_docs"
+      ? { body: { markdown: withStray }, ms: 1 }
+      : { body, ms: 1 };
+  await assert.rejects(run, /documents invented_kind_name/);
+});
+
 function fakeDoor(answers) {
   const fetchImpl = async (_url, init) => {
     const req = JSON.parse(init.body);
