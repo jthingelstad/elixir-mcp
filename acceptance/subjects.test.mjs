@@ -16,6 +16,7 @@ import {
   KINDS,
   mask,
   PICKS,
+  pickRow,
   placeholdersIn,
   redact,
   reportSubjects,
@@ -453,6 +454,145 @@ test("a pick reads one position of its answer; a position holding no tag is a re
     (await resolvePlaceholder(down, "$RIVAL_1")).reason,
     /did not answer/,
   );
+});
+
+// Four invented members for the where picks: tags sort A < B < C < D.
+const MEMBER_A = "#0PCCRG";
+const MEMBER_B = "#0PCRRY";
+const MEMBER_C = "#0PGJYL";
+const MEMBER_D = "#0PLV2Q";
+
+const WEEK_PICK = {
+  what: "a test week",
+  tool: "war_history",
+  args: { season_id: 1, section_index: 0 },
+  pick: "member_weeks[1].player_tag",
+  where: { decks_used: 4, points: 350 },
+};
+const week = (...rows) => ({
+  member_weeks: rows.map(([player_tag, decks_used, points]) => ({
+    player_tag,
+    decks_used,
+    points,
+  })),
+});
+
+test("a where pick keeps its position while the row still holds the frozen values", () => {
+  // MEMBER_D matches too, but the positional row is never traded away.
+  const body = week(
+    [MEMBER_D, 4, 350],
+    [MEMBER_B, 4, 350],
+    [MEMBER_A, 12, 900],
+  );
+  assert.deepEqual(pickRow(body, "$MEMBER_9", WEEK_PICK), { tag: MEMBER_B });
+});
+
+test("a where pick follows its row when a rename or a departure moves it", () => {
+  const moved = week([MEMBER_C, 4, 350], [MEMBER_A, 12, 900]);
+  assert.deepEqual(pickRow(moved, "$MEMBER_9", WEEK_PICK), { tag: MEMBER_C });
+  // A nested key reads the row the way a case's path does.
+  const nested = {
+    members: [
+      { player_tag: MEMBER_A, delta: { donations: 5 } },
+      { player_tag: MEMBER_B, delta: { donations: 9 } },
+    ],
+  };
+  const spec = {
+    ...WEEK_PICK,
+    pick: "members[0].player_tag",
+    where: { "delta.donations": 9 },
+  };
+  assert.deepEqual(pickRow(nested, "$MEMBER_9", spec), { tag: MEMBER_B });
+});
+
+test("a where pick with no matching row, or several and no tie rule, is a reason", () => {
+  const gone = week([MEMBER_A, 12, 900], [MEMBER_B, 8, 1600]);
+  assert.match(
+    pickRow(gone, "$MEMBER_9", WEEK_PICK).reason,
+    /no row of member_weeks holds/,
+  );
+  const two = week(
+    [MEMBER_A, 12, 900],
+    [MEMBER_B, 8, 1600],
+    [MEMBER_D, 4, 350],
+    [MEMBER_C, 4, 350],
+  );
+  const why = pickRow(two, "$MEMBER_9", WEEK_PICK).reason;
+  assert.match(why, /row 1 of member_weeks no longer holds/);
+  assert.match(why, /2 rows do/);
+  assert.match(pickRow({}, "$MEMBER_9", WEEK_PICK).reason, /is not a list/);
+  assert.match(
+    pickRow(two, "$MEMBER_9", { ...WEEK_PICK, pick: "a[0].b[1].c" }).reason,
+    /needs a pick like/,
+  );
+});
+
+test("ties: tag takes the lowest tag among several matching rows, whatever their order", () => {
+  const spec = { ...WEEK_PICK, ties: "tag" };
+  const one = week(
+    [MEMBER_A, 12, 900],
+    [MEMBER_B, 8, 1600],
+    [MEMBER_D, 4, 350],
+    [MEMBER_C, 4, 350],
+  );
+  const other = week(
+    [MEMBER_C, 4, 350],
+    [MEMBER_A, 12, 900],
+    [MEMBER_D, 4, 350],
+  );
+  assert.deepEqual(pickRow(one, "$MEMBER_9", spec), { tag: MEMBER_C });
+  assert.deepEqual(pickRow(other, "$MEMBER_9", spec), { tag: MEMBER_C });
+});
+
+test("a committed where pick resolves through its read", async () => {
+  const name = Object.keys(PICKS).find((n) => PICKS[n].where);
+  const spec = PICKS[name];
+  const [rowsPath, field] = [
+    spec.pick.split("[")[0],
+    spec.pick.split(".").pop(),
+  ];
+  const ctx = tableCtx({
+    [spec.tool]: {
+      [rowsPath]: [{ [field]: MEMBER_A }, { [field]: MEMBER_B, ...spec.where }],
+    },
+  });
+  assert.deepEqual(await resolvePlaceholder(ctx, name), { tag: MEMBER_B });
+  assert.deepEqual(ctx.reads, [[spec.tool, spec.args]]);
+});
+
+test("every where value is one a Gym case asserts on that row of the same read", () => {
+  const gym = JSON.parse(
+    readFileSync(new URL("./gym.json", import.meta.url), "utf8"),
+  );
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  for (const [name, spec] of Object.entries(PICKS)) {
+    if (!spec.where) {
+      assert.equal(spec.ties, undefined, `${name}: ties without where`);
+      continue;
+    }
+    if (spec.ties !== undefined) assert.equal(spec.ties, "tag", name);
+    const rowsPath = spec.pick.split("[")[0];
+    const field = spec.pick.split(".").pop();
+    const asserted = new Map();
+    for (const c of gym) {
+      if (c.tool !== spec.tool || !same(c.args, spec.args)) continue;
+      for (const a of c.assert ?? []) {
+        const [p, v] = a.eq ?? [];
+        const prefix = `${rowsPath}[?${field}=${name}].`;
+        if (typeof p !== "string" || !p.startsWith(prefix)) continue;
+        const key = p.slice(prefix.length);
+        if (asserted.has(key))
+          assert.equal(asserted.get(key), v, `${name}.${key}: cases disagree`);
+        asserted.set(key, v);
+      }
+    }
+    for (const [key, want] of Object.entries(spec.where))
+      assert.equal(
+        asserted.get(key),
+        want,
+        `${name}.${key}: no case asserts ${want}`,
+      );
+  }
 });
 
 test("a placeholder inside a string is replaced whole; in a pattern it is escaped", () => {
