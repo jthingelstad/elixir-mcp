@@ -15,7 +15,7 @@ const race = (w) => seasonWeek(w);
 function Head({ id, title, counted, children }) {
   return (
     <div className="panel__head flex-wrap gap-2">
-      <h3 id={id} className="m-0 grow text-[14px] font-semibold">
+      <h3 id={id} className="kit-panel__title grow">
         {title}
       </h3>
       {counted === false ? (

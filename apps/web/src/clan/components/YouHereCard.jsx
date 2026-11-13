@@ -167,7 +167,7 @@ export function HowYouAreDoing({ d, base, navigate }) {
 export function CardHead({ id, title, children }) {
   return (
     <div className="panel__head flex-wrap gap-2">
-      <h3 id={id} className="m-0 grow text-[14px] font-semibold">
+      <h3 id={id} className="kit-panel__title grow">
         {title}
       </h3>
       {children}

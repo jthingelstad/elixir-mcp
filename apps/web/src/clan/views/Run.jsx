@@ -224,15 +224,13 @@ function Elsewhere({ clan, who, slug, navigate }) {
         />
         <section className="panel" aria-label="Actions in Discord">
           <div className="panel__body grid gap-3">
-            <h3 className="m-0 text-[14px] font-semibold">
-              Actions in Discord
-            </h3>
+            <h3 className="kit-panel__title">Actions in Discord</h3>
             <DiscordSetting clan={clan} />
           </div>
         </section>
         <section className="panel" aria-label="Activity channel">
           <div className="panel__body grid gap-3">
-            <h3 className="m-0 text-[14px] font-semibold">Activity channel</h3>
+            <h3 className="kit-panel__title">Activity channel</h3>
             <p className="page-head__note m-0">
               The clan&rsquo;s activity, posted as short stories.
             </p>
@@ -272,9 +270,7 @@ function Elsewhere({ clan, who, slug, navigate }) {
       </section>
       <section className="panel" aria-label="Recording and visibility">
         <div className="panel__head">
-          <h3 className="m-0 grow text-[14px] font-semibold">
-            Recording and visibility
-          </h3>
+          <h3 className="kit-panel__title grow">Recording and visibility</h3>
           <span className="page-head__note font-normal">
             Read only, always on
           </span>

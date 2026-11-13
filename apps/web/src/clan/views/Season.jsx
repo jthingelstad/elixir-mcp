@@ -149,7 +149,7 @@ function WarList({ area, clan, navigate }) {
   return (
     <Panel aria-labelledby="season-war">
       <div className="panel__head">
-        <h3 id="season-war" className="m-0 grow text-[14px] font-semibold">
+        <h3 id="season-war" className="kit-panel__title grow">
           War decks and points
         </h3>
       </div>
@@ -533,7 +533,7 @@ function WholeSeason({ s, current }) {
       </Tiles>
       <Panel>
         <div className="panel__head">
-          <h3 id="season-races" className="m-0 grow text-[14px] font-semibold">
+          <h3 id="season-races" className="kit-panel__title grow">
             Race by race
           </h3>
           <span className="page-head__note font-normal">

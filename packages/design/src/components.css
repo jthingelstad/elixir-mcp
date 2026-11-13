@@ -8465,7 +8465,8 @@ a.kit-mbattle:hover {
 }
 /* Clan ▸ Members since G6 (2026-11-12): one page, no row of pages. The
    find sits above the roster, a page under it goes back with one link,
-   and its two foot sections are flat: a heading and a rule, no box. */
+   and its two foot sections are flat: a heading and space, no box and,
+   since 2026-11-13, no rule. */
 .clan-members-find {
   margin-bottom: 12px;
 }
@@ -8486,9 +8487,7 @@ a.kit-mbattle:hover {
 .clan-foot {
   display: grid;
   gap: 10px;
-  margin-top: 28px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
+  margin-top: 32px;
 }
 .clan-foot__head {
   margin: 0;

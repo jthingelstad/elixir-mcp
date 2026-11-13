@@ -277,10 +277,7 @@ export function Review({ clan, navigate, who }) {
             className="mb-4 scroll-mt-4 overflow-hidden"
           >
             <div className="panel__head flex-wrap gap-2">
-              <h3
-                id={`board-${bucket}-title`}
-                className="m-0 text-[14px] font-semibold"
-              >
+              <h3 id={`board-${bucket}-title`} className="kit-panel__title">
                 {label}
               </h3>
               <span className="chip">
@@ -302,7 +299,7 @@ export function Review({ clan, navigate, who }) {
       {count("clear") ? (
         <Panel id="board-clear" className="mb-4 scroll-mt-4">
           <div className="panel__head">
-            <h3 className="m-0 text-[14px] font-semibold">
+            <h3 className="kit-panel__title">
               Clear, {count("clear")} {noun(count("clear"), "member")}
             </h3>
           </div>
