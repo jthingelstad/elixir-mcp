@@ -25,6 +25,8 @@ import {
 } from "../src/hooks/useFirstAnswer.js";
 import { ConnectionQuestions } from "../src/components/ConnectionQuestions.jsx";
 import { App } from "../src/App.jsx";
+// The route chunks compile while this file loads, not inside a wait.
+import "./warm-routes.js";
 
 // Two of these tests render the whole App, routes and all, from a cold
 // module graph. Under a loaded machine (a full verify beside a deploy's
@@ -119,7 +121,14 @@ test(
           };
           break;
         default:
-          throw new Error(`unmocked request: ${path}`);
+          // An answer, not a throw: a throw is a transport failure, which
+          // the query client retries after a real 1.5 s, inside this
+          // test's waits or, after cleanup, inside the next test's fetch.
+          return {
+            ok: false,
+            status: 404,
+            text: async () => JSON.stringify({ error: `unmocked ${path}` }),
+          };
       }
       return { ok: true, text: async () => JSON.stringify(data) };
     });

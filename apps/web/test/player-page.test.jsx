@@ -15,6 +15,8 @@ import {
   within,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
+// The route chunks compile while this file loads, not inside a wait.
+import "./warm-routes.js";
 import { followPlanLine } from "../src/home/follow.jsx";
 import {
   followMeHref,
