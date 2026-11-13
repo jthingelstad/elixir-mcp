@@ -295,10 +295,14 @@ const BAND_WORDS = {
 /** A moment's medal: violet for a card's first, gold for the rest. */
 const VIOLET = new Set(["card_unlocked", "card_form_unlocked"]);
 
+/** The facts a moment names its proving battle under, in the feed's order
+ *  (services/web-api/src/feed.mjs PROOFS). */
+const PROOFS = ["promoted_by", "crossed_by", "best_win"];
+
 /** A moment's battle, as its line under the moment (canvas .mbattle): the
  *  result and score when the record names them, and one way in. */
 function MomentBattle({ it }) {
-  const by = it.facts?.promoted_by ?? null;
+  const by = PROOFS.map((k) => it.facts?.[k]).find((p) => p?.battle_id) ?? null;
   const known =
     by &&
     typeof by.crowns === "number" &&
@@ -320,7 +324,7 @@ function MomentBattle({ it }) {
             {by.crowns}-{by.crowns_against}
             {by.opponent?.name ? (
               <>
-                {" over "}
+                {won ? " over " : " against "}
                 <TagText>{by.opponent.name}</TagText>
               </>
             ) : null}
