@@ -82,6 +82,7 @@ const MIGRATE_READS = {
   poll_state: anyArgs,
   backends: anyArgs,
   retention_dry_run: (v) => v === true,
+  visibility_check: (v) => v === true,
   // Read in one shape, a write in every other.
   ledger: (v) => v === true || exactly(v, { op: "dead" }),
   account_role: (v) => exactly(v, { list: true }),

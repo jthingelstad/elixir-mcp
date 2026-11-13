@@ -11,6 +11,7 @@ import {
   listBackends,
 } from "./deck-backfill.mjs";
 import { migrate } from "./migrate.mjs";
+import { visibilityCheck } from "./vacuum.mjs";
 import { explainTimeline } from "./ops-activity.mjs";
 import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
 import { profileRead, profileTool } from "./ops-profile.mjs";
@@ -94,16 +95,20 @@ export function opName(event) {
  * 2026-09-27 every service connected as one user with no name, and
  * query text was the only handle on an orphan.
  */
-export async function handler(event) {
+export async function handler(event, context) {
   process.env.PGAPPNAME = `${APP_NAME}:${opName(event)}`;
   try {
-    return await dispatch(event);
+    return await dispatch(event, context);
   } finally {
     process.env.PGAPPNAME = APP_NAME;
   }
 }
 
-async function dispatch(event) {
+/** What the ladder keeps back from the Lambda's own timeout for the
+ *  answer and the connection close after its vacuums. */
+const LAMBDA_MARGIN_MS = 30_000;
+
+async function dispatch(event, context) {
   if (Object.hasOwn(event?.card_roles_import ?? {}, "preview"))
     return {
       error: "invalid_reference_preview",
@@ -229,6 +234,13 @@ async function dispatch(event) {
   }
   if (event?.vacuum) {
     const result = await vacuum(process.env.DATABASE_URL, event.vacuum);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.visibility_check) {
+    // Read only: the tables whose visibility map or statistics are
+    // behind, each with the {vacuum} that fixes it (vacuum.mjs).
+    const result = await visibilityCheck(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }
@@ -598,10 +610,16 @@ async function dispatch(event) {
     return refused;
   }
   const here = path.dirname(fileURLToPath(import.meta.url));
+  const remaining = context?.getRemainingTimeInMillis?.();
   const result = await migrate({
     databaseUrl: process.env.DATABASE_URL,
     migrationsDir: path.join(here, "migrations"),
     log: (m) => console.log(m),
+    // The `-- vacuum after:` tables may run until the Lambda's own end,
+    // less a margin; each vacuum is also capped by the runner's budget.
+    ...(Number.isFinite(remaining)
+      ? { vacuumDeadline: Date.now() + remaining - LAMBDA_MARGIN_MS }
+      : {}),
   });
   console.log(JSON.stringify(result));
   return result;

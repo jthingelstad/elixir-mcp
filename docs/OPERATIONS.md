@@ -415,13 +415,24 @@ Sample real values against the game.
   `remaining` count through `npm run op`, each invocation under the lock,
   inside 45 s of budget so it stays under the 90 s alarm; stop when the
   lock is held (exit 3) and resume after.
-- **Vacuum after a large rewrite.** A bulk write empties the table's
-  visibility map (`relallvisible = 0`) and index-only scans fall back to
-  the heap until a vacuum runs; HOT updates never trip autovacuum. A
-  backfill that does not vacuum is not finished: finish with
-  `npm run op -- '{"vacuum": {"table": "<table>"}}'` (WRITE) on each
-  table it touched and read `relallvisible` before and after. Never run a
-  backfill and a deploy together.
+- **Vacuum after a large rewrite.** A bulk write or a VACUUM FULL
+  empties the table's visibility map (`relallvisible = 0`) and index-only
+  scans fall back to the heap until a vacuum runs; HOT updates never trip
+  autovacuum, and a VACUUM FULL resets nothing the insert trigger counts.
+  It hit twice: 2026-09-16 (a HOT backfill, Clan pages at 8 s) and
+  2026-11-13 (the data layer refactor's rewrites; `clans_participation`
+  at 10 to 22 s cold, failing the acceptance gate six times, 387 ms after
+  `{vacuum}`). A backfill that does not vacuum is not finished: the
+  ladder vacuums what a migration declares (`-- vacuum after:`),
+  `{rewrite_table}` and `{read_facts_backfill}` vacuum their own tables,
+  and any other bulk write finishes with
+  `npm run op -- '{"vacuum": {"table": "<table>"}}'` (WRITE; any ordinary
+  public table) on each table it touched, reading `relallvisible` before
+  and after. Every deploy reads `{visibility_check}` (read-only) after
+  smoke and prints `WARNING: <table>: ...` with that command for each
+  table of 500 pages or more under half all-visible, or never analyzed;
+  run each once the deploy has released the lock. Never run a backfill
+  and a deploy together.
 - **Card arrays (0255, contracted in 0256).** A participant's, a duel
   round's and a deck's cards live only as arrays on the row that owns
   them (`battle_participant`, `battle_participant_round`, `deck`), and
@@ -624,6 +635,10 @@ layer transitions while Elixir has only beta users, 2026-11-12).
   healthy.
 - **Space.** VACUUM FULL writes a new copy of the live rows and indexes
   before it drops the old files, so free storage must hold that copy.
+- **The map.** The new copy has an empty visibility map, so the op ends
+  with a plain VACUUM (ANALYZE) (`vacuumed` in its answer, at most 45 s);
+  if that was skipped or failed, run the `{vacuum}` it names before the
+  next deploy's acceptance.
 - **Order.** One table per invocation, smallest first, reading
   `freed_bytes` after each. Submits ingest inline, so a rewrite of a
   table they write makes them wait and retry; past the 90 s lease the

@@ -16,6 +16,9 @@ that alters a table live traffic uses opens with
 -- <What this does not do and where that lives ("history is filled by
 -- the migrate op {x}, not here"; "readers move once it reports done"),
 -- and the lock it takes and why that is safe.>
+--
+-- vacuum after: <each table it updates, deletes from, fills by
+--   insert-select or rewrites; omit the line when it writes no rows>
 
 set local lock_timeout = '5s';
 
@@ -36,7 +39,8 @@ stamps it ships in the same deploy. Re-pin the fingerprint.
 1. Migration: the column, nullable, no default.
 2. The writer (usually ingest) stamps it from the same deploy on.
 3. After the deploy: the backfill op, to `done` (below).
-4. `{vacuum: {table}}` on every table it wrote.
+4. The op vacuums every table it wrote when it reports `done` (or
+   `{vacuum: {table}}` by hand on each).
 5. The readers move, as their own change.
 6. If it should be NOT NULL, the three steps below.
 
@@ -147,8 +151,11 @@ The anatomy:
 - **A test** in `services/migrate/test/` on a scratch database: seed, run
   with a tiny batch, assert it resumes by cursor and that a re-run
   writes nothing.
-- **Vacuumable.** A table it writes that `VACUUMABLE` lacks joins the
-  list in the same change.
+- **Vacuumed.** When it reports `done`, the op vacuums what it wrote
+  (`vacuumAnalyze` from `src/vacuum.mjs`, as `{read_facts_backfill}`
+  does), inside what is left of the Lambda's 300 s, and answers
+  `vacuumed`. `{vacuum}` takes any ordinary public table, so there is no
+  list to join.
 
 Run it after the deploy, never beside one: by hand, passing `after`
 back, or with a driver loop. Then `{vacuum}`. Then retire it (b01fc4bb).

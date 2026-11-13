@@ -8,7 +8,7 @@
  * bundle is pushed ahead of the flip, so a failed migration stops the
  * deploy before any code changes) -> vocabulary import -> stack update
  * -> the endpoint grant -> site publish, invalidation and prune ->
- * smoke -> acceptance when asked -> the deploy record and its PR
+ * smoke -> the visibility check -> acceptance when asked -> the deploy record and its PR
  * comments. Each phase says when it runs: on --create the stack comes
  * first and migrations run after it; when no Lambda bundle and not the
  * template changed, the SITE lane skips the migrate push, the
@@ -79,6 +79,7 @@ import {
   parseDeployArgs,
 } from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
+import { runVisibilityCheck } from "./lib/visibility-check.mjs";
 import {
   acceptanceCost,
   headroomVerdict,
@@ -224,6 +225,13 @@ async function runMigrations(d, functionName) {
   if (invoked.FunctionError)
     throw new DeployExit(1, `MIGRATE FAILED: ${JSON.stringify(migrateResult)}`);
   console.error(`migrations: ${JSON.stringify(migrateResult)}`);
+  // The ladder's `-- vacuum after:` step never fails it; a vacuum that
+  // failed or did not fit is a warning with the op that finishes it.
+  for (const v of migrateResult?.vacuumed ?? [])
+    if (v.error || v.skipped)
+      console.warn(
+        `WARNING: the vacuum after the migrations did not finish ${v.table} (${v.error ?? v.skipped}); after the deploy run: ${v.command ?? `npm run op -- '${JSON.stringify({ vacuum: { table: v.table } })}'`}`,
+      );
 }
 
 const platformUpdate = (d) => !d.isCreate && d.lane === "platform";
@@ -1030,6 +1038,23 @@ export const DEPLOY_PHASES = [
           1,
           "SMOKE FAILED - the stack deployed but the doors misbehave.",
         );
+    },
+  },
+  {
+    // The visibility check (2026-11-13): the migrate Lambda's read-only
+    // {visibility_check} names each table whose visibility map is mostly
+    // empty or that was never analyzed, with the {vacuum} that fixes it.
+    // battle_participant and battle sat at relallvisible = 0 after the
+    // data layer refactor and failed the acceptance gate six times, the
+    // second time that trap hit. Before acceptance, so a warning sits
+    // above the slow read it explains. It warns, never writes, never
+    // fails the deploy (lib/visibility-check.mjs).
+    name: "visibility",
+    async run(d) {
+      await (d.runVisibilityCheck ?? runVisibilityCheck)(
+        d.lambda,
+        d.outputs?.MigrateFunctionName ?? "elixir-mcp-migrate",
+      );
     },
   },
   {
