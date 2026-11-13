@@ -3,7 +3,7 @@
  * the record's age and one step, Verify, then Clan, then a friend,
  * hidden from 28 days. Facts and a link; nothing about play.
  */
-import { test, expect, vi, beforeEach } from "vitest";
+import { test, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, screen } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { YOUNG_RECORD_DAYS, youngRecord } from "../src/ladder/ladder.js";
@@ -95,6 +95,10 @@ beforeEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
+// Unmount before the file ends: the last test's clans read could still be
+// in flight, and React finishing it after jsdom is gone threw "window is
+// not defined" as an unhandled error (seen in verify, 2026-11-13).
+afterEach(cleanup);
 
 test("renders the record's age and Verify for an unverified player", async () => {
   clansAnswer([]);
@@ -147,6 +151,7 @@ test("draws nothing once the record is 28 days old", async () => {
   const { container } = renderWithProviders(
     <YoungRecord player={player} summary={summary(old)} />,
   );
+  await vi.waitFor(() => expect(global.fetch).toHaveBeenCalled());
   await new Promise((r) => setTimeout(r, 0));
   expect(container.innerHTML).toBe("");
 });
