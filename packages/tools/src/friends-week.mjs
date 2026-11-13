@@ -20,13 +20,13 @@ import { buildTimeline, subjectsFor } from "./activity/entries.mjs";
 import { deckIdentities } from "./tools/shared.mjs";
 import { clanSummaryParts, itemText } from "./activity/summary.mjs";
 
-/** The big firsts the digest tells one by one (Jamie, 2026-10-08,
- *  chose them for the milestone mail, retired 2026-11-12): a new arena
+/** The big firsts the digest and Home's Friends tell one by one (Jamie,
+ *  2026-10-08, chose them for the milestone mail, retired 2026-11-12): a new arena
  *  or league, a new best trophy band, a new Evolution or Hero form, the
  *  career milestones, career wins and Collection Level steps, and a
  *  legendary badge. Card unlocks and badge levels (card_unlocked,
  *  badge_earned) are only counted (progressOf). */
-export const MILESTONE_MAIL_KINDS = new Set([
+export const BIG_FIRST_KINDS = new Set([
   "arena_changed",
   "ranked_promotion",
   "best_trophies_band",
@@ -81,7 +81,7 @@ async function tryTool(callTool, ctx, name, args) {
  *  read off the timeline's own entry for the player, so the count is the
  *  entry's (every badge level-up, every card unlocked), never a second
  *  derivation. Null when there were none. A legendary badge is not
- *  counted: it is a big first, told on its own (MILESTONE_MAIL_KINDS),
+ *  counted: it is a big first, told on its own (BIG_FIRST_KINDS),
  *  like an arena. */
 export function progressOf(entry) {
   const unlocked = entry?.collection?.unlocked;
@@ -126,7 +126,7 @@ const CARD_CAP = 10;
  *  badges had crowded out everything else. The timeline itself is
  *  unchanged; this is the mail choosing what it says. */
 const MOMENT_KINDS = new Set([
-  ...MILESTONE_MAIL_KINDS,
+  ...BIG_FIRST_KINDS,
   "clan_joined",
   "clan_left",
   "returned",

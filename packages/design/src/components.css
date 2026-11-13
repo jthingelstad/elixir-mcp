@@ -329,10 +329,8 @@ html[data-session="in"] [data-session-face="out"] {
 /* Wide, the column runs the page's height and what is in it sticks
    (2026-10-20): it starts under the top bar, stays in view as the page
    scrolls, and scrolls on its own when it is taller than the window.
-   It fills the column on a short page, so the foot keeps its place at
-   the bottom; on a long one it is the window's height less the top bar
-   (56px and its rule), so the foot is in view before the first scroll
-   and stays there. */
+   It fills the column on a short page; on a long one it is the
+   window's height less the top bar (56px and its rule). */
 .rail__pin {
   position: sticky;
   top: 0;
@@ -345,17 +343,7 @@ html[data-session="in"] [data-session-face="out"] {
   overscroll-behavior: contain;
   padding: 20px 12px 0;
 }
-/* A rail taller than its pin scrolls under the foot, which keeps to the
-   pin's lower edge, so Send feedback is in reach on any window. The
-   pin's bottom space is its last child's, so nothing shows below a
-   foot that has stuck. */
-.rail__pin > .rail__foot {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  padding-bottom: 12px;
-  background: var(--ground-chrome);
-}
+/* The pin's bottom space is its last child's. */
 .rail__pin > :last-child {
   padding-bottom: 28px;
 }
@@ -436,31 +424,6 @@ html[data-session="in"] [data-session-face="out"] {
   box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.22);
 }
 
-/* A settings rail's way back to its console, above the head. */
-.rail__back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 10px 6px;
-  font-size: 13.5px;
-}
-
-/* The line at the rail's foot: a place ("Send feedback") or an action
-   ("Sign out of Elixir"), below a rule, pinned to the bottom. */
-.rail__foot {
-  margin-top: auto;
-  padding-top: 12px;
-}
-.rail__item--foot {
-  width: 100%;
-  border: 0;
-  font: inherit;
-  font-size: 13.5px;
-  color: var(--ink-faint);
-  text-align: left;
-  cursor: pointer;
-}
-
 @media (max-width: 900px) {
   /* The rail becomes a disclosure ABOVE the content — never a drawer over
      it. The closed row names the section and where you are in it. */
@@ -475,10 +438,6 @@ html[data-session="in"] [data-session-face="out"] {
     max-height: none;
     overflow: visible;
     padding: 0;
-  }
-  .rail__pin > .rail__foot {
-    position: static;
-    padding-bottom: 0;
   }
   .rail__pin > :last-child {
     padding-bottom: 0;
@@ -496,9 +455,6 @@ html[data-session="in"] [data-session-face="out"] {
     padding: 0 11px;
     color: var(--ink);
     text-align: left;
-  }
-  .rail__foot {
-    margin-top: 8px;
   }
 }
 
@@ -5737,13 +5693,6 @@ a.card-art:hover .card-art__img {
 @media (max-width: 900px) {
   .page__title {
     font-size: 24px;
-  }
-  .rail__toggle {
-    background: transparent;
-  }
-  .rail__toggle {
-    border: 1px solid transparent;
-    background: var(--control);
   }
   .settings-row {
     gap: 12px;

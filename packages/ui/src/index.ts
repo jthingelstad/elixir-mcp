@@ -72,13 +72,7 @@ export { isPlainClick, Link, NavigateProvider } from "./Link.tsx";
 export { Markdown, renderMarkdown } from "./Markdown.tsx";
 export { Spark, type SparkPoint } from "./Spark.tsx";
 export { splitTags, Tag, TagText } from "./Tag.tsx";
-export {
-  Rail,
-  type RailDot,
-  type RailItem,
-  type RailFoot,
-  type RailSub,
-} from "./Rail.tsx";
+export { Rail, type RailDot, type RailItem } from "./Rail.tsx";
 export {
   ago,
   agoExact,

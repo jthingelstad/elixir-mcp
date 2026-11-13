@@ -235,11 +235,14 @@ export function unsubscribeHeaders(
 /** Staff notices. The approval era's three (`access_request`,
  *  `approved_welcome`, `role_upgrade_request`) retired on 2026-11-12 with
  *  the request form, Admin's Requests and tier requests ("Approval-era and
- *  retired code goes"). */
+ *  retired code goes"). `gateway_silent` is the jobs sweep's notice of a
+ *  collector that stopped checking in (services/jobs, fleet.mjs); until
+ *  2026-11-13 it was missing here, so the relay dropped it as invalid. */
 export const OWNER_NOTIFY_KINDS = [
   "feedback",
   "gateway_request",
   "gateway_quarantined",
+  "gateway_silent",
 ] as const;
 export type OwnerNotifyKind = (typeof OWNER_NOTIFY_KINDS)[number];
 

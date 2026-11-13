@@ -7,7 +7,7 @@
  *  2. app secret elixir-mcp/app: db_password + session_secret generated
  *     URL-SAFE here (the password rides a postgres:// URL in Lambda env),
  *     never through a terminal or agent. Later keys (buttondown_api_token)
- *     are added by secret-add-keys.mjs.
+ *     are added by Jamie in the console (docs/SECRETS.md).
  *
  * It creates no IAM principal and writes no credential: collectors hold
  * no AWS identity at all (docs/COLLECTOR-ZERO-TRUST.md) and enroll at the

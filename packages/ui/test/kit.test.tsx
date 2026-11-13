@@ -336,7 +336,7 @@ describe("Stats", () => {
 describe("Avatar", () => {
   test("initials from a name: two words' first letters, else its first two", () => {
     expect(avatarInitials("POAP KINGS")).toBe("PK");
-    expect(avatarInitials("TyTheTitan")).toBe("TY");
+    expect(avatarInitials("ZappyZebra")).toBe("ZA");
     expect(avatarInitials("rosa_rumble")).toBe("RR");
     expect(avatarInitials("")).toBe("?");
   });

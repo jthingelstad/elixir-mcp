@@ -10,6 +10,7 @@ import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { silentSince } from "../../../packages/ingest/src/fleet.mjs";
 import { sweepSilentCollectors } from "../src/fleet.mjs";
 import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
+import { validateEmailMessage } from "@elixir-mcp/contracts";
 
 let ctx;
 let account;
@@ -97,6 +98,8 @@ test("the sweep tells the owner once per silence, and again after a heartbeat", 
   const hog = sent.find((m) => m.detail.collector === "Hog Rider");
   assert.equal(hog.kind, "owner_notify");
   assert.equal(hog.notify_kind, "gateway_silent");
+  // The relay validates before it sends: a notice it refuses is dropped.
+  assert.deepEqual(validateEmailMessage(hog), { ok: true, msg: hog });
   assert.match(
     hog.note,
     /has not checked in since 2026-09-18T01:00:00.000Z \(40 h\)/,

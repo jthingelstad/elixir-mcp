@@ -31,10 +31,7 @@
  *  is no mail (never an empty week). */
 import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import { itemText } from "@elixir-mcp/tools/activity/summary";
-import {
-  MILESTONE_MAIL_KINDS,
-  progressOf,
-} from "@elixir-mcp/tools/friends-week";
+import { BIG_FIRST_KINDS, progressOf } from "@elixir-mcp/tools/friends-week";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 
 /** The items a digest tells: a highlight (the player's post), the big
@@ -46,7 +43,7 @@ import { battleLinks } from "@elixir-mcp/record/battle-links";
  *  facts never enter mail. [engineering, 2026-11-12] */
 const DIGEST_KINDS = new Set([
   "battle_highlight",
-  ...MILESTONE_MAIL_KINDS,
+  ...BIG_FIRST_KINDS,
   "clan_joined",
   "clan_left",
   "returned",
