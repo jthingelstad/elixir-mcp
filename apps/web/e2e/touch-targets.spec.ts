@@ -19,12 +19,36 @@ test.use({
   isMobile: true,
 });
 
+/** The page as it will stay: fonts in, no panel still loading, and the
+ *  viewport as tall as the page (every control on screen at once). A read
+ *  that lands after the first measure makes the page taller, and a tap 20px
+ *  below the last footer row would fall outside the viewport. */
+async function settle(page: Page) {
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
+  const frame = () =>
+    page.evaluate(
+      () =>
+        new Promise<number>((done) =>
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
+              done(document.documentElement.scrollHeight),
+            ),
+          ),
+        ),
+    );
+  let height = await frame();
+  for (let i = 0; i < 10; i++) {
+    await page.setViewportSize({ width: 390, height: Math.min(height, 12000) });
+    const now = await frame();
+    if (now === height) return;
+    height = now;
+  }
+  throw new Error("the page kept changing height");
+}
+
 async function misses(page: Page) {
-  // Every control on screen at once: the viewport as tall as the page.
-  const height = await page.evaluate(
-    () => document.documentElement.scrollHeight,
-  );
-  await page.setViewportSize({ width: 390, height: Math.min(height, 12000) });
+  await settle(page);
   return page.evaluate(() => {
     const sel =
       "a[href], button, input:not([type=hidden]), select, textarea, [role=tab], [role=switch], summary, label:has(input)";
