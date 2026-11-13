@@ -44,3 +44,9 @@ export {
   CLAN_ACTIVITY_PURPOSE,
   WEBHOOK_PURPOSE,
 } from "./seal.mjs";
+export {
+  highlightClanDiscord,
+  highlightPostContent,
+  highlightPostKey,
+  postHighlightToClan,
+} from "./highlight-share.mjs";

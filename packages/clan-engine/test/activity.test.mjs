@@ -46,11 +46,16 @@ test("a leader's departure answer belongs to members; leaders-only and noise nev
 test("no policy: nothing can be on", () => {
   const p = activityPolicy(null);
   assert.equal(p.ready, false);
-  assert.deepEqual(activityCategories({ members: true, war: true }, null), {
-    members: false,
-    milestones: false,
-    war: false,
-  });
+  assert.deepEqual(
+    activityCategories({ members: true, war: true, highlights: true }, null),
+    { members: false, milestones: false, war: false, highlights: false },
+  );
+});
+
+test("shared highlights are off by default; a leader's switch turns them on (#767)", () => {
+  assert.equal(activityPolicy({}).defaults.highlights, false);
+  assert.equal(activityCategories({}, {}).highlights, false);
+  assert.equal(activityCategories({ highlights: true }, {}).highlights, true);
 });
 
 test("the policy's war intent sets war's default and can rule it out", () => {
@@ -79,6 +84,7 @@ test("the policy's war intent sets war's default and can rule it out", () => {
       members: false,
       milestones: true,
       war: true,
+      highlights: false,
     },
   );
 });

@@ -56,6 +56,15 @@ export const ACTIVITY_CATEGORIES = {
     why: "The week's bracket, the boat crossing the finish line, and how the week finished.",
     kinds: ["bracket_observed", "race_finished", "week_resolved"],
   },
+  // Social slice 9 (#767): a member's shared highlight, posted here only
+  // by that member's own act on the battle page, never from the timeline,
+  // so it names no kinds. Off until a leader turns it on: the channel is
+  // the leaders', and a member's words reach it only when they say so.
+  highlights: {
+    label: "Shared highlights",
+    why: "A member's highlight of one of their battles, with their words, when they choose to post it here. Off until a leader turns it on.",
+    kinds: [],
+  },
 };
 
 export const ACTIVITY_CATEGORY_KEYS = Object.keys(ACTIVITY_CATEGORIES);
@@ -84,7 +93,12 @@ export function activityPolicy(values) {
   if (!values)
     return {
       ready: false,
-      defaults: { members: false, milestones: false, war: false },
+      defaults: {
+        members: false,
+        milestones: false,
+        war: false,
+        highlights: false,
+      },
       ruled_out: {},
     };
   const intent = values.war_intent ?? "unknown";
@@ -100,6 +114,8 @@ export function activityPolicy(values) {
       // On only when the leaders say the clan takes part; not specified
       // is off until a leader turns it on.
       war: intent === "participating",
+      // A member's own words in the leaders' channel: theirs to allow.
+      highlights: false,
     },
     ruled_out: ruledOut,
   };

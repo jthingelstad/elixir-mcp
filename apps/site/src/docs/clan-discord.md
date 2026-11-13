@@ -71,18 +71,31 @@ in place keeps its link.
   post is edited in place only when its story truly grows (a sitting's
   new best win, its run five longer), never posted twice.
 
-- **What is posted**: three groups a leader switches. **Members**: who
+- **What is posted**: four groups a leader switches. **Members**: who
   joins and who departs, and role changes made in the game. **Milestones**:
   members' standout sessions, badges, arenas, ranked promotions, new
   bests, collection levels, career wins and card unlocks, and the clan's
   awards. **Clan Wars**: the week's bracket, the boat crossing the finish
-  line and how the week finished.
-- **The policy decides the defaults**: Members and Milestones are on;
+  line and how the week finished. **Shared highlights**: a member's
+  highlight of one of their battles, posted only when the person who
+  wrote it chooses to (below).
+- **The policy decides the defaults**: Members and Milestones are on,
+  Shared highlights off until a leader turns them on;
   Clan Wars is on when the policy says the clan takes part, and off until
   a leader turns it on when the policy does not say. When the policy says
   the clan does not take part, Clan Wars cannot be turned on. A leader's
   switch holds until a leader sets it back to the policy's default.
   Without a policy nothing is posted.
+- **A shared highlight** goes to the channel only when the person who
+  posted it chooses **Post in your clan's Discord** on the battle's page,
+  once, for a highlight already shared with its link, as a player they
+  have verified who is in the clan now ([Highlight a battle](/docs/battles#highlight-a-battle)).
+  It is posted as Elixir writes it, never edited by the clan's model, and
+  never held or skipped: the player's game name, how the battle went
+  ("a 3-1 win"), their words as a quote and the link to the shared post,
+  which shows no preview in Discord. Never a tag, the clan's name or the
+  opponent. Editing or deleting the highlight later changes nothing in
+  the channel.
 - **A departure** is posted as the roster sees it: the member departed.
   When a leader says which it was on the departure's action, that same
   message is edited to say the member was removed, or left on their own;

@@ -33,7 +33,12 @@ import { authRoutes } from "./routes/auth.mjs";
 import { accountRoutes } from "./routes/account.mjs";
 import { discordRoutes } from "./routes/discord.mjs";
 import { timelineDiscordRoutes } from "./routes/timeline-discord.mjs";
-import { wakeAfterFact, wakeAfterHighlight } from "@elixir-mcp/syndication";
+import {
+  highlightClanDiscord,
+  postHighlightToClan,
+  wakeAfterFact,
+  wakeAfterHighlight,
+} from "@elixir-mcp/syndication";
 import { emailRoutes } from "./routes/email.mjs";
 import { clansRoutes } from "./routes/clans.mjs";
 import { homeRoutes } from "./routes/home.mjs";
@@ -54,6 +59,7 @@ import { highlightRoutes } from "./routes/highlight.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
 import { peopleRoutes } from "./routes/people.mjs";
+import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import {
   CONTRACT_HEADER,
   json,
@@ -61,6 +67,11 @@ import {
   readCookie,
   bearer,
 } from "./http.mjs";
+
+/** A clan's saved policy, from Clan's ledger in Postgres: what a shared
+ *  highlight's post to the clan's Discord is allowed by (#767). */
+const clanPolicy = (db, clanTag) =>
+  createPostgresLedger(db).currentPolicy(clanTag);
 
 /**
  * Routes are keyed by exact "METHOD /path". A record route with the id in
@@ -470,6 +481,19 @@ export function makeHandler({
       wake: discord?.outbox
         ? (d, highlight) =>
             wakeAfterHighlight(d, highlight, { outbox: discord.outbox })
+        : null,
+      // A shared highlight in its player's clan's Discord, by its owner's
+      // act, through the clan's activity channel and the relay (#767).
+      clanDiscord: discord?.outbox
+        ? {
+            state: (d, accountId, id) =>
+              highlightClanDiscord(d, accountId, id, { policyFor: clanPolicy }),
+            post: (d, accountId, id) =>
+              postHighlightToClan(d, accountId, id, {
+                outbox: discord.outbox,
+                policyFor: clanPolicy,
+              }),
+          }
         : null,
     }),
     ...emailRoutes({

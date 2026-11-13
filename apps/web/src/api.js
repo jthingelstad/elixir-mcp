@@ -273,6 +273,9 @@ export const api = {
     request("DELETE", `/api/me/highlights/${encodeURIComponent(id)}`),
   shareHighlight: (id) =>
     request("POST", "/api/me/highlights/share", { highlight_id: id }),
+  // A shared highlight in its player's clan's Discord, once (#767).
+  postHighlightToClan: (id) =>
+    request("POST", "/api/me/highlights/discord", { highlight_id: id }),
   publicPost: (id) =>
     request("GET", `/api/public/highlights/${encodeURIComponent(id)}`),
   myRequests: (agent) => request("GET", `${home(agent)}/requests`),
