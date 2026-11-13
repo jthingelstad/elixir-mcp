@@ -18,7 +18,6 @@
  */
 
 import { FEEDBACK_STATUSES } from "@elixir-mcp/contracts";
-import clanContextSchema from "../../contracts/clan-policy-context.schema.json" with { type: "json" };
 
 const ISO = { type: "string", description: "ISO 8601 UTC instant." };
 /** A subject's last-observed name beside its tag (6.4.0). */
@@ -262,7 +261,7 @@ const META = {
     asker: {
       type: "object",
       description:
-        "An agent's call with on_behalf_of: who that is (#531). via discord_link is a Discord account the person linked themselves; agent_mapping is the agent's own elixir_identify; null, nobody yet. verified says the player's claim is proven in game.",
+        "An agent's call with on_behalf_of: who that is (#531). via discord_link is a Discord account the person linked themselves; agent_mapping is a mapping the agent made before 12.0.0; null, nobody yet. verified says the player's claim is proven in game.",
       properties: {
         external_id: { type: "string" },
         player_tag: { type: ["string", "null"] },
@@ -668,18 +667,6 @@ export const OUTPUT_SCHEMAS = {
     },
     required: ["view", "applied", "notes", "docs", "meta"],
   },
-  clans_context: {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      context: clanContextSchema,
-      applied: { type: "object" },
-      notes: { type: "array", items: { type: "string" } },
-      docs: { type: "string" },
-      meta: { type: "object" },
-    },
-    required: ["context", "applied", "notes", "docs", "meta"],
-  },
   // ---- 6.14.0: the 22 tools that rested on recorded shape baselines in the
   // acceptance suite (acceptance/shapes/). Drafted from live answers on
   // 2026-09-21 and reviewed against the handlers for what is conditional;
@@ -749,7 +736,7 @@ export const OUTPUT_SCHEMAS = {
     },
     required: ["players", "meta", "notes", "docs"],
   },
-  elixir_track_player: {
+  elixir_follow_player: {
     type: "object",
     description:
       "One shape per action: add (added, relationship, recording, notify, recording_started, slot), remove (recording_stopped, primary_player_tag), notify_on / notify_off (notify).",
@@ -785,7 +772,7 @@ export const OUTPUT_SCHEMAS = {
     },
     required: ["applied", "player_tag", "meta", "notes", "docs"],
   },
-  elixir_track_clan: {
+  elixir_follow_clan: {
     type: "object",
     description:
       "One shape per action: add (added, recording, notify), remove (removed, recording_stopped), notify_on / notify_off (notify).",
@@ -802,20 +789,6 @@ export const OUTPUT_SCHEMAS = {
       notes: NOTES,
     },
     required: ["applied", "clan_tag", "meta", "notes", "docs"],
-  },
-  elixir_identify: {
-    type: "object",
-    properties: {
-      applied: { type: "object" },
-      external_id: { type: "string" },
-      player_tag: TAG,
-      name: { type: ["string", "null"] },
-      clan_tag: { type: ["string", "null"] },
-      docs: DOCS,
-      meta: META,
-      notes: NOTES,
-    },
-    required: ["applied", "external_id", "player_tag", "docs", "meta", "notes"],
   },
   elixir_my_identities: {
     type: "object",
@@ -1058,44 +1031,6 @@ export const OUTPUT_SCHEMAS = {
     ],
   },
 
-  battles_trends: {
-    type: "object",
-    properties: {
-      applied: { type: "object" },
-      population: {
-        type: "object",
-        description:
-          "On a corpus read only: the recorded population (recorded players and clans) and players_in_window, the recorded players who played in the window (the corpus counts read the recorded players' side of each battle).",
-      },
-      docs: DOCS,
-      meta: META,
-      notes: NOTES,
-      weeks: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            battles: { type: ["number", "null"] },
-            covers: { type: "object" },
-            iso_week: { type: ["string", "null"] },
-            losses: { type: ["number", "null"] },
-            modes: { type: "object" },
-            net_trophies: { type: ["number", "null"] },
-            partial: { type: ["boolean", "null"] },
-            players: { type: ["number", "null"] },
-            season_month: { type: ["string", "null"] },
-            trophy_battles: { type: ["number", "null"] },
-            trophy_mode_battles: { type: ["number", "null"] },
-            week_of: { type: ["string", "null"] },
-            win_rate: { type: ["number", "null"] },
-            wins: { type: ["number", "null"] },
-          },
-        },
-      },
-    },
-    required: ["applied", "docs", "meta", "notes", "weeks"],
-  },
-
   cards_card: {
     type: "object",
     properties: {
@@ -1335,50 +1270,6 @@ export const OUTPUT_SCHEMAS = {
       notes: NOTES,
     },
     required: ["collectors", "docs", "meta", "notes"],
-  },
-
-  elixir_data_insights: {
-    type: "object",
-    properties: {
-      active_recordings: { type: "object" },
-      api_observations: { type: ["number", "null"] },
-      battles: { type: "object" },
-      daily_snapshots: { type: ["number", "null"] },
-      docs: DOCS,
-      meta: META,
-      notes: NOTES,
-      players_observed: { type: ["number", "null"] },
-      profiles: { type: "object" },
-      recorded_clans: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            clan_tag: { type: ["string", "null"] },
-            members: { type: ["number", "null"] },
-            name: { type: ["string", "null"] },
-            recorded_since: { type: ["string", "null"] },
-            scope: { type: ["string", "null"] },
-          },
-        },
-      },
-      recorded_players: { type: "object" },
-      war_weeks: { type: ["number", "null"] },
-    },
-    required: [
-      "active_recordings",
-      "api_observations",
-      "battles",
-      "daily_snapshots",
-      "docs",
-      "meta",
-      "notes",
-      "players_observed",
-      "profiles",
-      "recorded_clans",
-      "recorded_players",
-      "war_weeks",
-    ],
   },
 
   elixir_docs: {
@@ -2291,7 +2182,7 @@ export const OUTPUT_SCHEMAS = {
           league_statistics: {
             type: ["object", "null"],
             description:
-              "The API's legacy leagueStatistics, verbatim (Gym #275): currentSeason.trophies mirrors Trophy Road and bestTrophies is frozen; previousSeason and bestSeason are not the seasonal Trophy Road either. The seasonal Trophy Road is players_timeline with progress_key 'seasonal-trophy-road-YYYYMM'.",
+              "The API's legacy leagueStatistics, verbatim (Gym #275): currentSeason.trophies mirrors Trophy Road and bestTrophies is frozen; previousSeason and bestSeason are not the seasonal Trophy Road either. The seasonal Trophy Road is players_series with progress_key 'seasonal-trophy-road-YYYYMM'.",
             properties: {
               currentSeason: {
                 type: ["object", "null"],
@@ -2329,7 +2220,7 @@ export const OUTPUT_SCHEMAS = {
           lifetime: {
             type: ["object", "null"],
             description:
-              "The lifetime block as the last profile poll carried it, in the names clans_roster and players_timeline speak (4.0.0: one shape); null on a profile that never carried the counters.",
+              "The lifetime block as the last profile poll carried it, in the names clans_roster and players_series speak (4.0.0: one shape); null on a profile that never carried the counters.",
             properties: {
               wins: NULLABLE_INT,
               losses: NULLABLE_INT,
@@ -2432,12 +2323,38 @@ export const OUTPUT_SCHEMAS = {
           required: ["iso_week", "week_of", "battles", "win_rate"],
         },
       },
+      weeks: {
+        type: "array",
+        description:
+          "12.0.0, with segment: the population's weekly series, one row per ISO week, with distinct active players, the season the week starts in and the per-mode split.",
+        items: {
+          type: "object",
+          properties: {
+            battles: { type: ["number", "null"] },
+            covers: { type: "object" },
+            iso_week: { type: ["string", "null"] },
+            losses: { type: ["number", "null"] },
+            modes: { type: "object" },
+            net_trophies: { type: ["number", "null"] },
+            partial: { type: ["boolean", "null"] },
+            players: { type: ["number", "null"] },
+            season_month: { type: ["string", "null"] },
+            trophy_battles: { type: ["number", "null"] },
+            trophy_mode_battles: { type: ["number", "null"] },
+            week_of: { type: ["string", "null"] },
+            win_rate: { type: ["number", "null"] },
+            wins: { type: ["number", "null"] },
+          },
+        },
+      },
       trophy_floor: TROPHY_FLOOR,
       notes: NOTES,
       docs: DOCS,
       meta: META,
     },
-    required: ["player_tag", "applied", "notes", "docs", "meta"],
+    description:
+      "Two shapes: a player's record (player_tag, then window, before/after, by_mode or weekly), or with segment a population's weekly series (weeks, no player_tag).",
+    required: ["applied", "notes", "docs", "meta"],
   },
 
   battles_query: {
@@ -3020,7 +2937,7 @@ export const OUTPUT_SCHEMAS = {
     ],
   },
 
-  players_timeline: {
+  players_series: {
     type: "object",
     properties: {
       player_tag: TAG,
@@ -3063,7 +2980,7 @@ export const OUTPUT_SCHEMAS = {
     ],
   },
 
-  clans_timeline: {
+  clans_series: {
     type: "object",
     properties: {
       clan_tag: TAG,
@@ -3105,7 +3022,7 @@ export const OUTPUT_SCHEMAS = {
     ],
   },
 
-  clans_members_timeline: {
+  clans_members_series: {
     type: "object",
     properties: {
       clan_tag: TAG,
@@ -3498,6 +3415,164 @@ export const OUTPUT_SCHEMAS = {
       "polls",
       "battles",
       "snapshots",
+      "notes",
+      "docs",
+      "meta",
+    ],
+  },
+  // ---- 12.0.0: the social layer's reads ("Agents read the social layer and
+  // never write it"). Closed where a person's private state could ride along.
+  players_follows: {
+    type: "object",
+    properties: {
+      player_tag: TAG,
+      name: NAME,
+      badges: closed({
+        verified_player: { type: "boolean" },
+        discord: {
+          type: "boolean",
+          description:
+            "That the verifying account linked a Discord, never which.",
+        },
+      }),
+      follows: nullable(
+        closed({
+          count: COUNT,
+          players: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { tag: TAG, name: NAME },
+              required: ["tag", "name"],
+            },
+          },
+        }),
+      ),
+      followers: nullable(
+        closed({
+          count: COUNT,
+          players: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { tag: TAG, name: NAME },
+              required: ["tag", "name"],
+            },
+          },
+          unnamed: COUNT,
+        }),
+      ),
+      applied: { type: "object" },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: [
+      "player_tag",
+      "badges",
+      "follows",
+      "followers",
+      "applied",
+      "notes",
+      "docs",
+      "meta",
+    ],
+  },
+  players_highlights: {
+    type: "object",
+    properties: {
+      player_tag: TAG,
+      name: NAME,
+      highlights: {
+        type: "array",
+        items: closed({
+          id: { type: ["string", "null"] },
+          at: { type: ["string", "null"] },
+          text: { type: "string" },
+          words: { type: ["string", "null"] },
+          battle_url: { type: ["string", "null"] },
+        }),
+      },
+      applied: { type: "object" },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: ["player_tag", "highlights", "applied", "notes", "docs", "meta"],
+  },
+  clans_directory: {
+    type: "object",
+    properties: {
+      clans: {
+        type: "array",
+        items: closed({
+          clan_tag: TAG,
+          name: NAME,
+          type: {
+            type: ["string", "null"],
+            enum: ["open", "inviteOnly", "closed", null],
+          },
+          description: STR_OR_NULL,
+          members: NULLABLE_INT,
+          required_trophies: NULLABLE_INT,
+          yours: { type: "boolean" },
+          policy: closed({
+            war_intent: {
+              type: "string",
+              enum: ["participating", "not_participating", "unknown"],
+            },
+            posture: {
+              type: ["string", "null"],
+              enum: ["relaxed", "standard", "strict", null],
+            },
+            together: { type: "boolean" },
+            counted: { type: "array", items: { type: "string" } },
+            removal_day: NULLABLE_INT,
+            saved_at: STR_OR_NULL,
+          }),
+        }),
+      },
+      truncated: { type: "boolean" },
+      applied: { type: "object" },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: ["clans", "truncated", "applied", "notes", "docs", "meta"],
+  },
+  elixir_cheers: {
+    type: "object",
+    properties: {
+      player_tag: TAG,
+      total: {
+        ...COUNT,
+        description: "Cheers other people gave, over every item listed.",
+      },
+      items: {
+        type: "array",
+        items: closed({
+          id: { type: "string" },
+          kind: { type: "string" },
+          at: { type: ["string", "null"] },
+          text: { type: "string" },
+          cheers: {
+            type: "object",
+            additionalProperties: { type: "integer" },
+            description:
+              "Count per cheer (well_played, on_fire, royal, wow, ha, grind); only the cheers given. Never who.",
+          },
+        }),
+      },
+      applied: { type: "object" },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: [
+      "player_tag",
+      "total",
+      "items",
+      "applied",
       "notes",
       "docs",
       "meta",

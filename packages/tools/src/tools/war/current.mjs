@@ -101,7 +101,7 @@ export const war_current = {
           ? "The live payload was admitted but no race projected; the clan may be between races. Try war_rivals for its history."
           : noRace
             ? `A clan that has not entered a river race has nothing to record and live: true answers the same (race log admitted ${known.log_admitted_at.toISOString()}, race read 404 at ${known.race_404_at.toISOString()}); clans_roster({ clan_tag }) says how many members it has.`
-            : "The first riverracelog poll lands within a day of tracking; live: true reads the race now.",
+            : "The first riverracelog poll lands within a day of following; live: true reads the race now.",
       );
     }
     const wk = weekRows[0];

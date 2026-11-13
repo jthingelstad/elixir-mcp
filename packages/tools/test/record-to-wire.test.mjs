@@ -289,7 +289,7 @@ test("players_profile carries the Path of Legends finals and the frozen counters
   assert.equal(me.lifetime.clan_cards_collected, PROFILE.clanCardsCollected);
 });
 
-test("clans_roster carries the clan's type, location and description; clans_timeline serves type and location_id on request (Phase 2 item 6)", async () => {
+test("clans_roster carries the clan's type, location and description; clans_series serves type and location_id on request (Phase 2 item 6)", async () => {
   const clanTag = PROFILE.clan.tag;
   await db.query(
     "update clan set type = 'inviteOnly', location_id = 57000006, description = 'Fun. Wars. POAPs.' where clan_tag = $1",
@@ -311,7 +311,7 @@ test("clans_roster carries the clan's type, location and description; clans_time
      values ($1, current_date - 1, 'daily', now() - interval '1 day', 50000, 46, 'inviteOnly', 57000006)`,
     [clanTag],
   );
-  const series = await call("clans_timeline", {
+  const series = await call("clans_series", {
     clan_tag: clanTag,
     days: 3,
     metrics: ["members", "type", "location_id"],
@@ -319,7 +319,7 @@ test("clans_roster carries the clan's type, location and description; clans_time
   assert.equal(series.series.length, 1);
   assert.equal(series.series[0].type, "inviteOnly");
   assert.equal(series.series[0].location_id, 57000006);
-  const defaults = await call("clans_timeline", { clan_tag: clanTag, days: 3 });
+  const defaults = await call("clans_series", { clan_tag: clanTag, days: 3 });
   assert.ok(
     !("type" in defaults.series[0]),
     "an attribute is asked for, never default",

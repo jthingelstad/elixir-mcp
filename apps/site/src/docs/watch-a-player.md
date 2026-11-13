@@ -21,7 +21,7 @@ starts with (your first player is your primary), and the only one an
 ## Adding a player
 
 **Settings › Players & following › Follow a player**: enter the tag and press
-**Follow**. Through a [connected app](/docs/connections), `elixir_track_player`
+**Follow**. Through a [connected app](/docs/connections), `elixir_follow_player`
 with the tag; with no `relationship` it watches.
 
 Followed means recorded. Recording starts on the next read and carries on
@@ -68,5 +68,5 @@ spend your slots. See [Your agents](/docs/agents).
 
 ## Stopping
 
-**Stop following** on the player's page, or `elixir_track_player` with
+**Stop following** on the player's page, or `elixir_follow_player` with
 `action: "remove"`. What was recorded stays recorded.

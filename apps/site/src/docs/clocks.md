@@ -40,7 +40,7 @@ Daily readings are keyed by the **game day**, the [policy day](#the-policy-day)
 below: a day runs from 10:00 UTC to 10:00 UTC and is named for the date it
 starts on, so a reading taken at 09:00 UTC on the 18th belongs to the 17th,
 the same day as the war day and the season roll it sits inside.
-`players_timeline` returns one point per reading day and
+`players_series` returns one point per reading day and
 only from `snapshots_available_from`, and `players_summary.trophies_as_of`
 is a date, not an instant, because it names the reading the trophy count
 came from. The series tools take `YYYY-MM-DD` bounds, game days; an
@@ -57,8 +57,8 @@ beside it; a timeline item's `text` never carries a time
 
 ## The game day
 
-Every daily series in the record (`players_timeline`, `clans_timeline`,
-`clans_members_timeline`, and the progress series) is keyed by one day: the
+Every daily series in the record (`players_series`, `clans_series`,
+`clans_members_series`, and the progress series) is keyed by one day: the
 **game day**, the date whose 10:00 UTC start the reading falls after. It is
 the same partition as the [policy day](#the-policy-day) below, so a war day, a
 season roll (the first Monday of the month at 10:00 UTC) and a series row never
@@ -186,15 +186,15 @@ The defaults differ by tool, and each says which applied:
 | Tool | Window when you give none |
 |---|---|
 | `players_summary` | fixed 30 days (`source: "fixed"`); not an argument |
-| `players_timeline`, `clans_members_timeline` | unbounded, on **game days**: `from`/`to` are `YYYY-MM-DD` game days (inclusive); an instant is floored to its game day, echoed under `applied.window.floored` with a note; `days: N` is N game days, today included |
-| `clans_timeline` | the last 30 game days (`source: "default"`, with a note naming `series_available_from`); bounds as on the other series |
+| `players_series`, `clans_members_series` | unbounded, on **game days**: `from`/`to` are `YYYY-MM-DD` game days (inclusive); an instant is floored to its game day, echoed under `applied.window.floored` with a note; `days: N` is N game days, today included |
+| `clans_series` | the last 30 game days (`source: "default"`, with a note naming `series_available_from`); bounds as on the other series |
 | `elixir_timeline` | since your read pointer, or the last day without one (`source: "pointer"` or `"default"`); capped at 30 days |
 | `game_events` | the current season so far |
 | `cards_card` | the current season to date (`source: "season"`); `season` selects another |
 | `clans_standings` | 30 days |
 | `clans_participation` | 5 ISO weeks, the current one included (each starts Monday 00:00 UTC, ten hours before the war week; see [Seasons](#seasons)) |
-| `battles_trends` | 12 weeks |
-| `battles_performance`, `battles_decks`, `battles_query`, `battles_cards`, `battles_opponents` | unbounded: the whole recorded history, said so in `applied.window.source` |
+| `battles_performance` with a `segment` | 12 weeks |
+| `battles_performance` without a `segment`, `battles_decks`, `battles_query`, `battles_cards`, `battles_opponents` | unbounded: the whole recorded history, said so in `applied.window.source` |
 
 ## Seasons
 
@@ -212,7 +212,7 @@ it, the record never will.
 scraped enters the data layer. Use a season window to keep comparisons within the same game period; a window spanning seasons may include different card costs or rules.
 
 - **`season`** on every windowed tool (`cards_card`,
-  `battles_trends`, the player battle tools, `clans_standings`, the daily
+  the player battle tools, `clans_standings`, the daily
   series, `game_events` and `elixir_timeline`)
   bounds the window to one season: `"current"` (to date), `"previous"`, the month (`"2026-08"`) or the war number
   (`135`). `from`/`to`/`days`/`weeks` given still win, and each tool's own
@@ -236,15 +236,15 @@ scraped enters the data layer. Use a season window to keep comparisons within th
   and the record says so rather than widening it: on a running season under
   seven days old, a note says the window is thin and names `season: "previous"`
   as the settled comparison.
-- `battles_trends` keeps its twelve-week default and crosses rolls by
+- `battles_performance` with a `segment` keeps its twelve-week default and crosses rolls by
   design; every week row carries `season_month`, the season its Tuesday
   to Sunday fall in, so a chart can draw the line where `crosses` puts it.
 
 `game_clock` carries the same two names (`season_id`, `season_month`) and
 the season's bounds for now.
 
-`group_by: "week"` on `battles_performance`, every row of
-`battles_trends`, and `clans_participation`'s weeks (which Standing's Path
+`group_by: "week"` on `battles_performance`, every row of its
+`segment` weeks, and `clans_participation`'s weeks (which Standing's Path
 of Legends and donation minimums read) use **ISO weeks**, Monday to Sunday. A war week, by
 contrast, runs on the policy grid above, Monday 10:00 UTC to Monday 10:00
 UTC; the two start on the same weekday and ten hours apart, so never join

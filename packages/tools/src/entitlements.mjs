@@ -180,8 +180,9 @@ const DISCORD_ASKER = /^discord:([0-9]{17,20})$/;
  * an alt, but only one that is a current member of a clan this agent acts
  * for (Jamie, 2026-10-24, call 1), so a link never reaches past the
  * agent's clans. A claim still unverified resolves, flagged (call 3).
- * Otherwise the agent's own mapping (elixir_identify), which only the
- * agent vouches for.
+ * Otherwise a mapping the agent made with elixir_identify before that tool
+ * retired in 12.0.0 (still read, never written now), which only the agent
+ * vouches for.
  *
  * Returns { tag, via: 'discord_link' | 'agent_mapping', verified } or null.
  */
@@ -226,7 +227,7 @@ export async function askerFor(db, accountId, externalId) {
 /** The clan members whose WHOLE name matches the asker's display name
  *  (case and spacing ignored), across the agent's entitled clans
  *  (3.18.0): what an unmapped on_behalf_of's refusal carries so the
- *  agent's next call is elixir_identify, not clans_roster. A partial
+ *  agent's next call names the player_tag, not clans_roster. A partial
  *  match is not a candidate. */
 async function nameCandidates(db, clans, displayName) {
   if (typeof displayName !== "string" || clans.length === 0) return [];
@@ -282,7 +283,9 @@ export async function resolveSubject(
       // than guessing a member of the clan, which would be confidently
       // wrong. With the asker's display name (3.18.0) the refusal carries
       // the members whose whole name matches, so exactly one candidate is
-      // one elixir_identify call away and zero or several is a question.
+      // one player_tag away and zero or several is a question. Being known
+      // from then on is the person's Discord link (12.0.0: elixir_identify
+      // retired), never a mapping the agent writes.
       const candidates = onBehalfOf
         ? await nameCandidates(db, ent.clans, displayName)
         : [];
@@ -292,16 +295,18 @@ export async function resolveSubject(
           ? `No player is mapped to ${onBehalfOf} yet.`
           : "This connection acts for a clan, so there is no default player.",
         hint:
-          (DISCORD_ASKER.test(onBehalfOf?.trim() ?? "")
-            ? "They can connect Discord under Connections & agents in their Elixir Settings (/settings/connections/discord) to be known everywhere without asking. "
-            : "") +
           (candidates.length === 1
-            ? `candidates[] holds the one clan member whose whole name is '${displayName}': elixir_identify({ external_id: ${JSON.stringify(onBehalfOf)}, player_tag: ${JSON.stringify(candidates[0].player_tag)} }) once, say so in a line, and answer.`
+            ? `candidates[] holds the one clan member whose whole name is '${displayName}': pass player_tag ${JSON.stringify(candidates[0].player_tag)}, say so in a line, and answer. `
             : candidates.length > 1
-              ? `candidates[] holds ${candidates.length} clan members named '${displayName}': ask which one they are, then elixir_identify({ external_id, player_tag }) once.`
+              ? `candidates[] holds ${candidates.length} clan members named '${displayName}': ask which one they are, then pass that player_tag. `
               : onBehalfOf && displayName
-                ? `No clan member's whole name is '${displayName}': ask who they are in the clan, then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly.`
-                : "Ask who they are in the clan (pass display_name beside on_behalf_of and the refusal names the matching members), then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly."),
+                ? `No clan member's whole name is '${displayName}': ask who they are in the clan, then pass player_tag. `
+                : "Ask who they are in the clan (pass display_name beside on_behalf_of and the refusal names the matching members), then pass player_tag. ") +
+          // Another surface's id is not a Discord one: the link says
+          // nothing to it.
+          (onBehalfOf && !DISCORD_ASKER.test(onBehalfOf.trim())
+            ? ""
+            : 'To be known without asking, they connect Discord under Connections & agents in their Elixir Settings (/settings/connections/discord); on_behalf_of: "discord:<their user id>" then resolves to them.'),
         ...(onBehalfOf ? { data: { candidates } } : {}),
       };
     } else {
@@ -318,7 +323,7 @@ export async function resolveSubject(
         throw {
           code: "no_subject",
           message: "No primary player on this account.",
-          hint: "elixir_track_player({ player_tag }) tracks one; your first becomes your primary.",
+          hint: "elixir_follow_player({ player_tag }) follows one; your first becomes your primary.",
         };
       }
       tag = rows[0].player_tag;
@@ -380,7 +385,7 @@ export async function resolveEntitledClan(db, account, inputTag) {
       throw {
         code: "not_recorded",
         message: `${tag} is not a recorded clan.`,
-        hint: "Pass live: true on clans_roster or war_current for a fresh read (queued and answered from the record if none is in hand), or elixir_track_clan({ clan_tag }) to start recording it. Recorded clans are readable by everyone.",
+        hint: "Pass live: true on clans_roster or war_current for a fresh read (queued and answered from the record if none is in hand), or elixir_follow_clan({ clan_tag }) to start recording it. Recorded clans are readable by everyone.",
       };
     }
     return tag;
@@ -403,7 +408,7 @@ export async function resolveEntitledClan(db, account, inputTag) {
       throw {
         code: "not_recorded",
         message: `Your primary player's clan ${ent.primaryClan} is not recorded, so nothing defaults to it.`,
-        hint: `elixir_track_clan({ clan_tag: "${ent.primaryClan}" }) records it; or pass clan_tag explicitly${alts}.`,
+        hint: `elixir_follow_clan({ clan_tag: "${ent.primaryClan}" }) records it; or pass clan_tag explicitly${alts}.`,
       };
     return ent.primaryClan;
   }
@@ -420,7 +425,7 @@ export async function resolveEntitledClan(db, account, inputTag) {
         : "No recorded clan on this account to default to.",
       hint: isAgent
         ? "An agent's clan is set on the agent (Account -> Agents) and must be actively recorded. Or pass clan_tag explicitly."
-        : "Pass clan_tag explicitly (any recorded clan works), or elixir_track_clan({ clan_tag }) to record yours.",
+        : "Pass clan_tag explicitly (any recorded clan works), or elixir_follow_clan({ clan_tag }) to record yours.",
     };
   }
   return ent.clans[0];

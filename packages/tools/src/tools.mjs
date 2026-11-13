@@ -27,6 +27,7 @@ import { playersTools } from "./tools/players.mjs";
 import { warTools } from "./tools/war.mjs";
 import { game_events } from "./tools/game-events.mjs";
 import { seriesTools } from "./tools/series.mjs";
+import { socialTools } from "./tools/social.mjs";
 import { validateArgs } from "./validate.mjs";
 import { OUTPUT_SCHEMAS } from "./output-schemas.mjs";
 import { ToolFailure } from "./tools/shared.mjs";
@@ -47,6 +48,7 @@ const TOOLS = {
   ...seriesTools,
   ...liveTools,
   ...playersTools,
+  ...socialTools,
   ...warTools,
   game_events,
 };

@@ -23,9 +23,9 @@ list.
 
 | Kind | Door | Hidden tools | Tools listed |
 |---|---|---|---|
-| `person` | `/mcp` | `clans_context`, `elixir_identify`, `elixir_my_identities` | {{ tools.personCount }} |
+| `person` | `/mcp` | `elixir_my_identities` | {{ tools.personCount }} |
 | `agent` | `/a/<public_id>/mcp` | `elixir_my_players`, `clans_my_view` | {{ tools.agentCount }} |
-| `integration` | `/i/<public_id>/mcp` | `elixir_my_players`, `clans_my_view`, `clans_context`, `elixir_nickname`, `elixir_timeline`, `elixir_track_player`, `elixir_track_clan`, `elixir_identify`, `elixir_my_identities` | {{ tools.integrationCount }} |
+| `integration` | `/i/<public_id>/mcp` | `elixir_my_players`, `clans_my_view`, `elixir_nickname`, `elixir_timeline`, `elixir_follow_player`, `elixir_follow_clan`, `players_follows`, `players_highlights`, `clans_directory`, `elixir_cheers`, `elixir_my_identities` | {{ tools.integrationCount }} |
 
 The counts are generated from the registry at build time. Hiding is
 enforced: calling a hidden tool answers JSON-RPC `-32601` with `data.kind`
@@ -137,7 +137,7 @@ shape):
 | `not_entitled` | `subject` | the caller lacks entitlement to the subject (clan tools, slots, identity binding) |
 | `not_recorded` | `subject` | the subject is valid but nothing has been recorded for it; on a person's door with no `clan_tag`, also the primary player's clan when it is not recorded (the default never slides to an alt's clan; the hint names the clan and the following call) |
 | `not_found` | `subject` | unknown to the record and to the live API; an unknown docs page, example |
-| `no_subject` | `subject` | nothing to answer about: no primary player on the account, a primary player in no clan when `clan_tag` is omitted, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag). With `display_name` beside an unmapped `on_behalf_of`, `error.candidates[]` lists the clan members whose whole name matches (`player_tag`, `name`, `clan_tag`, `role`; case and spacing ignored, never a partial match), so one candidate is one `elixir_identify` call and zero or several is a question |
+| `no_subject` | `subject` | nothing to answer about: no primary player on the account, a primary player in no clan when `clan_tag` is omitted, an `on_behalf_of` nobody has linked, an agent with no recorded clan. The hint names what fixes it (`elixir_follow_player`, the person connecting Discord in their Settings, or pass the tag). With `display_name` beside an unknown `on_behalf_of`, `error.candidates[]` lists the clan members whose whole name matches (`player_tag`, `name`, `clan_tag`, `role`; case and spacing ignored, never a partial match), so one candidate is that `player_tag` on the next call and zero or several is a question |
 | `quota_exceeded` | `budget` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
 | `live_unavailable` | `server` | the live lane is not configured, or the fresh payload was refused at admission |
 | `live_pending` | `retry` | `live: true` found no read inside the API's cache window and queued one (or, with the shared budget spent until the next tick, queued nothing and charged nothing); nothing is recorded for the subject yet, so there is no answer to give now. `error.retry_after_s` (an integer, seconds) says when to call again |
@@ -162,7 +162,7 @@ quota. Every code has exactly one class (`ERROR_CLASS` in the contracts
 package), so `live_pending` is never a failed call. Transport-level refusals (the rate limit, a
 database that will not connect) carry the same envelope and class.
 
-The heavy MCP reads `battles_trends`, `cards_card`, `clans_standings` and
+The heavy MCP reads `battles_performance` with a `segment`, `cards_card`, `clans_standings` and
 `war_history` each have a query budget of **at most 18 seconds per call**,
 shortened if Lambda has less time remaining. It covers the whole aggregation,
 not a fresh allowance for each query. PostgreSQL cancels the work before the
@@ -203,7 +203,7 @@ exception: `segment` is required, to identify the player or clan being read, and
 |---|---|---|
 | Player tools (`players_*`, `battles_query`, `battles_performance`, `battles_decks`, `battles_cards`, `battles_opponents`, `elixir_coverage`) | `player_tag` | the caller: a person's primary player, or whoever `on_behalf_of` maps to on an agent connection |
 | Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | a person's primary player's current clan (refused `not_recorded` when that clan is not recorded, `no_subject` when the primary is in no clan; never an alt's, a friend's or another followed clan), an agent's clan |
-| Segment tools (`battles_trends`, `cards_card`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, or an object naming a player or clan |
+| Segment tools (`cards_card`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, or an object naming a player or clan. `battles_performance` takes one optionally, for that population's `weeks[]` |
 | `game_clock`, `cards_catalog`, the Help tools | none | no subject at all |
 
 No default is ever looked up first, and there is no "no default" guess: a
@@ -217,8 +217,7 @@ in its hint.
 - **`on_behalf_of`** (≤200 chars, opaque) selects the end user on an agent
   connection; ignored on a personal one, where the caller is always the
   primary player. A personal connection's `tools/list` leaves it and
-  `display_name` out, and drops either if a client still sends it. The tools that build the map, `elixir_identify` and
-  `elixir_my_identities`, are agent-only. An empty `player_tag` is refused as
+  `display_name` out, and drops either if a client still sends it. On an agent, `discord:<id>` resolves through the person's Discord link; `elixir_my_identities`, which lists an agent's older mappings, is agent-only. An empty `player_tag` is refused as
   a caller bug, never treated as "default". See [Agents](/docs/agents).
 - **Validation is strict**: arguments are checked against the
   published `inputSchema` before the handler runs. An unknown enum value, an
@@ -237,9 +236,9 @@ in its hint.
   it resolves the date-only bounds and every local label
   (`battle_time_local` is ISO 8601 with its offset). Default: the account's
   timezone. An unknown zone is `bad_request`.
-- **`applied`** is the one echo block, on every response except seven
+- **`applied`** is the one echo block, on every response except six
   (`elixir_my_players`, `elixir_my_identities`, `elixir_coverage`,
-  `elixir_collectors`, `elixir_data_insights`, `elixir_examples` without an
+  `elixir_collectors`, `elixir_examples` without an
   `example`, and `elixir_docs` without a `page`): `window` (`from`,
   `to`, `source` of `argument` | `default` | `unbounded` | `season` |
   `fixed` (and `pointer` on `elixir_timeline`), `timezone`, and on the season-grained tools `season`,

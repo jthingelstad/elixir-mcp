@@ -41,7 +41,7 @@ const PAGE_CHAR_BUDGET = 40_000;
 
 export const elixir_timeline = {
   description:
-    "Your newest-first timeline for tracked players and clans: one item per story (time-free text, subjects, visibility, publishable) plus subject summaries. basis occurred reads what happened in a window; a poller (reader, pointer) reads what the record learned, and omitting from starts at the pointer (default 24 hours, cap 30 days). evidence_item_id reads one item's ordered canonical games, version-pinned; evidence reads keep every pointer. Facts, never advice; game_clock supplies timing.",
+    "Your newest-first timeline for the players and clans you follow: one item per story (time-free text, subjects, visibility, publishable) plus subject summaries. basis occurred reads what happened in a window; a poller (reader, pointer) reads what the record learned, and omitting from starts at the pointer (default 24 hours, cap 30 days). evidence_item_id reads one item's ordered canonical games, version-pinned; evidence reads keep every pointer. Facts, never advice; game_clock supplies timing.",
   inputSchema: {
     type: "object",
     properties: {
@@ -576,7 +576,7 @@ export const elixir_timeline = {
           )
         : { rows: [] };
       if (!inClan.length)
-        memberNote = `player_tag ${memberTag} is not a member of this reader's clans in this window, nor one of its players, so no item is about it; elixir_track_player records a player, and players_timeline reads anyone's daily series.`;
+        memberNote = `player_tag ${memberTag} is not a member of this reader's clans in this window, nor one of its players, so no item is about it; elixir_follow_player records a player, and players_series reads anyone's daily series.`;
     }
     const {
       rows: [warLedger],
@@ -630,13 +630,13 @@ export const elixir_timeline = {
       notes: notes(
         seasonFields.seasonNotes,
         subjects.length === 0
-          ? "No subjects: track a player or clan (notify defaults on) and it appears here."
+          ? "No subjects: follow a player or clan (notify defaults on) and it appears here."
           : `basis ${occurred ? "occurred: items that happened in the window" : "observed: items the record learned in the window"}. timeline is newest first by sort_at, a newsfeed: one item per story, its text a time-free sentence about its subjects, the time to show in at_unix and local, which name sort_at (a sitting's at is its first battle). id is the story, the same in every read; revision is how far it has grown: tell it once per id and update it on a higher revision. Publish only publishable items. Nothing here is advice; schedule from game_clock.`,
         skipped
           ? "skip_empty: nothing in this window is an item this read keeps, so the entries were not built (entries_skipped). The pointer and next_cursor moved as on any read; read without skip_empty for the subjects' summaries."
           : null,
         built.quiet.length > 0
-          ? "quiet lists tracked players with nothing in the window; read days_since_poll beside days_quiet before calling the silence theirs."
+          ? "quiet lists followed players with nothing in the window; read days_since_poll beside days_quiet before calling the silence theirs."
           : null,
         capped
           ? "The window was capped at 30 days before to; pass from and to for older history, or use the data tools."

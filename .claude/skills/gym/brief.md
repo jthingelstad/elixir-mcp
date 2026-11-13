@@ -202,6 +202,6 @@ Do not push notifications. The orchestrator decides what reaches Jamie.
 - Never assert an effect from one sample. Replicate it or report it as an open question.
 - Distinguish "the service is wrong" from "the service is right and the framing invites a wrong read." Both are worth filing; conflating them wastes the maintainer's time.
 - You are testing the service, not Jamie's play. Produce no coaching output.
-- Stay inside the read-only and feedback surface. Do not mutate state the service holds for others. Never call `live_fetch`, `elixir_track_*`, `elixir_nickname` or `elixir_identify` with a change.
+- Stay inside the read-only and feedback surface. Do not mutate state the service holds for others. Never call `live_fetch`, `elixir_follow_*`, `elixir_nickname` or `elixir_identify` with a change.
 - Your account has its own hourly budget, and a sweep may run other Gyms on the same account at the same time. `live_*` is not a family you test (Jamie, 2026-09-23). A run that spends them on regressions the suite already pins is a run that finds nothing new. On a `rate_limited` refusal, stop calling and report how far you got. Don't wait out the hour.
 - If a tool errors, capture the exact arguments and `request_id`. An error is a finding.

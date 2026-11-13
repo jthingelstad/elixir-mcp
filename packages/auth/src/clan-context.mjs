@@ -1,15 +1,12 @@
 /** Approved private-context seam. Public game tools never read private Clan
- * state. Three readers, each authorizing and projecting in one statement:
- * `readAgentPolicyContext` gives an agent eight fields after an explicit,
- * credential-bound grant and current recorded ownership/verified membership
- * checks; `readOwnClanView` gives a person their own view of one clan (#535);
- * `readClanDirectory` gives a signed-in person the clan directory's tiles,
- * the policy's public part only (#768). */
-import {
-  ELIXIR_ORIGIN,
-  OAUTH_SCOPE,
-  FULL_OAUTH_SCOPE,
-} from "@elixir-mcp/contracts";
+ * state. Two readers, each authorizing and projecting in one statement:
+ * `readOwnClanView` gives a person their own view of one clan (#535);
+ * `readClanDirectory` gives a signed-in person, or an agent reading for its
+ * approved owner (12.0.0), the clan directory's tiles, the policy's public
+ * part only (#768). `agentContextEligibility` stays for the operator's grant
+ * op; the agent policy-context reader retired with `clans_context` in
+ * 12.0.0 (DECISIONS "`clans_context` retires"). */
+import { ELIXIR_ORIGIN, FULL_OAUTH_SCOPE } from "@elixir-mcp/contracts";
 import {
   actionsWaitingFor,
   countedCategories,
@@ -72,80 +69,6 @@ export async function agentContextEligibility(db, publicIds) {
         }
       : { public_id, eligible: false, reason: "identity_not_found" };
   });
-}
-
-export async function readAgentPolicyContext(db, account) {
-  if (
-    account?.kind !== "agent" ||
-    account.credentialType !== "service" ||
-    !account.tokenId ||
-    !account.scopes?.includes(OAUTH_SCOPE.READ)
-  )
-    return null;
-  // Authorization and minimal projection share one database snapshot. Neither
-  // a remembered account object nor last_known_clan_tag can authorize a read.
-  const { rows } = await db.query(
-    `
-    with allowed as (
-      select g.clan_tag from agent_policy_context_grant g
-      join account a on a.account_id = g.agent_account_id
-      join account o on o.account_id = g.owner_account_id
-      join account_clan ac on ac.account_id = a.account_id and ac.is_primary
-                          and ac.clan_tag = g.clan_tag
-      join service_token t on t.token_id = g.token_id and t.account_id = a.account_id
-      where a.account_id = $1 and g.token_id = $2 and g.revoked_at is null
-        and a.kind = 'agent' and a.status = 'approved'
-        and a.owned_by_account_id = g.owner_account_id
-        and o.kind = 'person' and o.status = 'approved'
-        and t.revoked_at is null and t.audience = 'mcp'
-        and $3 = any(string_to_array(coalesce(t.scope,$4), ' '))
-        and exists (select 1 from claim c
-          join clan_membership m on m.player_tag = c.player_tag
-          where c.account_id = o.account_id and c.status = 'verified'
-            and (c.is_primary or c.relationship = 'alt')
-            and m.clan_tag = g.clan_tag and m.left_observed_at is null
-            and m.role in ('member','elder','coLeader','leader'))
-    )
-    select allowed.clan_tag,
-           p.body ->> 'version' as policy_version,
-           p.body ->> 'saved_at' as policy_saved_at,
-           p.body #>> '{values,war_intent}' as war_intent
-      from allowed
-      left join clan_state pointer on pointer.pk = 'policy#' || allowed.clan_tag
-      left join clan_state p on p.pk = 'policy#' || allowed.clan_tag || '#v' || (pointer.body ->> 'version')
-  `,
-    [account.accountId, account.tokenId, OAUTH_SCOPE.READ, FULL_OAUTH_SCOPE],
-  );
-  const row = rows[0];
-  if (!row) return null;
-  const version = Number(row.policy_version);
-  if (
-    row.policy_version !== null &&
-    (!Number.isSafeInteger(version) || version < 1)
-  )
-    throw new Error("Invalid context policy revision");
-  const set = row.policy_version !== null;
-  const intent = ["participating", "not_participating"].includes(row.war_intent)
-    ? row.war_intent
-    : "unknown";
-  const savedAt =
-    row.policy_saved_at === null
-      ? null
-      : new Date(row.policy_saved_at).toISOString();
-  return {
-    schema_version: 1,
-    clan_tag: row.clan_tag,
-    status: set && intent !== "unknown" ? "known" : "unknown",
-    reason: !set
-      ? "no_policy"
-      : intent === "unknown"
-        ? "war_intent_unspecified"
-        : null,
-    war_intent: set ? intent : "unknown",
-    policy_version: set ? version : null,
-    policy_saved_at: savedAt,
-    read_at: new Date().toISOString(),
-  };
 }
 
 // ---- a person's own view of their clan (#535) ------------------------------
@@ -302,14 +225,20 @@ const DIRECTORY_POLICY_FIELDS = [
 export const DIRECTORY_LIMIT = 500;
 
 // Authorization and projection in one statement: only an approved person
-// reads, and the policy leaves the database already cut to the tile's
-// fields. Listed: every recorded clan whose policy pointer names a saved
+// reads, or an approved agent whose owner is an approved person, reading as
+// that owner (`yours` is the owner's); the policy leaves the database
+// already cut to the tile's fields. Listed: every recorded clan whose policy pointer names a saved
 // version (saving a policy is how a clan opts in, DECISIONS). Ordered by
 // name, then tag: never by size, trophies or anything a ranking could read.
 const DIRECTORY_SQL = `
 with allowed as (
-  select a.account_id from account a
-   where a.account_id = $1 and a.kind = 'person' and a.status = 'approved'
+  select case when a.kind = 'agent' then o.account_id else a.account_id end
+           as account_id
+    from account a
+    left join account o on o.account_id = a.owned_by_account_id
+   where a.account_id = $1 and a.status = 'approved'
+     and (a.kind = 'person'
+          or (a.kind = 'agent' and o.kind = 'person' and o.status = 'approved'))
 ), listed as (
   select substr(pointer.pk, length('policy#') + 1) as clan_tag,
          v.body -> 'values' as saved,
@@ -326,7 +255,8 @@ select l.clan_tag, c.name, c.type, c.description,
        exists (
          select 1 from claim cl
            join clan_membership m on m.player_tag = cl.player_tag
-          where cl.account_id = $1 and cl.status = 'verified'
+          where cl.account_id = (select account_id from allowed)
+            and cl.status = 'verified'
             and (cl.is_primary or cl.relationship in ('primary', 'alt'))
             and m.clan_tag = l.clan_tag and m.left_observed_at is null
        ) as yours
@@ -379,17 +309,20 @@ function directoryTile(row) {
 
 /**
  * The clan directory (#768): every recorded clan with a saved policy, for a
- * signed-in, approved person. A tile is the clan's recorded name, type, size,
+ * signed-in, approved person, or an approved agent of an approved person
+ * reading as its owner (12.0.0, `clans_directory`). A tile is the clan's recorded name, type, size,
  * trophies to join and in-game description, and its policy's public part:
  * Clan Wars intent, how strict, playing together, what counts, and the day a
  * removal Action comes. Never who saved it, a note, a minimum, a member's
  * standing, the Recruit pitch, or any other Clan state.
  *
- * `{ refused: "not_a_person" }` for an agent or an integration, and for a
- * person not approved; otherwise `{ directory }`.
+ * `{ refused: "not_a_person" }` for an integration, an unapproved person, and
+ * an agent that is not approved or whose owner is not an approved person;
+ * otherwise `{ directory }`.
  */
 export async function readClanDirectory(db, account) {
-  if ((account?.kind ?? null) !== "person" || !account.accountId)
+  const kind = account?.kind ?? null;
+  if ((kind !== "person" && kind !== "agent") || !account.accountId)
     return { refused: "not_a_person" };
   const { rows } = await db.query(DIRECTORY_SQL, [
     account.accountId,
@@ -399,7 +332,11 @@ export async function readClanDirectory(db, account) {
   if (rows.length === 0) {
     // An unapproved account reads no row at all; say so rather than "none".
     const ok = await db.query(
-      "select 1 from account where account_id = $1 and kind = 'person' and status = 'approved'",
+      `select 1 from account a
+         left join account o on o.account_id = a.owned_by_account_id
+        where a.account_id = $1 and a.status = 'approved'
+          and (a.kind = 'person' or (a.kind = 'agent' and o.kind = 'person'
+                                     and o.status = 'approved'))`,
       [account.accountId],
     );
     if (ok.rows.length === 0) return { refused: "not_a_person" };

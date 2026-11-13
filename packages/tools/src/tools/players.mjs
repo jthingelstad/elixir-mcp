@@ -1,6 +1,6 @@
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
-/** players_summary · players_profile · players_timeline ·
+/** players_summary · players_profile · players_series ·
  *  players_collection · players_names · players_search. Conventions
  *  (1.0.0): `applied`, `notes[]` + `docs`, `verbosity`. */
 
@@ -515,7 +515,7 @@ export const playersTools = {
           lifetime: row.lifetime,
           // Each side-mode bucket's latest reading (Gym #276: Merge
           // Tactics, 2v2 League and the seasonal Trophy Road were only in
-          // players_timeline's progress series).
+          // players_series's progress series).
           // A bucket the newest profile read no longer carried has ENDED
           // (Gym #329: 54 of 91 rows across a clan were ended buckets read
           // as the player's current standing); current says which is live.
@@ -535,12 +535,12 @@ export const playersTools = {
           row.league_stats
             ? "snapshot.league_statistics is the API's legacy leagueStatistics block: currentSeason.trophies mirrors Trophy Road and bestTrophies is frozen, so it is not the seasonal Trophy Road; that is in snapshot.progress (key seasonal-trophy-road-YYYYMM)."
             : null,
-          "snapshot.progress is each side-mode bucket's latest reading (Merge Tactics, 2v2 League, the seasonal Trophy Road; buckets read in the last 35 days); players_timeline.progress_key reads the day-by-day series.",
+          "snapshot.progress is each side-mode bucket's latest reading (Merge Tactics, 2v2 League, the seasonal Trophy Road; buckets read in the last 35 days); players_series.progress_key reads the day-by-day series.",
           endedProgress > 0
             ? `${endedProgress} of snapshot.progress's ${progressRows.length} buckets have ended (current false): the newest profile read no longer carried them, so trophies there are the bucket's final reading, not the player's standing now.`
             : null,
           "last_seen_in_game is the game's own lastSeen from clan roster polls (when the player was last active); null until a polled roster carried them.",
-          "attributes.war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations. For war results use battles_performance mode war; lifetime donations are snapshot.lifetime.total_donations (its series is players_timeline.total_donations).",
+          "attributes.war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations. For war results use battles_performance mode war; lifetime donations are snapshot.lifetime.total_donations (its series is players_series.total_donations).",
           row.years_played === null || row.years_played === undefined
             ? "attributes.years_played and account_age_days are null: the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so this is almost always an account under a year old, not a profile Elixir failed to read."
             : null,
@@ -553,7 +553,7 @@ export const playersTools = {
     },
   },
 
-  players_timeline: {
+  players_series: {
     description:
       "Time series from daily snapshots, one point per game day, for the caller by default: trophies, or any of the day row's metrics (the roster's trophies, donations, arena, clan and rank; the profile's lifetime block and Path of Legends standing; the legacy season_trophies mirror of Trophy Road; the full list is on recording#daily-series). Every point carries observed_at, profile_observed_at (null on a roster-only day) and roster_observed_at. progress_key adds the side-mode progress series; kind selects the pre_reset or season_roll row; granularity week keeps the last row of each ISO week.",
     inputSchema: {

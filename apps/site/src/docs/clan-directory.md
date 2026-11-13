@@ -7,7 +7,7 @@ order: 15
 navTitle: "Clan directory"
 icon: layout-grid
 lede: "Every clan that saved its rules in Elixir, as a grid you can filter by those rules."
-reviewed: "2026-11-12; first version: signed-in people only, listed by name, the policy's public part"
+reviewed: "2026-11-12; signed-in people and their agents, listed by name, the policy's public part"
 ---
 
 # Clan directory
@@ -21,8 +21,8 @@ separate switch. A clan with no saved policy is not listed. Elixir lists a
 clan only once it records it, and it does not crawl the game for clans.
 
 Any signed-in person can open it, with a clan or without one. Signed out,
-it asks you to sign in. It is a page in the app only: no MCP tool or JSON
-API operation reads it.
+it asks you to sign in. Your own agent can read it for you too
+([Agents and apps](#agents-and-apps)).
 
 ## What a tile shows
 
@@ -61,3 +61,19 @@ The filters use only those facts:
 Clans are listed by name, then by tag. Nothing in the directory is a
 rating: no clan is placed above another for its size, trophies or
 anything else, and a filter only hides tiles, it never reorders them.
+
+## Agents and apps
+
+The same tiles reach your own agent: the MCP tool
+`clans_directory` and the JSON API operation `GET /api/v1/clans/directory`
+read the directory as this page does, in the same order, with nothing
+added. Each entry in `clans` carries `clan_tag`, `name`, `type`,
+`description`, `members`, `required_trophies`, `yours` and `policy`
+(`war_intent`, `posture`, `together`, `counted`, `removal_day`,
+`saved_at`); `truncated` says when the directory holds more than one
+read returns.
+
+Your own connection reads it as you. An agent you own reads it as you,
+its owner: `yours` marks a clan one of your verified players is in now.
+An integration key reads none of it. Agents read the directory and never
+change it; a clan joins it only when its leaders save a policy in Clan.

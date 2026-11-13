@@ -30,9 +30,9 @@ or workflow of its own.
   token, OAuth grant or integration key. Membership, verification and role
   are current checks on every request, and a leader's change also needs
   the roster read within the hour (`src/role-freshness.mjs`).
-- **Private Clan state never reaches MCP or public tools.** The two
-  exceptions read through `@elixir-mcp/auth/clan-context`: `clans_context`,
-  an agent's eight policy fields, and `clans_my_view`, a person's own view
+- **Private Clan state never reaches MCP or public tools.** The one
+  exception reads through `@elixir-mcp/auth/clan-context`: `clans_my_view`,
+  a person's own view
   (the policy summary, their own standing line, the Actions waiting for
   them; never a removal), shaped by `clan-engine`'s `own-view.mjs`, the
   code Clan's own "You here" uses

@@ -23,10 +23,29 @@ function asCalled(c) {
     : args;
 }
 
+/** 12.0.0 renamed five tools with no alias (DECISIONS "Follow, never
+ *  track"): a capture from before then answers the case that calls the
+ *  tool by its name now. The captures themselves keep the name they were
+ *  recorded under. */
+const RENAMED_IN_12 = {
+  elixir_track_player: "elixir_follow_player",
+  elixir_track_clan: "elixir_follow_clan",
+  players_timeline: "players_series",
+  clans_timeline: "clans_series",
+  clans_members_timeline: "clans_members_series",
+};
+
+function calledAs(c) {
+  const major = Number(String(c.contract_version ?? "0").split(".")[0]);
+  return major < 12
+    ? (RENAMED_IN_12[c.request.tool] ?? c.request.tool)
+    : c.request.tool;
+}
+
 export function replayDoor(captures, { tools = [] } = {}) {
   const key = (tool, args) => `${tool}:${canonical(args ?? {})}`;
   const index = new Map(
-    captures.map((c) => [key(c.request.tool, asCalled(c)), c]),
+    captures.map((c) => [key(calledAs(c), asCalled(c)), c]),
   );
   return {
     async toolsList() {

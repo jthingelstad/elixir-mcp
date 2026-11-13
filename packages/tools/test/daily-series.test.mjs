@@ -1,6 +1,6 @@
 /**
- * The daily series readers (contract 3.12.0): players_timeline extended,
- * clans_timeline, clans_members_timeline, and the roster's lifetime
+ * The daily series readers (contract 3.12.0): players_series extended,
+ * clans_series, clans_members_series, and the roster's lifetime
  * block, over rows the live projectors wrote from the fixtures.
  */
 import { test, before, after } from "node:test";
@@ -128,8 +128,8 @@ after(async () => {
   await admin.end();
 });
 
-test("players_timeline: every metric, the stamps, kind, progress_key, the season echo", async () => {
-  const { body, isError } = await call("players_timeline", {
+test("players_series: every metric, the stamps, kind, progress_key, the season echo", async () => {
+  const { body, isError } = await call("players_series", {
     metrics: [
       "trophies",
       "wins",
@@ -177,7 +177,7 @@ test("players_timeline: every metric, the stamps, kind, progress_key, the season
   assert.equal(auto[0].trophies, 120);
   // A named key reads the same bucket (Gym #189: every named key had
   // failed on an ambiguous column; only "all" worked).
-  const named = await call("players_timeline", {
+  const named = await call("players_series", {
     from: "2026-09-01",
     to: "2026-09-06",
     progress_key: "AutoChess_2026_Season_11",
@@ -190,7 +190,7 @@ test("players_timeline: every metric, the stamps, kind, progress_key, the season
   assert.ok(body.notes.some((n) => n.includes("game days")));
   assert.equal(body.docs, "freshness-and-gaps#daily-series");
 
-  const pre = await call("players_timeline", {
+  const pre = await call("players_series", {
     kind: "pre_reset",
     metrics: ["donations"],
   });
@@ -203,12 +203,12 @@ test("players_timeline: every metric, the stamps, kind, progress_key, the season
   assert.equal(pre.body.series[0].kind, "pre_reset");
   assert.equal(pre.body.applied.kind, "pre_reset");
 
-  const bad = await call("players_timeline", { metrics: ["nope"] });
+  const bad = await call("players_series", { metrics: ["nope"] });
   assert.equal(bad.isError, true);
 });
 
-test("clans_timeline: the clan's five metrics and the roster aggregates per game day; compact; kind; week", async () => {
-  const { body, isError } = await call("clans_timeline", {
+test("clans_series: the clan's five metrics and the roster aggregates per game day; compact; kind; week", async () => {
+  const { body, isError } = await call("clans_series", {
     from: "2026-09-01",
     to: "2026-09-06",
     metrics: [
@@ -277,7 +277,7 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
 
   // These shape checks use the fixture window; it must not age out at
   // the game-day reset as a relative last-30-days window would.
-  const compact = await call("clans_timeline", {
+  const compact = await call("clans_series", {
     verbosity: "compact",
     from: "2026-09-01",
     to: "2026-09-06",
@@ -296,13 +296,13 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
   ]);
   // Named metrics are what compact answers too: never more than full
   // (9.2.1; the acceptance catalogue's two-metric seed found it).
-  const namedCompact = await call("clans_timeline", {
+  const namedCompact = await call("clans_series", {
     verbosity: "compact",
     from: "2026-09-01",
     to: "2026-09-06",
     metrics: ["members", "members_seen"],
   });
-  const namedFull = await call("clans_timeline", {
+  const namedFull = await call("clans_series", {
     from: "2026-09-01",
     to: "2026-09-06",
     metrics: ["members", "members_seen"],
@@ -316,7 +316,7 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
       JSON.stringify(namedFull.body).length + 64,
   );
 
-  const pre = await call("clans_timeline", {
+  const pre = await call("clans_series", {
     kind: "pre_reset",
     from: "2026-09-01",
     to: "2026-09-06",
@@ -324,7 +324,7 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
   assert.equal(pre.body.series.length, 1);
   assert.equal(pre.body.series[0].day, "2026-09-06");
 
-  const weekly = await call("clans_timeline", {
+  const weekly = await call("clans_series", {
     granularity: "week",
     from: "2026-09-01",
     to: "2026-09-06",
@@ -334,8 +334,8 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
   assert.equal(weekly.body.series[0].iso_week, "2026-W36");
 });
 
-test("clans_members_timeline: every member's roster series, the stamps, player_tags, compact deltas, limit", async () => {
-  const { body, isError } = await call("clans_members_timeline", {
+test("clans_members_series: every member's roster series, the stamps, player_tags, compact deltas, limit", async () => {
+  const { body, isError } = await call("clans_members_series", {
     from: "2026-09-01",
     to: "2026-09-02",
     metrics: ["trophies", "donations", "wins", "clan_rank"],
@@ -363,7 +363,7 @@ test("clans_members_timeline: every member's roster series, the stamps, player_t
   assert.ok(body.notes.some((n) => n.includes("roster-only")));
   assert.equal(body.docs, "freshness-and-gaps#daily-series");
 
-  const compact = await call("clans_members_timeline", {
+  const compact = await call("clans_members_series", {
     player_tags: [ME],
     from: "2026-09-01",
     to: "2026-09-02",
@@ -377,7 +377,7 @@ test("clans_members_timeline: every member's roster series, the stamps, player_t
   assert.equal(c.last.day, "2026-09-02");
   assert.deepEqual(c.delta, { trophies: 30, donations: 40 });
 
-  const limited = await call("clans_members_timeline", {
+  const limited = await call("clans_members_series", {
     limit: 2,
     from: "2026-09-01",
     to: "2026-09-06",
@@ -387,7 +387,7 @@ test("clans_members_timeline: every member's roster series, the stamps, player_t
     limited.body.notes.some((n) => n.startsWith("More than 2 members")),
   );
 
-  const bad = await call("clans_members_timeline", { player_tags: ["nope!"] });
+  const bad = await call("clans_members_series", { player_tags: ["nope!"] });
   assert.equal(bad.isError, true);
 });
 
@@ -422,7 +422,7 @@ test("clans_roster carries the lifetime block, tenure and badge count per member
 
 test("one window grammar (3.17.0, call 3): an instant on a series tool is floored to its game day, echoed and said, never refused; days is N game days", async () => {
   // 2026-09-06T04:00Z is before the 10:00Z grid start: game day 09-05.
-  const { body, isError } = await call("players_timeline", {
+  const { body, isError } = await call("players_series", {
     from: "2026-09-01T12:30:00Z",
     to: "2026-09-06T04:00:00Z",
   });
@@ -448,14 +448,14 @@ test("one window grammar (3.17.0, call 3): an instant on a series tool is floore
     "day rides beside date",
   );
   // A date-only window says nothing about flooring.
-  const plain = await call("players_timeline", {
+  const plain = await call("players_series", {
     from: "2026-09-01",
     to: "2026-09-06",
   });
   assert.equal(plain.body.applied.window.floored, undefined);
   assert.ok(!plain.body.notes.some((n) => /was an instant/.test(n)));
   // The clan series take the same grammar.
-  const clan = await call("clans_timeline", {
+  const clan = await call("clans_series", {
     from: "2026-09-01T00:00:00Z",
     to: "2026-09-06",
   });
@@ -468,7 +468,7 @@ test("one window grammar (3.17.0, call 3): an instant on a series tool is floore
   assert.deepEqual(clan.body.applied.window.floored, {
     from: "2026-09-01T00:00:00Z",
   });
-  const members = await call("clans_members_timeline", {
+  const members = await call("clans_members_series", {
     to: "2026-09-06T09:59:59Z",
     days: 3,
   });
@@ -476,7 +476,7 @@ test("one window grammar (3.17.0, call 3): an instant on a series tool is floore
   assert.equal(members.body.applied.window.to, "2026-09-05");
   // The Path of Legends league is league_number (4.0.0): pol_league is
   // refused as a metric, and the point carries the battle row's name.
-  const league = await call("players_timeline", {
+  const league = await call("players_series", {
     metrics: ["league_number", "pol_trophies"],
     from: "2026-09-01",
     to: "2026-09-06",
@@ -487,16 +487,16 @@ test("one window grammar (3.17.0, call 3): an instant on a series tool is floore
       (p) => "league_number" in p && !("pol_league" in p),
     ),
   );
-  const old = await call("players_timeline", { metrics: ["pol_league"] });
+  const old = await call("players_series", { metrics: ["pol_league"] });
   assert.equal(old.isError, true);
   assert.equal(old.body.error.code, "bad_request");
   // Garbage is still refused.
-  const bad = await call("players_timeline", { from: "yesterday" });
+  const bad = await call("players_series", { from: "yesterday" });
   assert.equal(bad.isError, true);
   assert.equal(bad.body.error.code, "bad_request");
 });
 
-test("clans_timeline: a member not read that day counts with their latest earlier profile (#111)", async () => {
+test("clans_series: a member not read that day counts with their latest earlier profile (#111)", async () => {
   const args = {
     from: "2026-09-01",
     to: "2026-09-06",
@@ -506,7 +506,7 @@ test("clans_timeline: a member not read that day counts with their latest earlie
       "avg_member_wins",
     ],
   };
-  const before = (await call("clans_timeline", args)).body.series;
+  const before = (await call("clans_series", args)).body.series;
   // The scratch database only: take 09-06's profile read away.
   await db.query(
     `update player_snapshot_daily
@@ -514,7 +514,7 @@ test("clans_timeline: a member not read that day counts with their latest earlie
       where player_tag = $1 and snapshot_date = '2026-09-06'`,
     [ME],
   );
-  const { body } = await call("clans_timeline", args);
+  const { body } = await call("clans_series", args);
   const d = body.series.find((p) => p.day === "2026-09-06");
   const prior = before.find((p) => p.day === "2026-09-02");
   assert.equal(d.members_with_profile, 1, "the carried member still counts");
@@ -523,14 +523,14 @@ test("clans_timeline: a member not read that day counts with their latest earlie
   assert.ok(body.notes.some((n) => /latest earlier read/.test(n)));
 });
 
-test("clans_timeline: a member who left by the clan's read is out of the profile aggregates, and a note says so (#197)", async () => {
+test("clans_series: a member who left by the clan's read is out of the profile aggregates, and a note says so (#197)", async () => {
   const args = {
     clan_tag: CLAN,
     from: "2026-09-06",
     to: "2026-09-06",
     metrics: ["members_with_profile", "members_seen", "avg_member_wins"],
   };
-  const before = (await call("clans_timeline", args)).body;
+  const before = (await call("clans_series", args)).body;
   assert.ok(!before.notes.some((n) => /Members who left/.test(n)));
   // The scratch database only: ME's stint closes an hour before the read.
   await db.query(
@@ -541,7 +541,7 @@ test("clans_timeline: a member who left by the clan's read is out of the profile
         and cm.clan_tag = $1 and cm.player_tag = $2 and cm.left_observed_at is null`,
     [CLAN, ME],
   );
-  const { body } = await call("clans_timeline", args);
+  const { body } = await call("clans_series", args);
   assert.ok(body.series, JSON.stringify(body));
   const [d] = body.series;
   assert.equal(d.members_seen, before.series[0].members_seen, "still seen");
@@ -563,9 +563,9 @@ test("the daily series take season; a season that has not begun is its start day
   } = await db.query(
     `select season_month from season where starts_at > now() order by starts_at limit 1`,
   );
-  for (const tool of ["clans_timeline", "players_timeline"]) {
+  for (const tool of ["clans_series", "players_series"]) {
     const { body, isError } = await call(tool, {
-      ...(tool === "clans_timeline" ? { clan_tag: CLAN } : { player_tag: ME }),
+      ...(tool === "clans_series" ? { clan_tag: CLAN } : { player_tag: ME }),
       season: next.season_month,
     });
     assert.equal(isError, false, JSON.stringify(body));
@@ -576,7 +576,7 @@ test("the daily series take season; a season that has not begun is its start day
       `${tool}: ${body.notes.join(" | ")}`,
     );
   }
-  const prev = await call("clans_timeline", {
+  const prev = await call("clans_series", {
     clan_tag: CLAN,
     season: "previous",
   });

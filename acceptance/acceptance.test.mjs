@@ -605,10 +605,9 @@ test("every real case is read-only: no write tool, no live: true", () => {
     .map((c) => c.run.toString())
     .join("\n");
   for (const forbidden of [
-    "elixir_track_player",
-    "elixir_track_clan",
+    "elixir_follow_player",
+    "elixir_follow_clan",
     "elixir_nickname",
-    "elixir_identify",
   ])
     assert.ok(!src.includes(forbidden), `${forbidden} in a case`);
   assert.ok(

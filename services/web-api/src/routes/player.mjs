@@ -11,6 +11,7 @@ import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
+import { socialOf } from "@elixir-mcp/tools/social";
 import {
   buildTimeline,
   itemVisibility,
@@ -43,8 +44,6 @@ import { homeClan } from "./clans.mjs";
 /** The page's timeline window, as Home's Timeline reads a week. */
 const PAGE_DAYS = 30;
 const HIGHLIGHTS = 30;
-/** A follow list past this is cut, and the rest are counted. */
-const LIST_CAP = 100;
 /** One confirmed follow takes at most a clan's worth of players. */
 const FOLLOW_ALL_MAX = 50;
 const MOMENT_KINDS = new Set(NEWS_SOURCES.player_moments);
@@ -83,72 +82,6 @@ async function latestTrophies(db, tag) {
     [tag],
   );
   return rows[0]?.trophies ?? null;
-}
-
-/** The account that verified the player as itself: one at most, since
- *  verifying ends every other account's claim to be them (#556). People
- *  only; an agent never claims a player as itself. */
-async function verifiedAccount(db, tag) {
-  const { rows } = await db.query(
-    `select c.account_id,
-            exists (select 1 from account_discord d
-                     where d.account_id = c.account_id) as discord
-       from claim c join account a using (account_id)
-      where c.player_tag = $1 and c.status = 'verified'
-        and (c.is_primary or c.relationship in ('primary', 'alt'))
-        and coalesce(a.kind, 'person') = 'person'
-      order by c.verified_at limit 1`,
-    [tag],
-  );
-  return rows[0] ?? null;
-}
-
-/** Who the account follows: its friends (Home's Follow), by game name and
- *  tag. Watched players and its agents' players are not follows. */
-async function followsOf(db, accountId) {
-  const { rows } = await db.query(
-    `select c.player_tag as tag, p.name, count(*) over ()::int as total
-       from claim c left join player p using (player_tag)
-      where c.account_id = $1 and c.relationship = 'friend'
-        and not c.is_primary
-      order by lower(coalesce(p.name, c.player_tag)), c.player_tag
-      limit $2`,
-    [accountId, LIST_CAP],
-  );
-  return {
-    count: rows[0]?.total ?? 0,
-    players: rows.map((r) => ({ tag: r.tag, name: r.name ?? null })),
-  };
-}
-
-/** Who follows the player: people with a friend claim on them, each named
- *  by the player their account verified (game name and tag), the rest
- *  counted. The account that is the player is not its own follower. */
-async function followersOf(db, tag, selfAccountId) {
-  const { rows } = await db.query(
-    `select f.account_id, v.player_tag as tag, p.name
-       from claim f
-       join account a on a.account_id = f.account_id
-       left join lateral (
-         select c.player_tag from claim c
-          where c.account_id = f.account_id and c.status = 'verified'
-            and (c.is_primary or c.relationship in ('primary', 'alt'))
-          order by c.is_primary desc, c.verified_at limit 1) v on true
-       left join player p on p.player_tag = v.player_tag
-      where f.player_tag = $1 and f.relationship = 'friend'
-        and coalesce(a.kind, 'person') = 'person'
-        and f.account_id is distinct from $2
-      order by lower(coalesce(p.name, v.player_tag)) nulls last, v.player_tag`,
-    [tag, selfAccountId],
-  );
-  const named = rows.filter((r) => r.tag);
-  return {
-    count: rows.length,
-    players: named
-      .slice(0, LIST_CAP)
-      .map((r) => ({ tag: r.tag, name: r.name ?? null })),
-    unnamed: rows.length - Math.min(named.length, LIST_CAP),
-  };
 }
 
 /** The reader and this player: theirs, followed, or a member of the reader's
@@ -260,7 +193,6 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
   const p = rows[0];
   if (!p) return null;
   const timezone = account.timezone ?? "UTC";
-  const self = await verifiedAccount(db, tag);
   const built = await pageTimeline(db, tag, timezone, now);
   const timeline = (built.timeline ?? []).map(pageItem);
   const highlights = (
@@ -276,14 +208,10 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
       recorded: p.recorded === true,
     },
     you: await readerSide(db, account.accountId, tag, p.clan_tag),
-    badges: {
-      verified_player: Boolean(self),
-      // That the account linked a Discord, never which.
-      discord: self?.discord === true,
-    },
-    // No verified account, nothing to show: follows are an account's.
-    follows: self ? await followsOf(db, self.account_id) : null,
-    followers: self ? await followersOf(db, tag, self.account_id) : null,
+    // The verified account's badges, follows and followers: the one reader
+    // players_follows serves too (@elixir-mcp/tools/social). No verified
+    // account, nothing to show: follows are an account's.
+    ...(await socialOf(db, tag)),
     window_days: PAGE_DAYS,
     timeline,
     timeline_more: built.timeline_more ?? 0,

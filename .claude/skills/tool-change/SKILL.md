@@ -138,7 +138,7 @@ Eight tools' structured results are served by `/api/v1` operations
 `services/web-api/src/integration-api.mjs`): `clans_participation`,
 `clans_roster`, `war_history`, `live_fetch` (the clan read),
 `players_names`, `players_profile`, `battles_query` and
-`elixir_track_player`.
+`elixir_follow_player`.
 
 "The JSON API keeps ordinary semver". An addition to a mirrored tool is
 a JSON API minor, made in the same round. A removed or renamed field is

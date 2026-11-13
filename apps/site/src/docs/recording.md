@@ -66,8 +66,8 @@ is still recorded, and its first read comes with the scheduler's next round.
 
 | Act | Tool | Web | Scope needed |
 |---|---|---|---|
-| Record a player | `elixir_track_player({ player_tag, relationship?, action? })` | Settings › Players & following | `recordings:write` |
-| Record a clan | `elixir_track_clan({ clan_tag, scope?, action? })` | Settings › Players & following | `recordings:write` |
+| Record a player | `elixir_follow_player({ player_tag, relationship?, action? })` | Settings › Players & following | `recordings:write` |
+| Record a clan | `elixir_follow_clan({ clan_tag, scope?, action? })` | Settings › Players & following | `recordings:write` |
 | Stop | the same tools with `action: "remove"` | same | `recordings:write` |
 | Silence the feed without stopping | `action: "notify_off"` / `"notify_on"` | same | `recordings:write` |
 
@@ -90,7 +90,7 @@ so two accounts can never make each other's follows free.
 
 The web says what a Follow costs before you tap it: **Free · already
 recorded**, or **Uses 1 of your 50 player slots** with the number in use.
-`elixir_track_player` and `POST /api/me/players` return a `slot` block
+`elixir_follow_player` and `POST /api/me/players` return a `slot` block
 (`took`, `free`, `free_because`, `used`, `limit`), and Settings › Players &
 following marks each player as free or using a slot.
 
@@ -158,7 +158,7 @@ your own clan: Elixir follows your primary player's clan in it for you
 ([Your player's clan](#your-players-clan)). Signup itself starts no
 recording. Every member is the upgrade, and
 it costs proportionally more to run: the member role has none, so
-`elixir_track_clan`, which defaults to `comprehensive`, needs
+`elixir_follow_clan`, which defaults to `comprehensive`, needs
 `scope: "activity"` there.
 
 Players you follow are always recorded in full. A recorded player's current clan is
@@ -180,7 +180,7 @@ and each half is dated by its own reading. The profile's progress buckets
 (the seasonal Trophy Road, 2v2 League, Merge Tactics) are kept as a series of
 their own; a bucket the player has not touched this season writes nothing, and
 the seasonal Trophy Road's entry value (14,000 with best 0) is not a row.
-`players_timeline` reads them with `progress_key` (`all`, or one
+`players_series` reads them with `progress_key` (`all`, or one
 key such as `seasonal-trophy-road-202609`; an unknown key names the ones the
 record holds).
 
@@ -192,7 +192,7 @@ someone you are `watching` (the default). The primary is what "omit
 `player_tag`" means on your connection, and its current clan is what an
 omitted `clan_tag` means. Removing your primary is refused while you follow
 other players, because Elixir will not choose who "you" are: make another
-player primary first (`elixir_track_player` with `relationship:
+player primary first (`elixir_follow_player` with `relationship:
 "primary"`, or the primary control on Players & following), then remove the old one.
 Removing your last player is allowed, and leaves the account with no
 primary until you add one. Claims are taken at your word

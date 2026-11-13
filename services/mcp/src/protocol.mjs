@@ -149,7 +149,8 @@ export const INSTRUCTIONS_BUDGET = 2048;
  */
 function instructionsFor(kind, identity) {
   const rules = [
-    "segment is REQUIRED on battles_trends, cards_card and badges_*:",
+    "segment is REQUIRED on cards_card and badges_* (optional on",
+    "battles_performance, for a population's weeks):",
     "'mine' (your clan) or {player_tag | clan_tag}. No corpus statistics.",
     "Windows: from/to, days/weeks or season ('current', 'previous', 2026-08,",
     "135); applied.window says what was read. Name a deck by its archetype",
@@ -163,7 +164,7 @@ function instructionsFor(kind, identity) {
     person: [
       "START: players_summary for 'how am I doing', battles_performance for",
       "a window or a before/after, battles_decks for decks, elixir_timeline",
-      "for what happened; elixir_track_player / elixir_track_clan start",
+      "for what happened; elixir_follow_player / elixir_follow_clan start",
       "recording someone. meta.timeline_pending means elixir_timeline has",
       "news.",
     ],
@@ -402,7 +403,7 @@ export async function handleMcpMessage(message, context) {
           `Daily tool-call quota reached (${quota.max} per day). It resets at midnight UTC.`,
           {
             code: "quota_exceeded",
-            hint: "Recorded-data reads are bounded only by this daily budget; elixir_docs({ page: 'limits' }) has the ladder; leading a clan you track or running a collector raises your tier.",
+            hint: "Recorded-data reads are bounded only by this daily budget; elixir_docs({ page: 'limits' }) has the ladder; leading a clan you follow or running a collector raises your tier.",
           },
         ),
       };

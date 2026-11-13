@@ -164,8 +164,8 @@ function personRoute(db, account, method, path, query, body, deps = {}) {
           : {}),
       }),
     };
-  // Track a player as the signed-in person (JSON API 2.1.0): the
-  // elixir_track_player add, for a family app signing a person in (Elixir
+  // Follow a player as the signed-in person (JSON API 2.1.0): the
+  // elixir_follow_player add, for a family app signing a person in (Elixir
   // Drop adds the tag the person saved there, as an alt).
   if (method === "POST" && path === "/api/v1/me/players") {
     const relationship = body.relationship ?? "watching";
@@ -177,7 +177,7 @@ function personRoute(db, account, method, path, query, body, deps = {}) {
       );
     return {
       operation: "me.players.add",
-      tool: "elixir_track_player",
+      tool: "elixir_follow_player",
       args: {
         player_tag: String(body.player_tag ?? ""),
         action: "add",
@@ -185,6 +185,20 @@ function personRoute(db, account, method, path, query, body, deps = {}) {
       },
     };
   }
+  // The social layer's reads (JSON API 3.6.0), a person's own: the cheers
+  // others gave items about your primary player, and the clan directory.
+  if (method === "GET" && path === "/api/v1/me/cheers")
+    return {
+      operation: "me.cheers",
+      tool: "elixir_cheers",
+      args: {
+        ...(query.days === undefined ? {} : { days: Number(query.days) }),
+        ...(query.from === undefined ? {} : { from: String(query.from) }),
+        ...(query.to === undefined ? {} : { to: String(query.to) }),
+      },
+    };
+  if (method === "GET" && path === "/api/v1/clans/directory")
+    return { operation: "clans.directory", tool: "clans_directory", args: {} };
   if (
     method === "GET" &&
     (m =
@@ -255,9 +269,27 @@ function personRoute(db, account, method, path, query, body, deps = {}) {
   }
   if (
     method === "GET" &&
-    (m = /^\/api\/v1\/players\/([^/]+)\/(profile|battles)$/.exec(path))
+    (m =
+      /^\/api\/v1\/players\/([^/]+)\/(profile|battles|follows|highlights)$/.exec(
+        path,
+      ))
   ) {
     const playerTag = tag(decodeURIComponent(m[1]));
+    if (m[2] === "follows")
+      return {
+        operation: "players.follows",
+        tool: "players_follows",
+        args: { player_tag: playerTag },
+      };
+    if (m[2] === "highlights")
+      return {
+        operation: "players.highlights",
+        tool: "players_highlights",
+        args: {
+          player_tag: playerTag,
+          ...(query.limit === undefined ? {} : { limit: Number(query.limit) }),
+        },
+      };
     const fresh = flag(query.fresh);
     if (m[2] === "profile")
       return {

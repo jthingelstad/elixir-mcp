@@ -583,8 +583,8 @@ export function AgentSettings({ agent }) {
         </p>
         {identities?.length === 0 ? (
           <p className="panel__body m-0 text-ink-faint">
-            Nobody mapped yet. An agent builds this itself with elixir_identify,
-            the first time somebody asks it about themselves.
+            Nobody mapped. Someone who links Discord in their Settings is known
+            to the agent by that link.
           </p>
         ) : (
           <Rows>

@@ -140,8 +140,12 @@ about a player or clan you follow. An item older than that, or about
 someone you do not follow, shows no cheers and no counts there. A battle's
 page signed out shows neither.
 
-A cheer stays in Elixir. It goes to no Discord channel, mail or agent,
-and `elixir_timeline` does not carry it; an agent cannot cheer. The bell
+A cheer stays in Elixir. It goes to no Discord channel or mail, and
+`elixir_timeline` does not carry it; an agent cannot cheer. Your own agent
+can read the counts on the items about your primary player with the MCP
+tool `elixir_cheers` (`GET /api/v1/me/cheers`), reading as you: for each
+cheered item in the window its id, kind, time, sentence and counts by
+kind, never who, and never your own cheer. The bell
 counts the cheers on items about your own verified players, never naming
 who ([the bell](/docs/your-account#the-bell)). You can give
 up to 120 cheers an hour.
@@ -173,6 +177,12 @@ verified player played the battle can post it, from the battle's page
 the player reads it in their timeline, with a link to the battle. Its owner's
 timeline also carries the post's share link once they have shared it; nobody
 else's does. A deleted highlight leaves every timeline.
+
+Your own agent reads the highlights a player posted, newest first, with the
+MCP tool `players_highlights` (`GET /api/v1/players/{tag}/highlights`):
+each one's sentence, the words written with it and the battle's link. It
+reads them as you, its owner; an integration key reads none of them, and an
+agent never posts or deletes one.
 
 ## Cross-posting to Discord
 

@@ -123,9 +123,9 @@ therefore serves the controls beside it:
   members' logs are not recorded, where every count is zero by
   construction for a member whose `log_recorded` is false). `net_trophies`
   is `null` when `ladder_battles` is 0.
-- `battles_trends` weeks carry `modes` and, when the window clips
+- `battles_performance` `weeks` (with a `segment`) carry `modes` and, when the window clips
   a week, `partial: true` with `covers {from, to}`, the same marks
-  `battles_performance` puts on its weekly buckets.
+  it puts on its `group_by: "week"` buckets.
 
 The notes fire on a detected confound, not as a standing caveat: a
 `battles_decks` read within one mode whose decks met similar levels carries
@@ -151,7 +151,7 @@ denominator:
   `decided_battles` is draws plus unresolved plus boat attacks.
 - Duel crowns are summed over rounds, so `crowns_for` and `crowns_against`
   mix units when a window holds duels; `duel_battles` says how many did.
-- On a weekly row (`battles_performance group_by: "week"`, `battles_trends`),
+- On a weekly row (`battles_performance` `group_by: "week"`, or its `segment` weeks),
   `trophy_mode_battles` counts the Trophy Road and Path of Legends battles
   played, plus any other battle that reported a trophy delta, and `trophy_battles` the ones for which the game reported a
   trophy delta: a loss standing on an arena floor reports none (see
@@ -160,4 +160,4 @@ denominator:
   `trophy_battles`. Divide by `trophy_mode_battles` for a ladder record; a
   note names the weeks where the two differ.
 
-`battles_trends` counts the selected player or clan members' own battles week by week, every kind except boat defense. Its win rate is `wins / (wins + losses)`; a mode filter keeps different games separate. Clan membership is current at the time of the call, so a historical window describes today's members.
+`battles_performance` with a `segment` counts the selected player or clan members' own battles week by week, every kind except boat defense. Its win rate is `wins / (wins + losses)`; a mode filter keeps different games separate. Clan membership is current at the time of the call, so a historical window describes today's members.

@@ -96,7 +96,7 @@ export function enumValues(schema, out = new Set()) {
 }
 
 /** Every tool the product publishes, not only the ones this connection
- *  is offered (an agent sees 44 of 55): a doc naming elixir_track_player
+ *  is offered (an agent sees 44 of 55): a doc naming elixir_follow_player
  *  names a tool. Fetched once from the public tools.json. */
 async function allToolNames(ctx) {
   if (ctx.allTools) return ctx.allTools;

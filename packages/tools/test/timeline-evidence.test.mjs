@@ -608,15 +608,15 @@ test("a sitting's shown time is the time it sorts by: at_unix and local name sor
   );
 });
 
-test("elixir_track_player: a first friend stays a friend, and the answer says who you are not yet", async () => {
-  const { elixir_track_player } =
-    await import("../src/tools/elixir/track-player.mjs");
+test("elixir_follow_player: a first friend stays a friend, and the answer says who you are not yet", async () => {
+  const { elixir_follow_player } =
+    await import("../src/tools/elixir/follow-player.mjs");
   const {
     rows: [{ account_id }],
   } = await db.query(
     "insert into account (email_hash,status,timezone) values ('evidence-friend-first','approved','UTC') returning account_id",
   );
-  const r = await elixir_track_player.handler(
+  const r = await elixir_follow_player.handler(
     {
       db,
       account: { accountId: account_id, timezone: "UTC" },

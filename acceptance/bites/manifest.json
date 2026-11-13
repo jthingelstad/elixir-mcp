@@ -987,14 +987,6 @@
     "expect": "."
   },
   {
-    "feedback": 217,
-    "contract": "6.36.10",
-    "why": "the Gym block 217.1 on the answer it read",
-    "case": "gym/217.1",
-    "captures": ["217-1-elixir_data_insights.json"],
-    "expect": "."
-  },
-  {
     "feedback": 223,
     "contract": "7.1.0",
     "why": "the Gym block 223.1 on the answer it read",

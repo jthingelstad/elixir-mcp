@@ -2,8 +2,8 @@
 
 *Overtaken in part, 2026-11-12: a person's agent reads follows, cheers,
 highlights and the clan directory over MCP and `/api/v1` and never
-writes them; in an approved MCP major the timelines are renamed as
-series, `battles_trends` and `elixir_data_insights` fold, `clans_context`
+writes them; in MCP 12.0.0 (the approved major) the timelines are
+renamed as series, `battles_trends` and `elixir_data_insights` fold, `clans_context`
 and `elixir_identify` retire, and the track tools and scope say follow
 (DECISIONS "Agents read the social layer and never write it", "Follow,
 never track"). The public story opens with the social layer, and agents

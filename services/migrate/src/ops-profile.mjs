@@ -149,7 +149,7 @@ export async function profileTool(databaseUrl, spec = {}) {
     await db.query(`set statement_timeout = ${STATEMENT_TIMEOUT_MS}`);
     await db.query("set default_transaction_read_only = on");
     // The invoker's analytical work_mem, where the tool earns it.
-    const workMem = analyticalWorkMem(tool);
+    const workMem = analyticalWorkMem(tool, args);
     if (workMem)
       await db.query("select set_config('work_mem', $1, false)", [workMem]);
     const account = await serviceTokenAccountByName(db, principal);

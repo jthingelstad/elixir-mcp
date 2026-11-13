@@ -681,7 +681,7 @@ export async function removePlayer(db, account, { tag, via }) {
 /**
  * Add (track) a clan: tracked means recorded, within the POOL's clan slots
  * (the person's, shared with their agents; pool.mjs). One function for the
- * console and elixir_track_clan, which had each carried a copy of the slot
+ * console and elixir_follow_clan, which had each carried a copy of the slot
  * check and neither locked anything; this takes the same locks addPlayer
  * does. A clan counts once, at the widest scope any of the pool gives it,
  * and changing your own copy is never refused for a slot it already had.

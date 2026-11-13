@@ -36,11 +36,19 @@ const call = (kind, name) =>
     context(kind),
   );
 
-test("a person sees everything but agent identity and private context tools", () => {
-  assert.equal(names("person").length, registry.declarations().length - 3);
-  assert.ok(!names("person").includes("elixir_identify"));
+test("a person sees everything but the agent's identity map (12.0.0: 46 of 47)", () => {
+  assert.equal(registry.declarations().length, 47);
+  assert.equal(names("person").length, 46);
   assert.ok(!names("person").includes("elixir_my_identities"));
-  assert.ok(!names("person").includes("clans_context"));
+  // The social reads are a person's own (DECISIONS "Agents read the
+  // social layer and never write it").
+  for (const social of [
+    "players_follows",
+    "players_highlights",
+    "clans_directory",
+    "elixir_cheers",
+  ])
+    assert.ok(names("person").includes(social), social);
   assert.ok(names("person").includes("elixir_my_players"));
   assert.ok(names("person").includes("clans_my_view"));
   assert.ok(
@@ -49,36 +57,52 @@ test("a person sees everything but agent identity and private context tools", ()
   );
 });
 
-test("an agent has no personal identity tools, and tracks for its clan", () => {
+test("an agent has no personal identity tools, and follows for its clan (12.0.0: 45 of 47)", () => {
   const agent = names("agent");
+  assert.equal(agent.length, 45);
   assert.ok(!agent.includes("elixir_my_players"));
   // A person's own Clan view is never an agent's, its owner's agent
   // included (Jamie's ruling on #535, 2026-10-12).
   assert.ok(!agent.includes("clans_my_view"));
-  // 7.1.0 (Jamie, 2026-09-23): a clan agent may be asked to track a rival;
-  // it tracks with an agent's meaning (watched players, its owner's slots).
-  assert.ok(agent.includes("elixir_track_player"));
-  assert.ok(agent.includes("elixir_track_clan"));
+  // 7.1.0 (Jamie, 2026-09-23): a clan agent may be asked to follow a rival;
+  // it follows with an agent's meaning (watched players, its owner's slots).
+  assert.ok(agent.includes("elixir_follow_player"));
+  assert.ok(agent.includes("elixir_follow_clan"));
   // But it keeps the things a clan agent actually needs.
   assert.ok(agent.includes("elixir_timeline"), "its own feed");
   assert.ok(agent.includes("elixir_send_feedback"), "and its own voice");
   assert.ok(agent.includes("war_current"));
   assert.ok(agent.includes("game_clock"));
-  assert.ok(agent.includes("clans_context"));
+  // It reads the social layer as its owner, and never writes it.
+  for (const social of [
+    "players_follows",
+    "players_highlights",
+    "clans_directory",
+    "elixir_cheers",
+  ])
+    assert.ok(agent.includes(social), social);
 });
 
-test("an integration has no 'me' at all", () => {
+test("an integration has no 'me' at all (12.0.0: 36 of 47)", () => {
   const integration = names("integration");
+  assert.equal(integration.length, 36);
   assert.ok(!integration.includes("elixir_my_players"));
   assert.ok(!integration.includes("elixir_nickname"), "nobody to nickname");
   assert.ok(
     !integration.includes("elixir_timeline"),
     "no subjects, so an empty pipe forever",
   );
-  assert.ok(!integration.includes("elixir_track_player"), "adds none");
-  assert.ok(!integration.includes("elixir_track_clan"));
-  assert.ok(!integration.includes("clans_context"));
+  assert.ok(!integration.includes("elixir_follow_player"), "adds none");
+  assert.ok(!integration.includes("elixir_follow_clan"));
   assert.ok(!integration.includes("clans_my_view"));
+  // No person to read the social layer for.
+  for (const social of [
+    "players_follows",
+    "players_highlights",
+    "clans_directory",
+    "elixir_cheers",
+  ])
+    assert.ok(!integration.includes(social), social);
   // It is a corpus consumer, and the corpus is all still there.
   assert.ok(integration.includes("players_profile"));
   assert.ok(!integration.includes("battles_meta_decks"));
@@ -133,8 +157,14 @@ test("a person calling the same tool is served", async () => {
   assert.ok(res.payload.result);
 });
 
-test("remembered private context calls by people and integrations never invoke or spend quota", async () => {
-  for (const kind of ["person", "integration"]) {
+test("remembered social reads by an integration never invoke or spend quota", async () => {
+  for (const name of [
+    "players_follows",
+    "players_highlights",
+    "clans_directory",
+    "elixir_cheers",
+  ]) {
+    const kind = "integration";
     let invoked = 0;
     let spent = 0;
     const result = await handleMcpMessage(
@@ -142,7 +172,7 @@ test("remembered private context calls by people and integrations never invoke o
         jsonrpc: "2.0",
         id: 1,
         method: "tools/call",
-        params: { name: "clans_context", arguments: {} },
+        params: { name, arguments: {} },
       },
       {
         ...context(kind),
@@ -259,7 +289,8 @@ test("an agent is told its clan and how to learn who is asking", async () => {
   assert.match(text, /YOU ACT FOR POAP KINGS #J2RGCRVG \(48 members\)/);
   assert.match(text, /King Thing \(leader\)/);
   assert.match(text, /on_behalf_of/);
-  assert.match(text, /elixir_identify/);
+  assert.match(text, /pass player_tag/);
+  assert.doesNotMatch(text, /elixir_identify/);
   assert.match(text, /You already know 3 of them/);
 
   // The roster is deliberately NOT here: it changes daily and this text is
@@ -279,5 +310,5 @@ test("a person with no player is told how to get one, not left to fail", async (
     )
   ).payload.result.instructions;
   assert.match(text, /no player yet/);
-  assert.match(text, /elixir_track_player/);
+  assert.match(text, /elixir_follow_player/);
 });

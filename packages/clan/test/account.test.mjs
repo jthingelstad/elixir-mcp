@@ -77,7 +77,7 @@ test("internal reader refuses browser tokens, keys, other objects and retired do
   for (const [name, args] of [
     ["rankings_players", {}],
     ["battles_meta_cards", {}],
-    ["elixir_track_player", {}],
+    ["elixir_follow_player", {}],
     ["live_fetch", { path: "/locations/global/rankings/players" }],
     ["live_fetch", { path: "/clans/%ZZ" }],
     ["live_fetch", { path: "/clans/%239GQLV20?other=1" }],

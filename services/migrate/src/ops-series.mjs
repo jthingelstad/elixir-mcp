@@ -660,8 +660,8 @@ export async function seriesCensusSelf(databaseUrl, spec = {}) {
 
 /**
  * {explain_series: {clan_tag?, days?, player_tag?}} - read-only: EXPLAIN
- * (ANALYZE, BUFFERS) of the shapes clans_timeline, clans_members_timeline
- * and players_timeline run (contract 3.12.0), on the live database, the
+ * (ANALYZE, BUFFERS) of the shapes clans_series, clans_members_series
+ * and players_series run (contract 3.12.0), on the live database, the
  * pattern of {explain_meta} and {explain_standings}: the op that
  * explains the exact text the tool serves.
  */
@@ -702,7 +702,7 @@ export async function explainSeries(databaseUrl, spec = {}) {
       });
     };
     await explain(
-      "clans_timeline: the clan rows plus the roster aggregates (default metrics)",
+      "clans_series: the clan rows plus the roster aggregates (default metrics)",
       `select c.day, c.snapshot_kind, c.observed_at, c.source, c.clan_score, c.clan_war_trophies,
               c.members, c.donations_per_week, c.required_trophies, a.*
          from clan_snapshot_daily c
@@ -717,7 +717,7 @@ export async function explainSeries(databaseUrl, spec = {}) {
       [clanTag, from],
     );
     await explain(
-      "clans_members_timeline: every member's rows for the window",
+      "clans_members_series: every member's rows for the window",
       `select s.player_tag, s.snapshot_date, s.snapshot_kind, s.observed_at, s.profile_observed_at,
               s.roster_observed_at, s.source, s.trophies, s.donations
          from player_snapshot_daily s
@@ -726,7 +726,7 @@ export async function explainSeries(databaseUrl, spec = {}) {
       [clanTag, from],
     );
     await explain(
-      "players_timeline: one player's rows",
+      "players_series: one player's rows",
       `select snapshot_date, snapshot_kind, observed_at, profile_observed_at, roster_observed_at, source,
               trophies, wins, king_tower_level
          from player_snapshot_daily
@@ -735,7 +735,7 @@ export async function explainSeries(databaseUrl, spec = {}) {
       [playerTag, from],
     );
     await explain(
-      "players_timeline: the progress series",
+      "players_series: the progress series",
       `select p.progress_key, p.day, p.trophies from player_progress_daily p
         where p.player_tag = $1 and p.snapshot_kind = 'daily' and p.day >= $2::date
         order by p.progress_key, p.day`,

@@ -1035,7 +1035,7 @@ test("a first read's outcome is logged by name, so a slow first read can be told
 });
 
 /** A person with `slots` player slots who has added `tag` (claimed, so
- *  recorded comprehensively), as the web add and elixir_track_player do. */
+ *  recorded comprehensively), as the web add and elixir_follow_player do. */
 async function personWith(hash, tag, slots = 3) {
   const {
     rows: [p],

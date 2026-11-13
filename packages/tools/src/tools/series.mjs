@@ -1,4 +1,4 @@
-/** clans_timeline · clans_members_timeline: the clan's daily series and
+/** clans_series · clans_members_series: the clan's daily series and
  *  its members' (contract 3.12.0). Read from
  *  clan_snapshot_daily and the roster-written rows of
  *  player_snapshot_daily by (clan_tag, snapshot_date); one point per
@@ -174,7 +174,7 @@ function counterRise(points, k) {
 }
 
 export const seriesTools = {
-  clans_timeline: {
+  clans_series: {
     description:
       "A clan's daily series, yours by default, one point per game day from the roster: clan_score, clan_war_trophies, members, donations_per_week, required_trophies, and the aggregates over that day's member rows (total_member_trophies, avg_member_trophies, members_seen, members_with_profile); the profile-derived aggregates (avg_member_wins, avg_member_collection_level, the 12000+/14000+/6-years+/collection-1000+ counts) are metrics to ask for. kind selects the pre_reset or season_roll row; granularity week keeps the last row of each ISO week. verbosity compact keeps day and the five clan metrics.",
     inputSchema: {
@@ -320,7 +320,7 @@ export const seriesTools = {
             )
             .join(
               "; ",
-            )}${off.length > 3 ? `; and ${off.length - 3} more days like it` : ""}. clans_members_timeline has each member's own counter.`;
+            )}${off.length > 3 ? `; and ${off.length - 3} more days like it` : ""}. clans_members_series has each member's own counter.`;
       }
       const leaverDays = rows
         .filter((r) => r.members_left_excluded > 0)
@@ -403,9 +403,9 @@ export const seriesTools = {
     },
   },
 
-  clans_members_timeline: {
+  clans_members_series: {
     description:
-      "The members' daily series for a clan, yours by default: for every player the roster placed in the clan in the window (or player_tags), one point per game day with the roster's metrics (trophies, donations, donations_received, arena_id, clan_rank, previous_clan_rank, game_last_seen_at) and, for members whose profile is recorded, any profile metric of players_timeline. Names are the current ones. kind selects the pre_reset or season_roll row; granularity week keeps each ISO week's last row. verbosity compact keeps each member's first and last point and the delta.",
+      "The members' daily series for a clan, yours by default: for every player the roster placed in the clan in the window (or player_tags), one point per game day with the roster's metrics (trophies, donations, donations_received, arena_id, clan_rank, previous_clan_rank, game_last_seen_at) and, for members whose profile is recorded, any profile metric of players_series. Names are the current ones. kind selects the pre_reset or season_roll row; granularity week keeps each ISO week's last row. verbosity compact keeps each member's first and last point and the delta.",
     inputSchema: {
       type: "object",
       properties: {

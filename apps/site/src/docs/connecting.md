@@ -228,8 +228,8 @@ grant. Refreshing never widens scope.
 | Scope | Grants | Tools that need it |
 |---|---|---|
 | `cr:read` | every read tool, `live_fetch`, and `elixir_timeline` (moving your read pointer is a bookmark, not an account change) | all others |
-| `recordings:write` | follow or stop following players and clans | `elixir_track_player`, `elixir_track_clan` |
-| `account:write` | private nicknames and end-user identity mappings | `elixir_nickname`, `elixir_identify` |
+| `recordings:write` | follow or stop following players and clans | `elixir_follow_player`, `elixir_follow_clan` |
+| `account:write` | private nicknames for the players you follow | `elixir_nickname` |
 | `feedback:write` | file attributed feedback | `elixir_send_feedback` |
 | `account:email` | read the account's email address at `/oauth/userinfo` (and `GET /api/v1/me`); granted only to the Elixir family's own apps | no tool; see below |
 | `clans:attest` | record what you do in your clan as [attested facts](/docs/integrations#attested-facts) (`POST /api/v1/clans/{tag}/facts`); granted only to the Elixir family's own apps, when they ask for it | no tool |

@@ -116,7 +116,7 @@ export function clansRoutes({ resolveAccount }) {
       }
       if (action !== "add") return json(400, { error: "bad_request" });
       // Added = recorded, within the pool's clan slots (the person's,
-      // shared with their agents); elixir_track_clan runs the same
+      // shared with their agents); elixir_follow_clan runs the same
       // function.
       const r = await addClan(db, account, {
         tag,

@@ -8,7 +8,12 @@
  * Who sees what: every reader of an item sees how many of each cheer it
  * has, and their own; nobody sees who cheered. Counts are per item (the
  * timeline's story id names the happening, never the reader), never per
- * recipient. Nothing here reaches Discord, mail, MCP or /api/v1.
+ * recipient. Writing a cheer is this module's and the web's alone; nothing
+ * here reaches Discord or mail. The counts are read through
+ * @elixir-mcp/tools/activity/cheers, which MCP's elixir_cheers and its
+ * /api/v1 operation share (12.0.0): a person's agent reads the counts on
+ * items about its owner's player, never who, and never gives a cheer
+ * (DECISIONS "Agents read the social layer and never write it").
  *
  * A cheer is stored only on an item in the person's own feed: the route
  * rebuilds the last seven days for the item's subjects the person follows
@@ -24,80 +29,25 @@
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { resolveBattleRef } from "@elixir-mcp/record/battle-links";
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
+import {
+  CHEER_KEYS,
+  ITEM_ID_RE,
+  cheerable,
+  cheersFor,
+  withCheers,
+} from "@elixir-mcp/tools/activity/cheers";
 import { proofOf } from "./feed.mjs";
 
-/** The six, in the order the picker shows them. The web app names them
- *  (apps/web/src/home/cheer-set.js); this list is what the database allows
- *  (0243), and a test pins the two together. */
-export const CHEER_KEYS = [
-  "well_played",
-  "on_fire",
-  "royal",
-  "wow",
-  "ha",
-  "grind",
-];
+export { CHEER_KEYS, withCheers };
 const KEYS = new Set(CHEER_KEYS);
 
 /** Pages' cheer reads one person may make in an hour: one for each player
  *  page or battle page opened, each a slice of the feed rebuilt. */
 export const CHEER_READS_PER_HOUR = 240;
 
-const ITEM_ID_RE = /^tl_[0-9a-f]{20}$/;
-
 /** Cheers one person may set or take back in an hour. A tap rebuilds a
  *  slice of the feed, so the cap is about cost as well as abuse. */
 export const CHEERS_PER_HOUR = 120;
-
-/** The feed's own items carry cheers; the account's administration (its
- *  sign-ins, connections and feedback answers) is seen by nobody else and
- *  has none. */
-const cheerable = (it) => Boolean(it?.id) && it.section !== "account";
-
-/** Each item's cheers, as counts and the reader's own: a Map of item id to
- *  `{ cheers: { well_played: 2, … }, my_cheer }`, only for items that have
- *  any or that the reader cheered. One read for the whole page. */
-async function cheersFor(db, itemIds, accountId) {
-  const ids = [...new Set(itemIds.filter((id) => ITEM_ID_RE.test(id)))];
-  const out = new Map();
-  if (ids.length === 0) return out;
-  const { rows } = await db.query(
-    `select item_id, cheer, count(*)::int as n,
-            bool_or(account_id = $2) as mine
-       from timeline_cheer
-      where item_id = any($1::text[])
-      group by item_id, cheer`,
-    [ids, accountId ?? null],
-  );
-  for (const r of rows) {
-    const one = out.get(r.item_id) ?? { cheers: {}, my_cheer: null };
-    one.cheers[r.cheer] = r.n;
-    if (r.mine) one.my_cheer = r.cheer;
-    out.set(r.item_id, one);
-  }
-  return out;
-}
-
-/** The feed's items with their cheers: `cheers` (counts, only the cheers
- *  given) and `my_cheer` (yours, or null) on every item that can carry
- *  them. Counts only: never who. */
-export async function withCheers(db, items, accountId) {
-  const open = items.filter(cheerable);
-  const found = await cheersFor(
-    db,
-    open.map((it) => it.id),
-    accountId,
-  );
-  return items.map((it) =>
-    cheerable(it)
-      ? {
-          ...it,
-          cheers: found.get(it.id)?.cheers ?? {},
-          my_cheer: found.get(it.id)?.my_cheer ?? null,
-        }
-      : it,
-  );
-}
 
 /** The person's own feed now, for some of its subjects: the last seven
  *  days, the same build the feed made, only the items that take cheers.

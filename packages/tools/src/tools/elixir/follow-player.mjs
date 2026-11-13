@@ -4,9 +4,9 @@ import { requestFirstRead } from "../../live.mjs";
 import { TAG_RULE_HINT, ToolFailure, appliedBlock, notes } from "../shared.mjs";
 import { RECORDING_DOCS } from "./common.mjs";
 
-export const elixir_track_player = {
+export const elixir_follow_player = {
   description:
-    "Track a player on your account: claims the tag AND starts recording in one act (tracked means recorded). It spends a player slot only when Elixir records them because of you (an agent spends its owner's); the result's slot says. Say who they are to you with relationship (primary = you, alt = also you, friend, watching); a first player is your primary unless named friend or watching. A tag another account verified is theirs: friend or watching only. An agent tracks as watching only. action remove releases the claim; notify_on / notify_off set whether the player feeds your elixir_timeline.",
+    "Follow a player on your account: claims the tag AND starts recording in one act (followed means recorded). It spends a player slot only when Elixir records them because of you (an agent spends its owner's); the result's slot says. Say who they are to you with relationship (primary = you, alt = also you, friend, watching); a first player is your primary unless named friend or watching. A tag another account verified is theirs: friend or watching only. An agent follows as watching only. action remove releases the claim; notify_on / notify_off set whether the player feeds your elixir_timeline.",
   inputSchema: {
     type: "object",
     properties: {
@@ -49,8 +49,8 @@ export const elixir_track_player = {
       if (rowCount === 0) {
         throw new ToolFailure(
           "not_entitled",
-          "You are not tracking this player.",
-          "Track the tag first; notify is a setting on YOUR copy of it.",
+          "You are not following this player.",
+          "Follow the tag first; notify is a setting on YOUR copy of it.",
         );
       }
       return {
@@ -66,8 +66,8 @@ export const elixir_track_player = {
       if (r.refused === "primary_in_use")
         throw new ToolFailure(
           "bad_request",
-          `${tag} is your primary player and you track others, so it cannot be removed yet.`,
-          "Make another of your players your primary first (Settings, Players & tracking, or elixir_track_player with relationship 'primary'), then remove this one.",
+          `${tag} is your primary player and you follow others, so it cannot be removed yet.`,
+          "Make another of your players your primary first (Settings, Players & following, or elixir_follow_player with relationship 'primary'), then remove this one.",
         );
       return {
         player_tag: tag,
@@ -82,7 +82,7 @@ export const elixir_track_player = {
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     }
-    // 'add': tracked = recorded. A follow costs a slot only when Elixir
+    // 'add': followed = recorded. A follow costs a slot only when Elixir
     // records the player because of you (#760, claims pool.mjs); owner and
     // admin are exempt. The website applies the same rule through the same
     // function.
@@ -102,8 +102,8 @@ export const elixir_track_player = {
     if (!r.ok && r.error === "not_entitled")
       throw new ToolFailure(
         "not_entitled",
-        "An agent tracks players as watching only.",
-        "A player an agent tracks is never it: omit relationship, or pass watching.",
+        "An agent follows players as watching only.",
+        "A player an agent follows is never it: omit relationship, or pass watching.",
       );
     // A verified tag is its owner's (#556): the answer every door gives.
     if (!r.ok && r.error === "verified_elsewhere")
@@ -155,9 +155,9 @@ export const elixir_track_player = {
       notes: notes(
         r.recordingStarted
           ? battlesToo
-            ? "Tracked and recording: the profile and roughly the last 30 battles usually land within a minute, and can take a few at busy times; history builds from there (the API has no past)."
-            : "Tracked and recording: the first capture usually lands within a few minutes and brings roughly the last 30 battles with it; history builds from there (the API has no past)."
-          : "Tracked; this player was already being recorded, so you share the existing record from here on.",
+            ? "Followed and recording: the profile and roughly the last 30 battles usually land within a minute, and can take a few at busy times; history builds from there (the API has no past)."
+            : "Followed and recording: the first capture usually lands within a few minutes and brings roughly the last 30 battles with it; history builds from there (the API has no past)."
+          : "Followed; this player was already being recorded, so you share the existing record from here on.",
         first.not_found
           ? `Clash Royale answered "not found" for ${tag} on its last read today: check the tag (in the game, open the player's profile; the tag is below the name), and remove it with action remove if it is wrong.`
           : null,
@@ -170,7 +170,7 @@ export const elixir_track_player = {
             : "A first read of this profile is on its way; if Clash Royale has no player with this tag, the player's page in Settings says so within a minute or two."
           : null,
         r.clanFollowed
-          ? `Your primary player's clan ${r.clanFollowed} is now followed at activity scope (roster, members coming and going, river races). Stop tracking it with elixir_track_clan action remove and it is not followed again.`
+          ? `Your primary player's clan ${r.clanFollowed} is now followed at activity scope (roster, members coming and going, river races). Stop following it with elixir_follow_clan action remove and it is not followed again.`
           : null,
         slot.free
           ? `Free: no slot taken, because Elixir already records this player (${slot.reason === "in_recorded_clan" ? "a member of a clan recorded at comprehensive scope" : "another account followed them first"}). If that stops, they keep recording and start using a slot. Player slots: ${of}.`

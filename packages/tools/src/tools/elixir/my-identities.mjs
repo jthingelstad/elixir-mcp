@@ -3,7 +3,7 @@ import { docsRef, notes } from "../shared.mjs";
 
 export const elixir_my_identities = {
   description:
-    "The humans you have learned, and which player each one is. Yours alone; one connection's mappings are invisible to every other. Useful for 'who am I to you?' and for spotting a mapping you got wrong.",
+    "The humans this connection mapped to players before 12.0.0, and which player each one is; on_behalf_of still resolves them. Yours alone; one connection's mappings are invisible to every other. New humans are known by their Discord link (on_behalf_of discord:<user id>), never a new mapping.",
   inputSchema: {
     type: "object",
     properties: {},
@@ -29,8 +29,8 @@ export const elixir_my_identities = {
       // compact call rides on them, and an empty list says what to do.
       notes: notes(
         rows.length === 0
-          ? "No humans are mapped on this connection yet; elixir_identify maps one, and on_behalf_of then resolves them."
-          : "external_id is the id you passed to elixir_identify; pass it as on_behalf_of and 'how am I doing' resolves to that player.",
+          ? 'No humans are mapped on this connection. A person who links Discord in their Elixir Settings is known by on_behalf_of: "discord:<their user id>"; otherwise pass player_tag.'
+          : "external_id is the id mapped before 12.0.0; pass it as on_behalf_of and 'how am I doing' resolves to that player. New humans are known by their Discord link, never a new mapping.",
       ),
       docs: docsRef("agents", "knowing-which-human-is-asking"),
       meta: responseMeta({ as_of: new Date().toISOString() }),

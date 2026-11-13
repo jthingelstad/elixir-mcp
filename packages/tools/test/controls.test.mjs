@@ -551,8 +551,8 @@ test("battles_performance group_by week: trophy_mode_battles rides beside trophy
   for (const w of aug.weekly)
     assert.equal(w.trophy_mode_battles, w.trophy_battles);
   assert.ok(!aug.notes.some((l) => /with no reported trophy change/.test(l)));
-  // battles_trends carries the same pair on its weeks.
-  const trends = await call("battles_trends", {
+  // Its segment's weeks (battles_trends until 12.0.0) carry the same pair.
+  const trends = await call("battles_performance", {
     segment: { player_tag: F },
     from: "2026-09-14",
     to: "2026-09-18",

@@ -44,9 +44,13 @@ calls, and answer with that tool's result.
 | Operation | Callers | Mirrors |
 |---|---|---|
 | `GET /me` | person | who you are to Elixir and the players you follow |
-| `POST /me/players` | person (`recordings:write`) | `elixir_track_player` |
+| `POST /me/players` | person (`recordings:write`) | `elixir_follow_player` |
 | `GET /players/{tag}/profile` | person | `players_profile` |
 | `GET /players/{tag}/battles` | person | `battles_query`, compact, up to 50; each battle's `url` is [its public page](/docs/battles#a-battles-page) |
+| `GET /players/{tag}/follows` | person | `players_follows`: who they follow and who follows them, as [their page](/docs/player-page#follows-followers-and-badges) shows it (3.6.0) |
+| `GET /players/{tag}/highlights` | person | `players_highlights`, newest first, up to 30 (3.6.0) |
+| `GET /me/cheers` | person | `elixir_cheers`: the cheers others gave items about your primary player, counts only (3.6.0) |
+| `GET /clans/directory` | person | `clans_directory`: [the clan directory](/docs/clan-directory) (3.6.0) |
 | `POST /players/names` | person | `players_names`, up to 100 tags |
 | `GET /clans/{tag}/roster` | person, integration | `clans_roster` |
 | `GET /clans/{tag}/participation` | person, integration | `clans_participation`, 1 to 8 weeks |
@@ -86,7 +90,10 @@ OpenAPI document's `info.version`. Adding an operation or a field is a
 minor version. Removing or renaming a field is a major version, and the
 path stays `/api/v1` whatever the version, because the path is what a
 person's grant is for. What changed in each version is in the OpenAPI
-document and on [Updates](/updates).
+document and on [Updates](/updates). The current version is 3.6.0, which
+added the four social reads above (follows, highlights, cheers and the
+clan directory) for a person's own grant; an integration reads none of
+them.
 
 ## Limits
 

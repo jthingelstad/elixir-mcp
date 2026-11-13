@@ -41,16 +41,43 @@ const read = (ctx, tool, args) =>
 
 export const contracts = [
   {
-    id: "clans-context-ungranted",
-    tools: ["clans_context"],
+    // clans_directory (12.0.0) is the policy's public part only: the
+    // acceptance agent reads it as its owner, and a tile carries exactly the
+    // directory's fields, never who saved a policy, a note or a minimum.
+    id: "clans-directory-public-part",
+    tools: ["clans_directory"],
     run: async (ctx) => {
-      const r = await ctx.read("clans_context", {});
-      ok(
-        r.isError === true && r.body?.error?.code === "not_entitled",
-        "The acceptance agent has no private-context grant; game scope cannot authorize policy reads.",
-      );
-      ok(!r.body?.context, "Refusal exposes no private context.");
-      return { ms: r.ms };
+      const r = await read(ctx, "clans_directory", {});
+      const tile = [
+        "clan_tag",
+        "description",
+        "members",
+        "name",
+        "policy",
+        "required_trophies",
+        "type",
+        "yours",
+      ];
+      const policy = [
+        "counted",
+        "posture",
+        "removal_day",
+        "saved_at",
+        "together",
+        "war_intent",
+      ];
+      for (const c of r.clans ?? []) {
+        ok(
+          JSON.stringify(Object.keys(c).sort()) === JSON.stringify(tile),
+          `${c.clan_tag}: a tile carries only the directory's fields`,
+        );
+        ok(
+          JSON.stringify(Object.keys(c.policy ?? {}).sort()) ===
+            JSON.stringify(policy),
+          `${c.clan_tag}: the policy's public part only`,
+        );
+      }
+      return {};
     },
   },
   {

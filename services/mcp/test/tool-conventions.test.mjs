@@ -38,7 +38,7 @@ test("every windowed tool takes from and to, and the per-call timezone", () => {
     assert.ok(p.from && p.to, `${d.name} takes from/to`);
     assert.ok(
       p.timezone ||
-        d.name === "players_timeline" ||
+        d.name === "players_series" ||
         p.from.description.includes("YYYY-MM-DD"),
       `${d.name} takes a timezone`,
     );
@@ -110,12 +110,7 @@ test("every published schema declares verbosity: the two-size tools in their own
 });
 
 test("segment tools take a nested segment, never a flat scope; the population is named (3.16.0)", () => {
-  const SEGMENT_TOOLS = [
-    "battles_trends",
-    "cards_card",
-    "badges_rarity",
-    "badges_holders",
-  ];
+  const SEGMENT_TOOLS = ["cards_card", "badges_rarity", "badges_holders"];
   // The list is the registry's, not a hand copy (cards_card required
   // segment for weeks while every list of "the six" left it out).
   assert.deepEqual(
@@ -141,6 +136,16 @@ test("segment tools take a nested segment, never a flat scope; the population is
     for (const flat of ["player_tag", "clan_tag", "collection"])
       assert.ok(!(flat in p), `${name} has no flat ${flat}`);
   }
+  // 12.0.0: battles_trends folded into battles_performance, whose segment
+  // is optional and names a population the same way.
+  const perf = byName.get("battles_performance").inputSchema.properties;
+  const [strings, object] = perf.segment.anyOf;
+  assert.deepEqual(strings, { type: "string", enum: ["mine"] });
+  assert.deepEqual(Object.keys(object.properties).sort(), [
+    "clan_tag",
+    "on_behalf_of",
+    "player_tag",
+  ]);
 });
 
 test("descriptions stay readable: at most 600 characters (ENGINEERING 'Tool conventions'), and none empty", () => {
@@ -232,6 +237,21 @@ test("no source names a retired tool, and every call-shaped mention is a real to
     ))
       assert.ok(known.has(m[1]), `${file} mentions ${m[1]}({...}), not a tool`);
   }
+});
+
+test("12.0.0: the renamed and retired tools appear in no declaration, and in tool sources only as history", () => {
+  // CHANGELOG 12.0.0 `breaking`: no aliases, no deprecation window.
+  const retired =
+    /\b(elixir_track_player|elixir_track_clan|players_timeline|clans_timeline|clans_members_timeline|battles_trends|elixir_data_insights|clans_context|elixir_identify)\b/;
+  assert.doesNotMatch(JSON.stringify(declarations), retired);
+  for (const { file, text } of sources)
+    for (const line of text.split("\n"))
+      if (retired.test(line))
+        assert.match(
+          line,
+          /12\.0\.0|retired|until|before/,
+          `${file} names a retired tool outside history: ${line.trim().slice(0, 120)}`,
+        );
 });
 
 test("4.0.0: no retired name survives in a declaration, a note, a docs pointer or the docs corpus", () => {

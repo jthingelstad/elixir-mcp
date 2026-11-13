@@ -186,13 +186,32 @@ test("yours is your own verified, current membership only", async () => {
   assert.deepEqual(yours, { "#02P": false, "#029": false, "#028": true });
 });
 
-test("only an approved person reads it", async () => {
+test("only an approved person, or their agent, reads it", async () => {
   await seedPolicies();
   assert.deepEqual(await readClanDirectory(scratch.db, person(pending)), {
     refused: "not_a_person",
   });
   assert.deepEqual(
-    await readClanDirectory(scratch.db, { ...person(me), kind: "agent" }),
+    await readClanDirectory(scratch.db, { ...person(me), kind: "integration" }),
+    { refused: "not_a_person" },
+  );
+  // 12.0.0: an agent reads as its owner, only while the owner is approved.
+  const agentOf = async (owner, email) =>
+    (
+      await scratch.db.query(
+        "insert into account(email_hash,kind,status,role,owned_by_account_id) values($1,'agent','approved','member',$2) returning account_id",
+        [email, owner],
+      )
+    ).rows[0].account_id;
+  const mine = await agentOf(me, "dir-agent-me");
+  const theirs = await agentOf(pending, "dir-agent-pending");
+  const read = await readClanDirectory(scratch.db, {
+    accountId: mine,
+    kind: "agent",
+  });
+  assert.equal(read.directory.clans.length, 3);
+  assert.deepEqual(
+    await readClanDirectory(scratch.db, { accountId: theirs, kind: "agent" }),
     { refused: "not_a_person" },
   );
   assert.deepEqual(await readClanDirectory(scratch.db, null), {

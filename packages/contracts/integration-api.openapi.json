@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "3.5.0",
-    "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Integrations do not enroll players or clans for recording; people manage their own tracked record. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
+    "version": "3.6.0",
+    "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Integrations do not enroll players or clans for recording; people manage who they follow. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
     {
@@ -271,7 +271,7 @@
     "/me": {
       "get": {
         "operationId": "me",
-        "summary": "Who the signed-in person is to Elixir: their principal and the players they track.",
+        "summary": "Who the signed-in person is to Elixir: their principal and the players they follow.",
         "x-permission": "me:read",
         "x-principals": ["person"],
         "security": [
@@ -294,6 +294,72 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/directory": {
+      "get": {
+        "operationId": "clanDirectory",
+        "summary": "The clan directory: every recorded clan whose leaders saved a policy in Elixir Clan, with the policy's public part. Since 3.6.0.",
+        "x-permission": "cr:read",
+        "x-principals": ["person"],
+        "x-tool": "clans_directory",
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success: the clans_directory tool's structured result, the same fields its outputSchema declares at /docs/tools, without the agent response cap.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "clans_directory"
+                    }
+                  }
                 }
               }
             }
@@ -920,13 +986,174 @@
         }
       }
     },
+    "/players/{tag}/follows": {
+      "get": {
+        "operationId": "playerFollows",
+        "summary": "Who the player follows and who follows them, with their badges, as their player page shows it. Since 3.6.0.",
+        "x-permission": "cr:read",
+        "x-principals": ["person"],
+        "x-tool": "players_follows",
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A tag, # included and URL-encoded (%23)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the players_follows tool's structured result, the same fields its outputSchema declares at /docs/tools, without the agent response cap.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "players_follows"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{tag}/highlights": {
+      "get": {
+        "operationId": "playerHighlights",
+        "summary": "The highlights the player posted, newest first. Since 3.6.0.",
+        "x-permission": "cr:read",
+        "x-principals": ["person"],
+        "x-tool": "players_highlights",
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A tag, # included and URL-encoded (%23)."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the players_highlights tool's structured result, the same fields its outputSchema declares at /docs/tools, without the agent response cap.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "players_highlights"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/me/players": {
       "post": {
         "operationId": "meTrackPlayer",
-        "summary": "Track a player as the signed-in person: the elixir_track_player add (tracked means recorded). relationship alt, friend or watching; the primary is chosen in the console.",
+        "summary": "Follow a player as the signed-in person: the elixir_follow_player add (followed means recorded). relationship alt, friend or watching; the primary is chosen in Settings.",
         "x-permission": "recordings:write",
         "x-principals": ["person"],
-        "x-tool": "elixir_track_player",
+        "x-tool": "elixir_follow_player",
         "security": [
           {
             "personOAuth": ["recordings:write"]
@@ -957,7 +1184,7 @@
         },
         "responses": {
           "200": {
-            "description": "Success: the elixir_track_player tool's structured result (added, recording started), the same fields its outputSchema declares at /docs/tools. Since 3.5.0 it carries slot: whether this follow took one of the pool's player slots, whether the player is free (Elixir already records them for another reason) and why, and the used and limit counts (limit null is unlimited).",
+            "description": "Success: the elixir_follow_player tool's structured result (added, recording started), the same fields its outputSchema declares at /docs/tools. Since 3.5.0 it carries slot: whether this follow took one of the pool's player slots, whether the player is free (Elixir already records them for another reason) and why, and the used and limit counts (limit null is unlimited).",
             "headers": {
               "X-Request-ID": {
                 "schema": {
@@ -976,7 +1203,97 @@
                     },
                     "data": {
                       "type": "object",
-                      "x-tool": "elixir_track_player"
+                      "x-tool": "elixir_follow_player"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/cheers": {
+      "get": {
+        "operationId": "meCheers",
+        "summary": "The cheers other people gave items about your primary player in the window: counts by kind, never who. Since 3.6.0.",
+        "x-permission": "cr:read",
+        "x-principals": ["person"],
+        "x-tool": "elixir_cheers",
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the elixir_cheers tool's structured result, the same fields its outputSchema declares at /docs/tools, without the agent response cap.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "elixir_cheers"
                     }
                   }
                 }

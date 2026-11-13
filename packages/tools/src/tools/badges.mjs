@@ -22,7 +22,7 @@ const BADGE_DOCS = docsRef("glossary");
  *  (Gym #279: an opponent seen only in battles read "holds no badges"). */
 const emptyPopulationNote = (pop) =>
   pop?.players_considered === 0
-    ? "players_considered is 0: no profile in this population has been read, so its badges are unknown, not absent. A player seen only in battles is not recorded; elixir_track_player records one, and players_profile says whether a profile has been read."
+    ? "players_considered is 0: no profile in this population has been read, so its badges are unknown, not absent. A player seen only in battles is not recorded; elixir_follow_player records one, and players_profile says whether a profile has been read."
     : null;
 
 /** Population filter over player_badge.player_tag from `args.segment`. */

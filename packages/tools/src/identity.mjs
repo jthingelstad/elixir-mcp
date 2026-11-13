@@ -149,18 +149,18 @@ export function identitySentences(identity, { compact = false } = {}) {
     );
     if (!primary && tracked) {
       out.push(
-        "You track players but have no primary, so nothing here defaults to you: elixir_track_player with relationship primary names yours, and elixir_my_players lists what you track.",
+        "You follow players but have no primary, so nothing here defaults to you: elixir_follow_player with relationship primary names yours, and elixir_my_players lists who you follow.",
       );
     } else if (!primary) {
       out.push(
-        "You have no player yet. elixir_track_player tracks one and your first becomes your primary; until then nothing here defaults to you.",
+        "You have no player yet. elixir_follow_player follows one and your first becomes your primary; until then nothing here defaults to you.",
       );
     } else {
       out.push(`YOU ARE ${label(primary)}.`);
       const clan = identity.primaryClan;
       if (clan)
         out.push(
-          `Your clan is ${clan.name ? `${clan.name} ` : ""}${clan.clan_tag}${clan.recorded ? "" : " (not recorded yet: an omitted clan_tag refuses until elixir_track_clan records it)"}.`,
+          `Your clan is ${clan.name ? `${clan.name} ` : ""}${clan.clan_tag}${clan.recorded ? "" : " (not recorded yet: an omitted clan_tag refuses until elixir_follow_clan records it)"}.`,
         );
       // Silence about the others is what made the mismatch unresolvable:
       // a tester could not tell a wrong default from a second clan. They
@@ -193,7 +193,7 @@ export function identitySentences(identity, { compact = false } = {}) {
       }
       if (others.length > 0)
         named.push(
-          `You also track ${others
+          `You also follow ${others
             .map((c) => (c.name ? `${c.name} ${c.clan_tag}` : c.clan_tag))
             .join(", ")} - name the tag to mean those.`,
         );
@@ -206,7 +206,7 @@ export function identitySentences(identity, { compact = false } = {}) {
           : "";
         const clans = others.length ? plural(others.length, "more clan") : "";
         out.push(
-          `You also track ${[players, clans].filter(Boolean).join(" and ")}: elixir_my_players lists them; name the tag to mean those.`,
+          `You also follow ${[players, clans].filter(Boolean).join(" and ")}: elixir_my_players lists them; name the tag to mean those.`,
         );
       }
       out.push(
@@ -254,7 +254,7 @@ export function identitySentences(identity, { compact = false } = {}) {
       "OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it (the roster is not here: it changes daily).",
     );
     out.push(
-      "Nothing defaults to 'you': for a human asking about themselves, pass on_behalf_of (their id on your surface; discord:<user id> resolves itself once they link Discord to Elixir); unmapped, ask who they are and call elixir_identify once.",
+      "Nothing defaults to 'you': for a human asking about themselves, pass on_behalf_of (discord:<user id> resolves itself once they link Discord in their Elixir Settings); not linked, ask who they are and pass player_tag.",
     );
     if (identity.identityCount)
       out.push(`You already know ${identity.identityCount} of them.`);
