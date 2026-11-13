@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   FAMILY_PLACES,
   Icon,
+  Link,
   PageHead,
   Panel,
   Row,
@@ -11,6 +12,8 @@ import {
   useFlash,
 } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
+import { useFollowSlots } from "../lib/queries.js";
+import { SETTINGS } from "../lib/settings.js";
 import { followMeHref } from "../lib/player.js";
 import { BringClanmates } from "../components/BringClanmates.jsx";
 import { useSheet } from "../shell/sheet.js";
@@ -54,32 +57,71 @@ export function FindPage() {
   // lands here for its follow form [engineering, 2026-11-12].
   const [tab, setTab] = useState("search");
   return (
-    <div className="kit-home kit-home--read">
+    <div className="kit-home">
       <PageHead title="Find" sub="People to follow, and the way to you." />
       <Tabs label="Find" items={sections} value={tab} onSelect={setTab} wrap />
-      {tab === "clan" ? (
-        <>
-          <YourClanPeople />
-          <BringClanmates />
-        </>
-      ) : tab === "battles" ? (
-        <FromYourBattles />
-      ) : tab === "directory" ? (
-        <Panel title="Clans">
-          <Rows>
-            <Row
-              href="/clan/directory"
-              title="Clan directory"
-              detail="Every clan on Elixir, by name, with its open seats."
-            />
-          </Rows>
-        </Panel>
-      ) : tab === "link" ? (
-        <FollowMeLink players={own} />
-      ) : (
-        <Search />
-      )}
+      <div className="kit-home__two">
+        <div className="kit-home__main">
+          {tab === "clan" ? (
+            <>
+              <YourClanPeople />
+              <BringClanmates />
+            </>
+          ) : tab === "battles" ? (
+            <FromYourBattles />
+          ) : tab === "directory" ? (
+            <Panel title="Clans">
+              <Rows>
+                <Row
+                  href="/clan/directory"
+                  title="Clan directory"
+                  detail="Every clan on Elixir, by name, with its open seats."
+                />
+              </Rows>
+            </Panel>
+          ) : tab === "link" ? (
+            <FollowMeLink players={own} />
+          ) : (
+            <Search />
+          )}
+        </div>
+        <aside className="kit-home__side" aria-label="Your follow slots">
+          <SlotsSide />
+        </aside>
+      </div>
     </div>
+  );
+}
+
+/** Find's side (the canvas's "Your follow slots"): how many of your slots
+ *  are in use, from the same read as Settings' slots, and the way there. */
+function SlotsSide() {
+  const q = useFollowSlots();
+  const d = q.data ?? null;
+  if (!d) return null;
+  const n = (v) => Number(v ?? 0).toLocaleString();
+  const line =
+    d.limit == null
+      ? `${n(d.used)} in use, no limit`
+      : `${n(d.used)} of ${n(d.limit)} used`;
+  return (
+    <Panel
+      title="Your follow slots"
+      action={<span className="kit-tiny">{line}</span>}
+      pad
+    >
+      {d.limit == null ? null : (
+        <progress
+          className="kit-meter"
+          max={d.limit}
+          value={Math.min(d.used ?? 0, d.limit)}
+          aria-label={`Follow slots: ${line}`}
+        />
+      )}
+      <p className="kit-tiny">
+        <Link to={`${SETTINGS}/what-members-see`}>See who uses one</Link>
+      </p>
+    </Panel>
   );
 }
 

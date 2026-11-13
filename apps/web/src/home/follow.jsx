@@ -218,14 +218,20 @@ function planLine(plan) {
  * members, or a Follow me link's players. Priced before the tap, refused whole
  * past the limit, never in part.
  */
-export function FollowAll({ ask, label, title, onDone }) {
+export function FollowAll({
+  ask,
+  label,
+  title,
+  onDone,
+  className = "btn btn--sm",
+}) {
   const plan = useFollowPlan(ask);
   const invalidate = useInvalidate();
   const p = plan.data ?? null;
   return (
     <ConfirmAction
       label={label}
-      className="btn btn--sm"
+      className={className}
       danger={false}
       title={title}
       body={

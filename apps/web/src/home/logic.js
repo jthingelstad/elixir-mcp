@@ -41,6 +41,15 @@ export function sparkWords(spark = []) {
 
 export const LEADS = new Set(["leader", "coLeader"]);
 
+/** A clan role in words, as the game names it. */
+const ROLES = {
+  leader: "Leader",
+  coLeader: "Co-leader",
+  elder: "Elder",
+  member: "Member",
+};
+export const roleLabel = (role) => ROLES[role] ?? null;
+
 /** A panel's answer from its own request: what it said, or that it could not
  *  be read, in one shape whichever of the two failed. Undefined while it is
  *  first reading. An answer in hand outlives a refetch that fails. */

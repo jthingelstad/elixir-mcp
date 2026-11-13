@@ -28,16 +28,20 @@ export function Avatar({
   tag,
   clan = false,
   small = false,
+  large = false,
 }: {
   name: string | null | undefined;
   tag?: string | null;
   clan?: boolean;
   small?: boolean;
+  /** A clan's crest at the head of its page (canvas .crest). */
+  large?: boolean;
 }) {
   const cls = [
     "kit-av",
     clan ? "kit-av--clan" : `kit-av--${avatarHue(tag ?? name)}`,
     small ? "kit-av--s" : null,
+    clan && large ? "kit-av--crest" : null,
   ]
     .filter(Boolean)
     .join(" ");
