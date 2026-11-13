@@ -144,7 +144,10 @@ test(
     );
     fireEvent.change(input, { target: { value: "#00J" } });
     fireEvent.click(input.closest("form").querySelector("button"));
-    await screen.findByText("#00J");
+    // The claim is a write to the scratch database and a re-read; under a
+    // full verify it outlasted findBy's default (2026-11-13), so it waits
+    // as the first read does.
+    await screen.findByText("#00J", {}, { timeout: 10_000 });
     expect(
       (
         await scratch.db.query(
@@ -211,7 +214,15 @@ test(
       [accountId],
     );
     open("/settings/connections");
-    fireEvent.click(await screen.findByRole("button", { name: "New agent" }));
+    // The page waits on the run's reads of the scratch database; under a
+    // full verify that outlasted findBy's default (2026-11-13).
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: "New agent" },
+        { timeout: 10_000 },
+      ),
+    );
     fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: "journey-agent" },
     });
