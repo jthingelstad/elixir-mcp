@@ -2,8 +2,8 @@
 
 *Rewritten 2026-11-13 to the social layer, from the brief Jamie ratified
 on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
-[DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. It waits on
-Jamie's read; where it and DECISIONS disagree, DECISIONS wins.*
+[DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Ratified by Jamie, 2026-11-13
+("I think the rest is good to go").*
 
 ## What it is for
 

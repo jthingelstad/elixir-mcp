@@ -4,8 +4,8 @@
 on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
 [DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Jamie's words
 and rulings are tagged `[Jamie, date]`, readings of them
-`[engineering, date]`. It waits on Jamie's read; where it and DECISIONS
-disagree, DECISIONS wins.*
+`[engineering, date]`. Ratified by Jamie, 2026-11-13 ("I think the rest
+is good to go").*
 
 ## What it is for
 

@@ -34,3 +34,8 @@ Docs only: no code, contract or migration changes, and nothing deploys.
   principals line reads users and agents. `integrations.md` becomes the
   Sign in with Elixir brief. Not built: Drop's and Elixir Clan's keys,
   the integration scopes and `/api/v1`'s mirrors are still in the code.
+- **Ratified.** Reviewing the sheet of the rewrite's own readings, Jamie
+  answered one item ("clan map is fine for all because it is only zip
+  code or city level") and "I think the rest is good to go". Each brief
+  says so under its title; DECISIONS "VISION steers until a brief is
+  rewritten" and "Location is opt-in and a city at most" record both.

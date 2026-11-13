@@ -41,16 +41,15 @@ not a feature to preserve.
 - **Product behaviour:** the public docs, `apps/site/src/docs/` (served at
   `/docs`, and to agents by `elixir_docs`). They are the only description
   of what the service does; do not write a second one here.
-- **`docs/product/`:** one brief per surface, ratified by Jamie on
-  2026-10-12, before the social layer: what it is for, who it serves,
-  its principles, what it never does, what is open. Intent, not
-  behaviour. Until a brief is rewritten, `VISION.md` and DECISIONS steer
-  mid-build work, not the brief's default ("VISION steers until a brief
-  is rewritten", Jamie, 2026-11-12); a dated banner at a brief's top
-  names what no longer holds. Read the brief for its principles, list
-  the product questions a change raises in its design note, and take
-  VISION's direction mid-build (tagged `[engineering]`, listed in the
-  pull request) rather than asking one question at a time.
+- **`docs/product/`:** one brief per surface, rewritten to the social
+  layer and ratified by Jamie on 2026-11-13: what it is for, who it
+  serves, its principles, what it never does, what is open. Intent, not
+  behaviour. Where a brief and `VISION.md` disagree, VISION wins, and a
+  dated banner at a brief's top names what a later ruling overtook. Read
+  the brief for its principles, list the product questions a change
+  raises in its design note, and take the brief's and VISION's direction
+  mid-build (tagged `[engineering]`, listed in the pull request) rather
+  than asking one question at a time.
 - **`docs/DECISIONS.md`:** what stands, one line each, each tagged with
   who decided it. A **[Jamie]** line is not re-litigated, and a surface
   that disagrees with it is the defect; an **[engineering]** line is a
