@@ -1,7 +1,7 @@
 ---
 layout: doc.njk
 title: "Docs"
-description: "Elixir's documentation, by what you came to do: use Elixir, connect an AI, or build on it and look something up."
+description: "Elixir is the missing social layer of Clash Royale. Its documentation, by what you came to do: follow your friends and your clan, run a clan, connect an AI, or build on Elixir."
 permalink: /docs/index.html
 canonical: /docs
 navActive: docs
@@ -12,27 +12,27 @@ navActive: docs
   pages that exist (`docPages` leaves out a slug no page has yet).
 -#}
 {%- set tasks = [
-  { icon: "chart-line", title: "See how I am doing", product: "Stats",
-    text: "Your season as Elixir recorded it, one mode at a time: your battles, record and win rate week by week, and the deck you played most.",
-    slugs: ["ladder"] },
+  { icon: "heart", title: "Follow my friends", product: "Friends",
+    text: "Follow your friends and your clan, see their sessions and highlights in one feed, newest first, and cheer them on.",
+    slugs: ["follow-a-friend", "timeline", "watch-a-player"] },
   { icon: "users", title: "Run my clan", product: "Clan",
     text: "Your leaders write down how the clan runs. Clan reads the record against it and hands them the calls to make.",
     slugs: ["bring-your-clan", "standing", "clan-actions"] },
-  { icon: "heart", title: "Follow my friends", product: "Friends",
-    text: "Follow friends, watch any player, and get a Wednesday email on how each of them did.",
-    slugs: ["follow-a-friend", "watch-a-player"] },
-  { icon: "mail", title: "Get emails", product: "Emails",
-    text: "What each email holds, when it lands, and the switch for every one.",
+  { icon: "chart-line", title: "See how I am doing", product: "Stats",
+    text: "Your season as Elixir recorded it, one mode at a time: your battles, record and win rate week by week, and the deck you played most.",
+    slugs: ["ladder"] },
+  { icon: "mail", title: "Get my digest", product: "Emails",
+    text: "One digest of the people you follow and your clan, weekly or daily, and the switch for every email.",
     slugs: ["email", "milestones", "turn-an-email-off"] },
   { icon: "bot", title: "Ask my AI", product: "MCP",
-    text: "Connect Claude or any MCP client to your whole record. Which tool answers which question, and how to read the answers.",
+    text: "Connect Claude or any MCP client to what Elixir records for you and the people you follow. Which tool answers which question, and how to read the answers.",
     slugs: ["connections", "choosing-a-tool", "tools"] },
   { icon: "code", title: "Build on Elixir", product: "Developers",
     text: "Sign in with Elixir, the JSON API and integration keys, and running a collector of your own.",
     slugs: ["sign-in-with-elixir", "json-api", "integrations", "operators"] }
 ] %}
 {%- set panels = [
-  { title: "Use Elixir", text: "What each page shows and how to read it: your stats, your clan, your friends, your emails, your account.",
+  { title: "Use Elixir", text: "What each page shows and how to read it: the people you follow, your clan, your stats, your digest, your account.",
     links: [["Welcome", "/docs/about"]] },
   { title: "Connect an AI", text: "Connect a client, what your agent can read, which tool answers what, and ten recorded examples.",
     links: [["Connect an agent", "/docs/connections"], ["All examples", "/examples"]] },
@@ -41,7 +41,7 @@ navActive: docs
 ] %}
 <nav class="docs__crumb" aria-label="Breadcrumb"><span aria-current="page">Docs</span></nav>
 <h1 class="hero-title docs__title">Elixir docs</h1>
-<p class="docs__lede">Elixir keeps your Clash Royale record and reads it back to you: in your stats, in your clan, by email and through your own AI. Start with what you want to do.</p>
+<p class="docs__lede">Elixir is the missing social layer of Clash Royale: follow your friends and your clan, see how they play, and cheer them on. Start with what you want to do.</p>
 
 <div class="docs-tasks">
   {%- for t in tasks %}
@@ -66,7 +66,7 @@ navActive: docs
 
 <div class="docs-new" data-session-face="out">
   {% icon "rocket", 18 %}
-  <p><b>New here?</b> Create a free account, add your player tag, and Elixir starts recording it. Connecting an AI is optional.</p>
+  <p><b>New here?</b> Sign in, add your player, follow a few people and choose your digest. Connecting an AI is optional.</p>
   <a class="btn btn--gold" href="/docs/quickstart">Quickstart</a>
 </div>
 

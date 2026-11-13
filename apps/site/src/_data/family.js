@@ -63,7 +63,7 @@ export default [
           "Reads the record — no Clash key, no scraping",
           "Free to play, nothing to install",
         ],
-        uses: "Reads player profiles and the interpreted war clock from Elixir MCP, so it holds no Clash key of its own.",
+        uses: "Reads player profiles and the interpreted war clock from Elixir, so it holds no Clash key of its own.",
         links: [
           ["Play Elixir Drop", "external", "https://drop.poapkings.com"],
           ["How it reads the hub", "docs", "/docs/integrations"],
@@ -120,7 +120,7 @@ export default [
           "Every endpoint, field and quirk in one place",
           "Free, public, and kept current",
         ],
-        uses: "Independent of the hub — it documents Supercell's API, which is what Elixir MCP records from.",
+        uses: "Independent of the hub: it documents Supercell's API, which is what Elixir records from.",
         links: [
           [
             "Read the docs",
@@ -132,16 +132,16 @@ export default [
       },
       {
         key: "mcp",
-        label: "Elixir MCP",
+        label: "Elixir",
         icon: "database",
         kind: "hub",
         state: "live",
         here: true,
-        lede: "The hub. It records Clash Royale history and serves it to agents over MCP, and the family's apps read it rather than each other.",
+        lede: "The missing social layer of Clash Royale: follow your friends and your clan, see how they play, and cheer them on. The family's apps read its record rather than each other.",
         shot: "Drop a screenshot of the app or a transcript",
         points: [
-          "History for the players and clans people ask us to record",
-          "One hub for the family's apps",
+          "Follow your friends and your clan",
+          "One record for the family's apps",
           "Your own agent, in your own client",
         ],
         uses: "You are here.",
@@ -171,7 +171,7 @@ export default [
           "Perfect clan-chat fodder",
           "No account, nothing to install",
         ],
-        uses: "No connection to Elixir MCP — we just play it.",
+        uses: "No connection to Elixir. We just play it.",
         links: [["royaledle.org", "external", "https://royaledle.org"]],
       },
       {

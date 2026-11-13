@@ -89,5 +89,8 @@ export default {
   "battles#deck-identity-and-forms": "decks-and-war#deck-identity-and-forms",
   "battles#war-weeks-points-and-fame":
     "decks-and-war#war-weeks-points-and-fame",
-  "quickstart#4-ask-something": "quickstart#3-ask-something",
+  "quickstart#4-ask-something": "quickstart#ask-your-ai",
+  // The quickstart's four steps follow Home's welcome steps (2026-11-13).
+  "quickstart#1-get-an-account": "quickstart#1-sign-in",
+  "quickstart#3-ask-something": "quickstart#ask-your-ai",
 };

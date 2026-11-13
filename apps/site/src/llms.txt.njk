@@ -4,7 +4,7 @@ eleventyExcludeFromCollections: true
 ---
 # {{ site.name }}
 
-> {{ site.name }} records Clash Royale history the official game API does not keep - battles, progression, clan rosters, and war - and serves it to your own AI agent through an authenticated remote MCP server at {{ site.mcpUrl }}. The official API answers only "what is true right now": a rotating ~30-battle log, no trophy timeline, no season history. This service keeps the record.
+> {{ site.name }} is the missing social layer of Clash Royale: follow your friends and your clan, see how they play, and cheer them on. Members follow players and clans, read a feed of their sessions, firsts and highlights, cheer items, and get one digest email. Underneath is a record the official game API does not keep (battles, progression, clan rosters and war; the API answers only "what is true right now": a rotating ~30-battle log, no trophy timeline, no season history), captured by collectors and served to your own AI agent through an authenticated remote MCP server at {{ site.mcpUrl }}.
 
 Sign in with an email address at {{ site.url }}/signin; that creates your account. All recorded GAME data is readable by every account, the same posture as the game's public API. ACCOUNT data is private to its owner. Roles never gate what you can read: they set how much the service records for you and how many calls per day your agent gets.
 {% if stats.ok %}

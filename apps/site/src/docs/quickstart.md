@@ -1,137 +1,113 @@
 ---
 slug: quickstart
 title: "Get started with Elixir"
-description: "Create your account, add your player and read recorded history in Stats. Clan war history and AI clients are optional, with connection instructions when you want them."
+description: "Sign in, add your player, follow a few people and choose your digest: the four steps from a new account to a feed of your friends and your clan. Connecting an AI is optional."
 section: start
 order: 2
 navTitle: "Quickstart"
 icon: rocket
-lede: "Create your account, add your player, and read recorded history in Stats. Add clan war history or an AI client when you want them."
-reviewed: "2026-10-12 against contract 11.11.2"
+lede: "Sign in, add your player, follow a few people, and choose your digest."
+reviewed: "2026-11-13 against Home's welcome steps"
 ---
 
 # Get started with Elixir
 
-Start with an account and the player you play as. You can read your recorded
-record in [Stats](/home/you/stats) with this account, without connecting an AI client.
-Clan war history and AI clients are optional. The steps below tell you what
-to do next and what the current record can show.
+Elixir is the missing social layer of Clash Royale: follow your friends and
+your clan, see how they play, and cheer them on. Getting there takes four
+steps, and **Home** keeps them in a short list, **Welcome to Elixir**, until
+they are done.
 
-## 1. Get an account
+## 1. Sign in
 
-Anyone can create a free ordinary member account at
-[/signin?signup](/signin?signup). Enter your email, then verify
-the six-digit code or one-click link (15 minutes, five code attempts).
-Signing in and creating an account use the same form. The signup form asks
-whether you are 13 or older; Elixir accounts are for people who are. No
-invitation or collector is required. Restricted accounts stay restricted.
+Open [/signin?signup](/signin?signup) and enter your email. Elixir sends a
+sign-in link and a six-digit code; use either (15 minutes, five code
+attempts). Signing in and creating an account use the same form, and an
+account is free. The signup form asks whether you are 13 or older; Elixir
+accounts are for people who are. No invitation is needed.
 
-The signup form also asks for **your player tag**, optionally (plain sign-in
-does not). A tag that is not a Clash Royale tag is refused on the form,
-before any email is sent; leave the field empty to add your player later.
-Nothing happens with the tag until you verify the email: then the new
-account claims it as your primary, and you land on **Home**, whose first
-steps show the first read on its way (or **Tag not found**, with the place to
-fix it). An account opened without a tag lands on Home too, asking for the
-tag. A tag given while signing in to an account that already exists
-is ignored; that account keeps its players.
+The signup form also asks for **your player tag**, optionally. A tag that is
+not a Clash Royale tag is refused on the form, before any email is sent;
+leave the field empty to add your player later. A tag given while signing in
+to an account that already exists is ignored; that account keeps its
+players.
 
 ## 2. Add your player
 
-If you gave your tag at signup, this step is done: skip to the first read
-below. Otherwise open [Settings › Players & following](/settings/players) and add
-your Clash Royale player tag. Your first player is your **primary**, which is what every tool
-means when you omit `player_tag`. Following **is** recording: Elixir reads
-your profile and then your battle log straight away, on the live lane, so
-both usually land within a minute (a few at busy times), with roughly your
-last 30 battles (all the game keeps); history builds from there. Once your
-profile shows your clan, Elixir follows that clan for you at activity scope,
-which is what puts your clan's week in your Monday email ([Your player's
-clan](/docs/recording#your-players-clan)); a player in no clan follows
-nothing. Add alts and friends the same way and mark the relationship;
-the existing [limits](/docs/roles) still apply. See
-[Recording and coverage](/docs/recording) for what gets fetched and how often.
+If you gave your tag at signup, this step is done. Otherwise **Home** asks for
+it, or open [Settings › Players & following](/settings/players). Find your
+tag in Clash Royale by opening your player profile: it appears below your
+name. Your first player is your **primary**.
 
-Find your tag in Clash Royale by opening your player profile: it appears below
-your name. If the game has no player with the tag you typed, your player's
-page says **Tag not found** within seconds, with the fix in the same place:
-type the right tag there and Elixir records it instead (as your primary, if
-the wrong one was), or stop following the wrong one. Email verification opens your Elixir account; [player
-verification](/docs/verify) separately proves ownership for the features that
-require it. An ordinary member account includes activity clan recording, not
-recording every member as well. Settings › Players & following shows the available slots.
+Your profile and roughly your last 30 battles (all the game keeps) usually
+arrive within a minute, a few at busy times; everything after is recorded as
+it happens. If the game has no player with the tag you typed, your player's
+page says **Tag not found** within seconds, with the place to fix it. Once
+your profile shows your clan, Elixir follows that clan for you
+([Your player's clan](/docs/recording#your-players-clan)).
 
-Read your personal season in [Stats](/home/you/stats). Adding a tag opens
-your player's record in Settings › Players & following. **Player tag saved** means
-the tag is on your account, not that a profile has arrived or ownership has
-been proved. This page checks saved data every few seconds for the first
-minutes after you add a tag, then about once a minute while recording is
-pending; **Check again** reads the record without forcing a game fetch. The
-first read usually lands within a minute; until both your profile and
-your battle log have been read, Stats says it is on its way rather than
-showing an empty season.
+Home's list then asks you to **verify it's you**: play one battle with a deck
+Elixir names, win or lose ([Verify](/docs/verify)). A verified player is
+what lets you [highlight a battle](/docs/battles#highlight-a-battle) and act
+in your clan's Clan pages in your game role.
 
-**Home** lists what is done and what is next: the tag
-saved, a profile, battles on record, then **Player verified (needed to act
-in Clan)**, which links to [Verify](/settings/players/verify): one battle
-with a deck Elixir names proves the player is yours, and Clan needs
-it before you can act in your game role. Clan war history and AI clients
-follow as optional lines.
+## 3. Follow a few people
 
-**View recorded profile** opens the player page's **Record** tab: the saved
-profile, its dated trophies and lifetime counters, and the last 30 days as
-recorded. **Open the player page** opens the player's timeline. A profile
-alone does not establish recorded battle history. AI setup is optional and
-follows these browser reads.
+Open **Find** (on the top bar, and a tab on a phone). It has your clan's
+members with **Follow my clan**, **Follow a friend** by tag, the players you
+met in your own battles, and the clan directory
+([Find](/docs/follow-a-friend#find)). Home's **People to follow** suggests a
+few more, and says why each is there.
 
-Read attempts and saved facts are separate: a recent failed fetch does not
-make a tag invalid or remove retained information. An incomplete measured
-profile interval names its bounds and recorded and expected counts; other time
-remains unknown, even after a successful read. Error receipts have bounded
-retention, so missing error metadata does not mean a read succeeded.
-Paused or stopped recording still links to the information already saved.
-Check Settings › Players & following for status rather than treating an empty window as proof that
-you did not play.
+The people you follow fill **Home's feed**: their sessions, their firsts and
+their highlights, newest first ([The timeline](/docs/timeline)). Give any
+item a [cheer](/docs/timeline#cheers). Open a name for that player's page.
+A follow takes one of your player slots only when Elixir records that player
+because of you; following someone Elixir already records is free
+([Roles and quotas](/docs/roles#followed-means-recorded)). Settings ›
+Players & following shows the slots you have.
 
-If you want clan war history, follow [Bring your clan](/docs/bring-your-clan).
-Private Clan actions still require verified membership and the appropriate game
-role. Running a collector is optional and open to anyone signed in (raising
-your hand approves it); it does not multiply the shared fetch budget.
+## 4. Choose your digest
 
-## 3. Ask something
+Your digest is the one scheduled email: the people you follow, your clan's
+news and your own week, in one mail. It comes weekly, on Wednesdays, unless
+you choose daily or off in [Settings › Emails](/settings/emails); any choice,
+off included, finishes this step. A digest with nothing to tell is not sent.
+[Email](/docs/email#your-digest) has what it holds.
 
-**Optional: ask through an AI client.** [Connect a client](/docs/connect-a-client) first if you want one.
+## See how you play
 
-**Home** shows what is recorded for your primary so far,
-links to your next step in Settings or Stats, and offers an optional first
-question matched to that record. A profile is enough to start. Active client
-connections and successful data reads in the last seven days are reported
-separately: authorizing a connection alone does not confirm a data read.
+**You** is your own player page, and its **Stats** tab is your season as
+Elixir recorded it, one mode at a time ([Stats](/docs/ladder)). Each player
+page's **Record** tab opens the saved profile and the last 30 days as
+recorded. A gap in a window means unknown: Elixir saw nothing then, which is
+not proof that nobody played ([Freshness and gaps](/docs/freshness-and-gaps)).
 
-**Settings › Connections & agents** offers more starter questions matched to it under
-**Try asking…**: a review of one reading when only a profile exists, a seven-day
-review once battles are in (30 days if the last week is empty), a deck
-comparison when two decks appear, a week-over-week comparison when both
-windows have battles. Copy one into your client. You never need to tell
-the client your tag; if it starts by listing your players, that is a bug
-worth reporting. The agent can also read this manual itself: `elixir_docs`
-serves these pages over the connection, and the
-[examples](/examples/play) are offered as prompts, so "how do I scout a
-bracket?" is a question it can answer before it calls anything.
+## Ask your AI
 
-Connections also counts each connection's calls over the last seven days,
-so you can tell an authorized connection from a working one. **Settings › Usage and limits › Requests** lists every call with its `request_id`.
+Optional. Elixir also serves what it records to your own AI agent over MCP.
+[Connect a client](/docs/connect-a-client) first, then **Settings ›
+Connections & agents** offers starter questions under **Try asking…**,
+matched to what is recorded for your player. You never need to tell the
+client your tag. The agent can read this manual itself: `elixir_docs` serves
+these pages over the connection.
+
+Connections counts each connection's calls over the last seven days, so you
+can tell an authorized connection from a working one. **Settings › Usage and
+limits › Requests** lists every call with its `request_id`.
 
 ## What next
 
+- [Bring your clan](/docs/bring-your-clan): your clan's week, and the
+  policy your leaders run it by.
+- [Follow a friend](/docs/follow-a-friend): friends, watched players and
+  nicknames.
 - [Users, agents and integrations](/docs/connections): a bot for a whole
   clan rather than a connection for yourself.
-- [Tools](/docs/tools): everything the connection can call.
-- [Reading a response](/docs/responses): the `meta` envelope every answer
-  carries.
-- [Limits](/docs/limits): account quotas and how calls are counted.
+- [Tools](/docs/tools): everything a connection can call.
 
 ## If something goes wrong
 
-Quote the `request_id` from the response's `meta` when you report an answer
-that looks wrong. Your own call history, with those ids, is under **Settings › Usage and limits › Requests**; refused credentials appear on **Settings › Connections & agents**.
+Send feedback from Settings, or quote the `request_id` from a response's
+`meta` when you report an answer that looks wrong. Your own call history,
+with those ids, is under **Settings › Usage and limits › Requests**; refused
+credentials appear on **Settings › Connections & agents**.
