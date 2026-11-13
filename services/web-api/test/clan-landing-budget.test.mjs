@@ -31,13 +31,16 @@ const LARGE = [
  * The statements each landing read may make, as of this change: a
  * ceiling to come down, never to rise without a reason in its pull
  * request. The Feed page asks for these on load: the clan and who you
- * are in it first, then the rest together.
+ * are in it first, then the rest together; here they are asked one at a
+ * time, so each count is the same on every run.
  */
 const BUDGET = {
   "/api/clan/me": 15,
   "/api/clan/roster": 16,
   "/race": 21,
-  "/actions": 40,
+  // Asked alone, Actions evaluates the clan's participation itself; on the
+  // page it shares /me's evaluation while that is in flight.
+  "/actions": 63,
   "/me": 50,
   "/week": 70,
   "/feed": 30,
@@ -161,14 +164,19 @@ test("the Feed page's reads stay in their statement budgets and read the clan by
   const base = `/api/clan/clans/${bare()}`;
   const first = await call("/api/clan/me");
   assert.equal(first.status, 200);
-  const rest = await Promise.all([
-    call("/api/clan/roster", { clan: bare() }),
-    call(`${base}/race`),
-    call(`${base}/actions`),
-    call(`${base}/me`),
-    call(`${base}/week`),
-    call(`${base}/feed`),
-  ]);
+  // One at a time, in the page's order: asked together, a read can share
+  // another's participation evaluation while it is in flight, and which
+  // request's statements it counts in would depend on timing.
+  const rest = [];
+  for (const [path, query] of [
+    ["/api/clan/roster", { clan: bare() }],
+    [`${base}/race`],
+    [`${base}/actions`],
+    [`${base}/me`],
+    [`${base}/week`],
+    [`${base}/feed`],
+  ])
+    rest.push(await call(path, query));
   const keys = [
     "/api/clan/roster",
     "/race",
