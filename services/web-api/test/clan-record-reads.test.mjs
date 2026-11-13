@@ -200,13 +200,17 @@ function comparable(body) {
           )
           .map(([k, x]) => [
             k,
-            // A clock read during the call (as_of, freshness) moves
-            // between the two runs; anything older is the record's.
+            // A clock read during the call (as_of, freshness, the hours
+            // since the latest snapshot) moves between the two runs;
+            // anything older is the record's. unmeasured_tail_hours is
+            // rounded to 0.01 h, so a slow host crossed a step between
+            // them (2.00 then 2.01, verify on 2026-11-13).
             typeof x === "string" &&
             /^\d{4}-\d{2}-\d{2}T/.test(x) &&
             Math.abs(Date.parse(x) - Date.now()) < 120_000
               ? "<now>"
-              : k === "freshness_seconds" && typeof x === "number"
+              : (k === "freshness_seconds" || k === "unmeasured_tail_hours") &&
+                  typeof x === "number"
                 ? "<age>"
                 : seen(x),
           ]),
