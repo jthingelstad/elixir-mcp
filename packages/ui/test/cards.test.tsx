@@ -7,6 +7,8 @@ import {
   cardArtSrc,
   cardLabel,
   DeckGrid,
+  DeckRow,
+  DeckVersus,
   deckElixir,
   isTowerTroop,
   type DeckCard,
@@ -255,4 +257,52 @@ test("the first tile asks for the catalog; a page with no tile never does", () =
     </CardArtProvider>,
   );
   expect(asked).toBe(1);
+});
+
+const eight: DeckCard[] = [
+  hogs,
+  { id: 26000000, name: "Knight", level: 14 },
+  { id: 26000001, name: "Archers", level: 14 },
+  { id: 26000010, name: "Skeletons", level: 14 },
+  { id: 28000000, name: "Fireball", level: 14 },
+  { id: 28000008, name: "Zap", level: 14 },
+  { id: 27000000, name: "Cannon", level: 14 },
+  { id: 26000014, name: "Musketeer", form: "hero", level: 14 },
+];
+
+test("a deck row is eight tiles that take their column's width", () => {
+  const { container } = render(<DeckRow cards={eight} label="Hog deck" />);
+  const list = screen.getByRole("list", { name: "Hog deck" });
+  expect(list.className).toBe("kit-deckrow kit-deckrow--8");
+  const tiles = container.querySelectorAll(".card-art");
+  expect(tiles).toHaveLength(8);
+  for (const t of tiles) {
+    // CSS sizes it: no pixel width pinned on the tile.
+    expect(t.className).toContain("card-art--fill");
+    expect((t as HTMLElement).style.getPropertyValue("--card-w")).toBe("");
+  }
+  // The mirror's own file, the played form's, unaltered.
+  const img = container.querySelector("img")!;
+  expect(img.getAttribute("src")).toBe("/assets/cards/26000046_evo.png");
+  expect(
+    screen.getByRole("img", { name: "Hero Musketeer, level 14" }),
+  ).toBeTruthy();
+});
+
+test("two decks with the score between, said in words", () => {
+  const { container } = render(
+    <DeckVersus
+      left={{ name: "Birch <b>Lantern</b>", label: "Hog cycle", cards: eight }}
+      right={{ name: "Harbor Moth", cards: eight.slice().reverse() }}
+      score="2-1"
+      scoreLabel="Birch won 2 crowns to 1"
+    />,
+  );
+  expect(container.querySelectorAll(".kit-deckrow--4")).toHaveLength(2);
+  // A hostile name stays text.
+  expect(container.querySelector(".kit-decklabel b")!.textContent).toBe(
+    "Birch <b>Lantern</b>",
+  );
+  expect(container.querySelector(".kit-vs__score")!.textContent).toBe("2-1");
+  expect(screen.getByText("Birch won 2 crowns to 1")).toBeTruthy();
 });

@@ -5,12 +5,15 @@ export {
   cardArtSrc,
   cardLabel,
   DeckGrid,
+  DeckRow,
+  DeckVersus,
   deckElixir,
   isTowerTroop,
   type CardArtMap,
   type CardArtSource,
   type CardForm,
   type DeckCard,
+  type VersusSide,
 } from "./Cards.tsx";
 export {
   AccountMenu,

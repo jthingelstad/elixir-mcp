@@ -4575,6 +4575,69 @@ a.card-art:hover .card-art__img {
   grid-template-columns: repeat(8, max-content);
   gap: 4px;
 }
+/* A card that takes its box's width (CardArt size "fill"): a deck row's
+   column. The art is the mirror's file at 100% of the column. */
+.card-art--fill {
+  --card-w: 100%;
+  width: 100%;
+}
+/* A deck as one row of eight (canvas .deck): equal columns up to 420px,
+   so the eight fit a phone; --4 is two rows of four (a side of .kit-vs). */
+.kit-deckrow {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 5px;
+  max-width: 420px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-deckrow--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: 260px;
+}
+.kit-deckrow > li {
+  min-width: 0;
+}
+/* Two decks with the score between (canvas .vs): stacked on a phone. */
+.kit-vs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+.kit-vs__side .kit-decklabel {
+  margin-bottom: 6px;
+  overflow-wrap: anywhere;
+}
+.kit-vs__mid {
+  text-align: center;
+}
+.kit-vs__score {
+  font: 400 20px/1 var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.kit-vs__said {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .kit-deckrow {
+    gap: 3px;
+  }
+  .kit-vs {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .kit-vs__mid {
+    text-align: left;
+  }
+}
 
 /* ------------------------------------------------------------ card tile
    The public card pages (canvas 2026-09-29: CardsIndex, CardPage). A
