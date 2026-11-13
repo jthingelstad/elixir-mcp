@@ -78,7 +78,7 @@ function concrete({ template, op }) {
   return (
     "/api/v1" +
     template
-      .replace("{tag}", encodeURIComponent("#2PPQQ"))
+      .replace("{tag}", encodeURIComponent("#0Q0V9"))
       .replace(
         "{id}",
         op.operationId === "profileRefreshStatus"
@@ -91,8 +91,8 @@ function concrete({ template, op }) {
 
 /** A body that gets each operation past its own shape checks. */
 function bodyFor({ op }) {
-  if (op.operationId === "playerNames") return { player_tags: ["#2PP"] };
-  if (op.operationId === "addCollectionMembers") return { tags: ["#2PP"] };
+  if (op.operationId === "playerNames") return { player_tags: ["#0CR"] };
+  if (op.operationId === "addCollectionMembers") return { tags: ["#0CR"] };
   return {};
 }
 
@@ -307,7 +307,7 @@ test("every operation in the contract resolves to its own operationId, and nothi
     ["GET", "/api/v1/game/clock/"],
     ["DELETE", "/api/v1/game/clock"],
     ["HEAD", "/api/v1/game/clock"],
-    ["GET", "/api/v1/players/%232PP/extra"],
+    ["GET", "/api/v1/players/%230CR/extra"],
     ["GET", "/api/v1/clans//roster"],
     ["GET", "/api/v1"],
   ])

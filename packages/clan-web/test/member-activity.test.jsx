@@ -12,7 +12,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
-const clan = { clan_tag: "#2PQRJ8LV", name: "Example Clan" };
+const clan = { clan_tag: "#0QC8RCGY", name: "Example Clan" };
 const data = {
   name: "Test member",
   window: { from: "2026-09-21T00:00:00Z", to: "2026-10-04T05:00:00Z" },
@@ -36,7 +36,7 @@ test("member evidence retains unknowns and continues past an empty filtered page
   const read = vi
     .spyOn(manageApi, "memberActivity")
     .mockResolvedValue({ ok: true, status: 200, data });
-  renderWithProviders(<MemberActivity clan={clan} playerTag="#9QY" />);
+  renderWithProviders(<MemberActivity clan={clan} playerTag="#0GR" />);
   await screen.findByRole("heading", { name: /Test member/ });
   // A gap is unknown, in the words of the page's folded note.
   expect(
@@ -48,25 +48,25 @@ test("member evidence retains unknowns and continues past an empty filtered page
   await screen.findByRole("button", { name: "Newer battles" });
   expect(read).toHaveBeenLastCalledWith(
     clan.clan_tag,
-    "#9QY",
+    "#0GR",
     "next",
     data.window.to,
   );
 });
 test("member deep links parse and analytics never includes the player tag", () => {
-  const path = memberPath(clan.clan_tag, "#UQ8LP2R9C");
+  const path = memberPath(clan.clan_tag, "#02QQPCYQQ");
   expect(parseClanPath(path)).toEqual({
     tag: clan.clan_tag,
     section: "members",
-    tab: "uq8lp2r9c",
+    tab: "02qqpcyqq",
   });
   expect(analyticsLocation(path, "https://example.com").url).not.toMatch(
-    /uq8lp2r9c/i,
+    /02qqpcyqq/i,
   );
   expect(
     routeLabel(
       "GET",
-      "/api/clan/clans/2PQRJ8LV/members/UQ8LP2R9C/activity?cursor=secret",
+      "/api/clan/clans/0QC8RCGY/members/02QQPCYQQ/activity?cursor=secret",
     ),
   ).toBe("GET /api/clan/clans/*/members/*/activity");
 });
@@ -78,7 +78,7 @@ test("on the player page it drops the Members head and keeps the record", async 
     data,
   });
   renderWithProviders(
-    <PlayerInClan clan={clan} playerTag="#9QY" navigate={() => {}} />,
+    <PlayerInClan clan={clan} playerTag="#0GR" navigate={() => {}} />,
   );
   await screen.findByText("Season 136, week 4");
   // The player page's own head names them; no way back to a roster.
@@ -92,7 +92,7 @@ test("the Clan tab is drawn only for a clan the viewer has a player in", async (
     status: 200,
     data: {
       ok: true,
-      clans: [{ clan_tag: "#2PQRJ8LV", role: "member", name: "Example Clan" }],
+      clans: [{ clan_tag: "#0QC8RCGY", role: "member", name: "Example Clan" }],
     },
   });
   function Probe({ tag, on = true }) {
@@ -101,7 +101,7 @@ test("the Clan tab is drawn only for a clan the viewer has a player in", async (
   }
   renderWithProviders(
     <>
-      <Probe tag="#2PQRJ8LV" />
+      <Probe tag="#0QC8RCGY" />
       <Probe tag="#8ZZQ2YLL" />
     </>,
   );
@@ -112,7 +112,7 @@ test("the Clan tab is drawn only for a clan the viewer has a player in", async (
 test("a closed Clan never reads Clan's session", () => {
   const me = vi.spyOn(api, "me");
   function Probe() {
-    const { clan, pending } = useClanOf("#2PQRJ8LV", false);
+    const { clan, pending } = useClanOf("#0QC8RCGY", false);
     return <p>{pending ? "pending" : (clan?.name ?? "none")}</p>;
   }
   renderWithProviders(<Probe />);
@@ -121,7 +121,7 @@ test("a closed Clan never reads Clan's session", () => {
 });
 
 test("another member's page is their player page's Clan tab", () => {
-  expect(playerInClanPath("#UQ8LP2R9C")).toBe(
-    "/home/player/UQ8LP2R9C?tab=clan",
+  expect(playerInClanPath("#02QQPCYQQ")).toBe(
+    "/home/player/02QQPCYQQ?tab=clan",
   );
 });

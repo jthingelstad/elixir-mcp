@@ -47,11 +47,11 @@ async function snap(tag, day, kind, observedAt, trophies) {
 
 test("series_status reads the series tables and the receipts' worth", async () => {
   await db.query(
-    `insert into player (player_tag) values ('#2PP0V9PP'), ('#2PP0V9QQ')`,
+    `insert into player (player_tag) values ('#0VQRR8U0'), ('#0RY8UJUL')`,
   );
-  await snap("#2PP0V9PP", "2026-09-09", "daily", "2026-09-09T23:00:00Z", 5000);
-  await snap("#2PP0V9PP", "2026-09-10", "daily", "2026-09-10T15:00:00Z", 5010);
-  await snap("#2PP0V9QQ", "2026-09-10", "daily", "2026-09-10T12:00:00Z", 6000);
+  await snap("#0VQRR8U0", "2026-09-09", "daily", "2026-09-09T23:00:00Z", 5000);
+  await snap("#0VQRR8U0", "2026-09-10", "daily", "2026-09-10T15:00:00Z", 5010);
+  await snap("#0RY8UJUL", "2026-09-10", "daily", "2026-09-10T12:00:00Z", 6000);
   const status = await seriesStatus(SCRATCH_URL, { hours: 24 });
   assert.equal(status.hours, 24);
   assert.equal(Number(status.player_snapshot_daily.rows), 3);

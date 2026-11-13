@@ -8,7 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readClanRace, shapeClanRace } from "../src/clan-race.mjs";
 
-const OURS = "#2PQRJ8LV";
+const OURS = "#0QC8RCGY";
 const NOW = Date.parse("2026-11-13T18:00:00Z");
 
 function race(over = {}) {
@@ -22,17 +22,17 @@ function race(over = {}) {
     finish_war_day: null,
     next_war_day_opens_at: "2026-11-14T10:00:00.000Z",
     standings: [
-      { participant_clan_tag: "#8QQ9PY0", fame: 6100 },
+      { participant_clan_tag: "#000YR99", fame: 6100 },
       { participant_clan_tag: OURS, fame: 4820 },
-      { participant_clan_tag: "#9GG2LR8", fame: 3000 },
-      { participant_clan_tag: "#CV0Y2PQ", fame: 1200 },
-      { participant_clan_tag: "#UQ8LJ22", fame: 0 },
+      { participant_clan_tag: "#0LQL8PG", fame: 3000 },
+      { participant_clan_tag: "#0R8VQJG", fame: 1200 },
+      { participant_clan_tag: "#082YLGQ", fame: 0 },
     ],
     participants: [
-      { player_tag: "#2Q8U0LV", decks_used: 8, in_clan: true },
-      { player_tag: "#8JJ9QYU", decks_used: 5, in_clan: true },
-      { player_tag: "#9PRY2GC", decks_used: 0, in_clan: true },
-      { player_tag: "#LQ2VC80", decks_used: 6, in_clan: false },
+      { player_tag: "#009GY0Q", decks_used: 8, in_clan: true },
+      { player_tag: "#0UUR0PL", decks_used: 5, in_clan: true },
+      { player_tag: "#09UQLQ8", decks_used: 0, in_clan: true },
+      { player_tag: "#09Y2Y9Q", decks_used: 6, in_clan: false },
     ],
     period: { week_end_nominal: "2026-11-16T10:00:00.000Z" },
     ...over,
@@ -54,7 +54,7 @@ test("a member left out of the race roster is asked for decks too", () => {
   const r = shapeClanRace(
     race({
       members_not_in_race: [
-        { player_tag: "#Q0RLV8C", reason: "not_in_race_roster" },
+        { player_tag: "#09R8L0Y", reason: "not_in_race_roster" },
       ],
     }),
     OURS,

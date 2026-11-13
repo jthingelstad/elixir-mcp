@@ -13,10 +13,10 @@ import { readClanFeed, FEED_DAYS } from "../src/clan-feed.mjs";
 const T = Date.parse("2026-11-12T12:00:00Z");
 const H = 3_600_000;
 const at = (ms) => new Date(ms).toISOString();
-const CLAN = "#2PQRJ8LV";
-const READER = "#20QQL8CC";
-const STAYED = "#8QCVLQ2";
-const LEFT = "#9YJUP0Q";
+const CLAN = "#0QC8RCGY";
+const READER = "#0LCLRCPQ";
+const STAYED = "#0QU8VGV";
+const LEFT = "#0PPPQVL";
 
 let ctx;
 let db;

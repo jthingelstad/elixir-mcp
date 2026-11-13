@@ -10,8 +10,8 @@ const ids = ["context01"];
 before(async () => {
   scratch = await scratchDb("clan_context");
   const db = scratch.db;
-  await db.query("insert into clan(clan_tag) values('#028'),('#029')");
-  await db.query("insert into player(player_tag) values('#02P')");
+  await db.query("insert into clan(clan_tag) values('#0YR'),('#029')");
+  await db.query("insert into player(player_tag) values('#0RR')");
   owner = (
     await db.query(
       "insert into account(email_hash,kind,status,role) values('context-owner','person','approved','member') returning account_id",
@@ -35,7 +35,7 @@ before(async () => {
     )
   ).rows[0].token_id;
   await db.query(
-    "insert into claim(account_id,player_tag,status,is_primary,relationship) values($1,'#02P','verified',true,'primary')",
+    "insert into claim(account_id,player_tag,status,is_primary,relationship) values($1,'#0RR','verified',true,'primary')",
     [owner],
   );
   account = {
@@ -60,16 +60,16 @@ beforeEach(async () => {
   );
   await db.query("delete from account_clan where account_id=$1", [agent]);
   await db.query(
-    "insert into account_clan(account_id,clan_tag,is_primary) values($1,'#028',true)",
+    "insert into account_clan(account_id,clan_tag,is_primary) values($1,'#0YR',true)",
     [agent],
   );
   await db.query(
     "update claim set status='verified',is_primary=true,relationship='primary' where account_id=$1",
     [owner],
   );
-  await db.query("delete from clan_membership where player_tag='#02P'");
+  await db.query("delete from clan_membership where player_tag='#0RR'");
   await db.query(
-    "insert into clan_membership(clan_tag,player_tag,joined_observed_at,role) values('#028','#02P',now(),'member')",
+    "insert into clan_membership(clan_tag,player_tag,joined_observed_at,role) values('#0YR','#0RR',now(),'member')",
   );
   await db.query(
     "update service_token set scope='cr:read',revoked_at=null where token_id=$1",
@@ -109,7 +109,7 @@ test("preview proves actual binding; apply is explicit, idempotent and changes n
   assert.equal(p.changed, 0);
   assert.equal(p.applied, false);
   assert.equal(p.candidates[0].owner_account_id, owner);
-  assert.equal(p.candidates[0].clan_tag, "#028");
+  assert.equal(p.candidates[0].clan_tag, "#0YR");
   assert.equal(await active(), false);
   assert.equal((await grant()).changed, 1);
   assert.equal((await grant()).changed, 0);
@@ -129,7 +129,7 @@ test("12.0.0: clans_context is gone, and the agent reads the clan directory as i
   assert.equal(registry.has("clans_context"), false);
   await grant();
   const ledger = createPostgresLedger(scratch.db);
-  await ledger.savePolicy("#028", {
+  await ledger.savePolicy("#0YR", {
     values: {
       war_intent: "participating",
       war_enabled: false,
@@ -142,10 +142,10 @@ test("12.0.0: clans_context is gone, and the agent reads the clan directory as i
     { db: scratch.db, account },
     {},
   );
-  const tile = r.clans.find((c) => c.clan_tag === "#028");
+  const tile = r.clans.find((c) => c.clan_tag === "#0YR");
   assert.ok(tile, "a clan with a saved policy is listed");
   assert.equal(tile.policy.war_intent, "participating");
-  // yours is the owner's: their verified primary is a member of #028.
+  // yours is the owner's: their verified primary is a member of #0YR.
   assert.equal(tile.yours, true);
   assert.ok(!JSON.stringify(r).includes("private-canary"));
   assert.ok(!JSON.stringify(r).includes(owner));
@@ -264,7 +264,7 @@ test("assignment and ownership changes durably revoke, including restoration", a
   );
   assert.equal(await active(), false);
   await scratch.db.query(
-    "update account_clan set clan_tag='#028' where account_id=$1",
+    "update account_clan set clan_tag='#0YR' where account_id=$1",
     [agent],
   );
   assert.equal(await active(), false);

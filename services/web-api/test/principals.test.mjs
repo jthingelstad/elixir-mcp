@@ -109,7 +109,7 @@ before(async () => {
     `insert into clan (clan_tag, name) values ('#J2RGCRVG', 'POAP KINGS') on conflict do nothing`,
   );
   await seed(BOSS, "admin", { clans: ["#J2RGCRVG"] });
-  await seed(LEADER, "member", { clans: ["#2GUCVLQR"] });
+  await seed(LEADER, "member", { clans: ["#0VCJY9YC"] });
   await seed(PARTNER, "partner");
   bossCookie = await signIn(BOSS, "8.8.4.4");
   leaderCookie = await signIn(LEADER, "8.8.4.7");
@@ -194,7 +194,7 @@ test("you cannot create an agent for a clan you have not added", async () => {
     event({
       path: "/api/me/agents",
       cookie,
-      body: { name: "someone-else", clan_tag: "#2GUCVLQR" },
+      body: { name: "someone-else", clan_tag: "#0VCJY9YC" },
     }),
   );
   assert.equal(res.statusCode, 400);
@@ -207,7 +207,7 @@ test("a member can have an agent — this is not a tier feature", async () => {
     event({
       path: "/api/me/agents",
       cookie,
-      body: { name: "my-clan", clan_tag: "#2GUCVLQR" },
+      body: { name: "my-clan", clan_tag: "#0VCJY9YC" },
     }),
   );
   assert.equal(res.statusCode, 201, res.body);
@@ -221,7 +221,7 @@ test("two owners may use the same token name — uniqueness is per account", asy
     event({
       path: "/api/me/agents",
       cookie,
-      body: { name: "poap-kings", clan_tag: "#2GUCVLQR" },
+      body: { name: "poap-kings", clan_tag: "#0VCJY9YC" },
     }),
   );
   // BOSS already has a token named poap-kings. Before 0053 this collided
@@ -284,7 +284,7 @@ test("a key is minted with exactly the authority it was asked for", async () => 
     event({
       path: "/api/me/agents",
       cookie,
-      body: { name: "read-only", clan_tag: "#2GUCVLQR", scope: "cr:read" },
+      body: { name: "read-only", clan_tag: "#0VCJY9YC", scope: "cr:read" },
     }),
   );
   assert.equal(res.statusCode, 201, res.body);

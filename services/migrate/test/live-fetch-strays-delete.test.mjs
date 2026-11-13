@@ -28,7 +28,7 @@ const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const SCRATCH = `elixir_mcp_test_strays_delete_${process.pid}`;
 const SCRATCH_URL = ADMIN_URL.replace(/\/postgres$/, `/${SCRATCH}`);
-const NEIGHBOUR = "#2QQ0V9QQ";
+const NEIGHBOUR = "#0UCLYP9P";
 
 let db;
 let gatewayId;

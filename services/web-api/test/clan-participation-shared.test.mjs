@@ -21,12 +21,12 @@ import { sharedRead, sharedReadsInFlight } from "../src/shared-read.mjs";
 // local time: the Lambdas run in UTC, and so does this.
 process.env.TZ = "UTC";
 
-const WAR = "#PYLQ8";
-const QUIET = "#PYLQ9";
+const WAR = "#00C8G";
+const QUIET = "#0RPP9";
 const DAY = 86400_000;
 const now = Date.now();
 const ago = (days) => new Date(now - days * DAY).toISOString();
-const [A1, A2, GONE, B1, B2] = ["#9QP", "#9QY", "#9QL", "#9QG", "#9QR"];
+const [A1, A2, GONE, B1, B2] = ["#0Y2", "#0GR", "#0V8", "#0QJ", "#0C0"];
 
 // The donation statement as it stood before 2026-11-09, current members
 // and former ones (this clan's rows only): the reference.
@@ -51,7 +51,7 @@ before(async () => {
     `insert into account (email_hash, status, is_owner) values ('cps-owner', 'approved', true) returning account_id`,
   );
   await db.query(
-    `insert into clan (clan_tag, name) values ($1, 'War Clan'), ($2, 'Quiet Clan'), ('#PYLQ0', 'Elsewhere')`,
+    `insert into clan (clan_tag, name) values ($1, 'War Clan'), ($2, 'Quiet Clan'), ('#0VGJP', 'Elsewhere')`,
     [WAR, QUIET],
   );
   for (const tag of [WAR, QUIET])
@@ -84,7 +84,7 @@ before(async () => {
             case when (t.i + d) % 9 = 0 then null
                  else extract(isodow from current_date - d)::int * (10 + t.i::int * 17) end,
             now() - d * interval '1 day',
-            case when t.tag = $3 and d < 10 then '#PYLQ0' else t.clan end,
+            case when t.tag = $3 and d < 10 then '#0VGJP' else t.clan end,
             now() - d * interval '1 day'
        from unnest($1::text[], $2::text[]) with ordinality as t(tag, clan, i),
             generate_series(0, 70) d

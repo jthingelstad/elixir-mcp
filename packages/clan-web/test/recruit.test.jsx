@@ -16,9 +16,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const poap = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "member" };
+const poap = { clan_tag: "#0QC8RCGY", name: "Example Clan", role: "member" };
 const view = (extra = {}) => ({
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   can_edit: false,
   pitch: {
     tagline: "Steady wars, friendly chat",
@@ -32,7 +32,7 @@ const view = (extra = {}) => ({
   fields: {},
   facts: {
     name: "Example Clan",
-    tag: "#2PQRJ8LV",
+    tag: "#0QC8RCGY",
     type: "inviteOnly",
     members: 47,
     open_slots: 3,
@@ -50,7 +50,7 @@ const view = (extra = {}) => ({
   copy: {
     personal: { subject: "Join Example Clan", body: "Body." },
     post: {
-      title: "Example Clan #2PQRJ8LV - Steady wars [5000]",
+      title: "Example Clan #0QC8RCGY - Steady wars [5000]",
       body: "About us.\n\nRequired Trophies: [5000]",
     },
   },
@@ -85,7 +85,7 @@ describe("recruit", () => {
     });
     expect(screen.queryByLabelText("Personal note")).toBeNull();
     const post = screen.getByLabelText("Public post");
-    expect(post.value).toMatch(/^Title: Example Clan #2PQRJ8LV - .* \[5000\]/);
+    expect(post.value).toMatch(/^Title: Example Clan #0QC8RCGY - .* \[5000\]/);
     expect(post.value).toMatch(/Required Trophies: \[5000\]/);
 
     expect(screen.queryByLabelText("Discord post")).toBeNull();

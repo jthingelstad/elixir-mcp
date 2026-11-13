@@ -15,11 +15,11 @@ import {
   sparkOf,
 } from "../src/feed.mjs";
 
-const ME = "#2PYLQ0";
-const ALT = "#2PYLQ2";
-const FRIEND = "#2PYLQ8";
-const CLAN = "#2PYLQJ";
-const MEMBER = "#2PYLQC";
+const ME = "#000880";
+const ALT = "#09CCYU";
+const FRIEND = "#0GLP0L";
+const CLAN = "#0PPPG9";
+const MEMBER = "#02JVUC";
 const SUBJECTS = [
   { tag: ME, kind: "player", relationship: "primary" },
   { tag: ALT, kind: "player", relationship: "alt" },
@@ -114,13 +114,13 @@ test("foldAccountLines: one line per kind and burst, however the kinds interleav
   const at = (min) => new Date(Date.UTC(2026, 10, 12, 17, min)).toISOString();
   const rows = [
     // Newest first, as the read orders them.
-    { kind: "recording_started", created_at: at(40), player_tag: "#2PYLQ0" },
-    { kind: "claim_added", created_at: at(40), player_tag: "#2PYLQ0" },
-    { kind: "recording_started", created_at: at(39), player_tag: "#2PYLQ2" },
-    { kind: "claim_added", created_at: at(39), player_tag: "#2PYLQ2" },
-    { kind: "clan_added", created_at: at(38), clan_tag: "#2PYLQJ" },
+    { kind: "recording_started", created_at: at(40), player_tag: "#000880" },
+    { kind: "claim_added", created_at: at(40), player_tag: "#000880" },
+    { kind: "recording_started", created_at: at(39), player_tag: "#09CCYU" },
+    { kind: "claim_added", created_at: at(39), player_tag: "#09CCYU" },
+    { kind: "clan_added", created_at: at(38), clan_tag: "#0PPPG9" },
     // Twenty minutes before: a burst of its own.
-    { kind: "claim_added", created_at: at(18), player_tag: "#2PYLQ8" },
+    { kind: "claim_added", created_at: at(18), player_tag: "#0GLP0L" },
   ];
   const out = foldAccountLines(rows, at(30));
   assert.deepEqual(
@@ -167,22 +167,22 @@ test("a moment's proving battle names its mode for the line under it", () => {
 
 test("a clan arrival offers Follow only for a player you do not follow", () => {
   const subjects = [
-    { kind: "player", tag: "#2Y0P8V", relationship: "friend" },
-    { kind: "clan", tag: "#2PQRJ8LV" },
+    { kind: "player", tag: "#00JQ20", relationship: "friend" },
+    { kind: "clan", tag: "#0QC8RCGY" },
   ];
   const joined = (tag) => ({
     kind: "member_joined",
     facts: { player_tag: tag },
   });
-  assert.equal(offersFollow(joined("#8QYLGV"), subjects), true);
-  assert.equal(offersFollow(joined("#2Y0P8V"), subjects), false);
+  assert.equal(offersFollow(joined("#0URPC0"), subjects), true);
+  assert.equal(offersFollow(joined("#00JQ20"), subjects), false);
   assert.equal(
     offersFollow({ kind: "member_joined", facts: {} }, subjects),
     false,
   );
   assert.equal(
     offersFollow(
-      { kind: "member_left", facts: { player_tag: "#8QYLGV" } },
+      { kind: "member_left", facts: { player_tag: "#0URPC0" } },
       subjects,
     ),
     false,

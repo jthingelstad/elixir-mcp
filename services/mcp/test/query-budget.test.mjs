@@ -491,12 +491,12 @@ test("the real MCP handler shortens the budget to leave Lambda reply time", asyn
 test("an unrecorded rival roster names the exact live retry without changing recording", async () => {
   const result = await makeInvoker({ db, account, registry: makeRegistry() })(
     "clans_roster",
-    { clan_tag: "#YYYYYYYY", verbosity: "compact" },
+    { clan_tag: "#08L2PR0V", verbosity: "compact" },
   );
   assert.equal(result.body.error.code, "not_recorded");
   assert.match(
     result.body.error.hint,
-    /clans_roster\(\{"clan_tag":"#YYYYYYYY","verbosity":"compact","live":true\}\)/,
+    /clans_roster\(\{"clan_tag":"#08L2PR0V","verbosity":"compact","live":true\}\)/,
   );
   assert.equal(
     (await db.query("select count(*)::int as n from recording")).rows[0].n,

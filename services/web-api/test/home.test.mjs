@@ -31,11 +31,11 @@ import {
   shapeClan,
 } from "../src/routes/home.mjs";
 
-const CLAN = "#9GQLV20";
-const OWN = "#9GQLV22";
+const CLAN = "#0JQ0JQ8";
+const OWN = "#08V0UY9";
 const FRIEND = "#00C298UC";
-const WATCHED = "#PYLQGRJC";
-const NEWCOMER_FRIEND = "#9VUP08YL";
+const WATCHED = "#0J0RVYRR";
+const NEWCOMER_FRIEND = "#0JVRYLGG";
 
 let scratch, handler, clanFails;
 const sessions = new Map();
@@ -280,7 +280,7 @@ test("Friends: past the request's deadline a friend keeps their record and loses
     player_tag: OWN,
     make_primary: true,
   });
-  await played("#2YG98VV0", id);
+  await played("#02GUYYLY", id);
   const r = await handler({
     path: "/api/me/home/friends",
     method: "GET",
@@ -305,7 +305,7 @@ test("Friends: past the ten-card cap a friend keeps their record and loses only 
   });
   const tags = Array.from(
     { length: 11 },
-    (_, n) => `#PYLQGR${"029CGJLPQRU"[n]}Y`,
+    (_, n) => `#02YJ2J${"029CGJLPQRU"[n]}Y`,
   );
   for (const tag of tags) await played(tag, id);
   const r = await call(handler, id, "GET", "/api/me/home/friends");
@@ -322,7 +322,7 @@ test("the mail's mark of a card stays the builder's: past the deadline no by_fam
     player_tag: OWN,
     make_primary: true,
   });
-  await played("#2YG98VV2", id);
+  await played("#0VYYGQJU", id);
   const week = lastGameWeek(new Date());
   const facts = await buildFriendsWeek({
     db: scratch.db,
@@ -342,7 +342,7 @@ test("a friend's deck is the one battles_decks reads for its hash, in two tool c
     player_tag: OWN,
     make_primary: true,
   });
-  await played("#2YG98VV8", id);
+  await played("#02V9CQVL", id);
   const week = lastGameWeek(new Date());
   const registry = makeRegistry();
   const calls = [];
@@ -358,7 +358,7 @@ test("a friend's deck is the one battles_decks reads for its hash, in two tool c
     within: () => true,
   });
   const [friend] = facts.friends;
-  const perFriend = calls.filter((c) => c.args?.player_tag === "#2YG98VV8");
+  const perFriend = calls.filter((c) => c.args?.player_tag === "#02V9CQVL");
   assert.deepEqual(
     perFriend.map((c) => c.name),
     ["battles_performance", "battles_decks"],
@@ -438,7 +438,7 @@ test("a failed clan panel says so and the rest of Home still renders", async () 
 
 test("the clan card is kept per account; Clan's gate, Actions and role are read live", async () => {
   const { db } = scratch;
-  const tag = "#9GQLV2Y";
+  const tag = "#0GP2GGJ";
   await db.query(
     "insert into player(player_tag,name) values ($1,'Kept') on conflict do nothing",
     [tag],
@@ -616,7 +616,7 @@ test("the account's week as the timeline builds it: every kind, a repeat kept at
   const H = 3_600_000;
   const now = Date.now();
   const iso = (ms) => new Date(ms).toISOString();
-  const tags = ["#2Y2Y2Y2", "#2Y2Y2YC", "#2Y2Y2YG", "#2Y2Y2YJ"];
+  const tags = ["#0JP89QG", "#0QYR0RR", "#00ULJPC", "#0C8GLYJ"];
   // The third has nothing in the window.
   const [movesUp, active, , facts] = tags;
   for (const tag of tags) {
@@ -796,10 +796,10 @@ test("a moment reads in this reader's word for the person, and only its opening 
 });
 
 test("a Watching row spells its modes as everything else does", async () => {
-  const TAG = "#PYLQGRUY";
+  const TAG = "#0V880J9P";
   const id = await person("home-modes");
   await call(handler, id, "POST", "/api/claims", {
-    player_tag: "#PYLQGRVY",
+    player_tag: "#02PC82GU",
     make_primary: true,
   });
   await played(TAG, id);
@@ -818,12 +818,12 @@ test("a Watching row spells its modes as everything else does", async () => {
 });
 
 test("a nickname stays in its own account: another follower of the same friend reads the in-game name", async () => {
-  const TAG = "#PYLQGRLY";
+  const TAG = "#0V9RYQCG";
   const mine = await person("home-nick-mine");
   const theirs = await person("home-nick-theirs");
   for (const [id, own] of [
-    [mine, "#PYLQGRQY"],
-    [theirs, "#PYLQGRRY"],
+    [mine, "#0P2P9RYQ"],
+    [theirs, "#0URUJLCR"],
   ]) {
     const r = await call(handler, id, "POST", "/api/claims", {
       player_tag: own,
@@ -876,7 +876,7 @@ test("the week opens on the most played mode, Trophy Road with none", () => {
   );
 });
 
-const WEEK_PLAYER = "#2YG98VV8";
+const WEEK_PLAYER = "#02V9CQVL";
 let weekBattle = 0;
 /** Battles this game week, each [type, outcome, trophy change], on one deck. */
 async function seedWeek(tag, rows) {
@@ -1146,7 +1146,7 @@ test("Home's feed comes thirty a page: More reads on in the same week, the first
 test("Home's feed serves its stored week until it is past serving, then builds it again (#649)", async () => {
   const id = await person("home-feed-stored");
   const { db } = scratch;
-  const tag = "#8QLQ2Y2";
+  const tag = "#08LY9C2";
   const now = Date.now();
   await db.query(
     `insert into player(player_tag,name) values ($1,'Stored') on conflict do nothing`,
@@ -1205,8 +1205,8 @@ test("Home's feed serves its stored week until it is past serving, then builds i
 test("a stored week never outlives who may see a clan's fact: leave the clan and it goes at once (Codex on #818)", async () => {
   const id = await person("home-feed-left");
   const { db } = scratch;
-  const clan = "#8QLQ2Y8";
-  const tag = "#8QLQ2YJ";
+  const clan = "#0VRCLY8";
+  const tag = "#0Q98QU9";
   await db.query(
     `insert into clan(clan_tag,name) values ($1,'Left') on conflict do nothing`,
     [clan],
@@ -1261,7 +1261,7 @@ test("a stored week never outlives who may see a clan's fact: leave the clan and
 test("Home names a fact written twice by the builder's id, the lower ledger row's (Codex on #824)", async () => {
   const id = await person("home-feed-twice");
   const { db } = scratch;
-  const tag = "#8QLQ2YV";
+  const tag = "#0VLPQC8";
   await db.query(
     `insert into player(player_tag,name) values ($1,'Twice') on conflict do nothing`,
     [tag],
@@ -1358,7 +1358,7 @@ test("your week counts the cheers other people gave your player's items this wee
   const a = await person("home-week-cheers-a");
   const b = await person("home-week-cheers-b");
   const { db } = scratch;
-  const tag = "#8Y2PYL2Y";
+  const tag = "#0U9VU0RJ";
   const now = Date.now();
   const monday = gameWeekStartMs(now);
   await db.query("insert into player(player_tag,name) values ($1,'Cheered')", [

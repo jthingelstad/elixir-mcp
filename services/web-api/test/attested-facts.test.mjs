@@ -37,12 +37,12 @@ const adminUrl =
 const name = `elixir_mcp_test_facts_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 const API = "https://elixir.poapkings.com/api/v1";
-const CLAN = "#2PQRJ8LV";
-const LEADER_TAG = "#20QQL8CC";
-const MEMBER_TAG = "#8QQ8QQ8Q";
-const ELDER_TAG = "#9RRYR9RR";
-const LEFT_TAG = "#2PPGY0Q8";
-const OUTSIDER_TAG = "#UUYY22VV";
+const CLAN = "#0QC8RCGY";
+const LEADER_TAG = "#0LCLRCPQ";
+const MEMBER_TAG = "#0J8CVLL8";
+const ELDER_TAG = "#0Q0L80CC";
+const LEFT_TAG = "#0UY8VUR9";
+const OUTSIDER_TAG = "#0LUCVCJV";
 
 let db, handler, clan, accounts;
 const request = (method, path, body, token) =>

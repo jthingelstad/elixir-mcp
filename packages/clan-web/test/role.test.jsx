@@ -92,7 +92,7 @@ test("the Clan API's changes go through it, and reads never do", async () => {
   render(<RoleConfirming />);
   let answered = null;
   await act(async () => {
-    manageApi.setHold("#2PQRJ8LV", "#8QCV", { until: null }).then((r) => {
+    manageApi.setHold("#0QC8RCGY", "#0RJL", { until: null }).then((r) => {
       answered = r;
     });
   });
@@ -107,7 +107,7 @@ test("the Clan API's changes go through it, and reads never do", async () => {
   ]);
 
   replies.push([409, { error: "role_unconfirmed" }]);
-  const read = await manageApi.policy("#2PQRJ8LV");
+  const read = await manageApi.policy("#0QC8RCGY");
   expect(read.status).toBe(409);
   expect(waitingForRole()).toBe(null);
 });

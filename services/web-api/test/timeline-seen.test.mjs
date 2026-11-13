@@ -28,7 +28,7 @@ const NAME = `elixir_mcp_test_timeline_seen_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
 const PERSON = "seen-person@example.com";
-const PLAYER = "#2PP0V9PP";
+const PLAYER = "#0VQRR8U0";
 const CLAN = "#J2RGCRVG";
 const AGENT_PID = "seenagent1";
 

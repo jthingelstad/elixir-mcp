@@ -14,10 +14,10 @@ test("seriesStats reads today's rows by writer and the table sizes on the game d
   assert.match(stats.game_day, /^\d{4}-\d{2}-\d{2}$/);
   assert.equal(stats.snapshot_rows_today, 0);
   assert.equal(typeof stats.snapshot_table_mb, "number");
-  await ctx.db.query(`insert into player (player_tag) values ('#2PP0V9QP')`);
+  await ctx.db.query(`insert into player (player_tag) values ('#0V92GLLC')`);
   await ctx.db.query(
     `insert into player_snapshot_daily (player_tag, snapshot_date, snapshot_kind, observed_at, roster_observed_at, clan_tag)
-     values ('#2PP0V9QP', game_day(now()), 'daily', now(), now(), null)`,
+     values ('#0V92GLLC', game_day(now()), 'daily', now(), now(), null)`,
   );
   const after = await seriesStats(ctx.db);
   assert.equal(after.snapshot_rows_today, 1);

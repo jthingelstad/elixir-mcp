@@ -12,14 +12,14 @@ afterEach(() => {
 });
 
 const leaderClan = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Example Clan",
   role: "leader",
 };
 const TYPED = `sk-ant-api03-${"t".repeat(40)}`;
 
 const status = (extra = {}) => ({
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   purposes: { recruit_pitch: { label: "Recruiting pitch" } },
   per_day: 20,
   keep_days: 90,
@@ -29,7 +29,7 @@ const status = (extra = {}) => ({
     recent: [
       {
         at: "2026-09-25T11:00:00Z",
-        by: "#20QQL8CCRU",
+        by: "#098R2R0PUL",
         by_name: "Ada",
         purpose: "recruit_pitch",
         model: "claude-sonnet-5",
@@ -41,7 +41,7 @@ const status = (extra = {}) => ({
   },
   set: true,
   hint: "sk-ant-…WXYZ",
-  set_by: "#20QQL8CCRU",
+  set_by: "#098R2R0PUL",
   set_by_name: "Ada",
   set_at: "2026-09-25T10:00:00Z",
   model_for: {
@@ -88,7 +88,7 @@ describe("the clan's model", () => {
     expect(input.type).toBe("password");
     fireEvent.change(input, { target: { value: `  ${TYPED} ` } });
     fireEvent.click(screen.getByRole("button", { name: "Check and save" }));
-    await waitFor(() => expect(set).toHaveBeenCalledWith("#2PQRJ8LV", TYPED));
+    await waitFor(() => expect(set).toHaveBeenCalledWith("#0QC8RCGY", TYPED));
     await waitFor(() => expect(input.value).toBe(""));
   });
 
@@ -140,7 +140,7 @@ describe("the clan's model", () => {
       .mockResolvedValue({ ok: true, status: 200, data: { refreshed: true } });
     renderWithProviders(<Model clan={leaderClan} />);
     expect(await screen.findByText("sk-ant-…WXYZ")).toBeTruthy();
-    await waitFor(() => expect(refresh).toHaveBeenCalledWith("#2PQRJ8LV"));
+    await waitFor(() => expect(refresh).toHaveBeenCalledWith("#0QC8RCGY"));
     expect(
       await screen.findByText(/^With Anthropic, Thu Oct 8( 2026)?$/),
     ).toBeTruthy();
@@ -217,7 +217,7 @@ describe("the clan's model", () => {
       ok: true,
       status: 200,
       data: {
-        clan_tag: "#2PQRJ8LV",
+        clan_tag: "#0QC8RCGY",
         can_edit: true,
         model: {
           set: true,
@@ -261,7 +261,7 @@ describe("the clan's model", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Draft it" }));
     await waitFor(() =>
-      expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "war days", null),
+      expect(draft).toHaveBeenCalledWith("#0QC8RCGY", "war days", null),
     );
     expect(
       await screen.findByDisplayValue("War first, friends always"),
@@ -278,7 +278,7 @@ describe("the clan's model", () => {
       ok: true,
       status: 200,
       data: {
-        clan_tag: "#2PQRJ8LV",
+        clan_tag: "#0QC8RCGY",
         can_edit: true,
         model: { set: false, refused: false, model: null },
         pitch: { tagline: "", about: "", points: [], looking_for: "" },
@@ -296,7 +296,7 @@ describe("the clan's model", () => {
     renderWithProviders(<Recruit clan={leaderClan} navigate={navigate} />);
     fireEvent.click(await screen.findByText("write the pitch"));
     fireEvent.click(screen.getByText("Add the clan's key"));
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/run/model-voice");
+    expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/run/model-voice");
     expect(screen.queryByRole("button", { name: "Draft it" })).toBeNull();
   });
 });
@@ -320,7 +320,7 @@ describe("the clan's model: spend and the monthly cap", () => {
         recent: [
           {
             at: "2026-09-25T11:00:00Z",
-            by: "#20QQL8CCRU",
+            by: "#098R2R0PUL",
             by_name: "Ada",
             purpose: "recruit_pitch",
             model: "claude-sonnet-5",
@@ -364,7 +364,7 @@ describe("the clan's model: spend and the monthly cap", () => {
     const input = await screen.findByLabelText("Monthly cap");
     fireEvent.change(input, { target: { value: "5" } });
     fireEvent.click(screen.getByRole("button", { name: "Save cap" }));
-    await waitFor(() => expect(setCap).toHaveBeenCalledWith("#2PQRJ8LV", "5"));
+    await waitFor(() => expect(setCap).toHaveBeenCalledWith("#0QC8RCGY", "5"));
     cleanup();
     vi.spyOn(manageApi, "model").mockResolvedValue({
       ok: true,
@@ -376,7 +376,7 @@ describe("the clan's model: spend and the monthly cap", () => {
       await screen.findByText(/about \$0\.02 of the \$5\.00 cap/),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Remove cap" }));
-    await waitFor(() => expect(setCap).toHaveBeenCalledWith("#2PQRJ8LV", null));
+    await waitFor(() => expect(setCap).toHaveBeenCalledWith("#0QC8RCGY", null));
   });
 
   test("says so when the month has reached the cap, and shows a refused cap's reason", async () => {

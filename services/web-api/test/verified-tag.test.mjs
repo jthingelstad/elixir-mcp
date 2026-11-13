@@ -26,9 +26,9 @@ const name = `elixir_mcp_test_verified_tag_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 let db, handler;
 
-const OWNED = "#2PP0V90Y";
-const MINE = "#8QU2PJ8C";
-const SIGNUP = "#9VUP08YL";
+const OWNED = "#09CV8UVL";
+const MINE = "#0CGVUCUG";
+const SIGNUP = "#0JVRYLGG";
 
 const make = async (hash, extra = {}) =>
   (
@@ -130,7 +130,7 @@ test("the console refuses a self claim on another account's verified tag, with t
   // A relationship change on a tag that is not theirs is still a 404.
   const none = await call(cookie, "POST", "/api/me/players", {
     action: "relationship",
-    player_tag: "#GG8RLQ2C",
+    player_tag: "#0V8YURJR",
     relationship: "friend",
   });
   assert.equal(none.statusCode, 404);
@@ -138,8 +138,8 @@ test("the console refuses a self claim on another account's verified tag, with t
 });
 
 test("an ended primary: GET /api/me says so until another is added, and the timeline sentence names the tag", async () => {
-  const TAG = "#YQ2PG0LR";
-  const SPARE = "#LQ8RJ2GY";
+  const TAG = "#0GYLLPPG";
+  const SPARE = "#0P2CLRQG";
   const holder = await make("vt-holder");
   const cookie = await cookieFor(holder, "vt-holder");
   await addPlayer(db, { accountId: holder }, { tag: TAG, via: "test" });
@@ -177,7 +177,7 @@ test("an ended primary: GET /api/me says so until another is added, and the time
   await addPlayer(
     db,
     { accountId: holder },
-    { tag: "#P0LYJC8C", relationship: "watching", via: "test" },
+    { tag: "#089VLLY2", relationship: "watching", via: "test" },
   );
   me = data(await call(cookie, "GET", "/api/me"));
   assert.equal(me.claim_notice?.kind, "primary_ended");
@@ -193,7 +193,7 @@ test("an ended primary: GET /api/me says so until another is added, and the time
 
   // Removing every player afterwards is a new empty state, not the
   // collision again (Codex on #565).
-  for (const t of ["#P0LYJC8C", SPARE])
+  for (const t of ["#089VLLY2", SPARE])
     await removePlayer(db, { accountId: holder }, { tag: t, via: "test" });
   me = data(await call(cookie, "GET", "/api/me"));
   assert.deepEqual(me.claims, []);

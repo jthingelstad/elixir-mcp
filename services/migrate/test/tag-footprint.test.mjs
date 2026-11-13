@@ -85,8 +85,8 @@ test("tag_footprint counts every tag-keyed table and what makes a tag tracked", 
   const base = JSON.parse(
     await readFile(path.join(repoRoot, "fixtures/player/profile.json"), "utf8"),
   );
-  const stray = { ...structuredClone(base), tag: "#2QQ0V9PP" };
-  const claimed = { ...structuredClone(base), tag: "#2QQ0V9QQ" };
+  const stray = { ...structuredClone(base), tag: "#02Q29PPQ" };
+  const claimed = { ...structuredClone(base), tag: "#0UCLYP9P" };
   await admitProfile(stray);
   await admitProfile(claimed);
   await db.query(
@@ -101,7 +101,7 @@ test("tag_footprint counts every tag-keyed table and what makes a tag tracked", 
   const heads = [];
   const census = await tagFootprintCensus(
     SCRATCH_URL,
-    { tags: [stray.tag, claimed.tag, "2QQ0V9PP"] },
+    { tags: [stray.tag, claimed.tag, "02Q29PPQ"] },
     {
       head: async (key) => {
         heads.push(key);
@@ -130,7 +130,7 @@ test("tag_footprint counts every tag-keyed table and what makes a tag tracked", 
   assert.equal(s.receipts[0].archive_object, true);
   assert.match(
     s.receipts[0].archive_key,
-    /^payloads\/endpoint=player\/entity=2QQ0V9PP\//,
+    /^payloads\/endpoint=player\/entity=02Q29PPQ\//,
   );
   assert.equal(c.tracking.claims, 1, "the claimed neighbour reads as tracked");
   assert.equal(heads.length, 2);

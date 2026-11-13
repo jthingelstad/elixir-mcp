@@ -230,14 +230,14 @@ test("the key is rebuilt from first_fetched_at, matching what the writer used", 
   await db.query(`delete from api_payload`);
   const old = await payload(
     "player_battlelog",
-    "#9U82PLQ",
+    "#0UGYRLY",
     "e".repeat(64),
     "2026-09-01T08:15:30Z", // first fetch
     "2026-09-03T11:00:00Z", // last fetch -- deliberately different
   );
   await payload(
     "player_battlelog",
-    "#9U82PLQ",
+    "#0UGYRLY",
     "f".repeat(64),
     "2026-09-04T10:00:00Z",
     "2026-09-04T10:00:00Z",
@@ -248,7 +248,7 @@ test("the key is rebuilt from first_fetched_at, matching what the writer used", 
     s3.asked[0],
     archiveKey(
       "player_battlelog",
-      "#9U82PLQ",
+      "#0UGYRLY",
       old.first_fetched_at.toISOString(),
       "e".repeat(64),
     ),

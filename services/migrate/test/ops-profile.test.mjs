@@ -149,7 +149,7 @@ test("profile_read runs the status door's and the stats job's own reads, explain
 
 test("selected participation plans use real PostgreSQL EXPLAIN without runtime fields or bound identifiers", async () => {
   const result = await explainParticipation(SCRATCH_URL, {
-    clan_tag: "#2PQRJ8LV",
+    clan_tag: "#0QC8RCGY",
     weeks: 8,
     analyze: false,
     queries: ["battles_by_week"],
@@ -164,7 +164,7 @@ test("selected participation plans use real PostgreSQL EXPLAIN without runtime f
   );
   assert.doesNotMatch(
     JSON.stringify(result),
-    /#2PQRJ8LV|Actual Rows|Index Cond/,
+    /#0QC8RCGY|Actual Rows|Index Cond/,
   );
   assert.deepEqual(
     await explainParticipation("unused", { queries: ["battles_by_week"] }),

@@ -9,7 +9,7 @@ afterEach(() => {
 });
 
 const clan = (role) => ({
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Example Clan",
   role,
 });
@@ -86,9 +86,9 @@ describe("spread the word", () => {
       else expect(open).toBeTruthy();
       const link = screen.queryByRole("link", { name: "Prepare the policy" });
       if (["leader", "coLeader"].includes(role)) {
-        expect(link.getAttribute("href")).toBe("/clan/2PQRJ8LV/run/about");
+        expect(link.getAttribute("href")).toBe("/clan/0QC8RCGY/run/about");
         fireEvent.click(link);
-        expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/run/about");
+        expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/run/about");
         expect(
           screen.getByText(/Leaders can prepare and save the policy now/),
         ).toBeTruthy();

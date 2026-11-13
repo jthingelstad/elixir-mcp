@@ -7,15 +7,15 @@ import { landingPath } from "../src/lib/landing.js";
  * waiting finds them at the top of the Feed.
  */
 const me = (role, open_actions) => ({
-  selected: { clan_tag: "#2PQRJ8LV", role },
+  selected: { clan_tag: "#0QC8RCGY", role },
   open_actions,
 });
 
 test("the Feed for anyone, whatever is waiting", () => {
   for (const m of [me("leader", 2), me("leader", 0), me("member", 1)])
-    expect(landingPath(m)).toBe("/clan/2PQRJ8LV/feed");
+    expect(landingPath(m)).toBe("/clan/0QC8RCGY/feed");
 });
 
 test("picking another clan goes to that clan's Feed", () => {
-  expect(landingPath(me("leader", 2), "#GQ08RJPL")).toBe("/clan/GQ08RJPL/feed");
+  expect(landingPath(me("leader", 2), "#0JR0LRU0")).toBe("/clan/0JR0LRU0/feed");
 });

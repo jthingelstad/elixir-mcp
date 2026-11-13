@@ -13,15 +13,15 @@ import { pooledFollows, pooledUsage } from "@elixir-mcp/claims";
 import { makeHandler } from "../src/handler.mjs";
 
 // Made-up tags: this repository is public.
-const OWN = "#PQ2Y8LV0"; // the reader's main player, in no recorded clan
-const PAID = "#PQ2Y8LV2"; // the reader follows; nobody else does
-const SHARED = "#PQ2Y8LV8"; // the reader follows; the agent tracks too
-const CLANNED = "#PQ2Y8LVC"; // in a clan recorded in full
-const FIRST = "#PQ2Y8LVG"; // another account followed first
-const WATCHED = "#PQ2Y8LVJ"; // the reader only watches
-const AGENTS = "#PQ2Y8LVL"; // only the reader's agent tracks
-const OTHERS = "#PQ2Y8LVR"; // only the other account follows
-const CLAN = "#PQ2Y8LVU";
+const OWN = "#0JR2U89V"; // the reader's main player, in no recorded clan
+const PAID = "#0PYP8RQ2"; // the reader follows; nobody else does
+const SHARED = "#0YLPUQU8"; // the reader follows; the agent tracks too
+const CLANNED = "#0UCCGLUQ"; // in a clan recorded in full
+const FIRST = "#0RPYVQ9R"; // another account followed first
+const WATCHED = "#0C8VR2CG"; // the reader only watches
+const AGENTS = "#0C2P8LJR"; // only the reader's agent tracks
+const OTHERS = "#0L8P9LLJ"; // only the other account follows
+const CLAN = "#00YQ9Q90";
 const OTHER_EMAIL = "other-account-hash";
 
 let scratch, handler, reader, other, agent;

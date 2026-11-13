@@ -8,7 +8,7 @@ const [criterion] = gymCases([
     feedback: 900,
     control: true,
     tool: "clans_roster",
-    args: { clan_tag: "#P0LYQ" },
+    args: { clan_tag: "#00UQG" },
     needs_fixture: "live clan no longer recorded",
     assert: [{ has: "members[].badge_count" }],
   },

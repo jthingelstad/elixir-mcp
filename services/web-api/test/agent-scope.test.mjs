@@ -291,7 +291,7 @@ test("the log line names the scoped route, never the agent", async () => {
 
 test("configuring the agent: a rival in the owner's slots, a watched player, a new primary", async () => {
   await db.query(
-    `insert into clan (clan_tag, name) values ('#PGLQYRJ2', 'Rivals') on conflict do nothing`,
+    `insert into clan (clan_tag, name) values ('#0GC0GG2P', 'Rivals') on conflict do nothing`,
   );
   const post = (tail, body) =>
     handler(
@@ -305,7 +305,7 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
   // The owner (member tier) has one activity clan slot, and the clan they
   // and the agent share already fills it: a rival does not fit.
   const full = await post("/clans", {
-    clan_tag: "#PGLQYRJ2",
+    clan_tag: "#0GC0GG2P",
     scope: "activity",
   });
   assert.equal(full.statusCode, 429, full.body);
@@ -317,7 +317,7 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
     [ownerId],
   );
   assert.equal(
-    (await post("/clans", { clan_tag: "#PGLQYRJ2", scope: "activity" }))
+    (await post("/clans", { clan_tag: "#0GC0GG2P", scope: "activity" }))
       .statusCode,
     429,
   );
@@ -337,7 +337,7 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
   );
   assert.equal(await agentRole(), "leader", "a Family owner's agent, capped");
   const added = await post("/clans", {
-    clan_tag: "#PGLQYRJ2",
+    clan_tag: "#0GC0GG2P",
     scope: "activity",
   });
   assert.equal(added.statusCode, 200, added.body);
@@ -350,7 +350,7 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
     clans.clans.map((c) => [c.clan_tag, c.is_primary]),
     [
       ["#J2RGCRVG", true],
-      ["#PGLQYRJ2", false],
+      ["#0GC0GG2P", false],
     ],
   );
   assert.equal(clans.slots.activity.used, 2, "the pool, not the copy");
@@ -364,7 +364,7 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
   assert.equal(parse(keep).error, "primary_clan");
   // Re-point it, and then the old one can go.
   assert.equal(
-    (await post("/clans", { clan_tag: "#PGLQYRJ2", action: "primary" }))
+    (await post("/clans", { clan_tag: "#0GC0GG2P", action: "primary" }))
       .statusCode,
     200,
   );
@@ -373,7 +373,7 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
       event({ path: `/api/agent/${agentPid}`, cookie: ownerCookie }),
     ),
   );
-  assert.equal(me.clans[0].clan_tag, "#PGLQYRJ2");
+  assert.equal(me.clans[0].clan_tag, "#0GC0GG2P");
   assert.equal(me.clans[0].is_primary, true);
   assert.equal(
     (await post("/clans", { clan_tag: "#J2RGCRVG", action: "remove" }))
@@ -382,25 +382,25 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
   );
   // Its last clan is its "me": never removable.
   const last = await post("/clans", {
-    clan_tag: "#PGLQYRJ2",
+    clan_tag: "#0GC0GG2P",
     action: "remove",
   });
   assert.equal(last.statusCode, 409);
 
   // A player it watches, never one it is.
   await db.query(
-    `insert into player (player_tag, name) values ('#PQLGR2C9', 'Rival Star') on conflict do nothing`,
+    `insert into player (player_tag, name) values ('#022YGRRL', 'Rival Star') on conflict do nothing`,
   );
-  const watch = await post("/players", { player_tag: "#PQLGR2C9" });
+  const watch = await post("/players", { player_tag: "#022YGRRL" });
   assert.equal(watch.statusCode, 200, watch.body);
   const rel = await post("/players", {
-    player_tag: "#PQLGR2C9",
+    player_tag: "#022YGRRL",
     action: "relationship",
     relationship: "friend",
   });
   assert.equal(rel.statusCode, 403);
   const primary = await post("/players", {
-    player_tag: "#PYVJ8UL2",
+    player_tag: "#0GQLU92U",
     make_primary: true,
   });
   assert.equal(primary.statusCode, 403);
@@ -411,7 +411,7 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
   );
   assert.deepEqual(
     agentMe.claims.map((c) => [c.player_tag, c.relationship, c.is_primary]),
-    [["#PQLGR2C9", "watching", false]],
+    [["#022YGRRL", "watching", false]],
   );
   // The events say what happened on the agent's account, and how.
   const events = parse(

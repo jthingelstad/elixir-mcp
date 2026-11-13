@@ -15,7 +15,7 @@ export const elixir_nickname = {
     properties: {
       player_tag: {
         type: "string",
-        description: "The tag to nickname, like #9L0V2QPC.",
+        description: "The tag to nickname, like #0YGCC8YR.",
       },
       nickname: {
         type: ["string", "null"],

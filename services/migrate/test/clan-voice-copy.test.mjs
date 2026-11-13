@@ -54,7 +54,7 @@ after(async () => {
 beforeEach(async () => {
   await db.query("truncate clan_state");
   await db.query("delete from clan_activity_discord");
-  await db.query("delete from clan where clan_tag like '#V0YC%'");
+  await db.query("delete from clan where clan_tag like '#0LQ0%'");
 });
 
 /** A connected clan, as Social > Discord leaves it before 0229. */
@@ -68,7 +68,7 @@ async function connected(clanTag, voice) {
        (clan_tag, channel_id, webhook_sealed, webhook_fp, webhook_display,
         rewrite, voice, set_by, set_by_name)
      values ($1, $2, '{}'::jsonb, '0123456789abcdef', 'discord.com/...', true,
-             $3, '#2PP', 'Ada')`,
+             $3, '#0CR', 'Ada')`,
     [clanTag, randomUUID(), voice],
   );
 }
@@ -87,13 +87,13 @@ async function apply() {
 
 test("a clan's editor voice becomes its voice setting, as written; an empty one is not copied", async () => {
   const voice = "Warm and short, a little dry. Cheer the grinders.";
-  await connected("#V0YC2", voice);
-  await connected("#V0YC8", "");
+  await connected("#0UPL9", voice);
+  await connected("#0CP0C", "");
   await apply();
   const ledger = createPostgresLedger(db);
-  const copied = await ledger.clanVoice("#V0YC2");
+  const copied = await ledger.clanVoice("#0UPL9");
   assert.equal(copied.voice, voice);
-  assert.equal(copied.clan_tag, "#V0YC2");
+  assert.equal(copied.clan_tag, "#0UPL9");
   assert.equal(copied.copied_from, "0229");
   assert.ok(Date.parse(copied.copied_at) > 0);
   assert.equal(
@@ -101,41 +101,41 @@ test("a clan's editor voice becomes its voice setting, as written; an empty one 
     undefined,
     "the row's set_by may not be who wrote the voice",
   );
-  assert.equal(await ledger.clanVoice("#V0YC8"), null);
+  assert.equal(await ledger.clanVoice("#0CP0C"), null);
   const {
     rows: [item],
   } = await db.query(
-    `select partition_key, sort_key from clan_state where pk = 'voice##V0YC2'`,
+    `select partition_key, sort_key from clan_state where pk = 'voice##0UPL9'`,
   );
-  assert.deepEqual(item, { partition_key: "clan##V0YC2", sort_key: "voice" });
+  assert.deepEqual(item, { partition_key: "clan##0UPL9", sort_key: "voice" });
   // Expand, not contract: the old column is still there, unchanged.
   const {
     rows: [row],
   } = await db.query(
-    `select voice from clan_activity_discord where clan_tag = '#V0YC2'`,
+    `select voice from clan_activity_discord where clan_tag = '#0UPL9'`,
   );
   assert.equal(row.voice, voice);
 });
 
 test("a voice item already there wins, and a re-run copies nothing", async () => {
-  await connected("#V0YC9", "Old Discord words");
+  await connected("#0C298", "Old Discord words");
   const ledger = createPostgresLedger(db);
-  await ledger.saveClanVoice("#V0YC9", {
+  await ledger.saveClanVoice("#0C298", {
     voice: "Newer words a leader saved",
-    set_by: "#2PP",
+    set_by: "#0CR",
     set_by_name: "Ada",
     set_at: "2026-10-20T12:00:00.000Z",
   });
   await apply();
   assert.equal(
-    (await ledger.clanVoice("#V0YC9")).voice,
+    (await ledger.clanVoice("#0C298")).voice,
     "Newer words a leader saved",
   );
-  await connected("#V0YCP", "Friendly");
+  await connected("#0J2VJ", "Friendly");
   await apply();
-  const before = await ledger.clanVoice("#V0YCP");
+  const before = await ledger.clanVoice("#0J2VJ");
   await apply();
-  assert.deepEqual(await ledger.clanVoice("#V0YCP"), before);
+  assert.deepEqual(await ledger.clanVoice("#0J2VJ"), before);
   const {
     rows: [n],
   } = await db.query(

@@ -31,12 +31,12 @@ const ADMIN_URL =
 const NAME = `elixir_mcp_test_digest_mail_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
-const CLAN = "#2PQRJ8LV";
-const LEADER = "#20QQL8CC";
-const MEMBER = "#8QQ8QQ8Q";
-const OPP = "#9RRYR9RR";
+const CLAN = "#0QC8RCGY";
+const LEADER = "#0LCLRCPQ";
+const MEMBER = "#0J8CVLL8";
+const OPP = "#0Q0L80CC";
 // A friend the leader follows, with a name a person typed to break mail.
-const FRIEND = "#Q2L8P0YV";
+const FRIEND = "#00LR2Y2Q";
 const FRIEND_NAME = `<img src=x onerror=alert(1)>Stoat`;
 const WORDS = `Three crowns <b>at last</b> & "finally"`;
 const FROM = new Date("2026-09-14T10:00:00Z");
@@ -338,8 +338,8 @@ async function reader(label, claims) {
 }
 
 test("a followed player who only posted is told: a highlight of an older battle, with no battles in the window", async () => {
-  const QUIET = "#2Y8Q0LPV";
-  const POSTER = "#9PQJ2CUV";
+  const QUIET = "#0P0LQ0C9";
+  const POSTER = "#08LV2GGR";
   const id = await reader("post-only", [
     [QUIET, "primary"],
     [POSTER, "friend"],
@@ -383,8 +383,8 @@ test("a followed player who only posted is told: a highlight of an older battle,
 });
 
 test("an alt that played makes the reader's own stretch when the primary was quiet", async () => {
-  const MAIN = "#LQ0G8YRV";
-  const ALT = "#UV2C9JPQ";
+  const MAIN = "#0QQQ22CJ";
+  const ALT = "#00U8GYLQ";
   const id = await reader("alt-only", [
     [MAIN, "primary"],
     [ALT, "alt"],
@@ -416,11 +416,11 @@ test("an alt that played makes the reader's own stretch when the primary was qui
 
 // The merge (2026-11-12): a clan the reader tracks and members they
 // follow. Invented players and clan, as every fixture here.
-const C2 = "#P0LYJC8Q";
-const MATE = "#Y2PQ8LJV";
-const GONE = "#C9QJ0YL2";
-const NEWBIE = "#J8YV2Q0C";
-const SELF = "#R2YQ9PLU";
+const C2 = "#09UCRVCV";
+const MATE = "#08CPPJ8Y";
+const GONE = "#0RJPVCP0";
+const NEWBIE = "#0RPQCQ20";
+const SELF = "#098PRJCP";
 
 async function played(id, tag, at) {
   await db.query(
@@ -473,7 +473,7 @@ test("setup: a clan with a join and a departure, two clanmates followed", async 
     [MATE, "friend"],
     [GONE, "friend"],
   ]);
-  clanOnlyReader = await reader("clan-only", [["#V2LQ8RJY", "primary"]]);
+  clanOnlyReader = await reader("clan-only", [["#0R2YLRRJ", "primary"]]);
   for (const id of [mergeReader, clanOnlyReader])
     await db.query(
       `insert into account_clan (account_id, clan_tag, notify) values ($1, $2, true)`,
@@ -548,8 +548,8 @@ test("a clan's news alone sends a weekly digest, never one for a reader who had 
 });
 
 test("an alt is a name and a count for a reader who had Arena week off", async () => {
-  const MAIN = "#G0Q2YPLV";
-  const ALT = "#Q8LJ2YCV";
+  const MAIN = "#0RJ2LUCQ";
+  const ALT = "#0VC0RU8P";
   const id = await reader("arena-off", [
     [MAIN, "primary"],
     [ALT, "alt"],

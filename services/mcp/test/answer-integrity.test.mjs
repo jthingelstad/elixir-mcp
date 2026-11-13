@@ -7,7 +7,7 @@ import { handleMcpMessage } from "../src/protocol.mjs";
 let scratch;
 let account;
 const registry = makeRegistry();
-const TAG = "#P0Y";
+const TAG = "#00J";
 const call = (name, args = {}) =>
   registry.invoke(name, { db: scratch.db, account }, args);
 
@@ -104,7 +104,7 @@ test("fresh profile cannot freshen battle answers; unknown inputs stay unknown",
 });
 
 test("coverage uses matching observation intervals and updates when late battles arrive", async () => {
-  const tag = "#P0G";
+  const tag = "#0GG";
   await scratch.db.query("insert into player (player_tag) values ($1)", [tag]);
   // Two profile observations bracket the interval; the roster-only row
   // between them (no battle_count, no profile stamp) is not a bracket
@@ -261,7 +261,7 @@ test("a one-size tool's oversized page never advises compact (feedback #151)", a
 });
 
 test("unknown snapshot times and incompatible lifetime counters do not assert coverage", async () => {
-  const tag = "#P0R";
+  const tag = "#0G2";
   await scratch.db.query("insert into player (player_tag) values ($1)", [tag]);
   await scratch.db.query(
     `insert into player_snapshot_daily

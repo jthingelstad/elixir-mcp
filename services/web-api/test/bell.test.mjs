@@ -31,7 +31,7 @@ const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 // The fixture's own player (fixtures/player_battlelog), and an invented one
 // the fan verified.
 const PLAYER = "#0QRVVG22J";
-const FAN_PLAYER = "#2PP0V9PP";
+const FAN_PLAYER = "#0VQRR8U0";
 const FAN_NAME = "Invented Fan";
 const OWNER = "bell-owner@example.com";
 const FRIEND = "bell-friend@example.com";
@@ -368,7 +368,7 @@ test("your account's lines leave Home's feed for the bell, a burst folded into o
   cookies.busy = await signIn(BUSY);
   const tags = Array.from(
     { length: 24 },
-    (_, i) => `#2PP0V${"0289PYLQGRJCUV"[i % 14]}${"PYLQ"[Math.floor(i / 14)]}`,
+    (_, i) => `#0C0Q2${"0289PYLQGRJCUV"[i % 14]}${"PYLQ"[Math.floor(i / 14)]}`,
   );
   assert.equal(new Set(tags).size, 24);
   let n = 0;
@@ -507,13 +507,13 @@ test("the bell reads its stored week (bell_week, #649): built once, served, rebu
   assert.deepEqual((await row()).built_at, first.built_at);
   // Another verified player of your own: the week is built again.
   await db.query(
-    `insert into player (player_tag, name) values ('#8RQ2PQ0LU', 'Invented Alt')
+    `insert into player (player_tag, name) values ('#082V28G9U', 'Invented Alt')
      on conflict do nothing`,
   );
   await db.query(
     `insert into claim (account_id, player_tag, is_primary, relationship,
                         notify, status, verified_at)
-     values ($1, '#8RQ2PQ0LU', false, 'alt', true, 'verified', now())`,
+     values ($1, '#082V28G9U', false, 'alt', true, 'verified', now())`,
     [ids.owner],
   );
   const rebuilt = await call("GET", "/api/me/bell", { who: "owner" });
@@ -539,7 +539,7 @@ test("the bell reads its stored week (bell_week, #649): built once, served, rebu
   );
   assert.ok(Date.now() - (await row()).built_at.getTime() < 60_000);
   await db.query(
-    `delete from claim where account_id = $1 and player_tag = '#8RQ2PQ0LU'`,
+    `delete from claim where account_id = $1 and player_tag = '#082V28G9U'`,
     [ids.owner],
   );
 });

@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 const member = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Example Clan",
   role: "member",
   verified: true,
@@ -50,7 +50,7 @@ describe("Feed", () => {
       ok: true,
       status: 200,
       data: {
-        clan_tag: "#2PQRJ8LV",
+        clan_tag: "#0QC8RCGY",
         window_days: 7,
         more: 0,
         items: [
@@ -90,7 +90,7 @@ describe("Feed", () => {
     vi.spyOn(manageApi, "feed").mockResolvedValue({
       ok: true,
       status: 200,
-      data: { clan_tag: "#2PQRJ8LV", window_days: 7, more: 0, items: [] },
+      data: { clan_tag: "#0QC8RCGY", window_days: 7, more: 0, items: [] },
     });
     renderWithProviders(<Feed clan={member} navigate={vi.fn()} />);
     expect(
@@ -114,7 +114,7 @@ describe("Feed", () => {
     vi.spyOn(manageApi, "feed").mockResolvedValue({
       ok: true,
       status: 200,
-      data: { clan_tag: "#2PQRJ8LV", window_days: 7, more: 0, items },
+      data: { clan_tag: "#0QC8RCGY", window_days: 7, more: 0, items },
     });
     renderWithProviders(<Feed clan={member} navigate={vi.fn()} />);
     expect(await screen.findByText("Member 30 joined the clan")).toBeTruthy();
@@ -137,7 +137,7 @@ describe("Feed", () => {
     const feed = vi.spyOn(manageApi, "feed").mockResolvedValue({
       ok: true,
       status: 200,
-      data: { clan_tag: "#2PQRJ8LV", window_days: 7, more: 0, items: [] },
+      data: { clan_tag: "#0QC8RCGY", window_days: 7, more: 0, items: [] },
     });
     renderWithProviders(<Feed clan={member} navigate={vi.fn()} />);
     expect(await screen.findByText(/Reading your numbers/)).toBeTruthy();
@@ -195,7 +195,7 @@ describe("Policy", () => {
     const navigate = vi.fn();
     renderWithProviders(<ClanPolicy clan={leader} navigate={navigate} />);
     const link = await screen.findByRole("link", { name: "Change it in Run" });
-    expect(link.getAttribute("href")).toBe("/clan/2PQRJ8LV/run/about");
+    expect(link.getAttribute("href")).toBe("/clan/0QC8RCGY/run/about");
   });
 
   test("no policy: a member is told nothing runs until one is saved", async () => {
@@ -247,12 +247,12 @@ describe("a name in Clan", () => {
     client.setQueryData(keys.me, {
       ok: true,
       status: 200,
-      data: { identities: [{ player_tag: "#20QQL8CCRU", name: "Ada" }] },
+      data: { identities: [{ player_tag: "#098R2R0PUL", name: "Ada" }] },
     });
     render(
       <QueryClientProvider client={client}>
         <MemberLink
-          clanTag="#2PQRJ8LV"
+          clanTag="#0QC8RCGY"
           playerTag={playerTag}
           navigate={vi.fn()}
         >
@@ -264,10 +264,10 @@ describe("a name in Clan", () => {
   }
 
   test("a clanmate's name opens their player page", () => {
-    expect(nameLink("#8QCVLQ2")).toBe("/home/player/8QCVLQ2");
+    expect(nameLink("#0QU8VGV")).toBe("/home/player/0QU8VGV");
   });
 
   test("your own name opens your page in this clan, which the player page cannot reach", () => {
-    expect(nameLink("#20QQL8CCRU")).toBe("/clan/2PQRJ8LV/members/20qql8ccru");
+    expect(nameLink("#098R2R0PUL")).toBe("/clan/0QC8RCGY/members/098r2r0pul");
   });
 });

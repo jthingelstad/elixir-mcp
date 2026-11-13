@@ -21,9 +21,9 @@ const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
 // The day under test is 2026-09-18 (UTC); NOW is the morning after.
 const NOW = new Date("2026-09-19T05:20:00Z");
-const GAPPED = "#P0P0P0P0"; // one gap; the counter moved 40, 12 captured
-const CLEAN = "#P0P0P0P2"; // no gap; the counter moved 20, 19 captured
-const OPP = "#P0P0P0P8";
+const GAPPED = "#08GVQ2LP"; // one gap; the counter moved 40, 12 captured
+const CLEAN = "#028QRRYJ"; // no gap; the counter moved 20, 19 captured
+const OPP = "#00QYQPRC";
 
 let db, gatewayId;
 

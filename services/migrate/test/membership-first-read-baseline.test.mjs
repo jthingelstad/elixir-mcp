@@ -68,11 +68,11 @@ test("0208 marks exactly the census's first-read rows baseline, and nothing else
     // Every row here predates 0207's applied_at (now), as production's do,
     // except the one a post-0207 read opened.
     await db.query(
-      `insert into clan (clan_tag) values ('#2GG'), ('#2QQ'), ('#2LL')`,
+      `insert into clan (clan_tag) values ('#0YU'), ('#0J8'), ('#0JU')`,
     );
     await db.query(
       `insert into player (player_tag)
-       select unnest(array['#PY0', '#PY2', '#PY8', '#PY9', '#PYP', '#PYY', '#PYL'])`,
+       select unnest(array['#08Q', '#0PR', '#09C', '#0PC', '#0J0', '#0QC', '#0C9'])`,
     );
     // One instant for every row: a read opens all its rows at one time.
     const base = new Date(Date.now() + 1000).toISOString();
@@ -87,18 +87,18 @@ test("0208 marks exactly the census's first-read rows baseline, and nothing else
          values ($1, $2, $6::timestamptz - $3::interval, $6::timestamptz - $4::interval, $5)`,
         [clan, player, joined, left, baseline, base],
       );
-    // #2GG: a first read of three (one has since left), then a join seen
+    // #0YU: a first read of three (one has since left), then a join seen
     // between two reads.
-    await row("#2GG", "#PY0", "30 days");
-    await row("#2GG", "#PY2", "30 days");
-    await row("#2GG", "#PY8", "30 days", { left: "10 days" });
-    await row("#2GG", "#PY9", "20 days");
-    // #2QQ: a first read of one, then a rejoin by the same player.
-    await row("#2QQ", "#PYP", "40 days", { left: "35 days" });
-    await row("#2QQ", "#PYP", "5 days");
-    // #2LL: a first read after 0207, already baseline, and a later join.
-    await row("#2LL", "#PYY", "-1 minute", { baseline: true });
-    await row("#2LL", "#PYL", "-2 minutes");
+    await row("#0YU", "#08Q", "30 days");
+    await row("#0YU", "#0PR", "30 days");
+    await row("#0YU", "#09C", "30 days", { left: "10 days" });
+    await row("#0YU", "#0PC", "20 days");
+    // #0J8: a first read of one, then a rejoin by the same player.
+    await row("#0J8", "#0J0", "40 days", { left: "35 days" });
+    await row("#0J8", "#0J0", "5 days");
+    // #0JU: a first read after 0207, already baseline, and a later join.
+    await row("#0JU", "#0QC", "-1 minute", { baseline: true });
+    await row("#0JU", "#0C9", "-2 minutes");
 
     const before = await membershipBaselineCensus(url);
     assert.equal(before.first_read_rows.rows, 4);
@@ -117,25 +117,26 @@ test("0208 marks exactly the census's first-read rows baseline, and nothing else
       `select clan_tag, player_tag, baseline from clan_membership
         order by clan_tag, joined_observed_at, player_tag`,
     );
+    // Which rows are baseline is the point, not the tags' sort order.
     assert.deepEqual(
-      rows.map((r) => `${r.clan_tag} ${r.player_tag} ${r.baseline}`),
+      rows.map((r) => `${r.clan_tag} ${r.player_tag} ${r.baseline}`).sort(),
       [
-        "#2GG #PY0 true",
-        "#2GG #PY2 true",
-        "#2GG #PY8 true",
-        "#2GG #PY9 false",
-        "#2LL #PYY true",
-        "#2LL #PYL false",
-        "#2QQ #PYP true",
-        "#2QQ #PYP false",
-      ],
+        "#0YU #08Q true",
+        "#0YU #0PR true",
+        "#0YU #09C true",
+        "#0YU #0PC false",
+        "#0JU #0QC true",
+        "#0JU #0C9 false",
+        "#0J8 #0J0 true",
+        "#0J8 #0J0 false",
+      ].sort(),
     );
 
     const after = await membershipBaselineCensus(url);
     assert.equal(after.first_read_rows.rows, 0);
     assert.equal(after.marked_first_read_rows.rows, 4);
     assert.equal(after.marked_first_read_rows.clans, 2);
-    const one = await membershipBaselineCensus(url, { clan_tag: "#2QQ" });
+    const one = await membershipBaselineCensus(url, { clan_tag: "#0J8" });
     assert.equal(one.marked_first_read_rows.rows, 1);
 
     // Idempotent: a second run marks nothing.

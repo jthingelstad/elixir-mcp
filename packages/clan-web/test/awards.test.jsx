@@ -23,9 +23,9 @@ function Walk({ clan, who }) {
   );
 }
 
-const poap = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "leader" };
+const poap = { clan_tag: "#0QC8RCGY", name: "Example Clan", role: "leader" };
 const view = () => ({
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   can_edit: true,
   can_grant: ["clan_honour"],
   evaluated_at: "2026-09-12T20:00:00Z",
@@ -33,8 +33,8 @@ const view = () => ({
   freshness_seconds: 120,
   config_version: 0,
   members: [
-    { player_tag: "#20QQL8CCRU", name: "Ada", role: "leader" },
-    { player_tag: "#UQ8LP2R9C", name: "Ben", role: "coLeader" },
+    { player_tag: "#098R2R0PUL", name: "Ada", role: "leader" },
+    { player_tag: "#02QQPCYQQ", name: "Ben", role: "coLeader" },
   ],
   kinds: {
     season_points_podium: {
@@ -72,7 +72,7 @@ const view = () => ({
       kind: "season_points_podium",
       name: "Season Champion",
       rank: 1,
-      player_tag: "#20QQL8CCRU",
+      player_tag: "#098R2R0PUL",
       player_name: "Ada",
       metric_value: 16000,
       metric_unit: "points",
@@ -96,7 +96,7 @@ const view = () => ({
           rule: "r",
           rows: [
             {
-              player_tag: "#UQ8LP2R9C",
+              player_tag: "#02QQPCYQQ",
               name: "Ben",
               points: 1600,
               donations: 100,
@@ -133,7 +133,7 @@ const view = () => ({
           rule: "r",
           rows: [
             {
-              player_tag: "#20QQL8CCRU",
+              player_tag: "#098R2R0PUL",
               name: "Ada",
               points: 16000,
               donations: 200,
@@ -280,7 +280,7 @@ describe("awards", () => {
       screen.getByRole("button", { name: "Grant Clan Honour for season 135" }),
     );
     fireEvent.change(screen.getByLabelText("Member"), {
-      target: { value: "#UQ8LP2R9C" },
+      target: { value: "#02QQPCYQQ" },
     });
     fireEvent.change(screen.getByPlaceholderText(/Why/), {
       target: { value: "rotation" },
@@ -289,7 +289,7 @@ describe("awards", () => {
     await waitFor(() => expect(grant).toHaveBeenCalled());
     expect(grant.mock.calls[0][1]).toEqual({
       award_id: "clan_honour",
-      player_tag: "#UQ8LP2R9C",
+      player_tag: "#02QQPCYQQ",
       player_name: "Ben",
       season_id: 135,
       note: "rotation",
@@ -314,7 +314,7 @@ describe("awards", () => {
       screen.getByRole("button", { name: "Grant Clan Honour for season 136" }),
     );
     fireEvent.change(screen.getByLabelText("Member"), {
-      target: { value: "#UQ8LP2R9C" },
+      target: { value: "#02QQPCYQQ" },
     });
     fireEvent.change(screen.getByPlaceholderText(/Why/), {
       target: { value: "carried week one" },
@@ -356,7 +356,7 @@ describe("awards", () => {
     const closed = data.seasons.find((s) => s.closed);
     closed.awards[0].rows = [
       {
-        player_tag: "#UQ8LP2R9C",
+        player_tag: "#02QQPCYQQ",
         name: "Ben",
         points: 99999,
         rank: 1,
@@ -387,7 +387,7 @@ describe("awards", () => {
       screen.getByRole("button", { name: "Grant Clan Honour for season 135" }),
     );
     fireEvent.change(screen.getByLabelText("Member"), {
-      target: { value: "#UQ8LP2R9C" },
+      target: { value: "#02QQPCYQQ" },
     });
     expect(
       screen.getByRole("button", { name: "Grant Clan Honour" }).disabled,
@@ -414,7 +414,7 @@ describe("awards", () => {
       screen.getByRole("button", { name: "Grant Clan Honour for season 135" }),
     );
     fireEvent.change(screen.getByLabelText("Member"), {
-      target: { value: "#UQ8LP2R9C" },
+      target: { value: "#02QQPCYQQ" },
     });
     fireEvent.change(screen.getByLabelText("Why this member"), {
       target: { value: "rotation" },
@@ -424,7 +424,7 @@ describe("awards", () => {
       await screen.findByText(/Read the awards again before retrying/),
     ).toBeTruthy();
     expect(screen.getByLabelText("Why this member").value).toBe("rotation");
-    expect(screen.getByLabelText("Member").value).toBe("#UQ8LP2R9C");
+    expect(screen.getByLabelText("Member").value).toBe("#02QQPCYQQ");
     expect(grant).toHaveBeenCalledTimes(1);
   });
 
@@ -453,7 +453,7 @@ describe("awards", () => {
     const data = view();
     data.seasons.find((s) => s.closed).awards[1].rows = [
       {
-        player_tag: "#UQ8LP2R9C",
+        player_tag: "#02QQPCYQQ",
         name: "Ben",
         note: "human choice",
         granted_at: "2026-09-08T00:00:00Z",
@@ -549,7 +549,7 @@ describe("awards for everyone", () => {
     renderWithProviders(
       <Walk
         clan={{ ...poap, role: "member" }}
-        who={{ player_tag: "#20QQL8CCRU", role: "member" }}
+        who={{ player_tag: "#098R2R0PUL", role: "member" }}
       />,
     );
     expect(await screen.findByText("Yours")).toBeTruthy();
