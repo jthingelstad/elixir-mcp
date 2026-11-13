@@ -243,7 +243,7 @@ export function FollowedRecord({ me, refresh, navigate, tag }) {
                   <>
                     Your main player
                     <Note>
-                      Who Ladder opens on, and the name in your top bar.
+                      Who Stats opens on, and the name in your top bar.
                     </Note>
                   </>
                 ) : (

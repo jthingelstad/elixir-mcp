@@ -3,6 +3,7 @@ import {
   ErrorBoundary,
   Link,
   NavigateProvider,
+  PageHead,
   Rail as RailList,
   ZoneProvider,
 } from "@elixir-mcp/ui";
@@ -479,19 +480,23 @@ export function SignInWall({ navigate }) {
  *  it does not say whether the page holds anything. The gate is the server's. */
 export function StaffOnly() {
   return (
-    <div className="panel mx-auto mt-12 max-w-[420px]">
-      <div className="panel__body text-center">
-        <h1 className="page__title mb-2">
-          This page is for Elixir&rsquo;s staff
-        </h1>
-        <p className="text-[13px] text-ink-faint">
-          You&rsquo;re signed in, and your account is fine. Your own pages are
-          on Home.
-        </p>
-        <Link to={HOME} className="btn btn--primary mt-2">
-          Go to Home
-        </Link>
-      </div>
+    <StatePage
+      title="This page is for Elixir’s staff"
+      sub="You’re signed in, and your account is fine. Your own pages are on Home."
+    />
+  );
+}
+
+/** A signed-in page with nothing to show (an address the app never had, a
+ *  staff page): Home's page head and one way back, flat like Home rather
+ *  than a centred card (2026-11-13). */
+function StatePage({ title, sub }) {
+  return (
+    <div className="kit-home">
+      <PageHead title={title} sub={sub} />
+      <Link to={HOME} className="btn btn--primary kit-home__go">
+        Go to Home
+      </Link>
     </div>
   );
 }
@@ -508,17 +513,10 @@ function MissingPage() {
     <ZoneProvider zone={me?.timezone}>
       <NavigateProvider navigate={navigate}>
         <AppShell me={unreachable ? null : me} unreachable={unreachable}>
-          <div className="panel mx-auto mt-12 max-w-[420px]">
-            <div className="panel__body text-center">
-              <h1 className="page__title mb-2">Nothing at this address</h1>
-              <p className="text-[13px] text-ink-faint">
-                It may have moved, or it was never a page.
-              </p>
-              <Link to={HOME} className="btn btn--primary mt-2">
-                Go to Home
-              </Link>
-            </div>
-          </div>
+          <StatePage
+            title="Nothing at this address"
+            sub="It may have moved, or it was never a page."
+          />
         </AppShell>
       </NavigateProvider>
     </ZoneProvider>
