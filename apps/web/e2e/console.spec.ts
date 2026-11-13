@@ -317,7 +317,6 @@ test.describe("signed in", () => {
       "aria-current",
       "page",
     );
-    await expect(page.locator(".rail button.rail__switch-head")).toHaveCount(0);
     await accessible(page, "settings rail");
 
     await rail.getByRole("link", { name: /Connections/ }).click();

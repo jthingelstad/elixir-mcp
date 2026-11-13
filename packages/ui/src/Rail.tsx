@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type MouseEvent,
-  type ReactNode,
-} from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import { Icon } from "./Icon.tsx";
 import { isPlainClick } from "./Link.tsx";
 
@@ -81,9 +75,7 @@ export interface RailFoot {
  * and sub-pages, never the name of a player or a clan, so it cannot
  * grow when the data does. A count of the reader's own things is the
  * one exception in the list, because it is a number and not a list. The
- * head is the other: it names what the rail belongs to (the account
- * whose console it is, Ladder's player, Clan's clan), and a switcher
- * there lists the reader's own, a click away and never in the list.
+ * title is the other: it names what the rail belongs to.
  *
  * The current item is a gold left rule, weight, brighter ink and a quiet
  * fill (canvas 2026-09-29). Two items the reader can see at once never
@@ -109,12 +101,6 @@ export interface RailFoot {
  * narrow row shows beside the current section, defaulting to the
  * current sub-page's label. `back` is a link above the head (a settings
  * rail's way back to its console); `foot` is the line at the bottom.
- *
- * `head` replaces the head outright, for a section whose rail belongs to
- * something other than an account: Ladder's is the player whose season
- * it reads, Clan's the clan you are in (a RailSwitcher, Jamie
- * 2026-10-20). It stays in the narrow layout's closed row, so which
- * player or clan a phone is reading is never hidden.
  */
 export function Rail({
   items,
@@ -126,7 +112,6 @@ export function Rail({
   aside,
   subtitle,
   label = "Sections",
-  head,
   back,
   foot,
 }: {
@@ -139,8 +124,6 @@ export function Rail({
   aside?: ReactNode;
   subtitle?: ReactNode;
   label?: string;
-  /** A head of the section's own, in place of the title. */
-  head?: ReactNode;
   back?: { label: string; to: string };
   foot?: RailFoot;
 }) {
@@ -213,11 +196,7 @@ export function Rail({
 
   const subLabel = (active?.subs ?? []).find((s) => s.slug === sub)?.label;
   const shown = !narrow || open;
-  const top = head ? (
-    narrow ? null : (
-      head
-    )
-  ) : narrow ? null : (
+  const top = narrow ? null : (
     <div className="mb-[6px] flex h-10 items-center gap-[9px] px-[11px]">
       <span className="truncate text-[13.5px] font-semibold" title={title}>
         {title}
@@ -276,7 +255,6 @@ export function Rail({
 
   return (
     <aside className="rail">
-      {narrow && head}
       {narrow && (
         <button
           type="button"
@@ -309,178 +287,5 @@ export function Rail({
           list flows above the page as it always has. */}
       {narrow ? body : <div className="rail__pin">{body}</div>}
     </aside>
-  );
-}
-
-/** One place a rail switcher goes: a console, a clan. `to` is its
- *  address, and choosing it goes there. */
-export interface RailChoice {
-  key: string;
-  to: string;
-  /** What the entry shows: its name and second line. */
-  body: ReactNode;
-  /** At the entry's end, before the current one's check (a role). */
-  end?: ReactNode;
-  /** A heading in the open list above this entry ("You", "Your
-   *  agents"); repeated headings are drawn once. */
-  group?: string | undefined;
-}
-
-/**
- * The rail head as a switcher: what the rail belongs to now (`face`),
- * and a disclosure listing the choices under their headings, the
- * current one checked, with `manage` as the last line. A list of links,
- * not an ARIA menu: choosing one is navigation to its address. Escape
- * and a click outside close it, the way the top bar's menus close, and
- * Escape hands focus back to the head. With one choice there is nothing
- * to open: the head is the same tile without the chevrons.
- *
- * `choose` takes a plain click on a choice in place of `navigate`, for a
- * section that does something first (Clan remembers the clan, then goes
- * to its landing); a modified or middle click is still the browser's,
- * to the choice's own address. `head` marks it as the rail's `head`,
- * which the narrow layout draws beside the row's toggle. `busy` while a
- * choice is still being made: the list closes and the head will not
- * open it again until the choice lands, so a second choice never races
- * the first.
- */
-export function RailSwitcher({
-  id,
-  title,
-  face,
-  choices,
-  current,
-  manage,
-  navigate,
-  choose,
-  scoped = false,
-  head = false,
-  busy = false,
-}: {
-  /** The open list's id, which the head's button controls. */
-  id: string;
-  /** The head button's title ("Example Clan: switch clan"). */
-  title: string;
-  face: ReactNode;
-  choices: RailChoice[];
-  /** The key of the current choice. */
-  current?: string | undefined;
-  /** The list's last line: where the choices are managed or listed. */
-  manage?: { label: string; to: string } | undefined;
-  navigate: (to: string) => void;
-  choose?: (choice: RailChoice) => void;
-  scoped?: boolean;
-  head?: boolean;
-  /** A choice is being made: the face says which; nothing opens. */
-  busy?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  // Closed while busy, and still closed once the choice lands.
-  const shown = open && !busy;
-  useEffect(() => {
-    if (busy) setOpen(false);
-  }, [busy]);
-  const box = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
-  const single = choices.length <= 1;
-
-  useEffect(() => {
-    if (!shown) return undefined;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setOpen(false);
-      button.current?.focus();
-    };
-    const onDown = (e: Event) => {
-      if (box.current && !box.current.contains(e.target as Node))
-        setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onDown);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onDown);
-    };
-  }, [shown]);
-
-  // A modified or middle click is the browser's (a new tab, a copied
-  // link); only a plain one routes in-app.
-  const go =
-    (to: string, then?: () => void) => (e: MouseEvent<HTMLElement>) => {
-      if (!isPlainClick(e)) return;
-      e.preventDefault();
-      setOpen(false);
-      if (then) then();
-      else navigate(to);
-    };
-
-  return (
-    <div
-      className={"rail__switch" + (head ? " rail__switch--head" : "")}
-      ref={box}
-      data-scoped={scoped}
-      aria-busy={busy || undefined}
-    >
-      {single ? (
-        <div className="rail__switch-head">{face}</div>
-      ) : (
-        <button
-          ref={button}
-          type="button"
-          className="rail__switch-head"
-          aria-expanded={shown}
-          aria-controls={id}
-          aria-disabled={busy || undefined}
-          title={title}
-          onClick={() => setOpen(busy ? false : !open)}
-        >
-          {face}
-          <span className="ml-auto flex shrink-0 text-ink-faint">
-            <Icon name="chevrons-up-down" size={16} />
-          </span>
-        </button>
-      )}
-      {shown && (
-        <div id={id} className="rail__switch-list">
-          {choices.map((c, i) => {
-            const on = c.key === current;
-            return (
-              <div key={c.key}>
-                {c.group && c.group !== choices[i - 1]?.group && (
-                  <div className="rail__switch-group">{c.group}</div>
-                )}
-                <a
-                  href={c.to}
-                  className="rail__switch-item"
-                  aria-current={on ? "true" : undefined}
-                  onClick={go(c.to, choose && (() => choose(c)))}
-                >
-                  {c.body}
-                  {(c.end || on) && (
-                    <span className="ml-auto flex shrink-0 items-center gap-2">
-                      {c.end}
-                      {on && (
-                        <span className="flex text-ok">
-                          <Icon name="check" size={16} />
-                        </span>
-                      )}
-                    </span>
-                  )}
-                </a>
-              </div>
-            );
-          })}
-          {manage && (
-            <a
-              href={manage.to}
-              className="rail__switch-item rail__switch-manage"
-              onClick={go(manage.to)}
-            >
-              {manage.label}
-            </a>
-          )}
-        </div>
-      )}
-    </div>
   );
 }
