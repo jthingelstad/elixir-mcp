@@ -290,9 +290,20 @@ test(
     window.history.pushState({}, "", "/home/player/QQ8822");
     render(<App />);
     await screen.findByText("Copper Fern played two battles");
-    expect(
-      screen.getByText(/2 battles · 1 won · 1 lost · \+4 trophies/),
-    ).toBeTruthy();
+    // The sitting's figures, as the canvas's .sfacts: each label beside its
+    // number.
+    const figures = Object.fromEntries(
+      [...document.querySelectorAll(".kit-sfacts dt")].map((dt) => [
+        dt.textContent,
+        dt.nextElementSibling?.textContent,
+      ]),
+    );
+    expect(figures).toEqual({
+      Battles: "2",
+      Won: "1",
+      Lost: "1",
+      Trophies: "+4",
+    });
     expect(
       screen.getByRole("img", { name: /won|lost|win|loss/i }),
     ).toBeTruthy();

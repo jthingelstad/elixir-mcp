@@ -70,15 +70,19 @@ Home's feed: they are about your account, not anyone's play, so [the
 bell](/docs/your-account#the-bell) tells them instead, a burst of them as
 one line. Settings' Timeline page and `elixir_timeline` still carry them.
 
-A sitting of battles carries a small bar chart, one bar per battle in the
-order played: up for a win and down for a loss, as tall as the crown margin
+A sitting of battles shows its figures: battles, won, lost and, on Trophy
+Road, the trophies it moved, with the deck it was played with most and in
+how many of its battles. It carries a small bar chart, one bar per battle in
+the order played: up for a win and down for a loss, as tall as the crown margin
 (one to three). A draw is a flat tick, and a battle whose crowns the record
 lacks is a short, faint bar. The same facts are written out for a screen
 reader. **View games** opens the sitting's battles in place.
 
-A moment links its battle when the record has one, a highlight shows its
-player's own words, and a clan's own line has a gold edge. Every player's
-name opens their [player page](/docs/player-page).
+A moment links its battle when the record has one, with its result, score
+and opponent; a highlight shows its player's own words. A clan's own line,
+and a member joining, leaving or changing role, has a gold edge with the
+clan's name above it. Every player's name opens their
+[player page](/docs/player-page).
 
 ### Welcome to Elixir
 

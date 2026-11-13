@@ -231,6 +231,7 @@ function ClanPanel({ clan, player }) {
     <Panel
       title={clan.name ?? "Your clan"}
       action={<Link to={base}>Open Clan</Link>}
+      className="kit-panel--clan"
     >
       <Rows>
         {now ? <Row title="This week’s race" detail={now} /> : null}

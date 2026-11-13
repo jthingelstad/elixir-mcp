@@ -1,4 +1,5 @@
 import {
+  Avatar,
   Empty,
   Link,
   Panel,
@@ -34,6 +35,7 @@ function Person({ p, detail, used, limit }) {
   return (
     <Row
       className="kit-people__row"
+      lead={<Avatar name={p.name ?? tag} tag={tag} small />}
       title={
         <Link to={playerHref(tag)}>
           <TagText>{p.name ?? tag}</TagText>
@@ -108,14 +110,30 @@ export function PeopleToFollow() {
               detail={
                 <>
                   <span className="kit-people__why">{whyLines(p.why)}</span>
-                  <span className="kit-people__cost">{costMark(p)}</span>
+                  <span
+                    className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
+                  >
+                    {costMark(p)}
+                  </span>
                 </>
               }
             />
           ))}
         </Rows>
       )}
-      {slots ? <p className="kit-tiny kit-people__slots">{slots}</p> : null}
+      {slots ? (
+        <div className="kit-people__slots">
+          <p className="kit-tiny">{slots}</p>
+          {data.limit ? (
+            <progress
+              className="kit-meter"
+              value={Math.min(data.used ?? 0, data.limit)}
+              max={data.limit}
+              aria-hidden="true"
+            />
+          ) : null}
+        </div>
+      ) : null}
     </Panel>
   );
 }

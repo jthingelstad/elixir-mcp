@@ -59,11 +59,11 @@ for (const [label, width] of [
         feed.getByText("Ada's Clan finished 2nd in the river race."),
       ).toBeVisible();
       await expect(feed.getByText("Reached Path of Legends.")).toBeVisible();
-      // A sitting's sparkline, and the same facts in words.
+      // A sitting's sparkline, and its figures beside their labels.
       await expect(feed.getByRole("img", { name: SPARK_WORDS })).toBeVisible();
-      await expect(
-        feed.getByText("5 battles · 3 won · 2 lost · +28 trophies"),
-      ).toBeVisible();
+      await expect(feed.locator(".kit-sfacts")).toHaveText(
+        "Battles5Won3Lost2Trophies+28",
+      );
       // A clan's line wears the gold edge; a moment links its battle.
       await expect(page.locator(".kit-feed__item--clan")).toHaveCount(1);
       await expect(
