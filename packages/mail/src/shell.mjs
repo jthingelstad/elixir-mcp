@@ -1,7 +1,7 @@
-/** The one mail shell, for every kind Elixir sends: the weekly reports,
- *  the milestone and actions mail, and the transactional sign-in code,
+/** The one mail shell, for every kind Elixir sends: the digest, the
+ *  collector, actions and feedback mail, and the transactional sign-in code,
  *  welcome and operator notices the relay renders (2026-10-01, the
- *  redesign boards). A login and a clan report are recognisably the same
+ *  redesign boards). A login and a digest are recognisably the same
  *  sender: the logo and the wordmark "Elixir", a quiet product label, one content panel, and one footer that says why
  *  the mail came, how to stop it (bulk kinds only), the send's own id
  *  and the Fan Content disclaimer.
@@ -49,18 +49,6 @@ export const M = {
   youChip: "#173a2a",
   youEdge: "#2f7a52",
   youInk: "#bbf7d0",
-};
-
-/** Mode colours, as the console's mode dots draw them. Modes are never
- *  pooled: each record in a mail sits beside its own mode's colour. */
-export const MODE_COLOR = {
-  ladder: "#a78bfa",
-  ranked: "#7fb6f8",
-  war: "#f472b6",
-  casual: "#94a3b8",
-  event: "#2dd4bf",
-  challenge: "#2dd4bf",
-  tournament: "#2dd4bf",
 };
 
 /** Jamie's logo, rendered at 48 and 96 px (apps/site/src/assets/mail),
@@ -177,12 +165,6 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
   const t = sendTime(kind, timezone, now);
   const on = t ? `on ${t.weekday}s at ${t.time} ${t.zone}` : "";
   switch (kind) {
-    // Retired 2026-11-12: a stored issue still renders on its record,
-    // and says where its news went instead of promising a next one.
-    case "clan_report":
-    case "arena_week":
-    case "milestone":
-      return "This email has ended. Its news is in your digest.";
     case "collector_activity":
       return `You get this ${on}, while you run a collector.`;
     case "tracking_report":

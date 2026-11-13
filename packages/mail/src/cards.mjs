@@ -11,7 +11,7 @@
  *  client scales it. Mail never hotlinks Supercell's CDN: a mail client
  *  proxies or blocks a third-party image. */
 import { cardArtPath } from "@elixir-mcp/contracts";
-import { SITE, FONT, M, esc } from "./shell.mjs";
+import { SITE, esc } from "./shell.mjs";
 
 const FORMS = new Set(["evolution", "hero"]);
 const formOf = (form) => (FORMS.has(form) ? form : "base");
@@ -69,7 +69,7 @@ export async function resolveCardArt(facts, held) {
 const cardHeight = (w) => Math.round((w * 420) / 285);
 
 /** A card as a player says it: "Evo Royal Hogs", "Hero Mini P.E.K.K.A". */
-export const cardFormLabel = (card) =>
+const cardFormLabel = (card) =>
   `${card.form === "hero" ? "Hero " : card.form === "evolution" ? "Evo " : ""}${card.name}`;
 
 /** One card image. `card` is {id, name, form}, or carries its own
@@ -83,42 +83,4 @@ export const cardFormLabel = (card) =>
 export function cardImg(card, w, { radius = 6 } = {}) {
   const src = card.icon ?? card.art_src ?? cardAsset(card.id, card.form);
   return `<img src="${src}" alt="${esc(cardFormLabel(card))}" width="${w}" height="${cardHeight(w)}" style="display:block;width:100%;max-width:${w}px;height:auto;border:0;outline:none;text-decoration:none;border-radius:${radius}px;" />`;
-}
-
-/** A deck as the game draws it: one strip of eight. Table cells, never
- *  flex or grid; each cell is a fixed share so a phone narrows the
- *  strip instead of wrapping it. The tower troop is text, under it. */
-export function deckStrip(cards, { w = 56, gap = 6 } = {}) {
-  const list = (cards ?? []).filter((c) => c && (c.icon || c.id != null));
-  if (!list.length) return "";
-  const pct = (100 / 8).toFixed(1);
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;max-width:${8 * (w + gap)}px;"><tr>${list
-    .slice(0, 8)
-    .map(
-      (c, i) =>
-        `<td width="${pct}%" valign="top" style="padding:0 ${i < 7 ? gap : 0}px 0 0;">${cardImg(c, w)}</td>`,
-    )
-    .join(
-      "",
-    )}${Array.from({ length: Math.max(0, 8 - list.length) }, () => `<td width="${pct}%"></td>`).join("")}</tr></table>`;
-}
-
-/** Single cards, at most two across so their art stays legible on a phone. */
-export function cardTiles(items, { w = 96, link = null } = {}) {
-  const shown = items.slice(0, 3);
-  const rows = [];
-  for (let start = 0; start < shown.length; start += 2) {
-    const row = shown.slice(start, start + 2);
-    rows.push(
-      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;margin-top:${start ? 16 : 0}px;"><tr>${row
-        .map(({ card, line }) => {
-          const inner = `<table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:${w}px;margin:0 auto;"><tr><td>${cardImg(card, w, { radius: 6 })}</td></tr></table>
-        <div style="font-family:${FONT};font-size:15px;font-weight:700;color:${M.ink};margin-top:8px;">${link ? `<a href="${esc(link(card))}" style="color:${M.ink};text-decoration:none;">${esc(card.name)}</a>` : esc(card.name)}</div>
-        ${line ? `<div style="font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};margin-top:2px;">${esc(line)}</div>` : ""}`;
-          return `<td width="${100 / row.length}%" align="center" valign="top" style="padding:0 8px;">${inner}</td>`;
-        })
-        .join("")}</tr></table>`,
-    );
-  }
-  return rows.join("");
 }

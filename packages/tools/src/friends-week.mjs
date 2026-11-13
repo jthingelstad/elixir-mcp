@@ -1,6 +1,7 @@
 /** The week for everyone a person follows: the builder behind Home's
- *  Friends (Wednesday's friends mail read it too until the digest,
- *  services/jobs/src/email/build-digest.mjs, replaced it on 2026-11-12). Its frame IS elixir_timeline's window,
+ *  Friends. The digest (services/jobs/src/email/build-digest.mjs, Monday
+ *  11:00 UTC) replaced the Wednesday friends mail that read it too on
+ *  2026-11-12. Its frame IS elixir_timeline's window,
  *  built in-process (buildTimeline) so the 48 KB door cap never applies;
  *  each person who played then gets the board's card (EmailFriends): a
  *  record per mode from battles_performance and the deck they played most
@@ -19,15 +20,12 @@ import { buildTimeline, subjectsFor } from "./activity/entries.mjs";
 import { deckIdentities } from "./tools/shared.mjs";
 import { clanSummaryParts, itemText } from "./activity/summary.mjs";
 
-/** The big firsts, the only moments that mail when they happen (Jamie,
- *  2026-10-08: "Agree with recommendation"): a new arena or league, a
- *  new best trophy band, a new Evolution or Hero form, the career
- *  milestones, career wins and Collection Level steps, and a legendary
- *  badge (Jamie, 2026-10-08: "Approved: legendary badges send immediate
- *  milestone mail"). Card unlocks and badge levels (card_unlocked,
- *  badge_earned) never mail on their own: the Tuesday Arena week counts
- *  them (progressOf). Three weeks of a beta inbox held about forty
- *  milestone mails, mostly an alt's card unlocks and badge levels. */
+/** The big firsts the digest tells one by one (Jamie, 2026-10-08,
+ *  chose them for the milestone mail, retired 2026-11-12): a new arena
+ *  or league, a new best trophy band, a new Evolution or Hero form, the
+ *  career milestones, career wins and Collection Level steps, and a
+ *  legendary badge. Card unlocks and badge levels (card_unlocked,
+ *  badge_earned) are only counted (progressOf). */
 export const MILESTONE_MAIL_KINDS = new Set([
   "arena_changed",
   "ranked_promotion",
@@ -63,7 +61,7 @@ export function modeLabel(gameMode = "", type = "") {
 
 /** Tolerant tool call: a reader that refuses (no subject, nothing
  *  recorded) yields null rather than failing the whole mail. */
-export async function tryTool(callTool, ctx, name, args) {
+async function tryTool(callTool, ctx, name, args) {
   try {
     return await callTool(ctx, name, args);
   } catch (err) {
@@ -83,8 +81,8 @@ export async function tryTool(callTool, ctx, name, args) {
  *  read off the timeline's own entry for the player, so the count is the
  *  entry's (every badge level-up, every card unlocked), never a second
  *  derivation. Null when there were none. A legendary badge is not
- *  counted: it is a big first and mails when it happens
- *  (MILESTONE_MAIL_KINDS, Jamie, 2026-10-08), like an arena. */
+ *  counted: it is a big first, told on its own (MILESTONE_MAIL_KINDS),
+ *  like an arena. */
 export function progressOf(entry) {
   const unlocked = entry?.collection?.unlocked;
   const cards = (unlocked?.items?.length ?? 0) + (unlocked?.more ?? 0);

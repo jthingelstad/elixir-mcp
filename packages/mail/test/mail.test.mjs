@@ -28,21 +28,15 @@ const esc = (v) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 const fixtures = path.join(here, "../fixtures");
-// Every fixture, the previewed ones and the variants kept with the tests
-// (an issue stored before a redesign, a second shape of one kind), each
-// named <kind>[-<what>].json.
+// Every kind still sent, one fixture each, named <kind>.json.
 const allFixtures = () =>
-  [fixtures, path.join(here, "fixtures")].flatMap((dir) =>
-    readdirSync(dir)
-      .filter((f) => f.endsWith(".json"))
-      .map((f) => ({
-        name: f.replace(".json", ""),
-        kind: f.replace(".json", "").split("-")[0],
-        facts: JSON.parse(readFileSync(path.join(dir, f), "utf8")),
-      })),
-  );
-const stored = (name) =>
-  JSON.parse(readFileSync(path.join(here, "fixtures", `${name}.json`), "utf8"));
+  readdirSync(fixtures)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => ({
+      name: f.replace(".json", ""),
+      kind: f.replace(".json", ""),
+      facts: JSON.parse(readFileSync(path.join(fixtures, f), "utf8")),
+    }));
 const links = {
   unsubscribe: "https://elixir.poapkings.com/api/email/unsubscribe?t=x",
   manage: "https://elixir.poapkings.com/settings/emails",
@@ -114,12 +108,12 @@ test("every kind renders its fixture: subject, preheader, html, and a text alter
 
 test("names are links into Browse carrying the campaign tag, tags only in the title", () => {
   const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "arena_week.json"), "utf8"),
+    readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
   );
-  const { html } = renderMail("arena_week", facts, links);
+  const { html } = renderMail("tracking_report", facts, links);
   assert.ok(
     html.includes(
-      'href="https://elixir.poapkings.com/home/player/20JJJ2CCRU?utm_source=email&utm_medium=arena_week&utm_campaign=arena_week-2026-W37"',
+      'href="https://elixir.poapkings.com/home/player/20JJJ2CCRU?utm_source=email&utm_medium=tracking_report&utm_campaign=tracking_report-2026-W37"',
     ),
     html.match(/home\/player\/20JJJ2CCRU[^"]*/)?.[0],
   );
@@ -136,20 +130,26 @@ test("names are links into Browse carrying the campaign tag, tags only in the ti
 
 test("links.pixel false renders tagged links without the open pixel (the public page)", () => {
   const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "milestone.json"), "utf8"),
+    readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
   );
-  const { html } = renderMail("milestone", facts, { ...links, pixel: false });
+  const { html } = renderMail("tracking_report", facts, {
+    ...links,
+    pixel: false,
+  });
   assert.ok(!/tinylytics/i.test(html));
   assert.ok(html.includes(LOGO), "the page still wears the logo");
-  assert.ok(html.includes("utm_campaign=milestone-2026-W37"));
+  assert.ok(html.includes("utm_campaign=tracking_report-2026-W37"));
 });
 
 test("links.send_id puts the short mail id in the footer, the whole id in its links; a page render has neither", () => {
   const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "milestone.json"), "utf8"),
+    readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
   );
   const id = "3f2a9c1b-0000-4000-8000-000000000001";
-  const { html } = renderMail("milestone", facts, { ...links, send_id: id });
+  const { html } = renderMail("tracking_report", facts, {
+    ...links,
+    send_id: id,
+  });
   // Six characters to read, the whole id behind the link: the record and the
   // feedback are tagged like every other link into the site, because a send
   // id is a product identifier and the click is counted per campaign
@@ -168,7 +168,7 @@ test("links.send_id puts the short mail id in the footer, the whole id in its li
   assert.ok(!/sponsor|\/support/i.test(html), "no sponsor line");
   const text = htmlToText(html);
   assert.ok(text.includes(id), "the text alternative carries the id too");
-  const page = renderMail("milestone", facts, links).html;
+  const page = renderMail("tracking_report", facts, links).html;
   assert.ok(!page.includes(">Mail "));
 });
 
@@ -210,177 +210,17 @@ test("tagLink tags a link into every product the family's bar names", async () =
   );
 });
 
-test("a clan report subject says the war place and the churn", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
-  );
-  const { subject, preheader } = renderMail("clan_report", facts, links);
-  assert.equal(
-    subject,
-    "POAP KINGS, Season 136, week 3: 1st in war, 4 departed, 2 joined",
-  );
-  assert.match(preheader, /^10,305 fame, over the line on war day 3\./);
-  // Older stored facts use neutral departure words too.
-  assert.equal(
-    renderMail("clan_report", stored("clan_report-2026-09"), links).subject,
-    "POAP KINGS, Season 136, week 1: 1st in war, 3 departed, 3 joined",
-  );
-});
-
-test("a clan report names each day in its reader's zone; an issue stored with a day label still renders", () => {
-  // Review 2026-09-27 §6.7: composed once for everyone, the report had
-  // named days in the first tracker's zone. The stored issue predates
-  // the week's structured moves, so its standouts carry the {{day:}}.
-  const facts = stored("clan_report-2026-09");
-  facts.membership.joined = [
-    { tag: "#A", name: "Late", at: "2026-09-09T03:00:00Z" },
-    { tag: "#B", name: "Old", when: "Fri" },
-  ];
-  facts.standouts = [
-    {
-      tag: "#A",
-      name: "Late",
-      text: "9 battles in one {{day:2026-09-09T03:00:00Z}} sitting",
-    },
-  ];
-  const sent = Date.parse("2026-09-14T00:00:00Z");
-  const utc = renderMail("clan_report", facts, { ...links, now: sent }).html;
-  const chicago = renderMail("clan_report", facts, {
-    ...links,
-    now: sent,
-    timezone: "America/Chicago",
-  }).html;
-  // The member pages' format: a reader with no zone is told it is UTC.
-  assert.match(utc, />Wed 3:00 am UTC\.</);
-  assert.match(utc, /one Wed sitting/);
-  assert.match(chicago, />Tue 10:00 pm\.</);
-  assert.match(chicago, /one Tue sitting/);
-  for (const html of [utc, chicago]) {
-    assert.match(html, />Fri\.</);
-    assert.ok(!html.includes("{{day:"), "every day token is filled");
-  }
-  // The finish line too: an instant, named in each reader's zone.
-  const now = JSON.parse(
-    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
-  );
-  assert.match(
-    renderMail("clan_report", now, {
-      ...links,
-      now: Date.parse("2026-09-29T00:00:00Z"),
-      timezone: "America/Chicago",
-    }).html,
-    /over the line Sun 4:38 am/,
-  );
-});
-
-test("a clan report marks the reader's own players, and nobody else's", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
-  );
-  const chip = />you<\/span>/;
-  const mine = renderMail("clan_report", facts, {
-    ...links,
-    mine: ["#20JJJ2CCRU"],
-  }).html;
-  // King Thing raced eighth-from-last: past the top five, so the row is
-  // there because it is the reader's.
-  assert.ok(mine.includes("King Thing"), "the reader's own row");
-  assert.match(mine, chip);
-  const theirs = renderMail("clan_report", facts, links).html;
-  assert.ok(!chip.test(theirs), "no chip without the reader's players");
-  assert.ok(!theirs.includes(">King Thing<"), "and only the top five");
-  // The facts are the same for everyone: the chip is the render's.
-  assert.ok(!JSON.stringify(facts).includes('"mine"'));
-});
-
-test("a 50-member clan's report stays under Gmail's clip", () => {
-  // Gmail clips a message past about 102 KB and hides the rest behind
-  // "View entire message", footer and unsubscribe included. The roster
-  // table is what pushed a full clan past it; the report now links the
-  // roster instead, and every list in it is capped.
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
-  );
-  const member = (i) => ({
-    tag: `#M${String(i).padStart(7, "0")}`,
-    name: `Member with a long name ${i} ♥️✨`,
-  });
-  facts.clan.members = 50;
-  facts.headline.of = 50;
-  facts.war.raced = Array.from({ length: 50 }, (_, i) => ({
-    ...member(i),
-    points: 3000 - i * 10,
-    decks: 16,
-  }));
-  facts.membership.joined = Array.from({ length: 25 }, (_, i) => ({
-    ...member(100 + i),
-    at: "2026-09-23T17:38:00Z",
-    role: "member",
-    note: null,
-  }));
-  facts.membership.left = Array.from({ length: 25 }, (_, i) => ({
-    ...member(200 + i),
-    at: "2026-09-25T17:38:00Z",
-    role: "elder",
-    tenure_days: 100 + i,
-  }));
-  facts.membership.roles = Array.from({ length: 20 }, (_, i) => ({
-    ...member(i),
-    from: "member",
-    to: "elder",
-    at: "2026-09-24T17:38:00Z",
-  }));
-  facts.presence.quiet = Array.from({ length: 30 }, (_, i) => ({
-    name: member(300 + i).name,
-    days: 7 + i,
-  }));
-  facts.presence.returned = Array.from({ length: 20 }, (_, i) => ({
-    name: member(400 + i).name,
-    days: 7 + i,
-  }));
-  const many = (k) => ({
-    items: Array.from({ length: 50 }, (_, i) => ({
-      ...member(i),
-      to: "Master 3",
-      best: 9000 + i,
-    })),
-    more: k,
-  });
-  facts.week_moves.ranked = many(10);
-  facts.week_moves.arena = many(10);
-  facts.week_moves.bests = many(10);
-  facts.badges = Array.from({ length: 8 }, (_, i) => ({
-    name: member(i).name,
-    badge: "Classic Challenge, level 3",
-  }));
-  const { html } = renderMail("clan_report", facts, {
-    ...links,
-    send_id: "3f2a9c1b-0000-4000-8000-000000000001",
-    mine: ["#M0000049"],
-  });
-  const bytes = Buffer.byteLength(html, "utf8");
-  assert.ok(bytes < 95_000, `${bytes} bytes`);
-});
-
 test("one shell: the wordmark, the product source, the why-line in the reader's zone, the turn-off on a bulk kind", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
-  );
-  const html = renderMail("clan_report", facts, {
-    ...links,
-    timezone: "America/Chicago",
-  }).html;
-  assert.match(html, />Elixir</, "the wordmark is Elixir");
-  assert.ok(!/Elixir MCP|ELIXIR/.test(html), "never the old wordmark");
-  assert.ok(html.includes(">Clan</span>"), "the product source");
-  // A retired kind's stored issue promises no next one (2026-11-12).
-  assert.match(html, /This email has ended\. Its news is in your digest\./);
-  assert.match(html, /Turn off this mail/);
-  // The digest's why-line is in the reader's zone: 11:00 UTC is 6:00 am
-  // in daylight time and 5:00 am in standard.
   const digest = JSON.parse(
     readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
   );
+  const html = renderMail("tracking_report", digest, links).html;
+  assert.match(html, />Elixir</, "the wordmark is Elixir");
+  assert.ok(!/Elixir MCP|ELIXIR/.test(html), "never the old wordmark");
+  assert.ok(html.includes(">Home</span>"), "the product source");
+  assert.match(html, /Turn off this mail/);
+  // The digest's why-line is in the reader's zone: 11:00 UTC is 6:00 am
+  // in daylight time and 5:00 am in standard.
   assert.match(
     renderMail("tracking_report", digest, {
       ...links,
@@ -488,71 +328,6 @@ test("the digest: a clan is a headline and at most three bullets, and a full sto
   assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
 });
 
-test("the Arena week counts each player's card unlocks and badge levels, and links the timeline", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "arena_week.json"), "utf8"),
-  );
-  const text = htmlToText(renderMail("arena_week", facts, links).html);
-  assert.match(text, /King Thing[^\n]*: 1 card unlocked, 2 badge levels/);
-  assert.match(text, /Hare Pelican[^\n]*: 3 cards unlocked, 1 badge level\b/);
-  // Home is the feed since slice 7 (#765).
-  assert.match(text, /\/home\?utm_source=email/);
-  delete facts.progress;
-  assert.doesNotMatch(
-    htmlToText(renderMail("arena_week", facts, links).html),
-    /Cards and badges/i,
-  );
-});
-
-test("the Arena week sets the week's win rate beside the previous four, with counts, and a stored issue renders without it", () => {
-  const stored = JSON.parse(
-    readFileSync(path.join(fixtures, "arena_week.json"), "utf8"),
-  );
-  // An issue stored before the line existed carries no form: it renders
-  // as it did, with no line and no error.
-  const before = htmlToText(renderMail("arena_week", stored, links).html);
-  assert.doesNotMatch(before, /over the previous four weeks/);
-  const side = (win_rate, decided_battles) => ({
-    battles: decided_battles,
-    decided_battles,
-    win_rate,
-    head_to_head_battles: decided_battles,
-    three_crown_rate: 0.1,
-    net_trophies: null,
-  });
-  const facts = structuredClone(stored);
-  facts.primary.form = {
-    mode: "ladder",
-    week: side(0.542, 31),
-    previous: side(0.48, 112),
-  };
-  const text = htmlToText(renderMail("arena_week", facts, links).html);
-  assert.match(
-    text,
-    /Trophy Road win rate 54% this week \(31 battles\), up from 48% over the previous four weeks \(112 battles\)\./,
-  );
-  facts.primary.form = {
-    mode: "war",
-    week: side(0.4, 10),
-    previous: side(0.5, 1),
-  };
-  assert.match(
-    htmlToText(renderMail("arena_week", facts, links).html),
-    /War win rate 40% this week \(10 battles\), down from 50% over the previous four weeks \(1 battle\)\./,
-  );
-  facts.primary.form = {
-    mode: "ranked",
-    week: side(0.501, 12),
-    previous: side(0.504, 40),
-  };
-  assert.match(
-    htmlToText(renderMail("arena_week", facts, links).html),
-    /Path of Legends win rate 50% this week \(12 battles\), level with 50%/,
-  );
-  // No verdict words: the line says which way the numbers lie, no more.
-  assert.doesNotMatch(text, /\b(better|worse|improv\w*|great|good|bad)\b/i);
-});
-
 test("the weekly send times are the EventBridge crons", () => {
   const template = readFileSync(
     path.join(here, "../../../infra/template.yaml"),
@@ -592,9 +367,18 @@ test("the weekly send times are the EventBridge crons", () => {
 });
 
 test("renderMail refuses a kind it does not know and a send without links", () => {
-  for (const kind of ["newsletter", "top_100", "card_of_week"])
+  // The retired kinds have no renderer: a sent one's record shows the
+  // archived mail (2026-11-13).
+  for (const kind of [
+    "newsletter",
+    "top_100",
+    "card_of_week",
+    "clan_report",
+    "arena_week",
+    "milestone",
+  ])
     assert.throws(() => renderMail(kind, {}, links), /unknown kind/);
-  assert.throws(() => renderMail("milestone", {}, {}), /links/);
+  assert.throws(() => renderMail("tracking_report", {}, {}), /links/);
 });
 
 test("the unsubscribe token round-trips, binds account and kind, and refuses tampering", () => {
@@ -702,7 +486,6 @@ test("cardAsset is the mirror's one original file per card and form", () => {
 
 test("every card image in every mail is an original, sized by width and height", () => {
   for (const { name, kind, facts } of allFixtures()) {
-    if (isRetiredEmailKind(kind)) continue;
     const { html } = renderMail(kind, facts, links);
     for (const img of html.match(
       /<img [^>]*src="[^"]*\/assets\/cards\/[^"]*"[^>]*>/g,
@@ -754,174 +537,6 @@ test("an Evo or Hero the mirror lacks draws the base card's original, chosen at 
     throw new Error("AccessDenied");
   });
   assert.equal(failed.deck.cards[1].art_src, cardAsset(26000059, "base"));
-});
-
-test("the drawn image is the base card's, with the form's name as its alt", async () => {
-  const facts = stored("milestone-cards");
-  const hero = facts.milestones.find(
-    (m) => m.card?.form && m.card.form !== "base",
-  );
-  const subject = hero ?? facts.milestones[0];
-  const card = { ...subject.card, form: "hero" };
-  const resolved = await resolveCardArt(
-    { ...facts, milestones: [{ ...subject, card }] },
-    async () => false,
-  );
-  const { html } = renderMail("milestone", resolved, links);
-  assert.ok(html.includes(`/assets/cards/${card.id}.png"`));
-  assert.ok(!html.includes(`/assets/cards/${card.id}_hero.png`));
-  assert.match(
-    html,
-    new RegExp(
-      `alt="Hero ${card.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`,
-    ),
-  );
-});
-
-test("cards unlocked are their art, each a link to the card's page in Elixir", () => {
-  const facts = stored("milestone-cards");
-  const { subject, preheader, html } = renderMail("milestone", facts, links);
-  assert.match(html, /You unlocked three cards/);
-  for (const m of facts.milestones) {
-    assert.ok(
-      html.includes(`/assets/cards/${m.card.id}.png`),
-      `${m.card.name}'s art`,
-    );
-    assert.match(html, new RegExp(`href="[^"]*/cards/${m.card.id}\\?`));
-    assert.ok(preheader.includes(m.card.name));
-  }
-  assert.ok(subject.length > 0);
-});
-
-test("a milestone that a battle did names the battle: the opponent, the score, the trophies", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "milestone.json"), "utf8"),
-  );
-  const b = facts.milestones[0].battle;
-  assert.ok(b, "the fixture's promotion carries its battle");
-  const { html } = renderMail("milestone", facts, links);
-  assert.match(html, /The battle that did it/);
-  assert.ok(html.includes(esc(b.opponent.name)), "the opponent, named");
-  assert.ok(
-    html.includes(`${b.crowns}–${b.crowns_against}`),
-    "the score as it ended",
-  );
-});
-
-test("the battle that did it opens its page, and a stored issue without the link still renders", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "milestone.json"), "utf8"),
-  );
-  const { url } = facts.milestones[0].battle;
-  assert.equal(url, "https://elixir.poapkings.com/battle/aad68079b0fa");
-  const { html } = renderMail("milestone", facts, links);
-  assert.match(
-    html,
-    /<a href="https:\/\/elixir\.poapkings\.com\/battle\/aad68079b0fa\?utm_source=email[^"]*"[^>]*>See the battle ›<\/a>/,
-  );
-  // The button opens the player's own season on Ladder: the season the
-  // milestone happened in, so an old mail still opens that season.
-  assert.match(html, />Open Cedar Bold in Ladder</);
-  assert.match(
-    html,
-    /href="https:\/\/elixir\.poapkings\.com\/ladder\?player=0YQYQPLQR&amp;season=136&amp;utm_source=email/,
-  );
-  delete facts.milestones[0].battle.url;
-  delete facts.season;
-  const old = renderMail("milestone", facts, links).html;
-  assert.match(old, /The battle that did it/);
-  assert.doesNotMatch(old, /See the battle/);
-  // Stored before the season was on it: Ladder's own default.
-  assert.match(old, /\/ladder\?player=0YQYQPLQR&amp;utm_source=email/);
-});
-
-test("the Arena week opens Ladder: the season, and every deck on Ladder › Decks", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "arena_week.json"), "utf8"),
-  );
-  const { html } = renderMail("arena_week", facts, links);
-  assert.match(html, />Open King Thing in Ladder</);
-  assert.match(
-    html,
-    /href="https:\/\/elixir\.poapkings\.com\/ladder\/decks\?player=20JJJ2CCRU&amp;season=136&amp;utm_source=email[^"]*"[^>]*>Ladder › Decks<\/a>/,
-  );
-  // Both open the season the week was in, not whatever runs on the day
-  // the mail is read (2026-10-08).
-  assert.match(
-    html,
-    /href="https:\/\/elixir\.poapkings\.com\/ladder\?player=20JJJ2CCRU&amp;season=136&amp;utm_source=email[^"]*"[^>]*>Open King Thing in Ladder/,
-  );
-  assert.doesNotMatch(html, /in the console</);
-});
-
-test("the clan report links the race's own week, by Season and Week", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
-  );
-  const { html } = renderMail("clan_report", facts, links);
-  assert.match(
-    html,
-    /href="https:\/\/elixir\.poapkings\.com\/clan\/J2RGCRVG\/war\/136-3\?utm_source=email[^"]*"[^>]*>the week’s page<\/a>/,
-  );
-  assert.match(html, /Season 136, week 3 are on/);
-  // No race, no week link.
-  const quiet = renderMail(
-    "clan_report",
-    { ...facts, war: { present: false } },
-    links,
-  ).html;
-  assert.doesNotMatch(quiet, /\/war\/\d+-\d+/);
-});
-
-test("the clan report sets the race and the week beside the weeks before", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
-  );
-  const text = htmlToText(renderMail("clan_report", facts, links).html);
-  assert.match(text, /War decks/);
-  assert.match(
-    text,
-    /This race: 214 of 528 possible war decks used \(41%\), 314 not played\. Over the four races before: 71%\./,
-  );
-  assert.match(text, /Season 135, week 5 \(Colosseum\)/);
-  assert.match(text, /training days are not counted/);
-  assert.match(
-    text,
-    /In 636 sessions, by 42 of 44 members\. The four weeks before averaged 2,384 battles a week, by 42 members\./,
-  );
-
-  // Thin history: the words say how many weeks are compared.
-  const thin = structuredClone(facts);
-  thin.trend.war.prior = thin.trend.war.prior.slice(0, 2);
-  thin.trend.activity.prior = thin.trend.activity.prior.slice(0, 1);
-  const thinText = htmlToText(renderMail("clan_report", thin, links).html);
-  assert.match(thinText, /Over the 2 recorded races before: 72%\./);
-  assert.match(
-    thinText,
-    /The one recorded week before had 2,310 battles, by 41 members\./,
-  );
-  assert.doesNotMatch(thinText, /four (races|weeks) before/);
-
-  // No earlier week recorded: the race alone, no comparison.
-  const alone = structuredClone(facts);
-  alone.trend.war.prior = [];
-  alone.trend.activity.prior = [];
-  const aloneText = htmlToText(renderMail("clan_report", alone, links).html);
-  assert.doesNotMatch(aloneText, /races? before|weeks? before/);
-  assert.match(aloneText, /War decks/);
-  assert.match(aloneText, /This race: 214 of 528 possible war decks used/);
-
-  // The race unknown and no earlier week: nothing at all.
-  const none = structuredClone(facts);
-  none.trend = { war: null, activity: { ...none.trend.activity, prior: [] } };
-  const noneText = htmlToText(renderMail("clan_report", none, links).html);
-  assert.doesNotMatch(noneText, /possible war decks|War decks|weeks? before/);
-
-  // An issue stored before the trend renders without it.
-  const old = htmlToText(
-    renderMail("clan_report", stored("clan_report-2026-09"), links).html,
-  );
-  assert.doesNotMatch(old, /possible war decks|War decks|weeks? before/);
 });
 
 test("each collector is its card, with what it is doing now", () => {
@@ -1082,27 +697,6 @@ test("collector upgrade notices escape release text and distinguish unknown hist
   );
 });
 
-test("a clan header keeps a selected closed race's season and week together across rollover, including stored facts", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
-  );
-  facts.week = {
-    ...facts.week,
-    label: "Sep 28 – Oct 5",
-    season: 137,
-    war_week: 1,
-  };
-  facts.war = { ...facts.war, season: 136, week: 4 };
-  const before = structuredClone(facts);
-  const { html } = renderMail("clan_report", facts, links);
-  assert.match(html, /Sep 28 – Oct 5 · Season 136, river race week 4/);
-  assert.doesNotMatch(html, /Season 137/);
-  assert.deepEqual(facts, before);
-  facts.war = { present: false };
-  facts.week.war_week = null;
-  assert.match(renderMail("clan_report", facts, links).html, /Season 137/);
-});
-
 test("feedback answer: their words clipped and escaped, the answer whole, status and what shipped", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "feedback_answer.json"), "utf8"),
@@ -1152,77 +746,7 @@ test("feedback answer: their words clipped and escaped, the answer whole, status
   assert.match(shippedQuestion.html, /Shipped in <span[^>]*>11\.13\.0</);
 });
 
-test("activity-only clan reports preserve unknown battle counts, including older zero-filled facts", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
-  );
-  facts.clan.scope = "activity";
-  facts.war = { present: false };
-  for (const battles of [null, 0]) {
-    facts.headline.battles = battles;
-    facts.headline.active = battles;
-    const out = renderMail("clan_report", facts, links);
-    assert.match(out.preheader, /battles are not recorded, only its roster/);
-    assert.match(out.html, /battles are not recorded, only its roster/);
-    assert.doesNotMatch(htmlToText(out.html), /0 battles|by 0 of/);
-    assert.match(out.subject, /departed/);
-    assert.doesNotMatch(out.html, />[^<]* left(?:,|<)/);
-  }
-});
-
-test("Arena preserves every recorded mode when war follows the first three", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "arena_week.json"), "utf8"),
-  );
-  facts.primary.totals.by_family = [
-    { mode: "ladder", battles: 10, wins: 4, losses: 6 },
-    { mode: "casual", battles: 8, wins: 3, losses: 5 },
-    { mode: "ranked", battles: 6, wins: 4, losses: 2 },
-    { mode: "war", battles: 6, wins: 3, losses: 3 },
-  ];
-  const text = htmlToText(renderMail("arena_week", facts, links).html);
-  assert.match(text, /War\s+3–3\s+6 battles/);
-  assert.match(text, /Casual\s+3–5\s+8 battles/);
-  assert.match(text, /Path of Legends\s+4–2\s+6 battles/);
-});
-
-test("unavailable comprehensive activity does not invent a scope restriction, and legacy bounce notes are neutral", () => {
-  const facts = stored("clan_report-2026-09");
-  facts.clan.scope = "comprehensive";
-  facts.headline.battles = null;
-  const out = renderMail("clan_report", facts, links);
-  assert.match(out.preheader, /Battle activity is unavailable for this report/);
-  assert.doesNotMatch(out.preheader, /at this clan’s scope/);
-  assert.match(htmlToText(out.html), /departed again the same day/);
-  assert.doesNotMatch(htmlToText(out.html), /left again/);
-});
-
-test("mail names time and weeks as the member pages do, and says Clan and Casual", () => {
-  const clan = JSON.parse(
-    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
-  );
-  clan.membership.left = [
-    { tag: "#A", name: "Gone", role: "member", at: "2026-09-25T03:00:00Z" },
-  ];
-  const { html } = renderMail("clan_report", clan, {
-    ...links,
-    now: Date.parse("2026-09-29T00:00:00Z"),
-    timezone: "America/Chicago",
-  });
-  assert.match(html, /departed POAP KINGS \(was Member\)/);
-  assert.match(html, />Thu 10:00 pm\.</);
-  // The tenure line is gone (Q9), even from an issue stored with one.
-  clan.membership.left[0].tenure_days = 40;
-  assert.doesNotMatch(
-    renderMail("clan_report", clan, links).html,
-    /Here 40 days/,
-  );
-  // A week with no season week keeps its dates.
-  clan.week.war_week = null;
-  assert.match(
-    renderMail("clan_report", clan, links).subject,
-    /^POAP KINGS, Sep 21 – 28: /,
-  );
+test("the actions mail says Clan, not Elixir Clan", () => {
   const actions = renderMail(
     "clan_actions_waiting",
     {

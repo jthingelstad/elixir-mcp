@@ -85,7 +85,7 @@ is the only way to run a write, and the default for a read:
 ```sh
 npm run op -- '{"capture_audit": {"days": 1}}'
 npm run op -- '{"ledger": {"op": "requeue", "job_ids": ["123"]}}'
-npm run op -- '{"clan_report_preview": {"clan_tag": "#TAG"}}' --function jobs
+npm run op -- '{"series_metrics": true}' --function jobs
 ```
 
 It checks the caller is `assumed-role/ProjectsCloudEngineer/projects-cloud-engineer`,
@@ -231,12 +231,8 @@ Firing now: `aws cloudwatch describe-alarms --alarm-name-prefix elixir-mcp- --st
 `{capture_efficiency}` and `{shape_census}`: scheduled product work,
 outside this catalogue; `docs/OPERATIONS.md` names the ones worth
 reading. Run them with `npm run op -- '<payload>' --function jobs`.
-One is a read for checking a mail change against the live record:
-`{"clan_report_preview": {"clan_tag": "#TAG", "at": "<ISO>"}}` composes
-that clan's Monday report for the week before `at` as its oldest tracker,
-beside the issue stored for that week (the clan report is retired since
-2026-11-12, #823; the op stays for its tests and old issues), and returns both as text in a
-read-only session (no issue, no send).
+`{"series_metrics": true}` is the one read among them. The clan report
+preview went with the retired clan report's builder on 2026-11-13.
 
 ## Choosing the read
 

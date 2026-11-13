@@ -4,7 +4,7 @@
  * (lib/ops-invoke.mjs has the rules; lib/production-lock.mjs the lock).
  *
  *   npm run op -- '{"stats": true}'
- *   npm run op -- '{"clan_report_preview": {"clan_tag": "#TAG"}}' --function jobs
+ *   npm run op -- '{"series_metrics": true}' --function jobs
  *   npm run op -- --help
  */
 

@@ -1,22 +1,6 @@
-/** The readers the tools use, called in-process.
- *
- *  A builder never re-derives a number: it calls the same registered
- *  tool handler an agent would, with a ctx shaped the way the MCP door
- *  shapes it (invoker.mjs: db, account, live, notifyOwner), and reads
- *  the same body. The account is the recipient projected the way
- *  validateAccessToken projects it, so defaults (omit player_tag to mean
- *  the primary; omit clan_tag to mean the recorded clan) resolve for
- *  that person. Arguments are validated against the declared schema by
- *  the registry, so a builder that drifts from the contract fails here,
- *  not in a reader. */
-import { makeRegistry } from "@elixir-mcp/tools";
+/** The recipients of a mail kind: person accounts that have not turned
+ *  it off, projected the way validateAccessToken projects an account. */
 import { tierSql } from "@elixir-mcp/contracts";
-
-let registry = null;
-function reg() {
-  registry ??= makeRegistry();
-  return registry;
-}
 
 /** Person accounts eligible for product mail, projected for a ctx. */
 export async function loadRecipients(db, kind, { accountId = null } = {}) {
@@ -51,13 +35,4 @@ function projectAccount(row) {
     publicId: row.public_id,
     credentialType: "mail",
   };
-}
-
-export function accountCtx(db, account) {
-  return { db, account, live: null, notifyOwner: async () => {} };
-}
-
-/** One tool call, validated and answered like the door's. */
-export async function callTool(ctx, name, args = {}) {
-  return reg().invoke(name, ctx, args);
 }

@@ -2,9 +2,7 @@
  * The mail run over a scratch database: the
  * ledger is asked before anything is composed, a run stops with time to
  * spare and says how far it got, a written issue goes out only for its
- * own period, and the digest keeps its cadence. The clan report, Arena
- * week and milestone mails are retired (2026-11-12); their composers
- * are still pinned here until they are removed.
+ * own period, and the digest keeps its cadence.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -13,13 +11,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { runEmail } from "../src/email/index.mjs";
-import {
-  buildClan,
-  lastBattlesOf,
-  nothingHappened,
-} from "../src/email/build-clan.mjs";
 import { readerDoors } from "../src/email/reader.mjs";
-import { clanReportPreview } from "../src/email/clan-preview.mjs";
 import { lastGameWeek } from "../src/email/week.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -32,7 +24,6 @@ const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 const CLAN = "#2PQRJ8LV";
 const OLD_TAG = "#20QQL8CC";
 const NEW_TAG = "#8QQ8QQ8Q";
-// A Thursday: the Top 100's send day.
 
 let db;
 const acct = {};
@@ -168,57 +159,6 @@ test("a run with under 90 s left stops before composing, and says how many remai
   assert.equal(out.length, 0);
 });
 
-test("a clan report is the clan's, not its first tracker's: the same facts under either account, at the recording's scope", async () => {
-  const week = lastGameWeek(new Date("2026-09-15T14:00:00Z"));
-  const load = (id, timezone) =>
-    buildClan({
-      db,
-      account: { accountId: id, timezone, kind: "person", role: "member" },
-      clanTag: CLAN,
-      week,
-      season: null,
-    });
-  const asOld = await load(acct.old, "America/Chicago");
-  const asNew = await load(acct.new, "UTC");
-  assert.deepEqual(asOld, asNew);
-  assert.equal(asOld.clan.scope, "comprehensive");
-  assert.equal(asOld.roster_note, null);
-  // A day is an instant; each reader's render names it.
-  const joined = asOld.membership.joined.find((m) => m.tag === NEW_TAG);
-  assert.equal(joined?.at, "2026-09-08T03:00:00.000Z");
-  assert.equal(joined.when, undefined);
-});
-
-test("a silent clan's week has nothing to tell; a race, a departure or a battle does (D9, A20)", () => {
-  const silent = {
-    war: { present: false },
-    membership: { joined: [], left: [], roles: [], more: 0 },
-    headline: { battles: 0, donations: 0 },
-    badges: [],
-    presence: { quiet: [], returned: [] },
-    week_moves: {
-      top_battler: null,
-      ranked: { items: [] },
-      arena: { items: [] },
-      bests: { items: [] },
-    },
-  };
-  assert.equal(nothingHappened(silent), true);
-  // Roster and war only: battles are unknown, not none, and still nothing.
-  assert.equal(
-    nothingHappened({ ...silent, headline: { battles: null, donations: 0 } }),
-    true,
-  );
-  for (const news of [
-    { war: { present: true, fame: 1 } },
-    { membership: { ...silent.membership, left: [{ tag: "#X" }] } },
-    { headline: { battles: 3, donations: 0 } },
-    { badges: [{ name: "x" }] },
-    { presence: { quiet: [{ name: "x" }], returned: [] } },
-  ])
-    assert.equal(nothingHappened({ ...silent, ...news }), false);
-});
-
 test("a reader's doors: their players and the clans they are in today", async () => {
   const doors = await readerDoors(db, acct.old);
   assert.ok(doors.tags.includes(OLD_TAG));
@@ -252,84 +192,6 @@ test("an unverified claim on a member opens the clan's door and admits no clan-v
       [acct.new],
     );
   }
-});
-
-test("a last battle is read as of the week's close, its last instant included", async () => {
-  const TAG = "#2YY2YY2Y";
-  await db.query(`insert into player (player_tag, name) values ($1, 'quiet')`, [
-    TAG,
-  ]);
-  const close = Date.parse("2026-09-14T09:59:59.999Z");
-  const played = async (id, at) => {
-    await db.query(
-      `insert into battle (battle_id, battle_time, type, type_class) values ($1, $2, 'PvP', 'pvp')`,
-      [id, at],
-    );
-    await db.query(
-      `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class)
-       values ($1, $2, 0, $3, 'win', 'PvP', 'pvp')`,
-      [id, TAG, at],
-    );
-  };
-  await played(`lb01${"0".repeat(60)}`, "2026-09-10T12:00:00Z");
-  const asOf = async (ms) =>
-    (await lastBattlesOf(db, [TAG], ms)).get(TAG) ?? null;
-  assert.equal(await asOf(close), "2026-09-10T12:00:00.000Z");
-  await played(`lb02${"0".repeat(60)}`, "2026-09-14T10:00:00Z");
-  assert.equal(await asOf(close), "2026-09-10T12:00:00.000Z");
-  assert.equal(await asOf(close + 1), "2026-09-14T10:00:00.000Z");
-  assert.equal(await asOf(Date.parse("2026-09-01T00:00:00Z")), null);
-});
-
-test("the clan composer binds closed-race identity and uses the covered season after Monday's boundary", async () => {
-  const NO_RACE = "#2GQ0QG0G";
-  await db.query(
-    `insert into clan (clan_tag, name) values ($1, 'No race recorded')`,
-    [NO_RACE],
-  );
-  await db.query(
-    `insert into account_clan (account_id, clan_tag, scope) values ($1, $2, 'comprehensive')`,
-    [acct.old, NO_RACE],
-  );
-  await db.query(
-    `insert into recording (subject_type, subject_tag, status, scope, requested_by) values ('clan', $1, 'active', 'comprehensive', $2)`,
-    [NO_RACE, acct.old],
-  );
-  await db.query(
-    `insert into war_week (clan_tag, season_id, section_index, is_colosseum, started_observed_at, finished_observed_at, closed_at)
-    values ($1, 136, 3, true, '2026-09-28T10:00:00Z', '2026-10-05T09:38:05Z', '2026-10-05T09:38:04Z'),
-           ($1, 137, 0, false, '2026-10-05T10:00:00Z', null, null)`,
-    [CLAN],
-  );
-  await db.query(
-    `insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag, participant_name, fame, rank, trophy_change)
-    values ($1, 136, 3, $1, 'Example', 12345, 1, 100)`,
-    [CLAN],
-  );
-  await db.query(
-    `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used)
-    values ($1, 136, 3, $2, 2345, 16)`,
-    [CLAN, NEW_TAG],
-  );
-  const week = lastGameWeek(new Date("2026-10-05T14:00:00Z"));
-  const direct = await buildClan({
-    db,
-    account: {
-      accountId: acct.old,
-      timezone: "UTC",
-      kind: "person",
-      role: "member",
-    },
-    clanTag: CLAN,
-    week,
-    season: 137,
-  });
-  assert.deepEqual([direct.week.season, direct.week.war_week], [136, 4]);
-  assert.deepEqual(
-    [direct.war.rank, direct.war.fame, direct.war.trophy_change],
-    [1, 12345, 100],
-  );
-  assert.equal(direct.war.raced[0].points, 2345);
 });
 
 test("Monday's digest names you on your player page", async () => {
@@ -431,226 +293,6 @@ test("the digest goes out weekly on Monday, daily to who chose it, once a day, a
 });
 
 // Last: the clan it adds is one more report for the runs above.
-test("the clan report's trend: decks used of those possible beside the races before, and battles by when they were played, only as far back as the record holds", async () => {
-  const TREND = "#8YQ0LG2C";
-  const [P1, P2, P3, P4] = ["#2Y2Y2Y2Y", "#2Y2Y2Y2C", "#2Y2Y2Y2G", "#2Y2Y2Y2L"];
-  await db.query(`insert into clan (clan_tag, name) values ($1, 'Trend')`, [
-    TREND,
-  ]);
-  await db.query(
-    `insert into account_clan (account_id, clan_tag, scope) values ($1, $2, 'comprehensive')`,
-    [acct.new, TREND],
-  );
-  // Recorded from Thursday 09-03: the week of 08-31 is before it.
-  await db.query(
-    `insert into recording (subject_type, subject_tag, status, scope, requested_by, created_at)
-     values ('clan', $1, 'active', 'comprehensive', $2, '2026-09-03T00:00:00Z')`,
-    [TREND, acct.new],
-  );
-  for (const t of [P1, P2, P3, P4])
-    await db.query(`insert into player (player_tag, name) values ($1, $1)`, [
-      t,
-    ]);
-  // P3 joined, and P4 left, on 09-30: three on the roster at each close.
-  await db.query(
-    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, left_observed_at, role)
-     values ($1, $2, '2026-08-25T00:00:00Z', null, 'member'),
-            ($1, $3, '2026-08-25T00:00:00Z', null, 'member'),
-            ($1, $4, '2026-09-30T00:00:00Z', null, 'member'),
-            ($1, $5, '2026-08-25T00:00:00Z', '2026-09-30T00:00:00Z', 'member')`,
-    [TREND, P1, P2, P3, P4],
-  );
-  // Five races: S136 week 4 (Colosseum) is the report's; week 2 was
-  // never captured; S135 week 4 closed more than four weeks before.
-  await db.query(
-    `insert into war_week (clan_tag, season_id, section_index, is_colosseum, started_observed_at, finished_observed_at, closed_at)
-     values ($1, 136, 3, true,  '2026-09-28T10:00:00Z', '2026-10-05T09:38:04Z', '2026-10-05T09:38:04Z'),
-            ($1, 136, 2, false, '2026-09-21T10:00:00Z', '2026-09-28T09:35:00Z', '2026-09-28T09:35:00Z'),
-            ($1, 136, 1, false, '2026-09-14T10:00:00Z', '2026-09-21T09:35:00Z', '2026-09-21T09:35:00Z'),
-            ($1, 136, 0, false, '2026-09-07T10:00:00Z', '2026-09-14T09:35:00Z', '2026-09-14T09:35:00Z'),
-            ($1, 135, 3, false, '2026-08-31T10:00:00Z', '2026-09-07T09:35:00Z', '2026-09-07T09:35:00Z'),
-            ($1, 135, 2, false, '2026-08-24T10:00:00Z', '2026-08-31T09:35:00Z', '2026-08-31T09:35:00Z')`,
-    [TREND],
-  );
-  const decks = [
-    [136, 3, P1, 16],
-    [136, 3, P2, 10],
-    [136, 3, P3, 12],
-    [136, 3, P4, 4], // played before leaving: used, not possible
-    [136, 2, P1, 16],
-    [136, 2, P2, 16],
-    [136, 2, P4, 8],
-    [136, 0, P1, 12],
-    [136, 0, P2, 8],
-    [136, 0, P4, 4],
-    [135, 3, P1, 4],
-    [135, 2, P1, 16],
-  ];
-  for (const [s, i, t, d] of decks)
-    await db.query(
-      `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used)
-       values ($1, $2, $3, $4, $5, $6)`,
-      [TREND, s, i, t, d * 100, d],
-    );
-  let k = 0;
-  const battle = async (at, players, { boat } = {}) => {
-    const id = `cafe${String(++k).padStart(60, "0")}`;
-    await db.query(
-      `insert into battle (battle_id, battle_time, type, type_class, boat_battle_side)
-       values ($1, $2, $3, $4, $5)`,
-      [
-        id,
-        at,
-        boat ? "boatBattle" : "PvP",
-        boat ? "boat" : "pvp",
-        boat ? "defender" : null,
-      ],
-    );
-    for (const t of players)
-      await db.query(
-        `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class, crowns, clan_tag)
-         values ($1, $2, 0, $3, 'win', $4, $5, 1, $6)`,
-        [id, t, at, boat ? "boatBattle" : "PvP", boat ? "boat" : "pvp", TREND],
-      );
-  };
-  // The report's week: two battles by two members; a boat defense is
-  // not the member's battle.
-  await battle("2026-09-30T12:00:00Z", [P1]);
-  await battle("2026-10-02T12:00:00Z", [P1, P2]);
-  await battle("2026-10-03T12:00:00Z", [P3], { boat: true });
-  // Played in the week before, whenever it was learned.
-  await battle("2026-09-22T12:00:00Z", [P1]);
-  await battle("2026-09-23T12:00:00Z", [P2]);
-  await battle("2026-09-24T12:00:00Z", [P2]);
-  // Nothing the week of 09-14; one battle the week of 09-07; the week
-  // of 08-31 is before the recording began.
-  await battle("2026-09-08T12:00:00Z", [P1]);
-  await battle("2026-09-01T12:00:00Z", [P1, P2]);
-
-  const facts = await buildClan({
-    db,
-    account: {
-      accountId: acct.new,
-      timezone: "UTC",
-      kind: "person",
-      role: "member",
-    },
-    clanTag: TREND,
-    week: lastGameWeek(new Date("2026-10-05T14:00:00Z")),
-    season: 137,
-  });
-  assert.deepEqual(facts.trend.war, {
-    this_week: {
-      season: 136,
-      week: 4,
-      colosseum: true,
-      decks_used: 42,
-      decks_possible: 48,
-      members: 3,
-      war_days: 4,
-    },
-    // Week 2 holds no deck and S135 week 3 closed four weeks before;
-    // S135 week 2 is further back.
-    prior: [
-      {
-        season: 136,
-        week: 3,
-        colosseum: false,
-        decks_used: 40,
-        decks_possible: 48,
-        members: 3,
-        war_days: 4,
-      },
-      {
-        season: 136,
-        week: 1,
-        colosseum: false,
-        decks_used: 24,
-        decks_possible: 48,
-        members: 3,
-        war_days: 4,
-      },
-      {
-        season: 135,
-        week: 4,
-        colosseum: false,
-        decks_used: 4,
-        decks_possible: 48,
-        members: 3,
-        war_days: 4,
-      },
-    ],
-  });
-  assert.deepEqual(facts.trend.activity, {
-    this_week: { battles: 2, active: 2 },
-    prior: [
-      { from: "2026-09-21T10:00:00.000Z", battles: 3, active: 2 },
-      { from: "2026-09-07T10:00:00.000Z", battles: 1, active: 1 },
-    ],
-  });
-  // The headline reads the same count.
-  assert.equal(facts.headline.battles, 2);
-  assert.equal(facts.headline.active, 2);
-
-  // The read-only preview composes the same report and writes nothing.
-  const issues = async () =>
-    (await db.query(`select count(*)::int as n from email_issue`)).rows[0].n;
-  const had = await issues();
-  const preview = await clanReportPreview(
-    { databaseUrl: DB_URL },
-    { clan_tag: TREND, at: "2026-10-05T14:00:00Z" },
-  );
-  assert.equal(preview.stored, null);
-  assert.deepEqual(preview.composed.trend, facts.trend);
-  assert.match(
-    preview.composed.text,
-    /This race: 42 of 48 possible war decks used \(88%\), 6 not played\. Over the 3 recorded races before: 47%\./,
-  );
-  assert.match(
-    preview.composed.text,
-    /The 2 recorded weeks before averaged 2 battles a week, by 2 members\./,
-  );
-  assert.equal(await issues(), had);
-  // The session it was handed is read-only while it runs, and given back.
-  await clanReportPreview(
-    { db },
-    { clan_tag: TREND, at: "2026-10-05T14:00:00Z" },
-  );
-  await db.query(`select 1`);
-  assert.equal(
-    (await db.query(`show default_transaction_read_only`)).rows[0]
-      .default_transaction_read_only,
-    "off",
-  );
-});
-
-test("an activity-scope clan composer leaves battle counts unknown", async () => {
-  await db.query("begin");
-  try {
-    await db.query(
-      "update recording set scope = 'activity' where subject_type = 'clan' and subject_tag = $1",
-      [CLAN],
-    );
-    const facts = await buildClan({
-      db,
-      account: {
-        accountId: acct.old,
-        timezone: "UTC",
-        kind: "person",
-        role: "member",
-      },
-      clanTag: CLAN,
-      week: lastGameWeek(new Date("2026-09-15T14:00:00Z")),
-      season: null,
-    });
-    assert.equal(facts.clan.scope, "activity");
-    assert.equal(facts.headline.battles, null);
-    assert.equal(facts.headline.active, null);
-  } finally {
-    await db.query("rollback");
-  }
-});
-
 test("the reports' week name is the season and which of its weeks", () => {
   // Season 136 opens on the first Monday of September 2026, at the reset.
   const first = lastGameWeek(new Date("2026-09-15T14:00:00Z"));

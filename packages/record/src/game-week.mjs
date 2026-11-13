@@ -1,7 +1,7 @@
 /** The game week the reports cover: Monday 10:00Z to Monday 10:00Z,
- *  the policy grid every clan shares (docs clocks.md). Whatever day a
- *  kind sends, it covers the last COMPLETED game week, so Tuesday's and
- *  Wednesday's mail agree. The period key is the ISO week of the
+ *  the policy grid every clan shares (docs clocks.md). The digest
+ *  sends Monday 11:00 UTC and covers the last COMPLETED game week, so it
+ *  and Home's Friends name the same week. The period key is the ISO week of the
  *  Monday the week started on. */
 import { gameWeekStartMs } from "./form.mjs";
 import { seasonFromDate } from "./war-clock.mjs";

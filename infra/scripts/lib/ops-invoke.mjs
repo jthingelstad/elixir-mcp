@@ -123,7 +123,6 @@ const MIGRATE_READS = {
 /** Jobs ops that only read. The jobs Lambda's other keys send mail,
  *  sweep or write a census table. */
 const JOBS_READS = {
-  clan_report_preview: isObject,
   series_metrics: anyArgs,
 };
 
@@ -163,7 +162,7 @@ const OP_USAGE = `usage: npm run op -- '<json payload>' [--function migrate|jobs
 
   npm run op -- '{"stats": true}'
   npm run op -- '{"ledger": {"op": "dead"}}'
-  npm run op -- '{"clan_report_preview": {"clan_tag": "#TAG"}}' --function jobs
+  npm run op -- '{"series_metrics": true}' --function jobs
 
   {} is refused: it runs the migrations, and that is deploy.mjs's call.`;
 

@@ -2,7 +2,6 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (name) =>
@@ -12,90 +11,21 @@ const read = (name) =>
 const product = (name, kind, facts) => ({ name, kind, facts });
 const relay = (name, message) => ({ name, kind: message.kind, message });
 
-/** The gallery is what Elixir sends. A retired kind's specimens (the
- *  clan report, Arena week and milestone, folded into the digest on
- *  2026-11-12) are asked for by name: a stored issue still renders on its
- *  record, so the escaping tests keep reading them.
- *  @param {{retired?: boolean}} [opts]
+/** The gallery is what Elixir sends: one specimen per kind still sent
+ *  (packages/mail/fixtures) and its variants. A sent mail's record shows
+ *  the archived HTML, so no retired kind needs a renderer or a specimen.
  *  @returns {Array<{name: string, kind: string, facts?: any, message?: any}>} */
-export function mailPreviewCases({ retired = false } = {}) {
-  const cases = ["../fixtures", "../test/fixtures"].flatMap((dir) =>
-    readdirSync(path.join(here, dir))
-      .filter((f) => f.endsWith(".json"))
-      .map((f) =>
-        product(
-          f.slice(0, -5),
-          f.split("-")[0].replace(".json", ""),
-          JSON.parse(readFileSync(path.join(here, dir, f), "utf8")),
-        ),
+export function mailPreviewCases() {
+  const dir = path.join(here, "../fixtures");
+  const cases = readdirSync(dir)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) =>
+      product(
+        f.slice(0, -5),
+        f.slice(0, -5),
+        JSON.parse(readFileSync(path.join(dir, f), "utf8")),
       ),
-  );
-  const clan = read("clan_report");
-  const noWar = { ...clan, war: { present: false }, trend: null };
-  cases.push(product("clan_report-no-war", "clan_report", noWar));
-  cases.push(
-    product("clan_report-activity", "clan_report", {
-      ...noWar,
-      clan: { ...clan.clan, scope: "activity" },
-      headline: {
-        ...clan.headline,
-        battles: null,
-        active: null,
-        sessions: null,
-      },
-      presence: null,
-      week_moves: null,
-      standouts: [],
-      coverage:
-        "Activity scope records rosters and wars, not members’ battles. Battle activity is unknown.",
-    }),
-  );
-  cases.push(
-    product("clan_report-partial", "clan_report", {
-      ...clan,
-      coverage:
-        "Recording began partway through this week. The record does not cover the full period; missing activity is unknown.",
-      trend: null,
-    }),
-  );
-  const arena = read("arena_week");
-  cases.push(
-    product("arena_week-alt-only", "arena_week", {
-      ...arena,
-      primary: {
-        ...arena.primary,
-        totals: { battles: 0, wins: 0, losses: 0, by_family: [] },
-        trophies: null,
-        modes: [],
-        deck: null,
-        form: null,
-        opponents: { distinct: 0, again: [] },
-        coverage:
-          "No primary-player battles recorded. The other players’ records are shown below.",
-      },
-      progress: [],
-    }),
-  );
-  const families = [
-    arena.primary.totals.by_family[0],
-    { mode: "casual", battles: 8, wins: 3, losses: 5 },
-    { mode: "ranked", battles: 6, wins: 4, losses: 2 },
-    arena.primary.totals.by_family.find((x) => x.mode === "war"),
-  ];
-  cases.push(
-    product("arena_week-many-modes", "arena_week", {
-      ...arena,
-      primary: {
-        ...arena.primary,
-        totals: {
-          battles: families.reduce((n, m) => n + m.battles, 0),
-          wins: families.reduce((n, m) => n + m.wins, 0),
-          losses: families.reduce((n, m) => n + m.losses, 0),
-          by_family: families,
-        },
-      },
-    }),
-  );
+    );
   const digest = read("tracking_report");
   cases.push(
     product("tracking_report-daily", "tracking_report", {
@@ -177,51 +107,6 @@ export function mailPreviewCases({ retired = false } = {}) {
       signature_state: "not_recorded",
     }),
   );
-  const milestone = read("milestone");
-  const first = milestone.milestones[0];
-  const moments = [
-    ["ranked_promotion", "reached Master I", "Master I"],
-    ["best_trophies_band", "set a new best: 8,000 trophies", "8,000 trophies"],
-    ["career_wins_step", "reached 5,000 career wins", "5,000 career wins"],
-    [
-      "collection_level_step",
-      "reached collection level 50",
-      "Collection level 50",
-    ],
-    ["legendary_badge_earned", "earned a legendary badge", "Legendary badge"],
-    [
-      "card_form_unlocked",
-      "unlocked an Evolution",
-      "",
-      { id: 26000000, name: "Knight", form: "evolution" },
-    ],
-    [
-      "card_form_unlocked",
-      "unlocked a Hero",
-      "",
-      { id: 26000018, name: "Mini P.E.K.K.A", form: "hero" },
-    ],
-  ];
-  for (const [i, [kind, text, big, card]] of moments.entries())
-    cases.push(
-      product(`milestone-${i}-${kind}`, "milestone", {
-        ...milestone,
-        also: [],
-        milestones: [
-          {
-            ...first,
-            kind,
-            headline: `RiverFox ${text}`,
-            big,
-            big_label: "",
-            lines: [],
-            battle: null,
-            card,
-            subject: { ...first.subject, name: "RiverFox" },
-          },
-        ],
-      }),
-    );
   const feedback = read("feedback_answer");
   for (const status of ["seen", "planned", "needs_info", "declined"])
     cases.push(
@@ -332,7 +217,5 @@ export function mailPreviewCases({ retired = false } = {}) {
               },
       }),
     );
-  return retired
-    ? cases
-    : cases.filter((x) => x.message || !isRetiredEmailKind(x.kind));
+  return cases;
 }

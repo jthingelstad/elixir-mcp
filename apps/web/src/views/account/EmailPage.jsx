@@ -269,10 +269,10 @@ export function EmailPage() {
       </section>
       <p className="st-foot">
         Each switch also appears at the foot of its email. Scheduled mail sends
-        at most once per kind and subject a day. Milestones and feedback answers
-        arrive as events happen. Switching mail off leaves recording unchanged.
-        Sent records open the email as it was sent. Sign-in codes always come,
-        and are not listed here.
+        at most once per kind and subject a day. Answers to your feedback come a
+        few minutes after they're written. Switching mail off leaves recording
+        unchanged. Sent records open the email as it was sent. Sign-in codes
+        always come, and are not listed here.
       </p>
     </div>
   );
