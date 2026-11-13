@@ -1233,6 +1233,14 @@ export const ARCHETYPE_NOTE =
  *  a deck no deck row holds (a war deck played only in duels): the cards
  *  named, with the archetype deckIdentities would give them. */
 
+/** A deck identity's cards with their catalog elixir costs, for the
+ *  website's deck row (Home's sitting, design canvas 2026-11-13). Kept
+ *  under a symbol so no tool's JSON carries it: the contract's deck shape
+ *  does not change. Null for an identity that did not come from
+ *  deckIdentities. */
+const DECK_COSTS = Symbol("deck card costs");
+export const deckCardsWithCost = (identity) => identity?.[DECK_COSTS] ?? null;
+
 export async function deckIdentities(db, hashes) {
   const wanted = [...new Set(hashes.filter(Boolean))];
   if (wanted.length === 0) return new Map();
@@ -1276,8 +1284,15 @@ export async function deckIdentities(db, hashes) {
   }
   // The archetype on the value (design §4.1): every deck object the
   // contract serves passes through here.
-  for (const [hash, identity] of out)
+  for (const [hash, identity] of out) {
     identity.archetype = archetypeOf(costs.get(hash) ?? [], vocab);
+    identity[DECK_COSTS] = (costs.get(hash) ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      form: formName(c.form),
+      elixir_cost: c.elixir_cost ?? null,
+    }));
+  }
   return out;
 }
 

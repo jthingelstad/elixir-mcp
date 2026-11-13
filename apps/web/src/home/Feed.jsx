@@ -4,6 +4,7 @@ import {
   Avatar,
   Chip,
   Chips,
+  DeckVersus,
   Empty,
   ErrorState,
   Link,
@@ -19,7 +20,13 @@ import {
   TimelineEvidence,
   useTimelinePlace,
 } from "../views/account/timeline-shared.jsx";
-import { FEED_CHIPS, feedShown, shownAt, timelineDays } from "./logic.js";
+import {
+  FEED_CHIPS,
+  feedShown,
+  modeWord,
+  shownAt,
+  timelineDays,
+} from "./logic.js";
 import { Sitting, SITTINGS } from "./Session.jsx";
 import { Cheers } from "./Cheers.jsx";
 
@@ -315,6 +322,16 @@ function MomentBattle({ it }) {
     typeof by.crowns === "number" &&
     typeof by.crowns_against === "number";
   const won = known && by.crowns > by.crowns_against;
+  // The line under the result (canvas .mbattle's note): the battle's mode,
+  // and its trophies after when the record kept them. Facts only.
+  const context = [
+    it.proof_mode ? modeWord(it.proof_mode) : null,
+    typeof by?.trophies_after === "number" && it.proof_mode === "ladder"
+      ? `${by.trophies_after.toLocaleString("en-US")} trophies after`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <Link
       to={it.battle_url.replace(/^https?:\/\/[^/]+/, "")}
@@ -327,15 +344,20 @@ function MomentBattle({ it }) {
           >
             {won ? "Won" : "Lost"}
           </span>
-          <b>
-            {by.crowns}-{by.crowns_against}
-            {by.opponent?.name ? (
-              <>
-                {won ? " over " : " against "}
-                <TagText>{by.opponent.name}</TagText>
-              </>
+          <span className="kit-mbattle__line">
+            <b>
+              {by.crowns}-{by.crowns_against}
+              {by.opponent?.name ? (
+                <>
+                  {won ? " over " : " against "}
+                  <TagText>{by.opponent.name}</TagText>
+                </>
+              ) : null}
+            </b>
+            {context ? (
+              <span className="kit-mbattle__note">{context}</span>
             ) : null}
-          </b>
+          </span>
         </>
       ) : null}
       <span className="kit-mbattle__go">The battle</span>
@@ -452,7 +474,9 @@ function FeedItem({ it, open, onToggle }) {
           <When it={it} />
         </div>
       </header>
-      {moment ? (
+      {it.kind === "battle_highlight" ? (
+        <HighlightBody it={it} who={who} />
+      ) : moment ? (
         <div className="kit-feed__moment">
           <span
             className={`kit-medal${VIOLET.has(it.kind) ? " kit-medal--violet" : ""}`}
@@ -473,6 +497,58 @@ function FeedItem({ it, open, onToggle }) {
         <span className="share-actions kit-feed__links">{links}</span>
       </footer>
     </article>
+  );
+}
+
+/** A highlight as the canvas draws it: what happened, the player's own
+ *  words on the gold rule, and both decks with the score between when the
+ *  record kept them (`versus`, built with the highlight's read). */
+function HighlightBody({ it, who }) {
+  const f = it.facts ?? {};
+  const b = f.battle ?? {};
+  const words = String(f.words ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const suffix = words ? `: “${words}”` : "";
+  const said =
+    suffix && it.text?.endsWith(suffix)
+      ? `${it.text.slice(0, -suffix.length)}.`
+      : it.text;
+  const v = it.versus;
+  const known =
+    typeof b.crowns === "number" && typeof b.crowns_against === "number";
+  const result =
+    b.outcome === "win" ? "Won" : b.outcome === "loss" ? "Lost" : null;
+  const theirName = b.opponents?.length === 1 ? b.opponents[0].name : null;
+  return (
+    <>
+      <p className="kit-feed__text">
+        <TagText>{said}</TagText>
+      </p>
+      {said !== it.text ? (
+        <blockquote className="kit-feed__words">
+          <TagText>{words}</TagText>
+        </blockquote>
+      ) : null}
+      {v?.mine && v?.theirs && known ? (
+        <DeckVersus
+          showCost
+          left={{
+            name: <TagText>{who?.name ?? who?.tag ?? "You"}</TagText>,
+            label: v.mine.label ? <TagText>{v.mine.label}</TagText> : null,
+            cards: v.mine.cards,
+          }}
+          right={{
+            name: <TagText>{theirName ?? "Their deck"}</TagText>,
+            label: v.theirs.label ? <TagText>{v.theirs.label}</TagText> : null,
+            cards: v.theirs.cards,
+          }}
+          score={`${b.crowns}-${b.crowns_against}`}
+          scoreLabel={`${result ? `${result} ` : ""}${b.crowns} to ${b.crowns_against}`}
+          note={b.mode_group ? modeWord(b.mode_group) : null}
+        />
+      ) : null}
+    </>
   );
 }
 

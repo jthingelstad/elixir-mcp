@@ -338,7 +338,8 @@ export function feedDayAt(
 /** When a feed item happened, in words (design canvas, 2026-11-13): "Today,
  *  4:10 pm", "Tonight, 8:14 pm", "Yesterday, 7:55 pm", "Monday, 9:30 am".
  *  With an `end` it is the range a sitting spanned: "Tonight, 7:40 to 8:32
- *  pm", the day said once and the am or pm once when both share it. A
+ *  pm", the day said once and the am or pm once when both share it; a
+ *  range across midnight says both days. A
  *  reader with no zone reads UTC and the time says so. "—" for no
  *  instant. */
 export function feedWhenAt(
@@ -351,7 +352,17 @@ export function feedWhenAt(
   const tail = p.named ? "" : " UTC";
   const day = feedDayAt(ts, zone, { now, evening: true });
   const q = end == null ? null : readerParts(end, zone);
-  if (!q || q.clock === p.clock) return `${day}, ${p.clock}${tail}`;
+  if (!q) return `${day}, ${p.clock}${tail}`;
+  // A sitting across midnight says both days (Codex on #864): "Yesterday,
+  // 11:50 pm to today, 12:10 am".
+  if (daysApart(ts, end, zone) !== 0) {
+    const endDay = feedDayAt(end, zone, { now });
+    const said = /^(Today|Tonight|Yesterday)$/.test(endDay)
+      ? endDay.toLowerCase()
+      : endDay;
+    return `${day}, ${p.clock} to ${said}, ${q.clock}${tail}`;
+  }
+  if (q.clock === p.clock) return `${day}, ${p.clock}${tail}`;
   const half = (c: string) => c.slice(-2);
   const from = half(p.clock) === half(q.clock) ? p.clock.slice(0, -3) : p.clock;
   return `${day}, ${from} to ${q.clock}${tail}`;

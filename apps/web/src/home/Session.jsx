@@ -1,4 +1,4 @@
-import { TagText } from "@elixir-mcp/ui";
+import { DeckRow, TagText } from "@elixir-mcp/ui";
 import { modeWord } from "./logic.js";
 import { Sparkline } from "./Sparkline.jsx";
 
@@ -72,6 +72,16 @@ export function Sitting({ it }) {
             ? ` · in ${deck.battles} of ${f.battles ?? deck.battles} battles`
             : ""}
         </p>
+      ) : null}
+      {/* Its eight cards, as kept when Home's week was built (design
+          canvas, 2026-11-13); a week stored before then has the label
+          alone. */}
+      {it.deck?.cards?.length && it.deck.label === deck?.label ? (
+        <DeckRow
+          cards={it.deck.cards}
+          showCost
+          label={`${it.deck.label}, the deck played most`}
+        />
       ) : null}
     </div>
   );

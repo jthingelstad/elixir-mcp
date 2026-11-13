@@ -124,6 +124,20 @@ describe("the feed's words (design canvas, 2026-11-13)", () => {
       "Wednesday, November 5, 2025, 9:30 am",
     );
   });
+  it("says both days for a sitting across midnight (Codex on #864)", () => {
+    expect(
+      feedWhenAt("2026-11-12T05:50:00Z", Z, {
+        now,
+        end: "2026-11-12T06:10:00Z",
+      }),
+    ).toBe("Yesterday, 11:50 pm to today, 12:10 am");
+    expect(
+      feedWhenAt("2026-11-09T05:50:00Z", Z, {
+        now,
+        end: "2026-11-09T06:10:00Z",
+      }),
+    ).toBe("Sunday, 11:50 pm to Monday, 12:10 am");
+  });
   it("gives a sitting its range, the am or pm said once when shared", () => {
     expect(
       feedWhenAt("2026-11-13T01:40:00Z", Z, {

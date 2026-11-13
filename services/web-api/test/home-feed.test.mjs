@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import {
   annotateFeed,
   groupsOf,
+  proofModeOf,
   scoresOf,
   sparkBars,
   sparkOf,
@@ -148,4 +149,17 @@ test("a sitting's score facts are its widest win and its three-crown wins", () =
   assert.equal(scoresOf([{ outcome: "win", margin: 3 }]), null);
   assert.equal(scoresOf([{ outcome: "loss", crowns: 0, against: 1 }]), null);
   assert.equal(scoresOf(null), null);
+});
+
+test("a moment's proving battle names its mode for the line under it", () => {
+  assert.equal(
+    proofModeOf({ facts: { promoted_by: { battle_id: "b", type: "PvP" } } }),
+    "ladder",
+  );
+  assert.equal(
+    proofModeOf({ facts: { best_win: { battle_id: "b", mode: "ranked" } } }),
+    "ranked",
+  );
+  assert.equal(proofModeOf({ facts: { crossed_by: { type: "PvP" } } }), null);
+  assert.equal(proofModeOf({ facts: {} }), null);
 });
