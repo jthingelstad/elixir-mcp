@@ -6,8 +6,7 @@
   "description": "Clan's private management ledger and its Postgres adapter.",
   "exports": {
     ".": "./src/ledger.mjs",
-    "./postgres": "./src/postgres.mjs",
-    "./import": "./src/import.mjs"
+    "./postgres": "./src/postgres.mjs"
   },
   "scripts": {
     "test": "node --test --test-force-exit"

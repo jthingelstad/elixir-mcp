@@ -230,7 +230,6 @@ export const KEPT = Object.freeze({
   schema_migrations: "the migration ledger",
   clan_state:
     "Clan's own store, keyed by item rather than by time; an item-kind trim is not built",
-  clan_state_import: "the record of Clan's one import",
 });
 
 const SQL_NAME = /^[a-z_]+$/;

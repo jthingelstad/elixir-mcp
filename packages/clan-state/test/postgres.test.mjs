@@ -2,16 +2,10 @@ import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
 import { readFile, writeFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
 import { schemaFingerprint } from "../../../services/migrate/src/fingerprint.mjs";
 import { createPostgresStore, createPostgresLedger } from "../src/postgres.mjs";
 import { warMembershipEvidence } from "../../record/src/war-membership.mjs";
 import { backfillReadFacts } from "../../record/src/read-facts.mjs";
-import {
-  inspectSnapshot,
-  importSnapshot,
-  compareSnapshot,
-} from "../src/import.mjs";
 import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
 const adminUrl =
@@ -37,12 +31,8 @@ after(async () => {
   await dropScratch(name);
 });
 beforeEach(async () => {
-  await db.query("truncate clan_state, clan_state_import");
+  await db.query("truncate clan_state");
 });
-const snapshot = (items) => {
-  const bytes = Buffer.from(JSON.stringify({ version: 1, items }));
-  return { bytes, digest: createHash("sha256").update(bytes).digest("hex") };
-};
 const durable = [
   { pk: "policy##00UQG", version: 3 },
   {
@@ -206,65 +196,6 @@ test("scratch migration pins the full schema", async () => {
     )
   ).trim();
   assert.equal(await schemaFingerprint(url), pinned);
-});
-test("digest-bound import is lossless, private, idempotent and cannot overwrite subsequent changes", async () => {
-  const { bytes, digest } = snapshot(durable);
-  const preview = await importSnapshot(db, bytes, digest);
-  assert.equal(preview.item_count, 7);
-  assert.equal(preview.applied, false);
-  assert.ok(!JSON.stringify(preview).includes("stable-id"));
-  assert.equal(
-    (await db.query("select count(*)::int as n from clan_state")).rows[0].n,
-    0,
-  );
-  const result = await importSnapshot(db, bytes, digest, { apply: true });
-  assert.equal(result.applied, true);
-  const comparison = await compareSnapshot(db, bytes, digest);
-  assert.equal(comparison.equal, true);
-  assert.equal(comparison.matching, 7);
-  assert.equal(JSON.stringify(comparison).includes("stable-id"), false);
-  const store = createPostgresStore(db);
-  for (const item of durable) assert.deepEqual(await store.get(item.pk), item);
-  const listed = await store.listByPartition("clan##00UQG");
-  assert.equal(listed.length, 3);
-  assert.ok(!listed.some((i) => i.pk.startsWith("model_key")));
-  await store.put({ ...durable[0], version: 4 });
-  assert.equal((await compareSnapshot(db, bytes, digest)).equal, false);
-  const repeat = await importSnapshot(db, bytes, digest, { apply: true });
-  assert.equal(repeat.already_imported, true);
-  assert.equal((await store.get(durable[0].pk)).version, 4);
-  const changed = snapshot([
-    ...durable,
-    { pk: "note##00UQG#new", text: "new" },
-  ]);
-  await assert.rejects(
-    importSnapshot(db, changed.bytes, changed.digest, { apply: true }),
-    /destination must be empty/,
-  );
-});
-test("import refuses mismatches, unknown kinds, tokens, plaintext keys and temporary sessions before writes", async () => {
-  for (const item of [
-    { pk: "session#old", accessToken: "opaque" },
-    { pk: "login#temporary" },
-    { pk: "future#unknown" },
-    { pk: "pref#user", nested: { refresh_token: "opaque" } },
-    { pk: "model_key#clan", key: "sk-ant-123456789012345678901234567" },
-    { pk: "model_key#clan", sealed: "not-a-box" },
-  ]) {
-    const s = snapshot([item]);
-    assert.throws(() => inspectSnapshot(s.bytes, s.digest));
-  }
-  const s = snapshot(durable);
-  assert.throws(
-    () => inspectSnapshot(s.bytes, "0".repeat(64)),
-    /digest mismatch/,
-  );
-  const dup = snapshot([durable[0], durable[0]]);
-  assert.throws(() => inspectSnapshot(dup.bytes, dup.digest), /duplicate/);
-  await assert.rejects(
-    createPostgresStore(db).put({ pk: "session#forbidden" }),
-    /clan_state_not_session/,
-  );
 });
 test("two independent connections atomically allocate counters, first attributes, and daily claims", async () => {
   const a = createPostgresStore(db),
