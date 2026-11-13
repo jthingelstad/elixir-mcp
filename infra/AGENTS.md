@@ -2,7 +2,7 @@
 
 One CloudFormation stack (`template.yaml`) in `us-east-1`, profile
 `cloud-engineer`. Three HTTP Web Functions (collector, mcp, web-api), five Event Functions
-(email-relay, jobs, migrate, scheduler, timeline-sync), RDS PostgreSQL (`db.t4g.micro`) in a NAT-free
+(email-relay, jobs, migrate, scheduler, timeline-sync), RDS PostgreSQL (`db.t4g.micro`; `db.t4g.small` for the evening of 2026-11-13 only) in a NAT-free
 VPC, S3 (payload archive, outbox, web), CloudFront in front of one origin.
 `docs/ENGINEERING.md` has the invariants; the `ship` skill has the loop.
 
