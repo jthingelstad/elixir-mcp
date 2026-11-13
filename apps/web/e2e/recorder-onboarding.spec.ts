@@ -611,9 +611,7 @@ test("Quickstart starts with browser use and retains client deep links", async (
   await expect(
     page.getByRole("heading", { name: "Get started with Elixir", exact: true }),
   ).toBeVisible();
-  await expect(page.locator("main")).toContainText(
-    "without connecting an AI client",
-  );
+  await expect(page.locator("main")).toContainText("Choose your digest");
   await expect(page.locator("main")).toContainText("Connect a client");
   await expect(
     page
@@ -626,6 +624,6 @@ test("Quickstart starts with browser use and retains client deep links", async (
   await expect(page).toHaveURL(/\/docs\/connect-a-client#connect$/);
   await expect(page.locator("#claude-desktop")).toBeAttached();
   await page.goto("/docs");
-  await expect(page.locator("main")).toContainText("free account");
+  await expect(page.locator("main")).toContainText("follow a few people");
   await expect(page.locator("main")).toContainText("Connecting an AI is");
 });

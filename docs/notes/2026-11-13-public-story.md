@@ -25,6 +25,10 @@ Friends. "Elixir MCP" as the service's name in prose became "Elixir" in
 the docs that said it to readers (not Architecture, which names the
 repository).
 
+The MCP server's `serverInfo.title` is "Elixir" (Jamie, 2026-11-13), in
+`services/mcp/src/protocol.mjs` and the Protocol page's example; the
+title is not part of the tool contract, so no contract bump.
+
 Layout, class names and components are untouched, for the restyle
 landing on the same pages. The privacy and terms pages needed no change:
 neither says "track". MCP and the JSON API unchanged.

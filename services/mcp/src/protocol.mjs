@@ -226,7 +226,7 @@ function initializeResult(
     },
     serverInfo: {
       name: "elixir-mcp",
-      title: "Elixir MCP - Clash Royale history, recorded",
+      title: "Elixir",
       version: serverVersion(declarations),
       websiteUrl: "https://elixir.poapkings.com/",
     },
