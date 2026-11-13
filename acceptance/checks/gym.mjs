@@ -47,12 +47,12 @@ export const gym = [
         .filter((t) => !t.inputSchema?.properties?.verbosity)
         .map((t) => t.name);
       eq(missing.length, 0, `tools without verbosity: ${missing.join(", ")}`);
-      const meta = ctx.tools.get("cards_card");
+      const meta = ctx.tools.get("cards_catalog");
       ok(
         meta.inputSchema.properties.verbosity.description.startsWith(
           "compact:",
         ),
-        "cards_card is two-size",
+        "cards_catalog is two-size",
       );
     },
   },

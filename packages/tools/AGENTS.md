@@ -16,9 +16,10 @@ document) is `packages/contracts`. To add or change a tool, follow
   tested: `services/mcp/test/tool-conventions.test.mjs`,
   `test/tool-schema-lint.test.mjs`, `test/docs-pointers.test.mjs` (every
   `docsRef` resolves to a built page and H2).
-- **Scope:** segment tools name a recorded population (`"mine"` or one
-  player or clan) and refuse corpus or collection selectors; no tool
-  answers a game-wide statistic or a recommendation (`docs/DECISIONS.md`).
+- **Scope:** every read names a player or a clan; no tool reads a
+  population or the corpus (the `segment` family retired in 13.0.0), and
+  none answers a game-wide statistic or a recommendation
+  (`docs/DECISIONS.md`).
 - **One derivation:** a fact two doors serve comes from one function in
   `packages/record`; `services/web-api/test/record-parity.test.mjs` and
   `services/web-api/test/integration-pin.test.mjs` hold MCP and `/api/v1`

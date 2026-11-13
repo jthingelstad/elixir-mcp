@@ -190,11 +190,9 @@ The defaults differ by tool, and each says which applied:
 | `clans_series` | the last 30 game days (`source: "default"`, with a note naming `series_available_from`); bounds as on the other series |
 | `elixir_timeline` | since your read pointer, or the last day without one (`source: "pointer"` or `"default"`); capped at 30 days |
 | `game_events` | the current season so far |
-| `cards_card` | the current season to date (`source: "season"`); `season` selects another |
 | `clans_standings` | 30 days |
 | `clans_participation` | 5 ISO weeks, the current one included (each starts Monday 00:00 UTC, ten hours before the war week; see [Seasons](#seasons)) |
-| `battles_performance` with a `segment` | 12 weeks |
-| `battles_performance` without a `segment`, `battles_decks`, `battles_query`, `battles_cards`, `battles_opponents` | unbounded: the whole recorded history, said so in `applied.window.source` |
+| `battles_performance`, `battles_decks`, `battles_query`, `battles_cards`, `battles_opponents` | unbounded: the whole recorded history, said so in `applied.window.source` |
 
 ## Seasons
 
@@ -211,8 +209,7 @@ it, the record never will.
 **Balance changes are not modelled**, deliberately: nothing hand-fed or
 scraped enters the data layer. Use a season window to keep comparisons within the same game period; a window spanning seasons may include different card costs or rules.
 
-- **`season`** on every windowed tool (`cards_card`,
-  the player battle tools, `clans_standings`, the daily
+- **`season`** on every windowed tool (the player battle tools, `clans_standings`, the daily
   series, `game_events` and `elixir_timeline`)
   bounds the window to one season: `"current"` (to date), `"previous"`, the month (`"2026-08"`) or the war number
   (`135`). `from`/`to`/`days`/`weeks` given still win, and each tool's own
@@ -236,15 +233,11 @@ scraped enters the data layer. Use a season window to keep comparisons within th
   and the record says so rather than widening it: on a running season under
   seven days old, a note says the window is thin and names `season: "previous"`
   as the settled comparison.
-- `battles_performance` with a `segment` keeps its twelve-week default and crosses rolls by
-  design; every week row carries `season_month`, the season its Tuesday
-  to Sunday fall in, so a chart can draw the line where `crosses` puts it.
 
 `game_clock` carries the same two names (`season_id`, `season_month`) and
 the season's bounds for now.
 
-`group_by: "week"` on `battles_performance`, every row of its
-`segment` weeks, and `clans_participation`'s weeks (which Standing's Path
+`group_by: "week"` on `battles_performance` and `clans_participation`'s weeks (which Standing's Path
 of Legends and donation minimums read) use **ISO weeks**, Monday to Sunday. A war week, by
 contrast, runs on the policy grid above, Monday 10:00 UTC to Monday 10:00
 UTC; the two start on the same weekday and ten hours apart, so never join

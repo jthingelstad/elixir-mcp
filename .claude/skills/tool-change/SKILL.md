@@ -47,7 +47,7 @@ Gym's stop list, and it applies to every tool change, not only a sweep:
 
 Then read the family's DECISIONS lines in full. Search
 `docs/DECISIONS.md` for the tool name and the concepts it touches (mode,
-segment, window, season, war, boat, ghost, archetype, form, timeline),
+window, season, war, boat, ghost, archetype, form, timeline),
 and name the lines that constrain the change in your plan. "The ledger
 is the read path": the 2026-09-25 audit found decisions left unrealized
 because agents had read NOTES instead. Before the first edit, be in
@@ -75,7 +75,7 @@ has a shared SQL seam (`boat-defense-sql.mjs`, `participation-sql.mjs`,
 ## 3. The conventions
 
 The registry tests enforce the mechanical conventions (600-character
-descriptions, an `outputSchema` everywhere, segment, `season` wherever
+descriptions, an `outputSchema` everywhere, `season` wherever
 `from` is, `verbosity`, retired names, docs pointers, annotations);
 `checklist.md` lists every assertion. DECISIONS states the rest, and
 most of it is checked only by review:
@@ -206,7 +206,7 @@ pin (facets.md section 8 names the files).
 - **Shapes** have been empty since 6.14.0: write the `outputSchema`,
   never a recorded baseline.
 - **The gate's family is the tool-name prefix**, not the group:
-  `badges_rarity` is `badges`, `game_clock` is `game`. Shared code
+  `battles_query` is `battles`, `game_clock` is `game`. Shared code
   (protocol, `tools.mjs`, `shared.mjs`, ingest) runs the whole suite.
 
 ## 9. Version, then ship

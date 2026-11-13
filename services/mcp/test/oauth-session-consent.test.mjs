@@ -341,7 +341,7 @@ test("consent by session cannot reach an agent the person does not own", async (
 // ---- family sign-in (2026-10-12) ------------------------------------------
 
 const API = `${ISSUER}/api/v1`;
-const CLAN_SCOPE = "cr:read clans:attest";
+const CLAN_SCOPE = "cr:read";
 const DROP_REDIRECT = "https://drop.poapkings.com/api/auth/callback";
 const DROP_SCOPE = "cr:read recordings:write account:email";
 

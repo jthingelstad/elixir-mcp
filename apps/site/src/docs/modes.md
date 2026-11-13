@@ -72,8 +72,8 @@ has the detail.
 ## Asking for one mode
 
 The battle and card tools take `mode`, one group at a time:
-`battles_query`, `battles_performance` (with or without a `segment`), `battles_compare`,
-`battles_decks`, `battles_cards`, `battles_opponents`, `cards_card`,
+`battles_query`, `battles_performance`, `battles_compare`,
+`battles_decks`, `battles_cards`, `battles_opponents`
 and `clans_standings`. Ask your agent for "my Path of
 Legends this week" and it passes `mode: "ranked"`;
 [the seven groups](#the-seven-groups) above give the game's name for each.

@@ -20,6 +20,7 @@ import {
   OAUTH_SCOPES,
   FULL_OAUTH_SCOPE,
   LEGACY_OAUTH_SCOPES,
+  RETIRED_OAUTH_SCOPES,
   tierSql,
 } from "@elixir-mcp/contracts";
 
@@ -124,15 +125,16 @@ export function normalizeScope(value) {
   return OAUTH_SCOPES.filter((scope) => unique.includes(scope)).join(" ");
 }
 
-/** A space-separated scope string as today's names: collections:write
- *  (retired with Collections) is dropped and an old name becomes the one
- *  it was renamed to (recordings:write is follows:write since 2026-11-13).
+/** A space-separated scope string as today's names: a retired scope
+ *  (collections:write with Collections, clans:attest in 13.0.0) is dropped
+ *  and an old name becomes the one it was renamed to (recordings:write is
+ *  follows:write since 2026-11-13).
  *  Every read of a scope goes through here, so a grant, code or key
  *  stored under an old name keeps its authority and is never rewritten. */
 export function currentScopeNames(value) {
   return String(value ?? "")
     .split(/\s+/)
-    .filter((scope) => scope && scope !== "collections:write")
+    .filter((scope) => scope && !RETIRED_OAUTH_SCOPES.includes(scope))
     .map((scope) => LEGACY_OAUTH_SCOPES[scope] ?? scope);
 }
 

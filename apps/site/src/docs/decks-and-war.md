@@ -43,8 +43,8 @@ Cards are recorded **as rows, not only as the deck's JSON**: every card a
 participant played is a fact of its own, so card questions are indexed
 lookups rather than scans of every deck. `battles_query` takes `with_card`
 (one id in your deck), `with_cards` (several ids, all present) and
-`against_card` (one id in an opponent's deck); `battles_cards`,
-`cards_card` read those rows, and a
+`against_card` (one id in an opponent's deck); `battles_cards`
+reads those rows, and a
 deck's cards in `battles_decks` are the identity's
 own (ordered by card id, named from the catalog), not one player's copy.
 Card filters match the deck's cards, not the tower troop; a duel matches on

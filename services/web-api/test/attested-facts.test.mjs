@@ -596,7 +596,7 @@ test("Clan's morning run records its computed award standing; a person cannot, a
 });
 
 test("the JSON API has no clan fact doors: a person's grant or a key gets the unknown operation's 404", async () => {
-  const grantToken = await grant(accounts.leader, "cr:read clans:attest");
+  const grantToken = await grant(accounts.leader, "cr:read");
   const body = {
     type: "departure_classified",
     ref: "door-1",

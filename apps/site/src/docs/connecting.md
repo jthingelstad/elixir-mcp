@@ -80,7 +80,7 @@ the call log.
   "code_challenge_methods_supported": ["S256"],
   "token_endpoint_auth_methods_supported": ["none", "client_secret_post"],
   "revocation_endpoint_auth_methods_supported": ["none", "client_secret_post"],
-  "scopes_supported": ["cr:read", "follows:write", "account:write", "feedback:write", "account:email", "clans:attest"]
+  "scopes_supported": ["cr:read", "follows:write", "account:write", "feedback:write", "account:email"]
 }
 ```
 
@@ -91,15 +91,15 @@ the call log.
 {
   "resource": "https://elixir.poapkings.com/mcp",
   "authorization_servers": ["https://elixir.poapkings.com"],
-  "scopes_supported": ["cr:read", "follows:write", "account:write", "feedback:write", "account:email", "clans:attest"],
+  "scopes_supported": ["cr:read", "follows:write", "account:write", "feedback:write", "account:email"],
   "bearer_methods_supported": ["header"]
 }
 ```
 
 Both documents list every capability the server defines. The four
 **standard** ones are what the 401 challenge's `scope` advertises and what the
-consent page offers; `account:email` and `clans:attest` are the
-exceptions, offered only to the family's own apps that name them (described
+consent page offers; `account:email` is the
+exception, offered only to the family's own apps that name it (described
 under [Signing a person in](#signing-a-person-in-with-elixir)). **What a
 client asks for is granted; every other standard capability is a checkbox the
 person decides on the consent page**, and a client that names no scope asks
@@ -232,11 +232,12 @@ grant. Refreshing never widens scope.
 | `account:write` | private nicknames for the players you follow | `elixir_nickname` |
 | `feedback:write` | file attributed feedback | `elixir_send_feedback` |
 | `account:email` | read the account's email address at `/oauth/userinfo` (and `GET /api/v1/me`); granted only to the Elixir family's own apps | no tool; see below |
-| `clans:attest` | nothing at present: no JSON API operation takes it, and a clan's facts are written in Clan; still granted only to the Elixir family's own apps, when they ask for it | no tool |
 
 `recordings:write` is an accepted alias of `follows:write`: a client that
 asks for it is granted `follows:write`, and a connection or key that holds
-it can follow.
+it can follow. `clans:attest` retired in 13.0.0: a client that still names
+it signs in without it, and a connection that held it keeps every other
+capability it was granted.
 
 Canonical order is the order above. A call to a tool outside the token's
 scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
@@ -276,7 +277,7 @@ tokens issued with no scope carry every capability.
 A web product in the Elixir family on its own origin (Elixir Drop) can use
 Elixir as its sign-in ([Sign in with Elixir](/docs/sign-in-with-elixir)). The
 grant it needs is the ordinary one, plus **`account:email`** when it needs the
-person's address. Like `clans:attest`, `account:email` is never
+person's address. `account:email` is never
 offered unasked: it does not appear ticked
 on the consent page, is not part of the default grant, is never widened into
 from a checkbox or from Settings › Connections & agents, and is not advertised in a 401

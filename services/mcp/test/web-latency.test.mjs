@@ -86,7 +86,7 @@ test("ceilings: exact first, then the longest glob; unnamed routes unjudged", ()
   );
   assert.equal(ceilingFor(ceilings, "web", "GET /api/me/timeline"), null);
   assert.equal(ceilingFor(ceilings, "web", "POST /api/clan/clans/*/x"), null);
-  assert.equal(ceilingFor(ceilings, "mcp", "cards_card"), 2000);
+  assert.equal(ceilingFor(ceilings, "mcp", "cards_catalog"), 2000);
   const named = { mcp: { default_p95_ms: 2000, tools: { slow_tool: 5000 } } };
   assert.equal(ceilingFor(named, "mcp", "slow_tool"), 5000);
   const nested = {
@@ -193,7 +193,7 @@ test("the report judges routes and tools and breaks Home down by build", () => {
       web: rows,
       timeouts: [{ "message.http": "GET /api/me/home", "message.status": 504 }],
       mcp: Array.from({ length: 12 }, () => ({
-        "message.tool": "cards_card",
+        "message.tool": "cards_catalog",
         "message.ms": "100",
         "message.status": "200",
       })),

@@ -5,7 +5,7 @@ import { docsRef, notes } from "../shared.mjs";
 
 export const elixir_collectors = {
   description:
-    "The collector fleet: operator-run machines that fetch from the CR API, each named for a Clash Royale card. More collectors mean resilience, never more CR budget. Running an active collector earns its operator the Family tier, and nothing else; points and quota_credits are retired and always 0.",
+    "The collector fleet: operator-run machines that fetch from the CR API, each named for a Clash Royale card. More collectors mean resilience, never more CR budget. Running an active collector earns its operator the Family tier, and nothing else.",
   inputSchema: {
     type: "object",
     properties: {},
@@ -32,11 +32,6 @@ export const elixir_collectors = {
         card: g.card_name,
         status: silent ? "silent" : g.status,
         lifecycle: g.status,
-        // Retired with the points economy (#539) and kept, constant, so
-        // a reader of the 11.x shape still parses; dropping them is a
-        // major, which is Jamie's call.
-        points: 0,
-        quota_credits: 0,
         last_seen: g.last_heartbeat_at?.toISOString() ?? null,
         last_success: g.last_success_at?.toISOString() ?? null,
         ...(silent ? { silent_since: silent.toISOString() } : {}),

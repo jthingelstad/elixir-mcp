@@ -1366,7 +1366,7 @@ function decorate(kind, payload, arenaNames) {
   // the member's `name` on a clan timeline ("Lava Hound unlocked Lava
   // Hound", 2026-09-16).
   // badge_label is the badge as a player says it (badge-names.mjs);
-  // badge stays the API's identifier, which badges_holders matches on.
+  // badge stays the API's identifier, which players_profile serves.
   if (kind === "badge_earned" || kind === "legendary_badge_earned") {
     const { name, ...rest } = payload;
     return { badge: name, badge_label: badgeLabel(name), ...rest };

@@ -82,7 +82,7 @@ const heavyAgent = {
 // Each sentence a model needs, as the start of the text that must arrive.
 const KEY = {
   both: [
-    "segment is REQUIRED",
+    "Every read names a player or a clan",
     "applied.window",
     "archetype label",
     "No corpus statistics",
@@ -184,20 +184,12 @@ test("a person's tools/list carries no agent-only argument; an agent's and the c
   const person = registry.declarations("person");
   assert.deepEqual(person.flatMap(agentArgs), []);
   assert.deepEqual(registry.declarations(undefined).flatMap(agentArgs), []);
-  // At least thirteen tools take them on an agent connection, segment's
-  // object included.
+  // At least twelve tools take them on an agent connection (thirteen
+  // until cards_card retired in 13.0.0).
   const agent = registry
     .declarations("agent")
     .filter((d) => agentArgs(d).length);
-  assert.ok(agent.length >= 13, `${agent.length} agent tools take them`);
-  assert.ok(
-    registry
-      .declarations("agent")
-      .find((d) => d.name === "battles_performance")
-      .inputSchema.properties.segment.anyOf.some(
-        (b) => b.properties?.on_behalf_of,
-      ),
-  );
+  assert.ok(agent.length >= 12, `${agent.length} agent tools take them`);
   assert.ok(registry.declarations().flatMap(agentArgs).length > 0);
 });
 
@@ -208,20 +200,6 @@ test("a person who still sends them is never refused: they are dropped before va
     { on_behalf_of: "discord:1", display_name: "Somebody" },
   );
   assert.ok(body.meta, "answered");
-  // segment's object: dropped there too, so the refusal for a real
-  // mistake lists what a person's schema holds.
-  await assert.rejects(
-    registry.invoke(
-      "battles_performance",
-      {},
-      { segment: { on_behalf_of: "discord:1", bogus: 1 } },
-    ),
-    (err) =>
-      err.code === "bad_request" &&
-      /segment has no property 'bogus'\. Known: player_tag, clan_tag\.$/.test(
-        err.message,
-      ),
-  );
   // An agent's own unknown argument is still refused, and the hint says
   // which contract this is and to reconnect.
   await assert.rejects(

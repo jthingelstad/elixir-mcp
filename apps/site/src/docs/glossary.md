@@ -1,7 +1,7 @@
 ---
 slug: glossary
 title: "Glossary"
-description: "The words Elixir uses, each in a sentence or two: recorded and followed, claims and relationships, scope and segment, decided battles and head-to-head, the game day, series, stamps, kinds and the four trophy kinds, the policy day and war vocabulary, forms and deck identity, principals and budgets, and the response fields and controls that carry caveats."
+description: "The words Elixir uses, each in a sentence or two: recorded and followed, claims and relationships, scope, decided battles and head-to-head, the game day, series, stamps, kinds and the four trophy kinds, the policy day and war vocabulary, forms and deck identity, principals and budgets, and the response fields and controls that carry caveats."
 section: record
 order: 12
 navTitle: "Glossary"
@@ -49,8 +49,6 @@ current race and race log; `comprehensive` also records every current
 member's battles and profile, following joins and leaves.
 
 **record**: the history Elixir stores for players and clans people follow, including opponents who appeared in their games.
-
-**segment**: the player or clan named for a read: `"mine"` (your clan), `{player_tag}` or `{clan_tag}` (current members). `segment` is required on tools that use it.
 
 **owned card collection**: the cards and forms a player owns, recorded from their profile and read with `players_collection`.
 
@@ -188,22 +186,12 @@ matched.
 **badge label**: a badge the way a player says it. The API names a
 badge by the game's internal identifier and carries no display name, so
 `MasterySkeletonWarriors` is served as `label` `Guards Mastery` beside
-its `name` on `players_profile`, `badges_rarity` and `badges_holders`,
+its `name` on `players_profile`,
 and as `badge_label` on a timeline badge item. Mastery badges
 resolve the card's internal codename to its shown name; dated badges say
 the month; a versioned identifier says its version (`RoyalTournamentRank_v2`
 is `Royal Tournament Rank (v2)`, a different badge from the original). Say
-`label`. `badges_holders` takes either the identifier or a label that is
-unique; one two badges share is refused with both identifiers.
-A near-miss or a misspelling is refused with the closest badges. The original and its `_v2` are held by overlapping sets of
-players, so `badges_rarity` quotes each pair as distinct players and how
-many hold both, and `badges_holders` names the other half of a pair.
-
-**since**: on a `badges_holders` row, when the record first saw the badge
-at its current level and progress. The row's `observed_at` is the last
-profile poll that read it, as everywhere else. A `since` at the start of
-recording, or just after the player joined, is a first sighting, not when
-the badge was earned.
+`label`.
 
 **kind**: a local enum, five of them: a series point's reading kind
 (`daily`, `pre_reset`, `season_roll`); a timeline item's kind
@@ -304,7 +292,7 @@ the domain model. `elixir_changelog` lists what each one changed. See
 
 **applied**: the one echo block on a response: the window (`from`, `to`,
 `timezone`, `source`, the `season` it starts in, `crosses`,
-`season_age_days`), `limit`, `sort`, `mode`, `segment`, `verbosity`, as
+`season_age_days`), `limit`, `sort`, `mode`, `verbosity`, as
 the tool actually used them. Read it before quoting a bound.
 
 **control**: the field beside a number that says what population produced

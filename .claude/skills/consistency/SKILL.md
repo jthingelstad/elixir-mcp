@@ -135,7 +135,7 @@ report. Every answer becomes a DECISIONS line in the fix phase.
   class can be checked mechanically gets that test or acceptance check in
   the same round; a rule nothing enforces does not survive the round that
   found it. The guards added on 2026-09-25 are the model: the JSON API pin,
-  the migration rules, the brief naming every segment tool, `season`
+  the migration rules, the brief naming only real tools, `season`
   wherever `from` is, and the retired-names ban.
 - Artifacts: before archiving or removing anything, grep the whole domain
   for pointers to it and repoint them. Migrations are checksum-immutable

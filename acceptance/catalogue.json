@@ -103,16 +103,6 @@
             "player_tag": "#20JJJ2CCRU"
           },
           "calls": 1
-        },
-        {
-          "args": {
-            "segment": {
-              "clan_tag": "#J2RGCRVG"
-            },
-            "weeks": 4
-          },
-          "calls": 0,
-          "seed": "12.0.0: battles_trends folded in; a segment's weekly series"
         }
       ]
     },
@@ -370,21 +360,6 @@
             "verbosity": "full"
           },
           "calls": 1
-        }
-      ]
-    },
-    "cards_card": {
-      "calls": null,
-      "p50_ms": null,
-      "p95_ms": null,
-      "sets": [
-        {
-          "args": {
-            "card": "Knight",
-            "segment": "mine"
-          },
-          "calls": 0,
-          "seed": "members[].played.level_played is a clan-segment field"
         }
       ]
     },

@@ -33,7 +33,7 @@ function matchesType(declared, value) {
 /** Returns null when valid, else a human-readable problem naming the path. */
 export function validateArgs(schema, value, path = "arguments") {
   if (!schema || typeof schema !== "object") return null;
-  // anyOf (3.16.0, the segment argument: a string or an object): valid
+  // anyOf (3.16.0; a value of one of several shapes): valid
   // when any branch accepts the value; the problem reported is the
   // branch whose type matched, else the type list of every branch.
   if (Array.isArray(schema.anyOf)) {

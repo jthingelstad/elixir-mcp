@@ -109,45 +109,6 @@ test("every published schema declares verbosity: the two-size tools in their own
     assert.equal(d.inputSchema.additionalProperties, false, d.name);
 });
 
-test("segment tools take a nested segment, never a flat scope; the population is named (3.16.0)", () => {
-  const SEGMENT_TOOLS = ["cards_card", "badges_rarity", "badges_holders"];
-  // The list is the registry's, not a hand copy (cards_card required
-  // segment for weeks while every list of "the six" left it out).
-  assert.deepEqual(
-    declarations
-      .filter((d) => (d.inputSchema.required ?? []).includes("segment"))
-      .map((d) => d.name)
-      .sort(),
-    [...SEGMENT_TOOLS].sort(),
-  );
-  for (const name of SEGMENT_TOOLS) {
-    const p = byName.get(name).inputSchema.properties;
-    assert.ok(p.segment, `${name} has segment`);
-    // "mine" and "corpus" as strings, or the object naming one subject.
-    const [strings, object] = p.segment.anyOf;
-    assert.deepEqual(strings, { type: "string", enum: ["mine"] });
-    assert.equal(object.type, "object", name);
-    assert.deepEqual(Object.keys(object.properties).sort(), [
-      "clan_tag",
-      "on_behalf_of",
-      "player_tag",
-    ]);
-    assert.match(p.segment.description, /Required/);
-    for (const flat of ["player_tag", "clan_tag", "collection"])
-      assert.ok(!(flat in p), `${name} has no flat ${flat}`);
-  }
-  // 12.0.0: battles_trends folded into battles_performance, whose segment
-  // is optional and names a population the same way.
-  const perf = byName.get("battles_performance").inputSchema.properties;
-  const [strings, object] = perf.segment.anyOf;
-  assert.deepEqual(strings, { type: "string", enum: ["mine"] });
-  assert.deepEqual(Object.keys(object.properties).sort(), [
-    "clan_tag",
-    "on_behalf_of",
-    "player_tag",
-  ]);
-});
-
 test("descriptions stay readable: at most 600 characters (ENGINEERING 'Tool conventions'), and none empty", () => {
   for (const d of declarations) {
     assert.ok(d.description.length > 40, `${d.name} is described`);
@@ -254,6 +215,42 @@ test("12.0.0: the renamed and retired tools appear in no declaration, and in too
         );
 });
 
+test("13.0.0: the analysis-era tools and modes are gone, and no name brings them back", () => {
+  // CHANGELOG 13.0.0 `breaking`: no tombstone, no alias, no window.
+  const registry = makeRegistry();
+  for (const name of ["cards_card", "badges_rarity", "badges_holders"]) {
+    assert.equal(registry.has(name), false, `${name} is not registered`);
+    assert.equal(TOOL_GROUPS[name], undefined, `${name} has no group`);
+  }
+  // segment named a population; nothing takes one now.
+  for (const d of declarations)
+    assert.ok(
+      !("segment" in (d.inputSchema.properties ?? {})),
+      `${d.name} takes no segment`,
+    );
+  // battles_query's deck_hash filters one player's battles; the corpus
+  // aggregate it once answered is gone from the wire.
+  const query = byName.get("battles_query");
+  assert.ok(!("deck_stats" in query.outputSchema.properties));
+  assert.doesNotMatch(query.description, /corpus/);
+  // elixir_collectors' always-zero economy fields.
+  const fleet = byName.get("elixir_collectors").outputSchema.properties
+    .collectors.items.properties;
+  for (const field of ["points", "quota_credits"])
+    assert.ok(!(field in fleet), `elixir_collectors has no ${field}`);
+  // In current sources, a retired name is history only.
+  const retired = /\b(cards_card|badges_rarity|badges_holders|deck_stats)\b/;
+  assert.doesNotMatch(JSON.stringify(declarations), retired);
+  for (const { file, text } of sources)
+    for (const line of text.split("\n"))
+      if (retired.test(line))
+        assert.match(
+          line,
+          /13\.0\.0|retired/,
+          `${file} names a retired tool outside history: ${line.trim().slice(0, 120)}`,
+        );
+});
+
 test("4.0.0: no retired name survives in a declaration, a note, a docs pointer or the docs corpus", () => {
   // The names the major retired (CHANGELOG 4.0.0 `breaking`), each with
   // the shape it takes on the wire, so a description that still says
@@ -321,7 +318,7 @@ test("every output schema requires notes and docs (journey r3: two help-tool bra
   assert.deepEqual(missing, []);
 });
 
-test("the brief names every segment tool, and every windowed tool accepts season (the stated conventions are schema)", async () => {
+test("the brief names only real tools, and every windowed tool accepts season (the stated conventions are schema)", async () => {
   const { handleMcpMessage } = await import("../src/protocol.mjs");
   const brief = (
     await handleMcpMessage(
@@ -334,12 +331,11 @@ test("the brief names every segment tool, and every windowed tool accepts season
       },
     )
   ).payload.result.instructions;
-  for (const d of declarations)
-    if ((d.inputSchema.required ?? []).includes("segment"))
-      assert.ok(
-        brief.includes(d.name) || /badges_/.test(d.name),
-        `the brief's segment list names ${d.name}`,
-      );
+  const known = new Set(declarations.map((d) => d.name));
+  for (const [name] of brief.matchAll(
+    /\b(?:elixir|players|battles|clans|war|cards|badges|game|live)_[a-z_]*[a-z]\b/g,
+  ))
+    assert.ok(known.has(name), `the brief names ${name}, not a tool`);
   for (const d of declarations)
     if ("from" in (d.inputSchema.properties ?? {}))
       assert.ok(

@@ -29,7 +29,7 @@ Drop is a **family app**: a client Elixir provisioned itself, with a
 secret it sends at `/oauth/token` (`client_secret_post`), and every return
 address on a family origin. A family app reads the
 [JSON API](/docs/json-api) as you without an hourly limit, and only a
-family app can be given `account:email` or `clans:attest`, and only when
+family app can be given `account:email`, and only when
 it asks. Drop learns who you are, and the players you follow, from
 `GET /api/v1/me`, your address from `/oauth/userinfo`, and adds your Drop player to your Elixir account with
 `POST /api/v1/me/players` when it is not there yet.
@@ -65,8 +65,8 @@ and the code page carries the consent. The page says the app "named
 itself; Elixir has not checked it", and asks you to continue only if you
 started the connection and trust the address the code goes to. Then
 come the capabilities the app asked for; other ordinary capabilities are
-offered as boxes, unticked. `account:email` and `clans:attest` are never
-offered unasked, and only a family app may ask for them.
+offered as boxes, unticked. `account:email` is never
+offered unasked, and only a family app may ask for it.
 
 `switch=1` on the authorize address always shows the email step, for a
 shared browser signed in as somebody else.
@@ -95,7 +95,7 @@ address is on a family origin. What an outside app can get:
 - JSON API calls up to 600 an hour for each person, shared by every
   outside app acting for them.
 
-It never gets the person's email address or `clans:attest`, and there
+It never gets the person's email address, and there
 is no OpenID Connect: no ID token. Who the person is comes from
 `GET /api/v1/me`, their principal and the players they follow.
 
@@ -106,7 +106,6 @@ is no OpenID Connect: no ID token. Who the person is comes from
 | `account:write` | Update account preferences | any app |
 | `feedback:write` | Send feedback | any app |
 | `account:email` | Know your email address | family apps only |
-| `clans:attest` | Nothing at present (a clan's facts are written in Clan) | family apps only |
 
 The endpoints are `/.well-known/oauth-authorization-server`,
 `/.well-known/oauth-protected-resource`, `/oauth/register`,

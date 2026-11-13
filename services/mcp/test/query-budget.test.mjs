@@ -58,14 +58,14 @@ test("slow aggregation is canceled, answered with a reportable timeout, and audi
     },
   });
   const start = Date.now();
-  const result = await invoke("battles_performance", {
-    segment: "corpus",
+  const result = await invoke("war_history", {
+    clan_tag: "#J2RGCRVG",
     limit: 5,
   });
   assert.equal(result.isError, true);
   assert.equal(result.body.error.code, "query_timeout");
   assert.equal(result.body.error.class, "retry");
-  assert.match(result.body.error.hint, /battles_performance\(/);
+  assert.match(result.body.error.hint, /war_history\(/);
   // Ten seconds of sleep against a 5 s bound: a cancel lands in well under
   // a second, a query left to run takes all ten. The bound used to be 900
   // ms against a 1 s sleep, which a loaded machine missed (2026-11-12).
@@ -98,7 +98,7 @@ test("the budget covers the whole aggregation, not one independent allowance per
       },
     },
   });
-  const result = await invoke("cards_card", { segment: "corpus" });
+  const result = await invoke("war_history", { clan_tag: "#J2RGCRVG" });
   assert.equal(result.body.error.code, "query_timeout");
 });
 
@@ -512,8 +512,8 @@ test("the real MCP handler shortens the budget to leave Lambda reply time", asyn
         id: 1,
         method: "tools/call",
         params: {
-          name: "battles_performance",
-          arguments: { segment: { player_tag: "#20JJJ2CCRU" } },
+          name: "clans_standings",
+          arguments: { clan_tag: "#J2RGCRVG" },
         },
       }),
     },
