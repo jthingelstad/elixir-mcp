@@ -27,11 +27,11 @@ Agents use MCP. Programs use the **JSON API at
   family app reads Elixir as the signed-in person; Elixir Drop signs people
   in this way, with no consent page, and the same page creates an Elixir
   account for someone new ([Sign in with Elixir](/docs/sign-in-with-elixir)).
-  `GET /api/v1/me` returns who you are to Elixir and the players you track,
+  `GET /api/v1/me` returns who you are to Elixir and the players you follow,
   and, for a family app whose grant holds `account:email`, your `email` (the
   capability is offered to the family's own apps only; see
   [Signing a person in](/docs/connecting#signing-a-person-in-with-elixir)).
-  `POST /api/v1/me/players` tracks a player for the signed-in person, the
+  `POST /api/v1/me/players` follows a player for the signed-in person, the
   JSON API's `elixir_track_player`, and needs `recordings:write` on the
   grant. A person's read operations answer with the structured result of
   the Elixir tool they mirror, the same fields as its outputSchema on the
@@ -218,7 +218,7 @@ not carry the old season beyond its explicit end.
 `GET /players/{tag}` performs no live fetch. `observed_at` is the recorder's
 source timestamp, not the time the response was delivered. A known tag without a
 profile reading returns `404 not_recorded`. Names, clan and account age can
-be incomplete; null means unknown, not zero. Tracking a player is not itself
+be incomplete; null means unknown, not zero. Following a player is not itself
 a reading.
 
 When a profile is missing or too old for your product, send:

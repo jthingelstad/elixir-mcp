@@ -60,7 +60,7 @@ export const SETTINGS_RAIL = [
   },
   {
     key: "players",
-    label: "Players & tracking",
+    label: "Players & following",
     icon: "radar",
     to: `${SETTINGS}/players`,
   },
@@ -224,7 +224,7 @@ export function settingsLegal(path) {
 const TITLES = {
   profile: "Profile",
   seen: "What members see",
-  players: "Players & tracking",
+  players: "Players & following",
   player: "Player",
   verify: "Verify",
   emails: "Emails",

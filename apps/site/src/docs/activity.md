@@ -7,12 +7,12 @@ order: 10
 navTitle: "Coverage"
 icon: calendar-days
 lede: "Recorded battles stay visible. Empty days need complete recording before they can mean quiet."
-callout: ["Open it on the player's Settings page", "/settings/players", "Open Players & tracking"]
+callout: ["Open it on the player's Settings page", "/settings/players", "Open Players & following"]
 ---
 
 # Battle activity: a year of days
 
-Each player's own record under **Settings › Players & tracking** carries your battle activity
+Each player's own record under **Settings › Players & following** carries your battle activity
 beside its recording details:
 a year of days, one cell per UTC day coloured by how the day went and
 shaded by how much was played, drawn from the battles already in the
@@ -45,7 +45,7 @@ and 10:00 UTC is the next cell here and still the previous game day there.
 ## Missing recording is not zero
 
 A day with battles in the record always shows that positive activity, including
-battles imported on tracking or seen in another player's log. It says how many
+battles imported on following or seen in another player's log. It says how many
 battles were recorded and whether that day's recording is complete, incomplete or
 unknown. A positive count alone does not establish complete recording.
 
@@ -60,7 +60,7 @@ may not show; an unmatched increase is incomplete evidence, not proof of a
 missing particular battle.
 
 Other empty days are hatched: **recording incomplete or unknown**, never an
-inactive day or a break from play. A successful battle-log read, a tracking start
+inactive day or a break from play. A successful battle-log read, a following start
 date or a freshness stamp cannot prove a quiet day. Today's UTC day is still
 open, so its complete-day recording is not established. Tap a cell for its dated
 reading; the list beneath the year names the same recording state without colour.
@@ -72,7 +72,7 @@ and reading intervals are read together from one database read, so late
 arrivals repair the count and interval together. Missing nightly metadata does
 not delay the graphic, and stale metadata cannot truncate newer activity. No
 request to the game is needed. The evidence-read timestamp dates the graphic;
-“tracked since” is account context and does not establish coverage.
+“followed since” is account context and does not establish coverage.
 
 The nightly activity job maintains descriptive metadata and read-audit
 marks. Those cached marks and receipts of successful reads do not decide

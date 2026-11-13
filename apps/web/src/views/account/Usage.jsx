@@ -98,7 +98,7 @@ function CallsPerDay({ days }) {
 const GROUND = {
   member: "Yours from signing up.",
   leader:
-    "You earned these: one of your verified players leads or co-leads a clan you track.",
+    "You earned these: one of your verified players leads or co-leads a clan you follow.",
   family: "You run an active collector.",
   partner: "Granted.",
   admin: "Granted.",
@@ -107,7 +107,7 @@ const GROUND = {
 
 const NEXT = {
   member: [
-    "Verify a player who leads or co-leads a clan you track, or run a collector for Elixir, and these rise.",
+    "Verify a player who leads or co-leads a clan you follow, or run a collector for Elixir, and these rise.",
     "Verify a player",
     `${SETTINGS}/players/verify`,
   ],

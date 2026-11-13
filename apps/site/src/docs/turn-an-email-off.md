@@ -60,9 +60,9 @@ The switches are per kind, never per player or per clan. To hear less
 about one subject:
 
 - **Your digest**: switch off the player's **Notifications** on its
-  page under Settings › Players & tracking, and it leaves the digest and your timeline while
+  page under Settings › Players & following, and it leaves the digest and your timeline while
   recording carries on ([Follow a friend](/docs/follow-a-friend#the-notifications-switch)).
-- **A clan in your digest**: stopping tracking a clan takes its news
+- **A clan in your digest**: stopping following a clan takes its news
   out of your digest, and stops its recording too unless something else
   keeps it recorded.
 

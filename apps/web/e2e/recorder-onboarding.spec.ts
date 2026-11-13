@@ -84,7 +84,7 @@ const cases = [
     name: "browser-only newcomer",
     player: null,
     clan: null,
-    action: "Go to Tracking",
+    action: "Go to Players & following",
     to: "/settings/players",
     state: "Add your player",
   },
@@ -190,7 +190,7 @@ const cases = [
     name: "only old clan war history",
     player: null,
     clan,
-    action: "Go to Tracking",
+    action: "Go to Players & following",
     to: "/settings/players",
     state: "Add your player",
   },
@@ -233,15 +233,15 @@ for (const width of [390, 1280]) {
       .getByRole("textbox", { name: "Player tag", exact: true })
       .fill(player.player_tag);
     await page
-      .getByRole("button", { name: "Track", exact: true })
+      .getByRole("button", { name: "Follow", exact: true })
       .first()
       .click();
     await expect(
       page.getByText(
-        /Your tag was saved, but Players & tracking could not refresh/,
+        /Your tag was saved, but Players & following could not refresh/,
       ),
     ).toBeVisible();
-    await expect(page.getByText("You are not tracking that")).toHaveCount(0);
+    await expect(page.getByText("You are not following that")).toHaveCount(0);
     failRefresh = false;
     await page.reload();
     await page.goto("/settings/players/20JJJ2CCRU");
@@ -510,14 +510,14 @@ for (const width of [390, 1280]) {
       .getByRole("textbox", { name: "Player tag", exact: true })
       .fill("20jjj2ccru");
     await page
-      .getByRole("button", { name: "Track", exact: true })
+      .getByRole("button", { name: "Follow", exact: true })
       .first()
       .click();
     await expect(
       page.getByText("Adding is temporarily unavailable."),
     ).toBeVisible();
     await page
-      .getByRole("button", { name: "Track", exact: true })
+      .getByRole("button", { name: "Follow", exact: true })
       .first()
       .click();
     await expect(page).toHaveURL(/\/settings\/players\/20JJJ2CCRU$/);

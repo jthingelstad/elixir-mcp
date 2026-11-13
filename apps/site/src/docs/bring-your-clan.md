@@ -34,7 +34,7 @@ You need two things:
    sign-up for Clan. [Your account](/docs/your-account) has how to create
    one by verifying your email.
 2. **Your player on it.** Your primary player or an alt, under
-   **Settings › Players & tracking**. A friend or a player you watch does not
+   **Settings › Players & following**. A friend or a player you watch does not
    count: Clan goes by the players that are you.
 
 Then open [/clan](/clan). Your existing Elixir session opens it directly;
@@ -182,14 +182,14 @@ Clan works from what Elixir records. Elixir follows your primary player's
 clan for you at activity scope once your player's profile shows it, when
 you have a clan slot free ([Your player's
 clan](/docs/recording#your-players-clan)). If your clan is not recorded
-yet, Clan says so and sends you to **Settings › Players & tracking** to track the
+yet, Clan says so and sends you to **Settings › Players & following** to follow the
 clan; the roster arrives with Elixir's first read of it. A clan recorded with
 its members' battle logs ([the clan and every member](/docs/recording)) gives
 fuller battle numbers than one recorded at activity scope, and Clan
 holds back a judgment the record cannot support rather than guess.
 
 When profile or roster readings cannot establish your membership, Clan
-says **Waiting for your clan record** and links to Players & tracking. A missing clan tag
+says **Waiting for your clan record** and links to Players & following. A missing clan tag
 or roster role does not prove you are outside a clan.
 
 Only explicit absence in the latest admitted profiles for all your own players

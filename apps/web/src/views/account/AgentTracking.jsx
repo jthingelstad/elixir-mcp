@@ -64,10 +64,10 @@ export function AgentTracking({ agent }) {
   return (
     <>
       <p className="m-0">
-        What this agent tracks: the clan it acts for, any other clan it watches,
-        and the players it follows. Tracked means recorded, in your places: you
-        and your agents share them, and a player or clan counts once however
-        many of you track it.
+        What this agent follows: the clan it acts for, any other clan it
+        watches, and the players it follows. Followed means recorded, in your
+        places: you and your agents share them, and a player or clan counts once
+        however many of you follow it.
       </p>
       <Panel
         title="Clans"
@@ -127,7 +127,7 @@ export function AgentTracking({ agent }) {
                         <ConfirmAction
                           label="Remove"
                           title={`Remove ${name} from this agent?`}
-                          body="The agent stops following it. If only this agent tracks it, recording stops. History stays for at least a year after the last person stops tracking."
+                          body="The agent stops following it. If only this agent follows it, recording stops. History stays for at least a year after the last person stops following."
                           confirm="Remove"
                           run={() =>
                             clanAction({
@@ -183,7 +183,7 @@ export function AgentTracking({ agent }) {
             </select>
           </label>
           <button className="btn btn--sm" type="submit">
-            Track a clan
+            Follow a clan
           </button>
         </form>
       </Panel>
@@ -230,7 +230,7 @@ export function AgentTracking({ agent }) {
                       <ConfirmAction
                         label="Remove"
                         title={`Remove ${name} from this agent?`}
-                        body="The agent stops following them. If only this agent tracks them, recording stops. History stays for at least a year after the last person stops tracking."
+                        body="The agent stops following them. If only this agent follows them, recording stops. History stays for at least a year after the last person stops following."
                         confirm="Remove"
                         run={() =>
                           playerAction({
@@ -268,7 +268,7 @@ export function AgentTracking({ agent }) {
             />
           </label>
           <button className="btn btn--sm" type="submit">
-            Track a player
+            Follow a player
           </button>
         </form>
       </Panel>

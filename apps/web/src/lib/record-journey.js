@@ -17,8 +17,8 @@ export function recordJourney(data) {
   if (!p)
     return {
       state: "Add your player",
-      text: "Start with your player tag in Tracking.",
-      action: "Go to Tracking",
+      text: "Start with your player tag in Players & following.",
+      action: "Go to Players & following",
       to: tracking,
     };
   const recorded = p.profile_available || hasBattleEvidence(p);
@@ -57,10 +57,10 @@ export function recordJourney(data) {
           : "First read pending";
   const text = !active
     ? recorded
-      ? "Your retained record is available. Check recording status in Tracking."
-      : "No profile or battles are available yet. Check recording status in Tracking."
+      ? "Your retained record is available. Check recording status in Players & following."
+      : "No profile or battles are available yet. Check recording status in Players & following."
     : notFound
-      ? `We couldn't find ${p.player_tag} in Clash Royale. Correct the tag, or stop tracking it.`
+      ? `We couldn't find ${p.player_tag} in Clash Royale. Correct the tag, or stop following it.`
       : failedAt
         ? "A recent read failed. What was saved is still here; check again for anything new."
         : recorded

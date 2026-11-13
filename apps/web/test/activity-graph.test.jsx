@@ -117,7 +117,7 @@ test("one hue by battle count, empty days need whole-day reads, and a tap writes
       name: /^Sat Sep 12 2026: 2 battles recorded · part of the day was read$/,
     }),
   ).toBeTruthy();
-  expect(screen.getByText(/Tracked since \w+ Sep [23]( 2026)?/)).toBeTruthy();
+  expect(screen.getByText(/Followed since \w+ Sep [23]( 2026)?/)).toBeTruthy();
   fireEvent.click(busy);
   expect(
     screen.getByText(

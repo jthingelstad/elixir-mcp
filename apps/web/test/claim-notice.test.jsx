@@ -37,7 +37,7 @@ test("an ended primary names the tag, says there is none, and points at the play
   ).toBe("/settings/feedback");
 });
 
-test("with no players left, it says to add one, on Players & tracking without a link to itself", () => {
+test("with no players left, it says to add one, on Players & following without a link to itself", () => {
   renderWithProviders(
     <ClaimNotice
       me={{ claim_notice: notice("primary_ended"), claims: [] }}
@@ -47,10 +47,12 @@ test("with no players left, it says to add one, on Players & tracking without a 
   expect(screen.getByRole("status").textContent).toMatch(
     /Add your player below\./,
   );
-  expect(screen.queryByRole("link", { name: "Players & tracking" })).toBeNull();
+  expect(
+    screen.queryByRole("link", { name: "Players & following" }),
+  ).toBeNull();
 });
 
-test("a signup tag verified elsewhere says it was not added, with a link to Players & tracking", () => {
+test("a signup tag verified elsewhere says it was not added, with a link to Players & following", () => {
   renderWithProviders(
     <ClaimNotice
       me={{ claim_notice: notice("signup_tag_refused"), claims: [] }}
@@ -61,7 +63,7 @@ test("a signup tag verified elsewhere says it was not added, with a link to Play
   );
   expect(
     screen
-      .getByRole("link", { name: "Players & tracking" })
+      .getByRole("link", { name: "Players & following" })
       .getAttribute("href"),
   ).toBe("/settings/players");
 });

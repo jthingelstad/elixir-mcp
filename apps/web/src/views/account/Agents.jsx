@@ -541,7 +541,7 @@ export function AgentSettings({ agent }) {
               <ConfirmAction
                 label="Suspend"
                 title={`Suspend ${name}?`}
-                body="Its key reads as invalid until you resume. Suspending frees the places its players and clans take, and stops recording the ones only it tracks. Resuming needs the places back."
+                body="Its key reads as invalid until you resume. Suspending frees the places its players and clans take, and stops recording the ones only it follows. Resuming needs the places back."
                 confirm="Suspend"
                 run={() => status.run(id, "disabled")}
               />
@@ -571,8 +571,8 @@ export function AgentSettings({ agent }) {
             {removed
               ? "Removed: kept, out of view. Restore puts it back among your agents, still suspended."
               : suspended
-                ? "Suspend is reversible: the same key comes back. Revoke is not. Suspended, its players and clans take none of your places and record only if someone else tracks them. Resuming needs the places back. Remove takes a suspended agent out of view, and nothing is deleted."
-                : "Suspend is reversible: the same key comes back. Revoke is not. Suspending frees the places its players and clans take, and stops recording the ones only it tracks."}
+                ? "Suspend is reversible: the same key comes back. Revoke is not. Suspended, its players and clans take none of your places and record only if someone else follows them. Resuming needs the places back. Remove takes a suspended agent out of view, and nothing is deleted."
+                : "Suspend is reversible: the same key comes back. Revoke is not. Suspending frees the places its players and clans take, and stops recording the ones only it follows."}
           </p>
           <WriteError error={failed} />
         </div>
@@ -696,11 +696,11 @@ export function NewAgent({ limit = null, onClose }) {
           titleAs="h3"
           action={
             <Link className="btn" to={`${SETTINGS}/players?view=clans`}>
-              Track a clan
+              Follow a clan
             </Link>
           }
         >
-          An agent needs a clan to act for, and you are not tracking one.
+          An agent needs a clan to act for, and you are not following one.
         </Empty>
       </div>
     );

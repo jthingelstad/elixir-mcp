@@ -269,7 +269,7 @@ test(
     // form pretending to be a list.
     expect(screen.queryByRole("switch")).toBeNull();
     // Each kind is added on its own tab of the same page.
-    expect(screen.getByRole("button", { name: "Track" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Follow" })).toBeTruthy();
     expect(screen.getByLabelText("Player tag")).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "Clans" }));
     expect(await screen.findByLabelText("Clan tag")).toBeTruthy();
@@ -326,9 +326,9 @@ test(
     // stopped a recording. What it costs is in the question.
     const writes = () =>
       global.fetch.mock.calls.filter(([, init]) => init?.method === "POST");
-    fireEvent.click(screen.getByRole("button", { name: "Stop tracking" }));
+    fireEvent.click(screen.getByRole("button", { name: "Stop following" }));
     const ask = document.querySelector("dialog.kit-confirm");
-    expect(ask.textContent).toContain("Stop tracking Jamie?");
+    expect(ask.textContent).toContain("Stop following Jamie?");
     expect(ask.textContent).toContain("History stays");
     expect(writes()).toEqual([]);
     fireEvent.click(
@@ -430,7 +430,7 @@ test(
     const input = within(alert).getByLabelText("Correct tag");
     fireEvent.change(input, { target: { value: "2PP0V90Y" } });
     fireEvent.click(
-      within(alert).getByRole("button", { name: "Track this tag instead" }),
+      within(alert).getByRole("button", { name: "Follow this tag instead" }),
     );
     expect(
       await within(alert).findByText("That is the tag the game did not find."),
@@ -438,13 +438,13 @@ test(
     expect(posts).toEqual([]);
     fireEvent.change(input, { target: { value: "#2pyq8gj0" } });
     fireEvent.click(
-      within(alert).getByRole("button", { name: "Track this tag instead" }),
+      within(alert).getByRole("button", { name: "Follow this tag instead" }),
     );
     // A correction stops the old tag, so it asks first.
     expect(posts).toEqual([]);
     fireEvent.click(
       within(document.querySelector("dialog.kit-confirm")).getByRole("button", {
-        name: "Track this tag instead",
+        name: "Follow this tag instead",
         hidden: true,
       }),
     );

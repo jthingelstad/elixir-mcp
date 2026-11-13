@@ -128,7 +128,7 @@ export function clansRoutes({ resolveAccount }) {
           error: "quota_exceeded",
           message:
             r.limit === 0
-              ? `The ${r.role} role has no ${r.scope}-scope clan slots - leading a clan you track earns Leader, running a collector earns Family.`
+              ? `The ${r.role} role has no ${r.scope}-scope clan slots - leading a clan you follow earns Leader, running a collector earns Family.`
               : `Your ${r.scope}-scope clan slots are full (${r.limit} for the ${r.role} role${account.owner ? ", shared with your agents" : ""}).`,
         });
       if (!r.ok) return json(403, { error: r.error });

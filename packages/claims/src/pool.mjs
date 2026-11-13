@@ -142,7 +142,7 @@ export async function pooledUsage(
  * What following each of `tags` costs the pool of owner `ownerId`, now:
  * {player_tag, following (the pool already follows them), free, reason}.
  * reason is `in_recorded_clan` or `followed_by_others` when free, else
- * null. One read for a whole list (Players & tracking, a search's row).
+ * null. One read for a whole list (Players & following, a search's row).
  */
 export async function playerCosts(db, ownerId, tags) {
   if (!tags.length) return [];

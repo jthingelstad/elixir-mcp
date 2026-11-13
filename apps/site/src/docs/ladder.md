@@ -98,14 +98,14 @@ season you ask for in the address is always the one shown, even when it is
 empty, and a player whose first read has not landed still sees it on its
 way, never last season.
 
-A player's record under Settings › Players & tracking links a saved profile directly to its dated
+A player's record under Settings › Players & following links a saved profile directly to its dated
 profile view, and retained battles directly to the battle browser,
 including older seasons. It does not use an empty current season as proof
 that those records are missing.
 
 ## Whose season
 
-Stats reads your own players: your primary, and any alt you track as
+Stats reads your own players: your primary, and any alt you follow as
 yours. The first thing in the bar is whose season you are reading: a name and
 a tag with one player, a list to switch with more than one. With no player of your
 own yet, Stats offers **Add your player**.

@@ -528,7 +528,7 @@ test.describe("signed in", () => {
       page.locator(".rail").getByRole("link", { name: /Players/ }),
     ).toContainText("1");
     await page.getByPlaceholder("#2PYQ8GJ0").fill("#VJQV8G8RL");
-    await page.getByRole("button", { name: "Track" }).first().click();
+    await page.getByRole("button", { name: "Follow" }).first().click();
     // The claim invalidates ["me"]: the rail's count follows without a reload.
     await expect(
       page.locator(".rail").getByRole("link", { name: /Players/ }),

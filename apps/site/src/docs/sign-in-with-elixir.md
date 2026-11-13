@@ -30,7 +30,7 @@ secret it sends at `/oauth/token` (`client_secret_post`), and every return
 address on a family origin. A family app reads the
 [JSON API](/docs/json-api) as you without an hourly limit, and only a
 family app can be given `account:email` or `clans:attest`, and only when
-it asks. Drop learns who you are, and the players you track, from
+it asks. Drop learns who you are, and the players you follow, from
 `GET /api/v1/me`, your address from `/oauth/userinfo`, and adds your Drop player to your Elixir account with
 `POST /api/v1/me/players` when it is not there yet.
 
@@ -54,7 +54,7 @@ ordinary member account, with the **Send me Elixir product news** box
 checked unless you untick it, and the welcome email. Tick **I am 13 or
 older** to open one: Elixir accounts are for people 13 or older, and
 without the tick the code signs in only an account that already exists. The page asks for
-no player tag; add yours in Settings › Players & tracking. An address whose account
+no player tag; add yours in Settings › Players & following. An address whose account
 was denied or disabled does not reopen here either.
 
 **Any other app.** Signed in already, the page reads **Connect** and the
@@ -97,12 +97,12 @@ address is on a family origin. What an outside app can get:
 
 It never gets the person's email address or `clans:attest`, and there
 is no OpenID Connect: no ID token. Who the person is comes from
-`GET /api/v1/me`, their principal and the players they track.
+`GET /api/v1/me`, their principal and the players they follow.
 
 | Scope | What the page says | Who can ask |
 |---|---|---|
 | `cr:read` | Read recorded game data | any app; always included |
-| `recordings:write` | Change what you track | any app |
+| `recordings:write` | Change what you follow | any app |
 | `account:write` | Update account preferences | any app |
 | `feedback:write` | Send feedback | any app |
 | `account:email` | Know your email address | family apps only |

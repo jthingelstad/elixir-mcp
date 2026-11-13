@@ -25,10 +25,10 @@ Only you can decide which eight cards your player takes into a battle,
 and the game's battle log records exactly that for every match. That is
 the challenge.
 
-1. Pick the player, under **Settings › Players & tracking › Verify**. The page lists your
+1. Pick the player, under **Settings › Players & following › Verify**. The page lists your
    primary player and your alts, the claims that are yours to prove; a
    friend or a player you merely watch is theirs. Players are added under
-   Players & tracking; Verify only proves them.
+   Players & following; Verify only proves them.
 2. Elixir names eight cards and shows them the way the game lays a deck
    out: two rows of four. The eight are **your own deck**: the one you
    played most in your last ten recorded Trophy Road battles, with two
@@ -94,7 +94,7 @@ If another account had already added the player as its primary or an alt
 before you verified it, that claim ends the moment your verification
 succeeds. That account's timeline says so, naming the player and never
 your account; if it was their primary, they are left with no primary
-until they choose one, and Settings › Players & tracking says so, and the clan Elixir followed
+until they choose one, and Settings › Players & following says so, and the clan Elixir followed
 for that player is unfollowed, as when a primary moves. Their friend or watching
 claim on the player stays.
 
@@ -118,7 +118,7 @@ Verification is recorded on the claim itself (`status`, method and
 time), with the proving battle on the challenge, so anything that later
 needs "is this claim proven" can read it without a second lookup.
 `elixir_my_players` carries it as `claim_status` (`verified` or
-`unverified`) beside each player you track. No data tool changes its
+`unverified`) beside each player you follow. No data tool changes its
 answers on it; the record is the same for everyone.
 
 [Clan](/clan) checks it on every request, inside Elixir. Any

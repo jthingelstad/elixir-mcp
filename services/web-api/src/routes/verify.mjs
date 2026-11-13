@@ -390,7 +390,8 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
       if (!claim)
         return json(404, {
           error: "not_tracked",
-          message: "Add the player under Tracking first, then verify it here.",
+          message:
+            "Add the player under Players & following first, then verify it here.",
         });
       if (!eligibleClaim(claim))
         return json(403, {

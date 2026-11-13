@@ -8,7 +8,7 @@ export function ClanReadStatus({ query }) {
       <div className="callout callout--warn mb-4 flex-wrap" role="alert">
         <Icon name="circle-dashed" size={17} />
         <span className="min-w-[12rem] flex-1">
-          Your clans could not be read just now. Your saved tracking is
+          Your clans could not be read just now. Your saved follows are
           unchanged.
           {query.data
             ? " Any previously read clans are kept while you retry."

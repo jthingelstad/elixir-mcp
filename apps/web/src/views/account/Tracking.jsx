@@ -27,7 +27,7 @@ import { scopeLabel } from "../../lib/words.js";
 import { Note } from "./parts.jsx";
 
 /**
- * Players & tracking: the players and clans Elixir records for this account,
+ * Players & following: the players and clans Elixir records for this account,
  * in two tabs, with a record per tracked thing. The controls live on the
  * record, because a row with four controls in it is a form pretending to be
  * a list. "Tracked", never "subject": the schema's word does not reach the
@@ -142,21 +142,21 @@ function AddPlayer({ refresh, navigate, input, first }) {
         !current?.claims?.some((c) => tagPath(c.player_tag) === tagPath(saved))
       ) {
         setInfo(
-          "Your tag was saved, but Players & tracking could not refresh. Reload this page to continue. You do not need to add it again.",
+          "Your tag was saved, but Players & following could not refresh. Reload this page to continue. You do not need to add it again.",
         );
         return;
       }
       navigate(`${SETTINGS}/players/${tagPath(saved)}`);
     } catch {
       setErr(
-        "Elixir did not answer. Check Players & tracking before retrying; the tag may have been saved.",
+        "Elixir did not answer. Check Players & following before retrying; the tag may have been saved.",
       );
     } finally {
       setBusy(false);
     }
   };
   return (
-    <Panel title={first ? "Your player tag" : "Track a player"} titleAs="h2">
+    <Panel title={first ? "Your player tag" : "Follow a player"} titleAs="h2">
       <form className="panel__body st-form" onSubmit={add}>
         <label>
           Player tag
@@ -192,7 +192,7 @@ function AddPlayer({ refresh, navigate, input, first }) {
           </label>
         )}
         <button className="btn btn--sm" disabled={busy}>
-          {busy ? "Adding…" : "Track"}
+          {busy ? "Adding…" : "Follow"}
         </button>
         {first ? null : <FollowCost tag={tag} />}
         <Note id="add-player-tag-hint">
@@ -268,7 +268,7 @@ function Players({ me, refresh, navigate, hash }) {
   return (
     <>
       {claims.length === 0 ? (
-        <Empty title="No players tracked" titleAs="h2">
+        <Empty title="No players followed" titleAs="h2">
           Add the player you play as. Nothing here defaults to you, and the
           first read usually lands within a minute.
         </Empty>
@@ -309,12 +309,12 @@ function Clans({ me, query }) {
   );
   return (
     <>
-      <Panel title="Track a clan" titleAs="h2">
+      <Panel title="Follow a clan" titleAs="h2">
         {full ? (
           <p className="panel__body m-0">
             {e?.comprehensive_clans?.limit === 0
-              ? "Your one clan place is in use. Stop tracking that clan first."
-              : "Both your places are in use: stop tracking a clan first."}
+              ? "Your one clan place is in use. Stop following that clan first."
+              : "Both your places are in use: stop following a clan first."}
           </p>
         ) : (
           <form
@@ -361,7 +361,7 @@ function Clans({ me, query }) {
                 </option>
               </select>
             </label>
-            <button className="btn btn--sm">Track</button>
+            <button className="btn btn--sm">Follow</button>
             <Note>
               The clan only records its roster, who joins and who goes, and its
               races. Every member also records each member&rsquo;s battles and
@@ -379,8 +379,8 @@ function Clans({ me, query }) {
         )}
       </Panel>
       {clans && list.length === 0 ? (
-        <Empty title="No clans tracked" titleAs="h2">
-          Track a clan below, or add your player and Elixir follows their clan
+        <Empty title="No clans followed" titleAs="h2">
+          Follow a clan below, or add your player and Elixir follows their clan
           when it can.
         </Empty>
       ) : null}
@@ -438,7 +438,7 @@ export function Tracking({ me, refresh, navigate, hash, search = "" }) {
   return (
     <div className="st-page">
       <PageHead
-        title="Players & tracking"
+        title="Players & following"
         sub="Manage the players and clans Elixir records for you. You and your agents share these places."
       />
       <ClaimNotice me={me} onTracking />
@@ -465,7 +465,7 @@ export function Tracking({ me, refresh, navigate, hash, search = "" }) {
         />
       </Stats>
       <Tabs
-        label="What you track"
+        label="What you follow"
         value={view}
         items={[
           { key: "players", label: "Players", href: `${SETTINGS}/players` },

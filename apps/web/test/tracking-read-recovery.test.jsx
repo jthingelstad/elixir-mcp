@@ -62,7 +62,7 @@ for (const [name, View, props] of views) {
         "Your clans could not be read",
       );
       expect(screen.queryByText("Nothing tracked yet")).toBeNull();
-      expect(screen.queryByText("You are not tracking that")).toBeNull();
+      expect(screen.queryByText("You are not following that")).toBeNull();
       if (warm)
         expect(screen.getByText(clan.name, { exact: true })).toBeTruthy();
       failed = false;

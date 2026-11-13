@@ -139,7 +139,7 @@ test("Settings' rail: eight places, Collectors for who runs one, Admin for staff
   expect(SETTINGS_RAIL.map((r) => r.label)).toEqual([
     "Profile",
     "What members see",
-    "Players & tracking",
+    "Players & following",
     "Emails",
     "Connections & agents",
     "Sign-ins & devices",

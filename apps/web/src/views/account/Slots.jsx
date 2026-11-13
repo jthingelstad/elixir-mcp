@@ -53,7 +53,7 @@ function howFollowed(p) {
   const parts = [];
   if (p.yours) parts.push(HOW[p.yours] ?? "You follow them");
   for (const a of p.agents ?? [])
-    parts.push(`Your agent ${a.name ?? a.public_id} tracks them`);
+    parts.push(`Your agent ${a.name ?? a.public_id} follows them`);
   return parts.join(" · ");
 }
 
@@ -73,7 +73,7 @@ function Stop({ p }) {
             Elixir stops recording <TagText>{who}</TagText> for you. They are
             not told.{" "}
             {still
-              ? "Your agent still tracks them, so they keep using a slot until the agent stops too."
+              ? "Your agent still follows them, so they keep using a slot until the agent stops too."
               : "Their slot is free again at once."}
           </p>
         }

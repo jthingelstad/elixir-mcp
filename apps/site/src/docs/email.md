@@ -42,7 +42,7 @@ written.
 ## Your digest
 
 Your digest is your [timeline](/docs/timeline) for your inbox: the
-people you follow and the clans you track, told as one story. The email
+people you follow and the clans you follow, told as one story. The email
 chooses what to say, and the timeline keeps everything.
 
 - **When:** weekly, on Wednesdays at 14:30 UTC, by default. In
@@ -61,13 +61,13 @@ chooses what to say, and the timeline keeps everything.
   or a return, each with a link to the battle that did it when the record
   knows it. Cards unlocked and badge levels are a count. A clanmate you
   follow says which of your clans they are in.
-- **Your clan:** each clan you track with news of its own: a river race
+- **Your clan:** each clan you follow with news of its own: a river race
   that finished (its place and fame), who joined and departed, and role
   changes, as a headline and at most three facts with the rest counted.
 - **You:** your own week, your firsts, your cards and badges counted, and
   each alt that played, with its firsts.
 - **Never an empty week:** when no one you follow played or posted,
-  neither did you, and no clan you track has news, no digest comes.
+  neither did you, and no clan you follow has news, no digest comes.
 
 **Each player once.** Following everyone in your clan is common, so the
 digest never tells a player's week twice: their battles, firsts and

@@ -188,7 +188,7 @@ export function Timeline({ crumb = null } = {}) {
           : [{ key: "state", label: "State", col: 3 }]),
       ]}
       divider={openedMs === null ? null : NEW_SINCE}
-      empty="Nothing in the last seven days. Everything you track appears here while its notify switch is on."
+      empty="Nothing in the last seven days. Everything you follow appears here while its notify switch is on."
       footnote={`New means learned since you last opened this page. Opening it clears the Timeline dot and changes nothing your connections have read.${more > 0 ? ` A busy week: the ${rows.length} newest are shown, and ${more.toLocaleString()} more this week are not.` : ""}`}
     />
   );

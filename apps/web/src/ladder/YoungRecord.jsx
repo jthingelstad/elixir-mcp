@@ -16,7 +16,7 @@ const STEPS = {
     to: "/clan",
   },
   follow: {
-    text: "Track a friend's tag and mark them as a friend: their battles are recorded beside yours.",
+    text: "Follow a friend's tag as a friend: their battles are recorded beside yours.",
     action: "Follow a friend",
     to: "/home/find",
   },

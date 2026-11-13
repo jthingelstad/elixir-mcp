@@ -35,7 +35,7 @@ export default [
           "A profile reading for each game day one landed, from the first the record holds",
           "Your record per deck and per game mode, by week",
         ],
-        setup: ["Track your player", "Connect a client"],
+        setup: ["Add your player", "Connect a client"],
         script: {
           tool: "players_timeline · battles_decks · battles_performance",
           lines: [
@@ -61,7 +61,7 @@ export default [
           "Daily trophy and best-trophy readings",
           "Net trophies per week, war modes excluded",
         ],
-        setup: ["Track your player", "Set your timezone"],
+        setup: ["Add your player", "Set your timezone"],
         script: {
           tool: "players_profile · players_timeline · battles_performance",
           lines: [
@@ -81,13 +81,13 @@ export default [
         icon: "users",
         label: "Follow your friends",
         title: "Follow your friends",
-        lede: "The people you play with, tracked because you asked, what they are on, how much they are playing, and what changed since you last looked.",
+        lede: "The people you play with, followed because you asked, what they are on, how much they are playing, and what changed since you last looked.",
         reads: [
-          "Profiles and daily readings for the players you track",
+          "Profiles and daily readings for the players you follow",
           "Their recorded decks and results",
           "Your timeline, which says what happened since you last looked",
         ],
-        setup: ["Track a friend's tag", "Turn on notifications"],
+        setup: ["Follow a friend's tag", "Turn on notifications"],
         script: {
           tool: "players_profile · players_timeline · battles_decks · elixir_timeline",
           lines: [
@@ -126,7 +126,7 @@ export default [
           "Per-member points, decks used and boat attacks",
           "Clan facts read while your clan is awake, and every member's activity from the roster",
         ],
-        setup: ["Track your clan", "Choose a recording scope"],
+        setup: ["Follow your clan", "Choose a recording scope"],
         script: {
           tool: "war_current · war_history · clans_roster",
           lines: [
@@ -157,7 +157,7 @@ export default [
           "This week's race roster, which the game seeds from that date",
           "Each member's recorded battles over the last 30 days",
         ],
-        setup: ["Track your clan, every member", "Read about scopes"],
+        setup: ["Follow your clan, every member", "Read about scopes"],
         script: {
           tool: "clans_roster · war_current · clans_standings",
           lines: [
@@ -206,7 +206,7 @@ export default [
           "The clan's 30-day ladder table",
           "Roster changes over the week",
         ],
-        setup: ["Track your clan", "Connect a client"],
+        setup: ["Follow your clan", "Connect a client"],
         script: {
           tool: "war_history · clans_standings · clans_roster",
           lines: [

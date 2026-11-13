@@ -1,12 +1,12 @@
 ---
 slug: quickstart
 title: "Get started with Elixir"
-description: "Create your account, track your player and read recorded history in Stats. Clan war history and AI clients are optional, with connection instructions when you want them."
+description: "Create your account, add your player and read recorded history in Stats. Clan war history and AI clients are optional, with connection instructions when you want them."
 section: start
 order: 2
 navTitle: "Quickstart"
 icon: rocket
-lede: "Create your account, track your player, and read recorded history in Stats. Add clan war history or an AI client when you want them."
+lede: "Create your account, add your player, and read recorded history in Stats. Add clan war history or an AI client when you want them."
 reviewed: "2026-10-12 against contract 11.11.2"
 ---
 
@@ -30,18 +30,18 @@ The signup form also asks for **your player tag**, optionally (plain sign-in
 does not). A tag that is not a Clash Royale tag is refused on the form,
 before any email is sent; leave the field empty to add your player later.
 Nothing happens with the tag until you verify the email: then the new
-account tracks it as your primary, and you land on **Home**, whose first
+account claims it as your primary, and you land on **Home**, whose first
 steps show the first read on its way (or **Tag not found**, with the place to
 fix it). An account opened without a tag lands on Home too, asking for the
 tag. A tag given while signing in to an account that already exists
 is ignored; that account keeps its players.
 
-## 2. Track your player
+## 2. Add your player
 
 If you gave your tag at signup, this step is done: skip to the first read
-below. Otherwise open [Settings › Players & tracking](/settings/players) and add
+below. Otherwise open [Settings › Players & following](/settings/players) and add
 your Clash Royale player tag. Your first player is your **primary**, which is what every tool
-means when you omit `player_tag`. Tracking **is** recording: Elixir reads
+means when you omit `player_tag`. Following **is** recording: Elixir reads
 your profile and then your battle log straight away, on the live lane, so
 both usually land within a minute (a few at busy times), with roughly your
 last 30 battles (all the game keeps); history builds from there. Once your
@@ -55,14 +55,14 @@ the existing [limits](/docs/roles) still apply. See
 Find your tag in Clash Royale by opening your player profile: it appears below
 your name. If the game has no player with the tag you typed, your player's
 page says **Tag not found** within seconds, with the fix in the same place:
-type the right tag there and Elixir tracks it instead (as your primary, if
-the wrong one was), or stop tracking the wrong one. Email verification opens your Elixir account; [player
+type the right tag there and Elixir records it instead (as your primary, if
+the wrong one was), or stop following the wrong one. Email verification opens your Elixir account; [player
 verification](/docs/verify) separately proves ownership for the features that
 require it. An ordinary member account includes activity clan recording, not
-recording every member as well. Settings › Players & tracking shows the available slots.
+recording every member as well. Settings › Players & following shows the available slots.
 
 Read your personal season in [Stats](/home/you/stats). Adding a tag opens
-your player's record in Settings › Players & tracking. **Player tag saved** means
+your player's record in Settings › Players & following. **Player tag saved** means
 the tag is on your account, not that a profile has arrived or ownership has
 been proved. This page checks saved data every few seconds for the first
 minutes after you add a tag, then about once a minute while recording is
@@ -90,7 +90,7 @@ profile interval names its bounds and recorded and expected counts; other time
 remains unknown, even after a successful read. Error receipts have bounded
 retention, so missing error metadata does not mean a read succeeded.
 Paused or stopped recording still links to the information already saved.
-Check Settings › Players & tracking for status rather than treating an empty window as proof that
+Check Settings › Players & following for status rather than treating an empty window as proof that
 you did not play.
 
 If you want clan war history, follow [Bring your clan](/docs/bring-your-clan).

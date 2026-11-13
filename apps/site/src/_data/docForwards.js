@@ -6,6 +6,10 @@
  * the corpus) for an agent. An entry leaves only when nothing can still name it.
  */
 export default {
+  // "Follow, never track" (2026-11-12): headings that said track.
+  "agents#what-an-agent-tracks": "agents#what-an-agent-follows",
+  "roles#tracked-means-recorded": "roles#followed-means-recorded",
+  "quickstart#2-track-your-player": "quickstart#2-add-your-player",
   // Headings reworded by the same step: the anchor followed the words.
   "activity#missing-capture-is-not-zero":
     "activity#missing-recording-is-not-zero",

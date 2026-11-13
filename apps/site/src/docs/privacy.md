@@ -146,7 +146,7 @@ form. Removing an account deletes the account, not the record: your
 address, claims, nicknames, highlights, agents, connections, mail and usage go
 ([your account](/docs/your-account#removing-the-account) lists them).
 The players' game history is public game data, as it is in the game
-itself, and stays as any untracked player's does, under the
+itself, and stays as any unfollowed player's does, under the
 [record's retention rule](https://github.com/jthingelstad/elixir-mcp/blob/main/docs/product/record.md#when-a-person-leaves).
 A few copies outside the database go on their own clocks: captured call
 bodies within 90 days, Discord delivery records within 14, and your

@@ -205,7 +205,7 @@ test(
     expect(within(using).getByText("Copper Fern")).toBeTruthy();
     expect(within(using).getByText("Umber Kite")).toBeTruthy();
     expect(
-      within(using).getByText(/Your agent Scout Bot tracks them/),
+      within(using).getByText(/Your agent Scout Bot follows them/),
     ).toBeTruthy();
     // An agent's follow is the agent's to stop.
     expect(

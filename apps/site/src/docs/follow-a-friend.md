@@ -1,31 +1,31 @@
 ---
 slug: follow-a-friend
 title: "Follow a friend"
-description: "Mark a player you track as a friend: how to add one on the website or through a connected app, what a friend gets that a watched player does not (first in your digest, a name in your connection's opening), nicknames, the notifications switch, and stopping."
+description: "Mark a player you follow as a friend: how to add one on the website or through a connected app, what a friend gets that a watched player does not (first in your digest, a name in your connection's opening), nicknames, the notifications switch, and stopping."
 section: friends
 order: 1
 navTitle: "Follow a friend"
 icon: heart
-lede: "A friend is a player you follow on purpose. Elixir records them like anyone you track, and puts them first in your digest."
+lede: "A friend is a player you follow on purpose. Elixir records them like anyone you follow, and puts them first in your digest."
 reviewed: "2026-11-12 your digest; 2026-10-01 against contract 9.17.1"
-callout: ["Open it at Settings › Players & tracking", "/settings/players", "Open Players & tracking"]
+callout: ["Open it at Settings › Players & following", "/settings/players", "Open Players & following"]
 ---
 
 # Follow a friend
 
-Every player you track has a relationship to you: you, an alt, a
+Every player you follow has a relationship to you: you, an alt, a
 friend, or someone you are watching ([Your account](/docs/your-account)
-has the four). A friend is recorded exactly like any other tracked
+has the four). A friend is recorded exactly like any other followed
 player. What changes is how Elixir reads them back to you.
 
 ## Adding a friend
 
 On the website:
 
-1. **Settings › Players & tracking › Track a player**: enter the tag and press
-   **Track**. Added means recorded; recording starts on the next read.
+1. **Settings › Players & following › Follow a player**: enter the tag and press
+   **Follow**. Added means recorded; recording starts on the next read.
 2. A new player starts as **watching** (your first is your primary).
-   Open the player from the Players table, and under **How you track
+   Open the player from the Players table, and under **How you follow
    it** set **Relationship** to **friend**.
 
 Or on **Find** (on the top bar, and a tab on a phone): **Follow a friend**
@@ -53,10 +53,10 @@ Each person shows their game name and tag, never a nickname. Home's
 A first player named `friend` or `watching` stays that, and the account has no
 player of its own until you name one with `relationship: "primary"`.
 Through a [connected app](/docs/connections), `elixir_track_player` takes a `relationship`, so
-"track #TAG as a friend" adds the player as a friend in one call. The
+"follow #TAG as a friend" adds the player as a friend in one call. The
 relationship is set when the player is added: for a player already on
-your account, change it under Settings › Players & tracking. An [agent](/docs/agents) you own
-tracks players as watching only.
+your account, change it under Settings › Players & following. An [agent](/docs/agents) you own
+follows players as watching only.
 
 A friend takes one of your player slots, the same as a watched
 player, unless Elixir already records them: a member of a clan recorded in
@@ -94,11 +94,11 @@ from your account: that belongs to your primary player and your alts.
 Give a friend a nickname on their page (**Nickname**, 1 to 40
 characters) or through a connected app with `elixir_nickname`. It is private
 to you (apps you connect as yourself see it; an agent keeps its own), and your digest uses it. A nickname
-stays when you stop tracking the player, and an empty one clears it.
+stays when you stop following the player, and an empty one clears it.
 
 ## The notifications switch
 
-Each tracked player has a **Notifications** switch, on from the start;
+Each followed player has a **Notifications** switch, on from the start;
 a connected app can flip it with `elixir_track_player` and `action:
 "notify_off"` or `"notify_on"`. With it on, the player is a subject of your timeline, which your connected apps
 and Home read. With it off, the player leaves your timeline and
@@ -106,6 +106,6 @@ your digest too, while recording carries on.
 
 ## Stopping
 
-**Stop tracking** on the player's page, or `elixir_track_player` with
+**Stop following** on the player's page, or `elixir_track_player` with
 `action: "remove"`. The history already recorded is kept, and recording
-stops only when nobody else tracking the player has a reason to keep it.
+stops only when nobody else following the player has a reason to keep it.

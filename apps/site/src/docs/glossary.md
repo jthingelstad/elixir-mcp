@@ -1,7 +1,7 @@
 ---
 slug: glossary
 title: "Glossary"
-description: "The words Elixir MCP uses, each in a sentence or two: recorded and tracked, claims and relationships, scope and segment, decided battles and head-to-head, the game day, series, stamps, kinds and the four trophy kinds, the policy day and war vocabulary, forms and deck identity, principals and budgets, and the response fields and controls that carry caveats."
+description: "The words Elixir MCP uses, each in a sentence or two: recorded and followed, claims and relationships, scope and segment, decided battles and head-to-head, the game day, series, stamps, kinds and the four trophy kinds, the policy day and war vocabulary, forms and deck identity, principals and budgets, and the response fields and controls that carry caveats."
 section: record
 order: 12
 navTitle: "Glossary"
@@ -21,27 +21,27 @@ and notes; when a note says "decided" or "policy day", this is what it means.
 history is in the record. Everything recorded is readable by every account;
 with no account, only a battle's own page opens (see [Privacy](/docs/privacy)).
 
-**tracked**: a subject on *your* account: you asked for it to be recorded
+**followed**: a subject on *your* account: you asked for it to be recorded
 with `elixir_track_player` or `elixir_track_clan`, and it occupies one of
 your slots, unless Elixir already records the player for another reason
-([What a player slot costs](/docs/recording#what-a-player-slot-costs)). Tracked means recorded; there is no separate watch step. See [Recording](/docs/recording#added-means-recorded).
+([What a player slot costs](/docs/recording#what-a-player-slot-costs)). Followed means recorded; there is no separate watch step. See [Recording](/docs/recording#added-means-recorded).
 
-**claim**: the link between your account and a player tag you track. Claims
+**claim**: the link between your account and a player tag you follow. Claims
 are taken at your word (`claim_status: unverified`) until
-[Verify](/docs/verify) proves one, and several accounts may track the same
+[Verify](/docs/verify) proves one, and several accounts may follow the same
 player and share one recording. A verified player is its owner's alone: no
 other account may hold it as its primary or an alt (a friend or watching is
 fine), and such a claim ends when the player is verified.
 
-**relationship**: who a tracked player is to you: `primary` (you; exactly
+**relationship**: who a followed player is to you: `primary` (you; exactly
 one), `alt` (also you, another tag), `friend`, or `watching` (the default).
 The primary is what omitting `player_tag` means on a personal connection,
 and its current clan is what omitting `clan_tag` means. It is never
-reassigned for you: removing it is refused while you track other players
+reassigned for you: removing it is refused while you follow other players
 (make another primary first).
 
-**reason**: why a subject is recorded: claimed, or tracked as a clan. Only
-people's tracking is a reason. The widest reason wins; the recording stops
+**reason**: why a subject is recorded: claimed, or followed as a clan. Only
+people's following is a reason. The widest reason wins; the recording stops
 only when no reason remains. See [One recording, many reasons](/docs/recording#added-means-recorded).
 
 **scope**: how deeply a clan is recorded. `activity` polls the roster,
@@ -110,7 +110,7 @@ side; `me`, `teammates` and `opponents` are relative to the tag asked about.
 **player-battle reading**: a recorded game from one participant's perspective. Opponents remain part of the complete game; two perspectives are not independent matches.
 
 **timeline**: `elixir_timeline`: what happened to the players and clans you
-track since your read pointer, as items newest first (battle sessions, named
+follow since your read pointer, as items newest first (battle sessions, named
 moments, roster and war moments, presence) plus one summary entry per
 subject. A **session** is a run of one player's battles with no gap of 30
 minutes or more.

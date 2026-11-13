@@ -22,7 +22,7 @@ function readiness(data, notFound = false) {
       label: "Player tag saved",
       done: Boolean(p),
       detail: p
-        ? `${p.name ?? "your player"} ${p.player_tag} · ${p.is_primary === false ? (p.relationship ?? "tracked") : "primary"}${
+        ? `${p.name ?? "your player"} ${p.player_tag} · ${p.is_primary === false ? (p.relationship ?? "followed") : "primary"}${
             // A tag the game does not know records nothing, so it is
             // never "recording active" (2026-10-08).
             notFound

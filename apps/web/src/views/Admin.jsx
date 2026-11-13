@@ -695,7 +695,7 @@ function AdminAccounts() {
         ["ACCOUNT", "left"],
         ["STATUS", "left"],
         ["ROLE", "left"],
-        ["TRACKING", "left"],
+        ["FOLLOWING", "left"],
         ["AGENTS & INTEGRATIONS", "right"],
       ]}
       rows={rows}
@@ -813,7 +813,7 @@ function AdminAccountDetail({ id }) {
     ["Status", a.status],
     ["Created", day(a.created_at)],
     [
-      "Tracking",
+      "Following",
       `${a.players_tracked ?? 0} ${noun(a.players_tracked ?? 0, "player")} · ${a.clans_tracked ?? 0} ${noun(a.clans_tracked ?? 0, "clan")}`,
     ],
     ["Tier", a.role],
@@ -823,7 +823,7 @@ function AdminAccountDetail({ id }) {
     ],
     ["Runs an active collector (Family)", a.operator ? "yes" : "no"],
     [
-      "Verified leader of a tracked clan (Leader)",
+      "Verified leader of a followed clan (Leader)",
       a.leads_tracked_clan ? "yes" : "no",
     ],
     [

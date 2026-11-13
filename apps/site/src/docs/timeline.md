@@ -1,19 +1,19 @@
 ---
 slug: timeline
 title: "The timeline"
-description: "What happened to the players and clans you track, newest first: what the timeline is, where to read it, and how it reaches Discord. The elixir_timeline tool is on The timeline tool."
+description: "What happened to the players and clans you follow, newest first: what the timeline is, where to read it, and how it reaches Discord. The elixir_timeline tool is on The timeline tool."
 section: friends
 order: 3
 navTitle: "The timeline"
 icon: bell
-lede: "What happened to the players and clans you track, newest first, written so a person can read it and an agent can act on it."
+lede: "What happened to the players and clans you follow, newest first, written so a person can read it and an agent can act on it."
 callout: ["Read it on Home", "/home", "Open Home"]
 ---
 
 # The timeline
 
 Most tools answer a question you asked. The timeline is the other
-direction: it tells you what happened to the subjects you track since you
+direction: it tells you what happened to the subjects you follow since you
 last looked, newest first like a newsfeed, so a scheduled agent can read
 one thing and decide what to consider, and so a person can read the same
 thing and simply know.

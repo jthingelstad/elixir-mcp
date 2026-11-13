@@ -1186,7 +1186,7 @@ export async function setAgentStatus(
             limit: limits[limit],
             used: after[used],
             role: owner.role ?? "member",
-            message: `Resuming it would track ${after[used]} ${noun} against your ${limits[limit]}. Free ${after[used] - limits[limit]} first, here or on your other agents, then resume it.`,
+            message: `Resuming it would follow ${after[used]} ${noun} against your ${limits[limit]}. Free ${after[used] - limits[limit]} first, here or on your other agents, then resume it.`,
           };
         }
       }
