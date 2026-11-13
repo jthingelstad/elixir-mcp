@@ -46,7 +46,7 @@ games won only for `riverRaceDuel*`; an event duel falls to trophy change,
 then summed crowns. How the game decides an event multi-deck duel (by
 games or by crowns) could not be verified against the live API: the only
 battle log this change could read held no such battle, so neither the
-reference nor `outcomeFor` changed (issue filed). Correcting stored
+reference nor `outcomeFor` changed (#954). Correcting stored
 outcomes, once the rule is verified, is an ops backfill over
 `battle_participant` rows whose battle is not a river race duel and has
 round rows: recompute games won from `battle_participant_round.crowns`
