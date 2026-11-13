@@ -80,7 +80,7 @@ timeline, its own notion of who it is. What it does never lands in your
 history, and what you do never shows up as its.
 
 The reason to want one is that a clan is not a person. If a Discord bot
-connected as *you*, then "who do you track?" would answer with **your** personal
+connected as *you*, then "who do you follow?" would answer with **your** personal
 player list, and everything it did would be recorded as something you did. An
 agent has no personal players to leak, because it has no self. Its subject is
 the clan.
@@ -165,8 +165,8 @@ on a phone it folds into one row above the page.
 |---|---|
 | Profile | your address, the timezone your date windows use and Elixir prints every time in (a new account starts on its signup browser's; UTC when it has none), and closing your account |
 | Emails | a switch for each email, and **All sent**, the emails Elixir sent you |
-| Players & tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
-| Players & tracking › Verify | prove that you control a player by playing one battle with a deck Elixir names |
+| Players & following | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start following someone and set a nickname with its tools |
+| Players & following › Verify | prove that you control a player by playing one battle with a deck Elixir names |
 | Connections & agents | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its pages; **New agent**; Discord sharing for your timeline; [your RSS link](/docs/timeline#your-rss-link); and the question to try once your agent can answer |
 | Usage and limits | today's call and live-fetch meters, what your account allows and what earns the next role, fourteen days of calls, who and which tools spent them with agents broken out, your own website reads counted apart (they spend no daily quota), and **Requests**, every call with its `request_id` |
 | Sign-ins & devices | every session that can still act as you, this one marked, and your account events |
@@ -177,7 +177,7 @@ An **agent's page** (Open on its row) has five tabs:
 | Page | What it does |
 |---|---|
 | Overview | its clan, its key and when it was first used, its last successful call, where it connects from, anything refusing it, and the address to connect it at |
-| What it reads | the clans and players it tracks, and which clan it acts for |
+| What it reads | the clans and players it follows, and which clan it acts for |
 | Usage | its calls as a share of your budget, which it spends, its calls with `request_id`, and its account events |
 | Connections | the clients connected as it, what each may do, and refusals of its key |
 | Settings | its name, what its key may do, the key itself (issue, revoke, suspend), removing a suspended agent from view, and who it answers for |

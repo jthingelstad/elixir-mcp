@@ -59,7 +59,7 @@ test("public signup verifies email and returns to the requested Console step", a
   // A remembered return_to still wins over the new account's landing.
   await expect(page).toHaveURL(/\/settings\/players$/);
   await expect(
-    page.getByRole("heading", { name: "Players & tracking", exact: true }),
+    page.getByRole("heading", { name: "Players & following", exact: true }),
   ).toBeVisible();
   expect(sends).toBe(1);
   const results = await new AxeBuilder({ page })

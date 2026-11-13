@@ -1,13 +1,13 @@
 ---
 slug: recording
 title: "Recording and coverage"
-description: "What is recorded when you track a player or a clan, how one recording is shared by everyone who wants it, what the clan-only and every-member scopes poll, how often each subject is fetched, how to read freshness and completeness, and what live_fetch can reach."
+description: "What is recorded when you follow a player or a clan, how one recording is shared by everyone who wants it, what the clan-only and every-member scopes poll, how often each subject is fetched, how to read freshness and completeness, and what live_fetch can reach."
 section: record
 order: 1
 navTitle: "What Elixir records"
 icon: radar
 lede: "What Elixir records, how often, and why an answer is never a live scrape."
-callout: ["Open it at Settings › Players & tracking", "/settings/players", "Open Players & tracking"]
+callout: ["Open it at Settings › Players & following", "/settings/players", "Open Players & following"]
 ---
 
 # Recording and coverage
@@ -41,8 +41,8 @@ Three things worth knowing:
 
 ## Added means recorded
 
-There is no watch step and no approval queue. **Tracked means recorded**:
-tracking a subject on your account is the request to record it, and recording
+There is no watch step and no approval queue. **Followed means recorded**:
+following a subject on your account is the request to record it, and recording
 starts at the next scheduler tick.
 
 Adding a player also asks for one read of their profile, and then one of
@@ -52,12 +52,12 @@ minute (a few when the live lane is busy, or when the day's first reads are
 used and the scheduler makes them instead), and the battle-log read brings
 roughly the last 30 battles with it (the game keeps no more; from
 there the record builds forward). If Clash Royale answers that it has no
-player with that tag (its "Player not found"), Settings › Players & tracking says so as an
+player with that tag (its "Player not found"), Settings › Players & following says so as an
 error on the player's page within seconds of the add (it checks every few
 seconds for the first minutes), and never shows that tag as recording or
 freshly polled: check the tag, which is on the player's profile in the game
-below the name, and type the right one in the same place (Elixir tracks it
-instead, as your primary if the wrong one was) or stop tracking the wrong
+below the name, and type the right one in the same place (Elixir records it
+instead, as your primary if the wrong one was) or stop following the wrong
 one. Stats says **Tag not found** too, with the way to that fix. Any other failed read is only a failed attempt, retried on
 the schedule below. A tag read or refused in the last day is not asked for
 again. You and your agents together get one of these first reads a day for
@@ -66,8 +66,8 @@ is still recorded, and its first read comes with the scheduler's next round.
 
 | Act | Tool | Web | Scope needed |
 |---|---|---|---|
-| Record a player | `elixir_track_player({ player_tag, relationship?, action? })` | Settings › Players & tracking | `recordings:write` |
-| Record a clan | `elixir_track_clan({ clan_tag, scope?, action? })` | Settings › Players & tracking | `recordings:write` |
+| Record a player | `elixir_track_player({ player_tag, relationship?, action? })` | Settings › Players & following | `recordings:write` |
+| Record a clan | `elixir_track_clan({ clan_tag, scope?, action? })` | Settings › Players & following | `recordings:write` |
 | Stop | the same tools with `action: "remove"` | same | `recordings:write` |
 | Silence the feed without stopping | `action: "notify_off"` / `"notify_on"` | same | `recordings:write` |
 
@@ -79,11 +79,11 @@ A player slot pays for what Elixir records because of you, so following a
 player Elixir already records is free. A player is free when either is true:
 
 - they are a current member of a clan Elixir records at `comprehensive`
-  scope (every member), whoever tracks that clan;
+  scope (every member), whoever follows that clan;
 - another account followed them before you did. Your agents are part of
   your account here, and a suspended agent's follow counts for nothing.
 
-A clan tracked at `activity` scope, including the clan Elixir follows for
+A clan followed at `activity` scope, including the clan Elixir follows for
 your primary player, records the clan and not its members, so following one
 of its members takes a slot. Whoever followed a player first pays for them,
 so two accounts can never make each other's follows free.
@@ -92,7 +92,7 @@ The web says what a Follow costs before you tap it: **Free · already
 recorded**, or **Uses 1 of your 50 player slots** with the number in use.
 `elixir_track_player` and `POST /api/me/players` return a `slot` block
 (`took`, `free`, `free_because`, `used`, `limit`), and Settings › Players &
-tracking marks each player as free or using a slot.
+following marks each player as free or using a slot.
 
 [Settings › What members see](/settings/what-members-see) has your slots
 in one place: a meter of the slots in use out of your limit, the same
@@ -100,20 +100,20 @@ number every Follow says, then the players using a slot because of you
 (each with who follows them: you, or an agent of yours by name) and,
 apart from them, the free follows with why each is free. A player you
 follow or watch has **Stop following** there; your own players open on
-Players & tracking, and a player only your agent tracks opens that agent's
-page. A player your agent also tracks keeps its slot until the agent stops
+Players & following, and a player only your agent follows opens that agent's
+page. A player your agent also follows keeps its slot until the agent stops
 too.
 
 If a free player's reason goes away (they leave the clan, or the other
 account stops following), they keep recording and start using one of your
 slots. Nobody is removed for it: an account that ends up over its limit
-keeps everything it tracks, and only a new follow that would take a slot is
+keeps everything it follows, and only a new follow that would take a slot is
 refused, with the count and the reason. Free follows are never refused.
 
-If your clans cannot be read, Home and the clans view of Players & tracking say
+If your clans cannot be read, Home and the clans view of Players & following say
 so and offer **Try again**. A failed read does not mean that you stopped
-tracking a clan; any previously read clans stay available. Trying again reads
-your saved tracking without adding a clan or forcing a game fetch. An empty list
+following a clan; any previously read clans stay available. Trying again reads
+your saved following without adding a clan or forcing a game fetch. An empty list
 is shown only when the relevant read succeeds.
 
 ## One recording, many reasons
@@ -124,12 +124,12 @@ or stops the recording accordingly:
 
 | Reason | Source |
 |---|---|
-| claimed | any account tracks the player |
-| added | any account tracks the clan |
-| added deep | any account tracks the clan at `comprehensive` scope |
+| claimed | any account follows the player |
+| added | any account follows the clan |
+| added deep | any account follows the clan at `comprehensive` scope |
 
-Only people's tracking is a reason: the maintainer has no reason of their
-own and tracks from an account like anyone else. The widest reason wins. Removing your own reason frees your slot; the
+Only people's following is a reason: the maintainer has no reason of their
+own and follows from an account like anyone else. The widest reason wins. Removing your own reason frees your slot; the
 recording stops only when no reason remains anywhere. A clan's scope settles
 up or down to the widest remaining reason; a player's scope only ever widens.
 History is never deleted when a recording stops.
@@ -161,15 +161,15 @@ it costs proportionally more to run: the member role has none, so
 `elixir_track_clan`, which defaults to `comprehensive`, needs
 `scope: "activity"` there.
 
-Players you track are always recorded in full. A recorded player's current clan is
+Players you follow are always recorded in full. A recorded player's current clan is
 also read for roster and membership tracking, a few times a day, following
 the clan's own liveliness, without a slot and without polling the other
-members. When nobody tracks that clan, the read keeps only what concerns
-the players you track: their membership and role, their roster row, and the
+members. When nobody follows that clan, the read keeps only what concerns
+the players you follow: their membership and role, their roster row, and the
 clan's name. The other members, and the clan's own daily numbers, are not
-kept. Track the clan to keep them.
+kept. Follow the clan to keep them.
 
-**A tracked clan's roster poll records what it carries.** Every clan someone tracks gets
+**A followed clan's roster poll records what it carries.** Every clan someone follows gets
 one row per game day of its own numbers (clan score, war
 trophies, member count, required trophies, weekly donations), and every member
 on that roster gets a row in the same daily series a recorded player's profile
@@ -186,18 +186,18 @@ record holds).
 
 ## Relationships, primary, nicknames
 
-Each player you track is your `primary` (exactly one: the first you track unless you name
+Each player you follow is your `primary` (exactly one: the first you add unless you name
 them a friend or watching, or whichever you mark `relationship: "primary"`), an `alt`, a `friend`, or
 someone you are `watching` (the default). The primary is what "omit
 `player_tag`" means on your connection, and its current clan is what an
-omitted `clan_tag` means. Removing your primary is refused while you track
+omitted `clan_tag` means. Removing your primary is refused while you follow
 other players, because Elixir will not choose who "you" are: make another
 player primary first (`elixir_track_player` with `relationship:
-"primary"`, or the primary control on Players & tracking), then remove the old one.
+"primary"`, or the primary control on Players & following), then remove the old one.
 Removing your last player is allowed, and leaves the account with no
-primary until you track one. Claims are taken at your word
+primary until you add one. Claims are taken at your word
 (`claim_status: unverified`) until [Verify](/docs/verify) proves one;
-several accounts may track the same player and share the recording. A
+several accounts may follow the same player and share the recording. A
 player another account has verified is theirs: making it your primary or
 an alt is refused (`not_entitled`, with what to do), while `friend` and
 `watching` are not, and a first player named `friend` or `watching` is
@@ -218,10 +218,10 @@ your clan's week in your Monday email. The rules:
 - **Only a player in a clan.** A primary in no clan follows nothing, and
   a primary who leaves their clan leaves your follows as they were.
 - **Never past your slots, never in place of a clan you chose.** If your
-  activity clan slot is already in use, nothing changes; Players & tracking and
+  activity clan slot is already in use, nothing changes; Players & following and
   your player's page offer the clan instead, one click to follow.
-- **Never back after you stop.** Stop tracking that clan and Elixir does
-  not follow it for you again; you can still track it yourself.
+- **Never back after you stop.** Stop following that clan and Elixir does
+  not follow it for you again; you can still follow it yourself.
 - **It moves with your player.** When your primary joins another clan (or
   you make another player primary), the follow Elixir made moves to the
   new clan, and the old one stops unless someone else records it. A
@@ -238,7 +238,7 @@ Settings › Sign-ins & devices.
 characters, `null` clears) that only your account, and what you connect as
 yourself, sees (an agent is an account of its own and keeps its own);
 `players_search` ranks your nicknames first. On the website it is set in
-**Settings › Players & tracking**, on the player's row.
+**Settings › Players & following**, on the player's row.
 
 ## Events
 

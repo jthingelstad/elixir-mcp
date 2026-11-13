@@ -1,7 +1,7 @@
 ---
 slug: your-account
 title: "Your account"
-description: "Your Elixir account: creating an account, signing in with an emailed code or link, how long a sign-in lasts, your primary player and the others you track, installing Elixir on your phone, your time zone, your role, the feedback you send and its answers, what members see of you, what stays private, and how to have the account removed."
+description: "Your Elixir account: creating an account, signing in with an emailed code or link, how long a sign-in lasts, your primary player and the others you follow, installing Elixir on your phone, your time zone, your role, the feedback you send and its answers, what members see of you, what stays private, and how to have the account removed."
 section: start
 order: 3
 navTitle: "Your account"
@@ -15,7 +15,7 @@ callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"
 
 Everything in Elixir hangs off one account: Home, Stats, Elixir
 Clan, the emails and the AI apps you connect all act as the same person. The
-account is an email address, the players you track and a few settings.
+account is an email address, the players you follow and a few settings.
 There is no password.
 
 The first page you open includes your current sign-in state. Your browser keeps
@@ -54,11 +54,11 @@ form, and the page an app sends you to.
 The signup form has an optional **Your player tag** field; plain sign-in
 does not. A malformed tag is refused on the form before any email is sent,
 and an empty field is fine. The tag is kept with the request and applied
-only after you verify, when a new account tracks it as its primary player.
+only after you verify, when a new account claims it as its primary player.
 A new account opens on [Home](/home), whose first steps start with adding
 your player when it has none. A tag another account has
 [verified](/docs/verify#a-verified-player-is-yours-alone) is not added, and
-[Players & tracking](/settings/players) says why.
+[Players & following](/settings/players) says why.
 A tag sent while signing in to an account that already exists is ignored.
 Signup and sign-in share the same email limits.
 
@@ -66,11 +66,11 @@ You can also create your account where an app sends you to sign in with
 Elixir, as Elixir Drop does: enter your email, then the code, and the
 account opens the same way, after verification and as an ordinary member,
 with the same product-news box. That page asks for no player tag; add
-yours in [Settings › Players & tracking](/settings/players). An account
+yours in [Settings › Players & following](/settings/players). An account
 opened there reads in UTC until you set a zone in Profile. See
 [Sign in with Elixir](/docs/sign-in-with-elixir).
 
-Then add your player in [Settings › Players & tracking](/settings/players) if
+Then add your player in [Settings › Players & following](/settings/players) if
 you have not, read your recorded play in [Stats](/home/you/stats), or follow
 [Bring your clan](/docs/bring-your-clan).
 A collector is not required to join. Running one is open to any account
@@ -211,7 +211,7 @@ The players on your account each say who they are to you:
 Your first player is your primary, which the pages call your main player.
 **Make main player** on another player's page moves it there, and the old
 primary becomes watching. Your primary
-cannot be removed while you track other players: make another one
+cannot be removed while you follow other players: make another one
 primary first. Your primary and your alts are the players you can
 [prove are yours](/docs/verify), and the ones your own part of the digest and
 Clan go by. A player another account has verified cannot be your
@@ -223,7 +223,7 @@ player or add yours. Friends and watched players are covered in
 [Follow a friend](/docs/follow-a-friend) and
 [Watch any player](/docs/watch-a-player).
 
-Players are added under **Settings › Players & tracking**, and tracking a player is
+Players are added under **Settings › Players & following**, and following a player is
 recording it: see [What Elixir records](/docs/recording).
 
 ## Your time zone
@@ -246,9 +246,9 @@ Your limits set how many players and clans you can record and how many
 tool calls you can make a day; **Settings › Usage and limits** shows each
 limit beside what you use. Leader and Family are earned in the game and read every
 time you use Elixir: Leader while one of your verified players leads or
-co-leads a clan you track, Family while a collector you run is active. There
+co-leads a clan you follow, Family while a collector you run is active. There
 is nothing to ask for, and a role goes when its ground goes; what you already
-track stays. Partner is granted by hand. The roles and their numbers are on
+follow stays. Partner is granted by hand. The roles and their numbers are on
 [Roles and limits](/docs/roles#upgrades).
 
 ## Feedback
@@ -301,7 +301,7 @@ links to the page that owns it.
   your clan's verified members see your place on its map if you added
   one, its leaders see an away you mark, and what you decide as a leader
   or elder shows under your player's game name. With Discord connected,
-  an AI agent that tracks a clan your main player or an alt is in can
+  an AI agent that follows a clan your main player or an alt is in can
   ask which player you are by your Discord user id, and learns that
   player's tag and whether it is verified, never your Discord name or
   your email ([Knowing which human is
@@ -362,7 +362,7 @@ reviewed step. Removing the account deletes the account:
 
 - **your address**, and every way to sign in as you, a connected
   Discord account included;
-- **your claims**: the players and clans you track;
+- **your claims**: the players and clans you follow;
 - **your nicknames** for players;
 - **your highlights**: the battles you posted to a player's timeline,
   their words, and their share links, which stop opening;
@@ -377,9 +377,9 @@ reviewed step. Removing the account deletes the account:
 
 It does not delete the record. The players' battles, profiles and clans
 are public game data, recorded from the game like anyone's; they stay,
-as any player's history does that nobody tracks, under the
+as any player's history does that nobody follows, under the
 [record's retention rule](https://github.com/jthingelstad/elixir-mcp/blob/main/docs/product/record.md#when-a-person-leaves).
-Removing your players stops their recording where nobody else tracks
+Removing your players stops their recording where nobody else follows
 them, and stopping deletes nothing recorded.
 
 A collector you run has to be revoked first. The

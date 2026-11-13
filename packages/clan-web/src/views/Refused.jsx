@@ -35,7 +35,7 @@ export const REFUSALS = {
     title: "Waiting for your clan record",
     body: "Elixir has not confirmed your players' clan membership yet. A gap in your profile or roster reads does not mean you are outside a clan.",
     action:
-      "Check recording under Tracking, then check again after your profile and clan roster have been read.",
+      "Check recording under Players & following, then check again after your profile and clan roster have been read.",
     link: [ELIXIR_LINKS.tracking, "Settings → Players"],
   },
 };

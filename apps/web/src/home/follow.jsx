@@ -48,7 +48,7 @@ export function Followed({ result }) {
     return (
       <p className="kit-tiny" role="status">
         We couldn&rsquo;t find <Tag tag={tag} /> in Clash Royale. Correct the
-        tag, or stop following on Players &amp; tracking. Elixir asks the game
+        tag, or stop following on Players &amp; following. Elixir asks the game
         again in about a day, in case the tag is brand new.
       </p>
     );
@@ -232,7 +232,7 @@ export function FollowAll({ ask, label, title, onDone }) {
         <>
           <p className="m-0">
             Nobody is told. Their sessions start in your feed, and you can stop
-            following anyone on Players &amp; tracking.
+            following anyone on Players &amp; following.
           </p>
           <p className="kit-tiny" role="status">
             {p

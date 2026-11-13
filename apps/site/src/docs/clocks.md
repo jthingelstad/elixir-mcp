@@ -30,7 +30,7 @@ A response can carry three kinds of time, and they answer different questions:
 poll, not the newest poll of any kind: a fresh profile must never disguise a
 stale battle log. It is `null` when any required source has never been polled,
 because unknown is not zero-age evidence. `recorded_since` is the earliest
-stored history for the subject, which can predate anyone tracking it (an
+stored history for the subject, which can predate anyone following it (an
 opponent's log, an import); `recording_active_since` is when the current
 recording began. The two are kept apart because history is never deleted when
 a recording stops. The fields are defined on

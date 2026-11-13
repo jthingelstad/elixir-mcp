@@ -279,7 +279,7 @@ function FirstRead({ player, journey, onCheck, busy, onStopped }) {
       <>
         <p>
           We couldn&rsquo;t find {player.player_tag} in Clash Royale. Correct
-          the tag, or stop tracking it. Elixir asks the game again in about a
+          the tag, or stop following it. Elixir asks the game again in about a
           day, in case the tag is brand new.
         </p>
         <div className="kit-form__row">
@@ -305,7 +305,7 @@ function FirstRead({ player, journey, onCheck, busy, onStopped }) {
               onStopped();
             }}
           >
-            Stop tracking it
+            Stop following it
           </button>
         </div>
         {err ? (

@@ -392,7 +392,7 @@ export function adminRoutes({ resolveAccount, logEvent, capture = null }) {
           error: "bad_request",
           code: "tier_is_earned",
           message:
-            "Leader and Family are earned in the game, never granted: Leader by leading a tracked clan, Family by running an active collector.",
+            "Leader and Family are earned in the game, never granted: Leader by leading a followed clan, Family by running an active collector.",
         });
       const accountId = String(body.account_id ?? "");
       if (!UUID_RE.test(accountId)) return json(404, { error: "not_found" });

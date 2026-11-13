@@ -43,7 +43,7 @@ calls, and answer with that tool's result.
 
 | Operation | Callers | Mirrors |
 |---|---|---|
-| `GET /me` | person | who you are to Elixir and the players you track |
+| `GET /me` | person | who you are to Elixir and the players you follow |
 | `POST /me/players` | person (`recordings:write`) | `elixir_track_player` |
 | `GET /players/{tag}/profile` | person | `players_profile` |
 | `GET /players/{tag}/battles` | person | `battles_query`, compact, up to 50; each battle's `url` is [its public page](/docs/battles#a-battles-page) |

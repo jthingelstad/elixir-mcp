@@ -50,7 +50,7 @@ conventions that hold everywhere.
 | The profile, the collection, how complete the record is | `players_profile`, `players_collection`, `elixir_coverage` |
 | Past war weeks: final ranks, boat fame, one member's points and decks | `war_history` (`seasons`, or `season_id` and `section_index` for one week's whole roster) |
 | What was on in the game: events, challenges, side modes, by day | `game_events` |
-| Track someone, say who they are to you | `elixir_track_player`, `elixir_track_clan`, `elixir_my_players`, `elixir_nickname` |
+| Follow someone, say who they are to you | `elixir_track_player`, `elixir_track_clan`, `elixir_my_players`, `elixir_nickname` |
 | Resolve a human on an agent's surface to a player (agent connections only) | `elixir_identify`, `elixir_my_identities` |
 | Something is missing or took too many calls | `elixir_send_feedback`; `elixir_my_feedback` says what happened to it |
 | What the service holds and who fetches it | `elixir_data_insights`, `elixir_collectors` |

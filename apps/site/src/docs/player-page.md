@@ -76,7 +76,7 @@ slot always goes ahead. Your own players are left out, and the question says
 so. The same **Follow everyone** is over the roster in [Clan ›
 Members](/docs/bring-your-clan), for every member; past your limit it stays
 shut there, with the reason beside it. A player you only watch, or one only your agent
-tracks, is not one you follow yet: following them is free, since Elixir
+follows, is not one you follow yet: following them is free, since Elixir
 records them for you already.
 
 ## Follow me links

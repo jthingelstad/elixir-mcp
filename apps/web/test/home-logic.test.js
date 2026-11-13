@@ -290,7 +290,7 @@ describe("One recorded game in words", () => {
 
 test("step 3 names a player only when there is one", () => {
   expect(clanStepLine("Clan", true)).toBe("Clan, your player’s clan.");
-  expect(clanStepLine("Clan", false)).toBe("Clan, a clan you track.");
+  expect(clanStepLine("Clan", false)).toBe("Clan, a clan you follow.");
 });
 
 describe("Home's welcome steps (G4)", () => {

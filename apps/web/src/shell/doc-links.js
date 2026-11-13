@@ -121,9 +121,9 @@ export const DOC_LINKS = {
     ],
   ],
   "agent:tracking": [
-    "What an agent tracks",
+    "What an agent follows",
     [
-      ["What an agent tracks", "/docs/agents#what-an-agent-tracks"],
+      ["What an agent follows", "/docs/agents#what-an-agent-follows"],
       ["How recording works", "/docs/recording"],
       ["Roles & slots", "/docs/roles"],
     ],

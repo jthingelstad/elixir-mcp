@@ -57,7 +57,7 @@ nothing. One page per group is under [Tools](/docs/tools).
 never parse it. It is written to arrive whole in 2,048 characters, the most
 some clients (Claude Code) hand the model, and in order of value: who you
 are (your primary and your clan, or the clan an agent acts for; the other
-players and clans you track by name while they fit, otherwise counted, with
+players and clans you follow by name while they fit, otherwise counted, with
 `elixir_my_players` for the list), the one-line rules that change an answer,
 where to start, how to file feedback, and a pointer to the
 [argument conventions](#argument-conventions) below, which it does not
@@ -135,7 +135,7 @@ shape):
 |---|---|---|
 | `invalid_tag` | `input` | input failed tag normalisation; hint states the rule |
 | `not_entitled` | `subject` | the caller lacks entitlement to the subject (clan tools, slots, identity binding) |
-| `not_recorded` | `subject` | the subject is valid but nothing has been recorded for it; on a person's door with no `clan_tag`, also the primary player's clan when it is not recorded (the default never slides to an alt's clan; the hint names the clan and the tracking call) |
+| `not_recorded` | `subject` | the subject is valid but nothing has been recorded for it; on a person's door with no `clan_tag`, also the primary player's clan when it is not recorded (the default never slides to an alt's clan; the hint names the clan and the following call) |
 | `not_found` | `subject` | unknown to the record and to the live API; an unknown docs page, example |
 | `no_subject` | `subject` | nothing to answer about: no primary player on the account, a primary player in no clan when `clan_tag` is omitted, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag). With `display_name` beside an unmapped `on_behalf_of`, `error.candidates[]` lists the clan members whose whole name matches (`player_tag`, `name`, `clan_tag`, `role`; case and spacing ignored, never a partial match), so one candidate is one `elixir_identify` call and zero or several is a question |
 | `quota_exceeded` | `budget` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
@@ -202,7 +202,7 @@ exception: `segment` is required, to identify the player or clan being read, and
 | Family | Subject argument | Omission rule |
 |---|---|---|
 | Player tools (`players_*`, `battles_query`, `battles_performance`, `battles_decks`, `battles_cards`, `battles_opponents`, `elixir_coverage`) | `player_tag` | the caller: a person's primary player, or whoever `on_behalf_of` maps to on an agent connection |
-| Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | a person's primary player's current clan (refused `not_recorded` when that clan is not recorded, `no_subject` when the primary is in no clan; never an alt's, a friend's or another tracked clan), an agent's clan |
+| Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | a person's primary player's current clan (refused `not_recorded` when that clan is not recorded, `no_subject` when the primary is in no clan; never an alt's, a friend's or another followed clan), an agent's clan |
 | Segment tools (`battles_trends`, `cards_card`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, or an object naming a player or clan |
 | `game_clock`, `cards_catalog`, the Help tools | none | no subject at all |
 

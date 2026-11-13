@@ -35,10 +35,10 @@ lost, per day, against the game's own lifetime battle counter.
 | Battle log | 30 minutes after a read that delivered battles; after an empty read the wait doubles (60, then 120 minutes) | never past 2 hours; a new subject is read at the next planning tick, usually within a few minutes, and a player someone adds is read on the live lane at once ([first reads](/docs/limits)) |
 | Battle log, reader cap | any player resolved by a tool call (yours, or one you named) is polled at least hourly for the next 24 hours | – |
 | Battle log, floor | at least daily regardless, even under a starved budget | – |
-| Profile | once a day; a player somebody tracks directly, every 8 hours; forced once in the hour before the Monday donation reset and before the season rolls | no floor: an idle player owes the record no reading |
+| Profile | once a day; a player somebody follows directly, every 8 hours; forced once in the hour before the Monday donation reset and before the season rolls | no floor: an idle player owes the record no reading |
 | Profile, after a session | a battle log that delivered battles asks for the profile at the next planning tick, unless a profile was read in the last 8 hours | one outstanding request per player |
 | Profile, arena request | a battle log names the arena each battle was played in, and that arena is the higher side's: a player just under a trophy gate is matched with people standing on it, and their own log shows the next arena for those battles. So only a Trophy Road battle the player entered with at least their opponent's trophies says where the player stood. When such a battle names an arena the latest reading does not carry, the profile is polled at the next planning tick, and the arena move lands on the timeline within the battle log's cadence rather than the profile's | one outstanding request per player; served by the next profile admission |
-| Clan roster, tracked | every 15 minutes while members are in the game (three or more seen this hour); hourly once nobody has been for an hour, unless the roster is churning (three or more joins, departures or promotions a day); every 4 hours once nobody has been seen for a day | floor 2 days |
+| Clan roster, followed | every 15 minutes while members are in the game (three or more seen this hour); hourly once nobody has been for an hour, unless the roster is churning (three or more joins, departures or promotions a day); every 4 hours once nobody has been seen for a day | floor 2 days |
 | Clan roster, incidental | a clan read only because a recorded player is in it: every 4 hours while members are in the game, every 12 hours when idle, daily when nobody has been seen for a day. Their profile polls carry their clan tag, so membership history is never lost, only coarser | floor 2 days |
 | Current river race | every 30 minutes on war days, every 2 hours on training days (the API names the day) | floor 2 hours |
 | River race log | daily, plus one catch-up after a newer recorded race when the preceding race lacks final closure, or after an unfinished recorded colosseum season’s nominal end while the new race is unavailable | floor 2 days |
@@ -90,7 +90,7 @@ Three tables hold the record's day-grained history, one row per subject per
 
 Two writers share a member's row. The roster writes trophies, donations,
 donations received, arena, the clan, the rank and the game's last-seen at
-its own cadence (every fifteen minutes for a tracked clan); the profile writes
+its own cadence (every fifteen minutes for a followed clan); the profile writes
 the lifetime block at its own (every eight hours or slower). Each writer's
 columns are dated by its own stamp (`roster_observed_at`, `profile_observed_at`),
 the shared columns belong to whichever reading is newer, and `observed_at`
@@ -284,7 +284,7 @@ they are the live lane with the record's shape.
 `live_fetch({ path })` is the raw catch-all: one authenticated GET against
 the Clash Royale API through the live lane. **It stores nothing**: the
 payload comes back to you and never enters the record, so a tag nobody
-tracks stays unrecorded however often it is fetched. It needs the payload
+follows stays unrecorded however often it is fetched. It needs the payload
 itself, so until one is in hand it answers the error `live_pending` with
 `retry_after_s`; once one is, it answers
 `{ path, live: true, live_status, applied, data, notes, docs, meta }`, with
@@ -316,8 +316,8 @@ What a live read leaves behind:
 |---|---|
 | `live_fetch` | nothing; the payload waits for your next call outside the record, for at most an hour |
 | `live: true` on a recorded tool | the read, admitted and projected like a scheduled poll: the tool answers from the record, so the record is what moves |
-| Verify's reads of your battle log | the battle log, as any poll of a tracked player |
-| the first read of a player you add | the profile: the tag is tracked from the moment it is added |
+| Verify's reads of your battle log | the battle log, as any poll of a followed player |
+| the first read of a player you add | the profile: the tag is followed from the moment it is added |
 
 Live fetches are capped per day by role (20 / 100 / 250 / 1,000; owner and
 admin unlimited), and an agent spends its owner's allowance; past the cap a

@@ -253,7 +253,7 @@ export function ActivityGraph({ data, error, onRetry }) {
       <p className="footnote px-4">
         Read {when(data.as_of ?? data.computed_at)}.
         {data.recorded_from
-          ? ` Tracked since ${whenDay(data.recorded_from)}.`
+          ? ` Followed since ${whenDay(data.recorded_from)}.`
           : ""}
       </p>
       <details className="activity__table">

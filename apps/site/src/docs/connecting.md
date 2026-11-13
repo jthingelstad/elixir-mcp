@@ -105,7 +105,7 @@ client asks for is granted; every other standard capability is a checkbox the
 person decides on the consent page**, and a client that names no scope asks
 for `cr:read` alone. On a person's own connection the checkboxes start
 unticked; on an agent or integration every write starts ticked except
-`recordings:write`, which spends the owner's tracking slots. Each box
+`recordings:write`, which spends the owner's following slots. Each box
 says what the connection cannot do without it, and unticking one that started
 ticked asks for confirmation, naming what will not work, before the grant is
 made. What you tick is added to the grant, so a person can allow
@@ -228,7 +228,7 @@ grant. Refreshing never widens scope.
 | Scope | Grants | Tools that need it |
 |---|---|---|
 | `cr:read` | every read tool, `live_fetch`, and `elixir_timeline` (moving your read pointer is a bookmark, not an account change) | all others |
-| `recordings:write` | track or stop tracking players and clans | `elixir_track_player`, `elixir_track_clan` |
+| `recordings:write` | follow or stop following players and clans | `elixir_track_player`, `elixir_track_clan` |
 | `account:write` | private nicknames and end-user identity mappings | `elixir_nickname`, `elixir_identify` |
 | `feedback:write` | file attributed feedback | `elixir_send_feedback` |
 | `account:email` | read the account's email address at `/oauth/userinfo` (and `GET /api/v1/me`); granted only to the Elixir family's own apps | no tool; see below |

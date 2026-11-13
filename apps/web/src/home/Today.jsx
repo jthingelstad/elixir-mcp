@@ -202,7 +202,7 @@ function ClanPanel({ clan, player }) {
     return (
       <Panel title="Your clan" pad>
         <p className="kit-week__quiet" role="alert">
-          Your clans could not be read just now. Your saved tracking is
+          Your clans could not be read just now. Your saved follows are
           unchanged.
         </p>
         <button
@@ -273,8 +273,8 @@ function TrackClan({ clan }) {
   const name = clan.name ?? clan.clan_tag;
   return (
     <Panel title="Your clan" pad>
-      <Empty title="Your player’s clan isn’t tracked yet">
-        Track it to record its roster, who joins and who goes, and its races.
+      <Empty title="Your player’s clan isn’t followed yet">
+        Follow it to record its roster, who joins and who goes, and its races.
       </Empty>
       <button
         type="button"
@@ -295,7 +295,7 @@ function TrackClan({ clan }) {
           invalidate();
         }}
       >
-        Start tracking <TagText>{name}</TagText>
+        Follow <TagText>{name}</TagText>
       </button>
       {err ? (
         <p className="kit-form__err" role="alert">

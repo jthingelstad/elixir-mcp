@@ -11,7 +11,7 @@ const canonical = (raw) =>
   `#${raw.trim().toUpperCase().replace(/^#/, "").replaceAll("O", "0")}`;
 
 /**
- * "Stop tracking", asked once in a dialog (a mis-click must not stop a
+ * "Stop following", asked once in a dialog (a mis-click must not stop a
  * recording). `run` is the page's removal; it answers { ok }. A refusal
  * (your main player, while you track others) stays in the dialog and says
  * why.
@@ -19,11 +19,11 @@ const canonical = (raw) =>
 export function StopTracking({ name, run, busy, onDone }) {
   return (
     <ConfirmAction
-      label="Stop tracking"
+      label="Stop following"
       className="btn btn--sm btn--danger"
       disabled={busy}
-      title={<>Stop tracking {name}?</>}
-      body="History stays for at least a year after the last person stops tracking. Elixir stops recording them for you, and they leave your timeline and Wednesday's mail."
+      title={<>Stop following {name}?</>}
+      body="History stays for at least a year after the last person stops following. Elixir stops recording them for you, and they leave your timeline and Wednesday's mail."
       confirm="Yes, stop"
       run={run}
       onDone={(r) => {
@@ -82,7 +82,7 @@ export function FixTag({ claim, refresh, navigate, stop }) {
         : null;
   const tag = canonical(next);
   const historyStays =
-    "History stays for at least a year after the last person stops tracking.";
+    "History stays for at least a year after the last person stops following.";
   return (
     <div id="fix-tag" className="mt-3 flex flex-col gap-2">
       <form
@@ -110,12 +110,12 @@ export function FixTag({ claim, refresh, navigate, stop }) {
           }}
         />
         <ConfirmAction
-          label="Track this tag instead"
+          label="Follow this tag instead"
           className="btn btn--primary btn--sm"
           disabled={replace.busy || !next.trim() || Boolean(problem)}
-          title={`Track ${tag} instead?`}
-          body={`Elixir tracks the corrected tag${claim.is_primary ? " as your main player" : ""} and stops the old one. ${historyStays}`}
-          confirm="Track this tag instead"
+          title={`Follow ${tag} instead?`}
+          body={`Elixir follows the corrected tag${claim.is_primary ? " as your main player" : ""} and stops the old one. ${historyStays}`}
+          confirm="Follow this tag instead"
           run={() => replace.run(tag)}
           onDone={(r) => {
             if (r?.ok)
@@ -131,7 +131,7 @@ export function FixTag({ claim, refresh, navigate, stop }) {
             bad ||
             (replace.error
               ? writeErrorText(replace.error)
-              : `Elixir tracks the corrected tag${claim.is_primary ? " as your main player" : ""} and stops ${wanted}.`)}
+              : `Elixir follows the corrected tag${claim.is_primary ? " as your main player" : ""} and stops ${wanted}.`)}
         </TagText>
       </span>
       {stop}

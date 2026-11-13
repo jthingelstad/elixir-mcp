@@ -40,7 +40,7 @@ for (const width of [390, 1280]) {
       ).toBeVisible();
       await page.getByRole("tab", { name: "Players", exact: true }).click();
       await expect(
-        page.getByText("No players tracked", { exact: true }),
+        page.getByText("No players followed", { exact: true }),
       ).toBeVisible();
       await expect(page.getByText("Nothing tracked yet")).toHaveCount(0);
       await expect(
@@ -158,7 +158,7 @@ for (const width of [390, 1280]) {
     );
     await expect(page.getByText("You are not tracking that")).toHaveCount(0);
     await expect(
-      page.getByRole("link", { name: "‹ Players & tracking" }),
+      page.getByRole("link", { name: "‹ Players & following" }),
     ).toBeVisible();
     failed = false;
     await page.getByRole("button", { name: "Try again", exact: true }).click();

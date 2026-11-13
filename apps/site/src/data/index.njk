@@ -174,22 +174,22 @@ canonical: /data
     <a class="data-sec__link" href="/docs/recording">How recording works ›</a>
   </div>
   <p class="footnote">What is recorded, how often, and how long it is kept.</p>
-  {%- set kept = "while tracked, and a year after" %}
+  {%- set kept = "while followed, and a year after" %}
   <section class="panel">
     <div class="data-rows data-rows--three" role="table" aria-label="What is recorded">
       <div class="data-rows__row data-rows__row--head" role="row"><span role="columnheader">What</span><span role="columnheader">How often</span><span role="columnheader">Kept</span></div>
       <div class="data-rows__row" role="row"><b role="cell">Player battle logs</b><span role="cell" data-col="How often">every 30 min while playing, backing off to at most 2 h</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
-      <div class="data-rows__row" role="row"><b role="cell">Player profiles</b><span role="cell" data-col="How often">daily (every 8 h for a player tracked directly), and after a session</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
-      <div class="data-rows__row" role="row"><b role="cell">Clans</b><span role="cell" data-col="How often">tracked clans every 15 min while members are online, backing off when idle</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
+      <div class="data-rows__row" role="row"><b role="cell">Player profiles</b><span role="cell" data-col="How often">daily (every 8 h for a player followed directly), and after a session</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
+      <div class="data-rows__row" role="row"><b role="cell">Clans</b><span role="cell" data-col="How often">followed clans every 15 min while members are online, backing off when idle</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
       <div class="data-rows__row" role="row"><b role="cell">River races (clan wars)</b><span role="cell" data-col="How often">every 30 min on war days, 2 h on training days; the race log daily</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
       <div class="data-rows__row" role="row"><b role="cell">Game events</b><span role="cell" data-col="How often">once a game day</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
       <div class="data-rows__row" role="row"><b role="cell">Decks, cards, matchups</b><span role="cell" data-col="How often">worked out from recorded battles</span><span role="cell" data-col="Kept">recomputed</span></div>
     </div>
   </section>
   <p class="footnote">
-    A player or clan is recorded because an account tracks it (or its clan).
+    A player or clan is recorded because an account follows it (or its clan).
     Elixir keeps every battle it records. History stays for at least a year
-    after the last person stops tracking. Raw game data is archived when
+    after the last person stops following. Raw game data is archived when
     admitted. Account data is never public. A gap in the record means unknown,
     not that nothing happened.
   </p>

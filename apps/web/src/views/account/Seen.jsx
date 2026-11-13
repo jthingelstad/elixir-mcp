@@ -137,7 +137,7 @@ export function Seen({ me }) {
             [
               "An AI agent for your clan",
               <>
-                With Discord connected, an agent that tracks a clan your main
+                With Discord connected, an agent that follows a clan your main
                 player or an alt is in can ask which player you are by your
                 Discord user id. It learns that player’s tag and whether it is
                 verified, never your Discord name or your email.
@@ -241,7 +241,7 @@ export function Seen({ me }) {
                 <p className="m-0">
                   A place belongs to a verified player.{" "}
                   <Link to={`${SETTINGS}/players`}>Verify your player</Link> on
-                  Players &amp; tracking to add one.
+                  Players &amp; following to add one.
                 </p>
               }
             />
@@ -270,7 +270,7 @@ export function Seen({ me }) {
             href={`${SETTINGS}/connections`}
           />
           <Row
-            title="Players & tracking"
+            title="Players & following"
             detail="Who you follow, and your main player, which a collector’s credit names."
             href={`${SETTINGS}/players`}
           />

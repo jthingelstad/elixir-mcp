@@ -52,7 +52,7 @@ slot with your primary player's clan for you when it is free ([Your
 player's clan](/docs/recording#your-players-clan)).
 
 **leader**: you run a clan: one of your [verified](/docs/verify)
-players is its leader or co-leader, and you track the clan. One
+players is its leader or co-leader, and you follow the clan. One
 every-member watch: every member's battles and profile, following
 membership as it changes. This is the role a clan's own agent needs.
 
@@ -95,8 +95,8 @@ and what you do never shows up as its. **Every role can have agents**: you
 can create one for any clan you already record, up to the
 per-account count in the table above. It spends your daily call budget, **your
 live-fetch budget**, every agent you run shares your one daily live
-allowance, **and your recording slots**: what your agents track is counted
-with what you track, once per player or clan, however many of you track it.
+allowance, **and your recording slots**: what your agents follow is counted
+with what you follow, once per player or clan, however many of you follow it.
 Its own role is capped at yours, and at `leader`: an admin's agent is not an
 admin, and an agent's role follows yours as it is read now (member while
 you are a member, leader otherwise), so an agent never sits above its owner. Each agent has its own page,
@@ -118,18 +118,18 @@ admin authority.
 | Signs in with | OAuth | OAuth or a key | a key |
 | Available to | everyone | everyone, per clan you record | admin provisioned |
 
-## Tracked means recorded
+## Followed means recorded
 
-Tracking a player or clan on your account IS the act of recording it:
+Following a player or clan on your account IS the act of recording it:
 there is no separate watch step and no approval queue; your role's slots
 are the only gate, and recording starts immediately. The one per-subject
 setting is **notify**: whether that player or clan feeds your timeline
 (`elixir_timeline`). Remove a subject and its slot frees; a clan's shared
-recording stops only when no account tracks it.
+recording stops only when no account follows it.
 
 ## Why fifty players, whatever your role
 
-One every-member clan watch already records about fifty players, so tracking
+One every-member clan watch already records about fifty players, so following
 fifty individually costs the service exactly what a single every-member slot
 costs. And most of them are already recorded anyway: **a recording
 is shared by everyone watching it**, so a player slot is spent only when
@@ -137,7 +137,7 @@ Elixir records the player because of you. A member of a clan recorded in
 full, or a player another account already follows, is free ([What a player
 slot costs](/docs/recording#what-a-player-slot-costs)).
 
-That is also what makes relationships worth having. Each player you track is your
+That is also what makes relationships worth having. Each player you follow is your
 **primary** (you), an **alt** (also you, another tag), a **friend** you follow,
 or someone you're **watching**, and "how are my friends playing?" is only a
 question worth asking if there is room to keep friends in.
@@ -159,7 +159,7 @@ Leader and Family are not requested. Each comes with something you do, and
 Elixir checks it every time you use it:
 
 - **Leader**: [verify](/docs/verify) a player of yours (your primary or
-  an alt) who is the leader or a co-leader of a clan, and track that
+  an alt) who is the leader or a co-leader of a clan, and follow that
   clan. Verified, because several accounts may claim one tag on trust;
   only Verify proves whose it is. Their role in the clan is the one
   Elixir last recorded.
@@ -173,8 +173,8 @@ Elixir checks it every time you use it:
 
 When both apply, the higher role wins: a leader who runs a collector is
 Family. A role earned is lost when its ground goes: step down as
-co-leader, leave the clan, stop tracking it or stop the collector, and
-the next request reads the role below. Nothing you already track is
+co-leader, leave the clan, stop following it or stop the collector, and
+the next request reads the role below. Nothing you already follow is
 removed when that happens; your role's slots refuse only the next add
 until you are back under them.
 

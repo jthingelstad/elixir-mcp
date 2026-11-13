@@ -309,7 +309,7 @@ export function timelineDays(items, { day, openedMs }) {
 /** Step 3's line: with no player of your own the clan is one you track, and
  *  saying "your player's clan" would name somebody who is not there. */
 export const clanStepLine = (name, hasPlayer) =>
-  hasPlayer ? `${name}, your player’s clan.` : `${name}, a clan you track.`;
+  hasPlayer ? `${name}, your player’s clan.` : `${name}, a clan you follow.`;
 
 /** The time to show beside an item: the one the feed is ordered by. */
 export const shownAt = (it) => it.sort_at ?? it.at;

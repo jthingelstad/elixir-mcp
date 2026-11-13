@@ -26,7 +26,7 @@ Every agent you own has **its own page**, opened from its row in **Settings ›
 Connections & agents**, at `/settings/agents/<public_id>`. It has five tabs:
 **Overview** (key, last call, what is refusing it, the address to connect it
 at, and links to its Timeline and the feedback it has filed), **What it reads**
-(the clans and players it tracks), **Usage** (its share of your budget, its MCP
+(the clans and players it follows), **Usage** (its share of your budget, its MCP
 requests and account events), **Connections** (the clients connected as it) and
 **Settings**. Pages that belong to a person (Verify, Profile) are not there. An agent spends your budget and your recording
 slots, so your own Usage still counts it. New feedback is always filed as
@@ -88,26 +88,26 @@ reconnect; call `clans_roster` once per run.
 An agent's `tools/list` has {{ tools.agentCount }} tools: everything except `elixir_my_players`
 and `clans_my_view`, which need a self. Omit `clan_tag` anywhere and it means the agent's clan.
 
-## What an agent tracks
+## What an agent follows
 
-An agent can track clans and players as well: a rival clan it is
+An agent can follow clans and players as well: a rival clan it is
 asked to watch, the other clans of a family, a player worth following.
 `elixir_track_clan` and `elixir_track_player` work for it the way they work
 for you, with an agent's meaning. Its players are `watching`, never
 `primary`, `alt` or `friend`, because those say "me". Every clan and player
-it tracks spends **your** recording slots: they are one pool across you and
-all your agents, a subject counts once however many of you track it, and a
+it follows spends **your** recording slots: they are one pool across you and
+all your agents, a subject counts once however many of you follow it, and a
 clan counts once at the widest scope any of you gives it. So making agents
 never adds slots. Only **active** agents are in the pool: a suspended
 agent's players and clans take none of your slots and are recorded only if
-you or someone else still tracks them, so the record has a gap for the
-ones only it tracks until you resume it. Resuming is refused while it would
+you or someone else still follows them, so the record has a gap for the
+ones only it follows until you resume it. Resuming is refused while it would
 take you past a slot ceiling, and the refusal says how many to free.
 
 One of its clans is the clan it **acts for**, its default wherever
 `clan_tag` is omitted. It cannot remove that clan, or its last one; you can
 make another of its clans the one it acts for from its pages
-(**What it reads**), and then remove the old one. What it tracks is on
+(**What it reads**), and then remove the old one. What it follows is on
 **What it reads**, and every change to it on **Usage**, under its account
 events.
 
@@ -279,7 +279,7 @@ Facts in, judgment in your code.
 |---|---|---|
 | Rotate | its **Settings** tab, Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
 | Revoke | its **Settings** tab, Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready: it takes the name and scope of the most recent key, and is refused (`409 name_taken`) only if another of your live agents has taken that name since. |
-| Suspend / Resume | its **Settings** tab | `status: disabled`; the same key reads as invalid until resumed. Its players and clans leave your slots and stop recording unless someone else tracks them. Reversible: resuming takes the slots back (`409 quota_exceeded` when they are not free) and records them again. |
+| Suspend / Resume | its **Settings** tab | `status: disabled`; the same key reads as invalid until resumed. Its players and clans leave your slots and stop recording unless someone else follows them. Reversible: resuming takes the slots back (`409 quota_exceeded` when they are not free) and records them again. |
 | Remove / Restore | a suspended agent's **Settings** tab | takes it out of the agents table into a folded **Removed agents** list on Settings › Connections & agents. Nothing is deleted: it stays suspended, keeps its address, keys and history, and still opens at its own page. Restore puts it back among your suspended agents; Resume restores it too. |
 | Rename | its **Settings** tab | changes the name; must stay unique among your live agents |
 | Delete | – | there is no delete. Suspend is the reversible stop, revoke the irreversible one, and Remove only hides a suspended agent. |

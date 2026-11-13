@@ -37,12 +37,12 @@ import { FixTag, StopTracking } from "./TagFix.jsx";
  * One tracked player or clan: how you track it, and what that is
  * capturing.
  *
- * The controls live here rather than in the Players & tracking row. A list row
+ * The controls live here rather than in the Players & following row. A list row
  * with a nickname field, a relationship select, a notify switch and a
  * remove button in it is a form pretending to be a list, and it makes
  * the one thing a list is for — comparing rows — impossible.
  *
- * "Stop tracking" says what it costs beside itself: the history already
+ * "Stop following" says what it costs beside itself: the history already
  * recorded is kept, and this only stops new capture. That is the whole
  * reason the word is "stop" and not "delete". It asks in a dialog before it
  * writes (TagFix.jsx).
@@ -144,7 +144,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   const rec = me.recordings?.find((r) => r.subject_tag === wanted);
 
   const backTo = `${SETTINGS}/players`;
-  const crumb = <Crumb to={backTo}>Players &amp; tracking</Crumb>;
+  const crumb = <Crumb to={backTo}>Players &amp; following</Crumb>;
 
   if (!claim && !clan) {
     return (
@@ -152,10 +152,10 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
         {crumb}
         <ClanReadStatus query={clansQuery} />
         {clansQuery.isSuccess && (
-          <Empty title="You are not tracking that">
+          <Empty title="You are not following that">
             <span className="mono">{wanted}</span> is not on your account. If
-            you stopped tracking it, history stays for at least a year after the
-            last person stops tracking. Search for it to open its record.
+            you stopped following it, history stays for at least a year after
+            the last person stops following. Search for it to open its record.
           </Empty>
         )}
       </div>
@@ -249,13 +249,13 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
       {!isClan && claim.is_primary && <HomeClanOffer />}
 
       <div className="st-two">
-        <Panel title="How you track it" titleAs="h2">
+        <Panel title="How you follow it" titleAs="h2">
           <Facts
             rows={[
               [
                 "Relationship",
                 isClan ? (
-                  "A clan is tracked, not related."
+                  "A clan is followed, not related."
                 ) : claim.is_primary ? (
                   <>
                     Your main player
@@ -398,7 +398,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                 (rec?.fetches_24h ?? 0).toLocaleString(),
               ],
               [
-                "Tracked since",
+                "Followed since",
                 whenDay(isClan ? clan.created_at : rec?.created_at),
               ],
             ]}

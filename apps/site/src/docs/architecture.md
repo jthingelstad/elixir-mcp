@@ -145,12 +145,12 @@ at a cabin. What makes the fleet interesting:
 
 ## The timeline
 
-Recording is pull; noticing is push. Everything you track appears on your
+Recording is pull; noticing is push. Everything you follow appears on your
 **timeline** (`elixir_timeline`) while its notify switch is on. The
 timeline is synthesized when you read it, from the record and the
 per-subject ledger: the items that happened since your read pointer,
 newest first, each a sentence a person can read with its facts beside it, and one
-entry per subject summarizing the window. A person's entries are the players they track and the
+entry per subject summarizing the window. A person's entries are the players they follow and the
 clans they added; an agent's is the clan it represents, with the members
 inside it. Facts with their windows, never judgments: what to do about a
 member quiet six days is deliberately your agent's call, not the
@@ -273,7 +273,7 @@ asks for the profile unless one was read in the last eight hours. The
 one time-critical profile read, the pre-reset read of the weekly
 donation counter, is forced separately. Elixir's staff read what the
 schedule costs and what it loses, per day, on an Admin page. Clan rosters follow the clan's own day, every 15
-minutes while members of a tracked clan are in the game, coasting to
+minutes while members of a followed clan are in the game, coasting to
 hourly and then four-hourly as the roster's `lastSeen` stamps go quiet,
 and a few times a day for a clan read only because a recorded player is
 in it, and war-race

@@ -49,13 +49,13 @@ function messageFor(r) {
     case "rate_limited":
       return "Too many starts in the last hour. Give it a little while and try again.";
     case "quota_exceeded":
-      return "Your limits have no free place for a new tag. Stop tracking one under Players & tracking, or verify a player you already track.";
+      return "Your limits have no free place for a new tag. Stop following one under Players & following, or verify a player you already follow.";
     case "not_entitled":
       return "Only a person's account can hold a claim.";
     case "not_yours":
       return "Only your main player or another of yours can be verified. Change the relationship on their page if this player is yours.";
     case "not_tracked":
-      return "Add the player under Players & tracking first, as yours, then verify it here.";
+      return "Add the player under Players & following first, as yours, then verify it here.";
     case "invalid_tag":
       return "That does not look like a player tag. Tags look like #2PP0V90Y.";
     case "timeout":
@@ -175,7 +175,7 @@ export function Verify({ refresh, navigate, tag = null }) {
 
   const header = (
     <PageHead
-      crumb={<Crumb to={`${SETTINGS}/players`}>Players &amp; tracking</Crumb>}
+      crumb={<Crumb to={`${SETTINGS}/players`}>Players &amp; following</Crumb>}
       title="Verify"
       sub={
         <>
@@ -357,7 +357,7 @@ export function Verify({ refresh, navigate, tag = null }) {
                   className="btn btn--quiet"
                   onClick={() => navigate?.(`${SETTINGS}/players`)}
                 >
-                  Players &amp; tracking
+                  Players &amp; following
                 </button>
               </div>
             </div>
@@ -379,7 +379,7 @@ export function Verify({ refresh, navigate, tag = null }) {
 
   // The picker: only the players that are yours to prove (you and your
   // alts). Friends and watched players are theirs; adding a player at all
-  // is Players & tracking's job, so this page has one.
+  // is Players & following's job, so this page has one.
   const players = (list?.players ?? []).filter((p) => p.eligible !== false);
   return (
     <>
@@ -406,7 +406,7 @@ export function Verify({ refresh, navigate, tag = null }) {
           ) : players.length === 0 ? (
             <p className="verify__lead">
               <strong>Nothing to verify yet.</strong> Add your player, or
-              another of yours, under Players &amp; tracking. Then it appears
+              another of yours, under Players &amp; following. Then it appears
               here.{" "}
               <Link to={`${SETTINGS}/players#add-player-tag`}>
                 Add your player
