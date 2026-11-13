@@ -1,8 +1,9 @@
 /**
  * Award standings to Elixir (2026-09-25; Jamie: "Do the mid season
- * standings"). Each morning the clan's awards are evaluated on Elixir
- * Clan's integration key; where each member stands in a race still running
- * goes to Elixir as an `award_standing` fact (JSON API 2.6.0), the app's
+ * standings"). Each morning the clan's awards are evaluated by Elixir
+ * Clan's morning run, as Elixir's own system actor (no integration since
+ * 2026-11-13); where each member stands in a race still running is
+ * written as an `award_standing` fact labelled "Elixir Clan", the app's
  * own word, so the clan's Discord agent can say who leads, in the clan's
  * own terms, and notice when the lead changes hands.
  *

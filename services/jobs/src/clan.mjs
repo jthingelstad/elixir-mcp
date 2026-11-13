@@ -1,6 +1,7 @@
 /** One recorded clan per tick, in the existing jobs runtime. Private
  * state and derived facts stay distinct from collector-admitted facts.
- * No person's grant or integration credential is stored or presented. */
+ * It runs as Elixir Clan's system actor: no person's grant and no
+ * integration identity or credential is stored, looked up or presented. */
 import pg from "pg";
 import {
   createPostgresStore,
@@ -19,10 +20,11 @@ import { discordQuality } from "@elixir-mcp/syndication/quality";
 import { makeOutbox } from "@elixir-mcp/outbox";
 import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
 import {
-  writeClanFactAsApp,
-  removeClanFactAsApp,
+  writeClanFactAsClan,
+  removeClanFactAsClan,
 } from "@elixir-mcp/record/attested-facts";
-import { sendClanMail } from "@elixir-mcp/mail/clan-mail";
+import { sendClanMailAsClan } from "@elixir-mcp/mail/clan-mail";
+import { CLAN_SYSTEM_ACTOR } from "@elixir-mcp/clan/system-actor.mjs";
 import { makeRegistry } from "@elixir-mcp/tools";
 import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { normalizeTag } from "@elixir-mcp/contracts";
@@ -152,6 +154,39 @@ export async function evaluateClanTick(
   }
   return { due: 0 };
 }
+/** The closed reader and writers Clan's morning run works through, as
+ * Elixir Clan's system actor: reads through the audited invoker under no
+ * account, award standings as Elixir Clan's own facts, the Actions mail
+ * as Elixir Clan. No integration row, key or permission is consulted
+ * ("No integrations: Elixir has users and agents", 2026-11-13). */
+export function clanMorningClient(db, { enqueue, secret, archive }) {
+  const credential = Object.freeze({});
+  const invoke = makeInvoker({
+    db,
+    account: CLAN_SYSTEM_ACTOR,
+    registry,
+    surface: "web",
+    clientName: "Clan morning",
+    queryBudgetMs: 15_000,
+    deadlineMs: 75_000,
+  });
+  const mcp = createRecordedClient({
+    credential,
+    invoke: async (name, args) => {
+      const r = await invoke(name, args);
+      return r.isError
+        ? { ok: false, code: r.body.error.code, body: r.body }
+        : { ok: true, body: r.body };
+    },
+    writeFact: (tag, body) => answer(() => writeClanFactAsClan(db, tag, body)),
+    removeFact: (tag, ref) => answer(() => removeClanFactAsClan(db, tag, ref)),
+    sendMail: (tag, body) =>
+      answer(() =>
+        sendClanMailAsClan(db, tag, body, { enqueue, secret, archive }),
+      ),
+  });
+  return { credential, mcp };
+}
 export async function runClanEvaluation({
   databaseUrl,
   enqueue,
@@ -164,47 +199,10 @@ export async function runClanEvaluation({
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    // Keep this durable historical attester identity after its token is
-    // revoked. It is provenance, not a second sign-in or network client.
-    const row = (
-      await db.query(
-        "select account_id from integration where name='elixir-clan'",
-      )
-    ).rows[0];
-    if (!row) throw new Error("clan_attester_identity_missing");
-    const actor = {
-      accountId: row.account_id,
-      name: "elixir-clan",
-      kind: "integration",
-      role: "member",
-      firstParty: true,
-    };
-    const credential = Object.freeze({});
-    const invoke = makeInvoker({
-      db,
-      account: actor,
-      registry,
-      surface: "web",
-      clientName: "Clan morning",
-      queryBudgetMs: 15_000,
-      deadlineMs: 75_000,
-    });
-    const mcp = createRecordedClient({
-      credential,
-      invoke: async (name, args) => {
-        const r = await invoke(name, args);
-        return r.isError
-          ? { ok: false, code: r.body.error.code, body: r.body }
-          : { ok: true, body: r.body };
-      },
-      writeFact: (tag, body) =>
-        answer(() => writeClanFactAsApp(db, actor, tag, body)),
-      removeFact: (tag, ref) =>
-        answer(() => removeClanFactAsApp(db, actor, tag, ref)),
-      sendMail: (tag, body) =>
-        answer(() =>
-          sendClanMail(db, actor, tag, body, { enqueue, secret, archive }),
-        ),
+    const { credential, mcp } = clanMorningClient(db, {
+      enqueue,
+      secret,
+      archive,
     });
     await expireModelUses(db);
     const ledger = createPostgresLedger(db);

@@ -644,3 +644,66 @@ test("an app records its computed award standing on its integration key; a perso
   assert.equal(gone.statusCode, 200, gone.body);
   assert.equal(data(gone).data.removed, true);
 });
+
+test("Elixir Clan's morning run writes its standings as Elixir with no key or account, and they read as the key's did", async () => {
+  const { writeClanFactAsClan, removeClanFactAsClan, removeClanFactAsApp } =
+    await import("@elixir-mcp/record/attested-facts");
+  const standing = {
+    type: "award_standing",
+    ref: "standing:136:war_champ:system",
+    player_tag: MEMBER_TAG,
+    detail: {
+      award: "War Champ",
+      award_id: "war_champ",
+      season_id: 136,
+      place: 2,
+      value: 5900,
+      unit: "points",
+      as_of: new Date().toISOString(),
+    },
+  };
+  const made = await writeClanFactAsClan(db, CLAN, standing);
+  assert.equal(made.attested_by.app, "Elixir Clan");
+  assert.equal(made.attested_by.player_tag, null, "the app's, not a person's");
+  const { rows } = await db.query(
+    "select source, attester_account_id from attested_fact where fact_id = $1",
+    [made.id],
+  );
+  assert.deepEqual(rows, [
+    { source: "elixir-clan", attester_account_id: null },
+  ]);
+  // A person's kind is refused here as on the key.
+  await assert.rejects(
+    writeClanFactAsClan(db, CLAN, {
+      type: "departure_classified",
+      ref: "k-system",
+      player_tag: LEFT_TAG,
+      detail: { kind: "kick" },
+    }),
+    { code: "unknown_fact_type" },
+  );
+  const window = { fromMs: Date.now() - 86_400_000, toMs: Date.now() + 1000 };
+  const seen = (
+    await factItems(db, [{ kind: "clan", tag: CLAN, scope: "activity" }], {
+      accountId: accounts.member,
+      ...window,
+    })
+  ).filter((i) => i.kind === "award_standing" && i.facts.place === 2);
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].facts.attested_by.app, "Elixir Clan");
+  // Same source key both ways: what the run writes, the key's path (the
+  // code a rollback would serve) still finds, and the reverse.
+  const viaKey = await removeClanFactAsApp(
+    db,
+    { name: "elixir-clan", accountId: null },
+    CLAN,
+    standing.ref,
+  );
+  assert.equal(viaKey.removed, true);
+  await writeClanFactAsClan(db, CLAN, standing);
+  const gone = await removeClanFactAsClan(db, CLAN, standing.ref);
+  assert.equal(gone.removed, true);
+  await assert.rejects(removeClanFactAsClan(db, CLAN, standing.ref), {
+    code: "not_found",
+  });
+});

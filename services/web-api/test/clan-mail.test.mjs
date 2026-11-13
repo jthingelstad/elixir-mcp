@@ -251,3 +251,36 @@ test("an integration made without a permission list gets none that act on people
   assert.ok(!rows[0].scopes.includes("mail:send"));
   assert.ok(!rows[0].scopes.includes("facts:write"));
 });
+
+test("Elixir Clan's morning run sends as Elixir with no key, under the same once-a-day cap and record as the key", async () => {
+  const { sendClanMailAsClan } = await import("@elixir-mcp/mail/clan-mail");
+  const tag = "#QQ2LLGV8";
+  const id = await person("system-actor", tag);
+  const before = sent.length;
+  const body = { kind: "clan_actions_waiting", messages: [message(tag)] };
+  const r = await sendClanMailAsClan(db, CLAN, body, {
+    enqueue: async (msg) => sent.push(msg),
+    secret: "test",
+  });
+  assert.deepEqual(
+    r.results.map((x) => x.status),
+    ["sent"],
+  );
+  assert.equal(sent.length, before + 1);
+  assert.equal(sent.at(-1).to, "system-actor@example.org");
+  const { rows } = await db.query(
+    "select i.facts->>'source' as source from email_send s join email_issue i using(issue_id) where s.account_id = $1",
+    [id],
+  );
+  assert.deepEqual(rows, [{ source: "elixir-clan" }], "recorded as before");
+  // The same day's cap holds across the two paths, so the deploy that
+  // switches Clan over never sends twice.
+  const viaKey = await mail(body);
+  assert.equal(data(viaKey).data.results[0].status, "already_sent_today");
+  const again = await sendClanMailAsClan(db, CLAN, body, {
+    enqueue: async (msg) => sent.push(msg),
+    secret: "test",
+  });
+  assert.equal(again.results[0].status, "already_sent_today");
+  assert.equal(sent.length, before + 1);
+});

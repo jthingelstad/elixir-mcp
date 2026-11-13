@@ -65,8 +65,9 @@ export function createAwardsService({
   ledger,
   participationFor,
   membershipFor = null,
-  // Elixir's client, for the morning run's award standings (JSON API
-  // 2.6.0, on the integration key with facts:write); none, none shared.
+  // Elixir's client, for the morning run's award standings, written in
+  // process as Elixir Clan's own facts (writeClanFactAsClan; no
+  // integration since 2026-11-13); none, none shared.
   elixir = null,
   now = () => Date.now(),
 }) {

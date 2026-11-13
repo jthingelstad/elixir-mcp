@@ -451,7 +451,11 @@ test("awards: when a season's awards are granted, leaders get a Clan Leader Mess
   );
 });
 
-test("awards: the morning run shares the running season's standings with Elixir on its key, then only what moved", async () => {
+test("awards: the morning run shares the running season's standings with Elixir on its own credential, then only what moved", async () => {
+  // The run's opaque in-process credential (clanMorningClient in
+  // services/jobs/src/clan.mjs), never an integration key: since
+  // 2026-11-13 the run acts as Elixir Clan's system actor.
+  const credential = Object.freeze({});
   const h = harness({ part: partClan() });
   const svc = createAwardsService({
     ledger: h.ledger,
@@ -459,15 +463,15 @@ test("awards: the morning run shares the running season's standings with Elixir 
     participationFor: (token, tag) => fetchParticipation(h.mcp, token, tag),
     elixir: h.mcp,
   });
-  const first = await svc.evaluateOnSchedule("#2PQRJ8LV", "svt_clan_key");
+  const first = await svc.evaluateOnSchedule("#2PQRJ8LV", credential);
   assert.equal(first.awards_evaluated, true);
   assert.ok(first.standings_written > 0, JSON.stringify(first));
   assert.equal(first.standings_failed, 0);
   const writes = h.mcp.calls.filter((c) => c[0] === "writeFact");
   assert.equal(writes.length, first.standings_written);
   assert.ok(
-    writes.every((c) => c[1] === "svt_clan_key"),
-    "on the integration key",
+    writes.every((c) => c[1] === credential),
+    "on the run's own credential",
   );
   const facts = h.mcp.state.facts;
   assert.ok(facts.every((f) => f.type === "award_standing"));
@@ -479,7 +483,7 @@ test("awards: the morning run shares the running season's standings with Elixir 
   assert.equal(saved.season_id, 136);
   assert.equal(Object.keys(saved.refs).length, first.standings_written);
   h.clock.t += 86_400_000;
-  const second = await svc.evaluateOnSchedule("#2PQRJ8LV", "svt_clan_key");
+  const second = await svc.evaluateOnSchedule("#2PQRJ8LV", credential);
   assert.equal(second.standings_written, 0);
   assert.equal(second.standings_removed, 0);
 });

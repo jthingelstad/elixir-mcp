@@ -1,8 +1,9 @@
 /**
  * A family app's own mail, sent through Elixir (JSON API 2.4.0; Jamie,
  * 2026-09-25): `POST /api/v1/clans/{tag}/mail` on an integration key with
- * `mail:send`. Elixir Clan composes "actions waiting for you" after its
- * morning run and names who each email is for by player tag; Elixir holds
+ * `mail:send`, and since 2026-11-13 Elixir Clan's morning run in-process
+ * (sendClanMailAsClan), as Elixir. Clan composes "actions waiting for
+ * you" and names who each email is for by player tag; Elixir holds
  * the addresses, the switches (on to start) and the unsubscribe, and the
  * app never sees an address.
  *
@@ -16,7 +17,11 @@
  * record), and a message that cannot be sent says why.
  */
 
-import { normalizeTag } from "@elixir-mcp/contracts";
+import {
+  ELIXIR_CLAN_SOURCE,
+  FAMILY_APP_NAMES,
+  normalizeTag,
+} from "@elixir-mcp/contracts";
 import { FIRST_PARTY_ORIGINS } from "@elixir-mcp/auth";
 import { upsertIssue } from "@elixir-mcp/mail/ledger";
 import { deliver } from "@elixir-mcp/mail/deliver";
@@ -128,9 +133,27 @@ async function recipientOf(db, playerTag, clanTag, kind) {
   return { account: { accountId: r.account_id, email: r.email } };
 }
 
+/** Elixir Clan's Actions mail, sent by its in-process morning run as
+ *  Elixir: no integration, no key, no account ("No integrations: Elixir
+ *  has users and agents", Jamie, 2026-11-13). The same sender, lock,
+ *  issue key and once-a-day check as the HTTP door; the record's source
+ *  stays ELIXIR_CLAN_SOURCE and the email still names "Elixir Clan". */
+export function sendClanMailAsClan(db, clanInput, body, options = {}) {
+  return sendClanMail(
+    db,
+    { name: ELIXIR_CLAN_SOURCE },
+    clanInput,
+    body,
+    options,
+  );
+}
+
+/** `sender.name` is the source the issue records and the app the email
+ *  names: an integration on its key (`mail:send`, until the integration
+ *  keys go in their JSON API major), or Elixir Clan (sendClanMailAsClan). */
 export async function sendClanMail(
   db,
-  integration,
+  sender,
   clanInput,
   body,
   { enqueue, secret, archive = null, now = () => new Date() } = {},
@@ -175,7 +198,7 @@ export async function sendClanMail(
       kind,
       periodKey: day,
       subjectKey: clanTag,
-      facts: { clan_tag: clanTag, source: integration.name },
+      facts: { clan_tag: clanTag, source: sender.name },
       status: "queued",
     });
     const results = [];
@@ -199,10 +222,7 @@ export async function sendClanMail(
           now: at,
           facts: {
             clan: { tag: clanTag, name: clanRows[0].name ?? null },
-            app:
-              integration.name === "elixir-clan"
-                ? "Elixir Clan"
-                : integration.name,
+            app: FAMILY_APP_NAMES[sender.name] ?? sender.name,
             subject: m.subject,
             lines: m.lines,
             link: m.link,

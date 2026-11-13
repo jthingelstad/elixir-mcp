@@ -12,7 +12,10 @@
  *   POST   /api/v1/clans/{tag}/facts        an integration with facts:write,
  *   DELETE /api/v1/clans/{tag}/facts/{ref}  for the types the app itself
  *                                           computes (attesters ["app"],
- *                                           9.6.0: Elixir Clan's standings)
+ *                                           9.6.0)
+ *
+ * Elixir Clan's standings are written in-process by its morning run
+ * (writeClanFactAsClan), as Elixir, with no integration (2026-11-13).
  *
  * A clan fact is attested by the person's VERIFIED player in that clan,
  * with the role the record holds for it now; the type names the roles
@@ -22,6 +25,7 @@
 
 import {
   ATTESTED_FACT_TYPES,
+  ELIXIR_CLAN_SOURCE,
   FAMILY_APP_NAMES,
   LEADER_MESSAGE_ROLES,
   OAUTH_SCOPE,
@@ -459,11 +463,11 @@ const APP_CLAN_TYPES = Object.keys(ATTESTED_FACT_TYPES).filter(
     ATTESTED_FACT_TYPES[k].attesters.includes("app"),
 );
 
-/** A family app's own computed clan fact, on its integration key
- *  (facts:write, 9.6.0): what the app worked out from its own rules,
- *  labelled as the app's, never a person's. A person's kind of fact is
- *  refused here, as the app's kind is refused on a person's grant. */
-export async function writeClanFactAsApp(db, integration, clanInput, body) {
+/** An app's own computed clan fact: what the app worked out from its own
+ *  rules, labelled as the app's (its `source`), never a person's. A
+ *  person's kind of fact is refused here, as the app's kind is refused on
+ *  a person's grant. `accountId` is the attester of record, or null. */
+async function writeAppClanFact(db, { source, accountId }, clanInput, body) {
   const clanTag = tagOf(clanInput, "clan_tag");
   const type = String(body.type ?? "");
   if (!APP_CLAN_TYPES.includes(type))
@@ -491,9 +495,9 @@ export async function writeClanFactAsApp(db, integration, clanInput, body) {
     fact_type: type,
     detail,
     visibility: t.visibility,
-    source: integration.name,
+    source,
     source_ref: ref,
-    attester_account_id: integration.accountId,
+    attester_account_id: accountId,
     attester_tag: null,
     attester_role: null,
     occurred_at: occurredAt,
@@ -501,12 +505,7 @@ export async function writeClanFactAsApp(db, integration, clanInput, body) {
 }
 
 /** Take back a clan fact the app wrote itself, by its ref. */
-export async function removeClanFactAsApp(
-  db,
-  integration,
-  clanInput,
-  refInput,
-) {
+async function removeAppClanFact(db, source, clanInput, refInput) {
   const clanTag = tagOf(clanInput, "clan_tag");
   const ref = refOf(refInput);
   const { rows } = await db.query(
@@ -514,10 +513,48 @@ export async function removeClanFactAsApp(
       where source = $1 and source_ref = $2 and clan_tag = $3
         and fact_type = any($4)
       returning fact_id`,
-    [integration.name, ref, clanTag, APP_CLAN_TYPES],
+    [source, ref, clanTag, APP_CLAN_TYPES],
   );
   if (!rows[0]) throw new FactError(404, "not_found");
   return { removed: true, id: String(rows[0].fact_id), ref };
+}
+
+/** Elixir Clan's own computed clan fact (its award standings), written by
+ *  its in-process morning run. No actor is passed and none is needed:
+ *  this function is the authority, the source is ELIXIR_CLAN_SOURCE (the
+ *  key Clan's rows always carried, so they read "Elixir Clan" before and
+ *  after), and no account attests it ("No integrations: Elixir has users
+ *  and agents", Jamie, 2026-11-13). Only the jobs runtime calls it. */
+export function writeClanFactAsClan(db, clanInput, body) {
+  return writeAppClanFact(
+    db,
+    { source: ELIXIR_CLAN_SOURCE, accountId: null },
+    clanInput,
+    body,
+  );
+}
+
+/** Take back one of Elixir Clan's own clan facts, by its ref. */
+export function removeClanFactAsClan(db, clanInput, refInput) {
+  return removeAppClanFact(db, ELIXIR_CLAN_SOURCE, clanInput, refInput);
+}
+
+/** An integration's own computed clan fact, on its key (facts:write,
+ *  9.6.0), through `POST /api/v1/clans/{tag}/facts`. Elixir Clan no longer
+ *  comes this way (writeClanFactAsClan); the route and this go with the
+ *  integration keys in their own JSON API major. */
+export function writeClanFactAsApp(db, integration, clanInput, body) {
+  return writeAppClanFact(
+    db,
+    { source: integration.name, accountId: integration.accountId },
+    clanInput,
+    body,
+  );
+}
+
+/** Take back a clan fact an integration wrote itself, by its ref. */
+export function removeClanFactAsApp(db, integration, clanInput, refInput) {
+  return removeAppClanFact(db, integration.name, clanInput, refInput);
 }
 
 /** A family app's own game fact for a player, on its integration key. */
