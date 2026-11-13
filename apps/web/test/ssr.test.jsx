@@ -63,7 +63,7 @@ test("concurrent server renders never share session query data", async () => {
           data: {
             authenticated: true,
             email: `${name}@example.test`,
-            features: { clan_internal: true },
+            features: {},
             signals: {},
           },
         },
@@ -85,7 +85,7 @@ test("Find, the player page and Settings render a signed-in initial document wit
       email: "fictional@example.test",
       is_admin: true,
       is_owner: true,
-      features: { clan_internal: true },
+      features: {},
       claims: [],
       recordings: [],
       signals: {},
@@ -113,7 +113,7 @@ test("the clan map renders on the server without aborting a boundary", async () 
     data: {
       authenticated: true,
       email: "fictional@example.test",
-      features: { clan_internal: true },
+      features: {},
       claims: [],
       recordings: [],
       signals: {},

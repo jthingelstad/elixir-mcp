@@ -152,27 +152,24 @@ test("Clan's health check answers with no database lease", async () => {
   assert.deepEqual(data(r), { ok: true });
 });
 
-test("the browser session advertises the actual cutover switch for signed-in and signed-out people", async () => {
-  for (const enabled of [false, true]) {
-    const door = enabled
-      ? handler
-      : makeHandler({ databaseUrl: scratch.url, secret: "test" });
-    for (const signedIn of [false, true]) {
-      const result = await door({
-        path: "/api/me",
-        method: "GET",
-        headers: signedIn ? { cookie: `__Host-elixir_session=${token}` } : {},
-      });
-      assert.equal(result.statusCode, 200, result.body);
-      assert.equal(data(result).features.clan_internal, enabled);
-      assert.equal(data(result).authenticated, signedIn);
-    }
+test("the browser session carries no Clan switch: Clan is part of Elixir", async () => {
+  for (const signedIn of [false, true]) {
+    const result = await handler({
+      path: "/api/me",
+      method: "GET",
+      headers: signedIn ? { cookie: `__Host-elixir_session=${token}` } : {},
+    });
+    assert.equal(result.statusCode, 200, result.body);
+    assert.deepEqual(data(result).features, { discord_login: false });
+    assert.equal(data(result).authenticated, signedIn);
   }
 });
 
-test("prepared Clan is disabled by default; its enabled door accepts only Elixir sessions", async () => {
-  const disabled = makeHandler({ databaseUrl: scratch.url, secret: "test" });
-  assert.equal((await disabled({ path: "/api/clan/me" })).statusCode, 404);
+test("Clan's door always exists and accepts only Elixir sessions", async () => {
+  // No Clan adapter wired: the routes are still there, and a signed-out
+  // caller is asked to sign in before anything else.
+  const bare = makeHandler({ databaseUrl: scratch.url, secret: "test" });
+  assert.equal((await bare({ path: "/api/clan/me" })).statusCode, 401);
   for (const headers of [
     {},
     { authorization: "Bearer eat_api-grant" },

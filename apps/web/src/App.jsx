@@ -294,25 +294,18 @@ export function titleFor(path) {
   return SITE;
 }
 
-/** `navigate(to)` for the views: a path, with a query string riding
- *  along for the page to read (a feedback prefill). The router owns
- *  history; this is the one shape every view already calls. */
+/** `navigate(to)` for the views, Clan's included: a path, with a query
+ *  string riding along for the page to read (a feedback prefill, a
+ *  searched clan) and a fragment for a place on it. The router owns
+ *  history; this is the one navigation every section calls. */
 export function useNav() {
   const nav = useNavigate();
-  const queryClient = useQueryClient();
   return useCallback(
     (to, { replace = false } = {}) => {
       // A fragment names a place on the page (Overview's "Fix the tag"
       // lands on FollowedRecord's #fix-tag): the router carries it apart.
       const [path, hash] = String(to).split("#");
       const [pathname, qs] = path.split("?");
-      if (
-        isClan(pathname) &&
-        queryClient.getQueryData(["me"])?.data?.features?.clan_internal !== true
-      ) {
-        window.location.assign(to);
-        return;
-      }
       return nav({
         to: pathname,
         search: qs ? defaultParseSearch(`?${qs}`) : {},
@@ -320,7 +313,7 @@ export function useNav() {
         replace,
       });
     },
-    [nav, queryClient],
+    [nav],
   );
 }
 
@@ -604,9 +597,15 @@ const signInRoute = createRoute({
       rememberAfterSignIn(destination);
     const token = typeof window === "undefined" ? null : takeLoginToken();
     const forward = me?.authenticated === true && !token && !completing;
+    // Only from the sign-in address: this page stays drawn while the
+    // router loads the next one (Clan's pages are a chunk of their own),
+    // and the remembered page is taken as it is read, so a run there
+    // would find none and send the person Home instead.
+    const here = location.pathname;
     useEffect(() => {
-      if (forward) navigate(takeAfterSignIn() ?? HOME, { replace: true });
-    }, [forward, navigate]);
+      if (forward && here === SIGN_IN)
+        navigate(takeAfterSignIn() ?? HOME, { replace: true });
+    }, [forward, here, navigate]);
     if (forward || (me === null && !token)) return null;
     return (
       <SignIn

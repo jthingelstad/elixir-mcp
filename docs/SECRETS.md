@@ -11,7 +11,7 @@ the steps that need a value are Jamie's, in the Secrets Manager console.
 | `unsubscribe_secret` | app secret | web-api, jobs, when `UnsubscribeKeyInSecret=true` | Unsubscribe key |
 | `db_password` | app secret; the RDS master password | the seven database functions and the `Database` resource | Database password |
 | `buttondown_api_token` | app secret | email-relay | Any other app-secret key |
-| `clan_sealing_secret` | app secret | web-api, email-relay, jobs (`CLAN_MODEL_SECRET`, when `ClanInternal=true`): seals Clan's stored model keys and Discord webhooks, the timeline's Discord webhooks, and the outbox requests that carry them | Clan sealing secret |
+| `clan_sealing_secret` | app secret | web-api, email-relay, jobs, timeline-sync (`CLAN_MODEL_SECRET`): seals Clan's stored model keys and Discord webhooks, the timeline's Discord webhooks, and the outbox requests that carry them | Clan sealing secret |
 | `turnstile_secret_key` | app secret; the secret of Cloudflare Turnstile widget "Elixir sign-in" | email-relay, when `TurnstileKeyInSecret=true` | Turnstile secret key |
 | `OriginSecret` | a NoEcho stack parameter | CloudFront sends it; web-api, mcp and collector require it | Origin secret |
 

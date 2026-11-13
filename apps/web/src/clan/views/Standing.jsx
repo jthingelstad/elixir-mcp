@@ -239,7 +239,7 @@ function WhyHere({ you, how, clan, navigate }) {
         onClick={(e) => {
           if (!navigate) return;
           e.preventDefault();
-          navigate(to, { hash: ruleId(key) });
+          navigate(`${to}#${ruleId(key)}`);
         }}
       >
         Read the rule: {ruleTitle(section)}

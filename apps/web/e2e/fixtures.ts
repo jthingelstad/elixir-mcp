@@ -7,7 +7,7 @@ import { STATUS } from "./status-fixture.ts";
  *  the console's place and the dot stays), two connections. */
 export const ME = {
   authenticated: true,
-  features: { clan_internal: true },
+  features: {},
   is_admin: false,
   is_owner: false,
   role: "leader",
@@ -47,7 +47,7 @@ export const ME = {
 
 export const SIGNED_OUT = {
   authenticated: false,
-  features: { clan_internal: true },
+  features: {},
 };
 
 type Answer =

@@ -52,18 +52,15 @@ function notifyOwner(spec) {
 }
 
 const handler = makeHandler({
-  clan:
-    process.env.CLAN_INTERNAL === "true"
-      ? createClanRequest({
-          origin: "https://elixir.poapkings.com",
-          modelSecret: process.env.CLAN_MODEL_SECRET,
-          modelStorage: modelStorage(process.env.OUTBOX_BUCKET),
-          outbox,
-          readStatus: makeStatusReader(process.env.OUTBOX_BUCKET),
-          readHistory: makeHistoryReader(process.env.OUTBOX_BUCKET),
-          notifyOwner,
-        })
-      : null,
+  clan: createClanRequest({
+    origin: "https://elixir.poapkings.com",
+    modelSecret: process.env.CLAN_MODEL_SECRET,
+    modelStorage: modelStorage(process.env.OUTBOX_BUCKET),
+    outbox,
+    readStatus: makeStatusReader(process.env.OUTBOX_BUCKET),
+    readHistory: makeHistoryReader(process.env.OUTBOX_BUCKET),
+    notifyOwner,
+  }),
   databaseUrl: process.env.DATABASE_URL,
   // Current and previous: a rotation signs nobody out, and a request
   // from an edge still sending the old origin header is served

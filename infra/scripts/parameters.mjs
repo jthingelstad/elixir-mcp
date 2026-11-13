@@ -81,7 +81,6 @@ export const PRESERVED_PARAMETERS = [
   "SessionSecretPreviousInSecret",
   "UnsubscribeKeyInSecret",
   "SecretEpoch",
-  "ClanInternal",
   // Turnstile on sign-in mail (2026-10-14): the secret's switch, and the
   // mode, which moves to enforce only on Jamie's go. A deploy never
   // resets either.

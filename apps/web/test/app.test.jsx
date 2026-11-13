@@ -1283,7 +1283,7 @@ test(
             ? {
                 authenticated: true,
                 email: "fixture@example.test",
-                features: { clan_internal: true },
+                features: {},
                 claims: [],
                 recordings: [],
                 signals: {},

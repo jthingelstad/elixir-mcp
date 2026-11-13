@@ -233,7 +233,8 @@ export function makeHandler({
    *  Console offers neither. */
   discordLogin = null,
   /** Clan's request adapter (clan.mjs createClanRequest), behind its
-   *  routes (routes/clan.mjs); null = Clan is off (`ClanInternal`). */
+   *  routes (routes/clan.mjs). Clan is part of Elixir and its routes always
+   *  exist; a test that never reaches them may leave this out. */
   clan = null,
   /** The live lane for first reads (tools live.mjs makeLive); null = the
    *  ledger's, charged to nobody, as Tracking's add uses. */
@@ -432,7 +433,6 @@ export function makeHandler({
       logEvent,
       notifyOwner,
       capture,
-      clanInternal: Boolean(clan),
       discordLogin: Boolean(discordLogin),
     }),
     ...discordRoutes({
