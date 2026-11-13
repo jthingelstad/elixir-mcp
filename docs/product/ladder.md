@@ -66,7 +66,7 @@ pool modes; run a model; show a number without its count.
 
 A person reading Stats on Elixir's website never spends their daily tool
 quota, as a first-party client does not; the hourly bucket still
-applies. Quotas are for agents, integrations and the live lane, which
+applies. Quotas are for agents and the live lane, which
 spend the shared Clash Royale budget. [Jamie, 2026-10-12]
 
 ## Open

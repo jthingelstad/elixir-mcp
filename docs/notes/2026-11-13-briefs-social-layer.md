@@ -28,3 +28,9 @@ Docs only: no code, contract or migration changes, and nothing deploys.
 - **"Leave Clan actions in the bell."** "Clan's Actions are notifications
   and timeline items" becomes "Clan's Actions are bell notifications":
   Actions are not timeline items, which matches the code.
+- **"Say goodbye to integrations. There is users and agents."** With
+  "Keep only sign-in" for `/api/v1`: new DECISIONS line "No integrations:
+  Elixir has users and agents", replacing four JSON API lines; the
+  principals line reads users and agents. `integrations.md` becomes the
+  Sign in with Elixir brief. Not built: Drop's and Elixir Clan's keys,
+  the integration scopes and `/api/v1`'s mirrors are still in the code.
