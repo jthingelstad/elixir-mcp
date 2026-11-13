@@ -553,9 +553,9 @@ test("operational sweep: dead weight leaves, live rows and replay-memory stay", 
     [acct.account_id],
   );
   await db.query(
-    `insert into mcp_call_audit (account_id, tool, args, created_at)
-     values ($1, 'old_tool', '{"x":1}', now() - interval '91 days'),
-            ($1, 'new_tool', '{"x":2}', now())`,
+    `insert into mcp_call_audit (account_id, tool, viewer_ip, created_at)
+     values ($1, 'old_tool', '192.0.2.1', now() - interval '31 days'),
+            ($1, 'new_tool', '192.0.2.2', now())`,
     [acct.account_id],
   );
   await db.end();
@@ -566,7 +566,7 @@ test("operational sweep: dead weight leaves, live rows and replay-memory stay", 
   assert.equal(result.rate_limit, 1);
   assert.equal(result.magic_login, 1);
   assert.equal(result.session, 1);
-  assert.equal(result.audit_args_nulled, 1);
+  assert.equal(result.viewer_ip_scrubbed, 1);
 
   const check = new pg.Client({ connectionString: SCRATCH_URL });
   await check.connect();
@@ -583,10 +583,10 @@ test("operational sweep: dead weight leaves, live rows and replay-memory stay", 
     ["s-live"],
   );
   const audit = await check.query(
-    `select tool, args from mcp_call_audit where tool in ('old_tool','new_tool') order by tool desc`,
+    `select tool, viewer_ip from mcp_call_audit where tool in ('old_tool','new_tool') order by tool desc`,
   );
-  assert.equal(audit.rows[0].args, null, "old args nulled, row kept");
-  assert.ok(audit.rows[1].args, "recent args untouched");
+  assert.equal(audit.rows[0].viewer_ip, null, "old address cleared, row kept");
+  assert.ok(audit.rows[1].viewer_ip, "recent address untouched");
   await check.end();
 });
 

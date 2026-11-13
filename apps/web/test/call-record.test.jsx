@@ -138,7 +138,7 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
   expect(navigate).toHaveBeenCalledWith(
     `/settings/feedback?request_id=${encodeURIComponent(ID)}`,
   );
-  expect(screen.getByText(/kept 90 days/)).toBeTruthy();
+  expect(screen.getByText(/kept 28 days/)).toBeTruthy();
 });
 
 test("a row without a captured body still renders from the log's bounded arguments", async () => {

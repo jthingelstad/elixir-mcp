@@ -39,7 +39,7 @@
  * Not reachable from here, so listed in `manual`: the newsletter address
  * at Buttondown, sent-mail bodies under mail/sent/ in the archive bucket
  * (the keys are returned; this function holds no DeleteObject), call
- * captures under calls/, which expire on their own 90-day rule, and the
+ * captures under calls/, which expire on their own 28-day rule, and the
  * relay's timeline-discord-state/<account>/ records in the outbox bucket,
  * which expire with the bucket's 14-day rule.
  *
@@ -315,7 +315,7 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
       mail.length
         ? `Delete ${mail.length} sent-mail bodies from the archive bucket (mail_archive_keys).`
         : "No sent-mail bodies are archived.",
-      "Call captures under calls/ expire on their own 90-day rule.",
+      "Call captures under calls/ expire on their own 28-day rule.",
       "Timeline cross-post records under timeline-discord-state/<account>/ in the outbox bucket expire on its 14-day rule.",
     ],
     mail_archived: mail.length,

@@ -202,8 +202,8 @@ export function CallRecord({ id, navigate }) {
         {back}
         <Empty title="That call is not in your log">
           The log holds calls made by your own connections and by the agents you
-          own. The request and response are kept 90 days. A record of the call
-          stays. An id from somewhere else opens nothing here.
+          own. A call, its request and its response are kept 28 days. An id from
+          somewhere else opens nothing here.
         </Empty>
       </>
     );
@@ -378,10 +378,10 @@ export function CallRecord({ id, navigate }) {
         {call.captured
           ? rec.capture_error
             ? "The request and response were kept, but could not be read back just now."
-            : `Kept ${when(rec.captured_at)}. The request and response are kept 90 days. A record of the call stays.`
+            : `Kept ${when(rec.captured_at)}. A call, its request and its response are kept 28 days.`
           : call.rpc_error_code != null
             ? "Refused before any tool ran, so there is no body to show. The arguments above are the bounded copy from the log."
-            : "The request and response were not kept for this call (keeping them was off, the write failed, or it is older than 90 days). The arguments above are the bounded copy from the log."}
+            : "The request and response were not kept for this call (keeping them was off, the write failed, or it is older than 28 days). The arguments above are the bounded copy from the log."}
       </p>
     </>
   );

@@ -251,7 +251,7 @@ export async function argsCensus(databaseUrl, spec) {
  *  rules run over (acceptance/README.md). Per read-only tool on the MCP
  *  surface, the most frequent distinct argument sets among calls that
  *  answered, with their counts, and the tool's duration percentiles. The
- *  audit keeps bounded, redacted arguments for 90 days; this drops the
+ *  audit keeps bounded, redacted arguments for 28 days; this drops the
  *  caller-identity ones (on_behalf_of, display_name) and any set asking
  *  for a live read, and never returns values beyond the arguments. */
 export async function acceptanceCatalogue(databaseUrl, spec) {

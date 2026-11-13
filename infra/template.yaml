@@ -2317,21 +2317,19 @@ Resources:
               - StorageClass: STANDARD_IA
                 TransitionInDays: 30
           # Captured tool calls follow the call log's own rule: the
-          # arguments leave the audit row after 90 days, so the bodies
-          # do too (docs/limits retention table). The housekeeping job
-          # flips mcp_call_audit.captured on the same clock.
+          # retention trim deletes an mcp_call_audit row after 28 days
+          # (packages/record/src/retention.mjs), and with it the only way
+          # to look a body up, so the bodies go on the same clock
+          # (docs/limits retention table). No IA transition: it needs 30
+          # days, and a body lives fewer.
           - Id: calls-expire
             Status: Enabled
             Prefix: calls/
-            Transitions:
-              - StorageClass: STANDARD_IA
-                TransitionInDays: 30
-            ExpirationInDays: 90
+            ExpirationInDays: 28
           # On this versioned bucket, calls-expire only writes a delete
           # marker: without this rule the body would sit on as a
           # noncurrent version under expire-superseded-versions for
-          # another 365 days, about 455 in all, against the 90 that
-          # limits.md promises.
+          # another 365 days, against the 28 that limits.md promises.
           # The noncurrent body goes a day after the marker, then the
           # marker itself. ExpiredObjectDeleteMarker cannot share a rule
           # with ExpirationInDays, hence a rule of its own.
