@@ -123,9 +123,9 @@ test("the report reads every index, what it backs and its bloat", async () => {
   assert.deepEqual(r.indexes.map((i) => i.name).sort(), [
     "battle_created_at",
     "battle_cursor_key",
-    "battle_metadata_cover",
     "battle_pkey",
     "battle_time_idx",
+    "battle_timeline_cover",
   ]);
   const by = Object.fromEntries(r.indexes.map((i) => [i.name, i]));
   assert.deepEqual(by.battle_pkey.backs_constraint, {
