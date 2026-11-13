@@ -268,7 +268,10 @@ export const contracts = [
         const r = await ctx.read("battles_query", {
           player_tag: JAMIE,
           days: 30,
-          limit: 25,
+          // Full verbosity carries eight cards a deck and three decks a
+          // duel side: 25 rows passed the 48,000-character cap on the
+          // first gate this case ran in (2026-11-13). Eight fit.
+          limit: 8,
           ...(mode ? { mode } : {}),
         });
         ms += r.ms ?? 0;
