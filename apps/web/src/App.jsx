@@ -557,11 +557,9 @@ function MissingPage() {
  * does not carry Admin with it.
  */
 /** What the distribution routes to this app; the rest is the static site.
- *  `/console`, `/ladder` and `/data/service` stay listed while CloudFront
- *  still routes them here: an old address there is this app's missing page,
- *  never a reload of itself. */
-const APP_PATHS =
-  /^\/(home|signin|settings|console|ladder|clan|battle|h|data\/service)(\/|$)/;
+ *  `/console`, `/ladder` and `/data/service` left it on 2026-11-13: a link
+ *  to one loads the site's 404. */
+const APP_PATHS = /^\/(home|signin|settings|clan|battle|h)(\/|$)/;
 
 const rootRoute = createRootRoute({
   beforeLoad: ({ location }) => {

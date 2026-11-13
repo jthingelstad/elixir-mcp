@@ -17,7 +17,7 @@ behaviour is in `apps/site/src/docs/`, not here.
 - **Paths carry their prefix.** Every Stats path is written with `LADDER`,
   not a router basepath, because the kit's `Link` renders `to` verbatim.
 - **One build serves three surfaces.** CloudFront routes `/home`, `/signin`,
-  `/data/service`, `/console`, `/ladder`, `/clan` and their descendants to the web/API Web Function for
+  `/settings`, `/clan` and their descendants to the web/API Web Function for
   session-aware server rendering; every other path is a site document
   (`apps/site`). Site tests evaluate the static router and pin the
   explicit native app behaviors. `node infra/scripts/build-site.mjs` builds both halves
@@ -78,7 +78,8 @@ and the feed's extra fields are `services/web-api/src/feed.mjs`.
 ## The Console folded
 
 The Console folded (2026-11-12): no page lives under `/console/`, and since
-2026-11-13 its old addresses draw the missing page. Find's
+2026-11-13 its old addresses are the site's 404 (CloudFront no longer
+routes them to the app). Find's
 search and a player page's Record tab still read through `POST
 /api/explore`, the tool bridge. `src/views/` holds the pages,
 `src/views/account/` the Settings and agent pages; the route table is in

@@ -435,15 +435,16 @@ test(
   },
 );
 
-/** The native app bypasses the static router through an explicit behavior. */
-function assertNativeApp(uri) {
+/** The first cache behavior whose pattern takes `uri`, or undefined when
+ *  the default (site) behavior does. */
+function behaviorFor(uri) {
   const template = readFileSync(
     path.join(repoRoot, "infra/template.yaml"),
     "utf8",
   );
   const start = template.indexOf("        CacheBehaviors:");
   const end = template.indexOf("\n  SpaRouter:", start);
-  const behavior = template
+  return template
     .slice(start, end)
     .split("\n          - PathPattern: ")
     .slice(1)
@@ -454,6 +455,11 @@ function assertNativeApp(uri) {
         (pattern.endsWith("/*") && uri.startsWith(pattern.slice(0, -1)))
       );
     });
+}
+
+/** The native app bypasses the static router through an explicit behavior. */
+function assertNativeApp(uri) {
+  const behavior = behaviorFor(uri);
   assert.ok(behavior, `${uri} has a behavior`);
   assert.match(behavior, /TargetOriginId: api\n/, `${uri} uses native HTML`);
   assert.match(behavior, /CachePolicyId: !Ref WebPrivateCachePolicy/);
@@ -463,7 +469,7 @@ function assertNativeApp(uri) {
 }
 
 test(
-  "native behaviors own /console, /ladder, /home, /settings and /clan; the static router resolves content documents",
+  "native behaviors own /home, /settings, /signin and /clan; the static router resolves content documents",
   { skip },
   async () => {
     const route = edgeRouter();
@@ -482,34 +488,30 @@ test(
         assert.equal(route(`${page}/`), doc(page), `${page}/ differs`);
     }
 
-    // Elixir's pages under /console: the prefix, and nothing else: the app resolves
-    // its own paths under it. A document the site built under /console
-    // could never be reached.
+    // The folded Console's, Ladder's and the service page's addresses
+    // left the app on 2026-11-13: no behavior takes them, so they are
+    // site documents the site does not build, and the edge answers each
+    // with the site's 404 page (the site-or-miss group).
     for (const uri of [
       "/console",
       "/console/",
-      "/console/signin",
       "/console/account/profile",
       "/console/explore/player/%232ABC",
-      "/console/data/dashboard",
-    ])
-      assertNativeApp(uri);
-    assert.ok(!existsSync(path.join(out, "console")));
-    assert.equal(route("/consoles"), "/consoles/index.html");
+      "/ladder",
+      "/ladder/decks",
+      "/data/service",
+    ]) {
+      assert.equal(behaviorFor(uri), undefined, `${uri} has a behavior`);
+      const target = route(uri);
+      assert.equal(target, doc(uri.replace(/\/$/, "")));
+      assert.ok(!existsSync(path.join(out, target)), `${uri} resolves`);
+    }
 
-    // Sign in and the old service address are the app's, alone (the old
-    // address only redirects to /data since 2026-11-12): /data stays a
-    // document, and its sibling pages with it.
-    for (const uri of ["/signin", "/data/service"]) assertNativeApp(uri);
+    // Sign in is the app's, alone: /data stays a document, and its
+    // sibling pages with it.
+    assertNativeApp("/signin");
     assert.ok(!existsSync(path.join(out, "signin")));
-    assert.ok(!existsSync(path.join(out, "data/service")));
     assert.equal(route("/data"), doc("/data"));
-
-    // Ladder uses native rendering for its prefix alone.
-    for (const uri of ["/ladder", "/ladder/", "/ladder/days", "/ladder/decks"])
-      assertNativeApp(uri);
-    assert.ok(!existsSync(path.join(out, "ladder")));
-    assert.equal(route("/ladders"), "/ladders/index.html");
 
     // Home the same, and only its own prefix.
     for (const uri of ["/home", "/home/", "/home/timeline", "/home/friends"])

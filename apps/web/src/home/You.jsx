@@ -30,7 +30,7 @@ export const YOU = "/home/you";
  * You (2026-11-12, Jamie's go: "You with Stats"): your own player page, the
  * one every player name opens, for your primary verified player, with a
  * Stats tab after its five. Stats is Ladder, unchanged (its scope bar and
- * four tabs), at LADDER; its old `/ladder` addresses redirect there.
+ * four tabs), at LADDER; its old `/ladder` addresses are the site's 404.
  *
  * Alts [engineering, 2026-11-12, the narrow option]: You is the primary
  * player's page only. Your other players are listed below, to you alone,
