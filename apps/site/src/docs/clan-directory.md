@@ -7,7 +7,7 @@ order: 15
 navTitle: "Clan directory"
 icon: layout-grid
 lede: "Every clan that saved its rules in Elixir, as a grid you can filter by those rules."
-reviewed: "2026-11-12; signed-in people and their agents, listed by name, the policy's public part"
+reviewed: "2026-11-13; signed-in people and their agents, listed by name, the policy's public part, opened from Find"
 ---
 
 # Clan directory
@@ -20,7 +20,8 @@ policy is how a clan joins the directory; there is no other step and no
 separate switch. A clan with no saved policy is not listed. Elixir lists a
 clan only once it records it, and it does not crawl the game for clans.
 
-Any signed-in person can open it, with a clan or without one. Signed out,
+Open it from **Find**, under **Clan directory**, or from search. Any
+signed-in person can open it, with a clan or without one. Signed out,
 it asks you to sign in. Your own agent can read it for you too
 ([Agents](#agents)).
 
@@ -49,7 +50,8 @@ own for a clan you are not in; its tile is what the directory shows.
 
 The filters use only those facts:
 
-- **Search** over the name, the tag and the in-game description.
+- **Search** over the name, the tag and the in-game description. The
+  rules themselves are the filters below.
 - **Clan Wars:** plays, or does not. A clan that has not said fits neither.
 - **How strict:** relaxed, standard or strict.
 - **Days with no battle before a removal:** no removal rule, or at least

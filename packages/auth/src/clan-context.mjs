@@ -173,7 +173,10 @@ export const DIRECTORY_LIMIT = 500;
 // reads, or an approved agent whose owner is an approved person, reading as
 // that owner (`yours` is the owner's); the policy leaves the database
 // already cut to the tile's fields. Listed: every recorded clan whose policy pointer names a saved
-// version (saving a policy is how a clan opts in, DECISIONS). Ordered by
+// version (saving a policy is how a clan opts in, DECISIONS); the pattern
+// below is word for word the predicate of the partial index
+// `clan_state_policy_pointer` (0260), so the ledger is never scanned whole
+// (services/migrate/test/clan-directory-plan.test.mjs). Ordered by
 // name, then tag: never by size, trophies or anything a ranking could read.
 const DIRECTORY_SQL = `
 with allowed as (
@@ -191,20 +194,23 @@ with allowed as (
     from allowed, clan_state pointer
     join clan_state v on v.pk = pointer.pk || '#v' || (pointer.body ->> 'version')
    where pointer.pk ~ '^policy##[0289PYLQGRJCUV]{3,12}$'
+), mine as (
+  -- The reader's own current clans, read once by their claims, never
+  -- once per listed clan.
+  select distinct m.clan_tag
+    from allowed, claim cl
+    join clan_membership m on m.player_tag = cl.player_tag
+   where cl.account_id = allowed.account_id
+     and cl.status = 'verified'
+     and (cl.is_primary or cl.relationship in ('primary', 'alt'))
+     and m.left_observed_at is null
 )
 select l.clan_tag, c.name, c.type, c.description,
        (select jsonb_object_agg(f, l.saved -> f)
           from unnest($2::text[]) f where l.saved ? f) as policy,
        l.saved_at,
        s.members, s.required_trophies,
-       exists (
-         select 1 from claim cl
-           join clan_membership m on m.player_tag = cl.player_tag
-          where cl.account_id = (select account_id from allowed)
-            and cl.status = 'verified'
-            and (cl.is_primary or cl.relationship in ('primary', 'alt'))
-            and m.clan_tag = l.clan_tag and m.left_observed_at is null
-       ) as yours
+       l.clan_tag in (select clan_tag from mine) as yours
   from listed l
   join clan c on c.clan_tag = l.clan_tag
   left join lateral (

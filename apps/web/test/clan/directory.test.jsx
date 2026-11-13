@@ -151,6 +151,33 @@ describe("the page", () => {
       screen.getByRole("link", { name: "gamma Example" }).getAttribute("href"),
     ).toBe("/clan/0RJL");
   });
+  test("a hostile name and description are text, never markup", () => {
+    // Clan names and descriptions are whatever a clan typed in the game:
+    // escaped at this output, kept as typed in storage (DECISIONS).
+    const name = `<img src=x onerror="alert(1)">Evil & "Co"`;
+    const description = `<script>alert('x')</script><b>bold</b> {{x}} \${x}`;
+    const { container } = render(
+      <Directory
+        state={{
+          data: {
+            clans: [tile({ name, description, yours: true })],
+            truncated: false,
+          },
+        }}
+      />,
+    );
+    expect(container.querySelector("img, script, b")).toBeNull();
+    expect(screen.getByRole("heading", { level: 2 }).textContent).toBe(name);
+    expect(screen.getByText(description).tagName).toBe("P");
+    // The crest is letters from the name, still text.
+    expect(container.innerHTML).not.toContain("<img");
+    expect(container.innerHTML).toContain("&lt;img");
+    // Searching for the markup finds the clan as text.
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "<script>" },
+    });
+    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(1);
+  });
   test("a filter counts what fits, and an empty fit clears", () => {
     render(<Directory state={ready} />);
     const strict = screen.getByRole("group", { name: "How strict" });
