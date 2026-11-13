@@ -13,12 +13,15 @@ import test from "node:test";
 import {
   DB_INSTANCE,
   HEADROOM_FLOOR,
+  acceptanceCost,
   headroomVerdict,
   readDbHeadroom,
+  readHeadroomLow,
 } from "../../../infra/scripts/lib/db-headroom.mjs";
 import {
   DEPLOY_PHASES,
   acceptanceHeadroom,
+  templateDbClass,
 } from "../../../infra/scripts/deploy.mjs";
 import {
   argumentRefusal,
@@ -190,3 +193,123 @@ test("the acceptance phase records a refusal, runs nothing and makes the deploy 
   assert.match(d.acceptanceResult, /^refused \(EBS byte balance 12%/);
   assert.equal(d.exitCode, 1);
 });
+
+test("the floors stay 50 and 25 until runs on the micro have recorded their cost", () => {
+  assert.deepEqual(HEADROOM_FLOOR, { whole: 50, family: 25 });
+});
+
+test("the low read asks for one-minute minimums over the run and keeps the lowest", async () => {
+  let asked;
+  const low = await readHeadroomLow({
+    from: "2026-11-13T06:00:00Z",
+    to: "2026-11-13T06:02:00Z",
+    getMetricData: async (input) => {
+      asked = input;
+      return {
+        MetricDataResults: [
+          { Id: "bytebalance", Values: [97, 81.5, 88, 99] },
+          { Id: "iobalance", Values: [100, 93] },
+          { Id: "cpucredits", Values: [] },
+        ],
+      };
+    },
+  });
+  assert.deepEqual(low, {
+    byteBalance: 81.5,
+    ioBalance: 93,
+    cpuCredits: null,
+    points: 4,
+  });
+  assert.equal(asked.StartTime.toISOString(), "2026-11-13T05:59:00.000Z");
+  assert.equal(asked.EndTime.toISOString(), "2026-11-13T06:03:00.000Z");
+  for (const q of asked.MetricDataQueries) {
+    assert.equal(q.MetricStat.Period, 60);
+    assert.equal(q.MetricStat.Stat, "Minimum");
+    assert.deepEqual(q.MetricStat.Metric.Dimensions, [
+      { Name: "DBInstanceIdentifier", Value: DB_INSTANCE },
+    ]);
+  }
+});
+
+test("the cost record holds before, lowest and drop, and never invents a missing side", () => {
+  const run = {
+    startedAt: "2026-11-13T06:00:00.000Z",
+    endedAt: "2026-11-13T06:01:30.000Z",
+    family: null,
+    instanceClass: "db.t4g.micro",
+  };
+  const { record, line } = acceptanceCost(
+    { byteBalance: 92.04, ioBalance: 99 },
+    { byteBalance: 77.96, ioBalance: 99.5, points: 3 },
+    run,
+  );
+  assert.equal(record.minutes, 1.5);
+  assert.equal(record.suite, "whole");
+  assert.equal(record.instance_class, "db.t4g.micro");
+  assert.deepEqual(record.byte_balance, { before: 92, lowest: 78, drop: 14.1 });
+  assert.deepEqual(record.io_balance, { before: 99, lowest: 99.5, drop: 0 });
+  assert.match(
+    line,
+    /^acceptance cost: whole on db\.t4g\.micro, 1\.5 min; EBS byte balance 92% -> 78% \(-14\.1\)/,
+  );
+
+  const failed = acceptanceCost(
+    null,
+    { error: "AccessDenied: no" },
+    { ...run, family: "clans" },
+  );
+  assert.equal(failed.record.suite, "family clans");
+  assert.deepEqual(failed.record.byte_balance, {
+    before: null,
+    lowest: null,
+    drop: null,
+  });
+  assert.equal(failed.record.error, "AccessDenied: no");
+  assert.match(failed.line, /\? -> \?.*lowest not read \(AccessDenied: no\)/);
+});
+
+test("the instance class comes from the template", async () => {
+  assert.equal(
+    templateDbClass("  DBInstanceClass: db.t4g.micro\n"),
+    "db.t4g.micro",
+  );
+  assert.equal(templateDbClass("nothing"), null);
+  assert.match(templateDbClass() ?? "", /^db\./);
+});
+
+for (const status of [0, 1])
+  test(`the acceptance phase records what a ${status ? "failing" : "passing"} run cost`, async (t) => {
+    const logged = [];
+    t.mock.method(console, "log", (line) => logged.push(line));
+    const dir = await mkdtemp(path.join(tmpdir(), "headroom-"));
+    t.after(() => rm(dir, { recursive: true, force: true }));
+    const env = path.join(dir, ".env");
+    await writeFile(env, "ELIXIR_MCP_URL=x\n");
+    const phase = DEPLOY_PHASES.find((p) => p.name === "acceptance");
+    let window;
+    const d = {
+      args: parseDeployArgs(["--acceptance=clans"]),
+      acceptanceEnvPath: env,
+      readDbHeadroom: async () => ({
+        byteBalance: 90,
+        ioBalance: 95,
+        cpuCredits: 10,
+      }),
+      readHeadroomLow: async (from, to) => {
+        window = [from, to];
+        return { byteBalance: 84, ioBalance: 95, cpuCredits: 9, points: 2 };
+      },
+      templateDbClass: () => "db.t4g.micro",
+      spawnAcceptance: () => ({ status }),
+    };
+    if (status) await assert.rejects(phase.run(d), /ACCEPTANCE FAILED/);
+    else await phase.run(d);
+    assert.ok(Date.parse(window[0]) <= Date.parse(window[1]));
+    assert.equal(d.acceptanceHeadroom.suite, "family clans");
+    assert.deepEqual(d.acceptanceHeadroom.byte_balance, {
+      before: 90,
+      lowest: 84,
+      drop: 6,
+    });
+    assert.ok(logged.some((l) => /^acceptance cost: family clans/.test(l)));
+  });

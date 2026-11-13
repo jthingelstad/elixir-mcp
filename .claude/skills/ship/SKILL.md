@@ -277,11 +277,14 @@ manifests), smoke
 red smoke or acceptance means the code is already live: "a red smoke means
 fix forward now, not walk away". Migrations never roll back.
 
-**The snapshot.** The import rewrites `fixtures/card-roles.snapshot.json`,
-the tests' copy of the vocabulary. If it moved, commit it on a branch and
-merge it (it is a PR like any other) ("fixtures:
-card-roles snapshot at the reference's <sha>", as f9b5efa5), or refresh it
-first with `node infra/scripts/import-card-roles.mjs --snapshot-only`.
+**The snapshot.** `fixtures/card-roles.snapshot.json` is the tests' copy
+of the vocabulary, stamped with the last commit that touched the
+reference's two data files. The deploy never writes it (2026-11-13); when
+the reference has moved it warns. Refresh it on a branch with
+`node infra/scripts/import-card-roles.mjs --snapshot-only` and merge it
+like any other PR. A deploy that finds any tracked file modified after
+its build stops before upload and names the files; one that finds it at
+the end exits 1 after the record.
 
 **Refused by the session's permission check?** Do not route around it,
 piece by piece or through a sibling's CI. Hand Jamie the exact command

@@ -120,7 +120,13 @@ ledger should drain, and both doors should serve.
   0. On 2026-11-12/13 about ten deploys with acceptance took the byte
   balance from 89% to 0 in seven hours; at 0 the database dropped
   connections and the doors answered 5xx. A whole-suite run had cost 10
-  to 15 points (29 at worst), a family 4 to 7.
+  to 15 points (29 at worst), a family 4 to 7. Those were read off the
+  balance graph by hand; no deploy logged a balance after its run, and
+  the logged runs on 2026-11-13 were all on the small, so the floors are
+  unchanged until the micro has measured runs. Each run now prints an
+  `acceptance cost:` line (before, lowest during, drop, minutes, instance
+  class) and the deploy record keeps it as `acceptance_headroom`
+  (`docs/notes/2026-11-13-acceptance-cost-recorded.md`).
   Those costs were measured while the gate still ran the Gym's
   regression pass, 666 of its 800 cases. It left the gate the same day
   (Jamie: it "should only be used for extensive testing in gym

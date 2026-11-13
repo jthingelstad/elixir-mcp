@@ -24,7 +24,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { execFileSync, spawnSync } from "node:child_process";
 import path from "node:path";
@@ -79,7 +79,12 @@ import {
   parseDeployArgs,
 } from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
-import { headroomVerdict, readDbHeadroom } from "./lib/db-headroom.mjs";
+import {
+  acceptanceCost,
+  headroomVerdict,
+  readDbHeadroom,
+  readHeadroomLow,
+} from "./lib/db-headroom.mjs";
 import {
   acquireLock,
   holdUntilExit,
@@ -99,7 +104,7 @@ import {
 import { prepareReferenceSeedRefresh } from "./lib/reference-seed-check.mjs";
 import {
   readVocabulary,
-  saveVocabularySnapshot,
+  snapshotIsCurrent,
 } from "./lib/reference-vocabulary.mjs";
 import { importReferenceSeed } from "./lib/reference-seed-import.mjs";
 import { bundleFingerprint, chooseLane, codeKey } from "./lib/deploy-lane.mjs";
@@ -188,6 +193,25 @@ export class DeployExit extends Error {
   }
 }
 
+/**
+ * The tracked files a deploy changed: a deploy builds and publishes from
+ * the commit, and must leave the tree as it found it (the vocabulary
+ * step rewrote fixtures/card-roles.snapshot.json on every deploy until
+ * 2026-11-13). Empty when the tree is clean.
+ *
+ * @param {(...args: string[]) => string} [run] git, injectable for tests
+ */
+export function changedTrackedFiles(run = git) {
+  return run("status", "--porcelain", "--untracked-files=no")
+    .split("\n")
+    .filter(Boolean);
+}
+
+/** The lines a dirty tree is reported with, naming each file. */
+function dirtyTreeMessage(when, files) {
+  return `deploy: ${when} changed tracked files; a deploy must never modify a tracked file. Find the step that wrote them and make it write elsewhere:\n${files.map((f) => `  ${f}`).join("\n")}`;
+}
+
 /** The migrate Lambda applies every pending migration (`{}`). */
 async function runMigrations(d, functionName) {
   console.error("running migrations via the migrate lambda...");
@@ -236,6 +260,62 @@ export async function acceptanceHeadroom(d) {
     family: d.args.acceptanceFamily,
     override: d.args.skipHeadroomCheck,
   });
+}
+
+/** The instance class the template asks for, for the cost record. */
+export function templateDbClass(
+  text = readFileSync(path.join(repoRoot, "infra/template.yaml"), "utf8"),
+) {
+  return text.match(/^\s*DBInstanceClass:\s*(\S+)\s*$/m)?.[1] ?? null;
+}
+
+/**
+ * What the run cost the database (lib/db-headroom.mjs acceptanceCost):
+ * the preflight's balances against the lowest CloudWatch saw from the
+ * run's start to now. Printed, and kept on `d` for the deploy record, so
+ * the floors can be set from measured runs (2026-11-13). A read that
+ * fails is part of the record, never a deploy failure.
+ *
+ * @param {any} d the deploy's state
+ * @param {{ headroom: any }} verdict the preflight read just before the run
+ * @param {string} startedAt
+ */
+export async function recordAcceptanceCost(d, verdict, startedAt) {
+  const endedAt = new Date().toISOString();
+  const read =
+    d.readHeadroomLow ??
+    ((from, to) =>
+      readHeadroomLow({
+        getMetricData: (input) =>
+          new CloudWatchClient({ region: REGION }).send(
+            new GetMetricDataCommand(input),
+          ),
+        from,
+        to,
+      }));
+  let low;
+  try {
+    low = await read(startedAt, endedAt);
+  } catch (error) {
+    low = {
+      error: `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`,
+    };
+  }
+  let instanceClass = null;
+  try {
+    instanceClass = (d.templateDbClass ?? templateDbClass)();
+  } catch {
+    // The record says null rather than failing the deploy.
+  }
+  const cost = acceptanceCost(verdict.headroom, low, {
+    startedAt,
+    endedAt,
+    family: d.args.acceptanceFamily ?? null,
+    instanceClass,
+  });
+  console.log(cost.line);
+  d.acceptanceHeadroom = cost.record;
+  return cost;
 }
 
 /** Whether this deploy runs acceptance. */
@@ -376,6 +456,14 @@ export const DEPLOY_PHASES = [
     async run(d) {
       console.error("building lambda bundles...");
       d.artifacts = await buildAll();
+      // Before anything is uploaded: a build that wrote a tracked file
+      // stops here, with nothing shipped.
+      const dirty = (d.changedTrackedFiles ?? changedTrackedFiles)();
+      if (dirty.length)
+        throw new DeployExit(
+          1,
+          `${dirtyTreeMessage("the build", dirty)}\nNothing was deployed.`,
+        );
     },
   },
   {
@@ -595,7 +683,13 @@ export const DEPLOY_PHASES = [
       );
       const vocabulary =
         d.verifiedReferenceSeed?.vocabulary ?? readVocabulary();
-      saveVocabularySnapshot(vocabulary);
+      // The deploy never writes the committed snapshot (it left the tree
+      // dirty on every deploy until 2026-11-13); it says when the
+      // snapshot is behind, and the refresh lands by pull request.
+      if (!snapshotIsCurrent(vocabulary))
+        console.warn(
+          `WARNING: fixtures/card-roles.snapshot.json is behind ../cr-agent-api-docs (${vocabulary.source_commit.slice(0, 7)}); the tests read a stale vocabulary. Refresh it on a branch: node infra/scripts/import-card-roles.mjs --snapshot-only, and merge it.`,
+        );
       if (d.verifiedReferenceSeed) await d.verifiedReferenceSeed.refresh();
       else await importReferenceSeed(d.lambda, vocabulary);
     },
@@ -982,7 +1076,8 @@ export const DEPLOY_PHASES = [
         d.exitCode = 1;
       } else if (verdict) {
         for (const line of verdict.lines) console.log(line);
-        const acceptance = spawnSync(
+        const runStartedAt = new Date().toISOString();
+        const acceptance = (d.spawnAcceptance ?? spawnSync)(
           process.execPath,
           [
             path.join(repoRoot, "acceptance/run.mjs"),
@@ -990,6 +1085,8 @@ export const DEPLOY_PHASES = [
           ],
           { stdio: "inherit" },
         );
+        // Recorded pass or fail: a failing run drew on the bucket too.
+        await recordAcceptanceCost(d, verdict, runStartedAt);
         if (acceptance.status !== 0)
           throw new DeployExit(
             1,
@@ -1005,6 +1102,19 @@ export const DEPLOY_PHASES = [
           "acceptance: skipped - no acceptance/.env on this machine (see acceptance/README.md).",
         );
       }
+    },
+  },
+  {
+    // The same check at the end, over every phase (the site build, the
+    // vocabulary, card art). What shipped is live by now, so it does not
+    // stop the record; the deploy exits 1 and names the files.
+    name: "clean-tree",
+    async run(d) {
+      const dirty = (d.changedTrackedFiles ?? changedTrackedFiles)();
+      if (!dirty.length) return;
+      console.error(dirtyTreeMessage("this deploy", dirty));
+      d.dirtyTree = dirty;
+      d.exitCode = 1;
     },
   },
   {
@@ -1065,6 +1175,7 @@ async function writeRecord(d) {
     contract_version: live.contract ?? declared.contract,
     api_version: live.api ?? declared.api,
     acceptance: d.acceptanceResult,
+    acceptance_headroom: d.acceptanceHeadroom ?? null,
     previous_sha: previous?.sha ?? null,
     ...timing,
   };
@@ -1192,9 +1303,14 @@ export async function deploy(
     console.log(`alarm topic: ${d.outputs.AlarmTopicArn}`);
   }
   if (d.exitCode) {
-    console.error(
-      `deploy: live, but acceptance ${d.acceptanceResult}; run it once the database has room.`,
-    );
+    if (d.dirtyTree)
+      console.error(
+        `deploy: live, but it changed ${d.dirtyTree.length} tracked file(s); see above.`,
+      );
+    if (d.acceptanceResult?.startsWith("refused"))
+      console.error(
+        `deploy: live, but acceptance ${d.acceptanceResult}; run it once the database has room.`,
+      );
     return d.exitCode;
   }
   return 0;
