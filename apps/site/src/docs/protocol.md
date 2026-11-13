@@ -45,7 +45,7 @@ nothing. One page per group is under [Tools](/docs/tools).
   "capabilities": { "tools": { "listChanged": true },
                     "resources": { "subscribe": false, "listChanged": false },
                     "prompts": { "listChanged": false } },
-  "serverInfo": { "name": "elixir-mcp", "title": "Elixir MCP - Clash Royale history, recorded",
+  "serverInfo": { "name": "elixir-mcp", "title": "Elixir",
                   "version": "{{ tools.contractVersion }}+tools.3f1c9a2b7d4e", "websiteUrl": "https://elixir.poapkings.com/" },
   "instructions": "…",
   "_meta": { "elixir.poapkings.com/principal": { "kind": "person",

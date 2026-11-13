@@ -76,8 +76,9 @@ off included, finishes this step. A digest with nothing to tell is not sent.
 
 ## See how you play
 
-**You** is your own player page, and its **Stats** tab is your season as
-Elixir recorded it, one mode at a time ([Stats](/docs/ladder)). Each player
+**You** is your own player page, and its [Stats](/home/you/stats) tab is
+your season as Elixir recorded it, one mode at a time
+([how to read it](/docs/ladder)). Each player
 page's **Record** tab opens the saved profile and the last 30 days as
 recorded. A gap in a window means unknown: Elixir saw nothing then, which is
 not proof that nobody played ([Freshness and gaps](/docs/freshness-and-gaps)).
