@@ -274,13 +274,6 @@ export const DOC_LINKS = {
       ["Protocol & auth", "/docs/protocol"],
     ],
   ],
-  "admin:integrations": [
-    "Integrations",
-    [
-      ["Integrations", "/docs/integrations"],
-      ["Integration API", "/docs/integrations#provisioning-and-administration"],
-    ],
-  ],
   "admin:feedback": ["Feedback queue", [["About the project", "/docs/about"]]],
   "admin:emails": [
     "What we send",

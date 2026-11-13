@@ -1,10 +1,9 @@
 /**
- * Agents and integrations (0053).
+ * Agents (0053).
  *
  * These are entitlement tests, which means a wrong answer here is a security
- * bug rather than a bad feature: an agent that can claim a player, or an
- * integration a member can mint, or a token revoke that reaches across
- * accounts. Every one of those is cheap to get wrong and invisible until
+ * bug rather than a bad feature: an agent that can claim a player, or a
+ * token revoke that reaches across accounts. Every one of those is cheap to get wrong and invisible until
  * somebody exploits it.
  */
 
@@ -260,22 +259,21 @@ test("an agent never claims a player as itself, but can watch one", async () => 
   await db.query(`delete from claim where account_id = $1`, [agent.account_id]);
 });
 
-test("integrations require the admin platform API", async () => {
-  const cookie = leaderCookie;
-  const res = await handler(
-    event({ path: "/api/me/integrations", cookie, body: { name: "my-app" } }),
+test("no integration is minted from the console: the route is gone and the list names only agents", async () => {
+  for (const cookie of [leaderCookie, partnerCookie]) {
+    const res = await handler(
+      event({ path: "/api/me/integrations", cookie, body: { name: "my-app" } }),
+    );
+    assert.equal(res.statusCode, 404, res.body);
+  }
+  const list = await handler(
+    event({ path: "/api/me/principals", method: "GET", cookie: leaderCookie }),
   );
-  assert.equal(res.statusCode, 403);
-  assert.equal(parse(res).error, "admin_integration_api_required");
-});
-
-test("a partner cannot self-provision platform integrations", async () => {
-  const cookie = partnerCookie;
-  const first = await handler(
-    event({ path: "/api/me/integrations", cookie, body: { name: "drop" } }),
-  );
-  assert.equal(first.statusCode, 403, first.body);
-  assert.equal(parse(first).error, "admin_integration_api_required");
+  assert.equal(list.statusCode, 200, list.body);
+  assert.deepEqual(Object.keys(parse(list)).sort(), [
+    "addable_clans",
+    "agents",
+  ]);
 });
 
 test("a key is minted with exactly the authority it was asked for", async () => {

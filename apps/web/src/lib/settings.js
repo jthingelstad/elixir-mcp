@@ -17,7 +17,6 @@ export const ADMIN_PAGES = {
   emails: "Emails",
   discord: "Discord",
   connections: "Connections",
-  integrations: "Integrations",
   usage: "Usage",
   service: "Service",
   fleet: "Fleet",

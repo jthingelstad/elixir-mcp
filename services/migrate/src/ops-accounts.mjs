@@ -1,7 +1,3 @@
-import {
-  administerIntegration,
-  listIntegrations,
-} from "@elixir-mcp/auth/integrations";
 import pg from "pg";
 import { createPrincipal, addPlayer } from "@elixir-mcp/claims";
 
@@ -240,19 +236,32 @@ export async function serviceTokenLimitsOp(databaseUrl, spec) {
   }
 }
 
-/** IAM-authorized provisioning passes only a locally minted SHA-256 digest.
- * Uses the admin command implementation; no raw credential enters Lambda. */
+/** What is left of the integration accounts since JSON API 5.0.0 took
+ *  their door away ("No integrations: Elixir has users and agents"): the
+ *  stored rows stay readable and their keys revocable. `list` names each
+ *  integration with its keys; `revoke` revokes an integration's keys by
+ *  its public id; `retire_legacy` revokes the MCP key an integration
+ *  replaced (by digest). Nothing creates, configures, rotates, suspends or
+ *  resumes one any more. */
 export async function integrationOp(databaseUrl, spec) {
+  const action = spec?.action;
+  if (!["list", "revoke", "retire_legacy"].includes(action))
+    return {
+      error: "invalid_action",
+      actions: ["list", "revoke", "retire_legacy"],
+    };
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    const owner = (
-      await db.query(
-        "select account_id,role,kind from account where role='owner' and kind='person' and status='approved' order by created_at limit 1",
-      )
-    ).rows[0];
-    if (!owner) return { error: "owner_not_found" };
-    const action = spec?.action ?? "create";
+    if (action === "list") {
+      const { rows } = await db.query(
+        `select i.account_id,i.name,i.created_at,a.public_id,a.status,
+           (select coalesce(json_agg(json_build_object('token_id',t.token_id,'created_at',t.created_at,'last_used_at',t.last_used_at,'revoked_at',t.revoked_at) order by t.created_at), '[]')
+              from service_token t where t.account_id=i.account_id and t.audience='integration_api') as tokens
+         from integration i join account a using(account_id) order by i.name`,
+      );
+      return { status: 200, integrations: JSON.parse(JSON.stringify(rows)) };
+    }
     if (action === "retire_legacy") {
       if (!/^[a-f0-9]{64}$/.test(spec?.token_hash ?? ""))
         return { error: "token_hash_required" };
@@ -267,28 +276,39 @@ export async function integrationOp(databaseUrl, spec) {
       );
       return { retired: result.rowCount, ...result.rows[0] };
     }
-
-    if (
-      ["create", "rotate"].includes(action) &&
-      !/^[a-f0-9]{64}$/.test(spec?.token_hash ?? "")
-    )
-      return { error: "token_hash_required" };
-    const logEvent = async (db, id, kind, detail) => {
+    const owner = (
       await db.query(
-        "insert into account_event(account_id,kind,detail) values($1,$2,$3)",
-        [id, kind, JSON.stringify({ ...detail, via: "ops" })],
-      );
+        "select account_id from account where role='owner' and kind='person' and status='approved' order by created_at limit 1",
+      )
+    ).rows[0];
+    if (!owner) return { error: "owner_not_found" };
+    const integration = (
+      await db.query(
+        "select a.account_id,a.public_id,i.name from account a join integration i using(account_id) where a.public_id=$1",
+        [String(spec.id ?? "")],
+      )
+    ).rows[0];
+    if (!integration) return { status: 404, error: "not_found" };
+    const revoked = await db.query(
+      "update service_token set revoked_at=now() where account_id=$1 and audience='integration_api' and revoked_at is null",
+      [integration.account_id],
+    );
+    await db.query(
+      "insert into account_event(account_id,kind,detail) values($1,'integration_revoke',$2)",
+      [
+        owner.account_id,
+        JSON.stringify({ integration: integration.public_id, via: "ops" }),
+      ],
+    );
+    return {
+      status: 200,
+      integration: {
+        account_id: integration.account_id,
+        public_id: integration.public_id,
+        name: integration.name,
+      },
+      revoked: revoked.rowCount,
     };
-    const r =
-      action === "list"
-        ? { status: 200, body: { integrations: await listIntegrations(db) } }
-        : await administerIntegration(db, owner.account_id, spec, {
-            mintToken: () => ({ hash: spec.token_hash }),
-            logEvent,
-          });
-    // As the admin route answers it, dates as ISO strings.
-    const result = { status: r.status, ...JSON.parse(JSON.stringify(r.body)) };
-    return result;
   } finally {
     await db.end();
   }

@@ -140,12 +140,6 @@ export const ADMIN_RAIL = [
     to: `${ADMIN}/connections`,
   },
   {
-    key: "integrations",
-    label: "Integrations",
-    icon: "wrench",
-    to: `${ADMIN}/integrations`,
-  },
-  {
     key: "usage",
     label: "Usage",
     icon: "chart-column",

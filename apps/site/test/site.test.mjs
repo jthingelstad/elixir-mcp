@@ -1213,14 +1213,13 @@ test("current account and integration copy matches the ratified scope", () => {
   assert.match(publicCopy, /Ordinary member signup is public and free/);
   assert.match(publicCopy, /integration does not\s+enroll a player or clan/i);
 
-  const integrationApi = JSON.parse(
+  // The JSON API is Sign in with Elixir's /me alone (5.0.0): it declares
+  // nothing an integration could call.
+  const signInApi = JSON.parse(
     source("packages/contracts/integration-api.openapi.json"),
   );
-  assert.doesNotMatch(integrationApi.info.description, /Collection grants/i);
-  assert.match(
-    integrationApi.info.description,
-    /Integrations do not enroll players or clans for recording/,
-  );
+  assert.deepEqual(Object.keys(signInApi.paths), ["/me"]);
+  assert.doesNotMatch(signInApi.info.description, /Collection grants/i);
 });
 
 test(

@@ -19,7 +19,6 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
       const owned = await listPrincipals(db, account.accountId);
       return json(200, {
         agents: owned.filter((p) => p.kind === "agent"),
-        integrations: owned.filter((p) => p.kind === "integration"),
         // What the console needs to render the create form honestly: an agent
         // may only point at a clan its owner has already added.
         addable_clans: (
@@ -32,7 +31,6 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
             [account.accountId],
           )
         ).rows,
-        may_create_integration: false,
       });
     },
 
@@ -67,9 +65,6 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
         note: "This token is shown once. Store it now.",
       });
     },
-
-    "POST /api/me/integrations": async () =>
-      json(403, { error: "admin_integration_api_required" }),
 
     "POST /api/me/principals/revoke": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
