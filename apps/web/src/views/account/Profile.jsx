@@ -95,7 +95,10 @@ export function Profile({ me, refresh }) {
               "Main player",
               main ? (
                 <>
-                  <Link to={`${SETTINGS}/players/${tagPath(main.player_tag)}`}>
+                  <Link
+                    to={`${SETTINGS}/players/${tagPath(main.player_tag)}`}
+                    className="hit"
+                  >
                     <TagText>
                       {main.nickname ?? main.name ?? main.player_tag}
                     </TagText>
@@ -143,7 +146,9 @@ export function Profile({ me, refresh }) {
               "Limits",
               <>
                 {limitsLabel(me?.role)}.{" "}
-                <Link to={`${SETTINGS}/usage`}>See Usage and limits</Link>
+                <Link to={`${SETTINGS}/usage`} className="hit">
+                  See Usage and limits
+                </Link>
               </>,
             ],
           ]}

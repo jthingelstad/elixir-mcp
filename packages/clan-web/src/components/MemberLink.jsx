@@ -23,7 +23,7 @@ export function MemberLink({ clanTag, playerTag, navigate, children }) {
   const to =
     own && clanTag ? memberPath(clanTag, playerTag) : playerPath(playerTag);
   return (
-    <Link to={to} navigate={navigate}>
+    <Link to={to} navigate={navigate} className="hit">
       {children}
     </Link>
   );

@@ -122,7 +122,9 @@ function SlotsSide() {
         />
       )}
       <p className="kit-tiny">
-        <Link to={`${SETTINGS}/what-members-see`}>See who uses one</Link>
+        <Link to={`${SETTINGS}/what-members-see`} className="hit">
+          See who uses one
+        </Link>
       </p>
     </Panel>
   );
