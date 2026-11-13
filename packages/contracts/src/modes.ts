@@ -152,11 +152,14 @@ export function isDuelBattle(
 /**
  * `isDuelBattle` in SQL: `typeCol` is the battle's (or a participant
  * row's) type, `battleIdCol` the battle_id to look for round rows under.
+ * The round rows are probed by key, one row's battle at a time: as an
+ * EXISTS the planner hashed every round row in the record, under every
+ * read however narrow its window (2026-11-13).
  */
 export function duelSql(typeCol: string, battleIdCol: string): string {
   return `(${typeCol} = any('{${DUEL_TYPES.join(",")}}'::text[])
-          or exists (select 1 from battle_participant_round duel_r
-                      where duel_r.battle_id = ${battleIdCol}))`;
+          or (select true from battle_participant_round duel_r
+               where duel_r.battle_id = ${battleIdCol} limit 1) is not null)`;
 }
 
 /**

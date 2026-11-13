@@ -117,6 +117,11 @@ export const battles_cards = {
     // level gap over the battles the card appeared in, and the row's
     // battles by mode group, so a card met mostly in war games does not
     // read as a ladder record.
+    // Each game's battle by key: a plain join let the planner hash every
+    // battle in the record against the window's games (2026-11-13).
+    const battleByKey = `cross join lateral (
+             select b.type, b.event_tag from battle b
+              where b.battle_id = bp.battle_id limit 1) b`;
     const levelSource = `cross join lateral (
              -- The other side's level, stamped at ingest (0156).
              select case when bp.deck_avg_level is not null
@@ -128,7 +133,7 @@ export const battles_cards = {
                 round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap,
                 array_agg(${MODE_GROUP}) as mode_groups
          from ${PARTICIPANT_GAMES} bp
-         join battle b on b.battle_id = bp.battle_id
+         ${battleByKey}
          ${cardSource}
          ${levelSource}
          join card c on c.card_id = pc.card_id
@@ -146,7 +151,7 @@ export const battles_cards = {
       `select ${MODE_GROUP} as mode_group, count(*)::int as battles, count(lv.lvl)::int as level_battles,
                 round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap
          from ${PARTICIPANT_GAMES} bp
-         join battle b on b.battle_id = bp.battle_id
+         ${battleByKey}
          ${levelSource}
          where ${where.join(" and ")} and bp.deck_hash is not null
          group by 1`,

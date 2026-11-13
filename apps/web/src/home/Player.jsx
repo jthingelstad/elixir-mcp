@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useLocation } from "@tanstack/react-router";
-import { PlayerInClan, useClanOf } from "../clan/views/PlayerInClan.jsx";
+import {
+  PlayerInClan,
+  useClanOf,
+  useClansOfViewer,
+} from "../clan/views/PlayerInClan.jsx";
 import {
   Avatar,
   Empty,
@@ -22,11 +26,12 @@ import { trackEvent } from "../analytics.js";
 import { ladderHref } from "../ladder/ladder.js";
 import { followMeHref, playerHref } from "../lib/player.js";
 import {
+  usePageCheers,
   usePlayerEvidence,
   usePlayerPage,
   useRefreshPlayerPage,
 } from "../lib/queries.js";
-import { tagFromPath } from "../lib/tag-url.js";
+import { normTag, tagFromPath } from "../lib/tag-url.js";
 import { SessionGames } from "./SessionGames.jsx";
 import { Cheers, usePageCheered } from "./Cheers.jsx";
 import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
@@ -62,6 +67,12 @@ export function PlayerPage() {
   const { pathname, search } = useLocation();
   const tag = tagFromPath(pathname.replace(/\/$/, "").split("/")[3] ?? "");
   const query = usePlayerPage(tag);
+  // The page's cheers and the viewer's clans need only the address's tag,
+  // so they are asked beside the page, not after it answers (2026-11-13).
+  // A tag spelled other than the server spells it waits, as before.
+  const canonical = Boolean(tag) && normTag(tag) === tag;
+  usePageCheers({ player: tag }, canonical);
+  useClansOfViewer(canonical);
   // An address that names no tag reads nothing: the query never runs.
   if (!tag) return <Empty title="That is not a player tag" />;
   if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;

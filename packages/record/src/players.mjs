@@ -12,7 +12,12 @@ export async function myPlayers(db, accountId) {
                 r.status as recording_status,
                 cm.clan_tag as member_of, cm.role, cl.name as clan_name
          from claim c
-         join player p on p.player_tag = c.player_tag
+         -- Each claim's player by its key: joined plainly, the planner can
+         -- merge-join the claims against player_pkey and walk the index
+         -- from the first claimed tag to the last (2026-11-13).
+         cross join lateral (
+           select p.name, p.last_known_clan_tag from player p
+            where p.player_tag = c.player_tag limit 1) p
          left join player_nickname nn on nn.account_id = c.account_id
            and nn.player_tag = c.player_tag
          left join recording r on r.subject_type = 'player' and r.subject_tag = c.player_tag and r.status = 'active'

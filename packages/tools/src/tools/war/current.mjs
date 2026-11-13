@@ -169,7 +169,12 @@ export const war_current = {
                   exists (select 1 from clan_membership cm
                           where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
                             and cm.left_observed_at is null) as in_clan
-           from war_participation wp join player p on p.player_tag = wp.player_tag
+           from war_participation wp
+           -- Each name by key: a plain join let the planner merge-join
+           -- the race's fifty rows against the whole player key in order
+           -- (2026-11-13).
+           cross join lateral (
+             select p.name from player p where p.player_tag = wp.player_tag limit 1) p
            where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
            order by wp.points desc,
                     exists (select 1 from clan_membership cm2

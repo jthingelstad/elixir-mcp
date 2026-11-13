@@ -107,7 +107,13 @@ export const battles_performance = {
                     ${duelSql("b.type", "bp.battle_id")} as duel,
                     (select max(o.crowns) from battle_participant o
                      where o.battle_id = bp.battle_id and o.side <> bp.side) as opp_crowns
-             from battle_participant bp join battle b on b.battle_id = bp.battle_id
+             from battle_participant bp
+             -- Each row's battle by key: a plain join let the planner
+             -- hash every battle in the record for a long window (Stats'
+             -- season list reads from the first recorded battle).
+             cross join lateral (
+               select b.type_class, b.type, b.event_tag from battle b
+                where b.battle_id = bp.battle_id limit 1) b
              where ${where.join(" and ")}
              order by bp.battle_time desc, bp.battle_id desc
              ${lastN ? `limit ${lastN}` : ""}

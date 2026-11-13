@@ -250,15 +250,23 @@ export async function trophyFloor(db, tag, { from, to }) {
   const {
     rows: [l],
   } = await db.query(
-    `select count(*)::int as ladder_battles,
-            count(*) filter (where bp.outcome = 'loss' and bp.trophy_change is null)::int as on_floor_losses,
-            min(bp.starting_trophies) filter (where bp.outcome = 'loss' and bp.trophy_change is null) as floor_from_losses,
-            min(bp.starting_trophies + coalesce(bp.trophy_change, 0)) as lowest,
-            max(bp.starting_trophies + coalesce(bp.trophy_change, 0)) as highest,
-            (array_agg(b.arena order by bp.battle_time desc))[1] as last_arena,
-            (array_agg(b.arena_id order by bp.battle_time desc))[1] as last_arena_id
-     from battle_participant bp join battle b on b.battle_id = bp.battle_id
-     where ${where.join(" and ")}`,
+    // The arena of the last battle only, read by key: joining every
+    // battle of the window let the planner hash the whole battle table
+    // for a long one (2026-11-13).
+    `with l as (
+       select count(*)::int as ladder_battles,
+              count(*) filter (where bp.outcome = 'loss' and bp.trophy_change is null)::int as on_floor_losses,
+              min(bp.starting_trophies) filter (where bp.outcome = 'loss' and bp.trophy_change is null) as floor_from_losses,
+              min(bp.starting_trophies + coalesce(bp.trophy_change, 0)) as lowest,
+              max(bp.starting_trophies + coalesce(bp.trophy_change, 0)) as highest,
+              (array_agg(bp.battle_id order by bp.battle_time desc))[1] as last_battle_id
+       from battle_participant bp
+       where ${where.join(" and ")})
+     select l.ladder_battles, l.on_floor_losses, l.floor_from_losses, l.lowest, l.highest,
+            b.arena as last_arena, b.arena_id as last_arena_id
+       from l left join lateral (
+         select b.arena, b.arena_id from battle b
+          where b.battle_id = l.last_battle_id limit 1) b on true`,
     params,
   );
   if (!l || l.ladder_battles === 0) return null;
