@@ -25,6 +25,13 @@ Friends. "Elixir MCP" as the service's name in prose became "Elixir" in
 the docs that said it to readers (not Architecture, which names the
 repository).
 
+A second pass put the front page, the docs home, the Quickstart and About
+in the game's voice, for a player on their phone (Jamie, 2026-11-13); the
+front page's third row is now "Show off your best battles". The same day
+that voice became the default for every player-facing word: DECISIONS
+"Player-facing words sound like the game", and the Voice section of
+`AGENTS.md`.
+
 The MCP server's `serverInfo.title` is "Elixir" (Jamie, 2026-11-13), in
 `services/mcp/src/protocol.mjs` and the Protocol page's example; the
 title is not part of the tool contract, so no contract bump.

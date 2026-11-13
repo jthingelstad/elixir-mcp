@@ -33,7 +33,7 @@ test("front door focuses on recording and has no global statistics request", asy
   await expect(page.locator(".home-row__title")).toHaveText([
     "Follow your friends",
     "Your clan’s week",
-    "Share a battle you are proud of",
+    "Show off your best battles",
   ]);
   await expect(page.locator("[data-home-top3], [data-home-strip]")).toHaveCount(
     0,
