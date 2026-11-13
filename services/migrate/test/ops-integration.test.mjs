@@ -47,8 +47,7 @@ before(async () => {
     [owner],
   );
   await db.query(
-    `insert into integration (account_id, name, scopes, daily_limit, hourly_limit, refresh_limit)
-     values ($1, 'old-site', '{clans:read}', 10000, 2000, 1000)`,
+    `insert into integration (account_id, name) values ($1, 'old-site')`,
     [integration.account_id],
   );
   await db.query(
