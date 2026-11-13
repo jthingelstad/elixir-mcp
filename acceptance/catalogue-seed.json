@@ -70,5 +70,67 @@
       },
       "reason": "tower_troops[] rows (type tower_troop) the notes name; usage this week may read only standard cards"
     }
+  ],
+  "players_follows": [
+    {
+      "args": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "reason": "12.0.0: the follows read, badges, follows and followers of a verified player"
+    }
+  ],
+  "players_highlights": [
+    {
+      "args": {
+        "player_tag": "#20JJJ2CCRU",
+        "limit": 5
+      },
+      "reason": "12.0.0: a player's highlights, words and battle_url"
+    }
+  ],
+  "clans_directory": [
+    {
+      "args": {},
+      "reason": "12.0.0: the clan directory, the policy's public part"
+    }
+  ],
+  "elixir_cheers": [
+    {
+      "args": {
+        "days": 7
+      },
+      "reason": "12.0.0: counts of other people's cheers on your primary's items, never who"
+    }
+  ],
+  "battles_performance": [
+    {
+      "args": {
+        "segment": {
+          "clan_tag": "#J2RGCRVG"
+        },
+        "weeks": 4
+      },
+      "reason": "12.0.0: battles_trends folded in; a segment's weekly series"
+    }
+  ],
+  "players_series": [
+    {
+      "args": {
+        "player_tag": "#20JJJ2CCRU",
+        "days": 7,
+        "metrics": ["battle_count"]
+      },
+      "reason": "12.0.0: players_timeline renamed; keep the series covered"
+    }
+  ],
+  "clans_members_series": [
+    {
+      "args": {
+        "clan_tag": "#J2RGCRVG",
+        "days": 14,
+        "metrics": ["donations"]
+      },
+      "reason": "12.0.0: clans_members_timeline renamed; keep the series covered"
+    }
   ]
 }
