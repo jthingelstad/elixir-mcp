@@ -276,11 +276,15 @@ Resources:
       # idea", then "scale back to micro"). That day the database went
       # from 2.4 GB to 0.8 GB: 0256 dropped 0091's two card tables
       # (879 MB, more than the micro's whole memory) and the tables
-      # were rewritten. Back on the micro the same day, then small
-      # again that evening for the rest of one build session (seven
-      # deploy gates had drawn the micro's EBS byte balance to 42%;
-      # Jamie: "resize elixir-mcp-enc to db.t4g.small for this
-      # session, then back to db.t4g.micro").
+      # were rewritten. Back on the micro the same day.
+      # db.t4g.small again since the evening of 2026-11-13, staying a few
+      # days while the pivot settles: seven deploy gates in a day had
+      # drawn the micro's EBS byte balance to 42%, under the gate's 50%
+      # floor. Jamie, that evening: "lets plan to leave the database on
+      # small for a few days while we settle the pivot in Elixir... we'll
+      # consider it an optimization when we are on the other side to
+      # bring it back down to the size we want long term". Returning to
+      # db.t4g.micro is that later optimization, not scheduled.
       DBInstanceClass: db.t4g.small
       AllocatedStorage: "20"
       MaxAllocatedStorage: 100

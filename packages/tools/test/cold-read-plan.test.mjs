@@ -7,6 +7,10 @@
 //   cm.clan_tag` the planner may serve it from battle_participant_clan_time
 //   and aggregate the clan's whole history once per member (about 33,000
 //   buffers live). It must read each member's own player/time range.
+// - the same in-clan test where a read also names the player: Clan's
+//   member drill-down (memberActivityWeeks) and participation's former
+//   members' weeks. Each is one index-only range of the member's own
+//   player/time cover, never the clan index's window.
 // - captureByPlayer's profile intervals: one key range of the snapshot
 //   cover per member (0261), index-only, and each interval's battles
 //   counted once.
@@ -22,7 +26,9 @@ import pg from "pg";
 import {
   MEMBERS_SQL,
   FORMER_MEMBERS_SQL,
+  participationQueries,
 } from "../../record/src/participation-sql.mjs";
+import { memberActivityWeeks } from "../../record/src/member-activity.mjs";
 import { captureByPlayer } from "../src/coverage.mjs";
 import { prefetchStatements } from "../src/activity/entries.mjs";
 
@@ -161,6 +167,203 @@ test("a member's last battle in the clan reads their own range, never the clan's
         );
         assert.ok(after.buffers <= 1000, `members: ${after.buffers} buffers`);
       }
+    }
+  } finally {
+    await db.end();
+  }
+});
+
+// The in-clan test as it stood before: `=` on the parameter; and Clan's
+// drill-down took the boat predicate's side from the participant row.
+const LEGACY_PARAM_IN_CLAN = (sql, param) =>
+  sql.replaceAll(
+    `bp.clan_tag is not distinct from ${param}::text and ${param}::text is not null`,
+    `bp.clan_tag = ${param}`,
+  );
+const LEGACY_SIDE = (sql) =>
+  sql.replace(
+    /\(select own\.side from battle_participant own\s+where own\.battle_id = bp\.battle_id and own\.player_tag = bp\.player_tag\)/g,
+    "bp.side",
+  );
+
+test("a member's weeks in the clan read their own range, never the clan's window", async () => {
+  const db = await connect();
+  try {
+    // A clan's two months: 50 members, 600 battles each, opponents from
+    // clans of their own, written in battle order (a member's battles one
+    // to a heap page, as live); m-1 and m-2 played for #OLD, every tenth
+    // of m-3's battles was played clanless, and a few are boat battles.
+    await db.query(`create temporary table battle (
+        battle_id text primary key, boat_battle_side text, padding text);
+      create temporary table battle_participant (
+        battle_id text, player_tag text, battle_time timestamptz,
+        clan_tag text, type text, side int, padding text,
+        primary key (battle_id, player_tag));
+      create index battle_participant_player_time_cover
+        on battle_participant (player_tag, battle_time desc)
+        include (battle_id, clan_tag, type);
+      create index battle_participant_clan_time
+        on battle_participant (clan_tag, battle_time desc)
+        include (battle_id, player_tag);
+      create temporary table player_snapshot_daily (
+        player_tag text, snapshot_date date, snapshot_kind text,
+        clan_tag text, donations int, observed_at timestamptz,
+        primary key (player_tag, snapshot_date, snapshot_kind));
+      insert into battle
+        select 'b' || m || '-' || n,
+               case when n % 50 = 0 then 'defender' when n % 50 = 25 then 'attacker' end,
+               repeat('x', 100)
+          from generate_series(1, 52) m, generate_series(1, 600) n;
+      insert into battle_participant
+        select * from (
+          select 'b' || m || '-' || n, 'm-' || m,
+                 '2026-11-13'::timestamptz - (n * 14 + m) * interval '10 minutes',
+                 case when m <= 2 then '#OLD' when m = 3 and n % 10 = 0 then null
+                      else '#CLAN' end,
+                 case when n % 50 in (0, 25) then 'boatBattle'
+                      when n % 3 = 0 then 'pathOfLegend' else 'ladder' end,
+                 0, repeat('x', 100)
+            from generate_series(1, 52) m, generate_series(1, 600) n
+          union all
+          select 'b' || m || '-' || n, 'o-' || m || '-' || n,
+                 '2026-11-13'::timestamptz - (n * 14 + m) * interval '10 minutes',
+                 'c-' || m || '-' || n, 'ladder', 1, repeat('x', 100)
+            from generate_series(1, 52) m, generate_series(1, 600) n) r
+         order by 3, 1, 2;
+      insert into player_snapshot_daily
+        select 'm-' || m, '2026-11-13'::date - d, 'daily',
+               case when m <= 2 then '#OLD' else '#CLAN' end, 100 - d, 
+               ('2026-11-13'::date - d) + interval '12 hours'
+          from generate_series(1, 52) m, generate_series(0, 60) d;`);
+    for (const t of ["battle", "battle_participant", "player_snapshot_daily"])
+      await db.query(`vacuum analyze ${t}`);
+
+    const weeks = [
+      ["2026-W42", "2026-10-12"],
+      ["2026-W43", "2026-10-19"],
+      ["2026-W44", "2026-10-26"],
+      ["2026-W45", "2026-11-02"],
+    ].map(([iso_week, monday]) => ({
+      iso_week,
+      from: `${monday}T00:00:00Z`,
+      to: new Date(Date.parse(`${monday}T00:00:00Z`) + 7 * 864e5).toISOString(),
+    }));
+    const sent = [];
+    const recording = {
+      query: (text, values) => {
+        sent.push({ text, values });
+        return db.query(text, values);
+      },
+    };
+    const read = (clan, player) =>
+      memberActivityWeeks(
+        recording,
+        clan,
+        player,
+        weeks,
+        "2026-10-12T00:00:00Z",
+        "2026-11-09T00:00:00Z",
+      );
+    const cases = [];
+    for (const [clan, player] of [
+      ["#CLAN", "m-10"],
+      ["#CLAN", "m-3"],
+      ["#CLAN", "m-1"],
+      [null, "m-3"],
+    ]) {
+      const rows = await read(clan, player);
+      const { text, values } = sent.at(-1);
+      cases.push({ clan, player, rows, text, values });
+    }
+    const former = participationQueries({
+      clanTag: "#CLAN",
+      tags: [],
+      formerTags: ["m-1", "m-3", "m-10", "m-11"],
+      from: "2026-10-12T00:00:00Z",
+      rankedTypes: ["pathOfLegend"],
+    }).find((q) => q.name === "former_battles_by_week");
+
+    // Every answer is the `=` statement's, the null clan included: no
+    // battles (not m-3's clanless ones) and no donations.
+    for (const c of cases) {
+      assert.match(
+        c.text,
+        /is not distinct from \$2::text and \$2::text is not null/,
+      );
+      const legacy = LEGACY_SIDE(LEGACY_PARAM_IN_CLAN(c.text, "$2"));
+      assert.doesNotMatch(legacy, /is not distinct from/);
+      assert.deepEqual(c.rows, (await db.query(legacy, c.values)).rows);
+    }
+    const [m10, m3, m1, clanless] = cases.map((c) => c.rows);
+    assert.ok(m10.every((w) => w.battles > 0 && w.ranked_battles > 0));
+    assert.ok(m3.every((w) => w.battles > 0));
+    assert.ok(m1.every((w) => w.battles === 0));
+    assert.ok(clanless.every((w) => w.battles === 0 && w.donations === null));
+    const formerRows = (await db.query(former.text, former.values)).rows;
+    const sort = (rows) =>
+      rows.sort((a, b) =>
+        `${a.player_tag}${a.week_start.toISOString()}`.localeCompare(
+          `${b.player_tag}${b.week_start.toISOString()}`,
+        ),
+      );
+    assert.ok(formerRows.length > 0);
+    assert.deepEqual(
+      sort(formerRows),
+      sort(
+        (await db.query(LEGACY_PARAM_IN_CLAN(former.text, "$3"), former.values))
+          .rows,
+      ),
+    );
+
+    const plans = [
+      ...cases.map((c) => ({ name: `${c.player} in ${c.clan}`, ...c })),
+      { name: "former_battles_by_week", ...former },
+    ];
+    for (const p of plans) {
+      const after = await planOf(db, p.text, p.values);
+      const reads = after.nodes.filter(
+        (n) => n["Relation Name"] === "battle_participant",
+      );
+      if (p.clan === null) {
+        // `$2 is not null` folds to false: nothing is read at all.
+        assert.deepEqual(reads, [], p.name);
+        continue;
+      }
+      assert.ok(
+        !reads.some((n) => n["Index Name"] === "battle_participant_clan_time"),
+        `${p.name}: never the clan index`,
+      );
+      const ranges = reads.filter(
+        (n) => n["Index Name"] === "battle_participant_player_time_cover",
+      );
+      assert.ok(ranges.length > 0, `${p.name}: enters the player cover`);
+      for (const n of ranges) {
+        assert.equal(n["Node Type"], "Index Only Scan", p.name);
+        assert.equal(n["Heap Fetches"], 0, p.name);
+        assert.match(n["Index Cond"], /player_tag = /, p.name);
+        assert.doesNotMatch(n["Index Cond"], /clan_tag/, p.name);
+      }
+      // Any other participant read is a boat row's side, by primary key.
+      for (const n of reads.filter((r) => !ranges.includes(r)))
+        assert.equal(n["Index Name"], "battle_participant_pkey", p.name);
+      if (p.name === "former_battles_by_week") {
+        // Four members' four weeks, a few hundred index entries, against
+        // the clan's 30,000 in the window.
+        assert.ok(after.buffers <= 400, `${p.name}: ${after.buffers} buffers`);
+        continue;
+      }
+      // One member's four weeks. Before, the count read each battle's
+      // heap page for its side (about 300 more buffers here).
+      const before = await planOf(
+        db,
+        LEGACY_SIDE(LEGACY_PARAM_IN_CLAN(p.text, "$2")),
+        p.values,
+      );
+      assert.ok(
+        after.buffers * 2 <= before.buffers,
+        `${p.name}: ${after.buffers} buffers against ${before.buffers} before`,
+      );
+      assert.ok(after.buffers <= 200, `${p.name}: ${after.buffers} buffers`);
     }
   } finally {
     await db.end();

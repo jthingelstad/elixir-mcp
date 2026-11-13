@@ -29,11 +29,23 @@ import { notBoatDefense } from "./boat-defense-sql.mjs";
 // The player/time cover has no side. Retrieve it only for the boat
 // predicate by participant primary key, so ordinary rows stay index-only.
 // battle_id + player_tag is unique; this is the same row's exact side.
-const OWN_BATTLES = notBoatDefense("bp", {
+export const OWN_BATTLES = notBoatDefense("bp", {
   lookupByKey: true,
   side: `(select own.side from battle_participant own
           where own.battle_id = bp.battle_id and own.player_tag = bp.player_tag)`,
 });
+
+/** A participant row played in clan `param` (the row's clan_tag is the
+ *  clan the player was in when it was played), written so only the
+ *  player's own range of battle_participant_player_time_cover can serve a
+ *  read that also names the player (2026-11-13). With `clan_tag = $n` the
+ *  player/time cover and battle_participant_clan_time cost about the same,
+ *  and on the clan index the read walks the clan's battles in the window
+ *  for one member's. IS NOT DISTINCT FROM is not an index condition; the
+ *  `is not null` keeps `=`'s answer for a null clan (no rows), which
+ *  IS NOT DISTINCT FROM alone would turn into the clanless battles. */
+export const inClan = (bp, param) =>
+  `${bp}.clan_tag is not distinct from ${param}::text and ${param}::text is not null`;
 
 /** A player's last recorded battle IN a clan (3.16.0): the participant
  *  row's clan_tag is the clan the player was in when it was played.
@@ -193,7 +205,9 @@ export function participationQueries({
       // A former member's battles in THIS clan only (issue #46): the
       // participant row's clan_tag is the clan the battle was played for.
       name: "former_battles_by_week",
-      text: BATTLES_BY_MEMBER("and bp.clan_tag = $3", "$4"),
+      // One range of the member's player/time cover, never the clan
+      // index's window for each of them (inClan, 2026-11-13).
+      text: BATTLES_BY_MEMBER(`and ${inClan("bp", "$3")}`, "$4"),
       values: [formerTags, from, clanTag, rankedTypes],
     },
     {

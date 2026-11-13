@@ -1,12 +1,16 @@
 import { typesForModeGroup } from "@elixir-mcp/contracts";
 import { notBoatDefense } from "./boat-defense-sql.mjs";
+import { inClan, OWN_BATTLES } from "./participation-sql.mjs";
 
 /** A member's week runs Monday reset to Monday reset (A13), battles and
  *  donations both. `weeks` name Monday midnight. */
 const RESET = "interval '10 hours'";
 
 /** Clan-scoped counters for the member drill-down. A current member's
- * personal participation history can include other clans; this read cannot. */
+ * personal participation history can include other clans; this read cannot.
+ * Each count is one range of the member's player/time cover (`inClan`),
+ * index-only: the cover has no side, so the boat predicate looks it up by
+ * primary key for boat rows alone (OWN_BATTLES). */
 export async function memberActivityWeeks(
   db,
   clanTag,
@@ -22,12 +26,12 @@ export async function memberActivityWeeks(
      )
      select w.iso_week,
        (select count(*)::int from battle_participant bp
-        where bp.player_tag=$1 and bp.clan_tag=$2
+        where bp.player_tag=$1 and ${inClan("bp", "$2")}
           and bp.battle_time >= greatest(w."from" + ${RESET},$4::timestamptz)
           and bp.battle_time < least(w."to" + ${RESET},$5::timestamptz)
-          and ${notBoatDefense("bp", { lookupByKey: true })}) as battles,
+          and ${OWN_BATTLES}) as battles,
        (select count(*)::int from battle_participant bp
-        where bp.player_tag=$1 and bp.clan_tag=$2 and bp.type=any($6::text[])
+        where bp.player_tag=$1 and ${inClan("bp", "$2")} and bp.type=any($6::text[])
           and bp.battle_time >= greatest(w."from" + ${RESET},$4::timestamptz)
           and bp.battle_time < least(w."to" + ${RESET},$5::timestamptz)) as ranked_battles,
        case when $4::timestamptz > w."from" + ${RESET} then null else (select max(s.donations)::int from player_snapshot_daily s
