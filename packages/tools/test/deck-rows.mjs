@@ -1,8 +1,9 @@
 /**
  * Tests that seed a battle by hand write what a participant played the
  * way ingest does: a deck row (identity), its deck_card rows and the
- * battle_participant_card rows, with catalog stubs for cards the test
- * never loaded. The participant row itself is the test's to insert with
+ * battle_participant_card rows, and the same cards as arrays on the
+ * deck, participant and round rows (0255), with catalog stubs for cards
+ * the test never loaded. The participant row itself is the test's to insert with
  * this deck_hash (hashFor), before or after - nothing here references it
  * until the closing FK lands.
  */
@@ -65,6 +66,15 @@ export async function seedDeck(
         `insert into deck_card (deck_hash, card_id, form) values ($1, $2, $3) on conflict do nothing`,
         [hash, c.id, c.evolutionLevel ?? 0],
       );
+    // The identity as arrays (0255), in canonical (card_id, form) order.
+    const sorted = cards
+      .map((c) => [c.id, c.evolutionLevel ?? 0])
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    await db.query(
+      `update deck set card_ids = $2::int[], card_forms = $3::smallint[]
+        where deck_hash = $1`,
+      [hash, sorted.map((c) => c[0]), sorted.map((c) => c[1])],
+    );
   }
   return hash;
 }
@@ -111,5 +121,59 @@ export async function seedPlayedDeck(
       ],
     );
 
+  // The same cards as arrays on the rows that own them (0255), indexed
+  // by slot: round 0 and the tower troop on the participant, a duel's
+  // rounds on their round rows (which the test writes first).
+  const arrays = (list) => ({
+    cards: list.map((c) => c.id),
+    forms: list.map((c) => c.evolutionLevel ?? 0),
+    levels: list.map((c) => c.level ?? null),
+    stars: list.map((c) => c.starLevel ?? null),
+  });
+  if (rounds) {
+    for (const [i, r] of rounds.entries()) {
+      const a = arrays(r);
+      await db.query(
+        `update battle_participant_round
+            set cards = $4::int[], card_forms = $5::smallint[],
+                card_levels = $6::smallint[], card_stars = $7::smallint[],
+                cards_used = $8::boolean[]
+          where battle_id = $1 and player_tag = $2 and round = $3`,
+        [
+          battle_id,
+          player_tag,
+          i + 1,
+          a.cards,
+          a.forms,
+          a.levels,
+          a.stars,
+          r.map(() => null),
+        ],
+      );
+    }
+  } else if (cards.length > 0 || supportCards.length > 0) {
+    const a = arrays(cards);
+    const tower = supportCards[0] ?? null;
+    await db.query(
+      `update battle_participant
+          set cards = $3::int[], card_forms = $4::smallint[],
+              card_levels = $5::smallint[], card_stars = $6::smallint[],
+              tower_troop_id = $7, tower_form = $8, tower_level = $9,
+              tower_star = $10
+        where battle_id = $1 and player_tag = $2`,
+      [
+        battle_id,
+        player_tag,
+        a.cards,
+        a.forms,
+        a.levels,
+        a.stars,
+        tower?.id ?? null,
+        tower ? (tower.evolutionLevel ?? 0) : null,
+        tower ? (tower.level ?? null) : null,
+        tower ? (tower.starLevel ?? null) : null,
+      ],
+    );
+  }
   return hash;
 }

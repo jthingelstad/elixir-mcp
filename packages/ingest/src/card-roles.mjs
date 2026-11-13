@@ -76,6 +76,27 @@ function stampVersion(vocab) {
   return `${GRAMMAR_VERSION}|${vocab.version?.roles_version ?? "none"}`;
 }
 
+/** stampDecks' two reads of a deck's cards, from its arrays (0255):
+ *  the decks named ($1 the hashes), or a batch of stale ones ($1 the
+ *  version, $2 the batch). */
+export const STAMP_SQL = {
+  hashes: `select d.deck_hash,
+                  jsonb_agg(jsonb_build_object('id', dc.card_id, 'name', c.name, 'form', dc.form, 'elixir_cost', c.elixir_cost) order by dc.card_id) as cards
+           from deck d
+           cross join lateral unnest(d.card_ids, d.card_forms) as dc(card_id, form)
+           join card c on c.card_id = dc.card_id
+           where d.deck_hash = any($1)
+           group by d.deck_hash`,
+  stale: `select d.deck_hash,
+                  jsonb_agg(jsonb_build_object('id', dc.card_id, 'name', c.name, 'form', dc.form, 'elixir_cost', c.elixir_cost) order by dc.card_id) as cards
+           from deck d
+           cross join lateral unnest(d.card_ids, d.card_forms) as dc(card_id, form)
+           join card c on c.card_id = dc.card_id
+           where d.archetype_version is distinct from $1
+           group by d.deck_hash
+           limit $2`,
+};
+
 /** Stamp the archetype on decks (0148): the given hashes, or every row
  *  whose version is behind the current one, in batches. An unchanged
  *  stamp writes nothing (re-ingest leaves row versions where they were).
@@ -89,22 +110,7 @@ export async function stampDecks(
   let written = 0;
   for (;;) {
     const { rows } = await db.query(
-      hashes
-        ? `select d.deck_hash,
-                  jsonb_agg(jsonb_build_object('id', dc.card_id, 'name', c.name, 'form', dc.form, 'elixir_cost', c.elixir_cost) order by dc.card_id) as cards
-           from deck d
-           join deck_card dc on dc.deck_hash = d.deck_hash
-           join card c on c.card_id = dc.card_id
-           where d.deck_hash = any($1)
-           group by d.deck_hash`
-        : `select d.deck_hash,
-                  jsonb_agg(jsonb_build_object('id', dc.card_id, 'name', c.name, 'form', dc.form, 'elixir_cost', c.elixir_cost) order by dc.card_id) as cards
-           from deck d
-           join deck_card dc on dc.deck_hash = d.deck_hash
-           join card c on c.card_id = dc.card_id
-           where d.archetype_version is distinct from $1
-           group by d.deck_hash
-           limit $2`,
+      hashes ? STAMP_SQL.hashes : STAMP_SQL.stale,
       hashes ? [hashes] : [version, batch],
     );
     if (rows.length === 0) break;

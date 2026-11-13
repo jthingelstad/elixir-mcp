@@ -422,8 +422,9 @@ Sample real values against the game.
   vacuum `battle_participant`, `battle_participant_round` and `deck`.
   `{"card_arrays_census": true}` (Read), paged the same way, compares
   every element with its row; `pass: true` on the last page, every
-  mismatch and orphan count 0 and rows equal to elements, is the gate for
-  moving readers to the arrays. A failure names its counts; a placed
+  mismatch and orphan count 0 and rows equal to elements, was the gate
+  for moving readers to the arrays (passed 2026-11-13; every reader has
+  read them since). A failure names its counts; a placed
   slot that is wrong is a defect in the fill, fixed there, never by hand.
 - **Clan policy.** A standing or award that disagrees with its saved
   policy version and the record is a defect in Clan's code, fixed there.

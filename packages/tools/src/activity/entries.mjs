@@ -3092,15 +3092,15 @@ async function accountItems(db, accountId, fromMs, toMs) {
 /** One deck as jsonb for a highlight's two decks, inside the highlight's
  *  one statement: its stamped label (0148) unless unclassified, and its
  *  cards with their catalog costs. */
-const VERSUS_DECK_SQL = (hash) => `(select jsonb_build_object(
+export const VERSUS_DECK_SQL = (hash) => `(select jsonb_build_object(
           'label', case when d.archetype_family <> 'unclassified'
                         then d.archetype_label end,
           'cards', (select coalesce(jsonb_agg(jsonb_build_object(
                        'id', dc.card_id, 'form', dc.form, 'name', c.name,
                        'elixir_cost', c.elixir_cost)
                      order by dc.card_id, dc.form), '[]'::jsonb)
-                      from deck_card dc join card c on c.card_id = dc.card_id
-                     where dc.deck_hash = d.deck_hash))
+                      from unnest(d.card_ids, d.card_forms) as dc(card_id, form)
+                      join card c on c.card_id = dc.card_id))
          from deck d where d.deck_hash = ${hash})`;
 
 async function highlightItems(

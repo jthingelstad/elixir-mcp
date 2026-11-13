@@ -18,6 +18,7 @@ import {
   liveStatus,
   notes,
   renderDecks,
+  holdsCardsSql,
   requireEnum,
   resolveSeasonWindow,
   subject,
@@ -218,30 +219,18 @@ export const battles_query = {
       add("b.game_mode_name ilike ?", `%${String(args.game_mode)}%`);
     if (args.outcome) add("bp.outcome = ?", args.outcome);
     if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
-    // Card filters read the played-card rows (0091): an index probe per
-    // card, never a JSON containment scan. slot > 0 is a deck card (slot 0
-    // is the tower troop), in any round: round 0 is a 1v1 deck, 1-3 a
-    // duel's round decks (feedback #363: a duel never matched, so a war
-    // deck played only in duels was invisible to with_card). with_cards
-    // wants all of them in ONE deck, so a duel matches on a round.
+    // Card filters read the card arrays on the rows that own them
+    // (0255): deck cards only (the tower troop has its own column), in
+    // any round: round 0 is a 1v1 deck, 1-3 a duel's round decks
+    // (feedback #363: a duel never matched, so a war deck played only in
+    // duels was invisible to with_card). with_cards wants all of them in
+    // ONE deck, so a duel matches on a round.
     if (args.with_card !== undefined) {
-      add(
-        `exists (select 1 from battle_participant_card c
-                   where c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
-                     and c.slot > 0 and c.card_id = ?)`,
-        Number(args.with_card),
-      );
+      add(holdsCardsSql("bp", "array[?::int]"), Number(args.with_card));
     }
     if (Array.isArray(args.with_cards) && args.with_cards.length > 0) {
       const ids = [...new Set(args.with_cards.map(Number))];
-      add(
-        `exists (select 1 from battle_participant_card c
-                   where c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
-                     and c.slot > 0 and c.card_id = any(?)
-                   group by c.round
-                  having count(distinct c.card_id) = ${ids.length})`,
-        ids,
-      );
+      add(holdsCardsSql("bp", "?::int[]"), ids);
     }
     let opponent = null;
     if (args.opponent_tag) {
@@ -262,10 +251,8 @@ export const battles_query = {
     if (args.against_card !== undefined) {
       add(
         `exists (select 1 from battle_participant o
-                   join battle_participant_card c
-                     on c.battle_id = o.battle_id and c.player_tag = o.player_tag
                    where o.battle_id = bp.battle_id and o.side <> bp.side
-                     and c.slot > 0 and c.card_id = ?)`,
+                     and ${holdsCardsSql("o", "array[?::int]")})`,
         Number(args.against_card),
       );
     }
