@@ -82,7 +82,7 @@ Players & following shows how many slots you have.
 Your digest is one email with the people you follow, your clan's news and
 your own week. It's the only email Elixir sends on a schedule.
 
-- **Weekly**, on Wednesdays. That's the default.
+- **Weekly**, on Mondays right after the weekly reset. That's the default.
 - **Daily**, if you want more.
 - **Off**, if you'd rather not.
 
