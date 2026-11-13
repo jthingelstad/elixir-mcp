@@ -31,11 +31,11 @@ before(async () => {
   // players it has seen: one in that clan, one it has no clan for.
   await db.query(`insert into clan (clan_tag) values ('#J2RGCRVG')`);
   await db.query(
-    `insert into player (player_tag) values ('#2PP0V9PP'), ('#2PP0V9QQ'), ('#2PP0V9RR')`,
+    `insert into player (player_tag) values ('#0VQRR8U0'), ('#0RY8UJUL'), ('#0YP8L80P')`,
   );
   await db.query(
     `insert into clan_membership (clan_tag, player_tag, joined_observed_at)
-     values ('#J2RGCRVG', '#2PP0V9PP', now())`,
+     values ('#J2RGCRVG', '#0VQRR8U0', now())`,
   );
   await db.query(
     `insert into account (email_hash, email, status, role, kind, decided_at)
@@ -53,9 +53,9 @@ after(async () => {
 });
 
 const ENTRIES = [
-  { email: "Existing@Example.com", player_tag: "#2PP0V9RR" },
-  { email: "one@example.com", player_tag: "2pp0v9pp" },
-  { email: "two@example.com", player_tag: "#2PP0V9QQ", clan_tag: null },
+  { email: "Existing@Example.com", player_tag: "#0YP8L80P" },
+  { email: "one@example.com", player_tag: "0vqrr8u0" },
+  { email: "two@example.com", player_tag: "#0RY8UJUL", clan_tag: null },
 ];
 
 test("dry run plans without writing: exists is skipped, clan from the record, null defers", async () => {
@@ -69,7 +69,7 @@ test("dry run plans without writing: exists is skipped, clan from the record, nu
   const [skip, one, two] = out.plan;
   assert.equal(skip.action, "skip");
   assert.equal(skip.reason, "exists");
-  assert.equal(one.player_tag, "#2PP0V9PP");
+  assert.equal(one.player_tag, "#0VQRR8U0");
   assert.equal(one.clan_tag, "#J2RGCRVG");
   assert.equal(one.clan, "from_record");
   assert.equal(one.recording_starts, true);
@@ -107,8 +107,8 @@ test("the real run creates approved member accounts, claims primaries, tracks th
       a.onboarded,
     ]),
     [
-      ["approved", "member", "person", "#2PP0V9PP", true],
-      ["approved", "member", "person", "#2PP0V9QQ", false],
+      ["approved", "member", "person", "#0VQRR8U0", true],
+      ["approved", "member", "person", "#0RY8UJUL", false],
     ],
   );
   const { rows: claims } = await db.query(
@@ -117,7 +117,7 @@ test("the real run creates approved member accounts, claims primaries, tracks th
      where a.email = 'one@example.com'`,
   );
   assert.deepEqual(claims, [
-    { player_tag: "#2PP0V9PP", is_primary: true, relationship: "primary" },
+    { player_tag: "#0VQRR8U0", is_primary: true, relationship: "primary" },
   ]);
   const { rows: clans } = await db.query(
     `select ac.clan_tag, ac.scope from account_clan ac
@@ -131,7 +131,7 @@ test("the real run creates approved member accounts, claims primaries, tracks th
   );
   assert.deepEqual(
     rec.map((r) => `${r.subject_type}:${r.subject_tag}`),
-    ["clan:#J2RGCRVG", "player:#2PP0V9PP", "player:#2PP0V9QQ"],
+    ["clan:#J2RGCRVG", "player:#0VQRR8U0", "player:#0RY8UJUL"].sort(),
   );
   const { rows: ev } = await db.query(
     `select e.kind from account_event e join account a on a.account_id = e.account_id
@@ -159,7 +159,7 @@ test("refuses an empty list and reports a bad tag without stopping the rest", as
     dry_run: true,
     accounts: [
       { email: "bad@example.com", player_tag: "not a tag" },
-      { email: "nope", player_tag: "#2PP0V9PP" },
+      { email: "nope", player_tag: "#0VQRR8U0" },
     ],
   });
   assert.equal(out.plan[0].error, "bad player_tag");
@@ -246,7 +246,7 @@ test("an entry without a player_tag gets a bare account, and newsletter_opt_in i
       [
         "one@example.com",
         "approved",
-        "#2PP0V9PP",
+        "#0VQRR8U0",
         true,
         true,
         1,
@@ -263,9 +263,9 @@ test("fill_empty fills an existing account that tracks nothing and leaves one th
     dry_run: true,
     fill_empty: true,
     accounts: [
-      { email: "existing@example.com", player_tag: "#2PP0V9PP" },
+      { email: "existing@example.com", player_tag: "#0VQRR8U0" },
       // Enrolled above: tracks a player and a clan, so it stays untouched.
-      { email: "one@example.com", player_tag: "#2PP0V9RR" },
+      { email: "one@example.com", player_tag: "#0YP8L80P" },
     ],
   });
   assert.equal(dry.filled, 1);
@@ -277,7 +277,7 @@ test("fill_empty fills an existing account that tracks nothing and leaves one th
   // Without the flag the empty account is still a plain skip.
   const plain = await accountEnrollOp(SCRATCH_URL, {
     dry_run: true,
-    accounts: [{ email: "existing@example.com", player_tag: "#2PP0V9PP" }],
+    accounts: [{ email: "existing@example.com", player_tag: "#0VQRR8U0" }],
   });
   assert.equal(plain.plan[0].action, "skip");
   assert.equal(plain.plan[0].reason, "exists");
@@ -285,7 +285,7 @@ test("fill_empty fills an existing account that tracks nothing and leaves one th
   const out = await accountEnrollOp(SCRATCH_URL, {
     dry_run: false,
     fill_empty: true,
-    accounts: [{ email: "existing@example.com", player_tag: "#2PP0V9PP" }],
+    accounts: [{ email: "existing@example.com", player_tag: "#0VQRR8U0" }],
   });
   assert.equal(out.filled, 1);
   assert.equal(out.plan[0].claimed, true);
@@ -310,15 +310,15 @@ test("fill_empty fills an existing account that tracks nothing and leaves one th
   const again = await accountEnrollOp(SCRATCH_URL, {
     dry_run: false,
     fill_empty: true,
-    accounts: [{ email: "existing@example.com", player_tag: "#2PP0V9PP" }],
+    accounts: [{ email: "existing@example.com", player_tag: "#0VQRR8U0" }],
   });
   assert.equal(again.plan[0].reason, "exists_tracking");
 });
 
 test("account_follow adds an alt to the account that holds the primary, once, and refuses an ambiguous primary", async () => {
   const dry = await accountFollowOp(SCRATCH_URL, {
-    primary_tag: "2pp0v9qq",
-    player_tag: "#2PP0V9UU",
+    primary_tag: "0ry8ujul",
+    player_tag: "#0CP08QUC",
     dry_run: true,
   });
   assert.equal(dry.dry_run, true);
@@ -327,13 +327,13 @@ test("account_follow adds an alt to the account that holds the primary, once, an
   assert.equal(dry.account.already_tracked, false);
   assert.ok(!("account_id" in dry) && !("email" in dry));
   const { rows: before } = await db.query(
-    `select count(*)::int as n from claim where player_tag = '#2PP0V9UU'`,
+    `select count(*)::int as n from claim where player_tag = '#0CP08QUC'`,
   );
   assert.equal(before[0].n, 0);
 
   const out = await accountFollowOp(SCRATCH_URL, {
-    primary_tag: "#2PP0V9QQ",
-    player_tag: "#2PP0V9UU",
+    primary_tag: "#0RY8UJUL",
+    player_tag: "#0CP08QUC",
   });
   assert.equal(out.added, true);
   assert.equal(out.recording_started, true);
@@ -342,20 +342,24 @@ test("account_follow adds an alt to the account that holds the primary, once, an
      from claim c join account a on a.account_id = c.account_id
      where a.email = 'two@example.com' order by c.player_tag`,
   );
-  assert.deepEqual(claims, [
-    {
-      player_tag: "#2PP0V9QQ",
-      is_primary: true,
-      relationship: "primary",
-      status: "unverified",
-    },
-    {
-      player_tag: "#2PP0V9UU",
-      is_primary: false,
-      relationship: "alt",
-      status: "unverified",
-    },
-  ]);
+  // The query reads in tag order; the expectation sorts the same way.
+  assert.deepEqual(
+    claims,
+    [
+      {
+        player_tag: "#0RY8UJUL",
+        is_primary: true,
+        relationship: "primary",
+        status: "unverified",
+      },
+      {
+        player_tag: "#0CP08QUC",
+        is_primary: false,
+        relationship: "alt",
+        status: "unverified",
+      },
+    ].sort((a, b) => (a.player_tag < b.player_tag ? -1 : 1)),
+  );
   const { rows: ev } = await db.query(
     `select e.kind from account_event e join account a on a.account_id = e.account_id
      where a.email = 'two@example.com' order by event_id desc limit 3`,
@@ -366,24 +370,24 @@ test("account_follow adds an alt to the account that holds the primary, once, an
   );
 
   const again = await accountFollowOp(SCRATCH_URL, {
-    primary_tag: "#2PP0V9QQ",
-    player_tag: "#2PP0V9UU",
+    primary_tag: "#0RY8UJUL",
+    player_tag: "#0CP08QUC",
   });
   assert.equal(again.account.already_tracked, true);
   assert.equal(again.added, undefined);
 
-  // #2PP0V9PP is primary on two accounts by now: never guess which.
+  // #0VQRR8U0 is primary on two accounts by now: never guess which.
   const amb = await accountFollowOp(SCRATCH_URL, {
-    primary_tag: "#2PP0V9PP",
-    player_tag: "#2PP0V9UU",
+    primary_tag: "#0VQRR8U0",
+    player_tag: "#0CP08QUC",
   });
   assert.equal(amb.error, "ambiguous");
   assert.equal(amb.accounts, 2);
   assert.equal(
     (
       await accountFollowOp(SCRATCH_URL, {
-        primary_tag: "#2PP0V9QQ",
-        player_tag: "#2PP0V9UU",
+        primary_tag: "#0RY8UJUL",
+        player_tag: "#0CP08QUC",
         relationship: "primary",
       })
     ).error,
@@ -392,8 +396,8 @@ test("account_follow adds an alt to the account that holds the primary, once, an
 });
 
 test("#556: an enrolled tag another account verified is not claimed, and the account follows no clan for it", async () => {
-  const TAG = "#QJ0GVRU8";
-  const CLAN = "#8VQ2LGRP";
+  const TAG = "#0GLLP0CG";
+  const CLAN = "#0JGUYYLQ";
   const {
     rows: [owner],
   } = await db.query(
@@ -442,7 +446,7 @@ test("#556: an enrolment refused for another reason is not reported as a verifie
   const out = await accountEnrollOp(SCRATCH_URL, {
     dry_run: false,
     fill_empty: true,
-    accounts: [{ email: "full-556@example.com", player_tag: "#UQ0GVRL8" }],
+    accounts: [{ email: "full-556@example.com", player_tag: "#0CJCCQYP" }],
   });
   const step = out.plan[0];
   assert.equal(step.claimed, false);

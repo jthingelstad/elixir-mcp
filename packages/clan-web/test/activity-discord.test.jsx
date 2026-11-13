@@ -16,11 +16,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const clan = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "leader" };
+const clan = { clan_tag: "#0QC8RCGY", name: "Example Clan", role: "leader" };
 const HOOK = `https://discord.com/api/webhooks/1/${"a".repeat(68)}`;
 
 const view = (extra = {}) => ({
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   connection: {
     enabled: true,
     webhook: "discord.com/api/webhooks/1…aaaa",
@@ -28,7 +28,7 @@ const view = (extra = {}) => ({
     disabled_reason: null,
     categories: { milestones: false },
     rewrite: false,
-    set_by: "#20QQL8CCRU",
+    set_by: "#098R2R0PUL",
     set_by_name: "Ada",
     updated_at: "2026-10-10T12:00:00Z",
     delivery: null,
@@ -113,7 +113,7 @@ describe("the clan's activity in Discord", () => {
     fireEvent.change(input, { target: { value: ` ${HOOK} ` } });
     fireEvent.click(screen.getByRole("button", { name: "Connect" }));
     await waitFor(() =>
-      expect(save).toHaveBeenCalledWith("#2PQRJ8LV", { url: HOOK }),
+      expect(save).toHaveBeenCalledWith("#0QC8RCGY", { url: HOOK }),
     );
     expect(input.value).toBe("");
   });
@@ -134,13 +134,13 @@ describe("the clan's activity in Discord", () => {
       screen.getByRole("button", { name: /Use the policy’s default \(on\)/ }),
     );
     await waitFor(() =>
-      expect(save).toHaveBeenCalledWith("#2PQRJ8LV", {
+      expect(save).toHaveBeenCalledWith("#0QC8RCGY", {
         categories: { milestones: null },
       }),
     );
     fireEvent.click(screen.getByLabelText("Members"));
     await waitFor(() =>
-      expect(save).toHaveBeenCalledWith("#2PQRJ8LV", {
+      expect(save).toHaveBeenCalledWith("#0QC8RCGY", {
         categories: { members: false },
       }),
     );
@@ -158,7 +158,7 @@ describe("the clan's activity in Discord", () => {
     ).toBeTruthy();
     expect(screen.queryByLabelText(/edit the channel/)).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: "Model & voice" }));
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/run/model-voice");
+    expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/run/model-voice");
   });
 
   test("with the key, the editor is saved; the voice is the clan's, shown here and set in Model & voice", async () => {
@@ -186,7 +186,7 @@ describe("the clan's activity in Discord", () => {
       await screen.findByLabelText("Have the clan’s model edit the channel"),
     );
     await waitFor(() =>
-      expect(save).toHaveBeenCalledWith("#2PQRJ8LV", { rewrite: true }),
+      expect(save).toHaveBeenCalledWith("#0QC8RCGY", { rewrite: true }),
     );
     expect(screen.getByText(/at most 50 runs a day/)).toBeTruthy();
     // What the editor may do, and what keeps Elixir's own words, as the
@@ -210,9 +210,9 @@ describe("the clan's activity in Discord", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.queryByRole("button", { name: "Save the voice" })).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: "Model & voice" }));
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/run/model-voice");
+    expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/run/model-voice");
     expect(save).not.toHaveBeenCalledWith(
-      "#2PQRJ8LV",
+      "#0QC8RCGY",
       expect.objectContaining({ voice: expect.anything() }),
     );
   });
@@ -310,8 +310,8 @@ describe("the clan's activity in Discord", () => {
       vi.useRealTimers();
     }
     // The page sends no voice: the server reads the clan's saved one.
-    expect(preview).toHaveBeenNthCalledWith(1, "#2PQRJ8LV", null);
-    expect(preview).toHaveBeenNthCalledWith(2, "#2PQRJ8LV", "req-1");
+    expect(preview).toHaveBeenNthCalledWith(1, "#0QC8RCGY", null);
+    expect(preview).toHaveBeenNthCalledWith(2, "#0QC8RCGY", "req-1");
     expect(screen.getByText("Bo reached 9,000 trophies.")).toBeTruthy();
     expect(
       screen.getByText(/a number the record did not give it/),

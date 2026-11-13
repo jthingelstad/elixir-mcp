@@ -10,10 +10,10 @@ import {
 } from "../src/lib/tabs.js";
 import { parseClanPath } from "../src/App.jsx";
 
-const BASE = "/clan/2PQRJ8LV";
+const BASE = "/clan/0QC8RCGY";
 const me = (role, extra = {}) => ({
   ok: true,
-  selected: { clan_tag: "#2PQRJ8LV", role, verified: true },
+  selected: { clan_tag: "#0QC8RCGY", role, verified: true },
   clans: [{}],
   policy: { set: true, active: true },
   open_actions: 0,
@@ -86,7 +86,7 @@ describe("which tab and page a path is", () => {
       [`${BASE}/actions/37`, "feed"],
       [`${BASE}/members`, "members"],
       [`${BASE}/members/standing`, "members"],
-      [`${BASE}/members/uq8lp2r9c`, "members"],
+      [`${BASE}/members/02qqpcyqq`, "members"],
       [`${BASE}/war/136-2`, "war"],
       [`${BASE}/standings/135`, "standings"],
       [`${BASE}/policy`, "policy"],
@@ -104,7 +104,7 @@ describe("which tab and page a path is", () => {
       [`${BASE}/actions/37`, "action"],
       [`${BASE}/members`, "roster"],
       [`${BASE}/members/standing`, "standing"],
-      [`${BASE}/members/uq8lp2r9c`, "member"],
+      [`${BASE}/members/02qqpcyqq`, "member"],
       [`${BASE}/war/136-2`, "war"],
       [`${BASE}/standings/135`, "standings"],
       [`${BASE}/policy`, "policy"],
@@ -117,12 +117,12 @@ describe("which tab and page a path is", () => {
 
   test("parseClanPath reads a clan's address and its pages", () => {
     expect(parseClanPath(BASE)).toEqual({
-      tag: "#2PQRJ8LV",
+      tag: "#0QC8RCGY",
       section: null,
       tab: null,
     });
     expect(parseClanPath(`${BASE}/run/model-voice`)).toEqual({
-      tag: "#2PQRJ8LV",
+      tag: "#0QC8RCGY",
       section: "run",
       tab: "model-voice",
     });

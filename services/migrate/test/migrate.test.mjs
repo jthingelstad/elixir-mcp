@@ -98,13 +98,13 @@ test("core invariants hold", async () => {
     assert.equal(rows[0].n, 1);
     await assert.rejects(db.query("insert into budget_state default values"));
     // One open clan membership per player.
-    await db.query(`insert into player (player_tag) values ('#2PP0V90Y')`);
+    await db.query(`insert into player (player_tag) values ('#09CV8UVL')`);
     await db.query(`insert into clan (clan_tag) values ('#J2RGCRVG')`);
     await db.query(`insert into clan_membership (clan_tag, player_tag, joined_observed_at)
-                    values ('#J2RGCRVG', '#2PP0V90Y', now())`);
+                    values ('#J2RGCRVG', '#09CV8UVL', now())`);
     await assert.rejects(
       db.query(`insert into clan_membership (clan_tag, player_tag, joined_observed_at)
-                values ('#J2RGCRVG', '#2PP0V90Y', now() + interval '1 hour')`),
+                values ('#J2RGCRVG', '#09CV8UVL', now() + interval '1 hour')`),
       /duplicate key/,
     );
   } finally {

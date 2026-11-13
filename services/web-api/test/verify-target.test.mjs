@@ -21,9 +21,9 @@ const adminUrl =
 const name = `elixir_mcp_test_verify_target_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 let db, person, routes;
-const PLAYER = "#2PP0V90Y"; // plays deck A
-const FRESH = "#8QU2PJ8C"; // no battles
-const OPP = "#PPRJ8V0L";
+const PLAYER = "#09CV8UVL"; // plays deck A
+const FRESH = "#0CGVUCUG"; // no battles
+const OPP = "#0RPGJRRV";
 const A = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => 26000000 + i);
 const B = [9, 10, 11, 12, 13, 14, 15, 16].map((i) => 26000000 + i);
 

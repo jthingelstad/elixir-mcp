@@ -73,18 +73,18 @@ test("first-answer follows actual capture and distinguishes authorization from n
   assert.equal(res.statusCode, 200, res.body);
   assert.equal(JSON.parse(res.body).player, null);
   await db.query(
-    "insert into player (player_tag) values ('#2PP0V90Y'), ('#J2RGCRVG')",
+    "insert into player (player_tag) values ('#09CV8UVL'), ('#J2RGCRVG')",
   );
   await db.query(
-    "insert into claim (account_id, player_tag, is_primary) values ($1, '#2PP0V90Y', true), ($2, '#J2RGCRVG', true)",
+    "insert into claim (account_id, player_tag, is_primary) values ($1, '#09CV8UVL', true), ($2, '#J2RGCRVG', true)",
     [accountId, otherId],
   );
   await db.query(
-    "insert into recording (subject_type, subject_tag, requested_by) values ('player', '#2PP0V90Y', $1)",
+    "insert into recording (subject_type, subject_tag, requested_by) values ('player', '#09CV8UVL', $1)",
     [accountId],
   );
   let data = JSON.parse((await read()).body);
-  assert.equal(data.player.player_tag, "#2PP0V90Y");
+  assert.equal(data.player.player_tag, "#09CV8UVL");
   // When the tag was added: the Console polls fast just after an add.
   assert.ok(Date.now() - Date.parse(data.player.tracked_since) < 60_000);
   assert.equal(data.player.profile_observed_at, null);
@@ -93,14 +93,14 @@ test("first-answer follows actual capture and distinguishes authorization from n
   assert.equal(data.connection.active_connections, 0);
 
   await db.query(
-    "insert into poll_state (subject_tag, endpoint, last_admitted_at) values ('#2PP0V90Y', 'player', now()), ('#2PP0V90Y', 'player_battlelog', now() - interval '3 hours')",
+    "insert into poll_state (subject_tag, endpoint, last_admitted_at) values ('#09CV8UVL', 'player', now()), ('#09CV8UVL', 'player_battlelog', now() - interval '3 hours')",
   );
   // A poll is not proof of a projected profile. Conversely, retained profile
   // observations survive receipt/poll retention and are still useful data.
   data = JSON.parse((await read()).body);
   assert.equal(data.player.profile_observed_at, null);
   await db.query(
-    "insert into player_snapshot_daily (player_tag, snapshot_date, trophies, observed_at, profile_observed_at) values ('#2PP0V90Y', current_date, 9000, now(), now())",
+    "insert into player_snapshot_daily (player_tag, snapshot_date, trophies, observed_at, profile_observed_at) values ('#09CV8UVL', current_date, 9000, now(), now())",
   );
   // Identities first (0108): a participant's deck_hash references deck.
   await db.query(
@@ -117,15 +117,15 @@ test("first-answer follows actual capture and distinguishes authorization from n
       [id, days],
     );
     await db.query(
-      "insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class) values ($1, '#2PP0V90Y', 0, now() - $2 * interval '1 day', 'loss', 'boatBattle', 'pvp')",
+      "insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class) values ($1, '#09CV8UVL', 0, now() - $2 * interval '1 day', 'loss', 'boatBattle', 'pvp')",
       [id, days],
     );
   }
   for (const [id, tag, days, deck] of [
-    ["recent", "#2PP0V90Y", 1, "a"],
-    ["second", "#2PP0V90Y", 2, "b"],
-    ["previous", "#2PP0V90Y", 9, "a"],
-    ["old", "#2PP0V90Y", 31, "a"],
+    ["recent", "#09CV8UVL", 1, "a"],
+    ["second", "#09CV8UVL", 2, "b"],
+    ["previous", "#09CV8UVL", 9, "a"],
+    ["old", "#09CV8UVL", 31, "a"],
     ["foreign", "#J2RGCRVG", 1, "a"],
   ]) {
     await db.query(
@@ -200,10 +200,10 @@ test("first-answer follows actual capture and distinguishes authorization from n
     0,
   );
   await db.query(
-    "delete from player_snapshot_daily where player_tag = '#2PP0V90Y'",
+    "delete from player_snapshot_daily where player_tag = '#09CV8UVL'",
   );
   await db.query(
-    "delete from battle_participant where player_tag = '#2PP0V90Y' and battle_id <> 'old'",
+    "delete from battle_participant where player_tag = '#09CV8UVL' and battle_id <> 'old'",
   );
   // Battles are the truth and the rollup is derived: whatever removes
   // rows refreshes their days (here, the test).
@@ -223,10 +223,10 @@ test("first-answer follows actual capture and distinguishes authorization from n
 test("clan questions require a recorded war week for a clan this account added", async () => {
   assert.equal(JSON.parse((await read()).body).clan, null);
   await db.query(
-    "insert into clan (clan_tag,name) values ('#P0G','Primary clan'),('#P0Y','Second clan')",
+    "insert into clan (clan_tag,name) values ('#0GG','Primary clan'),('#00J','Second clan')",
   );
   await db.query(
-    "insert into war_week (clan_tag,season_id,section_index) values ('#P0Y',1,0)",
+    "insert into war_week (clan_tag,season_id,section_index) values ('#00J',1,0)",
   );
   assert.equal(
     JSON.parse((await read()).body).clan,
@@ -234,7 +234,7 @@ test("clan questions require a recorded war week for a clan this account added",
     "an unrelated clan is not a suggestion",
   );
   await db.query(
-    "insert into account_clan (account_id,clan_tag,is_primary) values ($1,'#P0G',true)",
+    "insert into account_clan (account_id,clan_tag,is_primary) values ($1,'#0GG',true)",
     [accountId],
   );
   assert.equal(
@@ -243,15 +243,15 @@ test("clan questions require a recorded war week for a clan this account added",
     "adding a clan alone is not a recorded race",
   );
   await db.query(
-    "insert into account_clan (account_id,clan_tag) values ($1,'#P0Y')",
+    "insert into account_clan (account_id,clan_tag) values ($1,'#00J')",
     [accountId],
   );
-  assert.equal(JSON.parse((await read()).body).clan.clan_tag, "#P0Y");
+  assert.equal(JSON.parse((await read()).body).clan.clan_tag, "#00J");
   await db.query(
-    "insert into war_week (clan_tag,season_id,section_index) values ('#P0G',1,0)",
+    "insert into war_week (clan_tag,season_id,section_index) values ('#0GG',1,0)",
   );
   assert.deepEqual(JSON.parse((await read()).body).clan, {
-    clan_tag: "#P0G",
+    clan_tag: "#0GG",
     name: "Primary clan",
     war_weeks: 1,
     latest_week: { season_id: 1, section_index: 0 },
@@ -260,7 +260,7 @@ test("clan questions require a recorded war week for a clan this account added",
   // "3 war weeks" says what it can answer with. It counts the clan's
   // recorded weeks, not this account's.
   await db.query(
-    "insert into war_week (clan_tag,season_id,section_index) values ('#P0G',1,1),('#P0G',2,0)",
+    "insert into war_week (clan_tag,season_id,section_index) values ('#0GG',1,1),('#0GG',2,0)",
   );
   assert.equal(JSON.parse((await read()).body).clan.war_weeks, 3);
 });
@@ -328,7 +328,7 @@ test("selected capture state is claim-bound; roster-only data never promises a p
   );
   assert.equal(
     JSON.parse((await read()).body).player.player_tag,
-    "#2PP0V90Y",
+    "#09CV8UVL",
     "default selection stays primary",
   );
   await db.query(
@@ -349,11 +349,11 @@ test("first-answer carries Home's welcome state: the players followed and the di
   let w = JSON.parse((await read()).body).welcome;
   assert.deepEqual(w, { following: 0, digest: null, finished_at: null });
   await db.query(
-    "insert into player (player_tag) values ('#2Y0PYLQ8'), ('#2Y2PYLQ8') on conflict do nothing",
+    "insert into player (player_tag) values ('#0Y0PLGJ8'), ('#00GG9Q8R') on conflict do nothing",
   );
   // A friend each, and one the other account follows: only this account's.
   await db.query(
-    "insert into claim (account_id, player_tag, relationship) values ($1, '#2Y0PYLQ8', 'friend'), ($1, '#2Y2PYLQ8', 'friend'), ($2, '#2Y2PYLQ8', 'friend')",
+    "insert into claim (account_id, player_tag, relationship) values ($1, '#0Y0PLGJ8', 'friend'), ($1, '#00GG9Q8R', 'friend'), ($2, '#00GG9Q8R', 'friend')",
     [accountId, otherId],
   );
   // An operator's row is not the person's choice.
@@ -388,10 +388,10 @@ test("the welcome checklist finishes for good: stamped once all four are done, n
     [accountId],
   );
   await db.query(
-    "insert into player (player_tag) values ('#2Y0PYLQ8') on conflict do nothing",
+    "insert into player (player_tag) values ('#0Y0PLGJ8') on conflict do nothing",
   );
   await db.query(
-    "insert into claim (account_id, player_tag, relationship) values ($1, '#2Y0PYLQ8', 'friend')",
+    "insert into claim (account_id, player_tag, relationship) values ($1, '#0Y0PLGJ8', 'friend')",
     [accountId],
   );
   // Three of four (the primary is not verified): not finished.

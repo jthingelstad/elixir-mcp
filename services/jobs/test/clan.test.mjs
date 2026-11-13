@@ -4,7 +4,7 @@ import pg from "pg";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
 import { evaluateClanTick, expireModelUses } from "../src/clan.mjs";
-const clan = "#P0LYQ";
+const clan = "#00UQG";
 let scratch, state, other;
 before(async () => {
   scratch = await scratchDb("clan_job");
@@ -81,7 +81,7 @@ test("the morning uses the same normalized lock as web decisions and skips busy 
 });
 
 test("a failing first clan cannot starve another and retries are bounded", async () => {
-  const second = "#P2LQ0";
+  const second = "#0LGYR";
   const visited = [];
   const config = settings({
     evaluateOnSchedule: async (tag) => {

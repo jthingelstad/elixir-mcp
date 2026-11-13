@@ -30,18 +30,18 @@ before(async () => {
   // Invented clans: two named, one unnamed, one with no policy.
   await db.query(
     `insert into clan(clan_tag,name,type,description) values
-       ('#028','zeta Example','inviteOnly','  War every week, chat in English.  '),
+       ('#0YR','zeta Example','inviteOnly','  War every week, chat in English.  '),
        ('#029','Alpha Example','open',null),
-       ('#02P',null,'mystery',''),
-       ('#02Y','No Policy Example','open','Not listed')`,
+       ('#0RR',null,'mystery',''),
+       ('#0U2','No Policy Example','open','Not listed')`,
   );
-  await db.query("insert into player(player_tag) values('#02Q'),('#02G')");
+  await db.query("insert into player(player_tag) values('#0RC'),('#0R2')");
   me = await insertAccount("dir-me");
   pending = await insertAccount("dir-pending", "disabled");
   await db.query(
     `insert into clan_snapshot_daily (clan_tag, day, snapshot_kind, observed_at, members, required_trophies) values
-       ('#028','2026-11-10','daily','2026-11-10T12:00:00Z',31,4000),
-       ('#028','2026-11-11','daily','2026-11-11T12:00:00Z',33,5000),
+       ('#0YR','2026-11-10','daily','2026-11-10T12:00:00Z',31,4000),
+       ('#0YR','2026-11-11','daily','2026-11-11T12:00:00Z',33,5000),
        ('#029','2026-11-11','daily','2026-11-11T12:00:00Z',50,null)`,
   );
 });
@@ -55,11 +55,11 @@ beforeEach(async () => {
 });
 
 const seedPolicies = async () => {
-  await ledger.savePolicy("#028", {
+  await ledger.savePolicy("#0YR", {
     values: { war_intent: "participating", posture: "strict" },
-    by: "#02Q",
+    by: "#0RC",
   });
-  await ledger.savePolicy("#028", {
+  await ledger.savePolicy("#0YR", {
     values: {
       war_intent: "participating",
       posture: "strict",
@@ -71,18 +71,18 @@ const seedPolicies = async () => {
       confirm_days: 10,
       leader_notes: "private-canary-policy",
     },
-    by: "#02Q",
+    by: "#0RC",
     by_name: "private-canary-saver",
     note: "private-canary-note",
   });
-  await ledger.savePolicy("#029", { values: {}, by: "#02Q" });
-  await ledger.savePolicy("#02P", {
+  await ledger.savePolicy("#029", { values: {}, by: "#0RC" });
+  await ledger.savePolicy("#0RR", {
     values: { removal_enabled: false, confirm_days: 9 },
-    by: "#02Q",
+    by: "#0RC",
   });
-  await ledger.savePitch("#028", {
+  await ledger.savePitch("#0YR", {
     values: { tagline: "private-canary-pitch" },
-    by: "#02Q",
+    by: "#0RC",
   });
 };
 
@@ -93,7 +93,7 @@ test("lists clans with a saved policy, by name, never by size", async () => {
   assert.deepEqual(
     got.directory.clans.map((c) => c.clan_tag),
     // Unnamed sorts first (empty name), then case-blind by name.
-    ["#02P", "#029", "#028"],
+    ["#0RR", "#029", "#0YR"],
   );
   assert.equal(got.directory.truncated, false);
   assert.equal(got.directory.schema_version, 1);
@@ -102,7 +102,7 @@ test("lists clans with a saved policy, by name, never by size", async () => {
 test("a tile is the record's facts and the policy's public part", async () => {
   await seedPolicies();
   const { directory } = await readClanDirectory(scratch.db, person(me));
-  const zeta = directory.clans.find((c) => c.clan_tag === "#028");
+  const zeta = directory.clans.find((c) => c.clan_tag === "#0YR");
   assert.deepEqual(Object.keys(zeta).sort(), [
     "clan_tag",
     "description",
@@ -116,7 +116,7 @@ test("a tile is the record's facts and the policy's public part", async () => {
   assert.deepEqual(
     { ...zeta, policy: { ...zeta.policy, saved_at: "x" } },
     {
-      clan_tag: "#028",
+      clan_tag: "#0YR",
       name: "zeta Example",
       type: "inviteOnly",
       description: "War every week, chat in English.",
@@ -143,7 +143,7 @@ test("a tile is the record's facts and the policy's public part", async () => {
     "note",
     "war_min_decks",
     "tagline",
-    "#02Q",
+    "#0RC",
   ])
     assert.ok(!text.includes(canary), `${canary} leaked`);
 });
@@ -158,7 +158,7 @@ test("defaults fill an unsaved field; an unknown value is said as unknown", asyn
   assert.equal(alpha.members, 50);
   assert.equal(alpha.required_trophies, null);
   assert.equal(alpha.description, null);
-  const unnamed = directory.clans.find((c) => c.clan_tag === "#02P");
+  const unnamed = directory.clans.find((c) => c.clan_tag === "#0RR");
   // A removal day with removal off is not a rule the clan keeps.
   assert.equal(unnamed.policy.removal_day, null);
   assert.equal(unnamed.type, null);
@@ -170,20 +170,20 @@ test("yours is your own verified, current membership only", async () => {
   await seedPolicies();
   await scratch.db.query(
     `insert into claim(account_id,player_tag,status,is_primary,relationship) values
-       ($1,'#02Q','verified',true,'primary'),
-       ($2,'#02G','unverified',true,'primary')`,
+       ($1,'#0RC','verified',true,'primary'),
+       ($2,'#0R2','unverified',true,'primary')`,
     [me, pending],
   );
   await scratch.db.query(
     `insert into clan_membership(clan_tag,player_tag,joined_observed_at,role,left_observed_at) values
-       ('#028','#02Q',now(),'member',null),
-       ('#029','#02Q',now() - interval '9 days','member',now() - interval '2 days')`,
+       ('#0YR','#0RC',now(),'member',null),
+       ('#029','#0RC',now() - interval '9 days','member',now() - interval '2 days')`,
   );
   const { directory } = await readClanDirectory(scratch.db, person(me));
   const yours = Object.fromEntries(
     directory.clans.map((c) => [c.clan_tag, c.yours]),
   );
-  assert.deepEqual(yours, { "#02P": false, "#029": false, "#028": true });
+  assert.deepEqual(yours, { "#0RR": false, "#029": false, "#0YR": true });
 });
 
 test("only an approved person, or their agent, reads it", async () => {

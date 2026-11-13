@@ -10,14 +10,14 @@ import { ClanPicker } from "../src/components/ClanPicker.jsx";
 afterEach(cleanup);
 
 const EXAMPLE = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Example Clan",
   role: "leader",
   role_label: "Leader",
   verified: true,
 };
 const SECOND = {
-  clan_tag: "#GQ08RJPL",
+  clan_tag: "#0JR0LRU0",
   name: "Second Clan",
   role: "member",
   role_label: "Member",
@@ -53,14 +53,14 @@ describe("the Clan picker", () => {
       "Second Clan, Member, unverified",
       "All your clans…",
     ]);
-    expect(box().value).toBe("#2PQRJ8LV");
+    expect(box().value).toBe("#0QC8RCGY");
   });
 
   test("picking another clan remembers it; picking this one does nothing", () => {
     const select = vi.fn(() => Promise.resolve());
     draw(me(), { select });
-    fireEvent.change(box(), { target: { value: "#GQ08RJPL" } });
-    expect(select).toHaveBeenCalledWith("#GQ08RJPL");
+    fireEvent.change(box(), { target: { value: "#0JR0LRU0" } });
+    expect(select).toHaveBeenCalledWith("#0JR0LRU0");
   });
 
   test("the chooser is an address, and remembers nothing", () => {

@@ -109,11 +109,11 @@ test("counts each funnel step for people only, and writes nothing", async () => 
   await event(old, "signed_in", ago(200));
 
   const [TB, TC, TD, TO, TX] = [
-    "#2PP0V90Y",
-    "#8QU2PJ8C",
-    "#9VUP08YL",
-    "#YQ2PG0LR",
-    "#2PYLQGC",
+    "#09CV8UVL",
+    "#0CGVUCUG",
+    "#0JVRYLGG",
+    "#0GYLLPPG",
+    "#0082JGY",
   ];
   for (const t of [TB, TC, TD, TO, TX])
     await db.query(`insert into player (player_tag) values ($1)`, [t]);
@@ -241,7 +241,7 @@ test("a primary recorded before it was claimed has no wait to measure", async ()
   // C's tag, read ten days ago, claimed by E today.
   await db.query(
     `insert into claim (account_id, player_tag, status, is_primary, relationship, created_at)
-     values ($1, '#8QU2PJ8C', 'unverified', true, 'primary', $2)`,
+     values ($1, '#0CGVUCUG', 'unverified', true, 'primary', $2)`,
     [e, ago(1)],
   );
   const r = await funnelOp(SCRATCH_URL, { days: 90 });

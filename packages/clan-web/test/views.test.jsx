@@ -20,52 +20,52 @@ import { HostContext } from "../src/lib/host.js";
 afterEach(cleanup);
 
 const poap = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Example Clan",
-  acting_as: "#20QQL8CCRU",
+  acting_as: "#098R2R0PUL",
   acting_as_name: "Ada",
   role: "leader",
   role_label: "Leader",
-  your_tags: ["#20QQL8CCRU"],
+  your_tags: ["#098R2R0PUL"],
 };
 const other = {
-  clan_tag: "#PYLQ2",
+  clan_tag: "#0Y2V2",
   name: "Elsewhere",
-  acting_as: "#8QCV",
+  acting_as: "#0RJL",
   acting_as_name: "Ada's other",
   role: "member",
   role_label: "Member",
-  your_tags: ["#8QCV"],
+  your_tags: ["#0RJL"],
 };
 const me = {
   signed_in: true,
   ok: true,
   principal: {
     kind: "person",
-    subject: { type: "player", tag: "#20QQL8CCRU", name: "Ada" },
+    subject: { type: "player", tag: "#098R2R0PUL", name: "Ada" },
   },
-  primary: { player_tag: "#20QQL8CCRU", name: "Ada" },
+  primary: { player_tag: "#098R2R0PUL", name: "Ada" },
   identities: [
     {
-      player_tag: "#20QQL8CCRU",
+      player_tag: "#098R2R0PUL",
       name: "Ada",
       is_primary: true,
       relationship: "primary",
       claim_status: "verified",
-      clan_tag: "#2PQRJ8LV",
+      clan_tag: "#0QC8RCGY",
       role: "leader",
       role_label: "Leader",
     },
   ],
   clans: [poap],
   selected: {
-    clan_tag: "#2PQRJ8LV",
+    clan_tag: "#0QC8RCGY",
     name: "Example Clan",
-    player_tag: "#20QQL8CCRU",
+    player_tag: "#098R2R0PUL",
     player_name: "Ada",
     role: "leader",
     role_label: "Leader",
-    your_tags: ["#20QQL8CCRU"],
+    your_tags: ["#098R2R0PUL"],
   },
 };
 
@@ -74,7 +74,7 @@ describe("the clan page", () => {
     const now = Date.parse("2026-09-12T18:00:00Z");
     const members = [
       {
-        player_tag: "#20QQL8CCRU",
+        player_tag: "#098R2R0PUL",
         name: "Ada",
         role: "leader",
         role_label: "Leader",
@@ -146,17 +146,17 @@ describe("the clan page", () => {
     };
     const { container } = renderWithProviders(
       <HostContext.Provider value={{ FollowMember }}>
-        <RosterTable members={members} clanTag="#2PQRJ8LV" />
+        <RosterTable members={members} clanTag="#0QC8RCGY" />
       </HostContext.Provider>,
     );
     expect(container.querySelectorAll("td.roster-table__follow").length).toBe(
       2,
     );
     expect(screen.getByRole("button", { name: "Follow Zed" })).toBeTruthy();
-    expect(asked).toContainEqual(["#2PQRJ8LV", "#M1", "Zed"]);
+    expect(asked).toContainEqual(["#0QC8RCGY", "#M1", "Zed"]);
     cleanup();
     const bare = renderWithProviders(
-      <RosterTable members={members} clanTag="#2PQRJ8LV" />,
+      <RosterTable members={members} clanTag="#0QC8RCGY" />,
     );
     expect(bare.container.querySelector(".roster-table__follow")).toBeNull();
   });
@@ -222,9 +222,9 @@ describe("the gate pages", () => {
           ...me,
           identities: [
             {
-              player_tag: "#8QCV",
+              player_tag: "#0RJL",
               claim_status: "unverified",
-              clan_tag: "#PYL",
+              clan_tag: "#0C9",
               clan_name: "Former clan",
               membership_capture: {
                 state: "none",
@@ -291,22 +291,22 @@ describe("choosing a clan", () => {
       identities: [
         ...me.identities,
         {
-          player_tag: "#8QCV",
+          player_tag: "#0RJL",
           name: "Ada's other",
           is_primary: false,
           relationship: "alt",
           claim_status: "verified",
-          clan_tag: "#PYLQ2",
+          clan_tag: "#0Y2V2",
           role: "member",
           role_label: "Member",
         },
         {
-          player_tag: "#22GG",
+          player_tag: "#0PJG",
           name: "Third",
           is_primary: false,
           relationship: "alt",
           claim_status: "unverified",
-          clan_tag: "#RRR",
+          clan_tag: "#0YY",
           role: "member",
           role_label: "Member",
         },
@@ -318,27 +318,27 @@ describe("choosing a clan", () => {
     );
     const cards = screen.getAllByRole("button");
     expect(cards.map((c) => c.getAttribute("data-clan"))).toEqual([
-      "#2PQRJ8LV",
-      "#PYLQ2",
+      "#0QC8RCGY",
+      "#0Y2V2",
     ]);
     expect(cards[0].getAttribute("aria-current")).toBe("true");
     expect(within(cards[1]).getByText("Member")).toBeTruthy();
     fireEvent.click(cards[1]);
-    expect(chosen).toEqual(["#PYLQ2"]);
+    expect(chosen).toEqual(["#0Y2V2"]);
     expect(screen.getByText("Third")).toBeTruthy();
     expect(
       screen
         .getByRole("link", { name: /Verify your player/ })
         .getAttribute("href"),
     ).toContain("/settings/players/verify");
-    expect(screen.queryByText("#RRR", { exact: false })).toBeTruthy();
+    expect(screen.queryByText("#0YY", { exact: false })).toBeTruthy();
   });
 
   test("clan paths carry the tag without its #, and only your clans resolve", () => {
-    expect(clanPath("#2PQRJ8LV")).toBe("/clan/2PQRJ8LV");
-    expect(clanFromPath("/clan/2PQRJ8LV", [poap, other])).toBe(poap);
-    expect(clanFromPath("/clan/2pqrj8lv/", [poap])).toBe(poap);
-    expect(clanFromPath("/clan/PYLQ2", [poap])).toBeNull();
+    expect(clanPath("#0QC8RCGY")).toBe("/clan/0QC8RCGY");
+    expect(clanFromPath("/clan/0QC8RCGY", [poap, other])).toBe(poap);
+    expect(clanFromPath("/clan/0qc8rcgy/", [poap])).toBe(poap);
+    expect(clanFromPath("/clan/0Y2V2", [poap])).toBeNull();
     expect(clanFromPath("/clan", [poap])).toBeNull();
     expect(clanFromPath("/clan/", [poap])).toBeNull();
     expect(clanFromPath("/clan/clans", [poap])).toBeNull();
@@ -359,23 +359,23 @@ describe("choosing a clan", () => {
     // "you" is Y, 0 and U once O reads as 0, and still not a clan.
     expect(parseClanPath("/clan/you/me")).toBeNull();
     expect(parseClanPath("/clan/ABCDEF")).toBeNull();
-    expect(parseClanPath("/clan/2PQRJ8L0")?.tag).toBe("#2PQRJ8L0");
-    expect(parseClanPath("/clan/2PQRJ8LO")?.tag).toBe("#2PQRJ8L0");
+    expect(parseClanPath("/clan/00LCU9Q0")?.tag).toBe("#00LCU9Q0");
+    expect(parseClanPath("/clan/00LCU9Q0")?.tag).toBe("#00LCU9Q0");
     // Only under the prefix: the root is Elixir's.
-    expect(parseClanPath("/2PQRJ8LV")).toBeNull();
+    expect(parseClanPath("/0QC8RCGY")).toBeNull();
   });
 
   test("the roster marks every one of your tags in a clan", () => {
     const members = [
       {
-        player_tag: "#20QQL8CCRU",
+        player_tag: "#098R2R0PUL",
         name: "Ada",
         role: "member",
         role_label: "Member",
         you: true,
       },
       {
-        player_tag: "#8QCV",
+        player_tag: "#0RJL",
         name: "Ada's other",
         role: "coLeader",
         role_label: "Co-leader",
@@ -407,9 +407,9 @@ describe("an unverified player", () => {
             acknowledged: false,
             clans: [
               {
-                clan_tag: "#2PQRJ8LV",
+                clan_tag: "#0QC8RCGY",
                 clan_name: "Example Clan",
-                player_tag: "#20QQL8CCRU",
+                player_tag: "#098R2R0PUL",
                 player_name: "Ada",
                 role: "leader",
                 role_label: "Leader",
@@ -446,7 +446,7 @@ describe("an unverified player", () => {
       role_label: "Member",
       verified: false,
       unlock: {
-        player_tag: "#20QQL8CCRU",
+        player_tag: "#098R2R0PUL",
         name: "Ada",
         role: "leader",
         role_label: "Leader",

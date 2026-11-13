@@ -4,7 +4,7 @@
  * that cannot be resolved skips its case rather than failing it; a
  * resolved tag never reaches the printed report; and a catalogue refresh
  * writes placeholders, never the tags the audit saw. Every tag below is
- * invented (the `#9VV9` prefix).
+ * invented (the `#0RUJ` prefix).
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -53,20 +53,20 @@ function rosterCtx(members, { collection = () => true } = {}) {
 }
 
 const MEMBERS = [
-  { player_tag: "#9VV9GGGG", last_recorded_battle: recent },
+  { player_tag: "#0RQGVPLG", last_recorded_battle: recent },
   { player_tag: JAMIE, last_recorded_battle: recent },
-  { player_tag: "#9VV9CCCC", last_recorded_battle: old },
-  { player_tag: "#9VV9JJJJ", last_recorded_battle: recent },
-  { player_tag: "#9VV9LLLL", last_recorded_battle: null },
+  { player_tag: "#0GG2P99Y", last_recorded_battle: old },
+  { player_tag: "#0U9JVPYG", last_recorded_battle: recent },
+  { player_tag: "#0LL9RJJQ", last_recorded_battle: null },
 ];
 
 test("a clanmate is the first member by tag, owner left out, with a battle in 30 days", async () => {
   const ctx = rosterCtx(MEMBERS);
   assert.deepEqual(await resolvePlaceholder(ctx, "$CLANMATE_1", NOW), {
-    tag: "#9VV9GGGG",
+    tag: "#0RQGVPLG",
   });
   assert.deepEqual(await resolvePlaceholder(ctx, "$CLANMATE_2", NOW), {
-    tag: "#9VV9JJJJ",
+    tag: "#0U9JVPYG",
   });
   const third = await resolvePlaceholder(ctx, "$CLANMATE_3", NOW);
   assert.match(third.reason, /2 of 3 found/);
@@ -76,10 +76,10 @@ test("a clanmate is the first member by tag, owner left out, with a battle in 30
 
 test("a collection subject is the first member whose collection answers, bounded", async () => {
   const ctx = rosterCtx(MEMBERS, {
-    collection: (tag) => tag === "#9VV9JJJJ",
+    collection: (tag) => tag === "#0U9JVPYG",
   });
   assert.deepEqual(await resolvePlaceholder(ctx, "$COLLECTION_1", NOW), {
-    tag: "#9VV9JJJJ",
+    tag: "#0U9JVPYG",
   });
   const none = rosterCtx(MEMBERS, { collection: () => false });
   assert.match(
@@ -131,19 +131,19 @@ test("an unresolved placeholder SKIPS its catalogue case; a resolved one reads t
   await cases.find((c) => c.id === "example_tool#0").run(ctx);
   assert.ok(
     ctx.reads.length >= 1 &&
-      ctx.subjects.resolved.get("$CLANMATE_1") === "#9VV9GGGG",
+      ctx.subjects.resolved.get("$CLANMATE_1") === "#0RQGVPLG",
   );
   const skipped = await cases.find((c) => c.id === "example_tool#1").run(ctx);
   assert.match(skipped.skip, /\$CLANMATE_9: needs a POAP KINGS member/);
 });
 
 test("a failure that echoes a resolved tag is reported with the placeholder", async () => {
-  const map = new Map([["$CLANMATE_1", "#9VV9GGGG"]]);
+  const map = new Map([["$CLANMATE_1", "#0RQGVPLG"]]);
   assert.equal(
-    redact("no record of #9VV9GGGG (9VV9GGGG)", map),
+    redact("no record of #0RQGVPLG (0RQGVPLG)", map),
     "no record of $CLANMATE_1 ($CLANMATE_1)",
   );
-  assert.equal(mask("#9VV9GGGG"), "#9V******");
+  assert.equal(mask("#0RQGVPLG"), "#0R******");
   const door = {
     toolsList: async () => [
       { name: "players_summary", inputSchema: { properties: {} } },
@@ -162,16 +162,16 @@ test("a failure that echoes a resolved tag is reported with the placeholder", as
   });
   const failed = report.cases.filter((c) => c.error);
   assert.ok(failed.length > 0, "the placeholder set failed against the door");
-  for (const c of failed) assert.doesNotMatch(c.error, /9VV9/);
+  for (const c of failed) assert.doesNotMatch(c.error, /0RUJ/);
 });
 
 test("the run keeps full tags only in its local log, mode 0600", () => {
   const file = path.join(mkdtempSync(path.join(tmpdir(), "subj-")), "s.log");
   const ctx = {
-    subjects: { resolved: new Map([["$CLANMATE_1", "#9VV9GGGG"]]) },
+    subjects: { resolved: new Map([["$CLANMATE_1", "#0RQGVPLG"]]) },
   };
-  assert.deepEqual(reportSubjects(ctx, { file }), ["$CLANMATE_1 = #9V******"]);
-  assert.match(readFileSync(file, "utf8"), /\$CLANMATE_1 #9VV9GGGG/);
+  assert.deepEqual(reportSubjects(ctx, { file }), ["$CLANMATE_1 = #0R******"]);
+  assert.match(readFileSync(file, "utf8"), /\$CLANMATE_1 #0RQGVPLG/);
   assert.equal(statSync(file).mode & 0o777, 0o600);
 });
 
@@ -185,23 +185,23 @@ test("a catalogue refresh names other players by placeholder and drops other tag
       sets: [
         {
           tool: "players_summary",
-          args: { player_tag: "#9VV9GGGG" },
+          args: { player_tag: "#0RQGVPLG" },
           calls: 2,
         },
         { tool: "players_summary", args: { player_tag: JAMIE }, calls: 1 },
         {
           tool: "battles_query",
-          args: { player_tag: "#9VV9GGGG", days: 30 },
+          args: { player_tag: "#0RQGVPLG", days: 30 },
           calls: 1,
         },
         {
           tool: "players_summary",
-          args: { player_tag: "#9VV9JJJJ" },
+          args: { player_tag: "#0U9JVPYG" },
           calls: 1,
         },
         {
           tool: "battles_query",
-          args: { player_tag: JAMIE, opponent_tag: "#9VV9LLLL" },
+          args: { player_tag: JAMIE, opponent_tag: "#0LL9RJJQ" },
           calls: 1,
         },
       ],
@@ -231,7 +231,7 @@ test("a catalogue refresh names other players by placeholder and drops other tag
   assert.deepEqual(stale, [
     "battles_query: names opponent_tag, which the suite may not name",
   ]);
-  assert.doesNotMatch(JSON.stringify({ shaped, stale }), /9VV9/);
+  assert.doesNotMatch(JSON.stringify({ shaped, stale }), /0RUJ/);
 });
 
 test("a refresh reads tags as the shared normalizer does: any spelling is caught", () => {
@@ -244,13 +244,13 @@ test("a refresh reads tags as the shared normalizer does: any spelling is caught
       sets: [
         {
           tool: "players_summary",
-          args: { player_tag: "#9VV9GGGG" },
+          args: { player_tag: "#0RQGVPLG" },
           calls: 1,
         },
-        { tool: "players_summary", args: { player_tag: "9vv9gggg" }, calls: 1 },
+        { tool: "players_summary", args: { player_tag: "0rqgvplg" }, calls: 1 },
         {
           tool: "players_summary",
-          args: { player_tag: " #9vv9jjjj " },
+          args: { player_tag: " #0u9jvpyg " },
           calls: 1,
         },
         {
@@ -260,17 +260,17 @@ test("a refresh reads tags as the shared normalizer does: any spelling is caught
         },
         {
           tool: "battles_query",
-          args: { player_tag: JAMIE, opponent_tag: "9vv9llll" },
+          args: { player_tag: JAMIE, opponent_tag: "0ll9rjjq" },
           calls: 1,
         },
         {
           tool: "battles_performance",
-          args: { segment: { clan_tag: "9vv9cccc" } },
+          args: { segment: { clan_tag: "0gg2p99y" } },
           calls: 1,
         },
         {
           tool: "players_search",
-          args: { query: "who is #9vv9cccc" },
+          args: { query: "who is #0gg2p99y" },
           calls: 1,
         },
       ],
@@ -303,7 +303,7 @@ test("a refresh reads tags as the shared normalizer does: any spelling is caught
   assert.equal(shaped.tools.battles_performance, undefined);
   assert.equal(shaped.tools.players_search, undefined);
   assert.equal(stale.length, 3);
-  assert.doesNotMatch(JSON.stringify({ shaped, stale }), /9VV9/i);
+  assert.doesNotMatch(JSON.stringify({ shaped, stale }), /0RUJ/i);
 });
 
 /** Every tag a committed catalogue file spells, in any spelling: a tag
@@ -344,7 +344,7 @@ test("the committed catalogue names no player but the owner and the clan", () =>
   );
   assert.ok(tags.has(JAMIE), "the walk reads the catalogue's tags");
   assert.deepEqual(
-    [...catalogueTags({ x: { player_tag: "9vv9gggg" }, q: "see #9vv9jjjj" })],
-    ["#9VV9GGGG", "#9VV9JJJJ"],
+    [...catalogueTags({ x: { player_tag: "0rqgvplg" }, q: "see #0u9jvpyg" })],
+    ["#0RQGVPLG", "#0U9JVPYG"],
   );
 });

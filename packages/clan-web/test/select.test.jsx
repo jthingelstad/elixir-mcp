@@ -29,13 +29,13 @@ const clan = (clan_tag, name, role = "member") => ({
   name,
   role,
   role_label: role === "leader" ? "Leader" : "Member",
-  acting_as: "#20QQL8CCRU",
+  acting_as: "#098R2R0PUL",
   acting_as_name: "Ada",
   verified: true,
 });
-const EXAMPLE = clan("#2PQRJ8LV", "Example Clan", "leader");
-const SECOND = clan("#GQ08RJPL", "Second Clan");
-const THIRD = clan("#9QJ0YJPU", "Third Clan");
+const EXAMPLE = clan("#0QC8RCGY", "Example Clan", "leader");
+const SECOND = clan("#0JR0LRU0", "Second Clan");
+const THIRD = clan("#0Q800QLR", "Third Clan");
 const me = (selected = EXAMPLE) => ({
   ok: true,
   signed_in: true,
@@ -85,7 +85,7 @@ describe("selecting a clan", () => {
       await first;
     });
     expect(setMe.mock.calls).toEqual([[me(SECOND)]]);
-    expect(navigate.mock.calls).toEqual([["/clan/GQ08RJPL/feed"]]);
+    expect(navigate.mock.calls).toEqual([["/clan/0JR0LRU0/feed"]]);
     expect(result.current.selecting).toBe(false);
 
     // Once it lands, the next selection runs.
@@ -97,7 +97,7 @@ describe("selecting a clan", () => {
       answer[THIRD.clan_tag]();
       await third;
     });
-    expect(navigate.mock.calls.at(-1)).toEqual(["/clan/9QJ0YJPU/feed"]);
+    expect(navigate.mock.calls.at(-1)).toEqual(["/clan/0Q800QLR/feed"]);
   });
 
   test("the Clan picker is busy while a pick is pending, and free once it lands", async () => {
@@ -125,6 +125,6 @@ describe("selecting a clan", () => {
 
     await act(async () => answer[SECOND.clan_tag]());
     await waitFor(() => expect(box().disabled).toBe(false));
-    expect(navigate.mock.calls).toEqual([["/clan/GQ08RJPL/feed"]]);
+    expect(navigate.mock.calls).toEqual([["/clan/0JR0LRU0/feed"]]);
   });
 });

@@ -148,7 +148,7 @@ test("admin provisions REST-only integration; retired collection routes refuse",
       await request(
         "POST",
         `/api/v1/collections/${collection}/members`,
-        { tags: ["#2GUCVLQR"] },
+        { tags: ["#0VCJY9YC"] },
         token,
       )
     ).statusCode,
@@ -283,9 +283,9 @@ test("a refresh with no token left in the one budget is refused whole: no job, n
       path: "/api/v1/profile-refreshes",
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "idempotency-key": key },
-      body: JSON.stringify({ player_tag: "#2PYQ0" }),
+      body: JSON.stringify({ player_tag: "#0VQR9" }),
     });
-  await db.query("delete from job where entity_key = '#2PYQ0'");
+  await db.query("delete from job where entity_key = '#0VQR9'");
   await db.query(
     "update budget_state set tokens = 0.5, settled_at = now() - interval '1 minute'",
   );
@@ -301,7 +301,7 @@ test("a refresh with no token left in the one budget is refused whole: no job, n
       (await db.query(sql, [integration.account_id])).rows[0]?.n ?? 0;
     assert.equal(
       await count(
-        "select count(*)::int n from job where entity_key = '#2PYQ0' and $1::uuid is not null",
+        "select count(*)::int n from job where entity_key = '#0VQR9' and $1::uuid is not null",
       ),
       0,
     );
@@ -499,21 +499,21 @@ test("a family app signs a person in through /api/v1: its address on /me with ac
   const refusedPrimary = await request(
     "POST",
     "/api/v1/me/players",
-    { player_tag: "#2PPGY0Q8", relationship: "primary" },
+    { player_tag: "#0UY8VUR9", relationship: "primary" },
     grant.accessToken,
   );
   assert.equal(refusedPrimary.statusCode, 400);
   const tracked = await request(
     "POST",
     "/api/v1/me/players",
-    { player_tag: "#2PPGY0Q8", relationship: "alt" },
+    { player_tag: "#0UY8VUR9", relationship: "alt" },
     grant.accessToken,
   );
   assert.equal(tracked.statusCode, 200, tracked.body);
   const {
     rows: [claim],
   } = await db.query(
-    "select relationship from claim where account_id = $1 and player_tag = '#2PPGY0Q8'",
+    "select relationship from claim where account_id = $1 and player_tag = '#0UY8VUR9'",
     [person],
   );
   assert.ok(claim, "the player is now tracked");
@@ -521,7 +521,7 @@ test("a family app signs a person in through /api/v1: its address on /me with ac
   const readOnly = await request(
     "POST",
     "/api/v1/me/players",
-    { player_tag: "#8QQ8QQ8Q" },
+    { player_tag: "#0J8CVLL8" },
     plain.accessToken,
   );
   assert.notEqual(readOnly.statusCode, 200);
@@ -547,19 +547,19 @@ test("the person operations answer with the tools' structured results, uncapped,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   await db.query(
-    `insert into player (player_tag, name) values ('#2PP', 'Known') on conflict do nothing`,
+    `insert into player (player_tag, name) values ('#0CR', 'Known') on conflict do nothing`,
   );
   const names = await call("POST", "/api/v1/players/names", {
-    player_tags: ["#2PP", "#9YY9YY9Q"],
+    player_tags: ["#0CR", "#0Q2VR9CC"],
   });
   assert.equal(names.statusCode, 200, names.body);
-  const known = data(names).data.names.find((n) => n.player_tag === "#2PP");
+  const known = data(names).data.names.find((n) => n.player_tag === "#0CR");
   assert.equal(known.name, "Known");
 
   // A clan the record does not hold: the tool's refusal, as a problem.
   const roster = await call(
     "GET",
-    `/api/v1/clans/${encodeURIComponent("#2PPQQ")}/roster`,
+    `/api/v1/clans/${encodeURIComponent("#0Q0V9")}/roster`,
   );
   assert.equal(roster.statusCode, 404, roster.body);
   assert.equal(data(roster).code, "not_recorded");
@@ -567,7 +567,7 @@ test("the person operations answer with the tools' structured results, uncapped,
 
   const bad = await call("POST", "/api/v1/players/names", { player_tags: "x" });
   assert.equal(bad.statusCode, 400);
-  const unknown = await call("GET", "/api/v1/clans/%232PPQQ/everything");
+  const unknown = await call("GET", "/api/v1/clans/%230Q0V9/everything");
   assert.equal(unknown.statusCode, 404);
 });
 
@@ -584,18 +584,18 @@ test("an integration with clans:read reads a clan as a person's grant does, audi
     });
   // A clan the record does not hold: the tool's own refusal, as for a person.
   const roster = await read(
-    `/api/v1/clans/${encodeURIComponent("#2PPQQ")}/roster`,
+    `/api/v1/clans/${encodeURIComponent("#0Q0V9")}/roster`,
     clanApp.token,
   );
   assert.equal(roster.statusCode, 404, roster.body);
   assert.equal(data(roster).code, "not_recorded");
   const part = await read(
-    `/api/v1/clans/${encodeURIComponent("#2PPQQ")}/participation`,
+    `/api/v1/clans/${encodeURIComponent("#0Q0V9")}/participation`,
     clanApp.token,
   );
   assert.equal(data(part).code, "not_recorded");
   const refused = await read(
-    `/api/v1/clans/${encodeURIComponent("#2PPQQ")}/roster`,
+    `/api/v1/clans/${encodeURIComponent("#0Q0V9")}/roster`,
     other.token,
   );
   assert.equal(refused.statusCode, 403);
@@ -717,7 +717,7 @@ test("a tool behind a lock answers query_timeout on Explore and /api/v1 before t
         path: "/api/v1/players/names",
         method: "POST",
         headers: { authorization: `Bearer ${grant.accessToken}` },
-        body: JSON.stringify({ player_tags: ["#2PP"] }),
+        body: JSON.stringify({ player_tags: ["#0CR"] }),
       },
       context,
     );
@@ -729,7 +729,7 @@ test("a tool behind a lock answers query_timeout on Explore and /api/v1 before t
         headers: { cookie, "x-elixir-client": "web" },
         body: JSON.stringify({
           tool: "players_names",
-          args: { player_tags: ["#2PP"] },
+          args: { player_tags: ["#0CR"] },
         }),
       },
       context,

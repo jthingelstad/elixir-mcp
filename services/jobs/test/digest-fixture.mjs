@@ -1,8 +1,8 @@
 /** The milestone fixture the digest tests share: a primary and an alt
  *  with moments of every rank, one the account was already told of, and
  *  the small things milestone never mails. */
-export const PRIMARY = "#2QYQ9V0P";
-export const ALT = "#8LQ2PJ0C";
+export const PRIMARY = "#0QUJUGP0";
+export const ALT = "#02PR9GRV";
 export const OPPONENT = "#0QVVLQ9R";
 export const WINDOW = {
   fromMs: Date.parse("2026-10-07T00:00:00Z"),

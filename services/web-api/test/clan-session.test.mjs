@@ -11,8 +11,8 @@ import { seasonFromDate, monthForSeasonId } from "@elixir-mcp/record/war-clock";
 
 import { describeIdentity, principalBlock } from "@elixir-mcp/tools/identity";
 
-const CLAN = "#9GQLV20",
-  TAG = "#9GQLV22";
+const CLAN = "#0JQ0JQ8",
+  TAG = "#08V0UY9";
 let scratch, handler, accountId, token, sessionId;
 const data = (r) => JSON.parse(r.body);
 const request = (

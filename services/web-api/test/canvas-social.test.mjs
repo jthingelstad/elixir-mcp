@@ -31,9 +31,9 @@ const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 
 // The fixture's own player (fixtures/player_battlelog).
 const PLAYER = "#0QRVVG22J";
-const CLAN = "#GRC2PQ";
-const CLANMATE = "#UUU2CC";
-const PICKED = "#QQ8822";
+const CLAN = "#0Q9UVR";
+const CLANMATE = "#08LJY2";
+const PICKED = "#0VJ2QV";
 const OWNER = "canvas-owner@example.com";
 const FRIEND = "canvas-friend@example.com";
 const STRANGER = "canvas-stranger@example.com";
@@ -449,7 +449,7 @@ test("this week's race: a place by fame on a war day, never the day's decks", ()
     standings: [
       { participant_clan_tag: "#AAA", fame: 9000 },
       { participant_clan_tag: CLAN, fame: 8200 },
-      { participant_clan_tag: "#CCC", fame: 100 },
+      { participant_clan_tag: "#09P", fame: 100 },
     ],
     decks_today: { counts: { finished: 3 } },
   };
@@ -493,7 +493,7 @@ test("this week's race: no place before any fame, nor on a tie (Codex on #792)",
     );
   // The first war day, nothing banked: all five level at zero.
   const zero = race(
-    ["#AAA", CLAN, "#CCC", "#DDD", "#EEE"].map((t) => ({
+    ["#AAA", CLAN, "#09P", "#DDD", "#EEE"].map((t) => ({
       participant_clan_tag: t,
       fame: 0,
     })),
@@ -504,7 +504,7 @@ test("this week's race: no place before any fame, nor on a tie (Codex on #792)",
   const tied = race([
     { participant_clan_tag: "#AAA", fame: 9000 },
     { participant_clan_tag: CLAN, fame: 4000 },
-    { participant_clan_tag: "#CCC", fame: 4000 },
+    { participant_clan_tag: "#09P", fame: 4000 },
   ]);
   assert.equal(tied.place, null);
   assert.equal(tied.fame, 4000);
@@ -512,7 +512,7 @@ test("this week's race: no place before any fame, nor on a tie (Codex on #792)",
   assert.equal(
     race([
       { participant_clan_tag: "#AAA", fame: 4000 },
-      { participant_clan_tag: "#CCC", fame: 4000 },
+      { participant_clan_tag: "#09P", fame: 4000 },
       { participant_clan_tag: CLAN, fame: 9000 },
     ]).place,
     1,

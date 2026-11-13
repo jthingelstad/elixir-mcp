@@ -20,7 +20,7 @@ const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_mcp_test_clan_mail_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
-const CLAN = "#2PQRJ8LV";
+const CLAN = "#0QC8RCGY";
 const sent = [];
 let db, handler, cookie, readOnlyKey;
 
@@ -113,29 +113,29 @@ const message = (player_tag, extra = {}) => ({
   player_tag,
   subject: "2 actions waiting for you in Example Clan",
   lines: ["Promote to Elder: <b>Ada</b> (new)", "Remove from the clan: Quiet"],
-  link: "https://elixir.poapkings.com/clan/2PQRJ8LV/actions",
+  link: "https://elixir.poapkings.com/clan/0QC8RCGY/actions",
   ...extra,
 });
 
 test("only the account that verified a player in the clan, with the kind on, is sent the app's words, escaped and recorded", async () => {
-  const lead = await person("lead", "#20QQL8CC");
-  const off = await person("off", "#8QQ8QQ8Q");
+  const lead = await person("lead", "#0LCLRCPQ");
+  const off = await person("off", "#0J8CVLL8");
   await db.query(
     "insert into account_email_pref(account_id,kind,enabled,via) values ($1,'clan_actions_waiting',false,'profile')",
     [off],
   );
-  await person("unproven", "#9RRYR9RR", { verified: false });
-  await person("gone", "#2PPGY0Q8", { inClan: false });
-  await person("mute", "#UUYY22VV", { email: null });
+  await person("unproven", "#0Q0L80CC", { verified: false });
+  await person("gone", "#0UY8VUR9", { inClan: false });
+  await person("mute", "#0LUCVCJV", { email: null });
   const r = await mail({
     kind: "clan_actions_waiting",
     messages: [
-      "#20QQL8CC",
-      "#8QQ8QQ8Q",
-      "#9RRYR9RR",
-      "#2PPGY0Q8",
-      "#UUYY22VV",
-      "#YYVV0022",
+      "#0LCLRCPQ",
+      "#0J8CVLL8",
+      "#0Q0L80CC",
+      "#0UY8VUR9",
+      "#0LUCVCJV",
+      "#00UQL2U9",
     ].map((t) => message(t)),
   });
   assert.equal(r.statusCode, 200, r.body);
@@ -143,12 +143,12 @@ test("only the account that verified a player in the clan, with the kind on, is 
     data(r).data.results.map((x) => [x.player_tag, x.status]),
   );
   assert.deepEqual(by, {
-    "#20QQL8CC": "sent",
-    "#8QQ8QQ8Q": "switched_off",
-    "#9RRYR9RR": "no_account",
-    "#2PPGY0Q8": "not_in_clan",
-    "#UUYY22VV": "no_address",
-    "#YYVV0022": "no_account",
+    "#0LCLRCPQ": "sent",
+    "#0J8CVLL8": "switched_off",
+    "#0Q0L80CC": "no_account",
+    "#0UY8VUR9": "not_in_clan",
+    "#0LUCVCJV": "no_address",
+    "#00UQL2U9": "no_account",
   });
   assert.equal(sent.length, 1);
   const [msg] = sent;
@@ -163,7 +163,7 @@ test("only the account that verified a player in the clan, with the kind on, is 
   assert.ok(!msg.html.includes("<b>Ada</b>"));
   assert.match(
     msg.html,
-    /elixir\.poapkings\.com\/clan\/2PQRJ8LV\/actions\?utm_source=email/,
+    /elixir\.poapkings\.com\/clan\/0QC8RCGY\/actions\?utm_source=email/,
   );
   const { rows } = await db.query(
     "select s.account_id, i.kind, i.subject_key from email_send s join email_issue i using(issue_id)",
@@ -174,14 +174,14 @@ test("only the account that verified a player in the clan, with the kind on, is 
   // Once per clan per account per day.
   const again = await mail({
     kind: "clan_actions_waiting",
-    messages: [message("#20QQL8CC")],
+    messages: [message("#0LCLRCPQ")],
   });
   assert.equal(data(again).data.results[0].status, "already_sent_today");
   assert.equal(sent.length, 1);
 });
 
 test("award scope with twelve maximum-length names still passes the real mail check", async () => {
-  const tag = "#2QY8L0VP";
+  const tag = "#0LLV8GU9";
   await person("award-scope", tag);
   const card = {
     card_id: "award-scope",
@@ -222,18 +222,18 @@ test("award scope with twelve maximum-length names still passes the real mail ch
 test("refusals: a link outside the family, an unknown kind, a bad message", async () => {
   const evil = await mail({
     kind: "clan_actions_waiting",
-    messages: [message("#20QQL8CC", { link: "https://example.org/phish" })],
+    messages: [message("#0LCLRCPQ", { link: "https://example.org/phish" })],
   });
   assert.equal(evil.statusCode, 400);
   assert.equal(data(evil).code, "invalid_mail");
   const kind = await mail({
     kind: "anything",
-    messages: [message("#20QQL8CC")],
+    messages: [message("#0LCLRCPQ")],
   });
   assert.equal(data(kind).code, "unknown_mail_kind");
   const empty = await mail({
     kind: "clan_actions_waiting",
-    messages: [message("#20QQL8CC", { lines: [] })],
+    messages: [message("#0LCLRCPQ", { lines: [] })],
   });
   assert.equal(data(empty).code, "invalid_mail");
 });
@@ -245,7 +245,7 @@ test("the JSON API has no mail door: a key gets the unknown operation's 404", as
     headers: { authorization: `Bearer ${readOnlyKey}` },
     body: JSON.stringify({
       kind: "clan_actions_waiting",
-      messages: [message("#20QQL8CC")],
+      messages: [message("#0LCLRCPQ")],
     }),
   });
   assert.equal(r.statusCode, 404);

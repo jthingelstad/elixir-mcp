@@ -13,9 +13,9 @@ const adminUrl =
 const name = `elixir_mcp_test_activity_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 let db, handler, cookie, person;
-const TAG = "#2PP0V90Y";
-const NEW_TAG = "#8QU2PJ8C"; // claimed, no row yet
-const OTHER_TAG = "#PPRJ8V0L"; // somebody else's
+const TAG = "#09CV8UVL";
+const NEW_TAG = "#0CGVUCUG"; // claimed, no row yet
+const OTHER_TAG = "#0RPGJRRV"; // somebody else's
 
 const get = (path, session = cookie) =>
   handler({

@@ -25,7 +25,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const clan = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "leader" };
+const clan = { clan_tag: "#0QC8RCGY", name: "Example Clan", role: "leader" };
 const removal = {
   card_id: "a1",
   type: "removal",
@@ -33,7 +33,7 @@ const removal = {
   status: "proposed",
   can_act: true,
   audience: { kind: "leaders" },
-  player_tag: "#8QCV",
+  player_tag: "#0RJL",
   player_name: "Sleepy",
   role_at_raise: "member",
   raised_at: "2026-09-12T20:00:00Z",
@@ -108,7 +108,7 @@ const view = (extra = {}) => ({
   ok: true,
   status: 200,
   data: {
-    clan_tag: "#2PQRJ8LV",
+    clan_tag: "#0QC8RCGY",
     as_of: "2026-09-12T19:58:00Z",
     freshness_seconds: 60,
     policy_version: 1,
@@ -374,7 +374,7 @@ describe("actions", () => {
       <ActionDetail
         number={37}
         clan={clan}
-        who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
+        who={{ player_tag: "#098R2R0PUL", role: "leader" }}
       />,
     );
     expect(await screen.findByText(/History, 1 entry/)).toBeTruthy();
@@ -398,14 +398,14 @@ describe("actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     await waitFor(() =>
       expect(comment).toHaveBeenCalledWith(
-        "#2PQRJ8LV",
+        "#0QC8RCGY",
         "a1",
         "Messaged them first.",
       ),
     );
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() =>
-      expect(decide).toHaveBeenCalledWith("#2PQRJ8LV", "a1", {
+      expect(decide).toHaveBeenCalledWith("#0QC8RCGY", "a1", {
         status: "done",
         reason: null,
         note: null,
@@ -423,7 +423,7 @@ describe("actions", () => {
             card_id: "a2",
             type: "away",
             label: "Going to be away?",
-            audience: { kind: "member", player_tag: "#8QCV" },
+            audience: { kind: "member", player_tag: "#0RJL" },
             copy: null,
             evidence: { days_idle: 6.2, away_max_days: 30 },
             log: [],
@@ -436,7 +436,7 @@ describe("actions", () => {
       <ActionDetail
         number={37}
         clan={{ ...clan, role: "member" }}
-        who={{ player_tag: "#8QCV", role: "member" }}
+        who={{ player_tag: "#0RJL", role: "member" }}
         navigate={navigate}
       />,
     );
@@ -446,7 +446,7 @@ describe("actions", () => {
       ).toBeTruthy(),
     );
     fireEvent.click(screen.getByRole("link", { name: "Mark me away" }));
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/members/away");
+    expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/members/away");
     expect(screen.getByRole("button", { name: "I’m not away" })).toBeTruthy();
   });
 
@@ -468,7 +468,7 @@ describe("actions", () => {
                 entry_id: "c1",
                 kind: "comment",
                 at: "2026-09-12T21:00:00Z",
-                by: { tag: "#20QQL8CCRU", name: "Ada", role: "leader" },
+                by: { tag: "#098R2R0PUL", name: "Ada", role: "leader" },
                 text: "I think they left.",
               },
             ],
@@ -489,7 +489,7 @@ describe("actions", () => {
     const navigate = vi.fn();
     today({
       clan,
-      who: { player_tag: "#20QQL8CCRU", role: "leader" },
+      who: { player_tag: "#098R2R0PUL", role: "leader" },
       navigate,
     });
     // The list is its own panel, headed by its name and its count.
@@ -501,14 +501,14 @@ describe("actions", () => {
       .getAllByRole("link")
       .filter((l) => /\/actions\/\d+$/.test(l.getAttribute("href")));
     expect(openLinks.map((l) => l.getAttribute("href"))).toEqual([
-      "/clan/2PQRJ8LV/actions/12",
-      "/clan/2PQRJ8LV/actions/37",
+      "/clan/0QC8RCGY/actions/12",
+      "/clan/0QC8RCGY/actions/37",
     ]);
     expect(openLinks[0].textContent).toMatch(
       /#12.*Say how they left.*Gone.*1 comment/,
     );
     fireEvent.click(openLinks[1]);
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/actions/37");
+    expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/actions/37");
     // The list decides nothing: that is on the action's page.
     expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
     // A leader reads what was decided on Decided, not in a fold here.
@@ -521,15 +521,15 @@ describe("actions", () => {
       const navigate = vi.fn();
       today({
         clan,
-        who: { player_tag: "#20QQL8CCRU", role: "leader" },
+        who: { player_tag: "#098R2R0PUL", role: "leader" },
         navigate,
       });
       const link = await screen.findByRole("link", {
         name: discord.set ? /Connect it again/ : /Set it up/,
       });
-      expect(link.getAttribute("href")).toBe("/clan/2PQRJ8LV/run/discord");
+      expect(link.getAttribute("href")).toBe("/clan/0QC8RCGY/run/discord");
       fireEvent.click(link);
-      expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/run/discord");
+      expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/run/discord");
       cleanup();
       vi.restoreAllMocks();
     }
@@ -559,13 +559,13 @@ describe("actions", () => {
       <ActionDetail
         number={37}
         clan={clan}
-        who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
+        who={{ player_tag: "#098R2R0PUL", role: "leader" }}
       />,
     );
     fireEvent.click(await screen.findByRole("button", { name: /Copy link/ }));
     await waitFor(() =>
       expect(write).toHaveBeenCalledWith(
-        `${window.location.origin}/clan/2PQRJ8LV/actions/37`,
+        `${window.location.origin}/clan/0QC8RCGY/actions/37`,
       ),
     );
   });
@@ -824,7 +824,7 @@ describe("clan leader messages", () => {
     fireEvent.click(
       screen.getByRole("link", { name: "Review later · leave open" }),
     );
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/feed");
+    expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/feed");
     expect(decide).not.toHaveBeenCalled();
     expect(sent).not.toHaveBeenCalled();
   });
@@ -864,7 +864,7 @@ describe("clan leader messages", () => {
       <ActionDetail
         number={37}
         clan={clan}
-        who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
+        who={{ player_tag: "#098R2R0PUL", role: "leader" }}
       />,
     );
     await waitFor(() => expect(screen.getByText("20/24")).toBeTruthy());
@@ -928,7 +928,7 @@ describe("clan leader messages", () => {
       <ActionDetail
         number={37}
         clan={clan}
-        who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
+        who={{ player_tag: "#098R2R0PUL", role: "leader" }}
       />,
     );
     await screen.findByLabelText("Title");
@@ -938,7 +938,7 @@ describe("clan leader messages", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() =>
-      expect(decide).toHaveBeenCalledWith("#2PQRJ8LV", "r1", {
+      expect(decide).toHaveBeenCalledWith("#0QC8RCGY", "r1", {
         status: "done",
         reason: null,
         note: null,
@@ -1005,7 +1005,7 @@ describe("the clan's model on a Leader Message", () => {
     });
     fireEvent.click(sent);
     await waitFor(() =>
-      expect(decide).toHaveBeenCalledWith("#2PQRJ8LV", "a1", {
+      expect(decide).toHaveBeenCalledWith("#0QC8RCGY", "a1", {
         status: "done",
         reason: null,
         note: null,
@@ -1058,7 +1058,7 @@ describe("the clan's model on a Leader Message", () => {
       <ActionDetail
         number={37}
         clan={clan}
-        who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
+        who={{ player_tag: "#098R2R0PUL", role: "leader" }}
       />,
     );
     fireEvent.change(await screen.findByLabelText("What should it say?"), {
@@ -1067,7 +1067,7 @@ describe("the clan's model on a Leader Message", () => {
     fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
     await waitFor(() =>
       expect(draft).toHaveBeenCalledWith(
-        "#2PQRJ8LV",
+        "#0QC8RCGY",
         "r1",
         "warm",
         null,
@@ -1108,7 +1108,7 @@ describe("the clan's model on a Leader Message", () => {
       <ActionDetail
         number={37}
         clan={clan}
-        who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
+        who={{ player_tag: "#098R2R0PUL", role: "leader" }}
       />,
     );
     await screen.findByDisplayValue("How our clan runs");
@@ -1124,7 +1124,7 @@ describe("the drafted entry in an action's log (2026-10-20, call 6)", () => {
     entry_id: `d${(n += 1)}`,
     kind: "drafted",
     at: "2026-10-20T12:00:00Z",
-    by: { tag: "#20QQL8CCRU", name: "Ada", role: "leader" },
+    by: { tag: "#098R2R0PUL", name: "Ada", role: "leader" },
     text: "Drafted clan-chat words in the clan's voice (claude-x).",
     detail,
   });
@@ -1333,7 +1333,7 @@ describe("editable clan chat", () => {
       screen.getByRole("button", { name: "Copy the chat message 2" }),
     ).toBeTruthy();
     expect(draft).toHaveBeenCalledWith(
-      "#2PQRJ8LV",
+      "#0QC8RCGY",
       "a1",
       "Say the war crew is glad",
       null,
@@ -1351,7 +1351,7 @@ describe("editable clan chat", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() =>
-      expect(decide).toHaveBeenCalledWith("#2PQRJ8LV", "a1", {
+      expect(decide).toHaveBeenCalledWith("#0QC8RCGY", "a1", {
         status: "done",
         reason: null,
         note: null,
@@ -1455,7 +1455,7 @@ describe("editable clan chat", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
     expect(draft).toHaveBeenCalledWith(
-      "#2PQRJ8LV",
+      "#0QC8RCGY",
       "a1",
       null,
       "left-version",
@@ -1560,7 +1560,7 @@ describe("you here", () => {
       ok: true,
       status: 200,
       data: {
-        clan_tag: "#2PQRJ8LV",
+        clan_tag: "#0QC8RCGY",
         clan_name: "Example Clan",
         as_of: "2026-09-12T19:58:00Z",
         freshness_seconds: 60,
@@ -1568,7 +1568,7 @@ describe("you here", () => {
         min_members: 10,
         policy: { set: true, active: true },
         you: {
-          player_tag: "#8QCV",
+          player_tag: "#0RJL",
           name: "Sleepy",
           role: "member",
           this_week: {
@@ -1741,7 +1741,7 @@ test("one update contains editable messages and explicit delivery progress; copy
     <ActionDetail
       number={41}
       clan={clan}
-      who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
+      who={{ player_tag: "#098R2R0PUL", role: "leader" }}
     />,
   );
   const complete = await screen.findByRole("button", {

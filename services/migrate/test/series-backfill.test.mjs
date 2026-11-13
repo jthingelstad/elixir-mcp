@@ -291,7 +291,7 @@ test("race lane resolves the week from the calendar and writes the rivals and pe
   slotBand.periodLogs = [];
   slotBand.clans = race.clans.map((c, i) => ({
     ...c,
-    tag: i === 0 ? clanTag : `#2PP0V9${["QP", "UP", "CP", "JP"][i - 1]}`,
+    tag: i === 0 ? clanTag : `#0L2Q0R${["QP", "UP", "CP", "JP"][i - 1]}`,
     fame: 0,
     periodPoints: 0,
   }));
@@ -467,7 +467,7 @@ test("replay disposition changing during the archive read aborts projection with
 });
 
 test("a warm archive inventory refreshes for a newly published redirect; missing retained bodies never advance", async () => {
-  const tag = "#P2LQ0";
+  const tag = "#0LGYR";
   await db.query(
     "insert into player(player_tag) values($1) on conflict do nothing",
     [tag],
@@ -548,26 +548,26 @@ test("missing ordinary shared content cannot poison a redirected observer in the
       {
         battleTime: "20261001T190000.000Z",
         type: "PvP",
-        team: [{ tag: "#P0LYQ", cards: [] }],
-        opponent: [{ tag: "#P2LQ0", cards: [] }],
+        team: [{ tag: "#00UQG", cards: [] }],
+        opponent: [{ tag: "#0LGYR", cards: [] }],
       },
     ],
     hash = payloadHash(body),
     replacement = archiveKey(
       "player_battlelog",
-      "#P2LQ0",
+      "#0LGYR",
       "2026-10-01T19:00:00Z",
       hash,
     );
   const original = await admitted(
     "player_battlelog",
-    "#P0LYQ",
+    "#00UQG",
     body,
     "2026-10-01T19:00:00Z",
   );
   const redirected = await admitted(
     "player_battlelog",
-    "#P2LQ0",
+    "#0LGYR",
     [],
     "2026-10-01T19:01:00Z",
   );
@@ -577,7 +577,7 @@ test("missing ordinary shared content cannot poison a redirected observer in the
   );
   const storage = {
     listKeys: async (_ep, tag) =>
-      tag === "#P2LQ0"
+      tag === "#0LGYR"
         ? new Map([[hash.slice(0, 16), replacement]])
         : new Map(),
     getObject: async () => gzipSync(JSON.stringify(body)),

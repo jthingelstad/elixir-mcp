@@ -12,13 +12,13 @@ afterEach(() => {
 });
 
 const poap = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Example Clan",
-  acting_as: "#20QQL8CCRU",
+  acting_as: "#098R2R0PUL",
   acting_as_name: "Ada",
   role: "leader",
   role_label: "Leader",
-  your_tags: ["#20QQL8CCRU"],
+  your_tags: ["#098R2R0PUL"],
 };
 
 test("Review counts all four removal triage readings, and lists only who is near an action", async () => {
@@ -130,24 +130,24 @@ test("Review shows every held or unknown reason, including simultaneous dimensio
 
 describe("clan paths", () => {
   test("parse the tag, the section and the page", () => {
-    expect(parseClanPath("/clan/2PQRJ8LV")).toEqual({
-      tag: "#2PQRJ8LV",
+    expect(parseClanPath("/clan/0QC8RCGY")).toEqual({
+      tag: "#0QC8RCGY",
       section: null,
       tab: null,
     });
-    expect(parseClanPath("/clan/2pqrj8lv/members/review")).toEqual({
-      tag: "#2PQRJ8LV",
+    expect(parseClanPath("/clan/0qc8rcgy/members/review")).toEqual({
+      tag: "#0QC8RCGY",
       section: "members",
       tab: "review",
     });
-    expect(parseClanPath("/clan/2PQRJ8LV/war")).toEqual({
-      tag: "#2PQRJ8LV",
+    expect(parseClanPath("/clan/0QC8RCGY/war")).toEqual({
+      tag: "#0QC8RCGY",
       section: "war",
       tab: null,
     });
     // Clan publishes no public pages (Jamie, 2026-09-25).
-    expect(parseClanPath("/clan/2PQRJ8LV/how-elder-works")).toBeNull();
-    expect(parseClanPath("/clan/2PQRJ8LV/nope")).toBeNull();
+    expect(parseClanPath("/clan/0QC8RCGY/how-elder-works")).toBeNull();
+    expect(parseClanPath("/clan/0QC8RCGY/nope")).toBeNull();
   });
 });
 
@@ -171,7 +171,7 @@ describe("standing", () => {
         freshness_seconds: 60,
         rows: [
           {
-            player_tag: "#20QQL8CCRU",
+            player_tag: "#098R2R0PUL",
             name: "Ada",
             role: "member",
             status: "rising",
@@ -182,7 +182,7 @@ describe("standing", () => {
             ],
           },
           {
-            player_tag: "#8QCV",
+            player_tag: "#0RJL",
             name: "Amy",
             role: "elder",
             status: "holding",
@@ -210,7 +210,7 @@ describe("standing", () => {
     renderWithProviders(
       <Standing
         clan={poap}
-        who={{ player_tag: "#20QQL8CCRU", role: "member" }}
+        who={{ player_tag: "#098R2R0PUL", role: "member" }}
       />,
     );
     await waitFor(() => expect(screen.getByText("Amy")).toBeTruthy());
@@ -239,7 +239,7 @@ describe("standing", () => {
     const rule = screen.getByRole("link", {
       name: "Read the rule: Becoming an Elder",
     });
-    expect(rule.getAttribute("href")).toBe("/clan/2PQRJ8LV/policy#rule-elder");
+    expect(rule.getAttribute("href")).toBe("/clan/0QC8RCGY/policy#rule-elder");
     expect(document.getElementById("rule-elder")).toBeTruthy();
     expect(document.querySelector("tr[data-you='true']")).toBeTruthy();
     // A member is not shown the leaders' policy page.
@@ -325,7 +325,7 @@ describe("standing", () => {
         freshness_seconds: 60,
         rows: [],
         you: {
-          player_tag: "#20QQL8CCRU",
+          player_tag: "#098R2R0PUL",
           status: "rising",
           evidence: "Some evidence.",
           war: [],
@@ -340,7 +340,7 @@ describe("standing", () => {
     renderWithProviders(
       <Standing
         clan={poap}
-        who={{ player_tag: "#20QQL8CCRU", role: "member" }}
+        who={{ player_tag: "#098R2R0PUL", role: "member" }}
       />,
     );
     await waitFor(() =>

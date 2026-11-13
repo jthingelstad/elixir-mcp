@@ -14,8 +14,8 @@ before(async () => {
 after(async () => scratch?.drop());
 test("targeted removal reconciliation previews current proof, refuses stale evidence and only appends an audited system withdrawal", async () => {
   const db = scratch.db,
-    clan = "#PYL",
-    tag = "#9QY";
+    clan = "#0C9",
+    tag = "#0GR";
   const ledger = createPostgresLedger(db);
   await db.query("insert into clan(clan_tag) values($1)", [clan]);
   await db.query("insert into player(player_tag) values($1)", [tag]);
@@ -89,13 +89,13 @@ test("targeted removal reconciliation previews current proof, refuses stale evid
 });
 test("action review reconstructs missing history without writing it and stays inside one clan", async () => {
   const ledger = createPostgresLedger(scratch.db);
-  await ledger.putCard("#P0LYQ", {
+  await ledger.putCard("#00UQG", {
     card_id: "c1",
     type: "promote",
     status: "proposed",
     raised_at: "2026-09-01T00:00:00Z",
   });
-  await ledger.putCard("#P2LQ0", {
+  await ledger.putCard("#0LGYR", {
     card_id: "other",
     type: "promote",
     status: "proposed",
@@ -103,7 +103,7 @@ test("action review reconstructs missing history without writing it and stays in
   });
   const result = await clanMaintenance(scratch.url, {
     lane: "actions",
-    clan_tag: "POLYQ",
+    clan_tag: "00UQG",
     limit: 1,
   });
   assert.equal(result.items[0].card.card_id, "c1");
@@ -112,13 +112,13 @@ test("action review reconstructs missing history without writing it and stays in
     true,
   );
   assert.deepEqual(
-    await createPostgresStore(scratch.db).listByPrefix("#P0LYQ", "action_log#"),
+    await createPostgresStore(scratch.db).listByPrefix("#00UQG", "action_log#"),
     [],
   );
   for (const spec of [
     { lane: "model" },
     { lane: "actions", clan_tag: "bad" },
-    { lane: "actions", clan_tag: "#P0LYQ", limit: 101 },
+    { lane: "actions", clan_tag: "#00UQG", limit: 101 },
     // Clan's own feedback lanes retired into the one record (0204).
     { lane: "feedback" },
     { lane: "respond", feedback_id: "f0", status: "done" },
@@ -130,7 +130,7 @@ test("maintenance can traverse complete inventories and reads real grants and mo
   const ledger = createPostgresLedger(scratch.db);
   const store = createPostgresStore(scratch.db);
   for (let n = 0; n < 3; n++)
-    await ledger.putCard("#P0LYQ", {
+    await ledger.putCard("#00UQG", {
       card_id: `paged${n}`,
       type: "promote",
       raised_at: `2026-10-0${n + 1}T00:00:00Z`,
@@ -140,7 +140,7 @@ test("maintenance can traverse complete inventories and reads real grants and mo
   do {
     const page = await clanMaintenance(scratch.url, {
       lane: "actions",
-      clan_tag: "#P0LYQ",
+      clan_tag: "#00UQG",
       limit: 1,
       cursor,
     });
@@ -150,26 +150,26 @@ test("maintenance can traverse complete inventories and reads real grants and mo
   } while (cursor);
   assert.equal(new Set(ids).size, 4);
   await store.put({
-    pk: "award##P0LYQ#135#war##P2LQ0",
-    gsi1pk: "clan##P0LYQ",
-    gsi1sk: "award#135#war#1##P2LQ0",
+    pk: "award##00UQG#135#war##0LGYR",
+    gsi1pk: "clan##00UQG",
+    gsi1sk: "award#135#war#1##0LGYR",
     granted_at: "2026-10-02T00:00:00Z",
   });
   await store.put({
-    pk: "morning##P0LYQ",
+    pk: "morning##00UQG",
     day: "2026-10-02",
     completed: true,
     attempts: 1,
   });
   const grants = await clanMaintenance(scratch.url, {
     lane: "grants",
-    clan_tag: "#P0LYQ",
+    clan_tag: "#00UQG",
   });
   assert.equal(grants.total, 1);
   assert.equal(grants.items[0].granted_at, "2026-10-02T00:00:00Z");
   const morning = await clanMaintenance(scratch.url, {
     lane: "morning",
-    clan_tag: "#P0LYQ",
+    clan_tag: "#00UQG",
   });
   assert.equal(morning.receipt.completed, true);
   assert.equal(morning.receipt.attempts, 1);
@@ -178,7 +178,7 @@ test("maintenance can traverse complete inventories and reads real grants and mo
 test("action summaries stay small with a large legal comment inventory; full logs remain pageable", async () => {
   const store = createPostgresStore(scratch.db);
   for (let c = 0; c < 25; c++) {
-    await createPostgresLedger(scratch.db).putCard("#P2LQ0", {
+    await createPostgresLedger(scratch.db).putCard("#0LGYR", {
       card_id: `large${c}`,
       type: "promote",
       status: "proposed",
@@ -186,8 +186,8 @@ test("action summaries stay small with a large legal comment inventory; full log
     });
     for (let n = 0; n < 200; n++)
       await store.put({
-        pk: `action_log##P2LQ0#large${c}#${n}`,
-        gsi1pk: "clan##P2LQ0",
+        pk: `action_log##0LGYR#large${c}#${n}`,
+        gsi1pk: "clan##0LGYR",
         gsi1sk: `action_log#large${c}#${String(n).padStart(3, "0")}`,
         kind: "comment",
         at: "2026-10-02T00:00:00Z",
@@ -196,14 +196,14 @@ test("action summaries stay small with a large legal comment inventory; full log
   }
   const summary = await clanMaintenance(scratch.url, {
     lane: "actions",
-    clan_tag: "#P2LQ0",
+    clan_tag: "#0LGYR",
     limit: 25,
   });
   assert.ok(Buffer.byteLength(JSON.stringify(summary)) < 200000);
   assert.ok(summary.items.every((i) => i.log_limit === 3));
   const log = await clanMaintenance(scratch.url, {
     lane: "action_log",
-    clan_tag: "#P2LQ0",
+    clan_tag: "#0LGYR",
     card_id: "large0",
     limit: 100,
   });
@@ -214,8 +214,8 @@ test("action summaries stay small with a large legal comment inventory; full log
 
 test("draft_packet builds the exact request a draft would send, in a transaction that cannot write", async () => {
   const db = scratch.db,
-    clan = "#P8QY",
-    tag = "#2YQ8";
+    clan = "#0LRY",
+    tag = "#0GQY";
   const ledger = createPostgresLedger(db);
   await db.query(
     "insert into clan(clan_tag,name) values($1,'Synthetic Crew')",

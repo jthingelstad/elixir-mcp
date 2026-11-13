@@ -71,10 +71,10 @@ test("counts collisions on verified tags by relationship, counts only, and write
     await acct("census-b"),
     await acct("census-c"),
   ];
-  const T1 = "#2PP0V90Y";
-  const T2 = "#8QU2PJ8C";
-  const T3 = "#9VUP08YL"; // verified, nobody else
-  const T4 = "#YQ2PG0LR"; // claimed twice, verified by nobody
+  const T1 = "#09CV8UVL";
+  const T2 = "#0CGVUCUG";
+  const T3 = "#0JVRYLGG"; // verified, nobody else
+  const T4 = "#0GYLLPPG"; // claimed twice, verified by nobody
   for (const t of [T1, T2, T3, T4])
     await db.query(`insert into player (player_tag) values ($1)`, [t]);
   const claim = (acc, tag, status, primary, rel) =>

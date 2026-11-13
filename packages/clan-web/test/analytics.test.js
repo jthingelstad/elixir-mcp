@@ -9,18 +9,18 @@ describe("analytics", () => {
       url: `${o}/clan`,
     });
     expect(analyticsLocation("/clan/", o).path).toBe("/clan");
-    expect(analyticsLocation("/clan/2PQRJ8LV", o)).toEqual({
+    expect(analyticsLocation("/clan/0QC8RCGY", o)).toEqual({
       path: "/clan",
-      url: `${o}/clan?clan=%232PQRJ8LV`,
+      url: `${o}/clan?clan=%230QC8RCGY`,
     });
-    expect(analyticsLocation("/clan/2pqrj8lv/manage/board", o).url).toBe(
-      `${o}/clan/manage/board?clan=%232PQRJ8LV`,
+    expect(analyticsLocation("/clan/0qc8rcgy/manage/board", o).url).toBe(
+      `${o}/clan/manage/board?clan=%230QC8RCGY`,
     );
-    expect(analyticsLocation("/clan/2PQRJ8LV/actions/37", o)).toEqual({
+    expect(analyticsLocation("/clan/0QC8RCGY/actions/37", o)).toEqual({
       path: "/clan/actions/detail",
-      url: `${o}/clan/actions/detail?clan=%232PQRJ8LV&id=37`,
+      url: `${o}/clan/actions/detail?clan=%230QC8RCGY&id=37`,
     });
-    expect(analyticsLocation("/clan/2PQRJ8LV/actions", o).path).toBe(
+    expect(analyticsLocation("/clan/0QC8RCGY/actions", o).path).toBe(
       "/clan/actions",
     );
     expect(analyticsLocation("/clan/feedback/abc123", o)).toEqual({
@@ -48,11 +48,11 @@ describe("analytics", () => {
   });
 
   test("route labels mask tags and ids under /api/clan", () => {
-    expect(routeLabel("GET", "/api/clan/clans/2PQRJ8LV/manage?refresh=1")).toBe(
+    expect(routeLabel("GET", "/api/clan/clans/0QC8RCGY/manage?refresh=1")).toBe(
       "GET /api/clan/clans/*/manage",
     );
     expect(
-      routeLabel("POST", "/api/clan/clans/2PQRJ8LV/actions/abc/decide"),
+      routeLabel("POST", "/api/clan/clans/0QC8RCGY/actions/abc/decide"),
     ).toBe("POST /api/clan/clans/*/actions/*/decide");
     expect(routeLabel("GET", "/api/clan/feedback/abc")).toBe(
       "GET /api/clan/feedback/*",
@@ -60,7 +60,7 @@ describe("analytics", () => {
     expect(routeLabel("POST", "/api/clan/maintain/feedback/abc")).toBe(
       "POST /api/clan/maintain/feedback/*",
     );
-    expect(routeLabel("GET", "/api/clan/roster?clan=%232PQRJ8LV")).toBe(
+    expect(routeLabel("GET", "/api/clan/roster?clan=%230QC8RCGY")).toBe(
       "GET /api/clan/roster",
     );
   });

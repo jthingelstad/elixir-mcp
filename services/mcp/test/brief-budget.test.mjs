@@ -151,12 +151,12 @@ test("a heavy identity is counted, a light one named", async () => {
     },
     clans: [
       { clan_tag: "#J2RGCRVG", name: "POAP KINGS" },
-      { clan_tag: "#GCYQR9VY", name: "Ship It!" },
+      { clan_tag: "#0GJJ9QJL", name: "Moon Ox!" },
     ],
     primaryClan: { clan_tag: "#J2RGCRVG", name: "POAP KINGS", recorded: true },
   });
   assert.match(light, /Also you, under another tag: Rapid Clear #08Q80C99R/);
-  assert.match(light, /You also follow Ship It! #GCYQR9VY/);
+  assert.match(light, /You also follow Moon Ox! #0GJJ9QJL/);
   assert.ok(light.length <= INSTRUCTIONS_BUDGET);
 });
 

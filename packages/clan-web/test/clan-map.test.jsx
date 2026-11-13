@@ -38,7 +38,7 @@ afterEach(() => {
   drawn.splice(0);
 });
 
-const clan = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "member" };
+const clan = { clan_tag: "#0QC8RCGY", name: "Example Clan", role: "member" };
 const austin = {
   country: "US",
   country_name: "United States",
@@ -52,7 +52,7 @@ const austin = {
   tz: "America/Chicago",
 };
 const mapBody = (entries) => ({
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   members: 12,
   on_map: entries.length,
   entries,
@@ -68,7 +68,7 @@ describe("clan map", () => {
       status: 200,
       data: mapBody([
         {
-          player_tag: "#8QCV",
+          player_tag: "#0RJL",
           name: "Ben",
           role: "member",
           role_label: "Member",

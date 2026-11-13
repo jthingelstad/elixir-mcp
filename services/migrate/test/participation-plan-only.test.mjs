@@ -73,7 +73,7 @@ test("plan-only diagnoses the canonical query without executing its aggregate or
   const result = await participationPlan(
     "unused",
     {
-      clan_tag: "#2PQRJ8LV",
+      clan_tag: "#0QC8RCGY",
       weeks: 8,
       queries: ["battles_by_week"],
     },
@@ -107,7 +107,7 @@ test("plan-only binds former-member plans through the canonical membership reads
   await participationPlan(
     "unused",
     {
-      clan_tag: "#2PQRJ8LV",
+      clan_tag: "#0QC8RCGY",
       queries: ["battles_by_week", "former_battles_by_week"],
     },
     db,
@@ -134,7 +134,7 @@ test("plan-only refuses broad or unknown requests before opening a connection", 
       (
         await participationPlan(
           "unused",
-          { clan_tag: "#2PQRJ8LV", ...spec },
+          { clan_tag: "#0QC8RCGY", ...spec },
           db,
         )
       ).error,
@@ -151,7 +151,7 @@ test("plan-only closes its read-only connection when planning fails", async () =
     return original(sql, values);
   };
   await assert.rejects(
-    participationPlan("unused", { clan_tag: "#2PQRJ8LV" }, db),
+    participationPlan("unused", { clan_tag: "#0QC8RCGY" }, db),
     /bounded planning timeout/,
   );
   assert.ok(db.ended);
@@ -163,7 +163,7 @@ test("plan-only closes a connection that fails to initialize", async () => {
     throw new Error("connection timeout");
   };
   await assert.rejects(
-    participationPlan("unused", { clan_tag: "#2PQRJ8LV" }, db),
+    participationPlan("unused", { clan_tag: "#0QC8RCGY" }, db),
     /connection timeout/,
   );
   assert.ok(db.ended);

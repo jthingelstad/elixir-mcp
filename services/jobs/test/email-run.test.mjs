@@ -21,9 +21,9 @@ const ADMIN_URL =
 const NAME = `elixir_mcp_test_email_run_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
-const CLAN = "#2PQRJ8LV";
-const OLD_TAG = "#20QQL8CC";
-const NEW_TAG = "#8QQ8QQ8Q";
+const CLAN = "#0QC8RCGY";
+const OLD_TAG = "#0LCLRCPQ";
+const NEW_TAG = "#0J8CVLL8";
 
 let db;
 const acct = {};
@@ -223,7 +223,7 @@ test("Monday's digest names you on your player page", async () => {
   const digest = await send("tracking_report", "2026-10-05T11:00:00Z");
   // Every name opens the player page, the reader's own included (#764);
   // Ladder is reachable from there, so the digest carries no season.
-  assert.match(digest.html, /\/home\/player\/20QQL8CC\?/);
+  assert.match(digest.html, /\/home\/player\/0LCLRCPQ\?/);
   assert.doesNotMatch(digest.html, /\/ladder\?player=/);
 });
 

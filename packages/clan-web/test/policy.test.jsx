@@ -30,7 +30,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const clan = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "leader" };
+const clan = { clan_tag: "#0QC8RCGY", name: "Example Clan", role: "leader" };
 const view = {
   can_edit: true,
   set: false,
@@ -147,7 +147,7 @@ describe("policy: separated sections under Run", () => {
           band: null,
           members: [
             {
-              player_tag: "#8QCV",
+              player_tag: "#0RJL",
               name: "Unread",
               promotion: "none",
               demotion: "none",
@@ -157,7 +157,7 @@ describe("policy: separated sections under Run", () => {
               actionable: { removal: false },
             },
             {
-              player_tag: "#9QCV",
+              player_tag: "#0VG9",
               name: "Idle",
               promotion: "none",
               demotion: "none",

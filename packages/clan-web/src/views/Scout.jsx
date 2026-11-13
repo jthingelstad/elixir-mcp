@@ -34,7 +34,7 @@ export function Scout({ clan }) {
       return setState({
         error:
           r.data?.code === "invalid_tag"
-            ? "That is not a player tag. Tags look like #2PQ8VRJ9."
+            ? "That is not a player tag. Tags look like #0G8P8JJU."
             : (r.data?.error ?? "Elixir did not answer."),
       });
     setState({ result: r.data });

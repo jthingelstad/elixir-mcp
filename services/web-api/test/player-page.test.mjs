@@ -14,14 +14,14 @@ import { makeHandler } from "../src/handler.mjs";
 import { followAllRefusal, followPlan, tagsOf } from "../src/routes/player.mjs";
 
 // Made-up tags: this repository is public.
-const A = "#PQ2Y8LV0"; // verified by X
-const B = "#PQ2Y8LV2"; // X follows
-const D = "#PQ2Y8LV8"; // Y's own, verified
-const E = "#PQ2Y8LVC"; // the reader's own
-const U = "#PQ2Y8LVG"; // nobody's
-const N1 = "#PQ2Y8LVJ";
-const N2 = "#PQ2Y8LVL";
-const CLAN = "#PQ2Y8LVR";
+const A = "#0JR2U89V"; // verified by X
+const B = "#0PYP8RQ2"; // X follows
+const D = "#0YLPUQU8"; // Y's own, verified
+const E = "#0UCCGLUQ"; // the reader's own
+const U = "#0RPYVQ9R"; // nobody's
+const N1 = "#0C8VR2CG";
+const N2 = "#0C2P8LJR";
+const CLAN = "#0L8P9LLJ";
 const NICK = "Pet Name Nobody Else Sees";
 const DISCORD = "secret_discord_handle";
 
@@ -128,9 +128,9 @@ before(async () => {
 after(async () => scratch?.drop());
 
 test("tagsOf: a Follow me link's tags, normalized, once each, or nothing", () => {
-  assert.deepEqual(tagsOf("pq2y8lv0, #PQ2Y8LV2,PQ2Y8LV0"), [A, B]);
+  assert.deepEqual(tagsOf("0jr2u89v, #0PYP8RQ2,0JR2U89V"), [A, B]);
   assert.equal(tagsOf(""), null);
-  assert.equal(tagsOf("PQ2Y8LV0,not a tag"), null, "never part of a link");
+  assert.equal(tagsOf("0JR2U89V,not a tag"), null, "never part of a link");
 });
 
 test("every route wants a signed-in person", async () => {
@@ -207,7 +207,7 @@ test("the reader's own player says so; a followed one says so", async () => {
 
 test("a bad tag is a 400 and an unrecorded one a 404 that says so", async () => {
   assert.equal((await call(R, "GET", "/api/player?tag=nope")).statusCode, 400);
-  const missing = await call(R, "GET", "/api/player?tag=%2389PQ2Y8L");
+  const missing = await call(R, "GET", "/api/player?tag=%230Q020PQR");
   assert.equal(missing.statusCode, 404);
   assert.equal(data(missing).message, "Elixir has not recorded that player.");
 });
@@ -241,7 +241,7 @@ test("the plan route names a clan's members, and a bad tag is a 400", async () =
     data(r)
       .players.map((p) => p.player_tag)
       .sort(),
-    [A, N1, N2],
+    [A, N1, N2].sort(),
   );
   assert.equal(
     (await call(R, "GET", "/api/me/follow-plan?player_tags=zz")).statusCode,
@@ -314,9 +314,9 @@ test("the refusal's words count what is left", () => {
 
 // A second reader, W, whose pool records two players W does not follow: one
 // W only watches, one only W's agent tracks (Codex on #784).
-const W_OWN = "#PQ2Y8LVU";
-const WATCHED = "#PQ2Y8LVY";
-const AGENTS = "#PQ2Y8LVQ";
+const W_OWN = "#00YQ9Q90";
+const WATCHED = "#0U9RGV8R";
+const AGENTS = "#0GJLGVVR";
 let W;
 async function secondReader() {
   if (W) return W;

@@ -98,8 +98,8 @@ const RECORD = [
   "GET /h/*",
 ];
 
-const PRIMARY = "#9QJ2YLR0";
-const ALT = "#8GRUV2Q0";
+const PRIMARY = "#0RYQQRGY";
+const ALT = "#0LYL9009";
 
 const call = async (method, p, { body } = {}) => {
   const res = await handler({

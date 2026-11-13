@@ -49,7 +49,7 @@ const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 
 // The fixture's own player (fixtures/player_battlelog), in an invented clan.
 const PLAYER = "#0QRVVG22J";
-const CLAN = "#2PQ8VCJ0";
+const CLAN = "#0UGC99RG";
 const CLAN_NAME = "Invented Crowns";
 const CHANNEL = "6f1d3c2a-4b5e-4f60-8a71-92b3c4d5e6f7";
 const HOOK = `https://discord.com/api/webhooks/123456789012345678/${"w".repeat(68)}`;

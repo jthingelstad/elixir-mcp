@@ -72,12 +72,12 @@ test("settles what suspended agents held open, and only that", async () => {
   // While active: a player only it tracks, a player its owner shares, and
   // a clan it tracks.
   await addPlayer(db, { accountId: agent }, { tag: "#00C298UC", via: "test" });
-  await addPlayer(db, { accountId: agent }, { tag: "#PYLQGRJC", via: "test" });
-  await addPlayer(db, { accountId: owner }, { tag: "#PYLQGRJC", via: "test" });
+  await addPlayer(db, { accountId: agent }, { tag: "#0J0RVYRR", via: "test" });
+  await addPlayer(db, { accountId: owner }, { tag: "#0J0RVYRR", via: "test" });
   const clan = await addClan(
     db,
     { accountId: agent },
-    { tag: "#9VUP08YL", scope: "activity", via: "test" },
+    { tag: "#0JVRYLGG", scope: "activity", via: "test" },
   );
   assert.equal(clan.ok, true, JSON.stringify(clan));
   // Suspended the old way, before the rule: nothing settled.
@@ -90,7 +90,7 @@ test("settles what suspended agents held open, and only that", async () => {
   assert.equal(dry.subjects, 3);
   assert.deepEqual(dry.would_stop, [
     { kind: "player", tag: "#00C298UC" },
-    { kind: "clan", tag: "#9VUP08YL" },
+    { kind: "clan", tag: "#0JVRYLGG" },
   ]);
   assert.equal(await active("#00C298UC"), 1, "a dry run writes nothing");
 
@@ -99,8 +99,8 @@ test("settles what suspended agents held open, and only that", async () => {
   const run = await agentRecordingsOp(SCRATCH_URL, { dry_run: false });
   assert.equal(run.stopped.length, 2);
   assert.equal(await active("#00C298UC"), 0);
-  assert.equal(await active("#9VUP08YL"), 0);
-  assert.equal(await active("#PYLQGRJC"), 1, "the owner still wants it");
+  assert.equal(await active("#0JVRYLGG"), 0);
+  assert.equal(await active("#0J0RVYRR"), 1, "the owner still wants it");
 
   const again = await agentRecordingsOp(SCRATCH_URL, { dry_run: false });
   assert.deepEqual(again.stopped, []);

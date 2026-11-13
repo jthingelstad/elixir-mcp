@@ -111,7 +111,7 @@ test("the full journey: sign up -> prove the address -> claim -> record", async 
   const signup = await handler(
     event({
       path: "/api/auth",
-      body: { age_13: true, email: NEWCOMER, player_tag: "2ppOv90y" },
+      body: { age_13: true, email: NEWCOMER, player_tag: "09CV8UVL" },
     }),
   );
   assert.equal(parse(signup).ok, true);
@@ -150,7 +150,7 @@ test("the full journey: sign up -> prove the address -> claim -> record", async 
   assert.equal(me.authenticated, true);
   assert.equal(me.is_owner, false);
   assert.equal(me.claims.length, 1, "the signup's player is already claimed");
-  assert.equal(me.claims[0].player_tag, "#2PP0V90Y");
+  assert.equal(me.claims[0].player_tag, "#09CV8UVL");
   assert.equal(me.claims[0].is_primary, true);
   assert.equal(me.recordings.length, 1);
   assert.equal(me.recordings[0].status, "active");
@@ -158,7 +158,7 @@ test("the full journey: sign up -> prove the address -> claim -> record", async 
   // Added = recorded: claiming a SECOND player still starts capture.
   await db.query(`update budget_state set tokens = 5`);
   const claim = await handler(
-    event({ path: "/api/claims", cookie, body: { player_tag: "#2GLQRLC" } }),
+    event({ path: "/api/claims", cookie, body: { player_tag: "#0RGLUUV" } }),
   );
   assert.equal(parse(claim).ok, true);
   assert.equal(parse(claim).recording_started, true);
@@ -170,7 +170,7 @@ test("the full journey: sign up -> prove the address -> claim -> record", async 
   const liveJobs = async () =>
     (
       await db.query(
-        `select endpoint, lane from job where entity_key = '#2GLQRLC' order by job_id`,
+        `select endpoint, lane from job where entity_key = '#0RGLUUV' order by job_id`,
       )
     ).rows;
   assert.deepEqual(await liveJobs(), [
@@ -179,13 +179,13 @@ test("the full journey: sign up -> prove the address -> claim -> record", async 
   ]);
   const { rows: started } = await db.query(
     `select count(*)::int as n from account_event
-      where kind = 'recording_started' and detail->>'player_tag' = '#2GLQRLC'`,
+      where kind = 'recording_started' and detail->>'player_tag' = '#0RGLUUV'`,
   );
   assert.equal(started[0].n, 1);
   // Adding it again asks for nothing more: the job is open.
   const again = parse(
     await handler(
-      event({ path: "/api/claims", cookie, body: { player_tag: "#2GLQRLC" } }),
+      event({ path: "/api/claims", cookie, body: { player_tag: "#0RGLUUV" } }),
     ),
   );
   assert.equal(again.first_read, false);
@@ -313,11 +313,11 @@ test("seed: a recorded clan the newcomer belongs to", async () => {
     [CLAN, owner.account_id],
   );
   await db.query(
-    `insert into player (player_tag, name) values ('#YYYYY', 'Rascal') on conflict do nothing`,
+    `insert into player (player_tag, name) values ('#0GJU2', 'Rascal') on conflict do nothing`,
   );
   await db.query(
     `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
-     values ($1, '#2PP0V90Y', now(), 'member'), ($1, '#YYYYY', now(), 'leader')`,
+     values ($1, '#09CV8UVL', now(), 'member'), ($1, '#0GJU2', now(), 'leader')`,
     [CLAN],
   );
   await db.query(
@@ -326,7 +326,7 @@ test("seed: a recorded clan the newcomer belongs to", async () => {
   );
   await db.query(
     `insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag, participant_name, fame, rank)
-     values ($1, 135, 3, $1, 'POAP KINGS', 5050, 2), ($1, 135, 3, '#YRLQ', 'Rivals', 6000, 1)`,
+     values ($1, 135, 3, $1, 'POAP KINGS', 5050, 2), ($1, 135, 3, '#00P8', 'Rivals', 6000, 1)`,
     [CLAN],
   );
 });
@@ -615,7 +615,7 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
       }),
     ),
   );
-  const row = fleet.accounts.find((a) => a.primary_tag === "#2PP0V90Y");
+  const row = fleet.accounts.find((a) => a.primary_tag === "#09CV8UVL");
   assert.ok(
     Object.hasOwn(row, "primary_name"),
     "the label can name the player",
@@ -947,7 +947,7 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
       }),
       queryStringParameters: { player_tag: tag },
     });
-  const before = parse(await cost("#PLC220"));
+  const before = parse(await cost("#0QV2CV"));
   assert.deepEqual(
     {
       free: before.free,
@@ -963,9 +963,9 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
   assert.equal(count.player_tag, null);
   assert.equal(count.free, null);
   assert.equal(count.used, 1);
-  assert.equal((await cost("#PLC220", null)).statusCode, 401);
+  assert.equal((await cost("#0QV2CV", null)).statusCode, 401);
   const refused = await handler(
-    event({ path: "/api/claims", cookie, body: { player_tag: "#PLC220" } }),
+    event({ path: "/api/claims", cookie, body: { player_tag: "#0QV2CV" } }),
   );
   assert.equal(refused.statusCode, 429);
   const no = parse(refused);
@@ -975,14 +975,14 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
   assert.equal(no.limit, 1);
   // A member of a clan recorded in full (the seeded one) is free, even at
   // the limit, and the add says so.
-  const freeCost = parse(await cost("#YYYYY"));
+  const freeCost = parse(await cost("#0GJU2"));
   assert.equal(freeCost.free, true);
   assert.equal(freeCost.reason, "in_recorded_clan");
   const added = await handler(
     event({
       path: "/api/claims",
       cookie,
-      body: { player_tag: "#YYYYY", relationship: "friend" },
+      body: { player_tag: "#0GJU2", relationship: "friend" },
     }),
   );
   assert.equal(added.statusCode, 200);
@@ -998,7 +998,7 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
       event({ method: "GET", path: "/api/me", cookie, body: undefined }),
     ),
   );
-  const row = mine.claims.find((c) => c.player_tag === "#YYYYY");
+  const row = mine.claims.find((c) => c.player_tag === "#0GJU2");
   assert.equal(row.slot, "free");
   assert.equal(row.slot_reason, "in_recorded_clan");
   assert.ok(mine.claims.some((c) => c.slot === "used"));
@@ -1010,7 +1010,7 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
     event({
       path: "/api/claims",
       cookie,
-      body: { player_tag: "#YYYYY", action: "remove" },
+      body: { player_tag: "#0GJU2", action: "remove" },
     }),
   );
   assert.equal(gone.statusCode, 200);
@@ -1064,7 +1064,7 @@ test("explorer bridge: registry tools with session auth, audited as surface web"
       event({
         path: "/api/explore",
         cookie,
-        body: { tool: "battles_query", args: { player_tag: "#PYGRJC" } },
+        body: { tool: "battles_query", args: { player_tag: "#0892G9" } },
       }),
     ),
   );
@@ -1095,9 +1095,9 @@ test("Stats opens for your own players and the players you follow, and refuses t
   } = await db.query(`select account_id from account where email_hash = $1`, [
     emailHash(NEWCOMER),
   ]);
-  const FOLLOWED = "#2Y0QV8C";
-  const WATCHED = "#8LGPRJQ";
-  const STRANGER = "#9CJUVRL";
+  const FOLLOWED = "#0LGRJVJ";
+  const WATCHED = "#08Y00JG";
+  const STRANGER = "#0QGQVC0";
   for (const tag of [FOLLOWED, WATCHED, STRANGER])
     await db.query(
       `insert into player (player_tag) values ($1) on conflict do nothing`,
@@ -1232,7 +1232,7 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
   assert.ok(list.feedback.every((f) => f.surface === "web"));
   // The MCP-surface path (elixir_send_feedback at the MCP door) is covered in
   // packages/tools/test/tools2 "feedback loop closes".
-  assert.equal(list.feedback[0].from_player, "#2PP0V90Y");
+  assert.equal(list.feedback[0].from_player, "#09CV8UVL");
 
   const triage = await handler(
     event({
@@ -1265,7 +1265,7 @@ test("0204: one feedback system: a page files with area and refs, the queue filt
             nested: { x: 1 },
           },
           refs: [
-            { kind: "player", ref: "2pp0v90y" },
+            { kind: "player", ref: "09cv8uvl" },
             { kind: "call", ref: "44444444-4444-4444-8444-444444444444" },
           ],
         },
@@ -1274,7 +1274,7 @@ test("0204: one feedback system: a page files with area and refs, the queue filt
   );
   assert.equal(filed.ok, true, JSON.stringify(filed));
   assert.equal(filed.area, "ladder");
-  assert.deepEqual(filed.refs, [{ kind: "player", ref: "#2PP0V90Y" }]);
+  assert.deepEqual(filed.refs, [{ kind: "player", ref: "#09CV8UVL" }]);
   assert.equal(filed.dropped[0].reason, "not_yours", "a call not theirs");
   const { rows } = await db.query(
     `select surface, area, context from feedback where feedback_id = $1`,
@@ -1318,8 +1318,8 @@ test("0204: one feedback system: a page files with area and refs, the queue filt
   const item = parse(
     await get(`/api/admin/feedback/${filed.feedback_id}`, bossCookie),
   ).feedback;
-  assert.equal(item.from_player, "#2PP0V90Y");
-  assert.deepEqual(item.refs, [{ kind: "player", ref: "#2PP0V90Y" }]);
+  assert.equal(item.from_player, "#09CV8UVL");
+  assert.deepEqual(item.refs, [{ kind: "player", ref: "#09CV8UVL" }]);
 
   // A compare-and-set against a stale read is refused, never a silent
   // overwrite of someone else's answer.
@@ -1893,17 +1893,17 @@ test("clans: added = recorded within slots; notify is the toggle; remove settles
     event({
       path: "/api/me/clans",
       cookie,
-      body: { clan_tag: "gq0ylcyj", action: "add", scope: "activity" },
+      body: { clan_tag: "0c2ljuvu", action: "add", scope: "activity" },
     }),
   );
-  assert.equal(parse(add).clan_tag, "#GQ0YLCYJ", "normalized at the door");
+  assert.equal(parse(add).clan_tag, "#0C2LJUVU", "normalized at the door");
   assert.equal(parse(add).scope, "activity");
   const list = parse(
     await handler(
       event({ method: "GET", path: "/api/me/clans", cookie, body: undefined }),
     ),
   );
-  const row = list.clans.find((c) => c.clan_tag === "#GQ0YLCYJ");
+  const row = list.clans.find((c) => c.clan_tag === "#0C2LJUVU");
   assert.equal(row.recording_status, "active");
   assert.equal(row.notify, true);
 
@@ -1920,7 +1920,7 @@ test("clans: added = recorded within slots; notify is the toggle; remove settles
     event({
       path: "/api/me/clans",
       cookie: memberCookie2,
-      body: { clan_tag: "#2PPC220", action: "add", scope: "comprehensive" },
+      body: { clan_tag: "#02VLV0R", action: "add", scope: "comprehensive" },
     }),
   );
   assert.equal(refused.statusCode, 429);
@@ -1934,7 +1934,7 @@ test("clans: added = recorded within slots; notify is the toggle; remove settles
     event({
       path: "/api/me/clans",
       cookie,
-      body: { clan_tag: "#GQ0YLCYJ", action: "notify_off" },
+      body: { clan_tag: "#0C2LJUVU", action: "notify_off" },
     }),
   );
   assert.equal(parse(mute).notify, false);
@@ -1942,7 +1942,7 @@ test("clans: added = recorded within slots; notify is the toggle; remove settles
     event({
       path: "/api/me/clans",
       cookie,
-      body: { clan_tag: "#GQ0YLCYJ", action: "remove" },
+      body: { clan_tag: "#0C2LJUVU", action: "remove" },
     }),
   );
   assert.equal(parse(removed).removed, true);
@@ -1952,7 +1952,7 @@ test("clans: added = recorded within slots; notify is the toggle; remove settles
       event({ method: "GET", path: "/api/me/clans", cookie, body: undefined }),
     ),
   );
-  assert.ok(!after.clans.some((c) => c.clan_tag === "#GQ0YLCYJ"));
+  assert.ok(!after.clans.some((c) => c.clan_tag === "#0C2LJUVU"));
 
   // The admin clan surface stays GONE - purely a user function.
   const gone = await handler(
@@ -2712,7 +2712,7 @@ test("a claim's relationship can be set, and primary is not one of them", async 
     event({
       path: "/api/claims",
       cookie,
-      body: { player_tag: "#9U82PLQ", make_primary: true },
+      body: { player_tag: "#0UGYRLY", make_primary: true },
     }),
   );
 
@@ -2757,7 +2757,7 @@ test("a claim's relationship can be set, and primary is not one of them", async 
       cookie,
       body: {
         action: "relationship",
-        player_tag: "#9U82PLQ",
+        player_tag: "#0UGYRLY",
         relationship: "friend",
       },
     }),
@@ -2958,7 +2958,7 @@ test("the explorer takes the hourly bucket but no daily quota, and is read-only"
   for (const w of ["elixir_follow_player", "elixir_follow_clan"])
     assert.equal((await call(w)).statusCode, 400, w);
   assert.equal(
-    (await call("elixir_nickname", { player_tag: "#PYGRJC" })).statusCode,
+    (await call("elixir_nickname", { player_tag: "#0892G9" })).statusCode,
     200,
   );
 

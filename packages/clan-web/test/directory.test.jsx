@@ -16,7 +16,7 @@ afterEach(cleanup);
 
 // Invented clans. The order is the server's: by name, then tag.
 const tile = (over = {}) => ({
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Alpha Example",
   type: "open",
   description: "Friendly, war on weekends.",
@@ -37,7 +37,7 @@ const tile = (over = {}) => ({
 const CLANS = [
   tile(),
   tile({
-    clan_tag: "#PYLQ2",
+    clan_tag: "#0Y2V2",
     name: "Beta Example",
     members: 50,
     required_trophies: 3000,
@@ -51,7 +51,7 @@ const CLANS = [
     },
   }),
   tile({
-    clan_tag: "#8QCV",
+    clan_tag: "#0RJL",
     name: "gamma Example",
     type: "inviteOnly",
     description: "Every week counts.",
@@ -67,42 +67,42 @@ const f = (over) => ({ ...NO_FILTERS, ...over });
 describe("the filters", () => {
   test("no filter keeps every clan, in the server's order", () => {
     expect(tags(visible(CLANS, NO_FILTERS))).toEqual([
-      "#2PQRJ8LV",
-      "#PYLQ2",
-      "#8QCV",
+      "#0QC8RCGY",
+      "#0Y2V2",
+      "#0RJL",
     ]);
   });
   test("search reads name, tag and description, any case", () => {
-    expect(tags(visible(CLANS, f({ q: "BETA" })))).toEqual(["#PYLQ2"]);
-    expect(tags(visible(CLANS, f({ q: "#8qcv" })))).toEqual(["#8QCV"]);
-    expect(tags(visible(CLANS, f({ q: "weekends" })))).toEqual(["#2PQRJ8LV"]);
+    expect(tags(visible(CLANS, f({ q: "BETA" })))).toEqual(["#0Y2V2"]);
+    expect(tags(visible(CLANS, f({ q: "#0rjl" })))).toEqual(["#0RJL"]);
+    expect(tags(visible(CLANS, f({ q: "weekends" })))).toEqual(["#0QC8RCGY"]);
   });
   test("Clan Wars and how strict are the policy's own words", () => {
     expect(tags(visible(CLANS, f({ war: "participating" })))).toEqual([
-      "#2PQRJ8LV",
+      "#0QC8RCGY",
     ]);
     // Not said is neither yes nor no.
     expect(tags(visible(CLANS, f({ war: "not_participating" })))).toEqual([
-      "#PYLQ2",
+      "#0Y2V2",
     ]);
-    expect(tags(visible(CLANS, f({ posture: "strict" })))).toEqual(["#8QCV"]);
+    expect(tags(visible(CLANS, f({ posture: "strict" })))).toEqual(["#0RJL"]);
   });
   test("removal: no rule, or a day at least that far", () => {
-    expect(tags(visible(CLANS, f({ removal: "none" })))).toEqual(["#PYLQ2"]);
+    expect(tags(visible(CLANS, f({ removal: "none" })))).toEqual(["#0Y2V2"]);
     expect(tags(visible(CLANS, f({ removal: "14" })))).toEqual([
-      "#2PQRJ8LV",
-      "#8QCV",
+      "#0QC8RCGY",
+      "#0RJL",
     ]);
-    expect(tags(visible(CLANS, f({ removal: "30" })))).toEqual(["#8QCV"]);
+    expect(tags(visible(CLANS, f({ removal: "30" })))).toEqual(["#0RJL"]);
   });
   test("room needs a recorded size under fifty", () => {
-    expect(tags(visible(CLANS, f({ room: "room" })))).toEqual(["#2PQRJ8LV"]);
+    expect(tags(visible(CLANS, f({ room: "room" })))).toEqual(["#0QC8RCGY"]);
   });
   test("your trophies keep the clans you can join; unknown is not a yes", () => {
-    expect(tags(visible(CLANS, f({ trophies: "4000" })))).toEqual(["#PYLQ2"]);
+    expect(tags(visible(CLANS, f({ trophies: "4000" })))).toEqual(["#0Y2V2"]);
     expect(tags(visible(CLANS, f({ trophies: "9000" })))).toEqual([
-      "#2PQRJ8LV",
-      "#PYLQ2",
+      "#0QC8RCGY",
+      "#0Y2V2",
     ]);
     // A field that says nothing filters nothing.
     expect(fits(CLANS[2], f({ trophies: "" }))).toBe(true);
@@ -111,12 +111,12 @@ describe("the filters", () => {
 
 describe("a tile", () => {
   test("your clan opens in Clan; any other has no page, so no link", () => {
-    expect(tileHref(CLANS[2])).toBe("/clan/8QCV");
+    expect(tileHref(CLANS[2])).toBe("/clan/0RJL");
     expect(tileHref(CLANS[0])).toBe(null);
   });
   test("the crest is the name's letters, else the tag's", () => {
     expect(crestOf(CLANS[0])).toBe("AE");
-    expect(crestOf({ clan_tag: "#PYLQ2", name: null })).toBe("PY");
+    expect(crestOf({ clan_tag: "#0Y2V2", name: null })).toBe("0Y");
   });
   test("directory is the app's page, never a clan tag", () => {
     expect(isClanSegment("directory")).toBe(false);
@@ -149,7 +149,7 @@ describe("the page", () => {
     expect(screen.getByText("Invite only", { selector: "dd" })).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "gamma Example" }).getAttribute("href"),
-    ).toBe("/clan/8QCV");
+    ).toBe("/clan/0RJL");
   });
   test("a filter counts what fits, and an empty fit clears", () => {
     render(<Directory state={ready} />);
@@ -166,8 +166,8 @@ describe("the page", () => {
     expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(3);
   });
   test("a clan's address opens it searched for, and its name links nowhere", () => {
-    render(<Directory state={ready} query="PYLQ2" />);
-    expect(screen.getByLabelText("Search").value).toBe("PYLQ2");
+    render(<Directory state={ready} query="0Y2V2" />);
+    expect(screen.getByLabelText("Search").value).toBe("0Y2V2");
     expect(
       screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent),
     ).toEqual(["Beta Example"]);

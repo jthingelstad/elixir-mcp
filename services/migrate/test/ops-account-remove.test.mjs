@@ -87,31 +87,31 @@ before(async () => {
 
   // The game record: two players and a clan, recorded.
   await db.query(
-    `insert into player (player_tag) values ('#2PP0V9PP'), ('#2PP0V9QQ')`,
+    `insert into player (player_tag) values ('#0VQRR8U0'), ('#0RY8UJUL')`,
   );
   await db.query(
-    `insert into clan (clan_tag) values ('#2PP0V9UU'), ('#2PP0V9YY')`,
+    `insert into clan (clan_tag) values ('#0CP08QUC'), ('#028RJP2U')`,
   );
-  // #2PP0V9PP only the leaver claims; #2PP0V9QQ the other person claims too.
+  // #0VQRR8U0 only the leaver claims; #0RY8UJUL the other person claims too.
   await db.query(
     `insert into claim (account_id, player_tag, is_primary, relationship)
-     values ($1, '#2PP0V9PP', true, 'primary'), ($1, '#2PP0V9QQ', false, 'friend'),
-            ($2, '#2PP0V9QQ', true, 'primary')`,
+     values ($1, '#0VQRR8U0', true, 'primary'), ($1, '#0RY8UJUL', false, 'friend'),
+            ($2, '#0RY8UJUL', true, 'primary')`,
     [ids.person, ids.other],
   );
   await db.query(
     `insert into account_clan (account_id, clan_tag, is_primary)
-     values ($1, '#2PP0V9UU', false), ($2, '#2PP0V9YY', true), ($3, '#2PP0V9YY', false)`,
+     values ($1, '#0CP08QUC', false), ($2, '#028RJP2U', true), ($3, '#028RJP2U', false)`,
     [ids.person, ids.agent, ids.other],
   );
   await db.query(
-    `insert into account_clan_declined (account_id, clan_tag) values ($1, '#2PP0V9RR')`,
+    `insert into account_clan_declined (account_id, clan_tag) values ($1, '#0YP8L80P')`,
     [ids.person],
   );
   await db.query(
     `insert into recording (subject_type, subject_tag, requested_by, origin)
-     values ('player', '#2PP0V9PP', $1, 'claim'), ('player', '#2PP0V9QQ', $1, 'claim'),
-            ('clan', '#2PP0V9UU', $1, 'claim'), ('clan', '#2PP0V9YY', $2, 'claim')`,
+     values ('player', '#0VQRR8U0', $1, 'claim'), ('player', '#0RY8UJUL', $1, 'claim'),
+            ('clan', '#0CP08QUC', $1, 'claim'), ('clan', '#028RJP2U', $2, 'claim')`,
     [ids.person, ids.other],
   );
   // Credentials: the agent's key and the person's OAuth grant.
@@ -185,7 +185,7 @@ before(async () => {
   );
   await db.query(
     `insert into player_nickname (account_id, player_tag, nickname)
-     values ($1, '#2PP0V9QQ', 'buddy')`,
+     values ($1, '#0RY8UJUL', 'buddy')`,
     [ids.person],
   );
   // A highlight the person posted, and its share link (0239, #762).
@@ -195,11 +195,11 @@ before(async () => {
   );
   await db.query(
     `insert into battle_participant (battle_id, player_tag, battle_time, side, type, type_class, outcome)
-     values ('remove-highlight', '#2PP0V9PP', now(), 0, 'PvP', 'pvp', 'win')`,
+     values ('remove-highlight', '#0VQRR8U0', now(), 0, 'PvP', 'pvp', 'win')`,
   );
   await db.query(
     `insert into battle_highlight (player_tag, battle_id, account_id, words, share_id, shared_at)
-     values ('#2PP0V9PP', 'remove-highlight', $1, 'gg', 'abcdefghij23456', now())`,
+     values ('#0VQRR8U0', 'remove-highlight', $1, 'gg', 'abcdefghij23456', now())`,
     [ids.person],
   );
   // A cheer they gave and their RSS link (0243, #765).
@@ -251,7 +251,7 @@ before(async () => {
   await db.query(
     `insert into attested_fact (subject_kind, clan_tag, fact_type, detail, visibility,
                                 source, source_ref, attester_account_id, attester_tag, occurred_at)
-     values ('clan', '#2PP0V9UU', 'clan_message', '{}', 'clan', 'clan', 'r1', $1, '#2PP0V9PP', now())`,
+     values ('clan', '#0CP08QUC', 'clan_message', '{}', 'clan', 'clan', 'r1', $1, '#0VQRR8U0', now())`,
     [ids.person],
   );
   await db.query(
@@ -264,7 +264,7 @@ before(async () => {
   // counters (text-keyed), and Clan's remembered clan.
   await db.query(
     `insert into agent_policy_context_grant (agent_account_id, owner_account_id, clan_tag, token_id)
-     values ($1, $2, '#2PP0V9YY', $3)`,
+     values ($1, $2, '#028RJP2U', $3)`,
     [ids.agent, ids.person, tok.token_id],
   );
   const sealed = JSON.stringify({ v: 1, sealed: "x" });
@@ -286,18 +286,18 @@ before(async () => {
              'tl_00000000000000000001', 1, 'post', 'line', now()),
             (gen_random_uuid(), 'timeline', $2, null, $4, 'fedcba9876543210',
              'tl_00000000000000000001', 1, 'post', 'line', now()),
-            (gen_random_uuid(), 'clan_actions', null, '#2PP0V9UU', '#2PP0V9UU',
+            (gen_random_uuid(), 'clan_actions', null, '#0CP08QUC', '#0CP08QUC',
              'aaaaaaaaaaaaaaaa', 'card-1', 1, 'post', 'code', now())`,
     [ids.person, ids.other, ids.person, ids.other],
   );
   for (const pk of [
     `account#${ids.person}`,
     `account#${ids.other}`,
-    "note##2PP0V9UU##2PP0V9PP",
+    "note##0CP08QUC##0VQRR8U0",
   ])
     await db.query(`insert into clan_state (pk, body) values ($1, $2)`, [
       pk,
-      JSON.stringify({ pk, selected: { clan_tag: "#2PP0V9UU" } }),
+      JSON.stringify({ pk, selected: { clan_tag: "#0CP08QUC" } }),
     ]);
   for (const bucket of [
     `mcpday#${ids.person}`,
@@ -307,7 +307,7 @@ before(async () => {
     `mcp#token#${tok.token_id}`,
     `auth#${emailHash(ADDRESS)}`,
     `mcpday#${ids.other}`,
-    "verify-tag##2PP0V9PP",
+    "verify-tag##0VQRR8U0",
   ])
     await db.query(
       `insert into rate_limit (bucket, window_start, count) values ($1, current_date, 3)`,
@@ -464,7 +464,7 @@ test("the run removes the person and their agent, keeps the game record, and lea
     r.mail_archive_keys[0],
     /^mail\/sent\/dt=\d{4}-\d{2}-\d{2}\/send_id=/,
   );
-  // #2PP0V9PP and #2PP0V9UU had no other reason; #2PP0V9QQ and #2PP0V9YY do.
+  // #0VQRR8U0 and #0CP08QUC had no other reason; #0RY8UJUL and #028RJP2U do.
   assert.equal(r.recordings_stopped, 2);
 
   const acct = await one(
@@ -550,14 +550,14 @@ test("the run removes the person and their agent, keeps the game record, and lea
     (await db.query(`select pk from clan_state order by pk`)).rows.map(
       (x) => x.pk,
     ),
-    [`account#${ids.other}`, "note##2PP0V9UU##2PP0V9PP"],
+    [`account#${ids.other}`, "note##0CP08QUC##0VQRR8U0"],
     "Clan's remembered clan goes; the clan's ledger and others' rows stay",
   );
   assert.deepEqual(
     (await db.query(`select bucket from rate_limit order by bucket`)).rows.map(
       (x) => x.bucket,
     ),
-    [`mcpday#${ids.other}`, "verify-tag##2PP0V9PP"].sort(),
+    [`mcpday#${ids.other}`, "verify-tag##0VQRR8U0"].sort(),
     "the account's counters go; others' and a player's stay",
   );
   // Everyone else's cross-post, and the clan's posts, stay.
@@ -606,10 +606,10 @@ test("the run removes the person and their agent, keeps the game record, and lea
     ).rows.map((x) => [x.subject_tag, x.status]),
   );
   assert.deepEqual(rec, {
-    "#2PP0V9PP": "stopped",
-    "#2PP0V9QQ": "active",
-    "#2PP0V9UU": "stopped",
-    "#2PP0V9YY": "active",
+    "#0VQRR8U0": "stopped",
+    "#0RY8UJUL": "active",
+    "#0CP08QUC": "stopped",
+    "#028RJP2U": "active",
   });
 
   // The game record and everyone else are untouched.
@@ -640,7 +640,7 @@ test("the run removes the person and their agent, keeps the game record, and lea
   // A clan's fact stays the clan's; its account link is the tombstone.
   assert.deepEqual(fact, {
     attester_account_id: ids.person,
-    attester_tag: "#2PP0V9PP",
+    attester_tag: "#0VQRR8U0",
   });
   assert.equal(
     await count(

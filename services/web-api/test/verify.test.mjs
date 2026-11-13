@@ -32,8 +32,8 @@ const adminUrl =
 const name = `elixir_mcp_test_verify_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 let db, handler, cookie, person, other;
-const TAG = "#2PP0V90Y";
-const OTHER_TAG = "#8QU2PJ8C";
+const TAG = "#09CV8UVL";
+const OTHER_TAG = "#0CGVUCUG";
 
 const request = (method, path, body, session = cookie) =>
   handler({
@@ -100,7 +100,7 @@ async function playBattle(
   const m = MODES[mode];
   battleSeq += 1;
   const battleId = `verify-battle-${process.pid}-${battleSeq}`;
-  const opponent = "#PPRJ8V0L";
+  const opponent = "#0RPGJRRV";
   await db.query(
     `insert into player (player_tag, name) values ($1, 'Rival') on conflict do nothing`,
     [opponent],
@@ -223,7 +223,7 @@ test("start: draws eight owned plain cards, is idempotent while open, asks the l
   const untracked = await routes["POST /api/me/verify"](
     db,
     {},
-    { player_tag: "#PPUV0LC2" },
+    { player_tag: "#098CRPP2" },
   );
   assert.equal(untracked.statusCode, 404);
   assert.equal(JSON.parse(untracked.body).error, "not_tracked");
@@ -426,23 +426,23 @@ test("only the primary or an alt can be verified: a watched player is refused", 
     }),
   });
   await db.query(
-    `insert into player (player_tag) values ('#PPCGRJ8V') on conflict do nothing`,
+    `insert into player (player_tag) values ('#0P2R82U9') on conflict do nothing`,
   );
   await db.query(
     `insert into claim (account_id, player_tag, status, is_primary, relationship)
-     values ($1, '#PPCGRJ8V', 'unverified', false, 'watching')`,
+     values ($1, '#0P2R82U9', 'unverified', false, 'watching')`,
     [other],
   );
   const r = await routes["POST /api/me/verify"](
     db,
     {},
-    { player_tag: "#PPCGRJ8V" },
+    { player_tag: "#0P2R82U9" },
   );
   assert.equal(r.statusCode, 403);
   assert.equal(JSON.parse(r.body).error, "not_yours");
   const list = JSON.parse((await routes["GET /api/me/verify"](db, {})).body);
   assert.equal(
-    list.players.find((p) => p.player_tag === "#PPCGRJ8V").eligible,
+    list.players.find((p) => p.player_tag === "#0P2R82U9").eligible,
     false,
   );
 });
@@ -621,7 +621,7 @@ test("over HTTP: the routes need a session and the client header, and a bad tag 
 });
 
 test("the target is drawn from the player's Trophy Road decks, never a deck another mode handed them", async () => {
-  const tag = "#9JCVGQ28";
+  const tag = "#0LQ2CRU8";
   const third = (
     await db.query(
       "insert into account(email_hash,status,role) values ('verify-third','approved','member') returning account_id",
@@ -670,7 +670,7 @@ test("the target is drawn from the player's Trophy Road decks, never a deck anot
 });
 
 test("a tag's verification reads are capped per day across re-opened challenges and other accounts, and the wizard is told (#130)", async () => {
-  const CAP_TAG = "#9PJ2QGUC";
+  const CAP_TAG = "#0QVYRJLV";
   await seedCollection(CAP_TAG);
   const accountFor = async (hash) => {
     const id = (
@@ -764,7 +764,7 @@ test("a tag's verification reads are capped per day across re-opened challenges 
 });
 
 test("removing and re-adding the player does not give a tag its verification reads back (#136 review)", async () => {
-  const CYCLE_TAG = "#2YVPC0GL";
+  const CYCLE_TAG = "#0QRYRV8J";
   await seedCollection(CYCLE_TAG);
   const accountId = (
     await db.query(
@@ -831,8 +831,8 @@ test("removing and re-adding the player does not give a tag its verification rea
 });
 
 test("a verification ends other accounts' primary and alt on the tag, keeps a friend, and later claims are refused (#556)", async () => {
-  const VTAG = "#QQ2RPJ8Y";
-  const SPARE = "#GG8RLQ2C";
+  const VTAG = "#0P09209G";
+  const SPARE = "#0V8YURJR";
   await seedCollection(VTAG);
   const make = async (hash) =>
     (

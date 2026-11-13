@@ -25,9 +25,9 @@ const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 // exactly 28 days earlier (on the edge of the 28-day count); 2026-06-01
 // is a Monday.
 const NOW = new Date("2026-09-13T12:00:00Z");
-const PLAYER = "#P0P0P0P0";
-const QUIET = "#P0P0P0P2"; // recorded, never played
-const OPP = "#P0P0P0P8";
+const PLAYER = "#08GVQ2LP";
+const QUIET = "#028QRRYJ"; // recorded, never played
+const OPP = "#00QYQPRC";
 
 let db, accountId, gatewayId;
 
@@ -223,7 +223,7 @@ test("the handler routes {activity_histogram: true} to the rebuild", async () =>
 });
 
 test("retired automatic groups never regenerate activity; a later personal follow works with collection birth provenance", async () => {
-  const t = "#P0LYQ";
+  const t = "#00UQG";
   await db.query("insert into player(player_tag) values($1)", [t]);
   await db.query(
     "insert into recording(subject_type,subject_tag,requested_by,origin,status,created_at) values('player',$1,$2,'collection','stopped','2026-09-03')",

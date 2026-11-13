@@ -14,7 +14,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
-const clan = { clan_tag: "#2PQRJ8LV", role: "leader" };
+const clan = { clan_tag: "#0QC8RCGY", role: "leader" };
 
 // How our messages sound (2026-10-20, call 5): one voice, set by leaders and
 // co-leaders, its bound said beside the box. Synthetic words.

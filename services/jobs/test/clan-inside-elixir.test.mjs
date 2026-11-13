@@ -15,9 +15,9 @@ import {
 } from "@elixir-mcp/record/attested-facts";
 import { sendActionsMail } from "@elixir-mcp/mail/clan-mail";
 
-const CLAN = "#2QJ8PLUV";
-const MEMBER = "#8YVQ2LRC";
-const OTHER = "#9CJU0GPR";
+const CLAN = "#0PLYLQYQ";
+const MEMBER = "#09GY9RQ2";
+const OTHER = "#0PLQJ8UL";
 let scratch, db, attester;
 
 before(async () => {
@@ -161,7 +161,7 @@ const morningMail = {
       { title: "Check on Quiet", number: 8, new: false },
       "And 3 more.",
     ],
-    link: "https://elixir.poapkings.com/clan/2QJ8PLUV/actions",
+    link: "https://elixir.poapkings.com/clan/0PLYLQYQ/actions",
   })),
 };
 const NOW = new Date("2026-11-12T11:00:00Z");
@@ -243,7 +243,7 @@ test("Clan's mail keeps every refusal", async () => {
     ),
     { code: "invalid_mail" },
   );
-  await assert.rejects(sendActionsMail(db, "#0RRRRRRR", morningMail, deps), {
+  await assert.rejects(sendActionsMail(db, "#009V8VV0", morningMail, deps), {
     code: "not_recorded",
   });
 });

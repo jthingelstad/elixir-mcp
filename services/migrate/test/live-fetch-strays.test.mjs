@@ -94,8 +94,8 @@ test("live_fetch_strays names untracked players live_fetch recorded, and what th
   const base = JSON.parse(
     await readFile(path.join(repoRoot, "fixtures/player/profile.json"), "utf8"),
   );
-  const stray = { ...structuredClone(base), tag: "#2QQ0V9PP" };
-  const claimed = { ...structuredClone(base), tag: "#2QQ0V9QQ" };
+  const stray = { ...structuredClone(base), tag: "#02Q29PPQ" };
+  const claimed = { ...structuredClone(base), tag: "#0UCLYP9P" };
   await liveFetchedBefore0209(stray);
   await liveFetchedBefore0209(claimed);
   await db.query(
@@ -119,9 +119,9 @@ test("live_fetch_strays names untracked players live_fetch recorded, and what th
   // A tag given that nothing read is reported with an empty footprint.
   const given = await liveFetchStrayCensus(SCRATCH_URL, {
     days: 1,
-    tags: ["#2QQ0V9RR"],
+    tags: ["#09JPCLYC"],
   });
-  const none = given.untracked.find((u) => u.tag === "#2QQ0V9RR");
+  const none = given.untracked.find((u) => u.tag === "#09JPCLYC");
   assert.equal(none.footprint.player_snapshot_daily, 0);
   assert.equal(none.player_first_seen_at, null);
 });

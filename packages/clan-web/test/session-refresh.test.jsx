@@ -22,7 +22,7 @@ test("a forced roster refresh from the prior session cannot repopulate the next 
   );
   let load;
   function View() {
-    const refresh = useRoster("#P0LYQ").load;
+    const refresh = useRoster("#00UQG").load;
     useEffect(() => {
       load = refresh;
     }, [refresh]);
@@ -30,7 +30,7 @@ test("a forced roster refresh from the prior session cannot repopulate the next 
   }
   const { queryClient } = renderWithProviders(<View />);
   await waitFor(() =>
-    expect(queryClient.getQueryData(keys.roster("#P0LYQ"))).toBeTruthy(),
+    expect(queryClient.getQueryData(keys.roster("#00UQG"))).toBeTruthy(),
   );
   let pending;
   act(() => {
@@ -44,7 +44,7 @@ test("a forced roster refresh from the prior session cannot repopulate the next 
     status: 200,
     data: { name: "next person's roster" },
   };
-  queryClient.setQueryData(keys.roster("#P0LYQ"), next);
+  queryClient.setQueryData(keys.roster("#00UQG"), next);
   await act(async () => {
     finish({
       ok: true,
@@ -53,7 +53,7 @@ test("a forced roster refresh from the prior session cannot repopulate the next 
     });
     await pending;
   });
-  expect(queryClient.getQueryData(keys.roster("#P0LYQ"))).toEqual(next);
+  expect(queryClient.getQueryData(keys.roster("#00UQG"))).toEqual(next);
   cleanup();
   vi.restoreAllMocks();
 });

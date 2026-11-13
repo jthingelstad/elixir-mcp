@@ -369,7 +369,7 @@ test("an oversized call cannot delete its own audit row", async () => {
   // The client picks the length. Under the old slice(0, 4000) this cut
   // mid-string, Postgres refused the fragment as invalid jsonb, and the
   // catch swallowed it - so choosing this length erased the evidence.
-  const huge = "#2PP".padEnd(9000, "Q");
+  const huge = "#0CR".padEnd(9000, "Q");
   const before = await db.query(
     `select count(*)::int as n from mcp_call_audit where account_id = $1`,
     [account.accountId],

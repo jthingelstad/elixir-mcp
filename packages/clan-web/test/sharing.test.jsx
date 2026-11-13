@@ -9,7 +9,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const clan = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "leader" };
+const clan = { clan_tag: "#0QC8RCGY", name: "Example Clan", role: "leader" };
 const types = {
   departure_classified: {
     label: "Kicks and leaves",
@@ -28,7 +28,7 @@ describe("what Elixir Clan records in Elixir", () => {
     vi.spyOn(manageApi, "sharing").mockResolvedValue({
       ok: true,
       status: 200,
-      data: { clan_tag: "#2PQRJ8LV", types },
+      data: { clan_tag: "#0QC8RCGY", types },
     });
     renderWithProviders(<Sharing clan={clan} />);
     expect(await screen.findByText("Kicks and leaves")).toBeTruthy();

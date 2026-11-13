@@ -10,8 +10,8 @@ import { makeHandler } from "../src/handler.mjs";
 import { createClanRequest } from "../src/clan.mjs";
 import { ROLE_CONFIRM_MAX_AGE_MS } from "@elixir-mcp/clan/role-freshness.mjs";
 
-const CLAN = "#9GQLV20",
-  TAG = "#9GQLV22";
+const CLAN = "#0JQ0JQ8",
+  TAG = "#08V0UY9";
 let scratch, handler, accountId, token;
 const data = (r) => JSON.parse(r.body);
 const request = (method, path, body) =>
