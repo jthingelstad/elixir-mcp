@@ -8,3 +8,5 @@ your phone's first screen.
 - Every result in search is a full-size tap.
 
 What each page shows, and who can see it, is the same.
+
+MCP and JSON API unchanged.

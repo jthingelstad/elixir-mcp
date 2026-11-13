@@ -12,3 +12,5 @@ sits beside the name, so the timeline starts on the first screen.
 - Stats' tables use the same numbers as the rest of Elixir.
 
 What each page shows, and who can see it, is the same.
+
+MCP and JSON API unchanged.
