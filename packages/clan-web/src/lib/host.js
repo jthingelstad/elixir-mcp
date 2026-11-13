@@ -11,6 +11,9 @@ import { createContext, useContext } from "react";
  *   page's (apps/web src/home/FollowClan.jsx).
  * - `FollowMember({ clanTag, playerTag, name })`: a roster row's Follow
  *   (G6), priced by that same clan plan, one read for the whole roster.
+ * - `FollowThisClan({ clanTag, clanName })`: the clan head's Follow
+ *   (2026-11-13), Elixir's own clan follow (`/api/me/clans`), drawn as the
+ *   player page's Follow and "Following".
  *
  * Absent (a test, or a host that lends nothing), the view leaves it out.
  */

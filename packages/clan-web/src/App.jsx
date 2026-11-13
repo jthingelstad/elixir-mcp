@@ -514,6 +514,7 @@ export function ClanShell({
   rememberAfterSignIn = () => {},
   FollowClan = null,
   FollowMember = null,
+  FollowThisClan = null,
 }) {
   const { pathname: path, searchStr } = useLocation();
   // The path under the prefix: "/" is the landing, "/you" your page.
@@ -595,8 +596,8 @@ export function ClanShell({
 
   // What the joining app lends the views (lib/host.js), held still.
   const host = useMemo(
-    () => ({ FollowClan, FollowMember }),
-    [FollowClan, FollowMember],
+    () => ({ FollowClan, FollowMember, FollowThisClan }),
+    [FollowClan, FollowMember, FollowThisClan],
   );
 
   // The head and tabs belong to the clan being read.
