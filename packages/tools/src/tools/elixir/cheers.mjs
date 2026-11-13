@@ -1,5 +1,6 @@
 import { responseMeta } from "@elixir-mcp/contracts";
 import { buildTimeline, shownAt } from "../../activity/entries.mjs";
+import { itemText } from "../../activity/summary.mjs";
 import { CHEER_KEYS, ITEM_ID_RE, cheerable } from "../../activity/cheers.mjs";
 import { primaryOf } from "../../social.mjs";
 import { socialReaderOrRefuse } from "../social.mjs";
@@ -16,6 +17,16 @@ import {
 const DAY_MS = 86_400_000;
 /** The longest window one read rebuilds: a season (up to five weeks). */
 const MAX_WINDOW_DAYS = 35;
+
+/** Every item of the window that can carry a cheer: the kept items and the
+ *  ones past the timeline's presentation cap (`timeline_dropped`), since a
+ *  cheer on an older item still counts (Codex on #849: a busy 30-day window
+ *  clipped at 150 read as no cheers). Newest kept first. */
+export function cheerableItems(built) {
+  return [...(built.timeline ?? []), ...(built.timeline_dropped ?? [])].filter(
+    (it) => cheerable(it) && ITEM_ID_RE.test(it.id),
+  );
+}
 
 /**
  * The cheers other people gave the items about your primary player
@@ -82,9 +93,7 @@ export const elixir_cheers = {
         accountLines: false,
       },
     );
-    const open = (built.timeline ?? []).filter(
-      (it) => cheerable(it) && ITEM_ID_RE.test(it.id),
-    );
+    const open = cheerableItems(built);
     const counts = new Map();
     if (open.length > 0) {
       const { rows } = await ctx.db.query(
@@ -111,7 +120,7 @@ export const elixir_cheers = {
         id: it.id,
         kind: it.kind,
         at: shownAt(it) || it.at || null,
-        text: String(it.text ?? ""),
+        text: String(it.text ?? itemText(it) ?? ""),
         cheers,
       });
     }
