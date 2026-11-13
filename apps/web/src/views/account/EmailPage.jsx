@@ -246,7 +246,9 @@ export function EmailPage() {
           <h2 id="sent-to-you" className="section-title">
             Sent to you
           </h2>
-          <Link to={`${SETTINGS}/emails/sent`}>All sent ›</Link>
+          <Link className="mail-pref__all" to={`${SETTINGS}/emails/sent`}>
+            All sent ›
+          </Link>
         </div>
         {data?.recent?.length > 0 ? (
           data.recent.slice(0, 4).map((r) => (

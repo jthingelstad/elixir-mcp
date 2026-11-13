@@ -150,7 +150,7 @@ export function Directory({
           </span>
           <Chips
             label="Days with no battle before a removal"
-            className="kit-chips--seg"
+            className="kit-chips--seg clan-dir__fold"
             options={FILTERS.removal}
             value={f.removal}
             onChange={set("removal")}
