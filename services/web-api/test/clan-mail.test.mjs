@@ -1,10 +1,10 @@
 /**
- * A family app's own mail (JSON API 2.4.0) over a scratch database: Elixir
- * Clan names who each email is for by player tag; Elixir sends only to the
+ * Clan's "actions waiting for you" mail over a scratch database: Clan
+ * names who each email is for by player tag; Elixir sends only to the
  * account that verified the player, in the clan today, with the kind on,
- * once per clan per account per day, renders the app's lines escaped, and
- * refuses a link outside the family. Permissions that act on people are
- * never granted unnamed.
+ * once per clan per account per day, renders Clan's lines escaped, and
+ * refuses a link outside the family. The JSON API's mail door is gone
+ * (4.0.0), and permissions that act on people are never granted unnamed.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -12,6 +12,7 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
+import { sendActionsMail } from "@elixir-mcp/mail/clan-mail";
 import { actionsWaitingMail } from "../../../packages/clan-engine/src/mail.mjs";
 import { actionLabel } from "../../../packages/clan-engine/src/actions.mjs";
 
@@ -21,7 +22,7 @@ const name = `elixir_mcp_test_clan_mail_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 const CLAN = "#2PQRJ8LV";
 const sent = [];
-let db, handler, cookie, key, readOnlyKey;
+let db, handler, cookie, readOnlyKey;
 
 const admin = (body) =>
   handler({
@@ -30,13 +31,20 @@ const admin = (body) =>
     headers: { cookie, "x-elixir-client": "web" },
     body: JSON.stringify(body),
   });
-const mail = (body, token = key) =>
-  handler({
-    path: `/api/v1/clans/${encodeURIComponent(CLAN)}/mail`,
-    method: "POST",
-    headers: { authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-  });
+/** Clan's morning run's send, answered as status and body. */
+async function mail(body) {
+  try {
+    const result = await sendActionsMail(db, CLAN, body, {
+      enqueue: async (msg) => sent.push(msg),
+      secret: "test",
+      archive: null,
+    });
+    return { statusCode: 200, body: JSON.stringify({ data: result }) };
+  } catch (e) {
+    if (!e.status) throw e;
+    return { statusCode: e.status, body: JSON.stringify({ code: e.code }) };
+  }
+}
 const data = (r) => JSON.parse(r.body);
 
 async function person(
@@ -76,11 +84,7 @@ before(async () => {
   });
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
-  handler = makeHandler({
-    databaseUrl,
-    secret: "test",
-    mail: { enqueue: async (msg) => sent.push(msg), archive: null },
-  });
+  handler = makeHandler({ databaseUrl, secret: "test" });
   const owner = (
     await db.query(
       "insert into account(email_hash,status,role) values ('admin','approved','admin') returning account_id",
@@ -95,9 +99,6 @@ before(async () => {
   await db.query("insert into clan(clan_tag,name) values ($1,'Example Clan')", [
     CLAN,
   ]);
-  key = data(
-    await admin({ name: "elixir-clan", scopes: ["clans:read", "mail:send"] }),
-  ).token;
   readOnlyKey = data(await admin({ name: "clan-reader" })).token;
 });
 after(async () => {
@@ -179,7 +180,7 @@ test("only the account that verified a player in the clan, with the kind on, is 
   assert.equal(sent.length, 1);
 });
 
-test("award scope with twelve maximum-length names still passes the real mail door", async () => {
+test("award scope with twelve maximum-length names still passes the real mail check", async () => {
   const tag = "#2QY8L0VP";
   await person("award-scope", tag);
   const card = {
@@ -218,7 +219,7 @@ test("award scope with twelve maximum-length names still passes the real mail do
   );
 });
 
-test("refusals: a link outside the family, an unknown kind, a bad message, a key without mail:send", async () => {
+test("refusals: a link outside the family, an unknown kind, a bad message", async () => {
   const evil = await mail({
     kind: "clan_actions_waiting",
     messages: [message("#20QQL8CC", { link: "https://example.org/phish" })],
@@ -235,19 +236,30 @@ test("refusals: a link outside the family, an unknown kind, a bad message, a key
     messages: [message("#20QQL8CC", { lines: [] })],
   });
   assert.equal(data(empty).code, "invalid_mail");
-  const refused = await mail(
-    { kind: "clan_actions_waiting", messages: [message("#20QQL8CC")] },
-    readOnlyKey,
-  );
-  assert.equal(refused.statusCode, 403);
-  assert.equal(data(refused).code, "insufficient_scope");
 });
 
-test("an integration made without a permission list gets none that act on people", async () => {
+test("the JSON API has no mail door: a key gets the unknown operation's 404", async () => {
+  const r = await handler({
+    path: `/api/v1/clans/${encodeURIComponent(CLAN)}/mail`,
+    method: "POST",
+    headers: { authorization: `Bearer ${readOnlyKey}` },
+    body: JSON.stringify({
+      kind: "clan_actions_waiting",
+      messages: [message("#20QQL8CC")],
+    }),
+  });
+  assert.equal(r.statusCode, 404);
+  assert.equal(data(r).code, "not_found");
+  assert.match(data(r).detail, /No \/api\/v1 operation answers/);
+});
+
+test("an integration made without a permission list gets none that act on people, and no mail permission exists", async () => {
   const { rows } = await db.query(
     "select scopes from integration where name = 'clan-reader'",
   );
   assert.ok(rows[0].scopes.includes("clans:read"));
   assert.ok(!rows[0].scopes.includes("mail:send"));
   assert.ok(!rows[0].scopes.includes("facts:write"));
+  const refused = await admin({ name: "mailer", scopes: ["mail:send"] });
+  assert.equal(refused.statusCode, 400, refused.body);
 });

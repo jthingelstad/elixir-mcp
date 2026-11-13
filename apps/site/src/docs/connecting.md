@@ -232,7 +232,7 @@ grant. Refreshing never widens scope.
 | `account:write` | private nicknames for the players you follow | `elixir_nickname` |
 | `feedback:write` | file attributed feedback | `elixir_send_feedback` |
 | `account:email` | read the account's email address at `/oauth/userinfo` (and `GET /api/v1/me`); granted only to the Elixir family's own apps | no tool; see below |
-| `clans:attest` | record what you do in your clan as [attested facts](/docs/integrations#attested-facts) (`POST /api/v1/clans/{tag}/facts`); granted only to the Elixir family's own apps, when they ask for it | no tool |
+| `clans:attest` | nothing at present: no JSON API operation takes it, and a clan's facts are written in Clan; still granted only to the Elixir family's own apps, when they ask for it | no tool |
 
 `recordings:write` is an accepted alias of `follows:write`: a client that
 asks for it is granted `follows:write`, and a connection or key that holds

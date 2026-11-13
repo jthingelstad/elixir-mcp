@@ -137,12 +137,6 @@ const handler = makeHandler({
   // Captured tool calls are read back for the console's call record;
   // absent bucket = the record carries the row only.
   capture: makeCaptureStore(process.env.ARCHIVE_BUCKET),
-  // A family app's mail (JSON API 2.4.0) leaves through the same outbox
-  // and is archived like every send.
-  mail: {
-    enqueue: enqueueEmail,
-    archive: makeCaptureStore(process.env.ARCHIVE_BUCKET),
-  },
   // A battle's page is the app shell with the battle's preview tags.
   siteShell: makeSiteShell(process.env.SITE_BUCKET),
   // A mail's turn-off link is answered in the site's own page.

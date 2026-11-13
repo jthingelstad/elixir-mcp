@@ -1,20 +1,19 @@
 /**
  * Clan is features inside Elixir (Jamie, 2026-11-12): the morning run
- * writes its facts and sends its mail as Elixir itself, no longer as the
- * `elixir-clan` integration. What it stores and sends must not change by
- * a byte: each test runs the old integration path and the new system path
- * on the same input and compares every stored row and every enqueued mail.
+ * writes its facts and sends its mail as Elixir itself, never as the
+ * `elixir-clan` integration, whose JSON API doors went in 4.0.0. What it
+ * stores and sends is what the integration path stored and sent (proved
+ * side by side before that path went, #879): the same source, attester,
+ * labels and escaping, pinned here.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import {
-  writeClanFactAsApp,
-  removeClanFactAsApp,
   writeClanFactBySystem,
   removeClanFactBySystem,
 } from "@elixir-mcp/record/attested-facts";
-import { sendClanMail, sendActionsMail } from "@elixir-mcp/mail/clan-mail";
+import { sendActionsMail } from "@elixir-mcp/mail/clan-mail";
 
 const CLAN = "#2QJ8PLUV";
 const MEMBER = "#8YVQ2LRC";
@@ -63,15 +62,6 @@ before(async () => {
 });
 after(async () => scratch?.drop());
 
-/** The integration the run used to act as. */
-const integration = () => ({
-  accountId: attester,
-  name: "elixir-clan",
-  kind: "integration",
-  role: "member",
-  firstParty: true,
-});
-
 const standing = {
   type: "award_standing",
   ref: "award:war-champ:S140:1",
@@ -96,20 +86,35 @@ async function storedFacts() {
   );
   return rows.map(({ fact_id: _id, recorded_at: _at, ...rest }) => rest);
 }
-const unstamped = ({ id: _id, recorded_at: _at, ...rest }) => rest;
 
-test("a fact Clan computes is stored and answered byte for byte as the integration path stored it", async () => {
-  const before = await writeClanFactAsApp(db, integration(), CLAN, standing);
-  const storedBefore = await storedFacts();
-  await db.query("delete from attested_fact where clan_tag = $1", [CLAN]);
+test("a fact Clan computes is stored under Clan's old source and attester, labelled as Clan", async () => {
   const after = await writeClanFactBySystem(db, attester, CLAN, standing);
   const storedAfter = await storedFacts();
   assert.equal(storedAfter.length, 1);
-  assert.deepEqual(storedAfter, storedBefore);
-  assert.equal(storedAfter[0].source, "elixir-clan");
-  assert.equal(storedAfter[0].attester_account_id, attester);
-  assert.deepEqual(unstamped(after), unstamped(before));
-  assert.equal(after.attested_by.app, before.attested_by.app);
+  assert.deepEqual(storedAfter, [
+    {
+      subject_kind: "clan",
+      clan_tag: CLAN,
+      player_tag: MEMBER,
+      fact_type: "award_standing",
+      detail: storedAfter[0].detail,
+      visibility: "clan",
+      source: "elixir-clan",
+      source_ref: standing.ref,
+      attester_account_id: attester,
+      attester_tag: null,
+      attester_role: null,
+      occurred_at: new Date(standing.occurred_at),
+    },
+  ]);
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.entries(storedAfter[0].detail).filter(([, v]) => v !== null),
+    ),
+    { ...standing.detail, as_of: "2026-11-10T10:00:00.000Z" },
+  );
+  assert.equal(after.created, true);
+  assert.equal(after.attested_by.app, "Clan");
 
   // A correction lands on the same row, as the integration's did.
   const corrected = {
@@ -129,15 +134,6 @@ test("a fact Clan computes is stored and answered byte for byte as the integrati
   );
   assert.deepEqual(Object.keys(removed), ["removed", "id", "ref"]);
   assert.equal(removed.ref, standing.ref);
-  assert.deepEqual(await storedFacts(), []);
-  await writeClanFactBySystem(db, attester, CLAN, standing);
-  const removedOld = await removeClanFactAsApp(
-    db,
-    integration(),
-    CLAN,
-    standing.ref,
-  );
-  assert.deepEqual(Object.keys(removedOld), Object.keys(removed));
   assert.deepEqual(await storedFacts(), []);
 
   // A person's kind of fact is refused on the system path too.
@@ -207,23 +203,27 @@ async function captured(send) {
   return { result: plain(result), sent: plain(sent), issues, sends };
 }
 
-test("Clan's morning mail is stored, rendered and enqueued byte for byte as the integration path sent it", async () => {
-  const before = await captured((deps) =>
-    sendClanMail(db, integration(), CLAN, morningMail, deps),
-  );
+test("Clan's morning mail is stored, rendered and enqueued under Clan's old source and label", async () => {
   const after = await captured((deps) =>
     sendActionsMail(db, CLAN, morningMail, deps),
   );
   assert.equal(JSON.parse(after.sent).length, 2);
-  assert.deepEqual(after, before);
+  assert.equal(after.issues.length, 1);
+  assert.equal(after.issues[0].kind, "clan_actions_waiting");
+  assert.equal(after.issues[0].subject_key, CLAN);
   assert.equal(after.issues[0].facts.source, "elixir-clan");
+  assert.equal(after.sends.length, 2);
+  assert.deepEqual(
+    JSON.parse(after.result).results.map((r) => r.status),
+    ["sent", "sent"],
+  );
   // The words are escaped on the way out, as they were.
   const html = JSON.parse(after.sent)[0].html;
   assert.doesNotMatch(html, /<b>Ada<\/b>|<img src=x/);
   assert.match(html, /&lt;b&gt;Ada&lt;\/b&gt;/);
 });
 
-test("the system path keeps every refusal the door makes", async () => {
+test("Clan's mail keeps every refusal", async () => {
   const deps = { enqueue: async () => {}, secret: "test" };
   await assert.rejects(
     sendActionsMail(db, CLAN, { ...morningMail, kind: "weekly" }, deps),

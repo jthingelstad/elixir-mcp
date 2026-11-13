@@ -25,9 +25,10 @@ export const OAUTH_SCOPE = {
    *  a first-party web product signing a person in with Elixir needs
    *  the email on the account, and nothing else ever does. */
   ACCOUNT_EMAIL: "account:email",
-  /** The second never offered unasked (JSON API 2.2.0, 2026-09-25): a
-   *  family app recording what the person did in their clan as an
-   *  attested fact (`POST /api/v1/clans/{tag}/facts`). Family apps only. */
+  /** The second never offered unasked (JSON API 2.2.0, 2026-09-25). It
+   *  was a family app recording what the person did in their clan
+   *  (`POST /api/v1/clans/{tag}/facts`); JSON API 4.0.0 removed that
+   *  operation, so no operation takes it now. Family apps only. */
   CLANS_ATTEST: "clans:attest",
 } as const;
 

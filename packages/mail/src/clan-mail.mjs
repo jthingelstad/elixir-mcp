@@ -1,9 +1,8 @@
 /**
- * Clan's morning mail, "actions waiting for you" (Jamie, 2026-09-25), and
- * the door a family app sends its own mail through (JSON API 2.4.0):
- * `POST /api/v1/clans/{tag}/mail` on an integration key with `mail:send`.
- * Clan is part of Elixir (Jamie, 2026-11-12), so its morning run calls
- * `sendActionsMail` directly; the door is `sendClanMail`. Either names who
+ * Clan's morning mail, "actions waiting for you" (Jamie, 2026-09-25).
+ * Clan is part of Elixir (Jamie, 2026-11-12): its morning run calls
+ * `sendActionsMail` directly, and the JSON API's mail door
+ * (`POST /api/v1/clans/{tag}/mail`) is gone (JSON API 4.0.0). It names who
  * each email is for by player tag; Elixir holds the addresses, the
  * switches (on to start) and the unsubscribe, and the words never carry
  * an address.
@@ -23,7 +22,7 @@ import { FIRST_PARTY_ORIGINS } from "@elixir-mcp/auth";
 import { upsertIssue } from "@elixir-mcp/mail/ledger";
 import { deliver } from "@elixir-mcp/mail/deliver";
 
-/** The kinds a family app may send through this door. */
+/** The kinds Clan sends. */
 const CLAN_MAIL_KINDS = ["clan_actions_waiting"];
 const MAX_MESSAGES = 50;
 const MAX_LINES = 12;
@@ -143,19 +142,6 @@ export function sendActionsMail(db, clanInput, body, deps) {
   return sendMail(db, CLAN_SENDER, clanInput, body, deps);
 }
 
-/** A family app's own mail, through the JSON API door. */
-export function sendClanMail(db, integration, clanInput, body, deps) {
-  return sendMail(
-    db,
-    integration.name === CLAN_SENDER.source
-      ? CLAN_SENDER
-      : { source: integration.name, app: integration.name },
-    clanInput,
-    body,
-    deps,
-  );
-}
-
 async function sendMail(
   db,
   sender,
@@ -169,7 +155,7 @@ async function sendMail(
     throw new MailError(
       400,
       "unknown_mail_kind",
-      `A family app sends: ${CLAN_MAIL_KINDS.join(", ")}.`,
+      `Clan sends: ${CLAN_MAIL_KINDS.join(", ")}.`,
     );
   if (
     !Array.isArray(body.messages) ||

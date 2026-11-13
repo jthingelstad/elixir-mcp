@@ -347,12 +347,11 @@ composes "actions waiting for you" for each person who can act on an
 open action, only when something became theirs since their last email
 (nothing waiting, nothing sent), listing everything
 waiting newest first with the new ones marked (at most 10 lines, the rest
-counted). `sendClanMail` (`packages/mail/src/clan-mail.mjs`) finds the
+counted). `sendActionsMail` (`packages/mail/src/clan-mail.mjs`) finds the
 account whose verified claim is that player, checks the player is in the
 clan today and the switch is on, and sends at most one per clan per
 account per UTC day under a lock. The jobs Lambda calls it in process;
-`POST /api/v1/clans/{tag}/mail` (`mail:send`) is the same door for an
-integration. The lines are plain text the renderer escapes; the link must
+nothing else sends it (the JSON API's mail door went in 4.0.0). The lines are plain text the renderer escapes; the link must
 lead to a family app.
 
 ## Send ids and the record

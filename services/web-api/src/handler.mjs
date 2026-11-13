@@ -36,7 +36,6 @@ import { timelineDiscordRoutes } from "./routes/timeline-discord.mjs";
 import {
   highlightClanDiscord,
   postHighlightToClan,
-  wakeAfterFact,
   wakeAfterHighlight,
 } from "@elixir-mcp/syndication";
 import { emailRoutes } from "./routes/email.mjs";
@@ -213,9 +212,6 @@ export function makeHandler({
   /** { s3, bucket } for reading captured tool calls (capture.mjs
    *  makeCaptureStore); null = the call record carries the row only. */
   capture = null,
-  /** { enqueue, archive } for a family app's mail on the JSON API
-   *  (2.4.0): the outbox and the sent-mail archive; null = refused. */
-  mail = null,
   /** Unsubscribe links' own key (packages/mail unsubscribe.mjs); null =
    *  links are signed and checked with the session secret. */
   unsubscribeSecret = null,
@@ -521,14 +517,7 @@ export function makeHandler({
     const agentPath = isIntegration ? null : AGENT_PATH.exec(path);
     const found = isIntegration
       ? {
-          route: (db, event, body) =>
-            integrationApi(db, event, body, {
-              mail: mail ? { ...mail, secret: unsubscribeKeys } : null,
-              wake: discord?.outbox
-                ? (d, fact) =>
-                    wakeAfterFact(d, fact, { outbox: discord.outbox })
-                : null,
-            }),
+          route: (db, event, body) => integrationApi(db, event, body),
           key: `${method} /api/v1/*`,
           // The line names the operation the key cannot (review 2026-10-21).
           operation: v1Operation(method, path),

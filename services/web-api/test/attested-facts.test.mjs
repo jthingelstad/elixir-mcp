@@ -1,10 +1,11 @@
 /**
- * Attested facts (JSON API 2.2.0, contract 9.2.0) over a scratch database:
- * a family app records what a person did in their clan, as their verified
- * player with the role the record holds; the refusals say why; a retry is
- * the same fact and a correction replaces it; an integration records its
- * game's facts for a player; and the timeline shows each fact only to the
- * reader its type allows (a kick never reaches an agent).
+ * Attested facts (contract 9.2.0) over a scratch database: Clan records
+ * what a person did in their clan, as their verified player with the role
+ * the record holds; the refusals say why; a retry is the same fact and a
+ * correction replaces it; Clan's morning run records its computed award
+ * standings; an integration records its game's facts for a player; and the
+ * timeline shows each fact only to the reader its type allows. The JSON
+ * API's clan fact doors are gone (4.0.0).
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -12,6 +13,12 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { mintTokens, registerClient } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
+import {
+  writeClanFactInClan,
+  removeClanFactInClan,
+  writeClanFactBySystem,
+  removeClanFactBySystem,
+} from "@elixir-mcp/record/attested-facts";
 import { factItems } from "../../../packages/tools/src/activity/entries.mjs";
 
 // A family app's client is provisioned (0185), never merely registered to
@@ -37,7 +44,7 @@ const ELDER_TAG = "#9RRYR9RR";
 const LEFT_TAG = "#2PPGY0Q8";
 const OUTSIDER_TAG = "#UUYY22VV";
 
-let db, handler, clan, other, accounts;
+let db, handler, clan, accounts;
 const request = (method, path, body, token) =>
   handler({
     path,
@@ -47,6 +54,27 @@ const request = (method, path, body, token) =>
   });
 const data = (r) => JSON.parse(r.body);
 const facts = `/api/v1/clans/${encodeURIComponent(CLAN)}/facts`;
+
+/** A writer's answer as a status and body, as Clan's routes give it. */
+async function answer(run) {
+  try {
+    const r = await run();
+    return {
+      statusCode: r.created ? 201 : 200,
+      body: JSON.stringify({ data: r }),
+    };
+  } catch (e) {
+    if (!e.status) throw e;
+    return { statusCode: e.status, body: JSON.stringify({ code: e.code }) };
+  }
+}
+/** The person Clan's session signed in. */
+const as = (accountId) => ({ accountId, kind: "person" });
+/** Write or take back a clan fact in Clan, as `who`. */
+const write = (body, who) =>
+  answer(() => writeClanFactInClan(db, who, CLAN, body));
+const remove = (ref, who) =>
+  answer(() => removeClanFactInClan(db, who, CLAN, ref));
 
 async function person(label, tag, role) {
   const id = (
@@ -103,10 +131,6 @@ before(async () => {
     },
     "clan",
   );
-  other = await registerClient(db, {
-    clientName: "Someone's app",
-    redirectUris: ["https://example.org/callback"],
-  });
   accounts = {
     leader: await person("leader", LEADER_TAG, "leader"),
     member: await person("member", MEMBER_TAG, "member"),
@@ -126,14 +150,14 @@ after(async () => {
 });
 
 test("a leader records a departure as a kick; a retry is the same fact and a correction replaces it", async () => {
-  const token = await grant(accounts.leader, "cr:read clans:attest");
+  const token = as(accounts.leader);
   const body = {
     type: "departure_classified",
     ref: "card-1",
     player_tag: LEFT_TAG,
     detail: { kind: "kick" },
   };
-  const made = await request("POST", facts, body, token);
+  const made = await write(body, token);
   assert.equal(made.statusCode, 201, made.body);
   const f = data(made).data;
   assert.equal(f.created, true);
@@ -148,24 +172,17 @@ test("a leader records a departure as a kick; a retry is the same fact and a cor
     clan_tag: CLAN,
     player_tag: LEFT_TAG,
   });
-  const again = await request("POST", facts, body, token);
+  const again = await write(body, token);
   assert.equal(again.statusCode, 200);
   assert.equal(data(again).data.id, f.id);
-  const corrected = await request(
-    "POST",
-    facts,
-    { ...body, detail: { kind: "leave" } },
-    token,
-  );
+  const corrected = await write({ ...body, detail: { kind: "leave" } }, token);
   assert.equal(data(corrected).data.detail.kind, "leave");
   const { rows } = await db.query(
     "select count(*)::int as n from attested_fact",
   );
   assert.equal(rows[0].n, 1);
   // A ref cannot jump to another type.
-  const jump = await request(
-    "POST",
-    facts,
+  const jump = await write(
     {
       type: "award_granted",
       ref: "card-1",
@@ -176,50 +193,37 @@ test("a leader records a departure as a kick; a retry is the same fact and a cor
   );
   assert.equal(jump.statusCode, 409);
   assert.equal(data(jump).code, "ref_conflict");
-  // An app's facts are keyed by the app its client was provisioned for,
-  // not the host its codes go to (Clan changed hosts on 2026-09-28), so a
-  // retry after a move is still the same fact.
-  await db.query(
-    `update oauth_client set redirect_uris = $2 where client_id = $1`,
-    [clan.clientId, ["https://drop.poapkings.com/clan/auth/callback"]],
+  // A person's clan facts are keyed as Clan's were before it moved into
+  // Elixir, so Clan still corrects and removes the facts it wrote then.
+  const { rows: keyed } = await db.query(
+    "select source from attested_fact where source_ref = 'card-1'",
   );
-  const moved = await request(
-    "POST",
-    facts,
-    { ...body, detail: { kind: "leave" } },
-    token,
-  );
-  assert.equal(moved.statusCode, 200, moved.body);
-  assert.equal(data(moved).data.id, f.id);
-  assert.equal(data(moved).data.attested_by.app, "Clan");
+  assert.deepEqual(keyed, [{ source: "clan.poapkings.com" }]);
 });
 
-test("refusals say why: another app, no capability, not in the clan, the wrong role, a bad detail", async () => {
-  const leader = await grant(accounts.leader, "cr:read clans:attest");
+test("refusals say why: not a person, not in the clan, the wrong role, a bad detail", async () => {
+  const leader = as(accounts.leader);
   const departure = {
     type: "departure_classified",
     ref: "card-2",
     player_tag: LEFT_TAG,
     detail: { kind: "leave" },
   };
-  const elsewhere = await grant(accounts.leader, "cr:read clans:attest", other);
-  const r1 = await request("POST", facts, departure, elsewhere);
-  assert.equal(data(r1).code, "family_apps_only");
-  const noScope = await grant(accounts.leader, "cr:read");
-  const r2 = await request("POST", facts, departure, noScope);
-  assert.equal(data(r2).code, "insufficient_scope");
-  const outsider = await grant(accounts.outsider, "cr:read clans:attest");
-  const r3 = await request("POST", facts, departure, outsider);
+  const agentOf = await write(departure, {
+    accountId: accounts.leader,
+    kind: "agent",
+  });
+  assert.equal(data(agentOf).code, "not_a_person");
+  const outsider = as(accounts.outsider);
+  const r3 = await write(departure, outsider);
   assert.equal(data(r3).code, "not_in_clan");
-  const member = await grant(accounts.member, "cr:read clans:attest");
-  const r4 = await request("POST", facts, departure, member);
+  const member = as(accounts.member);
+  const r4 = await write(departure, member);
   assert.equal(r4.statusCode, 403);
   assert.equal(data(r4).code, "not_permitted");
   // An elder may say something in clan chat, never as a Leader Message.
-  const elder = await grant(accounts.elder, "cr:read clans:attest");
-  const chat = await request(
-    "POST",
-    facts,
+  const elder = as(accounts.elder);
+  const chat = await write(
     {
       type: "clan_message",
       ref: "welcome-1",
@@ -228,9 +232,7 @@ test("refusals say why: another app, no capability, not in the clan, the wrong r
     elder,
   );
   assert.equal(chat.statusCode, 201, chat.body);
-  const letter = await request(
-    "POST",
-    facts,
+  const letter = await write(
     {
       type: "clan_message",
       ref: "msg-1",
@@ -240,9 +242,7 @@ test("refusals say why: another app, no capability, not in the clan, the wrong r
   );
   assert.equal(data(letter).code, "not_permitted");
   // A member may say they are away themselves, and nobody else.
-  const away = await request(
-    "POST",
-    facts,
+  const away = await write(
     {
       type: "member_away",
       ref: "away-1",
@@ -254,9 +254,7 @@ test("refusals say why: another app, no capability, not in the clan, the wrong r
   assert.equal(away.statusCode, 201, away.body);
   // An away's end lies ahead: next week is fine, two years out is not.
   const nextWeek = new Date(Date.now() + 7 * 86_400_000).toISOString();
-  const until = await request(
-    "POST",
-    facts,
+  const until = await write(
     {
       type: "member_away",
       ref: "away-1",
@@ -267,9 +265,7 @@ test("refusals say why: another app, no capability, not in the clan, the wrong r
   );
   assert.equal(until.statusCode, 200, "the same ref, now with an end");
   assert.equal(JSON.parse(until.body).data.detail.until, nextWeek);
-  const farOff = await request(
-    "POST",
-    facts,
+  const farOff = await write(
     {
       type: "member_away",
       ref: "away-1",
@@ -279,9 +275,7 @@ test("refusals say why: another app, no capability, not in the clan, the wrong r
     member,
   );
   assert.equal(data(farOff).code, "invalid_fact");
-  const notMine = await request(
-    "POST",
-    facts,
+  const notMine = await write(
     { type: "member_away", ref: "away-2", player_tag: ELDER_TAG, detail: {} },
     member,
   );
@@ -303,30 +297,23 @@ test("refusals say why: another app, no capability, not in the clan, the wrong r
       "invalid_fact",
     ],
   ]) {
-    const r = await request("POST", facts, bad, leader);
+    const r = await write(bad, leader);
     assert.equal(r.statusCode, 400, r.body);
     assert.equal(data(r).code, code);
   }
   // Taken back by its ref.
-  const gone = await request("DELETE", `${facts}/welcome-1`, undefined, leader);
+  const gone = await remove("welcome-1", leader);
   assert.equal(gone.statusCode, 200, gone.body);
   assert.equal(data(gone).data.removed, true);
-  const missing = await request(
-    "DELETE",
-    `${facts}/welcome-1`,
-    undefined,
-    leader,
-  );
+  const missing = await remove("welcome-1", leader);
   assert.equal(missing.statusCode, 404);
 });
 
 test("an overwrite needs the right to the fact already there, not only the one sent", async () => {
-  const leader = await grant(accounts.leader, "cr:read clans:attest");
-  const elder = await grant(accounts.elder, "cr:read clans:attest");
-  const member = await grant(accounts.member, "cr:read clans:attest");
-  const letter = await request(
-    "POST",
-    facts,
+  const leader = as(accounts.leader);
+  const elder = as(accounts.elder);
+  const member = as(accounts.member);
+  const letter = await write(
     {
       type: "clan_message",
       ref: "letter-overwrite",
@@ -335,9 +322,7 @@ test("an overwrite needs the right to the fact already there, not only the one s
     leader,
   );
   assert.equal(letter.statusCode, 201, letter.body);
-  const overwrite = await request(
-    "POST",
-    facts,
+  const overwrite = await write(
     {
       type: "clan_message",
       ref: "letter-overwrite",
@@ -348,9 +333,7 @@ test("an overwrite needs the right to the fact already there, not only the one s
   assert.equal(overwrite.statusCode, 403);
   assert.equal(data(overwrite).code, "not_permitted");
 
-  const theirs = await request(
-    "POST",
-    facts,
+  const theirs = await write(
     {
       type: "member_away",
       ref: "away-overwrite",
@@ -360,9 +343,7 @@ test("an overwrite needs the right to the fact already there, not only the one s
     elder,
   );
   assert.equal(theirs.statusCode, 201, theirs.body);
-  const repointed = await request(
-    "POST",
-    facts,
+  const repointed = await write(
     {
       type: "member_away",
       ref: "away-overwrite",
@@ -380,9 +361,7 @@ test("an overwrite needs the right to the fact already there, not only the one s
   assert.equal(rows[1].detail.channel, "leader_message", "so is the letter");
 
   // The leader may still correct their own letter.
-  const fixed = await request(
-    "POST",
-    facts,
+  const fixed = await write(
     {
       type: "clan_message",
       ref: "letter-overwrite",
@@ -438,10 +417,8 @@ test("an integration records its game's fact for a player with facts:write", asy
 
 test("the timeline shows each fact only to the reader its type allows; a departure reaches the clan and its agent, an away only leaders", async () => {
   const clanSubject = [{ kind: "clan", tag: CLAN, scope: "activity" }];
-  const leader = await grant(accounts.leader, "cr:read clans:attest");
-  const awarded = await request(
-    "POST",
-    facts,
+  const leader = as(accounts.leader);
+  const awarded = await write(
     {
       type: "award_granted",
       ref: "grant-1",
@@ -451,9 +428,7 @@ test("the timeline shows each fact only to the reader its type allows; a departu
     leader,
   );
   assert.equal(awarded.statusCode, 201, awarded.body);
-  const kick = await request(
-    "POST",
-    facts,
+  const kick = await write(
     {
       type: "departure_classified",
       ref: "card-3",
@@ -535,30 +510,17 @@ test("the timeline shows each fact only to the reader its type allows; a departu
   assert.equal(award.facts.attested_by.role, "leader");
 });
 
-test("an app records its computed award standing on its integration key; a person cannot, and it cannot write a person's kind", async () => {
-  const admin = (
+test("Clan's morning run records its computed award standing; a person cannot, and it cannot write a person's kind", async () => {
+  // The account Clan's facts were attested by when it wrote through an
+  // integration row; Elixir still writes under it (services/jobs clan.mjs).
+  const attester = (
     await db.query(
-      "insert into account(email_hash,status,role) values ('admin-standing','approved','admin') returning account_id",
+      "insert into account(email_hash,status,role,kind,owned_by_account_id) values ('clan-attester','approved','member','integration',$1) returning account_id",
+      [accounts.leader],
     )
   ).rows[0].account_id;
-  const { createSession } = await import("@elixir-mcp/auth");
-  const session = await createSession(db, {
-    secret: "test",
-    accountId: admin,
-    emailHash: "admin-standing",
-  });
-  const cookie = `__Host-elixir_session=${session.token}`;
-  const provision = (scopes, nameOf) =>
-    handler({
-      path: "/api/admin/integrations",
-      method: "POST",
-      headers: { cookie, "x-elixir-client": "web" },
-      body: JSON.stringify({ name: nameOf, scopes }),
-    });
-  const clanApp = data(
-    await provision(["clans:read", "facts:write"], "elixir-clan"),
-  );
-  const other = data(await provision(["facts:write"], "someone-else"));
+  const system = (body) =>
+    answer(() => writeClanFactBySystem(db, attester, CLAN, body));
   const standing = {
     type: "award_standing",
     ref: "standing:136:war_champ:1",
@@ -574,46 +536,33 @@ test("an app records its computed award standing on its integration key; a perso
       previous_player_tag: LEFT_TAG,
     },
   };
-  const made = await request("POST", facts, standing, clanApp.token);
+  const made = await system(standing);
   assert.equal(made.statusCode, 201, made.body);
   assert.equal(data(made).data.attested_by.app, "Clan");
   assert.equal(
     data(made).data.attested_by.player_tag,
     null,
-    "the app's, not a person's",
+    "Clan's, not a person's",
   );
   assert.equal(data(made).data.visibility, "clan");
   // A newer standing under the same ref replaces it.
-  const again = await request(
-    "POST",
-    facts,
-    {
-      ...standing,
-      detail: { ...standing.detail, value: 6500 },
-    },
-    clanApp.token,
-  );
+  const again = await system({
+    ...standing,
+    detail: { ...standing.detail, value: 6500 },
+  });
   assert.equal(again.statusCode, 200);
   assert.equal(data(again).data.detail.value, 6500);
-  // A person's kind is refused on the key; the app's kind on a person's grant.
-  const kick = await request(
-    "POST",
-    facts,
-    {
-      type: "departure_classified",
-      ref: "k-1",
-      player_tag: LEFT_TAG,
-      detail: { kind: "kick" },
-    },
-    clanApp.token,
-  );
+  // A person's kind is refused on the morning run; Clan's kind as a person.
+  const kick = await system({
+    type: "departure_classified",
+    ref: "k-1",
+    player_tag: LEFT_TAG,
+    detail: { kind: "kick" },
+  });
   assert.equal(data(kick).code, "unknown_fact_type");
-  const leader = await grant(accounts.leader, "cr:read clans:attest");
-  const asPerson = await request(
-    "POST",
-    facts,
+  const asPerson = await write(
     { ...standing, ref: "p-1" },
-    leader,
+    as(accounts.leader),
   );
   assert.equal(asPerson.statusCode, 403);
   // The clan's agent sees it, in words.
@@ -634,13 +583,42 @@ test("an app records its computed award standing on its integration key; a perso
   assert.equal(seen[0].facts.value, 6500);
   assert.equal(seen[0].facts.previous_name, "gone", "who held first, by name");
   assert.equal(seen[0].facts.attested_by.app, "Clan");
-  // Only the app that wrote it takes it back.
-  const path = `${facts}/${encodeURIComponent(standing.ref)}`;
+  // A person cannot take it back; the morning run can, by its ref.
   assert.equal(
-    (await request("DELETE", path, undefined, other.token)).statusCode,
+    (await remove(standing.ref, as(accounts.leader))).statusCode,
     404,
   );
-  const gone = await request("DELETE", path, undefined, clanApp.token);
+  const gone = await answer(() =>
+    removeClanFactBySystem(db, attester, CLAN, standing.ref),
+  );
   assert.equal(gone.statusCode, 200, gone.body);
   assert.equal(data(gone).data.removed, true);
+});
+
+test("the JSON API has no clan fact doors: a person's grant or a key gets the unknown operation's 404", async () => {
+  const grantToken = await grant(accounts.leader, "cr:read clans:attest");
+  const body = {
+    type: "departure_classified",
+    ref: "door-1",
+    player_tag: LEFT_TAG,
+    detail: { kind: "leave" },
+  };
+  for (const [method, path] of [
+    ["POST", facts],
+    ["DELETE", `${facts}/door-1`],
+  ]) {
+    const r = await request(
+      method,
+      path,
+      method === "POST" ? body : undefined,
+      grantToken,
+    );
+    assert.equal(r.statusCode, 404, r.body);
+    assert.equal(data(r).code, "not_found");
+    assert.match(data(r).detail, /No \/api\/v1 operation answers/);
+  }
+  const { rows } = await db.query(
+    "select count(*)::int as n from attested_fact where source_ref = 'door-1'",
+  );
+  assert.equal(rows[0].n, 0);
 });
