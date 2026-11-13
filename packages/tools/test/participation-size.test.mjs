@@ -57,16 +57,16 @@ const tagOf = (i) => {
   return `#${s}`;
 };
 const NAMES = [
-  "Pale Kestrel",
-  "Teal Koala",
-  "Rustic Seal",
-  "Misty Pelican",
-  "Keen Zebu é⚡",
-  "Keen Stoat",
-  "Azure Beaver",
-  "Zesty Weasel é⚡",
-  "Sage Ferret",
-  "Tidy Gibbon",
+  "Tall Penguin",
+  "Lark Tawny",
+  "Gopher Fast",
+  "Fleet Compass",
+  "Fast Wren ö🏆",
+  "Lark Panda",
+  "Crane Willow",
+  "Clear Rabbit ö🦊",
+  "Mist Gentle",
+  "Deer Marten",
 ];
 const CURRENT = 50;
 const FORMER = 20;

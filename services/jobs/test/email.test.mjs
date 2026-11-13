@@ -185,7 +185,7 @@ test("deliver: the send has its own id, in the footer, in the queue message, in 
   assert.ok(msg.html.includes(`/settings/emails/${r.send_id}?report=1`));
   assert.ok(msg.html.includes(`>Mail ${r.send_id.slice(0, 6)}<`));
   assert.ok(msg.html.includes("path=%2Fmail%2Ftracking_report%2F2026-09-19"));
-  assert.ok(msg.html.includes("Jolly Stoat"));
+  assert.ok(msg.html.includes("Rapid Clear"));
   assert.equal(
     put[0].Key,
     `mail/sent/dt=2026-09-19/send_id=${r.send_id}.json.gz`,

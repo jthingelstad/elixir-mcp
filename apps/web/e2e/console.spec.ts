@@ -512,8 +512,8 @@ test.describe("signed in", () => {
         claims = [
           ...claims,
           {
-            player_tag: "#VJQV8G8RL",
-            name: "Spry Kestrel",
+            player_tag: "#0RPG0RYRP",
+            name: "Hare Pelican",
             is_primary: false,
             relationship: "alt",
             claim_status: "unverified",
@@ -526,7 +526,7 @@ test.describe("signed in", () => {
     await expect(
       page.locator(".rail").getByRole("link", { name: /Players/ }),
     ).toContainText("1");
-    await page.getByPlaceholder("#2PYQ8GJ0").fill("#VJQV8G8RL");
+    await page.getByPlaceholder("#2PYQ8GJ0").fill("#0RPG0RYRP");
     await page.getByRole("button", { name: "Follow" }).first().click();
     // The claim invalidates ["me"]: the rail's count follows without a reload.
     await expect(

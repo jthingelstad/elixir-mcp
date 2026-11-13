@@ -362,7 +362,7 @@ test("race lane resolves the week from the calendar and writes the rivals and pe
 
 test("battle lane fills the ten columns where null and the self census reads every lane back", async () => {
   const log = await fixture("player_battlelog/with_boat_and_duel.json");
-  const tag = "#2YG98VVQ";
+  const tag = "#00C298UC";
   // Ingest the log live with the columns nulled afterwards (the rows as
   // they were before 0131), then walk its receipt.
   const message = {

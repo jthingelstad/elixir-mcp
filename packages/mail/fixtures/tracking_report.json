@@ -7,8 +7,8 @@
  "season": 137,
  "people": [
   {
-   "tag": "#P0LYQ2R8",
-   "name": "Jolly Stoat",
+   "tag": "#0CLVCJQG",
+   "name": "Rapid Clear",
    "nickname": null,
    "relationship": "friend",
    "sessions": 4,
@@ -27,14 +27,14 @@
     {
      "kind": "battle_highlight",
      "at": "2026-11-09T02:12:00.000Z",
-     "text": "Jolly Stoat highlighted a 3-0 win against Brass Newt (Trophy Road).",
+     "text": "Rapid Clear highlighted a 3-0 win against Brass Newt (Trophy Road).",
      "words": "Finally beat the log bait I keep losing to. Three crowns!",
      "battle_url": "https://elixir.poapkings.com/battle/a1b2c3d4e5f6"
     },
     {
      "kind": "arena_changed",
      "at": "2026-11-08T21:40:00.000Z",
-     "text": "Jolly Stoat moved to Legendary Arena from Frozen Peak, on a 2-1 win over Copper Wren.",
+     "text": "Rapid Clear moved to Legendary Arena from Frozen Peak, on a 2-1 win over Copper Wren.",
      "battle_url": "https://elixir.poapkings.com/battle/0f9e8d7c6b5a"
     }
    ],
@@ -45,9 +45,9 @@
    }
   },
   {
-   "tag": "#Q8V2C9L0",
-   "name": "Plum Heron",
-   "nickname": "Plum",
+   "tag": "#0C8Q20PV",
+   "name": "Dove Sunny",
+   "nickname": "Moth",
    "relationship": "friend",
    "sessions": 2,
    "battles": 9,
@@ -62,8 +62,8 @@
    "more_items": 0
   },
   {
-   "tag": "#Y9RUJ20G",
-   "name": "Tawny Toad",
+   "tag": "#082ULV0U",
+   "name": "Quail Cool",
    "nickname": null,
    "relationship": "watching",
    "sessions": 6,
@@ -76,19 +76,19 @@
     {
      "kind": "ranked_promotion",
      "at": "2026-11-07T18:02:00.000Z",
-     "text": "Tawny Toad was promoted to Master II, on a 1-0 win over Slate Lynx.",
+     "text": "Quail Cool was promoted to Master II, on a 1-0 win over Slate Lynx.",
      "battle_url": "https://elixir.poapkings.com/battle/9a8b7c6d5e4f"
     },
     {
      "kind": "career_wins_step",
      "at": "2026-11-06T12:00:00.000Z",
-     "text": "Tawny Toad passed 5,000 career wins.",
+     "text": "Quail Cool passed 5,000 career wins.",
      "battle_url": null
     },
     {
      "kind": "clan_joined",
      "at": "2026-11-05T09:00:00.000Z",
-     "text": "Tawny Toad joined Elixir Kings.",
+     "text": "Quail Cool joined Puffin Lucky.",
      "battle_url": null
     }
    ],
@@ -138,8 +138,8 @@
   },
   "alts": [
    {
-    "tag": "#L2Q9P8V0",
-    "name": "Spry Kestrel",
+    "tag": "#0YCYURVJ",
+    "name": "Hare Pelican",
     "battles": 12
    }
   ]

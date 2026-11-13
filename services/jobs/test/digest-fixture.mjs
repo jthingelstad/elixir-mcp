@@ -3,7 +3,7 @@
  *  the small things milestone never mails. */
 export const PRIMARY = "#2QYQ9V0P";
 export const ALT = "#8LQ2PJ0C";
-export const OPPONENT = "#2PGQ8Y0L";
+export const OPPONENT = "#0QVVLQ9R";
 export const WINDOW = {
   fromMs: Date.parse("2026-10-07T00:00:00Z"),
   toMs: Date.parse("2026-10-08T00:00:00Z"),
@@ -19,7 +19,7 @@ export async function milestoneFixture(db) {
   ).rows[0].account_id;
   await db.query(
     `insert into player (player_tag, name) values
-       ($1, 'Primary One'), ($2, 'Alt Two'), ($3, 'Sandy Lemur')`,
+       ($1, 'Primary One'), ($2, 'Alt Two'), ($3, 'Birch Clear')`,
     [PRIMARY, ALT, OPPONENT],
   );
   await db.query(

@@ -82,8 +82,8 @@ test("return paths refuse normalized traversal, credentials, external and look-a
 });
 
 test("a Ladder path is kept across sign-in too; a look-alike is not", () => {
-  rememberAfterSignIn("/ladder?player=VJQV8G8RL&mode=ranked");
-  expect(takeAfterSignIn()).toBe("/ladder?player=VJQV8G8RL&mode=ranked");
+  rememberAfterSignIn("/ladder?player=0RPG0RYRP&mode=ranked");
+  expect(takeAfterSignIn()).toBe("/ladder?player=0RPG0RYRP&mode=ranked");
   rememberAfterSignIn("/ladders/x");
   expect(takeAfterSignIn()).toBeNull();
   rememberAfterSignIn("https://evil.example/ladder");

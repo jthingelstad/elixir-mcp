@@ -19,8 +19,8 @@
   "sessions": 636,
   "donations": 8308,
   "donations_leader": {
-   "tag": "#C920YGLC2",
-   "name": "Tawny Toad",
+   "tag": "#0GQ2CLQQJ",
+   "name": "Quail Cool",
    "n": 1195
   }
  },
@@ -46,29 +46,29 @@
     "finished": true
    },
    {
-    "tag": "#Q2R8L0PY",
-    "name": "Hazel Finch",
+    "tag": "#0GVL800P",
+    "name": "Comet Brisk",
     "rank": 2,
     "fame": 3678,
     "finished": false
    },
    {
-    "tag": "#9YJ2QL8C",
-    "name": "Lively Lemur",
+    "tag": "#082PQ00R",
+    "name": "Jackal Cloud",
     "rank": 3,
     "fame": 1800,
     "finished": false
    },
    {
-    "tag": "#2PQ9U0LY",
-    "name": "Lively Puffin",
+    "tag": "#08GC08L8",
+    "name": "Sturdy Falcon",
     "rank": 4,
     "fame": 0,
     "finished": false
    },
    {
-    "tag": "#YV0R8QG2",
-    "name": "Early Marten",
+    "tag": "#0U8JLJGR",
+    "name": "Cedar Nimble",
     "rank": 5,
     "fame": 0,
     "finished": false
@@ -76,37 +76,37 @@
   ],
   "raced": [
    {
-    "tag": "#2LJ0PU8P",
-    "name": "Ember Toad",
+    "tag": "#082C20V0",
+    "name": "Finch Duck",
     "points": 2400,
     "decks": 15
    },
    {
-    "tag": "#8YLUQ8JQ",
-    "name": "Sage Ferret",
+    "tag": "#0J2L9V08",
+    "name": "Mist Gentle",
     "points": 2350,
     "decks": 16
    },
    {
-    "tag": "#QQ2L0V2Y",
-    "name": "Rapid Robin",
+    "tag": "#09VY0GCG",
+    "name": "Witty Swift",
     "points": 2200,
     "decks": 13
    },
    {
-    "tag": "#2G2RPVPP",
-    "name": "Azure Beaver",
+    "tag": "#0UG2YYVY",
+    "name": "Crane Willow",
     "points": 2150,
     "decks": 13
    },
    {
-    "tag": "#9C8G2LYQ",
-    "name": "Glad Crane",
+    "tag": "#0R0YQ080",
+    "name": "Newt Quiet",
     "points": 2100,
     "decks": 16
    },
    {
-    "tag": "#R00LQ9",
+    "tag": "#09G9UJ",
     "name": "Member 1",
     "points": 2000,
     "decks": 12
@@ -118,7 +118,7 @@
     "decks": 11
    },
    {
-    "tag": "#R02LQ9",
+    "tag": "#08RV2R",
     "name": "Member 3",
     "points": 1880,
     "decks": 10
@@ -154,13 +154,13 @@
     "decks": 10
    },
    {
-    "tag": "#R08LQ9",
+    "tag": "#0VLY22",
     "name": "Member 9",
     "points": 1520,
     "decks": 9
    },
    {
-    "tag": "#R09LQ9",
+    "tag": "#0ULRRQ",
     "name": "Member 10",
     "points": 1460,
     "decks": 8
@@ -218,15 +218,15 @@
  "membership": {
   "joined": [
    {
-    "tag": "#P8URQGR2U",
-    "name": "Bold Shrew",
+    "tag": "#0C2L90UG9",
+    "name": "Seal Swift",
     "at": "2026-09-23T22:23:00Z",
     "role": "member",
     "note": "left again inside the week"
    },
    {
-    "tag": "#Y2V9G8LQ",
-    "name": "Gentle Linnet",
+    "tag": "#09RUGGR9",
+    "name": "Badger Mellow",
     "at": "2026-09-23T17:38:00Z",
     "role": "member",
     "note": null
@@ -234,26 +234,26 @@
   ],
   "left": [
    {
-    "tag": "#RRU9PGJQ9",
-    "name": "Coral Otter",
+    "tag": "#0JR80UJVJ",
+    "name": "Frost Quiet",
     "at": "2026-09-26T03:13:00Z",
     "role": "member"
    },
    {
-    "tag": "#20G0JGQLPL",
-    "name": "Bold Shrew",
+    "tag": "#0Y2VC9PYL9",
+    "name": "Seal Swift",
     "at": "2026-09-26T03:13:00Z",
     "role": "member"
    },
    {
-    "tag": "#20CLVPLG8R",
-    "name": "Teal Gecko",
+    "tag": "#00RJQU2GC0",
+    "name": "Crab Moose",
     "at": "2026-09-25T22:23:00Z",
     "role": "member"
    },
    {
-    "tag": "#20R8QRLYLP",
-    "name": "Crisp Marten",
+    "tag": "#0829VC9GG8",
+    "name": "Gecko Silver",
     "at": "2026-09-25T15:38:00Z",
     "role": "elder"
    }
@@ -264,25 +264,25 @@
  "standouts": [],
  "week_moves": {
   "top_battler": {
-   "tag": "#C920YGLC2",
-   "name": "Tawny Toad",
+   "tag": "#0GQ2CLQQJ",
+   "name": "Quail Cool",
    "battles": 355
   },
   "ranked": {
    "items": [
     {
-     "tag": "#2Y9QJ8L0",
-     "name": "Silver Thrush",
+     "tag": "#0GGJR828",
+     "name": "Meadow Beaver",
      "to": "Master 3"
     },
     {
-     "tag": "#2LJ0PU8P",
-     "name": "Ember Toad",
+     "tag": "#082C20V0",
+     "name": "Finch Duck",
      "to": "Master 3"
     },
     {
-     "tag": "#RJ9RRQPVU",
-     "name": "Onyx Ocelot",
+     "tag": "#0PUJYGGQ8",
+     "name": "Seal Sturdy",
      "to": "Grand Champion"
     }
    ],
@@ -295,18 +295,18 @@
   "bests": {
    "items": [
     {
-     "tag": "#8QGL2V9Y",
-     "name": "Bold Vole",
+     "tag": "#09UJGCLY",
+     "name": "Glad Hare",
      "best": 12504
     },
     {
-     "tag": "#2C0Y9QPL",
-     "name": "Misty Pelican",
+     "tag": "#0GLRU08L",
+     "name": "Fleet Compass",
      "best": 9523
     },
     {
-     "tag": "#JRVV9VC0C",
-     "name": "Oak Vole",
+     "tag": "#0CC2QGGUU",
+     "name": "Owl Calm",
      "best": 9014
     }
    ],
@@ -316,15 +316,15 @@
  "presence": {
   "quiet": [
    {
-    "name": "Zesty Weasel é⚡",
+    "name": "Clear Rabbit ö🦊",
     "days": 16
    },
    {
-    "name": "Pale Vole",
+    "name": "Fair Snow",
     "days": 15
    },
    {
-    "name": "Teal Koala",
+    "name": "Lark Tawny",
     "days": 10
    }
   ],

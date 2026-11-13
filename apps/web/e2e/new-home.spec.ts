@@ -72,7 +72,7 @@ for (const [label, width] of [
       // A name opens the player page.
       await expect(
         feed.getByRole("link", { name: "Ada", exact: true }),
-      ).toHaveAttribute("href", "/home/player/2YG98VVQ");
+      ).toHaveAttribute("href", "/home/player/00C298UC");
       await expect(page.getByText("23–14")).toBeVisible();
       await expect(
         page.getByText("Season 137, week 4: 2nd, 84,200 fame"),
@@ -352,7 +352,7 @@ for (const [label, width] of [
       ).toHaveAttribute("aria-pressed", "true");
       await expect(item.getByText("You and 2 others")).toBeVisible();
       expect(sent).toEqual([
-        { item_id: "o1", cheer: "royal", subjects: ["#2YG98VVQ"] },
+        { item_id: "o1", cheer: "royal", subjects: ["#00C298UC"] },
       ]);
       await noSideways(page);
       await accessible(page, "Home, cheered");
@@ -478,7 +478,7 @@ test("following someone before a player of your own: the steps, then the feed", 
           email: "reader@example.test",
           claims: [
             {
-              player_tag: "#2YG98VVQ",
+              player_tag: "#00C298UC",
               name: "Ada",
               is_primary: false,
               relationship: "friend",

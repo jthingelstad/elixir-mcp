@@ -417,12 +417,12 @@ test("the digest replaces the friends mail under its kind: Your week in Elixir, 
   assert.ok(!/Your friends this week|Tracking report/.test(out.html));
   assert.match(out.html, /Turn off this mail/);
   // The inbox preview leads with a highlight's words.
-  assert.match(out.preheader, /^Jolly Stoat: “Finally beat the log bait/);
+  assert.match(out.preheader, /^Rapid Clear: “Finally beat the log bait/);
   const text = htmlToText(out.html);
   // A highlight: the timeline's sentence, the words, the battle.
   assert.match(
     text,
-    /Jolly Stoat highlighted a 3-0 win against Brass Newt \(Trophy Road\)\. See the battle/,
+    /Rapid Clear highlighted a 3-0 win against Brass Newt \(Trophy Road\)\. See the battle/,
   );
   assert.match(
     text,
@@ -440,7 +440,7 @@ test("the digest replaces the friends mail under its kind: Your week in Elixir, 
   // The clans and the reader's own week, then the feed.
   assert.match(text, /Around you/);
   assert.match(text, /You, King Thing/);
-  assert.match(text, /With Spry Kestrel/);
+  assert.match(text, /With Hare Pelican/);
   assert.match(text, /Open your feed/);
   assert.match(
     text,
@@ -448,7 +448,7 @@ test("the digest replaces the friends mail under its kind: Your week in Elixir, 
   );
   assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
   // Each player once: a followed clanmate is marked, never told twice.
-  assert.match(text, /Jolly Stoat[^\n]*\n+In POAP KINGS/);
+  assert.match(text, /Rapid Clear[^\n]*\n+In POAP KINGS/);
 });
 
 test("a daily digest says its day and its cadence (#767)", () => {
@@ -494,7 +494,7 @@ test("the Arena week counts each player's card unlocks and badge levels, and lin
   );
   const text = htmlToText(renderMail("arena_week", facts, links).html);
   assert.match(text, /King Thing[^\n]*: 1 card unlocked, 2 badge levels/);
-  assert.match(text, /Spry Kestrel[^\n]*: 3 cards unlocked, 1 badge level\b/);
+  assert.match(text, /Hare Pelican[^\n]*: 3 cards unlocked, 1 badge level\b/);
   // Home is the feed since slice 7 (#765).
   assert.match(text, /\/home\?utm_source=email/);
   delete facts.progress;
@@ -821,10 +821,10 @@ test("the battle that did it opens its page, and a stored issue without the link
   );
   // The button opens the player's own season on Ladder: the season the
   // milestone happened in, so an old mail still opens that season.
-  assert.match(html, />Open Cedar Mole in Ladder</);
+  assert.match(html, />Open Cedar Bold in Ladder</);
   assert.match(
     html,
-    /href="https:\/\/elixir\.poapkings\.com\/ladder\?player=VJG0J29QP&amp;season=136&amp;utm_source=email/,
+    /href="https:\/\/elixir\.poapkings\.com\/ladder\?player=0YQYQPLQR&amp;season=136&amp;utm_source=email/,
   );
   delete facts.milestones[0].battle.url;
   delete facts.season;
@@ -832,7 +832,7 @@ test("the battle that did it opens its page, and a stored issue without the link
   assert.match(old, /The battle that did it/);
   assert.doesNotMatch(old, /See the battle/);
   // Stored before the season was on it: Ladder's own default.
-  assert.match(old, /\/ladder\?player=VJG0J29QP&amp;utm_source=email/);
+  assert.match(old, /\/ladder\?player=0YQYQPLQR&amp;utm_source=email/);
 });
 
 test("the Arena week opens Ladder: the season, and every deck on Ladder › Decks", () => {
@@ -1015,7 +1015,7 @@ test("actions waiting: action rows, the app's count of the rest, and one primary
   );
   const one = renderMail(
     "clan_actions_waiting",
-    { ...facts, lines: ["#41 Promote to Elder: Glad Crane (new)"] },
+    { ...facts, lines: ["#41 Promote to Elder: Newt Quiet (new)"] },
     links,
   ).html;
   assert.match(one, /One action waiting/);

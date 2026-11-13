@@ -31,7 +31,7 @@ const ADMIN_URL =
 const NAME = `elixir_mcp_test_claims_${process.pid}`;
 const URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
-const A = "#2YG98VVQ";
+const A = "#00C298UC";
 const B = "#20JJJ2CCRU";
 const C = "#PYLQGRJC";
 const D = "#9VUP08YL";
@@ -135,8 +135,8 @@ test("adding a second player as primary switches instead of failing", async () =
   });
   assert.equal(r.ok, true);
   assert.deepEqual(await claims(alice), [
-    { player_tag: B, is_primary: true },
     { player_tag: A, is_primary: false },
+    { player_tag: B, is_primary: true },
   ]);
 });
 
@@ -165,8 +165,8 @@ test("removing the primary while others are tracked is refused, never leaves non
   assert.equal(r.refused, "primary_in_use");
   assert.equal(r.promotedPrimary, null);
   assert.deepEqual(await claims(alice), [
-    { player_tag: B, is_primary: false },
     { player_tag: A, is_primary: true },
+    { player_tag: B, is_primary: false },
   ]);
   // Choosing first makes the removal an ordinary one.
   await addPlayer(db, alice, { tag: B, via: "test", makePrimary: true });

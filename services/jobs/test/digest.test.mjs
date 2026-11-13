@@ -71,8 +71,8 @@ const GOLDEN = {
         crowns: 2,
         crowns_against: 1,
         opponent: {
-          tag: "#2PGQ8Y0L",
-          name: "Sandy Lemur",
+          tag: "#0QVVLQ9R",
+          name: "Birch Clear",
           starting_trophies: 5012,
         },
         trophy_change: 30,

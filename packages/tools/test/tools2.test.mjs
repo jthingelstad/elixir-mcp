@@ -23,7 +23,7 @@ const ADMIN_URL =
 const NAME = `elixir_mcp_test_tools2_${process.pid}`;
 const URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
-const OBSERVER = "#JYRQ8U92C"; // colosseum-duel battlelog + profile fixture subject
+const OBSERVER = "#0QRVVG22J"; // colosseum-duel battlelog + profile fixture subject
 let db;
 let account;
 let invoke;
@@ -1327,7 +1327,7 @@ test("players_profile answers the player as a game entity, not just a name (§7.
   // The projection itself is covered in the ingest suite against the
   // real fixture; this pins that the tool actually SERVES it, which is
   // the half a consumer sees.
-  const tag = "#2YG98VVQ";
+  const tag = "#00C298UC";
   await db.query(
     `insert into clan (clan_tag, name, badge_id) values ('#J2RGCRVG', 'POAP KINGS', 16000107)
      on conflict (clan_tag) do update set badge_id = 16000107`,
@@ -1335,7 +1335,7 @@ test("players_profile answers the player as a game entity, not just a name (§7.
   await db.query(
     `insert into player (player_tag, name, last_known_clan_tag, last_known_clan_role,
                         years_played, account_age_days)
-     values ($1, 'Bold Vole', '#J2RGCRVG', 'coLeader', 4, 1637)
+     values ($1, 'Glad Hare', '#J2RGCRVG', 'coLeader', 4, 1637)
      on conflict (player_tag) do update set
        last_known_clan_tag = '#J2RGCRVG', last_known_clan_role = 'coLeader',
        years_played = 4, account_age_days = 1637`,
@@ -1429,7 +1429,7 @@ test("clans_roster summary answers the count without the roster", async () => {
   // Two members with different roles, or the role breakdown is 0 = 0 and the
   // size comparison is two empty lists.
   for (const [tag, name, role] of [
-    ["#2YG98VVQ", "Bold Vole", "coLeader"],
+    ["#00C298UC", "Glad Hare", "coLeader"],
     ["#2PP0V90Y", "Bench", "member"],
   ]) {
     await db.query(

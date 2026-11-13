@@ -53,7 +53,7 @@ const SUGGESTED = {
       why: [
         {
           kind: "followed_by",
-          via: { tag: "#2YG98VVQ", name: "Ada" },
+          via: { tag: "#00C298UC", name: "Ada" },
           others: 0,
         },
       ],
@@ -79,7 +79,7 @@ const CLAN_RACE = {
 
 const ADA = {
   player: {
-    tag: "#2YG98VVQ",
+    tag: "#00C298UC",
     name: "Ada",
     clan_tag: "#9GQLV20",
     clan_name: "Grove",
@@ -210,7 +210,7 @@ for (const [label, width] of [
                   my_cheer: null,
                 },
               ],
-              subjects: ["#2YG98VVQ", "#9GQLV20"],
+              subjects: ["#00C298UC", "#9GQLV20"],
             },
           ],
           "PUT /api/me/cheers": (route) => {
@@ -226,7 +226,7 @@ for (const [label, width] of [
           },
         }),
       );
-      await page.goto("/home/player/2YG98VVQ");
+      await page.goto("/home/player/00C298UC");
       await expect(
         page.getByRole("heading", { level: 1, name: "Ada" }),
       ).toBeVisible();
@@ -254,7 +254,7 @@ for (const [label, width] of [
         {
           item_id: "tl_00000000000000000001",
           cheer: "on_fire",
-          subjects: ["#2YG98VVQ", "#9GQLV20"],
+          subjects: ["#00C298UC", "#9GQLV20"],
         },
       ]);
       await noSideways(page);
@@ -288,7 +288,7 @@ for (const [label, width] of [
                   my_cheer: null,
                 },
               ],
-              subjects: ["#2YG98VVQ"],
+              subjects: ["#00C298UC"],
             },
           ];
         },
@@ -323,7 +323,7 @@ for (const [label, width] of [
         {
           item_id: "tl_00000000000000000003",
           cheer: "wow",
-          subjects: ["#2YG98VVQ"],
+          subjects: ["#00C298UC"],
         },
       ]);
       await noSideways(page);
@@ -364,7 +364,7 @@ for (const [label, width] of [
                   role: "member",
                 },
                 {
-                  player_tag: "#2YG98VVQ",
+                  player_tag: "#00C298UC",
                   name: "Ada",
                   following: true,
                   free: true,
@@ -402,7 +402,7 @@ for (const [label, width] of [
                   reason: "recorded",
                 },
                 {
-                  tag: "#2YG98VVQ",
+                  tag: "#00C298UC",
                   name: "Ada",
                   against: 0,
                   with_you: 2,

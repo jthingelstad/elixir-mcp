@@ -29,7 +29,7 @@ import { settingView } from "../src/settings.mjs";
 import { applyReceipts } from "../src/quality.mjs";
 import { webhookSeal, WEBHOOK_PURPOSE } from "../src/seal.mjs";
 
-const OBSERVER = "#UVQ8RJYG9"; // the battlelog fixture's own player
+const OBSERVER = "#0QG2JG928"; // the battlelog fixture's own player
 const CLAN = "#J2RGCRVG";
 const HOOK = `https://discord.com/api/webhooks/123456789012345678/${"a".repeat(68)}`;
 const { seal, open } = webhookSeal(
@@ -130,7 +130,7 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   );
   assert.match(
     sitting.content,
-    /\]\(<https:\/\/elixir\.poapkings\.com\/home\/player\/UVQ8RJYG9>\)$/,
+    /\]\(<https:\/\/elixir\.poapkings\.com\/home\/player\/0QG2JG928>\)$/,
     "links are masked around an angle-bracketed address, which Discord never previews",
   );
   const [row] = await told(person);

@@ -33,7 +33,7 @@ import {
 
 const CLAN = "#9GQLV20";
 const OWN = "#9GQLV22";
-const FRIEND = "#2YG98VVQ";
+const FRIEND = "#00C298UC";
 const WATCHED = "#PYLQGRJC";
 const NEWCOMER_FRIEND = "#9VUP08YL";
 

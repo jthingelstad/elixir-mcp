@@ -71,7 +71,7 @@ test("settles what suspended agents held open, and only that", async () => {
   ).account_id;
   // While active: a player only it tracks, a player its owner shares, and
   // a clan it tracks.
-  await addPlayer(db, { accountId: agent }, { tag: "#2YG98VVQ", via: "test" });
+  await addPlayer(db, { accountId: agent }, { tag: "#00C298UC", via: "test" });
   await addPlayer(db, { accountId: agent }, { tag: "#PYLQGRJC", via: "test" });
   await addPlayer(db, { accountId: owner }, { tag: "#PYLQGRJC", via: "test" });
   const clan = await addClan(
@@ -89,16 +89,16 @@ test("settles what suspended agents held open, and only that", async () => {
   const dry = await agentRecordingsOp(SCRATCH_URL, { dry_run: true });
   assert.equal(dry.subjects, 3);
   assert.deepEqual(dry.would_stop, [
-    { kind: "player", tag: "#2YG98VVQ" },
+    { kind: "player", tag: "#00C298UC" },
     { kind: "clan", tag: "#9VUP08YL" },
   ]);
-  assert.equal(await active("#2YG98VVQ"), 1, "a dry run writes nothing");
+  assert.equal(await active("#00C298UC"), 1, "a dry run writes nothing");
 
   assert.equal((await agentRecordingsOp(SCRATCH_URL, {})).dry_run, true);
 
   const run = await agentRecordingsOp(SCRATCH_URL, { dry_run: false });
   assert.equal(run.stopped.length, 2);
-  assert.equal(await active("#2YG98VVQ"), 0);
+  assert.equal(await active("#00C298UC"), 0);
   assert.equal(await active("#9VUP08YL"), 0);
   assert.equal(await active("#PYLQGRJC"), 1, "the owner still wants it");
 

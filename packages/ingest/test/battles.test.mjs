@@ -274,7 +274,7 @@ test("enrich-on-dedup fills missing fields and never overwrites", async () => {
 
 test("empty battlelog is a clean no-op", async () => {
   const result = await ingestBattlelog(ctx.db, {
-    observerTag: "#9JQ0U989",
+    observerTag: "#0LU0LPUU",
     receiptId,
     payload: await fixture("player_battlelog/empty.json"),
   });

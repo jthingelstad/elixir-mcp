@@ -71,7 +71,7 @@ test("counts the ops origin and settles what only it kept open", async () => {
   // stopped ops row that is history.
   await db.query(
     `insert into recording (subject_type, subject_tag, requested_by, origin, status)
-     values ('player', '#2YG98VVQ', $1, 'ops', 'active'),
+     values ('player', '#00C298UC', $1, 'ops', 'active'),
             ('clan', '#9VUP08YL', $1, 'ops', 'active'),
             ('player', '#8C8JJQLG', $1, 'ops', 'stopped')`,
     [owner],
@@ -86,16 +86,16 @@ test("counts the ops origin and settles what only it kept open", async () => {
   assert.equal(dry.subjects, 3);
   assert.deepEqual(dry.would_stop_count, { player: 1, clan: 1 });
   assert.deepEqual(dry.would_stop, [
-    { kind: "player", tag: "#2YG98VVQ" },
+    { kind: "player", tag: "#00C298UC" },
     { kind: "clan", tag: "#9VUP08YL" },
   ]);
-  assert.equal(await active("#2YG98VVQ"), 1, "a dry run writes nothing");
+  assert.equal(await active("#00C298UC"), 1, "a dry run writes nothing");
 
   assert.equal((await opsRecordingsOp(SCRATCH_URL, {})).dry_run, true);
 
   const run = await opsRecordingsOp(SCRATCH_URL, { dry_run: false });
   assert.deepEqual(run.stopped_count, { player: 1, clan: 1 });
-  assert.equal(await active("#2YG98VVQ"), 0);
+  assert.equal(await active("#00C298UC"), 0);
   assert.equal(await active("#9VUP08YL"), 0);
   assert.equal(await active("#PYLQGRJC"), 1, "somebody still tracks it");
   const rows = await one(

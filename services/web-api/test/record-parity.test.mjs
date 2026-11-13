@@ -25,7 +25,7 @@ const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_mcp_test_record_parity_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
-const PLAYER = "#JYRQ8U92C"; // fixtures/player/profile.json
+const PLAYER = "#0QRVVG22J"; // fixtures/player/profile.json
 let db, handler, invoke, cookie, person, personToken, integrationToken;
 
 const request = (method, path, token) =>

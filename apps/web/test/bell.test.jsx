@@ -98,7 +98,7 @@ const BELL = {
       {
         tag: "#2PP0V9PP",
         name: "Invented Fan",
-        followed_tag: "#JYRQ8U92C",
+        followed_tag: "#0QRVVG22J",
         followed_name: "Invented Owner",
         new: true,
       },

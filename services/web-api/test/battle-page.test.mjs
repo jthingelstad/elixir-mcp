@@ -26,7 +26,7 @@ const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_mcp_test_battle_page_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
-const OBSERVER = "#JYRQ8U92C";
+const OBSERVER = "#0QRVVG22J";
 const SHELL = `<!doctype html><html><head>
     <title>Elixir</title>
     <meta name="description" content="The app" />

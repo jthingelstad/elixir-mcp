@@ -191,7 +191,7 @@ test("war battles resolve to their week and day by battle_time on the calendar (
   const receiptId = await seedReceipt(ctx.db);
   const log = await fixture("player_battlelog/with_boat_and_duel.json");
   await ingestBattlelog(ctx.db, {
-    observerTag: "#2YG98VVQ",
+    observerTag: "#00C298UC",
     receiptId,
     payload: log,
   });
@@ -339,14 +339,14 @@ test("admission accepts the real riverracelog and rejects corrupt items", async 
 
 test("riverrace for a never-seen clan seeds its identity row (no FK race)", async () => {
   const race = structuredClone(await fixture("currentriverrace/war_day.json"));
-  race.clan.tag = "#RJ9UJ9L8"; // no clan row, no roster ever observed
+  race.clan.tag = "#0RLPL9CU"; // no clan row, no roster ever observed
   const result = await projectRiverRace(ctx.db, {
     payload: race,
     fetchedAt: "2026-08-03T09:00:00Z",
   });
   assert.ok(result);
   const { rows } = await ctx.db.query(
-    `select 1 from clan where clan_tag = '#RJ9UJ9L8'`,
+    `select 1 from clan where clan_tag = '#0RLPL9CU'`,
   );
   assert.equal(rows.length, 1, "identity-only clan row created");
 });
@@ -437,7 +437,7 @@ test("a boat battle resolves like any war battle: its day is its time", async ()
   );
   await ctx.db.query(
     `insert into battle_participant (battle_id, player_tag, battle_time, side, clan_tag, type, type_class)
-     values ('r3-boat', '#2YG98VVQ', '2026-08-30T08:00:00Z', 0, $1, 'boatBattle', 'boat')
+     values ('r3-boat', '#00C298UC', '2026-08-30T08:00:00Z', 0, $1, 'boatBattle', 'boat')
      on conflict do nothing`,
     [CLAN],
   );

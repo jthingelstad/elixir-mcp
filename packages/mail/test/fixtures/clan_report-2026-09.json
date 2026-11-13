@@ -21,8 +21,8 @@
   "sessions": 803,
   "donations": 542,
   "donations_leader": {
-   "name": "Crisp Marten",
-   "tag": "#20R8QRLYLP",
+   "name": "Gecko Silver",
+   "tag": "#0829VC9GG8",
    "n": 74
   }
  },
@@ -41,52 +41,52 @@
  "membership": {
   "joined": [
    {
-    "name": "Coral Otter",
-    "tag": "#RRU9PGJQ9",
+    "name": "Frost Quiet",
+    "tag": "#0JR80UJVJ",
     "at": "2026-09-08T18:00:00Z"
    },
    {
-    "name": "Teal Gecko",
-    "tag": "#20CLVPLG8R",
+    "name": "Crab Moose",
+    "tag": "#00RJQU2GC0",
     "at": "2026-09-12T18:00:00Z"
    },
    {
-    "name": "Woolly Shrew é⚡",
-    "tag": "#LCUVPUYCY",
+    "name": "Rabbit Clear ö⚡",
+    "tag": "#0002YG0UQ",
     "at": "2026-09-12T18:00:00Z",
     "note": "left again the same day"
    }
   ],
   "left": [
    {
-    "name": "Pale Egret",
-    "tag": "#UCP028JQ8",
+    "name": "Frog Sunny",
+    "tag": "#0LV8YR90G",
     "at": "2026-09-10T18:00:00Z",
     "role": "member"
    },
    {
-    "name": "Fern Finch",
-    "tag": "#VGJJLC9PR",
+    "name": "Toad Swift",
+    "tag": "#02Y02C2C0",
     "at": "2026-09-10T18:00:00Z",
     "role": "member"
    },
    {
-    "name": "Slate Koala",
-    "tag": "#QLGYYG0Q",
+    "name": "Quail Quick",
+    "tag": "#0CQR0Q99",
     "at": "2026-09-10T18:00:00Z",
     "role": "member"
    }
   ],
   "roles": [
    {
-    "name": "Pale Egret",
-    "tag": "#UCP028JQ8",
+    "name": "Frog Sunny",
+    "tag": "#0LV8YR90G",
     "from": "elder",
     "to": "member"
    },
    {
-    "name": "Slate Koala",
-    "tag": "#QLGYYG0Q",
+    "name": "Quail Quick",
+    "tag": "#0CQR0Q99",
     "from": "elder",
     "to": "member"
    }
@@ -94,228 +94,228 @@
  },
  "standouts": [
   {
-   "name": "Azure Beaver",
-   "tag": "#2G2RPVPP",
+   "name": "Crane Willow",
+   "tag": "#0UG2YYVY",
    "text": "449 battles, the most in the clan; 37 in one {{day:2026-09-12T18:00:00Z}} sitting with 12 wins in a row; promoted to Master 2 in ranked"
   },
   {
-   "name": "Keen Zebu é⚡",
-   "tag": "#2CY2RJL9G",
+   "name": "Fast Wren ö🏆",
+   "tag": "#0GC9P98LQ",
    "text": "48 battles in one sitting Saturday, 24W-24L, half of them ranked"
   },
   {
-   "name": "Oak Vole",
-   "tag": "#JRVV9VC0C",
+   "name": "Owl Calm",
+   "tag": "#0CC2QGGUU",
    "text": "44 battles in one Monday sitting, 10W-34L"
   },
   {
-   "name": "Crisp Curlew",
-   "tag": "#P2U0PC2UU",
+   "name": "Otter Salmon",
+   "tag": "#0RLL092VP",
    "text": "+350 trophies, 13,650 → 14,000, clan rank 17 → 2"
   },
   {
-   "name": "Mossy Raven",
-   "tag": "#VGC22YGP",
+   "name": "Storm Merry",
+   "tag": "#0990UQVG",
    "text": "+353 trophies, 13,647 → 14,000, clan rank 18 → 6"
   }
  ],
  "presence": {
   "quiet": [
    {
-    "name": "Sage Zebu",
+    "name": "Duck Tall",
     "days": 7
    }
   ],
   "returned": [
    {
-    "name": "Pale Vole",
+    "name": "Fair Snow",
     "days": 10
    },
    {
-    "name": "Quiet Ocelot",
+    "name": "Tiger Meadow",
     "days": 7
    }
   ]
  },
  "badges": [
   {
-   "name": "Copper Koala",
+   "name": "Rabbit Cloud",
    "badge": "Mastery: Miner"
   },
   {
-   "name": "Rapid Robin",
+   "name": "Witty Swift",
    "badge": "Mastery: Fire Spirit Hut"
   },
   {
-   "name": "Sage Ferret",
+   "name": "Mist Gentle",
    "badge": "Mastery: Ice Wizard"
   }
  ],
  "roster_note": null,
  "roster": [
   {
-   "name": "Azure Beaver",
-   "tag": "#2G2RPVPP",
+   "name": "Crane Willow",
+   "tag": "#0UG2YYVY",
    "role": "member",
    "trophies": 14000,
    "delta": 0,
    "battles": 393
   },
   {
-   "name": "Crisp Curlew",
-   "tag": "#P2U0PC2UU",
+   "name": "Otter Salmon",
+   "tag": "#0RLL092VP",
    "role": "member",
    "trophies": 14000,
    "delta": 350,
    "battles": 101
   },
   {
-   "name": "Keen Zebu é⚡",
-   "tag": "#2CY2RJL9G",
+   "name": "Fast Wren ö🏆",
+   "tag": "#0GC9P98LQ",
    "role": "member",
    "trophies": 14000,
    "delta": 0,
    "battles": 205
   },
   {
-   "name": "Tawny Toad",
-   "tag": "#C920YGLC2",
+   "name": "Quail Cool",
+   "tag": "#0GQ2CLQQJ",
    "role": "co-leader",
    "trophies": 14000,
    "delta": 0,
    "battles": 264
   },
   {
-   "name": "Rapid Robin",
-   "tag": "#UQ2R9RGVP",
+   "name": "Witty Swift",
+   "tag": "#0QQLUJRY9",
    "role": "member",
    "trophies": 14000,
    "delta": 0,
    "battles": 102
   },
   {
-   "name": "Mossy Raven",
-   "tag": "#VGC22YGP",
+   "name": "Storm Merry",
+   "tag": "#0990UQVG",
    "role": "member",
    "trophies": 14000,
    "delta": 353,
    "battles": 141
   },
   {
-   "name": "Silver Thrush",
-   "tag": "#PLCCYUQL",
+   "name": "Meadow Beaver",
+   "tag": "#0L990RRV",
    "role": "member",
    "trophies": 14000,
    "delta": 0,
    "battles": 58
   },
   {
-   "name": "Slate Panda",
-   "tag": "#PR8YLQ2CV",
+   "name": "Cloud Sunny",
+   "tag": "#00JRQGUCG",
    "role": "member",
    "trophies": 14000,
    "delta": 0,
    "battles": 14
   },
   {
-   "name": "Ember Toad",
-   "tag": "#9Q9QRCPPU",
+   "name": "Finch Duck",
+   "tag": "#00R0RRU90",
    "role": "member",
    "trophies": 14000,
    "delta": 0,
    "battles": 31
   },
   {
-   "name": "Jolly Stoat",
-   "tag": "#U8RYG9Y2U",
+   "name": "Rapid Clear",
+   "tag": "#08Q80C99R",
    "role": "co-leader",
    "trophies": 14000,
    "delta": 0,
    "battles": 16
   },
   {
-   "name": "Onyx Ocelot",
-   "tag": "#RJ9RRQPVU",
+   "name": "Seal Sturdy",
+   "tag": "#0PUJYGGQ8",
    "role": "member",
    "trophies": 14000,
    "delta": 0,
    "battles": 39
   },
   {
-   "name": "Keen Stoat",
-   "tag": "#2G09Q20QC",
+   "name": "Lark Panda",
+   "tag": "#0VQ2VCVP2",
    "role": "member",
    "trophies": 14000,
    "delta": 0,
    "battles": 17
   },
   {
-   "name": "Foggy Stoat",
-   "tag": "#8U2P0JPR",
+   "name": "Llama Eager",
+   "tag": "#0JY8UYYG",
    "role": "member",
    "trophies": 14000,
    "delta": 0,
    "battles": 42
   },
   {
-   "name": "Zesty Weasel é⚡",
-   "tag": "#2P9GRU2Q0",
+   "name": "Clear Rabbit ö🦊",
+   "tag": "#090QYUG02",
    "role": "member",
    "trophies": 14000,
    "delta": 0,
    "battles": null
   },
   {
-   "name": "Plum Heron",
-   "tag": "#UL2V9QRG0",
+   "name": "Dove Sunny",
+   "tag": "#0G9L8QCVV",
    "role": "co-leader",
    "trophies": 13904,
    "delta": -29,
    "battles": 7
   },
   {
-   "name": "Bold Pelican é⚡",
-   "tag": "#UVQ8RJYG9",
+   "name": "Toad Thistle ö🐉",
+   "tag": "#0QG2JG928",
    "role": "member",
    "trophies": 13681,
    "delta": -3,
    "battles": 28
   },
   {
-   "name": "Sage Ferret",
-   "tag": "#JYRQ8U92C",
+   "name": "Mist Gentle",
+   "tag": "#0QRVVG22J",
    "role": "member",
    "trophies": 13598,
    "delta": 72,
    "battles": 124
   },
   {
-   "name": "Crisp Marten",
-   "tag": "#20R8QRLYLP",
+   "name": "Gecko Silver",
+   "tag": "#0829VC9GG8",
    "role": "member",
    "trophies": 13560,
    "delta": 60,
    "battles": 46
   },
   {
-   "name": "Quiet Weasel",
-   "tag": "#V8Q8PUL0U",
+   "name": "Brisk Parrot",
+   "tag": "#082YLQRRV",
    "role": "member",
    "trophies": 13184,
    "delta": 0,
    "battles": 61
   },
   {
-   "name": "Keen Crane é⚡",
-   "tag": "#G2CUUJQ8V",
+   "name": "Wren Amber ö⭐",
+   "tag": "#0JL99P2UR",
    "role": "member",
    "trophies": 13177,
    "delta": 0,
    "battles": 30
   },
   {
-   "name": "Clay Ibis",
-   "tag": "#L9CUUJPLJ",
+   "name": "Fern Soft",
+   "tag": "#009RVRV2J",
    "role": "member",
    "trophies": 13000,
    "delta": -88,
@@ -330,192 +330,192 @@
    "battles": 18
   },
   {
-   "name": "Bold Vole",
-   "tag": "#2YG98VVQ",
+   "name": "Glad Hare",
+   "tag": "#00C298UC",
    "role": "member",
    "trophies": 12349,
    "delta": -33,
    "battles": 23
   },
   {
-   "name": "Rustic Seal",
-   "tag": "#2209PJPVGG",
+   "name": "Gopher Fast",
+   "tag": "#0P9GPLYPC2",
    "role": "member",
    "trophies": 12289,
    "delta": 94,
    "battles": 83
   },
   {
-   "name": "Glad Crane",
-   "tag": "#U92P8PQG0",
+   "name": "Newt Quiet",
+   "tag": "#0CJ9UPPR2",
    "role": "member",
    "trophies": 12105,
    "delta": 6,
    "battles": 57
   },
   {
-   "name": "Indigo Linnet",
-   "tag": "#20LP8UPJ8R",
+   "name": "Falcon Rabbit",
+   "tag": "#0QVY0J0YR0",
    "role": "member",
    "trophies": 11616,
    "delta": 115,
    "battles": null
   },
   {
-   "name": "Slate Crane",
-   "tag": "#U08P889Y0",
+   "name": "Zebra Tawny",
+   "tag": "#0QLG889LG",
    "role": "member",
    "trophies": 11532,
    "delta": 0,
    "battles": 19
   },
   {
-   "name": "Brisk Egret",
-   "tag": "#2LRYLQPL",
+   "name": "Jolly Clear",
+   "tag": "#00J00U28",
    "role": "member",
    "trophies": 11110,
    "delta": 389,
    "battles": 57
   },
   {
-   "name": "Bold Raven",
-   "tag": "#UCRLVL29U",
+   "name": "Rain Brave",
+   "tag": "#0UCQQGURJ",
    "role": "member",
    "trophies": 11085,
    "delta": 234,
    "battles": 75
   },
   {
-   "name": "Cedar Robin",
-   "tag": "#CV20JCY0V",
+   "name": "Amber Lemur",
+   "tag": "#08UJ89CQ9",
    "role": "member",
    "trophies": 11004,
    "delta": 92,
    "battles": 37
   },
   {
-   "name": "Gentle Badger",
-   "tag": "#8G8UYG2PQ",
+   "name": "Lively Steady",
+   "tag": "#0VGPPU8G2",
    "role": "member",
    "trophies": 9527,
    "delta": -95,
    "battles": 11
   },
   {
-   "name": "Misty Pelican",
-   "tag": "#229QY8UL9U",
+   "name": "Fleet Compass",
+   "tag": "#00GGLLCLLQ",
    "role": "member",
    "trophies": 9446,
    "delta": 273,
    "battles": 60
   },
   {
-   "name": "Olive Dormouse",
-   "tag": "#VC8VY8R29",
+   "name": "Sunny Spirited",
+   "tag": "#02L2JV2QJ",
    "role": "member",
    "trophies": 8807,
    "delta": 219,
    "battles": 55
   },
   {
-   "name": "Copper Koala",
-   "tag": "#20GPQPC9RV",
+   "name": "Rabbit Cloud",
+   "tag": "#0VC0V2V908",
    "role": "member",
    "trophies": 8600,
    "delta": 100,
    "battles": 139
   },
   {
-   "name": "Oak Vole",
-   "tag": "#JRVV9VC0C",
+   "name": "Owl Calm",
+   "tag": "#0CC2QGGUU",
    "role": "member",
    "trophies": 8530,
    "delta": 30,
    "battles": 160
   },
   {
-   "name": "Quiet Ocelot",
-   "tag": "#VR0QRP2PG",
+   "name": "Tiger Meadow",
+   "tag": "#0988PUGPY",
    "role": "member",
    "trophies": 8067,
    "delta": -29,
    "battles": null
   },
   {
-   "name": "Coral Otter",
-   "tag": "#RRU9PGJQ9",
+   "name": "Frost Quiet",
+   "tag": "#0JR80UJVJ",
    "role": "member",
    "trophies": 7884,
    "delta": 0,
    "battles": null
   },
   {
-   "name": "Teal Gecko",
-   "tag": "#20CLVPLG8R",
+   "name": "Crab Moose",
+   "tag": "#00RJQU2GC0",
    "role": "member",
    "trophies": 7750,
    "delta": 36,
    "battles": 27
   },
   {
-   "name": "Umber Stoat é⚡",
-   "tag": "#VJG09L9YY",
+   "name": "Lucky Merry ö🔥",
+   "tag": "#0VG28GVJJ",
    "role": "member",
    "trophies": 7667,
    "delta": 7,
    "battles": 21
   },
   {
-   "name": "Pale Vole",
-   "tag": "#V0CRYP2GG",
+   "name": "Fair Snow",
+   "tag": "#0RC8G2CYG",
    "role": "member",
    "trophies": 7563,
    "delta": -6,
    "battles": null
   },
   {
-   "name": "Teal Koala",
-   "tag": "#20G9RY299P",
+   "name": "Lark Tawny",
+   "tag": "#0YC9LP8JYL",
    "role": "member",
    "trophies": 7405,
    "delta": 30,
    "battles": 20
   },
   {
-   "name": "Bold Shrew",
-   "tag": "#20G0JGQLPL",
+   "name": "Seal Swift",
+   "tag": "#0Y2VC9PYL9",
    "role": "member",
    "trophies": 7262,
    "delta": 90,
    "battles": null
   },
   {
-   "name": "Pale Kestrel",
-   "tag": "#20CGPVUL92",
+   "name": "Tall Penguin",
+   "tag": "#08L2PYLPLY",
    "role": "member",
    "trophies": 6452,
    "delta": 148,
    "battles": null
   },
   {
-   "name": "Gentle Linnet",
-   "tag": "#20GQUGPRC2",
+   "name": "Badger Mellow",
+   "tag": "#0J0P0RJUQ8",
    "role": "member",
    "trophies": 5971,
    "delta": 37,
    "battles": null
   },
   {
-   "name": "Amber Pelican",
-   "tag": "#VQUQJP8Q9",
+   "name": "Frost Dolphin",
+   "tag": "#0Q98R28PV",
    "role": "member",
    "trophies": 5844,
    "delta": 89,
    "battles": 5
   },
   {
-   "name": "Tidy Gibbon",
-   "tag": "#URPCLR8UQ",
+   "name": "Deer Marten",
+   "tag": "#0QLLUVPVL",
    "role": "member",
    "trophies": 5794,
    "delta": 178,

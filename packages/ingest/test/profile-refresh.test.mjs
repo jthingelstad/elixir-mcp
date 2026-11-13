@@ -2,7 +2,7 @@
  * 0101: the battle stream asks for a profile the snapshot cannot vouch
  * for, and a moment is written once.
  *
- * The shape is Tidy Gibbon's morning of 2026-09-15: a 06:07Z profile in
+ * The shape is Deer Marten's morning of 2026-09-15: a 06:07Z profile in
  * Executioner's Kitchen, the crossing at 06:46Z, a first Royal Crypt battle
  * as the LOWER side at 06:52Z (which vouches for nothing: the arena on a
  * battle is the higher side's), a trusted Royal Crypt battle at 08:11Z,
@@ -411,7 +411,7 @@ test("a ranked promotion names the last win stamped with the old league; a loss 
     });
   };
   await processResult(ctx.db, profileFor(1, at("01:00:00")));
-  // Silver Thrush's shape: wins and losses in league 1, the promoting win at 04:34
+  // Meadow Beaver's shape: wins and losses in league 1, the promoting win at 04:34
   // stamped 1, the battles after it stamped 2.
   const pol = (hhmmss, league, opponent, result, name) =>
     ranked({ at: logAt(hhmmss), league, tag: RANKER, opponent, name, result });

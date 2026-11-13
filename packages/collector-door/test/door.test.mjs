@@ -103,25 +103,25 @@ before(async () => {
     [
       [
         "#20JJJ2CCRU",
-        "#2LRYLQPL",
+        "#00J00U28",
         "#2PP",
         "#2PPLQQ",
         "#2PQ",
         "#2PR",
         "#2PY",
-        "#2YG98VVQ",
+        "#00C298UC",
         "#8LR0P09LR",
-        "#8U2P0JPR",
+        "#0JY8UYYG",
         "#ABN1",
         "#ABN2",
         "#ABN3",
-        "#JRVV9VC0C",
-        "#PLCCYUQL",
+        "#0CC2QGGUU",
+        "#0L990RRV",
         "#REJECT1",
         "#RETRY1",
         "#RETRY2",
         "#RETRY3",
-        "#U08P889Y0",
+        "#0QLG889LG",
         "#Y9CQ8VRV",
       ],
     ],
@@ -306,7 +306,7 @@ test("lease: every collector serves the live lane first; the server computes cr_
     "seven seconds later the same collector is steered to the same slot",
   );
 
-  await enqueueJob(db, { ...JOB, entity_key: "#2YG98VVQ", lane: "bulk" });
+  await enqueueJob(db, { ...JOB, entity_key: "#00C298UC", lane: "bulk" });
   await enqueueJob(db, { ...JOB, lane: "live" });
   const r = await door.lease(db, authed(TOKEN_BULK), {});
   assert.equal(r.status, 200);
@@ -320,7 +320,7 @@ test("lease: every collector serves the live lane first; the server computes cr_
   assert.match(r.body.lease, /^\d+$/, "the lease is a ledger row id");
 
   const live = await door.lease(db, authed(TOKEN_LIVE), { wait_s: 8 });
-  assert.equal(live.body.job.entity_key, "#2YG98VVQ");
+  assert.equal(live.body.job.entity_key, "#00C298UC");
   assert.equal(live.body.next_check_in_s, 0);
 
   for (const [tok, lease] of [
@@ -407,7 +407,7 @@ test("a bulk battlelog lease carries the observer's mark as a filter; live lease
 });
 
 test("submit: inline ingest, server-stamped identity and job id, DB-bound lease", async () => {
-  await enqueueJob(db, { ...JOB, entity_key: "#8U2P0JPR" });
+  await enqueueJob(db, { ...JOB, entity_key: "#0JY8UYYG" });
   const r = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
   const before = ingested.length;
 
@@ -445,7 +445,7 @@ test("submit: inline ingest, server-stamped identity and job id, DB-bound lease"
   );
   assert.equal(
     envelope.job.entity_key,
-    "#8U2P0JPR",
+    "#0JY8UYYG",
     "job identity from the row",
   );
   assert.equal(
@@ -507,7 +507,7 @@ test("ingest exception leaves the lease held for expiry-requeue", async () => {
     },
     notifyOwner: async () => {},
   });
-  await enqueueJob(db, { ...JOB, entity_key: "#PLCCYUQL" });
+  await enqueueJob(db, { ...JOB, entity_key: "#0L990RRV" });
   const r = await boom.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
   const failed = await boom.submit(db, authed(TOKEN_BULK), {
     lease: r.body.lease,
@@ -580,7 +580,7 @@ test("a deadlock or racing upsert is retried once in the door; anything else is 
 
 test("concurrent lease calls from one token never exceed the cap (issue #5)", async () => {
   await db.query(`delete from job`);
-  for (const t of ["#U08P889Y0", "#2LRYLQPL", "#JRVV9VC0C", "#Y9CQ8VRV"]) {
+  for (const t of ["#0QLG889LG", "#00J00U28", "#0CC2QGGUU", "#Y9CQ8VRV"]) {
     await enqueueJob(db, { ...JOB, entity_key: t });
   }
   // Three simultaneous calls on three separate connections — the race

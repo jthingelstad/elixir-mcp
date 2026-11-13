@@ -23,7 +23,7 @@ const ADMIN_URL =
 const NAME = `elixir_mcp_test_series_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 const CLAN = "#J2RGCRVG";
-const ME = "#JYRQ8U92C"; // the profile fixture's subject, a roster member
+const ME = "#0QRVVG22J"; // the profile fixture's subject, a roster member
 
 let db;
 let invoke;

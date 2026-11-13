@@ -106,7 +106,7 @@ export const HOME = {
 const window = { from: AGO(10_080), to: AGO(0) };
 /** Home's one feed (#765): your sitting with its sparkline, your clan's
  *  line, a friend's moment with its battle. Synthetic friends and clans. */
-const FRIEND = "#2YG98VVQ";
+const FRIEND = "#00C298UC";
 const TIMELINE = {
   window,
   seen_to: AGO(120),

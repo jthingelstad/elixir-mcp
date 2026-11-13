@@ -138,8 +138,8 @@
    "repeats": 1,
    "again": [
     {
-     "tag": "#20V9PQLPCG",
-     "name": "Steady Crane",
+     "tag": "#0UUQPVV9UY",
+     "name": "Badger Swift",
      "battles": 2,
      "wins": 1,
      "losses": 1,
@@ -148,15 +148,15 @@
    ],
    "rows": [
     {
-     "tag": "#20V9PQLPCG",
-     "name": "Steady Crane",
+     "tag": "#0UUQPVV9UY",
+     "name": "Badger Swift",
      "mode": "Trophy Road",
      "result": "1–1",
      "when": "Sat"
     },
     {
-     "tag": "#2Q8U0L9C",
-     "name": "Jolly Beaver",
+     "tag": "#0YRU80VJ",
+     "name": "Llama Parrot",
      "mode": "War Duel",
      "result": "W",
      "when": "Thu"
@@ -167,8 +167,8 @@
  },
  "alts": [
   {
-   "tag": "#VJQV8G8RL",
-   "name": "Spry Kestrel",
+   "tag": "#0RPG0RYRP",
+   "name": "Hare Pelican",
    "battles": 34,
    "wins": 29,
    "losses": 5,
@@ -196,8 +196,8 @@
    ]
   },
   {
-   "tag": "#VJG0J29QP",
-   "name": "Cedar Mole",
+   "tag": "#0YQYQPLQR",
+   "name": "Cedar Bold",
    "battles": 37,
    "wins": 31,
    "losses": 6,
@@ -233,8 +233,8 @@
    "badge_levels": 2
   },
   {
-   "tag": "#VJQV8G8RL",
-   "name": "Spry Kestrel",
+   "tag": "#0RPG0RYRP",
+   "name": "Hare Pelican",
    "cards_unlocked": 3,
    "badge_levels": 1
   }

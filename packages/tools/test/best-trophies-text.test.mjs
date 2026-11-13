@@ -1,7 +1,7 @@
 /**
  * A new best is told as it happened. Live in POAP KINGS on 2026-10-11:
- * "Indigo Linnet set a new best of 12,032 trophies, crossing 12,000, on a
- * 3-0 win over Tawny Newt (11,943), +26 to 12,005." The 12,032 best came
+ * "Falcon Rabbit set a new best of 12,032 trophies, crossing 12,000, on a
+ * 3-0 win over Sunny Moon (11,943), +26 to 12,005." The 12,032 best came
  * after the battle that crossed 12,000, so the line read as a
  * contradiction. The crossing is told, then the peak after it.
  */
@@ -15,7 +15,7 @@ const crossed_by = {
   type: "PvP",
   opponent: {
     player_tag: "#2GC2YJ2Y0",
-    name: "Tawny Newt",
+    name: "Sunny Moon",
     starting_trophies: 11943,
   },
   crowns: 3,
@@ -29,33 +29,33 @@ const best = (facts) =>
     subject_tag: "#J2RGCRVG",
     subject_name: "POAP KINGS",
     at: "2026-10-11T19:03:23.000Z",
-    facts: { player_tag: "#20LP8UPJ8R", name: "Indigo Linnet", ...facts },
+    facts: { player_tag: "#0QVY0J0YR0", name: "Falcon Rabbit", ...facts },
   });
 
 test("a best seen later than the crossing: the crossing, then the peak", () => {
   assert.equal(
     best({ best: 12032, band: 12000, crossed_by }),
-    "Indigo Linnet passed 12,000 trophies for the first time, on a 3-0 win over Tawny Newt (11,943), +26 to 12,005, and went on to a best of 12,032.",
+    "Falcon Rabbit passed 12,000 trophies for the first time, on a 3-0 win over Sunny Moon (11,943), +26 to 12,005, and went on to a best of 12,032.",
   );
 });
 
 test("a best the crossing itself set is the new best, crossing the rung", () => {
   assert.equal(
     best({ best: 12005, band: 12000, crossed_by }),
-    "Indigo Linnet set a new best of 12,005 trophies, crossing 12,000, on a 3-0 win over Tawny Newt (11,943), +26 to 12,005.",
+    "Falcon Rabbit set a new best of 12,005 trophies, crossing 12,000, on a 3-0 win over Sunny Moon (11,943), +26 to 12,005.",
   );
 });
 
 test("a best read below where the crossing ended is stale: the crossing alone", () => {
   assert.equal(
     best({ best: 11990, band: 12000, crossed_by }),
-    "Indigo Linnet passed 12,000 trophies for the first time, on a 3-0 win over Tawny Newt (11,943), +26 to 12,005.",
+    "Falcon Rabbit passed 12,000 trophies for the first time, on a 3-0 win over Sunny Moon (11,943), +26 to 12,005.",
   );
 });
 
 test("no crossing battle: the best alone", () => {
   assert.equal(
     best({ best: 12032, band: 12000 }),
-    "Indigo Linnet set a new best of 12,032 trophies.",
+    "Falcon Rabbit set a new best of 12,032 trophies.",
   );
 });
