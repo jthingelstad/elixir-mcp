@@ -75,9 +75,9 @@ export function Pending({ player, players, hrefFor, navigate }) {
           }
           role="status"
         >
-          {name}&rsquo;s tag is saved. The profile and last 30 battles usually
-          show up within a minute (a few at busy times). This page checks again
-          every few seconds at first, then about once a minute.
+          {name}&rsquo;s tag is saved. The profile and about the last 30 battles
+          usually show up within a minute (a few at busy times). This page
+          checks again every few seconds at first, then about once a minute.
           {error ? " Elixir could not check just now. It will try again." : ""}
         </Empty>
       )}
