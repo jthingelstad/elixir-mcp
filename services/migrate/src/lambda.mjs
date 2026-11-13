@@ -75,7 +75,6 @@ import {
   seriesCensusSelf,
   explainSeries,
 } from "./ops-series.mjs";
-import { duelRoundDecks } from "./ops-duel-rounds.mjs";
 import { reindex } from "./ops-reindex.mjs";
 
 /** The function's own application_name (PGAPPNAME in
@@ -587,14 +586,6 @@ async function dispatch(event) {
     const result = await seriesBackfill(
       process.env.DATABASE_URL,
       event.series_backfill,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.duel_round_decks) {
-    const result = await duelRoundDecks(
-      process.env.DATABASE_URL,
-      event.duel_round_decks === true ? {} : event.duel_round_decks,
     );
     console.log(JSON.stringify(result));
     return result;

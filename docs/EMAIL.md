@@ -232,7 +232,7 @@ switch from daily to weekly never tells an item twice.
 (`subjectsFor`: claims and clans with notify on), basis `observed` (what
 the record learned since the last digest, so a battle captured late is
 told once, never skipped), filtered before the cap to `DIGEST_KINDS`:
-`battle_highlight`, the big firsts (`MILESTONE_MAIL_KINDS`), clan moves
+`battle_highlight`, the big firsts (`BIG_FIRST_KINDS`), clan moves
 and returns. Card unlocks and badges stay a count (`progress`), as the
 friends mail counted them. Attested facts never enter
 (`services/jobs/test/digest-mail.test.mjs`).

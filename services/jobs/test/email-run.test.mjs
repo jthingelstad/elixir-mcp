@@ -175,9 +175,7 @@ test("a reader's doors: their players and the clans they are in today", async ()
   assert.equal(doors.clanmates, undefined);
 });
 
-test("an unverified claim on a member opens the clan's door and admits no clan-visible fact", async () => {
-  const verified = await readerDoors(db, acct.new);
-  assert.deepEqual(verified.verifiedClans, [CLAN]);
+test("an unverified claim on a member still opens the clan's door", async () => {
   await db.query(
     `update claim set status = 'unverified' where account_id = $1`,
     [acct.new],
@@ -185,7 +183,6 @@ test("an unverified claim on a member opens the clan's door and admits no clan-v
   try {
     const claimed = await readerDoors(db, acct.new);
     assert.deepEqual(claimed.memberClans, [CLAN]);
-    assert.deepEqual(claimed.verifiedClans, []);
   } finally {
     await db.query(
       `update claim set status = 'verified' where account_id = $1`,

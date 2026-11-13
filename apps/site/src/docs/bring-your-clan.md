@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-11-13; Follow in the clan head, Elixir's clan follow; 2026-11-12; Recruit and Scout are for elders, co-leaders and the leader, members keep Standing; 2026-11-12; Members is one page: Standing on Standings, Review in Run, Recruit and Scout at the roster's foot, Follow on each row; 2026-11-12; the clan card: its line, race and rule chips, and the Feed's race bar; 2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-11-13; agents read the policy in the clan directory; 2026-11-13; Follow in the clan head, Elixir's clan follow; 2026-11-12; Recruit and Scout are for elders, co-leaders and the leader, members keep Standing; 2026-11-12; Members is one page: Standing on Standings, Review in Run, Recruit and Scout at the roster's foot, Follow on each row; 2026-11-12; the clan card: its line, race and rule chips, and the Feed's race bar; 2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -16,9 +16,9 @@ reviewed: "2026-11-13; Follow in the clan head, Elixir's clan follow; 2026-11-12
 roster as the record sees it, a weekly report, and, once the leaders
 have written how the clan runs, standing, actions and awards. It never
 acts in the game and never decides for anyone; the leaders do. Every
-page is behind sign-in, and only people sign in. Today an agent gets
-one narrow read of the clan's war intent with an explicit grant
-([Agent context](/docs/clan-agent-context#agent-context)). What you connect to
+page is behind sign-in, and only people sign in. Your own agent reads
+the public part of a clan's policy, its Clan Wars intent among it, in the
+[clan directory](/docs/clan-directory#agents-and-apps). What you connect to
 Elixir as yourself can read your own view here (the policy, your own
 standing line and the Actions waiting for you), never anyone else's
 ([Your own view](/docs/clan-your-own-view#your-own-view)).
@@ -115,8 +115,10 @@ nothing to pick.
 
 Beside the name sits **Follow**, the same as on a player's page. It asks
 first, saying what Elixir records (the clan's roster, who joins and who
-goes, and its races) and that it takes one of your clan slots. Then it
-reads **Following**. Elixir follows your own player's clan by itself when
+goes, and its races). Following a clan takes one of your clan slots. If
+an agent of yours already follows that clan, it takes none: you and your
+agents share your slots, and a clan counts once. Then it reads
+**Following**. Elixir follows your own player's clan by itself when
 it can, so there it usually reads **Following** already. You stop
 following a clan under **Settings › Players & following**.
 

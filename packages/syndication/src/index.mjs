@@ -1,6 +1,6 @@
-export { syncAccount, postRevision } from "./sync.mjs";
-export { syncClan, clanWakeId, clanEditorPreview } from "./clan-sync.mjs";
-export { clanStoryFacts, draftStory } from "./story-facts.mjs";
+export { syncAccount } from "./sync.mjs";
+export { syncClan, clanEditorPreview } from "./clan-sync.mjs";
+export { draftStory } from "./story-facts.mjs";
 export {
   accountsToWake,
   clansToWake,
