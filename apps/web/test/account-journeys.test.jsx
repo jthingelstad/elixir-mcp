@@ -134,7 +134,14 @@ test(
     // Home's first step and Tracking offer the same field; this journey
     // uses Tracking, which manages what you track from then on.
     open("/settings/players");
-    const input = await screen.findByLabelText("Player tag");
+    // The page waits on /api/me, the run's first read of the scratch
+    // database: on a shared host under load it took 5.6 s, past findBy's
+    // five, so it waits for the read as Connections does below.
+    const input = await screen.findByLabelText(
+      "Player tag",
+      {},
+      { timeout: 10_000 },
+    );
     fireEvent.change(input, { target: { value: "#00J" } });
     fireEvent.click(input.closest("form").querySelector("button"));
     await screen.findByText("#00J");
