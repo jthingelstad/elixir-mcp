@@ -31,8 +31,11 @@ got right in one place. [Jamie, 2026-10-12]
 - **A player's followers**, on the player page: that player's sessions,
   moments and highlights, for any signed-in member.
 - **A clan**, on Clan's Feed: the clan's last seven days with its current
-  members' highlights, and its leaders' Actions as items. [Jamie,
-  2026-11-12, "Clan's Actions are notifications and timeline items"]
+  members' highlights and the clan's attested facts by their visibility.
+  [engineering, 2026-11-12] A leader's Actions waiting reach them in the
+  bell; Jamie's ruling makes Actions timeline items too, which is not
+  built (Open). [Jamie, 2026-11-12, "Clan's Actions are notifications
+  and timeline items"]
 - **An agent**, over `elixir_timeline`: the players and clans it
   follows, with its own read pointer; a consumer may name a `reader` for a
   pointer of its own. [Jamie, 2026-09-13, 2026-10-08]
@@ -75,8 +78,7 @@ got right in one place. [Jamie, 2026-10-12]
    2026-10-11]
 8. **Visibility travels with the item.** Game facts are for every
    member; attested facts reach the clan, the player or the leaders by
-   their type; the account's own lines are the owner's. A decided Clan
-   Action is on the clan's timeline for its leaders only. Leaders-only
+   their type; the account's own lines are the owner's. Leaders-only
    and owner items are never publishable, and nothing of Elixir's posts
    an item that is not. [Jamie, 2026-09-25, 2026-10-11, 2026-11-12]
 9. **A shared post is public.** A highlight its owner shares opens
@@ -117,6 +119,9 @@ agent write a cheer or a highlight.
 
 ## Open
 
+- **Clan Actions as timeline items.** Ruled (a decided Action on the
+  clan's timeline for its leaders only), not built: today a waiting
+  Action is in the bell and a decided one in Clan's Run › Decided.
 - **Acting from Discord** (deciding an Action, marking away) is
   undecided on purpose. Default in force: Discord is a channel, and every
   write happens in Elixir. [Jamie, 2026-10-12, 2026-11-11]
