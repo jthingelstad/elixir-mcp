@@ -35,6 +35,7 @@ export function FollowClan({ clanTag, clanName = null }) {
           ask={ask}
           label="Follow everyone"
           title={`Follow everyone in ${clanName ?? clanTag}?`}
+          className="btn btn--sm btn--gold"
         />
       )}
       {refused ? (
@@ -60,12 +61,11 @@ export function FollowMember({ clanTag, playerTag, name = null }) {
   const row = (p.players ?? []).find((x) => x.player_tag === playerTag);
   if (!row) return null;
   if (row.following)
-    return <span className="kit-tiny roster-follow__on">Following</span>;
+    return <span className="kit-following roster-follow__on">Following</span>;
   return (
     <FollowButton
       tag={playerTag}
       name={name}
-      className="btn btn--sm"
       cost={{
         free: row.free,
         following: row.following,

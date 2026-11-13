@@ -102,3 +102,20 @@ matched the canvas and are unchanged.
 
 `.btn.btn--follow` is doubled in specificity so the later nav-sized
 `.btn--sm` no longer squares the Follow pill off.
+
+## Clan (design-clan)
+
+| Canvas | Kit |
+| --- | --- |
+| `.phead.clanh` with `.crest` | `.clan-head__card` (`--edge-clan`, gold-tinted panel) with `Avatar clan large` |
+| `.clanh` eyebrow, gold name | `.clan-head__role` (gold small capitals), `.clan-head__name` (gold) |
+| `.clanh .facts` | `ul.clan-head__chips.kit-facts`, racing as `.kit-fact--gold` |
+| `.racebar` | `.clan-race` as a panel with `--edge-mine` and a `--gold-grad` fill, in the main column |
+| `.cols` on Clan | `.clan-today`, `minmax(0,1fr) 320px` |
+| waiting `.panel` with the dashed edge | `ActionList` on `kit-panel--decision` (Waiting for you, Closed) |
+| `.kv` in a side card | `dl.fields.kit-kv` |
+| `.tbl th` | `.kit-table thead th` (11px capitals, `--ink-faint`), every kit table |
+| `.prow` avatar on a roster row | `Avatar small` in the Members table's Member cell |
+
+The coarse-pointer 44px rule names `.btn.btn--follow` too, so the doubled
+Follow selector keeps its touch target (Codex on #865).

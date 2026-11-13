@@ -6942,6 +6942,34 @@ button.kit-row {
 .kit-table th {
   white-space: nowrap;
 }
+/* Column heads (canvas .tbl th, 2026-11-13): small faint capitals, so the
+   figures under them carry the weight. */
+.kit-table thead th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom-color: var(--line-soft);
+}
+/* A short list of figures in a side card (canvas .kv): faint label, plain
+   value, no cell fills. */
+.fields.kit-kv {
+  grid-template-columns: minmax(110px, 40%) 1fr;
+  gap: 4px 12px;
+}
+.fields.kit-kv dt {
+  padding: 6px 0;
+  background: none;
+  font: 13.5px var(--font);
+  color: var(--ink-faint);
+}
+.fields.kit-kv dd {
+  padding: 6px 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
 .kit-table td,
 .kit-table tbody th {
   vertical-align: top;
@@ -8653,12 +8681,43 @@ a.kit-mbattle:hover {
   font: 600 18px / 1.25 var(--font);
   letter-spacing: -0.01em;
 }
+/* The clan's card (canvas .phead.clanh): the crest, who you are in it in
+   gold capitals, the name in the display face, its line and facts, with
+   the gold edge on its leading side. */
+.clan-head__card {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 22px 24px;
+  border-radius: var(--r-block);
+  background:
+    linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--gold) 8%, transparent),
+      transparent 45%
+    ),
+    var(--panel);
+  box-shadow: var(--edge-clan);
+}
 .clan-head__top {
   display: flex;
+  flex: 1;
   flex-wrap: wrap;
   gap: 8px 16px;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
+  min-width: 0;
+}
+.clan-head__role {
+  color: var(--gold);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.clan-head .clan-head__name {
+  color: var(--gold);
+  overflow-wrap: anywhere;
 }
 .clan-head__who {
   display: grid;
@@ -8678,12 +8737,7 @@ a.kit-mbattle:hover {
   font-size: 13.5px;
 }
 .clan-head__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  margin-top: 8px;
 }
 /* At phone width the card sits tighter, so a page's own content still
    starts on the first screen. */
@@ -8695,13 +8749,28 @@ a.kit-mbattle:hover {
   .clan-head__top {
     row-gap: 6px;
   }
+  .clan-head__card {
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+  }
+  .clan-head__card .kit-av--crest {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    font-size: 20px;
+  }
 }
 /* The race bar on top of the Feed: a line, a native progress drawn like
    .meter, and the race in one sentence. Flat, no panel. */
 .clan-race {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 16px;
+  padding: 14px 20px;
+  border-radius: var(--r-block);
+  background: var(--panel);
+  box-shadow: var(--edge-mine);
 }
 .clan-race__top {
   display: flex;
@@ -8725,7 +8794,7 @@ a.kit-mbattle:hover {
   border: 0;
   border-radius: var(--r-pill);
   background: var(--ground-sunken);
-  color: var(--accent);
+  color: var(--gold);
   overflow: hidden;
   appearance: none;
 }
@@ -8734,11 +8803,11 @@ a.kit-mbattle:hover {
   border-radius: var(--r-pill);
 }
 .clan-race__bar::-webkit-progress-value {
-  background: var(--accent);
+  background: var(--gold-grad, var(--gold));
   border-radius: var(--r-pill);
 }
 .clan-race__bar::-moz-progress-bar {
-  background: var(--accent);
+  background: var(--gold-grad, var(--gold));
   border-radius: var(--r-pill);
 }
 .clan-subnav {
@@ -8821,9 +8890,6 @@ a.kit-mbattle:hover {
   white-space: nowrap;
   text-align: right;
 }
-.roster-follow__on {
-  color: var(--ink-faint);
-}
 /* Clan ▸ Awards: a race is a short list of place, member and figure.
    It keeps its three columns on a phone ("fit"), the figure's second
    line never breaks mid-phrase, and the panel's own padding is the
@@ -8845,7 +8911,7 @@ a.kit-mbattle:hover {
    between what waits for you and the timeline, before the feed. */
 .clan-today {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 20px;
   align-items: start;
 }
@@ -9398,7 +9464,7 @@ a.kit-mbattle:hover {
   border: 0;
   border-radius: var(--r-pill);
   background: var(--ground-sunken);
-  color: var(--accent);
+  color: var(--gold);
   overflow: hidden;
   appearance: none;
 }
