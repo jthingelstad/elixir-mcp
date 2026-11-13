@@ -20,19 +20,19 @@ navActive: home
     has no record and the page has nobody's to show. -#}
 {%- set drop = familyBar.products | selectattr("game") | first %}
 <div data-home>
-<section class="grid items-center gap-6 pt-6 wide:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] wide:gap-10 wide:pt-10" aria-labelledby="home-gate">
-  <div class="flex min-w-0 flex-col items-start gap-5">
+<section class="home-gate" aria-labelledby="home-gate">
+  <div class="home-gate__col">
     <span class="chip chip--ok" data-recording-now hidden><span class="chip__dot"></span>Recording now</span>
     <h1 class="home-title" id="home-gate">Keep up with your friends in Clash Royale</h1>
     <p class="home-lede">
       Elixir is the missing social layer of Clash Royale: follow your friends
       and your clan, see how they play, and cheer them on. Free to join.
     </p>
-    <div class="flex flex-wrap items-center gap-3" data-session-face="out">
+    <div class="home-gate__ways" data-session-face="out">
       <a class="btn btn--primary btn--lg" href="/signin?signup">Create an account</a>
       <a class="btn btn--lg" href="{{ familyBar.signIn.path }}">{{ familyBar.signIn.label }}</a>
     </div>
-    <div class="flex flex-wrap items-center gap-3" data-session-face="in">
+    <div class="home-gate__ways" data-session-face="in">
       <a class="btn btn--primary btn--lg" href="{{ familyBar.products[0].path }}">Open Elixir</a>
     </div>
     <p class="footnote m-0" data-session-face="out">

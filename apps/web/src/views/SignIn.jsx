@@ -8,34 +8,6 @@ import { discordOutcome, discordStartHref } from "../discord.js";
 /** One email door for sign-in and public member signup. Email verification
  * opens a new account; collector admission and recording quotas are separate.
  * Link/code redemption and the cross-device confirmation remain single-use. */
-const card = {
-  maxWidth: "440px",
-  margin: "40px auto 0",
-  border: "1px solid var(--line)",
-  borderRadius: "16px",
-  background: "var(--panel-float)",
-  padding: "26px",
-  boxShadow: "var(--shadow-modal)",
-};
-const field = {
-  width: "100%",
-  boxSizing: "border-box",
-  background: "var(--ground-sunken)",
-  border: "1px solid var(--line-strong)",
-  borderRadius: "10px",
-  color: "var(--ink)",
-  fontSize: "15px",
-  padding: "12px 13px",
-  marginBottom: "14px",
-};
-const primary = {
-  width: "100%",
-  justifyContent: "center",
-  padding: "13px",
-  borderRadius: "11px",
-  fontSize: "15px",
-};
-
 // A form draft, never an account preference. Keep an unchecked choice through
 // an interrupted request/reload; the server freezes it in each emailed proof.
 const PRODUCT_NEWS_DRAFT = "elixir.signup_product_news";
@@ -266,29 +238,21 @@ export function SignIn({
 
   if (step === "redeeming")
     return (
-      <div style={card}>
-        <p style={{ margin: 0, color: "var(--ink-dim)" }}>Signing you in…</p>
+      <div className="kit-door">
+        <p className="m-0 text-ink-dim">Signing you in…</p>
       </div>
     );
 
   if (step === "handoff")
     return (
-      <div style={card}>
+      <div className="kit-door">
         <Eyebrow icon="circle-check" tone="ok">
           signed in here
         </Eyebrow>
-        <h1 className="page__title" style={{ fontSize: "26px" }}>
+        <h1 className="page__title kit-door__title">
           Also sign in where you started?
         </h1>
-        <p
-          style={{
-            fontSize: "14.5px",
-            lineHeight: 1.6,
-            color: "var(--ink-dim)",
-            margin: "8px 0 18px",
-            textWrap: "pretty",
-          }}
-        >
+        <p className="kit-door__lead">
           This sign-in was asked for from a different place
           {handoff?.started?.client ? ` (${handoff.started.client}` : ""}
           {handoff?.started?.country
@@ -301,8 +265,7 @@ export function SignIn({
           . If that was you, sign it in too. If it was not, leave it out.
         </p>
         <button
-          className="btn btn--primary"
-          style={primary}
+          className="btn btn--primary kit-door__go"
           disabled={busy}
           onClick={async () => {
             setBusy(true);
@@ -330,8 +293,7 @@ export function SignIn({
           </p>
         )}
         <button
-          className="btn"
-          style={{ ...primary, marginTop: "10px" }}
+          className="btn kit-door__go mt-2.5"
           disabled={busy}
           onClick={() => finishSignIn(onAuthed, newAccount.current)}
         >
@@ -342,32 +304,23 @@ export function SignIn({
 
   if (step === "expired" || step === "link_error")
     return (
-      <div style={{ ...card, borderColor: "var(--warn-edge)" }}>
+      <div className="kit-door kit-door--warn">
         <Eyebrow icon="circle-dashed" tone="warn">
           {step === "link_error" ? "sign-in interrupted" : "link expired"}
         </Eyebrow>
-        <h1 className="page__title" style={{ fontSize: "26px" }}>
+        <h1 className="page__title kit-door__title">
           {step === "link_error"
             ? "Sign-in did not finish"
             : "That link is expired or already used"}
         </h1>
-        <p
-          style={{
-            fontSize: "14.5px",
-            lineHeight: 1.6,
-            color: "var(--ink-dim)",
-            margin: "8px 0 20px",
-            textWrap: "pretty",
-          }}
-        >
+        <p className="kit-door__lead">
           {step === "link_error"
             ? "Elixir did not confirm this sign-in. Request a new email to continue."
             : "Links are single-use, and they do not last long. Nothing is wrong with your account."}
           {step === "link_error" && <span role="alert">{error}</span>}
         </p>
         <button
-          className="btn btn--primary"
-          style={primary}
+          className="btn btn--primary kit-door__go"
           onClick={() => {
             setError("");
             setStep("email");
@@ -380,22 +333,14 @@ export function SignIn({
 
   if (step === "pending")
     return (
-      <div style={card}>
+      <div className="kit-door">
         <Eyebrow icon="circle-dashed" tone="accent-bright">
           account access
         </Eyebrow>
-        <h1 className="page__title" style={{ fontSize: "26px" }}>
+        <h1 className="page__title kit-door__title">
           Account access is unavailable
         </h1>
-        <p
-          style={{
-            fontSize: "14.5px",
-            lineHeight: 1.6,
-            color: "var(--ink-dim)",
-            margin: "8px 0 18px",
-            textWrap: "pretty",
-          }}
-        >
+        <p className="kit-door__lead">
           This account cannot sign in.{" "}
           <a href="mailto:admin@poapkings.com">Contact Elixir</a> if you think
           this is a mistake. A new email request does not remove an account
@@ -417,19 +362,9 @@ export function SignIn({
 
   if (step === "code")
     return (
-      <div style={card}>
-        <h1 className="page__title" style={{ fontSize: "28px" }}>
-          Check your email
-        </h1>
-        <p
-          style={{
-            fontSize: "14.5px",
-            lineHeight: 1.6,
-            color: "var(--ink-dim)",
-            margin: "8px 0 20px",
-            textWrap: "pretty",
-          }}
-        >
+      <div className="kit-door">
+        <h1 className="page__title kit-door__title">Check your email</h1>
+        <p className="kit-door__lead">
           {asked?.limited ? (
             <span style={{ color: "var(--warn)" }}>{asked.message} </span>
           ) : (
@@ -471,7 +406,7 @@ export function SignIn({
           </label>
           <input
             id="signin-code"
-            className="mono"
+            className="mono kit-door__input kit-door__input--code"
             inputMode="numeric"
             autoComplete="one-time-code"
             maxLength={6}
@@ -480,13 +415,6 @@ export function SignIn({
             autoFocus
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            style={{
-              ...field,
-              fontSize: "24px",
-              letterSpacing: ".34em",
-              textAlign: "center",
-              padding: "14px 13px",
-            }}
           />
           {error && (
             <p className="field-error" role="alert">
@@ -494,10 +422,9 @@ export function SignIn({
             </p>
           )}
           <button
-            className="btn btn--primary"
+            className="btn btn--primary kit-door__go"
             type="submit"
             disabled={busy}
-            style={primary}
           >
             {busy ? "Signing in…" : "Sign in"}
           </button>
@@ -536,21 +463,13 @@ export function SignIn({
     );
 
   return (
-    <div style={card}>
-      <h1 className="page__title" style={{ fontSize: "28px" }}>
+    <div className="kit-door">
+      <h1 className="page__title kit-door__title">
         {creating
           ? "Create your Elixir account"
           : "Sign in or create an account"}
       </h1>
-      <p
-        style={{
-          fontSize: "14.5px",
-          lineHeight: 1.6,
-          color: "var(--ink-dim)",
-          margin: "8px 0 20px",
-          textWrap: "pretty",
-        }}
-      >
+      <p className="kit-door__lead">
         We’ll email you a sign-in link and a six-digit code. Use either to
         continue.
       </p>
@@ -578,7 +497,7 @@ export function SignIn({
           onFocus={warmTurnstile}
           onInput={warmTurnstile}
           onChange={(e) => setEmail(e.target.value)}
-          style={field}
+          className="kit-door__input"
         />
         {creating && (
           <>
@@ -587,7 +506,7 @@ export function SignIn({
             </label>
             <input
               id="signin-player-tag"
-              className="mono"
+              className="mono kit-door__input"
               autoComplete="off"
               autoCapitalize="characters"
               spellCheck={false}
@@ -595,7 +514,6 @@ export function SignIn({
               aria-describedby="signin-player-tag-hint"
               value={playerTag}
               onChange={(e) => setPlayerTag(e.target.value)}
-              style={field}
             />
             <p id="signin-player-tag-hint" className="footnote -mt-2 mb-4">
               In Clash Royale, open your profile. Your tag starts with # and
@@ -672,10 +590,9 @@ export function SignIn({
         <div ref={turnstileSlot} />
         <ChallengeWait waiting={turnstileWaiting} />
         <button
-          className="btn btn--primary"
+          className="btn btn--primary kit-door__go"
           type="submit"
           disabled={busy || (creating && age === "no")}
-          style={primary}
         >
           {!busy
             ? "Send sign-in email"
