@@ -240,7 +240,8 @@ function Empty({ title, children }) {
  *  draw its own Follow suggestions and its own way in, above it; `cheers`
  *  off leaves the cheers to the battle's own page.
  *  `standIn` draws the page as somebody else sees it (Settings' lens):
- *  none of the reader's own controls. */
+ *  none of the reader's own controls. `heading` names the battle's title
+ *  tag when another page already has the h1. */
 export function BattleView({
   read,
   me,
@@ -248,6 +249,7 @@ export function BattleView({
   invite = true,
   cheers = true,
   standIn = false,
+  heading = standIn ? "h3" : "h1",
 }) {
   const { battle, sides, games } = read;
   const clock = useClock();
@@ -301,9 +303,9 @@ export function BattleView({
         signedIn={signedIn}
         mode={mode}
         when={when}
-        // Drawn inside another page (a stand-in lens), the battle is a
-        // section under that page's h2, never a second h1.
-        heading={standIn ? "h3" : "h1"}
+        // Drawn inside another page (a stand-in lens, a shared post), the
+        // battle is a section under that page's heading, never a second h1.
+        heading={heading}
       />
 
       {games && (

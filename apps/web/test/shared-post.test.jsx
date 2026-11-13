@@ -65,3 +65,31 @@ test("a post from the right-hand side reads from its own player", async () => {
   const title = await screen.findByRole("heading", { level: 1 });
   expect(title.textContent).toBe(`${HOSTILE} lost to Birch Lantern 1-2`);
 });
+
+test("a 2v2 post keeps every player's deck through the battle's own view", async () => {
+  const p = post();
+  p.sides[0].players.push({
+    ...structuredClone(p.sides[0].players[0]),
+    player_tag: "#PYLQ99",
+    name: "Willow Kite",
+  });
+  p.sides[1].players.push({
+    ...structuredClone(p.sides[1].players[0]),
+    player_tag: "#PYLQ77",
+    name: "Cedar Gull",
+  });
+  vi.spyOn(api, "publicPost").mockResolvedValue(ok(p));
+  const { container } = renderWithProviders(
+    <Post shareId="k7q2mabcdefghij" me={{ authenticated: false }} />,
+  );
+  const title = await screen.findByRole("heading", { level: 1 });
+  expect(title.textContent).toBe(
+    `Birch Lantern and Willow Kite beat ${HOSTILE} and Cedar Gull 2-1`,
+  );
+  // No side-by-side pair for four players: the battle view draws all four.
+  expect(container.querySelector(".kit-vs")).toBeNull();
+  expect(container.querySelector(".kit-nums")).toBeNull();
+  expect(screen.getAllByText("Willow Kite").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Cedar Gull").length).toBeGreaterThan(0);
+  expect(container.querySelector("img[src='x']")).toBeNull();
+});
