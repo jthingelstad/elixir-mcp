@@ -24,6 +24,11 @@ export const DEPLOY_USAGE = `usage: AWS_PROFILE=cloud-engineer node infra/script
                          --param=OriginSecretPrevious= (docs/SECRETS.md)
   --acceptance           run the whole acceptance suite after the smoke
   --acceptance=<family>  run one family's acceptance cases (a,b for several)
+                         Acceptance is paced, and refused when the database's
+                         EBS burst balance is under 50% (whole suite) or 25%
+                         (a family), read from CloudWatch first
+                         (lib/db-headroom.mjs); at most one run per train
+  --skip-headroom-check  run acceptance below that floor; an outage only
   --break-glass          skip the CI gate (HEAD must be origin/main with a
                          green validate check); GitHub down only, and
                          a docs/notes/ note says why
@@ -63,6 +68,7 @@ export function parseDeployArgs(argv) {
     params: {},
     acceptance: false,
     acceptanceFamily: null,
+    skipHeadroomCheck: false,
     breakGlass: false,
     rotateOriginSecret: false,
     unknown: [],
@@ -75,6 +81,7 @@ export function parseDeployArgs(argv) {
     else if (arg === "--platform") out.platform = true;
     else if (arg === "--acceptance") out.acceptance = true;
     else if (arg === "--break-glass") out.breakGlass = true;
+    else if (arg === "--skip-headroom-check") out.skipHeadroomCheck = true;
     else if (arg === "--rotate-origin-secret") out.rotateOriginSecret = true;
     else if (/^--acceptance=[\w,-]+$/.test(arg)) {
       out.acceptance = true;

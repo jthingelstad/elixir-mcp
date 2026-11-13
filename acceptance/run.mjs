@@ -22,9 +22,10 @@
  *   gym        - the Elixir Gym's filed repros with their acceptance
  *                criteria, its Pass 2 automated
  *
- * Usage: node acceptance/run.mjs [--only <substring>] [--family <family>] [--json]
+ * Usage: node acceptance/run.mjs [--only <substring>] [--family <family>] [--json] [--no-pace]
  *   --family battles runs only the cases that read a battles_* tool: the
  *   per-family deploy gate (deploy.mjs --acceptance=<family>).
+ *   Paced by default (PACE below); --no-pace for a local server only.
  * Needs acceptance/.env (ELIXIR_MCP_URL, ELIXIR_MCP_TOKEN); the deploy
  * runs it after the smoke gate and fails on a red case. It never writes,
  * never passes live: true, and its token cannot: cr:read only.
@@ -57,11 +58,68 @@ const KNOWN = new Map(
     readFileSync(new URL("./known.json", import.meta.url), "utf8"),
   ).map((k) => [k.case, k]),
 );
-/** Suites whose cases are independent run a few at a time; the hand-
- *  written suites share reads in order and stay sequential. */
 /** One at a time everywhere: the budget rule times each call, and three
- *  heavy reads on the micro inflate each other. */
-const CONCURRENCY = { catalogue: 1 };
+ *  heavy reads on the micro inflate each other. A test pins it at 1. */
+export const CONCURRENCY = { catalogue: 1 };
+
+/**
+ * The pace (2026-11-13): after each call that reaches the door, the run
+ * rests `ratio` times as long as that call took, between `minRestMs` and
+ * `maxRestMs`, before its next one. The database is a db.t4g.micro whose
+ * EBS bandwidth bursts from a bucket that refills only a few points an
+ * hour; back-to-back runs at full speed (about 7 MB/s of reads, peaks of
+ * 15 to 19) drained it to 0 on 2026-11-12/13 and it dropped connections.
+ * Resting twice each call's time spreads the same reads over about three
+ * times the wall clock, so the bucket refills during the run. A rest is
+ * taken before the next call, never after the last; a cached read never
+ * reaches the door and never rests. `--no-pace` for a local server.
+ */
+export const PACE = { ratio: 2, minRestMs: 250, maxRestMs: 10_000 };
+
+/** How long to rest after a call that took `ms`. */
+export function restAfter(ms, pace = PACE) {
+  if (!pace) return 0;
+  return Math.min(
+    pace.maxRestMs,
+    Math.max(pace.minRestMs, Math.round(Math.max(0, ms) * pace.ratio)),
+  );
+}
+
+const sleepFor = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The door with the pace applied to `call` (tools/list is one call at
+ * the start and is left alone). Returns the door itself when `pace` is
+ * null. `sleep` and `now` are injected so the tests run on a fake clock.
+ * The runner is one call at a time, so one rest owed at a time.
+ */
+export function pacedDoor(
+  door,
+  { pace = PACE, sleep = sleepFor, now = () => performance.now() } = {},
+) {
+  if (!pace) return door;
+  let owed = 0;
+  const stats = { calls: 0, restedMs: 0, callMs: 0 };
+  return {
+    ...door,
+    stats,
+    async call(name, args) {
+      if (owed > 0) {
+        await sleep(owed);
+        stats.restedMs += owed;
+      }
+      const started = now();
+      try {
+        return await door.call(name, args);
+      } finally {
+        const took = now() - started;
+        stats.calls += 1;
+        stats.callMs += took;
+        owed = restAfter(took, pace);
+      }
+    },
+  };
+}
 
 /** Run every case against a door. Cases in a suite run in order and
  *  share `ctx.cache` (a read one case made is reused by the next, so the
@@ -75,9 +133,14 @@ export async function runSuite(
     quiet = false,
     tools: given = null,
     recordedFixtures = false,
+    // The CLI passes PACE (live runs); tests and bite replays run unpaced.
+    pace = null,
+    sleep = undefined,
+    now = undefined,
   } = {},
 ) {
   const tools = given ?? (await door.toolsList());
+  door = pacedDoor(door, { pace, sleep, now });
   const ctx = {
     // Bite replays already supply the named fixture; live runs never set this.
     recordedFixtures,
@@ -170,6 +233,12 @@ export async function runSuite(
     }
   }
   report.calls = ctx.cache.size;
+  if (door.stats)
+    report.pace = {
+      calls: door.stats.calls,
+      call_seconds: Math.round(door.stats.callMs / 1000),
+      rest_seconds: Math.round(door.stats.restedMs / 1000),
+    };
   report.ctx = ctx;
   return report;
 }
@@ -212,6 +281,7 @@ if (isMain) {
     ? args[args.indexOf("--family") + 1]
     : null;
   const json = args.includes("--json");
+  const pace = args.includes("--no-pace") ? null : PACE;
   const updateShapes = args.includes("--update-shapes");
   const reason = args.includes("--reason")
     ? args[args.indexOf("--reason") + 1]
@@ -226,7 +296,13 @@ if (isMain) {
     url: env.ELIXIR_MCP_URL,
     token: env.ELIXIR_MCP_TOKEN,
   });
-  const report = await runSuite(door, { only, family, quiet: json });
+  if (!json)
+    console.log(
+      pace
+        ? `acceptance: paced (rest ${pace.ratio}x each call, ${pace.minRestMs}-${pace.maxRestMs} ms) so the database's burst balance refills during the run`
+        : "acceptance: UNPACED (--no-pace): never against production",
+    );
+  const report = await runSuite(door, { only, family, quiet: json, pace });
   const status = baselineStatus(report.ctx.tools);
   if (updateShapes) {
     const contract =
@@ -266,6 +342,10 @@ if (isMain) {
     console.log(
       `\n${report.cases.length} cases, ${report.failures} failed${report.skipped ? `, ${report.skipped} skipped` : ""}, ${report.calls} distinct calls`,
     );
+    if (report.pace)
+      console.log(
+        `pace: ${report.pace.calls} door calls, ${report.pace.call_seconds} s calling, ${report.pace.rest_seconds} s resting`,
+      );
     console.log(`slowest: ${slow.map((c) => `${c.id} ${c.ms} ms`).join(", ")}`);
     console.log(
       `shape provenance: ${status.recorded.length} tools on a recorded baseline (write their outputSchema)${status.recorded.length ? `: ${status.recorded.join(", ")}` : ""}; ${status.unpinned.length} with neither${status.unpinned.length ? `: ${status.unpinned.join(", ")}` : ""}`,
