@@ -58,7 +58,10 @@ export function FindPage() {
   const [tab, setTab] = useState("search");
   return (
     <div className="kit-home">
-      <PageHead title="Find" sub="People to follow, and the way to you." />
+      <PageHead
+        title="Find"
+        sub="Find your friends, your clanmates and players you’ve battled."
+      />
       <Tabs label="Find" items={sections} value={tab} onSelect={setTab} wrap />
       <div className="kit-home__two">
         <div className="kit-home__main">
@@ -75,7 +78,7 @@ export function FindPage() {
                 <Row
                   href="/clan/directory"
                   title="Clan directory"
-                  detail="Every clan on Elixir, by name, with its open seats."
+                  detail="Every clan on Elixir, with its open spots."
                 />
               </Rows>
             </Panel>

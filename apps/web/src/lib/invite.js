@@ -3,7 +3,7 @@ import { CHAT_MAX, chatSafe } from "@elixir-mcp/clan-engine/chat";
 /**
  * Bring your clanmates (2026-10-08): the words a member copies to invite
  * their clan. Since 0205 Elixir follows a new member's primary clan, so a
- * clanmate who signs up gets that clan's week in Monday's email: inviting
+ * clanmate who signs up gets that clan's news in their digest: inviting
  * clanmates is how Elixir grows, and these lines are the whole mechanism.
  *
  * The link is the same for everyone: the canonical origin's signup, with
@@ -33,7 +33,7 @@ const clanWords = (name) => {
 const week = (name) => (name ? `the ${name} week` : "our clan's week");
 
 const chatLine = (name) =>
-  `I keep my battle history on Elixir. Sign up free with your player tag and it keeps yours too, plus ${week(name)} in your email every Monday. Unofficial fan site: ${SITE}`;
+  `I'm on Elixir: follow friends and our clan, see how they play, cheer them on. Free with your player tag, plus ${week(name)} in a weekly email. Unofficial fan site: ${SITE}`;
 
 /**
  * One line for in-game clan chat: plain text within the game's 200
@@ -54,8 +54,8 @@ export function clanChatLine(clanName) {
 export function clanMessage(clanName) {
   const name = (clanName ?? "").trim() || null;
   return [
-    `I've been keeping my Clash Royale battle history on Elixir. The game shows roughly your last 30 battles; Elixir records them as they come in, keeps them, and reads your season back in Stats.`,
-    `Sign up free with an email and add your player tag, and you also get ${week(name)} by email every Monday: the river race, who joined and left, and the week in battles.`,
+    `I'm on Elixir, the missing social layer of Clash Royale. You follow your friends and your clan, see how they play, and cheer them on.`,
+    `Sign up free with your email and player tag, and ${week(name)} comes in your digest, a weekly email: the River Race, who joined and who left.`,
     `It's an unofficial fan project, not endorsed by Supercell.`,
   ].join("\n\n");
 }

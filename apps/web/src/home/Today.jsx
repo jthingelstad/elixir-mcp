@@ -342,7 +342,7 @@ function Welcome({ first, player }) {
           done={state.steps.verify}
           doneLine={`${name} is verified.`}
         >
-          Play one battle with a deck Elixir names, win or lose.{" "}
+          Play one battle with the deck Elixir names. Win or lose, it counts.{" "}
           <Link to={`${SETTINGS}/players/verify`}>Verify {name}</Link>
         </Step>
         <Step
@@ -352,7 +352,7 @@ function Welcome({ first, player }) {
           done={state.steps.follow}
           doneLine={`You follow ${following} ${following === 1 ? "player" : "players"}.`}
         >
-          Their battles and moments fill your feed.{" "}
+          Their battles and big moments fill your feed.{" "}
           <Link to="/home/find">Find people</Link>
         </Step>
         <Step
@@ -362,8 +362,8 @@ function Welcome({ first, player }) {
           done={state.steps.digest}
           doneLine={digestLine(first.welcome.digest)}
         >
-          The people you follow in one email, weekly unless you choose daily or
-          off. <Link to={`${SETTINGS}/emails`}>Choose your digest</Link>
+          Your friends in one email. Weekly, daily or off: your call.{" "}
+          <Link to={`${SETTINGS}/emails`}>Choose your digest</Link>
         </Step>
       </ol>
     </section>
@@ -380,22 +380,18 @@ export function TodayFresh({ player }) {
         ? `Your battle log was last read ${when(ts)}. `
         : // Not read yet: what is on record came from elsewhere (a battle
           // against someone Elixir records), and this page checks again.
-          "Your profile and roughly your last 30 battles usually arrive within a minute; at busy times it can take a few. "}
-      The game keeps about your last 30 battles, so a long session between reads
-      can leave a gap. A gap means unknown. It does not mean you didn&rsquo;t
-      play.
+          "Your profile and last 30 battles usually show up within a minute (a few at busy times). "}
+      The game only keeps your last 30 battles, so a long session between reads
+      can leave a gap. A gap means Elixir didn&rsquo;t see those battles, not
+      that you didn&rsquo;t play.
     </FreshChip>
   );
 }
 
 export function TodayError({ onRetry, busy }) {
   return (
-    <ErrorState
-      title="Home could not be read just now"
-      onRetry={onRetry}
-      busy={busy}
-    >
-      Try again shortly. Nothing was lost.
+    <ErrorState title="Home didn’t load" onRetry={onRetry} busy={busy}>
+      Try again in a moment. Nothing was lost.
     </ErrorState>
   );
 }

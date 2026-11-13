@@ -96,8 +96,7 @@ export function PeopleToFollow() {
     >
       {data.people.length === 0 ? (
         <p className="kit-week__quiet kit-people__quiet">
-          Nobody new from your battles, your clan or the players you follow just
-          now.
+          Nobody new to suggest right now. Battle on and check back.
         </p>
       ) : (
         <Rows>
@@ -149,7 +148,7 @@ export function FromYourBattles() {
     return (
       <Panel pad>
         <p className="kit-week__quiet">
-          Your battles could not be read just now. Try again shortly.
+          Your battles didn’t load. Try again in a moment.
         </p>
       </Panel>
     );
@@ -158,7 +157,7 @@ export function FromYourBattles() {
     <Panel title={`From your battle log, last ${data.days} days`}>
       {data.people.length === 0 ? (
         <p className="kit-week__quiet kit-people__quiet">
-          Nobody yet: the players you meet in your battles show here.
+          Nobody yet. Players you meet in battle show up here.
         </p>
       ) : (
         <Rows>
@@ -185,8 +184,8 @@ export function FromYourBattles() {
         </Rows>
       )}
       <p className="kit-tiny kit-people__slots">
-        Facts from the log only: how often you met and how it went. No ratings,
-        no guesses.
+        Straight from your battle log: how often you met and how it went. No
+        ratings, no guesses.
         {data.more > 0
           ? ` The ${data.people.length} you met most are shown; ${data.more} more are not.`
           : ""}
@@ -206,14 +205,14 @@ export function YourClanPeople() {
     return (
       <Panel pad>
         <p className="kit-week__quiet">
-          Your clan could not be read just now. Try again shortly.
+          Your clan didn’t load. Try again in a moment.
         </p>
       </Panel>
     );
   if (!data.clan)
     return (
       <Empty title="Your player isn’t in a clan right now">
-        When Elixir sees them join one, its members show here.
+        Join one in the game and your clanmates show up here.
       </Empty>
     );
   const clanName = data.clan.name ?? data.clan.clan_tag;

@@ -50,12 +50,12 @@ test("a clan name too long for the game's 200 characters becomes our clan's week
   expect(line.endsWith(SITE)).toBe(true);
 });
 
-test("the message names the clan, is hedged about the battle log, and says unofficial", () => {
+test("the message names the clan, tells the digest, and says unofficial", () => {
   const m = clanMessage("POAP KINGS");
-  expect(m).toContain("POAP KINGS week by email every Monday");
-  expect(m).toContain("roughly your last 30 battles");
+  expect(m).toContain("the POAP KINGS week comes in your digest");
+  expect(m).toContain("missing social layer of Clash Royale");
   expect(m).toMatch(/unofficial fan project, not endorsed by Supercell/);
-  expect(clanMessage(null)).toContain("our clan's week by email");
+  expect(clanMessage(null)).toContain("our clan's week comes in your digest");
 });
 
 test("the invite link is the canonical signup, with no referral or tracking parameter", () => {
