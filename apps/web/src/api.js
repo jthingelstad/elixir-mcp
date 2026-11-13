@@ -83,9 +83,6 @@ export const api = {
   emailPrefs: () => request("GET", "/api/me/email"),
   setEmailPref: (kind, enabled) =>
     request("PUT", "/api/me/email", { kind, enabled }),
-  /** How often the digest comes (tracking_report): "weekly" or "daily". */
-  setDigestCadence: (cadence) =>
-    request("PUT", "/api/me/email", { kind: "tracking_report", cadence }),
   /** The digest chosen in one write, from Home's panel: Weekly or Daily
    *  turns it on at that cadence, Off turns it off (the same route and
    *  row as Settings' Emails). */

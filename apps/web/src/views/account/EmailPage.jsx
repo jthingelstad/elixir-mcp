@@ -56,11 +56,14 @@ function Source({ product }) {
   );
 }
 
-/** The digest's how-often: weekly (the default) or daily; off is its
- *  switch. */
+/** The digest's how-often, as one segmented control (the canvas's
+ *  Weekly / Daily / Off): Weekly and Daily are its cadence, Off is its
+ *  on-off switch. The same two settings and endpoints as before; the one
+ *  control replaces the digest's switch. */
 const CADENCES = [
   ["weekly", "Weekly"],
   ["daily", "Daily"],
+  ["off", "Off"],
 ];
 
 function Cadence({ value, disabled, onPick }) {
@@ -109,10 +112,13 @@ export function EmailPage() {
   const { data, isLoading } = query;
   const kinds = data?.kinds ?? [];
   const pref = useWrite(api.setEmailPref, { invalidate: [keys.email] });
-  const cadence = useWrite(api.setDigestCadence, {
+  const cadence = useWrite(api.setDigest, {
     invalidate: [keys.email],
   });
   const flip = (kind, enabled) => pref.run(kind, enabled);
+  /** The digest's control, one write: Weekly or Daily turns it on at
+   *  that cadence, Off turns it off (`setDigest`, Home's write too). */
+  const pick = (v) => cadence.run(v);
   const weekly = kinds
     .filter((k) => k.sends)
     .sort(
@@ -148,22 +154,24 @@ export function EmailPage() {
           {k.label} <Source product={k.product} />
         </h3>
         <p className="mail-pref__what">{ABOUT[k.kind]?.what}</p>
-        {k.cadence && k.enabled ? (
+        {k.cadence ? (
           <Cadence
-            value={k.cadence}
-            disabled={cadence.busy}
-            onPick={(v) => cadence.run(v)}
+            value={k.enabled ? k.cadence : "off"}
+            disabled={!k.applies || cadence.busy || pref.busy}
+            onPick={pick}
           />
         ) : null}
         {latest(k)}
       </div>
       <span className="mail-pref__when">{when_(k)}</span>
-      <Switch
-        on={k.enabled}
-        label={`${k.label} email`}
-        disabled={!k.applies || pref.busy}
-        onFlip={(on) => flip(k.kind, on)}
-      />
+      {k.cadence ? null : (
+        <Switch
+          on={k.enabled}
+          label={`${k.label} email`}
+          disabled={!k.applies || pref.busy}
+          onFlip={(on) => flip(k.kind, on)}
+        />
+      )}
     </li>
   );
   return (
