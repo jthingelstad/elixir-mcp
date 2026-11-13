@@ -186,6 +186,7 @@ function How({ d, clan, who, navigate }) {
       {LEADERS.has(who?.role) ? (
         <div className="panel__foot">
           <a
+            className="btn"
             href={policy}
             onClick={(e) => {
               if (!navigate) return;

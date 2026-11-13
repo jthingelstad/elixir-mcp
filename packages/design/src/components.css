@@ -10767,7 +10767,70 @@ a.kit-mbattle:hover {
   .btn--follow,
   .btn.btn--follow,
   .kit-chip,
-  .kit-cheers .kit-chip {
+  .kit-cheers .kit-chip,
+  .btn--text,
+  .kit-fresh > summary,
+  .clan-field__check,
+  .segmented button,
+  .mail-pref__all {
     min-height: var(--hit-touch);
+  }
+  .mail-pref__all {
+    display: inline-flex;
+    align-items: center;
+  }
+  /* The switch keeps its drawn size; its hit area reaches 44px around it. */
+  .switch::before {
+    content: "";
+    position: absolute;
+    inset: -13px -7px;
+  }
+  /* A disclosure's summary keeps its marker (list-item), so it grows by
+     padding rather than by becoming a flex box. */
+  summary.label {
+    padding-block: 13px;
+  }
+}
+
+/* Phone (2026-11-13, design pass two): Clan's tab row fits all six tabs at
+   390px instead of scrolling; the directory's filters each take the full
+   row, and its removal filter folds to two rows instead of hiding half its
+   choices off the edge. */
+@media (max-width: 480px) {
+  .clan-head .kit-tabs {
+    gap: 0;
+  }
+  .clan-head .kit-tabs__tab {
+    padding-inline: 6px;
+    font-size: 13.5px;
+  }
+  .clan-dir__field {
+    flex: 1 1 100%;
+  }
+  .clan-dir__field input {
+    width: 100%;
+  }
+  .clan-dir__field .kit-chips--seg .kit-chip {
+    flex: 1 1 auto;
+  }
+  .clan-dir__fold {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    overflow: hidden;
+  }
+  .clan-dir__fold .kit-chip {
+    box-shadow:
+      inset -1px 0 0 var(--line),
+      inset 0 -1px 0 var(--line);
+  }
+  .clan-dir__fold .kit-chip:nth-child(2n) {
+    box-shadow: inset 0 -1px 0 var(--line);
+  }
+  .clan-dir__fold .kit-chip:nth-last-child(-n + 2) {
+    box-shadow: inset -1px 0 0 var(--line);
+  }
+  .clan-dir__fold .kit-chip:last-child {
+    box-shadow: none;
   }
 }
