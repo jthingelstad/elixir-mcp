@@ -20,15 +20,20 @@ import { createClanRequest } from "../src/clan.mjs";
 process.env.TZ = "UTC";
 
 // Invented tags: a clan of twelve, and a player of another clan.
-const CLAN = "#9GQLV20";
-const OTHER_CLAN = "#8PYLQG0";
+const CLAN = "#0GRJCUV";
+const OTHER_CLAN = "#0Q2L8";
 const TAGS = Array.from(
   { length: 12 },
-  (_, i) => `#9QLV${"PYLQGRJCUV"[i % 10]}${"28"[i % 2]}${i < 10 ? "" : "Y"}`,
+  (_, i) =>
+    "#0" +
+    ["L", "V"].join("") +
+    "PYLQGRJCUV"[i % 10] +
+    "28"[i % 2] +
+    "Y".repeat(i >= 10),
 );
 const LEADER = TAGS[0];
 const MEMBER = TAGS[5];
-const OUTSIDER = "#8QCVY2";
+const OUTSIDER = "#0YY9P";
 const PATH = `/api/clan/clans/${CLAN.slice(1)}`;
 
 let scratch, handler;
