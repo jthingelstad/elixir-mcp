@@ -83,8 +83,9 @@ leaderboards, no game-wide statistics. [Jamie, VISION, 2026-09-23,
    budget; collectors add resilience, never quota. The session clock is
    the player's schedule. [Jamie, 2026-09-19, 2026-09-28]
 8. **The archive is write-once.** Payloads are content-addressed and
-   are the rebuild source. History leaves only through a reviewed,
-   Jamie-approved manifest. [Jamie, 2026-09-11, 2026-09-22, 2026-10-02]
+   are the rebuild source, kept a year like the record. Before then,
+   history leaves only through a reviewed, Jamie-approved manifest.
+   [Jamie, 2026-09-11, 2026-09-22, 2026-10-02, 2026-11-13]
 
 ## What it never does
 

@@ -2310,12 +2310,29 @@ Resources:
         Status: Enabled
       LifecycleConfiguration:
         Rules:
+          # The payload archive keeps a year, like the record (Jamie,
+          # 2026-11-13, docs/DECISIONS.md). An object is written once
+          # (If-None-Match, ArchiveBucketPolicy) and never rewritten, so
+          # its age is its archive date. Lifecycle expiry is S3's own and
+          # is not a principal's PutObject or DeleteObject, so the
+          # write-once policy does not stand in its way.
           - Id: payloads-to-ia
             Status: Enabled
             Prefix: payloads/
             Transitions:
               - StorageClass: STANDARD_IA
                 TransitionInDays: 30
+            ExpirationInDays: 365
+          # As calls/: the expiry above writes a delete marker on this
+          # versioned bucket, and the body would otherwise stay as a
+          # noncurrent version under expire-superseded-versions for
+          # another year.
+          - Id: payloads-purge-expired
+            Status: Enabled
+            Prefix: payloads/
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 1
+            ExpiredObjectDeleteMarker: true
           # Captured tool calls follow the call log's own rule: the
           # retention trim deletes an mcp_call_audit row after 28 days
           # (packages/record/src/retention.mjs), and with it the only way

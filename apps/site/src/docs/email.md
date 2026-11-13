@@ -154,7 +154,7 @@ we can find the one send you mean in our logs. Reading your own record
 is never counted as an open (the open pixel is stripped before it is
 shown). Sign-in codes are not listed.
 
-Every product email is kept as it was sent, so what we send can be
+Every product email is kept as it was sent for a year, so what we send can be
 audited without waiting for anyone to report it.
 
 ## What the mail counts
