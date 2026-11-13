@@ -278,14 +278,13 @@ Resources:
       # The micro's limit is EBS throughput (about 4.7 MB/s once the byte
       # balance is spent, as the Gym sweep did on 2026-09-23), so space
       # heavy sweeps and backfills. docs/NOTES.md 2026-10-08.
-      # db.t4g.small from 2026-11-13, for the data layer refactor only
+      # db.t4g.small on 2026-11-13 only, for the data layer refactor
       # (Jamie: "migrating to small to do that is going to be a smart
-      # idea", then "scale back to micro"). The census that day: 2.4 GB,
-      # of which 0091's two card tables were 879 MB, more than the
-      # micro's whole memory (dropped in migration 0256). Back to
-      # db.t4g.micro when the refactor has landed and the tables are
-      # rewritten.
-      DBInstanceClass: db.t4g.small
+      # idea", then "scale back to micro"). That day the database went
+      # from 2.4 GB to 0.8 GB: 0256 dropped 0091's two card tables
+      # (879 MB, more than the micro's whole memory) and the tables
+      # were rewritten. Back on the micro the same day.
+      DBInstanceClass: db.t4g.micro
       AllocatedStorage: "20"
       MaxAllocatedStorage: 100
       StorageType: gp3

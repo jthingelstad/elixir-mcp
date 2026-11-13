@@ -134,9 +134,9 @@ ledger should drain, and both doors should serve.
   sessions"): `--acceptance` no longer runs it, and
   `node acceptance/run.mjs --gym` runs it alone, paced, in a Gym
   session. The gate's own cost has not been measured since.
-- **The database.** db.t4g.small from 2026-11-13 for the data layer
-  refactor, then back to the micro (`docs/notes/2026-11-13-db-small-for-transition.md`).
-  What follows describes the micro. db.t4g.micro again since 2026-10-08. Its limit is
+- **The database.** db.t4g.micro. It was a db.t4g.small on 2026-11-13
+  for the data layer refactor, which took it from 2.4 GB to 0.8 GB
+  (`docs/notes/2026-11-13-db-small-for-transition.md`). Its limit is
   `EBSByteBalance%` (no alarm since 2026-11-03): a heavy batch, a
   Gym sweep or a full acceptance gate can drain it, so space them. On
   2026-09-23 a full gate on every deploy drained it in an afternoon, and
