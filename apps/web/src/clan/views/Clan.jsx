@@ -303,7 +303,7 @@ function Comings({ roster, clan, history, navigate }) {
   return (
     <Panel aria-labelledby="clan-comings">
       <div className="panel__head">
-        <h2 id="clan-comings" className="m-0 grow text-[14px] font-semibold">
+        <h2 id="clan-comings" className="kit-panel__title grow">
           Comings and goings
         </h2>
         <a className="text-[13px] font-normal" href={more} onClick={go(more)}>

@@ -58,7 +58,7 @@ function ActivityClock({ clan, playerTag, navigate, who }) {
   return (
     <Panel aria-labelledby="member-clock" className="mb-4">
       <div className="panel__head">
-        <h3 id="member-clock" className="m-0 grow text-[14px] font-semibold">
+        <h3 id="member-clock" className="kit-panel__title grow">
           Activity clock, leaders only
         </h3>
       </div>

@@ -131,7 +131,7 @@ export function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
   return (
     <Panel className="overflow-hidden kit-panel--decision" aria-labelledby={id}>
       <div className="panel__head">
-        <h2 id={id} className="m-0 grow text-[14px] font-semibold">
+        <h2 id={id} className="kit-panel__title grow">
           {title}
         </h2>
         <span className={`chip ${tone}`}>{actions.length}</span>

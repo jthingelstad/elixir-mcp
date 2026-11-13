@@ -10,42 +10,37 @@ import { MemberLink } from "../components/MemberLink.jsx";
 import { HouseRules, ruleId, ruleTitle } from "../components/HouseRules.jsx";
 import { RoleChip } from "../components/RoleChip.jsx";
 
-/** Each group as the canvas draws it: its chip, the 3px bar on its head
- *  and what it means in a member's words. A long group opens at `shown`
+/** Each group: its chip (its tone; flat since 2026-11-13, no bar on its
+ *  head) and what it means in a member's words. A long group opens at `shown`
  *  rows (Participating, the clan's middle, opens closed). */
 const STATUS = {
   holding: {
     label: "Holding Elder",
     chip: "chip--ok",
-    bar: "shadow-[inset_3px_0_0_var(--ok)]",
     says: "Elders the policy keeps.",
     shown: 5,
   },
   slipping: {
     label: "Slipping",
     chip: "chip--warn",
-    bar: "shadow-[inset_3px_0_0_var(--warn)]",
     says: "Elders falling short of what the policy keeps.",
     shown: 5,
   },
   rising: {
     label: "Rising",
     chip: "chip--info",
-    bar: "shadow-[inset_3px_0_0_var(--accent-bright)]",
     says: "Members nearing Elder.",
     shown: 5,
   },
   participating: {
     label: "Participating",
     chip: "chip--mute",
-    bar: "shadow-[inset_3px_0_0_var(--line-strong)]",
     says: "Meeting the minimums, not near Elder yet.",
     shown: 0,
   },
   quiet: {
     label: "Quiet",
     chip: "chip--mute",
-    bar: "shadow-[inset_3px_0_0_var(--line-strong)]",
     says: "Little recorded play in what the clan counts.",
     shown: 5,
   },
@@ -76,8 +71,8 @@ function Group({ status, rows, you, war, clan, navigate }) {
   const id = `standing-${status}`;
   return (
     <Panel className="overflow-hidden" aria-labelledby={id}>
-      <div className={`panel__head ${s.bar}`}>
-        <h3 id={id} className="m-0 text-[14px] font-semibold">
+      <div className="panel__head">
+        <h3 id={id} className="kit-panel__title">
           {s.label}
         </h3>
         <span className={`chip ${s.chip}`.trim()}>{rows.length}</span>
@@ -173,7 +168,7 @@ function How({ d, clan, who, navigate }) {
   return (
     <Panel aria-labelledby="standing-how">
       <div className="panel__head">
-        <h3 id="standing-how" className="m-0 grow text-[14px] font-semibold">
+        <h3 id="standing-how" className="kit-panel__title grow">
           How it works here
         </h3>
         {d.policy_version ? (
@@ -258,7 +253,7 @@ function You({ you, who, how, clan, navigate }) {
   return (
     <Panel aria-labelledby="standing-you">
       <div className="panel__head">
-        <h3 id="standing-you" className="m-0 grow text-[14px] font-semibold">
+        <h3 id="standing-you" className="kit-panel__title grow">
           You
         </h3>
       </div>
