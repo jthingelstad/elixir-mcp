@@ -444,12 +444,12 @@ every command, probe and diff listed so anyone can re-verify it.
   account data or private incident detail; a tag is public game data and
   may appear ("CR tags are not PII; email is").
 - **Access comes from the public contract.** Read
-  `apps/site/src/docs/{roles,agents,integrations,connections,privacy,limits}.md`
+  `apps/site/src/docs/{roles,agents,connections,sign-in-with-elixir,privacy,limits}.md`
   and the changed authorization declarations before judging a response.
   Approved callers may read recorded public game data for any clan;
   private claims, nicknames, feedback, usage and event state stay with
   their principal.
-- **The principal matrix.** Person, agent and integration isolation,
+- **The principal matrix.** Person and agent isolation,
   including the owner's private state and agent-owned cursors; the
   documented permissions, never an owner's admin authority assumed to
   pass to a child principal; OAuth scopes and resource audience; an MCP

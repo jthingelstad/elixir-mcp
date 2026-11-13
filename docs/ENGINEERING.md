@@ -20,8 +20,8 @@ to keep it.
 the rows it actually inserted (a subject already queued is not charged
 twice) and plans against `min(tokens, capacity - queued bulk)` of the bulk
 share, so work queued through a fleet outage cannot stack past what the
-bucket allows. Every new live row (the live lane, a JSON API profile
-refresh, a card first seen in a deck) takes one token atomically
+bucket allows. Every new live row (the live lane, a card first seen in a
+deck) takes one token atomically
 (`takeLiveToken` in `packages/ledger/src/ledger.mjs`); with none left it
 queues nothing, charges nothing (not even the account's live quota) and
 answers at the next tick. `budget_charge` records the charges by hour and
@@ -168,7 +168,7 @@ inside a request. Non-database work (S3 calls) still parallelises.
   `infra/template.yaml`, a ceiling just under that function's Lambda kill.
 - A read-only tool waits at most 5 s for a lock and answers
   `query_timeout` with a request id when its deadline passes, on every door
-  (MCP, the app's tool bridge `POST /api/explore`, `/api/v1`)
+  (MCP, the app's tool bridge `POST /api/explore`)
   (`packages/tools/src/invoker.mjs`). Writes never
   race a deadline.
 - An MCP result over `MCP_RESULT_MAX_CHARS`
@@ -184,15 +184,12 @@ inside a request. Non-database work (S3 calls) still parallelises.
   unreliable claim), and a major is reserved for a domain-model shift that
   changes what an agent's task means. Agents reason from the current
   declaration, schema and notes; an absent field means no claim.
-- **The JSON API is versioned separately, on ordinary semver.** Its callers
-  are programs (Drop, a clan's website, other integrations), so a removed
-  or renamed response field is a major of
-  `integration-api.openapi.json`'s `info.version`, even when the same
-  change is an MCP patch; its operations serve the tool's structured
-  result, so check them on every MCP field removal
-  (`services/web-api/test/integration-pin.test.mjs` pins the shapes). The
-  path stays `/api/v1`: it is also the OAuth audience. Its versions are on
-  `apps/site/src/docs/json-api.md`.
+- **The JSON API is versioned separately, on ordinary semver.** It is
+  Sign in with Elixir's `GET /api/v1/me` alone (5.0.0) and mirrors no
+  tool, so an MCP change never moves it; a removed or renamed field of
+  `/me` is a major of `integration-api.openapi.json`'s `info.version`
+  (`services/web-api/test/sign-in-api-contract.test.mjs` pins the path set
+  and shape). The path stays `/api/v1`: it is also the OAuth audience.
 - **Clients cache `tools/list` forever.** `serverInfo.version` is
   `<contract>+tools.<fingerprint>` so a cache can be busted; a stateless
   server can never push `listChanged`. Every bump is its own file,
@@ -484,9 +481,9 @@ imported by name.
 | `record` | the record's data functions and clocks, the SQL a tool and a job both read, attested facts |
 | `claims` | who is recorded and why: claims, tracking reasons, pooled slot quotas |
 | `ingest` | the admission boundary, payload to rows; run inline by the collector door |
-| `ledger` | the job ledger and its plan; the scheduler runs it, the door and the JSON API enqueue through it |
+| `ledger` | the job ledger and its plan; the scheduler runs it, the door and the web app enqueue through it |
 | `collector-door` | collectors' `config`, `lease`, `submit` and the release-signature state |
-| `auth` | sessions, OAuth, tokens, integration accounts, the `clans_my_view` and clan directory readers |
+| `auth` | sessions, OAuth, tokens, the `clans_my_view` and clan directory readers |
 | `mail`, `outbox` | rendering, the send ledger and archive, delivery; the S3 outbox |
 | `syndication` | the timeline cross-posted to Discord and a clan's activity channel: the setting, the wake, the sync, its lines, the relay's worker and the quality ledger (`quality.mjs`) |
 | `clan-engine`, `clan`, `clan-state` | Clan, a set of features inside Elixir (`packages/clan/AGENTS.md`) |
@@ -495,7 +492,7 @@ imported by name.
 
 | Service (Lambda) | Serves |
 | --- | --- |
-| `web-api` | the site's API, `/api/v1`, `/api/clan`, the app's tool bridge (`/api/explore`), `/battle/*`, OAuth consent |
+| `web-api` | the site's API, `GET /api/v1/me`, `/api/clan`, the app's tool bridge (`/api/explore`), `/battle/*`, OAuth consent |
 | `mcp` | the MCP and OAuth doors |
 | `collector` | the collector door |
 | `scheduler` | the ledger tick |
@@ -509,30 +506,27 @@ infrastructure; its `package.json` names what it exports and depends on, and
 knip holds both honest. `packages/record/test/boundary.test.mjs` holds the
 line over `src`: no package imports a service; no service's `src` leaves its
 own directory by a relative path; no service imports another by name. Tests
-are exempt. Two doors over one fact read one function, and a parity test
-says so (`services/web-api/test/record-parity.test.mjs`).
+are exempt. Two doors over one fact read one function.
 
 ## The JSON API
 
-`/api/v1` is defined by `packages/contracts/integration-api.openapi.json`
-and the public guides (`apps/site/src/docs/json-api.md`,
-`integrations.md`). It runs in web-api behind a no-cookie CloudFront
-behavior (the only door route that sees the session cookie is
-`/oauth/authorize`, the consent page, on its own behavior).
+`/api/v1` answers exactly `GET /api/v1/me`, Sign in with Elixir's one
+request ("No integrations: Elixir has users and agents", DECISIONS). It is
+defined by `packages/contracts/integration-api.openapi.json`, served by
+`services/web-api/src/sign-in-api.mjs` and documented on
+`apps/site/src/docs/sign-in-with-elixir.md`. It runs in web-api behind a
+no-cookie CloudFront behavior (the only door route that sees the session
+cookie is `/oauth/authorize`, the consent page, on its own behavior).
 
-- Two callers: an integration's `svt_` key, and a person's OAuth grant
-  with audience `/api/v1`. `service_token.audience` keeps REST and MCP
-  credentials apart. Each operation declares the callers it admits
-  (`x-principals`).
-- An integration holds its permissions (`clans:read`, `facts:write`,
-  the latter granted only by name) and capacity apart from its sponsor.
-  Admin management is `services/web-api/src/routes/integrations.mjs`;
-  personal routes cannot manage these identities.
+- One caller: a person's OAuth grant with audience `/api/v1` (an `eat_`
+  token). Any other path or method is the unknown operation's 404 before
+  a credential is read; `sign-in-api-contract.test.mjs` pins the path set.
 - First-party clients (a provisioned `family_oauth_client`, every redirect
-  URI on a family origin) are not metered.
-- Async refreshes bind integration, idempotency key and ledger job;
-  completion requires an admitted receipt and projected data. The
-  scheduler still owns pacing. Calls are audited with `surface=rest`.
+  URI on a family origin) are not metered; others are, 600 per person per
+  hour. Calls are audited with `surface=rest`.
+- Integration accounts left from before 5.0.0 stay as rows: the `{integration}`
+  op lists them and revokes their keys, and Clan's morning run still reads
+  the `elixir-clan` row as the account its facts are attested by.
 
 ## Clan inside Elixir
 

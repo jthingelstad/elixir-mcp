@@ -87,8 +87,8 @@ async function logEvent(db, accountId, kind, detail) {
  * has VERIFIED their player tag, we should NOT allow any other account to
  * claim it as a self or alt tag". A self claim is `primary` or `alt`;
  * `friend` and `watching` say "not me" and stay open to anyone. One
- * refusal, said the same way on every door (the console, the tool and
- * the JSON API, Verify itself).
+ * refusal, said the same way on every door (the web app, the tool and
+ * Verify itself).
  */
 export const SELF_RELATIONSHIPS = Object.freeze(["primary", "alt"]);
 export const VERIFIED_ELSEWHERE = Object.freeze({

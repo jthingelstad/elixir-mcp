@@ -29,8 +29,7 @@ function quotaResetsAt(now = new Date()) {
 export function makeQuota({ db, account }) {
   // WHOSE budget this call spends. An agent spends its owner's — that is the
   // deal that lets every clan leader have one without a tier gate — so the
-  // counter and the ceiling both key on the owner. An
-  // integration pays for itself from its own key. A person is both.
+  // counter and the ceiling both key on the owner. A person is both.
   // The fallback keeps pre-0053 shapes (and every test that builds an account
   // by hand) behaving exactly as before.
   const budget = account.budget ?? {

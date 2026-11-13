@@ -46,7 +46,7 @@ export { HOURLY_RATE_LIMIT };
 
 /** The hourly bucket a call spends from: a key with its own ceiling has its
  *  own; otherwise the principal that made the call (an agent its own, a
- *  person or an integration their account), never the account that pays. */
+ *  person their account), never the account that pays. */
 export function hourlyBucketFor(account) {
   if ((account.hourlyRateLimit ?? null) !== null && account.tokenId) {
     return `mcp#token#${account.tokenId}`;
@@ -126,7 +126,7 @@ export function makeHandler({
     sendWelcomeEmail,
     sessionSecret,
   });
-  // The personal resource's metadata document. Agent and integration doors
+  // The personal resource's metadata document. Agent doors
   // point at their own path-suffixed one, built per request below, so a client
   // 401'd at an agent URL discovers THAT resource rather than this one.
   const resourceMetadata = `${issuer}/.well-known/oauth-protected-resource`;
@@ -328,7 +328,7 @@ export function makeHandler({
             message: `This credential is not for ${target.resource}.`,
             hint:
               target.kind === "person"
-                ? "An agent or integration key belongs at its own URL, not the personal one."
+                ? "An agent key belongs at its own URL, not the personal one."
                 : "Use the key issued for this agent, or connect at the personal /mcp resource.",
           }),
         };
@@ -426,9 +426,8 @@ export function makeHandler({
         }
       }
       // Same principle as the daily quota: the bucket belongs to whoever is
-      // paying. A key that carries its OWN hourly ceiling (an integration's
-      // traffic is a function of its userbase; the acceptance suite's of
-      // its catalogue) spends from its own bucket - a ceiling on a shared
+      // paying. A key that carries its OWN hourly ceiling (the acceptance
+      // suite's, whose traffic is a function of its catalogue) spends from its own bucket - a ceiling on a shared
       // counter would let that key starve its owner's other doors (found
       // 2026-09-21: one acceptance run took 40% of the owner's hour, and
       // the Discord agent shares it).
@@ -438,8 +437,8 @@ export function makeHandler({
       // DAILY quota and live lane, but gets an hourly bucket of its own at
       // the tier rate: on 10-08 one replay emptied the owner's shared 300
       // and the owner's three Discord agents were refused for 52 minutes.
-      // A person's and an integration's principal IS their budget account,
-      // so for them nothing moves. The tier rate is the same for every tier
+      // A person's principal IS their budget account, so for them nothing
+      // moves. The tier rate is the same for every tier
       // today, so "capped at the owner's tier" is the same 300.
       //
       // Only calls spend from it (DECISIONS, "Only calls count against the
@@ -498,7 +497,7 @@ export function makeHandler({
         // resource corpus is built in.
         db,
         // What this connection is FOR. A person sees the full surface; an
-        // agent's is shaped around a clan; an integration's around the corpus.
+        // agent's is shaped around a clan.
         kind: account.kind ?? "person",
         spendQuota: makeQuota({ db, account }),
         // protocol.mjs calls this at its own refusal sites (unknown tool,

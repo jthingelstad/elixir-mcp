@@ -26,8 +26,6 @@ const label = (row) =>
 
 export async function describeIdentity(db, account) {
   const kind = account?.kind ?? "person";
-  if (kind === "integration") return { kind };
-
   if (kind === "agent") {
     const { rows: clans } = await db.query(
       `select ac.clan_tag, c.name,
@@ -326,7 +324,7 @@ export function principalBlock(kind, identity) {
     return block;
   }
 
-  // An integration serves its own users and has no subject of its own.
+  // Any other principal has no subject of its own.
   block.subject = null;
   return block;
 }

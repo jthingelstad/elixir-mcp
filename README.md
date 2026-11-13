@@ -11,11 +11,12 @@ log of about 30 battles and no per-season history. Elixir's collectors
 record the players and clans its accounts follow and the members of the
 clans they follow, and keep those observations. The record is served on one
 origin: Home, Stats and Clan in the browser, an authenticated remote
-MCP server for a person's own agent, and a versioned JSON API.
+MCP server for a person's own agent, and Sign in with Elixir for the
+family's apps.
 
 - Web: <https://elixir.poapkings.com>
 - MCP: `https://elixir.poapkings.com/mcp`
-- JSON API: `https://elixir.poapkings.com/api/v1`
+- Sign in with Elixir: `GET https://elixir.poapkings.com/api/v1/me`
 
 **What the service does is documented publicly**, at
 <https://elixir.poapkings.com/docs>; this repository does not describe product

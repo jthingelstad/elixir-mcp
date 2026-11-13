@@ -173,7 +173,6 @@ function instructionsFor(kind, identity) {
       "display_name beside an unmapped on_behalf_of makes no_subject carry",
       "candidates[]. battles_decks reads a named player's recorded decks.",
     ],
-    integration: [],
   };
   const feedback = [
     "Hit friction (a missing capability, a confusing result, too many",
@@ -184,7 +183,7 @@ function instructionsFor(kind, identity) {
     "Manual: elixir_docs (choosing-a-tool, glossary; windows, verbosity and",
     "response fields: protocol#argument-conventions).",
   ];
-  const k = kind === "agent" || kind === "integration" ? kind : "person";
+  const k = kind === "agent" ? kind : "person";
   const render = (who) =>
     [
       ...(who ? [who] : []),
@@ -381,7 +380,7 @@ export async function handleMcpMessage(message, context) {
           `${name} is not available to this connection.`,
           {
             kind: context.kind ?? "person",
-            hint: "This tool answers for a person. An agent acts for a clan and an integration has no account of its own.",
+            hint: "This tool answers for a person. An agent acts for a clan.",
           },
         ),
       };

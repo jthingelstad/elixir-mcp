@@ -56,7 +56,7 @@ export async function onboardAccount(db, accountId) {
     const acct = rows[0];
     if (!acct || acct.onboarded_at) return { skipped: "already" };
     if (acct.status !== "approved") return { skipped: "not_approved" };
-    // An agent or integration has no self to claim a player with.
+    // An agent (or a stored integration account) has no self to claim a player with.
     if (acct.kind && acct.kind !== "person") return { skipped: "not_person" };
 
     const tag = acct.requested_player_tag;

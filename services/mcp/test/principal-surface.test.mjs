@@ -83,32 +83,6 @@ test("an agent has no personal identity tools, and follows for its clan (13.0.0:
     assert.ok(agent.includes(social), social);
 });
 
-test("an integration has no 'me' at all (13.0.0: 33 of 44)", () => {
-  const integration = names("integration");
-  assert.equal(integration.length, 33);
-  assert.ok(!integration.includes("elixir_my_players"));
-  assert.ok(!integration.includes("elixir_nickname"), "nobody to nickname");
-  assert.ok(
-    !integration.includes("elixir_timeline"),
-    "no subjects, so an empty pipe forever",
-  );
-  assert.ok(!integration.includes("elixir_follow_player"), "adds none");
-  assert.ok(!integration.includes("elixir_follow_clan"));
-  assert.ok(!integration.includes("clans_my_view"));
-  // No person to read the social layer for.
-  for (const social of [
-    "players_follows",
-    "players_highlights",
-    "clans_directory",
-    "elixir_cheers",
-  ])
-    assert.ok(!integration.includes(social), social);
-  // It is a corpus consumer, and the corpus is all still there.
-  assert.ok(integration.includes("players_profile"));
-  assert.ok(!integration.includes("battles_meta_decks"));
-  assert.ok(integration.includes("game_clock"));
-});
-
 test("hiding is not enforcement: a remembered tool is refused, not served", async () => {
   // Clients cache tools/list for a long time -- this server publishes a
   // fingerprint precisely because they do. An agent holding yesterday's list
@@ -122,8 +96,8 @@ test("hiding is not enforcement: a remembered tool is refused, not served", asyn
   assert.ok(allowed.payload.result, "and its own tools still work");
 });
 
-test("a remembered clans_my_view call by an agent or an integration never invokes or spends quota", async () => {
-  for (const kind of ["agent", "integration"]) {
+test("a remembered clans_my_view call by an agent never invokes or spends quota", async () => {
+  for (const kind of ["agent"]) {
     let invoked = 0;
     let spent = 0;
     const result = await handleMcpMessage(
@@ -157,41 +131,6 @@ test("a person calling the same tool is served", async () => {
   assert.ok(res.payload.result);
 });
 
-test("remembered social reads by an integration never invoke or spend quota", async () => {
-  for (const name of [
-    "players_follows",
-    "players_highlights",
-    "clans_directory",
-    "elixir_cheers",
-  ]) {
-    const kind = "integration";
-    let invoked = 0;
-    let spent = 0;
-    const result = await handleMcpMessage(
-      {
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name, arguments: {} },
-      },
-      {
-        ...context(kind),
-        invokeTool: async () => {
-          invoked++;
-          return { body: {}, isError: false };
-        },
-        spendQuota: async () => {
-          spent++;
-          return { allowed: true };
-        },
-      },
-    );
-    assert.equal(result.payload.error.code, -32601);
-    assert.equal(invoked, 0);
-    assert.equal(spent, 0);
-  }
-});
-
 test("initialize advertises the surface the caller will actually get", async () => {
   const forAgent = await handleMcpMessage(
     { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
@@ -220,7 +159,6 @@ test("the opening brief no longer sends anyone to look themselves up", async () 
 
   const person = await brief("person");
   const agent = await brief("agent");
-  const integration = await brief("integration");
 
   // The regression this replaces: every brief opened with "Start with
   // elixir_my_players", a holdover from before universal reads that cost a
@@ -228,7 +166,6 @@ test("the opening brief no longer sends anyone to look themselves up", async () 
   for (const [name, text] of [
     ["person", person],
     ["agent", agent],
-    ["integration", integration],
   ])
     assert.ok(
       !/Start with elixir_my_players/.test(text),
@@ -237,7 +174,7 @@ test("the opening brief no longer sends anyone to look themselves up", async () 
 
   // Everyone is still invited to file friction; that is the point of the
   // exercise, not a person-only courtesy.
-  for (const text of [person, agent, integration])
+  for (const text of [person, agent])
     assert.ok(text.includes("elixir_send_feedback"));
 });
 

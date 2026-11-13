@@ -2858,24 +2858,13 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          # Agent and integration doors (0054). Same origin, same no-cookie
+          # Agent doors (0054). Same origin, same no-cookie
           # policy as /mcp -- these are the same protected resource served
           # under a per-principal identity, and a session cookie must never
           # reach one. Without these the Lambda's routing is correct and
           # unreachable: the edge answers /a/* with its own 403 HTML and the
           # door never sees the request.
           - PathPattern: /a/*
-            TargetOriginId: mcpapi
-            ViewerProtocolPolicy: https-only
-            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
-            CachePolicyId: !Ref WebPrivateCachePolicy
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            Compress: true
-            OriginRequestPolicyId: !Ref McpOriginRequestPolicy
-            FunctionAssociations:
-              - EventType: viewer-request
-                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          - PathPattern: /i/*
             TargetOriginId: mcpapi
             ViewerProtocolPolicy: https-only
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
@@ -3343,7 +3332,7 @@ Resources:
   # Failures the doors handle themselves (review 2026-09-27 §8.6, issue
   # #71). The invoker catches every tool exception and answers an
   # `internal` result (tool_failed_unexpectedly, in the MCP door and in
-  # the web-api's Explore and /api/v1, which run the same invoker), and a
+  # the web-api's Explore, which runs the same invoker), and a
   # refused database connection becomes a handled 503 (db_connect_failed
   # in the MCP door). Neither is a Lambda error, so only this metric
   # counts them.

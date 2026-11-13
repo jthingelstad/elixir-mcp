@@ -2,8 +2,8 @@
  * Feedback, one system for all of Elixir (2026-10-08, Jamie: "one general
  * feedback system that can work for all of the types of feedback that we
  * want to collect"). Every door files the same record: the MCP tool, the
- * JSON API, the Console, Ladder, Clan, the docs and the email
- * footer. These lists are that record's vocabulary, and the database's
+ * app, Clan, the docs and the email footer (the JSON API's door went in
+ * 5.0.0; its items keep `api`). These lists are that record's vocabulary, and the database's
  * CHECKs, the tool schemas and the web forms all read them from here.
  */
 
@@ -78,7 +78,7 @@ export const FEEDBACK_REF_KINDS = [
 export type FeedbackRefKind = (typeof FEEDBACK_REF_KINDS)[number];
 
 /** Pointers only a Console or Clan page files, after checking them
- *  itself; never an MCP or /api/v1 argument, so a door's `refs` drop them
+ *  itself; never an MCP argument, so a door's `refs` drop them
  *  as unknown. `discord_post` (2026-10-11): a row of the Discord quality
  *  ledger (0222), named by a rating of a post on its delivery history. */
 export const FEEDBACK_PAGE_REF_KINDS = ["discord_post"] as const;

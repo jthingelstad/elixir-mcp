@@ -163,22 +163,25 @@ export function canonicalResource(value) {
 /**
  * The one place a request path becomes a protected-resource identity.
  *
- * Three shapes, and only three. This pattern is the code half of the CHECK
- * constraint in migration 0054 — they must agree, so a test compares them
- * against the same adversarial matrix. The host is a hard-coded literal on
- * both sides: nothing a caller sends can steer the audience off this origin.
+ * Three shapes, and only three: the personal door, an agent's door and the
+ * JSON API. This pattern is the code half of the CHECK constraint in
+ * migrations 0054 and 0160, and a test holds every audience it names inside
+ * that constraint. The constraint still admits `/i/<id>/mcp`, an
+ * integration's MCP door, which no credential ever opened and which closed
+ * with the integration keys (JSON API 5.0.0). The host is a hard-coded
+ * literal on both sides: nothing a caller sends can steer the audience off
+ * this origin.
  *
  * Returns { resource, kind, publicId } or null. `kind` is what the URL CLAIMS;
  * proving it is the credential's job, and the mismatch between the two is the
  * whole reason distinct URLs are worth having.
  */
-const RESOURCE_PATH_RE = /^\/(?:mcp|(api\/v1)|([ai])\/([a-z0-9]{8,16})\/mcp)$/;
+const RESOURCE_PATH_RE = /^\/(?:mcp|(api\/v1)|a\/([a-z0-9]{8,16})\/mcp)$/;
 
 /**
- * `/api/v1` (2026-09-23, Jamie: the JSON API is a public product beside
- * MCP) is a fourth shape and a different DOOR: a person's grant for the
- * JSON API. Its kind is `api`, and the MCP handler refuses it, so a token
- * for one door is never accepted at the other.
+ * `/api/v1` is a different DOOR: a person's grant for Sign in with
+ * Elixir's `GET /api/v1/me`. Its kind is `api`, and the MCP handler refuses
+ * it, so a token for one door is never accepted at the other.
  */
 export function resourceForPath(path, issuer) {
   const match = RESOURCE_PATH_RE.exec(String(path ?? ""));
@@ -187,11 +190,7 @@ export function resourceForPath(path, issuer) {
   if (!resource) return null;
   if (match[1]) return { resource, kind: "api", publicId: null };
   if (!match[2]) return { resource, kind: "person", publicId: null };
-  return {
-    resource,
-    kind: match[2] === "a" ? "agent" : "integration",
-    publicId: match[3],
-  };
+  return { resource, kind: "agent", publicId: match[2] };
 }
 
 /**
@@ -502,10 +501,6 @@ export async function redeemRefreshToken(
  * COLLECT (slots, comprehensive vs activity), which is the axis that keeps a
  * demo honest; calls are the axis that costs the service money, and those come
  * out of the parent's allowance.
- *
- * An INTEGRATION pays for itself. Its traffic scales with its own userbase and
- * has nothing to do with its owner's personal usage, which is exactly why it
- * sits behind a partner gate and carries a per-key quota.
  */
 function budgetFor(row) {
   if (row.kind === "agent" && row.owned_by_account_id) {
@@ -514,14 +509,6 @@ function budgetFor(row) {
       role: row.owner_role ?? row.role,
       override: row.owner_mcp_daily_quota ?? null,
       liveOverride: row.owner_live_daily_quota ?? null,
-    };
-  }
-  if (row.kind === "integration") {
-    return {
-      accountId: row.account_id,
-      role: row.role,
-      override: row.token_daily_quota ?? row.mcp_daily_quota ?? null,
-      liveOverride: row.live_daily_quota ?? null,
     };
   }
   return {
@@ -533,7 +520,7 @@ function budgetFor(row) {
 }
 
 /**
- * An owned principal (an agent or an integration) acts only while its
+ * An owned principal (an agent) acts only while its
  * owner may (#129). Withdrawing a person (status leaves 'approved') used
  * to stop their own grants and leave every agent they own working, since
  * both doors read the token's account alone and joined the owner only for
@@ -630,7 +617,7 @@ export function redirectsToFamily(redirectUris) {
  *  Elixir (family_oauth_client, which only a migration or the operator's
  *  op writes, and whose clients authenticate at /oauth/token), and every
  *  redirect URI it holds on a family origin. First-party clients are not
- *  metered on the JSON API (Jamie). */
+ *  metered at `GET /api/v1/me` (Jamie). */
 export function isFirstPartyClient({ redirectUris, provisioned } = {}) {
   const list = Array.isArray(redirectUris) ? redirectUris : [];
   return (
@@ -725,20 +712,16 @@ const SERVICE_ACCOUNT_SELECT = `select t.token_id, t.name, t.scope as token_scop
 
 /** Validate a service token; returns the account shape the MCP handler
  *  expects, plus serviceName for per-token audit surfaces. */
-export async function validateServiceToken(
-  db,
-  token,
-  { audience = "mcp" } = {},
-) {
+export async function validateServiceToken(db, token) {
   const raw = validOpaque(token, SERVICE_TOKEN_PREFIX);
   if (!raw) return null;
   const { rows } = await db.query(
     `${SERVICE_ACCOUNT_SELECT}
      where t.token_hash = $1 and t.revoked_at is null and a.status = 'approved'
        and ${OWNER_APPROVED}
-       and t.audience = $2
-       and ($2 <> 'mcp' or not exists (select 1 from integration i where i.account_id = a.account_id))`,
-    [sha256hex(raw), audience],
+       and t.audience = 'mcp'
+       and not exists (select 1 from integration i where i.account_id = a.account_id)`,
+    [sha256hex(raw)],
   );
   const row = rows[0];
   if (!row) return null;

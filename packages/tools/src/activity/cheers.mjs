@@ -6,7 +6,7 @@
  *
  * Writing a cheer is the web's alone (services/web-api/src/cheers.mjs). Agents
  * read cheers and never give them (DECISIONS "Agents read the social layer
- * and never write it"): MCP's elixir_cheers and its /api/v1 operation read
+ * and never write it"): MCP's elixir_cheers reads
  * the counts on items about the reader's own player, never who, and never an
  * agent's own cheer, since an agent has none.
  */

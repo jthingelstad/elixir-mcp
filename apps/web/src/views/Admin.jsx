@@ -1104,7 +1104,7 @@ function AdminFeedback() {
       admin
       crumb="Admin"
       title="Feedback queue"
-      note="Every door files here: MCP, the JSON API, Elixir's pages, Ladder, Clan, the docs and the email footer."
+      note="Every door files here: MCP, Elixir's pages, Clan, the docs and the email footer."
       loading={query.isPending}
       error={query.isError ? "The queue could not be read just now." : null}
       above={

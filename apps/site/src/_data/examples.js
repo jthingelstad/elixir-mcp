@@ -264,7 +264,7 @@ export default [
           "The clan's 30-day ladder table",
         ],
         // An agent connection: elixir_docs and clans_standings are MCP tools
-        // only, and the JSON API (/api/v1) serves neither.
+        // only.
         setup: ["Create an agent", "Read the agents doc"],
         script: {
           tool: "elixir_docs · war_history · clans_standings",
@@ -275,7 +275,7 @@ export default [
             },
             {
               role: "agent",
-              text: "You can build that on the record instead of on a second Clash key, through **an agent connection**: the same tools I am using, over MCP with the agent's own key and URL. It suits a site that renders at build time. The ladder table is an MCP tool; the JSON API at `https://elixir.poapkings.com/api/v1`, which integrations use, serves the war history but not that table. The key is shown once and never belongs in a browser.\n\nWhat you would be publishing that the game's own API forgets: **every recorded river race**. POAP KINGS' record runs from Season 134, Week 1 to today, nine finished races, all firsts, plus a 30-day ladder table for the clan (48 ranked members, median win rate 52.8%).\n\nThe Agents page of the documentation covers the setup: create one under **Settings › Connections & agents › New agent**, then put its key and URL in the build's environment.",
+              text: "You can build that on the record instead of on a second Clash key, through **an agent connection**: the same tools I am using, over MCP with the agent's own key and URL. It suits a site that renders at build time. The war history and the ladder table are MCP tools. The key is shown once and never belongs in a browser.\n\nWhat you would be publishing that the game's own API forgets: **every recorded river race**. POAP KINGS' record runs from Season 134, Week 1 to today, nine finished races, all firsts, plus a 30-day ladder table for the clan (48 ranked members, median win rate 52.8%).\n\nThe Agents page of the documentation covers the setup: create one under **Settings › Connections & agents › New agent**, then put its key and URL in the build's environment.",
             },
           ],
         },

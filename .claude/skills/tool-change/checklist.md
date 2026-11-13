@@ -9,8 +9,8 @@ only when it does not apply, and say why in the commit message.
 
 - [ ] The kind of change is named (SKILL.md, section 1), and the stop
       list is checked. A new tool, a change of meaning, a breaking
-      refusal, a DECISIONS or declined-idea conflict, or a non-additive
-      `/api/v1` change goes to Jamie first. Review.
+      refusal, or a DECISIONS or declined-idea conflict goes to Jamie
+      first. Review.
 - [ ] The family's DECISIONS lines are read in full and the binding
       ones are named in the plan. Review.
 - [ ] For a new tool, the measured walk comes from the call audit, and
@@ -54,8 +54,8 @@ only when it does not apply, and say why in the commit message.
   `WINDOW_ECHO`, `NOTES`, `DOCS`, `META`, `MODE_SPLIT`, `NAME`, `RATE`
   and `COUNT`.
 - `packages/contracts/src/tool-groups.ts` holds `TOOL_GROUPS` and
-  `GROUP_ORDER`. `principals.ts` holds `PERSON_ONLY_TOOLS`,
-  `AGENT_ONLY_TOOLS` and `NOT_FOR_PERSONS`. `errors.ts` holds
+  `GROUP_ORDER`. `principals.ts` holds `PERSON_ONLY_TOOLS`
+  and `NOT_FOR_PERSONS`. `errors.ts` holds
   `ERROR_CODES` and their classes.
 - `services/mcp/src/protocol.mjs` holds `instructionsFor` (the brief);
   `packages/tools/src/result-text.mjs` holds `MCP_RESULT_MAX_CHARS` and
@@ -172,10 +172,6 @@ only when it does not apply, and say why in the commit message.
       grepped and changed: timeline entries, mail builders and
       fixtures, rollups, the console and web-api routes. Review; run
       `/consistency <decision>` when a DECISIONS line is involved.
-- [ ] A mirrored tool is checked against its `/api/v1` operation (both
-      the schema and the served body). If the pin moved,
-      `info.version`, `integration-api.pin.json` and the Versions list
-      in `integrations.md` all move. Test: `integration-pin`.
 - [ ] On a removal, the unpinned MCP reader (the Discord preview) is
       grepped for the field.
 
@@ -277,9 +273,9 @@ only when it does not apply, and say why in the commit message.
 - Each kind sees the surface `principals.ts` says it does.
 - A hidden tool is refused on call.
 
-`services/web-api/test/integration-pin.test.mjs`:
-- `info.version` and the fingerprint of the mirrored tools' schemas and
-  the API's paths match `integration-api.pin.json`.
+`services/web-api/test/sign-in-api-contract.test.mjs`:
+- `/api/v1` declares `GET /me` alone, and `info.version` and its
+  fingerprint match `sign-in-api.pin.json`; no tool reaches it.
 
 `packages/contracts/test/changelog.test.mjs`:
 - The newest entry is `CONTRACT_VERSION`.

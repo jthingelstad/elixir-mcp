@@ -1,6 +1,6 @@
 ---
 name: tool-change
-description: The procedure for adding or changing an Elixir MCP tool, from start to finish. It covers the DECISIONS check and the stop list, where the code lives, the conventions the registry tests and DECISIONS enforce, the second derivations and `/api/v1` operations that must move with the tool, tests on a scratch database, docs, acceptance, and the version bump, then hands off to `/ship`. `/tool-change <tool> <what changes>` walks a change to an existing tool (a field, an argument, a note, a correction, a removal); `/tool-change new <domain>_<noun>` starts a proposed tool, which is Jamie's call before any code. Use it whenever a tool's declaration, handler, output schema, notes or SQL changes, or when a tool is added or removed.
+description: The procedure for adding or changing an Elixir MCP tool, from start to finish. It covers the DECISIONS check and the stop list, where the code lives, the conventions the registry tests and DECISIONS enforce, the second derivations that must move with the tool, tests on a scratch database, docs, acceptance, and the version bump, then hands off to `/ship`. `/tool-change <tool> <what changes>` walks a change to an existing tool (a field, an argument, a note, a correction, a removal); `/tool-change new <domain>_<noun>` starts a proposed tool, which is Jamie's call before any code. Use it whenever a tool's declaration, handler, output schema, notes or SQL changes, or when a tool is added or removed.
 ---
 
 # Changing an MCP tool
@@ -18,15 +18,14 @@ what each registry test asserts. Related skills: `/ship` deploys,
 
 ## 1. Classify the change before any code
 
-The kind of change decides the version, the JSON API check and who
-decides:
+The kind of change decides the version and who decides:
 
 | kind | example | MCP version | who decides |
 |---|---|---|---|
 | wording | a description, note or hint; a docs section | patch; none for a docs page alone | you |
 | correction | the tool served something wrong; the fix makes it right | patch | you |
 | addition | a new field or argument | minor | you |
-| removal or rename | a field that made an unreliable claim | patch | you, unless `/api/v1` mirrors the tool (section 5) |
+| removal or rename | a field that made an unreliable claim | patch | you |
 | meaning | what a number counts, a new refusal, a new tool | minor or major | **Jamie** |
 
 **Stop and ask Jamie before writing code** for any of these. It is the
@@ -43,7 +42,6 @@ Gym's stop list, and it applies to every tool change, not only a sweep:
   dropped" is the precedent).
 - **Anything a DECISIONS line or a declined idea covers.** Read
   "Declined, do not propose" first.
-- **A non-additive change to what an `/api/v1` operation returns.**
 
 Then read the family's DECISIONS lines in full. Search
 `docs/DECISIONS.md` for the tool name and the concepts it touches (mode,
@@ -133,26 +131,11 @@ before you call it done.
 
 ## 5. The JSON API
 
-Eight tools' structured results are served by `/api/v1` operations
-(`x-tool` in `packages/contracts/integration-api.openapi.json`, wired in
-`services/web-api/src/integration-api.mjs`): `clans_participation`,
-`clans_roster`, `war_history`, `live_fetch` (the clan read),
-`players_names`, `players_profile`, `battles_query` and
-`elixir_follow_player`.
-
-"The JSON API keeps ordinary semver". An addition to a mirrored tool is
-a JSON API minor, made in the same round. A removed or renamed field is
-a JSON API major and stops for Jamie. In a Gym round any change to a
-mirrored response stops, because the Gym's authority excludes it.
-
-`services/web-api/test/integration-pin.test.mjs` fingerprints each
-mirrored tool's schemas and the API's paths. When it fails, bump
-`info.version`, rewrite `integration-api.pin.json`, and add a line to
-Versions in `apps/site/src/docs/integrations.md`. Output schemas are
-permissive below the top level, so a nested field can move without
-moving the pin: read the operation's response yourself. On a removal,
-also grep the Discord preview, which reads MCP fields by name with no
-pin (facets.md section 8 names the files).
+No tool reaches `/api/v1`: since JSON API 5.0.0 it answers only
+`GET /api/v1/me` for Sign in with Elixir, and mirrors nothing. A tool
+change never moves its version. On a removal, grep the Discord preview,
+which reads MCP fields by name with no pin (facets.md section 8 names the
+files).
 
 ## 6. Tests
 

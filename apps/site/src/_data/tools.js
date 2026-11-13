@@ -122,7 +122,6 @@ export default function tools() {
     // door served 44.
     personCount: all.length - toolsHiddenFrom("person").size,
     agentCount: all.length - toolsHiddenFrom("agent").size,
-    integrationCount: all.length - toolsHiddenFrom("integration").size,
     writeCount: all.filter((t) => !t.readOnly).length,
     outputSchemaCount: all.filter((t) => t.outputSchema).length,
     scopes: OAUTH_SCOPE_DETAILS,

@@ -16,7 +16,7 @@ An agent acts **for a clan**, not for a person. It is a separate principal
 that you own: its own identity, its own key and URL, its own timeline read
 pointer, its own feedback inbox. What it does never lands in your history and what you
 do never shows up as its. If you have not read
-[Users, agents and integrations](/docs/connections), start there.
+[Users and agents](/docs/connections), start there.
 
 ## Create one
 
@@ -186,8 +186,7 @@ question is fresher than the first.
 
 An agent reads the social layer as its owner and never writes it: no
 follow it was not asked for, no cheer, no highlight. Four read-only tools,
-for a person's own connection and the agents of an approved person
-(an integration is refused with `not_entitled`):
+for a person's own connection and the agents of an approved person:
 
 | Tool | What it reads |
 |---|---|

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "The record's data functions over Postgres and its clock, shared by every service: MCP tools and /api/v1 operations are adapters over these.",
+  "description": "The record's data functions over Postgres and its clock, shared by every service: MCP tools and the web app's reads are adapters over these.",
   "exports": {
     "./capture-state": "./src/capture-state.mjs",
     "./membership-capture": "./src/membership-capture.mjs",

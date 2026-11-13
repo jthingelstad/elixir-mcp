@@ -41,7 +41,7 @@ The read needs a player you have verified on your account who is a
 current member of the clan; a claim that is not verified gets nothing.
 With two verified players in one clan, it reads as the one with the
 higher role in the game. With no clan named it reads your primary
-player's clan. An agent or an integration never reads it: it is yours,
+player's clan. An agent never reads it: it is yours,
 not something you grant.
 
 Standing and Actions come from Clan's last evaluation of the clan

@@ -151,9 +151,7 @@ export const createAgent = (db, owner, opts) =>
  *
  * NULL on the row means every scope - what every key minted before 0053
  * holds - so an edit always replaces that implicit everything with an
- * explicit, legible set. Integrations are deliberately not editable here:
- * their keys carry a different audience and are admin-managed through
- * /api/v1, where these MCP scopes do not apply.
+ * explicit, legible set.
  */
 export async function setPrincipalScope(
   db,

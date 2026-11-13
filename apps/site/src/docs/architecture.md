@@ -73,7 +73,8 @@ description of record**; there is no fuller internal one.
 
 Everything cloud-side is serverless: RDS Postgres, S3 and eight Lambdas in
 one CloudFormation stack, inside a VPC with no NAT. The **web API** serves
-Home, Stats, Clan, the JSON API and battle pages; **MCP**
+Home, Stats, Clan, battle pages and Sign in with Elixir's
+`GET /api/v1/me`; **MCP**
 serves the MCP and OAuth doors; **collector** is the collector door;
 **scheduler** plans fetch jobs into the Postgres job ledger on every tick;
 **jobs** runs scheduled product work (mail, sweeps, Clan's morning run);
@@ -89,8 +90,8 @@ their own targets, hold no user data, and earn their operator the
 Family role while active. The fleet shares **one global rate budget** by design:
 more collectors mean resilience, never more API load. The budget is a token
 bucket the scheduler plans from, and everything that asks the API for a read
-spends it: each scheduled job, and each live read an agent, a JSON API
-refresh or a newly seen card asks for. A live read that finds the bucket
+spends it: each scheduled job, and each live read an agent, a person
+or a newly seen card asks for. A live read that finds the bucket
 empty is not queued; it is answered with the record and a time to try again.
 
 ## Collectors, in depth
@@ -163,7 +164,7 @@ Feedback is a first-class product surface, not a mailbox. Agents file
 it mid-session with `elixir_send_feedback` (attributed to the account that
 connected: yours on your own connection, the agent's on an agent's);
 people file it from Settings, Stats, Clan, the docs and an
-email's footer, and integrations over the JSON API. It is one record
+email's footer. It is one record
 for all of Elixir, each item tagged with the part of Elixir it is about
 and what it points at (a call, an email, a clan action). Every item gets a maintainer response, sometimes written with help from AI agents,
 `elixir_my_feedback` pages through the full ledger, an
@@ -310,14 +311,14 @@ allowance on a fresh read instead of waiting for the schedule;
   names every requested capability, refresh never expands it, and an
   insufficient tool call is refused before it spends rate or daily
   quota.
-- **Three principals, three doors.** A person connects at
-  `/mcp`; an agent at `/a/<id>/mcp`. Platform integrations use the
-  [JSON API](/docs/integrations) at `/api/v1`.
+- **Two principals, three doors.** A person connects at
+  `/mcp`; an agent at `/a/<id>/mcp`; an app signing a person in reads
+  [`GET /api/v1/me`](/docs/sign-in-with-elixir#get-api-v1-me).
   Grants are audience-bound to exactly one of them, so a credential
   presented at the wrong door is refused rather than quietly answering
-  about the wrong subject, which matters because the three publish
-  different tool surfaces and mean different things by "me". See
-  [Users, agents and integrations](/docs/connections).
+  about the wrong subject, which matters because they serve
+  different things and mean different things by "me". See
+  [Users and agents](/docs/connections).
 - Service tokens are for **headless** principals, a Discord bot, a
   scheduled job, an app back end, and carry only the capabilities they
   were issued with. A human driving an agent signs in and consents
@@ -375,6 +376,6 @@ Elixir MCP is built in the open:
   an agent here, reading this service over MCP with its agent token.
 - [jthingelstad/drop.poapkings.com](https://github.com/jthingelstad/drop.poapkings.com),
   Elixir Drop, the elixir-cost learning game, which signs people in
-  with Elixir and reads the game clock as an integration.
+  with Elixir and reads nothing else from it.
 
 All of it orbits [POAP KINGS](https://poapkings.com), the clan.

@@ -86,17 +86,16 @@ had moved the file.
   read its `dist`, and `services/mcp`'s tests are a bare `node --test`, so
   a focused run reads the old contract (the root `npm test` rebuilds).
 
-**The JSON API** (a tool an operation mirrors changed shape, or `/api/v1`
-itself; the operations carry `x-tool` in
-`packages/contracts/integration-api.openapi.json`, seven on 2026-09-25):
-- `info.version` on ordinary semver: "a removed or renamed response field
-  is a major of its own `info.version`" (DECISIONS), an addition a minor.
-  A major is Jamie's call.
-- A dated entry atop the Versions list in `apps/site/src/docs/integrations.md`.
-- The version and fingerprint in `services/web-api/test/integration-api.pin.json`;
-  `integration-pin.test.mjs` fails until then, its diff showing the
-  fingerprint: 9.0.0 changed a JSON API response as an MCP change and the
-  JSON API stayed at 1.3.0.
+**The JSON API** (`GET /api/v1/me` itself; since 5.0.0 it mirrors no
+tool, so an MCP change never moves it):
+- `info.version` in `packages/contracts/integration-api.openapi.json` on
+  ordinary semver: "a removed or renamed response field is a major of its
+  own `info.version`" (DECISIONS), an addition a minor. A major is
+  Jamie's call.
+- The version and fingerprint in `services/web-api/test/sign-in-api.pin.json`;
+  `sign-in-api-contract.test.mjs` fails until then, its diff showing the
+  fingerprint.
+- `apps/site/src/docs/sign-in-with-elixir.md` says what `/me` answers.
 
 **What a user sees:** a file in `apps/site/src/_data/updates/`,
 `<YYYY-MM-DD>-<NN>-<slug>.md` (`apps/site/AGENTS.md`, "Updates"): a

@@ -10,9 +10,9 @@
  * The fixture is a full clan as big as the game allows (50 members) with
  * 20 who left inside the window, eight ISO weeks of battles, donations
  * and war, roles known at every finish, and nine joiners mid-window, so
- * the object rows /api/v1 serves are over the cap here as they are live.
+ * the object rows the web app serves are over the cap here as they are live.
  * The agent's table must stay under BUDGET at both verbosities, and must
- * decode to exactly the rows /api/v1 serves.
+ * decode to exactly the rows the web app serves.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -228,7 +228,7 @@ before(async () => {
   };
   const registry = makeRegistry();
   mcp = makeInvoker({ db, account, registry, surface: "mcp" });
-  rest = makeInvoker({ db, account, registry, surface: "rest" });
+  rest = makeInvoker({ db, account, registry, surface: "web" });
   svcDoor = makeInvoker({
     db,
     account,
@@ -282,7 +282,7 @@ for (const verbosity of ["full", "compact"]) {
       text.length <= BUDGET,
       `the agent's ${verbosity} read is ${text.length} characters, over the ${BUDGET} budget`,
     );
-    // Nothing lost: every row decodes to the object /api/v1 serves.
+    // Nothing lost: every row decodes to the object the web app serves.
     // days_since_battle is measured from the moment of each read, to two
     // decimals (about 14 minutes), and the two reads are seconds apart,
     // so it may step once between them (a CI flake on 2026-09-28, 0.05
@@ -312,7 +312,7 @@ for (const verbosity of ["full", "compact"]) {
     const svc = await read(svcDoor, verbosity);
     assert.deepEqual(svc.columns, table.columns);
     assert.ok(Array.isArray(svc.members[0]));
-    // /api/v1 is unchanged: object rows, no columns.
+    // The web app's read is unchanged: object rows, no columns.
     assert.equal(objects.columns, undefined);
     assert.ok(!Array.isArray(objects.members[0]));
   });

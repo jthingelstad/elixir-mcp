@@ -49,7 +49,7 @@ async function fixture(rel) {
 async function call(fn, name, args = {}) {
   const { body, isError } = await fn(name, args);
   // clans_participation answers MCP as a table (#124); these tests read
-  // the rows as the objects /api/v1 serves, which the table decodes to.
+  // the rows as the objects the web app serves, which the table decodes to.
   return { body: participationObjects(body), isError };
 }
 
@@ -2399,7 +2399,7 @@ test("clans_roster: the clan's joiner bar on every surface; each member's roster
       db,
       account: aliceAccount,
       registry: makeRegistry(),
-      surface: "rest",
+      surface: "web",
     }),
     "clans_roster",
     {},

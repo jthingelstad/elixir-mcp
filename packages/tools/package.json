@@ -2,7 +2,7 @@
   "name": "@elixir-mcp/tools",
   "version": "0.1.0",
   "private": true,
-  "description": "The tool registry: every read Elixir answers, as MCP tools and as the JSON API's operations, with the invoker, quota, identity and live-fetch around them. The MCP and web-api Lambdas are its doors.",
+  "description": "The tool registry: every read Elixir answers, as MCP tools and the web app's reads, with the invoker, quota, identity and live-fetch around them. The MCP and web-api Lambdas are its doors.",
   "type": "module",
   "main": "src/tools.mjs",
   "exports": {

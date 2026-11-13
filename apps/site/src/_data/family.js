@@ -60,13 +60,13 @@ export default [
         shot: "Drop an Elixir Drop screenshot",
         points: [
           "A five-minute habit that sharpens instincts Clash rewards",
-          "Reads the record — no Clash key, no scraping",
+          "Sign in with your Elixir account",
           "Free to play, nothing to install",
         ],
-        uses: "Reads player profiles and the interpreted war clock from Elixir, so it holds no Clash key of its own.",
+        uses: "Signs you in with Elixir, which tells it the players on your account.",
         links: [
           ["Play Elixir Drop", "external", "https://drop.poapkings.com"],
-          ["How it reads the hub", "docs", "/docs/integrations"],
+          ["How it signs you in", "docs", "/docs/sign-in-with-elixir"],
         ],
       },
     ],

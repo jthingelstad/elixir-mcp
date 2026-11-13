@@ -358,7 +358,7 @@ const WITHOUT = {
 
 /** The capabilities offered ticked before anyone touches the page
  *  (Jamie 2026-09-24): on a person's own connection none, every write is
- *  theirs to choose; on an agent or integration every write but following,
+ *  theirs to choose; on an agent every write but following,
  *  which spends the owner's slots and is ticked on purpose. */
 function defaultTicked(kind) {
   return kind === "person" || kind === "api"
@@ -566,8 +566,8 @@ export function makeOauthRoutes({
    * signing the person in as themselves, for their own door or the JSON
    * API. It is granted exactly the scope it asked for, which
    * validatedAuthRequest has already held to what a family client may
-   * ask; there are no boxes, so nothing widens it. Acting as an agent or
-   * an integration is a different act and keeps its page, whoever asks.
+   * ask; there are no boxes, so nothing widens it. Acting as an agent is
+   * a different act and keeps its page, whoever asks.
    * Every other client keeps its consent page.
    */
   const signsInOnly = (v) =>
@@ -633,7 +633,7 @@ export function makeOauthRoutes({
     });
     return v.target.kind === "person" || v.target.kind === "api"
       ? `${clientBlock(v)}<p><strong>${verb} authorizes ${esc(v.client.clientName)} to:</strong></p>${caps}`
-      : `${clientBlock(v)}<p><strong>This connects ${esc(v.client.clientName)} as one of your ${esc(v.target.kind === "agent" ? "agents" : "integrations")}, not as you.</strong></p>
+      : `${clientBlock(v)}<p><strong>This connects ${esc(v.client.clientName)} as one of your agents, not as you.</strong></p>
          <p>It will act with that principal&rsquo;s own identity and see its data, not your players or your feed. You can only do this for a principal you own.</p>
          ${caps}`;
   };
@@ -747,7 +747,7 @@ export function makeOauthRoutes({
         403,
         page(
           "Elixir",
-          `<h1>Not yours to connect</h1><p>That agent or integration is not one you own.</p>`,
+          `<h1>Not yours to connect</h1><p>That agent is not one you own.</p>`,
         ),
       );
     }

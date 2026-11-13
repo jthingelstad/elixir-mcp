@@ -59,15 +59,16 @@ or they declare one it does not serve.
 
 ## api-parity
 
-A JSON API operation and the MCP tool it mirrors disagree, or an MCP
-patch is a JSON API major.
+`/api/v1` serves something its OpenAPI document does not declare, or
+`GET /api/v1/me` changes shape without `info.version` moving. Since
+JSON API 5.0.0 it mirrors no tool, so an MCP change never reaches it.
 
-- Example: OpenAPI `weeks` max 12 while the tool refused past 8; a
-  duplicated `operationId`; a person route that did not enforce its
-  tool's scope (a read grant could add players).
-- Fix: the operation follows ordinary semver; `info.version` moves.
-- Guard: `services/web-api/test/integration-pin.test.mjs` (structural
-  fingerprint against the version); a test per scope-bearing route.
+- Example (before 5.0.0): OpenAPI `weeks` max 12 while the tool refused
+  past 8; a person route that did not enforce its tool's scope.
+- Fix: the door follows its document; `info.version` moves on ordinary
+  semver.
+- Guard: `services/web-api/test/sign-in-api-contract.test.mjs` (the
+  path set and a structural fingerprint against the version).
 
 ## brief-drift
 

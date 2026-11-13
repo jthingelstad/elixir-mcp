@@ -153,4 +153,4 @@ summary, their standing line, the Actions waiting for them), for a player
 they have verified; see [Your own view](/docs/clan-your-own-view#your-own-view).
 An agent reads no private Clan state: it reads the clan directory with
 `clans_directory`, the public part of every saved policy, as its owner
-does on Home ([Clan directory](/docs/clan-directory#agents-and-apps)).
+does on Home ([Clan directory](/docs/clan-directory#agents)).

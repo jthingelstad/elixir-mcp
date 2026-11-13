@@ -456,9 +456,6 @@ export default function (eleventyConfig) {
     "Read the privacy posture": "/docs/privacy",
     "Create an agent": "/settings/connections",
     "Read the agents doc": "/docs/agents",
-    "Read the integrations doc": "/docs/integrations",
-    "Request a service key":
-      "/docs/integrations#provisioning-and-administration",
     "Read the operators guide": "/docs/operators",
     "Raise your hand": "/settings/collectors",
   };

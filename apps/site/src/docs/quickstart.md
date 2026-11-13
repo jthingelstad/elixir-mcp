@@ -119,7 +119,7 @@ and limits › Requests** lists every call with its `request_id`.
   your Leader and Co-Leaders run it by.
 - [Follow a friend](/docs/follow-a-friend): friends, watched players and
   nicknames.
-- [Users, agents and integrations](/docs/connections): a bot for your whole
+- [Users and agents](/docs/connections): a bot for your whole
   clan instead of a connection just for you.
 - [Tools](/docs/tools): everything a connection can call.
 

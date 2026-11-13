@@ -16,7 +16,7 @@ official API is current-state only), served on one origin,
 | `/clan`, `/api/clan` | Clan, a part of Elixir: running a clan on its policy | `packages/clan*` |
 | `/battle/<id>` | a battle's public page | `services/web-api` |
 | `/mcp`, `/a/<id>/mcp`, `/oauth/*`, `/.well-known/*` | the MCP and OAuth doors | `services/mcp`, `packages/tools` |
-| `/api/v1` | the JSON API | `services/web-api`, `packages/tools` |
+| `/api/v1` | `GET /api/v1/me` alone, for Sign in with Elixir | `services/web-api` |
 
 Node 24 native HTTP Web Functions and asynchronous Event Functions, RDS
 PostgreSQL, S3 and CloudFront in one CloudFormation stack. `CLAUDE.md` is a symlink to this file; do not fork them.
@@ -73,7 +73,7 @@ not a feature to preserve.
 | Home, Settings, Admin and the shared web shell | `apps/web/AGENTS.md` |
 | Ladder | `apps/web/src/ladder/AGENTS.md` |
 | Clan | `packages/clan/AGENTS.md` (engine, state and views: their own short guides) |
-| MCP tools and the JSON API operations | `packages/tools/AGENTS.md` |
+| MCP tools | `packages/tools/AGENTS.md` |
 | The site and public docs | `apps/site/AGENTS.md` |
 | Infrastructure and deploy | `infra/AGENTS.md` |
 | Mail | `docs/EMAIL.md` |
@@ -110,8 +110,8 @@ Skills and tests cite these by number; keep the numbering.
    sit with their handlers in `packages/tools`. MCP: an addition is a
    minor, a correction a patch, a major is Jamie's call; every bump is a
    file in `src/changes/` written by `npm run contract:bump`. `/api/v1`
-   keeps ordinary semver; its `x-tool` operations mirror MCP tools and
-   change with them.
+   (`GET /api/v1/me` alone) keeps ordinary semver of its own and mirrors
+   no tool.
 6. **Schema changes are ordered migrations in `db/migrations`**, applied
    only by the migrate Lambda during a deploy, never at handler start or
    by hand. Expand and contract; applied files are immutable
@@ -170,7 +170,7 @@ DECISIONS):
   layer of Clash Royale: follow your friends and your clan, see how they
   play, and cheer them on."
 
-Developer and agent pages (protocol, tools, the JSON API, operators) stay
+Developer and agent pages (protocol, tools, Sign in with Elixir, operators) stay
 plain and precise rather than playful. Legal lines (the unofficiality
 notice, privacy, terms) change only with Jamie's word.
 

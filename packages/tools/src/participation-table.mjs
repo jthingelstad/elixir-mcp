@@ -1,6 +1,6 @@
 /**
  * clans_participation's table form, the agent's read (#124). The same
- * rows /api/v1 and the console serve as objects, laid out so the
+ * rows the web app serves as objects, laid out so the
  * eight-week read of a full clan fits the MCP result cap with room:
  *
  * - each row is an array whose entries `columns` names once, in order;
@@ -13,7 +13,7 @@
  *   clan, false not), else null, unknown.
  *
  * Nothing is dropped: `participationObjects` turns a table back into
- * exactly the objects /api/v1 serves, and a test holds it to that.
+ * exactly the objects the web app serves, and a test holds it to that.
  */
 
 /** The columns of a row whose values are instants. */
@@ -67,7 +67,7 @@ export function tabulate(rows, columns) {
   });
 }
 
-/** The objects /api/v1 serves, from the table form: for readers that
+/** The objects the web app serves, from the table form: for readers that
  *  want objects (the acceptance suite, tests). A body without `columns`
  *  is returned as it is. */
 export function participationObjects(body) {

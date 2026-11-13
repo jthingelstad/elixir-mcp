@@ -13,12 +13,12 @@ import { ToolFailure, docsRef, entitledClan, notes } from "./shared.mjs";
 const LEADERS = new Set(["leader", "coLeader"]);
 
 /** The social reads are a person's and their agents' (DECISIONS "Agents
- *  read the social layer and never write it"): an integration, or an agent
- *  or person not approved, reads none of them. */
+ *  read the social layer and never write it"): an agent or person not
+ *  approved reads none of them. */
 const SOCIAL_REFUSAL = [
   "not_entitled",
   "The clan directory is read by a person's own connection and their agents.",
-  "An integration has no person to read for. Connect as yourself at /mcp, or through an agent of yours whose owner is approved.",
+  "Connect as yourself at /mcp, or through an agent of yours whose owner is approved.",
 ];
 
 /** What a refused caller is told: the view is a person's own, for a player
@@ -26,7 +26,7 @@ const SOCIAL_REFUSAL = [
 const OWN_VIEW_REFUSALS = {
   not_a_person: [
     "Your own Clan view is read only by a person's own connection.",
-    "An agent or an integration never reads a person's Clan view: connect as yourself at /mcp. A clan's war intent is public in the clan directory (clans_directory).",
+    "An agent never reads a person's Clan view: connect as yourself at /mcp. A clan's war intent is public in the clan directory (clans_directory).",
   ],
   not_verified_member: [
     "None of your verified players is a current member of this clan.",
@@ -44,8 +44,6 @@ export const clanContextTools = {
       additionalProperties: false,
     },
     async handler(ctx) {
-      if (ctx.account?.kind === "integration")
-        throw new ToolFailure(...SOCIAL_REFUSAL);
       const read = await readClanDirectory(ctx.db, ctx.account);
       if (read.refused) throw new ToolFailure(...SOCIAL_REFUSAL);
       const { directory } = read;
@@ -62,7 +60,7 @@ export const clanContextTools = {
             ? `The directory holds more clans than one read returns; these are the first ${directory.clans.length} by name.`
             : null,
         ),
-        docs: docsRef("clan-directory", "agents-and-apps"),
+        docs: docsRef("clan-directory", "agents"),
         meta: responseMeta({ as_of: directory.read_at }),
       };
     },

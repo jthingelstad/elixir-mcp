@@ -10,8 +10,8 @@
  * timeline's story id names the happening, never the reader), never per
  * recipient. Writing a cheer is this module's and the web's alone; nothing
  * here reaches Discord or mail. The counts are read through
- * @elixir-mcp/tools/activity/cheers, which MCP's elixir_cheers and its
- * /api/v1 operation share (12.0.0): a person's agent reads the counts on
+ * @elixir-mcp/tools/activity/cheers, which MCP's elixir_cheers reads
+ * (12.0.0): a person's agent reads the counts on
  * items about its owner's player, never who, and never gives a cheer
  * (DECISIONS "Agents read the social layer and never write it").
  *

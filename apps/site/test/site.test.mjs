@@ -97,7 +97,6 @@ const STATIC_PAGES = [
   "/docs/clan-directory",
   "/docs/connections",
   "/docs/agents",
-  "/docs/integrations",
   "/docs/roles",
   "/docs/choosing-a-tool",
   "/docs/protocol",
@@ -129,7 +128,6 @@ const STATIC_PAGES = [
   "/docs/turn-an-email-off",
   "/docs/modes",
   "/docs/sign-in-with-elixir",
-  "/docs/json-api",
   "/docs/bring-your-clan",
   "/docs/clan-season",
   "/docs/clan-week",
@@ -1190,7 +1188,7 @@ test(
   },
 );
 
-test("current account and integration copy matches the ratified scope", () => {
+test("current account and connection copy matches the ratified scope", () => {
   const source = (rel) => readFileSync(path.join(repoRoot, rel), "utf8");
   const publicCopy = [
     "VISION.md",
@@ -1211,15 +1209,25 @@ test("current account and integration copy matches the ratified scope", () => {
     /approved gated, free beta|approves access requests|reads the corpus|automatic recording enrollment|taking part in the beta|every\s+approved\s+account|recorded: claimed, tracked as a clan, collected|empty tables are removed in a separate|Events never feed the meta|war deck sets|card, meta and war-deck tools/i,
   );
   assert.match(publicCopy, /Ordinary member signup is public and free/);
-  assert.match(publicCopy, /integration does not\s+enroll a player or clan/i);
+  // Elixir has people and their agents (JSON API 5.0.0): the copy offers
+  // no integration to build or provision, and the two kinds are what
+  // connects.
+  assert.doesNotMatch(
+    publicCopy,
+    /Admin → Integrations|REST (?:Integration )?API|integration key|platform integrations?/i,
+  );
+  assert.match(publicCopy, /Two kinds of connection/);
 
   // The JSON API is Sign in with Elixir's /me alone (5.0.0): it declares
-  // nothing an integration could call.
+  // nothing an integration could call, and its old guides are not built.
   const signInApi = JSON.parse(
     source("packages/contracts/integration-api.openapi.json"),
   );
   assert.deepEqual(Object.keys(signInApi.paths), ["/me"]);
   assert.doesNotMatch(signInApi.info.description, /Collection grants/i);
+  if (built)
+    for (const page of ["docs/json-api", "docs/integrations"])
+      assert.ok(!existsSync(path.join(out, page)), `${page} is still built`);
 });
 
 test(

@@ -48,19 +48,19 @@ test("an agent's calls come out of its owner's day, not its own", async () => {
   assert.equal(result.max, 500);
 });
 
-test("an integration pays for itself, from its own key's quota", async () => {
+test("an account's own quota override is its ceiling, not the role default", async () => {
   const db = spyDb();
   const spend = makeQuota({
     db,
     account: {
-      accountId: AGENT,
-      role: "partner",
-      budget: { accountId: AGENT, role: "partner", override: 100 },
+      accountId: OWNER,
+      role: "member",
+      budget: { accountId: OWNER, role: "member", override: 100 },
     },
   });
   const result = await spend();
-  assert.deepEqual(db.buckets, [`mcpday#${AGENT}`]);
-  assert.equal(result.max, 100, "the key's own ceiling, not the role default");
+  assert.deepEqual(db.buckets, [`mcpday#${OWNER}`]);
+  assert.equal(result.max, 100, "the override, not the role default");
 });
 
 test("an account with no budget block behaves exactly as it did before", async () => {

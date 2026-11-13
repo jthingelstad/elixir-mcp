@@ -597,7 +597,7 @@ export const clansTools = {
           // The roster's own figures (9.17.0): this week's cards received
           // beside the cards given, the game's clanRank and
           // previousClanRank as its newest read of this clan carried them,
-          // and the arena. /api/v1 and the console only: a full clan's
+          // and the arena. The web app only: a full clan's
           // agent read is already near the result cap, and these would
           // turn it into result_too_large (the same reason
           // clans_participation gives agents a table).
@@ -719,7 +719,7 @@ export const clansTools = {
       const compact = args.verbosity === "compact";
       // The agent's read is a table (#124): the same rows as arrays named
       // once by `columns`, so the eight-week read of a full clan fits the
-      // MCP result cap. /api/v1 and the console keep the objects. A
+      // MCP result cap. The web app keeps the objects. A
       // service token's MCP calls audit as svc:<name> (handler.mjs): the
       // same door, so the same table.
       const table =

@@ -143,7 +143,7 @@ page signed out shows neither.
 A cheer stays in Elixir. It goes to no Discord channel or mail, and
 `elixir_timeline` does not carry it; an agent cannot cheer. Your own agent
 can read the counts on the items about your primary player with the MCP
-tool `elixir_cheers` (`GET /api/v1/me/cheers`), reading as you: for each
+tool `elixir_cheers`, reading as you: for each
 cheered item in the window its id, kind, time, sentence and counts by
 kind, never who, and never your own cheer. The bell
 counts the cheers on items about your own verified players, never naming
@@ -179,16 +179,46 @@ timeline also carries the post's share link once they have shared it; nobody
 else's does. A deleted highlight leaves every timeline.
 
 Your own agent reads the highlights a player posted, newest first, with the
-MCP tool `players_highlights` (`GET /api/v1/players/{tag}/highlights`):
+MCP tool `players_highlights`:
 each one's sentence, the words written with it and the battle's link. It
-reads them as you, its owner; an integration key reads none of them, and an
-agent never posts or deletes one.
+reads them as you, its owner, and an agent never posts or deletes one.
+
+## Attested facts
+
+Clan tells Elixir what a person did in a clan. Elixir keeps these
+**attested facts** apart from the game record, which only collectors
+write, and labels each with its source, the person's player, their role,
+and when. They are facts with a named source, never Elixir's judgment,
+and they appear on the timeline of the readers their type allows.
+
+| Type | Subject | Who may attest it | Who sees it | Detail |
+| --- | --- | --- | --- | --- |
+| `departure_classified` | clan, about a member | leader, co-leader | the clan | `kind` (`kick` or `leave`), `left_at` |
+| `role_change_made` | clan, about a member | leader, co-leader | the clan | `from`, `to` (`member`, `elder`, `coLeader`, `leader`) |
+| `award_granted` | clan, about a member | leader, co-leader, elder | the clan | `award` (60 characters), `season_id`, `place` |
+| `member_away` | clan, about a member | leader, co-leader, or the member | the clan's leaders and co-leaders | `until` (an instant, or null) |
+| `clan_message` | clan | leader, co-leader, elder (a Clan Leader Message: leaders and co-leaders) | the clan | `channel` (`leader_message` or `clan_chat`), `title` (24), `body` (200) |
+| `award_standing` | clan, about a member | Clan itself, from the clan's own rules | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
+| `personal_record` | player | nobody now; the ones stored stay | whoever has the player on their timeline | `game` (40), `score`, `previous_best` |
+
+"The clan" is anyone whose verified player is in it today, and an agent
+whose owner's player is. A fact for the clan's leaders reaches only a
+person whose verified player leads it: never an agent and never mail.
+A departure's kind is the clan's: the game already tells the whole clan
+in clan chat that a member was kicked, and its leaders say why there.
+
+A clan fact is written by a **person**, in Clan. The one exception is
+what Clan itself computes from the clan's own rules: `award_standing`,
+where a member stands in one of the clan's own awards for a season still
+running (Clan writes it each morning). The attester is the person's
+**verified** player in that clan, with the role Elixir's roster record
+holds for it now; a role the type does not allow is refused.
 
 ## Cross-posting to Discord
 
 Your own timeline's sharing is **Timeline to Discord**, on Settings › Connections & agents › Discord. For an agent,
 **Manage sharing** on that agent's Timeline opens the same settings in a drawer, and closing it discards unsaved edits. Only the account
-owner can save changes, on the website, never MCP or the JSON API.
+owner can save changes, on the website, never MCP.
 Delivery history expands there; an agent's events and evidence stay on the
 page. Connections and agent pages show whether sharing is on.
 

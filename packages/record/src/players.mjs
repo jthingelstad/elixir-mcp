@@ -1,5 +1,5 @@
 /** The players an account tracks and who each is to them: one read shared
- *  by elixir_my_players and the JSON API's /api/v1/me (2026-09-23). */
+ *  by elixir_my_players and Sign in with Elixir's GET /api/v1/me. */
 export async function myPlayers(db, accountId) {
   const { rows } = await db.query(
     `select c.player_tag, c.status as claim_status, c.is_primary,
