@@ -110,11 +110,16 @@ for (const [label, width] of [
       );
       await chips.getByRole("button", { name: /^Everyone/ }).click();
       await expect(feed.locator(".kit-feed__item")).toHaveCount(3);
-      // State stays (structure Q8): New is what came since the last visit.
-      const state = page.getByRole("group", { name: "State" });
-      await state.getByRole("button", { name: /^New/ }).click();
+      // State stays (structure Q8) as one toggle in the same row: New is
+      // what came since the last visit (design canvas, 2026-11-13).
+      await expect(page.getByRole("group", { name: "State" })).toHaveCount(0);
+      const fresh = page.getByRole("button", {
+        name: /^New since your last visit/,
+      });
+      await fresh.click();
+      await expect(fresh).toHaveAttribute("aria-pressed", "true");
       await expect(feed.locator(".kit-feed__item")).toHaveCount(1);
-      await state.getByRole("button", { name: /^All/ }).click();
+      await fresh.click();
       await expect(feed.locator(".kit-feed__item")).toHaveCount(3);
       await noSideways(page);
       await accessible(page, "Home, chips");
@@ -129,7 +134,7 @@ for (const [label, width] of [
       await expect(
         page.getByText(/the 3 newest are shown, and 46 more/),
       ).toBeVisible();
-      await page.getByRole("button", { name: "View games" }).click();
+      await page.getByRole("button", { name: "Open session" }).click();
       await expect(page.getByText(/^Win, Trophy Road$/)).toBeVisible();
       await noSideways(page);
     });
@@ -217,7 +222,7 @@ for (const [label, width] of [
       await hold("/api/me/home/week", { week: HOME.week });
       await page.goto("/home");
       await expect(
-        page.locator(".kit-head").getByText("King Thing"),
+        page.locator(".kit-head").getByRole("group", { name: "Show" }),
       ).toBeVisible();
       await expect(page.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
       await expect(
@@ -608,23 +613,17 @@ test("a player known as an opponent waits for their own battle log, then Home dr
   await expect(page.getByText(/^Battle log read /).first()).toBeVisible();
 });
 
-test("the head leads with your nickname, as Ladder does", async ({ page }) => {
-  await mockApi(
-    page,
-    homeApi({
-      "GET /api/me/home": [
-        200,
-        {
-          first: {
-            ...HOME.first,
-            player: { ...HOME.first.player, nickname: "Sam" },
-          },
-        },
-      ],
-    }),
-  );
+test("the head is the title and the feed's chips, as the canvas draws it", async ({
+  page,
+}) => {
+  await mockApi(page, homeApi());
   await page.goto("/home");
-  await expect(page.locator(".kit-head").getByText("Sam")).toBeVisible();
+  const head = page.locator(".kit-head");
+  await expect(head.getByRole("heading", { level: 1 })).toHaveText("Home");
+  await expect(head.getByRole("group", { name: "Show" })).toBeVisible();
+  // One row of chips: New is a toggle in it, not a second group.
+  await expect(page.getByRole("group", { name: "State" })).toHaveCount(0);
+  await expect(page.locator(".kit-feed .kit-home__filters")).toHaveCount(0);
 });
 
 test("signed out, /home is the wall and remembers where it was", async ({

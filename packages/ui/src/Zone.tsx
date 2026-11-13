@@ -4,6 +4,8 @@ import {
   clockAt,
   dayAt,
   dayHeadingAt,
+  feedDayHeadingAt,
+  feedWhenAt,
   stamp,
   stampDay,
   stampTime,
@@ -48,6 +50,14 @@ export function useClock() {
       calendar: (ymd: Parameters<typeof calendarDay>[0]) =>
         calendarDay(ymd, { now }),
       clock: (ts: Parameters<typeof clockAt>[0]) => clockAt(ts, zone),
+      /** The feed's words: "Tonight, 7:40 to 8:32 pm" (with `end`). */
+      feedWhen: (
+        ts: Parameters<typeof feedWhenAt>[0],
+        end: Parameters<typeof feedWhenAt>[0] = null,
+      ) => feedWhenAt(ts, zone, { now, end }),
+      /** The feed's day heading: "Today", "Yesterday", "Monday, November 9". */
+      feedDayHeading: (ts: Parameters<typeof feedDayHeadingAt>[0]) =>
+        feedDayHeadingAt(ts, zone, { now }),
       stamp: (
         ts: Parameters<typeof stamp>[0],
         opts?: Parameters<typeof stamp>[2],

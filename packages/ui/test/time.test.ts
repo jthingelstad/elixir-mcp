@@ -3,6 +3,8 @@ import {
   calendarDay,
   clockAt,
   dayAt,
+  feedDayHeadingAt,
+  feedWhenAt,
   monthDayAt,
   seasonWeek,
   whenAt,
@@ -95,5 +97,65 @@ describe("seasonWeek", () => {
   it("writes a week in words", () => {
     expect(seasonWeek(137, 4)).toBe("Season 137, week 4");
     expect(seasonWeek(137)).toBe("Season 137");
+  });
+});
+
+describe("the feed's words (design canvas, 2026-11-13)", () => {
+  const Z = "America/Chicago";
+  // Thursday 2026-11-12, 9:00 pm in Chicago.
+  const now = Date.parse("2026-11-13T03:00:00Z");
+  it("says today, tonight, yesterday, a weekday, then a date", () => {
+    expect(feedWhenAt("2026-11-12T22:10:00Z", Z, { now })).toBe(
+      "Today, 4:10 pm",
+    );
+    expect(feedWhenAt("2026-11-13T02:14:00Z", Z, { now })).toBe(
+      "Tonight, 8:14 pm",
+    );
+    expect(feedWhenAt("2026-11-12T01:55:00Z", Z, { now })).toBe(
+      "Yesterday, 7:55 pm",
+    );
+    expect(feedWhenAt("2026-11-09T15:30:00Z", Z, { now })).toBe(
+      "Monday, 9:30 am",
+    );
+    expect(feedWhenAt("2026-11-05T15:30:00Z", Z, { now })).toBe(
+      "Thursday, November 5, 9:30 am",
+    );
+    expect(feedWhenAt("2025-11-05T15:30:00Z", Z, { now })).toBe(
+      "Wednesday, November 5, 2025, 9:30 am",
+    );
+  });
+  it("gives a sitting its range, the am or pm said once when shared", () => {
+    expect(
+      feedWhenAt("2026-11-13T01:40:00Z", Z, {
+        now,
+        end: "2026-11-13T02:32:00Z",
+      }),
+    ).toBe("Tonight, 7:40 to 8:32 pm");
+    expect(
+      feedWhenAt("2026-11-12T17:40:00Z", Z, {
+        now,
+        end: "2026-11-12T18:20:00Z",
+      }),
+    ).toBe("Today, 11:40 am to 12:20 pm");
+    expect(
+      feedWhenAt("2026-11-12T17:40:00Z", Z, {
+        now,
+        end: "2026-11-12T17:40:30Z",
+      }),
+    ).toBe("Today, 11:40 am");
+  });
+  it("says UTC when the reader has no zone", () => {
+    expect(feedWhenAt("2026-11-12T22:10:00Z", null, { now })).toBe(
+      "Yesterday, 10:10 pm UTC",
+    );
+  });
+  it("heads a day as Today, Yesterday, then its date", () => {
+    expect(feedDayHeadingAt("2026-11-12T22:10:00Z", Z, { now })).toBe("Today");
+    expect(feedDayHeadingAt("2026-11-12T01:55:00Z", Z, { now })).toBe(
+      "Yesterday",
+    );
+    expect(feedDayHeadingAt("2026-11-09T15:30:00Z", Z, { now })).toBe(
+      "Monday, November 9",
+    );
   });
 });

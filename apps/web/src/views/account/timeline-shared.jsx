@@ -39,7 +39,7 @@ export function useTimelinePlace(timeline) {
 
 /** A row under a day's heading: only the time, and whose clock when the
  *  account has named none. */
-export function useRowTime() {
+function useRowTime() {
   const { clock, zone } = useClock();
   return (ts) => `${clock(ts)}${zone ? "" : " UTC"}`;
 }

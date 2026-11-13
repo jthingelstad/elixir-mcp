@@ -7413,8 +7413,67 @@ button.kit-row {
   max-width: 860px;
 }
 .kit-home__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+/* The feed's chips in the page head, right of the title (canvas .pagehead
+   .chips): one row, New the last toggle in it. */
+.kit-home__chips:empty {
+  display: none;
+}
+.kit-head--home .kit-head__side {
+  justify-content: flex-end;
+}
+/* A race week's place (canvas .racebar): a gold bar on a sunken trough. */
+.kit-racebar {
+  height: 10px;
+  margin: 6px 0 4px;
+  border-radius: 999px;
+  background: var(--ground-sunken);
+  overflow: hidden;
+}
+.kit-racebar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+}
+.kit-racebar--p1 > i {
+  width: 100%;
+}
+.kit-racebar--p2 > i {
+  width: 80%;
+}
+.kit-racebar--p3 > i {
+  width: 60%;
+}
+.kit-racebar--p4 > i {
+  width: 40%;
+}
+.kit-racebar--p5 > i {
+  width: 20%;
+}
+/* A sitting's figures with the note right of them (canvas .stile). */
+.kit-stile {
   display: grid;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 16px;
+  align-items: end;
+}
+.kit-stile__note {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  text-align: right;
+}
+@media (max-width: 720px) {
+  .kit-stile {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .kit-stile__note {
+    text-align: left;
+  }
 }
 /* Needs you, when the clan read brings it after the page has painted: it opens,
    so what is below moves down instead of jumping. */

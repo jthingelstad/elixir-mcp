@@ -184,8 +184,8 @@ test("@narrow a timeline event keeps its reading width when evidence and the New
   );
   await page.goto("/home");
   const sentence = page.locator(".kit-feed__text");
-  const controls = page.locator(".kit-tl__more");
-  await expect(controls).toHaveText("View games");
+  const controls = page.locator(".kit-feed__links .btn");
+  await expect(controls).toHaveText("Open session");
   await expect(page.locator(".kit-newmark")).toContainText("New since");
   const textBox = await sentence.boundingBox();
   const controlsBox = await controls.boundingBox();
