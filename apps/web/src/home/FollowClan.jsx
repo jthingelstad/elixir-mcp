@@ -86,7 +86,7 @@ function clanFollowCostLine(slot) {
   if (!slot || slot.limit == null) return null;
   const n = (v) => v.toLocaleString();
   if (slot.used >= slot.limit)
-    return `All ${n(slot.limit)} clan slots in use. Stop following a clan in Settings first.`;
+    return `All ${n(slot.limit)} of your clan slots are in use. If this clan needs one, Elixir will say so.`;
   return `Uses 1 of your ${n(slot.limit)} clan slots · ${n(slot.used)} used`;
 }
 
@@ -98,7 +98,9 @@ function clanFollowCostLine(slot) {
  * and who goes, and its races. Your own clan wears it like any other; Elixir
  * follows your primary player's clan by itself when a slot is free, so it
  * usually reads "Following". Stopping lives in Settings, as for a player.
- * Nothing until the read is in.
+ * Full slots never shut it: a clan your agent follows already costs no new
+ * slot, and only the server's `addClan` knows that, so a refusal is the
+ * server's 429 and its words. Nothing until the read is in.
  */
 export function FollowThisClan({ clanTag, clanName = null }) {
   const { data } = useMyClans();
@@ -107,7 +109,6 @@ export function FollowThisClan({ clanTag, clanName = null }) {
   if ((data.clans ?? []).some((c) => c.clan_tag === clanTag))
     return <span className="kit-phead__state">Following</span>;
   const slot = data.slots?.activity ?? null;
-  const full = Boolean(slot && slot.limit != null && slot.used >= slot.limit);
   const name = clanName ?? clanTag;
   const cost = clanFollowCostLine(slot);
   return (
@@ -136,7 +137,6 @@ export function FollowThisClan({ clanTag, clanName = null }) {
         </>
       }
       confirm="Follow"
-      disabled={full}
       run={() =>
         api.myClanAction({
           action: "add",
