@@ -9818,6 +9818,7 @@ a.kit-mbattle:hover {
   .btn,
   .btn--sm,
   .btn--follow,
+  .btn.btn--follow,
   .kit-chip,
   .kit-cheers .kit-chip {
     min-height: var(--hit-touch);
