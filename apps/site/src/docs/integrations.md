@@ -32,7 +32,7 @@ Agents use MCP. Programs use the **JSON API at
   capability is offered to the family's own apps only; see
   [Signing a person in](/docs/connecting#signing-a-person-in-with-elixir)).
   `POST /api/v1/me/players` follows a player for the signed-in person, the
-  JSON API's `elixir_track_player`, and needs `recordings:write` on the
+  JSON API's `elixir_follow_player`, and needs `recordings:write` on the
   grant. A person's read operations answer with the structured result of
   the Elixir tool they mirror, the same fields as its outputSchema on the
   [tools page](/docs/tools), without the agent response cap:
@@ -108,7 +108,9 @@ operation is a minor. (MCP versions differently: its callers are agents
 reading the current declaration.) The path stays `/api/v1` across majors,
 because it is also the OAuth audience a person's token is issued for. What
 changed in each version is in the OpenAPI document and on
-[Updates](/updates).
+[Updates](/updates). 3.6.0 added four reads for a person's own grant
+(a player's follows and highlights, your cheers, the clan directory); an
+integration key reaches none of them.
 
 ## Attested facts
 

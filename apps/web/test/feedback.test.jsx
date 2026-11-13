@@ -9,7 +9,7 @@ import { renderWithProviders } from "./helpers.jsx";
 import { Feedback, FeedbackItem } from "../src/views/account/Feedback.jsx";
 
 const NOTE =
-  'Deck names in `players_timeline` don\'t match what I see in game.\n\nTwo cases:\n\n- **Hog 2.6** shows as "Hog Rider cycle"\n- Log bait shows as "Goblin Barrel bait"\n\n<script>alert(1)</script> [x](javascript:alert(1))';
+  'Deck names in `players_series` don\'t match what I see in game.\n\nTwo cases:\n\n- **Hog 2.6** shows as "Hog Rider cycle"\n- Log bait shows as "Goblin Barrel bait"\n\n<script>alert(1)</script> [x](javascript:alert(1))';
 
 const FEEDBACK = [
   {
@@ -81,7 +81,7 @@ test("the list: one line per note, each opening its record", async () => {
   renderWithProviders(<Feedback />);
   const row = await screen.findByRole("link", { name: /Deck names in/ });
   expect(row.textContent).toContain(
-    "Deck names in `players_timeline` don't match what I see in game.",
+    "Deck names in `players_series` don't match what I see in game.",
   );
   // The rest of the note stays on the record, not in the line.
   expect(row.textContent).not.toContain("Two cases");
@@ -97,7 +97,7 @@ test("the record renders the note and the reply as Markdown, safely", async () =
     "Hog 2.6",
   );
   expect(document.querySelector(".st-note-body code")?.textContent).toBe(
-    "players_timeline",
+    "players_series",
   );
   // Raw HTML is text, and a javascript: link is not a link.
   expect(document.querySelector(".st-note-body script")).toBeNull();

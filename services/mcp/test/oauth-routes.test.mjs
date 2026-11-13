@@ -195,7 +195,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
     /<input type="checkbox" name="grant" value="recordings:write">/,
     "on a person's connection a write starts unticked",
   );
-  assert.match(emailStep.body, /Unticked, it will not be able to track/);
+  assert.match(emailStep.body, /Unticked, it will not be able to follow/);
   assert.match(
     emailStep.body,
     /<form[^]*name="grant"[^]*<\/form>/,
@@ -203,7 +203,7 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   );
   assert.doesNotMatch(
     emailStep.body,
-    /<li><strong>Change what you track<\/strong>/,
+    /<li><strong>Change who you follow<\/strong>/,
     "and are not listed among the granted ones",
   );
   assert.equal(sentEmails.length, 1);
@@ -348,10 +348,10 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   );
   assert.ok(readTools.length > 0);
   assert.deepEqual(writeTools.map(({ name }) => name).sort(), [
+    "elixir_follow_clan",
+    "elixir_follow_player",
     "elixir_nickname",
     "elixir_send_feedback",
-    "elixir_track_clan",
-    "elixir_track_player",
   ]);
 
   for (const [index, tool] of readTools.entries()) {
@@ -378,10 +378,9 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
     `select count from rate_limit where bucket like 'mcp#%' order by window_start desc limit 1`,
   );
   const requiredScopes = {
-    elixir_track_clan: "recordings:write",
-    elixir_track_player: "recordings:write",
+    elixir_follow_clan: "recordings:write",
+    elixir_follow_player: "recordings:write",
     elixir_send_feedback: "feedback:write",
-    elixir_identify: "account:write",
     elixir_nickname: "account:write",
   };
   for (const [index, tool] of writeTools.entries()) {
@@ -514,7 +513,7 @@ test("consent enumerates every requested mutation capability", async () => {
   assert.equal(response.statusCode, 200);
   for (const title of [
     "Read recorded game data",
-    "Change what you track",
+    "Change who you follow",
     "Update account preferences",
     "Send feedback",
   ]) {

@@ -75,7 +75,7 @@ test("profile_tool refuses writes, the live lane, and names it cannot resolve", 
   assert.equal(
     (
       await profileTool(SCRATCH_URL, {
-        tool: "elixir_track_player",
+        tool: "elixir_follow_player",
         principal: "profiler",
       })
     ).error,

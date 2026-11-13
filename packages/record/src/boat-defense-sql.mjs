@@ -6,7 +6,7 @@
  *
  * Written over the participant row alone so it composes anywhere a
  * `battle_participant` alias is in scope (and survives the alias rewrite
- * battles_trends does for its window count). The lookup runs for boat
+ * battles_performance's segment read does for its window count). The lookup runs for boat
  * rows only, by primary key, so a scan over participants stays
  * index-only. Callers whose covering scan lacks side can supply a scalar
  * side lookup; it stays inside the boat-only predicate.

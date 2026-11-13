@@ -204,19 +204,28 @@ const READ_LOCK_TIMEOUT_MS = 5_000;
  *  battles_trends joined 2026-09-23: {profile_tool} put cards_card's
  *  partner join at 5.9 s with 155 MB spilled to temp at the server's
  *  4 MB, and battles_trends' p95 was 16-17 s against the Lambda's
- *  deadline with no query_timeout of its own. */
+ *  deadline with no query_timeout of its own. battles_trends folded into
+ *  battles_performance's segment in 12.0.0, and a call with segment keeps
+ *  its budget; battles_performance without one stays on the deadline. */
 const BUDGETED_TOOLS = new Set([
-  "battles_trends",
   "cards_card",
   "clans_standings",
   "war_history",
 ]);
 
+/** Whether this call earns the analytical budget. */
+function analyticalCall(name, args) {
+  return (
+    BUDGETED_TOOLS.has(name) ||
+    (name === "battles_performance" && args?.segment !== undefined)
+  );
+}
+
 /** The work_mem a tool's reads run at under the invoker, or null for
  *  the server's own: {profile_tool} applies the same, so a profile
  *  measures what production runs. */
-export function analyticalWorkMem(name) {
-  return BUDGETED_TOOLS.has(name) ? BUDGET_WORK_MEM : null;
+export function analyticalWorkMem(name, args = {}) {
+  return analyticalCall(name, args) ? BUDGET_WORK_MEM : null;
 }
 
 /** Put a budget on the connection: lock_timeout, and work_mem for an
@@ -409,7 +418,7 @@ export function makeInvoker({
     // the Lambda deadline covers every other read-only tool. A write is
     // never cancelled: nothing here races it, so a retry after a
     // query_timeout cannot double-apply it.
-    const analytical = BUDGETED_TOOLS.has(name);
+    const analytical = analyticalCall(name, args);
     const readOnly = TOOL_GROUPS[name]?.readOnly ?? true;
     const budgetMs = analytical
       ? queryBudgetMs === null

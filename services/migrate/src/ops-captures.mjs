@@ -170,6 +170,8 @@ const CONTROL_TOOLS = [
   "battles_performance",
   "battles_decks",
   "battles_cards",
+  // Folded into battles_performance's segment in 12.0.0; captures from
+  // before then still carry the name.
   "battles_trends",
   "battles_meta_decks",
   "battles_meta_cards",

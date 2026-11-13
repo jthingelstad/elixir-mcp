@@ -37,7 +37,7 @@ export default [
         ],
         setup: ["Add your player", "Connect a client"],
         script: {
-          tool: "players_timeline · battles_decks · battles_performance",
+          tool: "players_series · battles_decks · battles_performance",
           lines: [
             {
               role: "user",
@@ -63,7 +63,7 @@ export default [
         ],
         setup: ["Add your player", "Set your timezone"],
         script: {
-          tool: "players_profile · players_timeline · battles_performance",
+          tool: "players_profile · players_series · battles_performance",
           lines: [
             {
               role: "user",
@@ -89,7 +89,7 @@ export default [
         ],
         setup: ["Follow a friend's tag", "Turn on notifications"],
         script: {
-          tool: "players_profile · players_timeline · battles_decks · elixir_timeline",
+          tool: "players_profile · players_series · battles_decks · elixir_timeline",
           lines: [
             {
               role: "user",
@@ -247,7 +247,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Yes, that is what an **agent** is for. I read the Agents page of the documentation; the shape is:\n\n- An agent *acts for a clan, not for a person*: its own identity, its own key and URL (`https://elixir.poapkings.com/a/<public_id>/mcp`), its own timeline pointer and feedback inbox. Nothing it does lands in your history.\n- You create it under **Settings › Connections & agents › New agent** with a name and the clan tag. The key is shown once; only its hash is stored.\n- It spends *your* daily call budget, and every role can create agents, 3, 5, 10 or 25 depending on role.\n- When a member first asks “how am I doing”, the bot calls `elixir_identify` once with their Discord id and player tag. After that `on_behalf_of` resolves them with no lookup.\n\nSo the loop is: you create the agent, your bot holds the key, and your clanmates talk to the bot. There is a reference bot already running in POAP KINGS' Discord if you want the pattern.",
+              text: 'Yes, that is what an **agent** is for. I read the Agents page of the documentation; the shape is:\n\n- An agent *acts for a clan, not for a person*: its own identity, its own key and URL (`https://elixir.poapkings.com/a/<public_id>/mcp`), its own timeline pointer and feedback inbox. Nothing it does lands in your history.\n- You create it under **Settings › Connections & agents › New agent** with a name and the clan tag. The key is shown once; only its hash is stored.\n- It spends *your* daily call budget, and every role can create agents, 3, 5, 10 or 25 depending on role.\n- A member who links Discord in their Elixir Settings is known to the bot by `on_behalf_of: "discord:<their id>"` with no lookup; one who has not is asked who they are, and the bot passes `player_tag`.\n\nSo the loop is: you create the agent, your bot holds the key, and your clanmates talk to the bot. There is a reference bot already running in POAP KINGS\' Discord if you want the pattern.',
             },
           ],
         },

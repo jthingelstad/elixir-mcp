@@ -136,12 +136,13 @@ Skills and tests cite these by number; keep the numbering.
 - Store UTC everywhere; a time zone is display only. Report times to
   Jamie in US Central.
 - An MCP token never authenticates at `/api/v1`, nor the reverse.
-- Private Clan state never reaches MCP or public tools. The two
-  exceptions, `clans_context` (an agent's, retiring under DECISIONS
-  "`clans_context` retires") and `clans_my_view` (a person's own view), read through `@elixir-mcp/auth/clan-context` (pinned by
-  `services/web-api/test/clan-boundary.test.mjs`). Clan's own web API
-  reads the clan directory through the same seam (`readClanDirectory`),
-  pinned there too.
+- Private Clan state never reaches MCP or public tools. The one
+  exception, `clans_my_view` (a person's own view), reads through
+  `@elixir-mcp/auth/clan-context` (pinned by
+  `services/web-api/test/clan-boundary.test.mjs`); `clans_context`
+  retired in 12.0.0. The clan directory (`clans_directory` and Clan's own
+  web API) reads only the policy's public part through the same seam
+  (`readClanDirectory`), pinned there too.
 - Canonical game facts enter only through collectors.
 - Services share through packages, never each other
   (`packages/record/test/boundary.test.mjs`).

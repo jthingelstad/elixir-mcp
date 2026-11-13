@@ -4,7 +4,7 @@
  * cr-agent-api-docs outline (players / battles / clans / river-race /
  * cards) plus our own. The 1.0.0 contract split
  * the old "Elixir MCP" bucket - 16 of 47 tools - into what each part is
- * FOR: Account (what you track and who you know), Feed (the push lane),
+ * FOR: Account (who you follow and who you know), Feed (the push lane),
  * Help (the service explaining itself and the feedback loop) and Service
  * (the fleet and the corpus). A group is a title prefix and a docs family
  * page, never a name prefix, so regrouping breaks nothing.
@@ -51,16 +51,15 @@ export const OAUTH_SCOPE_DETAILS: ReadonlyArray<{
   },
   {
     scope: OAUTH_SCOPE.RECORDINGS_WRITE,
-    title: "Change what you track",
+    title: "Change who you follow",
     description:
-      "Start or stop tracking players and clans for you. Each player or clan tracked uses one of your tracking slots.",
+      "Follow or stop following players and clans for you. Each player or clan followed uses one of your slots.",
     standard: true,
   },
   {
     scope: OAUTH_SCOPE.ACCOUNT_WRITE,
     title: "Update account preferences",
-    description:
-      'Remember who is talking to it (link a chat user to their player, so "my deck" means theirs) and set your private nicknames.',
+    description: "Set your private nicknames for the players you follow.",
     standard: true,
   },
   {
@@ -145,22 +144,22 @@ export const GROUP_ORDER = [
 ] as const;
 
 export const TOOL_GROUPS: Record<string, ToolClass> = {
-  // Account — what you track, who you know, what you call people.
+  // Account — who you follow, who you know, what you call people.
   elixir_my_players: {
     group: "Account",
     title: "My players",
     readOnly: true,
   },
-  elixir_track_player: {
+  elixir_follow_player: {
     group: "Account",
-    title: "Track a player",
+    title: "Follow a player",
     readOnly: false,
     destructive: true,
     oauthScope: OAUTH_SCOPE.RECORDINGS_WRITE,
   },
-  elixir_track_clan: {
+  elixir_follow_clan: {
     group: "Account",
-    title: "Track a clan",
+    title: "Follow a clan",
     readOnly: false,
     destructive: true,
     oauthScope: OAUTH_SCOPE.RECORDINGS_WRITE,
@@ -168,12 +167,6 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   elixir_nickname: {
     group: "Account",
     title: "Nicknames",
-    readOnly: false,
-    oauthScope: OAUTH_SCOPE.ACCOUNT_WRITE,
-  },
-  elixir_identify: {
-    group: "Account",
-    title: "Who is asking",
     readOnly: false,
     oauthScope: OAUTH_SCOPE.ACCOUNT_WRITE,
   },
@@ -195,9 +188,19 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Player summary",
     readOnly: true,
   },
-  players_timeline: {
+  players_series: {
     group: "Players",
-    title: "Player timeline",
+    title: "Player series",
+    readOnly: true,
+  },
+  players_follows: {
+    group: "Players",
+    title: "Follows and followers",
+    readOnly: true,
+  },
+  players_highlights: {
+    group: "Players",
+    title: "Highlights posted",
     readOnly: true,
   },
   players_collection: {
@@ -260,11 +263,6 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     readOnly: true,
   },
 
-  battles_trends: {
-    group: "Battles",
-    title: "Segment trends",
-    readOnly: true,
-  },
   battles_opponents: {
     group: "Battles",
     title: "Opponents faced",
@@ -286,9 +284,9 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   },
 
   // Clans — roster-shaped views (docs: clans.md).
-  clans_context: {
+  clans_directory: {
     group: "Clans",
-    title: "Private policy context",
+    title: "Clan directory",
     readOnly: true,
   },
   clans_my_view: {
@@ -312,14 +310,14 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Clan participation by week",
     readOnly: true,
   },
-  clans_timeline: {
+  clans_series: {
     group: "Clans",
-    title: "Clan timeline",
+    title: "Clan series",
     readOnly: true,
   },
-  clans_members_timeline: {
+  clans_members_series: {
     group: "Clans",
-    title: "Clan members' timeline",
+    title: "Clan members' series",
     readOnly: true,
   },
 
@@ -355,7 +353,7 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     openWorld: true,
   },
 
-  // Timeline — what happened to what you track.
+  // Timeline — what happened to who you follow.
   elixir_timeline: {
     group: "Timeline",
     title: "Timeline",
@@ -366,16 +364,16 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     readOnly: true,
     oauthScope: OAUTH_SCOPE.READ,
   },
+  elixir_cheers: {
+    group: "Timeline",
+    title: "Cheers you were given",
+    readOnly: true,
+  },
 
   // Service — the fleet and the corpus.
   elixir_collectors: {
     group: "Service",
     title: "Collectors",
-    readOnly: true,
-  },
-  elixir_data_insights: {
-    group: "Service",
-    title: "Data insights",
     readOnly: true,
   },
 

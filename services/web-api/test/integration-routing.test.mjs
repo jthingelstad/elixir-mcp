@@ -57,6 +57,11 @@ const AUDITED = {
   clanMailSend: "clans.mail.send",
   sendFeedback: "feedback.send",
   myFeedback: "feedback.list",
+  // The social reads: each runs its tool, audited under the tool's name.
+  clanDirectory: "clans_directory",
+  playerFollows: "players_follows",
+  playerHighlights: "players_highlights",
+  meCheers: "elixir_cheers",
 };
 
 /** The credential scheme each kind of caller presents. */

@@ -22,7 +22,7 @@ history is in the record. Everything recorded is readable by every account;
 with no account, only a battle's own page opens (see [Privacy](/docs/privacy)).
 
 **followed**: a subject on *your* account: you asked for it to be recorded
-with `elixir_track_player` or `elixir_track_clan`, and it occupies one of
+with `elixir_follow_player` or `elixir_follow_clan`, and it occupies one of
 your slots, unless Elixir already records the player for another reason
 ([What a player slot costs](/docs/recording#what-a-player-slot-costs)). Followed means recorded; there is no separate watch step. See [Recording](/docs/recording#added-means-recorded).
 
@@ -149,7 +149,7 @@ mid-ladder clan), served as `clan_war_trophies` (`our_clan_war_trophies` on
 the record holds with that rival). The clan profile's own clan score, the
 figure the clan ladder ranks by (about a hundred times larger), is
 `clans_roster.clan_score` (and the `clan_score` metric on
-`clans_timeline`, beside `clan_war_trophies`).
+`clans_series`, beside `clan_war_trophies`).
 
 **repair_points**: what repairing the boat cost in a race: per clan on the
 standings, per member on participation. Never fame, never points.
@@ -164,8 +164,8 @@ so a season roll and a war day never straddle a row. `day` on a point is a
 game day; the year graphic on a player's page is on UTC calendar days
 instead. See [The game day](/docs/clocks#the-game-day).
 
-**series**: a day-grained history read as points: `players_timeline`,
-`clans_timeline` and `clans_members_timeline`, one point per game day, the
+**series**: a day-grained history read as points: `players_series`,
+`clans_series` and `clans_members_series`, one point per game day, the
 last reading of the day winning. A series takes `from`/`to` as game
 days and floors an instant to its day, saying so under
 `applied.window.floored`.
@@ -216,7 +216,7 @@ Colosseum week is `is_colosseum`, not a kind); a badge's kind (`one_off`,
 **progress bucket**: one of the profile's side ladders (the seasonal
 Trophy Road, 2v2 League, Merge Tactics), each with its own trophies, best
 trophies and arena, keyed by the game's own `progress` key and read with
-`players_timeline({ progress_key })`. A bucket at zero is not a row.
+`players_series({ progress_key })`. A bucket at zero is not a row.
 
 **the four trophy kinds**: `trophies` is Trophy Road, the number on the
 profile (`best_trophies` its peak); `season_trophies` is the API's legacy
@@ -284,12 +284,12 @@ hourly rate limit is not a budget: it belongs to the principal, so each agent
 has its own hour, and a person's website reads share theirs.
 
 **on_behalf_of**: on an agent connection, the end user's id in your own
-space (`discord:1234`), mapped once with `elixir_identify`; omit
-`player_tag` and the tools mean that person. Ignored on a personal
-connection, and the mapping tools are agent-only.
+space (`discord:1234`), resolved by the person's Discord link (or an
+older mapping the agent made); omit `player_tag` and the tools
+mean that person. Ignored on a personal connection.
 
 **external_id**: the same id as stored: the key `elixir_my_identities` lists
-and `elixir_identify` maps.
+and a Discord link or an older mapping resolves.
 
 **request_id**: the id minted for one call and stamped into `meta`; quote it
 when reporting an answer.

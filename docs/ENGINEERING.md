@@ -199,8 +199,8 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   writes. `*_tag` is one tag, `*_tags` an array.
 - **Defaults by family.** Player-shaped tools default `player_tag` to the
   caller (`subject()`); clan tools default `clan_tag` to the recorded clan
-  (`entitledClan()`); segment tools (`battles_trends`, `cards_card`,
-  `badges_*`) take a required `segment` naming a population
+  (`entitledClan()`); segment tools (`cards_card`, `badges_*`)
+  take a required `segment`, and `battles_performance` an optional one, naming a population
   (`SEGMENT_SCHEMA`, `resolveSegment()`, `segmentFilter()`): `"mine"` or an
   object naming exactly one player or clan. Missing, ambiguous, collection
   and corpus selectors refuse before database work. The first sentence of
@@ -471,7 +471,7 @@ imported by name.
 | `ingest` | the admission boundary, payload to rows; run inline by the collector door |
 | `ledger` | the job ledger and its plan; the scheduler runs it, the door and the JSON API enqueue through it |
 | `collector-door` | collectors' `config`, `lease`, `submit` and the release-signature state |
-| `auth` | sessions, OAuth, tokens, integration accounts, the `clans_context` and `clans_my_view` readers |
+| `auth` | sessions, OAuth, tokens, integration accounts, the `clans_my_view` and clan directory readers |
 | `mail`, `outbox` | rendering, the send ledger and archive, delivery; the S3 outbox |
 | `syndication` | the timeline cross-posted to Discord and a clan's activity channel: the setting, the wake, the sync, its lines, the relay's worker and the quality ledger (`quality.mjs`) |
 | `clan-engine`, `clan`, `clan-state`, `clan-web` | Elixir Clan (`packages/clan/AGENTS.md`) |
@@ -524,8 +524,8 @@ behavior (the only door route that sees the session cookie is
 `packages/clan/AGENTS.md` is the guide. The invariants:
 
 - Private Clan state (`clan_state`, `packages/clan-state`) is never imported
-  by MCP, the tools or any public game package. The two exceptions are
-  `clans_context` and `clans_my_view`, through
+  by MCP, the tools or any public game package. The one exception is
+  `clans_my_view` (and the directory's public part, `clans_directory`), through
   `@elixir-mcp/auth/clan-context`, pinned by
   `services/web-api/test/clan-boundary.test.mjs`.
 - The Postgres adapter receives the request's connected client; the caller

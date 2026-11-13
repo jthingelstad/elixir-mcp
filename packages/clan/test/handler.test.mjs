@@ -143,7 +143,7 @@ test("roster: a clan Elixir does not record is said plainly, not as an outage", 
         error: {
           code: "not_recorded",
           message: "#2PQRJ8LV is not a recorded clan.",
-          hint: "elixir_track_clan",
+          hint: "elixir_follow_clan",
         },
       },
     },

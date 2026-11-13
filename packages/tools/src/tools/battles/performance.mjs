@@ -6,6 +6,7 @@ import {
   MODE_SCHEMA,
   ON_BEHALF_OF_SCHEMA,
   SEASON_ARG_SCHEMA,
+  SEGMENT_SCHEMA,
   TAG_SCHEMA,
   ToolFailure,
   WINDOW_ARGS,
@@ -27,14 +28,20 @@ import {
   trophyFloorNote,
 } from "../../controls.mjs";
 import { DENOMINATOR_DOCS, modeClause, ownBattlesClause } from "./common.mjs";
+import { performanceSegment } from "./performance-segment.mjs";
 
 export const battles_performance = {
   description:
-    'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks, and trophy_floor when the player stood on an arena floor (losses there cost nothing, so net_trophies is asymmetric). compare_from/compare_to or before_after runs a second window server-side for "since X vs before" questions (before_after wins over compare_*); group_by week is the trend view (buckets the window clips are marked partial) and group_by game_mode the "what have I been playing" view.',
+    'Computed record over a window: W/L/D, win rate, crowns for/against, net trophies, three-crown rate, streaks, and trophy_floor when the player stood on an arena floor (losses there cost nothing, so net_trophies is asymmetric). compare_from/compare_to or before_after runs a second window server-side for "since X vs before" questions (before_after wins over compare_*); group_by week is the trend view (buckets the window clips are marked partial), group_by game_mode the "what have I been playing" view. segment ("mine", or a clan or player) reads that population week by week instead (weeks[]).',
   inputSchema: {
     type: "object",
     properties: {
       player_tag: TAG_SCHEMA,
+      segment: {
+        ...SEGMENT_SCHEMA,
+        description:
+          "Optional: a population's weekly series instead of one player's record: 'mine' (your clan) or an object naming exactly one of player_tag or clan_tag (current members). Weekly by itself (group_by is week); takes no player_tag, last_n_battles, deck_hash, compare_* or before_after. Default 12 weeks, at most 52.",
+      },
       on_behalf_of: ON_BEHALF_OF_SCHEMA,
       display_name: DISPLAY_NAME_SCHEMA,
       ...WINDOW_ARGS,
@@ -67,6 +74,7 @@ export const battles_performance = {
     additionalProperties: false,
   },
   async handler(ctx, args) {
+    if (args.segment !== undefined) return performanceSegment(ctx, args);
     const tag = (
       await subject(
         ctx.db,

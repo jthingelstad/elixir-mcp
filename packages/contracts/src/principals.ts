@@ -23,10 +23,11 @@ export type PrincipalKind = "person" | "agent" | "integration";
  * how a clan Discord bot came to be able to recite Jamie's own tags into a
  * public channel.
  *
- * The two track tools left this list at 7.1.0 (Jamie, 2026-09-23: a clan
- * agent "may be asked to track a competitive clan"). An agent tracks with
- * an agent's meaning: its players are watched, never "me", its clans spend
- * its owner's pooled slots, and it keeps the clan it acts for.
+ * The two follow tools (named track until 12.0.0) left this list at 7.1.0
+ * (Jamie, 2026-09-23: a clan agent may be asked to follow a competitive
+ * clan). An agent follows with an agent's meaning: its players are watched,
+ * never "me", its clans spend its owner's pooled slots, and it keeps the
+ * clan it acts for.
  *
  * `clans_my_view` (11.12.0, #535) is a person's own view of their clan in
  * Elixir Clan, for the person's own connection only, never an owned agent
@@ -46,12 +47,18 @@ export const PERSON_ONLY_TOOLS: readonly string[] = [
  * it would return an empty window forever, which is worse than absent.
  */
 export const AGENT_ONLY_TOOLS: readonly string[] = [
-  "clans_context",
   "elixir_nickname",
   "elixir_timeline",
-  // An integration tracks nothing (it adds no subjects; claims refuses it).
-  "elixir_track_player",
-  "elixir_track_clan",
+  // An integration follows nothing (it adds no subjects; claims refuses it).
+  "elixir_follow_player",
+  "elixir_follow_clan",
+  // The social layer is a person's and their agents' (12.0.0, DECISIONS
+  // "Agents read the social layer and never write it"): an integration has
+  // no person to read follows, highlights, cheers or the directory for.
+  "players_follows",
+  "players_highlights",
+  "clans_directory",
+  "elixir_cheers",
 ];
 
 /**
@@ -61,11 +68,7 @@ export const AGENT_ONLY_TOOLS: readonly string[] = [
  * and has no map to keep; an integration serves no humans by name
  * either (Jamie, 2026-09-25: the identity tools are agent-only).
  */
-export const NOT_FOR_PERSONS: readonly string[] = [
-  "clans_context",
-  "elixir_identify",
-  "elixir_my_identities",
-];
+export const NOT_FOR_PERSONS: readonly string[] = ["elixir_my_identities"];
 
 export function toolsHiddenFrom(kind: string | null | undefined): Set<string> {
   // Unknown or absent kind is a person: every credential issued before the

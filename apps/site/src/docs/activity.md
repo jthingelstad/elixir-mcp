@@ -39,7 +39,7 @@ reads canonical battle rows by their UTC date, which is the day a
 person reads off a calendar; the game day exists to line battles up with the
 season and war clock, and a graphic of "did they play on the 12th" is not a
 war question. A late-night session (after 10:00 UTC, before midnight) is one
-cell here and one game day in `players_timeline`; a session between midnight
+cell here and one game day in `players_series`; a session between midnight
 and 10:00 UTC is the next cell here and still the previous game day there.
 
 ## Missing recording is not zero

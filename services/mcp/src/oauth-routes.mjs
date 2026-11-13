@@ -348,16 +348,15 @@ function codeFailure(reason) {
  *  and the confirmation (Jamie 2026-09-24: say what an unticked box
  *  will stop). */
 const WITHOUT = {
-  "recordings:write": "track or stop tracking players and clans for you",
-  "account:write":
-    "remember who is talking to it or set your private nicknames",
+  "recordings:write": "follow or stop following players and clans for you",
+  "account:write": "set your private nicknames",
   "feedback:write": "send feedback to the Elixir maintainer for you",
 };
 
 /** The capabilities offered ticked before anyone touches the page
  *  (Jamie 2026-09-24): on a person's own connection none, every write is
- *  theirs to choose; on an agent or integration every write but tracking,
- *  which spends the owner's tracking slots and is ticked on purpose. */
+ *  theirs to choose; on an agent or integration every write but following,
+ *  which spends the owner's slots and is ticked on purpose. */
 function defaultTicked(kind) {
   return kind === "person" || kind === "api"
     ? []

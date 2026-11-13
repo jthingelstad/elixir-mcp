@@ -119,13 +119,17 @@ test("an agent omitting the tag is told what would fix it, not guessed at", asyn
   // Guessing a clan member here would be confidently wrong every time.
   await assert.rejects(
     () => resolveSubject(db, agent, undefined),
-    (e) => e.code === "no_subject" && /elixir_identify/.test(e.hint),
+    (e) =>
+      e.code === "no_subject" &&
+      /pass player_tag/.test(e.hint) &&
+      /discord:<their user id>/.test(e.hint) &&
+      !/elixir_identify/.test(e.hint),
   );
 });
 
 test("3.18.0: an unmapped on_behalf_of with a display_name carries the whole-name candidates; a partial name carries none", async () => {
   // Exactly one member's whole name matches, case and spacing ignored:
-  // the refusal names them and the hint is the one identify call.
+  // the refusal names them and the hint is the one player_tag to pass.
   await assert.rejects(
     () =>
       resolveSubject(db, agent, undefined, "full", {
@@ -138,9 +142,7 @@ test("3.18.0: an unmapped on_behalf_of with a display_name carries the whole-nam
       e.data.candidates[0].player_tag === ALT &&
       e.data.candidates[0].name === "Jolly Stoat" &&
       e.data.candidates[0].clan_tag === CLAN &&
-      /elixir_identify\(\{ external_id: "discord:77", player_tag: "#/.test(
-        e.hint,
-      ),
+      /pass player_tag "#/.test(e.hint),
   );
   // "King" alone is half of two names: nothing is a candidate, and the
   // hint says to ask.
@@ -248,7 +250,7 @@ test("#556: a person with players but no primary is told so, not that they have 
   });
   assert.match(
     text,
-    /You track players but have no primary, so nothing here defaults to you/,
+    /You follow players but have no primary, so nothing here defaults to you/,
   );
   assert.doesNotMatch(text, /You have no player yet/);
   assert.match(
@@ -386,7 +388,7 @@ test("the clan named at initialize is the primary player's, and it is what an om
   // The other clan is real and must not be hidden - silence about it is
   // what made the mismatch unresolvable. It is a clan you TRACK, which is
   // not the same as being in it (2026-09-25).
-  assert.match(sentences, new RegExp(`also track ALT CLAN ${ALT_CLAN}`));
+  assert.match(sentences, new RegExp(`also follow ALT CLAN ${ALT_CLAN}`));
 
   // The default, which must not disagree with the sentence.
   assert.equal(
@@ -419,7 +421,7 @@ test("3.18.0: when the primary player's clan is not recorded, an omitted clan_ta
     (e) =>
       e.code === "not_recorded" &&
       e.message.includes(PRIMARY_CLAN) &&
-      e.hint.includes(`elixir_track_clan({ clan_tag: "${PRIMARY_CLAN}" })`) &&
+      e.hint.includes(`elixir_follow_clan({ clan_tag: "${PRIMARY_CLAN}" })`) &&
       e.hint.includes(ALT_CLAN),
   );
   assert.equal(await resolveEntitledClan(db, account, ALT_CLAN), ALT_CLAN);
@@ -434,30 +436,30 @@ test("7.1.0: an agent tracks a rival in its owner's slots, and keeps the clan it
   // Jamie, 2026-09-23: "a clan agent may be asked to track a competitive
   // clan". Its owner is a leader: one activity slot, one comprehensive,
   // and the clan they share fills the comprehensive one.
-  const { elixir_track_clan } =
-    await import("../src/tools/elixir/track-clan.mjs");
+  const { elixir_follow_clan } =
+    await import("../src/tools/elixir/follow-clan.mjs");
   const ctx = { db, account: agent };
   const RIVAL = "#PYLQGRJC";
   const RIVAL2 = "#9VUP08YL";
-  const added = await elixir_track_clan.handler(ctx, {
+  const added = await elixir_follow_clan.handler(ctx, {
     clan_tag: RIVAL,
     scope: "activity",
   });
   assert.equal(added.added, true);
   await assert.rejects(
     () =>
-      elixir_track_clan.handler(ctx, { clan_tag: RIVAL2, scope: "activity" }),
+      elixir_follow_clan.handler(ctx, { clan_tag: RIVAL2, scope: "activity" }),
     (err) =>
       err.code === "quota_exceeded" &&
       /shared with its owner/.test(err.message),
   );
   // The clan it acts for stays, and so the default is unchanged.
   await assert.rejects(
-    () => elixir_track_clan.handler(ctx, { clan_tag: CLAN, action: "remove" }),
+    () => elixir_follow_clan.handler(ctx, { clan_tag: CLAN, action: "remove" }),
     (err) => err.code === "not_entitled",
   );
   assert.equal(await resolveEntitledClan(db, agent, undefined), CLAN);
-  const removed = await elixir_track_clan.handler(ctx, {
+  const removed = await elixir_follow_clan.handler(ctx, {
     clan_tag: RIVAL,
     action: "remove",
   });

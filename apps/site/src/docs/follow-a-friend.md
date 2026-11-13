@@ -52,7 +52,7 @@ Each person shows their game name and tag, never a nickname. Home's
 
 A first player named `friend` or `watching` stays that, and the account has no
 player of its own until you name one with `relationship: "primary"`.
-Through a [connected app](/docs/connections), `elixir_track_player` takes a `relationship`, so
+Through a [connected app](/docs/connections), `elixir_follow_player` takes a `relationship`, so
 "follow #TAG as a friend" adds the player as a friend in one call. The
 relationship is set when the player is added: for a player already on
 your account, change it under Settings › Players & following. An [agent](/docs/agents) you own
@@ -99,13 +99,13 @@ stays when you stop following the player, and an empty one clears it.
 ## The notifications switch
 
 Each followed player has a **Notifications** switch, on from the start;
-a connected app can flip it with `elixir_track_player` and `action:
+a connected app can flip it with `elixir_follow_player` and `action:
 "notify_off"` or `"notify_on"`. With it on, the player is a subject of your timeline, which your connected apps
 and Home read. With it off, the player leaves your timeline and
 your digest too, while recording carries on.
 
 ## Stopping
 
-**Stop following** on the player's page, or `elixir_track_player` with
+**Stop following** on the player's page, or `elixir_follow_player` with
 `action: "remove"`. The history already recorded is kept, and recording
 stops only when nobody else following the player has a reason to keep it.

@@ -132,8 +132,8 @@ after(async () => {
   await admin.end();
 });
 
-test("players_timeline: daily series with multiple metrics", async () => {
-  const { body, isError } = await call("players_timeline", {
+test("players_series: daily series with multiple metrics", async () => {
+  const { body, isError } = await call("players_series", {
     metrics: ["trophies", "battle_count"],
   });
   assert.equal(isError, false);
@@ -167,7 +167,7 @@ test("days/weeks are sugar on EVERY windowed tool, as the instructions promise",
   // bad_request. The instructions say "days/weeks are sugar"; now it is
   // true for each tool that takes a window, including the ones that read
   // from/to by hand (elixir_timeline, rankings_timeline, game_events) and
-  // the date-only one (players_timeline).
+  // the date-only one (players_series).
   const dayAgo = Date.now() - 86_400_000;
   const near = (iso) => Math.abs(Date.parse(iso) - dayAgo) < 60_000;
 
@@ -196,7 +196,7 @@ test("days/weeks are sugar on EVERY windowed tool, as the instructions promise",
   const events = await call("game_events", { days: 3 });
   assert.equal(events.isError, false, JSON.stringify(events.body));
 
-  const tl = await call("players_timeline", { days: 2 });
+  const tl = await call("players_series", { days: 2 });
   assert.equal(tl.isError, false, JSON.stringify(tl.body));
   // days: N is N GAME days on the 10:00Z grid, today's included, so the
   // expected day is the game day a day ago (the UTC date of that instant
@@ -431,7 +431,7 @@ test("the V1 tools remain declared among the full registry", () => {
     "battles_decks",
     "battles_performance",
     "players_profile",
-    "players_timeline",
+    "players_series",
     "battles_query",
     "elixir_my_players",
   ]) {
@@ -496,7 +496,7 @@ test("round-1 tester fixes: inverted windows refuse; compact drops decks; null c
   );
   assert.ok(perf.body.applied, "filters echoed");
 
-  const tl = await call("players_timeline", { from: "2026-05-01" });
+  const tl = await call("players_series", { from: "2026-05-01" });
   assert.ok(tl.body.snapshots_available_from, "epoch disclosed");
 });
 
@@ -592,7 +592,7 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
 
 test("Elixir MCP service domain: added = recorded, notify is the only toggle", async () => {
   // Add a player: claim + recording in ONE act.
-  const add = await call("elixir_track_player", { player_tag: "#2PP0V90Y" });
+  const add = await call("elixir_follow_player", { player_tag: "#2PP0V90Y" });
   assert.equal(add.isError, false, JSON.stringify(add.body));
   assert.equal(add.body.added, true);
   assert.equal(add.body.recording_started, true);
@@ -611,7 +611,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   );
 
   // Adding again: idempotent, shares the existing record.
-  const again = await call("elixir_track_player", { player_tag: "#2PP0V90Y" });
+  const again = await call("elixir_follow_player", { player_tag: "#2PP0V90Y" });
   assert.equal(again.body.added, false);
   assert.equal(again.body.recording_started, false);
   assert.equal(again.body.slot.took, false, "a re-add spends nothing");
@@ -632,10 +632,10 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
      values ($1, 'player', '#2PQ0V9', now() - interval '1 minute', 404, 'http')`,
     [gw.gateway_id],
   );
-  const typo = await call("elixir_track_player", { player_tag: "#2PQ0V9" });
+  const typo = await call("elixir_follow_player", { player_tag: "#2PQ0V9" });
   assert.equal(typo.isError, false);
   assert.match(typo.body.notes.join(" "), /answered "not found" for #2PQ0V9/);
-  await call("elixir_track_player", {
+  await call("elixir_follow_player", {
     player_tag: "#2PQ0V9",
     action: "remove",
   });
@@ -646,7 +646,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
     `update account set max_player_recordings = 2 where account_id = $1`,
     [account.accountId],
   );
-  const capped = await call("elixir_track_player", { player_tag: "#2PL" });
+  const capped = await call("elixir_follow_player", { player_tag: "#2PL" });
   assert.equal(capped.isError, true);
   assert.equal(capped.body.error.code, "quota_exceeded");
   // Refused with the reason, never queued (#760): used of limit, and that
@@ -674,7 +674,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
     `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
      values ('#9QRL', '#2PL', now(), 'member')`,
   );
-  const free = await call("elixir_track_player", { player_tag: "#2PL" });
+  const free = await call("elixir_follow_player", { player_tag: "#2PL" });
   assert.equal(free.isError, false, JSON.stringify(free.body));
   assert.deepEqual(free.body.slot, {
     took: false,
@@ -684,7 +684,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
     limit: 2,
   });
   assert.match(free.body.notes.join(" "), /Free: no slot taken/);
-  await call("elixir_track_player", { player_tag: "#2PL", action: "remove" });
+  await call("elixir_follow_player", { player_tag: "#2PL", action: "remove" });
   await db.query(`delete from clan_membership where clan_tag = '#9QRL'`);
   await db.query(`delete from recording where recording_id = $1`, [
     clanRec.recording_id,
@@ -695,7 +695,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   );
 
   // Notify is the only per-subject setting; my_players shows it.
-  const mute = await call("elixir_track_player", {
+  const mute = await call("elixir_follow_player", {
     player_tag: "#2PP0V90Y",
     action: "notify_off",
   });
@@ -703,13 +703,13 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   const mine = await call("elixir_my_players", {});
   const row = mine.body.players.find((x) => x.player_tag === "#2PP0V90Y");
   assert.equal(row.notify, false);
-  await call("elixir_track_player", {
+  await call("elixir_follow_player", {
     player_tag: "#2PP0V90Y",
     action: "notify_on",
   });
 
   // Remove releases the claim and stops the recording it justified.
-  const removed = await call("elixir_track_player", {
+  const removed = await call("elixir_follow_player", {
     player_tag: "#2PP0V90Y",
     action: "remove",
   });
@@ -722,13 +722,13 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   await db.query(
     `update gateway set status = 'draining' where name = 'tools2-gw'`,
   );
-  const tierBlocked = await call("elixir_track_clan", {
+  const tierBlocked = await call("elixir_follow_clan", {
     clan_tag: "#J2RGCRVG",
   });
   assert.equal(tierBlocked.isError, true);
   assert.equal(tierBlocked.body.error.code, "quota_exceeded");
   // The hint names the earned tiers, never a request (#530).
-  assert.match(tierBlocked.body.error.hint, /lead.*clan you track/i);
+  assert.match(tierBlocked.body.error.hint, /lead.*clan you follow/i);
   assert.doesNotMatch(tierBlocked.body.error.hint, /request|upgrade/i);
 
   // Active again, the collector earns Family, which has the slot:
@@ -736,7 +736,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   await db.query(
     `update gateway set status = 'active' where name = 'tools2-gw'`,
   );
-  const clanAdd = await call("elixir_track_clan", { clan_tag: "#J2RGCRVG" });
+  const clanAdd = await call("elixir_follow_clan", { clan_tag: "#J2RGCRVG" });
   assert.equal(clanAdd.isError, false, JSON.stringify(clanAdd.body));
   assert.equal(clanAdd.body.recording, "active");
   assert.equal(clanAdd.body.scope, "comprehensive");
@@ -749,7 +749,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
 
   // Re-adding with a narrower scope settles the recording down too
   // (single adder), and remove stops it entirely.
-  const readd = await call("elixir_track_clan", {
+  const readd = await call("elixir_follow_clan", {
     clan_tag: "#J2RGCRVG",
     scope: "activity",
   });
@@ -759,20 +759,14 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
      where subject_type = 'clan' and subject_tag = '#J2RGCRVG' and status = 'active'`,
   );
   assert.equal(settled[0].scope, "activity");
-  const gone = await call("elixir_track_clan", {
+  const gone = await call("elixir_follow_clan", {
     clan_tag: "#J2RGCRVG",
     action: "remove",
   });
   assert.equal(gone.body.removed, true);
   assert.equal(gone.body.recording_stopped, true);
-  const back = await call("elixir_track_clan", { clan_tag: "#J2RGCRVG" });
+  const back = await call("elixir_follow_clan", { clan_tag: "#J2RGCRVG" });
   assert.equal(back.body.recording, "active");
-
-  // Insights: corpus-wide transparency counts.
-  const insights = await call("elixir_data_insights", {});
-  assert.ok(insights.body.players_observed > 0);
-  assert.ok(insights.body.battles.recorded > 0);
-  assert.ok(insights.body.battles.first <= insights.body.battles.last);
 
   // Collectors: card-derived identity, points and credits retired to 0
   // (#539; the fields go at a later major), no arenas, and
@@ -1088,8 +1082,8 @@ test("feedback round two: changelog since-filter, ship links, pending hint clear
   assert.equal(after2.body.meta.feedback_responses_pending, 0);
 });
 
-test("trends: a selected player history has weekly mode counts and clipped windows", async () => {
-  const trends = await call("battles_trends", {
+test("battles_performance segment (battles_trends until 12.0.0): a selected player history has weekly mode counts and clipped windows", async () => {
+  const trends = await call("battles_performance", {
     segment: { player_tag: OBSERVER },
     weeks: 52,
   });
@@ -1106,7 +1100,7 @@ test("trends: a selected player history has weekly mode counts and clipped windo
     wk.battles,
     "the split sums to the week",
   );
-  const clipped = await call("battles_trends", {
+  const clipped = await call("battles_performance", {
     segment: { player_tag: OBSERVER },
     from: "2026-08-24",
     to: "2026-09-03T12:00:00Z",
@@ -1116,6 +1110,22 @@ test("trends: a selected player history has weekly mode counts and clipped windo
   assert.equal(last.partial, true, "the week `to` cuts is partial");
   assert.equal(last.covers.to, "2026-09-03T12:00:00.000Z");
   assert.ok(clipped.body.notes.some((l) => /partial/.test(l)));
+  assert.equal(clipped.body.applied.group_by, "week");
+  // The weekly series is a population's: a single player's arguments
+  // beside it are refused, never silently dropped.
+  for (const extra of [
+    { player_tag: OBSERVER },
+    { group_by: "game_mode" },
+    { last_n_battles: 5 },
+    { before_after: "2026-09-01" },
+  ]) {
+    const refused = await call("battles_performance", {
+      segment: { player_tag: OBSERVER },
+      ...extra,
+    });
+    assert.equal(refused.isError, true, JSON.stringify(extra));
+    assert.equal(refused.body.error.code, "bad_request");
+  }
 });
 
 test("battles_query links: url, short id, both sides' trophies and clans (9.18.0)", async () => {
@@ -1377,7 +1387,7 @@ test("players_profile answers the player as a game entity, not just a name (§7.
  * Reported through elixir_send_feedback, 2026-09-09 (#13).
  */
 test("elixir_my_players returns the relationship and nickname the owner set", async () => {
-  await call("elixir_track_player", {
+  await call("elixir_follow_player", {
     player_tag: "#2PP0V90Y",
     relationship: "alt",
   });
@@ -1394,7 +1404,7 @@ test("elixir_my_players returns the relationship and nickname the owner set", as
   const primary = mine.body.players.find((x) => x.is_primary);
   if (primary) assert.equal(primary.relationship, "primary");
 
-  await call("elixir_track_player", {
+  await call("elixir_follow_player", {
     player_tag: "#2PP0V90Y",
     action: "remove",
   });
@@ -1902,31 +1912,6 @@ test("forms are decoded, never ordinal: collection, catalog, in-game max level",
   assert.deepEqual(both.forms_available, ["evolution", "hero"]);
 });
 
-test("elixir_data_insights sizes the corpus along the profile axis", async () => {
-  const { body, isError } = await call("elixir_data_insights", {});
-  assert.equal(isError, false, JSON.stringify(body));
-  // Earlier tests add recordings of their own; pin the arithmetic, not
-  // the counts: total is the union, via_clans excludes direct adds.
-  const rp = body.recorded_players;
-  assert.ok(rp.direct >= 1);
-  assert.ok(rp.total >= rp.direct && rp.total <= rp.direct + rp.via_clans);
-  assert.equal(body.active_recordings.players, rp.direct);
-  const scopes = body.active_recordings.clans_by_scope;
-  assert.equal(
-    scopes.activity + scopes.comprehensive,
-    body.active_recordings.clans,
-  );
-  assert.equal(body.recorded_clans.length, body.active_recordings.clans);
-  for (const c of body.recorded_clans) {
-    assert.match(c.clan_tag, /^#/);
-    assert.ok(["activity", "comprehensive"].includes(c.scope));
-    assert.equal(typeof c.members, "number");
-  }
-  assert.ok(body.profiles.players_with_snapshot >= 1);
-  assert.ok(body.profiles.players_with_badges >= 1);
-  assert.ok(body.profiles.players_with_snapshot <= body.players_observed);
-});
-
 test("players_search matches user text literally: %, _ and \\ are not wildcards", async () => {
   for (const [tag, name] of [
     ["#2LQ0PC", "100% legit"],
@@ -2221,7 +2206,7 @@ test("player trends preserve distinct battles at the same player timestamp and r
       ["ladder", 1],
       ["casual", 1],
     ]) {
-      const { body, isError } = await call("battles_trends", {
+      const { body, isError } = await call("battles_performance", {
         segment: { player_tag: OBSERVER },
         from: "2026-07-01T04:59:59Z",
         to: "2026-07-01T05:00:01Z",
@@ -2238,7 +2223,7 @@ test("player trends preserve distinct battles at the same player timestamp and r
   }
 });
 
-test("#556: elixir_track_player refuses a primary or alt on a tag another account verified, with the one answer, and still follows it", async () => {
+test("#556: elixir_follow_player refuses a primary or alt on a tag another account verified, with the one answer, and still follows it", async () => {
   const { VERIFIED_ELSEWHERE } = await import("@elixir-mcp/claims");
   const TAG = "#9R2VJ0LQ";
   const {
@@ -2256,7 +2241,7 @@ test("#556: elixir_track_player refuses a primary or alt on a tag another accoun
     [owner.account_id, TAG],
   );
   for (const relationship of ["alt", "primary"]) {
-    const r = await call("elixir_track_player", {
+    const r = await call("elixir_follow_player", {
       player_tag: TAG,
       relationship,
     });
@@ -2265,7 +2250,7 @@ test("#556: elixir_track_player refuses a primary or alt on a tag another accoun
     assert.equal(r.body.error.message, VERIFIED_ELSEWHERE.message);
     assert.match(r.body.error.hint, /friend or watching/);
   }
-  const follow = await call("elixir_track_player", {
+  const follow = await call("elixir_follow_player", {
     player_tag: TAG,
     relationship: "watching",
   });
@@ -2275,5 +2260,5 @@ test("#556: elixir_track_player refuses a primary or alt on a tag another accoun
     [account.accountId, TAG],
   );
   assert.deepEqual(rows, [{ is_primary: false, relationship: "watching" }]);
-  await call("elixir_track_player", { player_tag: TAG, action: "remove" });
+  await call("elixir_follow_player", { player_tag: TAG, action: "remove" });
 });

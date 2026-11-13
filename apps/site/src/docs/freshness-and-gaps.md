@@ -84,9 +84,9 @@ Three tables hold the record's day-grained history, one row per subject per
 
 | Series | Written by | From | Read by |
 |---|---|---|---|
-| a player's day (trophies, donations, arena, clan and rank, the game's own last-seen, and for a recorded profile the lifetime block: battles, wins, losses, three-crown wins, star points, collection level, king tower level, total donations, challenge and tournament counters, Path of Legends standings, and the API's legacy `leagueStatistics` as `season_trophies` / `season_best_trophies`, which mirror Trophy Road and a frozen best, not the seasonal Trophy Road: read that with `progress_key`) | the roster poll of every clan the recorder follows (every member, whether or not their profile is recorded) and the profile poll of every recorded player, sharing one row | 2026-03-07 for the first recorded players; 2026-03-11 for POAP KINGS' members; the day a clan or player is first polled otherwise | `players_timeline`, `clans_members_timeline` |
-| a clan's day (clan score, war trophies, member count, required trophies, weekly donations, and on request `type` and `location_id`) | the roster poll | 2026-03-11 for POAP KINGS; the first poll otherwise | `clans_timeline` |
-| a player's progress buckets (the seasonal Trophy Road, 2v2 League, Merge Tactics: trophies, best trophies, arena per bucket) | the profile poll | 2026-03-07 | `players_timeline` with `progress_key` |
+| a player's day (trophies, donations, arena, clan and rank, the game's own last-seen, and for a recorded profile the lifetime block: battles, wins, losses, three-crown wins, star points, collection level, king tower level, total donations, challenge and tournament counters, Path of Legends standings, and the API's legacy `leagueStatistics` as `season_trophies` / `season_best_trophies`, which mirror Trophy Road and a frozen best, not the seasonal Trophy Road: read that with `progress_key`) | the roster poll of every clan the recorder follows (every member, whether or not their profile is recorded) and the profile poll of every recorded player, sharing one row | 2026-03-07 for the first recorded players; 2026-03-11 for POAP KINGS' members; the day a clan or player is first polled otherwise | `players_series`, `clans_members_series` |
+| a clan's day (clan score, war trophies, member count, required trophies, weekly donations, and on request `type` and `location_id`) | the roster poll | 2026-03-11 for POAP KINGS; the first poll otherwise | `clans_series` |
+| a player's progress buckets (the seasonal Trophy Road, 2v2 League, Merge Tactics: trophies, best trophies, arena per bucket) | the profile poll | 2026-03-07 | `players_series` with `progress_key` |
 
 Two writers share a member's row. The roster writes trophies, donations,
 donations received, arena, the clan, the rank and the game's last-seen at
@@ -129,9 +129,9 @@ closes (`league`, `trophies`, `rank`; `rank` is `null` unless the player was
 globally ranked). `players_profile.snapshot.path_of_legend.seasons[]` lists
 the last twelve, newest first, keyed by `season_month`; the archive holds
 every recorded player's final since March 2026 and the series tools carry
-the standing at the roll hour (`players_timeline({ kind: "season_roll" })`).
+the standing at the roll hour (`players_series({ kind: "season_roll" })`).
 
-`clans_timeline`'s `members_with_profile` counts the members with a
+`clans_series`'s `members_with_profile` counts the members with a
 profile read on or before that day: the denominator of the profile-derived
 aggregates. A member whose profile was not polled that day counts with their
 latest earlier read, and `members_profile_carried` says how many did.
@@ -185,7 +185,7 @@ covering the whole closed local day and a complete read of its battles. Gaps,
 unbracketed tails, unread pages and clipped season days stay unknown. Recorded
 battles remain evidence of play under any recording state.
 
-`players_timeline` adds `snapshots_available_from`, and a line in `notes[]`,
+`players_series` adds `snapshots_available_from`, and a line in `notes[]`,
 when you ask for dates before readings began.
 
 ## Participation by week

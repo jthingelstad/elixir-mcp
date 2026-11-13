@@ -210,7 +210,7 @@
         "eq": ["error.class", "subject"]
       },
       {
-        "notes_match": "elixir_track_clan"
+        "notes_match": "elixir_follow_clan"
       }
     ]
   },
@@ -1620,7 +1620,7 @@
     "id": "111.2",
     "feedback": 111,
     "stability": "live",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "days": 1,
       "metrics": [
@@ -1642,7 +1642,7 @@
     "feedback": 111,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-19",
       "to": "2026-09-20",
@@ -1665,7 +1665,7 @@
     "feedback": 111,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-19",
       "to": "2026-09-20",
@@ -3014,7 +3014,7 @@
     "id": "134.3",
     "feedback": 134,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "season": "previous",
@@ -3177,7 +3177,7 @@
     "feedback": 135,
     "stability": "frozen",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "from": "2026-09-20T15:00:00Z",
@@ -3314,7 +3314,7 @@
         }
       },
       "t": {
-        "tool": "clans_timeline",
+        "tool": "clans_series",
         "args": {
           "metrics": ["clan_war_trophies"],
           "from": "2026-09-10",
@@ -3842,7 +3842,7 @@
     "id": "148.3",
     "feedback": 148,
     "stability": "frozen",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "player_tag": "#C920YGLC2"
@@ -4331,7 +4331,7 @@
     "stability": "frozen",
     "calls": {
       "p": {
-        "tool": "clans_members_timeline",
+        "tool": "clans_members_series",
         "args": {
           "from": "2026-09-06",
           "to": "2026-09-22",
@@ -4340,7 +4340,7 @@
         }
       },
       "d": {
-        "tool": "clans_members_timeline",
+        "tool": "clans_members_series",
         "args": {
           "from": "2026-09-12",
           "to": "2026-09-21",
@@ -4377,7 +4377,7 @@
     "id": "158.2",
     "feedback": 158,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "from": "2026-09-06",
@@ -4402,7 +4402,7 @@
     "control": true,
     "calls": {
       "p": {
-        "tool": "clans_members_timeline",
+        "tool": "clans_members_series",
         "args": {
           "from": "2026-09-06",
           "to": "2026-09-22",
@@ -4411,7 +4411,7 @@
         }
       },
       "d": {
-        "tool": "clans_members_timeline",
+        "tool": "clans_members_series",
         "args": {
           "from": "2026-09-12",
           "to": "2026-09-21",
@@ -4449,7 +4449,7 @@
     "feedback": 158,
     "stability": "frozen",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "from": "2026-09-06",
@@ -5318,7 +5318,7 @@
     "control": true,
     "calls": {
       "t": {
-        "tool": "players_timeline",
+        "tool": "players_series",
         "args": {
           "player_tag": "#20JJJ2CCRU",
           "metrics": ["donations"],
@@ -5910,7 +5910,7 @@
     "stability": "frozen",
     "calls": {
       "t": {
-        "tool": "battles_trends",
+        "tool": "battles_performance",
         "args": {
           "segment": {
             "player_tag": "#20JJJ2CCRU"
@@ -5947,7 +5947,7 @@
     "stability": "frozen",
     "calls": {
       "t": {
-        "tool": "battles_trends",
+        "tool": "battles_performance",
         "args": {
           "segment": {
             "player_tag": "#20JJJ2CCRU"
@@ -5983,7 +5983,7 @@
     "stability": "live",
     "calls": {
       "t": {
-        "tool": "battles_trends",
+        "tool": "battles_performance",
         "args": {
           "segment": {
             "player_tag": "#20JJJ2CCRU"
@@ -6016,7 +6016,7 @@
     "stability": "frozen",
     "calls": {
       "t": {
-        "tool": "battles_trends",
+        "tool": "battles_performance",
         "args": {
           "segment": {
             "player_tag": "#20JJJ2CCRU"
@@ -6051,7 +6051,7 @@
     "id": "187.1",
     "feedback": 187,
     "stability": "frozen",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "player_tag": "#C920YGLC2"
@@ -6074,7 +6074,7 @@
     "id": "187.2",
     "feedback": 187,
     "stability": "frozen",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "player_tag": "#C920YGLC2"
@@ -6134,7 +6134,7 @@
     "id": "189.1",
     "feedback": 189,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#C920YGLC2",
       "from": "2026-09-05",
@@ -6157,7 +6157,7 @@
     "feedback": 189,
     "control": true,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#C920YGLC2",
       "from": "2026-09-05",
@@ -6262,7 +6262,7 @@
     "id": "111.5",
     "feedback": 111,
     "stability": "frozen",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-16",
       "to": "2026-09-22",
@@ -6286,7 +6286,7 @@
     "feedback": 111,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-16",
       "to": "2026-09-22",
@@ -6311,7 +6311,7 @@
     "stability": "frozen",
     "calls": {
       "p": {
-        "tool": "clans_timeline",
+        "tool": "clans_series",
         "args": {
           "from": "2026-09-06",
           "to": "2026-09-22",
@@ -6320,7 +6320,7 @@
         }
       },
       "d": {
-        "tool": "clans_timeline",
+        "tool": "clans_series",
         "args": {
           "from": "2026-09-04",
           "to": "2026-09-22",
@@ -6348,7 +6348,7 @@
     "id": "195.2",
     "feedback": 195,
     "stability": "frozen",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-06",
       "to": "2026-09-22",
@@ -6373,7 +6373,7 @@
     "control": true,
     "calls": {
       "p": {
-        "tool": "clans_timeline",
+        "tool": "clans_series",
         "args": {
           "from": "2026-09-06",
           "to": "2026-09-22",
@@ -6382,7 +6382,7 @@
         }
       },
       "d": {
-        "tool": "clans_timeline",
+        "tool": "clans_series",
         "args": {
           "from": "2026-09-04",
           "to": "2026-09-22",
@@ -6496,7 +6496,7 @@
     "id": "197.1",
     "feedback": 197,
     "stability": "frozen",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-10",
       "to": "2026-09-11",
@@ -6519,7 +6519,7 @@
     "id": "197.2",
     "feedback": 197,
     "stability": "frozen",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-16",
       "to": "2026-09-22",
@@ -6543,7 +6543,7 @@
     "feedback": 197,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-20",
       "to": "2026-09-22",
@@ -6619,7 +6619,7 @@
     "id": "199.1",
     "feedback": 199,
     "stability": "frozen",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "player_tag": "#P8URQGR2U"
@@ -6678,7 +6678,7 @@
     "feedback": 199,
     "control": true,
     "stability": "frozen",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "player_tag": "#20JJJ2CCRU"
@@ -6721,7 +6721,7 @@
     "stability": "frozen",
     "calls": {
       "t": {
-        "tool": "battles_trends",
+        "tool": "battles_performance",
         "args": {
           "segment": {
             "player_tag": "#20JJJ2CCRU"
@@ -7501,7 +7501,7 @@
         }
       },
       "m": {
-        "tool": "clans_members_timeline",
+        "tool": "clans_members_series",
         "args": {
           "from": "2026-09-13",
           "to": "2026-09-13",
@@ -7556,7 +7556,7 @@
         }
       },
       "m": {
-        "tool": "clans_members_timeline",
+        "tool": "clans_members_series",
         "args": {
           "from": "2026-09-20",
           "to": "2026-09-20",
@@ -7575,47 +7575,6 @@
         ]
       }
     ]
-  },
-  {
-    "id": "217.1",
-    "feedback": 217,
-    "stability": "live",
-    "tool": "elixir_data_insights",
-    "args": {},
-    "request_id": "ab4fd32a-120d-49a7-a1a5-7a30606f1642",
-    "when": {
-      "gt": ["profiles.players_with_badges", "recorded_players.total"]
-    },
-    "assert": [
-      {
-        "notes_match": "(?i)(no longer recorded|ever read|not recorded now)"
-      }
-    ]
-  },
-  {
-    "id": "217.3",
-    "feedback": 217,
-    "control": true,
-    "stability": "live",
-    "calls": {
-      "i": {
-        "tool": "elixir_data_insights",
-        "args": {}
-      },
-      "b": {
-        "tool": "badges_rarity",
-        "args": {
-          "segment": "mine",
-          "limit": 3
-        }
-      }
-    },
-    "assert": [
-      {
-        "lte": ["b.players_considered", "i.recorded_players.total"]
-      }
-    ],
-    "amended": "2026-10-08: replaces control 217.2, which read the retired corpus segment. A badge tool draws only on players recorded now."
   },
   {
     "id": "218.1",
@@ -8435,7 +8394,7 @@
     "id": "228.1",
     "feedback": 228,
     "stability": "live",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "season": 137
@@ -8455,7 +8414,7 @@
     "feedback": 228,
     "stability": "live",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "season": "current"
@@ -8474,7 +8433,7 @@
     "id": "229.1",
     "feedback": 229,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#VJQV8G8RL",
       "progress_key": "seasonal-trophy-road-202609",
@@ -8494,7 +8453,7 @@
     "feedback": 229,
     "stability": "frozen",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#YC8LLR8Q2",
       "progress_key": "seasonal-trophy-road-202609",
@@ -8515,7 +8474,7 @@
     "id": "230.1",
     "feedback": 230,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#YC8LLR8Q2",
       "progress_key": "autochess_2026_season_11",
@@ -8537,7 +8496,7 @@
     "feedback": 230,
     "stability": "frozen",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#YC8LLR8Q2",
       "progress_key": "AutoChess_2026_Season_11",
@@ -8561,7 +8520,7 @@
     "id": "231.1",
     "feedback": 231,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "metrics": ["donations", "total_donations"],
@@ -8587,7 +8546,7 @@
     "id": "231.2",
     "feedback": 231,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "metrics": ["donations", "total_donations"],
@@ -8607,7 +8566,7 @@
     "feedback": 231,
     "stability": "frozen",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "metrics": ["donations", "total_donations"],
@@ -8819,7 +8778,7 @@
     "feedback": 235,
     "stability": "frozen",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "from": "2026-09-20",
@@ -9000,7 +8959,7 @@
     "id": "238.1",
     "feedback": 238,
     "stability": "live",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "season": "current"
     },
@@ -9015,7 +8974,7 @@
     "id": "238.2",
     "feedback": 238,
     "stability": "live",
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "season": "current",
       "verbosity": "compact"
@@ -9031,7 +8990,7 @@
     "id": "238.3",
     "feedback": 238,
     "stability": "live",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "season": "2026-10"
     },
@@ -9048,7 +9007,7 @@
     "feedback": 238,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-04",
       "to": "2026-09-22",
@@ -9065,7 +9024,7 @@
     "id": "239.1",
     "feedback": 239,
     "stability": "live",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {},
     "request_id": "0aa0193f-88f6-4d8a-ba7b-d5fd11fef260",
     "assert": [
@@ -9078,7 +9037,7 @@
     "id": "239.2",
     "feedback": 239,
     "stability": "live",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {},
     "request_id": "0aa0193f-88f6-4d8a-ba7b-d5fd11fef260",
     "assert": [
@@ -9092,7 +9051,7 @@
     "feedback": 239,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-04",
       "to": "2026-09-22",
@@ -9112,7 +9071,7 @@
     "id": "240.1",
     "feedback": 240,
     "stability": "frozen",
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "from": "2026-09-20",
       "to": "2026-09-20",
@@ -9130,7 +9089,7 @@
     "id": "240.2",
     "feedback": 240,
     "stability": "live",
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "verbosity": "compact"
     },
@@ -9149,7 +9108,7 @@
     "feedback": 240,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "from": "2026-09-20",
       "to": "2026-09-20",
@@ -9216,7 +9175,7 @@
     "id": "242.1",
     "feedback": 242,
     "stability": "frozen",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-20",
       "to": "2026-09-20",
@@ -9235,7 +9194,7 @@
     "feedback": 242,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-13",
       "to": "2026-09-13",
@@ -9267,7 +9226,7 @@
         }
       },
       "p": {
-        "tool": "clans_timeline",
+        "tool": "clans_series",
         "args": {
           "from": "2026-09-13",
           "to": "2026-09-13",
@@ -9296,7 +9255,7 @@
     "id": "243.2",
     "feedback": 243,
     "stability": "frozen",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-10",
       "to": "2026-09-11",
@@ -9321,7 +9280,7 @@
     "feedback": 243,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "from": "2026-09-20",
       "to": "2026-09-22",
@@ -10161,7 +10120,7 @@
         }
       },
       "m": {
-        "tool": "clans_members_timeline",
+        "tool": "clans_members_series",
         "args": {
           "from": "2026-09-13",
           "to": "2026-09-13",
@@ -11384,7 +11343,7 @@
     "id": "275.1",
     "feedback": 275,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#YC8LLR8Q2",
       "from": "2026-09-05",
@@ -11403,7 +11362,7 @@
     "feedback": 275,
     "stability": "frozen",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#YC8LLR8Q2",
       "from": "2026-09-05",
@@ -11565,7 +11524,7 @@
     "feedback": 278,
     "stability": "frozen",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#VJQV8G8RL",
       "from": "2026-09-10",
@@ -11593,7 +11552,7 @@
     "feedback": 278,
     "stability": "live",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#20JJJ2CCRU",
       "season": 137
@@ -11870,7 +11829,7 @@
     "id": "286.2",
     "feedback": 286,
     "stability": "live",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "clan_tag": "#Q9QPPGGG"
@@ -11891,7 +11850,7 @@
     "feedback": 286,
     "stability": "live",
     "control": true,
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "player_tag": "#20JJJ2CCRU"
@@ -11911,7 +11870,7 @@
     "feedback": 287,
     "stability": "live",
     "control": true,
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "player_tag": "#20JJJ2CCRU"
@@ -12357,7 +12316,7 @@
     "id": "300.1",
     "feedback": 300,
     "stability": "frozen",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": "mine",
       "from": "2026-09-14T00:00:00Z",
@@ -12375,7 +12334,7 @@
     "feedback": 300,
     "control": true,
     "stability": "frozen",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "player_tag": "#20JJJ2CCRU"
@@ -12395,7 +12354,7 @@
     "feedback": 301,
     "control": true,
     "stability": "live",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "clan_tag": "#Q9QPPGGG"
@@ -12416,7 +12375,7 @@
     "feedback": 301,
     "control": true,
     "stability": "live",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": "mine",
       "from": "2026-09-14T00:00:00Z",
@@ -12795,7 +12754,7 @@
     "id": "305.1",
     "feedback": 305,
     "stability": "frozen",
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "from": "2026-09-14",
       "to": "2026-09-20",
@@ -12813,7 +12772,7 @@
     "id": "305.2",
     "feedback": 305,
     "stability": "frozen",
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "from": "2026-09-14",
       "to": "2026-09-20",
@@ -12839,7 +12798,7 @@
     "when": {
       "gte": ["applied.window.season_age_days", 7]
     },
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "season": "current",
       "metrics": ["donations"],
@@ -12857,7 +12816,7 @@
     "feedback": 305,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "from": "2026-09-14",
       "to": "2026-09-19",
@@ -12938,7 +12897,7 @@
     "feedback": 307,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "from": "2026-09-20",
       "to": "2026-09-20",
@@ -12960,7 +12919,7 @@
     "id": "308.2",
     "feedback": 308,
     "stability": "live",
-    "tool": "battles_trends",
+    "tool": "battles_performance",
     "args": {
       "segment": {
         "clan_tag": "#Q9QPPGGG"
@@ -14709,7 +14668,7 @@
     "id": "331.1",
     "feedback": 331,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#YC8LLR8Q2",
       "from": "2026-09-05",
@@ -14727,7 +14686,7 @@
     "id": "331.2",
     "feedback": 331,
     "stability": "frozen",
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#YC8LLR8Q2",
       "from": "2026-09-05",
@@ -14746,7 +14705,7 @@
     "feedback": 331,
     "stability": "frozen",
     "control": true,
-    "tool": "players_timeline",
+    "tool": "players_series",
     "args": {
       "player_tag": "#YC8LLR8Q2",
       "from": "2026-09-05",
@@ -14896,7 +14855,7 @@
     "stability": "frozen",
     "calls": {
       "c": {
-        "tool": "clans_members_timeline",
+        "tool": "clans_members_series",
         "args": {
           "from": "2026-09-13",
           "to": "2026-09-20",
@@ -14905,7 +14864,7 @@
         }
       },
       "p": {
-        "tool": "clans_members_timeline",
+        "tool": "clans_members_series",
         "args": {
           "from": "2026-09-13",
           "to": "2026-09-20",
@@ -14940,7 +14899,7 @@
     "id": "333.2",
     "feedback": 333,
     "stability": "frozen",
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "from": "2026-09-13",
       "to": "2026-09-20",
@@ -14959,7 +14918,7 @@
     "feedback": 333,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "from": "2026-09-13",
       "to": "2026-09-19",
@@ -15081,7 +15040,7 @@
     "id": "335.1",
     "feedback": 335,
     "stability": "frozen",
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "clan_tag": "#8UJ2UUJ8",
       "from": "2026-09-07",
@@ -15103,7 +15062,7 @@
     "feedback": 335,
     "stability": "frozen",
     "control": true,
-    "tool": "clans_timeline",
+    "tool": "clans_series",
     "args": {
       "clan_tag": "#8UJ2UUJ8",
       "from": "2026-09-07",
@@ -15183,7 +15142,7 @@
     "feedback": 336,
     "stability": "live",
     "control": true,
-    "tool": "clans_members_timeline",
+    "tool": "clans_members_series",
     "args": {
       "from": "2026-09-14",
       "to": "2026-09-20",

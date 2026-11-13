@@ -2,7 +2,7 @@ import { test, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { clanContextOp } from "../src/ops-clan-context.mjs";
-import { readAgentPolicyContext } from "@elixir-mcp/auth/clan-context";
+import { agentContextEligibility } from "@elixir-mcp/auth/clan-context";
 import { makeRegistry } from "@elixir-mcp/tools";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 let scratch, owner, other, agent, token, account;
@@ -89,7 +89,19 @@ const grant = async () =>
     expected_owner_account_id: owner,
     expected_sha256: (await preview()).expected_sha256,
   });
-const read = () => readAgentPolicyContext(scratch.db, account);
+// clans_context, the grant's only reader, retired in 12.0.0; the grant
+// storage and the operator's op stay (DECISIONS "`clans_context` retires").
+// What these tests read now is whether a grant is active, and whether the
+// agent is eligible on this connection (inside a test's transaction).
+const active = async () =>
+  (
+    await scratch.db.query(
+      "select count(*)::int as n from agent_policy_context_grant where agent_account_id=$1 and revoked_at is null",
+      [agent],
+    )
+  ).rows[0].n === 1;
+const eligible = async () =>
+  (await agentContextEligibility(scratch.db, ids))[0].eligible;
 
 test("preview proves actual binding; apply is explicit, idempotent and changes no token scope", async () => {
   const p = await preview();
@@ -98,7 +110,7 @@ test("preview proves actual binding; apply is explicit, idempotent and changes n
   assert.equal(p.applied, false);
   assert.equal(p.candidates[0].owner_account_id, owner);
   assert.equal(p.candidates[0].clan_tag, "#028");
-  assert.equal(await read(), null);
+  assert.equal(await active(), false);
   assert.equal((await grant()).changed, 1);
   assert.equal((await grant()).changed, 0);
   assert.equal(
@@ -110,11 +122,11 @@ test("preview proves actual binding; apply is explicit, idempotent and changes n
     ).rows[0].scope,
     "cr:read",
   );
-  const r = await read();
-  assert.equal(r.reason, "no_policy");
-  assert.equal(r.policy_version, null);
+  assert.equal(await active(), true);
 });
-test("MCP envelope preserves the exact eight fields and serves fresh revisions without other private values", async () => {
+test("12.0.0: clans_context is gone, and the agent reads the clan directory as its owner, the policy's public part only", async () => {
+  const registry = makeRegistry();
+  assert.equal(registry.has("clans_context"), false);
   await grant();
   const ledger = createPostgresLedger(scratch.db);
   await ledger.savePolicy("#028", {
@@ -125,50 +137,44 @@ test("MCP envelope preserves the exact eight fields and serves fresh revisions w
     },
     by: "#LEADER",
   });
-  const registry = makeRegistry();
   const r = await registry.invoke(
-    "clans_context",
+    "clans_directory",
     { db: scratch.db, account },
     {},
   );
-  assert.deepEqual(
-    Object.keys(r.context).sort(),
-    [
-      "schema_version",
-      "clan_tag",
-      "status",
-      "reason",
-      "war_intent",
-      "policy_version",
-      "policy_saved_at",
-      "read_at",
-    ].sort(),
-  );
-  assert.equal(r.context.war_intent, "participating");
-  assert.equal(r.context.status, "known");
+  const tile = r.clans.find((c) => c.clan_tag === "#028");
+  assert.ok(tile, "a clan with a saved policy is listed");
+  assert.equal(tile.policy.war_intent, "participating");
+  // yours is the owner's: their verified primary is a member of #028.
+  assert.equal(tile.yours, true);
   assert.ok(!JSON.stringify(r).includes("private-canary"));
   assert.ok(!JSON.stringify(r).includes(owner));
-  await ledger.savePolicy("#028", {
-    values: { war_intent: "not_participating", war_enabled: true },
-    by: "#LEADER",
-  });
-  const next = await read();
-  assert.equal(next.war_intent, "not_participating");
-  assert.ok(next.policy_version > r.context.policy_version);
-  for (const war_intent of [undefined, "unsupported"]) {
-    await ledger.savePolicy("#028", { values: { war_intent }, by: "#LEADER" });
-    assert.equal((await read()).reason, "war_intent_unspecified");
-  }
+  assert.ok(r.notes.some((n) => /your owner's/.test(n)));
+  // An agent whose owner is not approved reads nothing, and neither does
+  // an integration.
+  await scratch.db.query(
+    "update account set status='disabled' where account_id=$1",
+    [owner],
+  );
+  await assert.rejects(
+    registry.invoke("clans_directory", { db: scratch.db, account }, {}),
+    (e) => e.code === "not_entitled",
+  );
+  await scratch.db.query(
+    "update account set status='approved' where account_id=$1",
+    [owner],
+  );
   await assert.rejects(
     registry.invoke(
-      "clans_context",
-      { db: scratch.db, account },
-      { clan_tag: "#029" },
+      "clans_directory",
+      { db: scratch.db, account: { ...account, kind: "integration" } },
+      {},
     ),
-    /no property/,
+    (e) => e.code === "not_entitled",
   );
-  assert.equal(registry.availableTo("clans_context", "person"), false);
-  assert.equal(registry.availableTo("clans_context", "integration"), false);
+  assert.equal(registry.availableTo("clans_directory", "integration"), false);
+  assert.equal(registry.availableTo("clans_directory", "person"), true);
+  assert.equal(registry.availableTo("clans_directory", "agent"), true);
 });
 test("another clan, former membership, unverified and watched claims cannot qualify or create grants", async () => {
   for (const sql of [
@@ -180,8 +186,7 @@ test("another clan, former membership, unverified and watched claims cannot qual
     await scratch.db.query("begin");
     try {
       await scratch.db.query(sql);
-      const r = await read();
-      assert.equal(r, null);
+      assert.equal(await eligible(), false);
     } finally {
       await scratch.db.query("rollback");
     }
@@ -220,7 +225,7 @@ test("stale preview and unexpected owner refuse the entire apply", async () => {
     /owner/,
   );
 });
-test("current verification, membership, roles, owner and token status are checked after grant", async () => {
+test("current verification, membership, roles, owner and token status decide eligibility", async () => {
   await grant();
   for (const sql of [
     "update claim set status='unverified'",
@@ -235,21 +240,21 @@ test("current verification, membership, roles, owner and token status are checke
     await scratch.db.query("begin");
     try {
       await scratch.db.query(sql);
-      assert.equal(await read(), null);
+      assert.equal(await eligible(), false);
     } finally {
       await scratch.db.query("rollback");
     }
   }
   for (const role of ["member", "elder", "coLeader", "leader"]) {
     await scratch.db.query("update clan_membership set role=$1", [role]);
-    assert.ok(await read());
+    assert.equal(await eligible(), true);
   }
   await scratch.db.query(
     "update claim set is_primary=false,relationship='alt'",
   );
-  assert.ok(await read());
+  assert.equal(await eligible(), true);
   await scratch.db.query("update claim set relationship='friend'");
-  assert.equal(await read(), null);
+  assert.equal(await eligible(), false);
 });
 test("assignment and ownership changes durably revoke, including restoration", async () => {
   await grant();
@@ -257,23 +262,23 @@ test("assignment and ownership changes durably revoke, including restoration", a
     "update account_clan set clan_tag='#029' where account_id=$1",
     [agent],
   );
-  assert.equal(await read(), null);
+  assert.equal(await active(), false);
   await scratch.db.query(
     "update account_clan set clan_tag='#028' where account_id=$1",
     [agent],
   );
-  assert.equal(await read(), null);
+  assert.equal(await active(), false);
   await grant();
   await scratch.db.query(
     "update account set owned_by_account_id=$1 where account_id=$2",
     [other, agent],
   );
-  assert.equal(await read(), null);
+  assert.equal(await active(), false);
   await scratch.db.query(
     "update account set owned_by_account_id=$1 where account_id=$2",
     [owner, agent],
   );
-  assert.equal(await read(), null);
+  assert.equal(await active(), false);
 });
 test("explicit revocation is durable; ambiguous credentials and unsupported principals fail closed", async () => {
   await grant();
@@ -284,24 +289,13 @@ test("explicit revocation is durable; ambiguous credentials and unsupported prin
     expected_sha256: (await preview()).expected_sha256,
   });
   assert.equal(r.changed, 1);
-  assert.equal(await read(), null);
+  assert.equal(await active(), false);
   await scratch.db.query(
     "insert into service_token(account_id,name,token_hash,scope) values($1,'other-context',repeat('d',64),'cr:read')",
     [agent],
   );
   assert.equal((await preview()).eligible, 0);
   assert.equal((await grant()).changed, 0);
-  for (const change of [
-    { kind: "person" },
-    { kind: "integration" },
-    { credentialType: "oauth" },
-    { tokenId: null },
-    { scopes: [] },
-  ])
-    assert.equal(
-      await readAgentPolicyContext(scratch.db, { ...account, ...change }),
-      null,
-    );
 });
 
 test("moving a primary assignment row or revoking its credential durably revokes the grant", async () => {
@@ -310,12 +304,12 @@ test("moving a primary assignment row or revoking its credential durably revokes
     "update account_clan set account_id=$1 where account_id=$2",
     [other, agent],
   );
-  assert.equal(await read(), null);
+  assert.equal(await active(), false);
   await scratch.db.query(
     "update account_clan set account_id=$1 where account_id=$2",
     [agent, other],
   );
-  assert.equal(await read(), null);
+  assert.equal(await active(), false);
   await grant();
   await scratch.db.query(
     "update service_token set revoked_at=now() where token_id=$1",
@@ -325,5 +319,5 @@ test("moving a primary assignment row or revoking its credential durably revokes
     "update service_token set revoked_at=null where token_id=$1",
     [token],
   );
-  assert.equal(await read(), null);
+  assert.equal(await active(), false);
 });

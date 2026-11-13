@@ -296,7 +296,7 @@ sides, and they are not alike:
 - A boat **defense** is not the defending member's battle: a rival attacked
   their boat and the defense deck answered while they were elsewhere. It is
   left out of that member's battles, wins, losses and streaks everywhere
-  (`battles_performance`, `battles_compare`, `battles_trends`,
+  (`battles_performance`, with or without a `segment`, `battles_compare`,
   `clans_participation` battles, `clans_standings` and a timeline's
   `war.battles`). `battles_query` still returns the row, and its `boat`
   block's `role` says `defender`. `side` is not the player's part: it is

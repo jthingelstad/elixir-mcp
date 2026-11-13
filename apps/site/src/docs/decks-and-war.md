@@ -221,7 +221,7 @@ The race payload spells it `clanScore`, which is the API overloading that key: a
 clan's profile carries BOTH `clanScore` (a five- or six-figure strength
 number, ~129,000 for a mid clan) and `clanWarTrophies` (a four-figure war
 ladder), and the race reports the second under the first's name. So this is NOT the figure
-a clan's profile shows as its score, and joining it to `clans_timeline`'s
+a clan's profile shows as its score, and joining it to `clans_series`'s
 `clan_score` metric is out by about two orders of magnitude - that timeline
 serves `clan_score` and `clan_war_trophies` as separate metrics, and this is
 the latter. `war_history`'s weeks carry it as `our_clan_war_trophies`.

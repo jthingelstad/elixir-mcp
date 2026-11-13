@@ -511,11 +511,10 @@ test("the registry declares 47 tools, every one classified and annotated", () =>
   assert.deepEqual(
     writers.map((d) => d.name).sort(),
     [
-      "elixir_identify",
+      "elixir_follow_clan",
+      "elixir_follow_player",
       "elixir_nickname",
       "elixir_send_feedback",
-      "elixir_track_clan",
-      "elixir_track_player",
     ],
     "writes change account state, never canonical game history",
   );
@@ -1039,7 +1038,7 @@ test("0.22.1 hardening: unknown enums refuse; clamp echoes; dates guard (sol-6 +
   const badSort = await call(invoke, "battles_decks", { sort: "losses" });
   assert.equal(badSort.isError, true);
 
-  const badDate = await call(invoke, "players_timeline", {
+  const badDate = await call(invoke, "players_series", {
     from: "not-a-date",
   });
   assert.equal(badDate.isError, true);

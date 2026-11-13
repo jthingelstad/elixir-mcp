@@ -740,7 +740,7 @@ export const clansTools = {
         throw new ToolFailure(
           "not_recorded",
           `${clanTag} is not in the record.`,
-          "elixir_track_clan({ clan_tag }) starts recording it.",
+          "elixir_follow_clan({ clan_tag }) starts recording it.",
         );
       const now = new Date();
       const thisWeekStart = isoWeekStart(now);

@@ -113,7 +113,7 @@ export function snapshotObjects(row) {
     row.collection_level,
   )
     ? {
-        // One shape with clans_roster and players_timeline (4.0.0; the
+        // One shape with clans_roster and players_series (4.0.0; the
         // camelCase twins the API's JSON carried rode beside these from
         // 3.14.0 to 3.18.0).
         battle_count: row.battle_count,

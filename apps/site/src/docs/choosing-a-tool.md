@@ -33,27 +33,30 @@ conventions that hold everywhere.
 | What is waiting for me in Clan, and how do I stand there? | `clans_my_view` (your own connection only: the policy summary, your own standing line and the Actions waiting for you, each with a link to decide it in Clan; never another member's line or a removal) |
 | Who should be promoted, demoted or removed? | Elixir serves the facts and the clan decides: `clans_participation` (war decks, battles and donations per member per week), `clans_standings` (win rate and activity over a window, with who joined mid-window and whose battles were not recorded), and `clans_roster` (role, tenure, `last_seen_in_game`). Read a member's week with the recording note in view: a low count can be a recording gap. |
 | What did every member do this week, and the weeks before? | `clans_participation` (battles, ranked battles and donations per member per week, and war decks used per race week, in one call) |
-| How has the clan moved over the season: score, war trophies, members, the members' trophies? | `clans_timeline` (one point per game day, with the aggregates over the members' rows) |
-| How has each member's trophies or rank moved day by day? | `clans_members_timeline` (every member's day series in one call; compact for first, last and delta) |
+| How has the clan moved over the season: score, war trophies, members, the members' trophies? | `clans_series` (one point per game day, with the aggregates over the members' rows) |
+| How has each member's trophies or rank moved day by day? | `clans_members_series` (every member's day series in one call; compact for first, last and delta) |
 | Scout the bracket | `war_rivals`, then `war_current({ clan_tag, live: true })` or `clans_roster({ clan_tag, live: true })` for one rival |
 | What does "LavaLoon" / "bridge spam" mean, or what is this deck called? | `cards_archetype` (`name`, or `cards`; nothing for the vocabulary) |
 | Rarest badge, who holds one | `badges_rarity`, `badges_holders` |
 | A name to a tag, or tags to names | `players_search`, `players_names` |
 | What happened since I last looked? | `elixir_timeline` (items newest first and an entry per subject, then drill with the data tools) |
-| How have I moved: trophies, rank, a lifetime counter, day by day? | `players_timeline` (one point per game day; `metrics` picks the series) |
+| How have I moved: trophies, rank, a lifetime counter, day by day? | `players_series` (one point per game day; `metrics` picks the series) |
 | Which of my cards carry, which enemy cards beat me? | `battles_cards` (`perspective: "mine"` or `"opponent"`; `sort: "losses"` for the most battles lost first) |
 | Who do I keep meeting, and how does it go? | `battles_opponents` (`sort: "losses"` for the opponents you lost to most first) |
 | Two to four players side by side | `battles_compare` (`mode`, or read each player's per-mode-group split, `window.modes`) |
 | Were my cards above or below my opponents' this window? | `players_summary` (`mean_level_gap` on each deck), `battles_decks`, `battles_cards` and `battles_opponents` rows (`mean_level_gap`); the record describes the gap and does not score it, see [Methodology](/docs/methodology#card-levels-described-not-adjusted-for) |
-| How did this player or clan's members play week by week? | `battles_trends` with a `segment` |
+| How did this player or clan's members play week by week? | `battles_performance` with a `segment` (`"mine"`, `{player_tag}` or `{clan_tag}`): `weeks[]` |
 | Card facts, earliest selected-history play, and who in my clan played or holds it | `cards_card` (one call; [Cards](/docs/cards)) |
 | The profile, the collection, how complete the record is | `players_profile`, `players_collection`, `elixir_coverage` |
 | Past war weeks: final ranks, boat fame, one member's points and decks | `war_history` (`seasons`, or `season_id` and `section_index` for one week's whole roster) |
 | What was on in the game: events, challenges, side modes, by day | `game_events` |
-| Follow someone, say who they are to you | `elixir_track_player`, `elixir_track_clan`, `elixir_my_players`, `elixir_nickname` |
-| Resolve a human on an agent's surface to a player (agent connections only) | `elixir_identify`, `elixir_my_identities` |
+| Follow someone, say who they are to you | `elixir_follow_player`, `elixir_follow_clan`, `elixir_my_players`, `elixir_nickname` |
+| Resolve a human on an agent's surface to a player (agent connections only) | `on_behalf_of: "discord:<id>"` once they connect Discord in their Settings, else ask and pass `player_tag`; `elixir_my_identities` lists an agent's older mappings |
+| Who does this player follow, who follows them, and what have they posted? | `players_follows`, `players_highlights` (a person's own connection and their agents) |
+| Who cheered my items, and how much? | `elixir_cheers` (counts by kind, never who; a person's own connection and their agents) |
+| Which clans have saved their rules in Elixir? | `clans_directory` (the public part of each policy; a person's own connection and their agents) |
 | Something is missing or took too many calls | `elixir_send_feedback`; `elixir_my_feedback` says what happened to it |
-| What the service holds and who fetches it | `elixir_data_insights`, `elixir_collectors` |
+| What the service holds and who fetches it | `elixir_collectors`; the service's own numbers are public at `/api/public/stats` and on the [Status and data](/data) page |
 | How is this documented? | `elixir_docs`, `elixir_examples`, `elixir_updates`, `elixir_changelog` |
 
 Read `comparable` before ranking: where a response carries it (`clans_standings`,
@@ -90,7 +93,7 @@ the other direction, `players_names` resolves up to 100 tags without the
 live lane, and `players_profile({ live: true })` fetches one the record has
 never named.
 
-**How have I moved.** `players_timeline` for the series itself (trophies by
+**How have I moved.** `players_series` for the series itself (trophies by
 default; `metrics` picks Path of Legends, a lifetime counter or the clan
 rank; one point per game day with `day`, `kind` and the stamps that wrote
 it), then `battles_performance({ group_by: "week" })` for the win rate and
@@ -108,10 +111,10 @@ trophies and the ranked standing, so the two sides of it are not one series.
   for); when that clan is not recorded, or there is none, the call is
   refused with the fixing call in the hint, never answered for another
   clan. Nothing is looked up first.
-- **Segment tools name a subject.** `battles_trends`, `cards_card` and `badges_*` require `"mine"` (your clan), `{player_tag}` or `{clan_tag}`. A clan read describes its current members. There is no record segment.
+- **Segment tools name a subject.** `cards_card` and `badges_*` require, and `battles_performance` takes, `"mine"` (your clan), `{player_tag}` or `{clan_tag}`. A clan read describes its current members. There is no record segment.
 - **Windows are `from`/`to`**, ISO instants or `YYYY-MM-DD` resolved in the
   account's timezone; a date-only `to` covers that whole day. The daily
-  series (`players_timeline`, `clans_timeline`, `clans_members_timeline`)
+  series (`players_series`, `clans_series`, `clans_members_series`)
   run on game days and floor an instant to its day, saying so. `days` and
   `weeks` are sugar; `season` (`current`, `previous`, `2026-08` or `135`)
   bounds one season on every windowed tool, `elixir_timeline` included, and
@@ -149,7 +152,7 @@ Two tools read Clan, each for one kind of connection. A person's own
 connection uses `clans_my_view` for that person's own view (the policy
 summary, their standing line, the Actions waiting for them), for a player
 they have verified; see [Your own view](/docs/clan-your-own-view#your-own-view).
-An assigned agent with an explicit private-context grant uses `clans_context`
-for its clan’s declared war intent and policy revision. It accepts no clan tag;
-game reads and clan assignment alone do not grant this private access. See
-[Agent context](/docs/clan-agent-context#agent-context).
+An agent reads no private Clan state: it reads the clan directory with
+`clans_directory`, the public part of every saved policy, as its owner
+does on Home ([Clan directory](/docs/clan-directory); see also
+[Agent context](/docs/clan-agent-context#agent-context)).

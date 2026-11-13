@@ -105,7 +105,7 @@ const KEY = {
     "Leadership: Player Name 000 (leader)",
     "clans_roster ONCE",
     "on_behalf_of",
-    "elixir_identify",
+    "pass player_tag",
     "You already know 5000",
     "START: war_current",
     "display_name",
@@ -136,7 +136,7 @@ test("a heavy identity is counted, a light one named", async () => {
   const heavy = await brief("person", heavyPerson);
   assert.match(
     heavy,
-    /You also track 49 more players \(5 alts, 15 friends, 29 you watch\) and 9 more clans: elixir_my_players lists them/,
+    /You also follow 49 more players \(5 alts, 15 friends, 29 you watch\) and 9 more clans: elixir_my_players lists them/,
   );
   assert.ok(!heavy.includes(players(5, "A")[1].player_tag));
   const agent = await brief("agent", heavyAgent);
@@ -156,7 +156,7 @@ test("a heavy identity is counted, a light one named", async () => {
     primaryClan: { clan_tag: "#J2RGCRVG", name: "POAP KINGS", recorded: true },
   });
   assert.match(light, /Also you, under another tag: Jolly Stoat #U8RYG9Y2U/);
-  assert.match(light, /You also track Ship It! #GCYQR9VY/);
+  assert.match(light, /You also follow Ship It! #GCYQR9VY/);
   assert.ok(light.length <= INSTRUCTIONS_BUDGET);
 });
 
@@ -193,7 +193,7 @@ test("a person's tools/list carries no agent-only argument; an agent's and the c
   assert.ok(
     registry
       .declarations("agent")
-      .find((d) => d.name === "battles_trends")
+      .find((d) => d.name === "battles_performance")
       .inputSchema.properties.segment.anyOf.some(
         (b) => b.properties?.on_behalf_of,
       ),
@@ -212,7 +212,7 @@ test("a person who still sends them is never refused: they are dropped before va
   // mistake lists what a person's schema holds.
   await assert.rejects(
     registry.invoke(
-      "battles_trends",
+      "battles_performance",
       {},
       { segment: { on_behalf_of: "discord:1", bogus: 1 } },
     ),

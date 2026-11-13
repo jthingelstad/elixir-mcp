@@ -1,7 +1,7 @@
 ---
 slug: agents
 title: "Building an agent"
-description: "A clan agent is a principal you own with its own key, URL, timeline read pointer and feedback inbox. Creating one, what initialize tells it, resolving which human is asking with on_behalf_of and elixir_identify, consuming the timeline with its own named reader, and the key lifecycle."
+description: "A clan agent is a principal you own with its own key, URL, timeline read pointer and feedback inbox. Creating one, what initialize tells it, resolving which human is asking with on_behalf_of and the Discord link, reading the social layer, consuming the timeline with its own named reader, and the key lifecycle."
 section: connect
 order: 3
 navTitle: "Your agents"
@@ -74,7 +74,7 @@ agent's key answers 401 too.
 
 ```json
 { "serverInfo": { "name": "elixir-mcp", "version": "{{ tools.contractVersion }}+tools.…" },
-  "instructions": "YOU ACT FOR Tidewater #QRP2GV (47 members). Leadership: Birch Lantern (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it… Nothing defaults to 'you': … pass on_behalf_of… call elixir_identify once. You already know 9 of them. …",
+  "instructions": "YOU ACT FOR Tidewater #QRP2GV (47 members). Leadership: Birch Lantern (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it… Nothing defaults to 'you': … pass on_behalf_of (discord:<user id> resolves itself once they link Discord …); not linked, ask who they are and pass player_tag. You already know 9 of them. …",
   "_meta": { "elixir.poapkings.com/principal": {
       "kind": "agent",
       "subject": { "type": "clan", "tag": "#QRP2GV", "name": "Tidewater", "members": 47 } } } }
@@ -92,7 +92,7 @@ and `clans_my_view`, which need a self. Omit `clan_tag` anywhere and it means th
 
 An agent can follow clans and players as well: a rival clan it is
 asked to watch, the other clans of a family, a player worth following.
-`elixir_track_clan` and `elixir_track_player` work for it the way they work
+`elixir_follow_clan` and `elixir_follow_player` work for it the way they work
 for you, with an agent's meaning. Its players are `watching`, never
 `primary`, `alt` or `friend`, because those say "me". Every clan and player
 it follows spends **your** recording slots: they are one pool across you and
@@ -114,8 +114,9 @@ events.
 An agent never reads a person's view in Clan: `clans_my_view`
 answers only a person's own connection
 ([Your own view](/docs/clan-your-own-view#your-own-view)). An agent's one read
-of Clan is its assigned clan's war intent, with an approved grant
-([Agent context](/docs/clan-agent-context#agent-context)).
+of Clan is the clan directory, the same public part of each policy
+Home's Clans page shows, through `clans_directory`
+([Clan directory](/docs/clan-directory)).
 
 ## Knowing which human is asking
 
@@ -129,7 +130,7 @@ to fall back on):
 ```json
 { "error": { "code": "no_subject",
     "message": "No player is mapped to discord:1234 yet.",
-    "hint": "Ask who they are in the clan, then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly." } }
+    "hint": "Ask who they are in the clan (pass display_name beside on_behalf_of and the refusal names the matching members), then pass player_tag. To be known without asking, they connect Discord under Connections & agents in their Elixir Settings (/settings/connections/discord); on_behalf_of: \"discord:<their user id>\" then resolves to them." } }
 ```
 
 A person can connect their Discord account to Elixir under
@@ -139,27 +140,24 @@ that is a current member of a clan on this connection. Every response
 to a call that carries `on_behalf_of` says who it named and how:
 `meta.asker` is `{ external_id, player_tag, via, verified }`, where
 `via` is `discord_link` (the person connected it), `agent_mapping`
-(your own `elixir_identify`) or null (nobody yet), and `verified` says
-whether the player's claim is proven in game. A `discord:` id nobody has
-connected or mapped is `no_subject`, whose hint adds that the person can
-connect Discord in their Settings.
+(an older mapping your agent made) or null (nobody yet),
+and `verified` says whether the player's claim is proven in game. A
+`discord:` id nobody has connected is `no_subject`, whose hint adds that
+the person can connect Discord in their Settings.
 
-For anyone else, map the id once with `elixir_identify` (scope `account:write`). The tag must be a
-**current member of a clan on this connection**; anything else is
-`not_entitled`, because a wrong mapping answers confidently about the wrong
-person for good. The mapping is per agent account, invisible to every other
-account, and confers nothing: recorded data is readable by every account
-anyway. `elixir_my_identities` lists what the agent has learned. Both tools
-are agent-only: a personal connection has one self, its primary player, and
-ignores `on_behalf_of`.
+An agent writes no map of its own. Anyone who has not connected Discord,
+and anyone on another surface, is asked who they are, and the agent
+passes `player_tag` on that call. Older mappings an agent made still
+resolve, and `elixir_my_identities` lists them. It is agent-only: a personal
+connection has one self, its primary player, and ignores `on_behalf_of`.
 
 ### A complete exchange
 
 Pass the asker's display name beside the id (`display_name`) and
 the refusal does the roster comparison for you: `error.candidates[]` lists
 the clan members whose **whole** name matches, case and spacing ignored,
-and never a partial match. One candidate is one `elixir_identify` call;
-zero or several is a question to the person.
+and never a partial match. One candidate is that `player_tag` on the
+next call; zero or several is a question to the person.
 
 ```text
 member Birch Lantern (discord:1234): how am I doing?
@@ -167,14 +165,9 @@ member Birch Lantern (discord:1234): how am I doing?
 → players_summary({ on_behalf_of: "discord:1234", display_name: "Birch Lantern" })
 ← { error: { code: "no_subject", class: "subject", message: "No player is mapped to discord:1234 yet.",
     candidates: [ { player_tag: "#PYLQ88", name: "Birch Lantern", clan_tag: "#QRP2GV", role: "coLeader" } ],
-    hint: "candidates[] holds the one clan member whose whole name is 'Birch Lantern': elixir_identify({ external_id: \"discord:1234\", player_tag: \"#PYLQ88\" }) once, say so in a line, and answer." } }
+    hint: "candidates[] holds the one clan member whose whole name is 'Birch Lantern': pass player_tag \"#PYLQ88\", say so in a line, and answer. To be known without asking, they connect Discord …" } }
 
-→ elixir_identify({ external_id: "discord:1234", player_tag: "#PYLQ88" })
-← { external_id: "discord:1234", player_tag: "#PYLQ88", name: "Birch Lantern", clan_tag: "#QRP2GV",
-    notes: ["Pass this external_id as on_behalf_of from now on; omit player_tag and it means them.", …],
-    docs: "agents#knowing-which-human-is-asking" }
-
-→ players_summary({ on_behalf_of: "discord:1234" })
+→ players_summary({ on_behalf_of: "discord:1234", player_tag: "#PYLQ88" })
 ← { player_tag: "#PYLQ88", name: "Birch Lantern", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, win_rate: 0.585, … }, top_deck: …,
     applied: { window: { from: "…", to: null, source: "fixed", days: 30 } }, notes: […], docs: "recording#completeness",
     meta: { freshness_seconds: 27, source_polls: { player_battlelog: { observed_at: "…", freshness_seconds: 27 } }, … } }
@@ -182,11 +175,30 @@ member Birch Lantern (discord:1234): how am I doing?
 
 Without `display_name`, or when no whole name matches (`candidates: []`),
 ask which player in the clan they are, resolve the answer with
-`players_search`, and identify once. Every later call from `discord:1234`
-resolves with no lookup. Always read
+`players_search`, and pass that `player_tag`. Once they connect Discord in
+their Settings, every call from `discord:1234` resolves with no lookup.
+Always read
 `meta.freshness_seconds` before you quote a number; asking about a player
 also keeps their battle log polled hourly for the next day, so a second
 question is fresher than the first.
+
+## Reading the social layer
+
+An agent reads the social layer as its owner and never writes it: no
+follow it was not asked for, no cheer, no highlight. Four read-only tools,
+for a person's own connection and the agents of an approved person
+(an integration is refused with `not_entitled`):
+
+| Tool | What it reads |
+|---|---|
+| `players_follows` | who a player follows and who follows them, with their badges, as the player page shows it ([Follows, followers and badges](/docs/player-page#follows-followers-and-badges)) |
+| `players_highlights` | the highlights a player posted, newest first ([Highlights](/docs/timeline#highlights)) |
+| `elixir_cheers` | the cheers other people gave the items about your owner's primary player, as counts by kind, never who ([Cheers](/docs/timeline#cheers)) |
+| `clans_directory` | the clan directory, each clan's tile and the public part of its policy ([Clan directory](/docs/clan-directory)) |
+
+`players_follows` and `players_highlights` mean your owner's primary
+player when `player_tag` is omitted. Following is the one write, and only
+when the person asks: `elixir_follow_player` and `elixir_follow_clan`.
 
 ## Consuming the timeline
 
@@ -268,7 +280,7 @@ costs the same one call. The feed never announces the time: read
 from it if your routine cares about war at all.
 
 A routine that runs once a day reads its clan's timeline, drills with
-`clans_standings` or `battles_trends` when something moved, and, if it
+`clans_standings` or `battles_performance` with a `segment` when something moved, and, if it
 schedules itself before a close from `game_clock`, checks
 `war_current.decks_today.untouched` then, unless `race_finished_at` is set.
 Facts in, judgment in your code.
@@ -310,6 +322,6 @@ expected to file friction on their own judgment.
 When a person on your surface says something worth passing on (a thumbs
 down on an answer, a "that's wrong"), file it with `on_behalf_of` set to
 their surface id, as on any call. The report is kept as theirs, relayed by
-the agent, and names their player when the agent has mapped them with
-`elixir_identify`; the answer still comes to the agent, which decides how
+the agent, and names their player when `on_behalf_of` resolves to one
+(their Discord link); the answer still comes to the agent, which decides how
 to tell them.

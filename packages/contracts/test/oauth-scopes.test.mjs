@@ -35,16 +35,12 @@ test("OAuth scope catalog is closed and read is the safe default", () => {
 
 test("every tool has exactly the capability its behavior requires", () => {
   const expectedWrites = {
-    elixir_track_clan: OAUTH_SCOPE.RECORDINGS_WRITE,
-    elixir_track_player: OAUTH_SCOPE.RECORDINGS_WRITE,
+    elixir_follow_clan: OAUTH_SCOPE.RECORDINGS_WRITE,
+    elixir_follow_player: OAUTH_SCOPE.RECORDINGS_WRITE,
     // The feed advances the caller's own bookmark and nothing else; the
     // scheduled read-only routine is what it exists for (feedback #16).
     elixir_timeline: OAUTH_SCOPE.READ,
     elixir_send_feedback: OAUTH_SCOPE.FEEDBACK_WRITE,
-    // Remembering which human is which is account state, like a nickname: it
-    // writes nothing about the game and grants nothing, since recorded reads
-    // are universal either way.
-    elixir_identify: OAUTH_SCOPE.ACCOUNT_WRITE,
     elixir_nickname: OAUTH_SCOPE.ACCOUNT_WRITE,
   };
 

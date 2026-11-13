@@ -1,39 +1,27 @@
 ---
 slug: clan-agent-context
 title: "Agent context"
-description: "The policy and standing facts Clan shares with a member's connected agent, and what stays private."
+description: "The agent policy-context tool retired in 12.0.0; a clan's public policy is in the clan directory."
 section: protocol
 order: 6
 navTitle: "Agent context"
 icon: bot
-lede: "What Clan tells a connected agent about the clan's policy and a member's place in it."
+lede: "Where an agent reads a clan's Clan Wars intent now that the agent context tool has retired."
 ---
 
 # Agent context
 
 ## Agent context
 
-An agent may read its assigned clan’s explicit Clan War intent only after a
-separate, approved private-context grant. `clans_context` takes no clan argument
-and returns `context` with exactly eight fields: `schema_version`, `clan_tag`,
-`status`, `reason`, `war_intent`, `policy_version`, `policy_saved_at`, and `read_at`.
-The MCP envelope also carries the usual applied, notes, docs and meta fields.
-There are no scoring values, leader notes, player names, member decisions or other
-private policy details. Standard game scopes alone grant no policy access.
+The agent context tool, `clans_context`, retired in contract 12.0.0. It gave
+an agent with a separately approved grant eight fields of its clan's policy,
+the Clan Wars intent among them. That intent, and the rest of the policy's
+public part, is now in the [clan directory](/docs/clan-directory#agents-and-apps),
+which a person's own agent reads with `clans_directory`: no grant, no clan
+argument, every clan that saved a policy.
 
-Each grant binds one agent, its actual owner, its assigned clan and one existing
-service credential. Every read checks the current owner and assignment, an
-approved person owner’s verified primary/alt claim, and open recorded membership
-in that clan. Friends, watched players and a remembered former clan cannot qualify.
-Ownership or assignment changes durably revoke the grant; explicit revocation,
-credential revocation, suspended accounts, lost verification or closed membership
-refuse the read. Permission does not transfer to another clan or owner.
-
-A successful read with no saved policy returns unknown/no_policy with null
-revision/save time; missing or unsupported intent returns
-unknown/war_intent_unspecified. Unknown never means not participating. Saved
-revision numbers are local to one clan; saved_at is provenance, while read_at
-times this current read. An old saved policy can still be current. Refresh at
-startup, before planning and immediately before firing an affected routine.
-Defer that routine on unknown, a failed refresh, unsupported schema or wrong clan;
-never substitute a cached decision.
+Read `policy.war_intent` on the clan's entry: `participating`,
+`not_participating` or `unknown`. Unknown never means not participating,
+and `saved_at` is when the clan's leaders last saved the policy. Refresh
+before planning a routine that depends on it, and defer that routine on
+unknown or a failed read; never substitute a cached decision.

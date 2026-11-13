@@ -28,7 +28,7 @@ directory.
 Out of scope for testing is not out of scope for fixing. JSON API
 operations serve eight tools' results: `clans_participation`, `clans_roster`,
 `war_history`, the `live_fetch` clan read, `players_names`, `players_profile`,
-`battles_query` and `elixir_track_player` (`POST /api/v1/me/players`) (the `x-tool`
+`battles_query` and `elixir_follow_player` (`POST /api/v1/me/players`) (the `x-tool`
 operations; wiring in `services/web-api/src/integration-api.mjs`,
 contract in `packages/contracts/integration-api.openapi.json`). A fix to
 one of those tools is checked against its operation before it ships. The

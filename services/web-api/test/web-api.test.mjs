@@ -2990,11 +2990,7 @@ test("the explorer takes the hourly bucket but no daily quota, and is read-only"
 
   // Read-only tools serve; writes other than the console's nickname editor
   // are refused.
-  for (const w of [
-    "elixir_track_player",
-    "elixir_track_clan",
-    "elixir_identify",
-  ])
+  for (const w of ["elixir_follow_player", "elixir_follow_clan"])
     assert.equal((await call(w)).statusCode, 400, w);
   assert.equal(
     (await call("elixir_nickname", { player_tag: "#PYGRJC" })).statusCode,

@@ -146,6 +146,26 @@
             "player_tag": "#VJQV8G8RL"
           },
           "calls": 1
+        },
+        {
+          "args": {
+            "segment": {
+              "player_tag": "#VJG0J29QP"
+            },
+            "weeks": 5
+          },
+          "calls": 1,
+          "seed": true
+        },
+        {
+          "args": {
+            "segment": {
+              "player_tag": "#VJQV8G8RL"
+            },
+            "weeks": 5
+          },
+          "calls": 1,
+          "seed": true
         }
       ]
     },
@@ -188,31 +208,6 @@
           },
           "calls": 0,
           "seed": "battle_time_local rides only with a timezone; towers_before/after on the rows that carry them"
-        }
-      ]
-    },
-    "battles_trends": {
-      "calls": 2,
-      "p50_ms": 79,
-      "p95_ms": 88,
-      "sets": [
-        {
-          "args": {
-            "segment": {
-              "player_tag": "#VJG0J29QP"
-            },
-            "weeks": 5
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "segment": {
-              "player_tag": "#VJQV8G8RL"
-            },
-            "weeks": 5
-          },
-          "calls": 1
         }
       ]
     },
@@ -261,7 +256,7 @@
         }
       ]
     },
-    "clans_members_timeline": {
+    "clans_members_series": {
       "calls": 1,
       "p50_ms": 156,
       "p95_ms": 156,
@@ -401,17 +396,6 @@
           "args": {
             "player_tag": "#G2CUUJQ8V"
           },
-          "calls": 1
-        }
-      ]
-    },
-    "elixir_data_insights": {
-      "calls": 1,
-      "p50_ms": 2348,
-      "p95_ms": 2348,
-      "sets": [
-        {
-          "args": {},
           "calls": 1
         }
       ]
@@ -605,7 +589,22 @@
         },
         {
           "args": {
-            "query": "Kun\u26a1"
+            "query": "Kun⚡"
+          },
+          "calls": 1
+        }
+      ]
+    },
+    "players_series": {
+      "calls": 1,
+      "p50_ms": 135,
+      "p95_ms": 135,
+      "sets": [
+        {
+          "args": {
+            "days": 7,
+            "metrics": ["battle_count"],
+            "player_tag": "#G2CUUJQ8V"
           },
           "calls": 1
         }
@@ -631,21 +630,6 @@
         {
           "args": {
             "player_tag": "#92P2LPPL"
-          },
-          "calls": 1
-        }
-      ]
-    },
-    "players_timeline": {
-      "calls": 1,
-      "p50_ms": 135,
-      "p95_ms": 135,
-      "sets": [
-        {
-          "args": {
-            "days": 7,
-            "metrics": ["battle_count"],
-            "player_tag": "#G2CUUJQ8V"
           },
           "calls": 1
         }

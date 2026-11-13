@@ -60,10 +60,9 @@ const taken = new Set(existing.map((c) => c.id));
 
 const WRITE_TOOLS = new Set([
   "live_fetch",
-  "elixir_track_player",
-  "elixir_track_clan",
+  "elixir_follow_player",
+  "elixir_follow_clan",
   "elixir_nickname",
-  "elixir_identify",
   "elixir_send_feedback",
 ]);
 const TAKES_PLAYER_TAG = new Set(

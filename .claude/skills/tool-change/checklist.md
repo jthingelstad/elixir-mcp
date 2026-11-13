@@ -230,7 +230,7 @@ only when it does not apply, and say why in the commit message.
 `services/mcp/test/tool-conventions.test.mjs`:
 - Every windowed tool takes `from` and `to` and a timezone. Only
   `clans_participation` (ISO-week unit) is exempt, and
-  `players_timeline` is exempt from the timezone alone.
+  `players_series` is exempt from the timezone alone.
 - Every `limit` has a numeric `minimum` and `maximum`.
 - No retired size argument (`summary`, `include_curve`, `compact`,
   `brief`) appears, and `verbosity` is always `["full", "compact"]`

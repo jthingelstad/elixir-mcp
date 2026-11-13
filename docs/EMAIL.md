@@ -164,7 +164,7 @@ transactional mail. The message is an object in the outbox, so SQS's
 
 Facts come from the readers the tools use, never re-derived
 (`elixir_timeline`, `battles_performance`, `battles_opponents`,
-`battles_decks`, `clans_timeline`, `clans_members_timeline`,
+`battles_decks`, `clans_series`, `clans_members_series`,
 `clans_roster`, `war_history`, `elixir_collectors`, `elixir_coverage`).
 Every report carries the coverage caveat; the numbers are honest only
 with the note.

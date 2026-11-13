@@ -97,13 +97,13 @@ A clan agent talks to a whole Discord, so "me" is a different person every time.
 MCP has no way to say *which* human is asking, so the agent tells us: it passes
 whatever id its own surface has, `discord:1234`, `signal:…`, anything, and the
 first time we don't recognise someone, it asks who they are in the clan and
-remembers.
+passes their player. A person who connects Discord in their Elixir Settings
+is known by `discord:<their id>` from then on, with no asking.
 
-That mapping only picks a default player. It grants nothing: recorded data is
-readable by every account either way. It is the agent's alone: on your own
+That link only picks a default player. It grants nothing: recorded data is
+readable by every account either way. It works only on an agent: on your own
 connection "me" is always your primary player, `on_behalf_of` is ignored,
-and the tools that build the map (`elixir_identify`, `elixir_my_identities`)
-are not listed.
+and `elixir_my_identities`, which lists the map, is not listed.
 
 ## An integration
 

@@ -1,54 +1,69 @@
 import { responseMeta } from "@elixir-mcp/contracts";
 import {
-  readAgentPolicyContext,
+  readClanDirectory,
   readOwnClanView,
 } from "@elixir-mcp/auth/clan-context";
 import { ToolFailure, docsRef, entitledClan, notes } from "./shared.mjs";
 
-/** The two seams into private Clan state (`@elixir-mcp/auth/clan-context`),
- *  and the only tools that may read through it
- *  (services/web-api/test/clan-boundary.test.mjs). */
+/** The two reads through the private-Clan-state seam
+ *  (`@elixir-mcp/auth/clan-context`), and the only tools that may read
+ *  through it (services/web-api/test/clan-boundary.test.mjs): a person's own
+ *  view of their clan, and the clan directory (the policy's public part). */
 
 const LEADERS = new Set(["leader", "coLeader"]);
+
+/** The social reads are a person's and their agents' (DECISIONS "Agents
+ *  read the social layer and never write it"): an integration, or an agent
+ *  or person not approved, reads none of them. */
+const SOCIAL_REFUSAL = [
+  "not_entitled",
+  "The clan directory is read by a person's own connection and their agents.",
+  "An integration has no person to read for. Connect as yourself at /mcp, or through an agent of yours whose owner is approved.",
+];
 
 /** What a refused caller is told: the view is a person's own, for a player
  *  they have verified (Jamie, 2026-10-12, #535). */
 const OWN_VIEW_REFUSALS = {
   not_a_person: [
     "Your own Clan view is read only by a person's own connection.",
-    "An agent or an integration never reads a person's Clan view: connect as yourself at /mcp. A clan agent reads its clan's war intent with clans_context.",
+    "An agent or an integration never reads a person's Clan view: connect as yourself at /mcp. A clan's war intent is public in the clan directory (clans_directory).",
   ],
   not_verified_member: [
     "None of your verified players is a current member of this clan.",
-    "Your own Clan view needs a player of yours you have verified in Elixir (Settings, Players & tracking, Verify) who is in this clan now; an unverified claim reads nothing here. elixir_my_players lists your players and which are verified.",
+    "Your own Clan view needs a player of yours you have verified in Elixir (Settings, Players & following, Verify) who is in this clan now; an unverified claim reads nothing here. elixir_my_players lists your players and which are verified.",
   ],
 };
 
 export const clanContextTools = {
-  clans_context: {
+  clans_directory: {
     description:
-      "Your assigned clan’s explicit war participation intent and policy revision, for an agent with a separately approved private-context grant. No clan argument: the current assignment, actual owner and verified current membership are checked on every read. Unknown intent is never a participation decision. Refresh at startup, before planning and immediately before firing an affected routine; defer that routine on unknown or error. No scoring, notes, member decisions or other private policy fields.",
+      "The clan directory, as Home's Clans page lists it: every recorded clan whose leaders saved a policy in Elixir Clan, each with its recorded name, type, size, trophies to join and description, and the policy's public part (Clan Wars intent, posture, playing together, what counts, the removal day). yours marks a clan one of your verified players is in (an agent reads as its owner). Ordered by name, never ranked. For a person's own connection and their agents.",
     inputSchema: {
       type: "object",
       properties: {},
       additionalProperties: false,
     },
     async handler(ctx) {
-      const context = await readAgentPolicyContext(ctx.db, ctx.account);
-      if (!context)
-        throw new ToolFailure(
-          "not_entitled",
-          "Private clan context is not authorized.",
-          "A separately approved grant and current verified owner membership are required; game read scopes and tracked clans do not grant policy access.",
-        );
+      if (ctx.account?.kind === "integration")
+        throw new ToolFailure(...SOCIAL_REFUSAL);
+      const read = await readClanDirectory(ctx.db, ctx.account);
+      if (read.refused) throw new ToolFailure(...SOCIAL_REFUSAL);
+      const { directory } = read;
       return {
-        context,
+        clans: directory.clans,
+        truncated: directory.truncated,
         applied: {},
         notes: notes(
-          "policy_saved_at is save provenance; read_at times this current read. Unknown or failed context must defer the affected routine.",
+          "A clan is listed once its leaders save a policy in Elixir Clan; policy is the saved policy's public part, never who saved it, a note, a minimum or a member's standing.",
+          ctx.account?.kind === "agent"
+            ? "yours is your owner's: a clan one of their verified players is in now."
+            : null,
+          directory.truncated
+            ? `The directory holds more clans than one read returns; these are the first ${directory.clans.length} by name.`
+            : null,
         ),
-        docs: docsRef("clan-agent-context", "agent-context"),
-        meta: responseMeta({ as_of: context.read_at }),
+        docs: docsRef("clan-directory", "agents-and-apps"),
+        meta: responseMeta({ as_of: directory.read_at }),
       };
     },
   },

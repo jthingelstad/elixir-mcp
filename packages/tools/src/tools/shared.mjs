@@ -128,7 +128,7 @@ export const ON_BEHALF_OF_SCHEMA = {
   type: "string",
   maxLength: 200,
   description:
-    "Agent connections: the end user's id on your surface (e.g. discord:1234), mapped once with elixir_identify. Ignored on a personal connection.",
+    "Agent connections: the end user's id on your surface, discord:<user id>; it resolves once they link Discord in their Elixir Settings. Ignored on a personal connection.",
 };
 
 /** Beside on_behalf_of (3.18.0): the asker's name as the surface shows
@@ -139,7 +139,7 @@ export const DISPLAY_NAME_SCHEMA = {
   type: "string",
   maxLength: 60,
   description:
-    "Agent connections, beside on_behalf_of: the asker's display name on your surface. When on_behalf_of is not mapped yet, no_subject carries candidates[]: the clan members whose whole name matches it (case and spacing ignored), so one elixir_identify call follows; nothing is guessed from a partial match.",
+    "Agent connections, beside on_behalf_of: the asker's display name on your surface. When on_behalf_of is not mapped yet, no_subject carries candidates[]: the clan members whose whole name matches it (case and spacing ignored), so you can pass that player_tag; nothing is guessed from a partial match.",
 };
 
 export const TAG_RULE_HINT =
@@ -422,7 +422,8 @@ function resolveWindow(ctx, args = {}, { defaultDays = null } = {}) {
   };
 }
 
-/** The `season` argument (3.10.0 on the meta tools and battles_trends;
+/** The `season` argument (3.10.0 on the meta tools and the weekly segment
+ *  read, battles_trends until 12.0.0;
  *  3.17.0 on the player battle tools and clans_standings). */
 export const SEASON_ARG_SCHEMA = {
   type: ["string", "integer"],
@@ -439,7 +440,7 @@ const CROSSING_TAIL = {
   balance:
     "balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.",
   series:
-    "the seasonal Trophy Road (a new players_timeline.progress_key each season) and the Path of Legends standing reset on the roll, so their points on either side of it are not one series; Trophy Road trophies (and players_timeline.season_trophies, their legacy mirror) carry straight across.",
+    "the seasonal Trophy Road (a new players_series.progress_key each season) and the Path of Legends standing reset on the roll, so their points on either side of it are not one series; Trophy Road trophies (and players_series.season_trophies, their legacy mirror) carry straight across.",
   ladder:
     "the ladder's seasonal trophies reset on the roll, so trophy-bound numbers before and after are not one series.",
   plain:
@@ -1048,9 +1049,9 @@ export function clanSegmentNote(seg) {
   if (echo?.kind === "clan")
     return [
       seg?.coverage
-        ? `The clan segment counts the members Elixir records: ${seg.coverage.recorded} of this clan's ${seg.coverage.members} current members. The others are not recorded now, so none of their battles count, not even ones captured while they were (elixir_coverage says who was polled when; elixir_track_clan with scope comprehensive records every member).`
+        ? `The clan segment counts the members Elixir records: ${seg.coverage.recorded} of this clan's ${seg.coverage.members} current members. The others are not recorded now, so none of their battles count, not even ones captured while they were (elixir_coverage says who was polled when; elixir_follow_clan with scope comprehensive records every member).`
         : null,
-      "The clan segment applies the clan's membership as of this call: over a past window it counts today's members' battles, including ones played before they joined, and leaves out members who have left since (clans_members_timeline lists the joins and departures).",
+      "The clan segment applies the clan's membership as of this call: over a past window it counts today's members' battles, including ones played before they joined, and leaves out members who have left since (clans_members_series lists the joins and departures).",
     ]
       .filter(Boolean)
       .join(" ");
