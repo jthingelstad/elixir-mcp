@@ -2473,22 +2473,28 @@ export function createManageService({
      * not use.
      */
     async standing(clanTag, who, token) {
-      const policy = await requirePolicy(clanTag, { size: false });
-      const how = describePolicy(policy.values);
-      const ranked = ranksElder(policy.values);
-      if (!ranked && !policy.values.removal_enabled) {
+      const read = await requirePolicy(clanTag, { size: false });
+      const ranksFirst = ranksElder(read.values);
+      if (!ranksFirst && !read.values.removal_enabled) {
         // Nothing to evaluate: the noted size alone says whether it runs.
         await requirePolicy(clanTag);
         return {
-          policy_version: policy.version,
-          how,
+          policy_version: read.version,
+          how: describePolicy(read.values),
           ranks_elder: false,
           weights: null,
           rows: null,
           you: null,
         };
       }
-      const { verdicts } = await evaluateClan({ clanTag, token, who });
+      // The record is read outside the clan's lock, so a leader may save
+      // a policy meanwhile: everything below is shaped by the policy the
+      // verdicts were evaluated under, never the one read above.
+      const evaluated = await evaluateClan({ clanTag, token, who });
+      const { verdicts } = evaluated;
+      const policy = evaluated.policy ?? read;
+      const how = describePolicy(policy.values);
+      const ranked = ranksElder(policy.values);
       const showRows =
         ranked && (policy.values.members_see_standing || isLeader(who));
       // Each member's war decks in the races the policy's window read,
