@@ -82,10 +82,20 @@ afterEach(async () => {
 // it gets the same minute as the setup.
 // The handler's pool closes first: `drop database ... with (force)`
 // otherwise terminates its idle connections under it, and each one
-// logged a db_pool_error at the end of every run.
+// logged a db_pool_error at the end of every run. A test that timed out
+// can leave a request holding a client, and pool.end() waits for every
+// client to come back, so the close gets 5 s; the forced drop then ends
+// whatever is still open.
 afterAll(async () => {
   vi.unstubAllGlobals();
-  await handler?.close();
+  let timer;
+  await Promise.race([
+    handler?.close(),
+    new Promise((resolve) => {
+      timer = setTimeout(resolve, 5000);
+    }),
+  ]);
+  clearTimeout(timer);
   await scratch?.drop();
 }, 60000);
 async function clickReady(name) {
