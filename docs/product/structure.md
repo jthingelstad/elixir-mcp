@@ -22,9 +22,9 @@ review"; and 2026-11-06: "Approved: build Elixir redesign steps 4-8 in
 elixir-mcp". All eight steps shipped by 2026-11-06.*
 
 *Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing
-social layer of Clash Royale. Where this brief disagrees with the vision or
-[DECISIONS](../DECISIONS.md), they win; the brief is rewritten after the
-Design session (#752).*
+social layer of Clash Royale. This page is a dated record, not a brief, so
+it is not rewritten: where it disagrees with the vision,
+[DECISIONS](../DECISIONS.md) or the rewritten briefs, they win.*
 
 This is the redesign's record: how Elixir is arranged, the twelve
 decisions, and every answer from the detail design. The design boards were

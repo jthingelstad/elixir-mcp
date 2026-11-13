@@ -1,22 +1,19 @@
 # Mail
 
-*Rewritten 2026-11-12 for the mail set as it stands after that day's
-rulings and #823, from the brief Jamie ratified on 2026-10-12. Every
-paragraph names its source: Jamie's words and rulings are tagged
-`[Jamie, date]`, readings of them `[engineering, date]`. Nothing here is
-new; where it and [DECISIONS](../DECISIONS.md) disagree, DECISIONS wins.*
-
-*Under [`VISION.md`](../../VISION.md) of 2026-11-11, Elixir is the missing
-social layer of Clash Royale. Where this brief disagrees with the vision or
-DECISIONS, they win.*
+*Rewritten 2026-11-13 to the social layer, from the brief Jamie ratified
+on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
+[DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Jamie's words
+and rulings are tagged `[Jamie, date]`, readings of them
+`[engineering, date]`. It waits on Jamie's read; where it and DECISIONS
+disagree, DECISIONS wins.*
 
 ## What it is for
 
 "Keeping you up to date is part of the service, even when you do not
-open the website." Mail is how what the people you follow did reaches you
-when you are not looking. [Jamie, about] The moment that sells Elixir
-today is the weekly email: you see that your nephew levelled up and hit
-milestones, and you text him "wow, great job this week". [Jamie,
+open the website." Mail is how what the people you follow did reaches
+you when you are not looking. [Jamie, about] The moment that sells
+Elixir today is the weekly email: you see that your nephew levelled up
+and hit milestones, and you text him "wow, great job this week". [Jamie,
 2026-11-11, `VISION.md`]
 
 ## The mail set
@@ -35,17 +32,11 @@ something for that role to do.
   merging clan and those you follow is really needed since it will be
   common for someone to follow all members of their clan. However,
   leader action emails should be separate and on-demand when there is an
-  action for them to perform." [Jamie, 2026-11-12] It replaced the
-  friends mail, keeping its switch, so an opt-out stays an opt-out:
-  "Replaces friends mail. Weekly by default, daily or off by choice,
-  never an empty week." [Jamie, 2026-11-12]
-- **What stopped.** The Monday clan report stopped by that ruling;
-  Arena week and the milestone mail stopped as the reading of "one
-  digest email". [Jamie, 2026-11-12; engineering, 2026-11-12: Arena
-  week and milestones] The Ultimate Champions and Card of the Week mails
-  were retired earlier, and the request-access and approval mails and
-  the tier-upgrade notice went with the approval era. [Jamie,
-  2026-10-02, 2026-11-12]
+  action for them to perform." [Jamie, 2026-11-12] It is the clan's week
+  and the people you follow in one mail: "Weekly by default, daily or off
+  by choice, never an empty week." [Jamie, 2026-11-12] It keeps the old
+  friends mail's switch, so an opt-out stays an opt-out. [engineering,
+  2026-11-12]
 - **Operational mail is apart.** "Keep the collector email… it is very
   specific and like the leader action email is for a unique channel. For
   example, we may send a notice to a collector if their collector isn't
@@ -63,9 +54,10 @@ something for that role to do.
   2026-11-12]
 - **Your clans' own news:** a finished race, who joined, who departed
   and role changes, never the clan's battle count or who went quiet,
-  which are members' play. A departure says departed, even after a
-  leader says removed, because the mail reaches people outside the clan.
-  [engineering, 2026-11-05, 2026-11-12; Jamie, 2026-11-11, A2]
+  which are members' play. A clan with no news has no part. A departure
+  says departed, even after a leader says removed, because the mail
+  reaches people outside the clan. [engineering, 2026-11-05, 2026-11-12;
+  Jamie, 2026-11-05, 2026-11-11, A2]
 - **You:** your own and your alts' firsts and progress. [engineering,
   2026-11-12]
 - **Left to Clan and Stats:** the war-deck trend, per-member performance,
@@ -87,9 +79,10 @@ something for that role to do.
    On demand/event based emails are a completely different thing and
    flow whenever they flow." The Actions mail is capped at one a day.
    [Jamie, 2026-10-12, 2026-11-12]
-4. **No one gets more mail from a merge.** A person who had turned the
-   clan report off gets no digest for clan news alone; the digest off
-   stays off. [engineering, 2026-11-12]
+4. **No one gets more mail from a merge.** A clan's news alone sends a
+   weekly digest, and a daily one only on a day a race finished; a
+   person who had turned clan mail off gets no digest for clan news
+   alone; the digest off stays off. [engineering, 2026-11-12]
 5. **Clan's mail goes through Elixir.** Clan writes the words; Elixir
    holds the address, the switch and the unsubscribe, and sends only to
    the account that verified a player who can act. [Jamie, 2026-09-25]
@@ -98,9 +91,7 @@ something for that role to do.
    its number stays in Discord. [Jamie, 2026-11-05]
 7. **A name opens the player page; a clan's door is chosen per reader.**
    Every player's name opens the player page, for every reader; a clan
-   the reader is in opens Clan's War, any other the clan directory.
-   [Jamie, 2026-11-05; engineering, 2026-11-12: `playerDoor` and
-   `clanDoor` in `packages/mail/src/render.mjs`]
+   the reader is in opens Clan's War. [Jamie, 2026-11-05, 2026-11-12]
 8. **Every send is on the record.** Each mail has an id in its footer
    that opens its record; the mail is kept as sent; feedback about it is
    one click; the relay logs the id, never the recipient. [Jamie,
@@ -111,10 +102,12 @@ something for that role to do.
 
 ## What it never does
 
-Mail an agent; count a reader; resend after a stop; print a nickname in
-public; hide a gap in the record; hotlink Supercell's art; carry a
-cheer, a follower or anything else the bell tells. [Jamie, 2026-11-12:
-"nothing new goes to mail or Discord"]
+Send a second scheduled mail to members; mail an agent; count a reader;
+resend after a stop; print a nickname in public; tell a removal in the
+digest; hide a
+gap in the record; hotlink Supercell's art; carry a cheer, a follower or
+anything else the bell tells. [Jamie, 2026-11-12: "nothing new goes to
+mail or Discord"]
 
 ## Elixir's own voice is deterministic
 
@@ -125,11 +118,10 @@ own key in Clan, or in a person's own agent. [Jamie, 2026-10-12]
 ## Open
 
 - A followed clan whose notifications the reader turned off is outside
-  the digest, so its news no longer reaches that reader by mail, though
-  the clan report went to every follower: fewer mails, but a change in
-  who receives, flagged for Jamie in #823.
-- Whether the bell should carry your own firsts, which today reach you
-  on the timeline and in the digest (#823).
-- "A shared post can post to the clan's Discord through Clan's webhook"
-  (Jamie, 2026-11-12) is not built: which webhook, and whether leaders
-  opt in, are open (`docs/notes/2026-11-12-the-digest.md`).
+  the digest, so its news no longer reaches that reader by mail: fewer
+  mails, but a change in who receives a clan's news, flagged for Jamie
+  in #823.
+- Whether the bell should carry your own firsts, which reach you on the
+  timeline and in the digest (#823).
+- The digest's cadence default (weekly, daily, or the person's choice) is
+  open in VISION; weekly by default stands until Jamie revisits it.
