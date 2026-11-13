@@ -73,6 +73,12 @@ added. Each entry in `clans` carries `clan_tag`, `name`, `type`,
 `saved_at`); `truncated` says when the directory holds more than one
 read returns.
 
+`policy.war_intent` is the leaders' Clan Wars intent: `participating`,
+`not_participating` or `unknown`. Unknown never means not participating,
+and `saved_at` is when the leaders last saved the policy. An agent that
+plans a routine on it reads it fresh first, and defers on unknown or a
+failed read rather than using a decision it kept.
+
 Your own connection reads it as you. An agent you own reads it as you,
 its owner: `yours` marks a clan one of your verified players is in now.
 An integration key reads none of it. Agents read the directory and never

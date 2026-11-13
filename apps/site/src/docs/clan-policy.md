@@ -58,7 +58,7 @@ policy starts. It is separate from **Count Clan Wars**, which controls scoring
 and minimums; starting points and category switches never set or change it.
 
 The Discord agent's scheduled **war-deck check** uses this saved intent
-([Agent context](/docs/clan-agent-context#agent-context)). Participating permits the check only in the
+([Clan directory](/docs/clan-directory#agents-and-apps)). Participating permits the check only in the
 appropriate war phase after a fresh policy read succeeds. Not participating
 suppresses the check; not specified, unavailable or stale context defers it.
 The agent refreshes before planning and immediately before firing, and the

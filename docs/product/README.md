@@ -60,4 +60,3 @@ signs a person in with Elixir is the Sign in with Elixir brief.
 | [Sign in with Elixir](integrations.md) | how Drop signs a person in with Elixir; there are no integrations |
 | [Collectors and operators](collectors.md) | bring your collector, the fleet, the one budget |
 | [Structure](structure.md) | the record of the 2026-11-05 redesign, its twelve decisions and answers; not a brief |
-| [Console](console.md) | folded on 2026-11-12; a pointer to where its subjects live |
