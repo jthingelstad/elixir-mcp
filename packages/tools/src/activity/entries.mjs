@@ -1865,6 +1865,34 @@ export function clanMemberBattlesQuery({
   };
 }
 
+/** The window's most active members, counted per member first and only
+ *  then named, each name by primary key (2026-11-13, #649): with the
+ *  player join before the count the planner hashed the whole player
+ *  table for a clan's few members. Rows and order are the joined
+ *  statement's (every participant tag is a player row). */
+export function clanMostQuery({ tag, fromMs, toMs, basis = "observed" }) {
+  const occurred = basis === "occurred";
+  return {
+    text: `select m.player_tag, p.name, m.battles
+             from (select bp.player_tag, count(distinct bp.battle_id)::int as battles
+                     from battle_participant bp
+                     join battle b on b.battle_id = bp.battle_id
+                    where bp.clan_tag = $1
+                      and ${
+                        occurred
+                          ? `bp.battle_time >= ${ts(fromMs + 1)} and bp.battle_time < ${ts(toMs + 1)}`
+                          : `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
+                      and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`
+                      }
+                      and b.battle_time >= b.created_at - interval '1 day'
+                    group by bp.player_tag) m
+             join lateral (select p.name from player p
+                            where p.player_tag = m.player_tag offset 0) p on true
+            order by m.battles desc, p.name nulls last limit $2`,
+    values: [tag, STANDOUT_CAP],
+  };
+}
+
 export async function buildClanEntry(
   db,
   {
@@ -2468,23 +2496,7 @@ export async function buildClanEntry(
   const { rows: most } = !learnedRecent
     ? { rows: [] }
     : await timed(perf, "clan.most", () =>
-        db.query(
-          `select bp.player_tag, p.name, count(distinct bp.battle_id)::int as battles
-       from battle_participant bp
-       join battle b on b.battle_id = bp.battle_id
-       join player p on p.player_tag = bp.player_tag
-      where bp.clan_tag = $1
-        and ${
-          occurred
-            ? `bp.battle_time >= ${ts(fromMs + 1)} and bp.battle_time < ${ts(toMs + 1)}`
-            : `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
-        and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`
-        }
-        and b.battle_time >= b.created_at - interval '1 day'
-      group by bp.player_tag, p.name
-      order by battles desc, p.name nulls last limit $2`,
-          [tag, STANDOUT_CAP],
-        ),
+        db.query(clanMostQuery({ tag, fromMs, toMs, basis })),
       );
   // Member moments from the ledger: named, bounded.
   const { rows: momentRows } = await timed(perf, "clan.moments", () =>

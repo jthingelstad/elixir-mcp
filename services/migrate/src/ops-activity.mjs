@@ -78,7 +78,8 @@ export async function activityPreview(databaseUrl, spec = {}) {
 /**
  * {explain_timeline: spec} (3.18.0): one
  * elixir_timeline read, replayed exactly and timed per query, with the
- * plans of the two statements an empty window's cost lives in.
+ * plans of the clan statements an empty window's cost lives in (and
+ * clan.most's, 2026-11-13).
  *
  *   spec.request_id       a captured call's id (a prefix is enough): the
  *                         audit row supplies the account and the bounded
@@ -90,8 +91,12 @@ export async function activityPreview(databaseUrl, spec = {}) {
  * timeline's counts (never its items) and the EXPLAIN ANALYZE plans.
  */
 export async function explainTimeline(databaseUrl, spec = {}) {
-  const { clanLearnedQuery, clanMemberBattlesQuery, prefetchStatements } =
-    await import("@elixir-mcp/tools/activity/entries");
+  const {
+    clanLearnedQuery,
+    clanMemberBattlesQuery,
+    clanMostQuery,
+    prefetchStatements,
+  } = await import("@elixir-mcp/tools/activity/entries");
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
@@ -199,6 +204,7 @@ export async function explainTimeline(databaseUrl, spec = {}) {
           "member_battles",
           clanMemberBattlesQuery({ tag: s.tag, fromMs, toMs }),
         ],
+        ["most", clanMostQuery({ tag: s.tag, fromMs, toMs })],
       ]) {
         const started = Date.now();
         const { rows } = await db.query(
