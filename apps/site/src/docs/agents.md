@@ -169,7 +169,7 @@ member Birch Lantern (discord:1234): how am I doing?
 
 → players_summary({ on_behalf_of: "discord:1234", player_tag: "#PYLQ88" })
 ← { player_tag: "#PYLQ88", name: "Birch Lantern", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, win_rate: 0.585, … }, top_deck: …,
-    applied: { window: { from: "…", to: null, source: "fixed", days: 30 } }, notes: […], docs: "recording#completeness",
+    applied: { window: { from: "…", to: null, source: "fixed", days: 30 } }, notes: […], docs: "freshness-and-gaps#completeness",
     meta: { freshness_seconds: 27, source_polls: { player_battlelog: { observed_at: "…", freshness_seconds: 27 } }, … } }
 ```
 

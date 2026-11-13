@@ -11,32 +11,35 @@ beforeEach(() => {
   window.sessionStorage.clear();
 });
 
-test("a console path is kept across sign-in and consumed once", () => {
+test("a Settings path is kept across sign-in and consumed once", () => {
   rememberAfterSignIn(
-    "/console/account/activity/e/5c1c5dbf-0000-4000-8000-000000000001?report=1",
+    "/settings/emails/5c1c5dbf-0000-4000-8000-000000000001?report=1",
   );
   expect(takeAfterSignIn()).toBe(
-    "/console/account/activity/e/5c1c5dbf-0000-4000-8000-000000000001?report=1",
+    "/settings/emails/5c1c5dbf-0000-4000-8000-000000000001?report=1",
   );
   expect(takeAfterSignIn()).toBeNull();
 });
 
 test("sign-in and external destinations are not remembered", () => {
-  rememberAfterSignIn("/console/signin?login_token=abc");
+  rememberAfterSignIn("/signin?login_token=abc");
   expect(takeAfterSignIn()).toBeNull();
   rememberAfterSignIn("https://evil.example/account/x");
   expect(takeAfterSignIn()).toBeNull();
   rememberAfterSignIn(
-    "/console/admin/emails/5c1c5dbf-0000-4000-8000-000000000001",
+    "/settings/admin/emails/5c1c5dbf-0000-4000-8000-000000000001",
   );
   expect(takeAfterSignIn()).toBe(
-    "/console/admin/emails/5c1c5dbf-0000-4000-8000-000000000001",
+    "/settings/admin/emails/5c1c5dbf-0000-4000-8000-000000000001",
   );
+  // The folded Console's addresses no longer forward, so none is kept.
+  rememberAfterSignIn("/console/account/overview");
+  expect(takeAfterSignIn()).toBeNull();
 });
 
-test("Explore, public battle and shared post context survive sign-in", () => {
+test("a player page, public battle and shared post context survive sign-in", () => {
   for (const path of [
-    "/console/explore/player/2ABC?from=mail",
+    "/home/player/2ABC?from=mail",
     "/battle/ccd04012bda8",
     "/h/abcdefghijk2345",
   ]) {
@@ -47,7 +50,7 @@ test("Explore, public battle and shared post context survive sign-in", () => {
 });
 
 test("a link tab can consume the shared copy without consuming the requesting tab's copy", () => {
-  const path = "/console/explore/player/2ABC";
+  const path = "/home/player/2ABC";
   rememberAfterSignIn(path);
   window.localStorage.removeItem("elixir.after_sign_in");
   expect(takeAfterSignIn()).toBe(path);
@@ -55,9 +58,9 @@ test("a link tab can consume the shared copy without consuming the requesting ta
 });
 
 test("a tab's own return leaves another tab's newer shared destination intact", () => {
-  rememberAfterSignIn("/console/explore/player/2ABC");
+  rememberAfterSignIn("/home/player/2ABC");
   window.localStorage.setItem("elixir.after_sign_in", "/clan/2PQRJ8LV/actions");
-  expect(takeAfterSignIn()).toBe("/console/explore/player/2ABC");
+  expect(takeAfterSignIn()).toBe("/home/player/2ABC");
   expect(window.localStorage.getItem("elixir.after_sign_in")).toBe(
     "/clan/2PQRJ8LV/actions",
   );
@@ -81,9 +84,13 @@ test("return paths refuse normalized traversal, credentials, external and look-a
   }
 });
 
-test("a Ladder path is kept across sign-in too; a look-alike is not", () => {
+test("a Stats path is kept across sign-in too; a look-alike is not", () => {
+  rememberAfterSignIn("/home/you/stats?player=0RPG0RYRP&mode=ranked");
+  expect(takeAfterSignIn()).toBe(
+    "/home/you/stats?player=0RPG0RYRP&mode=ranked",
+  );
   rememberAfterSignIn("/ladder?player=0RPG0RYRP&mode=ranked");
-  expect(takeAfterSignIn()).toBe("/ladder?player=0RPG0RYRP&mode=ranked");
+  expect(takeAfterSignIn()).toBeNull();
   rememberAfterSignIn("/ladders/x");
   expect(takeAfterSignIn()).toBeNull();
   rememberAfterSignIn("https://evil.example/ladder");

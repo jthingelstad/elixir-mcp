@@ -1,36 +1,17 @@
 /**
  * The site rails (Docs, Examples, Data, Updates, Family).
  *
- * Three jobs, all progressive: below the one breakpoint the rail's head
+ * Two jobs, both progressive: below the one breakpoint the rail's head
  * row is a disclosure that opens the list in place — above the content,
  * never over it — and on Docs the search box narrows the rail to the
  * pages whose name or description matches, opening the groups that
  * hold them, with "/" focusing it.
  * Without JavaScript the full list is in the page and every link works.
- * And a link to an anchor that moved when a long page split goes on to its
- * new page: a static host never sees the fragment, so this has to be here
- * (the map is _data/docForwards.js).
  *
  * External file, never inline: the CSP forbids inline script and a test
  * pins that.
  */
 (function () {
-  const forwarding = document.querySelector("[data-doc-forwards]");
-  if (forwarding) {
-    let moved = {};
-    try {
-      moved = JSON.parse(forwarding.dataset.docForwards);
-    } catch {
-      moved = {};
-    }
-    const follow = () => {
-      const to = moved[window.location.hash.slice(1)];
-      if (to) window.location.replace(to);
-    };
-    follow();
-    window.addEventListener("hashchange", follow);
-  }
-
   for (const rail of document.querySelectorAll("[data-siterail]")) {
     const head = rail.querySelector("[data-rail-toggle]");
     if (head) {

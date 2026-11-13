@@ -39,7 +39,7 @@ const Reading = ({ children }) => (
 );
 
 /** /settings/...: one route, and the address says which page to draw
- *  (lib/settings.js holds the table, lib/moved.js every old address). */
+ *  (lib/settings.js holds the table). */
 export function SettingsPage() {
   const navigate = useNav();
   const { me, refresh } = useMe();

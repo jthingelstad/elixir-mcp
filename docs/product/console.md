@@ -22,5 +22,5 @@ Where its subjects live now:
   [Collectors and operators](collectors.md).
 - **Admin:** Settings › Admin, for Elixir's staff.
 
-`/console` and every address under it only redirect
-(`apps/web/src/lib/moved.js`).
+`/console` and every address under it redirected until 2026-11-13; now they
+draw the app's missing page (Jamie: "It is fine to break url support").

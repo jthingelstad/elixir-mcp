@@ -52,43 +52,30 @@ test.describe("signed out", () => {
     await accessible(page, "sign-in wall");
   });
 
-  test("every old address lands somewhere, and the ADDRESS BAR follows", async ({
+  test("the folded Console's old addresses are the missing page, where they are", async ({
     page,
   }) => {
+    // Jamie, 2026-11-13: "It is fine to break url support." Nothing
+    // forwards them any more; CloudFront still sends them to the app.
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-    for (const [old, now] of [
-      // The Console folded (2026-11-12): the service page's public half
-      // is the site's /data, its staff half is under Settings > Admin.
-      ["/console/status", /\/data$/],
-      ["/console/status/service", /\/data$/],
-      ["/data/service", /\/data$/],
-      ["/console/admin", /\/settings\/admin\/accounts$/],
-      ["/console/admin/accounts", /\/settings\/admin\/accounts$/],
-      ["/console/account", /\/home$/],
-      ["/console/account/overview", /\/home$/],
-      ["/console/account/timeline", /\/home$/],
-      ["/console/account/activity", /\/home$/],
-      ["/home/timeline", /\/home$/],
-      ["/home/friends", /\/home\/find$/],
-      ["/console/signin", /\/signin$/],
-      ["/console/signin?signup", /\/signin\?signup/],
-      // Explore folded (2026-11-12) into Find, the player page, the
-      // battle page and Clan.
-      ["/console/explore", /\/home\/find$/],
-      ["/console/explore/player", /\/home\/find$/],
-      ["/console/explore/player/%2320JJJ2CCRU", /\/home\/player\/20JJJ2CCRU$/],
-      ["/console/explore/clan/J2RGCRVG", /\/clan\/J2RGCRVG\/feed$/],
-      ["/console/explore/deck/abc123", /\/home\/you\/stats\/decks$/],
-    ] as const) {
+    for (const old of [
+      "/console",
+      "/console/account/overview",
+      "/console/explore/player/%2320JJJ2CCRU",
+      "/console/signin?signup",
+      "/data/service",
+      "/ladder/decks",
+      "/home/timeline",
+    ]) {
       await page.goto(old);
-      await expect(page, old).toHaveURL(now);
+      await expect(
+        page.getByRole("heading", { name: "Nothing at this address" }),
+        old,
+      ).toBeVisible();
+      expect(new URL(page.url()).pathname + new URL(page.url()).search).toBe(
+        old,
+      );
     }
-    // The bare old address is Home (signed out, its sign-in wall).
-    await page.goto("/console");
-    await expect(page).toHaveURL(/\/home$/);
-    await expect(
-      page.getByRole("heading", { name: "Sign in first" }),
-    ).toBeVisible();
   });
 
   test("an address under the app that is nothing says so, with the bar and the disclaimer", async ({
@@ -466,8 +453,7 @@ test.describe("signed in", () => {
         },
       ],
     });
-    await page.goto("/console/account/timeline");
-    await expect(page).toHaveURL(/\/home$/);
+    await page.goto("/home");
     const row = page.locator(".kit-feed__item").filter({
       hasText: "King Thing unlocked Hero Valkyrie.",
     });

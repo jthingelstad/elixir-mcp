@@ -67,22 +67,22 @@ player page (`/home/player/<tag>`), and
 `src/shell/Shell.jsx` is the top bar, bottom tabs and footer every page wears,
 with the bell (`src/shell/Bell.jsx`, its logic `bell-logic.js`, its read
 `services/web-api/src/bell.mjs`).
-`src/lib/moved.js` is the one map of old paths to new ones, read by the root
-route; every path that moves goes there. Home's rules are in
+`src/lib/moved.js`, read by the root route, forwards only the addresses
+Elixir still sends that are not a page themselves (a clan's bare address and
+its Actions list, to the Feed). Old addresses stopped forwarding on
+2026-11-13 (Jamie: "It is fine to break url support"); a page that moves
+changes its producers instead. Home's rules are in
 `docs/product/home.md`; its reads are `services/web-api/src/routes/home.mjs`,
 and the feed's extra fields are `services/web-api/src/feed.mjs`.
 
 ## The Console folded
 
-The Console folded (2026-11-12): no page lives under `/console/`, and
-`src/lib/moved.js` redirects every old address (Explore's to Find, the
-player page, the battle page, Clan and Stats; Admin's to Settings). Find's
+The Console folded (2026-11-12): no page lives under `/console/`, and since
+2026-11-13 its old addresses draw the missing page. Find's
 search and a player page's Record tab still read through `POST
 /api/explore`, the tool bridge. `src/views/` holds the pages,
 `src/views/account/` the Settings and agent pages; the route table is in
-`App.jsx`. `src/lib/settings.js` is Settings' rail and paths, and
-`src/lib/moved.js` redirects every old account address (mail in inboxes names
-them; an entry leaves only when no archived mail can). Settings (`/settings`:
+`App.jsx`. `src/lib/settings.js` is Settings' rail and paths. Settings (`/settings`:
 profile, players, emails, connections and agents, sign-ins, usage, feedback,
 collectors), an agent's own page (`/settings/agents/<public_id>`, five tabs),
 and Admin (`/settings/admin/<page>`, its own route, rail and lazy chunk, with

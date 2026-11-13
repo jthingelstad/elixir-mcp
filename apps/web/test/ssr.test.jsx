@@ -5,10 +5,9 @@ import { renderApp } from "../src/entry-server.jsx";
 test("signed-out deep links and redirect roots render complete documents without window", async () => {
   const me = { ok: true, status: 200, data: { authenticated: false } };
   for (const [url, expected] of [
-    ["/ladder", "Your season, read back"],
     ["/home/you/stats", "Your season, read back"],
-    ["/console/account/profile", "Sign in first"],
-    ["/console", "Sign in first"],
+    ["/settings/profile", "Sign in first"],
+    ["/settings", "Sign in first"],
   ]) {
     const html = await renderApp({ url, me });
     expect(html, url).toContain(expected);
@@ -24,14 +23,8 @@ test("every record page signed out renders the sign-in wall, never the page", as
   const me = { ok: true, status: 200, data: { authenticated: false } };
   const urls = [
     "/home",
-    "/home/timeline",
-    "/home/friends",
     "/settings",
     "/settings/admin/accounts",
-    "/console/explore",
-    "/console/explore/players/%232PQRJ8LV",
-    "/console/explore/clans/%232PQRJ8LV",
-    "/console/explore/player/%232PQRJ8LV",
     "/home/find",
     "/home/player/2PQRJ8LV",
     "/home/player/2PQRJ8LV?tab=record",
@@ -48,8 +41,8 @@ test("every record page signed out renders the sign-in wall, never the page", as
 
 test("sign-in and signup render useful forms on the server", async () => {
   const me = { ok: true, status: 200, data: { authenticated: false } };
-  const login = await renderApp({ url: "/console/signin", me });
-  const signup = await renderApp({ url: "/console/signin?signup", me });
+  const login = await renderApp({ url: "/signin", me });
+  const signup = await renderApp({ url: "/signin?signup", me });
   expect(login).toContain('type="email"');
   expect(login).toContain("Sign in");
   expect(signup).toContain("player");
@@ -59,7 +52,7 @@ test("concurrent server renders never share session query data", async () => {
   const [one, two] = await Promise.all(
     ["FictionalAlpha", "FictionalBeta"].map((name) =>
       renderApp({
-        url: "/console/account/profile",
+        url: "/settings/profile",
         me: {
           ok: true,
           status: 200,
@@ -79,7 +72,7 @@ test("concurrent server renders never share session query data", async () => {
   expect(two).not.toContain("FictionalAlpha");
 });
 
-test("Find, the player page and the Console's old addresses render a signed-in initial document without a browser", async () => {
+test("Find, the player page and Settings render a signed-in initial document without a browser", async () => {
   const me = {
     ok: true,
     status: 200,
@@ -97,11 +90,9 @@ test("Find, the player page and the Console's old addresses render a signed-in i
   for (const url of [
     "/home/find",
     "/home/player/2PQRJ8LV?tab=record",
-    "/console/explore",
-    "/console/explore/player/2PQRJ8LV",
-    "/console/account/activity/requests?tool=players_summary",
-    "/console/account/activity/e/fictional?report=1",
-    "/console/account/feedback?send_id=fictional",
+    "/settings/usage/requests?tool=players_summary",
+    "/settings/emails/fictional?report=1",
+    "/settings/feedback?send_id=fictional",
   ]) {
     const html = await renderApp({ url, me });
     expect(html, url).toContain("not endorsed by Supercell");
@@ -130,7 +121,11 @@ test("the clan map renders on the server without aborting a boundary", async () 
     status: 200,
     data: { ok: true, clans: [clan], selected: clan },
   };
-  const html = await renderApp({ url: "/clan/2PQRJ8LV/map", me, clanMe });
+  const html = await renderApp({
+    url: "/clan/2PQRJ8LV/members/map",
+    me,
+    clanMe,
+  });
   expect(html).toContain("not endorsed by Supercell");
   expect(html).toContain("Reading");
   expect(html).not.toContain("<!--$!-->");

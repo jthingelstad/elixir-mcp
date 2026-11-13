@@ -28,36 +28,21 @@
  * navigation and is installed always.
  */
 import { analyticsLocation as clanLocation } from "@elixir-mcp/clan-web/analytics.js";
-import { CONSOLE, appPath } from "./lib/console.js";
 
 const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
 
-/** The sign-in page, at its address or the old one the redirect still serves
- *  (a magic link in archived mail lands on that one first). */
+/** The sign-in page. */
 const isSignIn = (pathname) =>
-  pathname === "/signin" ||
-  pathname.startsWith("/signin/") ||
-  (appPath(pathname) ?? "").startsWith("/signin");
+  pathname === "/signin" || pathname.startsWith("/signin/");
 
-/**
- * A record of one call or one sent email: /account/activity/c/<request_id>,
- * /account/activity/e/<send_id>, /admin/emails/<send_id> (under /console;
- * matched on the app path). Report hygiene,
- * the same reason Explore ids ride as ?id= rather than as a path: every
- * record as its own page shreds the report into one-hit rows, and a
- * record page is worth one row per KIND ("email records opened"), not
- * one per record. It is not a privacy device - a send id points at a
- * record its holder can already open (docs/ENGINEERING.md, "Product
- * identifiers versus measurement"). The bridge reports these pages as
- * their kind, and a document that loads on one (the mail's footer links
- * straight here) skips the embed's raw-URL hit and reports the same
- * normalized page by beacon instead, so the landing counts once, cleanly.
- */
-const PRIVATE_RECORD = /^\/((account|admin)\/[^/]+\/.|agent\/)/;
-
-/** A Settings address the report names otherwise carries a record's id, which
- *  the embed's raw-URL hit would keep. Every such page, by what the report
- *  says it is, so a new record route needs no second list. */
+/** A Settings address the report names otherwise carries a record's id
+ *  (a sent email, a call, feedback), which the embed's raw-URL hit would
+ *  keep. Every such page, by what the report says it is, so a new record
+ *  route needs no second list. A document that loads on one (the mail's
+ *  footer links straight here) skips the embed and reports the normalized
+ *  page by beacon instead, so the landing counts once, cleanly; one row per
+ *  kind, never per record (docs/ENGINEERING.md, "Product identifiers versus
+ *  measurement"). */
 function settingsRecord(pathname) {
   if (pathname !== "/settings" && !pathname.startsWith("/settings/"))
     return false;
@@ -82,18 +67,13 @@ export function loadTinylytics() {
   // the session never loads another document, so it listens for the same
   // clicks itself and sends each event by the bridge's beacon (#508). The
   // returned function removes that listener (the tests' teardown).
-  const app = appPath(window.location.pathname) ?? "";
   if (isSignIn(window.location.pathname)) return listenForEvents();
   // A roster search is the reader's free text. Report its route through
   // the sanitized bridge, including direct loads, never the raw query.
   const clanSearch =
     window.location.pathname.startsWith("/clan/") &&
     new URLSearchParams(window.location.search).has("find");
-  if (
-    PRIVATE_RECORD.test(app) ||
-    settingsRecord(window.location.pathname) ||
-    clanSearch
-  ) {
+  if (settingsRecord(window.location.pathname) || clanSearch) {
     landing();
     return listenForEvents();
   }
@@ -199,9 +179,9 @@ function settingsLocation(pathname, origin) {
  * switched off (data-spa="false", above). Bridge route changes to the collector as virtual page hits
  * (Elixir Drop's technique, adapted from hash routing to pushState).
  *
- * An Explore record lives at /explore/player/2ABC — the id is a path segment,
+ * A player's page lives at /home/player/2ABC — the id is a path segment,
  * which makes every player his own page and shreds the report into thousands
- * of one-hit rows. The page is /explore/player; WHICH record is an attribute
+ * of one-hit rows. The page is /home/player; WHICH record is an attribute
  * of that view, so it rides as ?id=. Nothing here is a secret — CR tags are
  * public game identifiers — this is about the path space meaning something.
  */
@@ -213,36 +193,10 @@ export function analyticsLocation(
     return clanLocation(pathname, origin);
   if (pathname === "/settings" || pathname.startsWith("/settings/"))
     return settingsLocation(pathname, origin);
-  // Segments are read on the app path and the page is reported under the
-  // prefix. The app only runs under /console; any other path is read as
-  // it stands.
   if (isSignIn(pathname)) return null;
-  const app = appPath(pathname);
-  const base = app === null ? "" : CONSOLE;
-  let segments = (app ?? pathname).split("/").filter(Boolean);
-  // An agent's console is a place, /agent/<public_id>/... (2026-09-23):
-  // which agent is never reported, only the kind of page (email.md: a
-  // page of your own records reports its kind, not which record).
-  if (segments[0] === "agent") segments = ["agent", ...segments.slice(2)];
-  const page = segments.length
-    ? `${base}/${segments.slice(0, 2).join("/")}`
-    : base || "/";
+  const segments = pathname.split("/").filter(Boolean);
+  const page = segments.length ? `/${segments.slice(0, 2).join("/")}` : "/";
   const url = new URL(page, origin);
-  // A record page under the console (a call, an email, feedback, a
-  // tracked subject, an admin's account or email) reports as its kind,
-  // never which one: /account/activity/e, not the send id.
-  if (
-    ["account", "admin", "agent"].includes(segments[0]) &&
-    segments.length > 2
-  ) {
-    const kindOf =
-      segments[1] === "activity" &&
-      ["c", "e"].includes(segments[2]) &&
-      segments[3]
-        ? `${page}/${segments[2]}`
-        : page;
-    return { path: kindOf, url: new URL(kindOf, origin).toString() };
-  }
   const id = segments.slice(2).join("/");
   if (id) url.searchParams.set("id", decodeURIComponent(id));
   return { path: page, url: url.toString() };

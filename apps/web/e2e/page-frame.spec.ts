@@ -35,7 +35,7 @@ for (const width of [1440, 1100, 820]) {
       await page.unrouteAll();
 
       await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-      await page.goto("/ladder");
+      await page.goto("/home/you/stats");
       await expect(page.locator(".ladder-page")).toBeVisible();
       await sameAsBar(page, ".ladder-page");
       await page.unrouteAll();
@@ -144,7 +144,7 @@ test.describe("at computer width", () => {
     page,
   }) => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-    await page.goto("/ladder");
+    await page.goto("/home/you/stats");
     const bar = page.locator(".ladder-scope");
     await expect(bar).toBeVisible();
     const select = page.getByLabel("Season", { exact: true });
@@ -168,7 +168,7 @@ test("@narrow mode chips scroll on one line, and the edge says there are more", 
   page,
 }) => {
   await mockApi(page, signedIn({ "POST /api/explore": explore() }));
-  await page.goto("/ladder");
+  await page.goto("/home/you/stats");
   const row = page.locator(".ladder-scope__modes");
   await expect(row).toBeVisible();
   const ys = await row

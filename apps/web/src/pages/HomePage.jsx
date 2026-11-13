@@ -18,8 +18,7 @@ const followsSomeone = (me) =>
       ),
   );
 
-/** /home: one feed, beside your week and your clan (slice 7, #765). Its three
- *  tabs went; their old addresses land here (lib/moved.js). */
+/** /home: one feed, beside your week and your clan (slice 7, #765). */
 export function HomePage() {
   const { me } = useMe();
   const { hash } = useLocation();

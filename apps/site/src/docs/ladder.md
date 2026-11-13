@@ -22,10 +22,8 @@ it is signed in like Home. A bar at the top says whose
 season, which season and which mode you are reading; four tabs under it are
 the pages: **Season**, **Battles**, **Decks** and **Cards**.
 
-Stats was called **Ladder** until 2026-11-12, at `/ladder`. Every old
-address still works: `/ladder`, `/ladder/battles`, `/ladder/decks` and
-`/ladder/cards` open the same page under `/home/you/stats`, with the player,
-mode and season in the address kept, so a link in an old email still lands.
+Stats was called **Ladder** until 2026-11-12, at `/ladder`. Those old
+addresses stopped working on 2026-11-13; Stats is under `/home/you/stats`.
 
 Stats is a mirror, not a coach. It shows what happened and leaves the
 conclusion to you: no verdict, no pace, no advice, and no number the tools

@@ -284,7 +284,7 @@ for (const size of ["wide", "@narrow"])
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/today");
+    await page.goto("/clan/2PQRJ8LV/feed");
     await expect(page.getByText(/No longer qualifies/)).toBeVisible();
     await page.getByRole("link", { name: /#45/ }).click();
     await expect(page.getByRole("alert")).toContainText(

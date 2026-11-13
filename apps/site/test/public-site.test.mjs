@@ -9,7 +9,6 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
-import { movedTo } from "../../web/src/lib/moved.js";
 
 const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const out = path.join(repoRoot, "dist/site");
@@ -37,10 +36,6 @@ function pages(dir = out) {
 const APP =
   /^\/(home|signin|settings|console|ladder|clan|battle|data\/service|api|mcp|oauth)(\/|$)/;
 
-async function forwards() {
-  return (await import(`${site}/_data/docForwards.js`)).default;
-}
-
 const isHistory = (page) => /^\/updates\/\d{4}-\d{2}-\d{2}-/.test(page);
 const inHistoryMonth = (page) => /^\/updates(\/|$)/.test(page);
 
@@ -48,7 +43,6 @@ test(
   "every internal link in the docs and the site resolves, fragment included",
   { skip },
   async () => {
-    const moved = await forwards();
     const ids = new Map();
     const idsOf = (url) => {
       if (!ids.has(url)) {
@@ -88,26 +82,12 @@ test(
           continue;
         }
         if (!fragment || known.has(fragment)) continue;
-        const key = `${url.split("/").pop()}#${fragment}`;
-        if (!moved[key]) broken.push(`${page}: ${raw}`);
+        broken.push(`${page}: ${raw}`);
       }
     }
     assert.deepEqual(broken, []);
   },
 );
-
-test("every doc forward lands on a real section", { skip }, async () => {
-  const moved = await forwards();
-  for (const [from, to] of Object.entries(moved)) {
-    const [page, fragment] = to.split("#");
-    const html = read(`docs/${page}/index.html`);
-    assert.ok(html.includes(` id="${fragment}"`), `${from} -> ${to} is gone`);
-    assert.ok(
-      existsSync(path.join(out, `docs/${from.split("#")[0]}/index.html`)),
-      `${from}: its old page is gone, so the browser cannot follow it`,
-    );
-  }
-});
 
 test(
   "every static page carries the disclaimer, word for word",
@@ -208,11 +188,6 @@ test("the old /data pages answer 301 to their sections, at the edge", () => {
         assert.ok(read("data/index.html").includes(` id="${section}"`));
     }
   assert.equal(handler({ request: { uri: "/data" } }).uri, "/data/index.html");
-});
-
-test("the charts in the app moved to the site's page", () => {
-  assert.equal(movedTo("/console/data"), "/data");
-  assert.equal(movedTo("/console/data/dashboard"), "/data");
 });
 
 test(

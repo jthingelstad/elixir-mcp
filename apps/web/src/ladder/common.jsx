@@ -78,8 +78,8 @@ export function WarLine({ player, clan, seasonWar, full = false }) {
           {line.at ? ` As of ${when(line.at)}.` : ""}
         </b>{" "}
         {note ? <span className="ladder-war__note">{note}</span> : null}{" "}
-        <Link to={`/clan/${tagPath(clanTag)}/season`}>
-          See the race in Clan › Season
+        <Link to={`/clan/${tagPath(clanTag)}/war`}>
+          See the race in Clan › War
         </Link>
       </span>
     </div>

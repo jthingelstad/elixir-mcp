@@ -16,7 +16,6 @@ import {
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useMe, useNav } from "../App.jsx";
-import { CONSOLE } from "../lib/console.js";
 import {
   BattleView,
   DURATION,
@@ -42,7 +41,7 @@ export function PostPage() {
   const { me } = useMe();
   const zone = me?.authenticated ? (me.timezone ?? null) : browserZone();
   const go = (to) =>
-    to.startsWith("/battle/") || to.startsWith(`${CONSOLE}/`)
+    to.startsWith("/battle/") || to.startsWith("/home/")
       ? navigate(to)
       : window.location.assign(to);
   return (

@@ -42,7 +42,6 @@ import { createClanRoutes } from "@elixir-mcp/clan-web/routes";
 import { api } from "./api.js";
 import { useMyGateways } from "./lib/queries.js";
 import { CardArtSource } from "./components/CardArtSource.jsx";
-import { appPath } from "./lib/console.js";
 import {
   ADMIN,
   SETTINGS,
@@ -57,7 +56,6 @@ import {
   isLadder,
   ladderHere,
   ladderLegal,
-  ladderMoved,
   ladderTitle,
 } from "./ladder/ladder.js";
 import { HOME, SIGN_IN, movedTo } from "./lib/moved.js";
@@ -101,7 +99,7 @@ export const STATIC_LINKS = {
 /**
  * The rails. Settings' is lib/settings.js; Admin has its own, reached from
  * Settings' Admin row (staff only). The Console's sections folded on
- * 2026-11-12: every /console address redirects (lib/moved.js).
+ * 2026-11-12, and their old addresses stopped forwarding on 2026-11-13.
  */
 /** Admin's rail, under Settings since 2026-11-12: bare labels again, because
  *  nothing else is on screen beside them. Collectors and Service tokens are
@@ -418,12 +416,7 @@ const signedInPath = (path) => {
     )
       return false;
     return (
-      /^\/(account|admin|agent|explore|status)(\/|$)/.test(
-        appPath(url.pathname) ?? "",
-      ) ||
       isLadder(url.pathname) ||
-      // An old Ladder address remembered before it moved under You.
-      ladderMoved(url.pathname) !== null ||
       isClan(url.pathname) ||
       isHome(url.pathname) ||
       isSettings(url.pathname) ||
@@ -573,21 +566,24 @@ function Unavailable({ onRetry, busy }) {
 /**
  * The route tree. The root's beforeLoad is the old route guard as a real one:
  * an address the app has never had is "Nothing at this address", and a moved
- * or partial one is REDIRECTED (lib/moved.js, the one map), so the address bar
+ * or partial one is REDIRECTED (lib/moved.js, the few that forward), so the address bar
  * changes with it and the query and fragment ride along.
  *
  * Sections are split by route: Explore and Settings each arrive as their own
  * chunk, and Admin is a chunk of its own inside Settings, so the sign-in wall
  * does not carry Admin with it.
  */
-/** What the distribution routes to this app; the rest is the static site. */
+/** What the distribution routes to this app; the rest is the static site.
+ *  `/console`, `/ladder` and `/data/service` stay listed while CloudFront
+ *  still routes them here: an old address there is this app's missing page,
+ *  never a reload of itself. */
 const APP_PATHS =
   /^\/(home|signin|settings|console|ladder|clan|battle|h|data\/service)(\/|$)/;
 
 const rootRoute = createRootRoute({
   beforeLoad: ({ location }) => {
     const path = location.pathname;
-    const target = movedTo(path, location.hash) ?? path;
+    const target = movedTo(path) ?? path;
     const owned = legalRoute(target);
     if (owned === null) {
       // CloudFront only sends this app's own paths here, so anything else
@@ -908,10 +904,9 @@ function ClanFrame({ children }) {
 }
 
 function Shell() {
-  const { pathname, hash } = useLocation();
+  const { pathname } = useLocation();
   // Nothing at this address brings its own shell (MissingPage).
-  if (legalRoute(movedTo(pathname, hash) ?? pathname) === null)
-    return <Outlet />;
+  if (legalRoute(movedTo(pathname) ?? pathname) === null) return <Outlet />;
   if (isHome(pathname)) return <HomeOutlet />;
   return isClan(pathname) ? <SharedClanOutlet /> : <ConsoleShell />;
 }

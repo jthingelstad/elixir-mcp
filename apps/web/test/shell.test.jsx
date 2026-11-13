@@ -237,17 +237,6 @@ describe("the bar on a page", () => {
   );
 
   test(
-    "an old sign-in address, with its query, lands on the new one",
-    { timeout: 20000 },
-    async () => {
-      window.history.pushState({}, "", "/console/signin?signup");
-      render(<App />);
-      await waitFor(() => expect(window.location.pathname).toBe("/signin"));
-      expect(window.location.search).toContain("signup");
-    },
-  );
-
-  test(
     "an address the app never had says so, in its own shell",
     { timeout: 20000 },
     async () => {
@@ -263,12 +252,12 @@ describe("the bar on a page", () => {
     "a staff page: the wall signed out, staff-only signed in, and never its content",
     { timeout: 20000 },
     async () => {
-      window.history.pushState({}, "", "/console/admin/accounts");
+      window.history.pushState({}, "", "/settings/admin/accounts");
       render(<App runtime={createAppRuntime()} />);
       expect(await screen.findByText("Sign in first")).toBeTruthy();
       cleanup();
       me = { authenticated: true, email: "reader@example.test", signals: {} };
-      window.history.pushState({}, "", "/console/admin/accounts");
+      window.history.pushState({}, "", "/settings/admin/accounts");
       render(<App runtime={createAppRuntime()} />);
       expect(await screen.findByText(/for Elixir’s staff/)).toBeTruthy();
     },

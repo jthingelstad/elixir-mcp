@@ -105,7 +105,7 @@ function actionRow(need, clan, { when }) {
           .filter(Boolean)
           .join(" "),
         cta: "Mark me away",
-        to: "/clan/you/away",
+        to: `/clan/${tagPath(clan.clan_tag)}/members/away`,
       };
     case "welcome":
       return {

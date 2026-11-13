@@ -448,7 +448,7 @@ export const contracts = [
     id: "elixir_docs-section",
     run: async (ctx) => {
       const r = await ctx.read("elixir_docs", {
-        page: "battles",
+        page: "decks-and-war",
         section: "war-weeks-points-and-fame",
       });
       const body = answered(r, "elixir_docs");

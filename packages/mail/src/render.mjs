@@ -104,9 +104,9 @@ const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
 const playerUrl = (tag) => `${SITE}/home/player/${tagPath(tag)}`;
-// A clan's own address: Clan for its members, the clan directory searched
-// for it for anyone else (packages/clan-web App.jsx, 2026-11-12).
-const clanUrl = (tag) => `${SITE}/clan/${tagPath(tag)}`;
+// A clan's Feed: Clan for its members, the clan directory searched for it
+// for anyone else (packages/clan-web App.jsx, 2026-11-12).
+const clanUrl = (tag) => `${SITE}/clan/${tagPath(tag)}/feed`;
 // Ladder, a player's own season (apps/web pages/LadderPage.jsx):
 // `?player=` names one of the reader's own players, so only the Arena
 // week and Milestones, which are about the reader's own, link it.
