@@ -34,14 +34,14 @@ export function Avatar({
   tag?: string | null;
   clan?: boolean;
   small?: boolean;
-  /** A clan's crest at the head of its page (canvas .crest). */
+  /** A clan's crest (canvas .crest) or a player page's head (.phead), 84px. */
   large?: boolean;
 }) {
   const cls = [
     "kit-av",
     clan ? "kit-av--clan" : `kit-av--${avatarHue(tag ?? name)}`,
     small ? "kit-av--s" : null,
-    clan && large ? "kit-av--crest" : null,
+    large ? (clan ? "kit-av--crest" : "kit-av--l") : null,
   ]
     .filter(Boolean)
     .join(" ");

@@ -230,11 +230,12 @@ for (const [label, width] of [
       await expect(
         page.getByRole("heading", { level: 1, name: "Ada" }),
       ).toBeVisible();
+      // Each item is its own card (canvas Player .item, 2026-11-13).
       const legends = page
-        .locator(".kit-row")
+        .locator(".kit-pitem")
         .filter({ hasText: "Reached Path of Legends." });
       const badge = page
-        .locator(".kit-row")
+        .locator(".kit-pitem")
         .filter({ hasText: "Earned a badge." });
       await expect(legends.getByText("1 person")).toBeVisible();
       // An item older than your feed's week takes no cheers and shows none.

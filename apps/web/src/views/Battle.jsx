@@ -68,14 +68,14 @@ function towersOf(hp) {
     ...(hp.princess ?? []).map((v) => ({ kind: "Princess", hp: v ?? null })),
   ];
 }
-const hpLeft = (hp) => {
+export const hpLeft = (hp) => {
   const t = towersOf(hp);
   return t ? t.reduce((a, x) => a + (x.hp ?? 0), 0) : null;
 };
 const princessLost = (hp) => (hp?.princess ?? []).filter((v) => v === 0).length;
 
 /** What the crown pair proves about the length (inferred.duration). */
-const DURATION = {
+export const DURATION = {
   king_tower_fell: {
     sub: "A King Tower fell, inside 5:00",
     chip: "5:00 or less",
@@ -989,28 +989,23 @@ export function Invite({ who = null }) {
     ? `Follow ${who} on Elixir`
     : "Follow these players on Elixir";
   return (
-    <section className="panel panel--cta" aria-label={title}>
-      <div className="panel__body battle-ended">
-        <span className="battle-deck__label">{title}</span>
-        <p>
-          Elixir is where Clash Royale players follow each other’s battles and
-          celebrate them. It’s free. Join or sign in and you come back to this
-          page, ready to follow.
-        </p>
-        <div className="share-actions">
-          <a
-            className="btn btn--primary"
-            href={`/signin?signup&return_to=${back}`}
-          >
-            Join Elixir
-          </a>
-          <a className="btn" href={`/signin?return_to=${back}`}>
-            Sign in
-          </a>
-          <a className="btn btn--quiet" href="/">
-            What is Elixir?
-          </a>
-        </div>
+    <section className="kit-cta" aria-label={title}>
+      <h2 className="kit-cta__title">{title}</h2>
+      <p className="kit-cta__text">
+        Elixir is where Clash Royale players follow each other’s battles and
+        celebrate them. It’s free. Join or sign in and you come back to this
+        page, ready to follow.
+      </p>
+      <div className="share-actions">
+        <a className="btn btn--gold" href={`/signin?signup&return_to=${back}`}>
+          Join Elixir
+        </a>
+        <a className="btn" href={`/signin?return_to=${back}`}>
+          Sign in
+        </a>
+        <a className="btn btn--quiet" href="/">
+          What is Elixir?
+        </a>
       </div>
     </section>
   );

@@ -4629,6 +4629,9 @@ a.card-art:hover .card-art__img {
   gap: 12px;
   align-items: center;
 }
+.kit-vs .kit-deckrow {
+  max-width: none;
+}
 .kit-vs__side .kit-decklabel {
   margin-bottom: 6px;
   overflow-wrap: anywhere;
@@ -4659,6 +4662,10 @@ a.card-art:hover .card-art__img {
   }
   .kit-vs__mid {
     text-align: left;
+  }
+  /* Stacked, each side has the full width: one row of eight. */
+  .kit-vs .kit-deckrow--4 {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 }
 
@@ -8356,6 +8363,11 @@ a.kit-mbattle:hover {
   height: 30px;
   font-size: 11.5px;
 }
+.kit-av--l {
+  width: 84px;
+  height: 84px;
+  font-size: 30px;
+}
 /* A clan's crest (canvas .crest.s): its initials in the display face on a
    gold-edged square. Never the clan's badge art. */
 .kit-av--clan {
@@ -8463,20 +8475,94 @@ a.kit-mbattle:hover {
   border-radius: 10px;
   background: var(--panel);
 }
-/* The player page (#764): its doors under the head, and the verifying
-   account's badges. Flat: words and plain buttons, no cards. */
-.kit-player__doors {
+/* The player page (#764; canvas Player, Round 3 flat, 2026-11-13). Its head
+   is a card with the violet wash (canvas .phead): the avatar, the name in
+   the display face, the line, the verified badge, the three counts that
+   open their tabs, and the actions on the right. */
+.kit-phead {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 16px;
+  gap: 16px 20px;
+  margin-bottom: 16px;
+  padding: 22px;
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      120% 160% at 0% 0%,
+      rgba(139, 92, 246, 0.28),
+      rgba(139, 92, 246, 0) 55%
+    ),
+    var(--panel);
+}
+.kit-phead__main {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 300px;
+  min-width: 0;
+}
+.kit-phead__name {
+  margin: 0;
+  font: 400 30px / 1.1 var(--font-display);
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.kit-phead__line {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: var(--t-body-sm);
+}
+.kit-phead__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+/* "Following" or "You": the state, said where the Follow button would be. */
+.kit-phead__state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--panel-raised);
+  color: var(--ink-dim);
   font-size: 14px;
+  font-weight: 700;
+}
+/* The counts (canvas .statrow): each a button to its tab. */
+.kit-statrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  margin: 8px 0 0;
+}
+.kit-statrow__btn {
+  display: grid;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.kit-statrow__btn:hover .kit-stat__label {
+  color: var(--ink-dim);
+}
+.kit-statrow .kit-stat__value {
+  font-size: 19px;
 }
 .kit-player__badges {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  margin: 6px 0 0;
+  margin: 4px 0 0;
 }
 .kit-badge {
   display: inline-flex;
@@ -8487,6 +8573,259 @@ a.kit-mbattle:hover {
   background: var(--panel);
   color: var(--ink-dim);
   font-size: 12px;
+}
+/* Verified (canvas .vbadge): green on its own wash. */
+.kit-badge--ok {
+  background: var(--ok-fill);
+  color: var(--ok);
+  font-weight: 700;
+}
+/* Under the tabs: one reading column, as the canvas's main column. */
+.kit-player__body {
+  display: grid;
+  gap: 14px;
+  max-width: 820px;
+  min-width: 0;
+}
+.kit-player__body > .kit-day {
+  display: grid;
+  gap: 10px;
+}
+/* A timeline item (canvas Player .item): a medal tile beside the line. */
+.kit-pitem__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.kit-pitem__main {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.kit-pitem__main .kit-feed__text {
+  margin: 0;
+  font-size: 16px;
+}
+.kit-medal--tile {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+.kit-medal--clan {
+  border: 2px solid var(--gold);
+  background: linear-gradient(160deg, var(--accent-deep), var(--panel));
+  color: var(--gold);
+}
+.kit-pitem .kit-feed__foot {
+  margin-top: 4px;
+}
+/* A highlight on the Highlights tab (canvas .hcard). */
+.kit-hcard {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      120% 120% at 100% 0%,
+      rgba(139, 92, 246, 0.35),
+      rgba(139, 92, 246, 0) 60%
+    ),
+    linear-gradient(180deg, #221a3d, #151026);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.kit-hcard__when {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 400 15px / 1 var(--font-display);
+  color: var(--gold);
+}
+.kit-hcard__title {
+  margin: 4px 0 0;
+  font: 400 22px / 1.15 var(--font-display);
+  letter-spacing: 0.01em;
+}
+.kit-hcard__words {
+  margin: 4px 0 6px;
+  padding-left: 10px;
+  border-left: 3px solid var(--gold);
+  color: var(--ink-body);
+  font-size: 15px;
+}
+/* Moments (canvas Player moments): sunken tiles, a medal each. */
+.kit-moments {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-moment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--ground-sunken);
+  overflow-wrap: anywhere;
+}
+.kit-moment .kit-medal {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+.kit-moment__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.kit-moment__title {
+  color: var(--ink);
+  font-size: var(--t-body-sm);
+  font-weight: 700;
+}
+/* Follows: the two lists side by side (canvas .grid2). */
+.kit-pfollows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+/* A shared post, /h/<id> (canvas Highlight): one card, centred, then the
+   way in. */
+.kit-post {
+  display: grid;
+  gap: 16px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.kit-post__card {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px 14px;
+  border-radius: 14px;
+  background: var(--panel);
+  overflow-wrap: anywhere;
+}
+.kit-post__title {
+  margin: 2px 0 0;
+  font: 400 30px / 1.15 var(--font-display);
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.kit-post__words {
+  font-size: 16px;
+}
+.kit-post__length {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+/* Four numbers side by side (canvas .nums): this side's, then the other's. */
+.kit-nums {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 4px 0 0;
+}
+.kit-nums > div {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ground-sunken);
+}
+.kit-nums dt {
+  color: var(--ink-faint);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+.kit-nums dd {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.kit-nums__vs {
+  color: var(--ink-faint);
+  font-size: 13px;
+  font-weight: 600;
+}
+/* The way in for a reader with no account (canvas Highlight's CTA). */
+.kit-cta {
+  display: grid;
+  gap: 8px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: var(--panel);
+}
+.kit-cta__title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+.kit-cta__text {
+  margin: 0 0 6px;
+  color: var(--ink-dim);
+  font-size: 15px;
+}
+.kit-cta .share-actions {
+  flex-wrap: wrap;
+  margin: 0;
+}
+.kit-cta .share-actions .btn {
+  flex: 0 0 auto;
+}
+@media (max-width: 760px) {
+  /* The phone board stacks the head and keeps the moments' medals. */
+  .kit-phead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+  }
+  .kit-phead__name {
+    font-size: 24px;
+  }
+  .kit-phead__main,
+  .kit-phead__actions {
+    flex: none;
+    width: 100%;
+  }
+  .kit-phead__actions {
+    justify-content: flex-start;
+  }
+  .kit-statrow {
+    gap: 4px 16px;
+  }
+  .kit-statrow .kit-stat__value {
+    font-size: 17px;
+  }
+  .kit-moment .kit-medal {
+    display: inline-flex;
+  }
+  .kit-pfollows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .kit-post__card {
+    padding: 14px;
+  }
+  .kit-post__title {
+    font-size: 22px;
+  }
+  .kit-nums {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .kit-fcard__head {
   display: flex;

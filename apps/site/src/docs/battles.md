@@ -163,7 +163,9 @@ Only the account that posted it can change, share or delete it.
 **Share** gives the highlight its own link, `/h/<id>`. The id is random and
 names only the post, never you or whoever opens it. Anyone with the link can
 open it without an account: the player's game name, your words, and the
-battle as its own page shows it, both decks, the score and how it ended. It
+battle from that player's side: both decks with the score between them, the
+elixir numbers, the towers' hitpoints and how it ended, with a link to the
+battle's own page for the rest. It
 never shows a nickname, an email or anything of your account. The link
 unfurls in a chat with your words, and adding `.png` to it gives the battle's
 picture with the player's name, your words and the link. The same post is

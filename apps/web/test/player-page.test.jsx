@@ -238,12 +238,19 @@ test(
     await screen.findByRole("heading", { level: 1, name: "Copper Fern" });
     expect(screen.getByText("Verified player")).toBeTruthy();
     expect(screen.getByText("Verified in Discord")).toBeTruthy();
-    expect(screen.getByText(/Following 1 · Followers 3/)).toBeTruthy();
+    // The counts are buttons to their tabs (canvas .statrow).
+    expect(screen.getByRole("button", { name: "Following 1" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Highlights \d/ })).toBeTruthy();
     expect(screen.getByText("Copper Fern won five in a row")).toBeTruthy();
     // Explore folded into the page (2026-11-12): no link out to it.
     expect(screen.queryByRole("link", { name: "Full record" })).toBeNull();
     expect(document.querySelector('a[href^="/console"]')).toBeNull();
-    fireEvent.click(screen.getByRole("tab", { name: /Follows/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Followers 3" }));
+    expect(
+      screen
+        .getByRole("tab", { name: /Follows/ })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
     const follower = await screen.findByRole("link", {
       name: /Birch Lantern/,
     });
