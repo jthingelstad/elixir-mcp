@@ -192,10 +192,10 @@ test("a friend cannot act in Clan; an unverified own claim stays a member", asyn
   );
 });
 
-test("GET evaluations and mutations serialize across O/0 clan aliases", async () => {
+test("mutations serialize across O/0 clan aliases", async () => {
   const key = `clan-state:${CLAN}`;
   const path = `/api/clan/clans/${CLAN.slice(1).replaceAll("0", "O")}/policy`;
-  for (const method of ["GET", "POST"]) {
+  for (const method of ["POST"]) {
     await scratch.db.query("select pg_advisory_lock(hashtext($1))", [key]);
     const pending = request(method, path, {
       headers: { "x-elixir-client": "web" },
@@ -228,6 +228,54 @@ test("GET evaluations and mutations serialize across O/0 clan aliases", async ()
     }
     const response = await pending;
     assert.equal(response.statusCode, 200, response.body);
+  }
+});
+
+test("evaluating views read without the clan's lock: Actions, Manage, Policy, Standing, Awards", async () => {
+  // These views take the lock only around their ledger writes
+  // (`exclusive`); this scratch clan has no recording, so each answers
+  // from its reads, and none may queue behind a held lock (an O alias
+  // names the same clan).
+  const key = `clan-state:${CLAN}`;
+  const clan = CLAN.slice(1).replaceAll("0", "O");
+  await scratch.db.query("select pg_advisory_lock(hashtext($1))", [key]);
+  try {
+    for (const [method, page] of [
+      ["GET", "policy"],
+      ["GET", "actions"],
+      ["GET", "actions/1"],
+      ["GET", "manage"],
+      ["GET", "history"],
+      ["GET", "standing"],
+      ["GET", "awards"],
+      ["GET", "awards/manage"],
+      ["GET", "trophies"],
+      ["POST", "policy/preview"],
+    ]) {
+      let timer;
+      try {
+        const response = await Promise.race([
+          request(method, `/api/clan/clans/${clan}/${page}`, {
+            headers: { "x-elixir-client": "web" },
+            ...(method === "POST" ? { body: { values: {} } } : {}),
+          }),
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error(`${page} waited on the clan's lock`)),
+              4000,
+            );
+          }),
+        ]);
+        assert.ok(
+          response.statusCode < 500 || response.statusCode === 502,
+          page,
+        );
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+  } finally {
+    await scratch.db.query("select pg_advisory_unlock(hashtext($1))", [key]);
   }
 });
 

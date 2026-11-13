@@ -105,6 +105,74 @@ const answer = async (fn) => {
   }
 };
 
+/** The clan's lock: one key per clan, so O/0 aliases name the same lock.
+ *  The morning run (services/jobs) and the Discord wake
+ *  (services/timeline-sync) take the same key. */
+export const clanLockKey = (tag) => `clan-state:${normalizeTag(tag) ?? tag}`;
+
+/**
+ * `fn` run holding the clan's session advisory lock on this request's
+ * connection: the services' read-modify-writes of the clan's ledger. A
+ * request that already holds the lock (a write route) takes it again;
+ * session advisory locks stack on one connection and each unlock
+ * releases one hold.
+ */
+export function clanExclusive(db) {
+  return async (clanTag, fn) => {
+    const key = clanLockKey(clanTag);
+    await db.query("select pg_advisory_lock(hashtext($1))", [key]);
+    try {
+      return await fn();
+    } finally {
+      await db.query("select pg_advisory_unlock(hashtext($1))", [key]);
+    }
+  };
+}
+
+const CLAN_PATH = /^\/api\/clan\/clans\/([0-9A-Za-z]{3,12})(\/.*)?$/;
+// Views that calculate without reconciling actions or grants. Their only
+// shared metadata write is an atomic, monotonic observation.
+const PURE_VIEWS =
+  /^\/(?:week|season|me|home|needs|feed|race|run|members\/[0-9A-Za-z]{3,12}\/activity)$/;
+// Views whose writes (evaluating, reconciling Actions, granting awards,
+// numbering) run inside the services' `exclusive`, and the policy
+// preview, which writes only the size observation. Their record reads,
+// the slow part, hold no lock (2026-11-13).
+const NARROWED = new Map([
+  [
+    "GET",
+    /^\/(?:actions|actions\/[0-9]{1,7}|manage|history|policy|standing|awards|awards\/manage|trophies)$/,
+  ],
+  ["POST", /^\/policy\/preview$/],
+]);
+
+/**
+ * How one Clan request holds the clan's lock: `request` names a lock held
+ * for the whole request (every other write, and the reads that write
+ * outside `exclusive`); `share` says whether the clan's Discord is
+ * brought up to date after it, under the clan's lock.
+ */
+export function clanLockPlan(method, path, accountId) {
+  const m = CLAN_PATH.exec(path);
+  if (!m)
+    return {
+      clan: null,
+      request: method !== "GET" ? `clan-state:${accountId}` : null,
+      share: false,
+    };
+  const clan = normalizeTag(m[1]);
+  const rest = m[2] ?? "";
+  if (method === "GET" && PURE_VIEWS.test(rest))
+    return { clan, request: null, share: false };
+  if (NARROWED.get(method)?.test(rest))
+    return { clan, request: null, share: true };
+  return {
+    clan,
+    request: clan ? clanLockKey(clan) : `clan-state:${accountId}`,
+    share: true,
+  };
+}
+
 /** Time logical state operations without exposing keys, SQL or stored words. */
 export function createTracedClanStore(db) {
   const raw = createPostgresStore(db);
@@ -248,9 +316,11 @@ export function createClanRequest({
       login: async () => redirect(appUrl),
       logout: signout,
     });
+    const exclusive = clanExclusive(db);
     const manage = createManageService({
       ledger,
       mcp,
+      exclusive,
       appUrl,
       activityFor: (tag, tags) => clanActivityEvidence(db, tag, tags),
       weekBattlesFor: (tag, windows) => clanWeekBattles(db, tag, windows),
@@ -274,6 +344,7 @@ export function createClanRequest({
     });
     const awards = createAwardsService({
       ledger,
+      exclusive,
       membershipFor: (tag, participation) =>
         warMembershipEvidence(db, tag, participation),
       participationFor: (token, tag) => fetchParticipation(mcp, token, tag),
@@ -468,40 +539,24 @@ export function createClanRequest({
       appUrl,
       elixirUrl: origin,
     });
-    // Serialize multi-item changes in one clan/request with a session lock.
-    // The fact writer owns its transaction; an outer transaction would
+    // Writes hold the clan's session lock for the whole request; the
+    // views in NARROWED take it only around their read-modify-writes
+    // (`exclusive`), so a slow record read never holds it. The fact
+    // writer owns its transaction; an outer transaction would
     // accidentally commit the rest of the request inside that writer.
     const method = event.method ?? "GET";
-    const path = event.path ?? "";
-    const clan = /^\/api\/clan\/clans\/([0-9A-Za-z]{3,12})(?:\/|$)/.exec(
-      path,
-    )?.[1];
-    // Manage/actions GETs can evaluate and reconcile cards. They must
-    // serialize with decisions too, and O/0 aliases name the same lock.
-    // These routes calculate views without reconciling actions or grants.
-    // Their only shared metadata write is an atomic, monotonic observation.
-    const pureView =
-      method === "GET" &&
-      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|season|me|home|needs|feed|race|run|members\/[0-9A-Za-z]{3,12}\/activity)$/.test(
-        path,
-      );
-    const lock =
-      clan && !pureView
-        ? `clan-state:${normalizeTag(clan) ?? account.accountId}`
-        : method !== "GET"
-          ? `clan-state:${account.accountId}`
-          : null;
+    const plan = clanLockPlan(method, event.path ?? "", account.accountId);
+    const lock = plan.request;
     const lockStarted = Date.now();
     if (lock) await db.query("select pg_advisory_lock(hashtext($1))", [lock]);
     const lockMs = lock ? Date.now() - lockStarted : null;
     try {
       const response = await handler(event, { lockMs, requestId });
-      // Anything that can raise or decide an Action holds the clan's
-      // lock; still inside it, the clan's Discord is brought up to date.
-      // Best effort: the morning run sweeps again.
-      const clanTag = clan ? normalizeTag(clan) : null;
-      if (discord && clanTag && !pureView)
-        await discord.share(clanTag).catch(() => {
+      // Anything that can raise or decide an Action brings the clan's
+      // Discord up to date under the clan's lock (a write route already
+      // holds it). Best effort: the morning run sweeps again.
+      if (discord && plan.clan && plan.share)
+        await exclusive(plan.clan, () => discord.share(plan.clan)).catch(() => {
           console.error("clan_discord_share_failed");
         });
       return response;
