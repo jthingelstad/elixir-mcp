@@ -423,6 +423,7 @@ for (const [label, width] of [
       await page.goto("/home/find");
       const find = page.getByRole("tablist", { name: "Find" });
       await expect(find.getByRole("tab")).toHaveText([
+        "Suggested",
         "Your clan",
         "Search",
         "From your battles",
@@ -431,12 +432,27 @@ for (const [label, width] of [
       ]);
       await expect(page.getByText(/Near you/)).toHaveCount(0);
 
-      // Search is where Find opens: the phone's search, and a tag to follow.
-      await expect(find.getByRole("tab", { name: "Search" })).toHaveAttribute(
-        "aria-selected",
-        "true",
+      // Find opens on Suggested (Jamie, 2026-11-13); with nobody to
+      // suggest it says what fills it and offers Search and your link.
+      await expect(
+        find.getByRole("tab", { name: "Suggested" }),
+      ).toHaveAttribute("aria-selected", "true");
+      await expect(page.getByText("Nobody to suggest yet.")).toBeVisible();
+      await page
+        .getByRole("button", { name: "Send your Follow me link" })
+        .click();
+      await expect(page.locator(".kit-find__link code")).toContainText(
+        "/home/follow/",
       );
-      await expect(page.getByLabel("Follow a friend")).toBeVisible();
+      await find.getByRole("tab", { name: "Suggested" }).click();
+      await page.getByRole("button", { name: "Search by name or tag" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toBeHidden();
+
+      // Search: the sheet, and a player tag to follow anyone.
+      await find.getByRole("tab", { name: "Search" }).click();
+      await expect(page.getByLabel("Follow by player tag")).toBeVisible();
 
       // Your clan: its members, what each costs, and Follow my clan.
       await find.getByRole("tab", { name: "Your clan" }).click();

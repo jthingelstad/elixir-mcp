@@ -18,7 +18,7 @@ import { followMeHref } from "../lib/player.js";
 import { BringClanmates } from "../components/BringClanmates.jsx";
 import { useSheet } from "../shell/sheet.js";
 import { FollowCost, Followed, useFollow } from "./follow.jsx";
-import { FromYourBattles, YourClanPeople } from "./People.jsx";
+import { FindSuggested, FromYourBattles, YourClanPeople } from "./People.jsx";
 
 /**
  * Find (slice 7, #765; its sections 2026-11-12): where you go to find people
@@ -29,9 +29,12 @@ import { FromYourBattles, YourClanPeople } from "./People.jsx";
  * follows a friend; From your battles lists the players you met; the clan
  * directory lists the clans that saved their rules, by name; your Follow me link is how a friend finds
  * you. Near you waits on its legal question and is not here, not even as a
- * placeholder.
+ * placeholder. Since 2026-11-13 Find opens on Suggested, a list to tap
+ * through with why on every row (Jamie: Find "lands you on a search that
+ * ONLY works by player tag and is essnetially a dead end").
  */
 export const FIND_SECTIONS = [
+  { key: "suggested", label: "Suggested" },
   { key: "clan", label: "Your clan", own: true },
   { key: "search", label: "Search" },
   { key: "battles", label: "From your battles", own: true },
@@ -53,9 +56,10 @@ export function FindPage() {
     (c) => c.is_primary || c.relationship === "alt",
   );
   const sections = findSections(own.length > 0);
-  // Search first: Find is the phone's search, and the old Friends address
-  // lands here for its follow form [engineering, 2026-11-12].
-  const [tab, setTab] = useState("search");
+  // Suggested first (Jamie, 2026-11-13); Search is a tab and the sheet
+  // every page opens.
+  const [tab, setTab] = useState("suggested");
+  const openSheet = useSheet();
   return (
     <div className="kit-home">
       <PageHead
@@ -84,8 +88,13 @@ export function FindPage() {
             </Panel>
           ) : tab === "link" ? (
             <FollowMeLink players={own} />
-          ) : (
+          ) : tab === "search" ? (
             <Search />
+          ) : (
+            <FindSuggested
+              onSearch={() => openSheet("search")}
+              onLink={own.length > 0 ? () => setTab("link") : null}
+            />
           )}
         </div>
         <aside className="kit-home__side" aria-label="Your follow slots">
@@ -130,7 +139,8 @@ function SlotsSide() {
   );
 }
 
-/** Search: the sheet every page opens, and a tag to follow. */
+/** Search: the sheet every page opens (players Elixir has seen by name,
+ *  clans, cards, help), and a player tag to follow anyone. */
 function Search() {
   const open = useSheet();
   return (
@@ -165,7 +175,7 @@ function FollowForm() {
           if (await follow(tag.trim())) setTag("");
         }}
       >
-        <label htmlFor="find-follow-tag">Follow a friend</label>
+        <label htmlFor="find-follow-tag">Follow by player tag</label>
         <div className="kit-form__row">
           <input
             id="find-follow-tag"

@@ -69,6 +69,20 @@ function Person({ p, detail, used, limit }) {
   );
 }
 
+/** A suggestion's why, as facts, then what following costs. */
+function WhyCost({ p, dayHeading }) {
+  return (
+    <>
+      <span className="kit-people__why">{whyLines(p.why, { dayHeading })}</span>
+      <span
+        className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
+      >
+        {costMark(p)}
+      </span>
+    </>
+  );
+}
+
 /** Home's side panel: a few people, each with why and what it costs. It reads
  *  for itself, after the feed, so Home's first paint never waits on it. */
 export function PeopleToFollow() {
@@ -119,18 +133,7 @@ export function PeopleToFollow() {
               p={p}
               used={data.used}
               limit={data.limit}
-              detail={
-                <>
-                  <span className="kit-people__why">
-                    {whyLines(p.why, { dayHeading: feedDayHeading })}
-                  </span>
-                  <span
-                    className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
-                  >
-                    {costMark(p)}
-                  </span>
-                </>
-              }
+              detail={<WhyCost p={p} dayHeading={feedDayHeading} />}
             />
           ))}
         </Rows>
@@ -148,6 +151,100 @@ export function PeopleToFollow() {
           ) : null}
         </div>
       ) : null}
+    </Panel>
+  );
+}
+
+/** Find's Suggested shows this many before Show more. */
+const FIND_SHOWN = 10;
+
+/**
+ * Find's Suggested (2026-11-13), the tab Find opens on: a list to tap
+ * through, each with why as a fact and what following costs (Jamie: "give
+ * me a list to just click on of suggested follows and give me a line on
+ * why"). The same sources as People to follow and the starter set, over a
+ * month. With nobody to suggest it says what fills it and points to Search
+ * and your Follow me link.
+ */
+export function FindSuggested({ onSearch, onLink }) {
+  const { feedDayHeading } = useClock();
+  const query = usePeople("find");
+  const [all, setAll] = useState(false);
+  const data = query.data;
+  if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;
+  if (query.isError || !data?.ok)
+    return (
+      <Panel pad>
+        <p className="kit-week__quiet">
+          Suggestions didn’t load. Try again in a moment.
+        </p>
+        <button
+          type="button"
+          className="btn btn--sm"
+          onClick={() => query.refetch()}
+          disabled={query.isFetching}
+          aria-busy={query.isFetching}
+        >
+          {query.isFetching ? "Reading…" : "Try again"}
+        </button>
+      </Panel>
+    );
+  if (data.people.length === 0)
+    return (
+      <Panel title="Suggested" pad className="kit-findsuggest">
+        <p className="kit-week__quiet">
+          Nobody to suggest yet. Friendly battles, 2v2 teammates, the players
+          your follows follow and your clan show up here.
+        </p>
+        <div className="kit-findsuggest__ways">
+          <button type="button" className="btn btn--sm" onClick={onSearch}>
+            Search by name or tag
+          </button>
+          {onLink ? (
+            <button type="button" className="btn btn--sm" onClick={onLink}>
+              Send your Follow me link
+            </button>
+          ) : null}
+        </div>
+      </Panel>
+    );
+  const shown = all ? data.people : data.people.slice(0, FIND_SHOWN);
+  const slots = slotsLine(data.used, data.limit);
+  return (
+    <Panel title="Suggested" className="kit-findsuggest">
+      <Rows>
+        {shown.map((p) => (
+          <Person
+            key={p.tag}
+            p={p}
+            used={data.used}
+            limit={data.limit}
+            detail={<WhyCost p={p} dayHeading={feedDayHeading} />}
+          />
+        ))}
+      </Rows>
+      {data.people.length > FIND_SHOWN ? (
+        <div className="kit-findsuggest__more">
+          <button
+            type="button"
+            className="btn btn--sm"
+            aria-expanded={all}
+            onClick={() => setAll((v) => !v)}
+          >
+            {all
+              ? "Show fewer"
+              : `Show more (${data.people.length - FIND_SHOWN})`}
+          </button>
+        </div>
+      ) : null}
+      <p className="kit-tiny kit-people__slots">
+        From your battles in the last {data.days} days, the players your follows
+        follow, and your clan. Never ranked.
+        {all && data.more > 0
+          ? " More are in From your battles and Your clan."
+          : ""}
+        {slots ? ` ${slots}.` : ""}
+      </p>
     </Panel>
   );
 }

@@ -11,6 +11,7 @@ import { panel } from "./home.mjs";
 import {
   battlePeople,
   clanPeople,
+  findPeople,
   hideStarter,
   starterSet,
   suggestedPeople,
@@ -37,6 +38,8 @@ export function peopleRoutes({ resolveAccount }) {
     "GET /api/me/people/suggested": read("people_suggested", suggestedPeople),
     "GET /api/me/people/battles": read("people_battles", battlePeople),
     "GET /api/me/people/clan": read("people_clan", clanPeople),
+    // Find's Suggested (2026-11-13), the tab Find opens on.
+    "GET /api/me/people/find": read("people_find", findPeople),
     // Home's starter set (2026-11-13): follows offered to an account that
     // follows few, never followed for it.
     "GET /api/me/people/starter": read("people_starter", starterSet),

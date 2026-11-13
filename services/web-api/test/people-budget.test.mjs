@@ -1,7 +1,7 @@
 /**
  * What the people reads cost the database (2026-11-13): Home's starter
- * set and its People to follow panel, and Find's From your battles and
- * clan lists, for a new account in a seeded clan whose rows are a small
+ * set and its People to follow panel, and Find's Suggested, From your
+ * battles and clan lists, for a new account in a seeded clan whose rows are a small
  * part of each table (`clan-landing-seed.mjs`), with friendly battles
  * and a 2v2 added. Each read is held to a statement count, every
  * statement's plan to never scanning a large table whole nor reading
@@ -24,6 +24,7 @@ const LARGE = ["battle", "battle_participant", "player"];
 const BUDGET = {
   "/api/me/people/starter": 11,
   "/api/me/people/suggested": 11,
+  "/api/me/people/find": 11,
   "/api/me/people/battles": 8,
   "/api/me/people/clan": 11,
 };
@@ -206,4 +207,20 @@ test("the seeded starter set puts the friendly and the teammate before the clan'
   // comes first; the friendly follows them.
   const firstPaid = r.body.people.findIndex((p) => !p.free);
   assert.equal(r.body.people[firstPaid]?.tag, FRIEND);
+});
+
+test("Find's Suggested lists the friendly, says why, and leaves out the 2v2's opponents", async (t) => {
+  t.mock.method(console, "info", () => {});
+  const r = await call("/api/me/people/find");
+  assert.equal(r.body.days, 30);
+  assert.ok(r.body.people.length <= 30);
+  assert.equal(typeof r.body.more, "number");
+  const friend = r.body.people.find((p) => p.tag === FRIEND);
+  assert.ok(friend, "the friendly opponent is suggested");
+  const met = friend.why.find((w) => w.kind === "battles");
+  assert.ok(met?.friendly >= 1, "its why says a friendly battle");
+  const tags = r.body.people.map((p) => p.tag);
+  for (const foe of FOES) assert.ok(!tags.includes(foe), foe);
+  // Sources take turns, battles first: the friendly leads.
+  assert.equal(tags[0], FRIEND);
 });

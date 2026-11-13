@@ -215,8 +215,9 @@ describe("this week's race", () => {
   });
 });
 
-test("Find's sections: no Near you, and your own only with a player", () => {
+test("Find's sections: Suggested first, no Near you, and your own only with a player", () => {
   expect(FIND_SECTIONS.map((t) => t.label)).toEqual([
+    "Suggested",
     "Your clan",
     "Search",
     "From your battles",
@@ -225,6 +226,7 @@ test("Find's sections: no Near you, and your own only with a player", () => {
   ]);
   expect(FIND_SECTIONS.some((t) => /near/i.test(t.label))).toBe(false);
   expect(findSections(false).map((t) => t.key)).toEqual([
+    "suggested",
     "search",
     "directory",
   ]);

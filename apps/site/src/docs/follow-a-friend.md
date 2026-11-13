@@ -7,7 +7,7 @@ order: 1
 navTitle: "Follow a friend"
 icon: heart
 lede: "A friend is a player you follow on purpose. Elixir records them like anyone you follow, and puts them first in your digest."
-reviewed: "2026-11-12 your digest; 2026-10-01 against contract 9.17.1"
+reviewed: "2026-11-13 Find opens on Suggested; 2026-11-12 your digest; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Settings › Players & following", "/settings/players", "Open Players & following"]
 ---
 
@@ -28,19 +28,21 @@ On the website:
    Open the player from the Players table, and under **How you follow
    it** set **Relationship** to **friend**.
 
-Or on **Find** (on the top bar, and a tab on a phone): **Follow a friend**
-takes the tag and adds
+Or on **Find** (on the top bar, and a tab on a phone): under **Search**,
+**Follow by player tag** takes the tag and adds
 the player as a friend in one step. It asks for your own player first if you
 have none, and never makes the player your primary. They aren't told.
 
 ## Find
 
-Find is where you look for people to follow, in sections:
+Find is where you look for people to follow, in sections. It opens on
+**Suggested**.
 
 | Section | What it holds |
 |---|---|
+| Suggested | a list to tap through: players you had a friendly battle with or teamed up with in 2v2 (or met twice) in the last 30 days, the players followed by the people you follow ("Ada follows them"), and your clan, taking turns. Each says why and what following costs. Ten show, then **Show more** (up to 30). With nobody to suggest yet, it says what fills it and offers Search and your Follow me link |
 | Your clan | your player's clan now: each member, what following them costs, and **Follow my clan**, asked once with the same pricing and refusal as following a clan from a player's page; then **Invite clanmates**, words to bring the rest of your clan to Elixir ([Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates)) |
-| Search | the search sheet, and **Follow a friend** by tag. Find opens here |
+| Search | the search sheet (players Elixir has seen, by name or tag; clans, cards and help), and **Follow by player tag** for anyone else |
 | From your battles | the players your own players met in the last 30 days, opponents and 2v2 teammates: players you had a friendly battle with first, then your 2v2 teammates, then the most met. How often, how it went for you ("A friendly battle · Met once · 1 win") and when last. From the log only, never a rating. Players you follow are marked, never hidden |
 | Clan directory | every clan on Elixir |
 | Your link | your Follow me link ([A player's page](/docs/player-page#follow-me-links)) |

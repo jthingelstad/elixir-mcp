@@ -286,7 +286,7 @@ for (const [label, width] of [
       ).toBeVisible();
       await noSideways(page);
       await accessible(page, "Find");
-      await page.getByLabel("Follow a friend").fill("#0ULCLY2");
+      await page.getByLabel("Follow by player tag").fill("#0ULCLY2");
       await page.getByRole("button", { name: "Follow", exact: true }).click();
       await expect(page.getByText("Recording", { exact: true })).toBeVisible();
       // Search opens the sheet every page has.
