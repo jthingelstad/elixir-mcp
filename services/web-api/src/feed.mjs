@@ -129,8 +129,8 @@ export function scoresOf(spark) {
 /** Whether a clan arrival offers Follow (design canvas 2026-11-13): a
  *  member who joined a clan you follow, and whom you do not follow, from the
  *  subjects the read already holds. A player followed with notify off is
- *  not among them; the Follow dialog's own price says so and writes
- *  nothing (follow.jsx). */
+ *  not among them, and Follow's own write answers for them as everywhere
+ *  else. */
 export function offersFollow(it, subjects) {
   if (it.kind !== "member_joined") return false;
   const tag = it.facts?.player_tag;
