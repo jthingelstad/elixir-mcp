@@ -5,6 +5,7 @@ import {
   useClanOf,
 } from "@elixir-mcp/clan-web/views/PlayerInClan.jsx";
 import {
+  Avatar,
   Empty,
   ErrorState,
   Icon,
@@ -160,37 +161,51 @@ export function PlayerView({
   ];
   return (
     <div className="kit-home kit-player">
-      <PageHead
-        title={<TagText>{p.name ?? p.tag}</TagText>}
-        sub={<TagText>{sub}</TagText>}
-        aside={
-          you.own ? (
-            <span className="kit-tiny">You</span>
+      <header className="kit-phead">
+        <Avatar name={p.name ?? p.tag} tag={p.tag} large />
+        <div className="kit-phead__main">
+          <h1 className="kit-phead__name">
+            <TagText>{p.name ?? p.tag}</TagText>
+          </h1>
+          <p className="kit-phead__line">
+            <TagText>{sub}</TagText>
+          </p>
+          <Badges badges={page.badges} />
+          <Counts page={page} onPick={setTab} />
+        </div>
+        <nav className="kit-phead__actions" aria-label="More about this player">
+          {you.own && !self ? (
+            <Link
+              to={ladderHref("season", { player: p.tag })}
+              className="btn btn--sm"
+            >
+              Your stats
+            </Link>
+          ) : you.following && !you.own ? (
+            <Link
+              to={ladderHref("season", { player: p.tag })}
+              className="btn btn--sm"
+            >
+              Their stats
+            </Link>
+          ) : null}
+          {p.clan_tag && !you.own ? (
+            <FollowAll
+              ask={{ clan_tag: p.clan_tag }}
+              label={`Follow everyone in ${p.clan_name ?? "their clan"}`}
+              title={`Follow everyone in ${p.clan_name ?? p.clan_tag}?`}
+            />
+          ) : null}
+          {you.own ? <CopyFollowMe tag={p.tag} /> : null}
+          {you.own ? (
+            <span className="kit-phead__state">You</span>
           ) : you.following ? (
-            <span className="kit-tiny">Following</span>
+            <span className="kit-phead__state">Following</span>
           ) : (
             <FollowButton tag={p.tag} name={p.name} />
-          )
-        }
-      >
-        <Badges badges={page.badges} />
-        <Counts page={page} />
-      </PageHead>
-      <nav className="kit-player__doors" aria-label="More about this player">
-        {you.own && !self ? (
-          <Link to={ladderHref("season", { player: p.tag })}>Your stats</Link>
-        ) : you.following && !you.own ? (
-          <Link to={ladderHref("season", { player: p.tag })}>Their stats</Link>
-        ) : null}
-        {p.clan_tag && !you.own ? (
-          <FollowAll
-            ask={{ clan_tag: p.clan_tag }}
-            label={`Follow everyone in ${p.clan_name ?? "their clan"}`}
-            title={`Follow everyone in ${p.clan_name ?? p.clan_tag}?`}
-          />
-        ) : null}
-        {you.own ? <CopyFollowMe tag={p.tag} /> : null}
-      </nav>
+          )}
+        </nav>
+      </header>
       <Tabs
         label="Player"
         items={items}
@@ -198,39 +213,35 @@ export function PlayerView({
         // A tab that is an address (You's Stats) leaves this page instead.
         onSelect={(k) => OWN_TABS.has(k) && setTab(k)}
       />
-      {shown === "clan" ? (
-        inClan.clan ? (
-          <PlayerInClan clan={inClan.clan} playerTag={p.tag} navigate={nav} />
+      <div className={shown === "clan" ? undefined : "kit-player__body"}>
+        {shown === "clan" ? (
+          inClan.clan ? (
+            <PlayerInClan clan={inClan.clan} playerTag={p.tag} navigate={nav} />
+          ) : (
+            <div className="kit-skeleton" aria-busy="true" />
+          )
+        ) : shown === "timeline" ? (
+          <ItemList
+            items={page.timeline}
+            empty={`Nothing recorded in the last ${page.window_days} days.`}
+            more={page.timeline_more}
+            cheered={cheered}
+            tag={p.tag}
+          />
+        ) : shown === "highlights" ? (
+          <Highlights items={page.highlights} cheered={cheered} />
+        ) : shown === "moments" ? (
+          <Moments
+            items={page.moments}
+            empty={`No moments in the last ${page.window_days} days.`}
+            cheered={cheered}
+          />
+        ) : shown === "record" ? (
+          <PlayerRecord tag={p.tag} />
         ) : (
-          <div className="kit-skeleton" aria-busy="true" />
-        )
-      ) : shown === "timeline" ? (
-        <ItemList
-          items={page.timeline}
-          empty={`Nothing recorded in the last ${page.window_days} days.`}
-          more={page.timeline_more}
-          cheered={cheered}
-          tag={p.tag}
-        />
-      ) : shown === "highlights" ? (
-        <ItemList
-          items={page.highlights}
-          empty="No highlights posted yet."
-          words
-          cheered={cheered}
-        />
-      ) : shown === "moments" ? (
-        <ItemList
-          items={page.moments}
-          empty={`No moments in the last ${page.window_days} days.`}
-          cheered={cheered}
-          tag={p.tag}
-        />
-      ) : shown === "record" ? (
-        <PlayerRecord tag={p.tag} />
-      ) : (
-        <Follows page={page} />
-      )}
+          <Follows page={page} />
+        )}
+      </div>
     </div>
   );
 }
@@ -241,7 +252,7 @@ function Badges({ badges }) {
   if (!badges.verified_player) return null;
   return (
     <p className="kit-player__badges">
-      <span className="kit-badge">
+      <span className="kit-badge kit-badge--ok">
         <Icon name="check" size={12} /> Verified player
       </span>
       {badges.discord ? (
@@ -251,19 +262,78 @@ function Badges({ badges }) {
   );
 }
 
-function Counts({ page }) {
+/** The account's counts (canvas .statrow), each a button to its tab. */
+function Counts({ page, onPick }) {
   if (!page.follows) return null;
   const n = (v) => v.toLocaleString();
+  const stat = (label, value, tab) => (
+    <button
+      type="button"
+      className="kit-statrow__btn kit-stat"
+      onClick={() => onPick(tab)}
+    >
+      <span className="kit-stat__label">{label}</span>{" "}
+      <span className="kit-stat__value">{n(value)}</span>
+    </button>
+  );
   return (
-    <p className="kit-tiny">
-      Following {n(page.follows.count)} · Followers {n(page.followers.count)} ·
-      Highlights {n(page.highlights.length)}
-    </p>
+    <div className="kit-statrow">
+      {stat("Following", page.follows.count, "follows")}
+      {stat("Followers", page.followers.count, "follows")}
+      {stat("Highlights", page.highlights.length, "highlights")}
+    </div>
   );
 }
 
-function ItemList({ items, empty, more = 0, words = false, cheered, tag }) {
-  const { when } = useClock();
+/** A clan's own line on a player's timeline wears the clan's medal. */
+const CLAN_KINDS = new Set([
+  "race_finished",
+  "week_resolved",
+  "bracket_observed",
+  "member_joined",
+  "member_left",
+  "member_role_changed",
+]);
+/** A card's first is a violet medal, as on Home. */
+const VIOLET = new Set(["card_unlocked", "card_form_unlocked"]);
+
+/** The medal tile beside an item (canvas Player .item): a sitting's bars, a
+ *  highlight's bookmark, a clan's shield, a moment's star. */
+function Medal({ kind, tile = true }) {
+  const [icon, tone] = SITTINGS.has(kind)
+    ? ["activity", "violet"]
+    : kind === "battle_highlight"
+      ? ["bookmark", ""]
+      : CLAN_KINDS.has(kind)
+        ? ["shield", "clan"]
+        : ["star", VIOLET.has(kind) ? "violet" : ""];
+  return (
+    <span
+      className={`kit-medal${tile ? " kit-medal--tile" : ""}${tone ? ` kit-medal--${tone}` : ""}`}
+      aria-hidden="true"
+    >
+      <Icon name={icon} size={22} />
+    </span>
+  );
+}
+
+const battlePath = (it) =>
+  String(it.battle_url ?? "").replace(/^https?:\/\/[^/]+/, "");
+
+/** Items under the day they happened, newest first, as Home's feed. */
+function byDay(items, dayKey) {
+  const days = [];
+  for (const it of items) {
+    const key = it.at ? dayKey(it.at) : "";
+    const last = days[days.length - 1];
+    if (last && last.key === key) last.rows.push(it);
+    else days.push({ key, at: it.at, rows: [it] });
+  }
+  return days;
+}
+
+function ItemList({ items, empty, more = 0, cheered, tag }) {
+  const { when, day, dayHeading } = useClock();
   const [openId, setOpenId] = useState(null);
   if (items.length === 0)
     return (
@@ -272,64 +342,166 @@ function ItemList({ items, empty, more = 0, words = false, cheered, tag }) {
       </Panel>
     );
   return (
-    <Panel pad>
-      {items.map((it, i) => {
-        const battle = String(it.battle_url ?? "").replace(
-          /^https?:\/\/[^/]+/,
-          "",
-        );
-        const withCheers = cheered?.of(it);
-        // A sitting draws as Home draws it (G7): its sparkline, its numbers
-        // and its games, read in place.
-        const sitting = SITTINGS.has(it.kind);
-        const games = sitting && tag && it.id && it.evidence;
-        const open = games && openId === it.id;
-        return (
-          <div key={it.id ?? i} className="kit-row kit-tl">
-            <span className="kit-row__main">
-              <span className="kit-row__title">
-                <TagText>{it.text}</TagText>
-              </span>
-              {words && it.words ? (
-                <span className="kit-row__detail">“{it.words}”</span>
-              ) : null}
-              {sitting ? <Sitting it={it} /> : null}
-              {battle.startsWith("/battle/") ? (
-                <Link to={battle} className="link kit-tl__more">
-                  Open the battle
-                </Link>
-              ) : null}
-              {games ? (
-                <button
-                  type="button"
-                  className="link kit-tl__more"
-                  aria-expanded={Boolean(open)}
-                  onClick={() => setOpenId(open ? null : it.id)}
-                >
-                  {evidenceWord(it, open)}
-                </button>
-              ) : null}
-              {open ? (
-                <PlayerGames
-                  tag={tag}
-                  item={it}
-                  onClose={() => setOpenId(null)}
-                />
-              ) : null}
-              {withCheers ? (
-                <Cheers it={withCheers} where={cheered.where} />
-              ) : null}
-            </span>
-            <span className="kit-row__right">{it.at ? when(it.at) : null}</span>
-          </div>
-        );
-      })}
+    <>
+      {byDay(items, day).map((d) => (
+        <section
+          key={d.key}
+          className="kit-day"
+          aria-label={d.at ? dayHeading(d.at) : undefined}
+        >
+          {d.at ? <h2 className="kit-day__head">{dayHeading(d.at)}</h2> : null}
+          {d.rows.map((it, i) => {
+            const battle = battlePath(it);
+            const withCheers = cheered?.of(it);
+            // A sitting draws as Home draws it (G7): its sparkline, its
+            // numbers and its games, read in place.
+            const sitting = SITTINGS.has(it.kind);
+            const games = sitting && tag && it.id && it.evidence;
+            const open = games && openId === it.id;
+            return (
+              <article
+                key={it.id ?? `${d.key}-${i}`}
+                className={`kit-feed__item kit-pitem${CLAN_KINDS.has(it.kind) ? " kit-feed__item--clan" : ""}`}
+              >
+                <div className="kit-pitem__body">
+                  <Medal kind={it.kind} />
+                  <div className="kit-pitem__main">
+                    <p className="kit-feed__text">
+                      <TagText>{it.text}</TagText>
+                    </p>
+                    <span className="kit-feed__time">
+                      {it.at ? when(it.at) : null}
+                    </span>
+                    {it.words ? (
+                      <p className="kit-feed__words">{it.words}</p>
+                    ) : null}
+                    {sitting ? <Sitting it={it} /> : null}
+                    {open ? (
+                      <PlayerGames
+                        tag={tag}
+                        item={it}
+                        onClose={() => setOpenId(null)}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+                {withCheers || games || battle.startsWith("/battle/") ? (
+                  <footer className="kit-feed__foot">
+                    {withCheers ? (
+                      <Cheers it={withCheers} where={cheered.where} />
+                    ) : null}
+                    <span className="share-actions kit-feed__links">
+                      {games ? (
+                        <button
+                          type="button"
+                          className="link kit-tl__more"
+                          aria-expanded={Boolean(open)}
+                          onClick={() => setOpenId(open ? null : it.id)}
+                        >
+                          {evidenceWord(it, open)}
+                        </button>
+                      ) : null}
+                      {battle.startsWith("/battle/") ? (
+                        <Link to={battle} className="btn btn--sm">
+                          Open the battle
+                        </Link>
+                      ) : null}
+                    </span>
+                  </footer>
+                ) : null}
+              </article>
+            );
+          })}
+        </section>
+      ))}
       {more > 0 ? (
         <p className="kit-tiny">
           The {items.length} newest are shown; {more.toLocaleString()} more are
           not.
         </p>
       ) : null}
+    </>
+  );
+}
+
+/** The Highlights tab (canvas .hcard): each the player's pick, with their
+ *  words, its cheers and its battle. */
+function Highlights({ items, cheered }) {
+  const { when } = useClock();
+  if (items.length === 0)
+    return (
+      <Panel pad>
+        <p className="kit-week__quiet">No highlights posted yet.</p>
+      </Panel>
+    );
+  return items.map((it, i) => {
+    const battle = battlePath(it);
+    const withCheers = cheered?.of(it);
+    return (
+      <article key={it.id ?? i} className="kit-hcard">
+        <p className="kit-hcard__when">
+          <Icon name="crown" size={18} />
+          {it.at ? when(it.at) : null}
+        </p>
+        <p className="kit-hcard__title">
+          <TagText>{it.text}</TagText>
+        </p>
+        {it.words ? <p className="kit-hcard__words">“{it.words}”</p> : null}
+        {withCheers || battle.startsWith("/battle/") ? (
+          <footer className="kit-feed__foot">
+            {withCheers ? (
+              <Cheers it={withCheers} where={cheered.where} />
+            ) : null}
+            <span className="share-actions kit-feed__links">
+              {battle.startsWith("/battle/") ? (
+                <Link to={battle} className="btn btn--sm">
+                  Open the battle
+                </Link>
+              ) : null}
+            </span>
+          </footer>
+        ) : null}
+      </article>
+    );
+  });
+}
+
+/** The Moments tab: sunken tiles, a medal each (canvas Player moments). */
+function Moments({ items, empty, cheered }) {
+  const { when } = useClock();
+  if (items.length === 0)
+    return (
+      <Panel pad>
+        <p className="kit-week__quiet">{empty}</p>
+      </Panel>
+    );
+  return (
+    <Panel pad>
+      <ul className="kit-moments">
+        {items.map((it, i) => {
+          const battle = battlePath(it);
+          const withCheers = cheered?.of(it);
+          return (
+            <li key={it.id ?? i} className="kit-moment">
+              <Medal kind={it.kind} tile={false} />
+              <div className="kit-moment__main">
+                <span className="kit-moment__title">
+                  <TagText>{it.text}</TagText>
+                </span>
+                <span className="kit-tiny">{it.at ? when(it.at) : null}</span>
+                {battle.startsWith("/battle/") ? (
+                  <Link to={battle} className="link kit-tl__more">
+                    Open the battle
+                  </Link>
+                ) : null}
+                {withCheers ? (
+                  <Cheers it={withCheers} where={cheered.where} />
+                ) : null}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </Panel>
   );
 }
@@ -378,13 +550,14 @@ function Follows({ page }) {
       <Row
         key={f.tag}
         href={playerHref(f.tag)}
+        lead={<Avatar name={f.name ?? f.tag} tag={f.tag} small />}
         title={<TagText>{f.name ?? f.tag}</TagText>}
         detail={f.name ? <Tag tag={f.tag} /> : null}
       />
     ));
   const unnamed = page.followers.unnamed ?? 0;
   return (
-    <>
+    <div className="kit-pfollows">
       <Panel
         title={`Following ${page.follows.count.toLocaleString()}`}
         titleAs="h2"
@@ -410,7 +583,7 @@ function Follows({ page }) {
           </p>
         ) : null}
       </Panel>
-    </>
+    </div>
   );
 }
 

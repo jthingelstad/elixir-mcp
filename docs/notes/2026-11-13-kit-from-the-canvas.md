@@ -119,3 +119,17 @@ matched the canvas and are unchanged.
 
 The coarse-pointer 44px rule names `.btn.btn--follow` too, so the doubled
 Follow selector keeps its touch target (Codex on #865).
+
+## Player page and shared post (2026-11-13)
+
+| Canvas | Kit |
+| --- | --- |
+| `.phead`, large `.av` | `.kit-phead` (`__main`, `__name`, `__line`, `__actions`, `__state`), `Avatar large` (`.kit-av--l`) |
+| `.statrow` | `.kit-statrow` with `.kit-statrow__btn` buttons that open their tab |
+| `.vbadge` | `.kit-badge--ok` |
+| timeline cards and day labels | `.kit-day` with `.kit-pitem` cards and a `.kit-medal--tile` |
+| `.hcard` | `.kit-hcard` |
+| moment tiles | `.kit-moments`, `.kit-moment` |
+| `.grid2` follows | `.kit-pfollows` |
+| the post article, `.nums` | `.kit-post`, `.kit-nums` |
+| join card | `.kit-cta` (the Invite wording kept) |
