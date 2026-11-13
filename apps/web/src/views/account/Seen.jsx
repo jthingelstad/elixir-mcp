@@ -16,7 +16,7 @@ import { useToolRead } from "../../lib/queries.js";
 import { SETTINGS } from "../../lib/settings.js";
 import { playerHref } from "../../lib/player.js";
 import { Battle } from "../Battle.jsx";
-import { YourPlace } from "@elixir-mcp/clan-web/views/YourPlace.jsx";
+import { YourPlace } from "../../clan/views/YourPlace.jsx";
 import { Facts, Note } from "./parts.jsx";
 import { FollowSlots } from "./Slots.jsx";
 
@@ -28,7 +28,7 @@ import { FollowSlots } from "./Slots.jsx";
  * stops being true is a defect of this page, never of the surface it
  * describes. Two controls live here, as the canvas draws them
  * (2026-11-12): Location, your place on the clan map (the same control the
- * map draws, packages/clan-web YourPlace.jsx), and your follow slots, each
+ * map draws, src/clan/views/YourPlace.jsx), and your follow slots, each
  * slot-using follow with its way to stop (Slots.jsx). The other choices
  * link to the pages that own them.
  */

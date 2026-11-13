@@ -112,7 +112,7 @@ export const REMOVAL_UNSEEN =
   "Modes the battle log does not carry are not seen, so the leader weighs it.";
 
 /** A recorded battle group's name, the family's words (`MODE_LABEL` in
- *  @elixir-mcp/ui; a clan-web test pins the two equal). */
+ *  @elixir-mcp/ui; an apps/web Clan test pins the two equal). */
 export const MODE_GROUP_LABEL = {
   ladder: "Trophy Road",
   ranked: "Path of Legends",

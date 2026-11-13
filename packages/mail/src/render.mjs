@@ -63,9 +63,9 @@ const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
 const playerUrl = (tag) => `${SITE}/home/player/${tagPath(tag)}`;
 // A clan's Feed: Clan for its members, the clan directory searched for it
-// for anyone else (packages/clan-web App.jsx, 2026-11-12).
+// for anyone else (apps/web src/clan/App.jsx, 2026-11-12).
 const clanUrl = (tag) => `${SITE}/clan/${tagPath(tag)}/feed`;
-// Clan's own pages (packages/clan-web, routes.jsx): the tag without its #.
+// Clan's own pages (apps/web src/clan/routes.jsx): the tag without its #.
 const clanPageUrl = (tag, page) => `${SITE}/clan/${tagPath(tag)}/${page}`;
 // The footer links a sent mail's record by its id, and Send feedback opens
 // feedback with the mail attached (Jamie, 2026-09-19: "something not right?

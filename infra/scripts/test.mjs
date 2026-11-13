@@ -10,7 +10,7 @@
  *   node infra/scripts/test.mjs --list --shard 1/3   the plan; runs nothing
  *
  * A unit is a workspace with a `test` script (named by its directory:
- * `web`, `tools`, `clan-web`) plus `root`, the repository's own
+ * `web`, `tools`, `web-api`) plus `root`, the repository's own
  * `docs/*.test.mjs` and `acceptance/**\/*.test.mjs`.
  *
  * The build runs ONCE, first: `npm run build` (design, contracts, docs),
@@ -49,10 +49,9 @@ export const repoRoot = path.resolve(
  *  39544910068 (2026-10-21), rounded; `root` and `site` estimated from
  *  the same log. Only the order and rough size matter. */
 export const WEIGHTS = {
-  web: 41,
+  web: 61,
   tools: 33,
   migrate: 21,
-  "clan-web": 20,
   "web-api": 20,
   ingest: 16,
   jobs: 13,

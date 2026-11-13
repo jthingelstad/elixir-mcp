@@ -51,7 +51,7 @@ test("e2e-needed: what builds, serves or lands in the journeys' tree says true",
     "packages/ui/src/flash.ts",
     "packages/client/src/index.ts",
     "packages/design/src/index.css",
-    "packages/clan-web/src/views/Actions.jsx",
+    "apps/web/src/clan/views/Actions.jsx",
     "packages/clan-engine/src/index.mjs",
     "packages/contracts/src/index.ts",
     "packages/record/src/index.mjs",
@@ -135,7 +135,7 @@ test("test runner: every workspace with a test script is a unit, and root is one
   const names = all.map((u) => u.name);
   assert.equal(new Set(names).size, names.length, "unit names are unique");
   assert.ok(names.includes("root"));
-  for (const n of ["web", "tools", "migrate", "clan-web", "web-api", "site"])
+  for (const n of ["web", "tools", "migrate", "web-api", "site"])
     assert.ok(names.includes(n), n);
   const pkg = JSON.parse(
     await readFile(path.join(repoRoot, "package.json"), "utf8"),

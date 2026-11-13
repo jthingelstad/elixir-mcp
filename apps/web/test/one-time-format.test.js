@@ -10,7 +10,7 @@ import { expect, test } from "vitest";
  * a date key stays: those are named here, with the reason.
  */
 const ROOT = resolve(import.meta.dirname, "../../..");
-const PATHS = ["apps/web/src", "packages/clan-web/src"];
+const PATHS = ["apps/web/src"];
 const STAFF = /\/views\/Admin|\/views\/admin\//;
 const OLD = [
   "\\bstamp\\(",

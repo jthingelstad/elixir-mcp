@@ -30,7 +30,7 @@ reaches_journeys() {
   printf '%s\n' "$paths" |
     grep -E \
       -e '^apps/web/' \
-      -e '^packages/(ui|client|design|clan-web|clan-engine|contracts|record|mail|auth)/' \
+      -e '^packages/(ui|client|design|clan-engine|contracts|record|mail|auth)/' \
       -e '^services/web-api/src/(app-pages|http|share-files)\.mjs$' \
       -e '^services/web-api/src/routes/battle-activity\.mjs$' \
       -e '^services/email-relay/src/templates\.mjs$' \

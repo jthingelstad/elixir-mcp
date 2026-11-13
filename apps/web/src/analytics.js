@@ -27,7 +27,7 @@
  * the document load and is the part /signin skips; the bridge records
  * navigation and is installed always.
  */
-import { analyticsLocation as clanLocation } from "@elixir-mcp/clan-web/analytics.js";
+import { analyticsLocation as clanLocation } from "./clan/analytics.js";
 
 const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
 

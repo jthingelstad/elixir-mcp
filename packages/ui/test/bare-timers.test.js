@@ -10,7 +10,7 @@ const repo = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../..",
 );
-const roots = ["apps/web/src", "packages/clan-web/src", "packages/ui/src"];
+const roots = ["apps/web/src", "packages/ui/src"];
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
     const p = path.join(dir, name);

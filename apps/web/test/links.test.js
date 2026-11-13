@@ -83,10 +83,24 @@ test("every anchor in the console and the kit has an href", () => {
   expect(bare, `anchors without an href: ${bare.join(", ")}`).toEqual([]);
 });
 
+/** Clan's views came from their own package on 2026-11-13 with anchors
+ *  that take their own click; the count only goes down until they use the
+ *  kit's Link too. */
+const CLAN_DIR = path.join(CONSOLE, "clan");
+const CLAN_HANDLED_CEILING = 34;
+
 test("no console anchor takes its own click (use the kit's Link)", () => {
   const handled = walk(CONSOLE)
+    .filter((f) => !f.startsWith(`${CLAN_DIR}${path.sep}`))
     .flatMap(anchors)
     .filter((a) => /\bonClick=/.test(a.tag))
     .map((a) => a.at);
   expect(handled, `anchors with onClick: ${handled.join(", ")}`).toEqual([]);
+});
+
+test(`Clan's anchors that take their own click never exceed ${CLAN_HANDLED_CEILING}`, () => {
+  const handled = walk(CLAN_DIR)
+    .flatMap(anchors)
+    .filter((a) => /\bonClick=/.test(a.tag));
+  expect(handled.length).toBeLessThanOrEqual(CLAN_HANDLED_CEILING);
 });

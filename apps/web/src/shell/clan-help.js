@@ -1,5 +1,5 @@
-/** Help for Clan. It sits here, with the shell: packages/clan-web has no reach
- *  into the drawer, and a Clan page's help is its section's. */
+/** Help for Clan. It sits here, with the shell: a Clan page's help is its
+ *  section's. */
 export const CLAN_HELP = {
   title: "Clan",
   docs: "clan",

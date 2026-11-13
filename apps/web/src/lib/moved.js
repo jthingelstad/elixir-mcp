@@ -1,4 +1,4 @@
-import { CLAN, appPath, tagOf } from "@elixir-mcp/clan-web/lib/base.js";
+import { CLAN, appPath, tagOf } from "../clan/lib/base.js";
 
 /**
  * The addresses that forward, read by the root route (and the server

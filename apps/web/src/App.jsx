@@ -38,7 +38,7 @@ import {
   createQueryClient,
   resetSessionCache,
 } from "@elixir-mcp/client";
-import { createClanRoutes } from "@elixir-mcp/clan-web/routes";
+import { createClanRoutes } from "./clan/routes.jsx";
 import { api } from "./api.js";
 import { useMyGateways } from "./lib/queries.js";
 import { CardArtSource } from "./components/CardArtSource.jsx";
