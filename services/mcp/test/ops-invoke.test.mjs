@@ -70,7 +70,7 @@ test("op: reads are reads", () => {
     { rollup_regroup: { census: true } },
     { reindex: { table: "battle" } },
     { account_remove: { email: "x", dry_run: true } },
-    { account_track: { primary_tag: "#A", player_tag: "#B", dry_run: true } },
+    { account_follow: { primary_tag: "#A", player_tag: "#B", dry_run: true } },
     { agent_recordings: { dry_run: true } },
     { ops_recordings: { dry_run: true } },
     { verified_tag_census: { dry_run: true } },
@@ -118,7 +118,7 @@ test("op: everything else is a write, and takes the lock", () => {
     { reindex: {} },
     { account_remove: { email: "x" } }, // defaults to a dry run; not counted
     { account_enroll: { dry_run: false } },
-    { account_track: { primary_tag: "#A" } }, // defaults to a REAL run
+    { account_follow: { primary_tag: "#A" } }, // defaults to a REAL run
     { agent_recordings: { dry_run: false } },
     { agent_recordings: {} }, // defaults to a dry run; not counted
     { ops_recordings: { dry_run: false } },
@@ -137,7 +137,7 @@ test("op: everything else is a write, and takes the lock", () => {
     { stats: false },
     { stats: 0 },
     { stats: true, vacuum: true },
-    { account_track: { dry_run: true }, stats: true, seed: true },
+    { account_follow: { dry_run: true }, stats: true, seed: true },
   ])
     assert.equal(kind(payload), "write", JSON.stringify(payload));
   for (const payload of [

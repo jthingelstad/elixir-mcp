@@ -31,7 +31,7 @@ import {
   useFirstReadLanded,
 } from "../../hooks/useFirstAnswer.js";
 import { recordJourney } from "../../lib/record-journey.js";
-import { FixTag, StopTracking } from "./TagFix.jsx";
+import { FixTag, StopFollowing } from "./TagFix.jsx";
 
 /**
  * One tracked player or clan: how you track it, and what that is
@@ -53,7 +53,7 @@ import { FixTag, StopTracking } from "./TagFix.jsx";
  * unknown tag is an empty read that is admitted, so its poll looks
  * fresh).
  */
-export function TrackedRecord({ me, refresh, navigate, tag }) {
+export function FollowedRecord({ me, refresh, navigate, tag }) {
   const clansQuery = useMyClans();
   const clans = clansQuery.data ?? null;
   const [nick, setNick] = useState(null);
@@ -179,7 +179,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
     ? ["/clan/directory", "Clan directory"]
     : [playerHref(wanted), you ? "Open your page" : "Open their page"];
   const stop = (
-    <StopTracking
+    <StopFollowing
       name={plainName}
       run={() => only(remove)(isClan)}
       busy={busy}

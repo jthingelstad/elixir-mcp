@@ -1,8 +1,8 @@
 import { test, expect, vi, afterEach } from "vitest";
 import { cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
-import { Tracking } from "../src/views/account/Tracking.jsx";
-import { TrackedRecord } from "../src/views/account/TrackedRecord.jsx";
+import { Following } from "../src/views/account/Following.jsx";
+import { FollowedRecord } from "../src/views/account/FollowedRecord.jsx";
 import { keys } from "../src/lib/queries.js";
 
 const me = { claims: [], recordings: [], entitlements: {}, role: "member" };
@@ -13,8 +13,8 @@ const clan = {
   recording_status: "active",
 };
 const views = [
-  ["Tracking", Tracking, { search: "?view=clans" }],
-  ["clan record", TrackedRecord, { tag: "2PQRJ8LV" }],
+  ["Following", Following, { search: "?view=clans" }],
+  ["clan record", FollowedRecord, { tag: "2PQRJ8LV" }],
 ];
 
 afterEach(() => {

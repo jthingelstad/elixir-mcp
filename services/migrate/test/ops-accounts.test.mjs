@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
-import { accountEnrollOp, accountTrackOp } from "../src/ops-accounts.mjs";
+import { accountEnrollOp, accountFollowOp } from "../src/ops-accounts.mjs";
 import { emailHash } from "../../../packages/auth/src/crypto.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -315,8 +315,8 @@ test("fill_empty fills an existing account that tracks nothing and leaves one th
   assert.equal(again.plan[0].reason, "exists_tracking");
 });
 
-test("account_track adds an alt to the account that holds the primary, once, and refuses an ambiguous primary", async () => {
-  const dry = await accountTrackOp(SCRATCH_URL, {
+test("account_follow adds an alt to the account that holds the primary, once, and refuses an ambiguous primary", async () => {
+  const dry = await accountFollowOp(SCRATCH_URL, {
     primary_tag: "2pp0v9qq",
     player_tag: "#2PP0V9UU",
     dry_run: true,
@@ -331,7 +331,7 @@ test("account_track adds an alt to the account that holds the primary, once, and
   );
   assert.equal(before[0].n, 0);
 
-  const out = await accountTrackOp(SCRATCH_URL, {
+  const out = await accountFollowOp(SCRATCH_URL, {
     primary_tag: "#2PP0V9QQ",
     player_tag: "#2PP0V9UU",
   });
@@ -365,7 +365,7 @@ test("account_track adds an alt to the account that holds the primary, once, and
     ["tracked_by_ops", "recording_started", "claim_added"],
   );
 
-  const again = await accountTrackOp(SCRATCH_URL, {
+  const again = await accountFollowOp(SCRATCH_URL, {
     primary_tag: "#2PP0V9QQ",
     player_tag: "#2PP0V9UU",
   });
@@ -373,7 +373,7 @@ test("account_track adds an alt to the account that holds the primary, once, and
   assert.equal(again.added, undefined);
 
   // #2PP0V9PP is primary on two accounts by now: never guess which.
-  const amb = await accountTrackOp(SCRATCH_URL, {
+  const amb = await accountFollowOp(SCRATCH_URL, {
     primary_tag: "#2PP0V9PP",
     player_tag: "#2PP0V9UU",
   });
@@ -381,7 +381,7 @@ test("account_track adds an alt to the account that holds the primary, once, and
   assert.equal(amb.accounts, 2);
   assert.equal(
     (
-      await accountTrackOp(SCRATCH_URL, {
+      await accountFollowOp(SCRATCH_URL, {
         primary_tag: "#2PP0V9QQ",
         player_tag: "#2PP0V9UU",
         relationship: "primary",

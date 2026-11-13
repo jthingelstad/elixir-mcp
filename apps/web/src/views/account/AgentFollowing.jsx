@@ -26,7 +26,7 @@ const of = (slot) =>
  * places, one pool across them and their agents, so the counts are the
  * pool's.
  */
-export function AgentTracking({ agent }) {
+export function AgentFollowing({ agent }) {
   const scope = useScope();
   const { data } = useMyClans();
   const clans = data?.clans ?? null;
