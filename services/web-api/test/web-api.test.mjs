@@ -1486,7 +1486,7 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   // The digest carries its cadence, weekly until chosen; no other kind does.
   assert.equal(kind("tracking_report").cadence, "weekly");
   assert.equal(kind("collector_activity").cadence, null);
-  assert.match(kind("tracking_report").sends.time, /^\d{1,2}:30 (am|pm)$/);
+  assert.match(kind("tracking_report").sends.time, /^\d{1,2}:00 (am|pm)$/);
   assert.equal(kind("clan_actions_waiting").sends, null);
   assert.deepEqual(Object.keys(kind("collector_activity").sends).sort(), [
     "time",
