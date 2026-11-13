@@ -9549,10 +9549,132 @@ a.kit-mbattle:hover {
   align-content: start;
   min-width: 0;
 }
+/* The policy save bar: one row of status and buttons, raised, kept in view
+   while the draft has changes. The note and the preview sit above it. */
 .clan-save {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: var(--r-panel);
+  background: var(--panel);
+}
+.clan-save[data-live="true"] {
   position: sticky;
-  bottom: 0;
+  bottom: 12px;
   z-index: 2;
+  background: var(--panel-raised);
+  box-shadow:
+    inset 3px 0 0 var(--gold),
+    0 8px 28px rgb(0 0 0 / 0.35);
+}
+.clan-save__status {
+  flex: 1 1 260px;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.clan-save[data-live="true"] .clan-save__status {
+  color: var(--ink);
+  font-weight: 600;
+}
+.clan-save__error {
+  flex-basis: 100%;
+  margin: 0;
+}
+.clan-save__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* One policy setting: its name, the box with its unit beside it, what the
+   saved policy had when the draft changed it, then its help. */
+.clan-field {
+  display: grid;
+  gap: 6px;
+}
+.clan-field__label,
+.clan-field__check {
+  font-weight: 600;
+  color: var(--ink);
+}
+.clan-field__check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.clan-field__control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.clan-field__control select {
+  flex: 0 1 420px;
+  min-width: 0;
+}
+.clan-field__num {
+  width: 112px;
+  font-variant-numeric: tabular-nums;
+}
+.clan-field__unit {
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.clan-field__was {
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: var(--gold-wash);
+  color: var(--gold);
+  font-size: var(--t-body-sm);
+  font-weight: 600;
+}
+.clan-field[data-changed="true"] .input {
+  border-color: var(--gold);
+}
+.clan-field__help {
+  max-width: 68ch;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+  line-height: 1.5;
+}
+/* Saved versions, newest first. */
+.clan-versions {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.clan-versions__row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+}
+.clan-versions__v {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.clan-versions__what {
+  display: grid;
+  gap: 2px;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.clan-versions__note {
+  color: var(--ink-body);
+}
+.clan-versions__now {
+  margin-left: 6px;
+  color: var(--ok);
+  font-weight: 600;
 }
 @media (max-width: 700px) {
   .clan-run {
@@ -9584,8 +9706,17 @@ a.kit-mbattle:hover {
     padding: 12px;
     background: var(--panel-float);
   }
-  .clan-save {
+  .clan-save,
+  .clan-save[data-live="true"] {
     position: static;
+    box-shadow: inset 3px 0 0 var(--gold);
+  }
+  .clan-save:not([data-live="true"]) {
+    box-shadow: none;
+  }
+  .clan-save__buttons,
+  .clan-save__buttons .btn {
+    flex: 1 1 auto;
   }
   .clan-decide {
     position: sticky;
@@ -10415,6 +10546,176 @@ a.kit-mbattle:hover {
 }
 .updates-pager__older {
   margin-left: auto;
+}
+
+/* A clan's house rules (Policy, Standing's "How it works here"): one flat
+   card a rule, its numbers big, then the policy's own sentences. */
+.kit-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.kit-rules__saved {
+  margin: -4px 0 0;
+  color: var(--ink-faint);
+  font-size: var(--t-body-sm);
+}
+.kit-rule {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: var(--r-panel);
+  background: var(--panel);
+  scroll-margin-top: 80px;
+}
+.kit-rule--about,
+.kit-rule--counts {
+  grid-column: 1 / -1;
+}
+.kit-rule--empty {
+  max-width: 640px;
+}
+.kit-rule[data-mark="true"],
+.kit-rule:target {
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+.kit-rule__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--gold-light);
+  font-size: var(--t-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.kit-rule__mark {
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  background: var(--gold-wash);
+  color: var(--gold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.kit-rule__nums {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-rule__num {
+  position: relative;
+  display: grid;
+  flex: 1 1 120px;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--r-control);
+  background: var(--ground-sunken);
+}
+.kit-rule__big {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.kit-rule__what {
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+  line-height: 1.35;
+}
+.kit-rule__join {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: var(--ink-faint);
+  font-size: var(--t-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.kit-rule__weights {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-rule__weight {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.kit-rule__weight span {
+  flex: 1;
+}
+.kit-rule__weight b {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+}
+.kit-rule__bar {
+  display: block;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+}
+.kit-rule__lines {
+  display: grid;
+  gap: 8px;
+}
+.kit-rule__lines p {
+  margin: 0;
+  color: var(--ink-body);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+/* The rule behind a member's group (Standing's You). */
+.kit-why {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--r-control);
+  background: var(--ground-sunken);
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+.kit-why__label {
+  color: var(--gold-light);
+  font-size: var(--t-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.kit-why__line {
+  margin: 0;
+  color: var(--ink-body);
+  line-height: 1.5;
+}
+.kit-why__link {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: var(--hit-touch);
+  font-weight: 600;
+}
+@media (max-width: 760px) {
+  .kit-rule {
+    padding: 16px;
+  }
+  .kit-rule__big {
+    font-size: 24px;
+  }
 }
 
 /* Touch (2026-11-13): the canvas draws small controls at 28 to 34px; under a

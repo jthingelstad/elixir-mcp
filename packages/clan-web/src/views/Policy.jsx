@@ -418,6 +418,7 @@ const Fields = ({ e, keys: fieldKeys }) => {
         f={view.fields[k]}
         help={view.fields[shown[i + 1]]?.why !== view.fields[k].why}
         value={draft[k]}
+        was={wasOf(e, k)}
         error={errors[k]}
         disabled={disabled}
         onChange={(v) => e.set(k, v)}
@@ -425,11 +426,18 @@ const Fields = ({ e, keys: fieldKeys }) => {
     ));
 };
 
+/** The saved value of a setting the draft changed, for its "Was" mark. */
+const wasOf = (e, k) =>
+  e.view.set && e.draft[k] !== e.view.current.values[k]
+    ? e.view.current.values[k]
+    : undefined;
+
 const SwitchField = ({ e, s }) => (
   <Field
     name={s.switch}
     f={e.view.fields[s.switch]}
     value={e.draft[s.switch]}
+    was={wasOf(e, s.switch)}
     error={e.errors[s.switch]}
     disabled={e.disabled}
     onChange={(v) => e.flip(s, v)}
@@ -739,29 +747,64 @@ export function PolicyFoot({ e, go }) {
   return (
     <>
       {view.can_edit ? (
-        <Panel as="div" className="clan-save">
-          <div className="panel__body grid gap-2.5">
-            <label className="field-label" htmlFor="policy-note">
-              A note for this version
-            </label>
-            <input
-              id="policy-note"
-              className="input"
-              placeholder="why this change (optional)"
-              value={e.note}
-              onChange={(ev) => e.setNote(ev.target.value)}
-            />
-            <p className="page-head__note m-0" role="status">
+        <>
+          <Panel as="div" className="clan-save-more">
+            <div className="panel__body grid gap-2.5">
+              <label className="field-label" htmlFor="policy-note">
+                A note for this version
+              </label>
+              <input
+                id="policy-note"
+                className="input"
+                placeholder="why this change (optional)"
+                value={e.note}
+                onChange={(ev) => e.setNote(ev.target.value)}
+              />
+              <details>
+                <summary className="label cursor-pointer">
+                  What saving does
+                </summary>
+                <div className="mt-2 grid gap-2 text-[13.5px]">
+                  <p className="m-0">
+                    Edits stay on this page until you save. The new version
+                    applies the next time Elixir reads the clan, which can be as
+                    soon as someone opens Today or Standing, so Actions waiting
+                    can change. With &ldquo;Tell the clan when the rules
+                    change&rdquo; on, saving also raises an Action for leaders,
+                    and a connected Discord can show its line straight away.
+                  </p>
+                  <p className="m-0">
+                    Review streaks are replayed under the new version; saving
+                    does not restart them or anyone&rsquo;s inactivity clock.
+                    Decisions already made and award grants already saved stay
+                    as they are. Awards have their own setup.
+                  </p>
+                  <p className="m-0">
+                    Preview uses what is on the record, with no model, and does
+                    not apply holds or decision cooldowns. It saves nothing.
+                  </p>
+                </div>
+              </details>
+              {e.preview && !e.conflict ? (
+                <Preview preview={e.preview} />
+              ) : null}
+            </div>
+          </Panel>
+          {/* The save bar: what saving would do and the two buttons. It
+              stays in view while a draft has changes, and is small enough
+              not to hide the fields being changed. */}
+          <div className="clan-save" data-live={e.canSave ? "true" : undefined}>
+            <p className="clan-save__status" role="status">
               {e.message.text && !e.message.bad
                 ? e.message.text
                 : policyStatus(e)}
             </p>
             {e.message.text && e.message.bad ? (
-              <div className="notice" role="alert">
+              <div className="notice clan-save__error" role="alert">
                 {e.message.text}
               </div>
             ) : null}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="clan-save__buttons">
               <button
                 type="button"
                 className="btn"
@@ -779,34 +822,8 @@ export function PolicyFoot({ e, go }) {
                 {view.set ? "Save as new version" : "Save this clan's policy"}
               </button>
             </div>
-            <details>
-              <summary className="label cursor-pointer">
-                What saving does
-              </summary>
-              <div className="mt-2 grid gap-2 text-[13.5px]">
-                <p className="m-0">
-                  Edits stay on this page until you save. The new version
-                  applies the next time Elixir reads the clan, which can be as
-                  soon as someone opens Today or Standing, so Actions waiting
-                  can change. With &ldquo;Tell the clan when the rules
-                  change&rdquo; on, saving also raises an Action for leaders,
-                  and a connected Discord can show its line straight away.
-                </p>
-                <p className="m-0">
-                  Review streaks are replayed under the new version; saving does
-                  not restart them or anyone&rsquo;s inactivity clock. Decisions
-                  already made and award grants already saved stay as they are.
-                  Awards have their own setup.
-                </p>
-                <p className="m-0">
-                  Preview uses what is on the record, with no model, and does
-                  not apply holds or decision cooldowns. It saves nothing.
-                </p>
-              </div>
-            </details>
-            {e.preview && !e.conflict ? <Preview preview={e.preview} /> : null}
           </div>
-        </Panel>
+        </>
       ) : null}
       <Disclosure title="Draft agreement">
         <div className="grid gap-2">
@@ -851,35 +868,81 @@ export function PolicyFoot({ e, go }) {
       </Disclosure>
       {view.versions.length ? (
         <Disclosure title={`Versions (${view.versions.length})`}>
-          <VersionRows versions={view.versions} />
+          <VersionRows
+            versions={view.versions}
+            current={view.current.version}
+          />
         </Disclosure>
       ) : null}
     </>
   );
 }
 
-function VersionRows({ versions }) {
+/** Every saved version, newest first, the one in use marked. */
+function VersionRows({ versions, current }) {
   const { when } = useClock();
+  const newest = [...versions].sort((a, b) => b.version - a.version);
   return (
-    <ul className="m-0 grid list-none gap-1 p-0 text-[13.5px]">
-      {versions.map((v) => (
-        <li key={v.version}>
-          v{v.version} · {when(v.saved_at)}
-          {v.saved_by_name ? ` · ${v.saved_by_name}` : ""}
-          {v.note ? ` · ${v.note}` : ""}
+    <ol className="clan-versions">
+      {newest.map((v) => (
+        <li key={v.version} className="clan-versions__row">
+          <span className="clan-versions__v">v{v.version}</span>
+          <span className="clan-versions__what">
+            <span>
+              {when(v.saved_at)}
+              {v.saved_by_name ? ` · ${v.saved_by_name}` : ""}
+              {v.version === current ? (
+                <span className="clan-versions__now"> In use</span>
+              ) : null}
+            </span>
+            {v.note ? (
+              <span className="clan-versions__note">{v.note}</span>
+            ) : null}
+          </span>
         </li>
       ))}
-    </ul>
+    </ol>
   );
 }
 
-/** One setting with its help and its problem, if any. */
-function Field({ name, f, help = true, value, error, disabled, onChange }) {
+/** What a saved value was, in the field's own words. */
+function wasText(f, was) {
+  if (f.type === "boolean") return was ? "On" : "Off";
+  if (f.type === "enum")
+    return f.options.find((o) => o.value === was)?.label ?? String(was);
+  return `${was}`;
+}
+
+/** One setting with its help and its problem, if any. A changed setting
+ *  says what the saved policy had, so a leader sees every edit before
+ *  saving. */
+function Field({
+  name,
+  f,
+  help = true,
+  value,
+  was,
+  error,
+  disabled,
+  onChange,
+}) {
   const id = `f-${name}`;
+  const numeric = f.type === "integer" || f.type === "number";
+  const changed = was !== undefined;
+  const wasMark = changed ? (
+    <span className="clan-field__was" id={`${id}-was`}>
+      Was {wasText(f, was)}
+      {numeric && f.unit ? ` ${f.unit}` : ""}
+    </span>
+  ) : null;
   return (
-    <div id={name} className="grid gap-1">
+    <div
+      id={name}
+      className="clan-field"
+      data-changed={changed ? "true" : undefined}
+    >
       {f.type === "boolean" ? (
-        <label className="flex items-center gap-2 font-semibold">
+        <label className="clan-field__check">
           <input
             id={id}
             type="checkbox"
@@ -887,51 +950,60 @@ function Field({ name, f, help = true, value, error, disabled, onChange }) {
             checked={Boolean(value)}
             disabled={disabled}
             onChange={(e) => onChange(e.target.checked)}
+            aria-describedby={changed ? `${id}-was` : undefined}
           />
           <span>{f.label}</span>
+          {wasMark}
         </label>
       ) : (
-        <label className="field-label font-semibold" htmlFor={id}>
-          {f.label}{" "}
-          {f.type === "integer" || f.type === "number" ? (
-            <span className="page-head__note">
-              ({f.unit}, {f.min} to {f.max})
-            </span>
-          ) : null}
+        <label className="clan-field__label" htmlFor={id}>
+          {f.label}
         </label>
       )}
       {f.type === "enum" ? (
-        <select
-          id={id}
-          className="input max-w-[420px]"
-          value={value}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
-          aria-invalid={Boolean(error)}
-        >
-          {f.options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        <div className="clan-field__control">
+          <select
+            id={id}
+            className="input"
+            value={value}
+            disabled={disabled}
+            onChange={(e) => onChange(e.target.value)}
+            aria-invalid={Boolean(error)}
+            aria-describedby={changed ? `${id}-was` : undefined}
+          >
+            {f.options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          {wasMark}
+        </div>
       ) : f.type === "boolean" ? null : (
-        <input
-          id={id}
-          className="input max-w-[160px]"
-          type="number"
-          step={f.type === "integer" ? 1 : 0.01}
-          min={f.min}
-          max={f.max}
-          value={value}
-          disabled={disabled}
-          onChange={(e) =>
-            onChange(e.target.value === "" ? "" : Number(e.target.value))
-          }
-          aria-invalid={Boolean(error)}
-        />
+        <div className="clan-field__control">
+          <input
+            id={id}
+            className="input clan-field__num"
+            type="number"
+            inputMode={f.type === "integer" ? "numeric" : "decimal"}
+            step={f.type === "integer" ? 1 : 0.01}
+            min={f.min}
+            max={f.max}
+            value={value}
+            disabled={disabled}
+            onChange={(e) =>
+              onChange(e.target.value === "" ? "" : Number(e.target.value))
+            }
+            aria-invalid={Boolean(error)}
+            aria-describedby={`${id}-unit${changed ? ` ${id}-was` : ""}`}
+          />
+          <span className="clan-field__unit" id={`${id}-unit`}>
+            {f.unit}, {f.min} to {f.max}
+          </span>
+          {wasMark}
+        </div>
       )}
-      {help ? <div className="page-head__note">{f.why}</div> : null}
+      {help ? <div className="clan-field__help">{f.why}</div> : null}
       {error ? (
         <div className="field-error text-[var(--bad)]" role="alert">
           {error}
