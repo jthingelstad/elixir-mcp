@@ -7,6 +7,7 @@ import {
   Tag,
   TagText,
   useClock,
+  Link,
 } from "@elixir-mcp/ui";
 import {
   useActions,
@@ -69,10 +70,6 @@ function YouThisWeek({ d }) {
 function YouCard({ clan, base, navigate }) {
   const { state } = useMemberView(clan.clan_tag);
   const d = state.data;
-  const go = (path) => (e) => {
-    e.preventDefault();
-    navigate?.(path);
-  };
   const title = `You in ${clan.name ?? clan.clan_tag}`;
   if (state.error || state.forbidden)
     return (
@@ -106,18 +103,18 @@ function YouCard({ clan, base, navigate }) {
         <h4 className="label m-0">This week so far</h4>
         <YouThisWeek d={d} />
         <div className="flex flex-wrap gap-2">
-          <a className="btn btn--sm" href={own} onClick={go(own)}>
+          <Link to={own} navigate={navigate} className="btn btn--sm">
             Your record here
-          </a>
+          </Link>
           {d.clan ? (
-            <a className="btn btn--sm" href={how} onClick={go(how)}>
+            <Link to={how} navigate={navigate} className="btn btn--sm">
               How it works here
-            </a>
+            </Link>
           ) : null}
           {d.clan ? (
-            <a className="btn btn--sm" href={away} onClick={go(away)}>
+            <Link to={away} navigate={navigate} className="btn btn--sm">
               {d.hold?.kind === "away" ? "Change it" : "Going to be away?"}
-            </a>
+            </Link>
           ) : null}
         </div>
       </div>
@@ -132,16 +129,9 @@ function WeekCard({ clan, base, navigate }) {
   const d = state.data;
   const season = `${base}/war`;
   const open = (
-    <a
-      className="btn btn--sm"
-      href={season}
-      onClick={(e) => {
-        e.preventDefault();
-        navigate?.(season);
-      }}
-    >
+    <Link to={season} navigate={navigate} className="btn btn--sm">
       Open War
-    </a>
+    </Link>
   );
   if (state.error || state.forbidden)
     return (
@@ -293,15 +283,9 @@ function Decided({ clan, navigate }) {
               </span>
             ) : null}
             {link ? (
-              <a
-                href={to}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate?.(to);
-                }}
-              >
+              <Link to={to} navigate={navigate}>
                 {c.label}
-              </a>
+              </Link>
             ) : (
               c.label
             )}

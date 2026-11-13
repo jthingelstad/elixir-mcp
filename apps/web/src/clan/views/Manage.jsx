@@ -1,4 +1,13 @@
-import { Empty, Fresh, Panel, Tag, ago, noun, useClock } from "@elixir-mcp/ui";
+import {
+  Empty,
+  Fresh,
+  Panel,
+  Tag,
+  ago,
+  noun,
+  useClock,
+  Link,
+} from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useManage } from "../lib/queries.js";
 import { MemberSheet } from "../components/MemberSheet.jsx";
@@ -70,15 +79,9 @@ function MemberRow({ m, who, open, setOpen, sheet, navigate, action }) {
       <div className="clan-row__line">
         <span className="clan-row__main">
           <span className="clan-row__title">
-            <a
-              href={page}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate?.(page);
-              }}
-            >
+            <Link to={page} navigate={navigate}>
               {m.name ?? <Tag tag={m.player_tag} />}
-            </a>{" "}
+            </Link>{" "}
             <RoleChip role={m.role} label={ROLE[m.role] ?? m.role} />
             {m.hold?.active !== false && m.hold ? (
               <span className="chip chip--info ml-1.5">
@@ -168,16 +171,9 @@ export function Review({ clan, navigate, who }) {
         <Empty
           title="No policy yet"
           action={
-            <a
-              className="btn btn--primary"
-              href={to}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate?.(to);
-              }}
-            >
+            <Link to={to} navigate={navigate} className="btn btn--primary">
               Set up the policy
-            </a>
+            </Link>
           }
         >
           Nothing in clan management runs until a leader or co-leader sets this

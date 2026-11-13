@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Disclosure, Fresh, Spark, Panel, Empty, Table } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  Fresh,
+  Spark,
+  Panel,
+  Empty,
+  Table,
+  Link,
+} from "@elixir-mcp/ui";
 import { useStanding } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
 import { ROLE, seasonWeek } from "../lib/words.js";
@@ -180,17 +188,9 @@ function How({ d, clan, who, navigate }) {
       </div>
       {LEADERS.has(who?.role) ? (
         <div className="panel__foot">
-          <a
-            className="btn"
-            href={policy}
-            onClick={(e) => {
-              if (!navigate) return;
-              e.preventDefault();
-              navigate(policy);
-            }}
-          >
+          <Link to={policy} navigate={navigate} className="btn">
             Read the policy in full, in Run
-          </a>
+          </Link>
         </div>
       ) : null}
     </Panel>
@@ -228,17 +228,13 @@ function WhyHere({ you, how, clan, navigate }) {
     <div className="kit-why">
       <span className="kit-why__label">The rule behind this</span>
       <p className="kit-why__line">{ruleLine(section, you.status)}</p>
-      <a
+      <Link
+        to={`${to}#${ruleId(key)}`}
+        navigate={navigate}
         className="kit-why__link"
-        href={`${to}#${ruleId(key)}`}
-        onClick={(e) => {
-          if (!navigate) return;
-          e.preventDefault();
-          navigate(`${to}#${ruleId(key)}`);
-        }}
       >
         Read the rule: {ruleTitle(section)}
-      </a>
+      </Link>
     </div>
   );
 }

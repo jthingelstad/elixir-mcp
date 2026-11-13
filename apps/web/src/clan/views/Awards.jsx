@@ -7,6 +7,7 @@ import {
   Panel,
   Table,
   Empty,
+  Link,
 } from "@elixir-mcp/ui";
 import { useRef, useState } from "react";
 import { manageApi } from "../api.js";
@@ -114,16 +115,9 @@ export function Awards({
           title="This clan runs no awards yet"
           action={
             d.can_edit ? (
-              <a
-                className="btn btn--primary"
-                href={setup}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate?.(setup);
-                }}
-              >
+              <Link to={setup} navigate={navigate} className="btn btn--primary">
                 Add awards, in Run
-              </a>
+              </Link>
             ) : null
           }
         >
@@ -170,15 +164,9 @@ export function Awards({
           {d.can_edit ? (
             <>
               {" · "}
-              <a
-                href={setup}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate?.(setup);
-                }}
-              >
+              <Link to={setup} navigate={navigate}>
                 Awards setup, in Run
-              </a>
+              </Link>
             </>
           ) : null}
         </p>
@@ -350,19 +338,14 @@ function CurrentUpdate({ clan, navigate, seasonId, viewingSeason }) {
         </p>
       ) : null}
       {result ? (
-        <a
-          href={`${clanPath(clan.clan_tag)}/actions/${result.action.number}`}
-          onClick={(e) => {
-            if (navigate) {
-              e.preventDefault();
-              navigate(e.currentTarget.getAttribute("href"));
-            }
-          }}
+        <Link
+          to={`${clanPath(clan.clan_tag)}/actions/${result.action.number}`}
+          navigate={navigate}
         >
           Review Action #{result.action.number} ·{" "}
           {result.action.evidence.messages.length} message
           {result.action.evidence.messages.length === 1 ? "" : "s"}
-        </a>
+        </Link>
       ) : null}
     </div>
   );

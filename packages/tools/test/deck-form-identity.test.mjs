@@ -372,16 +372,19 @@ test("6.6.0: decks are stamped (backfill and at insert), group_by folds by label
   // (A fresh client: the vocabulary cache on scratch.db predates the import.)
   const ingestClient = new pg.Client({ connectionString: scratch.url });
   await ingestClient.connect();
-  await projectDecks(ingestClient, [
-    {
-      battle_id: "df-stamp-1",
-      player_tag: TAG,
-      battle_time: "2026-09-04T12:00:00Z",
-      deck_hash: newHash,
-      deck: { cards: cards(0), supportCards: [NEW_TOWER] },
-    },
-  ]);
-  await ingestClient.end();
+  try {
+    await projectDecks(ingestClient, [
+      {
+        battle_id: "df-stamp-1",
+        player_tag: TAG,
+        battle_time: "2026-09-04T12:00:00Z",
+        deck_hash: newHash,
+        deck: { cards: cards(0), supportCards: [NEW_TOWER] },
+      },
+    ]);
+  } finally {
+    await ingestClient.end();
+  }
   const { rows: fresh } = await scratch.db.query(
     `select archetype_label, archetype_version from deck where deck_hash = $1`,
     [newHash],

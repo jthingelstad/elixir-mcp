@@ -23,15 +23,21 @@ const SCRATCH_URL = ADMIN_URL.replace(/\/postgres$/, `/${SCRATCH}`);
 before(async () => {
   const admin = new pg.Client({ connectionString: ADMIN_URL });
   await admin.connect();
-  await admin.query(`create database ${SCRATCH}`);
-  await admin.end();
+  try {
+    await admin.query(`create database ${SCRATCH}`);
+  } finally {
+    await admin.end();
+  }
 });
 
 after(async () => {
   const admin = new pg.Client({ connectionString: ADMIN_URL });
   await admin.connect();
-  await admin.query(`drop database if exists ${SCRATCH} with (force)`);
-  await admin.end();
+  try {
+    await admin.query(`drop database if exists ${SCRATCH} with (force)`);
+  } finally {
+    await admin.end();
+  }
 });
 
 test("migrations are dense, ordered, well-named", async () => {
@@ -358,41 +364,44 @@ test("probe op: hourly census counts live fetches, excludes the backfill gateway
 
   const db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
-  const {
-    rows: [owner],
-  } = await db.query(
-    `insert into account (email_hash, status) values ('probe-owner', 'approved')
-     returning account_id`,
-  );
-  const {
-    rows: [backfill],
-  } = await db.query(
-    `insert into gateway (owner_account_id, name, static_ip, status)
-     values ($1, 'backfill-elixir-bot', '127.0.0.1', 'active')
-     returning gateway_id`,
-    [owner.account_id],
-  );
-  const {
-    rows: [gw],
-  } = await db.query(
-    `insert into gateway (owner_account_id, name, static_ip, status)
-     values ($1, 'probe-live-gw', '10.0.0.9', 'active')
-     returning gateway_id`,
-    [owner.account_id],
-  );
-  await db.query(
-    `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
-     values ('player_battlelog', $1, now(), 'probe-backfill-hash', $2, 'admitted'),
-            ('player_battlelog', '#PROBE1', now(), 'probe-hash', $3, 'admitted')`,
-    [metaJson[fixture].entity_key, backfill.gateway_id, gw.gateway_id],
-  );
-  await ingestBattlelog(db, {
-    observerTag: metaJson[fixture].entity_key,
-    payload: JSON.parse(
-      await readFile(path.join(repoRoot, "fixtures", fixture), "utf8"),
-    ),
-  });
-  await db.end();
+  try {
+    const {
+      rows: [owner],
+    } = await db.query(
+      `insert into account (email_hash, status) values ('probe-owner', 'approved')
+       returning account_id`,
+    );
+    const {
+      rows: [backfill],
+    } = await db.query(
+      `insert into gateway (owner_account_id, name, static_ip, status)
+       values ($1, 'backfill-elixir-bot', '127.0.0.1', 'active')
+       returning gateway_id`,
+      [owner.account_id],
+    );
+    const {
+      rows: [gw],
+    } = await db.query(
+      `insert into gateway (owner_account_id, name, static_ip, status)
+       values ($1, 'probe-live-gw', '10.0.0.9', 'active')
+       returning gateway_id`,
+      [owner.account_id],
+    );
+    await db.query(
+      `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+       values ('player_battlelog', $1, now(), 'probe-backfill-hash', $2, 'admitted'),
+              ('player_battlelog', '#PROBE1', now(), 'probe-hash', $3, 'admitted')`,
+      [metaJson[fixture].entity_key, backfill.gateway_id, gw.gateway_id],
+    );
+    await ingestBattlelog(db, {
+      observerTag: metaJson[fixture].entity_key,
+      payload: JSON.parse(
+        await readFile(path.join(repoRoot, "fixtures", fixture), "utf8"),
+      ),
+    });
+  } finally {
+    await db.end();
+  }
 
   const result = await handler({ probe: true });
   assert.ok(Array.isArray(result.hours), "hours array");
@@ -408,38 +417,41 @@ test("capture-audit op: reports only gap subjects with their scheduler evidence"
   const { handler } = await import("../src/lambda.mjs");
   const db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
-  const gateway = (
+  try {
+    const gateway = (
+      await db.query(
+        `select gateway_id from gateway where name = 'probe-live-gw'`,
+      )
+    ).rows[0];
+    const { rows: receipts } = await db.query(
+      `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+       values ('player_battlelog', '#2GAP1', now() - interval '2 hours', 'gap-1', $1, 'admitted'),
+              ('player_battlelog', '#2GAP1', now() - interval '1 hour', 'gap-2', $1, 'admitted'),
+              ('player_battlelog', '#2NOGAP', now(), 'gap-3', $1, 'admitted')
+       returning receipt_id, entity_key, fetched_at`,
+      [gateway.gateway_id],
+    );
     await db.query(
-      `select gateway_id from gateway where name = 'probe-live-gw'`,
-    )
-  ).rows[0];
-  const { rows: receipts } = await db.query(
-    `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
-     values ('player_battlelog', '#2GAP1', now() - interval '2 hours', 'gap-1', $1, 'admitted'),
-            ('player_battlelog', '#2GAP1', now() - interval '1 hour', 'gap-2', $1, 'admitted'),
-            ('player_battlelog', '#2NOGAP', now(), 'gap-3', $1, 'admitted')
-     returning receipt_id, entity_key, fetched_at`,
-    [gateway.gateway_id],
-  );
-  await db.query(
-    `insert into capture_audit (receipt_id, subject_tag, gap, fetched_at)
-     values ($1, '#2GAP1', true, $2),
-            ($3, '#2GAP1', false, $4),
-            ($5, '#2NOGAP', false, $6)`,
-    [
-      receipts[0].receipt_id,
-      receipts[0].fetched_at,
-      receipts[1].receipt_id,
-      receipts[1].fetched_at,
-      receipts[2].receipt_id,
-      receipts[2].fetched_at,
-    ],
-  );
-  await db.query(
-    `insert into poll_state (subject_tag, endpoint, last_planned_at, last_admitted_at)
-     values ('#2GAP1', 'player_battlelog', now() - interval '30 minutes', now() - interval '1 hour')`,
-  );
-  await db.end();
+      `insert into capture_audit (receipt_id, subject_tag, gap, fetched_at)
+       values ($1, '#2GAP1', true, $2),
+              ($3, '#2GAP1', false, $4),
+              ($5, '#2NOGAP', false, $6)`,
+      [
+        receipts[0].receipt_id,
+        receipts[0].fetched_at,
+        receipts[1].receipt_id,
+        receipts[1].fetched_at,
+        receipts[2].receipt_id,
+        receipts[2].fetched_at,
+      ],
+    );
+    await db.query(
+      `insert into poll_state (subject_tag, endpoint, last_planned_at, last_admitted_at)
+       values ('#2GAP1', 'player_battlelog', now() - interval '30 minutes', now() - interval '1 hour')`,
+    );
+  } finally {
+    await db.end();
+  }
 
   const result = await handler({ capture_audit: { days: 1 } });
   assert.ok(
@@ -473,14 +485,18 @@ test("payload sweep: only superseded rows with an S3 twin leave Postgres", async
 
   const db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
-  // Two versions of one entity: v1 superseded, v2 latest.
-  const { rows: versions } = await db.query(
-    `insert into api_payload (endpoint, entity_key, payload_hash, payload_json, first_fetched_at, last_fetched_at)
+  let versions;
+  try {
+    // Two versions of one entity: v1 superseded, v2 latest.
+    ({ rows: versions } = await db.query(
+      `insert into api_payload (endpoint, entity_key, payload_hash, payload_json, first_fetched_at, last_fetched_at)
      values ('player', '#SWEEP1', 'hash-v1', '{"v":1}', '2026-09-01T10:00:00Z', '2026-09-01T10:00:00Z'),
             ('player', '#SWEEP1', 'hash-v2', '{"v":2}', '2026-09-02T10:00:00Z', '2026-09-02T10:00:00Z')
      returning endpoint, entity_key, payload_hash, first_fetched_at`,
-  );
-  await db.end();
+    ));
+  } finally {
+    await db.end();
+  }
 
   const stored = new Set();
   const fakeS3 = {
@@ -516,49 +532,55 @@ test("payload sweep: only superseded rows with an S3 twin leave Postgres", async
   assert.ok(swept.swept >= 1);
   const check = new pg.Client({ connectionString: SCRATCH_URL });
   await check.connect();
-  const left = await check.query(
-    `select payload_hash from api_payload where entity_key = '#SWEEP1' order by payload_hash`,
-  );
-  assert.deepEqual(
-    left.rows.map((r) => r.payload_hash),
-    ["hash-v2"],
-    "latest content stays hot in Postgres",
-  );
-  await check.end();
+  try {
+    const left = await check.query(
+      `select payload_hash from api_payload where entity_key = '#SWEEP1' order by payload_hash`,
+    );
+    assert.deepEqual(
+      left.rows.map((r) => r.payload_hash),
+      ["hash-v2"],
+      "latest content stays hot in Postgres",
+    );
+  } finally {
+    await check.end();
+  }
 });
 
 test("operational sweep: dead weight leaves, live rows and replay-memory stay", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
   const db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
-  await db.query(
-    `insert into rate_limit (bucket, window_start, count)
-     values ('b-old', now() - interval '8 days', 1),
-            ('b-live', now() - interval '1 hour', 1)`,
-  );
-  await db.query(
-    `insert into magic_login (token_hash, email_hash, code_hash, expires_at)
-     values ('t-old', 'e', 'c', now() - interval '31 days'),
-            ('t-live', 'e', 'c', now() + interval '15 minutes')`,
-  );
-  const {
-    rows: [acct],
-  } = await db.query(
-    `insert into account (email_hash, status) values ('sweep-op', 'approved') returning account_id`,
-  );
-  await db.query(
-    `insert into session (session_id, account_id, sliding_expires_at, absolute_expires_at)
-     values ('s-old', $1, now() - interval '31 days', now() - interval '1 day'),
-            ('s-live', $1, now() + interval '5 days', now() + interval '80 days')`,
-    [acct.account_id],
-  );
-  await db.query(
-    `insert into mcp_call_audit (account_id, tool, viewer_ip, created_at)
-     values ($1, 'old_tool', '192.0.2.1', now() - interval '31 days'),
-            ($1, 'new_tool', '192.0.2.2', now())`,
-    [acct.account_id],
-  );
-  await db.end();
+  try {
+    await db.query(
+      `insert into rate_limit (bucket, window_start, count)
+       values ('b-old', now() - interval '8 days', 1),
+              ('b-live', now() - interval '1 hour', 1)`,
+    );
+    await db.query(
+      `insert into magic_login (token_hash, email_hash, code_hash, expires_at)
+       values ('t-old', 'e', 'c', now() - interval '31 days'),
+              ('t-live', 'e', 'c', now() + interval '15 minutes')`,
+    );
+    const {
+      rows: [acct],
+    } = await db.query(
+      `insert into account (email_hash, status) values ('sweep-op', 'approved') returning account_id`,
+    );
+    await db.query(
+      `insert into session (session_id, account_id, sliding_expires_at, absolute_expires_at)
+       values ('s-old', $1, now() - interval '31 days', now() - interval '1 day'),
+              ('s-live', $1, now() + interval '5 days', now() + interval '80 days')`,
+      [acct.account_id],
+    );
+    await db.query(
+      `insert into mcp_call_audit (account_id, tool, viewer_ip, created_at)
+       values ($1, 'old_tool', '192.0.2.1', now() - interval '31 days'),
+              ($1, 'new_tool', '192.0.2.2', now())`,
+      [acct.account_id],
+    );
+  } finally {
+    await db.end();
+  }
 
   // The operational sweep moved to the jobs Lambda.
   const { handler: jobsHandler } = await import("../../jobs/src/index.mjs");
@@ -570,24 +592,31 @@ test("operational sweep: dead weight leaves, live rows and replay-memory stay", 
 
   const check = new pg.Client({ connectionString: SCRATCH_URL });
   await check.connect();
-  const rl = await check.query(`select bucket from rate_limit`);
-  assert.deepEqual(
-    rl.rows.map((r) => r.bucket).filter((b) => b.startsWith("b-")),
-    ["b-live"],
-  );
-  const sess = await check.query(
-    `select session_id from session where session_id like 's-%'`,
-  );
-  assert.deepEqual(
-    sess.rows.map((r) => r.session_id),
-    ["s-live"],
-  );
-  const audit = await check.query(
-    `select tool, viewer_ip from mcp_call_audit where tool in ('old_tool','new_tool') order by tool desc`,
-  );
-  assert.equal(audit.rows[0].viewer_ip, null, "old address cleared, row kept");
-  assert.ok(audit.rows[1].viewer_ip, "recent address untouched");
-  await check.end();
+  try {
+    const rl = await check.query(`select bucket from rate_limit`);
+    assert.deepEqual(
+      rl.rows.map((r) => r.bucket).filter((b) => b.startsWith("b-")),
+      ["b-live"],
+    );
+    const sess = await check.query(
+      `select session_id from session where session_id like 's-%'`,
+    );
+    assert.deepEqual(
+      sess.rows.map((r) => r.session_id),
+      ["s-live"],
+    );
+    const audit = await check.query(
+      `select tool, viewer_ip from mcp_call_audit where tool in ('old_tool','new_tool') order by tool desc`,
+    );
+    assert.equal(
+      audit.rows[0].viewer_ip,
+      null,
+      "old address cleared, row kept",
+    );
+    assert.ok(audit.rows[1].viewer_ip, "recent address untouched");
+  } finally {
+    await check.end();
+  }
 });
 
 // related_tools is text[]; the ops lane is typed by hand and a

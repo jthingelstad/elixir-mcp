@@ -1,3 +1,4 @@
+import { Link } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { clanPath } from "../lib/base.js";
 
@@ -42,16 +43,8 @@ export function MembersFind({ navigate, find, clan }) {
 export function MembersBack({ clan, navigate }) {
   const to = `${clanPath(clan.clan_tag)}/members`;
   return (
-    <a
-      className="clan-members-back"
-      href={to}
-      onClick={(e) => {
-        if (!navigate || e.metaKey || e.ctrlKey || e.shiftKey) return;
-        e.preventDefault();
-        navigate(to);
-      }}
-    >
+    <Link to={to} navigate={navigate} className="clan-members-back">
       ‹ Members
-    </a>
+    </Link>
   );
 }

@@ -1,3 +1,4 @@
+import { Link } from "@elixir-mcp/ui";
 import { useBlocker } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { clanPath } from "../lib/base.js";
@@ -104,13 +105,10 @@ function RunList({ e, base, current, navigate }) {
               const to = `${base}/${slug}`;
               return (
                 <li key={slug}>
-                  <a
-                    href={to}
+                  <Link
+                    to={to}
+                    navigate={navigate}
                     aria-current={current === slug ? "page" : undefined}
-                    onClick={(ev) => {
-                      ev.preventDefault();
-                      navigate?.(to);
-                    }}
                   >
                     <span>
                       {titleOf(slug)}
@@ -135,7 +133,7 @@ function RunList({ e, base, current, navigate }) {
                         state
                       )}
                     </span>
-                  </a>
+                  </Link>
                 </li>
               );
             })}
@@ -328,16 +326,9 @@ function RunRefused({ clan, navigate }) {
           Run is for the clan&rsquo;s leader and co-leaders, verified in Elixir.
           How the clan runs is under Policy, for every member.
         </span>
-        <a
-          className="btn btn--sm"
-          href={policy}
-          onClick={(ev) => {
-            ev.preventDefault();
-            navigate?.(policy);
-          }}
-        >
+        <Link to={policy} navigate={navigate} className="btn btn--sm">
           Open Policy
-        </a>
+        </Link>
       </div>
     </div>
   );
@@ -402,16 +393,9 @@ function RunSections({ clan, who, section, navigate }) {
         </div>
       ) : null}
       <div className="clan-run__section">
-        <a
-          className="clan-run__back"
-          href={base}
-          onClick={(ev) => {
-            ev.preventDefault();
-            navigate?.(base);
-          }}
-        >
+        <Link to={base} navigate={navigate} className="clan-run__back">
           ‹ Run
-        </a>
+        </Link>
         {!isPolicy ? (
           <Elsewhere clan={clan} who={who} slug={slug} navigate={navigate} />
         ) : failed ? (

@@ -98,11 +98,6 @@ export function YouHere({ clan, navigate }) {
   const { state } = useMemberView(clan.clan_tag);
   const d = state.data;
   const base = clanPath(clan.clan_tag);
-  const go = (path) => (e) => {
-    if (!navigate) return;
-    e.preventDefault();
-    navigate(path);
-  };
   const y = d?.you;
   const away = `${base}/members/away`;
   const head = (
@@ -134,9 +129,9 @@ export function YouHere({ clan, navigate }) {
           }
         >
           {d?.clan ? (
-            <a className="btn btn--sm w-fit" href={away} onClick={go(away)}>
+            <Link to={away} navigate={navigate} className="btn btn--sm w-fit">
               Away
-            </a>
+            </Link>
           ) : null}
         </PageHead>
       </div>
@@ -197,10 +192,10 @@ export function YouHere({ clan, navigate }) {
 
       {d.open_actions ? (
         <Panel
-          as="a"
+          as={Link}
+          to={`${base}/feed`}
+          navigate={navigate}
           className="flex items-center gap-3 px-4 py-3.5 mb-[22px] text-ink no-underline hover:bg-panel-raised"
-          href={`${base}/feed`}
-          onClick={go(`${base}/feed`)}
         >
           <span className="flex items-center justify-center w-[34px] h-[34px] rounded-control bg-info-fill text-accent-bright">
             <Icon name="inbox" size={17} />
@@ -257,9 +252,9 @@ export function YouHere({ clan, navigate }) {
             </div>
             {c ? (
               <div className="panel__foot">
-                <a href={elder} onClick={go(elder)}>
+                <Link to={elder} navigate={navigate}>
                   How it works here
-                </a>
+                </Link>
               </div>
             ) : null}
           </Panel>

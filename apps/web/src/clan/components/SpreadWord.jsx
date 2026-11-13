@@ -1,4 +1,4 @@
-import { Panel } from "@elixir-mcp/ui";
+import { Panel, Link } from "@elixir-mcp/ui";
 import { inviteCopy } from "@elixir-mcp/clan-engine";
 import { CopyLine } from "./ActionCard.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
@@ -32,10 +32,6 @@ export function spreadState({ me, clan, roster }) {
 /** Below ten: what waits, and how to get there. */
 export function SmallClan({ clan, members, min = MIN_MEMBERS, navigate }) {
   const base = clanPath(clan.clan_tag);
-  const go = (path) => (e) => {
-    e.preventDefault();
-    navigate?.(path);
-  };
   const lead = LEADERS.has(clan.role) && clan.verified !== false;
   // Recruit is the leaders' and elders' (Jamie, 2026-11-12): a member is
   // not sent to it.
@@ -55,13 +51,13 @@ export function SmallClan({ clan, members, min = MIN_MEMBERS, navigate }) {
         ) : null}
         {recruiter ? (
           <div className="flex flex-wrap gap-2">
-            <a className="btn btn--sm" href={recruit} onClick={go(recruit)}>
+            <Link to={recruit} navigate={navigate} className="btn btn--sm">
               Open Recruit
-            </a>
+            </Link>
             {lead ? (
-              <a className="btn btn--sm" href={policy} onClick={go(policy)}>
+              <Link to={policy} navigate={navigate} className="btn btn--sm">
                 Prepare the policy
-              </a>
+              </Link>
             ) : null}
           </div>
         ) : null}
@@ -86,16 +82,9 @@ export function SetupPolicy({ clan, navigate }) {
             <li key={t}>{t}</li>
           ))}
         </ul>
-        <a
-          className="btn btn--primary w-fit"
-          href={to}
-          onClick={(e) => {
-            e.preventDefault();
-            navigate?.(to);
-          }}
-        >
+        <Link to={to} navigate={navigate} className="btn btn--primary w-fit">
           Set up the policy
-        </a>
+        </Link>
       </div>
     </Panel>
   );

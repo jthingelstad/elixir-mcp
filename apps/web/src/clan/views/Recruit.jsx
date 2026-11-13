@@ -1,4 +1,12 @@
-import { Disclosure, Fresh, Icon, noun, useClock, Panel } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  Fresh,
+  Icon,
+  noun,
+  useClock,
+  Panel,
+  Link,
+} from "@elixir-mcp/ui";
 import { PageHead } from "../components/PageHead.jsx";
 import { useEffect, useState } from "react";
 import { manageApi } from "../api.js";
@@ -351,19 +359,15 @@ function DraftWithModel({ clan, model, navigate, current, onDraft }) {
   const [result, setResult] = useState(null);
   const [previous, setPrevious] = useState(null);
   const modelPath = `${clanPath(clan.clan_tag)}/run/model-voice`;
-  const toModel = (e) => {
-    e.preventDefault();
-    navigate?.(modelPath);
-  };
   if (!model.set || model.refused)
     return (
       <div className="notice">
         {model.refused
           ? "Anthropic stopped accepting the clan's key, so the clan's model cannot draft this. "
           : "The clan's own model can draft these words from what the clan is: the game's numbers, what it is for and how it runs. It runs on the clan's own Anthropic key. "}
-        <a href={modelPath} onClick={toModel}>
+        <Link to={modelPath} navigate={navigate}>
           {model.refused ? "Add the key again" : "Add the clan's key"}
-        </a>
+        </Link>
         .
       </div>
     );

@@ -273,10 +273,6 @@ function Comings({ roster, clan, history, navigate }) {
   const base = clanPath(clan.clan_tag);
   // Decided is the leaders'; everyone else reads the same week by week.
   const more = history ? `${base}/run/decided` : `${base}/war`;
-  const go = (path) => (e) => {
-    e.preventDefault();
-    navigate?.(path);
-  };
   const back = new Map(
     (roster.members ?? [])
       .filter((m) => m.rejoined_observed_at)
@@ -306,9 +302,9 @@ function Comings({ roster, clan, history, navigate }) {
         <h2 id="clan-comings" className="kit-panel__title grow">
           Comings and goings
         </h2>
-        <a className="text-[13px] font-normal" href={more} onClick={go(more)}>
+        <Link to={more} navigate={navigate} className="text-[13px] font-normal">
           {history ? "Who came and went, on Today" : "Open Season"}
-        </a>
+        </Link>
       </div>
       <div className="px-4 py-1">
         {rows.length ? (

@@ -6,6 +6,7 @@ import {
   Setting,
   useClock,
   Panel,
+  Link,
 } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useActivityDiscord, useInvalidate } from "../lib/queries.js";
@@ -21,12 +22,6 @@ const dead = (c) =>
  * The parent observes pending operations across closing and reopening. */
 export function ActivityDiscordSetting({ clan, navigate }) {
   const modelVoice = `${clanPath(clan.clan_tag)}/run/model-voice`;
-  // A link to the clan's model and voice, in Run.
-  const toModelVoice = (e) => {
-    if (!navigate) return;
-    e.preventDefault();
-    navigate(modelVoice);
-  };
   const { state } = useActivityDiscord(clan.clan_tag);
   const invalidate = useInvalidate();
   const [busy, setBusy] = useState(false);
@@ -66,7 +61,7 @@ export function ActivityDiscordSetting({ clan, navigate }) {
       d={d}
       busy={busy}
       modelVoice={modelVoice}
-      toModelVoice={toModelVoice}
+      navigate={navigate}
       save={(body, event, label) =>
         perform(
           () => manageApi.saveActivityDiscord(clan.clan_tag, body),
@@ -221,7 +216,7 @@ function ActivityEditor({
   remove: disconnect,
   preview,
   modelVoice,
-  toModelVoice,
+  navigate,
 }) {
   const { whenDay } = useClock();
   const c = d.connection;
@@ -417,9 +412,9 @@ function ActivityEditor({
                   To have the clan&rsquo;s own model edit the channel in the
                   clan&rsquo;s voice rather than post Elixir&rsquo;s own
                   stories, add the clan&rsquo;s Anthropic API key in{" "}
-                  <a href={modelVoice} onClick={toModelVoice}>
+                  <Link to={modelVoice} navigate={navigate}>
                     Model &amp; voice
-                  </a>
+                  </Link>
                 </span>
               </div>
             ) : (
@@ -491,9 +486,9 @@ function ActivityEditor({
                   <p className="page-head__note m-0">
                     The clan&rsquo;s one voice, also used for drafts on Actions.
                     Leaders and co-leaders set it in{" "}
-                    <a href={modelVoice} onClick={toModelVoice}>
+                    <Link to={modelVoice} navigate={navigate}>
                       Model &amp; voice
-                    </a>
+                    </Link>
                     .
                   </p>
                 </div>

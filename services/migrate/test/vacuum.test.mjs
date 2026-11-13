@@ -160,13 +160,19 @@ async function ladder(files, options = {}) {
 test("the ladder vacuums what a migration declares, after the commit, and never fails for it", async (t) => {
   const admin = new pg.Client({ connectionString: ADMIN_URL });
   await admin.connect();
-  await admin.query(`create database ${BARE}`);
-  await admin.end();
+  try {
+    await admin.query(`create database ${BARE}`);
+  } finally {
+    await admin.end();
+  }
   t.after(async () => {
     const a = new pg.Client({ connectionString: ADMIN_URL });
     await a.connect();
-    await a.query(`drop database if exists ${BARE} with (force)`);
-    await a.end();
+    try {
+      await a.query(`drop database if exists ${BARE} with (force)`);
+    } finally {
+      await a.end();
+    }
   });
 
   const fill = `-- 0001: a probe.\n-- vacuum after: probe\ncreate table probe (id int primary key, v int) with (autovacuum_enabled = false);\ninsert into probe select g, g from generate_series(1, ${PROBE_ROWS}) g;\n`;

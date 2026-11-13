@@ -1,4 +1,4 @@
-import { Icon, noun } from "@elixir-mcp/ui";
+import { Icon, noun, Link } from "@elixir-mcp/ui";
 import { n, date } from "../lib/words.js";
 
 const STATUS = {
@@ -105,16 +105,9 @@ function Clock({ inactivity, awayTo, navigate }) {
           : `${Math.floor(inactivity.days_idle)} ${noun(Math.floor(inactivity.days_idle), "day")} since your last battle; this clan counts a member at risk from ${inactivity.at_risk_days}. Modes the battle log does not carry are not seen.`}
       </span>
       {!held && awayTo ? (
-        <a
-          className="btn btn--sm"
-          href={awayTo}
-          onClick={(e) => {
-            e.preventDefault();
-            navigate?.(awayTo);
-          }}
-        >
+        <Link to={awayTo} navigate={navigate} className="btn btn--sm">
           Mark me away
-        </a>
+        </Link>
       ) : null}
     </div>
   );

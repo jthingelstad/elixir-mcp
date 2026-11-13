@@ -73,16 +73,9 @@ function ActivityClock({ clan, playerTag, navigate, who }) {
         ) : null}
         <div className="flex flex-wrap gap-2">
           {to ? (
-            <a
-              className="btn btn--sm"
-              href={to}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate?.(to);
-              }}
-            >
+            <Link to={to} navigate={navigate} className="btn btn--sm">
               Open Action
-            </a>
+            </Link>
           ) : null}
           <button
             type="button"

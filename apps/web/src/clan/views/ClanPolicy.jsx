@@ -1,4 +1,4 @@
-import { ErrorState, useClock } from "@elixir-mcp/ui";
+import { ErrorState, useClock, Link } from "@elixir-mcp/ui";
 import { useEffect } from "react";
 import { clanPath } from "../lib/base.js";
 import { usePolicy } from "../lib/queries.js";
@@ -31,16 +31,13 @@ export function ClanPolicy({ clan, navigate }) {
       document.getElementById(hash)?.scrollIntoView?.({ block: "start" });
   }, [ready]);
   const editLink = lead ? (
-    <a
+    <Link
+      to={edit}
+      navigate={navigate}
       className={data?.set ? "btn" : "btn btn--primary"}
-      href={edit}
-      onClick={(e) => {
-        e.preventDefault();
-        navigate?.(edit);
-      }}
     >
       {data?.set ? "Change it in Run" : "Set it up in Run"}
-    </a>
+    </Link>
   ) : null;
   if (isError)
     return (
