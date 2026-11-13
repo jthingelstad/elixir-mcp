@@ -118,6 +118,11 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
         200,
         { ok: true, used: 0, limit: 50, players: [] },
       ],
+      // And it opens on Suggested (2026-11-13).
+      "GET /api/me/people/find": [
+        200,
+        { ok: true, days: 30, people: [], more: 0, used: 0, limit: 50 },
+      ],
     }),
   );
   const meRequests: string[] = [];
