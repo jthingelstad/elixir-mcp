@@ -7,7 +7,7 @@ order: 4
 navTitle: "Email"
 icon: mail
 lede: "One digest of the people you follow and your clan, weekly or daily. Besides it, only mail with something for you to do or read: clan actions waiting, your collector's week, and answers to your feedback."
-reviewed: "2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
+reviewed: "2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
 ---
 
 # Email
@@ -46,8 +46,8 @@ people you follow and the clans you follow, told as one story. The email
 chooses what to say, and the timeline keeps everything.
 
 - **When:** weekly, on Wednesdays at 14:30 UTC, by default. In
-  [Settings › Emails](/settings/emails) you can make it daily (every day
-  at 14:30 UTC) or turn it off. The choice shows while it is on.
+  [Settings › Emails](/settings/emails) it is three choices, **Weekly**,
+  **Daily** (every day at 14:30 UTC) or **Off**: tap one.
 - **What it covers:** the week (or the day) before it comes, starting no
   earlier than your last digest, so nothing is told twice. It tells what
   the record learned in that time, so a battle recorded late still

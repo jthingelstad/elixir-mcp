@@ -120,11 +120,17 @@ test(
       expect(
         screen.queryByRole("switch", { name: `${gone} email` }),
       ).toBeNull();
+    // The digest's one control says Off; it has no switch of its own.
     expect(
-      screen
-        .getByRole("switch", { name: "Your digest email" })
+      within(
+        screen.getByRole("radiogroup", { name: "How often the digest comes" }),
+      )
+        .getByRole("radio", { name: "Off" })
         .getAttribute("aria-checked"),
-    ).toBe("false");
+    ).toBe("true");
+    expect(
+      screen.queryByRole("switch", { name: "Your digest email" }),
+    ).toBeNull();
     // A collector's email with no collector: shown, and not switchable.
     expect(
       screen.getByRole("switch", { name: "Collector activity email" }).disabled,
@@ -207,25 +213,38 @@ test(
   },
 );
 
-test("the digest's how-often shows while it is on, and a choice is its own write", async () => {
-  // While off, there is no how-often to choose.
+test("the digest is Weekly, Daily or Off, each choice one write", async () => {
+  // Off: picking Daily turns it on at that cadence in one write.
   await open();
+  let group = screen.getByRole("radiogroup", {
+    name: "How often the digest comes",
+  });
   expect(
-    screen.queryByRole("radiogroup", { name: "How often the digest comes" }),
-  ).toBeNull();
+    within(group)
+      .getByRole("radio", { name: "Off" })
+      .getAttribute("aria-checked"),
+  ).toBe("true");
+  fireEvent.click(within(group).getByRole("radio", { name: "Daily" }));
+  await waitFor(() => expect(puts).toHaveLength(1));
+  expect(puts[0]).toEqual({
+    kind: "tracking_report",
+    cadence: "daily",
+    enabled: true,
+  });
   cleanup();
+  puts.length = 0;
   kinds = KINDS.map((k) =>
     k.kind === "tracking_report" ? { ...k, enabled: true } : k,
   );
   await open();
-  const group = screen.getByRole("radiogroup", {
+  group = screen.getByRole("radiogroup", {
     name: "How often the digest comes",
   });
   const weekly = within(group).getByRole("radio", { name: "Weekly" });
   expect(weekly.getAttribute("aria-checked")).toBe("true");
-  fireEvent.click(within(group).getByRole("radio", { name: "Daily" }));
+  fireEvent.click(within(group).getByRole("radio", { name: "Off" }));
   await waitFor(() => expect(puts).toHaveLength(1));
-  expect(puts[0]).toEqual({ kind: "tracking_report", cadence: "daily" });
+  expect(puts[0]).toEqual({ kind: "tracking_report", enabled: false });
 });
 
 test("clicking the digest's selected cadence saves it, so the default can be chosen", async () => {
@@ -240,5 +259,9 @@ test("clicking the digest's selected cadence saves it, so the default can be cho
   expect(weekly.getAttribute("aria-checked")).toBe("true");
   fireEvent.click(weekly);
   await waitFor(() => expect(puts).toHaveLength(1));
-  expect(puts[0]).toEqual({ kind: "tracking_report", cadence: "weekly" });
+  expect(puts[0]).toEqual({
+    kind: "tracking_report",
+    cadence: "weekly",
+    enabled: true,
+  });
 });

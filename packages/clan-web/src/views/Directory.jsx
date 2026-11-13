@@ -261,7 +261,6 @@ function ClanTile({ clan }) {
             )}
           </h2>
           <span className="tag">{clan.clan_tag}</span>
-          {clan.yours ? <span className="chip chip--info">yours</span> : null}
         </div>
       </div>
       <ul className="clan-dir__facts" aria-label="Rules">
@@ -279,14 +278,6 @@ function ClanTile({ clan }) {
       ) : null}
       <dl className="clan-dir__kv">
         <div>
-          <dt>Members</dt>
-          <dd>
-            {clan.members === null
-              ? "Not recorded"
-              : `${clan.members} of ${CLAN_FULL}`}
-          </dd>
-        </div>
-        <div>
           <dt>To join</dt>
           <dd>
             {[
@@ -303,11 +294,26 @@ function ClanTile({ clan }) {
           <dt>What counts</dt>
           <dd>{counted.length ? counted.join(", ") : "Nothing counted"}</dd>
         </div>
-        <div>
-          <dt>Removal</dt>
-          <dd>{removalWords(clan.policy.removal_day)}</dd>
-        </div>
       </dl>
+      {/* The tile's foot (canvas .ctile footer): size and the removal rule
+          on the left, your own clan named on the right. */}
+      <div className="clan-dir__tilefoot">
+        <dl className="clan-dir__footkv">
+          <div>
+            <dt>Members</dt>
+            <dd>
+              {clan.members === null
+                ? "Not recorded"
+                : `${clan.members} of ${CLAN_FULL}`}
+            </dd>
+          </div>
+          <div>
+            <dt>Removal</dt>
+            <dd>{removalWords(clan.policy.removal_day)}</dd>
+          </div>
+        </dl>
+        {clan.yours ? <span className="clan-dir__mine">Your clan</span> : null}
+      </div>
     </li>
   );
 }

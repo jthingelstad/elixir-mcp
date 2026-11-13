@@ -7,7 +7,7 @@ order: 6
 navTitle: "Turn an email off"
 icon: bell-off
 lede: "Every kind of email is one switch, all on to start. Turn one off from Settings › Emails or from the link at the foot of any issue, and turn it back on the same way."
-reviewed: "2026-11-12 one digest; the clan report, Arena week and milestone emails ended; 2026-10-08 against contract 11.3.0"
+reviewed: "2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest; the clan report, Arena week and milestone emails ended; 2026-10-08 against contract 11.3.0"
 callout: ["Open it at Settings › Emails", "/settings/emails", "Open Emails"]
 ---
 
@@ -24,10 +24,10 @@ lands.
 ([/settings/emails](/settings/emails)),
 reached from the account menu, lists the scheduled kinds under **Scheduled**, each
 with the day and time it arrives in your time zone: Your digest and Collector
-activity. While Your digest is on, it
-also offers **Weekly** or **Daily**: weekly comes on Wednesdays, daily every
-day, at the same time ([Your digest](/docs/email#your-digest)). Choosing one
-never turns the digest back on, and turning it off keeps your choice. The two that come when something happens,
+activity. Your digest is three choices instead of a switch: **Weekly**
+(Wednesdays), **Daily** (every day, at the same time) or **Off**
+([Your digest](/docs/email#your-digest)). Tapping Weekly or Daily turns it
+on at that pace, and Off turns it off. The two that come when something happens,
 Clan actions waiting and Answers to your feedback, sit below under
 **When something happens**. Each has a
 line on what it is and a switch; turn one off and it stops. A kind
