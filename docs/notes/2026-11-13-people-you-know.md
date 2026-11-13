@@ -1,7 +1,7 @@
 # 2026-11-13 — People you know: Home's suggested follows, friendlies first, and Follow back
 
 No MCP tool, `/api/v1` operation or contract version changes. Migration
-0264 adds one nullable column, `account.starter_hidden_at`.
+0264 adds one nullable column, `account.starter_hidden_at`. What's new 239.
 
 Jamie, 2026-11-13: "i really like mining friendly battles for follows...
 those are probably folks they know!" and, the same day, "the suggested
