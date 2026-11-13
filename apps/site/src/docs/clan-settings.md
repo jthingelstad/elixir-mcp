@@ -35,7 +35,8 @@ Elixir refuses Run's pages to them:
   channel is under **Run › Discord** ([The
   clan's activity in Discord](/docs/clan-discord#the-clans-activity-in-discord)).
 - **Actions in Discord**: a webhook from one of the clan's Discord channels.
-  Each open action leaders or elders can take is posted there and
+  Each open action leaders or elders can take, but a removal, a
+  promotion or a demotion, is posted there and
   marked when it closes ([Actions in the clan's
   Discord](/docs/clan-actions-delivery#actions-in-the-clans-discord)). Connecting
   it posts a short message to check it; the address is kept encrypted

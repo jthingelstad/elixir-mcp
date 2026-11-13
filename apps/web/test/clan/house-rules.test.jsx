@@ -75,7 +75,7 @@ describe("house rules", () => {
     const chosen = { ...open, elder_mode: "manual" };
     expect(seesFor("minimums", chosen)).toMatch(/^Only you/);
     expect(seesFor("elder", chosen)).toBe(
-      "A promotion or demotion is shared with the clan once it's done.",
+      "Only the Leader and Co-Leaders see a promotion or demotion before it's done; it's shared with the clan once it is.",
     );
     // Your clock is never every member's.
     for (const v of [open, shut])
@@ -84,6 +84,11 @@ describe("house rules", () => {
       );
     expect(seesFor("removal", { ...open, away_max_days: 0 })).not.toMatch(
       /away/,
+    );
+    // A removal Action never goes to Discord (2026-11-13): the line no
+    // longer says it does.
+    expect(seesFor("removal", open)).toBe(
+      "Only you and the Leader and Co-Leaders see your days without a battle, whether you're at risk, and your away. A removal is shared with the clan once it's done.",
     );
     expect(seesFor("removal", null)).toBeNull();
   });

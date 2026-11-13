@@ -3,7 +3,11 @@
  * co-leader pastes a Discord webhook in Clan settings; each Action that
  * leaders or elders can take is then posted there as its line and a link
  * to its page, and the same message is edited when the Action closes, to
- * say how and by whom (`discordActionMessage` in the engine).
+ * say how and by whom (`discordActionMessage` in the engine). A removal,
+ * a promotion and a demotion are the exceptions (2026-11-13):
+ * `discordShareable` keeps them out of the sweep, so they are never
+ * posted, and one posted before then is never edited; its message stays
+ * as it was.
  *
  * The webhook:
  *  - is checked by posting through it (a short "connected" message) before

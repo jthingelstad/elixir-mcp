@@ -151,7 +151,8 @@ function world({
 const card = (n, extra = {}) => ({
   card_id: `c${n}`,
   number: n,
-  type: "promotion",
+  // A welcome: it still goes to Discord (a promotion no longer does).
+  type: "welcome",
   status: "proposed",
   raised_at: `2026-10-10T0${n % 10}:00:00.000Z`,
   player_tag: `#P${n}`,
@@ -399,7 +400,7 @@ test("open Actions are posted; closing one edits its message to say how and by w
   assert.deepEqual(w.discord.calls, [
     [
       "post",
-      "**#1 Promote to Elder: Member 1**\n<https://elixir.test/clan/0QC8RCGY/actions/1>",
+      "**#1 Welcome a newcomer: Member 1**\n<https://elixir.test/clan/0QC8RCGY/actions/1>",
     ],
   ]);
   // Nothing new: the answer is collected and nothing is sent again.
@@ -415,10 +416,126 @@ test("open Actions are posted; closing one edits its message to say how and by w
   assert.equal(w.discord.calls.at(-1)[0], "edit");
   assert.equal(
     w.discord.messages.get(post.message_id),
-    "~~**#1 Promote to Elder: Member 1**~~\n✅ Completed by Lead\n<https://elixir.test/clan/0QC8RCGY/actions/1>",
+    "~~**#1 Welcome a newcomer: Member 1**~~\n✅ Completed by Lead\n<https://elixir.test/clan/0QC8RCGY/actions/1>",
   );
   assert.deepEqual(await w.service.share(CLAN), { shared: 0 });
   assert.equal(w.discord.calls.length, 2);
+});
+
+/** A Discord whose posts may land in a forum channel, each its own post. */
+function channelDiscord(forum) {
+  const discord = fakeDiscord();
+  if (!forum) return discord;
+  const real = discord.post.bind(discord);
+  discord.post = async (url, content, opts = {}) => {
+    const r = await real(url, content, opts);
+    return opts.thread_name
+      ? { ...r, forum: true, thread_id: `7${r.message_id.slice(1)}` }
+      : r;
+  };
+  return discord;
+}
+
+/** Kept out of Discord (2026-11-13): only the Leader and Co-Leaders see
+ *  these while they are open. Every other leaders' or elders' kind goes. */
+const KEPT_OUT = ["removal", "promotion", "demotion"];
+const POSTED = [
+  "departure",
+  "welcome",
+  "awards_standings",
+  "awards_announcement",
+  "rules_announcement",
+];
+const LABEL = {
+  removal: "Remove from the clan",
+  promotion: "Promote to Elder",
+  demotion: "Demote to Member",
+};
+
+for (const forum of [false, true])
+  test(`a removal, promotion or demotion never reaches Discord; departures, welcomes and announcements still do (${forum ? "forum" : "plain"} channel)`, async () => {
+    const recorded = [];
+    const quality = {
+      record: async (rows) => void recorded.push(...rows),
+      settle: async () => {},
+    };
+    const w = world({ discord: channelDiscord(forum), quality });
+    await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+    w.discord.calls.length = 0;
+    const types = [...KEPT_OUT, ...POSTED];
+    for (const [i, type] of types.entries())
+      await w.ledger.putCard(
+        CLAN,
+        card(i + 1, { type, player_name: `Member ${i + 1}` }),
+      );
+    assert.deepEqual(await w.service.share(CLAN), { shared: POSTED.length });
+    await w.relay();
+    await w.service.share(CLAN);
+    const posted = w.discord.calls.filter(([kind]) => kind === "post");
+    assert.equal(posted.length, POSTED.length);
+    for (const type of KEPT_OUT)
+      assert.ok(
+        posted.every(([, text]) => !text.includes(LABEL[type])),
+        `no ${type} in any post`,
+      );
+    assert.deepEqual(
+      recorded.map((r) => r.items[0].kind).sort(),
+      [...POSTED].sort(),
+    );
+    const rows = await w.ledger.discordPosts(CLAN);
+    for (const [i, type] of types.entries())
+      assert.equal(
+        rows.some((p) => p.card_id === `c${i + 1}`),
+        POSTED.includes(type),
+        `${type}: a delivery row only for what is posted`,
+      );
+    // Closing a kept-out Action hands over nothing.
+    const before = w.discord.calls.length;
+    for (const [i, type] of KEPT_OUT.entries())
+      await w.ledger.putCard(
+        CLAN,
+        card(i + 1, { type, status: "done", decided_by: "#L" }),
+      );
+    assert.deepEqual(await w.service.share(CLAN), { shared: 0 });
+    await w.relay();
+    assert.equal(w.discord.calls.length, before);
+  });
+
+test("a removal, promotion or demotion posted before the rule is never edited on close; its message stays as it was", async () => {
+  const w = world();
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  const old = new Map();
+  for (const [i, type] of KEPT_OUT.entries()) {
+    const n = i + 4;
+    const id = `90000000000000077${n}`;
+    const text = `**#${n} ${LABEL[type]}: Member ${n}**\n<https://elixir.test/clan/0QC8RCGY/actions/${n}>`;
+    old.set(id, text);
+    w.discord.messages.set(id, text);
+    await w.ledger.putCard(CLAN, card(n, { type }));
+    await w.ledger.saveDiscordPost(CLAN, {
+      card_id: `c${n}`,
+      number: n,
+      message_id: id,
+      thread_id: null,
+      shown: text,
+      tries: 1,
+    });
+  }
+  w.discord.calls.length = 0;
+  for (const [i, type] of KEPT_OUT.entries())
+    await w.ledger.putCard(
+      CLAN,
+      card(i + 4, {
+        type,
+        status: "done",
+        decided_by: "#L",
+        decided_by_name: "Lead",
+      }),
+    );
+  assert.deepEqual(await w.service.share(CLAN), { shared: 0 });
+  await w.relay();
+  assert.deepEqual(w.discord.calls, []);
+  for (const [id, text] of old) assert.equal(w.discord.messages.get(id), text);
 });
 
 test("an Action closed before its post was answered is edited once the id arrives", async () => {
@@ -670,7 +787,7 @@ test("a forum channel: each Action is a post of its own, named for it, and its c
   await w.ledger.putCard(CLAN, card(1, { player_name: "*Ana*" }));
   await w.service.share(CLAN);
   await w.relay();
-  assert.equal(w.discord.opts[1].thread_name, "#1 Promote to Elder: *Ana*");
+  assert.equal(w.discord.opts[1].thread_name, "#1 Welcome a newcomer: *Ana*");
   assert.equal(w.discord.opts[1].forum, true, "known to be a forum");
   await w.service.share(CLAN);
   const [post] = await w.ledger.discordPosts(CLAN);
@@ -824,9 +941,9 @@ test("the quality ledger: each hand-off recorded, each answer settled under it; 
   assert.equal(post.webhook_fp, webhookFingerprint(HOOK));
   assert.equal(post.action, "post");
   assert.equal(post.mode, "code");
-  assert.deepEqual(post.items, [{ id: "c1", kind: "promotion" }]);
+  assert.deepEqual(post.items, [{ id: "c1", kind: "welcome" }]);
   assert.equal(post.event_at, card(1).raised_at);
-  assert.match(post.content, /^\*\*#1 Promote to Elder: Member 1\*\*/);
+  assert.match(post.content, /^\*\*#1 Welcome a newcomer: Member 1\*\*/);
   assert.ok(Object.values(post).every((v) => !String(v).includes(TOKEN)));
   await w.relay();
   await w.service.share(CLAN);

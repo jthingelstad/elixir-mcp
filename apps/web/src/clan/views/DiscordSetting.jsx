@@ -15,6 +15,10 @@ import { trackEvent } from "../../analytics.js";
  * post of its own), the last deliveries are listed with Discord's words
  * for a refusal, and a leader may name one role to mention on each new
  * Action (opt in; an edit never mentions anyone).
+ *
+ * Since 2026-11-13: a removal, promotion or demotion is never posted
+ * (Jamie: only leaders see one while it is open, and Elders read this
+ * channel's welcomes).
  */
 export function DiscordSetting({ clan }) {
   const { whenDay } = useClock();
@@ -94,11 +98,12 @@ export function DiscordSetting({ clan }) {
   return (
     <div className="grid gap-3">
       <p className="page__lede m-0">
-        Post the clan&rsquo;s Actions to a Discord channel: each one leaders or
-        elders can take, as a short line and a link to it here, updated when
-        someone completes or declines it. Lines name the member, so use a
-        channel only your leaders can read. Members&rsquo; own away prompts are
-        never posted.
+        Post the clan&rsquo;s Actions to a Discord channel: departures, welcomes
+        and announcements, each as a short line and a link to it here, updated
+        when someone completes or declines it. Lines name the member, so use a
+        channel only your leaders can read. Removals, promotions, demotions and
+        members&rsquo; own away prompts are never posted: only leaders see those
+        while they&rsquo;re open.
       </p>
 
       {d.set ? (

@@ -191,3 +191,19 @@ test("the subject that lists several keeps whole names, then counts the rest", (
   );
   assert.match(m.subject, /, and \d+ more$/);
 });
+
+test("a pending promotion or demotion is mailed to the Leader and Co-Leaders only, never to an Elder or the member it is about", () => {
+  // Jamie, 2026-11-13: "Pending promotions and demotions should only be
+  // visible to leaders, not elders."
+  const mail = actionsWaitingMail({
+    ...base,
+    people,
+    cards: [
+      card("p1", "promotion", { player_tag: "#M", player_name: "Mem" }),
+      card("d1", "demotion", { player_tag: "#E", player_name: "Eld" }),
+    ],
+  });
+  const to = Object.fromEntries(mail.map((m) => [m.player_tag, m]));
+  assert.deepEqual(Object.keys(to).sort(), ["#C", "#L"]);
+  assert.deepEqual(to["#L"].card_ids.sort(), ["d1", "p1"]);
+});

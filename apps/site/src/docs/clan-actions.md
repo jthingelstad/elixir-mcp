@@ -7,7 +7,7 @@ order: 5
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-11-13; closed Actions for the leader and co-leaders only; 2026-11-12; what waits is first on the Feed; Waiting and Decided are under Run; 2026-10-20; one voice for the clan's drafts, set in Settings; the drafted entry keeps the model's words for leaders; the leader and co-leaders open on Actions while Actions wait for them; 2026-10-12; a removal says what it rests on and what it cannot see; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
+reviewed: "2026-11-13; removal, promotion and demotion actions never go to the clan's Discord; closed Actions for the leader and co-leaders only; 2026-11-12; what waits is first on the Feed; Waiting and Decided are under Run; 2026-10-20; one voice for the clan's drafts, set in Settings; the drafted entry keeps the model's words for leaders; the leader and co-leaders open on Actions while Actions wait for them; 2026-10-12; a removal says what it rests on and what it cannot see; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
 guide: clan-actions
 ---
 
@@ -326,7 +326,9 @@ The **Feed** lists what is waiting for you. You see the open actions that
 are yours, by your name or by your role, and no others: another's action
 number, or a closed one's, answers that there is no such action. Only the
 leader and co-leaders see closed actions. **Nobody below co-leader ever sees a removal action or who
-is on the clock.** The leader and co-leaders also have **Decided**, under
+is on the clock**, and nobody below co-leader sees a promotion or demotion
+before it's done: not here, and not in the clan's Discord, where none of
+these is posted ([Actions in the clan's Discord](/docs/clan-actions-delivery#actions-in-the-clans-discord)). The leader and co-leaders also have **Decided**, under
 Run, every action the clan has had with its outcome, and the holds.
 
 Everyone opens a clan on the **Feed**
