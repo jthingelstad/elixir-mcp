@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Empty, Link, Panel, TagText, useClock } from "@elixir-mcp/ui";
+import { Empty, Link, TagText, useClock } from "@elixir-mcp/ui";
 import { CLAN, clanPath } from "../lib/base.js";
 import { useFeed, useRace } from "../lib/queries.js";
 import { n, ordinal } from "../lib/words.js";
@@ -41,13 +41,13 @@ function ClanTimeline({ clan }) {
     return null;
   }
   const head = (
-    <h3 id="feed-timeline" className="label m-0">
+    <h3 id="feed-timeline" className="sr-only">
       The clan, the last seven days
     </h3>
   );
   if (state.error || state.forbidden)
     return (
-      <section aria-labelledby="feed-timeline" className="grid gap-2">
+      <section aria-labelledby="feed-timeline" className="grid gap-3">
         {head}
         <p className="m-0 text-ink-dim" role="alert">
           The clan&rsquo;s timeline could not be read just now. Try again in a
@@ -58,7 +58,7 @@ function ClanTimeline({ clan }) {
   const d = state.data;
   if (!d)
     return (
-      <section aria-labelledby="feed-timeline" className="grid gap-2">
+      <section aria-labelledby="feed-timeline" className="grid gap-3">
         {head}
         <p className="m-0 text-ink-dim">Reading the clan&rsquo;s week…</p>
       </section>
@@ -67,7 +67,7 @@ function ClanTimeline({ clan }) {
   const items = all.slice(0, shown);
   const left = all.length - items.length;
   return (
-    <section aria-labelledby="feed-timeline" className="grid gap-2">
+    <section aria-labelledby="feed-timeline" className="grid gap-3">
       {head}
       {items.length === 0 ? (
         <Empty title="Nothing in the last seven days">
@@ -75,43 +75,47 @@ function ClanTimeline({ clan }) {
           appear here as Elixir records them.
         </Empty>
       ) : (
-        <Panel pad>
+        <div className="kit-feed">
           {byDay(items, dayHeading).map((day) => (
-            <section key={day.head || "undated"} className="kit-day">
+            <section
+              key={day.head || "undated"}
+              className="kit-day"
+              aria-label={day.head || undefined}
+            >
               {day.head ? <h4 className="kit-day__head">{day.head}</h4> : null}
-              <ul className="m-0 list-none p-0">
-                {day.items.map((it, i) => {
-                  const battle = battlePath(it.battle_url);
-                  return (
-                    <li
-                      key={it.id ?? `${day.head}-${i}`}
-                      className="kit-row kit-tl"
-                    >
-                      <span className="kit-row__main">
-                        <span className="kit-row__title">
-                          <TagText>{it.text}</TagText>
-                        </span>
-                        {it.kind === "battle_highlight" && it.words ? (
-                          <span className="kit-row__detail">
-                            &ldquo;{it.words}&rdquo;
-                          </span>
-                        ) : null}
-                        {battle ? (
-                          <Link to={battle} className="link kit-tl__more">
+              {day.items.map((it, i) => {
+                const battle = battlePath(it.battle_url);
+                return (
+                  <article
+                    key={it.id ?? `${day.head}-${i}`}
+                    className="kit-feed__item"
+                  >
+                    <span className="kit-feed__time">
+                      {it.at ? clock(it.at) : ""}
+                    </span>
+                    <p className="kit-feed__text">
+                      <TagText>{it.text}</TagText>
+                    </p>
+                    {it.kind === "battle_highlight" && it.words ? (
+                      <blockquote className="kit-feed__words">
+                        &ldquo;{it.words}&rdquo;
+                      </blockquote>
+                    ) : null}
+                    {battle ? (
+                      <footer className="kit-feed__foot">
+                        <span className="kit-feed__links">
+                          <Link to={battle} className="link hit">
                             Open the battle
                           </Link>
-                        ) : null}
-                      </span>
-                      <span className="kit-row__right">
-                        {it.at ? clock(it.at) : ""}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
+                        </span>
+                      </footer>
+                    ) : null}
+                  </article>
+                );
+              })}
             </section>
           ))}
-        </Panel>
+        </div>
       )}
       {left > 0 ? (
         <div className="flex flex-wrap items-center gap-3">
@@ -137,18 +141,6 @@ function ClanTimeline({ clan }) {
   );
 }
 
-/**
- * Feed, Clan's first tab for everyone (Clan as one view, slice 8, #766; it
- * replaced Today): what waits for you first, then the clan's timeline, with
- * you in this clan and the clan's week in a side column beside them (on a
- * phone, above the timeline). Run holds the leaders' Waiting and Decided; an
- * action waiting for a leader is in both.
- *
- * Every panel asks for its read at once. The timeline waited for the others
- * from 2026-11-12 (G3), when it walked every battle the record learned in
- * the week; since 2026-11-13 it reads the clan's own rows, in the same cost
- * class as the panels beside it, so the wait was a round trip for nothing.
- */
 /** "Monday about 4:00 am": a nominal instant the game reaches in the half
  *  hour before it, in the reader's zone (UTC, said so, with none). */
 function aboutAt(ts, { dayHeading, clock, zone }) {
@@ -222,6 +214,18 @@ export function RaceBar({ race }) {
   );
 }
 
+/**
+ * Feed, Clan's first tab for everyone (Clan as one view, slice 8, #766; it
+ * replaced Today): what waits for you first, then the clan's timeline, with
+ * you in this clan and the clan's week in a side column beside them (on a
+ * phone, above the timeline). Run holds the leaders' Waiting and Decided; an
+ * action waiting for a leader is in both.
+ *
+ * Every panel asks for its read at once. The timeline waited for the others
+ * from 2026-11-12 (G3), when it walked every battle the record learned in
+ * the week; since 2026-11-13 it reads the clan's own rows, in the same cost
+ * class as the panels beside it, so the wait was a round trip for nothing.
+ */
 export function Feed({ clan, who, navigate }) {
   const base = clanPath(clan.clan_tag);
   const race = useRace(clan.clan_tag).state;
