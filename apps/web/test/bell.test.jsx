@@ -198,3 +198,46 @@ test("no verified player: the bell says how to get cheers and followers", async 
   });
   expect(verify.getAttribute("href")).toBe("/settings/players/verify");
 });
+
+test("a new follower's verified player has Follow back, the one confirmed Follow; one you follow has none", async () => {
+  HTMLDialogElement.prototype.showModal ??= function () {
+    this.open = true;
+  };
+  const followers = {
+    ...BELL.followers,
+    unnamed: 0,
+    players: [
+      { ...BELL.followers.players[0], can_follow_back: true },
+      {
+        tag: "#0VJLCPJ0",
+        name: "Invented Friend",
+        followed_tag: "#0QRVVG22J",
+        followed_name: "Invented Owner",
+        new: false,
+        can_follow_back: false,
+      },
+    ],
+  };
+  global.fetch = vi.fn(async (path) => {
+    const p = String(path);
+    if (p === "/api/me/bell") return reply({ ...BELL, followers });
+    if (p === "/api/me/home/needs") return reply({ needs: null });
+    return reply({});
+  });
+  renderWithProviders(<BellSheet me={{}} onClose={() => {}} />);
+  const back = await screen.findAllByRole("button", {
+    name: /Follow back/,
+    hidden: true,
+  });
+  expect(back).toHaveLength(1);
+  const region = screen.getByRole("region", {
+    name: "New followers",
+    hidden: true,
+  });
+  // Both names still open the player's page.
+  const hrefs = [...region.querySelectorAll("a")].map((a) =>
+    a.getAttribute("href"),
+  );
+  expect(hrefs).toContain("/home/player/0VQRR8U0");
+  expect(hrefs).toContain("/home/player/0VJLCPJ0");
+});

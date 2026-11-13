@@ -1,5 +1,6 @@
 import { dailySql } from "@elixir-mcp/record/daily-sql";
 import { recentCompleteness } from "@elixir-mcp/tools/coverage";
+import { STARTER_HIDDEN_DAYS } from "./people.mjs";
 
 // Readiness is derived from the record, never a second onboarding state to
 // reconcile. Keep this separate from the HTTP/auth routing layer.
@@ -130,10 +131,12 @@ export async function firstAnswer(db, accountId, playerTag = null) {
                              where account_id = $1 and is_primary
                                and status = 'verified')) as verified,
             (select welcome_finished_at from account
-              where account_id = $1) as finished_at`,
-    [accountId],
+              where account_id = $1) as finished_at,
+            (select starter_hidden_at + make_interval(days => $2) from account
+              where account_id = $1) as starter_hidden_until`,
+    [accountId, STARTER_HIDDEN_DAYS],
   );
-  const { verified, ...steps } = welcome.rows[0];
+  const { verified, starter_hidden_until, ...steps } = welcome.rows[0];
   // Finished for good (Jamie, 2026-11-12, migration 0246): the first read
   // that sees all four done stamps the account once, and the stamp is
   // never cleared, so unfollowing everyone later does not bring the steps
@@ -155,5 +158,9 @@ export async function firstAnswer(db, accountId, playerTag = null) {
     connection: connection.rows[0],
     clan: clan.rows[0] ?? null,
     welcome: steps,
+    // Home's suggested follows (2026-11-13) are offered while
+    // welcome.following is under STARTER_UNDER, unless "Not now" was said
+    // until this instant.
+    starter_hidden_until: starter_hidden_until?.toISOString() ?? null,
   };
 }

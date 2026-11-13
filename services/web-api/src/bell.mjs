@@ -147,7 +147,10 @@ async function readFollowers(db, accountId, own, seen) {
   if (own.length === 0) return empty;
   const { rows } = await db.query(
     `select f.player_tag as followed, v.player_tag as tag, p.name,
-            ($3::timestamptz is null or f.created_at > $3) as fresh
+            ($3::timestamptz is null or f.created_at > $3) as fresh,
+            exists (select 1 from claim mine
+                     where mine.account_id = $2
+                       and mine.player_tag = v.player_tag) as claimed
        from claim f
        join account a on a.account_id = f.account_id
        left join lateral (
@@ -172,6 +175,9 @@ async function readFollowers(db, accountId, own, seen) {
       followed_tag: r.followed,
       followed_name: names.get(r.followed) ?? null,
       new: r.fresh,
+      // Follow back (2026-11-13): offered on their verified player unless
+      // you own, follow or watch it already.
+      can_follow_back: !r.claimed,
     })),
     count: rows.length,
     unnamed: rows.length - Math.min(named.length, LIST_CAP),

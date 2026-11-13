@@ -311,6 +311,8 @@ export const api = {
   // People to follow ("suggested"), Find's From your battles ("battles")
   // and Your clan ("clan").
   people: (which) => request("GET", `/api/me/people/${which}`),
+  // Home's suggested follows' "Not now": off Home's top for 30 days.
+  hideStarter: () => request("POST", "/api/me/people/starter/hide", {}),
   // Your timeline's private RSS link (#765): whether it is on; making or
   // resetting it answers the link, the one time it is shown; off ends it.
   rssLink: () => request("GET", "/api/me/rss"),

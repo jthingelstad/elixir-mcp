@@ -160,7 +160,9 @@ your friends. Each part shows only when it has something:
 - **New followers**: accounts that started following one of your verified
   players in the last thirty days. One is named by its own verified
   player's game name and tag, as its [player page](/docs/player-page)
-  would name it; one with no verified player is counted, not named.
+  would name it; one with no verified player is counted, not named. A
+  named one has **Follow back**, unless you already follow, watch or own
+  that player: it asks first, with what it costs, like every Follow.
 - **Needs you**: your clan's Actions waiting on you as a leader, and an old
   key still trying to connect, as before.
 - **Answers to your feedback**: each answer the maintainer gave in the last

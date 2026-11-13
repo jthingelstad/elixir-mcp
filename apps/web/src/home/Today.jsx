@@ -18,7 +18,7 @@ import {
   WriteError,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
-import { PeopleToFollow } from "./People.jsx";
+import { PeopleToFollow, StarterSet } from "./People.jsx";
 import { RacePlace } from "./RacePlace.jsx";
 import { ladderHref } from "../ladder/ladder.js";
 import { SETTINGS } from "../lib/settings.js";
@@ -29,6 +29,7 @@ import {
   useHomeNeeds,
   useHomeWeek,
   useInvalidate,
+  usePeople,
 } from "../lib/queries.js";
 import {
   LEADS,
@@ -40,6 +41,7 @@ import {
   digestWhen,
   lastRaceLine,
   modeWord,
+  offersStarter,
   raceNowLine,
   panelOf,
   weekChips,
@@ -59,18 +61,30 @@ export function HomePanels({ first, player, feed }) {
   const needs = panelOf(useHomeNeeds(), "needs");
   const actions = actionsFrom({ clan, needs });
   const unlock = actions?.ok ? actions.unlock : null;
+  // Home's suggested follows (2026-11-13), for an account that follows
+  // few players, on every visit until it follows more: read apart from the
+  // feed, first in the main column so a phone's first screen holds them.
+  // While they list people they are the people to follow, so the side
+  // panel steps aside rather than say the same names twice.
+  const offered = offersStarter(first);
+  const starter = usePeople("starter", offered);
+  // A read kept from before the fifth follow is not an offer any more.
+  const starterShown =
+    offered && Boolean(starter.data?.ok && starter.data.offer);
+  const starterListed = starterShown && starter.data.people?.length > 0;
   return (
     <div className="kit-home">
       {unlock ? <Unlock player={player} /> : null}
       <div className="kit-home__two">
         <div className="kit-home__main">
+          {starterShown ? <StarterSet query={starter} /> : null}
           <Welcome first={first} player={player} />
           {feed}
         </div>
         <div className="kit-home__side">
           <YourWeek player={player} />
           <ClanPanel clan={clan} player={player} />
-          <PeopleToFollow />
+          {starterListed ? null : <PeopleToFollow />}
           <DigestPanel first={first} />
         </div>
       </div>

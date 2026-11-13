@@ -6907,6 +6907,93 @@ button.kit-row {
 .kit-check > .btn {
   flex: none;
 }
+/* Home's starter set (2026-11-13): the welcome's flat panel, its people as
+   the rows People to follow draws, a tick at the left of each, and the one
+   Follow these at the foot. No rule between rows: the rows' own space. */
+.kit-starter {
+  margin-bottom: 14px;
+  padding: 10px 0 4px;
+  border-radius: var(--r-panel);
+  background: var(--panel);
+}
+.kit-starter__head {
+  margin: 0;
+  padding: 0 16px;
+  color: var(--ink);
+  font-size: var(--t-panel-head);
+  font-weight: 700;
+}
+.kit-starter__lead {
+  margin: 2px 0 4px;
+  padding: 0 16px;
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+/* The tick is a 44px tap (touch-targets.spec.ts); the box in it stays 20px. */
+.kit-starter__tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px -8px -12px;
+  cursor: pointer;
+}
+.kit-starter__tick input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--gold);
+}
+.kit-starter__more {
+  margin: 0 8px 6px;
+}
+/* Follow these beside the heading: a small phone's first screen holds it
+   and three rows. */
+.kit-starter__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  padding: 0 16px 2px;
+}
+.kit-starter__top .kit-starter__head {
+  padding: 0;
+}
+.kit-starter__top .btn {
+  flex: none;
+}
+/* A row's reason and cost run on as one line: three rows fit a small
+   phone's first screen with Follow these. */
+.kit-people__row.kit-starter__row .kit-row__detail {
+  display: block;
+}
+.kit-starter__row .kit-people__cost::before {
+  content: " \00b7  ";
+  color: var(--ink-faint);
+}
+.kit-starter__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 4px 16px 6px;
+}
+.kit-starter__foot p {
+  flex: 1 1 220px;
+  margin: 0;
+}
+.kit-starter__foot .btn {
+  flex: none;
+}
+.kit-starter--empty .kit-starter__lead {
+  margin-bottom: 6px;
+}
+.kit-starter--empty .kit-starter__not-now {
+  margin: 0 8px 6px;
+}
 /* Home's digest panel (canvas "Your digest"). */
 .kit-digest__line {
   margin: 0 0 10px;
