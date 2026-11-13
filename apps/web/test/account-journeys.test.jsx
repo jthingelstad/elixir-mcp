@@ -13,6 +13,8 @@ import {
   within,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
+// The route chunks compile while this file loads, not inside a wait.
+import "./warm-routes.js";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { makeHandler } from "../../../services/web-api/src/handler.mjs";
 import { createSession, emailHash } from "../../../packages/auth/src/index.mjs";
@@ -78,8 +80,12 @@ afterEach(async () => {
 // Dropping the scratch database waits for its connections to close, which
 // outlasts vitest's 10 s default when the whole suite runs side by side;
 // it gets the same minute as the setup.
+// The handler's pool closes first: `drop database ... with (force)`
+// otherwise terminates its idle connections under it, and each one
+// logged a db_pool_error at the end of every run.
 afterAll(async () => {
   vi.unstubAllGlobals();
+  await handler?.close();
   await scratch?.drop();
 }, 60000);
 async function clickReady(name) {

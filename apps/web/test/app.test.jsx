@@ -9,6 +9,8 @@ import {
   configure,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
+// The route chunks compile while this file loads, not inside a wait.
+import "./warm-routes.js";
 
 // This file renders the whole App, routes and all, from a cold module
 // graph. Testing Library's 1 s default wait reads a slow first paint on a
@@ -20,8 +22,12 @@ configure({ asyncUtilTimeout: 5000 });
 function mockFetch(routes) {
   return vi.fn(async (path, init = {}) => {
     const key = `${init.method ?? "GET"} ${path}`;
-    const route = routes[key];
-    if (!route) throw new Error(`unmocked fetch: ${key}`);
+    // A route a test did not mock answers 404. It used to throw, which
+    // the client reads as a transport failure and retries after a real
+    // 1.5 s (packages/client query.ts): a wait inside the test (the tag
+    // fix waited on its refresh's retry) and, after cleanup, a stray
+    // request into the next test's mock.
+    const route = routes[key] ?? [404, { error: `unmocked fetch: ${key}` }];
     const [status, body] = typeof route === "function" ? route(init) : route;
     // The client reads the body as text and parses it itself, so a
     // response that is not JSON can never be mistaken for success.
