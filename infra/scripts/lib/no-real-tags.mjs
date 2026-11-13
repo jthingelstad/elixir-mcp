@@ -1,14 +1,14 @@
 /**
- * The real-tag ratchet (2026-11-12).
+ * The real-tag guard (a ratchet from 2026-11-12, absolute since 2026-11-13).
  *
  * Many Clash Royale players are minors, so no real player's name or tag
  * belongs in this public repository, except King Thing #20JJJ2CCRU and
- * POAP KINGS #J2RGCRVG. Captured payloads put several hundred real tags
- * into fixtures, bites and tests before that rule; replacing them waits on
- * the owner. Until then this guard stops the number growing: it counts, per
- * tracked file, the distinct tag-shaped strings that are not allowed, and
- * `docs/no-real-tags.test.mjs` fails when a file's count rises above
- * `docs/no-real-tags.baseline.json` or a new file has one.
+ * POAP KINGS #J2RGCRVG. Captured payloads put several thousand real tags
+ * into fixtures, bites and tests before that rule; they were replaced with
+ * invented ones (`infra/scripts/anonymize-fixtures.mjs`). This guard counts,
+ * per tracked file, the distinct tag-shaped strings that are not allowed,
+ * and `docs/no-real-tags.test.mjs` fails on any file that has one, except
+ * the two pinned migrations below, whose counts are fixed.
  *
  * What counts as a tag (the alphabet is the repo's own CR_TAG_ALPHABET,
  * `0289PYLQGRJCUV`, case-insensitive, letter O folded to 0):
@@ -30,8 +30,8 @@
  *
  * Each match is normalized to canonical form (`#`, upper case, O as 0) and
  * counted once per file. The two named tags and every tag in
- * `docs/invented-tags.json` are allowed. The counts never carry a value:
- * the baseline holds paths and numbers only.
+ * `docs/invented-tags.json` are allowed. Reports carry paths and numbers,
+ * never a value.
  *
  * Inventing a tag: the reference (`cr-agent-api-docs`) and this repo's
  * helpers state only the alphabet, not how tags encode a number, so no
@@ -49,8 +49,8 @@ export const NAMED_TAGS = Object.freeze(["#20JJJ2CCRU", "#J2RGCRVG"]);
 
 /**
  * Migrations are sha256-pinned (`db/migrations.sha256`) and can never be
- * edited, so their counts are fixed here rather than ratcheted: they must
- * equal these exactly, and the baseline never lists them.
+ * edited, so their counts are fixed here: they must equal these exactly.
+ * Every other file must hold none.
  */
 export const PINNED_FILES = Object.freeze({
   "db/migrations/0208_membership_first_read_baseline.sql": 1,
@@ -73,11 +73,7 @@ const SKIP_EXTENSIONS = new Set([
   ".zip",
   ".gz",
 ]);
-const SKIP_PATHS = new Set([
-  "package-lock.json",
-  "docs/no-real-tags.baseline.json",
-  "docs/invented-tags.json",
-]);
+const SKIP_PATHS = new Set(["package-lock.json", "docs/invented-tags.json"]);
 
 const ALPHABET = "0289PYLQGRJCUVO";
 const BARE = new RegExp(
@@ -164,36 +160,17 @@ export function census(root) {
 }
 
 /**
- * Compare a census with the baseline. `rose` are files over their count
- * (or new); `fell` are files under it; `pinned` are pinned files off their
- * fixed count.
+ * Check a census: `found` are files holding a tag that is not allowed;
+ * `pinned` are pinned files off their fixed count.
  */
-export function compare(counts, baseline, pinned = PINNED_FILES) {
-  const rose = [];
-  const fell = [];
+export function check(counts, pinned = PINNED_FILES) {
+  const found = [];
   const pinnedOff = [];
   for (const [file, want] of Object.entries(pinned)) {
     const have = counts[file] ?? 0;
     if (have !== want) pinnedOff.push({ file, have, want });
   }
-  for (const [file, have] of Object.entries(counts)) {
-    if (file in pinned) continue;
-    const was = baseline[file] ?? 0;
-    if (have > was) rose.push({ file, have, was });
-  }
-  for (const [file, was] of Object.entries(baseline)) {
-    const have = counts[file] ?? 0;
-    if (have < was) fell.push({ file, have, was });
-  }
-  return { rose, fell, pinned: pinnedOff };
-}
-
-/** The baseline lowered to `counts`, never raised, never given a new file. */
-export function lowered(counts, baseline) {
-  const next = {};
-  for (const file of Object.keys(baseline).sort()) {
-    const n = Math.min(baseline[file], counts[file] ?? 0);
-    if (n > 0) next[file] = n;
-  }
-  return next;
+  for (const [file, have] of Object.entries(counts))
+    if (!(file in pinned)) found.push({ file, have });
+  return { found, pinned: pinnedOff };
 }

@@ -85,7 +85,7 @@ accountable for the integration but contributes no admin authority or quota.
 | `POST /players/{tag}/facts` | `facts:write` | A fact the platform's own game produced for a player ([attested facts](#attested-facts)) |
 | `POST /feedback`, `GET /feedback` | `feedback:write` | Feedback to Elixir's maintainer, filed as the integration, and the answers to it (the `elixir_send_feedback` and `elixir_my_feedback` results); [feedback](/docs/protocol#feedback-and-the-changelog-over-the-wire) |
 
-Tags must be URL-encoded in paths: `#2PYQ0` becomes `%232PYQ0`.
+Tags must be URL-encoded in paths: `#0VQR9` becomes `%230VQR9`.
 
 Successful responses contain `data` and `request_id`. Failures use
 `application/problem+json`, with `type`, `title`, `status`, `code`, `detail` and
@@ -192,7 +192,7 @@ Authorization: Bearer <key>
 Content-Type: application/json
 Idempotency-Key: <stable-operation-key>
 
-{"player_tag":"#2PYQ0"}
+{"player_tag":"#0VQR9"}
 ```
 
 The `202` response includes an opaque refresh `id`, `status`, `created_at` and

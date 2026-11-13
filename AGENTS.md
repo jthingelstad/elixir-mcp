@@ -176,13 +176,16 @@ notice, privacy, terms) change only with Jamie's word.
 
 ## Real tags
 
-No real player's tag in code, tests, fixtures, docs or pull requests,
-except King Thing #20JJJ2CCRU and POAP KINGS #J2RGCRVG: many players are
-minors. Invent one over the alphabet `0289PYLQGRJCUV`, starting `#0`, and
-add it to `docs/invented-tags.json`. `docs/no-real-tags.test.mjs` fails
-when a file gains a tag that is none of these (the captured ones already
-here are counted in `docs/no-real-tags.baseline.json` and may only fall;
-`node infra/scripts/no-real-tags.mjs --update` lowers it).
+No real player's tag or name in code, tests, fixtures, docs or pull
+requests, except King Thing #20JJJ2CCRU and POAP KINGS #J2RGCRVG: many
+players are minors. Invent one over the alphabet `0289PYLQGRJCUV`,
+starting `#0`, and add it to `docs/invented-tags.json`.
+`docs/no-real-tags.test.mjs` fails on any file holding a tag that is
+none of these; only the two sha256-pinned migrations (0208, 0210) keep
+theirs, at a fixed count. A new capture (a bite, a fixture) goes through
+`node infra/scripts/anonymize-fixtures.mjs <path>` before it is
+committed, and acceptance names any other player or clan by placeholder,
+resolved at run time (`acceptance/README.md`, Subjects).
 
 ## Working style
 

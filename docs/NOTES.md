@@ -401,7 +401,7 @@ From the fresh-person journey (round 3).
   clan" for an auto-follow (it named the player tag as if it were the
   clan).
 - Copy: `noun(n, one, many)` in the kit for every count that can be 1;
-  the add forms' placeholder is `#2PYQ8GJ0` (not in the corpus), not
+  the add forms' placeholder is `#0PJCLJYP` (not in the corpus), not
   Jamie's tag.
 - MCP 11.4.1 (timeline baselines, account clan text); JSON API 3.1.0
   unchanged.
@@ -416,7 +416,7 @@ applied, acceptance `elixir` 189 cases, 0 failed. The live contract reads
 35 membership rows across 11 clans were opened on their clan's first
 membership observation and still read as joins (20 of them claimed
 players; 11 in the last 30 days, 9 claimed); the earliest is from
-2026-03-12, the latest 2026-10-08 21:32Z (the journey's own #GGJG2CCR,
+2026-03-12, the latest 2026-10-08 21:32Z (the journey's own #0R0UC22J,
 1 row). No `member_joined` event came from a follow burst.
 
 **Answered.** Jamie, 2026-10-08: "Approved: mark the 35 first-read
@@ -616,7 +616,7 @@ Jamie's answers the same day, to the recommendations they name:
 Jamie: "is this because any use of live_fetch creates those records?
 Based on current layout of Elixir I would say that live_fetch should ONLY
 live fetch and not record data." A test run that day called `live_fetch`
-for `/players/#VL9ULV8RL` and `/players/#UYPLUQ0U9`, players nobody
+for `/players/#0JL9V82CJ` and `/players/#02002R2JQ`, players nobody
 tracks, and the record kept their profiles: every live-lane result was
 admitted and projected like a scheduled poll.
 
@@ -769,7 +769,7 @@ profile snapshots live_fetch stored for untracked players in elixir
 production". `{live_fetch_strays}` (days 90) read 5 tags. 2 are tracked
 and 3 are not.
 
-- **#VL9ULV8RL and #UYPLUQ0U9** were live_fetched at 23:05Z on 10-08, with
+- **#0JL9V82CJ and #02002R2JQ** were live_fetched at 23:05Z on 10-08, with
   one live-lane receipt each (`record` true, from before 0209).
   - `player_snapshot_daily`: 1 and 1
   - `player_progress_daily`: 2 and 0
@@ -779,7 +779,7 @@ and 3 are not.
   - `player_profile_membership`: 1 and 1
   - `player_event`, `battle_participant` and `clan_membership`: 0
   - The `player` row is NAMED for both.
-- **#9Y0LV2QCL** has an unnamed `player` row and no footprint or receipt.
+- **#09LCJP89Y** has an unnamed `player` row and no footprint or receipt.
 
 The admission fed more than a snapshot: the player's name, cards, badges,
 profile membership and Path of Legends season. The approval's condition

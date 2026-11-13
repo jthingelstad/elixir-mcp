@@ -1,23 +1,21 @@
 /**
- * The real-tag ratchet: no real player's tag in this public repository,
- * except King Thing and POAP KINGS, and until the captured ones are
- * replaced, never more of them than today. What counts as a tag, and why,
- * is `infra/scripts/lib/no-real-tags.mjs`. Every tag in this file is
+ * The real-tag guard: no real player's tag in this public repository,
+ * except King Thing and POAP KINGS, and no file but the two pinned
+ * migrations holds one. What counts as a tag, and why, is
+ * `infra/scripts/lib/no-real-tags.mjs`. Every tag in this file is
  * invented and listed in `docs/invented-tags.json`.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   NAMED_TAGS,
-  PINNED_FILES,
   allowedTags,
   census,
-  compare,
+  check,
   countIn,
-  lowered,
   tagsIn,
 } from "../infra/scripts/lib/no-real-tags.mjs";
 
@@ -83,38 +81,34 @@ test("the two named tags and the invented list are allowed", () => {
   assert.equal(countIn('{"player_tag": "#0C2C8"}', none), 1);
 });
 
-test("compare and lowered ratchet one way", () => {
-  const baseline = { "a.json": 3, "b.json": 2 };
-  const counts = { "a.json": 4, "b.json": 1, "c.json": 1, "pin.sql": 2 };
-  const { rose, fell, pinned } = compare(counts, baseline, { "pin.sql": 1 });
+test("check fails any file with a tag, and a pinned file off its count", () => {
+  const counts = { "a.json": 4, "c.json": 1, "pin.sql": 2 };
+  const { found, pinned } = check(counts, { "pin.sql": 1, "gone.sql": 1 });
   assert.deepEqual(
-    rose.map((r) => r.file),
+    found.map((r) => r.file),
     ["a.json", "c.json"],
   );
-  assert.deepEqual(
-    fell.map((r) => r.file),
-    ["b.json"],
-  );
-  assert.deepEqual(pinned, [{ file: "pin.sql", have: 2, want: 1 }]);
-  assert.deepEqual(lowered({ "a.json": 9, "c.json": 1 }, baseline), {
-    "a.json": 3,
+  assert.deepEqual(pinned, [
+    { file: "pin.sql", have: 2, want: 1 },
+    { file: "gone.sql", have: 0, want: 1 },
+  ]);
+  assert.deepEqual(check({ "pin.sql": 1 }, { "pin.sql": 1 }), {
+    found: [],
+    pinned: [],
   });
 });
 
-test("no file holds more real-looking tags than the baseline", () => {
-  const baseline = JSON.parse(
-    readFileSync(path.join(root, "docs/no-real-tags.baseline.json"), "utf8"),
-  ).files;
-  for (const file of Object.keys(PINNED_FILES))
-    assert.ok(!(file in baseline), `${file} is pinned, never in the baseline`);
-  const { rose, fell, pinned } = compare(census(root), baseline);
+test("no file holds a real-looking tag", () => {
+  // The ratchet's baseline is gone for good: nothing may be tolerated.
+  assert.ok(!existsSync(path.join(root, "docs/no-real-tags.baseline.json")));
+  const { found, pinned } = check(census(root));
   const how =
     "A tag-shaped string that is not King Thing's, POAP KINGS' or invented was added. " +
     "Many players are minors: never put a real player's tag in this repository. " +
     "Invent one over the alphabet 0289PYLQGRJCUV starting #0, list it in docs/invented-tags.json, " +
     "and use it instead. `node infra/scripts/no-real-tags.mjs` names the files.";
   assert.deepEqual(
-    rose.map((r) => `${r.file}: ${r.have} (baseline ${r.was})`),
+    found.map((r) => `${r.file}: ${r.have}`),
     [],
     how,
   );
@@ -123,9 +117,4 @@ test("no file holds more real-looking tags than the baseline", () => {
     [],
     "a pinned migration changed: migrations are immutable",
   );
-  if (fell.length > 0)
-    console.log(
-      `no-real-tags: ${fell.length} files fell below the baseline; ` +
-        "lower it with `node infra/scripts/no-real-tags.mjs --update`",
-    );
 });

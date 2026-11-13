@@ -10,7 +10,7 @@
  *   node infra/scripts/cr-api.mjs /cards | jq '.items | length'
  *
  * Tags: `#` is url-encoded for you, so quote the arg or let the shell see
- * it as a comment at your peril -- both `'#J2RG...'` and `%23J2RG...` work.
+ * it as a comment at your peril -- both `'#J2RGCRVG'` and `%23J2RGCRVG` work.
  *
  * Body JSON goes to STDOUT and nothing else, so it pipes into jq/python.
  * Status, timing and which credential answered go to STDERR.
