@@ -2409,4 +2409,22 @@ test("clans_roster: the clan's joiner bar on every surface; each member's roster
     // No profile read yet: unknown, not none.
     assert.equal(served.favorite_card_id, null);
   }
+  // Members on equal trophies keep the game's clanRank order (#970): the
+  // fixture holds four members at 14,000, and before the tiebreak two
+  // identical reads could list them in different orders.
+  const ties = new Map();
+  for (const m of rest.body.members) {
+    const key = `${m.role}/${m.trophies}`;
+    ties.set(key, [...(ties.get(key) ?? []), m.clan_rank]);
+  }
+  assert.ok(
+    [...ties.values()].some((ranks) => ranks.length > 1),
+    "the fixture still holds a tie",
+  );
+  for (const [key, ranks] of ties)
+    assert.deepEqual(
+      ranks,
+      [...ranks].sort((a, b) => (a ?? Infinity) - (b ?? Infinity)),
+      `${key} in clanRank order`,
+    );
 });
