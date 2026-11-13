@@ -1286,7 +1286,7 @@ export function createManageService({
     },
 
     /** One recorded read; no evaluation, metadata write or private ledger. */
-    async seasonView(clanTag, who) {
+    async seasonView(clanTag, _who) {
       const t = now();
       if (!seasonCalendar) throw new ManageError(502, "elixir_unavailable");
       const part = await fetchParticipation(record, clanTag);

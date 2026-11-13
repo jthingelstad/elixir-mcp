@@ -180,7 +180,7 @@ const reads = () => [
   ["live_fetch", { path: `/clans/${clanTag}` }],
   ["war_current", { clan_tag: clanTag }],
   // A refusal reads the same way too.
-  ["clans_roster", { clan_tag: "#2PYLQ8" }],
+  ["clans_roster", { clan_tag: "#0LUVR2" }],
 ];
 
 /** What the invoker adds to a client's call, and the clock. */
