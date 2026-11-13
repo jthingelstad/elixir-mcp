@@ -548,7 +548,11 @@ export const clansTools = {
              order by snapshot_date desc, snapshot_kind desc limit 1
            ) l on true
            where cm.clan_tag = $1 and cm.left_observed_at is null
-           order by cm.role desc, s.trophies desc nulls last`,
+           -- Members on equal trophies (a capped Trophy Road holds many)
+           -- in the game's own clanRank, then by tag: without it two
+           -- identical reads listed them in different orders (#970).
+           order by cm.role desc, s.trophies desc nulls last,
+                    r.clan_rank nulls last, cm.player_tag`,
         [clanTag, ctx.account.accountId],
       );
       // The newest twenty by when they happened, said when cut (Gym #241:
