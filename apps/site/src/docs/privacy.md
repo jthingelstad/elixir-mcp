@@ -149,7 +149,7 @@ address, claims, nicknames, highlights, agents, connections, mail and usage go
 The players' game history is public game data, as it is in the game
 itself, and stays for a year from when it happened, like everything Elixir records.
 A few copies outside the database go on their own clocks: captured call
-bodies within 90 days, Discord delivery records within 14, and your
+bodies within 28 days, Discord delivery records within 14, and your
 newsletter enrollment and archived mail are removed by hand. The reviewed cleanup
 removed retired automatic game-wide captures while preserving personal and clan overlap.
 Older data can remain in encrypted automated backups until their normal

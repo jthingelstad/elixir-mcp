@@ -362,7 +362,11 @@ lead to Elixir's own origin (or Drop's: `FIRST_PARTY_ORIGINS`).
   per product send, never the recipient.
 - The rendered mail is archived under
   `mail/sent/dt=<day>/send_id=<id>.json.gz` (`archive.mjs`) before the
-  enqueue; a failed write logs and sends anyway.
+  enqueue; a failed write logs and sends anyway. The archive bucket's
+  `mail-sent-expire` rule deletes a body a year after it was sent, and
+  `mail-sent-purge-expired` its noncurrent version a day later, the same
+  year the retention trim keeps the `email_issue` and `email_send` rows a
+  record is opened from (DECISIONS, 2026-11-13).
 - Web: `GET /api/me/email/sends` and `/api/me/email/sends/<id>` (own sends
   only; the pixel stripped, so reading a record never counts as an open). The
   record is at `/settings/emails/<id>` in a sandboxed no-script
