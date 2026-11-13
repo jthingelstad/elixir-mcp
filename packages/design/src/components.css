@@ -7929,8 +7929,17 @@ a.kit-mbattle:hover {
 }
 .kit-spark > i {
   position: relative;
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   max-width: 14px;
+}
+/* A long sitting: the gaps close as the bars multiply, so every bar keeps
+   some width and the chart never overflows its card. */
+.kit-spark--dense {
+  gap: 1px;
+}
+.kit-spark--packed {
+  gap: 0;
 }
 .kit-spark > i > b {
   position: absolute;
