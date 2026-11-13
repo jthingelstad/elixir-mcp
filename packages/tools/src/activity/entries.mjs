@@ -2760,7 +2760,12 @@ export async function buildClanEntry(
                       'name', (select p.name from player p where p.player_tag = l.player_tag),
                       'given', l.donations)
                from latest l
-              where exists (select 1 from player p where p.player_tag = l.player_tag)
+              -- OFFSET 0 keeps the check a probe by key per row: pulled up
+              -- into a semi-join, the planner could hash the whole player
+              -- table, and which it chose moved with the table's stats
+              -- (clan-landing-budget flaked on it, 2026-11-13).
+              where exists (select 1 from player p
+                             where p.player_tag = l.player_tag offset 0)
               order by l.donations desc nulls last limit 1) as leader
        from latest`,
       [tag],
