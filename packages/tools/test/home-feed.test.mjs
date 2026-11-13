@@ -319,13 +319,27 @@ test("two builds of one account's row never run at once", async () => {
     // The first holds the lock once its build has begun: no timer, which
     // under a loaded run let the second ask first (2026-11-13).
     await started;
-    const second = buildOnce(other, "home_feed", owner, {
+    // Release only once the second has been refused the lock: its try is
+    // in flight when buildOnce returns, and a release before Postgres
+    // answers it would hand it a free lock.
+    let refused;
+    const askedOnce = new Promise((r) => (refused = r));
+    let asks = 0;
+    const watched = {
+      query: async (...args) => {
+        const result = await other.query(...args);
+        if (++asks === 1) refused(result.rows[0]?.ok);
+        return result;
+      },
+    };
+    const second = buildOnce(watched, "home_feed", owner, {
       build: async () => {
         builds += 1;
         return "built twice";
       },
       reuse: async () => "reused",
     });
+    assert.equal(await askedOnce, false, "the first holds the lock");
     assert.equal(builds, 1, "the second waits for the first");
     release();
     assert.equal(await first, "built");
