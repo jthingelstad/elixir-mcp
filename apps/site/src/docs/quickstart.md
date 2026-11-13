@@ -7,7 +7,7 @@ order: 2
 navTitle: "Quickstart"
 icon: rocket
 lede: "Sign in, add your player tag, follow a few people and choose your digest. That's it."
-reviewed: "2026-11-13 against Home's welcome steps"
+reviewed: "2026-11-13 against Home's welcome steps and People you know"
 ---
 
 # Get started with Elixir
@@ -64,8 +64,12 @@ there:
 - **From your battles**: players you met in your own battles.
 - **The clan directory**: every clan on Elixir.
 
-Home's **People to follow** suggests a few more, and says why each one is
-there ([Find](/docs/follow-a-friend#find)).
+Until you follow five, Home opens with **People you know**: your
+clanmates, the players you played a friendly battle with and your 2v2
+teammates, all ticked. Untick anyone you'd rather not follow and tap
+**Follow these** ([People you know](/docs/timeline#people-you-know)).
+After that, Home's **People to follow** suggests a few more, and says why
+each one is there ([Find](/docs/follow-a-friend#find)).
 
 Everyone you follow fills **Home's feed**: their sessions, their firsts and
 their best battles, newest first ([The timeline](/docs/timeline)). Tap

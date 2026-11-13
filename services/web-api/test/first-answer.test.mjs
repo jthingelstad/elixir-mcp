@@ -339,8 +339,23 @@ test("selected capture state is claim-bound; roster-only data never promises a p
 });
 
 test("first-answer carries Home's welcome state: the players followed and the digest, once chosen (G4)", async () => {
-  let w = JSON.parse((await read()).body).welcome;
+  const first = JSON.parse((await read()).body);
+  let w = first.welcome;
   assert.deepEqual(w, { following: 0, digest: null, finished_at: null });
+  // Home's suggested follows: never put aside yet.
+  assert.equal(first.starter_hidden_until, null);
+  await db.query(
+    "update account set starter_hidden_at = now() where account_id = $1",
+    [accountId],
+  );
+  const until = Date.parse(
+    JSON.parse((await read()).body).starter_hidden_until,
+  );
+  assert.ok(until > Date.now() + 29 * 86_400_000, "Not now lasts 30 days");
+  await db.query(
+    "update account set starter_hidden_at = null where account_id = $1",
+    [accountId],
+  );
   await db.query(
     "insert into player (player_tag) values ('#0Y0PLGJ8'), ('#00GG9Q8R') on conflict do nothing",
   );

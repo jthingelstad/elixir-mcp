@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Avatar,
   Empty,
@@ -7,11 +8,22 @@ import {
   Rows,
   TagText,
   useClock,
+  WriteError,
 } from "@elixir-mcp/ui";
+import { useQueryClient } from "@tanstack/react-query";
+import { useWrite } from "@elixir-mcp/client";
+import { api } from "../api.js";
 import { playerHref } from "../lib/player.js";
 import { usePeople } from "../lib/queries.js";
 import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
-import { costMark, metLine, roleLabel, slotsLine, whyLines } from "./logic.js";
+import {
+  costMark,
+  metLine,
+  roleLabel,
+  slotsLine,
+  starterPlan,
+  whyLines,
+} from "./logic.js";
 
 /**
  * People to follow (2026-11-12): Home's side panel and Find's From your
@@ -60,6 +72,7 @@ function Person({ p, detail, used, limit }) {
 /** Home's side panel: a few people, each with why and what it costs. It reads
  *  for itself, after the feed, so Home's first paint never waits on it. */
 export function PeopleToFollow() {
+  const { feedDayHeading } = useClock();
   const query = usePeople("suggested");
   const data = query.data;
   if (query.isPending)
@@ -108,7 +121,9 @@ export function PeopleToFollow() {
               limit={data.limit}
               detail={
                 <>
-                  <span className="kit-people__why">{whyLines(p.why)}</span>
+                  <span className="kit-people__why">
+                    {whyLines(p.why, { dayHeading: feedDayHeading })}
+                  </span>
                   <span
                     className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
                   >
@@ -274,5 +289,160 @@ export function YourClanPeople() {
         </Rows>
       )}
     </Panel>
+  );
+}
+
+/** The starter set's rows shown before Show all: with its head and Follow
+ *  these, enough to fill a phone's first screen and no more. */
+const STARTER_SHOWN = 5;
+
+/**
+ * Home's suggested follows (2026-11-13), at the top of Home on every visit
+ * while the account follows few players (offersStarter). Every row is
+ * ticked; untick anyone, then one confirmed Follow these (the follow-all a
+ * clan's Follow everyone uses), priced from this read and refused whole
+ * past the slots left. Nothing is followed without that tap. Follow these
+ * sits beside the heading and what it costs below the rows, so a small
+ * phone's first screen holds the button and three rows with their reasons. "Not now" puts it aside for 30 days. With
+ * nobody to suggest it is one line pointing to Find. `query` is
+ * usePeople("starter"), read apart from the feed; the panel draws nothing
+ * while it reads, on a failure or when the server offers none.
+ */
+export function StarterSet({ query }) {
+  const { feedDayHeading } = useClock();
+  const [off, setOff] = useState(() => new Set());
+  const [all, setAll] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const queryClient = useQueryClient();
+  const hide = useWrite(api.hideStarter, {
+    invalidate: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["me", "home"],
+        exact: true,
+      });
+    },
+  });
+  const data = query.data;
+  if (hidden || !data?.ok || !data.offer) return null;
+  const people = data.people ?? [];
+  const notNow = (
+    <button
+      type="button"
+      className="btn btn--sm btn--quiet kit-starter__not-now"
+      disabled={hide.busy}
+      onClick={async () => {
+        setHidden(true);
+        const res = await hide.run();
+        if (!res.ok) setHidden(false);
+      }}
+    >
+      Not now
+    </button>
+  );
+  if (!people.length)
+    return (
+      <section
+        className="kit-starter kit-starter--empty"
+        aria-labelledby="kit-starter-head"
+      >
+        <h2 id="kit-starter-head" className="kit-starter__head">
+          People you know
+        </h2>
+        <p className="kit-starter__lead">
+          Nobody to suggest yet: friendly battles, 2v2 teammates and your clan
+          show up here.{" "}
+          <Link to="/home/find">
+            Search by name or tag, or send your Follow me link
+          </Link>
+          .
+        </p>
+        {notNow}
+        <WriteError error={hide.error} className="field-error" />
+      </section>
+    );
+  const chosen = people.filter((p) => !off.has(p.tag));
+  const plan = starterPlan(chosen, data.used, data.limit);
+  const shown = all ? people : people.slice(0, STARTER_SHOWN);
+  const toggle = (tag) =>
+    setOff((was) => {
+      const next = new Set(was);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
+  return (
+    <section className="kit-starter" aria-labelledby="kit-starter-head">
+      <div className="kit-starter__top">
+        <h2 id="kit-starter-head" className="kit-starter__head">
+          People you know
+        </h2>
+        <FollowAll
+          ask={{ player_tags: chosen.map((p) => p.tag) }}
+          plan={plan}
+          label={`Follow these (${plan.to_follow})`}
+          title={`Follow ${plan.to_follow} ${plan.to_follow === 1 ? "player" : "players"}?`}
+          confirm="Follow these"
+          className="btn btn--gold"
+        />
+      </div>
+      <Rows>
+        {shown.map((p) => {
+          const id = `starter-${p.tag.slice(1)}`;
+          const name = p.name ?? p.tag;
+          return (
+            <Row
+              key={p.tag}
+              className="kit-people__row kit-starter__row"
+              lead={
+                <label className="kit-starter__tick" htmlFor={id}>
+                  <input
+                    id={id}
+                    type="checkbox"
+                    checked={!off.has(p.tag)}
+                    onChange={() => toggle(p.tag)}
+                    aria-label={`Follow ${name}`}
+                  />
+                </label>
+              }
+              title={
+                <Link to={playerHref(p.tag)} className="hit">
+                  <TagText>{name}</TagText>
+                </Link>
+              }
+              detail={
+                <>
+                  <span className="kit-people__why">
+                    {whyLines(p.why, { dayHeading: feedDayHeading })}
+                  </span>
+                  <span
+                    className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
+                  >
+                    {costMark(p)}
+                  </span>
+                </>
+              }
+            />
+          );
+        })}
+      </Rows>
+      {people.length > STARTER_SHOWN ? (
+        <button
+          type="button"
+          className="btn btn--sm btn--quiet kit-starter__more"
+          aria-expanded={all}
+          onClick={() => setAll((v) => !v)}
+        >
+          {all ? "Show fewer" : `Show all ${people.length}`}
+        </button>
+      ) : null}
+      <div className="kit-starter__foot">
+        <p className="kit-tiny">
+          Untick anyone you&rsquo;d rather not follow. Nobody is told.{" "}
+          <span role="status">{followPlanLine(plan)}</span>
+        </p>
+        {notNow}
+      </div>
+      <WriteError error={hide.error} className="field-error" />
+    </section>
   );
 }

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mockApi, SIGNED_OUT } from "./fixtures.ts";
-import { homeApi } from "./home-fixture.ts";
+import { HOME, homeApi } from "./home-fixture.ts";
 import { BATTLE } from "./battle-fixture.ts";
 import * as clan from "./clan/fixtures.ts";
 
@@ -99,6 +99,44 @@ test("Home: the top bar, the feed, the panels and the footer", async ({
   await mockApi(page, homeApi());
   await page.goto("/home");
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  expect(await misses(page)).toEqual([]);
+});
+
+test("Home with its suggested follows: the ticks, Follow these and Not now", async ({
+  page,
+}) => {
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me/home": [
+        200,
+        {
+          first: {
+            ...HOME.first,
+            welcome: { following: 0, digest: null, finished_at: null },
+            starter_hidden_until: null,
+          },
+        },
+      ],
+      "GET /api/me/people/starter": [
+        200,
+        {
+          ok: true,
+          offer: true,
+          used: 1,
+          limit: 50,
+          people: ["#0YP8U0Y0", "#080J2V9Q", "#02G2PJC0"].map((tag, i) => ({
+            tag,
+            name: `Invented ${i + 1}`,
+            why: [{ kind: "clan", clan_name: "Grove" }],
+            free: false,
+          })),
+        },
+      ],
+    }),
+  );
+  await page.goto("/home");
+  await expect(page.locator(".kit-starter__row")).toHaveCount(3);
   expect(await misses(page)).toEqual([]);
 });
 

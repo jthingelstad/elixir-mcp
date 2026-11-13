@@ -8,6 +8,7 @@ import {
   TagText,
   useClock,
 } from "@elixir-mcp/ui";
+import { FollowButton } from "../home/follow.jsx";
 import { needsYou, panelOf } from "../home/logic.js";
 import {
   useBell as useBellRead,
@@ -138,6 +139,9 @@ export function BellSheet({ me, onClose }) {
   const bell = shown ?? read.data ?? null;
   const reactions = (bell?.reactions?.items ?? []).map(reactionRow);
   const followers = followerRows(bell?.followers);
+  // Followed back while the sheet is open: the sheet keeps the read it
+  // opened on, so the row says Following itself.
+  const [backed, setBacked] = useState(() => new Set());
   const answers = answerRows(bell?.answers);
   const account = accountRows(bell?.account);
   const nothing =
@@ -225,20 +229,54 @@ export function BellSheet({ me, onClose }) {
           <Section title="New followers">
             {followers.rows.length ? (
               <Rows>
-                {followers.rows.map((f) => (
-                  <Row
-                    key={f.key}
-                    href={f.to}
-                    onClick={onClose}
-                    title={
-                      <>
-                        <New on={f.new} />
-                        <TagText>{f.title}</TagText>
-                      </>
-                    }
-                    detail={<TagText>{f.detail}</TagText>}
-                  />
-                ))}
+                {followers.rows.map((f) =>
+                  f.followBack || backed.has(f.tag) ? (
+                    // Follow back (2026-11-13): the follower's verified
+                    // player, by the one confirmed, priced Follow. The name
+                    // still opens their page; the row is not a link, so
+                    // the button is not inside one.
+                    <Row
+                      key={f.key}
+                      title={
+                        <>
+                          <New on={f.new} />
+                          <Link to={f.to} className="hit" onClick={onClose}>
+                            <TagText>{f.title}</TagText>
+                          </Link>
+                        </>
+                      }
+                      detail={<TagText>{f.detail}</TagText>}
+                      right={
+                        backed.has(f.tag) ? (
+                          <span className="kit-following">Following</span>
+                        ) : (
+                          <FollowButton
+                            tag={f.tag}
+                            name={f.name}
+                            label="Follow back"
+                            lazy
+                            onDone={() =>
+                              setBacked((was) => new Set(was).add(f.tag))
+                            }
+                          />
+                        )
+                      }
+                    />
+                  ) : (
+                    <Row
+                      key={f.key}
+                      href={f.to}
+                      onClick={onClose}
+                      title={
+                        <>
+                          <New on={f.new} />
+                          <TagText>{f.title}</TagText>
+                        </>
+                      }
+                      detail={<TagText>{f.detail}</TagText>}
+                    />
+                  ),
+                )}
               </Rows>
             ) : null}
             {followers.counted ? (

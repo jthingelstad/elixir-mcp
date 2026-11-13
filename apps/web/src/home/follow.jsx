@@ -240,19 +240,24 @@ function planLine(plan) {
 
 /**
  * Follow everyone a list names, in one confirmed act (#764): a clan's current
- * members, or a Follow me link's players. Priced before the tap, refused whole
- * past the limit, never in part.
+ * members, a Follow me link's players, or Home's starter set (2026-11-13).
+ * Priced before the tap, refused whole past the limit, never in part. A list
+ * that priced its players already passes the plan in (`plan`, as
+ * FollowButton's `cost`), so a tick or untick is not a read; the server
+ * prices it again when it follows.
  */
 export function FollowAll({
   ask,
   label,
   title,
   onDone,
+  plan: known = null,
+  confirm = "Follow everyone",
   className = "btn btn--sm",
 }) {
-  const plan = useFollowPlan(ask);
+  const plan = useFollowPlan(ask, !known);
   const invalidate = useInvalidate();
-  const p = plan.data ?? null;
+  const p = known ?? plan.data ?? null;
   return (
     <ConfirmAction
       label={label}
@@ -274,7 +279,7 @@ export function FollowAll({
           </p>
         </>
       }
-      confirm="Follow everyone"
+      confirm={confirm}
       disabled={!p || !p.fits || p.to_follow === 0}
       run={() => api.followAll(ask)}
       onDone={(answer) => {

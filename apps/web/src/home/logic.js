@@ -236,23 +236,52 @@ export function raceNowLine(race) {
 
 const times = (n) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
 
+const many = (n, one, other) => (n === 1 ? one : `${n} ${other}`);
+
+/** When a clanmate last played, as a day: "played today", "played
+ *  yesterday", else "last played Monday, November 9". */
+function playedLine(at, dayHeading) {
+  if (!at || !dayHeading) return null;
+  const day = dayHeading(at);
+  if (day === "Today" || day === "Yesterday")
+    return `played ${day.toLowerCase()}`;
+  return `last played ${day}`;
+}
+
 /** Why a person is suggested, one fact per reason, in game names: never a
- *  nickname, never a rating. */
-export function whyLine(why) {
-  if (why.kind === "clan") return "In your clan";
+ *  nickname, never a rating. The friendly battles come first: "those are
+ *  probably folks they know" (Jamie, 2026-11-13). `dayHeading` is the
+ *  clock's (useClock().feedDayHeading), for a clanmate's last battle. */
+export function whyLine(why, { dayHeading = null } = {}) {
+  if (why.kind === "clan") {
+    if (why.recorded) return "In your clan, already in Elixir";
+    const played = playedLine(why.last_battle, dayHeading);
+    return played ? `In your clan, ${played}` : "In your clan";
+  }
   if (why.kind === "followed_by") {
-    const who = why.via?.name ?? why.via?.tag ?? "a player";
+    const who = why.via?.name ?? why.via?.tag ?? "A player you follow";
     return why.others > 0
-      ? `Followed by ${who} and ${why.others} other${why.others === 1 ? "" : "s"} you follow`
-      : `Followed by ${who}, who you follow`;
+      ? `${who} follows them, and ${why.others} more you follow`
+      : `${who} follows them`;
   }
   if (why.kind === "battles") {
-    const span = why.days === 7 ? "this week" : `in ${why.days} days`;
+    const span = why.days === 7 ? "this week" : `in the last ${why.days} days`;
+    const friendly = why.friendly ?? 0;
+    const clan = why.clanmate_battles ?? 0;
+    const rest = Math.max(0, (why.against ?? 0) - friendly - clan);
+    const played = [
+      friendly ? many(friendly, "a friendly battle", "friendly battles") : null,
+      clan ? many(clan, "a clan friendly", "clan friendlies") : null,
+    ].filter(Boolean);
     const parts = [];
-    if (why.against > 0) parts.push(`You played them ${times(why.against)}`);
+    if (played.length)
+      parts.push(
+        `You played ${played.join(" and ")}${rest ? `, and ${times(rest)} more` : ""}`,
+      );
+    else if (rest) parts.push(`You played them ${times(rest)}`);
     if (why.with_you > 0)
       parts.push(
-        `${parts.length ? "teamed up" : "Your 2v2 teammate"} ${times(why.with_you)}`,
+        `${parts.length ? "your" : "Your"} 2v2 teammate${why.with_you > 1 ? ` ${times(why.with_you)}` : ""}`,
       );
     return parts.length ? `${parts.join(", ")} ${span}` : null;
   }
@@ -260,8 +289,11 @@ export function whyLine(why) {
 }
 
 /** A person's reasons, joined. */
-export const whyLines = (whys) =>
-  (whys ?? []).map(whyLine).filter(Boolean).join(" · ");
+export const whyLines = (whys, clock) =>
+  (whys ?? [])
+    .map((w) => whyLine(w, clock))
+    .filter(Boolean)
+    .join(" · ");
 
 /** A suggested person's cost mark: free, or a slot. Following is its own
  *  word. */
@@ -274,6 +306,10 @@ export function costMark(p) {
  *  log only. `when` writes the last time. */
 export function metLine(p, when) {
   const parts = [];
+  if (p.friendly > 0)
+    parts.push(
+      p.friendly === 1 ? "A friendly battle" : `${p.friendly} friendly battles`,
+    );
   if (p.against > 0) {
     parts.push(`Met ${times(p.against)}`);
     const rec = [
@@ -393,4 +429,41 @@ export function digestLine(digest) {
   return digest.cadence === "daily"
     ? "Your digest comes daily."
     : "Your digest comes weekly.";
+}
+
+/**
+ * The starter set's plan (2026-11-13), from its own read: the ticked people,
+ * how many are free and how many take a slot, against the slots left. The
+ * shape of a follow plan (followPlanLine, FollowAll), so the one confirmed
+ * follow-all says it; the server prices it again when it follows.
+ */
+export function starterPlan(chosen, used, limit) {
+  const slots = chosen.filter((p) => !p.free).length;
+  return {
+    players: chosen.map((p) => ({ player_tag: p.tag, free: Boolean(p.free) })),
+    to_follow: chosen.length,
+    free: chosen.length - slots,
+    slots,
+    following: 0,
+    used: used ?? 0,
+    limit: limit ?? null,
+    fits: limit == null || slots === 0 || (used ?? 0) + slots <= limit,
+  };
+}
+
+/** Home offers its suggested follows while an account follows fewer
+ *  players than this (its own not counted, nor clans) [engineering,
+ *  2026-11-13]. The server holds the same number (STARTER_UNDER). */
+export const STARTER_UNDER = 5;
+
+/** Whether Home offers the starter set (2026-11-13): on every visit while
+ *  the account follows fewer than STARTER_UNDER players (Jamie: "even if it
+ *  isn't their first login"), unless "Not now" was said and its 30 days
+ *  have not run out. From Home's own read; the server checks the same
+ *  before it answers. */
+export function offersStarter(first, nowMs = Date.now()) {
+  const following = first?.welcome?.following;
+  if (typeof following !== "number" || following >= STARTER_UNDER) return false;
+  const until = first?.starter_hidden_until;
+  return !(until && Date.parse(until) > nowMs);
 }

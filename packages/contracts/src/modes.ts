@@ -59,6 +59,16 @@ export const EVENT_MODE_GROUP = "event";
  */
 export const CLANMATE_TYPES: readonly string[] = ["clanMate", "clanMate2v2"];
 
+/**
+ * A friendly battle two players set up themselves, outside clan chat: the
+ * API's `friendly` type. A friendly with a clanmate is CLANMATE_TYPES.
+ * Both are casual play in the mode groups above; this names the battles
+ * that show who a player knows (People to follow and the starter set,
+ * 2026-11-13: "those are probably folks they know!"). The API's own
+ * `unknown` is not one: it carries event battles too.
+ */
+export const FRIENDLY_TYPES: readonly string[] = ["friendly"];
+
 /** Whether a battle is event content: tagged, and not with a clanmate. */
 export function isEventContent(
   type: string,

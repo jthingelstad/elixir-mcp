@@ -103,6 +103,31 @@ turning it off. Once all four are done the steps are gone for good: Elixir
 notes that you finished, so unfollowing everyone later does not bring them
 back.
 
+### People you know
+
+While you follow fewer than five players, Home opens with **People you
+know** at the top, every time you visit, not only the first. It lists
+players you already know in the game, each with why and what following
+them costs:
+
+- clanmates Elixir already records, free to follow ("In your clan,
+  already in Elixir"),
+- players you played a friendly battle with ("You played a friendly
+  battle"), your 2v2 teammates ("Your 2v2 teammate") and clanmates you
+  battled in clan chat, from the last 30 days,
+- then your other clanmates, the ones who played most recently first ("In
+  your clan, played today").
+
+Everyone is ticked. Untick anyone you'd rather not follow, then tap
+**Follow these**: it asks once, with what it costs, and follows only the
+ticked players. Nobody is followed until you tap, and nobody is told. It
+takes at most 10 of your player slots; free ones don't count. **Not now**
+puts it away for 30 days; if you still follow few after that, it comes
+back. When there is nobody to suggest, it is one line pointing to
+[Find](/docs/follow-a-friend#find), where you can search or send your
+Follow me link. Nobody is ranked, and names are game names, never a
+nickname.
+
 ### Beside the feed
 
 On a wide screen three panels sit beside the feed; on a phone they follow
@@ -118,12 +143,13 @@ it. Each reads on its own, so the feed never waits for them.
 - **People to follow:** up to five players, each with why they are there
   as a fact and what following them costs. They come in turn from three
   places: players your own players met in the last seven days (twice or
-  more, or as a 2v2 teammate: "You played them twice this week"), your
-  clan's members ("In your clan"), and players followed by the verified
-  players you follow ("Followed by Ada, who you follow"). Players you
-  already follow, watch or own are never suggested. Nobody is ranked by
-  trophies, wins or any rating, and names are game names, never a
-  nickname. **Find more people** opens [Find](/docs/follow-a-friend#find).
+  more, a friendly battle, or as a 2v2 teammate, those first: "You played
+  a friendly battle this week"), players followed by the verified players
+  you follow ("Ada follows them"), and your clan's members ("In your
+  clan"). Players you already follow, watch or own are never suggested.
+  Nobody is ranked by trophies, wins or any rating, and names are game
+  names, never a nickname. While **People you know** is at the top of
+  Home, this panel steps aside. **Find more people** opens [Find](/docs/follow-a-friend#find).
 
 ## Cheers
 

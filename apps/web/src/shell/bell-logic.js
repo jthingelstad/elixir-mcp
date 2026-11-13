@@ -138,6 +138,10 @@ export function followerRows(followers) {
     key: `${p.tag}-${p.followed_tag}`,
     title: p.name ?? p.tag,
     tag: p.tag,
+    name: p.name ?? null,
+    // Their verified player is yours to follow back unless you already
+    // own, follow or watch it (the bell's read says).
+    followBack: p.can_follow_back === true,
     detail: `Follows ${p.followed_name ?? p.followed_tag}`,
     to: playerHref(p.tag),
     new: p.new === true,

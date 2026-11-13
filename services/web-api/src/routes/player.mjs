@@ -45,7 +45,7 @@ import { homeClan } from "./clans.mjs";
 const PAGE_DAYS = 30;
 const HIGHLIGHTS = 30;
 /** One confirmed follow takes at most a clan's worth of players. */
-const FOLLOW_ALL_MAX = 50;
+export const FOLLOW_ALL_MAX = 50;
 const MOMENT_KINDS = new Set(NEWS_SOURCES.player_moments);
 
 const tagOf = (raw) => {
@@ -343,6 +343,42 @@ async function followSlots(db, accountId) {
   };
 }
 
+/**
+ * Follow each player of a plan the reader does not follow yet, in order,
+ * with a first read for each that Elixir starts recording because of it.
+ * The one loop behind every follow-several (a Follow me link, a clan's
+ * Follow everyone, Home's starter set); the caller has checked the plan
+ * fits. A slot taken meanwhile, or no player of your own, stops it, and
+ * the answer says how far it got.
+ */
+async function followEach(db, account, plan, liveRead) {
+  const followed = [];
+  for (const p of plan.players) {
+    if (p.following) continue;
+    const r = await addPlayer(db, account, {
+      tag: p.player_tag,
+      follow: true,
+      via: "web",
+    });
+    if (!r.ok)
+      return {
+        ok: false,
+        error: r.error,
+        message:
+          r.error === "no_own_player"
+            ? "Add your own player first."
+            : (r.message ?? "That did not work. Try again."),
+        followed,
+      };
+    followed.push(p.player_tag);
+    // A player Elixir starts recording because of this gets their first
+    // read; one already recorded has theirs.
+    if (r.recordingStarted)
+      await requestFirstRead(db, liveRead, p.player_tag, account.accountId);
+  }
+  return { ok: true, followed };
+}
+
 /** The plain words for a follow-all refused at the limit. */
 export function followAllRefusal(plan) {
   const left = Math.max(0, plan.limit - plan.used);
@@ -488,32 +524,14 @@ export function playerRoutes({ resolveAccount, live = null }) {
           limit: plan.limit,
           slots: plan.slots,
         });
-      const followed = [];
-      for (const p of plan.players) {
-        if (p.following) continue;
-        const r = await addPlayer(db, account, {
-          tag: p.player_tag,
-          follow: true,
-          via: "web",
+      const done = await followEach(db, account, plan, liveRead);
+      if (!done.ok)
+        return json(done.error === "quota_exceeded" ? 429 : 409, {
+          error: done.error,
+          message: done.message,
+          followed: done.followed,
         });
-        if (!r.ok) {
-          // A slot taken meanwhile, or no player of your own: stop and say
-          // how far it got.
-          return json(r.error === "quota_exceeded" ? 429 : 409, {
-            error: r.error,
-            message:
-              r.error === "no_own_player"
-                ? "Add your own player first."
-                : (r.message ?? "That did not work. Try again."),
-            followed,
-          });
-        }
-        followed.push(p.player_tag);
-        // A player Elixir starts recording because of this gets their first
-        // read; one already recorded has theirs.
-        if (r.recordingStarted)
-          await requestFirstRead(db, liveRead, p.player_tag, account.accountId);
-      }
+      const { followed } = done;
       return json(200, { ok: true, followed, clan_tag: asked.clan_tag });
     },
   };

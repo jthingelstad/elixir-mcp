@@ -375,7 +375,7 @@ test("People to follow: why and the cost, game names, never anyone you claim", a
   assert.equal(typeof res.body.used, "number");
 });
 
-test("From your battles: how often you met and how it went, most met first", async () => {
+test("From your battles: how often you met and how it went, friendlies and teammates first, then most met", async () => {
   const res = await call("GET", "/api/me/people/battles", { who: "owner" });
   assert.equal(res.status, 200, res.raw);
   assert.equal(res.body.days, 30);
@@ -383,11 +383,19 @@ test("From your battles: how often you met and how it went, most met first", asy
   assert.ok(!res.raw.includes(NICKNAME), "no nickname");
   const tags = res.body.people.map((p) => p.tag);
   assert.ok(!tags.includes(PLAYER));
-  const met = res.body.people.map((p) => p.against + p.with_you);
-  assert.deepEqual(
-    met,
-    [...met].sort((a, b) => b - a),
+  // People you know first (a friendly, then a 2v2 teammate), then the
+  // most met: an order of facts, never a score.
+  const key = (p) => [
+    p.friendly > 0 ? 1 : 0,
+    p.with_you > 0 ? 1 : 0,
+    p.against + p.with_you,
+  ];
+  const keys = res.body.people.map(key);
+  const sorted = [...keys].sort(
+    (a, b) => b[0] - a[0] || b[1] - a[1] || b[2] - a[2],
   );
+  assert.deepEqual(keys, sorted);
+  for (const p of res.body.people) assert.equal(typeof p.friendly, "number");
   const followed = res.body.people.find(
     (p) => p.tag === opponents[0].player_tag,
   );

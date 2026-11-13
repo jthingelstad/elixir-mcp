@@ -58,11 +58,18 @@ test("a reaction row: counts in the picker's order, never who, and a battle path
   ).toBeNull();
 });
 
-test("followers: named by their verified player, the rest one counted line", () => {
+test("followers: named by their verified player with Follow back when it is yours to follow, the rest one counted line", () => {
   const { rows, counted } = followerRows({
     unnamed: 1,
     players: [
-      { tag: "#0CR", name: "Invented Fan", followed_tag: "#0J8", new: false },
+      {
+        tag: "#0CR",
+        name: "Invented Fan",
+        followed_tag: "#0J8",
+        new: false,
+        can_follow_back: true,
+      },
+      { tag: "#0G2ULUJP", name: null, followed_tag: "#0J8", new: true },
     ],
   });
   expect(rows).toEqual([
@@ -70,9 +77,22 @@ test("followers: named by their verified player, the rest one counted line", () 
       key: "#0CR-#0J8",
       title: "Invented Fan",
       tag: "#0CR",
+      name: "Invented Fan",
+      followBack: true,
       detail: "Follows #0J8",
       to: "/home/player/0CR",
       new: false,
+    },
+    {
+      key: "#0G2ULUJP-#0J8",
+      title: "#0G2ULUJP",
+      tag: "#0G2ULUJP",
+      name: null,
+      // Only when the read says it is yours to follow back.
+      followBack: false,
+      detail: "Follows #0J8",
+      to: "/home/player/0G2ULUJP",
+      new: true,
     },
   ]);
   expect(counted).toMatch(/^1 more account follows you/);

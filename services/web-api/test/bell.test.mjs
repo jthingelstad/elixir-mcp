@@ -247,8 +247,21 @@ test("the bell: reactions as counts, followers named only by a verified player, 
       followed_tag: PLAYER,
       followed_name: "Invented Owner",
       new: true,
+      can_follow_back: true,
     },
   ]);
+  // Follow back (2026-11-13) is not offered on a player you already
+  // follow, own or watch.
+  await db.query(
+    `insert into claim (account_id, player_tag, relationship) values ($1, $2, 'friend')`,
+    [ids.owner, FAN_PLAYER],
+  );
+  const back = await call("GET", "/api/me/bell", { who: "owner" });
+  assert.equal(back.body.followers.players[0].can_follow_back, false);
+  await db.query(
+    `delete from claim where account_id = $1 and player_tag = $2`,
+    [ids.owner, FAN_PLAYER],
+  );
   assert.equal(bell.body.answers.items.length, 1);
   assert.equal(bell.body.answers.items[0].about, QUESTION);
   assert.equal(bell.body.answers.items[0].new, true);
