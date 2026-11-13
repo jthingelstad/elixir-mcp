@@ -22,6 +22,7 @@ export function Sitting({ it }) {
       ? f.trophy_net
       : null;
   const deck = f.decks?.[0] ?? null;
+  const note = sittingNote(f, it.scores);
   return (
     <div className="kit-feed__sitting">
       {modes.length > 0 ? (
@@ -29,34 +30,38 @@ export function Sitting({ it }) {
           {modes.length === 1
             ? modeWord(modes[0])
             : `${modes.slice(0, -1).map(modeWord).join(", ")} and ${modeWord(modes.at(-1))}`}
+          {it.scores?.best_win ? ` · best win ${it.scores.best_win}` : ""}
         </p>
       ) : null}
-      <dl className="kit-sfacts">
-        <div>
-          <dt>Battles</dt>
-          <dd>{f.battles ?? 0}</dd>
-        </div>
-        <div>
-          <dt>Won</dt>
-          <dd className="kit-sfacts--won">{f.won ?? 0}</dd>
-        </div>
-        <div>
-          <dt>Lost</dt>
-          <dd>{f.lost ?? 0}</dd>
-        </div>
-        {net !== null ? (
+      <div className="kit-stile">
+        <dl className="kit-sfacts">
           <div>
-            <dt>Trophies</dt>
-            <dd
-              className={
-                net > 0 ? "kit-sfacts--up" : net < 0 ? "kit-sfacts--down" : ""
-              }
-            >
-              {net > 0 ? `+${net}` : net}
-            </dd>
+            <dt>Battles</dt>
+            <dd>{f.battles ?? 0}</dd>
           </div>
-        ) : null}
-      </dl>
+          <div>
+            <dt>Won</dt>
+            <dd className="kit-sfacts--won">{f.won ?? 0}</dd>
+          </div>
+          <div>
+            <dt>Lost</dt>
+            <dd>{f.lost ?? 0}</dd>
+          </div>
+          {net !== null ? (
+            <div>
+              <dt>Trophies</dt>
+              <dd
+                className={
+                  net > 0 ? "kit-sfacts--up" : net < 0 ? "kit-sfacts--down" : ""
+                }
+              >
+                {net > 0 ? `+${net}` : net}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+        {note ? <p className="kit-stile__note">{note}</p> : null}
+      </div>
       <Sparkline spark={it.spark} />
       {deck?.label ? (
         <p className="kit-decklabel">
@@ -70,6 +75,22 @@ export function Sitting({ it }) {
       ) : null}
     </div>
   );
+}
+
+const COUNT_WORDS = ["no", "one", "two", "three", "four", "five"];
+const countWord = (n) => COUNT_WORDS[n] ?? String(n);
+
+/** The note right of a sitting's figures (design canvas, 2026-11-13): plain
+ *  facts the figures don't already say. Its longest run of wins, when three
+ *  or more, and two or more wins that took all three crowns.
+ *  Nothing when neither holds. */
+export function sittingNote(f, scores) {
+  const parts = [];
+  if (typeof f.won_in_a_row === "number" && f.won_in_a_row >= 3)
+    parts.push(`${f.won_in_a_row} wins in a row`);
+  const three = scores?.three_crowns ?? 0;
+  if (three >= 2) parts.push(`${countWord(three)} 3-crown wins`);
+  return parts.join(" · ");
 }
 
 /** What an item's evidence toggle says, open or closed: a sitting's games,

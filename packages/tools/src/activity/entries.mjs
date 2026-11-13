@@ -838,12 +838,14 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
       if (cur.learnedMs === null || c > cur.learnedMs) cur.learnedMs = c;
     }
     cur.battles += 1;
+    // Server-only (SPARK): the website's sparkline and Home's sitting
+    // line ("best win 3-0", "two 3-crown wins"), never MCP's facts.
+    const scored =
+      typeof b.crowns === "number" && typeof b.crowns_against === "number";
     cur.spark.push({
       outcome: b.outcome ?? null,
-      margin:
-        typeof b.crowns === "number" && typeof b.crowns_against === "number"
-          ? b.crowns - b.crowns_against
-          : null,
+      margin: scored ? b.crowns - b.crowns_against : null,
+      ...(scored ? { crowns: b.crowns, against: b.crowns_against } : {}),
     });
     if (b.outcome === "win") {
       cur.won += 1;

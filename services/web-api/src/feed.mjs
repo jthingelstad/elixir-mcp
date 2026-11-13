@@ -10,6 +10,11 @@
  *   spark      a sitting's battles in order, for the sparkline: each
  *              battle's outcome and crown margin. Sessions only.
  *   battle_url the battle that proved a moment, as its public page.
+ *   scores     a sitting's plain score facts for its line under the title
+ *              (design canvas, 2026-11-13): `best_win`, the widest win's
+ *              score ("3-0"), and `three_crowns`, how many wins took all
+ *              three crowns. From the stored spark's crowns; a week stored
+ *              before they were kept has none, and the line says less.
  *
  * The chips only choose what is shown; the read is the timeline's, so the
  * page's place ("New since your last visit") and its evidence reads stay
@@ -77,6 +82,27 @@ export function sparkBars(spark) {
   }));
 }
 
+/** A sitting's score facts from its battles in order, or null when the
+ *  record kept no crowns. The widest win (ties: the earlier) and the wins
+ *  that took three crowns. Facts only: no judgement of the sitting. */
+export function scoresOf(spark) {
+  if (!Array.isArray(spark)) return null;
+  const scored = spark.filter(
+    (b) =>
+      b.outcome === "win" &&
+      typeof b.crowns === "number" &&
+      typeof b.against === "number",
+  );
+  if (scored.length === 0) return null;
+  let best = scored[0];
+  for (const b of scored)
+    if (b.crowns - b.against > best.crowns - best.against) best = b;
+  return {
+    best_win: `${best.crowns}-${best.against}`,
+    three_crowns: scored.filter((b) => b.crowns >= 3).length,
+  };
+}
+
 /** The timeline's items with Home's fields added. */
 export async function annotateFeed(db, timeline, subjects) {
   const items = timeline ?? [];
@@ -84,11 +110,13 @@ export async function annotateFeed(db, timeline, subjects) {
   const links = await battleLinks(db, proofs.filter(Boolean));
   return items.map((it, i) => {
     const spark = sparkOf(it);
+    const scores = scoresOf(sessionSpark(it));
     const link = proofs[i] ? links.get(proofs[i]) : null;
     return {
       ...it,
       groups: groupsOf(it, subjects),
       ...(spark ? { spark } : {}),
+      ...(scores ? { scores } : {}),
       ...(link ? { battle_url: link.url } : {}),
     };
   });

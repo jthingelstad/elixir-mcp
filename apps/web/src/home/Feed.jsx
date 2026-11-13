@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Avatar,
+  Chip,
   Chips,
   Empty,
   ErrorState,
@@ -15,11 +17,10 @@ import { playerHref } from "../lib/player.js";
 import { useHomeFeed, useHomeFeedEvidence } from "../lib/queries.js";
 import {
   TimelineEvidence,
-  useRowTime,
   useTimelinePlace,
 } from "../views/account/timeline-shared.jsx";
 import { FEED_CHIPS, feedShown, shownAt, timelineDays } from "./logic.js";
-import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
+import { Sitting, SITTINGS } from "./Session.jsx";
 import { Cheers } from "./Cheers.jsx";
 
 /**
@@ -39,15 +40,20 @@ import { Cheers } from "./Cheers.jsx";
  * Thirty items a page, and More for the next thirty of the same week (G1,
  * 2026-11-12: a busy week was 150 items, 15 to 25 s to read and 20,870 px
  * of page). The chips count the whole week; they show what is loaded.
+ *
+ * The chips sit in the page's head, right of its title, when the page gives
+ * them a place (`chipsAt`, design canvas 2026-11-13), else above the feed.
+ * New is one more toggle in the same row, not a second row of chips: on, it
+ * keeps only what is new since your last visit, under whichever Show chip.
  */
-export function HomeFeed() {
-  const { day, dayHeading } = useClock();
+export function HomeFeed({ chipsAt = null } = {}) {
+  const { day, feedDayHeading: dayHeading } = useClock();
   const query = useHomeFeed();
   const pages = query.data?.pages ?? [];
   const timeline = pages[0] ?? null;
   const { openedMs } = useTimelinePlace(timeline);
   const [show, setShow] = useState("everyone");
-  const [state, setState] = useState("all");
+  const [newOnly, setNewOnly] = useState(false);
   const [openId, setOpenId] = useState(null);
   const items = useMemo(
     () => (query.data?.pages ?? []).flatMap((p) => p?.timeline ?? []),
@@ -57,9 +63,7 @@ export function HomeFeed() {
     openedMs !== null && Date.parse(it.observed_at ?? it.at) > openedMs;
   // Q8 keeps the State chips; the four Show chips replace its Who chips
   // (Jamie, 2026-11-12).
-  const shown = feedShown(items, show).filter(
-    (it) => state === "all" || isNew(it),
-  );
+  const shown = feedShown(items, show).filter((it) => !newOnly || isNew(it));
   const more = timeline?.timeline_more ?? 0;
   if (query.isPending)
     return (
@@ -117,6 +121,27 @@ export function HomeFeed() {
       ? timeline.counts.new
       : items.filter(isNew).length;
   const total = timeline.total ?? items.length;
+  const chips = (
+    <div className="kit-home__filters">
+      <Chips
+        label="Show"
+        options={FEED_CHIPS.map((c) => ({ ...c, count: counts[c.key] }))}
+        value={show}
+        onChange={setShow}
+      />
+      {openedMs !== null ? (
+        <Chip
+          className="kit-chip--new"
+          pressed={newOnly}
+          count={newCount}
+          onClick={() => setNewOnly(!newOnly)}
+          aria-label={`New since your last visit: ${newCount}`}
+        >
+          New
+        </Chip>
+      ) : null}
+    </div>
+  );
   return (
     <div className="kit-feed">
       {refetchFailed ? (
@@ -137,28 +162,10 @@ export function HomeFeed() {
           </button>
         </div>
       ) : null}
-      <div className="kit-home__filters">
-        <Chips
-          label="Show"
-          options={FEED_CHIPS.map((c) => ({ ...c, count: counts[c.key] }))}
-          value={show}
-          onChange={setShow}
-        />
-        {openedMs !== null ? (
-          <Chips
-            label="State"
-            options={[
-              { key: "all", label: "All" },
-              { key: "new", label: "New", count: newCount },
-            ]}
-            value={state}
-            onChange={setState}
-          />
-        ) : null}
-      </div>
+      {chipsAt ? createPortal(chips, chipsAt) : chips}
       {days.length === 0 ? (
         <p className="kit-week__quiet">
-          {state === "new"
+          {newOnly
             ? "Nothing new here since your last visit."
             : show === "friends"
               ? "Nothing from your friends in the last seven days."
@@ -336,8 +343,55 @@ function MomentBattle({ it }) {
   );
 }
 
+/** What an item's open button says (design canvas, 2026-11-13): a sitting
+ *  opens as a session, a moment's crossing as its crossing. */
+const openWord = (it, open) =>
+  it.evidence.kind === "session"
+    ? open
+      ? "Close session"
+      : "Open session"
+    : open
+      ? "Close crossing"
+      : "Open crossing";
+
+/** A race week's place as a bar: first fills it, fifth a fifth. A race has
+ *  five clans (cr-agent-api-docs models/river-race.md); a place outside one
+ *  to five draws nothing. */
+function RacePlace({ rank }) {
+  if (!Number.isInteger(rank) || rank < 1 || rank > 5) return null;
+  const place = ["First", "Second", "Third", "Fourth", "Fifth"][rank - 1];
+  return (
+    <div
+      className={`kit-racebar kit-racebar--p${rank}`}
+      role="img"
+      aria-label={`${place} of five clans`}
+    >
+      <i />
+    </div>
+  );
+}
+
+/** When an item happened, as the feed says it ("Tonight, 7:40 to 8:32 pm"),
+ *  with the exact instant for a pointer and a screen reader. A sitting
+ *  shows its range. */
+function When({ it }) {
+  const { feedWhen, when } = useClock();
+  const f = it.facts ?? {};
+  const range = SITTINGS.has(it.kind) && f.started_at && f.ended_at;
+  const at = range ? f.started_at : shownAt(it);
+  if (!at) return null;
+  return (
+    <time
+      className="kit-feed__time"
+      dateTime={at}
+      title={range ? `${when(f.started_at)} to ${when(f.ended_at)}` : when(at)}
+    >
+      {range ? feedWhen(f.started_at, f.ended_at) : feedWhen(at)}
+    </time>
+  );
+}
+
 function FeedItem({ it, open, onToggle }) {
-  const rowTime = useRowTime();
   const sitting = SITTINGS.has(it.kind);
   const clan = isClanItem(it);
   const who = subjectOf(it);
@@ -356,9 +410,9 @@ function FeedItem({ it, open, onToggle }) {
       {it.battle_url && !moment ? (
         <Link
           to={it.battle_url.replace(/^https?:\/\/[^/]+/, "")}
-          className="link kit-tl__more"
+          className="btn btn--sm"
         >
-          The battle
+          Open battle
         </Link>
       ) : null}
       {it.kind === "battle_highlight" ? (
@@ -367,11 +421,11 @@ function FeedItem({ it, open, onToggle }) {
       {it.evidence ? (
         <button
           type="button"
-          className="link kit-tl__more"
+          className="btn btn--sm"
           aria-expanded={open}
           onClick={onToggle}
         >
-          {evidenceWord(it, open)}
+          {openWord(it, open)}
         </button>
       ) : null}
     </>
@@ -395,7 +449,7 @@ function FeedItem({ it, open, onToggle }) {
         />
         <div className="kit-feed__who">
           <Who who={who} />
-          <span className="kit-feed__time">{rowTime(shownAt(it))}</span>
+          <When it={it} />
         </div>
       </header>
       {moment ? (
@@ -411,6 +465,7 @@ function FeedItem({ it, open, onToggle }) {
       ) : (
         text
       )}
+      {it.kind === "week_resolved" ? <RacePlace rank={it.facts?.rank} /> : null}
       {sitting ? <Sitting it={it} /> : null}
       {moment && it.battle_url ? <MomentBattle it={it} /> : null}
       <footer className="kit-feed__foot">
@@ -432,8 +487,8 @@ function HighlightLinks({ facts }) {
   return (
     <>
       {battle.startsWith("/battle/") ? (
-        <Link to={battle} className="link kit-tl__more">
-          Open the battle
+        <Link to={battle} className="btn btn--sm">
+          Open battle
         </Link>
       ) : null}
       {facts?.share_url ? (

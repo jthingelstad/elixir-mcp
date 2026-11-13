@@ -293,6 +293,83 @@ export function dayHeadingAt(ts: Instant, zone?: string | null): string {
   return `${LONG_DAY[weekday] ?? weekday}, ${LONG_MONTH[month] ?? month} ${day}`;
 }
 
+/** Calendar days between two instants on the reader's clock (b's day minus
+ *  a's), from their dates in that zone, so midnight is the reader's. */
+function daysApart(a: Instant, b: Instant, zone: string | null | undefined) {
+  const da = wallClock(a, zone)?.date;
+  const db = wallClock(b, zone)?.date;
+  if (!da || !db) return null;
+  return Math.round(
+    (Date.parse(`${db}T00:00:00Z`) - Date.parse(`${da}T00:00:00Z`)) /
+      86_400_000,
+  );
+}
+
+/** Evening starts here on the reader's clock: a time today from 6 pm on is
+ *  "Tonight" (the design canvas's "Tonight, 7:40 to 8:32 pm"). */
+const EVENING_HOUR = 18;
+
+/** The feed's day words for an instant (design canvas, 2026-11-13): "Today"
+ *  (or "Tonight" from 6 pm with `evening`), "Yesterday", a weekday within
+ *  the week ("Monday"), else "Monday, November 2". The reader's day. */
+export function feedDayAt(
+  ts: Instant,
+  zone?: string | null,
+  {
+    now = Date.now(),
+    evening = false,
+  }: WhenOptions & { evening?: boolean } = {},
+): string {
+  const p = readerParts(ts, zone);
+  if (!p) return "—";
+  const apart = daysApart(ts, now, zone);
+  if (apart === 0) {
+    const hour = Number(wallClock(ts, zone)?.hm.slice(0, 2));
+    return evening && hour >= EVENING_HOUR ? "Tonight" : "Today";
+  }
+  if (apart === 1) return "Yesterday";
+  const weekday = (p.weekday && LONG_DAY[p.weekday]) ?? p.weekday ?? "";
+  if (apart !== null && apart > 1 && apart < 7) return weekday;
+  const month = (p.month && LONG_MONTH[p.month]) ?? p.month ?? "";
+  const year = p.year === yearOf(now, zone) ? "" : `, ${p.year}`;
+  return `${weekday}, ${month} ${p.day}${year}`;
+}
+
+/** When a feed item happened, in words (design canvas, 2026-11-13): "Today,
+ *  4:10 pm", "Tonight, 8:14 pm", "Yesterday, 7:55 pm", "Monday, 9:30 am".
+ *  With an `end` it is the range a sitting spanned: "Tonight, 7:40 to 8:32
+ *  pm", the day said once and the am or pm once when both share it. A
+ *  reader with no zone reads UTC and the time says so. "—" for no
+ *  instant. */
+export function feedWhenAt(
+  ts: Instant,
+  zone?: string | null,
+  { now = Date.now(), end = null }: WhenOptions & { end?: Instant } = {},
+): string {
+  const p = readerParts(ts, zone);
+  if (!p) return "—";
+  const tail = p.named ? "" : " UTC";
+  const day = feedDayAt(ts, zone, { now, evening: true });
+  const q = end == null ? null : readerParts(end, zone);
+  if (!q || q.clock === p.clock) return `${day}, ${p.clock}${tail}`;
+  const half = (c: string) => c.slice(-2);
+  const from = half(p.clock) === half(q.clock) ? p.clock.slice(0, -3) : p.clock;
+  return `${day}, ${from} to ${q.clock}${tail}`;
+}
+
+/** A feed day's heading (design canvas): "Today", "Yesterday", then
+ *  "Monday, November 9". */
+export function feedDayHeadingAt(
+  ts: Instant,
+  zone?: string | null,
+  { now = Date.now() }: WhenOptions = {},
+): string {
+  const apart = daysApart(ts, now, zone);
+  if (apart === 0) return "Today";
+  if (apart === 1) return "Yesterday";
+  return dayHeadingAt(ts, zone);
+}
+
 /** A date with no instant behind it ("2026-10-23", a Monday, a hold's
  *  last day) as "Fri Oct 23": read as the calendar date it names, in no
  *  zone. "—" for anything else. */

@@ -698,15 +698,22 @@ test(
     window.history.pushState({}, "", "/console/account/timeline");
     global.fetch = signedIn("America/Chicago");
     render(<App />);
-    // The evening before, in Chicago, and named as Chicago's clock.
-    expect(await screen.findByText("9:30 pm")).toBeTruthy();
-    expect(screen.getByText("Saturday, September 12")).toBeTruthy();
+    // The evening before, in Chicago, and named as Chicago's clock. The
+    // feed says the day with the time (design canvas, 2026-11-13).
+    expect(
+      await screen.findByText("Saturday, September 12, 9:30 pm"),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Saturday, September 12" }),
+    ).toBeTruthy();
 
     cleanup();
     window.history.pushState({}, "", "/console/account/timeline");
     global.fetch = signedIn(null);
     render(<App />);
-    expect(await screen.findByText("2:30 am UTC")).toBeTruthy();
+    expect(
+      await screen.findByText("Sunday, September 13, 2:30 am UTC"),
+    ).toBeTruthy();
   },
 );
 
@@ -950,10 +957,12 @@ for (const [label, since, want] of [
     });
     render(<App />);
     await screen.findByText("Learned after the place.");
-    const state = screen.getByRole("group", { name: "State" });
-    const chip = [...state.querySelectorAll("button")].find((b) =>
-      b.textContent.startsWith("New"),
-    );
+    // New is one toggle in the Show row, not a second row of chips.
+    expect(screen.queryByRole("group", { name: "State" })).toBeNull();
+    const chip = screen.getByRole("button", {
+      name: /^New since your last visit/,
+    });
+    expect(chip.getAttribute("aria-pressed")).toBe("false");
     expect(chip.textContent.replace("New", "").trim()).toBe(want);
   });
 }

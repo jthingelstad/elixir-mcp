@@ -87,7 +87,9 @@ for (const width of [390, 1280]) {
       }),
     );
     await page.goto("/home");
-    await page.getByRole("button", { name: "View games", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Open session", exact: true })
+      .click();
     const panel = page.locator(".kit-tl__evidence");
     await expect(panel).toBeVisible();
     await expect(panel).toContainText("Whether every game was read is unknown");
@@ -125,12 +127,14 @@ for (const width of [390, 1280]) {
     });
     changed = true;
     await page
-      .getByRole("button", { name: "Close games", exact: true })
+      .getByRole("button", { name: "Close session", exact: true })
       .click();
     await expect(
-      page.getByRole("button", { name: "View games", exact: true }),
+      page.getByRole("button", { name: "Open session", exact: true }),
     ).toBeFocused();
-    await page.getByRole("button", { name: "View games", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Open session", exact: true })
+      .click();
     // The query cache can show its old result until refetch; opening the
     // same evidence after a change must eventually surface the conflict.
     await expect(panel.getByRole("link", { name: /Win 2-1/ })).toHaveCount(0);
@@ -209,7 +213,7 @@ for (const status of ["unknown", "proved"]) {
     );
     await page.goto("/home");
     await page
-      .getByRole("button", { name: "View crossing", exact: true })
+      .getByRole("button", { name: "Open crossing", exact: true })
       .click();
     const panel = page.locator(".kit-tl__evidence");
     await expect(panel).toBeVisible();
@@ -226,7 +230,7 @@ for (const status of ["unknown", "proved"]) {
       .getByRole("button", { name: "Close crossing", exact: true })
       .click();
     await expect(
-      page.getByRole("button", { name: "View crossing", exact: true }),
+      page.getByRole("button", { name: "Open crossing", exact: true }),
     ).toBeFocused();
   });
 }
@@ -307,7 +311,7 @@ for (const [summaryCount, evidenceCount] of [
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    const trigger = row.locator(".kit-tl__more");
+    const trigger = row.locator(".kit-feed__links .btn");
     await trigger.click();
     const panel = page.locator(".kit-tl__evidence");
     await expect(panel).toBeVisible();

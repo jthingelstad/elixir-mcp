@@ -1,8 +1,8 @@
+import { useState } from "react";
 import { Navigate, useLocation } from "@tanstack/react-router";
-import { PageHead, TagText } from "@elixir-mcp/ui";
+import { PageHead } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
-import { useHome, useHomeClan } from "../lib/queries.js";
-import { panelOf } from "../home/logic.js";
+import { useHome } from "../lib/queries.js";
 import { NewAccount } from "../home/NewAccount.jsx";
 import { useFirstRead } from "../home/first-read.js";
 import { HomeFeed } from "../home/Feed.jsx";
@@ -28,9 +28,9 @@ export function HomePage() {
   // The first read, whichever view is drawn: until the player's own battle
   // log is read, one status read polls and Home refreshes once it lands.
   const { answer, live, player, ready } = useFirstRead(data?.first);
-  // The head's clan name comes when the panel's read does; no read at all for
-  // a new account, whose page has no panels.
-  const clan = panelOf(useHomeClan(Boolean(ready)), "clan");
+  // Where the feed puts its chips: the head, right of the title (design
+  // canvas, 2026-11-13). The feed draws them above itself until it is set.
+  const [chipsAt, setChipsAt] = useState(null);
   if (query.isError || data?.first?.ok === false)
     return (
       <>
@@ -71,27 +71,25 @@ export function HomePage() {
         ) : null}
       </>
     );
-  const clanName = clan?.ok ? clan.name : null;
+  // The head is the title and the feed's chips, as the canvas draws it; who
+  // you are is Your week's, beside the feed.
   return (
     <>
       <PageHead
         title="Home"
-        sub={
+        className="kit-head--home"
+        aside={
           <>
-            <TagText>
-              {player.nickname ?? player.name ?? player.player_tag}
-            </TagText>
-            {clanName ? (
-              <>
-                {" · "}
-                <TagText>{clanName}</TagText>
-              </>
-            ) : null}
+            <div ref={setChipsAt} className="kit-home__chips" />
+            <TodayFresh player={player} />
           </>
         }
-        aside={<TodayFresh player={player} />}
       />
-      <HomePanels first={live} player={player} feed={<HomeFeed />} />
+      <HomePanels
+        first={live}
+        player={player}
+        feed={<HomeFeed chipsAt={chipsAt} />}
+      />
     </>
   );
 }

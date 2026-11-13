@@ -242,14 +242,20 @@ test("a sitting carries its battles in order for Home's sparkline, never on the 
   // Slice 7 (#765): one bar per battle, its outcome and crown margin. The
   // spark rides a symbol, so the item MCP serializes is unchanged.
   const cal = (await standouts()).find((it) => it.facts.player_tag === CAL);
-  assert.deepEqual(sessionSpark(cal), [
-    { outcome: "win", margin: 1 },
-    { outcome: "win", margin: 2 },
-    { outcome: "win", margin: 3 },
-    { outcome: "win", margin: 1 },
-    { outcome: "win", margin: 1 },
-    { outcome: "loss", margin: -1 },
-  ]);
+  // Each bar keeps both sides' crowns too, for Home's sitting line.
+  assert.ok(sessionSpark(cal).every((b) => typeof b.crowns === "number"));
+  assert.equal(sessionSpark(cal)[2].crowns - sessionSpark(cal)[2].against, 3);
+  assert.deepEqual(
+    sessionSpark(cal).map(({ outcome, margin }) => ({ outcome, margin })),
+    [
+      { outcome: "win", margin: 1 },
+      { outcome: "win", margin: 2 },
+      { outcome: "win", margin: 3 },
+      { outcome: "win", margin: 1 },
+      { outcome: "win", margin: 1 },
+      { outcome: "loss", margin: -1 },
+    ],
+  );
   assert.ok(!JSON.stringify(cal).includes("spark"));
   assert.equal(sessionSpark({ kind: "battle_session" }), null);
 });

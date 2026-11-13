@@ -5,7 +5,13 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { annotateFeed, groupsOf, sparkBars, sparkOf } from "../src/feed.mjs";
+import {
+  annotateFeed,
+  groupsOf,
+  scoresOf,
+  sparkBars,
+  sparkOf,
+} from "../src/feed.mjs";
 
 const ME = "#2PYLQ0";
 const ALT = "#2PYLQ2";
@@ -126,4 +132,20 @@ test("foldAccountLines: one line per kind and burst, however the kinds interleav
   );
   assert.equal(out.new, 3);
   assert.equal(out.items[0].at, at(40));
+});
+
+test("a sitting's score facts are its widest win and its three-crown wins", () => {
+  assert.deepEqual(
+    scoresOf([
+      { outcome: "win", margin: 1, crowns: 2, against: 1 },
+      { outcome: "loss", margin: -3, crowns: 0, against: 3 },
+      { outcome: "win", margin: 3, crowns: 3, against: 0 },
+      { outcome: "win", margin: 2, crowns: 3, against: 1 },
+    ]),
+    { best_win: "3-0", three_crowns: 2 },
+  );
+  // A week stored before crowns were kept says nothing.
+  assert.equal(scoresOf([{ outcome: "win", margin: 3 }]), null);
+  assert.equal(scoresOf([{ outcome: "loss", crowns: 0, against: 1 }]), null);
+  assert.equal(scoresOf(null), null);
 });
