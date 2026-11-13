@@ -83,12 +83,14 @@ export function Rows({
 /**
  * One two-column row: a title and a detail line on the left, one short
  * thing on the right. With `href` it is a link, with `onClick` a button.
- * `quiet` dims a row that has nothing to report.
+ * `quiet` dims a row that has nothing to report. `lead` goes before the
+ * words: an avatar (canvas .mini).
  */
 export function Row({
   title,
   detail,
   right,
+  lead,
   href,
   onClick,
   quiet = false,
@@ -97,6 +99,7 @@ export function Row({
   title: ReactNode;
   detail?: ReactNode;
   right?: ReactNode;
+  lead?: ReactNode;
   href?: string;
   onClick?: MouseEventHandler<HTMLElement>;
   quiet?: boolean;
@@ -107,6 +110,7 @@ export function Row({
     .join(" ");
   const body = (
     <>
+      {lead != null ? <span className="kit-row__lead">{lead}</span> : null}
       <span className="kit-row__main">
         <span className="kit-row__title">{title}</span>
         {detail != null ? (

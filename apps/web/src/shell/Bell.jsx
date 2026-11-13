@@ -63,7 +63,22 @@ export function BellButton({ bell, onOpen, phone = false }) {
       <span className="kit-bell__mark">
         <Icon name={words.icon} size={phone ? 22 : 18} />
         {bell.lit ? (
-          <span className="kit-bell__dot" aria-hidden="true" />
+          // On the bar the dot carries the count (the button's name says
+          // it); on a phone tab it stays a dot.
+          <span
+            className={
+              !phone && bell.count > 0
+                ? "kit-bell__dot kit-bell__dot--count"
+                : "kit-bell__dot"
+            }
+            aria-hidden="true"
+          >
+            {!phone && bell.count > 0
+              ? bell.count > 99
+                ? "99+"
+                : bell.count
+              : null}
+          </span>
         ) : null}
       </span>
       {phone ? (

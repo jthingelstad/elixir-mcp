@@ -135,7 +135,7 @@ export function FollowButton({
   onDone,
   label = "Follow",
   cost: known = null,
-  className = "btn btn--sm btn--primary",
+  className = "btn btn--sm btn--follow",
 }) {
   // A list that priced its people already (People to follow, Find) passes
   // the price in, so a list of thirty is not thirty reads.

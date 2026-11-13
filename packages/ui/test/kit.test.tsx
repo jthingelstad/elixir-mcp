@@ -2,6 +2,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   agoPlain,
+  Avatar,
+  avatarHue,
+  avatarInitials,
   Chips,
   Empty,
   ErrorState,
@@ -327,5 +330,41 @@ describe("Stats", () => {
     const group = screen.getByRole("group", { name: "Recruiting facts" });
     expect(group.textContent).toBe("Members42 of 50today");
     expect(group.querySelector(".kit-stat__value--ok")).toBeTruthy();
+  });
+});
+
+describe("Avatar", () => {
+  test("initials from a name: two words' first letters, else its first two", () => {
+    expect(avatarInitials("POAP KINGS")).toBe("PK");
+    expect(avatarInitials("TyTheTitan")).toBe("TY");
+    expect(avatarInitials("rosa_rumble")).toBe("RR");
+    expect(avatarInitials("")).toBe("?");
+  });
+
+  test("a fill from the tag, the same every time, one of seven", () => {
+    const h = avatarHue("#Q0Q0Q0Q0");
+    expect(h).toBe(avatarHue("#Q0Q0Q0Q0"));
+    expect(h).toBeGreaterThanOrEqual(1);
+    expect(h).toBeLessThanOrEqual(7);
+  });
+
+  test("drawn for the eye only: the name beside it is what is heard", () => {
+    const { container } = render(<Avatar name="Lark" tag="#R0R0R0R0" small />);
+    const el = container.querySelector(".kit-av");
+    expect(el?.getAttribute("aria-hidden")).toBe("true");
+    expect(el?.className).toMatch(/kit-av--s/);
+    const clan = render(<Avatar name="POAP KINGS" clan />).container;
+    expect(clan.querySelector(".kit-av--clan")?.textContent).toBe("PK");
+  });
+});
+
+describe("Row's lead", () => {
+  test("an avatar before the words, only when given", () => {
+    const { container } = render(
+      <Row title="Lark" lead={<Avatar name="Lark" />} />,
+    );
+    expect(container.querySelector(".kit-row__lead .kit-av")).toBeTruthy();
+    const bare = render(<Row title="Pell" />).container;
+    expect(bare.querySelector(".kit-row__lead")).toBeNull();
   });
 });
