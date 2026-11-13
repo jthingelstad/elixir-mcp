@@ -19,10 +19,10 @@ import { discordQuality } from "@elixir-mcp/syndication/quality";
 import { makeOutbox } from "@elixir-mcp/outbox";
 import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
 import {
-  writeClanFactAsApp,
-  removeClanFactAsApp,
+  writeClanFactBySystem,
+  removeClanFactBySystem,
 } from "@elixir-mcp/record/attested-facts";
-import { sendClanMail } from "@elixir-mcp/mail/clan-mail";
+import { sendActionsMail } from "@elixir-mcp/mail/clan-mail";
 import { makeRegistry } from "@elixir-mcp/tools";
 import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { normalizeTag } from "@elixir-mcp/contracts";
@@ -164,14 +164,20 @@ export async function runClanEvaluation({
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    // Keep this durable historical attester identity after its token is
-    // revoked. It is provenance, not a second sign-in or network client.
+    // The account Clan's computed facts have always been attested by: the
+    // row Clan once wrote through, kept as provenance. Clan is part of
+    // Elixir (Jamie, 2026-11-12), so the run writes its facts and sends
+    // its mail as Elixir itself, never as that integration; no token of
+    // it is presented anywhere.
     const row = (
       await db.query(
         "select account_id from integration where name='elixir-clan'",
       )
     ).rows[0];
     if (!row) throw new Error("clan_attester_identity_missing");
+    const attester = row.account_id;
+    // The record reads still run under that account's principal, as they
+    // did; the closed reader and its principal are changed on their own.
     const actor = {
       accountId: row.account_id,
       name: "elixir-clan",
@@ -198,12 +204,12 @@ export async function runClanEvaluation({
           : { ok: true, body: r.body };
       },
       writeFact: (tag, body) =>
-        answer(() => writeClanFactAsApp(db, actor, tag, body)),
+        answer(() => writeClanFactBySystem(db, attester, tag, body)),
       removeFact: (tag, ref) =>
-        answer(() => removeClanFactAsApp(db, actor, tag, ref)),
+        answer(() => removeClanFactBySystem(db, attester, tag, ref)),
       sendMail: (tag, body) =>
         answer(() =>
-          sendClanMail(db, actor, tag, body, { enqueue, secret, archive }),
+          sendActionsMail(db, tag, body, { enqueue, secret, archive }),
         ),
     });
     await expireModelUses(db);

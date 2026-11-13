@@ -326,7 +326,7 @@
     "/clans/directory": {
       "get": {
         "operationId": "clanDirectory",
-        "summary": "The clan directory: every recorded clan whose leaders saved a policy in Elixir Clan, with the policy's public part. Since 3.6.0.",
+        "summary": "The clan directory: every recorded clan whose leaders saved a policy in Clan, with the policy's public part. Since 3.6.0.",
         "x-permission": "cr:read",
         "x-principals": ["person"],
         "x-tool": "clans_directory",
@@ -392,7 +392,7 @@
     "/clans/{tag}/participation": {
       "get": {
         "operationId": "clanParticipation",
-        "summary": "Every current member of a clan over whole ISO weeks and the war weeks inside them: facts only. An integration holding clans:read reads any recorded clan the same way (2.3.0): Elixir Clan evaluating a clan with nobody signed in.",
+        "summary": "Every current member of a clan over whole ISO weeks and the war weeks inside them: facts only. An integration holding clans:read reads any recorded clan the same way (2.3.0).",
         "x-permission": "cr:read",
         "x-principals": ["person", "integration"],
         "x-tool": "clans_participation",
@@ -482,7 +482,7 @@
     "/clans/{tag}/roster": {
       "get": {
         "operationId": "clanRoster",
-        "summary": "A clan's current roster and the recent membership events. An integration holding clans:read reads any recorded clan the same way (2.3.0): Elixir Clan evaluating a clan with nobody signed in.",
+        "summary": "A clan's current roster and the recent membership events. An integration holding clans:read reads any recorded clan the same way (2.3.0).",
         "x-permission": "cr:read",
         "x-principals": ["person", "integration"],
         "x-tool": "clans_roster",
@@ -1419,7 +1419,7 @@
           }
         },
         "x-integration-permission": "facts:write",
-        "description": "An integration holding facts:write (2.6.0) writes only the types a family app computes itself (award_standing: Elixir Clan's award standings), labelled as the app's; a person's kinds need a person's grant."
+        "description": "An integration holding facts:write (2.6.0) writes only the types a family app computes itself (award_standing: an app's own award standings; Clan, part of Elixir, writes its own from inside Elixir), labelled as the app's; a person's kinds need a person's grant."
       }
     },
     "/clans/{tag}/facts/{ref}": {
@@ -1827,7 +1827,7 @@
       },
       "post": {
         "operationId": "sendFeedback",
-        "summary": "File feedback with the Elixir maintainer (3.1.0): the elixir_send_feedback tool, the same record every door files (MCP, the Console, Ladder, Elixir Clan, the email footer). Every item is answered; GET /feedback reads the answers. A person's grant needs feedback:write; an integration files as itself and needs the feedback:write permission.",
+        "summary": "File feedback with the Elixir maintainer (3.1.0): the elixir_send_feedback tool, the same record every door files (MCP, the app, Clan, the email footer). Every item is answered; GET /feedback reads the answers. A person's grant needs feedback:write; an integration files as itself and needs the feedback:write permission.",
         "x-permission": "feedback:write",
         "x-principals": ["person", "integration"],
         "x-tool": "elixir_send_feedback",
@@ -2523,7 +2523,7 @@
                 "link": {
                   "type": "string",
                   "format": "uri",
-                  "description": "Into a family app (https://elixir.poapkings.com, Elixir Clan's included, or https://drop.poapkings.com)."
+                  "description": "Into a family app (https://elixir.poapkings.com, Clan's included, or https://drop.poapkings.com)."
                 }
               }
             }

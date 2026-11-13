@@ -1,17 +1,19 @@
 /**
- * A family app's own mail, sent through Elixir (JSON API 2.4.0; Jamie,
- * 2026-09-25): `POST /api/v1/clans/{tag}/mail` on an integration key with
- * `mail:send`. Elixir Clan composes "actions waiting for you" after its
- * morning run and names who each email is for by player tag; Elixir holds
- * the addresses, the switches (on to start) and the unsubscribe, and the
- * app never sees an address.
+ * Clan's morning mail, "actions waiting for you" (Jamie, 2026-09-25), and
+ * the door a family app sends its own mail through (JSON API 2.4.0):
+ * `POST /api/v1/clans/{tag}/mail` on an integration key with `mail:send`.
+ * Clan is part of Elixir (Jamie, 2026-11-12), so its morning run calls
+ * `sendActionsMail` directly; the door is `sendClanMail`. Either names who
+ * each email is for by player tag; Elixir holds the addresses, the
+ * switches (on to start) and the unsubscribe, and the words never carry
+ * an address.
  *
  * For each message Elixir finds the account whose VERIFIED claim is that
  * player, checks the player is in the clan today and the account has the
  * kind switched on, and sends at most one of the kind per clan per account
  * per UTC day, under a lock so two calls cannot both pass the check. The
- * app's words are plain lines that the renderer escapes; its link must
- * lead to a family app. Each send is recorded like every Elixir email
+ * words are plain lines that the renderer escapes; the link must lead to
+ * Elixir or a family app. Each send is recorded like every Elixir email
  * (the issue, the archive, the send id in the footer, the console's
  * record), and a message that cannot be sent says why.
  */
@@ -128,9 +130,35 @@ async function recipientOf(db, playerTag, clanTag, kind) {
   return { account: { accountId: r.account_id, email: r.email } };
 }
 
-export async function sendClanMail(
+/** The source and label Clan's own mail is recorded under: the name of
+ *  the integration row Clan once sent through, and its old label, kept so
+ *  the issue and the send's facts read as they always have. */
+const CLAN_SENDER = Object.freeze({
+  source: "elixir-clan",
+  app: "Elixir Clan",
+});
+
+/** Clan's morning mail, sent by Elixir itself. */
+export function sendActionsMail(db, clanInput, body, deps) {
+  return sendMail(db, CLAN_SENDER, clanInput, body, deps);
+}
+
+/** A family app's own mail, through the JSON API door. */
+export function sendClanMail(db, integration, clanInput, body, deps) {
+  return sendMail(
+    db,
+    integration.name === CLAN_SENDER.source
+      ? CLAN_SENDER
+      : { source: integration.name, app: integration.name },
+    clanInput,
+    body,
+    deps,
+  );
+}
+
+async function sendMail(
   db,
-  integration,
+  sender,
   clanInput,
   body,
   { enqueue, secret, archive = null, now = () => new Date() } = {},
@@ -175,7 +203,7 @@ export async function sendClanMail(
       kind,
       periodKey: day,
       subjectKey: clanTag,
-      facts: { clan_tag: clanTag, source: integration.name },
+      facts: { clan_tag: clanTag, source: sender.source },
       status: "queued",
     });
     const results = [];
@@ -199,10 +227,7 @@ export async function sendClanMail(
           now: at,
           facts: {
             clan: { tag: clanTag, name: clanRows[0].name ?? null },
-            app:
-              integration.name === "elixir-clan"
-                ? "Elixir Clan"
-                : integration.name,
+            app: sender.app,
             subject: m.subject,
             lines: m.lines,
             link: m.link,
