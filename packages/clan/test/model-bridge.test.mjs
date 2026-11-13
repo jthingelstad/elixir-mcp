@@ -254,9 +254,9 @@ test("an unconfirmed key owner cannot spend the clan's tokens", async () => {
   const { createMemoryLedger } = await import("@elixir-mcp/clan-state");
   const { createModelService } = await import("../src/manage/model.mjs");
   const ledger = createMemoryLedger();
-  await ledger.saveModelKey("#P0LYQ", {
-    sealed: sealer("old-secret").seal(key, "#P0LYQ|#P2LQ0"),
-    set_by: "#P2LQ0",
+  await ledger.saveModelKey("#00UQG", {
+    sealed: sealer("old-secret").seal(key, "#00UQG|#0LGYR"),
+    set_by: "#0LGYR",
     model: "claude-test",
   });
   const service = createModelService({
@@ -267,13 +267,13 @@ test("an unconfirmed key owner cannot spend the clan's tokens", async () => {
       write: async () => assert.fail("unconfirmed owner must not spend tokens"),
     },
   });
-  const who = { player_tag: "#P2LQ0", role: "leader" };
-  assert.equal((await service.status("#P0LYQ", who)).usable, false);
+  const who = { player_tag: "#0LGYR", role: "leader" };
+  assert.equal((await service.status("#00UQG", who)).usable, false);
   await assert.rejects(
-    service.write("#P0LYQ", who, { purpose: "recruit_pitch", ...input }),
+    service.write("#00UQG", who, { purpose: "recruit_pitch", ...input }),
     (e) => e.code === "model_owner_unconfirmed",
   );
-  assert.equal((await ledger.modelCalls("#P0LYQ")).length, 0);
+  assert.equal((await ledger.modelCalls("#00UQG")).length, 0);
 });
 
 test("ambiguous S3 delivery/read failures return uncertainty and never reissue", async () => {
@@ -311,9 +311,9 @@ test("a paid attempt is durable before dispatch, even when the final ledger upda
   const { createModelService } = await import("../src/manage/model.mjs");
   for (const interruption of ["provider", "finish"]) {
     const ledger = createMemoryLedger();
-    await ledger.saveModelKey("#P0LYQ", {
-      sealed: sealer("old-secret").seal(key, "#P0LYQ|#P2LQ0"),
-      set_by: "#P2LQ0",
+    await ledger.saveModelKey("#00UQG", {
+      sealed: sealer("old-secret").seal(key, "#00UQG|#0LGYR"),
+      set_by: "#0LGYR",
       model: "claude-test",
     });
     if (interruption === "finish")
@@ -324,12 +324,12 @@ test("a paid attempt is durable before dispatch, even when the final ledger upda
       ledger,
       secret: "old-secret",
       rosterFor: async () => ({
-        members: [{ player_tag: "#P2LQ0", role: "leader" }],
+        members: [{ player_tag: "#0LGYR", role: "leader" }],
       }),
       anthropic: {
         async write() {
           assert.equal(
-            (await ledger.modelCalls("#P0LYQ")).length,
+            (await ledger.modelCalls("#00UQG")).length,
             1,
             "reserved before provider dispatch",
           );
@@ -341,12 +341,12 @@ test("a paid attempt is durable before dispatch, even when the final ledger upda
     });
     await assert.rejects(
       service.write(
-        "#P0LYQ",
-        { player_tag: "#P2LQ0", role: "leader" },
+        "#00UQG",
+        { player_tag: "#0LGYR", role: "leader" },
         { purpose: "recruit_pitch", ...input },
       ),
     );
-    const calls = await ledger.modelCalls("#P0LYQ");
+    const calls = await ledger.modelCalls("#00UQG");
     assert.equal(calls.length, 1);
     assert.equal(
       calls[0].code,

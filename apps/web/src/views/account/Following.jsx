@@ -164,7 +164,7 @@ function AddPlayer({ refresh, navigate, input, first }) {
             ref={input}
             id="add-player-tag"
             className="mono"
-            placeholder="#2PYQ8GJ0"
+            placeholder="#0PJCLJYP"
             aria-describedby="add-player-tag-hint"
             aria-invalid={err ? "true" : undefined}
             disabled={busy}

@@ -99,7 +99,7 @@ export function FixTag({ claim, refresh, navigate, stop }) {
           id="fix-tag-input"
           ref={input}
           className="mono w-[11rem]"
-          placeholder="#2PYQ8GJ0"
+          placeholder="#0PJCLJYP"
           aria-invalid={problem || bad || replace.error ? "true" : undefined}
           aria-describedby="fix-tag-help"
           disabled={replace.busy}

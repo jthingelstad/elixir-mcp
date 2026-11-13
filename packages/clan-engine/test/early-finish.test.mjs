@@ -23,8 +23,8 @@ function finishedOnDay3(members) {
 }
 
 test("12 decks on a day-3 finish is a full week; the day after is optional", () => {
-  const skipped = member("#2PP0V9PP", { war: [12, 12, 12, 12, 16, 4] });
-  const played = member("#2PP0V9UU", { war: [16, 16, 16, 16, 16, 4] });
+  const skipped = member("#0VQRR8U0", { war: [12, 12, 12, 12, 16, 4] });
+  const played = member("#0CP08QUC", { war: [16, 16, 16, 16, 16, 4] });
   const [s, p] = factsAt(finishedOnDay3([skipped, played]), policy, NOW);
   assert.equal(s.war.rate, 1, "every deck asked for");
   assert.equal(p.war.rate, 1, "the extra decks help, capped at full");
@@ -33,7 +33,7 @@ test("12 decks on a day-3 finish is a full week; the day after is optional", () 
 
 test("fewer decks than asked is still short, finish or not", () => {
   const [f] = factsAt(
-    finishedOnDay3([member("#2PP0V9PP", { war: [8, 8, 8, 8, 16, 4] })]),
+    finishedOnDay3([member("#0VQRR8U0", { war: [8, 8, 8, 8, 16, 4] })]),
     policy,
     NOW,
   );

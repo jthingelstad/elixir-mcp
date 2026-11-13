@@ -38,7 +38,7 @@ export const BATTLE = {
       },
       players: [
         {
-          player_tag: "#PYLQ88",
+          player_tag: "#0GVJ9V",
           name: "Birch Lantern",
           clan_tag: "#J2RGCRVG",
           clan_name: null,
@@ -120,7 +120,7 @@ export const BATTLE = {
       },
       players: [
         {
-          player_tag: "#PYLQ99",
+          player_tag: "#00VYVC",
           name: "Harbor Moth",
           clan_tag: null,
           clan_name: null,
@@ -263,7 +263,7 @@ export const DUEL = {
       },
       players: [
         {
-          player_tag: "#PYLQ88",
+          player_tag: "#0GVJ9V",
           name: "Birch Lantern",
           clan_tag: "#J2RGCRVG",
           clan_name: null,

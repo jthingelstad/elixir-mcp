@@ -29,7 +29,7 @@ const POLICY_VIEW = {
     version: 1,
     values: policyFromGoals(["war", "donations"], "standard"),
     saved_at: "2026-09-20T12:00:00Z",
-    saved_by: "#20QQL8CCRU",
+    saved_by: "#098R2R0PUL",
     saved_by_name: "Ada",
   },
   tabs: TABS,
@@ -39,7 +39,7 @@ const POLICY_VIEW = {
     {
       version: 1,
       saved_at: "2026-09-20T12:00:00Z",
-      saved_by: "#20QQL8CCRU",
+      saved_by: "#098R2R0PUL",
       saved_by_name: "Ada",
       note: null,
     },
@@ -66,7 +66,7 @@ async function accessible(page: Page, name: string) {
  *  of a participation answer: five closed races and the one on now. */
 function memberView() {
   const part = participation([
-    member("#20QQL8CCRU", { name: "Ada", role: "leader" }),
+    member("#098R2R0PUL", { name: "Ada", role: "leader" }),
     member("#M1", { name: "Zed" }),
   ]);
   const roster = {
@@ -75,7 +75,7 @@ function memberView() {
         type: "role_changed",
         at: "2026-08-20T00:00:00Z",
         detail: {
-          player_tag: "#20QQL8CCRU",
+          player_tag: "#098R2R0PUL",
           role_before: "coLeader",
           role_after: "leader",
         },
@@ -83,14 +83,14 @@ function memberView() {
     ],
   };
   return {
-    clan_tag: "#2PQRJ8LV",
+    clan_tag: "#0QC8RCGY",
     clan_name: "Example Clan",
     as_of: NOW.toISOString(),
     freshness_seconds: 60,
     members: 12,
     min_members: 10,
     policy: { set: true, active: true },
-    you: memberWeeks(part, "#20QQL8CCRU", roster, NOW),
+    you: memberWeeks(part, "#098R2R0PUL", roster, NOW),
     clan: {
       version: 1,
       goals: ["war"],
@@ -150,13 +150,13 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
       return [200, { ok: true }];
     },
   });
-  await page.goto("/clan/2PQRJ8LV/feed");
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
+  await page.goto("/clan/0QC8RCGY/feed");
+  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
   await expect
     .poll(() =>
       page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
     )
-    .toBe("/clan/2PQRJ8LV/feed");
+    .toBe("/clan/0QC8RCGY/feed");
   await page
     .getByRole("main")
     .getByRole("link", { name: "Sign in", exact: true })
@@ -164,12 +164,12 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
   await expect(page).toHaveURL(/\/signin$/);
   expect(
     await page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
-  ).toBe("/clan/2PQRJ8LV/feed");
+  ).toBe("/clan/0QC8RCGY/feed");
   await page.getByLabel("Email").fill("ada@example.com");
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
+  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
   await expect(clanTab(page, /^Feed/)).toHaveAttribute("aria-selected", "true");
   await accessible(page, "shared sign-in return");
 });
@@ -210,7 +210,7 @@ test("an unverified Leader: the notice first, then the clan as a member with the
     role_label: "Member",
     verified: false,
     unlock: {
-      player_tag: "#20QQL8CCRU",
+      player_tag: "#098R2R0PUL",
       name: "Ada",
       role: "leader",
       role_label: "Leader",
@@ -221,7 +221,7 @@ test("an unverified Leader: the notice first, then the clan as a member with the
       {
         clan_tag: clan.clan_tag,
         clan_name: clan.name,
-        player_tag: "#20QQL8CCRU",
+        player_tag: "#098R2R0PUL",
         player_name: "Ada",
         role: "leader",
         role_label: "Leader",
@@ -245,7 +245,7 @@ test("an unverified Leader: the notice first, then the clan as a member with the
       },
     }),
   );
-  await page.goto("/clan/2PQRJ8LV");
+  await page.goto("/clan/0QC8RCGY");
   await expect(page).toHaveURL(/\/verify$/);
   await expect(
     page.getByRole("heading", { name: "Verify your player to lead here" }),
@@ -258,7 +258,7 @@ test("an unverified Leader: the notice first, then the clan as a member with the
   await page
     .getByRole("button", { name: "I understand, continue as a member" })
     .click();
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
+  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
   await expect(clanTab(page, "Run")).toHaveCount(0);
   await clanTab(page, "Members").click();
   await expect(page.getByText("Ben")).toBeVisible();
@@ -303,16 +303,16 @@ test.describe("signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/actions/37": [
+        "GET /api/clan/clans/0QC8RCGY/actions/37": [
           200,
           {
-            clan_tag: "#2PQRJ8LV",
+            clan_tag: "#0QC8RCGY",
             action,
             model: { set: true },
             decline_reasons: [],
           },
         ],
-        "POST /api/clan/clans/2PQRJ8LV/actions/w1/decide": (route) => {
+        "POST /api/clan/clans/0QC8RCGY/actions/w1/decide": (route) => {
           deliveries.push(route.request().postDataJSON());
           return [200, {}];
         },
@@ -323,7 +323,7 @@ test.describe("signed in", () => {
       finishDraft = resolve;
     });
     await page.route(
-      "**/api/clan/clans/2PQRJ8LV/actions/w1/draft",
+      "**/api/clan/clans/0QC8RCGY/actions/w1/draft",
       async (route) => {
         await waiting;
         await route.fulfill({
@@ -336,7 +336,7 @@ test.describe("signed in", () => {
         });
       },
     );
-    await page.goto("/clan/2PQRJ8LV/actions/37");
+    await page.goto("/clan/0QC8RCGY/actions/37");
     const editor = page.getByLabel("Chat message", { exact: true });
     const copy = page.getByRole("button", { name: "Copy the chat message" });
     const welcomed = page.getByRole("button", { name: "Done", exact: true });
@@ -396,7 +396,7 @@ test.describe("signed in", () => {
     // Picking one is remembered and lands on its Feed, the race on top
     // and the clan card's chips in the head (G5).
     await page.getByText("Example Clan").first().click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
+    await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
     await expect(
       page.getByText("Clan Wars · race open, day 2 of 4"),
     ).toBeVisible();
@@ -406,7 +406,7 @@ test.describe("signed in", () => {
     const chips = page.getByRole("list", { name: "This clan" });
     await expect(chips).toContainText("2nd in the river race · 4,820 fame");
     await clanTab(page, "Members").click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members$/);
+    await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/members$/);
     await expect(page.getByText("Ben")).toBeVisible();
     await expect(page.getByText("Co-leader").first()).toBeVisible();
     // The clan's own figures, its comings and goings in the account's zone,
@@ -491,9 +491,9 @@ test.describe("signed in", () => {
       message: "Zed played every deck last week.",
       category: "judgment",
       area: "clan",
-      context: { path: "/clan/2PQRJ8LV/standings" },
+      context: { path: "/clan/0QC8RCGY/standings" },
     });
-    expect(body.refs).toContainEqual({ kind: "clan", ref: "#2PQRJ8LV" });
+    expect(body.refs).toContainEqual({ kind: "clan", ref: "#0QC8RCGY" });
     await expect(sheet.getByRole("status")).toContainText("Received");
     await expect(
       sheet.getByRole("link", { name: "Read it as fb_41" }),
@@ -506,8 +506,8 @@ test.describe("signed in", () => {
   test("arriving at another of your clans by URL selects it", async ({
     page,
   }) => {
-    await page.goto("/clan/GQ08RJPL");
-    await expect(page).toHaveURL(/\/clan\/GQ08RJPL\/feed$/);
+    await page.goto("/clan/0JR0LRU0");
+    await expect(page).toHaveURL(/\/clan\/0JR0LRU0\/feed$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Second Clan",
     );
@@ -522,12 +522,12 @@ test.describe("signed in", () => {
       page,
       signedIn(
         {
-          "GET /api/clan/clans/2PQRJ8LV/actions": [409, { error: "no_policy" }],
+          "GET /api/clan/clans/0QC8RCGY/actions": [409, { error: "no_policy" }],
         },
         { policy: { set: false } },
       ),
     );
-    await page.goto("/clan/2PQRJ8LV");
+    await page.goto("/clan/0QC8RCGY");
     for (const name of ["Standings", "War", "Members", "Policy", "Run"])
       await expect(clanTab(page, name)).toBeVisible();
     await expect(clanTab(page, /^Feed/)).toBeVisible();
@@ -541,7 +541,7 @@ test.describe("signed in", () => {
       page,
       signedIn(
         {
-          "GET /api/clan/clans/2PQRJ8LV/policy": [
+          "GET /api/clan/clans/0QC8RCGY/policy": [
             200,
             {
               can_edit: true,
@@ -564,7 +564,7 @@ test.describe("signed in", () => {
         { policy: { set: false, active: false, members: 6 } },
       ),
     );
-    await page.goto("/clan/2PQRJ8LV/run/about");
+    await page.goto("/clan/0QC8RCGY/run/about");
     await expect(page).toHaveURL(/\/run\/about$/);
     await expect(
       page.getByText(/Leaders can prepare and save its policy now/),
@@ -580,9 +580,9 @@ test.describe("signed in", () => {
   }) => {
     await mockApi(
       page,
-      signedIn({ "GET /api/clan/clans/2PQRJ8LV/policy": [200, POLICY_VIEW] }),
+      signedIn({ "GET /api/clan/clans/0QC8RCGY/policy": [200, POLICY_VIEW] }),
     );
-    await page.goto("/clan/2PQRJ8LV/members");
+    await page.goto("/clan/0QC8RCGY/members");
     await clanTab(page, "Run").click();
     await expect(page).toHaveURL(/\/run$/);
     const list = page.getByRole("navigation", { name: "Run" });
@@ -617,10 +617,10 @@ test.describe("signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/model": [
+        "GET /api/clan/clans/0QC8RCGY/model": [
           200,
           {
-            clan_tag: "#2PQRJ8LV",
+            clan_tag: "#0QC8RCGY",
             purposes: { recruit_pitch: { label: "Recruiting pitch" } },
             per_day: 20,
             keep_days: 90,
@@ -632,10 +632,10 @@ test.describe("signed in", () => {
             set: false,
           },
         ],
-        "GET /api/clan/clans/2PQRJ8LV/sharing": [
+        "GET /api/clan/clans/0QC8RCGY/sharing": [
           200,
           {
-            clan_tag: "#2PQRJ8LV",
+            clan_tag: "#0QC8RCGY",
             types: {
               departure_classified: {
                 label: "Kicks and leaves",
@@ -647,7 +647,7 @@ test.describe("signed in", () => {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/members");
+    await page.goto("/clan/0QC8RCGY/members");
     await clanTab(page, "Run").click();
     const list = page.getByRole("navigation", { name: "Run" });
     await list.getByRole("link", { name: /^Clan settings/ }).click();
@@ -664,10 +664,10 @@ test.describe("signed in", () => {
       "password",
     );
     // The voice section is on Model and voice, by its anchor.
-    await page.goto("/clan/2PQRJ8LV/run/model-voice#settings-voice");
+    await page.goto("/clan/0QC8RCGY/run/model-voice#settings-voice");
     await expect(page).toHaveURL(/\/run\/model-voice#settings-voice$/);
     await expect(page.locator("#settings-voice")).toBeInViewport();
-    await page.goto("/clan/2PQRJ8LV/run/model-voice");
+    await page.goto("/clan/0QC8RCGY/run/model-voice");
     await expect(page).toHaveURL(/\/run\/model-voice$/);
     await accessible(page, "model and voice");
   });
@@ -678,10 +678,10 @@ test.describe("signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/model": [
+        "GET /api/clan/clans/0QC8RCGY/model": [
           200,
           {
-            clan_tag: "#2PQRJ8LV",
+            clan_tag: "#0QC8RCGY",
             purposes: { recruit_pitch: { label: "Recruiting pitch" } },
             per_day: 20,
             keep_days: 90,
@@ -699,7 +699,7 @@ test.describe("signed in", () => {
               recent: [
                 {
                   at: "2026-10-09T11:00:00Z",
-                  by: "#20QQL8CCRU",
+                  by: "#098R2R0PUL",
                   by_name: "Ada",
                   purpose: "recruit_pitch",
                   model: "claude-sonnet-5",
@@ -717,7 +717,7 @@ test.describe("signed in", () => {
             cap_reached: false,
             set: true,
             hint: "sk-ant-…mQAA",
-            set_by: "#20QQL8CCRU",
+            set_by: "#098R2R0PUL",
             set_by_name: "Ada",
             set_at: "2026-09-25T10:00:00Z",
             model_for: {
@@ -735,13 +735,13 @@ test.describe("signed in", () => {
             usable: true,
           },
         ],
-        "GET /api/clan/clans/2PQRJ8LV/sharing": [
+        "GET /api/clan/clans/0QC8RCGY/sharing": [
           200,
-          { clan_tag: "#2PQRJ8LV", types: {} },
+          { clan_tag: "#0QC8RCGY", types: {} },
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/run/model-voice");
+    await page.goto("/clan/0QC8RCGY/run/model-voice");
     await expect(
       page.getByText(
         /6 uses · 5,088 tokens in, 404 out · about \$0\.01 of the \$5\.00 cap/,
@@ -768,10 +768,10 @@ test.describe("signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/actions": [
+        "GET /api/clan/clans/0QC8RCGY/actions": [
           200,
           {
-            clan_tag: "#2PQRJ8LV",
+            clan_tag: "#0QC8RCGY",
             as_of: "2026-09-13T09:00:00Z",
             open: [],
             recent: [],
@@ -781,9 +781,9 @@ test.describe("signed in", () => {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/feed");
+    await page.goto("/clan/0QC8RCGY/feed");
     await page.getByRole("link", { name: "Set it up in Run" }).click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/run\/discord$/);
+    await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/run\/discord$/);
     await expect(
       page.getByRole("region", { name: "Actions in Discord" }),
     ).toBeVisible();
@@ -800,7 +800,7 @@ test.describe("signed in", () => {
       status: "proposed",
       can_act: true,
       audience: { kind: "leaders" },
-      player_tag: "#8QCV",
+      player_tag: "#0RJL",
       player_name: "Sleepy",
       role_at_raise: "member",
       raised_at: "2026-09-12T20:00:00Z",
@@ -818,7 +818,7 @@ test.describe("signed in", () => {
           entry_id: "e2",
           kind: "comment",
           at: "2026-09-13T08:00:00Z",
-          by: { tag: "#UQ8LP2R9C", name: "Ben", role: "coLeader" },
+          by: { tag: "#02QQPCYQQ", name: "Ben", role: "coLeader" },
           text: "I messaged them yesterday.",
         },
       ],
@@ -826,31 +826,31 @@ test.describe("signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/actions": [
+        "GET /api/clan/clans/0QC8RCGY/actions": [
           200,
           {
-            clan_tag: "#2PQRJ8LV",
+            clan_tag: "#0QC8RCGY",
             as_of: "2026-09-13T09:00:00Z",
             open: [removal],
             recent: [],
             decline_reasons: ["not_now", "other"],
           },
         ],
-        "GET /api/clan/clans/2PQRJ8LV/actions/37": [
+        "GET /api/clan/clans/0QC8RCGY/actions/37": [
           200,
           {
-            clan_tag: "#2PQRJ8LV",
+            clan_tag: "#0QC8RCGY",
             action: removal,
             decline_reasons: ["not_now", "other"],
           },
         ],
-        "GET /api/clan/clans/2PQRJ8LV/actions/99": [
+        "GET /api/clan/clans/0QC8RCGY/actions/99": [
           404,
           { error: "no_action" },
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/members");
+    await page.goto("/clan/0QC8RCGY/members");
     await clanTab(page, /^Feed/).click();
     await expect(page).toHaveURL(/\/feed$/);
     const row = page.getByRole("link", { name: /#37.*Remove from the clan/ });
@@ -879,13 +879,13 @@ test.describe("signed in", () => {
     await rendered(page);
     await accessible(page, "an action's page");
     // The address works on its own, sent to someone.
-    await page.goto("/clan/2PQRJ8LV/actions/37");
+    await page.goto("/clan/0QC8RCGY/actions/37");
     await expect(
       page.getByRole("heading", { name: "Remove from the clan: Sleepy" }),
     ).toBeVisible();
     await page.getByRole("link", { name: "‹ Feed" }).click();
     await expect(page).toHaveURL(/\/feed$/);
-    await page.goto("/clan/2PQRJ8LV/actions/99");
+    await page.goto("/clan/0QC8RCGY/actions/99");
     await expect(page.getByText("No action #99 here")).toBeVisible();
   });
 
@@ -893,8 +893,8 @@ test.describe("signed in", () => {
     page,
   }) => {
     const part = participation([
-      member("#20QQL8CCRU", { name: "Ada" }),
-      member("#UQ8LP2R9C", { name: "Ben", war: [16, 16, 16, 16, 10, 0] }),
+      member("#098R2R0PUL", { name: "Ada" }),
+      member("#02QQPCYQQ", { name: "Ben", war: [16, 16, 16, 16, 10, 0] }),
       member("#M1", {
         name: "Zed",
         war: [0, 0, 0, 0, 0, 0],
@@ -913,12 +913,12 @@ test.describe("signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/week": (route) => {
+        "GET /api/clan/clans/0QC8RCGY/week": (route) => {
           const week = new URL(route.request().url()).searchParams.get("week");
           return [
             200,
             {
-              clan_tag: "#2PQRJ8LV",
+              clan_tag: "#0QC8RCGY",
               clan_name: "Example Clan",
               as_of: NOW.toISOString(),
               freshness_seconds: 60,
@@ -934,7 +934,7 @@ test.describe("signed in", () => {
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/war");
+    await page.goto("/clan/0QC8RCGY/war");
     await expect(page).toHaveURL(/\/war$/);
     await expect(page.getByText(/what this clan counts/)).toBeVisible();
     await page
@@ -957,7 +957,7 @@ test.describe("signed in", () => {
     await expect(clanTab(page, "War")).toHaveAttribute("aria-selected", "true");
     await rendered(page);
     // A week's address names the week.
-    await page.goto("/clan/2PQRJ8LV/war/2026-w35");
+    await page.goto("/clan/0QC8RCGY/war/2026-w35");
     await expect(page).toHaveURL(/\/war\/2026-w35$/);
   });
 
@@ -966,16 +966,16 @@ test.describe("signed in", () => {
   }) => {
     await mockApi(
       page,
-      signedIn({ "GET /api/clan/clans/2PQRJ8LV/me": [200, memberView()] }),
+      signedIn({ "GET /api/clan/clans/0QC8RCGY/me": [200, memberView()] }),
     );
-    await page.goto("/clan/2PQRJ8LV/members");
+    await page.goto("/clan/0QC8RCGY/members");
     // A clanmate's name opens the player page (slice 8, #766); your own
     // name opens your record in this clan, which the player page cannot.
     await page
       .getByRole("region", { name: "Members" })
       .getByRole("link", { name: "Ada", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/members\/20qql8ccru$/i);
+    await expect(page).toHaveURL(/\/members\/098r2r0pul$/i);
     await expect(page.getByText("only you see this page")).toBeVisible();
     await expect(page.getByText(/Aug 20: Co-leader → Leader/)).toBeVisible();
     await expect(
@@ -993,14 +993,14 @@ test.describe("signed in", () => {
     await rendered(page);
     await accessible(page, "you here");
     // Your record's own address finds it.
-    await page.goto("/clan/2PQRJ8LV/members/me");
-    await expect(page).toHaveURL(/\/members\/20qql8ccru$/i);
+    await page.goto("/clan/0QC8RCGY/members/me");
+    await expect(page).toHaveURL(/\/members\/098r2r0pul$/i);
   });
 
   test("@narrow the six tabs fit a phone and the count of what waits rides on Feed", async ({
     page,
   }) => {
-    await page.goto("/clan/2PQRJ8LV/members");
+    await page.goto("/clan/0QC8RCGY/members");
     await expect(clanTab(page, /^Feed/)).toHaveAccessibleName(
       /^Feed 2 waiting for you$/,
     );
@@ -1022,9 +1022,9 @@ test.describe("signed in", () => {
   }) => {
     await mockApi(
       page,
-      signedIn({ "GET /api/clan/clans/2PQRJ8LV/policy": [200, POLICY_VIEW] }),
+      signedIn({ "GET /api/clan/clans/0QC8RCGY/policy": [200, POLICY_VIEW] }),
     );
-    await page.goto("/clan/2PQRJ8LV/run");
+    await page.goto("/clan/0QC8RCGY/run");
     const list = page.getByRole("navigation", { name: "Run" });
     await expect(list).toBeVisible();
     await expect(page.locator(".clan-run__section")).toBeHidden();
@@ -1046,10 +1046,10 @@ test.describe("signed in", () => {
   }) => {
     await mockApi(
       page,
-      signedIn({ "GET /api/clan/clans/2PQRJ8LV/me": [200, memberView()] }),
+      signedIn({ "GET /api/clan/clans/0QC8RCGY/me": [200, memberView()] }),
     );
-    await page.goto("/clan/2PQRJ8LV/members/me");
-    await expect(page).toHaveURL(/\/members\/20qql8ccru$/i);
+    await page.goto("/clan/0QC8RCGY/members/me");
+    await expect(page).toHaveURL(/\/members\/098r2r0pul$/i);
     await expect(page.getByText("only you see this page")).toBeVisible();
     await expect(
       page.getByRole("img", { name: /^Your war decks: Season 135/ }),
@@ -1104,7 +1104,7 @@ test("one application and account survive Home and Clan navigation at phone, tab
     });
     await switchTo("Clan", viewport.width);
     // The chooser, then the clan's landing: Today.
-    await expect(page).toHaveURL(/\/clan(\/2PQRJ8LV\/feed|\/)?$/);
+    await expect(page).toHaveURL(/\/clan(\/0QC8RCGY\/feed|\/)?$/);
     expect(
       await page.evaluate(
         () =>
@@ -1113,7 +1113,7 @@ test("one application and account survive Home and Clan navigation at phone, tab
     ).toBe("same-app");
     if (!page.url().endsWith("/feed"))
       await page.getByText("Example Clan", { exact: true }).first().click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
+    await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
     await expect(
       page.getByRole("button", { name: "Account: Ada", exact: true }),
     ).toHaveCount(1);

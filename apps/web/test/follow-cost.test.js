@@ -7,7 +7,7 @@ import { test, expect } from "vitest";
 import { followCostLine } from "../src/home/follow.jsx";
 
 const cost = (over) => ({
-  player_tag: "#2PP0V90Y",
+  player_tag: "#09CV8UVL",
   following: false,
   free: false,
   reason: null,

@@ -26,14 +26,14 @@ const DAY = 86_400_000;
 const at = (ms) => new Date(ms).toISOString();
 
 const CLAN = "#J2RGCRVG";
-const OTHER_CLAN = "#GCYQR9VY";
-const ME = "#PYL0Q2G8"; // claimed, verified, a member of CLAN
-const FRIEND = "#PYL0Q2G9"; // claimed, in no tracked clan; plays, unlocks, joins OTHER_CLAN
-const LAPSED = "#PYL0Q2GR"; // claimed; crosses a quiet rung
-const STREAK = "#PYL0Q2GJ"; // member: five wins in a row
-const BACK = "#PYL0Q2GC"; // member: returns after ten days
-const GONE = "#PYL0Q2GU"; // member: crosses a quiet rung
-const BADGE = "#PYL0Q2GV"; // member: a badge at a rung
+const OTHER_CLAN = "#0GJJ9QJL";
+const ME = "#0L98VL0Y"; // claimed, verified, a member of CLAN
+const FRIEND = "#0ULYQJUJ"; // claimed, in no tracked clan; plays, unlocks, joins OTHER_CLAN
+const LAPSED = "#0GLCPGJJ"; // claimed; crosses a quiet rung
+const STREAK = "#0URUGPGR"; // member: five wins in a row
+const BACK = "#08GCPRGQ"; // member: returns after ten days
+const GONE = "#0CYJV8V8"; // member: crosses a quiet rung
+const BADGE = "#0GLUVGG2"; // member: a badge at a rung
 
 let ctx;
 let db;
@@ -89,7 +89,7 @@ before(async () => {
   ctx = await scratchDb("timeline_skip_empty");
   db = ctx.db;
   await db.query(
-    `insert into clan (clan_tag, name) values ($1, 'POAP KINGS'), ($2, 'Ship It!')`,
+    `insert into clan (clan_tag, name) values ($1, 'POAP KINGS'), ($2, 'Moon Ox!')`,
     [CLAN, OTHER_CLAN],
   );
   for (const [tag, name] of [

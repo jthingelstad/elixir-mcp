@@ -283,9 +283,27 @@ const TOKEN = /(?<![0-9A-Za-z&])(#|%23)?([0-9A-Za-z]{3,12})(?![0-9A-Za-z])/g;
  * shorter than six characters, or one with no letter outside hex (which
  * could be a colour or a number), is replaced only as a whole quoted
  * string, the way a keyed value is written.
+ *
+ * With `{ bare: true }` (hand-written tests), a tag the same text writes
+ * with its `#` is replaced in every form: with its `#` even when all hex,
+ * and bare in a path, a query or a no-space list when upper case or holding a digit: a test builds `/home/player/BODY` or
+ * `BODY,BODY` from the tags it declares, and both must move together.
  */
-export function replaceTags(text, known, invent) {
+export function replaceTags(
+  text,
+  known,
+  invent,
+  { bare = false, declaredAll = false } = {},
+) {
   let n = 0;
+  // declaredAll: the run's tags are declared in sibling files of one suite.
+  const declared = new Set(bare && declaredAll ? known : []);
+  if (bare)
+    for (const m of text.matchAll(TOKEN)) {
+      if (!m[1]) continue;
+      const real = canonical(m[2]);
+      if (real && known.has(real)) declared.add(real);
+    }
   const out = text.replace(TOKEN, (match, prefix, body, offset) => {
     const real = canonical(body);
     if (!real || !known.has(real)) return match;
@@ -293,6 +311,31 @@ export function replaceTags(text, known, invent) {
       /["'`]/.test(text[offset - 1] ?? "") &&
       text[offset - 1] === text[offset + match.length];
     const strong = body.length >= 6 && NON_HEX.test(body);
+    // A path segment or a query, or a list joined with no space (code puts
+    // a space after its commas, so an identifier never qualifies; a list
+    // item needs a letter, so a thousands group never does).
+    const before = text[offset - 1] ?? "";
+    const after = text[offset + match.length] ?? "";
+    const inPath =
+      before === "/" ||
+      ((after === "/" || after === "?") && /[A-Za-z]/.test(body));
+    const inList =
+      /[A-Za-z]/.test(body) &&
+      ((before === "," && /[0-9A-Za-z]/.test(text[offset - 2] ?? "")) ||
+        (after === "," &&
+          /[0-9A-Za-z]/.test(text[offset + match.length + 1] ?? "")));
+    const sibling =
+      declared.has(real) &&
+      (Boolean(prefix) ||
+        ((inPath || inList) &&
+          (body === body.toUpperCase() || /[0-9]/.test(body))));
+    if (sibling) {
+      const lower = body === body.toLowerCase() && /[a-z]/.test(body);
+      let inv = invent(real).slice(1);
+      if (lower) inv = inv.toLowerCase();
+      n += 1;
+      return `${prefix ?? ""}${inv}`;
+    }
     if (!prefix && !strong && !quoted) return match;
     if (prefix && !NON_HEX.test(body) && !quoted) return match;
     if (!/[A-Za-z]/.test(body) && !quoted && !prefix) return match;

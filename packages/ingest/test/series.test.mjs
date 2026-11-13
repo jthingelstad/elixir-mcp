@@ -32,7 +32,7 @@ before(async () => {
 });
 after(async () => ctx.drop());
 
-const CLAN = "#2PP0V9YY";
+const CLAN = "#028RJP2U";
 function roster({ at, members, donationsPerWeek = 1200 }) {
   return {
     tag: CLAN,
@@ -66,8 +66,8 @@ function roster({ at, members, donationsPerWeek = 1200 }) {
     })),
   };
 }
-const A = "#2PP0V9QP";
-const B = "#2PP0V9UP";
+const A = "#0V92GLLC";
+const B = "#0CPUC9CV";
 const seen = (at) => at.replace(/[-:]/g, "").replace("Z", ".000Z");
 const iso = (at) => new Date(at).toISOString();
 
@@ -196,7 +196,7 @@ test("projectClanSeries: the four-poll guard on the clan row and the members' ro
 });
 
 test("two writers on one row: a roster write after a profile write moves trophies and leaves wins and profile_observed_at alone; a stale profile poll cannot regress the roster's numbers", async () => {
-  const P = "#2PP0V9CP";
+  const P = "#0YLCQU2U";
   await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
   const profile = (over) => ({
     tag: P,
@@ -345,7 +345,7 @@ test("the kinds: pre_reset and season_roll rows from the roster inside their win
   assert.equal((await memberRow(A, "2026-09-06", "daily")).donations, 3);
   assert.equal((await memberRow(A, "2026-09-06", "pre_reset")).donations, 400);
 
-  const P = "#2PP0V9JP";
+  const P = "#0VR0LP2Q";
   await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
   const payload = {
     progress: {
@@ -379,7 +379,7 @@ test("the kinds: pre_reset and season_roll rows from the roster inside their win
 });
 
 test("projectPlayerProgress: the zero-bucket rule, the empty key, the four-poll guard", async () => {
-  const P = "#2PP0V9GP";
+  const P = "#080L902J";
   await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
   const payload = (over = {}) => ({
     progress: {
@@ -802,7 +802,7 @@ test("a battle log writes the battle's own facts (0131) for new battles", async 
 });
 
 test("verification item 1: a roster older than the day's last profile poll still lands the clan and rank, never the trophies", async () => {
-  const P = "#2PP0V9LP";
+  const P = "#0L0G2CU8";
   await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
   // The backfill's shape: the profile row exists from 14:00Z; the
   // roster observation being replayed is from earlier the same game
@@ -871,7 +871,7 @@ test("verification item 1: a roster older than the day's last profile poll still
 });
 
 test("verification item 4: the progress buckets name their side-mode arenas in the catalog", async () => {
-  const P = "#2PP0V9RP";
+  const P = "#0GRYGJU0";
   await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
   await projectPlayerProgress(ctx.db, {
     playerTag: P,
@@ -905,7 +905,7 @@ test("verification item 4: the progress buckets name their side-mode arenas in t
 });
 
 test("correction 1: a replayed roster writes the row and never the arena moment; a fresh one writes both", async () => {
-  const P = "#2PP0V9VP";
+  const P = "#000JLYY9";
   await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
   const events = async () =>
     (
@@ -965,7 +965,7 @@ test("correction 1: a replayed roster writes the row and never the arena moment;
 });
 
 test("the arena moment is once per crossing: a re-walk of the same day's rosters writes no second one, and the backfill writes none", async () => {
-  const P = "#2PP0V9GG";
+  const P = "#0V90G882";
   await ctx.db.query(`insert into player (player_tag) values ($1)`, [P]);
   const receiptId = (
     await ctx.db.query(
@@ -1024,7 +1024,7 @@ test("a replay with moments: false projects the profile's rows and writes no mom
     ),
   });
   const base = await fixture("player/profile.json");
-  const P = "#2PP0V9RR";
+  const P = "#0YP8L80P";
   const first = structuredClone(base);
   first.tag = P;
   first.trophies = 6000;
@@ -1069,7 +1069,7 @@ test("a replay with moments: false projects the profile's rows and writes no mom
 });
 
 test("a clan nobody tracks writes no day row and only its tracked members' rows", async () => {
-  const OTHER = "#2QQQ";
+  const OTHER = "#0YYC";
   const at = "2026-10-06T12:00:00Z";
   await ctx.db.query(
     "insert into player (player_tag) values ($1) on conflict do nothing",

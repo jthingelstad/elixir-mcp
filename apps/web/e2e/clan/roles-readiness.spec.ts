@@ -4,9 +4,9 @@ import { FIELDS, GROUPS, TABS, defaults } from "@elixir-mcp/clan-engine";
 import { clanTab, ME, mockApi, signedIn } from "./fixtures.ts";
 import { HOME_READS } from "../home-fixture.ts";
 
-const base = "/clan/2PQRJ8LV";
-const apiBase = "/api/clan/clans/2PQRJ8LV";
-const ben = { player_tag: "#UQ8LP2R9C", name: "Ben", role: "member" };
+const base = "/clan/0QC8RCGY";
+const apiBase = "/api/clan/clans/0QC8RCGY";
+const ben = { player_tag: "#02QQPCYQQ", name: "Ben", role: "member" };
 const stamp = "2026-10-04T12:00:00Z";
 const place = {
   country: "US",
@@ -161,7 +161,7 @@ function roleRoutes(role: "member" | "elder", small = false) {
       ? [409, { error: "too_few_members", members: 3, min_members: 10 }]
       : [200, awards],
     [`GET ${apiBase}/trophies`]: [200, { awards: [], yours: [], seasons: [] }],
-    [`GET ${apiBase}/members/UQ8LP2R9C/activity`]: [200, activity],
+    [`GET ${apiBase}/members/02QQPCYQQ/activity`]: [200, activity],
     [`GET ${apiBase}/standing`]: [
       200,
       {
@@ -330,7 +330,7 @@ for (const size of ["wide", "@narrow"])
         page.getByRole("button", { name: "Save this clan's policy" }),
       ).toHaveCount(0);
       await page.getByRole("link", { name: "Open Policy" }).click();
-      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/policy$/);
+      await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/policy$/);
       // Standing is on Standings, open to every member as before.
       await page.goto(`${base}/standings`);
       await expect(page.getByText(/^How it works here/).first()).toBeVisible();
@@ -340,8 +340,8 @@ for (const size of ["wide", "@narrow"])
         page
           .getByRole("region", { name: "Standing" })
           .getByRole("link", { name: "Ben", exact: true }),
-      ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
-      await page.goto(`${base}/members/uq8lp2r9c`);
+      ).toHaveAttribute("href", "/home/player/02QQPCYQQ");
+      await page.goto(`${base}/members/02qqpcyqq`);
       await expect(
         page.getByText(
           /^A gap is unknown\. No battle here does not prove no play/,
@@ -358,7 +358,7 @@ for (const size of ["wide", "@narrow"])
       ).toHaveCount(0);
       await expect(
         page.getByRole("link", { name: "Ben", exact: true }).first(),
-      ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
+      ).toHaveAttribute("href", "/home/player/02QQPCYQQ");
       await page.goto(`${base}/feed`);
       await expect(
         page.getByText("Nothing waiting for you", { exact: true }),
@@ -446,11 +446,11 @@ for (const size of ["wide", "@narrow"])
       await page.goto(`${base}/${path}`);
       await expect(page.getByRole("alert")).toBeVisible();
     }
-    routes[`GET ${apiBase}/members/UQ8LP2R9C/activity`] = [
+    routes[`GET ${apiBase}/members/02QQPCYQQ/activity`] = [
       503,
       { error: "unavailable" },
     ];
-    await page.goto(`${base}/members/uq8lp2r9c`);
+    await page.goto(`${base}/members/02qqpcyqq`);
     // The shared client quietly retries a 503 once. In a full concurrent
     // run its timer can be delayed beyond the default five-second wait.
     await expect(page.getByRole("alert")).toContainText(
@@ -467,7 +467,7 @@ for (const size of ["wide", "@narrow"])
     routes["GET /api/clan/roster"] = [
       200,
       {
-        clan_tag: "#2PQRJ8LV",
+        clan_tag: "#0QC8RCGY",
         name: "Example Clan",
         member_count: 0,
         members: [],
@@ -518,7 +518,7 @@ for (const size of ["wide", "@narrow"])
       if (role === "member") {
         // Scout's old address opens the roster's foot, where Scout says
         // whose it is.
-        await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\?show=scout$/);
+        await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/members\?show=scout$/);
         await expect(page.getByRole("alert")).toContainText(
           "Scout is for elders, co-leaders and the leader",
         );
@@ -532,7 +532,7 @@ for (const size of ["wide", "@narrow"])
           0,
         );
       } else {
-        await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members\?show=scout$/);
+        await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/members\?show=scout$/);
         await expect(
           page.getByRole("main").getByRole("button", {
             name: "Scout",

@@ -21,11 +21,11 @@ let account;
 const registry = makeRegistry();
 // Tags use the game's own alphabet (0289PYLQGRJCUV): the player table
 // checks it.
-const F = "#2PYLQG0";
+const F = "#002C298";
 // The second scored player (#62): three months whose LATER step carries
 // the arena crossing, so a guard that stops at the first hit misses it.
-const G = "#2PYLQG8";
-const OPPONENTS = [..."289PYLQGRJ"].map((c) => `#2PYLQGC${c}`);
+const G = "#0JQLL88";
+const OPPONENTS = [..."289PYLQGRJ"].map((c) => `#0082JGY${c}`);
 const call = (name, args = {}) =>
   registry.invoke(name, { db: scratch.db, account }, args);
 
@@ -604,7 +604,7 @@ test("controls.mjs (3.16.0): the rollup-shaped split and the coverage helpers", 
   );
 
   // coverageBasis: an activity-scope clan with one directly recorded member.
-  const CLAN = "#2PYLQGCC";
+  const CLAN = "#0GQ2RC0G";
   await scratch.db.query(
     "insert into clan (clan_tag) values ($1) on conflict do nothing",
     [CLAN],

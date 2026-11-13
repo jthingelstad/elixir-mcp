@@ -6,19 +6,19 @@ import { mockApi, signedIn } from "./fixtures.ts";
    place, member and figure on one row, nothing wider than the screen. */
 const names = [
   "King Thing",
-  "Lucky Red Panda",
-  "JaxikoLane",
-  "Ditaka",
-  "pokemon",
+  "Eagle Fox Quail",
+  "Kingfisher",
+  "Sturdy",
+  "buffalo",
   "Lord of Latency",
 ];
 const tags = [
-  "#20QQL8CCRU",
-  "#UQ8LP2R9C",
-  "#2PQRJ8LVU",
-  "#9JQ2L0CQ",
-  "#L2VRQ8JC0",
-  "#2282UV9UY8",
+  "#098R2R0PUL",
+  "#02QQPCYQQ",
+  "#08CUCVCGQ",
+  "#008JYPGJ",
+  "#0CQ82QJYV",
+  "#0JPCP0UYQC",
 ];
 const members = names.map((name, i) => ({
   player_tag: tags[i],
@@ -67,7 +67,7 @@ const rows = (kind: string) =>
           },
   );
 const view = () => ({
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   can_edit: true,
   can_grant: ["pick"],
   can_send: true,
@@ -150,7 +150,7 @@ for (const season of [138, 137])
       page,
     }) => {
       const responses = signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/awards": [200, view()],
+        "GET /api/clan/clans/0QC8RCGY/awards": [200, view()],
       });
       const roster = responses["GET /api/clan/roster"] as [
         number,
@@ -162,7 +162,7 @@ for (const season of [138, 137])
       ];
       await mockApi(page, responses);
       await page.setViewportSize({ width, height: 812 });
-      await page.goto(`/clan/2PQRJ8LV/standings/${season}`);
+      await page.goto(`/clan/0QC8RCGY/standings/${season}`);
       await expect(
         page.getByRole("heading", { name: "Awards", exact: true }),
       ).toBeVisible();

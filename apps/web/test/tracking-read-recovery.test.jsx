@@ -7,14 +7,14 @@ import { keys } from "../src/lib/queries.js";
 
 const me = { claims: [], recordings: [], entitlements: {}, role: "member" };
 const clan = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Saved example clan",
   scope: "activity",
   recording_status: "active",
 };
 const views = [
   ["Following", Following, { search: "?view=clans" }],
-  ["clan record", FollowedRecord, { tag: "2PQRJ8LV" }],
+  ["clan record", FollowedRecord, { tag: "0QC8RCGY" }],
 ];
 
 afterEach(() => {

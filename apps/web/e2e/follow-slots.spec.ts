@@ -16,7 +16,7 @@ const SLOTS = {
   limit: 50,
   players: [
     {
-      player_tag: "#QQ8822",
+      player_tag: "#0VJ2QV",
       name: "Copper Fern",
       slot: "used",
       reason: null,
@@ -24,7 +24,7 @@ const SLOTS = {
       agents: [],
     },
     {
-      player_tag: "#UUU2",
+      player_tag: "#00L0",
       name: "Umber Kite",
       slot: "used",
       reason: null,
@@ -34,7 +34,7 @@ const SLOTS = {
       ],
     },
     {
-      player_tag: "#VVV9",
+      player_tag: "#09PR",
       name: "Violet Reed",
       slot: "free",
       reason: "followed_by_others",
@@ -122,7 +122,7 @@ for (const [label, width] of [
       await accessible(page, `stop following ${label}`);
       await dialog.getByRole("button", { name: "Stop following" }).click();
       await expect(dialog).toHaveCount(0);
-      expect(posted).toEqual([{ player_tag: "#QQ8822", action: "remove" }]);
+      expect(posted).toEqual([{ player_tag: "#0VJ2QV", action: "remove" }]);
     });
 
     test("Location: your place on the clan map, and who sees it", async ({

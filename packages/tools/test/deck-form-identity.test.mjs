@@ -23,7 +23,7 @@ import { seedPlayedDeck, seedDeck } from "./deck-rows.mjs";
 let scratch;
 let account;
 const registry = makeRegistry();
-const TAG = "#9GQLV20";
+const TAG = "#0JQ0JQ8";
 const call = (name, args = {}) =>
   registry.invoke(name, { db: scratch.db, account }, args);
 
@@ -248,16 +248,16 @@ test("5.0.0 cards_card: catalog facts and first played forms in a selected playe
 
 test("5.0.0 cards_card: a clan segment says who played the card and who holds it", async () => {
   await scratch.db.query(
-    `insert into clan (clan_tag, name) values ('#2CRPCL9V', 'Card Clan') on conflict do nothing`,
+    `insert into clan (clan_tag, name) values ('#0GLL88LG', 'Card Clan') on conflict do nothing`,
   );
   await scratch.db.query(
     `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
-     values ('#2CRPCL9V', $1, '2026-09-01T00:00:00Z', 'member')`,
+     values ('#0GLL88LG', $1, '2026-09-01T00:00:00Z', 'member')`,
     [TAG],
   );
   await scratch.db.query(
     `insert into recording (subject_type, subject_tag, requested_by, scope)
-     values ('clan', '#2CRPCL9V', $1, 'comprehensive')`,
+     values ('clan', '#0GLL88LG', $1, 'comprehensive')`,
     [account.accountId],
   );
   await scratch.db.query(
@@ -267,7 +267,7 @@ test("5.0.0 cards_card: a clan segment says who played the card and who holds it
   );
   const res = await call("cards_card", {
     card_id: 26000007,
-    segment: { clan_tag: "#2CRPCL9V" },
+    segment: { clan_tag: "#0GLL88LG" },
     from: "2026-09-01",
   });
   assert.equal(res.members.members, 1);
@@ -294,7 +294,7 @@ test("card facts retain player observation metadata and tower play", async () =>
   assert.equal(player.meta.source_polls.player_battlelog.observed_at, null);
   const clan = await call("cards_card", {
     card_id: TOWER.id,
-    segment: { clan_tag: "#2CRPCL9V" },
+    segment: { clan_tag: "#0GLL88LG" },
     from: "2026-09-01",
   });
   assert.equal(clan.members.played[0].battles, 6);
@@ -306,21 +306,21 @@ test("an activity clan's unrecorded opponent history is not member play", async 
   await db.query("begin");
   try {
     await db.query(
-      "update recording set scope='activity' where subject_tag='#2CRPCL9V'",
+      "update recording set scope='activity' where subject_tag='#0GLL88LG'",
     );
     await db.query(
-      "insert into player(player_tag,name) values ('#P0LYQ','Unrecorded member')",
+      "insert into player(player_tag,name) values ('#00UQG','Unrecorded member')",
     );
     await db.query(
-      "insert into clan_membership(clan_tag,player_tag,joined_observed_at,role) values ('#2CRPCL9V','#P0LYQ','2026-09-01','member')",
+      "insert into clan_membership(clan_tag,player_tag,joined_observed_at,role) values ('#0GLL88LG','#00UQG','2026-09-01','member')",
     );
     await db.query(
-      "insert into battle_participant(battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash,type,type_class) select battle_id,'#P0LYQ',2,'loss',battle_time,0,deck_hash,type,type_class from battle_participant where player_tag=$1 and battle_id='df-base-1'",
+      "insert into battle_participant(battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash,type,type_class) select battle_id,'#00UQG',2,'loss',battle_time,0,deck_hash,type,type_class from battle_participant where player_tag=$1 and battle_id='df-base-1'",
       [TAG],
     );
     await seedPlayedDeck(db, {
       battle_id: "df-base-1",
-      player_tag: "#P0LYQ",
+      player_tag: "#00UQG",
       battle_time: "2026-09-02T12:00:00Z",
       cards: cards(0),
       supportCards: [TOWER],
@@ -330,7 +330,7 @@ test("an activity clan's unrecorded opponent history is not member play", async 
     );
     const res = await call("cards_card", {
       card_id: 26000007,
-      segment: { clan_tag: "#2CRPCL9V" },
+      segment: { clan_tag: "#0GLL88LG" },
       from: "2026-09-01",
     });
     assert.equal(res.members.members, 2);
@@ -391,7 +391,7 @@ test("scoped card history keeps earliest forms and each card-bearing duel round"
     });
     const narrowed = await call("cards_card", {
       card_id: 26000007,
-      segment: { clan_tag: "#2CRPCL9V" },
+      segment: { clan_tag: "#0GLL88LG" },
       from: "2026-09-02",
       to: "2026-09-03",
       mode: "ladder",
@@ -404,7 +404,7 @@ test("scoped card history keeps earliest forms and each card-bearing duel round"
     assert.equal(narrowed.members.played[0].battles, 6);
     const war = await call("cards_card", {
       card_id: 26000007,
-      segment: { clan_tag: "#2CRPCL9V" },
+      segment: { clan_tag: "#0GLL88LG" },
       from: "2026-09-01",
       to: "2026-09-02",
       mode: "war",
@@ -422,7 +422,7 @@ test("scoped card history keeps earliest forms and each card-bearing duel round"
     assert.deepEqual(played.modes, { war: 2 });
     const tower = await call("cards_card", {
       card_id: TOWER.id,
-      segment: { clan_tag: "#2CRPCL9V" },
+      segment: { clan_tag: "#0GLL88LG" },
       from: "2026-09-01",
       to: "2026-09-02",
       mode: "war",
@@ -482,7 +482,7 @@ test("card history keeps unknown types and own boat attacks, excluding both defe
     }
     const result = await call("cards_card", {
       card_id: 26000007,
-      segment: { clan_tag: "#2CRPCL9V" },
+      segment: { clan_tag: "#0GLL88LG" },
       from: "2026-08-29",
       to: "2026-09-03",
     });

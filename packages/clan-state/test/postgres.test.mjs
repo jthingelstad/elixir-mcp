@@ -53,18 +53,18 @@ const snapshot = (items) => {
   return { bytes, digest: createHash("sha256").update(bytes).digest("hex") };
 };
 const durable = [
-  { pk: "policy##P0LYQ", version: 3 },
+  { pk: "policy##00UQG", version: 3 },
   {
-    pk: "policy##P0LYQ#v3",
-    gsi1pk: "clan##P0LYQ",
+    pk: "policy##00UQG#v3",
+    gsi1pk: "clan##00UQG",
     gsi1sk: "policy#v000003",
     version: 3,
     values: { free_text: "old exact words" },
   },
-  { pk: "action_seq##P0LYQ", n: 37 },
+  { pk: "action_seq##00UQG", n: 37 },
   {
-    pk: "card##P0LYQ#stable-id",
-    gsi1pk: "clan##P0LYQ",
+    pk: "card##00UQG#stable-id",
+    gsi1pk: "clan##00UQG",
     gsi1sk: "card#2026-10-01#stable-id",
     card_id: "stable-id",
     number: 37,
@@ -72,22 +72,22 @@ const durable = [
     unknown_future: { kept: true },
   },
   {
-    pk: "mailed##P0LYQ##P2LQ0",
-    gsi1pk: "clan##P0LYQ",
-    gsi1sk: "mailed##P2LQ0",
-    player_tag: "#P2LQ0",
+    pk: "mailed##00UQG##0LGYR",
+    gsi1pk: "clan##00UQG",
+    gsi1sk: "mailed##0LGYR",
+    player_tag: "#0LGYR",
     at: "2026-10-01T09:00:00Z",
   },
-  { pk: "pref##P2LQ0", clan_tag: "#P0LYQ" },
+  { pk: "pref##0LGYR", clan_tag: "#00UQG" },
   {
-    pk: "model_key##P0LYQ",
+    pk: "model_key##00UQG",
     sealed: {
       v: 1,
       iv: "AAAAAAAAAAAAAAAA",
       tag: "AAAAAAAAAAAAAAAAAAAAAA==",
       ct: "c2VhbGVk",
     },
-    set_by: "#P2LQ0",
+    set_by: "#0LGYR",
   },
 ];
 test("award plans and grant receipts survive duplicate writes without changing provenance", async () => {
@@ -95,7 +95,7 @@ test("award plans and grant receipts survive duplicate writes without changing p
   const grant = {
     season_id: 136,
     award_id: "champ",
-    player_tag: "#P2LQ0",
+    player_tag: "#0LGYR",
     player_name: "Fixture",
     rank: 1,
     metric_value: 5000,
@@ -108,32 +108,32 @@ test("award plans and grant receipts survive duplicate writes without changing p
     grants: [grant],
     planned_at: grant.granted_at,
   };
-  assert.deepEqual(await ledger.saveAwardPlan("#P0LYQ", plan), plan);
+  assert.deepEqual(await ledger.saveAwardPlan("#00UQG", plan), plan);
   assert.deepEqual(
-    await ledger.saveAwardPlan("#P0LYQ", { ...plan, grants: [] }),
+    await ledger.saveAwardPlan("#00UQG", { ...plan, grants: [] }),
     plan,
   );
-  assert.deepEqual(await ledger.putGrant("#P0LYQ", grant), grant);
+  assert.deepEqual(await ledger.putGrant("#00UQG", grant), grant);
   assert.deepEqual(
-    await ledger.putGrant("#P0LYQ", { ...grant, metric_value: 0 }),
+    await ledger.putGrant("#00UQG", { ...grant, metric_value: 0 }),
     grant,
   );
-  assert.deepEqual(await ledger.grants("#P0LYQ"), [grant]);
-  await ledger.completeAwardPlan("#P0LYQ", plan, "2026-10-05T10:01:00Z");
-  const saved = (await ledger.awardPlans("#P0LYQ"))[0];
+  assert.deepEqual(await ledger.grants("#00UQG"), [grant]);
+  await ledger.completeAwardPlan("#00UQG", plan, "2026-10-05T10:01:00Z");
+  const saved = (await ledger.awardPlans("#00UQG"))[0];
   assert.deepEqual(saved.grants, [grant]);
   assert.equal(saved.completed_at, "2026-10-05T10:01:00Z");
-  await ledger.saveDiscordLog("#P0LYQ", {
+  await ledger.saveDiscordLog("#00UQG", {
     entries: [
       { at: "2026-10-05T10:02:00Z", outcome: "posted", excerpt: "#1 Fixture" },
     ],
     missed: {},
   });
-  assert.equal((await ledger.discordLog("#P0LYQ")).entries.length, 1);
-  await ledger.deleteClan("#P0LYQ");
-  assert.deepEqual(await ledger.awardPlans("#P0LYQ"), []);
+  assert.equal((await ledger.discordLog("#00UQG")).entries.length, 1);
+  await ledger.deleteClan("#00UQG");
+  assert.deepEqual(await ledger.awardPlans("#00UQG"), []);
   assert.equal(
-    await ledger.discordLog("#P0LYQ"),
+    await ledger.discordLog("#00UQG"),
     null,
     "the delivery log goes with the clan",
   );
@@ -142,14 +142,14 @@ test("canonical membership SQL keeps race absence separate from full donation-we
   await db.query("begin");
   try {
     await db.query(
-      "insert into player (player_tag,name) values ('#P2LQ0','Fixture')",
+      "insert into player (player_tag,name) values ('#0LGYR','Fixture')",
     );
     await db.query(
-      "insert into clan (clan_tag,name) values ('#P0LYQ','Fixture Clan')",
+      "insert into clan (clan_tag,name) values ('#00UQG','Fixture Clan')",
     );
     await db.query(`insert into clan_membership (clan_tag,player_tag,joined_observed_at,left_observed_at)
-      values ('#P0LYQ','#P2LQ0','2026-08-01','2026-09-08T13:00:00Z'),
-      ('#P0LYQ','#P2LQ0','2026-09-29',null)`);
+      values ('#00UQG','#0LGYR','2026-08-01','2026-09-08T13:00:00Z'),
+      ('#00UQG','#0LGYR','2026-09-29',null)`);
     const {
       rows: [account],
     } = await db.query(`insert into account (email_hash)
@@ -163,7 +163,7 @@ test("canonical membership SQL keeps race absence separate from full donation-we
     );
     await db.query(
       `insert into api_receipt (endpoint,entity_key,fetched_at,payload_hash,gateway_id,admission)
-      select 'clan','#P0LYQ',t,'fixture',$1,'admitted'
+      select 'clan','#00UQG',t,'fixture',$1,'admitted'
       from unnest($2::timestamptz[]) t`,
       [
         gateway.gateway_id,
@@ -177,7 +177,7 @@ test("canonical membership SQL keeps race absence separate from full donation-we
     const participation = {
       recording_active_since: "2026-08-01",
       first_roster_observed_at: "2026-08-01",
-      members: [{ player_tag: "#P2LQ0" }],
+      members: [{ player_tag: "#0LGYR" }],
       war_weeks: [
         {
           started_observed_at: "2026-09-09T10:00:00Z",
@@ -186,15 +186,15 @@ test("canonical membership SQL keeps race absence separate from full donation-we
       ],
       weeks: [{ from: "2026-09-07", to: "2026-09-14" }],
     };
-    assert.deepEqual(await warMembershipEvidence(db, "#P0LYQ", participation), {
-      war: { "#P2LQ0": [true] },
-      donations: { "#P2LQ0": [false] },
+    assert.deepEqual(await warMembershipEvidence(db, "#00UQG", participation), {
+      war: { "#0LGYR": [true] },
+      donations: { "#0LGYR": [false] },
     });
-    await db.query(`delete from api_receipt where entity_key='#P0LYQ'
+    await db.query(`delete from api_receipt where entity_key='#00UQG'
       and fetched_at >= '2026-09-14T10:00:00Z'`);
-    assert.deepEqual(await warMembershipEvidence(db, "#P0LYQ", participation), {
-      war: { "#P2LQ0": [null] },
-      donations: { "#P2LQ0": [null] },
+    assert.deepEqual(await warMembershipEvidence(db, "#00UQG", participation), {
+      war: { "#0LGYR": [null] },
+      donations: { "#0LGYR": [null] },
     });
   } finally {
     await db.query("rollback");
@@ -227,7 +227,7 @@ test("digest-bound import is lossless, private, idempotent and cannot overwrite 
   assert.equal(JSON.stringify(comparison).includes("stable-id"), false);
   const store = createPostgresStore(db);
   for (const item of durable) assert.deepEqual(await store.get(item.pk), item);
-  const listed = await store.listByPartition("clan##P0LYQ");
+  const listed = await store.listByPartition("clan##00UQG");
   assert.equal(listed.length, 3);
   assert.ok(!listed.some((i) => i.pk.startsWith("model_key")));
   await store.put({ ...durable[0], version: 4 });
@@ -237,7 +237,7 @@ test("digest-bound import is lossless, private, idempotent and cannot overwrite 
   assert.equal((await store.get(durable[0].pk)).version, 4);
   const changed = snapshot([
     ...durable,
-    { pk: "note##P0LYQ#new", text: "new" },
+    { pk: "note##00UQG#new", text: "new" },
   ]);
   await assert.rejects(
     importSnapshot(db, changed.bytes, changed.digest, { apply: true }),
@@ -272,50 +272,50 @@ test("two independent connections atomically allocate counters, first attributes
   const a = createPostgresStore(db),
     b = createPostgresStore(other);
   const numbers = await Promise.all([
-    a.increment("action_seq##P0LYQ"),
-    b.increment("action_seq##P0LYQ"),
+    a.increment("action_seq##00UQG"),
+    b.increment("action_seq##00UQG"),
   ]);
   assert.deepEqual(numbers.sort(), [1, 2]);
-  await a.put({ pk: "card##P0LYQ#id", unknown: "keep" });
+  await a.put({ pk: "card##00UQG#id", unknown: "keep" });
   const numbered = await Promise.all([
-    a.setIfAbsent("card##P0LYQ#id", "number", 1),
-    b.setIfAbsent("card##P0LYQ#id", "number", 2),
+    a.setIfAbsent("card##00UQG#id", "number", 1),
+    b.setIfAbsent("card##00UQG#id", "number", 2),
   ]);
   assert.equal(numbered.filter(Boolean).length, 1);
-  assert.equal((await a.get("card##P0LYQ#id")).unknown, "keep");
+  assert.equal((await a.get("card##00UQG#id")).unknown, "keep");
   assert.equal(await a.setIfAbsent("missing", "number", 1), false);
   const claimed = await Promise.all([
-    a.claimDay("morning##P0LYQ", "2026-10-02", "now"),
-    b.claimDay("morning##P0LYQ", "2026-10-02", "now"),
+    a.claimDay("morning##00UQG", "2026-10-02", "now"),
+    b.claimDay("morning##00UQG", "2026-10-02", "now"),
   ]);
   assert.equal(claimed.filter(Boolean).length, 1);
-  assert.equal(await b.claimDay("morning##P0LYQ", "2026-10-03", "later"), true);
+  assert.equal(await b.claimDay("morning##00UQG", "2026-10-03", "later"), true);
 });
 test("shared ledger preserves version history, literal prefix matching, and excludes sealed keys from clan lists", async () => {
   const l = createPostgresLedger(db);
-  await l.savePolicy("#P0LYQ", { values: { enabled: true }, by: "#P2LQ0" });
-  await l.savePolicy("#P0LYQ", { values: { enabled: false }, by: "#P2LQ0" });
-  assert.equal((await l.currentPolicy("#P0LYQ")).version, 2);
-  assert.equal((await l.policyVersions("#P0LYQ")).length, 2);
+  await l.savePolicy("#00UQG", { values: { enabled: true }, by: "#0LGYR" });
+  await l.savePolicy("#00UQG", { values: { enabled: false }, by: "#0LGYR" });
+  assert.equal((await l.currentPolicy("#00UQG")).version, 2);
+  assert.equal((await l.policyVersions("#00UQG")).length, 2);
   const store = createPostgresStore(db);
   await store.put({
-    pk: "note##P0LYQ#id",
-    gsi1pk: "clan##P0LYQ",
+    pk: "note##00UQG#id",
+    gsi1pk: "clan##00UQG",
     gsi1sk: "note#percent_%",
     text: "literal",
   });
   assert.equal(
-    (await store.listByPartition("clan##P0LYQ", "note#percent_%")).length,
+    (await store.listByPartition("clan##00UQG", "note#percent_%")).length,
     1,
   );
   assert.equal(
-    (await store.listByPartition("clan##P0LYQ", "note#percent_X")).length,
+    (await store.listByPartition("clan##00UQG", "note#percent_X")).length,
     0,
   );
-  await l.saveModelKey("#P0LYQ", { sealed: durable[6].sealed });
-  assert.deepEqual((await l.modelKey("#P0LYQ")).sealed, durable[6].sealed);
+  await l.saveModelKey("#00UQG", { sealed: durable[6].sealed });
+  assert.deepEqual((await l.modelKey("#00UQG")).sealed, durable[6].sealed);
   assert.ok(
-    !(await store.listByPartition("clan##P0LYQ")).some((i) =>
+    !(await store.listByPartition("clan##00UQG")).some((i) =>
       i.pk.startsWith("model_key"),
     ),
   );
@@ -323,7 +323,7 @@ test("shared ledger preserves version history, literal prefix matching, and excl
 
 test("bounded action logs and numbered cards cannot cross clans or card prefixes", async () => {
   const ledger = createPostgresLedger(db);
-  for (const clan of ["#P0LYQ", "#OTHER"])
+  for (const clan of ["#00UQG", "#OTHER"])
     for (const cardId of ["one", "one-extra", "two"]) {
       await ledger.putCard(clan, {
         card_id: cardId,
@@ -337,14 +337,14 @@ test("bounded action logs and numbered cards cannot cross clans or card prefixes
         at: "2026-10-01T00:00:00Z",
       });
     }
-  const logs = await ledger.actionLogsFor("#P0LYQ", ["one", "two"]);
+  const logs = await ledger.actionLogsFor("#00UQG", ["one", "two"]);
   assert.equal(logs.length, 2);
   assert.deepEqual(logs.map((r) => r.text).sort(), [
-    "#P0LYQ:one",
-    "#P0LYQ:two",
+    "#00UQG:one",
+    "#00UQG:two",
   ]);
-  assert.deepEqual(await ledger.actionLogsFor("#P0LYQ", []), []);
-  assert.equal((await ledger.cardByNumber("#P0LYQ", 1)).card_id, "one");
+  assert.deepEqual(await ledger.actionLogsFor("#00UQG", []), []);
+  assert.equal((await ledger.cardByNumber("#00UQG", 1)).card_id, "one");
   assert.equal(await ledger.cardByNumber("#MISSING", 1), null);
 });
 
@@ -354,19 +354,19 @@ test("concurrent member-count observations cannot roll back a newer source read"
   const old = { members: 9, observed_at: "2026-10-03T21:00:00.000Z" };
   const fresh = { members: 50, observed_at: "2026-10-03T21:01:00.000Z" };
   await Promise.all([
-    a.saveClanSize("#P0LYQ", fresh),
-    b.saveClanSize("#P0LYQ", old),
+    a.saveClanSize("#00UQG", fresh),
+    b.saveClanSize("#00UQG", old),
   ]);
-  assert.deepEqual(await a.clanSize("#P0LYQ"), fresh);
-  assert.equal(await b.saveClanSize("#P0LYQ", old), false);
-  assert.equal(await b.saveClanSize("#P0LYQ", { ...fresh, members: 1 }), false);
-  assert.deepEqual(await a.clanSize("#P0LYQ"), fresh);
+  assert.deepEqual(await a.clanSize("#00UQG"), fresh);
+  assert.equal(await b.saveClanSize("#00UQG", old), false);
+  assert.equal(await b.saveClanSize("#00UQG", { ...fresh, members: 1 }), false);
+  assert.deepEqual(await a.clanSize("#00UQG"), fresh);
 });
 
 test("reopen compare-and-patch is atomic across clients and preserves partial sent receipts", async () => {
   const a = createPostgresLedger(db),
     b = createPostgresLedger(other);
-  const original = await a.putCard("#P0LYQ", {
+  const original = await a.putCard("#00UQG", {
     card_id: "reopen-fixture",
     number: 33,
     raised_at: "2026-10-03T10:00:00Z",
@@ -377,7 +377,7 @@ test("reopen compare-and-patch is atomic across clients and preserves partial se
       { part: 1, title: "Exact title", body: "Exact sent words" },
     ],
   });
-  const expected = await a.card("#P0LYQ", "reopen-fixture");
+  const expected = await a.card("#00UQG", "reopen-fixture");
   const patch = {
     status: "proposed",
     decided_at: null,
@@ -386,11 +386,11 @@ test("reopen compare-and-patch is atomic across clients and preserves partial se
     ],
   };
   const results = await Promise.all([
-    a.updateCardIf("#P0LYQ", expected, patch),
-    b.updateCardIf("#P0LYQ", expected, patch),
+    a.updateCardIf("#00UQG", expected, patch),
+    b.updateCardIf("#00UQG", expected, patch),
   ]);
   assert.equal(results.filter(Boolean).length, 1);
-  const saved = await a.card("#P0LYQ", "reopen-fixture");
+  const saved = await a.card("#00UQG", "reopen-fixture");
   assert.deepEqual(saved.evidence, expected.evidence);
   assert.deepEqual(saved.messages_sent, expected.messages_sent);
   assert.equal(saved.number, 33);

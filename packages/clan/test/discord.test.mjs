@@ -27,7 +27,7 @@ import {
 const SECRET = "test-sealing-secret-0123456789abcdef";
 const TOKEN = "a".repeat(68);
 const HOOK = `https://discord.com/api/webhooks/123456789012345678/${TOKEN}`;
-const CLAN = "#2PQRJ8LV";
+const CLAN = "#0QC8RCGY";
 const LEAD = { player_tag: "#L", name: "Lead", role: "leader" };
 
 function memory() {
@@ -399,7 +399,7 @@ test("open Actions are posted; closing one edits its message to say how and by w
   assert.deepEqual(w.discord.calls, [
     [
       "post",
-      "**#1 Promote to Elder: Member 1**\n<https://elixir.test/clan/2PQRJ8LV/actions/1>",
+      "**#1 Promote to Elder: Member 1**\n<https://elixir.test/clan/0QC8RCGY/actions/1>",
     ],
   ]);
   // Nothing new: the answer is collected and nothing is sent again.
@@ -415,7 +415,7 @@ test("open Actions are posted; closing one edits its message to say how and by w
   assert.equal(w.discord.calls.at(-1)[0], "edit");
   assert.equal(
     w.discord.messages.get(post.message_id),
-    "~~**#1 Promote to Elder: Member 1**~~\n✅ Completed by Lead\n<https://elixir.test/clan/2PQRJ8LV/actions/1>",
+    "~~**#1 Promote to Elder: Member 1**~~\n✅ Completed by Lead\n<https://elixir.test/clan/0QC8RCGY/actions/1>",
   );
   assert.deepEqual(await w.service.share(CLAN), { shared: 0 });
   assert.equal(w.discord.calls.length, 2);
@@ -498,7 +498,7 @@ test("removing the webhook forgets its messages; a new one starts over", async (
 test("the routes: leaders connect, read and remove; a member is refused; the address never comes back", async () => {
   const w = world();
   const ADA = player();
-  const BEN = player({ player_tag: "#8QCV", name: "Ben", clan_role: "member" });
+  const BEN = player({ player_tag: "#0RJL", name: "Ben", clan_role: "member" });
   const record = fakeRecord({
     players: [ADA],
     roster: rosterBody(
@@ -531,7 +531,7 @@ test("the routes: leaders connect, read and remove; a member is refused; the add
       return { status: r.statusCode, body: JSON.parse(r.body), raw: r.body };
     };
   };
-  const path = "/api/clans/2PQRJ8LV/discord";
+  const path = "/api/clans/0QC8RCGY/discord";
   const ben = await as(BEN);
   assert.equal((await ben("GET", path)).status, 403);
   assert.equal((await ben("PUT", path, { url: HOOK })).status, 403);
@@ -799,7 +799,7 @@ test("the wake is one timeline-sync object a clan a minute, or none without an o
     [
       "timeline-sync",
       { v: 1, clan_discord: CLAN },
-      { id: "clan-discord-2PQRJ8LV.29340000", once: true },
+      { id: "clan-discord-0QC8RCGY.29340000", once: true },
     ],
   ]);
 });

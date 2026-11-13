@@ -133,7 +133,7 @@ test("joining from a battle link: Join Elixir, the age question, back on the bat
             // The tag given on the signup form, now this account's own.
             claims: [
               {
-                player_tag: "#2PYQ8GJ0",
+                player_tag: "#0PJCLJYP",
                 name: null,
                 is_primary: true,
                 relationship: "primary",
@@ -153,7 +153,7 @@ test("joining from a battle link: Join Elixir, the age question, back on the bat
       authed = true;
       return [
         200,
-        { authenticated: true, new_account: { player_tag: "#2PYQ8GJ0" } },
+        { authenticated: true, new_account: { player_tag: "#0PJCLJYP" } },
       ];
     },
     "GET /api/me/follow-cost": (route) => {
@@ -181,7 +181,7 @@ test("joining from a battle link: Join Elixir, the age question, back on the bat
     page.getByRole("heading", { name: "Create your Elixir account" }),
   ).toBeVisible();
   await page.getByLabel("Email", { exact: true }).fill("new@example.com");
-  await page.getByLabel("Your player tag (optional)").fill("#2PYQ8GJ0");
+  await page.getByLabel("Your player tag (optional)").fill("#0PJCLJYP");
   await page.getByRole("radio", { name: "Yes" }).check();
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await expect(

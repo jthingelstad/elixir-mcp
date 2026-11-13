@@ -41,7 +41,7 @@ const connection = {
   last_data_read_at: null,
 };
 const player = {
-  player_tag: "#2PP0V90Y",
+  player_tag: "#09CV8UVL",
   name: "Test player",
   recording_status: "active",
   profile_available: false,
@@ -144,7 +144,7 @@ test(
     fireEvent.click(input.closest("form").querySelector("button"));
 
     await waitFor(() =>
-      expect(window.location.pathname).toBe("/settings/players/2PP0V90Y"),
+      expect(window.location.pathname).toBe("/settings/players/09CV8UVL"),
     );
     cleanup();
     captured = true;
@@ -207,7 +207,7 @@ test("readiness carries the window on every number it shows", async () => {
       active_connections: 2,
       last_data_read_at: new Date().toISOString(),
     },
-    { clan_tag: "#Y8QRJ0LP", name: "POAP KINGS", war_weeks: 27 },
+    { clan_tag: "#0J80LQ0Y", name: "POAP KINGS", war_weeks: 27 },
   );
   render(<FirstAnswer claimsKey="a" />);
   await screen.findByRole("link", {
@@ -295,7 +295,7 @@ test("older retained battles remain usable when recording stopped and the profil
         name: /Open the player page|View recorded profile/,
       })
       .getAttribute("href"),
-  ).toBe("/home/player/2PP0V90Y");
+  ).toBe("/home/player/09CV8UVL");
   expect(
     screen.getByRole("link", { name: /Manage recording/ }).getAttribute("href"),
   ).toBe("/settings/players");
@@ -393,7 +393,7 @@ test("questions follow observed samples", async () => {
     }),
   );
   await screen.findByText("Copied. Paste into your connected client.");
-  expect(copy.mock.calls[0][0]).toContain("#2PP0V90Y");
+  expect(copy.mock.calls[0][0]).toContain("#09CV8UVL");
   expect(copy.mock.calls[0][0]).toContain("how much of this was recorded");
   expect(copy.mock.calls[0][0]).toContain("last 7 days");
   expect(global.fetch).toHaveBeenCalledTimes(1); // copying does not record fake use
@@ -461,7 +461,7 @@ test("the status is read every few seconds just after an add, then once a minute
   const waiting = (p) => ({
     as_of: new Date(now).toISOString(),
     player: {
-      player_tag: "#2PP0V90Y",
+      player_tag: "#09CV8UVL",
       recording_status: "active",
       profile_available: false,
       battles_30d: 0,

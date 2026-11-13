@@ -23,7 +23,7 @@ let ladderEntry;
 let rankedEntry;
 let profileFixture;
 
-const ME = "#PR0Y0Q2L";
+const ME = "#0UJ0QQJP";
 const KITCHEN = { id: 54000013, name: "Executioner's Kitchen" };
 const CRYPT = { id: 54000014, name: "Royal Crypt" };
 
@@ -50,7 +50,7 @@ function ladder({ at, arena, mine, theirs, opponent, name, result }) {
   entry.team[0].name = "promo";
   entry.team[0].startingTrophies = mine;
   entry.opponent[0].tag = opponent;
-  entry.opponent[0].name = name ?? "opp";
+  entry.opponent[0].name = name ?? "0vl";
   entry.opponent[0].startingTrophies = theirs;
   // result: [myCrowns, theirCrowns, myChange]; the fixture's own is a
   // -3 loss. A gated loss on the floor carries no trophyChange at all.
@@ -93,7 +93,7 @@ function ranked({ at, league, tag, opponent, name, result }) {
   entry.team[0].tag = tag;
   entry.team[0].name = "ranker";
   entry.opponent[0].tag = opponent;
-  entry.opponent[0].name = name ?? "opp";
+  entry.opponent[0].name = name ?? "0vl";
   const [crowns, against, change] = result;
   entry.team[0].crowns = crowns;
   entry.opponent[0].crowns = against;
@@ -208,7 +208,7 @@ test("a profile in the old arena, then a log whose only new-arena battle was as 
           arena: CRYPT,
           mine: 6000,
           theirs: 6015,
-          opponent: "#0PP0000Q",
+          opponent: "#02G2RRRJ",
           result: [0, 3, null],
         }),
         ladder({
@@ -216,7 +216,7 @@ test("a profile in the old arena, then a log whose only new-arena battle was as 
           arena: KITCHEN,
           mine: 5970,
           theirs: 5976,
-          opponent: "#0PP0000L",
+          opponent: "#0YLP2CY2",
           name: "Stoatling",
           result: [3, 0, 30],
         }),
@@ -225,7 +225,7 @@ test("a profile in the old arena, then a log whose only new-arena battle was as 
           arena: KITCHEN,
           mine: 5940,
           theirs: 5940,
-          opponent: "#0PP00000",
+          opponent: "#0RQRRR0Y",
           result: [2, 1, 30],
         }),
       ],
@@ -258,7 +258,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
           arena: CRYPT,
           mine: 6000,
           theirs: 6000,
-          opponent: "#0PP0000R",
+          opponent: "#09L0UPVG",
           result: [3, 1, 30],
         }),
         ladder({
@@ -266,7 +266,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
           arena: CRYPT,
           mine: 6000,
           theirs: 6015,
-          opponent: "#0PP0000Q",
+          opponent: "#02G2RRRJ",
           result: [0, 3, null],
         }),
       ],
@@ -304,7 +304,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
           arena: CRYPT,
           mine: 6000,
           theirs: 6000,
-          opponent: "#0PP0000R",
+          opponent: "#09L0UPVG",
           result: [3, 1, 30],
         }),
       ],
@@ -359,7 +359,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
       battle_time: at("06:46:32.000"),
       type: "PvP",
       opponent: {
-        player_tag: "#0PP0000L",
+        player_tag: "#0YLP2CY2",
         name: "Stoatling",
         starting_trophies: 5976,
       },
@@ -394,7 +394,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
 });
 
 test("a ranked promotion names the last win stamped with the old league; a loss there names nothing", async () => {
-  const RANKER = "#PR0Y0Q2R";
+  const RANKER = "#0UGCJ222";
   await ctx.db.query(
     `insert into player (player_tag, name) values ($1, 'ranker')`,
     [RANKER],
@@ -416,10 +416,10 @@ test("a ranked promotion names the last win stamped with the old league; a loss 
   const pol = (hhmmss, league, opponent, result, name) =>
     ranked({ at: logAt(hhmmss), league, tag: RANKER, opponent, name, result });
   const log = [
-    pol("050501", 2, "#0PP0000L", [0, 1, null]),
-    pol("043450", 1, "#0PP0000U", [1, 0, 30], "Fern Vole"),
-    pol("043137", 1, "#0PP0000R", [0, 1, null]),
-    pol("042240", 1, "#0PP00000", [3, 0, 30]),
+    pol("050501", 2, "#0YLP2CY2", [0, 1, null]),
+    pol("043450", 1, "#0LGLQ2QG", [1, 0, 30], "Fern Vole"),
+    pol("043137", 1, "#09L0UPVG", [0, 1, null]),
+    pol("042240", 1, "#0RQRRR0Y", [3, 0, 30]),
   ];
   const admitted = await processResult(
     ctx.db,
@@ -458,7 +458,7 @@ test("a ranked promotion names the last win stamped with the old league; a loss 
     message({
       endpoint: "player_battlelog",
       entityKey: RANKER,
-      payload: [pol("060000", 2, "#0PP0000L", [0, 2, null]), ...log],
+      payload: [pol("060000", 2, "#0YLP2CY2", [0, 2, null]), ...log],
       fetchedAt: at("06:01:00"),
     }),
   );
@@ -477,7 +477,7 @@ test("a ranked promotion names the last win stamped with the old league; a loss 
 test("an arena move with no reachable floor or no crossing win in the window carries no battle and stays estimated", async () => {
   // A second player whose profile moves arena with no recorded battles in
   // between: nothing to name, and the moment says only what it knows.
-  const OTHER = "#PR0Y0Q2Q";
+  const OTHER = "#089G9LQC";
   await ctx.db.query(
     `insert into player (player_tag, name) values ($1, 'other')`,
     [OTHER],
@@ -589,7 +589,7 @@ test("verification item 2: the roster that sees the arena move emits arena_chang
           arena: NEXT,
           mine: 6470,
           theirs: 6500,
-          opponent: "#0PP0000V",
+          opponent: "#0C9LCCC0",
           result: [3, 0, 30],
         }),
       ],
@@ -606,7 +606,7 @@ test("verification item 2: the roster that sees the arena move emits arena_chang
   })();
   const r = await projectClanSeries(ctx.db, {
     payload: {
-      tag: "#2PP0V9YY",
+      tag: "#028RJP2U",
       name: "Refresh Clan",
       memberList: [
         {
@@ -651,7 +651,7 @@ test("verification item 2: the roster that sees the arena move emits arena_chang
           arena: NEXT,
           mine: 6500,
           theirs: 6500,
-          opponent: "#0PP0000U",
+          opponent: "#0LGLQ2QG",
           result: [3, 0, 30],
         }),
       ],
@@ -692,7 +692,7 @@ test("correction 2: the log catching up with a roster-written moment pins it onc
     .slice(0, 10);
   const r = await projectClanSeries(ctx.db, {
     payload: {
-      tag: "#2PP0V9YY",
+      tag: "#028RJP2U",
       name: "Refresh Clan",
       memberList: [
         {
@@ -731,7 +731,7 @@ test("correction 2: the log catching up with a roster-written moment pins it onc
           arena: AFTER,
           mine: 6970,
           theirs: 6970,
-          opponent: "#0PP0000J",
+          opponent: "#0CUUQG2V",
           result: [3, 0, 30],
         }),
       ],
@@ -762,7 +762,7 @@ test("correction 2: the log catching up with a roster-written moment pins it onc
           arena: AFTER,
           mine: 6970,
           theirs: 6970,
-          opponent: "#0PP0000J",
+          opponent: "#0CUUQG2V",
           result: [3, 0, 30],
         }),
       ],

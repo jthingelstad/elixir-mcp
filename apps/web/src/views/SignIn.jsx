@@ -510,7 +510,7 @@ export function SignIn({
               autoComplete="off"
               autoCapitalize="characters"
               spellCheck={false}
-              placeholder="#2PYQ8GJ0"
+              placeholder="#0PJCLJYP"
               aria-describedby="signin-player-tag-hint"
               value={playerTag}
               onChange={(e) => setPlayerTag(e.target.value)}

@@ -40,7 +40,7 @@ for (const size of ["wide", "@narrow"])
       can_draft: false,
       can_reopen: false,
       audience: { kind: "leaders" },
-      player_tag: "#8QCV",
+      player_tag: "#0RJL",
       player_name: "Invented member",
       raised_at: "2026-10-03T22:00:00Z",
       policy_version: 1,
@@ -77,13 +77,13 @@ for (const size of ["wide", "@narrow"])
       page,
       signedIn({
         "GET /api/clan/me": [200, { ...ME, selected: ME.clans[0] }],
-        "GET /api/clan/clans/2PQRJ8LV/members/SYNTH0/notes": [200, []],
-        "GET /api/clan/clans/2PQRJ8LV/members/SYNTH0/grants": [200, []],
-        "GET /api/clan/clans/2PQRJ8LV/actions/45": [
+        "GET /api/clan/clans/0QC8RCGY/members/SYNTH0/notes": [200, []],
+        "GET /api/clan/clans/0QC8RCGY/members/SYNTH0/grants": [200, []],
+        "GET /api/clan/clans/0QC8RCGY/actions/45": [
           200,
           { action: card, decline_reasons: [], model: { set: true } },
         ],
-        "GET /api/clan/clans/2PQRJ8LV/manage": [
+        "GET /api/clan/clans/0QC8RCGY/manage": [
           200,
           {
             evaluated_at: "2026-10-04T08:00:00Z",
@@ -122,7 +122,7 @@ for (const size of ["wide", "@narrow"])
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/actions/45");
+    await page.goto("/clan/0QC8RCGY/actions/45");
     const alert = page.getByRole("alert");
     await expect(alert).toContainText("This Action is closed");
     await expect(alert).not.toContainText("may still explicitly decline");
@@ -159,7 +159,7 @@ for (const size of ["wide", "@narrow"])
       path: `/tmp/elixir-triage-withdrawn-${size}.png`,
       fullPage: true,
     });
-    await page.goto("/clan/2PQRJ8LV/run/review");
+    await page.goto("/clan/0QC8RCGY/run/review");
     await expect(
       page.getByText(
         "Removal: 1 protected by their role, a hold or the wait after a decision, 1 not close, 1 with too little to go on, 1 past the removal day.",
@@ -209,7 +209,7 @@ for (const size of ["wide", "@narrow"])
       can_draft: false,
       can_reopen: false,
       audience: { kind: "leaders" },
-      player_tag: "#8QCV",
+      player_tag: "#0RJL",
       player_name: "Invented member",
       raised_at: "2026-10-03T22:00:00Z",
       copy: "Unsafe old removal copy.",
@@ -244,7 +244,7 @@ for (const size of ["wide", "@narrow"])
       [
         200,
         {
-          clan_tag: "#2PQRJ8LV",
+          clan_tag: "#0QC8RCGY",
           open: card.status === "proposed" ? [card] : [],
           recent: card.status === "proposed" ? [] : [card],
           decline_reasons: ["not_now", "evidence_wrong"],
@@ -255,8 +255,8 @@ for (const size of ["wide", "@narrow"])
       page,
       signedIn({
         "GET /api/clan/me": [200, { ...ME, selected: ME.clans[0] }],
-        "GET /api/clan/clans/2PQRJ8LV/actions": view,
-        "GET /api/clan/clans/2PQRJ8LV/actions/45": () => [
+        "GET /api/clan/clans/0QC8RCGY/actions": view,
+        "GET /api/clan/clans/0QC8RCGY/actions/45": () => [
           200,
           {
             action: card,
@@ -264,16 +264,16 @@ for (const size of ["wide", "@narrow"])
             model: { set: true },
           },
         ],
-        "POST /api/clan/clans/2PQRJ8LV/actions/synthetic-removal/draft": () => {
+        "POST /api/clan/clans/0QC8RCGY/actions/synthetic-removal/draft": () => {
           forbidden++;
           return [409, { error: "removal_evidence_held" }];
         },
-        "POST /api/clan/clans/2PQRJ8LV/actions/synthetic-removal/reopen":
+        "POST /api/clan/clans/0QC8RCGY/actions/synthetic-removal/reopen":
           () => {
             forbidden++;
             return [409, { error: "removal_evidence_held" }];
           },
-        "POST /api/clan/clans/2PQRJ8LV/actions/synthetic-removal/decide": (
+        "POST /api/clan/clans/0QC8RCGY/actions/synthetic-removal/decide": (
           route,
         ) => {
           const body = route.request().postDataJSON();
@@ -284,7 +284,7 @@ for (const size of ["wide", "@narrow"])
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/feed");
+    await page.goto("/clan/0QC8RCGY/feed");
     await expect(page.getByText(/No longer qualifies/)).toBeVisible();
     await page.getByRole("link", { name: /#45/ }).click();
     await expect(page.getByRole("alert")).toContainText(
@@ -304,7 +304,7 @@ for (const size of ["wide", "@narrow"])
       page.getByRole("button", { name: "Done", exact: true }),
     ).toHaveCount(0);
     await expect(page.getByText(/Saved rationale at the time/)).toBeVisible();
-    await page.goto("/clan/2PQRJ8LV/actions/45");
+    await page.goto("/clan/0QC8RCGY/actions/45");
     await expect(page.getByRole("alert")).toContainText(
       "This removal no longer qualifies",
     );
@@ -341,7 +341,7 @@ for (const size of ["wide", "@narrow"])
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/policy": [
+        "GET /api/clan/clans/0QC8RCGY/policy": [
           200,
           {
             can_edit: true,
@@ -355,7 +355,7 @@ for (const size of ["wide", "@narrow"])
               version: 3,
               values,
               saved_at: "2026-10-01T12:00:00Z",
-              saved_by: "#20QQL8CCRU",
+              saved_by: "#098R2R0PUL",
               saved_by_name: "Ada",
             },
             tabs: TABS,
@@ -366,7 +366,7 @@ for (const size of ["wide", "@narrow"])
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/run/about");
+    await page.goto("/clan/0QC8RCGY/run/about");
     await page
       .locator("summary")
       .filter({ hasText: "What this policy can do today" })
@@ -376,7 +376,7 @@ for (const size of ["wide", "@narrow"])
     });
     await expect(canDo).toContainText("Remove inactive members: Live");
     await expect(canDo).toContainText("Promote and demote Elders: Live");
-    await page.goto("/clan/2PQRJ8LV/run/inactivity");
+    await page.goto("/clan/0QC8RCGY/run/inactivity");
     await expect(
       page.getByText("Not yet enforceable", { exact: true }),
     ).toHaveCount(0);

@@ -39,7 +39,7 @@ const ME = {
   timezone: "America/Chicago",
   claims: [
     {
-      player_tag: "#PYLQ88",
+      player_tag: "#0GVJ9V",
       name: "Birch Lantern",
       nickname: "Private Owl",
       is_primary: true,
@@ -88,8 +88,8 @@ const BATTLE = {
     deck_level_edge: null,
   },
   sides: [
-    side("win", "#PYLQ88", "Birch Lantern", 3),
-    side("loss", "#QQ8822", "Copper Fern", 0),
+    side("win", "#0GVJ9V", "Birch Lantern", 3),
+    side("loss", "#0VJ2QV", "Copper Fern", 0),
   ],
   games: null,
   meetings: [],
@@ -112,7 +112,7 @@ const SLOTS = {
   limit: 50,
   players: [
     {
-      player_tag: "#QQ8822",
+      player_tag: "#0VJ2QV",
       name: "Copper Fern",
       slot: "used",
       reason: null,
@@ -120,7 +120,7 @@ const SLOTS = {
       agents: [],
     },
     {
-      player_tag: "#UUU2",
+      player_tag: "#00L0",
       name: "Umber Kite",
       slot: "used",
       reason: null,
@@ -130,7 +130,7 @@ const SLOTS = {
       ],
     },
     {
-      player_tag: "#VVV9",
+      player_tag: "#09PR",
       name: "Violet Reed",
       slot: "free",
       reason: "in_recorded_clan",
@@ -172,7 +172,7 @@ beforeEach(() => {
       return reply({ ok: true, removed: true });
     }
     if (p.startsWith("/api/me/highlights"))
-      return reply({ can_highlight_as: ["#PYLQ88"], highlights: [] });
+      return reply({ can_highlight_as: ["#0GVJ9V"], highlights: [] });
     return reply({});
   });
 });
@@ -226,7 +226,7 @@ test(
       within(dialog).getByRole("button", { name: "Stop following" }),
     );
     await waitFor(() =>
-      expect(posted).toEqual([{ player_tag: "#QQ8822", action: "remove" }]),
+      expect(posted).toEqual([{ player_tag: "#0VJ2QV", action: "remove" }]),
     );
     // Location is the map's own control, and says who sees it.
     await screen.findByText("Add yourself to the map");
@@ -265,7 +265,7 @@ test(
     render(<App />);
     // A member: names link to the players' pages, and nothing says "you".
     const name = await screen.findByRole("link", { name: "Birch Lantern" });
-    expect(name.getAttribute("href")).toBe("/home/player/PYLQ88");
+    expect(name.getAttribute("href")).toBe("/home/player/0GVJ9V");
     // (The top bar names the reader; the lens is the panel under its heading.)
     const lens = screen
       .getByRole("heading", { name: "See it as they do" })
@@ -277,7 +277,7 @@ test(
     expect(explored).toEqual([
       {
         tool: "battles_query",
-        args: { player_tag: "#PYLQ88", limit: 1, verbosity: "compact" },
+        args: { player_tag: "#0GVJ9V", limit: 1, verbosity: "compact" },
       },
     ]);
     // Someone with the link: plain names and the way in.

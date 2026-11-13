@@ -488,7 +488,7 @@ function seasonBattles() {
           teammates: [],
           opponents: [
             {
-              player_tag: "#2PQ8RV0L",
+              player_tag: "#002LYCYY",
               name: OPPONENTS[i % OPPONENTS.length],
               name_known: true,
               crowns: win ? 0 : 1,
@@ -958,7 +958,7 @@ function battlesOpponents(args: Record<string, unknown>) {
     opponents: ladder
       ? [
           {
-            player_tag: "#2Q8L9V0P",
+            player_tag: "#0RL080CU",
             name: "A Rival",
             name_known: true,
             battles: 2,

@@ -70,7 +70,7 @@ test("a 2v2 post keeps every player's deck through the battle's own view", async
   const p = post();
   p.sides[0].players.push({
     ...structuredClone(p.sides[0].players[0]),
-    player_tag: "#PYLQ99",
+    player_tag: "#00VYVC",
     name: "Willow Kite",
   });
   p.sides[1].players.push({

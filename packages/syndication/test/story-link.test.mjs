@@ -16,7 +16,7 @@ const battles = new Map([[BATTLE, { url: `${ORIGIN}/battle/aaaaaaaaaaaa` }]]);
 const item = (kind, facts = {}) => ({
   id: `tl_${kind}`,
   kind,
-  facts: { player_tag: "#PYL0Q2GR", ...facts },
+  facts: { player_tag: "#0GLCPGJJ", ...facts },
 });
 
 test("each story links to its most specific page", () => {
@@ -31,7 +31,7 @@ test("each story links to its most specific page", () => {
   // A battle the record does not hold: the member's player page.
   assert.equal(
     storyLink([promo], { clanTag: CLAN }),
-    `${ORIGIN}/home/player/PYL0Q2GR`,
+    `${ORIGIN}/home/player/0GLCPGJJ`,
   );
   const sitting = item("session_standout", {
     best_win: { battle_id: BATTLE },
@@ -57,7 +57,7 @@ test("each story links to its most specific page", () => {
   // Several members: the clan's Feed.
   assert.equal(
     storyLink(
-      [item("badge_earned"), item("badge_earned", { player_tag: "#PYL0Q2G8" })],
+      [item("badge_earned"), item("badge_earned", { player_tag: "#0L98VL0Y" })],
       { clanTag: CLAN },
     ),
     `${ORIGIN}/clan/J2RGCRVG/feed`,

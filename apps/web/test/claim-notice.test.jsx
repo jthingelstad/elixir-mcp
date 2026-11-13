@@ -13,7 +13,7 @@ afterEach(cleanup);
 
 const notice = (kind) => ({
   kind,
-  player_tag: "#2PP0V90Y",
+  player_tag: "#09CV8UVL",
   at: "2026-10-12T20:00:00Z",
 });
 
@@ -22,12 +22,12 @@ test("an ended primary names the tag, says there is none, and points at the play
     <ClaimNotice
       me={{
         claim_notice: notice("primary_ended"),
-        claims: [{ player_tag: "#8QU2PJ8C", is_primary: false }],
+        claims: [{ player_tag: "#0CGVUCUG", is_primary: false }],
       }}
     />,
   );
   const box = screen.getByRole("status");
-  expect(box.textContent).toMatch(/Another account verified #2PP0V90Y/);
+  expect(box.textContent).toMatch(/Another account verified #09CV8UVL/);
   expect(box.textContent).toMatch(/you have none: nothing defaults to you/);
   expect(box.textContent).toMatch(
     /Open one of your players and make it your main player/,
@@ -59,7 +59,7 @@ test("a signup tag verified elsewhere says it was not added, with a link to Play
     />,
   );
   expect(screen.getByRole("status").textContent).toMatch(
-    /#2PP0V90Y, the player tag you signed up with, is verified by another account, so it was not added/,
+    /#09CV8UVL, the player tag you signed up with, is verified by another account, so it was not added/,
   );
   expect(
     screen

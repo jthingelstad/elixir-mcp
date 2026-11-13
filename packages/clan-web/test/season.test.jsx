@@ -20,7 +20,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const clan = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "member" };
+const clan = { clan_tag: "#0QC8RCGY", name: "Example Clan", role: "member" };
 const part = participation([
   member("#A", { name: "Ada" }),
   member("#B", { name: "Bo", war: [16, 16, 16, 16, 10, 0] }),
@@ -147,7 +147,7 @@ describe("a closed week", () => {
     );
     expect(
       screen.getByRole("link", { name: "Current season" }).getAttribute("href"),
-    ).toBe("/clan/2PQRJ8LV/war");
+    ).toBe("/clan/0QC8RCGY/war");
   });
 });
 
@@ -173,7 +173,7 @@ describe("a whole season", () => {
     );
     expect(
       screen.getByRole("link", { name: "Current season" }).getAttribute("href"),
-    ).toBe("/clan/2PQRJ8LV/war");
+    ).toBe("/clan/0QC8RCGY/war");
   });
 });
 
@@ -190,7 +190,7 @@ describe("the period picker", () => {
     expect(labels.some((l) => /, so far$/.test(l))).toBe(true);
     expect(labels.some((l) => /^All of Season 136/.test(l))).toBe(true);
     fireEvent.change(box, { target: { value: "136" } });
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/war/136");
+    expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/war/136");
   });
 });
 
@@ -211,14 +211,14 @@ describe("refusals", () => {
 });
 
 test("its addresses sit on the War tab and collapse in analytics", () => {
-  expect(tabOf("/clan/2PQRJ8LV/war/136")).toBe("war");
-  expect(tabOf("/clan/2PQRJ8LV/war/2026-w36")).toBe("war");
-  expect(parseClanPath("/clan/2PQRJ8LV/war/136").section).toBe("war");
+  expect(tabOf("/clan/0QC8RCGY/war/136")).toBe("war");
+  expect(tabOf("/clan/0QC8RCGY/war/2026-w36")).toBe("war");
+  expect(parseClanPath("/clan/0QC8RCGY/war/136").section).toBe("war");
   expect(
-    analyticsLocation("/clan/2PQRJ8LV/war/136", "https://elixir.test").path,
+    analyticsLocation("/clan/0QC8RCGY/war/136", "https://elixir.test").path,
   ).toBe("/clan/war");
   expect(
-    analyticsLocation("/clan/2PQRJ8LV/war/2026-w36", "https://elixir.test")
+    analyticsLocation("/clan/0QC8RCGY/war/2026-w36", "https://elixir.test")
       .path,
   ).toBe("/clan/war");
 });
@@ -258,8 +258,8 @@ describe("one week of a season, by its number", () => {
     expect(raceWeekPage({ weeks: [] }, seasonRead, "140", "1")).toBe(null);
   });
   test("the address is a War tab page, never an ISO week", () => {
-    expect(parseClanPath("/clan/2PQRJ8LV/war/136-2")).toEqual({
-      tag: "#2PQRJ8LV",
+    expect(parseClanPath("/clan/0QC8RCGY/war/136-2")).toEqual({
+      tag: "#0QC8RCGY",
       section: "war",
       tab: "136-2",
     });
@@ -285,7 +285,7 @@ describe("one week of a season, by its number", () => {
     if (target) {
       await vi.waitFor(() =>
         expect(navigate).toHaveBeenCalledWith(
-          `/clan/2PQRJ8LV/war/${target.page}`,
+          `/clan/0QC8RCGY/war/${target.page}`,
           { replace: true },
         ),
       );

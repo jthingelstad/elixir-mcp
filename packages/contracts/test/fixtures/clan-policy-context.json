@@ -3,7 +3,7 @@
     "case": "no_policy",
     "context": {
       "schema_version": 1,
-      "clan_tag": "#028",
+      "clan_tag": "#0YR",
       "status": "unknown",
       "reason": "no_policy",
       "war_intent": "unknown",
@@ -16,7 +16,7 @@
     "case": "legacy_or_unspecified",
     "context": {
       "schema_version": 1,
-      "clan_tag": "#028",
+      "clan_tag": "#0YR",
       "status": "unknown",
       "reason": "war_intent_unspecified",
       "war_intent": "unknown",
@@ -29,7 +29,7 @@
     "case": "participating",
     "context": {
       "schema_version": 1,
-      "clan_tag": "#028",
+      "clan_tag": "#0YR",
       "status": "known",
       "reason": null,
       "war_intent": "participating",
@@ -42,7 +42,7 @@
     "case": "not_participating",
     "context": {
       "schema_version": 1,
-      "clan_tag": "#028",
+      "clan_tag": "#0YR",
       "status": "known",
       "reason": null,
       "war_intent": "not_participating",
@@ -55,7 +55,7 @@
     "case": "old_policy_fresh_read",
     "context": {
       "schema_version": 1,
-      "clan_tag": "#028",
+      "clan_tag": "#0YR",
       "status": "known",
       "reason": null,
       "war_intent": "participating",

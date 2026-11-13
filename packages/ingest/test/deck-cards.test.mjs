@@ -235,11 +235,11 @@ test("the catalog heals stubs: catalog_seen_at stamped, fields filled, nothing e
 
 test("a collection naming a card the catalog lacks stubs it instead of failing the FK", async () => {
   await ctx.db.query(
-    `insert into player (player_tag) values ('#PPQQ0289') on conflict do nothing`,
+    `insert into player (player_tag) values ('#00888C28') on conflict do nothing`,
   );
   const unknownId = 26000999;
   const result = await projectPlayerCards(ctx.db, {
-    playerTag: "#PPQQ0289",
+    playerTag: "#00888C28",
     payload: {
       cards: [
         { id: unknownId, name: "Brand New", level: 3, maxLevel: 14, count: 1 },

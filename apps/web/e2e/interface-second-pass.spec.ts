@@ -92,13 +92,13 @@ for (const width of [390, 820, 1280]) {
       page,
       signedIn({
         "GET /api/clan/me": [200, { ...ME, selected: ME.clans[0] }],
-        "GET /api/clan/clans/2PQRJ8LV/activity-discord": [
+        "GET /api/clan/clans/0QC8RCGY/activity-discord": [
           200,
           ACTIVITY_CHANNEL,
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/run/discord");
+    await page.goto("/clan/0QC8RCGY/run/discord");
     const trigger = page.getByRole("button", {
       name: "Manage Activity channel",
       exact: true,
@@ -154,11 +154,11 @@ for (const width of [390, 820, 1280]) {
       page,
       signedIn({
         "GET /api/clan/me": [200, { ...ME, selected: ME.clans[0] }],
-        "GET /api/clan/clans/2PQRJ8LV/recruit": [200, RECRUIT],
+        "GET /api/clan/clans/0QC8RCGY/recruit": [200, RECRUIT],
       }),
     );
     // Recruit's old address opens the copy at the roster's foot (G6).
-    await page.goto("/clan/2PQRJ8LV/members/recruit");
+    await page.goto("/clan/0QC8RCGY/members/recruit");
     await expect(page).toHaveURL(/\/members\?show=recruit$/);
     const note = page.getByRole("textbox", {
       name: "Personal note",

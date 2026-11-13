@@ -26,14 +26,14 @@ async function accessible(page: Page, name: string) {
 }
 
 const ALT = {
-  player_tag: "#9PQ2R8L",
+  player_tag: "#00GVJ89",
   name: "Second Thing",
   is_primary: false,
   relationship: "alt",
   claim_status: "verified",
 };
 const FRIEND = {
-  player_tag: "#8LQ2R9P",
+  player_tag: "#0PYU92P",
   name: "A Friend",
   is_primary: false,
   relationship: "friend",
@@ -438,7 +438,7 @@ test.describe("Ladder signed in", () => {
               ALT,
               FRIEND,
               {
-                player_tag: "#2RQ9LPV",
+                player_tag: "#00VVGLJ",
                 name: "A Watched One",
                 is_primary: false,
                 relationship: "watching",
@@ -462,24 +462,24 @@ test.describe("Ladder signed in", () => {
       "Your main player",
     );
     await accessible(page, "ladder player list");
-    await select.selectOption("#9PQ2R8L");
+    await select.selectOption("#00GVJ89");
     await expect(page).toHaveURL(
-      /\/home\/you\/stats\?player=9PQ2R8L&mode=war$/,
+      /\/home\/you\/stats\?player=00GVJ89&mode=war$/,
     );
-    await expect(select).toHaveValue("#9PQ2R8L");
+    await expect(select).toHaveValue("#00GVJ89");
     await expect
       .poll(() =>
         calls.some(
           (c) =>
             c.tool === "battles_performance" &&
-            c.args.player_tag === "#9PQ2R8L",
+            c.args.player_tag === "#00GVJ89",
         ),
       )
       .toBe(true);
     // The tabs keep whose season and which mode as you move.
     await expect(page.getByRole("tab", { name: "Decks" })).toHaveAttribute(
       "href",
-      "/home/you/stats/decks?player=9PQ2R8L&mode=war",
+      "/home/you/stats/decks?player=00GVJ89&mode=war",
     );
 
     // The main player needs no name in the address.
@@ -488,8 +488,8 @@ test.describe("Ladder signed in", () => {
 
     // A player you follow opens from their page (Jamie, 2026-11-12):
     // listed under Following, with a way back in place of You's tabs.
-    await page.goto("/home/you/stats?player=8LQ2R9P");
-    await expect(select).toHaveValue("#8LQ2R9P");
+    await page.goto("/home/you/stats?player=0PYU92P");
+    await expect(select).toHaveValue("#0PYU92P");
     await expect(select.locator("optgroup").last()).toHaveAttribute(
       "label",
       "Following",
@@ -500,7 +500,7 @@ test.describe("Ladder signed in", () => {
     await expect(page.getByRole("tablist", { name: "You" })).toHaveCount(0);
 
     // A watched player or a stranger reads your primary instead.
-    for (const tag of ["2RQ9LPV", "9VVV2Q"]) {
+    for (const tag of ["00VVGLJ", "9VVV2Q"]) {
       await page.goto(`/home/you/stats?player=${tag}`);
       await expect(select).toHaveValue("#20JJJ2CCRU");
     }
@@ -577,10 +577,10 @@ test.describe("Ladder signed in", () => {
           },
         }),
       );
-      await page.goto("/home/you/stats/decks?player=9PQ2R8L&mode=war");
+      await page.goto("/home/you/stats/decks?player=00GVJ89&mode=war");
       await expect(page.getByRole("heading", { name: words })).toBeVisible();
       const select = page.getByLabel("Player", { exact: true });
-      await expect(select).toHaveValue("#9PQ2R8L");
+      await expect(select).toHaveValue("#00GVJ89");
       await accessible(page, `ladder pending ${state}`);
 
       // The way out keeps the page and the mode, and the main needs no name.
@@ -622,7 +622,7 @@ test.describe("Ladder signed in", () => {
         },
       }),
     );
-    await page.goto("/home/you/stats?player=9PQ2R8L");
+    await page.goto("/home/you/stats?player=00GVJ89");
     const select = page.getByLabel("Player", { exact: true });
     await expect(select).toBeVisible();
     // The list re-renders as the pending player's first answer arrives, so
@@ -993,8 +993,8 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
 
   for (const to of [
     "/home/you/stats/battles",
-    "/home/you/stats/battles?player=9PQ2R8L&mode=war&season=135",
-    "/home/you/stats/decks?player=9PQ2R8L&mode=war",
+    "/home/you/stats/battles?player=00GVJ89&mode=war&season=135",
+    "/home/you/stats/decks?player=00GVJ89&mode=war",
   ] as const) {
     test(`${to} opens its page`, async ({ page }) => {
       await mockApi(
@@ -1026,9 +1026,9 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
       }),
     );
     // The player page's Open in Ladder, and the same shape from Home and mail.
-    await page.goto("/home/you/stats?player=9PQ2R8L&mode=casual");
+    await page.goto("/home/you/stats?player=00GVJ89&mode=casual");
     await expect(page.getByLabel("Player", { exact: true })).toHaveValue(
-      "#9PQ2R8L",
+      "#00GVJ89",
     );
     await expect(
       page
@@ -1095,7 +1095,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
       teammates: [],
       opponents: [
         {
-          player_tag: "#2PQ8RV0L",
+          player_tag: "#002LYCYY",
           name: "A Rival",
           name_known: true,
           crowns: win ? 0 : 1,
@@ -1362,7 +1362,7 @@ test.describe("Ladder cards", () => {
         "POST /api/explore": explore(calls),
       }),
     );
-    await page.goto("/home/you/stats/cards?player=8LQ2R9P");
+    await page.goto("/home/you/stats/cards?player=0PYU92P");
     await expect(
       page.getByRole("heading", { name: "Their cards" }),
     ).toBeVisible();
@@ -1380,7 +1380,7 @@ test.describe("Ladder cards", () => {
     ).toBeVisible();
     expect(
       calls.every(
-        (c) => c.args.player_tag == null || c.args.player_tag === "#8LQ2R9P",
+        (c) => c.args.player_tag == null || c.args.player_tag === "#0PYU92P",
       ),
     ).toBe(true);
   });
@@ -1457,7 +1457,7 @@ test.describe("Ladder cards", () => {
     );
     await expect(opp.getByRole("link", { name: "A Rival" })).toHaveAttribute(
       "href",
-      "/home/player/2Q8L9V0P",
+      "/home/player/0RL080CU",
     );
     await expect(opp).toContainText("A Rival, twice,");
     await accessible(page, "ladder cards");

@@ -583,7 +583,7 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
 
   // battles_compare enforces its upper bound server-side.
   const five = await call("battles_compare", {
-    player_tags: ["#20JJJ2CCRU", "#2PP", "#2PY", "#2PL", "#2PQ"],
+    player_tags: ["#20JJJ2CCRU", "#0CR", "#0Q9", "#0YL", "#08P"],
   });
   assert.equal(five.isError, true);
   assert.equal(five.body.error.code, "bad_request");
@@ -592,7 +592,7 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
 
 test("Elixir MCP service domain: added = recorded, notify is the only toggle", async () => {
   // Add a player: claim + recording in ONE act.
-  const add = await call("elixir_follow_player", { player_tag: "#2PP0V90Y" });
+  const add = await call("elixir_follow_player", { player_tag: "#09CV8UVL" });
   assert.equal(add.isError, false, JSON.stringify(add.body));
   assert.equal(add.body.added, true);
   assert.equal(add.body.recording_started, true);
@@ -611,14 +611,14 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   );
 
   // Adding again: idempotent, shares the existing record.
-  const again = await call("elixir_follow_player", { player_tag: "#2PP0V90Y" });
+  const again = await call("elixir_follow_player", { player_tag: "#09CV8UVL" });
   assert.equal(again.body.added, false);
   assert.equal(again.body.recording_started, false);
   assert.equal(again.body.slot.took, false, "a re-add spends nothing");
   // One recording_started per start (the tool used to log a second).
   const { rows: started } = await db.query(
     `select count(*)::int as n from account_event
-      where kind = 'recording_started' and detail->>'player_tag' = '#2PP0V90Y'`,
+      where kind = 'recording_started' and detail->>'player_tag' = '#09CV8UVL'`,
   );
   assert.equal(started[0].n, 1);
   // The timing the docs promise, and a tag the game answered 404 for
@@ -629,14 +629,14 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   } = await db.query(`select gateway_id from gateway where name = 'tools2-gw'`);
   await db.query(
     `insert into collector_fetch_error (gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
-     values ($1, 'player', '#2PQ0V9', now() - interval '1 minute', 404, 'http')`,
+     values ($1, 'player', '#029PU0', now() - interval '1 minute', 404, 'http')`,
     [gw.gateway_id],
   );
-  const typo = await call("elixir_follow_player", { player_tag: "#2PQ0V9" });
+  const typo = await call("elixir_follow_player", { player_tag: "#029PU0" });
   assert.equal(typo.isError, false);
-  assert.match(typo.body.notes.join(" "), /answered "not found" for #2PQ0V9/);
+  assert.match(typo.body.notes.join(" "), /answered "not found" for #029PU0/);
   await call("elixir_follow_player", {
-    player_tag: "#2PQ0V9",
+    player_tag: "#029PU0",
     action: "remove",
   });
 
@@ -646,7 +646,7 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
     `update account set max_player_recordings = 2 where account_id = $1`,
     [account.accountId],
   );
-  const capped = await call("elixir_follow_player", { player_tag: "#2PL" });
+  const capped = await call("elixir_follow_player", { player_tag: "#0YL" });
   assert.equal(capped.isError, true);
   assert.equal(capped.body.error.code, "quota_exceeded");
   // Refused with the reason, never queued (#760): used of limit, and that
@@ -658,23 +658,23 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   assert.match(capped.body.error.message, /already records stays free/);
   // ...and at the limit a member of a clan recorded in full still goes in.
   await db.query(
-    `insert into clan (clan_tag, name) values ('#9QRL', 'Free Clan') on conflict do nothing`,
+    `insert into clan (clan_tag, name) values ('#009G', 'Free Clan') on conflict do nothing`,
   );
   await db.query(
-    `insert into player (player_tag, name) values ('#2PL', 'Clanmate') on conflict do nothing`,
+    `insert into player (player_tag, name) values ('#0YL', 'Clanmate') on conflict do nothing`,
   );
   const {
     rows: [clanRec],
   } = await db.query(
     `insert into recording (subject_type, subject_tag, requested_by, status, scope)
-     values ('clan', '#9QRL', $1, 'active', 'comprehensive') returning recording_id`,
+     values ('clan', '#009G', $1, 'active', 'comprehensive') returning recording_id`,
     [account.accountId],
   );
   await db.query(
     `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
-     values ('#9QRL', '#2PL', now(), 'member')`,
+     values ('#009G', '#0YL', now(), 'member')`,
   );
-  const free = await call("elixir_follow_player", { player_tag: "#2PL" });
+  const free = await call("elixir_follow_player", { player_tag: "#0YL" });
   assert.equal(free.isError, false, JSON.stringify(free.body));
   assert.deepEqual(free.body.slot, {
     took: false,
@@ -684,8 +684,8 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
     limit: 2,
   });
   assert.match(free.body.notes.join(" "), /Free: no slot taken/);
-  await call("elixir_follow_player", { player_tag: "#2PL", action: "remove" });
-  await db.query(`delete from clan_membership where clan_tag = '#9QRL'`);
+  await call("elixir_follow_player", { player_tag: "#0YL", action: "remove" });
+  await db.query(`delete from clan_membership where clan_tag = '#009G'`);
   await db.query(`delete from recording where recording_id = $1`, [
     clanRec.recording_id,
   ]);
@@ -696,21 +696,21 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
 
   // Notify is the only per-subject setting; my_players shows it.
   const mute = await call("elixir_follow_player", {
-    player_tag: "#2PP0V90Y",
+    player_tag: "#09CV8UVL",
     action: "notify_off",
   });
   assert.equal(mute.body.notify, false);
   const mine = await call("elixir_my_players", {});
-  const row = mine.body.players.find((x) => x.player_tag === "#2PP0V90Y");
+  const row = mine.body.players.find((x) => x.player_tag === "#09CV8UVL");
   assert.equal(row.notify, false);
   await call("elixir_follow_player", {
-    player_tag: "#2PP0V90Y",
+    player_tag: "#09CV8UVL",
     action: "notify_on",
   });
 
   // Remove releases the claim and stops the recording it justified.
   const removed = await call("elixir_follow_player", {
-    player_tag: "#2PP0V90Y",
+    player_tag: "#09CV8UVL",
     action: "remove",
   });
   assert.equal(removed.body.removed, true);
@@ -1388,13 +1388,13 @@ test("players_profile answers the player as a game entity, not just a name (§7.
  */
 test("elixir_my_players returns the relationship and nickname the owner set", async () => {
   await call("elixir_follow_player", {
-    player_tag: "#2PP0V90Y",
+    player_tag: "#09CV8UVL",
     relationship: "alt",
   });
-  await call("elixir_nickname", { player_tag: "#2PP0V90Y", nickname: "Spare" });
+  await call("elixir_nickname", { player_tag: "#09CV8UVL", nickname: "Spare" });
 
   const mine = await call("elixir_my_players", {});
-  const row = mine.body.players.find((x) => x.player_tag === "#2PP0V90Y");
+  const row = mine.body.players.find((x) => x.player_tag === "#09CV8UVL");
   assert.equal(row.relationship, "alt", "the distinction the owner recorded");
   assert.equal(row.nickname, "Spare");
   assert.equal(row.is_primary, false, "kept: clients cache tools/list forever");
@@ -1405,7 +1405,7 @@ test("elixir_my_players returns the relationship and nickname the owner set", as
   if (primary) assert.equal(primary.relationship, "primary");
 
   await call("elixir_follow_player", {
-    player_tag: "#2PP0V90Y",
+    player_tag: "#09CV8UVL",
     action: "remove",
   });
 });
@@ -1430,7 +1430,7 @@ test("clans_roster summary answers the count without the roster", async () => {
   // size comparison is two empty lists.
   for (const [tag, name, role] of [
     ["#00C298UC", "Glad Hare", "coLeader"],
-    ["#2PP0V90Y", "Bench", "member"],
+    ["#09CV8UVL", "Bench", "member"],
   ]) {
     await db.query(
       `insert into player (player_tag, name) values ($1, $2)
@@ -1558,10 +1558,10 @@ test("battles_opponents groups by opponent: repeats, names, modes", async () => 
 
 test("players_names resolves tags in bulk and lists the misses", async () => {
   await db.query(
-    `insert into player (player_tag) values ('#2LLLL') on conflict do nothing`,
+    `insert into player (player_tag) values ('#09V9Y') on conflict do nothing`,
   );
   const { body, isError } = await call("players_names", {
-    player_tags: [OBSERVER, "#2LLLL", "#2QQQQ"],
+    player_tags: [OBSERVER, "#09V9Y", "#0GQRV"],
   });
   assert.equal(isError, false, JSON.stringify(body));
   assert.equal(body.names.length, 1);
@@ -1570,8 +1570,8 @@ test("players_names resolves tags in bulk and lists the misses", async () => {
   assert.deepEqual(
     body.unknown.map((u) => [u.player_tag, u.in_corpus]),
     [
-      ["#2LLLL", true],
-      ["#2QQQQ", false],
+      ["#09V9Y", true],
+      ["#0GQRV", false],
     ],
   );
   const bad = await call("players_names", { player_tags: ["nope!"] });
@@ -1793,7 +1793,7 @@ test("players_profile renders a snapshot with every typed column null and passes
   // objects carried. The three objects render as null / {null, null}
   // and the registry's response validation (which throws under the
   // test runner on a mismatch) accepts them.
-  const tag = "#2YYYY";
+  const tag = "#0G90Y";
   await db.query(`insert into player (player_tag, name) values ($1, 'Bare')`, [
     tag,
   ]);
@@ -1914,10 +1914,10 @@ test("forms are decoded, never ordinal: collection, catalog, in-game max level",
 
 test("players_search matches user text literally: %, _ and \\ are not wildcards", async () => {
   for (const [tag, name] of [
-    ["#2LQ0PC", "100% legit"],
-    ["#2LQ0PL", "100 legit"],
-    ["#2LQ0UG", "a_b"],
-    ["#2LQ0UY", "axb"],
+    ["#09GCJV", "100% legit"],
+    ["#0VRCV2", "100 legit"],
+    ["#0GYVCL", "a_b"],
+    ["#00VU80", "axb"],
   ]) {
     await db.query(
       `insert into player (player_tag, name) values ($1, $2)
@@ -1928,13 +1928,13 @@ test("players_search matches user text literally: %, _ and \\ are not wildcards"
   const pct = await call("players_search", { query: "100%" });
   assert.deepEqual(
     pct.body.matches.map((m) => m.player_tag),
-    ["#2LQ0PC"],
+    ["#09GCJV"],
     "% is a literal percent sign",
   );
   const und = await call("players_search", { query: "a_b" });
   assert.deepEqual(
     und.body.matches.map((m) => m.player_tag),
-    ["#2LQ0UG"],
+    ["#0GYVCL"],
     "_ is a literal underscore",
   );
   const bs = await call("players_search", { query: "\\" });
@@ -2055,7 +2055,7 @@ test("3.17.0: every instant-windowed tool says its season, crossings fire only w
     ["battles_cards", { days: 5 }],
     ["battles_decks", { days: 5 }],
     ["battles_opponents", { days: 5 }],
-    ["battles_compare", { player_tags: [OBSERVER, "#2PP0V90Y"], days: 5 }],
+    ["battles_compare", { player_tags: [OBSERVER, "#09CV8UVL"], days: 5 }],
     ["game_events", { days: 5 }],
     ["elixir_timeline", { mark_read: false }],
   ]) {
@@ -2136,7 +2136,7 @@ test("Gym #329: a bucket the newest profile read no longer carried is ended, eve
   // clock, so this subject's profile is read relative to now: on the
   // fixed 2026-09-03 fixture read the bucket aged out of that window on
   // 2026-09-28 and the test failed on every run after.
-  const tag = "#Q2RUPYC8";
+  const tag = "#0Q22VG9G";
   const profile = structuredClone(await fixture("player/profile.json"));
   profile.tag = tag;
   const {
@@ -2225,7 +2225,7 @@ test("player trends preserve distinct battles at the same player timestamp and r
 
 test("#556: elixir_follow_player refuses a primary or alt on a tag another account verified, with the one answer, and still follows it", async () => {
   const { VERIFIED_ELSEWHERE } = await import("@elixir-mcp/claims");
-  const TAG = "#9R2VJ0LQ";
+  const TAG = "#0RQ0URVL";
   const {
     rows: [owner],
   } = await db.query(

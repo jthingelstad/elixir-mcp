@@ -11,9 +11,9 @@ import { TIMELINE_KIND_SCHEMAS } from "../src/activity/schemas.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { validateArgs } from "../src/validate.mjs";
 
-const PLAYER = "#2PYLQ0";
-const CLAN = "#2PYLQJ";
-const RIVAL = "#2PYLQ2";
+const PLAYER = "#000880";
+const CLAN = "#0PPPG9";
+const RIVAL = "#09CCYU";
 const WINDOW = {
   from: "2026-10-10T05:00:00.000Z",
   to: "2026-10-11T05:00:00.000Z",
@@ -43,7 +43,7 @@ const VALUES = {
     battle_id: "example-battle",
     battle_time: "2026-10-10T14:21:00.000Z",
   },
-  teammate: { player_tag: "#2PYLQ8", name: "Example Mate", battles: 3 },
+  teammate: { player_tag: "#0GLP0L", name: "Example Mate", battles: 3 },
   // A highlight's battle (#762).
   battle: {
     battle_id: "example-battle",

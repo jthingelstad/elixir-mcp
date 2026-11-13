@@ -8,7 +8,7 @@ import {
   DISCORD_MAX_CHARS,
 } from "../src/discord.mjs";
 
-const where = { clanTag: "#2PQRJ8LV", appUrl: "https://elixir.test/clan/" };
+const where = { clanTag: "#0QC8RCGY", appUrl: "https://elixir.test/clan/" };
 const card = (extra = {}) => ({
   card_id: "c1",
   type: "promotion",
@@ -22,14 +22,14 @@ const card = (extra = {}) => ({
 test("an open action is its line and its own page, unpreviewed", () => {
   assert.equal(
     discordActionMessage(card(), where),
-    "**#12 Promote to Elder: Quiet**\n<https://elixir.test/clan/2PQRJ8LV/actions/12>",
+    "**#12 Promote to Elder: Quiet**\n<https://elixir.test/clan/0QC8RCGY/actions/12>",
   );
 });
 
 test("an action without a number links to the list", () => {
   assert.match(
     discordActionMessage(card({ number: undefined }), where),
-    /<https:\/\/elixir\.test\/clan\/2PQRJ8LV\/actions>$/,
+    /<https:\/\/elixir\.test\/clan\/0QC8RCGY\/actions>$/,
   );
 });
 
@@ -40,7 +40,7 @@ test("a closed action is struck through and says how, and by whom", () => {
   );
   assert.equal(
     done,
-    "~~**#12 Promote to Elder: Quiet**~~\n✅ Completed by Lead\n<https://elixir.test/clan/2PQRJ8LV/actions/12>",
+    "~~**#12 Promote to Elder: Quiet**~~\n✅ Completed by Lead\n<https://elixir.test/clan/0QC8RCGY/actions/12>",
   );
   assert.match(
     discordActionMessage(

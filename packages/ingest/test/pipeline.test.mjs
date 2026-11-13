@@ -41,7 +41,7 @@ function message({
 
 before(async () => {
   ctx = await scratchDb("pipeline");
-  await trackClans(ctx.db, ["#J2RGCRVG", "#2GUY2"]);
+  await trackClans(ctx.db, ["#J2RGCRVG", "#0YUR9"]);
   const {
     rows: [account],
   } = await ctx.db.query(
@@ -187,7 +187,7 @@ test("a matchmaking race is neither admitted nor rejected: nothing projected, fr
     ctx.db,
     message({
       endpoint: "currentriverrace",
-      entityKey: "#2GUY2",
+      entityKey: "#0YUR9",
       // The reference's shape: the whole body, no clan (no real tags).
       payload: { periodIndex: 0, sectionIndex: 0, state: "matchmaking" },
       fetchedAt: "2026-10-05T10:09:01Z",
@@ -201,7 +201,7 @@ test("a matchmaking race is neither admitted nor rejected: nothing projected, fr
     rows: [race],
   } = await ctx.db.query(
     `select admission, admission_errors, new_facts, ${chargedRejectionSql()} as charged
-     from api_receipt where endpoint = 'currentriverrace' and entity_key = '#2GUY2'`,
+     from api_receipt where endpoint = 'currentriverrace' and entity_key = '#0YUR9'`,
   );
   assert.equal(race.admission, "matchmaking");
   assert.equal(race.admission_errors, null);
@@ -210,7 +210,7 @@ test("a matchmaking race is neither admitted nor rejected: nothing projected, fr
   assert.deepEqual(await before(), was, "the race record is untouched");
   const ps = await ctx.db.query(
     `select 1 from poll_state
-     where subject_tag = '#2GUY2' and endpoint = 'currentriverrace'
+     where subject_tag = '#0YUR9' and endpoint = 'currentriverrace'
        and last_admitted_at is not null`,
   );
   assert.equal(ps.rows.length, 0, "freshness holds, so the race is read again");
@@ -255,7 +255,7 @@ test("a live roster stamps the clan cadence's inputs: liveliness now and members
       .replaceAll("-", "")
       .replaceAll(":", "");
   const clan = structuredClone(await fixture("clan/roster.json"));
-  clan.tag = "#2GUY2";
+  clan.tag = "#0YUR9";
   clan.memberList.forEach((m, i) => {
     // Five members in the game this hour, ten more today, the rest a week ago.
     m.lastSeen = cr(
@@ -266,7 +266,7 @@ test("a live roster stamps the clan cadence's inputs: liveliness now and members
     ctx.db,
     message({
       endpoint: "clan",
-      entityKey: "#2GUY2",
+      entityKey: "#0YUR9",
       payload: clan,
       fetchedAt,
     }),
@@ -275,7 +275,7 @@ test("a live roster stamps the clan cadence's inputs: liveliness now and members
   assert.equal(r1.projection.activeNow, 5);
   assert.equal(r1.projection.seen24h, 15);
   let { rows } = await ctx.db.query(
-    `select hint, yield_bph from poll_state where subject_tag = '#2GUY2' and endpoint = 'clan'`,
+    `select hint, yield_bph from poll_state where subject_tag = '#0YUR9' and endpoint = 'clan'`,
   );
   assert.equal(rows[0].hint, "active");
   assert.equal(rows[0].yield_bph, null, "no window yet, so no churn rate");
@@ -290,7 +290,7 @@ test("a live roster stamps the clan cadence's inputs: liveliness now and members
   next.memberList.splice(0, 2);
   next.memberList.push({
     ...clan.memberList[0],
-    tag: "#2GUY2PY",
+    tag: "#0RVY2PV",
     name: "newcomer",
   });
   next.members = next.memberList.length;
@@ -298,7 +298,7 @@ test("a live roster stamps the clan cadence's inputs: liveliness now and members
     ctx.db,
     message({
       endpoint: "clan",
-      entityKey: "#2GUY2",
+      entityKey: "#0YUR9",
       payload: next,
       fetchedAt: later,
     }),
@@ -307,7 +307,7 @@ test("a live roster stamps the clan cadence's inputs: liveliness now and members
   assert.equal(r2.projection.joined, 1);
   assert.equal(r2.projection.departed, 2);
   ({ rows } = await ctx.db.query(
-    `select hint, yield_bph from poll_state where subject_tag = '#2GUY2' and endpoint = 'clan'`,
+    `select hint, yield_bph from poll_state where subject_tag = '#0YUR9' and endpoint = 'clan'`,
   ));
   assert.equal(rows[0].hint, "idle");
   assert.ok(
@@ -730,7 +730,7 @@ function crCompact(d) {
 test("capture audit: overlapping polls are gapless; a fully-rolled log flags a gap", async () => {
   const file = "player_battlelog/with_boat_and_duel.json";
   const log = await fixture(file);
-  const tag = "#PQPQPQ99"; // fresh observer: no prior coverage from other tests
+  const tag = "#0Y8LRJQP"; // fresh observer: no prior coverage from other tests
   const now = Date.now();
   const iso = (offsetMin, i) =>
     new Date(now - offsetMin * 60000 + i).toISOString();

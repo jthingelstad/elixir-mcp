@@ -10,8 +10,8 @@ import {
   cookieHeader,
 } from "./fakes.mjs";
 
-const clan = "#2PQRJ8LV",
-  tag = "#9QY";
+const clan = "#0QC8RCGY",
+  tag = "#0GR";
 const now = () => Date.parse("2026-10-04T05:00:00Z");
 const member = {
   player_tag: tag,
@@ -70,7 +70,7 @@ function reader({
         battles_query: {
           battles: [
             battle("allowed", clan, "2026-09-25T13:00:00Z"),
-            battle("outside", "#PYLQ2", "2026-10-01T12:00:00Z"),
+            battle("outside", "#0Y2V2", "2026-10-01T12:00:00Z"),
             battle("old-stint", clan, "2026-09-24T12:00:00Z"),
           ],
           next_cursor: "next",
@@ -209,13 +209,13 @@ test("member activity HTTP route preserves sign-in and own-clan admission", asyn
   assert.equal(
     (
       await h.handler(
-        req("GET", "/api/clans/PYLQ2/members/9QY/activity", { cookies }),
+        req("GET", "/api/clans/0Y2V2/members/0GR/activity", { cookies }),
       )
     ).statusCode,
     403,
   );
   assert.equal(
-    (await h.handler(req("GET", "/api/clans/2PQRJ8LV/members/9QY/activity")))
+    (await h.handler(req("GET", "/api/clans/0QC8RCGY/members/0GR/activity")))
       .statusCode,
     401,
   );
@@ -223,7 +223,7 @@ test("member activity HTTP route preserves sign-in and own-clan admission", asyn
   assert.equal(
     (
       await h.handler(
-        req("GET", "/api/clans/2PQRJ8LV/members/9QY/activity", { cookies }),
+        req("GET", "/api/clans/0QC8RCGY/members/0GR/activity", { cookies }),
       )
     ).statusCode,
     200,

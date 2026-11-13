@@ -26,24 +26,24 @@ afterEach(() => {
 
 const ME = {
   claims: [
-    { player_tag: "#2PP0V90Y", is_primary: true, name: "Fixture Main" },
-    { player_tag: "#8QY8UV2", relationship: "alt", name: "Fixture Alt" },
-    { player_tag: "#9GRJLC", relationship: "friend", nickname: "Pal" },
+    { player_tag: "#09CV8UVL", is_primary: true, name: "Fixture Main" },
+    { player_tag: "#020PJ8L", relationship: "alt", name: "Fixture Alt" },
+    { player_tag: "#02PQCV", relationship: "friend", nickname: "Pal" },
   ],
   features: { clan_internal: true },
 };
 const CLANS = {
-  home_clan: { clan_tag: "#2PQRJ8LV", name: "Example Clan" },
+  home_clan: { clan_tag: "#0QC8RCGY", name: "Example Clan" },
   clans: [
-    { clan_tag: "#2PQRJ8LV", name: "Example Clan" },
-    { clan_tag: "#YY8PQ", name: "Other Clan" },
+    { clan_tag: "#0QC8RCGY", name: "Example Clan" },
+    { clan_tag: "#08L20", name: "Other Clan" },
   ],
 };
 const ROSTER = {
   members: [
-    { player_tag: "#2PP0V90Y", name: "Fixture Main", role: "member" },
-    { player_tag: "#LUGGQ", name: "Clanmate One", role: "elder" },
-    { player_tag: "#9GRJLC", name: "Pal Game Name", role: "member" },
+    { player_tag: "#09CV8UVL", name: "Fixture Main", role: "member" },
+    { player_tag: "#09G9U", name: "Clanmate One", role: "elder" },
+    { player_tag: "#02PQCV", name: "Pal Game Name", role: "member" },
   ],
 };
 const sources = (over = {}) =>
@@ -51,8 +51,8 @@ const sources = (over = {}) =>
 
 describe("what counts as a tag, and what is worth a read", () => {
   test("a # needs tag shape; bare text needs the game's alphabet", () => {
-    expect(isTagQuery("#2pp0v90y")).toBe(true);
-    expect(isTagQuery("2PP0V90Y")).toBe(true);
+    expect(isTagQuery("#09cv8uvl")).toBe(true);
+    expect(isTagQuery("09CV8UVL")).toBe(true);
     expect(isTagQuery("Clanmate")).toBe(false);
     expect(isTagQuery("#a b")).toBe(false);
   });
@@ -66,27 +66,27 @@ describe("what counts as a tag, and what is worth a read", () => {
 describe("every name opens the player page (#764)", () => {
   test("yours, a clanmate and anyone else open the one page; the row says who they are to you", () => {
     const s = sources();
-    expect(doorFor("#2PP0V90Y", s)).toMatchObject({
-      href: "/home/player/2PP0V90Y",
+    expect(doorFor("#09CV8UVL", s)).toMatchObject({
+      href: "/home/player/09CV8UVL",
       d: "You",
     });
-    expect(doorFor("#LUGGQ", s).href).toBe("/home/player/LUGGQ");
-    expect(doorFor("#CCCC", s).href).toBe("/home/player/CCCC");
+    expect(doorFor("#09G9U", s).href).toBe("/home/player/09G9U");
+    expect(doorFor("#0U0G", s).href).toBe("/home/player/0U0G");
   });
   test("with Clan off, a clanmate still opens the player page", () => {
     const s = sources({ me: { ...ME, features: {} } });
-    expect(doorFor("#LUGGQ", s).href).toBe("/home/player/LUGGQ");
+    expect(doorFor("#09G9U", s).href).toBe("/home/player/09G9U");
   });
   test("a searched player's row carries tag, clan and trophies", () => {
     expect(
       playerDetail({
-        player_tag: "#CCCC",
+        player_tag: "#0U0G",
         clan_name: "Some Clan",
         trophies: 7123,
       }),
-    ).toBe("#CCCC · Some Clan · 7,123 trophies");
-    expect(playerDetail({ player_tag: "#CCCC", trophies: null })).toBe(
-      "#CCCC · No clan",
+    ).toBe("#0U0G · Some Clan · 7,123 trophies");
+    expect(playerDetail({ player_tag: "#0U0G", trophies: null })).toBe(
+      "#0U0G · No clan",
     );
   });
   test("before typing: You, Clanmates, People you follow, Clans, each once", () => {
@@ -106,8 +106,8 @@ describe("every name opens the player page (#764)", () => {
   test("what was read merges by door, so a name is never drawn twice", () => {
     const groups = typedGroups("clanmate", sources(), {
       players: [
-        { player_tag: "#LUGGQ", label: "Clanmate One" },
-        { player_tag: "#CCCC", label: "Clanmate Elsewhere" },
+        { player_tag: "#09G9U", label: "Clanmate One" },
+        { player_tag: "#0U0G", label: "Clanmate Elsewhere" },
       ],
       clans: [],
     });
@@ -163,7 +163,7 @@ describe("a deck hash or a war week", () => {
       expect(first(q).rows[0]).toMatchObject({
         t: "Season 135, week 3",
         d: "Example Clan, War",
-        href: "/clan/2PQRJ8LV/war/135",
+        href: "/clan/0QC8RCGY/war/135",
       });
     },
   );
@@ -186,17 +186,17 @@ describe("the read", () => {
       tool === "players_summary" ? refused : ok({ name: "A Clan" }),
     );
     const seen = vi.fn();
-    const r = await readSearch("#2pqrj8lv", explore, seen);
+    const r = await readSearch("#0qc8rcgy", explore, seen);
     expect(explore.mock.calls.map(([t]) => t)).toEqual([
       "players_summary",
       "clans_roster",
     ]);
-    expect(r.clans).toEqual([{ clan_tag: "#2PQRJ8LV", name: "A Clan" }]);
+    expect(r.clans).toEqual([{ clan_tag: "#0QC8RCGY", name: "A Clan" }]);
     expect(seen).toHaveBeenCalledTimes(1);
   });
   test("a tag on no record is a miss, carrying the tag", async () => {
-    const r = await readSearch("#2PP0V90Y", async () => refused);
-    expect(r.miss).toBe("#2PP0V90Y");
+    const r = await readSearch("#09CV8UVL", async () => refused);
+    expect(r.miss).toBe("#09CV8UVL");
   });
   test("a word asks names only, one read", async () => {
     const explore = vi.fn(async () => ok({ matches: [] }));
@@ -208,14 +208,14 @@ describe("the read", () => {
   });
   test("a failed read throws: it is never reported as no record", async () => {
     await expect(
-      readSearch("#2PP0V90Y", async () => ({
+      readSearch("#09CV8UVL", async () => ({
         ok: false,
         status: 503,
         data: {},
       })),
     ).rejects.toThrow(/did not answer/);
     await expect(
-      readSearch("#2PP0V90Y", async () => ({
+      readSearch("#09CV8UVL", async () => ({
         ok: true,
         data: {
           is_error: true,
@@ -256,7 +256,7 @@ describe("the sheet", () => {
   test("a miss offers Follow; only the click adds the friend", async () => {
     const fetch = respond({
       claim: () => ({
-        player_tag: "#2PP0V90Y",
+        player_tag: "#09CV8UVL",
         relationship: "friend",
         added: true,
       }),
@@ -266,10 +266,10 @@ describe("the sheet", () => {
       name: /Search players/,
       hidden: true,
     });
-    fireEvent.change(input, { target: { value: "#2PP0V90Y" } });
+    fireEvent.change(input, { target: { value: "#09CV8UVL" } });
     const follow = await screen.findByRole(
       "button",
-      { name: "Follow #2PP0V90Y", hidden: true },
+      { name: "Follow #09CV8UVL", hidden: true },
       { timeout: 3000 },
     );
     // Typing read; it added nothing.
@@ -277,7 +277,7 @@ describe("the sheet", () => {
     fireEvent.click(follow);
     await waitFor(() => expect(posts(fetch, "/api/claims")).toHaveLength(1));
     expect(JSON.parse(posts(fetch, "/api/claims")[0][1].body)).toEqual({
-      player_tag: "#2PP0V90Y",
+      player_tag: "#09CV8UVL",
       relationship: "friend",
     });
     await screen.findByText("Recording");
@@ -286,7 +286,7 @@ describe("the sheet", () => {
   test("a miss says what the Follow costs before the tap (#760)", async () => {
     const fetch = respond({
       cost: () => ({
-        player_tag: "#2PP0V90Y",
+        player_tag: "#09CV8UVL",
         following: false,
         free: false,
         reason: null,
@@ -297,7 +297,7 @@ describe("the sheet", () => {
     renderWithProviders(<SearchSheet me={{ claims: [] }} onClose={vi.fn()} />);
     fireEvent.change(
       screen.getByRole("searchbox", { name: /Search players/, hidden: true }),
-      { target: { value: "#2PP0V90Y" } },
+      { target: { value: "#09CV8UVL" } },
     );
     await screen.findByText(
       "Uses 1 of your 50 player slots · 3 used",
@@ -308,7 +308,7 @@ describe("the sheet", () => {
     expect(posts(fetch, "/api/claims")).toEqual([]);
     expect(
       fetch.mock.calls.some(([p]) =>
-        String(p).startsWith("/api/me/follow-cost?player_tag=%232PP0V90Y"),
+        String(p).startsWith("/api/me/follow-cost?player_tag=%2309CV8UVL"),
       ),
     ).toBe(true);
   });

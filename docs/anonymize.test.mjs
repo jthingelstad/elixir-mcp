@@ -64,6 +64,23 @@ test("a tag is replaced in every spelling, and colours and numbers are not", () 
   assert.equal(count, 5);
 });
 
+test("in a test, a tag it declares moves in every form, and only then", () => {
+  const known = new Set(["#0Q2L8", "#0CCC", "#0YY9P", "#888"]);
+  const invent = tagInventor(SALT);
+  const a = invent("#0Q2L8").slice(1);
+  const c = invent("#0CCC").slice(1);
+  const z = invent("#888").slice(1);
+  const src =
+    'const T = "#0Q2L8"; go("/home/player/0Q2L8"); "0q2l8,x"; {"tag":"#0CCC"} shown #0CCC; bare 0YY9P; 9,888 shown #888 at /c/888/ and /9,888/';
+  const { text } = replaceTags(src, known, invent, { bare: true });
+  assert.equal(
+    text,
+    `const T = "#${a}"; go("/home/player/${a}"); "${a.toLowerCase()},x"; {"tag":"#${c}"} shown #${c}; bare 0YY9P; 9,888 shown #${z} at /c/${z}/ and /9,888/`,
+  );
+  // Without the option a short bare body stays, as for captured data.
+  assert.match(replaceTags(src, known, invent).text, /\/home\/player\/0Q2L8/);
+});
+
 test("a keyed tag of eleven or twelve characters is replaced too", () => {
   const known = new Set(["#0PYLQGRJCUV"]);
   const invent = tagInventor(SALT);

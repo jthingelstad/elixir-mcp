@@ -40,8 +40,8 @@ afterEach(() => vi.restoreAllMocks());
 
 const ITEM = {
   id: "tl_0123456789abcdef0123",
-  subject_tag: "#PYLQ88",
-  subjects: [{ kind: "player", tag: "#QQ8822" }],
+  subject_tag: "#0GVJ9V",
+  subjects: [{ kind: "player", tag: "#0VJ2QV" }],
   cheers: { on_fire: 2, royal: 1 },
   my_cheer: "on_fire",
 };
@@ -122,7 +122,7 @@ test("tapping a cheer sends it with the item's subjects and shows the server's c
   expect(JSON.parse(calls[0].body)).toEqual({
     item_id: ITEM.id,
     cheer: "royal",
-    subjects: ["#PYLQ88", "#QQ8822"],
+    subjects: ["#0GVJ9V", "#0VJ2QV"],
   });
 });
 
@@ -134,13 +134,13 @@ test("a cheer on a player page reaches Home's copy and every page's copy (Codex 
       my_cheer: "royal",
     }),
   );
-  const page = pageCheersKey({ player: "#PYLQ88" });
+  const page = pageCheersKey({ player: "#0GVJ9V" });
   const battle = pageCheersKey({ battle: "abcdef012345" });
   const other = { ...ITEM, id: "tl_ffffffffffffffffffff" };
   const { queryClient } = renderWithProviders(
     <Cheers it={ITEM} where={{ key: page, list: "items" }} />,
   );
-  queryClient.setQueryData(page, { items: [ITEM], subjects: ["#PYLQ88"] });
+  queryClient.setQueryData(page, { items: [ITEM], subjects: ["#0GVJ9V"] });
   queryClient.setQueryData(battle, { items: [ITEM, other] });
   // Home's feed is pages (G1): a cheer reaches the item on whichever page.
   queryClient.setQueryData(HOME_FEED_KEY, {

@@ -23,9 +23,9 @@ const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_parthistory_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
-const CLAN = "#QJ2UV8PP";
-const OTHER = "#QJ2UV8LL";
-const [A, B, C, D, E] = ["#P0L2G8", "#P0L2G9", "#P0L2GC", "#P0L2GJ", "#P0L2GQ"];
+const CLAN = "#09JLQGQG";
+const OTHER = "#0R0VR8JJ";
+const [A, B, C, D, E] = ["#0PYCQ9", "#098GUU", "#09PYCR", "#0C8R0Q", "#0RP20C"];
 
 const DAY = 86400_000;
 const now = Date.now();

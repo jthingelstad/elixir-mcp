@@ -34,9 +34,9 @@ import { applyReceipts } from "../src/quality.mjs";
 import { STORY_SKIPS } from "@elixir-mcp/clan-engine";
 
 const CLAN = "#J2RGCRVG";
-const JOINER = "#PYL0Q2G8";
-const LEAVER = "#PYL0Q2G9";
-const STAYER = "#PYL0Q2GR";
+const JOINER = "#0L98VL0Y";
+const LEAVER = "#0ULYQJUJ";
+const STAYER = "#0GLCPGJJ";
 const HOOK = `https://discord.com/api/webhooks/123456789012345678/${"b".repeat(68)}`;
 const HOOK2 = `https://discord.com/api/webhooks/223456789012345678/${"c".repeat(68)}`;
 const T = Date.parse("2026-10-05T12:00:00Z");
@@ -391,7 +391,7 @@ test("the editor's run: sent to its own queue, then each story's packet carries 
     packet,
     /\(member left\)\nA departure: keep this sentence word for word, and give no reason: Joiner departed the clan\.\n/,
   );
-  assert.doesNotMatch(packet, /#PYL0Q2G8/, "no tags reach the model");
+  assert.doesNotMatch(packet, /#0L98VL0Y/, "no tags reach the model");
   // The lookups' answers, read-only, as the second round's tool results.
   const results = second.messages[2].content;
   assert.deepEqual(
@@ -537,7 +537,7 @@ test("a model the clan cannot use, or one that never answers in time, posts Elix
 test("the clan's tag and its members' wake it; a former member's for a day", async () => {
   assert.deepEqual(await clansToWake(db, CLAN), [CLAN]);
   assert.deepEqual(await clansToWake(db, STAYER), [CLAN]);
-  assert.deepEqual(await clansToWake(db, "#QQQQQQQQ"), []);
+  assert.deepEqual(await clansToWake(db, "#0U8QPULP"), []);
   const { sent, outbox } = recorder();
   await wakeSyndication(db, STAYER, { outbox, now: T });
   const wake = sent.find((s) => s.message.clan_tag === CLAN);
@@ -713,7 +713,7 @@ test("same-kind milestones are one story under its first item's key; a refused p
 });
 
 test("a leader's word on a departure edits the departure it is about, not the member's latest", async () => {
-  const TWICE = "#PYL0Q2GQ";
+  const TWICE = "#08PQ9GR2";
   await db.query(`insert into player (player_tag, name) values ($1, 'Twice')`, [
     TWICE,
   ]);
@@ -799,7 +799,7 @@ test("the editor: a badge level-up below the top is skipped with its reason; a s
   // One member's badge, no battle: their player page, the one link.
   assert.equal(
     linkOf(post.content),
-    "https://elixir.poapkings.com/home/player/PYL0Q2GR",
+    "https://elixir.poapkings.com/home/player/0GLCPGJJ",
   );
   assert.equal(urls(post.content).length, 1);
   assert.equal(quiet.sent.length, 1, "no further hold");
@@ -881,7 +881,7 @@ test("a leader's preview: the newest stories as the editor's packets, in one req
 });
 
 test("the editor may tell two stories in one post and skip one with its reason; neither is told again", async () => {
-  const NEWBIE = "#PYL0Q2GU";
+  const NEWBIE = "#0CYJV8V8";
   await db.query(
     `insert into player (player_tag, name) values ($1, 'Newbie')`,
     [NEWBIE],
@@ -1024,7 +1024,7 @@ test("one member's morning is one post: a move told before its battle names who 
   // 2026-10-12: a move, its sitting and its rung were posted apart, and
   // the move as one bare clause.
   const B = T + 500 * H;
-  const MATE = "#PYL0Q2GV";
+  const MATE = "#0GLUVGG2";
   await db.query(`insert into player (player_tag, name) values ($1, 'Matey')`, [
     MATE,
   ]);
@@ -1150,7 +1150,7 @@ test("one member's morning is one post: a move told before its battle names who 
 
 test("a move and a rung of one sitting, both new in one run, are one post (Codex on #541)", async () => {
   const B = T + 600 * H;
-  const SOLO = "#PYL0Q2GY";
+  const SOLO = "#0UVLG888";
   await db.query(`insert into player (player_tag, name) values ($1, 'Solo')`, [
     SOLO,
   ]);
@@ -1200,8 +1200,8 @@ test("a move and a rung of one sitting, both new in one run, are one post (Codex
 
 test("a post told for two members is each one's own: another's move is not this member's sitting (Codex on #542)", async () => {
   const B = T + 700 * H;
-  const ANN = "#PYL0Q2C0";
-  const BEN = "#PYL0Q2C2";
+  const ANN = "#0PQULGYV";
+  const BEN = "#0PYQV0GR";
   for (const [tag, name] of [
     [ANN, "Ann"],
     [BEN, "Ben"],

@@ -16,7 +16,7 @@ const clock = { when: (ts) => `at ${ts}` };
 const clan = (over = {}) => ({
   ok: true,
   state: "member",
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Clan",
   role: "leader",
   policy_set: true,
@@ -31,7 +31,7 @@ describe("Needs you", () => {
   const panel = (over = {}) => ({
     ok: true,
     state: "member",
-    clan_tag: "#2PQRJ8LV",
+    clan_tag: "#0QC8RCGY",
     needs: [{ type: "welcome", number: 4, subject_name: "Grace" }],
     needs_total: 3,
     ...over,
@@ -96,7 +96,7 @@ describe("Needs you", () => {
       "Departure: kicked, left, or ignore? Ada",
       "Remove from the clan: Grace",
     ]);
-    expect(rows[0].to).toBe("/clan/2PQRJ8LV/actions/4");
+    expect(rows[0].to).toBe("/clan/0QC8RCGY/actions/4");
     expect(more.title).toBe("and 3 more waiting in Clan");
   });
 
@@ -108,7 +108,7 @@ describe("Needs you", () => {
       }),
       clock,
     });
-    expect(rows[0].to).toBe("/clan/2PQRJ8LV/run/actions");
+    expect(rows[0].to).toBe("/clan/0QC8RCGY/run/actions");
   });
 
   test("Away goes to your own switch", () => {
@@ -120,7 +120,7 @@ describe("Needs you", () => {
       }),
       clock,
     });
-    expect(rows[0].to).toBe("/clan/2PQRJ8LV/members/away");
+    expect(rows[0].to).toBe("/clan/0QC8RCGY/members/away");
     expect(rows[0].detail).toContain("8 days since your last recorded battle.");
   });
 

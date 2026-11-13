@@ -9,10 +9,10 @@ import { ME, mockApi, signedIn } from "./fixtures.ts";
  * lands on the Feed.
  */
 const ACTIONS = {
-  "GET /api/clan/clans/2PQRJ8LV/actions": [
+  "GET /api/clan/clans/0QC8RCGY/actions": [
     200,
     {
-      clan_tag: "#2PQRJ8LV",
+      clan_tag: "#0QC8RCGY",
       as_of: "2026-09-13T09:00:00Z",
       open: [],
       recent: [],
@@ -47,10 +47,10 @@ for (const [size, viewport] of SIZES)
   test(`switching clans from the head on a ${size}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await mockApi(page, signedIn(ACTIONS));
-    await page.goto("/clan/GQ08RJPL/members");
+    await page.goto("/clan/0JR0LRU0/members");
     await expect(page.getByText("Ben")).toBeVisible();
     const picker = page.getByRole("combobox", { name: "Clan" });
-    await expect(picker).toHaveValue("#GQ08RJPL");
+    await expect(picker).toHaveValue("#0JR0LRU0");
     await expect(picker.locator("option")).toHaveText([
       "Example Clan, Leader",
       "Second Clan, Member",
@@ -64,29 +64,29 @@ for (const [size, viewport] of SIZES)
     await accessible(page, `the picker, ${size}`);
 
     // Everyone lands on the Feed.
-    await picker.selectOption("#2PQRJ8LV");
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
+    await picker.selectOption("#0QC8RCGY");
+    await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Example Clan",
     );
-    await expect(picker).toHaveValue("#2PQRJ8LV");
-    await picker.selectOption("#GQ08RJPL");
-    await expect(page).toHaveURL(/\/clan\/GQ08RJPL\/feed$/);
+    await expect(picker).toHaveValue("#0QC8RCGY");
+    await picker.selectOption("#0JR0LRU0");
+    await expect(page).toHaveURL(/\/clan\/0JR0LRU0\/feed$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Second Clan",
     );
 
     // Each pick was a step in history.
     await page.goBack();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/feed$/);
-    await expect(picker).toHaveValue("#2PQRJ8LV");
+    await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
+    await expect(picker).toHaveValue("#0QC8RCGY");
   });
 
 test("the picker's last choice is the whole list of clans", async ({
   page,
 }) => {
   await mockApi(page, signedIn(ACTIONS));
-  await page.goto("/clan/GQ08RJPL/members");
+  await page.goto("/clan/0JR0LRU0/members");
   await expect(page.getByText("Ben")).toBeVisible();
   await page
     .getByRole("combobox", { name: "Clan" })
@@ -102,7 +102,7 @@ test("one clan: no picker at all", async ({ page }) => {
     page,
     signedIn({ ...ACTIONS, "GET /api/clan/me": [200, only] }),
   );
-  await page.goto("/clan/2PQRJ8LV/members");
+  await page.goto("/clan/0QC8RCGY/members");
   await expect(page.getByText("Ben")).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Clan" })).toHaveCount(0);
 });
@@ -111,8 +111,8 @@ test("@narrow the old address for your players goes to tracking, and away to Mem
   page,
 }) => {
   await mockApi(page, signedIn(ACTIONS));
-  await page.goto("/clan/GQ08RJPL/members");
+  await page.goto("/clan/0JR0LRU0/members");
   await expect(page.getByText("Ben")).toBeVisible();
   await page.goto("/clan/you/away");
-  await expect(page).toHaveURL(/\/clan\/GQ08RJPL\/members\/away$/);
+  await expect(page).toHaveURL(/\/clan\/0JR0LRU0\/members\/away$/);
 });

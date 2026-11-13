@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mockApi, signedIn } from "./fixtures.ts";
 
-const base = "/clan/2PQRJ8LV";
+const base = "/clan/0QC8RCGY";
 const closed = {
   card_id: "closed-welcome",
   number: 44,
@@ -73,11 +73,11 @@ for (const size of ["wide", "@narrow"]) {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/actions": [
+        "GET /api/clan/clans/0QC8RCGY/actions": [
           200,
-          { clan_tag: "#2PQRJ8LV", open: [], recent: [closed] },
+          { clan_tag: "#0QC8RCGY", open: [], recent: [closed] },
         ],
-        "GET /api/clan/clans/2PQRJ8LV/history": [
+        "GET /api/clan/clans/0QC8RCGY/history": [
           200,
           {
             cards: [{ ...closed, decided_at: new Date().toISOString() }],
@@ -85,7 +85,7 @@ for (const size of ["wide", "@narrow"]) {
             holds: [],
           },
         ],
-        "GET /api/clan/clans/2PQRJ8LV/actions/44": [
+        "GET /api/clan/clans/0QC8RCGY/actions/44": [
           200,
           { action: closed, decline_reasons: [] },
         ],
@@ -131,7 +131,7 @@ for (const size of ["wide", "@narrow"]) {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/members/UQ8LP2R9C/activity": [
+        "GET /api/clan/clans/0QC8RCGY/members/02QQPCYQQ/activity": [
           200,
           activity,
         ],
@@ -145,9 +145,9 @@ for (const size of ["wide", "@narrow"]) {
     // here is its Clan tab (2026-11-12), and Back is the roster's search.
     await expect(
       page.getByRole("link", { name: "Ben", exact: true }),
-    ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
-    await page.goto(`${base}/members/uq8lp2r9c?find=Ben`);
-    await expect(page).toHaveURL(/\/home\/player\/UQ8LP2R9C\?tab=clan$/);
+    ).toHaveAttribute("href", "/home/player/02QQPCYQQ");
+    await page.goto(`${base}/members/02qqpcyqq?find=Ben`);
+    await expect(page).toHaveURL(/\/home\/player\/02QQPCYQQ\?tab=clan$/);
     await page.getByText("Recent battles in this clan").click();
     await expect(page.getByText(/^War · win/)).toBeVisible();
     await expect(page.getByText(/^Path of Legends · loss/)).toBeVisible();
@@ -167,7 +167,7 @@ for (const size of ["wide", "@narrow"]) {
     ).toHaveValue("Ben");
     await page.getByRole("searchbox", { name: "Find a member" }).fill("");
     await page.getByRole("searchbox", { name: "Find a member" }).press("Enter");
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members$/);
+    await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/members$/);
     await expect(
       page.getByRole("link", { name: "Ada", exact: true }),
     ).toBeVisible();

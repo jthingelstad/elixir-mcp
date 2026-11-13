@@ -10,7 +10,7 @@ import { fakeRecord, PERSON, player } from "./fakes.mjs";
 
 test("gate: an agent grant is refused first, before any tool call", async () => {
   const record = fakeRecord({
-    principal: { kind: "agent", subject: { type: "clan", tag: "#2PQRJ8LV" } },
+    principal: { kind: "agent", subject: { type: "clan", tag: "#0QC8RCGY" } },
   });
   const g = await runGate({ record });
   assert.equal(g.ok, false);
@@ -50,7 +50,7 @@ test("gate: an unverified player not in a clan is refused at the clan check, wit
   });
   const g = await runGate({ record });
   assert.equal(g.reason, "no_clan");
-  assert.equal(g.identities[0].player_tag, "#20QQL8CCRU");
+  assert.equal(g.identities[0].player_tag, "#098R2R0PUL");
 });
 
 test("gate: an account that only follows friends has no player of its own", async () => {
@@ -58,7 +58,7 @@ test("gate: an account that only follows friends has no player of its own", asyn
     players: [
       player({ relationship: "friend", is_primary: false }),
       player({
-        player_tag: "#8QCV",
+        player_tag: "#0RJL",
         relationship: "watching",
         is_primary: false,
       }),
@@ -74,26 +74,26 @@ test("gate: an UNVERIFIED Leader passes as a member, and what verifying would un
   });
   const g = await runGate({ record });
   assert.equal(g.ok, true);
-  assert.equal(g.primary.player_tag, "#20QQL8CCRU");
+  assert.equal(g.primary.player_tag, "#098R2R0PUL");
   const [c] = g.clans;
-  assert.equal(c.clan_tag, "#2PQRJ8LV");
-  assert.equal(c.acting_as, "#20QQL8CCRU");
+  assert.equal(c.clan_tag, "#0QC8RCGY");
+  assert.equal(c.acting_as, "#098R2R0PUL");
   assert.equal(c.role, "member");
   assert.equal(c.role_label, "Member");
   assert.equal(c.verified, false);
   assert.deepEqual(c.unlock, {
-    player_tag: "#20QQL8CCRU",
+    player_tag: "#098R2R0PUL",
     name: "Ada",
     role: "leader",
     role_label: "Leader",
   });
   assert.deepEqual(verifyNotice(g), {
-    key: "#2PQRJ8LV:#20QQL8CCRU:leader",
+    key: "#0QC8RCGY:#098R2R0PUL:leader",
     clans: [
       {
-        clan_tag: "#2PQRJ8LV",
+        clan_tag: "#0QC8RCGY",
         clan_name: "Example Clan",
-        player_tag: "#20QQL8CCRU",
+        player_tag: "#098R2R0PUL",
         player_name: "Ada",
         role: "leader",
         role_label: "Leader",
@@ -167,7 +167,7 @@ test("gate: absence must be observed for every own player; friends do not decide
     membership_capture: { state: "none", observed_at: "2026-09-12T12:00:00Z" },
   });
   const alt = player({
-    player_tag: "#8QCV",
+    player_tag: "#0RJL",
     relationship: "alt",
     is_primary: false,
     clan_tag: null,
@@ -187,26 +187,26 @@ test("gate: the happy path names the clan set and the role", async () => {
   const g = await runGate({ record });
   assert.equal(g.ok, true);
   assert.equal(g.clans.length, 1);
-  assert.equal(g.clans[0].clan_tag, "#2PQRJ8LV");
+  assert.equal(g.clans[0].clan_tag, "#0QC8RCGY");
   assert.equal(g.clans[0].name, "Example Clan");
   assert.equal(g.clans[0].role, "leader");
   assert.equal(g.clans[0].role_label, "Leader");
-  assert.equal(g.clans[0].acting_as, "#20QQL8CCRU");
-  assert.equal(g.primary.player_tag, "#20QQL8CCRU");
+  assert.equal(g.clans[0].acting_as, "#098R2R0PUL");
+  assert.equal(g.primary.player_tag, "#098R2R0PUL");
   assert.equal(g.principal.subject.name, "Ada");
 });
 
 test("gate: a verified alt in another clan adds a second clan; the primary's comes first", async () => {
   const record = fakeRecord({
-    principal: { ...PERSON, clan: { tag: "#PYLQ2", name: "Elsewhere" } },
+    principal: { ...PERSON, clan: { tag: "#0Y2V2", name: "Elsewhere" } },
     players: [
       player(),
       player({
-        player_tag: "#8QCV",
+        player_tag: "#0RJL",
         name: "Ada's other",
         is_primary: false,
         relationship: "alt",
-        clan_tag: "#PYLQ2",
+        clan_tag: "#0Y2V2",
         clan_role: "member",
       }),
     ],
@@ -214,11 +214,11 @@ test("gate: a verified alt in another clan adds a second clan; the primary's com
   const g = await runGate({ record });
   assert.deepEqual(
     g.clans.map((c) => c.clan_tag),
-    ["#2PQRJ8LV", "#PYLQ2"],
+    ["#0QC8RCGY", "#0Y2V2"],
   );
   assert.equal(g.clans[0].name, null);
   assert.equal(g.clans[1].name, "Elsewhere");
-  assert.equal(g.clans[1].acting_as, "#8QCV");
+  assert.equal(g.clans[1].acting_as, "#0RJL");
   assert.equal(g.clans[1].role_label, "Member");
 });
 
@@ -227,11 +227,11 @@ test("gate: an UNVERIFIED alt adds its clan as a member's", async () => {
     players: [
       player(),
       player({
-        player_tag: "#8QCV",
+        player_tag: "#0RJL",
         is_primary: false,
         relationship: "alt",
         claim_status: "unverified",
-        clan_tag: "#PYLQ2",
+        clan_tag: "#0Y2V2",
         clan_role: "member",
       }),
     ],
@@ -240,8 +240,8 @@ test("gate: an UNVERIFIED alt adds its clan as a member's", async () => {
   assert.deepEqual(
     g.clans.map((c) => [c.clan_tag, c.role, c.verified]),
     [
-      ["#2PQRJ8LV", "leader", true],
-      ["#PYLQ2", "member", false],
+      ["#0QC8RCGY", "leader", true],
+      ["#0Y2V2", "member", false],
     ],
   );
   assert.equal(g.identities[1].claim_status, "unverified");
@@ -254,7 +254,7 @@ test("gate: a verified member tag and an unverified Co-leader tag in one clan ac
     players: [
       player({ clan_role: "member" }),
       player({
-        player_tag: "#8QCV",
+        player_tag: "#0RJL",
         name: "Ada's other",
         is_primary: false,
         relationship: "alt",
@@ -266,12 +266,12 @@ test("gate: a verified member tag and an unverified Co-leader tag in one clan ac
   const g = await runGate({ record });
   assert.equal(g.clans.length, 1);
   const [c] = g.clans;
-  assert.equal(c.acting_as, "#20QQL8CCRU");
+  assert.equal(c.acting_as, "#098R2R0PUL");
   assert.equal(c.role, "member");
   assert.equal(c.verified, true);
-  assert.equal(c.unlock.player_tag, "#8QCV");
+  assert.equal(c.unlock.player_tag, "#0RJL");
   assert.equal(c.unlock.role, "coLeader");
-  assert.deepEqual(c.your_tags.sort(), ["#20QQL8CCRU", "#8QCV"]);
+  assert.deepEqual(c.your_tags.sort(), ["#098R2R0PUL", "#0RJL"]);
 });
 
 test("gate: a verified Elder tag is not outranked by an unverified Elder tag in the same clan", async () => {
@@ -279,7 +279,7 @@ test("gate: a verified Elder tag is not outranked by an unverified Elder tag in 
     players: [
       player({ clan_role: "elder" }),
       player({
-        player_tag: "#8QCV",
+        player_tag: "#0RJL",
         is_primary: false,
         relationship: "alt",
         claim_status: "unverified",
@@ -298,7 +298,7 @@ test("gate: two verified tags in one clan are one clan, acting as the higher rol
     players: [
       player({ clan_role: "member" }),
       player({
-        player_tag: "#8QCV",
+        player_tag: "#0RJL",
         is_primary: false,
         relationship: "alt",
         clan_role: "coLeader",
@@ -307,20 +307,20 @@ test("gate: two verified tags in one clan are one clan, acting as the higher rol
   });
   const g = await runGate({ record });
   assert.equal(g.clans.length, 1);
-  assert.equal(g.clans[0].acting_as, "#8QCV");
+  assert.equal(g.clans[0].acting_as, "#0RJL");
   assert.equal(g.clans[0].role, "coLeader");
-  assert.deepEqual(g.clans[0].your_tags.sort(), ["#20QQL8CCRU", "#8QCV"]);
+  assert.deepEqual(g.clans[0].your_tags.sort(), ["#098R2R0PUL", "#0RJL"]);
 });
 
 test("gate: an alt-only account with a verified alt in a clan passes; the alt keys the preference", async () => {
   const record = fakeRecord({
     players: [
-      player({ player_tag: "#8QCV", is_primary: false, relationship: "alt" }),
+      player({ player_tag: "#0RJL", is_primary: false, relationship: "alt" }),
     ],
   });
   const g = await runGate({ record });
   assert.equal(g.ok, true);
-  assert.equal(g.primary.player_tag, "#8QCV");
+  assert.equal(g.primary.player_tag, "#0RJL");
 });
 
 test("gate: an unverified primary with a verified alt in a clan still passes", async () => {
@@ -328,10 +328,10 @@ test("gate: an unverified primary with a verified alt in a clan still passes", a
     players: [
       player({ claim_status: "unverified" }),
       player({
-        player_tag: "#8QCV",
+        player_tag: "#0RJL",
         is_primary: false,
         relationship: "alt",
-        clan_tag: "#PYLQ2",
+        clan_tag: "#0Y2V2",
         clan_role: "elder",
       }),
     ],
@@ -342,8 +342,8 @@ test("gate: an unverified primary with a verified alt in a clan still passes", a
   assert.deepEqual(
     g.clans.map((c) => [c.clan_tag, c.role, c.verified]),
     [
-      ["#2PQRJ8LV", "member", false],
-      ["#PYLQ2", "elder", true],
+      ["#0QC8RCGY", "member", false],
+      ["#0Y2V2", "elder", true],
     ],
   );
 });
@@ -386,9 +386,9 @@ test("clansOf: friends and watching never make a clan, even if the row says veri
 });
 
 test("normalizeTag: case, missing #, O-for-0, and refusal of a non-tag", () => {
-  assert.equal(normalizeTag("pylq2"), "#PYLQ2");
-  assert.equal(normalizeTag("#2PQRJ8LV"), "#2PQRJ8LV");
-  assert.equal(normalizeTag("2pqrj8lv"), "#2PQRJ8LV");
+  assert.equal(normalizeTag("0y2v2"), "#0Y2V2");
+  assert.equal(normalizeTag("#0QC8RCGY"), "#0QC8RCGY");
+  assert.equal(normalizeTag("0qc8rcgy"), "#0QC8RCGY");
   assert.equal(normalizeTag("OTHER"), null);
   assert.equal(normalizeTag(""), null);
 });

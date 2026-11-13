@@ -14,7 +14,7 @@ const crossed_by = {
   battle_time: "2026-10-11T19:03:23.000Z",
   type: "PvP",
   opponent: {
-    player_tag: "#2GC2YJ2Y0",
+    player_tag: "#0R9P899RR",
     name: "Sunny Moon",
     starting_trophies: 11943,
   },

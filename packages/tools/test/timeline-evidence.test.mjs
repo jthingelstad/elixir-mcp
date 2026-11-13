@@ -10,7 +10,7 @@ import {
 } from "../src/activity/entries.mjs";
 import { elixir_timeline } from "../src/tools/elixir/timeline.mjs";
 import { accountRoutes } from "../../../services/web-api/src/routes/account.mjs";
-const TAG = "#P0YQ2L8";
+const TAG = "#0GQ0LU0";
 const FROM = Date.parse("2026-10-03T12:00:00Z");
 const at = (n) => new Date(FROM + n * 60000).toISOString();
 const id = (n) => n.toString(16).padStart(64, "0");
@@ -239,14 +239,14 @@ test("late arena proof freezes the legacy duplicate origin and records a new evi
     0,
   );
   await db.query(
-    "insert into clan (clan_tag,name) values ('#P0YQ2L2','Example Clan')",
+    "insert into clan (clan_tag,name) values ('#009L8QQ','Example Clan')",
   );
   await db.query(
-    "insert into clan_membership (clan_tag,player_tag,role,joined_observed_at) values ('#P0YQ2L2',$1,'member',$2)",
+    "insert into clan_membership (clan_tag,player_tag,role,joined_observed_at) values ('#009L8QQ',$1,'member',$2)",
     [TAG, at(0)],
   );
   await db.query(
-    "insert into account_clan (account_id,clan_tag,scope,notify) values ($1,'#P0YQ2L2','comprehensive',true)",
+    "insert into account_clan (account_id,clan_tag,scope,notify) values ($1,'#009L8QQ','comprehensive',true)",
     [owner],
   );
   assert.equal(
@@ -331,7 +331,7 @@ test("authorized tool and browser reads preserve pointers, refuse forged IDs, an
 });
 
 test("a bounded sitting discloses an incomplete anchor, ties sort by canonical ID and open stays explicit", async () => {
-  const tag = "#P0YQ2L9";
+  const tag = "#0GQLYV0";
   await db.query(
     "insert into player (player_tag,name) values ($1,'Example Long Sitting')",
     [tag],
@@ -467,8 +467,8 @@ test("ranked proof and ladder sessions keep canonical mode and result provenance
 });
 
 test("a clan standout's evidence is the whole sitting it counts (11.8.0, #375)", async () => {
-  const player = "#P0YQ2LC",
-    clan = "#P0YQ2L0";
+  const player = "#0LLJ0GU",
+    clan = "#0CV2U8G";
   await db.query(
     "insert into player (player_tag,name) values ($1,'Example Member')",
     [player],
@@ -539,8 +539,8 @@ test("a clan standout's evidence is the whole sitting it counts (11.8.0, #375)",
 });
 
 test("a game's evidence names who was opposite, by in-game name, with no nickname", async () => {
-  const RIVAL = "#QQ2CLUV";
-  const CLAN = "#QQ2CLUC";
+  const RIVAL = "#0RL8RGC";
+  const CLAN = "#0YY2YQ8";
   await db.query("insert into player (player_tag,name) values ($1,'Rival')", [
     RIVAL,
   ]);

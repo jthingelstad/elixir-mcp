@@ -14,7 +14,7 @@ import {
 } from "../src/recruit.mjs";
 
 const clan = {
-  tag: "#2PQRJ8L",
+  tag: "#0YGJGYV",
   name: "Example Clan",
   type: "inviteOnly",
   description: "in-game description",
@@ -51,7 +51,7 @@ test("facts come from the game's numbers only; the roster gives fewer", () => {
   );
   assert.equal(f.source, "live");
   const r = factsFromRoster({
-    clan_tag: "#2PQRJ8L",
+    clan_tag: "#0YGJGYV",
     name: "Example Clan",
     member_count: 47,
     members: [{ name: "A", trophies: 1, donations_this_week: 5 }],
@@ -68,7 +68,7 @@ test("facts come from the game's numbers only; the roster gives fewer", () => {
 
 test("a pending live read uses what the record already has: type, description, clan score, war trophies", () => {
   const r = factsFromRoster({
-    clan_tag: "#2PQRJ8L",
+    clan_tag: "#0YGJGYV",
     name: "Example Clan",
     type: "inviteOnly",
     description: "in-game description",
@@ -110,7 +110,7 @@ test("two formats: a plain personal note, and a post carrying the forums' requir
   // The post: the bracket in the title and the body, no invite link.
   assert.equal(
     copy.post.title,
-    "Example Clan #2PQRJ8L - Steady wars, friendly chat [5000]",
+    "Example Clan #0YGJGYV - Steady wars, friendly chat [5000]",
   );
   assert.match(copy.post.body, /^Required Trophies: \[5000\]$/m);
   assert.doesNotMatch(copy.post.body, /discord\.gg/);
@@ -122,7 +122,7 @@ test("a full clan says so", () => {
   const copy = recruitCopy(
     PITCH,
     factsFromRoster({
-      clan_tag: "#2PQRJ8L",
+      clan_tag: "#0YGJGYV",
       name: "Example Clan",
       member_count: 50,
       members: [],

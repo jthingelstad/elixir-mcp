@@ -35,17 +35,17 @@ describe("why a person is suggested", () => {
     expect(
       whyLine({
         kind: "followed_by",
-        via: { tag: "#PYLQGRJC", name: "Grace" },
+        via: { tag: "#0J0RVYRR", name: "Grace" },
         others: 0,
       }),
     ).toBe("Followed by Grace, who you follow");
     expect(
       whyLine({
         kind: "followed_by",
-        via: { tag: "#PYLQGRJC", name: null },
+        via: { tag: "#0J0RVYRR", name: null },
         others: 2,
       }),
-    ).toBe("Followed by #PYLQGRJC and 2 others you follow");
+    ).toBe("Followed by #0J0RVYRR and 2 others you follow");
   });
 
   test("every reason, joined", () => {

@@ -33,8 +33,8 @@ const URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 
 const A = "#00C298UC";
 const B = "#20JJJ2CCRU";
-const C = "#PYLQGRJC";
-const D = "#9VUP08YL";
+const C = "#0J0RVYRR";
+const D = "#0JVRYLGG";
 
 let db;
 let alice;
@@ -265,7 +265,7 @@ test("concurrent adds cannot exceed the slot limit", async () => {
   // Reported: three concurrent adds on separate connections each saw two
   // existing claims and all three succeeded, leaving 5 against a limit of 3.
   const conns = await Promise.all(
-    [C, D, "#2PP"].map(async () => {
+    [C, D, "#0CR"].map(async () => {
       const c = new pg.Client({ connectionString: URL });
       await c.connect();
       return c;
@@ -273,7 +273,7 @@ test("concurrent adds cannot exceed the slot limit", async () => {
   );
   try {
     const results = await Promise.all(
-      [C, D, "#2PP"].map((tag, i) =>
+      [C, D, "#0CR"].map((tag, i) =>
         addPlayer(conns[i], capped, { tag, via: "test" }),
       ),
     );
@@ -662,8 +662,8 @@ test("a direct clan follow determines recording depth and removal", async () => 
 // Jamie, 2026-10-08: "it should follow it automatically for the primary
 // player assuming they have a clan set (not all players are in a clan)."
 // Each rule in followPrimaryClan's comment is one test here.
-const OTHER = "#GCYQR9VY";
-const THIRD = "#GJ09RJP8";
+const OTHER = "#0GJJ9QJL";
+const THIRD = "#02GLU9VQ";
 
 /** What the latest admitted profile said: in `clan`, or in none. */
 const profile = async (tag, clan, { retained = clan } = {}) => {
@@ -806,10 +806,14 @@ test("a clan change moves Elixir's follow and never the person's", async () => {
   await addPlayer(db, alice, { tag: A, via: "console" });
   await profile(A, OTHER);
   await followClanForPlayer(db, A);
-  assert.deepEqual(await follows(alice), [
-    { clan_tag: OTHER, scope: "activity", auto: true },
-    { clan_tag: THIRD, scope: "activity", auto: false },
-  ]);
+  // follows() reads in tag order, so the expected rows sort the same way.
+  assert.deepEqual(
+    await follows(alice),
+    [
+      { clan_tag: OTHER, scope: "activity", auto: true },
+      { clan_tag: THIRD, scope: "activity", auto: false },
+    ].sort((a, b) => (a.clan_tag < b.clan_tag ? -1 : 1)),
+  );
   assert.equal(await clanRecording(CLAN), undefined, "the old clan stops");
   const { rows: declined } = await db.query(
     `select clan_tag from account_clan_declined where account_id = $1`,
@@ -1079,7 +1083,7 @@ test("verifying ends every other account's primary or alt on the tag, keeps frie
 
 test("an ended primary takes the clan follow Elixir made for it; the person's own follows and other accounts' stay", async () => {
   const carol = await account(`carol-${Math.random()}`, { slots: 10 });
-  const [AUTO, MINE_CLAN, CAROLS] = ["#GGJG2CCR", "#9PJYVVL2", "#2LQYC8RU"];
+  const [AUTO, MINE_CLAN, CAROLS] = ["#0R0UC22J", "#09VG8QUL", "#0UVP892C"];
   for (const c of [AUTO, MINE_CLAN, CAROLS])
     await db.query(
       `insert into clan (clan_tag) values ($1) on conflict do nothing`,
@@ -1157,8 +1161,8 @@ async function recordedClan(clanTag, scope, members) {
 }
 
 test("slots: a member of a clan recorded in full is free; an activity clan's member is not", async () => {
-  await recordedClan("#2PYQ8GJ0", "comprehensive", [A]);
-  await recordedClan("#9GQ8LUYJ", "activity", [C]);
+  await recordedClan("#0PJCLJYP", "comprehensive", [A]);
+  await recordedClan("#0Y9RJQRC", "activity", [C]);
   assert.deepEqual(await playerCost(db, alice.accountId, A), {
     player_tag: A,
     following: false,
@@ -1215,7 +1219,7 @@ test("slots: at the limit a slot-costing follow is refused with the reason; a fr
 
   // Bob follows D, and a clan recorded in full has B: both stay open.
   await addPlayer(db, bob, { tag: D, via: "test" });
-  await recordedClan("#2PYQ8GJ0", "comprehensive", [B]);
+  await recordedClan("#0PJCLJYP", "comprehensive", [B]);
   assert.equal((await addPlayer(db, capped, { tag: D, via: "test" })).ok, true);
   assert.equal((await addPlayer(db, capped, { tag: B, via: "test" })).ok, true);
   // A re-add of what you follow is never refused.
@@ -1228,7 +1232,7 @@ test("slots: a free follow whose reason goes away keeps recording and starts cou
   const capped = await account(`gone760-${Math.random()}`, { slots: 1 });
   await addPlayer(db, capped, { tag: A, via: "test" });
   await addPlayer(db, bob, { tag: D, via: "test" });
-  await recordedClan("#2PYQ8GJ0", "comprehensive", [B]);
+  await recordedClan("#0PJCLJYP", "comprehensive", [B]);
   await addPlayer(db, capped, { tag: D, via: "test" });
   await addPlayer(db, capped, { tag: B, via: "test" });
   assert.equal((await pooledUsage(db, capped.accountId)).players_used, 1);
@@ -1253,9 +1257,9 @@ test("slots: a free follow whose reason goes away keeps recording and starts cou
     (await addPlayer(db, capped, { tag: C, via: "test" })).error,
     "quota_exceeded",
   );
-  await addPlayer(db, bob, { tag: "#2PP", via: "test" });
+  await addPlayer(db, bob, { tag: "#0CR", via: "test" });
   assert.equal(
-    (await addPlayer(db, capped, { tag: "#2PP", via: "test" })).ok,
+    (await addPlayer(db, capped, { tag: "#0CR", via: "test" })).ok,
     true,
   );
 });
@@ -1298,7 +1302,7 @@ test("slots: resuming an agent prices its restored clan first, so the members st
     [owner.accountId, `res${String(Math.random()).slice(2, 10)}`],
   );
   const agent = { accountId: row.account_id };
-  const clanTag = "#8QJ2UV0L";
+  const clanTag = "#0L9CVQUV";
   await db.query(
     `insert into clan (clan_tag) values ($1) on conflict do nothing`,
     [clanTag],

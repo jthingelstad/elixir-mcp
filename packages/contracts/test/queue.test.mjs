@@ -30,7 +30,7 @@ test("owner_notify carries an optional, closed notify_kind", () => {
 test("a result may carry the collector's observed/filtered counts; the filter speaks the API's battleTime", () => {
   const base = {
     v: 1,
-    job: { endpoint: "player_battlelog", entity_key: "#2PPLQQ", lane: "bulk" },
+    job: { endpoint: "player_battlelog", entity_key: "#00GQJ8", lane: "bulk" },
     gateway_id: "g",
     fetched_at: "2026-09-11T12:00:00Z",
     status: "ok",

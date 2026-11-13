@@ -21,8 +21,8 @@ import {
   signIn,
 } from "./fakes.mjs";
 
-const TAG = "#2PQRJ8LV";
-const PATH = "/api/clans/2PQRJ8LV/voice";
+const TAG = "#0QC8RCGY";
+const PATH = "/api/clans/0QC8RCGY/voice";
 
 function harness(role = "leader", { verified = true } = {}) {
   const clock = { t: Date.parse("2026-10-20T12:00:00Z") };
@@ -36,7 +36,7 @@ function harness(role = "leader", { verified = true } = {}) {
       }),
     ],
     roster: rosterBody([
-      { player_tag: "#20QQL8CCRU", name: "Ada", role, trophies: 9000 },
+      { player_tag: "#098R2R0PUL", name: "Ada", role, trophies: 9000 },
     ]),
   });
   const handler = createHandler({
@@ -85,7 +85,7 @@ test("voice: none at first; a leader sets it, tidied, with who and when; empty c
   assert.equal(set.body.set_at, "2026-10-20T12:00:00.000Z");
   const item = await h.ledger.clanVoice(TAG);
   assert.equal(item.voice, "Warm and short b, see here");
-  assert.equal(item.set_by, "#20QQL8CCRU");
+  assert.equal(item.set_by, "#098R2R0PUL");
   // In the clan's partition, so it goes with the clan's other state.
   assert.equal(h.ledger.items.get(`voice#${TAG}`).gsi1pk, `clan#${TAG}`);
   assert.equal((await call("GET")).body.voice, "Warm and short b, see here");

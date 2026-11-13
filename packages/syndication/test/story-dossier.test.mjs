@@ -13,9 +13,9 @@ import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { dossierLines, storyAngles } from "@elixir-mcp/clan-engine";
 import { clanStoryFacts, draftStory } from "../src/story-facts.mjs";
 
-const CLAN = "#QGP2YRL8";
-const OTHER = "#2PP2PP2P";
-const DOT = "#PYL0Q2GL";
+const CLAN = "#0P2Q8Q00";
+const OTHER = "#00L22RP0";
+const DOT = "#0GY2RRQR";
 // A Tuesday: this week began Monday 2026-10-19.
 const NOW = Date.parse("2026-10-20T12:00:00Z");
 const DAY = 24 * 3600_000;
@@ -406,7 +406,7 @@ test("a draft's story asks for the dossier only when it is about one member", as
     assert.equal("dossier" in editor, false);
     assert.equal(editor.members[DOT].war.length, 4);
     // A member the record does not hold has no dossier.
-    const nobody = await draftStory(db, CLAN, ["#PYL0Q2GY"], { nowMs: NOW });
+    const nobody = await draftStory(db, CLAN, ["#0UVLG888"], { nowMs: NOW });
     assert.equal(nobody.dossier, null);
   } finally {
     await scratch.drop();
@@ -489,10 +489,10 @@ test("Path of Legends at its best: a rated final or a rated profile best is Ulti
     // top); one who never played (1 with 0 every season, an unrated 9);
     // one whose two Ultimate Champion finals are older than their newest
     // 12 recorded seasons (still counted, still in the record).
-    const RECORDED = "#2QQ0RPV8";
-    const BEFORE = "#8LJ9CVGQ";
-    const NEVER = "#9VQ2LJ8C";
-    const LONG = "#R8YQ0JLP";
+    const RECORDED = "#0Q9CLR98";
+    const BEFORE = "#0GRC9RGR";
+    const NEVER = "#0RUGP2GR";
+    const LONG = "#0QPJPPRJ";
     const longSeasons = [
       ["2025-08", 7, 1650],
       ["2025-09", 7, 1700],

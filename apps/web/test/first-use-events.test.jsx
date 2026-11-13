@@ -36,7 +36,7 @@ function Home({ first }) {
 }
 
 const player = {
-  player_tag: "#2PP0V90Y",
+  player_tag: "#09CV8UVL",
   name: "Test player",
   recording_status: "active",
   profile_available: false,

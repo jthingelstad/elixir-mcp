@@ -18,7 +18,7 @@ const SLOTS = {
   limit: 50,
   players: [
     {
-      player_tag: "#QQ8822",
+      player_tag: "#0VJ2QV",
       name: "Copper Fern",
       slot: "used",
       reason: null,
@@ -26,7 +26,7 @@ const SLOTS = {
       agents: [],
     },
     {
-      player_tag: "#VVV9",
+      player_tag: "#09PR",
       name: "Violet Reed",
       slot: "free",
       reason: "followed_by_others",
@@ -105,7 +105,7 @@ test("What members see: every control is a 44 px target, and a slot's row opens 
   await line.scrollIntoViewIfNeeded();
   const detail = (await line.boundingBox())!;
   await page.mouse.click(detail.x + 4, detail.y + detail.height / 2);
-  await expect(page).toHaveURL(/\/home\/player\/QQ8822$/);
+  await expect(page).toHaveURL(/\/home\/player\/0VJ2QV$/);
 });
 
 test("the battle page: a highlight's words lead, its buttons are ordinary, Delete is quiet", async ({

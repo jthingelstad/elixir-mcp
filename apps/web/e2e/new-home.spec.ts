@@ -253,7 +253,7 @@ for (const [label, width] of [
             200,
             {
               ok: true,
-              player_tag: "#QQQQQQQ",
+              player_tag: "#0ULCLY2",
               added: true,
               first_read: true,
               not_found: false,
@@ -283,7 +283,7 @@ for (const [label, width] of [
       ).toBeVisible();
       await noSideways(page);
       await accessible(page, "Find");
-      await page.getByLabel("Follow a friend").fill("#QQQQQQQ");
+      await page.getByLabel("Follow a friend").fill("#0ULCLY2");
       await page.getByRole("button", { name: "Follow", exact: true }).click();
       await expect(page.getByText("Recording", { exact: true })).toBeVisible();
       // Search opens the sheet every page has.
@@ -524,7 +524,7 @@ test("adding your player from Ladder's or Clan's link stays on Home's steps", as
           first: {
             ok: true,
             player: added
-              ? { player_tag: "#2PYQ8GJ0", name: "New Player" }
+              ? { player_tag: "#0PJCLJYP", name: "New Player" }
               : null,
           },
         },
@@ -536,7 +536,7 @@ test("adding your player from Ladder's or Clan's link stays on Home's steps", as
     }),
   );
   await page.goto("/home#add-player");
-  await page.getByLabel("Your player tag").fill("#2PYQ8GJ0");
+  await page.getByLabel("Your player tag").fill("#0PJCLJYP");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByText("your main player.")).toBeVisible();
   await expect(page).toHaveURL(/\/home$/);

@@ -141,7 +141,7 @@ test.describe("@narrow Settings at phone width", () => {
     await page.locator(".kit-find__search").click();
     const sheet = page.getByRole("dialog");
     await expect(sheet).toBeVisible();
-    await sheet.getByRole("searchbox").fill("#2PQRJ8LV");
+    await sheet.getByRole("searchbox").fill("#0QC8RCGY");
     await fits(page, "search sheet");
     expect(writes).toEqual([]);
     await page.keyboard.press("Escape");

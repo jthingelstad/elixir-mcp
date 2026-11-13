@@ -16,9 +16,9 @@ let accountId;
 let profile;
 let battlelog;
 
-const TRACKED = "#2PYLQ0";
-const UNTRACKED = "#2PYLQ2";
-const BROKEN = "#2PYLQ8";
+const TRACKED = "#000880";
+const UNTRACKED = "#09CCYU";
+const BROKEN = "#0GLP0L";
 
 function message({ endpoint, entityKey, payload, fetchedAt, jobId }) {
   return {
@@ -117,7 +117,7 @@ after(async () => {
 
 for (const endpoint of ["player", "player_battlelog"]) {
   test(`${endpoint}: one line on the first admission, with its seconds`, async () => {
-    const tag = endpoint === "player" ? TRACKED : "#2PYLQR";
+    const tag = endpoint === "player" ? TRACKED : "#0J2RUJ";
     await track(tag, { addedSecondsAgo: 120 });
     const jobId = await job(endpoint, tag, {
       mintedSecondsAgo: 90,
@@ -155,7 +155,7 @@ for (const endpoint of ["player", "player_battlelog"]) {
 }
 
 test("a first read without a job still times from the add", async () => {
-  const tag = "#2PYLQU";
+  const tag = "#0LLLG8";
   await track(tag, { addedSecondsAgo: 30 });
   const { lines } = await admit("player", tag);
   assert.equal(lines.length, 1);
@@ -208,7 +208,7 @@ test("a failure in the timing never fails the admission", async () => {
 });
 
 test("a throwing log never fails the admission", async () => {
-  const tag = "#2PYLQV";
+  const tag = "#0QP0LJ";
   await track(tag, { addedSecondsAgo: 5 });
   const errors = [];
   const original = console.error;
@@ -237,7 +237,7 @@ test("a throwing log never fails the admission", async () => {
 });
 
 test("a delayed profile behind a newer one on the first day is not a second first read (#731 review)", async () => {
-  const tag = "#2PYLQY";
+  const tag = "#0V9GGU";
   await track(tag, { addedSecondsAgo: 60 });
   const newer = await admit("player", tag, { fetchedAt: secondsAgo(5) });
   assert.equal(newer.lines.length, 1);

@@ -45,7 +45,7 @@ const WIN = {
   crowns_against: 0,
   opponent: {
     name: "Sunny Moon",
-    player_tag: "#OPP",
+    player_tag: "#0VL",
     starting_trophies: 11980,
   },
   trophies_after: 12_005,
@@ -79,7 +79,7 @@ test("one member's one battle is one story; its arena move, new best and promoti
     text,
     "Ada moved up to Magic Academy with a 3-0 win over Sunny Moon and set a new best of 12,005 trophies, passing 12,000, joining Bo and Cy there. It's their second promotion in a day. Their Evo P.E.K.K.A control deck is 9-2 on ladder this season.",
   );
-  assert.doesNotMatch(text, /<t:|https?:|#OPP|#AAA/, "no time, link or tag");
+  assert.doesNotMatch(text, /<t:|https?:|#0VL|#AAA/, "no time, link or tag");
 });
 
 test("a new best told as it happened: the crossing, then the peak after it", () => {

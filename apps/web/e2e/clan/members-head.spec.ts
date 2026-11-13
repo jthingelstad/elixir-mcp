@@ -10,8 +10,8 @@ import { ME, mockApi, signedIn } from "./fixtures.ts";
  * with axe. Invented players; local mocks only.
  */
 
-const base = "/clan/2PQRJ8LV";
-const apiBase = "/api/clan/clans/2PQRJ8LV";
+const base = "/clan/0QC8RCGY";
+const apiBase = "/api/clan/clans/0QC8RCGY";
 
 /** Signed in as a plain member of Example Clan, with it selected. */
 function asMember(extra: Parameters<typeof signedIn>[0] = {}) {
@@ -26,10 +26,10 @@ function asMember(extra: Parameters<typeof signedIn>[0] = {}) {
 }
 
 const PLAN = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   players: [
     {
-      player_tag: "#UQ8LP2R9C",
+      player_tag: "#02QQPCYQQ",
       name: "Ben",
       following: false,
       free: true,
@@ -43,7 +43,7 @@ const PLAN = {
       reason: null,
     },
   ],
-  yours: ["#20QQL8CCRU"],
+  yours: ["#098R2R0PUL"],
   to_follow: 2,
   free: 1,
   slots: 1,
@@ -111,8 +111,8 @@ for (const [label, width] of [
               200,
               {
                 ok: true,
-                followed: ["#UQ8LP2R9C", "#M1"],
-                clan_tag: "#2PQRJ8LV",
+                followed: ["#02QQPCYQQ", "#M1"],
+                clan_tag: "#0QC8RCGY",
               },
             ];
           },
@@ -137,7 +137,7 @@ for (const [label, width] of [
       await accessible(page, `follow everyone dialog ${label}`);
       await dialog.getByRole("button", { name: "Follow everyone" }).click();
       await expect(dialog).toHaveCount(0);
-      expect(posted).toEqual([{ clan_tag: "#2PQRJ8LV" }]);
+      expect(posted).toEqual([{ clan_tag: "#0QC8RCGY" }]);
     });
 
     test("Follow everyone is refused past the limit, and says why", async ({
@@ -242,12 +242,12 @@ for (const [label, width] of [
           [`GET ${apiBase}/map`]: [
             200,
             {
-              clan_tag: "#2PQRJ8LV",
+              clan_tag: "#0QC8RCGY",
               members: 3,
               on_map: 1,
               entries: [
                 {
-                  player_tag: "#UQ8LP2R9C",
+                  player_tag: "#02QQPCYQQ",
                   name: "Ben",
                   role: "coLeader",
                   role_label: "Co-leader",

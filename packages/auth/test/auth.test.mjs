@@ -97,7 +97,7 @@ test("a verified signup writes its frozen player tag on creation only", async ()
   const opened = await openVerifiedAccount(db, {
     emailHash: emailHash(email),
     email,
-    playerTag: "#2PYQ8GJ0",
+    playerTag: "#0PJCLJYP",
     ageAttestedAt: new Date().toISOString(),
   });
   assert.equal(opened.created, true);
@@ -108,26 +108,26 @@ test("a verified signup writes its frozen player tag on creation only", async ()
         [emailHash(e)],
       )
     ).rows[0]?.requested_player_tag;
-  assert.equal(await tagOf(email), "#2PYQ8GJ0");
+  assert.equal(await tagOf(email), "#0PJCLJYP");
   // A repeat proof of an existing account never rewrites what it asked for.
   const again = await openVerifiedAccount(db, {
     emailHash: emailHash(email),
     email,
-    playerTag: "#QPPPP",
+    playerTag: "#0G82G",
   });
   assert.equal(again, null, "an approved account is not opened twice");
-  assert.equal(await tagOf(email), "#2PYQ8GJ0");
+  assert.equal(await tagOf(email), "#0PJCLJYP");
   // A pending member opened by proof keeps the tag of its own request.
   const pending = "signup-tag-pending@example.com";
-  await pendingRequest(emailHash(pending), "#GGGG");
+  await pendingRequest(emailHash(pending), "#0LV8");
   const promoted = await openVerifiedAccount(db, {
     emailHash: emailHash(pending),
     email: pending,
-    playerTag: "#QPPPP",
+    playerTag: "#0G82G",
     ageAttestedAt: new Date().toISOString(),
   });
   assert.equal(promoted.created, false);
-  assert.equal(await tagOf(pending), "#GGGG");
+  assert.equal(await tagOf(pending), "#0LV8");
   // No tag at signup is no tag on the account.
   const bare = "signup-no-tag@example.com";
   await openVerifiedAccount(db, {

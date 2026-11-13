@@ -108,7 +108,7 @@ test("second observer dedupes to the same battles and writes no observation rows
   const beforeCount = (await ctx.db.query("select count(*)::int n from battle"))
     .rows[0].n;
   const result = await ingestBattlelog(ctx.db, {
-    observerTag: "#2PP0V90Y",
+    observerTag: "#09CV8UVL",
     receiptId,
     payload: log,
   });
@@ -261,7 +261,7 @@ test("enrich-on-dedup fills missing fields and never overwrites", async () => {
 
   // Full observation enriches the missing field.
   await ingestBattlelog(ctx.db, {
-    observerTag: "#2PP0V90Y",
+    observerTag: "#09CV8UVL",
     receiptId,
     payload: [entry],
   });
@@ -295,7 +295,7 @@ test("the high-water mark: a live poll drops every battle its log already delive
   // A fresh observer with a log shifted into its own time range, so no
   // battle here collides with the fixtures' other observers.
   const base = await fixture("player_battlelog/with_boat_and_duel.json");
-  const observer = "#PY2029";
+  const observer = "#0GCR8P";
   const shift = (log, hours) =>
     log.map((e) => {
       const t = new Date(
@@ -635,24 +635,24 @@ test("a duel is won on games, not on summed crowns (Gym #95)", () => {
     canonicalizeBattle({
       type: "riverRaceDuel",
       battleTime: "20260923T120000.000Z",
-      team: [side("#2PP0V9PP", mine)],
-      opponent: [side("#2PP0V9QQ", theirs)],
+      team: [side("#0VQRR8U0", mine)],
+      opponent: [side("#0RY8UJUL", theirs)],
     });
   const outcome = (b, tag) =>
     b.participants.find((p) => p.player_tag === tag).outcome;
   // 0-3, 1-0, 1-0: two games to one, though 2 crowns to 3.
   const lww = duel([0, 1, 1], [3, 0, 0]);
-  assert.equal(outcome(lww, "#2PP0V9PP"), "win");
-  assert.equal(outcome(lww, "#2PP0V9QQ"), "loss");
+  assert.equal(outcome(lww, "#0VQRR8U0"), "win");
+  assert.equal(outcome(lww, "#0RY8UJUL"), "loss");
   // 3-1, 0-1, 0-1 (sum 3-3): one game to two is a loss, not a draw.
   const wll = duel([3, 0, 0], [1, 1, 1]);
-  assert.equal(outcome(wll, "#2PP0V9PP"), "loss");
+  assert.equal(outcome(wll, "#0VQRR8U0"), "loss");
   // Without rounds, the crowns still decide (pre-0151 shape).
   const bare = canonicalizeBattle({
     type: "riverRaceDuel",
     battleTime: "20260923T120100.000Z",
-    team: [{ tag: "#2PP0V9PP", crowns: 2, cards: [] }],
-    opponent: [{ tag: "#2PP0V9QQ", crowns: 1, cards: [] }],
+    team: [{ tag: "#0VQRR8U0", crowns: 2, cards: [] }],
+    opponent: [{ tag: "#0RY8UJUL", crowns: 1, cards: [] }],
   });
-  assert.equal(outcome(bare, "#2PP0V9PP"), "win");
+  assert.equal(outcome(bare, "#0VQRR8U0"), "win");
 });

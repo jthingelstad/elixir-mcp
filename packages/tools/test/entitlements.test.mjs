@@ -69,8 +69,8 @@ before(async () => {
     `insert into recording (subject_type, subject_tag, requested_by, scope) values ('clan', $1, $2, 'comprehensive')`,
     [CLAN, owner.accountId],
   );
-  await mkMember("alice", "#YYYYYYYY", { role: "member" });
-  await mkMember("bob", "#RRRRRRRR", { role: "elder" });
+  await mkMember("alice", "#08L2PR0V", { role: "member" });
+  await mkMember("bob", "#02G8202J", { role: "elder" });
   // carol: approved account, claims a tag OUTSIDE the clan
   await db.query(`insert into player (player_tag) values ('#22222222')`);
   await db.query(
@@ -88,24 +88,24 @@ after(async () => {
 });
 
 test("rule 1: own claim is full scope", async () => {
-  const s = await resolveSubject(db, accounts.alice, "#YYYYYYYY", "full");
-  assert.deepEqual(s, { tag: "#YYYYYYYY", scope: "own" });
+  const s = await resolveSubject(db, accounts.alice, "#08L2PR0V", "full");
+  assert.deepEqual(s, { tag: "#08L2PR0V", scope: "own" });
 });
 
 test("universal reads: any valid tag resolves for any approved account", async () => {
   // Fellow member, non-member, stranger to everyone: all readable now
   // (Jamie 2026-09-05, the RoyaleAPI posture). Own claims keep 'own'.
-  const s = await resolveSubject(db, accounts.alice, "#RRRRRRRR", "summary");
-  assert.deepEqual(s, { tag: "#RRRRRRRR", scope: "public" });
-  const f = await resolveSubject(db, accounts.alice, "#RRRRRRRR", "full");
+  const s = await resolveSubject(db, accounts.alice, "#02G8202J", "summary");
+  assert.deepEqual(s, { tag: "#02G8202J", scope: "public" });
+  const f = await resolveSubject(db, accounts.alice, "#02G8202J", "full");
   assert.equal(f.scope, "public");
   const stranger = await resolveSubject(
     db,
     accounts.carol,
-    "#YYYYYYYY",
+    "#08L2PR0V",
     "summary",
   );
-  assert.deepEqual(stranger, { tag: "#YYYYYYYY", scope: "public" });
+  assert.deepEqual(stranger, { tag: "#08L2PR0V", scope: "public" });
   const own = await resolveSubject(db, accounts.alice, undefined, "full");
   assert.equal(own.scope, "own");
 });
@@ -120,7 +120,7 @@ test("rule 4: leadership needs elder+; member refused, elder passes, owner passe
 });
 
 test("owner administers recorded clans without membership; the default clan is the primary player's, for the owner too (2026-09-25)", async () => {
-  const s = await resolveSubject(db, accounts.owner, "#YYYYYYYY", "summary");
+  const s = await resolveSubject(db, accounts.owner, "#08L2PR0V", "summary");
   assert.equal(s.scope, "public");
   assert.equal(await resolveEntitledClan(db, accounts.alice), CLAN);
   // An owner whose primary is in no clan is refused like anyone else:

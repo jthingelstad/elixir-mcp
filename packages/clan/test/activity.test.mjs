@@ -34,10 +34,10 @@ import {
 } from "./fakes.mjs";
 
 const GOOD = `sk-ant-api03-${"a".repeat(40)}WXYZ`;
-const ADA = "#20QQL8CCRU";
-const TAG = "#2PQRJ8LV";
-const PATH = "/api/clans/2PQRJ8LV/activity-discord";
-const MODEL = "/api/clans/2PQRJ8LV/model";
+const ADA = "#098R2R0PUL";
+const TAG = "#0QC8RCGY";
+const PATH = "/api/clans/0QC8RCGY/activity-discord";
+const MODEL = "/api/clans/0QC8RCGY/model";
 
 function fakeAnthropic() {
   const state = { calls: [], write: null };
@@ -450,7 +450,7 @@ test("writeUnattended: the editor's rounds are one run against the day's cap, ea
   });
   const looked = await h.model.writeUnattended(TAG, first, {
     ownerLeads: leads,
-    run: "clan-2PQRJ8LV.1",
+    run: "clan-0QC8RCGY.1",
     round: 1,
   });
   assert.equal(looked.ok, true);
@@ -475,7 +475,7 @@ test("writeUnattended: the editor's rounds are one run against the day's cap, ea
         },
       ],
     },
-    { ownerLeads: leads, run: "clan-2PQRJ8LV.1", round: 2 },
+    { ownerLeads: leads, run: "clan-0QC8RCGY.1", round: 2 },
   );
   assert.deepEqual(answered.answer.posts, [
     { keys: ["tl_1"], text: "Ada joined!" },
@@ -486,8 +486,8 @@ test("writeUnattended: the editor's rounds are one run against the day's cap, ea
       .map((x) => [x.run, x.round, x.ok, x.input_tokens])
       .sort((a, b) => a[1] - b[1]),
     [
-      ["clan-2PQRJ8LV.1", 1, true, 2000],
-      ["clan-2PQRJ8LV.1", 2, true, 2000],
+      ["clan-0QC8RCGY.1", 1, true, 2000],
+      ["clan-0QC8RCGY.1", 2, true, 2000],
     ],
   );
   const status = await api(h, c, "GET", MODEL);
@@ -498,13 +498,13 @@ test("writeUnattended: the editor's rounds are one run against the day's cap, ea
   for (let i = 1; i < ACTIVITY_USES_PER_DAY; i += 1)
     await h.model.writeUnattended(TAG, first, {
       ownerLeads: leads,
-      run: `clan-2PQRJ8LV.r${i}`,
+      run: `clan-0QC8RCGY.r${i}`,
       round: 1,
     });
   assert.deepEqual(
     await h.model.writeUnattended(TAG, first, {
       ownerLeads: leads,
-      run: "clan-2PQRJ8LV.next",
+      run: "clan-0QC8RCGY.next",
       round: 1,
     }),
     { ok: false, code: "model_daily_limit" },
@@ -513,7 +513,7 @@ test("writeUnattended: the editor's rounds are one run against the day's cap, ea
     (
       await h.model.writeUnattended(TAG, first, {
         ownerLeads: leads,
-        run: "clan-2PQRJ8LV.r1",
+        run: "clan-0QC8RCGY.r1",
         round: 2,
       })
     ).ok,

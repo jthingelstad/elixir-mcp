@@ -105,7 +105,7 @@ test("Home: the top bar, the feed, the panels and the footer", async ({
 for (const tab of ["feed", "members", "war", "standings"]) {
   test(`Clan's ${tab}`, async ({ page }) => {
     await clan.mockApi(page, clan.signedIn());
-    await page.goto(`/clan/2PQRJ8LV/${tab}`);
+    await page.goto(`/clan/0QC8RCGY/${tab}`);
     await expect(page.locator(".clan-head")).toBeVisible();
     await page.waitForLoadState("networkidle");
     expect(await misses(page)).toEqual([]);

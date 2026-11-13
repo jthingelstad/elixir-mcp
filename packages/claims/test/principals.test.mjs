@@ -60,7 +60,7 @@ before(async () => {
     };
   };
   admin = await mk("admin@x", "admin", ["#J2RGCRVG"]);
-  member = await mk("member@x", "member", ["#2GUCVLQR"]);
+  member = await mk("member@x", "member", ["#0VCJY9YC"]);
 });
 
 after(async () => {
@@ -97,7 +97,7 @@ test("an admin's agent is not an admin, and a member's agent is a member", async
   const r = await createPrincipal(db, member, {
     kind: "agent",
     name: "my-clan",
-    clanTag: "#2GUCVLQR",
+    clanTag: "#0VCJY9YC",
     tokenHash: hash("b"),
   });
   assert.equal(r.principal.role, "member");
@@ -107,7 +107,7 @@ test("a clan you have not added is refused, whichever door you came in by", asyn
   const r = await createPrincipal(db, admin, {
     kind: "agent",
     name: "somebody-else",
-    clanTag: "#2GUCVLQR",
+    clanTag: "#0VCJY9YC",
     tokenHash: hash("c"),
   });
   assert.equal(r.ok, false);
@@ -160,7 +160,7 @@ test("one owner cannot reuse a name, another owner can", async () => {
   const other = await createPrincipal(db, member, {
     kind: "agent",
     name: "poap-kings",
-    clanTag: "#2GUCVLQR",
+    clanTag: "#0VCJY9YC",
     tokenHash: hash("f"),
   });
   assert.equal(other.ok, true, "uniqueness is per account, not global");
@@ -192,7 +192,7 @@ test("agents are capped per owner by tier, under the account lock", async () => 
     const ok = await createPrincipal(db, member, {
       kind: "agent",
       name: `cap-${i}`,
-      clanTag: "#2GUCVLQR",
+      clanTag: "#0VCJY9YC",
       tokenHash: hash(`cap-${i}`),
     });
     assert.equal(ok.ok, true, JSON.stringify(ok));
@@ -200,7 +200,7 @@ test("agents are capped per owner by tier, under the account lock", async () => 
   const over = await createPrincipal(db, member, {
     kind: "agent",
     name: "one-too-many",
-    clanTag: "#2GUCVLQR",
+    clanTag: "#0VCJY9YC",
     tokenHash: hash("one-too-many"),
   });
   assert.equal(over.ok, false);
