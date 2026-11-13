@@ -83,8 +83,8 @@ feature: nothing here uses their account system.
 A tag has one verified owner, and verifying protects it: no other account
 can claim that player as itself. Once you verify a player, another
 account that tries to add it as its primary or an alt (or as its first
-player, which is its primary) is refused, on the website, through an
-agent and through the JSON API alike, with the answer this page gives:
+player, which is its primary) is refused, on the website and through an
+agent alike, with the answer this page gives:
 another account has verified this player; if that player is yours, sign
 in to the account that verified it, or tell us through the feedback form.
 Following a verified player as a friend, or watching it, stays open to
@@ -129,7 +129,7 @@ that player is verified, and Clan names the player whose verification
 would bring more.
 
 Verification also decides what a clan says to its own members: an
-[attested fact](/docs/integrations#attested-facts) a clan's leaders
+[attested fact](/docs/timeline#attested-facts) a clan's leaders
 recorded reaches the timeline of readers whose **verified** player is in
 that clan (and a member's away only those whose verified player leads
 it), because it is the clan's own word, not the game's; and Clan's mail

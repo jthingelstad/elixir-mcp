@@ -34,7 +34,7 @@ import { annotateFeed } from "../feed.mjs";
 import { withCheers } from "../cheers.mjs";
 
 /** An audit row the daily tool-call limiter charged (`mcpday#`,
- *  packages/tools/quota.mjs): every call at /mcp. Not /api/v1 (`rest`,
+ *  packages/tools/quota.mjs): every call at /mcp. Not `GET /api/v1/me` (`rest`,
  *  metered on its own) and nothing on the web surface: the Console's and
  *  Ladder's own reads (#538, Jamie 2026-10-12) spend no daily tool-call
  *  budget. Clan's reads are in process and leave no call row at all
@@ -781,7 +781,7 @@ export function accountRoutes({
       // a week is too short a run to see a shape in.
       // Only what the daily limiter charges counts (CHARGED, above): the
       // log also holds the Console's, Ladder's and Clan's own reads and
-      // /api/v1 calls, which spend no tool-call budget. web_calls is the
+      // `GET /api/v1/me` calls, which spend no tool-call budget. web_calls is the
       // Console's and Ladder's reads, counted apart and never charged, so
       // the page can show them without counting them against the day.
       const { rows: days } = await db.query(

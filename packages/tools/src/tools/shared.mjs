@@ -48,8 +48,7 @@ import {
  *  live_daily_quota override. */
 /** WHOSE live lane a call spends: the same budget as the daily call
  *  quota (auth budgetFor) - an agent spends its OWNER's allowance, so N
- *  agents on one account share one daily live budget, and an integration
- *  pays from its own key. The fallback keeps hand-built accounts (and
+ *  agents on one account share one daily live budget. The fallback keeps hand-built accounts (and
  *  every pre-0053 shape) on their own bucket exactly as before. */
 export function liveBudgetFor(account) {
   const budget = account.budget ?? {
@@ -57,7 +56,7 @@ export function liveBudgetFor(account) {
     role: account.role,
     liveOverride: account.liveDailyQuota ?? null,
   };
-  // A family app's call (a first-party client on the JSON API) spends no
+  // A family app's call (a first-party OAuth client) spends no
   // one's quota (Jamie, 2026-09-23); the fleet's global rate budget still
   // governs every fetch.
   const unlimited =

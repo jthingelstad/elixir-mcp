@@ -17,7 +17,6 @@ lede: "The transport, how a client authenticates, and the OAuth 2.1 flow."
 |---|---|
 | Endpoint (personal) | `POST https://elixir.poapkings.com/mcp` |
 | Endpoint (agent) | `POST https://elixir.poapkings.com/a/<public_id>/mcp` |
-| Endpoint (integration, legacy) | `POST https://elixir.poapkings.com/i/<public_id>/mcp`; integrations use the [REST API](/docs/integrations) |
 | MCP protocol versions | `2025-06-18` (default), `2025-03-26` accepted |
 | `MCP-Protocol-Version` header | Checked on every request after `initialize`: absent is taken as `2025-03-26`; a version not listed above is HTTP 400 with JSON-RPC `-32600` and the supported list in `error.data.supported`. Nothing the server sends differs between the two versions. |
 | Framing | Streamable HTTP, JSON only. One JSON-RPC message per POST. Every reply is `content-type: application/json`. |
@@ -45,7 +44,6 @@ behavior that forwards none. The one exception is the consent page itself,
 |---|---|---|
 | OAuth access token | opaque, `eat_` + 43 base64url chars | the resource it was issued for |
 | Service token (agent key) | `svt_` + 43 base64url chars | the agent's own URL |
-| Integration key | `svt_…` with audience `integration_api` | `/api/v1` only; refused at every MCP door |
 
 Refusals:
 
@@ -104,7 +102,7 @@ under [Signing a person in](#signing-a-person-in-with-elixir)). **What a
 client asks for is granted; every other standard capability is a checkbox the
 person decides on the consent page**, and a client that names no scope asks
 for `cr:read` alone. On a person's own connection the checkboxes start
-unticked; on an agent or integration every write starts ticked except
+unticked; on an agent every write starts ticked except
 `follows:write`, which spends the owner's following slots. Each box
 says what the connection cannot do without it, and unticking one that started
 ticked asks for confirmation, naming what will not work, before the grant is
@@ -261,7 +259,7 @@ which needs the client to cooperate:
   which offers every standard scope the client did not ask for.
 - **After the fact:** Settings › Connections & agents lists every live OAuth
   connection with its capabilities and lets you change them. This covers the
-  personal door and every agent or integration door you own, each of which
+  personal door and every agent door you own, each of which
   carries its own grant. An agent can also connect with its **service key**
   rather than OAuth, and a key's capabilities are not part of any grant - edit
   those on the agent's Settings page. Editing takes effect on that connection's next call - no reconnect,
@@ -302,5 +300,5 @@ Refusals: 401 `invalid_token` (no bearer, or not a live personal token for `/mcp
 and 404 `email_unavailable` for an account that predates Elixir keeping the
 address and whose holder has not signed in since (the next consent fills
 it). The answer is never cached. This and `GET /api/v1/me` for a family app
-holding the capability (see [Integrations](/docs/integrations)) are the only
+holding the capability (see [Sign in with Elixir](/docs/sign-in-with-elixir#get-api-v1-me)) are the only
 places an account's address leaves Elixir.

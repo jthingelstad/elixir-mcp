@@ -14,20 +14,18 @@ import {
  * and never write it"): who a player follows and who follows them, and the
  * highlights they posted, exactly as their player page shows them. A
  * person's own connection reads as that person; an agent reads as its
- * owner. Integrations read none of it. Never a nickname, an email or a
+ * owner. Never a nickname, an email or a
  * Discord username.
  */
 
 const SOCIAL_REFUSAL = [
   "not_entitled",
   "The social layer is read by a person's own connection and their agents.",
-  "An integration has no person to read for. Connect as yourself at /mcp, or through an agent of yours whose owner is approved.",
+  "Connect as yourself at /mcp, or through an agent of yours whose owner is approved.",
 ];
 
 /** The reader, or the refusal every social read gives. */
 export async function socialReaderOrRefuse(ctx) {
-  if (ctx.account?.kind === "integration")
-    throw new ToolFailure(...SOCIAL_REFUSAL);
   const reader = await socialReader(ctx.db, ctx.account);
   if (!reader) throw new ToolFailure(...SOCIAL_REFUSAL);
   return reader;

@@ -1,7 +1,7 @@
 /**
  * The social layer's account reads, shared by the player page
- * (services/web-api routes/player.mjs) and the MCP tool players_follows (and
- * its /api/v1 operation), so both doors read one derivation.
+ * (services/web-api routes/player.mjs) and the MCP tool players_follows, so
+ * both doors read one derivation.
  *
  * Follows and followers belong to an account, and an account is named by the
  * player it verified. A player no account has verified has no follows or
@@ -101,7 +101,7 @@ export async function socialOf(db, tag) {
  * The person a social read is for (DECISIONS "Agents read the social layer
  * and never write it"): a person's own connection reads as that person; an
  * agent reads as its owner, when both are approved and the owner is a
- * person. Integrations, and anything unapproved, read as nobody: null.
+ * person. Any other kind, and anything unapproved, reads as nobody: null.
  * Read from the database each time, never from a remembered account.
  */
 export async function socialReader(db, account) {

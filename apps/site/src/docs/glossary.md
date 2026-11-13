@@ -258,15 +258,14 @@ verbosity, at the top level on compact rows.
 ## Principals and the service
 
 **door**: an MCP endpoint: `/mcp` for a person, `/a/<public_id>/mcp` for an
-agent, `/i/<public_id>/mcp` for an integration. A credential works at exactly one door.
+agent. A credential works at exactly one door.
 
-**principal**: who is calling: a `person` (you, over OAuth), an `agent` (a
-runtime you own that acts for one clan), or an `integration` (a platform
-using the REST API with its own key). See
-[Users, agents and integrations](/docs/connections).
+**principal**: who is calling: a `person` (you, over OAuth) or an `agent`
+(a runtime you own that acts for one clan). See
+[Users and agents](/docs/connections).
 
 **budget account**: whose daily quotas a call spends. An agent spends its
-owner's call budget and live lane; an integration spends its own. A person's
+owner's call budget and live lane. A person's
 own reads on Find, player pages and Stats spend no daily call budget. The
 hourly rate limit is not a budget: it belongs to the principal, so each agent
 has its own hour, and a person's website reads share theirs.

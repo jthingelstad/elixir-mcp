@@ -13,7 +13,7 @@
  * the entry's `version`, and rewrites "MCP <old>" in the fragments this
  * branch added (docs/notes/, apps/site/src/_data/updates/ and the version
  * file itself). It never touches a file the branch did not add. The JSON
- * API pin (services/web-api/test/integration-api.pin.json) records the
+ * API pin (services/web-api/test/sign-in-api.pin.json) records the
  * JSON API's own version, not the contract's, so it is left alone.
  *
  * It edits the working tree only and prints the paths to stage.

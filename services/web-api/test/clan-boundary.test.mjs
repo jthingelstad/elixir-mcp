@@ -73,22 +73,20 @@ test("MCP and public tool code cannot import private Clan state", async () => {
 test("the approved reader serves exactly two tools, each to its own principals", async () => {
   const { clanContextTools } =
     await import("../../../packages/tools/src/tools/clan-context.mjs");
-  const { PERSON_ONLY_TOOLS, AGENT_ONLY_TOOLS, NOT_FOR_PERSONS } =
+  const { PERSON_ONLY_TOOLS, NOT_FOR_PERSONS } =
     await import("@elixir-mcp/contracts");
   assert.deepEqual(Object.keys(clanContextTools).sort(), [
     "clans_directory",
     "clans_my_view",
   ]);
   assert.ok(PERSON_ONLY_TOOLS.includes("clans_my_view"));
-  // A person and their agents; never an integration.
-  assert.ok(AGENT_ONLY_TOOLS.includes("clans_directory"));
+  // A person and their agents.
   assert.ok(!PERSON_ONLY_TOOLS.includes("clans_directory"));
   assert.ok(!NOT_FOR_PERSONS.includes("clans_directory"));
 });
 
 // The clan directory (#768) reads through the same seam: Clan's web wiring
-// and, since 12.0.0, the clans_directory tool (which /api/v1's
-// GET /clans/directory mirrors). Nothing else calls it.
+// and, since 12.0.0, the clans_directory tool. Nothing else calls it.
 test("only Clan's web wiring and the clans_directory tool read the clan directory", async () => {
   const callers = [];
   for (const top of ["services", "packages", "apps"]) {

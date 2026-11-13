@@ -27,7 +27,7 @@ import { makeRegistry } from "../src/tools.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DOCS = path.join(here, "../../../apps/site/src/docs");
-const KINDS = ["person", "agent", "integration"];
+const KINDS = ["person", "agent"];
 
 const registry = makeRegistry();
 const served = new Map(

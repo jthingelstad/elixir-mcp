@@ -347,7 +347,7 @@ member reads your nicknames, and no page shows another member which
 players are yours today, but for the lines [What members
 see](#what-members-see) lists. So is your own view in Clan (your standing line and
 the Actions waiting for you): your own connection reads it, for a
-player you have verified, and no agent or integration does
+player you have verified, and no agent does
 ([Your own view](/docs/clan-your-own-view#your-own-view)). The game record
 itself (battles, profiles, clans) is public game data, and every
 active account can read it. The one public line tied to an account is

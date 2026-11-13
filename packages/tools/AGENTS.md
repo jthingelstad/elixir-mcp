@@ -1,7 +1,7 @@
 # packages/tools: the tool registry
 
-Every read Elixir answers, as MCP tools (`services/mcp`) and as the JSON
-API's mirrored operations (`services/web-api`, `/api/v1`), plus the
+Every read Elixir answers, as MCP tools (`services/mcp`) and as the web
+app's reads (`services/web-api`), plus the
 invoker, quota, identity, live fetch and call capture around them. The
 contract (version, changelog, errors, groups, principals, the OpenAPI
 document) is `packages/contracts`. To add or change a tool, follow
@@ -21,10 +21,8 @@ document) is `packages/contracts`. To add or change a tool, follow
   none answers a game-wide statistic or a recommendation
   (`docs/DECISIONS.md`).
 - **One derivation:** a fact two doors serve comes from one function in
-  `packages/record`; `services/web-api/test/record-parity.test.mjs` and
-  `services/web-api/test/integration-pin.test.mjs` hold MCP and `/api/v1`
-  together. A field removed from a tool an `/api/v1` operation mirrors is
-  a JSON API major: stop for Jamie.
+  `packages/record`. `/api/v1` mirrors no tool: it answers only
+  `GET /api/v1/me` (`services/web-api/src/sign-in-api.mjs`).
 - **Budgets:** an MCP result over `MCP_RESULT_MAX_CHARS`
   (`src/result-text.mjs`) is `result_too_large`, never a silent clip; reads
   race a `query_timeout` and a 5 s lock wait (`src/invoker.mjs`).

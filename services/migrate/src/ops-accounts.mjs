@@ -154,7 +154,6 @@ export async function accountRoleOp(databaseUrl, spec) {
  * cannot drift between the two ways in.
  */
 export async function principalOp(databaseUrl, spec) {
-  if (spec?.kind === "integration") return { error: "use_integration_api" };
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {

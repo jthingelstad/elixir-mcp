@@ -1,13 +1,13 @@
 ---
 slug: sign-in-with-elixir
 title: "Sign in with Elixir"
-description: "How Elixir Drop signs you in with your Elixir account, or creates one: what it asks for, why a family app shows no consent page, how to end a grant, and what an app outside the family can and cannot get, with the endpoints, doors and scopes."
+description: "How Elixir Drop signs you in with your Elixir account, or creates one: what it asks for, why a family app shows no consent page, how to end a grant, what an app outside the family can and cannot get, and GET /api/v1/me, the one request an app makes to learn who you are."
 section: build
 order: 2
 navTitle: "Sign in with Elixir"
 icon: log-in
 lede: "Elixir's family apps sign you in with your Elixir account, and create one if you are new: no consent page, and one grant you can see and end in Settings. Other apps can ask too, for less, and you approve each one."
-reviewed: "2026-10-12 against contract 11.11.3"
+reviewed: "2026-11-13 against contract 13.0.0 and JSON API 5.0.0"
 callout: ["Open it at Settings › Connections & agents", "/settings/connections", "Open Connections & agents"]
 ---
 
@@ -27,12 +27,12 @@ of Elixir and uses your Elixir session directly.
 
 Drop is a **family app**: a client Elixir provisioned itself, with a
 secret it sends at `/oauth/token` (`client_secret_post`), and every return
-address on a family origin. A family app reads the
-[JSON API](/docs/json-api) as you without an hourly limit, and only a
+address on a family origin. A family app calls
+[`GET /api/v1/me`](#get-api-v1-me) as you without an hourly limit, and only a
 family app can be given `account:email`, and only when
 it asks. Drop learns who you are, and the players you follow, from
-`GET /api/v1/me`, your address from `/oauth/userinfo`, and adds your Drop player to your Elixir account with
-`POST /api/v1/me/players` when it is not there yet.
+`GET /api/v1/me`, and your address from `/oauth/userinfo`. It writes
+nothing to Elixir.
 
 ## What you see
 
@@ -87,17 +87,18 @@ is public, and PKCE with S256 is required. A registration is refused
 when its name begins with Elixir's or POAP KINGS' name, or when a return
 address is on a family origin. What an outside app can get:
 
-- a grant for the **JSON API** (`resource` `https://elixir.poapkings.com/api/v1`)
-  or for the person's **MCP door** (`/mcp`), never both on one token: a
-  token for one door is refused at the other;
+- a grant for **Sign in with Elixir** (`resource`
+  `https://elixir.poapkings.com/api/v1`) or for the person's **MCP door**
+  (`/mcp`), never both on one token: a token for one door is refused at
+  the other;
 - the ordinary capabilities below, starting from `cr:read`, which every
-  request includes;
-- JSON API calls up to 600 an hour for each person, shared by every
-  outside app acting for them.
+  request includes; the others are what the person's MCP door allows;
+- `GET /api/v1/me` up to 600 times an hour for each person, shared by
+  every outside app acting for them.
 
 It never gets the person's email address, and there
 is no OpenID Connect: no ID token. Who the person is comes from
-`GET /api/v1/me`, their principal and the players they follow.
+`GET /api/v1/me`.
 
 | Scope | What the page says | Who can ask |
 |---|---|---|
@@ -112,3 +113,43 @@ The endpoints are `/.well-known/oauth-authorization-server`,
 `/oauth/authorize`, `/oauth/token`, `/oauth/revoke` and, for a family
 app holding `account:email`, `/oauth/userinfo`. Every parameter, error
 and token lifetime is on [Protocol: OAuth 2.1](/docs/connecting#oauth-2-1).
+
+## GET /api/v1/me
+
+`https://elixir.poapkings.com/api/v1/me` is the one request a signed-in
+app makes: send the access token as `Authorization: Bearer <token>`,
+from a grant whose resource is `https://elixir.poapkings.com/api/v1`.
+The [OpenAPI document](/docs/integration-api.json) describes it, and its
+`info.version` is this door's own version, separate from the MCP
+contract.
+
+A success is `{ "data": ..., "request_id": "..." }`, with the same id in
+an `x-request-id` header. `data` holds:
+
+- `account_id`: the person's Elixir account, the same value as
+  `/oauth/userinfo`'s `sub`, and the same for as long as the account
+  lives;
+- `principal`: who they are to Elixir, as an MCP `initialize` says it;
+- `players`: the players they follow, with each one's tag, name, clan
+  and who it is to them;
+- `email`: only for a family app holding `account:email`.
+
+`/api/v1` answers nothing else. Elixir has people and their agents, and
+an agent reads through [MCP](/docs/connecting).
+
+## Errors
+
+An error is `application/problem+json`: `type`, `title`, `status`, a
+`code` to branch on, a `detail` to show and the `request_id`, with a
+`Retry-After` header when a retry will help.
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_json` | the body is not a JSON object; send none on a GET |
+| 401 | `unauthenticated` | no token, or one that is expired, revoked or for another door |
+| 404 | `not_found` | any path or method but `GET /api/v1/me`, before a token is read |
+| 429 | `rate_limited` | an outside app past 600 an hour for this person; `Retry-After` is the seconds to the top of the hour |
+| 500 | `internal` | a fault on Elixir's side that a retry will not fix |
+| 503 | `temporarily_unavailable` | the database was briefly unreachable; retry after `Retry-After` |
+
+Quote the `request_id` when you [report a problem](/settings/feedback).

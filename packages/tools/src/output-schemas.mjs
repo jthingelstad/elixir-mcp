@@ -559,7 +559,7 @@ const PARTICIPATION_TABLE_ROW = {
 /** clans_roster's per-member roster figures (9.17.0) are served where
  *  no result cap applies: a full clan's agent read would not fit them. */
 const ROSTER_REST_ONLY =
-  "On /api/v1 and the web app only (9.17.0): a full clan's agent read would pass the result cap with it.";
+  "On the web app only (9.17.0): a full clan's agent read would pass the result cap with it.";
 
 /** clans_my_view (11.12.0, #535): a person's own view of one clan in Elixir
  *  Clan. Every object is closed: nothing beyond the three things can ride
@@ -1624,7 +1624,7 @@ export const OUTPUT_SCHEMAS = {
       columns: {
         type: "object",
         description:
-          "9.16.0, MCP only: the agent's read is a table. Each members and former_members row is an array whose entries these name, in order: the same fields /api/v1 and the web app serve as objects.",
+          "9.16.0, MCP only: the agent's read is a table. Each members and former_members row is an array whose entries these name, in order: the same fields the web app serves as objects.",
         properties: {
           members: { type: "array", items: { type: "string" } },
           former_members: { type: "array", items: { type: "string" } },

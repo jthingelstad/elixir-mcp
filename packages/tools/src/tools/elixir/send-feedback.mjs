@@ -14,11 +14,11 @@ import {
   notes,
 } from "../shared.mjs";
 
-/** The door a call came through, as feedback names it: the JSON API
- *  runs this tool for POST /api/v1/feedback (0204). */
+/** The door a call came through, as feedback names it. MCP is the only
+ *  door that runs this tool since JSON API 5.0.0; feedback the JSON API
+ *  filed before then keeps its `api` surface. */
 const DOOR = {
   mcp: { surface: "mcp", area: "mcp" },
-  rest: { surface: "api", area: "api" },
 };
 
 const DROP_REASON = {

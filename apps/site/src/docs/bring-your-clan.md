@@ -18,7 +18,7 @@ have written how the clan runs, standing, actions and awards. It never
 acts in the game and never decides for anyone; the leaders do. Every
 page is behind sign-in, and only people sign in. Your own agent reads
 the public part of a clan's policy, its Clan Wars intent among it, in the
-[clan directory](/docs/clan-directory#agents-and-apps). What you connect to
+[clan directory](/docs/clan-directory#agents). What you connect to
 Elixir as yourself can read your own view here (the policy, your own
 standing line and the Actions waiting for you), never anyone else's
 ([Your own view](/docs/clan-your-own-view#your-own-view)).

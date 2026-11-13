@@ -23,9 +23,9 @@
  * would never be narrated; the game already tells the whole clan, so
  * keeping it from the clan's own agent kept nothing from anyone.
  *
- * `app` among a clan fact's attesters (9.6.0) means the family app itself
- * writes it on its integration key (`facts:write`), not a person: what the
- * app computed from its own rules (Elixir Clan's award standings), labelled
+ * `app` among a clan fact's attesters (9.6.0) means Elixir Clan itself
+ * writes it (Clan's morning run, in process since Clan became part of
+ * Elixir), not a person: what the app computed from its own rules (Elixir Clan's award standings), labelled
  * as the app's, never passed off as a leader's word.
  *
  * This registry is the one list: the write routes validate against it, and
@@ -53,8 +53,10 @@ export interface FactType {
   subject: FactSubject;
   visibility: FactVisibility;
   /** Clan facts: the in-game roles that may attest it; `self` lets the
-   *  member it is about attest it too; `app` is the family app on its
-   *  integration key (9.6.0). Player facts are an integration's. */
+   *  member it is about attest it too; `app` is Elixir Clan itself
+   *  (9.6.0). Player facts were a family app's, written on an integration
+   *  key; nothing writes them since JSON API 5.0.0 and the stored ones
+   *  stay readable. */
   attesters: readonly string[];
   /** Whether the fact is about one member (`player_tag` required). */
   member: boolean;

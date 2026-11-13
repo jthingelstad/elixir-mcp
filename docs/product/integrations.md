@@ -53,11 +53,7 @@ Drop write to Elixir; accept an MCP token at `/api/v1`.
 
 ## Open
 
-- **The build.** Ruled 2026-11-13, not yet built. Today Drop holds an
-  integration key (the game clock, recorded profiles, a profile refresh)
-  and an OAuth grant that adds alt claims and writes personal records;
-  `/api/v1` serves the tool mirrors and social reads. Clan's morning run
-  already moved inside Elixir (2026-11-13): it reads the record, writes
-  its award standings and sends the Actions mail in process, and its fact
-  and mail doors went in JSON API 4.0.0. Order for the rest: Drop stops
-  calling them, then the keys, scopes and mirrors go in a JSON API major.
+- **The build.** Built 2026-11-13 in JSON API 5.0.0
+  (`docs/notes/2026-11-13-api-v1-sign-in-only.md`): `/api/v1` answers
+  `GET /api/v1/me` alone, the integration keys and Admin → Integrations
+  are gone, and Drop asks for nothing else. Nothing else is open.

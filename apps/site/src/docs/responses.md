@@ -147,7 +147,7 @@ The same facts ride as data, in `_meta` on the initialize result:
 }
 ```
 
-`kind` is `person`, `agent` or `integration`. `subject` is the clan an agent
+`kind` is `person` or `agent`. `subject` is the clan an agent
 acts for, the primary player a person is, or `null`, and it is **always
 present**, so a misconfigured agent with no clan is something you can detect at
 boot rather than discover in an empty answer. A person also gets a separate

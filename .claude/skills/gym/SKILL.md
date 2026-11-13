@@ -20,23 +20,11 @@ build we announce.
 
 `badges`, `battles`, `cards`, `clans`, `elixir`, `game`, `players`, `war`
 
-These are the tool-name prefixes. `live_*` is out, and so are the web app,
-email and the `/api/v1` JSON API: the Gym does not test them, because they
-derive from the MCP (Jamie, 2026-09-23). The grid is `coverage.md` in this
-directory.
-
-Out of scope for testing is not out of scope for fixing. JSON API
-operations serve eight tools' results: `clans_participation`, `clans_roster`,
-`war_history`, the `live_fetch` clan read, `players_names`, `players_profile`,
-`battles_query` and `elixir_follow_player` (`POST /api/v1/me/players`) (the `x-tool`
-operations; wiring in `services/web-api/src/integration-api.mjs`,
-contract in `packages/contracts/integration-api.openapi.json`). A fix to
-one of those tools is checked against its operation before it ships. The
-MCP versioning rule is MCP-only (majors track domain shifts; removing an
-unreliable field is a patch), while the JSON API keeps ordinary semver, so
-a Gym patch that removes or renames a field the operation returns would be
-a JSON API major. A round that would change a JSON API response stops and
-asks Jamie (see "Stop and ask Jamie").
+These are the tool-name prefixes. `live_*` is out, and so are the web app
+and email: the Gym does not test them, because they derive from the MCP
+(Jamie, 2026-09-23). The grid is `coverage.md` in this directory.
+`/api/v1` is Sign in with Elixir's `GET /api/v1/me` alone (JSON API 5.0.0)
+and mirrors no tool, so no Gym fix reaches it.
 
 ## The Gym's account
 
@@ -159,9 +147,6 @@ Gym runs are read-only, so they may run while you fix another family.
      read its `captured_at` before building a stale-deploy theory.
    - Fix at the source. The site docs and a What's new file in
      `apps/site/src/_data/updates/` go in the same commit.
-   - Check the JSON API for the eight mirrored tools (see "Scope"). If the
-     fix would change what the `/api/v1` operation returns, stop: park the
-     family and ask Jamie.
    - Merge the report's appendix into `acceptance/gym.json` unchanged.
      Fetch each finding's bite:
      `acceptance/bites/fetch.mjs <date> <request-id prefix> <name> <feedback id>`.
@@ -201,10 +186,6 @@ rest):
 - a refusal that breaks existing callers,
 - anything touching a decision or declined idea in `docs/DECISIONS.md` (for example a branded
   metric, or the 7.0.0 refusals),
-- a change to a JSON API response (a fix to `clans_participation`,
-  `clans_roster`, the `live_fetch` clan read, `players_names`,
-  `players_profile` or `battles_query` that alters what its `/api/v1`
-  operation returns).
 
 **The sweep ends when** all ten families are clean, or clean-or-parked. The
 final message to Jamie has four parts:

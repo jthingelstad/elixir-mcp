@@ -70,7 +70,7 @@ collector. At this scale you should be adding capacity to the fleet, not
 only consuming it.
 
 **admin**: runs Admin day-to-day: answers feedback,
-provisions platform integrations, revokes connections, and grants or
+revokes connections, and grants or
 removes partner. Unlimited quotas, exempt from every cap.
 
 **owner**: the super admin; exactly one. Everything an admin can do,
@@ -106,17 +106,11 @@ That separation is the point. An agent that borrowed your identity would answer
 "who am I" with *your* player tag, which is not what a clan's Discord bot should
 be able to say out loud.
 
-**An integration** connects another platform to the [REST API](/docs/integrations).
-It is platform access an admin provisions: no role
-includes one, and it is set up with explicit permissions and independent
-API and refresh limits. It has no personal subject or inherited
-admin authority.
-
-| | You | Agent | Integration |
-|---|---|---|---|
-| Acts for | yourself | a clan | its own users |
-| Signs in with | OAuth | OAuth or a key | a key |
-| Available to | everyone | everyone, per clan you record | admin provisioned |
+| | You | Agent |
+|---|---|---|
+| Acts for | yourself | a clan |
+| Signs in with | OAuth | OAuth or a key |
+| Available to | everyone | everyone, per clan you record |
 
 ## Followed means recorded
 

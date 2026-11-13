@@ -21,8 +21,8 @@
  * verified player has one claimant here. What an Elder, Co-leader or Leader does here
  * waits for Settings → Players → Verify; `unlock` names the unverified player that
  * would bring more, so the app can say so. Nothing stored here decides a
- * role. Reads only: `initialize` (`GET /api/v1/me`, which carries the
- * players too), and `elixir_my_players` only from a door that does not.
+ * role. Reads only: MCP `initialize` carries the players too, and
+ * `elixir_my_players` reads them only from a door that does not.
  */
 
 import { roleLabel, roleRank } from "./roles.mjs";

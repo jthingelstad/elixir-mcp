@@ -83,7 +83,7 @@ const AGENT_ARGS = ["on_behalf_of", "display_name"];
 
 /** A connection that is a person's: no kind, "person", or anything the
  *  principals module does not know (toolsHiddenFrom's rule). */
-const isPerson = (kind) => kind !== "agent" && kind !== "integration";
+const isPerson = (kind) => kind !== "agent";
 
 function withoutAgentArgs(schema) {
   const props = schema.properties ?? {};

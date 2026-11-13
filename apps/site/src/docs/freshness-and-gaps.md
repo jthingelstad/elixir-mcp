@@ -237,12 +237,11 @@ and nothing is dropped:
   exactly.
 
 The eight-week read of a 50-member clan with 20 departures answers in
-under 40,000 characters at either verbosity. The JSON API's
-`GET /clans/{tag}/participation` and the website serve the same rows as
-objects with the two fields above, and have no cap.
+under 40,000 characters at either verbosity. The website serves the same
+rows as objects with the two fields above, and has no cap.
 
 To replay a clan's rules at a past finish, take the population from
-`place_at_war_finish` (or, from the JSON API, `in_clan_at_war_finish`)
+`place_at_war_finish` (or, on the website, `in_clan_at_war_finish`)
 across `members` and `former_members` together, and each one's role from
 the same column (`role_at_war_finish`); today's `role` is only today's.
 

@@ -120,8 +120,8 @@ weekly and on no other kind; off is still `enabled = false`, so choosing
 a cadence never turns the digest on, and turning it off keeps the
 cadence. `PUT /api/me/email` takes `{kind: "tracking_report", cadence}`
 with or without `enabled`. Every change
-writes an `account_event`. Person principals only: agents and
-integrations have no inbox. The ops op is the test path; there is no
+writes an `account_event`. Person principals only: agents have
+no inbox. The ops op is the test path; there is no
 "send me this now" button. `collector_activity` can be flipped only by an
 account with a collector, and `clan_actions_waiting` only by one with a
 verified player in a clan (`applies`). `PUT /api/me/email` takes kind

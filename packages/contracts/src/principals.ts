@@ -13,7 +13,7 @@
  * server refuses a hidden tool as well as omitting it.
  */
 
-export type PrincipalKind = "person" | "agent" | "integration";
+export type PrincipalKind = "person" | "agent";
 
 /**
  * Tools that assume a person.
@@ -39,47 +39,19 @@ export const PERSON_ONLY_TOOLS: readonly string[] = [
 ];
 
 /**
- * Additionally withheld from integrations, which have no "me" at all.
- *
- * Nicknames are a private naming layer over people you follow; an agent
- * legitimately has one for its clan's members, an integration has nobody.
- * The timeline is built from added subjects, and an integration adds none —
- * it would return an empty window forever, which is worse than absent.
- */
-export const AGENT_ONLY_TOOLS: readonly string[] = [
-  "elixir_nickname",
-  "elixir_timeline",
-  // An integration follows nothing (it adds no subjects; claims refuses it).
-  "elixir_follow_player",
-  "elixir_follow_clan",
-  // The social layer is a person's and their agents' (12.0.0, DECISIONS
-  // "Agents read the social layer and never write it"): an integration has
-  // no person to read follows, highlights, cheers or the directory for.
-  "players_follows",
-  "players_highlights",
-  "clans_directory",
-  "elixir_cheers",
-];
-
-/**
  * Withheld from a person's connection: the identity map is an agent's
  * (one connection serving several humans, `on_behalf_of` naming which).
  * A person is themselves, so a personal connection ignores on_behalf_of
- * and has no map to keep; an integration serves no humans by name
- * either (Jamie, 2026-09-25: the identity tools are agent-only).
+ * and has no map to keep (Jamie, 2026-09-25: the identity tools are
+ * agent-only).
  */
 export const NOT_FOR_PERSONS: readonly string[] = ["elixir_my_identities"];
 
 export function toolsHiddenFrom(kind: string | null | undefined): Set<string> {
   // Unknown or absent kind is a person: every credential issued before the
-  // three-kind model is one, and defaulting the other way would silently
-  // remove tools from real users.
+  // principal kinds is one, and defaulting the other way would silently
+  // remove tools from real users. An integration account presents no
+  // credential any door takes (JSON API 5.0.0), so it never gets here.
   if (kind === "agent") return new Set(PERSON_ONLY_TOOLS);
-  if (kind === "integration")
-    return new Set([
-      ...PERSON_ONLY_TOOLS,
-      ...AGENT_ONLY_TOOLS,
-      ...NOT_FOR_PERSONS,
-    ]);
   return new Set(NOT_FOR_PERSONS);
 }

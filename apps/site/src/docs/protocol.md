@@ -25,7 +25,6 @@ list.
 |---|---|---|---|
 | `person` | `/mcp` | `elixir_my_identities` | {{ tools.personCount }} |
 | `agent` | `/a/<public_id>/mcp` | `elixir_my_players`, `clans_my_view` | {{ tools.agentCount }} |
-| `integration` | `/i/<public_id>/mcp` | `elixir_my_players`, `clans_my_view`, `elixir_nickname`, `elixir_timeline`, `elixir_follow_player`, `elixir_follow_clan`, `players_follows`, `players_highlights`, `clans_directory`, `elixir_cheers`, `elixir_my_identities` | {{ tools.integrationCount }} |
 
 The counts are generated from the registry at build time. Hiding is
 enforced: calling a hidden tool answers JSON-RPC `-32601` with `data.kind`
@@ -99,8 +98,8 @@ reads the current declaration, output schema and notes, so a missing field
 simply withdraws a claim. A major marks a shift in the domain model, one that
 changes what a task means. There is no deprecation window; a renamed or
 removed field goes in the release that replaces it. Every response carries
-`meta.contract_version`. The JSON API at `/api/v1` is for programs and keeps
-ordinary semver of its own ([Integrations](/docs/integrations#versions)).
+`meta.contract_version`. `/api/v1`, Sign in with Elixir's one request, keeps
+ordinary semver of its own ([Sign in with Elixir](/docs/sign-in-with-elixir#get-api-v1-me)).
 
 ## Errors
 
@@ -293,8 +292,8 @@ in its hint.
 
 ## Feedback and the changelog, over the wire
 
-Feedback is one record for all of Elixir: an item filed here, over the
-JSON API (`POST /api/v1/feedback`), from Settings, Stats, Clan,
+Feedback is one record for all of Elixir: an item filed here, from
+Settings, Stats, Clan,
 the docs or an email's footer lands in the same queue, is answered there,
 and is listed by `elixir_my_feedback` wherever it was filed.
 
@@ -368,7 +367,7 @@ date). The same text is reachable as resources at `elixir://docs`,
 | `/llms.txt` | this site in one page: docs index, tool list, endpoint |
 | `/llms-full.txt` | every documentation page and the full tool reference in one fetch |
 | `/tools.json` | the registry as JSON: name, group, description, arguments, required scope |
-| `/docs/integration-api.json` | the REST API's OpenAPI 3.1 document |
+| `/docs/integration-api.json` | the OpenAPI 3.1 document for `GET /api/v1/me` ([Sign in with Elixir](/docs/sign-in-with-elixir#get-api-v1-me)) |
 | `/updates` | every shipped change, contract versions included - the same list `elixir_changelog` returns, with the releases around it |
 | `/feed.xml` | RSS 2.0 of What's new: the newest 50 updates and contract versions, each item's id its own `/updates/<slug>` page |
 | `/feed.json` | the same items as JSON Feed 1.1 |

@@ -67,13 +67,6 @@ test("a brand-new person has no subject yet, and that is reportable", () => {
   assert.deepEqual(block, { kind: "person", subject: null });
 });
 
-test("an integration has no subject of its own", () => {
-  assert.deepEqual(principalBlock("integration", { kind: "integration" }), {
-    kind: "integration",
-    subject: null,
-  });
-});
-
 test("an absent kind reads as a person, matching every other door", () => {
   // Strictly-expand rule: an unknown or absent kind is a person everywhere
   // else in this system, and this must not be the one place it is not.

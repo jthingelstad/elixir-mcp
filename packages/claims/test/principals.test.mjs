@@ -114,23 +114,18 @@ test("a clan you have not added is refused, whichever door you came in by", asyn
   assert.equal(r.error, "clan_not_added");
 });
 
-test("integrations are partner+, and counted", async () => {
-  const refused = await createPrincipal(db, member, {
-    kind: "integration",
-    name: "app",
-    tokenHash: hash("d"),
-  });
-  assert.equal(refused.error, "not_entitled");
-
-  // admin is unlimited, so it can hold more than partner's single slot.
-  for (const n of ["drop", "site"]) {
-    const ok = await createPrincipal(db, admin, {
+test("only agents are created: an integration is refused, even for an admin", async () => {
+  const before = await db.query(`select count(*)::int as n from account`);
+  for (const owner of [member, admin]) {
+    const refused = await createPrincipal(db, owner, {
       kind: "integration",
-      name: n,
-      tokenHash: hash(n),
+      name: "app",
+      tokenHash: hash("d"),
     });
-    assert.equal(ok.ok, true, JSON.stringify(ok));
+    assert.equal(refused.error, "invalid_kind");
   }
+  const after = await db.query(`select count(*)::int as n from account`);
+  assert.equal(after.rows[0].n, before.rows[0].n);
 });
 
 test("a raw token can never be passed in by accident", async () => {

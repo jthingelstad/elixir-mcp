@@ -54,10 +54,10 @@ is where the war-days gap lived.
 
 | Surface | Path | Must agree with |
 |---|---|---|
-| Wiring | `services/web-api/src/integration-api.mjs` | the MCP tool each person route mirrors, its required scope |
-| Contract | `packages/contracts/integration-api.openapi.json` | the mirrored tools' output; ordinary semver |
-| Pin | `services/web-api/test/integration-api.pin.json` | moves only with `info.version` |
-| Docs | `apps/site/src/docs/integrations.md` (Versions list) | the OpenAPI version and its changes |
+| Door | `services/web-api/src/sign-in-api.mjs` | `GET /api/v1/me` alone; every other path the unknown operation's 404 |
+| Contract | `packages/contracts/integration-api.openapi.json` | the door's one operation; ordinary semver |
+| Pin | `services/web-api/test/sign-in-api.pin.json` | moves only with `info.version` |
+| Docs | `apps/site/src/docs/sign-in-with-elixir.md` (`GET /api/v1/me`, Errors) | the OpenAPI document |
 
 ## 5. Recording, schema and operations
 
@@ -96,7 +96,7 @@ is where the war-days gap lived.
 |---|---|---|
 | Clan inside Elixir | `services/web-api/src/clan.mjs`, `packages/clan`, `packages/clan-state`, `apps/web/src/clan` | shared account, current role, private-state boundary |
 | Discord delivery (inside Elixir) | `packages/syndication` (the cross-post `lines.mjs`/`sync.mjs`; a clan's channel `clan-sync.mjs`, `editor-research.mjs`, `relay.mjs`), `packages/clan-engine` (`stories.mjs`, `editor.mjs`, `activity.mjs`), `services/timeline-sync`, `packages/ui/src/DiscordDeliveries.tsx`, the quality ledger (`packages/syndication/src/quality.mjs`, 0222, the `discord-receipt/` lane, the archive's `discord-runs/` lifecycle, the jobs sweep) | the timeline's items and their stamp rule, the activity channel's DECISIONS line, "Elixir judges its Discord posts from its own record", `/docs/clan-policy`, `/docs/timeline`, `/docs/limits`, `/docs/privacy`, the outbox lanes in `infra/template.yaml` and OPERATIONS |
-| `../drop.poapkings.com` | `services/api/src/elixir-oauth.ts` (sign-in, `/api/v1`), `elixir-mcp.ts` and `elixir-player.ts` (authorized profile reads), `seasons.ts` (policy clock), SPEC.md, AGENTS.md | `/api/v1`, the OAuth door, the clock |
+| `../drop.poapkings.com` | `services/api/src/elixir-oauth.ts` (sign-in and `GET /api/v1/me`), SPEC.md, AGENTS.md | `GET /api/v1/me`, the OAuth door |
 | `../elixir-mcp-discord` | `src/events.js`, `src/prompt.js`, `src/feedback.js`, AGENTS.md | `elixir_timeline` paging and order, tool names |
 | `../cr-agent-api-docs` | the endpoint and field pages | the hub's observed semantics (general findings only); `.claude/skills/reference-audit/` checks it against the payload archive |
 | `../poapkings.com` | `src/elixir-mcp.njk`, member pages | REPORT ONLY (Jamie, 2026-09-25) |

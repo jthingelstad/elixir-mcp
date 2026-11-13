@@ -20,13 +20,15 @@ import {
 
 const ISSUER = "https://elixir.poapkings.com";
 // Kept identical to the CHECK in db/migrations/0160_oauth_api_resource.sql.
+// It still admits /i/<id>/mcp, an integration's MCP door; the code names
+// no such audience since JSON API 5.0.0, so no door accepts one.
 const SQL_PATTERN =
   /^https:\/\/elixir\.poapkings\.com\/(mcp|api\/v1|[ai]\/[a-z0-9]{8,16}\/mcp)$/;
 
 const CASES = [
   ["/mcp", "person", null],
   ["/a/abcd1234/mcp", "agent", "abcd1234"],
-  ["/i/abcd12345678/mcp", "integration", "abcd12345678"],
+  ["/i/abcd12345678/mcp", null, null],
   ["/api/v1", "api", null],
   ["/api/v1/", null, null],
   ["/api/v1/me", null, null],
@@ -47,7 +49,7 @@ const CASES = [
   ["", null, null],
 ];
 
-test("only four shapes name a resource, and the code agrees with the constraint", () => {
+test("only three shapes name a resource, and the code agrees with the constraint", () => {
   for (const [path, kind, publicId] of CASES) {
     const got = resourceForPath(path, ISSUER);
     if (kind === null) {
@@ -85,11 +87,12 @@ test("a credential belongs at exactly one door", () => {
   const personUrl = resourceForPath("/mcp", ISSUER);
   const agentUrl = resourceForPath("/a/abcd1234/mcp", ISSUER);
   const otherAgentUrl = resourceForPath("/a/zzzz9999/mcp", ISSUER);
-  const integrationUrl = resourceForPath("/i/abcd1234/mcp", ISSUER);
 
   const person = { kind: "person" };
   const legacy = {}; // every credential issued before the three-kind model
   const agent = { kind: "agent", publicId: "abcd1234" };
+  // A stored integration account (Clan's attester) holds no credential
+  // any door takes; were one presented, it would match nothing.
   const integration = { kind: "integration", publicId: "abcd1234" };
 
   assert.ok(principalMatchesResource(person, personUrl));
@@ -98,7 +101,8 @@ test("a credential belongs at exactly one door", () => {
     "unknown kind is a person",
   );
   assert.ok(principalMatchesResource(agent, agentUrl));
-  assert.ok(principalMatchesResource(integration, integrationUrl));
+  for (const url of [personUrl, agentUrl])
+    assert.ok(!principalMatchesResource(integration, url), url.resource);
 
   // The failures this whole scheme exists to convert into refusals.
   assert.ok(
@@ -112,10 +116,6 @@ test("a credential belongs at exactly one door", () => {
   assert.ok(
     !principalMatchesResource(agent, otherAgentUrl),
     "one agent's key at another agent's door",
-  );
-  assert.ok(
-    !principalMatchesResource(agent, integrationUrl),
-    "same id, different kind, still no",
   );
   assert.ok(!principalMatchesResource(null, personUrl));
   assert.ok(!principalMatchesResource(agent, null));

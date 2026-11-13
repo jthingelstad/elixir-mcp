@@ -61,10 +61,9 @@ has no account to speak for.
 A page never shows a nickname, yours included, a Discord username or an email
 address.
 
-Your own agent reads the same section with the MCP tool `players_follows`
-(`GET /api/v1/players/{tag}/follows`), reading as you, its owner: `badges`,
+Your own agent reads the same section with the MCP tool `players_follows`, reading as you, its owner: `badges`,
 `follows` and `followers`, null when no account has verified the player.
-An integration key reads none of it. An agent never follows anyone on the
+An agent never follows anyone on the
 page's behalf; following stays the person's ask (`elixir_follow_player`).
 
 ## Following from the page

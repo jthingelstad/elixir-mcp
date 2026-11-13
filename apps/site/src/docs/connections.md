@@ -1,30 +1,30 @@
 ---
 slug: connections
-title: "Users, agents and integrations"
-description: "Three kinds of connection to Elixir, what each one is for, and which you want. A user is you. An agent acts for a clan. An integration serves its own users."
+title: "Users and agents"
+description: "Two kinds of connection to Elixir, what each one is for, and which you want. A user is you. An agent acts for a clan."
 section: connect
 order: 1
 navTitle: "Connect an agent"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
-reviewed: "2026-10-12 against contract 11.11.3 and JSON API 3.2.0"
+reviewed: "2026-11-13 against contract 13.0.0 and JSON API 5.0.0"
 callout: ["Open it at Settings › Connections & agents", "/settings/connections", "Open Connections & agents"]
 ---
 
-# Users, agents and integrations
+# Users and agents
 
-Three different things can connect to Elixir, and the difference is not
+Two kinds of connection to Elixir: you, and an agent you own. The difference is not
 technical trivia, it decides what "me" means, whose data comes back, and who
 pays for the calls.
 
 The short version:
 
-| | You | An agent | An integration |
-|---|---|---|---|
-| Acts for | yourself | a clan | its own users |
-| "Me" is | your primary player | the clan | nobody |
-| Signs in with | OAuth | a key, or OAuth by its owner | a key |
-| Who can have one | everyone | everyone | admin provisioned |
+| | You | An agent |
+|---|---|---|
+| Acts for | yourself | a clan |
+| "Me" is | your primary player | the clan |
+| Signs in with | OAuth | a key, or OAuth by its owner |
+| Who can have one | everyone | everyone |
 
 ## You
 
@@ -105,26 +105,15 @@ readable by every account either way. It works only on an agent: on your own
 connection "me" is always your primary player, `on_behalf_of` is ignored,
 and `elixir_my_identities`, which lists the map, is not listed.
 
-## An integration
-
-An integration has **no "me" at all**. It reads explicitly named recorded
-resources on behalf of its own users, naming what it wants on every call.
-
-[Elixir Drop](https://drop.poapkings.com) is the example: it looks up whoever is
-playing, in whatever clan they happen to be in, and has no relationship with any
-particular clan of its own.
-
-Integrations use the [REST Integration API](/docs/integrations), with an
-admin-issued server key, explicit permissions and their own capacity. They do
-not inherit the human sponsor's admin powers or personal quota.
-
 ## Which do I want?
 
 - **Playing Clash Royale and curious about your own history** → connect as
   yourself. Nothing else to do.
 - **Running a clan and want a Discord bot, or Claude, doing clan work** → make
   an agent for the clan.
-- **Building an app for other people** → an integration.
+- **Building an app that signs people in with Elixir** →
+  [Sign in with Elixir](/docs/sign-in-with-elixir); it learns who they
+  are, and reads nothing else.
 
 ## One connection at a time
 
@@ -206,8 +195,5 @@ its pointer.
 
 ## Making one
 
-Create clan agents under **Settings › Connections & agents › New agent**. Platform integrations are
-managed under **Admin → Integrations**. Both show a newly issued key once;
-only its hash is stored. See the [integration guide](/docs/integrations) for
-REST resources, permissions and bounded refreshes. An integration does not
-enroll a player or clan for recording.
+Create clan agents under **Settings › Connections & agents › New agent**.
+A newly issued key is shown once; only its hash is stored.

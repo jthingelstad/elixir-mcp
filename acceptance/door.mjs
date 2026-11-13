@@ -157,7 +157,7 @@ export function makeDoor({
       }
     }
     // clans_participation answers an agent as a table (#124). The cases
-    // read its rows as the objects /api/v1 serves, which it decodes to
+    // read its rows as the objects the web app serves, which it decodes to
     // exactly; `raw` keeps what the door sent.
     return {
       body: participationObjects(body),

@@ -49,7 +49,8 @@ export function normalizePrincipalName(value) {
 }
 
 /**
- * Create an agent or integration owned by `owner`, and register its first key.
+ * Create an agent owned by `owner`, and register its first key. Agents are
+ * the only principal created here: integrations went with JSON API 5.0.0.
  *
  * One transaction throughout: a half-created agent with no clan is a principal
  * with no "me", which is the exact state this whole model exists to prevent.
@@ -59,8 +60,7 @@ export async function createPrincipal(
   owner,
   { kind, name, clanTag = null, tokenHash, scope = null },
 ) {
-  if (kind !== "agent" && kind !== "integration")
-    return { ok: false, error: "invalid_kind" };
+  if (kind !== "agent") return { ok: false, error: "invalid_kind" };
   const cleanName = normalizePrincipalName(name);
   if (!cleanName) return { ok: false, error: "invalid_name" };
   if (!/^[0-9a-f]{64}$/.test(tokenHash ?? ""))
@@ -75,49 +75,38 @@ export async function createPrincipal(
     await db.query(`select 1 from account where account_id = $1 for update`, [
       owner.accountId,
     ]);
-    let clan = null;
-    if (kind === "agent") {
-      const limit = roleQuotas(owner.role).agents;
-      if (limit !== Infinity) {
-        const { rows } = await db.query(
-          `select count(*)::int as n from account
-           where owned_by_account_id = $1 and kind = 'agent'
-             and status = 'approved'`,
-          [owner.accountId],
-        );
-        if (rows[0].n >= limit) {
-          await db.query("rollback");
-          return {
-            ok: false,
-            error: "not_entitled",
-            reason: "agent_limit",
-            limit,
-            role: owner.role,
-          };
-        }
-      }
-      // The gate, and the reason agents need no tier: you may create one for a
-      // clan you have ALREADY added. Its clan is therefore always a subset of
-      // its owner's, so no second recording starts and no slot is spent twice.
+    const limit = roleQuotas(owner.role).agents;
+    if (limit !== Infinity) {
       const { rows } = await db.query(
-        `select clan_tag, scope from account_clan
-         where account_id = $1 and clan_tag = $2`,
-        [owner.accountId, clanTag],
+        `select count(*)::int as n from account
+         where owned_by_account_id = $1 and kind = 'agent'
+           and status = 'approved'`,
+        [owner.accountId],
       );
-      if (rows.length === 0) {
+      if (rows[0].n >= limit) {
         await db.query("rollback");
-        return { ok: false, error: "clan_not_added", clan_tag: clanTag };
-      }
-      clan = rows[0];
-    } else {
-      // Integrations are admin-provisioned platform access, not a tier
-      // entitlement (Jamie, 2026-09-25): the partner tier's "1" was a
-      // promise no route kept (POST /api/me/integrations answers 403).
-      if (owner.role !== "owner" && owner.role !== "admin") {
-        await db.query("rollback");
-        return { ok: false, error: "not_entitled", role: owner.role };
+        return {
+          ok: false,
+          error: "not_entitled",
+          reason: "agent_limit",
+          limit,
+          role: owner.role,
+        };
       }
     }
+    // The gate, and the reason agents need no tier: you may create one for a
+    // clan you have ALREADY added. Its clan is therefore always a subset of
+    // its owner's, so no second recording starts and no slot is spent twice.
+    const { rows } = await db.query(
+      `select clan_tag, scope from account_clan
+       where account_id = $1 and clan_tag = $2`,
+      [owner.accountId, clanTag],
+    );
+    if (rows.length === 0) {
+      await db.query("rollback");
+      return { ok: false, error: "clan_not_added", clan_tag: clanTag };
+    }
+    const clan = rows[0];
 
     const { rows: dupe } = await db.query(
       `select 1 from service_token t
@@ -134,22 +123,15 @@ export async function createPrincipal(
       `insert into account (kind, owned_by_account_id, public_id, role, status)
        values ($1, $2, $3, $4, 'approved')
        returning account_id, public_id, role`,
-      [
-        kind,
-        owner.accountId,
-        publicId(),
-        kind === "agent" ? clampRole(owner.role) : owner.role,
-      ],
+      [kind, owner.accountId, publicId(), clampRole(owner.role)],
     );
     const principal = created[0];
 
-    if (clan) {
-      await db.query(
-        `insert into account_clan (account_id, clan_tag, scope, notify, is_primary)
-         values ($1, $2, $3, true, true)`,
-        [principal.account_id, clan.clan_tag, clan.scope],
-      );
-    }
+    await db.query(
+      `insert into account_clan (account_id, clan_tag, scope, notify, is_primary)
+       values ($1, $2, $3, true, true)`,
+      [principal.account_id, clan.clan_tag, clan.scope],
+    );
 
     await db.query(
       `insert into service_token (account_id, name, token_hash, scope)

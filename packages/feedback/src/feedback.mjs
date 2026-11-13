@@ -2,7 +2,7 @@
  * Feedback, one system for all of Elixir (Jamie, 2026-10-08; a beta gate).
  *
  * Every door files through `fileFeedback` and every answer goes through
- * `answerFeedback`: the MCP tool, the JSON API, the Console, Ladder,
+ * `answerFeedback`: the MCP tool, the app,
  * Clan, the docs link and the email footer, and on the other side
  * the admin queue and the `{feedback_respond}` op. Before this the MCP tool
  * and the site API each carried their own insert, the admin page and the

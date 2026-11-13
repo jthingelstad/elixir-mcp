@@ -22,7 +22,7 @@ clan only once it records it, and it does not crawl the game for clans.
 
 Any signed-in person can open it, with a clan or without one. Signed out,
 it asks you to sign in. Your own agent can read it for you too
-([Agents and apps](#agents-and-apps)).
+([Agents](#agents)).
 
 ## What a tile shows
 
@@ -62,11 +62,10 @@ Clans are listed by name, then by tag. Nothing in the directory is a
 rating: no clan is placed above another for its size, trophies or
 anything else, and a filter only hides tiles, it never reorders them.
 
-## Agents and apps
+## Agents
 
 The same tiles reach your own agent: the MCP tool
-`clans_directory` and the JSON API operation `GET /api/v1/clans/directory`
-read the directory as this page does, in the same order, with nothing
+`clans_directory` reads the directory as this page does, in the same order, with nothing
 added. Each entry in `clans` carries `clan_tag`, `name`, `type`,
 `description`, `members`, `required_trophies`, `yours` and `policy`
 (`war_intent`, `posture`, `together`, `counted`, `removal_day`,
@@ -81,5 +80,5 @@ failed read rather than using a decision it kept.
 
 Your own connection reads it as you. An agent you own reads it as you,
 its owner: `yours` marks a clan one of your verified players is in now.
-An integration key reads none of it. Agents read the directory and never
+Agents read the directory and never
 change it; a clan joins it only when its leaders save a policy in Clan.
