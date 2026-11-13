@@ -697,6 +697,36 @@ test("standing for members: evidence in a player's terms, no internals; private 
   );
 });
 
+test("standing is shaped by the policy its verdicts were evaluated under, when a leader saves one while the record is read", async () => {
+  const h = harness({
+    players: [player({ player_tag: "#O2", clan_role: "member" })],
+    part: partClan(),
+  });
+  const cookies = await leader(h);
+  const hl = harness({ part: partClan(), ledger: h.ledger });
+  const lc = await leader(hl);
+  // The record is read outside the clan's lock: the leader hides
+  // standings from members while this member's evaluation reads it.
+  const read = h.mcp.callTool;
+  let saved = false;
+  h.mcp.callTool = async (token, name, args) => {
+    if (name === "clans_participation" && !saved) {
+      saved = true;
+      const r = await api(hl, lc, "POST", "/api/clans/2PQRJ8LV/policy", {
+        values: { ...EXAMPLE_POLICY, members_see_standing: false },
+      });
+      assert.equal(r.status, 200);
+    }
+    return read(token, name, args);
+  };
+  const s = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/standing");
+  assert.equal(s.status, 200);
+  assert.ok(saved, "the policy was saved during the read");
+  const saved_ = await h.ledger.currentPolicy("#2PQRJ8LV");
+  assert.equal(s.body.policy_version, saved_.version);
+  assert.equal(s.body.rows, null);
+});
+
 test("policy tab: a member reads how the clan runs and Elder's weights, as Standing words them", async () => {
   const h = harness({
     players: [player({ player_tag: "#O2", clan_role: "member" })],
