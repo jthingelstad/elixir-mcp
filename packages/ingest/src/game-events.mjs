@@ -1,4 +1,4 @@
-/** Factual game calendar and tournament observations. No leaderboard capture. */
+/** The factual game calendar. No leaderboard or tournament capture. */
 const byTag = (rows, key = "tag") =>
   [...rows].sort((a, b) => (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0));
 
@@ -43,19 +43,5 @@ export async function projectEvents(db, { payload, fetchedAt }) {
     events: events.length,
     day,
     facts: events.length,
-  };
-}
-
-/** Global tournaments (0069): the payload is archived, nothing projects
- *  it since 0094 (game_tournament was written and never read). The
- *  receipt still counts the observation. */
-export async function projectTournaments(_db, { payload }) {
-  const items = (payload?.items ?? []).filter(
-    (t) => typeof t?.tag === "string",
-  );
-  return {
-    projected: "tournaments",
-    tournaments: items.length,
-    facts: 0,
   };
 }

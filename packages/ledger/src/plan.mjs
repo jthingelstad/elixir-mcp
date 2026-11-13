@@ -72,7 +72,6 @@ export const CADENCE = {
   // truth — found live 2026-09-03.
   cards: { every: 1440, floor: 2880 },
   events: { every: 1440, floor: 2880 },
-  globaltournaments: { every: 1440, floor: 2880 },
 };
 
 /**
@@ -293,7 +292,7 @@ export const BOARD_DAY_ANCHOR_HOUR_UTC = 10;
  *  events read drifted ~26h50m apart and skipped a game day about every
  *  ten days (2026-09-12, 09-22), which the events calendar then showed
  *  as an event being off. */
-const ANCHORED_DAILY = new Set(["events", "globaltournaments"]);
+const ANCHORED_DAILY = new Set(["events"]);
 
 /** Start of the current board-day: the most recent 10:00Z. */
 export function boardDayStartMs(nowMs) {
@@ -399,10 +398,12 @@ async function seedPollState(db) {
   await db.query(`
     insert into poll_state (subject_tag, endpoint) values ('GLOBAL', 'cards')
     on conflict do nothing`);
-  // Event/tournament catalog capture is a separately reviewed scope decision.
+  // Event catalog capture is a separately reviewed scope decision. The
+  // tournaments row (0069) retired on 2026-11-13; its old poll_state row
+  // is never eligible again (selectEligible names only these GLOBAL reads).
   await db.query(`
     insert into poll_state (subject_tag, endpoint)
-    values ('GLOBAL', 'events'), ('GLOBAL', 'globaltournaments')
+    values ('GLOBAL', 'events')
     on conflict do nothing`);
   // Clan recording (V1.5): the clan's own heartbeat + riverrace capture
   // for EVERY clan scope; player endpoints for every OPEN member only at
@@ -499,7 +500,7 @@ async function selectEligible(db, now) {
                or exists (
                  select 1 from recording r
                  where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active')))
-         or (ps.endpoint in ('cards', 'events', 'globaltournaments')
+         or (ps.endpoint in ('cards', 'events')
              and ps.subject_tag = 'GLOBAL')
          or (ps.endpoint in ('currentriverrace', 'riverracelog') and exists (
                select 1 from recording r

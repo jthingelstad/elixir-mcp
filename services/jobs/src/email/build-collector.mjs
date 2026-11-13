@@ -151,7 +151,6 @@ function endpointLabel(e) {
       leaderboards: "leaderboards",
       leaderboard: "mode boards",
       events: "events",
-      globaltournaments: "global tournaments",
     }[e] ?? e
   );
 }

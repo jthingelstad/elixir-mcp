@@ -429,10 +429,10 @@ const CR_PATH_BY_ENDPOINT: Record<string, (key: string) => string> = {
   // The leaderboard paths went with leaderboard capture (Jamie,
   // 2026-10-02); crPathForJob refuses those endpoints by name
   // (RETIRED_RECORDING_ENDPOINTS) for any old lease or archive.
-  // What is on (0069): the events and tournaments running right now,
-  // which the API forgets the moment they end.
+  // What is on (0069): the events running right now, which the API
+  // forgets the moment they end. The tournaments read went the same way
+  // as the boards (2026-11-13): nothing projected it since 0094.
   events: () => `/events`,
-  globaltournaments: () => `/globaltournaments`,
 };
 
 export function crPathForJob(job: {
