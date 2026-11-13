@@ -10,7 +10,7 @@ right now", with no trophy timelines, no battle archive beyond a rotating
 log of about 30 battles and no per-season history. Elixir's collectors
 record the players and clans its accounts follow and the members of the
 clans they follow, and keep those observations. The record is served on one
-origin: Home, Stats and Elixir Clan in the browser, an authenticated remote
+origin: Home, Stats and Clan in the browser, an authenticated remote
 MCP server for a person's own agent, and a versioned JSON API.
 
 - Web: <https://elixir.poapkings.com>
@@ -29,7 +29,7 @@ An npm workspaces monorepo.
 | Path | What it holds |
 | --- | --- |
 | `apps/site` | The static half of the site (Eleventy): home, docs, updates, and the machine-readable surfaces |
-| `apps/web` | The application half (React): Home (`src/home`: the feed, Find, You and the player page), Settings and Admin, Stats (`src/ladder`) and the shell Elixir Clan's views run in |
+| `apps/web` | The application half (React): Home (`src/home`: the feed, Find, You and the player page), Settings and Admin, Stats (`src/ladder`) and Clan (`src/clan`) |
 | `services/` | The Lambdas, each only its door (entry, handler, routes): `collector`, `email-relay`, `jobs`, `mcp`, `migrate`, `scheduler`, `timeline-sync`, `web-api` |
 | `packages/` | What more than one Lambda or app runs, imported by name: `auth`, `claims`, `client`, `clan`, `clan-engine`, `clan-state`, `collector-door` (the collectors' config, lease and submit), `contracts` (the tool and API contract), `design`, `docs`, `ingest`, `ledger`, `mail`, `outbox`, `record`, `syndication` (the timeline cross-posted to Discord), `tools` (the tool registry), `ui` |
 | `acceptance/` | The read-only acceptance suite run against the live service |
