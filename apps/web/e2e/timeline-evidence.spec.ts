@@ -90,21 +90,23 @@ for (const width of [390, 1280]) {
     await page
       .getByRole("button", { name: "Open session", exact: true })
       .click();
-    const panel = page.locator(".kit-tl__evidence");
+    // An opened session on Home (2026-11-13): its battles as styled
+    // rows, newest first, each with a way to its battle page.
+    const panel = page.locator(".kit-sgames");
     await expect(panel).toBeVisible();
-    await expect(panel).toContainText("Whether every game was read is unknown");
-    await expect(panel).toContainText("still open");
-    await expect(
-      panel.getByRole("link", {
-        name: "Win 2-1 against Example Rival, Trophy Road",
-      }),
-    ).toHaveAttribute(
+    await expect(panel).toContainText("30 battles");
+    await expect(panel).toContainText("Still playing");
+    const row = panel.locator(".kit-sgame--win");
+    await expect(row).toContainText("vs Example Rival");
+    await expect(row).toContainText("2–1");
+    await expect(row).toContainText("+30");
+    await expect(row.getByRole("link", { name: /^Battle/ })).toHaveAttribute(
       "href",
-      "https://elixir.poapkings.com/battle/abcdef000001",
+      "/battle/abcdef000001",
     );
-    await panel.getByRole("button", { name: "Next games" }).click();
+    await panel.getByRole("button", { name: "Older battles" }).click();
     await expect(
-      panel.getByRole("button", { name: "Previous games" }),
+      panel.getByRole("button", { name: "Newer battles" }),
     ).toBeVisible();
     expect(calls.at(-1)).toContain("evidence_offset=25");
     expect(
@@ -113,6 +115,11 @@ for (const width of [390, 1280]) {
     expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
       true,
     );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
     const axe = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])
       .analyze();
@@ -137,11 +144,11 @@ for (const width of [390, 1280]) {
       .click();
     // The query cache can show its old result until refetch; opening the
     // same evidence after a change must eventually surface the conflict.
-    await expect(panel.getByRole("link", { name: /Win 2-1/ })).toHaveCount(0);
+    await expect(panel.locator(".kit-sgame")).toHaveCount(0);
     await expect(panel.getByRole("alert")).toContainText(
-      "unavailable or changed",
+      "These games changed since the feed was read",
     );
-    await panel.getByRole("button", { name: "Refresh timeline" }).click();
+    await panel.getByRole("button", { name: "Refresh" }).click();
     await expect(panel).toHaveCount(0);
   });
 }
@@ -313,18 +320,18 @@ for (const [summaryCount, evidenceCount] of [
     ).toBe(true);
     const trigger = row.locator(".kit-feed__links .btn");
     await trigger.click();
-    const panel = page.locator(".kit-tl__evidence");
+    const panel = page.locator(".kit-sgames");
     await expect(panel).toBeVisible();
     await expect(panel).toContainText(
-      `The summary covers ${summaryCount} games`,
+      `The update counts ${summaryCount} battles; ${evidenceCount} are on record here.`,
     );
-    await expect(panel).toContainText(`${evidenceCount} recorded games from`);
-    await expect(panel).toContainText("ends at the latest milestone");
-    await expect(panel).toContainText("The summarized sitting was closed");
-    await expect(panel.getByRole("link")).toHaveCount(evidenceCount);
-    await expect(panel.getByRole("button", { name: "Next games" })).toHaveCount(
-      0,
+    await expect(panel).toContainText(
+      "These end at the milestone this update names",
     );
+    await expect(panel.locator(".kit-sgame")).toHaveCount(evidenceCount);
+    await expect(
+      panel.getByRole("button", { name: "Older battles" }),
+    ).toHaveCount(0);
     await panel.getByRole("link").last().scrollIntoViewIfNeeded();
     await trigger.click();
     await expect(panel).toHaveCount(0);

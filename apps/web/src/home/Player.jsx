@@ -27,7 +27,7 @@ import {
   useRefreshPlayerPage,
 } from "../lib/queries.js";
 import { tagFromPath } from "../lib/tag-url.js";
-import { TimelineEvidence } from "../views/account/timeline-shared.jsx";
+import { SessionGames } from "./SessionGames.jsx";
 import { Cheers, usePageCheered } from "./Cheers.jsx";
 import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
 import { FollowAll, FollowButton } from "./follow.jsx";
@@ -513,18 +513,16 @@ function PlayerGames({ tag, item, onClose }) {
     evidence_offset: String(offset),
   });
   return (
-    <div className="kit-tl__evidence">
-      <TimelineEvidence
-        selected={item}
-        query={query}
-        offset={offset}
-        setOffset={setOffset}
-        onRefresh={() => {
-          onClose();
-          refresh();
-        }}
-      />
-    </div>
+    <SessionGames
+      item={item}
+      query={query}
+      offset={offset}
+      setOffset={setOffset}
+      onRefresh={() => {
+        onClose();
+        refresh();
+      }}
+    />
   );
 }
 

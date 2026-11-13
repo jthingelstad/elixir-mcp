@@ -434,6 +434,9 @@ export function playerRoutes({ resolveAccount, live = null }) {
         offset: q.evidence_offset === undefined ? 0 : Number(q.evidence_offset),
         limit: 25,
         expectedVersion: q.expected_evidence_version,
+        // The opened session as the website draws it: decks, teammates,
+        // a duel's games, newest first.
+        detail: true,
       });
       return json(
         evidence.error

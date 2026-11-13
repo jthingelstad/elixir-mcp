@@ -635,12 +635,93 @@ async function evidenceOpponents(db, records) {
   return out;
 }
 
+/** A page of a sitting's games as the website draws them (Home's opened
+ *  session, 2026-11-13): the deck each was played with, a 2v2's teammate
+ *  and a duel's games. One statement for the page, scoped by its battle ids
+ *  and the one player, then the page's decks named in one more read. What
+ *  the record lacks is left out: no deck when no deck row was kept, no
+ *  game's result when its crowns were level (the tiebreak is the tower
+ *  hitpoints, which the battle page reads). Game names only, never a
+ *  nickname. `decks` is the page's distinct decks; a battle names its own
+ *  by index. */
+async function sessionGameDetail(db, playerTag, records) {
+  const byBattle = new Map();
+  const decks = [];
+  if (records.length === 0) return { byBattle, decks };
+  const { rows } = await db.query(
+    `select bp.battle_id, bp.deck_hash,
+            (select coalesce(jsonb_agg(jsonb_build_object(
+                      'player_tag', t.player_tag, 'name', tp.name)
+                      order by t.player_tag), '[]'::jsonb)
+               from battle_participant t
+               left join player tp on tp.player_tag = t.player_tag
+              where t.battle_id = bp.battle_id and t.side = bp.side
+                and t.player_tag <> bp.player_tag) as teammates,
+            (select coalesce(jsonb_agg(jsonb_build_object(
+                      'round', r.round, 'crowns', r.crowns, 'against', o.crowns)
+                      order by r.round), '[]'::jsonb)
+               from battle_participant_round r
+               left join lateral (
+                 select ro.crowns
+                   from battle_participant op
+                   join battle_participant_round ro
+                     on ro.battle_id = op.battle_id
+                    and ro.player_tag = op.player_tag and ro.round = r.round
+                  where op.battle_id = bp.battle_id and op.side <> bp.side
+                  order by op.player_tag limit 1) o on true
+              where r.battle_id = bp.battle_id
+                and r.player_tag = bp.player_tag) as rounds
+       from battle_participant bp
+      where bp.battle_id = any($1::text[]) and bp.player_tag = $2`,
+    [records.map((r) => r.battle_id), playerTag],
+  );
+  const ids = await deckIdentities(
+    db,
+    rows.map((r) => r.deck_hash),
+  );
+  const deckIndex = new Map();
+  for (const r of rows) {
+    const out = {};
+    const identity = r.deck_hash ? ids.get(r.deck_hash) : null;
+    const cards = identity ? deckCardsWithCost(identity) : null;
+    if (cards?.length) {
+      if (!deckIndex.has(r.deck_hash)) {
+        const a = identity.archetype;
+        deckIndex.set(r.deck_hash, decks.length);
+        decks.push({
+          // A deck with no attested shape keeps its cards and no label.
+          label: a?.label && a.family !== "unclassified" ? a.label : null,
+          cards,
+        });
+      }
+      out.deck = deckIndex.get(r.deck_hash);
+    }
+    if (r.teammates.length) out.teammates = r.teammates;
+    if (r.rounds.length)
+      out.games = r.rounds.map((g) => ({
+        round: g.round,
+        crowns: g.crowns ?? null,
+        against: g.against ?? null,
+        outcome:
+          typeof g.crowns === "number" &&
+          typeof g.against === "number" &&
+          g.crowns !== g.against
+            ? g.crowns > g.against
+              ? "win"
+              : "loss"
+            : null,
+      }));
+    byBattle.set(r.battle_id, out);
+  }
+  return { byBattle, decks };
+}
+
 /** Exact ordered constituent game references, in bounded pages. This reads
  * canonical rows, never a payload copy, and never a notification pointer. */
 export async function readTimelineEvidence(
   db,
   item,
-  { offset = 0, limit = 25, expectedVersion } = {},
+  { offset = 0, limit = 25, expectedVersion, detail = false } = {},
 ) {
   if (
     !Number.isInteger(offset) ||
@@ -657,6 +738,9 @@ export async function readTimelineEvidence(
   if (expectedVersion && expectedVersion !== item.evidence.version)
     return { error: "evidence_changed" };
   let records;
+  // The website reads a sitting newest first, as every feed is; an agent's
+  // read keeps the order it was given (played order).
+  const dir = detail ? "desc" : "asc";
   if (source.kind === "session") {
     // Fingerprint and page share one statement snapshot. A capture admitted
     // after the item was built must cause a refresh, never shift offsets
@@ -672,9 +756,9 @@ export async function readTimelineEvidence(
        )
        select md5(string_agg(battle_id, ',' order by battle_time, battle_id)) as fingerprint,
               count(*)::int as count,
-              (select coalesce(jsonb_agg(p order by p.battle_time, p.battle_id), '[]'::jsonb)
+              (select coalesce(jsonb_agg(p order by p.battle_time ${dir}, p.battle_id ${dir}), '[]'::jsonb)
                  from (select * from records
-                       order by battle_time, battle_id limit $4 offset $5) p) as page
+                       order by battle_time ${dir}, battle_id ${dir} limit $4 offset $5) p) as page
          from records`,
       [source.playerTag, source.from, source.through, limit, offset],
     );
@@ -715,6 +799,10 @@ export async function readTimelineEvidence(
     records.map((r) => r.battle_id),
   );
   const opposing = await evidenceOpponents(db, records);
+  const more =
+    detail && source.kind === "session"
+      ? await sessionGameDetail(db, source.playerTag, records)
+      : null;
   const battles = records.map((r) => ({
     battle_id: r.battle_id,
     at: iso(r.battle_time),
@@ -726,10 +814,12 @@ export async function readTimelineEvidence(
     opponents: opposing.get(r.battle_id) ?? [],
     ...links.get(r.battle_id),
     relation: source.kind === "session" ? "constituent" : "proved_crossing",
+    ...(more?.byBattle.get(r.battle_id) ?? {}),
   }));
   return {
     item_id: item.id,
     ...item.evidence,
+    ...(more ? { order: "newest_first", decks: more.decks } : {}),
     ...(source.kind === "crossing" &&
     source.battleId &&
     offset === 0 &&
