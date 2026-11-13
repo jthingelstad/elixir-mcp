@@ -66,3 +66,39 @@ test("newest day first, and the highest number first within a day", () => {
       `${updates[i - 1].title} sits above a newer entry`,
     );
 });
+
+/** Days whose number two entries already shared before this test
+ *  (2026-11-13). They keep their numbers: renumbering one would move it
+ *  within its day, and the reader orders a pair by file name. The list
+ *  only shrinks. */
+const SHARED_BEFORE = [
+  "2026-10-10-11",
+  "2026-10-11-07",
+  "2026-10-11-09",
+  "2026-11-05-03",
+  "2026-11-06-02",
+  "2026-11-06-04",
+  "2026-11-06-09",
+  "2026-11-10-02",
+  "2026-11-13-218",
+];
+
+test("no two entries share a day's number: a new one takes the day's next free one", () => {
+  const seen = new Map();
+  for (const name of readdirSync(dir)) {
+    const key = /^(\d{4}-\d{2}-\d{2}-\d{2,})-/.exec(name)?.[1];
+    if (key) seen.set(key, [...(seen.get(key) ?? []), name]);
+  }
+  const shared = [...seen].filter(([, names]) => names.length > 1);
+  const fresh = shared.filter(([key]) => !SHARED_BEFORE.includes(key));
+  assert.deepEqual(
+    fresh.map(([, names]) => names),
+    [],
+    "rename the newer file to the day's highest number plus one",
+  );
+  assert.deepEqual(
+    SHARED_BEFORE.filter((key) => !seen.has(key) || seen.get(key).length < 2),
+    [],
+    "a pair in SHARED_BEFORE no longer shares its number: take it off the list",
+  );
+});

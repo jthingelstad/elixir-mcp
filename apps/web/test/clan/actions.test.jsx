@@ -584,6 +584,23 @@ describe("actions", () => {
     );
     // Decided is the leaders'; a member is not pointed at it.
     expect(screen.queryByRole("link", { name: "Decided" })).toBeNull();
+    // One quiet line, not a box, and Refresh suggestions is still there.
+    const line = screen.getByText("Nothing waiting for you").closest("p");
+    expect(line.closest(".kit-empty")).toBeNull();
+    expect(line.textContent).toMatch(
+      /^Nothing waiting for you: an action appears here when the clan.s policy suggests something you can do\. Refresh suggestions$/,
+    );
+    expect(
+      screen.getByRole("button", { name: "Refresh suggestions" }),
+    ).toBeTruthy();
+    // The timeline comes before This week and You here, so a phone's one
+    // column reads it first (2026-11-13).
+    const timeline = document.getElementById("feed-timeline");
+    const cards = document.querySelector(".clan-today__cards");
+    expect(
+      timeline.compareDocumentPosition(cards) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
 

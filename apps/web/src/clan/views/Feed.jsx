@@ -218,8 +218,8 @@ export function RaceBar({ race }) {
  * Feed, Clan's first tab for everyone (Clan as one view, slice 8, #766; it
  * replaced Today): what waits for you first, then the clan's timeline, with
  * you in this clan and the clan's week in a side column beside them (on a
- * phone, above the timeline). Run holds the leaders' Waiting and Decided; an
- * action waiting for a leader is in both.
+ * phone, after the timeline, as Home's: 2026-11-13). Run holds the leaders'
+ * Waiting and Decided; an action waiting for a leader is in both.
  *
  * Every panel asks for its read at once. The timeline waited for the others
  * from 2026-11-12 (G3), when it walked every battle the record learned in
@@ -238,9 +238,7 @@ export function Feed({ clan, who, navigate }) {
           <div className="clan-today__now">
             <ActionsNow clan={clan} who={who} navigate={navigate} />
           </div>
-          <div className="clan-today__timeline">
-            <ClanTimeline clan={clan} />
-          </div>
+          <ClanTimeline clan={clan} />
         </div>
         <div className="clan-today__cards">
           <WeekCard clan={clan} base={base} navigate={navigate} />

@@ -1,4 +1,12 @@
-import { Avatar, FreshChip, Link, Tabs, Tag } from "@elixir-mcp/ui";
+import { useRef } from "react";
+import {
+  Avatar,
+  FreshChip,
+  Link,
+  Tabs,
+  Tag,
+  useScrollHint,
+} from "@elixir-mcp/ui";
 import { useRace, useRoster } from "../lib/queries.js";
 import { clanTabs, tabOf } from "../lib/tabs.js";
 import { VERIFY } from "../../components/VerifyPlayer.jsx";
@@ -30,6 +38,24 @@ export function clanLine(clan, roster) {
     .join(" · ");
 }
 
+/** The head's chips: the race now, then the rules the leaders saved. Its
+ *  own component so the scroll hint meets the row when it first draws,
+ *  which is after the race and policy reads answer. */
+function HeadChips({ racing, rules }) {
+  const row = useRef(null);
+  useScrollHint(row, { focusable: true });
+  return (
+    <ul ref={row} className="clan-head__chips kit-facts" aria-label="This clan">
+      {racing ? <li className="kit-fact kit-fact--gold">{racing}</li> : null}
+      {rules.map((c) => (
+        <li key={c.key} className="kit-fact">
+          {c.text}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /**
  * The head every clan page wears, a clan card: the clan's name, its line
  * (tag, members, how it takes members, its trophy floor), who you are in
@@ -37,7 +63,9 @@ export function clanLine(clan, roster) {
  * fresh the roster read is, Follow (Home's clan follow,
  * home/FollowClan.jsx), a picker with two or more clans, the verify
  * banner, and the tabs. The clan's name is the page's one h1; each page's
- * own head under it is an h2.
+ * own head under it is an h2. On a phone the chips are one row that
+ * scrolls sideways inside the head, its edge faded where more is hidden,
+ * and a tab stop while it scrolls; on a wider screen they wrap.
  */
 export function ClanHead({ me, path, navigate, select, selecting }) {
   const clan = me.selected;
@@ -66,16 +94,12 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
             </h1>
             <p className="clan-head__line m-0">{clanLine(clan, roster)}</p>
             {racing || ruleChips.length ? (
-              <ul className="clan-head__chips kit-facts" aria-label="This clan">
-                {racing ? (
-                  <li className="kit-fact kit-fact--gold">{racing}</li>
-                ) : null}
-                {ruleChips.map((c) => (
-                  <li key={c.key} className="kit-fact">
-                    {c.text}
-                  </li>
-                ))}
-              </ul>
+              <HeadChips
+                // A new set of chips is a new row: the hint measures again.
+                key={[racing, ...ruleChips.map((c) => c.key)].join("|")}
+                racing={racing}
+                rules={ruleChips}
+              />
             ) : null}
           </div>
           <div className="clan-head__side">

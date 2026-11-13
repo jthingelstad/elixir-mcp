@@ -1729,6 +1729,25 @@ input[aria-invalid="true"] {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+/* On a phone the filters but search fold behind one control (2026-11-13),
+   closed at first, so the tiles start on the first screen. Wider, the
+   control is never drawn and the filters sit in the row as they always
+   did. */
+.clan-dir__toggle {
+  display: none;
+}
+.clan-dir__more {
+  display: contents;
+}
+@media (max-width: 760px) {
+  .clan-dir__toggle {
+    display: inline-flex;
+    min-height: var(--hit-touch);
+  }
+  .clan-dir__more:not([data-open]) {
+    display: none;
+  }
+}
 .clan-dir__count {
   display: flex;
   flex-wrap: wrap;
@@ -4834,7 +4853,9 @@ a.card-art:hover .card-art__img {
 .kit-tabs[data-more-left],
 .kit-tabs[data-more-right],
 .kit-chips[data-more-left],
-.kit-chips[data-more-right] {
+.kit-chips[data-more-right],
+.kit-facts[data-more-left],
+.kit-facts[data-more-right] {
   mask-image: linear-gradient(
     to right,
     transparent,
@@ -8382,6 +8403,10 @@ a.kit-mbattle:hover {
 .clan-head__chips {
   margin-top: 8px;
 }
+.clan-head__chips:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
 /* At phone width the head sits tighter, so a page's own content still
    starts on the first screen. */
 @media (max-width: 760px) {
@@ -8401,6 +8426,21 @@ a.kit-mbattle:hover {
     height: 48px;
     border-radius: 12px;
     font-size: 18px;
+  }
+  /* The chips are one row that scrolls sideways inside the head instead
+     of wrapping to four (2026-11-13); the faded edge says there is more. */
+  .clan-head__chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .clan-head__chips::-webkit-scrollbar {
+    display: none;
+  }
+  .clan-head__chips .kit-fact {
+    flex: none;
+    white-space: nowrap;
   }
 }
 /* The race bar on top of the Feed: a line, a native progress drawn like
@@ -8516,8 +8556,8 @@ a.kit-mbattle:hover {
 }
 /* Clan > Feed: what waits for you and the clan's timeline in the main
    column, You here and This week in a side column beside them. On a phone
-   the main column opens up (display: contents) so the side cards sit
-   between what waits for you and the timeline, before the feed. */
+   one column in that order: the timeline first, the side cards after it,
+   as Home's (2026-11-13). */
 .clan-today {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -8536,19 +8576,6 @@ a.kit-mbattle:hover {
 @media (max-width: 760px) {
   .clan-today {
     grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
-  .clan-today__waiting {
-    display: contents;
-  }
-  .clan-today__now {
-    order: 1;
-  }
-  .clan-today__cards {
-    order: 2;
-  }
-  .clan-today__timeline {
-    order: 3;
   }
 }
 .clan-row {

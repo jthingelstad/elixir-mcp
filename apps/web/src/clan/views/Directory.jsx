@@ -45,6 +45,10 @@ export function Directory({
   useEffect(() => {
     if (state.signedOut) onSignedOut();
   }, [state.signedOut, onSignedOut]);
+  // On a phone the filters other than search fold behind one control,
+  // closed at first, so tiles show on the first screen (2026-11-13). A
+  // wider screen always shows them and never draws the control.
+  const [open, setOpen] = useState(false);
   const set = (k) => (v) => setF((was) => ({ ...was, [k]: v }));
   const clans = useMemo(() => state.data?.clans ?? [], [state.data]);
   const shown = useMemo(() => visible(clans, f), [clans, f]);
@@ -124,60 +128,77 @@ export function Directory({
             spellCheck="false"
           />
         </label>
-        <div className="clan-dir__field">
-          <span className="clan-dir__label">Clan Wars</span>
-          <Chips
-            label="Clan Wars"
-            className="kit-chips--seg"
-            options={FILTERS.war}
-            value={f.war}
-            onChange={set("war")}
-          />
+        <button
+          type="button"
+          className="btn btn--sm clan-dir__toggle"
+          aria-expanded={open}
+          aria-controls="clan-dir-more"
+          onClick={() => setOpen((was) => !was)}
+        >
+          {foldedCount(f) ? `Filters · ${foldedCount(f)} set` : "Filters"}
+        </button>
+        <div
+          id="clan-dir-more"
+          className="clan-dir__more"
+          data-open={open ? "" : undefined}
+        >
+          <div className="clan-dir__field">
+            <span className="clan-dir__label">Clan Wars</span>
+            <Chips
+              label="Clan Wars"
+              className="kit-chips--seg"
+              options={FILTERS.war}
+              value={f.war}
+              onChange={set("war")}
+            />
+          </div>
+          <div className="clan-dir__field">
+            <span className="clan-dir__label">How strict</span>
+            <Chips
+              label="How strict"
+              className="kit-chips--seg"
+              options={FILTERS.posture}
+              value={f.posture}
+              onChange={set("posture")}
+            />
+          </div>
+          <div className="clan-dir__field">
+            <span className="clan-dir__label">
+              Days with no battle before a removal
+            </span>
+            <Chips
+              label="Days with no battle before a removal"
+              className="kit-chips--seg clan-dir__fold"
+              options={FILTERS.removal}
+              value={f.removal}
+              onChange={set("removal")}
+            />
+          </div>
+          <div className="clan-dir__field">
+            <span className="clan-dir__label">Room</span>
+            <Chips
+              label="Room"
+              className="kit-chips--seg"
+              options={FILTERS.room}
+              value={f.room}
+              onChange={set("room")}
+            />
+          </div>
+          <label className="clan-dir__field">
+            <span className="clan-dir__label">Your trophies</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={f.trophies}
+              onChange={(e) =>
+                set("trophies")(e.target.value.replace(/\D/g, ""))
+              }
+              placeholder="Clans you can join with them"
+              autoComplete="off"
+            />
+          </label>
         </div>
-        <div className="clan-dir__field">
-          <span className="clan-dir__label">How strict</span>
-          <Chips
-            label="How strict"
-            className="kit-chips--seg"
-            options={FILTERS.posture}
-            value={f.posture}
-            onChange={set("posture")}
-          />
-        </div>
-        <div className="clan-dir__field">
-          <span className="clan-dir__label">
-            Days with no battle before a removal
-          </span>
-          <Chips
-            label="Days with no battle before a removal"
-            className="kit-chips--seg clan-dir__fold"
-            options={FILTERS.removal}
-            value={f.removal}
-            onChange={set("removal")}
-          />
-        </div>
-        <div className="clan-dir__field">
-          <span className="clan-dir__label">Room</span>
-          <Chips
-            label="Room"
-            className="kit-chips--seg"
-            options={FILTERS.room}
-            value={f.room}
-            onChange={set("room")}
-          />
-        </div>
-        <label className="clan-dir__field">
-          <span className="clan-dir__label">Your trophies</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={f.trophies}
-            onChange={(e) => set("trophies")(e.target.value.replace(/\D/g, ""))}
-            placeholder="Clans you can join with them"
-            autoComplete="off"
-          />
-        </label>
       </form>
 
       <p className="clan-dir__count" role="status">
@@ -233,6 +254,14 @@ export function Directory({
       </p>
     </div>
   );
+}
+
+/** How many filters behind the phone's Filters control are set: every
+ *  filter but search, which stays in view. */
+function foldedCount(f) {
+  return Object.keys(NO_FILTERS).filter(
+    (k) => k !== "q" && String(f[k]).trim() !== NO_FILTERS[k],
+  ).length;
 }
 
 function sessionExpired() {

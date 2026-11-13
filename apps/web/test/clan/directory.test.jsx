@@ -192,6 +192,32 @@ describe("the page", () => {
     );
     expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(3);
   });
+  test("on a phone the filters but search fold behind Filters, which counts what is set", () => {
+    render(<Directory state={ready} />);
+    const toggle = screen.getByRole("button", { name: "Filters" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    const more = document.getElementById(toggle.getAttribute("aria-controls"));
+    // Search stays outside the fold; every other filter is inside it.
+    expect(more.contains(screen.getByLabelText("Search"))).toBe(false);
+    for (const name of ["Clan Wars", "How strict", "Room"])
+      expect(more.contains(screen.getByRole("group", { name }))).toBe(true);
+    expect(more.contains(screen.getByLabelText("Your trophies"))).toBe(true);
+    expect(more.hasAttribute("data-open")).toBe(false);
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(more.hasAttribute("data-open")).toBe(true);
+    // Search is not counted; each folded filter is.
+    fireEvent.change(screen.getByLabelText("Search"), {
+      target: { value: "a" },
+    });
+    expect(toggle.textContent).toBe("Filters");
+    const strict = screen.getByRole("group", { name: "How strict" });
+    fireEvent.click(strict.querySelector("button:last-child"));
+    fireEvent.change(screen.getByLabelText("Your trophies"), {
+      target: { value: "9000" },
+    });
+    expect(toggle.textContent).toBe("Filters · 2 set");
+  });
   test("a clan's address opens it searched for, and its name links nowhere", () => {
     render(<Directory state={ready} query="0Y2V2" />);
     expect(screen.getByLabelText("Search").value).toBe("0Y2V2");
