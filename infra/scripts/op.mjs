@@ -4,7 +4,7 @@
  * (lib/ops-invoke.mjs has the rules; lib/production-lock.mjs the lock).
  *
  *   npm run op -- '{"stats": true}'
- *   npm run op -- '{"series_metrics": true}' --function jobs
+ *   npm run op -- '{"shape_census": true}' --function jobs
  *   npm run op -- --help
  */
 

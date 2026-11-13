@@ -121,11 +121,10 @@ const MIGRATE_READS = {
     !Object.hasOwn(v, "apply"),
 };
 
-/** Jobs ops that only read. The jobs Lambda's other keys send mail,
- *  sweep or write a census table. */
-const JOBS_READS = {
-  series_metrics: anyArgs,
-};
+/** Jobs ops that only read: none since {series_metrics} retired
+ *  (2026-11-13). Every jobs key sends mail, sweeps or writes a census
+ *  table, so each takes the lock. */
+const JOBS_READS = {};
 
 const READS = { migrate: MIGRATE_READS, jobs: JOBS_READS };
 
@@ -163,7 +162,7 @@ const OP_USAGE = `usage: npm run op -- '<json payload>' [--function migrate|jobs
 
   npm run op -- '{"stats": true}'
   npm run op -- '{"ledger": {"op": "dead"}}'
-  npm run op -- '{"series_metrics": true}' --function jobs
+  npm run op -- '{"shape_census": true}' --function jobs
 
   {} is refused: it runs the migrations, and that is deploy.mjs's call.`;
 

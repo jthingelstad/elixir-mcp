@@ -31,7 +31,6 @@ import { activityHistogram } from "./activity.mjs";
 import { captureEfficiency } from "./efficiency.mjs";
 import { warBattlesUnresolved, warUnresolvedEmf } from "./war-calendar.mjs";
 import { shapeCensus } from "./shape-census.mjs";
-import { seriesMetrics } from "./series-metrics.mjs";
 
 /** Hourly Postgres sweep ({sweep_payloads: true}, EventBridge :15):
  *  superseded payload rows (not the latest per endpoint+entity) leave
@@ -448,19 +447,7 @@ export async function handler(event, context) {
   }
   if (event?.shape_census) {
     const result = await shapeCensus(process.env.DATABASE_URL);
-    // The nightly series census rides the same invocation
-    // (series-metrics.mjs); its failure never fails the census.
-    try {
-      result.series_metrics = await seriesMetrics(process.env.DATABASE_URL);
-    } catch (err) {
-      result.series_metrics = { error: String(err?.message ?? err) };
-    }
     console.log(JSON.stringify({ shape_census: result }));
-    return result;
-  }
-  if (event?.series_metrics) {
-    const result = await seriesMetrics(process.env.DATABASE_URL);
-    console.log(JSON.stringify({ series_metrics: result }));
     return result;
   }
   if (event?.capture_efficiency) {
