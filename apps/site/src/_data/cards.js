@@ -2,10 +2,9 @@
  * The card catalog, read at BUILD time from the public endpoint and
  * baked into a page per card and the /cards index's plain list.
  *
- * Skip-not-fail, the same stance as stats.js: a first deploy has no
- * endpoint to call yet, and a build must never be held hostage to a
- * running service. No catalog means no card pages this build, and they
- * arrive on the next one.
+ * Retry, then fail, the same stance as stats.js: the catalog that cannot
+ * be read fails the build, so the published card pages stay up instead
+ * of being deleted by a publish that no longer has them.
  *
  * Only catalog facts are baked (name, rarity, type, cost, forms); the
  * pages carry no play statistics.
