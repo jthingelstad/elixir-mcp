@@ -24,7 +24,7 @@ import {
   sealer,
 } from "@elixir-mcp/clan/manage/model.mjs";
 import {
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   signIn,
@@ -167,31 +167,31 @@ function harness({ players = [player()] } = {}) {
     "#2PQRJ8LV",
     PITCH,
   );
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players,
     roster: rosterBody([
       { player_tag: ADA, name: "Ada", role: "leader", trophies: 9000 },
       { player_tag: BEA, name: "Bea", role: "coLeader", trophies: 8000 },
     ]),
   });
-  const inner = mcp.rawCallTool.bind(mcp);
-  mcp.rawCallTool = async (token, name, args) =>
+  const inner = record.rawRead.bind(record);
+  record.rawRead = async (name, args) =>
     name === "live_fetch"
       ? { ok: true, body: { data: CLAN } }
-      : inner(token, name, args);
+      : inner(name, args);
   const anthropic = fakeAnthropic();
   const model = createModelService({
     ledger,
     anthropic,
     secret: "test-secret",
-    rosterFor: (token, clanTag) => fetchRoster(mcp, token, clanTag),
+    rosterFor: (clanTag) => fetchRoster(record, clanTag),
     now,
   });
   const lines = [];
   const handler = createHandler({
-    mcp,
+    record,
     ...createTestAccount(),
-    recruit: createRecruitService({ ledger, mcp, model, now }),
+    recruit: createRecruitService({ ledger, record, model, now }),
     model,
     voice: createVoiceService({ ledger, now }),
     drafts: createDrafts({
@@ -212,7 +212,7 @@ function harness({ players = [player()] } = {}) {
       error() {},
     },
   });
-  return { clock, ledger, mcp, anthropic, handler, lines };
+  return { clock, ledger, record, anthropic, handler, lines };
 }
 
 const api = async (h, cookies, method, path, body) => {
@@ -347,7 +347,7 @@ test("model: the key works only while the leader who added it leads here; anothe
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
-  h.mcp.state.roster = rosterBody([
+  h.record.state.roster = rosterBody([
     { player_tag: ADA, name: "Ada", role: "member" },
     { player_tag: BEA, name: "Bea", role: "coLeader" },
   ]);
@@ -358,7 +358,7 @@ test("model: the key works only while the leader who added it leads here; anothe
     h.anthropic.state.calls.filter((x) => x[0] === "write").length,
     0,
   );
-  h.mcp.state.players = [
+  h.record.state.players = [
     player({ player_tag: BEA, name: "Bea", clan_role: "coLeader" }),
   ];
   const bea = await signedIn(h);
@@ -1577,11 +1577,11 @@ test("model list: a 404 that empties the list leaves nothing reachable; the next
 
 test("model list: only leaders refresh, and only while the key's owner leads", async () => {
   const { h } = await oldKey();
-  h.mcp.state.roster = rosterBody([
+  h.record.state.roster = rosterBody([
     { player_tag: ADA, name: "Ada", role: "member" },
     { player_tag: BEA, name: "Bea", role: "coLeader" },
   ]);
-  h.mcp.state.players = [
+  h.record.state.players = [
     player({ player_tag: BEA, name: "Bea", clan_role: "coLeader" }),
   ];
   const bea = await signedIn(h);
@@ -1589,7 +1589,7 @@ test("model list: only leaders refresh, and only while the key's owner leads", a
   assert.equal(r.body.refreshed, false);
   assert.equal(r.body.reason, "owner_unconfirmed");
   assert.equal(modelsCalls(h), 1);
-  h.mcp.state.players = [
+  h.record.state.players = [
     player({ player_tag: BEA, name: "Bea", clan_role: "elder" }),
   ];
   const elder = await signedIn(h);
@@ -1675,7 +1675,7 @@ test("model spend: a cap is dollars to the cent, set by leaders, and outlives th
   await api(h, c, "PUT", MODEL, { key: OTHER });
   assert.equal((await api(h, c, "GET", MODEL)).body.spend_cap_usd, 3);
   // An elder cannot see or change it.
-  h.mcp.state.players = [
+  h.record.state.players = [
     player({ player_tag: BEA, name: "Bea", clan_role: "elder" }),
   ];
   const elder = await signedIn(h);
@@ -1714,10 +1714,10 @@ test("model: a draft that outlasts the request is collected by its id, once reco
   const again = await api(h, c, "POST", path, { pending: id });
   assert.equal(again.body.pending, id);
   // Only the leader who started it collects it.
-  h.mcp.state.players = [
+  h.record.state.players = [
     player({ player_tag: BEA, name: "Bea", clan_role: "coLeader" }),
   ];
-  h.mcp.state.roster = rosterBody([
+  h.record.state.roster = rosterBody([
     { player_tag: ADA, name: "Ada", role: "leader" },
     { player_tag: BEA, name: "Bea", role: "coLeader" },
   ]);
@@ -1734,7 +1734,7 @@ test("model: a draft that outlasts the request is collected by its id, once reco
     ).body.error,
     "no_pending_draft",
   );
-  h.mcp.state.players = [player()];
+  h.record.state.players = [player()];
   h.anthropic.state.replies = {
     [id]: {
       ok: true,

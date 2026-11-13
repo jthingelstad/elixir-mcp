@@ -18,7 +18,7 @@ import { createScout } from "@elixir-mcp/clan/manage/scout.mjs";
 import { factsOfAction } from "@elixir-mcp/clan/manage/sharing.mjs";
 import { actionsWaitingMail } from "@elixir-mcp/clan-engine";
 import {
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   signIn,
@@ -41,32 +41,32 @@ function harness({
 } = {}) {
   const clock = { t: NOW.getTime() };
   const now = () => clock.t;
-  const mcp = fakeMcp({ players });
-  const inner = mcp.callTool.bind(mcp);
-  mcp.callTool = async (token, name, args) => {
-    mcp.calls.push([name, token, args]);
+  const record = fakeRecord({ players });
+  const inner = record.read.bind(record);
+  record.read = async (name, args) => {
+    record.calls.push([name, args]);
     if (name === "clans_participation") return { ok: true, body: part };
-    return inner(token, name, args);
+    return inner(name, args);
   };
   const ledger = createMemoryLedger();
   if (policy) seedVersion(ledger, "policy", "#2PQRJ8LV", policy);
   if (awards) seedVersion(ledger, "awards", "#2PQRJ8LV", awards);
   const handler = createHandler({
-    mcp,
+    record,
     ...createTestAccount(),
-    manage: createManageService({ ledger, mcp, now }),
+    manage: createManageService({ ledger, record, now }),
     awards: createAwardsService({
       ledger,
       now,
-      participationFor: (token, tag) => fetchParticipation(mcp, token, tag),
+      participationFor: (tag) => fetchParticipation(record, tag),
     }),
-    scout: createScout({ mcp, now }),
+    scout: createScout({ record, now }),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,
     log: { warn() {}, error() {} },
   });
-  return { clock, mcp, ledger, handler };
+  return { clock, record, ledger, handler };
 }
 
 const api = async (h, cookies, method, path, body) => {
@@ -395,7 +395,7 @@ test("awards: a clan starts with none, and nothing runs before it has a policy",
     assert.equal(r.body.error, "no_policy", path);
   }
   assert.equal(
-    none.mcp.calls.filter((c) => c[0] === "clans_participation").length,
+    none.record.calls.filter((c) => c[0] === "clans_participation").length,
     0,
   );
 });
@@ -456,20 +456,20 @@ test("awards: the morning run shares the running season's standings with Elixir 
   const svc = createAwardsService({
     ledger: h.ledger,
     now: () => h.clock.t,
-    participationFor: (token, tag) => fetchParticipation(h.mcp, token, tag),
-    elixir: h.mcp,
+    participationFor: (tag) => fetchParticipation(h.record, tag),
+    elixir: h.record,
   });
-  const first = await svc.evaluateOnSchedule("#2PQRJ8LV", "svt_clan_key");
+  const first = await svc.evaluateOnSchedule("#2PQRJ8LV");
   assert.equal(first.awards_evaluated, true);
   assert.ok(first.standings_written > 0, JSON.stringify(first));
   assert.equal(first.standings_failed, 0);
-  const writes = h.mcp.calls.filter((c) => c[0] === "writeFact");
+  const writes = h.record.calls.filter((c) => c[0] === "writeFact");
   assert.equal(writes.length, first.standings_written);
   assert.ok(
-    writes.every((c) => c[1] === "svt_clan_key"),
-    "on the integration key",
+    writes.every((c) => c[1].clanTag === "#2PQRJ8LV"),
+    "as Elixir's own facts about the clan",
   );
-  const facts = h.mcp.state.facts;
+  const facts = h.record.state.facts;
   assert.ok(facts.every((f) => f.type === "award_standing"));
   // The running season only: the closed one's places are not standings.
   const seasons = new Set(facts.map((f) => f.detail.season_id));
@@ -479,7 +479,7 @@ test("awards: the morning run shares the running season's standings with Elixir 
   assert.equal(saved.season_id, 136);
   assert.equal(Object.keys(saved.refs).length, first.standings_written);
   h.clock.t += 86_400_000;
-  const second = await svc.evaluateOnSchedule("#2PQRJ8LV", "svt_clan_key");
+  const second = await svc.evaluateOnSchedule("#2PQRJ8LV");
   assert.equal(second.standings_written, 0);
   assert.equal(second.standings_removed, 0);
 });

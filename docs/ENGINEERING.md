@@ -534,7 +534,15 @@ The invariants:
   owns transactions and the serialization of multi-item changes.
 - Clan's request path receives only the resolved Elixir person and the
   connected client, and reads the record in process; it holds no OAuth
-  grant or key of its own.
+  grant or key of its own. Its reads are the tools every door answers
+  from, through `makeRecordReader` (`@elixir-mcp/tools/invoker`): the
+  same budget, deadline and timeouts as the audited invoker, and no
+  audit row, call capture or client name, because Clan is not a caller.
+  The web path reads as the signed-in person; the morning run as
+  Elixir itself (`SYSTEM_READER`, no account). Who may see what is
+  Clan's own checks: the gate, `RUN_READS` and the roles, the role's
+  freshness, the leader checks
+  (`services/web-api/test/clan-record-access.test.mjs`).
 - Award absence evidence reads `@elixir-mcp/record/war-membership`:
   canonical membership intervals and admitted roster observations bracket
   the whole week, with recording active before it. Finish presence or a

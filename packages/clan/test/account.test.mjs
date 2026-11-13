@@ -1,13 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createAccountContext } from "../src/account.mjs";
-import { createRecordedClient } from "../src/recorded-client.mjs";
+import { createRecord } from "../src/record.mjs";
 import { createHandler } from "../src/handler.mjs";
 
 test("Clan reads have no second session and persist only explicit account actions", async () => {
   const rows = new Map(),
     writes = [];
-  const credential = Object.freeze({});
   const account = { accountId: "one", kind: "person" };
   const state = {
     get: async (k) => rows.get(k),
@@ -16,14 +15,8 @@ test("Clan reads have no second session and persist only explicit account action
       writes.push(v);
     },
   };
-  const { identity, store } = createAccountContext({
-    account,
-    state,
-    credential,
-  });
+  const { identity, store } = createAccountContext({ account, state });
   const session = await identity.load();
-  assert.equal(identity.credential(session), credential);
-  assert.equal(identity.credential({ ...session }), null);
   await store.updateSession(session.id, {
     gate: { secret: "never stored" },
     rosters: { rows: [] },
@@ -41,75 +34,75 @@ test("Clan reads have no second session and persist only explicit account action
   const other = createAccountContext({
     account: { accountId: "two", kind: "person" },
     state,
-    credential: {},
   });
   assert.equal((await other.identity.load()).selected, undefined);
   const agent = createAccountContext({
     account: { accountId: "agent", kind: "agent" },
     state,
-    credential: {},
   });
   assert.equal(await agent.identity.load(), null);
 });
 
-test("internal reader refuses browser tokens, keys, other objects and retired domains", async () => {
-  const credential = Object.freeze({});
-  let calls = 0;
-  const client = createRecordedClient({
-    credential,
-    initialize: async () => ({ ok: true }),
-    invoke: async () => {
-      calls++;
-      return { ok: true };
+test("the record answers only Clan's reads, and a tool's error class as its status", async () => {
+  const asked = [];
+  let answer = { isError: false, body: { ok: 1 } };
+  const record = createRecord({
+    read: async (name, args) => {
+      asked.push([name, args]);
+      return answer;
     },
   });
-  for (const token of [
-    null,
-    "session-token",
-    "svt_key",
-    {},
-    { accountId: "one" },
-  ])
-    assert.equal(
-      (await client.callTool(token, "clans_roster", {})).status,
-      401,
-    );
   for (const [name, args] of [
     ["rankings_players", {}],
     ["battles_meta_cards", {}],
     ["elixir_follow_player", {}],
+    ["clans_my_view", {}],
     ["live_fetch", { path: "/locations/global/rankings/players" }],
     ["live_fetch", { path: "/clans/%ZZ" }],
     ["live_fetch", { path: "/clans/%239GQLV20?other=1" }],
   ])
-    assert.equal((await client.callTool(credential, name, args)).status, 403);
-  assert.equal(calls, 0);
-  assert.equal(
-    (
-      await client.callTool(credential, "live_fetch", {
-        path: "/clans/%239GQLV20",
-      })
-    ).ok,
-    true,
+    assert.equal((await record.read(name, args)).status, 403, name);
+  assert.equal(asked.length, 0);
+  assert.deepEqual(
+    await record.read("live_fetch", { path: "/clans/%239GQLV20" }),
+    { ok: true, body: { ok: 1 } },
   );
-  assert.equal(calls, 1);
+  assert.equal(asked.length, 1);
+  for (const [cls, status] of [
+    ["input", 400],
+    ["subject", 404],
+    ["budget", 429],
+    ["retry", 503],
+    ["server", 502],
+  ]) {
+    answer = {
+      isError: true,
+      body: { error: { code: "c", class: cls, message: "m", hint: "h" } },
+    };
+    const r = await record.read("clans_roster", { clan_tag: "#9GQLV20" });
+    assert.equal(r.ok, false);
+    assert.equal(r.status, status, cls);
+    assert.equal(r.code, "c");
+  }
+  // No identity on the morning run; no writer where none is wired.
+  assert.equal((await record.identity()).status, 401);
+  assert.equal((await record.writeFact("#9GQLV20", {})).status, 503);
+  assert.equal((await record.sendMail("#9GQLV20", {})).status, 503);
 });
 
 test("shared identity uses fresh gate reads and neither legacy cookies nor OAuth", async () => {
-  const credential = {},
-    state = {
-      get: async () => null,
-      put: async () => assert.fail("a read wrote preferences"),
-    };
+  const state = {
+    get: async () => null,
+    put: async () => assert.fail("a read wrote preferences"),
+  };
   const context = createAccountContext({
     account: { accountId: "one", kind: "person" },
     state,
-    credential,
   });
   let calls = 0;
-  const mcp = createRecordedClient({
-    credential,
-    initialize: async () => {
+  const record = createRecord({
+    read: async () => assert.fail("no tool read for /me"),
+    identity: async () => {
       calls++;
       return {
         ok: true,
@@ -129,7 +122,7 @@ test("shared identity uses fresh gate reads and neither legacy cookies nor OAuth
     },
   });
   const handler = createHandler({
-    mcp,
+    record,
     ...context,
     appUrl: "https://elixir.poapkings.com/clan",
     elixirUrl: "https://elixir.poapkings.com",
@@ -152,7 +145,7 @@ test("shared identity uses fresh gate reads and neither legacy cookies nor OAuth
   ])
     assert.equal((await handler({ ...event, path })).statusCode, 404);
   const signedOut = createHandler({
-    mcp,
+    record,
     identity: { load: async () => null },
     store: {},
     appUrl: "https://elixir.poapkings.com/clan",

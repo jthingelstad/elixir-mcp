@@ -15,7 +15,7 @@ import {
   FACTS_TTL_MS,
 } from "@elixir-mcp/clan/manage/recruit.mjs";
 import {
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   signIn,
@@ -53,7 +53,7 @@ function harness({
 } = {}) {
   const clock = { t: Date.parse("2026-09-13T12:00:00Z") };
   const now = () => clock.t;
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players,
     roster: {
       ...rosterBody([
@@ -77,18 +77,18 @@ function harness({
     live: live ?? { ok: true, body: { data: CLAN } },
     liveCalls: 0,
   };
-  const inner = mcp.rawCallTool.bind(mcp);
-  mcp.rawCallTool = async (token, name, args) => {
+  const inner = record.rawRead.bind(record);
+  record.rawRead = async (name, args) => {
     if (name === "live_fetch") {
       state.liveCalls += 1;
       return typeof state.live === "function" ? state.live(args) : state.live;
     }
-    return inner(token, name, args);
+    return inner(name, args);
   };
   const handler = createHandler({
-    mcp,
+    record,
     ...createTestAccount(),
-    recruit: createRecruitService({ ledger, mcp, now }),
+    recruit: createRecruitService({ ledger, record, now }),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,

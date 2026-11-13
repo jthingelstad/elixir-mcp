@@ -17,7 +17,7 @@ import { webhookFingerprint } from "@elixir-mcp/contracts";
 import {
   createTestAccount,
   cookieHeader,
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   rosterBody,
@@ -499,7 +499,7 @@ test("the routes: leaders connect, read and remove; a member is refused; the add
   const w = world();
   const ADA = player();
   const BEN = player({ player_tag: "#8QCV", name: "Ben", clan_role: "member" });
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [ADA],
     roster: rosterBody(
       [ADA, BEN].map((m) => ({
@@ -510,7 +510,7 @@ test("the routes: leaders connect, read and remove; a member is refused; the add
     ),
   });
   const handler = createHandler({
-    mcp,
+    record,
     ...createTestAccount(),
     discord: w.service,
     appUrl: "https://elixir.test/clan",
@@ -518,7 +518,7 @@ test("the routes: leaders connect, read and remove; a member is refused; the add
     log: { warn() {}, error() {} },
   });
   const as = async (who) => {
-    mcp.state.players = [who];
+    record.state.players = [who];
     const { sessionCookie } = await signIn({ handler });
     const cookies = cookieHeader(sessionCookie);
     return async (method, path, body) => {

@@ -36,9 +36,9 @@ import { withCheers } from "../cheers.mjs";
 /** An audit row the daily tool-call limiter charged (`mcpday#`,
  *  packages/tools/quota.mjs): every call at /mcp. Not /api/v1 (`rest`,
  *  metered on its own) and nothing on the web surface: the Console's and
- *  Ladder's own reads (#538, Jamie 2026-10-12) and Elixir Clan's reads
- *  (clients `Clan` and `Clan morning`, services/web-api/src/clan.mjs and
- *  services/jobs/src/clan.mjs) spend no daily tool-call budget. */
+ *  Ladder's own reads (#538, Jamie 2026-10-12) spend no daily tool-call
+ *  budget. Clan's reads are in process and leave no call row at all
+ *  (2026-11-13). */
 const CHARGED = `coalesce(surface, '') not in ('rest', 'web')`;
 /** The Console's and Ladder's own reads (POST /api/explore, which names
  *  no client): logged, shown on Usage, never charged. The bridge's one

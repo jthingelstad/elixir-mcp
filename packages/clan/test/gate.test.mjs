@@ -6,36 +6,36 @@ import {
   runGate,
   verifyNotice,
 } from "@elixir-mcp/clan/gate.mjs";
-import { fakeMcp, PERSON, player } from "./fakes.mjs";
+import { fakeRecord, PERSON, player } from "./fakes.mjs";
 
 test("gate: an agent grant is refused first, before any tool call", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     principal: { kind: "agent", subject: { type: "clan", tag: "#2PQRJ8LV" } },
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.ok, false);
   assert.equal(g.reason, "not_a_person");
   assert.deepEqual(
-    mcp.calls.map((c) => c[0]),
-    ["initialize"],
+    record.calls.map((c) => c[0]),
+    ["identity"],
   );
 });
 
 test("gate: no principal block reads as not a person", async () => {
-  const mcp = fakeMcp({ principal: null });
-  const g = await runGate({ mcp, token: "t" });
+  const record = fakeRecord({ principal: null });
+  const g = await runGate({ record });
   assert.equal(g.reason, "not_a_person");
 });
 
 test("gate: a person with no players at all", async () => {
-  const mcp = fakeMcp({ players: [] });
-  const g = await runGate({ mcp, token: "t" });
+  const record = fakeRecord({ players: [] });
+  const g = await runGate({ record });
   assert.equal(g.reason, "no_primary_player");
   assert.equal(g.principal.kind, "person");
 });
 
 test("gate: an unverified player not in a clan is refused at the clan check, with the players listed", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({
         claim_status: "unverified",
@@ -48,13 +48,13 @@ test("gate: an unverified player not in a clan is refused at the clan check, wit
       }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.reason, "no_clan");
   assert.equal(g.identities[0].player_tag, "#20QQL8CCRU");
 });
 
 test("gate: an account that only follows friends has no player of its own", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({ relationship: "friend", is_primary: false }),
       player({
@@ -64,13 +64,15 @@ test("gate: an account that only follows friends has no player of its own", asyn
       }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.reason, "no_primary_player");
 });
 
 test("gate: an UNVERIFIED Leader passes as a member, and what verifying would unlock is named", async () => {
-  const mcp = fakeMcp({ players: [player({ claim_status: "unverified" })] });
-  const g = await runGate({ mcp, token: "t" });
+  const record = fakeRecord({
+    players: [player({ claim_status: "unverified" })],
+  });
+  const g = await runGate({ record });
   assert.equal(g.ok, true);
   assert.equal(g.primary.player_tag, "#20QQL8CCRU");
   const [c] = g.clans;
@@ -101,17 +103,17 @@ test("gate: an UNVERIFIED Leader passes as a member, and what verifying would un
 });
 
 test("gate: an unverified member has nothing to unlock, so no notice", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [player({ claim_status: "unverified", clan_role: "member" })],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.clans[0].verified, false);
   assert.equal(g.clans[0].unlock, null);
   assert.equal(verifyNotice(g), null);
 });
 
 test("gate: a verified primary not in a clan", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({
         clan_tag: null,
@@ -123,17 +125,17 @@ test("gate: a verified primary not in a clan", async () => {
       }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.reason, "no_clan");
 });
 
 for (const claim_status of ["verified", "unverified"]) {
   for (const clan_role of ["leader", "member", null]) {
     test(`gate: missing membership evidence is pending for ${claim_status}/${clan_role}`, async () => {
-      const mcp = fakeMcp({
+      const record = fakeRecord({
         players: [player({ claim_status, clan_tag: null, clan_role })],
       });
-      const g = await runGate({ mcp, token: "t" });
+      const g = await runGate({ record });
       assert.equal(g.ok, false);
       assert.equal(g.reason, "membership_unknown");
       assert.equal(g.identities[0].membership_capture.state, "unknown");
@@ -143,7 +145,7 @@ for (const claim_status of ["verified", "unverified"]) {
 }
 
 test("gate: a profile naming a clan without roster role evidence waits, granting no new role", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({
         clan_role: null,
@@ -154,7 +156,7 @@ test("gate: a profile naming a clan without roster role evidence waits, granting
       }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.reason, "membership_unknown");
 });
 
@@ -171,21 +173,18 @@ test("gate: absence must be observed for every own player; friends do not decide
     clan_tag: null,
     clan_role: null,
   });
-  const mcp = fakeMcp({ players: [absent, alt] });
-  assert.equal(
-    (await runGate({ mcp, token: "t" })).reason,
-    "membership_unknown",
-  );
+  const record = fakeRecord({ players: [absent, alt] });
+  assert.equal((await runGate({ record })).reason, "membership_unknown");
   alt.membership_capture = absent.membership_capture;
-  assert.equal((await runGate({ mcp, token: "t" })).reason, "no_clan");
+  assert.equal((await runGate({ record })).reason, "no_clan");
   alt.relationship = "friend";
   delete alt.membership_capture;
-  assert.equal((await runGate({ mcp, token: "t" })).reason, "no_clan");
+  assert.equal((await runGate({ record })).reason, "no_clan");
 });
 
 test("gate: the happy path names the clan set and the role", async () => {
-  const mcp = fakeMcp();
-  const g = await runGate({ mcp, token: "t" });
+  const record = fakeRecord();
+  const g = await runGate({ record });
   assert.equal(g.ok, true);
   assert.equal(g.clans.length, 1);
   assert.equal(g.clans[0].clan_tag, "#2PQRJ8LV");
@@ -198,7 +197,7 @@ test("gate: the happy path names the clan set and the role", async () => {
 });
 
 test("gate: a verified alt in another clan adds a second clan; the primary's comes first", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     principal: { ...PERSON, clan: { tag: "#PYLQ2", name: "Elsewhere" } },
     players: [
       player(),
@@ -212,7 +211,7 @@ test("gate: a verified alt in another clan adds a second clan; the primary's com
       }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.deepEqual(
     g.clans.map((c) => c.clan_tag),
     ["#2PQRJ8LV", "#PYLQ2"],
@@ -224,7 +223,7 @@ test("gate: a verified alt in another clan adds a second clan; the primary's com
 });
 
 test("gate: an UNVERIFIED alt adds its clan as a member's", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player(),
       player({
@@ -237,7 +236,7 @@ test("gate: an UNVERIFIED alt adds its clan as a member's", async () => {
       }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.deepEqual(
     g.clans.map((c) => [c.clan_tag, c.role, c.verified]),
     [
@@ -251,7 +250,7 @@ test("gate: an UNVERIFIED alt adds its clan as a member's", async () => {
 });
 
 test("gate: a verified member tag and an unverified Co-leader tag in one clan act as the verified one, and name the other to verify", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({ clan_role: "member" }),
       player({
@@ -264,7 +263,7 @@ test("gate: a verified member tag and an unverified Co-leader tag in one clan ac
       }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.clans.length, 1);
   const [c] = g.clans;
   assert.equal(c.acting_as, "#20QQL8CCRU");
@@ -276,7 +275,7 @@ test("gate: a verified member tag and an unverified Co-leader tag in one clan ac
 });
 
 test("gate: a verified Elder tag is not outranked by an unverified Elder tag in the same clan", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({ clan_role: "elder" }),
       player({
@@ -288,14 +287,14 @@ test("gate: a verified Elder tag is not outranked by an unverified Elder tag in 
       }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.clans[0].role, "elder");
   assert.equal(g.clans[0].verified, true);
   assert.equal(g.clans[0].unlock, null);
 });
 
 test("gate: two verified tags in one clan are one clan, acting as the higher role, both yours", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({ clan_role: "member" }),
       player({
@@ -306,7 +305,7 @@ test("gate: two verified tags in one clan are one clan, acting as the higher rol
       }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.clans.length, 1);
   assert.equal(g.clans[0].acting_as, "#8QCV");
   assert.equal(g.clans[0].role, "coLeader");
@@ -314,18 +313,18 @@ test("gate: two verified tags in one clan are one clan, acting as the higher rol
 });
 
 test("gate: an alt-only account with a verified alt in a clan passes; the alt keys the preference", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({ player_tag: "#8QCV", is_primary: false, relationship: "alt" }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.ok, true);
   assert.equal(g.primary.player_tag, "#8QCV");
 });
 
 test("gate: an unverified primary with a verified alt in a clan still passes", async () => {
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players: [
       player({ claim_status: "unverified" }),
       player({
@@ -337,7 +336,7 @@ test("gate: an unverified primary with a verified alt in a clan still passes", a
       }),
     ],
   });
-  const g = await runGate({ mcp, token: "t" });
+  const g = await runGate({ record });
   assert.equal(g.ok, true);
   // The primary's clan first, as a member until it is verified.
   assert.deepEqual(
@@ -350,9 +349,9 @@ test("gate: an unverified primary with a verified alt in a clan still passes", a
 });
 
 test("gate: a door failure is an error, not a refusal", async () => {
-  const mcp = fakeMcp();
-  mcp.state.refuse = true;
-  const g = await runGate({ mcp, token: "t" });
+  const record = fakeRecord();
+  record.state.refuse = true;
+  const g = await runGate({ record });
   assert.equal(g.ok, false);
   assert.equal(g.reason, undefined);
   assert.equal(g.status, 401);

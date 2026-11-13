@@ -15,7 +15,7 @@ import {
   EXAMPLE_AWARDS,
   EXAMPLE_POLICY,
 } from "@elixir-mcp/clan-engine/fixtures";
-import { seedVersion, fakeMcp } from "./fakes.mjs";
+import { seedVersion, fakeRecord } from "./fakes.mjs";
 const tag = "#TEST";
 const who = {
   player_tag: "#Q0",
@@ -27,7 +27,7 @@ const first = "00000000-0000-0000-0000-000000000001";
 const second = "00000000-0000-0000-0000-000000000002";
 function harness() {
   const ledger = createMemoryLedger();
-  const record = participation(
+  const seeded = participation(
     Array.from({ length: 10 }, (_, i) => member(`#Q${i}`)),
   );
   seedVersion(ledger, "policy", tag, EXAMPLE_POLICY);
@@ -38,37 +38,34 @@ function harness() {
     now: () => NOW.getTime(),
     participationFor: async () => {
       reads++;
-      return structuredClone(record);
+      return structuredClone(seeded);
     },
   });
-  const mcp = fakeMcp();
+  const record = fakeRecord();
   const manage = createManageService({
     ledger,
-    mcp,
+    record,
     now: () => NOW.getTime(),
   });
-  return { ledger, record, service, manage, mcp, reads: () => reads };
+  return { ledger, seeded, service, manage, record, reads: () => reads };
 }
 test("current update freezes one Action without granting, recovers the same request and permits a deliberate later request", async () => {
   const h = harness();
-  const a = (await h.service.currentUpdate(tag, who, "fixture", first)).action;
+  const a = (await h.service.currentUpdate(tag, who, first)).action;
   assert.ok(a.evidence.messages.length > 1);
   assert.equal(a.evidence.scope, "current");
   assert.ok(a.evidence.as_of);
   assert.equal((await h.ledger.grants(tag)).length, 0);
   assert.equal((await h.ledger.awardPlans(tag)).length, 0);
   assert.equal((await h.ledger.weeklyAwardPlans(tag)).length, 0);
-  h.record.members[0].war_points[5] = 99999;
-  assert.deepEqual(
-    (await h.service.currentUpdate(tag, who, "fixture", first)).action,
-    a,
-  );
+  h.seeded.members[0].war_points[5] = 99999;
+  assert.deepEqual((await h.service.currentUpdate(tag, who, first)).action, a);
   assert.equal(h.reads(), 1);
-  await h.service.currentUpdate(tag, who, "fixture", second);
+  await h.service.currentUpdate(tag, who, second);
   assert.equal((await h.ledger.cards(tag)).length, 2);
   await h.ledger.putCard(tag, { ...a, status: "declined" });
   assert.equal(
-    (await h.service.currentUpdate(tag, who, "fixture", first)).action.status,
+    (await h.service.currentUpdate(tag, who, first)).action.status,
     "declined",
   );
   assert.equal((await h.ledger.cards(tag)).length, 2);
@@ -78,13 +75,13 @@ test("current update freezes one Action without granting, recovers the same requ
     { ...who, verified: false },
   ])
     await assert.rejects(
-      h.service.currentUpdate(tag, reader, "fixture", first),
+      h.service.currentUpdate(tag, reader, first),
       (e) => e.status === 403,
     );
 });
 test("message delivery is explicit, durable, idempotent, preserves actual edited words and is required before completing", async () => {
   const h = harness();
-  const a = (await h.service.currentUpdate(tag, who, "fixture", first)).action;
+  const a = (await h.service.currentUpdate(tag, who, first)).action;
   await assert.rejects(
     h.manage.decide(tag, who, a.card_id, { status: "done" }),
     (e) => e.code === "messages_not_sent",
@@ -134,7 +131,7 @@ test("message delivery is explicit, durable, idempotent, preserves actual edited
 });
 test("skipping remaining messages keeps previous delivery receipts and cannot raise a replacement", async () => {
   const h = harness();
-  const a = (await h.service.currentUpdate(tag, who, "fixture", first)).action;
+  const a = (await h.service.currentUpdate(tag, who, first)).action;
   await h.manage.messageSent(
     tag,
     who,
@@ -157,29 +154,29 @@ test("skipping remaining messages keeps previous delivery receipts and cannot ra
     (e) => e.code === "action_closed",
   );
   assert.equal(
-    (await h.service.currentUpdate(tag, who, "fixture", first)).action.card_id,
+    (await h.service.currentUpdate(tag, who, first)).action.card_id,
     a.card_id,
   );
   assert.equal((await h.ledger.cards(tag)).length, 1);
 });
 test("weekly selection uses newest observed closure only, excludes closed seasons and respects the seven-day boundary", () => {
   const h = harness();
-  const week = h.record.war_weeks.at(-1);
+  const week = h.seeded.war_weeks.at(-1);
   week.finished_observed_at = new Date(
     NOW.getTime() - 7 * 86400000,
   ).toISOString();
   week.is_colosseum = false;
   assert.equal(
-    timelyAwardWeek(h.record, NOW).section_index,
+    timelyAwardWeek(h.seeded, NOW).section_index,
     week.section_index,
   );
-  assert.equal(timelyAwardWeek(h.record, new Date(NOW.getTime() + 1)), null);
+  assert.equal(timelyAwardWeek(h.seeded, new Date(NOW.getTime() + 1)), null);
   week.finished_observed_at = NOW.toISOString();
   week.is_colosseum = true;
-  assert.equal(timelyAwardWeek(h.record, NOW), null);
+  assert.equal(timelyAwardWeek(h.seeded, NOW), null);
   week.is_colosseum = false;
   week.finished_observed_at = new Date(NOW.getTime() + 1).toISOString();
-  assert.equal(timelyAwardWeek(h.record, NOW), null);
+  assert.equal(timelyAwardWeek(h.seeded, NOW), null);
 });
 test("Actions list reads logs only for visible returned cards and detail reads only its own log", async () => {
   const h = harness();
@@ -212,7 +209,7 @@ test("Actions list reads logs only for visible returned cards and detail reads o
     ids = wanted;
     return bounded(clan, wanted);
   };
-  const list = await h.manage.actionsView(tag, who, "fixture");
+  const list = await h.manage.actionsView(tag, who);
   assert.equal(list.open.length, 10);
   assert.equal(ids.length, 10);
   const log = h.ledger.actionLog.bind(h.ledger);
@@ -233,33 +230,32 @@ test("Actions processing reuses a stale saved evaluation until suggestions are e
     as_of: "2020-01-01T00:00:00Z",
     policy_version: 1,
   });
-  h.mcp.state.refuse = true;
-  const list = await h.manage.actionsView(tag, who, "fixture");
+  const list = await h.manage.actionsView(tag, who);
   assert.equal(list.evaluated_at, "2020-01-01T00:00:00Z");
   assert.equal(list.cached, true);
-  assert.equal(h.mcp.calls.length, 0);
+  assert.equal(h.record.calls.length, 0);
   await assert.rejects(
-    h.manage.actionsView(tag, who, "fixture", { refresh: true }),
-    (e) => e.status === 401,
+    h.manage.actionsView(tag, who, { refresh: true }),
+    (e) => e.status === 502,
   );
-  assert.ok(h.mcp.calls.length > 0);
+  assert.ok(h.record.calls.length > 0);
 });
 
 test("a closed latest season cannot make an older incomplete season the current update", () => {
   const h = harness();
   // No final Colosseum in 135, but its old open section is not current.
-  h.record.war_weeks = h.record.war_weeks.filter(
+  h.seeded.war_weeks = h.seeded.war_weeks.filter(
     (w) => !(w.season_id === 135 && w.section_index === 4),
   );
-  h.record.war_weeks.find(
+  h.seeded.war_weeks.find(
     (w) => w.season_id === 135 && w.section_index === 3,
   ).finished_observed_at = null;
-  const newest = h.record.war_weeks.at(-1);
+  const newest = h.seeded.war_weeks.at(-1);
   newest.is_colosseum = true;
   newest.finished_observed_at = NOW.toISOString();
   assert.equal(
     currentAwardUpdate({
-      participation: h.record,
+      participation: h.seeded,
       config: EXAMPLE_AWARDS,
       now: NOW,
     }),
@@ -269,7 +265,7 @@ test("a closed latest season cannot make an older incomplete season the current 
 
 test("a receipt saved before its audit fails is recovered with the original words and sender", async () => {
   const h = harness();
-  const a = (await h.service.currentUpdate(tag, who, "fixture", first)).action;
+  const a = (await h.service.currentUpdate(tag, who, first)).action;
   const append = h.ledger.appendActionLog.bind(h.ledger);
   let fail = true;
   h.ledger.appendActionLog = async (clan, entry) => {
@@ -280,9 +276,7 @@ test("a receipt saved before its audit fails is recovered with the original word
     return append(clan, entry);
   };
   const edited = { title: "Reviewed", body: "Original reviewed words." };
-  await assert.rejects(
-    h.manage.messageSent(tag, who, a.card_id, 1, edited, "fixture"),
-  );
+  await assert.rejects(h.manage.messageSent(tag, who, a.card_id, 1, edited));
   assert.equal(
     (await h.ledger.card(tag, a.card_id)).messages_sent[0].body,
     edited.body,
@@ -293,28 +287,24 @@ test("a receipt saved before its audit fails is recovered with the original word
     name: "Other",
     role: "coLeader",
   };
-  await h.manage.messageSent(
-    tag,
-    coLeader,
-    a.card_id,
-    1,
-    { title: "Other", body: "Other words" },
-    "other-token",
-  );
+  await h.manage.messageSent(tag, coLeader, a.card_id, 1, {
+    title: "Other",
+    body: "Other words",
+  });
   assert.equal(
-    h.mcp.state.facts.length,
+    h.record.state.facts.length,
     0,
     "another leader cannot become the original sender",
   );
-  await h.manage.messageSent(tag, who, a.card_id, 1, edited, "fixture");
-  await h.manage.messageSent(tag, who, a.card_id, 1, edited, "fixture");
+  await h.manage.messageSent(tag, who, a.card_id, 1, edited);
+  await h.manage.messageSent(tag, who, a.card_id, 1, edited);
   const logs = (await h.ledger.actionLog(tag, a.card_id)).filter(
     (e) => e.kind === "message_sent",
   );
   assert.equal(logs.length, 1);
   assert.equal(logs[0].by.tag, who.player_tag);
-  assert.equal(h.mcp.state.facts.length, 1);
-  assert.equal(h.mcp.state.facts[0].detail.body, edited.body);
+  assert.equal(h.record.state.facts.length, 1);
+  assert.equal(h.record.state.facts[0].detail.body, edited.body);
   assert.equal(
     (await h.ledger.card(tag, a.card_id)).messages_sent[0].shared,
     true,
@@ -324,11 +314,11 @@ test("a receipt saved before its audit fails is recovered with the original word
 test("new current game copy keeps freshness in the app, formats scores and avoids metadata walls", () => {
   const h = harness();
   const update = currentAwardUpdate({
-    participation: h.record,
+    participation: h.seeded,
     config: EXAMPLE_AWARDS,
     now: NOW,
   });
-  assert.equal(update.as_of, h.record.meta.as_of);
+  assert.equal(update.as_of, h.seeded.meta.as_of);
   const text = update.parts.map((p) => p.message.body).join(" ");
   assert.doesNotMatch(
     text,

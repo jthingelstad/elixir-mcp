@@ -147,7 +147,7 @@ async function draft(kind, { dossier = true } = {}) {
       return STORY(tags, { dossier });
     },
     model: {
-      async write(_clan, _who, _token, r) {
+      async write(_clan, _who, r) {
         request = r;
         return {
           model: "fake",
@@ -159,7 +159,7 @@ async function draft(kind, { dossier = true } = {}) {
       },
     },
   });
-  await drafts.leaderMessage(CLAN, who, "token", kind);
+  await drafts.leaderMessage(CLAN, who, kind);
   return { asked, prompt: request.prompt, context: request.context };
 }
 

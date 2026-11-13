@@ -65,7 +65,7 @@ const deferred = () => {
  *  inside each participation read, before it answers. */
 function door(onParticipation = async () => {}) {
   return {
-    async callTool(_token, name) {
+    async read(name) {
       if (name === "clans_participation") {
         await onParticipation();
         return { ok: true, body: structuredClone(part) };
@@ -88,10 +88,10 @@ function door(onParticipation = async () => {}) {
 }
 
 /** The manage service on one connection, locking as the web API does. */
-function service(db, mcp, t = NOW.getTime()) {
+function service(db, record, t = NOW.getTime()) {
   return createManageService({
     ledger: createPostgresLedger(db),
-    mcp,
+    record,
     now: () => t,
     exclusive: clanExclusive(db),
     activityFor: async (_tag, tags) =>
@@ -140,18 +140,18 @@ test("two evaluations that read the record together raise each Action once", asy
   // locked half reads the cards again.
   let arrived = 0;
   const both = deferred();
-  const mcp = door(async () => {
+  const record = door(async () => {
     if (++arrived === 2) both.resolve();
     await both.promise;
   });
   const [a, b] = await Promise.all([
-    service(one, mcp).evaluateClan({
+    service(one, record).evaluateClan({
       clanTag: CLAN,
       token: "t",
       who: LEADER,
       force: true,
     }),
-    service(two, mcp).evaluateClan({
+    service(two, record).evaluateClan({
       clanTag: CLAN,
       token: "t",
       who: LEADER,

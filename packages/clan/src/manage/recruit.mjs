@@ -35,7 +35,7 @@ const LEADERS = new Set(["leader", "coLeader"]);
 
 export function createRecruitService({
   ledger,
-  mcp,
+  record,
   /** the clan's own model (`createModelService`), or null */
   model = null,
   now = () => Date.now(),
@@ -65,7 +65,7 @@ export function createRecruitService({
    * queued and answered live_pending, passed through so the page asks
    * again) with the recorded roster standing in meanwhile.
    */
-  async function factsFor(clanTag, token, { refresh = false } = {}) {
+  async function factsFor(clanTag, { refresh = false } = {}) {
     const t = now();
     const cached = await ledger.recruitFacts(clanTag);
     const age = cached ? t - Date.parse(cached.read_at) : Infinity;
@@ -76,7 +76,7 @@ export function createRecruitService({
         pending: null,
         cached: true,
       };
-    const live = await mcp.callTool(token, "live_fetch", {
+    const live = await record.read("live_fetch", {
       path: `/clans/${encodeURIComponent(clanTag)}`,
     });
     if (live.ok && live.body?.data) {
@@ -85,8 +85,6 @@ export function createRecruitService({
       await ledger.saveRecruitFacts(clanTag, { facts, read_at });
       return { facts, read_at, pending: null, cached: false };
     }
-    if (!live.ok && live.status === 401)
-      throw new ManageError(401, "session_expired");
     const pending =
       !live.ok && live.code === "live_pending"
         ? {
@@ -102,7 +100,7 @@ export function createRecruitService({
         pending,
         cached: true,
       };
-    const roster = await fetchRoster(mcp, token, clanTag);
+    const roster = await fetchRoster(record, clanTag);
     return {
       facts: factsFromRoster(roster),
       read_at: roster?.meta?.as_of ?? null,
@@ -117,15 +115,11 @@ export function createRecruitService({
     pitchFor,
 
     /** The page: pitch, facts, the two formats, and the editor's fields. */
-    async view(clanTag, who, token, { refresh = false } = {}) {
+    async view(clanTag, who, { refresh = false } = {}) {
       const pitch = await pitchFor(clanTag);
-      const { facts, read_at, pending, cached } = await factsFor(
-        clanTag,
-        token,
-        {
-          refresh: refresh && isLeader(who),
-        },
-      );
+      const { facts, read_at, pending, cached } = await factsFor(clanTag, {
+        refresh: refresh && isLeader(who),
+      });
       // No copy until a leader has written the clan's words; a leader
       // writing the first pitch starts from a draft of the clan's goals.
       const copy = pitch.version > 0 ? recruitCopy(pitch.values, facts) : null;
@@ -175,13 +169,13 @@ export function createRecruitService({
      * outlasts the request is `{ pending }`, collected by asking again
      * with it (2026-10-11).
      */
-    async draft(clanTag, who, token, note = null, { pending = null } = {}) {
+    async draft(clanTag, who, note = null, { pending = null } = {}) {
       if (!isLeader(who)) throw new ManageError(403, "leaders_only");
       if (!model) throw new ManageError(404, "not_found");
       if (pending != null && typeof pending !== "string")
         throw new ManageError(400, "bad_request");
       const pitch = await pitchFor(clanTag);
-      const { facts } = await factsFor(clanTag, token);
+      const { facts } = await factsFor(clanTag);
       const policy = await ledger.currentPolicy(clanTag);
       const request = pitchRequest({
         clanName: facts?.name ?? null,
@@ -194,7 +188,7 @@ export function createRecruitService({
       });
       const answer = pending
         ? await model.collect(clanTag, who, pending)
-        : await model.write(clanTag, who, token, request, { defer: true });
+        : await model.write(clanTag, who, request, { defer: true });
       if (answer.pending) return { pending: answer.pending };
       const draft = pitchFromDraft(answer.input, pitch.values, {
         prompt: request.prompt,

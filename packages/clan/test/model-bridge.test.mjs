@@ -268,9 +268,9 @@ test("an unconfirmed key owner cannot spend the clan's tokens", async () => {
     },
   });
   const who = { player_tag: "#P2LQ0", role: "leader" };
-  assert.equal((await service.status("#P0LYQ", who, {})).usable, false);
+  assert.equal((await service.status("#P0LYQ", who)).usable, false);
   await assert.rejects(
-    service.write("#P0LYQ", who, {}, { purpose: "recruit_pitch", ...input }),
+    service.write("#P0LYQ", who, { purpose: "recruit_pitch", ...input }),
     (e) => e.code === "model_owner_unconfirmed",
   );
   assert.equal((await ledger.modelCalls("#P0LYQ")).length, 0);
@@ -343,7 +343,6 @@ test("a paid attempt is durable before dispatch, even when the final ledger upda
       service.write(
         "#P0LYQ",
         { player_tag: "#P2LQ0", role: "leader" },
-        {},
         { purpose: "recruit_pitch", ...input },
       ),
     );

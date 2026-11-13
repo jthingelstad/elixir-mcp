@@ -10,7 +10,7 @@ import {
 } from "@elixir-mcp/clan/manage/service.mjs";
 import { createScout } from "@elixir-mcp/clan/manage/scout.mjs";
 import {
-  fakeMcp,
+  fakeRecord,
   player,
   req,
   signIn,
@@ -33,17 +33,18 @@ const DAY = 86400_000;
 /** A door that also answers clans_participation and the scout's live reads. */
 function door({ players, part, profile = null, log = null, roster = null }) {
   // The roster states the clan's size as the participation read does.
-  const mcp = fakeMcp({
+  const record = fakeRecord({
     players,
     roster: roster ?? {
       ...rosterBody([]),
       member_count: part?.members?.length ?? 0,
     },
   });
-  const inner = mcp.callTool.bind(mcp);
-  mcp.callTool = async (token, name, args) => {
-    mcp.calls.push([name, token, args]);
-    if (mcp.state.refuse) return { ok: false, status: 401, error: "http 401" };
+  const inner = record.read.bind(record);
+  record.read = async (name, args) => {
+    record.calls.push([name, args]);
+    if (record.state.refuse)
+      return { ok: false, status: 401, error: "http 401" };
     if (name === "clans_participation") return { ok: true, body: part };
     if (name === "players_profile")
       return (
@@ -63,9 +64,9 @@ function door({ players, part, profile = null, log = null, roster = null }) {
       );
     if (name === "battles_query")
       return log ?? { ok: true, body: { battles: [] } };
-    return inner(token, name, args);
+    return inner(name, args);
   };
-  return mcp;
+  return record;
 }
 
 function harness({
@@ -81,12 +82,12 @@ function harness({
 } = {}) {
   const clock = { t: NOW.getTime() };
   const now = () => clock.t;
-  const mcp = door({ players, part, ...rest });
+  const record = door({ players, part, ...rest });
   const activity = { part };
   const { identity, store } = createTestAccount();
   const manage = createManageService({
     ledger,
-    mcp,
+    record,
     now,
     seasonCalendar,
     weekBattlesFor,
@@ -116,17 +117,17 @@ function harness({
     log: { warn() {}, error() {} },
   });
   const handler = createHandler({
-    mcp,
+    record,
     identity,
     store,
     manage,
-    scout: createScout({ mcp, now }),
+    scout: createScout({ record, now }),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,
     log: { warn() {}, error() {} },
   });
-  return { clock, mcp, store, ledger, manage, handler, activity };
+  return { clock, record, store, ledger, manage, handler, activity };
 }
 
 const others = Array.from({ length: 10 }, (_, i) => member(`#O${i}`));
@@ -162,7 +163,6 @@ const api = async (h, cookies, method, path, body) => {
 async function historicalRemoval(h, status = "proposed") {
   await h.manage.evaluateClan({
     clanTag: "#2PQRJ8LV",
-    token: "token",
     who: { player_tag: king.player_tag, role: "leader", verified: true },
     force: true,
   });
@@ -218,13 +218,13 @@ test("manage: a leader opens Manage; one participation read, cards raised, cache
   );
   assert.ok(removal[0].evidence.facts.find((f) => f.key === "last_battle"));
   assert.equal(
-    h.mcp.calls.filter((c) => c[0] === "clans_participation").length,
+    h.record.calls.filter((c) => c[0] === "clans_participation").length,
     1,
   );
   const again = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
   assert.equal(again.body.cached, true);
   assert.equal(
-    h.mcp.calls.filter((c) => c[0] === "clans_participation").length,
+    h.record.calls.filter((c) => c[0] === "clans_participation").length,
     1,
   );
   assert.ok(
@@ -347,10 +347,10 @@ test("cards: an open removal is withdrawn when the member plays", async () => {
     { clan_tag: "#2PQRJ8LV" },
   );
   h.activity.part = played;
-  h.mcp.callTool = ((orig) => (token, name, args) =>
+  h.record.read = ((orig) => (name, args) =>
     name === "clans_participation"
       ? Promise.resolve({ ok: true, body: played })
-      : orig(token, name, args))(h.mcp.callTool);
+      : orig(name, args))(h.record.read);
   h.clock.t += 6 * 60_000;
   const second = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
   assert.equal(
@@ -368,10 +368,10 @@ test("cards: a done removal is verified when the record no longer lists the memb
   const cookies = await leader(h);
   const card = await historicalRemoval(h, "done");
   const gone = participation([king, ...others], { clan_tag: "#2PQRJ8LV" });
-  h.mcp.callTool = ((orig) => (token, name, args) =>
+  h.record.read = ((orig) => (name, args) =>
     name === "clans_participation"
       ? Promise.resolve({ ok: true, body: gone })
-      : orig(token, name, args))(h.mcp.callTool);
+      : orig(name, args))(h.record.read);
   h.clock.t += 6 * 3600_000;
   await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
   const hist = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/history");
@@ -600,7 +600,7 @@ test("before a leader saves a policy, no clan management runs: the roster, the p
   }
   // Nothing was evaluated and nothing was asked of Elixir for it.
   assert.equal(
-    h.mcp.calls.filter((c) => c[0] === "clans_participation").length,
+    h.record.calls.filter((c) => c[0] === "clans_participation").length,
     0,
   );
   assert.equal(await h.ledger.latestVerdicts("#2PQRJ8LV"), null);
@@ -680,7 +680,7 @@ test("standing for members: evidence in a player's terms, no internals; private 
   assert.ok(priv.body.you);
   // A clan whose leaders choose Elders and track no inactivity evaluates
   // nothing for Standing: it is the rules alone.
-  const calls = h.mcp.calls.length;
+  const calls = h.record.calls.length;
   await api(hl, lc, "POST", "/api/clans/2PQRJ8LV/policy", {
     values: { elder_mode: "manual" },
   });
@@ -691,7 +691,7 @@ test("standing for members: evidence in a player's terms, no internals; private 
   assert.equal(manual.body.rows, null);
   assert.equal(manual.body.weights, null);
   assert.equal(
-    h.mcp.calls.slice(calls).filter((c) => c[0] === "clans_participation")
+    h.record.calls.slice(calls).filter((c) => c[0] === "clans_participation")
       .length,
     0,
   );
@@ -707,9 +707,9 @@ test("standing is shaped by the policy its verdicts were evaluated under, when a
   const lc = await leader(hl);
   // The record is read outside the clan's lock: the leader hides
   // standings from members while this member's evaluation reads it.
-  const read = h.mcp.callTool;
+  const read = h.record.read;
   let saved = false;
-  h.mcp.callTool = async (token, name, args) => {
+  h.record.read = async (name, args) => {
     if (name === "clans_participation" && !saved) {
       saved = true;
       const r = await api(hl, lc, "POST", "/api/clans/2PQRJ8LV/policy", {
@@ -717,7 +717,7 @@ test("standing is shaped by the policy its verdicts were evaluated under, when a
       });
       assert.equal(r.status, 200);
     }
-    return read(token, name, args);
+    return read(name, args);
   };
   const s = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/standing");
   assert.equal(s.status, 200);
@@ -1007,7 +1007,7 @@ test("departures: every unexplained member_left raises one card; Kicked / Left /
 
   // An already-completed historical removal explains the later departure.
   await historicalRemoval(h, "done");
-  h.mcp.state.roster = leftEvents([
+  h.record.state.roster = leftEvents([
     {
       type: "member_left",
       at: "2026-09-12T21:00:00.000Z",
@@ -1063,7 +1063,7 @@ test("departures: a leave while the member's removal was still open asks, linked
   // A leader kicks them in the game without marking the removal Done.
   h.clock.t += 60 * 60_000;
   part.members = part.members.filter((m) => m.player_tag !== idle.player_tag);
-  h.mcp.state.roster = leftEvents([
+  h.record.state.roster = leftEvents([
     {
       type: "member_left",
       at: new Date(h.clock.t - 30 * 60_000).toISOString(),
@@ -1150,7 +1150,7 @@ test("departures: a leave while the member's removal was still open asks, linked
   // keeps its link to the first departure.
   const firstLeft = Date.parse(dep.evidence.left_at);
   h.clock.t = firstLeft + 25 * 60 * 60_000;
-  h.mcp.state.roster = leftEvents([
+  h.record.state.roster = leftEvents([
     {
       type: "member_left",
       at: dep.evidence.left_at,
@@ -1216,9 +1216,9 @@ test("departures: a member_left that carries only a tag is named from Elixir's c
       },
     ]),
   });
-  h.mcp.callTool = ((orig) => (token, name, args) => {
+  h.record.read = ((orig) => (name, args) => {
     if (name === "players_names") {
-      h.mcp.calls.push([name, token, args]);
+      h.record.calls.push([name, args]);
       return {
         ok: true,
         body: {
@@ -1235,8 +1235,8 @@ test("departures: a member_left that carries only a tag is named from Elixir's c
         },
       };
     }
-    return orig(token, name, args);
-  })(h.mcp.callTool);
+    return orig(name, args);
+  })(h.record.read);
   const cookies = await leader(h);
   const first = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
   const card = first.body.inbox.find(
@@ -1247,9 +1247,9 @@ test("departures: a member_left that carries only a tag is named from Elixir's c
   assert.equal(card.role_at_raise, "elder", "role_at_departure is read");
   const named = first.body.inbox.find((c) => c.player_tag === "#GONE1");
   assert.equal(named.player_name, "Gone One", "an event with a name keeps it");
-  const lookups = h.mcp.calls.filter(([n]) => n === "players_names");
+  const lookups = h.record.calls.filter(([n]) => n === "players_names");
   assert.equal(lookups.length, 1, "one bulk read");
-  assert.deepEqual(lookups[0][2], { player_tags: ["#VGJJ"] });
+  assert.deepEqual(lookups[0][1], { player_tags: ["#VGJJ"] });
   // The next evaluation asks nothing: the ledger carries the name now.
   h.clock.t += 60 * 60_000;
   const again = await api(
@@ -1262,7 +1262,7 @@ test("departures: a member_left that carries only a tag is named from Elixir's c
     again.body.inbox.find((c) => c.player_tag === "#VGJJ").player_name,
     "Fern Finch",
   );
-  assert.equal(h.mcp.calls.filter(([n]) => n === "players_names").length, 1);
+  assert.equal(h.record.calls.filter(([n]) => n === "players_names").length, 1);
   // The timeline names the row from the card it raised.
   const hist = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/history");
   const row = hist.body.timeline.find((e) => e.player_tag === "#VGJJ");
@@ -1360,8 +1360,8 @@ test("away: a member marks themselves away within the policy's cap; the clock pa
   });
   await api(lead, lc, "DELETE", "/api/clans/2PQRJ8LV/holds/8QCV");
   assert.ok(
-    lead.mcp.calls.some(
-      (c) => c[0] === "removeFact" && c[2].ref === "away:#8QCV",
+    lead.record.calls.some(
+      (c) => c[0] === "removeFact" && c[1].ref === "away:#8QCV",
     ),
     "the leader's clear takes the member's away back",
   );
@@ -2152,26 +2152,26 @@ for (const [role, claim_status] of [
     h.clock.t = f.now.getTime();
     const cookies = await leader(h);
     const before = structuredClone(h.ledger.items);
-    h.mcp.calls.length = 0;
+    h.record.calls.length = 0;
     const r = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/season");
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.equal(r.body.seasons[1].decks, 84);
     assert.equal(r.body.seasons[1].contributors, 3);
     assert.equal(r.body.seasons[1].coverage.former_members, 1);
-    const reads = h.mcp.calls.filter(
+    const reads = h.record.calls.filter(
       ([name]) => name === "clans_participation",
     );
     assert.equal(reads.length, 1);
-    assert.deepEqual(reads[0][2], { clan_tag: "#2PQRJ8LV", weeks: 8 });
+    assert.deepEqual(reads[0][1], { clan_tag: "#2PQRJ8LV", weeks: 8 });
     assert.deepEqual(
       h.ledger.items,
       before,
       "no policy, evaluation, action, grant or metadata write",
     );
-    assert.deepEqual(h.mcp.state.facts, []);
-    assert.deepEqual(h.mcp.state.mail, []);
+    assert.deepEqual(h.record.state.facts, []);
+    assert.deepEqual(h.record.state.mail, []);
     assert.ok(
-      !h.mcp.calls.some(([name]) => name === "live_fetch"),
+      !h.record.calls.some(([name]) => name === "live_fetch"),
       "the season page reads the record, never a live fetch",
     );
   });
@@ -2183,11 +2183,11 @@ test("season: unauthenticated, nonmember and cross-clan requests refuse before p
   const anon = await api(h, null, "GET", "/api/clans/2PQRJ8LV/season");
   assert.equal(anon.status, 401);
   const cookies = await leader(h);
-  h.mcp.calls.length = 0;
+  h.record.calls.length = 0;
   const other = await api(h, cookies, "GET", "/api/clans/GQ08RJPL/season");
   assert.equal(other.status, 403);
   assert.equal(other.body.error, "not_your_clan");
-  assert.ok(!h.mcp.calls.some(([name]) => name === "clans_participation"));
+  assert.ok(!h.record.calls.some(([name]) => name === "clans_participation"));
   const outsider = harness({
     players: [player({ clan_tag: null })],
     part: f.part,
@@ -2201,7 +2201,7 @@ test("season: unauthenticated, nonmember and cross-clan requests refuse before p
   );
   assert.equal(absent.status, 403);
   assert.ok(
-    !outsider.mcp.calls.some(([name]) => name === "clans_participation"),
+    !outsider.record.calls.some(([name]) => name === "clans_participation"),
   );
 });
 
@@ -2247,8 +2247,8 @@ test("sharing: always on, nothing to switch; a completed promotion is shared as 
     },
   );
   assert.equal(done.status, 200, JSON.stringify(done.body));
-  assert.equal(h.mcp.state.facts.length, 2);
-  const [fact] = h.mcp.state.facts;
+  assert.equal(h.record.state.facts.length, 2);
+  const [fact] = h.record.state.facts;
   assert.equal(fact.type, "role_change_made");
   assert.deepEqual(fact.detail, { from: "member", to: "elder" });
   assert.equal(fact.ref, `action:${target.card_id}`);
@@ -2266,7 +2266,7 @@ test("sharing: always on, nothing to switch; a completed promotion is shared as 
 test("sharing: a sign-in without the capability is logged and answered, never blocks the decision; only leaders read what is recorded", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
-  h.mcp.state.factAnswer = {
+  h.record.state.factAnswer = {
     ok: false,
     status: 403,
     code: "insufficient_scope",
@@ -2321,13 +2321,13 @@ test("sharing: a member's own away is shared while it lasts and taken back when 
     until,
   });
   assert.equal(set.status, 200, JSON.stringify(set.body));
-  const [fact] = h.mcp.state.facts;
+  const [fact] = h.record.state.facts;
   assert.equal(fact.type, "member_away");
   assert.equal(fact.player_tag, "#8QCV");
   assert.equal(fact.ref, "away:#8QCV");
   assert.equal(fact.detail.until, until);
   await api(h, cookies, "DELETE", "/api/clans/2PQRJ8LV/me/away");
-  assert.deepEqual(h.mcp.state.removed, ["away:#8QCV"]);
+  assert.deepEqual(h.record.state.removed, ["away:#8QCV"]);
 });
 
 test("sharing: each completed action attests only what happened, in the words sent; a removal's chat line is never shared", async () => {
@@ -2834,7 +2834,6 @@ test("Home's needs: a clan below ten members or with no policy needs nothing, as
   await assert.rejects(
     small.manage.evaluateClan({
       clanTag: "#2PQRJ8LV",
-      token: "token",
       who: { player_tag: king.player_tag, role: "leader", verified: true },
       force: true,
     }),
@@ -2872,13 +2871,13 @@ test("Home's needs on their own: the same answer as the card's, with no record r
   await api(lh, lc, "GET", "/api/clans/2PQRJ8LV/actions");
   const home = (await api(lh, lc, "GET", "/api/clans/2PQRJ8LV/home")).body;
   assert.ok(home.needs_total >= 1);
-  const asked = lh.mcp.calls.length;
+  const asked = lh.record.calls.length;
   const needs = await api(lh, lc, "GET", "/api/clans/2PQRJ8LV/needs");
   assert.equal(needs.status, 200, JSON.stringify(needs.body));
   assert.deepEqual(needs.body.needs, home.needs);
   assert.equal(needs.body.needs_total, home.needs_total);
   assert.equal(needs.body.unlock, home.unlock);
-  const tools = lh.mcp.calls.slice(asked).map(([name]) => name);
+  const tools = lh.record.calls.slice(asked).map(([name]) => name);
   for (const slow of ["clans_participation", "clans_roster"])
     assert.ok(!tools.includes(slow), `${slow} in ${tools}`);
 

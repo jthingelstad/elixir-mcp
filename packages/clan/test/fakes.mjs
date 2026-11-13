@@ -1,6 +1,5 @@
-/** Fakes for every seam. No network, no spend: the MCP client and the
- *  OAuth exchange are scripted, the store is in memory, the clock is a
- *  number the test moves. */
+/** Fakes for every seam. No network, no spend: the record is scripted,
+ *  the store is in memory, the clock is a number the test moves. */
 
 import { createAccountContext } from "../src/account.mjs";
 import { createHandler } from "@elixir-mcp/clan/handler.mjs";
@@ -49,22 +48,22 @@ export function rosterBody(members) {
 }
 
 /**
- * A scripted MCP door. `principal` is what initialize answers;
+ * Elixir's record, scripted. `principal` is what identity answers;
  * `players` what elixir_my_players answers; `roster` what clans_roster
  * answers (a body, or `{ error: { code, message } }` for a tool failure);
  * `rosters` answers per clan, keyed by the `clan_tag` asked for, falling
  * back to `roster` when the call names no clan or one not listed (as the
  * real tool falls back to the account's default recorded clan).
- * `refuse` makes every call answer HTTP 401 until cleared, which is how
- * an expired or revoked access token looks from here.
+ * `refuse` makes identity answer 401 until cleared, which is how a
+ * signed-out request looks from here.
  * The roster's `meta.source_polls.clan.observed_at` is now unless
  * `state.rosterObservedAt` names another instant (a stale roster makes a
  * leader mutation ask for a live read: role-freshness.mjs); a live ask
  * answers `state.liveStatus`, pending by default.
  */
-import { timedElixir } from "@elixir-mcp/clan/trace.mjs";
+import { timedRead } from "@elixir-mcp/clan/trace.mjs";
 
-export function fakeMcp({
+export function fakeRecord({
   principal = PERSON,
   players = [player()],
   roster = null,
@@ -77,39 +76,35 @@ export function fakeMcp({
     roster,
     rosters,
     refuse: false,
-    acceptedTokens: null,
     facts: [],
     removed: [],
     mail: [],
     mailStatus: {},
     factAnswer: null,
   };
-  const refused = () => ({ ok: false, status: 401, error: "http 401" });
-  const tokenOk = (token) =>
-    !state.refuse && (!state.acceptedTokens || state.acceptedTokens.has(token));
   return {
     calls,
     state,
-    // Timed into the request's trace like the real client, so a test can
+    // Timed into the request's trace like the real record, so a test can
     // read the story a request tells.
-    initialize(token) {
-      return timedElixir("initialize", async () => {
-        calls.push(["initialize", token]);
-        if (!tokenOk(token)) return refused();
+    identity() {
+      return timedRead("identity", async () => {
+        calls.push(["identity"]);
+        if (state.refuse)
+          return { ok: false, status: 401, error: "unauthenticated" };
         return {
           ok: true,
           body: { principal: state.principal, players: state.players },
-          version: "1.7.0+tools.abc",
           principal: state.principal,
         };
       });
     },
-    callTool(token, name, args) {
-      return timedElixir(name, () => this.rawCallTool(token, name, args));
+    read(name, args) {
+      return timedRead(name, () => this.rawRead(name, args));
     },
-    // Attested facts (JSON API 2.2.0): recorded, answered as scripted.
-    async writeFact(token, clanTag, fact) {
-      calls.push(["writeFact", token, { clanTag, ...fact }]);
+    // Attested facts: recorded, answered as scripted.
+    async writeFact(clanTag, fact) {
+      calls.push(["writeFact", { clanTag, ...fact }]);
       state.facts.push({ clanTag, ...fact });
       return (
         state.factAnswer ?? {
@@ -118,10 +113,10 @@ export function fakeMcp({
         }
       );
     },
-    // Mail through Elixir (JSON API 2.4.0): recorded; each message is
-    // answered from `state.mailStatus[tag]`, else sent.
-    async sendMail(key, clanTag, body) {
-      calls.push(["sendMail", key, { clanTag, ...body }]);
+    // Mail through Elixir: recorded; each message is answered from
+    // `state.mailStatus[tag]`, else sent.
+    async sendMail(clanTag, body) {
+      calls.push(["sendMail", { clanTag, ...body }]);
       state.mail.push({ clanTag, ...body });
       return {
         ok: true,
@@ -134,14 +129,13 @@ export function fakeMcp({
         },
       };
     },
-    async removeFact(token, clanTag, ref) {
-      calls.push(["removeFact", token, { clanTag, ref }]);
+    async removeFact(clanTag, ref) {
+      calls.push(["removeFact", { clanTag, ref }]);
       state.removed.push(ref);
       return { ok: true };
     },
-    async rawCallTool(token, name, args) {
-      calls.push([name, token, args]);
-      if (!tokenOk(token)) return refused();
+    async rawRead(name, args) {
+      calls.push([name, args]);
       if (name === "elixir_my_players")
         return {
           ok: true,
@@ -193,11 +187,9 @@ export function createTestAccount() {
       context = createAccountContext({
         account: { kind: "person", accountId: "test-person" },
         state,
-        credential: "recorded-person",
       });
       return context.identity.load(event);
     },
-    credential: (session) => context?.identity.credential(session),
   };
   const store = { items };
   for (const name of [
@@ -213,10 +205,10 @@ export function createTestAccount() {
 export function harness(opts = {}) {
   const clock = { t: Date.parse("2026-09-12T18:00:00Z") };
   const now = () => clock.t;
-  const mcp = opts.mcp ?? fakeMcp(opts.door);
+  const record = opts.record ?? fakeRecord(opts.door);
   const { identity, store } = createTestAccount();
   const handler = createHandler({
-    mcp,
+    record,
     identity,
     store,
     memberActivity: opts.memberActivity ?? null,
@@ -227,7 +219,7 @@ export function harness(opts = {}) {
     now,
     log: { warn() {}, error() {}, info() {} },
   });
-  return { clock, now, mcp, store, handler };
+  return { clock, now, record, store, handler };
 }
 
 export function req(method, path, { query, cookies, body } = {}) {

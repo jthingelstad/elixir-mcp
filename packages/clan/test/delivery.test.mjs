@@ -10,7 +10,7 @@ import { createMemoryLedger } from "@elixir-mcp/clan-state";
 import { createActionStore } from "../src/manage/actions.mjs";
 import { createManageService } from "../src/manage/service.mjs";
 import { factsOfAction } from "../src/manage/sharing.mjs";
-import { fakeMcp, seedVersion } from "./fakes.mjs";
+import { fakeRecord, seedVersion } from "./fakes.mjs";
 import { EXAMPLE_POLICY, NOW } from "@elixir-mcp/clan-engine/fixtures";
 
 const tag = "#TEST";
@@ -39,7 +39,7 @@ function setup() {
   const store = createActionStore({ ledger, now: () => NOW.getTime() });
   const manage = createManageService({
     ledger,
-    mcp: fakeMcp(),
+    record: fakeRecord(),
     now: () => NOW.getTime(),
   });
   return { ledger, store, manage };

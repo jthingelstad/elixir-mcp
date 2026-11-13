@@ -1,4 +1,4 @@
-import { timedStore, timedElixir } from "@elixir-mcp/clan/trace.mjs";
+import { timedStore, timedRead } from "@elixir-mcp/clan/trace.mjs";
 import { ledgerOver } from "@elixir-mcp/clan-state";
 import { createModelService } from "@elixir-mcp/clan/manage/model.mjs";
 import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
@@ -38,7 +38,7 @@ import { createMemberActivity } from "@elixir-mcp/clan/member-activity.mjs";
 import { readClanFeed } from "./clan-feed.mjs";
 import { readClanRace } from "./clan-race.mjs";
 import { createAccountContext } from "@elixir-mcp/clan/account.mjs";
-import { createRecordedClient } from "@elixir-mcp/clan/recorded-client.mjs";
+import { createRecord } from "@elixir-mcp/clan/record.mjs";
 import { sharedRead } from "./shared-read.mjs";
 import {
   createManageService,
@@ -71,7 +71,7 @@ import {
   removeClanFactInClan,
 } from "@elixir-mcp/record/attested-facts";
 import { makeRegistry } from "@elixir-mcp/tools";
-import { makeInvoker } from "@elixir-mcp/tools/invoker";
+import { makeRecordReader } from "@elixir-mcp/tools/invoker";
 import { makeLive } from "@elixir-mcp/tools/live";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { principalBlock } from "@elixir-mcp/tools/identity";
@@ -79,13 +79,10 @@ import { toolDeadlineMs } from "./deadline.mjs";
 
 const registry = makeRegistry();
 const live = makeLive({ enqueue: (db, job) => enqueueJob(db, job) });
-const STATUS = {
-  input: 400,
-  subject: 404,
-  budget: 429,
-  retry: 503,
-  server: 502,
-};
+/** The live lane for Clan's reads: the same jobs and the same global rate
+ *  budget, with no per-account daily quota spent. */
+const unmeteredLive = (db, request) =>
+  live(db, { ...request, beforeMint: undefined });
 
 const answer = async (fn) => {
   try {
@@ -249,47 +246,36 @@ export function createClanRequest({
     requestId = null,
     modelFactory = null,
   }) => {
-    const credential = Object.freeze({});
-    const invoke = makeInvoker({
+    // Clan reads the record in process, as the signed-in person: the
+    // same tools and budget as any door, but no tool call of anyone's (no
+    // audit row, quota or client name). Its live reads (Scout, Recruit,
+    // the role check) spend no one's daily live quota, as they never have.
+    const read = makeRecordReader({
       db,
-      // This trusted internal feature retains the family quota exemption;
-      // it still uses the original person for every identity/role check.
-      account: { ...account, firstParty: true },
+      account,
       registry,
-      live,
+      live: unmeteredLive,
       surface: "web",
-      clientName: "Clan",
       queryBudgetMs: 15_000,
       deadlineMs: toolDeadlineMs(event),
     });
-    const mcp = createRecordedClient({
-      credential,
-      initialize: () =>
-        timedElixir("initialize", () => recordedIdentity(db, account)),
-      invoke: (name, args) =>
-        timedElixir(name, async () => {
-          const r = SHARED_READS.has(name)
-            ? await sharedRead(
+    const record = createRecord({
+      identity: () =>
+        timedRead("identity", () => recordedIdentity(db, account)),
+      read: (name, args) =>
+        timedRead(name, () =>
+          SHARED_READS.has(name)
+            ? sharedRead(
                 JSON.stringify([
                   account.accountId,
                   account.timezone ?? null,
                   name,
                   args,
                 ]),
-                () => invoke(name, args),
+                () => read(name, args),
               )
-            : await invoke(name, args);
-          return r.isError
-            ? {
-                ok: false,
-                status: STATUS[r.body.error.class] ?? 502,
-                code: r.body.error.code,
-                error: r.body.error.message,
-                hint: r.body.error.hint,
-                body: r.body,
-              }
-            : { ok: true, body: r.body };
-        }),
+            : read(name, args),
+        ),
       // A leader's fact (a departure's answer, an award) wakes the
       // Discord syndication, as a collector's admission does.
       writeFact: (tag, body) =>
@@ -303,15 +289,11 @@ export function createClanRequest({
     });
     const state = createTracedClanStore(db),
       ledger = ledgerOver(state);
-    const context = createAccountContext({
-      account,
-      state,
-      credential,
-    });
+    const context = createAccountContext({ account, state });
     const exclusive = clanExclusive(db);
     const manage = createManageService({
       ledger,
-      mcp,
+      record,
       exclusive,
       appUrl,
       activityFor: (tag, tags) => clanActivityEvidence(db, tag, tags),
@@ -339,16 +321,16 @@ export function createClanRequest({
       exclusive,
       membershipFor: (tag, participation) =>
         warMembershipEvidence(db, tag, participation),
-      participationFor: (token, tag) => fetchParticipation(mcp, token, tag),
-      elixir: mcp,
+      participationFor: (tag) => fetchParticipation(record, tag),
+      elixir: record,
     });
     const model = modelFactory
-      ? modelFactory({ ledger, mcp })
+      ? modelFactory({ ledger, record })
       : modelSecret && modelStorage
         ? createModelService({
             ledger,
             secret: modelSecret,
-            rosterFor: (token, tag) => fetchRoster(mcp, token, tag),
+            rosterFor: (tag) => fetchRoster(record, tag),
             anthropic: createModelBridge({
               secret: modelSecret,
               storage: modelStorage,
@@ -502,7 +484,7 @@ export function createClanRequest({
       activity,
       voice: voices,
       discord,
-      mcp,
+      record,
       manage,
       awards,
       model,
@@ -514,11 +496,11 @@ export function createClanRequest({
         // for the clan's model (2026-10-11).
         storyFor: (clanTag, playerTags) => draftStory(db, clanTag, playerTags),
       }),
-      recruit: createRecruitService({ ledger, mcp, model }),
-      scout: createScout({ mcp }),
+      recruit: createRecruitService({ ledger, record, model }),
+      scout: createScout({ record }),
       social: createSocialService({ ledger, geo: diskGeo() }),
       memberActivity: createMemberActivity({
-        mcp,
+        record,
         weeklyCounts: (...args) => memberActivityWeeks(db, ...args),
         warBounds: (weeks) => memberActivityWarBounds(db, weeks),
       }),
@@ -527,7 +509,7 @@ export function createClanRequest({
       // Clan's Feed (#766): the clan's timeline as this reader reads it.
       feed: (clanTag) => readClanFeed(db, account, clanTag),
       // The clan card's race chip and the Feed's race bar (G5).
-      race: (clanTag) => readClanRace(invoke, clanTag),
+      race: (clanTag) => readClanRace(read, clanTag),
       appUrl,
       elixirUrl: origin,
     });

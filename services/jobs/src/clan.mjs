@@ -1,12 +1,13 @@
 /** One recorded clan per tick, in the existing jobs runtime. Private
  * state and derived facts stay distinct from collector-admitted facts.
- * No person's grant or integration credential is stored or presented. */
+ * The record is read in process as Elixir itself; no grant, key or
+ * credential is stored or presented. */
 import pg from "pg";
 import {
   createPostgresStore,
   createPostgresLedger,
 } from "@elixir-mcp/clan-state/postgres";
-import { createRecordedClient } from "@elixir-mcp/clan/recorded-client.mjs";
+import { createRecord, SYSTEM_READER } from "@elixir-mcp/clan/record.mjs";
 import {
   createManageService,
   fetchParticipation,
@@ -24,7 +25,7 @@ import {
 } from "@elixir-mcp/record/attested-facts";
 import { sendActionsMail } from "@elixir-mcp/mail/clan-mail";
 import { makeRegistry } from "@elixir-mcp/tools";
-import { makeInvoker } from "@elixir-mcp/tools/invoker";
+import { makeRecordReader } from "@elixir-mcp/tools/invoker";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { warMembershipEvidence } from "@elixir-mcp/record/war-membership";
 import { clanActivityEvidence } from "@elixir-mcp/record/clan-activity-evidence";
@@ -48,7 +49,6 @@ export async function evaluateClanTick(
     discord = null,
     state = createPostgresStore(db),
     ledger = createPostgresLedger(db),
-    credential = Object.freeze({}),
     now = Date.now,
   },
 ) {
@@ -102,9 +102,9 @@ export async function evaluateClanTick(
         status: "running",
         attempt,
       });
-      const evaluated = await manage.evaluateOnSchedule(clan, credential);
-      const awarded = await awards.evaluateOnSchedule(clan, credential);
-      const mailed = await manage.mailActionsWaiting(clan, credential);
+      const evaluated = await manage.evaluateOnSchedule(clan);
+      const awarded = await awards.evaluateOnSchedule(clan);
+      const mailed = await manage.mailActionsWaiting(clan);
       // Best effort: a Discord that does not answer never holds the run.
       const posted = discord
         ? await discord.share(clan).catch(() => ({ discord_error: true }))
@@ -176,33 +176,17 @@ export async function runClanEvaluation({
     ).rows[0];
     if (!row) throw new Error("clan_attester_identity_missing");
     const attester = row.account_id;
-    // The record reads still run under that account's principal, as they
-    // did; the closed reader and its principal are changed on their own.
-    const actor = {
-      accountId: row.account_id,
-      name: "elixir-clan",
-      kind: "integration",
-      role: "member",
-      firstParty: true,
-    };
-    const credential = Object.freeze({});
-    const invoke = makeInvoker({
-      db,
-      account: actor,
-      registry,
-      surface: "web",
-      clientName: "Clan morning",
-      queryBudgetMs: 15_000,
-      deadlineMs: 75_000,
-    });
-    const mcp = createRecordedClient({
-      credential,
-      invoke: async (name, args) => {
-        const r = await invoke(name, args);
-        return r.isError
-          ? { ok: false, code: r.body.error.code, body: r.body }
-          : { ok: true, body: r.body };
-      },
+    // The record is read in process as Elixir itself (SYSTEM_READER): no
+    // account, so no one's claims or nicknames, as the integration saw.
+    const record = createRecord({
+      read: makeRecordReader({
+        db,
+        account: SYSTEM_READER,
+        registry,
+        surface: "web",
+        queryBudgetMs: 15_000,
+        deadlineMs: 75_000,
+      }),
       writeFact: (tag, body) =>
         answer(() => writeClanFactBySystem(db, attester, tag, body)),
       removeFact: (tag, ref) =>
@@ -217,7 +201,6 @@ export async function runClanEvaluation({
     const appUrl = "https://elixir.poapkings.com/clan";
     return await evaluateClanTick(db, {
       ledger,
-      credential,
       discord:
         sealingSecret && outboxBucket
           ? createDiscordService({
@@ -235,7 +218,7 @@ export async function runClanEvaluation({
           : null,
       manage: createManageService({
         ledger,
-        mcp,
+        record,
         activityFor: (tag, tags) => clanActivityEvidence(db, tag, tags),
         appUrl,
       }),
@@ -243,8 +226,8 @@ export async function runClanEvaluation({
         ledger,
         membershipFor: (tag, participation) =>
           warMembershipEvidence(db, tag, participation),
-        participationFor: (token, tag) => fetchParticipation(mcp, token, tag),
-        elixir: mcp,
+        participationFor: (tag) => fetchParticipation(record, tag),
+        elixir: record,
       }),
     });
   } finally {

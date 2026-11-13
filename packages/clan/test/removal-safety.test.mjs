@@ -65,7 +65,7 @@ async function harness() {
     ledger,
     now: () => clock.t,
     activityFor,
-    mcp: { callTool: async () => ({ ok: true, body: part }) },
+    record: { read: async () => ({ ok: true, body: part }) },
   });
   return { ledger, card, subject, part, manage, clock, reads: () => reads };
 }
@@ -82,8 +82,8 @@ test("a member past the removal day without a battle: the removal shows its word
     const h = await harness();
     h.clock.t += elapsed;
     for (const a of [
-      (await h.manage.actionsView(clan, who, "token")).open[0],
-      (await h.manage.actionByNumber(clan, who, 45, "token")).action,
+      (await h.manage.actionsView(clan, who)).open[0],
+      (await h.manage.actionByNumber(clan, who, 45)).action,
     ]) {
       assert.equal(a.removal_safety.status, "ready");
       assert.equal(a.removal_safety.reason, null);
@@ -106,15 +106,9 @@ test("a member past the removal day without a battle: the removal shows its word
         },
       },
     });
-    await drafts.leaderMessage(clan, who, "token", h.card.card_id);
+    await drafts.leaderMessage(clan, who, h.card.card_id);
     assert.equal(modelCalls, 1);
-    await h.manage.decide(
-      clan,
-      who,
-      h.card.card_id,
-      { status: "done" },
-      "token",
-    );
+    await h.manage.decide(clan, who, h.card.card_id, { status: "done" });
     assert.equal((await h.ledger.card(clan, h.card.card_id)).status, "done");
   }
 });
@@ -129,8 +123,8 @@ test("a hold set after the evaluation a view reuses withholds the removal's word
   });
   await h.manage.setHold(clan, who, h.subject.player_tag, {});
   for (const a of [
-    (await h.manage.actionsView(clan, who, "token")).open[0],
-    (await h.manage.actionByNumber(clan, who, 45, "token")).action,
+    (await h.manage.actionsView(clan, who)).open[0],
+    (await h.manage.actionByNumber(clan, who, 45)).action,
   ]) {
     assert.equal(a.removal_safety.status, "held");
     assert.equal(a.removal_safety.reason, "The member is on hold.");
@@ -151,7 +145,7 @@ test("verdicts cached under the old hold are judged again on the battle-log cloc
     reason: "Absence of battle activity across every mode is not established.",
   };
   await h.ledger.saveVerdicts(clan, legacy);
-  const view = await h.manage.manageView(clan, who, "token");
+  const view = await h.manage.manageView(clan, who);
   assert.equal(view.cached, false);
   assert.equal(
     view.board.find((m) => m.player_tag === h.subject.player_tag).removal.triage
@@ -177,7 +171,7 @@ test("Board cache keeps role protection and recent captured play out of removal 
         NOW.getTime() - 3600_000,
       ).toISOString();
     for (let i = 0; i < 2; i++) {
-      const view = await h.manage.manageView(clan, who, "token");
+      const view = await h.manage.manageView(clan, who);
       assert.equal(view.cached, i === 1);
       const row = view.board.find((m) => m.player_tag === h.subject.player_tag);
       assert.equal(
@@ -203,8 +197,8 @@ test("cached list/detail withhold stale removal words; drafting and direct compl
   played(h);
   const before = structuredClone(await h.ledger.card(clan, h.card.card_id));
   for (const action of [
-    (await h.manage.actionsView(clan, who, "token")).open[0],
-    (await h.manage.actionByNumber(clan, who, 45, "token")).action,
+    (await h.manage.actionsView(clan, who)).open[0],
+    (await h.manage.actionByNumber(clan, who, 45)).action,
   ]) {
     assert.equal(action.removal_safety.status, "held");
     assert.equal(
@@ -228,12 +222,9 @@ test("cached list/detail withhold stale removal words; drafting and direct compl
     },
     requireRemovalSafety: h.manage.requireRemovalSafety,
   });
+  await assert.rejects(drafts.leaderMessage(clan, who, h.card.card_id), held);
   await assert.rejects(
-    drafts.leaderMessage(clan, who, "token", h.card.card_id),
-    held,
-  );
-  await assert.rejects(
-    h.manage.decide(clan, who, h.card.card_id, { status: "done" }, "token"),
+    h.manage.decide(clan, who, h.card.card_id, { status: "done" }),
     held,
   );
   assert.equal(calls, 0);
@@ -245,16 +236,10 @@ test("cached list/detail withhold stale removal words; drafting and direct compl
   });
   const declined = await h.ledger.card(clan, h.card.card_id);
   await assert.rejects(
-    h.manage.reopen(
-      clan,
-      who,
-      h.card.card_id,
-      {
-        request_id: "00000000-0000-4000-8000-000000000001",
-        expected_decided_at: declined.decided_at,
-      },
-      "token",
-    ),
+    h.manage.reopen(clan, who, h.card.card_id, {
+      request_id: "00000000-0000-4000-8000-000000000001",
+      expected_decided_at: declined.decided_at,
+    }),
     held,
   );
   assert.deepEqual(await h.ledger.card(clan, h.card.card_id), declined);
@@ -307,10 +292,7 @@ test("drafting checks again after the model call, and refuses when the member pl
       },
     },
   });
-  await assert.rejects(
-    drafts.leaderMessage(clan, who, "token", h.card.card_id),
-    held,
-  );
+  await assert.rejects(drafts.leaderMessage(clan, who, h.card.card_id), held);
   assert.equal(calls, 1);
   assert.equal((await h.ledger.card(clan, h.card.card_id)).status, "proposed");
   assert.equal((await h.ledger.actionLog(clan, h.card.card_id)).length, 0);
@@ -321,8 +303,8 @@ test("a failed activity read waits for the next one rather than trusting the cac
   const manage = createManageService({
     ledger: h.ledger,
     now: () => NOW.getTime(),
-    mcp: {
-      callTool() {
+    record: {
+      read() {
         throw Error("unused");
       },
     },
@@ -349,7 +331,7 @@ test("missing profile days do not hold a removal: the battle log decides", async
     },
   ];
   h.subject.activity_evidence.observations = [];
-  const a = (await h.manage.actionByNumber(clan, who, 45, "token")).action;
+  const a = (await h.manage.actionByNumber(clan, who, 45)).action;
   assert.equal(a.removal_safety.status, "ready");
   assert.equal(a.can_complete, true);
 });
@@ -372,7 +354,7 @@ test("draft orchestration binds the version returned by its injected guard", asy
     },
   });
   await assert.rejects(
-    drafts.leaderMessage(clan, who, "token", h.card.card_id),
+    drafts.leaderMessage(clan, who, h.card.card_id),
     (e) => e.code === "draft_changed",
   );
   assert.equal(checks, 3);

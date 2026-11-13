@@ -126,7 +126,7 @@ test("weekly frozen plans recover partial raises, preserve sent/skipped copy wit
     }
     return put(clan, card);
   };
-  await assert.rejects(service.evaluateOnSchedule(tag, "test"), /interrupted/);
+  await assert.rejects(service.evaluateOnSchedule(tag), /interrupted/);
   const frozen = await ledger.weeklyAwardPlans(tag);
   p.members[0].war_points[5] = 123456;
   p.meta.as_of = "2026-09-12T20:01:00Z";
@@ -134,7 +134,7 @@ test("weekly frozen plans recover partial raises, preserve sent/skipped copy wit
     values: { schema: 1, awards: [] },
     by: "#Q0",
   });
-  await service.evaluateClan({ clanTag: tag, token: "test" });
+  await service.evaluateClan({ clanTag: tag });
   const cards = (await ledger.cards(tag))
     .filter((c) => c.type === "awards_standings")
     .sort((a, b) => a.evidence.part - b.evidence.part);
@@ -143,7 +143,7 @@ test("weekly frozen plans recover partial raises, preserve sent/skipped copy wit
   assert.ok(cards.every((c) => c.evidence.as_of === frozen[0].as_of));
   for (const [i, c] of cards.entries())
     await ledger.putCard(tag, { ...c, status: i ? "declined" : "done" });
-  await service.evaluateOnSchedule(tag, "test");
+  await service.evaluateOnSchedule(tag);
   assert.equal(
     (await ledger.cards(tag)).filter((c) => c.type === "awards_standings")
       .length,
@@ -163,7 +163,7 @@ test("weekly frozen plans recover partial raises, preserve sent/skipped copy wit
     m.war_points.push(0);
     m.war_decks.push(0);
   });
-  await service.evaluateOnSchedule(tag, "test");
+  await service.evaluateOnSchedule(tag);
   assert.deepEqual(
     (await ledger.weeklyAwardPlans(tag)).map((p) => [
       p.season_id,

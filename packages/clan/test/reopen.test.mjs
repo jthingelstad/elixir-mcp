@@ -30,14 +30,14 @@ async function harness(extra = {}) {
     ...extra,
   };
   await ledger.putCard(clan, card);
-  const mcp = {
-    callTool() {
+  const record = {
+    read() {
       throw new Error("Reopen must not call Elixir or grant awards");
     },
   };
   const manage = createManageService({
     ledger,
-    mcp,
+    record,
     now: () => Date.parse("2026-10-03T13:00:00Z"),
   });
   return { ledger, manage, card };

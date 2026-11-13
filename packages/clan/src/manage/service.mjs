@@ -1,5 +1,5 @@
 /**
- * The Manage service: evaluation on demand with the leader's token, the
+ * The Manage service: evaluation on demand for the signed-in person, the
  * card lifecycle, holds, notes, policy versions, standing, scouting. Pure
  * engine in, ledger and Elixir out. Every function takes the caller's
  * resolved context (`who`: their verified tag and role in this clan).
@@ -147,19 +147,17 @@ const rosterSize = (roster) =>
   roster ? (roster.member_count ?? roster.members?.length ?? null) : null;
 
 /** One call, eight weeks: the record every evaluation reads. */
-export async function fetchParticipation(mcp, token, clanTag) {
-  const r = await mcp.callTool(token, "clans_participation", {
+export async function fetchParticipation(record, clanTag) {
+  const r = await record.read("clans_participation", {
     clan_tag: clanTag,
     weeks: PARTICIPATION_WEEKS,
   });
-  if (!r.ok) {
-    if (r.status === 401) throw new ManageError(401, "session_expired");
+  if (!r.ok)
     throw new ManageError(
       502,
       r.code === "not_recorded" ? "clan_not_recorded" : "elixir_unavailable",
       r.error,
     );
-  }
   return r.body;
 }
 
@@ -168,10 +166,10 @@ export async function fetchParticipation(mcp, token, clanTag) {
 /** How each race finished for this clan, keyed "<season>/<section>": rank,
  *  fame and war trophies, every week the record holds. A failed read is
  *  unknown: the pages say nothing about a result rather than guess one. */
-async function fetchRaceResults(mcp, token, clanTag) {
+async function fetchRaceResults(record, clanTag) {
   const results = new Map();
   try {
-    const r = await mcp.callTool(token, "war_history", {
+    const r = await record.read("war_history", {
       clan_tag: clanTag,
       seasons: 12,
     });
@@ -191,28 +189,21 @@ async function fetchRaceResults(mcp, token, clanTag) {
   return results;
 }
 
-export async function fetchRoster(mcp, token, clanTag) {
-  const r = await mcp.callTool(token, "clans_roster", { clan_tag: clanTag });
-  if (!r.ok) {
-    if (r.status === 401) throw new ManageError(401, "session_expired");
-    return null;
-  }
-  return r.body;
+export async function fetchRoster(record, clanTag) {
+  const r = await record.read("clans_roster", { clan_tag: clanTag });
+  return r.ok ? r.body : null;
 }
 
 /** Tag → last-observed name for the tags Elixir's corpus knows, from one
  *  bulk players_names read (nothing from the live lane); an empty map
  *  when Elixir cannot answer. */
-async function fetchNames(mcp, token, tags) {
+async function fetchNames(record, tags) {
   const names = new Map();
   if (tags.length === 0) return names;
-  const r = await mcp.callTool(token, "players_names", {
+  const r = await record.read("players_names", {
     player_tags: tags.slice(0, 100),
   });
-  if (!r.ok) {
-    if (r.status === 401) throw new ManageError(401, "session_expired");
-    return names;
-  }
+  if (!r.ok) return names;
   for (const n of r.body?.names ?? [])
     if (n.player_tag && n.name) names.set(n.player_tag, n.name);
   return names;
@@ -220,7 +211,7 @@ async function fetchNames(mcp, token, tags) {
 
 export function createManageService({
   ledger,
-  mcp,
+  record,
   activityFor = null,
   /** One clan's battles per window, the record's clanWeekBattles (A13). */
   weekBattlesFor = null,
@@ -272,12 +263,7 @@ export function createManageService({
    *  (grace, role, hold, cooldown). A view passes the evaluation it just
    *  used, when that is minutes old; drafting, completing and reopening
    *  read participation again. */
-  async function removalSafety(
-    clanTag,
-    cards,
-    token = null,
-    { verdicts = null } = {},
-  ) {
+  async function removalSafety(clanTag, cards, { verdicts = null } = {}) {
     const removals = cards.filter((c) => c.type === "removal");
     const result = new Map();
     if (!removals.length) return result;
@@ -351,7 +337,7 @@ export function createManageService({
     // Apply the actual current minimums/grace, role, hold and cooldown rules.
     if (plausible.length) {
       try {
-        const part = await fetchParticipation(mcp, token, clanTag);
+        const part = await fetchParticipation(record, clanTag);
         const fresh = {
           ...part,
           members: await activityForMembers(clanTag, part.members),
@@ -394,11 +380,9 @@ export function createManageService({
     return result;
   }
 
-  async function requireRemovalSafety(clanTag, card, token = null) {
+  async function requireRemovalSafety(clanTag, card) {
     if (card.type !== "removal") return null;
-    const safety = (await removalSafety(clanTag, [card], token)).get(
-      card.card_id,
-    );
+    const safety = (await removalSafety(clanTag, [card])).get(card.card_id);
     if (safety.status !== "ready")
       throw new ManageError(
         409,
@@ -534,9 +518,9 @@ export function createManageService({
 
   /** The clan's member count now: one roster read (noted), else the last
    *  noted count when Elixir cannot answer. */
-  async function currentSize(clanTag, token) {
+  async function currentSize(clanTag) {
     const observedAt = now();
-    const roster = token ? await fetchRoster(mcp, token, clanTag) : null;
+    const roster = await fetchRoster(record, clanTag);
     const members = rosterSize(roster);
     if (members !== null) {
       await noteSize(clanTag, members, observedAt);
@@ -556,7 +540,7 @@ export function createManageService({
     logsByCard,
   } = createActionStore({ ledger, now });
   // What the clan shares with Elixir as attested facts (door 3).
-  const sharing = createSharing({ ledger, mcp, logAction });
+  const sharing = createSharing({ ledger, record, logAction });
 
   /** A removal the member's leave closed points at the departure that now
    *  asks about it: withdrawn (if a run had not already), its withdrawal
@@ -642,15 +626,9 @@ export function createManageService({
   /** The record reads an evaluation judges from: participation with each
    *  member's activity evidence, and the roster when the policy needs it.
    *  No clan state is written here but the monotonic size observation. */
-  async function gatherEvaluation({
-    clanTag,
-    token,
-    policy,
-    t,
-    participation,
-  }) {
+  async function gatherEvaluation({ clanTag, policy, t, participation }) {
     const fetched =
-      participation ?? (await fetchParticipation(mcp, token, clanTag));
+      participation ?? (await fetchParticipation(record, clanTag));
     const part = {
       ...fetched,
       members: await activityForMembers(clanTag, fetched.members),
@@ -668,9 +646,7 @@ export function createManageService({
       policy.values.departures_enabled ||
       policy.values.welcome_enabled;
     const roster =
-      !participation && needsRoster
-        ? await fetchRoster(mcp, token, clanTag)
-        : null;
+      !participation && needsRoster ? await fetchRoster(record, clanTag) : null;
     return { part, roster };
   }
 
@@ -684,7 +660,6 @@ export function createManageService({
    */
   async function evaluateClan({
     clanTag,
-    token,
     who,
     force = false,
     participation = null,
@@ -707,7 +682,6 @@ export function createManageService({
       return { verdicts: cached, policy, cached: true };
     const gathered = await gatherEvaluation({
       clanTag,
-      token,
       policy,
       t,
       participation,
@@ -725,14 +699,12 @@ export function createManageService({
           ? gathered
           : await gatherEvaluation({
               clanTag,
-              token,
               policy: current,
               t,
               participation,
             });
       return applyEvaluation({
         clanTag,
-        token,
         t,
         policy: current,
         cached: latest,
@@ -747,7 +719,6 @@ export function createManageService({
    *  now, reconcile cards, verify outcomes, save the snapshot. */
   async function applyEvaluation({
     clanTag,
-    token,
     t,
     policy,
     cached,
@@ -1122,7 +1093,7 @@ export function createManageService({
         (c) => !c.player_name,
       );
       if (nameless.length > 0) {
-        const names = await fetchNames(mcp, token, [
+        const names = await fetchNames(record, [
           ...new Set(nameless.map((c) => c.player_tag)),
         ]);
         for (const c of nameless) {
@@ -1160,11 +1131,11 @@ export function createManageService({
      * Only the viewer's own lines: no one else's, no notes about them, no
      * removal action about them.
      */
-    async memberView(clanTag, who, token) {
+    async memberView(clanTag, who) {
       const t = now();
-      const part = await fetchParticipation(mcp, token, clanTag);
+      const part = await fetchParticipation(record, clanTag);
       await noteSize(clanTag, part.members.length, t);
-      const roster = await fetchRoster(mcp, token, clanTag);
+      const roster = await fetchRoster(record, clanTag);
       // This week on the reset's clock, the same count as The week. A failed
       // read leaves battles unknown. `evaluate` below never sees it.
       let clanBattles;
@@ -1258,11 +1229,11 @@ export function createManageService({
      * by what the clan's ACTIVE policy counts, or by where the clan was
      * busiest; opening it evaluates nothing and raises no action.
      */
-    async weekView(clanTag, who, token, { week = null } = {}) {
+    async weekView(clanTag, who, { week = null } = {}) {
       const t = now();
-      const part = await fetchParticipation(mcp, token, clanTag);
+      const part = await fetchParticipation(record, clanTag);
       await noteSize(clanTag, part.members.length, t);
-      const roster = await fetchRoster(mcp, token, clanTag);
+      const roster = await fetchRoster(record, clanTag);
       const policy = await policyFor(clanTag);
       const members = part.members.length;
       const active = policy.set && members >= MIN_MEMBERS;
@@ -1290,7 +1261,7 @@ export function createManageService({
         clanBattles,
       });
       if (!report) throw new ManageError(404, "no_week");
-      const results = await fetchRaceResults(mcp, token, clanTag);
+      const results = await fetchRaceResults(record, clanTag);
       return {
         clan_tag: clanTag,
         clan_name: part.name ?? roster?.name ?? null,
@@ -1315,13 +1286,13 @@ export function createManageService({
     },
 
     /** One recorded read; no evaluation, metadata write or private ledger. */
-    async seasonView(clanTag, who, token) {
+    async seasonView(clanTag, who) {
       const t = now();
       if (!seasonCalendar) throw new ManageError(502, "elixir_unavailable");
-      const part = await fetchParticipation(mcp, token, clanTag);
+      const part = await fetchParticipation(record, clanTag);
       if (part.clan_tag !== clanTag)
         throw new ManageError(502, "elixir_unavailable");
-      const results = await fetchRaceResults(mcp, token, clanTag);
+      const results = await fetchRaceResults(record, clanTag);
       const report = seasonReport(part, {
         calendar: seasonCalendar(
           t,
@@ -1358,10 +1329,10 @@ export function createManageService({
      * Home never does what opening Actions may. An Action not numbered yet
      * has no address of its own and links to the list.
      */
-    async homeView(clanTag, who, token) {
+    async homeView(clanTag, who) {
       let member = null;
       try {
-        member = await this.memberView(clanTag, who, token);
+        member = await this.memberView(clanTag, who);
       } catch (err) {
         if (!(err instanceof ManageError)) throw err;
       }
@@ -1442,7 +1413,7 @@ export function createManageService({
      * log. Reuse the saved evaluation while processing Actions; an explicit
      * refresh or a missing/current-policy snapshot evaluates the record.
      */
-    async actionsView(clanTag, who, token, { refresh = false } = {}) {
+    async actionsView(clanTag, who, { refresh = false } = {}) {
       const currentPolicy = await requirePolicy(clanTag, { size: false });
       const snapshot = await ledger.latestVerdicts(clanTag);
       const size = await ledger.clanSize(clanTag);
@@ -1453,7 +1424,7 @@ export function createManageService({
         (!size || size.members >= MIN_MEMBERS);
       const { verdicts, policy, cached } = reuse
         ? { verdicts: snapshot, policy: currentPolicy, cached: true }
-        : await evaluateClan({ clanTag, token, who, force: refresh });
+        : await evaluateClan({ clanTag, who, force: refresh });
       const t = now();
       const all = await numberedCards(clanTag);
       const mine = all.filter((c) => canAct(c, who));
@@ -1470,7 +1441,7 @@ export function createManageService({
         .sort((a, b) => (closedAt(a) < closedAt(b) ? 1 : -1))
         .slice(0, 30);
       const byCard = await logsByCard(clanTag, [...open, ...recent]);
-      const safety = await removalSafety(clanTag, [...open, ...recent], token, {
+      const safety = await removalSafety(clanTag, [...open, ...recent], {
         verdicts,
       });
       return {
@@ -1493,15 +1464,13 @@ export function createManageService({
     /** One action by its number ("take a look at action 37"), open or
      *  closed, for anyone who may see it; anyone else is told there is no
      *  such action. */
-    async actionByNumber(clanTag, who, number, token = null) {
+    async actionByNumber(clanTag, who, number) {
       await requirePolicy(clanTag);
       let card = await ledger.cardByNumber(clanTag, number);
       if (!card)
         card = (await numberedCards(clanTag)).find((c) => c.number === number);
       if (!card || !canAct(card, who)) throw new ManageError(404, "no_action");
-      const safety = (await removalSafety(clanTag, [card], token)).get(
-        card.card_id,
-      );
+      const safety = (await removalSafety(clanTag, [card])).get(card.card_id);
       return {
         clan_tag: clanTag,
         action: shapeSafeAction(
@@ -1579,9 +1548,9 @@ export function createManageService({
       };
     },
 
-    async policyView(clanTag, who, token = null) {
+    async policyView(clanTag, who) {
       const policy = await policyFor(clanTag);
-      const members = await currentSize(clanTag, token);
+      const members = await currentSize(clanTag);
       const versions = await ledger.policyVersions(clanTag);
       const names = await knownNames(clanTag);
       const latest = await ledger.latestVerdicts(clanTag);
@@ -1637,16 +1606,9 @@ export function createManageService({
       };
     },
 
-    async savePolicy(
-      clanTag,
-      who,
-      input,
-      note,
-      token = null,
-      expectedVersion = null,
-    ) {
+    async savePolicy(clanTag, who, input, note, expectedVersion = null) {
       requireLeader(who);
-      const members = await currentSize(clanTag, token);
+      const members = await currentSize(clanTag);
       const checked = validate(input);
       if (!checked.ok)
         throw Object.assign(new ManageError(400, "invalid_policy"), {
@@ -1670,7 +1632,7 @@ export function createManageService({
     },
 
     /** What the last four reviews would say under a draft policy, beside the current one. */
-    async previewPolicy(clanTag, who, token, input) {
+    async previewPolicy(clanTag, who, input) {
       requireLeader(who);
       const checked = validate(input);
       if (!checked.ok)
@@ -1678,22 +1640,18 @@ export function createManageService({
           errors: checked.errors,
         });
       const observedAt = now();
-      const r = await mcp.callTool(token, "clans_participation", {
+      const r = await record.read("clans_participation", {
         clan_tag: clanTag,
         weeks: PARTICIPATION_WEEKS,
       });
-      if (!r.ok)
-        throw new ManageError(
-          r.status === 401 ? 401 : 502,
-          r.status === 401 ? "session_expired" : "elixir_unavailable",
-        );
+      if (!r.ok) throw new ManageError(502, "elixir_unavailable");
       await noteSize(clanTag, r.body.members.length, observedAt);
       if (r.body.members.length < MIN_MEMBERS)
         throw tooFewMembers(r.body.members.length);
       const current = await policyFor(clanTag);
       const roster =
         checked.values.trophies_enabled || current.values.trophies_enabled
-          ? await fetchRoster(mcp, token, clanTag)
+          ? await fetchRoster(record, clanTag)
           : null;
       const at = new Date(now());
       const measured = {
@@ -1738,11 +1696,10 @@ export function createManageService({
     },
 
     /** Inbox + board for leaders. */
-    async manageView(clanTag, who, token, { refresh = false } = {}) {
+    async manageView(clanTag, who, { refresh = false } = {}) {
       requireLeader(who);
       const { verdicts, policy, cached } = await evaluateClan({
         clanTag,
-        token,
         who,
         force: refresh,
       });
@@ -1750,7 +1707,7 @@ export function createManageService({
       const holds = await ledger.holds(clanTag);
       const holdByTag = new Map(holds.map((h) => [h.player_tag, h]));
       const byCard = await logsByCard(clanTag);
-      const safety = await removalSafety(clanTag, cards, token, { verdicts });
+      const safety = await removalSafety(clanTag, cards, { verdicts });
       const inbox = cards
         .filter((c) => c.status === "proposed" && canAct(c, who))
         .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1))
@@ -1803,12 +1760,12 @@ export function createManageService({
       };
     },
 
-    async history(clanTag, who, token = null) {
+    async history(clanTag, who) {
       requireLeader(who);
       await requirePolicy(clanTag);
       const allCards = await numberedCards(clanTag);
       const byCard = await logsByCard(clanTag);
-      const safety = await removalSafety(clanTag, allCards, token);
+      const safety = await removalSafety(clanTag, allCards);
       const cards = allCards
         .filter((c) => c.status !== "proposed")
         .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1))
@@ -1819,7 +1776,7 @@ export function createManageService({
       // events, each leave carrying what this ledger says about it, and
       // a welcome line a leader can paste for a join.
       const observedAt = now();
-      const roster = token ? await fetchRoster(mcp, token, clanTag) : null;
+      const roster = await fetchRoster(record, clanTag);
       if (roster) await noteSize(clanTag, rosterSize(roster), observedAt);
       const byTag = (tag) =>
         cards.filter((c) => c.player_tag === tag && c.type === "departure");
@@ -1903,7 +1860,7 @@ export function createManageService({
       };
     },
 
-    async messageSent(clanTag, who, cardId, part, body, token = null) {
+    async messageSent(clanTag, who, cardId, part, body) {
       await requirePolicy(clanTag);
       const card = await ledger.card(clanTag, cardId);
       if (!card || !canAct(card, who)) throw new ManageError(404, "no_action");
@@ -1963,7 +1920,7 @@ export function createManageService({
       // A later leader preserves the receipt without becoming its attester.
       if (!receipt.shared && receipt.sent_by === who.player_tag) {
         const shared = await sharing
-          .afterDecision(clanTag, token, who, card, next, {
+          .afterDecision(clanTag, who, card, next, {
             message_part: part,
           })
           .catch(() => []);
@@ -1992,7 +1949,6 @@ export function createManageService({
       who,
       cardId,
       { request_id, expected_decided_at } = {},
-      token = null,
     ) {
       if (who.verified === false) throw new ManageError(403, "unverified");
       if (!LEADERS.has(who.role)) throw new ManageError(403, "leaders_only");
@@ -2017,7 +1973,7 @@ export function createManageService({
           throw new ManageError(409, "action_not_declined");
         if ((card.decided_at ?? null) !== expected_decided_at)
           throw new ManageError(409, "action_changed");
-        await requireRemovalSafety(clanTag, card, token);
+        await requireRemovalSafety(clanTag, card);
         if (
           card.evidence?.messages?.length &&
           card.evidence.messages.every((m) =>
@@ -2077,7 +2033,6 @@ export function createManageService({
         // The words the person sent in the game, as they edited them.
         sent = null,
       },
-      token = null,
     ) {
       await requirePolicy(clanTag);
       const card = await ledger.card(clanTag, cardId);
@@ -2098,7 +2053,7 @@ export function createManageService({
         status = "done";
       } else if (status !== "done" && status !== "declined")
         throw new ManageError(400, "bad_status");
-      if (status === "done") await requireRemovalSafety(clanTag, card, token);
+      if (status === "done") await requireRemovalSafety(clanTag, card);
       if (
         status === "done" &&
         card.evidence?.messages?.some(
@@ -2211,7 +2166,7 @@ export function createManageService({
       // the decision, and the log says what happened. The answer carries
       // the outcome so the page can say when this sign-in cannot share.
       const shared = await sharing
-        .afterDecision(clanTag, token, who, card, decided, {
+        .afterDecision(clanTag, who, card, decided, {
           sent: reviewed ?? sent,
         })
         .catch((e) => {
@@ -2225,15 +2180,14 @@ export function createManageService({
 
     /**
      * The morning evaluation (door 1): this clan's policy against the
-     * record, read on Clan's own Elixir integration key, raising and
+     * record, read by Elixir itself (no one's account), raising and
      * withdrawing actions as a visit would. Nobody is signed in, so
      * nothing is shared with Elixir; a clan without a policy, or below 10
      * members, is refused as on any visit.
      */
-    async evaluateOnSchedule(clanTag, key) {
+    async evaluateOnSchedule(clanTag) {
       const { verdicts } = await evaluateClan({
         clanTag,
-        token: key,
         force: true,
       });
       return { members: verdicts?.members?.length ?? null };
@@ -2243,18 +2197,18 @@ export function createManageService({
      * "Actions waiting for you" (door 2): after the morning evaluation,
      * one email through Elixir to each person who can act on something
      * that became theirs since their last one (`actionsWaitingMail`),
-     * named by player tag on Clan's own key; Elixir holds the addresses
+     * named by player tag; Elixir holds the addresses
      * and the switches. What Elixir answered is remembered, so the next
      * email waits for something new; each action's log says it was
      * emailed.
      */
-    async mailActionsWaiting(clanTag, key) {
+    async mailActionsWaiting(clanTag) {
       const cards = await ledger.cards(clanTag);
       if (!cards.some((c) => c.status === "proposed")) return { mailed: 0 };
-      if (typeof mcp.sendMail !== "function") return { mailed: 0 };
+      if (typeof record.sendMail !== "function") return { mailed: 0 };
       // The email names actions by number: any still without one gets it.
       await numberActions(clanTag, cards);
-      const roster = await fetchRoster(mcp, key, clanTag);
+      const roster = await fetchRoster(record, clanTag);
       if (!roster) return { mailed: 0, mail_error: "no_roster" };
       const messages = actionsWaitingMail({
         clanTag,
@@ -2269,7 +2223,7 @@ export function createManageService({
         appUrl,
       });
       if (!messages.length) return { mailed: 0 };
-      const r = await mcp.sendMail(key, clanTag, {
+      const r = await record.sendMail(clanTag, {
         kind: ACTIONS_MAIL_KIND,
         messages: messages.map(({ player_tag, subject, lines, link }) => ({
           player_tag,
@@ -2322,7 +2276,7 @@ export function createManageService({
         set_at: new Date(now()).toISOString(),
       });
     },
-    async clearHold(clanTag, who, playerTag, token = null) {
+    async clearHold(clanTag, who, playerTag) {
       requireLeader(who);
       await requirePolicy(clanTag);
       const existing = (await ledger.holds(clanTag)).find(
@@ -2334,7 +2288,7 @@ export function createManageService({
       // Elixir kept showing leaders the member as away).
       if (existing?.kind === "away")
         await sharing
-          .awayCleared(clanTag, token, { player_tag: playerTag })
+          .awayCleared(clanTag, { player_tag: playerTag })
           .catch(() => {});
     },
 
@@ -2366,7 +2320,7 @@ export function createManageService({
           : null,
       };
     },
-    async setAway(clanTag, who, { until, note = null }, token = null) {
+    async setAway(clanTag, who, { until, note = null }) {
       const policy = await policyFor(clanTag);
       const max = policy.values.away_max_days;
       if (!policy.set || !policy.values.removal_enabled || !(max > 0))
@@ -2415,11 +2369,11 @@ export function createManageService({
         completed = c.card_id;
       }
       await sharing
-        .away(clanTag, token, who, hold, { cardId: completed })
+        .away(clanTag, who, hold, { cardId: completed })
         .catch(() => []);
       return hold;
     },
-    async clearAway(clanTag, who, token = null) {
+    async clearAway(clanTag, who) {
       const existing = (await ledger.holds(clanTag)).find(
         (h) => h.player_tag === who.player_tag,
       );
@@ -2427,7 +2381,7 @@ export function createManageService({
       if (existing.kind !== "away")
         throw new ManageError(409, "held_by_leader");
       await ledger.removeHold(clanTag, who.player_tag);
-      await sharing.awayCleared(clanTag, token, who).catch(() => {});
+      await sharing.awayCleared(clanTag, who).catch(() => {});
     },
 
     // ---- notes: elders write elder notes and read elder notes; leaders
@@ -2472,7 +2426,7 @@ export function createManageService({
      * leader always sees it). Nothing is evaluated that the policy does
      * not use.
      */
-    async standing(clanTag, who, token) {
+    async standing(clanTag, who) {
       const read = await requirePolicy(clanTag, { size: false });
       const ranksFirst = ranksElder(read.values);
       if (!ranksFirst && !read.values.removal_enabled) {
@@ -2490,7 +2444,7 @@ export function createManageService({
       // The record is read outside the clan's lock, so a leader may save
       // a policy meanwhile: everything below is shaped by the policy the
       // verdicts were evaluated under, never the one read above.
-      const evaluated = await evaluateClan({ clanTag, token, who });
+      const evaluated = await evaluateClan({ clanTag, who });
       const { verdicts } = evaluated;
       const policy = evaluated.policy ?? read;
       const how = describePolicy(policy.values);

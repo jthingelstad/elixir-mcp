@@ -51,14 +51,11 @@ const observedAt = (body) => {
 /**
  * Confirm the clan's roster is recent enough for a leader mutation, or
  * throw: ManageError 409 `role_unconfirmed` once a live read is asked for,
- * 401 `session_expired`, 502 `elixir_unavailable`.
+ * 502 `elixir_unavailable`.
  */
-export async function confirmRole({ mcp, token, clanTag, now }) {
+export async function confirmRole({ record, clanTag, now }) {
   const args = { clan_tag: clanTag, verbosity: "compact" };
-  const expired = () =>
-    new ManageError(401, "session_expired", "Sign in again.");
-  const read = await mcp.callTool(token, "clans_roster", args);
-  if (read?.status === 401) throw expired();
+  const read = await record.read("clans_roster", args);
   // A clan nobody records still has a roster the live lane can read.
   if (!read?.ok && read?.code !== "not_recorded")
     throw new ManageError(
@@ -69,11 +66,10 @@ export async function confirmRole({ mcp, token, clanTag, now }) {
   const recent = (o) => o !== null && now - o.ms <= ROLE_CONFIRM_MAX_AGE_MS;
   const seen = read.ok ? observedAt(read.body) : null;
   if (recent(seen)) return;
-  const live = await mcp.callTool(token, "clans_roster", {
+  const live = await record.read("clans_roster", {
     ...args,
     live: true,
   });
-  if (live?.status === 401) throw expired();
   // A read already inside the game's cache window answers at once.
   const after = live?.ok ? observedAt(live.body) : null;
   if (recent(after)) return;
