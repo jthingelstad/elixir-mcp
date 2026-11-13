@@ -16,6 +16,29 @@ hours apart). The window (`digestWindow`) is unchanged: a week back,
 starting no earlier than the last digest, so the first Monday digest
 after a Wednesday one covers those five days and nothing is told twice.
 
+**The switch week.** Before: one rule at 14:30 UTC daily, weekly readers
+on Wednesday. After: one rule at 11:00 UTC daily, weekly readers on
+Monday. Nothing is ever sent twice for one UTC day (the period key is the
+date), and the window reaches back at most one span (a week, or a day)
+to the last digest, so what the switch could cost is a gap, not a repeat:
+
+- **Weekly readers** keep every day when the deploy lands between
+  Wednesday 14:30 UTC (after that week's Wednesday digest) and Monday
+  11:00 UTC: the first Monday digest starts at the Wednesday one, under
+  five days back. A deploy from Monday 11:00 to Wednesday 14:30 makes the
+  next Monday more than seven days after the last digest, and the days
+  before the floor go untold.
+- **Daily readers** keep every day when the deploy lands outside 11:00 to
+  14:30 UTC: inside it, that day's 14:30 run no longer exists and its
+  11:00 run has passed, so the next run is over a day after the last.
+- Two digests in one week, never for the same days: a weekly reader whose
+  Wednesday digest went out gets the next on Monday, covering only the
+  days since.
+
+So deploy between Wednesday 14:30 UTC and Monday 11:00 UTC, and not
+between 11:00 and 14:30 UTC on any day (in US Central: Wednesday mid-day
+to Monday early morning, avoiding the late-morning hours).
+
 The footer's why-line, Settings › Emails and the docs read the time from
 `MAIL_SCHEDULE`, so they follow. The DECISIONS digest line now says
 Monday. The product brief `docs/product/mail.md` still says Wednesday;
