@@ -20,7 +20,7 @@ const DIRECTORY = {
   read_at: "2026-11-12T12:00:00.000Z",
   clans: [
     {
-      clan_tag: "#PYLQ2",
+      clan_tag: "#0Y2V2",
       name: "Alpha Example",
       type: "open",
       description:
@@ -31,7 +31,7 @@ const DIRECTORY = {
       policy: policy(),
     },
     {
-      clan_tag: "#2PQRJ8LV",
+      clan_tag: "#0QC8RCGY",
       name: "Example Clan",
       type: "inviteOnly",
       description: null,
@@ -47,7 +47,7 @@ const DIRECTORY = {
       }),
     },
     {
-      clan_tag: "#8QCV",
+      clan_tag: "#0RJL",
       name: "Zulu Example",
       type: "open",
       description: "Every week counts.",
@@ -102,7 +102,7 @@ test.describe("clan directory @narrow", () => {
     // Your own clan opens in Clan; another clan has no page, so no link.
     await expect(
       page.getByRole("link", { name: "Example Clan" }),
-    ).toHaveAttribute("href", "/clan/2PQRJ8LV");
+    ).toHaveAttribute("href", "/clan/0QC8RCGY");
     await expect(page.getByRole("link", { name: "Zulu Example" })).toHaveCount(
       0,
     );

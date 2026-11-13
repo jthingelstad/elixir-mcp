@@ -355,16 +355,16 @@ test("colosseum days 2-4 merge into the SAME week (the frozen-colosseum bug)", a
   const base = structuredClone(
     await fixture("currentriverrace/colosseum.json"),
   );
-  base.clan.tag = "#20UUCC99";
+  base.clan.tag = "#0JLCLJ8R";
   await ctx.db.query(
-    `insert into clan (clan_tag) values ('#20UUCC99') on conflict do nothing`,
+    `insert into clan (clan_tag) values ('#0JLCLJ8R') on conflict do nothing`,
   );
   // The season's log is already recorded through section 3 (the state a
   // real clan is in when colosseum starts): latest logged week (S, 3).
   delete base.seasonId; // live payloads carry no seasonId
   const season = 135; // the calendar's answer for 2026-09-01..04
   await ctx.db.query(
-    `insert into war_week (clan_tag, season_id, section_index) values ('#20UUCC99', $1, 3)
+    `insert into war_week (clan_tag, season_id, section_index) values ('#0JLCLJ8R', $1, 3)
      on conflict do nothing`,
     [season],
   );
@@ -372,7 +372,7 @@ test("colosseum days 2-4 merge into the SAME week (the frozen-colosseum bug)", a
   // Four colosseum war days: periodIndex walks grid 3..6 of the section,
   // fame and member points grow each day.
   const section = base.sectionIndex;
-  const me = "#20UU22CC";
+  const me = "#0V0VPG2R";
   for (let day = 0; day < 4; day += 1) {
     const p = structuredClone(base);
     p.periodIndex = section * 7 + 3 + day;
@@ -390,7 +390,7 @@ test("colosseum days 2-4 merge into the SAME week (the frozen-colosseum bug)", a
     ];
     p.clans = [
       {
-        tag: "#20UUCC99",
+        tag: "#0JLCLJ8R",
         fame: 3000 * (day + 1),
         name: "Repro",
         participants: [],
@@ -405,7 +405,7 @@ test("colosseum days 2-4 merge into the SAME week (the frozen-colosseum bug)", a
 
   const { rows: weeks } = await ctx.db.query(
     `select season_id, section_index, is_colosseum from war_week
-     where clan_tag = '#20UUCC99' and section_index = $1`,
+     where clan_tag = '#0JLCLJ8R' and section_index = $1`,
     [section],
   );
   assert.equal(
@@ -417,7 +417,7 @@ test("colosseum days 2-4 merge into the SAME week (the frozen-colosseum bug)", a
 
   const { rows: part } = await ctx.db.query(
     `select points, decks_used from war_participation
-     where clan_tag = '#20UUCC99' and player_tag = $1 and section_index = $2`,
+     where clan_tag = '#0JLCLJ8R' and player_tag = $1 and section_index = $2`,
     [me, section],
   );
   assert.equal(part.length, 1, "one participation row across all four days");
@@ -510,7 +510,7 @@ test("riverrace deck deltas raise battlelog yield (raise-only, replay-guarded)",
 });
 
 test("season rollover: a stale same-index anchor refreshes to the new observation", async () => {
-  const clan = "#PYLQGR99";
+  const clan = "#0R0Y8C90";
   await ctx.db.query(`insert into clan (clan_tag) values ($1)`, [clan]);
   const war = await fixture("currentriverrace/war_day.json"); // periodIndex 27
   war.clan = { ...war.clan, tag: clan };
@@ -573,7 +573,7 @@ test("bracket_observed: the first sight of a new week names its rivals, once", a
   // Another clan meets the same week for the first time, with the
   // projector's clock set to the fixture's day so the sighting is news.
   const war = await fixture("currentriverrace/war_day.json");
-  const OTHER = "#2PP0V8Y9";
+  const OTHER = "#0VRC0PLV";
   const swap = (c) => (c.tag === war.clan.tag ? { ...c, tag: OTHER } : c);
   const payload = {
     ...war,
@@ -611,7 +611,7 @@ test("the close slot: a captured 09:57Z read of the next race keys to the CURREN
   // KINGS rows (a real S135 week 1 among them, from the log) stay out
   // of the assertion.
   const captured = await fixture("currentriverrace/slot_band.json");
-  const SLOT = "#2PP0V8YC";
+  const SLOT = "#00CL0C2C";
   const swap = (c) => (c.tag === captured.clan.tag ? { ...c, tag: SLOT } : c);
   const payload = {
     ...captured,
@@ -725,7 +725,7 @@ test("each day's row is the game's counter as polled; nothing is carried to the 
 test("a training day is a race-week day like any other, with no war_day (0169)", async () => {
   // Jamie 2026-09-24: the same four war decks all week; a training day
   // is reps with them. One table, keyed by the day of the race week.
-  const TRAIN_CLAN = "#2PYLQ8U9";
+  const TRAIN_CLAN = "#0PPJ2VLJ";
   await ctx.db.query(`insert into clan (clan_tag) values ($1)`, [TRAIN_CLAN]);
   const payload = await fixture("currentriverrace/training.json"); // p30 s4
   payload.clan.tag = TRAIN_CLAN;

@@ -15,8 +15,8 @@ import { firstPlayedSql } from "../src/tools/card-profile.mjs";
 import { seedDeck, seedPlayedDeck, hashFor } from "./deck-rows.mjs";
 
 let scratch;
-const PLAYERS = ["#2PYLQ0", "#2PYLQ2", "#2PYLQ8"];
-const IDLE = "#2PYLQ9"; // recorded, never played
+const PLAYERS = ["#000880", "#09CCYU", "#0GLP0L"];
+const IDLE = "#0Q9998"; // recorded, never played
 const POOL = [
   26000000, 26000001, 26000003, 26000007, 26000010, 26000014, 26000021,
   26000030, 27000000, 27000006, 28000000, 28000001, 28000011, 26000042,

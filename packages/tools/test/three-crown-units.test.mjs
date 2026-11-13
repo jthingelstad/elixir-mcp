@@ -22,7 +22,7 @@ import { makeRegistry } from "../src/tools.mjs";
 let scratch;
 let account;
 const registry = makeRegistry();
-const TAG = "#2P9YQCV";
+const TAG = "#0UUVL8V";
 const call = (name, args = {}) =>
   registry.invoke(name, { db: scratch.db, account }, args);
 
@@ -209,7 +209,7 @@ test("a boat win inflates wins without moving win_rate, and both halves are show
  * 2026-09-09).
  */
 test("a perfect ratio over two days does not read as a captured week", async () => {
-  const tag = "#CVR2G9Q";
+  const tag = "#0V20U98";
   await scratch.db.query("insert into player (player_tag) values ($1)", [tag]);
   await scratch.db.query(
     "insert into recording (subject_type,subject_tag,requested_by) values ('player',$1,$2)",

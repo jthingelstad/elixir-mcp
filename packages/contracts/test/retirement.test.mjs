@@ -15,8 +15,8 @@ test("obsolete capture has no collector path while retained paths still work", (
     assert.equal(crPathForJob({ endpoint, entity_key: "global" }), null);
   }
   assert.equal(
-    crPathForJob({ endpoint: "player", entity_key: "#P0Y" }),
-    "/players/%23P0Y",
+    crPathForJob({ endpoint: "player", entity_key: "#00J" }),
+    "/players/%2300J",
   );
 });
 test("retired mail remains recognizable for historical records only", () => {

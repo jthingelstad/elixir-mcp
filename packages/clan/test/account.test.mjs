@@ -20,14 +20,14 @@ test("Clan reads have no second session and persist only explicit account action
   await store.updateSession(session.id, {
     gate: { secret: "never stored" },
     rosters: { rows: [] },
-    selected: { clan_tag: "#9GQLV20" },
+    selected: { clan_tag: "#0JQ0JQ8" },
   });
   assert.equal(writes.length, 0);
-  await store.putPreference(session.id, { clan_tag: "#9GQLV20" });
+  await store.putPreference(session.id, { clan_tag: "#0JQ0JQ8" });
   await store.updateSession(session.id, { verifyAck: "ack" });
   assert.deepEqual(rows.get("account#one"), {
     pk: "account#one",
-    selected: { clan_tag: "#9GQLV20" },
+    selected: { clan_tag: "#0JQ0JQ8" },
     verifyAck: "ack",
   });
   await assert.rejects(store.putPreference("account#other", {}));
@@ -59,12 +59,12 @@ test("the record answers only Clan's reads, and a tool's error class as its stat
     ["clans_my_view", {}],
     ["live_fetch", { path: "/locations/global/rankings/players" }],
     ["live_fetch", { path: "/clans/%ZZ" }],
-    ["live_fetch", { path: "/clans/%239GQLV20?other=1" }],
+    ["live_fetch", { path: "/clans/%230JQ0JQ8?other=1" }],
   ])
     assert.equal((await record.read(name, args)).status, 403, name);
   assert.equal(asked.length, 0);
   assert.deepEqual(
-    await record.read("live_fetch", { path: "/clans/%239GQLV20" }),
+    await record.read("live_fetch", { path: "/clans/%230JQ0JQ8" }),
     { ok: true, body: { ok: 1 } },
   );
   assert.equal(asked.length, 1);
@@ -79,15 +79,15 @@ test("the record answers only Clan's reads, and a tool's error class as its stat
       isError: true,
       body: { error: { code: "c", class: cls, message: "m", hint: "h" } },
     };
-    const r = await record.read("clans_roster", { clan_tag: "#9GQLV20" });
+    const r = await record.read("clans_roster", { clan_tag: "#0JQ0JQ8" });
     assert.equal(r.ok, false);
     assert.equal(r.status, status, cls);
     assert.equal(r.code, "c");
   }
   // No identity on the morning run; no writer where none is wired.
   assert.equal((await record.identity()).status, 401);
-  assert.equal((await record.writeFact("#9GQLV20", {})).status, 503);
-  assert.equal((await record.sendMail("#9GQLV20", {})).status, 503);
+  assert.equal((await record.writeFact("#0JQ0JQ8", {})).status, 503);
+  assert.equal((await record.sendMail("#0JQ0JQ8", {})).status, 503);
 });
 
 test("shared identity uses fresh gate reads and neither legacy cookies nor OAuth", async () => {
@@ -110,9 +110,9 @@ test("shared identity uses fresh gate reads and neither legacy cookies nor OAuth
         body: {
           players: [
             {
-              player_tag: "#9GQLV20",
+              player_tag: "#0JQ0JQ8",
               relationship: "primary",
-              clan_tag: "#9GQLV22",
+              clan_tag: "#08V0UY9",
               clan_role: "leader",
               claim_status: calls === 1 ? "verified" : "unverified",
             },

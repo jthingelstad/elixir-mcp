@@ -5,7 +5,7 @@
     "response": {
       "context": {
         "schema_version": 1,
-        "clan_tag": "#028",
+        "clan_tag": "#0YR",
         "status": "unknown",
         "reason": "no_policy",
         "war_intent": "unknown",
@@ -31,7 +31,7 @@
     "response": {
       "context": {
         "schema_version": 1,
-        "clan_tag": "#028",
+        "clan_tag": "#0YR",
         "status": "unknown",
         "reason": "war_intent_unspecified",
         "war_intent": "unknown",
@@ -57,7 +57,7 @@
     "response": {
       "context": {
         "schema_version": 1,
-        "clan_tag": "#028",
+        "clan_tag": "#0YR",
         "status": "known",
         "reason": null,
         "war_intent": "participating",
@@ -83,7 +83,7 @@
     "response": {
       "context": {
         "schema_version": 1,
-        "clan_tag": "#028",
+        "clan_tag": "#0YR",
         "status": "known",
         "reason": null,
         "war_intent": "not_participating",
@@ -109,7 +109,7 @@
     "response": {
       "context": {
         "schema_version": 1,
-        "clan_tag": "#028",
+        "clan_tag": "#0YR",
         "status": "known",
         "reason": null,
         "war_intent": "participating",

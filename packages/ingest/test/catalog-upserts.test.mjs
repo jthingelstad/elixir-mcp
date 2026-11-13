@@ -42,9 +42,9 @@ before(async () => {
   );
   await scratch.db.query(
     `insert into player (player_tag, name, last_seen_at) values
-       ('#2PYLQ0', 'Seen today', now()),
-       ('#2PYLQ2', null, now()),
-       ('#2PYLQ8', 'Seen long ago', now() - interval '3 days')`,
+       ('#000880', 'Seen today', now()),
+       ('#09CCYU', null, now()),
+       ('#0GLP0L', 'Seen long ago', now() - interval '3 days')`,
   );
 });
 after(async () => {
@@ -113,7 +113,7 @@ test("an arena's new name and a new arena are still written", async () => {
 });
 
 test("a player seen today under a name is not locked", async () => {
-  const args = [["#2PYLQ0"], ["Another name"]];
+  const args = [["#000880"], ["Another name"]];
   assert.equal(
     await whileHeld(
       (db) => db.query(OLD_PLAYER, args),
@@ -138,7 +138,7 @@ test("a first name, a stale sighting and a new tag are still written, as before"
   ).rows;
   await upsertPlayersSeen(
     scratch.db,
-    ["#2PYLQ0", "#2PYLQ2", "#2PYLQ8", "#2PYLQ9"],
+    ["#000880", "#09CCYU", "#0GLP0L", "#0Q9998"],
     ["Renamed in a log", "First name", "Renamed too", null],
   );
   const after = (
@@ -149,13 +149,13 @@ test("a first name, a stale sighting and a new tag are still written, as before"
   const by = (rows) => Object.fromEntries(rows.map((r) => [r.player_tag, r]));
   const [b, a] = [by(before), by(after)];
   // Seen today with a name: untouched, the battle log's name ignored.
-  assert.deepEqual(a["#2PYLQ0"], b["#2PYLQ0"]);
+  assert.deepEqual(a["#000880"], b["#000880"]);
   // No name yet: the log's name fills it.
-  assert.equal(a["#2PYLQ2"].name, "First name");
+  assert.equal(a["#09CCYU"].name, "First name");
   // Seen three days ago: last_seen_at moves, the known name stays.
-  assert.equal(a["#2PYLQ8"].name, "Seen long ago");
-  assert.ok(a["#2PYLQ8"].last_seen_at > b["#2PYLQ8"].last_seen_at);
+  assert.equal(a["#0GLP0L"].name, "Seen long ago");
+  assert.ok(a["#0GLP0L"].last_seen_at > b["#0GLP0L"].last_seen_at);
   // A new tag is a row.
-  assert.equal(a["#2PYLQ9"].name, null);
+  assert.equal(a["#0Q9998"].name, null);
   await upsertPlayersSeen(scratch.db, [], []);
 });

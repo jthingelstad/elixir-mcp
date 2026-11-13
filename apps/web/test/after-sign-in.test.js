@@ -59,10 +59,10 @@ test("a link tab can consume the shared copy without consuming the requesting ta
 
 test("a tab's own return leaves another tab's newer shared destination intact", () => {
   rememberAfterSignIn("/home/player/2ABC");
-  window.localStorage.setItem("elixir.after_sign_in", "/clan/2PQRJ8LV/actions");
+  window.localStorage.setItem("elixir.after_sign_in", "/clan/0QC8RCGY/actions");
   expect(takeAfterSignIn()).toBe("/home/player/2ABC");
   expect(window.localStorage.getItem("elixir.after_sign_in")).toBe(
-    "/clan/2PQRJ8LV/actions",
+    "/clan/0QC8RCGY/actions",
   );
 });
 
@@ -98,12 +98,12 @@ test("a Stats path is kept across sign-in too; a look-alike is not", () => {
 });
 
 test("Clan action links survive the common sign-in; external and look-alike paths refuse", () => {
-  rememberAfterSignIn("/clan/2PQRJ8LV/actions/37");
-  expect(takeAfterSignIn()).toBe("/clan/2PQRJ8LV/actions/37");
+  rememberAfterSignIn("/clan/0QC8RCGY/actions/37");
+  expect(takeAfterSignIn()).toBe("/clan/0QC8RCGY/actions/37");
   for (const path of [
     "//evil.example/clan",
     "https://evil.example/clan",
-    "/clans/2PQRJ8LV",
+    "/clans/0QC8RCGY",
     "/clan/../admin",
   ]) {
     rememberAfterSignIn(path);

@@ -114,9 +114,9 @@ test(
     // uses Tracking, which manages what you track from then on.
     open("/settings/players");
     const input = await screen.findByLabelText("Player tag");
-    fireEvent.change(input, { target: { value: "#P0Y" } });
+    fireEvent.change(input, { target: { value: "#00J" } });
     fireEvent.click(input.closest("form").querySelector("button"));
-    await screen.findByText("#P0Y");
+    await screen.findByText("#00J");
     expect(
       (
         await scratch.db.query(
@@ -124,14 +124,14 @@ test(
           [accountId],
         )
       ).rows,
-    ).toEqual([{ player_tag: "#P0Y" }]);
+    ).toEqual([{ player_tag: "#00J" }]);
     await scratch.db.query(
-      "insert into player_snapshot_daily (player_tag,snapshot_date,snapshot_kind,observed_at,profile_observed_at) values ('#P0Y',current_date,'daily',now(),now())",
+      "insert into player_snapshot_daily (player_tag,snapshot_date,snapshot_kind,observed_at,profile_observed_at) values ('#00J',current_date,'daily',now(),now())",
     );
     // On the record, readiness has moved on its own: the snapshot is the
     // evidence, and the line says when it was taken.
     cleanup();
-    open("/settings/players/P0Y");
+    open("/settings/players/00J");
     await screen.findByText(/^read /);
     // Consent is fixture setup on the scratch DB; the UI consumes the real
     // connection and readiness responses after returning from OAuth.
@@ -161,7 +161,7 @@ test(
       }),
     );
     await screen.findByText("Copied. Paste into your connected client.");
-    expect(copy.mock.calls[0][0]).toContain("#P0Y");
+    expect(copy.mock.calls[0][0]).toContain("#00J");
     expect(
       (
         await scratch.db.query(
@@ -179,7 +179,7 @@ test(
   { timeout: 20000 },
   async () => {
     await scratch.db.query(
-      "insert into account_clan (account_id,clan_tag,scope) values ($1,'#P0G','comprehensive')",
+      "insert into account_clan (account_id,clan_tag,scope) values ($1,'#0GG','comprehensive')",
       [accountId],
     );
     open("/settings/connections");

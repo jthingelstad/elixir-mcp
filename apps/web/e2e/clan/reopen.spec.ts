@@ -65,10 +65,10 @@ for (const size of ["wide", "@narrow"])
         page,
         signedIn({
           "GET /api/clan/me": [200, { ...ME, selected: ME.clans[0] }],
-          "GET /api/clan/clans/2PQRJ8LV/manage": [
+          "GET /api/clan/clans/0QC8RCGY/manage": [
             200,
             {
-              clan_tag: "#2PQRJ8LV",
+              clan_tag: "#0QC8RCGY",
               policy: {},
               boundaries: [],
               board: [],
@@ -76,7 +76,7 @@ for (const size of ["wide", "@narrow"])
               band: null,
             },
           ],
-          "GET /api/clan/clans/2PQRJ8LV/history": () => [
+          "GET /api/clan/clans/0QC8RCGY/history": () => [
             200,
             {
               cards: card.status === "declined" ? [card] : [],
@@ -84,20 +84,20 @@ for (const size of ["wide", "@narrow"])
               holds: [],
             },
           ],
-          "GET /api/clan/clans/2PQRJ8LV/actions": () => [
+          "GET /api/clan/clans/0QC8RCGY/actions": () => [
             200,
             {
-              clan_tag: "#2PQRJ8LV",
+              clan_tag: "#0QC8RCGY",
               open: card.status === "proposed" ? [card] : [],
               recent: card.status === "declined" ? [card] : [],
               decline_reasons: [],
             },
           ],
-          "GET /api/clan/clans/2PQRJ8LV/actions/33": () => [
+          "GET /api/clan/clans/0QC8RCGY/actions/33": () => [
             200,
-            { clan_tag: "#2PQRJ8LV", action: card, decline_reasons: [] },
+            { clan_tag: "#0QC8RCGY", action: card, decline_reasons: [] },
           ],
-          "POST /api/clan/clans/2PQRJ8LV/actions/declined-update/reopen": (
+          "POST /api/clan/clans/0QC8RCGY/actions/declined-update/reopen": (
             route,
           ) => {
             requests.push(route.request().postDataJSON());
@@ -119,12 +119,12 @@ for (const size of ["wide", "@narrow"])
             };
             return [200, card];
           },
-          "POST /api/clan/clans/2PQRJ8LV/actions/declined-update/decide":
+          "POST /api/clan/clans/0QC8RCGY/actions/declined-update/decide":
             () => {
               forbiddenWrites++;
               return [409, {}];
             },
-          "POST /api/clan/clans/2PQRJ8LV/actions/declined-update/messages/2/sent":
+          "POST /api/clan/clans/0QC8RCGY/actions/declined-update/messages/2/sent":
             () => {
               forbiddenWrites++;
               return [409, {}];
@@ -133,14 +133,14 @@ for (const size of ["wide", "@narrow"])
       );
       await page.goto(
         entry === "history"
-          ? "/clan/2PQRJ8LV/run/decided"
-          : "/clan/2PQRJ8LV/actions/33",
+          ? "/clan/0QC8RCGY/run/decided"
+          : "/clan/0QC8RCGY/actions/33",
       );
       if (entry === "history") {
         // Over thirty days old, so it sits in Decided's older fold.
         await page.getByText("Older actions · 1").click();
         await page
-          .locator(`a[href="/clan/2PQRJ8LV/actions/33"]`)
+          .locator(`a[href="/clan/0QC8RCGY/actions/33"]`)
           .last()
           .click();
       }

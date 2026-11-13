@@ -10,6 +10,9 @@
  *   --tags-from <path>   replace only the tags found under this path
  *                        (repeatable), wherever they appear in <path>...
  *   --no-names           tags only
+ *   --bare-all           in test files, a short bare body of any tag this
+ *                        run replaces moves too (a suite declares a tag in
+ *                        one file and builds paths from it in another)
  *   --dry-run            count, write nothing
  *   --forget             delete the local salt and exit
  *
@@ -95,11 +98,18 @@ const GAME_WORDS = [
 ];
 
 function parseArgs(argv) {
-  const opts = { paths: [], tagsFrom: [], names: true, dry: false };
+  const opts = {
+    paths: [],
+    tagsFrom: [],
+    names: true,
+    dry: false,
+    bareAll: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--tags-from") opts.tagsFrom.push(argv[++i]);
     else if (a === "--no-names") opts.names = false;
+    else if (a === "--bare-all") opts.bareAll = true;
     else if (a === "--dry-run") opts.dry = true;
     else if (a === "--forget") opts.forget = true;
     else if (a.startsWith("--")) throw new Error(`unknown option ${a}`);
@@ -247,7 +257,13 @@ function main() {
   for (const file of files) {
     const text = read(file);
     if (text == null) continue;
-    const t = replaceTags(text, known, invent);
+    // Hand-written tests derive bare forms from the tags they declare.
+    const tests =
+      /(^|\/)(test|e2e)\//.test(file) || /\.test\.[mc]?[jt]sx?$/.test(file);
+    const t = replaceTags(text, known, invent, {
+      bare: tests,
+      declaredAll: tests && opts.bareAll,
+    });
     const isJson = file.endsWith(".json");
     // Names are replaced in captured data and tests only: product source
     // and docs name no real player, and their invented examples stay put.

@@ -15,7 +15,7 @@ import {
   participation,
 } from "@elixir-mcp/clan-engine/fixtures";
 
-const CLAN = "#028";
+const CLAN = "#0YR";
 const FILLERS = Array.from({ length: 8 }, (_, i) => `#0P${i}`);
 let scratch, ledger, me, lead, unverified, outsider;
 const person = (accountId) => ({
@@ -36,16 +36,16 @@ before(async () => {
   scratch = await scratchDb("clan_my_view");
   const db = scratch.db;
   ledger = createPostgresLedger(db);
-  await db.query("insert into clan(clan_tag) values('#028'),('#029')");
+  await db.query("insert into clan(clan_tag) values('#0YR'),('#0LG')");
   await db.query(
-    "insert into player(player_tag) values('#02Q'),('#02L'),('#02G'),('#02C')",
+    "insert into player(player_tag) values('#0RC'),('#0RY'),('#0R2'),('#00C')",
   );
   me = await insertAccount("view-me");
   lead = await insertAccount("view-lead");
   unverified = await insertAccount("view-unverified");
   outsider = await insertAccount("view-outsider");
   await db.query(
-    "insert into recording(subject_type,subject_tag,requested_by,status) values('clan','#028',$1,'active'),('clan','#029',$1,'active')",
+    "insert into recording(subject_type,subject_tag,requested_by,status) values('clan','#0YR',$1,'active'),('clan','#0LG',$1,'active')",
     [me],
   );
 });
@@ -58,16 +58,16 @@ beforeEach(async () => {
   await db.query("delete from clan_membership");
   await db.query(
     `insert into claim(account_id,player_tag,status,is_primary,relationship) values
-       ($1,'#02Q','verified',true,'primary'),
-       ($2,'#02L','verified',true,'primary'),
-       ($3,'#02G','unverified',true,'primary')`,
+       ($1,'#0RC','verified',true,'primary'),
+       ($2,'#0RY','verified',true,'primary'),
+       ($3,'#0R2','unverified',true,'primary')`,
     [me, lead, unverified],
   );
   await db.query(
     `insert into clan_membership(clan_tag,player_tag,joined_observed_at,role) values
-       ('#028','#02Q',now(),'member'),
-       ('#028','#02L',now(),'leader'),
-       ('#028','#02G',now(),'member')`,
+       ('#0YR','#0RC',now(),'member'),
+       ('#0YR','#0RY',now(),'leader'),
+       ('#0YR','#0R2',now(),'member')`,
   );
 });
 
@@ -76,7 +76,7 @@ beforeEach(async () => {
 async function seedClan({ members = 11, evaluatedVersion = null } = {}) {
   const saved = await ledger.savePolicy(CLAN, {
     values: { ...EXAMPLE_POLICY, leader_notes: "private-canary-policy" },
-    by: "#02L",
+    by: "#0RY",
   });
   await ledger.saveClanSize(CLAN, {
     members,
@@ -85,9 +85,9 @@ async function seedClan({ members = 11, evaluatedVersion = null } = {}) {
   const verdicts = evaluate({
     participation: participation([
       ...FILLERS.map((t) => member(t, { name: `Filler ${t.slice(1)}` })),
-      member("#02Q", { name: "Me Myself", tenureDays: 10 }),
-      member("#02L", { name: "The Leader" }),
-      member("#02G", {
+      member("#0RC", { name: "Me Myself", tenureDays: 10 }),
+      member("#0RY", { name: "The Leader" }),
+      member("#0R2", {
         name: "Gone Quiet",
         lastBattleDaysAgo: 9,
         war: [0, 0, 0, 0, 0, 0],
@@ -110,7 +110,7 @@ async function seedClan({ members = 11, evaluatedVersion = null } = {}) {
       evidence: "private-canary-evidence",
       ...extra,
     });
-  await card("rm", "removal", "#02G", "Gone Quiet", {
+  await card("rm", "removal", "#0R2", "Gone Quiet", {
     number: 1,
     raised_at: "2026-09-12T10:00:00Z",
   });
@@ -118,14 +118,14 @@ async function seedClan({ members = 11, evaluatedVersion = null } = {}) {
     number: 2,
     raised_at: "2026-09-11T10:00:00Z",
   });
-  await card("wl", "welcome", "#0P2", "Filler P2", {
+  await card("wl", "welcome", "#09U", "Filler P2", {
     raised_at: "2026-09-10T10:00:00Z",
   });
-  await card("aw", "away", "#02Q", "Me Myself", {
+  await card("aw", "away", "#0RC", "Me Myself", {
     number: 4,
     raised_at: "2026-09-09T10:00:00Z",
   });
-  await card("aw2", "away", "#02G", "Gone Quiet", {
+  await card("aw2", "away", "#0R2", "Gone Quiet", {
     number: 5,
     raised_at: "2026-09-08T10:00:00Z",
   });
@@ -135,12 +135,12 @@ async function seedClan({ members = 11, evaluatedVersion = null } = {}) {
     raised_at: "2026-09-13T10:00:00Z",
   });
   await ledger.putHold(CLAN, {
-    player_tag: "#02Q",
+    player_tag: "#0RC",
     reason: "private-canary-hold",
   });
   await ledger.putNote(CLAN, {
     note_id: "n1",
-    player_tag: "#02Q",
+    player_tag: "#0RC",
     created_at: NOW.toISOString(),
     text: "private-canary-note",
   });
@@ -176,7 +176,7 @@ test("a member sees the three things and nothing else; no removal, no other memb
     "you",
   ]);
   assert.equal(r.view.reason, null);
-  assert.deepEqual(r.view.you, { player_tag: "#02Q", role: "member" });
+  assert.deepEqual(r.view.you, { player_tag: "#0RC", role: "member" });
   assert.equal(r.view.policy.active, true);
   assert.deepEqual(
     r.view.actions.waiting.map((a) => a.type),
@@ -185,13 +185,13 @@ test("a member sees the three things and nothing else; no removal, no other memb
   assert.equal(r.view.actions.count, r.view.actions.waiting.length);
   assert.equal(
     r.view.actions.waiting[0].url,
-    "https://elixir.poapkings.com/clan/028/actions/4",
+    "https://elixir.poapkings.com/clan/0YR/actions/4",
   );
   const text = JSON.stringify(r);
   for (const leak of [
-    "#02G",
+    "#0R2",
     "Gone Quiet",
-    "#02L",
+    "#0RY",
     "The Leader",
     "#0P",
     "Filler",
@@ -206,7 +206,7 @@ test("a member sees the three things and nothing else; no removal, no other memb
 test("a leader who would decide a removal never sees it; counts exclude it; the note is always there", async () => {
   await seedClan();
   const r = await invoke(lead);
-  assert.deepEqual(r.view.you, { player_tag: "#02L", role: "leader" });
+  assert.deepEqual(r.view.you, { player_tag: "#0RY", role: "leader" });
   assert.deepEqual(
     r.view.actions.waiting.map((a) => a.type),
     ["promotion", "welcome"],
@@ -214,13 +214,13 @@ test("a leader who would decide a removal never sees it; counts exclude it; the 
   assert.equal(r.view.actions.count, 2);
   const unnumbered = r.view.actions.waiting[1];
   assert.equal(unnumbered.number, null);
-  assert.equal(unnumbered.url, "https://elixir.poapkings.com/clan/028/feed");
+  assert.equal(unnumbered.url, "https://elixir.poapkings.com/clan/0YR/feed");
   const text = JSON.stringify(r);
   // `policy.removal` is the policy switch; no Action of the type appears.
   for (const leak of [
     '"type":"removal"',
     "Gone Quiet",
-    "#02G",
+    "#0R2",
     "private-canary",
     'days_idle":9',
   ])
@@ -272,12 +272,12 @@ test("an agent, an integration, an unverified claimant and a non-member are refu
   await assert.rejects(invoke(outsider), (e) => e.code === "no_subject");
   // Another recorded clan the person is not in.
   await assert.rejects(
-    invoke(me, { clan_tag: "#029" }),
+    invoke(me, { clan_tag: "#0LG" }),
     (e) => e.code === "not_entitled",
   );
   // A clan that is not recorded.
   await assert.rejects(
-    invoke(me, { clan_tag: "#2PP" }),
+    invoke(me, { clan_tag: "#0CR" }),
     (e) => e.code === "not_recorded",
   );
 });
@@ -285,9 +285,9 @@ test("an agent, an integration, an unverified claimant and a non-member are refu
 test("a former member, a watched claim and a disabled account fail closed", async () => {
   await seedClan();
   for (const sql of [
-    "update clan_membership set left_observed_at=now() where player_tag='#02Q'",
-    "update claim set is_primary=false,relationship='watching' where player_tag='#02Q'",
-    "update claim set status='unverified' where player_tag='#02Q'",
+    "update clan_membership set left_observed_at=now() where player_tag='#0RC'",
+    "update claim set is_primary=false,relationship='watching' where player_tag='#0RC'",
+    "update claim set status='unverified' where player_tag='#0RC'",
     "update account set status='disabled' where email_hash='view-me'",
   ]) {
     await scratch.db.query("begin");
@@ -327,11 +327,11 @@ test("no policy, too few members and a stale snapshot each say why and show no l
 test("a verified player missing from the snapshot is not evaluated", async () => {
   await seedClan();
   await scratch.db.query(
-    "insert into claim(account_id,player_tag,status,is_primary,relationship) values($1,'#02C','verified',true,'primary')",
+    "insert into claim(account_id,player_tag,status,is_primary,relationship) values($1,'#00C','verified',true,'primary')",
     [outsider],
   );
   await scratch.db.query(
-    "insert into clan_membership(clan_tag,player_tag,joined_observed_at,role) values('#028','#02C',now(),'member')",
+    "insert into clan_membership(clan_tag,player_tag,joined_observed_at,role) values('#0YR','#00C',now(),'member')",
   );
   const r = await invoke(outsider);
   assert.equal(r.view.reason, "not_evaluated");
@@ -341,13 +341,13 @@ test("a verified player missing from the snapshot is not evaluated", async () =>
 test("two verified players in one clan: the read acts as the higher in-game role", async () => {
   await seedClan();
   await scratch.db.query(
-    "insert into claim(account_id,player_tag,status,is_primary,relationship) values($1,'#02C','verified',false,'alt')",
+    "insert into claim(account_id,player_tag,status,is_primary,relationship) values($1,'#00C','verified',false,'alt')",
     [me],
   );
   await scratch.db.query(
-    "insert into clan_membership(clan_tag,player_tag,joined_observed_at,role) values('#028','#02C',now(),'coLeader')",
+    "insert into clan_membership(clan_tag,player_tag,joined_observed_at,role) values('#0YR','#00C',now(),'coLeader')",
   );
   const r = await readOwnClanView(scratch.db, person(me), CLAN);
-  assert.deepEqual(r.view.you, { player_tag: "#02C", role: "coLeader" });
-  assert.equal(r.view.reason, "not_evaluated", "#02C has no verdict");
+  assert.deepEqual(r.view.you, { player_tag: "#00C", role: "coLeader" });
+  assert.equal(r.view.reason, "not_evaluated", "#00C has no verdict");
 });

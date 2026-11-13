@@ -468,7 +468,7 @@ test("an arena move names the win that carried the player over the floor, at tha
     trophy_change: 30,
     opponents: [
       {
-        player_tag: "#VRL0QQVCP",
+        player_tag: "#0UCRRQJCP",
         name: "Stoatling",
         starting_trophies: 5976,
       },
@@ -488,7 +488,7 @@ test("an arena move names the win that carried the player over the floor, at tha
         battle_time: "2026-09-02T06:46:32.000Z",
         type: "PvP",
         opponent: {
-          player_tag: "#VRL0QQVCP",
+          player_tag: "#0UCRRQJCP",
           name: "Stoatling",
           starting_trophies: 5976,
         },
@@ -534,7 +534,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     crowns: 1,
     crowns_against: 0,
     trophy_change: 30,
-    opponents: [{ player_tag: "#UYCL80G0", name: "Fern Vole" }],
+    opponents: [{ player_tag: "#08GVJGV9", name: "Fern Vole" }],
   });
   await seedCrossing(ctx.db, {
     battle_id: "y2",
@@ -546,7 +546,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     trophy_change: 30,
     opponents: [
       {
-        player_tag: "#VRL0QQVCP",
+        player_tag: "#0UCRRQJCP",
         name: "Stoatling",
         starting_trophies: 5976,
       },
@@ -561,8 +561,8 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     crowns_against: 1,
     trophy_change: null,
     opponents: [
-      { player_tag: "#2UUUU", name: "Ann" },
-      { player_tag: "#2VVVV", name: null },
+      { player_tag: "#0CJ2Q", name: "Ann" },
+      { player_tag: "#0UUL0", name: null },
     ],
   });
   const battle = (extra) => ({
@@ -570,7 +570,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     battle_time: "2026-09-02T04:34:50.000Z",
     type: "pathOfLegend",
     opponent: {
-      player_tag: "#UYCL80G0",
+      player_tag: "#08GVJGV9",
       name: "Fern Vole",
       starting_trophies: null,
     },
@@ -599,7 +599,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
         battle_time: "2026-09-02T04:40:00.000Z",
         type: "PvP",
         opponent: {
-          player_tag: "#VRL0QQVCP",
+          player_tag: "#0UCRRQJCP",
           name: "Stoatling",
           starting_trophies: 5976,
         },
@@ -622,8 +622,8 @@ test("ranked, best-band and career-wins moments name their battle the same way",
         type: "clanMate2v2",
         opponent: null,
         opponents: [
-          { player_tag: "#2UUUU", name: "Ann" },
-          { player_tag: "#2VVVV", name: null },
+          { player_tag: "#0CJ2Q", name: "Ann" },
+          { player_tag: "#0UUL0", name: null },
         ],
         crowns: 2,
         crowns_against: 1,
@@ -661,7 +661,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
   // Newest first (7.0.0).
   assert.deepEqual(text("career_wins_step"), [
     "Toad Thistle ö🐉 passed 12,003 career wins.",
-    "Toad Thistle ö🐉 passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #2VVVV.",
+    "Toad Thistle ö🐉 passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #0UUL0.",
   ]);
 });
 

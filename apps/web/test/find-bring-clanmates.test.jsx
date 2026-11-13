@@ -22,7 +22,7 @@ const ME = {
   timezone: "America/Chicago",
   claims: [
     {
-      player_tag: "#PYLQ88",
+      player_tag: "#0GVJ9V",
       name: "Birch Lantern",
       is_primary: true,
       relationship: "primary",

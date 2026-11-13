@@ -22,8 +22,8 @@ import {
 import { elixir_timeline } from "../src/tools/elixir/timeline.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 
-const PILOT = "#2PYLQ0";
-const CLAN = "#2PYLQJ";
+const PILOT = "#000880";
+const CLAN = "#0PPPG9";
 const TZ = "America/Chicago";
 // Saturday 2026-10-10 in Chicago (CDT, UTC-5).
 const SAT_FROM = Date.parse("2026-10-10T05:00:00Z");

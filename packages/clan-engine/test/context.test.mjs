@@ -197,7 +197,7 @@ test("what happened, per Action kind: the rule's evidence, the winners' numbers,
       {
         name: "Cup",
         player_name: "Ada",
-        player_tag: "#8QCV",
+        player_tag: "#0RJL",
         metric_value: 3100,
         metric_unit: "points",
         note: "PRIVATE",
@@ -209,7 +209,7 @@ test("what happened, per Action kind: the rule's evidence, the winners' numbers,
   assert.match(awards, /- Cup: Ada \(3,100 points\)/);
   assert.match(awards, /- Shield: Ben$/m);
   assert.match(awards, /announcement 1 of 2/);
-  assert.doesNotMatch(awards, /PRIVATE|8QCV/);
+  assert.doesNotMatch(awards, /PRIVATE|0RJL/);
   // A leaders' pick in the season still being fought is told so: the
   // season has not closed, and the pick was granted just now.
   const pick = actionLines("awards", {
@@ -230,12 +230,12 @@ test("what happened, per Action kind: the rule's evidence, the winners' numbers,
       },
     },
     grants: [
-      { name: "Cup", player_name: "Ada", player_tag: "#8QCV" },
-      { name: "Cup", player_tag: "#9RLY" },
+      { name: "Cup", player_name: "Ada", player_tag: "#0RJL" },
+      { name: "Cup", player_tag: "#0C9G" },
     ],
   }).join("\n");
   assert.match(unnamed, /- Cup: Ada, Ben/);
-  assert.doesNotMatch(unnamed, /8QCV|9RLY/);
+  assert.doesNotMatch(unnamed, /0RJL|0C9G/);
   const rules = actionLines("rules", {
     card: { evidence: { version: 3, changes: ["the Elder band"] } },
     policyLines: ["Elder: 12 war decks in each of the last 2 weeks."],
@@ -303,7 +303,7 @@ test("what happened, per Action kind: the rule's evidence, the winners' numbers,
 test("a timeline item's facts: flattened, capped, never a tag, an id, a link, a time or fame per member", () => {
   const lines = itemFactLines({
     name: "Ada",
-    player_tag: "#8QCV",
+    player_tag: "#0RJL",
     battle_id: "b1",
     season_id: 135,
     url: "https://x.test",
@@ -320,7 +320,7 @@ test("a timeline item's facts: flattened, capped, never a tag, an id, a link, a 
   assert.match(text, /^best_win\.crowns: 3$/m);
   assert.match(text, /^season_id: 135$/m, "a season is the moment's");
   assert.match(text, /members\.0\.decks_used: 16|members.*decks_used: 16/);
-  assert.doesNotMatch(text, /8QCV|#J|b1|https|2026-10-10|fame|2900|xxxx/);
+  assert.doesNotMatch(text, /0RJL|#J|b1|https|2026-10-10|fame|2900|xxxx/);
   assert.ok(!/decks.*7/.test(text), "a list keeps five");
 });
 

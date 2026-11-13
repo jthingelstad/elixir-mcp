@@ -208,7 +208,7 @@ test("live_fetch: the first ask queues and answers live_pending; the second find
 
 test("a recording live read neither counts live_fetch's result as fresh nor leaves its open job fetch-only (0209)", async () => {
   const profile = structuredClone(await fixture("player/profile.json"));
-  profile.tag = "#PQ0Y8LQ";
+  profile.tag = "#0J9VLCJ";
   const tag = profile.tag;
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
   // live_fetch's read lands; a recording ask inside the cache window
@@ -231,7 +231,7 @@ test("a recording live read neither counts live_fetch's result as fresh nor leav
   assert.equal(queued?.record, true, "a recording fetch is queued");
 
   // A fetch-only job still open when a recording ask arrives records.
-  const other = "#PQ2Y8LQ";
+  const other = "#0UU200U";
   const fetchOnly = await enqueueJob(db, {
     endpoint: "player",
     entity_key: other,
@@ -252,7 +252,7 @@ test("a recording live read neither counts live_fetch's result as fresh nor leav
   assert.equal(row.record, true, "the door reads record at submit");
   // And the reverse never happens: live_fetch behind a recording job
   // leaves it recording.
-  const third = "#PQ8Y8LQ";
+  const third = "#0YV2YYP";
   const bulk = await enqueueJob(db, {
     endpoint: "player",
     entity_key: third,
@@ -274,7 +274,7 @@ test("a recording live read neither counts live_fetch's result as fresh nor leav
 
 test("a fetch-only result is never archived or projected, and a duplicate submit is one row (0209)", async () => {
   const profile = structuredClone(await fixture("player/profile.json"));
-  profile.tag = "#PQ9Y8LQ";
+  profile.tag = "#0UUYVLG";
   const job = await enqueueJob(db, {
     endpoint: "player",
     entity_key: profile.tag,
@@ -335,7 +335,7 @@ test("a fetch-only result is never archived or projected, and a duplicate submit
 
 test("players_profile live:true answers from the record NOW with pending, then serves the fresh snapshot", async () => {
   const profile = structuredClone(await fixture("player/profile.json"));
-  profile.tag = "#PP0Y8LQ";
+  profile.tag = "#0YQ08PQ";
   const tag = profile.tag;
   await db.query(`delete from api_receipt where entity_key = $1`, [tag]);
   await recordStale(profile, 10); // creates the player row the claim needs
@@ -395,7 +395,7 @@ test("an unrecorded clan asked live answers live_pending with retry_after_s as a
   const live = fakeGatewayLive({});
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
   const { body, isError } = await invoke("clans_roster", {
-    clan_tag: "#GQ0YLCYV",
+    clan_tag: "#0QUULJ00",
     live: true,
   });
   assert.equal(isError, true);
@@ -418,21 +418,21 @@ test("an unfulfilled live ask stays live_pending; asking again neither mints a s
   const before = await bucket();
   for (let i = 0; i < 2; i += 1) {
     const { body, isError } = await invoke("live_fetch", {
-      path: "/clans/#GQ0YLCYJ",
+      path: "/clans/#0C2LJUVU",
     });
     assert.equal(isError, true);
     assert.equal(body.error.code, "live_pending");
     assert.ok(Number.isInteger(body.error.retry_after_s));
   }
   const { rows: jobs } = await db.query(
-    `select count(*)::int n from job where entity_key = '#GQ0YLCYJ' and status in ('queued', 'leased')`,
+    `select count(*)::int n from job where entity_key = '#0C2LJUVU' and status in ('queued', 'leased')`,
   );
   assert.equal(jobs[0].n, 1, "one open job for the subject");
   assert.equal(await bucket(), before + 1, "charged once, when minted");
 });
 
 test("the live daily cap trips as quota_exceeded before anything is minted", async () => {
-  const tag = "#QQ0Y8LQ";
+  const tag = "#0U8L2UC";
   const day = new Date().toISOString().slice(0, 10);
   await db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 50)
@@ -462,7 +462,7 @@ test("a bulk receipt inside the API's cache window IS the live answer; outside i
   // inside that window is what a new fetch would return, whichever lane
   // fetched it. That replaces the old job-id binding (issue #3).
   const profile = structuredClone(await fixture("player/profile.json"));
-  profile.tag = "#RR0Y8LQ";
+  profile.tag = "#0Q8LLUY";
   const tag = profile.tag;
   await db.query(`delete from job where entity_key = $1`, [tag]);
   let minted = 0;
@@ -551,7 +551,7 @@ test("an agent's live fetch is charged to its owner's bucket, and the owner's ca
     `update rate_limit set count = 20 where bucket = $1 and window_start = $2::date`,
     [`liveday#${ownerId}`, day],
   );
-  const refused = await invoke("live_fetch", { path: `/players/#UU0Y8LQ` });
+  const refused = await invoke("live_fetch", { path: `/players/#0PPYJRC` });
   assert.equal(refused.isError, true);
   assert.equal(refused.body.error.code, "quota_exceeded");
   assert.match(refused.body.error.message, /20\/day for the member tier/);
@@ -575,22 +575,22 @@ test("a minted live job takes one token from the one budget; asking again and pr
   const live = fakeGatewayLive({});
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
   try {
-    const first = await invoke("live_fetch", { path: "/clans/#G2CQ9PJ8" });
+    const first = await invoke("live_fetch", { path: "/clans/#0QYGLP0V" });
     assert.equal(first.body.error.code, "live_pending");
     assert.equal(await tokens(), 9, "minted: one token");
     assert.equal(await liveCharged(), chargedBefore + 1, "and recorded");
-    await invoke("live_fetch", { path: "/clans/#G2CQ9PJ8" });
+    await invoke("live_fetch", { path: "/clans/#0QYGLP0V" });
     assert.equal(await tokens(), 9, "the same open job: not charged again");
     // A queued bulk row was paid for when the planner inserted it.
     await enqueueJob(db, {
       endpoint: "clan",
-      entity_key: "#G2CQ9PJ9",
+      entity_key: "#0LVUYR8C",
       lane: "bulk",
     });
-    await invoke("live_fetch", { path: "/clans/#G2CQ9PJ9" });
+    await invoke("live_fetch", { path: "/clans/#0LVUYR8C" });
     assert.equal(await tokens(), 9, "a promotion is free");
     const { rows } = await db.query(
-      "select lane from job where entity_key = '#G2CQ9PJ9' and status = 'queued'",
+      "select lane from job where entity_key = '#0LVUYR8C' and status = 'queued'",
     );
     assert.equal(rows[0].lane, "live");
   } finally {
@@ -616,7 +616,7 @@ test("with no token left nothing is minted or charged, and the answer is pending
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
   try {
     const { body, isError } = await invoke("live_fetch", {
-      path: "/clans/#G2CQ9PJL",
+      path: "/clans/#08RJJJPJ",
     });
     assert.equal(isError, true);
     assert.equal(body.error.code, "live_pending");
@@ -626,7 +626,7 @@ test("with no token left nothing is minted or charged, and the answer is pending
       `retry at the next tick, got ${body.error.retry_after_s}`,
     );
     const { rows } = await db.query(
-      "select count(*)::int n from job where entity_key = '#G2CQ9PJL'",
+      "select count(*)::int n from job where entity_key = '#08RJJJPJ'",
     );
     assert.equal(rows[0].n, 0, "nothing minted");
     assert.equal(await quota(), quotaBefore, "the account's quota untouched");
@@ -648,7 +648,7 @@ test("a live ask the account's quota refuses gives its token back (#64)", async 
   const live = fakeGatewayLive({});
   const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
   try {
-    const { body } = await invoke("live_fetch", { path: "/clans/#G2CQ9PJQ" });
+    const { body } = await invoke("live_fetch", { path: "/clans/#0VJQG8UY" });
     assert.equal(body.error.code, "quota_exceeded");
     assert.equal(await tokens(), 5, "refunded");
     assert.equal(await liveCharged(), chargedBefore, "and uncounted");
@@ -801,7 +801,7 @@ test("war_current live:true in matchmaking says no race yet, never 'rejected'; t
 });
 
 test("an unrecorded clan's race in matchmaking answers no race yet with retry_after_s, never live_unavailable", async () => {
-  const clanTag = "#GQ0YLC8P";
+  const clanTag = "#0G28U99G";
   const live = fakeGatewayLive({
     [`currentriverrace:${clanTag}`]: MATCHMAKING,
   });
@@ -823,7 +823,7 @@ test("an unrecorded clan's race in matchmaking answers no race yet with retry_af
 });
 
 test("live_fetch of a race in matchmaking serves the API's body as no race yet, and records nothing (0209, 0211)", async () => {
-  const clanTag = "#GQ0YLC9P";
+  const clanTag = "#0U8CPYVV";
   const live = fakeGatewayLive({
     [`currentriverrace:${clanTag}`]: MATCHMAKING,
   });
@@ -863,7 +863,7 @@ test("free first reads are bounded per person per UTC day, agents included: cycl
   );
   const agentId = agents[0].account_id;
   const live = makeLive({ enqueue: enqueueJob });
-  const tags = ["#2PYLQ0", "#2PYLQ2", "#2PYLQ8", "#2PYLQ9", "#2PYLQP"];
+  const tags = ["#000880", "#09CCYU", "#0GLP0L", "#0Q9998", "#0CQGPR"];
   const jobsFor = async (keys) =>
     (
       await db.query(
@@ -940,7 +940,7 @@ test("a first read that mints nothing gives the pool's read back: a lost race or
     },
   });
   const before = await tokens();
-  const lost = await requestFirstRead(db, raced, "#2PYLQR", personId);
+  const lost = await requestFirstRead(db, raced, "#0J2RUJ", personId);
   assert.equal(lost.requested, true, "the other add's job is pending");
   assert.equal(await used(), 0, "the pool's read is given back");
   assert.equal(await tokens(), before, "and so is the global token");
@@ -951,7 +951,7 @@ test("a first read that mints nothing gives the pool's read back: a lost race or
       throw new Error("ledger down");
     },
   });
-  const failed = await requestFirstRead(db, failing, "#2PYLQG", personId);
+  const failed = await requestFirstRead(db, failing, "#0JLRYC", personId);
   assert.deepEqual(failed, { requested: false, reason: "error" });
   assert.equal(await used(), 0);
 });
@@ -964,7 +964,7 @@ test("a refused first read takes nothing, so a read given back is there for the 
   const personId = people[0].account_id;
   const live = makeLive({ enqueue: enqueueJob });
   assert.equal(
-    (await requestFirstRead(db, live, "#2PYLUC", personId)).requested,
+    (await requestFirstRead(db, live, "#0R2008", personId)).requested,
     true,
   );
   // A takes the pool's second read and then loses its insert race; while
@@ -972,16 +972,16 @@ test("a refused first read takes nothing, so a read given back is there for the 
   let denied = null;
   const raced = makeLive({
     enqueue: async (_db, job) => {
-      denied = await requestFirstRead(db, live, "#2PYLUV", personId);
+      denied = await requestFirstRead(db, live, "#0R9RVC", personId);
       await enqueueJob(db, job);
       return enqueueJob(db, job);
     },
   });
-  await requestFirstRead(db, raced, "#2PYLU0", personId);
+  await requestFirstRead(db, raced, "#0GRYPL", personId);
   assert.deepEqual(denied, { requested: false, reason: "first_reads_spent" });
   // A gave its read back: one first read has been minted today, so D
   // gets the second.
-  const next = await requestFirstRead(db, live, "#2PYLU2", personId);
+  const next = await requestFirstRead(db, live, "#0R822P", personId);
   assert.equal(next.requested, true);
 });
 
@@ -995,24 +995,24 @@ test("a first read's outcome is logged by name, so a slow first read can be told
   try {
     for (const [tag, live, outcome] of [
       [
-        "#2PYLC0",
+        "#0RP00G",
         answer({ ok: false, reason: "pending", minted: true }),
         "minted",
       ],
       [
-        "#2PYLC2",
+        "#0V98CU",
         answer({ ok: false, reason: "pending", minted: false }),
         "joined",
       ],
       [
-        "#2PYLC8",
+        "#0000C8",
         answer({ ok: false, reason: "pending", minted: false, queued: false }),
         "no_token",
       ],
-      ["#2PYLC9", answer({ ok: true }), "fresh"],
-      ["#2PYLCP", null, "no_live_lane"],
+      ["#0UY9LG", answer({ ok: true }), "fresh"],
+      ["#00UV2Q", null, "no_live_lane"],
       [
-        "#2PYLCY",
+        "#0CYRJ2",
         async () => {
           throw new Error("ledger down");
         },
@@ -1083,7 +1083,7 @@ const requested = (lines) =>
 
 test("a person's add asks for the profile and then the battle log on the live lane, so both land in seconds (2026-11-09)", async () => {
   await db.query("update budget_state set tokens = 10");
-  const tag = "#2PYLRC";
+  const tag = "#0JQY02";
   const personId = await personWith("first-battles-person", tag);
   const live = makeLive({ enqueue: enqueueJob });
   const before = await tokens();
@@ -1133,7 +1133,7 @@ test("a person's add asks for the profile and then the battle log on the live la
   assert.equal(theirs[0].n, 0, "joining costs the second pool nothing");
 
   // Without battles (the default) the profile alone, as before.
-  const solo = "#2PYLRG";
+  const solo = "#02JYJQ";
   await personWith("first-battles-solo", solo);
   const only = await logged(() => requestFirstRead(db, live, solo, personId));
   assert.equal(only.result.battles, undefined);
@@ -1147,7 +1147,7 @@ test("a refused battle-log read leaves the add and the profile's read alone, and
 
   // The global bucket has one token: the profile takes it.
   await db.query("update budget_state set tokens = 1");
-  const a = "#2PYLR0";
+  const a = "#0LQUJY";
   const aId = await personWith("first-battles-no-token", a);
   const empty = await logged(() =>
     requestFirstRead(db, live, a, aId, { battles: true }),
@@ -1171,7 +1171,7 @@ test("a refused battle-log read leaves the add and the profile's read alone, and
 
   // The pool's battle-log reads are spent: the token goes back.
   await db.query("update budget_state set tokens = 10");
-  const b = "#2PYLR2";
+  const b = "#0VYLVQ";
   const bId = await personWith("first-battles-spent", b, 1);
   await db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 1)`,
@@ -1194,7 +1194,7 @@ test("a refused battle-log read leaves the add and the profile's read alone, and
   assert.equal(before - (await tokens()), 1, "the battle log's token is back");
 
   // The battle log's mint fails: the profile's job stays, the add stands.
-  const c = "#2PYLR8";
+  const c = "#0VYCQG";
   const cId = await personWith("first-battles-fails", c);
   const failing = makeLive({
     enqueue: async (_db, job) => {
@@ -1230,7 +1230,7 @@ test("a refused battle-log read leaves the add and the profile's read alone, and
   assert.equal(refunded[0].n, 0, "the failed mint's allowance is given back");
 
   // A battle log read in the last day is not asked again.
-  const d = "#2PYLR9";
+  const d = "#0VUL0C";
   const dId = await personWith("first-battles-read", d);
   await db.query(
     `insert into api_receipt (endpoint, entity_key, gateway_id, fetched_at, payload_hash, admission)
@@ -1249,7 +1249,7 @@ test("a refused battle-log read leaves the add and the profile's read alone, and
 
 test("a tag the game answered not found for asks for nothing, battle log included (2026-11-09)", async () => {
   await db.query("update budget_state set tokens = 10");
-  const tag = "#2PYLRP";
+  const tag = "#0Y0LVJ";
   const personId = await personWith("first-battles-404", tag);
   await db.query(
     `insert into collector_fetch_error (gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)

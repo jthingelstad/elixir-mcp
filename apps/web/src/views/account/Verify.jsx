@@ -57,7 +57,7 @@ function messageFor(r) {
     case "not_tracked":
       return "Add the player under Players & following first, as yours, then verify it here.";
     case "invalid_tag":
-      return "That does not look like a player tag. Tags look like #2PP0V90Y.";
+      return "That does not look like a player tag. Tags look like #09CV8UVL.";
     case "timeout":
     case "network":
       return "We could not reach the service. Check your connection and try again.";

@@ -42,16 +42,16 @@ for (const width of [390, 1280]) {
       await mockApi(
         page,
         signedIn({
-          "GET /api/clan/clans/2PQRJ8LV/actions/37": () => [
+          "GET /api/clan/clans/0QC8RCGY/actions/37": () => [
             200,
             {
-              clan_tag: "#2PQRJ8LV",
+              clan_tag: "#0QC8RCGY",
               action,
               model: { set: true },
               decline_reasons: [],
             },
           ],
-          "POST /api/clan/clans/2PQRJ8LV/actions/d1/draft": (route) => {
+          "POST /api/clan/clans/0QC8RCGY/actions/d1/draft": (route) => {
             drafts.push(route.request().postDataJSON());
             return [
               200,
@@ -62,13 +62,13 @@ for (const width of [390, 1280]) {
               },
             ];
           },
-          "POST /api/clan/clans/2PQRJ8LV/actions/d1/decide": (route) => {
+          "POST /api/clan/clans/0QC8RCGY/actions/d1/decide": (route) => {
             decisions.push(route.request().postDataJSON());
             return [200, {}];
           },
         }),
       );
-      await page.goto("/clan/2PQRJ8LV/actions/37");
+      await page.goto("/clan/0QC8RCGY/actions/37");
       await expect(
         page.getByRole("button", { name: "Left", exact: true }),
       ).toBeVisible();
@@ -89,7 +89,7 @@ for (const width of [390, 1280]) {
         copy: "Thanks for your time with us Zed, good luck out there.",
       };
       await page.reload();
-      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions\/37$/);
+      await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/actions\/37$/);
       await expect(page).toHaveTitle(/Elixir/);
       const editor = page.getByLabel("Chat message", { exact: true });
       await expect(editor).toHaveValue(action.copy!);

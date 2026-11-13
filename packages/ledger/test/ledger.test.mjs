@@ -57,7 +57,7 @@ before(async () => {
         "#20JJJ2CCRU",
         "#0L990RRV",
         "#0QLG889LG",
-        "#2QUR9PQ8",
+        "#0LJR9PL9",
         "#DUPSUBJ1",
         "#ABND1",
         "#ABND2",
@@ -176,7 +176,7 @@ test("expiry requeues with attempt cap; exhaustion goes dead; twins fold", async
 // Review 2026-09-27 §2.6 (#69): a dead job left the failed plan's
 // last_planned_at standing, so its subject waited a whole cadence.
 test("a dead job owes its subject a retry in 15 minutes (0188)", async () => {
-  const tag = "#2QUR9PQ8";
+  const tag = "#0LJR9PL9";
   await db.query(
     `insert into poll_state (subject_tag, endpoint, last_planned_at)
      values ($1, 'player', now() - interval '10 minutes')`,
@@ -206,7 +206,7 @@ test("a dead job owes its subject a retry in 15 minutes (0188)", async () => {
 });
 
 test("stampRetry doubles for three tries, then stops until an admission", async () => {
-  const tag = "#8YQ0RUGL";
+  const tag = "#0PUYL0RG";
   await db.query(
     `insert into poll_state (subject_tag, endpoint) values ($1, 'player_battlelog')`,
     [tag],

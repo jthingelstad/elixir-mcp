@@ -123,7 +123,7 @@ test("a collection: first observation is silent, then unlocks and level-ups nod;
 // evolutionLevel on a collection card is a bit field (1 Evolution, 2
 // Hero, 3 both), so each bit newly set is one card_form_unlocked.
 test("a form unlock: each newly set form bit is one moment; first sight and a replay write none", async () => {
-  const other = "#PYLQGRJC";
+  const other = "#0J0RVYRR";
   await ctx.db.query(`insert into player (player_tag) values ($1)`, [other]);
   const profile = structuredClone(await fixture("player/profile.json"));
   const valkyrie = profile.cards.find((c) => c.id === 26000011);

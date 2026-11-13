@@ -25,7 +25,7 @@ after(async () => {
 });
 
 test("auxiliary reset snapshots preserve counters and award input but emit no second reset", async () => {
-  const tags = ["#P0YQ2L8", "#P0YQ2L9"];
+  const tags = ["#0GQ0LU0", "#0GQLYV0"];
   for (const tag of tags)
     await ctx.db.query(
       "insert into player(player_tag,name) values($1,'Example')",
@@ -125,7 +125,7 @@ test("auxiliary reset snapshots preserve counters and award input but emit no se
 // does, at its own cadence. Codex on #261: a roster poll that saw the
 // weekly reset first overwrote the counter without a moment, so the next
 // profile poll compared low with low and the week's reset was lost.
-const RESET_CLAN = "#2PP0V9YY";
+const RESET_CLAN = "#028RJP2U";
 const rosterOf = (members) => ({
   tag: RESET_CLAN,
   name: "Reset Clan",
@@ -150,7 +150,7 @@ async function resetsOf(tag) {
 
 test("a roster poll that sees the reset first records it once; the profile polls after it do not repeat it", async () => {
   const { projectClanSeries } = await import("../src/series.mjs");
-  const tag = "#P0YQ2LC";
+  const tag = "#0LLJ0GU";
   await ctx.db.query("insert into player(player_tag,name) values($1,'R')", [
     tag,
   ]);
@@ -187,7 +187,7 @@ test("a roster poll that sees the reset first records it once; the profile polls
 
 test("a quiet clan's roster seeing the reset on the next game day is the one moment; the profile's older baseline does not repeat it", async () => {
   const { projectClanSeries } = await import("../src/series.mjs");
-  const tag = "#P0YQ2LG";
+  const tag = "#0JP2YRJ";
   await ctx.db.query("insert into player(player_tag,name) values($1,'Q')", [
     tag,
   ]);
@@ -222,7 +222,7 @@ test("a quiet clan's roster seeing the reset on the next game day is the one mom
 
 test("late and replayed observations around a reset add no second moment", async () => {
   const { projectClanSeries } = await import("../src/series.mjs");
-  const tag = "#P0YQ2LJ";
+  const tag = "#0YYYUUR";
   await ctx.db.query("insert into player(player_tag,name) values($1,'L')", [
     tag,
   ]);
@@ -259,7 +259,7 @@ test("two transactions that see the same reset at once write one moment", async 
   // of its own each one's check ran before the other's insert committed.
   const { donationResetMoment } = await import("../src/snapshots.mjs");
   const pg = (await import("pg")).default;
-  const tag = "#P0YQ2LL";
+  const tag = "#0P0JGG9";
   await ctx.db.query("insert into player(player_tag,name) values($1,'C')", [
     tag,
   ]);

@@ -104,13 +104,13 @@ before(async () => {
       [
         "#20JJJ2CCRU",
         "#00J00U28",
-        "#2PP",
-        "#2PPLQQ",
-        "#2PQ",
-        "#2PR",
-        "#2PY",
+        "#0CR",
+        "#00GQJ8",
+        "#08P",
+        "#0RU",
+        "#0Q9",
         "#00C298UC",
-        "#8LR0P09LR",
+        "#0R8YJPQPQ",
         "#0JY8UYYG",
         "#ABN1",
         "#ABN2",
@@ -122,7 +122,7 @@ before(async () => {
         "#RETRY2",
         "#RETRY3",
         "#0QLG889LG",
-        "#Y9CQ8VRV",
+        "#0UPV0C08",
       ],
     ],
   );
@@ -340,16 +340,16 @@ test("lease: every collector serves the live lane first; the server computes cr_
 test("a bulk battlelog lease carries the observer's mark as a filter; live leases and unmarked observers do not; the counts ride the envelope", async () => {
   await db.query(`delete from job`);
   await db.query(
-    `insert into player (player_tag) values ('#2PPLQQ'), ('#8LR0P09LR') on conflict do nothing`,
+    `insert into player (player_tag) values ('#00GQJ8'), ('#0R8YJPQPQ') on conflict do nothing`,
   );
   await db.query(
     `insert into battlelog_high_water (observer_tag, battle_time)
-     values ('#2PPLQQ', '2026-09-11T12:34:56Z') on conflict do nothing`,
+     values ('#00GQJ8', '2026-09-11T12:34:56Z') on conflict do nothing`,
   );
   // Marked observer, bulk lane: the filter, in the API's own spelling.
   await enqueueJob(db, {
     endpoint: "player_battlelog",
-    entity_key: "#2PPLQQ",
+    entity_key: "#00GQJ8",
     lane: "bulk",
   });
   const marked = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
@@ -376,11 +376,11 @@ test("a bulk battlelog lease carries the observer's mark as a filter; live lease
   // Unmarked observer: no filter key at all.
   await enqueueJob(db, {
     endpoint: "player_battlelog",
-    entity_key: "#8LR0P09LR",
+    entity_key: "#0R8YJPQPQ",
     lane: "bulk",
   });
   const unmarked = await door.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
-  assert.equal(unmarked.body.job.entity_key, "#8LR0P09LR");
+  assert.equal(unmarked.body.job.entity_key, "#0R8YJPQPQ");
   assert.equal(unmarked.body.filter, undefined);
   await door.submit(db, authed(TOKEN_BULK), {
     lease: unmarked.body.lease,
@@ -392,7 +392,7 @@ test("a bulk battlelog lease carries the observer's mark as a filter; live lease
   // Marked observer, LIVE lane: the agent waiting gets the whole log.
   await enqueueJob(db, {
     endpoint: "player_battlelog",
-    entity_key: "#2PPLQQ",
+    entity_key: "#00GQJ8",
     lane: "live",
   });
   const live = await door.lease(db, authed(TOKEN_LIVE), { wait_s: 0 });
@@ -463,13 +463,13 @@ test("submit: inline ingest, server-stamped identity and job id, DB-bound lease"
 test("submit: live_fetch's fetch-only job reaches ingest marked record: false, read from the row at submit (0209)", async () => {
   await enqueueJob(db, {
     endpoint: "player",
-    entity_key: "#8U2P0JPL",
+    entity_key: "#082QUGLG",
     lane: "live",
     record: false,
   });
   await enqueueJob(db, {
     endpoint: "player",
-    entity_key: "#8U2P0JPV",
+    entity_key: "#0L9C8CVR",
     lane: "live",
     record: false,
   });
@@ -556,21 +556,21 @@ test("a deadlock or racing upsert is retried once in the door; anything else is 
     return { status: res.status, calls, job: rows[0].status };
   };
 
-  const deadlock = await run(["40P01"], "#2PP");
+  const deadlock = await run(["40P01"], "#0CR");
   assert.deepEqual(
     deadlock,
     { status: 200, calls: 2, job: "done" },
     "a deadlock is retried and the job completes",
   );
-  const race = await run(["23505"], "#2PY");
+  const race = await run(["23505"], "#0Q9");
   assert.deepEqual(race, { status: 200, calls: 2, job: "done" });
-  const twice = await run(["40P01", "40P01"], "#2PQ");
+  const twice = await run(["40P01", "40P01"], "#08P");
   assert.deepEqual(
     twice,
     { status: 500, calls: 2, job: "leased" },
     "once, not a loop: the second failure answers 500 and holds the lease",
   );
-  const other = await run(["42703"], "#2PR");
+  const other = await run(["42703"], "#0RU");
   assert.deepEqual(
     other,
     { status: 500, calls: 1, job: "leased" },
@@ -580,7 +580,7 @@ test("a deadlock or racing upsert is retried once in the door; anything else is 
 
 test("concurrent lease calls from one token never exceed the cap (issue #5)", async () => {
   await db.query(`delete from job`);
-  for (const t of ["#0QLG889LG", "#00J00U28", "#0CC2QGGUU", "#Y9CQ8VRV"]) {
+  for (const t of ["#0QLG889LG", "#00J00U28", "#0CC2QGGUU", "#0UPV0C08"]) {
     await enqueueJob(db, { ...JOB, entity_key: t });
   }
   // Three simultaneous calls on three separate connections — the race

@@ -348,11 +348,11 @@ test(
   "a tag the game did not find is an error with the fix beside it",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/settings/players/2PP0V90Y");
+    window.history.pushState({}, "", "/settings/players/09CV8UVL");
     const posts = [];
     let claims = [
       {
-        player_tag: "#2PP0V90Y",
+        player_tag: "#09CV8UVL",
         is_primary: true,
         notify: true,
         name: null,
@@ -368,7 +368,7 @@ test(
           claims,
           recordings: [
             {
-              subject_tag: "#2PP0V90Y",
+              subject_tag: "#09CV8UVL",
               status: "active",
               freshest_poll: new Date().toISOString(),
               fetches_24h: 2,
@@ -377,13 +377,13 @@ test(
         },
       ],
       "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
-      "GET /api/me/battle-activity/2PP0V90Y": [200, { days: [] }],
-      "GET /api/me/first-answer?player_tag=%232PP0V90Y": [
+      "GET /api/me/battle-activity/09CV8UVL": [200, { days: [] }],
+      "GET /api/me/first-answer?player_tag=%2309CV8UVL": [
         200,
         {
           as_of: new Date().toISOString(),
           player: {
-            player_tag: "#2PP0V90Y",
+            player_tag: "#09CV8UVL",
             is_primary: true,
             recording_status: "active",
             profile_available: false,
@@ -428,7 +428,7 @@ test(
     expect(screen.getByText(/the game does not know this tag/)).toBeTruthy();
     // The fix is in the callout: the right tag in this one's place.
     const input = within(alert).getByLabelText("Correct tag");
-    fireEvent.change(input, { target: { value: "2PP0V90Y" } });
+    fireEvent.change(input, { target: { value: "09CV8UVL" } });
     fireEvent.click(
       within(alert).getByRole("button", { name: "Follow this tag instead" }),
     );
@@ -436,7 +436,7 @@ test(
       await within(alert).findByText("That is the tag the game did not find."),
     ).toBeTruthy();
     expect(posts).toEqual([]);
-    fireEvent.change(input, { target: { value: "#2pyq8gj0" } });
+    fireEvent.change(input, { target: { value: "#0pjcljyp" } });
     fireEvent.click(
       within(alert).getByRole("button", { name: "Follow this tag instead" }),
     );
@@ -451,11 +451,11 @@ test(
     await waitFor(() => expect(posts).toHaveLength(2));
     // Added first, as the primary, so the typo can be stopped.
     expect(posts).toEqual([
-      { player_tag: "#2PYQ8GJ0", action: "add", make_primary: true },
-      { player_tag: "#2PP0V90Y", action: "remove" },
+      { player_tag: "#0PJCLJYP", action: "add", make_primary: true },
+      { player_tag: "#09CV8UVL", action: "remove" },
     ]);
     await waitFor(() =>
-      expect(window.location.pathname).toBe("/settings/players/2PYQ8GJ0"),
+      expect(window.location.pathname).toBe("/settings/players/0PJCLJYP"),
     );
   },
 );
@@ -1192,7 +1192,7 @@ describe("an agent's pages in Settings", () => {
             ...AGENT,
             claims: [
               {
-                player_tag: "#PQLGR2C9",
+                player_tag: "#022YGRRL",
                 name: "Rival Star",
                 relationship: "watching",
                 notify: true,
@@ -1217,7 +1217,7 @@ describe("an agent's pages in Settings", () => {
                 is_primary: true,
               },
               {
-                clan_tag: "#PGLQYRJ2",
+                clan_tag: "#0GC0GG2P",
                 name: "Rivals",
                 scope: "activity",
                 notify: true,
@@ -1241,7 +1241,7 @@ describe("an agent's pages in Settings", () => {
         screen.getByRole("button", { name: "Make it the clan it acts for" }),
       );
       await waitFor(() =>
-        expect(posts).toEqual([{ clan_tag: "#PGLQYRJ2", action: "primary" }]),
+        expect(posts).toEqual([{ clan_tag: "#0GC0GG2P", action: "primary" }]),
       );
     },
   );

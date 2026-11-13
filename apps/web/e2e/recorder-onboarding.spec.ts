@@ -63,10 +63,10 @@ const battle = {
     deck_hash: null,
     trophy_change: null,
   },
-  opponents: [{ player_tag: "#P0Y", name: "Recorded rival" }],
+  opponents: [{ player_tag: "#00J", name: "Recorded rival" }],
 };
 const clan = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Example Clan",
   war_weeks: 3,
   latest_week: { season_id: 120, section_index: 1 },

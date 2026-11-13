@@ -141,7 +141,7 @@ const teamBattle = {
       side.players[0],
       {
         ...side.players[0],
-        player_tag: index === 0 ? "#2PYLQG89" : "#8YPRQJ2V",
+        player_tag: index === 0 ? "#09CCVLPC" : "#0GQL8JVU",
         name: index === 0 ? "Second player" : "Second opponent",
       },
     ],

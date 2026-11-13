@@ -38,7 +38,7 @@ const SUGGESTED = {
   limit: 50,
   people: [
     {
-      tag: "#PQ2GRL8",
+      tag: "#0JYQYV0",
       name: "Hedy",
       why: [
         { kind: "battles", against: 2, with_you: 0, days: 7 },
@@ -48,7 +48,7 @@ const SUGGESTED = {
       reason: null,
     },
     {
-      tag: "#V9YJ0UC",
+      tag: "#0GPY999",
       name: "Edsger",
       why: [
         {
@@ -81,7 +81,7 @@ const ADA = {
   player: {
     tag: "#00C298UC",
     name: "Ada",
-    clan_tag: "#9GQLV20",
+    clan_tag: "#0JQ0JQ8",
     clan_name: "Grove",
     trophies: 9400,
     recorded: true,
@@ -155,7 +155,7 @@ for (const [label, width] of [
       });
       await expect(
         panel.getByRole("link", { name: "Hedy", exact: true }),
-      ).toHaveAttribute("href", "/home/player/PQ2GRL8");
+      ).toHaveAttribute("href", "/home/player/0JYQYV0");
       await expect(
         panel.getByText("You played them twice this week · In your clan"),
       ).toBeVisible();
@@ -210,7 +210,7 @@ for (const [label, width] of [
                   my_cheer: null,
                 },
               ],
-              subjects: ["#00C298UC", "#9GQLV20"],
+              subjects: ["#00C298UC", "#0JQ0JQ8"],
             },
           ],
           "PUT /api/me/cheers": (route) => {
@@ -254,7 +254,7 @@ for (const [label, width] of [
         {
           item_id: "tl_00000000000000000001",
           cheer: "on_fire",
-          subjects: ["#00C298UC", "#9GQLV20"],
+          subjects: ["#00C298UC", "#0JQ0JQ8"],
         },
       ]);
       await noSideways(page);
@@ -353,10 +353,10 @@ for (const [label, width] of [
             200,
             {
               ok: true,
-              clan: { clan_tag: "#2PQRJ8LV", name: "Ada's Clan" },
+              clan: { clan_tag: "#0QC8RCGY", name: "Ada's Clan" },
               players: [
                 {
-                  player_tag: "#PQ2GRL8",
+                  player_tag: "#0JYQYV0",
                   name: "Hedy",
                   following: false,
                   free: false,
@@ -389,7 +389,7 @@ for (const [label, width] of [
               days: 30,
               people: [
                 {
-                  tag: "#V9YJ0UC",
+                  tag: "#0GPY999",
                   name: "Edsger",
                   against: 3,
                   with_you: 0,

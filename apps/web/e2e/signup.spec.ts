@@ -34,7 +34,7 @@ test("public signup verifies email and returns to the requested Console step", a
         authed = true;
         return [
           200,
-          { authenticated: true, new_account: { player_tag: "#2PYQ8GJ0" } },
+          { authenticated: true, new_account: { player_tag: "#0PJCLJYP" } },
         ];
       },
     }),
@@ -44,14 +44,14 @@ test("public signup verifies email and returns to the requested Console step", a
     page.getByRole("heading", { name: "Create your Elixir account" }),
   ).toBeVisible();
   await page.getByLabel("Email", { exact: true }).fill("new@example.com");
-  await page.getByLabel("Your player tag (optional)").fill("#2pyq8gj0");
+  await page.getByLabel("Your player tag (optional)").fill("#0pjcljyp");
   await page.getByRole("radio", { name: "Yes" }).check();
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await expect(
     page.getByRole("heading", { name: "Check your email" }),
   ).toBeVisible();
   // The server normalizes and freezes it; the browser only carries it.
-  expect(sentTag).toBe("#2pyq8gj0");
+  expect(sentTag).toBe("#0pjcljyp");
   // The page's Turnstile token rides the send (the stand-in's, here).
   expect(sentToken).toBe(TURNSTILE_TOKEN);
   await page.getByLabel("6-digit code").fill("123456");

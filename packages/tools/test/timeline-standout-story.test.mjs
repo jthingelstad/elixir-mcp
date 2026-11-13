@@ -19,13 +19,13 @@ import {
 import { clanSummaryParts, itemText } from "../src/activity/summary.mjs";
 import { followFor } from "../src/activity/follow.mjs";
 
-const CLAN = "#2PYLQJ";
-const ANN = "#2PYLQ0";
-const BEA = "#2PYLQ2";
-const CAL = "#2PYLQ8";
-const DEE = "#2PYLQC";
-const EVE = "#2PYLQR";
-const FOES = ["#2PYLQV", "#2PYLQY", "#2PYLQU", "#2PYLQG"];
+const CLAN = "#0PPPG9";
+const ANN = "#000880";
+const BEA = "#09CCYU";
+const CAL = "#0GLP0L";
+const DEE = "#02JVUC";
+const EVE = "#0J2RUJ";
+const FOES = ["#0QP0LJ", "#0V9GGU", "#0LLLG8", "#0JLRYC"];
 const FROM = Date.parse("2026-10-10T05:00:00Z");
 const TO = Date.parse("2026-10-11T05:00:00Z");
 const PLAY = Date.parse("2026-10-10T14:00:00Z");
@@ -166,7 +166,7 @@ before(async () => {
   // seasonal Trophy Road win over a lower opponent than the counter
   // would ever rank above.
   const challenge = {
-    eventTag: "#2PRCR9",
+    eventTag: "#08JGP2",
     gameMode: "Challenge_AllCards_EventDeck_NoSet",
     change: (r) => (r === "win" ? 1 : null),
   };
@@ -191,7 +191,7 @@ before(async () => {
       outcome: "win",
       crowns: 1,
       against: 0,
-      eventTag: "#2UQC8U",
+      eventTag: "#0R9JC0",
       gameMode: "Ladder",
       change: (r) => (r === "win" ? 30 : -30),
     },

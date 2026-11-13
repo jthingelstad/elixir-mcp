@@ -2,7 +2,7 @@ import { ME, signedIn } from "./fixtures.ts";
 
 /** The redesign's Home, as its head and its panels' reads answer it. */
 const TAG = "#20JJJ2CCRU";
-const CLAN = "#2PQRJ8LV";
+const CLAN = "#0QC8RCGY";
 const CARDS = [
   [26000000, "Knight"],
   [26000001, "Archers"],

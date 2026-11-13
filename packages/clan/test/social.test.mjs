@@ -22,7 +22,7 @@ import {
 
 const ADA = player();
 const BEN = player({
-  player_tag: "#8QCV",
+  player_tag: "#0RJL",
   name: "Ben",
   clan_role: "member",
 });
@@ -91,7 +91,7 @@ test("a member picks a place from the lists; the clan's members see it, with its
   assert.equal(region.body.place.precision, "region");
   assert.equal(region.body.place.city, null, "no city picked, none pinned");
 
-  const map = await ben("GET", "/api/clans/2PQRJ8LV/map");
+  const map = await ben("GET", "/api/clans/0QC8RCGY/map");
   assert.equal(map.status, 200, JSON.stringify(map.body));
   assert.equal(map.body.members, 2);
   assert.equal(map.body.on_map, 2);
@@ -127,28 +127,28 @@ test("off the roster is off the map; a cleared place is gone", async () => {
   const ada = await as(h, ADA);
   const ben = await as(h, BEN);
   await ben("PUT", "/api/me/place", { country: "CA", region: "08" });
-  assert.equal((await ada("GET", "/api/clans/2PQRJ8LV/map")).body.on_map, 1);
+  assert.equal((await ada("GET", "/api/clans/0QC8RCGY/map")).body.on_map, 1);
   // Ben leaves the clan: the next roster read no longer has him.
   h.record.state.roster = rosterOf(ADA);
   h.clock.t += 4 * 60_000;
-  assert.equal((await ada("GET", "/api/clans/2PQRJ8LV/map")).body.on_map, 0);
+  assert.equal((await ada("GET", "/api/clans/0QC8RCGY/map")).body.on_map, 0);
   // Back, then he removes his place himself.
   h.record.state.roster = rosterOf(ADA, BEN);
   h.clock.t += 4 * 60_000;
-  assert.equal((await ada("GET", "/api/clans/2PQRJ8LV/map")).body.on_map, 1);
+  assert.equal((await ada("GET", "/api/clans/0QC8RCGY/map")).body.on_map, 1);
   assert.equal((await ben("DELETE", "/api/me/place")).status, 200);
   h.clock.t += 4 * 60_000;
-  assert.equal((await ada("GET", "/api/clans/2PQRJ8LV/map")).body.on_map, 0);
+  assert.equal((await ada("GET", "/api/clans/0QC8RCGY/map")).body.on_map, 0);
 });
 
 test("one place per person: written under each verified tag, shown in each of their clans", async () => {
   const h = harness();
   const alt = player({
-    player_tag: "#9GQLV20",
+    player_tag: "#0JQ0JQ8",
     name: "Ada alt",
     relationship: "alt",
     is_primary: false,
-    clan_tag: "#8PYLQG0",
+    clan_tag: "#0QG0P8G",
     clan_role: "member",
   });
   h.record.state.players = [ADA, alt];
@@ -168,18 +168,18 @@ test("a leader turns the clan's social features off; a member cannot; the rail h
   const h = harness();
   const ben = await as(h, BEN);
   assert.equal(
-    (await ben("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false })).status,
+    (await ben("PUT", "/api/clans/0QC8RCGY/social", { enabled: false })).status,
     403,
   );
   const ada = await as(h, ADA);
   assert.equal((await ada("GET", "/api/me")).body.social.enabled, true);
-  const off = await ada("PUT", "/api/clans/2PQRJ8LV/social", {
+  const off = await ada("PUT", "/api/clans/0QC8RCGY/social", {
     enabled: false,
   });
   assert.equal(off.status, 200);
   assert.equal(off.body.enabled, false);
   assert.equal(off.body.set_by_name, "Ada");
-  const map = await ben("GET", "/api/clans/2PQRJ8LV/map");
+  const map = await ben("GET", "/api/clans/0QC8RCGY/map");
   assert.equal(map.status, 409);
   assert.equal(map.body.error, "social_off");
   assert.equal((await ada("GET", "/api/me")).body.social.enabled, false);
@@ -192,9 +192,9 @@ test("a leader turns the clan's social features off; a member cannot; the rail h
 
 test("a person in two clans sees each clan's own members on its map, never the other's", async () => {
   const h = harness();
-  const OTHER = "#8PYLQG0";
+  const OTHER = "#0QG0P8G";
   const alt = player({
-    player_tag: "#9GQLV20",
+    player_tag: "#0JQ0JQ8",
     name: "Ada alt",
     relationship: "alt",
     is_primary: false,
@@ -202,7 +202,7 @@ test("a person in two clans sees each clan's own members on its map, never the o
     clan_role: "member",
   });
   const CY = player({
-    player_tag: "#2YQC",
+    player_tag: "#09UR",
     name: "Cy",
     clan_tag: OTHER,
     clan_role: "member",
@@ -234,11 +234,11 @@ test("a person in two clans sees each clan's own members on its map, never the o
   };
   // Ada's home clan has its map switched off; the other clan's stays on.
   assert.equal(
-    (await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false })).status,
+    (await ada("PUT", "/api/clans/0QC8RCGY/social", { enabled: false })).status,
     200,
   );
 
-  const map = await ada("GET", "/api/clans/8PYLQG0/map");
+  const map = await ada("GET", "/api/clans/0QG0P8G/map");
   assert.equal(map.status, 200, JSON.stringify(map.body));
   assert.equal(map.body.clan_tag, OTHER);
   assert.equal(map.body.members, 2);
@@ -251,5 +251,5 @@ test("a person in two clans sees each clan's own members on its map, never the o
   const asked = h.record.calls.filter((c) => c[0] === "clans_roster").at(-1);
   assert.equal(asked[1].clan_tag, OTHER, "the roster read names the clan");
   // The home clan's map stays off for everyone.
-  assert.equal((await ada("GET", "/api/clans/2PQRJ8LV/map")).status, 409);
+  assert.equal((await ada("GET", "/api/clans/0QC8RCGY/map")).status, 409);
 });

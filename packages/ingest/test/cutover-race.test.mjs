@@ -148,7 +148,7 @@ for (const lane of ["live", "bulk"])
       release = deferred();
     let admission, barrier;
     try {
-      const original = await seedReceipt(ctx.db, { entityKey: "#P0LYQ" });
+      const original = await seedReceipt(ctx.db, { entityKey: "#00UQG" });
       const gw = (
         await ctx.db.query(
           "select gateway_id from api_receipt where receipt_id=$1",
@@ -169,7 +169,7 @@ for (const lane of ["live", "bulk"])
         wrapped,
         {
           v: 1,
-          job: { endpoint: "player_battlelog", entity_key: "#P0LYQ", lane },
+          job: { endpoint: "player_battlelog", entity_key: "#00UQG", lane },
           gateway_id: gw,
           fetched_at: "2026-10-01T12:00:00Z",
           status: "ok",

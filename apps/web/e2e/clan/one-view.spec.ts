@@ -80,13 +80,13 @@ test("a member sees five tabs, and Run is refused", async ({ page }) => {
     page,
     signedIn({
       "GET /api/clan/me": [200, as("member")],
-      "GET /api/clan/clans/2PQRJ8LV/run": () => {
+      "GET /api/clan/clans/0QC8RCGY/run": () => {
         runAsked = true;
         return [403, { error: "leaders_only" }];
       },
     }),
   );
-  await page.goto("/clan/2PQRJ8LV/feed");
+  await page.goto("/clan/0QC8RCGY/feed");
   for (const name of ["Standings", "War", "Members", "Policy"])
     await expect(clanTab(page, name)).toBeVisible();
   await expect(clanTab(page, /^Feed/)).toHaveAttribute("aria-selected", "true");
@@ -94,7 +94,7 @@ test("a member sees five tabs, and Run is refused", async ({ page }) => {
   await expect(page.getByText("Zed posted a highlight")).toBeVisible();
   await expect(page.getByText(/Three crowns with seconds left/)).toBeVisible();
   // Typing Run's address shows the refusal, never Run's tools.
-  await page.goto("/clan/2PQRJ8LV/run/about");
+  await page.goto("/clan/0QC8RCGY/run/about");
   await expect(
     page.getByText(/Run is for the clan.s leader and co-leaders/),
   ).toBeVisible();
@@ -104,9 +104,9 @@ test("a member sees five tabs, and Run is refused", async ({ page }) => {
 
 test("a leader sees Run, opening on Waiting", async ({ page }) => {
   await mockApi(page, signedIn({ "GET /api/clan/me": [200, as("leader")] }));
-  await page.goto("/clan/2PQRJ8LV/feed");
+  await page.goto("/clan/0QC8RCGY/feed");
   await clanTab(page, "Run").click();
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/run$/);
+  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/run$/);
   const list = page.getByRole("navigation", { name: "Run" });
   await expect(list.getByRole("link", { name: /^Waiting/ })).toBeVisible();
   await expect(list.getByRole("link", { name: /^Decided/ })).toBeVisible();
@@ -119,10 +119,10 @@ test("a leader the server refuses is shown the refusal, never Run's tools", asyn
     page,
     signedIn({
       "GET /api/clan/me": [200, as("coLeader")],
-      "GET /api/clan/clans/2PQRJ8LV/run": [403, { error: "leaders_only" }],
+      "GET /api/clan/clans/0QC8RCGY/run": [403, { error: "leaders_only" }],
     }),
   );
-  await page.goto("/clan/2PQRJ8LV/run/about");
+  await page.goto("/clan/0QC8RCGY/run/about");
   await expect(
     page.getByText(/Run is for the clan.s leader and co-leaders/),
   ).toBeVisible();
@@ -133,8 +133,8 @@ test("a leader the server refuses is shown the refusal, never Run's tools", asyn
 // old tab addresses stopped forwarding on 2026-11-13.
 test.describe("a clan's own address and its Actions list land on the Feed", () => {
   const MOVES: [string, RegExp][] = [
-    ["/clan/2PQRJ8LV", /\/clan\/2PQRJ8LV\/feed$/],
-    ["/clan/2PQRJ8LV/actions", /\/clan\/2PQRJ8LV\/feed$/],
+    ["/clan/0QC8RCGY", /\/clan\/0QC8RCGY\/feed$/],
+    ["/clan/0QC8RCGY/actions", /\/clan\/0QC8RCGY\/feed$/],
   ];
   for (const [from, to] of MOVES)
     test(from, async ({ page }) => {
@@ -152,10 +152,10 @@ test("@narrow the Feed and Policy read on a phone", async ({ page }) => {
     page,
     signedIn({
       "GET /api/clan/me": [200, as("member")],
-      "GET /api/clan/clans/2PQRJ8LV/policy": [200, POLICY],
+      "GET /api/clan/clans/0QC8RCGY/policy": [200, POLICY],
     }),
   );
-  await page.goto("/clan/2PQRJ8LV/feed");
+  await page.goto("/clan/0QC8RCGY/feed");
   await expect(page.getByText("Zed posted a highlight")).toBeVisible();
   expect(await fitsTheScreen(page)).toBe(true);
   await accessible(page, "narrow feed");
@@ -164,7 +164,7 @@ test("@narrow the Feed and Policy read on a phone", async ({ page }) => {
     fullPage: true,
   });
   await clanTab(page, "Policy").click();
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/policy$/);
+  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/policy$/);
   await expect(
     page.getByRole("heading", { name: "How Example Clan works" }),
   ).toBeVisible();

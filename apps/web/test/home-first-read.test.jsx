@@ -48,7 +48,7 @@ afterEach(() => {
 
 test("a stub with no log read keeps polling, then refreshes Home once when the read lands", async () => {
   const stub = {
-    player_tag: "#220UUJ2YRU",
+    player_tag: "#020YL8RQY2",
     recording_status: "active",
     tracked_since: new Date().toISOString(),
     profile_available: false,
@@ -113,7 +113,7 @@ test("a player whose log has been read is never polled", async () => {
 
 test("a log read that lands before the profile keeps taking status reads, then refreshes Home once", async () => {
   const empty = {
-    player_tag: "#2PYQ0LUC8",
+    player_tag: "#0829C0PVJ",
     recording_status: "active",
     tracked_since: new Date().toISOString(),
     profile_available: false,

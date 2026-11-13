@@ -20,7 +20,7 @@ for (const size of ["wide", "@narrow"]) {
       status: "proposed",
       can_act: true,
       audience: { kind: "elders" },
-      player_tag: "#8QCV",
+      player_tag: "#0RJL",
       player_name: "Newcomer",
       raised_at: "2026-10-03T12:00:00Z",
       channel: "clan_chat",
@@ -30,16 +30,16 @@ for (const size of ["wide", "@narrow"]) {
       log: [],
     };
     const responses = signedIn({
-      "GET /api/clan/clans/2PQRJ8LV/actions/37": () => [
+      "GET /api/clan/clans/0QC8RCGY/actions/37": () => [
         200,
         {
-          clan_tag: "#2PQRJ8LV",
+          clan_tag: "#0QC8RCGY",
           action,
           decline_reasons: [],
           model: { set: true, refused: false },
         },
       ],
-      "POST /api/clan/clans/2PQRJ8LV/actions/welcome1/draft": (route) => {
+      "POST /api/clan/clans/0QC8RCGY/actions/welcome1/draft": (route) => {
         drafts++;
         // The tone is its own field beside the leader's note.
         expect(route.request().postDataJSON()).toEqual({
@@ -51,7 +51,7 @@ for (const size of ["wide", "@narrow"]) {
           { line: "Glad you joined, Newcomer!", model: "stub", warnings: [] },
         ];
       },
-      "POST /api/clan/clans/2PQRJ8LV/actions/welcome1/decide": (route) => {
+      "POST /api/clan/clans/0QC8RCGY/actions/welcome1/decide": (route) => {
         decisions.push(route.request().postDataJSON());
         action.status = "done";
         action.can_act = false;
@@ -67,7 +67,7 @@ for (const size of ["wide", "@narrow"]) {
       { ...roster[1], member_count: 12 },
     ];
     await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/actions/37");
+    await page.goto("/clan/0QC8RCGY/actions/37");
     await expect(
       page.getByRole("heading", { name: /^Welcome a newcomer/ }),
     ).toBeVisible();

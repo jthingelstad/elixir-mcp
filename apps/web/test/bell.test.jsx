@@ -19,7 +19,7 @@ const reply = (body, status = 200) => ({
 const CLAN = {
   ok: true,
   state: "member",
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Ada's Clan",
   role: "leader",
   verified: true,
@@ -96,7 +96,7 @@ const BELL = {
     unnamed: 2,
     players: [
       {
-        tag: "#2PP0V9PP",
+        tag: "#0VQRR8U0",
         name: "Invented Fan",
         followed_tag: "#0QRVVG22J",
         followed_name: "Invented Owner",

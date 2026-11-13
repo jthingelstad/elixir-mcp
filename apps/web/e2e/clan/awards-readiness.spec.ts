@@ -3,8 +3,8 @@ import AxeBuilder from "@axe-core/playwright";
 import { mockApi, signedIn, ME } from "./fixtures.ts";
 
 const members = [
-  { player_tag: "#20QQL8CCRU", name: "Ada", role: "leader" },
-  { player_tag: "#UQ8LP2R9C", name: "Ben", role: "coLeader" },
+  { player_tag: "#098R2R0PUL", name: "Ada", role: "leader" },
+  { player_tag: "#02QQPCYQQ", name: "Ben", role: "coLeader" },
 ] as const;
 type Grant = {
   season_id: number;
@@ -88,7 +88,7 @@ const makeView = () => {
     rows: [] as Record<string, unknown>[],
   }));
   return {
-    clan_tag: "#2PQRJ8LV",
+    clan_tag: "#0QC8RCGY",
     can_edit: true,
     can_grant: ["pick"],
     evaluated_at: "2026-10-03T12:00:00Z",
@@ -135,8 +135,8 @@ for (const size of ["wide", "@narrow"]) {
     const data = makeView();
     const picks: unknown[] = [];
     const responses = signedIn({
-      "GET /api/clan/clans/2PQRJ8LV/awards": () => [200, data],
-      "POST /api/clan/clans/2PQRJ8LV/awards/grants": (route) => {
+      "GET /api/clan/clans/0QC8RCGY/awards": () => [200, data],
+      "POST /api/clan/clans/0QC8RCGY/awards/grants": (route) => {
         const body = route.request().postDataJSON();
         picks.push(body);
         const grant: Grant = {
@@ -172,7 +172,7 @@ for (const size of ["wide", "@narrow"]) {
       { ...roster[1], member_count: 12 },
     ];
     await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/standings");
+    await page.goto("/clan/0QC8RCGY/standings");
     await expect(
       page.getByRole("heading", { name: "Awards", exact: true }),
     ).toBeVisible();
@@ -244,8 +244,8 @@ for (const size of ["wide", "@narrow"]) {
     const data = makeView();
     const picks: unknown[] = [];
     const responses = signedIn({
-      "GET /api/clan/clans/2PQRJ8LV/awards": () => [200, data],
-      "POST /api/clan/clans/2PQRJ8LV/awards/grants": (route) => {
+      "GET /api/clan/clans/0QC8RCGY/awards": () => [200, data],
+      "POST /api/clan/clans/0QC8RCGY/awards/grants": (route) => {
         const body = route.request().postDataJSON();
         picks.push(body);
         const grant: Grant = {
@@ -281,7 +281,7 @@ for (const size of ["wide", "@narrow"]) {
       { ...roster[1], member_count: 12 },
     ];
     await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/standings");
+    await page.goto("/clan/0QC8RCGY/standings");
     await expect(page.getByRole("combobox", { name: "Season" })).toHaveValue(
       "136",
     );
@@ -323,7 +323,7 @@ for (const size of ["wide", "@narrow"]) {
     const data = makeView();
     const seasons = data.seasons.map((s) => ({ ...s, picks_open: false }));
     const responses = signedIn({
-      "GET /api/clan/clans/2PQRJ8LV/awards": [200, { ...data, seasons }],
+      "GET /api/clan/clans/0QC8RCGY/awards": [200, { ...data, seasons }],
     });
     const roster = responses["GET /api/clan/roster"] as [
       number,
@@ -334,7 +334,7 @@ for (const size of ["wide", "@narrow"]) {
       { ...roster[1], member_count: 12 },
     ];
     await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/standings");
+    await page.goto("/clan/0QC8RCGY/standings");
     await expect(page.getByRole("combobox", { name: "Season" })).toHaveValue(
       "136",
     );
@@ -385,10 +385,10 @@ for (const size of ["wide", "@narrow"]) {
         log: [],
       };
       const responses = signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/actions/38": [
+        "GET /api/clan/clans/0QC8RCGY/actions/38": [
           200,
           {
-            clan_tag: "#2PQRJ8LV",
+            clan_tag: "#0QC8RCGY",
             action,
             decline_reasons: [],
             model: { set: true, refused: false },
@@ -404,7 +404,7 @@ for (const size of ["wide", "@narrow"]) {
         { ...roster[1], member_count: 12 },
       ];
       await mockApi(page, responses);
-      await page.goto("/clan/2PQRJ8LV/actions/38");
+      await page.goto("/clan/0QC8RCGY/actions/38");
       await expect(
         page.getByText(/Message 1 of 2; send every part/),
       ).toBeVisible();
@@ -461,10 +461,10 @@ for (const size of ["wide", "@narrow"]) {
       page,
       signedIn({
         "GET /api/clan/me": [200, { ...ME, selected, clans: [selected] }],
-        "GET /api/clan/clans/2PQRJ8LV/awards": [200, data],
+        "GET /api/clan/clans/0QC8RCGY/awards": [200, data],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/standings");
+    await page.goto("/clan/0QC8RCGY/standings");
     await expect(page.getByRole("combobox", { name: "Season" })).toHaveValue(
       "136",
     );
@@ -531,20 +531,20 @@ for (const size of ["wide", "@narrow"]) {
       log: [],
     };
     const responses = signedIn({
-      "GET /api/clan/clans/2PQRJ8LV/awards": [200, data],
-      "POST /api/clan/clans/2PQRJ8LV/awards/update": (route) => {
+      "GET /api/clan/clans/0QC8RCGY/awards": [200, data],
+      "POST /api/clan/clans/0QC8RCGY/awards/update": (route) => {
         requests.push(route.request().postDataJSON().request_id);
         return requests.length === 1
           ? [503, { error: "synthetic lost response" }]
           : [200, { action }];
       },
-      "GET /api/clan/clans/2PQRJ8LV/actions/42": () => [
+      "GET /api/clan/clans/0QC8RCGY/actions/42": () => [
         200,
-        { clan_tag: "#2PQRJ8LV", action, decline_reasons: [] },
+        { clan_tag: "#0QC8RCGY", action, decline_reasons: [] },
       ],
       ...(Object.fromEntries(
         [1, 2].map((part) => [
-          `POST /api/clan/clans/2PQRJ8LV/actions/current1/messages/${part}/sent`,
+          `POST /api/clan/clans/0QC8RCGY/actions/current1/messages/${part}/sent`,
           (route) => {
             const words = route.request().postDataJSON();
             sent.push({ part, ...words });
@@ -563,14 +563,14 @@ for (const size of ["wide", "@narrow"]) {
         string,
         (route: import("@playwright/test").Route) => [number, unknown]
       >),
-      "POST /api/clan/clans/2PQRJ8LV/actions/current1/decide": () => {
+      "POST /api/clan/clans/0QC8RCGY/actions/current1/decide": () => {
         action.status = "done";
         action.can_act = false;
         return [200, action];
       },
     });
     await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/standings");
+    await page.goto("/clan/0QC8RCGY/standings");
     const prepare = page.getByRole("button", {
       name: "Send Season 136 update to clan",
       exact: true,
@@ -651,7 +651,7 @@ for (const size of ["wide", "@narrow"]) {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/history": [
+        "GET /api/clan/clans/0QC8RCGY/history": [
           200,
           {
             cards: [{ ...recent, decided_at: new Date().toISOString() }],
@@ -659,7 +659,7 @@ for (const size of ["wide", "@narrow"]) {
             holds: [],
           },
         ],
-        "GET /api/clan/clans/2PQRJ8LV/actions": (route) => {
+        "GET /api/clan/clans/0QC8RCGY/actions": (route) => {
           if (
             new URL(route.request().url()).searchParams.get("refresh") === "1"
           )
@@ -671,7 +671,7 @@ for (const size of ["wide", "@narrow"]) {
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/feed");
+    await page.goto("/clan/0QC8RCGY/feed");
     await expect(
       page.getByRole("link", { name: /Welcome the newcomer/ }),
     ).toBeVisible();
@@ -679,7 +679,7 @@ for (const size of ["wide", "@narrow"]) {
       page.getByRole("link", { name: /Earlier welcome/ }),
     ).toHaveCount(0);
     // Waiting and Decided are Run's (slice 8, #766).
-    await page.goto("/clan/2PQRJ8LV/run/decided");
+    await page.goto("/clan/0QC8RCGY/run/decided");
     await expect(page).toHaveURL(/\/run\/decided$/);
     await expect(
       page.getByRole("link", { name: /Earlier welcome/ }),
@@ -687,7 +687,7 @@ for (const size of ["wide", "@narrow"]) {
     await expect(
       page.getByRole("link", { name: /Welcome the newcomer/ }),
     ).toHaveCount(0);
-    await page.goto("/clan/2PQRJ8LV/run/actions");
+    await page.goto("/clan/0QC8RCGY/run/actions");
     await expect(
       page.getByRole("link", { name: /Welcome the newcomer/ }),
     ).toBeVisible();
@@ -754,10 +754,10 @@ for (const size of ["wide", "@narrow"]) {
     page.on("pageerror", (error) => errors.push(error.message));
     await mockApi(
       page,
-      signedIn({ "GET /api/clan/clans/2PQRJ8LV/awards": [200, data] }),
+      signedIn({ "GET /api/clan/clans/0QC8RCGY/awards": [200, data] }),
     );
-    await page.goto("/clan/2PQRJ8LV/standings");
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/standings$/);
+    await page.goto("/clan/0QC8RCGY/standings");
+    await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/standings$/);
     await expect(
       page.getByRole("heading", { name: "Awards", exact: true }),
     ).toBeVisible();

@@ -37,8 +37,8 @@ const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_partsize_${process.pid}`;
 const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
-const CLAN = "#QJ2UV8PY";
-const OTHER = "#QJ2UV8PQ";
+const CLAN = "#0L8VRR8C";
+const OTHER = "#020CGRPR";
 
 /** The agent read's ceiling: under the 48,000 cap with room for more
  *  departures inside the window than the live clan has had. */

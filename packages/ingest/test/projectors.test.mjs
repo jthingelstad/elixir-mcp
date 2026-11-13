@@ -424,7 +424,7 @@ test("the two watchers pin their extra rows: pre_reset before Monday 00:10Z, sea
 
 test("snapshots: an older delayed observation never regresses the day (sol-6 F7)", async () => {
   const { projectPlayerSnapshot } = await import("../src/snapshots.mjs");
-  const tag = "#P0P2P8P9";
+  const tag = "#0002LYCU";
   await ctx.db.query(`insert into player (player_tag) values ($1)`, [tag]);
   const payload = (trophies) => ({
     tag,

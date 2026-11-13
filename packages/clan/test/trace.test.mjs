@@ -54,11 +54,11 @@ test("every request carries one story naming the route, the status, the time, an
   const now = () => NOW.getTime();
   const part = participation(
     [
-      member("#20QQL8CCRU", { name: "Ada", role: "leader" }),
+      member("#098R2R0PUL", { name: "Ada", role: "leader" }),
       ...Array.from({ length: 9 }, (_, i) => member(`#M${i}`)),
     ],
     {
-      clan_tag: "#2PQRJ8LV",
+      clan_tag: "#0QC8RCGY",
     },
   );
   const record = fakeRecord({ players: [player()] });
@@ -70,7 +70,7 @@ test("every request carries one story naming the route, the status, the time, an
     });
   const ledger = ledgerWithPolicy(
     createMemoryLedger(),
-    "#2PQRJ8LV",
+    "#0QC8RCGY",
     EXAMPLE_POLICY,
   );
   const cap = capturing();
@@ -95,7 +95,7 @@ test("every request carries one story naming the route, the status, the time, an
   );
   const { r, lines } = await capture(
     () =>
-      handler(req("GET", "/api/clans/2PQRJ8LV/manage", { cookies: cookie })),
+      handler(req("GET", "/api/clans/0QC8RCGY/manage", { cookies: cookie })),
     cap,
   );
   assert.equal(r.statusCode, 200);
@@ -115,7 +115,7 @@ test("every request carries one story naming the route, the status, the time, an
     "the route, not the tag",
   );
   assert.equal(line.status, 200);
-  assert.equal(line.clan, "#2PQRJ8LV");
+  assert.equal(line.clan, "#0QC8RCGY");
   assert.equal(line.role, "leader");
   assert.ok(line.ms >= 0 && line.elixir_calls >= 2, JSON.stringify(line));
   const calls = line.elixir.map((c) => c.call);
@@ -147,17 +147,17 @@ test("route keys hide ids and tags; a slow or failed request is a warn", async (
   assert.equal(line.http, "GET /api/clan/roster");
   assert.equal(line.status, 401);
   assert.equal(
-    routeKey("GET", "/api/clans/2PQRJ8LV/members/8QCV/notes"),
+    routeKey("GET", "/api/clans/0QC8RCGY/members/0RJL/notes"),
     "GET /api/clans/*/members/*/notes",
   );
   assert.equal(
-    routeKey("POST", "/api/clans/2PQRJ8LV/actions/abc_1/decide"),
+    routeKey("POST", "/api/clans/0QC8RCGY/actions/abc_1/decide"),
     "POST /api/clans/*/actions/*/decide",
   );
   assert.equal(
     routeKey(
       "DELETE",
-      "/api/clans/2PQRJ8LV/awards/grants/135/points_podium/8QCV",
+      "/api/clans/0QC8RCGY/awards/grants/135/points_podium/0RJL",
     ),
     "DELETE /api/clans/*/awards/grants/*",
   );

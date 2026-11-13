@@ -19,8 +19,8 @@ import {
   signIn,
 } from "./fakes.mjs";
 
-const TAG = "#2PQRJ8LV";
-const BASE = "/api/clans/2PQRJ8LV";
+const TAG = "#0QC8RCGY";
+const BASE = "/api/clans/0QC8RCGY";
 const RUN_READS = [
   "/run",
   "/history",
@@ -42,7 +42,7 @@ function harness(role, { verified = true } = {}) {
       }),
     ],
     roster: rosterBody([
-      { player_tag: "#20QQL8CCRU", name: "Ada", role, trophies: 9000 },
+      { player_tag: "#098R2R0PUL", name: "Ada", role, trophies: 9000 },
     ]),
   });
   const handler = createHandler({

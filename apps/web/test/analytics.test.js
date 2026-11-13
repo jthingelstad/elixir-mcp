@@ -162,7 +162,7 @@ describe("loadTinylytics", () => {
   });
 
   test("a direct roster search reports the sanitized route without its free text", async () => {
-    await load("/clan/2PQRJ8LV?find=Private%20search");
+    await load("/clan/0QC8RCGY?find=Private%20search");
     expect(embeds()).toEqual([]);
     settle();
     expect(beacons).toHaveLength(1);
@@ -171,11 +171,11 @@ describe("loadTinylytics", () => {
     window.history.pushState(
       {},
       "",
-      "/clan/2PQRJ8LV/members/uq8lp2r9c?find=Private%20search",
+      "/clan/0QC8RCGY/members/02qqpcyqq?find=Private%20search",
     );
     settle();
     expect(beacons).toHaveLength(2);
-    expect(beacons[1]).not.toMatch(/Private|search|find=|uq8lp2r9c/);
+    expect(beacons[1]).not.toMatch(/Private|search|find=|02qqpcyqq/);
   });
 
   // Codex on #692: a direct visit ran the raw-URL embed, id and all.
@@ -225,11 +225,11 @@ describe("loadTinylytics", () => {
   });
 
   test.each([
-    "/clan/2PQRJ8LV?find=Current%20search",
-    "/clan/2PQRJ8LV/members/uq8lp2r9c?find=Current%20search",
+    "/clan/0QC8RCGY?find=Current%20search",
+    "/clan/0QC8RCGY/members/02qqpcyqq?find=Current%20search",
   ])("a new document at %s sanitizes a Clan search referrer", async (path) => {
     Object.defineProperty(document, "referrer", {
-      value: `${ORIGIN}/clan/2PQRJ8LV?find=Private%20search`,
+      value: `${ORIGIN}/clan/0QC8RCGY?find=Private%20search`,
       configurable: true,
     });
     try {
@@ -237,9 +237,9 @@ describe("loadTinylytics", () => {
       expect(embeds()).toEqual([]);
       settle();
       expect(beacons).toHaveLength(1);
-      expect(beacons[0]).not.toMatch(/Private|Current|search|find=|uq8lp2r9c/);
+      expect(beacons[0]).not.toMatch(/Private|Current|search|find=|02qqpcyqq/);
       expect(new URL(beacons[0]).searchParams.get("referrer")).toBe(
-        at("/clan/2PQRJ8LV").url,
+        at("/clan/0QC8RCGY").url,
       );
     } finally {
       Reflect.deleteProperty(document, "referrer");
@@ -257,7 +257,7 @@ describe("loadTinylytics", () => {
         configurable: true,
       });
       try {
-        await load("/clan/2PQRJ8LV?find=Ben");
+        await load("/clan/0QC8RCGY?find=Ben");
         settle();
         expect(new URL(beacons[0]).searchParams.get("referrer")).toBe(expected);
         expect(beacons[0]).not.toContain("secret");
@@ -299,29 +299,29 @@ describe("loadTinylytics", () => {
   test("a redirect counts the page it lands on, once", async () => {
     await load("/home");
     settle();
-    window.history.pushState({}, "", "/clan/2PQRJ8LV");
+    window.history.pushState({}, "", "/clan/0QC8RCGY");
     expect(beacons).toHaveLength(0);
-    window.history.replaceState({}, "", "/clan/2PQRJ8LV/actions");
+    window.history.replaceState({}, "", "/clan/0QC8RCGY/actions");
     settle();
     expect(paths()).toEqual(["/clan/actions"]);
     const sent = new URL(beacons[0]).searchParams;
-    expect(sent.get("url")).toBe(at("/clan/2PQRJ8LV/actions").url);
-    expect(sent.get("url")).not.toContain("/clan/2PQRJ8LV");
+    expect(sent.get("url")).toBe(at("/clan/0QC8RCGY/actions").url);
+    expect(sent.get("url")).not.toContain("/clan/0QC8RCGY");
     expect(sent.get("referrer")).toBe(at("/home").url);
   });
 
   test("a document's redirect is no second count, and the next page names where it landed", async () => {
-    await load("/clan/2PQRJ8LV");
+    await load("/clan/0QC8RCGY");
     // The embed counts this document.
     expect(embeds()).toHaveLength(1);
-    window.history.replaceState({}, "", "/clan/2PQRJ8LV/actions");
+    window.history.replaceState({}, "", "/clan/0QC8RCGY/actions");
     settle();
     expect(beacons).toHaveLength(0);
-    window.history.pushState({}, "", "/clan/2PQRJ8LV/actions/37");
+    window.history.pushState({}, "", "/clan/0QC8RCGY/actions/37");
     settle();
     expect(paths()).toEqual(["/clan/actions/detail"]);
     expect(new URL(beacons[0]).searchParams.get("referrer")).toBe(
-      at("/clan/2PQRJ8LV/actions").url,
+      at("/clan/0QC8RCGY/actions").url,
     );
   });
 
@@ -337,7 +337,7 @@ describe("loadTinylytics", () => {
   test("a replace after the reader acts is a new view", async () => {
     await load("/home");
     window.dispatchEvent(new Event("pointerdown"));
-    window.history.replaceState({}, "", "/clan/2PQRJ8LV");
+    window.history.replaceState({}, "", "/clan/0QC8RCGY");
     expect(beacons).toHaveLength(0);
     settle();
     expect(paths()).toEqual(["/clan"]);
@@ -354,10 +354,10 @@ describe("loadTinylytics", () => {
   });
 
   test("a replace that stays on the page is nothing", async () => {
-    await load("/clan/2PQRJ8LV");
+    await load("/clan/0QC8RCGY");
     window.dispatchEvent(new Event("keydown"));
-    window.history.replaceState({}, "", "/clan/2PQRJ8LV?find=Ben");
-    window.history.replaceState({}, "", "/clan/2PQRJ8LV?find=Bea");
+    window.history.replaceState({}, "", "/clan/0QC8RCGY?find=Ben");
+    window.history.replaceState({}, "", "/clan/0QC8RCGY?find=Bea");
     settle();
     expect(beacons).toHaveLength(0);
   });
@@ -436,7 +436,7 @@ describe("loadTinylytics", () => {
 
   test("Clan's events arrive through the same listener", async () => {
     await load("/signin");
-    window.history.pushState({}, "", "/clan/2PQRJ8LV/actions");
+    window.history.pushState({}, "", "/clan/0QC8RCGY/actions");
     const clan = await import("@elixir-mcp/clan-web/analytics.js");
     clan.trackEvent("clan.discord_nudge");
     expect(events()).toEqual([
@@ -444,7 +444,7 @@ describe("loadTinylytics", () => {
         event: "clan.discord_nudge",
         value: "",
         path: "/clan/actions",
-        url: at("/clan/2PQRJ8LV/actions").url,
+        url: at("/clan/0QC8RCGY/actions").url,
       },
     ]);
   });
@@ -463,7 +463,7 @@ describe("loadTinylytics", () => {
   test.each([
     ["/settings/emails/abc123", "/settings/emails"],
     ["/settings/players/2ABC", "/settings/players"],
-    ["/clan/2PQRJ8LV?find=Private%20search", "/clan"],
+    ["/clan/0QC8RCGY?find=Private%20search", "/clan"],
   ])(
     "a session that starts on %s delivers events as its kind of page",
     async (start, kind) => {

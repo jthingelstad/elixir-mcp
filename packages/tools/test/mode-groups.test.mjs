@@ -26,8 +26,8 @@ import { participantModeClause } from "../../record/src/mode-filter.mjs";
 let scratch;
 let account;
 const registry = makeRegistry();
-const P = "#2PYLQG0";
-const OPP = "#2PYLQG8";
+const P = "#002C298";
+const OPP = "#0JQLL88";
 const call = (name, args = {}) =>
   registry.invoke(name, { db: scratch.db, account }, args);
 

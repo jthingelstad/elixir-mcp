@@ -11,10 +11,10 @@ test("archive identity stays equal to ingest across observer order, duels, teams
       battleTime: "20261002T120000.000Z",
       type,
       team: [
-        { tag: "p0lyq", cards: [] },
-        { tag: "#P2LQ0", cards: [] },
+        { tag: "00uqg", cards: [] },
+        { tag: "#0LGYR", cards: [] },
       ],
-      opponent: [{ tag: "#P8LQ0", cards: [] }, { cards: [] }],
+      opponent: [{ tag: "#0G89G", cards: [] }, { cards: [] }],
     };
     const identity = canonicalBattleIdentity(entry),
       projected = canonicalizeBattle(entry).battle;

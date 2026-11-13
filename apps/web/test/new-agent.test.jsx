@@ -18,7 +18,7 @@ test("New agent opens its form in place, and the page stays where it is", async 
   vi.spyOn(api, "myPrincipals").mockResolvedValue(
     answer({
       agents: [],
-      addable_clans: [{ clan_tag: "#2PQRJ8LV", name: "Example Clan" }],
+      addable_clans: [{ clan_tag: "#0QC8RCGY", name: "Example Clan" }],
     }),
   );
   const navigate = vi.fn();

@@ -279,7 +279,7 @@ test("war_history exact week: a 50-participant roster answers in one pass, weekl
   const alphabet = "0289PYLQGR";
   const tags = Array.from(
     { length: 50 },
-    (_, i) => `#YV${alphabet[Math.floor(i / 10)]}${alphabet[i % 10]}Y`,
+    (_, i) => `#0V${alphabet[Math.floor(i / 10)]}${alphabet[i % 10]}Y`,
   );
   assert.equal(new Set(tags).size, 50);
   for (const tag of tags) {
@@ -353,7 +353,7 @@ test("entitlements hold: outsiders get structured refusals on every clan tool", 
   // Universal reads: comparing arbitrary tags now resolves (empty
   // records serve honestly rather than refusing).
   const cmp = await call(invokeOutsider, "battles_compare", {
-    player_tags: ["#YYYYYYYY", "#RRRRRRRR"],
+    player_tags: ["#08L2PR0V", "#02G8202J"],
   });
   assert.equal(cmp.isError, false, JSON.stringify(cmp.body));
   assert.equal(cmp.body.players.length, 2);
@@ -1418,7 +1418,7 @@ test("war_current names the current members the race roster leaves out", async (
        where wp.clan_tag = $1 order by wp.player_tag limit 1`,
       [CLAN],
     );
-    const orphan = "#2P9YQCV0";
+    const orphan = "#0VLQL90P";
     await db.query(
       `insert into player (player_tag, name) values ($1, 'Not In Race')
        on conflict (player_tag) do nothing`,
@@ -1713,7 +1713,7 @@ test("war_current on a clan the game has no race for says so instead of pointing
   // current-race read a 404. Before, the refusal read "No war weeks
   // recorded ... live: true reads the race now", and a live read would
   // have 404'd the same way.
-  const SOLO = "#GJ09RJP8";
+  const SOLO = "#02GLU9VQ";
   const {
     rows: [owner],
   } = await db.query(`select account_id from account where is_owner limit 1`);

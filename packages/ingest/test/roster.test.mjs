@@ -135,19 +135,19 @@ test("memberList lastSeen is stored, never moves backwards, and survives a junk 
     await ingestClanRoster(scratch.db, {
       payload: roster([
         {
-          tag: "#2P9YQCV",
+          tag: "#0UUVL8V",
           name: "Active",
           role: "member",
           lastSeen: "20260909T090000.000Z",
         },
         {
-          tag: "#2P9YQCU",
+          tag: "#0QULRJY",
           name: "Dormant",
           role: "member",
           lastSeen: "20260829T090000.000Z",
         },
         // No lastSeen at all: optional CR fields stay optional.
-        { tag: "#2P9YQCQ", name: "Silent", role: "member" },
+        { tag: "#0VY99LL", name: "Silent", role: "member" },
       ]),
       observedAt: at,
       windowStart: null,
@@ -155,27 +155,27 @@ test("memberList lastSeen is stored, never moves backwards, and survives a junk 
     });
 
     assert.equal(
-      (await seen("#2P9YQCV")).toISOString(),
+      (await seen("#0UUVL8V")).toISOString(),
       "2026-09-09T09:00:00.000Z",
     );
     assert.equal(
-      (await seen("#2P9YQCU")).toISOString(),
+      (await seen("#0QULRJY")).toISOString(),
       "2026-08-29T09:00:00.000Z",
     );
-    assert.equal(await seen("#2P9YQCQ"), null, "absent stays null, not now()");
+    assert.equal(await seen("#0VY99LL"), null, "absent stays null, not now()");
 
     // A late-admitted OLDER poll must not drag the stamp backwards, and a
     // malformed value must not overwrite a good one or stop the run.
     await ingestClanRoster(scratch.db, {
       payload: roster([
         {
-          tag: "#2P9YQCV",
+          tag: "#0UUVL8V",
           name: "Active",
           role: "member",
           lastSeen: "20260901T090000.000Z",
         },
         {
-          tag: "#2P9YQCU",
+          tag: "#0QULRJY",
           name: "Dormant",
           role: "member",
           lastSeen: "not-a-timestamp",
@@ -187,12 +187,12 @@ test("memberList lastSeen is stored, never moves backwards, and survives a junk 
     });
 
     assert.equal(
-      (await seen("#2P9YQCV")).toISOString(),
+      (await seen("#0UUVL8V")).toISOString(),
       "2026-09-09T09:00:00.000Z",
       "an older sighting never wins",
     );
     assert.equal(
-      (await seen("#2P9YQCU")).toISOString(),
+      (await seen("#0QULRJY")).toISOString(),
       "2026-08-29T09:00:00.000Z",
       "junk leaves the known value alone",
     );
@@ -201,7 +201,7 @@ test("memberList lastSeen is stored, never moves backwards, and survives a junk 
     // exists to avoid.
     const { rows } = await scratch.db.query(
       `select last_seen_at, game_last_seen_at from player where player_tag = $1`,
-      ["#2P9YQCU"],
+      ["#0QULRJY"],
     );
     assert.notEqual(
       rows[0].last_seen_at.toISOString(),
@@ -268,7 +268,7 @@ test("a clan nobody tracks records only its tracked players, read from the whole
   const scratch = await scratchDb("roster_untracked");
   try {
     const clan = structuredClone(await fixture("clan/roster.json"));
-    clan.tag = "#2QQQ";
+    clan.tag = "#0YYC";
     const [mine] = clan.memberList;
     const {
       rows: [a],
@@ -299,7 +299,7 @@ test("a clan nobody tracks records only its tracked players, read from the whole
       [mine.tag],
     );
     const { rows: open } = await scratch.db.query(
-      "select player_tag from clan_membership where clan_tag = '#2QQQ'",
+      "select player_tag from clan_membership where clan_tag = '#0YYC'",
     );
     assert.deepEqual(
       open.map((m) => m.player_tag),
@@ -327,7 +327,7 @@ test("a clan nobody tracks records only its tracked players, read from the whole
 async function baselineScratch(suffix) {
   const scratch = await scratchDb(suffix);
   const clan = structuredClone(await fixture("clan/roster.json"));
-  clan.tag = "#2QQQ";
+  clan.tag = "#0YYC";
   const {
     rows: [a],
   } = await scratch.db.query(
@@ -349,7 +349,7 @@ async function baselineScratch(suffix) {
   const trackClan = (at) =>
     scratch.db.query(
       `insert into recording (subject_type, subject_tag, requested_by, status, scope, created_at)
-       values ('clan', '#2QQQ', $1, 'active', 'activity', $2)`,
+       values ('clan', '#0YYC', $1, 'active', 'activity', $2)`,
       [a.account_id, at],
     );
   const read = (payload, observedAt, windowStart) =>
@@ -362,7 +362,7 @@ async function baselineScratch(suffix) {
     (
       await scratch.db.query(
         `select baseline from clan_membership
-          where clan_tag = '#2QQQ' and player_tag = $1 and left_observed_at is null`,
+          where clan_tag = '#0YYC' and player_tag = $1 and left_observed_at is null`,
         [tag],
       )
     ).rows[0]?.baseline;
@@ -380,7 +380,7 @@ test("first read of a tracked 49-member clan: zero joins; the next read's newcom
     assert.equal(await t.baseline(t.clan.memberList[0].tag), true);
 
     const next = structuredClone(t.clan);
-    next.memberList.push({ ...t.clan.memberList[0], tag: "#2GUY2PY" });
+    next.memberList.push({ ...t.clan.memberList[0], tag: "#0RVY2PV" });
     const r2 = await t.read(
       next,
       "2026-10-08T21:45:00Z",
@@ -388,8 +388,8 @@ test("first read of a tracked 49-member clan: zero joins; the next read's newcom
     );
     assert.equal(r2.joined, 1);
     assert.equal(r2.baselined, 0);
-    assert.deepEqual(await t.joins(), ["#2GUY2PY"]);
-    assert.equal(await t.baseline("#2GUY2PY"), false, "an observed join");
+    assert.deepEqual(await t.joins(), ["#0RVY2PV"]);
+    assert.equal(await t.baseline("#0RVY2PV"), false, "an observed join");
   } finally {
     await t.scratch.drop();
   }
@@ -426,14 +426,14 @@ test("a clan read for one tracked player that becomes tracked: the rest are a ba
     assert.deepEqual(await t.joins(), []);
     // From here on the clan reads whole: a newcomer is a join.
     const next = structuredClone(promoted);
-    next.memberList.push({ ...t.clan.memberList[1], tag: "#2GUY2PY" });
+    next.memberList.push({ ...t.clan.memberList[1], tag: "#0RVY2PV" });
     const r3 = await t.read(
       next,
       "2026-10-08T22:00:00Z",
       "2026-10-08T21:45:00Z",
     );
     assert.equal(r3.joined, 1);
-    assert.deepEqual(await t.joins(), ["#2GUY2PY"]);
+    assert.deepEqual(await t.joins(), ["#0RVY2PV"]);
   } finally {
     await t.scratch.drop();
   }

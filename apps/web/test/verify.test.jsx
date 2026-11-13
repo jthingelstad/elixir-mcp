@@ -37,7 +37,7 @@ const ME = {
   timezone: "America/Chicago",
   claims: [
     {
-      player_tag: "#2PP0V90Y",
+      player_tag: "#09CV8UVL",
       name: "King Thing",
       status: "unverified",
       is_primary: true,
@@ -57,7 +57,7 @@ const card = (i, matched = false) => ({
 const OPEN = {
   state: "open",
   challenge_id: "11111111-1111-1111-1111-111111111111",
-  player_tag: "#2PP0V90Y",
+  player_tag: "#09CV8UVL",
   name: "King Thing",
   created_at: "2026-09-12T14:00:00Z",
   expires_at: new Date(Date.now() + 19 * 60_000).toISOString(),
@@ -126,7 +126,7 @@ function mockFetch() {
       body = {
         players: [
           {
-            player_tag: "#2PP0V90Y",
+            player_tag: "#09CV8UVL",
             name: "King Thing",
             status: "unverified",
             verified_at: null,
@@ -213,7 +213,7 @@ test(
     await waitFor(() =>
       screen.getByRole("heading", { name: "Play one battle with this deck" }),
     );
-    expect(posts).toEqual([{ player_tag: "#2PP0V90Y" }]);
+    expect(posts).toEqual([{ player_tag: "#09CV8UVL" }]);
     const target = screen.getByRole("list", { name: "The deck to play" });
     expect(target.querySelectorAll(".deck__slot").length).toBe(8);
     expect(target.querySelectorAll("img").length).toBe(8);
@@ -345,7 +345,7 @@ test(
           n === 1
             ? {
                 state: "collecting",
-                player_tag: "#2PP0V90Y",
+                player_tag: "#09CV8UVL",
                 live_pending: true,
                 retry_after_s: 15,
               }

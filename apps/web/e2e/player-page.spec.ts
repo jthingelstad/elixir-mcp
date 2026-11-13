@@ -34,17 +34,17 @@ const ADA = {
   player: {
     tag: "#00C298UC",
     name: "Ada",
-    clan_tag: "#9GQLV20",
+    clan_tag: "#0JQ0JQ8",
     clan_name: "Grove",
     trophies: 9400,
     recorded: true,
   },
   you: { own: false, following: false, relationship: null, clanmate: null },
   badges: { verified_player: true, discord: false },
-  follows: { count: 1, players: [{ tag: "#PYLQGRJC", name: "Grace" }] },
+  follows: { count: 1, players: [{ tag: "#0J0RVYRR", name: "Grace" }] },
   followers: {
     count: 2,
-    players: [{ tag: "#9VUP08YL", name: "Edsger" }],
+    players: [{ tag: "#0JVRYLGG", name: "Edsger" }],
     unnamed: 1,
   },
   window_days: 30,
@@ -98,7 +98,7 @@ for (const [label, width] of [
           "GET /api/me/follow-plan": [
             200,
             {
-              clan_tag: "#9GQLV20",
+              clan_tag: "#0JQ0JQ8",
               players: [],
               yours: [],
               to_follow: 0,
@@ -153,7 +153,7 @@ for (const [label, width] of [
       page,
     }) => {
       await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-      await page.goto("/home/follow/00C298UC,PYLQGRJC");
+      await page.goto("/home/follow/00C298UC,0J0RVYRR");
       await expect(
         page.getByRole("heading", { name: "Follow these players on Elixir" }),
       ).toBeVisible();
@@ -161,7 +161,7 @@ for (const [label, width] of [
         page.getByRole("link", { name: "Join Elixir" }),
       ).toHaveAttribute(
         "href",
-        `/signin?signup&return_to=${encodeURIComponent("/home/follow/00C298UC,PYLQGRJC")}`,
+        `/signin?signup&return_to=${encodeURIComponent("/home/follow/00C298UC,0J0RVYRR")}`,
       );
       await expect(page.getByRole("main")).not.toContainText("00C298UC");
       await noSideways(page);

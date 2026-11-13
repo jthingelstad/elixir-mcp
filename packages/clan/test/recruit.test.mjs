@@ -25,7 +25,7 @@ import {
 } from "./fakes.mjs";
 
 const CLAN = {
-  tag: "#2PQRJ8LV",
+  tag: "#0QC8RCGY",
   name: "Example Clan",
   members: 47,
   requiredTrophies: 5000,
@@ -48,7 +48,7 @@ const PITCH = {
 
 function harness({
   players = [player()],
-  ledger = seedVersion(createMemoryLedger(), "recruit", "#2PQRJ8LV", PITCH),
+  ledger = seedVersion(createMemoryLedger(), "recruit", "#0QC8RCGY", PITCH),
   live,
 } = {}) {
   const clock = { t: Date.parse("2026-09-13T12:00:00Z") };
@@ -58,7 +58,7 @@ function harness({
     roster: {
       ...rosterBody([
         {
-          player_tag: "#20QQL8CCRU",
+          player_tag: "#098R2R0PUL",
           name: "Ada",
           role: "leader",
           trophies: 9000,
@@ -109,11 +109,11 @@ const api = async (h, cookies, method, path, body) => {
   return { status: r.statusCode, body: r.body ? JSON.parse(r.body) : null };
 };
 const signedIn = async (h) => cookieHeader((await signIn(h)).sessionCookie);
-const PATH = "/api/clans/2PQRJ8LV/recruit";
+const PATH = "/api/clans/0QC8RCGY/recruit";
 
 test("recruit: an elder gets the pitch, live facts and both formats, passing the checks; the live read is cached", async () => {
   const h = harness({
-    players: [player({ player_tag: "#8QCV", name: "Amy", clan_role: "elder" })],
+    players: [player({ player_tag: "#0RJL", name: "Amy", clan_role: "elder" })],
   });
   const c = await signedIn(h);
   const r = await api(h, c, "GET", PATH);
@@ -216,7 +216,7 @@ test("recruit: a leader saves a pitch as a new version and the copy follows; bad
   assert.match(bad.body.errors.tagline, /needed/);
 
   const elder = harness({
-    players: [player({ player_tag: "#8QCV", name: "Amy", clan_role: "elder" })],
+    players: [player({ player_tag: "#0RJL", name: "Amy", clan_role: "elder" })],
     ledger,
   });
   const ec = await signedIn(elder);
@@ -237,7 +237,7 @@ test("recruit: a leader writing the first pitch starts from a draft of the clan'
   const ledger = seedVersion(
     createMemoryLedger(),
     "policy",
-    "#2PQRJ8LV",
+    "#0QC8RCGY",
     policyFromGoals(["war", "donations"], "standard"),
   );
   const lead = harness({ ledger });
@@ -251,7 +251,7 @@ test("recruit: a leader writing the first pitch starts from a draft of the clan'
     "Generous donations, every week",
   ]);
   const elder = harness({
-    players: [player({ player_tag: "#8QCV", name: "Amy", clan_role: "elder" })],
+    players: [player({ player_tag: "#0RJL", name: "Amy", clan_role: "elder" })],
     ledger,
   });
   const ec = await signedIn(elder);
@@ -261,7 +261,7 @@ test("recruit: a leader writing the first pitch starts from a draft of the clan'
 test("recruit is the leaders' and elders' tool: a member is refused, spending no live read; an elder reads it", async () => {
   const member = harness({
     players: [
-      player({ player_tag: "#8QCV", name: "Amy", clan_role: "member" }),
+      player({ player_tag: "#0RJL", name: "Amy", clan_role: "member" }),
     ],
   });
   const mc = await signedIn(member);
@@ -278,7 +278,7 @@ test("recruit is the leaders' and elders' tool: a member is refused, spending no
   );
 
   const elder = harness({
-    players: [player({ player_tag: "#8QCV", name: "Amy", clan_role: "elder" })],
+    players: [player({ player_tag: "#0RJL", name: "Amy", clan_role: "elder" })],
   });
   const ec = await signedIn(elder);
   assert.equal((await api(elder, ec, "GET", PATH)).status, 200);

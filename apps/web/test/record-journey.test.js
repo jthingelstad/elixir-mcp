@@ -2,7 +2,7 @@ import { test, expect } from "vitest";
 import { recordJourney } from "../src/lib/record-journey.js";
 
 const player = {
-  player_tag: "#P0Y",
+  player_tag: "#00J",
   recording_status: "active",
   battles_30d: 0,
 };
@@ -15,14 +15,14 @@ test("saved tags stay pending; profiles and older battles have destinations that
   expect(journey({}).text).toContain("(a few at busy times)");
   expect(journey({}).text).toContain("about your last 30 battles");
   expect(journey({ profile_available: true }).to).toBe(
-    "/home/player/P0Y?tab=record",
+    "/home/player/00J?tab=record",
   );
   const old = journey({
     recording_status: "stopped",
     last_battle_at: "2026-07-01T00:00:00Z",
   });
   expect(old.state).toBe("Recording stopped");
-  expect(old.to).toBe("/home/player/P0Y");
+  expect(old.to).toBe("/home/player/00J");
   expect(old.text).toContain("retained record");
 });
 
@@ -88,8 +88,8 @@ test("a 404 on the profile, before anything was captured, says the tag was not f
   const j = journey({ capture_attempts: missing });
   expect(j.state).toBe("Tag not found");
   expect(j.notFound).toBe(true);
-  expect(j.text).toContain("We couldn't find #P0Y in Clash Royale");
-  expect(j.to).toBe("/settings/players/P0Y");
+  expect(j.text).toContain("We couldn't find #00J in Clash Royale");
+  expect(j.to).toBe("/settings/players/00J");
   // Any other failure is only a failed attempt; so is a 404 on a player
   // the record already holds, or on the battle log alone.
   expect(

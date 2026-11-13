@@ -6,20 +6,20 @@ import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 
 export const PERSON = {
   kind: "person",
-  subject: { type: "player", tag: "#20QQL8CCRU", name: "Ada" },
-  clan: { tag: "#2PQRJ8LV", name: "Example Clan" },
+  subject: { type: "player", tag: "#098R2R0PUL", name: "Ada" },
+  clan: { tag: "#0QC8RCGY", name: "Example Clan" },
 };
 
 export function player(overrides = {}) {
   return {
-    player_tag: "#20QQL8CCRU",
+    player_tag: "#098R2R0PUL",
     name: "Ada",
     relationship: "primary",
     is_primary: true,
     claim_status: "verified",
     notify: false,
     recording: "active",
-    clan_tag: "#2PQRJ8LV",
+    clan_tag: "#0QC8RCGY",
     clan_role: "leader",
     ...overrides,
   };
@@ -27,7 +27,7 @@ export function player(overrides = {}) {
 
 export function rosterBody(members) {
   return {
-    clan_tag: "#2PQRJ8LV",
+    clan_tag: "#0QC8RCGY",
     name: "Example Clan",
     member_count: members.length,
     members,

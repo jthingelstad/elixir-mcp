@@ -18,7 +18,7 @@ import { youPlayer } from "../src/home/You.jsx";
 configure({ asyncUtilTimeout: 5000 });
 
 const VERIFIED = {
-  player_tag: "#PYLQ88",
+  player_tag: "#0GVJ9V",
   name: "Birch Lantern",
   nickname: "Private Owl",
   is_primary: true,
@@ -26,14 +26,14 @@ const VERIFIED = {
   status: "verified",
 };
 const ALT = {
-  player_tag: "#UUU2",
+  player_tag: "#00L0",
   name: "Umber",
   is_primary: false,
   relationship: "alt",
   status: "pending",
 };
 const FRIEND = {
-  player_tag: "#QQ8822",
+  player_tag: "#0VJ2QV",
   name: "Copper Fern",
   is_primary: false,
   relationship: "friend",
@@ -49,7 +49,7 @@ const ME = {
 };
 const PAGE = {
   player: {
-    tag: "#PYLQ88",
+    tag: "#0GVJ9V",
     name: "Birch Lantern",
     clan_tag: null,
     clan_name: null,
@@ -174,14 +174,14 @@ test(
       }
       return reply({});
     });
-    window.history.pushState({}, "", "/home/player/qq8822");
+    window.history.pushState({}, "", "/home/player/0vj2qv");
     render(<App />);
     const door = await screen.findByRole("link", { name: "Their stats" });
-    expect(door.getAttribute("href")).toBe("/home/you/stats?player=QQ8822");
+    expect(door.getAttribute("href")).toBe("/home/you/stats?player=0VJ2QV");
     expect(screen.queryByRole("link", { name: "Your stats" })).toBeNull();
 
     cleanup();
-    window.history.pushState({}, "", "/home/you/stats?player=QQ8822");
+    window.history.pushState({}, "", "/home/you/stats?player=0VJ2QV");
     render(<App />);
     const back = await screen.findByRole("navigation", { name: "Whose stats" });
     expect(back.textContent).toContain("Copper Fern");

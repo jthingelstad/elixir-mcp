@@ -31,7 +31,7 @@ const URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 const P = "#00C298UC";
 const Q = "#20JJJ2CCRU";
 const CLAN = "#J2RGCRVG";
-const OTHER = "#GCYQR9VY";
+const OTHER = "#0GJJ9QJL";
 
 let db;
 let n = 0;
@@ -220,7 +220,7 @@ test("losing a tier cuts nothing: what is recorded stays, the next add is refuse
   const a = await leaderSetup();
   await collector(a, "active");
   assert.equal(await tier(a), "family");
-  for (const tag of [OTHER, "#9VUP08YL"])
+  for (const tag of [OTHER, "#0JVRYLGG"])
     assert.equal(
       (await addClan(db, a, { tag, scope: "activity", via: "test" })).ok,
       true,
@@ -241,7 +241,7 @@ test("losing a tier cuts nothing: what is recorded stays, the next add is refuse
   );
   assert.equal(rows[0].n, 3);
   const refused = await addClan(db, a, {
-    tag: "#PYLQGRJC",
+    tag: "#0J0RVYRR",
     scope: "activity",
     via: "test",
   });

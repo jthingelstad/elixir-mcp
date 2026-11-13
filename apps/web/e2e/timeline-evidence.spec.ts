@@ -23,7 +23,7 @@ for (const width of [390, 1280]) {
       id: "tl_00000000000000000000",
       revision: 30,
       at: "2026-10-03T12:00:00Z",
-      subject_tag: "#P0YQ2L8",
+      subject_tag: "#0GQ0LU0",
       subject_name: "Example Player",
       kind: "battle_session",
       text: "Example Player played 30 recorded games.",
@@ -68,7 +68,7 @@ for (const width of [390, 1280]) {
                   crowns: 2,
                   opponents: [
                     {
-                      player_tag: "#QQ2CLUV",
+                      player_tag: "#0RL8RGC",
                       name: "Example Rival",
                       crowns: 1,
                       clan_tag: null,

@@ -5,7 +5,7 @@ import { createManageService } from "@elixir-mcp/clan/manage/service.mjs";
 import { createActionStore } from "@elixir-mcp/clan/manage/actions.mjs";
 import { defaults } from "@elixir-mcp/clan-engine";
 
-const clan = "#2PQRJ8LV",
+const clan = "#0QC8RCGY",
   actor = { player_tag: "#LEAD", role: "leader", verified: true };
 const request = {
   request_id: "00000000-0000-4000-8000-000000000001",

@@ -342,14 +342,14 @@ describe("Avatar", () => {
   });
 
   test("a fill from the tag, the same every time, one of seven", () => {
-    const h = avatarHue("#Q0Q0Q0Q0");
-    expect(h).toBe(avatarHue("#Q0Q0Q0Q0"));
+    const h = avatarHue("#09Q289CV");
+    expect(h).toBe(avatarHue("#09Q289CV"));
     expect(h).toBeGreaterThanOrEqual(1);
     expect(h).toBeLessThanOrEqual(7);
   });
 
   test("drawn for the eye only: the name beside it is what is heard", () => {
-    const { container } = render(<Avatar name="Lark" tag="#R0R0R0R0" small />);
+    const { container } = render(<Avatar name="Lark" tag="#0YGLPJ0Q" small />);
     const el = container.querySelector(".kit-av");
     expect(el?.getAttribute("aria-hidden")).toBe("true");
     expect(el?.className).toMatch(/kit-av--s/);

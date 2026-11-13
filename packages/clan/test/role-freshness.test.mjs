@@ -66,7 +66,7 @@ test("leader mutations are every non-GET a leader or co-leader sends, except a m
       ["POST", "/policy"],
       ["POST", "/actions/a1/decide"],
       ["POST", "/actions/a1/reopen"],
-      ["PUT", "/holds/8QCV"],
+      ["PUT", "/holds/0RJL"],
       ["DELETE", "/notes/n1"],
       ["PUT", "/discord"],
       ["PUT", "/model"],
@@ -102,10 +102,10 @@ test("a roster read inside the hour lets a leader act, with one compact read and
   const h = harness();
   h.record.state.rosterObservedAt = ago(ROLE_CONFIRM_MAX_AGE_MS - 60_000);
   const ada = await as(h);
-  const r = await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false });
+  const r = await ada("PUT", "/api/clans/0QC8RCGY/social", { enabled: false });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(rosterCalls(h), [
-    { clan_tag: "#2PQRJ8LV", verbosity: "compact" },
+    { clan_tag: "#0QC8RCGY", verbosity: "compact" },
   ]);
 });
 
@@ -113,7 +113,7 @@ test("an older roster asks for a live read and refuses role_unconfirmed; a read 
   const h = harness();
   h.record.state.rosterObservedAt = ago(ROLE_CONFIRM_MAX_AGE_MS + 60_000);
   const ada = await as(h);
-  const r = await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false });
+  const r = await ada("PUT", "/api/clans/0QC8RCGY/social", { enabled: false });
   assert.equal(r.status, 409);
   assert.equal(r.body.error, "role_unconfirmed");
   assert.equal(
@@ -122,11 +122,11 @@ test("an older roster asks for a live read and refuses role_unconfirmed; a read 
   );
   assert.equal(r.body.retry_after_s, 15);
   assert.deepEqual(rosterCalls(h), [
-    { clan_tag: "#2PQRJ8LV", verbosity: "compact" },
-    { clan_tag: "#2PQRJ8LV", verbosity: "compact", live: true },
+    { clan_tag: "#0QC8RCGY", verbosity: "compact" },
+    { clan_tag: "#0QC8RCGY", verbosity: "compact", live: true },
   ]);
   h.record.calls.length = 0;
-  const read = await ada("GET", "/api/clans/2PQRJ8LV/social");
+  const read = await ada("GET", "/api/clans/0QC8RCGY/social");
   assert.equal(read.status, 200);
   assert.deepEqual(rosterCalls(h), []);
   assert.equal(read.body.enabled, true, "the refused PUT changed nothing");
@@ -146,7 +146,7 @@ test("a live read already in hand answers at once; a roster with no read at all 
     }
     return r;
   };
-  const fresh = await ada("PUT", "/api/clans/2PQRJ8LV/social", {
+  const fresh = await ada("PUT", "/api/clans/0QC8RCGY/social", {
     enabled: false,
   });
   assert.equal(fresh.status, 200, JSON.stringify(fresh.body));
@@ -160,7 +160,7 @@ test("a live read already in hand answers at once; a roster with no read at all 
       r.body.meta.source_polls.clan.observed_at = null;
     return r;
   };
-  const r = await ben("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false });
+  const r = await ben("PUT", "/api/clans/0QC8RCGY/social", { enabled: false });
   assert.equal(r.status, 409);
   assert.equal(r.body.roster_observed_at, null);
 });
@@ -170,7 +170,7 @@ test("an elder's and a member's requests are never held for the roster", async (
     const h = harness(player({ clan_role: role }));
     h.record.state.rosterObservedAt = ago(10 * ROLE_CONFIRM_MAX_AGE_MS);
     const who = await as(h);
-    const r = await who("PUT", "/api/clans/2PQRJ8LV/social", {
+    const r = await who("PUT", "/api/clans/0QC8RCGY/social", {
       enabled: false,
     });
     assert.equal(r.status, 403);
@@ -183,7 +183,7 @@ test("a roster read that fails is elixir_unavailable", async () => {
   const h = harness();
   const ada = await as(h);
   h.record.state.roster = { error: { code: "internal", message: "down" } };
-  const r = await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false });
+  const r = await ada("PUT", "/api/clans/0QC8RCGY/social", { enabled: false });
   assert.equal(r.status, 502);
   assert.equal(r.body.error, "elixir_unavailable");
 });
@@ -199,7 +199,7 @@ test("a role the roster changed between the gate and the freshness read is read 
     return inner(name, args);
   };
   const before = h.record.calls.filter(([n]) => n === "identity").length;
-  const r = await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false });
+  const r = await ada("PUT", "/api/clans/0QC8RCGY/social", { enabled: false });
   assert.equal(r.status, 403, JSON.stringify(r.body));
   assert.equal(r.body.error, "leaders_only");
   assert.equal(
@@ -217,7 +217,7 @@ test("a role the roster changed between the gate and the freshness read is read 
       g.record.state.players = [player({ clan_tag: null, clan_role: null })];
     return inner2(name, args);
   };
-  const gone = await ben("PUT", "/api/clans/2PQRJ8LV/social", {
+  const gone = await ben("PUT", "/api/clans/0QC8RCGY/social", {
     enabled: false,
   });
   assert.equal(gone.status, 403, JSON.stringify(gone.body));

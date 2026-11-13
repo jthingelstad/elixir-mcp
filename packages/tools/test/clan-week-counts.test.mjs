@@ -16,10 +16,10 @@ import { participationQueries } from "../../record/src/participation-sql.mjs";
 import { weeklyReport } from "../../clan-engine/src/week.mjs";
 import { buildClanEntry } from "../src/activity/entries.mjs";
 
-const CLAN = "#PYL";
-const OTHER = "#PYQ";
-const ANN = "#9QY";
-const BEA = "#9QU";
+const CLAN = "#0C9";
+const OTHER = "#0U9";
+const ANN = "#0GR";
+const BEA = "#0UJ";
 const FROM = Date.parse("2026-10-05T10:00:00Z");
 const TO = Date.parse("2026-10-12T10:00:00Z");
 const MINUTE = 60_000;

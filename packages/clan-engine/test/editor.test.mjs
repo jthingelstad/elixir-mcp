@@ -65,7 +65,7 @@ const WINS = editorStory(
 const LEFT = editorStory(
   post(
     "tl_3",
-    [item("tl_3", "member_left", { player_tag: "#CCC", name: "Cy" })],
+    [item("tl_3", "member_left", { player_tag: "#09P", name: "Cy" })],
     "Cy departed the clan after 40 days.",
   ),
 );

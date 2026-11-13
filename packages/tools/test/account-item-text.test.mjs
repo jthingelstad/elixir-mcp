@@ -1,6 +1,6 @@
 /**
  * Account items name their subject. The fresh-person journey on
- * 2026-10-08 read "your account: clan added (#92P2LPLP)": Elixir's
+ * 2026-10-08 read "your account: clan added (#0880U28G)": Elixir's
  * follow of the primary's clan (0205) records the player it followed for
  * beside the clan, and the line named the player.
  */
@@ -18,51 +18,51 @@ const item = (kind, facts) => ({
 test("an automatic clan follow names the clan, then the player it followed for", () => {
   const text = itemText(
     item("clan_added", {
-      clan_tag: "#GGJG2CCR",
+      clan_tag: "#0R0UC22J",
       scope: "activity",
       via: "profile",
       auto: true,
-      player_tag: "#92P2LPLP",
+      player_tag: "#0880U28G",
     }),
   );
   assert.match(
     text,
-    /clan added \(#GGJG2CCR, automatically: #92P2LPLP's clan\)\.$/,
+    /clan added \(#0R0UC22J, automatically: #0880U28G's clan\)\.$/,
   );
 });
 
 test("a clan added by hand, or removed, names the clan alone", () => {
   assert.match(
-    itemText(item("clan_added", { clan_tag: "#GGJG2CCR", via: "console" })),
-    /clan added \(#GGJG2CCR\)\.$/,
+    itemText(item("clan_added", { clan_tag: "#0R0UC22J", via: "console" })),
+    /clan added \(#0R0UC22J\)\.$/,
   );
   assert.match(
     itemText(
       item("clan_removed", {
-        clan_tag: "#GGJG2CCR",
+        clan_tag: "#0R0UC22J",
         auto: true,
         reason: "primary_clan_moved",
       }),
     ),
-    /clan removed \(#GGJG2CCR, automatically\)\.$/,
+    /clan removed \(#0R0UC22J, automatically\)\.$/,
   );
 });
 
 test("a player event still names the player", () => {
   assert.match(
-    itemText(item("claim_added", { player_tag: "#92P2LPLP" })),
-    /claim added \(#92P2LPLP\)\.$/,
+    itemText(item("claim_added", { player_tag: "#0880U28G" })),
+    /claim added \(#0880U28G\)\.$/,
   );
   assert.match(
-    itemText(item("recording_started", { clan_tag: "#GGJG2CCR" })),
-    /recording started \(#GGJG2CCR\)\.$/,
+    itemText(item("recording_started", { clan_tag: "#0R0UC22J" })),
+    /recording started \(#0R0UC22J\)\.$/,
   );
 });
 
 test("#556: an ended claim names the tag and what it was, never the account that verified it", () => {
   const primary = itemText(
     item("claim_ended", {
-      player_tag: "#2PP0V90Y",
+      player_tag: "#09CV8UVL",
       reason: "verified_elsewhere",
       was_primary: true,
       relationship: "primary",
@@ -71,11 +71,11 @@ test("#556: an ended claim names the tag and what it was, never the account that
   );
   assert.match(
     primary,
-    /another account verified #2PP0V90Y, so it is no longer your primary player, and you have none/,
+    /another account verified #09CV8UVL, so it is no longer your primary player, and you have none/,
   );
   const alt = itemText(
     item("claim_ended", {
-      player_tag: "#2PP0V90Y",
+      player_tag: "#09CV8UVL",
       reason: "verified_elsewhere",
       was_primary: false,
       relationship: "alt",
@@ -84,7 +84,7 @@ test("#556: an ended claim names the tag and what it was, never the account that
   );
   assert.match(
     alt,
-    /another account verified #2PP0V90Y, so it is no longer your alt\./,
+    /another account verified #09CV8UVL, so it is no longer your alt\./,
   );
   assert.match(
     itemText(item("claim_ended", { count: 2, was_primary: false })),
@@ -93,10 +93,10 @@ test("#556: an ended claim names the tag and what it was, never the account that
   assert.match(
     itemText(
       item("claim_refused", {
-        player_tag: "#9VUP08YL",
+        player_tag: "#0JVRYLGG",
         reason: "verified_elsewhere",
       }),
     ),
-    /#9VUP08YL, the player tag you signed up with, is verified by another account, so it was not added\./,
+    /#0JVRYLGG, the player tag you signed up with, is verified by another account, so it was not added\./,
   );
 });

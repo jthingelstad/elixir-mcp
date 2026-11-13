@@ -10,7 +10,7 @@ import { ME, mockApi, signedIn } from "./fixtures.ts";
 // server's (packages/clan/test/manage.test.mjs); this is what each one
 // sees. Every name and word here is invented.
 
-const API = "/api/clan/clans/2PQRJ8LV";
+const API = "/api/clan/clans/0QC8RCGY";
 
 const accessible = async (page: Page) => {
   const axe = await new AxeBuilder({ page })
@@ -38,7 +38,7 @@ const asRole = (role: "leader" | "elder") => {
 };
 
 const CHANNEL = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   connection: {
     enabled: true,
     webhook: "discord.com/api/webhooks/1…fixture",
@@ -66,7 +66,7 @@ for (const size of ["wide", "@narrow"]) {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     let voice = {
-      clan_tag: "#2PQRJ8LV",
+      clan_tag: "#0QC8RCGY",
       voice: "",
       max: 400,
       set_by_name: null as string | null,
@@ -102,7 +102,7 @@ for (const size of ["wide", "@narrow"]) {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/run/model-voice");
+    await page.goto("/clan/0QC8RCGY/run/model-voice");
     const section = page.getByRole("region", {
       name: "How our messages sound",
     });
@@ -130,7 +130,7 @@ for (const size of ["wide", "@narrow"]) {
     });
 
     // Run > Discord shows the one voice, as written, and links to it.
-    await page.goto("/clan/2PQRJ8LV/run/discord");
+    await page.goto("/clan/0QC8RCGY/run/discord");
     await page
       .getByRole("button", { name: "Manage Channel voice", exact: true })
       .click();
@@ -148,7 +148,7 @@ for (const size of ["wide", "@narrow"]) {
     ).toBeVisible();
     await accessible(page);
     await channel.getByRole("link", { name: "Model & voice" }).click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/run\/model-voice$/);
+    await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/run\/model-voice$/);
     await expect(
       page.getByRole("region", { name: "How our messages sound" }),
     ).toBeVisible();
@@ -166,7 +166,7 @@ const WELCOME = (drafted: Record<string, unknown>) => ({
   channel: "clan_chat",
   can_act: true,
   audience: { kind: "elders" },
-  player_tag: "#P8QY",
+  player_tag: "#0LRY",
   player_name: "Sunny Kettle",
   raised_at: "2026-10-20T10:00:00Z",
   draft_context_version: "frozen-context",
@@ -195,7 +195,7 @@ const WELCOME = (drafted: Record<string, unknown>) => ({
       entry_id: "e2",
       kind: "drafted",
       at: "2026-10-20T11:00:00Z",
-      by: { tag: "#20QQL8CCRU", name: "Ada", role: "leader" },
+      by: { tag: "#098R2R0PUL", name: "Ada", role: "leader" },
       text: "Drafted clan-chat words in the clan's voice (model-x).",
       ...drafted,
     },
@@ -231,11 +231,11 @@ for (const size of ["wide", "@narrow"])
           "GET /api/clan/me": [200, asRole(role)],
           [`GET ${API}/actions/41`]: [
             200,
-            { clan_tag: "#2PQRJ8LV", action, decline_reasons: [] },
+            { clan_tag: "#0QC8RCGY", action, decline_reasons: [] },
           ],
         }),
       );
-      await page.goto("/clan/2PQRJ8LV/actions/41");
+      await page.goto("/clan/0QC8RCGY/actions/41");
       await expect(
         page.getByRole("heading", { name: /Welcome: Sunny Kettle/ }),
       ).toBeVisible();

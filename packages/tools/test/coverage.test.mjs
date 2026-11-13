@@ -16,9 +16,9 @@ const registry = makeRegistry();
 const call = (name, args = {}) =>
   registry.invoke(name, { db: scratch.db, account }, args);
 
-const GAPPED = "#P0G";
-const FULL = "#P0L";
-const STALE = "#P0Q";
+const GAPPED = "#0GG";
+const FULL = "#0G9";
+const STALE = "#092";
 
 async function seedPlayer(tag, { counted, recorded, lastPollHoursAgo }) {
   await scratch.db.query("insert into player (player_tag) values ($1)", [tag]);
@@ -77,7 +77,7 @@ test("recentCompleteness reads the newest interval in one query", async () => {
   const stale = await recentCompleteness(scratch.db, STALE);
   assert.equal(stale.ratio, null, "a counter that went backwards is unknown");
   assert.ok(stale.tail_hours > 71);
-  const nobody = await recentCompleteness(scratch.db, "#P0R");
+  const nobody = await recentCompleteness(scratch.db, "#0G2");
   assert.deepEqual(nobody, {
     observed_from: null,
     observed_to: null,
@@ -86,7 +86,7 @@ test("recentCompleteness reads the newest interval in one query", async () => {
     ratio: null,
     tail_hours: null,
   });
-  assert.equal(completenessNote("#P0R", nobody), null, "no profile, no claim");
+  assert.equal(completenessNote("#0G2", nobody), null, "no profile, no claim");
 });
 
 test("battles_performance carries completeness_note on a measured gap, on an unknown with a long tail, and never when complete", async () => {
@@ -131,8 +131,8 @@ test("battles_compare carries completeness_note once per incomplete side, naming
     days: 7,
   });
   const note = mixed.meta.completeness_note;
-  assert.match(note, /Capture is incomplete for #P0G: 20 of the 30 battles/);
-  assert.doesNotMatch(note, /#P0L/, "the complete side is never named");
+  assert.match(note, /Capture is incomplete for #0GG: 20 of the 30 battles/);
+  assert.doesNotMatch(note, /#0G9/, "the complete side is never named");
   assert.equal(note.match(/elixir_coverage/g).length, 1, "one sentence");
 
   // Both sides incomplete: one sentence each, in the order asked.
@@ -141,9 +141,9 @@ test("battles_compare carries completeness_note once per incomplete side, naming
     days: 7,
   });
   const n = both.meta.completeness_note;
-  assert.match(n, /Completeness is unknown for #P0Q/);
-  assert.match(n, /Capture is incomplete for #P0G/);
-  assert.ok(n.indexOf("#P0Q") < n.indexOf("#P0G"));
+  assert.match(n, /Completeness is unknown for #092/);
+  assert.match(n, /Capture is incomplete for #0GG/);
+  assert.ok(n.indexOf("#092") < n.indexOf("#0GG"));
   assert.equal(n.match(/elixir_coverage/g).length, 2);
 
   // Neither side incomplete (the same tag twice is still one complete

@@ -266,14 +266,14 @@ test("signup sends the tag with the email; a refused tag is a form error, not a 
     target: { value: "new@example.com" },
   });
   fireEvent.change(screen.getByLabelText("Your player tag (optional)"), {
-    target: { value: " #2pyq8gj0 " },
+    target: { value: " #0pjcljyp " },
   });
   fireEvent.click(screen.getByLabelText("Yes"));
   fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
   expect(
     await screen.findByText(/doesn't look like a player tag/),
   ).toBeTruthy();
-  expect(sent[0].player_tag).toBe("#2pyq8gj0");
+  expect(sent[0].player_tag).toBe("#0pjcljyp");
   expect(screen.queryByLabelText("6-digit code")).toBeNull();
   expect(screen.getByLabelText("Your player tag (optional)")).toBeTruthy();
 });

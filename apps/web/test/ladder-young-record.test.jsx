@@ -86,9 +86,9 @@ const summary = (since) => ({
 });
 const fresh = () => new Date(Date.now() - 5 * 86_400_000).toISOString();
 const player = {
-  player_tag: "#2PYQ8GJ0",
+  player_tag: "#0PJCLJYP",
   status: "unverified",
-  last_known_clan_tag: "#QPPPP",
+  last_known_clan_tag: "#0G82G",
 };
 
 beforeEach(() => {
@@ -112,7 +112,7 @@ test("renders the record's age and Verify for an unverified player", async () =>
 });
 
 test("renders Open Clan for a verified player whose clan is recorded", async () => {
-  clansAnswer([{ clan_tag: "#QPPPP", recording_status: "active" }]);
+  clansAnswer([{ clan_tag: "#0G82G", recording_status: "active" }]);
   renderWithProviders(
     <YoungRecord
       player={{ ...player, status: "verified" }}
@@ -127,7 +127,7 @@ test("renders Open Clan for a verified player whose clan is recorded", async () 
 });
 
 test("renders Follow a friend for a verified player with no recorded clan", async () => {
-  clansAnswer([{ clan_tag: "#QPPPP", recording_status: null }]);
+  clansAnswer([{ clan_tag: "#0G82G", recording_status: null }]);
   renderWithProviders(
     <YoungRecord
       player={{ ...player, status: "verified" }}

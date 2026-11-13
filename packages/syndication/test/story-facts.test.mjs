@@ -12,8 +12,8 @@ import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { clanStoryFacts } from "../src/story-facts.mjs";
 
 const CLAN = "#J2RGCRVG";
-const ADA = "#PYL0Q2G8";
-const BEN = "#PYL0Q2G9";
+const ADA = "#0L98VL0Y";
+const BEN = "#0ULYQJUJ";
 const NOW = Date.parse("2026-10-11T12:00:00Z");
 
 test("a clan's story facts: its name, members and finished weeks; a member's profile, tenure, stints and war weeks", async () => {

@@ -21,7 +21,7 @@ export function seasonRecordFixture() {
     ],
   };
   const part = {
-    clan_tag: "#2PQRJ8LV",
+    clan_tag: "#0QC8RCGY",
     name: "Example Clan",
     applied: { window: { from: "2026-08-17T00:00:00Z" } },
     first_roster_observed_at: "2026-08-01T10:00:00Z",
@@ -51,19 +51,19 @@ export function seasonRecordFixture() {
       ]),
     members: [
       {
-        player_tag: "#20QQL8CCRU",
+        player_tag: "#098R2R0PUL",
         war_decks: [16, 16, 12, 16, 0],
         war_points: [3200, 4000, 2700, 4000, 0],
       },
       {
-        player_tag: "#UQ8LP2R9C",
+        player_tag: "#02QQPCYQQ",
         war_decks: [4, null, 0, 8, null],
         war_points: [700, null, 0, 1400, null],
       },
     ],
     former_members: [
       {
-        player_tag: "#VLQV8C8RP",
+        player_tag: "#000QY0L0C",
         war_decks: [4, 8, 0, 0, null],
         war_points: [700, 1400, 0, 0, null],
       },

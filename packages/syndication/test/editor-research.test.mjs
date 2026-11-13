@@ -10,12 +10,12 @@ import assert from "node:assert/strict";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { agoWords, editorResearch } from "../src/editor-research.mjs";
 
-const CLAN = "#2PP2PP2P";
-const ADA = "#PYL0Q2G8";
-const GONE = "#PYL0Q2G9";
-const OPP = "#PYL0Q2GR";
-const TWIN_A = "#PYL0Q2GY";
-const TWIN_B = "#PYL0Q2GQ";
+const CLAN = "#00L22RP0";
+const ADA = "#0L98VL0Y";
+const GONE = "#0ULYQJUJ";
+const OPP = "#0GLCPGJJ";
+const TWIN_A = "#0UVLG888";
+const TWIN_B = "#08PQ9GR2";
 const T = Date.parse("2026-10-11T18:00:00Z");
 const H = 3_600_000;
 const at = (ms) => new Date(ms).toISOString();
@@ -112,7 +112,7 @@ test("a member's battles this week, newest first, by mode, with the opponent, th
       "- win 2-1 against Sunny Moon, ladder, Hog Rider cycle, +29 trophies, yesterday",
     ].join("\n"),
   );
-  assert.doesNotMatch(all.text, /\d{1,2}:\d{2}|#PYL/, "no clock time, no tag");
+  assert.doesNotMatch(all.text, /\d{1,2}:\d{2}|#0C9/, "no clock time, no tag");
   assert.match(ranked.text, /^Ada's battles, newest first:\n- loss 1-2/);
   assert.equal(ranked.text.split("\n").length, 2);
   assert.equal(war.text, "No war battles recorded for Ada in the last 7 days.");

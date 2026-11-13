@@ -26,7 +26,7 @@ test("the clan-chat line passes the chat filter at the longest clan name, and na
     LONGEST,
     "Kings-Hall & Co",
     "+44 phone club",
-    "Ship It!",
+    "Moon Ox!",
     null,
   ]) {
     const line = clanChatLine(name);

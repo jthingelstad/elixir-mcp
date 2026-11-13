@@ -33,7 +33,7 @@ const ME = {
   timezone: "America/Chicago",
   claims: [
     {
-      player_tag: "#PYLQ88",
+      player_tag: "#0GVJ9V",
       name: "Birch Lantern",
       nickname: "Private Owl",
       is_primary: true,
@@ -46,19 +46,19 @@ const ME = {
 
 const PAGE = {
   player: {
-    tag: "#QQ8822",
+    tag: "#0VJ2QV",
     name: "Copper Fern",
-    clan_tag: "#GRC2",
+    clan_tag: "#0LL2",
     clan_name: "Grove",
     trophies: 7400,
     recorded: true,
   },
   you: { own: false, following: false, relationship: null, clanmate: null },
   badges: { verified_player: true, discord: true },
-  follows: { count: 1, players: [{ tag: "#UUU2", name: "Umber" }] },
+  follows: { count: 1, players: [{ tag: "#00L0", name: "Umber" }] },
   followers: {
     count: 3,
-    players: [{ tag: "#PYLQ88", name: "Birch Lantern" }],
+    players: [{ tag: "#0GVJ9V", name: "Birch Lantern" }],
     unnamed: 2,
   },
   window_days: 30,
@@ -95,14 +95,14 @@ beforeEach(() => {
     clan_tag: null,
     players: [
       {
-        player_tag: "#QQ8822",
+        player_tag: "#0VJ2QV",
         name: "Copper Fern",
         following: false,
         free: true,
         reason: "followed_by_others",
       },
       {
-        player_tag: "#UUU2",
+        player_tag: "#00L0",
         name: "Umber",
         following: false,
         free: false,
@@ -149,7 +149,7 @@ beforeEach(() => {
     }
     if (p.startsWith("/api/me/follow-cost"))
       return reply({
-        player_tag: "#QQ8822",
+        player_tag: "#0VJ2QV",
         following: false,
         free: false,
         reason: null,
@@ -163,7 +163,7 @@ beforeEach(() => {
       if (tool === "players_summary")
         return reply({
           body: {
-            player_tag: "#QQ8822",
+            player_tag: "#0VJ2QV",
             name: "Copper Fern",
             nickname: "Hidden Moss",
             last_30_days: {
@@ -180,7 +180,7 @@ beforeEach(() => {
       if (tool === "players_profile")
         return reply({
           body: {
-            player_tag: "#QQ8822",
+            player_tag: "#0VJ2QV",
             attributes: { best_trophies: 7600 },
             snapshot: {
               date: "2026-11-09",
@@ -204,16 +204,16 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 test("one address per player, and a Follow me link carries tags only", () => {
-  expect(playerHref("#QQ8822")).toBe("/home/player/QQ8822");
-  expect(followMeHref(["#QQ8822", "#UUU2"])).toBe("/home/follow/QQ8822,UUU2");
-  expect(tagsFromFollowPath("QQ8822,uuu2,QQ8822")).toEqual([
-    "#QQ8822",
-    "#UUU2",
+  expect(playerHref("#0VJ2QV")).toBe("/home/player/0VJ2QV");
+  expect(followMeHref(["#0VJ2QV", "#00L0"])).toBe("/home/follow/0VJ2QV,00L0");
+  expect(tagsFromFollowPath("0VJ2QV,00l0,0VJ2QV")).toEqual([
+    "#0VJ2QV",
+    "#00L0",
   ]);
-  expect(tagsFromFollowPath("QQ8822,<b>")).toBeNull();
+  expect(tagsFromFollowPath("0VJ2QV,<b>")).toBeNull();
   expect(tagsFromFollowPath("")).toBeNull();
-  expect(isPlayerPath("/home/player/QQ8822")).toBe(true);
-  expect(isPlayerPath("/home/follow/QQ8822,UUU2")).toBe(true);
+  expect(isPlayerPath("/home/player/0VJ2QV")).toBe(true);
+  expect(isPlayerPath("/home/follow/0VJ2QV,00L0")).toBe(true);
   expect(isPlayerPath("/home/friends")).toBe(false);
 });
 
@@ -233,7 +233,7 @@ test(
   "the page: name, badges, counts, follows and followers by game name, no nickname",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/home/player/QQ8822");
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
     // The first render waits on the lazy route chunk, which under a full
     // parallel test run takes longer than findBy's 1 s default.
@@ -260,7 +260,7 @@ test(
     const follower = await screen.findByRole("link", {
       name: /Birch Lantern/,
     });
-    expect(follower.getAttribute("href")).toBe("/home/player/PYLQ88");
+    expect(follower.getAttribute("href")).toBe("/home/player/0GVJ9V");
     expect(
       screen.getByText(/2 more accounts have no verified player/),
     ).toBeTruthy();
@@ -300,7 +300,7 @@ test(
         },
       ],
     };
-    window.history.pushState({}, "", "/home/player/QQ8822");
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
     await screen.findByText("Copper Fern played two battles");
     // The sitting's figures, as the canvas's .sfacts: each label beside its
@@ -323,7 +323,7 @@ test(
     fireEvent.click(screen.getByRole("button", { name: "View games" }));
     await screen.findByText(/2 recorded games/);
     expect(posted[0][0]).toMatch(
-      /^\/api\/player\/evidence\?tag=%23QQ8822&evidence_item_id=s1&expected_evidence_version=ev_1&evidence_offset=0$/,
+      /^\/api\/player\/evidence\?tag=%230VJ2QV&evidence_item_id=s1&expected_evidence_version=ev_1&evidence_offset=0$/,
     );
     expect(
       screen
@@ -337,7 +337,7 @@ test(
   "Follow asks first and says what it costs",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/home/player/QQ8822");
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
     await screen.findByRole("heading", { level: 1, name: "Copper Fern" });
     fireEvent.click(screen.getByRole("button", { name: "Follow" }));
@@ -352,7 +352,7 @@ test(
     );
     await waitFor(() =>
       expect(posted).toEqual([
-        ["/api/claims", { player_tag: "#QQ8822", relationship: "friend" }],
+        ["/api/claims", { player_tag: "#0VJ2QV", relationship: "friend" }],
       ]),
     );
   },
@@ -368,7 +368,7 @@ test(
       follows: null,
       followers: null,
     };
-    window.history.pushState({}, "", "/home/player/QQ8822");
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
     await screen.findByRole("heading", { level: 1, name: "Copper Fern" });
     expect(screen.queryByText("Verified player")).toBeNull();
@@ -383,12 +383,12 @@ test(
   "a Follow me link signed in: each player, its cost, and one Follow for all",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/home/follow/QQ8822,UUU2");
+    window.history.pushState({}, "", "/home/follow/0VJ2QV,00L0");
     render(<App />);
     await screen.findByRole("heading", { level: 1, name: "Follow in Elixir" });
     expect(
       screen.getByRole("link", { name: "Copper Fern" }).getAttribute("href"),
-    ).toBe("/home/player/QQ8822");
+    ).toBe("/home/player/0VJ2QV");
     expect(
       screen.getByText("Uses 1 of your 50 player slots · 3 used"),
     ).toBeTruthy();
@@ -410,7 +410,7 @@ test(
     );
     await waitFor(() =>
       expect(posted).toEqual([
-        ["/api/me/follow-all", { player_tags: ["#QQ8822", "#UUU2"] }],
+        ["/api/me/follow-all", { player_tags: ["#0VJ2QV", "#00L0"] }],
       ]),
     );
   },
@@ -434,9 +434,9 @@ test(
     };
     pageCheers = {
       items: [{ id: "t1", cheers: { on_fire: 1 }, my_cheer: null }],
-      subjects: ["#GRC2"],
+      subjects: ["#0LL2"],
     };
-    window.history.pushState({}, "", "/home/player/QQ8822");
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
     await screen.findByText("Copper Fern reached Path of Legends");
     const cheer = await screen.findByRole("button", { name: "Cheer" });
@@ -454,7 +454,7 @@ test(
     await waitFor(() =>
       expect(posted).toContainEqual([
         "/api/me/cheers",
-        { item_id: "t1", cheer: "royal", subjects: ["#GRC2"] },
+        { item_id: "t1", cheer: "royal", subjects: ["#0LL2"] },
       ]),
     );
   },
@@ -465,7 +465,7 @@ test(
   { timeout: 20000 },
   async () => {
     pageCheers = { items: [], subjects: [] };
-    window.history.pushState({}, "", "/home/player/QQ8822");
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
     await screen.findByText("Copper Fern won five in a row");
     expect(screen.queryByRole("button", { name: "Cheer" })).toBeNull();
@@ -476,7 +476,7 @@ test(
   "the Record tab: the last 30 days and the profile, read only when opened, no nickname",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/home/player/QQ8822");
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
     await screen.findByText("Copper Fern won five in a row");
     expect(posted.some(([p]) => p === "/api/explore")).toBe(false);
@@ -494,14 +494,14 @@ test(
         .sort(),
     ).toEqual(["players_profile", "players_summary"]);
     expect(posted.find(([p]) => p === "/api/explore")[1].args.player_tag).toBe(
-      "#QQ8822",
+      "#0VJ2QV",
     );
     expect(document.body.textContent).not.toContain("Hidden Moss");
   },
 );
 
 test("?tab=record opens the Record tab", { timeout: 20000 }, async () => {
-  window.history.pushState({}, "", "/home/player/QQ8822?tab=record");
+  window.history.pushState({}, "", "/home/player/0VJ2QV?tab=record");
   render(<App />);
   await screen.findByText("Hog Rider cycle");
   expect(
@@ -523,7 +523,7 @@ test(
       }
       return real(path, init);
     });
-    window.history.pushState({}, "", "/home/player/QQ8822?tab=record");
+    window.history.pushState({}, "", "/home/player/0VJ2QV?tab=record");
     render(<App />);
     await screen.findByText("This record could not be read just now");
     expect(screen.queryByText(/No battles recorded/)).toBeNull();

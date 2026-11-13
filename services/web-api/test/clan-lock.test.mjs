@@ -19,10 +19,10 @@ import { createManageService } from "@elixir-mcp/clan/manage/service.mjs";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import { clanExclusive, clanLockKey, clanLockPlan } from "../src/clan.mjs";
 
-const CLAN = "#2PQRJ8LV";
-const king = member("#20QQL8CCRU", { name: "Ada", role: "leader" });
+const CLAN = "#0QC8RCGY";
+const king = member("#098R2R0PUL", { name: "Ada", role: "leader" });
 const others = Array.from({ length: 10 }, (_, i) => member(`#O${i}`));
-const idle = member("#8QCV", {
+const idle = member("#0RJL", {
   name: "Sleepy",
   lastBattleDaysAgo: 20,
   war: [0, 0, 0, 0, 0, 0],
@@ -286,8 +286,8 @@ test("the locked half waits for the clan's lock; the record reads do not", async
 
 test("which Clan requests hold the clan's lock for the whole request", () => {
   const plan = (method, rest) =>
-    clanLockPlan(method, `/api/clan/clans/9GQLVO0${rest}`, 7);
-  const key = "clan-state:#9GQLV00";
+    clanLockPlan(method, `/api/clan/clans/0QUCJRC${rest}`, 7);
+  const key = "clan-state:#0QUCJRC";
   for (const rest of [
     "/actions",
     "/actions/37",
@@ -300,14 +300,14 @@ test("which Clan requests hold the clan's lock for the whole request", () => {
     "/trophies",
   ])
     assert.deepEqual(plan("GET", rest), {
-      clan: "#9GQLV00",
+      clan: "#0QUCJRC",
       request: null,
       share: true,
     });
   assert.deepEqual(plan("POST", "/policy/preview").request, null);
   for (const rest of ["/week", "/season", "/me", "/home", "/needs", "/feed"])
     assert.deepEqual(plan("GET", rest), {
-      clan: "#9GQLV00",
+      clan: "#0QUCJRC",
       request: null,
       share: false,
     });

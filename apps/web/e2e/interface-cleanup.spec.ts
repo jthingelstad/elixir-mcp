@@ -21,9 +21,9 @@ for (const width of [390, 820, 1280]) {
       page,
       signedIn({
         "GET /api/clan/me": [200, { ...ME, selected: ME.clans[0] }],
-        "GET /api/clan/clans/2PQRJ8LV/social": [200, { enabled: true }],
-        "GET /api/clan/clans/2PQRJ8LV/discord": [200, { set: false }],
-        "GET /api/clan/clans/2PQRJ8LV/model": [
+        "GET /api/clan/clans/0QC8RCGY/social": [200, { enabled: true }],
+        "GET /api/clan/clans/0QC8RCGY/discord": [200, { set: false }],
+        "GET /api/clan/clans/0QC8RCGY/model": [
           200,
           {
             set: false,
@@ -32,15 +32,15 @@ for (const width of [390, 820, 1280]) {
             keep_days: 90,
           },
         ],
-        "GET /api/clan/clans/2PQRJ8LV/sharing": [200, { types: {} }],
+        "GET /api/clan/clans/0QC8RCGY/sharing": [200, { types: {} }],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/run/model-voice");
+    await page.goto("/clan/0QC8RCGY/run/model-voice");
     await expect(page.getByLabel("Add the clan's key").first()).toHaveAttribute(
       "type",
       "password",
     );
-    await page.goto("/clan/2PQRJ8LV/run/settings");
+    await page.goto("/clan/0QC8RCGY/run/settings");
     await expect(
       page.getByRole("checkbox", { name: /^Member map/ }),
     ).toBeEnabled();

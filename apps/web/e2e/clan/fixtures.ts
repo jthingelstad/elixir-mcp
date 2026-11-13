@@ -2,35 +2,35 @@ import { ME as ACCOUNT, signedIn as consoleSignedIn } from "../fixtures.ts";
 import type { Page, Route } from "@playwright/test";
 
 const FIRST = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Example Clan",
   role: "leader",
   role_label: "Leader",
-  acting_as: "#20QQL8CCRU",
+  acting_as: "#098R2R0PUL",
   acting_as_name: "Ada",
   player_name: "Ada",
   verified: true,
-  your_tags: ["#20QQL8CCRU"],
+  your_tags: ["#098R2R0PUL"],
 };
 const SECOND = {
-  clan_tag: "#GQ08RJPL",
+  clan_tag: "#0JR0LRU0",
   name: "Second Clan",
   role: "member",
   role_label: "Member",
-  acting_as: "#VLQV8C8RP",
+  acting_as: "#000QY0L0C",
   acting_as_name: "Ada's alt",
   player_name: "Ada's alt",
   verified: true,
-  your_tags: ["#VLQV8C8RP"],
+  your_tags: ["#000QY0L0C"],
 };
 
 /** Ben's player page, where his member page in Example Clan folded
  *  (2026-11-12): its Clan tab draws Clan's record of him. */
 const BEN_PAGE = {
   player: {
-    tag: "#UQ8LP2R9C",
+    tag: "#02QQPCYQQ",
     name: "Ben",
-    clan_tag: "#2PQRJ8LV",
+    clan_tag: "#0QC8RCGY",
     clan_name: "Example Clan",
     trophies: 7600,
     recorded: true,
@@ -56,17 +56,17 @@ export const ME = {
   scope: "cr:read clans:attest",
   principal: {
     kind: "person",
-    subject: { type: "player", tag: "#20QQL8CCRU", name: "Ada" },
+    subject: { type: "player", tag: "#098R2R0PUL", name: "Ada" },
   },
-  primary: { player_tag: "#20QQL8CCRU", name: "Ada" },
+  primary: { player_tag: "#098R2R0PUL", name: "Ada" },
   identities: [
     {
-      player_tag: "#20QQL8CCRU",
+      player_tag: "#098R2R0PUL",
       name: "Ada",
       is_primary: true,
       relationship: "primary",
       claim_status: "verified",
-      clan_tag: "#2PQRJ8LV",
+      clan_tag: "#0QC8RCGY",
       role: "leader",
       role_label: "Leader",
     },
@@ -89,7 +89,7 @@ export const ME = {
 };
 
 const ROSTER = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Example Clan",
   member_count: 3,
   type: "inviteOnly",
@@ -130,7 +130,7 @@ const ROSTER = {
   notes: [],
   members: [
     {
-      player_tag: "#20QQL8CCRU",
+      player_tag: "#098R2R0PUL",
       name: "Ada",
       role: "leader",
       role_label: "Leader",
@@ -141,7 +141,7 @@ const ROSTER = {
       you: true,
     },
     {
-      player_tag: "#UQ8LP2R9C",
+      player_tag: "#02QQPCYQQ",
       name: "Ben",
       role: "coLeader",
       role_label: "Co-leader",
@@ -221,7 +221,7 @@ const RACE = {
 
 /** The clan's last seven days, as the Feed reads them. */
 const FEED = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   window_days: 7,
   more: 0,
   items: [
@@ -256,7 +256,7 @@ export function signedIn(
       {
         ...ACCOUNT,
         claims: [
-          { ...ACCOUNT.claims[0], player_tag: "#20QQL8CCRU", name: "Ada" },
+          { ...ACCOUNT.claims[0], player_tag: "#098R2R0PUL", name: "Ada" },
         ],
       },
     ],
@@ -271,7 +271,7 @@ export function signedIn(
     },
     "GET /api/clan/roster": [200, ROSTER],
     "GET /api/player": [200, BEN_PAGE],
-    "GET /api/clan/clans/2PQRJ8LV/standing": [
+    "GET /api/clan/clans/0QC8RCGY/standing": [
       200,
       {
         as_of: "2026-09-12T17:55:00Z",
@@ -346,14 +346,14 @@ export function signedIn(
     // Feedback is Elixir's one record (2026-10-08): Clan files through
     // the shared door, with the shared session.
     "POST /api/feedback": [200, { ok: true, feedback_id: 41 }],
-    "GET /api/clan/clans/2PQRJ8LV/me/away": [200, { away: null }],
+    "GET /api/clan/clans/0QC8RCGY/me/away": [200, { away: null }],
     // The Feed's timeline and Run's one question (slice 8, #766).
-    "GET /api/clan/clans/2PQRJ8LV/feed": [200, FEED],
+    "GET /api/clan/clans/0QC8RCGY/feed": [200, FEED],
     // The race now, for the clan card and the Feed's race bar (G5).
-    "GET /api/clan/clans/2PQRJ8LV/race": [200, { race: RACE }],
-    "GET /api/clan/clans/2PQRJ8LV/run": [
+    "GET /api/clan/clans/0QC8RCGY/race": [200, { race: RACE }],
+    "GET /api/clan/clans/0QC8RCGY/run": [
       200,
-      { clan_tag: "#2PQRJ8LV", run: true },
+      { clan_tag: "#0QC8RCGY", run: true },
     ],
     ...overrides,
   };

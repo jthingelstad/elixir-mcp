@@ -4,8 +4,8 @@ import { seasonReport } from "@elixir-mcp/clan-engine";
 import { seasonRecordFixture } from "@elixir-mcp/clan-engine/fixtures";
 import { ME, clanTab, mockApi, signedIn } from "./fixtures.ts";
 
-const base = "/clan/2PQRJ8LV";
-const apiPath = "/api/clan/clans/2PQRJ8LV/season";
+const base = "/clan/0QC8RCGY";
+const apiPath = "/api/clan/clans/0QC8RCGY/season";
 const fixture = () => {
   const f = seasonRecordFixture();
   return {

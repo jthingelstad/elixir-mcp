@@ -5,9 +5,9 @@ import assert from "node:assert/strict";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { factItems } from "../src/activity/entries.mjs";
 
-const CLAN = "#PYLQ";
-const BACK = "#9QYU";
-const NEVER_LEFT = "#9QUY";
+const CLAN = "#0CPP";
+const BACK = "#08U2";
+const NEVER_LEFT = "#02YQ";
 let ctx;
 
 before(async () => {

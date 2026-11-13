@@ -262,7 +262,7 @@ export function AgentFollowing({ agent }) {
             Player tag
             <input
               className="mono"
-              placeholder="#2PYQ8GJ0"
+              placeholder="#0PJCLJYP"
               value={playerTag}
               onChange={(ev) => setPlayerTag(ev.target.value)}
             />

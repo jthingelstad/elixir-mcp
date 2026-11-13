@@ -7,31 +7,31 @@ import {
 } from "../dist/index.js";
 
 test("accepts canonical input unchanged", () => {
-  assert.equal(normalizeTag("#2PP0V90Y"), "#2PP0V90Y");
+  assert.equal(normalizeTag("#09CV8UVL"), "#09CV8UVL");
 });
 
 test("adds missing hash prefix", () => {
-  assert.equal(normalizeTag("2PP0V90Y"), "#2PP0V90Y");
+  assert.equal(normalizeTag("09CV8UVL"), "#09CV8UVL");
   // A request body's field may be missing: refused, never a TypeError.
   assert.throws(() => normalizeTag(undefined), { code: "invalid_tag" });
   assert.throws(() => normalizeTag(null), { code: "invalid_tag" });
 });
 
 test("uppercases and folds letter O to zero", () => {
-  assert.equal(normalizeTag("#2ppOv9Oy"), "#2PP0V90Y");
+  assert.equal(normalizeTag("#o9cv8uvl"), "#09CV8UVL");
 });
 
 test("trims surrounding whitespace", () => {
-  assert.equal(normalizeTag("  #2PP0V90Y "), "#2PP0V90Y");
+  assert.equal(normalizeTag("  #09CV8UVL "), "#09CV8UVL");
 });
 
 test("rejects characters outside the CR alphabet", () => {
   for (const bad of [
-    "#2PP1V90Y",
+    "#09CV1UVL",
     "#ABC!23",
     "#WXYZ0000",
-    "#2PP0'--",
-    "#2PP 0V9",
+    "#0RG2'--",
+    "#0CR 0V9",
   ]) {
     assert.throws(() => normalizeTag(bad), InvalidTagError);
   }
@@ -52,7 +52,7 @@ test("InvalidTagError carries the structured code", () => {
 });
 
 test("isCanonicalTag is strict — no folding", () => {
-  assert.equal(isCanonicalTag("#2PP0V90Y"), true);
-  assert.equal(isCanonicalTag("2PP0V90Y"), false);
-  assert.equal(isCanonicalTag("#2ppov90y"), false);
+  assert.equal(isCanonicalTag("#09CV8UVL"), true);
+  assert.equal(isCanonicalTag("09CV8UVL"), false);
+  assert.equal(isCanonicalTag("#09cv8uvl"), false);
 });

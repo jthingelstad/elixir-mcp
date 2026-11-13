@@ -198,7 +198,7 @@ test("a clan's post is rated within its clan and feature; a second rating follow
   );
   for (const [feature, clanTag, postId] of [
     ["clan_activity", CLAN, POST.action],
-    ["clan_actions", "#GCYQR9VY", POST.action],
+    ["clan_actions", "#0GJJ9QJL", POST.action],
     ["clan_actions", "not a tag", POST.action],
     ["clan_actions", CLAN, "not-a-uuid"],
   ])

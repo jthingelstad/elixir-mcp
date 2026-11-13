@@ -10,10 +10,10 @@ import assert from "node:assert/strict";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { storyContext } from "../src/story-context.mjs";
 
-const CLAN = "#2PP2PP2P";
-const ADA = "#PYL0Q2G8";
-const BO = "#PYL0Q2G9";
-const CY = "#PYL0Q2GR";
+const CLAN = "#00L22RP0";
+const ADA = "#0L98VL0Y";
+const BO = "#0ULYQJUJ";
+const CY = "#0GLCPGJJ";
 const T = Date.parse("2026-10-11T18:00:00Z");
 const H = 3_600_000;
 const at = (ms) => new Date(ms).toISOString();

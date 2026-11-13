@@ -22,7 +22,7 @@ const reply = (body, status = 200) => ({
 const CLAN = {
   ok: true,
   state: "member",
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Ada's Clan",
   role: "leader",
   needs: [
@@ -43,12 +43,12 @@ const arrival = (id, offer) => ({
   kind: "member_joined",
   at: AGO(30),
   observed_at: AGO(29),
-  subject_tag: "#2PQRJ8LV",
+  subject_tag: "#0QC8RCGY",
   subject_name: "Ada's Clan",
-  subjects: [{ tag: "#2PQRJ8LV", kind: "clan", name: "Ada's Clan" }],
+  subjects: [{ tag: "#0QC8RCGY", kind: "clan", name: "Ada's Clan" }],
   groups: ["clan"],
   text: `Invented ${id} joined Ada's Clan.`,
-  facts: { player_tag: `#2Y0P8V${id}`, name: `Invented ${id}` },
+  facts: { player_tag: `#00JQ20${id}`, name: `Invented ${id}` },
   ...(offer ? { offer_follow: true } : {}),
 });
 
@@ -70,7 +70,7 @@ beforeEach(() => {
     if (p === "/api/me/home/clan") return reply({ clan: CLAN });
     if (p === "/api/me/follow-cost")
       return reply({
-        player_tag: "#2Y0P8V1",
+        player_tag: "#00JQ201",
         following,
         free: true,
         used: 3,

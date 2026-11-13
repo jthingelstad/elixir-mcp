@@ -26,8 +26,8 @@ test("every record page signed out renders the sign-in wall, never the page", as
     "/settings",
     "/settings/admin/accounts",
     "/home/find",
-    "/home/player/2PQRJ8LV",
-    "/home/player/2PQRJ8LV?tab=record",
+    "/home/player/0QC8RCGY",
+    "/home/player/0QC8RCGY?tab=record",
   ];
   for (const url of urls) {
     const html = await renderApp({ url, me });
@@ -89,7 +89,7 @@ test("Find, the player page and Settings render a signed-in initial document wit
   };
   for (const url of [
     "/home/find",
-    "/home/player/2PQRJ8LV?tab=record",
+    "/home/player/0QC8RCGY?tab=record",
     "/settings/usage/requests?tool=players_summary",
     "/settings/emails/fictional?report=1",
     "/settings/feedback?send_id=fictional",
@@ -115,14 +115,14 @@ test("the clan map renders on the server without aborting a boundary", async () 
       signals: {},
     },
   };
-  const clan = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "member" };
+  const clan = { clan_tag: "#0QC8RCGY", name: "Example Clan", role: "member" };
   const clanMe = {
     ok: true,
     status: 200,
     data: { ok: true, clans: [clan], selected: clan },
   };
   const html = await renderApp({
-    url: "/clan/2PQRJ8LV/members/map",
+    url: "/clan/0QC8RCGY/members/map",
     me,
     clanMe,
   });

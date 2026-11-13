@@ -64,24 +64,24 @@ for (const width of [390, 1280]) {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/members/UQ8LP2R9C/activity": () => [
+        "GET /api/clan/clans/0QC8RCGY/members/02QQPCYQQ/activity": () => [
           200,
           body,
         ],
         // The leaders' clock comes along to the player page.
-        "GET /api/clan/clans/2PQRJ8LV/manage": [
+        "GET /api/clan/clans/0QC8RCGY/manage": [
           200,
           {
             board: [
               {
-                player_tag: "#UQ8LP2R9C",
+                player_tag: "#02QQPCYQQ",
                 name: "Ben",
                 removal: { days_idle: 3, at_risk_days: 7, removal_day: 10 },
               },
             ],
           },
         ],
-        "GET /api/clan/clans/2PQRJ8LV/policy": [
+        "GET /api/clan/clans/0QC8RCGY/policy": [
           200,
           {
             can_edit: true,
@@ -98,14 +98,14 @@ for (const width of [390, 1280]) {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/members");
+    await page.goto("/clan/0QC8RCGY/members");
     await expect(
       page.getByRole("link", { name: "Ben", exact: true }),
-    ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
+    ).toHaveAttribute("href", "/home/player/02QQPCYQQ");
     // The member's old page here is their player page's Clan tab
     // (2026-11-12): the page's own head names them.
-    await page.goto("/clan/2PQRJ8LV/members/uq8lp2r9c");
-    await expect(page).toHaveURL(/\/home\/player\/UQ8LP2R9C\?tab=clan$/);
+    await page.goto("/clan/0QC8RCGY/members/02qqpcyqq");
+    await expect(page).toHaveURL(/\/home\/player\/02QQPCYQQ\?tab=clan$/);
     await expect(
       page.getByRole("heading", { level: 1, name: "Ben" }),
     ).toBeVisible();
@@ -130,7 +130,7 @@ for (const width of [390, 1280]) {
       path: `/tmp/elixir-member-activity-${width}.png`,
       fullPage: true,
     });
-    await page.goto("/clan/2PQRJ8LV/run/about");
+    await page.goto("/clan/0QC8RCGY/run/about");
     await expect(
       page.getByText(/Leaders can prepare and save its policy now/),
     ).toBeVisible();
@@ -154,7 +154,7 @@ test("switching back from two small clans restores the active clan's navigation 
 }) => {
   const first = ME.clans[0]!;
   const second = ME.clans[1]!;
-  const third = { ...first, clan_tag: "#9PYL", name: "Third Clan" };
+  const third = { ...first, clan_tag: "#08YP", name: "Third Clan" };
   let me = {
     ...ME,
     clans: [first, second, third],
@@ -175,7 +175,7 @@ test("switching back from two small clans restores the active clan's navigation 
       },
     }),
   );
-  await page.goto("/clan/2PQRJ8LV");
+  await page.goto("/clan/0QC8RCGY");
   const picker = page.getByRole("combobox", { name: "Clan" });
   for (const clan of [second, third, first]) {
     await picker.selectOption(clan.clan_tag);

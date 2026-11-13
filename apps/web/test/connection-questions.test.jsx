@@ -3,7 +3,7 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { ConnectionQuestions } from "../src/components/ConnectionQuestions.jsx";
 
 const player = {
-  player_tag: "#P0Y",
+  player_tag: "#00J",
   name: "Test player",
   profile_available: true,
   battles_7d: 12,
@@ -35,7 +35,7 @@ afterEach(() => {
 });
 
 test("connected users can copy data-supported questions, including a recorded clan war", async () => {
-  respond(player, { clan_tag: "#P0G" });
+  respond(player, { clan_tag: "#0GG" });
   const copy = vi.fn().mockResolvedValue();
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
@@ -50,7 +50,7 @@ test("connected users can copy data-supported questions, including a recorded cl
     screen.getByRole("button", { name: "Copy question: Compare your decks" }),
   );
   await screen.findByText("Copied. Paste into your connected client.");
-  expect(copy.mock.calls[0][0]).toContain("#P0Y");
+  expect(copy.mock.calls[0][0]).toContain("#00J");
   expect(copy.mock.calls[0][0]).toContain("sample sizes");
   fireEvent.click(
     screen.getByRole("button", {
@@ -58,7 +58,7 @@ test("connected users can copy data-supported questions, including a recorded cl
     }),
   );
   await screen.findByText("Copied. Paste into your connected client.");
-  expect(copy.mock.calls[1][0]).toContain("#P0G");
+  expect(copy.mock.calls[1][0]).toContain("#0GG");
   expect(copy.mock.calls[1][0]).toContain("unfinished race");
   expect(
     fetch.mock.calls.every(([url]) => url === "/api/me/first-answer"),
@@ -88,7 +88,7 @@ test("profile-only history offers a snapshot, with manual copy when clipboard ac
   const manual = await screen.findByRole("textbox", {
     name: "Question to copy",
   });
-  expect(manual.value).toContain("#P0Y");
+  expect(manual.value).toContain("#00J");
   expect(manual.value).toContain("Do not infer progress from a single reading");
 });
 

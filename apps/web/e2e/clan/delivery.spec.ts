@@ -56,11 +56,11 @@ for (const size of ["wide", "@narrow"])
             200,
             { ...ME, clans: [currentClan], selected: currentClan },
           ],
-          "GET /api/clan/clans/2PQRJ8LV/actions/51": () => [
+          "GET /api/clan/clans/0QC8RCGY/actions/51": () => [
             200,
-            { clan_tag: "#2PQRJ8LV", action: card, decline_reasons: [] },
+            { clan_tag: "#0QC8RCGY", action: card, decline_reasons: [] },
           ],
-          "GET /api/clan/clans/2PQRJ8LV/actions": () => [
+          "GET /api/clan/clans/0QC8RCGY/actions": () => [
             200,
             {
               open: card.status === "proposed" ? [card] : [],
@@ -69,7 +69,7 @@ for (const size of ["wide", "@narrow"])
           ],
           ...Object.fromEntries(
             [1, 2].map((part) => [
-              `POST /api/clan/clans/2PQRJ8LV/actions/delivery/messages/${part}/sent`,
+              `POST /api/clan/clans/0QC8RCGY/actions/delivery/messages/${part}/sent`,
               (route: any) => {
                 const words = route.request().postDataJSON();
                 receipts.push(words);
@@ -89,7 +89,7 @@ for (const size of ["wide", "@narrow"])
               },
             ]),
           ),
-          "POST /api/clan/clans/2PQRJ8LV/actions/delivery/decide": (route) => {
+          "POST /api/clan/clans/0QC8RCGY/actions/delivery/decide": (route) => {
             decisions.push(route.request().postDataJSON());
             card = {
               ...card,
@@ -104,7 +104,7 @@ for (const size of ["wide", "@narrow"])
           },
         }),
       );
-      await page.goto("/clan/2PQRJ8LV/actions/51");
+      await page.goto("/clan/0QC8RCGY/actions/51");
       const chat = page.getByRole("textbox", {
         name: "Chat message",
         exact: true,

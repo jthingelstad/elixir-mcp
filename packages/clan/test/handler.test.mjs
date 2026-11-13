@@ -17,25 +17,25 @@ test("clan selection returns capabilities for the newly selected clan, including
       players: [
         player(),
         player({
-          player_tag: "#9QY",
+          player_tag: "#0GR",
           relationship: "alt",
           is_primary: false,
-          clan_tag: "#PYLQ2",
+          clan_tag: "#0Y2V2",
         }),
       ],
     },
     manage: {
       policySummary: async (tag) => ({
         set: true,
-        active: tag === "#2PQRJ8LV",
-        version: tag === "#2PQRJ8LV" ? 3 : 1,
+        active: tag === "#0QC8RCGY",
+        version: tag === "#0QC8RCGY" ? 3 : 1,
       }),
-      openActionCount: async (tag) => (tag === "#2PQRJ8LV" ? 4 : 0),
+      openActionCount: async (tag) => (tag === "#0QC8RCGY" ? 4 : 0),
     },
   });
   const { sessionCookie } = await signIn(h);
   const cookies = cookieHeader(sessionCookie);
-  for (const tag of ["#PYLQ2", "#2PQRJ8LV"]) {
+  for (const tag of ["#0Y2V2", "#0QC8RCGY"]) {
     const r = await h.handler(
       req("POST", "/api/select", {
         cookies,
@@ -45,8 +45,8 @@ test("clan selection returns capabilities for the newly selected clan, including
     const d = JSON.parse(r.body);
     assert.equal(r.statusCode, 200);
     assert.equal(d.selected.clan_tag, tag);
-    assert.equal(d.policy.active, tag === "#2PQRJ8LV");
-    assert.equal(d.open_actions, tag === "#2PQRJ8LV" ? 4 : 0);
+    assert.equal(d.policy.active, tag === "#0QC8RCGY");
+    assert.equal(d.open_actions, tag === "#0QC8RCGY" ? 4 : 0);
   }
 });
 
@@ -60,7 +60,7 @@ test("roster: names the primary's clan explicitly, marks your row, groups by rol
       donations_this_week: 10,
     },
     {
-      player_tag: "#20QQL8CCRU",
+      player_tag: "#098R2R0PUL",
       name: "Ada",
       role: "leader",
       trophies: 8000,
@@ -96,14 +96,14 @@ test("roster: names the primary's clan explicitly, marks your row, groups by rol
   assert.equal(r.statusCode, 200);
   const body = JSON.parse(r.body);
   const call = h.record.calls.find((c) => c[0] === "clans_roster");
-  assert.deepEqual(call[1], { clan_tag: "#2PQRJ8LV" });
+  assert.deepEqual(call[1], { clan_tag: "#0QC8RCGY" });
   assert.deepEqual(
     body.members.map((m) => m.player_tag),
-    ["#20QQL8CCRU", "#C2", "#C1", "#E1", "#M1"],
+    ["#098R2R0PUL", "#C2", "#C1", "#E1", "#M1"],
   );
   assert.equal(body.members[0].you, true);
   assert.equal(body.members[1].you, false);
-  assert.deepEqual(body.your_tags, ["#20QQL8CCRU"]);
+  assert.deepEqual(body.your_tags, ["#098R2R0PUL"]);
   assert.equal(body.members[2].role_label, "Co-leader");
   assert.deepEqual(body.role_counts, {
     leader: 1,
@@ -142,7 +142,7 @@ test("roster: a clan Elixir does not record is said plainly, not as an outage", 
       roster: {
         error: {
           code: "not_recorded",
-          message: "#2PQRJ8LV is not a recorded clan.",
+          message: "#0QC8RCGY is not a recorded clan.",
           hint: "elixir_follow_clan",
         },
       },
@@ -155,7 +155,7 @@ test("roster: a clan Elixir does not record is said plainly, not as an outage", 
   assert.equal(r.statusCode, 200);
   const body = JSON.parse(r.body);
   assert.equal(body.not_recorded, true);
-  assert.equal(body.clan_tag, "#2PQRJ8LV");
+  assert.equal(body.clan_tag, "#0QC8RCGY");
 });
 
 test("roster: a door outage is a 502, is reported", async () => {
@@ -252,10 +252,10 @@ test("Elixir serves this API under /api/clan: the same routes, in either form (2
   assert.equal(mountedPath("/api/clan/auth/callback"), "/api/auth/callback");
   assert.equal(mountedPath("/api/clan/me"), "/api/me");
   assert.equal(
-    mountedPath("/api/clan/clans/2PQRJ8LV/actions"),
-    "/api/clans/2PQRJ8LV/actions",
+    mountedPath("/api/clan/clans/0QC8RCGY/actions"),
+    "/api/clans/0QC8RCGY/actions",
   );
-  for (const path of ["/auth/login", "/api/clans/2PQRJ8LV", "/api/clanx/me"])
+  for (const path of ["/auth/login", "/api/clans/0QC8RCGY", "/api/clanx/me"])
     assert.equal(mountedPath(path), path);
 
   const h = harness();
@@ -286,7 +286,7 @@ const twoClans = () => ({
       name: "Ada's other",
       is_primary: false,
       relationship: "alt",
-      clan_tag: "#PYLQ2",
+      clan_tag: "#0Y2V2",
       clan_role: "member",
     }),
   ],
@@ -303,7 +303,7 @@ test("two clans, nothing remembered: the chooser is required and the roster need
   assert.equal(me.selected, null);
   assert.deepEqual(
     me.clans.map((c) => c.clan_tag),
-    ["#2PQRJ8LV", "#PYLQ2"],
+    ["#0QC8RCGY", "#0Y2V2"],
   );
   const r = await h.handler(req("GET", "/api/roster", { cookies }));
   assert.equal(r.statusCode, 409);
@@ -316,34 +316,34 @@ test("select: picks a clan in the set, is remembered across a fresh sign-in, ref
   const bad = await h.handler(
     req("POST", "/api/select", {
       cookies,
-      body: JSON.stringify({ clan_tag: "#22GG" }),
+      body: JSON.stringify({ clan_tag: "#0PJG" }),
     }),
   );
   assert.equal(bad.statusCode, 403);
   const ok = await h.handler(
     req("POST", "/api/select", {
       cookies,
-      body: JSON.stringify({ clan_tag: "pylq2" }),
+      body: JSON.stringify({ clan_tag: "0y2v2" }),
     }),
   );
   assert.equal(ok.statusCode, 200);
   const me = JSON.parse(ok.body);
-  assert.equal(me.selected.clan_tag, "#PYLQ2");
+  assert.equal(me.selected.clan_tag, "#0Y2V2");
   assert.equal(me.selected.player_tag, "#ALT");
   assert.equal(me.selected.role_label, "Member");
   assert.equal(
     h.store.items.get("account#test-person").selected.clan_tag,
-    "#PYLQ2",
+    "#0Y2V2",
   );
 
   // A fresh sign-in lands on the remembered clan.
   const again = await signIn(h);
-  assert.equal(JSON.parse(again.me.body).selected.clan_tag, "#PYLQ2");
+  assert.equal(JSON.parse(again.me.body).selected.clan_tag, "#0Y2V2");
 });
 
 test("a remembered clan the person is no longer in is ignored", async () => {
   const h = harness({ door: twoClans() });
-  h.store.items.set("pref##20QQL8CCRU", { clan_tag: "#GONE" });
+  h.store.items.set("pref##098R2R0PUL", { clan_tag: "#GONE" });
   const { me: response } = await signIn(h);
   assert.equal(JSON.parse(response.body).selected, null);
 });
@@ -359,18 +359,18 @@ test("roster by clan: ?clan= names any clan in the set, reads per clan, refuses 
   const other = JSON.parse(
     (
       await h.handler(
-        req("GET", "/api/roster", { cookies, query: { clan: "PYLQ2" } }),
+        req("GET", "/api/roster", { cookies, query: { clan: "0Y2V2" } }),
       )
     ).body,
   );
   assert.equal(other.members[0].you, true);
   const main = await h.handler(
-    req("GET", "/api/roster", { cookies, query: { clan: "#2PQRJ8LV" } }),
+    req("GET", "/api/roster", { cookies, query: { clan: "#0QC8RCGY" } }),
   );
   assert.equal(main.statusCode, 200);
   assert.equal(h.record.calls.filter((c) => c[0] === "clans_roster").length, 2);
   await h.handler(
-    req("GET", "/api/roster", { cookies, query: { clan: "PYLQ2" } }),
+    req("GET", "/api/roster", { cookies, query: { clan: "0Y2V2" } }),
   );
   assert.equal(
     h.record.calls.filter((c) => c[0] === "clans_roster").length,
@@ -378,7 +378,7 @@ test("roster by clan: ?clan= names any clan in the set, reads per clan, refuses 
     "each request rechecks its recorded roster",
   );
   const nope = await h.handler(
-    req("GET", "/api/roster", { cookies, query: { clan: "#22GG" } }),
+    req("GET", "/api/roster", { cookies, query: { clan: "#0PJG" } }),
   );
   assert.equal(nope.statusCode, 403);
   assert.equal(JSON.parse(nope.body).error, "not_your_clan");
@@ -386,7 +386,7 @@ test("roster by clan: ?clan= names any clan in the set, reads per clan, refuses 
 
 test("two verified tags in one clan: both rows are yours", async () => {
   const members = [
-    { player_tag: "#20QQL8CCRU", name: "Ada", role: "member" },
+    { player_tag: "#098R2R0PUL", name: "Ada", role: "member" },
     { player_tag: "#ALT", name: "Ada's other", role: "coLeader" },
     { player_tag: "#X", name: "Someone", role: "member" },
   ];
@@ -414,7 +414,7 @@ test("two verified tags in one clan: both rows are yours", async () => {
   );
   assert.deepEqual(
     body.members.filter((m) => m.you).map((m) => m.player_tag),
-    ["#ALT", "#20QQL8CCRU"],
+    ["#ALT", "#098R2R0PUL"],
   );
 });
 
@@ -436,16 +436,16 @@ test("core policy context refuses cross-clan, unverified, revoked and agent acce
   const cookies = cookieHeader(sessionCookie);
   const call = (tag) =>
     h.handler(req("GET", `/api/clans/${tag}/policy/context`, { cookies }));
-  assert.equal((await call("2PQRJ8LV")).statusCode, 200);
-  assert.equal((await call("PYLQ2")).statusCode, 403);
+  assert.equal((await call("0QC8RCGY")).statusCode, 200);
+  assert.equal((await call("0Y2V2")).statusCode, 403);
   assert.equal(reads, 1);
   h.record.state.players = [
     player({ claim_status: "unverified", clan_role: "member" }),
   ];
-  assert.equal((await call("2PQRJ8LV")).statusCode, 403);
-  h.record.state.players = [player({ clan_tag: "#PYLQ2" })];
-  assert.equal((await call("2PQRJ8LV")).statusCode, 403);
+  assert.equal((await call("0QC8RCGY")).statusCode, 403);
+  h.record.state.players = [player({ clan_tag: "#0Y2V2" })];
+  assert.equal((await call("0QC8RCGY")).statusCode, 403);
   h.record.state.principal = { kind: "agent" };
-  assert.equal((await call("PYLQ2")).statusCode, 403);
+  assert.equal((await call("0Y2V2")).statusCode, 403);
   assert.equal(reads, 1);
 });

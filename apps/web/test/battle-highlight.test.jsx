@@ -10,8 +10,8 @@ import { renderWithProviders } from "./helpers.jsx";
  */
 const BATTLE = { id: "ccd04012bda8" };
 const SIDES = [
-  { players: [{ player_tag: "#2PP", name: '<b>"Ana"</b>' }] },
-  { players: [{ player_tag: "#9QQ", name: "Bo" }] },
+  { players: [{ player_tag: "#0CR", name: '<b>"Ana"</b>' }] },
+  { players: [{ player_tag: "#08C", name: "Bo" }] },
 ];
 const ok = (data) => ({ ok: true, status: 200, data });
 
@@ -35,7 +35,7 @@ test("nothing is drawn when the server names no player of yours", async () => {
 
 test("a verified player of yours posts with your words, from the gold button", async () => {
   vi.spyOn(api, "myHighlights").mockResolvedValue(
-    ok({ battle_id: "x", can_highlight_as: ["#2PP"], highlights: [] }),
+    ok({ battle_id: "x", can_highlight_as: ["#0CR"], highlights: [] }),
   );
   const post = vi.spyOn(api, "postHighlight").mockResolvedValue({
     ok: true,
@@ -56,7 +56,7 @@ test("a verified player of yours posts with your words, from the gold button", a
   await waitFor(() =>
     expect(post).toHaveBeenCalledWith({
       battle: "ccd04012bda8",
-      player_tag: "#2PP",
+      player_tag: "#0CR",
       words: "Finally beat the cycle deck",
     }),
   );
@@ -66,11 +66,11 @@ test("a posted highlight shows its words as text, with Share and Edit words", as
   vi.spyOn(api, "myHighlights").mockResolvedValue(
     ok({
       battle_id: "x",
-      can_highlight_as: ["#2PP"],
+      can_highlight_as: ["#0CR"],
       highlights: [
         {
           highlight_id: "11111111-1111-4111-8111-111111111111",
-          player_tag: "#2PP",
+          player_tag: "#0CR",
           words: "<img src=x onerror=alert(1)>",
           share_url: null,
         },
@@ -101,7 +101,7 @@ test("a posted highlight shows its words as text, with Share and Edit words", as
 
 const SHARED = {
   highlight_id: "22222222-2222-4222-8222-222222222222",
-  player_tag: "#2PP",
+  player_tag: "#0CR",
   words: "gg",
   share_url: "https://elixir.poapkings.com/h/abc",
 };
@@ -110,7 +110,7 @@ test("a shared highlight offers its clan's Discord only when the server says so,
   vi.spyOn(api, "myHighlights").mockResolvedValue(
     ok({
       battle_id: "x",
-      can_highlight_as: ["#2PP"],
+      can_highlight_as: ["#0CR"],
       highlights: [
         { ...SHARED, clan_discord: { available: true, posted_at: null } },
       ],
@@ -139,7 +139,7 @@ test("a highlight already in the clan's Discord says so; one the clan does not t
   vi.spyOn(api, "myHighlights").mockResolvedValue(
     ok({
       battle_id: "x",
-      can_highlight_as: ["#2PP"],
+      can_highlight_as: ["#0CR"],
       highlights: [
         {
           ...SHARED,
@@ -156,7 +156,7 @@ test("a highlight already in the clan's Discord says so; one the clan does not t
   vi.spyOn(api, "myHighlights").mockResolvedValue(
     ok({
       battle_id: "x",
-      can_highlight_as: ["#2PP"],
+      can_highlight_as: ["#0CR"],
       highlights: [
         { ...SHARED, clan_discord: { available: false, posted_at: null } },
       ],

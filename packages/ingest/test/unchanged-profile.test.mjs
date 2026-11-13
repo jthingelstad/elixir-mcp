@@ -39,7 +39,7 @@ test("unchanged admitted profiles advance observation evidence without facts or 
           }
         : { http_status: 500 }),
     });
-    const tag = "#9QQ";
+    const tag = "#08C";
     const payload = {
       tag,
       name: "Synthetic unchanged profile",

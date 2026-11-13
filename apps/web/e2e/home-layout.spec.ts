@@ -16,7 +16,7 @@ const PAGE = 30;
 
 /** Item i of the busy week: every third a sitting with its sparkline. */
 function item(i: number) {
-  const tag = `#2Y${"0289PYLQGRJCUV"[i % 14]}${"PYLQ"[i % 4]}8V`;
+  const tag = `#0Y${"0289PYLQGRJCUV"[i % 14]}${"PYLQ"[i % 4]}8V`;
   const name = `Invented ${i % 17}`;
   const base = {
     id: `tl_${String(i).padStart(20, "0")}`,

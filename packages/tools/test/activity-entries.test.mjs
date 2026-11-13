@@ -214,7 +214,7 @@ test("a clan entry names roster moves from the ledger, war state, presence and s
   const [gone] = next.memberList.splice(5, 1);
   next.memberList.push({
     ...gone,
-    tag: "#8PYLQGRJC",
+    tag: "#0PYV8P9RV",
     name: "Newcomer",
     role: "member",
   });
@@ -470,7 +470,7 @@ test("a closed clan window keeps its presence after later departures and exclude
 test("historical presence keeps event-time membership across departures, gaps, rejoins and late observations", async () => {
   await ctx.db.query("begin");
   try {
-    const tag = "#QY20P";
+    const tag = "#0UVYG";
     const at = (value) => Date.parse(value);
     await ctx.db.query(
       "insert into player (player_tag, name) values ($1, 'History test')",
@@ -619,7 +619,7 @@ test("the player timeline: a first sight in a clan is no join, a join a roster s
     items: [],
     notables: 0,
   });
-  assert.deepEqual(await kinds("#8PYLQGRJC"), {
+  assert.deepEqual(await kinds("#0PYV8P9RV"), {
     changes: ["joined"],
     items: [CLAN],
     notables: 1,

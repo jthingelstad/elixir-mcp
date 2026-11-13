@@ -41,7 +41,7 @@ for (const width of [1440, 1100, 820]) {
       await page.unrouteAll();
 
       await clanApi(page, clanIn());
-      await page.goto("/clan/2PQRJ8LV/members");
+      await page.goto("/clan/0QC8RCGY/members");
       await expect(page.locator(".clan-head")).toBeVisible();
       await sameAsBar(page, ".page__inner");
     });
@@ -55,7 +55,7 @@ test.describe("at computer width", () => {
     page,
   }) => {
     await clanApi(page, clanIn());
-    await page.goto("/clan/2PQRJ8LV/members");
+    await page.goto("/clan/0QC8RCGY/members");
     const font = (selector: string) =>
       page
         .locator(selector)
@@ -185,7 +185,7 @@ test("@narrow mode chips scroll on one line, and the edge says there are more", 
 
 test("@narrow Clan's roster is two lines a member", async ({ page }) => {
   await clanApi(page, clanIn());
-  await page.goto("/clan/2PQRJ8LV/members");
+  await page.goto("/clan/0QC8RCGY/members");
   const row = page.locator(".roster-table tbody tr").first();
   await expect(row).toBeVisible();
   await expect(row.locator(".roster-table__wide").first()).toBeHidden();

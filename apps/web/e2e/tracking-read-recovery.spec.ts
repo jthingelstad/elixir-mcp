@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { ME, mockApi, signedIn } from "./fixtures.ts";
 
 const clan = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Saved example clan",
   scope: "activity",
   recording_status: "active",
@@ -152,7 +152,7 @@ for (const width of [390, 1280]) {
             : [200, { clans: [clan], home_clan: null }],
       }),
     );
-    await page.goto("/settings/players/2PQRJ8LV");
+    await page.goto("/settings/players/0QC8RCGY");
     await expect(page.getByRole("alert")).toContainText(
       "Your clans could not be read",
     );

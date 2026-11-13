@@ -78,7 +78,7 @@ test("a race in matchmaking is its own admission, never a rejection (S137 roll, 
   const result = admit(
     "currentriverrace",
     { periodIndex: 0, sectionIndex: 0, state: "matchmaking" },
-    "#2GUY2",
+    "#0YUR9",
   );
   assert.deepEqual(result, {
     ok: false,

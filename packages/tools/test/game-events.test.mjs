@@ -41,13 +41,13 @@ before(async () => {
     fetchedAt: T1,
     payload: [
       { eventTag: "#0Y0GVQP", title: "C.H.A.O.S", description: "modifiers" },
-      { eventTag: "#R8UURVL", title: "Merge Tactics", description: null },
+      { eventTag: "#0RCRYLL", title: "Merge Tactics", description: null },
     ],
   });
   await projectEvents(db, {
     fetchedAt: "2026-09-12T10:00:00Z",
     payload: [
-      { eventTag: "#R8UURVL", title: "Merge Tactics", description: null },
+      { eventTag: "#0RCRYLL", title: "Merge Tactics", description: null },
     ],
   });
   // A third sighting before 10:00Z with its receipt on record: UTC day
@@ -72,7 +72,7 @@ before(async () => {
   await projectEvents(db, {
     fetchedAt: "2026-09-13T04:00:00Z",
     payload: [
-      { eventTag: "#R8UURVL", title: "Merge Tactics", description: null },
+      { eventTag: "#0RCRYLL", title: "Merge Tactics", description: null },
     ],
   });
   invoke = makeInvoker({

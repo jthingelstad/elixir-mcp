@@ -322,10 +322,10 @@ test("an agent with no clan is told what would fix it, in terms it can act on", 
  * The alt's clan sorts FIRST alphabetically here, so the old ordering
  * would pick it.
  */
-const PRIMARY_CLAN = "#PYQLVG0"; // sorts after
-const ALT_CLAN = "#CGJRU29"; // sorts before
-const TWO_CLAN_PRIMARY = "#QQLV02Y";
-const TWO_CLAN_ALT = "#GVJ8P0L";
+const PRIMARY_CLAN = "#0Q9C0YQ"; // sorts after
+const ALT_CLAN = "#09URLL9"; // sorts before
+const TWO_CLAN_PRIMARY = "#08QQP0J";
+const TWO_CLAN_ALT = "#02QQVG8";
 
 test("the clan named at initialize is the primary player's, and it is what an omitted clan_tag means", async () => {
   assert.ok(ALT_CLAN < PRIMARY_CLAN, "the fixture must reproduce the ordering");
@@ -439,8 +439,8 @@ test("7.1.0: an agent tracks a rival in its owner's slots, and keeps the clan it
   const { elixir_follow_clan } =
     await import("../src/tools/elixir/follow-clan.mjs");
   const ctx = { db, account: agent };
-  const RIVAL = "#PYLQGRJC";
-  const RIVAL2 = "#9VUP08YL";
+  const RIVAL = "#0J0RVYRR";
+  const RIVAL2 = "#0JVRYLGG";
   const added = await elixir_follow_clan.handler(ctx, {
     clan_tag: RIVAL,
     scope: "activity",

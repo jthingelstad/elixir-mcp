@@ -34,7 +34,7 @@ async function accessible(page: Page, name: string) {
   ).toEqual([]);
 }
 
-const TAG = "#2YQLRP8V";
+const TAG = "#0YV8YGYJ";
 const VERIFIED_ME = {
   ...ME,
   claims: [
@@ -46,7 +46,7 @@ const VERIFIED_ME = {
       status: "verified",
     },
     {
-      player_tag: "#9PQ2R8L",
+      player_tag: "#00GVJ89",
       name: "Invented Alt",
       is_primary: false,
       relationship: "alt",
@@ -59,7 +59,7 @@ const PAGE = {
   player: {
     tag: TAG,
     name: "Invented Owl",
-    clan_tag: "#9GQLV20",
+    clan_tag: "#0JQ0JQ8",
     clan_name: "Grove",
     trophies: 9400,
     recorded: true,
@@ -106,7 +106,7 @@ const BELL = {
     unnamed: 2,
     players: [
       {
-        tag: "#8QRLV2YP",
+        tag: "#00J8VCYU",
         name: "Invented Fan",
         followed_tag: TAG,
         followed_name: "Invented Owl",
@@ -291,7 +291,7 @@ for (const [label, width] of [
       const followers = sheet.getByRole("region", { name: "New followers" });
       await expect(
         followers.getByRole("link", { name: /Invented Fan/ }),
-      ).toHaveAttribute("href", "/home/player/8QRLV2YP");
+      ).toHaveAttribute("href", "/home/player/00J8VCYU");
       await expect(followers).toContainText("2 more accounts follow you");
       const answers = sheet.getByRole("region", {
         name: "Answers to your feedback",

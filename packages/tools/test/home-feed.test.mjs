@@ -32,7 +32,7 @@ import {
 const T = Date.parse("2026-09-20T12:00:00Z");
 const H = 3_600_000;
 const at = (ms) => new Date(ms).toISOString();
-const PLAYER = "#PYL0Q2G8";
+const PLAYER = "#0L98VL0Y";
 
 let ctx;
 let db;

@@ -62,16 +62,16 @@ test("followers: named by their verified player, the rest one counted line", () 
   const { rows, counted } = followerRows({
     unnamed: 1,
     players: [
-      { tag: "#2PP", name: "Invented Fan", followed_tag: "#2QQ", new: false },
+      { tag: "#0CR", name: "Invented Fan", followed_tag: "#0J8", new: false },
     ],
   });
   expect(rows).toEqual([
     {
-      key: "#2PP-#2QQ",
+      key: "#0CR-#0J8",
       title: "Invented Fan",
-      tag: "#2PP",
-      detail: "Follows #2QQ",
-      to: "/home/player/2PP",
+      tag: "#0CR",
+      detail: "Follows #0J8",
+      to: "/home/player/0CR",
       new: false,
     },
   ]);
@@ -101,7 +101,7 @@ test("your account's lines: a burst is one line, one player opens their page", (
         events: 24,
         players: 24,
         clans: 0,
-        subjects: [{ tag: "#2PYLQ0", name: "Invented One", kind: "player" }],
+        subjects: [{ tag: "#000880", name: "Invented One", kind: "player" }],
         new: true,
       },
       {
@@ -110,7 +110,7 @@ test("your account's lines: a burst is one line, one player opens their page", (
         events: 1,
         players: 1,
         clans: 0,
-        subjects: [{ tag: "#2PYLQ2", name: "Invented Two", kind: "player" }],
+        subjects: [{ tag: "#09CCYU", name: "Invented Two", kind: "player" }],
         new: true,
       },
       {
@@ -119,7 +119,7 @@ test("your account's lines: a burst is one line, one player opens their page", (
         events: 1,
         players: 1,
         clans: 0,
-        subjects: [{ tag: "#2PYLQ8", name: null, kind: "player" }],
+        subjects: [{ tag: "#0GLP0L", name: null, kind: "player" }],
         new: false,
       },
       {
@@ -145,7 +145,7 @@ test("your account's lines: a burst is one line, one player opens their page", (
   expect(rows.map((r) => r.title)).toEqual([
     "Recording started for 24 players",
     "Added Invented Two",
-    "No longer yours: #2PYLQ8",
+    "No longer yours: #0GLP0L",
     "Recording stopped for 2 players and 1 clan",
     "App disconnected, 6 times",
   ]);

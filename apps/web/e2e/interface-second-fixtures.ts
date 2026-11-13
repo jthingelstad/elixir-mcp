@@ -1,5 +1,5 @@
 export const ACTIVITY_CHANNEL = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   connection: {
     enabled: true,
     webhook: "discord.com/api/webhooks/1…fixture",
@@ -47,7 +47,7 @@ export const ACTIVITY_CHANNEL = {
 };
 
 export const RECRUIT = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   can_edit: true,
   pitch: {
     tagline: "Steady wars, friendly chat",
@@ -74,11 +74,11 @@ export const RECRUIT = {
   copy: {
     personal: {
       subject: "Join Example Clan",
-      body: "We play Clan Wars and help each other grow.\n\nActive players with 7,500 trophies are welcome. One spot is open.\n\nSearch #2PQRJ8LV in game.",
+      body: "We play Clan Wars and help each other grow.\n\nActive players with 7,500 trophies are welcome. One spot is open.\n\nSearch #0QC8RCGY in game.",
     },
     post: {
-      title: "Example Clan #2PQRJ8LV — Steady wars [7500]",
-      body: "We play Clan Wars and help each other grow.\n\nRequired Trophies: [7500]\n\nSearch #2PQRJ8LV in game.",
+      title: "Example Clan #0QC8RCGY — Steady wars [7500]",
+      body: "We play Clan Wars and help each other grow.\n\nRequired Trophies: [7500]\n\nSearch #0QC8RCGY in game.",
     },
   },
   problems: [],

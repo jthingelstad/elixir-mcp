@@ -42,7 +42,7 @@ for (const size of ["wide", "@narrow"]) {
       channel: "clan_chat",
       can_act: true,
       audience: { kind: "leaders" },
-      player_tag: "#P8QY",
+      player_tag: "#0LRY",
       player_name: "Sunny Kettle",
       raised_at: "2026-10-18T11:00:00Z",
       draft_context_version: "frozen-context",
@@ -63,16 +63,16 @@ for (const size of ["wide", "@narrow"]) {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clan/clans/2PQRJ8LV/actions/49": () => [
+        "GET /api/clan/clans/0QC8RCGY/actions/49": () => [
           200,
           {
-            clan_tag: "#2PQRJ8LV",
+            clan_tag: "#0QC8RCGY",
             action,
             decline_reasons: [],
             model: { set: true, refused: false },
           },
         ],
-        "POST /api/clan/clans/2PQRJ8LV/actions/p1/draft": (route) => {
+        "POST /api/clan/clans/0QC8RCGY/actions/p1/draft": (route) => {
           drafts.push(route.request().postDataJSON());
           return [
             200,
@@ -86,7 +86,7 @@ for (const size of ["wide", "@narrow"]) {
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/actions/49");
+    await page.goto("/clan/0QC8RCGY/actions/49");
     const single = page.getByRole("textbox", {
       name: "Chat message",
       exact: true,
@@ -148,7 +148,7 @@ test("@narrow a welcome takes the leader's note and completes with both lines se
     status: "proposed",
     can_act: true,
     audience: { kind: "elders" },
-    player_tag: "#Q2LY",
+    player_tag: "#0CLG",
     player_name: "Maple Fox",
     raised_at: "2026-10-19T12:00:00Z",
     channel: "clan_chat",
@@ -161,16 +161,16 @@ test("@narrow a welcome takes the leader's note and completes with both lines se
   await mockApi(
     page,
     signedIn({
-      "GET /api/clan/clans/2PQRJ8LV/actions/61": () => [
+      "GET /api/clan/clans/0QC8RCGY/actions/61": () => [
         200,
         {
-          clan_tag: "#2PQRJ8LV",
+          clan_tag: "#0QC8RCGY",
           action,
           decline_reasons: [],
           model: { set: true, refused: false },
         },
       ],
-      "POST /api/clan/clans/2PQRJ8LV/actions/w2/draft": (route) => {
+      "POST /api/clan/clans/0QC8RCGY/actions/w2/draft": (route) => {
         drafts.push(route.request().postDataJSON());
         return [
           200,
@@ -184,13 +184,13 @@ test("@narrow a welcome takes the leader's note and completes with both lines se
           },
         ];
       },
-      "POST /api/clan/clans/2PQRJ8LV/actions/w2/decide": (route) => {
+      "POST /api/clan/clans/0QC8RCGY/actions/w2/decide": (route) => {
         decisions.push(route.request().postDataJSON());
         return [200, { ...action, status: "done", can_act: false }];
       },
     }),
   );
-  await page.goto("/clan/2PQRJ8LV/actions/61");
+  await page.goto("/clan/0QC8RCGY/actions/61");
   await page.getByLabel("Draft tone").selectOption("warm");
   await page
     .getByLabel("What should it say?")

@@ -19,11 +19,11 @@ const reply = (body, status = 200) => ({
   text: async () => JSON.stringify(body),
 });
 
-const PLAYER = { player_tag: "#2Y0P8V", name: "Invented One", verified: true };
+const PLAYER = { player_tag: "#00JQ20", name: "Invented One", verified: true };
 const CLAN = {
   ok: true,
   state: "member",
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: "#0QC8RCGY",
   name: "Ada's Clan",
   role: "member",
   race_now: {

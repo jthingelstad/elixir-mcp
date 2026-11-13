@@ -14,26 +14,26 @@ import { renderWithProviders } from "./helpers.jsx";
  * who sent the link.
  */
 const SIDES = [
-  { players: [{ player_tag: "#2PP", name: "Ana" }] },
-  { players: [{ player_tag: "#9QQ", name: '<b>"Bo"</b>' }] },
+  { players: [{ player_tag: "#0CR", name: "Ana" }] },
+  { players: [{ player_tag: "#08C", name: '<b>"Bo"</b>' }] },
 ];
 const DUO = [
   {
     players: [
-      { player_tag: "#2PP", name: "Ana" },
-      { player_tag: "#8RR", name: "Cy" },
+      { player_tag: "#0CR", name: "Ana" },
+      { player_tag: "#0RV", name: "Cy" },
     ],
   },
   {
     players: [
-      { player_tag: "#9QQ", name: "Bo" },
-      { player_tag: "#UUU", name: null },
+      { player_tag: "#08C", name: "Bo" },
+      { player_tag: "#00L", name: null },
     ],
   },
 ];
 const ok = (data) => ({ ok: true, status: 200, data });
 // The reader's own player, on none of these pages.
-const MINE = { claims: [{ player_tag: "#YYY", relationship: "primary" }] };
+const MINE = { claims: [{ player_tag: "#0U0", relationship: "primary" }] };
 
 afterEach(() => {
   cleanup();
@@ -42,28 +42,28 @@ afterEach(() => {
 
 test("a battle's left side comes first; a post's player leads; your own are left out", () => {
   expect(followSuggestions(DUO, null).map((p) => p.tag)).toEqual([
-    "#2PP",
-    "#8RR",
-    "#9QQ",
-    "#UUU",
+    "#0CR",
+    "#0RV",
+    "#08C",
+    "#00L",
   ]);
-  expect(followSuggestions(DUO, null, "#9QQ").map((p) => p.tag)).toEqual([
-    "#9QQ",
-    "#2PP",
-    "#8RR",
-    "#UUU",
+  expect(followSuggestions(DUO, null, "#08C").map((p) => p.tag)).toEqual([
+    "#08C",
+    "#0CR",
+    "#0RV",
+    "#00L",
   ]);
   const me = {
     claims: [
-      { player_tag: "#2PP", relationship: "primary" },
-      { player_tag: "#8RR", relationship: "friend" },
+      { player_tag: "#0CR", relationship: "primary" },
+      { player_tag: "#0RV", relationship: "friend" },
     ],
   };
   // A friend you already follow stays (it says Following); yours do not.
   expect(followSuggestions(DUO, me).map((p) => p.tag)).toEqual([
-    "#8RR",
-    "#9QQ",
-    "#UUU",
+    "#0RV",
+    "#08C",
+    "#00L",
   ]);
   expect(followSuggestions([], me)).toEqual([]);
 });
@@ -71,7 +71,7 @@ test("a battle's left side comes first; a post's player leads; your own are left
 test("each player says what a Follow costs, and the Follow is Home's", async () => {
   vi.spyOn(api, "followCost").mockImplementation(async (tag) =>
     ok(
-      tag === "#2PP"
+      tag === "#0CR"
         ? { player_tag: tag, following: false, free: true, used: 3, limit: 50 }
         : {
             player_tag: tag,
@@ -85,7 +85,7 @@ test("each player says what a Follow costs, and the Follow is Home's", async () 
   const claim = vi
     .spyOn(api, "claimAction")
     .mockResolvedValue(
-      ok({ player_tag: "#9QQ", relationship: "friend", added: true }),
+      ok({ player_tag: "#08C", relationship: "friend", added: true }),
     );
   renderWithProviders(<FollowFromHere sides={SIDES} me={MINE} />);
   expect(
@@ -99,7 +99,7 @@ test("each player says what a Follow costs, and the Follow is Home's", async () 
   fireEvent.click(screen.getByRole("button", { name: 'Follow <b>"Bo"</b>' }));
   await waitFor(() =>
     expect(claim).toHaveBeenCalledWith({
-      player_tag: "#9QQ",
+      player_tag: "#08C",
       relationship: "friend",
     }),
   );
@@ -109,7 +109,7 @@ test("each player says what a Follow costs, and the Follow is Home's", async () 
 test("a player already followed says so, and a full pool cannot take a slot", async () => {
   vi.spyOn(api, "followCost").mockImplementation(async (tag) =>
     ok(
-      tag === "#2PP"
+      tag === "#0CR"
         ? { player_tag: tag, following: true, free: true, used: 50, limit: 50 }
         : {
             player_tag: tag,
