@@ -138,6 +138,11 @@ test.describe("@narrow Settings at phone width", () => {
       .locator(".kit-bottom")
       .getByRole("link", { name: "Find" })
       .click();
+    // Find opens on Suggested (2026-11-13); Search is its tab.
+    await page
+      .getByRole("tablist", { name: "Find" })
+      .getByRole("tab", { name: "Search" })
+      .click();
     await page.locator(".kit-find__search").click();
     const sheet = page.getByRole("dialog");
     await expect(sheet).toBeVisible();
@@ -157,6 +162,11 @@ test.describe("@narrow Settings at phone width", () => {
     await page
       .locator(".kit-bottom")
       .getByRole("link", { name: "Find" })
+      .click();
+    // Find opens on Suggested (2026-11-13); Search is its tab.
+    await page
+      .getByRole("tablist", { name: "Find" })
+      .getByRole("tab", { name: "Search" })
       .click();
     await page.locator(".kit-find__search").click();
     const sheet = page.getByRole("dialog");
