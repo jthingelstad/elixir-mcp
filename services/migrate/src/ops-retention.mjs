@@ -4,6 +4,7 @@ import {
   backfillReadFacts,
   checkReadFacts,
 } from "@elixir-mcp/record/read-facts";
+import { vacuumAnalyze } from "./vacuum.mjs";
 
 /** {retention_dry_run}: what the daily retention trim would delete
  *  today, per declared table, without deleting (a read-only
@@ -24,14 +25,25 @@ export async function retentionDryRunOp(databaseUrl) {
  * battlelog_read_gap) from the receipts still held, one subject per
  * statement, for `budget_ms` (45 s by default, 60 s at most). Pass the
  * returned `after` back until `done`. Idempotent; must reach done before
- * the receipt trim runs. Writes only the two fact tables.
+ * the receipt trim runs. Writes only the two fact tables, and the batch
+ * that reaches done vacuums them.
  */
 export async function readFactsBackfillOp(databaseUrl, spec = {}) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
     await db.query("set statement_timeout = '30s'");
-    return await backfillReadFacts(db, spec);
+    const result = await backfillReadFacts(db, spec);
+    if (!result?.done) return result;
+    // A backfill that does not vacuum is not finished (DECISIONS): both
+    // tables were filled in bulk after 0259 made them, so until a vacuum
+    // they have no visibility map and maybe no statistics. The batch
+    // that reaches done runs it, inside the Lambda's 300 s (at most 60 s
+    // of budget before this, 90 s per table here).
+    const vacuumed = [];
+    for (const table of ["admitted_read_day", "battlelog_read_gap"])
+      vacuumed.push(await vacuumAnalyze(db, table, { statementMs: 90_000 }));
+    return { ...result, vacuumed };
   } finally {
     await db.end();
   }

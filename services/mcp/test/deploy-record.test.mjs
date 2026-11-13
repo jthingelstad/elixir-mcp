@@ -255,15 +255,22 @@ test("deploy.mjs takes the production lock after the CI gate, break-glass includ
   t.mock.method(console, "warn", (line) => warned.push(line));
   await gate.run({ args: { breakGlass: true } });
   assert.match(warned.join("\n"), /--break-glass: the CI gate is skipped/);
-  // The record is written after the smoke, the acceptance gate and the
-  // clean-tree check, last.
-  assert.deepEqual(names.slice(-4), [
+  // The record is written after the smoke, the visibility check, the
+  // acceptance gate and the clean-tree check, last.
+  assert.deepEqual(names.slice(-5), [
     "smoke",
+    "visibility",
     "acceptance",
     "clean-tree",
     "record",
   ]);
-  for (const phase of ["smoke", "acceptance", "clean-tree", "record"])
+  for (const phase of [
+    "smoke",
+    "visibility",
+    "acceptance",
+    "clean-tree",
+    "record",
+  ])
     assert.equal(DEPLOY_PHASES[at(phase)].when, undefined, phase);
 });
 

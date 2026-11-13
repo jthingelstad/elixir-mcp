@@ -56,7 +56,11 @@ migrate (push the migrate bundle, the reference-seed check when asked,
 apply), vocabulary import, stack, the endpoint grant, the first
 migrations (`--create` only), the public statistics snapshot (platform
 lane; a failed snapshot stops the deploy), web (card art, site,
-invalidation, prune), smoke, then acceptance when asked (`--acceptance`
+invalidation, prune), smoke, the visibility check (the migrate
+Lambda's read-only `{visibility_check}`: one WARNING per table whose
+visibility map is mostly empty or that was never analyzed, with the
+`{vacuum}` command to run after the deploy; never fails it,
+`scripts/lib/visibility-check.mjs`), then acceptance when asked (`--acceptance`
 or `--acceptance=<family>`; paced, and refused under the database's
 headroom floor, read in the account phase and again before the run:
 `scripts/lib/db-headroom.mjs`, `--skip-headroom-check` in an outage),

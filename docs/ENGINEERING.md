@@ -83,11 +83,20 @@ Consecutive 403s open a per-collector breaker and drain it.
   `lock_timeout` first. `migration-lock.test.mjs` pins every shipped file's
   sha256 (`db/migrations.sha256`), so an edit fails verify, not the deploy.
 - **A backfill that does not vacuum is not finished.** A hot backfill
-  leaves the visibility map empty (`relallvisible = 0`) and every
-  index-only scan falls back to the heap, so a big rewrite ends with the
-  `{vacuum}` op on the tables it touched. Never run a backfill and a deploy
-  together: migrate has reserved concurrency 1, so the deploy's migration
-  step gets a 429 and the deploy stops.
+  or a VACUUM FULL leaves the visibility map empty (`relallvisible = 0`)
+  and every index-only scan falls back to the heap; autovacuum looks away,
+  because pruned updates leave no dead tuples and a VACUUM FULL is not a
+  vacuum to the insert trigger. So the write vacuums what it touched:
+  a migration that bulk-writes or rewrites a table names it in
+  `-- vacuum after: <table>, ...` and the ladder runs VACUUM (ANALYZE)
+  on it after the last commit, inside the Lambda's time
+  (`services/migrate/src/vacuum-after.mjs`, enforced from 0263 by
+  `vacuum-after.test.mjs`); `{rewrite_table}` and `{read_facts_backfill}`
+  vacuum their tables when they finish; any other backfill ends with the
+  `{vacuum}` op. The deploy reads `{visibility_check}` after smoke and
+  warns, naming the `{vacuum}` to run, for any table still behind. Never
+  run a backfill and a deploy together: migrate has reserved concurrency
+  1, so the deploy's migration step gets a 429 and the deploy stops.
 - **Live diagnostics only through migrate ops.** No psql path reaches the
   private database; the ops (`{explain_*}`, `{vacuum}`, the census ops) are
   the read path, and an EXPLAIN runs the exact SQL the tool serves. Only

@@ -69,7 +69,7 @@ const PINNED = {
   ],
   "services/migrate/src/ops-analysis.mjs": [1, "the last `hours` of receipts"],
   "services/migrate/src/ops-diagnostics.mjs": [
-    12,
+    11,
     "operator diagnostics: counts by endpoint, the last 48 hours, a subject's receipts held, job dedupe, the endpoint census",
   ],
   "services/migrate/src/ops-funnel.mjs": [

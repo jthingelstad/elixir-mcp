@@ -547,7 +547,7 @@ test("deploy lanes: migrations and the stack update run only in the platform lan
     "assets",
   ];
   const web = ["card-art", "site", "invalidate", "prune"];
-  const tail = ["smoke", "acceptance", "clean-tree", "record"];
+  const tail = ["smoke", "visibility", "acceptance", "clean-tree", "record"];
   // The site lane: no migrate push, no migrations, no stack update; the
   // vocabulary rides it anyway, and the grants are checked and read back.
   assert.deepEqual((await deployPhases([], { lane: "site" })).ran, [

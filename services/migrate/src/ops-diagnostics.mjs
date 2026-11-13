@@ -1,4 +1,5 @@
 import pg from "pg";
+import { vacuumAnalyze } from "./vacuum.mjs";
 
 /** Read-only ops stats ({stats: true}) — the admin/ops query path from
  *  DESIGN §7: counts only, no row data, safe to invoke any time. */
@@ -730,41 +731,6 @@ export async function explainParticipation(databaseUrl, spec = {}) {
   }
 }
 
-/** Tables the vacuum op may name. A closed list: the op takes a table
- *  name into SQL. `{rewrite_table}` (VACUUM FULL) writes too. */
-const VACUUMABLE = new Set([
-  "battle",
-  "battle_participant",
-  "battle_participant_round",
-  "player_snapshot_daily",
-  "deck",
-  // Retained tables changed by the approved right-sizing purge. Retired
-  // global/group tables contract separately once their last readers are gone.
-  "api_receipt",
-  "api_payload",
-  "mcp_call_audit",
-  "email_issue",
-  "battlelog_high_water",
-  "player_daily_battle_rollup",
-  "player_badge",
-  "player_card",
-  "player_event",
-  "player_pol_season",
-  "player_progress_daily",
-  "clan_event",
-  "clan_membership",
-  "clan_snapshot_daily",
-  "war_attendance_day",
-  "war_participation",
-  "war_period_anchor",
-  "war_period_log",
-  "war_week_clan",
-  "war_week",
-  // 0259's read facts, after {read_facts_backfill}.
-  "admitted_read_day",
-  "battlelog_read_gap",
-]);
-
 /**
  * VACUUM (ANALYZE) one named table ({vacuum: {table}}), so its
  * visibility map is rebuilt and the planner can take an index-only scan
@@ -773,27 +739,18 @@ const VACUUMABLE = new Set([
  * heap I/O for it (0103 has the story). VACUUM cannot run inside a
  * migration's transaction, hence an op. Reports the map before and
  * after; touches no row.
+ *
+ * Any ordinary table in the public schema with a plain name, read from
+ * the catalog (vacuum.mjs): the hand-kept VACUUMABLE list it replaced
+ * (2026-11-13) could not keep up with the tables {visibility_check}
+ * names. 240 s per statement, inside the Lambda's 300.
  */
 export async function vacuum(databaseUrl, spec = {}) {
   const table = String(spec.table ?? "");
-  if (!VACUUMABLE.has(table)) {
-    return { error: "unknown_table", allowed: [...VACUUMABLE] };
-  }
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    const map = async () =>
-      (
-        await db.query(
-          `select relpages, relallvisible, reltuples::bigint as reltuples
-             from pg_class where relname = $1`,
-          [table],
-        )
-      ).rows[0];
-    const before = await map();
-    const started = Date.now();
-    await db.query(`vacuum (analyze) ${table}`);
-    return { table, ms: Date.now() - started, before, after: await map() };
+    return await vacuumAnalyze(db, table, { statementMs: 240_000 });
   } finally {
     await db.end();
   }

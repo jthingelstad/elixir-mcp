@@ -57,7 +57,10 @@ named about a dozen ops and the rest could be found only by reading
    preceded the 2026-09-11 RDS memory recovery.
 7. **A backfill is not finished until it is vacuumed, and never runs with
    a deploy** (DECISIONS). A bulk write empties the visibility map, so
-   index-only scans read the heap until `{vacuum}` runs; a looping
+   index-only scans read the heap until `{vacuum}` runs (a migration's
+   `-- vacuum after:`, `{rewrite_table}` and `{read_facts_backfill}` do
+   it themselves; `{visibility_check}` names any table still behind, and
+   every deploy prints it); a looping
    backfill holds the function, so the deploy's migration step gets a 429
    and the deploy stops (twice on 2026-09-22). The procedure is the
    `migration` skill's.

@@ -18,6 +18,7 @@
  */
 
 import pg from "pg";
+import { vacuumAnalyze } from "./vacuum.mjs";
 
 /** The tables {rewrite_table} may name: a closed list, because the op
  *  takes the name into SQL. battle_participant held 0097's dropped
@@ -52,6 +53,17 @@ export const REWRITE_TIMEOUTS = Object.freeze({
   statementMs: 240_000,
   lockMs: 10_000,
 });
+
+/** VACUUM FULL writes a new heap with an empty visibility map
+ *  (relallvisible 0), and it does not count as a vacuum for the
+ *  insert-driven trigger, so every index-only read of the table fetched
+ *  the heap until a plain VACUUM ran (2026-11-13: battle_participant and
+ *  battle after the data layer refactor, clans_participation at 10 to
+ *  22 s cold). The op ends with one, inside what is left of the Lambda's
+ *  300 s: at most 45 s, and never past 285 s from the op's start. A
+ *  plain vacuum of a just-rewritten table has no dead tuples to clean;
+ *  it reads the heap once (battle_participant, 11,735 pages: 7 s). */
+const VACUUM_AFTER_REWRITE = Object.freeze({ maxMs: 45_000, endMs: 285_000 });
 
 /**
  * @param {string} databaseUrl
@@ -105,7 +117,20 @@ export async function rewriteTable(
     }
     const ms = Date.now() - started;
     await db.query("reset statement_timeout");
+    await db.query("reset lock_timeout");
     const after = await size();
+    const vacuumMs = Math.min(
+      VACUUM_AFTER_REWRITE.maxMs,
+      VACUUM_AFTER_REWRITE.endMs - (Date.now() - started),
+    );
+    const vacuumed =
+      vacuumMs >= 1_000
+        ? await vacuumAnalyze(db, table, { statementMs: vacuumMs })
+        : {
+            table,
+            skipped: "deadline",
+            command: `npm run op -- '${JSON.stringify({ vacuum: { table } })}'`,
+          };
     return {
       table,
       ms,
@@ -113,6 +138,7 @@ export async function rewriteTable(
       after,
       freed_bytes: before.bytes - after.bytes,
       timeouts: timeoutsOut,
+      vacuumed,
     };
   } finally {
     await db.end();

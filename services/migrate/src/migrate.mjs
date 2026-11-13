@@ -12,6 +12,19 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
+import { declaredVacuum } from "./vacuum-after.mjs";
+import { vacuumAnalyze, vacuumCommand } from "./vacuum.mjs";
+
+/** The most one `-- vacuum after:` vacuum may take, and how long the
+ *  ladder may spend on them all when the caller names no deadline (the
+ *  CLI, tests). The Lambda passes its own end less a margin as the
+ *  deadline (lambda.mjs). battle_participant's whole heap, 11,735 pages
+ *  with an empty map, took 7 s on the db.t4g.micro on 2026-11-13. */
+export const VACUUM_AFTER_BUDGET_MS = 120_000;
+
+/** Below this much budget a vacuum is not started; it is reported with
+ *  the op that runs it instead. */
+const VACUUM_AFTER_MIN_MS = 5_000;
 
 // Arbitrary but stable app-wide advisory lock key for migrations.
 export const MIGRATION_LOCK_KEY = 0x314c589;
@@ -39,12 +52,29 @@ export async function loadMigrations(dir) {
       name,
       sql,
       sha256: createHash("sha256").update(sql).digest("hex"),
+      vacuumAfter: declaredVacuum(sql),
     });
   }
   return migrations;
 }
 
-export async function migrate({ databaseUrl, migrationsDir, log = () => {} }) {
+/**
+ * Apply every pending migration, then vacuum the tables they declare.
+ *
+ * The vacuums run after the last commit, on the same connection (VACUUM
+ * refuses a transaction), each table once, while `vacuumDeadline` (epoch
+ * ms) allows. A vacuum that fails or does not fit is reported in
+ * `vacuumed` with the op that finishes it, and never fails the ladder:
+ * the migrations are already committed. A migration that fails stops the
+ * ladder before any vacuum, and the deploy's visibility check names
+ * whatever its earlier, committed files left behind.
+ */
+export async function migrate({
+  databaseUrl,
+  migrationsDir,
+  log = () => {},
+  vacuumDeadline = Date.now() + VACUUM_AFTER_BUDGET_MS,
+}) {
   const migrations = await loadMigrations(migrationsDir);
   const client = new pg.Client({ connectionString: databaseUrl });
   await client.connect();
@@ -86,7 +116,24 @@ export async function migrate({ databaseUrl, migrationsDir, log = () => {} }) {
         });
       }
     }
-    return { applied: applied.length, ran: pending.length };
+    const tables = [...new Set(pending.flatMap((m) => m.vacuumAfter))];
+    const vacuumed = [];
+    for (const table of tables) {
+      const left = vacuumDeadline - Date.now();
+      const result =
+        left < VACUUM_AFTER_MIN_MS
+          ? { table, skipped: "deadline", command: vacuumCommand(table) }
+          : await vacuumAnalyze(client, table, {
+              statementMs: Math.min(left, VACUUM_AFTER_BUDGET_MS),
+            });
+      log(`vacuum after: ${JSON.stringify(result)}`);
+      vacuumed.push(result);
+    }
+    return {
+      applied: applied.length,
+      ran: pending.length,
+      ...(vacuumed.length ? { vacuumed } : {}),
+    };
   } finally {
     await client
       .query("select pg_advisory_unlock($1)", [MIGRATION_LOCK_KEY])

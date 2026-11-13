@@ -18,7 +18,9 @@ op's anatomy and the SQL traps.
 **`/migration <change>`** (say, `/migration battle_participant gains the
 opponent's deck level`): sort, write, test, re-pin, `/ship`, then
 backfill and vacuum. **`/migration check`** is read-only: every
-migration not yet on `origin/main`, against this file, before `/ship`.
+migration not yet on `origin/main`, against this file, before `/ship`;
+among the rest, that each table it writes rows of is on its
+`-- vacuum after:` line ("Vacuum after every big write").
 
 ## Preflight
 
@@ -70,9 +72,8 @@ migration not yet on `origin/main`, against this file, before `/ship`.
 | Delete or rewrite production rows | Jamie first |
 
 "Large" is ENGINEERING's test: "If a migration needs more than a few
-seconds of lock, it is an op." `VACUUMABLE` (`ops-diagnostics.mjs`)
-names the tables that have needed one; a small table takes its update
-in the migration (0158, 0176).
+seconds of lock, it is an op." A small table takes its update in the
+migration (0158, 0176), and declares it (`-- vacuum after:`, below).
 
 ## What the rules test enforces
 
@@ -151,8 +152,50 @@ A bulk UPDATE empties the visibility map, index-only scans fall back to
 the heap, and HOT updates never trip autovacuum (0103). On 2026-09-16
 Clan pages sat at 8 s on `relallvisible = 0`; on 2026-09-22 a
 128,818-row backfill held `clans_participation` at 17.5 s until a
-vacuum made it 906 ms. So a big write ends with `{vacuum: {table}}` on
-each table it touched, reading `relallvisible` against `relpages`.
+vacuum made it 906 ms; on 2026-11-13 the data layer refactor's rewrites
+(VACUUM FULL writes a new heap with an empty map) left `battle` and
+`battle_participant` at 0 and failed the acceptance gate six times
+until `{vacuum}` made the read 387 ms. So every big write vacuums what
+it touched, and nothing relies on remembering:
+
+- **A migration declares it.** A file that updates, deletes from,
+  inserts-selects into, creates-as-select, adds a column with a
+  function-call default to, or changes a column type of any table
+  carries one line, anywhere in the file:
+
+  ```sql
+  -- vacuum after: battle_participant, battle
+  ```
+
+  The runner (`migrate.mjs`) reads it (`vacuum-after.mjs`), and after
+  the last pending file commits runs `VACUUM (ANALYZE)` on each named
+  table once, on the ladder's connection, until the Lambda's remaining
+  time less 30 s (120 s at most per table). The deploy prints the
+  answer (`vacuumed`); a vacuum that fails or does not fit is a WARNING
+  with the `{vacuum}` to run, never a failed ladder, because the
+  migrations are already committed. A failed migration stops the ladder
+  before any vacuum.
+- **The test holds it.** `services/migrate/test/vacuum-after.test.mjs`
+  fails verify for a migration from 0263 on whose SQL plainly bulk-writes
+  a table it does not declare, and for a declared name the file never
+  mentions. Any table counts, small ones too: a vacuum of a small table
+  costs milliseconds and the test cannot know production's sizes.
+  Earlier files are applied and immutable, so they are not checked. Its
+  limits are in `vacuum-after.mjs`: it skips function bodies (not a DO
+  block's) and `insert ... values`, and cannot see dynamic SQL or a
+  write inside a function the migration calls. Declare those by hand.
+- **An op vacuums what it rewrote.** A backfill op vacuums its tables
+  in the batch that reports `done` (`{read_facts_backfill}`); `{rewrite_table}`
+  ends its VACUUM FULL with a plain vacuum. A new write op does the same
+  with `vacuumAnalyze` (`src/vacuum.mjs`).
+- **By hand, any table:** `{vacuum: {table}}` takes any ordinary public
+  table (checked against the catalog), reading `relallvisible` against
+  `relpages` before and after.
+- **The deploy checks.** After smoke it reads `{visibility_check}` and
+  prints `WARNING: <table>: ...` with the `{vacuum}` command for each
+  table of 500 pages or more under half all-visible, or never analyzed.
+  It never fails the deploy and never writes; run each command once the
+  deploy has released the lock.
 
 ## The header and the comments
 
@@ -190,7 +233,7 @@ new one), so all run the file. A test of the ladder itself (a partial set,
 a rerun) makes a bare database and calls `migrate()`.
 
 ```sh
-node --test services/migrate/test/migration-rules.test.mjs services/migrate/test/migration-lock.test.mjs
+node --test services/migrate/test/migration-rules.test.mjs services/migrate/test/migration-lock.test.mjs services/migrate/test/vacuum-after.test.mjs
 npm test -w @elixir-mcp/migrate   # ladder applies, is idempotent; fingerprint
 ```
 
@@ -214,8 +257,11 @@ Jamie's go. Live data gets reads and refusal paths only, never a write.
 
 ## Hand-off
 
-`/ship` ships it. After the deploy, with nothing else deploying, run the
-op to `done`, then `{vacuum}`, through `/ops`, which is also the path
+`/ship` ships it. The ladder vacuums the tables the file declares; read
+`vacuumed` in the deploy's migrations line and the visibility check's
+lines after smoke, and run any `{vacuum}` a WARNING names. After the
+deploy, with nothing else deploying, run the op to `done` (it vacuums
+what it wrote; otherwise `{vacuum}`), through `/ops`, which is also the path
 for live diagnostics (`{backends}`; `{terminate_backends}` for an
 orphaned backend is a write that can end live queries, so it is Jamie's
 call unless `docs/OPERATIONS.md`, "Incident authority", allows it). Readers (`/tool-change` when a tool moves), the index
