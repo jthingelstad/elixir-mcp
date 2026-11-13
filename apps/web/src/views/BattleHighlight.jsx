@@ -241,6 +241,29 @@ function Posted({ h, name, invalidate }) {
           {name}’s game name and the battle.
         </p>
       )}
+      {h.share_url && <ClanDiscord h={h} name={name} invalidate={invalidate} />}
+    </div>
+  );
+}
+
+/** A shared highlight in its player's clan's Discord (#767): offered only
+ *  when the server says the clan's leaders allow it, and only once. */
+function ClanDiscord({ h, name, invalidate }) {
+  const post = useWrite(api.postHighlightToClan, { invalidate });
+  const state = h.clan_discord;
+  if (state?.posted_at)
+    return <p className="footnote">Posted in your clan’s Discord.</p>;
+  if (!state?.available) return null;
+  return (
+    <div className="highlight-posted__actions">
+      <ConfirmAction
+        label="Post in your clan’s Discord"
+        danger={false}
+        title="Post in your clan’s Discord?"
+        body={`Everyone in the channel sees your words, ${name}’s game name, the result and the link. It is posted once, and editing or deleting the highlight later does not change it there.`}
+        confirm="Post"
+        run={() => post.run(h.highlight_id)}
+      />
     </div>
   );
 }

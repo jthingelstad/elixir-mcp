@@ -171,6 +171,15 @@ JSON at `/api/public/highlights/<id>`. Sharing again gives the same link.
 Deleting the highlight makes the link answer "No post at this link" within
 about a minute.
 
+Once a highlight is shared, and when its player is in a clan whose leaders
+have turned on **Shared highlights** for the clan's Discord channel
+([The clan's activity in Discord](/docs/clan-discord#the-clans-activity-in-discord)),
+you may choose **Post in your clan's Discord**. Elixir posts it there once,
+through the clan's own webhook: the player's game name, the result, your
+words and the link, which shows no preview. Nobody can be pinged by it,
+whatever the name or words say. Editing or deleting the highlight later
+does not change the channel's post.
+
 ### Share with your context
 
 In Stats › Battles, choose a recorded battle. Inspect

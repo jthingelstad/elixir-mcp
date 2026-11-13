@@ -83,12 +83,16 @@ async function picture(db, shareId, shareImage) {
 }
 
 /** `wake(db, highlight)`: wakes the Discord syndication its player reaches
- *  (syndication wakeAfterHighlight); null without the outbox. */
+ *  (syndication wakeAfterHighlight); null without the outbox.
+ *  `clanDiscord`: { state(db, accountId, id), post(db, accountId, id) },
+ *  a shared highlight posted in its player's clan's Discord by its owner
+ *  (#767, syndication highlight-share.mjs); null without the outbox. */
 export function highlightRoutes({
   resolveAccount,
   siteShell,
   shareImage,
   wake = null,
+  clanDiscord = null,
 }) {
   const person = (db, event, write) =>
     resolveAccount(db, event, { requireContractHeader: write });
@@ -112,10 +116,36 @@ export function highlightRoutes({
           error: "bad_request",
           message: "Name the battle: ?battle=<id or link>.",
         });
-      return reply(await highlightsOn(db, account.accountId, battle), (r) => ({
+      const on = await highlightsOn(db, account.accountId, battle);
+      // Each of the owner's highlights says whether it may go to its
+      // player's clan's Discord now, and when it went (#767).
+      if (!on.error)
+        for (const h of on.highlights)
+          h.clan_discord = clanDiscord
+            ? await clanDiscord.state(db, account.accountId, h.highlight_id)
+            : null;
+      return reply(on, (r) => ({
         battle_id: r.battle_id,
         can_highlight_as: r.can_highlight_as,
         highlights: r.highlights,
+      }));
+    },
+
+    // The owner posts a shared highlight in its player's clan's Discord,
+    // once, where the clan's leaders allow it (#767).
+    "POST /api/me/highlights/discord": async (db, event, body) => {
+      const account = await person(db, event, true);
+      if (!account) return unauthenticated();
+      const id = String(body.highlight_id ?? "");
+      if (!UUID_RE.test(id)) return notFound();
+      if (!clanDiscord)
+        return json(503, {
+          error: "unavailable",
+          message: "Discord posting is not set up.",
+        });
+      return reply(await clanDiscord.post(db, account.accountId, id), (r) => ({
+        posted_at: r.posted_at,
+        already: r.already,
       }));
     },
 

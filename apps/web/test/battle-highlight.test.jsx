@@ -98,3 +98,73 @@ test("a posted highlight shows its words as text, with Share and Edit words", as
     screen.queryByRole("button", { name: "Post to your timeline" }),
   ).toBeNull();
 });
+
+const SHARED = {
+  highlight_id: "22222222-2222-4222-8222-222222222222",
+  player_tag: "#2PP",
+  words: "gg",
+  share_url: "https://elixir.poapkings.com/h/abc",
+};
+
+test("a shared highlight offers its clan's Discord only when the server says so, and asks first", async () => {
+  vi.spyOn(api, "myHighlights").mockResolvedValue(
+    ok({
+      battle_id: "x",
+      can_highlight_as: ["#2PP"],
+      highlights: [
+        { ...SHARED, clan_discord: { available: true, posted_at: null } },
+      ],
+    }),
+  );
+  const post = vi
+    .spyOn(api, "postHighlightToClan")
+    .mockResolvedValue(
+      ok({ posted_at: "2026-11-13T00:00:00Z", already: false }),
+    );
+  renderWithProviders(<BattleHighlight battle={BATTLE} sides={SIDES} />);
+  const trigger = await screen.findByRole("button", {
+    name: "Post in your clan’s Discord",
+  });
+  // An additive act: a plain small button, never gold or red.
+  expect(trigger.className).toBe("btn btn--sm");
+  fireEvent.click(trigger);
+  expect(post).not.toHaveBeenCalled();
+  fireEvent.click(await screen.findByRole("button", { name: "Post" }));
+  await waitFor(() =>
+    expect(post).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222"),
+  );
+});
+
+test("a highlight already in the clan's Discord says so; one the clan does not take offers nothing", async () => {
+  vi.spyOn(api, "myHighlights").mockResolvedValue(
+    ok({
+      battle_id: "x",
+      can_highlight_as: ["#2PP"],
+      highlights: [
+        {
+          ...SHARED,
+          clan_discord: { available: false, posted_at: "2026-11-13T00:00:00Z" },
+        },
+      ],
+    }),
+  );
+  renderWithProviders(<BattleHighlight battle={BATTLE} sides={SIDES} />);
+  expect(
+    await screen.findByText("Posted in your clan’s Discord."),
+  ).toBeTruthy();
+  cleanup();
+  vi.spyOn(api, "myHighlights").mockResolvedValue(
+    ok({
+      battle_id: "x",
+      can_highlight_as: ["#2PP"],
+      highlights: [
+        { ...SHARED, clan_discord: { available: false, posted_at: null } },
+      ],
+    }),
+  );
+  renderWithProviders(<BattleHighlight battle={BATTLE} sides={SIDES} />);
+  await screen.findByText("“gg”");
+  expect(
+    screen.queryByRole("button", { name: "Post in your clan’s Discord" }),
+  ).toBeNull();
+});

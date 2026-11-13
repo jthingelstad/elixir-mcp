@@ -200,11 +200,12 @@ test("activity: the policy sets the defaults and rules war out; a leader's switc
     members: true,
     milestones: true,
     war: false,
+    highlights: false,
   });
   assert.match(view.body.policy.ruled_out.war, /does not take part/);
   assert.deepEqual(
     view.body.categories.map((x) => x.key),
-    ["members", "milestones", "war"],
+    ["members", "milestones", "war", "highlights"],
   );
   assert.equal(view.body.editor_runs_per_day, ACTIVITY_USES_PER_DAY);
 
@@ -220,7 +221,13 @@ test("activity: the policy sets the defaults and rules war out; a leader's switc
     members: true,
     milestones: true,
     war: false,
+    highlights: false,
   });
+  // Shared highlights: off until a leader turns them on (#767).
+  const hl = await api(h, c, "PUT", PATH, { categories: { highlights: true } });
+  assert.equal(hl.status, 200);
+  assert.equal(hl.body.in_effect.highlights, true);
+  await api(h, c, "PUT", PATH, { categories: { highlights: null } });
   const war = await api(h, c, "PUT", PATH, { categories: { war: true } });
   assert.equal(war.status, 409);
   assert.equal(war.body.error, "ruled_out");
@@ -248,6 +255,7 @@ test("activity: no policy, nothing is on", async () => {
     members: false,
     milestones: false,
     war: false,
+    highlights: false,
   });
 });
 
