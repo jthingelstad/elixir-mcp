@@ -1263,3 +1263,48 @@ describe("an agent's pages in Settings", () => {
     },
   );
 });
+
+test(
+  "a session that ends under Clan's read turns into the app's sign-in page",
+  { timeout: 20000 },
+  async () => {
+    // The app read its session first and found it signed in; Clan's own
+    // read then answers 401. The app reads its session again, and its
+    // sign-in page follows (Clan has no signed-out page of its own).
+    let meReads = 0;
+    global.fetch = vi.fn(async (path, init = {}) => {
+      const key = `${init.method ?? "GET"} ${String(path).split("?")[0]}`;
+      let status = 404;
+      let body = { error: "not_found" };
+      if (key === "GET /api/me") {
+        meReads += 1;
+        status = 200;
+        body =
+          meReads === 1
+            ? {
+                authenticated: true,
+                email: "fixture@example.test",
+                features: { clan_internal: true },
+                claims: [],
+                recordings: [],
+                signals: {},
+              }
+            : { authenticated: false };
+      } else if (key === "GET /api/clan/me") {
+        status = 401;
+        body = { error: "signed_out" };
+      }
+      return {
+        ok: status < 400,
+        status,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    });
+    window.history.pushState({}, "", "/clan/0QC8RCGY/feed");
+    render(<App />);
+    await screen.findByText("Sign in first");
+    expect(meReads).toBeGreaterThanOrEqual(2);
+    expect(window.location.pathname).toBe("/clan/0QC8RCGY/feed");
+  },
+);
