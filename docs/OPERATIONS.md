@@ -99,10 +99,11 @@ ledger should drain, and both doors should serve.
   checks, since the record moves without a deploy. A red case is a
   finding, never re-run until it is green. The `budgets` suite is
   capacity; the rest is product. It is paced (2026-11-13): after each
-  call it rests twice that call's time (250 ms to 10 s), so the whole
-  suite takes about 45 minutes instead of about 15 and one family about
-  15 to 25, at roughly a third of the read rate. `--no-pace` is for a
-  local server only.
+  call it rests twice that call's time (250 ms to 10 s), at roughly a
+  third of the read rate. Since the Gym left the gate, a paced whole
+  suite (129 to 134 cases, 111 to 114 door calls) takes 1 to 2 minutes:
+  21 to 40 s calling and 44 to 72 s resting in the 2026-11-13 deploy
+  logs. `--no-pace` is for a local server only.
 - **Acceptance and the database (2026-11-13).** At most one acceptance
   run per deploy train: batch the pull requests, deploy them, run the
   gate once on the last deploy, the narrowest family that covers them.
