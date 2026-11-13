@@ -30,6 +30,7 @@ import {
 import { FollowButton } from "./follow.jsx";
 import { Sitting, SITTINGS } from "./Session.jsx";
 import { Cheers } from "./Cheers.jsx";
+import { RacePlace } from "./RacePlace.jsx";
 
 /**
  * Home's one feed (slice 7, #765): the last seven days of everyone you
@@ -376,23 +377,6 @@ const openWord = (it, open) =>
     : open
       ? "Close crossing"
       : "Open crossing";
-
-/** A race week's place as a bar: first fills it, fifth a fifth. A race has
- *  five clans (cr-agent-api-docs models/river-race.md); a place outside one
- *  to five draws nothing. */
-function RacePlace({ rank }) {
-  if (!Number.isInteger(rank) || rank < 1 || rank > 5) return null;
-  const place = ["First", "Second", "Third", "Fourth", "Fifth"][rank - 1];
-  return (
-    <div
-      className={`kit-racebar kit-racebar--p${rank}`}
-      role="img"
-      aria-label={`${place} of five clans`}
-    >
-      <i />
-    </div>
-  );
-}
 
 /** When an item happened, as the feed says it ("Tonight, 7:40 to 8:32 pm"),
  *  with the exact instant for a pointer and a screen reader. A sitting

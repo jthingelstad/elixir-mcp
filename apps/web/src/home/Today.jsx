@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useWrite } from "@elixir-mcp/client";
 import {
   DeckGrid,
   Empty,
@@ -13,14 +15,16 @@ import {
   Chips,
   TagText,
   useClock,
+  WriteError,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { PeopleToFollow } from "./People.jsx";
-import { Step } from "./NewAccount.jsx";
+import { RacePlace } from "./RacePlace.jsx";
 import { ladderHref } from "../ladder/ladder.js";
 import { SETTINGS } from "../lib/settings.js";
 import { tagPath } from "../lib/tag-url.js";
 import {
+  keys,
   useHomeClan,
   useHomeNeeds,
   useHomeWeek,
@@ -30,7 +34,10 @@ import {
   LEADS,
   STANDING,
   actionsFrom,
+  DIGEST_CHOICES,
+  digestChoice,
   digestLine,
+  digestWhen,
   lastRaceLine,
   modeWord,
   raceNowLine,
@@ -64,6 +71,7 @@ export function HomePanels({ first, player, feed }) {
           <YourWeek player={player} />
           <ClanPanel clan={clan} player={player} />
           <PeopleToFollow />
+          <DigestPanel first={first} />
         </div>
       </div>
     </div>
@@ -234,7 +242,20 @@ function ClanPanel({ clan, player }) {
       className="kit-panel--clan"
     >
       <Rows>
-        {now ? <Row title="This week’s race" detail={now} /> : null}
+        {now ? (
+          <Row
+            title="This week’s race"
+            detail={
+              <>
+                {now}
+                {clan.race_now?.day_kind === "war" &&
+                !clan.race_now.finished ? (
+                  <RacePlace rank={clan.race_now.place} />
+                ) : null}
+              </>
+            }
+          />
+        ) : null}
         {race ? <Row title="Last race" right={race} /> : null}
         {clan.war_decks ? (
           <Row
@@ -309,64 +330,155 @@ function FollowHomeClan({ clan }) {
 
 /** Home's welcome steps (G4, 2026-11-12): what a new account has left to
  *  do, until all four are done; then nothing, in place of the folded Setup
- *  details. Worked out from the first answer each time (logic.js). */
+ *  details. Worked out from the first answer each time (logic.js). Compact
+ *  since the design canvas of 2026-11-13: one line a step, its way in at
+ *  the right, and the count at the head's right. */
 function Welcome({ first, player }) {
   const state = welcomeSteps(first);
   if (!state || state.all) return null;
   const name = player.name ?? player.player_tag;
   const following = first.welcome.following ?? 0;
   return (
-    <section className="kit-welcome" aria-labelledby="kit-welcome-head">
-      <h2 id="kit-welcome-head">
-        Welcome to Elixir
+    <section
+      className="kit-welcome kit-welcome--compact"
+      aria-labelledby="kit-welcome-head"
+    >
+      <h2
+        id="kit-welcome-head"
+        // A flex row reads each part as its own word, so the head says
+        // its sentence whole.
+        aria-label={`Welcome to Elixir, ${state.done} of ${state.total} done`}
+      >
+        <span>Welcome to Elixir</span>
         <span className="kit-welcome__count">
-          , {state.done} of {state.total} done
+          {state.done} of {state.total} done
         </span>
       </h2>
-      <ol className="kit-steps">
-        <Step
+      <ol className="kit-checks">
+        <Check
           n={1}
-          heading="h3"
           title="Add your player"
           done={state.steps.player}
-          doneLine={
-            <>
-              <TagText>{name}</TagText>, your main player.
-            </>
+          line={
+            state.steps.player ? (
+              <>
+                <TagText>{name}</TagText>, your main player.
+              </>
+            ) : null
           }
         />
-        <Step
+        <Check
           n={2}
-          heading="h3"
           title="Verify it’s you"
           done={state.steps.verify}
-          doneLine={`${name} is verified.`}
-        >
-          Play one battle with the deck Elixir names. Win or lose, it counts.{" "}
-          <Link to={`${SETTINGS}/players/verify`}>Verify {name}</Link>
-        </Step>
-        <Step
+          line={
+            state.steps.verify
+              ? `${name} is verified.`
+              : "Play one battle with the deck Elixir names. Win or lose, it counts."
+          }
+          to={`${SETTINGS}/players/verify`}
+          go="Verify"
+          goName={`Verify ${name}`}
+        />
+        <Check
           n={3}
-          heading="h3"
           title="Follow a few people"
           done={state.steps.follow}
-          doneLine={`You follow ${following} ${following === 1 ? "player" : "players"}.`}
-        >
-          Their battles and big moments fill your feed.{" "}
-          <Link to="/home/find">Find people</Link>
-        </Step>
-        <Step
+          line={
+            state.steps.follow
+              ? `You follow ${following} ${following === 1 ? "player" : "players"}.`
+              : "Their battles and big moments fill your feed."
+          }
+          to="/home/find"
+          go="Find"
+          goName="Find people"
+        />
+        <Check
           n={4}
-          heading="h3"
           title="Choose your digest"
           done={state.steps.digest}
-          doneLine={digestLine(first.welcome.digest)}
-        >
-          Your friends in one email. Weekly, daily or off: your call.{" "}
-          <Link to={`${SETTINGS}/emails`}>Choose your digest</Link>
-        </Step>
+          line={
+            state.steps.digest
+              ? digestLine(first.welcome.digest)
+              : "Your friends in one email. Weekly, daily or off: your call."
+          }
+          to={`${SETTINGS}/emails`}
+          go="Choose"
+          goName="Choose your digest"
+        />
       </ol>
     </section>
+  );
+}
+
+/** One welcome step on one line (canvas .onb): its dot, what it is, a line
+ *  that says what is done or why, and its way in while it is not done. */
+function Check({ n, title, done, line, to = null, go = null, goName = null }) {
+  return (
+    <li className={`kit-check${done ? " kit-step--done" : ""}`}>
+      <span className="kit-step__dot" aria-hidden="true">
+        {done ? "✓" : n}
+      </span>
+      <div className="kit-check__body">
+        <h3>{title}</h3>
+        {line ? <p>{line}</p> : null}
+      </div>
+      {!done && to ? (
+        <Link to={to} className="btn btn--sm" aria-label={goName ?? undefined}>
+          {go}
+        </Link>
+      ) : null}
+    </li>
+  );
+}
+
+/** Your digest, chosen here as on Settings' Emails (design canvas
+ *  2026-11-13): one write to the same row, so choosing here completes the
+ *  welcome step too. The default is weekly; choosing the one already lit
+ *  saves it, which is how a person chooses the default. */
+function DigestPanel({ first }) {
+  const queryClient = useQueryClient();
+  const write = useWrite(api.setDigest, {
+    invalidate: async () => {
+      // The welcome's count and Settings' Emails, not the rest of Home.
+      await queryClient.invalidateQueries({
+        queryKey: ["me", "home"],
+        exact: true,
+      });
+      await queryClient.invalidateQueries({ queryKey: keys.email });
+    },
+  });
+  const [picked, setPicked] = useState(null);
+  if (!first?.welcome) return null;
+  const value = picked ?? digestChoice(first.welcome.digest);
+  return (
+    <Panel title="Your digest" pad className="kit-digest">
+      <p className="kit-digest__line">
+        {value === "off" ? (
+          <>
+            <b>Off.</b> Your feed is still here.
+          </>
+        ) : (
+          <>
+            Comes <b>{digestWhen(value)}</b>: the people you follow and your
+            clan&rsquo;s week, in one email. Skipped when there is no news.
+          </>
+        )}
+      </p>
+      <Chips
+        label="How often your digest comes"
+        options={DIGEST_CHOICES}
+        value={value}
+        onChange={async (v) => {
+          if (write.busy) return;
+          const before = picked;
+          setPicked(v);
+          const res = await write.run(v);
+          if (!res.ok) setPicked(before);
+        }}
+      />
+      <WriteError error={write.error} className="field-error" />
+    </Panel>
   );
 }
 

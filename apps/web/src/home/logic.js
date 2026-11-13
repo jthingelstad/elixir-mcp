@@ -368,6 +368,24 @@ export function welcomeSteps(first) {
   return { steps, done, total: 4, all: done === 4 || Boolean(w.finished_at) };
 }
 
+/** Home's digest panel's three choices (canvas: Weekly / Daily / Off). */
+export const DIGEST_CHOICES = [
+  { key: "weekly", label: "Weekly" },
+  { key: "daily", label: "Daily" },
+  { key: "off", label: "Off" },
+];
+
+/** Which choice is lit: the person's own setting, else the default (the
+ *  digest is on, weekly, until someone changes it). */
+export function digestChoice(digest) {
+  if (digest?.enabled === false) return "off";
+  return digest?.cadence === "daily" ? "daily" : "weekly";
+}
+
+/** When the digest comes, in the panel's words. */
+export const digestWhen = (choice) =>
+  choice === "daily" ? "daily" : "once a week";
+
 /** The digest step's line once chosen, from the person's own setting. */
 export function digestLine(digest) {
   if (!digest) return null;

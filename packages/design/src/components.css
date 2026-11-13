@@ -7603,6 +7603,7 @@ button.kit-row {
 }
 /* A race week's place (canvas .racebar): a gold bar on a sunken trough. */
 .kit-racebar {
+  display: block;
   height: 10px;
   margin: 6px 0 4px;
   border-radius: 999px;
@@ -7756,6 +7757,55 @@ button.kit-row {
   color: var(--ink-faint);
   font-size: 12px;
   font-weight: 400;
+}
+/* Compact (design canvas 2026-11-13, .onb): the count at the head's right,
+   one line a step with its way in at the right. */
+.kit-welcome--compact > h2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.kit-checks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+}
+.kit-check__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.kit-check__body h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+.kit-check__body p {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink-dim);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kit-check > .btn {
+  flex: none;
+}
+/* Home's digest panel (canvas "Your digest"). */
+.kit-digest__line {
+  margin: 0 0 10px;
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+.kit-digest__line b {
+  color: var(--ink);
 }
 .kit-welcome .kit-step {
   padding: 14px 16px;
@@ -8982,6 +9032,9 @@ a.kit-mbattle:hover {
   }
   .kit-home__two {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .kit-check__body p {
+    white-space: normal;
   }
   .kit-top__row {
     min-height: 54px;

@@ -134,7 +134,7 @@ export function NewAccount({
 }
 
 /** One step, as Welcome draws them and Home's welcome steps reuse (G4). */
-export function Step({
+function Step({
   n,
   title,
   heading: Heading = "h2",
