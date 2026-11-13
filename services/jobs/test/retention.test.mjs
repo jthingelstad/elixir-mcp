@@ -334,3 +334,45 @@ test("a captured call's body expires with its call log row", () => {
   const audit = TRIMMED.find((e) => e.table === "mcp_call_audit");
   assert.equal(`${rule[1]} days`, audit.window);
 });
+
+// One lifecycle rule's block from the template, by its Id: from its
+// "- Id:" line to the next line indented no deeper than that dash.
+function lifecycleRule(template, id) {
+  const lines = template.split("\n");
+  const at = lines.findIndex((l) => l.trimStart() === `- Id: ${id}`);
+  if (at < 0) return null;
+  const indent = lines[at].indexOf("-");
+  const block = [lines[at]];
+  for (const line of lines.slice(at + 1)) {
+    if (line.trim() && line.search(/\S/) <= indent) break;
+    block.push(line);
+  }
+  return block.join("\n") + "\n";
+}
+
+test("the payload and sent-mail archives keep a year, then purge every version", () => {
+  // A year like the record (Jamie, 2026-11-13). On the versioned
+  // bucket an expiry only writes a delete marker, so each prefix also
+  // needs its purge rule, or the body stays as a noncurrent version
+  // under expire-superseded-versions for another year.
+  const template = readFileSync(
+    new URL("../../../infra/template.yaml", import.meta.url),
+    "utf8",
+  );
+  const sends = TRIMMED.find((e) => e.table === "email_issue");
+  assert.equal(sends.window, "1 year");
+  for (const [expire, purge, prefix] of [
+    ["payloads-to-ia", "payloads-purge-expired", "payloads/"],
+    ["mail-sent-expire", "mail-sent-purge-expired", "mail/sent/"],
+  ]) {
+    const e = lifecycleRule(template, expire);
+    assert.ok(e, `${expire} is in the template`);
+    assert.match(e, new RegExp(`Prefix: ${prefix}\\n`));
+    assert.match(e, /ExpirationInDays: 365\n/);
+    const p = lifecycleRule(template, purge);
+    assert.ok(p, `${purge} is in the template`);
+    assert.match(p, new RegExp(`Prefix: ${prefix}\\n`));
+    assert.match(p, /NoncurrentDays: 1\n/);
+    assert.match(p, /ExpiredObjectDeleteMarker: true/);
+  }
+});

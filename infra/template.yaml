@@ -2333,6 +2333,20 @@ Resources:
             NoncurrentVersionExpiration:
               NoncurrentDays: 1
             ExpiredObjectDeleteMarker: true
+          # Sent product mail (archive.mjs, mail/sent/) keeps a year, like
+          # the list of sends it is opened from (email_send, trimmed at a
+          # year by the retention trim) and the payload archive (Jamie,
+          # 2026-11-13, docs/DECISIONS.md). The purge rule as calls/.
+          - Id: mail-sent-expire
+            Status: Enabled
+            Prefix: mail/sent/
+            ExpirationInDays: 365
+          - Id: mail-sent-purge-expired
+            Status: Enabled
+            Prefix: mail/sent/
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 1
+            ExpiredObjectDeleteMarker: true
           # Captured tool calls follow the call log's own rule: the
           # retention trim deletes an mcp_call_audit row after 28 days
           # (packages/record/src/retention.mjs), and with it the only way
