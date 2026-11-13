@@ -6,7 +6,7 @@
 import { readFile } from "node:fs/promises";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { cardArtPath } from "@elixir-mcp/contracts";
-import { readPublicBattle } from "../battle-page.mjs";
+import { readPublicBattle, scoreOf } from "../battle-page.mjs";
 import { SHARE_FILES } from "../share-files.mjs";
 
 /** How a battle's mode reads to a person (the page's mode chip). */
@@ -35,9 +35,9 @@ export function previewOf(read) {
   const { battle, sides, games } = read;
   const [l, r] = sides;
   const mode = MODE_LABEL[battle.mode_group] ?? battle.game_mode?.name ?? "";
-  const score = games
-    ? `${games.filter((g) => g.winner === "left").length}–${games.filter((g) => g.winner === "right").length}`
-    : `${l.crowns ?? "?"}–${r.crowns ?? "?"}`;
+  // The read's one score (games won, or crowns): battle-page.mjs.
+  const s = read.score ?? scoreOf(l, r, games);
+  const score = `${s.left ?? "?"}–${s.right ?? "?"}`;
   const title = `${names(l)} ${score} ${names(r)}${mode ? `, ${mode}` : ""}`;
   const labels = [l, r].map((s) => {
     const p = s.players[0];

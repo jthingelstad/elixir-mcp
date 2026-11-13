@@ -111,6 +111,34 @@ function roundWinner(a, b) {
   return la > lb ? 0 : 1;
 }
 
+/** The score the page leads with. A duel's is the games each side won,
+ *  when the games' results are recorded and agree with the battle's
+ *  recorded outcome; otherwise the crowns, which for a duel are summed
+ *  over its games (`unit` says which). The page, its preview and its
+ *  picture all print this one score, so none of them can contradict the
+ *  result the record holds. */
+export function scoreOf(left, right, games) {
+  if (games) {
+    const won = (w) => games.filter((g) => g.winner === w).length;
+    const l = won("left");
+    const r = won("right");
+    const agrees =
+      left.outcome === "win"
+        ? l > r
+        : left.outcome === "loss"
+          ? l < r
+          : left.outcome === "draw"
+            ? l === r && l > 0
+            : false;
+    if (agrees) return { left: l, right: r, unit: "games" };
+  }
+  return {
+    left: left.crowns ?? null,
+    right: right.crowns ?? null,
+    unit: "crowns",
+  };
+}
+
 /** The battle a reference names, projected for the page. `{status: 404}`
  *  when nothing matches; `{status: 300, matches}` when a hand-cut prefix
  *  names several (a link Elixir hands out never does). */
@@ -140,7 +168,9 @@ export async function readPublicBattle(db, ref, { around = true } = {}) {
     db,
     allCards.map((c) => c.id),
   );
-  const duel = leftPlayers.some((p) => Array.isArray(p.deck?.rounds));
+  const duel = [...leftPlayers, ...rightPlayers].some((p) =>
+    Array.isArray(p.deck?.rounds),
+  );
   const kind = duel
     ? "duel"
     : b.type?.startsWith("boatBattle")
@@ -161,30 +191,44 @@ export async function readPublicBattle(db, ref, { around = true } = {}) {
     tower_hp: opp?.tower_hp ?? null,
     players: rightPlayers.map((p) => playerOf(p, costs)),
   };
-  // A duel game by game, from both sides' own rounds[].
+  // A duel game by game: one game per round deck either side played,
+  // with each side's own result for it from rounds[] where the record
+  // holds one (0151). A game whose result the record lacks still shows
+  // its decks, with no score and no winner: never a guessed result.
   let games = null;
-  if (duel && Array.isArray(b.me.rounds) && b.me.rounds.length) {
-    games = b.me.rounds.map((r) => {
-      const o = opp?.rounds?.find((x) => x.round === r.round) ?? null;
-      const a = {
-        crowns: r.crowns,
-        tower_hp: r.tower_hp ?? null,
-        elixir_leaked: r.elixir?.leaked ?? null,
-      };
-      const z = o
+  if (duel) {
+    const count = Math.max(
+      0,
+      ...[...leftPlayers, ...rightPlayers].map(
+        (p) => p.deck?.rounds?.length ?? 0,
+      ),
+      ...(b.me.rounds ?? []).map((r) => r.round),
+      ...(opp?.rounds ?? []).map((r) => r.round),
+    );
+    const resultOf = (rounds, n) => {
+      const r = rounds?.find((x) => x.round === n) ?? null;
+      return r
         ? {
-            crowns: o.crowns,
-            tower_hp: o.tower_hp ?? null,
-            elixir_leaked: o.elixir?.leaked ?? null,
+            crowns: r.crowns ?? null,
+            tower_hp: r.tower_hp ?? null,
+            elixir_leaked: r.elixir?.leaked ?? null,
           }
         : null;
-      const w = z ? roundWinner(a, z) : null;
+    };
+    games = Array.from({ length: count }, (_, i) => {
+      const a = resultOf(b.me.rounds, i + 1);
+      const z = resultOf(opp?.rounds, i + 1);
+      const w =
+        a && z && typeof a.crowns === "number" && typeof z.crowns === "number"
+          ? roundWinner(a, z)
+          : null;
       return {
-        round: r.round,
+        round: i + 1,
         winner: w === null ? null : w === 0 ? "left" : "right",
         sides: [a, z],
       };
     });
+    if (games.length === 0) games = null;
   }
   const links = await battleLinks(db, [b.battle_id]);
   const link = links.get(b.battle_id);
@@ -216,17 +260,24 @@ export async function readPublicBattle(db, ref, { around = true } = {}) {
     },
     sides: [left, right],
     games,
+    score: scoreOf(left, right, games),
     meetings,
     sitting,
     disclaimer: DISCLAIMER,
   };
 }
 
+/** Whether the battle was played as games on round decks (a duel of
+ *  any type: an event's multi-deck mode is not a riverRaceDuel). */
+const HAS_ROUNDS = `exists (select 1 from battle_participant_round x
+                    where x.battle_id = b.battle_id) as has_rounds`;
+
 /** Every recorded 1v1 between the two, newest first. */
 async function meetingsOf(db, a, z) {
   const { rows } = await db.query(
     `select b.battle_id, b.battle_time, b.type, b.event_tag,
-            bp.crowns, o.crowns as crowns_against, bp.outcome
+            bp.crowns, o.crowns as crowns_against, bp.outcome,
+            ${HAS_ROUNDS}
        from battle_participant bp
        join battle_participant o
          on o.battle_id = bp.battle_id and o.side <> bp.side and o.player_tag = $2
@@ -249,7 +300,7 @@ async function sittingOf(db, tag, at) {
   const t = Date.parse(at);
   const { rows } = await db.query(
     `select b.battle_id, b.battle_time, b.type, b.event_tag,
-            bp.crowns, bp.outcome,
+            bp.crowns, bp.outcome, ${HAS_ROUNDS},
             (select o.crowns from battle_participant o
               where o.battle_id = bp.battle_id and o.side <> bp.side
               order by o.player_tag limit 1) as crowns_against,
@@ -295,7 +346,7 @@ async function linked(db, rows, pick) {
     mode_group: modeGroupOf(r.type, r.event_tag),
     // A duel's crowns are summed over its games: the page says the
     // result rather than a score the duel never had.
-    duel: isDuel(r.type),
+    duel: isDuel(r.type) || r.has_rounds === true,
     ...pick(r),
   }));
 }

@@ -168,7 +168,8 @@ const ELIXIR_CAVEAT =
 export const isDuel = (type) => /^riverRaceDuel/.test(String(type ?? ""));
 export const elixirOf = (own, opponent, type, deck) => {
   if (own === null) return null;
-  const duel = isDuel(type);
+  // A duel by type, or by its round decks (an event's multi-deck mode).
+  const duel = isDuel(type) || Array.isArray(deck?.rounds);
   return {
     leaked: own,
     opponent_leaked: opponent,

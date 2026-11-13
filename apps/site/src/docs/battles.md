@@ -105,7 +105,10 @@ out (each with the game's own copy-deck link, which opens Clash Royale with
 the deck ready to save), the towers each side kept, how it ended, the two
 sides' numbers next to each other, the left player's session around it when
 it holds other battles, and, for a one-on-one battle, the two players' other
-recorded meetings when there are any. A duel reads game by game. The page shows
+recorded meetings when there are any. A duel reads game by game: tap a game
+for its decks, and its crowns and towers where the record kept them. The
+score at the top is the games won when the games agree with the battle's
+result, else the crowns summed over the games. The page shows
 game names only, never a nickname or anything of an account, and its link
 unfurls in a chat as the battle itself. The same projection is JSON at
 `/api/public/battles/<short id>`.
@@ -279,6 +282,14 @@ round numbers, each entry with that game's own `crowns`, `tower_hp` and
 counter cannot have. So "how did round two go" is answerable: read `rounds[]`
 rather than the top-level values whenever the question is about one game. Some
 older duels have no `rounds[]`, and neither does any non-duel row.
+
+**Other duels.** The API also sends some battles that are not river race
+duels as games on round decks: an event's multi-deck mode, the 1v1 Duel
+friendly. `battles_query` knows a duel by its round decks as well as by its
+type, so these rows read like a river race duel: `deck.rounds[]` and
+`rounds[]`, the leak summed with no differential, and no `vs`. Their
+`outcome` is decided by games won only on the two river race types; on any
+other it is the trophy change, else the summed crowns.
 
 **Each round is a game with its own deck.** A round's eight cards
 carry their own `deck_hash`, with no tower troop (the identity every Clan Wars

@@ -14,7 +14,8 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { makeHandler } from "../src/handler.mjs";
-import { cycle4, readPublicBattle } from "../src/battle-page.mjs";
+import { cycle4, readPublicBattle, scoreOf } from "../src/battle-page.mjs";
+import { battles_query } from "@elixir-mcp/tools/tools/battles/query";
 import { namedShell, previewOf } from "../src/routes/battle.mjs";
 import { makeShareImage } from "../src/share-image.mjs";
 import { shareSources } from "../src/share-files.mjs";
@@ -97,6 +98,14 @@ before(async () => {
     OBSERVER,
     await fixture("player_battlelog/with_colosseum_duel.json"),
     "2026-09-03T14:30:34Z",
+  );
+  // An event's multi-deck duel: three games on three decks, as the record
+  // stores one today, with a type that is not a river race duel.
+  await send(
+    "player_battlelog",
+    OBSERVER,
+    await fixture("player_battlelog/with_event_multideck_duel.json"),
+    "2026-09-03T14:31:34Z",
   );
   const sources = shareSources();
   handler = makeHandler({
@@ -213,6 +222,188 @@ test("a duel reads game by game", async () => {
     l.crowns,
   );
   assert.ok(r.players[0].rounds.length >= 2);
+});
+
+test("an event's multi-deck duel reads game by game, decks on both sides", async () => {
+  const id = await battleOf("trail");
+  const read = await readPublicBattle(db, id);
+  assert.equal(read.status, 200);
+  assert.equal(read.battle.kind, "duel");
+  assert.equal(read.battle.mode_group, "event");
+  for (const s of read.sides) {
+    const p = s.players[0];
+    assert.equal(p.deck, null);
+    assert.equal(p.rounds.length, 3);
+    for (const d of p.rounds) assert.equal(d.cards.length, 8);
+  }
+  // The games and each one's own result, from the round rows.
+  assert.equal(read.games.length, 3);
+  assert.deepEqual(
+    read.games.map((g) => g.sides.map((x) => x.crowns)),
+    [
+      [1, 0],
+      [0, 1],
+      [2, 1],
+    ],
+  );
+  assert.deepEqual(
+    read.games.map((g) => g.winner),
+    ["left", "right", "left"],
+  );
+  assert.deepEqual(read.score, { left: 2, right: 1, unit: "games" });
+  // The preview says the games, not the summed crowns.
+  assert.match(previewOf(read).title, / 2–1 /);
+  // The sitting knows it for a duel, so it says the result, not a score.
+  const row = read.sitting.find((x) => x.url === read.battle.url);
+  assert.equal(row.duel, true);
+});
+
+test("battles_query: an event duel carries its games like a river race duel", async () => {
+  const id = await battleOf("trail");
+  const body = await battles_query.handler(
+    { db, account: { id: null, kind: "public", timezone: "UTC" }, live: null },
+    { battle_id: id, verbosity: "full", timezone: "UTC" },
+  );
+  const b = body.battles[0];
+  assert.equal(b.me.rounds.length, 3);
+  assert.deepEqual(
+    b.me.rounds.map((r) => r.crowns),
+    [1, 0, 2],
+  );
+  assert.equal(b.opponents[0].rounds.length, 3);
+  // Summed over the games, so no differential and no head-to-head vs.
+  assert.equal(b.me.elixir.rounds, 3);
+  assert.equal(b.me.elixir.differential, null);
+  assert.equal(b.me.vs, null);
+  assert.match(body.notes.join(" "), /sum across rounds/);
+});
+
+test("a duel whose game results were never kept shows its decks, no score", async () => {
+  const id = await battleOf("trail");
+  const { rows: kept } = await db.query(
+    `select player_tag, round, crowns, king_tower_hp, princess_tower_hp_1,
+            princess_tower_hp_2, elixir_leaked
+       from battle_participant_round where battle_id = $1`,
+    [id],
+  );
+  await db.query(
+    `update battle_participant_round
+        set crowns = null, king_tower_hp = null, princess_tower_hp_1 = null,
+            princess_tower_hp_2 = null, elixir_leaked = null
+      where battle_id = $1`,
+    [id],
+  );
+  try {
+    const read = await readPublicBattle(db, id);
+    assert.equal(read.games.length, 3);
+    for (const g of read.games) {
+      assert.equal(g.winner, null);
+      for (const x of g.sides) assert.equal(x.crowns, null);
+    }
+    for (const s of read.sides)
+      for (const d of s.players[0].rounds) assert.equal(d.cards.length, 8);
+    // No games to count, so the crowns, never a guessed tally.
+    assert.equal(read.score.unit, "crowns");
+    assert.deepEqual(
+      [read.score.left, read.score.right],
+      [read.sides[0].crowns, read.sides[1].crowns],
+    );
+  } finally {
+    for (const k of kept)
+      await db.query(
+        `update battle_participant_round
+            set crowns = $3, king_tower_hp = $4, princess_tower_hp_1 = $5,
+                princess_tower_hp_2 = $6, elixir_leaked = $7
+          where battle_id = $1 and player_tag = $2 and round = $8`,
+        [
+          id,
+          k.player_tag,
+          k.crowns,
+          k.king_tower_hp,
+          k.princess_tower_hp_1,
+          k.princess_tower_hp_2,
+          k.elixir_leaked,
+          k.round,
+        ],
+      );
+  }
+});
+
+test("a deck is null only where the stored row holds no cards", async () => {
+  const id = await battleOf("PvP");
+  const before = await readPublicBattle(db, id);
+  const tag = before.sides[1].players[0].player_tag;
+  const { rows: kept } = await db.query(
+    `select cards, card_forms, card_levels, card_stars, tower_troop_id,
+            tower_form, tower_level, tower_star
+       from battle_participant where battle_id = $1 and player_tag = $2`,
+    [id, tag],
+  );
+  assert.ok(before.sides.every((s) => s.players[0].deck !== null));
+  await db.query(
+    `update battle_participant
+        set cards = null, card_forms = null, card_levels = null,
+            card_stars = null, tower_troop_id = null, tower_form = null,
+            tower_level = null, tower_star = null
+      where battle_id = $1 and player_tag = $2`,
+    [id, tag],
+  );
+  try {
+    const read = await readPublicBattle(db, id);
+    assert.notEqual(read.sides[0].players[0].deck, null);
+    assert.equal(read.sides[1].players[0].deck, null);
+    assert.equal(read.sides[1].players[0].rounds, null);
+  } finally {
+    const k = kept[0];
+    await db.query(
+      `update battle_participant
+          set cards = $3, card_forms = $4, card_levels = $5, card_stars = $6,
+              tower_troop_id = $7, tower_form = $8, tower_level = $9,
+              tower_star = $10
+        where battle_id = $1 and player_tag = $2`,
+      [
+        id,
+        tag,
+        k.cards,
+        k.card_forms,
+        k.card_levels,
+        k.card_stars,
+        k.tower_troop_id,
+        k.tower_form,
+        k.tower_level,
+        k.tower_star,
+      ],
+    );
+  }
+});
+
+test("scoreOf: games won only where they agree with the recorded result", () => {
+  const games = [{ winner: "left" }, { winner: "right" }, { winner: "right" }];
+  // The games say right, the record says left won: the crowns lead.
+  assert.deepEqual(
+    scoreOf(
+      { outcome: "win", crowns: 4 },
+      { outcome: "loss", crowns: 3 },
+      games,
+    ),
+    { left: 4, right: 3, unit: "crowns" },
+  );
+  assert.deepEqual(
+    scoreOf(
+      { outcome: "loss", crowns: 2 },
+      { outcome: "win", crowns: 3 },
+      games,
+    ),
+    { left: 1, right: 2, unit: "games" },
+  );
+  assert.deepEqual(
+    scoreOf(
+      { outcome: "win", crowns: 3 },
+      { outcome: "loss", crowns: 0 },
+      null,
+    ),
+    { left: 3, right: 0, unit: "crowns" },
+  );
 });
 
 test("the JSON route: 200 cached an hour, 404 and 300 a minute", async () => {
