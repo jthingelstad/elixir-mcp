@@ -33,7 +33,8 @@ or stored data changes.
   `packages/syndication/src/index.mjs` (`discordLine`, `escapeDiscord`,
   `itemLinks`, `itemSentence`, `clanHelloContent`,
   `timelineDiscordStore`, `highlightPostContent`, `highlightPostKey`; the
-  functions stay in their modules); the Admin page's `"requests"`
+  functions stay in their modules, and `itemSentence`, which only
+  `lines.mjs` calls, is no longer exported); the Admin page's `"requests"`
   default, a page Admin no longer has (the address always names one, and
   Admin falls back to Accounts); the `navigate` props Status and
   Efficiency never read; a `{ skip: false }` in the site test.
