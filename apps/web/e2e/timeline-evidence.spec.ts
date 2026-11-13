@@ -145,7 +145,8 @@ for (const width of [390, 1280]) {
     // The query cache can show its old result until refetch; opening the
     // same evidence after a change must eventually surface the conflict.
     await expect(panel.locator(".kit-sgame")).toHaveCount(0);
-    await expect(panel.getByRole("alert")).toContainText(
+    await expect(panel).toHaveAttribute("role", "alert");
+    await expect(panel).toContainText(
       "These games changed since the feed was read",
     );
     await panel.getByRole("button", { name: "Refresh" }).click();
