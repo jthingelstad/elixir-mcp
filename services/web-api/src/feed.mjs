@@ -126,6 +126,18 @@ export function scoresOf(spark) {
   };
 }
 
+/** Whether a clan arrival offers Follow (design canvas 2026-11-13): a
+ *  member who joined a clan you follow, and whom you do not follow, from the
+ *  subjects the read already holds. A player followed with notify off is
+ *  not among them; the Follow dialog's own price says so and writes
+ *  nothing (follow.jsx). */
+export function offersFollow(it, subjects) {
+  if (it.kind !== "member_joined") return false;
+  const tag = it.facts?.player_tag;
+  if (!tag) return false;
+  return !subjects.some((s) => s.kind === "player" && s.tag === tag);
+}
+
 /** The timeline's items with Home's fields added. */
 export async function annotateFeed(db, timeline, subjects) {
   const items = timeline ?? [];
@@ -147,6 +159,7 @@ export async function annotateFeed(db, timeline, subjects) {
       ...(versus ? { versus } : {}),
       ...(link ? { battle_url: link.url } : {}),
       ...(proofMode ? { proof_mode: proofMode } : {}),
+      ...(offersFollow(it, subjects) ? { offer_follow: true } : {}),
     };
   });
 }

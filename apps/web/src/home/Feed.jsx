@@ -27,6 +27,7 @@ import {
   shownAt,
   timelineDays,
 } from "./logic.js";
+import { FollowButton } from "./follow.jsx";
 import { Sitting, SITTINGS } from "./Session.jsx";
 import { Cheers } from "./Cheers.jsx";
 
@@ -473,6 +474,11 @@ function FeedItem({ it, open, onToggle }) {
           <Who who={who} />
           <When it={it} />
         </div>
+        {it.offer_follow && who?.kind === "player" ? (
+          // A clan arrival you do not follow (canvas .ih .follow): the one
+          // Follow, asked first, priced when its dialog opens.
+          <FollowButton tag={who.tag} name={who.name} lazy />
+        ) : null}
       </header>
       {it.kind === "battle_highlight" ? (
         <HighlightBody it={it} who={who} />

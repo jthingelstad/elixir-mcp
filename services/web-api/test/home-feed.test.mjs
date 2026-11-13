@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import {
   annotateFeed,
   groupsOf,
+  offersFollow,
   proofModeOf,
   scoresOf,
   sparkBars,
@@ -162,4 +163,28 @@ test("a moment's proving battle names its mode for the line under it", () => {
   );
   assert.equal(proofModeOf({ facts: { crossed_by: { type: "PvP" } } }), null);
   assert.equal(proofModeOf({ facts: {} }), null);
+});
+
+test("a clan arrival offers Follow only for a player you do not follow", () => {
+  const subjects = [
+    { kind: "player", tag: "#2Y0P8V", relationship: "friend" },
+    { kind: "clan", tag: "#2PQRJ8LV" },
+  ];
+  const joined = (tag) => ({
+    kind: "member_joined",
+    facts: { player_tag: tag },
+  });
+  assert.equal(offersFollow(joined("#8QYLGV"), subjects), true);
+  assert.equal(offersFollow(joined("#2Y0P8V"), subjects), false);
+  assert.equal(
+    offersFollow({ kind: "member_joined", facts: {} }, subjects),
+    false,
+  );
+  assert.equal(
+    offersFollow(
+      { kind: "member_left", facts: { player_tag: "#8QYLGV" } },
+      subjects,
+    ),
+    false,
+  );
 });

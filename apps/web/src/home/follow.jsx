@@ -136,10 +136,13 @@ export function FollowButton({
   label = "Follow",
   cost: known = null,
   className = "btn btn--sm btn--follow",
+  lazy = false,
 }) {
   // A list that priced its people already (People to follow, Find) passes
-  // the price in, so a list of thirty is not thirty reads.
-  const { data } = useFollowCost(known ? null : tag);
+  // the price in, so a list of thirty is not thirty reads. A feed that
+  // offers Follow on its items (`lazy`) prices one only when its dialog
+  // opens, so a page of items is not a read each.
+  const { data } = useFollowCost(known || lazy ? null : tag);
   const invalidate = useInvalidate();
   const cost = known ?? (data && data.player_tag === tag ? data : null);
   const full = Boolean(
@@ -164,22 +167,49 @@ export function FollowButton({
             )}
             . They are not told. Their sessions start in your feed.
           </p>
-          <p className="kit-tiny" role="status">
-            {cost
-              ? (followCostLine(cost) ?? "You already follow them.")
-              : "Checking what this costs…"}
-          </p>
+          {lazy && !known ? (
+            <PricedOnOpen tag={tag} />
+          ) : (
+            <CostWords cost={cost} />
+          )}
         </>
       }
       confirm="Follow"
       disabled={full}
-      run={() => api.claimAction({ player_tag: tag, relationship: "friend" })}
+      run={async () => {
+        // A feed offers Follow from what it knows when it was built; a
+        // player followed since, or followed with their notify switch off,
+        // is already yours to keep as it is, so nothing is written.
+        if (lazy && !known) {
+          const priced = await api.followCost(tag);
+          if (priced?.ok && priced.data?.following)
+            return { ok: true, data: { player_tag: tag, already: true } };
+        }
+        return api.claimAction({ player_tag: tag, relationship: "friend" });
+      }}
       onDone={(answer) => {
         invalidate();
         onDone?.(answer?.data ?? null);
       }}
     />
   );
+}
+
+function CostWords({ cost }) {
+  return (
+    <p className="kit-tiny" role="status">
+      {cost
+        ? (followCostLine(cost) ?? "You already follow them.")
+        : "Checking what this costs…"}
+    </p>
+  );
+}
+
+/** The price, read when the dialog that shows it opens (a lazy Follow). A
+ *  follow past the limit is refused by the server, and the dialog says why. */
+function PricedOnOpen({ tag }) {
+  const { data } = useFollowCost(tag);
+  return <CostWords cost={data && data.player_tag === tag ? data : null} />;
 }
 
 /** A follow plan in words (#764): how many to follow, how many are free and

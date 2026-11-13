@@ -4603,7 +4603,7 @@ a.card-art:hover .card-art__img {
 }
 /* A card's cost on its corner (canvas .ct .cost): the elixir drop, a
    deeper violet here so its white figure keeps 4.5:1. */
-.kit-deckrow__cost {
+.card-elixir.kit-deckrow__cost {
   top: 2px;
   left: 2px;
   background: radial-gradient(circle at 35% 30%, #c084fc, #7e22ce 55%, #581c87);
@@ -7783,6 +7783,10 @@ button.kit-row {
 .kit-day {
   display: grid;
   gap: 14px;
+}
+.kit-feed__head > .btn--follow {
+  flex: none;
+  align-self: center;
 }
 .kit-day > div {
   display: grid;
