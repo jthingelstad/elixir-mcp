@@ -182,7 +182,7 @@ function DuelRounds({ duels }) {
     <Panel title="Duel rounds">
       <ul className="ladder-rows">
         {duels.map((d) => (
-          <li key={d.deck_hash} className="ladder-duel">
+          <li key={`${d.deck_hash}|${d.mode}`} className="ladder-duel">
             <span className="ladder-duel__name">
               {d.archetype_label ?? d.card_names ?? "Unnamed deck"}
             </span>

@@ -117,9 +117,37 @@ export function unbandedTypes(): string[] {
   return [...typesForModeGroup("ranked"), ...typesForModeGroup("tournament")];
 }
 
-/** Battle types that are ONE participant row for up to three games, each
- *  its own round (battle_participant_round, 0151). */
+/** The river race duel types (0151). Not every duel: the API sends any
+ *  battle played as games on round decks with rounds[] (an event's
+ *  multi-deck mode, the 1v1 Duel friendly), and ingest stores each
+ *  game's row in battle_participant_round whatever the type. A reader
+ *  asks isDuelBattle / duelSql, never this list alone. */
 export const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
+
+/**
+ * THE duel rule, one for every reader (MCP 13.0.2, 13.1.0): a battle is
+ * a duel, ONE row for up to three games each on its own deck, when its
+ * type is a river race duel OR the record holds its round decks. The
+ * type keeps a river race duel recorded before the rounds were kept a
+ * duel; the round rows catch every other type the API sent rounds[]
+ * for. `hasRounds` is whether the read holds round decks for it.
+ */
+export function isDuelBattle(
+  type: string | null | undefined,
+  hasRounds = false,
+): boolean {
+  return DUEL_TYPES.includes(String(type ?? "")) || hasRounds === true;
+}
+
+/**
+ * `isDuelBattle` in SQL: `typeCol` is the battle's (or a participant
+ * row's) type, `battleIdCol` the battle_id to look for round rows under.
+ */
+export function duelSql(typeCol: string, battleIdCol: string): string {
+  return `(${typeCol} = any('{${DUEL_TYPES.join(",")}}'::text[])
+          or exists (select 1 from battle_participant_round duel_r
+                      where duel_r.battle_id = ${battleIdCol}))`;
+}
 
 /**
  * A participant population as GAMES (9.11.0, feedback #363), in SQL. A
@@ -130,6 +158,10 @@ export const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
  * Every row of `from` passes through as it is, `round` 0, a duel's whole
  * row among them; and each recorded round of a duel is added as a row of
  * its own, `round` 1-3, carrying that round's `deck_hash` and `outcome`.
+ * A duel here is `isDuelBattle`: a row's round rows are its games
+ * whatever its type (13.1.0: an event's multi-deck duel added only its
+ * whole row, so its cards counted nowhere). A river race duel recorded
+ * before the rounds were kept has no round rows, so adds nothing.
  * The `blank` columns (a side's level, which a round does not carry) are
  * null on a round. So a count of BATTLES reads `round = 0` (a duel once,
  * as every other tool counts it), and a count of decided GAMES reads the
@@ -137,7 +169,7 @@ export const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
  * and its rounds are.
  *
  * `from` is a relation or a parenthesized subquery whose columns include
- * battle_id, player_tag, type, deck_hash and outcome, each in `columns`.
+ * battle_id, player_tag, deck_hash and outcome, each in `columns`.
  * The result is a parenthesized subquery; the caller names its alias.
  */
 export function duelGamesSql(
@@ -145,7 +177,6 @@ export function duelGamesSql(
   columns: readonly string[],
   { blank = [] }: { blank?: readonly string[] } = {},
 ): string {
-  const duels = `'{${DUEL_TYPES.join(",")}}'::text[]`;
   const own = columns.map((c) => `g.${c}`).join(", ");
   const perRound = columns
     .map((c) =>
@@ -160,6 +191,5 @@ export function duelGamesSql(
      union all
      select ${perRound}, r.round from ${from} g
        join battle_participant_round r
-         on r.battle_id = g.battle_id and r.player_tag = g.player_tag
-      where g.type = any(${duels}))`;
+         on r.battle_id = g.battle_id and r.player_tag = g.player_tag)`;
 }

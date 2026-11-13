@@ -2386,20 +2386,32 @@ export const OUTPUT_SCHEMAS = {
       duel_decks: {
         type: "array",
         description:
-          "9.8.0: the decks played in the window's duel rounds (a duel has no single deck, so it is outside decks[]), most rounds first, at most 8: deck_hash (the eight cards' identity; a Clan Wars battle carries no tower troop), card_names (one string), archetype_label, rounds, wins and losses by each round's own crowns, first_used, last_used.",
+          "9.8.0: the decks played in the window's duel rounds (a duel has no single deck, so it is outside decks[]; 13.1.0: a duel is a river race duel or any battle played as games on round decks, such as an event's multi-deck mode), most rounds first, at most 8, one row per deck per mode group: deck_hash (the eight cards' identity; a Clan Wars battle carries no tower troop), card_names (one string), archetype_label, mode, rounds, wins and losses by each round's own crowns, first_used, last_used.",
         items: {
           type: "object",
           properties: {
             deck_hash: { type: "string" },
             card_names: { type: "string" },
             archetype_label: { type: ["string", "null"] },
+            mode: {
+              type: "string",
+              description:
+                "13.1.0: the mode group these rounds were played in (war for a river race duel, event for an event's multi-deck mode); a deck played in duels of two modes is two rows.",
+            },
             rounds: COUNT,
             wins: COUNT,
             losses: COUNT,
             first_used: ISO,
             last_used: ISO,
           },
-          required: ["deck_hash", "card_names", "rounds", "wins", "losses"],
+          required: [
+            "deck_hash",
+            "card_names",
+            "mode",
+            "rounds",
+            "wins",
+            "losses",
+          ],
         },
       },
       notes: NOTES,

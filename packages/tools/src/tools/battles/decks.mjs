@@ -3,7 +3,6 @@ import {
   ARCHETYPE_ARG,
   ARCHETYPE_NOTE,
   DISPLAY_NAME_SCHEMA,
-  DUEL_TYPES,
   MODE_SCHEMA,
   ON_BEHALF_OF_SCHEMA,
   SEASON_ARG_SCHEMA,
@@ -13,6 +12,7 @@ import {
   appliedBlock,
   buildMeta,
   deckIdentities,
+  duelSql,
   matchesArchetype,
   notes,
   requireEnum,
@@ -164,13 +164,16 @@ export const battles_decks = {
     const {
       rows: [left],
     } = await ctx.db.query(
-      `select count(*) filter (where b.type = any($${params.length + 1}))::int as duels,
-                count(*) filter (where not coalesce(b.type = any($${params.length + 1}), false))::int as no_deck
+      // A duel by its type or by its round rows (13.1.0): an event's
+      // multi-deck duel was counted as a battle with no deck.
+      `select count(*) filter (where d.duel)::int as duels,
+                count(*) filter (where not d.duel)::int as no_deck
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           cross join lateral (select ${duelSql("b.type", "bp.battle_id")} as duel) d
           where ${where
             .filter((w) => w !== "bp.deck_hash is not null")
             .join(" and ")} and bp.deck_hash is null`,
-      [...params, DUEL_TYPES],
+      params,
     );
     const excluded = { duels: left.duels, no_deck: left.no_deck };
     // A duel's rounds (feedback #363): the duel has no single deck, so it
@@ -178,25 +181,28 @@ export const battles_decks = {
     // its own deck_hash and result (0182; a Clan Wars deck carries no
     // tower troop, so its deck_hash is the eight cards'). Listed beside
     // the rows, so a player's war decks include the one they play only in
-    // duels.
+    // duels. A duel's games are its round rows whatever its type, and
+    // each row is one deck in ONE mode group (13.1.0): an event's
+    // multi-deck rounds are event games, never pooled with war duels.
     const duelDecks = [];
     if (left.duels > 0) {
       const base = where.filter((w) => w !== "bp.deck_hash is not null");
-      const extra = [...params, DUEL_TYPES];
+      const extra = [...params];
       if (one) extra.push(one);
       const { rows: rounds } = await ctx.db.query(
-        `select r.deck_hash, count(*)::int as rounds,
+        `select r.deck_hash, ${modeGroupSql("b.type", "b.event_tag")} as mode,
+                count(*)::int as rounds,
                 count(*) filter (where r.outcome = 'win')::int as wins,
                 count(*) filter (where r.outcome = 'loss')::int as losses,
                 min(bp.battle_time) as first_used, max(bp.battle_time) as last_used
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
            join battle_participant_round r
              on r.battle_id = bp.battle_id and r.player_tag = bp.player_tag
-          where ${base.join(" and ")} and b.type = any($${params.length + 1})
+          where ${base.join(" and ")} and bp.deck_hash is null
             and r.deck_hash is not null
-            ${one ? `and r.deck_hash = $${params.length + 2}` : ""}
-          group by r.deck_hash
-          order by count(*) desc, r.deck_hash
+            ${one ? `and r.deck_hash = $${params.length + 1}` : ""}
+          group by r.deck_hash, 2
+          order by count(*) desc, r.deck_hash, 2
           limit ${DUEL_DECKS}`,
         extra,
       );
@@ -209,6 +215,7 @@ export const battles_decks = {
           deck_hash: r.deck_hash,
           card_names: cardNames(named.get(r.deck_hash)),
           archetype_label: named.get(r.deck_hash)?.archetype?.label ?? null,
+          mode: r.mode,
           rounds: r.rounds,
           wins: r.wins,
           losses: r.losses,
@@ -367,7 +374,7 @@ export const battles_decks = {
           ? null
           : "card_names lists each row's cards, forms prefixed; pass a row's deck_hash for its cards, tower troop and archetype in full.",
         duelDecks.length
-          ? "duel_decks are the decks played in duel rounds, each round a game won or lost by its own crowns; a duel counts once in battles_performance and is outside the rows and shares above."
+          ? "duel_decks are the decks played in duel rounds (river race duels and any other battle played as games on round decks, such as an event's multi-deck mode), one row per deck per mode group (mode), each round a game won or lost by its own crowns; a duel counts once in battles_performance and is outside the rows and shares above."
           : null,
         "mean_level_gap is this deck's average card level minus the opposing side's over level_gap_battles (positive = you outlevelled them); modes splits the row by mode group, and win rates across rows are comparable only when comparable is true.",
       ),
