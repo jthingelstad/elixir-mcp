@@ -7,9 +7,7 @@ import {
   rangeLabel,
   whenLabel,
 } from "../src/email/week.mjs";
-import { momentKey } from "../src/email/build-milestone.mjs";
-import { deckCardLabels } from "../src/email/build-arena.mjs";
-import { modeLabel } from "../src/email/shared.mjs";
+import { modeLabel } from "@elixir-mcp/tools/friends-week";
 import { readFileSync } from "node:fs";
 
 // The digest specimen: invented players, the one scheduled mail.
@@ -85,45 +83,6 @@ test("labels cross a month boundary and iso weeks are numbered", () => {
   );
 });
 
-test("milestone keys are firsts: up only, by the moment's own identity", () => {
-  assert.equal(
-    momentKey("arena_changed", { from: 54000021, to: 54000022 }),
-    "arena:54000022",
-  );
-  assert.equal(
-    momentKey("arena_changed", { from: 54000022, to: 54000021 }),
-    null,
-  );
-  assert.equal(momentKey("ranked_promotion", { from: 3, to: 4 }), "league:4");
-  assert.equal(momentKey("ranked_promotion", { from: 5, to: 4 }), null);
-  assert.equal(
-    momentKey("best_trophies_band", { best: 12510, band: 12000 }),
-    "band:12000",
-  );
-  assert.equal(
-    momentKey("badge_earned", { badge: "MasteryMiner", level: 3 }),
-    "badge:MasteryMiner:3",
-  );
-  assert.equal(
-    momentKey("card_unlocked", { card: "Witch", evolution: 1 }),
-    "card:Witch:1",
-  );
-  // #110: a form is its own first, by card id and form.
-  assert.equal(
-    momentKey("card_form_unlocked", {
-      card: "Valkyrie",
-      card_id: 26000011,
-      form: "hero",
-    }),
-    "form:26000011:hero",
-  );
-  assert.equal(
-    momentKey("card_form_unlocked", { card: "Valkyrie", card_id: 26000011 }),
-    null,
-  );
-  assert.equal(momentKey("battle_session", {}), null);
-});
-
 test("mode labels say what a player calls the mode", () => {
   assert.equal(modeLabel("Ladder", "PvP"), "Trophy Road");
   assert.equal(modeLabel("CW_Duel_1v1", "riverRaceDuel"), "War · Duel");
@@ -132,17 +91,6 @@ test("mode labels say what a player calls the mode", () => {
   assert.equal(modeLabel("ranked", ""), "Path of Legends");
   assert.equal(modeLabel("war", ""), "War");
   assert.equal(modeLabel("event", ""), "Events");
-});
-
-test("arena mail reads card_names from a lightweight deck list row", () => {
-  assert.deepEqual(
-    deckCardLabels({ card_names: "Evo Witch, Hog Rider, The Log" }),
-    ["Evo Witch", "Hog Rider", "The Log"],
-  );
-  assert.deepEqual(
-    deckCardLabels({ cards: [{ name: "Witch", form: "evolution" }] }),
-    ["Witch (Evo)"],
-  );
 });
 
 test("deliver: the send has its own id, in the footer, in the queue message, in the archive and on the row (0139); the campaign period reaches the render", async () => {

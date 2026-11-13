@@ -5,9 +5,8 @@
  *
  *    node packages/mail/scripts/preview.mjs [--tz America/Chicago] [--live]
  *
- *  The product kinds render their fixtures (packages/mail/fixtures, and
- *  the variants in test/fixtures); the
- *  sign-in code, the welcome and an operator notice come from the relay's
+ *  The product kinds render their fixtures (packages/mail/fixtures) and
+ *  the variants preview-cases.mjs makes of them; the sign-in code, the welcome and an operator notice come from the relay's
  *  own templates. Nothing is sent and nothing is counted: the open pixel
  *  is left out, and images point at this checkout's apps/site/src/assets
  *  (the logo, and card art once infra/scripts/mirror-card-art.mjs has

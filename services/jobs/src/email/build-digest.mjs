@@ -38,7 +38,7 @@ import {
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 
 /** The items a digest tells: a highlight (the player's post), the big
- *  firsts the milestone mail tells (each with the battle that made it),
+ *  firsts the milestone mail told (each with the battle that made it),
  *  and a person's clan moves and return. Chosen before the timeline's
  *  cap, so the cap is spent on what the mail can say; card unlocks and
  *  badge levels are counted (progress), as the friends mail counted

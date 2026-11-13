@@ -199,10 +199,11 @@ departures and role changes (its clan part), the big firsts of the
 reader and their alts, and card and badge counts (the reader's part).
 What it does not: the war decks-used trend, per-member performance, the
 Arena form line, opponents and decks; those are on Clan and Stats.
-`build-clan.mjs`, `build-arena.mjs`, `build-milestone.mjs` and the
-`clan_report_preview` op remain for their tests and the read-only
-preview; removing them, the `email_milestone*` tables and the kind names
-is later cleanup.
+Their builders, renderers, specimens and the `clan_report_preview` op
+went on 2026-11-13: a sent one's record shows the HTML archived when it
+was sent (`mail/sent/`), so nothing renders a retired kind again. The
+kind names stay in the label tables, `RETIRED_EMAIL_KINDS` and
+`foldedOff()`, and the `email_milestone*` tables keep their rows.
 
 ### `tracking_report`: the digest, Monday or daily ("Your digest")
 
@@ -397,10 +398,8 @@ sign-in code, welcome and operator notices included:
   form, a byte-identical copy of Supercell's icon (never resized or
   altered; the image's width and height size it), and an Evo or Hero the
   mirror lacks draws the base card, decided at compose time
-  (`resolveCardArt`, from the jobs Lambda's look at the site bucket);
-  `deckStrip` draws a deck as one row of
-  eight in fixed-share cells, the tower troop as text under it. Every
-  image has its width and height set.
+  (`resolveCardArt`, from the jobs Lambda's look at the site bucket).
+  Every image has its width and height set.
 - **Footer:** why the mail came and when the next one does, in the
   reader's own zone (`MAIL_SCHEDULE`); on a bulk kind the manage link
   and the turn-off; the send id with its record and feedback links; the
@@ -409,13 +408,8 @@ sign-in code, welcome and operator notices included:
   rose; gold is the brand and the button, never a figure.
 - **One preheader:** each renderer hands the shell the preheader it
   returns.
-- **Size:** the retired clan report's stored form links the roster
-  rather than tabling it; a test renders a 50-member week under 95,000 bytes (Gmail clips at
-  ~102 KB).
-- **Layout:** one content panel, normal-case section headings, at most
-  two open headline figures across, and fluid rows. The war bracket
-  uses rank, clan and fame; finish status sits below fame. Coverage is
-  an unboxed note with a left rule. The footer separates its reason,
+- **Layout:** one content panel, normal-case section headings and fluid
+  rows. Coverage is an unboxed note with a left rule. The footer separates its reason,
   preferences, record links and wrap-safe send id. HTML has one primary
   button without a duplicate printed URL; the text alternative carries
   its destination.
@@ -425,7 +419,7 @@ sign-in code, welcome and operator notices included:
   directory. Product text is derived from the HTML; service text is the
   relay's actual returned text, never a substitute derived for preview.
   Specimens include all active kinds, collector upgrades and historical
-  tests, the retired kinds' stored forms, sparse/partial reports, questions and
+  tests, sparse digests, questions and
   every operator-notice category. `apps/web/e2e/mail-layout.spec.ts`
   checks them at phone, tablet, desktop and landscape widths with images
   blocked, without sending or loading a tracking pixel.

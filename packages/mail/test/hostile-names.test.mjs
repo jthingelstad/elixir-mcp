@@ -31,7 +31,7 @@ const hostile = (value, key = "") => {
 
 test("no mail carries a hostile name as markup", () => {
   let escaped = 0;
-  for (const specimen of mailPreviewCases({ retired: true })) {
+  for (const specimen of mailPreviewCases()) {
     const mail = specimen.message
       ? renderEmail({
           v: 1,
@@ -48,7 +48,7 @@ test("no mail carries a hostile name as markup", () => {
     assert.doesNotMatch(mail.html, /onerror=alert\(1\)&gt;"/, specimen.name);
     escaped += mail.html.split("&lt;img src=x").length - 1;
   }
-  assert.ok(escaped > 100, `the names reached the mail (${escaped})`);
+  assert.ok(escaped > 50, `the names reached the mail (${escaped})`);
 });
 
 test("the digest escapes every string it prints: names, the timeline's sentences and a highlight's words (#767)", () => {

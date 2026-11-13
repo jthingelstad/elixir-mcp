@@ -45,17 +45,11 @@ export async function deliver({
     manage: MAIL_PATHS.emails,
     period,
     send_id: sendId,
-    // A mail composed once for many readers names days in each one's zone,
-    // and marks the reader's own players (the clan report's "you").
+    // A mail composed once for many readers names times in each one's zone.
     timezone: account.timezone ?? "UTC",
-    ...(account.tags?.length ? { mine: account.tags } : {}),
     // Which door a name opens for this reader (render.mjs, make).
     ...(account.memberClans?.length
       ? { member_clans: account.memberClans }
-      : {}),
-    // Who may read a clan-visible fact: a verified claim only.
-    ...(account.verifiedClans?.length
-      ? { verified_clans: account.verifiedClans }
       : {}),
   };
   const drawn = cardArt ? await resolveCardArt(facts, cardArt) : facts;
