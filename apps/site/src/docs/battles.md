@@ -289,7 +289,11 @@ friendly. `battles_query` knows a duel by its round decks as well as by its
 type, so these rows read like a river race duel: `deck.rounds[]` and
 `rounds[]`, the leak summed with no differential, and no `vs`. Their
 `outcome` is decided by games won only on the two river race types; on any
-other it is the trophy change, else the summed crowns.
+other it is the trophy change, else the summed crowns. `battles_decks`,
+`battles_performance` and `battles_cards` know them the same way: such a
+battle counts as a duel, out of the head-to-head and three-crown counts,
+and its round decks are games in its own mode group (`event` for an
+event's multi-deck mode), never pooled with a river race duel's.
 
 **Each round is a game with its own deck.** A round's eight cards
 carry their own `deck_hash`, with no tower troop (the identity every Clan Wars
@@ -297,7 +301,8 @@ battle has), and its own result by that round's crowns against the
 opponent's. `battles_cards` counts each round as one game.
 `battles_decks` keeps its rows to battles with
 one deck: it itemizes duels under `excluded {duels, no_deck}` and lists their
-round decks apart (`duel_decks`), so `total_battles_in_window +
+round decks apart (`duel_decks`, one row per deck per mode group, its `mode`
+beside it), so `total_battles_in_window +
 excluded.duels + excluded.no_deck` is `battles_performance.battles` over the
 same window. `battles_opponents` counts a duel once however many
 rounds it held.

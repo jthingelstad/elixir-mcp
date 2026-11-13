@@ -29,8 +29,8 @@ import {
   resolveArchetypeName,
   normalizeName,
   FAMILIES,
-  DUEL_TYPES,
   duelGamesSql,
+  duelSql,
 } from "@elixir-mcp/contracts";
 import { cachedVocabulary } from "@elixir-mcp/ingest/card-roles";
 import { reconcileRecording } from "@elixir-mcp/claims";
@@ -888,7 +888,7 @@ export function requireOrderedWindow(from, to) {
   }
 }
 
-export { DUEL_TYPES };
+export { duelSql };
 
 /** The selected participants' sources as GAMES (9.11.0, feedback #363):
  *  every row as it was, `round` 0 (a duel's whole row among them, with no

@@ -46,7 +46,7 @@ const CARD_ORDER = {
 
 export const battles_cards = {
   description:
-    'Per-card win/loss attribution over recorded battles. perspective "mine": the battles where your deck held the card. perspective "opponent": the battles where an opposing deck held it, with your record in them. sort "losses" orders rows by the battles you lost (default "battles"); a row needs at least applied.min_battles (3). Each row carries its battles per mode group and mean_level_gap; modes_in_window and comparable say whether modes with different matchmaking were pooled (pass mode to isolate one). Each round of a Clan Wars duel is one game: that round\'s cards and result.',
+    'Per-card win/loss attribution over recorded battles. perspective "mine": the battles where your deck held the card. perspective "opponent": the battles where an opposing deck held it, with your record in them. sort "losses" orders rows by the battles you lost (default "battles"); a row needs at least applied.min_battles (3). Each row carries its battles per mode group and mean_level_gap; modes_in_window and comparable say whether modes with different matchmaking were pooled (pass mode to isolate one). Each duel round (Clan Wars or an event\'s multi-deck mode) is one game in its mode.',
   inputSchema: {
     type: "object",
     properties: {

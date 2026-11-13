@@ -303,6 +303,52 @@ export const contracts = [
     },
   },
   {
+    // 13.1.0: battles_decks and battles_performance knew a duel only by
+    // the river race types, so an event's multi-deck duel was a battle
+    // with no deck and its round decks were listed nowhere. A duel is
+    // now known by its type or its round rows, and its round decks stay
+    // in their own mode group. Per mode: every duel_decks row names that
+    // mode, and the two tools agree on how many duels the window holds.
+    // limit 8 keeps a full page well under the result cap.
+    id: "battles_decks-duel-modes",
+    tools: ["battles_decks", "battles_performance"],
+    run: async (ctx) => {
+      let ms = 0;
+      let duels = 0;
+      for (const mode of ["event", "war"]) {
+        const decks = await ctx.read("battles_decks", {
+          player_tag: JAMIE,
+          days: 30,
+          mode,
+          limit: 8,
+        });
+        const perf = await ctx.read("battles_performance", {
+          player_tag: JAMIE,
+          days: 30,
+          mode,
+        });
+        ms += (decks.ms ?? 0) + (perf.ms ?? 0);
+        const d = answered(decks, `battles_decks ${mode}`);
+        const p = answered(perf, `battles_performance ${mode}`);
+        duels += d.excluded.duels;
+        for (const row of d.duel_decks ?? [])
+          eq(
+            row.mode,
+            mode,
+            `${mode}: duel_decks ${row.deck_hash.slice(0, 12)} mode`,
+          );
+        eq(
+          d.excluded.duels,
+          p.window.duel_battles,
+          `${mode}: battles_decks excluded.duels = battles_performance duel_battles`,
+        );
+      }
+      if (duels === 0)
+        return { skip: "No duel in the last 30 days in event or war." };
+      return { ms };
+    },
+  },
+  {
     id: "recorder-retired-refusals",
     tools: ["cards_catalog", "battles_performance", "battles_query"],
     run: async (ctx) => {

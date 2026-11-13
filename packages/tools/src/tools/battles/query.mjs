@@ -375,7 +375,7 @@ export const battles_query = {
     // which by the rows it holds, so a duel is known by its round decks
     // as well as by its type: a type list alone left an event duel with
     // no games on its page.
-    const duelRow = (r) => isDuel(r.type) || Array.isArray(deckOf(r)?.rounds);
+    const duelRow = (r) => isDuel(r.type, Array.isArray(deckOf(r)?.rounds));
     // A duel's round results (0151). Only a duel has them, and only
     // full verbosity carries them, so the read is skipped entirely on
     // a page without one.
@@ -568,6 +568,7 @@ export const battles_query = {
                           tower_level: towerLevel(opponents[0]),
                         },
                         r.type,
+                        Array.isArray(deckOf(r)?.rounds),
                       )
                     : null,
               }),

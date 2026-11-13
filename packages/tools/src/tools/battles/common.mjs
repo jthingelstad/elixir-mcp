@@ -7,6 +7,7 @@ import {
   EVENT_MODE_GROUP,
   MODE_GROUPS,
   eventContentSql,
+  isDuelBattle,
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
 import { docsRef, requireEnum } from "../shared.mjs";
@@ -74,10 +75,14 @@ export function roundResultsOf(own, opponent) {
  *  Null on anything that is not a single head-to-head pair (2v2, a duel
  *  whose sides played different decks per round), and per-field null
  *  where the record lacks a side's value. */
-export function versusOf(me, opponent, type) {
+export function versusOf(me, opponent, type, hasRounds = false) {
   // A boat battle is a defense against an attack: nothing to difference
   // (Gym #97).
-  if (!opponent || isDuel(type) || /^boatBattle/.test(String(type ?? "")))
+  if (
+    !opponent ||
+    isDuel(type, hasRounds) ||
+    /^boatBattle/.test(String(type ?? ""))
+  )
     return null;
   const diff = (a, b) =>
     typeof a === "number" && typeof b === "number"
@@ -165,11 +170,13 @@ export const roundsPlayed = (deck) =>
 // full past the result cap in 6.18.0.
 const ELIXIR_CAVEAT =
   "Not a skill measure: holding elixir to make the opponent commit is a deliberate line that raises leak by design, and the record cannot tell that from waste. Read the differential, never the absolute.";
-export const isDuel = (type) => /^riverRaceDuel/.test(String(type ?? ""));
+/** A duel by its type, or by its round decks (an event's multi-deck
+ *  mode, the 1v1 Duel friendly): contracts' isDuelBattle, the one rule. */
+export const isDuel = (type, hasRounds = false) =>
+  isDuelBattle(type, hasRounds);
 export const elixirOf = (own, opponent, type, deck) => {
   if (own === null) return null;
-  // A duel by type, or by its round decks (an event's multi-deck mode).
-  const duel = isDuel(type) || Array.isArray(deck?.rounds);
+  const duel = isDuel(type, Array.isArray(deck?.rounds));
   return {
     leaked: own,
     opponent_leaked: opponent,

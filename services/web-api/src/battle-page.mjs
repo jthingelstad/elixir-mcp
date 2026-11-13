@@ -348,7 +348,7 @@ async function linked(db, rows, pick) {
     mode_group: modeGroupOf(r.type, r.event_tag),
     // A duel's crowns are summed over its games: the page says the
     // result rather than a score the duel never had.
-    duel: isDuel(r.type) || r.has_rounds === true,
+    duel: isDuel(r.type, r.has_rounds === true),
     ...pick(r),
   }));
 }
