@@ -73,7 +73,6 @@ export const keys = {
   adminEmailSends: ["admin", "email", "sends"],
   adminCards: ["admin", "cards"],
   adminEmail: (id) => ["admin", "email", "sends", id],
-  adminIntegrations: ["admin", "integrations"],
   status: ["status"],
   efficiency: ["efficiency"],
   cards: ["cards"],
@@ -656,12 +655,6 @@ export const useAdminEmail = (id) =>
     enabled: Boolean(id),
   });
 
-export const useAdminIntegrations = () =>
-  useQuery({
-    queryKey: keys.adminIntegrations,
-    queryFn: payload(api.adminIntegrations),
-  });
-
 export const useMyFeedback = () => {
   const agent = useScope();
   return useQuery({
@@ -798,7 +791,7 @@ export const useBattleSweep = (
  *  still in flight when the write lands is not refetched by
  *  invalidateQueries: TanStack joins the pending fetch, which read before
  *  the write, and the page shows the list without the row just created
- *  (the admin integrations journey, flaky on CI 2026-09-24). */
+ *  (an admin create-then-list journey, flaky on CI 2026-09-24). */
 export function useInvalidate() {
   const queryClient = useQueryClient();
   const agent = useScope();

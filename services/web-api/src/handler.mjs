@@ -1,8 +1,6 @@
-import { integrationsRoutes } from "./routes/integrations.mjs";
 import { verifyRoutes } from "./routes/verify.mjs";
 import { battleActivityRoutes } from "./routes/battle-activity.mjs";
-import { integrationApi, integrationProblem } from "./integration-api.mjs";
-import { v1Operation } from "./v1-operations.mjs";
+import { signInApi, apiProblem, v1Operation } from "./sign-in-api.mjs";
 import { randomUUID } from "node:crypto";
 /**
  * Site API — docs/ENGINEERING.md One credential core, this is the web shell.
@@ -137,15 +135,15 @@ const AGENT_PATH = /^\/api\/agent\/([a-z0-9]{8,16})(\/.*)?$/;
 export { CLAN_UNSIGNED } from "./routes/clan.mjs";
 
 /** The answer when no database connection could be had: the JSON API's
- *  documented problem (integrations.md, 503 temporarily_unavailable), and
+ *  documented problem (sign-in-with-elixir.md, 503 temporarily_unavailable), and
  *  the site API's own shape with words a person can act on. Both carry
  *  Retry-After and a request id to quote. */
 const UNAVAILABLE_MESSAGE =
   "Elixir could not reach its database. Nothing was read or changed; try again in a few seconds.";
-function unavailable(isIntegration, lambdaRequestId) {
+function unavailable(isApi, lambdaRequestId) {
   const requestId = lambdaRequestId ?? randomUUID();
-  return isIntegration
-    ? integrationProblem(
+  return isApi
+    ? apiProblem(
         503,
         "temporarily_unavailable",
         requestId,
@@ -464,7 +462,6 @@ export function makeHandler({
       capture,
     }),
     ...principalsRoutes({ resolveAccount, logEvent }),
-    ...integrationsRoutes({ resolveAccount, logEvent }),
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleActivityRoutes({ resolveAccount }),
     ...battleRoutes({ siteShell, shareImage }),
@@ -513,11 +510,11 @@ export function makeHandler({
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
     const method = event.method ?? "GET";
     const path = event.path ?? "/";
-    const isIntegration = path.startsWith("/api/v1/");
-    const agentPath = isIntegration ? null : AGENT_PATH.exec(path);
-    const found = isIntegration
+    const isApi = path.startsWith("/api/v1/");
+    const agentPath = isApi ? null : AGENT_PATH.exec(path);
+    const found = isApi
       ? {
-          route: (db, event, body) => integrationApi(db, event, body),
+          route: (db, event, body) => signInApi(db, event, body),
           key: `${method} /api/v1/*`,
           // The line names the operation the key cannot (review 2026-10-21).
           operation: v1Operation(method, path),
@@ -553,9 +550,9 @@ export function makeHandler({
         // A path no /api/v1 operation answers is the route's 404 to the
         // docs whatever its body, so it is not refused here as JSON
         // (Codex on #621); the route reads no body for it.
-        if (!(isIntegration && !found.operation))
-          return isIntegration
-            ? integrationProblem(400, "invalid_json", randomUUID())
+        if (!(isApi && !found.operation))
+          return isApi
+            ? apiProblem(400, "invalid_json", randomUUID())
             : json(400, { error: "invalid_json" });
       }
     }
@@ -604,7 +601,7 @@ export function makeHandler({
               // was read or written, so the caller is told to come back,
               // in its door's shape (MCP's is live_unavailable).
               console.error({ event: "db_connect_failed", name: error.name });
-              return unavailable(isIntegration, requestId);
+              return unavailable(isApi, requestId);
             }
             connectMs = Date.now() - started;
           }
@@ -619,8 +616,8 @@ export function makeHandler({
         },
         () => {
           timedOut = true;
-          return isIntegration
-            ? integrationProblem(504, "timeout", requestId ?? randomUUID())
+          return isApi
+            ? apiProblem(504, "timeout", requestId ?? randomUUID())
             : json(504, { error: "timeout" });
         },
       );

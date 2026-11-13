@@ -378,9 +378,6 @@ export const api = {
     }),
   myPrincipals: () => request("GET", "/api/me/principals"),
   createAgent: (body) => request("POST", "/api/me/agents", body),
-  adminIntegrations: () => request("GET", "/api/admin/integrations"),
-  adminIntegrationAction: (body) =>
-    request("POST", "/api/admin/integrations", body),
   revokePrincipalToken: (token_id) =>
     request("POST", "/api/me/principals/revoke", { token_id }),
 };

@@ -3,9 +3,10 @@
  * what a person did in their clan, as their verified player with the role
  * the record holds; the refusals say why; a retry is the same fact and a
  * correction replaces it; Clan's morning run records its computed award
- * standings; an integration records its game's facts for a player; and the
- * timeline shows each fact only to the reader its type allows. The JSON
- * API's clan fact doors are gone (4.0.0).
+ * standings; a player fact a family app wrote before JSON API 5.0.0 stays
+ * readable; and the timeline shows each fact only to the reader its type
+ * allows. The JSON API's clan fact doors are gone (4.0.0), and its player
+ * fact door (5.0.0).
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -372,47 +373,38 @@ test("an overwrite needs the right to the fact already there, not only the one s
   assert.equal(fixed.statusCode, 200, fixed.body);
 });
 
-test("an integration records its game's fact for a player with facts:write", async () => {
-  const admin = (
+test("a player fact Drop wrote on its key before 5.0.0 stays stored and labelled; nothing writes one now", async () => {
+  // JSON API 5.0.0 removed the write (integration keys went); the rows a
+  // family app wrote stay, read as their type says (the timeline below).
+  const attester = (
     await db.query(
-      "insert into account(email_hash,status,role) values ('admin','approved','admin') returning account_id",
+      "insert into account(kind,owned_by_account_id,status,role) values ('integration',$1,'approved','partner') returning account_id",
+      [accounts.leader],
     )
   ).rows[0].account_id;
-  const { createSession } = await import("@elixir-mcp/auth");
-  const session = await createSession(db, {
-    secret: "test",
-    accountId: admin,
-    emailHash: "admin",
-  });
-  const cookie = `__Host-elixir_session=${session.token}`;
-  const provision = (scopes, nameOf) =>
-    handler({
-      path: "/api/admin/integrations",
-      method: "POST",
-      headers: { cookie, "x-elixir-client": "web" },
-      body: JSON.stringify({ name: nameOf, scopes }),
-    });
-  const drop = data(await provision(["facts:write"], "elixir-drop"));
-  const reader = data(await provision(["players:read"], "reader-only"));
-  const path = `/api/v1/players/${encodeURIComponent(MEMBER_TAG)}/facts`;
-  const record = {
-    type: "personal_record",
-    ref: "run-7",
-    detail: { game: "Ranked", score: 1840, previous_best: 1710 },
-  };
-  const made = await request("POST", path, record, drop.token);
-  assert.equal(made.statusCode, 201, made.body);
-  assert.equal(data(made).data.attested_by.app, "Elixir Drop");
-  assert.equal(data(made).data.visibility, "player");
-  const refused = await request("POST", path, record, reader.token);
-  assert.equal(data(refused).code, "insufficient_scope");
-  const clanFact = await request(
-    "POST",
-    path,
-    { ...record, type: "departure_classified" },
-    drop.token,
+  await db.query(
+    `insert into attested_fact
+       (subject_kind, player_tag, fact_type, detail, visibility, source,
+        source_ref, attester_account_id, occurred_at)
+     values ('player', $1, 'personal_record',
+             '{"game":"Ranked","score":1840,"previous_best":1710}', 'player',
+             'elixir-drop', 'run-7', $2, now())`,
+    [MEMBER_TAG, attester],
   );
-  assert.equal(data(clanFact).code, "unknown_fact_type");
+  const [item] = await factItems(db, [{ kind: "player", tag: MEMBER_TAG }], {
+    accountId: accounts.outsider,
+    interactive: true,
+    fromMs: Date.now() - 86_400_000,
+    toMs: Date.now() + 1000,
+  });
+  assert.equal(item.kind, "personal_record");
+  assert.equal(item.facts.attested_by.app, "Elixir Drop");
+  const r = await request(
+    "POST",
+    `/api/v1/players/${encodeURIComponent(MEMBER_TAG)}/facts`,
+    { type: "personal_record", ref: "run-8", detail: {} },
+  );
+  assert.equal(r.statusCode, 404, r.body);
 });
 
 test("the timeline shows each fact only to the reader its type allows; a departure reaches the clan and its agent, an away only leaders", async () => {

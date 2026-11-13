@@ -2560,7 +2560,6 @@ Resources:
               authorization,
               content-type,
               mcp-protocol-version,
-              idempotency-key,
               cloudfront-viewer-address,
               cloudfront-viewer-country,
             ]

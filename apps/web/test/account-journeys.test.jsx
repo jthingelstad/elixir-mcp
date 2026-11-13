@@ -274,37 +274,6 @@ test(
   },
 );
 
-test(
-  "admin provisions and suspends a platform integration without retired enrollment",
-  { timeout: 20000 },
-  async () => {
-    await scratch.db.query(
-      "update account set role='admin' where account_id=$1",
-      [accountId],
-    );
-    open("/settings/admin/integrations");
-    fireEvent.change(await screen.findByLabelText("Name"), {
-      target: { value: "ui-platform" },
-    });
-    await clickReady("Create and issue key");
-    await screen.findByText("Copy this key now. It is shown once.");
-    await screen.findByText("ui-platform");
-    await clickReady("Dismiss key");
-    await clickReady("Suspend");
-    await screen.findByText("Suspended");
-    const row = (
-      await scratch.db.query(
-        "select a.kind,a.role,a.status from integration i join account a using(account_id) where i.name='ui-platform'",
-      )
-    ).rows[0];
-    expect(row).toEqual({
-      kind: "integration",
-      role: "partner",
-      status: "disabled",
-    });
-  },
-);
-
 /**
  * Capabilities are editable on a live connection, without disconnecting it.
  *

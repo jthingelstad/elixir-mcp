@@ -6,8 +6,8 @@
  * handler answers 504 itself. Without HTTP context (tests, no context) there is
  * no deadline unless the caller supplies one.
  *
- * A route that runs a tool (Explore, the /api/v1 person and integration
- * operations) hands the invoker a deadline a reply margin inside the soft
+ * A route that runs a tool (Explore, Find and the player page's Record
+ * tab, through the app's tool bridge) hands the invoker a deadline a reply margin inside the soft
  * one, so every read-only tool races it as it does at /mcp and answers
  * query_timeout with a request id and an audit row, instead of running on
  * unbounded until the handler gives up on it.

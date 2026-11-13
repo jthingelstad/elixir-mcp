@@ -11,7 +11,6 @@ import {
   WriteError,
   noun,
 } from "@elixir-mcp/ui";
-import { Integrations } from "./Integrations.jsx";
 import { useEffect, useState, Fragment } from "react";
 import { api } from "../api.js";
 import { MailFrame } from "../components/MailFrame.jsx";
@@ -98,7 +97,6 @@ function principalLabel(a) {
 export function Admin({ me, page = "accounts", navigate, itemId }) {
   if (!me?.is_admin)
     return <p className="callout callout--warn">Admins only.</p>;
-  if (page === "integrations") return <Integrations />;
   if (page === "accounts")
     return itemId ? (
       <AdminAccountDetail id={itemId} navigate={navigate} />
@@ -1336,7 +1334,7 @@ function AdminCollectors() {
 
 /** The person-bound service keys issued before 2026-09-27, to watch and
  *  revoke. None is issued any more: a headless caller is an
- *  agent with its own key, or a product on Integrations. */
+ *  agent with its own key. */
 function AdminServiceTokens() {
   const { day } = useClock();
   const svcTokens = useAdminServiceTokens().data?.tokens ?? [];
@@ -1352,8 +1350,7 @@ function AdminServiceTokens() {
         <p className="page__lede">
           Headless keys issued by hand before 2026-09-27, each acting as the
           account it is bound to. No new ones are issued: a bot or service gets
-          its own identity as an agent (Account &rarr; Agents) or an integration
-          (<a href={`${ADMIN}/integrations`}>Integrations</a>). Revoke any still
+          its own identity as an agent (Account &rarr; Agents). Revoke any still
           listed here once its caller has moved. Calls audit as{" "}
           <code>svc:&lt;name&gt;</code>.
         </p>
@@ -1363,8 +1360,8 @@ function AdminServiceTokens() {
         <div className="empty">
           <div className="empty__title">No service tokens</div>
           <p className="empty__body" style={{ marginBottom: 0 }}>
-            Every headless caller has its own identity, as an agent or an
-            integration. Nothing here to revoke.
+            Every headless caller has its own identity, as an agent. Nothing
+            here to revoke.
           </p>
         </div>
       ) : (

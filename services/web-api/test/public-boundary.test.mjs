@@ -6,9 +6,9 @@
  * JSON and its picture), a post its owner shares (slice 4, #762: its
  * page, JSON and picture, highlight.test.mjs), status pages that count the recorder, the game's card
  * list, and signing in. The site and docs are the site bucket's, never
- * this router's; the collector door, MCP and keyed /api/v1 calls each
- * refuse a missing credential in their own tests
- * (integration-routing.test.mjs: every /api/v1 operation answers 401).
+ * this router's; the collector door, MCP and /api/v1 each refuse a
+ * missing credential in their own tests (sign-in-api.test.mjs: GET
+ * /api/v1/me answers 401).
  * The audits' tables: docs/notes/2026-10-12-w1-public.md and
  * docs/notes/2026-11-11-sign-in-gate-measured.md.
  *
@@ -213,10 +213,10 @@ test("every other route refuses a request with no credential", async () => {
 });
 
 test("the doors by prefix refuse with no credential", async () => {
-  // The JSON API needs a bearer for every operation it has; a path it
-  // has none for is a 404 to the docs (integration-routing.test.mjs).
+  // The JSON API needs a bearer for its one operation; a path it has
+  // none for is a 404 to the docs (sign-in-api.test.mjs).
   assert.equal((await call("GET", "/api/v1/me")).statusCode, 401);
-  assert.equal((await call("POST", "/api/v1/me/players")).statusCode, 401);
+  assert.equal((await call("POST", "/api/v1/me/players")).statusCode, 404);
   assert.equal((await call("GET", "/api/v1/me/players")).statusCode, 404);
   // An agent's console needs its owner signed in.
   assert.equal(

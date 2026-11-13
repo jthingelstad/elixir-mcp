@@ -69,7 +69,7 @@ test("the JSON API answers it with its documented problem, temporarily_unavailab
   const handler = makeHandler({ database, secret: "s" });
   const { result: res } = await quietly(() =>
     handler({
-      path: "/api/v1/game/clock",
+      path: "/api/v1/me",
       method: "GET",
       headers: { authorization: "Bearer x" },
     }),

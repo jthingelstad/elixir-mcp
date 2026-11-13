@@ -318,12 +318,12 @@ export function adminRoutes({ resolveAccount, logEvent, capture = null }) {
       // No new key acts AS a person: a bot holding one
       // read what only that person should, leaders-only facts among it.
       // A headless caller is an agent with its own key (Account ->
-      // Agents) or a product on Integrations. Keys already issued still
+      // Agents). Keys already issued still
       // work, and are revoked here.
       return json(410, {
         error: "mint_moved",
         message:
-          "Person-bound service keys are no longer issued. Create an agent (Account -> Agents) or an integration (Admin -> Integrations) for its own key.",
+          "Person-bound service keys are no longer issued. Create an agent (Account -> Agents) for its own key.",
       });
     },
 

@@ -1,18 +1,20 @@
 /**
- * Attested facts (Jamie, 2026-09-25): what a person did in a clan, what
- * Clan computed from a clan's rules, and what a family app's own game
- * produced for a player. Kept apart from the game record and labelled;
- * see @elixir-mcp/contracts `facts.ts` for the types and who may see each.
+ * Attested facts (Jamie, 2026-09-25): what a person did in a clan, and
+ * what Clan computed from a clan's rules. Kept apart from the game record
+ * and labelled; see @elixir-mcp/contracts `facts.ts` for the types and
+ * who may see each.
  *
  *   Clan, as the signed-in person     writeClanFactInClan,
  *                                     removeClanFactInClan
  *   Clan's morning run, as Elixir     writeClanFactBySystem,
  *                                     removeClanFactBySystem (award
  *                                     standings, attesters ["app"])
- *   POST /api/v1/players/{tag}/facts  an integration with facts:write
  *
  * Clan is part of Elixir (Jamie, 2026-11-12), so a clan fact has no door
- * of its own: /api/v1 lost its clan fact routes in JSON API 4.0.0.
+ * of its own: /api/v1 lost its clan fact routes in JSON API 4.0.0. The
+ * player facts a family app once wrote on its integration key (Elixir
+ * Drop's personal records) have no writer since JSON API 5.0.0; the rows
+ * stay, read as their type says.
  *
  * A clan fact is attested by the person's VERIFIED player in that clan,
  * with the role the record holds for it now; the type names the roles
@@ -502,39 +504,4 @@ export function removeClanFactBySystem(
     clanInput,
     refInput,
   );
-}
-
-/** A family app's own game fact for a player, on its integration key. */
-export async function writePlayerFact(db, integration, playerInput, body) {
-  const playerTag = tagOf(playerInput, "player_tag");
-  const type = String(body.type ?? "");
-  const t = ATTESTED_FACT_TYPES[type];
-  if (!t || t.subject !== "player")
-    throw new FactError(
-      400,
-      "unknown_fact_type",
-      `A player fact is one of: ${Object.keys(ATTESTED_FACT_TYPES)
-        .filter((k) => ATTESTED_FACT_TYPES[k].subject === "player")
-        .join(", ")}.`,
-    );
-  const ref = refOf(body.ref);
-  const detail = checkDetail(type, body.detail);
-  const occurredAt =
-    body.occurred_at === undefined
-      ? new Date().toISOString()
-      : instantOf(body.occurred_at, "occurred_at");
-  return upsert(db, {
-    subject_kind: "player",
-    clan_tag: null,
-    player_tag: playerTag,
-    fact_type: type,
-    detail,
-    visibility: t.visibility,
-    source: integration.name,
-    source_ref: ref,
-    attester_account_id: integration.accountId,
-    attester_tag: null,
-    attester_role: null,
-    occurred_at: occurredAt,
-  });
 }

@@ -180,16 +180,6 @@ export async function sweepOperational(databaseUrl) {
     const war_unresolved = await warBattlesUnresolved(db);
     process.stdout.write(`${warUnresolvedEmf(war_unresolved)}\n`);
     const out = { war_unresolved };
-    out.integration_refreshes = (
-      await db.query(
-        "delete from integration_profile_refresh where created_at < now() - interval '1 day'",
-      )
-    ).rowCount;
-    out.integration_usage = (
-      await db.query(
-        "delete from integration_usage where day < current_date - 90",
-      )
-    ).rowCount;
     out.rate_limit = (
       await db.query(
         `delete from rate_limit where window_start < now() - interval '7 days'`,
