@@ -19,9 +19,12 @@ itself.
 - **What it draws.** The player page's pieces: `ConfirmAction` with
   `btn btn--follow`, "Follow <clan>?", what Elixir records (Home's words),
   the slot line ("Uses 1 of your N clan slots · M used"), confirm Follow;
-  then `kit-phead__state` "Following". Full slots keep the button shut, as
-  the player page's does; a refusal the server still sends (its own 429
-  message) shows in the dialog. Unfollowing stays in Settings, as for a
+  then `kit-phead__state` "Following". Full slots do not shut it, unlike
+  the player page: a clan an active agent already follows costs no new
+  slot, and only `addClan` can tell, because `GET /api/me/clans` lists the
+  person's own rows but pooled usage (Codex on #896). The dialog says the
+  slots are full and that Elixir will say so if this clan needs one; the
+  server's 429 message then shows in the dialog. Unfollowing stays in Settings, as for a
   player.
 - **Your own clan.** No special case. Elixir follows the primary player's
   clan by itself when a slot is free (2026-10-08), so it usually reads
@@ -30,4 +33,4 @@ itself.
 - **Who sees what:** unchanged. The read and write are the reader's own.
 - **Tests.** `apps/web/e2e/clan/follow-this-clan.spec.ts`: not followed
   (asks, the words and slot line, axe, the exact POST, then Following),
-  followed (Following, no button), slots full (shut).
+  followed (Following, no button), slots full (asks, then shows the 429).

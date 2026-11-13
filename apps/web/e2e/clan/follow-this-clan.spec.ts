@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { mockApi, signedIn } from "./fixtures.ts";
+import { ME, mockApi, signedIn } from "./fixtures.ts";
 
 /**
  * The clan head's Follow (design pass three, 2026-11-13): the player
@@ -8,16 +8,18 @@ import { mockApi, signedIn } from "./fixtures.ts";
  * it records and the clan slot it takes, then writes Elixir's own clan
  * follow (`POST /api/me/clans`, activity scope) and reads "Following".
  * Followed already, it reads "Following" and offers nothing. Full slots
- * keep it shut. Invented clan; local mocks only.
+ * leave it open (a clan an agent follows costs no new slot) and the
+ * server's refusal is shown. The fixtures' invented clan; local mocks only.
  */
 
-const page0 = "/clan/2PQRJ8LV/feed";
+const TAG = ME.clans[0]!.clan_tag;
+const page0 = `/clan/${TAG.slice(1)}/feed`;
 const SLOTS = {
   activity: { used: 1, limit: 3 },
   comprehensive: { used: 0, limit: 0 },
 };
 const FOLLOWED = {
-  clan_tag: "#2PQRJ8LV",
+  clan_tag: TAG,
   scope: "activity",
   notify: false,
   name: "Example Clan",
@@ -44,7 +46,7 @@ test("an unfollowed clan: Follow asks, writes the clan follow, then reads Follow
       "POST /api/me/clans": (route) => {
         posts.push(route.request().postDataJSON());
         followed = true;
-        return [200, { ok: true, clan_tag: "#2PQRJ8LV", scope: "activity" }];
+        return [200, { ok: true, clan_tag: TAG, scope: "activity" }];
       },
     }),
   );
@@ -69,9 +71,7 @@ test("an unfollowed clan: Follow asks, writes the clan follow, then reads Follow
   await expect(
     head.getByRole("button", { name: "Follow", exact: true }),
   ).toHaveCount(0);
-  expect(posts).toEqual([
-    { action: "add", clan_tag: "#2PQRJ8LV", scope: "activity" },
-  ]);
+  expect(posts).toEqual([{ action: "add", clan_tag: TAG, scope: "activity" }]);
 });
 
 test("a clan you follow already reads Following, with nothing to press", async ({
@@ -94,7 +94,11 @@ test("a clan you follow already reads Following, with nothing to press", async (
   ).toHaveCount(0);
 });
 
-test("with every clan slot in use, Follow stays shut", async ({ page }) => {
+test("with every clan slot in use, Follow still asks and shows the server's answer", async ({
+  page,
+}) => {
+  const refusal =
+    "Your activity-scope clan slots are full (3 for the Member role).";
   await mockApi(
     page,
     signedIn({
@@ -106,12 +110,21 @@ test("with every clan slot in use, Follow stays shut", async ({ page }) => {
           slots: { ...SLOTS, activity: { used: 3, limit: 3 } },
         },
       ],
+      "POST /api/me/clans": [
+        429,
+        { error: "quota_exceeded", message: refusal },
+      ],
     }),
   );
   await page.goto(page0);
-  await expect(
-    page
-      .locator(".clan-head")
-      .getByRole("button", { name: "Follow", exact: true }),
-  ).toBeDisabled();
+  await page
+    .locator(".clan-head")
+    .getByRole("button", { name: "Follow", exact: true })
+    .click();
+  const ask = page.getByRole("dialog", { name: "Follow Example Clan?" });
+  await expect(ask).toContainText(
+    "All 3 of your clan slots are in use. If this clan needs one, Elixir will say so.",
+  );
+  await ask.getByRole("button", { name: "Follow" }).click();
+  await expect(ask).toContainText(refusal);
 });
