@@ -1134,7 +1134,7 @@ test("the static router only resolves documents; native app behaviors bypass it"
     assert.equal(request.uri, document);
   }
   const behaviors = cacheBehaviours(template);
-  for (const root of ["console", "ladder", "clan"])
+  for (const root of ["home", "settings", "clan"])
     for (const pattern of [`/${root}`, `/${root}/*`]) {
       const behavior = behaviors.find(([path]) => path === pattern)?.[1];
       assert.ok(behavior, pattern);
@@ -1142,6 +1142,19 @@ test("the static router only resolves documents; native app behaviors bypass it"
       assert.match(behavior, /CachePolicyId: !Ref WebPrivateCachePolicy/);
       assert.doesNotMatch(behavior, /GetAtt SpaRouter/);
     }
+  // The folded Console, Ladder and service page left the app on
+  // 2026-11-13: their addresses fall to the default behaviour's 404.
+  for (const pattern of [
+    "/console",
+    "/console/*",
+    "/ladder",
+    "/ladder/*",
+    "/data/service",
+  ])
+    assert.ok(
+      !behaviors.some(([path]) => path === pattern),
+      `${pattern} is routed again`,
+    );
 });
 
 test("the static router answers scanner paths 404 itself; documents and files pass (#451)", async () => {
@@ -1627,4 +1640,17 @@ test("native doors cap the private database pools and pin IAM HomeRegion revisio
 test("the image policy cannot hotlink Supercell card art", async () => {
   const template = await readFile(templateUrl, "utf8");
   assert.ok(!template.includes("https://api-assets.clashroyale.com"));
+});
+
+test("the migrate role reads the archive and writes nothing to S3", async () => {
+  // 2026-11-13: the clan-migration/v1 and right-sizing/v1 grants
+  // outlived the code that used them. The ops read payloads/ (series
+  // backfills, receipt diagnostics) and calls/ (the capture censuses).
+  const template = await readFile(templateUrl, "utf8");
+  const role = resource(template, "MigrateRole", "JobsRole");
+  assert.match(role, /RoleName: elixir-mcp-migrate/);
+  assert.doesNotMatch(role, /s3:PutObject|s3:DeleteObject/);
+  assert.doesNotMatch(role, /clan-migration|right-sizing/);
+  const prefixes = [...role.matchAll(/\$\{Arn\}\/([^\s]+)/g)].map((m) => m[1]);
+  assert.deepEqual(prefixes.sort(), ["calls/*", "payloads/*"]);
 });

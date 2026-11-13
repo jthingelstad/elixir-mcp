@@ -52,30 +52,36 @@ test.describe("signed out", () => {
     await accessible(page, "sign-in wall");
   });
 
-  test("the folded Console's old addresses are the missing page, where they are", async ({
+  test("the folded Console's old addresses are the site's 404, not the app", async ({
     page,
   }) => {
-    // Jamie, 2026-11-13: "It is fine to break url support." Nothing
-    // forwards them any more; CloudFront still sends them to the app.
-    await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
+    // Jamie, 2026-11-13: "It is fine to break url support." Since the
+    // same day CloudFront no longer sends them to the app either: each
+    // is a site document the site does not build, a true 404.
     for (const old of [
       "/console",
       "/console/account/overview",
       "/console/explore/player/%2320JJJ2CCRU",
       "/console/signin?signup",
       "/data/service",
+      "/ladder",
       "/ladder/decks",
-      "/home/timeline",
     ]) {
-      await page.goto(old);
-      await expect(
-        page.getByRole("heading", { name: "Nothing at this address" }),
-        old,
-      ).toBeVisible();
-      expect(new URL(page.url()).pathname + new URL(page.url()).search).toBe(
-        old,
-      );
+      const res = await page.goto(old);
+      expect(res?.status(), old).toBe(404);
+      await expect(page.locator("#root"), old).toHaveCount(0);
     }
+  });
+
+  test("an old app address that is nothing is still the app's missing page", async ({
+    page,
+  }) => {
+    await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
+    await page.goto("/home/timeline");
+    await expect(
+      page.getByRole("heading", { name: "Nothing at this address" }),
+    ).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe("/home/timeline");
   });
 
   test("an address under the app that is nothing says so, with the bar and the disclaimer", async ({

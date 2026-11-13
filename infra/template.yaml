@@ -768,21 +768,13 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
+              # The payload archive, READ only: series backfills and the
+              # receipt diagnostics. Two stale archive grants went with
+              # the code that used them (2026-11-13).
               - Effect: Allow
                 Action: s3:GetObject
                 Resource: !Sub
                   - ${Arn}/payloads/*
-                  - Arn: !GetAtt ArchiveBucket.Arn
-              - Effect: Allow
-                Action: s3:GetObject
-                Resource: !Sub
-                  - ${Arn}/clan-migration/v1/*
-                  - Arn: !GetAtt ArchiveBucket.Arn
-              # Private census artifacts only; no payload or archive deletion.
-              - Effect: Allow
-                Action: [s3:GetObject, s3:PutObject]
-                Resource: !Sub
-                  - ${Arn}/right-sizing/v1/*
                   - Arn: !GetAtt ArchiveBucket.Arn
               # The call captures, READ only (3.18.0): the refusal and
               # controls censuses read request and response bodies the
@@ -2937,51 +2929,10 @@ Resources:
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           # The app routes use session-aware native HTML. Exact roots and
           # slash prefixes keep neighboring content paths (such as /clans)
-          # on the static site's behavior.
-          - PathPattern: /console
-            TargetOriginId: api
-            ViewerProtocolPolicy: redirect-to-https
-            AllowedMethods: [GET, HEAD]
-            CachePolicyId: !Ref WebPrivateCachePolicy
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
-            Compress: true
-            FunctionAssociations:
-              - EventType: viewer-request
-                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          - PathPattern: /console/*
-            TargetOriginId: api
-            ViewerProtocolPolicy: redirect-to-https
-            AllowedMethods: [GET, HEAD]
-            CachePolicyId: !Ref WebPrivateCachePolicy
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
-            Compress: true
-            FunctionAssociations:
-              - EventType: viewer-request
-                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          - PathPattern: /ladder
-            TargetOriginId: api
-            ViewerProtocolPolicy: redirect-to-https
-            AllowedMethods: [GET, HEAD]
-            CachePolicyId: !Ref WebPrivateCachePolicy
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
-            Compress: true
-            FunctionAssociations:
-              - EventType: viewer-request
-                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          - PathPattern: /ladder/*
-            TargetOriginId: api
-            ViewerProtocolPolicy: redirect-to-https
-            AllowedMethods: [GET, HEAD]
-            CachePolicyId: !Ref WebPrivateCachePolicy
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
-            Compress: true
-            FunctionAssociations:
-              - EventType: viewer-request
-                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
+          # on the static site's behavior. /console, /ladder and
+          # /data/service lost theirs on 2026-11-13: they fall to the
+          # default behaviour, whose bucket miss fails over to the site's
+          # 404 page.
           - PathPattern: /home
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
@@ -3027,17 +2978,6 @@ Resources:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /signin
-            TargetOriginId: api
-            ViewerProtocolPolicy: redirect-to-https
-            AllowedMethods: [GET, HEAD]
-            CachePolicyId: !Ref WebPrivateCachePolicy
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
-            Compress: true
-            FunctionAssociations:
-              - EventType: viewer-request
-                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          - PathPattern: /data/service
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods: [GET, HEAD]

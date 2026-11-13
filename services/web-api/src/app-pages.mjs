@@ -7,8 +7,11 @@ import { readFile } from "node:fs/promises";
 const renderApp = async (input) =>
   (await import("@elixir-mcp/web/server")).renderApp(input);
 
-const APP_PATH =
-  /^\/(?:console|clan|ladder|home|settings|signin|data\/service)(?:\/|$)/;
+/** The app's own paths, as the distribution routes them. `/console`,
+ *  `/ladder` and `/data/service` left on 2026-11-13: a bucket miss there
+ *  fails over here and must read as the site's 404 (routes/site-miss.mjs),
+ *  never the app. */
+const APP_PATH = /^\/(?:clan|home|settings|signin)(?:\/|$)/;
 const safeJson = (value) =>
   JSON.stringify(value)
     .replace(/</g, "\\u003c")

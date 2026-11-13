@@ -575,15 +575,9 @@ test(
       expect(window.location.pathname).toBe("/settings/connections"),
     );
     expect(window.location.search).toBe("?x=1");
-    // The folded Console's addresses stopped forwarding (2026-11-13): one
-    // stays where it is and is the missing page.
-    for (const old of ["/console", "/console/status/efficiency"]) {
-      cleanup();
-      window.history.pushState({}, "", old);
-      render(<App />);
-      expect(await screen.findByText("Nothing at this address")).toBeTruthy();
-      expect(window.location.pathname).toBe(old);
-    }
+    // The folded Console's addresses are not the app's at all since
+    // 2026-11-13: the edge answers them with the site's 404 (pinned by
+    // apps/site/test/site.test.mjs and e2e/console.spec.ts).
   },
 );
 

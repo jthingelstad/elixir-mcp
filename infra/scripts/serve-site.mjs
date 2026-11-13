@@ -44,17 +44,15 @@ function route(pathname) {
     return pathname;
   if (pathname === "/") return "/index.html";
   const key = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
-  if (key === "/console" || key.startsWith("/console/")) return "/app.html";
   // A battle's page is the app shell too: at the edge the API serves it
   // (the /battle/* behavior), with the battle's preview tags written in.
   if (/^\/battle\/[0-9a-f]{12,64}$/.test(key)) return "/app.html";
   // So is a shared highlight's (#762, the /h/* behavior).
   if (/^\/h\/[a-z2-7]{15}$/.test(key)) return "/app.html";
   if (key === "/clan" || key.startsWith("/clan/")) return "/app.html";
-  if (key === "/ladder" || key.startsWith("/ladder/")) return "/app.html";
   if (key === "/home" || key.startsWith("/home/")) return "/app.html";
   if (key === "/settings" || key.startsWith("/settings/")) return "/app.html";
-  if (key === "/signin" || key === "/data/service") return "/app.html";
+  if (key === "/signin") return "/app.html";
   return `${key}/index.html`;
 }
 
