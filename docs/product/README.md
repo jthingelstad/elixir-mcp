@@ -6,14 +6,11 @@ One page per surface of Elixir, between [`VISION.md`](../../VISION.md)
 what it never does, the principles that decide its details, and what is
 still open. The details are derived from it, not asked one at a time.
 
-**The briefs describe the social layer.** They were ratified on
-2026-10-12, a month before the social layer, and rewritten on 2026-11-13
-to `VISION.md` and the rulings of 2026-11-11 and 2026-11-12; each says so
-under its title, and the rewrite waits on Jamie's read. Where a brief
-and VISION or DECISIONS disagree, VISION and DECISIONS steer ("VISION
-steers until a brief is rewritten", Jamie, 2026-11-12), and a brief a
-later ruling overtakes carries a dated banner at its top naming what no
-longer holds.
+**The briefs describe the social layer.** They were rewritten on
+2026-11-13 to `VISION.md` and the rulings of 2026-11-11 to 2026-11-13,
+and Jamie ratified the rewrite the same day. Where a brief and VISION
+disagree, VISION wins; a brief a later ruling overtakes carries a dated
+banner at its top naming what no longer holds, until it is rewritten.
 
 Drop is not here: it is its own product with its own rules. How Drop
 signs a person in with Elixir is the Sign in with Elixir brief.

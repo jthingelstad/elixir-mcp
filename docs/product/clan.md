@@ -2,8 +2,8 @@
 
 *Rewritten 2026-11-13 to the social layer, from the brief Jamie ratified
 on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
-[DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. It waits on
-Jamie's read; where it and DECISIONS disagree, DECISIONS wins.*
+[DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Ratified by Jamie, 2026-11-13
+("I think the rest is good to go").*
 
 ## What it is for
 
@@ -27,7 +27,8 @@ leaders write its policy, and nothing clan-specific enters the code.
 - **Every member**: the Feed (the clan's last seven days, its members'
   highlights, what waits for you and The week), Standings (Standing,
   then award races), War, Members (the roster with Follow on each row,
-  Follow everyone, the clan map) and Policy (the policy in plain words
+  Follow everyone, the clan map, a city or zip code at most and so fine
+  for every member, young players included) and Policy (the policy in plain words
   and its weights), and their own away notice. [Jamie, 2026-11-12,
   "Clan's tabs are the canvas tabs", "Members is one page"]
 - **Elders**: Recruit's pitch tools and Scout, at the roster's foot, and
@@ -160,6 +161,3 @@ Actions and awards, and a leader switches between them. [Jamie,
 ## Open
 
 - **Acting from Discord** stays undecided on purpose. [Jamie, 2026-10-12]
-- **The clan map and young players**: the map shows a place only to the
-  clan's verified members while its leaders keep it on; a player map
-  waits on a legal view.
