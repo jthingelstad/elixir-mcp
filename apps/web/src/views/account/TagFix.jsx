@@ -16,7 +16,7 @@ const canonical = (raw) =>
  * (your main player, while you track others) stays in the dialog and says
  * why.
  */
-export function StopTracking({ name, run, busy, onDone }) {
+export function StopFollowing({ name, run, busy, onDone }) {
   return (
     <ConfirmAction
       label="Stop following"

@@ -311,7 +311,7 @@ export function useNav() {
   return useCallback(
     (to, { replace = false } = {}) => {
       // A fragment names a place on the page (Overview's "Fix the tag"
-      // lands on TrackedRecord's #fix-tag): the router carries it apart.
+      // lands on FollowedRecord's #fix-tag): the router carries it apart.
       const [path, hash] = String(to).split("#");
       const [pathname, qs] = path.split("?");
       if (

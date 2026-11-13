@@ -106,10 +106,10 @@ const MIGRATE_READS = {
   // The report names only the table; a rebuild or a drop names more.
   reindex: (v) => exactly(v, { table: (t) => typeof t === "string" }),
   // A dry run reads; only an explicit one counts (two of the three
-  // default to a dry run, account_track does not).
+  // default to a dry run, account_follow does not).
   account_remove: (v) => isObject(v) && v.dry_run === true,
   account_enroll: (v) => isObject(v) && v.dry_run === true,
-  account_track: (v) => isObject(v) && v.dry_run === true,
+  account_follow: (v) => isObject(v) && v.dry_run === true,
   agent_recordings: (v) => exactly(v, { dry_run: true }),
   ops_recordings: (v) => exactly(v, { dry_run: true }),
   tier_census: (v) => exactly(v, { dry_run: true }),

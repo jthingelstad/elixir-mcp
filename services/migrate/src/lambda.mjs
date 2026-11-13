@@ -22,7 +22,7 @@ import {
   accountEmailOp,
   accountRoleOp,
   accountEnrollOp,
-  accountTrackOp,
+  accountFollowOp,
   principalOp,
   integrationOp,
   serviceTokenLimitsOp,
@@ -171,10 +171,10 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.account_track) {
-    const result = await accountTrackOp(
+  if (event?.account_follow) {
+    const result = await accountFollowOp(
       process.env.DATABASE_URL,
-      event.account_track,
+      event.account_follow,
     );
     console.log(JSON.stringify(result));
     return result;

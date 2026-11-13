@@ -62,7 +62,7 @@ export function accountRoutes({
   const liveRead = live ?? makeLive({ enqueue: enqueueJob });
   /** Track, untrack, or set notify or relationship on a player; yours,
    *  or on an agent's console the agent's (which watches, only). */
-  async function trackPlayer(db, event, body) {
+  async function followPlayer(db, event, body) {
     const account = await resolveAccount(db, event, {
       requireContractHeader: true,
     });
@@ -531,10 +531,10 @@ export function accountRoutes({
         limit: limits.player_slots === Infinity ? null : limits.player_slots,
       });
     },
-    "POST /api/claims": trackPlayer,
+    "POST /api/claims": followPlayer,
     // The same writer at a /api/me address, so an agent's console can run it
     // as the agent (/api/agent/<id>/players; 2026-09-23).
-    "POST /api/me/players": trackPlayer,
+    "POST /api/me/players": followPlayer,
 
     "GET /api/me/first-answer": async (db, event) => {
       const account = await resolveAccount(db, event);

@@ -86,7 +86,7 @@ function readiness(data, notFound = false) {
 
 /**
  * The recording's first answer. A page that needs the same status for
- * itself (TrackedRecord) reads it once and passes `answer`; `fix` is
+ * itself (FollowedRecord) reads it once and passes `answer`; `fix` is
  * that page's inline correction, shown inside the "Tag not found"
  * callout. Without `fix`, the callout links to it (`#fix-tag`).
  */

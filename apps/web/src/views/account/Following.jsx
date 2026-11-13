@@ -430,7 +430,7 @@ function Clans({ me, query }) {
   );
 }
 
-export function Tracking({ me, refresh, navigate, hash, search = "" }) {
+export function Following({ me, refresh, navigate, hash, search = "" }) {
   const clansQuery = useMyClans();
   const view =
     new URLSearchParams(search).get("view") === "clans" ? "clans" : "players";
@@ -441,7 +441,7 @@ export function Tracking({ me, refresh, navigate, hash, search = "" }) {
         title="Players & following"
         sub="Manage the players and clans Elixir records for you. You and your agents share these places."
       />
-      <ClaimNotice me={me} onTracking />
+      <ClaimNotice me={me} onFollowing />
       <Stats>
         <Stat
           label="Players"

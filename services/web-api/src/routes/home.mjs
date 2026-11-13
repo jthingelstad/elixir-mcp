@@ -350,7 +350,7 @@ async function readClanView(
 
 /** Whether this account tracks the clan, all a tracked clan's reads need of
  *  `myClans`, which also counts its members and pools its slots. */
-async function tracksClan(db, accountId, clanTag) {
+async function followsClan(db, accountId, clanTag) {
   const { rows } = await db.query(
     "select 1 from account_clan where account_id = $1 and clan_tag = $2",
     [accountId, clanTag],
@@ -454,7 +454,7 @@ async function readClanPanel(ctx, { rebuild = false, meta = null } = {}) {
   const { db, account, event, clan, requestId } = ctx;
   const home = await homeClan(db, account.accountId);
   if (!home) return { state: "none" };
-  if (!(await tracksClan(db, account.accountId, home.clan_tag)))
+  if (!(await followsClan(db, account.accountId, home.clan_tag)))
     return {
       state: "untracked",
       clan_tag: home.clan_tag,
@@ -568,7 +568,7 @@ async function readNeedsPanel({ db, account, event, clan, requestId }) {
     : null;
   if (!view)
     return {
-      state: (await tracksClan(db, account.accountId, home.clan_tag))
+      state: (await followsClan(db, account.accountId, home.clan_tag))
         ? "tracked"
         : "untracked",
     };

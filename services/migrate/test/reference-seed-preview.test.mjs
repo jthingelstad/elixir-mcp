@@ -264,7 +264,7 @@ test("mixed or false preview operations never select a write branch", async () =
         card_roles_import: { ...spec, preview: true },
       },
       { card_roles_import: { ...spec, preview: false } },
-      { account_track: {}, card_roles_import: { ...spec, preview: null } },
+      { account_follow: {}, card_roles_import: { ...spec, preview: null } },
       { vacuum: { table: "battle" }, reference_seed_preview: spec },
       { reference_seed_preview: { ...spec, apply: true } },
       { reference_seed_preview: false },

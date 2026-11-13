@@ -533,19 +533,19 @@ export async function accountEnrollOp(databaseUrl, spec) {
 }
 
 /**
- * Track a player on somebody else's account, at their owner's word.
+ * Follow a player on somebody else's account, at their owner's word.
  *
- * {account_track: {primary_tag, player_tag, relationship?, dry_run?}}
+ * {account_follow: {primary_tag, player_tag, relationship?, dry_run?}}
  *
  * The account is named by the tag it holds as primary, never by address,
  * so nothing personal enters the invoke payload or its log line. The add
- * is @elixir-mcp/claims' addPlayer, the same act the holder's own "track"
+ * is @elixir-mcp/claims' addPlayer, the same act the holder's own "follow"
  * click performs (quota, recording start, claim_added event), plus an
  * account_event that says it was ops that did it. Built 2026-09-20 for
  * Jamie adding Sam's alt; the claim lands unverified exactly as a
  * self-added one would, and the holder can remove it the same way.
  */
-export async function accountTrackOp(databaseUrl, spec) {
+export async function accountFollowOp(databaseUrl, spec) {
   const { normalizeTag } = await import("@elixir-mcp/contracts");
   const primaryTag = normalizeTag(String(spec?.primary_tag ?? ""));
   const playerTag = normalizeTag(String(spec?.player_tag ?? ""));

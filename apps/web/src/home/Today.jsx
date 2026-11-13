@@ -223,7 +223,7 @@ function ClanPanel({ clan, player }) {
         </Empty>
       </Panel>
     );
-  if (clan.state === "untracked") return <TrackClan clan={clan} />;
+  if (clan.state === "untracked") return <FollowHomeClan clan={clan} />;
   const base = `/clan/${tagPath(clan.clan_tag)}/feed`;
   const race = lastRaceLine(clan.last_race);
   const now = raceNowLine(clan.race_now);
@@ -267,7 +267,7 @@ function ClanPanel({ clan, player }) {
   );
 }
 
-function TrackClan({ clan }) {
+function FollowHomeClan({ clan }) {
   const invalidate = useInvalidate();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");

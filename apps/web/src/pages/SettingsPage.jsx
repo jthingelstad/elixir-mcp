@@ -14,7 +14,7 @@ import {
   AgentSettings,
   NoAgent,
 } from "../views/account/Agents.jsx";
-import { AgentTracking } from "../views/account/AgentTracking.jsx";
+import { AgentFollowing } from "../views/account/AgentFollowing.jsx";
 import { CallRecord } from "../views/account/CallRecord.jsx";
 import { Connections } from "../views/account/Connections.jsx";
 import { EmailPage } from "../views/account/EmailPage.jsx";
@@ -27,8 +27,8 @@ import { Seen } from "../views/account/Seen.jsx";
 import { SignIns } from "../views/account/SignIns.jsx";
 import { Timeline } from "../views/account/Timeline.jsx";
 import { DiscordPage } from "../views/account/TimelineDiscord.jsx";
-import { TrackedRecord } from "../views/account/TrackedRecord.jsx";
-import { Tracking } from "../views/account/Tracking.jsx";
+import { FollowedRecord } from "../views/account/FollowedRecord.jsx";
+import { Following } from "../views/account/Following.jsx";
 import { Usage } from "../views/account/Usage.jsx";
 import { Verify } from "../views/account/Verify.jsx";
 
@@ -65,7 +65,7 @@ export function SettingsPage() {
       return <SignIns />;
     case "players":
       return (
-        <Tracking
+        <Following
           me={me}
           refresh={refresh}
           navigate={navigate}
@@ -77,7 +77,7 @@ export function SettingsPage() {
       return <Verify refresh={refresh} navigate={navigate} tag={tag} />;
     case "player":
       return (
-        <TrackedRecord
+        <FollowedRecord
           me={me}
           refresh={refresh}
           navigate={navigate}
@@ -231,7 +231,7 @@ function AgentPages({ here, search, navigate }) {
         <AgentFrame publicId={here.agent} tab={here.tab} navigate={navigate}>
           {(row) =>
             here.tab === "reads" ? (
-              <AgentTracking agent={agent} />
+              <AgentFollowing agent={agent} />
             ) : here.tab === "usage" ? (
               <Usage me={agent} />
             ) : here.tab === "connections" ? (

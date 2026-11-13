@@ -41,7 +41,7 @@ test("with no players left, it says to add one, on Players & following without a
   renderWithProviders(
     <ClaimNotice
       me={{ claim_notice: notice("primary_ended"), claims: [] }}
-      onTracking
+      onFollowing
     />,
   );
   expect(screen.getByRole("status").textContent).toMatch(

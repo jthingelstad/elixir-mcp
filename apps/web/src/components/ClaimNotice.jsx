@@ -11,12 +11,12 @@ import { SETTINGS } from "../lib/settings.js";
  * added. `GET /api/me` carries `claim_notice` while the account has no
  * primary. It names the tag, never the account that verified it.
  */
-export function ClaimNotice({ me, onTracking = false, className = "" }) {
+export function ClaimNotice({ me, onFollowing = false, className = "" }) {
   const notice = me?.claim_notice;
   if (!notice?.player_tag) return null;
   const tag = <Tag tag={notice.player_tag} />;
   const others = (me.claims ?? []).length > 0;
-  const addYours = onTracking ? (
+  const addYours = onFollowing ? (
     "Add your player below."
   ) : (
     <>
