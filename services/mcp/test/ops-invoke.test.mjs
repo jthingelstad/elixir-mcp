@@ -40,7 +40,9 @@ test("op: the allowlist names only keys the dispatchers still have", () => {
       ).matchAll(/\bevent\?\.([a-z_]+)/g),
     ].map((m) => m[1]),
   );
-  assert.ok(migrate.has("stats") && jobs.has("series_metrics"));
+  assert.ok(migrate.has("stats") && jobs.has("shape_census"));
+  // Retired 2026-11-13: the jobs dispatcher no longer answers it.
+  assert.equal(jobs.has("series_metrics"), false);
   assert.deepEqual(
     READ_KEYS.migrate.filter((k) => !migrate.has(k)),
     [],
@@ -79,7 +81,6 @@ test("op: reads are reads", () => {
     },
   ])
     assert.equal(kind(payload), "read", JSON.stringify(payload));
-  assert.equal(kind({ series_metrics: true }, "jobs"), "read");
 });
 
 test("op: everything else is a write, and takes the lock", () => {
@@ -137,6 +138,7 @@ test("op: everything else is a write, and takes the lock", () => {
     { capture_efficiency: true }, // upserts capture_efficiency_daily
     { collector_upgrades: true },
     { stats: true }, // a migrate op, unknown to jobs
+    { series_metrics: true }, // retired 2026-11-13; unknown, so a write
   ])
     assert.equal(kind(payload, "jobs"), "write", JSON.stringify(payload));
   for (const payload of [null, [], "stats", 1])
