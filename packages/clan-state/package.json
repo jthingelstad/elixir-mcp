@@ -10,7 +10,7 @@
     "./import": "./src/import.mjs"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test --test-force-exit"
   },
   "devDependencies": {
     "pg": "^8.23.1"

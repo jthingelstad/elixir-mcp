@@ -16,6 +16,8 @@ export default defineConfig({
     exclude: ["e2e/**", "node_modules/**"],
     // A stand-in for Cloudflare's Turnstile script (src/turnstile.js).
     setupFiles: ["test/setup-turnstile.js", "test/setup-slow-runner.js"],
+    // The run's scratch-database slot, waited for outside any hook.
+    globalSetup: ["test/global-setup.mjs"],
     // Whole-App tests render from a cold module graph, and a full verify
     // beside another build took past the 5 s default. A slow runner must
     // not read as a failed test.

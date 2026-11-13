@@ -10,15 +10,11 @@
 
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 import pg from "pg";
-import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import { createPrincipal } from "../src/index.mjs";
+import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_principals_${process.pid}`;
@@ -30,15 +26,7 @@ let admin;
 let member;
 
 before(async () => {
-  const a = new pg.Client({ connectionString: ADMIN_URL });
-  await a.connect();
-  await a.query(`drop database if exists ${NAME} with (force)`);
-  await a.query(`create database ${NAME}`);
-  await a.end();
-  await migrate({
-    databaseUrl: URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: URL });
   await db.connect();
 
@@ -65,10 +53,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const a = new pg.Client({ connectionString: ADMIN_URL });
-  await a.connect();
-  await a.query(`drop database if exists ${NAME} with (force)`);
-  await a.end();
+  await dropScratch(NAME);
 });
 
 test("an agent takes its owner's clan as its primary subject", async () => {

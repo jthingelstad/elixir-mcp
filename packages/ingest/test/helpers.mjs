@@ -1,6 +1,13 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFile, readdir } from "node:fs/promises";
+import {
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { createHash } from "node:crypto";
 import pg from "pg";
 import { migrate } from "../../../services/migrate/src/migrate.mjs";
@@ -116,12 +123,131 @@ async function pruneTemplates(admin, keep) {
   }
 }
 
-/** A fresh database with every migration applied, cloned from a template
- *  that ran them once. Running 244 migrations per test file took 9 s at
- *  load ~40 and timed out a 60 s setup under a full verify (2026-11-12);
- *  a clone takes about a second under the same verify. */
-export async function scratchDb(suffix) {
-  const name = `elixir_mcp_test_${suffix}_${process.pid}`;
+/** One of the run's scratch-database slots, held by this process until
+ *  its last scratch database is dropped (or it exits).
+ *
+ *  Several verify runs share one local PostgreSQL (max_connections 100),
+ *  and every test file that holds a scratch database also holds its
+ *  connections. `infra/scripts/test.mjs` hands each run a slot
+ *  directory and a count (ELIXIR_TEST_DB_SLOTS_DIR, ELIXIR_TEST_DB_SLOTS),
+ *  so a run holds at most that many scratch databases at once, whatever
+ *  the units and node --test's file concurrency would otherwise start
+ *  (2026-11-13: "sorry, too many clients already" in suites the change
+ *  never touched). A slot is a directory made with mkdir, which is
+ *  atomic; a holder that died without letting go is found by its pid.
+ *  Outside test.mjs (a focused `node --test`) there is no cap. */
+const SLOTS_DIR = process.env.ELIXIR_TEST_DB_SLOTS_DIR ?? null;
+const SLOTS = Number(process.env.ELIXIR_TEST_DB_SLOTS ?? 0);
+let slotHeld = null;
+let slotUsers = 0;
+
+function slotIsStale(dir) {
+  let pid;
+  try {
+    pid = Number(readFileSync(path.join(dir, "pid"), "utf8"));
+  } catch {
+    // Made but not yet stamped: live unless it has stayed unstamped.
+    try {
+      return Date.now() - statSync(dir).mtimeMs > 30_000;
+    } catch {
+      return false;
+    }
+  }
+  if (!pid) return false;
+  try {
+    process.kill(pid, 0);
+    return false;
+  } catch (err) {
+    return err.code === "ESRCH";
+  }
+}
+
+function releaseSlotNow() {
+  if (!slotHeld) return;
+  rmSync(slotHeld, { recursive: true, force: true });
+  slotHeld = null;
+}
+
+async function takeSlot() {
+  slotUsers += 1;
+  if (!SLOTS_DIR || !(SLOTS > 0) || slotHeld) return;
+  // A parent took the slot for this process (holdSlot, below).
+  const held = process.env.ELIXIR_TEST_DB_SLOT_HELD;
+  if (held && held !== String(process.pid)) return;
+  for (;;) {
+    for (let i = 0; i < SLOTS; i++) {
+      const dir = path.join(SLOTS_DIR, `slot-${i}`);
+      try {
+        mkdirSync(dir);
+      } catch (err) {
+        if (err.code === "ENOENT") return; // the run has ended: no cap
+        if (err.code !== "EEXIST") throw err;
+        if (slotIsStale(dir)) rmSync(dir, { recursive: true, force: true });
+        continue;
+      }
+      writeFileSync(path.join(dir, "pid"), String(process.pid));
+      slotHeld = dir;
+      process.once("exit", releaseSlotNow);
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 50 + Math.random() * 50));
+  }
+}
+
+function giveSlot() {
+  slotUsers = Math.max(0, slotUsers - 1);
+  if (slotUsers === 0) releaseSlotNow();
+}
+
+/** Take a slot for this process and every process it starts after, and
+ *  return the function that gives it back. For a runner whose setup has
+ *  a timeout (vitest's hooks): its globalSetup waits for the slot, which
+ *  has no timeout, so a queue for slots is never read as a slow hook
+ *  (2026-11-13: the journeys' 60 s beforeAll timed out waiting for one).
+ *  The workers inherit ELIXIR_TEST_DB_SLOT_HELD and take none of their
+ *  own. */
+export async function holdSlot() {
+  await takeSlot();
+  process.env.ELIXIR_TEST_DB_SLOT_HELD = String(process.pid);
+  return () => {
+    delete process.env.ELIXIR_TEST_DB_SLOT_HELD;
+    giveSlot();
+  };
+}
+
+/** Create the database `name` (dropping any leftover of that name first)
+ *  with every migration applied, cloned from a template that ran them
+ *  once. Running 244 migrations per test file took 9 s at load ~40 and
+ *  timed out a 60 s setup under a full verify (2026-11-12); a clone takes
+ *  about a second under the same verify. Takes one of the run's slots
+ *  (above); `dropScratch(name)` gives it back. */
+export async function createScratch(name) {
+  await takeSlot();
+  try {
+    await cloneTemplate(name);
+  } catch (err) {
+    giveSlot();
+    throw err;
+  }
+}
+
+/** Drop a database createScratch made, ending any connection still in
+ *  it, and give back the run's slot. */
+export async function dropScratch(name) {
+  try {
+    const admin = new pg.Client({ connectionString: ADMIN_URL });
+    await admin.connect();
+    try {
+      await admin.query(`drop database if exists ${name} with (force)`);
+    } finally {
+      await admin.end();
+    }
+  } finally {
+    giveSlot();
+  }
+}
+
+async function cloneTemplate(name) {
   const tpl = await template();
   const admin = new pg.Client({ connectionString: ADMIN_URL });
   await admin.connect();
@@ -167,18 +293,26 @@ export async function scratchDb(suffix) {
   } finally {
     await admin.end();
   }
+}
+
+/** A fresh migrated database (createScratch) and one client on it. */
+export async function scratchDb(suffix) {
+  const name = `elixir_mcp_test_${suffix}_${process.pid}`;
+  await createScratch(name);
   const url = ADMIN_URL.replace(/\/postgres$/, `/${name}`);
   const db = new pg.Client({ connectionString: url });
-  await db.connect();
+  try {
+    await db.connect();
+  } catch (err) {
+    await dropScratch(name);
+    throw err;
+  }
   return {
     db,
     url,
     async drop() {
       await db.end();
-      const admin2 = new pg.Client({ connectionString: ADMIN_URL });
-      await admin2.connect();
-      await admin2.query(`drop database if exists ${name} with (force)`);
-      await admin2.end();
+      await dropScratch(name);
     },
   };
 }

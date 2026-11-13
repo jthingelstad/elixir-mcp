@@ -16,15 +16,10 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { sweepPayloads } from "../src/index.mjs";
 import { archiveKey } from "../../../packages/ingest/src/pipeline.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_sweep_${process.pid}`;
@@ -63,15 +58,7 @@ const liveIds = async () =>
   ).rows.map((r) => Number(r.payload_id));
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: DB_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
   process.env.ARCHIVE_BUCKET = "test-archive";
@@ -79,10 +66,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 test("a superseded row is retired only once its twin is confirmed", async () => {
@@ -287,6 +271,10 @@ test("a row with no newer version is never a candidate", async () => {
  * outside, so a changed interval fails here rather than in production.
  */
 import { sweepOperational } from "../src/index.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 const count = async (t) =>
   Number((await db.query(`select count(*)::int n from ${t}`)).rows[0].n);

@@ -6,14 +6,13 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { migrate } from "../src/migrate.mjs";
 import { statements, tables } from "../src/ops-diagnostics.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const SCRATCH = `elixir_mcp_test_statements_${process.pid}`;
@@ -21,24 +20,14 @@ const SCRATCH_URL = ADMIN_URL.replace(/\/postgres$/, `/${SCRATCH}`);
 
 let db;
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`create database ${SCRATCH}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: SCRATCH_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(SCRATCH);
   db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
 });
 
 after(async () => {
   await db?.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${SCRATCH} with (force)`);
-  await admin.end();
+  await dropScratch(SCRATCH);
 });
 
 const TUNED = ["deck"];

@@ -1,7 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import {
   FeedbackError,
   answerFeedback,
@@ -16,6 +15,7 @@ import {
   markSeen,
   unseenCount,
 } from "../src/feedback.mjs";
+import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -33,15 +33,7 @@ const SEND = "44444444-4444-4444-8444-444444444444";
 const OTHER_SEND = "55555555-5555-4555-8555-555555555555";
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: DB_URL,
-    migrationsDir: new URL("../../../db/migrations", import.meta.url).pathname,
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
   const make = async (hash) =>
@@ -89,10 +81,7 @@ before(async () => {
 
 after(async () => {
   await db?.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 test("cleanRefs keeps good pointers, normalizes tags, drops the rest with a reason", () => {

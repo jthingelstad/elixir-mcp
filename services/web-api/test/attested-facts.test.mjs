@@ -11,7 +11,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { mintTokens, registerClient } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
 import {
@@ -21,6 +20,10 @@ import {
   removeClanFactBySystem,
 } from "@elixir-mcp/record/attested-facts";
 import { factItems } from "../../../packages/tools/src/activity/entries.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 // A family app's client is provisioned (0185), never merely registered to
 // a family redirect: registration is open and proves nothing.
@@ -110,14 +113,7 @@ const grant = async (accountId, scope, client = clan) =>
   ).accessToken;
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: new URL("../../../db/migrations", import.meta.url).pathname,
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   handler = makeHandler({ databaseUrl, secret: "test" });
@@ -144,10 +140,7 @@ before(async () => {
 });
 after(async () => {
   await db?.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 
 test("a leader records a departure as a kick; a retry is the same fact and a correction replaces it", async () => {

@@ -4,7 +4,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 import pg from "pg";
-import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import { projectRiverRaceLog } from "../../ingest/src/war.mjs";
 import { ingestClanRoster } from "../../ingest/src/roster.mjs";
 import { projectClanSeries } from "../../ingest/src/series.mjs";
@@ -15,6 +14,7 @@ import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
 import { periodAt } from "../src/war-period.mjs";
 import { ensureSeasonsAround } from "@elixir-mcp/record/season";
 import { seedDeck } from "./deck-rows.mjs";
+import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
 /** The (player, UTC day) pairs of hand-seeded battles, as ingest would
  *  hand them to the rollup. */
@@ -54,15 +54,7 @@ async function call(fn, name, args = {}) {
 }
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: DB_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
   // The calendar covers today the way production's does: the migrations
@@ -125,10 +117,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 test("clans_roster: roster with roles, snapshots slots, membership tenure", async () => {

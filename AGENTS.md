@@ -125,8 +125,12 @@ Skills and tests cite these by number; keep the numbering.
    `npm run cr` checks a claim first; the `reference-audit` skill diffs
    the payload archive against it.
 9. **Tests run on scratch databases** made per run (brew `postgresql@17`
-   running, no Docker; `PG_ADMIN_URL` overrides the admin URL). Live data:
-   reads and refusal paths only, never a verifying write.
+   running, no Docker; `PG_ADMIN_URL` overrides the admin URL), cloned
+   from a template migrated once (`createScratch`/`scratchDb` in
+   `packages/ingest/test/helpers.mjs`). Several sessions share that one
+   server, so a run holds at most ten at once and a pool keeps two
+   connections (`infra/scripts/test.mjs`). Live data: reads and refusal
+   paths only, never a verifying write.
 10. **The unofficiality disclaimer** is on every user-visible surface,
     including tool response metadata and this repo's README.
 

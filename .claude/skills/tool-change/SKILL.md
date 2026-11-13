@@ -144,7 +144,8 @@ files).
   Find a tool's with
   `grep -l '"<tool>"' packages/tools/test/*.test.mjs services/*/test/*.test.mjs`.
 - Each file makes its own scratch database on the local brew
-  `postgresql@17`, migrates it, seeds it, and calls through
+  `postgresql@17` (`createScratch` or `scratchDb`, a clone of the
+  migrated template), seeds it, and calls through
   `makeInvoker({ db, account, registry: makeRegistry() })`. Under
   `node --test` a result that breaks its `outputSchema` throws, so every
   call also tests the schema.

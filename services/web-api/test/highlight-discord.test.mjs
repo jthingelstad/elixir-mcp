@@ -23,7 +23,6 @@ import {
   validateTimelineDiscordMessage,
   webhookFingerprint,
 } from "@elixir-mcp/contracts";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { createPostgresLedger } from "../../../packages/clan-state/src/postgres.mjs";
@@ -39,6 +38,10 @@ import {
   highlightPostKey,
 } from "../../../packages/syndication/src/highlight-share.mjs";
 import { makeHandler } from "../src/handler.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -122,15 +125,7 @@ const highlightOn = async (battle) =>
     .body.highlights[0];
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   const {
@@ -230,10 +225,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 
 test("the post's words: a hostile name and words are literal, no clan name, no tag, one unpreviewed link", () => {

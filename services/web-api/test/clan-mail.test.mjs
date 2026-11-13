@@ -9,11 +9,14 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { sendActionsMail } from "@elixir-mcp/mail/clan-mail";
 import { actionsWaitingMail } from "../../../packages/clan-engine/src/mail.mjs";
 import { actionLabel } from "../../../packages/clan-engine/src/actions.mjs";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -66,14 +69,7 @@ async function person(
 }
 
 before(async () => {
-  const a = new pg.Client({ connectionString: adminUrl });
-  await a.connect();
-  await a.query(`create database ${name}`);
-  await a.end();
-  await migrate({
-    databaseUrl,
-    migrationsDir: new URL("../../../db/migrations", import.meta.url).pathname,
-  });
+  await createScratch(name);
   db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   handler = makeHandler({ databaseUrl, secret: "test" });
@@ -83,10 +79,7 @@ before(async () => {
 });
 after(async () => {
   await db?.end();
-  const a = new pg.Client({ connectionString: adminUrl });
-  await a.connect();
-  await a.query(`drop database ${name} with (force)`);
-  await a.end();
+  await dropScratch(name);
 });
 
 const message = (player_tag, extra = {}) => ({

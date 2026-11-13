@@ -5,8 +5,11 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
-import { migrate } from "../src/migrate.mjs";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
 /**
  * 0229 copies each clan's Discord editor voice (clan_activity_discord.voice,
@@ -29,15 +32,7 @@ let db;
 let sql;
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${SCRATCH} with (force)`);
-  await admin.query(`create database ${SCRATCH}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: SCRATCH_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(SCRATCH);
   db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
   sql = await readFile(FILE, "utf8");
@@ -45,10 +40,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${SCRATCH} with (force)`);
-  await admin.end();
+  await dropScratch(SCRATCH);
 });
 
 beforeEach(async () => {

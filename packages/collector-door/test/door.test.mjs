@@ -1,10 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 import pg from "pg";
-import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import {
   makeCollectorDoor,
   parseClientVersion,
@@ -17,9 +14,8 @@ import {
   ledgerStats,
   settleLeases,
 } from "../../ledger/src/ledger.mjs";
+import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const NAME = `elixir_mcp_test_door_${process.pid}`;
@@ -52,15 +48,7 @@ async function gatewayRow(name) {
 }
 
 before(async () => {
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.query(`create database ${NAME}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: DB_URL,
-    migrationsDir: path.join(repoRoot, "db/migrations"),
-  });
+  await createScratch(NAME);
   db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
   const {
@@ -130,10 +118,7 @@ before(async () => {
 
 after(async () => {
   await db.end();
-  const admin = new pg.Client({ connectionString: ADMIN_URL });
-  await admin.connect();
-  await admin.query(`drop database if exists ${NAME} with (force)`);
-  await admin.end();
+  await dropScratch(NAME);
 });
 
 test("held retired boards and stopped bulk subjects are acknowledged without ingest", async () => {

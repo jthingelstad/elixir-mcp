@@ -1,34 +1,48 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { migrate } from "../../migrate/src/migrate.mjs";
 import { makeInvoker } from "../../../packages/tools/src/invoker.mjs";
 import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { createHash } from "node:crypto";
+import {
+  createScratch,
+  dropScratch,
+} from "../../../packages/ingest/test/helpers.mjs";
 
-const root = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../..",
-);
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_query_budget_${process.pid}`;
 let db;
 let account;
 
+/** The connection, with the server's own answer to each pg_sleep kept:
+ *  "completed", or the SQLSTATE that ended it. 57014 means PostgreSQL
+ *  cancelled the statement (its statement_timeout fired); a promise the
+ *  invoker merely abandoned would complete after the full sleep. No
+ *  stopwatch: a loaded host moves wall time, never the SQLSTATE
+ *  (2026-11-13, a 5 s bound missed under several concurrent verifies). */
+function watched(pattern = /pg_sleep/) {
+  const sleeps = [];
+  return {
+    sleeps,
+    query(sql, params) {
+      const p = db.query(sql, params);
+      if (pattern.test(String(sql)))
+        sleeps.push(
+          p.then(
+            () => "completed",
+            (err) => err.code,
+          ),
+        );
+      return p;
+    },
+  };
+}
+
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`create database ${name}`);
-  await admin.end();
+  await createScratch(name);
   const url = adminUrl.replace(/\/postgres$/, `/${name}`);
-  await migrate({
-    databaseUrl: url,
-    migrationsDir: path.join(root, "db/migrations"),
-  });
   db = new pg.Client({ connectionString: url });
   await db.connect();
   const { rows } = await db.query(
@@ -39,15 +53,13 @@ before(async () => {
 
 after(async () => {
   await db?.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 
 test("slow aggregation is canceled, answered with a reportable timeout, and audited", async () => {
+  const conn = watched();
   const invoke = makeInvoker({
-    db,
+    db: conn,
     account,
     queryBudgetMs: 150,
     registry: {
@@ -57,7 +69,6 @@ test("slow aggregation is canceled, answered with a reportable timeout, and audi
       },
     },
   });
-  const start = Date.now();
   const result = await invoke("war_history", {
     clan_tag: "#J2RGCRVG",
     limit: 5,
@@ -66,11 +77,9 @@ test("slow aggregation is canceled, answered with a reportable timeout, and audi
   assert.equal(result.body.error.code, "query_timeout");
   assert.equal(result.body.error.class, "retry");
   assert.match(result.body.error.hint, /war_history\(/);
-  // Ten seconds of sleep against a 5 s bound: a cancel lands in well under
-  // a second, a query left to run takes all ten. The bound used to be 900
-  // ms against a 1 s sleep, which a loaded machine missed (2026-11-12).
-  assert.ok(
-    Date.now() - start < 5000,
+  assert.deepEqual(
+    await Promise.all(conn.sleeps),
+    ["57014"],
     "the server cancels the query rather than merely abandoning its promise",
   );
   const { rows } = await db.query(
@@ -181,8 +190,9 @@ test("the analytical budget never interrupts an account mutation", async () => {
 });
 
 test("the Lambda deadline answers a slow read tool with query_timeout and audits it as timeout", async () => {
+  const conn = watched();
   const invoke = makeInvoker({
-    db,
+    db: conn,
     account,
     deadlineMs: 150,
     registry: {
@@ -192,17 +202,16 @@ test("the Lambda deadline answers a slow read tool with query_timeout and audits
       },
     },
   });
-  const start = Date.now();
   // Not an analytical tool: before 3.14.0 nothing cancelled it and the
   // client saw a bare HTTP 500.
   const result = await invoke("war_current", {});
   assert.equal(result.isError, true);
   assert.equal(result.body.error.code, "query_timeout");
   assert.ok(result.body.meta.request_id);
-  // As above: a 10 s sleep and a 5 s bound, so a slow runner is not read
-  // as an abandoned query (1077 ms against 900 failed a verify, 2026-11-12).
-  assert.ok(
-    Date.now() - start < 5000,
+  // As above: the server's SQLSTATE, not a stopwatch.
+  assert.deepEqual(
+    await Promise.all(conn.sleeps),
+    ["57014"],
     "cancelled in PostgreSQL, not abandoned",
   );
   const { rows } = await db.query(
@@ -260,21 +269,24 @@ test("a query whose timeout was still being set when the deadline fired is never
 });
 
 test("the deadline covers work outside the database, such as a live-lane wait", async () => {
+  // The wait outside the database ends only when the test says so, after
+  // the answer: an answer at all proves the deadline, with no clock.
+  let release;
+  const waiting = new Promise((resolve) => (release = resolve));
   const invoke = makeInvoker({
     db,
     account,
     deadlineMs: 100,
     registry: {
       invoke: async () => {
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        await waiting;
         return { ok: true };
       },
     },
   });
-  const start = Date.now();
   const result = await invoke("clans_roster", { live: true });
+  release();
   assert.equal(result.body.error.code, "query_timeout");
-  assert.ok(Date.now() - start < 500);
   const { rows } = await db.query(
     "select error_code from mcp_call_audit order by created_at desc limit 1",
   );
@@ -446,9 +458,9 @@ test("a read-only tool behind a lock gives up at the lock timeout, answers query
   try {
     await holder.query("begin");
     await holder.query("lock table budget_locked in access exclusive mode");
-    const started = Date.now();
+    const conn = watched(/from budget_locked/);
     const result = await makeInvoker({
-      db,
+      db: conn,
       account,
       deadlineMs: 10_000,
       lockTimeoutMs: 200,
@@ -459,8 +471,11 @@ test("a read-only tool behind a lock gives up at the lock timeout, answers query
     })("war_current", {});
     assert.equal(result.isError, true);
     assert.equal(result.body.error.code, "query_timeout");
-    assert.ok(
-      Date.now() - started < 2000,
+    // 55P03 is lock_timeout's own SQLSTATE; the deadline's
+    // statement_timeout would end it with 57014.
+    assert.deepEqual(
+      await Promise.all(conn.sleeps),
+      ["55P03"],
       "the lock wait ended at the lock timeout, not the deadline",
     );
     assert.equal(

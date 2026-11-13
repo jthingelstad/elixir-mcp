@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import pg from "pg";
 import { readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import { schemaFingerprint } from "../../../services/migrate/src/fingerprint.mjs";
 import { createPostgresStore, createPostgresLedger } from "../src/postgres.mjs";
 import { warMembershipEvidence } from "../../record/src/war-membership.mjs";
@@ -12,6 +11,7 @@ import {
   importSnapshot,
   compareSnapshot,
 } from "../src/import.mjs";
+import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -19,14 +19,7 @@ const name = `elixir_clan_state_test_${process.pid}`;
 const url = adminUrl.replace(/\/postgres$/, `/${name}`);
 let db, other;
 before(async () => {
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`create database ${name}`);
-  await admin.end();
-  await migrate({
-    databaseUrl: url,
-    migrationsDir: new URL("../../../db/migrations", import.meta.url).pathname,
-  });
+  await createScratch(name);
   if (process.env.UPDATE_CLAN_SCHEMA_PIN === "1")
     await writeFile(
       new URL("../../../db/schema.fingerprint", import.meta.url),
@@ -40,10 +33,7 @@ before(async () => {
 after(async () => {
   await db?.end();
   await other?.end();
-  const admin = new pg.Client({ connectionString: adminUrl });
-  await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.end();
+  await dropScratch(name);
 });
 beforeEach(async () => {
   await db.query("truncate clan_state, clan_state_import");
