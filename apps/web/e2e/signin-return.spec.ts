@@ -74,12 +74,8 @@ async function enter(page: Page, path: (typeof paths)[number]) {
   await page.goto(path.from);
   if (path.name === "battle")
     await page.getByRole("link", { name: "Join Elixir" }).click();
-  else if (path.name === "clan")
-    await page
-      .getByRole("main")
-      .getByRole("link", { name: "Sign in", exact: true })
-      .click();
   else {
+    // Every other page, Clan's included, is Elixir's sign-in page.
     await expect(
       page.getByRole("heading", { name: "Sign in first" }),
     ).toBeVisible();

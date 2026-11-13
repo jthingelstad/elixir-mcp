@@ -4,9 +4,18 @@ Clan's views. Read `packages/clan/AGENTS.md` first, and
 `apps/web/AGENTS.md` for the app they are part of.
 
 - **No app of its own.** `createClanRoutes()` (`routes.jsx`) adds Clan's
-  routes to the one `apps/web` router and lazy-loads the shell and views;
-  it creates no router, query provider or build. Paths use `CLAN`
-  (`lib/base.js`).
+  routes to the one `apps/web` router and lazy-loads `ClanLayout`
+  (`App.jsx`) and the views; it creates no router, query provider, shell
+  or build. Paths use `CLAN` (`lib/base.js`).
+- **The app's shell and states.** The app draws the bar, rail and
+  footer (`src/App.jsx`, `ClanOutlet`). Signed out, a Clan address is the
+  app's sign-in page (`SignInWall`), and an unanswered session read its
+  `Unavailable` page (`src/shell/Unavailable.jsx`), which `ClanLayout`
+  also shows when the clan read goes unanswered. The notice after
+  sign-in is the app's verify notice (`src/components/VerifyPlayer.jsx`).
+  Links into Home and Settings use the app's own paths (`HOME`,
+  `SETTINGS`, `VERIFY`, `playerHref`), and follow buttons are Home's
+  (`src/home/FollowClan.jsx`), imported directly.
 - **Data:** `api.js` calls `/api/clan` with the shared session, CSRF
   header and the kit's client; drafting calls get a longer timeout. Query
   keys start `["me", "clan"]` (`lib/queries.js`), so the session
@@ -14,7 +23,8 @@ Clan's views. Read `packages/clan/AGENTS.md` first, and
 - **The kit is shared:** components come from `@elixir-mcp/ui` and styles
   from `@elixir-mcp/design`; a gap is a kit addition. `apps/web/test/inline-styles.test.js`
   ratchets inline styles down.
-- **Analytics** (`analytics.js`, Elixir's Tinylytics site): pages report
+- **Analytics** (`analytics.js` maps a Clan path for the app's loader;
+  events go through the app's `trackEvent`): pages report
   as `/clan/...` with the tag masked; events are bounded labels, never free
   text, a tag or a URL. That keeps the reports readable (one row per
   page, not per clan); it is report hygiene, not privacy, since a tag is

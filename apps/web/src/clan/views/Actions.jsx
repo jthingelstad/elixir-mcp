@@ -4,7 +4,7 @@ import { ActionCard, STATUS, TypeIcon } from "../components/ActionCard.jsx";
 import { TooFew } from "../components/TooFew.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { ReportThis } from "../components/ReportThis.jsx";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 import { CLAN, clanPath } from "../lib/base.js";
 
 /** An action's own address: the one people send each other. */

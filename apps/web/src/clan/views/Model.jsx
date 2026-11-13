@@ -3,7 +3,7 @@ import { modelName } from "@elixir-mcp/clan-engine";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { useModel } from "../lib/queries.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 import { CLAN } from "../lib/base.js";
 
 const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
@@ -23,7 +23,7 @@ function usd(x) {
  * sealed and never shown again; it is used only while the person who
  * added it leads the clan, and every use is listed here.
  *
- * Which model each use runs on is Elixir Clan's choice, not the leaders'
+ * Which model each use runs on is Elixir's choice, not the leaders'
  * (2026-10-11): the page says which one, as the server works it out from
  * the key's model list (`model_for`). The key and its monthly cap are the
  * clan's. The key's model list refreshes itself: when the server says it
@@ -47,7 +47,7 @@ function modelUses(d) {
   }));
 }
 
-/** Which model each use runs on: Elixir Clan's choice, read-only. */
+/** Which model each use runs on: Elixir's choice, read-only. */
 function ModelUses({ uses }) {
   return (
     <span className="grid gap-1">

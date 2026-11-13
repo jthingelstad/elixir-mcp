@@ -17,6 +17,7 @@ import { ADMIN, SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
 import { usePlayerPage } from "../lib/queries.js";
 import { useSignOut } from "../shell/sign-out.js";
+import { VerifyPlayer } from "../components/VerifyPlayer.jsx";
 import { PLAYER_TABS, PlayerView } from "./Player.jsx";
 
 const DROP =
@@ -115,27 +116,21 @@ function NoVerified({ claims }) {
   return (
     <>
       <PageHead title="You" />
-      <Panel title="Verify your player" titleAs="h2">
-        <p className="kit-panel__body">
-          You is your own player&rsquo;s page: its timeline, highlights, moments
-          and who follows it. Verify the player by its tag first, so the page is
-          yours and nobody else&rsquo;s.
-        </p>
-        <Rows>
-          <Row
-            href={`${SETTINGS}/players/verify`}
-            title="Verify a player"
-            detail="By its tag, with one change in the game."
-          />
-          {own.length > 0 ? (
+      <VerifyPlayer
+        more={
+          own.length > 0 ? (
             <Row
               href={LADDER}
               title="Your stats"
               detail="Your season, battles, decks and cards, before you verify."
             />
-          ) : null}
-        </Rows>
-      </Panel>
+          ) : null
+        }
+      >
+        You is your own player&rsquo;s page: its timeline, highlights, moments
+        and who follows it. Verify the player by its tag first, so the page is
+        yours and nobody else&rsquo;s.
+      </VerifyPlayer>
     </>
   );
 }

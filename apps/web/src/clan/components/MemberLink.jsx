@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@elixir-mcp/ui";
-import { memberPath, playerPath } from "../lib/base.js";
+import { memberPath } from "../lib/base.js";
+import { playerHref } from "../../lib/player.js";
 import { keys } from "../lib/queries.js";
 
 /** Whether a player is one of the signed-in reader's own, from the session
@@ -21,7 +22,7 @@ export function MemberLink({ clanTag, playerTag, navigate, children }) {
   const own = useOwn(playerTag);
   if (!playerTag) return children;
   const to =
-    own && clanTag ? memberPath(clanTag, playerTag) : playerPath(playerTag);
+    own && clanTag ? memberPath(clanTag, playerTag) : playerHref(playerTag);
   return (
     <Link to={to} navigate={navigate} className="hit">
       {children}

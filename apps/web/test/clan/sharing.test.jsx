@@ -23,7 +23,7 @@ const types = {
   },
 };
 
-describe("what Elixir Clan records in Elixir", () => {
+describe("what Clan records in Elixir", () => {
   test("every kind is listed with who sees it; nothing to switch or save", async () => {
     vi.spyOn(manageApi, "sharing").mockResolvedValue({
       ok: true,

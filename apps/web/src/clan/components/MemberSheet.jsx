@@ -7,7 +7,7 @@ import {
   useMemberAwards,
   useMemberNotes,
 } from "../lib/queries.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 
 /**
  * One member, for an elder or a leader: notes (elders read and write elder

@@ -28,13 +28,13 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { untilWritten } from "../lib/pending.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 import { clanPath, playerInClanPath } from "../lib/base.js";
 import { MemberSheet } from "./MemberSheet.jsx";
 import { RoleChip } from "./RoleChip.jsx";
 
 /**
- * One action (Jamie, 2026-09-25): what Elixir Clan suggests someone in the
+ * One action (Jamie, 2026-09-25): what Clan suggests someone in the
  * clan do, assigned to them or open to their role, completed or declined.
  * It is drawn on the action's own page (`/clan/<TAG>/actions/<number>`) as
  * the board has it, one column: the reason and its numbers, then folds for

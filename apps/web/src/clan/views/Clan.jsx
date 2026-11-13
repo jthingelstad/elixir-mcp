@@ -12,7 +12,7 @@ import {
 } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { useRoster } from "../lib/queries.js";
-import { ELIXIR_LINKS } from "../lib/links.js";
+import { SETTINGS } from "../../lib/settings.js";
 import {
   InviteLeaders,
   SpreadWord,
@@ -27,7 +27,7 @@ import { CLAN, clanPath } from "../lib/base.js";
 import { MemberLink } from "../components/MemberLink.jsx";
 import { ordinal, seasonWeek } from "../lib/words.js";
 import { eldersUp, leads } from "../lib/tabs.js";
-import { useHost } from "../lib/host.js";
+import { FollowClan, FollowMember } from "../../home/FollowClan.jsx";
 
 const ROLE_ORDER = ["leader", "coLeader", "elder", "member"];
 const ROLE_COUNT = {
@@ -53,7 +53,6 @@ export function RosterTable({
   navigate,
 }) {
   const { when } = useClock();
-  const { FollowMember } = useHost();
   const shown = limit === null ? members : members.slice(0, limit);
   const hidden = members.slice(shown.length);
   const groups = [...ROLE_ORDER, ...new Set(members.map((m) => m.role))]
@@ -170,8 +169,8 @@ export function RosterTable({
               ),
           },
           // Follow, row by row (G6, 2026-11-12): the app's own Follow,
-          // priced by the clan's one follow plan (lib/host.js).
-          ...(FollowMember && clanTag
+          // priced by the clan's one follow plan (home/FollowClan.jsx).
+          ...(clanTag
             ? [
                 {
                   head: <span className="sr-only">Follow</span>,
@@ -353,11 +352,10 @@ function Comings({ roster, clan, history, navigate }) {
 /**
  * The roster's head (the canvas's Members panel, 2026-11-12): how many
  * members, and for every member who reads it, not only leaders, Follow
- * everyone (lent by the app, lib/host.js) and the way to the clan map,
+ * everyone (Home's follow-all) and the way to the clan map,
  * for a verified member while the clan keeps the map on.
  */
 function MembersHead({ me, clan, roster }) {
-  const { FollowClan } = useHost();
   const map = clan.verified !== false && me?.social?.enabled !== false;
   return (
     <div className="kit-panel__head">
@@ -365,12 +363,10 @@ function MembersHead({ me, clan, roster }) {
         {roster.member_count} {noun(roster.member_count, "member")}
       </h3>
       <div className="kit-panel__action clan-members-head">
-        {FollowClan ? (
-          <FollowClan
-            clanTag={roster.clan_tag ?? clan.clan_tag}
-            clanName={roster.name ?? clan.name ?? null}
-          />
-        ) : null}
+        <FollowClan
+          clanTag={roster.clan_tag ?? clan.clan_tag}
+          clanName={roster.name ?? clan.name ?? null}
+        />
         {map ? (
           <Link
             className="btn btn--sm"
@@ -468,7 +464,7 @@ export function Clan({
             </>
           }
           action={
-            <Link className="btn btn--primary" to={ELIXIR_LINKS.tracking}>
+            <Link className="btn btn--primary" to={`${SETTINGS}/players`}>
               Start tracking {clan.name ?? roster.clan_tag}
             </Link>
           }

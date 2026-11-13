@@ -2,7 +2,7 @@ import { useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useVoice } from "../lib/queries.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 
 /**
  * How our messages sound (2026-10-20): the clan's one voice, in its

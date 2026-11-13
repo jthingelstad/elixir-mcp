@@ -1,5 +1,5 @@
 /**
- * Elixir Clan's queries: one place for keys and one hook per read.
+ * Clan's queries: one place for keys and one hook per read.
  *
  * All private Clan reads start under ["me", "clan"], distinct from the
  * root account envelope at ["me"]. Invalidating the shared session reaches

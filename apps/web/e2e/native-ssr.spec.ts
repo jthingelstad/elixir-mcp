@@ -145,9 +145,7 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
       await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
     if (route === "/clan")
       await expect(
-        page
-          .getByRole("main")
-          .getByRole("link", { name: "Sign in", exact: true }),
+        page.getByRole("heading", { level: 1, name: "Sign in first" }),
       ).toBeVisible();
     if (route === "/home/you/stats")
       await expect(

@@ -5,7 +5,7 @@ import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
 
 /**
  * Follow everyone in a clan, from Clan › Members (2026-11-12, the canvas's
- * Members head). Lent to Clan through createClanRoutes (src/clan/lib/host.js), so it is the player page's follow-all: one confirmed
+ * Members head). Clan's Members head draws it, so it is the player page's follow-all: one confirmed
  * act, priced before the tap by the same plan (`GET /api/me/follow-plan`
  * with the clan's tag), refused whole past the limit, your own players
  * left out. Every member who reads Members sees it, not only leaders.

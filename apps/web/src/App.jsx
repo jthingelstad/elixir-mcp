@@ -61,13 +61,9 @@ import {
 import { HOME, SIGN_IN, movedTo } from "./lib/moved.js";
 import { FOLLOW_ME, isPlayerPath } from "./lib/player.js";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
+import { Unavailable } from "./shell/Unavailable.jsx";
 import { LadderInvite } from "./ladder/Invite.jsx";
 import { FollowInvite } from "./home/FollowMe.jsx";
-import {
-  FollowClan,
-  FollowMember,
-  FollowThisClan,
-} from "./home/FollowClan.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { takeLoginToken } from "./url-hygiene.js";
 
@@ -550,23 +546,6 @@ function MissingPage() {
  * first. The census of 2026-09-12 showed exactly that: seven sessions
  * for one person in one day, none expired.
  */
-function Unavailable({ onRetry, busy }) {
-  return (
-    <div className="grid min-h-[60vh] place-items-center">
-      <div className="max-w-[400px] text-center">
-        <h1 className="page__title text-[24px]">Elixir didn&rsquo;t answer</h1>
-        <p className="text-[13px] text-ink-faint">
-          The page could not check who you are. You are not signed out; the
-          request did not get through. Try again in a moment.
-        </p>
-        <button className="btn mt-2" onClick={onRetry} disabled={busy}>
-          {busy ? "Trying…" : "Try again"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /**
  * The route tree. The root's beforeLoad is the old route guard as a real one:
  * an address the app has never had is "Nothing at this address", and a moved
@@ -765,15 +744,7 @@ export const routeTree = rootRoute.addChildren([
   battleRoute,
   postRoute,
   ladderRoute,
-  createClanRoutes(rootRoute, {
-    Frame: ClanFrame,
-    rememberAfterSignIn,
-    // Members' Follow everyone is Home's follow-all (2026-11-12).
-    FollowClan,
-    FollowMember,
-    // The clan head's own Follow is Elixir's clan follow (2026-11-13).
-    FollowThisClan,
-  }),
+  createClanRoutes(rootRoute),
 ]);
 
 /** Where a route is on the rail and in the route table, from its path:
@@ -894,27 +865,12 @@ export function useMe() {
   };
 }
 
-/** Clan's rail and pages in the shell, with its own session query beside this
- *  one for the bar. */
-function ClanFrame({ children }) {
-  const { me, unreachable } = useMe();
-  return (
-    <ShellFrame
-      me={unreachable ? null : me}
-      unreachable={unreachable}
-      area="clan"
-    >
-      {children}
-    </ShellFrame>
-  );
-}
-
 function Shell() {
   const { pathname } = useLocation();
   // Nothing at this address brings its own shell (MissingPage).
   if (legalRoute(movedTo(pathname) ?? pathname) === null) return <Outlet />;
   if (isHome(pathname)) return <HomeOutlet />;
-  return isClan(pathname) ? <SharedClanOutlet /> : <ConsoleShell />;
+  return isClan(pathname) ? <ClanOutlet /> : <ConsoleShell />;
 }
 
 /** Home's shell. Signed out it is the wall, which returns here after sign-in. */
@@ -951,17 +907,38 @@ function HomeOutlet() {
   );
 }
 
-function SharedClanOutlet() {
-  const { me } = useMe();
+/** Clan's shell: the same bar, tabs and footer, and signed out or
+ *  unreachable the same pages as Home. Signed in, Clan's pages bring their
+ *  own main (src/clan/App.jsx, ClanLayout). */
+function ClanOutlet() {
   const navigate = useNav();
   const { pathname } = useLocation();
+  const { me, unreachable, retrying, refresh } = useMe();
   useEffect(() => {
     document.title = titleFor(pathname);
   }, [pathname]);
+  const authed = me?.authenticated === true;
+  const shown = unreachable ? null : me;
   return (
     <ZoneProvider zone={me?.timezone}>
       <NavigateProvider navigate={navigate}>
-        <Outlet />
+        {authed ? (
+          <ShellFrame me={shown} unreachable={unreachable} area="clan">
+            <Outlet />
+          </ShellFrame>
+        ) : (
+          <AppShell me={shown} unreachable={unreachable} area="clan">
+            <ErrorBoundary key={pathname}>
+              {unreachable ? (
+                <Unavailable busy={retrying} onRetry={refresh} />
+              ) : me === null ? (
+                <div className="kit-skeleton" aria-busy="true" />
+              ) : (
+                <SignInWall navigate={navigate} />
+              )}
+            </ErrorBoundary>
+          </AppShell>
+        )}
       </NavigateProvider>
     </ZoneProvider>
   );

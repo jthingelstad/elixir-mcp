@@ -4,7 +4,8 @@
  * reads. All answers keep the family's envelope and retry rules. */
 
 import { createClient } from "@elixir-mcp/client";
-import { routeLabel, trackEvent } from "./analytics.js";
+import { trackEvent } from "../analytics.js";
+import { routeLabel } from "./analytics.js";
 import { confirmingRole } from "./lib/role.js";
 
 const options = {
@@ -12,7 +13,7 @@ const options = {
   // A failure that never reached the origin is the class of problem only
   // the browser can count (Elixir's lesson); a slow one is counted too.
   onEvent: (event, label) => trackEvent(`web.${event}`, label),
-  onSlow: (info) => console.warn("[elixir-clan] slow request", info),
+  onSlow: (info) => console.warn("[clan] slow request", info),
   // Routes carry the clan tag; the label masks it (analytics.js).
   routeLabel,
 };

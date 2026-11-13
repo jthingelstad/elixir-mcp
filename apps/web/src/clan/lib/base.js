@@ -1,3 +1,5 @@
+import { playerHref } from "../../lib/player.js";
+
 /**
  * Where Clan lives on Elixir's origin (one origin, 2026-09-28):
  * the site and docs own the root, the Console /console, and Clan this
@@ -39,20 +41,12 @@ export function tagOf(segment) {
 /** A clan's page: the tag without its #. */
 export const clanPath = (tag) => `${CLAN}/${String(tag).replace(/^#/, "")}`;
 
-/** A player's one page in Elixir, `/home/player/<tag>` (slice 6, #764):
- *  every player name opens it ("Every player name opens one player page",
- *  Jamie, 2026-11-12), and for a clanmate it links back to the member's page
- *  here. Built as apps/web's `playerHref` builds it; Clan imports nothing
- *  from the app it joins. */
-export const playerPath = (playerTag) =>
-  `/home/player/${String(playerTag).replace(/^#/, "")}`;
-
 /** Another member's record in a clan, and for the leaders their clock,
  *  notes and hold: the Clan tab of their player page since 2026-11-12, when
  *  the member page folded into it. Review and an Action's "Open their page"
  *  open it. */
 export const playerInClanPath = (playerTag) =>
-  `${playerPath(playerTag)}?tab=clan`;
+  `${playerHref(playerTag)}?tab=clan`;
 
 /** Your own page in a clan (YouHere). Another member's old address here
  *  redirects to `playerInClanPath`. */

@@ -3,11 +3,11 @@
  * bridge (../analytics.js) report a /clan path through `analyticsLocation`
  * below. Nothing personal is sent: a CR tag is a public game identifier,
  * and even that rides as a query attribute, never as the path, so the
- * report reads as pages and not as one row per clan.
+ * report reads as pages and not as one row per clan. Clan's events go
+ * through the app's `trackEvent` (../analytics.js), like every page's.
  */
 import { CLAN, appPath, tagOf } from "./lib/base.js";
 
-const LOCAL = ["localhost", "127.0.0.1", "::1"];
 const MEMBERS_PAGES = new Set([
   "me",
   "standing",
@@ -63,29 +63,6 @@ export function analyticsLocation(
   }
   url.pathname = page;
   return { path: page, url: url.toString() };
-}
-
-/**
- * A product event, as Tinylytics counts them: a click on a
- * data-tinylytics-event node, so a programmatic event is a hidden node
- * clicked once. `value` is a bounded label (a card type and status, a
- * category, a route key), never free text, a tag or a URL. The list is in
- * this package's AGENTS.md; add there when adding here.
- */
-export function trackEvent(event, value) {
-  try {
-    if (LOCAL.includes(window.location.hostname)) return;
-    const node = document.createElement("button");
-    node.type = "button";
-    node.hidden = true;
-    node.setAttribute("data-tinylytics-event", event);
-    if (value) node.setAttribute("data-tinylytics-event-value", value);
-    document.body.appendChild(node);
-    node.click();
-    node.remove();
-  } catch {
-    // Never turn one failure into two.
-  }
 }
 
 /** The route key a failure reports: method and path with ids and tags as

@@ -437,8 +437,8 @@ describe("loadTinylytics", () => {
   test("Clan's events arrive through the same listener", async () => {
     await load("/signin");
     window.history.pushState({}, "", "/clan/0QC8RCGY/actions");
-    const clan = await import("../src/clan/analytics.js");
-    clan.trackEvent("clan.discord_nudge");
+    const { trackEvent } = await import("../src/analytics.js");
+    trackEvent("clan.discord_nudge");
     expect(events()).toEqual([
       {
         event: "clan.discord_nudge",

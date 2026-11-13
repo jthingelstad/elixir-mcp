@@ -9,7 +9,7 @@ import {
 } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useActivityDiscord, useInvalidate } from "../lib/queries.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 import { clanPath } from "../lib/base.js";
 import { untilWritten } from "../lib/pending.js";
 
