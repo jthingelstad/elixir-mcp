@@ -106,6 +106,26 @@ Consecutive 403s open a per-collector breaker and drain it.
   only through a reviewed, Jamie-approved manifest run as bounded migrate
   ops, which also deletes the selected archive object versions (a delete
   marker is not deletion).
+- **Retention is one declared list, run daily.** Jamie, 2026-11-13: a
+  year for what Elixir records, 28 days for operational logs
+  (DECISIONS.md). `packages/record/src/retention.mjs` names every table
+  once: `TRIMMED` (table, time column, window, and any rows that stay
+  whatever their age), `OWN_TRIMS` (a shorter sweep elsewhere),
+  `CHILDREN` (going with a trimmed parent) or `KEPT` (current state,
+  with its reason); `services/jobs/test/retention.test.mjs` fails on a
+  table in none of them, so a new table states its window in the same
+  change. The jobs Lambda runs `{retention_trim}` at 04:40Z: batches of
+  2,000 rows (200 battles), each its own transaction under a 20 s
+  statement and 5 s lock timeout, at most 50 batches a table, 300 a run
+  and 120 s, so it never holds the jobs function long; what is left goes
+  the next day. Each batch selects through the time column's index where
+  there is one, and a child goes before its parent (a battle's events,
+  rounds and participants, then the battle; a war week's rows, then the
+  week). Decks are canonical identity and stay. An entry marked `held` is
+  declared and counted but not run, and its reason names the reader that
+  still needs older rows. `{retention_dry_run}` (migrate) counts what the
+  trim would take today. This age trim is the rule's mechanism; any other
+  removal of history still goes through the manifest above.
 - **The archive is write-once and content-addressed:** `payloads/` objects
   are written with `If-None-Match: *` (`packages/ingest/src/handler.mjs`)
   in a versioned bucket with `DeletionPolicy: Retain`.

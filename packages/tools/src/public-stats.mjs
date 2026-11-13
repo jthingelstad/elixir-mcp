@@ -63,7 +63,11 @@ export async function calculatePublicStats(db, { fetchesDaily } = {}) {
 // The fetch series is the one part of the snapshot that read all of
 // api_receipt every hour (about 18,000 blocks from disk, 1.6 s; platform
 // review 2026-10-21 §3). Receipts are only ever inserted: fetched_at and
-// gateway_id never change, and nothing at runtime deletes one. So a day
+// gateway_id never change, and nothing at runtime deletes one (the
+// retention trim declares receipts a 28-day window but holds it,
+// packages/record/src/retention.mjs; once it runs, each daily trim moves
+// the delete counter below, one full recount follows, and the series
+// covers only the days still held). So a day
 // can only move when a receipt lands in it, and the hourly refresh
 // recounts just the days the newest receipts fall in, from midnight,
 // keeping the earlier days of the snapshot before.

@@ -63,6 +63,7 @@ import {
 import { discordReview } from "./ops-discord.mjs";
 import { seriesStatus } from "./ops-series.mjs";
 import { reindex } from "./ops-reindex.mjs";
+import { retentionDryRunOp } from "./ops-retention.mjs";
 
 /** The function's own application_name (PGAPPNAME in
  *  infra/template.yaml), read once, before any op renames it. */
@@ -159,6 +160,12 @@ async function dispatch(event) {
 
   if (event?.stats) {
     const result = await stats(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.retention_dry_run) {
+    // Counts and sizes per declared table; deletes nothing.
+    const result = await retentionDryRunOp(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }

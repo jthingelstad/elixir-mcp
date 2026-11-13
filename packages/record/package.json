@@ -28,7 +28,8 @@
     "./war-clock": "./src/war-clock.mjs",
     "./war-membership": "./src/war-membership.mjs",
     "./attested-facts": "./src/attested-facts.mjs",
-    "./event-origin": "./src/event-origin.mjs"
+    "./event-origin": "./src/event-origin.mjs",
+    "./retention": "./src/retention.mjs"
   },
   "scripts": {
     "test": "node --test"

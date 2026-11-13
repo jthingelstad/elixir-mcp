@@ -141,7 +141,7 @@ status and fetch counts are public and credited to your primary player.
 Your machine's own name and address are not published.
 
 **Keeping and removing.** Game history is kept; it is what the service
-is for. To remove your account and your address, email
+is for. Elixir keeps what it records for one year, then deletes it. To remove your account and your address, email
 [admin@poapkings.com](mailto:admin@poapkings.com) or use the feedback
 form. Removing an account deletes the account, not the record: your
 address, claims, nicknames, highlights, agents, connections, mail and usage go

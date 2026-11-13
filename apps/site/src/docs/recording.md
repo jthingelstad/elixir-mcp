@@ -132,7 +132,8 @@ Only people's following is a reason: the maintainer has no reason of their
 own and follows from an account like anyone else. The widest reason wins. Removing your own reason frees your slot; the
 recording stops only when no reason remains anywhere. A clan's scope settles
 up or down to the widest remaining reason; a player's scope only ever widens.
-History is never deleted when a recording stops.
+History is never deleted when a recording stops; what is recorded is
+deleted a year after it happened ([Limits](/docs/limits#retention-windows)).
 
 Extra pre-reset and season-roll readings preserve the same profile reading.
 They do not emit a second donation-reset event. The weekly counter's fall is
