@@ -7,13 +7,6 @@
  * Lambdas have no internet, so the operator's checkout reads the sibling
  * repo and sends the rows (infra/scripts/import-card-roles.mjs); the
  * file's commit is the version.
- *
- * {archetype_census}: the grammar over the whole corpus, read-only: the
- * family distribution, the unclassified share, the top labels by
- * players, the average-elixir histograms per win condition (the cycle
- * bound is pinned from where the trough sits, design §3.3), and the
- * unattested cards that keep turning up as the defining card of a
- * fallback deck (the Understand Clash Royale queue).
  */
 
 import pg from "pg";
