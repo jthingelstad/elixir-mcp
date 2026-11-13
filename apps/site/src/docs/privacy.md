@@ -112,7 +112,8 @@ Elixir keeps the webhook sealed and never shows it whole. Turning
 cross-posting off stops new posts; lines already in the channel are
 Discord's to delete. A clan's leaders may connect two Discord channels,
 each on its own: one for the clan's Actions and one for its activity.
-Clan posts to whichever is connected, member names included.
+Clan posts to whichever is connected, member names included, but never
+a proposed removal, promotion or demotion.
 
 **What Elixir keeps about its Discord posts.** For every message Elixir
 posts, edits or decides not to post in a Discord channel (a timeline's

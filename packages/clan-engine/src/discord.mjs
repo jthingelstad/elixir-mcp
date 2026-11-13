@@ -6,22 +6,28 @@
  * the Action's own page wrapped in <> so Discord draws no preview. When
  * the Action closes, the same message is edited to say so and by whom.
  *
- * Decided with Jamie: titles name the member, removals included (the
- * leaders choose the channel); no clan name in the title; a member's own
- * "Going to be away?" prompt is never posted; Actions already open when
- * the webhook is connected are posted too.
+ * Decided with Jamie: titles name the member; no clan name in the title;
+ * a member's own "Going to be away?" prompt is never posted; Actions
+ * already open when the webhook is connected are posted too. A removal,
+ * a promotion and a demotion are never posted or edited (2026-11-13):
+ * only the Leader and Co-Leaders see one while it is open, and the
+ * channel also carries Elders' welcomes.
  *
  * Pure: an action in, the message's text out.
  */
 
-import { audienceOf } from "./actions.mjs";
+import { ACTION_TYPES, audienceOf } from "./actions.mjs";
 import { actionLine } from "./mail.mjs";
 
 /** Discord's limit on a message's text. */
 export const DISCORD_MAX_CHARS = 2000;
 
-/** Whether an action is posted at all: every one but a member's own. */
-export const discordShareable = (card) => audienceOf(card).kind !== "member";
+/** Whether an action goes to Discord at all, posted or edited: every one
+ *  but a member's own and a kind kept out (`discord: false`: a removal,
+ *  a promotion, a demotion). */
+export const discordShareable = (card) =>
+  audienceOf(card).kind !== "member" &&
+  ACTION_TYPES[card.type]?.discord !== false;
 
 /** Discord reads these as Markdown, `<` and `@` as mentions, and `:` as an
  *  emoji or the start of a link: escaped, a name is shown as typed. Line

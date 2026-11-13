@@ -218,3 +218,38 @@ test("a leader who would decide a removal is never shown one; an unnumbered Acti
     ["welcome"],
   );
 });
+
+test("a pending promotion or demotion waits for the Leader and Co-Leaders only, never an Elder or the member it is about", () => {
+  const pending = [
+    {
+      card_id: "p",
+      type: "promotion",
+      player_tag: "#M",
+      player_name: "Rising",
+      status: "proposed",
+      number: 7,
+      raised_at: "2026-09-13T10:00:00Z",
+    },
+    {
+      card_id: "d",
+      type: "demotion",
+      player_tag: "#E",
+      player_name: "Slipping",
+      status: "proposed",
+      number: 8,
+      raised_at: "2026-09-13T11:00:00Z",
+    },
+  ];
+  for (const who of [
+    { player_tag: "#M", role: "member" },
+    { player_tag: "#E", role: "elder" },
+  ])
+    assert.deepEqual(actionsWaitingFor(pending, who), [], who.role);
+  for (const role of ["leader", "coLeader"])
+    assert.deepEqual(
+      actionsWaitingFor(pending, { player_tag: "#L", role })
+        .map((a) => a.type)
+        .sort(),
+      ["demotion", "promotion"],
+    );
+});

@@ -7,7 +7,7 @@ order: 9
 navTitle: "Write how your clan runs"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-11-13; the Policy tab says who sees what about you under each rule, and past versions are the leaders' only; 2026-10-20; How our messages sound: one voice for the drafts and the activity editor, set in Clan settings; 2026-10-13; Your own view, read by your own connection (contract 11.12.0); 2026-10-12; one sitting a member, one activity post a day, a move told before its battle names who is there; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
+reviewed: "2026-11-13; removal, promotion and demotion actions never go to the clan's Discord; the Policy tab says who sees what about you under each rule, and past versions are the leaders' only; 2026-10-20; How our messages sound: one voice for the drafts and the activity editor, set in Clan settings; 2026-10-13; Your own view, read by your own connection (contract 11.12.0); 2026-10-12; one sitting a member, one activity post a day, a move told before its battle names who is there; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
 guide: clan-policy
 ---
 
@@ -41,12 +41,14 @@ about you under it:
 - **Minimums** and **Becoming an Elder**: when Elder is earned by
   participation and **Members see where everyone stands** is on, every
   member sees on Standing who's rising and who's slipping. Otherwise only
-  you and the leader and co-leaders see where you stand. A promotion or
-  demotion is shared with the clan once it's done.
+  you and the leader and co-leaders see where you stand. Only the leader
+  and co-leaders see a promotion or demotion before it's done, and it never
+  goes to the clan's Discord; it's shared with the clan once it is.
 - **When you go quiet**: only you and the leader and co-leaders see your
-  days without a battle, whether you're at risk, and your away. A leader
-  who posts the clan's Actions to [Discord](/docs/clan-actions-delivery#actions-in-the-clans-discord) posts a
-  removal there too, and a removal is shared with the clan once it's done.
+  days without a battle, whether you're at risk, and your away. A removal
+  action never goes to the clan's
+  [Discord](/docs/clan-actions-delivery#actions-in-the-clans-discord), and
+  a removal is shared with the clan once it's done.
 - **Newcomers**: Elders and the leader and co-leaders get an Action
   naming each newcomer.
 

@@ -93,10 +93,11 @@ function numbersFor(key, values) {
  *    policy shows it (`members_see_standing`; `standing()` always shows a
  *    leader), else only your own line;
  *  - your days without a battle, your clock and your hold or away are
- *    yours and the leaders' (`standing().you`, `manageView`), and a
- *    removal Action reaches the clan's Discord when leaders connect one
- *    (`discordShareable`); completed promotions, demotions and removals
- *    are shared with the clan (`sharing.mjs`);
+ *    yours and the leaders' (`standing().you`, `manageView`);
+ *  - an open removal, promotion or demotion Action is the Leader's and
+ *    Co-Leaders' only (`canAct`) and never goes to the clan's Discord
+ *    (`discordShareable`, Jamie, 2026-11-13); completed ones are shared
+ *    with the clan (`sharing.mjs`);
  *  - a welcome Action, naming the newcomer, is for Elders and leaders.
  * Null without saved values (Standing shows the rules alone).
  */
@@ -105,7 +106,7 @@ export function seesFor(key, values) {
   const ranked = ranksElder(values);
   const board = ranked && Boolean(values.members_see_standing);
   const done =
-    "A promotion or demotion is shared with the clan once it's done.";
+    "Only the Leader and Co-Leaders see a promotion or demotion before it's done; it's shared with the clan once it is.";
   if (key === "about")
     return "Nothing here is about you: every member reads it, and so does Elixir's clan directory.";
   if (key === "counts")
@@ -123,7 +124,7 @@ export function seesFor(key, values) {
   if (key === "removal")
     return `Only you and the Leader and Co-Leaders see your days without a battle, whether you're at risk${
       values.away_max_days > 0 ? ", and your away" : ""
-    }. If they post the clan's Actions to Discord, a removal goes there too. A removal is shared with the clan once it's done.`;
+    }. A removal is shared with the clan once it's done.`;
   if (key === "welcome")
     return "Elders and the Leader and Co-Leaders get an Action naming you when you join.";
   return null;

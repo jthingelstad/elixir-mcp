@@ -40,8 +40,7 @@ recording began), and what the battle count on their profile did across
 Elixir's reads: when it last rose, that it did not, or that it was read too
 few times to say. Under it, every
 removal says: modes the battle log does not carry are not seen, so the
-leader weighs it. The clan's Discord names only the Action and the member,
-with a link to it. The morning email adds one line: the days without a battle
+leader weighs it. A removal never goes to the clan's Discord. The morning email adds one line: the days without a battle
 and the removal day, then that caveat when it fits. A removal raised before this row existed keeps
 its saved evidence and still carries the sentence.
 

@@ -7,6 +7,7 @@ import {
   escapeDiscord,
   DISCORD_MAX_CHARS,
 } from "../src/discord.mjs";
+import { ACTION_TYPES } from "../src/actions.mjs";
 
 const where = { clanTag: "#0QC8RCGY", appUrl: "https://elixir.test/clan/" };
 const card = (extra = {}) => ({
@@ -87,11 +88,41 @@ test("a forum post's name is the action's line, plain and within 100", () => {
   );
 });
 
-test("a member's own action is never posted; leader and elder ones are", () => {
+test("a member's own action, a removal, a promotion and a demotion are never posted; every other leader and elder one is", () => {
   assert.equal(
     discordShareable({ type: "away", player_tag: "#Q", audience: undefined }),
     false,
   );
-  assert.equal(discordShareable({ type: "welcome" }), true);
-  assert.equal(discordShareable({ type: "removal" }), true);
+  // Only the Leader and Co-Leaders see an open removal, promotion or
+  // demotion (2026-11-13), and the channel also carries Elders' welcomes:
+  // kept out, stored audience or not.
+  const keptOut = ["removal", "promotion", "demotion"];
+  for (const type of keptOut) {
+    assert.equal(discordShareable({ type }), false, type);
+    assert.equal(
+      discordShareable({ type, audience: { kind: "leaders" } }),
+      false,
+      type,
+    );
+  }
+  const posted = [
+    "departure",
+    "welcome",
+    "awards_standings",
+    "awards_announcement",
+    "rules_announcement",
+  ];
+  for (const type of posted)
+    assert.equal(discordShareable({ type }), true, type);
+  // Every kind is accounted for here: a new one is a decision.
+  assert.deepEqual(
+    Object.keys(ACTION_TYPES).sort(),
+    [...posted, ...keptOut, "away"].sort(),
+  );
+  assert.deepEqual(
+    Object.keys(ACTION_TYPES)
+      .filter((t) => ACTION_TYPES[t].discord === false)
+      .sort(),
+    [...keptOut].sort(),
+  );
 });

@@ -17,25 +17,32 @@ import { LEADERSHIP } from "./standing.mjs";
 const ELDER_PLUS = new Set(["elder", "coLeader", "leader"]);
 const DAY_MS = 86400_000;
 
-/** Every kind of action: its label and who may take it. */
 /** Every kind of action: its label, who may take it, and where its words
  *  go in the game, if anywhere: clan chat (anyone the action is for) or a
- *  Clan Leader Message (leaders and co-leaders only; see render.mjs). */
+ *  Clan Leader Message (leaders and co-leaders only; see render.mjs).
+ *  `discord: false` keeps a kind out of the clan's Discord altogether: no
+ *  post and no edit (discord.mjs `discordShareable`): a removal, a
+ *  promotion and a demotion, which only the Leader and Co-Leaders see
+ *  while they are open (Jamie, 2026-11-13). Elixir cannot tell who reads
+ *  a Discord channel, and the same channel carries Elders' welcomes. */
 export const ACTION_TYPES = {
   promotion: {
     label: "Promote to Elder",
     audience: "leaders",
     channel: "clan_chat",
+    discord: false,
   },
   demotion: {
     label: "Demote to Member",
     audience: "leaders",
     channel: "clan_chat",
+    discord: false,
   },
   removal: {
     label: "Remove from the clan",
     audience: "leaders",
     channel: "clan_chat",
+    discord: false,
   },
   departure: {
     label: "Departure: kicked, left, or ignore?",

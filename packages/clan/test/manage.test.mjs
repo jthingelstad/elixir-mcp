@@ -1882,6 +1882,97 @@ test("actions: closed ones are the Leader's and Co-Leaders' only, refused to a m
   );
 });
 
+test("actions: a pending promotion or demotion is the Leader's and Co-Leaders' only, never shown to a member or an Elder", async () => {
+  // Jamie, 2026-11-13: "Pending promotions and demotions should only be
+  // visible to leaders, not elders."
+  const lh = harness({ part: partClan() });
+  const lc = await leader(lh);
+  const base = "/api/clans/0QC8RCGY";
+  // The record raises promotions here; the demotion is put beside them,
+  // about the Elder who will read, once the evaluation is saved.
+  await api(lh, lc, "GET", `${base}/actions`);
+  await lh.ledger.putCard("#0QC8RCGY", {
+    card_id: "pending-demotion",
+    number: 990,
+    clan_tag: "#0QC8RCGY",
+    type: "demotion",
+    status: "proposed",
+    raised_at: new Date(NOW.getTime() - DAY).toISOString(),
+    policy_version: 1,
+    player_tag: "#O1",
+    player_name: "Slipping",
+    audience: { kind: "leaders" },
+    evidence: { rationale: { headline: "Open for the test." } },
+  });
+  const raised = (await api(lh, lc, "GET", `${base}/actions`)).body.open;
+  const pending = ["promotion", "demotion"].map((type) => {
+    const a = raised.find((x) => x.type === type);
+    assert.ok(a, `${type} raised: ${raised.map((x) => x.type)}`);
+    return a;
+  });
+  for (const [role, tag] of [
+    ["member", "#0RJL"],
+    ["elder", "#O1"],
+  ]) {
+    const h = harness({
+      players: [player({ player_tag: tag, name: "Someone", clan_role: role })],
+      part: partClan(),
+      ledger: lh.ledger,
+    });
+    const c = await leader(h);
+    for (const path of ["/actions", "/needs?basis=1", "/home", "/me"]) {
+      const r = await api(h, c, "GET", `${base}${path}`);
+      assert.equal(r.status, 200, `${role} ${path}: ${JSON.stringify(r.body)}`);
+      const text = JSON.stringify(r.body);
+      for (const a of pending)
+        for (const word of [a.card_id, a.label, `"number":${a.number}`])
+          assert.ok(!text.includes(word), `${role} ${path} shows ${word}`);
+    }
+    assert.equal(
+      (await api(h, c, "GET", `${base}/me`)).body.open_actions,
+      0,
+      `${role}: nothing counted`,
+    );
+    assert.equal(
+      (await api(h, c, "GET", "/api/me")).body.open_actions,
+      0,
+      `${role}: the rail counts nothing`,
+    );
+    for (const a of pending) {
+      const byNumber = await api(h, c, "GET", `${base}/actions/${a.number}`);
+      assert.equal(byNumber.status, 404, `${role} #${a.number}`);
+      assert.equal(byNumber.body.error, "no_action");
+      const said = await api(
+        h,
+        c,
+        "POST",
+        `${base}/actions/${a.card_id}/comments`,
+        { text: "hm" },
+      );
+      assert.equal(said.status, 404, `${role} comment ${a.type}`);
+      const decided = await api(
+        h,
+        c,
+        "POST",
+        `${base}/actions/${a.card_id}/decide`,
+        { status: "done" },
+      );
+      assert.equal(decided.status, 403, `${role} decide ${a.type}`);
+      assert.ok(
+        !JSON.stringify(decided.body).includes(a.player_name),
+        `${role} decide ${a.type} names no one`,
+      );
+    }
+  }
+  // Still open: the refusals above were of a live Action.
+  for (const a of pending)
+    assert.equal(
+      (await lh.ledger.card("#0QC8RCGY", a.card_id)).status,
+      "proposed",
+      a.type,
+    );
+});
+
 test("actions: an action from before logs were kept gets its log reconstructed from its own fields", async () => {
   const ledger = ledgerWithPolicy(
     createMemoryLedger(),

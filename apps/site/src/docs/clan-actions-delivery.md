@@ -28,8 +28,8 @@ clan, and at most once a day per clan. Turn it off on
 
 The leader or a co-leader can connect a Discord webhook under
 **Run › Discord** ([Clan settings](/docs/clan-settings#clan-settings)).
-From then on, every open action that leaders or elders can take is posted
-to that channel as one message: its number, what it is and who it is
+From then on, every open action that leaders or elders can take, but a
+removal, a promotion or a demotion, is posted to that channel as one message: its number, what it is and who it is
 about, and a link to it here. When someone completes or declines it,
 the same message is edited to say so and by whom; when Clan withdraws it,
 the message says that. A declined action that is reopened reads as open
@@ -44,8 +44,13 @@ again.
 - Actions already open when the webhook is connected are posted too; one
   that closes before it was ever posted is not.
 - A member's own **Going to be away?** prompt is never posted.
-- Messages name the member, removals included, so use a channel only the
-  clan's leaders can read. The link opens the action only for someone
+- A removal, a promotion or a demotion is never posted either: only the
+  leader and co-leaders see one while it is open, and the channel also
+  carries welcomes, which are Elders' to take. One posted before
+  2026-11-13 stays as it was, never edited. Once it's done, the clan
+  hears of it the way it hears of any departure or role change.
+- Messages name the member, so use a channel only the clan's leaders can
+  read. The link opens the action only for someone
   signed in who could see it here.
 - Messages go out as Clan works: after a visit that raises or decides an
   action, after the morning read, and a minute after each batch, so a
