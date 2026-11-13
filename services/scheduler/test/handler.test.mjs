@@ -35,32 +35,32 @@ after(async () => {
 // The regression for issue #1: the ledger change added an awaited CloudWatch
 // PutMetricData call that hung every tick to the 50s timeout because the
 // NAT-free VPC has no route to CloudWatch. A hanging metric sink must never
-// hold the tick open. Under the pre-fix handler this test would hang and fail
-// on the race timeout; under the fix it returns immediately.
-test("a hanging metric sink cannot hold the tick open (issue #1)", async () => {
-  const handler = makeHandler({
-    databaseUrl: DB_URL,
-    emitMetrics: () => new Promise(() => {}), // never resolves, like the old PutMetricData hang
-  });
-  const HUNG = Symbol("hung");
-  const result = await Promise.race([
-    handler(),
-    new Promise((r) => {
-      const t = setTimeout(() => r(HUNG), 2000);
-      t.unref();
-    }),
-  ]);
-  assert.notEqual(
-    result,
-    HUNG,
-    "handler must return without awaiting metric emission",
-  );
-  assert.ok(
-    Number.isInteger(result.planned),
-    "tick produced its normal result",
-  );
-  assert.ok(result.ledger, "ledger stats present in the tick result");
-});
+// hold the tick open. Under the pre-fix handler the tick never returns and
+// the test fails at its own timeout. No wall-clock race: the tick's
+// database work is not the thing measured, and under a loaded parallel
+// run it took longer than the 2 s the race once allowed (2026-11-13), so
+// the race failed with nothing wrong.
+test(
+  "a hanging metric sink cannot hold the tick open (issue #1)",
+  { timeout: 60_000 },
+  async () => {
+    let emitted = false;
+    const handler = makeHandler({
+      databaseUrl: DB_URL,
+      emitMetrics: () => {
+        emitted = true;
+        return new Promise(() => {}); // never resolves, like the old PutMetricData hang
+      },
+    });
+    const result = await handler();
+    assert.ok(emitted, "the tick handed its stats to the sink");
+    assert.ok(
+      Number.isInteger(result.planned),
+      "tick produced its normal result",
+    );
+    assert.ok(result.ledger, "ledger stats present in the tick result");
+  },
+);
 
 test("emitMetrics receives the committed ledger stats", async () => {
   let seen = null;

@@ -304,17 +304,21 @@ test("two builds of one account's row never run at once", async () => {
   try {
     let builds = 0;
     let release;
+    let building;
     const gate = new Promise((r) => (release = r));
+    const started = new Promise((r) => (building = r));
     const first = buildOnce(db, "home_feed", owner, {
       build: async () => {
         builds += 1;
+        building();
         await gate;
         return "built";
       },
       reuse: async () => "reused",
     });
-    // Let the first take the lock before the second asks.
-    await new Promise((r) => setTimeout(r, 50));
+    // The first holds the lock once its build has begun: no timer, which
+    // under a loaded run let the second ask first (2026-11-13).
+    await started;
     const second = buildOnce(other, "home_feed", owner, {
       build: async () => {
         builds += 1;
@@ -322,7 +326,6 @@ test("two builds of one account's row never run at once", async () => {
       },
       reuse: async () => "reused",
     });
-    await new Promise((r) => setTimeout(r, 300));
     assert.equal(builds, 1, "the second waits for the first");
     release();
     assert.equal(await first, "built");
