@@ -16,8 +16,7 @@ later ruling overtakes carries a dated banner at its top naming what no
 longer holds.
 
 Drop is not here: it is its own product with its own rules. How Drop
-signs in with Elixir and reads from it is the JSON API and integrations
-brief.
+signs a person in with Elixir is the Sign in with Elixir brief.
 
 ## How a brief is written and read
 
@@ -61,7 +60,7 @@ brief.
 | [Mail](mail.md) | the digest and the operational mails, who gets each, what it may say |
 | [Stats](ladder.md) | a mirror of a player's season, for your own players and those you follow |
 | [Clan](clan.md) | running a clan on its policy, and being in one |
-| [JSON API and integrations](integrations.md) | the family seam, keys, what is first-party |
+| [Sign in with Elixir](integrations.md) | how Drop signs a person in with Elixir; there are no integrations |
 | [Collectors and operators](collectors.md) | bring your collector, the fleet, the one budget |
 | [Structure](structure.md) | the record of the 2026-11-05 redesign, its twelve decisions and answers; not a brief |
 | [Console](console.md) | folded on 2026-11-12; a pointer to where its subjects live |

@@ -30,8 +30,6 @@ the social layer, and Elixir is useful without an agent. [Jamie,
   it spends the owner's budget and slots. A linked Discord tells it which
   member is asking. [Jamie, 2026-09-08, 2026-09-23, 2026-10-24,
   2026-11-05]
-- **Not integrations.** Programs read the JSON API; agents read MCP.
-  [Jamie, 2026-09-25]
 
 ## Principles that decide the details
 

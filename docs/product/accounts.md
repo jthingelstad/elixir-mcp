@@ -23,10 +23,10 @@ agent) acts as that same person. [Jamie, 2026-09-03, 2026-11-11]
   No privileged tier, collector token or extra capacity comes with it; a
   denied or disabled account never reopens through signup. Elixir takes
   no money and earns no revenue. [Jamie, 2026-10-06, 2026-11-11]
-- **The person's agents and apps.** Three kinds of principal: users,
-  agents and integrations. An agent is the person's own, capped at its
+- **The person's agents and apps.** Two kinds of principal: users
+  and agents; there are no integrations. An agent is the person's own, capped at its
   owner's tier, following in the person's pooled slots, never deleted
-  (suspended or revoked). [Jamie, 2026-09-08, 2026-09-23, 2026-10-10]
+  (suspended or revoked). [Jamie, 2026-09-08, 2026-09-23, 2026-10-10, 2026-11-13]
 - **The family's apps.** Sign in with Elixir carries the person to Drop
   and to Elixir Clan; the address goes only to a family app. [Jamie,
   2026-09-25]
