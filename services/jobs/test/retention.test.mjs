@@ -10,6 +10,7 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   TRIMMED,
   OWN_TRIMS,
@@ -316,4 +317,20 @@ test("the trim stops at its caps and leaves the rest for the next run", async ()
     ),
     0,
   );
+});
+
+test("a captured call's body expires with its call log row", () => {
+  // The call record page finds a body only through its mcp_call_audit
+  // row, so a body that outlives the row is unreachable and kept for
+  // nothing. The archive bucket's calls/ rule runs on the same clock.
+  const template = readFileSync(
+    new URL("../../../infra/template.yaml", import.meta.url),
+    "utf8",
+  );
+  const rule = template.match(
+    /- Id: calls-expire\n(?:\s+[A-Za-z].*\n)*?\s+ExpirationInDays: (\d+)/,
+  );
+  assert.ok(rule, "the calls-expire lifecycle rule is in the template");
+  const audit = TRIMMED.find((e) => e.table === "mcp_call_audit");
+  assert.equal(`${rule[1]} days`, audit.window);
 });

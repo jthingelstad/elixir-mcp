@@ -4,7 +4,7 @@
  * archive bucket (0063) hold the rest. These two readers pull a bounded
  * number of captures and answer the two questions the review could not:
  * which tag was refused, and whether the controls fire and get acted on.
- * Read-only; nothing here writes. Missing captures (the 90-day expiry,
+ * Read-only; nothing here writes. Missing captures (the 28-day expiry,
  * a failed write) are counted, never guessed at.
  */
 

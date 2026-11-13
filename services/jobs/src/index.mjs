@@ -193,9 +193,14 @@ export async function sweepOperational(databaseUrl) {
         `delete from credential_refusal where day < current_date - 30`,
       )
     ).rowCount;
-    // The call history stays; the ADDRESS in it does not. Usage is the
-    // account's own record, an IP is a person's location, and only one of
-    // those has to be kept to answer "what has this credential done".
+    // An address is a person's location, so it never outlives 30 days.
+    // The retention trim deletes the whole row at 28 days, so this
+    // normally finds nothing; it stays as the backstop for rows the trim
+    // has not reached yet (its daily caps while a backlog drains, or a
+    // run that errored), since only the address is time-critical. The
+    // 90-day argument and capture-flag sweeps that sat beside it were
+    // removed with the 28-day trim: a row that old is a trim failure the
+    // trim's own next run fixes, and its body is gone from S3 at 28 days.
     out.viewer_ip_scrubbed = (
       await db.query(
         `update mcp_call_audit set viewer_ip = null
@@ -262,22 +267,6 @@ export async function sweepOperational(databaseUrl) {
       await db.query(
         `update gateway set provision_env = null, provision_expires_at = null
          where provision_env is not null and provision_expires_at <= now()`,
-      )
-    ).rowCount;
-    out.audit_args_nulled = (
-      await db.query(
-        `update mcp_call_audit set args = null
-         where created_at < now() - interval '90 days' and args is not null`,
-      )
-    ).rowCount;
-    // The captured bodies follow the same 90-day rule as the arguments.
-    // The objects themselves expire under the archive bucket's calls/
-    // lifecycle rule (infra/template.yaml); this flips the pointer so the
-    // console stops offering a body the bucket no longer has.
-    out.audit_capture_expired = (
-      await db.query(
-        `update mcp_call_audit set captured = false
-         where captured and created_at < now() - interval '90 days'`,
       )
     ).rowCount;
     return out;
