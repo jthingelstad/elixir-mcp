@@ -474,7 +474,7 @@ imported by name.
 | `auth` | sessions, OAuth, tokens, integration accounts, the `clans_my_view` and clan directory readers |
 | `mail`, `outbox` | rendering, the send ledger and archive, delivery; the S3 outbox |
 | `syndication` | the timeline cross-posted to Discord and a clan's activity channel: the setting, the wake, the sync, its lines, the relay's worker and the quality ledger (`quality.mjs`) |
-| `clan-engine`, `clan`, `clan-state`, `clan-web` | Clan, a set of features inside Elixir (`packages/clan/AGENTS.md`) |
+| `clan-engine`, `clan`, `clan-state` | Clan, a set of features inside Elixir (`packages/clan/AGENTS.md`) |
 | `docs` | the public docs as a corpus the MCP door serves |
 | `design`, `ui`, `client` | the web kit (`apps/web/AGENTS.md`) |
 

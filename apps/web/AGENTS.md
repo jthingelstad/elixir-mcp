@@ -1,8 +1,8 @@
 # apps/web: the signed-in app and the shared shell
 
 The React application behind every path a session or a live read draws:
-Home (`/home`), Settings (`/settings`, Admin under it for staff), Stats (Ladder, `/home/you/stats`, guide in `src/ladder/`), Elixir
-Clan (`/clan`, views from `packages/clan-web`) and the public battle page
+Home (`/home`), Settings (`/settings`, Admin under it for staff), Stats (Ladder, `/home/you/stats`, guide in `src/ladder/`),
+Clan (`/clan`, guide in `src/clan/`) and the public battle page
 (`/battle/<id>`). The root `AGENTS.md` golden rules apply; product
 behaviour is in `apps/site/src/docs/`, not here.
 

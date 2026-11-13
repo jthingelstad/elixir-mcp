@@ -18,11 +18,11 @@ const tagPath = (tag) =>
 // #764: "Yes, one page"; apps/web lib/player.js).
 const playerUrl = (tag) => `${ELIXIR_ORIGIN}/home/player/${tagPath(tag)}`;
 // A clan's Feed: Clan for its members, the clan directory searched for it
-// for anyone else (packages/clan-web App.jsx, 2026-11-12). Links name the
+// for anyone else (apps/web src/clan/App.jsx, 2026-11-12). Links name the
 // page itself, not the bare clan address that forwards to it.
 const clanUrl = (tag) => `${ELIXIR_ORIGIN}/clan/${tagPath(tag)}/feed`;
 // That week of the clan's War tab, `/war/<season>-<n>`, the week counted
-// from 1 (packages/clan-web views/Season.jsx; the mail's raceWeekUrl).
+// from 1 (apps/web src/clan/views/Season.jsx; the mail's raceWeekUrl).
 const weekUrl = (tag, season, sectionIndex) =>
   `${ELIXIR_ORIGIN}/clan/${tagPath(tag)}/war/${encodeURIComponent(season)}-${Number(sectionIndex) + 1}`;
 

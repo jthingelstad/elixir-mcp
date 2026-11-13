@@ -44,7 +44,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip",
-    "typecheck": "tsc -p apps/web && tsc -p packages/client && tsc -p packages/ui && tsc -p packages/clan-web",
+    "typecheck": "tsc -p apps/web && tsc -p packages/client && tsc -p packages/ui",
     "verify:static": "npm run format:check && npm run lint && npm run knip && npm run typecheck",
     "verify": "npm run verify:static && npm test && node infra/scripts/build.mjs",
     "acceptance": "npm run build && node acceptance/run.mjs",

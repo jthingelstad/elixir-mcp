@@ -31,7 +31,7 @@ An npm workspaces monorepo.
 | `apps/site` | The static half of the site (Eleventy): home, docs, updates, and the machine-readable surfaces |
 | `apps/web` | The application half (React): Home (`src/home`: the feed, Find, You and the player page), Settings and Admin, Stats (`src/ladder`) and the shell Elixir Clan's views run in |
 | `services/` | The Lambdas, each only its door (entry, handler, routes): `collector`, `email-relay`, `jobs`, `mcp`, `migrate`, `scheduler`, `timeline-sync`, `web-api` |
-| `packages/` | What more than one Lambda or app runs, imported by name: `auth`, `claims`, `client`, `clan`, `clan-engine`, `clan-state`, `clan-web` (Elixir Clan), `collector-door` (the collectors' config, lease and submit), `contracts` (the tool and API contract), `design`, `docs`, `ingest`, `ledger`, `mail`, `outbox`, `record`, `syndication` (the timeline cross-posted to Discord), `tools` (the tool registry), `ui` |
+| `packages/` | What more than one Lambda or app runs, imported by name: `auth`, `claims`, `client`, `clan`, `clan-engine`, `clan-state`, `collector-door` (the collectors' config, lease and submit), `contracts` (the tool and API contract), `design`, `docs`, `ingest`, `ledger`, `mail`, `outbox`, `record`, `syndication` (the timeline cross-posted to Discord), `tools` (the tool registry), `ui` |
 | `acceptance/` | The read-only acceptance suite run against the live service |
 | `db/migrations` | The ordered schema migrations |
 | `infra/` | The CloudFormation template and the build, deploy and maintenance scripts |

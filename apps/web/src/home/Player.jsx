@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "@tanstack/react-router";
-import {
-  PlayerInClan,
-  useClanOf,
-} from "@elixir-mcp/clan-web/views/PlayerInClan.jsx";
+import { PlayerInClan, useClanOf } from "../clan/views/PlayerInClan.jsx";
 import {
   Avatar,
   Empty,
