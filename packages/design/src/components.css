@@ -7710,6 +7710,12 @@ a.kit-mbattle:hover {
   margin-right: 10px;
   white-space: nowrap;
 }
+/* Flat like Home (2026-11-13): a section's rows line up with its heading,
+   not inset as if they sat in a panel. */
+.kit-bell__sec .kit-row {
+  padding-right: 0;
+  padding-left: 0;
+}
 /* Find's search: the bar's search, as a page's own button. */
 .kit-find__search {
   display: flex;
@@ -9446,8 +9452,10 @@ a.kit-mbattle:hover {
 }
 .kit-search__group a {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-height: var(--hit-touch);
   padding: 9px 16px;
   color: var(--ink);
   font-size: 14px;

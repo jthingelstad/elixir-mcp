@@ -62,7 +62,7 @@ export function FindPage() {
         title="Find"
         sub="Find your friends, your clanmates and players you’ve battled."
       />
-      <Tabs label="Find" items={sections} value={tab} onSelect={setTab} wrap />
+      <Tabs label="Find" items={sections} value={tab} onSelect={setTab} />
       <div className="kit-home__two">
         <div className="kit-home__main">
           {tab === "clan" ? (
