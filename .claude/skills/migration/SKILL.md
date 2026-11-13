@@ -176,7 +176,7 @@ constraint is written on its column (0108). Comments move no pin.
 - DECISIONS: "Our enums are CHECKed, API enums stay open - ingest must
   never fail on a value the game adds." No constraint may refuse an API
   fact (the declined `war_week.season_id` FK); count with a census op
-  before any VALIDATE (`{enum_census}` preceded 0113-0119).
+  before any VALIDATE (`{enum_census}`, retired 2026-11-13, preceded 0113-0119).
 
 ## Testing
 

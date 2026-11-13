@@ -13,9 +13,9 @@
  * claims and watches (claim, account_clan, and the recordings only they
  * kept alive, stopped through the claims package's own reconcile), the
  * sessions, OAuth grants and codes and tokens,
- * service tokens and the policy-context grants bound to them, the call
+ * service tokens, the call
  * log and its refusal log and the rate counters, feedback, account
- * events, mail sent and its switches and milestones, nicknames, battle
+ * events, mail sent and its switches, nicknames, battle
  * highlights (their words and share links), timeline read pointers, the timeline's Discord cross-post (its sealed webhook,
  * what it told, and its posts in the quality ledger), Clan's remembered
  * clan, agent identities, and pending sign-in links. Removing an account
@@ -183,12 +183,6 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
          or token_id = any($2::bigint[])`,
       [ids, tokenIds],
     ],
-    // Before the tokens it is bound to, which would cascade it uncounted.
-    [
-      "agent_policy_context_grant",
-      `agent_policy_context_grant where agent_account_id = any($1::uuid[])
-         or owner_account_id = any($1::uuid[])`,
-    ],
     ["service_token", `service_token where account_id = any($1::uuid[])`],
     [
       "oauth_token",
@@ -248,11 +242,6 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
       `collector_version_event where account_id = any($1::uuid[])`,
     ],
     ["email_send", `email_send where account_id = any($1::uuid[])`],
-    ["email_milestone", `email_milestone where account_id = any($1::uuid[])`],
-    [
-      "email_milestone_look",
-      `email_milestone_look where account_id = any($1::uuid[])`,
-    ],
     [
       "account_email_pref",
       `account_email_pref where account_id = any($1::uuid[])`,

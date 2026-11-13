@@ -74,7 +74,6 @@ test("op: reads are reads", () => {
     { account_follow: { primary_tag: "#A", player_tag: "#B", dry_run: true } },
     { agent_recordings: { dry_run: true } },
     { verified_tag_census: { dry_run: true } },
-    { clan_context: { agents: ["abc"] } },
     { clan_maintenance: { lane: "actions", clan_tag: "#A" } },
     {
       clan_maintenance: { lane: "draft_packet", clan_tag: "#A", card_id: "c" },
@@ -88,7 +87,7 @@ test("op: everything else is a write, and takes the lock", () => {
     {}, // the migrations
     { vacuum: { table: "battle" } },
     { terminate_backends: { pids: [1] } },
-    { series_backfill: true },
+    { rewrite_table: { table: "battle" } },
     { card_roles_import: {} },
     { feedback_respond: { id: 1 } },
     { seed: true },
@@ -98,6 +97,7 @@ test("op: everything else is a write, and takes the lock", () => {
     { account_role: { account_id: "u", role: "owner" } },
     { account_role: { list: true, account_id: "u", role: "owner" } },
     { integration: { action: "create" } },
+    { integration: { action: "revoke_legacy", id: "1" } },
     { integration: {} },
     { family_clients: { set_secret: {} } },
     { family_clients: { list: true, retire_app: { app: "clan" } } },
@@ -117,8 +117,6 @@ test("op: everything else is a write, and takes the lock", () => {
     { agent_recordings: {} }, // defaults to a dry run; not counted
     { verified_tag_census: { dry_run: false } },
     { verified_tag_census: {} },
-    { clan_context: { agents: ["a"], apply: true } },
-    { clan_context: { agents: ["a"], revoke: true } },
     { clan_maintenance: { lane: "reconcile_removal", card_id: "c" } },
     { clan_maintenance: { lane: "actions", apply: false } },
     { clan_maintenance: { lane: "draft_packet", apply: true } },

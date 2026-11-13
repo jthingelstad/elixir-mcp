@@ -25,8 +25,6 @@ const NOWHERE = "postgres://nobody@127.0.0.1:1/none";
 
 const REWRITABLE = [
   "battle_participant",
-  "battle_participant_card",
-  "deck_card",
   "battle",
   "battle_participant_round",
   "deck",

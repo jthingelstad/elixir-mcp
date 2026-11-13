@@ -199,7 +199,6 @@ test("verified empty upgrade preserves complete battles, cards, rounds, entities
       "gateway",
       "battle",
       "battle_participant",
-      "battle_participant_card",
       "battle_participant_round",
       "api_receipt",
       "player",

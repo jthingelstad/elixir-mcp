@@ -1,11 +1,6 @@
 /**
- * The played-card projections (0091): census and diagnostics.
- *
- *   {deck_census: true}
- *     Read-only: participants whose deck_hash has no deck row or no
- *     played rows, collection rows without a catalog card, stub cards the
- *     catalog has not yet confirmed. All zero is the gate for the closing
- *     FKs.
+ * Table maintenance and backend diagnostics. ({deck_census}, the played
+ * card projections' census, retired with their tables in 0256.)
  *
  *   {rewrite_table: "battle_participant"}
  *     VACUUM FULL one named table - the space a dropped column (0097) or
@@ -25,12 +20,12 @@
 import pg from "pg";
 
 /** The tables {rewrite_table} may name: a closed list, because the op
- *  takes the name into SQL. The first three are 0097's dropped column;
- *  the rest carry the 2026-10-07 purge's dead space. */
+ *  takes the name into SQL. battle_participant held 0097's dropped
+ *  column, and with deck, 0255's array fill; the rest carry the
+ *  2026-10-07 purge's dead space. (0091's two card tables left the list
+ *  when 0256 dropped them.) */
 const REWRITABLE = new Set([
   "battle_participant",
-  "battle_participant_card",
-  "deck_card",
   "battle",
   "battle_participant_round",
   "deck",
@@ -119,35 +114,6 @@ export async function rewriteTable(
       freed_bytes: before.bytes - after.bytes,
       timeouts: timeoutsOut,
     };
-  } finally {
-    await db.end();
-  }
-}
-
-export async function deckCensus(databaseUrl) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
-  try {
-    const {
-      rows: [r],
-    } = await db.query(
-      `select
-         (select count(*)::int from battle_participant bp
-           where bp.deck_hash is not null
-             and not exists (select 1 from deck d where d.deck_hash = bp.deck_hash)) as participants_without_deck,
-         (select count(*)::int from battle_participant bp
-           where bp.deck_hash is not null
-             and not exists (select 1 from battle_participant_card c
-                              where c.battle_id = bp.battle_id and c.player_tag = bp.player_tag)) as participants_without_played_rows,
-         (select count(*)::int from player_card pc
-           where not exists (select 1 from card c where c.card_id = pc.card_id)) as collection_rows_without_card,
-         (select count(*)::int from card where catalog_seen_at is null) as stub_cards,
-         (select count(*)::int from deck) as decks,
-         (select count(*)::int from deck_card) as deck_cards,
-         (select count(*)::int from battle_participant_card) as played_rows,
-         (select count(*)::int from battle_participant where deck_hash is not null) as participants_with_deck`,
-    );
-    return r;
   } finally {
     await db.end();
   }

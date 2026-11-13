@@ -735,13 +735,9 @@ export async function explainParticipation(databaseUrl, spec = {}) {
 const VACUUMABLE = new Set([
   "battle",
   "battle_participant",
-  "battle_participant_card",
   "battle_participant_round",
   "player_snapshot_daily",
-  // A backfill's deck rows (0182's {duel_round_decks} added about 80k
-  // deck_card rows); those rows also need their visibility map rebuilt.
   "deck",
-  "deck_card",
   // Retained tables changed by the approved right-sizing purge. Retired
   // global/group tables contract separately once their last readers are gone.
   "api_receipt",
@@ -796,82 +792,6 @@ export async function vacuum(databaseUrl, spec = {}) {
     const started = Date.now();
     await db.query(`vacuum (analyze) ${table}`);
     return { table, ms: Date.now() - started, before, after: await map() };
-  } finally {
-    await db.end();
-  }
-}
-
-/**
- * {enum_census: true} - the distinct values of every column the schema
- * review (2026-09-16, 1.5) wants a CHECK on, plus the orphan counts the
- * NOT VALID foreign keys of 0108/0109 will be validated against. Read
- * only. The checks are written from THIS, on the next deploy, so a value
- * history holds that the code no longer emits is a decision on record
- * rather than a failed migration.
- */
-export async function enumCensus(databaseUrl) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
-  try {
-    const values = async (table, column) => {
-      const { rows } = await db.query(
-        `select ${column}::text as value, count(*)::int as n
-         from ${table} group by 1 order by 2 desc, 1`,
-      );
-      return rows;
-    };
-    const orphans = async (sql) => {
-      const { rows } = await db.query(sql);
-      return rows[0].n;
-    };
-    return {
-      player_event_type: await values("player_event", "event_type"),
-      clan_event_type: await values("clan_event", "event_type"),
-      rollup_mode_group: await values(
-        "player_daily_battle_rollup",
-        "mode_group",
-      ),
-      poll_state_hint: await values("poll_state", "hint"),
-      poll_state_period_type: await values("poll_state", "period_type"),
-      snapshot_kind: await values("player_snapshot_daily", "snapshot_kind"),
-      participant_type_class: await values("battle_participant", "type_class"),
-      // Jamie 2026-09-22: "game modes are really played as a different
-      // game", and in some of them the player does not choose the deck.
-      // deck_selection is the API's own word for that, stored since the
-      // beginning and never used as a filter.
-      battle_deck_selection: await values("battle", "deck_selection"),
-      battle_type: await values("battle", "type"),
-      deck_card_count: await values("deck", "card_count"),
-      orphans: {
-        participant_deck: await orphans(
-          `select count(*)::int as n from battle_participant bp
-           where bp.deck_hash is not null
-             and not exists (select 1 from deck d where d.deck_hash = bp.deck_hash)`,
-        ),
-        player_card_card: await orphans(
-          `select count(*)::int as n from player_card pc
-           where not exists (select 1 from card c where c.card_id = pc.card_id)`,
-        ),
-        war_participation_week: await orphans(
-          `select count(*)::int as n from war_participation wp
-           where not exists (select 1 from war_week w where (w.clan_tag, w.season_id, w.section_index) = (wp.clan_tag, wp.season_id, wp.section_index))`,
-        ),
-        war_attendance_day_week: await orphans(
-          `select count(*)::int as n from war_attendance_day ad
-           where not exists (select 1 from war_week w where (w.clan_tag, w.season_id, w.section_index) = (ad.clan_tag, ad.season_id, ad.section_index))`,
-        ),
-        war_week_clan_week: await orphans(
-          `select count(*)::int as n from war_week_clan wc
-           where not exists (select 1 from war_week w where (w.clan_tag, w.season_id, w.section_index) = (wc.clan_tag, wc.season_id, wc.section_index))`,
-        ),
-        participant_null_battle_time: await orphans(
-          `select count(*)::int as n from battle_participant where battle_time is null`,
-        ),
-        participant_null_type: await orphans(
-          `select count(*)::int as n from battle_participant where type is null`,
-        ),
-      },
-    };
   } finally {
     await db.end();
   }
@@ -941,601 +861,10 @@ export async function pollStateOp(databaseUrl, spec = {}) {
       `select r.receipt_id, r.fetched_at, r.admission, r.admission_errors, g.name as gateway
        from api_receipt r left join gateway g on g.gateway_id = r.gateway_id
        where r.endpoint = $2 and r.entity_key = $1
-       order by r.receipt_id desc limit 5`,
+       order by r.fetched_at desc, r.receipt_id desc limit 5`,
       [subject, endpoint],
     );
     return { state: state ?? null, jobs, receipts };
-  } finally {
-    await db.end();
-  }
-}
-
-/** {battle_fidelity_census}: for every column on the battle tables, how
- *  many rows actually carry a value. The payload manifest
- *  (packages/ingest/src/payload-keys.mjs) says where each API field
- *  LANDS; the nightly shape census catches a field the API adds. Neither
- *  checks the other direction - a column the manifest promises but the
- *  projector never fills reads as faithful and is empty. Split by
- *  type_class, and for battle_participant by type, because most of these
- *  are legitimately conditional (trophy_change only on PvP and Path of
- *  Legends, the boat columns only on boat battles). */
-export async function battleFidelityCensus(databaseUrl) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
-  try {
-    const cols = async (table) => {
-      const { rows } = await db.query(
-        `select column_name from information_schema.columns
-          where table_schema = 'public' and table_name = $1
-          order by ordinal_position`,
-        [table],
-      );
-      return rows.map((r) => r.column_name);
-    };
-    const fill = async (table, groupBy) => {
-      const names = await cols(table);
-      const counts = names
-        .map((c) => `count("${c}")::bigint as "${c}"`)
-        .join(", ");
-      const { rows } = await db.query(
-        `select ${groupBy} as bucket, count(*)::bigint as rows, ${counts}
-           from ${table} group by 1 order by 2 desc`,
-      );
-      return rows.map((r) => {
-        const total = Number(r.rows);
-        const filled = {};
-        for (const c of names) {
-          const n = Number(r[c]);
-          filled[c] = {
-            n,
-            pct: total ? Math.round((n / total) * 1000) / 10 : 0,
-          };
-        }
-        return { bucket: r.bucket, rows: total, columns: filled };
-      });
-    };
-    return {
-      battle: await fill("battle", "type_class"),
-      battle_by_type: await fill("battle", "type"),
-      battle_participant: await fill("battle_participant", "type"),
-    };
-  } finally {
-    await db.end();
-  }
-}
-
-/** {mode_shape_census}: what a battle TYPE actually contains, by the
- *  game's own mode name and by whether the player chose the deck. Jamie
- *  2026-09-22: "game modes are really played as a different game", and
- *  `trail` - a quarter of the record - is a container nobody had opened.
- *  Also counts the duel round rows 0151 introduced, so the archive
- *  backfill can be verified. */
-export async function modeShapeCensus(databaseUrl) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
-  try {
-    const { rows: modes } = await db.query(
-      `select type, coalesce(game_mode_name, '(null)') as game_mode,
-              coalesce(deck_selection, '(null)') as deck_selection,
-              count(*)::int as n
-         from battle group by 1, 2, 3 order by 4 desc`,
-    );
-    // The decisive cut: the same RULESET (game_mode) under different
-    // TYPES. If trail's Ladder carried trophies the way PvP's does they
-    // would be one population; the stakes say whether they are.
-    const { rows: stakes } = await db.query(
-      `select b.type, coalesce(b.game_mode_name, '(null)') as game_mode,
-              count(*)::int as participants,
-              count(bp.trophy_change)::int as with_trophy_change,
-              count(bp.starting_trophies)::int as with_starting_trophies,
-              count(bp.global_rank)::int as with_global_rank
-         from battle_participant bp join battle b on b.battle_id = bp.battle_id
-        where b.game_mode_name in ('Ladder', 'TeamVsTeam', 'Crazy_Arena',
-                                   'Friendly', 'PickMode', 'CW_Duel_1v1')
-        group by 1, 2 order by 3 desc`,
-    );
-    // Supercell describes a Trail as a limited-time themed ladder where
-    // "Trophies obtained will be permanent... and will not deduct if the
-    // player loses". If that is what type=trail marks, a trail Ladder
-    // LOSS costs nothing while a Trophy Road loss does - which the sign
-    // of trophy_change by outcome settles.
-    const { rows: trophyRule } = await db.query(
-      `select b.type, bp.outcome,
-              count(*)::int as rows,
-              count(*) filter (where bp.trophy_change is null)::int as null_change,
-              count(*) filter (where bp.trophy_change = 0)::int as zero_change,
-              count(*) filter (where bp.trophy_change < 0)::int as negative,
-              count(*) filter (where bp.trophy_change > 0)::int as positive
-         from battle_participant bp join battle b on b.battle_id = bp.battle_id
-        where b.game_mode_name = 'Ladder'
-        group by 1, 2 order by 1, 3 desc`,
-    );
-    // Event content clusters in time; a permanent format does not.
-    const { rows: calendar } = await db.query(
-      `select to_char(b.battle_time, 'YYYY-MM') as month, b.type,
-              count(*)::int as battles
-         from battle b
-        where b.game_mode_name = 'Ladder'
-        group by 1, 2 order by 1, 2`,
-    );
-    // Seasonal Arena II boosts low cards to level 15 and bans the
-    // player's top 8. If type=trail is the Seasonal Road, its recorded
-    // card levels are not the player's real ones, and every level-gap
-    // comparison that pools them is measuring the format.
-    const { rows: levels } = await db.query(
-      `select b.type,
-              count(*)::int as rows,
-              round(avg(bp.deck_avg_level)::numeric, 2) as mean_deck_level,
-              round(percentile_cont(0.5) within group
-                    (order by bp.deck_avg_level)::numeric, 2) as median,
-              count(*) filter (where bp.deck_avg_level >= 14.5)::int as at_15ish,
-              min(bp.deck_avg_level) as min, max(bp.deck_avg_level) as max
-         from battle_participant bp join battle b on b.battle_id = bp.battle_id
-        where b.game_mode_name = 'Ladder' and bp.deck_avg_level is not null
-        group by 1`,
-    );
-    // Is `trail` the Seasonal Road, or a misc bucket that now also holds
-    // it? If TeamVsTeam and the party modes predate June 2026 while
-    // Ladder does not, the type is older than the Seasonal Road and the
-    // grouping cannot simply follow the type.
-    const { rows: trailCalendar } = await db.query(
-      `select to_char(b.battle_time, 'YYYY-MM') as month,
-              coalesce(b.game_mode_name, '(null)') as game_mode,
-              count(*)::int as battles
-         from battle b
-        where b.type = 'trail'
-        group by 1, 2 order by 1, 3 desc`,
-    );
-    // The corpus itself ramps: broad multi-clan recording began
-    // 2026-09-03, so a month-over-month rise can be our population
-    // rather than the game's. Battles and distinct observed players per
-    // month, by type, so a share can be read against its own month.
-    const { rows: corpus } = await db.query(
-      `select to_char(b.battle_time, 'YYYY-MM') as month, b.type,
-              count(*)::int as battles
-         from battle b
-        where b.battle_time >= '2026-03-01'
-        group by 1, 2 order by 1, 3 desc`,
-    );
-    const { rows: players } = await db.query(
-      `select to_char(bp.battle_time, 'YYYY-MM') as month,
-              count(distinct bp.player_tag)::int as players
-         from battle_participant bp
-        where bp.battle_time >= '2026-03-01'
-        group by 1 order by 1`,
-    );
-    // A tournament is a window; a permanent mode is a level. Daily
-    // counts for the two modes that exploded in September say which.
-    const { rows: daily } = await db.query(
-      `select to_char(b.battle_time, 'YYYY-MM-DD') as day,
-              b.game_mode_name as game_mode,
-              count(*)::int as battles,
-              count(distinct bp.player_tag)::int as players
-         from battle b join battle_participant bp on bp.battle_id = b.battle_id
-        where b.battle_time >= '2026-08-25'
-          and b.game_mode_name in ('TeamVsTeam', 'Ladder')
-        group by 1, 2 order by 1, 2`,
-    );
-    // Jamie's model: Supercell slots an EVENT into a (type, gameMode)
-    // pair bound by a date window, and may reuse the pair later for a
-    // different event. If so the API's own eventTag is that identity,
-    // and each tag should own a window rather than sprawling.
-    const { rows: events } = await db.query(
-      `select b.type, coalesce(b.game_mode_name, '(null)') as game_mode,
-              coalesce(b.event_tag, '(none)') as event_tag,
-              count(*)::int as battles,
-              to_char(min(b.battle_time), 'YYYY-MM-DD') as first_day,
-              to_char(max(b.battle_time), 'YYYY-MM-DD') as last_day,
-              count(distinct to_char(b.battle_time, 'YYYY-MM-DD'))::int as active_days
-         from battle b
-        where b.event_tag is not null
-        group by 1, 2, 3 order by 4 desc limit 40`,
-    );
-    // Does one pair carry several event tags (reuse), and does one tag
-    // span several pairs?
-    const { rows: reuse } = await db.query(
-      `select b.type, coalesce(b.game_mode_name, '(null)') as game_mode,
-              count(distinct b.event_tag)::int as distinct_event_tags,
-              count(*)::int as battles
-         from battle b
-        where b.event_tag is not null
-        group by 1, 2 having count(distinct b.event_tag) > 1
-        order by 3 desc limit 20`,
-    );
-    // The load-bearing claim: does a PERMANENT format ever carry an
-    // event tag? If not, event_tag is the discriminator - not the type,
-    // not the mode name, not the pair.
-    const { rows: tagged } = await db.query(
-      `select b.type, count(*)::int as battles,
-              count(b.event_tag)::int as with_event_tag,
-              count(b.tournament_tag)::int as with_tournament_tag
-         from battle b group by 1 order by 2 desc`,
-    );
-    const { rows: rounds } = await db.query(
-      `select count(*)::int as round_rows,
-              count(distinct battle_id)::int as battles,
-              count(distinct player_tag)::int as players,
-              min(round)::int as min_round, max(round)::int as max_round,
-              count(*) filter (where crowns is not null)::int as with_crowns,
-              count(*) filter (where elixir_leaked is not null)::int as with_elixir
-         from battle_participant_round`,
-    );
-    const { rows: ranks } = await db.query(
-      `select count(*)::int as rows_with_rank,
-              min(global_rank)::int as best, max(global_rank)::int as worst
-         from battle_participant where global_rank is not null`,
-    );
-    // Ranked by league (the 2026-09-25 reference audit's held patch): one
-    // clan's sample said leagues 1-6 carry trophy_change only on a win
-    // (+30) and starting_trophies only in league 7. This is the whole
-    // record's answer, by league and outcome.
-    const { rows: rankedByLeague } = await db.query(
-      `select b.league_number, bp.outcome,
-              count(*)::int as participants,
-              count(bp.trophy_change)::int as with_trophy_change,
-              min(bp.trophy_change)::int as min_change,
-              max(bp.trophy_change)::int as max_change,
-              count(bp.starting_trophies)::int as with_starting_trophies
-         from battle_participant bp join battle b on b.battle_id = bp.battle_id
-        where b.type = 'pathOfLegend'
-        group by 1, 2 order by 1, 2`,
-    );
-    return {
-      modes,
-      stakes,
-      trophy_rule: trophyRule,
-      ranked_by_league: rankedByLeague,
-      ladder_calendar: calendar,
-      ladder_levels: levels,
-      trail_calendar: trailCalendar,
-      corpus_calendar: corpus,
-      players_per_month: players,
-      daily_burst: daily,
-      event_tags: events,
-      event_tag_reuse: reuse,
-      event_tag_by_type: tagged,
-      rounds: rounds[0],
-      global_rank: ranks[0],
-    };
-  } finally {
-    await db.end();
-  }
-}
-
-/**
- * Role history census ({role_history_census: true}) — read-only (issue
- * #46). clans_participation rebuilds each member's role at every war
- * finish by walking back from the membership's role through the clan's
- * role_changed events, and it refuses (null) across events that do not
- * chain. This counts how often the record gives it reason to: roster
- * reads admitted out of order (an older payload after a newer one writes
- * an event whose window runs backwards), role events whose order by
- * observation disagrees with their order of admission, flip-flop pairs
- * (a change and its reverse within an hour), and membership rows whose
- * leave does not follow their join. Counts and event ids only.
- */
-export async function roleHistoryCensus(databaseUrl) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
-  try {
-    await db.query("set statement_timeout = 120000");
-    await db.query("set default_transaction_read_only = on");
-    const { rows: events } = await db.query(
-      `select event_type, count(*)::int as events,
-              count(*) filter (where window_start > window_end)::int as inverted,
-              count(distinct clan_tag)::int as clans,
-              min(window_end) as first_at
-         from clan_event
-        where event_type in ('role_changed', 'member_joined', 'member_left')
-        group by event_type order by event_type`,
-    );
-    const { rows: order } = await db.query(
-      `with e as (
-         select event_id, clan_tag, player_tag, window_start, window_end,
-                role_before, role_after,
-                lag(event_id) over w as prev_id,
-                lag(window_end) over w as prev_end,
-                lag(role_before) over w as prev_before,
-                lag(role_after) over w as prev_after
-           from clan_event
-          where event_type = 'role_changed' and player_tag is not null
-         window w as (partition by clan_tag, player_tag order by window_end, event_id))
-       select count(*) filter (where prev_id > event_id)::int as out_of_admission_order,
-              count(*) filter (where prev_after is distinct from role_before
-                                 and prev_id is not null)::int as chain_breaks,
-              count(*) filter (where prev_before = role_after and prev_after = role_before
-                                 and window_end - prev_end < interval '1 hour')::int as flip_flops_within_hour,
-              (array_agg(event_id order by event_id desc)
-                 filter (where prev_id > event_id
-                            or (prev_after is distinct from role_before and prev_id is not null)))[1:10]
-                as example_event_ids
-         from e`,
-    );
-    const { rows: memberships } = await db.query(
-      `select count(*)::int as rows,
-              count(*) filter (where left_observed_at is not null
-                                 and left_observed_at <= joined_observed_at)::int as leave_not_after_join
-         from clan_membership`,
-    );
-    const { rows: receipts } = await db.query(
-      `with r as (
-         select entity_key, fetched_at,
-                max(fetched_at) over (partition by entity_key order by receipt_id
-                                      rows between unbounded preceding and 1 preceding) as newest_before
-           from api_receipt
-          where endpoint = 'clan' and admission = 'admitted'
-            and fetched_at > now() - interval '30 days')
-       select count(*)::int as clan_reads_30d,
-              count(*) filter (where fetched_at < newest_before)::int as admitted_after_a_newer_read,
-              count(distinct entity_key) filter (where fetched_at < newest_before)::int as clans_affected
-         from r`,
-    );
-    return {
-      note: "Counts only. inverted = window_start after window_end (an older roster admitted after a newer one). out_of_admission_order and chain_breaks are role_changed events, per clan and player, in window_end order.",
-      events,
-      role_changed_order: order[0],
-      memberships: memberships[0],
-      receipts: receipts[0],
-    };
-  } finally {
-    await db.end();
-  }
-}
-
-/**
- * Membership baseline census ({membership_baseline_census: true}, or
- * {"membership_baseline_census": {"clan_tag": "#TAG"}}) — read-only
- * (0207). How many join moments the record holds that were first sights,
- * not joins Elixir saw:
- *   first_read_rows: membership rows that opened on their clan's first
- *     membership observation (the clan's earliest joined_observed_at) and
- *     are not marked baseline; the player timeline narrated each as
- *     "joined" inside its window. claimed counts those of players someone
- *     tracks.
- *   follow_burst_events: member_joined events from the first read after a
- *     clan became tracked (a clan recording created inside the event's
- *     window) about a player who was not tracked before that window: a
- *     clan read only for its tracked players, diffed whole.
- *   marked_first_read_rows: first-read rows opened before 0207 that are
- *     baseline now, which only 0208 sets (Jamie, 2026-10-08): its count.
- * With clan_tag, the same counts for that clan alone. Counts and dates
- * only; nothing is written.
- */
-export async function membershipBaselineCensus(databaseUrl, opts = {}) {
-  const clanTag = typeof opts?.clan_tag === "string" ? opts.clan_tag : null;
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
-  try {
-    await db.query("set statement_timeout = 120000");
-    await db.query("set default_transaction_read_only = on");
-    const {
-      rows: [firstRead],
-    } = await db.query(
-      `with firsts as (
-         select clan_tag, min(joined_observed_at) as first_at
-           from clan_membership
-          where $1::text is null or clan_tag = $1
-          group by clan_tag)
-       select count(*)::int as rows,
-              count(distinct cm.clan_tag)::int as clans,
-              count(*) filter (where exists (select 1 from claim c
-                                              where c.player_tag = cm.player_tag))::int as claimed,
-              count(*) filter (where cm.joined_observed_at > now() - interval '30 days')::int as last_30_days,
-              count(*) filter (where cm.joined_observed_at > now() - interval '30 days'
-                                 and exists (select 1 from claim c
-                                              where c.player_tag = cm.player_tag))::int as claimed_last_30_days,
-              min(cm.joined_observed_at) as first_at,
-              max(cm.joined_observed_at) as last_at
-         from clan_membership cm
-         join firsts f on f.clan_tag = cm.clan_tag and f.first_at = cm.joined_observed_at
-        where not cm.baseline`,
-      [clanTag],
-    );
-    const {
-      rows: [marked],
-    } = await db.query(
-      `with firsts as (
-         select clan_tag, min(joined_observed_at) as first_at
-           from clan_membership
-          where $1::text is null or clan_tag = $1
-          group by clan_tag)
-       select count(*)::int as rows,
-              count(distinct cm.clan_tag)::int as clans
-         from clan_membership cm
-         join firsts f on f.clan_tag = cm.clan_tag and f.first_at = cm.joined_observed_at
-        where cm.baseline
-          and cm.joined_observed_at < (select applied_at from schema_migrations where id = 207)`,
-      [clanTag],
-    );
-    const {
-      rows: [burst],
-    } = await db.query(
-      `select count(*)::int as events,
-              count(distinct e.clan_tag)::int as clans,
-              min(e.window_end) as first_at,
-              max(e.window_end) as last_at
-         from clan_event e
-        where e.event_type = 'member_joined'
-          and ($1::text is null or e.clan_tag = $1)
-          and exists (select 1 from recording r
-                       where r.subject_type = 'clan' and r.subject_tag = e.clan_tag
-                         and r.created_at > e.window_start
-                         and r.created_at <= e.window_end)
-          and not exists (select 1 from recording r
-                           where r.subject_type = 'player' and r.subject_tag = e.player_tag
-                             and r.created_at <= e.window_start)
-          and not exists (select 1 from claim c
-                           where c.player_tag = e.player_tag
-                             and c.created_at <= e.window_start)`,
-      [clanTag],
-    );
-    const {
-      rows: [joins],
-    } = await db.query(
-      `select count(*)::int as events_30d
-         from clan_event
-        where event_type = 'member_joined'
-          and window_end > now() - interval '30 days'
-          and ($1::text is null or clan_tag = $1)`,
-      [clanTag],
-    );
-    return {
-      note: "Counts only, nothing written. first_read_rows: membership rows opened on their clan's first membership observation and not marked baseline (the player timeline read each as a join). marked_first_read_rows: the same rows from before 0207 that are baseline now (0208 marked them). follow_burst_events: member_joined events from the first read after a clan became tracked, about players untracked before that read.",
-      clan_tag: clanTag,
-      first_read_rows: firstRead,
-      marked_first_read_rows: marked,
-      follow_burst_events: burst,
-      member_joined: joins,
-    };
-  } finally {
-    await db.end();
-  }
-}
-
-/** The tables a profile admission writes for its player, with the column
- *  that names the player: what a stray live_fetch could have left. */
-const PROFILE_FOOTPRINT = [
-  "player_snapshot_daily",
-  "player_progress_daily",
-  "player_badge",
-  "player_card",
-  "player_pol_season",
-  "player_profile_membership",
-  "player_event",
-];
-
-/**
- * Live-fetch stray census ({"live_fetch_strays": {"days": 30}}, or
- * {"live_fetch_strays": {"tags": ["#TAG"]}}) — read-only (0209). Before
- * 0209 a live_fetch of /players/{tag} was admitted and projected like any
- * poll, so a player nobody tracks could enter the record through it
- * (Jamie, 2026-10-08: "live_fetch should ONLY live fetch and not record
- * data"). For each player tag live_fetch read in the window (from
- * mcp_call_audit), or each tag given: whether anyone tracks it (an active
- * player recording, a claim, or an open membership of a tracked clan),
- * then for the untracked ones the rows the profile projection writes,
- * the player row, the evidence that came from elsewhere (battles,
- * memberships, bulk-lane receipts) and the player receipts by lane.
- * Counts and dates only; nothing is written.
- */
-export async function liveFetchStrayCensus(databaseUrl, opts = {}) {
-  const days = Math.min(90, Math.max(1, Math.trunc(Number(opts?.days) || 30)));
-  const given = Array.isArray(opts?.tags) ? opts.tags : [];
-  const { normalizeTag } = await import("@elixir-mcp/contracts");
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
-  try {
-    await db.query("set statement_timeout = 120000");
-    await db.query("set default_transaction_read_only = on");
-    const { rows: calls } = await db.query(
-      `select args->>'path' as path, count(*)::int as calls,
-              min(created_at) as first_at, max(created_at) as last_at
-         from mcp_call_audit
-        where tool = 'live_fetch' and created_at > now() - make_interval(days => $1)
-          and args->>'path' like '/players/%'
-        group by 1`,
-      [days],
-    );
-    const byTag = new Map();
-    const tagOf = (raw) => {
-      try {
-        return normalizeTag(decodeURIComponent(String(raw)));
-      } catch {
-        return null;
-      }
-    };
-    for (const c of calls) {
-      const m = /^\/players\/([^/]+)$/.exec(c.path ?? "");
-      const tag = m ? tagOf(m[1]) : null;
-      if (!tag) continue;
-      const seen = byTag.get(tag) ?? {
-        calls: 0,
-        first_at: null,
-        last_at: null,
-      };
-      seen.calls += c.calls;
-      if (!seen.first_at || c.first_at < seen.first_at)
-        seen.first_at = c.first_at;
-      if (!seen.last_at || c.last_at > seen.last_at) seen.last_at = c.last_at;
-      byTag.set(tag, seen);
-    }
-    for (const raw of given) {
-      const tag = tagOf(raw);
-      if (tag && !byTag.has(tag))
-        byTag.set(tag, { calls: 0, first_at: null, last_at: null });
-    }
-    const untracked = [];
-    let tracked = 0;
-    for (const [tag, seen] of byTag) {
-      const {
-        rows: [t],
-      } = await db.query(
-        `select exists (select 1 from recording where subject_type = 'player'
-                         and status = 'active' and subject_tag = $1)
-             or exists (select 1 from claim where player_tag = $1)
-             or exists (select 1 from clan_membership cm
-                         where cm.player_tag = $1 and cm.left_observed_at is null
-                           and (exists (select 1 from recording r
-                                         where r.subject_type = 'clan' and r.status = 'active'
-                                           and r.subject_tag = cm.clan_tag)
-                                or exists (select 1 from account_clan ac
-                                            where ac.clan_tag = cm.clan_tag)))
-                as tracked`,
-        [tag],
-      );
-      if (t.tracked) {
-        tracked += 1;
-        continue;
-      }
-      const footprint = {};
-      for (const table of PROFILE_FOOTPRINT) {
-        const {
-          rows: [n],
-        } = await db.query(
-          `select count(*)::int as n from ${table} where player_tag = $1`,
-          [tag],
-        );
-        footprint[table] = n.n;
-      }
-      const {
-        rows: [elsewhere],
-      } = await db.query(
-        `select (select first_seen_at from player where player_tag = $1) as player_first_seen_at,
-                (select name is not null from player where player_tag = $1) as player_named,
-                (select count(*)::int from battle_participant where player_tag = $1) as battle_participant,
-                (select count(*)::int from clan_membership where player_tag = $1) as clan_membership`,
-        [tag],
-      );
-      const { rows: receipts } = await db.query(
-        `select coalesce(j.lane, 'unknown') as lane,
-                coalesce(j.record::text, 'unknown') as record,
-                count(*)::int as n,
-                min(r.fetched_at) as first_at, max(r.fetched_at) as last_at
-           from api_receipt r left join job j on j.job_id = r.job_id
-          where r.endpoint = 'player' and r.entity_key = $1
-          group by 1, 2 order by 1, 2`,
-        [tag],
-      );
-      untracked.push({
-        tag,
-        live_fetch_calls: seen.calls,
-        live_fetch_first_at: seen.first_at,
-        live_fetch_last_at: seen.last_at,
-        footprint,
-        player_first_seen_at: elsewhere.player_first_seen_at,
-        player_named: elsewhere.player_named,
-        battle_participant: elsewhere.battle_participant,
-        clan_membership: elsewhere.clan_membership,
-        receipts,
-      });
-    }
-    return {
-      note: "Counts only, nothing written. Each untracked tag live_fetch read: the rows a profile admission writes (footprint), the player row's first sighting, evidence from elsewhere (battle_participant, clan_membership) and its player receipts by lane. A bulk or unknown-lane receipt means something other than live_fetch read it too.",
-      days,
-      tags_read: byTag.size,
-      tracked,
-      untracked,
-    };
   } finally {
     await db.end();
   }
@@ -1556,10 +885,20 @@ const TAG_COLUMNS = [
 
 /** Tables whose tag column leads no index and which are large: counted
  *  through battle_participant's player index instead of a scan. */
-const VIA_PARTICIPANT = new Set([
-  "battle_participant_card",
-  "battle_participant_round",
-]);
+const VIA_PARTICIPANT = new Set(["battle_participant_round"]);
+
+/** Every endpoint api_receipt holds, read as a loose scan of its
+ *  (endpoint, entity_key, fetched_at) index (0256): one index probe per
+ *  endpoint, so a read by entity_key alone can name them all and stay on
+ *  the index instead of scanning the table. */
+const RECEIPT_ENDPOINTS_SQL = `
+  with recursive e(endpoint) as (
+    select min(endpoint) from api_receipt
+    union all
+    select (select min(r.endpoint) from api_receipt r where r.endpoint > e.endpoint)
+      from e where e.endpoint is not null)
+  select coalesce(array_agg(endpoint) filter (where endpoint is not null), '{}') as endpoints
+    from e`;
 
 /** jsonb columns of small tables that can name a player in passing. (The
  *  attested facts' table is counted by its tag columns only: its contents
@@ -1641,6 +980,9 @@ export async function tagFootprintCensus(databaseUrl, opts = {}, deps = {}) {
       [TAG_COLUMNS],
     );
     const ident = (s) => `"${String(s).replace(/"/g, '""')}"`;
+    const {
+      rows: [{ endpoints: receiptEndpoints }],
+    } = await db.query(RECEIPT_ENDPOINTS_SQL);
     const out = [];
     for (const tag of tags) {
       const rows = {};
@@ -1660,10 +1002,16 @@ export async function tagFootprintCensus(databaseUrl, opts = {}, deps = {}) {
           );
           rows[key] = n.n;
         } else if (c.has_endpoint) {
+          // api_receipt's entity index leads with endpoint (0256): name
+          // every endpoint so the count stays on it.
+          const receipts =
+            c.table_name === "api_receipt" && c.column_name === "entity_key";
           const { rows: byEndpoint } = await db.query(
             `select endpoint, count(*)::int as n from ${ident(c.table_name)}
-              where ${ident(c.column_name)} = $1 group by 1 order by 1`,
-            [tag],
+              where ${ident(c.column_name)} = $1
+                ${receipts ? "and endpoint = any($2::text[])" : ""}
+              group by 1 order by 1`,
+            receipts ? [tag, receiptEndpoints] : [tag],
           );
           rows[key] = Object.fromEntries(
             byEndpoint.map((r) => [r.endpoint, r.n]),
@@ -1754,9 +1102,9 @@ export async function tagFootprintCensus(databaseUrl, opts = {}, deps = {}) {
            left join job j on j.job_id = r.job_id
            left join api_payload p on p.endpoint = r.endpoint
                 and p.entity_key = r.entity_key and p.payload_hash = r.payload_hash
-          where r.entity_key = $1
+          where r.entity_key = $1 and r.endpoint = any($2::text[])
           order by r.fetched_at limit 50`,
-        [tag],
+        [tag, receiptEndpoints],
       );
       const receipts = [];
       for (const r of receiptRows) {

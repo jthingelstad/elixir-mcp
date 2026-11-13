@@ -42,7 +42,7 @@ named about a dozen ops and the rest could be found only by reading
    runs the exact SQL the tool serves, never a hand-typed version.
    `{profile_tool}` runs the registry's own handler, so it cannot drift;
    `{explain_participation}`, `{explain_standings}` and `{explain_timeline}`
-   import the tool's SQL; `{explain_series}` carries a copy. Use
+   import the tool's SQL. Use
    `{profile_tool}` for another retained tool's actual SQL and handler.
 5. **One invocation at a time, and no retries.** The function has reserved
    concurrency 1: a second call gets a 429 while the first runs, and so
@@ -253,7 +253,7 @@ did with the retired clan report's builder.
 | Where is the database's weight? | `{tables}` |
 | How bloated are `battle`'s indexes? | `{reindex}` with only `table` |
 | How much dead space does a table carry, and can a rewrite return it? | `{tables}` (heap, index and dead tuples); `{rewrite_table}` is the WRITE that returns it, Jamie's window only |
-| Did the series backfill land? | `{series_status}`, `{series_census_self}` |
+| What do the series tables hold? | `{series_status}` |
 
 ## Adding or removing an op
 

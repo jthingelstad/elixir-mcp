@@ -281,9 +281,10 @@ Resources:
       # db.t4g.small from 2026-11-13, for the data layer refactor only
       # (Jamie: "migrating to small to do that is going to be a smart
       # idea", then "scale back to micro"). The census that day: 2.4 GB,
-      # of which battle_participant_card and deck_card are 879 MB, more
-      # than the micro's whole memory. Back to db.t4g.micro when the
-      # refactor has landed and the tables are rewritten.
+      # of which 0091's two card tables were 879 MB, more than the
+      # micro's whole memory (dropped in migration 0256). Back to
+      # db.t4g.micro when the refactor has landed and the tables are
+      # rewritten.
       DBInstanceClass: db.t4g.small
       AllocatedStorage: "20"
       MaxAllocatedStorage: 100

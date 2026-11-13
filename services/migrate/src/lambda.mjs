@@ -1,5 +1,4 @@
 import { clanMaintenance } from "./ops-clan-maintenance.mjs";
-import { clanContextOp } from "./ops-clan-context.mjs";
 /** The migrate Lambda — the ONLY thing that applies schema migrations in
  *  the cloud (docs/ENGINEERING.md). Invoked by the deploy script between code
  *  upload and flip. The build packages db/migrations alongside the bundle. */
@@ -7,13 +6,11 @@ import { clanContextOp } from "./ops-clan-context.mjs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  deckCensus,
   rewriteTable,
   terminateBackends,
   listBackends,
 } from "./deck-backfill.mjs";
 import { migrate } from "./migrate.mjs";
-import { cardArrays, cardArraysCensus } from "./ops-card-arrays.mjs";
 import { explainTimeline } from "./ops-activity.mjs";
 import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
 import { profileRead, profileTool } from "./ops-profile.mjs";
@@ -40,13 +37,7 @@ import {
   statements,
   ledger,
   warDrift,
-  roleHistoryCensus,
-  membershipBaselineCensus,
-  liveFetchStrayCensus,
   tagFootprintCensus,
-  battleFidelityCensus,
-  modeShapeCensus,
-  enumCensus,
   captureAudit,
   probe,
   explainParticipation,
@@ -70,12 +61,7 @@ import {
   feedbackRespond,
 } from "./ops-feedback.mjs";
 import { discordReview } from "./ops-discord.mjs";
-import {
-  seriesStatus,
-  seriesBackfill,
-  seriesCensusSelf,
-  explainSeries,
-} from "./ops-series.mjs";
+import { seriesStatus } from "./ops-series.mjs";
 import { reindex } from "./ops-reindex.mjs";
 
 /** The function's own application_name (PGAPPNAME in
@@ -146,14 +132,6 @@ async function dispatch(event) {
         error: result.error,
       }),
     );
-    return result;
-  }
-  if (event?.clan_context) {
-    const result = await clanContextOp(
-      process.env.DATABASE_URL,
-      event.clan_context,
-    );
-    console.log(JSON.stringify(result));
     return result;
   }
   if (event?.clan_maintenance) {
@@ -437,32 +415,11 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.live_fetch_strays) {
-    const result = await liveFetchStrayCensus(
-      process.env.DATABASE_URL,
-      event.live_fetch_strays,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.tag_footprint) {
     const result = await tagFootprintCensus(
       process.env.DATABASE_URL,
       event.tag_footprint === true ? {} : event.tag_footprint,
     );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.membership_baseline_census) {
-    const result = await membershipBaselineCensus(
-      process.env.DATABASE_URL,
-      event.membership_baseline_census,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.role_history_census) {
-    const result = await roleHistoryCensus(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }
@@ -507,42 +464,6 @@ async function dispatch(event) {
     return result;
   }
 
-  if (event?.battle_fidelity_census) {
-    const result = await battleFidelityCensus(process.env.DATABASE_URL);
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.mode_shape_census) {
-    const result = await modeShapeCensus(process.env.DATABASE_URL);
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.enum_census) {
-    const result = await enumCensus(process.env.DATABASE_URL);
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.deck_census) {
-    const result = await deckCensus(process.env.DATABASE_URL);
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.card_arrays_census) {
-    const result = await cardArraysCensus(
-      process.env.DATABASE_URL,
-      event.card_arrays_census,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.card_arrays) {
-    const result = await cardArrays(
-      process.env.DATABASE_URL,
-      event.card_arrays,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.audit_census) {
     const result = await auditCensus(
       process.env.DATABASE_URL,
@@ -595,30 +516,6 @@ async function dispatch(event) {
     const result = await explainTimeline(
       process.env.DATABASE_URL,
       event.explain_timeline === true ? {} : event.explain_timeline,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.series_backfill) {
-    const result = await seriesBackfill(
-      process.env.DATABASE_URL,
-      event.series_backfill,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.explain_series) {
-    const result = await explainSeries(
-      process.env.DATABASE_URL,
-      event.explain_series === true ? {} : event.explain_series,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.series_census_self) {
-    const result = await seriesCensusSelf(
-      process.env.DATABASE_URL,
-      event.series_census_self === true ? {} : event.series_census_self,
     );
     console.log(JSON.stringify(result));
     return result;

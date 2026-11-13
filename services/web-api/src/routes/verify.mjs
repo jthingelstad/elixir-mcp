@@ -93,7 +93,7 @@ async function expireStale(db, accountId, tag) {
 
 /** A participant's (`bp`) deck card ids, from the deck's arrays (0255).
  *  Null with no deck. */
-export const DECK_CARD_IDS_SQL = `(select d.card_ids from deck d where d.deck_hash = bp.deck_hash)`;
+const DECK_CARD_IDS_SQL = `(select d.card_ids from deck d where d.deck_hash = bp.deck_hash)`;
 
 /** The battles this player has played since the brief, newest first,
  *  each with the ids of the deck they used. Duels (rounds) carry no

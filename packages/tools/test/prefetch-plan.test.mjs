@@ -48,8 +48,6 @@ test("prefetchStatements: each tag reads its own index, once, and gets its own r
       create index battle_participant_player_time_cover
         on battle_participant (player_tag, battle_time desc)
         include (battle_id, clan_tag, deck_hash, outcome);
-      create index battle_participant_window
-        on battle_participant (battle_time) include (deck_hash, player_tag, outcome);
       create temporary table player_snapshot_daily (
         player_tag text, snapshot_date date, snapshot_kind text default 'daily',
         profile_observed_at timestamptz, trophies int, best_trophies int,

@@ -41,8 +41,9 @@ test("boat + duel log ingests; duel is ONE battle with rounds", async () => {
 
   const { rows: duels } = await ctx.db.query(
     `select bp.deck_hash,
-            (select count(distinct pc.round)::int from battle_participant_card pc
-              where pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag) as rounds
+            (select count(*)::int from battle_participant_round r
+              where r.battle_id = bp.battle_id and r.player_tag = bp.player_tag
+                and r.cards is not null) as rounds
      from battle b
      join battle_participant bp on bp.battle_id = b.battle_id
      where b.type like 'riverRaceDuel%'`,
@@ -362,8 +363,8 @@ test("the high-water mark: a live poll drops every battle its log already delive
 });
 
 // The 0011 display-level test replayed that migration's SQL against
-// battle_participant.deck; the column left in 0097 (the levels live on
-// battle_participant_card.level, pinned by deck-cards.test.mjs). Like
+// battle_participant.deck; the column left in 0097 (the levels live in
+// battle_participant.card_levels, pinned by deck-cards.test.mjs). Like
 // 0012 below, the backfill ran once and history is immutable.
 // The 0012 repair test (pre-cutoff raw decks convert once) is retired
 // with 0094: it replayed the migration's SQL against the current schema,
@@ -478,8 +479,8 @@ test("0151: a duel's per-round results land, so round two can be answered", asyn
   // The round decks were already stored; the results now sit beside them
   // on the same round number.
   const { rows: cards } = await ctx.db.query(
-    `select distinct round from battle_participant_card
-      where battle_id = $1 and player_tag = $2 order by round`,
+    `select round from battle_participant_round
+      where battle_id = $1 and player_tag = $2 and cards is not null order by round`,
     [battle.battle_id, t],
   );
   assert.deepEqual(
@@ -489,8 +490,9 @@ test("0151: a duel's per-round results land, so round two can be answered", asyn
   );
   // used rides the round cards.
   const { rows: used } = await ctx.db.query(
-    `select count(*)::int as n from battle_participant_card
-      where battle_id = $1 and used is not null`,
+    `select count(*)::int as n from battle_participant_round r,
+            unnest(r.cards_used) as u(used)
+      where r.battle_id = $1 and u.used is not null`,
     [battle.battle_id],
   );
   assert.ok(used[0].n > 0, "the API's per-round used flag is recorded");
@@ -541,9 +543,8 @@ test("0182: each duel round carries its deck and its result", async () => {
   const hashes = [...new Set(rows.map((r) => r.deck_hash).filter(Boolean))];
   assert.ok(hashes.length > 0, "the fixture's rounds carry eight cards");
   const { rows: decks } = await ctx.db.query(
-    `select d.deck_hash, d.tower_troop_id, count(dc.card_id)::int as cards
-       from deck d join deck_card dc on dc.deck_hash = d.deck_hash
-      where d.deck_hash = any($1) group by d.deck_hash, d.tower_troop_id`,
+    `select d.deck_hash, d.tower_troop_id, cardinality(d.card_ids) as cards
+       from deck d where d.deck_hash = any($1)`,
     [hashes],
   );
   assert.equal(decks.length, hashes.length, "every round deck is a deck row");

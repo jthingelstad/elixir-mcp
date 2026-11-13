@@ -39,10 +39,6 @@ const exactly = (v, shape) =>
 /** `true`, or an object (the op's arguments). Never a falsy value: the
  *  dispatcher refuses those as unknown_op. */
 const anyArgs = (v) => v === true || isObject(v);
-const noKeys =
-  (...keys) =>
-  (v) =>
-    v === true || (isObject(v) && keys.every((k) => !Object.hasOwn(v, k)));
 
 const CLAN_MAINTENANCE_READ_LANES = new Set([
   "actions",
@@ -65,17 +61,9 @@ const MIGRATE_READS = {
   probe: anyArgs,
   sessions: anyArgs,
   war_drift: anyArgs,
-  role_history_census: anyArgs,
-  membership_baseline_census: anyArgs,
-  live_fetch_strays: anyArgs,
   tag_footprint: anyArgs,
   capture_audit: anyArgs,
   poll_replay: anyArgs,
-  enum_census: anyArgs,
-  battle_fidelity_census: anyArgs,
-  mode_shape_census: anyArgs,
-  deck_census: anyArgs,
-  card_arrays_census: anyArgs,
   audit_census: anyArgs,
   args_census: anyArgs,
   call_sequence_census: anyArgs,
@@ -85,11 +73,9 @@ const MIGRATE_READS = {
   explain_participation: anyArgs,
   explain_standings: anyArgs,
   explain_timeline: anyArgs,
-  explain_series: anyArgs,
   refusal_census: anyArgs,
   controls_census: anyArgs,
   series_status: anyArgs,
-  series_census_self: anyArgs,
   feedback_pending: anyArgs,
   feedback_read: anyArgs,
   discord_review: anyArgs,
@@ -113,8 +99,6 @@ const MIGRATE_READS = {
   tier_census: (v) => exactly(v, { dry_run: true }),
   verified_tag_census: (v) => exactly(v, { dry_run: true }),
   funnel: anyArgs,
-  // Previews; apply and revoke are the writes.
-  clan_context: (v) => isObject(v) && noKeys("apply", "revoke")(v),
   clan_maintenance: (v) =>
     isObject(v) &&
     CLAN_MAINTENANCE_READ_LANES.has(v.lane) &&

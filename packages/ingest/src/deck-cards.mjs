@@ -1,16 +1,24 @@
 /**
- * Cards played, as rows (0091).
+ * Cards played, on the rows that own them (0255, contracted in 0256).
  *
- * battle_participant.deck is the API's cards array as jsonb; deck_hash is
- * the contract's deck identity. Neither was traversable: every card
- * question re-exploded the JSON with no index to help. These three
- * projections are derived from the same canonical participant the
- * battle writer already built, in the same transaction, so they can
- * never disagree with the JSON they are cut from:
+ * A participant's cards ride battle_participant (round 0 and the tower
+ * troop), a duel's rounds ride battle_participant_round, and a deck
+ * identity's cards ride deck. Each is built here from the payload and
+ * written by the same statement that writes its row, so a participant
+ * gets one row version, never a second one for its cards. The per-card
+ * tables 0091 made were dropped in 0256.
  *
- *   deck                    (deck_hash) one row per identity
- *   deck_card               the identity's cards, by form
- *   battle_participant_card what this participant played, with levels
+ * The shape, lossless for every card the API sends:
+ *   - the four card arrays are parallel and indexed by slot: element i is
+ *     the card the API listed i-th (1-8 in a normal deck). A slot with no
+ *     card (an entry without an integer id, or a repeat of an earlier
+ *     card at the same form) is a NULL element in all four; a NULL level
+ *     or star level is a NULL element where the card id is set.
+ *   - the tower troop (supportCards[0]) is battle_participant.tower_*.
+ *     The API has only ever sent one; a second would have no column.
+ *   - cards is an empty array when round 0 has only a tower troop, so a
+ *     null cards means "no round-0 cards" (a duel, or no deck).
+ *   - deck.card_ids / card_forms in canonical (card_id, form) order.
  *
  * A card in a battle that the catalog does not know yet - a release day,
  * up to the daily /cards poll - gets a stub card row (id, name, kind are
@@ -23,17 +31,12 @@
  * unchanged resubmission leaves every row version where it was.
  */
 
-/** The (round, slot, card) rows a canonical participant's deck JSON
- *  holds. slot 1..8 as the API listed the cards; slot 0 is the tower
- *  troop; round 0 except for duels, where each round is its own deck. */
 import { cachedVocabulary, stampDecks } from "./card-roles.mjs";
 import { enqueueJob, takeLiveToken, refundLiveToken } from "@elixir-mcp/ledger";
-import {
-  fillDeckArrays,
-  fillParticipantArrays,
-  fillRoundArrays,
-} from "./card-arrays.mjs";
 
+/** The (round, slot, card) entries a canonical participant's deck JSON
+ *  holds. slot 1..8 as the API listed the cards; slot 0 is the tower
+ *  troop; round 0 except for duels, where each round is its own deck. */
 export function participantCardRows(deck) {
   if (!deck) return [];
   const out = [];
@@ -117,13 +120,87 @@ export async function ensureCards(db, cards, observedAt) {
   return stubbed.map((r) => r.card_id);
 }
 
+/** Slot-indexed arrays from card entries (slot >= 1): element slot-1
+ *  is that slot's card, a slot with no entry a NULL element in every
+ *  array. Null when there are no entries. */
+function slotArrays(entries) {
+  if (entries.length === 0) return null;
+  const size = Math.max(...entries.map((e) => e.slot));
+  const out = {
+    cards: Array(size).fill(null),
+    card_forms: Array(size).fill(null),
+    card_levels: Array(size).fill(null),
+    card_stars: Array(size).fill(null),
+    cards_used: Array(size).fill(null),
+  };
+  for (const e of entries) {
+    out.cards[e.slot - 1] = e.card_id;
+    out.card_forms[e.slot - 1] = e.form;
+    out.card_levels[e.slot - 1] = e.level;
+    out.card_stars[e.slot - 1] = e.star_level;
+    out.cards_used[e.slot - 1] = e.used;
+  }
+  return out;
+}
+
+/** A participant's round-0 cards and tower troop as battle_participant
+ *  columns (0255). Every column is null for a duel (its rounds hold the
+ *  decks) or a participant with no deck; cards is [] when round 0 holds
+ *  only a tower troop. */
+export function participantArrays(deck) {
+  const rows = participantCardRows(deck).filter((r) => r.round === 0);
+  const tower = rows.find((r) => r.kind === "support") ?? null;
+  const played = rows.filter((r) => r.kind === "card");
+  const arrays =
+    slotArrays(played) ??
+    (tower
+      ? { cards: [], card_forms: [], card_levels: [], card_stars: [] }
+      : null);
+  return {
+    cards: arrays?.cards ?? null,
+    card_forms: arrays?.card_forms ?? null,
+    card_levels: arrays?.card_levels ?? null,
+    card_stars: arrays?.card_stars ?? null,
+    tower_troop_id: tower?.card_id ?? null,
+    tower_form: tower?.form ?? null,
+    tower_level: tower?.level ?? null,
+    tower_star: tower?.star_level ?? null,
+  };
+}
+
+/** A duel's rounds as battle_participant_round card columns (0255), by
+ *  round number (1-based). A round with no cards is absent. */
+export function roundArrays(deck) {
+  const byRound = new Map();
+  for (const r of participantCardRows(deck)) {
+    if (r.round < 1) continue;
+    if (!byRound.has(r.round)) byRound.set(r.round, []);
+    byRound.get(r.round).push(r);
+  }
+  const out = new Map();
+  for (const [round, rows] of byRound) out.set(round, slotArrays(rows));
+  return out;
+}
+
+/** A deck identity row for the deck insert: its cards in canonical
+ *  (card_id, form) order as card_ids / card_forms, null when it has
+ *  none. */
+function deckIdentityRow({ cards, ...row }) {
+  const sorted = [...cards].sort(
+    (a, b) => a.card_id - b.card_id || a.form - b.form,
+  );
+  return {
+    ...row,
+    card_ids: sorted.length ? sorted.map((c) => c.card_id) : null,
+    card_forms: sorted.length ? sorted.map((c) => c.form) : null,
+  };
+}
+
 /**
- * Project deck identities and played cards for canonical participant
- * rows. `decks` is written for EVERY participant handed in, before the
- * participant rows themselves, because battle_participant.deck_hash now
- * references deck; `played` is written only for the keys in `written`
- * (battle_id|player_tag of participant rows that were inserted or
- * changed), so an unchanged resubmission touches nothing.
+ * Project deck identities for canonical participant rows, with their
+ * cards as arrays (0255), and stub any card the catalog does not know.
+ * Written for EVERY participant handed in, before the participant rows
+ * themselves, because battle_participant.deck_hash references deck.
  */
 export async function projectDecks(db, partRows) {
   const decks = new Map();
@@ -193,33 +270,23 @@ export async function projectDecks(db, partRows) {
       a.deck_hash < b.deck_hash ? -1 : 1,
     );
     await db.query(
-      `insert into deck (deck_hash, tower_troop_id, card_count, first_seen_at, last_seen_at)
-       select r.deck_hash, r.tower_troop_id, r.card_count, r.first_seen_at, r.last_seen_at
+      `insert into deck (deck_hash, tower_troop_id, card_count, first_seen_at, last_seen_at,
+                         card_ids, card_forms)
+       select r.deck_hash, r.tower_troop_id, r.card_count, r.first_seen_at, r.last_seen_at,
+              r.card_ids, r.card_forms
        from jsonb_to_recordset($1::jsonb)
          as r(deck_hash text, tower_troop_id int, card_count smallint,
-              first_seen_at timestamptz, last_seen_at timestamptz)
+              first_seen_at timestamptz, last_seen_at timestamptz,
+              card_ids integer[], card_forms smallint[])
        on conflict (deck_hash) do update set
          first_seen_at = least(deck.first_seen_at, excluded.first_seen_at),
-         last_seen_at = greatest(deck.last_seen_at, excluded.last_seen_at)
+         last_seen_at = greatest(deck.last_seen_at, excluded.last_seen_at),
+         card_ids = coalesce(deck.card_ids, excluded.card_ids),
+         card_forms = coalesce(deck.card_forms, excluded.card_forms)
        where deck.first_seen_at > excluded.first_seen_at
-          or deck.last_seen_at < excluded.last_seen_at`,
-      [JSON.stringify(deckRows.map(({ cards: _cards, ...row }) => row))],
-    );
-    const deckCards = deckRows.flatMap((d) =>
-      d.cards.map((c) => ({ deck_hash: d.deck_hash, ...c })),
-    );
-    await db.query(
-      `insert into deck_card (deck_hash, card_id, form)
-       select r.deck_hash, r.card_id, r.form
-       from jsonb_to_recordset($1::jsonb) as r(deck_hash text, card_id int, form smallint)
-       on conflict do nothing`,
-      [JSON.stringify(deckCards)],
-    );
-    // The same identity as arrays on the deck row (0255), from the rows
-    // just written.
-    await fillDeckArrays(
-      db,
-      deckRows.map((d) => d.deck_hash),
+          or deck.last_seen_at < excluded.last_seen_at
+          or (deck.card_ids is null and excluded.card_ids is not null)`,
+      [JSON.stringify(deckRows.map(deckIdentityRow))],
     );
     // The archetype stamp (0148) on the batch's decks: a new deck is
     // named the moment it exists; a known one is re-stamped cheaply.
@@ -230,61 +297,17 @@ export async function projectDecks(db, partRows) {
   return { cards, stubbed };
 }
 
-/** Write battle_participant_card rows for the participants whose keys
- *  are in `written`. `cards` is the per-participant card list from
- *  projectDecks; rows are keyed back by battle_id|player_tag. */
-export async function projectPlayedCards(db, partRows, written) {
-  const rows = [];
-  for (const p of partRows) {
-    if (!written.has(`${p.battle_id}|${p.player_tag}`)) continue;
-    for (const r of participantCardRows(p.deck)) {
-      rows.push({
-        battle_id: p.battle_id,
-        player_tag: p.player_tag,
-        round: r.round,
-        card_id: r.card_id,
-        form: r.form,
-        slot: r.slot,
-        level: r.level,
-        star_level: r.star_level,
-        used: r.used,
-      });
-    }
-  }
-  if (rows.length === 0) return 0;
-  const { rowCount } = await db.query(
-    `insert into battle_participant_card
-       (battle_id, player_tag, round, card_id, form, slot, level, star_level, used)
-     select r.battle_id, r.player_tag, r.round, r.card_id, r.form, r.slot,
-            r.level, r.star_level, r.used
-     from jsonb_to_recordset($1::jsonb)
-       as r(battle_id text, player_tag text, round smallint, card_id int,
-            form smallint, slot smallint, level smallint, star_level smallint,
-            used boolean)
-     on conflict (battle_id, player_tag, round, card_id, form) do update
-       set used = coalesce(battle_participant_card.used, excluded.used)`,
-    [JSON.stringify(rows)],
-  );
-  // The same cards as arrays on the participant row (0255), built from
-  // the rows above in this transaction. A duel's rounds fill in
-  // projectRounds, once their round rows exist.
-  await fillParticipantArrays(
-    db,
-    partRows.filter((p) => written.has(`${p.battle_id}|${p.player_tag}`)),
-  );
-  return rowCount;
-}
-
-/** A duel's per-round results (0151), for the participants actually
- *  written. The round decks already ride battle_participant_card.round;
- *  these are the results beside them. `on conflict do update` fills a
+/** A duel's per-round results (0151) and each round's cards (0255), for
+ *  the participants actually written. `on conflict do update` fills a
  *  row an earlier thin observation left blank without overwriting a
  *  value, the same enrichment rule the participant row follows. */
 export async function projectRounds(db, partRows, written) {
   const rows = [];
   for (const p of partRows) {
     if (!written.has(`${p.battle_id}|${p.player_tag}`)) continue;
-    for (const r of p.rounds ?? [])
+    const cards = roundArrays(p.deck);
+    for (const r of p.rounds ?? []) {
+      const a = cards.get(r.round) ?? null;
       rows.push({
         battle_id: p.battle_id,
         player_tag: p.player_tag,
@@ -296,43 +319,68 @@ export async function projectRounds(db, partRows, written) {
         elixir_leaked: r.elixir_leaked,
         deck_hash: r.deck_hash ?? null,
         outcome: r.outcome ?? null,
+        cards: a?.cards ?? null,
+        card_forms: a?.card_forms ?? null,
+        card_levels: a?.card_levels ?? null,
+        card_stars: a?.card_stars ?? null,
+        cards_used: a?.cards_used ?? null,
       });
+    }
   }
   if (rows.length === 0) return 0;
   // A blank is filled, a value never overwritten, and a conflict that
   // fills nothing writes nothing (no new tuple for an unchanged row).
+  // cards_used fills element by element: a later observation that says
+  // whether a card was played fills a slot an earlier one left unsaid.
+  const t = "battle_participant_round";
+  const used = `case when ${t}.cards_used is null then excluded.cards_used
+                     when excluded.cards_used is null then ${t}.cards_used
+                     else (select array_agg(coalesce(u.a, u.b) order by u.i)
+                           from unnest(${t}.cards_used, excluded.cards_used)
+                             with ordinality as u(a, b, i)) end`;
   const { rowCount } = await db.query(
     `insert into battle_participant_round
        (battle_id, player_tag, round, crowns, king_tower_hp,
         princess_tower_hp_1, princess_tower_hp_2, elixir_leaked,
-        deck_hash, outcome)
+        deck_hash, outcome, cards, card_forms, card_levels, card_stars,
+        cards_used)
      select r.battle_id, r.player_tag, r.round, r.crowns, r.king_tower_hp,
             r.princess_tower_hp_1, r.princess_tower_hp_2, r.elixir_leaked,
-            r.deck_hash, r.outcome
+            r.deck_hash, r.outcome, r.cards, r.card_forms, r.card_levels,
+            r.card_stars, r.cards_used
      from jsonb_to_recordset($1::jsonb)
        as r(battle_id text, player_tag text, round smallint, crowns smallint,
             king_tower_hp smallint, princess_tower_hp_1 smallint,
             princess_tower_hp_2 smallint, elixir_leaked numeric,
-            deck_hash text, outcome text)
+            deck_hash text, outcome text, cards integer[],
+            card_forms smallint[], card_levels smallint[],
+            card_stars smallint[], cards_used boolean[])
      on conflict (battle_id, player_tag, round) do update
-       set crowns = coalesce(battle_participant_round.crowns, excluded.crowns),
-           king_tower_hp = coalesce(battle_participant_round.king_tower_hp, excluded.king_tower_hp),
-           princess_tower_hp_1 = coalesce(battle_participant_round.princess_tower_hp_1, excluded.princess_tower_hp_1),
-           princess_tower_hp_2 = coalesce(battle_participant_round.princess_tower_hp_2, excluded.princess_tower_hp_2),
-           elixir_leaked = coalesce(battle_participant_round.elixir_leaked, excluded.elixir_leaked),
-           deck_hash = coalesce(battle_participant_round.deck_hash, excluded.deck_hash),
-           outcome = coalesce(battle_participant_round.outcome, excluded.outcome)
-     where (battle_participant_round.crowns is null and excluded.crowns is not null)
-        or (battle_participant_round.king_tower_hp is null and excluded.king_tower_hp is not null)
-        or (battle_participant_round.princess_tower_hp_1 is null and excluded.princess_tower_hp_1 is not null)
-        or (battle_participant_round.princess_tower_hp_2 is null and excluded.princess_tower_hp_2 is not null)
-        or (battle_participant_round.elixir_leaked is null and excluded.elixir_leaked is not null)
-        or (battle_participant_round.deck_hash is null and excluded.deck_hash is not null)
-        or (battle_participant_round.outcome is null and excluded.outcome is not null)`,
+       set crowns = coalesce(${t}.crowns, excluded.crowns),
+           king_tower_hp = coalesce(${t}.king_tower_hp, excluded.king_tower_hp),
+           princess_tower_hp_1 = coalesce(${t}.princess_tower_hp_1, excluded.princess_tower_hp_1),
+           princess_tower_hp_2 = coalesce(${t}.princess_tower_hp_2, excluded.princess_tower_hp_2),
+           elixir_leaked = coalesce(${t}.elixir_leaked, excluded.elixir_leaked),
+           deck_hash = coalesce(${t}.deck_hash, excluded.deck_hash),
+           outcome = coalesce(${t}.outcome, excluded.outcome),
+           cards = coalesce(${t}.cards, excluded.cards),
+           card_forms = coalesce(${t}.card_forms, excluded.card_forms),
+           card_levels = coalesce(${t}.card_levels, excluded.card_levels),
+           card_stars = coalesce(${t}.card_stars, excluded.card_stars),
+           cards_used = ${used}
+     where (${t}.crowns is null and excluded.crowns is not null)
+        or (${t}.king_tower_hp is null and excluded.king_tower_hp is not null)
+        or (${t}.princess_tower_hp_1 is null and excluded.princess_tower_hp_1 is not null)
+        or (${t}.princess_tower_hp_2 is null and excluded.princess_tower_hp_2 is not null)
+        or (${t}.elixir_leaked is null and excluded.elixir_leaked is not null)
+        or (${t}.deck_hash is null and excluded.deck_hash is not null)
+        or (${t}.outcome is null and excluded.outcome is not null)
+        or (${t}.cards is null and excluded.cards is not null)
+        or (${t}.card_forms is null and excluded.card_forms is not null)
+        or (${t}.card_levels is null and excluded.card_levels is not null)
+        or (${t}.card_stars is null and excluded.card_stars is not null)
+        or ${t}.cards_used is distinct from ${used}`,
     [JSON.stringify(rows)],
   );
-  // Each round's cards as arrays on its round row (0255), from the card
-  // rows projectPlayedCards wrote.
-  await fillRoundArrays(db, rows);
   return rowCount;
 }
