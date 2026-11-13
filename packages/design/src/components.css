@@ -4840,11 +4840,11 @@ a.card-art:hover .card-art__img {
 }
 /* On a phone the three columns fit the panel rather than scrolling. */
 @media (max-width: 480px) {
-  .battle__side .table th,
-  .battle__side .table td {
+  .battle__compare .table th,
+  .battle__compare .table td {
     padding-inline: 6px;
   }
-  .battle__side .table td:first-child {
+  .battle__compare .table td:first-child {
     padding-left: 12px;
   }
 }
