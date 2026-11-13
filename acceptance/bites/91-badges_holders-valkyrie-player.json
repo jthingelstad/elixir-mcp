@@ -7,7 +7,7 @@
     "arguments": {
       "badge": "MasteryValkyrie",
       "segment": {
-        "player_tag": "#2G2RPVPP"
+        "player_tag": "#0UG2YYVY"
       }
     }
   },
@@ -19,7 +19,7 @@
       "badge": "MasteryValkyrie",
       "segment": {
         "kind": "player",
-        "player_tag": "#2G2RPVPP"
+        "player_tag": "#0UG2YYVY"
       },
       "limit": 50
     },
@@ -31,8 +31,8 @@
     "holders_total": 1,
     "holders": [
       {
-        "player_tag": "#2G2RPVPP",
-        "name": "Aaqib Javed",
+        "player_tag": "#0UG2YYVY",
+        "name": "Happy Tiger",
         "name_known": true,
         "level": 10,
         "max_level": 10,

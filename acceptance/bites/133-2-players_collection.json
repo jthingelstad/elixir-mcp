@@ -5,11 +5,11 @@
   "request": {
     "tool": "players_collection",
     "arguments": {
-      "player_tag": "#VJG0J29QP"
+      "player_tag": "#0YQYQPLQR"
     }
   },
   "response": {
-    "player_tag": "#VJG0J29QP",
+    "player_tag": "#0YQYQPLQR",
     "applied": {
       "verbosity": "full"
     },

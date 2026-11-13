@@ -5,7 +5,7 @@
   "request": {
     "tool": "players_timeline",
     "arguments": {
-      "player_tag": "#C920YGLC2",
+      "player_tag": "#0GQ2CLQQJ",
       "from": "2026-09-05",
       "to": "2026-09-15",
       "verbosity": "compact",

@@ -5,15 +5,15 @@
   "request": {
     "tool": "players_summary",
     "arguments": {
-      "player_tag": "#VJQV8G8RL"
+      "player_tag": "#0RPG0RYRP"
     }
   },
   "response": {
-    "player_tag": "#VJQV8G8RL",
-    "name": "thingles",
+    "player_tag": "#0RPG0RYRP",
+    "name": "squirrel",
     "clan": {
-      "clan_tag": "#GJ09RJP8",
-      "name": "Elixir Kings"
+      "clan_tag": "#02GLU9VQ",
+      "name": "Puffin Lucky"
     },
     "trophies": 1478,
     "trophies_as_of": "2026-09-23",

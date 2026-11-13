@@ -5,20 +5,20 @@
   "request": {
     "tool": "war_rivals",
     "arguments": {
-      "rival_tags": ["#RJQQLLV9", "#RJ9UJ9L8"]
+      "rival_tags": ["#0JJ0V89V", "#0RLPL9CU"]
     }
   },
   "response": {
     "clan_tag": "#J2RGCRVG",
     "applied": {
       "clan_tag": "#J2RGCRVG",
-      "rival_tags": ["#RJQQLLV9", "#RJ9UJ9L8"],
+      "rival_tags": ["#0JJ0V89V", "#0RLPL9CU"],
       "source": "argument"
     },
     "rivals": [
       {
-        "clan_tag": "#RJQQLLV9",
-        "name": "Canadian Clash",
+        "clan_tag": "#0JJ0V89V",
+        "name": "Squirrel Jolly",
         "races_observed": 15,
         "finished_races": 15,
         "colosseum_races": 3,
@@ -34,8 +34,8 @@
         "clan_war_trophies": 1010
       },
       {
-        "clan_tag": "#RJ9UJ9L8",
-        "name": "YETİMSEVER",
+        "clan_tag": "#0RLPL9CU",
+        "name": "LÍGHTHOUSE",
         "races_observed": 15,
         "finished_races": 15,
         "colosseum_races": 3,

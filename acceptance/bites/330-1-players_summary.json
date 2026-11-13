@@ -5,12 +5,12 @@
   "request": {
     "tool": "players_summary",
     "arguments": {
-      "player_tag": "#JYRQ8U92C"
+      "player_tag": "#0QRVVG22J"
     }
   },
   "response": {
-    "player_tag": "#JYRQ8U92C",
-    "name": "sikander sidhu",
+    "player_tag": "#0QRVVG22J",
+    "name": "flamingo crane",
     "clan": {
       "clan_tag": "#J2RGCRVG",
       "name": "POAP KINGS"

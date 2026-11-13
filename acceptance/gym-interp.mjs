@@ -33,10 +33,60 @@
  * `needs_fixture` and `open_question` (not runnable live: SKIP with the
  * text, and a note that the fixture tests carry the former); `refuted`
  * (the orchestrator's answer to a finding the record contradicts: the
- * Gym's case stays as filed, SKIPPED with the reason, 148.1).
+ * Gym's case stays as filed, SKIPPED with the reason, 148.1); `retired`
+ * (a case that read one particular player this public repo may not
+ * name, with no invariant left to check live: SKIPPED with the reason
+ * and the case that covers it).
+ *
+ * Subjects: a block names the players and clans it reads by placeholder
+ * (subjects.mjs), never by tag; they are resolved before the reads.
  */
 
 import { answered, ok, fail, timedOut } from "./lib.mjs";
+import { resolveAll, substitute } from "./subjects.mjs";
+
+/** The verbs whose argument is a pattern: a resolved name is escaped. */
+const PATTERN_VERBS = new Set([
+  "notes_match",
+  "notes_not_match",
+  "text_match",
+  "text_not_match",
+]);
+
+/** A block with its subjects (subjects.mjs: `$RIVAL_1`, `$CLANMATE_2`,
+ *  `$FRIEND_1.name`) resolved wherever they stand: arguments, path
+ *  filters, notes patterns. `{ block }`, or `{ skip }` with the reason
+ *  one could not be resolved. */
+async function withSubjects(ctx, b) {
+  // Only what runs is resolved: a placeholder in prose (a note, a
+  // refutation) is the author's reference, not a read.
+  const { map, skip } = await resolveAll(ctx, {
+    args: b.args,
+    calls: b.calls,
+    assert: b.assert,
+    when: b.when,
+  });
+  if (skip) return { skip: `SUBJECT: ${skip}` };
+  if (map.size === 0) return { block: b };
+  const sub = (v) => substitute(v, map);
+  const subAssert = (spec) =>
+    Object.fromEntries(
+      Object.entries(spec).map(([verb, arg]) =>
+        verb === "all"
+          ? [verb, arg.map(subAssert)]
+          : [verb, substitute(arg, map, { regex: PATTERN_VERBS.has(verb) })],
+      ),
+    );
+  return {
+    block: {
+      ...b,
+      ...(b.args ? { args: sub(b.args) } : {}),
+      ...(b.calls ? { calls: sub(b.calls) } : {}),
+      ...(b.assert ? { assert: b.assert.map(subAssert) } : {}),
+      ...(b.when ? { when: subAssert(b.when) } : {}),
+    },
+  };
+}
 
 const SEG = /^([A-Za-z_][A-Za-z0-9_]*)((?:\[[^\]]*\])*)$/;
 
@@ -452,24 +502,28 @@ export function gymCases(blocks) {
   }
   for (const [fid, hasControl] of findings)
     ok(hasControl, `gym.json: finding ${fid} has no control: true case`);
-  return blocks.map((b) => {
+  return blocks.map((filed) => {
     return {
-      id: b.id,
+      id: filed.id,
       // The tools the block reads: a per-family gate picks by them.
-      tools: b.calls
-        ? Object.values(b.calls).map((c) => c.tool)
-        : b.tool
-          ? [b.tool]
+      tools: filed.calls
+        ? Object.values(filed.calls).map((c) => c.tool)
+        : filed.tool
+          ? [filed.tool]
           : [],
       run: async (ctx) => {
-        if (b.needs_fixture && !ctx.recordedFixtures)
+        if (filed.retired) return { skip: `RETIRED: ${filed.retired}` };
+        if (filed.needs_fixture && !ctx.recordedFixtures)
           return {
-            skip: `BLOCKED (needs a fixture; the fixture tests may carry it): ${b.needs_fixture}`,
+            skip: `BLOCKED (needs a fixture; the fixture tests may carry it): ${filed.needs_fixture}`,
           };
-        if (b.open_question)
-          return { skip: `UNSPEC (an open question): ${b.open_question}` };
-        if (b.refuted)
-          return { skip: `REFUTED (answered with evidence): ${b.refuted}` };
+        if (filed.open_question)
+          return { skip: `UNSPEC (an open question): ${filed.open_question}` };
+        if (filed.refuted)
+          return { skip: `REFUTED (answered with evidence): ${filed.refuted}` };
+        const resolved = await withSubjects(ctx, filed);
+        if (resolved.skip) return { skip: resolved.skip };
+        const b = resolved.block;
         // The reads: one tool, or aliased calls.
         let root;
         let ms = null;

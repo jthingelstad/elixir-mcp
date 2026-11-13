@@ -5,14 +5,14 @@
   "request": {
     "tool": "battles_performance",
     "arguments": {
-      "player_tag": "#C920YGLC2",
+      "player_tag": "#0GQ2CLQQJ",
       "from": "2026-09-07T10:00:00Z",
       "to": "2026-09-14T10:00:00Z",
       "group_by": "week"
     }
   },
   "response": {
-    "player_tag": "#C920YGLC2",
+    "player_tag": "#0GQ2CLQQJ",
     "applied": {
       "window": {
         "from": "2026-09-07T10:00:00.000Z",

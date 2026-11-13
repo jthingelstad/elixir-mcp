@@ -77,7 +77,11 @@
     "why": "the Gym's block 85.1: boat decks pooled inside scoring_decks with no note, on a week where a member spent all four decks on the boat",
     "case": "gym/85.1",
     "captures": ["85-war_history-exact-136-1.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "subjects": {
+      "$MEMBER_1": "#0UCQQGURJ",
+      "$MEMBER_2": "#0CC2QGGUU"
+    }
   },
   {
     "feedback": 86,
@@ -94,9 +98,12 @@
     "case": "gym/91.1",
     "captures": [
       "91-badges_holders-valkyrie-player.json",
-      "91-players_profile-2G2RPVPP.json"
+      "91-players_profile-0UG2YYVY.json"
     ],
-    "expect": "eq h\\.holders\\[0\\]\\.observed_at"
+    "expect": "eq h\\.holders\\[0\\]\\.observed_at",
+    "subjects": {
+      "$MEMBER_5": "#0UG2YYVY"
+    }
   },
   {
     "feedback": 91,
@@ -368,7 +375,11 @@
     "why": "the Gym block 129.1 on the answer it read",
     "case": "gym/129.1",
     "captures": ["129-1-players_search.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$CLANMATE_6": "#00J00U28",
+      "$CLANMATE_6.name": "Warm"
+    }
   },
   {
     "feedback": 129,
@@ -392,7 +403,10 @@
     "why": "the Gym block 130.1 on the answer it read",
     "case": "gym/130.1",
     "captures": ["130-1-battles_decks.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$FRIEND_3": "#090QYUG02"
+    }
   },
   {
     "feedback": 130,
@@ -400,7 +414,10 @@
     "why": "the Gym block 130.2 on the answer it read",
     "case": "gym/130.2",
     "captures": ["130-2-players_summary.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$FRIEND_3": "#090QYUG02"
+    }
   },
   {
     "feedback": 130,
@@ -408,7 +425,10 @@
     "why": "the Gym block 130.3 on the answer it read",
     "case": "gym/130.3",
     "captures": ["130-2-players_summary.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$FRIEND_3": "#090QYUG02"
+    }
   },
   {
     "feedback": 131,
@@ -432,7 +452,10 @@
     "why": "the Gym block 132.1 on the answer it read",
     "case": "gym/132.1",
     "captures": ["132-1-players_summary.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$FRIEND_1": "#0YQYQPLQR"
+    }
   },
   {
     "feedback": 132,
@@ -440,7 +463,10 @@
     "why": "the Gym block 132.2 on the answer it read",
     "case": "gym/132.2",
     "captures": ["132-1-players_summary.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$FRIEND_1": "#0YQYQPLQR"
+    }
   },
   {
     "feedback": 132,
@@ -448,7 +474,10 @@
     "why": "the Gym block 132.3 on the answer it read",
     "case": "gym/132.3",
     "captures": ["132-3-players_summary.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$FRIEND_2": "#0RPG0RYRP"
+    }
   },
   {
     "feedback": 133,
@@ -456,7 +485,10 @@
     "why": "the Gym block 133.1 on the answer it read",
     "case": "gym/133.1",
     "captures": ["133-1-players_collection.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$FRIEND_2": "#0RPG0RYRP"
+    }
   },
   {
     "feedback": 133,
@@ -464,7 +496,10 @@
     "why": "the Gym block 133.2 on the answer it read",
     "case": "gym/133.2",
     "captures": ["133-2-players_collection.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$FRIEND_1": "#0YQYQPLQR"
+    }
   },
   {
     "feedback": 134,
@@ -512,7 +547,11 @@
     "why": "the Gym block 141.1 on the answer it read",
     "case": "gym/141.1",
     "captures": ["141-1-war_rivals.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$RIVAL_3": "#0JJ0V89V",
+      "$RIVAL_4": "#0RLPL9CU"
+    }
   },
   {
     "feedback": 142,
@@ -544,7 +583,10 @@
     "why": "the Gym block 148.2 on the answer it read",
     "case": "gym/148.2",
     "captures": ["148-2-battles_cards.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ"
+    }
   },
   {
     "feedback": 148,
@@ -552,7 +594,10 @@
     "why": "the Gym block 148.3 on the answer it read",
     "case": "gym/148.3",
     "captures": ["148-3-battles_trends.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ"
+    }
   },
   {
     "feedback": 149,
@@ -576,7 +621,10 @@
     "why": "the Gym block 151.2 on the answer it read",
     "case": "gym/151.2",
     "captures": ["151-2-battles_cards.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ"
+    }
   },
   {
     "feedback": 157,
@@ -592,7 +640,11 @@
     "why": "the Gym block 157.2 on the answer it read",
     "case": "gym/157.2",
     "captures": ["157-2-clans_standings.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_1": "#0UCQQGURJ",
+      "$MEMBER_5": "#0UG2YYVY"
+    }
   },
   {
     "feedback": 157,
@@ -600,7 +652,10 @@
     "why": "the Gym block 157.3 on the answer it read",
     "case": "gym/157.3",
     "captures": ["157-3-clans_standings.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_7": "#0990UQVG"
+    }
   },
   {
     "feedback": 158,
@@ -608,7 +663,15 @@
     "why": "the Gym block 158.1 on the answer it read",
     "case": "gym/158.1",
     "captures": ["158-1-clans_members_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_10": "#0P9GPLYPC2",
+      "$MEMBER_11": "#00GGLLCLLQ",
+      "$MEMBER_12": "#0GC9P98LQ",
+      "$MEMBER_13": "#0VQ2VCVP2",
+      "$MEMBER_8": "#08L2PYLPLY",
+      "$MEMBER_9": "#0829VC9GG8"
+    }
   },
   {
     "feedback": 158,
@@ -824,7 +887,10 @@
     "why": "the Gym block 187.1 on the answer it read",
     "case": "gym/187.1",
     "captures": ["187-1-battles_trends.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ"
+    }
   },
   {
     "feedback": 187,
@@ -832,7 +898,10 @@
     "why": "the Gym block 187.2 on the answer it read",
     "case": "gym/187.2",
     "captures": ["187-2-battles_trends.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ"
+    }
   },
   {
     "feedback": 187,
@@ -848,7 +917,10 @@
     "why": "the Gym block 189.1 on the answer it read",
     "case": "gym/189.1",
     "captures": ["189-1-players_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ"
+    }
   },
   {
     "feedback": 195,
@@ -880,7 +952,10 @@
     "why": "the Gym block 199.1 on the answer it read",
     "case": "gym/199.1",
     "captures": ["199-1-battles_trends.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_14": "#0C2L90UG9"
+    }
   },
   {
     "feedback": 199,
@@ -888,7 +963,10 @@
     "why": "the Gym block 199.2 on the answer it read",
     "case": "gym/199.2",
     "captures": ["199-2-battles_performance.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_14": "#0C2L90UG9"
+    }
   },
   {
     "feedback": 199,
@@ -896,7 +974,10 @@
     "why": "the Gym block 199.3 on the answer it read",
     "case": "gym/199.3",
     "captures": ["199-3-battles_performance.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ"
+    }
   },
   {
     "feedback": 219,
@@ -1016,7 +1097,10 @@
     "why": "the Gym block 229.1 on the answer it read",
     "case": "gym/229.1",
     "captures": ["229-1-players_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$FRIEND_2": "#0RPG0RYRP"
+    }
   },
   {
     "feedback": 230,
@@ -1024,7 +1108,10 @@
     "why": "the Gym block 230.1 on the answer it read",
     "case": "gym/230.1",
     "captures": ["230-1-players_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_2": "#0YUG82UQC"
+    }
   },
   {
     "feedback": 231,
@@ -1040,7 +1127,10 @@
     "why": "the Gym block 232.1 on the answer it read",
     "case": "gym/232.1",
     "captures": ["232-1-players_collection.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$FRIEND_2": "#0RPG0RYRP"
+    }
   },
   {
     "feedback": 233,
@@ -1072,7 +1162,10 @@
     "why": "the Gym block 236.1 on the answer it read",
     "case": "gym/236.1",
     "captures": ["236-1-clans_standings.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_2": "#0CC2QGGUU"
+    }
   },
   {
     "feedback": 236,
@@ -1080,7 +1173,10 @@
     "why": "the Gym block 236.2 on the answer it read",
     "case": "gym/236.2",
     "captures": ["236-1-clans_standings.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_11": "#00GGLLCLLQ"
+    }
   },
   {
     "feedback": 236,
@@ -1136,7 +1232,10 @@
     "why": "the Gym block 253.1 on the answer it read",
     "case": "gym/253.1",
     "captures": ["253-1-elixir_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ"
+    }
   },
   {
     "feedback": 258,
@@ -1160,7 +1259,11 @@
     "why": "the Gym block 265.1 on the answer it read",
     "case": "gym/265.1",
     "captures": ["265-1-elixir_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_16": "#0QRVVG22J",
+      "$MEMBER_16.name": "flamingo crane"
+    }
   },
   {
     "feedback": 269,
@@ -1168,7 +1271,11 @@
     "why": "the Gym block 269.1 on the answer it read",
     "case": "gym/269.1",
     "captures": ["269-1-elixir_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ",
+      "$MEMBER_6.name": "Acorn"
+    }
   },
   {
     "feedback": 269,
@@ -1184,7 +1291,10 @@
     "why": "the Gym block 272.4 on the answer it read",
     "case": "gym/272.4",
     "captures": ["272-4-elixir_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_19": "#0JR80UJVJ"
+    }
   },
   {
     "feedback": 275,
@@ -1192,7 +1302,10 @@
     "why": "the Gym block 275.1 on the answer it read",
     "case": "gym/275.1",
     "captures": ["275-1-players_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_2": "#0YUG82UQC"
+    }
   },
   {
     "feedback": 286,
@@ -1264,7 +1377,10 @@
     "why": "the Gym block 302.1 on the answer it read",
     "case": "gym/302.1",
     "captures": ["302-1-elixir_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ"
+    }
   },
   {
     "feedback": 302,
@@ -1272,7 +1388,10 @@
     "why": "the Gym block 302.2 on the answer it read",
     "case": "gym/302.2",
     "captures": ["302-2-elixir_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_6": "#0GQ2CLQQJ"
+    }
   },
   {
     "feedback": 303,
@@ -1288,7 +1407,10 @@
     "why": "the Gym block 303.2 on the answer it read",
     "case": "gym/303.2",
     "captures": ["303-2-elixir_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_20": "#00RJQU2GC0"
+    }
   },
   {
     "feedback": 305,
@@ -1448,7 +1570,10 @@
     "why": "the Gym block 328.1 on the answer it read",
     "case": "gym/328.1",
     "captures": ["328-1-players_summary.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$CLANMATE_4": "#0YC9LP8JYL"
+    }
   },
   {
     "feedback": 329,
@@ -1464,7 +1589,10 @@
     "why": "the Gym block 329.2 on the answer it read",
     "case": "gym/329.2",
     "captures": ["329-2-players_profile.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$CLANMATE_2": "#0YUG82UQC"
+    }
   },
   {
     "feedback": 329,
@@ -1480,7 +1608,10 @@
     "why": "the Gym block 330.1 on the answer it read",
     "case": "gym/330.1",
     "captures": ["330-1-players_summary.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_16": "#0QRVVG22J"
+    }
   },
   {
     "feedback": 331,
@@ -1488,7 +1619,10 @@
     "why": "the Gym block 331.1 on the answer it read",
     "case": "gym/331.1",
     "captures": ["331-1-players_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_2": "#0YUG82UQC"
+    }
   },
   {
     "feedback": 331,
@@ -1496,7 +1630,10 @@
     "why": "the Gym block 331.2 on the answer it read",
     "case": "gym/331.2",
     "captures": ["331-2-players_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$MEMBER_2": "#0YUG82UQC"
+    }
   },
   {
     "feedback": 333,
@@ -1520,7 +1657,10 @@
     "why": "the Gym block 334.3 on the answer it read",
     "case": "gym/334.3",
     "captures": ["334-3-clans_participation.json"],
-    "expect": "."
+    "expect": ".",
+    "subjects": {
+      "$CLANMATE_3": "#0J0P0RJUQ8"
+    }
   },
   {
     "feedback": 335,

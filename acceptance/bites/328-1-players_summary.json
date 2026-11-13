@@ -5,12 +5,12 @@
   "request": {
     "tool": "players_summary",
     "arguments": {
-      "player_tag": "#20G9RY299P"
+      "player_tag": "#0YC9LP8JYL"
     }
   },
   "response": {
-    "player_tag": "#20G9RY299P",
-    "name": "Waltadr",
+    "player_tag": "#0YC9LP8JYL",
+    "name": "Compass",
     "clan": {
       "clan_tag": "#J2RGCRVG",
       "name": "POAP KINGS"

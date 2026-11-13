@@ -41,7 +41,12 @@ import { catalogue } from "./checks/catalogue.mjs";
 import { ground } from "./checks/ground.mjs";
 import { loadCatalogue } from "./catalogue.mjs";
 import { writeShape, loadShape } from "./shapes.mjs";
-import { redact, reportSubjects, substitute } from "./subjects.mjs";
+import {
+  redact,
+  reportSubjects,
+  seedSubjects,
+  substitute,
+} from "./subjects.mjs";
 
 export const SUITES = {
   contracts,
@@ -133,6 +138,8 @@ export async function runSuite(
     quiet = false,
     tools: given = null,
     recordedFixtures = false,
+    // A replay seeds what each placeholder stood for (subjects.mjs).
+    subjects = null,
     // The CLI passes PACE (live runs); tests and bite replays run unpaced.
     pace = null,
     sleep = undefined,
@@ -155,6 +162,7 @@ export async function runSuite(
       return ctx.cache.get(key);
     },
   };
+  if (subjects) seedSubjects(ctx, subjects);
   const report = { cases: [], failures: 0, calls: 0 };
   const log = (line) => {
     if (!quiet) console.log(line);

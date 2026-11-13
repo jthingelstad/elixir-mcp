@@ -171,7 +171,7 @@
       "r": {
         "tool": "war_rivals",
         "args": {
-          "rival_tags": ["#QUGRGLU2"]
+          "rival_tags": ["$RIVAL_1"]
         }
       },
       "w": {
@@ -186,20 +186,20 @@
     "note": "the Gym's finished_races 1 was true on 2026-09-21 morning; the bracket recurred in 136/1 and 136/2, so the count is now a floor and mean_fame is the mean over the finished shared races, not week 136/0's fame alone",
     "assert": [
       {
-        "lte": [1, "r.rivals[?clan_tag=#QUGRGLU2].finished_races"]
+        "lte": [1, "r.rivals[?clan_tag=$RIVAL_1].finished_races"]
       },
       {
-        "has": "w.standings[?clan_tag=#QUGRGLU2].fame"
+        "has": "w.standings[?clan_tag=$RIVAL_1].fame"
       }
     ],
-    "amended": "Amended 2026-10-05: the r call names Happy Win (rival_tags) instead of reading the current bracket. S137's first race recorded a new bracket, so the default read no longer held Happy Win and the frozen case failed on a change of bracket, not of record."
+    "amended": "Amended 2026-10-05: the r call names the rival clan (rival_tags) instead of reading the current bracket. S137's first race recorded a new bracket, so the default read no longer held the rival clan and the frozen case failed on a change of bracket, not of record."
   },
   {
     "id": "nc.errors.subject",
     "stability": "frozen",
     "tool": "war_history",
     "args": {
-      "clan_tag": "#QUGRGLU2"
+      "clan_tag": "$RIVAL_1"
     },
     "request_id": "53079923-c548-491e-a138-c55c3a030821",
     "assert": [
@@ -309,11 +309,11 @@
       {
         "sum_eq": [
           [
-            "days[?war_day=3].standings[?clan_tag=#QUGRGLU2].progress_start",
-            "days[?war_day=3].standings[?clan_tag=#QUGRGLU2].progress_earned",
-            "days[?war_day=3].standings[?clan_tag=#QUGRGLU2].progress_from_defenses"
+            "days[?war_day=3].standings[?clan_tag=$RIVAL_1].progress_start",
+            "days[?war_day=3].standings[?clan_tag=$RIVAL_1].progress_earned",
+            "days[?war_day=3].standings[?clan_tag=$RIVAL_1].progress_from_defenses"
           ],
-          "days[?war_day=3].standings[?clan_tag=#QUGRGLU2].progress_end"
+          "days[?war_day=3].standings[?clan_tag=$RIVAL_1].progress_end"
         ]
       },
       {
@@ -378,19 +378,19 @@
         "notes_match": "(?i)boat[^.]*(decks_used|scoring_decks|war deck)"
       },
       {
-        "eq": ["member_weeks[?player_tag=#UCRLVL29U].boat_attacks", 4]
+        "eq": ["member_weeks[?player_tag=$MEMBER_1].boat_attacks", 4]
       },
       {
-        "eq": ["member_weeks[?player_tag=#UCRLVL29U].decks_used", 4]
+        "eq": ["member_weeks[?player_tag=$MEMBER_1].decks_used", 4]
       },
       {
-        "eq": ["member_weeks[?player_tag=#UCRLVL29U].points", 350]
+        "eq": ["member_weeks[?player_tag=$MEMBER_1].points", 350]
       },
       {
-        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].boat_attacks", 8]
+        "eq": ["member_weeks[?player_tag=$MEMBER_2].boat_attacks", 8]
       },
       {
-        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].points", 1600]
+        "eq": ["member_weeks[?player_tag=$MEMBER_2].points", 1600]
       }
     ],
     "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the scoring_decks asserts went with the field and the rest of the case stands."
@@ -411,7 +411,7 @@
         "notes_not_match": "(?i)boat[^.]*(decks_used|scoring_decks|war deck)"
       },
       {
-        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].boat_attacks", 0]
+        "eq": ["member_weeks[?player_tag=$MEMBER_2].boat_attacks", 0]
       }
     ],
     "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the scoring_decks asserts went with the field and the rest of the case stands."
@@ -423,7 +423,7 @@
     "control": true,
     "tool": "battles_query",
     "args": {
-      "player_tag": "#UCRLVL29U",
+      "player_tag": "$MEMBER_1",
       "mode": "war",
       "from": "2026-09-18T10:00:00Z",
       "to": "2026-09-19T10:00:00Z",
@@ -454,7 +454,7 @@
       "b": {
         "tool": "battles_query",
         "args": {
-          "player_tag": "#UCRLVL29U",
+          "player_tag": "$MEMBER_1",
           "mode": "war",
           "from": "2026-09-18T10:00:00Z",
           "to": "2026-09-19T10:00:00Z",
@@ -470,13 +470,13 @@
       },
       {
         "eq": [
-          "w.member_weeks[?player_tag=#UCRLVL29U].boat_attacks",
+          "w.member_weeks[?player_tag=$MEMBER_1].boat_attacks",
           "b.total_count"
         ]
       },
       {
         "eq": [
-          "w.member_weeks[?player_tag=#UCRLVL29U].decks_used",
+          "w.member_weeks[?player_tag=$MEMBER_1].decks_used",
           "b.total_count"
         ]
       }
@@ -647,10 +647,10 @@
         "eq": ["weeks[0].in_progress", false]
       },
       {
-        "eq": ["member_weeks[?player_tag=#U92P8PQG0].decks_used", 12]
+        "eq": ["member_weeks[?player_tag=$MEMBER_3].decks_used", 12]
       },
       {
-        "eq": ["member_weeks[?player_tag=#2YG98VVQ].decks_used", 4]
+        "eq": ["member_weeks[?player_tag=$MEMBER_4].decks_used", 4]
       }
     ],
     "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the scoring_decks asserts went with the field and the rest of the case stands."
@@ -665,7 +665,7 @@
       "r": {
         "tool": "war_rivals",
         "args": {
-          "rival_tags": ["#QUGRGLU2", "#L0Y2CJ8J"]
+          "rival_tags": ["$RIVAL_1", "$RIVAL_2"]
         }
       },
       "w": {
@@ -679,16 +679,16 @@
     "request_id": "d1db3abc-c432-4439-9246-ef661190d811",
     "assert": [
       {
-        "eq": ["r.rivals[?clan_tag=#QUGRGLU2].max_fame", 8400]
+        "eq": ["r.rivals[?clan_tag=$RIVAL_1].max_fame", 8400]
       },
       {
         "gte": [
-          "r.rivals[?clan_tag=#L0Y2CJ8J].max_fame",
-          "w.standings[?clan_tag=#L0Y2CJ8J].fame"
+          "r.rivals[?clan_tag=$RIVAL_2].max_fame",
+          "w.standings[?clan_tag=$RIVAL_2].fame"
         ]
       },
       {
-        "eq": ["w.standings[?clan_tag=#L0Y2CJ8J].fame", 4059]
+        "eq": ["w.standings[?clan_tag=$RIVAL_2].fame", 4059]
       }
     ]
   },
@@ -748,14 +748,14 @@
         "args": {
           "badge": "MasteryValkyrie",
           "segment": {
-            "player_tag": "#2G2RPVPP"
+            "player_tag": "$MEMBER_5"
           }
         }
       },
       "p": {
         "tool": "players_profile",
         "args": {
-          "player_tag": "#2G2RPVPP"
+          "player_tag": "$MEMBER_5"
         }
       }
     },
@@ -800,14 +800,14 @@
         "args": {
           "badge": "BattleWins",
           "segment": {
-            "player_tag": "#PYG8YG0UV"
+            "player_tag": "#0PUQP8PU9"
           }
         }
       },
       "p": {
         "tool": "players_profile",
         "args": {
-          "player_tag": "#PYG8YG0UV"
+          "player_tag": "#0PUQP8PU9"
         }
       }
     },
@@ -834,14 +834,14 @@
         "args": {
           "badge": "MasteryValkyrie",
           "segment": {
-            "player_tag": "#2G2RPVPP"
+            "player_tag": "$MEMBER_5"
           }
         }
       },
       "p": {
         "tool": "players_profile",
         "args": {
-          "player_tag": "#2G2RPVPP"
+          "player_tag": "$MEMBER_5"
         }
       }
     },
@@ -1607,7 +1607,7 @@
     "control": true,
     "tool": "clans_participation",
     "args": {
-      "clan_tag": "#GJ09RJP8"
+      "clan_tag": "$OTHERCLAN_1"
     },
     "request_id": "744628bd-b340-41fb-898e-81b44d6b1e11",
     "assert": [
@@ -1849,7 +1849,7 @@
     "stability": "live",
     "tool": "clans_roster",
     "args": {
-      "clan_tag": "#QUGRGLU2"
+      "clan_tag": "$RIVAL_1"
     },
     "request_id": "08abad80-b6a5-4845-9c13-d5e7a286ba64",
     "assert": [
@@ -2628,16 +2628,16 @@
     "stability": "live",
     "tool": "players_search",
     "args": {
-      "query": "Andy",
+      "query": "$CLANMATE_6.name",
       "limit": 20
     },
     "request_id": "a8f1edec-a276-4eb0-a141-171a6694cdaa",
     "assert": [
       {
-        "has": "matches[?player_tag=#2LRYLQPL]"
+        "has": "matches[?player_tag=$CLANMATE_6]"
       },
       {
-        "eq": ["matches[0].player_tag", "#2LRYLQPL"]
+        "eq": ["matches[0].player_tag", "$CLANMATE_6"]
       },
       {
         "eq": ["matches[0].source", "clanmate"]
@@ -2657,9 +2657,6 @@
     "assert": [
       {
         "has": "matches[?player_tag=#20JJJ2CCRU]"
-      },
-      {
-        "has": "matches[?player_tag=#U8RYG9Y2U]"
       }
     ]
   },
@@ -2669,7 +2666,7 @@
     "stability": "live",
     "tool": "players_search",
     "args": {
-      "query": "Andy",
+      "query": "King",
       "limit": 20
     },
     "request_id": "a8f1edec-a276-4eb0-a141-171a6694cdaa",
@@ -2704,7 +2701,7 @@
     "stability": "frozen",
     "tool": "battles_decks",
     "args": {
-      "player_tag": "#2P9GRU2Q0",
+      "player_tag": "$FRIEND_3",
       "from": "2026-08-31T00:00:00Z",
       "to": "2026-09-06T00:00:00Z"
     },
@@ -2716,7 +2713,8 @@
       {
         "has": "decks[?deck_hash=1afe6811c6cf55b215f88d377647b2080c7643a478ca0995f34684180f0b43b3].modes.event"
       }
-    ]
+    ],
+    "needs_fixture": "2026-11-13: the case named one particular player, and this public repo names no player but King Thing; the deck hashes belong to that player's week. The bite carries the case; 130.2 and 130.3 check the rule live on a followed player."
   },
   {
     "id": "130.2",
@@ -2724,7 +2722,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#2P9GRU2Q0"
+      "player_tag": "$FRIEND_3"
     },
     "request_id": "c17ae52c-cf89-422b-bf56-422c8108e416",
     "when": {
@@ -2742,7 +2740,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#2P9GRU2Q0"
+      "player_tag": "$FRIEND_3"
     },
     "request_id": "c17ae52c-cf89-422b-bf56-422c8108e416",
     "when": {
@@ -2761,7 +2759,7 @@
     "control": true,
     "tool": "battles_decks",
     "args": {
-      "player_tag": "#2P9GRU2Q0",
+      "player_tag": "$FRIEND_3",
       "from": "2026-08-31T00:00:00Z",
       "to": "2026-09-06T00:00:00Z"
     },
@@ -2773,7 +2771,8 @@
       {
         "absent": "decks[?deck_hash=50e9e24d4a89dac7a38ae42818bb558fc220fd3872036c1b3a2c915648cc0637].modes.casual"
       }
-    ]
+    ],
+    "retired": "2026-11-13: the case named one particular player, and this public repo names no player but King Thing, and its deck hashes are that player's. 130.2 and 130.3 check the rule live; 130.1's bite proves it bites."
   },
   {
     "id": "131.1",
@@ -2831,7 +2830,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#VJG0J29QP"
+      "player_tag": "$FRIEND_1"
     },
     "request_id": "5bd6fc78-790d-4cb7-8274-28c3240b4b7f",
     "when": {
@@ -2855,7 +2854,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#VJG0J29QP"
+      "player_tag": "$FRIEND_1"
     },
     "request_id": "5bd6fc78-790d-4cb7-8274-28c3240b4b7f",
     "when": {
@@ -2879,7 +2878,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#VJQV8G8RL"
+      "player_tag": "$FRIEND_2"
     },
     "request_id": "63910720-e15d-4ca6-91d0-ebde184f2dc6",
     "when": {
@@ -2927,7 +2926,7 @@
     "stability": "live",
     "tool": "players_collection",
     "args": {
-      "player_tag": "#VJQV8G8RL"
+      "player_tag": "$FRIEND_2"
     },
     "request_id": "50455fa3-a3e1-447b-aa58-57e6b596fd9f",
     "assert": [
@@ -2942,7 +2941,7 @@
     "stability": "live",
     "tool": "players_collection",
     "args": {
-      "player_tag": "#VJG0J29QP"
+      "player_tag": "$FRIEND_1"
     },
     "request_id": "6cf0c2e0-f031-461f-b53d-8570fa9b6fdd",
     "assert": [
@@ -3141,7 +3140,7 @@
     "control": true,
     "tool": "players_names",
     "args": {
-      "tags": ["#20JJJ2CCRU", "#VJQV8G8RL", "#20PGR9YQ2C", "#NOTATAG"]
+      "tags": ["#20JJJ2CCRU", "$FRIEND_2", "$MEMBER_1", "#NOTATAG"]
     },
     "request_id": "366fd6a6-d2ea-4ccc-bddc-8e17253ef925",
     "assert": [
@@ -3157,12 +3156,12 @@
     "control": true,
     "tool": "players_names",
     "args": {
-      "player_tags": ["#20JJJ2CCRU", "#VJQV8G8RL", "#20PGR9YQ2C", "#QQQQQQQQ"]
+      "player_tags": ["#20JJJ2CCRU", "$FRIEND_2", "$MEMBER_1", "#0U8QPULP"]
     },
     "request_id": "0a6cff4b-9726-44c7-9988-427d38f3b671",
     "assert": [
       {
-        "eq": ["unknown[0].player_tag", "#QQQQQQQQ"]
+        "eq": ["unknown[0].player_tag", "#0U8QPULP"]
       },
       {
         "eq": ["unknown[0].in_corpus", false]
@@ -3283,10 +3282,10 @@
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#QUGRGLU2].clan_war_trophies",
-            "w.standings[?clan_tag=#QUGRGLU2].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_1].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_1].trophy_change"
           ],
-          "x.standings[?clan_tag=#QUGRGLU2].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_1].clan_war_trophies"
         ]
       },
       {
@@ -3347,12 +3346,12 @@
     "stability": "live",
     "tool": "war_rivals",
     "args": {
-      "rival_tags": ["#RJQQLLV9", "#RJ9UJ9L8"]
+      "rival_tags": ["$RIVAL_3", "$RIVAL_4"]
     },
     "request_id": "2cb68ca3-d75e-4c1a-b376-572523a76b31",
     "assert": [
       {
-        "has": "rivals[?clan_tag=#RJQQLLV9].clan_war_trophies"
+        "has": "rivals[?clan_tag=$RIVAL_3].clan_war_trophies"
       },
       {
         "notes_not_match": "null before 2026-09-17"
@@ -3590,14 +3589,14 @@
         "tool": "badges_rarity",
         "args": {
           "segment": {
-            "clan_tag": "#8UJ2UUJ8"
+            "clan_tag": "#0RYJ8UVL"
           }
         }
       },
       "k": {
         "tool": "clans_roster",
         "args": {
-          "clan_tag": "#8UJ2UUJ8"
+          "clan_tag": "#0RYJ8UVL"
         }
       }
     },
@@ -3823,7 +3822,7 @@
     "stability": "frozen",
     "tool": "battles_cards",
     "args": {
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "mode": "event",
       "from": "2026-09-07T10:00:00Z",
       "to": "2026-09-14T10:00:00Z"
@@ -3845,7 +3844,7 @@
     "tool": "battles_performance",
     "args": {
       "segment": {
-        "player_tag": "#C920YGLC2"
+        "player_tag": "$MEMBER_6"
       },
       "mode": "event",
       "from": "2026-09-07T10:00:00Z",
@@ -3867,7 +3866,7 @@
       "q": {
         "tool": "battles_query",
         "args": {
-          "player_tag": "#C920YGLC2",
+          "player_tag": "$MEMBER_6",
           "mode": "event",
           "from": "2026-09-07T10:00:00Z",
           "to": "2026-09-14T10:00:00Z",
@@ -3879,7 +3878,7 @@
       "d": {
         "tool": "battles_decks",
         "args": {
-          "player_tag": "#C920YGLC2",
+          "player_tag": "$MEMBER_6",
           "mode": "event",
           "from": "2026-09-07T10:00:00Z",
           "to": "2026-09-14T10:00:00Z",
@@ -4010,7 +4009,7 @@
     "stability": "live",
     "tool": "battles_cards",
     "args": {
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "season": "current",
       "limit": 3
     },
@@ -4150,7 +4149,7 @@
     "stability": "frozen",
     "tool": "battles_decks",
     "args": {
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "mode": "event",
       "from": "2026-09-07T10:00:00Z",
       "to": "2026-09-14T10:00:00Z",
@@ -4226,14 +4225,14 @@
     "assert": [
       {
         "eq": [
-          "e.members[?player_tag=#2G2RPVPP].battles",
-          "b.members[?player_tag=#2G2RPVPP].modes.event.battles"
+          "e.members[?player_tag=$MEMBER_5].battles",
+          "b.members[?player_tag=$MEMBER_5].modes.event.battles"
         ]
       },
       {
         "eq": [
-          "e.members[?player_tag=#UCRLVL29U].battles",
-          "b.members[?player_tag=#UCRLVL29U].modes.event.battles"
+          "e.members[?player_tag=$MEMBER_1].battles",
+          "b.members[?player_tag=$MEMBER_1].modes.event.battles"
         ]
       }
     ]
@@ -4254,7 +4253,7 @@
       "q": {
         "tool": "battles_query",
         "args": {
-          "player_tag": "#VGC22YGP",
+          "player_tag": "$MEMBER_7",
           "from": "2026-09-07T10:00:00Z",
           "to": "2026-09-21T10:00:00Z",
           "mode": "casual",
@@ -4267,7 +4266,7 @@
     "request_id": "b9a78edd-e1ae-4b97-b464-a6411c1979ab",
     "assert": [
       {
-        "eq": ["s.members[?player_tag=#VGC22YGP].battles", "q.total_count"]
+        "eq": ["s.members[?player_tag=$MEMBER_7].battles", "q.total_count"]
       }
     ]
   },
@@ -4319,8 +4318,8 @@
     "assert": [
       {
         "eq": [
-          "l.members[?player_tag=#UCRLVL29U].battles",
-          "b.members[?player_tag=#UCRLVL29U].modes.ladder.battles"
+          "l.members[?player_tag=$MEMBER_1].battles",
+          "b.members[?player_tag=$MEMBER_1].modes.ladder.battles"
         ]
       }
     ]
@@ -4346,13 +4345,13 @@
           "to": "2026-09-21",
           "metrics": ["donations"],
           "player_tags": [
-            "#20CGPVUL92",
+            "$MEMBER_8",
             "#20JJJ2CCRU",
-            "#20R8QRLYLP",
-            "#2209PJPVGG",
-            "#229QY8UL9U",
-            "#2CY2RJL9G",
-            "#2G09Q20QC"
+            "$MEMBER_9",
+            "$MEMBER_10",
+            "$MEMBER_11",
+            "$MEMBER_12",
+            "$MEMBER_13"
           ]
         }
       }
@@ -4367,8 +4366,8 @@
       },
       {
         "gte": [
-          "p.members[?player_tag=#20R8QRLYLP].series[?day=2026-09-13].donations",
-          "d.members[?player_tag=#20R8QRLYLP].series[?day=2026-09-12].donations"
+          "p.members[?player_tag=$MEMBER_9].series[?day=2026-09-13].donations",
+          "d.members[?player_tag=$MEMBER_9].series[?day=2026-09-12].donations"
         ]
       }
     ]
@@ -4417,13 +4416,13 @@
           "to": "2026-09-21",
           "metrics": ["donations"],
           "player_tags": [
-            "#20CGPVUL92",
+            "$MEMBER_8",
             "#20JJJ2CCRU",
-            "#20R8QRLYLP",
-            "#2209PJPVGG",
-            "#229QY8UL9U",
-            "#2CY2RJL9G",
-            "#2G09Q20QC"
+            "$MEMBER_9",
+            "$MEMBER_10",
+            "$MEMBER_11",
+            "$MEMBER_12",
+            "$MEMBER_13"
           ]
         }
       }
@@ -4438,8 +4437,8 @@
       },
       {
         "gte": [
-          "p.members[?player_tag=#20R8QRLYLP].series[?day=2026-09-20].donations",
-          "d.members[?player_tag=#20R8QRLYLP].series[?day=2026-09-19].donations"
+          "p.members[?player_tag=$MEMBER_9].series[?day=2026-09-20].donations",
+          "d.members[?player_tag=$MEMBER_9].series[?day=2026-09-19].donations"
         ]
       }
     ]
@@ -4553,7 +4552,7 @@
   {
     "id": "162.3",
     "feedback": 162,
-    "open_question": "The item at a cap's cut must be recoverable from the served cursor. On 3a5fa4e3-a1a3-4520-863e-62cea66f5a23, next_cursor 2026-09-22T12:02:46.000Z, but the continuation (705f8674-244f-4f9c-9d52-abe6f97fe35e) and from=2026-09-22T12:02:46.000Z (0a249b93-1063-4248-84b7-d66e3d387f5a) both omit Chanco's badge, served with observed_at 2026-09-22T12:02:46.000Z. A literal-args case cannot pin this, because the fix may legitimately move the cursor to a sub-second instant. It needs a case that feeds one call's next_cursor into the next call's from."
+    "open_question": "The item at a cap's cut must be recoverable from the served cursor. On 3a5fa4e3-a1a3-4520-863e-62cea66f5a23, next_cursor 2026-09-22T12:02:46.000Z, but the continuation (705f8674-244f-4f9c-9d52-abe6f97fe35e) and from=2026-09-22T12:02:46.000Z (0a249b93-1063-4248-84b7-d66e3d387f5a) both omit a member's badge, served with observed_at 2026-09-22T12:02:46.000Z. A literal-args case cannot pin this, because the fix may legitimately move the cursor to a sub-second instant. It needs a case that feeds one call's next_cursor into the next call's from."
   },
   {
     "id": "162.4",
@@ -5251,7 +5250,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#VJG0J29QP"
+      "player_tag": "$FRIEND_1"
     },
     "request_id": "9f54b992-575d-43d4-9bf2-73293e72c499",
     "when": {
@@ -5273,7 +5272,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#VJQV8G8RL"
+      "player_tag": "$FRIEND_2"
     },
     "request_id": "0a49fe79-1a0c-40b3-a04b-ee46c593b5e8",
     "when": {
@@ -5296,7 +5295,7 @@
     "control": true,
     "tool": "players_summary",
     "args": {
-      "player_tag": "#VJG0J29QP"
+      "player_tag": "$FRIEND_1"
     },
     "request_id": "9f54b992-575d-43d4-9bf2-73293e72c499",
     "when": {
@@ -5489,25 +5488,25 @@
     "assert": [
       {
         "eq": [
-          "days[?war_day=4].standings[?clan_tag=#L0Y2CJ8J].points_earned",
+          "days[?war_day=4].standings[?clan_tag=$RIVAL_2].points_earned",
           700
         ]
       },
       {
         "eq": [
-          "days[?war_day=4].standings[?clan_tag=#L0Y2CJ8J].progress_earned",
+          "days[?war_day=4].standings[?clan_tag=$RIVAL_2].progress_earned",
           3000
         ]
       },
       {
         "eq": [
-          "days[?war_day=2].standings[?clan_tag=#QUGRGLU2].points_earned",
+          "days[?war_day=2].standings[?clan_tag=$RIVAL_1].points_earned",
           700
         ]
       },
       {
         "eq": [
-          "days[?war_day=2].standings[?clan_tag=#QUGRGLU2].progress_earned",
+          "days[?war_day=2].standings[?clan_tag=$RIVAL_1].progress_earned",
           1800
         ]
       },
@@ -5533,13 +5532,13 @@
     "assert": [
       {
         "eq": [
-          "days[?war_day=2].standings[?clan_tag=#RJ9UJ9L8].points_earned",
+          "days[?war_day=2].standings[?clan_tag=$RIVAL_4].points_earned",
           100
         ]
       },
       {
         "eq": [
-          "days[?war_day=2].standings[?clan_tag=#RJ9UJ9L8].progress_earned",
+          "days[?war_day=2].standings[?clan_tag=$RIVAL_4].progress_earned",
           1000
         ]
       },
@@ -5639,28 +5638,28 @@
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#L0Y2CJ8J].clan_war_trophies",
-            "w.standings[?clan_tag=#L0Y2CJ8J].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_2].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_2].trophy_change"
           ],
-          "x.standings[?clan_tag=#L0Y2CJ8J].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_2].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#YY20VJLU].clan_war_trophies",
-            "w.standings[?clan_tag=#YY20VJLU].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_5].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_5].trophy_change"
           ],
-          "x.standings[?clan_tag=#YY20VJLU].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_5].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#G2P0PPGQ].clan_war_trophies",
-            "w.standings[?clan_tag=#G2P0PPGQ].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_6].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_6].trophy_change"
           ],
-          "x.standings[?clan_tag=#G2P0PPGQ].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_6].clan_war_trophies"
         ]
       }
     ]
@@ -5672,7 +5671,7 @@
     "control": true,
     "tool": "war_rivals",
     "args": {
-      "rival_tags": ["#RJQQLLV9", "#RJ9UJ9L8"]
+      "rival_tags": ["$RIVAL_3", "$RIVAL_4"]
     },
     "request_id": "27bc1dba-98f5-4597-a6cc-9f297e296ceb",
     "assert": [
@@ -5710,7 +5709,7 @@
     "tool": "badges_rarity",
     "args": {
       "segment": {
-        "clan_tag": "#P9GPQ2Y0"
+        "clan_tag": "#0R8LL8G8"
       }
     },
     "request_id": "f90ae631-8818-4c18-a830-8e40a766c59a",
@@ -5730,7 +5729,7 @@
     "args": {
       "badge": "MasteryValkyrie",
       "segment": {
-        "clan_tag": "#P9GPQ2Y0"
+        "clan_tag": "#0R8LL8G8"
       }
     },
     "request_id": "eac80d5d-dc25-4c16-8142-ce38e57c179a",
@@ -5750,14 +5749,14 @@
     "args": {
       "badge": "Chaos_S2",
       "segment": {
-        "clan_tag": "#P9GPQ2Y0"
+        "clan_tag": "#0R8LL8G8"
       }
     },
     "request_id": "cf527e24-9b98-4142-8b12-7532cde07538",
-    "note": "Hunter #PCR9Y9LU8's last read (2026-09-13, clan #L9VRJ) is no longer polled; 6.30.1's rule leaves it out on every segment",
+    "note": "Hunter #0P8YP08JC's last read (2026-09-13, clan #0LLUY) is no longer polled; 6.30.1's rule leaves it out on every segment",
     "assert": [
       {
-        "absent": "holders[?player_tag=#PCR9Y9LU8]"
+        "absent": "holders[?player_tag=#0P8YP08JC]"
       }
     ],
     "needs_fixture": "2026-10-02: named clan is no longer deliberately recorded after Collections/elite retirement. This coverage/unknown-inventory criterion remains valid; it needs a naturally recorded partial-profile clan. Do not re-enroll a clan merely to pass acceptance."
@@ -5772,14 +5771,14 @@
         "tool": "badges_rarity",
         "args": {
           "segment": {
-            "clan_tag": "#8UJ2UUJ8"
+            "clan_tag": "#0RYJ8UVL"
           }
         }
       },
       "k": {
         "tool": "clans_roster",
         "args": {
-          "clan_tag": "#8UJ2UUJ8"
+          "clan_tag": "#0RYJ8UVL"
         }
       }
     },
@@ -5800,7 +5799,7 @@
     "tool": "badges_rarity",
     "args": {
       "segment": {
-        "clan_tag": "#8UJ2UUJ8"
+        "clan_tag": "#0RYJ8UVL"
       }
     },
     "request_id": "8e5274a6-93ba-4c2a-a441-d55feb3c494e",
@@ -6054,7 +6053,7 @@
     "tool": "battles_performance",
     "args": {
       "segment": {
-        "player_tag": "#C920YGLC2"
+        "player_tag": "$MEMBER_6"
       },
       "mode": "event",
       "from": "2026-09-07T10:00:00Z",
@@ -6077,7 +6076,7 @@
     "tool": "battles_performance",
     "args": {
       "segment": {
-        "player_tag": "#C920YGLC2"
+        "player_tag": "$MEMBER_6"
       },
       "from": "2026-09-07T10:00:00Z",
       "to": "2026-09-14T10:00:00Z"
@@ -6114,7 +6113,7 @@
     "stability": "frozen",
     "tool": "battles_cards",
     "args": {
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "mode": "event",
       "from": "2026-09-07T10:00:00Z",
       "to": "2026-09-14T10:00:00Z"
@@ -6136,7 +6135,7 @@
     "stability": "frozen",
     "tool": "players_series",
     "args": {
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "from": "2026-09-05",
       "to": "2026-09-15",
       "verbosity": "compact",
@@ -6159,7 +6158,7 @@
     "stability": "frozen",
     "tool": "players_series",
     "args": {
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "from": "2026-09-05",
       "to": "2026-09-15",
       "progress_key": "all"
@@ -6221,7 +6220,7 @@
     "tool": "badges_rarity",
     "args": {
       "segment": {
-        "clan_tag": "#P9GPQ2Y0"
+        "clan_tag": "#0R8LL8G8"
       }
     },
     "request_id": "592df15a-5e62-4ed1-81cb-5daca78a8b45",
@@ -6412,7 +6411,7 @@
       "c": {
         "tool": "elixir_coverage",
         "args": {
-          "player_tag": "#G2CUUJQ8V"
+          "player_tag": "$CLANMATE_1"
         }
       }
     },
@@ -6422,7 +6421,7 @@
     },
     "assert": [
       {
-        "notes_match": ["p", "kiruba|#G2CUUJQ8V"]
+        "notes_match": ["p", "$CLANMATE_1"]
       }
     ]
   },
@@ -6440,7 +6439,7 @@
       "c": {
         "tool": "elixir_coverage",
         "args": {
-          "player_tag": "#G2CUUJQ8V"
+          "player_tag": "$CLANMATE_1"
         }
       }
     },
@@ -6460,7 +6459,7 @@
     },
     "assert": [
       {
-        "notes_match": ["s", "kiruba|#G2CUUJQ8V"]
+        "notes_match": ["s", "$CLANMATE_1"]
       }
     ],
     "amended": "2026-10-02: the existing underCaptureNote rule requires at least five expected battles. Only assert the named warning when coverage intervals are comparable and total at least five; a 1-of-3 sample is below the warning floor. Keep the low-ratio criterion and the control."
@@ -6587,8 +6586,8 @@
     "assert": [
       {
         "eq": [
-          "c.members[?player_tag=#VGC22YGP].battles",
-          "b.members[?player_tag=#VGC22YGP].modes.casual.battles"
+          "c.members[?player_tag=$MEMBER_7].battles",
+          "b.members[?player_tag=$MEMBER_7].modes.casual.battles"
         ]
       }
     ]
@@ -6622,7 +6621,7 @@
     "tool": "battles_performance",
     "args": {
       "segment": {
-        "player_tag": "#P8URQGR2U"
+        "player_tag": "$MEMBER_14"
       },
       "from": "2026-09-14T10:00:00Z",
       "to": "2026-09-21T10:00:00Z"
@@ -6641,7 +6640,7 @@
     "stability": "frozen",
     "tool": "battles_performance",
     "args": {
-      "player_tag": "#P8URQGR2U",
+      "player_tag": "$MEMBER_14",
       "from": "2026-09-14T10:00:00Z",
       "to": "2026-09-21T10:00:00Z",
       "group_by": "week"
@@ -6660,7 +6659,7 @@
     "stability": "frozen",
     "tool": "battles_performance",
     "args": {
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "from": "2026-09-07T10:00:00Z",
       "to": "2026-09-14T10:00:00Z",
       "group_by": "week"
@@ -7785,28 +7784,28 @@
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#GYUVL0P8].clan_war_trophies",
-            "w.standings[?clan_tag=#GYUVL0P8].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_7].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_7].trophy_change"
           ],
-          "x.standings[?clan_tag=#GYUVL0P8].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_7].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#G0C92RCU].clan_war_trophies",
-            "w.standings[?clan_tag=#G0C92RCU].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_8].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_8].trophy_change"
           ],
-          "x.standings[?clan_tag=#G0C92RCU].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_8].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#R0YP9Y0G].clan_war_trophies",
-            "w.standings[?clan_tag=#R0YP9Y0G].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_9].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_9].trophy_change"
           ],
-          "x.standings[?clan_tag=#R0YP9Y0G].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_9].clan_war_trophies"
         ]
       }
     ]
@@ -7845,28 +7844,28 @@
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#R8GJR8R9].clan_war_trophies",
-            "w.standings[?clan_tag=#R8GJR8R9].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_10].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_10].trophy_change"
           ],
-          "x.standings[?clan_tag=#R8GJR8R9].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_10].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#J29PVQL0].clan_war_trophies",
-            "w.standings[?clan_tag=#J29PVQL0].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_11].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_11].trophy_change"
           ],
-          "x.standings[?clan_tag=#J29PVQL0].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_11].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#QQ80YQ8J].clan_war_trophies",
-            "w.standings[?clan_tag=#QQ80YQ8J].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_12].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_12].trophy_change"
           ],
-          "x.standings[?clan_tag=#QQ80YQ8J].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_12].clan_war_trophies"
         ]
       }
     ]
@@ -7886,7 +7885,7 @@
       "r": {
         "tool": "war_rivals",
         "args": {
-          "rival_tags": ["#GYUVL0P8", "#R8GJR8R9", "#G0C92RCU"]
+          "rival_tags": ["$RIVAL_7", "$RIVAL_10", "$RIVAL_8"]
         }
       }
     },
@@ -7895,10 +7894,10 @@
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#GYUVL0P8].clan_war_trophies",
-            "w.standings[?clan_tag=#GYUVL0P8].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_7].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_7].trophy_change"
           ],
-          "r.rivals[?clan_tag=#GYUVL0P8].clan_war_trophies"
+          "r.rivals[?clan_tag=$RIVAL_7].clan_war_trophies"
         ]
       }
     ]
@@ -7938,37 +7937,37 @@
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#G8LRP28Q].clan_war_trophies",
-            "w.standings[?clan_tag=#G8LRP28Q].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_13].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_13].trophy_change"
           ],
-          "x.standings[?clan_tag=#G8LRP28Q].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_13].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#R9Y2PRUC].clan_war_trophies",
-            "w.standings[?clan_tag=#R9Y2PRUC].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_14].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_14].trophy_change"
           ],
-          "x.standings[?clan_tag=#R9Y2PRUC].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_14].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#GQY8UCVC].clan_war_trophies",
-            "w.standings[?clan_tag=#GQY8UCVC].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_15].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_15].trophy_change"
           ],
-          "x.standings[?clan_tag=#GQY8UCVC].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_15].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#LJP00CVY].clan_war_trophies",
-            "w.standings[?clan_tag=#LJP00CVY].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_16].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_16].trophy_change"
           ],
-          "x.standings[?clan_tag=#LJP00CVY].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_16].clan_war_trophies"
         ]
       }
     ]
@@ -8008,37 +8007,37 @@
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#RJQQLLV9].clan_war_trophies",
-            "w.standings[?clan_tag=#RJQQLLV9].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_3].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_3].trophy_change"
           ],
-          "x.standings[?clan_tag=#RJQQLLV9].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_3].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#RJ9UJ9L8].clan_war_trophies",
-            "w.standings[?clan_tag=#RJ9UJ9L8].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_4].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_4].trophy_change"
           ],
-          "x.standings[?clan_tag=#RJ9UJ9L8].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_4].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#G9JCJ89G].clan_war_trophies",
-            "w.standings[?clan_tag=#G9JCJ89G].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_17].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_17].trophy_change"
           ],
-          "x.standings[?clan_tag=#G9JCJ89G].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_17].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#QUV9929R].clan_war_trophies",
-            "w.standings[?clan_tag=#QUV9929R].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_18].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_18].trophy_change"
           ],
-          "x.standings[?clan_tag=#QUV9929R].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_18].clan_war_trophies"
         ]
       }
     ]
@@ -8059,7 +8058,7 @@
         "eq": ["standings[?clan_tag=#J2RGCRVG].trophy_change", 100]
       },
       {
-        "eq": ["standings[?clan_tag=#GYUVL0P8].trophy_change", 50]
+        "eq": ["standings[?clan_tag=$RIVAL_7].trophy_change", 50]
       },
       {
         "notes_match": "going into"
@@ -8200,25 +8199,25 @@
     "assert": [
       {
         "eq": [
-          "days[?war_day=1].standings[?clan_tag=#QUGRGLU2].points_earned",
+          "days[?war_day=1].standings[?clan_tag=$RIVAL_1].points_earned",
           500
         ]
       },
       {
         "eq": [
-          "days[?war_day=2].standings[?clan_tag=#QUGRGLU2].points_earned",
+          "days[?war_day=2].standings[?clan_tag=$RIVAL_1].points_earned",
           800
         ]
       },
       {
         "eq": [
-          "days[?war_day=3].standings[?clan_tag=#QUGRGLU2].points_earned",
+          "days[?war_day=3].standings[?clan_tag=$RIVAL_1].points_earned",
           1150
         ]
       },
       {
         "eq": [
-          "days[?war_day=4].standings[?clan_tag=#QUGRGLU2].points_earned",
+          "days[?war_day=4].standings[?clan_tag=$RIVAL_1].points_earned",
           500
         ]
       }
@@ -8238,25 +8237,25 @@
     "assert": [
       {
         "eq": [
-          "days[?war_day=1].standings[?clan_tag=#QUGRGLU2].points_earned",
+          "days[?war_day=1].standings[?clan_tag=$RIVAL_1].points_earned",
           0
         ]
       },
       {
         "eq": [
-          "days[?war_day=2].standings[?clan_tag=#QUGRGLU2].points_earned",
+          "days[?war_day=2].standings[?clan_tag=$RIVAL_1].points_earned",
           700
         ]
       },
       {
         "eq": [
-          "days[?war_day=3].standings[?clan_tag=#QUGRGLU2].points_earned",
+          "days[?war_day=3].standings[?clan_tag=$RIVAL_1].points_earned",
           850
         ]
       },
       {
         "eq": [
-          "days[?war_day=4].standings[?clan_tag=#QUGRGLU2].points_earned",
+          "days[?war_day=4].standings[?clan_tag=$RIVAL_1].points_earned",
           0
         ]
       }
@@ -8300,21 +8299,21 @@
     "control": true,
     "tool": "war_rivals",
     "args": {
-      "rival_tags": ["#GYUVL0P8", "#R8GJR8R9", "#G0C92RCU"]
+      "rival_tags": ["$RIVAL_7", "$RIVAL_10", "$RIVAL_8"]
     },
     "request_id": "8434d623-e66b-48cb-97b6-9d33d68e4222",
     "assert": [
       {
-        "eq": ["rivals[?clan_tag=#GYUVL0P8].mean_fame", 1948]
+        "eq": ["rivals[?clan_tag=$RIVAL_7].mean_fame", 1948]
       },
       {
-        "eq": ["rivals[?clan_tag=#GYUVL0P8].median_fame", 2054]
+        "eq": ["rivals[?clan_tag=$RIVAL_7].median_fame", 2054]
       },
       {
-        "eq": ["rivals[?clan_tag=#GYUVL0P8].finished_races", 4]
+        "eq": ["rivals[?clan_tag=$RIVAL_7].finished_races", 4]
       },
       {
-        "eq": ["rivals[?clan_tag=#GYUVL0P8].colosseum_races", 1]
+        "eq": ["rivals[?clan_tag=$RIVAL_7].colosseum_races", 1]
       }
     ]
   },
@@ -8353,10 +8352,10 @@
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#QUGRGLU2].clan_war_trophies",
-            "w.standings[?clan_tag=#QUGRGLU2].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_1].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_1].trophy_change"
           ],
-          "x.standings[?clan_tag=#QUGRGLU2].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_1].clan_war_trophies"
         ]
       }
     ]
@@ -8378,13 +8377,13 @@
       },
       {
         "eq": [
-          "days[?war_day=4].standings[?clan_tag=#L0Y2CJ8J].progress_earned",
+          "days[?war_day=4].standings[?clan_tag=$RIVAL_2].progress_earned",
           3000
         ]
       },
       {
         "eq": [
-          "days[?war_day=3].standings[?clan_tag=#L0Y2CJ8J].progress_earned",
+          "days[?war_day=3].standings[?clan_tag=$RIVAL_2].progress_earned",
           1000
         ]
       }
@@ -8435,7 +8434,7 @@
     "stability": "frozen",
     "tool": "players_series",
     "args": {
-      "player_tag": "#VJQV8G8RL",
+      "player_tag": "$FRIEND_2",
       "progress_key": "seasonal-trophy-road-202609",
       "from": "2026-09-20",
       "to": "2026-09-22"
@@ -8455,7 +8454,7 @@
     "control": true,
     "tool": "players_series",
     "args": {
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "$MEMBER_2",
       "progress_key": "seasonal-trophy-road-202609",
       "from": "2026-09-20",
       "to": "2026-09-22"
@@ -8468,7 +8467,8 @@
       {
         "eq": ["progress[0].best_trophies", 14000]
       }
-    ]
+    ],
+    "retired": "2026-11-13: the case named one particular player, and this public repo names no player but King Thing; its counts were that player's. 229.1 checks the invariant (every bucket's best_trophies above 0)."
   },
   {
     "id": "230.1",
@@ -8476,7 +8476,7 @@
     "stability": "frozen",
     "tool": "players_series",
     "args": {
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "$MEMBER_2",
       "progress_key": "autochess_2026_season_11",
       "from": "2026-09-20",
       "to": "2026-09-22"
@@ -8498,7 +8498,7 @@
     "control": true,
     "tool": "players_series",
     "args": {
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "$MEMBER_2",
       "progress_key": "AutoChess_2026_Season_11",
       "from": "2026-09-20",
       "to": "2026-09-22"
@@ -8514,7 +8514,8 @@
       {
         "eq": ["progress[0].trophies", 294]
       }
-    ]
+    ],
+    "retired": "2026-11-13: the case named one particular player, and this public repo names no player but King Thing; its trophies were that player's. 230.1 checks the key's case on a member read."
   },
   {
     "id": "231.1",
@@ -8596,7 +8597,7 @@
     "stability": "live",
     "tool": "players_collection",
     "args": {
-      "player_tag": "#VJQV8G8RL"
+      "player_tag": "$FRIEND_2"
     },
     "request_id": "f0bd16da-e2eb-4415-891b-347b453819be",
     "when": {
@@ -8697,7 +8698,7 @@
     "control": true,
     "tool": "players_profile",
     "args": {
-      "player_tag": "#YC8LLR8Q2"
+      "player_tag": "$CLANMATE_2"
     },
     "request_id": "cadaeb13-aaf9-4f15-9fcb-47d3bd069fcf",
     "when": {
@@ -8718,7 +8719,7 @@
     "stability": "live",
     "tool": "players_collection",
     "args": {
-      "player_tag": "#VJQV8G8RL"
+      "player_tag": "$FRIEND_2"
     },
     "request_id": "f0bd16da-e2eb-4415-891b-347b453819be",
     "assert": [
@@ -8754,17 +8755,11 @@
     "control": true,
     "tool": "players_search",
     "args": {
-      "query": "Andy",
+      "query": "King",
       "limit": 20
     },
     "request_id": "b1a80a99-b499-45fc-9f56-a892a1bde371",
     "assert": [
-      {
-        "eq": ["matches[0].player_tag", "#2LRYLQPL"]
-      },
-      {
-        "eq": ["matches[0].source", "clanmate"]
-      },
       {
         "eq": ["truncated", true]
       },
@@ -8819,7 +8814,7 @@
     "request_id": "a16d2934-8619-429b-8592-2f351f88ecf7",
     "assert": [
       {
-        "notes_match": "NOBITA|#JRVV9VC0C"
+        "notes_match": "$MEMBER_2"
       }
     ]
   },
@@ -8835,7 +8830,7 @@
     "request_id": "a16d2934-8619-429b-8592-2f351f88ecf7",
     "assert": [
       {
-        "notes_not_match": "Mega Goblin|#229QY8UL9U"
+        "notes_not_match": "$MEMBER_11"
       }
     ]
   },
@@ -8902,7 +8897,7 @@
     "request_id": "3e0cb124-a7c4-435d-afb8-984995d54501",
     "assert": [
       {
-        "notes_match": "(alex|#P8URQGR2U)[^.]*join|join[^.]*(alex|#P8URQGR2U)"
+        "notes_match": "$MEMBER_14[^.]*join|join[^.]*$MEMBER_14"
       }
     ]
   },
@@ -8919,7 +8914,7 @@
     "request_id": "3e0cb124-a7c4-435d-afb8-984995d54501",
     "assert": [
       {
-        "notes_match": "(duki suzuki|#9QQLPJRLV)[^.]*join|join[^.]*(duki suzuki|#9QQLPJRLV)"
+        "notes_match": "$MEMBER_15[^.]*join|join[^.]*$MEMBER_15"
       }
     ]
   },
@@ -8932,7 +8927,7 @@
     "request_id": "5286e870-8b38-49fe-89c6-92c6fdc6f1d2",
     "assert": [
       {
-        "notes_match": "(alex|#P8URQGR2U)[^.]*join|join[^.]*(alex|#P8URQGR2U)"
+        "notes_match": "$MEMBER_14[^.]*join|join[^.]*$MEMBER_14"
       }
     ],
     "refuted": "Aged out 2026-11-06: this asserted a mid-window join note for a member who joined in September. They joined long before today's default window, so no note is right. 237.4 stays the control."
@@ -9159,7 +9154,7 @@
     "control": true,
     "tool": "clans_roster",
     "args": {
-      "clan_tag": "#GCYQR9VY"
+      "clan_tag": "$OTHERCLAN_1"
     },
     "request_id": "7528f45a-ea6a-4721-9e15-ceacd3fb8da6",
     "assert": [
@@ -9649,7 +9644,7 @@
         "eq": ["has_more", false]
       }
     ],
-    "refuted": "Superseded in part by #252 (7.1.5): a returned item is now observed when the record learned the return, so round hamster's 09-13T02:04:33 return is served with observed_at 21:07:58; the crossing at 09-18T01:49:27 is served and has_more is false."
+    "refuted": "Superseded in part by #252 (7.1.5): a returned item is now observed when the record learned the return, so a member's 09-13T02:04:33 return is served with observed_at 21:07:58; the crossing at 09-18T01:49:27 is served and has_more is false."
   },
   {
     "id": "248.1",
@@ -10009,7 +10004,7 @@
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-21T00:00:00Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "basis": "observed"
     },
     "request_id": "e24e96c1-5980-4a0e-baaa-546a4862b3df",
@@ -10239,7 +10234,7 @@
     "args": {
       "days": 7,
       "mark_read": false,
-      "player_tag": "#VJG0J29QP",
+      "player_tag": "$FRIEND_1",
       "verbosity": "compact",
       "basis": "observed"
     },
@@ -10260,7 +10255,7 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "$MEMBER_2",
       "verbosity": "compact",
       "basis": "observed"
     },
@@ -10268,7 +10263,7 @@
     "for_each": "timeline[]",
     "assert": [
       {
-        "eq": ["facts.player_tag", "#YC8LLR8Q2"]
+        "eq": ["facts.player_tag", "$MEMBER_2"]
       }
     ]
   },
@@ -10456,7 +10451,7 @@
         "eq": ["weeks[0].our_fame", 10146]
       },
       {
-        "eq": ["member_weeks[?player_tag=#JYRQ8U92C].points", 2550]
+        "eq": ["member_weeks[?player_tag=$MEMBER_16].points", 2550]
       },
       {
         "notes_match": "placement"
@@ -10479,7 +10474,7 @@
       "p": {
         "tool": "battles_performance",
         "args": {
-          "player_tag": "#JRVV9VC0C",
+          "player_tag": "$MEMBER_2",
           "from": "2026-09-11T10:00:00Z",
           "to": "2026-09-12T10:00:00Z"
         }
@@ -10487,14 +10482,11 @@
     },
     "request_id": "47eba617-f482-4fc1-9aa8-f2c219b7c913",
     "when": {
-      "has": "s.members[?player_tag=#JRVV9VC0C].player_tag"
+      "has": "s.members[?player_tag=$MEMBER_2].player_tag"
     },
     "assert": [
       {
-        "eq": [
-          "s.members[?player_tag=#JRVV9VC0C].win_rate",
-          "p.window.win_rate"
-        ]
+        "eq": ["s.members[?player_tag=$MEMBER_2].win_rate", "p.window.win_rate"]
       }
     ]
   },
@@ -10504,7 +10496,7 @@
     "stability": "frozen",
     "tool": "battles_query",
     "args": {
-      "player_tag": "#JRVV9VC0C",
+      "player_tag": "$MEMBER_2",
       "mode": "war",
       "from": "2026-09-10T09:00:00Z",
       "to": "2026-09-21T10:30:00Z",
@@ -10529,7 +10521,7 @@
     "control": true,
     "tool": "battles_performance",
     "args": {
-      "player_tag": "#JRVV9VC0C",
+      "player_tag": "$MEMBER_2",
       "from": "2026-09-11T10:00:00Z",
       "to": "2026-09-12T10:00:00Z"
     },
@@ -10553,11 +10545,11 @@
     },
     "request_id": "9ea5302e-9a16-452d-9877-71595270437b",
     "when": {
-      "has": "members[?player_tag=#20GQUGPRC2].player_tag"
+      "has": "members[?player_tag=$CLANMATE_3].player_tag"
     },
     "assert": [
       {
-        "gt": ["members[?player_tag=#20GQUGPRC2].days_in_clan_observed", 90]
+        "gt": ["members[?player_tag=$CLANMATE_3].days_in_clan_observed", 90]
       }
     ],
     "refuted": "Decided by Jamie 2026-09-24: participation tenure is the CURRENT stint (a rejoin within 7 days continues it), with first_joined_at beside it (7.1.23); the first-stint reading this case asserts is not the rule."
@@ -10570,17 +10562,17 @@
     "args": {},
     "request_id": "f6ef61e4-2943-4113-8a2a-30e4deac247d",
     "when": {
-      "has": "members[?player_tag=#20GQUGPRC2].player_tag"
+      "has": "members[?player_tag=$CLANMATE_3].player_tag"
     },
     "assert": [
       {
         "eq": [
-          "members[?player_tag=#20GQUGPRC2].first_observed_in_clan",
+          "members[?player_tag=$CLANMATE_3].first_observed_in_clan",
           "2026-06-10T19:34:10.000Z"
         ]
       }
     ],
-    "refuted": "The record holds an earlier stint for Gem in POAP KINGS beginning 2026-05-14 (clan_membership), so first_observed_in_clan, the first stint on record since 7.1.7, is 2026-05-14T04:32:38Z, not the 06-10 the case assumed."
+    "refuted": "The record holds an earlier stint for this member in POAP KINGS beginning 2026-05-14 (clan_membership), so first_observed_in_clan, the first stint on record since 7.1.7, is 2026-05-14T04:32:38Z, not the 06-10 the case assumed."
   },
   {
     "id": "264.3",
@@ -10593,10 +10585,10 @@
     "request_id": "9ea5302e-9a16-452d-9877-71595270437b",
     "assert": [
       {
-        "notes_not_match": "Gem #20GQUGPRC2 joined 2026-09-23 with \\d+ of \\d+ recorded battles in the window played before joining"
+        "notes_not_match": "$CLANMATE_3 joined 2026-09-23 with \\d+ of \\d+ recorded battles in the window played before joining"
       }
     ],
-    "refuted": "Since 7.1.7 the joined-mid-window note counts only battles whose recorded clan is not this one, so a rejoiner's earlier in-clan battles never count; the note that still fires for Gem counts battles he played for another clan in the window."
+    "refuted": "Since 7.1.7 the joined-mid-window note counts only battles whose recorded clan is not this one, so a rejoiner's earlier in-clan battles never count; the note that still fires for this member counts battles he played for another clan in the window."
   },
   {
     "id": "264.4",
@@ -10609,17 +10601,17 @@
     },
     "request_id": "9ea5302e-9a16-452d-9877-71595270437b",
     "when": {
-      "has": "members[?player_tag=#20CGPVUL92].player_tag"
+      "has": "members[?player_tag=$MEMBER_8].player_tag"
     },
     "assert": [
       {
         "eq": [
-          "members[?player_tag=#20CGPVUL92].joined_observed_at",
+          "members[?player_tag=$MEMBER_8].joined_observed_at",
           "2026-04-01T04:28:31.000Z"
         ]
       },
       {
-        "gte": ["members[?player_tag=#20CGPVUL92].days_in_clan_observed", 176]
+        "gte": ["members[?player_tag=$MEMBER_8].days_in_clan_observed", 176]
       }
     ]
   },
@@ -10632,7 +10624,7 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#JYRQ8U92C",
+      "player_tag": "$MEMBER_16",
       "basis": "observed"
     },
     "request_id": "79423f25-e973-40c0-8a4f-cc43d96fb110",
@@ -10642,7 +10634,7 @@
     },
     "assert": [
       {
-        "contains": ["text", "sikander sidhu"]
+        "contains": ["text", "$MEMBER_16.name"]
       }
     ]
   },
@@ -10656,7 +10648,7 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "$MEMBER_2",
       "kinds": ["badge_earned", "ranked_promotion", "session_standout"],
       "basis": "observed"
     },
@@ -10664,7 +10656,7 @@
     "for_each": "timeline[]",
     "assert": [
       {
-        "contains": ["text", "sniperhendo"]
+        "contains": ["text", "$MEMBER_2.name"]
       }
     ]
   },
@@ -10748,9 +10740,13 @@
     "request_id": "1c1fa61f-937c-4c9c-8cb7-50e8492677f0",
     "assert": [
       {
-        "not_contains": ["entries[0].summary", "quiet past 10d: Gem (11d), "]
+        "not_contains": [
+          "entries[0].summary",
+          "quiet past 10d: $MEMBER_1.name (11d), "
+        ]
       }
-    ]
+    ],
+    "retired": "2026-11-13: the case named one particular player, and this public repo names no player but King Thing, who had left the clan. 304.2 and 318.1 check that presence follows observed membership."
   },
   {
     "id": "267.2",
@@ -10768,7 +10764,7 @@
     "request_id": "782c8078-5472-445e-ba64-9ca1a556d7c6",
     "assert": [
       {
-        "contains": ["entries[0].summary", "quiet past 5d: Brotherinpants (5d)"]
+        "text_match": ["entries[0].summary", "quiet past 5d: [^,;:]+ \\(5d\\)"]
       }
     ]
   },
@@ -10781,11 +10777,11 @@
     "args": {},
     "request_id": "36ee2f7d-dbfd-49df-957b-a0698379151d",
     "when": {
-      "eq": ["rivals[?clan_tag=#QUGRGLU2].points_weeks", 2]
+      "eq": ["rivals[?clan_tag=$RIVAL_1].points_weeks", 2]
     },
     "assert": [
       {
-        "eq": ["rivals[?clan_tag=#QUGRGLU2].mean_points", 2250]
+        "eq": ["rivals[?clan_tag=$RIVAL_1].mean_points", 2250]
       },
       {
         "notes_match": "compare points for effort"
@@ -10850,7 +10846,7 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "basis": "observed"
     },
     "request_id": "9830ed46-5add-47e3-9f08-272bd8085e4d",
@@ -10860,7 +10856,7 @@
     },
     "assert": [
       {
-        "contains": ["text", "Vijay"]
+        "contains": ["text", "$MEMBER_6.name"]
       }
     ]
   },
@@ -10897,7 +10893,7 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "basis": "observed"
     },
     "request_id": "9830ed46-5add-47e3-9f08-272bd8085e4d",
@@ -10906,10 +10902,10 @@
         "has": "timeline[?kind=battle_session].facts.started_at"
       },
       {
-        "contains": ["timeline[?kind=session_standout].text", "Vijay"]
+        "contains": ["timeline[?kind=session_standout].text", "$MEMBER_6.name"]
       },
       {
-        "eq": ["applied.player_tag", "#C920YGLC2"]
+        "eq": ["applied.player_tag", "$MEMBER_6"]
       }
     ]
   },
@@ -10924,7 +10920,7 @@
           "from": "2026-09-23T08:00:00Z",
           "to": "2026-09-23T09:00:00Z",
           "mark_read": false,
-          "player_tag": "#C920YGLC2",
+          "player_tag": "$MEMBER_6",
           "verbosity": "compact"
         }
       },
@@ -10934,7 +10930,7 @@
           "from": "2026-09-23T05:19:59.822Z",
           "to": "2026-09-24T05:19:59.826Z",
           "mark_read": false,
-          "player_tag": "#C920YGLC2"
+          "player_tag": "$MEMBER_6"
         }
       }
     },
@@ -10961,7 +10957,7 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "basis": "observed"
     },
     "request_id": "9830ed46-5add-47e3-9f08-272bd8085e4d",
@@ -10999,7 +10995,7 @@
         "tool": "elixir_timeline",
         "args": {
           "reader": "gym-case-member",
-          "player_tag": "#C920YGLC2",
+          "player_tag": "$MEMBER_6",
           "verbosity": "compact"
         }
       },
@@ -11172,7 +11168,7 @@
     "request_id": "35c9794c-eb61-4003-b0e7-834ab6a51a64",
     "assert": [
       {
-        "has": "entries[0].presence.returned.items[?tag=#RRU9PGJQ9]"
+        "has": "entries[0].presence.returned.items[?tag=$MEMBER_19]"
       }
     ]
   },
@@ -11325,14 +11321,14 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "sections": ["activity"],
       "basis": "observed"
     },
     "request_id": "bbaf81c5-b3fc-4d3e-83a5-69457278dea5",
     "assert": [
       {
-        "eq": ["applied.player_tag", "#C920YGLC2"]
+        "eq": ["applied.player_tag", "$MEMBER_6"]
       },
       {
         "notes_match": "A member read"
@@ -11345,7 +11341,7 @@
     "stability": "frozen",
     "tool": "players_series",
     "args": {
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "$MEMBER_2",
       "from": "2026-09-05",
       "to": "2026-09-09",
       "metrics": ["trophies", "season_trophies", "season_best_trophies"]
@@ -11364,7 +11360,7 @@
     "control": true,
     "tool": "players_series",
     "args": {
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "$MEMBER_2",
       "from": "2026-09-05",
       "to": "2026-09-09",
       "metrics": ["trophies"]
@@ -11385,7 +11381,7 @@
     "stability": "live",
     "tool": "players_profile",
     "args": {
-      "player_tag": "#YC8LLR8Q2"
+      "player_tag": "$CLANMATE_2"
     },
     "request_id": "d4b49012-619b-4926-956a-8527e77c9c76",
     "when": {
@@ -11422,7 +11418,7 @@
     "stability": "live",
     "tool": "players_profile",
     "args": {
-      "player_tag": "#YC8LLR8Q2"
+      "player_tag": "$CLANMATE_2"
     },
     "request_id": "d4b49012-619b-4926-956a-8527e77c9c76",
     "assert": [
@@ -11438,7 +11434,7 @@
     "control": true,
     "tool": "players_profile",
     "args": {
-      "player_tag": "#VJQV8G8RL"
+      "player_tag": "$FRIEND_2"
     },
     "request_id": "e3922ca4-8c10-48ef-a5a5-30357c4d268a",
     "when": {
@@ -11526,7 +11522,7 @@
     "control": true,
     "tool": "players_series",
     "args": {
-      "player_tag": "#VJQV8G8RL",
+      "player_tag": "$FRIEND_2",
       "from": "2026-09-10",
       "to": "2026-09-22",
       "metrics": ["trophies", "battle_count", "wins", "losses"]
@@ -11578,7 +11574,7 @@
     "args": {
       "badge": "MasteryWitch",
       "segment": {
-        "player_tag": "#2PP2PP2PP"
+        "player_tag": "#0Y29LCY8Y"
       }
     },
     "request_id": "9aa7cf74-5d87-4c67-b2b0-27f8fc6131b6",
@@ -11596,7 +11592,7 @@
     "tool": "badges_rarity",
     "args": {
       "segment": {
-        "player_tag": "#2PP2PP2PP"
+        "player_tag": "#0Y29LCY8Y"
       }
     },
     "request_id": "238ec0c3-00dd-4de6-a7fe-d085da569ae9",
@@ -11615,7 +11611,7 @@
     "args": {
       "badge": "MasteryWitch",
       "segment": {
-        "player_tag": "#20UGUV82U2"
+        "player_tag": "#08UGJVQYJV"
       }
     },
     "request_id": "586b87d1-6bd6-4f15-8028-a30cbeca5b04",
@@ -11832,7 +11828,7 @@
     "tool": "battles_performance",
     "args": {
       "segment": {
-        "clan_tag": "#Q9QPPGGG"
+        "clan_tag": "#0PRG0LCG"
       },
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-21T00:00:00Z"
@@ -12357,7 +12353,7 @@
     "tool": "battles_performance",
     "args": {
       "segment": {
-        "clan_tag": "#Q9QPPGGG"
+        "clan_tag": "#0PRG0LCG"
       },
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-21T00:00:00Z"
@@ -12398,7 +12394,7 @@
       "from": "2026-09-23T17:00:00Z",
       "to": "2026-09-23T18:00:00Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "verbosity": "compact",
       "basis": "observed"
     },
@@ -12422,7 +12418,7 @@
       "from": "2026-09-23T21:00:00Z",
       "to": "2026-09-23T22:00:00Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "verbosity": "compact",
       "basis": "observed"
     },
@@ -12444,7 +12440,7 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "basis": "observed"
     },
     "request_id": "3bf107f2-cc87-43b0-85a9-f58a72274e45",
@@ -12476,7 +12472,7 @@
       "from": "2026-09-23T08:00:00Z",
       "to": "2026-09-23T09:00:00Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "verbosity": "compact",
       "basis": "observed"
     },
@@ -12511,10 +12507,10 @@
     "request_id": "cbe2ad37-f962-4106-a0a3-d0a1fcf644fd",
     "assert": [
       {
-        "contains": ["entries[0].summary", "Waltadr (5d) +1"]
+        "text_match": ["entries[0].summary", "[^,;:]+ \\(5d\\) \\+1"]
       },
       {
-        "contains": ["entries[0].summary", "sniperhendo after 7d +7"]
+        "text_match": ["entries[0].summary", "[^,;:]+ after 7d \\+7"]
       },
       {
         "count_eq": ["entries[0].presence.returned.items[]", 10]
@@ -12540,10 +12536,10 @@
     "request_id": "9989491f-5630-46fb-afe8-60b57a7efa43",
     "assert": [
       {
-        "contains": ["entries[0].summary", "VVSBUDGET (5d) +1"]
+        "text_match": ["entries[0].summary", "[^,;:]+ \\(5d\\) \\+1"]
       },
       {
-        "contains": ["entries[0].summary", "round hamster after 7d +1"]
+        "text_match": ["entries[0].summary", "[^,;:]+ after 7d \\+1"]
       },
       {
         "count_eq": ["entries[0].presence.returned.items[]", 4]
@@ -12552,7 +12548,7 @@
         "eq": ["entries[0].presence.returned.more", 0]
       },
       {
-        "absent": "entries[0].presence.returned.items[?tag=#20CLVPLG8R]"
+        "absent": "entries[0].presence.returned.items[?tag=$MEMBER_20]"
       }
     ],
     "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded."
@@ -12573,12 +12569,12 @@
     "request_id": "a7954f41-fab2-4004-8f2f-ffc99dfe30ab",
     "assert": [
       {
-        "contains": ["entries[0].summary", "VVSBUDGET (7d); back:"]
+        "text_match": ["entries[0].summary", "[^,;:]+ \\(7d\\); back:"]
       },
       {
-        "contains": [
+        "text_match": [
           "entries[0].summary",
-          "Brotherinpants after 7d, sniperhendo after 7d; most battles"
+          "[^,;:]+ after 7d, [^,;:]+ after 7d; most battles"
         ]
       }
     ]
@@ -12599,20 +12595,17 @@
     "request_id": "cbe2ad37-f962-4106-a0a3-d0a1fcf644fd",
     "assert": [
       {
-        "contains": ["entries[0].summary", "VVSBUDGET +3 more;"]
+        "text_match": ["entries[0].summary", "[^,;:]+ \\+3 more;"]
       },
       {
         "eq": ["entries[0].presence.returned.more", 0]
-      },
-      {
-        "absent": "entries[0].presence.returned.items[?tag=#CV20JCY0V]"
       },
       {
         "count_eq": ["entries[0].presence.returned.items[]", 10]
       },
       {
         "eq": [
-          "entries[0].presence.returned.items[?tag=#2LRYLQPL].after_days",
+          "entries[0].presence.returned.items[?tag=$MEMBER_21].after_days",
           7
         ]
       }
@@ -12698,7 +12691,7 @@
         "absent": "w.timeline[?observed_at=2026-09-09T09:01:57.000Z]"
       }
     ],
-    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. The original 18 moments restore pax and Ditaka crossings during their September 3-11 tenures and remove VVSBUDGET’s September 9 return before the September 12 join: 19 moments."
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. The original 18 moments restore two members' crossings during their September 3-11 tenures and remove one member's September 9 return before the September 12 join: 19 moments."
   },
   {
     "id": "304.3",
@@ -12710,7 +12703,7 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "basis": "observed"
     },
     "request_id": "3bf107f2-cc87-43b0-85a9-f58a72274e45",
@@ -12720,7 +12713,7 @@
     },
     "assert": [
       {
-        "contains": ["text", "Vijay"]
+        "contains": ["text", "$MEMBER_6.name"]
       },
       {
         "gte": ["facts.battles", 2]
@@ -12829,10 +12822,10 @@
         "notes_not_match": "delta[^.]*(reset|Monday)|(reset|Monday)[^.]*delta"
       },
       {
-        "gte": ["members[?player_tag=#20R8QRLYLP].delta.donations", 0]
+        "gte": ["members[?player_tag=$MEMBER_9].delta.donations", 0]
       },
       {
-        "gte": ["members[?player_tag=#C920YGLC2].delta.donations", 0]
+        "gte": ["members[?player_tag=$MEMBER_6].delta.donations", 0]
       }
     ]
   },
@@ -12861,8 +12854,8 @@
     "assert": [
       {
         "eq": [
-          "p.members[?player_tag=#20CGPVUL92].battles[3]",
-          "s.members[?player_tag=#20CGPVUL92].battles"
+          "p.members[?player_tag=$MEMBER_8].battles[3]",
+          "s.members[?player_tag=$MEMBER_8].battles"
         ]
       },
       {
@@ -12884,11 +12877,11 @@
     },
     "request_id": "a6484cf2-4b0b-41ae-a327-bd76d21ae3a1",
     "when": {
-      "has": "members[?player_tag=#20CLVPLG8R].player_tag"
+      "has": "members[?player_tag=$MEMBER_20].player_tag"
     },
     "assert": [
       {
-        "notes_match": "VVSBUDGET[^.]*10 of 38 recorded battles"
+        "notes_match": "10 of 38 recorded battles"
       }
     ]
   },
@@ -12922,7 +12915,7 @@
     "tool": "battles_performance",
     "args": {
       "segment": {
-        "clan_tag": "#Q9QPPGGG"
+        "clan_tag": "#0PRG0LCG"
       },
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-21T00:00:00Z"
@@ -12947,7 +12940,7 @@
     "args": {
       "badge": "YearsPlayed",
       "segment": {
-        "clan_tag": "#Q9QPPGGG"
+        "clan_tag": "#0PRG0LCG"
       }
     },
     "request_id": "692828cd-c05a-45aa-8d3f-88ddf6aa9e64",
@@ -13457,8 +13450,8 @@
       },
       {
         "eq": [
-          "c.standings[?participant_clan_tag=#QUGRGLU2].clan_war_trophies",
-          "h.standings[?clan_tag=#QUGRGLU2].clan_war_trophies"
+          "c.standings[?participant_clan_tag=$RIVAL_1].clan_war_trophies",
+          "h.standings[?clan_tag=$RIVAL_1].clan_war_trophies"
         ]
       }
     ],
@@ -13471,7 +13464,7 @@
     "control": true,
     "tool": "war_rivals",
     "args": {
-      "rival_tags": ["#GYUVL0P8", "#R8GJR8R9", "#G0C92RCU"]
+      "rival_tags": ["$RIVAL_7", "$RIVAL_10", "$RIVAL_8"]
     },
     "request_id": "0b37a5f0-3645-4b25-a860-7de717eeb1ff",
     "assert": [
@@ -13479,22 +13472,22 @@
         "notes_match": "colosseum_races counts the Colosseum weeks"
       },
       {
-        "eq": ["rivals[?clan_tag=#GYUVL0P8].mean_points", 892]
+        "eq": ["rivals[?clan_tag=$RIVAL_7].mean_points", 892]
       },
       {
-        "eq": ["rivals[?clan_tag=#GYUVL0P8].points_weeks", 3]
+        "eq": ["rivals[?clan_tag=$RIVAL_7].points_weeks", 3]
       },
       {
-        "eq": ["rivals[?clan_tag=#G0C92RCU].mean_points", 1908]
+        "eq": ["rivals[?clan_tag=$RIVAL_8].mean_points", 1908]
       },
       {
-        "eq": ["rivals[?clan_tag=#R8GJR8R9].mean_points", 2119]
+        "eq": ["rivals[?clan_tag=$RIVAL_10].mean_points", 2119]
       },
       {
-        "eq": ["rivals[?clan_tag=#R8GJR8R9].points_weeks", 4]
+        "eq": ["rivals[?clan_tag=$RIVAL_10].points_weeks", 4]
       },
       {
-        "eq": ["rivals[?clan_tag=#R8GJR8R9].points_vs_ours", 0.065]
+        "eq": ["rivals[?clan_tag=$RIVAL_10].points_vs_ours", 0.065]
       }
     ]
   },
@@ -13533,19 +13526,19 @@
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#QUGRGLU2].clan_war_trophies",
-            "w.standings[?clan_tag=#QUGRGLU2].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_1].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_1].trophy_change"
           ],
-          "x.standings[?clan_tag=#QUGRGLU2].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_1].clan_war_trophies"
         ]
       },
       {
         "sum_eq": [
           [
-            "w.standings[?clan_tag=#YY20VJLU].clan_war_trophies",
-            "w.standings[?clan_tag=#YY20VJLU].trophy_change"
+            "w.standings[?clan_tag=$RIVAL_5].clan_war_trophies",
+            "w.standings[?clan_tag=$RIVAL_5].trophy_change"
           ],
-          "x.standings[?clan_tag=#YY20VJLU].clan_war_trophies"
+          "x.standings[?clan_tag=$RIVAL_5].clan_war_trophies"
         ]
       }
     ]
@@ -13750,7 +13743,7 @@
       "p": {
         "tool": "battles_performance",
         "args": {
-          "player_tag": "#JRVV9VC0C",
+          "player_tag": "$MEMBER_2",
           "from": "2026-09-11T10:00:00Z",
           "to": "2026-09-12T10:00:00Z"
         }
@@ -13759,7 +13752,7 @@
     "request_id": "34667375-b7b0-480b-8f64-a190b28f4443",
     "assert": [
       {
-        "absent": "s.members[?player_tag=#JRVV9VC0C]"
+        "absent": "s.members[?player_tag=$MEMBER_2]"
       },
       {
         "eq": ["p.window.boat_battles", "p.window.battles"]
@@ -13899,7 +13892,7 @@
         "has": "k.timeline[?observed_at=2026-09-16T02:33:43.000Z]"
       }
     ],
-    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. Gem left September 19 and rejoined September 23; this crossing is in the gap. Kiruba in 318.2/.3/.5/.6 preserves inclusive-to and exclusive-from controls.",
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. The member left September 19 and rejoined September 23; this crossing is in the gap. Another member in 318.2/.3/.5/.6 preserves inclusive-to and exclusive-from controls.",
     "calls": {
       "g": {
         "tool": "elixir_timeline",
@@ -14183,7 +14176,7 @@
       "from": "2026-09-23T18:00:00Z",
       "to": "2026-09-23T19:00:00Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2",
+      "player_tag": "$MEMBER_6",
       "verbosity": "compact",
       "basis": "observed"
     },
@@ -14435,7 +14428,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#20G9RY299P"
+      "player_tag": "$CLANMATE_4"
     },
     "request_id": "f6a7b3ca-5841-44fa-bb2a-fcef4b17d006",
     "assert": [
@@ -14453,7 +14446,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#20G9RY299P"
+      "player_tag": "$CLANMATE_4"
     },
     "request_id": "f6a7b3ca-5841-44fa-bb2a-fcef4b17d006",
     "when": {
@@ -14521,7 +14514,7 @@
     "stability": "live",
     "tool": "players_profile",
     "args": {
-      "player_tag": "#YC8LLR8Q2"
+      "player_tag": "$CLANMATE_2"
     },
     "request_id": "12fd7de9-78da-488f-9abb-71531a5d19c6",
     "when": {
@@ -14563,7 +14556,7 @@
     "control": true,
     "tool": "players_profile",
     "args": {
-      "player_tag": "#YC8LLR8Q2"
+      "player_tag": "$CLANMATE_2"
     },
     "request_id": "12fd7de9-78da-488f-9abb-71531a5d19c6",
     "when": {
@@ -14583,7 +14576,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#JYRQ8U92C"
+      "player_tag": "$MEMBER_16"
     },
     "request_id": "8a4a1d90-0c1a-42aa-bbd2-f70f9fd77af2",
     "assert": [
@@ -14598,7 +14591,7 @@
     "stability": "live",
     "tool": "players_summary",
     "args": {
-      "player_tag": "#JYRQ8U92C"
+      "player_tag": "$MEMBER_16"
     },
     "request_id": "8a4a1d90-0c1a-42aa-bbd2-f70f9fd77af2",
     "when": {
@@ -14618,7 +14611,7 @@
       "s": {
         "tool": "players_summary",
         "args": {
-          "player_tag": "#JYRQ8U92C"
+          "player_tag": "$MEMBER_16"
         }
       },
       "st": {
@@ -14630,12 +14623,12 @@
     },
     "request_id": "8a4a1d90-0c1a-42aa-bbd2-f70f9fd77af2",
     "when": {
-      "has": "st.members[?player_tag=#JYRQ8U92C].battles"
+      "has": "st.members[?player_tag=$MEMBER_16].battles"
     },
     "assert": [
       {
         "eq": [
-          "st.members[?player_tag=#JYRQ8U92C].battles",
+          "st.members[?player_tag=$MEMBER_16].battles",
           "s.last_30_days.battles"
         ]
       }
@@ -14670,7 +14663,7 @@
     "stability": "frozen",
     "tool": "players_series",
     "args": {
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "$MEMBER_2",
       "from": "2026-09-05",
       "to": "2026-09-09",
       "metrics": ["trophies", "season_trophies", "season_best_trophies"]
@@ -14688,7 +14681,7 @@
     "stability": "frozen",
     "tool": "players_series",
     "args": {
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "$MEMBER_2",
       "from": "2026-09-05",
       "to": "2026-09-09",
       "metrics": ["trophies"]
@@ -14707,7 +14700,7 @@
     "control": true,
     "tool": "players_series",
     "args": {
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "$MEMBER_2",
       "from": "2026-09-05",
       "to": "2026-09-09",
       "metrics": ["trophies", "season_trophies", "season_best_trophies"]
@@ -14729,7 +14722,7 @@
     "control": true,
     "tool": "players_profile",
     "args": {
-      "player_tag": "#YC8LLR8Q2"
+      "player_tag": "$CLANMATE_2"
     },
     "request_id": "ae1b1448-a097-4a55-a338-f0667f457619",
     "when": {
@@ -14806,16 +14799,16 @@
     "args": {
       "player_tags": [
         "#20JJJ2CCRU",
-        "#VJQV8G8RL",
-        "#VJG0J29QP",
-        "#2LRYLQPL",
-        "#Q0000000"
+        "$FRIEND_2",
+        "$FRIEND_1",
+        "$MEMBER_21",
+        "#02GG0GQL"
       ]
     },
     "request_id": "94260f38-7106-4dea-8d54-7e932b711c17",
     "assert": [
       {
-        "eq": ["unknown[?player_tag=#Q0000000].in_corpus", false]
+        "eq": ["unknown[?player_tag=#02GG0GQL].in_corpus", false]
       },
       {
         "count_eq": ["names[]", 4]
@@ -14877,20 +14870,20 @@
     "assert": [
       {
         "gte": [
-          "c.members[?player_tag=#C920YGLC2].delta.donations",
-          "p.members[?player_tag=#C920YGLC2].series[?day=2026-09-20].donations"
+          "c.members[?player_tag=$MEMBER_6].delta.donations",
+          "p.members[?player_tag=$MEMBER_6].series[?day=2026-09-20].donations"
         ]
       },
       {
         "gte": [
-          "c.members[?player_tag=#P2U0PC2UU].delta.donations",
-          "p.members[?player_tag=#P2U0PC2UU].series[?day=2026-09-20].donations"
+          "c.members[?player_tag=$MEMBER_17].delta.donations",
+          "p.members[?player_tag=$MEMBER_17].series[?day=2026-09-20].donations"
         ]
       },
       {
         "gte": [
-          "c.members[?player_tag=#UVQ8RJYG9].delta.donations",
-          "p.members[?player_tag=#UVQ8RJYG9].series[?day=2026-09-20].donations"
+          "c.members[?player_tag=$MEMBER_18].delta.donations",
+          "p.members[?player_tag=$MEMBER_18].series[?day=2026-09-20].donations"
         ]
       }
     ]
@@ -14929,12 +14922,12 @@
     "assert": [
       {
         "eq": [
-          "members[?player_tag=#C920YGLC2].delta.donations",
-          "members[?player_tag=#C920YGLC2].last.donations"
+          "members[?player_tag=$MEMBER_6].delta.donations",
+          "members[?player_tag=$MEMBER_6].last.donations"
         ]
       },
       {
-        "gte": ["members[?player_tag=#C920YGLC2].delta.donations", 1117]
+        "gte": ["members[?player_tag=$MEMBER_6].delta.donations", 1117]
       }
     ],
     "amended": "The window's first game day (09-13) holds the Monday 00:10Z reset and, since 7.2.5, its pre_reset read, so the reset note is correct there; the delta assertions stand."
@@ -14947,7 +14940,7 @@
       "s": {
         "tool": "clans_standings",
         "args": {
-          "clan_tag": "#8UJ2UUJ8",
+          "clan_tag": "#0RYJ8UVL",
           "from": "2026-09-14T00:00:00Z",
           "to": "2026-09-21T00:00:00Z"
         }
@@ -14955,7 +14948,7 @@
       "p": {
         "tool": "clans_participation",
         "args": {
-          "clan_tag": "#8UJ2UUJ8",
+          "clan_tag": "#0RYJ8UVL",
           "weeks": 2
         }
       }
@@ -14963,13 +14956,13 @@
     "request_id": "5f520349-317c-4336-bc4f-9caaf85d9c07",
     "when": {
       "eq": [
-        "p.members[?player_tag=#88V02GL8].joined_observed_at",
+        "p.members[?player_tag=#0CVLGRLP].joined_observed_at",
         "2026-09-06T14:37:37.000Z"
       ]
     },
     "assert": [
       {
-        "notes_not_match": ["s", "#88V02GL8 joined 2026-09-2"]
+        "notes_not_match": ["s", "#0CVLGRLP joined 2026-09-2"]
       }
     ]
   },
@@ -14979,19 +14972,19 @@
     "stability": "live",
     "tool": "clans_participation",
     "args": {
-      "clan_tag": "#8UJ2UUJ8",
+      "clan_tag": "#0RYJ8UVL",
       "weeks": 2
     },
     "request_id": "46d1ebe4-65e4-4124-810a-f4743954221e",
     "when": {
       "eq": [
-        "members[?player_tag=#88V02GL8].joined_observed_at",
+        "members[?player_tag=#0CVLGRLP].joined_observed_at",
         "2026-09-06T14:37:37.000Z"
       ]
     },
     "assert": [
       {
-        "notes_not_match": "#88V02GL8 joined 2026-09-2"
+        "notes_not_match": "#0CVLGRLP joined 2026-09-2"
       }
     ]
   },
@@ -15006,15 +14999,16 @@
     "request_id": "d2eda02c-26ea-4103-b5e6-579a795e313a",
     "when": {
       "eq": [
-        "members[?player_tag=#20GQUGPRC2].joined_observed_at",
+        "members[?player_tag=$CLANMATE_3].joined_observed_at",
         "2026-06-10T19:34:10.000Z"
       ]
     },
     "assert": [
       {
-        "notes_not_match": "Gem #20GQUGPRC2 joined 2026-09-23"
+        "notes_not_match": "$CLANMATE_3 joined 2026-09-23"
       }
-    ]
+    ],
+    "needs_fixture": "2026-11-13: the case named one particular player, and this public repo names no player but King Thing; its when held only on that member's join date. The bite carries it; 334.4 checks the join note live."
   },
   {
     "id": "334.4",
@@ -15028,11 +15022,11 @@
     },
     "request_id": "a30bf4bc-e9e0-4f6c-81a7-9ad3d2cc7743",
     "when": {
-      "has": "members[?player_tag=#P8URQGR2U].player_tag"
+      "has": "members[?player_tag=$MEMBER_14].player_tag"
     },
     "assert": [
       {
-        "notes_match": "alex #P8URQGR2U joined 2026-09-23"
+        "notes_match": "$MEMBER_14 joined 2026-09-23"
       }
     ]
   },
@@ -15042,7 +15036,7 @@
     "stability": "frozen",
     "tool": "clans_series",
     "args": {
-      "clan_tag": "#8UJ2UUJ8",
+      "clan_tag": "#0RYJ8UVL",
       "from": "2026-09-07",
       "to": "2026-09-12",
       "metrics": ["donations_per_week", "members"]
@@ -15051,9 +15045,6 @@
     "assert": [
       {
         "notes_not_match": "(, [^,;]+){40}"
-      },
-      {
-        "notes_not_match": "Hopeless"
       }
     ]
   },
@@ -15064,7 +15055,7 @@
     "control": true,
     "tool": "clans_series",
     "args": {
-      "clan_tag": "#8UJ2UUJ8",
+      "clan_tag": "#0RYJ8UVL",
       "from": "2026-09-07",
       "to": "2026-09-12",
       "metrics": ["donations_per_week", "members"]
@@ -15096,10 +15087,10 @@
     "request_id": "4ac40385-2e42-46fe-b17e-c7acbc954c63",
     "assert": [
       {
-        "eq": ["members[?player_tag=#JYRQ8U92C].battles", 11]
+        "eq": ["members[?player_tag=$MEMBER_16].battles", 11]
       },
       {
-        "eq": ["members[?player_tag=#JYRQ8U92C].losses", 0]
+        "eq": ["members[?player_tag=$MEMBER_16].losses", 0]
       }
     ]
   },
@@ -15121,7 +15112,7 @@
       "b": {
         "tool": "battles_query",
         "args": {
-          "player_tag": "#JRVV9VC0C",
+          "player_tag": "$MEMBER_2",
           "from": "2026-09-17T10:00:00Z",
           "to": "2026-09-21T10:00:00Z",
           "mode": "war",
@@ -15133,7 +15124,7 @@
     "request_id": "4ac40385-2e42-46fe-b17e-c7acbc954c63",
     "assert": [
       {
-        "count_eq": ["b.battles[]", "s.members[?player_tag=#JRVV9VC0C].battles"]
+        "count_eq": ["b.battles[]", "s.members[?player_tag=$MEMBER_2].battles"]
       }
     ]
   },
@@ -15161,7 +15152,7 @@
     "stability": "live",
     "tool": "clans_roster",
     "args": {
-      "clan_tag": "#GRJ20LQP"
+      "clan_tag": "#0RUU9PL2"
     },
     "request_id": "cd1c9d56-0824-4ed7-ab66-0f5273ee764b",
     "note": "a clan tracked at 14:42Z on 2026-09-24: 44 of 49 members lifetime null (profile never read) served badge_count 0; unknown must not read as zero",
@@ -15182,10 +15173,10 @@
     "stability": "live",
     "tool": "clans_roster",
     "args": {
-      "clan_tag": "#P9GPQ2Y0"
+      "clan_tag": "#0R8LL8G8"
     },
     "request_id": "cac71f24-761f-4d69-8bb4-df687c1736df",
-    "note": "BalkanUnion: 30 of 48 lifetime null with badge_count 0 (FLAMUR #208CRUYVY0: 14,000 trophies, players_profile not_recorded)",
+    "note": "a recorded clan: 30 of 48 lifetime null with badge_count 0 (one member: 14,000 trophies, players_profile not_recorded)",
     "for_each": "members",
     "when": {
       "eq": ["lifetime", null]
@@ -15226,7 +15217,7 @@
         "tool": "badges_rarity",
         "args": {
           "segment": {
-            "clan_tag": "#GRJ20LQP"
+            "clan_tag": "#0RUU9PL2"
           }
         }
       }
@@ -15257,19 +15248,19 @@
       "p": {
         "tool": "players_profile",
         "args": {
-          "player_tag": "#VR0QRP2PG"
+          "player_tag": "$CLANMATE_5"
         }
       }
     },
     "request_id": "1210a456-e449-4e16-a3e5-6a8c04c25f44",
     "note": "roster profile_observed_at 2026-09-23T11:42:44Z vs profile poll 2026-09-24T09:52:42Z (c83ceb6f-6ef1-4ed9-bbf0-e2670be812c2): 22.2 h stale; the roster stamp must be the newest read",
     "when": {
-      "has": "c.members[?player_tag=#VR0QRP2PG]"
+      "has": "c.members[?player_tag=$CLANMATE_5]"
     },
     "assert": [
       {
         "eq": [
-          "c.members[?player_tag=#VR0QRP2PG].lifetime.profile_observed_at",
+          "c.members[?player_tag=$CLANMATE_5].lifetime.profile_observed_at",
           "p.meta.source_polls.player.observed_at"
         ]
       }
@@ -15293,19 +15284,19 @@
       "p": {
         "tool": "players_profile",
         "args": {
-          "player_tag": "#VR0QRP2PG"
+          "player_tag": "$CLANMATE_5"
         }
       }
     },
     "request_id": "6345d914-1dbb-4516-abee-e609f828082a",
     "note": "7.1.9: the holder stamp is the newest profile read (09-24T09:52:42Z = 09-24T09:52:42Z on 2026-09-24)",
     "when": {
-      "has": "h.holders[?player_tag=#VR0QRP2PG]"
+      "has": "h.holders[?player_tag=$CLANMATE_5]"
     },
     "assert": [
       {
         "eq": [
-          "h.holders[?player_tag=#VR0QRP2PG].observed_at",
+          "h.holders[?player_tag=$CLANMATE_5].observed_at",
           "p.meta.source_polls.player.observed_at"
         ]
       }
@@ -15320,7 +15311,7 @@
     "args": {
       "badge": "MasteryWitch",
       "segment": {
-        "player_tag": "#20UGUV82U2"
+        "player_tag": "#08UGJVQYJV"
       }
     },
     "request_id": "2b0588f6-1884-4db2-a1f9-a9d7188bc211",

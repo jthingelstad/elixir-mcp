@@ -25,7 +25,7 @@ equalled it: documented, named in every note, served on no row
 | layer | what it is | where |
 |---|---|---|
 | **catalogue** | what agents actually called this week: the top argument sets per read-only tool from the audit, plus hand-picked seeds with reasons. Derived by `catalogue.mjs --refresh`, committed, reviewed as a diff. Sets the current contract refuses are listed and dropped at refresh. | `catalogue.json`, `catalogue-seed.json` |
-| **subjects** | the players a set reads but the repo may not name: many players are minors, so no tag but King Thing's and POAP KINGS' is committed. A set names a placeholder (`$CLANMATE_1`, `$COLLECTION_1`) and the run resolves it from the POAP KINGS roster: members sorted by tag, the owner left out, the first that meet the kind's need. Unresolved is SKIP with the reason, never FAIL. Resolved tags print masked, are redacted from failure messages, and are kept in full only in `acceptance/subjects.log` (ignored by git). `--refresh` writes placeholders for every other player and drops a set naming any other tag. | `subjects.mjs` |
+| **subjects** | the players and clans a set or Gym block reads but the repo may not name: many players are minors, so no tag or name but King Thing's and POAP KINGS' is committed. A case names a placeholder and the run resolves it. A *kind* takes the first that meets its need: `$CLANMATE_n` (POAP KINGS roster, sorted by tag, the owner left out, a battle in 30 days), `$COLLECTION_n` (a recorded collection), `$FRIEND_n` (a followed player outside the clan, recorded), `$OTHERCLAN_n` (a followed player's clan that answers with members). A *pick* (`picks.json`) reads one position of a frozen answer: `$RIVAL_n` a clan in a closed war week's standings, `$MEMBER_n` a member of a closed week or window. `$X_n.name` is that player's name (via `players_names`); placeholders also work inside strings and patterns. Unresolved is SKIP with the reason, never FAIL. Resolved tags print masked, are redacted from failure messages, and are kept in full only in `acceptance/subjects.log` (ignored by git). A bite seeds its own `subjects` (manifest) with invented tags. `--refresh` writes placeholders for every other player and drops a set naming any other tag. | `subjects.mjs`, `picks.json` |
 | **generic rules** | over every catalogue set: answers · published `outputSchema` holds (else the recorded shape baseline, one-directional) · under a ceiling from the tool's own p95 · a two-size tool's compact is a subset · every field its notes name is on some response of the tool · every field its docs section names is on some response this run | `checks/catalogue.mjs` |
 | **allowances** | tokens a note or doc uses as prose or as a conditional field, each with a written reason | `catalogue-allow.json` |
 | **bites** | captured answers from a day the product was wrong, and the case or rule that must FAIL on each; runs under `npm test` with no network. A rule that passes on known-bad history is decoration. | `bites/`, `bites.test.mjs` |
@@ -54,7 +54,7 @@ written - nothing is hand-translated. The vocabulary:
 
 - **paths**: dotted, `[N]` an index, `[]` every element, `[?key=value]`
   the first element where key equals value; with `calls`, the first
-  segment is an alias (`r.rivals[?clan_tag=#QUGRGLU2].mean_fame`).
+  segment is an alias (`r.rivals[?clan_tag=$RIVAL_1].mean_fame`).
 - **verbs**: `has`, `absent`, `eq`, `neq`, `lt`, `lte`, `gt`, `gte`,
   `count_eq`, `sum_eq` (paths, literals and `{"count": path}`, a list's
   length), `sorted_desc`, `sorted_asc`
@@ -67,7 +67,9 @@ written - nothing is hand-translated. The vocabulary:
   `for_each` it filters rows), `for_each` (per row of a list), `calls`
   (aliased reads), `stability` `frozen` (closed data: exact values are
   fair) or `live` (invariants only), `control`, `needs_fixture`
-  (BLOCKED, with the text) and `open_question` (UNSPEC).
+  (BLOCKED, with the text; a bite still runs it), `open_question`
+  (UNSPEC) and `retired` (SKIPPED with the text, never run: a case that
+  pinned one particular player, whose invariant another case covers).
 - **rejected at load** (a test under `verify`): a duplicate id; a
   finding (`<feedback>.<n>`) with no `control: true` case; an unknown
   verb fails the case at run time.
