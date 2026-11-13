@@ -592,18 +592,36 @@ test("an expired or OAuth-purpose link cannot open a public account or consume a
   );
 });
 
-test("signup repeats respect the existing per-address and per-viewer mail boundaries, including races", async () => {
+test("signup repeats respect the existing per-address and per-viewer mail boundaries", async () => {
+  // One ask at a time, and every answer must be a 200. Fired all at once
+  // through the test pool's two connections, the queued asks waited past
+  // the connect bound on a loaded host and answered 503 before either
+  // counter ran, which this used to read as "not limited" (#972). That
+  // overlapping asks each take their own count is pinned where the
+  // overlap can be forced: packages/auth's rate limit race test.
   const email = "limited-public@example.com";
-  const results = await Promise.all(
-    Array.from({ length: 7 }, () => ask(email)),
+  const results = [];
+  for (let i = 0; i < 7; i++) results.push(await ask(email));
+  assert.deepEqual(
+    results.map((r) => r.response.statusCode),
+    Array(7).fill(200),
   );
-  assert.equal(results.filter((r) => parse(r.response).limited).length, 2);
+  assert.deepEqual(
+    results.map((r) => parse(r.response).limited === true),
+    [false, false, false, false, false, true, true],
+  );
   assert.equal(mails.filter((m) => m.email === email).length, 5);
   const ip = "203.0.113.200";
-  const viewer = await Promise.all(
-    Array.from({ length: 12 }, (_, i) => ask(`ip${i}@example.com`, ip)),
+  const viewer = [];
+  for (let i = 0; i < 12; i++) viewer.push(await ask(`ip${i}@example.com`, ip));
+  assert.deepEqual(
+    viewer.map((r) => r.response.statusCode),
+    Array(12).fill(200),
   );
-  assert.equal(viewer.filter((r) => parse(r.response).limited).length, 2);
+  assert.deepEqual(
+    viewer.map((r) => parse(r.response).limited === true),
+    [...Array(10).fill(false), true, true],
+  );
 });
 
 test("a public member retains recording slot limits across concurrent adds and cannot provision a collector", async () => {
