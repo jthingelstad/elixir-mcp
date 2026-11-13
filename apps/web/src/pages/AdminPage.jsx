@@ -19,12 +19,5 @@ function AdminPage({ page, itemId }) {
   const { me } = useMe();
   if (me?.authenticated && !me.is_admin) return <StaffOnly />;
   if (!me?.is_admin) return <SignInWall navigate={navigate} />;
-  return (
-    <Admin
-      me={me}
-      page={page ?? "requests"}
-      navigate={navigate}
-      itemId={itemId}
-    />
-  );
+  return <Admin me={me} page={page} navigate={navigate} itemId={itemId} />;
 }

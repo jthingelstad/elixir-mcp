@@ -13,7 +13,7 @@ import {
   listBackends,
 } from "./deck-backfill.mjs";
 import { migrate } from "./migrate.mjs";
-import { activityPreview, explainTimeline } from "./ops-activity.mjs";
+import { explainTimeline } from "./ops-activity.mjs";
 import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
 import { profileRead, profileTool } from "./ops-profile.mjs";
 
@@ -76,7 +76,6 @@ import {
   explainSeries,
 } from "./ops-series.mjs";
 import { duelRoundDecks } from "./ops-duel-rounds.mjs";
-import { rollupRegroup } from "./ops-rollup-regroup.mjs";
 import { reindex } from "./ops-reindex.mjs";
 
 /** The function's own application_name (PGAPPNAME in
@@ -382,15 +381,6 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.ops_recordings) {
-    const { opsRecordingsOp } = await import("./ops-ops-recordings.mjs");
-    const result = await opsRecordingsOp(
-      process.env.DATABASE_URL,
-      event.ops_recordings,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.tier_census) {
     const { tierCensusOp } = await import("./ops-tier-census.mjs");
     const result = await tierCensusOp(
@@ -593,14 +583,6 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.activity_preview) {
-    const result = await activityPreview(
-      process.env.DATABASE_URL,
-      event.activity_preview,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.series_backfill) {
     const result = await seriesBackfill(
       process.env.DATABASE_URL,
@@ -613,14 +595,6 @@ async function dispatch(event) {
     const result = await duelRoundDecks(
       process.env.DATABASE_URL,
       event.duel_round_decks === true ? {} : event.duel_round_decks,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.rollup_regroup) {
-    const result = await rollupRegroup(
-      process.env.DATABASE_URL,
-      event.rollup_regroup === true ? {} : event.rollup_regroup,
     );
     console.log(JSON.stringify(result));
     return result;

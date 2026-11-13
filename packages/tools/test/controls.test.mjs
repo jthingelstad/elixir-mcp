@@ -14,13 +14,7 @@ import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { seedDeck, seedPlayedDeck } from "./deck-rows.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
-import {
-  modeSplit,
-  singlePlayerNote,
-  colosseumMix,
-  zeroSeriesNote,
-  coverageBasis,
-} from "../src/controls.mjs";
+import { modeSplit, coverageBasis } from "../src/controls.mjs";
 
 let scratch;
 let account;
@@ -596,7 +590,7 @@ test("battles_decks: duels are itemized under excluded and the shares' denominat
   assert.ok(!clean.notes.some((l) => /outside these rows/.test(l)));
 });
 
-test("controls.mjs (3.16.0): the rollup-shaped split, the single-player, colosseum, zero-series and coverage helpers", async () => {
+test("controls.mjs (3.16.0): the rollup-shaped split and the coverage helpers", async () => {
   assert.deepEqual(
     modeSplit([
       { mode_group: "ladder", battles: 3, wins: 2, losses: 1 },
@@ -608,31 +602,6 @@ test("controls.mjs (3.16.0): the rollup-shaped split, the single-player, colosse
       war: { battles: 1, wins: 1, losses: 0 },
     },
   );
-  assert.equal(singlePlayerNote([{ players: 1 }, { players: 2 }]), null);
-  assert.match(
-    singlePlayerNote([{ players: 1 }, { players: 1 }]),
-    /ONE player/,
-  );
-  assert.equal(singlePlayerNote([]), null);
-  assert.deepEqual(
-    colosseumMix([{ is_colosseum: true }, { is_colosseum: false }, {}]),
-    { colosseum_races: 1, regular_races: 2 },
-  );
-  assert.equal(
-    zeroSeriesNote(
-      [{ rated_players: 0 }, { rated_players: 3 }],
-      "rated_players",
-    ),
-    null,
-  );
-  assert.match(
-    zeroSeriesNote(
-      [{ rated_players: 0 }, { rated_players: 0 }],
-      "rated_players",
-    ),
-    /nobody was rated/,
-  );
-  assert.equal(zeroSeriesNote([], "rated_players"), null);
 
   // coverageBasis: an activity-scope clan with one directly recorded member.
   const CLAN = "#2PYLQGCC";

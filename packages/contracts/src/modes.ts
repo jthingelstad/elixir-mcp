@@ -55,10 +55,7 @@ export const EVENT_MODE_GROUP = "event";
  * (Royale Shuffle comes as `unknown` with a tag, and the game lists it
  * under Game Modes as a timed event). An untagged `unknown` stays casual.
  *
- * The rule decides the mode GROUP only. The meta population still leaves
- * out every tagged battle, a clanmate's too (META_POPULATION in
- * services/jobs/src/meta-rollup.mjs): a deck played under an event's
- * rules describes the event, not the meta.
+ * The rule decides the mode GROUP only.
  */
 export const CLANMATE_TYPES: readonly string[] = ["clanMate", "clanMate2v2"];
 

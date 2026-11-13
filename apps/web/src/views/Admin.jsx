@@ -126,9 +126,9 @@ export function Admin({ me, page = "accounts", navigate, itemId }) {
   if (page === "cards") return <AdminCards />;
   // The service page, the fleet and Efficiency were every member's under
   // /data/service and /console/status until 2026-11-12; staff pages now.
-  if (page === "service") return <Status navigate={navigate} />;
+  if (page === "service") return <Status />;
   if (page === "fleet") return <Fleet navigate={navigate} />;
-  if (page === "efficiency") return <Efficiency navigate={navigate} />;
+  if (page === "efficiency") return <Efficiency />;
   return <AdminAccounts navigate={navigate} />;
 }
 

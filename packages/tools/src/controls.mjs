@@ -87,31 +87,6 @@ export function coverageBasisNote(basis) {
   return "basis is roster_and_war_only: this clan's recording covers the roster and the war, not its members' battle logs, so every battle count here is zero by construction for a member whose log_recorded is false; read log_recorded before reading a zero.";
 }
 
-/** A segment meta read whose returned rows are all one player's decks
- *  is that player's habit, not a meta (3.16.0). Fires only then. */
-export function singlePlayerNote(rows, { what = "deck" } = {}) {
-  const shown = rows.filter((r) => typeof r.players === "number");
-  if (shown.length === 0 || !shown.every((r) => r.players === 1)) return null;
-  return `Every ${what} row here was played by ONE player (players: 1): this segment's numbers describe a few players' habits, not a meta; widen the segment or read the corpus for the field.`;
-}
-
-/** How many of a rival's observed races were Colosseum weeks, which
- *  score on period points with no finish line and so pool badly with
- *  the fame of a regular week (3.16.0). */
-export function colosseumMix(weeks) {
-  const total = weeks.length;
-  const colosseum = weeks.filter((w) => w.is_colosseum === true).length;
-  return { colosseum_races: colosseum, regular_races: total - colosseum };
-}
-
-/** A series whose every point reads zero on `field` is an empty field,
- *  not a flat one (3.16.0): rankings_timeline's rated_players. */
-export function zeroSeriesNote(points, field) {
-  if (points.length === 0) return null;
-  if (!points.every((p) => Number(p[field] ?? 0) === 0)) return null;
-  return `${field} is 0 at every point in the window: nobody was rated on this board then, so the curve describes an empty field, not a flat one.`;
-}
-
 /** Mode groups already derived (event-aware) to a count per group. */
 export function countByModeGroup(groups) {
   const out = {};

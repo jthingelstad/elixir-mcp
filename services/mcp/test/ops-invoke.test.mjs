@@ -67,12 +67,10 @@ test("op: reads are reads", () => {
     { integration: { action: "list" } },
     { family_clients: { list: true } },
     { oauth_grants: { redirect_host: "drop.poapkings.com" } },
-    { rollup_regroup: { census: true } },
     { reindex: { table: "battle" } },
     { account_remove: { email: "x", dry_run: true } },
     { account_follow: { primary_tag: "#A", player_tag: "#B", dry_run: true } },
     { agent_recordings: { dry_run: true } },
-    { ops_recordings: { dry_run: true } },
     { verified_tag_census: { dry_run: true } },
     { clan_context: { agents: ["abc"] } },
     { clan_maintenance: { lane: "actions", clan_tag: "#A" } },
@@ -108,7 +106,6 @@ test("op: everything else is a write, and takes the lock", () => {
     { family_clients: { list: true, retire_app: { app: "clan" } } },
     { oauth_grants: { revoke: ["f"] } },
     { oauth_grants: { redirect_host: "x", revoke: ["f"] } },
-    { rollup_regroup: true },
     // The rebuild and the leftover's drop; anything beside the table.
     { reindex: { table: "battle", index: "battle_pkey", apply: true } },
     { reindex: { table: "battle", drop_invalid: "battle_pkey_ccnew" } },
@@ -121,8 +118,6 @@ test("op: everything else is a write, and takes the lock", () => {
     { account_follow: { primary_tag: "#A" } }, // defaults to a REAL run
     { agent_recordings: { dry_run: false } },
     { agent_recordings: {} }, // defaults to a dry run; not counted
-    { ops_recordings: { dry_run: false } },
-    { ops_recordings: {} }, // defaults to a dry run; not counted
     { verified_tag_census: { dry_run: false } },
     { verified_tag_census: {} },
     { clan_context: { agents: ["a"], apply: true } },
