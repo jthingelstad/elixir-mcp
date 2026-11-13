@@ -8,6 +8,7 @@ import {
   TAG_SCHEMA,
   WINDOW_ARGS,
   PARTICIPANT_GAMES,
+  gameCardsSql,
   appliedBlock,
   buildMeta,
   notes,
@@ -99,23 +100,19 @@ export const battles_cards = {
     ownBattlesClause(add);
     modeClause(args, add);
 
-    // Cards as rows (0091): mine are this participant's played cards;
-    // the opponent's are one opposing participant's (the first by tag,
-    // as the JSON path took the first with a deck). Slot > 0, no tower
-    // troop. A game is a participant row, or one round of a duel (9.11.0,
-    // #363): the cards of that round (battle_participant_card.round) and
-    // that round's result, the opponent's cards from the same round.
+    // Cards from the arrays on the rows that own them (0255): mine are
+    // this participant's deck cards; the opponent's are one opposing
+    // participant's (the first by tag, as the JSON path took the first
+    // with a deck). No tower troop. A game is a participant row, or one
+    // round of a duel (9.11.0, #363): the cards of that round and that
+    // round's result, the opponent's cards from the same round.
     const cardSource = mine
-      ? `join battle_participant_card pc
-             on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag
-            and pc.round = bp.round`
+      ? `cross join lateral ${gameCardsSql("bp.battle_id", "bp.player_tag", "bp.round")} pc`
       : `join lateral (select o.player_tag from battle_participant o
                          where o.battle_id = bp.battle_id and o.side <> bp.side
                            and (o.deck_hash is not null or bp.round > 0)
                          order by o.player_tag limit 1) opp on true
-           join battle_participant_card pc
-             on pc.battle_id = bp.battle_id and pc.player_tag = opp.player_tag
-            and pc.round = bp.round`;
+           cross join lateral ${gameCardsSql("bp.battle_id", "opp.player_tag", "bp.round")} pc`;
     // The control beside each row (feedback #54, 3.13.0): the mean
     // level gap over the battles the card appeared in, and the row's
     // battles by mode group, so a card met mostly in war games does not
@@ -135,7 +132,7 @@ export const battles_cards = {
          ${cardSource}
          ${levelSource}
          join card c on c.card_id = pc.card_id
-         where ${where.join(" and ")} and pc.slot > 0
+         where ${where.join(" and ")}
          group by 1, 2, 3
          having count(*) >= ${MIN_BATTLES}
          order by ${CARD_ORDER[sort]}

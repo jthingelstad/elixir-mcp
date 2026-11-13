@@ -1015,20 +1015,22 @@ export const ARCHETYPE_NOTE =
 const DECK_COSTS = Symbol("deck card costs");
 export const deckCardsWithCost = (identity) => identity?.[DECK_COSTS] ?? null;
 
-export async function deckIdentities(db, hashes) {
-  const wanted = [...new Set(hashes.filter(Boolean))];
-  if (wanted.length === 0) return new Map();
-  const { rows } = await db.query(
-    `select d.deck_hash, dc.card_id, dc.form, c.name, c.elixir_cost,
+/** deckIdentities' statement ($1 the hashes): a deck's cards from its
+ *  arrays (0255), in identity order. */
+export const DECK_IDENTITY_SQL = `select d.deck_hash, dc.card_id, dc.form, c.name, c.elixir_cost,
             d.tower_troop_id, t.name as tower_name
      from deck d
-     left join deck_card dc on dc.deck_hash = d.deck_hash
+     left join lateral unnest(d.card_ids, d.card_forms) as dc(card_id, form)
+       on true
      left join card c on c.card_id = dc.card_id
      left join card t on t.card_id = d.tower_troop_id
      where d.deck_hash = any($1)
-     order by d.deck_hash, dc.card_id, dc.form`,
-    [wanted],
-  );
+     order by d.deck_hash, dc.card_id, dc.form`;
+
+export async function deckIdentities(db, hashes) {
+  const wanted = [...new Set(hashes.filter(Boolean))];
+  if (wanted.length === 0) return new Map();
+  const { rows } = await db.query(DECK_IDENTITY_SQL, [wanted]);
   const vocab = await vocabulary(db);
   const out = new Map();
   const costs = new Map();
@@ -1071,8 +1073,83 @@ export async function deckIdentities(db, hashes) {
 }
 
 /**
- * The decks played in a set of battles, rendered from the card rows
- * (0091) in the shape battles_query has always served for `deck`:
+ * Every card a participant played, one row each, from the arrays on the
+ * rows that own them (0255): round 0 and the tower troop (slot 0) on
+ * battle_participant, a duel's rounds on battle_participant_round. The
+ * array index is the slot; an empty slot (a NULL element) is no card.
+ * Columns: battle_id, player_tag, round, slot, card_id, form, level,
+ * star_level. `where` filters battle_participant `bp` and the round rows
+ * `r` alike (it names battle_id and player_tag through `x`).
+ */
+export const playedCardsSql = (where) => `(
+  select x.battle_id, x.player_tag, 0::smallint as round, u.slot, u.card_id,
+         u.form, u.level, u.star_level
+    from battle_participant x
+    cross join lateral (
+      select 0 as slot, x.tower_troop_id as card_id, x.tower_form as form,
+             x.tower_level as level, x.tower_star as star_level
+       where x.tower_troop_id is not null
+      union all
+      select a.slot::int, a.card_id, a.form, a.level, a.star_level
+        from unnest(x.cards, x.card_forms, x.card_levels, x.card_stars)
+             with ordinality as a(card_id, form, level, star_level, slot)
+       where a.card_id is not null
+    ) u
+   where ${where}
+  union all
+  select x.battle_id, x.player_tag, x.round, a.slot::int, a.card_id, a.form,
+         a.level, a.star_level
+    from battle_participant_round x
+    cross join lateral unnest(x.cards, x.card_forms, x.card_levels, x.card_stars)
+         with ordinality as a(card_id, form, level, star_level, slot)
+   where ${where} and a.card_id is not null)`;
+
+/**
+ * The deck cards (slot > 0, no tower troop) of one GAME (a row of
+ * PARTICIPANT_GAMES: round 0 is the participant's own deck, round n a
+ * duel's round n), from the arrays (0255). `battle`, `player` and
+ * `round` are SQL expressions. Columns: card_id, form, level.
+ */
+export const gameCardsSql = (battle, player, round) => `(
+  select a.card_id, a.form, a.level
+    from battle_participant x
+    cross join lateral unnest(x.cards, x.card_forms, x.card_levels)
+         as a(card_id, form, level)
+   where ${round} = 0 and x.battle_id = ${battle} and x.player_tag = ${player}
+     and a.card_id is not null
+  union all
+  select a.card_id, a.form, a.level
+    from battle_participant_round x
+    cross join lateral unnest(x.cards, x.card_forms, x.card_levels)
+         as a(card_id, form, level)
+   where ${round} > 0 and x.battle_id = ${battle} and x.player_tag = ${player}
+     and x.round = ${round} and a.card_id is not null)`;
+
+/**
+ * Does a participant (`alias`, a battle_participant row) hold every card
+ * of the int[] parameter `param` in ONE deck: round 0, or one round of a
+ * duel (feedback #363)? Deck cards only; the tower troop is not in the
+ * arrays. Reads the arrays (0255).
+ */
+export const holdsCardsSql = (alias, param) => `exists (
+  select 1 from (
+    select ${alias}.cards
+    union all
+    select r.cards from battle_participant_round r
+     where r.battle_id = ${alias}.battle_id and r.player_tag = ${alias}.player_tag
+  ) g(cards)
+  where g.cards @> ${param})`;
+
+/** renderDecks' statement ($1 the battle ids). */
+export const RENDER_DECKS_SQL = `select pc.battle_id, pc.player_tag, pc.round, pc.slot, pc.card_id, pc.form,
+            pc.level, pc.star_level, c.name, c.elixir_cost
+     from ${playedCardsSql("x.battle_id = any($1)")} pc
+     join card c on c.card_id = pc.card_id
+     order by pc.battle_id, pc.player_tag, pc.round, pc.slot`;
+
+/**
+ * The decks played in a set of battles, rendered from the card arrays
+ * (0255) in the shape battles_query has always served for `deck`:
  * {cards:[{id, name, level, evolutionLevel?, starLevel?}], supportCards?}
  * for a single deck, {rounds:[{cards}]} for a duel. Names come from the
  * catalog. Returns a Map "battle_id|player_tag" -> deck; a participant
@@ -1081,15 +1158,7 @@ export async function deckIdentities(db, hashes) {
 export async function renderDecks(db, battleIds) {
   const ids = [...new Set(battleIds)];
   if (ids.length === 0) return new Map();
-  const { rows } = await db.query(
-    `select pc.battle_id, pc.player_tag, pc.round, pc.slot, pc.card_id, pc.form,
-            pc.level, pc.star_level, c.name, c.elixir_cost
-     from battle_participant_card pc
-     join card c on c.card_id = pc.card_id
-     where pc.battle_id = any($1)
-     order by pc.battle_id, pc.player_tag, pc.round, pc.slot`,
-    [ids],
-  );
+  const { rows } = await db.query(RENDER_DECKS_SQL, [ids]);
   const vocab = await vocabulary(db);
   const out = new Map();
   const costs = new Map(); // deck object -> its cards with cost

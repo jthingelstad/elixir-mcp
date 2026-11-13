@@ -91,13 +91,17 @@ async function expireStale(db, accountId, tag) {
   );
 }
 
+/** A participant's (`bp`) deck card ids, from the deck's arrays (0255).
+ *  Null with no deck. */
+export const DECK_CARD_IDS_SQL = `(select d.card_ids from deck d where d.deck_hash = bp.deck_hash)`;
+
 /** The battles this player has played since the brief, newest first,
  *  each with the ids of the deck they used. Duels (rounds) carry no
  *  single deck and never match. */
 async function battlesSince(db, tag, since, limit = 10) {
   const { rows } = await db.query(
     `select bp.battle_id, bp.battle_time, bp.outcome, bp.crowns, bp.side,
-            (select array_agg(dc.card_id) from deck_card dc where dc.deck_hash = bp.deck_hash) as card_ids,
+            ${DECK_CARD_IDS_SQL} as card_ids,
             b.type, b.game_mode_name,
             (select json_build_object('player_tag', o.player_tag, 'name', p.name, 'crowns', o.crowns)
                from battle_participant o join player p on p.player_tag = o.player_tag
@@ -289,7 +293,7 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
     const lastParams = [tag];
     const trophyRoad = participantModeClause(TROPHY_ROAD, lastParams);
     const { rows: last } = await db.query(
-      `select (select array_agg(dc.card_id) from deck_card dc where dc.deck_hash = bp.deck_hash) as card_ids
+      `select ${DECK_CARD_IDS_SQL} as card_ids
          from battle_participant bp
         where bp.player_tag = $1 and bp.deck_hash is not null and ${trophyRoad}
         order by bp.battle_time desc limit 10`,
@@ -297,7 +301,7 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
     );
     const { rows: month } = await db.query(
       `select distinct on (bp.deck_hash)
-              (select array_agg(dc.card_id) from deck_card dc where dc.deck_hash = bp.deck_hash) as card_ids
+              ${DECK_CARD_IDS_SQL} as card_ids
          from battle_participant bp
         where bp.player_tag = $1 and bp.deck_hash is not null
           and bp.battle_time > now() - interval '30 days'`,

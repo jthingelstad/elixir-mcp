@@ -185,7 +185,7 @@ export const elixirOf = (own, opponent, type, deck) => {
   };
 };
 
-// Deck identities render from deck_card via shared deckIdentities (0091):
+// Deck identities render from deck.card_ids via shared deckIdentities (0255):
 // {id, name, form} plus tower_troop - the shape deckCards/towerTroop
 // produced from an exemplar's JSON (playtest round, 2026-09-09: forms are
 // part of identity and must be visible).

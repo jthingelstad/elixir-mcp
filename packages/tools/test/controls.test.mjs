@@ -232,14 +232,9 @@ before(async () => {
             ('ctrl-duel',$2,1,'win','2026-07-25T12:00:00Z','riverRaceDuel','pvp',4,6.32)`,
     [F, OPPONENTS[0]],
   );
-  await seedPlayedDeck(scratch.db, {
-    battle_id: "ctrl-duel",
-    player_tag: F,
-    battle_time: "2026-07-25T12:00:00Z",
-    rounds: [DECK_A, DECK_B],
-  });
   // Each round's own deck and result, as ingest writes them (0182); the
   // opponent's rounds stay unseeded (the elixir case below reads that).
+  // The round rows come first: their cards ride them (0255).
   for (const [round, cards] of [
     [1, DECK_A],
     [2, DECK_B],
@@ -256,6 +251,12 @@ before(async () => {
         }),
       ],
     );
+  await seedPlayedDeck(scratch.db, {
+    battle_id: "ctrl-duel",
+    player_tag: F,
+    battle_time: "2026-07-25T12:00:00Z",
+    rounds: [DECK_A, DECK_B],
+  });
 
   // G's three ladder months at F's gap (+0.70, a populated bin): June in
   // Magic Academy at 11,972, July in Magic Academy at 12,300 (+328, a

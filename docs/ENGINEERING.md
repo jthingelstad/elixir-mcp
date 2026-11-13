@@ -131,11 +131,14 @@ Consecutive 403s open a per-collector breaker and drain it.
   in canonical (card_id, form) order. Today ingest writes both shapes in
   the battle's transaction, the arrays built in SQL from the rows just
   written (`packages/ingest/src/card-arrays.mjs`), `{card_arrays}` fills
-  history and `{card_arrays_census}` proves the two agree. Tools still
-  read `deck`, `deck_card` and `battle_participant_card`, and tests that
-  seed a battle write the rows through `packages/tools/test/deck-rows.mjs`;
-  the rows go once every reader has switched to the arrays. Until then
-  the card rows are reached by primary-key prefix
+  history and `{card_arrays_census}` proves the two agree. Every reader
+  reads the arrays: `playedCardsSql`, `gameCardsSql` and `holdsCardsSql`
+  in `packages/tools/src/tools/shared.mjs` unnest them with the slot as
+  the ordinality, and a deck's cards are `deck.card_ids` with its forms.
+  Reads are scoped to one player, clan, battle or deck, so no index over
+  an array's elements exists or is needed. Tests that seed a battle write
+  both shapes through `packages/tools/test/deck-rows.mjs`; the rows go in
+  the contract step. Until then the card rows are reached by primary-key prefix
   `(battle_id, player_tag)`; never add a battle_id-carrying secondary
   index on them: they were gigabytes against the shared buffers and no
   plan used them. A card seen before the daily catalog poll gets a stub
