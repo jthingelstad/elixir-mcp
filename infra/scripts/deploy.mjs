@@ -1087,14 +1087,22 @@ export const DEPLOY_PHASES = [
         );
         // Recorded pass or fail: a failing run drew on the bucket too.
         await recordAcceptanceCost(d, verdict, runStartedAt);
-        if (acceptance.status !== 0)
-          throw new DeployExit(
-            1,
+        const suite = acceptanceFamily
+          ? `\`--acceptance=${acceptanceFamily}\``
+          : "the whole suite";
+        if (acceptance.status !== 0) {
+          // The deploy is live either way. Failing here used to skip the
+          // record, so a failed run and its cost never reached the deploy
+          // history; the record now says it failed and the deploy exits 1
+          // at the end (#935 review).
+          console.error(
             "ACCEPTANCE FAILED - the deploy is live but an invariant broke; fix forward or roll back.",
           );
-        d.acceptanceResult = acceptanceFamily
-          ? `passed (\`--acceptance=${acceptanceFamily}\`)`
-          : "passed (the whole suite)";
+          d.acceptanceResult = `FAILED (${suite})`;
+          d.exitCode = 1;
+          return;
+        }
+        d.acceptanceResult = `passed (${suite})`;
       } else {
         d.acceptanceResult =
           "not run (no acceptance/.env on the deploying machine)";
@@ -1306,6 +1314,10 @@ export async function deploy(
     if (d.dirtyTree)
       console.error(
         `deploy: live, but it changed ${d.dirtyTree.length} tracked file(s); see above.`,
+      );
+    if (d.acceptanceResult?.startsWith("FAILED"))
+      console.error(
+        "deploy: live, but ACCEPTANCE FAILED; fix forward or roll back.",
       );
     if (d.acceptanceResult?.startsWith("refused"))
       console.error(

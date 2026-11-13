@@ -302,8 +302,16 @@ for (const status of [0, 1])
       templateDbClass: () => "db.t4g.micro",
       spawnAcceptance: () => ({ status }),
     };
-    if (status) await assert.rejects(phase.run(d), /ACCEPTANCE FAILED/);
-    else await phase.run(d);
+    t.mock.method(console, "error", () => {});
+    // A failed run is recorded, not thrown: the record phase still runs.
+    await phase.run(d);
+    assert.equal(d.exitCode, status ? 1 : undefined);
+    assert.equal(
+      d.acceptanceResult,
+      status
+        ? "FAILED (`--acceptance=clans`)"
+        : "passed (`--acceptance=clans`)",
+    );
     assert.ok(Date.parse(window[0]) <= Date.parse(window[1]));
     assert.equal(d.acceptanceHeadroom.suite, "family clans");
     assert.deepEqual(d.acceptanceHeadroom.byte_balance, {

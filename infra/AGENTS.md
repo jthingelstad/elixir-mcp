@@ -109,7 +109,9 @@ and the record.
   time, the versions, the acceptance result and the timing: when it
   started (before the CI gate), how long the gate waited
   (`gate_wait_seconds`, null on `--break-glass`) and each phase's seconds
-  (`phases`).
+  (`phases`). A failed or refused acceptance run is recorded too, with
+  its database cost (`acceptance_headroom`), and the deploy exits 1
+  after the record.
 
 ## Scripts
 
