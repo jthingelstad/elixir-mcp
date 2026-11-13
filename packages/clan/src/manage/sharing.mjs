@@ -2,7 +2,7 @@
  * Sharing with Elixir (door 3, 2026-09-25; Jamie): what the clan did goes
  * back to Elixir as ATTESTED FACTS, on the acting person's own grant
  * (JSON API 2.2.0, scope clans:attest). Elixir keeps them apart from the
- * game record, labelled as this person's word through Elixir Clan, and
+ * game record, labelled as this person's word through Clan, and
  * shows each only to the readers its type allows: a departure (kick or
  * leave) to the clan and its agent since Elixir 9.3.0 (Jamie, 2026-09-25:
  * the game already shows the clan a kick, and leaders say why in clan

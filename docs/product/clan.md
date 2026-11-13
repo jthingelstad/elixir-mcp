@@ -112,7 +112,7 @@ where what waits for each person comes first. [engineering, 2026-11-12]
    to the model as written, it sets the tone, never the facts, and lifts
    no rule. An Action's log keeps what the model wrote for its leaders
    and co-leaders; anyone else who reads the log sees only that a draft
-   was made. Elixir Clan chooses the model for each use; the key and its
+   was made. Clan chooses the model for each use; the key and its
    monthly cap are the clan's. The one use nobody reviews is the activity
    channel's editor, so the engine's checks decide what it may post.
    [Jamie, 2026-10-03, 2026-10-08, 2026-10-11, 2026-10-20]

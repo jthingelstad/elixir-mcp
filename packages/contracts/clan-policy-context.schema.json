@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Elixir Clan minimal policy context, schema 1",
+  "title": "Clan minimal policy context, schema 1",
   "description": "Private core context. This schema grants no access and declares no MCP tool. read_at times a successful current policy read; policy_saved_at is save provenance, not freshness. HTTP failures have no usable context.",
   "type": "object",
   "additionalProperties": false,

@@ -226,7 +226,7 @@ export function createManageService({
   weekBattlesFor = null,
   now = () => Date.now(),
   seasonCalendar = null,
-  /** Where Elixir Clan's app is, for the links in its email */
+  /** Where Clan's app is, for the links in its email */
   appUrl = "https://elixir.poapkings.com/clan",
   /** Runs `fn` holding the clan's lock (the web API's session advisory
    *  lock). Every read-modify-write of the clan's cards, numbers and

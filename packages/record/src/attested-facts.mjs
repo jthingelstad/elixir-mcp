@@ -22,7 +22,7 @@
 
 import {
   ATTESTED_FACT_TYPES,
-  FAMILY_APP_NAMES,
+  ATTESTED_SOURCE_NAMES,
   LEADER_MESSAGE_ROLES,
   OAUTH_SCOPE,
   normalizeTag,
@@ -213,7 +213,7 @@ function shapeFact(row) {
     occurred_at: new Date(row.occurred_at).toISOString(),
     recorded_at: new Date(row.recorded_at).toISOString(),
     attested_by: {
-      app: FAMILY_APP_NAMES[row.source] ?? row.source,
+      app: ATTESTED_SOURCE_NAMES[row.source] ?? row.source,
       player_tag: row.attester_tag,
       role: row.attester_role,
     },

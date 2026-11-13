@@ -1285,9 +1285,15 @@ test("Clan always uses the shared account door and never falls back to the retir
   const template = await readFile(templateUrl, "utf8");
   const behaviours = cacheBehaviours(template);
   const paths = behaviours.map(([p]) => p);
-  assert.ok(paths.includes("/api/clan/*"));
-  assert.ok(paths.indexOf("/api/clan/*") < paths.indexOf("/api/*"));
-  const [, block] = behaviours.find(([p]) => p === "/api/clan/*");
+  // Clan is part of Elixir: /api/clan/* is the site API's own /api/*
+  // behaviour, with no behaviour of its own and none before /api/* that
+  // would take it instead.
+  assert.ok(!paths.some((p) => p.startsWith("/api/clan")));
+  const toClan = (p) =>
+    new RegExp(`^${p.replace(/\*/g, ".*")}$`).test("/api/clan/me");
+  const first = behaviours.find(([p]) => toClan(p));
+  assert.equal(first?.[0], "/api/*");
+  const [, block] = first;
   assert.match(block, /TargetOriginId: api\n/);
   assert.match(block, /OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy/);
   assert.doesNotMatch(

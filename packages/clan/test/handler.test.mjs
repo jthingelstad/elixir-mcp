@@ -249,7 +249,7 @@ test("unknown routes are 404 JSON; health is open", async () => {
 });
 
 test("Elixir serves this API under /api/clan: the same routes, in either form (2026-09-28)", async () => {
-  assert.equal(mountedPath("/api/clan/auth/callback"), "/auth/callback");
+  assert.equal(mountedPath("/api/clan/auth/callback"), "/api/auth/callback");
   assert.equal(mountedPath("/api/clan/me"), "/api/me");
   assert.equal(
     mountedPath("/api/clan/clans/2PQRJ8LV/actions"),
@@ -267,8 +267,9 @@ test("Elixir serves this API under /api/clan: the same routes, in either form (2
     (await h.handler(req("GET", "/api/clanx/health"))).statusCode,
     404,
   );
+  // Clan signs in through Elixir only: its old OAuth start is no route.
   const start = await h.handler(req("GET", "/api/clan/auth/login"));
-  assert.equal(start.statusCode, 303);
+  assert.equal(start.statusCode, 404);
   const { sessionCookie } = await signIn(h);
   const me = await h.handler(
     req("GET", "/api/clan/me", { cookies: cookieHeader(sessionCookie) }),
@@ -335,8 +336,7 @@ test("select: picks a clan in the set, is remembered across a fresh sign-in, ref
     "#PYLQ2",
   );
 
-  // Sign out, sign in again: the remembered clan is where the callback lands.
-  await h.handler(req("POST", "/auth/logout", { cookies }));
+  // A fresh sign-in lands on the remembered clan.
   const again = await signIn(h);
   assert.equal(JSON.parse(again.me.body).selected.clan_tag, "#PYLQ2");
 });

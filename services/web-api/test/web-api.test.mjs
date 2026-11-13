@@ -575,7 +575,7 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
     [acct[0].account_id],
   );
   // A Ladder read (the site's own: logged, never charged, #538), an
-  // Elixir Clan read, a Clan morning read, a Console nickname edit (the
+  // Clan read, a Clan morning read, a Console nickname edit (the
   // bridge's one write: uncharged, and not a read) and an /api/v1 call
   // (none of them spends the daily tool-call budget).
   await db.query(

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Elixir Clan's views and routes, joined into the one Elixir application.",
+  "description": "Clan's views and routes, joined into the one Elixir application.",
   "scripts": {
     "test": "vitest run"
   },

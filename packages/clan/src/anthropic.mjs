@@ -22,7 +22,7 @@
  * no parallel calls), and adds `THINKING_ROOM` to the engine's
  * `max_tokens`, which sizes the answer alone. An answer with no call is
  * `no_answer`, never words. Nothing here depends on the model id: the
- * model Elixir Clan chose for the use is sent as it is.
+ * model Clan chose for the use is sent as it is.
  *
  * The system prompt is two blocks: the use's instructions, then the
  * clan's context (`context`, the same for every request of the clan),

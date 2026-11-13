@@ -1,6 +1,6 @@
 # clan-state
 
-Elixir Clan's private management ledger: policy versions, verdict
+Clan's private management ledger: policy versions, verdict
 snapshots, Actions, decisions, holds, notes, awards and sealed model keys,
 as items of one clan in `clan_state` (migration 0196). Read
 `packages/clan/AGENTS.md` first; the item kinds are listed at the top of

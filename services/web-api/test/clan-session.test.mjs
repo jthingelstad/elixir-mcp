@@ -138,11 +138,42 @@ test("prepared Clan is disabled by default; its enabled door accepts only Elixir
       .rows[0].n,
     0,
   );
+  // The retired OAuth callback is gone: signed out, it is one more
+  // /api/clan path that needs a person.
   assert.equal(
     (await request("GET", "/api/clan/auth/callback", { cookie: null }))
       .statusCode,
-    410,
+    401,
   );
+});
+
+test("only a person's session reaches Clan: an agent's session row is refused before Clan's gate", async () => {
+  // Clan keeps no refusal page of its own for a non-person: Elixir's
+  // session resolution admits only approved people, so an agent answers
+  // the same 401 as a signed-out visitor and never reaches Clan's gate.
+  const agentId = (
+    await scratch.db.query(
+      // An email hash too, so only the account's kind tells it apart.
+      `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
+       values ('clan-session-agent', 'approved', 'member', 'agent', $1, 'clanagent01')
+       returning account_id`,
+      [accountId],
+    )
+  ).rows[0].account_id;
+  const agent = await createSession(scratch.db, {
+    secret: "test",
+    accountId: agentId,
+    emailHash: "clan-session-agent",
+  });
+  for (const path of ["/api/clan/me", "/api/clan/directory"])
+    assert.equal(
+      (
+        await request("GET", path, {
+          cookie: `__Host-elixir_session=${agent.token}`,
+        })
+      ).statusCode,
+      401,
+    );
 });
 
 test("account preferences need the CSRF marker and never use a second session", async () => {
@@ -422,7 +453,7 @@ test("internal factual writes retain membership and role checks without an OAuth
   };
   const person = { accountId, kind: "person" };
   const written = await writeClanFactInClan(scratch.db, person, CLAN, body);
-  assert.equal(written.attested_by.app, "Elixir Clan");
+  assert.equal(written.attested_by.app, "Clan");
   await assert.rejects(
     writeClanFactInClan(scratch.db, { ...person, kind: "agent" }, CLAN, body),
     (e) => e.code === "not_a_person",

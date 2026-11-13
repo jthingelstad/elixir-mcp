@@ -139,7 +139,7 @@ test("a leader records a departure as a kick; a retry is the same fact and a cor
   assert.equal(f.created, true);
   assert.equal(f.visibility, "clan");
   assert.deepEqual(f.attested_by, {
-    app: "Elixir Clan",
+    app: "Clan",
     player_tag: LEADER_TAG,
     role: "leader",
   });
@@ -191,7 +191,7 @@ test("a leader records a departure as a kick; a retry is the same fact and a cor
   );
   assert.equal(moved.statusCode, 200, moved.body);
   assert.equal(data(moved).data.id, f.id);
-  assert.equal(data(moved).data.attested_by.app, "Elixir Clan");
+  assert.equal(data(moved).data.attested_by.app, "Clan");
 });
 
 test("refusals say why: another app, no capability, not in the clan, the wrong role, a bad detail", async () => {
@@ -531,7 +531,7 @@ test("the timeline shows each fact only to the reader its type allows; a departu
   ).filter((i) => i.kind === "award_granted");
   assert.equal(award.section, "attested");
   assert.equal(award.facts.player_tag, MEMBER_TAG);
-  assert.equal(award.facts.attested_by.app, "Elixir Clan");
+  assert.equal(award.facts.attested_by.app, "Clan");
   assert.equal(award.facts.attested_by.role, "leader");
 });
 
@@ -576,7 +576,7 @@ test("an app records its computed award standing on its integration key; a perso
   };
   const made = await request("POST", facts, standing, clanApp.token);
   assert.equal(made.statusCode, 201, made.body);
-  assert.equal(data(made).data.attested_by.app, "Elixir Clan");
+  assert.equal(data(made).data.attested_by.app, "Clan");
   assert.equal(
     data(made).data.attested_by.player_tag,
     null,
@@ -633,7 +633,7 @@ test("an app records its computed award standing on its integration key; a perso
   assert.equal(seen.length, 1);
   assert.equal(seen[0].facts.value, 6500);
   assert.equal(seen[0].facts.previous_name, "gone", "who held first, by name");
-  assert.equal(seen[0].facts.attested_by.app, "Elixir Clan");
+  assert.equal(seen[0].facts.attested_by.app, "Clan");
   // Only the app that wrote it takes it back.
   const path = `${facts}/${encodeURIComponent(standing.ref)}`;
   assert.equal(

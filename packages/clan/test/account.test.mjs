@@ -105,8 +105,6 @@ test("shared identity uses fresh gate reads and neither legacy cookies nor OAuth
     account: { accountId: "one", kind: "person" },
     state,
     credential,
-    login: async () => ({ statusCode: 303 }),
-    logout: async () => ({ statusCode: 303 }),
   });
   let calls = 0;
   const mcp = createRecordedClient({
@@ -146,10 +144,13 @@ test("shared identity uses fresh gate reads and neither legacy cookies nor OAuth
   assert.equal(JSON.parse(first.body).selected.role, "leader");
   assert.equal(JSON.parse(second.body).selected.role, "member");
   assert.equal(first.cookies, undefined);
-  assert.equal(
-    (await handler({ ...event, path: "/api/clan/auth/callback" })).statusCode,
-    410,
-  );
+  // Clan has no sign-in of its own: the retired OAuth routes are gone.
+  for (const path of [
+    "/api/clan/auth/callback",
+    "/api/clan/auth/login",
+    "/api/clan/auth/logout",
+  ])
+    assert.equal((await handler({ ...event, path })).statusCode, 404);
   const signedOut = createHandler({
     mcp,
     identity: { load: async () => null },

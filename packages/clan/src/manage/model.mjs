@@ -8,7 +8,7 @@
  * for the uses the engine names (`PURPOSES` in `words.mjs`), never a
  * judgment about a member.
  *
- * Which model writes is Elixir Clan's choice, per use (Jamie, 2026-10-11:
+ * Which model writes is Clan's choice, per use (Jamie, 2026-10-11:
  * "The model is our selection based on how the product should work. The
  * key and its budget are the external decisions."): `MODEL_FOR` in
  * `words.mjs` lists the 5.5 generation in order for each purpose, and a
@@ -51,7 +51,7 @@
  * month's (UTC) estimated spend reaches it, the clan's model drafts
  * nothing more until the month turns or the cap is raised or removed. A
  * draft that starts under the cap may finish a little over it. The cap is
- * Elixir Clan's own stop, never Anthropic's spend limit; it stays with
+ * Clan's own stop, never Anthropic's spend limit; it stays with
  * the clan when the key is replaced. A use whose outcome is pending or
  * unknown reported no tokens; it counts at its reservation's estimate
  * (its prompt's length and its whole output budget), so an uncertain
@@ -149,7 +149,7 @@ function spendOf(calls) {
 }
 
 /** The request the bridge carries for one use: the engine's words and
- *  settings, on the model Elixir Clan chose. */
+ *  settings, on the model Clan chose. */
 const dispatch = (model, request) => ({
   model,
   system: request.system,
@@ -440,7 +440,7 @@ export function createModelService({
       const base = {
         clan_tag: clanTag,
         purposes: PURPOSES,
-        // Elixir Clan's choice for each use, as this key reaches it.
+        // Clan's choice for each use, as this key reaches it.
         model_for: modelsFor(stored),
         per_day: USES_PER_DAY,
         keep_days: USE_KEEP_DAYS,
@@ -690,7 +690,7 @@ export function createModelService({
           message:
             "The recorded roster could not confirm who added this key. Try again shortly.",
         });
-      // Elixir Clan's model for this use, the first the key reaches.
+      // Clan's model for this use, the first the key reaches.
       const model = modelFor(request.purpose, listed(stored));
       if (!model) throw unreachable(request.purpose);
       const today = iso().slice(0, 10);

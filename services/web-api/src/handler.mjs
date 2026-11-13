@@ -135,16 +135,13 @@ export const AGENT_SCOPED_ROUTES = new Set([
 const AGENT_PATH = /^\/api\/agent\/([a-z0-9]{8,16})(\/.*)?$/;
 
 /**
- * The Clan door's answers that need no sign-in (#526): its health check
- * and the retired OAuth callback, keyed "METHOD path" or "ANY path".
- * Everything else under /api/clan/ is resolved to a person first (a GET
- * of auth/login with none is sent to sign in), so an unsigned exception
- * is added here or nowhere; the public-boundary test pins this list.
+ * Clan's one answer that needs no sign-in (#526): its health check, keyed
+ * "METHOD path" or "ANY path". Everything else under /api/clan/ is
+ * resolved to a person first, so an unsigned exception is added here or
+ * nowhere; the public-boundary test pins this list.
  */
 export const CLAN_UNSIGNED = Object.freeze({
   "GET /api/clan/health": () => json(200, { ok: true }),
-  "ANY /api/clan/auth/callback": () =>
-    json(410, { error: "retired_oauth_callback" }),
 });
 
 /** The answer when no database connection could be had: the JSON API's
@@ -542,18 +539,7 @@ export function makeHandler({
               const person = await resolvePerson(db, event, {
                 requireContractHeader: !["GET", "HEAD"].includes(method),
               });
-              if (!person) {
-                if (method === "GET" && path === "/api/clan/auth/login")
-                  return {
-                    statusCode: 303,
-                    headers: {
-                      location: "/signin?return_to=%2Fclan",
-                      "cache-control": "no-store",
-                    },
-                    body: "",
-                  };
-                return json(401, { signed_in: false });
-              }
+              if (!person) return json(401, { signed_in: false });
               return clan({
                 db,
                 account: person,
@@ -561,22 +547,6 @@ export function makeHandler({
                 event: {
                   ...event,
                   body: event.body ? JSON.stringify(body) : undefined,
-                },
-                signout: async () => {
-                  const res = await routes["POST /api/session/signout"](
-                    db,
-                    event,
-                  );
-                  return {
-                    ...res,
-                    statusCode: 303,
-                    headers: {
-                      ...res.headers,
-                      location: "/clan",
-                      "cache-control": "no-store",
-                    },
-                    body: "",
-                  };
                 },
               });
             },

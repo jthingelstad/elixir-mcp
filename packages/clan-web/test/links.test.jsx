@@ -33,15 +33,3 @@ test("a Settings link is followed in the app", () => {
   fireEvent.click(link);
   expect(navigate).toHaveBeenCalledWith("/settings/players");
 });
-
-test("a docs link is a page load: the docs are site documents", () => {
-  const navigate = vi.fn();
-  refused("not_a_person", navigate);
-  const link = screen.getByRole("link", {
-    name: "Users, agents and integrations ›",
-  });
-  expect(link.getAttribute("href")).toBe("/docs/connections");
-  link.addEventListener("click", (e) => e.preventDefault());
-  fireEvent.click(link);
-  expect(navigate).not.toHaveBeenCalled();
-});

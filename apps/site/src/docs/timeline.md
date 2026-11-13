@@ -254,9 +254,9 @@ channels tells it twice.
   disclosed rung; whether that means anything is the reader's call. The same
   goes for a standout session: `crossed` names the rung, the reader decides
   whether five wins in a row is news in this clan.
-- **It never passes an app's word off as the game's.** An attested fact
-  (section `attested`) is what a person said through a family app, and
-  says so in `attested_by`; the game's own record of the same moment
+- **It never passes a person's word off as the game's.** An attested fact
+  (section `attested`) is what a person said in Clan or through a family
+  app, and says so in `attested_by`; the game's own record of the same moment
   (`member_left`, `member_role_changed`) stays beside it, raw.
 - **It never assumes what the reader is for.** The same items serve a
   clan-management routine, a highlights bot, a recruiter watching churn, a

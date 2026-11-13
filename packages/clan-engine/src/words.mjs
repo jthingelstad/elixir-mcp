@@ -70,7 +70,7 @@ export const PURPOSES = {
 };
 
 /**
- * The model each use runs on: Elixir Clan's choice, made for how the
+ * The model each use runs on: Clan's choice, made for how the
  * product should work, never the leaders' (Jamie, 2026-10-11: "The model
  * is our selection based on how the product should work. The key and its
  * budget are the external decisions."). Each purpose lists the 5.5

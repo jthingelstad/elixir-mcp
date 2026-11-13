@@ -200,8 +200,8 @@ export function Seen({ me }) {
             [
               "Your email address",
               <>
-                Nobody else. It goes only to an Elixir family app you sign in to
-                and allow to see it.
+                Nobody else. It goes only to an app of Elixir’s own, like Elixir
+                Drop, that you sign in to and allow to see it.
               </>,
             ],
             [

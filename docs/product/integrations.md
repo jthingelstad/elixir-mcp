@@ -56,7 +56,7 @@ Drop write to Elixir; accept an MCP token at `/api/v1`.
 - **The build.** Ruled 2026-11-13, not yet built. Today Drop holds an
   integration key (the game clock, recorded profiles, a profile refresh)
   and an OAuth grant that adds alt claims and writes personal records;
-  Elixir Clan's morning run uses a key for clan reads, award standings
+  Clan's morning run uses a key for clan reads, award standings
   and the Actions mail; `/api/v1` serves the tool mirrors and social
   reads. Order: Drop stops calling them, Clan's morning run moves inside
   Elixir, then the keys, scopes and mirrors go in a JSON API major.

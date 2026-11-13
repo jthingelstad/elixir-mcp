@@ -438,7 +438,7 @@ export function createHandler({
     const m = /^\/api\/clans\/([0-9A-Za-z]{3,12})(\/.*)?$/.exec(path);
     if (!m) return null;
     const rest = m[2] ?? "";
-    // Every clan route needs a session: Elixir Clan is an app for a
+    // Every clan route needs a session: Clan is for a
     // clan's members and publishes nothing (Jamie, 2026-09-25).
     const ctx = await clanContext(event, m[1]);
     if (ctx.response) return ctx.response;
@@ -960,12 +960,6 @@ export function createHandler({
       }
       if (method === "GET" && path === "/api/health")
         return json(200, { ok: true });
-      if (method === "GET" && path === "/auth/login")
-        return await identity.login(event);
-      if (path === "/auth/callback")
-        return json(410, { error: "retired_oauth_callback" });
-      if (method === "POST" && path === "/auth/logout")
-        return await identity.logout(event);
       if (method === "GET" && path === "/api/me") return await me(event);
       if (method === "POST" && path === "/api/select")
         return await select(event);
@@ -987,12 +981,10 @@ export function createHandler({
 
 /**
  * This API as Elixir serves it, under /api/clan (2026-09-28), read in the
- * form the routes name: /api/clan/auth/* is /auth/*, and any other
- * /api/clan/* is /api/*. A path already in that form is itself, as the
- * tests and internal route helpers use it.
+ * form the routes name: /api/clan/* is /api/*. A path already in that
+ * form is itself, as the tests and internal route helpers use it.
  */
 export function mountedPath(path) {
-  if (path.startsWith("/api/clan/auth/")) return path.slice("/api/clan".length);
   if (path.startsWith("/api/clan/"))
     return `/api/${path.slice("/api/clan/".length)}`;
   return path;

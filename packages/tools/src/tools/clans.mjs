@@ -1058,7 +1058,7 @@ export const clansTools = {
           seasonFields.seasonNotes,
           (() => {
             // ONE sentence for every finished week: a note per week pushed
-            // the eight-week full read (Elixir Clan's call) past the
+            // the eight-week full read (Clan's call) past the
             // result cap (6.23.0).
             const done = warWeeks.rows.filter((w) => finishedEarly(w) === true);
             return done.length

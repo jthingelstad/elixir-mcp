@@ -87,7 +87,7 @@ export function createActivityService({
       in_effect: activityCategories(saved?.categories ?? {}, values),
       // The editor needs the clan's own key (Settings, the clan's own
       // model); without one the page asks a leader to add it. `name` is
-      // the model Elixir Clan runs the editor on with this key, null
+      // the model Clan runs the editor on with this key, null
       // when the key reaches none of them.
       model: key
         ? {

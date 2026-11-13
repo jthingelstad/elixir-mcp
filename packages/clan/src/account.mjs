@@ -1,13 +1,7 @@
 /** Clan preferences belong to the authenticated Elixir account. Gate and
  * roster caches live only for this request; no token pair or second session
  * is persisted. Legacy player-keyed selection is read once as a fallback. */
-export function createAccountContext({
-  account,
-  state,
-  credential,
-  login,
-  logout,
-}) {
+export function createAccountContext({ account, state, credential }) {
   const id = `account#${account.accountId}`;
   let current = null;
   return {
@@ -20,8 +14,6 @@ export function createAccountContext({
       credential(session) {
         return session === current ? credential : null;
       },
-      login,
-      logout,
     },
     store: {
       async updateSession(key, patch) {

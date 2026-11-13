@@ -79,6 +79,7 @@ export function movedTo(pathname, hash = "") {
     return `${SETTINGS}/connections/discord`;
   return (
     REDIRECTS[path] ??
+    clanFeedbackMoved(path) ??
     clanMoved(path) ??
     // Ladder became You's Stats tab (2026-11-12): every old Ladder address,
     // mail's `/ladder?player=` and `/ladder?season=` among them.
@@ -88,6 +89,17 @@ export function movedTo(pathname, hash = "") {
     adminMoved(path) ??
     consoleMoved(path)
   );
+}
+
+/** Clan's old feedback pages (retired into Elixir's one feedback system,
+ *  2026-10-08): a person's to their feedback in Settings, the maintainer's
+ *  lane, with any item id, to Admin's one queue. */
+function clanFeedbackMoved(path) {
+  if (/^\/clan\/feedback(?:\/[^/]+)?$/.test(path))
+    return `${SETTINGS}/feedback`;
+  if (path === "/clan/maintain" || path.startsWith("/clan/maintain/"))
+    return `${ADMIN}/feedback`;
+  return null;
 }
 
 /** Admin under Settings (2026-11-12): every Admin address, its record ids

@@ -27,9 +27,10 @@ agent) acts as that same person. [Jamie, 2026-09-03, 2026-11-11]
   and agents; there are no integrations. An agent is the person's own, capped at its
   owner's tier, following in the person's pooled slots, never deleted
   (suspended or revoked). [Jamie, 2026-09-08, 2026-09-23, 2026-10-10, 2026-11-13]
-- **The family's apps.** Sign in with Elixir carries the person to Drop
-  and to Elixir Clan; the address goes only to a family app. [Jamie,
-  2026-09-25]
+- **The family's apps.** Sign in with Elixir carries the person to Drop;
+  the address goes only to a family app. Clan is not one: it is a set of
+  features inside Elixir, with no sign-in of its own. [Jamie, 2026-09-25,
+  2026-11-12]
 
 ## Who sees what
 

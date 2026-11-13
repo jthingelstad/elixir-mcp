@@ -194,22 +194,10 @@ export function createTestAccount() {
         account: { kind: "person", accountId: "test-person" },
         state,
         credential: "recorded-person",
-        login: identity.login,
-        logout: identity.logout,
       });
       return context.identity.load(event);
     },
     credential: (session) => context?.identity.credential(session),
-    login: async () => ({
-      statusCode: 303,
-      headers: { location: "https://elixir.test/console/sign-in?next=%2Fclan" },
-      body: "",
-    }),
-    logout: async () => ({
-      statusCode: 303,
-      headers: { location: "https://elixir.test/clan" },
-      body: "",
-    }),
   };
   const store = { items };
   for (const name of [

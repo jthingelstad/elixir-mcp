@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 
 /**
- * The clan ledger: everything Elixir Clan stores ABOUT a clan, all of it
+ * The clan ledger: everything Clan stores ABOUT a clan, all of it
  * items of one clan in the one table, listed through the ByClan index.
  *
  *   clan_size#<clan>         the member count at the latest roster or

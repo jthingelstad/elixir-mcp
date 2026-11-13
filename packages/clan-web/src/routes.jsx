@@ -47,15 +47,5 @@ export function createClanRoutes(parent, options = {}) {
       path: `${CLAN}/verify`,
       component: lazyRouteComponent(() => import("./App.jsx"), "VerifyPage"),
     }),
-    createRoute({
-      getParentRoute: () => route,
-      path: `${CLAN}/feedback/{-$id}`,
-      component: lazyRouteComponent(() => import("./App.jsx"), "FeedbackPage"),
-    }),
-    createRoute({
-      getParentRoute: () => route,
-      path: `${CLAN}/maintain/{-$lane}/{-$id}`,
-      component: lazyRouteComponent(() => import("./App.jsx"), "MaintainPage"),
-    }),
   ]);
 }

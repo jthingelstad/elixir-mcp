@@ -386,7 +386,7 @@ test("the roster's words: one form for joining and departing; removed or left on
     }),
     "Ann was promoted from Member to Elder in Example Clan.",
   );
-  const leader = { app: "Elixir Clan", name: "Bea" };
+  const leader = { app: "Clan", name: "Bea" };
   assert.equal(
     say("departure_classified", {
       name: "Ann",

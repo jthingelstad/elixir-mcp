@@ -35,7 +35,7 @@ import { rankedLeagueName } from "@elixir-mcp/record/ranked-leagues";
 import {
   ATTESTED_FACT_KINDS,
   ATTESTED_FACT_TYPES,
-  FAMILY_APP_NAMES,
+  ATTESTED_SOURCE_NAMES,
   formName,
   modeGroupOf,
   postUrl,
@@ -3563,7 +3563,7 @@ async function readFactItems(
           ? { role_at_departure: f.role_at_departure }
           : {}),
         attested_by: {
-          app: FAMILY_APP_NAMES[f.source] ?? f.source,
+          app: ATTESTED_SOURCE_NAMES[f.source] ?? f.source,
           player_tag: f.attester_tag,
           name: f.attester_name,
           role: f.attester_role,

@@ -22,7 +22,7 @@ you) and **call volume** (your daily budgets, including the live lane that
 spends the one shared Clash Royale API budget).
 
 Two things sit outside that rule. Your own account data is private to
-you. And the few facts the Elixir family's own apps add about a clan (a
+you. And the few facts Clan adds about a clan (a
 leader's note on why a member left, an award) are shown only to the
 people each one is for: a clan's facts to its verified members and
 their agents, a member's away only to the clan's leaders.

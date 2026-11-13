@@ -191,14 +191,8 @@ describe("the gate pages", () => {
     expect(REFUSALS.unverified).toBeUndefined();
   });
 
-  test("an agent's grant offers a fresh sign-in, the others offer a re-check", () => {
-    renderWithProviders(
-      <Refused reason="not_a_person" me={me} onRecheck={() => {}} />,
-    );
-    expect(
-      screen.getByRole("link", { name: "Sign in again" }).getAttribute("href"),
-    ).toBe("/signin");
-    cleanup();
+  test("a refusal offers a re-check; a non-person has no Clan page", () => {
+    expect(REFUSALS.not_a_person).toBeUndefined();
     renderWithProviders(
       <Refused reason="no_clan" me={me} onRecheck={() => {}} />,
     );
