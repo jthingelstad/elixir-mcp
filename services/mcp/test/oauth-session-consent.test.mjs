@@ -47,13 +47,13 @@ const SECRET = "site-session-secret";
 const EMAIL = "signed-in@example.com";
 const NO_ADDRESS = "no-address@example.com";
 const REDIRECT = "https://client.example/cb";
-const CLAN_REDIRECT = "https://elixir.poapkings.com/api/clan/auth/callback";
+const FAMILY_REDIRECT = "https://elixir.poapkings.com/family-test/callback";
 const RESOURCE = `${ISSUER}/mcp`;
 
 let db;
 let handler;
 let clientId;
-let clanId;
+let familyId;
 let accountId;
 let noAddressId;
 const sentEmails = [];
@@ -136,12 +136,12 @@ before(async () => {
   }));
   // A family app's client is provisioned, never registered (0185).
   ({
-    provisioned: { client_id: clanId },
+    provisioned: { client_id: familyId },
   } = await familyClientsOn(db, {
     provision: {
-      app: "clan",
-      client_name: "Elixir Clan",
-      redirect_uris: [CLAN_REDIRECT],
+      app: "family-test",
+      client_name: "Test family app",
+      redirect_uris: [FAMILY_REDIRECT],
     },
   }));
 });
@@ -242,8 +242,8 @@ test("a client wanting account:email from an account with no address goes the co
   // account:email is a family app's to ask for.
   const q = {
     ...authQuery("cr:read account:email"),
-    client_id: clanId,
-    redirect_uri: CLAN_REDIRECT,
+    client_id: familyId,
+    redirect_uri: FAMILY_REDIRECT,
   };
   const page = await handler(
     event({ method: "GET", path: "/oauth/authorize", query: q, cookie }),
@@ -329,7 +329,7 @@ test("consent by session cannot reach an agent the person does not own", async (
 // ---- family sign-in (2026-10-12) ------------------------------------------
 
 const API = `${ISSUER}/api/v1`;
-const CLAN_SCOPE = "cr:read";
+const FAMILY_SCOPE = "cr:read";
 const DROP_REDIRECT = "https://drop.poapkings.com/api/auth/callback";
 const DROP_SCOPE = "cr:read recordings:write account:email";
 
@@ -359,10 +359,10 @@ async function drop() {
   return dropId;
 }
 
-const clanAsk = (scope = CLAN_SCOPE) => ({
+const familyAsk = (scope = FAMILY_SCOPE) => ({
   ...authQuery(scope),
-  client_id: clanId,
-  redirect_uri: CLAN_REDIRECT,
+  client_id: familyId,
+  redirect_uri: FAMILY_REDIRECT,
   resource: API,
 });
 
@@ -389,7 +389,7 @@ const codesFor = async (id) =>
 test("a family app signs a signed-in person straight back in, with no page", async () => {
   for (const [label, ask, redirect] of [
     ["Elixir Drop", await dropAsk(), DROP_REDIRECT],
-    ["Elixir Clan", clanAsk(), CLAN_REDIRECT],
+    ["Test family app", familyAsk(), FAMILY_REDIRECT],
   ]) {
     // No grant to the app yet: the first sign-in is spared the page too.
     const p = await newPerson();
@@ -499,7 +499,7 @@ test("a family app acting as an agent keeps its page", async () => {
     [p.id],
   );
   const res = await authorize(
-    { ...clanAsk("cr:read"), resource: `${ISSUER}/a/familybot/mcp` },
+    { ...familyAsk("cr:read"), resource: `${ISSUER}/a/familybot/mcp` },
     p.cookie,
   );
   assert.equal(res.statusCode, 200, res.body);
