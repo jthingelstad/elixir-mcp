@@ -53,17 +53,13 @@ test("Clan auth retirement previews and refuses another app, stale client, disab
   ])
     await assert.rejects(familyClientsOn(scratch.db, { retire_app: body }));
   await assert.rejects(
-    familyClientsOn(
-      scratch.db,
-      {
-        retire_app: {
-          ...spec.retire_app,
-          apply: true,
-          snapshot_sha256: digest,
-        },
+    familyClientsOn(scratch.db, {
+      retire_app: {
+        ...spec.retire_app,
+        apply: true,
+        snapshot_sha256: digest,
       },
-      { clanInternal: true },
-    ),
+    }),
     /receipt/,
   );
 });
@@ -80,9 +76,7 @@ test("after checked import, retirement expires only Clan and revokes its grants 
       apply: true,
     },
   };
-  const result = await familyClientsOn(scratch.db, spec, {
-    clanInternal: true,
-  });
+  const result = await familyClientsOn(scratch.db, spec);
   assert.equal(result.retire_app.grants, 1);
   assert.equal(result.retire_app.codes, 1);
   assert.equal(await getClient(scratch.db, clanId), null);
@@ -121,11 +115,7 @@ test("after checked import, retirement expires only Clan and revokes its grants 
     ).rows[0].used,
     false,
   );
-  assert.equal(
-    (await familyClientsOn(scratch.db, spec, { clanInternal: true })).retire_app
-      .grants,
-    0,
-  );
+  assert.equal((await familyClientsOn(scratch.db, spec)).retire_app.grants, 0);
   assert.equal(
     (
       await scratch.db.query(
@@ -172,18 +162,14 @@ test("an in-flight authorization mint cannot escape the retirement sweep", async
   });
   await peer.connect();
   try {
-    const retirement = familyClientsOn(
-      wrapped,
-      {
-        retire_app: {
-          app: "clan",
-          expected_client_id: clanId,
-          snapshot_sha256: digest,
-          apply: true,
-        },
+    const retirement = familyClientsOn(wrapped, {
+      retire_app: {
+        app: "clan",
+        expected_client_id: clanId,
+        snapshot_sha256: digest,
+        apply: true,
       },
-      { clanInternal: true },
-    );
+    });
     await ready;
     const mint = mintTokens(peer, {
       clientId: clanId,

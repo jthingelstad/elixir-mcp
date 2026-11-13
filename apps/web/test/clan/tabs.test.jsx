@@ -8,7 +8,8 @@ import {
   tabOf,
   waitingFor,
 } from "../../src/clan/lib/tabs.js";
-import { parseClanPath } from "../../src/clan/App.jsx";
+import { defaultParseSearch } from "@tanstack/react-router";
+import { parseClanPath, searchText } from "../../src/clan/App.jsx";
 
 const BASE = "/clan/0QC8RCGY";
 const me = (role, extra = {}) => ({
@@ -131,5 +132,18 @@ describe("which tab and page a path is", () => {
     expect(parseClanPath(`${BASE}/today`)).toBeNull();
     expect(parseClanPath(`${BASE}/season`)).toBeNull();
     expect(parseClanPath("/clan/clans")).toBeNull();
+  });
+
+  test("a query value reads back as the text typed, through the app's router", () => {
+    // Clan moves on the app's one navigation, whose router reads a query
+    // string as JSON where it can: a tag or a name that looks like a
+    // number or a word of JSON is still the text.
+    const read = (qs) => defaultParseSearch(qs);
+    expect(searchText(read("?q=2089").q)).toBe("2089");
+    expect(searchText(read("?find=true").find)).toBe("true");
+    expect(searchText(read("?find=null").find)).toBe("null");
+    expect(searchText(read("?q=0QC8RCGY").q)).toBe("0QC8RCGY");
+    expect(searchText(read("?find=King%20Thing").find)).toBe("King Thing");
+    expect(searchText(read("").find)).toBeNull();
   });
 });

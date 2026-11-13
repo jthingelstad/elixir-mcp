@@ -51,6 +51,10 @@ describe("the bar on a page", () => {
   let me;
   beforeEach(() => {
     cleanup();
+    // A signed-out page remembers itself for after sign-in: no test
+    // inherits another's.
+    localStorage.clear();
+    sessionStorage.clear();
     me = { authenticated: false };
     vi.spyOn(console, "error").mockImplementation(() => {});
     global.fetch = vi.fn(async (path) => {
@@ -233,6 +237,20 @@ describe("the bar on a page", () => {
       window.history.pushState({}, "", "/signin");
       render(<App />);
       await waitFor(() => expect(window.location.pathname).toBe("/home"));
+    },
+  );
+
+  test(
+    "a signed-in reader with a page remembered goes on to it, once",
+    { timeout: 20000 },
+    async () => {
+      me = { authenticated: true, email: "reader@example.test", signals: {} };
+      window.history.pushState({}, "", "/signin?return_to=/home/you");
+      render(<App />);
+      await waitFor(() => expect(window.location.pathname).toBe("/home/you"));
+      // Nothing is left to send a later visit anywhere but Home.
+      expect(localStorage.getItem("elixir.after_sign_in")).toBeNull();
+      expect(sessionStorage.getItem("elixir.after_sign_in")).toBeNull();
     },
   );
 

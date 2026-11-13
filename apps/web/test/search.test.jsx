@@ -30,7 +30,6 @@ const ME = {
     { player_tag: "#020PJ8L", relationship: "alt", name: "Fixture Alt" },
     { player_tag: "#02PQCV", relationship: "friend", nickname: "Pal" },
   ],
-  features: { clan_internal: true },
 };
 const CLANS = {
   home_clan: { clan_tag: "#0QC8RCGY", name: "Example Clan" },
@@ -72,10 +71,6 @@ describe("every name opens the player page (#764)", () => {
     });
     expect(doorFor("#09G9U", s).href).toBe("/home/player/09G9U");
     expect(doorFor("#0U0G", s).href).toBe("/home/player/0U0G");
-  });
-  test("with Clan off, a clanmate still opens the player page", () => {
-    const s = sources({ me: { ...ME, features: {} } });
-    expect(doorFor("#09G9U", s).href).toBe("/home/player/09G9U");
   });
   test("a searched player's row carries tag, clan and trophies", () => {
     expect(
@@ -167,11 +162,8 @@ describe("a deck hash or a war week", () => {
       });
     },
   );
-  test("with no home clan, or no Clan, a week opens nothing", () => {
+  test("with no home clan, a week opens nothing", () => {
     expect(typedGroups("S135 W3", sources({ clans: {} }))).toEqual([]);
-    expect(
-      typedGroups("S135 W3", sources({ me: { ...ME, features: {} } })),
-    ).toEqual([]);
   });
   test("a plain miss stays a miss", () => {
     expect(typedGroups("zzzz", sources())).toEqual([]);

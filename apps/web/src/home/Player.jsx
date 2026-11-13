@@ -17,7 +17,7 @@ import {
   useClock,
   useFlash,
 } from "@elixir-mcp/ui";
-import { useMe, useNav } from "../App.jsx";
+import { useNav } from "../App.jsx";
 import { trackEvent } from "../analytics.js";
 import { ladderHref } from "../ladder/ladder.js";
 import { followMeHref, playerHref } from "../lib/player.js";
@@ -113,7 +113,6 @@ export function PlayerView({
   initialTab = "timeline",
   self = false,
 }) {
-  const { me } = useMe();
   const nav = useNav();
   const [tab, setTab] = useState(
     OWN_TABS.has(initialTab) ? initialTab : "timeline",
@@ -123,11 +122,10 @@ export function PlayerView({
   // your clan's member, in the last week.
   const cheered = usePageCheered({ player: p.tag });
   const you = page.you;
-  const clanOpen = me?.features?.clan_internal === true;
   // Your page (You) never draws it. Another of your players does, when it
   // is not the one you act as in that clan: that one's place in Clan is
   // its own page there (Codex on #831).
-  const clanEntry = useClanOf(p.clan_tag, clanOpen && !self);
+  const clanEntry = useClanOf(p.clan_tag, !self);
   const inClan =
     clanEntry.clan && clanEntry.clan.acting_as === p.tag
       ? { clan: null, pending: false }

@@ -350,8 +350,6 @@ export async function handler(event, context) {
     return { skipped: "retired" };
 
   if (event?.clan_evaluate) {
-    if (process.env.CLAN_INTERNAL !== "true")
-      return { skipped: "clan_not_internal" };
     const result = await runClanEvaluation({
       databaseUrl: process.env.DATABASE_URL,
       enqueue: enqueueEmail,

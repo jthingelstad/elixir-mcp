@@ -60,11 +60,7 @@ export async function familyClients(databaseUrl, spec = {}) {
   }
 }
 
-export async function familyClientsOn(
-  db,
-  spec = {},
-  { clanInternal = process.env.CLAN_INTERNAL === "true" } = {},
-) {
+export async function familyClientsOn(db, spec = {}) {
   if (spec.retire_app) {
     const {
       app,
@@ -76,13 +72,8 @@ export async function familyClientsOn(
     // family-client kill switch (Drop remains an active integration).
     if (app !== "clan" || !validClientId(expected))
       throw new Error("Clan retirement needs its exact provisioned client id");
-    if (
-      apply === true &&
-      (!clanInternal || !/^[a-f0-9]{64}$/.test(snapshot ?? ""))
-    )
-      throw new Error(
-        "Clan retirement requires the active shared runtime and import digest",
-      );
+    if (apply === true && !/^[a-f0-9]{64}$/.test(snapshot ?? ""))
+      throw new Error("Clan retirement requires the import digest");
     await db.query("begin");
     try {
       const current = (

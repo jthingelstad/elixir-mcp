@@ -53,13 +53,11 @@ export function readable(q) {
 export function searchSources({ me, clans, roster, cards }) {
   const claims = me?.claims ?? [];
   const home = clans?.home_clan ?? null;
-  const clanOpen = me?.features?.clan_internal === true;
   const mates = new Map((roster?.members ?? []).map((m) => [m.player_tag, m]));
   return {
     own: claims.filter((c) => c.is_primary || c.relationship === "alt"),
     following: claims.filter((c) => !c.is_primary && c.relationship !== "alt"),
     home,
-    clanOpen,
     staff: me?.is_admin === true,
     mates,
     clans: clans?.clans ?? [],
@@ -108,7 +106,7 @@ export function doorFor(tag, s, name = tag, detail = null) {
  *  that runs on Elixir is found by its rules (the Console's clan record
  *  folded, 2026-11-12). */
 function clanRow(clan, s, name = clan.name ?? clan.clan_tag) {
-  const mine = s.clanOpen && s.home?.clan_tag === clan.clan_tag;
+  const mine = s.home?.clan_tag === clan.clan_tag;
   return mine
     ? { t: name, d: "Clan", href: `/clan/${tagPath(clan.clan_tag)}` }
     : { t: name, d: "Clan directory", href: "/clan/directory" };
@@ -157,7 +155,7 @@ const MEANS_DIRECTORY = /director|find|join|recruit|clans?\b/;
  *  the deck record retired. */
 function lookupRows(raw, s) {
   const week = WEEK_RE.exec(String(raw ?? "").trim());
-  if (!week || !s.clanOpen || !s.home?.clan_tag) return [];
+  if (!week || !s.home?.clan_tag) return [];
   return [
     {
       t: `Season ${Number(week[1])}, week ${Number(week[2])}`,

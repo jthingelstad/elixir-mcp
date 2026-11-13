@@ -11,12 +11,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Outlet,
-  useLocation,
-  useNavigate,
-  useParams,
-} from "@tanstack/react-router";
+import { Outlet, useLocation, useParams } from "@tanstack/react-router";
 import { ErrorBoundary, FeedbackSheet } from "@elixir-mcp/ui";
 import { api, feedbackApi } from "./api.js";
 import { keys, useDirectory, useMeQuery } from "./lib/queries.js";
@@ -54,6 +49,7 @@ import { MembersBack } from "./views/Members.jsx";
 import { VerifyPlayer } from "../components/VerifyPlayer.jsx";
 import { Unavailable } from "../shell/Unavailable.jsx";
 import { SETTINGS } from "../lib/settings.js";
+import { useNav } from "../App.jsx";
 // The clan map brings Leaflet and the place lists: loaded when opened.
 const ClanMap = lazy(() =>
   import("./views/ClanMap.jsx").then((m) => ({ default: m.ClanMap })),
@@ -114,21 +110,11 @@ export function clanFromPath(path, clans = []) {
   return clans.find((c) => c.clan_tag === parsed.tag) ?? null;
 }
 
-/** `navigate(to)` for the views: a path, with a query string riding
- *  along (`/clan/directory?q=...`). */
-function useNav() {
-  const nav = useNavigate();
-  return useCallback(
-    (to, options = {}) => {
-      const [pathname, qs] = String(to).split("?");
-      return nav({
-        to: pathname,
-        search: qs ? Object.fromEntries(new URLSearchParams(qs)) : {},
-        ...options,
-      });
-    },
-    [nav],
-  );
+/** A query value as text. The app's router reads a query string as JSON
+ *  where it can (`?q=2089` is the number 2089, `?find=true` a boolean), so
+ *  a searched tag or a member's name is read back as the text typed. */
+export function searchText(value) {
+  return value === undefined ? null : String(value);
 }
 
 /** The person's clans, as a query on ["me", "clan"], under the app's
@@ -207,7 +193,7 @@ export function DirectoryPage() {
     <Directory
       state={state}
       onRetry={() => load()}
-      query={typeof search.q === "string" ? search.q : ""}
+      query={searchText(search.q) ?? ""}
     />
   );
 }
@@ -245,11 +231,11 @@ export function ClanPage() {
     name: clan.acting_as_name,
     role: clan.role,
   };
-  const find = typeof search.find === "string" ? search.find.slice(0, 100) : "";
+  const find = (searchText(search.find) ?? "").slice(0, 100);
   const { section, tab } = parsed;
   if (section === "feed") {
     // A roster search at the clan's old bare address names the roster.
-    if (typeof search.find === "string")
+    if (searchText(search.find) !== null)
       return (
         <Replace
           to={`${base}/members?${new URLSearchParams({ find })}`}

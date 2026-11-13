@@ -227,11 +227,8 @@ test("every database-facing Lambda names its connections and bounds its statemen
       logicalId,
     );
     const timeoutMatch = /^ +(?:Timeout|TimeoutSeconds): (\d+)$/m.exec(block);
-    const timeouts = timeoutMatch ? [Number(timeoutMatch[1])] : [20, 30];
-    if (!timeoutMatch) {
-      assert.equal(logicalId, "WebApiWebRevision");
-      assert.match(block, /^      Timeout: !If \[HasInternalClan, 30, 20\]$/m);
-    }
+    assert.ok(timeoutMatch, `${logicalId} states its timeout`);
+    const timeouts = [Number(timeoutMatch[1])];
     const options = /^          PGOPTIONS: "(.+)"$/m.exec(block)?.[1] ?? "";
     const statement = /-c statement_timeout=(\d+)s\b/.exec(options);
     assert.ok(statement, `${logicalId} sets statement_timeout`);
@@ -1312,10 +1309,6 @@ test("Clan always uses the shared account door and never falls back to the retir
   assert.doesNotMatch(
     template,
     /ClanApiOriginRequestPolicy|ClanApiDomain|Id: clanapi|Id: clanweb/,
-  );
-  assert.match(
-    resource(template, "ClanInternal", "HasInternalClan"),
-    /Default: "true"/,
   );
   // Clan's own feedback lane retired into the one system (0204).
   assert.doesNotMatch(template, /ClanMaintainerTags|CLAN_MAINTAINER_TAGS/);

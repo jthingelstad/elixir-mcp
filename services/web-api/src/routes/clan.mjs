@@ -51,10 +51,9 @@ const SIGNED_IN = [
   "DELETE /api/clan/**",
 ];
 
-/** `clan` is the request adapter (`createClanRequest`); null = Clan is
- *  off (`ClanInternal`), and none of its routes exist. */
+/** `clan` is the request adapter (`createClanRequest`). Clan is part of
+ *  Elixir: its routes always exist. */
 export function clanRoutes({ clan, resolvePerson }) {
-  if (!clan) return {};
   async function signedIn(db, event, body) {
     const method = event.method ?? "GET";
     const person = await resolvePerson(db, event, {

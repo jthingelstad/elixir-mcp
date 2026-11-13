@@ -1,7 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, clanTab, mockApi, signedIn } from "./fixtures.ts";
-import { ME as ACCOUNT } from "../fixtures.ts";
 import {
   FIELDS,
   GROUPS,
@@ -1146,48 +1145,35 @@ test("one application and account survive Home and Clan navigation at phone, tab
   expect(selects.every((r) => r.client === "web")).toBe(true);
 });
 
-test("before cutover Clan links leave Home for the legacy document", async ({
+test("Clan moves on the app's one navigation: a return link, the active place, a search and Back", async ({
   page,
 }) => {
-  await mockApi(
-    page,
-    signedIn({
-      "GET /api/me": [200, { ...ACCOUNT, features: { clan_internal: false } }],
-    }),
-  );
-  await page.route("**/clan", (route) =>
-    route.fulfill({
-      contentType: "text/html",
-      body: "<html><body><h1>Legacy Clan door</h1></body></html>",
-    }),
-  );
-  await page.goto("/home");
-  await page
-    .locator("header")
-    .getByRole("link", { name: "Clan", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Legacy Clan door" }),
-  ).toBeVisible();
-});
-
-test("already signed-in return links also use the legacy Clan door before cutover", async ({
-  page,
-}) => {
-  await mockApi(
-    page,
-    signedIn({
-      "GET /api/me": [200, { ...ACCOUNT, features: { clan_internal: false } }],
-    }),
-  );
-  await page.route("**/clan", (route) =>
-    route.fulfill({
-      contentType: "text/html",
-      body: "<html><body><h1>Legacy Clan return</h1></body></html>",
-    }),
-  );
+  await mockApi(page, signedIn());
+  // Signed in already, a return link to Clan opens Clan's page: here the
+  // chooser, since no clan is open yet.
   await page.goto("/signin?return_to=/clan");
+  await expect(page).toHaveURL(/\/clan\/?$/);
+  await page.getByText("Example Clan", { exact: true }).first().click();
+  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
+  // The bar marks Clan as the place you are in.
   await expect(
-    page.getByRole("heading", { name: "Legacy Clan return" }),
-  ).toBeVisible();
+    page.locator("header").locator("a[aria-current]"),
+  ).toHaveAccessibleName(/^Clan$/);
+  // A roster search is an address: a name that reads as a number stays
+  // the text typed, through the address, a reload and Back.
+  await clanTab(page, /^Members/).click();
+  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/members$/);
+  const find = page.getByRole("searchbox", { name: "Find a member" });
+  await find.fill("2089");
+  await find.press("Enter");
+  await expect(page).toHaveURL(/\/members\?find=2089$/);
+  await expect(find).toHaveValue("2089");
+  await page.reload();
+  await expect(find).toHaveValue("2089");
+  await find.fill("");
+  await find.press("Enter");
+  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/members$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/members\?find=2089$/);
+  await expect(find).toHaveValue("2089");
 });

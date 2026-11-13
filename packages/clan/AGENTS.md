@@ -104,9 +104,10 @@ client is a defect to remove.
   Acting from Discord (deciding an Action, marking away) is deliberately
   undecided; until it is decided, every write happens in Elixir, and
   nothing here should be built or documented as if it were coming.
-- **`ClanInternal`** (stack parameter, `CLAN_INTERNAL`) is the feature
-  switch. Turning it off disables Clan's API and morning run; it never
-  resumes another runtime.
+- **No switch.** Clan's routes, morning run and permissions are always
+  on, like every other section, and Clan moves on the app's one
+  navigation (`useNav` in `apps/web/src/App.jsx`). The removed stack
+  switch is held off by `docs/no-clan-switch.test.mjs`.
 - Live repair goes through the IAM-only `{clan_maintenance}` migrate op
   (`.claude/skills/ops/`); sealed key items have no maintenance read path.
 
