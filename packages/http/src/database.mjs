@@ -14,13 +14,22 @@ function connectFailedToOpen(error) {
 }
 
 /** A process-local pool; a lease belongs to one request until cleanup completes.
- * Never return an abandoned query/transaction to another request. */
-export function makeDatabase({ connectionString, max = 4, pool = null }) {
+ * Never return an abandoned query/transaction to another request.
+ * `connectionTimeoutMillis` is the doors' 2.5 s everywhere but a test
+ * that drives whole pages through a real database (apps/web's account
+ * journeys, #963): there a request queued behind a page's burst on a
+ * loaded host must wait for its turn, not answer 503. */
+export function makeDatabase({
+  connectionString,
+  max = 4,
+  pool = null,
+  connectionTimeoutMillis = 2500,
+}) {
   pool ??= new pg.Pool({
     connectionString,
     max,
     allowExitOnIdle: true,
-    connectionTimeoutMillis: 2500,
+    connectionTimeoutMillis,
     // An idle connection is kept 120 s (2026-10-21). At 30 s, 62% of
     // web-api's routed requests in the week to 10-21 waited for a fresh
     // one (TLS and auth, about 50 ms). Replayed through this pool, 120 s

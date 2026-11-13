@@ -1,15 +1,24 @@
 /** Successful journeys use the real API and a per-run scratch database.
  * Only the HTTP transport is adapted; requests go through session/CSRF
  * resolution, route dispatch, SQL, JSON serialization and the browser client.
+ *
+ * No step here races a clock (#963). Each page fires a burst of reads (up
+ * to nine at once) at a pool of DB_POOL_MAX connections, so how long a step
+ * takes is the host's business: on a loaded one it took past every bound
+ * this file used to set, and the pool's 2.5 s connect bound turned a
+ * queued read into a 503, which the client retried once and then showed as
+ * an error the wait could never find. Now a queued read waits its turn,
+ * every wait is for its condition (`until`), and any 5xx or failed section
+ * ends the test at once with what failed. The timeouts left are hang
+ * guards, never latency bounds.
  */
 import { test, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import {
   render,
   screen,
   fireEvent,
-  waitFor,
   cleanup,
-  configure,
+  act,
   within,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
@@ -17,18 +26,19 @@ import { App } from "../src/App.jsx";
 import "./warm-routes.js";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { makeHandler } from "../../../services/web-api/src/handler.mjs";
+import { makeDatabase } from "../../../packages/http/src/database.mjs";
 import { createSession, emailHash } from "../../../packages/auth/src/index.mjs";
 import { warmPools } from "../../../services/web-api/test/warm-pools.mjs";
 
-// These assertions include real PostgreSQL round trips, not resolved mocks.
-// Bound the wait, but do not turn Testing Library's unit-test default (1s)
-// into an accidental latency SLO for shared CI runners.
-configure({ asyncUtilTimeout: 5000 });
+/** A hang guard for a test or hook: nothing below waits on time. */
+const HANG = 600_000;
 let scratch, handler, cookie, accountId;
 const pending = new Set();
-// The scratch database runs every migration, and CREATE DATABASE queues
-// behind any other on the host: 15 s missed on a host running several
-// verify passes at once (2026-10-21). A bound, not a latency target.
+/** Every 5xx the API answered, as "METHOD path status". */
+const failures = [];
+// The scratch database is a clone of the migrated template, and CREATE
+// DATABASE queues behind any other on the host (several verify runs at
+// once): a queue, so its bound is a hang guard.
 beforeAll(async () => {
   scratch = await scratchDb("ui_journeys");
   const hash = emailHash("journeys@example.com");
@@ -49,45 +59,55 @@ beforeAll(async () => {
   ).replace(/\/postgres$/, `/${scratch.db.connectionParameters.database}`);
   handler = makeHandler({
     databaseUrl,
+    // The run's pool size, with no bound on waiting for a connection: a
+    // page's burst queues on it, and on a loaded host the doors' 2.5 s
+    // bound answered the tail of the queue 503 (reproduced by slowing
+    // every query 120 ms: a 503 and a 21 s journey).
+    database: makeDatabase({
+      connectionString: databaseUrl,
+      max: Number(process.env.DB_POOL_MAX ?? 4),
+      connectionTimeoutMillis: 0,
+    }),
     secret: "scratch-only",
     sendLoginEmail: async () => {},
   });
-  // The pool opens here, not on a page's first burst of requests: a new
-  // connection took 1.2 s of a 5.1 s POST /api/claims on a loaded host
-  // (2026-11-13), inside the 5 s wait below.
+  // The pool opens here, not on a page's first burst of requests.
   await warmPools([handler]);
   vi.stubGlobal("fetch", (path, init = {}) => {
     const url = new URL(path, "http://localhost");
+    const method = init.method ?? "GET";
     const promise = handler({
       path: url.pathname,
       queryStringParameters: Object.fromEntries(url.searchParams),
-      method: init.method ?? "GET",
+      method,
       headers: {
         ...init.headers,
         ...(init.credentials === "same-origin" ? { cookie } : {}),
       },
       body: init.body,
-    }).then((r) => ({
-      ok: r.statusCode >= 200 && r.statusCode < 300,
-      status: r.statusCode,
-      text: async () => r.body,
-      json: async () => JSON.parse(r.body),
-    }));
+    }).then((r) => {
+      if (r.statusCode >= 500)
+        failures.push(`${method} ${url.pathname} ${r.statusCode}`);
+      return {
+        ok: r.statusCode >= 200 && r.statusCode < 300,
+        status: r.statusCode,
+        text: async () => r.body,
+        json: async () => JSON.parse(r.body),
+      };
+    });
     pending.add(promise);
     promise.finally(() => pending.delete(promise));
     return promise;
   });
-}, 60000);
+}, HANG);
 afterEach(async () => {
   cleanup();
   await Promise.all([...pending]);
+  expect(failures.splice(0)).toEqual([]);
 });
-// Dropping the scratch database waits for its connections to close, which
-// outlasts vitest's 10 s default when the whole suite runs side by side;
-// it gets the same minute as the setup.
 // The handler's pool closes first: `drop database ... with (force)`
 // otherwise terminates its idle connections under it, and each one
-// logged a db_pool_error at the end of every run. A test that timed out
+// logged a db_pool_error at the end of every run. A test that failed
 // can leave a request holding a client, and pool.end() waits for every
 // client to come back, so the close gets 5 s; the forced drop then ends
 // whatever is still open.
@@ -102,23 +122,50 @@ afterAll(async () => {
   ]);
   clearTimeout(timer);
   await scratch?.drop();
-}, 60000);
+}, HANG);
+
+/** Wait for a condition, however long the host takes: `check` is tried
+ *  after each turn of the page (its reads answered, React flushed) until
+ *  it returns without throwing. A 5xx from the API or a section that
+ *  failed to render can never turn into the condition, so either ends the
+ *  wait at once, naming it. */
+async function until(check) {
+  for (;;) {
+    if (failures.length)
+      throw new Error(`the API answered ${failures.join(", ")}`);
+    if (screen.queryByText(/This section failed to render/))
+      throw new Error("a section failed to render");
+    try {
+      return await check();
+    } catch (error) {
+      if (failures.length) continue;
+      await act(async () => {
+        await Promise.all([...pending]);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+      if (!(error instanceof Error)) throw error;
+    }
+  }
+}
 async function clickReady(name) {
-  const button = await screen.findByRole("button", { name, exact: true });
   // A committed DB write can precede delivery of its HTTP response. Wait for
   // the page to finish the operation before the next user action.
-  await waitFor(() => expect(button.disabled).toBe(false));
+  const button = await until(() => {
+    const b = screen.getByRole("button", { name, exact: true });
+    expect(b.disabled).toBe(false);
+    return b;
+  });
   fireEvent.click(button);
 }
 /** The named button in the open question: a mis-click only ever gets here. */
 async function confirmIt(name) {
-  const dialog = await waitFor(() => {
+  const dialog = await until(() => {
     const d = document.querySelector("dialog.kit-confirm");
     expect(d).toBeTruthy();
     return d;
   });
   fireEvent.click(within(dialog).getByRole("button", { name, hidden: true }));
-  await waitFor(() =>
+  await until(() =>
     expect(document.querySelector("dialog.kit-confirm")).toBeNull(),
   );
 }
@@ -129,25 +176,15 @@ function open(path) {
 
 test(
   "a player claim and first captured snapshot become a usable first question",
-  { timeout: 20000 },
+  { timeout: HANG },
   async () => {
     // Home's first step and Tracking offer the same field; this journey
     // uses Tracking, which manages what you track from then on.
     open("/settings/players");
-    // The page waits on /api/me, the run's first read of the scratch
-    // database: on a shared host under load it took 5.6 s, past findBy's
-    // five, so it waits for the read as Connections does below.
-    const input = await screen.findByLabelText(
-      "Player tag",
-      {},
-      { timeout: 10_000 },
-    );
+    const input = await until(() => screen.getByLabelText("Player tag"));
     fireEvent.change(input, { target: { value: "#00J" } });
     fireEvent.click(input.closest("form").querySelector("button"));
-    // The claim is a write to the scratch database and a re-read; under a
-    // full verify it outlasted findBy's default (2026-11-13), so it waits
-    // as the first read does.
-    await screen.findByText("#00J", {}, { timeout: 10_000 });
+    await until(() => screen.getByText("#00J"));
     expect(
       (
         await scratch.db.query(
@@ -163,7 +200,7 @@ test(
     // evidence, and the line says when it was taken.
     cleanup();
     open("/settings/players/00J");
-    await screen.findByText(/^read /);
+    await until(() => screen.getByText(/^read /));
     // Consent is fixture setup on the scratch DB; the UI consumes the real
     // connection and readiness responses after returning from OAuth.
     await scratch.db.query(
@@ -176,22 +213,24 @@ test(
     // The starter questions moved to Connections, which is where a
     // connection is the thing you are working on.
     fireEvent.click(screen.getByRole("link", { name: /Connections/ }));
-    // The page reads the scratch database: under the whole suite's load
-    // that can take past findBy's one second, so it waits for the read.
-    await screen.findByText("Test client", {}, { timeout: 10_000 });
-    await screen.findByText(/AI client you connected/);
-    await screen.findByRole("heading", { name: "Try asking…" });
+    await until(() => screen.getByText("Test client"));
+    await until(() => screen.getByText(/AI client you connected/));
+    await until(() => screen.getByRole("heading", { name: "Try asking…" }));
     const copy = vi.fn().mockResolvedValue();
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: copy },
     });
     fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Copy question: Start with your latest profile",
-      }),
+      await until(() =>
+        screen.getByRole("button", {
+          name: "Copy question: Start with your latest profile",
+        }),
+      ),
     );
-    await screen.findByText("Copied. Paste into your connected client.");
+    await until(() =>
+      screen.getByText("Copied. Paste into your connected client."),
+    );
     expect(copy.mock.calls[0][0]).toContain("#00J");
     expect(
       (
@@ -207,33 +246,29 @@ test(
 
 test(
   "create an agent, open its detail, rotate its key, suspend, remove and resume it",
-  { timeout: 20000 },
+  { timeout: HANG },
   async () => {
     await scratch.db.query(
       "insert into account_clan (account_id,clan_tag,scope) values ($1,'#0GG','comprehensive')",
       [accountId],
     );
     open("/settings/connections");
-    // The page waits on the run's reads of the scratch database; under a
-    // full verify that outlasted findBy's default (2026-11-13).
     fireEvent.click(
-      await screen.findByRole(
-        "button",
-        { name: "New agent" },
-        { timeout: 10_000 },
-      ),
+      await until(() => screen.getByRole("button", { name: "New agent" })),
     );
-    fireEvent.change(await screen.findByLabelText("Name"), {
+    fireEvent.change(await until(() => screen.getByLabelText("Name")), {
       target: { value: "journey-agent" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create agent" }));
-    await screen.findByText(/Copy this key now\./);
+    await until(() => screen.getByText(/Copy this key now\./));
     // New agent opened in place, and the key is shown there, once.
     expect(window.location.pathname).toBe("/settings/connections");
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
     // Open is the agent's page in Settings, at its public id.
-    fireEvent.click(await screen.findByRole("link", { name: /journey-agent/ }));
-    await screen.findByText("News it hasn't read");
+    fireEvent.click(
+      await until(() => screen.getByRole("link", { name: /journey-agent/ })),
+    );
+    await until(() => screen.getByText("News it hasn't read"));
     const publicId = window.location.pathname.split("/")[3];
     expect(window.location.pathname).toBe(
       `/settings/agents/${publicId}/overview`,
@@ -253,7 +288,7 @@ test(
     fireEvent.click(screen.getByRole("tab", { name: "Settings" }));
     await clickReady("Issue a new key");
     await confirmIt("Issue a new key");
-    await waitFor(async () => {
+    await until(async () => {
       const {
         rows: [keys],
       } = await scratch.db.query(
@@ -264,7 +299,9 @@ test(
     });
     await clickReady("Suspend");
     await confirmIt("Suspend");
-    await screen.findByRole("button", { name: "Resume", exact: true });
+    await until(() =>
+      screen.getByRole("button", { name: "Resume", exact: true }),
+    );
     expect(
       (
         await scratch.db.query(
@@ -276,7 +313,9 @@ test(
     // A suspended agent can be removed from view (0215): out of the
     // Agents list into its folded Removed list, deleting nothing.
     await clickReady("Remove");
-    await screen.findAllByRole("button", { name: "Restore", exact: true });
+    await until(() =>
+      screen.getAllByRole("button", { name: "Restore", exact: true }),
+    );
     const removedAt = async () =>
       (
         await scratch.db.query(
@@ -287,20 +326,24 @@ test(
     expect(await removedAt()).not.toBeNull();
     cleanup();
     open("/settings/connections");
-    await screen.findByText("Removed agents (1)");
+    await until(() => screen.getByText("Removed agents (1)"));
     expect(screen.queryByText("Open ›")).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: "journey-agent" }));
     // Restore brings it back among the agents, still suspended.
-    await waitFor(() =>
+    await until(() =>
       expect(window.location.pathname).toBe(
         `/settings/agents/${publicId}/settings`,
       ),
     );
-    const restore = await screen.findAllByRole("button", { name: "Restore" });
+    const restore = await until(() =>
+      screen.getAllByRole("button", { name: "Restore" }),
+    );
     fireEvent.click(restore[0]);
-    await waitFor(async () => expect(await removedAt()).toBeNull());
+    await until(async () => expect(await removedAt()).toBeNull());
     await clickReady("Resume");
-    await screen.findByRole("button", { name: "Suspend", exact: true });
+    await until(() =>
+      screen.getByRole("button", { name: "Suspend", exact: true }),
+    );
     expect(
       (
         await scratch.db.query(
@@ -322,7 +365,7 @@ test(
  */
 test(
   "a connection's capabilities can be widened and narrowed in place",
-  { timeout: 20000 },
+  { timeout: HANG },
   async () => {
     await scratch.db.query(
       `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
@@ -340,10 +383,10 @@ test(
     // page names scopes in more than one place, so assert on the row itself.
     // Other journeys in this file leave their own connections behind, so every
     // query is scoped to THIS row rather than the whole page.
-    const rowFor = async (client) =>
-      (await screen.findByText(client)).closest(".kit-row");
+    const rowFor = (client) =>
+      until(() => screen.getByText(client).closest(".kit-row"));
     let row = await rowFor("Claude");
-    await waitFor(() => expect(row.textContent).toContain("cr:read"));
+    await until(() => expect(row.textContent).toContain("cr:read"));
     expect(row.textContent).not.toContain("feedback:write");
 
     fireEvent.click(within(row).getByRole("button", { name: "Edit" }));
@@ -360,14 +403,14 @@ test(
     fireEvent.click(within(row).getByRole("button", { name: "Save" }));
 
     // Persisted, in canonical order, and reflected back on the page.
-    await waitFor(async () => {
+    await until(async () => {
       const { rows } = await scratch.db.query(
         `select scope from oauth_family where client_id = 'ui-scope'`,
       );
       expect(rows[0].scope).toBe("cr:read feedback:write");
     });
     row = await rowFor("Claude");
-    await waitFor(() =>
+    await until(() =>
       expect(row.textContent).toContain("cr:read feedback:write"),
     );
 
@@ -377,12 +420,11 @@ test(
       within(row).getByRole("checkbox", { name: /feedback:write/ }),
     );
     fireEvent.click(within(row).getByRole("button", { name: "Save" }));
-    await waitFor(async () => {
+    await until(async () => {
       const { rows } = await scratch.db.query(
         `select scope from oauth_family where client_id = 'ui-scope'`,
       );
       expect(rows[0].scope).toBe("cr:read");
     });
   },
-  20000,
 );
