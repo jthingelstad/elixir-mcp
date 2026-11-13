@@ -133,3 +133,14 @@ Follow selector keeps its touch target (Codex on #865).
 | `.grid2` follows | `.kit-pfollows` |
 | the post article, `.nums` | `.kit-post`, `.kit-nums` |
 | join card | `.kit-cta` (the Invite wording kept) |
+
+## Settings and the signed-out pages (design-settings)
+
+| Canvas | Kit |
+| --- | --- |
+| `.setrow` (title over its line) | `Facts stacked` (`dl.st-facts.st-facts--rows`) on What members see |
+| Signup `.panel`, `.label`, `.inp`, `.btn.gold.wide` | `.kit-door`, `.kit-door .field-label`, `.kit-door__input` (`--code`), `.kit-door__go`; `.kit-door--warn` for a failed link |
+| App `.gate` | `.home-gate`, `.home-gate__col`, `.home-gate__ways` (stacked, 330px), the mark above a gold `.home-title` |
+
+The sign-in card's style objects became these classes, 25 fewer inline
+styles; the ratchet in `apps/web/test/inline-styles.test.js` now holds 158.

@@ -59,6 +59,7 @@ export function Seen({ me }) {
       />
       <Panel title="Members who are signed in" titleAs="h2">
         <Facts
+          stacked
           rows={[
             [
               "Your players’ games",
@@ -148,6 +149,7 @@ export function Seen({ me }) {
       </Panel>
       <Panel title="Someone with a link you send" titleAs="h2">
         <Facts
+          stacked
           rows={[
             [
               "A battle link",
@@ -186,6 +188,7 @@ export function Seen({ me }) {
       </Panel>
       <Panel title="Only you, or nobody" titleAs="h2">
         <Facts
+          stacked
           rows={[
             [
               "Nicknames you give players",

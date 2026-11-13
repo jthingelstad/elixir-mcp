@@ -10,10 +10,11 @@ export function Crumb({ to, children }) {
   );
 }
 
-/** Label and value rows inside a panel. A phone stacks them. */
-export function Facts({ rows }) {
+/** Label and value rows inside a panel. A phone stacks them. `stacked`
+ *  draws each as a titled row (canvas .setrow): the label over its value. */
+export function Facts({ rows, stacked = false }) {
   return (
-    <dl className="st-facts">
+    <dl className={stacked ? "st-facts st-facts--rows" : "st-facts"}>
       {rows.filter(Boolean).map(([label, value]) => (
         <Fragment key={label}>
           <dt>{label}</dt>
