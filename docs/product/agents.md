@@ -47,7 +47,7 @@ an extension of the recorder, not a requirement. [Jamie, VISION, about]
    recommend from those facts; the suggestion is theirs, never presented
    as Elixir's. [Jamie, 2026-10-02, 2026-10-11]
 2. **Refuse rather than choose.** With no clan given, the primary's
-   current clan or `no_subject`; never an alt's, a friend's or a tracked
+   current clan or `no_subject`; never an alt's, a friend's or a followed
    clan. Segment tools name their population: "mine" or exactly one
    player or clan; corpus selectors refuse. [Jamie, 2026-10-02;
    engineering, 2026-09-19]

@@ -159,7 +159,7 @@ saved model. [Jamie, 2026-09-25 to 2026-10-11]
 Clan is part of Elixir: one session, one app, one web API, one Postgres,
 one deploy; its code is `packages/clan*`. It reads Elixir through a
 closed in-process reader with the person's own credential. A verified
-leader or co-leader of a tracked clan earns the Leader tier, so their
+leader or co-leader of a followed clan earns the Leader tier, so their
 clan can be recorded comprehensively, which is what gives Clan fuller
 battle numbers. [Jamie, 2026-10-02, 2026-10-12]
 

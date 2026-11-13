@@ -19,7 +19,7 @@ Design session (#752).*
 
 Most of Elixir answers a question. The timeline is the other direction:
 it tells a person, or their agent, what happened to the players and
-clans they track since they last looked, newest first, like a newsfeed,
+clans they follow since they last looked, newest first, like a newsfeed,
 "written so a person can read it and an agent can act on it." It is the
 notification feed of the record, and the one source every delivery
 surface tells from. [Jamie, 2026-09-13, 2026-09-23]
@@ -37,11 +37,11 @@ lives above it, in the editors. [Jamie, 2026-10-11]
 ## Who it serves
 
 - **A person**, in the console, by mail, and cross-posted to a Discord
-  channel of their own: every player they track with notifications on,
+  channel of their own: every player they follow with notifications on,
   every clan they added. What the console shows as new is its own:
   "timeline should be independent of what agents have seen via MCP."
   [Jamie, 2026-10-20]
-- **An agent**: the clans it tracks (members appear on the clan's
+- **An agent**: the clans it follows (members appear on the clan's
   timeline, never as subjects of their own) and the players it watches.
   Every agent has its own read pointer, and a consumer may name a
   `reader` for a pointer of its own. [Jamie, 2026-09-13, 2026-10-08]

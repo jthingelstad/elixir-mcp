@@ -124,9 +124,9 @@ own key in Clan, or in a person's own agent. [Jamie, 2026-10-12]
 
 ## Open
 
-- A tracked clan whose notifications the reader turned off is outside
+- A followed clan whose notifications the reader turned off is outside
   the digest, so its news no longer reaches that reader by mail, though
-  the clan report went to every tracker: fewer mails, but a change in
+  the clan report went to every follower: fewer mails, but a change in
   who receives, flagged for Jamie in #823.
 - Whether the bell should carry your own firsts, which today reach you
   on the timeline and in the digest (#823).
