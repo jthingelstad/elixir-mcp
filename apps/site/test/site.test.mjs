@@ -918,18 +918,12 @@ test(
   },
 );
 
-test("the protocol requires an explicit segment", () => {
-  const protocol = readFileSync(
-    path.join(repoRoot, "apps/site/src/docs/protocol.md"),
-    "utf8",
-  );
-  assert.match(protocol, /`segment` is required/);
-  assert.ok(
-    !protocol.includes(
-      "| the whole `segment` object | the entire recorded corpus |",
-    ),
-    "the protocol still documents the retired implicit corpus default",
-  );
+test("the docs name no segment argument: it retired in 13.0.0", () => {
+  const docs = path.join(repoRoot, "apps/site/src/docs");
+  for (const file of readdirSync(docs).filter((f) => f.endsWith(".md"))) {
+    const text = readFileSync(path.join(docs, file), "utf8");
+    assert.doesNotMatch(text, /`segment`/, `${file} still documents segment`);
+  }
 });
 
 test("versioned examples follow the generated contract", { skip }, () => {

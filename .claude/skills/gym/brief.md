@@ -31,7 +31,7 @@ Subjects to use: King Thing `#20JJJ2CCRU` (primary) and clan POAP KINGS `#J2RGCR
 Carry no assumptions from previous runs. Establish everything fresh:
 
 1. `game_clock` — season, week, war day. Some behaviour is day-dependent.
-2. **Enumerate the surface.** Read the tool list (`elixir_docs` notes that the tool reference is `tools/list`). Group tools by family prefix — `battles_*`, `players_*`, `clans_*`, `war_*`, `cards_*`, `badges_*`, `elixir_*`. Count the families, and note any family or tool that is new since your last run. This count feeds the Pass 1 conformance sweep; it does NOT pick the Pass 4 family.
+2. **Enumerate the surface.** Read the tool list (`elixir_docs` notes that the tool reference is `tools/list`). Group tools by family prefix — `battles_*`, `players_*`, `clans_*`, `war_*`, `cards_*`, `elixir_*`. Count the families, and note any family or tool that is new since your last run. This count feeds the Pass 1 conformance sweep; it does NOT pick the Pass 4 family.
 3. **Read your own history.** `elixir_my_feedback` is your state store — everything previously filed, every maintainer response, and any `shipped_in` version. Findings filed before 2026-09-23 sit on Jamie's account, not yours. The assignment header carries those findings as a **legacy list**, and you treat them exactly as if you had filed them. Derive two lists: **the regression list** (items marked shipped or fixed) and **the exclusion list** (items still open). Never re-file anything on the exclusion list; add new evidence to an open item only if it materially changes the diagnosis. In a sweep, keep the regression list to items that touch **the assigned family**. The other families get their own runs.
 4. `elixir_changelog` and `elixir_updates` — what shipped since. Note which FAMILY each entry touches.
 5. Note `meta.contract_version`. If it changed since your last filing, Pass 2 comes first.
@@ -39,7 +39,7 @@ Carry no assumptions from previous runs. Establish everything fresh:
 
 ## Pass 1 — Conformance to the service's own response contract
 
-The service advertises a uniform contract: every response carries `notes[]` (caveats meant to be repeated), a `docs` pointer, `meta.request_id`, `meta.contract_version`, and freshness/completeness signals; windowed responses echo `applied.window` with its source (argument, default, season, or unbounded); `verbosity: "compact"` is the single size control; segment tools take a nested `segment` and refuse without one; omitting a tag means the caller.
+The service advertises a uniform contract: every response carries `notes[]` (caveats meant to be repeated), a `docs` pointer, `meta.request_id`, `meta.contract_version`, and freshness/completeness signals; windowed responses echo `applied.window` with its source (argument, default, season, or unbounded); `verbosity: "compact"` is the single size control; every read names a player or a clan; omitting a tag means the caller.
 
 Sweep this run's family against that contract. A tool that omits a promised field, echoes a window it did not apply, ignores `verbosity`, or returns a `notes[]` that is boilerplate where a real caveat was warranted, is a finding. This is cheap and objective — do it every run.
 

@@ -1,14 +1,14 @@
 /**
  * Shared helpers for the tool registry (split from the single-file
  * registry, 2026-09-05): entitlement resolution, meta
- * assembly, segment filters, the closed error class, the shared
+ * assembly, the closed error class, the shared
  * clan-recording acts both doors use, and - since 1.0.0 - the CONVENTIONS
  * every tool follows (docs/ENGINEERING.md, "Tool conventions"):
  *
  *   - windows: `from`/`to` everywhere, `days`/`weeks` as sugar, one
  *     `applied.window` echo saying what bounds applied and where they came
  *     from (resolveWindow / appliedBlock);
- *   - one `applied` echo block per response (limit, sort, mode, segment...);
+ *   - one `applied` echo block per response (limit, sort, mode...);
  *   - prose: `notes: string[]` of one-sentence caveats plus a `docs`
  *     pointer to the page carrying the formulas (notes / docsRef);
  *   - `verbosity: full | compact` as the only size control (VERBOSITY);
@@ -226,109 +226,6 @@ export function VERBOSITY(compactDesc) {
   };
 }
 
-/** A read's explicit subject: one player or one clan's current members. */
-export const SEGMENT_SCHEMA = {
-  description:
-    "The recorded player or clan to read: 'mine' (your clan) or an object naming exactly one of player_tag or clan_tag (current members). Required; corpus access has retired.",
-  anyOf: [
-    { type: "string", enum: ["mine"] },
-    {
-      type: "object",
-      properties: {
-        player_tag: { type: "string", description: "One recorded player." },
-        clan_tag: {
-          type: "string",
-          description: "A recorded clan's current members.",
-        },
-        on_behalf_of: ON_BEHALF_OF_SCHEMA,
-      },
-      oneOf: [{ required: ["player_tag"] }, { required: ["clan_tag"] }],
-      additionalProperties: false,
-    },
-  ],
-};
-
-/**
- * The segment as one resolved thing, before any tool builds its own
- * predicate: `{ kind, echo, ... }` where kind is player or clan,
- * and the object carries the resolved tag. "mine" resolves through
- * entitledClan(undefined), so
- * an account with no clan is no_subject, never a guess.
- */
-export async function resolveSegment(ctx, args) {
-  const raw = args.segment;
-  // The population is named, never defaulted (product call 5; required
-  // since 4.0.0, a note-and-corpus default from 3.16.0 to 3.18.0).
-  if (raw === undefined || raw === null)
-    throw new ToolFailure(
-      "bad_request",
-      "segment is required: name the player or clan to read.",
-      `Pass segment: "mine" (your clan), or an object naming one of player_tag or clan_tag.`,
-    );
-  if (typeof raw === "string") {
-    if (raw === "corpus")
-      throw new ToolFailure(
-        "bad_request",
-        "Corpus statistics have retired.",
-        "Name a recorded player or clan.",
-      );
-    if (raw === "mine") {
-      const clanTag = await entitledClan(ctx.db, ctx.account, undefined);
-      return {
-        kind: "clan",
-        clanTag,
-        echo: { kind: "clan", clan_tag: clanTag, source: "mine" },
-      };
-    }
-    throw new ToolFailure(
-      "bad_request",
-      `segment must be 'mine' or an object naming one of player_tag, clan_tag (got '${raw}').`,
-    );
-  }
-  const seg = raw;
-  if (Object.hasOwn(seg, "collection"))
-    throw new ToolFailure(
-      "bad_request",
-      "Named recording Collections have retired.",
-      "Use player_tag or clan_tag for recorded history.",
-    );
-  const picked = ["player_tag", "clan_tag"].filter((k) => seg[k] !== undefined);
-  if (picked.length > 1) {
-    throw new ToolFailure(
-      "bad_request",
-      "segment takes at most one of player_tag, clan_tag.",
-    );
-  }
-  if (seg.player_tag !== undefined) {
-    const tag = (
-      await subject(
-        ctx.db,
-        ctx.account,
-        seg.player_tag,
-        "summary",
-        seg.on_behalf_of,
-      )
-    ).tag;
-    return {
-      kind: "player",
-      tag,
-      echo: { kind: "player", player_tag: tag },
-    };
-  }
-  if (seg.clan_tag !== undefined) {
-    const clanTag = await entitledClan(ctx.db, ctx.account, seg.clan_tag);
-    return {
-      kind: "clan",
-      clanTag,
-      echo: { kind: "clan", clan_tag: clanTag },
-    };
-  }
-  throw new ToolFailure(
-    "bad_request",
-    "segment must name exactly one player_tag or clan_tag.",
-  );
-}
-
 /** Players whose games Elixir records now: direct active recordings and
  *  current members of an actively recorded comprehensive clan. Scoped
  *  history uses this to exclude incidental opponent-only observations. */
@@ -421,8 +318,8 @@ function resolveWindow(ctx, args = {}, { defaultDays = null } = {}) {
   };
 }
 
-/** The `season` argument (3.10.0 on the meta tools and the weekly segment
- *  read, battles_trends until 12.0.0;
+/** The `season` argument (3.10.0 on the meta tools and the weekly
+ *  population read, retired in 13.0.0;
  *  3.17.0 on the player battle tools and clans_standings). */
 export const SEASON_ARG_SCHEMA = {
   type: ["string", "integer"],
@@ -700,8 +597,8 @@ export async function liveRead(
   if (r.reason === "live_unavailable")
     throw new ToolFailure(
       "live_unavailable",
-      "Global leaderboard capture has been retired.",
-      "Existing recorded history remains available without live: true until its retirement.",
+      "Elixir does not fetch this endpoint: the live lane reads players, battle logs, clans and River Races only.",
+      "Call again without live: true for the recorded view.",
     );
   if (r.reason === "matchmaking")
     return {
@@ -990,71 +887,6 @@ export function requireOrderedWindow(from, to) {
       "Swap the bounds; from must be the earlier instant.",
     );
   }
-}
-
-/** Resolve an explicit player or the recorded current members of a clan. */
-export async function segmentFilter(ctx, args, params) {
-  const seg = await resolveSegment(ctx, args);
-  if (seg.kind === "player") {
-    params.push(seg.tag);
-    return {
-      where: `bp.player_tag = $${params.length}`,
-      timeColumn: "bp.battle_time",
-      label: seg.tag,
-      echo: seg.echo,
-    };
-  }
-  if (seg.kind === "clan") {
-    params.push(seg.clanTag);
-    // The members Elixir RECORDS (Jamie, 2026-09-23: a player known only
-    // from a battle stub is a ghost entry, never in a metric). An
-    // activity-scope clan's other members appear only in recorded
-    // players' logs, and pooled 21% of NoA's battles (Gym #286). The note
-    // says how many members counted.
-    const {
-      rows: [cov],
-    } = await ctx.db.query(
-      `select count(*)::int as members,
-              count(*) filter (where cm.player_tag in (${RECORDED_PLAYERS_SQL}))::int as recorded
-         from clan_membership cm
-        where cm.clan_tag = $1 and cm.left_observed_at is null`,
-      [seg.clanTag],
-    );
-    return {
-      where: `bp.player_tag in (select cm.player_tag from clan_membership cm
-               where cm.clan_tag = $${params.length} and cm.left_observed_at is null)
-              and bp.player_tag in (${RECORDED_PLAYERS_SQL})`,
-      coverage:
-        cov && cov.recorded < cov.members
-          ? { members: cov.members, recorded: cov.recorded }
-          : null,
-      timeColumn: "bp.battle_time",
-      label: seg.clanTag,
-      echo: seg.echo,
-    };
-  }
-  throw new ToolFailure(
-    "bad_request",
-    "A recorded player or clan is required.",
-  );
-}
-
-/** Current-clan membership caveat shared by scoped history reads. */
-export function clanSegmentNote(seg) {
-  const echo = seg?.echo ?? seg;
-  // A clan segment is today's roster over the whole window (Gym #300: a
-  // member who left dropped out of the weeks he played for the clan, and
-  // a joiner's battles from before joining counted).
-  if (echo?.kind === "clan")
-    return [
-      seg?.coverage
-        ? `The clan segment counts the members Elixir records: ${seg.coverage.recorded} of this clan's ${seg.coverage.members} current members. The others are not recorded now, so none of their battles count, not even ones captured while they were (elixir_coverage says who was polled when; elixir_follow_clan with scope comprehensive records every member).`
-        : null,
-      "The clan segment applies the clan's membership as of this call: over a past window it counts today's members' battles, including ones played before they joined, and leaves out members who have left since (clans_members_series lists the joins and departures).",
-    ]
-      .filter(Boolean)
-      .join(" ");
-  return null;
 }
 
 export { DUEL_TYPES };

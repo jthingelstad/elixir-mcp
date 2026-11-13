@@ -253,33 +253,8 @@ export const contracts = [
     },
   },
   {
-    id: "recorder-cards-facts",
-    tools: ["cards_card"],
-    run: async (ctx) => {
-      const r = await ctx.read("cards_card", {
-        card_id: 26000007,
-        segment: "mine",
-      });
-      const body = answered(r, "selected card facts");
-      notesNameFields(ctx, "cards_card", body);
-      eq(body.card.id, 26000007, "card identity");
-      for (const form of ["base", "evolution", "hero"])
-        ok(
-          form in body.card.first_played,
-          "first_played says unknown forms too",
-        );
-      for (const field of ["season", "history", "partners", "prior", "decks"])
-        ok(!(field in body), `retired card statistic ${field}`);
-      if (body.applied.segment.kind === "clan") {
-        everyRowHas(body.members.played, "level_played", "member play");
-        everyRowHas(body.members.held, "observed_at", "member inventory");
-      }
-      return { ms: r.ms };
-    },
-  },
-  {
     id: "recorder-retired-refusals",
-    tools: ["cards_card"],
+    tools: ["cards_catalog", "battles_performance", "battles_query"],
     run: async (ctx) => {
       for (const tool of [
         "rankings_players",
@@ -291,6 +266,9 @@ export const contracts = [
         "cards_synergy",
         "battles_deck_sets",
         "battles_deck_upgrades",
+        "cards_card",
+        "badges_rarity",
+        "badges_holders",
       ]) {
         ok(!ctx.tools.has(tool), `${tool} is absent from tools/list`);
         const r = await ctx.call(tool, {});
@@ -301,12 +279,21 @@ export const contracts = [
           `${tool} is a named protocol refusal`,
         );
       }
-      const r = await ctx.call("cards_card", {
-        card_id: 26000007,
-        segment: "corpus",
-      });
-      ok(r.isError, "corpus selector refuses");
-      eq(r.body?.error?.code, "bad_request", "corpus refusal");
+      // 13.0.0: no population read is left, so no tool takes segment,
+      // and battles_query serves no corpus deck_stats.
+      for (const t of ctx.tools.values())
+        ok(
+          !("segment" in (t.inputSchema?.properties ?? {})),
+          `${t.name} takes no segment`,
+        );
+      const r = await ctx.call("battles_performance", { segment: "mine" });
+      ok(r.isError, "a segment argument refuses");
+      eq(r.body?.error?.code, "bad_request", "segment refusal");
+      ok(
+        !("deck_stats" in
+          (ctx.tools.get("battles_query")?.outputSchema?.properties ?? {})),
+        "battles_query declares no deck_stats",
+      );
     },
   },
 

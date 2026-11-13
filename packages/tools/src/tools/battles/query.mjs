@@ -47,7 +47,7 @@ const boatRole = (r) =>
 
 export const battles_query = {
   description:
-    "The workhorse: recorded battles with filters and cursor pagination, both perspectives of every battle. Three addressing modes: player_tag (the usual sweep, defaults to the caller); battle_id alone (ONE battle, both sides); deck_hash alone (corpus-wide battles for that exact deck with a deck_stats aggregate and deliberately no pooled win rate). live: true asks for a battle-log poll no older than a minute (the 'what did they just play' path): served if in hand, otherwise queued while the record answers with live_status pending. Each battle's url is its public page.",
+    "The workhorse: recorded battles with filters and cursor pagination, both perspectives of every battle. Two addressing modes: player_tag (the usual sweep, defaults to the caller; deck_hash narrows it to one deck); battle_id alone (ONE battle, both sides). live: true asks for a battle-log poll no older than a minute (the 'what did they just play' path): served if in hand, otherwise queued while the record answers with live_status pending. Each battle's url is its public page.",
   inputSchema: {
     type: "object",
     properties: {
@@ -86,7 +86,7 @@ export const battles_query = {
       deck_hash: {
         type: "string",
         description:
-          "Exact deck identity (see battles_decks). Without player_tag: corpus-wide.",
+          "Only the player's battles on this exact deck (see battles_decks).",
       },
       battle_id: {
         type: "string",
@@ -127,13 +127,13 @@ export const battles_query = {
     additionalProperties: false,
   },
   async handler(ctx, args) {
-    // Addressing modes (design handoff 2026-09-05): battle_id and
-    // corpus-wide deck_hash need no subject tag - recorded battles
-    // are universal reads.
+    // Addressing modes (design handoff 2026-09-05): battle_id needs no
+    // subject tag, a recorded battle being a universal read. deck_hash is
+    // a filter on the subject's battles (its corpus-wide mode, every
+    // recorded player's battles on one deck, retired in 13.0.0).
     const byBattle = args.battle_id !== undefined;
-    const corpusDeck = !byBattle && args.deck_hash && !args.player_tag;
     let tag = null;
-    if (!byBattle && !corpusDeck) {
+    if (!byBattle) {
       const s = await subject(
         ctx.db,
         ctx.account,
@@ -149,7 +149,7 @@ export const battles_query = {
       if (!tag)
         throw new ToolFailure(
           "bad_request",
-          "live: true needs a player (player_tag or the default subject), not battle_id or a corpus-wide deck_hash.",
+          "live: true needs a player (player_tag or the default subject), not battle_id.",
         );
       // 1.7.0: asynchronous - a fresh poll is already in the record,
       // otherwise one is queued and the record answers now.
@@ -184,8 +184,6 @@ export const battles_query = {
     if (byBattle) {
       params.push(battleIds.length > 0 ? battleIds : [String(args.battle_id)]);
       where.push(`bp.battle_id = any($1)`, `bp.side = 0`);
-    } else if (corpusDeck) {
-      where.push("bp.side is not null");
     } else {
       params.push(tag);
       where.push("bp.player_tag = $1");
@@ -539,7 +537,7 @@ export const battles_query = {
             }),
         me: {
           // Who this row is, when the call did not name one subject
-          // (a battle by id, a deck across the corpus).
+          // (a battle by id).
           ...(tag ? {} : { player_tag: r.player_tag, name: r.player_name }),
           outcome: r.outcome,
           crowns: r.crowns,
@@ -586,8 +584,7 @@ export const battles_query = {
     });
 
     // The whole match set: the page's filters minus the cursor (the
-    // cursor positions a page; the total and deck_stats describe every
-    // page). Parameters up to the highest one the clauses name.
+    // cursor positions a page; the total describes every page). Parameters up to the highest one the clauses name.
     const setWhere = where.filter(
       (w) => !w.includes("(bp.battle_time, bp.battle_id) <"),
     );
@@ -600,33 +597,6 @@ export const battles_query = {
         ),
       ),
     );
-
-    let deckStats;
-    if (corpusDeck) {
-      // The honest aggregate over THIS call's match set (feedback #149:
-      // it had counted the deck's lifetime whatever the window and
-      // filters said): counts, W-L, distinct pilots, span. Deliberately
-      // NO win rate - a deck's pooled rate describes who plays it.
-      const { rows: ds } = await ctx.db.query(
-        `select count(*)::int as battles,
-                  count(*) filter (where bp.outcome = 'win')::int as wins,
-                  count(*) filter (where bp.outcome = 'loss')::int as losses,
-                  count(distinct bp.player_tag)::int as players,
-                  min(b.battle_time) as first_used,
-                  max(b.battle_time) as last_used
-           from battle_participant bp join battle b on b.battle_id = bp.battle_id
-           where ${setWhere.join(" and ")}`,
-        setParams,
-      );
-      deckStats = {
-        battles: ds[0].battles,
-        wins: ds[0].wins,
-        losses: ds[0].losses,
-        players: ds[0].players,
-        first_used: ds[0].first_used?.toISOString() ?? null,
-        last_used: ds[0].last_used?.toISOString() ?? null,
-      };
-    }
 
     let totalCount;
     if (args.include_total === true) {
@@ -678,9 +648,6 @@ export const battles_query = {
               battleIds.length === 1 ? battleIds[0] : String(args.battle_id),
           }
         : {}),
-      ...(deckStats
-        ? { deck_hash: String(args.deck_hash), deck_stats: deckStats }
-        : {}),
       applied: appliedBlock({
         window: win.echo,
         limit,
@@ -707,8 +674,6 @@ export const battles_query = {
         compact ? null : ARCHETYPE_NOTE,
         win.seasonNotes,
         caveats,
-        deckStats &&
-          "deck_stats counts the battles this call matches (its window, mode and other filters; every page, not this one) and carries no pooled win rate by design: a deck's pooled rate describes who plays it.",
         "me.vs is every comparison the row already held both halves of, as me MINUS the one opponent: crowns, deck_level (the level edge in THIS battle, from the cards as played), starting_trophies (on ladder, what matchmaking paired), tower_hp (hitpoints REMAINING on both sides) and tower_level (the tower troop's level). tower_hp is a margin of victory only when tower_level is 0. Null on 2v2, duels and boat battles (a defense against an attack), and a field is null where the record lacks a side's value. Read these before the absolute numbers - a leak, a level or a tower total means little except against the other side's.",
         towerGapRows > 0
           ? `${towerGapRows} ${towerGapRows === 1 ? "row's towers" : "rows' towers"} started unequal (tower levels differ; vs.tower_level is not 0): a tower one level higher starts with more hitpoints (1,564 more across the three towers at 16 against 15), so vs.tower_hp there carries the starting gap as well as the damage - it is not a margin of victory.`

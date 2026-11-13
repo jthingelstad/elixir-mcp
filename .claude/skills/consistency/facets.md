@@ -31,7 +31,7 @@ The source of truth for what stands, and the files that point agents at it.
 | Shared vocabulary | `packages/contracts/src/{modes,principals,roles,queue,tool-groups}.ts` | JS and SQL readers (one answer in both), docs tables |
 | Tool registry | `packages/tools/src/tools.mjs`, `packages/tools/src/tools/**` | declarations, `output-schemas.mjs`, the brief |
 | Output schemas | `packages/tools/src/output-schemas.mjs` | every field the tool serves; nothing it does not |
-| The brief | `services/mcp/src/protocol.mjs` (`instructionsFor`) | the registry (segment tools, windows, conventions) |
+| The brief | `services/mcp/src/protocol.mjs` (`instructionsFor`) | the registry (tool names, windows, conventions) |
 | Entitlements and identity | `packages/tools/src/entitlements.mjs`, `identity.mjs` | DECISIONS on defaults, refusals, principals |
 | Notes and docs pointers | the invoker and each tool's `notes()` / `docsRef()` | fields actually served (acceptance checks this live) |
 

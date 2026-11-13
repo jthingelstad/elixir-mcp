@@ -513,7 +513,7 @@ export const clansTools = {
                   l.best_trophies, l.battle_count, l.wins, l.losses, l.three_crown_wins,
                   l.collection_level, l.king_tower_level, l.total_donations,
                   -- The newest profile read, from the snapshot or the poll
-                  -- ledger (Gym #338: the 7.1.9 rule badges_holders uses; a
+                  -- ledger (Gym #338: the 7.1.9 rule; a
                   -- poll that changed nothing leaves the day row as it was).
                   case when l.profile_observed_at is null then null
                        else greatest(l.profile_observed_at,

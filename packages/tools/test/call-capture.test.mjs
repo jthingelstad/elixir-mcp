@@ -143,13 +143,9 @@ test("live_wait_ms measures time blocked on the live lane", async () => {
   assert.ok(db.writes[0][COL.live_wait_ms] >= 18);
 });
 
-test("on_behalf_of is recorded as given, from either place it can sit", () => {
+test("on_behalf_of is recorded as given, top-level only since segment retired (13.0.0)", () => {
   assert.equal(onBehalfOfOf({ on_behalf_of: "discord:42" }), "discord:42");
-  assert.equal(
-    onBehalfOfOf({ segment: { on_behalf_of: "u1" } }),
-    "u1",
-    "segment tools nest it",
-  );
+  assert.equal(onBehalfOfOf({ segment: { on_behalf_of: "u1" } }), null);
   assert.equal(onBehalfOfOf({}), null);
   assert.equal(onBehalfOfOf(undefined), null);
   assert.equal(onBehalfOfOf({ on_behalf_of: "x".repeat(500) }).length, 200);

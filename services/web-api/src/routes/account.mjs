@@ -696,7 +696,7 @@ export function accountRoutes({
           error: "invalid_scope",
           hint: `Space-separated, must include cr:read, and each must be one of: ${OAUTH_SCOPES.join(", ")}.`,
         });
-      // A non-standard capability (account:email, clans:attest) can be
+      // A non-standard capability (account:email) can be
       // taken back here but never handed to a client that did not ask for
       // it at consent: the update keeps one only where the family already
       // holds it.

@@ -137,8 +137,8 @@ export function exploreRoutes({ resolveAccount, exploreRegistry }) {
           error: "bad_request",
           message: `Stats does not read ${tool || "that"}.`,
         });
-      // A segment or an agent's end user would read past the one player.
-      if ("segment" in args || "on_behalf_of" in args)
+      // An agent's end user would read past the one player.
+      if ("on_behalf_of" in args)
         return json(400, {
           error: "bad_request",
           message: "Stats reads one player, named by player_tag.",

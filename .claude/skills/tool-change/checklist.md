@@ -34,15 +34,14 @@ only when it does not apply, and say why in the commit message.
 - `packages/tools/src/tools/shared.mjs`:
   - schemas: `TAG_SCHEMA`, `ON_BEHALF_OF_SCHEMA`, `WINDOW_ARGS`,
     `SEASON_ARG_SCHEMA`, `TIMEZONE_SCHEMA`, `MODE_SCHEMA`,
-    `SEGMENT_SCHEMA`, `VERBOSITY(compactDesc)`, `ARCHETYPE_ARG`, and the
+    `VERBOSITY(compactDesc)`, `ARCHETYPE_ARG`, and the
     window descriptions `WINDOW_FROM_DESC`, `WINDOW_TO_DESC` and
     `WINDOW_DATE_ONLY_DESC`;
   - resolvers: `resolveSeasonWindow()` (the exported entry point, while
     `resolveWindow()` is internal), `withWindowSugar()`,
-    `resolveSegment()`, `segmentFilter()`,
     `subject()`, `entitledClan()` and `zoneFor()`;
   - prose and shape: `appliedBlock()`, `notes()`, `docsRef()`,
-    `ToolFailure` and `clanSegmentNote()`;
+    and `ToolFailure`;
   - SQL: `RECORDED_PLAYERS_SQL`.
 - `packages/tools/src/controls.mjs`: `modeSplit()`, `pooledModesNote()`,
   `trophyFloor()`, `markPartialWeeks()` and the other controls.
@@ -87,11 +86,9 @@ only when it does not apply, and say why in the commit message.
       tool declares `VERBOSITY("...")`; a one-size tool leaves it out,
       and the registry publishes the accepted-and-ignored form. Test:
       `tool-conventions`; DECISIONS "Stated conventions are schema".
-- [ ] A segment tool requires `segment: SEGMENT_SCHEMA`, has no flat
-      `player_tag` or `clan_tag`; it reads a named player or clan, never
-      a corpus or named recording group. Add it to `SEGMENT_TOOLS` in
-      `tool-conventions.test.mjs` and to the brief's list in
-      `protocol.mjs`. Test: `tool-conventions`.
+- [ ] The tool reads a named player or clan, never a corpus or a
+      population (the `segment` family retired in 13.0.0; a tool that
+      wants one is a product call). Test: `tool-conventions`.
 - [ ] The tool has a `TOOL_GROUPS` entry: a group in `GROUP_ORDER`, a
       title, `readOnly`, `destructive` (true when an `action` enum holds
       remove, set, delete or clear), `openWorld` (true exactly when the
@@ -239,9 +236,8 @@ only when it does not apply, and say why in the commit message.
   two-size tools, seven of them named in the test, begin their
   description with "compact:", and the rest use the one-size wording.
   Every schema has `additionalProperties: false`.
-- The tools that require `segment` are exactly the seven in the test's
-  list, with the exact `anyOf` shape, "never a default" in the
-  description, and no flat subject arguments.
+- No declaration takes `segment`, and the 13.0.0 retired tools
+  (`cards_card`, `badges_rarity`, `badges_holders`) are not registered.
 - Each description is 41 to 600 characters, and the mean is at most
   600.
 - Every tool sits in a `GROUP_ORDER` group, and every group is used.
@@ -256,8 +252,8 @@ only when it does not apply, and say why in the commit message.
   the docs pages, except inside a history aside.
 - Every tool publishes an `outputSchema`, and every one requires `notes`
   and `docs`.
-- The brief names every segment tool, and every tool with `from` takes
-  `season`.
+- Every tool name the brief mentions is a real tool, and every tool
+  with `from` takes `season`.
 - The 9.x retired war-day fields, the war `clan_score` alias and Pilot
   Score appear in no declaration, and in the docs only in a history
   paragraph.
@@ -272,7 +268,6 @@ only when it does not apply, and say why in the commit message.
   (a split family counts as one module).
 - Every `docsRef("page", "section")` and `const X_DOCS = "page#section"`
   resolves to a page and an H2 section in the built corpus.
-- `SEGMENT_DOCS` resolves.
 
 `packages/tools/test/docs-tools.test.mjs`:
 - The `limits` live-quota row names every live-flag tool.

@@ -4,8 +4,8 @@
  * The API names a badge by Supercell's internal identifier
  * (`MasterySkeletonWarriors`, `Crl20Wins2024`, `SeasonalBadge_202509`)
  * and carries no display name; only the icon is the player's. The
- * identifier stays the badge's `name` everywhere (badges_holders matches
- * on it, the timeline keys on it), and `badgeLabel` is served BESIDE it
+ * identifier stays the badge's `name` everywhere (players_profile serves
+ * it, the timeline keys on it), and `badgeLabel` is served BESIDE it
  * so a mail, a timeline line or an agent can say "Guards Mastery" for
  * the badge the game calls MasterySkeletonWarriors (Jamie, 2026-09-19:
  * the milestone mail read like code).

@@ -489,20 +489,16 @@ async function validatedAuthRequest(db, q, targetFor) {
   // The account's address goes only to the Elixir family's own apps
   // (every redirect on a family origin); no other client may even ask
   // (Jamie 2026-09-25; DECISIONS, "The account's address goes only to
-  // the Elixir family's own apps"). Recording
-  // attested facts is the same: a family app's only (JSON API 2.2.0).
-  const familyOnly = [OAUTH_SCOPE.ACCOUNT_EMAIL, OAUTH_SCOPE.CLANS_ATTEST].find(
-    (s) => scope.split(" ").includes(s),
-  );
+  // the Elixir family's own apps").
   if (
-    familyOnly &&
+    scope.split(" ").includes(OAUTH_SCOPE.ACCOUNT_EMAIL) &&
     !isFirstPartyClient({
       redirectUris: client.redirectUris,
       provisioned: Boolean(client.family),
     })
   )
     return {
-      error: `invalid_scope: ${familyOnly} is offered only to the Elixir family's own apps`,
+      error: `invalid_scope: ${OAUTH_SCOPE.ACCOUNT_EMAIL} is offered only to the Elixir family's own apps`,
     };
   const target = targetFor(q.resource);
   if (!target) return { error: "invalid_target" };

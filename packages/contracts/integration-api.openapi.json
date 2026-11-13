@@ -1729,7 +1729,6 @@
               "cr:read": "Read the record as the signed-in person",
               "follows:write": "Follow players as the signed-in person (named recordings:write until 3.7.0, and that name is still accepted)",
               "account:email": "The account's address, family apps only",
-              "clans:attest": "Record what the person does in their clan as attested facts, family apps only",
               "feedback:write": "File feedback with the Elixir maintainer and read its answers as the signed-in person"
             }
           }

@@ -280,7 +280,7 @@ costs the same one call. The feed never announces the time: read
 from it if your routine cares about war at all.
 
 A routine that runs once a day reads its clan's timeline, drills with
-`clans_standings` or `battles_performance` with a `segment` when something moved, and, if it
+`clans_standings` or a member's `battles_performance` when something moved, and, if it
 schedules itself before a close from `game_clock`, checks
 `war_current.decks_today.untouched` then, unless `race_finished_at` is set.
 Facts in, judgment in your code.

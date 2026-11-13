@@ -80,18 +80,11 @@ test("redirect URI validation: https or localhost http only, no fragments", () =
 
 test("scope normalization is a closed set", () => {
   // A client that names no scope is offered every STANDARD capability
-  // (1.0.0); account:email and clans:attest are granted only to a client
-  // that names them.
+  // (1.0.0); account:email is granted only to a client that names it.
   assert.equal(normalizeScope(""), STANDARD_OAUTH_SCOPES.join(" "));
   assert.equal(
     normalizeScope(""),
-    OAUTH_SCOPES.filter(
-      (s) => s !== "account:email" && s !== "clans:attest",
-    ).join(" "),
-  );
-  assert.equal(
-    normalizeScope("clans:attest cr:read account:email"),
-    "cr:read account:email clans:attest",
+    OAUTH_SCOPES.filter((s) => s !== "account:email").join(" "),
   );
   assert.equal(
     normalizeScope("account:email cr:read"),
@@ -472,6 +465,49 @@ test("recordings:write, follows:write's old name, keeps every grant, code and ke
   });
   const keyed = await validateServiceToken(db, key);
   assert.deepEqual(keyed.scopes, ["cr:read", "follows:write"]);
+});
+
+test("clans:attest, retired in 13.0.0, is dropped from a request and from every stored grant, which keeps working without it", async () => {
+  // A request that names it is the request without it.
+  assert.equal(
+    normalizeScope("clans:attest cr:read account:email"),
+    "cr:read account:email",
+  );
+  assert.equal(normalizeScope("cr:read clans:attest unknown:write"), "");
+  assert.ok(!OAUTH_SCOPES.includes("clans:attest"));
+  // A grant stored before the retirement holds it; its tokens keep
+  // working with the rest of their scope, and storage is not rewritten.
+  const client = await registerClient(db, {
+    clientName: "retired-clans-attest",
+    redirectUris: ["https://example.com/callback"],
+  });
+  const tokens = await mintTokens(db, {
+    clientId: client.clientId,
+    accountId,
+    scope: "cr:read",
+    resource: RESOURCE,
+  });
+  await db.query(
+    "update oauth_family set scope='cr:read clans:attest' where family_id=$1",
+    [tokens.familyId],
+  );
+  const access = await validateAccessToken(db, tokens.accessToken, {
+    resource: RESOURCE,
+  });
+  assert.equal(access.scope, "cr:read");
+  const renewed = await redeemRefreshToken(db, {
+    refreshToken: tokens.refreshToken,
+    clientId: client.clientId,
+    resource: RESOURCE,
+  });
+  assert.equal(renewed.status, "ok");
+  assert.equal(renewed.tokens.scope, "cr:read");
+  const {
+    rows: [stored],
+  } = await db.query("select scope from oauth_family where family_id=$1", [
+    tokens.familyId,
+  ]);
+  assert.equal(stored.scope, "cr:read clans:attest");
 });
 
 test("service keys retain write-only permissions while the retired scope is filtered", async () => {

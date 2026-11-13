@@ -283,7 +283,7 @@ older duels have no `rounds[]`, and neither does any non-duel row.
 **Each round is a game with its own deck.** A round's eight cards
 carry their own `deck_hash`, with no tower troop (the identity every Clan Wars
 battle has), and its own result by that round's crowns against the
-opponent's. `battles_cards` and `cards_card` count each round as one game.
+opponent's. `battles_cards` counts each round as one game.
 `battles_decks` keeps its rows to battles with
 one deck: it itemizes duels under `excluded {duels, no_deck}` and lists their
 round decks apart (`duel_decks`), so `total_battles_in_window +
@@ -307,7 +307,7 @@ sides, and they are not alike:
 - A boat **defense** is not the defending member's battle: a rival attacked
   their boat and the defense deck answered while they were elsewhere. It is
   left out of that member's battles, wins, losses and streaks everywhere
-  (`battles_performance`, with or without a `segment`, `battles_compare`,
+  (`battles_performance`, `battles_compare`,
   `clans_participation` battles, `clans_standings` and a timeline's
   `war.battles`). `battles_query` still returns the row, and its `boat`
   block's `role` says `defender`. `side` is not the player's part: it is

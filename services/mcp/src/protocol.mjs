@@ -149,9 +149,7 @@ export const INSTRUCTIONS_BUDGET = 2048;
  */
 function instructionsFor(kind, identity) {
   const rules = [
-    "segment is REQUIRED on cards_card and badges_* (optional on",
-    "battles_performance, for a population's weeks):",
-    "'mine' (your clan) or {player_tag | clan_tag}. No corpus statistics.",
+    "Every read names a player or a clan. No corpus statistics.",
     "Windows: from/to, days/weeks or season ('current', 'previous', 2026-08,",
     "135); applied.window says what was read. Name a deck by its archetype",
     "label ('Hog Rider cycle'), never eight cards; a label is not a verdict;",

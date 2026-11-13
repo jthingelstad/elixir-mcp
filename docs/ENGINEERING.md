@@ -210,11 +210,9 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   writes. `*_tag` is one tag, `*_tags` an array.
 - **Defaults by family.** Player-shaped tools default `player_tag` to the
   caller (`subject()`); clan tools default `clan_tag` to the recorded clan
-  (`entitledClan()`); segment tools (`cards_card`, `badges_*`)
-  take a required `segment`, and `battles_performance` an optional one, naming a population
-  (`SEGMENT_SCHEMA`, `resolveSegment()`, `segmentFilter()`): `"mine"` or an
-  object naming exactly one player or clan. Missing, ambiguous, collection
-  and corpus selectors refuse before database work. The first sentence of
+  (`entitledClan()`). Every read names a player or a clan; there is no
+  population or corpus read (the `segment` family retired in 13.0.0, and
+  a tool that wants one is a product call). The first sentence of
   the description says which, in the fixed phrase. Nothing to default to
   is `no_subject`, never a guess.
 - **Windows.** `from`/`to` (`WINDOW_ARGS`) on every windowed tool, `days` /
@@ -226,7 +224,7 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   connection. A caller's zone is applied in SQL (`at time zone`), never by
   setting the session.
 - **One `applied` block** per response (`appliedBlock()`): `window` with its
-  `source`, plus `limit`, `sort`, `mode`, `segment`, `verbosity` as used.
+  `source`, plus `limit`, `sort`, `mode`, `verbosity` as used.
   Never `filters_applied`, `window_*`, `limit_applied`.
 - **Size.** `verbosity: full | compact` (`VERBOSITY(compactDesc)`) is the
   only size control. No `summary`, `include_*` or `detail` flags.
@@ -247,7 +245,7 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   CR API.
 - **Declarations.** Description at most 600 characters; shared schemas by
   reference (`TAG_SCHEMA`, `ON_BEHALF_OF_SCHEMA`, `WINDOW_ARGS`,
-  `MODE_SCHEMA`, `SEGMENT_SCHEMA`, `TIMEZONE_SCHEMA`), never re-typed;
+  `MODE_SCHEMA`, `TIMEZONE_SCHEMA`), never re-typed;
   `limit` carries a `maximum`; every tool declares an `outputSchema`
   (`packages/tools/src/output-schemas.mjs`) that the registry validates
   responses against.

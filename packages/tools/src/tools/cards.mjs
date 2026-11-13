@@ -19,7 +19,6 @@ import {
   notes,
   docsRef,
 } from "./shared.mjs";
-import { cardProfileTools } from "./card-profile.mjs";
 import { archetypeTools } from "./archetype.mjs";
 
 /** One catalog item as served: in-game max level, the API's rarity-scale
@@ -42,8 +41,7 @@ function shapeCatalogCard(c) {
 /** The whole catalog unnarrowed, without art: every card's art is about
  *  14,000 characters, and the whole catalog already sits near the
  *  result cap (MCP_RESULT_MAX_CHARS), so art rides with the cards a
- *  call names (ids or query), with cards_card, and on the public
- *  catalog. */
+ *  call names (ids or query) and on the public catalog. */
 const withoutArt = ({ art: _art, ...c }) => c;
 
 const compactCard = (c) => ({
@@ -209,6 +207,5 @@ export const cardsTools = {
       };
     },
   },
-  ...cardProfileTools,
   ...archetypeTools,
 };

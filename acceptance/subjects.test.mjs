@@ -140,7 +140,7 @@ test("an unresolved placeholder SKIPS its catalogue case; a resolved one reads t
       example_tool: {
         p95_ms: 1,
         sets: [
-          { args: { player_tag: "$CLANMATE_1", segment: { x: 1 } } },
+          { args: { player_tag: "$CLANMATE_1", mode: "ladder" } },
           { args: { player_tag: "$CLANMATE_9" } },
         ],
       },
@@ -292,8 +292,8 @@ test("a refresh reads tags as the shared normalizer does: any spelling is caught
           calls: 1,
         },
         {
-          tool: "battles_performance",
-          args: { segment: { clan_tag: "0gg2p99y" } },
+          tool: "clans_roster",
+          args: { clan_tag: "0gg2p99y" },
           calls: 1,
         },
         {
@@ -313,8 +313,8 @@ test("a refresh reads tags as the shared normalizer does: any spelling is caught
         inputSchema: { properties: { player_tag: {}, opponent_tag: {} } },
       },
       {
-        name: "battles_performance",
-        inputSchema: { properties: { segment: {} } },
+        name: "clans_roster",
+        inputSchema: { properties: { clan_tag: {} } },
       },
       { name: "players_search", inputSchema: { properties: { query: {} } } },
     ],
@@ -328,7 +328,7 @@ test("a refresh reads tags as the shared normalizer does: any spelling is caught
     { args: { player_tag: JAMIE }, calls: 1 },
   ]);
   assert.equal(shaped.tools.battles_query, undefined);
-  assert.equal(shaped.tools.battles_performance, undefined);
+  assert.equal(shaped.tools.clans_roster, undefined);
   assert.equal(shaped.tools.players_search, undefined);
   assert.equal(stale.length, 3);
   assertNoFixtureTag(JSON.stringify({ shaped, stale }));

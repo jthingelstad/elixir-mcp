@@ -768,15 +768,19 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   const back = await call("elixir_follow_clan", { clan_tag: "#J2RGCRVG" });
   assert.equal(back.body.recording, "active");
 
-  // Collectors: card-derived identity, points and credits retired to 0
-  // (#539; the fields go at a later major), no arenas, and
+  // Collectors: card-derived identity, no points or credits (zero since
+  // #539, removed in 13.0.0), no arenas, and
   // no machine label - the operator's name for their own box is private
   // and this tool used to hand it to every connected agent (#28).
   const collectors = await call("elixir_collectors", {});
   assert.ok(collectors.body.collectors.length >= 1);
   const c0 = collectors.body.collectors[0];
-  assert.equal(c0.quota_credits, 0);
-  assert.ok(collectors.body.collectors.every((c) => c.points === 0));
+  assert.ok(
+    collectors.body.collectors.every(
+      (c) => !("points" in c) && !("quota_credits" in c),
+    ),
+    "points and quota_credits are gone (13.0.0)",
+  );
   assert.ok(!("arena" in c0), "arenas are gone");
   assert.ok(!("machine" in c0), "machine labels are not fleet data");
   assert.ok(
@@ -1082,52 +1086,6 @@ test("feedback round two: changelog since-filter, ship links, pending hint clear
   assert.equal(after2.body.meta.feedback_responses_pending, 0);
 });
 
-test("battles_performance segment (battles_trends until 12.0.0): a selected player history has weekly mode counts and clipped windows", async () => {
-  const trends = await call("battles_performance", {
-    segment: { player_tag: OBSERVER },
-    weeks: 52,
-  });
-  assert.equal(trends.isError, false, JSON.stringify(trends.body));
-  assert.ok(trends.body.weeks.length > 0, "weekly rows");
-  const wk = trends.body.weeks.at(-1);
-  assert.ok(wk.players >= 1 && wk.battles >= wk.wins + wk.losses);
-  // 3.16.0: every week carries its mode split, and a week the window
-  // clips is marked with the span it holds (the fixture's weeks all end
-  // before now, so only an explicit `to` inside a week clips one).
-  assert.ok(trends.body.weeks.every((w) => typeof w.modes === "object"));
-  assert.equal(
-    Object.values(wk.modes).reduce((n, m) => n + m.battles, 0),
-    wk.battles,
-    "the split sums to the week",
-  );
-  const clipped = await call("battles_performance", {
-    segment: { player_tag: OBSERVER },
-    from: "2026-08-24",
-    to: "2026-09-03T12:00:00Z",
-  });
-  assert.equal(clipped.isError, false, JSON.stringify(clipped.body));
-  const last = clipped.body.weeks.at(-1);
-  assert.equal(last.partial, true, "the week `to` cuts is partial");
-  assert.equal(last.covers.to, "2026-09-03T12:00:00.000Z");
-  assert.ok(clipped.body.notes.some((l) => /partial/.test(l)));
-  assert.equal(clipped.body.applied.group_by, "week");
-  // The weekly series is a population's: a single player's arguments
-  // beside it are refused, never silently dropped.
-  for (const extra of [
-    { player_tag: OBSERVER },
-    { group_by: "game_mode" },
-    { last_n_battles: 5 },
-    { before_after: "2026-09-01" },
-  ]) {
-    const refused = await call("battles_performance", {
-      segment: { player_tag: OBSERVER },
-      ...extra,
-    });
-    assert.equal(refused.isError, true, JSON.stringify(extra));
-    assert.equal(refused.body.error.code, "bad_request");
-  }
-});
-
 test("battles_query links: url, short id, both sides' trophies and clans (9.18.0)", async () => {
   const {
     rows: [pvp],
@@ -1211,7 +1169,7 @@ test("battle links grow past a shared prefix", async () => {
   }
 });
 
-test("battles_query addressing modes: battle_id alone, corpus deck_hash alone", async () => {
+test("battles_query addressing modes: battle_id alone, deck_hash narrows a player", async () => {
   const { rows: one } = await db.query(
     `select bp.battle_id, bp.deck_hash from battle_participant bp
      where bp.deck_hash is not null limit 1`,
@@ -1236,46 +1194,27 @@ test("battles_query addressing modes: battle_id alone, corpus deck_hash alone", 
   );
   assert.ok(byId.body.battles[0].opponents.length >= 1, "both sides returned");
 
+  // deck_hash narrows ONE player's battles to one deck (13.0.0 retired
+  // the corpus mode that read every player on a deck).
+  const {
+    rows: [owner],
+  } = await db.query(
+    `select player_tag from battle_participant
+     where battle_id = $1 and deck_hash = $2 limit 1`,
+    [one[0].battle_id, one[0].deck_hash],
+  );
   const byDeck = await call("battles_query", {
+    player_tag: owner.player_tag,
     deck_hash: one[0].deck_hash,
     verbosity: "compact",
   });
   assert.equal(byDeck.isError, false, JSON.stringify(byDeck.body));
-  assert.equal(byDeck.body.deck_hash, one[0].deck_hash);
-  // deck_stats is the call's match set, not the deck's lifetime (#149):
-  // a window that holds none of its battles counts none.
-  const emptyWindow = await call("battles_query", {
-    deck_hash: one[0].deck_hash,
-    verbosity: "compact",
-    from: "2001-01-01",
-    to: "2001-01-02",
-    include_total: true,
-  });
-  assert.equal(emptyWindow.isError, false, JSON.stringify(emptyWindow.body));
-  assert.equal(emptyWindow.body.total_count, 0);
-  assert.equal(emptyWindow.body.deck_stats.battles, 0);
-  const all = await call("battles_query", {
-    deck_hash: one[0].deck_hash,
-    verbosity: "compact",
-    include_total: true,
-  });
-  assert.equal(all.body.deck_stats.battles, all.body.total_count);
+  assert.ok(!("deck_stats" in byDeck.body), "no corpus deck_stats");
   assert.ok(byDeck.body.battles.length > 0);
   for (const battle of byDeck.body.battles) {
-    assert.ok(
-      battle.me.player_tag,
-      "exact-deck drill preserves the player's identity (#37)",
-    );
-    assert.equal(
-      battle.me.deck_hash,
-      one[0].deck_hash,
-      "identity stays attached to exact deck evidence",
-    );
+    assert.equal(battle.me.player_tag, owner.player_tag);
+    assert.equal(battle.me.deck_hash, one[0].deck_hash);
   }
-  const ds = byDeck.body.deck_stats;
-  assert.ok(ds.battles >= 1 && ds.players >= 1);
-  assert.ok(!("win_rate" in ds), "no pooled win rate by design");
-  assert.match(byDeck.body.notes.join(" "), /who plays it/);
 });
 
 test("nicknames: private to the account, matched first in search, shown in summary and roster", async () => {
@@ -1617,94 +1556,6 @@ test("battles_performance: decided vs boat denominators, mode key documented", a
   const modes = await call("battles_performance", { group_by: "game_mode" });
   assert.match(modes.body.notes.join(" "), /\(game_mode, type\)/);
   assert.ok(modes.body.by_mode.every((r) => "type" in r));
-});
-
-test("badges are a dimension: rarity census and holders, exact names only", async () => {
-  const rarity = await call("badges_rarity", {
-    segment: { player_tag: OBSERVER },
-  });
-  assert.equal(rarity.isError, false, JSON.stringify(rarity.body));
-  const n = rarity.body.players_considered;
-  assert.ok(n >= 1);
-  assert.ok(rarity.body.badges.length > 100, "every badge the fixture holds");
-  const years = rarity.body.badges.find((b) => b.name === "YearsPlayed");
-  assert.equal(years.kind, "tiered");
-  assert.ok(years.by_level[4] >= 1, "the fixture's level-4 holder is counted");
-  assert.equal(years.holder_share, Number((years.holders / n).toFixed(3)));
-  assert.ok(rarity.body.badges.every((b) => b.holders <= n));
-  const oneOff = await call("badges_rarity", {
-    segment: { player_tag: OBSERVER },
-    kind: "one_off",
-  });
-  assert.ok(oneOff.body.badges.every((b) => b.kind === "one_off"));
-  assert.ok(oneOff.body.badges.length < rarity.body.badges.length);
-  // A limited page says it was cut, and drops "does not appear" (#193).
-  assert.ok(rarity.body.notes.some((l) => /does not appear at all/.test(l)));
-  const page = await call("badges_rarity", {
-    segment: { player_tag: OBSERVER },
-    limit: 5,
-  });
-  assert.equal(page.body.badges.length, 5);
-  assert.ok(
-    page.body.notes.some((l) =>
-      new RegExp(`5 of ${rarity.body.badges.length} badges`).test(l),
-    ),
-    page.body.notes.join(" | "),
-  );
-  assert.ok(!page.body.notes.some((l) => /does not appear at all/.test(l)));
-
-  const holders = await call("badges_holders", {
-    segment: { player_tag: OBSERVER },
-    badge: "yearsplayed",
-  });
-  assert.equal(holders.isError, false, JSON.stringify(holders.body));
-  assert.equal(holders.body.badge, "YearsPlayed");
-  assert.ok(holders.body.holders_total >= 1);
-  const me = holders.body.holders.find((h) => h.player_tag === OBSERVER);
-  assert.equal(me.level, 4);
-  assert.equal(me.name_known, true);
-  const near = await call("badges_holders", {
-    segment: { player_tag: OBSERVER },
-    badge: "Years",
-  });
-  assert.equal(near.isError, true);
-  assert.equal(near.body.error.code, "not_found");
-  assert.match(
-    near.body.error.message,
-    /YearsPlayed/,
-    "candidates, not a guess",
-  );
-  const none = await call("badges_holders", {
-    segment: { player_tag: OBSERVER },
-    badge: "NoSuchBadgeAtAll",
-  });
-  assert.equal(none.body.error.code, "not_found");
-  // The refusal is about the argument, not a claim about the world (#93).
-  assert.doesNotMatch(none.body.error.message, /No recorded player holds/);
-
-  // A label resolves to its identifier and says so (#93).
-  const byLabel = await call("badges_holders", {
-    segment: { player_tag: OBSERVER },
-    badge: "Years Played",
-  });
-  assert.equal(byLabel.isError, false, JSON.stringify(byLabel.body));
-  assert.equal(byLabel.body.badge, "YearsPlayed");
-  assert.ok(
-    byLabel.body.notes.some((n) => /is the label of YearsPlayed/.test(n)),
-  );
-
-  // A typo gets candidates by edit distance (#146), and the census says
-  // what it counts (#145) and quotes a versioned pair as distinct players
-  // (#144) when the fixture holds one.
-  const typo = await call("badges_holders", {
-    segment: { player_tag: OBSERVER },
-    badge: "Years Plaeyd",
-  });
-  assert.equal(typo.body.error.code, "not_found");
-  assert.match(typo.body.error.message, /Did you mean: YearsPlayed/);
-  assert.match(none.body.error.message, /exactly 'NoSuchBadgeAtAll'/);
-  const said = rarity.body.notes.join(" ");
-  assert.match(said, /players_considered/);
 });
 
 test("dailySql sums equal the raw rows over any instant window, edge days included", async () => {
@@ -2087,50 +1938,6 @@ test("3.17.0: every instant-windowed tool says its season, crossings fire only w
 
 // ---------------------------------------------------------------- 6.12.0 (#80)
 
-test("a card name shared with a tower-troop entry is the deck card; Evo and Hero prefixes name the card (Gym #324, #325)", async () => {
-  const {
-    rows: [top],
-  } = await db.query(
-    `select card_id, name from card where kind = 'card' order by card_id limit 1`,
-  );
-  // A tower-troop catalog entry that shares the top card's name, as the
-  // live catalog's "Archer Queen" tower entry shares the champion's.
-  await db.query(
-    `insert into card (card_id, name, kind) values (29000099, $1, 'support')
-     on conflict do nothing`,
-    [top.name],
-  );
-  try {
-    const byName = await call("cards_card", {
-      card: top.name,
-      segment: { player_tag: OBSERVER },
-      from: "2020-01-01",
-      verbosity: "compact",
-    });
-    assert.equal(byName.isError, false, JSON.stringify(byName.body));
-    assert.equal(
-      byName.body.card.id,
-      top.card_id,
-      "the deck card, not the tower entry",
-    );
-    assert.match(
-      byName.body.card.art?.base ?? "",
-      new RegExp(`/assets/cards/${top.card_id}\\.png$`),
-      "11.5.0: cards_card carries the card's art",
-    );
-    const evo = await call("cards_card", {
-      card: `Evo ${top.name}`,
-      segment: { player_tag: OBSERVER },
-      from: "2020-01-01",
-      verbosity: "compact",
-    });
-    assert.equal(evo.isError, false, JSON.stringify(evo.body));
-    assert.equal(evo.body.card.id, top.card_id);
-  } finally {
-    await db.query(`delete from card where card_id = 29000099`);
-  }
-});
-
 test("Gym #329: a bucket the newest profile read no longer carried is ended, even when it is the only one", async () => {
   // The reader keeps buckets from the last 35 days by the database's
   // clock, so this subject's profile is read relative to now: on the
@@ -2180,47 +1987,6 @@ test("Gym #329: a bucket the newest profile read no longer carried is ended, eve
   );
   assert.equal(row.current, false, "ended: the newest profile read lacked it");
   assert.match(body.notes.join(" "), /have ended \(current false\)/);
-});
-
-test("player trends preserve distinct battles at the same player timestamp and reapply mode filters", async () => {
-  await db.query("begin");
-  try {
-    for (const [id, type, outcome, trophies] of [
-      ["trend-collision-ladder", "PvP", "win", 11],
-      ["trend-collision-casual", "clanMate", "loss", null],
-      ["trend-collision-unresolved", "PvP", null, null],
-    ]) {
-      await db.query(
-        `insert into battle (battle_id, battle_time, type, type_class)
-         values ($1, '2026-07-01T05:00:00Z', $2, 'pvp')`,
-        [id, type],
-      );
-      await db.query(
-        `insert into battle_participant (battle_id, player_tag, side, battle_time, type, type_class, outcome, trophy_change)
-         values ($1, $2, 0, '2026-07-01T05:00:00Z', $3, 'pvp', $4, $5)`,
-        [id, OBSERVER, type, outcome, trophies],
-      );
-    }
-    for (const [mode, expected] of [
-      [null, 2],
-      ["ladder", 1],
-      ["casual", 1],
-    ]) {
-      const { body, isError } = await call("battles_performance", {
-        segment: { player_tag: OBSERVER },
-        from: "2026-07-01T04:59:59Z",
-        to: "2026-07-01T05:00:01Z",
-        ...(mode ? { mode } : {}),
-      });
-      assert.equal(isError, false, JSON.stringify(body));
-      assert.equal(body.weeks.length, 1);
-      assert.equal(body.weeks[0].battles, expected);
-      assert.equal(body.weeks[0].players, 1);
-      assert.equal(body.weeks[0].net_trophies, mode === "casual" ? 0 : 11);
-    }
-  } finally {
-    await db.query("rollback");
-  }
 });
 
 test("#556: elixir_follow_player refuses a primary or alt on a tag another account verified, with the one answer, and still follows it", async () => {

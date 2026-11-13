@@ -839,90 +839,6 @@ export const OUTPUT_SCHEMAS = {
     },
     required: ["ok", "feedback_id", "meta", "notes", "docs"],
   },
-  badges_holders: {
-    type: "object",
-    properties: {
-      applied: { type: "object" },
-      badge: { type: "string" },
-      label: { type: "string" },
-      kind: { type: ["string", "null"] },
-      docs: DOCS,
-      meta: META,
-      notes: NOTES,
-      observations: { type: "object" },
-      players_considered: { type: ["number", "null"] },
-      population: { type: "object" },
-      holders_total: COUNT,
-      holder_share: { type: ["number", "null"] },
-      holders: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            player_tag: TAG,
-            name: { type: ["string", "null"] },
-            name_known: { type: "boolean" },
-            level: NULLABLE_INT,
-            max_level: NULLABLE_INT,
-            progress: NULLABLE_INT,
-            target: NULLABLE_INT,
-            clan_tag: { type: ["string", "null"] },
-            observed_at: ISO,
-            since: ISO,
-          },
-        },
-      },
-    },
-    required: [
-      "applied",
-      "badge",
-      "docs",
-      "holder_share",
-      "holders",
-      "holders_total",
-      "meta",
-      "notes",
-      "observations",
-      "players_considered",
-    ],
-  },
-  badges_rarity: {
-    type: "object",
-    properties: {
-      applied: { type: "object" },
-      badges: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            by_level: { type: "object" },
-            holder_share: { type: ["number", "null"] },
-            holders: { type: ["number", "null"] },
-            kind: { type: ["string", "null"] },
-            label: { type: ["string", "null"] },
-            max_level: { type: ["number", "null"] },
-            name: { type: ["string", "null"] },
-          },
-        },
-      },
-      docs: DOCS,
-      meta: META,
-      notes: NOTES,
-      observations: { type: "object" },
-      players_considered: { type: ["number", "null"] },
-      population: { type: "object" },
-    },
-    required: [
-      "applied",
-      "badges",
-      "docs",
-      "meta",
-      "notes",
-      "observations",
-      "players_considered",
-    ],
-  },
-
   battles_cards: {
     type: "object",
     properties: {
@@ -1029,118 +945,6 @@ export const OUTPUT_SCHEMAS = {
       "opponents",
       "player_tag",
     ],
-  },
-
-  cards_card: {
-    type: "object",
-    properties: {
-      applied: { type: "object" },
-      card: {
-        type: "object",
-        properties: {
-          id: COUNT,
-          name: { type: "string" },
-          type: { type: "string" },
-          rarity: { type: ["string", "null"] },
-          elixir_cost: { type: ["number", "null"] },
-          forms_available: {
-            type: "array",
-            items: { type: "string", enum: ["base", "evolution", "hero"] },
-          },
-          icon_urls: { type: ["object", "null"] },
-          art: {
-            type: ["object", "null"],
-            description:
-              "Each form's image on Elixir's own origin (base, evolution, hero: the forms icon_urls carries): a byte-identical copy of that icon, never resized or altered; size it in the page (11.5.2).",
-          },
-          first_seen_in_catalog: { type: ["string", "null"] },
-          first_played: {
-            type: "object",
-            properties: {
-              base: { type: ["string", "null"] },
-              evolution: { type: ["string", "null"] },
-              hero: { type: ["string", "null"] },
-            },
-            required: ["base", "evolution", "hero"],
-          },
-        },
-        required: [
-          "id",
-          "name",
-          "type",
-          "rarity",
-          "elixir_cost",
-          "forms_available",
-          "icon_urls",
-          "art",
-          "first_seen_in_catalog",
-          "first_played",
-        ],
-      },
-      members: {
-        type: "object",
-        properties: {
-          members: COUNT,
-          members_with_collection: COUNT,
-          played: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                player_tag: TAG,
-                name: NAME,
-                battles: COUNT,
-                wins: COUNT,
-                losses: COUNT,
-                win_rate: RATE,
-                level_played: { type: ["number", "null"] },
-                forms: { type: "array", items: { type: "string" } },
-                modes: { type: "object", additionalProperties: COUNT },
-              },
-              required: [
-                "player_tag",
-                "name",
-                "battles",
-                "wins",
-                "losses",
-                "win_rate",
-                "level_played",
-                "forms",
-              ],
-            },
-          },
-          held: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                player_tag: TAG,
-                name: NAME,
-                level: NULLABLE_INT,
-                forms_unlocked: { type: "array", items: { type: "string" } },
-                star_level: NULLABLE_INT,
-                observed_at: ISO,
-                since: ISO,
-              },
-              required: [
-                "player_tag",
-                "name",
-                "level",
-                "forms_unlocked",
-                "star_level",
-                "observed_at",
-                "since",
-              ],
-            },
-          },
-        },
-        required: ["members", "members_with_collection", "played", "held"],
-      },
-      docs: DOCS,
-      meta: META,
-      notes: NOTES,
-    },
-    required: ["applied", "card", "docs", "meta", "notes"],
   },
 
   cards_catalog: {
@@ -1250,16 +1054,6 @@ export const OUTPUT_SCHEMAS = {
             last_success: { type: ["string", "null"] },
             lifecycle: { type: ["string", "null"] },
             name: { type: ["string", "null"] },
-            points: {
-              type: ["number", "null"],
-              description:
-                "Retired with the points economy: always 0. Running a collector earns the Family tier instead.",
-            },
-            quota_credits: {
-              type: ["number", "null"],
-              description:
-                "Retired: always 0. Collectors no longer add calls to a quota.",
-            },
             silent_since: { type: ["string", "null"] },
             status: { type: ["string", "null"] },
           },
@@ -2323,38 +2117,14 @@ export const OUTPUT_SCHEMAS = {
           required: ["iso_week", "week_of", "battles", "win_rate"],
         },
       },
-      weeks: {
-        type: "array",
-        description:
-          "12.0.0, with segment: the population's weekly series, one row per ISO week, with distinct active players, the season the week starts in and the per-mode split.",
-        items: {
-          type: "object",
-          properties: {
-            battles: { type: ["number", "null"] },
-            covers: { type: "object" },
-            iso_week: { type: ["string", "null"] },
-            losses: { type: ["number", "null"] },
-            modes: { type: "object" },
-            net_trophies: { type: ["number", "null"] },
-            partial: { type: ["boolean", "null"] },
-            players: { type: ["number", "null"] },
-            season_month: { type: ["string", "null"] },
-            trophy_battles: { type: ["number", "null"] },
-            trophy_mode_battles: { type: ["number", "null"] },
-            week_of: { type: ["string", "null"] },
-            win_rate: { type: ["number", "null"] },
-            wins: { type: ["number", "null"] },
-          },
-        },
-      },
       trophy_floor: TROPHY_FLOOR,
       notes: NOTES,
       docs: DOCS,
       meta: META,
     },
     description:
-      "Two shapes: a player's record (player_tag, then window, before/after, by_mode or weekly), or with segment a population's weekly series (weeks, no player_tag).",
-    required: ["applied", "notes", "docs", "meta"],
+      "A player's record: player_tag, then window (with compare_window), before/after, by_mode or weekly.",
+    required: ["player_tag", "applied", "notes", "docs", "meta"],
   },
 
   battles_query: {
@@ -2368,20 +2138,6 @@ export const OUTPUT_SCHEMAS = {
       player_tag: TAG,
       name: NAME,
       battle_id: { type: "string" },
-      deck_hash: { type: "string" },
-      deck_stats: {
-        type: "object",
-        description:
-          "With deck_hash alone: the deck's battles in this call's match set (window, mode and filters; every page), with wins, losses, distinct players and first/last use. No pooled win rate by design.",
-        properties: {
-          battles: COUNT,
-          wins: COUNT,
-          losses: COUNT,
-          players: COUNT,
-          first_used: { type: ["string", "null"] },
-          last_used: { type: ["string", "null"] },
-        },
-      },
       applied: {
         type: "object",
         properties: {

@@ -162,7 +162,7 @@ quota. Every code has exactly one class (`ERROR_CLASS` in the contracts
 package), so `live_pending` is never a failed call. Transport-level refusals (the rate limit, a
 database that will not connect) carry the same envelope and class.
 
-The heavy MCP reads `battles_performance` with a `segment`, `cards_card`, `clans_standings` and
+The heavy MCP reads `clans_standings` and
 `war_history` each have a query budget of **at most 18 seconds per call**,
 shortened if Lambda has less time remaining. It covers the whole aggregation,
 not a fresh allowance for each query. PostgreSQL cancels the work before the
@@ -196,14 +196,13 @@ them once and the per-argument descriptions are one line each. The shorter
 version, with the tool map, is [Choosing a tool](/docs/choosing-a-tool).
 
 **What omitting a subject argument means** depends on the tool's family, and
-the first sentence of every description says which. Segment tools are the
-exception: `segment` is required, to identify the player or clan being read, and is never an implicit default.
+the first sentence of every description says which. Every read names a
+player or a clan: no tool reads the whole record.
 
 | Family | Subject argument | Omission rule |
 |---|---|---|
 | Player tools (`players_*`, `battles_query`, `battles_performance`, `battles_decks`, `battles_cards`, `battles_opponents`, `elixir_coverage`) | `player_tag` | the caller: a person's primary player, or whoever `on_behalf_of` maps to on an agent connection |
 | Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | a person's primary player's current clan (refused `not_recorded` when that clan is not recorded, `no_subject` when the primary is in no clan; never an alt's, a friend's or another followed clan), an agent's clan |
-| Segment tools (`cards_card`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, or an object naming a player or clan. `battles_performance` takes one optionally, for that population's `weeks[]` |
 | `game_clock`, `cards_catalog`, the Help tools | none | no subject at all |
 
 No default is ever looked up first, and there is no "no default" guess: a
@@ -243,7 +242,7 @@ in its hint.
   `to`, `source` of `argument` | `default` | `unbounded` | `season` |
   `fixed` (and `pointer` on `elixir_timeline`), `timezone`, and on the season-grained tools `season`,
   `crosses` and `season_age_days`), `limit`, `sort`, `mode`,
-  `min_battles`, `segment`, `verbosity`, as used. There are no `filters_applied`, `window_*` or
+  `min_battles`, `verbosity`, as used. There are no `filters_applied`, `window_*` or
   `limit_applied` keys.
 - **`verbosity: full | compact`** is the one size control, accepted on
   every tool. Where `compact` changes the answer the description says what

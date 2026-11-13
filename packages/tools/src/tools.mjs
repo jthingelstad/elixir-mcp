@@ -18,7 +18,6 @@ import {
 import { elixirTools } from "./tools/elixir.mjs";
 import { battlesTools } from "./tools/battles.mjs";
 import { opponentsTools } from "./tools/opponents.mjs";
-import { badgesTools } from "./tools/badges.mjs";
 import { cardsTools } from "./tools/cards.mjs";
 import { clanContextTools } from "./tools/clan-context.mjs";
 import { clansTools } from "./tools/clans.mjs";
@@ -41,7 +40,6 @@ const TOOLS = {
   ...elixirTools,
   ...battlesTools,
   ...opponentsTools,
-  ...badgesTools,
   ...cardsTools,
   ...clansTools,
   ...clanContextTools,
@@ -89,17 +87,9 @@ const isPerson = (kind) => kind !== "agent" && kind !== "integration";
 
 function withoutAgentArgs(schema) {
   const props = schema.properties ?? {};
-  if (!AGENT_ARGS.some((a) => Object.hasOwn(props, a)) && !props.segment?.anyOf)
-    return schema;
+  if (!AGENT_ARGS.some((a) => Object.hasOwn(props, a))) return schema;
   const properties = Object.fromEntries(
-    Object.entries(props)
-      .filter(([k]) => !AGENT_ARGS.includes(k))
-      .map(([k, v]) =>
-        // segment's object branch carries on_behalf_of too.
-        k === "segment" && Array.isArray(v.anyOf)
-          ? [k, { ...v, anyOf: v.anyOf.map((b) => withoutAgentArgs(b)) }]
-          : [k, v],
-      ),
+    Object.entries(props).filter(([k]) => !AGENT_ARGS.includes(k)),
   );
   return { ...schema, properties };
 }
@@ -115,20 +105,9 @@ function schemaFor(schema, kind) {
  *  the one-size verbosity is, so nothing that used to be accepted is
  *  refused. It never reached a person's answer anyway. */
 function dropAgentArgs(args) {
-  const out = Object.fromEntries(
+  return Object.fromEntries(
     Object.entries(args).filter(([k]) => !AGENT_ARGS.includes(k)),
   );
-  const seg = out.segment;
-  if (
-    seg &&
-    typeof seg === "object" &&
-    !Array.isArray(seg) &&
-    Object.hasOwn(seg, "on_behalf_of")
-  )
-    out.segment = Object.fromEntries(
-      Object.entries(seg).filter(([k]) => k !== "on_behalf_of"),
-    );
-  return out;
 }
 
 /**
@@ -234,8 +213,7 @@ export function makeRegistry() {
       );
       if (problem) {
         // A missing required argument's hint is that argument's own
-        // description (4.0.0): a segment tool called without segment is
-        // told 'mine', 'corpus' or the object, not to read tools/list.
+        // description (4.0.0), not an instruction to read tools/list.
         const missing = /^arguments\.([a-z_]+) is required\.$/.exec(problem);
         const own =
           missing &&

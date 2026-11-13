@@ -74,12 +74,12 @@ patch is a JSON API major.
 The initialize brief or the conventions it states disagree with the
 registry.
 
-- Example: the brief listed six segment tools while `cards_card` was a
-  seventh; "season on every windowed tool" while `elixir_timeline`
-  refused it.
+- Example: the brief listed six population tools while a seventh took
+  the same argument; "season on every windowed tool" while
+  `elixir_timeline` refused it.
 - Fix: correct the brief, or the tool, to the stated convention.
-- Guard: `services/mcp/test/tool-conventions.test.mjs` (the brief names
-  every segment tool derived from the registry; `season` wherever `from`).
+- Guard: `services/mcp/test/tool-conventions.test.mjs` (every tool name
+  the brief mentions is a real tool; `season` wherever `from`).
 
 ## stale-pointer
 

@@ -1144,7 +1144,7 @@ test("Stats opens for your own players and the players you follow, and refuses t
     403,
   );
 
-  // No tag, a bad tag, a tool Stats never reads, a segment: refused.
+  // No tag, a bad tag, a tool Stats never reads, an end user: refused.
   assert.equal((await stats("battles_query", {})).statusCode, 400);
   assert.equal(
     (await stats("battles_query", { player_tag: "not a tag!" })).statusCode,
@@ -1158,7 +1158,7 @@ test("Stats opens for your own players and the players you follow, and refuses t
     (
       await stats("battles_performance", {
         player_tag: own?.player_tag ?? STRANGER,
-        segment: "mine",
+        on_behalf_of: "discord:1",
       })
     ).statusCode,
     400,

@@ -37,7 +37,7 @@ conventions that hold everywhere.
 | How has each member's trophies or rank moved day by day? | `clans_members_series` (every member's day series in one call; compact for first, last and delta) |
 | Scout the bracket | `war_rivals`, then `war_current({ clan_tag, live: true })` or `clans_roster({ clan_tag, live: true })` for one rival |
 | What does "LavaLoon" / "bridge spam" mean, or what is this deck called? | `cards_archetype` (`name`, or `cards`; nothing for the vocabulary) |
-| Rarest badge, who holds one | `badges_rarity`, `badges_holders` |
+| A player's badges | `players_profile` |
 | A name to a tag, or tags to names | `players_search`, `players_names` |
 | What happened since I last looked? | `elixir_timeline` (items newest first and an entry per subject, then drill with the data tools) |
 | How have I moved: trophies, rank, a lifetime counter, day by day? | `players_series` (one point per game day; `metrics` picks the series) |
@@ -45,8 +45,8 @@ conventions that hold everywhere.
 | Who do I keep meeting, and how does it go? | `battles_opponents` (`sort: "losses"` for the opponents you lost to most first) |
 | Two to four players side by side | `battles_compare` (`mode`, or read each player's per-mode-group split, `window.modes`) |
 | Were my cards above or below my opponents' this window? | `players_summary` (`mean_level_gap` on each deck), `battles_decks`, `battles_cards` and `battles_opponents` rows (`mean_level_gap`); the record describes the gap and does not score it, see [Methodology](/docs/methodology#card-levels-described-not-adjusted-for) |
-| How did this player or clan's members play week by week? | `battles_performance` with a `segment` (`"mine"`, `{player_tag}` or `{clan_tag}`): `weeks[]` |
-| Card facts, earliest selected-history play, and who in my clan played or holds it | `cards_card` (one call; [Cards](/docs/cards)) |
+| How did this player play week by week? | `battles_performance` (`group_by: "week"`): `weekly[]` |
+| Card facts and art | `cards_catalog` (`ids` or `query`; [Cards](/docs/cards)) |
 | The profile, the collection, how complete the record is | `players_profile`, `players_collection`, `elixir_coverage` |
 | Past war weeks: final ranks, boat fame, one member's points and decks | `war_history` (`seasons`, or `season_id` and `section_index` for one week's whole roster) |
 | What was on in the game: events, challenges, side modes, by day | `game_events` |
@@ -111,14 +111,13 @@ trophies and the ranked standing, so the two sides of it are not one series.
   for); when that clan is not recorded, or there is none, the call is
   refused with the fixing call in the hint, never answered for another
   clan. Nothing is looked up first.
-- **Segment tools name a subject.** `cards_card` and `badges_*` require, and `battles_performance` takes, `"mine"` (your clan), `{player_tag}` or `{clan_tag}`. A clan read describes its current members. There is no record segment.
+- **Every read names a player or a clan.** No tool reads the whole record: there are no corpus statistics.
 - **Windows are `from`/`to`**, ISO instants or `YYYY-MM-DD` resolved in the
   account's timezone; a date-only `to` covers that whole day. The daily
   series (`players_series`, `clans_series`, `clans_members_series`)
   run on game days and floor an instant to its day, saying so. `days` and
   `weeks` are sugar; `season` (`current`, `previous`, `2026-08` or `135`)
-  bounds one season on every windowed tool, `elixir_timeline` included, and
-  is the default on `cards_card`.
+  bounds one season on every windowed tool, `elixir_timeline` included.
   Every windowed response echoes `applied.window` with a `source` of
   `argument`, `default`, `unbounded`, `season` or `fixed`, the `season` it
   starts in and `crosses`, every season roll inside it (a note fires when

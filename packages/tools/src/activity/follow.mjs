@@ -105,10 +105,7 @@ export function followFor(it, window) {
             { tool: "players_collection", args: { player_tag: tag } },
             ...(Number.isInteger(f.card_id)
               ? [
-                  {
-                    tool: "cards_card",
-                    args: { card_id: f.card_id, segment: { player_tag: tag } },
-                  },
+                  { tool: "cards_catalog", args: { ids: [f.card_id] } },
                 ]
               : []),
           ]

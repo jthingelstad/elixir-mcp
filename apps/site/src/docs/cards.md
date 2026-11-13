@@ -26,22 +26,11 @@ Elixir keeps the card catalog, your recorded card inventory, the cards on each b
 
 **Levels.** Recorded tools serve the in-game 1–16 scale. Raw API payloads use rarity-relative levels; `cards_catalog` carries `maxLevelRarityScale` for joining to them. Level differences describe the games that happened, as explained in [Methodology](/docs/methodology#card-levels-described-not-adjusted-for).
 
-## One card in one call
-
-`cards_card` takes an exact card name or `card_id` and a required subject: `segment: "mine"` for your clan, `{player_tag}` for one player, or `{clan_tag}` for a clan's current members. It serves catalog facts and `card.first_played {base, evolution, hero}`: the earliest play of each form in that selected recorded history. A form never recorded stays null.
-
-`first_seen_in_catalog` is when Elixir stored the catalog row, not the card's release date. The API does not provide release dates, descriptions or combat statistics.
-
-For a clan, `members.played` lists current members who played the card in the requested window, with battle counts, wins/losses, levels and forms. A duel contributes each recorded round. `members.held` lists recorded inventory with `observed_at` and `since`; missing inventory is unknown. Membership is current at the time of the call, including members' earlier games. The window defaults to the current season; `season`, `from`/`to` and `mode` can narrow the played list. `first_played` spans the whole selected history. Compact verbosity drops the member lists.
-
-Card history reads use the selected players' recorded games before looking up card details. Repeated decks still contribute every played game and duel round; they share one earliest-play lookup for each card form.
-
 ## Which tool for which card question
 
 | question | tool |
 | --- | --- |
 | What is this card, and which forms exist? | `cards_catalog` |
-| When did this player first play it? Who in this clan played or holds it? | `cards_card` |
 | Which cards did I play, or face, in my games? | `battles_cards` with `perspective` |
 | My battles with or against a card | `battles_query` with `with_card`, `with_cards` or `against_card` |
 | My recorded card levels and forms | `players_collection` |
@@ -50,13 +39,13 @@ Card history reads use the selected players' recorded games before looking up ca
 
 ## Card art
 
-Card responses carry each card's art by form: `art: {base, evolution, hero}` on `cards_catalog` when `ids` or `query` name the cards, on `card.art` in `cards_card`, and on the public catalog at `/api/public/cards`. A form is there when the API's own `iconUrls` lists it, so the art is the game's. Each address is an image on Elixir's own origin: an exact copy of the file the API's icon URL serves, byte for byte, never resized, re-encoded or otherwise altered, so there is one image per card and form (285 by 420 pixels as Supercell publishes them). Show it at any size with HTML or CSS (`width` and `height` on the image); there are no smaller copies. Elixir copies the images from the API's addresses, so a page showing them never sends its reader to Supercell's servers. `iconUrls` stays as the API serves it. Verify’s target and latest-battle decks and collector avatars use the same mirror.
+Card responses carry each card's art by form: `art: {base, evolution, hero}` on `cards_catalog` when `ids` or `query` name the cards and on the public catalog at `/api/public/cards`. A form is there when the API's own `iconUrls` lists it, so the art is the game's. Each address is an image on Elixir's own origin: an exact copy of the file the API's icon URL serves, byte for byte, never resized, re-encoded or otherwise altered, so there is one image per card and form (285 by 420 pixels as Supercell publishes them). Show it at any size with HTML or CSS (`width` and `height` on the image); there are no smaller copies. Elixir copies the images from the API's addresses, so a page showing them never sends its reader to Supercell's servers. `iconUrls` stays as the API serves it. Verify’s target and latest-battle decks and collector avatars use the same mirror.
 
 Draw a played card's form art, else the base card's art, else its name. The API lists a new card or form about two weeks before Supercell publishes its image (on 2026-10-08, Hero Electro Wizard and Evo Electro Giant), so a missing form is expected then: Elixir tries again on every update and copies the image once it answers. Until then that address does not answer, and the base card stands in. Tower troops carry no art yet. The unnarrowed `cards_catalog` leaves `art` out to stay under the result cap.
 
 ## Tower troops
 
-A tower troop is the ninth card in a deck identity. The API reports none on river race battles; that absence stays unknown. Two otherwise identical decks with different tower troops have different hashes. `players_collection` lists recorded tower troops as `support_cards`; `cards_card` can describe a tower troop and its earliest selected-history play. `cards_catalog` lists them under `tower_troops`, apart from `cards`.
+A tower troop is the ninth card in a deck identity. The API reports none on river race battles; that absence stays unknown. Two otherwise identical decks with different tower troops have different hashes. `players_collection` lists recorded tower troops as `support_cards`. `cards_catalog` lists them under `tower_troops`, apart from `cards`.
 
 ## A card's own page
 

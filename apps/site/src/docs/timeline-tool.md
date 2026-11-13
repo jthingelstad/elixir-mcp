@@ -239,7 +239,7 @@ story or how to name the moment to it:
 | `ranked_promotion`, `arena_changed`, `best_trophies_band`, `career_wins_step` | the battle that proved it (`battles_query` by `battle_id`), when the record holds it, then `players_summary` |
 | `badge_earned`, `legendary_badge_earned` | `players_profile` |
 | `collection_level_step` | `players_collection` |
-| `card_unlocked`, `card_form_unlocked` | `players_collection`, then `cards_card` for that card and that player |
+| `card_unlocked`, `card_form_unlocked` | `players_collection`, then `cards_catalog` for that card |
 | `member_joined`, `member_left`, `member_role_changed` | `players_summary` for the member, then `clans_roster` |
 | `clan_joined`, `clan_left` | `players_summary` (the clan may be one nobody records) |
 | `bracket_observed` | `war_rivals` for the clan and its bracket |

@@ -171,7 +171,7 @@ export async function auditRow(
 /** The delegated id as the caller gave it, for the census; bounded so a
  *  hostile argument cannot grow the row. */
 export function onBehalfOfOf(args) {
-  const v = args?.on_behalf_of ?? args?.segment?.on_behalf_of ?? null;
+  const v = args?.on_behalf_of ?? null;
   if (v === null || v === undefined) return null;
   return String(v).slice(0, MAX_ON_BEHALF_OF_CHARS);
 }
@@ -197,35 +197,18 @@ const BUDGET_WORK_MEM = "32MB";
  *  writes, ingest above all, wait on row locks as a matter of course. */
 const READ_LOCK_TIMEOUT_MS = 5_000;
 
-/** The tools whose reads earn the analytical budget: corpus-wide
- *  aggregations and the two clan reads whose 14-day p95 exceeded 5 s
- *  (war_history's exact-week roster path timed out the Lambda,
- *  review 2026-09-19 defect 1). cards_card, cards_synergy and
- *  battles_trends joined 2026-09-23: {profile_tool} put cards_card's
- *  partner join at 5.9 s with 155 MB spilled to temp at the server's
- *  4 MB, and battles_trends' p95 was 16-17 s against the Lambda's
- *  deadline with no query_timeout of its own. battles_trends folded into
- *  battles_performance's segment in 12.0.0, and a call with segment keeps
- *  its budget; battles_performance without one stays on the deadline. */
-const BUDGETED_TOOLS = new Set([
-  "cards_card",
-  "clans_standings",
-  "war_history",
-]);
-
-/** Whether this call earns the analytical budget. */
-function analyticalCall(name, args) {
-  return (
-    BUDGETED_TOOLS.has(name) ||
-    (name === "battles_performance" && args?.segment !== undefined)
-  );
-}
+/** The tools whose reads earn the analytical budget: the two clan reads
+ *  whose 14-day p95 exceeded 5 s (war_history's exact-week roster path
+ *  timed out the Lambda, review 2026-09-19 defect 1). cards_card and
+ *  battles_performance's segment read held it too until they retired in
+ *  13.0.0. */
+const BUDGETED_TOOLS = new Set(["clans_standings", "war_history"]);
 
 /** The work_mem a tool's reads run at under the invoker, or null for
  *  the server's own: {profile_tool} applies the same, so a profile
  *  measures what production runs. */
-export function analyticalWorkMem(name, args = {}) {
-  return analyticalCall(name, args) ? BUDGET_WORK_MEM : null;
+export function analyticalWorkMem(name) {
+  return BUDGETED_TOOLS.has(name) ? BUDGET_WORK_MEM : null;
 }
 
 /** Put a budget on the connection: lock_timeout, and work_mem for an
@@ -390,7 +373,7 @@ function budgetFor(
   args,
   { registry, queryBudgetMs, deadlineMs, lockTimeoutMs },
 ) {
-  const analytical = analyticalCall(name, args);
+  const analytical = BUDGETED_TOOLS.has(name);
   const readOnly = TOOL_GROUPS[name]?.readOnly ?? true;
   const budgetMs = analytical
     ? queryBudgetMs === null

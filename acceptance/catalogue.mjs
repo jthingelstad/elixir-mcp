@@ -151,10 +151,7 @@ export function shapeCatalogue(raw, declarations, { stale = [] } = {}) {
     if (
       "player_tag" in props &&
       !("player_tag" in args) &&
-      !("segment" in args) &&
-      !("clan_tag" in args) &&
-      !("card_id" in args) &&
-      !("card" in args)
+      !("clan_tag" in args)
     )
       args.player_tag = JAMIE;
     // A set the current contract refuses is stale usage (a call from

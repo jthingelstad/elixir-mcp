@@ -25,11 +25,6 @@ export const OAUTH_SCOPE = {
    *  a family app on its own origin (Drop) signing a person in with Elixir needs
    *  the email on the account, and nothing else ever does. */
   ACCOUNT_EMAIL: "account:email",
-  /** The second never offered unasked (JSON API 2.2.0, 2026-09-25). It
-   *  was a family app recording what the person did in their clan
-   *  (`POST /api/v1/clans/{tag}/facts`); JSON API 4.0.0 removed that
-   *  operation, so no operation takes it now. Family apps only. */
-  CLANS_ATTEST: "clans:attest",
 } as const;
 
 export type OAuthScope = (typeof OAUTH_SCOPE)[keyof typeof OAUTH_SCOPE];
@@ -79,21 +74,13 @@ export const OAUTH_SCOPE_DETAILS: ReadonlyArray<{
       "Read the email on your Elixir account, so this app can sign you in as the same person. Offered only to the Elixir family's own apps, when they ask for it.",
     standard: false,
   },
-  {
-    scope: OAUTH_SCOPE.CLANS_ATTEST,
-    title: "Record what you do in your clan",
-    description:
-      "Tell Elixir what you did in your clan through this app (a departure you classified, a promotion, an award, a message to the clan), labelled as yours. Offered only to the Elixir family's own apps, when they ask for it.",
-    standard: false,
-  },
 ];
 
 export const OAUTH_SCOPES: readonly OAuthScope[] = OAUTH_SCOPE_DETAILS.map(
   ({ scope }) => scope,
 );
 /** The scopes a client gets without asking, and the ones the consent page
- *  offers ticked. account:email and clans:attest are deliberately not
- *  among them. */
+ *  offers ticked. account:email is deliberately not among them. */
 export const STANDARD_OAUTH_SCOPES: readonly OAuthScope[] =
   OAUTH_SCOPE_DETAILS.filter(({ standard }) => standard).map(
     ({ scope }) => scope,
@@ -107,6 +94,16 @@ export const DEFAULT_OAUTH_SCOPE: OAuthScope = OAUTH_SCOPE.READ;
 export const LEGACY_OAUTH_SCOPES: Readonly<Record<string, OAuthScope>> = {
   "recordings:write": OAUTH_SCOPE.FOLLOWS_WRITE,
 };
+
+/** Retired scopes, dropped wherever a scope is read (a request, a consent
+ *  form, a stored grant, code or key) so a grant that holds one keeps
+ *  working without it and is never rewritten: collections:write went with
+ *  Collections, clans:attest in MCP 13.0.0 (JSON API 4.0.0 had removed
+ *  the last operation that took it). */
+export const RETIRED_OAUTH_SCOPES: readonly string[] = [
+  "collections:write",
+  "clans:attest",
+];
 
 /** What a client that asks for nothing in particular gets (1.0.0): every
  *  capability, ticked on the consent page where the person can untick any
@@ -229,16 +226,6 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Resolve tags to names",
     readOnly: true,
   },
-  badges_rarity: {
-    group: "Players",
-    title: "Badge rarity census",
-    readOnly: true,
-  },
-  badges_holders: {
-    group: "Players",
-    title: "Badge holders",
-    readOnly: true,
-  },
   // Coverage is about a PLAYER's record, not about the service.
   elixir_coverage: {
     group: "Players",
@@ -280,13 +267,8 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     readOnly: true,
   },
 
-  // Cards — the global catalog and what rides with what (docs: cards.md).
+  // Cards — the global catalog and the archetype vocabulary (docs: cards.md).
   cards_catalog: { group: "Cards", title: "Card catalog", readOnly: true },
-  cards_card: {
-    group: "Cards",
-    title: "One card, everything recorded",
-    readOnly: true,
-  },
 
   cards_archetype: {
     group: "Cards",

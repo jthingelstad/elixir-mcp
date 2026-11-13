@@ -51,9 +51,7 @@ const BEN_PAGE = {
 export const ME = {
   signed_in: true,
   ok: true,
-  // A sign-in since 2026-09-25 holds clans:attest; without it every page
-  // asks the person to sign in again (App.jsx canShare).
-  scope: "cr:read clans:attest",
+  scope: "cr:read",
   principal: {
     kind: "person",
     subject: { type: "player", tag: "#098R2R0PUL", name: "Ada" },
