@@ -11,7 +11,7 @@ export default {
       "`clans_directory`: the clan directory as Home's Clans page lists it: each clan whose leaders saved a policy, with its recorded tile and the policy's public part; `yours` marks a clan one of your (your owner's) verified players is in.",
       "`elixir_cheers`: the cheers other people gave the items about your primary player, as counts by kind, never who.",
     ),
-    "Breaking: renames and retirements below, with no aliases. Refresh tools/list. The JSON API is 3.6.0, a minor: four new GET operations mirror the new tools, and the operations mirroring the renamed tools keep their paths.",
+    "Five tools are renamed and four retire, with no aliases (see breaking); refresh tools/list. The JSON API is 3.6.0, a minor: four new GET operations mirror the new tools, and the operations mirroring the renamed tools keep their paths.",
   ),
   tools_added: [
     "players_follows",
