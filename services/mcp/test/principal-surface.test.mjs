@@ -246,10 +246,10 @@ test("a person is told who they are, and told not to look it up", async () => {
     kind: "person",
     grouped: {
       primary: [
-        { player_tag: "#UL2V9QRG0", name: "Plum Heron", is_primary: true },
+        { player_tag: "#Q9Q9Q9Q9", name: "Plum Heron", is_primary: true },
       ],
-      alt: [{ player_tag: "#U8RYG9Y2U", name: "Jolly Stoat" }],
-      watching: [{ player_tag: "#20R8QRLYLP", name: "Crisp Marten" }],
+      alt: [{ player_tag: "#Y2Y2Y2Y2", name: "Jolly Stoat" }],
+      watching: [{ player_tag: "#C0C0C0C0", name: "Crisp Marten" }],
     },
     clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
     // "Your clan" is the primary player's current clan (2026-09-25).
@@ -262,9 +262,9 @@ test("a person is told who they are, and told not to look it up", async () => {
     )
   ).payload.result.instructions;
 
-  assert.match(text, /YOU ARE Plum Heron #UL2V9QRG0/);
-  assert.match(text, /Also you, under another tag: Jolly Stoat #U8RYG9Y2U/);
-  assert.match(text, /watching: Crisp Marten #20R8QRLYLP/);
+  assert.match(text, /YOU ARE Plum Heron #Q9Q9Q9Q9/);
+  assert.match(text, /Also you, under another tag: Jolly Stoat #Y2Y2Y2Y2/);
+  assert.match(text, /watching: Crisp Marten #C0C0C0C0/);
   assert.match(text, /Your clan is POAP KINGS #J2RGCRVG/);
   assert.match(text, /OMIT player_tag and clan_tag/);
 });
@@ -275,7 +275,7 @@ test("an agent is told its clan and how to learn who is asking", async () => {
     clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS", members: 48 }],
     leaders: [
       { player_tag: "#20JJJ2CCRU", name: "King Thing", role: "leader" },
-      { player_tag: "#UL2V9QRG0", name: "Plum Heron", role: "coLeader" },
+      { player_tag: "#Q9Q9Q9Q9", name: "Plum Heron", role: "coLeader" },
     ],
     identityCount: 3,
   };
@@ -295,7 +295,7 @@ test("an agent is told its clan and how to learn who is asking", async () => {
 
   // The roster is deliberately NOT here: it changes daily and this text is
   // held until the agent reconnects.
-  assert.ok(!text.includes("#20R8QRLYLP"), "no roster in the block");
+  assert.ok(!text.includes("#C0C0C0C0"), "no roster in the block");
   assert.match(text, /clans_roster ONCE/);
 });
 
