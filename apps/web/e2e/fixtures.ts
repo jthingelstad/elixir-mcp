@@ -208,10 +208,6 @@ export function signedIn(
       200,
       { totals: { battles: 5861, players: 40, clans: 2 } },
     ],
-    "GET /api/me/battle-activity/20JJJ2CCRU": [
-      200,
-      { computed_at: "2026-09-12T15:00:00Z", days: [], rhythm: [] },
-    ],
     ...overrides,
   };
   return routes;

@@ -2128,12 +2128,23 @@ test("gateway config download is strictly one-time and owner-scoped", async () =
   assert.ok(after[0].provision_claimed_at);
 });
 
-test("public efficiency: no auth, five-minute cache, the rule, the days and today so far", async () => {
-  const res = await handler(
-    event({ method: "GET", path: "/api/public/efficiency", body: undefined }),
-  );
+test("admin efficiency: staff read the rule, the days and today so far; nobody else does", async () => {
+  const get = (cookie) =>
+    handler(
+      event({
+        method: "GET",
+        path: "/api/admin/efficiency",
+        cookie,
+        body: undefined,
+      }),
+    );
+  const res = await get(bossCookie);
   assert.equal(res.statusCode, 200, res.body);
-  assert.match(res.headers["cache-control"], /max-age=300/);
+  assert.doesNotMatch(
+    String(res.headers?.["cache-control"] ?? ""),
+    /public/,
+    "a staff read is never cached at the edge",
+  );
   const body = parse(res);
   assert.equal(body.rule.followup_minutes, 30);
   assert.equal(body.rule.ceiling_minutes, 120);
@@ -2143,6 +2154,30 @@ test("public efficiency: no auth, five-minute cache, the rule, the days and toda
     assert.ok(Number.isInteger(body.today[k]), `today carries ${k}`);
   assert.ok(Number.isInteger(body.last_hour.battlelog_polls));
   assert.ok(!JSON.stringify(body).includes("#"), "no player named");
+  const member = await get(memberCookie);
+  assert.equal(member.statusCode, 403);
+  assert.equal(parse(member).error, "not_entitled");
+  assert.equal((await get(undefined)).statusCode, 403);
+});
+
+test("routes retired with the social-layer pivot answer 404, signed in or not (2026-11-13)", async () => {
+  // The Settings year graph's read and the public capture-efficiency
+  // read. Efficiency lives on as GET /api/admin/efficiency.
+  for (const path of [
+    "/api/me/battle-activity/20JJJ2CCRU",
+    "/api/me/battle-activity/%2320JJJ2CCRU",
+    "/api/public/efficiency",
+  ])
+    for (const cookie of [undefined, memberCookie, bossCookie]) {
+      const r = await handler(
+        event({ method: "GET", path, cookie, body: undefined }),
+      );
+      assert.equal(
+        r.statusCode,
+        404,
+        `${path} ${cookie ? "signed in" : "signed out"}`,
+      );
+    }
 });
 
 test("public status: no auth, 60s cache, no confidential fields", async () => {

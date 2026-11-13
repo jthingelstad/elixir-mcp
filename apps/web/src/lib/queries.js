@@ -4,8 +4,8 @@
  * what to invalidate.
  *
  * Key convention: the reader's OWN things start with "me" - the session
- * itself is ["me"], usage ["me", "usage"], claims' activity ["me",
- * "activity", tag]. Invalidating ["me"] therefore refetches everything
+ * itself is ["me"], usage ["me", "usage"], their clans ["me", "clans"].
+ * Invalidating ["me"] therefore refetches everything
  * that is theirs, which is what a sign-in, a claim or a timezone change
  * wants. Public reads (status, corpus stats) have their own roots.
  *
@@ -32,7 +32,6 @@ export const keys = {
   me: ["me"],
   usage: ["me", "usage"],
   clans: ["me", "clans"],
-  activity: (tag) => ["me", "activity", tag],
   requests: ["me", "requests"],
   events: ["me", "events"],
   feed: ["me", "feed"],
@@ -56,6 +55,7 @@ export const keys = {
   adminGateways: ["admin", "gateways"],
   adminAccounts: ["admin", "accounts"],
   adminUsage: ["admin", "usage"],
+  adminEfficiency: ["admin", "efficiency"],
   adminDiscord: (days) => ["admin", "discord", days],
   adminDiscordDetail: (key, feature) => [
     "admin",
@@ -74,7 +74,6 @@ export const keys = {
   adminCards: ["admin", "cards"],
   adminEmail: (id) => ["admin", "email", "sends", id],
   status: ["status"],
-  efficiency: ["efficiency"],
   cards: ["cards"],
 };
 
@@ -302,13 +301,6 @@ export const useFollowSlots = () =>
     queryKey: ["me", "follow-slots"],
     queryFn: payload(() => api.followSlots()),
     staleTime: 15_000,
-  });
-
-export const useBattleActivity = (tag) =>
-  useQuery({
-    queryKey: keys.activity(tag),
-    queryFn: payload(() => api.battleActivity(tag)),
-    enabled: Boolean(tag),
   });
 
 export const useMyRequests = (enabled = true) => {
@@ -591,6 +583,11 @@ export const useAdminAccounts = adminRead(
   api.adminAccounts,
 );
 export const useAdminUsage = adminRead(keys.adminUsage, api.adminUsage);
+/** The session clock's cost and loss per day (0145), for staff. */
+export const useAdminEfficiency = adminRead(
+  keys.adminEfficiency,
+  api.adminEfficiency,
+);
 /** The Discord features' quality over a window (the ledger, 0222). */
 export const useAdminDiscord = (days) =>
   useQuery({
@@ -702,13 +699,6 @@ export const usePublicStatus = (refetchInterval = false) =>
     queryKey: keys.status,
     queryFn: payload(api.publicStatus),
     refetchInterval,
-  });
-
-/** Public: the session clock's cost and loss per day (0145). */
-export const usePublicEfficiency = () =>
-  useQuery({
-    queryKey: keys.efficiency,
-    queryFn: payload(api.publicEfficiency),
   });
 
 /** Public: the card catalog, read once a session for each card's art

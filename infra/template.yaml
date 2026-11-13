@@ -2179,12 +2179,6 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt PayloadSweepRule.Arn
 
-  # Nightly battle-activity histogram (0084): one row per recorded player,
-  # a decayed 24x7 rhythm and a year of UTC daily counts, rebuilt from
-  # battle_participant. 05:30Z is the fleet's quietest hour (2026-09-13
-  # read: 91-100 battlelog fetches/hr at 06-09Z against 150 in the US
-  # evening) and after the UTC day has closed, so yesterday's count is
-  # final. Read by the console today and by the scheduler later.
   PublicStatsRule:
     Type: AWS::Events::Rule
     Properties:
@@ -2203,28 +2197,32 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt PublicStatsRule.Arn
 
-  ActivityHistogramRule:
+  # Nightly deck archetype stamp (0148): every deck behind the current
+  # grammar and vocabulary version is re-stamped. 05:30Z is the fleet's
+  # quietest hour. It rode the battle-activity histogram's rule until the
+  # histogram and its player_activity table retired (2026-11-13).
+  ArchetypeStampRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: elixir-mcp-activity-histogram
+      Name: elixir-mcp-archetype-stamp
       ScheduleExpression: cron(30 5 * * ? *)
       Targets:
         - Arn: !GetAtt JobsFunction.Arn
-          Id: activity-histogram
-          Input: '{"activity_histogram": true}'
+          Id: archetype-stamp
+          Input: '{"archetype_stamp": true}'
 
-  ActivityHistogramPermission:
+  ArchetypeStampPermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref JobsFunction
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
-      SourceArn: !GetAtt ActivityHistogramRule.Arn
+      SourceArn: !GetAtt ArchetypeStampRule.Arn
 
   # What the battlelog schedule costs and loses, per UTC day (0145;
   # Jamie, 2026-09-19): the last three closed days rewritten at 05:20Z,
-  # after the payload sweep and before the histogram; the console's
-  # Efficiency page reads the table.
+  # after the payload sweep and before the archetype stamp; Settings >
+  # Admin > Efficiency reads the table.
   CaptureEfficiencyRule:
     Type: AWS::Events::Rule
     Properties:
@@ -2749,12 +2747,11 @@ Resources:
         CacheBehaviors:
           # The public reads, CACHED (#23, #73). Every /api/public route
           # runs real aggregation (status several time-series queries,
-          # stats the whole corpus, efficiency two api_receipt x
-          # capture_audit scans, the card pages the nightly rollup) and
+          # stats the whole corpus, the card pages the nightly rollup) and
           # states its own freshness in Cache-Control. Under the /api/*
           # CachingDisabled behaviour every hit recomputed them and
           # x-cache said Miss every time; #23 cached status and stats by
-          # name, and the card pages and efficiency kept missing. One
+          # name, and the card pages kept missing. One
           # prefix covers every public read, present and future; a test
           # holds each route to GET with its own max-age. Listed FIRST
           # because CloudFront takes the first pattern that matches, not

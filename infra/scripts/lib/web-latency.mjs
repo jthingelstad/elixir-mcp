@@ -45,7 +45,6 @@ const ID_AFTER = new Set([
   "awards",
   "battle",
   "battles",
-  "battle-activity",
   "sends",
   "profile-refreshes",
   "accounts",

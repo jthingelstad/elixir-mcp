@@ -25,7 +25,6 @@ const E2E = "apps/web/e2e";
  *  size matter. Keyed by path under apps/web/e2e. */
 export const SPEC_WEIGHTS = {
   "responsive-reflow.spec.ts": 75,
-  "year-activity.spec.ts": 71,
   "signin-return.spec.ts": 34,
   "ladder.spec.ts": 33,
   "clan/roles-readiness.spec.ts": 30,

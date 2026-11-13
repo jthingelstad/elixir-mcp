@@ -6,8 +6,8 @@
 # fixtures, so what lands in that tree, or builds and serves it, can break
 # them. A few specs also import code outside the tree: native-ssr bundles
 # services/web-api's app-pages.mjs with build.mjs's own options, and the
-# mail and battle-activity specs render with packages/mail, the relay's
-# templates and the web API's day shaping. Those files are named below.
+# mail specs render with packages/mail and the relay's templates. Those
+# files are named below.
 # Doc pages and the updates feed are checked by verify's site build,
 # except the pages a journey opens (quickstart). Everything else in
 # services, migrations, infra and the MCP tools never reaches a journey.
@@ -32,7 +32,6 @@ reaches_journeys() {
       -e '^apps/web/' \
       -e '^packages/(ui|client|design|clan-engine|contracts|record|mail|auth)/' \
       -e '^services/web-api/src/(app-pages|http|share-files)\.mjs$' \
-      -e '^services/web-api/src/routes/battle-activity\.mjs$' \
       -e '^services/email-relay/src/templates\.mjs$' \
       -e '^infra/scripts/(build|build-site|serve-site|e2e-shard)\.mjs$' \
       -e '^package(-lock)?\.json$' \

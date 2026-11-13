@@ -53,7 +53,6 @@ const PUBLIC = {
   // figures read these; the site build bakes /api/public/stats.
   "GET /api/public/status": "status",
   "GET /api/public/stats": "status",
-  "GET /api/public/efficiency": "status",
   // The game's card list: reference, no subject, no play statistic.
   // The site build bakes /cards from it and poapkings.com's roster
   // import reads it with no key.

@@ -159,8 +159,7 @@ standings, per member on participation. Never fame, never points.
 **game day**: the day every daily series and the war grid are keyed by:
 the date whose 10:00 UTC start an instant falls after, pure UTC arithmetic,
 so a season roll and a war day never straddle a row. `day` on a point is a
-game day; the year graphic on a player's page is on UTC calendar days
-instead. See [The game day](/docs/clocks#the-game-day).
+game day. See [The game day](/docs/clocks#the-game-day).
 
 **series**: a day-grained history read as points: `players_series`,
 `clans_series` and `clans_members_series`, one point per game day, the

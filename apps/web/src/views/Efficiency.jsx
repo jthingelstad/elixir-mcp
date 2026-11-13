@@ -1,13 +1,15 @@
 import { Link, Panel, PageHead, Table } from "@elixir-mcp/ui";
-import { usePublicEfficiency } from "../lib/queries.js";
+import { useAdminEfficiency } from "../lib/queries.js";
 import { ADMIN } from "../lib/settings.js";
 
 /**
- * Service ▸ Status ▸ Efficiency — what the battlelog schedule costs and
+ * Settings ▸ Admin ▸ Efficiency — what the battlelog schedule costs and
  * what it loses, per day. Jamie, 2026-09-19: "we should be displaying
  * that battle log breakage somewhere in the collector interface".
  *
- * PUBLIC, like the fleet: aggregates only, no player named. The loss is
+ * Staff only since 2026-11-13 (`GET /api/admin/efficiency`; the public
+ * read retired with the pivot to the social layer): aggregates, no
+ * player named. The loss is
  * the recorder's own measurement against the game's lifetime battle
  * counter (docs/recording, "How often a subject is fetched"): known the
  * morning after, so today's row says polls and gaps and leaves the loss
@@ -57,7 +59,7 @@ const DAY_COLUMNS = [
 ];
 
 export function Efficiency() {
-  const query = usePublicEfficiency();
+  const query = useAdminEfficiency();
   const data = query.data ?? null;
   // A failed read is said, not left loading (console audit M2).
   if (!data && query.isError)
@@ -172,8 +174,7 @@ export function Efficiency() {
           data.last_hour?.nothing_new_polls ?? 0,
           data.last_hour?.battlelog_polls ?? 0,
         )}{" "}
-        found nothing, {n(data.last_hour?.gaps)} gaps. Also in{" "}
-        <code>/api/public/efficiency</code>.
+        found nothing, {n(data.last_hour?.gaps)} gaps.
       </p>
     </>
   );

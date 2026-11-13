@@ -1,5 +1,4 @@
 import { verifyRoutes } from "./routes/verify.mjs";
-import { battleActivityRoutes } from "./routes/battle-activity.mjs";
 import { signInApi, apiProblem, v1Operation } from "./sign-in-api.mjs";
 import { randomUUID } from "node:crypto";
 /**
@@ -463,7 +462,6 @@ export function makeHandler({
     }),
     ...principalsRoutes({ resolveAccount, logEvent }),
     ...verifyRoutes({ resolveAccount, logEvent }),
-    ...battleActivityRoutes({ resolveAccount }),
     ...battleRoutes({ siteShell, shareImage }),
     ...cheersRoutes({ resolveAccount }),
     // The bell's stored week rides the same wake (bell_week, 0247).

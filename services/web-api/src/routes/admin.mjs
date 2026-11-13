@@ -11,6 +11,7 @@ import {
 
 import { UUID_RE, ID_RE, json } from "../http.mjs";
 import { loadCallRecord } from "../call-record.mjs";
+import { readEfficiency } from "../efficiency.mjs";
 import {
   SENDS_COLS,
   SENDS_FROM,
@@ -170,6 +171,14 @@ export function adminRoutes({ resolveAccount, logEvent, capture = null }) {
       });
       if (!detail) return json(404, { error: "not_found" });
       return json(200, detail);
+    },
+
+    // Capture efficiency (0145), staff only since 2026-11-13: the public
+    // read retired; Settings > Admin > Efficiency reads this.
+    "GET /api/admin/efficiency": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      return json(200, await readEfficiency(db));
     },
 
     "GET /api/admin/usage": async (db, event) => {

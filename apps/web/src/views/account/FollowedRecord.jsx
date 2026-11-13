@@ -13,23 +13,15 @@ import { scopeLabel } from "../../lib/words.js";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useState } from "react";
 import { api } from "../../api.js";
-import {
-  useBattleActivity,
-  useInvalidate,
-  useMyClans,
-} from "../../lib/queries.js";
+import { useInvalidate, useMyClans } from "../../lib/queries.js";
 import { tagFromPath, tagPath } from "../../lib/tag-url.js";
-import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 import { SETTINGS } from "../../lib/settings.js";
 import { playerHref } from "../../lib/player.js";
 import { Crumb, Facts, Note } from "./parts.jsx";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { HomeClanOffer } from "../../components/HomeClanOffer.jsx";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
-import {
-  useFirstAnswer,
-  useFirstReadLanded,
-} from "../../hooks/useFirstAnswer.js";
+import { useFirstAnswer } from "../../hooks/useFirstAnswer.js";
 import { recordJourney } from "../../lib/record-journey.js";
 import { FixTag, StopFollowing } from "./TagFix.jsx";
 
@@ -72,11 +64,6 @@ export function FollowedRecord({ me, refresh, navigate, tag }) {
   });
   const notFound = Boolean(
     claim && answer.data && recordJourney(answer.data).notFound,
-  );
-  // The player's own battle log read while the page is open: the year of
-  // battles below was drawn without it, so read it again, once (2026-11-09).
-  useFirstReadLanded(answer.data?.player ?? null, () =>
-    invalidate(["me", "activity", wanted]),
   );
   // Every write on this page, each unwrapped: a refusal is said on the
   // page, and the record refetches only after a write that took. "Make
@@ -136,10 +123,6 @@ export function FollowedRecord({ me, refresh, navigate, tag }) {
     nickname.error ??
     notify.error;
   const busy = primary.busy || remove.busy;
-  // Canonical year evidence, players only: a clan has no year of its own.
-  const tracked = Boolean(claim);
-  const activityQuery = useBattleActivity(tracked ? wanted : null);
-  const activity = activityQuery.data ?? null;
   const clan = (clans?.clans ?? []).find((c) => c.clan_tag === wanted);
   const rec = me.recordings?.find((r) => r.subject_tag === wanted);
 
@@ -405,16 +388,6 @@ export function FollowedRecord({ me, refresh, navigate, tag }) {
           />
         </Panel>
       </div>
-
-      {!isClan && (
-        <Panel title="Battle activity" titleAs="h2">
-          <ActivityGraph
-            data={activity}
-            error={activityQuery.error}
-            onRetry={activityQuery.refetch}
-          />
-        </Panel>
-      )}
     </div>
   );
 }

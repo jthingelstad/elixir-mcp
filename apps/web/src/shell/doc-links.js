@@ -52,7 +52,6 @@ export const DOC_LINKS = {
     "What we record for you",
     [
       ["How recording works", "/docs/recording"],
-      ["Battle activity", "/docs/activity"],
       ["Timeline", "/docs/timeline"],
     ],
   ],
