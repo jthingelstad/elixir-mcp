@@ -3,6 +3,7 @@ import { useRace, useRoster } from "../lib/queries.js";
 import { clanTabs, tabOf } from "../lib/tabs.js";
 import { ELIXIR_LINKS } from "../lib/links.js";
 import { n, raceChip } from "../lib/words.js";
+import { useHost } from "../lib/host.js";
 import { ClanPicker } from "./ClanPicker.jsx";
 
 const JOIN = {
@@ -33,7 +34,8 @@ export function clanLine(clan, roster) {
  * The head every clan page wears, a clan card: the clan's name, its line
  * (tag, members, how it takes members, its trophy floor), who you are in
  * it, a row of chips (the race now and the rules the leaders saved), how
- * fresh the roster read is, a picker with two or more clans, the verify
+ * fresh the roster read is, Follow (the app's clan follow, lent through
+ * lib/host.js), a picker with two or more clans, the verify
  * banner, and the tabs. The clan's name is the page's one h1; each page's
  * own head under it is an h2.
  */
@@ -47,6 +49,7 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
   const who = [you, role || null].filter(Boolean).join(" · ");
   const ruleChips = me.policy?.chips ?? [];
   const racing = raceChip(race);
+  const { FollowThisClan } = useHost();
   return (
     <header className="clan-head">
       <div className="clan-head__card">
@@ -77,6 +80,9 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
             ) : null}
           </div>
           <div className="clan-head__side">
+            {FollowThisClan ? (
+              <FollowThisClan clanTag={clan.clan_tag} clanName={clan.name} />
+            ) : null}
             <ClanPicker
               me={me}
               navigate={navigate}

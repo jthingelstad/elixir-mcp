@@ -1,4 +1,6 @@
-import { useFollowPlan } from "../lib/queries.js";
+import { ConfirmAction, Tag } from "@elixir-mcp/ui";
+import { api } from "../api.js";
+import { useFollowPlan, useInvalidate, useMyClans } from "../lib/queries.js";
 import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
 
 /**
@@ -72,6 +74,77 @@ export function FollowMember({ clanTag, playerTag, name = null }) {
         used: p.used,
         limit: p.limit,
       }}
+    />
+  );
+}
+
+/** What following a clan costs, said before the tap: one of the account's
+ *  clan slots for recording the clan only (the activity scope, Home's
+ *  "Follow your clan"), shared with its agents. Nothing when the limit is
+ *  not known; the write's own refusal says the rest. */
+function clanFollowCostLine(slot) {
+  if (!slot || slot.limit == null) return null;
+  const n = (v) => v.toLocaleString();
+  if (slot.used >= slot.limit)
+    return `All ${n(slot.limit)} clan slots in use. Stop following a clan in Settings first.`;
+  return `Uses 1 of your ${n(slot.limit)} clan slots · ${n(slot.used)} used`;
+}
+
+/**
+ * Follow the clan itself, from its head (design pass three, 2026-11-13):
+ * the player page's control, a confirmed Follow and then "Following". It is
+ * Elixir's own clan follow, the one Home's "Your clan" and Settings make
+ * (`GET` and `POST /api/me/clans`, activity scope): its roster, who joins
+ * and who goes, and its races. Your own clan wears it like any other; Elixir
+ * follows your primary player's clan by itself when a slot is free, so it
+ * usually reads "Following". Stopping lives in Settings, as for a player.
+ * Nothing until the read is in.
+ */
+export function FollowThisClan({ clanTag, clanName = null }) {
+  const { data } = useMyClans();
+  const invalidate = useInvalidate();
+  if (!data) return null;
+  if ((data.clans ?? []).some((c) => c.clan_tag === clanTag))
+    return <span className="kit-phead__state">Following</span>;
+  const slot = data.slots?.activity ?? null;
+  const full = Boolean(slot && slot.limit != null && slot.used >= slot.limit);
+  const name = clanName ?? clanTag;
+  const cost = clanFollowCostLine(slot);
+  return (
+    <ConfirmAction
+      label="Follow"
+      className="btn btn--sm btn--follow"
+      danger={false}
+      title={`Follow ${name}?`}
+      body={
+        <>
+          <p className="m-0">
+            {clanName ? (
+              <>
+                {clanName} <Tag tag={clanTag} />
+              </>
+            ) : (
+              <Tag tag={clanTag} />
+            )}
+            . Elixir records its roster, who joins and who goes, and its races.
+          </p>
+          {cost ? (
+            <p className="kit-tiny" role="status">
+              {cost}
+            </p>
+          ) : null}
+        </>
+      }
+      confirm="Follow"
+      disabled={full}
+      run={() =>
+        api.myClanAction({
+          action: "add",
+          clan_tag: clanTag,
+          scope: "activity",
+        })
+      }
+      onDone={() => invalidate()}
     />
   );
 }

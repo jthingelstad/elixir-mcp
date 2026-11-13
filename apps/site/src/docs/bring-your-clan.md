@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-11-12; Recruit and Scout are for elders, co-leaders and the leader, members keep Standing; 2026-11-12; Members is one page: Standing on Standings, Review in Run, Recruit and Scout at the roster's foot, Follow on each row; 2026-11-12; the clan card: its line, race and rule chips, and the Feed's race bar; 2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-11-13; Follow in the clan head, Elixir's clan follow; 2026-11-12; Recruit and Scout are for elders, co-leaders and the leader, members keep Standing; 2026-11-12; Members is one page: Standing on Standings, Review in Run, Recruit and Scout at the roster's foot, Follow on each row; 2026-11-12; the clan card: its line, race and rule chips, and the Feed's race bar; 2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -112,6 +112,13 @@ players are in more than one clan, a **Clan** picker sits beside the name:
 each clan with your role there, and **All your clans…** for the full list.
 Picking a clan keeps you on the page you were on. With one clan there is
 nothing to pick.
+
+Beside the name sits **Follow**, the same as on a player's page. It asks
+first, saying what Elixir records (the clan's roster, who joins and who
+goes, and its races) and that it takes one of your clan slots. Then it
+reads **Following**. Elixir follows your own player's clan by itself when
+it can, so there it usually reads **Following** already. You stop
+following a clan under **Settings › Players & following**.
 
 Below it, the tabs:
 
