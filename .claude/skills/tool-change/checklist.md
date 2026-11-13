@@ -47,7 +47,7 @@ only when it does not apply, and say why in the commit message.
 - `packages/tools/src/controls.mjs`: `modeSplit()`, `pooledModesNote()`,
   `trophyFloor()`, `markPartialWeeks()` and the other controls.
 - The SQL seams are `boat-defense-sql.mjs` (`notBoatDefense`),
-  `mode-filter.mjs` (`participantModeClause`, `metaPopulationClause`),
+  `mode-filter.mjs` (`participantModeClause`),
   `participation-sql.mjs`, `standings-sql.mjs` and `daily-sql.mjs`
   (`war-battles-sql.mjs`, which placed war battles on a policy day, went
   in 9.1.2 with the last per-day reader).

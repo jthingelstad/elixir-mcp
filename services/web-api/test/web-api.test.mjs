@@ -1025,24 +1025,6 @@ test("collector fleet: card-derived identity; points and credits retired (#539)"
   await db.query(
     `update gateway set fetch_points = 2600 where name = 'kitchen-mac' and status <> 'revoked'`,
   );
-  const ladder = parse(
-    await handler(
-      event({
-        method: "GET",
-        path: "/api/gateways/ladder",
-        cookie: memberCookie,
-        body: undefined,
-      }),
-    ),
-  );
-  // The machine label is PRIVATE (#28): an operator finds their own row
-  // by `mine`, never by the name they gave the box.
-  const top = ladder.ladder.find((g) => g.mine);
-  assert.ok(top, "the collector is on the ladder");
-  assert.ok(!("points" in top) && !("credits" in top), "no points economy");
-  assert.ok(!("arena" in top), "arenas are gone");
-  assert.ok(!("machine" in top), "machine labels never leave the owner");
-
   const mine = parse(
     await handler(
       event({
@@ -2527,23 +2509,21 @@ test("one operator cannot read another operator's machine label", async () => {
   );
   const snoopCookie = await signIn(SNOOP, "203.0.113.28");
 
-  const ladder = await handler(
-    event({
-      method: "GET",
-      path: "/api/gateways/ladder",
-      cookie: snoopCookie,
-      body: undefined,
-    }),
-  );
-  assert.equal(ladder.statusCode, 200);
-  assert.ok(
-    !ladder.body.includes("jamies-imac-basement"),
-    "the machine label is nowhere in the response",
-  );
-  const row = parse(ladder).ladder.find((g) => g.card === "Mega Knight");
-  assert.ok(row, "the collector is still on the ladder under its card");
-  assert.equal(row.mine, false, "and it is not the snoop's");
-  assert.ok(!("machine" in row));
+  // Neither the snoop's own collector list nor the public status page
+  // carries another operator's label.
+  for (const [path, cookie] of [
+    ["/api/me/gateways", snoopCookie],
+    ["/api/public/status", undefined],
+  ]) {
+    const response = await handler(
+      event({ method: "GET", path, cookie, body: undefined }),
+    );
+    assert.equal(response.statusCode, 200, path);
+    assert.ok(
+      !response.body.includes("jamies-imac-basement"),
+      `the machine label is nowhere in ${path}`,
+    );
+  }
 
   // The operator still sees their own, on their own surface.
   const opCookie = await signIn(OPERATOR, "203.0.113.30");
@@ -2560,21 +2540,6 @@ test("one operator cannot read another operator's machine label", async () => {
   assert.ok(
     own.gateways.some((g) => g.name === "jamies-imac-basement"),
     "your own machine label is yours to see",
-  );
-  const ownLadder = parse(
-    await handler(
-      event({
-        method: "GET",
-        path: "/api/gateways/ladder",
-        cookie: opCookie,
-        body: undefined,
-      }),
-    ),
-  );
-  assert.equal(
-    ownLadder.ladder.find((g) => g.card === "Mega Knight").mine,
-    true,
-    "an operator can still pick their own row out of the ladder",
   );
 });
 
@@ -3353,7 +3318,7 @@ test("an operator picks their collector's card; a card is one live collector's",
   await handler(
     event({
       method: "GET",
-      path: "/api/gateways/ladder",
+      path: "/api/me/gateways",
       cookie,
       body: undefined,
     }),
@@ -3440,7 +3405,6 @@ test("an operator picks their collector's card; a card is one live collector's",
   for (const [path, reader, field] of [
     ["/api/me/gateways", cookie, "gateways"],
     ["/api/admin/gateways", ownerCookie, "gateways"],
-    ["/api/gateways/ladder", cookie, "ladder"],
     ["/api/public/status", undefined, "collectors"],
   ]) {
     const response = await handler(
@@ -3546,7 +3510,7 @@ test("an operator picks their collector's card; a card is one live collector's",
   await handler(
     event({
       method: "GET",
-      path: "/api/gateways/ladder",
+      path: "/api/me/gateways",
       cookie,
       body: undefined,
     }),

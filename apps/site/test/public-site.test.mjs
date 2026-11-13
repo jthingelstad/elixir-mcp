@@ -129,7 +129,7 @@ test(
   },
 );
 
-test("member docs use step 1's words", { skip: false }, () => {
+test("member docs use step 1's words", () => {
   // The banned list from the design contract. Reference pages may name a real
   // field; privacy and terms change only with Jamie's word; a word inside code
   // is a field name.

@@ -29,7 +29,6 @@ import {
   resolveArchetypeName,
   normalizeName,
   FAMILIES,
-  cardDisplayName,
   DUEL_TYPES,
   duelGamesSql,
 } from "@elixir-mcp/contracts";
@@ -1165,63 +1164,6 @@ export function matchesArchetype(archetype, resolved) {
     archetype.win_conditions.some(
       (x) => x.id === w.id && (!w.form || x.form === w.form),
     ),
-  );
-}
-
-/** The label fragment a formed win condition prints ("Evo Royal Hogs"):
- *  the stamp keeps win condition ids without forms, and its label is
- *  the grammar's own spelling of the form. */
-export function formedLabelParts(resolved) {
-  return resolved.win_conditions
-    .filter((w) => w.form)
-    .map((w) => cardDisplayName({ name: w.name, form: w.form }));
-}
-
-/** The stamped archetype of many decks at once (0148): family, label,
- *  win condition ids per hash. A deck the nightly has not reached yet is
- *  classified here from its cards, so a reader never sees a hole. */
-export async function deckStamps(db, hashes) {
-  const wanted = [...new Set(hashes.filter(Boolean))];
-  const out = new Map();
-  if (wanted.length === 0) return out;
-  const { rows } = await db.query(
-    `select deck_hash, archetype_family, archetype_label, archetype_win_conditions
-     from deck where deck_hash = any($1)`,
-    [wanted],
-  );
-  const missing = [];
-  for (const r of rows) {
-    if (r.archetype_label === null) missing.push(r.deck_hash);
-    else
-      out.set(r.deck_hash, {
-        family: r.archetype_family,
-        label: r.archetype_label,
-        win_condition_ids: r.archetype_win_conditions ?? [],
-      });
-  }
-  if (missing.length) {
-    const identities = await deckIdentities(db, missing);
-    for (const [hash, identity] of identities)
-      out.set(hash, {
-        family: identity.archetype.family,
-        label: identity.archetype.label,
-        win_condition_ids: identity.archetype.win_conditions.map((w) => w.id),
-      });
-  }
-  return out;
-}
-
-/** Does a stamp match a resolution (the stamped twin of matchesArchetype). */
-export function stampMatches(stamp, resolved) {
-  if (!stamp) return false;
-  if (resolved.family && stamp.family !== resolved.family) return false;
-  return (
-    resolved.win_conditions.every((w) =>
-      stamp.win_condition_ids.includes(w.id),
-    ) &&
-    formedLabelParts(resolved).every((part) =>
-      String(stamp.label ?? "").includes(part),
-    )
   );
 }
 

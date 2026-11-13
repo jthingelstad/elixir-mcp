@@ -1,9 +1,3 @@
-export {
-  discordLine,
-  escapeDiscord,
-  itemLinks,
-  itemSentence,
-} from "./lines.mjs";
 export { syncAccount, postRevision } from "./sync.mjs";
 export { syncClan, clanWakeId, clanEditorPreview } from "./clan-sync.mjs";
 export { clanStoryFacts, draftStory } from "./story-facts.mjs";
@@ -18,7 +12,6 @@ export {
 export {
   clanActivityRowView,
   clanChannelsInTimeline,
-  clanHelloContent,
   readClanActivity,
   refuseClanActivity,
   removeClanActivity,
@@ -33,11 +26,7 @@ export {
   settingView,
   WEBHOOK_REFUSALS,
 } from "./settings.mjs";
-export {
-  makeHistoryReader,
-  makeStatusReader,
-  timelineDiscordStore,
-} from "./store.mjs";
+export { makeHistoryReader, makeStatusReader } from "./store.mjs";
 export {
   clanActivitySeal,
   webhookSeal,
@@ -46,7 +35,5 @@ export {
 } from "./seal.mjs";
 export {
   highlightClanDiscord,
-  highlightPostContent,
-  highlightPostKey,
   postHighlightToClan,
 } from "./highlight-share.mjs";

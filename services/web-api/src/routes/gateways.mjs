@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 import {
   ensureGatewayCards,
   gatewayCardCatalog,
-  gatewayCardIcon,
   gatewayCardView,
   isCardTakenError,
   resolveGatewayCard,
@@ -31,39 +30,6 @@ const cardRefusal = (error) =>
 
 export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
   return {
-    "GET /api/gateways/ladder": async (db, event) => {
-      const account = await resolveAccount(db, event);
-      if (!account) return json(401, { error: "unauthenticated" });
-      await ensureGatewayCards(db);
-      const { rows } = await db.query(
-        `select g.gateway_id, g.status, g.card_name, avatar.card_id, avatar.icon_medium,
-                (g.owner_account_id = $1) as mine
-         from gateway g
-         left join card avatar on avatar.name = g.card_name and avatar.kind = 'card'
-         where g.status <> 'revoked'
-         order by g.enrolled_at`,
-        [account.accountId],
-      );
-      // Card-derived identity (Jamie, 2026-09-06): the CARD is the
-      // collector's public name; the operator-chosen name is a MACHINE
-      // LABEL and stays private (#28). Machine labels routinely carry
-      // hostnames, usernames or locations, and this response used to
-      // hand every approved account the whole fleet's. The card is the
-      // only name that leaves here, and an unnamed collector is
-      // "Collector" rather than a fallback to the private label.
-      // `mine` replaces it for the one legitimate client use: telling
-      // an operator which rows are theirs.
-      return json(200, {
-        ladder: rows.map((g) => ({
-          name: g.card_name ?? "Collector",
-          status: g.status,
-          card: g.card_name,
-          card_icon: gatewayCardIcon(g),
-          mine: g.mine === true,
-        })),
-      });
-    },
-
     "POST /api/me/gateway-env": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,

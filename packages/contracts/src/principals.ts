@@ -83,10 +83,3 @@ export function toolsHiddenFrom(kind: string | null | undefined): Set<string> {
     ]);
   return new Set(NOT_FOR_PERSONS);
 }
-
-export function toolAvailableTo(
-  name: string,
-  kind: string | null | undefined,
-): boolean {
-  return !toolsHiddenFrom(kind).has(name);
-}

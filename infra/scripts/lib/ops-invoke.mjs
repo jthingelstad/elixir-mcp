@@ -85,7 +85,6 @@ const MIGRATE_READS = {
   explain_standings: anyArgs,
   explain_timeline: anyArgs,
   explain_series: anyArgs,
-  activity_preview: anyArgs,
   refusal_census: anyArgs,
   controls_census: anyArgs,
   series_status: anyArgs,
@@ -102,7 +101,6 @@ const MIGRATE_READS = {
   family_clients: (v) => exactly(v, { list: true }),
   oauth_grants: (v) =>
     exactly(v, { redirect_host: (h) => typeof h === "string" && h !== "" }),
-  rollup_regroup: (v) => exactly(v, { census: true }),
   // The report names only the table; a rebuild or a drop names more.
   reindex: (v) => exactly(v, { table: (t) => typeof t === "string" }),
   // A dry run reads; only an explicit one counts (two of the three
@@ -111,7 +109,6 @@ const MIGRATE_READS = {
   account_enroll: (v) => isObject(v) && v.dry_run === true,
   account_follow: (v) => isObject(v) && v.dry_run === true,
   agent_recordings: (v) => exactly(v, { dry_run: true }),
-  ops_recordings: (v) => exactly(v, { dry_run: true }),
   tier_census: (v) => exactly(v, { dry_run: true }),
   verified_tag_census: (v) => exactly(v, { dry_run: true }),
   funnel: anyArgs,
