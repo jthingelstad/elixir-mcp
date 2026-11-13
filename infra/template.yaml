@@ -276,8 +276,12 @@ Resources:
       # idea", then "scale back to micro"). That day the database went
       # from 2.4 GB to 0.8 GB: 0256 dropped 0091's two card tables
       # (879 MB, more than the micro's whole memory) and the tables
-      # were rewritten. Back on the micro the same day.
-      DBInstanceClass: db.t4g.micro
+      # were rewritten. Back on the micro the same day, then small
+      # again that evening for the rest of one build session (seven
+      # deploy gates had drawn the micro's EBS byte balance to 42%;
+      # Jamie: "resize elixir-mcp-enc to db.t4g.small for this
+      # session, then back to db.t4g.micro").
+      DBInstanceClass: db.t4g.small
       AllocatedStorage: "20"
       MaxAllocatedStorage: 100
       StorageType: gp3
