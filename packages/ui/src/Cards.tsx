@@ -105,7 +105,8 @@ export function cardLabel(card: Pick<DeckCard, "name" | "form">): string {
 }
 
 /** One card: its art, its form ribbon and its level. `size` is the art's
- *  width in CSS pixels; the art keeps the game's 285:420 frame. With
+ *  width in CSS pixels, or "fill" for the width of the box the tile sits
+ *  in (a deck row's column); the art keeps the game's 285:420 frame. With
  *  `to` it is a link (never put one inside another link: pass no `to`
  *  there, or the browser splits the links and the tiles fall apart). */
 export function CardArt({
@@ -116,7 +117,7 @@ export function CardArt({
   showLevel = true,
 }: {
   card: DeckCard;
-  size?: number;
+  size?: number | "fill";
   to?: string | undefined;
   showName?: boolean;
   showLevel?: boolean;
@@ -131,7 +132,12 @@ export function CardArt({
   const form = card.form ?? "base";
   const label = cardLabel(card);
   const alt = card.level ? `${label}, level ${card.level}` : label;
-  const style = { "--card-w": `${size}px` } as CSSProperties;
+  const fill = size === "fill";
+  const style = fill
+    ? undefined
+    : ({ "--card-w": `${size}px` } as CSSProperties);
+  // The img's width and height are the frame's ratio; CSS sets the size.
+  const imgW = fill ? 285 : size;
   const ribbon = FORM_LABEL[form];
   const candidates = isTowerTroop(card.id) ? [] : artCandidates(card, source);
   const src = candidates?.find((u) => !failed.includes(u));
@@ -148,8 +154,8 @@ export function CardArt({
             className="card-art__img"
             src={src}
             alt=""
-            width={size}
-            height={Math.round((size * 420) / 285)}
+            width={imgW}
+            height={Math.round((imgW * 420) / 285)}
             loading="lazy"
             decoding="async"
             onError={() => setFailed((f) => [...f, src])}
@@ -171,7 +177,7 @@ export function CardArt({
     return (
       <Link
         to={to}
-        className="card-art"
+        className={fill ? "card-art card-art--fill" : "card-art"}
         style={style}
         title={alt}
         aria-label={alt}
@@ -181,7 +187,7 @@ export function CardArt({
     );
   return (
     <span
-      className="card-art"
+      className={fill ? "card-art card-art--fill" : "card-art"}
       style={style}
       title={alt}
       role="img"
@@ -225,6 +231,93 @@ export function DeckGrid({
         </li>
       ))}
     </ul>
+  );
+}
+
+/** A deck as one row of eight (canvas `.deck`, 2026-11-11): each card
+ *  takes an equal share of the row, up to 420px wide, so the eight fit a
+ *  phone. `columns` 4 lays it two by four, as each side of `DeckVersus`
+ *  does. The art is the mirror's file, sized by CSS only; the canvas's
+ *  text tiles were stand-ins for it. */
+export function DeckRow({
+  cards,
+  columns = 8,
+  showLevel = false,
+  cardTo,
+  label,
+}: {
+  cards: DeckCard[];
+  columns?: 4 | 8;
+  showLevel?: boolean;
+  cardTo?: ((card: DeckCard) => string | undefined) | undefined;
+  label?: string | undefined;
+}) {
+  return (
+    <ul
+      className={`kit-deckrow kit-deckrow--${columns}`}
+      aria-label={label ?? "Deck"}
+    >
+      {cards.map((c, i) => (
+        <li key={`${c.id}-${i}`}>
+          <CardArt
+            card={c}
+            size="fill"
+            showLevel={showLevel}
+            to={cardTo?.(c)}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** One side of a battle for `DeckVersus`: who played it, the deck's
+ *  archetype label, and its cards. */
+export interface VersusSide {
+  name: ReactNode;
+  label?: ReactNode;
+  cards: DeckCard[];
+}
+
+/** Two decks side by side with the score between (canvas `.vs`,
+ *  2026-11-11): on a phone they stack, the score between them. `score`
+ *  is what to print, "2-1"; `scoreLabel` is how a screen reader says it. */
+export function DeckVersus({
+  left,
+  right,
+  score,
+  scoreLabel,
+  cardTo,
+}: {
+  left: VersusSide;
+  right: VersusSide;
+  score: ReactNode;
+  scoreLabel?: string | undefined;
+  cardTo?: ((card: DeckCard) => string | undefined) | undefined;
+}) {
+  const side = (s: VersusSide, key: string) => (
+    <div className="kit-vs__side" key={key}>
+      <p className="kit-decklabel">
+        <b>{s.name}</b>
+        {s.label ? <> · {s.label}</> : null}
+      </p>
+      <DeckRow cards={s.cards} columns={4} cardTo={cardTo} />
+    </div>
+  );
+  return (
+    <div className="kit-vs">
+      {side(left, "l")}
+      <div className="kit-vs__mid">
+        <span
+          className="kit-vs__score"
+          aria-hidden={scoreLabel ? true : undefined}
+        >
+          {score}
+        </span>
+        {scoreLabel ? <span className="kit-vs__said">{scoreLabel}</span> : null}
+      </div>
+      {side(right, "r")}
+    </div>
   );
 }
 

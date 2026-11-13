@@ -75,3 +75,11 @@ matched the canvas and are unchanged.
   40px) are drawn at those sizes with a mouse; under a finger
   (`pointer: coarse`) each is at least the 44px target (`--hit-touch`).
   Focus rings stay.
+
+## Decks (player and highlight pages, 2026-11-13)
+
+| Canvas | Kit |
+| --- | --- |
+| `.deck` (eight `.ct` tiles) | `DeckRow` (`ul.kit-deckrow`, `--8`/`--4`): real card art through `CardArt size="fill"` (`.card-art--fill`), sized by CSS only |
+| `.ct`, `.ct .cost`, rarity borders | Not drawn: the canvas's text tiles were stand-ins for the art |
+| `.vs`, `.vs .mid`, `.score` | `DeckVersus` (`.kit-vs`, `__side`, `__mid`, `__score`; the score said in words in `__said`) |
