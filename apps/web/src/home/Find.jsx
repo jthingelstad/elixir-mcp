@@ -27,7 +27,7 @@ import { FromYourBattles, YourClanPeople } from "./People.jsx";
  * Jamie 2026-11-12: "Bring your clanmates moves to Find"); Search opens
  * the sheet every page has, and a tag
  * follows a friend; From your battles lists the players you met; the clan
- * directory lists clans on Elixir; your Follow me link is how a friend finds
+ * directory lists the clans that saved their rules, by name; your Follow me link is how a friend finds
  * you. Near you waits on its legal question and is not here, not even as a
  * placeholder.
  */
@@ -78,7 +78,7 @@ export function FindPage() {
                 <Row
                   href="/clan/directory"
                   title="Clan directory"
-                  detail="Every clan on Elixir, with its open spots."
+                  detail="Clans that saved their rules in Elixir, by name. Never ranked."
                 />
               </Rows>
             </Panel>
