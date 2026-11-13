@@ -1,0 +1,115 @@
+import { expect, test, type Page } from "@playwright/test";
+import { mockApi, SIGNED_OUT } from "./fixtures.ts";
+import { homeApi } from "./home-fixture.ts";
+import { BATTLE } from "./battle-fixture.ts";
+import * as clan from "./clan/fixtures.ts";
+
+/**
+ * On a phone, every control takes a tap 44px across (design pass three,
+ * 2026-11-13): the shell's top bar and footer, and every standalone link
+ * and button on the pages below. Each is hit-tested 20px out from its
+ * centre, up and down, and left and right when it is drawn narrower than
+ * 44px; a tap there must land on it. A link inside a running sentence is
+ * exempt (WCAG 2.5.8's inline exception), and nothing scrolls sideways.
+ * Invented players only.
+ */
+test.use({
+  viewport: { width: 390, height: 844 },
+  hasTouch: true,
+  isMobile: true,
+});
+
+async function misses(page: Page) {
+  // Every control on screen at once: the viewport as tall as the page.
+  const height = await page.evaluate(
+    () => document.documentElement.scrollHeight,
+  );
+  await page.setViewportSize({ width: 390, height: Math.min(height, 12000) });
+  return page.evaluate(() => {
+    const sel =
+      "a[href], button, input:not([type=hidden]), select, textarea, [role=tab], [role=switch], summary, label:has(input)";
+    const on = (hit: Element, x: number, y: number) => {
+      const t = document.elementFromPoint(x, y);
+      return !!t && (hit.contains(t) || t.closest("label") === hit);
+    };
+    // In a sentence: its parent also holds words of its own.
+    const inText = (el: Element) =>
+      [...(el.parentElement?.childNodes ?? [])].some(
+        (n) => n.nodeType === Node.TEXT_NODE && /\w/.test(n.textContent ?? ""),
+      );
+    const out: string[] = [];
+    const seen = new Set<Element>();
+    for (const el of document.querySelectorAll(sel)) {
+      const hit = el.closest("label") ?? el;
+      if (seen.has(hit)) continue;
+      seen.add(hit);
+      if (hit.closest(".sr-only, [hidden], [inert]")) continue;
+      if (inText(hit)) continue;
+      const box = [...hit.getClientRects()].find((r) => r.width && r.height);
+      if (!box) continue;
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      // Scrolled out of a tab row, or under something: not this test's.
+      if (x < 0 || x > innerWidth || !on(hit, x, y)) continue;
+      const points: [number, number][] = [
+        [x, y - 20],
+        [x, y + 20],
+      ];
+      if (box.width < 44) points.push([x - 20, y], [x + 20, y]);
+      if (points.every(([px, py]) => on(hit, px, py))) continue;
+      const name = (hit.getAttribute("aria-label") || hit.textContent || "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .slice(0, 40);
+      out.push(`${hit.tagName.toLowerCase()} "${name}"`);
+    }
+    if (document.documentElement.scrollWidth > innerWidth)
+      out.push("the page scrolls sideways");
+    return out;
+  });
+}
+
+test("Home: the top bar, the feed, the panels and the footer", async ({
+  page,
+}) => {
+  await mockApi(page, homeApi());
+  await page.goto("/home");
+  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  expect(await misses(page)).toEqual([]);
+});
+
+for (const tab of ["feed", "members", "war", "standings"]) {
+  test(`Clan's ${tab}`, async ({ page }) => {
+    await clan.mockApi(page, clan.signedIn());
+    await page.goto(`/clan/2PQRJ8LV/${tab}`);
+    await expect(page.locator(".clan-head")).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    expect(await misses(page)).toEqual([]);
+  });
+}
+
+test("a battle's page: names, the decks' cards and Side by side", async ({
+  page,
+}) => {
+  await mockApi(
+    page,
+    homeApi({
+      [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+    }),
+  );
+  await page.goto(`/battle/${BATTLE.battle.short_id}`);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  expect(await misses(page)).toEqual([]);
+});
+
+test("signed out: the front page and signing in", async ({ page }) => {
+  await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  expect(await misses(page)).toEqual([]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/signin?signup");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  expect(await misses(page)).toEqual([]);
+});

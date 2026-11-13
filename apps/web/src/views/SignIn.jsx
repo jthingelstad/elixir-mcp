@@ -522,7 +522,7 @@ export function SignIn({
             <fieldset className="m-0 mb-4 border-0 p-0">
               <legend className="field-label">Are you 13 or older?</legend>
               <div className="flex gap-5 text-[14px] text-ink-body">
-                <label className="flex items-center gap-2">
+                <label className="hit flex items-center gap-2">
                   <input
                     type="radio"
                     name="signin-age"
@@ -533,7 +533,7 @@ export function SignIn({
                   />
                   Yes
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="hit flex items-center gap-2">
                   <input
                     type="radio"
                     name="signin-age"
@@ -557,7 +557,7 @@ export function SignIn({
             </fieldset>
           </>
         )}
-        <label className="mb-2 flex items-start gap-2 text-[13px] text-ink-body">
+        <label className="hit mb-2 flex items-start gap-2 text-[13px] text-ink-body">
           <input
             type="checkbox"
             className="mt-[3px] shrink-0"

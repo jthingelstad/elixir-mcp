@@ -4838,6 +4838,16 @@ a.card-art:hover .card-art__img {
   white-space: normal;
   color: var(--ink-dim);
 }
+/* On a phone the three columns fit the panel rather than scrolling. */
+@media (max-width: 480px) {
+  .battle__side .table th,
+  .battle__side .table td {
+    padding-inline: 6px;
+  }
+  .battle__side .table td:first-child {
+    padding-left: 12px;
+  }
+}
 .battle__foot {
   display: flex;
   gap: 8px 24px;
@@ -9862,7 +9872,8 @@ a.kit-mbattle:hover {
   .kit-fresh > summary,
   .clan-field__check,
   .segmented button,
-  .mail-pref__all {
+  .mail-pref__all,
+  .select {
     min-height: var(--hit-touch);
   }
   .mail-pref__all {
@@ -9880,6 +9891,75 @@ a.kit-mbattle:hover {
   summary.label {
     padding-block: 13px;
   }
+  /* Design pass three (2026-11-13): the shell and the standalone links.
+     Each keeps its drawn size; a box centred on it, at least 44px each
+     way, takes the tap. `.hit` is the same rule for a link a view marks. */
+  .kit-top__brand,
+  .kit-top__link {
+    min-height: var(--hit-touch);
+  }
+  .kit-top__icon,
+  .kit-top__avatar,
+  .kit-top__out a,
+  .kit-panel__action a,
+  .panel__head > a,
+  a.kit-feed__name,
+  a.battle__name,
+  .kit-tl__more,
+  .home-row__link,
+  .battle-deck a.card-art,
+  .hit {
+    position: relative;
+  }
+  /* A truly inline box resolves the centring percentages against nothing
+     in Chrome; one line of inline-block is the same text, centred right. */
+  a.hit {
+    display: inline-block;
+  }
+  .kit-top__icon::after,
+  .kit-top__avatar::after,
+  .kit-top__out a::after,
+  .kit-panel__action a::after,
+  .panel__head > a::after,
+  a.kit-feed__name::after,
+  a.battle__name::after,
+  .kit-tl__more::after,
+  .home-row__link::after,
+  .battle-deck a.card-art::after,
+  .hit::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, var(--hit-touch));
+    height: max(100%, var(--hit-touch));
+    transform: translate(-50%, -50%);
+  }
+  /* On a phone a roster card's name already takes the whole row's tap
+     (`.clan-rows.roster-table`, above): it stays the row's, not a box. */
+  .clan-rows.roster-table .kit-table--cards a.hit {
+    position: static;
+  }
+  .clan-rows.roster-table .kit-table--cards a.hit::after {
+    width: auto;
+    height: auto;
+    transform: none;
+  }
+  /* A battle's decks: the cards as drawn, 44px apart so each one's tap
+     reaches its neighbour's and no further. */
+  .battle-deck .deck-grid {
+    column-gap: 10px;
+  }
+  /* The footer's links: rows 44px apart instead of 28, the words as drawn. */
+  .kit-foot__links {
+    gap: 0;
+  }
+  .kit-foot__links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--hit-touch);
+    padding-inline: 8px;
+  }
 }
 
 /* Phone (2026-11-13, design pass two): Clan's tab row fits all six tabs at
@@ -9890,9 +9970,13 @@ a.kit-mbattle:hover {
   .clan-head .kit-tabs {
     gap: 0;
   }
+  /* Design pass three: each tab at least 44px wide, so War and Run are as
+     easy to tap as the rest, with the padding taken from the wider ones. */
   .clan-head .kit-tabs__tab {
-    padding-inline: 6px;
+    min-width: var(--hit-touch);
+    padding-inline: 4px;
     font-size: 13.5px;
+    text-align: center;
   }
   .clan-dir__field {
     flex: 1 1 100%;

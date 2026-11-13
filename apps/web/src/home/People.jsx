@@ -37,7 +37,7 @@ function Person({ p, detail, used, limit }) {
       className="kit-people__row"
       lead={<Avatar name={p.name ?? tag} tag={tag} small />}
       title={
-        <Link to={playerHref(tag)}>
+        <Link to={playerHref(tag)} className="hit">
           <TagText>{p.name ?? tag}</TagText>
         </Link>
       }
