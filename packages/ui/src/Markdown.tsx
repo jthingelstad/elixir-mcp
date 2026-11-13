@@ -40,7 +40,7 @@ export function renderMarkdown(text: string | null | undefined): string {
 }
 
 /** `className` is the prose style to render under: the console's `md`,
- *  Elixir Clan's `prose`. */
+ *  Clan's `prose`. */
 export function Markdown({
   text,
   className = "md",

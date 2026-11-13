@@ -236,7 +236,7 @@ test("model: a leader adds the clan's key; it is checked, sealed, kept out of th
   assert.equal(before.body.set, false);
   const put = await api(h, c, "PUT", MODEL, { key: GOOD });
   assert.equal(put.status, 200, JSON.stringify(put.body));
-  // Elixir Clan's model for each use, never one the leader picked.
+  // Clan's model for each use, never one the leader picked.
   assert.equal(put.body.model_for.recruit_pitch.id, OPUS_55);
   assert.equal(put.body.model_for.discord_activity.id, SONNET_55);
   const s = await api(h, c, "GET", MODEL);

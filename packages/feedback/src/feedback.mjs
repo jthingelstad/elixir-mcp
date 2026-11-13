@@ -3,10 +3,10 @@
  *
  * Every door files through `fileFeedback` and every answer goes through
  * `answerFeedback`: the MCP tool, the JSON API, the Console, Ladder,
- * Elixir Clan, the docs link and the email footer, and on the other side
+ * Clan, the docs link and the email footer, and on the other side
  * the admin queue and the `{feedback_respond}` op. Before this the MCP tool
  * and the site API each carried their own insert, the admin page and the
- * op their own update, and Elixir Clan a whole copy in its ledger; they
+ * op their own update, and Clan a whole copy in its ledger; they
  * drifted (categories, which fields could be attached, whether a revised
  * answer was news again).
  *
@@ -490,7 +490,7 @@ async function relatedTo(db, feedbackId, accountId = null) {
 }
 
 /** Answers delivered to the filer, wherever they read them: the MCP page,
- *  the Console's item, Elixir Clan's sheet. Only answered items move. */
+ *  the Console's item, Clan's sheet. Only answered items move. */
 export async function markSeen(db, accountId, ids) {
   const list = (ids ?? []).map(String).filter((id) => /^\d+$/.test(id));
   if (!list.length) return 0;

@@ -760,7 +760,7 @@ export function createHandler({
         );
       if (method === "POST" && decide)
         return json(200, await manage.decide(tag, who, decide[1], body));
-      // What the clan records in Elixir (door 3): read-only, always on.
+      // What the clan records in Elixir: read-only, always on.
       if (rest === "/sharing" && method === "GET")
         return json(200, await manage.sharingView(tag, who));
       const comment = /^\/actions\/([A-Za-z0-9_-]+)\/comments$/.exec(rest);

@@ -1,6 +1,6 @@
 /**
- * Sharing with Elixir (door 3, 2026-09-25; Jamie): what the clan did goes
- * back to Elixir's record as ATTESTED FACTS, written as the acting
+ * What the clan records in Elixir (2026-09-25; Jamie): what the clan did
+ * goes into Elixir's record as ATTESTED FACTS, written as the acting
  * person (`writeClanFactInClan`). Elixir keeps them apart from the
  * game record, labelled as this person's word through Clan, and
  * shows each only to the readers its type allows: a departure (kick or

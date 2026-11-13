@@ -2591,7 +2591,7 @@ Resources:
   # than changing a header. Recorded as a deliberate trade.
   #
   # Card art, including collector avatars, uses Elixir's own mirror.
-  # Elixir Clan, served here under /clan, draws its map from OpenStreetMap
+  # Clan, part of Elixir at /clan, draws its map from OpenStreetMap
   # tiles.
   # Fonts are self-hosted under /assets/fonts/ (no font CDN, so no
   # third party learns who read which page). Every origin here was taken
@@ -3335,8 +3335,10 @@ Resources:
           # No DefaultValue: a default writes a zero on every jobs log
           # event and bills the metric every hour; without one it exists
           # only when a compose fails.
-  # A family app's mail composes in the web-api (JSON API 2.4.0): its
-  # failures count toward the same metric.
+  # Mail composed in the web-api counts toward the same metric. Its one
+  # writer was the JSON API's clan mail door (2.4.0), gone in 4.0.0: Clan's
+  # mail composes in the jobs Lambda, inside Elixir, so nothing writes
+  # email_compose_failed to this log group today.
   WebApiEmailComposeFailedFilter:
     Type: AWS::Logs::MetricFilter
     Properties:

@@ -11,7 +11,7 @@ import {
 
 /**
  * Bring your clanmates: the clan-chat line must survive the game's chat
- * filter (the rules Elixir Clan learned in production, clan-engine
+ * filter (the rules Clan learned in production, clan-engine
  * chat.mjs) and its 200 characters, whatever the clan is called; and no
  * invite carries a referral code, invite id or tracking parameter.
  */

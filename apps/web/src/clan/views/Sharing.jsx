@@ -1,13 +1,13 @@
 import { useSharing } from "../lib/queries.js";
 
 /**
- * What Clan records in Elixir (door 3, 2026-09-25): what the clan
- * did goes back to Elixir as facts, each said by the person who did it, and
- * what the app computed each morning (the award standings) as its own.
+ * What Clan records in Elixir (2026-09-25): what the clan did goes
+ * into Elixir's record as facts, each said by the person who did it, and
+ * what Clan computed each morning (the award standings) as its own.
  * Always, with nothing to switch (Jamie, 2026-09-25): every kind is
  * something the clan already sees in the game or here, and Elixir shows
- * each only to the readers its kind allows; the family's other apps (the
- * Discord narrator) read them there. This section says what and to whom.
+ * each only to the readers its kind allows; agents (the Discord
+ * narrator) read them there. This section says what and to whom.
  */
 export function Sharing({ clan }) {
   const { state } = useSharing(clan.clan_tag);

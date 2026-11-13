@@ -4,7 +4,7 @@
  *  Dashboard.jsx while Admin.jsx rendered raw `toLocaleTimeString()`,
  *  which is how the public status page and the admin collectors table
  *  came to disagree about the same collector (2026-09-06); then the
- *  console's copy and Elixir Clan's drifted the same way. Relative
+ *  console's copy and Clan's drifted the same way. Relative
  *  deltas are timezone free; an absolute local wall-clock time is not,
  *  and it silently wraps after a day. Import from here rather than
  *  writing another one.

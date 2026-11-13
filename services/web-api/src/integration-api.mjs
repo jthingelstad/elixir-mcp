@@ -128,8 +128,9 @@ function feedbackRoute(method, query, body) {
 }
 
 /** The operations a person may call, by method and path: each is one
- *  read the family's apps make, answered with the tool's structured
- *  result (Elixir Clan's reads, plan clan-app-api phases 1-3). */
+ *  read a family app makes, answered with the tool's structured result.
+ *  They were written for Clan's reads (plan clan-app-api phases 1-3);
+ *  Clan is part of Elixir now and reads the record in process. */
 function personRoute(db, account, method, path, query, body) {
   let m;
   if (method === "GET" && path === "/api/v1/me")
@@ -687,8 +688,9 @@ export async function integrationApi(db, event, body) {
             path,
           ))
       ) {
-        // A family app's scheduled read of a clan (2.3.0, clans:read):
-        // Elixir Clan evaluating a clan's policy with nobody signed in.
+        // An integration's read of a clan (2.3.0, clans:read), with nobody
+        // signed in: a clan's website reading its roster and war history.
+        // Clan's morning run once read here; it reads in process now.
         // The same tool answers a person's read of the same path.
         scope = "clans:read";
         const clanTag = tag(decodeURIComponent(match[1]));

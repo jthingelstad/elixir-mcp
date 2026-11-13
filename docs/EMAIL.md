@@ -352,7 +352,7 @@ account whose verified claim is that player, checks the player is in the
 clan today and the switch is on, and sends at most one per clan per
 account per UTC day under a lock. The jobs Lambda calls it in process;
 nothing else sends it (the JSON API's mail door went in 4.0.0). The lines are plain text the renderer escapes; the link must
-lead to a family app.
+lead to Elixir's own origin (or Drop's: `FIRST_PARTY_ORIGINS`).
 
 ## Send ids and the record
 

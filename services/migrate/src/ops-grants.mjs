@@ -9,7 +9,7 @@
  *     connection_revoked account event with the reason).
  *
  * Only for a revocation the owner asked for (Jamie 2026-09-24: the three
- * stale Elixir Clan MCP grants). No secret is read; tokens die with their
+ * stale Clan MCP grants). No secret is read; tokens die with their
  * family.
  */
 

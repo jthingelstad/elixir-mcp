@@ -22,7 +22,7 @@ export const OAUTH_SCOPE = {
   ACCOUNT_WRITE: "account:write",
   FEEDBACK_WRITE: "feedback:write",
   /** The one scope that is never offered unless asked for (2026-09-12):
-   *  a first-party web product signing a person in with Elixir needs
+   *  a family app on its own origin (Drop) signing a person in with Elixir needs
    *  the email on the account, and nothing else ever does. */
   ACCOUNT_EMAIL: "account:email",
   /** The second never offered unasked (JSON API 2.2.0, 2026-09-25). It

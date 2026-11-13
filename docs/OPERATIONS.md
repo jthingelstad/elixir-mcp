@@ -440,7 +440,7 @@ every command, probe and diff listed so anyone can re-verify it.
   revocation, expired-token refusal and session pruning; inherited and
   independent quotas, including the one shared live-fetch budget. Record
   the contract version and source revision with the matrix.
-- **Elixir Clan.** Person identity and current roster role checked on
+- **Clan.** Person identity and current roster role checked on
   every request; clan and member isolation; maintainer access; session
   revocation; no private Clan state through MCP or the public API (the
   one exception, `clans_my_view`, and the directory's public part are pinned by
@@ -581,7 +581,7 @@ window Jamie chooses.
 
 ## Clan maintenance
 
-Elixir Clan is part of Elixir: one runtime, one stack, one deploy. Its
+Clan is a set of features inside Elixir: one runtime, one stack, one deploy. Its
 private state is read through the IAM-only `{clan_maintenance}` op
 (`.claude/skills/ops/ops.md`); start at `packages/clan/AGENTS.md`.
 

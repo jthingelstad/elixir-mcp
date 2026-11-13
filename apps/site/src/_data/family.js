@@ -89,7 +89,7 @@ export default [
           "Every fact comes from Elixir, moments before it says it",
           "Open source: you host it, with your own keys",
         ],
-        uses: "Connects as one of your Elixir agents: its own key, revocable from your account, and its calls count against your limits. Elixir Clan posts without it: any clan's leaders can send the clan's Actions and activity stories to its Discord through webhooks connected in Clan. Conversation is this bot's; Clan does not answer questions in Discord. Acting from Discord (deciding an Action, marking yourself away) is not built and deliberately undecided: every decision is made in Elixir.",
+        uses: "Connects as one of your Elixir agents: its own key, revocable from your account, and its calls count against your limits. Clan, part of Elixir, posts without it: any clan's leaders can send the clan's Actions and activity stories to its Discord through webhooks connected in Clan. Conversation is this bot's; Clan does not answer questions in Discord. Acting from Discord (deciding an Action, marking yourself away) is not built and deliberately undecided: every decision is made in Elixir.",
         links: [
           [
             "Set it up from GitHub",

@@ -34,7 +34,7 @@ export const WAR_DECKS_PER_DAY = 4;
  *  no finish day is recorded. Null while the week is open. Training days
  *  are never among them: the race's weekly decksUsed counts war days
  *  only, and a training deck is practice, never attendance. The one
- *  derivation Elixir Clan's rates and the clan report's possible decks
+ *  derivation Clan's rates and the clan report's possible decks
  *  read. */
 export function warDaysAsked(w) {
   if (!w?.finished_observed_at) return null;

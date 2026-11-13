@@ -1,5 +1,5 @@
 /**
- * Elixir Clan is a general clan-management tool (Jamie, 2026-09-25): no
+ * Clan, a set of features inside Elixir, is for any clan (Jamie, 2026-09-25): no
  * product source names a clan, a real player, one clan's awards or its
  * website, or the bot a clan's process was first ported from. A clan's
  * own rules, awards and words live in its saved policy, awards and pitch,

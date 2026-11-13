@@ -412,7 +412,7 @@ test("writeUnattended: recorded apart from the drafts, under its own day's cap",
   assert.deepEqual(r.input.posts[0], { key: "tl_1", text: "Ada joined!" });
   const [, key, sent] = h.anthropic.state.calls.at(-1);
   assert.equal(key, GOOD);
-  // The rewrites run on Elixir Clan's model for them, Sonnet 5.5.
+  // The rewrites run on Clan's model for them, Sonnet 5.5.
   assert.equal(sent.model, "claude-sonnet-5-5");
   const [call] = await h.ledger.modelCalls(TAG);
   assert.equal(call.model, "claude-sonnet-5-5");

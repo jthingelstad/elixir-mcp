@@ -143,7 +143,7 @@ export const manageApi = {
   // The key's model list, read again when the server says it is due.
   refreshModels: (tag) => post(`${clanBase(tag)}/model/refresh`, {}),
   removeModelKey: (tag) => del(`${clanBase(tag)}/model`),
-  // What the clan records in Elixir (door 3): read-only, always on.
+  // What the clan records in Elixir: read-only, always on.
   sharing: (tag) => get(`${clanBase(tag)}/sharing`),
   // Actions in the clan's Discord (2026-10-10): the webhook, never shown.
   discord: (tag) => get(`${clanBase(tag)}/discord`),
