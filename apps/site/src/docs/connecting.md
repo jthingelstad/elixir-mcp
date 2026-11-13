@@ -234,10 +234,9 @@ grant. Refreshing never widens scope.
 | `account:email` | read the account's email address at `/oauth/userinfo` (and `GET /api/v1/me`); granted only to the Elixir family's own apps | no tool; see below |
 | `clans:attest` | record what you do in your clan as [attested facts](/docs/integrations#attested-facts) (`POST /api/v1/clans/{tag}/facts`); granted only to the Elixir family's own apps, when they ask for it | no tool |
 
-`follows:write` was named `recordings:write` until 12.1.0. The old name
-is still accepted: a client may still ask for it and is granted
-`follows:write`, and every connection and key made with it keeps working
-with no new consent.
+`recordings:write` is an accepted alias of `follows:write`: a client that
+asks for it is granted `follows:write`, and a connection or key that holds
+it can follow.
 
 Canonical order is the order above. A call to a tool outside the token's
 scope answers HTTP 403 with the `insufficient_scope` challenge and this body:

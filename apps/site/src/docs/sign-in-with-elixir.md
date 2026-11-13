@@ -23,7 +23,7 @@ of Elixir and uses your Elixir session directly.
 
 | App | Where | Asks for |
 |---|---|---|
-| Elixir Drop | [drop.poapkings.com](https://drop.poapkings.com) | `cr:read`, `recordings:write` (the old name of `follows:write`) and `account:email` |
+| Elixir Drop | [drop.poapkings.com](https://drop.poapkings.com) | `cr:read`, `recordings:write` (an accepted alias of `follows:write`) and `account:email` |
 
 Drop is a **family app**: a client Elixir provisioned itself, with a
 secret it sends at `/oauth/token` (`client_secret_post`), and every return

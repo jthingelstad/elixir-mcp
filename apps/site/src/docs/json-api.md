@@ -90,11 +90,11 @@ OpenAPI document's `info.version`. Adding an operation or a field is a
 minor version. Removing or renaming a field is a major version, and the
 path stays `/api/v1` whatever the version, because the path is what a
 person's grant is for. What changed in each version is in the OpenAPI
-document and on [Updates](/updates). The current version is 3.7.0, which
-names following's scope `follows:write` (it was `recordings:write`, still
-accepted). 3.6.0 added the four social reads above (follows, highlights,
-cheers and the clan directory) for a person's own grant; an integration
-reads none of them.
+document and on [Updates](/updates). The current version is 3.7.0. A
+person's grant for `POST /me/players` is `follows:write`, and
+`recordings:write` is an accepted alias of it. The four social reads above
+(follows, highlights, cheers and the clan directory) are for a person's
+own grant; an integration reads none of them.
 
 ## Limits
 
