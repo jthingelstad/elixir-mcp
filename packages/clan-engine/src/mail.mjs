@@ -133,7 +133,7 @@ function severalSubject(mine, clan) {
  *   everyone in the clan today, with their in-game role
  * @param {Record<string,string>} [p.lastMailed] tag -> instant of their
  *   last actions email for this clan
- * @param {string} p.appUrl where Clan's app is
+ * @param {string} p.appUrl where Clan is, on Elixir's origin
  *   (https://elixir.poapkings.com/clan); a clan's pages are under it
  * @returns {Array<{player_tag, subject, lines, link, card_ids, new_card_ids}>}
  *   `lines` are {title, reason, number, new}, then "And N more." past the cap

@@ -8,13 +8,13 @@ import { MemberActivity } from "./MemberActivity.jsx";
  * else of it here.
  *
  * Who sees it is who saw the member page: a person with a player in that
- * clan, as Clan's own session says (`/api/clan/me`), in any of their clans,
+ * clan, as `/api/clan/me` says for Elixir's session, in any of their clans,
  * not only their primary player's. The server still refuses the read to
  * anyone else. Leaders and co-leaders also get the activity clock, as
  * before; nobody below sees it.
  */
 
-/** The viewer's own entry for a clan, from Clan's session: `{ clan,
+/** The viewer's own entry for a clan, from `/api/clan/me`: `{ clan,
  *  pending }`. `clan` is null when the viewer has no player in it, or Clan
  *  did not answer (the tab is simply not drawn then). */
 export function useClanOf(clanTag, enabled = true) {

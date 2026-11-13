@@ -1,9 +1,9 @@
 /**
  * Attested facts (JSON API 2.2.0, contract 9.2.0; Jamie, 2026-09-25): what
- * a person did in a clan through one of the Elixir family's apps (a
+ * a person did in a clan through Clan, a part of Elixir (a
  * leader says a departure was a kick, a promotion made, an award granted,
- * a message sent to the clan), or what a family app's own game produced
- * for a player (a personal record in Elixir Drop). Elixir holds them
+ * a message sent to the clan), or what Elixir Drop's own game once produced
+ * for a player (a personal record). Elixir holds them
  * APART from the game record, which stays what collectors saw, each
  * labelled with who attested it, in which app, as what role, and when.
  * They are facts with a named source, never Elixir's judgment: nothing
@@ -23,10 +23,10 @@
  * would never be narrated; the game already tells the whole clan, so
  * keeping it from the clan's own agent kept nothing from anyone.
  *
- * `app` among a clan fact's attesters (9.6.0) means Elixir Clan itself
- * writes it (Clan's morning run, in process since Clan became part of
- * Elixir), not a person: what the app computed from its own rules (Elixir Clan's award standings), labelled
- * as the app's, never passed off as a leader's word.
+ * `app` among a clan fact's attesters (9.6.0) means Elixir writes it
+ * itself (Clan's morning run), not a person: what Clan computed from the
+ * clan's own rules (award standings), labelled as Elixir's, never passed
+ * off as a leader's word.
  *
  * This registry is the one list: the write routes validate against it, and
  * the timeline reads its kinds AND who sees each from it at read time, so a
@@ -53,8 +53,8 @@ export interface FactType {
   subject: FactSubject;
   visibility: FactVisibility;
   /** Clan facts: the in-game roles that may attest it; `self` lets the
-   *  member it is about attest it too; `app` is Elixir Clan itself
-   *  (9.6.0). Player facts were a family app's, written on an integration
+   *  member it is about attest it too; `app` is Elixir itself, Clan's
+   *  morning run (9.6.0). Player facts were a family app's, written on an integration
    *  key; nothing writes them since JSON API 5.0.0 and the stored ones
    *  stay readable. */
   attesters: readonly string[];
@@ -169,7 +169,7 @@ export const ATTESTED_FACT_TYPES: Readonly<Record<string, FactType>> = {
       },
     },
     about:
-      "Where a member stands in one of the clan's own awards for the season running (never a closed season: its result is award_granted), as the clan's app computed it from its rules: the place, the value and unit, as of when. previous_player_tag names who held first place before, when it changed hands.",
+      "Where a member stands in one of the clan's own awards for the season running (never a closed season: its result is award_granted), as Clan computed it from the clan's rules: the place, the value and unit, as of when. previous_player_tag names who held first place before, when it changed hands.",
   },
 };
 
