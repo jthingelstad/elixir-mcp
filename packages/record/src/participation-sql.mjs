@@ -35,13 +35,26 @@ const OWN_BATTLES = notBoatDefense("bp", {
           where own.battle_id = bp.battle_id and own.player_tag = bp.player_tag)`,
 });
 
+/** A player's last recorded battle IN a clan (3.16.0): the participant
+ *  row's clan_tag is the clan the player was in when it was played.
+ *  Read from the player's own range of battle_participant_player_time_cover,
+ *  newest first, never from battle_participant_clan_time (2026-11-13):
+ *  with `bp.clan_tag = cm.clan_tag` the two indexes cost within a
+ *  hundredth of each other, and on the clan index a member with no
+ *  recent battle here walks the clan's whole history back to their last
+ *  one (about 33,000 buffers live for one read; 70,000 on a synthetic
+ *  year with a new joiner and two quiet members). IS NOT DISTINCT FROM is
+ *  not an index condition, so the clan index cannot serve it; cm.clan_tag
+ *  is never null, so it matches exactly the rows `=` matches. */
+const lastBattleInClan = (player, clan) =>
+  `(select max(bp.battle_time) from battle_participant bp
+        where bp.player_tag = ${player}
+          and bp.clan_tag is not distinct from ${clan})`;
+
 export const MEMBERS_SQL = `select cm.player_tag, p.name, cm.role, cm.joined_observed_at,
        (select max(bp.battle_time) from battle_participant bp
         where bp.player_tag = cm.player_tag) as last_battle,
-       -- The last recorded battle IN this clan (3.16.0): the participant
-       -- row's clan_tag is the clan the player was in when it was played.
-       (select max(bp.battle_time) from battle_participant bp
-        where bp.player_tag = cm.player_tag and bp.clan_tag = cm.clan_tag) as last_battle_in_clan
+       ${lastBattleInClan("cm.player_tag", "cm.clan_tag")} as last_battle_in_clan
 from clan_membership cm
 join player p on p.player_tag = cm.player_tag
 where cm.clan_tag = $1 and cm.left_observed_at is null
@@ -54,8 +67,7 @@ order by cm.player_tag`;
 export const FORMER_MEMBERS_SQL = `select distinct on (cm.player_tag)
        cm.player_tag, p.name, cm.role as role_at_departure,
        cm.joined_observed_at, cm.left_observed_at,
-       (select max(bp.battle_time) from battle_participant bp
-        where bp.player_tag = cm.player_tag and bp.clan_tag = cm.clan_tag) as last_battle_in_clan
+       ${lastBattleInClan("cm.player_tag", "cm.clan_tag")} as last_battle_in_clan
 from clan_membership cm
 join player p on p.player_tag = cm.player_tag
 where cm.clan_tag = $1 and cm.left_observed_at >= $2
