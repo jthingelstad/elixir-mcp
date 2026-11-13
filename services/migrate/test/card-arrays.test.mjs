@@ -324,6 +324,86 @@ test("a slot gap is a NULL element in every array, and stays lossless", async ()
   assert.equal(census.pass, true, JSON.stringify(census.failures));
 });
 
+/** An ingest-like writer and the history fill on one participant: the
+ *  writer locks the owning row, changes a card row and fills the arrays;
+ *  the fill starts its statement while the writer holds the lock, so it
+ *  read the card rows before the change. Returns what the fill wrote. */
+async function raceFillAgainstWriter(k, fillOptions) {
+  const writer = new pg.Client({ connectionString: SCRATCH_URL });
+  const filler = new pg.Client({ connectionString: SCRATCH_URL });
+  await writer.connect();
+  await filler.connect();
+  try {
+    await db.query(
+      `update battle_participant set cards = null, card_forms = null, card_levels = null,
+              card_stars = null, tower_troop_id = null, tower_form = null,
+              tower_level = null, tower_star = null
+        where battle_id = $1 and player_tag = $2`,
+      [k.battle_id, k.player_tag],
+    );
+    const {
+      rows: [{ pid }],
+    } = await filler.query("select pg_backend_pid() as pid");
+    await writer.query("begin");
+    await writer.query(
+      `select 1 from battle_participant where battle_id = $1 and player_tag = $2 for update`,
+      [k.battle_id, k.player_tag],
+    );
+    await writer.query(
+      `update battle_participant_card set level = level + 1
+        where battle_id = $1 and player_tag = $2 and round = 0 and slot = 1`,
+      [k.battle_id, k.player_tag],
+    );
+    await fillParticipantArrays(writer, [k]);
+    const filling = fillParticipantArrays(filler, [k], fillOptions);
+    // Wait until the fill is blocked on the writer's row lock: its
+    // statement has started and its snapshot is taken.
+    for (let i = 0; ; i++) {
+      const {
+        rows: [w],
+      } = await db.query(
+        `select wait_event_type from pg_stat_activity where pid = $1`,
+        [pid],
+      );
+      if (w?.wait_event_type === "Lock") break;
+      if (i > 200) throw new Error("the fill never waited on the lock");
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    await writer.query("commit");
+    return await filling;
+  } finally {
+    await writer.end();
+    await filler.end();
+  }
+}
+
+test("the history fill never overwrites arrays a concurrent ingest just wrote (Codex on #916)", async () => {
+  const {
+    rows: [k],
+  } = await db.query(`
+    select battle_id, player_tag from battle_participant
+     where cardinality(cards) = 8 order by battle_id, player_tag offset 7 limit 1`);
+  const { rows: levelRow } = await db.query(
+    `select level from battle_participant_card
+      where battle_id = $1 and player_tag = $2 and round = 0 and slot = 1`,
+    [k.battle_id, k.player_tag],
+  );
+  assert.notEqual(levelRow[0].level, null, "slot 1 has a level to change");
+
+  // Unguarded, the race is real: the fill writes the stale arrays.
+  assert.equal(await raceFillAgainstWriter(k, { unfilledOnly: false }), 1);
+  const stale = await censusToEnd();
+  assert.equal(stale.pass, false);
+  assert.equal(stale.counts.participants.mismatched, 1);
+
+  // Guarded, as {card_arrays} calls it: the fill skips the row ingest
+  // filled while it waited, and the arrays stay equal to the rows.
+  await fillParticipantArrays(db, [k]);
+  assert.equal(await raceFillAgainstWriter(k, { unfilledOnly: true }), 0);
+  const clean = await censusToEnd();
+  assert.equal(clean.pass, true, JSON.stringify(clean.failures));
+});
+
 test("refusals: an unknown phase or a malformed cursor runs nothing", async () => {
   await assert.rejects(
     cardArrays(SCRATCH_URL, { phase: "cards" }),
