@@ -97,11 +97,35 @@ ledger should drain, and both doors should serve.
   machine) and re-checks between deploys the invariants the deploy gate
   checks, since the record moves without a deploy. A red case is a
   finding, never re-run until it is green. The `budgets` suite is
-  capacity; the rest is product.
+  capacity; the rest is product. It is paced (2026-11-13): after each
+  call it rests twice that call's time (250 ms to 10 s), so the whole
+  suite takes about 45 minutes instead of about 15 and one family about
+  15 to 25, at roughly a third of the read rate. `--no-pace` is for a
+  local server only.
+- **Acceptance and the database (2026-11-13).** At most one acceptance
+  run per deploy train: batch the pull requests, deploy them, run the
+  gate once on the last deploy, the narrowest family that covers them.
+  `deploy.mjs` reads `EBSByteBalance%`, `EBSIOBalance%` and
+  `CPUCreditBalance` from CloudWatch before it builds and again before
+  the run (`infra/scripts/lib/db-headroom.mjs`) and refuses acceptance
+  when the lower balance is under 50% for the whole suite or 25% for a
+  family: before anything ships, the deploy exits 2 having deployed
+  nothing; on the second read, the deploy goes live, records acceptance
+  as refused and exits 1. Then wait (idle refill is about 4 points an
+  hour) and run `npm run acceptance` later, or run one family.
+  `--skip-headroom-check` runs it anyway, in an outage only. A balance
+  CloudWatch cannot give is a logged skip. CPU credits are printed,
+  never a refusal: RDS runs T4g unlimited, and a restart starts them at
+  0. On 2026-11-12/13 about ten deploys with acceptance took the byte
+  balance from 89% to 0 in seven hours; at 0 the database dropped
+  connections and the doors answered 5xx. A whole-suite run had cost 10
+  to 15 points (29 at worst), a family 4 to 7.
 - **The database.** db.t4g.micro again since 2026-10-08. Its limit is
   `EBSByteBalance%` (no alarm since 2026-11-03): a heavy batch, a
   Gym sweep or a full acceptance gate can drain it, so space them. On
-  2026-09-23 a full gate on every deploy drained it in an afternoon.
+  2026-09-23 a full gate on every deploy drained it in an afternoon, and
+  on 2026-11-12/13 again (above). It refills only a few points an hour
+  at idle.
   Also `FreeableMemory`, `SwapUsage`, the Enhanced
   Monitoring OS split (on since 2026-09-11) and storage headroom
   (autoscaling from 20 GB to 100 GB). What spends its time and reads is

@@ -202,6 +202,7 @@ satisfy the SDK's provider chain" (ENGINEERING). The only flags
 | (none) | update the stack; acceptance skipped, with a WARNING |
 | `--acceptance=<family>` | that family's cases; `a,b` for several |
 | `--acceptance` (or `ACCEPTANCE=1`) | the whole suite |
+| `--skip-headroom-check` | run acceptance below the database's headroom floor; an outage only |
 | `--skip-web` | no site build or sync |
 | `--rotate-origin-secret` | mint a new CloudFront origin secret; the doors accept the old one (`OriginSecretPrevious`) until it is cleared |
 | `--verify-reference-seed` | update only: after operator code push, compare every live reference seed column before migrations/import; require identical seed content and import the same frozen repository snapshot |
@@ -218,9 +219,29 @@ name's prefix (`badges`, `battles`, `cards`, `clans`,
 `packages/tools`, ingest) or a release: `--acceptance`;
 family runs skip the `#docs` cases. Nothing a tool serves changed
 (console, site copy, infrastructure, mail, an op): none, and the change
-note says why. Never the whole suite by habit: about four and a half minutes of
-heavy reads, and on 2026-09-23 a full pass on every deploy drained the
-database's EBS byte balance in an afternoon. `--skip-web` leaves `/docs`,
+note says why. Never the whole suite by habit: on 2026-09-23 a full pass
+on every deploy drained the database's EBS byte balance in an afternoon,
+and on 2026-11-12/13 about ten runs drained it to 0 and the database
+dropped connections.
+
+**One acceptance run per deploy train.** Several pull requests merging
+in one sitting are one train: deploy as they land without acceptance,
+then run the gate once, on the last deploy, with the narrowest family
+list that covers every tool they changed (`--acceptance=war,clans`).
+The run is paced (it rests twice each call's time): about 45 minutes
+for the whole suite, 15 to 25 for one family, holding the production
+lock throughout, so plan for it.
+
+**The headroom preflight.** With acceptance asked, `deploy.mjs` reads
+the database's EBS byte and I/O balances from CloudWatch before it
+builds and again before the run (`infra/scripts/lib/db-headroom.mjs`).
+Under 50% (whole suite) or 25% (a family) it refuses: at the first read
+nothing is deployed (exit 2); at the second the deploy is live, the
+record says acceptance was refused, and it exits 1. Then wait (about 4
+points an hour) and run `npm run acceptance` later, or deploy with one
+family; never retry in a loop. `--skip-headroom-check` only in an
+outage, and the report says so. A preflight SKIPPED line (CloudWatch
+unreadable) is reported, not ignored. `--skip-web` leaves `/docs`,
 `/updates` and `/tools.json` as they were: never with a contract or docs
 change.
 

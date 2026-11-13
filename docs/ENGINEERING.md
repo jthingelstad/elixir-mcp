@@ -668,7 +668,9 @@ Postgres databases.
 reads the deployed door as a read-only agent principal with its own token
 and budget, and asserts invariants, never values that change daily. It runs
 after the smoke gate when a deploy asks (`--acceptance`,
-`--acceptance=<family>`) and any time with `npm run acceptance`; it never
+`--acceptance=<family>`; paced, at most once per deploy train, behind
+the database headroom preflight in `infra/scripts/lib/db-headroom.mjs`)
+and any time with `npm run acceptance`; it never
 writes and never passes `live: true`. A Gym finding's criterion goes under
 its feedback id in `acceptance/checks/gym.mjs`.
 

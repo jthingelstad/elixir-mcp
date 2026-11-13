@@ -57,7 +57,10 @@ apply), vocabulary import, stack, the endpoint grant, the first
 migrations (`--create` only), the public statistics snapshot (platform
 lane; a failed snapshot stops the deploy), web (card art, site,
 invalidation, prune), smoke, then acceptance when asked (`--acceptance`
-or `--acceptance=<family>`), and the record.
+or `--acceptance=<family>`; paced, and refused under the database's
+headroom floor, read in the account phase and again before the run:
+`scripts/lib/db-headroom.mjs`, `--skip-headroom-check` in an outage),
+and the record.
 
 - **Lanes:** bundles are named by content, so a change that touches no
   Lambda and not the template takes the site lane and skips migrations and
