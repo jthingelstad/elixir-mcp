@@ -43,15 +43,19 @@ reading seven days of everyone you follow while you wait. A kept week is
 rebuilt every quarter hour while you use Home, so the newest battles can take
 up to about twenty minutes to appear. A highlight, a cheer and your **New**
 marker are always read live, and following or unfollowing someone, changing a
-nickname or your time zone builds the week again on your next visit. After
-three days away the first visit builds it while you wait.
+nickname or your time zone builds the week again on your next visit. While
+you are away it is still rebuilt every two hours for a week, so a quiet day
+or two never makes you wait; after more than a week away the first visit
+builds it while you wait. Two pages opened at once share one build.
 
 Your clan's card beside the feed is kept the same way: your standing, your
 week and the war line are rebuilt in the background at most fifteen minutes
 after you last saw them, so they can trail the record by up to about twenty
 minutes. Whether you may see the card, your role, and the Actions waiting for
 you are read live on every visit, and a role change, a policy change, a hold
-or leaving the clan builds the card again at once.
+or leaving the clan builds the card again at once. Otherwise Home shows the
+kept card first and swaps in a fresh one when it is ready, so an older card
+(up to a week) can show for a moment after a long break.
 
 The feed shows the newest thirty items, and **More** reads the next thirty of
 the same week, so an item never appears twice or goes missing between pages.

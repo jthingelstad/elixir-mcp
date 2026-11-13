@@ -154,7 +154,7 @@ your friends. Each part shows only when it has something:
   days, to the [timeline](/docs/timeline#cheers) items about players you
   have [verified](/docs/verify) as yours. Counts only, each cheer with its
   number: never who cheered. The bell keeps your week's items for up to
-  fifteen minutes while you use Elixir (three hours if no one opens it),
+  fifteen minutes while you use Elixir (two hours while you are away),
   so cheers on an item made since can reach the timeline before the bell.
   Cheers on items it already holds show at once.
 - **New followers**: accounts that started following one of your verified

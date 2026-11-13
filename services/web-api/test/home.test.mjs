@@ -530,10 +530,36 @@ test("the clan card is kept per account; Clan's gate, Actions and role are read 
   assert.notEqual(promoted.members, 999);
   assert.equal(promoted.standing, null, "a co-leader has no standing row");
 
-  // Past three hours the read builds it itself.
+  // Hours or days old on the same basis it is still served, and asks for
+  // the rebuild (an expiry or a deploy never makes the reader wait).
   await db.query(
     `update home_clan_card set card = card || '{"members": 999}',
-            built_at = now() - interval '4 hours' where account_id = $1`,
+            built_at = now() - interval '4 days' where account_id = $1`,
+    [id],
+  );
+  const old = await read();
+  assert.equal(old.members, 999);
+  assert.equal(old.refresh, true);
+  assert.equal(old.role, "coLeader", "the role is still the gate's");
+
+  // Two pages asking for the rebuild at once share one build: the second
+  // waits and is served the card the first stored.
+  const [a, b] = await Promise.all([
+    read({ rebuild: "1" }),
+    read({ rebuild: "1" }),
+  ]);
+  assert.equal(a.built_at, b.built_at, "one build, not two");
+  assert.notEqual(a.members, 999);
+
+  // Past a week the read builds it itself.
+  await db.query(
+    `update home_clan_card set card = card || '{"members": 999}'
+      where account_id = $1`,
+    [id],
+  );
+  await db.query(
+    `update home_clan_card set built_at = now() - interval '8 days'
+      where account_id = $1`,
     [id],
   );
   assert.notEqual((await read()).members, 999);
