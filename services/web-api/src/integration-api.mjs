@@ -24,14 +24,7 @@ import { gameClock } from "@elixir-mcp/record/game-clock";
 import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
 import { enqueueJob, takeLiveToken } from "@elixir-mcp/ledger";
 import { json, bearer, UUID_RE } from "./http.mjs";
-import {
-  removeClanFact,
-  removeClanFactAsApp,
-  writeClanFact,
-  writeClanFactAsApp,
-  writePlayerFact,
-} from "./attested-facts.mjs";
-import { sendClanMail } from "./clan-mail.mjs";
+import { writePlayerFact } from "./attested-facts.mjs";
 import { v1Operation } from "./v1-operations.mjs";
 
 /** The audience a person's grant for this door carries (0160). */
@@ -137,7 +130,7 @@ function feedbackRoute(method, query, body) {
 /** The operations a person may call, by method and path: each is one
  *  read the family's apps make, answered with the tool's structured
  *  result (Elixir Clan's reads, plan clan-app-api phases 1-3). */
-function personRoute(db, account, method, path, query, body, deps = {}) {
+function personRoute(db, account, method, path, query, body) {
   let m;
   if (method === "GET" && path === "/api/v1/me")
     return {
@@ -226,34 +219,6 @@ function personRoute(db, account, method, path, query, body, deps = {}) {
       operation: "clans.live",
       tool: "live_fetch",
       args: { path: `/clans/${encodeURIComponent(clanTag)}` },
-    };
-  }
-  // Attested facts (2.2.0): what the person did in their clan, through a
-  // family app holding clans:attest (attested-facts.mjs checks both).
-  if (
-    method === "POST" &&
-    (m = /^\/api\/v1\/clans\/([^/]+)\/facts$/.exec(path))
-  ) {
-    const clan = decodeURIComponent(m[1]);
-    return {
-      operation: "clans.facts.write",
-      run: async () => {
-        const r = await writeClanFact(db, account, clan, body);
-        await deps.wake?.(db, r);
-        return r;
-      },
-      statusOf: (r) => (r.created ? 201 : 200),
-    };
-  }
-  if (
-    method === "DELETE" &&
-    (m = /^\/api\/v1\/clans\/([^/]+)\/facts\/([^/]+)$/.exec(path))
-  ) {
-    const clan = decodeURIComponent(m[1]);
-    const ref = decodeURIComponent(m[2]);
-    return {
-      operation: "clans.facts.remove",
-      run: () => removeClanFact(db, account, clan, ref),
     };
   }
   if ((method === "GET" || method === "POST") && path === "/api/v1/feedback")
@@ -588,11 +553,7 @@ async function requestRefresh(db, account, policy, body, event) {
   }
 }
 
-/** `deps.wake(db, fact)` wakes what a written clan fact reaches (the
- *  Discord syndication; packages/syndication wakeAfterFact). */
-/** `deps.mail` ({ enqueue, secret, archive }) sends a family app's mail
- *  (2.4.0); without it the mail operation answers 503. */
-export async function integrationApi(db, event, body, deps = {}) {
+export async function integrationApi(db, event, body) {
   const requestId = randomUUID(),
     started = Date.now();
   let account,
@@ -620,7 +581,7 @@ export async function integrationApi(db, event, body, deps = {}) {
       if (!account || (account.kind ?? "person") !== "person")
         throw new ApiError(401, "unauthenticated");
       const query = event.queryStringParameters ?? {};
-      const route = personRoute(db, account, method, path, query, body, deps);
+      const route = personRoute(db, account, method, path, query, body);
       if (!route) throw new ApiError(404, "not_found");
       operation = route.operation;
       if (!account.firstParty) {
@@ -758,23 +719,6 @@ export async function integrationApi(db, event, body, deps = {}) {
         };
       } else if (
         method === "POST" &&
-        (match = /^\/api\/v1\/clans\/([^/]+)\/mail$/.exec(path))
-      ) {
-        // A family app's own mail, sent through Elixir (2.4.0): Elixir
-        // Clan's "actions waiting for you", by player tag, never by address.
-        operation = "clans.mail.send";
-        scope = "mail:send";
-        const clan = decodeURIComponent(match[1]);
-        run = () =>
-          sendClanMail(
-            db,
-            { name: policy.name, accountId: account.accountId },
-            clan,
-            body,
-            deps.mail ?? {},
-          );
-      } else if (
-        method === "POST" &&
         (match = /^\/api\/v1\/players\/([^/]+)\/facts$/.exec(path))
       ) {
         // A family app's own game fact for a player (2.2.0): Elixir
@@ -792,30 +736,6 @@ export async function integrationApi(db, event, body, deps = {}) {
           status = r.created ? 201 : 200;
           return r;
         };
-      } else if (
-        (method === "POST" &&
-          (match = /^\/api\/v1\/clans\/([^/]+)\/facts$/.exec(path))) ||
-        (method === "DELETE" &&
-          (match = /^\/api\/v1\/clans\/([^/]+)\/facts\/([^/]+)$/.exec(path)))
-      ) {
-        // A family app's own computed clan fact (2.6.0): Elixir Clan's
-        // award standings, on its integration key, labelled as the app's.
-        scope = "facts:write";
-        const clan = decodeURIComponent(match[1]);
-        const app = { name: policy.name, accountId: account.accountId };
-        if (method === "POST") {
-          operation = "clans.facts.write";
-          run = async () => {
-            const r = await writeClanFactAsApp(db, app, clan, body);
-            await deps.wake?.(db, r);
-            status = r.created ? 201 : 200;
-            return r;
-          };
-        } else {
-          operation = "clans.facts.remove";
-          const ref = decodeURIComponent(match[2]);
-          run = () => removeClanFactAsApp(db, app, clan, ref);
-        }
       } else if (
         (method === "GET" || method === "POST") &&
         path === "/api/v1/feedback"

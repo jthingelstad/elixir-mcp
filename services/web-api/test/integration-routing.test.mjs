@@ -51,10 +51,7 @@ const AUDITED = {
   playerRecordedProfile: "players.profile",
   playerBattles: "players.battles",
   meTrackPlayer: "me.players.add",
-  clanFactWrite: "clans.facts.write",
-  clanFactRemove: "clans.facts.remove",
   playerFactWrite: "players.facts.write",
-  clanMailSend: "clans.mail.send",
   sendFeedback: "feedback.send",
   myFeedback: "feedback.list",
   // The social reads: each runs its tool, audited under the tool's name.

@@ -1,18 +1,18 @@
 /**
- * Attested facts (JSON API 2.2.0; Jamie, 2026-09-25): the family's apps
- * tell Elixir what a person did in a clan, and what a family app's own
- * game produced for a player. Kept apart from the game record and
- * labelled; see @elixir-mcp/contracts `facts.ts` for the types and who
- * may see each.
+ * Attested facts (Jamie, 2026-09-25): what a person did in a clan, what
+ * Clan computed from a clan's rules, and what a family app's own game
+ * produced for a player. Kept apart from the game record and labelled;
+ * see @elixir-mcp/contracts `facts.ts` for the types and who may see each.
  *
- *   POST   /api/v1/clans/{tag}/facts        a person, through a family app,
- *                                           holding clans:attest
- *   DELETE /api/v1/clans/{tag}/facts/{ref}  the same, to take one back
- *   POST   /api/v1/players/{tag}/facts      an integration with facts:write
- *   POST   /api/v1/clans/{tag}/facts        an integration with facts:write,
- *   DELETE /api/v1/clans/{tag}/facts/{ref}  for the types the app itself
- *                                           computes (attesters ["app"],
- *                                           9.6.0: Elixir Clan's standings)
+ *   Clan, as the signed-in person     writeClanFactInClan,
+ *                                     removeClanFactInClan
+ *   Clan's morning run, as Elixir     writeClanFactBySystem,
+ *                                     removeClanFactBySystem (award
+ *                                     standings, attesters ["app"])
+ *   POST /api/v1/players/{tag}/facts  an integration with facts:write
+ *
+ * Clan is part of Elixir (Jamie, 2026-11-12), so a clan fact has no door
+ * of its own: /api/v1 lost its clan fact routes in JSON API 4.0.0.
  *
  * A clan fact is attested by the person's VERIFIED player in that clan,
  * with the role the record holds for it now; the type names the roles
@@ -24,7 +24,6 @@ import {
   ATTESTED_FACT_TYPES,
   ATTESTED_SOURCE_NAMES,
   LEADER_MESSAGE_ROLES,
-  OAUTH_SCOPE,
   normalizeTag,
 } from "@elixir-mcp/contracts";
 
@@ -164,26 +163,10 @@ async function seatIn(db, accountId, clanTag) {
   );
 }
 
-/** The key a family app's facts carry, by the app its client was
- *  provisioned for (0185). Clan's and Drop's are the hosts they were
- *  written under before either moved: identifiers now, not addresses, so
- *  Clan at elixir.poapkings.com/clan (2026-09-28) still writes, corrects
- *  and removes the facts it wrote at clan.poapkings.com. A later app's
- *  key is its name. */
-const SOURCE_OF_APP = {
-  clan: "clan.poapkings.com",
-  drop: "drop.poapkings.com",
-};
-
-/** The family app a person's grant came through, or null. */
-async function appOf(db, account) {
-  const { rows } = await db.query(
-    `select app from family_oauth_client where client_id = $1`,
-    [account.clientId],
-  );
-  const app = rows[0]?.app;
-  return app ? (SOURCE_OF_APP[app] ?? app) : null;
-}
+/** The key a person's clan facts carry: the host Clan wrote them under
+ *  before it moved into Elixir (2026-09-28), an identifier now, not an
+ *  address, so Clan still corrects and removes the facts it wrote then. */
+const CLAN_PERSON_SOURCE = "clan.poapkings.com";
 
 function mayAttest(t, type, detail, seat, playerTag) {
   if (
@@ -266,22 +249,11 @@ async function upsert(db, fact) {
   return { ...shapeFact(rows[0]), created: rows[0].created };
 }
 
-/** Who may write a clan's facts, and as whom: shared by write and remove. */
-async function clanAttester(db, account, clanTag, internal = false) {
-  if (internal && account.kind !== "person")
-    throw new FactError(403, "not_a_person");
-  if (!internal && !account.firstParty)
-    throw new FactError(
-      403,
-      "family_apps_only",
-      "Attested facts are written only by the Elixir family's own apps.",
-    );
-  if (!internal && !(account.scopes ?? []).includes(OAUTH_SCOPE.CLANS_ATTEST))
-    throw new FactError(
-      403,
-      "insufficient_scope",
-      `This grant lacks the capability ${OAUTH_SCOPE.CLANS_ATTEST}.`,
-    );
+/** Who may write a clan's facts, and as whom: shared by write and remove.
+ *  Clan's session signed the person in; membership and role are checked
+ *  here, against the record as it is now. */
+async function clanAttester(db, account, clanTag) {
+  if (account.kind !== "person") throw new FactError(403, "not_a_person");
   const { rows } = await db.query(`select 1 from clan where clan_tag = $1`, [
     clanTag,
   ]);
@@ -293,9 +265,7 @@ async function clanAttester(db, account, clanTag, internal = false) {
       "not_in_clan",
       "No verified player of yours is in this clan.",
     );
-  const source = internal ? "clan.poapkings.com" : await appOf(db, account);
-  if (!source) throw new FactError(403, "family_apps_only");
-  return { seat, source };
+  return { seat, source: CLAN_PERSON_SOURCE };
 }
 
 /** Who a leader said was removed from a clan in a window, as a Set of tags.
@@ -312,16 +282,10 @@ export async function removedFromClan(db, clanTag, fromMs, toMs) {
   return new Set(rows.map((r) => r.player_tag));
 }
 
-export function writeClanFact(db, account, clanInput, body) {
-  return writeClanFactWith(db, account, clanInput, body, false);
-}
-/** Only the internal Clan runtime imports this seam. Session authentication
- * belongs to its HTTP door; verified current membership, role, type and
- * replacement permission still belong to this writer. No OAuth grant is made. */
-export function writeClanFactInClan(db, account, clanInput, body) {
-  return writeClanFactWith(db, account, clanInput, body, true);
-}
-async function writeClanFactWith(db, account, clanInput, body, internal) {
+/** A person's clan fact, written through Clan. Clan's session signs the
+ *  person in; verified current membership, role, type and replacement
+ *  permission belong to this writer. */
+export async function writeClanFactInClan(db, account, clanInput, body) {
   const clanTag = tagOf(clanInput, "clan_tag");
   const type = String(body.type ?? "");
   const t = ATTESTED_FACT_TYPES[type];
@@ -340,7 +304,7 @@ async function writeClanFactWith(db, account, clanInput, body, internal) {
     body.occurred_at === undefined
       ? new Date().toISOString()
       : instantOf(body.occurred_at, "occurred_at");
-  const { seat, source } = await clanAttester(db, account, clanTag, internal);
+  const { seat, source } = await clanAttester(db, account, clanTag);
   if (!mayAttest(t, type, detail, seat, playerTag))
     throw new FactError(
       403,
@@ -426,18 +390,12 @@ function upsertClanFact(
   });
 }
 
-/** Take a clan fact back (a grant revoked, a message withdrawn): the
- *  app that wrote it, by its ref, by someone who may attest that type. */
-export function removeClanFact(db, account, clanInput, refInput) {
-  return removeClanFactWith(db, account, clanInput, refInput, false);
-}
-export function removeClanFactInClan(db, account, clanInput, refInput) {
-  return removeClanFactWith(db, account, clanInput, refInput, true);
-}
-async function removeClanFactWith(db, account, clanInput, refInput, internal) {
+/** Take a clan fact back (a grant revoked, a message withdrawn), by its
+ *  ref, by someone who may attest that type. */
+export async function removeClanFactInClan(db, account, clanInput, refInput) {
   const clanTag = tagOf(clanInput, "clan_tag");
   const ref = refOf(refInput);
-  const { seat, source } = await clanAttester(db, account, clanTag, internal);
+  const { seat, source } = await clanAttester(db, account, clanTag);
   const { rows } = await db.query(
     `select * from attested_fact
       where source = $1 and source_ref = $2 and clan_tag = $3`,
@@ -452,7 +410,7 @@ async function removeClanFactWith(db, account, clanInput, refInput, internal) {
   return { removed: true, id: String(row.fact_id), ref };
 }
 
-/** The clan fact types a family app writes itself (attesters ["app"]). */
+/** The clan fact types Clan computes itself (attesters ["app"]). */
 const APP_CLAN_TYPES = Object.keys(ATTESTED_FACT_TYPES).filter(
   (k) =>
     ATTESTED_FACT_TYPES[k].subject === "clan" &&
@@ -464,8 +422,7 @@ const APP_CLAN_TYPES = Object.keys(ATTESTED_FACT_TYPES).filter(
  *  Clan still corrects and removes the facts it wrote then. */
 export const CLAN_FACT_SOURCE = "elixir-clan";
 
-/** A clan fact computed by its writer (an app, or Elixir's own Clan),
- *  stored under the writer's source and account. */
+/** A clan fact Clan computed, stored under its source and account. */
 async function writeComputedClanFact(db, writer, clanInput, body) {
   const clanTag = tagOf(clanInput, "clan_tag");
   const type = String(body.type ?? "");
@@ -473,7 +430,7 @@ async function writeComputedClanFact(db, writer, clanInput, body) {
     throw new FactError(
       400,
       "unknown_fact_type",
-      `A family app writes these clan facts itself: ${APP_CLAN_TYPES.join(", ")}. A person's kind of fact is written on their own grant (clans:attest).`,
+      `Clan computes these clan facts itself: ${APP_CLAN_TYPES.join(", ")}. A person's kind of fact is written as that person.`,
     );
   const t = ATTESTED_FACT_TYPES[type];
   const ref = refOf(body.ref);
@@ -516,29 +473,6 @@ async function removeComputedClanFact(db, writer, clanInput, refInput) {
   );
   if (!rows[0]) throw new FactError(404, "not_found");
   return { removed: true, id: String(rows[0].fact_id), ref };
-}
-
-/** A family app's own computed clan fact, on its integration key
- *  (facts:write, 9.6.0): what the app worked out from its own rules,
- *  labelled as the app's, never a person's. A person's kind of fact is
- *  refused here, as the app's kind is refused on a person's grant. */
-export function writeClanFactAsApp(db, integration, clanInput, body) {
-  return writeComputedClanFact(
-    db,
-    { source: integration.name, accountId: integration.accountId },
-    clanInput,
-    body,
-  );
-}
-
-/** Take back a clan fact the app wrote itself, by its ref. */
-export function removeClanFactAsApp(db, integration, clanInput, refInput) {
-  return removeComputedClanFact(
-    db,
-    { source: integration.name, accountId: integration.accountId },
-    clanInput,
-    refInput,
-  );
 }
 
 /** Clan's own computed clan fact (award standings), written by Elixir

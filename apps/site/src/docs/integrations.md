@@ -45,10 +45,7 @@ Agents use MCP. Programs use the **JSON API at
   limit; any other client is. A client is first-party when Elixir has
   provisioned it for the family (it is not registered) and its every
   redirect URI is on a family origin; it authenticates at `/oauth/token`
-  with `client_secret_post`. A family app
-  whose grant holds `clans:attest` records what the person did in their
-  clan with `POST /clans/{tag}/facts` (see
-  [Attested facts](#attested-facts)).
+  with `client_secret_post`.
 
 The two doors keep their credentials apart. An MCP token is refused here, and a
 JSON API token is refused at MCP. These routes share the recorder and its
@@ -85,7 +82,6 @@ accountable for the integration but contributes no admin authority or quota.
 | `POST /profile-refreshes` | `profiles:refresh` | Accepted asynchronous profile refresh |
 | `GET /profile-refreshes/{id}` | `profiles:refresh` | Pending, complete or failed refresh |
 | `GET /clans/{tag}/participation`, `GET /clans/{tag}/roster`, `GET /clans/{tag}/war-history` | `clans:read` | Any recorded clan, answered as a person's grant is (the `clans_participation`, `clans_roster` and `war_history` results): a family app evaluating a clan with nobody signed in, or a clan's website |
-| `POST /clans/{tag}/mail` | `mail:send` | A family app's own mail, sent through Elixir by player tag, never by address ([below](#a-family-apps-mail)) |
 | `POST /players/{tag}/facts` | `facts:write` | A fact the platform's own game produced for a player ([attested facts](#attested-facts)) |
 | `POST /feedback`, `GET /feedback` | `feedback:write` | Feedback to Elixir's maintainer, filed as the integration, and the answers to it (the `elixir_send_feedback` and `elixir_my_feedback` results); [feedback](/docs/protocol#feedback-and-the-changelog-over-the-wire) |
 
@@ -108,15 +104,16 @@ operation is a minor. (MCP versions differently: its callers are agents
 reading the current declaration.) The path stays `/api/v1` across majors,
 because it is also the OAuth audience a person's token is issued for. What
 changed in each version is in the OpenAPI document and on
-[Updates](/updates). 3.6.0 added four reads for a person's own grant
+[Updates](/updates). 4.0.0 (2026-11-13) removed the clan fact and clan mail
+operations: a clan's facts and its mail are Clan's, inside Elixir.
+3.6.0 added four reads for a person's own grant
 (a player's follows and highlights, your cheers, the clan directory); an
 integration key reaches none of them.
 
 ## Attested facts
 
-Clan, and a family app through this API, can tell Elixir what a
-person did in a clan; an integration can say what its own game produced for
-a player. Elixir keeps these **attested facts** apart from the game record, which only collectors write, and
+Clan can tell Elixir what a person did in a clan; an integration can say
+what its own game produced for a player. Elixir keeps these **attested facts** apart from the game record, which only collectors write, and
 labels each with its source, the person's player, their role, and when. They
 are facts with a named source, never Elixir's judgment, and they appear on
 the [timeline](/docs/timeline) of the readers their type allows.
@@ -129,7 +126,7 @@ the [timeline](/docs/timeline) of the readers their type allows.
 | `member_away` | clan, about a member | leader, co-leader, or the member | the clan's leaders and co-leaders | `until` (an instant, or null) |
 | `clan_message` | clan | leader, co-leader, elder (a Clan Leader Message: leaders and co-leaders) | the clan | `channel` (`leader_message` or `clan_chat`), `title` (24), `body` (200) |
 | `personal_record` | player | an integration with `facts:write` | whoever has the player on their timeline | `game` (40), `score`, `previous_best` |
-| `award_standing` | clan, about a member | Clan itself, from the clan's own rules (or an integration with `facts:write`) | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
+| `award_standing` | clan, about a member | Clan itself, from the clan's own rules | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
 
 "The clan" is anyone whose verified player is in it today, and an agent
 whose owner's player is. A fact for the clan's leaders reaches only a
@@ -137,68 +134,32 @@ person whose verified player leads it: never an agent and never mail.
 A departure's kind is the clan's: the game already tells the whole clan in clan chat that a member was kicked, and its leaders say why
 there.
 
-A clan fact is written by a **person**: in Clan, or through a family
-app (its provisioned client) whose grant holds `clans:attest`, with
-`POST /clans/{tag}/facts`. The one exception is what Clan itself
-computes from the clan's own rules: `award_standing`, where a member stands
-in one of the clan's own awards for a season still running (Clan writes it
-each morning). An integration holding `facts:write` writes and takes back
-only those types, on the same paths, labelled as the app's and never as a
-person's; a person's kinds are refused on its key, and the app's kind on a
-person's grant.
-
-```json
-{
-  "type": "departure_classified",
-  "ref": "the app's own id for it",
-  "player_tag": "#PYLQ88",
-  "occurred_at": "2026-09-25T18:00:00Z",
-  "detail": { "kind": "leave" }
-}
-```
+A clan fact is written by a **person**, in Clan. The one
+exception is what Clan itself computes from the clan's own rules:
+`award_standing`, where a member stands in one of the clan's own awards
+for a season still running (Clan writes it each morning). The JSON API
+writes no clan fact.
 
 The attester is the person's **verified** player in that clan, with the
 role Elixir's roster record holds for it now; a role the type does not
-allow is refused (`not_permitted`). `ref` makes a retry the same fact
-(`200`, `created: false`) and a new detail for it the attester's newer
-word; the first write answers `201`. Replacing a fact needs the right to
-the one already there as well as to the one sent (`not_permitted`). `occurred_at` defaults to now and may
-be at most an hour ahead or a year behind. `DELETE
-/clans/{tag}/facts/{ref}` takes one back, by someone who may attest its
-type. A player fact is an integration's, with `POST /players/{tag}/facts`
-and the same body; its tag is unverified, as everywhere on this API.
+allow is refused.
 
-## A family app's mail
-
-A family app can send people its own mail through Elixir, which holds the
-address, the switch and the unsubscribe. The one kind is Clan's
-**clan actions waiting** ([Email](/docs/email)), which Clan sends from
-inside Elixir under the same rules. `POST /clans/{tag}/mail` names who each
-email is for by player tag:
+A player fact is an integration's, with `POST /players/{tag}/facts`:
 
 ```json
 {
-  "kind": "clan_actions_waiting",
-  "messages": [
-    {
-      "player_tag": "#PYLQ88",
-      "subject": "2 actions waiting for you in Example Clan",
-      "lines": ["Promote to Elder: Ada (new)", "Welcome a newcomer: Newbie"],
-      "link": "https://elixir.poapkings.com/clan/2PQRJ8LV/feed"
-    }
-  ]
+  "type": "personal_record",
+  "ref": "the app's own id for it",
+  "player_tag": "#0PYLQ2",
+  "occurred_at": "2026-09-25T18:00:00Z",
+  "detail": { "game": "Elixir Drop", "score": 42, "previous_best": 40 }
 }
 ```
 
-Elixir sends a message only to the account whose **verified** claim is
-that player, while the player is in the clan, with the kind switched on
-(on to start), and at most one of the kind per clan per account per UTC
-day. It renders the lines itself, escaped, in its own template (the
-unsubscribe, the send id, the disclaimer); the link must lead to a family
-app. The answer says what happened to each message (`sent` with its
-`send_id`, `already_sent_today`, `no_account`, `not_in_clan`,
-`no_address`, `switched_off` or `failed`) and never an address. Up to 50
-messages a call.
+`ref` makes a retry the same fact (`200`, `created: false`) and a new
+detail for it the integration's newer word; the first write answers
+`201`. `occurred_at` defaults to now and may be at most an hour ahead or
+a year behind. Its tag is unverified, as everywhere on this API.
 
 ## The game clock is policy
 
@@ -266,7 +227,7 @@ These allowances do not increase the collector fleet's shared upstream budget.
 | --- | --- |
 | 400 | `invalid_json` (checked before authentication; send `{}` on GET), `invalid_tag`, `idempotency_key_required`, or `bad_request` for a badly percent-encoded path; on a person's operation also `bad_request` and `result_too_large` from the tool; on a fact write `unknown_fact_type` or `invalid_fact` |
 | 401 | `unauthenticated`: missing, wrong-purpose, revoked or suspended credential |
-| 403 | Missing permission; `insufficient_scope` when a person's grant lacks the operation's scope; `not_entitled` from a person's tool; on a clan fact `family_apps_only`, `not_in_clan` or `not_permitted` |
+| 403 | Missing permission; `insufficient_scope` when a person's grant lacks the operation's scope; `not_entitled` from a person's tool |
 | 404 | Unknown or inaccessible resource (`not_found`); a path or method no operation answers is `not_found` before any credential is checked, its `detail` pointing to the docs; `not_recorded` for missing profile data; `no_subject` on a person's operation with nothing to answer about |
 | 409 | `idempotency_conflict`; `ref_conflict` when a fact's `ref` already names another type or subject |
 | 429 | `rate_limited` (also a refresh when the shared CR budget is spent until the next tick), `daily_quota_exceeded` or `refresh_quota_exceeded`; `quota_exceeded` from a person's tool |

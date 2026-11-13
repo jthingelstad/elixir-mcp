@@ -56,12 +56,10 @@ calls, and answer with that tool's result.
 | `GET /clans/{tag}/participation` | person, integration | `clans_participation`, 1 to 8 weeks |
 | `GET /clans/{tag}/war-history` | person, integration | `war_history`, 1 to 12 seasons |
 | `GET /clans/{tag}/live` | person | a live clan read |
-| `POST /clans/{tag}/facts`, `DELETE /clans/{tag}/facts/{ref}` | family app (`clans:attest`), integration | attested facts |
 | `GET /game/clock` | integration | the game clock |
 | `GET /players/{tag}` | integration | a slim recorded profile |
 | `POST /profile-refreshes`, `GET /profile-refreshes/{id}` | integration | a profile refresh, asynchronous |
 | `POST /players/{tag}/facts` | integration | a fact about a player |
-| `POST /clans/{tag}/mail` | integration | a family app's mail to a clan |
 | `POST /feedback`, `GET /feedback` | person (`feedback:write`), integration | `elixir_send_feedback` and `elixir_my_feedback`: feedback to the maintainer and its answers (3.1.0) |
 
 `?fresh=1` on a player's profile or battles asks for a live read, which
@@ -90,7 +88,7 @@ OpenAPI document's `info.version`. Adding an operation or a field is a
 minor version. Removing or renaming a field is a major version, and the
 path stays `/api/v1` whatever the version, because the path is what a
 person's grant is for. What changed in each version is in the OpenAPI
-document and on [Updates](/updates). The current version is 3.7.0. A
+document and on [Updates](/updates). The current version is 4.0.0. A
 person's grant for `POST /me/players` is `follows:write`, and
 `recordings:write` is an accepted alias of it. The four social reads above
 (follows, highlights, cheers and the clan directory) are for a person's

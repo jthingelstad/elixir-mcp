@@ -8,10 +8,9 @@ const scopes = [
   "profiles:refresh",
   "facts:write",
   "clans:read",
-  "mail:send",
 ];
 // Permissions that act on people are ticked only on purpose.
-const EXPLICIT = ["facts:write", "mail:send"];
+const EXPLICIT = ["facts:write"];
 const defaults = {
   name: "",
   daily_limit: 10000,

@@ -27,10 +27,10 @@ export const INTEGRATION_SCOPES = [
   ),
 ];
 
-/** Permissions that act on people (write facts about them, send them
- *  mail) are granted only when an admin names them; an integration
- *  created without a list gets the rest (2026-09-25). */
-const EXPLICIT_INTEGRATION_SCOPES = ["facts:write", "mail:send"];
+/** Permissions that act on people (write facts about them) are granted
+ *  only when an admin names them; an integration created without a list
+ *  gets the rest (2026-09-25). */
+const EXPLICIT_INTEGRATION_SCOPES = ["facts:write"];
 export const DEFAULT_INTEGRATION_SCOPES = INTEGRATION_SCOPES.filter(
   (s) => !EXPLICIT_INTEGRATION_SCOPES.includes(s),
 );

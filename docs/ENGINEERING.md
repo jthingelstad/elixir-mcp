@@ -509,8 +509,8 @@ behavior (the only door route that sees the session cookie is
   with audience `/api/v1`. `service_token.audience` keeps REST and MCP
   credentials apart. Each operation declares the callers it admits
   (`x-principals`).
-- An integration holds its permissions (`clans:read`, `mail:send`,
-  `facts:write`, granted only by name) and capacity apart from its sponsor.
+- An integration holds its permissions (`clans:read`, `facts:write`,
+  the latter granted only by name) and capacity apart from its sponsor.
   Admin management is `services/web-api/src/routes/integrations.mjs`;
   personal routes cannot manage these identities.
 - First-party clients (a provisioned `family_oauth_client`, every redirect

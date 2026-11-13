@@ -106,7 +106,7 @@ is no OpenID Connect: no ID token. Who the person is comes from
 | `account:write` | Update account preferences | any app |
 | `feedback:write` | Send feedback | any app |
 | `account:email` | Know your email address | family apps only |
-| `clans:attest` | Record what you do in your clan | family apps only |
+| `clans:attest` | Nothing at present (a clan's facts are written in Clan) | family apps only |
 
 The endpoints are `/.well-known/oauth-authorization-server`,
 `/.well-known/oauth-protected-resource`, `/oauth/register`,
