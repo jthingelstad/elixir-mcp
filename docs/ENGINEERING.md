@@ -117,20 +117,31 @@ Consecutive 403s open a per-collector breaker and drain it.
   receipt, payload row, archive object, projection or freshness. Every
   product-facing datum has a projection: the card catalog is `card`, a
   player's collection is `player_card`.
-- **Cards played are rows, not JSON.** A tool reads `deck` (one row per
-  `deck_hash`, the contract's identity), `deck_card` (its cards by form)
-  and `battle_participant_card` (what each participant played, with
-  levels); ingest writes all three in the battle's transaction, and
-  `{deck_census}` proves nothing is missing. Tests that seed a battle write
-  the rows through `packages/tools/test/deck-rows.mjs`. A card seen before
-  the daily catalog poll gets a stub `card` row (`catalog_seen_at` null)
-  and queues a live catalog fetch; ingest never waits on catalog
-  integrity. The card rows are reached by primary-key prefix
-  `(battle_id, player_tag)`; a card-to-battles walk goes
-  `deck_card (card_id) -> deck_hash -> battle_participant (deck_hash,
-  battle_time)`. Never add a battle_id-carrying secondary index on the card
-  rows: they were gigabytes against the shared buffers and no plan used
-  them.
+- **Cards played ride the row that owns them (0255).** The rows of 0091
+  (`deck_card`, `battle_participant_card`) were built to traverse cards
+  across the corpus; Jamie, 2026-11-13: "All of that has come off the
+  table, so we really need to refactor the database for the current
+  vision for Elixir", and "the same way that you own the code base, you
+  own the database". The coming shape is arrays: `battle_participant`'s
+  `cards`, `card_forms`, `card_levels` and `card_stars`, parallel and
+  indexed by slot (a slot with no card is a NULL element), with the tower
+  troop in `tower_troop_id`, `tower_form`, `tower_level` and `tower_star`;
+  a duel's rounds carry the same arrays plus `cards_used` on
+  `battle_participant_round`; `deck` carries `card_ids` and `card_forms`
+  in canonical (card_id, form) order. Today ingest writes both shapes in
+  the battle's transaction, the arrays built in SQL from the rows just
+  written (`packages/ingest/src/card-arrays.mjs`), `{card_arrays}` fills
+  history and `{card_arrays_census}` proves the two agree. Tools still
+  read `deck`, `deck_card` and `battle_participant_card`, and tests that
+  seed a battle write the rows through `packages/tools/test/deck-rows.mjs`;
+  the rows go once every reader has switched to the arrays. Until then
+  the card rows are reached by primary-key prefix
+  `(battle_id, player_tag)`; never add a battle_id-carrying secondary
+  index on them: they were gigabytes against the shared buffers and no
+  plan used them. A card seen before the daily catalog poll gets a stub
+  `card` row (`catalog_seen_at` null) and queues a live catalog fetch;
+  ingest never waits on catalog integrity. `{deck_census}` still proves
+  no participant is missing its deck or played rows.
 
 ## One client is one connection, so one query at a time
 

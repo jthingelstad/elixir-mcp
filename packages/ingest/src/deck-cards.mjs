@@ -28,6 +28,11 @@
  *  troop; round 0 except for duels, where each round is its own deck. */
 import { cachedVocabulary, stampDecks } from "./card-roles.mjs";
 import { enqueueJob, takeLiveToken, refundLiveToken } from "@elixir-mcp/ledger";
+import {
+  fillDeckArrays,
+  fillParticipantArrays,
+  fillRoundArrays,
+} from "./card-arrays.mjs";
 
 export function participantCardRows(deck) {
   if (!deck) return [];
@@ -210,6 +215,12 @@ export async function projectDecks(db, partRows) {
        on conflict do nothing`,
       [JSON.stringify(deckCards)],
     );
+    // The same identity as arrays on the deck row (0255), from the rows
+    // just written.
+    await fillDeckArrays(
+      db,
+      deckRows.map((d) => d.deck_hash),
+    );
     // The archetype stamp (0148) on the batch's decks: a new deck is
     // named the moment it exists; a known one is re-stamped cheaply.
     await stampDecks(db, await cachedVocabulary(db), {
@@ -253,6 +264,13 @@ export async function projectPlayedCards(db, partRows, written) {
      on conflict (battle_id, player_tag, round, card_id, form) do update
        set used = coalesce(battle_participant_card.used, excluded.used)`,
     [JSON.stringify(rows)],
+  );
+  // The same cards as arrays on the participant row (0255), built from
+  // the rows above in this transaction. A duel's rounds fill in
+  // projectRounds, once their round rows exist.
+  await fillParticipantArrays(
+    db,
+    partRows.filter((p) => written.has(`${p.battle_id}|${p.player_tag}`)),
   );
   return rowCount;
 }
@@ -313,5 +331,8 @@ export async function projectRounds(db, partRows, written) {
         or (battle_participant_round.outcome is null and excluded.outcome is not null)`,
     [JSON.stringify(rows)],
   );
+  // Each round's cards as arrays on its round row (0255), from the card
+  // rows projectPlayedCards wrote.
+  await fillRoundArrays(db, rows);
   return rowCount;
 }
