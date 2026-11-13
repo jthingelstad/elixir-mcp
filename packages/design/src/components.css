@@ -1113,10 +1113,13 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  min-height: 40px;
   font-size: var(--t-body-sm);
-  border-radius: var(--r-control);
-  padding: 9px 14px;
+  font-weight: 600;
+  border-radius: var(--r-chip);
+  padding: 9px 16px;
   border: 1px solid transparent;
   background: var(--control);
   color: var(--ink);
@@ -1132,7 +1135,8 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   background: var(--gold-grad);
   color: var(--gold-on);
   font-weight: 700;
-  padding: 9px 15px;
+  padding: 9px 16px;
+  box-shadow: 0 2px 0 var(--gold-edge);
 }
 .btn--primary:hover {
   background: var(--gold-light);
@@ -1159,9 +1163,30 @@ button.rail__switch-head[aria-disabled="true"]:hover {
   background: color-mix(in srgb, var(--bad) 22%, transparent);
 }
 .btn--sm {
-  font-size: 12.5px;
-  padding: 5px 11px;
+  min-height: 32px;
+  font-size: 13px;
+  padding: 5px 12px;
   border-radius: var(--r-chip);
+}
+/* Follow (canvas .follow, 2026-11-12): violet is you acting, a pill so it
+   reads as a choice about a person, never the screen's gold action. Its
+   pressed state (Following) drops to the raised fill. */
+.btn--follow {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--accent-deep);
+  color: var(--av-ink);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none;
+}
+.btn--follow:hover {
+  background: color-mix(in srgb, var(--accent-deep) 85%, var(--accent));
+}
+.btn--follow[aria-pressed="true"] {
+  background: var(--panel-raised);
+  color: var(--ink-dim);
 }
 
 .input {
@@ -1749,7 +1774,7 @@ button {
   background: var(--gold-grad);
   color: var(--gold-on);
   font-weight: 700;
-  box-shadow: none;
+  box-shadow: 0 2px 0 var(--gold-edge);
 }
 .btn--gold:hover {
   background: var(--gold-light);
@@ -2546,9 +2571,10 @@ input[aria-invalid="true"] {
    bar it has to sit level with the links beside it without shouting over the
    wordmark. */
 .btn--sm {
-  padding: 6px 14px;
-  font-size: 12.5px;
-  border-radius: 8px;
+  min-height: 32px;
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: var(--r-chip);
 }
 
 /* Account onboarding uses the same panels and tokens as the record views. */
@@ -6608,11 +6634,12 @@ a.card-art:hover .card-art__img {
   min-height: 34px;
   padding: 6px 12px;
   border: 1px solid transparent;
-  border-radius: var(--r-pill);
-  background: var(--control);
+  border-radius: var(--r-chip);
+  background: var(--panel-raised);
   color: var(--ink-dim);
   font: inherit;
   font-size: 13.5px;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -6624,11 +6651,10 @@ a.card-art:hover .card-art__img {
   background: var(--control-hover);
   color: var(--ink);
 }
-/* The chosen chip keeps a gold edge: a line that says "this one". */
+/* The chosen chip is filled violet (canvas .chip.on): you chose it. */
 .kit-chip[aria-pressed="true"] {
-  border-color: var(--gold);
+  background: var(--accent-deep);
   color: var(--ink);
-  font-weight: 600;
 }
 .kit-chip b {
   margin-left: 3px;
@@ -6638,7 +6664,7 @@ a.card-art:hover .card-art__img {
 
 .kit-panel {
   background: var(--panel);
-  border-radius: var(--r-block);
+  border-radius: var(--r-panel);
 }
 .kit-panel__head {
   display: flex;
@@ -6646,11 +6672,11 @@ a.card-art:hover .card-art__img {
   justify-content: space-between;
   align-items: baseline;
   gap: 4px 12px;
-  padding: 14px 18px 10px;
+  padding: 12px 16px 4px;
 }
 .kit-panel__title {
   margin: 0;
-  font: 600 17px / 1.3 var(--font);
+  font: 700 var(--t-panel-head) / 1.4 var(--font);
   letter-spacing: 0;
   color: var(--ink);
   min-width: 0;
@@ -6660,24 +6686,24 @@ a.card-art:hover .card-art__img {
   min-width: 0;
 }
 .kit-panel__body {
-  padding: 16px 18px;
+  padding: 14px 16px;
 }
 .kit-panel__head + .kit-panel__body,
 .kit-panel__head + .panel__body {
-  padding-top: 2px;
+  padding-top: 8px;
 }
 .kit-panel .panel__head {
-  padding: 14px 18px 10px;
+  padding: 12px 16px 4px;
 }
 .kit-panel .panel__body {
-  padding-right: 18px;
-  padding-left: 18px;
+  padding-right: 16px;
+  padding-left: 16px;
 }
 .kit-panel .panel__foot,
 .kit-panel .panel__note,
 .kit-panel .panel__actions {
-  padding-right: 18px;
-  padding-left: 18px;
+  padding-right: 16px;
+  padding-left: 16px;
   background: none;
 }
 .kit-panel .table th {
@@ -6685,11 +6711,11 @@ a.card-art:hover .card-art__img {
 }
 .kit-panel .table th:first-child,
 .kit-panel .table td:first-child {
-  padding-left: 18px;
+  padding-left: 16px;
 }
 .kit-panel .table th:last-child,
 .kit-panel .table td:last-child {
-  padding-right: 18px;
+  padding-right: 16px;
 }
 .kit-row {
   display: flex;
@@ -6698,7 +6724,7 @@ a.card-art:hover .card-art__img {
   gap: 12px;
   width: 100%;
   min-height: 46px;
-  padding: 11px 18px;
+  padding: 10px 16px;
   border: 0;
   background: none;
   color: var(--ink-body);
@@ -6712,6 +6738,10 @@ button.kit-row:hover {
 }
 button.kit-row {
   cursor: pointer;
+}
+.kit-row__lead {
+  display: inline-flex;
+  flex: none;
 }
 .kit-row__main {
   display: grid;
@@ -6833,11 +6863,14 @@ button.kit-row {
   min-width: 0;
 }
 .kit-stat__label {
-  font-size: 12.5px;
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ink-faint);
 }
 .kit-stat__value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.2;
   color: var(--ink);
@@ -7114,13 +7147,13 @@ button.kit-row {
   left: 0;
   z-index: 40;
   height: env(safe-area-inset-top);
-  background: var(--panel);
+  background: var(--ground-chrome);
   pointer-events: none;
 }
 .kit-top {
   position: relative;
   z-index: 30;
-  background: var(--panel);
+  background: var(--ground-chrome);
   padding-top: env(safe-area-inset-top);
 }
 .kit-top__row {
@@ -7128,18 +7161,23 @@ button.kit-row {
   align-items: center;
   gap: 16px;
   max-width: var(--page-max);
-  min-height: 56px;
+  min-height: 60px;
   margin-inline: auto;
   padding-inline: max(24px, env(safe-area-inset-left))
     max(24px, env(safe-area-inset-right));
 }
+/* The wordmark (canvas .brand): the display face in gold, dropped. */
 .kit-top__brand {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--ink);
-  font-weight: 600;
+  color: var(--gold);
+  font: 400 22px / 1 var(--font-display);
   text-decoration: none;
+  text-shadow: var(--shadow-brand);
+}
+.kit-top__brand:hover {
+  color: var(--gold-light);
 }
 .kit-top__nav,
 .kit-top__out {
@@ -7150,24 +7188,29 @@ button.kit-row {
    set off from the brand and standing the full height of the bar. Signed out,
    .kit-top__out stays plain site links, because that is what they are. */
 .kit-top__nav {
-  align-self: stretch;
-  margin-left: 13px;
+  gap: 2px;
+  margin-left: 10px;
 }
 .kit-top__nav a {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+  height: 40px;
   padding: 0 12px;
-  border-block: 2px solid transparent;
-  color: var(--ink-body);
+  border-radius: var(--r-control);
+  color: var(--ink-dim);
+  font-size: 14.5px;
   font-weight: 600;
   text-decoration: none;
 }
 .kit-top__nav a:hover {
+  background: var(--hover-rail);
   color: var(--ink);
 }
 .kit-top__nav a[aria-current="page"] {
-  border-bottom-color: var(--gold);
+  border-radius: 0;
+  background: none;
+  box-shadow: var(--mark-tab);
   color: var(--ink);
 }
 .kit-top__nav a[aria-current="page"] svg {
@@ -7185,16 +7228,18 @@ button.kit-row {
 }
 .kit-top__search {
   display: inline-flex;
-  flex: 0 1 320px;
+  flex: 0 1 340px;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  min-height: 38px;
   padding: 6px 12px;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--ink-dim);
-  font-size: 13px;
+  border-radius: var(--r-chip);
+  background: var(--ground-sunken);
+  color: var(--ink-faint);
+  font-size: 14px;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -7207,6 +7252,18 @@ button.kit-row {
   align-items: center;
   color: var(--ink-body);
   text-decoration: none;
+}
+/* The bar's icon buttons (canvas .iconbtn): 40px, a tint on hover. */
+.kit-top__icon {
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: var(--r-chip);
+  color: var(--ink-dim);
+}
+.kit-top__icon:hover {
+  background: var(--hover-rail);
+  color: var(--ink);
 }
 .kit-top__drop {
   display: inline-flex;
@@ -7231,13 +7288,19 @@ button.kit-row {
   width: 344px;
   max-width: calc(100vw - 32px);
 }
+/* You, on the bar (canvas .me): a pill on the panel's tone. */
 .kit-top__avatar {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 38px;
+  padding: 3px 12px 3px 3px;
   border: 0;
-  background: none;
+  border-radius: var(--r-pill);
+  background: var(--panel);
   color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
 }
 .kit-top__name {
@@ -7270,10 +7333,11 @@ button.kit-row {
   margin-top: 16px;
   min-width: 0;
 }
+/* The feed and a 320px side column (canvas .cols). */
 .kit-home__two {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
   align-items: start;
 }
 .kit-home__side {
@@ -7336,10 +7400,15 @@ button.kit-row {
 .kit-panel--clan {
   box-shadow: var(--edge-clan);
 }
+.kit-panel--clan > .kit-panel__head .kit-panel__title {
+  color: var(--gold);
+}
 /* A leader's decision keeps a dashed border, the one panel edge that
    carries meaning (game facts and clan decisions stay distinguishable). */
-.kit-panel--decision {
-  border: 1px dashed var(--line-strong);
+.kit-panel--decision,
+.kit-feed__item--decision {
+  border: 1px dashed var(--gold-dash);
+  box-shadow: none;
 }
 .kit-week__quiet {
   margin: 12px 0 0;
@@ -7374,23 +7443,25 @@ button.kit-row {
 /* Home's welcome steps (G4): one quiet panel above the feed, its steps flat
    rows inside it rather than boxes of their own. */
 .kit-welcome {
-  margin-bottom: 16px;
-  padding: 12px 14px 4px;
-  border-radius: 10px;
+  margin-bottom: 14px;
+  padding: 12px 0 4px;
+  border-radius: var(--r-panel);
   background: var(--panel);
 }
 .kit-welcome > h2 {
   margin: 0 0 4px;
+  padding: 0 16px;
   color: var(--ink);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--t-panel-head);
+  font-weight: 700;
 }
 .kit-welcome__count {
-  color: var(--ink-dim);
+  color: var(--ink-faint);
+  font-size: 12px;
   font-weight: 400;
 }
 .kit-welcome .kit-step {
-  padding: 8px 0;
+  padding: 14px 16px;
   border-radius: 0;
   background: none;
 }
@@ -7414,31 +7485,37 @@ button.kit-row {
   border-radius: 10px;
   background: var(--panel);
 }
+/* A step's number, filled violet; done, filled green (canvas .onb .n). */
 .kit-step__dot {
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--line);
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  color: var(--ink-dim);
+  background: var(--accent-deep);
+  color: var(--ink);
   font-size: 13px;
+  font-weight: 800;
 }
 .kit-step--done .kit-step__dot {
-  border-color: var(--ok);
-  color: var(--ok);
+  background: var(--ok);
+  color: var(--ok-on);
 }
 .kit-step__body {
   min-width: 0;
   flex: 1 1 auto;
 }
 .kit-step__body :is(h2, h3) {
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   color: var(--ink);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
+}
+.kit-step__body p {
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
 }
 .kit-step__opt {
   color: var(--ink-dim);
@@ -7479,11 +7556,22 @@ button.kit-row {
   margin: 6px 0 0;
   color: var(--bad);
 }
+/* A day's heading in the feed: a label (canvas .label). */
+.kit-day {
+  display: grid;
+  gap: 14px;
+}
+.kit-day > div {
+  display: grid;
+  gap: 14px;
+}
 .kit-day__head {
-  margin: 12px 0 6px;
-  color: var(--ink-dim);
-  font-size: 13px;
-  font-weight: 500;
+  margin: 4px 2px -4px;
+  color: var(--ink-faint);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
 }
 .kit-tl {
   padding-inline: 0;
@@ -7501,14 +7589,16 @@ button.kit-row {
   border-left: 2px solid var(--line);
   overflow-wrap: anywhere;
 }
-/* Home's one feed (slice 7, #765). Flat: an item is a rule and its words, no
-   box; a clan's line wears the gold edge. */
+/* Home's one feed (slice 7, #765; the canvas's Round 3, 2026-11-13). An item
+   is a card on the panel's tone, no border: who and when on top, its title,
+   its facts, then its cheers. A clan's item wears the gold edge and wash; a
+   leader's decision the dashed gold border. */
 .kit-home__main {
   min-width: 0;
 }
 .kit-feed {
   display: grid;
-  gap: 4px;
+  gap: 14px;
   min-width: 0;
 }
 /* While the first page reads: words, not an empty grey box (G1). */
@@ -7523,44 +7613,221 @@ button.kit-row {
   align-items: center;
   gap: 12px;
   padding: 12px 0;
-  border-top: 1px solid var(--line);
 }
 .kit-feed__item {
   display: grid;
-  gap: 4px;
-  padding: 10px 0;
-  border-top: 1px solid var(--line);
+  gap: 6px;
+  padding: 16px 18px 12px;
+  border-radius: var(--r-block);
+  background: var(--panel);
   overflow-wrap: anywhere;
 }
 .kit-feed__item--clan {
-  padding-left: 12px;
-  border-left: 3px solid var(--gold);
+  box-shadow: var(--edge-clan);
+  background:
+    linear-gradient(90deg, var(--gold-wash), transparent 40%), var(--panel);
+}
+/* The clan's band over its item (canvas .clanband). */
+.kit-feed__band {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 2px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .kit-feed__head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
+}
+.kit-feed__who {
+  display: grid;
+  flex: 1;
+  min-width: 0;
 }
 .kit-feed__name {
   color: var(--ink);
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+}
+a.kit-feed__name {
+  text-decoration: none;
+}
+a.kit-feed__name:hover {
+  color: var(--ink-link-hover);
 }
 .kit-feed__time {
-  color: var(--ink-dim);
-  font-size: 13px;
-  white-space: nowrap;
+  color: var(--ink-faint);
+  font-size: 12.5px;
 }
 .kit-feed__text {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.kit-feed__sub {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+/* A highlight's words: the player's own, on a gold rule (canvas .words). */
+.kit-feed__words {
+  margin: 2px 0 4px;
+  padding-left: 12px;
+  border-left: 3px solid var(--gold);
+  color: var(--ink-body);
+}
+/* A moment: its medal beside its title (canvas .medal). */
+.kit-feed__moment {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.kit-feed__moment .kit-feed__text {
   margin: 0;
 }
-.kit-feed__sitting {
+.kit-medal {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-block);
+  background: radial-gradient(
+    circle at 30% 25%,
+    var(--gold-light),
+    var(--gold) 55%,
+    var(--gold-edge)
+  );
+  color: var(--gold-on);
+}
+.kit-medal--violet {
+  background: radial-gradient(
+    circle at 30% 25%,
+    var(--ink-link-hover),
+    var(--accent) 60%,
+    var(--accent-deep)
+  );
+  color: var(--ink);
+}
+/* The battle under a moment (canvas .mbattle): a sunken line, one link. */
+.kit-mbattle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: var(--r-chip);
+  background: var(--ground-sunken);
+  color: var(--ink-body);
+  font-size: var(--t-body-sm);
+  text-decoration: none;
+}
+a.kit-mbattle:hover {
+  background: var(--hover-row);
+  color: var(--ink-body);
+}
+.kit-mbattle b {
+  color: var(--ink);
+}
+.kit-mbattle__res {
+  font-size: 14px;
+  font-weight: 800;
+}
+.kit-mbattle__res--won {
+  color: var(--win-ink);
+}
+.kit-mbattle__res--lost {
+  color: var(--loss-ink);
+}
+.kit-mbattle__go {
+  margin-left: auto;
+  color: var(--ink-link);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* An item's foot: cheers on the left, its one way in on the right. */
+.kit-feed__foot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 12px;
+  gap: 6px 10px;
+  margin-top: 4px;
 }
-/* A feed item's cheers (#765): the kit's chips, in a row that wraps. */
+.kit-feed__foot > .kit-cheers {
+  flex: 1 1 auto;
+}
+.kit-feed__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-left: auto;
+}
+.kit-feed__links .link {
+  font-size: var(--t-body-sm);
+  font-weight: 600;
+}
+/* A sitting (canvas .stile and .sfacts): its numbers, then its bars, then
+   the deck it played most. */
+.kit-feed__sitting {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+}
+.kit-sfacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.kit-sfacts > div {
+  display: flex;
+  flex-direction: column-reverse;
+}
+.kit-sfacts dt {
+  color: var(--ink-faint);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.kit-sfacts dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.kit-sfacts dd.kit-sfacts--won {
+  color: var(--win-ink);
+}
+.kit-sfacts dd.kit-sfacts--up {
+  color: var(--ok);
+}
+.kit-sfacts dd.kit-sfacts--down {
+  color: var(--bad);
+}
+.kit-decklabel {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 12.5px;
+}
+.kit-decklabel b {
+  color: var(--ink-dim);
+  font-weight: 600;
+}
+/* A feed item's cheers (#765; canvas .rxc): pills on the raised tone, yours
+   filled violet; Cheer, which opens the six, is a link. */
 .kit-cheers {
   display: grid;
   gap: 6px;
@@ -7572,6 +7839,27 @@ button.kit-row {
   gap: 6px;
   margin: 0;
 }
+.kit-cheers .kit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: 14px;
+}
+.kit-cheers .kit-cheers__add {
+  background: transparent;
+  color: var(--ink-link);
+}
+.kit-cheers .kit-cheers__add:hover {
+  background: var(--hover-row);
+  color: var(--ink-link-hover);
+}
+.kit-cheers__who {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+}
 /* People to follow and Find's people (2026-11-12): why on one line, the
    cost on the next, the Follow on the right. Flat: the rows' own rules. */
 .kit-people__row .kit-row__detail {
@@ -7579,11 +7867,33 @@ button.kit-row {
   gap: 2px;
 }
 .kit-people__cost {
-  font-size: 13px;
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.kit-people__cost--free {
+  color: var(--ok);
+}
+.kit-people__row .kit-row__title a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.kit-people__row .kit-row__title a:hover {
+  color: var(--ink-link-hover);
+}
+.kit-people__row .kit-row__detail {
+  color: var(--ink-faint);
+  font-size: var(--t-body-sm);
 }
 .kit-people__quiet,
 .kit-people__slots {
-  padding: 8px 16px;
+  display: grid;
+  gap: 6px;
+  padding: 8px 16px 14px;
+  margin: 0;
+}
+.kit-people__slots p {
   margin: 0;
 }
 /* A battle page's cheers: the items in your feed it proves. */
@@ -7598,25 +7908,63 @@ button.kit-row {
 .kit-battle-cheers__item .kit-feed__text {
   margin: 0;
 }
+/* A sitting's bars (canvas .spark): one a battle, up and green a win,
+   down and red a loss, the height its crown margin; a midline under all. */
 .kit-spark {
-  display: block;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  height: 56px;
   max-width: 100%;
 }
-.kit-spark__base {
-  stroke: var(--line);
-  stroke-width: 1;
+.kit-spark::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--line);
 }
-.kit-spark__win {
-  fill: var(--win);
+.kit-spark > i {
+  position: relative;
+  flex: 1;
+  max-width: 14px;
 }
-.kit-spark__loss {
-  fill: var(--loss);
+.kit-spark > i > b {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-radius: 2px;
 }
-.kit-spark__draw {
-  fill: var(--ink-dim);
+.kit-spark__win > b {
+  bottom: 50%;
+  background: var(--ok);
 }
-.kit-spark__unknown {
+.kit-spark__loss > b {
+  top: 50%;
+  background: var(--bad);
+  opacity: 0.85;
+}
+.kit-spark__draw > b {
+  top: calc(50% - 2px);
+  height: 4px;
+  background: var(--ink-faint);
+}
+.kit-spark__unknown > b {
   opacity: 0.45;
+}
+/* A margin of one, two or three crowns: a third, two thirds or all of half
+   the box (canvas: 16% of the whole a crown). */
+.kit-spark__m1 > b {
+  height: 16%;
+}
+.kit-spark__m2 > b {
+  height: 32%;
+}
+.kit-spark__m3 > b {
+  height: 48%;
 }
 /* The bell's dot: lit while something needs you. */
 .kit-bell__mark {
@@ -7631,6 +7979,20 @@ button.kit-row {
   height: 8px;
   border-radius: 999px;
   background: var(--gold);
+}
+/* With a count (canvas .dot): gold, its number in the gold's ink. */
+.kit-bell__dot--count {
+  top: -8px;
+  right: -9px;
+  width: auto;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  color: var(--gold-on);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
 }
 .kit-bottom .kit-bell__dot {
   top: 3px;
@@ -7675,12 +8037,89 @@ button.kit-row {
   margin: 8px 0;
   overflow-wrap: anywhere;
 }
+/* New since your last visit (canvas .newmark): gold words between rules. */
 .kit-newmark {
-  margin: 6px 0;
-  padding-top: 4px;
-  border-top: 1px solid var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: var(--gold);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.kit-newmark::before,
+.kit-newmark::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--gold-dash);
+}
+/* An avatar: initials on a fill chosen from the tag (canvas .av). */
+.kit-av {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--av-5);
+  color: var(--av-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+.kit-av--s {
+  width: 30px;
+  height: 30px;
+  font-size: 11.5px;
+}
+.kit-av--clan {
+  border: 2px solid var(--gold);
+  border-radius: 10px;
+  background: linear-gradient(160deg, var(--accent-deep), var(--panel));
+  color: var(--gold);
+}
+.kit-av--1 {
+  background: var(--av-1);
+}
+.kit-av--2 {
+  background: var(--av-2);
+}
+.kit-av--3 {
+  background: var(--av-3);
+}
+.kit-av--4 {
+  background: var(--av-4);
+}
+.kit-av--5 {
+  background: var(--av-5);
+}
+.kit-av--6 {
+  background: var(--av-6);
+}
+.kit-av--7 {
+  background: var(--av-7);
+}
+/* A meter (canvas .meter): a trough and an accent fill, for a share. */
+.kit-meter {
+  display: block;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--ground-sunken);
+  appearance: none;
+}
+.kit-meter::-webkit-progress-bar {
+  background: var(--ground-sunken);
+}
+.kit-meter::-webkit-progress-value {
+  background: var(--accent);
+}
+.kit-meter::-moz-progress-bar {
+  background: var(--accent);
 }
 .kit-follow {
   padding: 14px;
@@ -7831,9 +8270,23 @@ button.kit-row {
   .kit-home__two {
     grid-template-columns: minmax(0, 1fr);
   }
-  /* The phone's tab bar: a raised surface with a bright rule and a shadow,
-     so it reads as the app's menu at a glance, and the place you are in
-     wears a filled pill behind its icon, as a native tab bar does. */
+  .kit-top__row {
+    min-height: 54px;
+  }
+  .kit-feed__item {
+    padding: 14px 14px 12px;
+  }
+  .kit-spark {
+    height: 48px;
+  }
+  .kit-sfacts {
+    gap: 4px 16px;
+  }
+  .kit-sfacts dd {
+    font-size: 17px;
+  }
+  /* The phone's tab bar (canvas .tabs-b): the bar's own chrome, and the
+     place you are in in gold, icon and word. */
   .kit-bottom {
     position: fixed;
     right: 0;
@@ -7842,8 +8295,8 @@ button.kit-row {
     z-index: 25;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    background: var(--panel-raised);
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
+    background: var(--ground-chrome);
+    box-shadow: 0 -1px 0 var(--line-soft);
     padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom)
       env(safe-area-inset-left);
     -webkit-tap-highlight-color: transparent;
@@ -7881,11 +8334,7 @@ button.kit-row {
     background: var(--hover-rail);
   }
   .kit-bottom [aria-current="page"] {
-    color: var(--ink);
-  }
-  .kit-bottom [aria-current="page"] svg {
-    background: var(--accent-deep);
-    color: var(--ink);
+    color: var(--gold);
   }
   .kit-bottom a:focus-visible,
   .kit-bottom button:focus-visible {
@@ -9080,4 +9529,17 @@ button.kit-row {
 }
 .updates-pager__older {
   margin-left: auto;
+}
+
+/* Touch (2026-11-13): the canvas draws small controls at 28 to 34px; under a
+   finger every one of them is at least the 44px target, the look unchanged
+   on a mouse. */
+@media (pointer: coarse) {
+  .btn,
+  .btn--sm,
+  .btn--follow,
+  .kit-chip,
+  .kit-cheers .kit-chip {
+    min-height: var(--hit-touch);
+  }
 }

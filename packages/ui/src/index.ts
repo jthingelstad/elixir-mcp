@@ -56,6 +56,7 @@ export { Panel, Row, Rows } from "./Panel.tsx";
 export { Table, type TableColumn, type TableGroup } from "./Table.tsx";
 export { Empty, ErrorState } from "./Empty.tsx";
 export { Stat, Stats } from "./Stats.tsx";
+export { Avatar, avatarHue, avatarInitials } from "./Avatar.tsx";
 export { Icon, type IconName } from "./Icon.tsx";
 export {
   LogTable,

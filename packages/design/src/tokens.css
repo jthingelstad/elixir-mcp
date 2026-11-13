@@ -120,8 +120,8 @@
   --panel-raised: #241d3b; /* secondary buttons, tag pills */
   --panel-head: #171229; /* header strip inside a code panel */
   --panel-float: #1b1630; /* a card that floats: auth, the transcript */
-  --control: #352c55; /* a solid button or chip: filled, never outlined */
-  --control-hover: #433870;
+  --control: #3a2f5c; /* a solid button: filled, never outlined (canvas .btn) */
+  --control-hover: #463a6d;
 
   /* The page wash. One gradient, same on every surface. */
   --page-wash: none;
@@ -152,6 +152,15 @@
   --gold-light: #ffe99a;
   --gold-grad: linear-gradient(180deg, #ffe99a, #f5c84c);
   --gold-on: #2a1500; /* text on a gold surface */
+  --gold-edge: #9c7520; /* the gold button's pressed-in lip */
+  --gold-wash: rgba(
+    245,
+    200,
+    76,
+    0.07
+  ); /* a clan item's wash, under its edge */
+  --gold-dash: rgba(245, 200, 76, 0.55); /* a leader's decision: dashed */
+  --shadow-brand: 0 2px 0 #000; /* the wordmark's and display titles' drop */
 
   --accent: #8b5cf6; /* meter fills, charts, marks */
   --accent-bright: #b49af0; /* icons, accent ink, unread dot */
@@ -211,6 +220,17 @@
   --mark-tab: inset 0 -2px 0 var(--gold); /* current header tab */
   --edge-clan: inset 3px 0 0 var(--gold); /* the clan's gold edge, never a gold outline */
 
+  /* An avatar's initials sit on one of seven fills, chosen from the tag:
+     presentational only, never a meaning (canvas .av .h1 to .h7). */
+  --av-1: #2d6cdf;
+  --av-2: #0d7a68;
+  --av-3: #b4467a;
+  --av-4: #a35a12;
+  --av-5: #6b4bd1;
+  --av-6: #3f7d20;
+  --av-7: #8a3b3b;
+  --av-ink: #fff;
+
   --focus-glow: rgba(139, 92, 246, 0.28);
   --ring: 0 0 0 3px var(--focus-glow);
 
@@ -220,7 +240,7 @@
   --font-mono: ui-monospace, Menlo, Consolas, monospace;
 
   --t-h1-site: 36px; /* site + design-system h1 */
-  --t-h1-page: 28px; /* console page title */
+  --t-h1-page: 30px; /* a page's title, display face (canvas .pagehead) */
   --t-h2: 18px;
   --t-panel-head: 14px;
   --t-body: 15px;
