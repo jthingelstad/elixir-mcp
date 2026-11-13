@@ -58,14 +58,19 @@ export function copyDeckUrl(deck) {
 const nameOf = (p) => p?.name ?? p?.player_tag ?? "Unknown";
 const namesOf = (side) => side.players.map(nameOf).join(" and ") || "Unknown";
 
-/** Towers as tiles: the King, then the Princess Towers in the order the
- *  game reports them (never "left" and "right": position carries no
- *  lane). */
+/** Towers as tiles, laid out as the arena has them (Jamie, 2026-11-13):
+ *  a Princess Tower, the King Tower in the middle, the other Princess
+ *  Tower. The Princess Towers keep the order the game reports them, the
+ *  first on the left (never a lane: position carries none). A side whose
+ *  record lacks a value still draws all three slots, the missing one as
+ *  not recorded, so the King always sits in the middle. */
 function towersOf(hp) {
   if (!hp) return null;
+  const p = hp.princess ?? [];
   return [
+    { kind: "Princess", hp: p[0] ?? null },
     { kind: "King", hp: hp.king ?? null },
-    ...(hp.princess ?? []).map((v) => ({ kind: "Princess", hp: v ?? null })),
+    { kind: "Princess", hp: p[1] ?? null },
   ];
 }
 export const hpLeft = (hp) => {
@@ -694,7 +699,7 @@ function Towers({ hp }) {
       {tiles.map((t, i) => (
         <div
           key={`${t.kind}-${i}`}
-          className={`tower${t.hp === 0 ? " tower--down" : ""}`}
+          className={`tower${t.kind === "King" ? " tower--king" : ""}${t.hp === 0 ? " tower--down" : ""}`}
         >
           <span className="tower__kind">{t.kind} Tower</span>
           <span className="tower__hp">

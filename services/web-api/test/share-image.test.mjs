@@ -218,6 +218,65 @@ test("a duel: games won, its crowns, the last game's decks", () => {
   assert.ok(svg.includes(">No tower hitpoints recorded<"));
 });
 
+/** Each tower tile as drawn, in left-to-right order: its label, its x,
+ *  and the value under it (the next text at the same x). */
+function towerTiles(svg) {
+  const texts = [
+    ...svg.matchAll(/<text x="([\d.]+)" y="([\d.]+)"[^>]*>([^<]*)<\/text>/g),
+  ].map((m) => ({ x: Number(m[1]), y: Number(m[2]), t: m[3] }));
+  return texts
+    .filter((e) => /^(King|Princess) Tower$/.test(e.t))
+    .sort((a, b) => a.x - b.x)
+    .map((e) => ({
+      label: e.t,
+      x: e.x,
+      value: texts.find((v) => v.x === e.x && v.y === e.y + 27)?.t ?? null,
+    }));
+}
+
+test("towers stand as in the arena: Princess, King, Princess on both sides", () => {
+  const read = {
+    ...READ,
+    sides: [
+      { ...READ.sides[0], tower_hp: { king: 4000, princess: [2000, 0] } },
+      // The King's value missing (a duel game the King lost: the API
+      // leaves it out): its tile still sits in the middle, not recorded.
+      { ...READ.sides[1], tower_hp: { princess: [1500, 900] } },
+    ],
+  };
+  const tiles = towerTiles(draw(read));
+  assert.deepEqual(
+    tiles.map((t) => [t.label, t.value]),
+    [
+      ["Princess Tower", "2,000"],
+      ["King Tower", "4,000"],
+      ["Princess Tower", "Down"],
+      ["Princess Tower", "1,500"],
+      ["King Tower", "—"],
+      ["Princess Tower", "900"],
+    ],
+  );
+  // One Princess value recorded: the King keeps the middle slot and the
+  // missing Princess Tower reads as not recorded, never invented.
+  const one = towerTiles(
+    draw({
+      ...READ,
+      sides: [
+        { ...READ.sides[0], tower_hp: { king: 7000, princess: [300] } },
+        READ.sides[1],
+      ],
+    }),
+  ).slice(0, 3);
+  assert.deepEqual(
+    one.map((t) => [t.label, t.value]),
+    [
+      ["Princess Tower", "300"],
+      ["King Tower", "7,000"],
+      ["Princess Tower", "—"],
+    ],
+  );
+});
+
 test("a 2v2 names the winning side, never one of its players", () => {
   const read = {
     ...READ,
