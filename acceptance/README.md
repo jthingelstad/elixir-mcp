@@ -3,8 +3,9 @@
 The deployed product against the real record, read-only, as a release
 gate. `npm run acceptance` on demand; `node infra/scripts/deploy.mjs
 --acceptance` (or `ACCEPTANCE=1`) runs it after the smoke gate and fails
-the deploy on a red case. Opt-in per deploy: ~4.5 minutes and a pass of
-heavy reads on the shared database, so it is turned on when wanted - a
+the deploy on a red case. Opt-in per deploy, and at most once per deploy
+train: a paced pass of heavy reads on the shared database (about 45
+minutes for the whole suite), so it is turned on when wanted - a
 contract bump, a query change, a release - not on every deploy. A deploy
 without it prints one line saying so.
 
@@ -132,9 +133,14 @@ node acceptance/run.mjs --only budgets   # one suite or one case by substring
 node acceptance/run.mjs --json           # the report as JSON
 ```
 
-~215 cases, ~180 distinct calls (a read one case makes is reused by the
-next), four to five minutes, one call at a time so the budget rule's
-timings are honest.
+One call at a time, so the budget rule's timings are honest, and paced
+(2026-11-13): after each call that reaches the door the run rests twice
+that call's time, 250 ms to 10 s (`PACE` in `run.mjs`), so the database's
+EBS burst balance refills during the run. The whole suite takes about 45
+minutes, one family 15 to 25; a cached read never rests. `--no-pace` is
+for a local server, never production. From a deploy, acceptance is
+refused when the database's burst balance is under its floor
+(`infra/scripts/lib/db-headroom.mjs`, `docs/OPERATIONS.md`).
 
 ## Adding a case
 

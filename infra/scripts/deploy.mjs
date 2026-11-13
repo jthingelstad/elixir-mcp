@@ -62,6 +62,10 @@ import {
   waitUntilFunctionUpdatedV2,
 } from "@aws-sdk/client-lambda";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
+import {
+  CloudWatchClient,
+  GetMetricDataCommand,
+} from "@aws-sdk/client-cloudwatch";
 import { versionsIn } from "../../packages/contracts/scripts/changes-index.mjs";
 import { buildAll } from "./build.mjs";
 import {
@@ -75,6 +79,7 @@ import {
   parseDeployArgs,
 } from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
+import { headroomVerdict, readDbHeadroom } from "./lib/db-headroom.mjs";
 import {
   acquireLock,
   holdUntilExit,
@@ -202,6 +207,42 @@ const update = (d) => !d.isCreate;
 const web = (d) => !d.args.skipWeb;
 
 /**
+ * The acceptance preflight (lib/db-headroom.mjs): the database's EBS
+ * burst balances from CloudWatch, judged against the floor for the run
+ * asked for. A read that fails is a logged skip, never a refusal.
+ *
+ * @param {any} d the deploy's state
+ * @returns {Promise<ReturnType<typeof headroomVerdict>>}
+ */
+export async function acceptanceHeadroom(d) {
+  const read =
+    d.readDbHeadroom ??
+    (() =>
+      readDbHeadroom({
+        getMetricData: (input) =>
+          new CloudWatchClient({ region: REGION }).send(
+            new GetMetricDataCommand(input),
+          ),
+      }));
+  let headroom;
+  try {
+    headroom = await read();
+  } catch (error) {
+    headroom = {
+      error: `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`,
+    };
+  }
+  return headroomVerdict(headroom, {
+    family: d.args.acceptanceFamily,
+    override: d.args.skipHeadroomCheck,
+  });
+}
+
+/** Whether this deploy runs acceptance. */
+const wantsAcceptance = (d) =>
+  d.args.acceptance || process.env.ACCEPTANCE === "1";
+
+/**
  * The deploy, in order. Each phase runs when its `when` says (always
  * without one), against one state object `d` that the phases before it
  * filled in, and is timed for the deploy record. A phase ends the deploy
@@ -305,6 +346,18 @@ export const DEPLOY_PHASES = [
       d.cfn = new CloudFormationClient({ region: REGION });
       d.s3 = new S3Client({ region: REGION });
       d.lambda = new LambdaClient({ region: REGION });
+      // The acceptance preflight, before anything is built or sent: a
+      // deploy that asks for acceptance the database cannot afford ships
+      // nothing (2026-11-13). The acceptance phase reads it again.
+      if (wantsAcceptance(d)) {
+        const verdict = await acceptanceHeadroom(d);
+        for (const line of verdict.lines) console.log(line);
+        if (!verdict.ok)
+          throw new DeployExit(
+            2,
+            "deploy: acceptance refused before anything shipped; nothing was deployed.",
+          );
+      }
       const versioning = await d.s3.send(
         new GetBucketVersioningCommand({ Bucket: d.codeBucket }),
       );
@@ -897,19 +950,35 @@ export const DEPLOY_PHASES = [
     // warns. --acceptance=<family> runs only that family's cases
     // (2026-09-23: a full pass on every deploy of a sweep drained the
     // database's EBS byte balance). Plain --acceptance is the whole
-    // suite, for releases that touch shared code.
+    // suite, for releases that touch shared code. 2026-11-13: about ten
+    // runs in one evening drained it again and the database dropped
+    // connections, so the run is paced (acceptance/run.mjs PACE) and
+    // refused under the headroom floor (lib/db-headroom.mjs), read in
+    // the account phase and again here; at most one run per train.
     name: "acceptance",
     async run(d) {
-      const acceptanceEnv = path.join(repoRoot, "acceptance/.env");
+      const acceptanceEnv =
+        d.acceptanceEnvPath ?? path.join(repoRoot, "acceptance/.env");
       const acceptanceFamily = d.args.acceptanceFamily;
-      const wantAcceptance =
-        d.args.acceptance || process.env.ACCEPTANCE === "1";
       d.acceptanceResult = "not run";
-      if (!wantAcceptance) {
+      // The second read: the deploy itself took minutes, and a run that
+      // started near the floor would finish below it.
+      const verdict =
+        wantsAcceptance(d) && existsSync(acceptanceEnv)
+          ? await acceptanceHeadroom(d)
+          : null;
+      if (!wantsAcceptance(d)) {
         console.log(
           "WARNING: acceptance NOT run. Pass --acceptance=<family> when a tool in that family changed, --acceptance for shared code or a release (or ACCEPTANCE=1); npm run acceptance any time.",
         );
-      } else if (existsSync(acceptanceEnv)) {
+      } else if (verdict && !verdict.ok) {
+        for (const line of verdict.lines) console.log(line);
+        d.acceptanceResult = `refused (${verdict.summary})`;
+        // The record still runs; the deploy exits 1 at the end, since
+        // what it shipped is live and unverified.
+        d.exitCode = 1;
+      } else if (verdict) {
+        for (const line of verdict.lines) console.log(line);
         const acceptance = spawnSync(
           process.execPath,
           [
@@ -1118,6 +1187,12 @@ export async function deploy(
     );
     console.log(`connect URL: https://elixir.poapkings.com/mcp`);
     console.log(`alarm topic: ${d.outputs.AlarmTopicArn}`);
+  }
+  if (d.exitCode) {
+    console.error(
+      `deploy: live, but acceptance ${d.acceptanceResult}; run it once the database has room.`,
+    );
+    return d.exitCode;
   }
   return 0;
 }
