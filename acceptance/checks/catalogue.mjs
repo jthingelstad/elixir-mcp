@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import { validateArgs } from "../../packages/tools/src/validate.mjs";
 import { loadCatalogue } from "../catalogue.mjs";
 import { compareShape } from "../shapes.mjs";
+import { resolveArgs } from "../subjects.mjs";
 import {
   answered,
   ok,
@@ -136,7 +137,14 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
       cases.push({
         id: `${tool}#${i}`,
         run: async (ctx) => {
-          const r = await ctx.read(tool, set.args);
+          // A placeholder (`$CLANMATE_1`, subjects.mjs) is a recorded
+          // player the repo may not name: resolved from the roster this
+          // run, or the case skips with the reason. Messages keep the
+          // placeholder, never the tag it stood for.
+          const resolved = await resolveArgs(ctx, set.args);
+          if (resolved.skip) return { skip: resolved.skip };
+          const args = resolved.args;
+          const r = await ctx.read(tool, args);
           const body = answered(r, `${tool} ${JSON.stringify(set.args)}`);
           if (!bodies.has(tool)) bodies.set(tool, []);
           bodies.get(tool).push({ args: set.args, body, raw: r.raw });
@@ -168,8 +176,8 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
             // Both sizes are read: the compact one is a subset and not
             // larger, and the full one's keys are what the compact one's
             // notes may name.
-            const compactArgs = { ...set.args, verbosity: "compact" };
-            const fullArgs = { ...set.args, verbosity: "full" };
+            const compactArgs = { ...args, verbosity: "compact" };
+            const fullArgs = { ...args, verbosity: "full" };
             const c = await ctx.read(tool, compactArgs);
             const f = await ctx.read(tool, fullArgs);
             const cb = answered(c, `${tool} compact`);
@@ -178,7 +186,11 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
             // is the documented answer, and there is nothing to compare.
             if (pricedRefusal(f)) return { ms: r.ms };
             const fb = answered(f, `${tool} full`);
-            bodies.get(tool).push({ args: fullArgs, body: fb, raw: f.raw });
+            bodies.get(tool).push({
+              args: { ...set.args, verbosity: "full" },
+              body: fb,
+              raw: f.raw,
+            });
             // An empty answer is the same both ways but for the echo. A
             // page cut by size is the exception: compact drops what full
             // spends its budget on, so the same budget holds MORE of the

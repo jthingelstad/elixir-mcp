@@ -40,6 +40,7 @@ import { catalogue } from "./checks/catalogue.mjs";
 import { ground } from "./checks/ground.mjs";
 import { loadCatalogue } from "./catalogue.mjs";
 import { writeShape, loadShape } from "./shapes.mjs";
+import { redact, reportSubjects, substitute } from "./subjects.mjs";
 
 export const SUITES = {
   contracts,
@@ -107,6 +108,10 @@ export async function runSuite(
       skip = out?.skip ?? null;
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
+      // A resolved player's tag (subjects.mjs) never reaches the report:
+      // a failure that echoes one shows the placeholder instead.
+      if (ctx.subjects?.resolved?.size)
+        error = redact(error, ctx.subjects.resolved);
     }
     const wall = Math.round(performance.now() - started);
     // A known failure (known.json: a reason and an expiry, filed for a
@@ -233,8 +238,9 @@ if (isMain) {
       const sets = entry.sets
         .map((set) => ({
           args: set.args,
-          body: report.ctx.cache.get(`${tool}:${JSON.stringify(set.args)}`)
-            ?.body,
+          body: report.ctx.cache.get(
+            `${tool}:${JSON.stringify(substitute(set.args, report.ctx.subjects?.resolved ?? new Map()))}`,
+          )?.body,
         }))
         .filter((set) => set.body && !set.body.error);
       if (sets.length)
@@ -249,8 +255,14 @@ if (isMain) {
     .filter((c) => c.ok && c.ms)
     .sort((a, b) => b.ms - a.ms)
     .slice(0, 5);
+  // Masked here; in full only in acceptance/subjects.log (ignored by git).
+  const subjects = reportSubjects(report.ctx);
   if (json) console.log(JSON.stringify(report, null, 2));
   else {
+    if (subjects.length)
+      console.log(
+        `\nsubjects (masked; full tags in acceptance/subjects.log): ${subjects.join(", ")}`,
+      );
     console.log(
       `\n${report.cases.length} cases, ${report.failures} failed${report.skipped ? `, ${report.skipped} skipped` : ""}, ${report.calls} distinct calls`,
     );
