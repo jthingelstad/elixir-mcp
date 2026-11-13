@@ -12,3 +12,5 @@ Everyone is ticked. Untick anyone you'd rather not follow, then tap
 People to follow and Find's From your battles now put friendly battles
 and 2v2 teammates first too. And when someone new follows you, the bell
 has **Follow back**.
+
+MCP and JSON API unchanged.
