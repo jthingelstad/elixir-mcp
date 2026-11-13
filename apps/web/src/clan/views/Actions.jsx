@@ -1,4 +1,12 @@
-import { Icon, ago, TagText, useFlash, Panel, Empty } from "@elixir-mcp/ui";
+import {
+  Icon,
+  ago,
+  TagText,
+  useFlash,
+  Panel,
+  Empty,
+  Link,
+} from "@elixir-mcp/ui";
 import { keys, useAction, useInvalidate } from "../lib/queries.js";
 import { ActionCard, STATUS, TypeIcon } from "../components/ActionCard.jsx";
 import { TooFew } from "../components/TooFew.jsx";
@@ -111,17 +119,13 @@ function ActionRow({ action, clan, navigate }) {
   const href = actionPath(clan, n);
   return (
     <li data-action={action.card_id}>
-      <a
+      <Link
+        to={href}
+        navigate={navigate}
         className={`${cls} text-ink no-underline hover:bg-panel-raised`}
-        href={href}
-        onClick={(e) => {
-          if (!navigate || e.metaKey || e.ctrlKey || e.shiftKey) return;
-          e.preventDefault();
-          navigate(href);
-        }}
       >
         {line}
-      </a>
+      </Link>
     </li>
   );
 }
@@ -160,12 +164,6 @@ export function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
  */
 export function DiscordNudge({ discord, to, navigate }) {
   if (!discord || (discord.set && !discord.refused)) return null;
-  const go = (e) => {
-    if (!navigate) return;
-    e.preventDefault();
-    trackEvent("clan.discord_nudge");
-    navigate(to);
-  };
   return (
     <div
       className={`callout ${discord.set ? "callout--warn" : "callout--info"} mb-4`}
@@ -175,9 +173,13 @@ export function DiscordNudge({ discord, to, navigate }) {
         {discord.set
           ? "Discord stopped accepting the clan’s webhook, so Actions are not being posted there. "
           : "Post Actions to your leaders’ Discord channel: each new one appears there, and is marked when someone completes it. "}
-        <a href={to} onClick={go}>
+        <Link
+          to={to}
+          navigate={navigate}
+          onClick={() => trackEvent("clan.discord_nudge")}
+        >
           {discord.set ? "Connect it again in Run" : "Set it up in Run"}
-        </a>
+        </Link>
       </span>
     </div>
   );
@@ -231,17 +233,9 @@ export function ActionDetail({ clan, who, number, navigate }) {
   const a = state.data?.action;
   const head = (
     <>
-      <a
-        className="mb-2 inline-block"
-        href={list}
-        onClick={(e) => {
-          if (!navigate) return;
-          e.preventDefault();
-          navigate(list);
-        }}
-      >
+      <Link to={list} navigate={navigate} className="mb-2 inline-block">
         ‹ Feed
-      </a>
+      </Link>
       <PageHead
         title={
           a

@@ -50,8 +50,11 @@ let db;
 before(async () => {
   const admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
-  await admin.query(`create database ${name}`);
-  await admin.end();
+  try {
+    await admin.query(`create database ${name}`);
+  } finally {
+    await admin.end();
+  }
   db = new pg.Client({ connectionString: url });
   await db.connect();
   await db.query(
@@ -78,8 +81,11 @@ after(async () => {
   await db?.end();
   const admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
-  await admin.query(`drop database if exists ${name} with (force)`);
-  await admin.end();
+  try {
+    await admin.query(`drop database if exists ${name} with (force)`);
+  } finally {
+    await admin.end();
+  }
 });
 async function snapshot() {
   return (

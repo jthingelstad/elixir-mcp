@@ -17,19 +17,22 @@ before(async () => {
   await createScratch(SCRATCH);
   const db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
-  const {
-    rows: [a],
-  } = await db.query(
-    `insert into account (email_hash, status, role, kind)
-     values ('profile-test', 'approved', 'owner', 'person')
-     returning account_id`,
-  );
-  await db.query(
-    `insert into service_token (account_id, name, token_hash, scope)
-     values ($1, 'profiler', repeat('a', 64), 'cr:read')`,
-    [a.account_id],
-  );
-  await db.end();
+  try {
+    const {
+      rows: [a],
+    } = await db.query(
+      `insert into account (email_hash, status, role, kind)
+       values ('profile-test', 'approved', 'owner', 'person')
+       returning account_id`,
+    );
+    await db.query(
+      `insert into service_token (account_id, name, token_hash, scope)
+       values ($1, 'profiler', repeat('a', 64), 'cr:read')`,
+      [a.account_id],
+    );
+  } finally {
+    await db.end();
+  }
 });
 
 after(async () => {

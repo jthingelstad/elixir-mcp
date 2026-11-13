@@ -274,8 +274,12 @@ test("settlement charges every abandoned lease to its gateway exactly once, whic
   // another collector): the three expiries are attributed once in total.
   const db2 = new pg.Client({ connectionString: DB_URL });
   await db2.connect();
-  const [s1, s2] = await Promise.all([settleLeases(db), settleLeases(db2)]);
-  await db2.end();
+  let s1, s2;
+  try {
+    [s1, s2] = await Promise.all([settleLeases(db), settleLeases(db2)]);
+  } finally {
+    await db2.end();
+  }
   assert.equal(s1.missed + s2.missed, 3, "three abandonments, counted once");
   assert.equal((await streak()) - before, 3, "streak charged exactly once");
 });

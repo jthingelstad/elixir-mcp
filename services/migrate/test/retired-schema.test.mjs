@@ -46,8 +46,11 @@ async function oldDatabase(suffix) {
   const name = `elixir_mcp_test_contract_${suffix}_${process.pid}`;
   const admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
-  await admin.query(`create database ${name}`);
-  await admin.end();
+  try {
+    await admin.query(`create database ${name}`);
+  } finally {
+    await admin.end();
+  }
   const url = adminUrl.replace(/\/postgres$/, `/${name}`);
   const dir = await mkdtemp(path.join(os.tmpdir(), "elixir-pre-contract-"));
   try {
@@ -70,8 +73,11 @@ async function oldDatabase(suffix) {
       await db.end();
       const a = new pg.Client({ connectionString: adminUrl });
       await a.connect();
-      await a.query(`drop database ${name} with (force)`);
-      await a.end();
+      try {
+        await a.query(`drop database ${name} with (force)`);
+      } finally {
+        await a.end();
+      }
     },
   };
 }

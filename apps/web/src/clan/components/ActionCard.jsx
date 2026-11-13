@@ -1503,18 +1503,13 @@ function BoundActionCard({
             ) : null}
             {open && delivery.draft ? (
               <>
-                <a
+                <Link
+                  to={`${clanPath(clan.clan_tag)}/feed`}
+                  navigate={navigate}
                   className="btn w-fit"
-                  href={`${clanPath(clan.clan_tag)}/feed`}
-                  onClick={(e) => {
-                    if (!navigate || e.metaKey || e.ctrlKey || e.shiftKey)
-                      return;
-                    e.preventDefault();
-                    navigate(`${clanPath(clan.clan_tag)}/feed`);
-                  }}
                 >
                   Review later · leave open
-                </a>
+                </Link>
                 {grouped && ev.messages.length > 1 ? (
                   <p className="page-head__note m-0">
                     Each part has its own delivery choice. For a Leader Message,
@@ -1640,16 +1635,13 @@ function BoundActionCard({
             </>
           ) : action.type === "away" ? (
             <>
-              <a
+              <Link
+                to={`${clanPath(clan.clan_tag)}/members/away`}
+                navigate={navigate}
                 className="btn btn--primary"
-                href={`${clanPath(clan.clan_tag)}/members/away`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate?.(`${clanPath(clan.clan_tag)}/members/away`);
-                }}
               >
                 Mark me away
-              </a>
+              </Link>
               <button
                 type="button"
                 className="btn"

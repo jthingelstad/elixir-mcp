@@ -1,5 +1,5 @@
 import { CATEGORY_LABELS } from "@elixir-mcp/clan-engine";
-import { Panel, Table, Tag, TagText, useClock } from "@elixir-mcp/ui";
+import { Panel, Table, Tag, TagText, useClock, Link } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { MemberLink } from "../components/MemberLink.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
@@ -727,15 +727,9 @@ export function Season({ clan, period, navigate }) {
         <span>
           <b>{title}.</b> {body}{" "}
           {to ? (
-            <a
-              href={to}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate?.(to);
-              }}
-            >
+            <Link to={to} navigate={navigate}>
               {label}
-            </a>
+            </Link>
           ) : null}
         </span>
       </div>
