@@ -6,6 +6,7 @@ import { RenderPlugin } from "@11ty/eleventy";
 import { JSDOM } from "jsdom";
 import configure from "../eleventy.config.mjs";
 import stats from "../src/_data/stats.js";
+import { fetchPublicJson } from "../src/_lib/fetch-public.mjs";
 
 test("the published chart excludes removed counts and distinguishes the window from the whole record", async () => {
   const render = await RenderPlugin.File(
@@ -147,6 +148,74 @@ test("stats loader timestamps the fetched snapshot and preserves the current ret
     assert.equal(snapshot.totals.battles, 2);
     assert.ok(Date.parse(snapshot.fetched_at) >= start);
     assert.ok(Date.parse(snapshot.fetched_at) <= Date.now());
+  } finally {
+    if (skip === undefined) delete process.env.ELIXIR_SKIP_STATS;
+    else process.env.ELIXIR_SKIP_STATS = skip;
+  }
+});
+
+test("a public read retries a 503 with backoff, then answers", async (t) => {
+  const answers = [
+    { ok: false, status: 503 },
+    { ok: false, status: 502 },
+    { ok: true, status: 200, json: async () => ({ totals: { battles: 3 } }) },
+  ];
+  const fetchMock = t.mock.method(globalThis, "fetch", async () =>
+    answers.shift(),
+  );
+  t.mock.method(console, "warn", () => {});
+  const waits = [];
+  const body = await fetchPublicJson("https://example.test/stats", {
+    label: "stats",
+    wait: async (ms) => {
+      waits.push(ms);
+    },
+  });
+  assert.equal(body.totals.battles, 3);
+  assert.equal(fetchMock.mock.callCount(), 3);
+  assert.deepEqual(waits, [2000, 4000]);
+});
+
+test("a public read that keeps failing fails the build", async (t) => {
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => {
+    throw new TypeError("fetch failed");
+  });
+  t.mock.method(console, "warn", () => {});
+  await assert.rejects(
+    fetchPublicJson("https://example.test/stats", {
+      label: "stats",
+      attempts: 3,
+      wait: async () => {},
+    }),
+    /stats could not be read .*fetch failed.*failing the build/,
+  );
+  assert.equal(fetchMock.mock.callCount(), 3);
+});
+
+test("a public read does not retry a 404", async (t) => {
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => ({
+    ok: false,
+    status: 404,
+  }));
+  await assert.rejects(
+    fetchPublicJson("https://example.test/stats", {
+      label: "stats",
+      wait: async () => {},
+    }),
+    /endpoint 404/,
+  );
+  assert.equal(fetchMock.mock.callCount(), 1);
+});
+
+test("stats with no totals fail the build instead of baking a blank", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => ({
+    ok: true,
+    json: async () => ({ series: null }),
+  }));
+  const skip = process.env.ELIXIR_SKIP_STATS;
+  delete process.env.ELIXIR_SKIP_STATS;
+  try {
+    await assert.rejects(stats(), /carried no totals/);
   } finally {
     if (skip === undefined) delete process.env.ELIXIR_SKIP_STATS;
     else process.env.ELIXIR_SKIP_STATS = skip;
