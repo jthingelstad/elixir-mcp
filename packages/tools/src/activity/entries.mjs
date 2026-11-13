@@ -1153,7 +1153,10 @@ function sessionFacts({
 /* ------------------------------------------------------------------ */
 
 /** A player's last profile at or before an instant: `tagSql` names the
- *  player (`$1`, or a batch's lateral column). */
+ *  player (`$1`, or a batch's lateral column). One probe of
+ *  player_snapshot_daily_profile_time (0262); without it the read took
+ *  every day row of the player from the heap and sorted them
+ *  (cold-read-plan.test.mjs). */
 const snapshotSql = (tagSql, atMs) =>
   `select profile_observed_at as observed_at, trophies, best_trophies, arena_id,
           collection_level, wins, battle_count,

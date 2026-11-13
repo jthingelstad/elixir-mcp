@@ -201,31 +201,43 @@ export async function captureByPlayer(
   { fromMs = Date.now() - 7 * 86_400_000, toMs = Date.now() } = {},
 ) {
   if (!playerTags.length || toMs <= fromMs) return new Map();
+  // One key range of player_snapshot_daily_week_cover (0261) per distinct
+  // member, inside a lateral the planner cannot flatten, never
+  // `player_tag = any(...)` over a bitmap of the day rows and their heap
+  // (#649; 2026-11-13: a member's days sit one to a heap page, about 700
+  // pages from disk for a clan's two weeks). The captured count is a
+  // lateral too, so each interval is counted once: as a scalar subquery
+  // it ran twice, in the filter and in the sum. Rows and sums are the
+  // flat statement's (cold-read-plan.test.mjs).
   const { rows } = await db.query(
-    `with snapshots as (
-       select player_tag, profile_observed_at as observed_to,
-              lag(profile_observed_at) over w as observed_from,
-              battle_count - lag(battle_count) over w as expected_battles
-         from player_snapshot_daily
-        where player_tag = any($1::text[]) and snapshot_kind = 'daily'
-          and profile_observed_at is not null
-          and snapshot_date > ($2::timestamptz - interval '2 days')::date
-          and snapshot_date <= ($3::timestamptz + interval '1 day')::date
-       window w as (partition by player_tag order by snapshot_date)
-     ), intervals as (
-       select s.player_tag, s.expected_battles,
-              (select count(*)::int from battle_participant bp
-                where bp.player_tag = s.player_tag
-                  and bp.battle_time > s.observed_from
-                  and bp.battle_time <= s.observed_to) as captured_battles
-         from snapshots s
+    `with intervals as (
+       select t.player_tag, s.observed_from, s.observed_to, s.expected_battles
+         from (select distinct unnest($1::text[]) as player_tag) t
+         cross join lateral (
+           select d.profile_observed_at as observed_to,
+                  lag(d.profile_observed_at) over w as observed_from,
+                  d.battle_count - lag(d.battle_count) over w as expected_battles
+             from player_snapshot_daily d
+            where d.player_tag = t.player_tag and d.snapshot_kind = 'daily'
+              and d.profile_observed_at is not null
+              and d.snapshot_date > ($2::timestamptz - interval '2 days')::date
+              and d.snapshot_date <= ($3::timestamptz + interval '1 day')::date
+           window w as (order by d.snapshot_date)) s
         where s.observed_from is not null and s.observed_to > s.observed_from
           and s.observed_to > $2::timestamptz and s.observed_to <= $3::timestamptz
           and s.expected_battles is not null and s.expected_battles >= 0
+     ), counted as (
+       select i.player_tag, i.expected_battles, c.captured_battles
+         from intervals i
+         cross join lateral (
+           select count(*)::int as captured_battles from battle_participant bp
+            where bp.player_tag = i.player_tag
+              and bp.battle_time > i.observed_from
+              and bp.battle_time <= i.observed_to) c
      )
      select player_tag, sum(expected_battles)::int as expected,
             sum(captured_battles)::int as captured
-       from intervals
+       from counted
       where captured_battles <= expected_battles
       group by player_tag`,
     [playerTags, new Date(fromMs).toISOString(), new Date(toMs).toISOString()],

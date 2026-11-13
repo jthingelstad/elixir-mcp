@@ -245,10 +245,11 @@ test("weekly donations read each member's key range, never the whole table, with
     await db.query(`create temporary table player_snapshot_daily (
         player_tag text not null, snapshot_date date not null,
         snapshot_kind text not null, donations int, clan_tag text,
-        padding text, primary key (player_tag, snapshot_date, snapshot_kind));
-      create index player_snapshot_daily_donations_cover
+        padding text, profile_observed_at timestamptz, battle_count int,
+        primary key (player_tag, snapshot_date, snapshot_kind));
+      create index player_snapshot_daily_week_cover
         on player_snapshot_daily (player_tag, snapshot_date)
-        include (snapshot_kind, donations, clan_tag);
+        include (snapshot_kind, donations, clan_tag, profile_observed_at, battle_count);
       insert into player_snapshot_daily
         select 'p-' || p, '2026-11-09'::date - d, 'daily',
                case when (p + d) % 11 = 0 then null else (p * 7 + d * 13) % 500 end,
@@ -306,11 +307,11 @@ test("weekly donations read each member's key range, never the whole table, with
       );
       assert.equal(reads.length, 1, name);
       assert.equal(reads[0]["Actual Loops"], new Set(q.values[0]).size, name);
-      // On 0250's cover, never the wide heap (#649).
+      // On 0261's cover (0250's, widened), never the wide heap (#649).
       assert.equal(reads[0]["Node Type"], "Index Only Scan", name);
       assert.equal(
         reads[0]["Index Name"],
-        "player_snapshot_daily_donations_cover",
+        "player_snapshot_daily_week_cover",
         name,
       );
       assert.equal(reads[0]["Heap Fetches"], 0, name);
