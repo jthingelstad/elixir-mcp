@@ -40,7 +40,7 @@ maintainer's. [Jamie, 2026-09-23]
 1. **Orientation first.** A person opening Elixir understands it is a
    recorder and sees a clear next step: add your player, follow a
    friend, bring your clan, connect an agent. [Jamie, 2026-10-03]
-2. **Tracked means recorded, and Tracking shows it.** Add a tag and
+2. **Followed means recorded, and Players & following shows it.** Add a tag and
    watch the first capture land; a wrong tag is said within seconds with
    the fix in place; the primary's clan is followed for you; slots are
    the only gate. [Jamie, 2026-09-05, 2026-10-08]

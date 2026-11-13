@@ -24,7 +24,7 @@ of scope." [Jamie, 2026-09-23, 2026-10-02]
 
 ## Who it serves
 
-- **The person who tracks.** Tracked means recorded: adding a player or
+- **The person who follows.** Followed means recorded: adding a player or
   a clan is the request, capture starts at the next tick, and there is
   no approval queue. [Jamie, 2026-09-05]
 - **Everyone who wants the same subject.** One recording per subject,
@@ -61,18 +61,18 @@ of scope." [Jamie, 2026-09-23, 2026-10-02]
    belongs to a vertical running under a human's policy (Clan) or to a
    person's own agent, and is always labelled as theirs. [Jamie,
    2026-09-19, 2026-09-20, 2026-10-02, 2026-10-11]
-5. **History is kept for what someone tracks, and for a while after.**
-   A roster poll of a clan nobody tracks keeps only the tracked players
-   on it; a retained battle keeps every participant so a later-tracked
+5. **History is kept for what someone follows, and for a while after.**
+   A roster poll of a clan nobody follows keeps only the followed players
+   on it; a retained battle keeps every participant so a later-followed
    opponent's history is consistent; battle-stub identities are never
    the recorded population. [Jamie, 2026-09-23, 2026-10-06, 2026-10-07]
-   A subject nobody tracks any more is trimmed one year after its last
-   tracker leaves, and a later track starts fresh: the subject's own
+   A subject nobody follows any more is trimmed one year after its last
+   follower leaves, and a later follow starts fresh: the subject's own
    series go (profile days, roster rows, its battle log), and any battle
-   with a still-tracked participant stays with every participant's
-   rollup, because it is their record too. [Jamie, 2026-10-12] Only people's tracking
+   with a still-followed participant stays with every participant's
+   rollup, because it is their record too. [Jamie, 2026-10-12] Only people's following
    records: the maintainer's own "ops" reason is retired, and Jamie
-   tracks what he wants from his account like anyone. [Jamie, 2026-10-12]
+   follows what he wants from his account like anyone. [Jamie, 2026-10-12]
 6. **The record is the trigger.** Timeline moments, mail and Discord
    posts are derived from admitted observations, with the battle that
    caused them named. Replays and backfills write rows, never moments.
@@ -94,7 +94,7 @@ judgment from elixir-bot. [Jamie, 2026-09-15, 2026-09-19, 2026-10-02]
 
 Account removal deletes the account: claims, nicknames, agents,
 connections, mail and usage. The players' game history is public game
-data and stays, as any subject's does, until the untracked trim reaches
+data and stays, as any subject's does, until the unfollowed trim reaches
 it. [Jamie, 2026-10-12]
 
 ## Open

@@ -25,7 +25,7 @@ that same person. [Jamie, 2026-09-03; your-account]
   sponsorship. [Jamie, 2026-09-19, 2026-10-06, 2026-11-11]
 - **The person's agents and apps.** Three kinds of principal: users,
   agents and integrations. An agent is the person's own, capped at its
-  owner's tier, tracking in the person's pooled slots, never deleted
+  owner's tier, following in the person's pooled slots, never deleted
   (suspended or revoked). [Jamie, 2026-09-08, 2026-09-23, 2026-10-10]
 - **The family's apps.** Sign in with Elixir carries the person to Drop
   and to a clan's tooling; the address goes only to a family app the
@@ -49,7 +49,7 @@ that same person. [Jamie, 2026-09-03; your-account]
    you get; every account reads the whole record. [Jamie, 2026-09-05,
    2026-09-08] Each tier has an obvious unlock tied to game activity:
    **Member** is signup; **Leader** comes with being a verified leader
-   or co-leader of a clan you track; **Family** comes with running a
+   or co-leader of a clan you follow; **Family** comes with running a
    collector for Elixir. **Partner**, full access to Elixir's API
    surface, stays granted by Jamie for now, and "may not even be a
    thing": if it confuses the page, it is removed and the ladder is
@@ -80,7 +80,7 @@ client-side Tinylytics only; the servers send it nothing. [Jamie,
 ## When a person leaves
 
 Removal is by request. The account and everything that is the
-account's goes; the players' game history stays, as any untracked
+account's goes; the players' game history stays, as any unfollowed
 subject's does. [Jamie, 2026-10-12; see the record]
 
 ## Open
