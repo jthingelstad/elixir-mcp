@@ -20,4 +20,14 @@ its cause rather than rerun past.
   file's `before` (createScratch waiting for one of the run's scratch database slots), which node:test
   charges to a file's first test; the cancel itself is checked by
   SQLSTATE, not time.
-- **Account journeys (#963).** See the pull request that closes it.
+- **Account journeys (#963).** Each page fires up to nine reads at once
+  at the test pool's two connections. On a loaded host the pool's 2.5 s
+  connect bound answered the tail of that queue 503; the client retried
+  once and then showed an error that no wait could find, and every step
+  raced a clock (findBy, a 20 s test, a 60 s setup). Slowing every query
+  by 120 ms reproduced it (a 503 and a 21 s journey). The journeys' pool
+  now has no connect bound (`makeDatabase`'s `connectionTimeoutMillis`,
+  the doors' 2.5 s everywhere else), every wait is for its condition,
+  and any 5xx or failed section ends the test at once, naming it. The
+  timeouts left are hang guards; the file passes with every query
+  slowed by 150 ms.
