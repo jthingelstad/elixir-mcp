@@ -315,9 +315,8 @@ for (const size of ["wide", "@narrow"])
       await expect(page.getByRole("region", { name: "Scout" })).toHaveCount(
         role === "elder" ? 1 : 0,
       );
-      // Review moved into Run, which stays the leaders'.
-      await page.goto(`${base}/members/review`);
-      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/run\/review$/);
+      // Review is in Run, which stays the leaders'.
+      await page.goto(`${base}/run/review`);
       await expect(page.getByRole("alert")).toContainText(
         "Run is for the clan’s leader and co-leaders",
       );
@@ -333,8 +332,7 @@ for (const size of ["wide", "@narrow"])
       await page.getByRole("link", { name: "Open Policy" }).click();
       await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/policy$/);
       // Standing is on Standings, open to every member as before.
-      await page.goto(`${base}/members/standing`);
-      await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/standings$/);
+      await page.goto(`${base}/standings`);
       await expect(page.getByText(/^How it works here/).first()).toBeVisible();
       // A name opens the player page; the member's page in this clan keeps
       // its address.
@@ -349,7 +347,7 @@ for (const size of ["wide", "@narrow"])
           /^A gap is unknown\. No battle here does not prove no play/,
         ),
       ).toBeHidden();
-      await page.goto(`${base}/awards`);
+      await page.goto(`${base}/standings`);
       await expect(
         page.getByRole("button", { name: /Grant Clan Pick for season 135/ }),
       ).toHaveCount(role === "elder" ? 1 : 0);
@@ -361,7 +359,7 @@ for (const size of ["wide", "@narrow"])
       await expect(
         page.getByRole("link", { name: "Ben", exact: true }).first(),
       ).toHaveAttribute("href", "/home/player/UQ8LP2R9C");
-      await page.goto(`${base}/today`);
+      await page.goto(`${base}/feed`);
       await expect(
         page.getByText("Nothing waiting for you", { exact: true }),
       ).toBeVisible();
@@ -413,7 +411,7 @@ for (const size of ["wide", "@narrow"])
       page,
     }) => {
       await mockApi(page, roleRoutes(role, true));
-      await page.goto(`${base}/awards`);
+      await page.goto(`${base}/standings`);
       await expect(page.getByText(/starts at 10 members/)).toBeVisible();
       await expect(clanTab(page, "Run")).toHaveCount(0);
       for (const name of [/^Feed/, "Standings", "War", "Members", "Policy"])
@@ -439,10 +437,10 @@ for (const size of ["wide", "@narrow"])
       routes[`GET ${apiBase}/${part}`] = [403, { error: "forbidden" }];
     await mockApi(page, routes);
     for (const path of [
-      "awards",
-      "today",
+      "standings",
+      "feed",
       "members/me",
-      "season",
+      "war",
       "members/map",
     ]) {
       await page.goto(`${base}/${path}`);
@@ -493,7 +491,7 @@ for (const size of ["wide", "@narrow"])
       { boundaries: [], policy_version: 1 },
     ];
     routes[`GET ${apiBase}/history`] = [503, { error: "unavailable" }];
-    await page.goto(`${base}/today/decided`);
+    await page.goto(`${base}/run/decided`);
     await expect(page.getByRole("alert")).toContainText(
       "This page did not load",
     );

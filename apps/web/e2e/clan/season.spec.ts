@@ -60,7 +60,7 @@ for (const width of [390, 1280]) {
           },
         }),
       );
-      await page.goto(`${base}/season/136`);
+      await page.goto(`${base}/war/136`);
       await expect(
         page.getByRole("heading", { name: /^All of Season 136/ }),
       ).toBeVisible();
@@ -155,13 +155,13 @@ test("season distinguishes no capture, missing races and unavailable reads", asy
           : [200, { ...fixture(), ...seasonReport(f.part, f) }],
     }),
   );
-  await page.goto(`${base}/season`);
+  await page.goto(`${base}/war`);
   await page
     .getByRole("combobox", { name: "Period", exact: true })
     .selectOption("136");
   await expect(page.getByRole("table")).toContainText("Not in this read");
   await expect(page.locator("main")).toContainText("no reading yet");
-  await page.goto(`${base}/season/100`);
+  await page.goto(`${base}/war/100`);
   await expect(page.getByRole("alert")).toContainText("outside this read");
   failed = true;
   await page.reload();
@@ -183,7 +183,7 @@ test("season API refusal shows no totals for a revoked clan entitlement", async 
       [`GET ${apiPath}`]: [403, { error: "not_your_clan" }],
     }),
   );
-  await page.goto(`${base}/season/136`);
+  await page.goto(`${base}/war/136`);
   await expect(page.getByRole("alert")).toContainText("does not allow");
   await expect(page.getByRole("group", { name: "Season totals" })).toHaveCount(
     0,

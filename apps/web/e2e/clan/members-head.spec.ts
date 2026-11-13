@@ -364,12 +364,9 @@ test.describe("Members as one page", () => {
     ).toBeVisible();
   });
 
-  test("Standing's old address opens Standings, for every member", async ({
-    page,
-  }) => {
+  test("Standing is on Standings, for every member", async ({ page }) => {
     await mockApi(page, asMember({ "GET /api/me/follow-plan": [200, PLAN] }));
-    await page.goto(`${base}/members/standing`);
-    await expect(page).toHaveURL(new RegExp(`${base}/standings$`));
+    await page.goto(`${base}/standings`);
     await expect(page.getByRole("region", { name: "Standing" })).toBeVisible();
   });
 });
