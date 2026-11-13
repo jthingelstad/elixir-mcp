@@ -44,13 +44,12 @@ leaderboards, no game-wide statistics. [Jamie, VISION, 2026-09-23,
 ## Principles that decide the details
 
 1. **Facts, with their provenance.** Elixir is the system of record for
-   game facts, and only collectors write it. What a family app adds (an
-   award or a leader's classification of a departure from Elixir Clan, a
-   personal record from Drop) is an attested fact:
+   game facts, and only collectors write it. What Elixir Clan adds (an
+   award, a leader's classification of a departure) is an attested fact:
    kept apart, labelled with the app, the attesting person, role and
    time, and visible by its type's rule. A player's highlight is their
-   own words beside a recorded battle, never a change to it. [Jamie,
-   2026-09-04, 2026-09-25, 2026-11-11]
+   own words beside a recorded battle, never a change to it. Drop writes
+   nothing. [Jamie, 2026-09-04, 2026-09-25, 2026-11-11, 2026-11-13]
 2. **Absence needs proof.** A missing capture, observation or profile
    clan is unknown, never zero. Quiet days count only where complete
    reads bracket them. No recorded battles is not proof of no play.

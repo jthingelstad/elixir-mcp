@@ -14,11 +14,17 @@ rewritten").
 - **Folded:** `console.md` is a pointer to where the Console's subjects
   live; its Settings principles moved to accounts. `structure.md` stays
   the dated record of the 2026-11-05 redesign, not a brief.
-- **Code over ledger, where they differ:** Clan Actions are in the bell
-  (`/api/me/home/needs`) and Run, not yet timeline items; Drop still
-  adds alt claims and writes personal records as attested facts, though
-  Jamie's direction of 2026-11-13 ends that. Both are listed as open in
-  the briefs, and no DECISIONS line changes here.
+- **Code over ledger, where they differed:** see Jamie's answers below.
 
-Docs only: no code, contract, migration or DECISIONS meaning changes,
-and nothing deploys.
+Docs only: no code, contract or migration changes, and nothing deploys.
+
+## Jamie's answers, the same day
+
+- **"Drop can stop writing now."** New DECISIONS line "Drop only signs in
+  and reads". The code still has Drop's write paths (an alt claim through
+  `POST /api/v1/me/players`, personal records through
+  `POST /api/v1/players/{tag}/facts`); they leave in their own change,
+  after Drop stops calling them.
+- **"Leave Clan actions in the bell."** "Clan's Actions are notifications
+  and timeline items" becomes "Clan's Actions are bell notifications":
+  Actions are not timeline items, which matches the code.
