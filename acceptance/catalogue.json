@@ -496,10 +496,12 @@
           "args": {
             "clan_tag": "#J2RGCRVG",
             "days": 14,
-            "metrics": ["donations"]
+            "limit": 10,
+            "metrics": ["donations"],
+            "verbosity": "compact"
           },
           "calls": 0,
-          "seed": "12.0.0: clans_members_timeline renamed; keep the series covered"
+          "seed": "12.0.0: clans_members_timeline renamed; keep the series covered (a whole clan at full verbosity is past the 48,000-character cap, so compact and ten members)"
         }
       ]
     }
