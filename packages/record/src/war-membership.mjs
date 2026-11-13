@@ -4,6 +4,7 @@
  * membership interval overlapping that entire observed span. No writes. */
 import { rosterHistoryQueries } from "./participation-sql.mjs";
 import { nominalPeriodBoundsMs } from "./war-clock.mjs";
+import { rosterReadAtOrAfter, rosterReadAtOrBefore } from "./read-facts.mjs";
 
 const ms = (value) => (value == null ? null : new Date(value).getTime());
 
@@ -99,12 +100,8 @@ export async function warMembershipEvidence(db, clanTag, participation) {
   const boundaries = (
     await db.query(
       `select t.i::int as i,
-    (select max(r.fetched_at) from api_receipt r
-      where r.entity_key=$1 and r.endpoint='clan' and r.admission='admitted'
-        and r.fetched_at <= t.started) as before_start,
-    (select min(r.fetched_at) from api_receipt r
-      where r.entity_key=$1 and r.endpoint='clan' and r.admission='admitted'
-        and r.fetched_at >= t.finished) as after_finish
+    ${rosterReadAtOrBefore("$1", "t.started")} as before_start,
+    ${rosterReadAtOrAfter("$1", "t.finished")} as after_finish
     from unnest($2::timestamptz[], $3::timestamptz[]) with ordinality as t(started,finished,i)
     where t.started is not null and t.finished is not null`,
       [

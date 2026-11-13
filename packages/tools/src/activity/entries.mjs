@@ -29,6 +29,7 @@ import {
   playerEventProofSql,
 } from "@elixir-mcp/record/event-origin";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
+import { daysSincePollSql } from "@elixir-mcp/record/read-facts";
 import { createHash } from "node:crypto";
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import { rankedLeagueName } from "@elixir-mcp/record/ranked-leagues";
@@ -1299,16 +1300,12 @@ async function presenceOf(db, tag, played, fromMs, toMs) {
   }
   const { rows: pollRows } = await db.query(
     // Null only when no read at or before the window's end exists (Gym
-    // #119: a negative day count read as nonsense). The last battle-log read at or before the window's end, from the
-    // receipts (Gym #163): poll_state holds only the latest read, so a
-    // past window had read null whenever a later poll existed. Admitted
-    // reads only: a rejected one observed nothing.
-    `select floor(extract(epoch from (${ts(toMs)} - max(r.fetched_at))) / 86400)::int
-              as days_since_poll
-       from api_receipt r
-      where r.entity_key = $1 and r.endpoint = 'player_battlelog'
-        and r.admission = 'admitted'
-        and r.fetched_at < ${ts(toMs + 1)}`,
+    // #119: a negative day count read as nonsense). The last battle-log
+    // read at or before the window's end (Gym #163: poll_state holds only
+    // the latest read, so a past window had read null whenever a later
+    // poll existed), from poll_state and the stretches unread (0259:
+    // receipts are kept 28 days).
+    `select ${daysSincePollSql("$1", ts(toMs), ts(toMs + 1))} as days_since_poll`,
     [tag],
   );
   const daysSincePoll = pollRows[0]?.days_since_poll ?? null;
@@ -2354,11 +2351,7 @@ export async function buildClanEntry(
                from membership m where m.player_tag = cm.player_tag) as membership,
             (select max(bp.battle_time) from battle_participant bp
               where bp.player_tag = cm.player_tag and bp.battle_time < ${ts(toMs + 1)}) as last_battle,
-            (select floor(extract(epoch from (${ts(toMs)} - max(r.fetched_at))) / 86400)::int
-               from api_receipt r
-              where r.entity_key = cm.player_tag and r.endpoint = 'player_battlelog'
-                and r.admission = 'admitted'
-                and r.fetched_at < ${ts(toMs + 1)})
+            ${daysSincePollSql("cm.player_tag", ts(toMs), ts(toMs + 1))}
               as days_since_poll
        from membership cm
        join player p on p.player_tag = cm.player_tag
