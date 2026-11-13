@@ -50,4 +50,4 @@ unchanged; `withFallenKing` unit cases), `share-image.test.mjs` (Down
 under three crowns, "—" under two), `apps/web/test/battle-duel-decks.test.jsx`
 (destroyed tile and the note; "—" under fewer crowns).
 
-What's new 233.
+What's new 238.

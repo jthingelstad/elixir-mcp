@@ -7,3 +7,5 @@ it Down, just like any other tower that fell.
 
 Every other missing number still shows a dash. Winners and scores
 haven't changed.
+
+MCP and JSON API unchanged.
