@@ -542,14 +542,11 @@ test("the clan card is kept per account; Clan's gate, Actions and role are read 
   assert.equal(old.refresh, true);
   assert.equal(old.role, "coLeader", "the role is still the gate's");
 
-  // Two pages asking for the rebuild at once share one build: the second
-  // waits and is served the card the first stored.
-  const [a, b] = await Promise.all([
-    read({ rebuild: "1" }),
-    read({ rebuild: "1" }),
-  ]);
-  assert.equal(a.built_at, b.built_at, "one build, not two");
-  assert.notEqual(a.members, 999);
+  // Asking for the rebuild builds it (above). That two asks at once
+  // share one build is buildOnce's, pinned without a race in
+  // packages/tools home-feed.test.mjs: two HTTP reads cannot be made to
+  // overlap here, and when the first finished before the second asked,
+  // a check here failed (CI, 2026-11-13).
 
   // Past a week the read builds it itself.
   await db.query(
