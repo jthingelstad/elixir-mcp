@@ -62,6 +62,31 @@ test("0189 autovacuum tuning remains on retained deck and played-card tables", a
     );
 });
 
+test("0253 vacuums the battle and snapshot tables after a fixed count of inserts", async () => {
+  const { rows } = await db.query(
+    `select relname, reloptions from pg_class
+      where relname = any($1) and relkind = 'r' order by relname`,
+    [["battle", "battle_participant", "player_snapshot_daily"]],
+  );
+  const options = Object.fromEntries(
+    rows.map((r) => [r.relname, [...(r.reloptions ?? [])].sort()]),
+  );
+  const fixed = (threshold) => [
+    "autovacuum_vacuum_insert_scale_factor=0",
+    `autovacuum_vacuum_insert_threshold=${threshold}`,
+  ];
+  // 0103's dead-tuple and analyze settings stay on the battle tables.
+  const from0103 = [
+    "autovacuum_analyze_scale_factor=0.02",
+    "autovacuum_vacuum_scale_factor=0.05",
+  ];
+  assert.deepEqual(options, {
+    battle: [...from0103, ...fixed(500)].sort(),
+    battle_participant: [...from0103, ...fixed(1000)].sort(),
+    player_snapshot_daily: fixed(500),
+  });
+});
+
 test("{tables} shows each table's visibility-map cover and its storage options", async () => {
   await db.query(`vacuum (analyze) deck_card`);
   const result = await tables(SCRATCH_URL);
