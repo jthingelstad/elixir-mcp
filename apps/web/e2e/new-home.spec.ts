@@ -135,7 +135,10 @@ for (const [label, width] of [
         page.getByText(/the 3 newest are shown, and 46 more/),
       ).toBeVisible();
       await page.getByRole("button", { name: "Open session" }).click();
-      await expect(page.getByText(/^Win, Trophy Road$/)).toBeVisible();
+      const games = page.locator(".kit-sgames");
+      await expect(games.getByText("1 battle", { exact: true })).toBeVisible();
+      await expect(games.locator(".kit-sgame--win")).toContainText("vs Rowan");
+      await expect(games.locator(".kit-sgame--win")).toContainText("+30");
       await noSideways(page);
     });
 

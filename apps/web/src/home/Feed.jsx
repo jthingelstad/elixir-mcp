@@ -29,6 +29,7 @@ import {
 } from "./logic.js";
 import { FollowButton } from "./follow.jsx";
 import { Sitting, SITTINGS } from "./Session.jsx";
+import { SessionGames } from "./SessionGames.jsx";
 import { Cheers } from "./Cheers.jsx";
 import { RacePlace } from "./RacePlace.jsx";
 
@@ -584,6 +585,16 @@ function InPlaceEvidence({ item, window, onRefresh }) {
     expected_evidence_version: item.evidence.version,
     evidence_offset: String(offset),
   });
+  if (item.evidence.kind === "session")
+    return (
+      <SessionGames
+        item={item}
+        query={query}
+        offset={offset}
+        setOffset={setOffset}
+        onRefresh={onRefresh}
+      />
+    );
   return (
     <div className="kit-tl__evidence">
       <TimelineEvidence

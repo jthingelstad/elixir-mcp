@@ -7446,6 +7446,187 @@ a.kit-mbattle:hover {
 .kit-spark__m3 > b {
   height: 48%;
 }
+/* An opened session (2026-11-13): its battles newest first, under the
+   deck each run was played with. Flat on the feed's tone: no boxes, a
+   hairline between rows, the result's colour on a thin left edge. */
+.kit-sgames {
+  display: grid;
+  gap: 12px;
+  margin: 6px 0 0;
+  padding: 14px 18px 12px;
+  border-radius: var(--r-block);
+  background: var(--panel);
+  min-width: 0;
+}
+/* On a player's page the games open inside the item's own card. */
+.kit-pitem .kit-sgames {
+  margin: 8px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+.kit-sgames__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: var(--t-body-sm);
+}
+.kit-sgames__head b {
+  color: var(--ink);
+}
+.kit-sgames__reading,
+.kit-sgames__note {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 12.5px;
+}
+.kit-sgames__run {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.kit-sgames__deck {
+  display: grid;
+  gap: 6px;
+}
+/* The run's eight cards, small: the art at the column's width, never
+   resized as a file. */
+.kit-sgames__cards .kit-deckrow {
+  max-width: 300px;
+  gap: 3px;
+}
+.kit-sgames__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-sgame {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 8px 0 8px 10px;
+  box-shadow: inset 2px 0 0 var(--line);
+}
+.kit-sgame + .kit-sgame {
+  border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+}
+.kit-sgame--win {
+  box-shadow: inset 2px 0 0 var(--ok);
+}
+.kit-sgame--loss {
+  box-shadow: inset 2px 0 0 var(--bad);
+}
+.kit-sgame__result {
+  display: grid;
+  line-height: 1.2;
+}
+.kit-sgame__result b {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-dim);
+}
+.kit-sgame--win .kit-sgame__result b {
+  color: var(--win-ink);
+}
+.kit-sgame--loss .kit-sgame__result b {
+  color: var(--loss-ink);
+}
+.kit-sgame__score {
+  font: 600 15px/1.2 var(--font-mono);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.kit-sgame__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.kit-sgame__who {
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+  overflow-wrap: anywhere;
+}
+.kit-sgame__name {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.kit-sgame__name:hover {
+  text-decoration: underline;
+}
+.kit-sgame__meta {
+  color: var(--ink-faint);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.kit-sgame__meta .mode-chip__dot {
+  display: inline-block;
+  vertical-align: middle;
+}
+/* A duel's games: one small score each, its result's colour. */
+.kit-sgame__games {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-sgame__games > li {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--panel-raised);
+  color: var(--ink-dim);
+  font: 600 11.5px/1.4 var(--font-mono);
+}
+.kit-sgame__games > li.kit-sgame__game--win {
+  color: var(--win-ink);
+}
+.kit-sgame__games > li.kit-sgame__game--loss {
+  color: var(--loss-ink);
+}
+.kit-sgame__end {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  white-space: nowrap;
+}
+.kit-sgame__trophies {
+  font: 600 13px/1.2 var(--font-mono);
+  color: var(--ink-dim);
+}
+.kit-sgame__trophies--up {
+  color: var(--ok);
+}
+.kit-sgame__trophies--down {
+  color: var(--bad);
+}
+.kit-sgame__go {
+  color: var(--ink-link);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.kit-sgames__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+@media (max-width: 760px) {
+  .kit-sgames {
+    padding-inline: 12px;
+  }
+  .kit-sgame {
+    grid-template-columns: 50px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+}
 /* The bell's dot: lit while something needs you. */
 .kit-bell__mark {
   position: relative;

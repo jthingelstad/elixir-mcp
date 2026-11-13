@@ -323,7 +323,7 @@ test(
       screen.getByRole("img", { name: /won|lost|win|loss/i }),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "View games" }));
-    await screen.findByText(/2 recorded games/);
+    await screen.findByText("2 battles");
     expect(posted[0][0]).toMatch(
       /^\/api\/player\/evidence\?tag=%230VJ2QV&evidence_item_id=s1&expected_evidence_version=ev_1&evidence_offset=0$/,
     );

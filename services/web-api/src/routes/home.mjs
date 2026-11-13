@@ -798,6 +798,9 @@ async function readFeedEvidence(db, account, q) {
       offset: q.evidence_offset === undefined ? 0 : Number(q.evidence_offset),
       limit: q.evidence_limit === undefined ? 25 : Number(q.evidence_limit),
       expectedVersion: q.expected_evidence_version,
+      // An opened session as Home draws it: decks, teammates, a duel's
+      // games, newest first. A crossing reads as before.
+      detail: true,
     },
   );
   return json(
