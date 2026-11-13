@@ -193,7 +193,12 @@ test("@narrow Clan's roster is two lines a member", async ({ page }) => {
   const box = await row.boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
   expect(box?.height ?? 999).toBeLessThan(90);
+  // The avatar leads the row (2026-11-13, the canvas's roster), and the
+  // name follows it with no column between them.
+  const avatar = row.locator(".kit-table__lead .kit-av").first();
+  const av = await avatar.boundingBox();
+  expect((av?.x ?? 999) - (box?.x ?? 0)).toBeLessThan(30);
   const name = row.locator(".kit-table__lead a").first();
   const left = (await name.boundingBox())?.x ?? 999;
-  expect(left - (box?.x ?? 0)).toBeLessThan(30);
+  expect(left - ((av?.x ?? 0) + (av?.width ?? 0))).toBeLessThan(16);
 });
