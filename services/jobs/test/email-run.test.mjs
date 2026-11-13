@@ -117,14 +117,14 @@ after(async () => {
 });
 
 test("a run asks the ledger first: an account already sent is not recomposed, and its issue keeps its facts", async () => {
-  // A Wednesday: every weekly reader is due.
-  const now = new Date("2026-09-23T14:30:00Z");
+  // A Monday, after the reset: every weekly reader is due.
+  const now = new Date("2026-09-21T11:00:00Z");
   const {
     rows: [{ issue_id }],
   } = await db.query(
     `insert into email_issue (kind, period_key, subject_key, facts, status)
      values ('tracking_report', $1, $2, '{"marker": true}', 'queued') returning issue_id`,
-    ["2026-09-23", acct.old],
+    ["2026-09-21", acct.old],
   );
   // Sent at its own hour, so a later digest's window starts after it.
   await db.query(
@@ -157,7 +157,7 @@ test("a run with under 90 s left stops before composing, and says how many remai
   const r = await runEmail({
     db,
     kind: "tracking_report",
-    now: new Date("2026-09-30T14:30:00Z"),
+    now: new Date("2026-09-28T11:00:00Z"),
     enqueue,
     secret: "s",
     remainingMs: () => 60_000,
@@ -332,7 +332,7 @@ test("the clan composer binds closed-race identity and uses the covered season a
   assert.equal(direct.war.raced[0].points, 2345);
 });
 
-test("Wednesday's digest names you on your player page", async () => {
+test("Monday's digest names you on your player page", async () => {
   const BATTLE = `deed${"0".repeat(60)}`;
   // Learned when it was played: the digest reads what the record learned.
   await db.query(
@@ -358,14 +358,14 @@ test("Wednesday's digest names you on your player page", async () => {
     assert.equal(out.length, 1, JSON.stringify(result));
     return out[0];
   };
-  const digest = await send("tracking_report", "2026-10-07T14:30:00Z");
+  const digest = await send("tracking_report", "2026-10-05T11:00:00Z");
   // Every name opens the player page, the reader's own included (#764);
   // Ladder is reachable from there, so the digest carries no season.
   assert.match(digest.html, /\/home\/player\/20QQL8CC\?/);
   assert.doesNotMatch(digest.html, /\/ladder\?player=/);
 });
 
-test("the digest goes out weekly on Wednesday, daily to who chose it, once a day, and never to an opt-out or an empty week", async () => {
+test("the digest goes out weekly on Monday, daily to who chose it, once a day, and never to an opt-out or an empty week", async () => {
   const run = async (at, extra = {}) => {
     const { out, enqueue } = sink();
     const result = await runEmail({
@@ -392,7 +392,7 @@ test("the digest goes out weekly on Wednesday, daily to who chose it, once a day
       [id, OLD_TAG, at],
     );
   };
-  // A Thursday: a weekly reader waits for Wednesday.
+  // A Thursday: a weekly reader waits for Monday.
   const thu = await run("2026-10-08T14:30:00Z");
   assert.equal(thu.out.length, 0, JSON.stringify(thu.result));
   // Choosing daily: the same Thursday sends, once.

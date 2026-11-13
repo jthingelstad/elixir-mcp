@@ -95,12 +95,12 @@ export const MAIL_SOURCE = {
  *  infra/template.yaml (pinned by test). A footer says it in the
  *  reader's own zone. day is 0 = Sunday. The digest (tracking_report),
  *  the one scheduled mail for everyone since 2026-11-12, runs every day
- *  at 14:30 UTC: a daily reader gets it each day, a weekly one (the
- *  default) on Wednesdays, the friends mail's day. The clan report
- *  (Monday) and Arena week (Tuesday) folded into it and have no slot.
- *  [engineering, 2026-11-12] */
+ *  at 11:00 UTC: a daily reader gets it each day, a weekly one (the
+ *  default) on Mondays, an hour after the game's 10:00 UTC weekly reset
+ *  (Jamie, 2026-11-13). The clan report and Arena week folded into it
+ *  and have no slot. */
 export const MAIL_SCHEDULE = {
-  tracking_report: { day: 3, hour: 14, minute: 30, daily: true },
+  tracking_report: { day: 1, hour: 11, minute: 0, daily: true },
   collector_activity: { day: 0, hour: 14, minute: 0 },
 };
 

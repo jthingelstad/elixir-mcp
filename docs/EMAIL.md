@@ -182,7 +182,7 @@ under `/settings`, Stats as `/ladder?player=<tag>` (the app redirects
 
 EventBridge rules invoke the jobs Lambda (reserved concurrency one):
 `collector_activity` on Sundays at 14:00 UTC and the digest every day at
-14:30 UTC (`MAIL_SCHEDULE` in `packages/mail/src/shell.mjs`, pinned to
+11:00 UTC (`MAIL_SCHEDULE` in `packages/mail/src/shell.mjs`, pinned to
 the crons by test), and the collector upgrade and feedback-answer drain
 every minute. The clan report, Arena week and milestone rules were
 removed on 2026-11-12. `clan_actions_waiting`
@@ -205,7 +205,7 @@ Arena form line, opponents and decks; those are on Clan and Stats.
 preview; removing them, the `email_milestone*` tables and the kind names
 is later cleanup.
 
-### `tracking_report`: the digest, Wednesday or daily ("Your digest")
+### `tracking_report`: the digest, Monday or daily ("Your digest")
 
 The digest of the people you follow replaced the friends mail on
 2026-11-12 (social slice 9, #767; Jamie's ruling is quoted in
@@ -214,9 +214,11 @@ Actions mail stays apart"). It keeps the kind key, so
 the switch, every opt-out and every old unsubscribe link carry over; the
 HMAC covers the kind.
 
-**When.** One rule, every day at 14:30 UTC (`MAIL_SCHEDULE`,
-`daily: true`). A scheduled run takes readers whose cadence is weekly
-only on a UTC Wednesday (`DIGEST_WEEKLY_DAY`), and daily readers every
+**When.** One rule, every day at 11:00 UTC (`MAIL_SCHEDULE`,
+`daily: true`), an hour after the game's 10:00 UTC reset (Jamie,
+2026-11-13: "right after the weekly reset"; a river race closes about
+09:40 UTC, before it). A scheduled run takes readers whose cadence is
+weekly only on a UTC Monday (`DIGEST_WEEKLY_DAY`), and daily readers every
 day; an ops run for one account, or a forced one, ignores the day. The
 period key is the UTC date, so the ledger allows one digest a day per
 account (`~m<ms>` on a manual send, as elsewhere).
@@ -448,5 +450,5 @@ and writes `"all"`.
 
 ## Not built
 
-- Local-morning delivery: the digest sends at 14:30 UTC and collector
+- Local-morning delivery: the digest sends at 11:00 UTC and collector
   activity at 14:00 UTC.

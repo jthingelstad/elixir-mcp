@@ -73,7 +73,7 @@ costs](/docs/recording#what-a-player-slot-costs)).
 | [Your digest](/docs/email#your-digest) | first, when they played or posted | after your friends, when they played or posted |
 | Your connection's opening | named under "Friends you follow" | named under "You are also watching" |
 
-In **[your digest](/docs/email#your-digest)** (weekly on Wednesdays, or
+In **[your digest](/docs/email#your-digest)** (weekly on Mondays, or
 daily by your choice) each friend who played or posted is shown under
 their name and your nickname for them: their battles with the wins and
 losses, their trophies, and up to three things, their
