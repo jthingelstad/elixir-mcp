@@ -74,10 +74,10 @@ agent's key answers 401 too.
 
 ```json
 { "serverInfo": { "name": "elixir-mcp", "version": "{{ tools.contractVersion }}+tools.…" },
-  "instructions": "YOU ACT FOR Tidewater #QRP2GV (47 members). Leadership: Birch Lantern (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it… Nothing defaults to 'you': … pass on_behalf_of (discord:<user id> resolves itself once they link Discord …); not linked, ask who they are and pass player_tag. You already know 9 of them. …",
+  "instructions": "YOU ACT FOR Tidewater #0G9J08 (47 members). Leadership: Birch Lantern (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it… Nothing defaults to 'you': … pass on_behalf_of (discord:<user id> resolves itself once they link Discord …); not linked, ask who they are and pass player_tag. You already know 9 of them. …",
   "_meta": { "elixir.poapkings.com/principal": {
       "kind": "agent",
-      "subject": { "type": "clan", "tag": "#QRP2GV", "name": "Tidewater", "members": 47 } } } }
+      "subject": { "type": "clan", "tag": "#0G9J08", "name": "Tidewater", "members": 47 } } } }
 ```
 
 Use `_meta` to assert the boot: `kind` must be `agent` and `subject` must
@@ -164,11 +164,11 @@ member Birch Lantern (discord:1234): how am I doing?
 
 → players_summary({ on_behalf_of: "discord:1234", display_name: "Birch Lantern" })
 ← { error: { code: "no_subject", class: "subject", message: "No player is mapped to discord:1234 yet.",
-    candidates: [ { player_tag: "#PYLQ88", name: "Birch Lantern", clan_tag: "#QRP2GV", role: "coLeader" } ],
-    hint: "candidates[] holds the one clan member whose whole name is 'Birch Lantern': pass player_tag \"#PYLQ88\", say so in a line, and answer. To be known without asking, they connect Discord …" } }
+    candidates: [ { player_tag: "#0GVJ9V", name: "Birch Lantern", clan_tag: "#0G9J08", role: "coLeader" } ],
+    hint: "candidates[] holds the one clan member whose whole name is 'Birch Lantern': pass player_tag \"#0GVJ9V\", say so in a line, and answer. To be known without asking, they connect Discord …" } }
 
-→ players_summary({ on_behalf_of: "discord:1234", player_tag: "#PYLQ88" })
-← { player_tag: "#PYLQ88", name: "Birch Lantern", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, win_rate: 0.585, … }, top_deck: …,
+→ players_summary({ on_behalf_of: "discord:1234", player_tag: "#0GVJ9V" })
+← { player_tag: "#0GVJ9V", name: "Birch Lantern", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, win_rate: 0.585, … }, top_deck: …,
     applied: { window: { from: "…", to: null, source: "fixed", days: 30 } }, notes: […], docs: "freshness-and-gaps#completeness",
     meta: { freshness_seconds: 27, source_polls: { player_battlelog: { observed_at: "…", freshness_seconds: 27 } }, … } }
 ```

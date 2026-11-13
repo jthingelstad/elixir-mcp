@@ -49,8 +49,8 @@ nothing. One page per group is under [Tools](/docs/tools).
                   "version": "{{ tools.contractVersion }}+tools.3f1c9a2b7d4e", "websiteUrl": "https://elixir.poapkings.com/" },
   "instructions": "…",
   "_meta": { "elixir.poapkings.com/principal": { "kind": "person",
-             "subject": { "type": "player", "tag": "#PYLQ88", "name": "Birch Lantern" },
-             "clan": { "tag": "#QRP2GV", "name": "Tidewater" } } } }
+             "subject": { "type": "player", "tag": "#0GVJ9V", "name": "Birch Lantern" },
+             "clan": { "tag": "#0G9J08", "name": "Tidewater" } } } }
 ```
 
 `instructions` is prose tuned for the model and changes without notice;

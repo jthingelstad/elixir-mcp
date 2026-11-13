@@ -1,6 +1,6 @@
 /**
  * Replacing real Clash Royale tags and names with invented ones
- * (2026-11-13; the ratchet is `no-real-tags.mjs`, the CLI
+ * (2026-11-13; the guard is `no-real-tags.mjs`, the CLI
  * `../anonymize-fixtures.mjs`).
  *
  * Many players are minors and this repository is public, so captured

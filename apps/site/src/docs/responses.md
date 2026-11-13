@@ -131,7 +131,7 @@ or read `elixir://docs/<page>#<section>`.
 
 `initialize` describes the connection twice, for two different readers.
 
-`instructions` says it in prose, *"YOU ACT FOR Tidewater #QRP2GV"*, which
+`instructions` says it in prose, *"YOU ACT FOR Tidewater #0G9J08"*, which
 is the right shape for the model that reads it, and the wrong shape for the
 program hosting that model. That wording is tuned for the model and changes
 whenever the tuning does, so a client must not parse it.
@@ -142,7 +142,7 @@ The same facts ride as data, in `_meta` on the initialize result:
 "_meta": {
   "elixir.poapkings.com/principal": {
     "kind": "agent",
-    "subject": { "type": "clan", "tag": "#QRP2GV", "name": "Tidewater", "members": 47 }
+    "subject": { "type": "clan", "tag": "#0G9J08", "name": "Tidewater", "members": 47 }
   }
 }
 ```

@@ -59,7 +59,6 @@ const REFERENCE = "a59e8850d7d17cc5c346b94150075b6e7a43d057";
 const SALT_FILE = path.join(os.homedir(), ".cache/elixir-anonymize/salt");
 const NEVER = new Set([
   "package-lock.json",
-  "docs/no-real-tags.baseline.json",
   "docs/invented-tags.json",
   ...Object.keys(PINNED_FILES),
 ]);
