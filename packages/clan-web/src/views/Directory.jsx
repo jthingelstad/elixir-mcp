@@ -1,4 +1,11 @@
-import { Chips, Empty, ErrorState, Link, PageHead } from "@elixir-mcp/ui";
+import {
+  Avatar,
+  Chips,
+  Empty,
+  ErrorState,
+  Link,
+  PageHead,
+} from "@elixir-mcp/ui";
 import { useEffect, useMemo, useState } from "react";
 import { CLAN } from "../lib/base.js";
 import {
@@ -121,6 +128,7 @@ export function Directory({
           <span className="clan-dir__label">Clan Wars</span>
           <Chips
             label="Clan Wars"
+            className="kit-chips--seg"
             options={FILTERS.war}
             value={f.war}
             onChange={set("war")}
@@ -130,6 +138,7 @@ export function Directory({
           <span className="clan-dir__label">How strict</span>
           <Chips
             label="How strict"
+            className="kit-chips--seg"
             options={FILTERS.posture}
             value={f.posture}
             onChange={set("posture")}
@@ -141,6 +150,7 @@ export function Directory({
           </span>
           <Chips
             label="Days with no battle before a removal"
+            className="kit-chips--seg"
             options={FILTERS.removal}
             value={f.removal}
             onChange={set("removal")}
@@ -150,6 +160,7 @@ export function Directory({
           <span className="clan-dir__label">Room</span>
           <Chips
             label="Room"
+            className="kit-chips--seg"
             options={FILTERS.room}
             value={f.room}
             onChange={set("room")}
@@ -233,11 +244,12 @@ function ClanTile({ clan }) {
   const counted = countedWords(clan.policy.counted);
   const name = clan.name ?? clan.clan_tag;
   return (
-    <li className="clan-dir__tile" data-clan={clan.clan_tag}>
+    <li
+      className={`clan-dir__tile${clan.yours ? " clan-dir__tile--mine" : ""}`}
+      data-clan={clan.clan_tag}
+    >
       <div className="clan-dir__top">
-        <span className="clan-dir__crest" aria-hidden="true">
-          {crestOf(clan)}
-        </span>
+        <Avatar name={crestOf(clan)} tag={clan.clan_tag} clan />
         <div className="clan-dir__who">
           <h2 className="clan-dir__name">
             {tileHref(clan) ? (
@@ -253,8 +265,11 @@ function ClanTile({ clan }) {
         </div>
       </div>
       <ul className="clan-dir__facts" aria-label="Rules">
-        {facts.map((t) => (
-          <li key={t} className="chip chip--mute">
+        {facts.map((t, i) => (
+          <li
+            key={t}
+            className={`kit-fact${i === 0 && clan.policy.war_intent === "participating" ? " kit-fact--gold" : ""}`}
+          >
             {t}
           </li>
         ))}

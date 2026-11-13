@@ -219,6 +219,7 @@
   --mark-current: inset 3px 0 0 var(--accent-bright); /* current rail item */
   --mark-tab: inset 0 -2px 0 var(--gold); /* current header tab */
   --edge-clan: inset 3px 0 0 var(--gold); /* the clan's gold edge, never a gold outline */
+  --edge-mine: inset 0 3px 0 var(--gold); /* your own clan's tile or panel: a gold top */
 
   /* An avatar's initials sit on one of seven fills, chosen from the tag:
      presentational only, never a meaning (canvas .av .h1 to .h7). */

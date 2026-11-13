@@ -1170,8 +1170,9 @@ button.rail__switch-head[aria-disabled="true"]:hover {
 }
 /* Follow (canvas .follow, 2026-11-12): violet is you acting, a pill so it
    reads as a choice about a person, never the screen's gold action. Its
-   pressed state (Following) drops to the raised fill. */
-.btn--follow {
+   pressed state (Following) drops to the raised fill. Doubled so the later
+   nav-sized .btn--sm cannot square it off. */
+.btn.btn--follow {
   min-height: 34px;
   padding: 0 14px;
   border-radius: var(--r-pill);
@@ -2064,26 +2065,34 @@ input[aria-invalid="true"] {
   gap: var(--s-4);
   min-width: 0;
 }
+/* The filters sit on the page, not in a panel (canvas .fbar): each a small
+   label over a segmented row. */
 .clan-dir__filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   gap: var(--s-3) var(--s-4);
-  padding: var(--s-4);
-  border-radius: var(--r-block);
-  background: var(--panel);
 }
 .clan-dir__field {
   display: grid;
   align-content: start;
   gap: 6px;
   min-width: 0;
+  max-width: 100%;
 }
 .clan-dir__field--wide {
-  grid-column: 1 / -1;
+  flex: 1 1 100%;
+  max-width: 520px;
+}
+.clan-dir__field input {
+  min-width: min(100%, 260px);
 }
 .clan-dir__label {
   color: var(--ink-faint);
-  font-size: 12.5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .clan-dir__count {
   display: flex;
@@ -2113,7 +2122,11 @@ input[aria-invalid="true"] {
   background: var(--panel);
 }
 .clan-dir__tile:hover {
-  background: var(--hover-row);
+  background: color-mix(in srgb, var(--panel) 92%, var(--accent));
+}
+/* Your own clan's tile (canvas .ctile.mine): the gold top. */
+.clan-dir__tile--mine {
+  box-shadow: var(--edge-mine);
 }
 .clan-dir__tile:focus-within {
   outline: 2px solid var(--accent-bright);
@@ -2124,18 +2137,6 @@ input[aria-invalid="true"] {
   align-items: center;
   gap: var(--s-3);
   min-width: 0;
-}
-.clan-dir__crest {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-control);
-  background: var(--control);
-  color: var(--ink);
-  font-weight: 700;
-  font-size: 14px;
 }
 .clan-dir__who {
   display: flex;
@@ -6719,6 +6720,55 @@ a.card-art:hover .card-art__img {
   background: var(--accent-deep);
   color: var(--ink);
 }
+/* A segmented row (canvas .seg): the same chips joined into one control,
+   for a filter that takes one value. Scrolls on a phone, never wraps. */
+.kit-chips--seg {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: var(--r-control);
+  background: var(--panel);
+  scrollbar-width: none;
+}
+.kit-chips--seg .kit-chip {
+  flex: none;
+  border-radius: 0;
+  background: var(--panel);
+  box-shadow: inset -1px 0 0 var(--line);
+}
+.kit-chips--seg .kit-chip:last-child {
+  box-shadow: none;
+}
+.kit-chips--seg .kit-chip:hover {
+  background: var(--control-hover);
+}
+.kit-chips--seg .kit-chip[aria-pressed="true"] {
+  background: var(--accent-deep);
+  color: var(--ink);
+}
+/* A fact about a clan (canvas .fact): a quiet sunken label; gold for the
+   one that is a commitment the clan made, playing Clan Wars. */
+.kit-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-fact {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--ground-sunken);
+  color: var(--ink-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+.kit-fact--gold {
+  color: var(--gold-light);
+}
 .kit-chip b {
   margin-left: 3px;
   font-weight: 600;
@@ -7403,6 +7453,7 @@ button.kit-row {
   gap: 24px;
   align-items: start;
 }
+.kit-home__main,
 .kit-home__side {
   display: grid;
   gap: 16px;
@@ -8018,6 +8069,48 @@ a.kit-mbattle:hover {
 .kit-people__slots p {
   margin: 0;
 }
+/* Following, where it is a fact and not a control (canvas .follow.on): the
+   pill a Follow becomes, on the raised fill. */
+.kit-following {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--panel-raised);
+  color: var(--ink-dim);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* Your own clan, as a panel (canvas .panel with the gold top): its crest,
+   its name and what you follow of it, then the clan's own action. */
+.kit-panel--mine {
+  box-shadow: var(--edge-mine);
+}
+.kit-clanpeople__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+  padding: 16px 16px 4px;
+}
+.kit-clanpeople__who {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.kit-clanpeople__name {
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.kit-clanpeople__line {
+  margin: 2px 0 0;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
 /* A battle page's cheers: the items in your feed it proves. */
 .kit-battle-cheers {
   display: grid;
@@ -8205,11 +8298,32 @@ a.kit-mbattle:hover {
   height: 30px;
   font-size: 11.5px;
 }
+/* A clan's crest (canvas .crest.s): its initials in the display face on a
+   gold-edged square. Never the clan's badge art. */
 .kit-av--clan {
+  width: 44px;
+  height: 44px;
   border: 2px solid var(--gold);
   border-radius: 10px;
   background: linear-gradient(160deg, var(--accent-deep), var(--panel));
   color: var(--gold);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 400;
+}
+.kit-av--clan.kit-av--s {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+/* The large crest (canvas .crest), at the head of a clan's page. */
+.kit-av--crest {
+  width: 84px;
+  height: 84px;
+  border-width: 3px;
+  border-radius: 18px;
+  font-size: 30px;
 }
 .kit-av--1 {
   background: var(--av-1);

@@ -83,3 +83,22 @@ matched the canvas and are unchanged.
 | `.deck` (eight `.ct` tiles) | `DeckRow` (`ul.kit-deckrow`, `--8`/`--4`): real card art through `CardArt size="fill"` (`.card-art--fill`), sized by CSS only |
 | `.ct`, `.ct .cost`, rarity borders | Not drawn: the canvas's text tiles were stand-ins for the art |
 | `.vs`, `.vs .mid`, `.score` | `DeckVersus` (`.kit-vs`, `__side`, `__mid`, `__score`; the score said in words in `__said`) |
+
+## Find and the clan directory (design-find)
+
+| Canvas | Kit |
+| --- | --- |
+| `.wrap` + `.cols` on Find | `.kit-home` + `.kit-home__two`, `.kit-home__main` (the wide column) and `.kit-home__side` |
+| Find's clan `.panel` with the gold top | `.kit-panel--mine` (`--edge-mine`, a 3px gold top inset) |
+| `.crest.s` | `Avatar clan` (`.kit-av--clan`, 44px, display face) |
+| `.crest` | `Avatar clan large` (`.kit-av--crest`, 84px) |
+| `.follow.on` as a fact, not a control | `.kit-following` (a pill on `--panel-raised`) |
+| `.fcost`, `.fcost.free` | `.kit-people__cost`, `--free` (green) |
+| `.prow` role line | `Row` detail with `.kit-people__why` (`roleLabel`) |
+| `.seg`, `.seg button.on` | `Chips className="kit-chips--seg"` (`.kit-chip[aria-pressed=true]` violet) |
+| `.fbar`, `.fbar .label` | `.clan-dir__filters`, `.clan-dir__label` (small capitals) |
+| `.facts`, `.fact`, `.fact.g` | `.kit-facts`, `.kit-fact`, `.kit-fact--gold` |
+| `.ctile`, `.ctile.mine` | `.clan-dir__tile`, `.clan-dir__tile--mine` (`--edge-mine`) |
+
+`.btn.btn--follow` is doubled in specificity so the later nav-sized
+`.btn--sm` no longer squares the Follow pill off.

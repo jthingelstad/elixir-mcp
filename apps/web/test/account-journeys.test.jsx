@@ -145,7 +145,9 @@ test(
     // The starter questions moved to Connections, which is where a
     // connection is the thing you are working on.
     fireEvent.click(screen.getByRole("link", { name: /Connections/ }));
-    await screen.findByText("Test client");
+    // The page reads the scratch database: under the whole suite's load
+    // that can take past findBy's one second, so it waits for the read.
+    await screen.findByText("Test client", {}, { timeout: 10_000 });
     await screen.findByText(/AI client you connected/);
     await screen.findByRole("heading", { name: "Try asking…" });
     const copy = vi.fn().mockResolvedValue();

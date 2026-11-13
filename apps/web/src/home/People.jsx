@@ -11,7 +11,7 @@ import {
 import { playerHref } from "../lib/player.js";
 import { usePeople } from "../lib/queries.js";
 import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
-import { costMark, metLine, slotsLine, whyLines } from "./logic.js";
+import { costMark, metLine, roleLabel, slotsLine, whyLines } from "./logic.js";
 
 /**
  * People to follow (2026-11-12): Home's side panel and Find's From your
@@ -44,7 +44,7 @@ function Person({ p, detail, used, limit }) {
       detail={detail}
       right={
         p.following ? (
-          <span className="kit-tiny">Following</span>
+          <span className="kit-following">Following</span>
         ) : (
           <FollowButton
             tag={tag}
@@ -172,7 +172,11 @@ export function FromYourBattles() {
                 <>
                   <span className="kit-people__why">{metLine(p, when)}</span>
                   {p.following ? null : (
-                    <span className="kit-people__cost">{costMark(p)}</span>
+                    <span
+                      className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
+                    >
+                      {costMark(p)}
+                    </span>
                   )}
                 </>
               }
@@ -215,19 +219,30 @@ export function YourClanPeople() {
   const clanName = data.clan.name ?? data.clan.clan_tag;
   const others = data.players;
   const plan = followPlanLine(data);
+  const members = others.length + (data.yours?.length ?? 0);
+  const followed = others.filter((p) => p.following).length;
   return (
-    <Panel
-      title={<TagText>{clanName}</TagText>}
-      action={
-        data.to_follow > 0 ? (
+    <Panel className="kit-panel--mine kit-clanpeople" aria-label={clanName}>
+      <div className="kit-clanpeople__head">
+        <Avatar name={clanName} tag={data.clan.clan_tag} clan />
+        <div className="kit-clanpeople__who">
+          <h2 className="kit-clanpeople__name">
+            <TagText>{clanName}</TagText>
+          </h2>
+          <p className="kit-clanpeople__line">
+            {members.toLocaleString()} {members === 1 ? "member" : "members"} ·
+            you follow {followed.toLocaleString()}
+          </p>
+        </div>
+        {data.to_follow > 0 ? (
           <FollowAll
             ask={{ clan_tag: data.clan.clan_tag }}
             label="Follow my clan"
             title={`Follow everyone in ${clanName}?`}
+            className="btn btn--gold"
           />
-        ) : null
-      }
-    >
+        ) : null}
+      </div>
       {plan ? <p className="kit-tiny kit-people__slots">{plan}</p> : null}
       {others.length === 0 ? (
         <p className="kit-week__quiet kit-people__quiet">
@@ -241,7 +256,20 @@ export function YourClanPeople() {
               p={p}
               used={data.used}
               limit={data.limit}
-              detail={p.following ? null : costMark(p)}
+              detail={
+                <>
+                  {roleLabel(p.role) ? (
+                    <span className="kit-people__why">{roleLabel(p.role)}</span>
+                  ) : null}
+                  {p.following ? null : (
+                    <span
+                      className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
+                    >
+                      {costMark(p)}
+                    </span>
+                  )}
+                </>
+              }
             />
           ))}
         </Rows>
