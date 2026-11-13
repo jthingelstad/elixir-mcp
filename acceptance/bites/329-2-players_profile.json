@@ -5,12 +5,12 @@
   "request": {
     "tool": "players_profile",
     "arguments": {
-      "player_tag": "#YC8LLR8Q2"
+      "player_tag": "#0YUG82UQC"
     }
   },
   "response": {
-    "player_tag": "#YC8LLR8Q2",
-    "name": "sniperhendo",
+    "player_tag": "#0YUG82UQC",
+    "name": "grasshopper",
     "applied": {},
     "clan": {
       "clan_tag": "#J2RGCRVG",

@@ -5,14 +5,14 @@
   "request": {
     "tool": "players_timeline",
     "arguments": {
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "#0YUG82UQC",
       "from": "2026-09-05",
       "to": "2026-09-09",
       "metrics": ["trophies", "season_trophies", "season_best_trophies"]
     }
   },
   "response": {
-    "player_tag": "#YC8LLR8Q2",
+    "player_tag": "#0YUG82UQC",
     "applied": {
       "window": {
         "from": "2026-09-05",

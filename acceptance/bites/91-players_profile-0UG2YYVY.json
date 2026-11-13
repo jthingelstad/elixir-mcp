@@ -5,12 +5,12 @@
   "request": {
     "tool": "players_profile",
     "arguments": {
-      "player_tag": "#2G2RPVPP"
+      "player_tag": "#0UG2YYVY"
     }
   },
   "response": {
-    "player_tag": "#2G2RPVPP",
-    "name": "Aaqib Javed",
+    "player_tag": "#0UG2YYVY",
+    "name": "Happy Tiger",
     "applied": {},
     "clan": {
       "clan_tag": "#J2RGCRVG",

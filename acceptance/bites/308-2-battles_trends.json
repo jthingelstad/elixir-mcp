@@ -6,7 +6,7 @@
     "tool": "battles_trends",
     "arguments": {
       "segment": {
-        "clan_tag": "#Q9QPPGGG"
+        "clan_tag": "#0PRG0LCG"
       },
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-21T00:00:00Z"
@@ -16,7 +16,7 @@
     "applied": {
       "segment": {
         "kind": "clan",
-        "clan_tag": "#Q9QPPGGG"
+        "clan_tag": "#0PRG0LCG"
       },
       "window": {
         "from": "2026-09-14T00:00:00.000Z",

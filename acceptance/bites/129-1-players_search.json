@@ -5,171 +5,171 @@
   "request": {
     "tool": "players_search",
     "arguments": {
-      "query": "Andy",
+      "query": "Warm",
       "limit": 20
     }
   },
   "response": {
     "applied": {
-      "query": "Andy",
+      "query": "Warm",
       "limit": 20
     },
     "matches": [
       {
-        "player_tag": "#QLQV89L8",
-        "name": "123andyessir",
+        "player_tag": "#0Q28CR20",
+        "name": "thunderbolto",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#PVR2GL",
-        "name": "AC I ANDYNTHSDE",
+        "player_tag": "#0Q2J2L",
+        "name": "OX O KINGFISHER",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#RPRPUJ2JL",
-        "name": "ako.zandy",
+        "player_tag": "#0CGL228RV",
+        "name": "gnu.quail",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#899CV0U9",
-        "name": "AMIC_Andy",
+        "player_tag": "#0C0RLCPP",
+        "name": "LYNX_Newt",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#288PC9",
-        "name": "andy",
+        "player_tag": "#088VC9",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#VP9LJPYG",
-        "name": "andy",
+        "player_tag": "#0J920QU0",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#9GY8RYR2P",
-        "name": "andy",
+        "player_tag": "#0YJ0GLL8P",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#8080PR8G0",
-        "name": "andy",
+        "player_tag": "#0U0PU8U20",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#20P0RP9GUR",
-        "name": "andy",
+        "player_tag": "#0YPQCQQRVR",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#VLRPYVUJ2",
-        "name": "andy",
+        "player_tag": "#02Q08PLJ2",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#2RUJVQQC9",
-        "name": "andy",
+        "player_tag": "#092RLCUGQ",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#QPRGCCVQ9",
-        "name": "andy",
+        "player_tag": "#09PG8Y2YG",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#UQCRQQYVJ",
-        "name": "andy",
+        "player_tag": "#0CUYYPGR2",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#QG0VQU",
-        "name": "andy",
+        "player_tag": "#0J9J2L",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
-        "clan_tag": "#RPV0G9YP",
-        "clan_name": "Vibin’"
+        "clan_tag": "#0G2CV0QP",
+        "clan_name": "Moose’"
       },
       {
-        "player_tag": "#YQLY0LC2R",
-        "name": "andy",
-        "nickname": null,
-        "source": "corpus",
-        "clan_tag": null,
-        "clan_name": null
-      },
-      {
-        "player_tag": "#8PRYPR28",
-        "name": "andy",
-        "nickname": null,
-        "source": "corpus",
-        "clan_tag": "#PG029R08",
-        "clan_name": "castrexos lugo"
-      },
-      {
-        "player_tag": "#8UUJGJCY",
-        "name": "andy",
+        "player_tag": "#090QU8099",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#9LJYC0YCC",
-        "name": "andy",
+        "player_tag": "#08PJPJ99",
+        "name": "neat",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": "#0PJJJ2Q9",
+        "clan_name": "porcupine mist"
+      },
+      {
+        "player_tag": "#02PQPGQC",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#208LP8CR9U",
-        "name": "andy",
+        "player_tag": "#0GL0PQRGU",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,
         "clan_name": null
       },
       {
-        "player_tag": "#V9J8LV0U0",
-        "name": "andy",
+        "player_tag": "#02UY00VLUC",
+        "name": "neat",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#0J0P8CGQC",
+        "name": "neat",
         "nickname": null,
         "source": "corpus",
         "clan_tag": null,

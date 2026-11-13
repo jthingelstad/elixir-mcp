@@ -5,15 +5,15 @@
   "request": {
     "tool": "players_summary",
     "arguments": {
-      "player_tag": "#VJG0J29QP"
+      "player_tag": "#0YQYQPLQR"
     }
   },
   "response": {
-    "player_tag": "#VJG0J29QP",
-    "name": "Big Thing",
+    "player_tag": "#0YQYQPLQR",
+    "name": "Oak Birch",
     "clan": {
-      "clan_tag": "#GCYQR9VY",
-      "name": "Ship It!"
+      "clan_tag": "#0GJJ9QJL",
+      "name": "Moon Ox!"
     },
     "trophies": 1360,
     "trophies_as_of": "2026-09-23",

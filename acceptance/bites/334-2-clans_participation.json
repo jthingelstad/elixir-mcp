@@ -5,15 +5,15 @@
   "request": {
     "tool": "clans_participation",
     "arguments": {
-      "clan_tag": "#8UJ2UUJ8",
+      "clan_tag": "#0RYJ8UVL",
       "weeks": 2
     }
   },
   "response": {
-    "clan_tag": "#8UJ2UUJ8",
-    "name": "#MuUuKaNs!!",
+    "clan_tag": "#0RYJ8UVL",
+    "name": "#Hedgehog!!",
     "applied": {
-      "clan_tag": "#8UJ2UUJ8",
+      "clan_tag": "#0RYJ8UVL",
       "weeks": 2,
       "verbosity": "full",
       "window": {
@@ -82,8 +82,8 @@
     "member_count": 49,
     "members": [
       {
-        "player_tag": "#20V8VUPU2",
-        "name": "MuK｜⚡Brembi⚡",
+        "player_tag": "#0VGCCCGYL",
+        "name": "Fox｜🎯Marten🦊",
         "role": "coLeader",
         "joined_observed_at": "2026-09-09T20:12:42.000Z",
         "first_joined_at": "2026-09-09T20:12:42.000Z",
@@ -113,8 +113,8 @@
         "war_days_battled": [0, 2, 0]
       },
       {
-        "player_tag": "#22GVLRLV2",
-        "name": "MuK｜⚡Lacki⚡",
+        "player_tag": "#00CPQG0VQ",
+        "name": "Ram｜🎯Lemur🌟",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -144,8 +144,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#282PUVRLC",
-        "name": "MuK ｜ ⚡️Zine⚡️",
+        "player_tag": "#0PCVRC9P9",
+        "name": "Dew ｜ 🌟Soft🔥",
         "role": "member",
         "joined_observed_at": "2026-09-17T11:17:57.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -175,8 +175,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#292JLG2V0",
-        "name": "MuK｜⚡DIEGO⚡",
+        "player_tag": "#0LLR2V9LY",
+        "name": "Eel｜🏆MAPLE🐢",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -206,8 +206,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#2C0VQLRCV",
-        "name": "MuK｜⚡WhiteSide⚡",
+        "player_tag": "#0P9PQ2YRJ",
+        "name": "Fig｜🎈Porcupine🎈",
         "role": "member",
         "joined_observed_at": "2026-09-23T16:48:04.000Z",
         "first_joined_at": "2026-09-23T16:48:04.000Z",
@@ -237,8 +237,8 @@
         "war_days_battled": [null, null, 0]
       },
       {
-        "player_tag": "#2G8LR0CQL",
-        "name": "MuK｜⚡Dani ❤ 스팸⚡",
+        "player_tag": "#02G908LU8",
+        "name": "Ant｜🔥Deer 🌙 구름🏆",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -268,8 +268,8 @@
         "war_days_battled": [0, 2, 0]
       },
       {
-        "player_tag": "#2GL99Y8U",
-        "name": "MuK｜⚡☠WARRIOR☠⚡",
+        "player_tag": "#0Y0G0G0P",
+        "name": "Dew｜⭐⚡CURIOUS🐢🍀",
         "role": "coLeader",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -299,8 +299,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#2PVYVPQGQ",
-        "name": "MuK｜⚡安之✨Beto⚡",
+        "player_tag": "#0QY0PCVYJ",
+        "name": "Ant｜🐉月🐉Tall🎈",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -330,8 +330,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#2UU9VULR",
-        "name": "MuK｜⚡Mozz0™⚡",
+        "player_tag": "#0UU09YVU",
+        "name": "Cod｜👑Keen1🦊🌟",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -361,8 +361,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#80CL0LLYQ",
-        "name": "MuK｜⚡MiniALE⚡",
+        "player_tag": "#0L2CGCURG",
+        "name": "Hen｜🐉Compass🌊",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -392,8 +392,8 @@
         "war_days_battled": [0, 0, 0]
       },
       {
-        "player_tag": "#88LRLU9V",
-        "name": "MuK｜⚡Mazzpower⚡",
+        "player_tag": "#0LV2PVJV",
+        "name": "Dew｜🌊Butterfly🔥",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -423,8 +423,8 @@
         "war_days_battled": [0, 0, 0]
       },
       {
-        "player_tag": "#88V02GL8",
-        "name": "MuK｜⚡Hopeless⚡",
+        "player_tag": "#0CVLGRLP",
+        "name": "Ant｜🐢Cheerful🔥",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -454,8 +454,8 @@
         "war_days_battled": [0, 2, 0]
       },
       {
-        "player_tag": "#8GYJQ9VQ",
-        "name": "MuK｜⚡Gioespo⚡️",
+        "player_tag": "#0UQV0GYR",
+        "name": "Sun｜⭐Radiant🍉",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -485,8 +485,8 @@
         "war_days_battled": [0, 3, 1]
       },
       {
-        "player_tag": "#8LQRUGY29",
-        "name": "MuK｜⚡DJANGO⚡",
+        "player_tag": "#08GJ90CYG",
+        "name": "Fig｜🔥NIMBLE🦊",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -516,8 +516,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#8QG29CYVV",
-        "name": "MuK｜⚡Mela⚡",
+        "player_tag": "#0VRL92LYJ",
+        "name": "Elk｜🍀Bear🎈",
         "role": "coLeader",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -547,8 +547,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#9CQ8J82",
-        "name": "MuK｜⚡Matthias⚡",
+        "player_tag": "#09RGUPG",
+        "name": "Hen｜🐢Flamingo🌵",
         "role": "member",
         "joined_observed_at": "2026-09-10T07:32:40.000Z",
         "first_joined_at": "2026-09-10T07:32:40.000Z",
@@ -578,8 +578,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#9JJ2PU8L0",
-        "name": "MuK｜⚡爱Ƭσ๓๓վ ⚡",
+        "player_tag": "#08LJ8VGC2",
+        "name": "Elk｜🔥Αστέρι 🌟",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -609,8 +609,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#9L8P0CCQ",
-        "name": "MuK｜⚡A’Mammt⚡",
+        "player_tag": "#0VY2CVJ8",
+        "name": "Oak｜🍀O’Stork🌟",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -640,8 +640,8 @@
         "war_days_battled": [0, 0, 0]
       },
       {
-        "player_tag": "#9V9GJGUYP",
-        "name": "MuK｜⚡Vachry⚡",
+        "player_tag": "#0CPP9P0UR",
+        "name": "Yak｜🌙Osprey🌟",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -671,8 +671,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#CCU9089PU",
-        "name": "MuK｜⚡Alex™⚡",
+        "player_tag": "#0L9VVCRV2",
+        "name": "Oak｜🔥Leaf🍀🍀",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -702,8 +702,8 @@
         "war_days_battled": [0, 4, 1]
       },
       {
-        "player_tag": "#CJ9G8PPPY",
-        "name": "MuK｜⚡MiniAlex™⚡",
+        "player_tag": "#0JV9YVLLC",
+        "name": "Sky｜🍀Spirited🔥🌙",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -733,8 +733,8 @@
         "war_days_battled": [0, 0, 1]
       },
       {
-        "player_tag": "#CURYC29V9",
-        "name": "MuK｜Black Magic",
+        "player_tag": "#00Q2YJ299",
+        "name": "Sky｜Amber Cedar",
         "role": "leader",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -764,8 +764,8 @@
         "war_days_battled": [1, 2, 0]
       },
       {
-        "player_tag": "#CV92R0U9Y",
-        "name": "MuK｜⚡Apache⚡",
+        "player_tag": "#0QYURU2QC",
+        "name": "Sun｜🦊Breeze🎯",
         "role": "member",
         "joined_observed_at": "2026-09-09T20:32:43.000Z",
         "first_joined_at": "2026-09-09T20:32:43.000Z",
@@ -795,8 +795,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#GCLQPCLP",
-        "name": "MuK｜⚡GRP⚡",
+        "player_tag": "#0C2CJL92",
+        "name": "Sun｜🐉EMU🌵",
         "role": "member",
         "joined_observed_at": "2026-09-17T10:57:56.000Z",
         "first_joined_at": "2026-09-07T09:07:40.000Z",
@@ -826,8 +826,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#J0PPLJ",
-        "name": "MuK｜⚡Brembi 2⚡",
+        "player_tag": "#0QYLGL",
+        "name": "Yak｜🏆Meadow 2🦊",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -857,8 +857,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#J8LJU2PPJ",
-        "name": "MuK｜Zlatan 2 ⚡️",
+        "player_tag": "#02CCLQJCL",
+        "name": "Owl｜Silver 6 👑",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -888,8 +888,8 @@
         "war_days_battled": [0, 2, 0]
       },
       {
-        "player_tag": "#JQ02Q0PY",
-        "name": "<c0>⚜️Ａｃｅ",
+        "player_tag": "#0Q09029Q",
+        "name": "<o5>🌟Sün",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -919,8 +919,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#L2Y0VPL2L",
-        "name": "MuK｜⚡Lukiz⚡",
+        "player_tag": "#00CYJ9JCU",
+        "name": "Eel｜👑Eager🍀",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -950,8 +950,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#P0UJC8LJJ",
-        "name": "MuK｜⚡Lucaさん⚡",
+        "player_tag": "#020LY990R",
+        "name": "Hen｜🍀ほし🍀",
         "role": "coLeader",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -981,8 +981,8 @@
         "war_days_battled": [0, 3, 1]
       },
       {
-        "player_tag": "#P8GCJL82R",
-        "name": "MuK｜⚡ALE⚡",
+        "player_tag": "#02CY8VQVY",
+        "name": "Ant｜🌙SUN🐢",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1012,8 +1012,8 @@
         "war_days_battled": [0, 3, 1]
       },
       {
-        "player_tag": "#P8L8P2R9",
-        "name": "MuK｜⚡D Mets⚡",
+        "player_tag": "#0PCQ282P",
+        "name": "Emu｜🍉O Deer🍀",
         "role": "coLeader",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1043,8 +1043,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#PCVRV009",
-        "name": "MuK｜⚡Kakarot⚡",
+        "player_tag": "#0C9PUPLL",
+        "name": "Bee｜🎯Pelican🐉",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1074,8 +1074,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#PL0P2J0U",
-        "name": "MuK｜⚡️Nymeria⚡️",
+        "player_tag": "#0280L80R",
+        "name": "Eel｜🌊Dolphin🌊",
         "role": "coLeader",
         "joined_observed_at": "2026-09-18T07:58:00.000Z",
         "first_joined_at": "2026-09-18T07:58:00.000Z",
@@ -1105,8 +1105,8 @@
         "war_days_battled": [null, 1, 0]
       },
       {
-        "player_tag": "#PVLU2GQQ0",
-        "name": "MuK｜⚡闇Sinapsi闇⚡",
+        "player_tag": "#0LJP0PPRJ",
+        "name": "Sky｜⭐海🍀",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1136,8 +1136,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#PVP0LR2P",
-        "name": "MuK｜Zlatan ⚡️",
+        "player_tag": "#0RR98J9V",
+        "name": "Ram｜Golden 🌊",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1167,8 +1167,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#PVQY2UUU8",
-        "name": "MuK｜⚡Gladiator⚡",
+        "player_tag": "#0GQ98CJRG",
+        "name": "Eel｜🐉Evergreen🐉",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1198,8 +1198,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#PYJ9GJQLP",
-        "name": "MuK｜⚡Lucasさん⚡",
+        "player_tag": "#0CJC89YRU",
+        "name": "Sun｜🌵ほし👑",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1229,8 +1229,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#Q2JUYYLL",
-        "name": "IcBs D0RAN",
+        "player_tag": "#0Q9PYJUP",
+        "name": "Pine FINCH",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1260,8 +1260,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#QLR0VRC",
-        "name": "DarK｜⚡Lil Fymo⚡",
+        "player_tag": "#09YYY2V",
+        "name": "Bear｜🦊Emu Bear⭐",
         "role": "member",
         "joined_observed_at": "2026-09-16T22:07:58.000Z",
         "first_joined_at": "2026-09-16T22:07:58.000Z",
@@ -1291,8 +1291,8 @@
         "war_days_battled": [null, 3, 1]
       },
       {
-        "player_tag": "#R892U8Y0",
-        "name": "MuK｜⚡️Brun 老的⚡️",
+        "player_tag": "#0VJ0JVQU",
+        "name": "Gnu｜🦊Kind 雲👑",
         "role": "coLeader",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1322,8 +1322,8 @@
         "war_days_battled": [0, 3, 1]
       },
       {
-        "player_tag": "#R89JRQ09",
-        "name": "MuK｜⚡ReaperⓇ⚡",
+        "player_tag": "#0VCY8UGQ",
+        "name": "Owl｜🎈MartenⓇ🎯",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1353,8 +1353,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#RPCRYPP9C",
-        "name": "MuK｜⚡️LoriAgos⚡",
+        "player_tag": "#08R00LRG2",
+        "name": "Bee｜🏆Starling🎯",
         "role": "member",
         "joined_observed_at": "2026-09-14T12:37:51.000Z",
         "first_joined_at": "2026-09-14T12:37:51.000Z",
@@ -1384,8 +1384,8 @@
         "war_days_battled": [null, 3, 1]
       },
       {
-        "player_tag": "#UGCQQPJPU",
-        "name": "MuK｜⚡BossReal™⚡",
+        "player_tag": "#0JQPPY2JQ",
+        "name": "Ram｜🌙Cheerful🌟🏆",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1415,8 +1415,8 @@
         "war_days_battled": [0, 3, 1]
       },
       {
-        "player_tag": "#UGUUQGV2",
-        "name": "MuK｜⚡JL ROYAL™⚡",
+        "player_tag": "#02QPRU9L",
+        "name": "Hen｜🍉OX FROST🏆🍀",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1446,8 +1446,8 @@
         "war_days_battled": [0, 3, 1]
       },
       {
-        "player_tag": "#UJ298R9",
-        "name": "MuK｜⚡Sbirro⚡",
+        "player_tag": "#08PQPUU",
+        "name": "Ram｜🎯Bright🌊",
         "role": "member",
         "joined_observed_at": "2026-09-17T13:58:06.000Z",
         "first_joined_at": "2026-09-09T19:52:39.000Z",
@@ -1477,8 +1477,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#V0UV2L",
-        "name": "MuK | ⚡Flavio⚡",
+        "player_tag": "#0LUP08",
+        "name": "Dew | 🦊Cheery🦊",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1508,8 +1508,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#V9VVR2Q",
-        "name": "MattiaOfficial",
+        "player_tag": "#0LVRVQC",
+        "name": "GrasshopperElk",
         "role": "member",
         "joined_observed_at": "2026-09-06T14:37:37.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1539,8 +1539,8 @@
         "war_days_battled": [0, 3, 0]
       },
       {
-        "player_tag": "#Y2YJPYC",
-        "name": "MuK｜⚡alcohol⚡️",
+        "player_tag": "#08C2YRY",
+        "name": "Bee｜👑dolphin🎯",
         "role": "coLeader",
         "joined_observed_at": "2026-09-07T15:07:37.000Z",
         "first_joined_at": "2026-09-07T15:07:37.000Z",
@@ -1570,8 +1570,8 @@
         "war_days_battled": [3, 3, 0]
       },
       {
-        "player_tag": "#Y9YLVPPQY",
-        "name": "Endo™",
+        "player_tag": "#00JQLG8YG",
+        "name": "Deer🌙",
         "role": "member",
         "joined_observed_at": "2026-09-23T22:07:53.000Z",
         "first_joined_at": "2026-09-06T14:37:37.000Z",
@@ -1602,8 +1602,8 @@
       }
     ],
     "notes": [
-      "Rows are today's members, and 43 of them joined after the window began, so their counts include battles from before they belonged to this clan: MuK｜⚡GRP⚡ #GCLQPCLP joined 2026-09-24 with 3 of 12 recorded battles in the window played before joining; MuK｜⚡Hopeless⚡ #88V02GL8 joined 2026-09-24 with 6 of 12 recorded battles in the window played before joining; MuK｜⚡A’Mammt⚡ #9L8P0CCQ joined 2026-09-24 with 30 of 43 recorded battles in the window played before joining; MuK｜⚡Lucasさん⚡ #PYJ9GJQLP joined 2026-09-24 with 2 of 11 recorded battles in the window played before joining; MuK｜⚡MiniAlex™⚡ #CJ9G8PPPY joined 2026-09-23 with 26 of 77 recorded battles in the window played before joining; Endo™ #Y9YLVPPQY joined 2026-09-23 with 30 of 35 recorded battles in the window played before joining; MuK｜⚡安之✨Beto⚡ #2PVYVPQGQ joined 2026-09-23 with 30 of 151 recorded battles in the window played before joining; MuK｜⚡Mazzpower⚡ #88LRLU9V joined 2026-09-23 with 21 of 24 recorded battles in the window played before joining; and 35 more. Members who left since the window began are not listed.",
-      "Battle capture is incomplete for 2 members over this window (profile reads between 2026-09-14 and 2026-09-24), so their recorded battles and last-battle times undercount real play: MuK｜⚡A’Mammt⚡ #9L8P0CCQ (30 of 60, 50%), MuK｜⚡JL ROYAL™⚡ #UGUUQGV2 (251 of 332, 76%). The profile's battle counter rose by the second number while the record captured the first; a low count here is a capture gap, not inactivity (elixir_coverage per tag).",
+      "Rows are today's members, and 43 of them joined after the window began, so their counts include battles from before they belonged to this clan: Sun｜🐉EMU🌵 #0C2CJL92 joined 2026-09-24 with 3 of 12 recorded battles in the window played before joining; Ant｜🐢Cheerful🔥 #0CVLGRLP joined 2026-09-24 with 6 of 12 recorded battles in the window played before joining; Oak｜🍀O’Stork🌟 #0VY2CVJ8 joined 2026-09-24 with 30 of 43 recorded battles in the window played before joining; Sun｜🌵ほし👑 #0CJC89YRU joined 2026-09-24 with 2 of 11 recorded battles in the window played before joining; Sky｜🍀Spirited🔥🌙 #0JV9YVLLC joined 2026-09-23 with 26 of 77 recorded battles in the window played before joining; Deer🌙 #00JQLG8YG joined 2026-09-23 with 30 of 35 recorded battles in the window played before joining; Ant｜🐉月🐉Tall🎈 #0QY0PCVYJ joined 2026-09-23 with 30 of 151 recorded battles in the window played before joining; Dew｜🌊Butterfly🔥 #0LV2PVJV joined 2026-09-23 with 21 of 24 recorded battles in the window played before joining; and 35 more. Members who left since the window began are not listed.",
+      "Battle capture is incomplete for 2 members over this window (profile reads between 2026-09-14 and 2026-09-24), so their recorded battles and last-battle times undercount real play: Oak｜🍀O’Stork🌟 #0VY2CVJ8 (30 of 60, 50%), Hen｜🍉OX FROST🏆🍀 #02QPRU9L (251 of 332, 76%). The profile's battle counter rose by the second number while the record captured the first; a low count here is a capture gap, not inactivity (elixir_coverage per tag).",
       "The boat crossed the finish line early in 136/0 (war day 3), 136/1 (war day 4): decks played on the days after it earned 0 points, so war_points / war_decks is not a rate for those weeks - use war_scoring_decks (full verbosity, up to 6 war weeks) or war_history.scoring_decks.",
       "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
       "war_points per war week is the member's period points (the war_history and war_current `points` figure, the API's periodPoints), never fame.",

@@ -5,14 +5,14 @@
   "request": {
     "tool": "battles_decks",
     "arguments": {
-      "player_tag": "#2P9GRU2Q0",
+      "player_tag": "#090QYUG02",
       "from": "2026-08-31T00:00:00Z",
       "to": "2026-09-06T00:00:00Z"
     }
   },
   "response": {
-    "player_tag": "#2P9GRU2Q0",
-    "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+    "player_tag": "#090QYUG02",
+    "name": "Pélican Çedar🌟",
     "applied": {
       "window": {
         "from": "2026-08-31T00:00:00.000Z",

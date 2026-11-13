@@ -65,6 +65,8 @@ for (const bite of manifest) {
         quiet: true,
         tools,
         recordedFixtures: true,
+        // What each placeholder in the case stood for on the captured day.
+        subjects: bite.subjects ?? null,
       });
       assert.equal(report.cases.length, 1, `one case matches ${bite.case}`);
       assert.equal(

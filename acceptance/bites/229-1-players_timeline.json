@@ -5,14 +5,14 @@
   "request": {
     "tool": "players_timeline",
     "arguments": {
-      "player_tag": "#VJQV8G8RL",
+      "player_tag": "#0RPG0RYRP",
       "progress_key": "seasonal-trophy-road-202609",
       "from": "2026-09-20",
       "to": "2026-09-22"
     }
   },
   "response": {
-    "player_tag": "#VJQV8G8RL",
+    "player_tag": "#0RPG0RYRP",
     "applied": {
       "window": {
         "from": "2026-09-20",

@@ -5,14 +5,14 @@
   "request": {
     "tool": "players_timeline",
     "arguments": {
-      "player_tag": "#YC8LLR8Q2",
+      "player_tag": "#0YUG82UQC",
       "progress_key": "autochess_2026_season_11",
       "from": "2026-09-20",
       "to": "2026-09-22"
     }
   },
   "response": {
-    "player_tag": "#YC8LLR8Q2",
+    "player_tag": "#0YUG82UQC",
     "applied": {
       "window": {
         "from": "2026-09-20",

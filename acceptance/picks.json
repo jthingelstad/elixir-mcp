@@ -1,0 +1,384 @@
+{
+  "$RIVAL_1": {
+    "what": "the second clan in war week 136/0's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 0
+    },
+    "pick": "standings[1].clan_tag"
+  },
+  "$RIVAL_2": {
+    "what": "the fourth clan in war week 136/0's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 0
+    },
+    "pick": "standings[3].clan_tag"
+  },
+  "$RIVAL_3": {
+    "what": "the second clan in war week 135/3's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 135,
+      "section_index": 3
+    },
+    "pick": "standings[1].clan_tag"
+  },
+  "$RIVAL_4": {
+    "what": "the third clan in war week 135/3's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 135,
+      "section_index": 3
+    },
+    "pick": "standings[2].clan_tag"
+  },
+  "$RIVAL_5": {
+    "what": "the third clan in war week 136/0's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 0
+    },
+    "pick": "standings[2].clan_tag"
+  },
+  "$RIVAL_6": {
+    "what": "the fifth clan in war week 136/0's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 0
+    },
+    "pick": "standings[4].clan_tag"
+  },
+  "$RIVAL_7": {
+    "what": "the fourth clan in war week 132/2's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 132,
+      "section_index": 2
+    },
+    "pick": "standings[3].clan_tag"
+  },
+  "$RIVAL_8": {
+    "what": "the second clan in war week 132/2's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 132,
+      "section_index": 2
+    },
+    "pick": "standings[1].clan_tag"
+  },
+  "$RIVAL_9": {
+    "what": "the fifth clan in war week 132/2's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 132,
+      "section_index": 2
+    },
+    "pick": "standings[4].clan_tag"
+  },
+  "$RIVAL_10": {
+    "what": "the second clan in war week 133/3's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 133,
+      "section_index": 3
+    },
+    "pick": "standings[1].clan_tag"
+  },
+  "$RIVAL_11": {
+    "what": "the third clan in war week 133/3's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 133,
+      "section_index": 3
+    },
+    "pick": "standings[2].clan_tag"
+  },
+  "$RIVAL_12": {
+    "what": "the fifth clan in war week 133/3's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 133,
+      "section_index": 3
+    },
+    "pick": "standings[4].clan_tag"
+  },
+  "$RIVAL_13": {
+    "what": "the second clan in war week 134/2's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 134,
+      "section_index": 2
+    },
+    "pick": "standings[1].clan_tag"
+  },
+  "$RIVAL_14": {
+    "what": "the third clan in war week 134/2's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 134,
+      "section_index": 2
+    },
+    "pick": "standings[2].clan_tag"
+  },
+  "$RIVAL_15": {
+    "what": "the fourth clan in war week 134/2's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 134,
+      "section_index": 2
+    },
+    "pick": "standings[3].clan_tag"
+  },
+  "$RIVAL_16": {
+    "what": "the fifth clan in war week 134/2's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 134,
+      "section_index": 2
+    },
+    "pick": "standings[4].clan_tag"
+  },
+  "$RIVAL_17": {
+    "what": "the fourth clan in war week 135/3's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 135,
+      "section_index": 3
+    },
+    "pick": "standings[3].clan_tag"
+  },
+  "$RIVAL_18": {
+    "what": "the fifth clan in war week 135/3's standings",
+    "tool": "war_history",
+    "args": {
+      "season_id": 135,
+      "section_index": 3
+    },
+    "pick": "standings[4].clan_tag"
+  },
+  "$MEMBER_1": {
+    "what": "row 21 of war week 136/1's member_weeks",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "pick": "member_weeks[21].player_tag"
+  },
+  "$MEMBER_2": {
+    "what": "row 11 of war week 136/1's member_weeks",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "pick": "member_weeks[11].player_tag"
+  },
+  "$MEMBER_3": {
+    "what": "row 12 of war week 136/1's member_weeks",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "pick": "member_weeks[12].player_tag"
+  },
+  "$MEMBER_4": {
+    "what": "row 30 of war week 136/1's member_weeks",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "pick": "member_weeks[30].player_tag"
+  },
+  "$MEMBER_5": {
+    "what": "row 8 of the clan's event standings for 2026-09-07 to 09-21",
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "mode": "event"
+    },
+    "pick": "members[8].player_tag"
+  },
+  "$MEMBER_6": {
+    "what": "row 21 of the clan's donations series for 2026-09-14 to 09-19",
+    "tool": "clans_members_series",
+    "args": {
+      "from": "2026-09-14",
+      "to": "2026-09-19",
+      "metrics": ["donations"],
+      "verbosity": "compact"
+    },
+    "pick": "members[21].player_tag"
+  },
+  "$MEMBER_7": {
+    "what": "row 1 of the clan's casual standings for 2026-09-07 to 09-21",
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "mode": "casual"
+    },
+    "pick": "members[1].player_tag"
+  },
+  "$MEMBER_8": {
+    "what": "row 0 of the clan's pre-reset donations series for 2026-09-06 to 09-22",
+    "tool": "clans_members_series",
+    "args": {
+      "from": "2026-09-06",
+      "to": "2026-09-22",
+      "kind": "pre_reset",
+      "metrics": ["donations"]
+    },
+    "pick": "members[0].player_tag"
+  },
+  "$MEMBER_9": {
+    "what": "row 8 of the clan's pre-reset donations series for 2026-09-06 to 09-22",
+    "tool": "clans_members_series",
+    "args": {
+      "from": "2026-09-06",
+      "to": "2026-09-22",
+      "kind": "pre_reset",
+      "metrics": ["donations"]
+    },
+    "pick": "members[8].player_tag"
+  },
+  "$MEMBER_10": {
+    "what": "row 9 of the clan's pre-reset donations series for 2026-09-06 to 09-22",
+    "tool": "clans_members_series",
+    "args": {
+      "from": "2026-09-06",
+      "to": "2026-09-22",
+      "kind": "pre_reset",
+      "metrics": ["donations"]
+    },
+    "pick": "members[9].player_tag"
+  },
+  "$MEMBER_11": {
+    "what": "row 10 of the clan's pre-reset donations series for 2026-09-06 to 09-22",
+    "tool": "clans_members_series",
+    "args": {
+      "from": "2026-09-06",
+      "to": "2026-09-22",
+      "kind": "pre_reset",
+      "metrics": ["donations"]
+    },
+    "pick": "members[10].player_tag"
+  },
+  "$MEMBER_12": {
+    "what": "row 11 of the clan's pre-reset donations series for 2026-09-06 to 09-22",
+    "tool": "clans_members_series",
+    "args": {
+      "from": "2026-09-06",
+      "to": "2026-09-22",
+      "kind": "pre_reset",
+      "metrics": ["donations"]
+    },
+    "pick": "members[11].player_tag"
+  },
+  "$MEMBER_13": {
+    "what": "row 12 of the clan's pre-reset donations series for 2026-09-06 to 09-22",
+    "tool": "clans_members_series",
+    "args": {
+      "from": "2026-09-06",
+      "to": "2026-09-22",
+      "kind": "pre_reset",
+      "metrics": ["donations"]
+    },
+    "pick": "members[12].player_tag"
+  },
+  "$MEMBER_14": {
+    "what": "row 13 of the clan's standings for 2026-09-14 to 09-21 (min_battles 1)",
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "min_battles": 1
+    },
+    "pick": "members[13].player_tag"
+  },
+  "$MEMBER_15": {
+    "what": "row 2 of the clan's standings for 2026-09-14 to 09-21 (min_battles 1)",
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "min_battles": 1
+    },
+    "pick": "members[2].player_tag"
+  },
+  "$MEMBER_16": {
+    "what": "row 1 of war week 136/1's member_weeks",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "pick": "member_weeks[1].player_tag"
+  },
+  "$MEMBER_17": {
+    "what": "row 27 of the clan's donations series for 2026-09-13 to 09-20",
+    "tool": "clans_members_series",
+    "args": {
+      "from": "2026-09-13",
+      "to": "2026-09-20",
+      "metrics": ["donations"],
+      "verbosity": "compact"
+    },
+    "pick": "members[27].player_tag"
+  },
+  "$MEMBER_18": {
+    "what": "row 39 of the clan's donations series for 2026-09-13 to 09-20",
+    "tool": "clans_members_series",
+    "args": {
+      "from": "2026-09-13",
+      "to": "2026-09-20",
+      "metrics": ["donations"],
+      "verbosity": "compact"
+    },
+    "pick": "members[39].player_tag"
+  },
+  "$MEMBER_19": {
+    "what": "the subject of item 0 of the presence timeline for 2026-09-08 to 09-19",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-08T00:00:00Z",
+      "to": "2026-09-19T00:00:00Z",
+      "mark_read": false,
+      "sections": ["presence"],
+      "basis": "observed"
+    },
+    "pick": "timeline[0].subjects[0].tag"
+  },
+  "$MEMBER_20": {
+    "what": "the subject of item 1 of the presence timeline for 2026-09-08 to 09-19",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-08T00:00:00Z",
+      "to": "2026-09-19T00:00:00Z",
+      "mark_read": false,
+      "sections": ["presence"],
+      "basis": "observed"
+    },
+    "pick": "timeline[1].subjects[0].tag"
+  },
+  "$MEMBER_21": {
+    "what": "the subject of item 42 of the presence timeline for 2026-08-25 to 09-24",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-08-25T00:00:00Z",
+      "to": "2026-09-24T00:00:00Z",
+      "mark_read": false,
+      "sections": ["presence"],
+      "basis": "observed"
+    },
+    "pick": "timeline[42].subjects[0].tag"
+  }
+}

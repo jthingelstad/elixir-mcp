@@ -6,7 +6,7 @@
     "tool": "battles_trends",
     "arguments": {
       "segment": {
-        "player_tag": "#P8URQGR2U"
+        "player_tag": "#0C2L90UG9"
       },
       "from": "2026-09-14T10:00:00Z",
       "to": "2026-09-21T10:00:00Z"
@@ -16,7 +16,7 @@
     "applied": {
       "segment": {
         "kind": "player",
-        "player_tag": "#P8URQGR2U"
+        "player_tag": "#0C2L90UG9"
       },
       "window": {
         "from": "2026-09-14T10:00:00.000Z",

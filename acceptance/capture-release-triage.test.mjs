@@ -1,13 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { gym } from "./checks/gym.mjs";
+import { seedSubjects } from "./subjects.mjs";
 
-const run = (id, body) =>
-  gym
-    .find((c) => c.id === id)
-    .run({
-      read: async () => ({ body, isError: Boolean(body.error), ms: 1 }),
-    });
+// The live cases read a clanmate the run resolves; seed one invented tag.
+const run = (id, body) => {
+  const ctx = {
+    read: async () => ({ body, isError: Boolean(body.error), ms: 1 }),
+  };
+  seedSubjects(ctx, { $CLANMATE_2: "#0GRJCUV" });
+  return gym.find((c) => c.id === id).run(ctx);
+};
 
 test("calendar-sensitive progress control follows the newest snapshot, keeping its negative control", async () => {
   const body = {

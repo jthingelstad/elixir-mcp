@@ -4,7 +4,8 @@
  * that cannot be resolved skips its case rather than failing it; a
  * resolved tag never reaches the printed report; and a catalogue refresh
  * writes placeholders, never the tags the audit saw. Every tag below is
- * invented (the `#0RUJ` prefix).
+ * invented (from docs/invented-tags.json); `assertNoFixtureTag` checks
+ * that none of them, in any spelling, reaches a report or a catalogue.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -12,17 +13,43 @@ import { mkdtempSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
+  KINDS,
   mask,
+  PICKS,
+  placeholdersIn,
   redact,
   reportSubjects,
   resolveArgs,
   resolvePlaceholder,
+  seedSubjects,
+  substitute,
 } from "./subjects.mjs";
+import { gymCases } from "./gym-interp.mjs";
 import { buildCatalogueCases } from "./checks/catalogue.mjs";
 import { loadCatalogue, shapeCatalogue, TAG_KEY } from "./catalogue.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { runSuite } from "./run.mjs";
 import { CLAN, JAMIE } from "./lib.mjs";
+
+// Every tag body this file hands the runner, read from its own source, so
+// a fixture added later is checked too. The owner and the clan may appear.
+const FIXTURE_TAGS = [
+  ...new Set(
+    readFileSync(new URL(import.meta.url), "utf8")
+      .match(/(?<=[#"\s])0[0289PYLQGRJCUV]{3,}(?![0-9A-Z])/gi)
+      .map((t) => t.toUpperCase()),
+  ),
+];
+function assertNoFixtureTag(text) {
+  const upper = String(text).toUpperCase();
+  for (const t of FIXTURE_TAGS)
+    assert.ok(!upper.includes(t), `a fixture tag leaked: ${mask(`#${t}`)}`);
+}
+
+test("the leak check knows the fixtures", () => {
+  assert.ok(FIXTURE_TAGS.length >= 4, FIXTURE_TAGS.length);
+  assert.throws(() => assertNoFixtureTag(`x ${FIXTURE_TAGS[0].toLowerCase()}`));
+});
 
 // Relative to the clock: the runner resolves against Date.now().
 const NOW = Date.now();
@@ -91,7 +118,7 @@ test("a collection subject is the first member whose collection answers, bounded
 test("an unknown kind or a roster that does not answer is a reason, not a throw", async () => {
   const ctx = rosterCtx(MEMBERS);
   assert.match(
-    (await resolvePlaceholder(ctx, "$RIVAL_1")).reason,
+    (await resolvePlaceholder(ctx, "$NOBODY_1")).reason,
     /no such placeholder kind/,
   );
   const down = { read: async () => ({ isError: true, body: {} }) };
@@ -162,7 +189,7 @@ test("a failure that echoes a resolved tag is reported with the placeholder", as
   });
   const failed = report.cases.filter((c) => c.error);
   assert.ok(failed.length > 0, "the placeholder set failed against the door");
-  for (const c of failed) assert.doesNotMatch(c.error, /0RUJ/);
+  for (const c of failed) assertNoFixtureTag(c.error);
 });
 
 test("the run keeps full tags only in its local log, mode 0600", () => {
@@ -231,7 +258,7 @@ test("a catalogue refresh names other players by placeholder and drops other tag
   assert.deepEqual(stale, [
     "battles_query: names opponent_tag, which the suite may not name",
   ]);
-  assert.doesNotMatch(JSON.stringify({ shaped, stale }), /0RUJ/);
+  assertNoFixtureTag(JSON.stringify({ shaped, stale }));
 });
 
 test("a refresh reads tags as the shared normalizer does: any spelling is caught", () => {
@@ -303,7 +330,7 @@ test("a refresh reads tags as the shared normalizer does: any spelling is caught
   assert.equal(shaped.tools.battles_performance, undefined);
   assert.equal(shaped.tools.players_search, undefined);
   assert.equal(stale.length, 3);
-  assert.doesNotMatch(JSON.stringify({ shaped, stale }), /0RUJ/i);
+  assertNoFixtureTag(JSON.stringify({ shaped, stale }));
 });
 
 /** Every tag a committed catalogue file spells, in any spelling: a tag
@@ -347,4 +374,219 @@ test("the committed catalogue names no player but the owner and the clan", () =>
     [...catalogueTags({ x: { player_tag: "0rqgvplg" }, q: "see #0u9jvpyg" })],
     ["#0RQGVPLG", "#0U9JVPYG"],
   );
+});
+
+// --- The Gym's subjects: picks, placeholders inside strings, names,
+// followed players and their clans, seeded replays, retired cases.
+
+const RIVAL_A = "#009099JJL8";
+const RIVAL_B = "#009RRP008";
+const FOLLOWED = "#009RVRV2J";
+const FOLLOWED_IDLE = "#009UG9G82J";
+const OTHER_CLAN = "#009UUQYQG";
+
+/** A ctx answering from a table of tool -> body (or a function of args). */
+function tableCtx(table) {
+  const reads = [];
+  return {
+    reads,
+    read: async (tool, args) => {
+      reads.push([tool, args]);
+      const t = table[tool];
+      if (!t) return { isError: true, body: { error: { message: "no" } } };
+      return { body: typeof t === "function" ? t(args) : t, ms: 1 };
+    },
+  };
+}
+
+test("every pick names a frozen read and a path, and only $RIVAL_n or $MEMBER_n", () => {
+  const names = Object.keys(PICKS);
+  assert.ok(names.length > 0);
+  for (const name of names) {
+    assert.match(name, /^\$(RIVAL|MEMBER)_[1-9][0-9]*$/, name);
+    const p = PICKS[name];
+    assert.equal(typeof p.tool, "string", name);
+    assert.equal(typeof p.pick, "string", name);
+    assert.equal(typeof p.what, "string", name);
+    assert.ok(p.args && typeof p.args === "object", name);
+    // No pick names a player or clan of its own: the read is a window.
+    assert.equal(placeholdersIn(p.args).size, 0, name);
+    assertNoFixtureTag(JSON.stringify(p));
+  }
+});
+
+test("every placeholder the Gym runs is a kind or a pick", () => {
+  const gym = JSON.parse(
+    readFileSync(new URL("./gym.json", import.meta.url), "utf8"),
+  );
+  const seen = new Set();
+  for (const b of gym)
+    placeholdersIn({ a: b.args, c: b.calls, s: b.assert, w: b.when }, seen);
+  assert.ok(seen.size > 0);
+  for (const p of seen) {
+    const base = p.replace(/\.name$/, "");
+    const kind = /^\$([A-Z]+)_/.exec(base)[1];
+    assert.ok(PICKS[base] || KINDS[kind], `${p} resolves by no kind or pick`);
+  }
+});
+
+test("a pick reads one position of its answer; a position holding no tag is a reason", async () => {
+  const spec = PICKS.$RIVAL_1;
+  const standings = (n) => ({
+    standings: Array.from({ length: n }, (_, i) => ({
+      clan_tag: i === 1 ? RIVAL_A : RIVAL_B,
+    })),
+  });
+  // Build an answer where the pick's path lands on RIVAL_A, whatever it is.
+  const ctx = tableCtx({ [spec.tool]: standings(10) });
+  const got = await resolvePlaceholder(ctx, "$RIVAL_1");
+  assert.equal(got.reason, undefined, got.reason);
+  assert.ok([RIVAL_A, RIVAL_B].includes(got.tag));
+  assert.deepEqual(ctx.reads, [[spec.tool, spec.args ?? {}]]);
+  const empty = tableCtx({ [spec.tool]: { standings: [] } });
+  assert.match(
+    (await resolvePlaceholder(empty, "$RIVAL_1")).reason,
+    /holds no tag/,
+  );
+  const down = tableCtx({});
+  assert.match(
+    (await resolvePlaceholder(down, "$RIVAL_1")).reason,
+    /did not answer/,
+  );
+});
+
+test("a placeholder inside a string is replaced whole; in a pattern it is escaped", () => {
+  const map = new Map([
+    ["$RIVAL_1", RIVAL_A],
+    ["$RIVAL_10", RIVAL_B],
+    ["$MEMBER_2.name", "a.b (c)"],
+  ]);
+  assert.equal(
+    substitute("r.rivals[?clan_tag=$RIVAL_1].fame", map),
+    `r.rivals[?clan_tag=${RIVAL_A}].fame`,
+  );
+  // $RIVAL_10 is its own placeholder, not $RIVAL_1 followed by a 0.
+  assert.equal(substitute("$RIVAL_10|$RIVAL_1", map), `${RIVAL_B}|${RIVAL_A}`);
+  assert.equal(
+    substitute("^$MEMBER_2.name joined", map, { regex: true }),
+    "^a\\.b \\(c\\) joined",
+  );
+  assert.ok(
+    new RegExp(substitute("$MEMBER_2.name", map, { regex: true })).test(
+      "x a.b (c) y",
+    ),
+  );
+  // Unknown placeholders stay as written.
+  assert.equal(substitute("$NOBODY_1", map), "$NOBODY_1");
+  assert.deepEqual(
+    [...placeholdersIn({ q: "a $RIVAL_1 b", r: ["$MEMBER_2.name"] })].sort(),
+    ["$MEMBER_2.name", "$RIVAL_1"],
+  );
+});
+
+test("$X_n.name is the resolved player's name, from players_names", async () => {
+  const ctx = {
+    ...tableCtx({
+      players_names: (args) => ({
+        names: args.player_tags.map((t) => ({
+          player_tag: t,
+          name: "Invented One",
+        })),
+      }),
+    }),
+  };
+  seedSubjects(ctx, { $CLANMATE_1: FOLLOWED });
+  assert.deepEqual(await resolvePlaceholder(ctx, "$CLANMATE_1.name"), {
+    tag: "Invented One",
+  });
+  const none = tableCtx({ players_names: { names: [] } });
+  seedSubjects(none, { $CLANMATE_1: FOLLOWED });
+  assert.match(
+    (await resolvePlaceholder(none, "$CLANMATE_1.name")).reason,
+    /no name/,
+  );
+});
+
+test("$FRIEND_n is a followed, recorded player outside the clan; $OTHERCLAN_n a followed player's clan that answers", async () => {
+  const players = [
+    { player_tag: JAMIE, clan_tag: CLAN, recording: "active" },
+    { player_tag: FOLLOWED_IDLE, clan_tag: OTHER_CLAN, recording: "paused" },
+    { player_tag: FOLLOWED, clan_tag: OTHER_CLAN, recording: "active" },
+    { player_tag: "#00C298UC", clan_tag: CLAN, recording: "active" },
+  ];
+  const ctx = tableCtx({
+    elixir_my_players: { players },
+    clans_roster: (args) =>
+      args.clan_tag === OTHER_CLAN ? { members: [] } : { error: "no" },
+  });
+  assert.deepEqual(await resolvePlaceholder(ctx, "$FRIEND_1"), {
+    tag: FOLLOWED,
+  });
+  assert.match((await resolvePlaceholder(ctx, "$FRIEND_2")).reason, /1 of 2/);
+  assert.deepEqual(await resolvePlaceholder(ctx, "$OTHERCLAN_1"), {
+    tag: OTHER_CLAN,
+  });
+  // The followed list is read once for the run, whatever asks.
+  const myPlayers = ctx.reads.filter(([t]) => t === "elixir_my_players");
+  assert.ok(myPlayers.length <= 2, myPlayers.length);
+});
+
+test("a seeded subject reads nothing (a bite's replay)", async () => {
+  const ctx = { read: async () => assert.fail("read") };
+  seedSubjects(ctx, { $RIVAL_1: RIVAL_A, $CLANMATE_1: FOLLOWED });
+  assert.deepEqual(await resolvePlaceholder(ctx, "$RIVAL_1"), { tag: RIVAL_A });
+  assert.deepEqual(await resolveArgs(ctx, { player_tag: "$CLANMATE_1" }), {
+    args: { player_tag: FOLLOWED },
+  });
+});
+
+test("a Gym case: resolved inside filters and patterns, SKIPPED when it cannot be, never run when retired", async () => {
+  const blocks = [
+    {
+      id: "9001.1",
+      control: true,
+      tool: "war_history",
+      args: { season_id: 1 },
+      assert: [
+        { has: "standings[?clan_tag=$RIVAL_1].fame" },
+        { notes_match: "$RIVAL_1 finished" },
+      ],
+      note: "prose may name $CLANMATE_9, which is never read",
+    },
+    {
+      id: "9001.2",
+      tool: "war_history",
+      args: { season_id: 1 },
+      assert: [{ has: "x" }],
+      retired: "pinned one player",
+    },
+    {
+      id: "9001.3",
+      tool: "players_summary",
+      args: { player_tag: "$NOBODY_1" },
+      assert: [{ has: "x" }],
+    },
+  ];
+  const [one, retired, unknown] = gymCases(blocks);
+  const ctx = tableCtx({
+    war_history: {
+      standings: [{ clan_tag: RIVAL_A, fame: 10 }],
+      notes: [`${RIVAL_A} finished first`],
+    },
+  });
+  seedSubjects(ctx, { $RIVAL_1: RIVAL_A });
+  const r = await one.run(ctx);
+  assert.equal(r?.skip, undefined, r?.skip);
+  assert.deepEqual(
+    ctx.reads.map(([t]) => t),
+    ["war_history"],
+  );
+  const other = tableCtx({
+    war_history: { standings: [{ clan_tag: RIVAL_B, fame: 10 }], notes: [] },
+  });
+  seedSubjects(other, { $RIVAL_1: RIVAL_A });
+  await assert.rejects(one.run(other));
+  const quiet = { read: async () => assert.fail("read") };
+  assert.match((await retired.run(quiet)).skip, /^RETIRED: pinned one player/);
+  assert.match((await unknown.run(tableCtx({}))).skip, /^SUBJECT: .*NOBODY_1/);
 });
