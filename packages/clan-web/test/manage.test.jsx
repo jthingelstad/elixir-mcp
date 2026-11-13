@@ -233,7 +233,14 @@ describe("standing", () => {
     expect(you.textContent).toMatch(/28 of 28/);
     expect(you.textContent).toMatch(/Season 135, week 4 to Season 135, week 5/);
     expect(screen.getByText("How it works here")).toBeTruthy();
-    expect(screen.getByText(/Clan Wars 100%/)).toBeTruthy();
+    // The rule behind your group is quoted in You and stands in How.
+    expect(screen.getAllByText(/Clan Wars 100%/)).toHaveLength(2);
+    expect(you.textContent).toMatch(/The rule behind this/);
+    const rule = screen.getByRole("link", {
+      name: "Read the rule: Becoming an Elder",
+    });
+    expect(rule.getAttribute("href")).toBe("/clan/2PQRJ8LV/policy#rule-elder");
+    expect(document.getElementById("rule-elder")).toBeTruthy();
     expect(document.querySelector("tr[data-you='true']")).toBeTruthy();
     // A member is not shown the leaders' policy page.
     expect(screen.queryByText(/Read the policy in full/)).toBeNull();

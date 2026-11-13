@@ -205,6 +205,43 @@ describe("policy: separated sections under Run", () => {
     expect(screen.getByLabelText(/^Removal action at/).value).toBe("10");
   });
 
+  test("a changed setting says what the saved policy had, and versions mark the one in use", async () => {
+    const values = {
+      ...defaults(),
+      removal_enabled: true,
+      at_risk_days: 7,
+      confirm_days: 10,
+    };
+    await render({
+      ...view,
+      set: true,
+      current: { set: true, values, version: 2 },
+      versions: [
+        { version: 1, saved_at: "2026-10-01T12:00:00Z", note: "First" },
+        { version: 2, saved_at: "2026-11-01T12:00:00Z", note: null },
+      ],
+    });
+    open("Inactivity");
+    const atRisk = screen.getByLabelText(/^At risk/);
+    expect(document.getElementById("at_risk_days").dataset.changed).toBe(
+      undefined,
+    );
+    fireEvent.change(atRisk, { target: { value: "6" } });
+    const field = document.getElementById("at_risk_days");
+    expect(field.dataset.changed).toBe("true");
+    expect(field.textContent).toMatch(/Was 7 /);
+    expect(atRisk.getAttribute("aria-describedby")).toMatch(
+      /f-at_risk_days-was/,
+    );
+    const bar = document.querySelector(".clan-save");
+    expect(bar.dataset.live).toBe("true");
+    expect(bar.textContent).toMatch(/1 setting changed: At risk/);
+    const rows = [...document.querySelectorAll(".clan-versions__row")];
+    expect(rows.map((r) => r.textContent.slice(0, 2))).toEqual(["v2", "v1"]);
+    expect(rows[0].textContent).toMatch(/In use/);
+    expect(rows[1].textContent).not.toMatch(/In use/);
+  });
+
   test("an unsaved policy shows no can-do box", async () => {
     await render();
     expect(

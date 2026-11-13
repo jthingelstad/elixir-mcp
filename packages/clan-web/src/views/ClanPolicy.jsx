@@ -1,43 +1,18 @@
-import { ErrorState, Panel, useClock } from "@elixir-mcp/ui";
+import { ErrorState, useClock } from "@elixir-mcp/ui";
+import { useEffect } from "react";
 import { clanPath } from "../lib/base.js";
 import { usePolicy } from "../lib/queries.js";
 import { leads } from "../lib/tabs.js";
 import { PageHead } from "../components/PageHead.jsx";
-
-/** Elder's weights as the policy sets them, heaviest first. */
-function Weights({ weights }) {
-  return (
-    <div className="grid gap-3">
-      {weights.map((w) => {
-        const pct = Math.round(w.share * 100);
-        return (
-          <div key={w.key} className="grid gap-1.5">
-            <span className="flex items-baseline gap-2">
-              <span className="grow text-[14px] font-semibold">{w.label}</span>
-              <span className="font-mono text-[15px]">{pct}%</span>
-            </span>
-            <svg
-              className="block w-full h-2 rounded-full overflow-hidden"
-              viewBox="0 0 100 8"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <rect width="100" height="8" className="fill-ground-sunken" />
-              <rect width={pct} height="8" className="fill-accent" />
-            </svg>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+import { HouseRules } from "../components/HouseRules.jsx";
 
 /**
  * Policy, a tab for every member (Clan as one view, slice 8, #766): how the
- * clan runs, in every member's words, the version and who saved it. The
- * policy and its description are public in the clan directory (A2), so this
- * shows no member's standing, clock or hold. Editing it is Run's, for the
- * leader and co-leaders.
+ * clan runs, as its house rules. One card a rule, its numbers big, then the
+ * policy's own sentences; the version and who saved it. The policy and its
+ * description are public in the clan directory (A2), so this shows no
+ * member's standing, clock or hold. Editing it is Run's, for the leader and
+ * co-leaders.
  */
 export function ClanPolicy({ clan, navigate }) {
   const { whenDay } = useClock();
@@ -45,9 +20,17 @@ export function ClanPolicy({ clan, navigate }) {
   const name = clan.name ?? clan.clan_tag;
   const edit = `${clanPath(clan.clan_tag)}/run/about`;
   const lead = leads(clan);
+  // Standing's "Read the rule" lands on its card (`#rule-<key>`).
+  const ready = Boolean(data?.set);
+  useEffect(() => {
+    if (!ready) return;
+    const hash = window.location.hash.slice(1);
+    if (hash.startsWith("rule-"))
+      document.getElementById(hash)?.scrollIntoView?.({ block: "start" });
+  }, [ready]);
   const editLink = lead ? (
     <a
-      className="btn btn--sm"
+      className={data?.set ? "btn" : "btn btn--primary"}
       href={edit}
       onClick={(e) => {
         e.preventDefault();
@@ -75,15 +58,17 @@ export function ClanPolicy({ clan, navigate }) {
     );
   if (!data.set)
     return (
-      <>
+      <div className="grid gap-4">
         <PageHead title={`How ${name} works`} />
-        <p className="page__lede m-0">
-          {lead
-            ? "This clan has no policy yet. Nothing in Clan runs until one is saved: no standing, no suggestions, no removals."
-            : "This clan has no policy yet. Its leader or a co-leader saves one in Elixir, and until then nothing in Clan runs."}
-        </p>
-        {editLink ? <div>{editLink}</div> : null}
-      </>
+        <div className="kit-rule kit-rule--empty">
+          <p className="m-0">
+            {lead
+              ? "This clan has no policy yet. Nothing in Clan runs until one is saved: no standing, no suggestions, no removals."
+              : "This clan has no policy yet. Its leader or a co-leader saves one in Elixir, and until then nothing in Clan runs."}
+          </p>
+          {editLink ? <div>{editLink}</div> : null}
+        </div>
+      </div>
     );
   const current = data.current ?? {};
   const saved = [
@@ -98,37 +83,14 @@ export function ClanPolicy({ clan, navigate }) {
       <PageHead
         title={`How ${name} works`}
         lede="The clan's policy, in words. Every member reads the same, and so does anyone in Elixir's clan directory."
+        fresh={editLink}
       />
-      <Panel aria-labelledby="policy-how">
-        <div className="panel__head">
-          <h3 id="policy-how" className="m-0 grow text-[14px] font-semibold">
-            The policy
-          </h3>
-          {current.version ? (
-            <span className="chip chip--info">policy v{current.version}</span>
-          ) : null}
-        </div>
-        <div className="panel__body grid gap-4">
-          {data.weights?.length ? <Weights weights={data.weights} /> : null}
-          {(data.how ?? []).map((section) => (
-            <div key={section.key} className="grid gap-1">
-              <h4 className="label m-0">{section.title}</h4>
-              {section.lines.map((line) => (
-                <p
-                  key={line}
-                  className="m-0 text-[13.5px] leading-[1.55] text-ink-body"
-                >
-                  {line}
-                </p>
-              ))}
-            </div>
-          ))}
-        </div>
-      </Panel>
-      <div className="flex flex-wrap items-center gap-3">
-        {saved ? <p className="page-head__note m-0">{saved}.</p> : null}
-        {editLink}
-      </div>
+      {saved ? <p className="kit-rules__saved">{saved}.</p> : null}
+      <HouseRules
+        how={data.how}
+        values={current.values ?? null}
+        weights={data.weights}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { holdWords } from "../components/YouHereCard.jsx";
 import { ReportThis } from "../components/ReportThis.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { MemberLink } from "../components/MemberLink.jsx";
+import { HouseRules, ruleId, ruleTitle } from "../components/HouseRules.jsx";
 import { RoleChip } from "../components/RoleChip.jsx";
 
 /** Each group as the canvas draws it: its chip, the 3px bar on its head
@@ -164,9 +165,9 @@ function Group({ status, rows, you, war, clan, navigate }) {
   );
 }
 
-/** How the clan runs, from its policy: what Elder weighs (as bars, when
- *  Elder is ranked) and every section in a member's words. A leader can
- *  open the policy itself. */
+/** How the clan runs, from its policy: its house rules, each card the
+ *  policy's own sentences (and what Elder weighs, as bars, when Elder is
+ *  ranked). A leader can open the policy itself. */
 function How({ d, clan, who, navigate }) {
   const policy = `${clanPath(clan.clan_tag)}/run/about`;
   return (
@@ -179,50 +180,8 @@ function How({ d, clan, who, navigate }) {
           <span className="chip chip--info">policy v{d.policy_version}</span>
         ) : null}
       </div>
-      <div className="panel__body grid gap-4">
-        {d.weights?.length ? (
-          <div className="grid gap-3 pb-4">
-            {d.weights.map((w) => {
-              const pct = Math.round(w.share * 100);
-              return (
-                <div key={w.key} className="grid gap-1.5">
-                  <span className="flex items-baseline gap-2">
-                    <span className="grow text-[14px] font-semibold">
-                      {w.label}
-                    </span>
-                    <span className="font-mono text-[15px]">{pct}%</span>
-                  </span>
-                  <svg
-                    className="block w-full h-2 rounded-full overflow-hidden"
-                    viewBox="0 0 100 8"
-                    preserveAspectRatio="none"
-                    aria-hidden="true"
-                  >
-                    <rect
-                      width="100"
-                      height="8"
-                      className="fill-ground-sunken"
-                    />
-                    <rect width={pct} height="8" className="fill-accent" />
-                  </svg>
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
-        {d.how.map((section) => (
-          <div key={section.key} className="grid gap-1">
-            <h3 className="label m-0">{section.title}</h3>
-            {section.lines.map((line) => (
-              <p
-                key={line}
-                className="m-0 text-[13.5px] leading-[1.55] text-ink-body"
-              >
-                {line}
-              </p>
-            ))}
-          </div>
-        ))}
+      <div className="panel__body">
+        <HouseRules how={d.how} weights={d.weights} />
       </div>
       {LEADERS.has(who?.role) ? (
         <div className="panel__foot">
@@ -242,9 +201,55 @@ function How({ d, clan, who, navigate }) {
   );
 }
 
+/** Which of the policy's rules put a member where they are: Elder's for
+ *  the Elder groups, the minimums for Participating and Quiet (the two
+ *  differ only in passing them), the inactivity rule while the clock is
+ *  running. */
+export function ruleFor(you) {
+  if (you.inactivity) return "removal";
+  if (["holding", "slipping", "rising"].includes(you.status)) return "elder";
+  if (["participating", "quiet"].includes(you.status)) return "minimums";
+  return null;
+}
+
+/** The one sentence of that rule that speaks to the group: Elder's
+ *  promotion and step-down line, or the rule's first line. */
+function ruleLine(section, status) {
+  if (section.key === "elder" && status !== null) {
+    const line = section.lines.find((l) => /promotion needs/.test(l));
+    if (line) return line;
+  }
+  return section.lines[0];
+}
+
+/** The rule behind your group: its sentence and a way to the whole rule. */
+function WhyHere({ you, how, clan, navigate }) {
+  const key = ruleFor(you);
+  const section = key ? (how ?? []).find((s) => s.key === key) : null;
+  if (!section?.lines?.length) return null;
+  const to = `${clanPath(clan.clan_tag)}/policy`;
+  return (
+    <div className="kit-why">
+      <span className="kit-why__label">The rule behind this</span>
+      <p className="kit-why__line">{ruleLine(section, you.status)}</p>
+      <a
+        className="kit-why__link"
+        href={`${to}#${ruleId(key)}`}
+        onClick={(e) => {
+          if (!navigate) return;
+          e.preventDefault();
+          navigate(to, { hash: ruleId(key) });
+        }}
+      >
+        Read the rule: {ruleTitle(section)}
+      </a>
+    </div>
+  );
+}
+
 /** Your own line: your group (or your role, when the policy does not band
  *  you), your war decks per race, the evidence and what would move it. */
-function You({ you, who }) {
+function You({ you, who, how, clan, navigate }) {
   const war = points(you.war);
   const played = war.reduce((n, p) => n + (p.value ?? 0), 0);
   const asked = war.reduce((n, p) => n + p.of, 0);
@@ -294,6 +299,9 @@ function You({ you, who }) {
           </div>
         ) : null}
         {you.hold ? <div className="notice">{holdWords(you.hold)}</div> : null}
+        {LEADERS.has(who?.role) ? null : (
+          <WhyHere you={you} how={how} clan={clan} navigate={navigate} />
+        )}
       </div>
       {war.length ? (
         <div className="panel__foot text-[12.5px] text-ink-faint">
@@ -393,7 +401,9 @@ export function Standing({ clan, who, navigate, fromRun = false }) {
   ]).filter(([, rows]) => rows.length);
   const war = groups.some(([, rows]) => rows.some((r) => r.war?.length));
   const how = <How d={d} clan={clan} who={who} navigate={navigate} />;
-  const you = d.you ? <You you={d.you} who={who} /> : null;
+  const you = d.you ? (
+    <You you={d.you} who={who} how={d.how} clan={clan} navigate={navigate} />
+  ) : null;
   return (
     <>
       {head}
