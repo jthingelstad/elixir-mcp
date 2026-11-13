@@ -955,6 +955,9 @@ export const DEPLOY_PHASES = [
     // connections, so the run is paced (acceptance/run.mjs PACE) and
     // refused under the headroom floor (lib/db-headroom.mjs), read in
     // the account phase and again here; at most one run per train.
+    // The gate is contracts, identities, budgets, the catalogue and
+    // ground: the Gym's regression pass (666 of 800 cases) left it the
+    // same day and no deploy runs it (acceptance/run.mjs --gym).
     name: "acceptance",
     async run(d) {
       const acceptanceEnv =

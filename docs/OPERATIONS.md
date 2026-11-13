@@ -120,6 +120,12 @@ ledger should drain, and both doors should serve.
   balance from 89% to 0 in seven hours; at 0 the database dropped
   connections and the doors answered 5xx. A whole-suite run had cost 10
   to 15 points (29 at worst), a family 4 to 7.
+  Those costs were measured while the gate still ran the Gym's
+  regression pass, 666 of its 800 cases. It left the gate the same day
+  (Jamie: it "should only be used for extensive testing in gym
+  sessions"): `--acceptance` no longer runs it, and
+  `node acceptance/run.mjs --gym` runs it alone, paced, in a Gym
+  session. The gate's own cost has not been measured since.
 - **The database.** db.t4g.micro again since 2026-10-08. Its limit is
   `EBSByteBalance%` (no alarm since 2026-11-03): a heavy batch, a
   Gym sweep or a full acceptance gate can drain it, so space them. On

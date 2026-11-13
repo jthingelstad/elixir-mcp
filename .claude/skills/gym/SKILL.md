@@ -180,6 +180,11 @@ Gym runs are read-only, so they may run while you fix another family.
      for a change to shared code (protocol, tools.mjs, shared.mjs,
      ingest). On 2026-09-23 a full gate on every deploy, plus the Gym
      runs, drained the database's EBS byte balance in one afternoon.
+     Since 2026-11-13 no deploy runs the Gym's own blocks: the gate is
+     the other suites. Run the regression pass yourself, once per
+     session, narrowed to the family: `node acceptance/run.mjs --gym
+     --family <family>` (paced; check the database's byte balance
+     first).
      A change to a tool follows `/tool-change`.
    - Answer each item with `{feedback_respond}`, `done` naming the version,
      following `docs/OPERATIONS.md`, "Feedback" (a compare-and-set, then a
