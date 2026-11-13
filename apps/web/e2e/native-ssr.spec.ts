@@ -97,6 +97,10 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
   page,
   request,
 }) => {
+  // Nine server renders and nine navigations in one test, the first render
+  // cold: 30s ran out on a loaded machine (14s for the first document,
+  // 2026-11-13), as responsive-reflow's sequences do.
+  test.slow();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
