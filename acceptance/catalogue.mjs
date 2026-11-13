@@ -26,34 +26,60 @@ import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
-import { TOOL_GROUPS } from "@elixir-mcp/contracts";
+import { TOOL_GROUPS, normalizeTag } from "@elixir-mcp/contracts";
 import { makeRegistry } from "../packages/tools/src/tools.mjs";
 import { validateArgs } from "../packages/tools/src/validate.mjs";
 import { CLAN, JAMIE } from "./lib.mjs";
 import { canonical } from "./replay.mjs";
 import { placeholdersIn, substitute } from "./subjects.mjs";
 
-/** Tag-shaped: the CR alphabet after a hash. */
-const TAG = /^#[0289PYLQGRJCUV]{3,14}$/;
 /** The only tags a committed file may name (many players are minors). */
 const NAMEABLE = new Set([JAMIE, CLAN]);
+/** An argument that carries a tag: `player_tag`, `opponent_tag`, `tags`. */
+export const TAG_KEY = /(^|_)tags?$/i;
+/** A tag inside free text (a path, a query), in any case. */
+const EMBEDDED = /#[0289PYLQGRJCUVO]{3,12}\b/gi;
+
+/** The canonical tag a value spells, through the one shared normalizer
+ *  (missing hash, lowercase, the letter O, whitespace), or null. */
+function asTag(value) {
+  try {
+    return normalizeTag(value);
+  } catch {
+    return null;
+  }
+}
 
 /** A set's arguments with every other player named by a placeholder
  *  (`$CLANMATE_n`, resolved at run time by subjects.mjs), numbered in the
  *  order the refresh meets them so one player keeps one placeholder
- *  across sets. A tag anywhere else (another clan, an opponent) has no
- *  run-time source: the set is dropped with that reason. */
+ *  across sets. Tags are compared as the shared normalizer reads them,
+ *  so `20jjj2ccru` is the owner and a bare, lowercase spelling of anyone
+ *  else is still caught. A tag anywhere else (another clan, an opponent,
+ *  inside free text) has no run-time source: the set is dropped. */
 export function withoutRealTags(args, players) {
   let dropped = null;
   const walk = (value, key) => {
-    if (typeof value === "string" && TAG.test(value) && !NAMEABLE.has(value)) {
-      if (key !== "player_tag") {
-        dropped = `names ${key}, which the suite may not name`;
+    if (typeof value === "string" && !value.startsWith("$")) {
+      const tag = TAG_KEY.test(key ?? "") ? asTag(value) : null;
+      if (tag) {
+        if (NAMEABLE.has(tag)) return tag;
+        if (key !== "player_tag") {
+          dropped = `names ${key}, which the suite may not name`;
+          return value;
+        }
+        if (!players.has(tag))
+          players.set(tag, `$CLANMATE_${players.size + 1}`);
+        return players.get(tag);
+      }
+      const embedded = (value.match(EMBEDDED) ?? [])
+        .map(asTag)
+        .filter((t) => t && !NAMEABLE.has(t));
+      if (embedded.length) {
+        dropped = `names a tag in ${key ?? "an argument"}, which the suite may not name`;
         return value;
       }
-      if (!players.has(value))
-        players.set(value, `$CLANMATE_${players.size + 1}`);
-      return players.get(value);
+      return value;
     }
     if (Array.isArray(value)) return value.map((v) => walk(v, key));
     if (value && typeof value === "object")

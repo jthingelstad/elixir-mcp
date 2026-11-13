@@ -19,7 +19,8 @@ import {
   resolvePlaceholder,
 } from "./subjects.mjs";
 import { buildCatalogueCases } from "./checks/catalogue.mjs";
-import { loadCatalogue, shapeCatalogue } from "./catalogue.mjs";
+import { loadCatalogue, shapeCatalogue, TAG_KEY } from "./catalogue.mjs";
+import { normalizeTag } from "@elixir-mcp/contracts";
 import { runSuite } from "./run.mjs";
 import { CLAN, JAMIE } from "./lib.mjs";
 
@@ -233,14 +234,117 @@ test("a catalogue refresh names other players by placeholder and drops other tag
   assert.doesNotMatch(JSON.stringify({ shaped, stale }), /9VV9/);
 });
 
+test("a refresh reads tags as the shared normalizer does: any spelling is caught", () => {
+  const stale = [];
+  const shaped = shapeCatalogue(
+    {
+      days: 7,
+      per_tool: 3,
+      timing: [],
+      sets: [
+        {
+          tool: "players_summary",
+          args: { player_tag: "#9VV9GGGG" },
+          calls: 1,
+        },
+        { tool: "players_summary", args: { player_tag: "9vv9gggg" }, calls: 1 },
+        {
+          tool: "players_summary",
+          args: { player_tag: " #9vv9jjjj " },
+          calls: 1,
+        },
+        {
+          tool: "players_summary",
+          args: { player_tag: "20jjj2ccru" },
+          calls: 1,
+        },
+        {
+          tool: "battles_query",
+          args: { player_tag: JAMIE, opponent_tag: "9vv9llll" },
+          calls: 1,
+        },
+        {
+          tool: "battles_performance",
+          args: { segment: { clan_tag: "9vv9cccc" } },
+          calls: 1,
+        },
+        {
+          tool: "players_search",
+          args: { query: "who is #9vv9cccc" },
+          calls: 1,
+        },
+      ],
+    },
+    [
+      {
+        name: "players_summary",
+        inputSchema: { properties: { player_tag: {} } },
+      },
+      {
+        name: "battles_query",
+        inputSchema: { properties: { player_tag: {}, opponent_tag: {} } },
+      },
+      {
+        name: "battles_performance",
+        inputSchema: { properties: { segment: {} } },
+      },
+      { name: "players_search", inputSchema: { properties: { query: {} } } },
+    ],
+    { stale },
+  );
+  // The bare lowercase spelling is the same player as the canonical one;
+  // the owner in any spelling stays the owner.
+  assert.deepEqual(shaped.tools.players_summary.sets, [
+    { args: { player_tag: "$CLANMATE_1" }, calls: 2 },
+    { args: { player_tag: "$CLANMATE_2" }, calls: 1 },
+    { args: { player_tag: JAMIE }, calls: 1 },
+  ]);
+  assert.equal(shaped.tools.battles_query, undefined);
+  assert.equal(shaped.tools.battles_performance, undefined);
+  assert.equal(shaped.tools.players_search, undefined);
+  assert.equal(stale.length, 3);
+  assert.doesNotMatch(JSON.stringify({ shaped, stale }), /9VV9/i);
+});
+
+/** Every tag a committed catalogue file spells, in any spelling: a tag
+ *  argument's value through the shared normalizer, and any hashed tag in
+ *  free text. */
+function catalogueTags(value, key = null, out = new Set()) {
+  if (typeof value === "string") {
+    if (value.startsWith("$")) return out;
+    if (TAG_KEY.test(key ?? "")) {
+      try {
+        out.add(normalizeTag(value));
+      } catch {
+        // not a tag
+      }
+    }
+    for (const m of value.match(/#[0289PYLQGRJCUVO]{3,12}\b/gi) ?? [])
+      try {
+        out.add(normalizeTag(m));
+      } catch {
+        // not a tag
+      }
+  } else if (Array.isArray(value))
+    for (const v of value) catalogueTags(v, key, out);
+  else if (value && typeof value === "object")
+    for (const [k, v] of Object.entries(value)) catalogueTags(v, k, out);
+  return out;
+}
+
 test("the committed catalogue names no player but the owner and the clan", () => {
-  const text =
-    JSON.stringify(loadCatalogue()) +
-    readFileSync(new URL("./catalogue-seed.json", import.meta.url), "utf8");
-  const tags = new Set(text.match(/#[0289PYLQGRJCUV]{3,14}\b/g) ?? []);
+  const seed = JSON.parse(
+    readFileSync(new URL("./catalogue-seed.json", import.meta.url), "utf8"),
+  );
+  const tags = catalogueTags([loadCatalogue(), seed]);
   assert.deepEqual(
     [...tags].filter((t) => t !== JAMIE && t !== CLAN),
     [],
     "a real tag in the catalogue: use a placeholder (subjects.mjs)",
+  );
+  assert.ok(tags.has(JAMIE), "the walk reads the catalogue's tags");
+  assert.deepEqual(
+    [...catalogueTags({ x: { player_tag: "9vv9gggg" }, q: "see #9vv9jjjj" })],
+    ["#9VV9GGGG", "#9VV9JJJJ"],
   );
 });
