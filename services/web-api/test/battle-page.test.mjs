@@ -377,6 +377,18 @@ test("a deck is null only where the stored row holds no cards", async () => {
   }
 });
 
+test("scoreOf: a tally over only some games is never the score", () => {
+  // Codex on #946: one known winner of three is not a 1-0 series.
+  assert.deepEqual(
+    scoreOf({ outcome: "win", crowns: 3 }, { outcome: "loss", crowns: 1 }, [
+      { winner: "left" },
+      { winner: null },
+      { winner: null },
+    ]),
+    { left: 3, right: 1, unit: "crowns" },
+  );
+});
+
 test("scoreOf: games won only where they agree with the recorded result", () => {
   const games = [{ winner: "left" }, { winner: "right" }, { winner: "right" }];
   // The games say right, the record says left won: the crowns lead.

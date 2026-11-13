@@ -112,13 +112,15 @@ function roundWinner(a, b) {
 }
 
 /** The score the page leads with. A duel's is the games each side won,
- *  when the games' results are recorded and agree with the battle's
+ *  when every game's result is recorded and they agree with the battle's
  *  recorded outcome; otherwise the crowns, which for a duel are summed
  *  over its games (`unit` says which). The page, its preview and its
  *  picture all print this one score, so none of them can contradict the
  *  result the record holds. */
 export function scoreOf(left, right, games) {
-  if (games) {
+  // Every game needs a result: a tally over some of them is not the
+  // series score, even when it points the same way as the outcome.
+  if (games?.length && games.every((g) => g.winner)) {
     const won = (w) => games.filter((g) => g.winner === w).length;
     const l = won("left");
     const r = won("right");
