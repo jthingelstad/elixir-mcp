@@ -29,7 +29,7 @@ The page leads with the player's game name, tag, clan and trophies. Under it:
 
 A sitting on the Timeline tab looks as it does on Home: its small bar chart
 of wins and losses, its battles, won and lost, the trophies it moved and the
-deck played most, and **View games**, which opens its battles in place
+deck played most, and **Open session**, which opens its battles in place
 ([Your timeline](/docs/timeline)). You's Timeline is the same.
 
 An item on the Timeline, Highlights or Moments tab takes a cheer, with its
