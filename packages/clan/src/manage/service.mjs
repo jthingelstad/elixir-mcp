@@ -539,7 +539,7 @@ export function createManageService({
     shapeAction,
     logsByCard,
   } = createActionStore({ ledger, now });
-  // What the clan shares with Elixir as attested facts (door 3).
+  // What the clan records in Elixir as attested facts.
   const sharing = createSharing({ ledger, record, logAction });
 
   /** A removal the member's leave closed points at the departure that now
@@ -2257,7 +2257,7 @@ export function createManageService({
       return { mailed: outcome.sent ?? 0, mail: outcome };
     },
 
-    // ---- what the clan records in Elixir (door 3): read-only ---------------
+    // ---- what the clan records in Elixir: read-only ------------------------
     sharingView: (clanTag, who) => sharing.view(clanTag, who),
 
     // ---- holds -----------------------------------------------------------

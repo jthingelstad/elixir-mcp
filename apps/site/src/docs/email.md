@@ -77,7 +77,7 @@ own news. A clanmate you follow who left the clan is told in the clan's
 part, not again under them. A clan's battle count and who went quiet are
 on [Clan](/docs/clan-week), not in the mail.
 
-What an app attests (Clan's departures, roles, awards and messages,
+What is attested (Clan's departures, roles, awards and messages,
 Drop's personal records) stays out of the digest; the timeline still
 carries them to their readers. Anything a person typed, a name, a
 nickname or a highlight's words, is shown as text.

@@ -624,7 +624,7 @@ export async function sessions(databaseUrl) {
  * ({explain_participation: {clan_tag, weeks}}), read-only. The SQL is
  * the tool's own (packages/record/src/participation-sql.mjs), so the
  * plan read here is the plan being served. Added 2026-09-13 when every
- * slow page in Elixir Clan turned out to be this one call (8.7 s for a
+ * slow page in Clan turned out to be this one call (8.7 s for a
  * week, 20 s for eight) and there was no other way to see why.
  */
 export async function explainParticipation(databaseUrl, spec = {}) {
@@ -773,7 +773,7 @@ const VACUUMABLE = new Set([
  * VACUUM (ANALYZE) one named table ({vacuum: {table}}), so its
  * visibility map is rebuilt and the planner can take an index-only scan
  * again. Added 2026-09-16 when battle_participant had relallvisible = 0
- * after the 0091-0100 backfills and every Elixir Clan page paid 7 s of
+ * after the 0091-0100 backfills and every Clan page paid 7 s of
  * heap I/O for it (0103 has the story). VACUUM cannot run inside a
  * migration's transaction, hence an op. Reports the map before and
  * after; touches no row.

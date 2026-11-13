@@ -4,7 +4,7 @@ import { TagText } from "./Tag.tsx";
 
 /**
  * Send feedback from where you are (2026-10-08, feedback is one system):
- * the same sheet in the Console, Ladder and Elixir Clan, filing one
+ * the same sheet in the Console, Ladder and Clan, filing one
  * record. The page says which part of Elixir it is (`area`) and what the
  * note is about (`refs`: a clan action, an award, a player...), so the
  * person writes only what they think; the place rides along. The kit

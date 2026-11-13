@@ -562,7 +562,7 @@ html[data-session="in"] [data-session-face="out"] {
 }
 
 /* The feedback sheet (2026-10-08): one modal for sending feedback from
-   any page, Console, Ladder or Elixir Clan. A panel in a native dialog,
+   any page, Console, Ladder or Clan. A panel in a native dialog,
    so Escape and the focus trap are the browser's. */
 .feedback-sheet {
   width: min(560px, calc(100vw - 32px));

@@ -83,7 +83,7 @@ export function feedbackRoutes({
       }
     },
 
-    // Every signed-in page files here: the Console, Ladder, Elixir Clan,
+    // Every signed-in page files here: the Console, Ladder, Clan,
     // the docs and the email record. `area` is the part of Elixir it is
     // about; `refs` what it points at (a call, an email, a player, a
     // clan action...). request_id and send_id are the pages' older

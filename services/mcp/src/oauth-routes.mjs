@@ -13,7 +13,7 @@
  * only once it holds a code it could not have; the email step's page is
  * the same for every address (never an email oracle).
  *
- * The family's own provisioned clients (Elixir Drop, Elixir Clan) sign a
+ * The family's own provisioned clients (Elixir Drop) sign a
  * person in with no consent page (Jamie, 2026-10-12: "Consent to what? I
  * think no."): they get exactly what they asked for, never a box.
  *
@@ -23,8 +23,9 @@
  * cookie-free): a person signed in to elixir.poapkings.com is shown the
  * consent page with no code to fetch, and a person who consents by code
  * is signed in to the site on the way out. Every consent used to cost a
- * trip to the inbox, whoever you were; connecting the family's own
- * products (Elixir Clan, Elixir Drop) made that a daily tax.
+ * trip to the inbox, whoever you were; signing in to the family's own
+ * products (Drop, and Clan while it still signed in on its own) made that
+ * a daily tax. Clan is part of Elixir now and uses the session itself.
  *
  * CSP on these pages keeps form-action https: — 'self' alone silently
  * blocks the consent redirect in Chromium (librarian's shipped trap).

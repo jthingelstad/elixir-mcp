@@ -2,7 +2,7 @@
  * The SQL behind clans_participation, in one place: the tool runs it and
  * the migrate Lambda's `explain_participation` diagnostic EXPLAIN
  * ANALYZEs it, so the plan being read is the plan being served. Every
- * slow page in Elixir Clan is one call to this tool (live, 2026-09-13:
+ * slow page in Clan is one call to this tool (live, 2026-09-13:
  * 8.7 s for one week, 20 s for eight), and without a psql path the plan
  * is the only way to see which of these is the one.
  *

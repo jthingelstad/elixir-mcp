@@ -2214,7 +2214,7 @@ test("season: a mismatched recorded clan is refused rather than projected", asyn
   assert.equal(r.body.seasons, undefined);
 });
 
-// ---- sharing with Elixir (door 3) ----------------------------------------------
+// ---- what the clan records in Elixir -------------------------------------------
 
 test("sharing: always on, nothing to switch; a completed promotion is shared as a clan decision, logged, and answered", async () => {
   const h = harness({ part: partClan() });

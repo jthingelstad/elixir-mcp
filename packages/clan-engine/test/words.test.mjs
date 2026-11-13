@@ -388,7 +388,7 @@ test("departure drafts need a leader's confirmation and ask by its classificatio
     );
 });
 
-test("Elixir Clan chooses each use's model: the 5.5 generation, in the purpose's order", () => {
+test("Clan chooses each use's model: the 5.5 generation, in the purpose's order", () => {
   // Every use has an ordered list, and only of the 5.5 generation (Jamie,
   // 2026-10-11): an older model is never a fallback.
   assert.deepEqual(Object.keys(MODEL_FOR), Object.keys(PURPOSES));
