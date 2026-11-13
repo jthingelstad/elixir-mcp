@@ -48,7 +48,7 @@ const ELDER_TAG = "#0Q0L80CC";
 const LEFT_TAG = "#0UY8VUR9";
 const OUTSIDER_TAG = "#0LUCVCJV";
 
-let db, handler, clan, accounts;
+let db, handler, familyApp, accounts;
 const request = (method, path, body, token) =>
   handler({
     path,
@@ -102,7 +102,7 @@ async function person(label, tag, role) {
     );
   return id;
 }
-const grant = async (accountId, scope, client = clan) =>
+const grant = async (accountId, scope, client = familyApp) =>
   (
     await mintTokens(db, {
       clientId: client.clientId,
@@ -120,13 +120,13 @@ before(async () => {
   await db.query("insert into clan(clan_tag,name) values ($1,'Example Clan')", [
     CLAN,
   ]);
-  clan = await familyClient(
+  familyApp = await familyClient(
     db,
     {
-      clientName: "Elixir Clan",
-      redirectUris: ["https://elixir.poapkings.com/api/clan/auth/callback"],
+      clientName: "Test family app",
+      redirectUris: ["https://elixir.poapkings.com/family-test/callback"],
     },
-    "clan",
+    "family-test",
   );
   accounts = {
     leader: await person("leader", LEADER_TAG, "leader"),

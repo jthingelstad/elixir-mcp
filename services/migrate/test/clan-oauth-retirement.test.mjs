@@ -5,8 +5,14 @@ import { familyClientsOn } from "../src/ops-family-clients.mjs";
 import { getClient } from "@elixir-mcp/auth";
 let scratch;
 const clanId = "clan-retire-client-000001",
-  dropId = "drop-keep-client-000001",
-  digest = "a".repeat(64);
+  dropId = "drop-keep-client-000001";
+const familyRow = async (client) =>
+  (
+    await scratch.db.query(
+      "select app from family_oauth_client where client_id=$1",
+      [client],
+    )
+  ).rows[0]?.app ?? null;
 before(async () => {
   scratch = await scratchDb("clan_oauth_retirement");
   const db = scratch.db;
@@ -39,7 +45,7 @@ before(async () => {
   }
 });
 after(async () => scratch?.drop());
-test("Clan auth retirement previews and refuses another app, stale client, disabled runtime or missing import", async () => {
+test("Clan's client retirement previews, and refuses another app or a stale client id", async () => {
   const spec = { retire_app: { app: "clan", expected_client_id: clanId } };
   assert.equal(
     (await familyClientsOn(scratch.db, spec)).retire_app.applied,
@@ -47,34 +53,30 @@ test("Clan auth retirement previews and refuses another app, stale client, disab
   );
   assert.ok(await getClient(scratch.db, clanId));
   for (const body of [
-    { ...spec.retire_app, app: "drop" },
-    { ...spec.retire_app, expected_client_id: "stale" },
-    { ...spec.retire_app, apply: true, snapshot_sha256: digest },
+    { ...spec.retire_app, app: "drop", apply: true },
+    { ...spec.retire_app, expected_client_id: "stale", apply: true },
+    { ...spec.retire_app, expected_client_id: dropId, apply: true },
   ])
     await assert.rejects(familyClientsOn(scratch.db, { retire_app: body }));
+  assert.equal(await familyRow(clanId), "clan", "a preview writes nothing");
+  assert.equal(await familyRow(dropId), "drop");
+});
+
+test("Clan is never provisioned as a family app again", async () => {
   await assert.rejects(
     familyClientsOn(scratch.db, {
-      retire_app: {
-        ...spec.retire_app,
-        apply: true,
-        snapshot_sha256: digest,
+      provision: {
+        app: "clan",
+        client_name: "Clan",
+        redirect_uris: ["https://elixir.poapkings.com/clan"],
       },
     }),
-    /receipt/,
+    /part of Elixir/,
   );
 });
-test("after checked import, retirement expires only Clan and revokes its grants and unused codes once", async () => {
-  await scratch.db.query(
-    "insert into clan_state_import(snapshot_sha256,item_count,kinds) values($1,0,'{}')",
-    [digest],
-  );
+test("retirement expires only Clan's client, revokes its grants and unused codes, and deletes its family row once", async () => {
   const spec = {
-    retire_app: {
-      app: "clan",
-      expected_client_id: clanId,
-      snapshot_sha256: digest,
-      apply: true,
-    },
+    retire_app: { app: "clan", expected_client_id: clanId, apply: true },
   };
   const result = await familyClientsOn(scratch.db, spec);
   assert.equal(result.retire_app.grants, 1);
@@ -115,7 +117,19 @@ test("after checked import, retirement expires only Clan and revokes its grants 
     ).rows[0].used,
     false,
   );
-  assert.equal((await familyClientsOn(scratch.db, spec)).retire_app.grants, 0);
+  assert.equal(await familyRow(clanId), null, "Clan is no family app");
+  assert.equal(await familyRow(dropId), "drop", "Drop keeps its client");
+  assert.ok(
+    (
+      await scratch.db.query("select 1 from oauth_client where client_id=$1", [
+        clanId,
+      ])
+    ).rowCount,
+    "the expired registration stays as its grants' history",
+  );
+  assert.deepEqual(await familyClientsOn(scratch.db, spec), {
+    retire_app: { app: "clan", applied: false, already_removed: true },
+  });
   assert.equal(
     (
       await scratch.db.query(
@@ -130,8 +144,13 @@ test("an in-flight authorization mint cannot escape the retirement sweep", async
   const pg = (await import("pg")).default;
   const { mintTokens } = await import("@elixir-mcp/auth");
   const db = scratch.db;
+  // As it stood before the retirement above.
   await db.query(
     "update oauth_client set expires_at='infinity' where client_id=$1",
+    [clanId],
+  );
+  await db.query(
+    "insert into family_oauth_client(app,client_id) values('clan',$1)",
     [clanId],
   );
   const accountId = (
@@ -163,12 +182,7 @@ test("an in-flight authorization mint cannot escape the retirement sweep", async
   await peer.connect();
   try {
     const retirement = familyClientsOn(wrapped, {
-      retire_app: {
-        app: "clan",
-        expected_client_id: clanId,
-        snapshot_sha256: digest,
-        apply: true,
-      },
+      retire_app: { app: "clan", expected_client_id: clanId, apply: true },
     });
     await ready;
     const mint = mintTokens(peer, {

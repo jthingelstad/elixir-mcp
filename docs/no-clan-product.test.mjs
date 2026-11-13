@@ -100,7 +100,40 @@ test("Clan is never called an app of its own", () => {
   assert.deepEqual(hits(tracked().filter(SURFACE), APP_NAME), []);
 });
 
+/** Clan's old OAuth client, from when Clan was an app that signed people
+ *  in through Elixir: only its removal (the `retire_app` op, its tests and
+ *  its catalogue row) may name it. */
+const CLIENT_RETIREMENT = [
+  "services/migrate/src/ops-family-clients.mjs",
+  "services/migrate/test/clan-oauth-retirement.test.mjs",
+  "services/mcp/test/ops-invoke.test.mjs",
+  ".claude/skills/ops/ops.md",
+];
+const CLAN_FAMILY_APP = new RegExp(
+  [`\\bapp"?:\\s*"clan"`, `family_oauth_client[^\\n]*'clan'`].join("|"),
+);
+// Clan's own sign-in route, which went when it moved onto Elixir's session.
+const CLAN_AUTH_ROUTE = new RegExp(["/api/clan", "/auth/"].join(""));
+
+test("Clan is never a family app with an OAuth client of its own", () => {
+  const files = tracked().filter((file) => !CLIENT_RETIREMENT.includes(file));
+  assert.deepEqual(hits(files, CLAN_FAMILY_APP), []);
+});
+
+test("Clan has no sign-in route of its own", () => {
+  assert.deepEqual(hits(tracked().filter(SURFACE), CLAN_AUTH_ROUTE), []);
+});
+
 test("the guard sees each shape", () => {
+  assert.ok(CLAN_FAMILY_APP.test(`provision: { app: "clan" }`));
+  assert.ok(CLAN_FAMILY_APP.test(`{"app": "clan"}`));
+  assert.ok(
+    CLAN_FAMILY_APP.test(
+      `insert into family_oauth_client values ('x', 'clan')`,
+    ),
+  );
+  assert.ok(!CLAN_FAMILY_APP.test(`values ('clan', $1, $2, 'active')`));
+  assert.ok(CLAN_AUTH_ROUTE.test(`"${"/api/clan"}/auth/callback"`));
   assert.ok(PRODUCT_NAME.test(`x ${"Elixir"} Clan y`));
   for (const name of ["the Clan app", "Clan's app", "where the clan's app is"])
     assert.ok(APP_NAME.test(name), name);

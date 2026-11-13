@@ -13,18 +13,24 @@
  *     authenticated with it once (last_authenticated_at), so the switch
  *     cannot lock out an app that is not sending it yet.
  *   {family_clients: {provision: {app, client_name, redirect_uris}}}  a new
- *     family app's client, never expiring; answers its client_id.
+ *     family app's client, never expiring; answers its client_id. Never
+ *     "clan": Clan is part of Elixir, not a family app (2026-11-12).
  *   {family_clients: {set_redirect_uris: {app, redirect_uris}}}  replace a
- *     provisioned client's redirect URIs, all on family origins: an app
- *     that moves address (Clan to elixir.poapkings.com/clan, 2026-09-28).
+ *     provisioned client's redirect URIs, all on family origins, for an
+ *     app that moves address.
  *     Live grants are untouched; the next authorization names a new one.
  *   {family_clients: {revoke_clients: ["<client_id>", ...], reason}}  retire
  *     registered clients: the registration expires now and every live grant
  *     under it is revoked, with a connection_revoked event for its account.
  *     A provisioned client is refused.
- *   {family_clients: {retire_app: {app: "clan", expected_client_id,
- *     snapshot_sha256, apply}}} retires only Clan after its checked import
- *     and shared runtime activation; default preview, audit identity kept.
+ *   {family_clients: {retire_app: {app: "clan", expected_client_id, apply}}}
+ *     removes Clan's old provisioned client, from when Clan was a separate
+ *     app. A preview by default (the client, its live grants and unused
+ *     codes). With apply: true, in one transaction, the registration
+ *     expires, unused codes are burned, each live grant is revoked with a
+ *     connection_revoked event, and the family_oauth_client row is deleted.
+ *     The expired oauth_client row stays as its grants' history. Once the
+ *     row is gone it answers already_removed and writes nothing.
  *
  * Authority: Jamie (a family app is his to name).
  */
@@ -62,18 +68,11 @@ export async function familyClients(databaseUrl, spec = {}) {
 
 export async function familyClientsOn(db, spec = {}) {
   if (spec.retire_app) {
-    const {
-      app,
-      expected_client_id: expected,
-      snapshot_sha256: snapshot,
-      apply,
-    } = spec.retire_app;
-    // This retirement is the approved Clan consolidation, never a generic
-    // family-client kill switch (Drop remains an active integration).
+    const { app, expected_client_id: expected, apply } = spec.retire_app;
+    // Only Clan's old client, never a generic family-client kill switch:
+    // Drop signs in with Elixir through its own.
     if (app !== "clan" || !validClientId(expected))
       throw new Error("Clan retirement needs its exact provisioned client id");
-    if (apply === true && !/^[a-f0-9]{64}$/.test(snapshot ?? ""))
-      throw new Error("Clan retirement requires the import digest");
     await db.query("begin");
     try {
       const current = (
@@ -81,18 +80,12 @@ export async function familyClientsOn(db, spec = {}) {
           `select fc.client_id, c.expires_at from family_oauth_client fc join oauth_client c using(client_id) where fc.app='clan' for update of fc,c`,
         )
       ).rows[0];
-      if (!current || current.client_id !== expected)
+      if (!current) {
+        await db.query("rollback");
+        return { retire_app: { app, applied: false, already_removed: true } };
+      }
+      if (current.client_id !== expected)
         throw new Error("Clan client changed; read it again");
-      if (
-        apply === true &&
-        !(
-          await db.query(
-            "select 1 from clan_state_import where snapshot_sha256=$1",
-            [snapshot],
-          )
-        ).rowCount
-      )
-        throw new Error("Clan retirement needs the applied snapshot receipt");
       const counts = (
         await db.query(
           `select
@@ -130,12 +123,15 @@ export async function familyClientsOn(db, spec = {}) {
               family_id: family.family_id,
               by: "operator",
               reason: "Clan consolidated into the Elixir session",
-              snapshot_sha256: snapshot,
             }),
           ],
         );
-      // Keep the provisioned identity as audit history; getClient refuses
-      // expired registrations before considering its family privileges.
+      // Nothing names Clan a family app any more. The expired registration
+      // stays as its grants' history; getClient refuses it.
+      await db.query(
+        "delete from family_oauth_client where client_id=$1 and app='clan'",
+        [expected],
+      );
       await db.query("commit");
       return {
         retire_app: { app, client_id: expected, applied: true, ...counts },
@@ -181,6 +177,8 @@ export async function familyClientsOn(db, spec = {}) {
     const { app, client_name: name, redirect_uris: uris } = spec.provision;
     if (!APP_RE.test(String(app ?? "")))
       throw new Error("provision needs app: lowercase letters, digits, -");
+    if (app === "clan")
+      throw new Error("Clan is part of Elixir, never a family app");
     const redirectUris = familyRedirects(uris);
     if (!redirectUris)
       throw new Error("provision needs redirect_uris, all on family origins");
