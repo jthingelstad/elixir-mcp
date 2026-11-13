@@ -179,3 +179,35 @@ test("revoke_legacy revokes the owner's live MCP key named as the integration, a
     token_ids: [],
   });
 });
+
+test("revoke_legacy by name revokes that live MCP key on the owner and no other", async () => {
+  const keys = (
+    await db.query(
+      `insert into service_token (account_id, name, token_hash, audience) values
+         ($1, 'retired-bot', $2, 'mcp'),
+         ($1, 'kept-bot', $3, 'mcp')
+       returning token_id, name`,
+      [owner, "f".repeat(64), "9".repeat(64)],
+    )
+  ).rows;
+  const target = keys.find((k) => k.name === "retired-bot");
+  const r = await integrationOp(SCRATCH_URL, {
+    action: "revoke_legacy",
+    name: "retired-bot",
+  });
+  assert.deepEqual(r, { revoked: 1, token_ids: [String(target.token_id)] });
+  const live = (
+    await db.query(
+      "select name from service_token where account_id=$1 and name in ('retired-bot','kept-bot') and revoked_at is null",
+      [owner],
+    )
+  ).rows.map((x) => x.name);
+  assert.deepEqual(live, ["kept-bot"]);
+  assert.deepEqual(
+    await integrationOp(SCRATCH_URL, {
+      action: "revoke_legacy",
+      name: "retired-bot",
+    }),
+    { revoked: 0, token_ids: [] },
+  );
+});

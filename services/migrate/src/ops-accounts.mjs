@@ -266,17 +266,31 @@ export async function integrationOp(databaseUrl, spec) {
       // a live service_token on the integration's owner, named as the
       // integration, audience 'mcp'. Answers the count and the ids only,
       // never a value or a hash.
-      if (typeof spec?.id !== "string" || !spec.id)
-        return { error: "id_required" };
-      const found = (
-        await db.query(
-          `select i.name, a.owned_by_account_id as owner
-             from integration i join account a on a.account_id = i.account_id
-            where a.public_id = $1`,
-          [spec.id],
-        )
-      ).rows[0];
-      if (!found) return { error: "not_found" };
+      // `name` alone names a key on the owner whose name is not the
+      // integration's (the clan site's ran as another name; a retired
+      // bot's had no integration at all).
+      let found;
+      if (typeof spec?.name === "string" && spec.name && spec.id == null) {
+        const own = (
+          await db.query(
+            "select account_id from account where role='owner' and kind='person' and status='approved' order by created_at limit 1",
+          )
+        ).rows[0];
+        if (!own) return { error: "owner_not_found" };
+        found = { owner: own.account_id, name: spec.name };
+      } else {
+        if (typeof spec?.id !== "string" || !spec.id)
+          return { error: "id_required" };
+        found = (
+          await db.query(
+            `select i.name, a.owned_by_account_id as owner
+               from integration i join account a on a.account_id = i.account_id
+              where a.public_id = $1`,
+            [spec.id],
+          )
+        ).rows[0];
+        if (!found) return { error: "not_found" };
+      }
       const result = await db.query(
         `update service_token set revoked_at = now()
           where account_id = $1 and name = $2 and audience = 'mcp'
