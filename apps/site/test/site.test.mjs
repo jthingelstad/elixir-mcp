@@ -1590,7 +1590,7 @@ test(
       [
         "Follow your friends",
         "Your clan\u2019s week",
-        "Share a battle you are proud of",
+        "Show off your best battles",
       ],
     );
     assert.deepEqual(

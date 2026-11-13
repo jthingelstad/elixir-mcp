@@ -16,36 +16,40 @@ callout: ["Open it at Status and data", "/data", "Status and data"]
 Elixir is the missing social layer of Clash Royale: follow your friends and
 your clan, see how they play, and cheer them on.
 
-Clash Royale is played mostly alone. You can add someone as a friend in the
-game, but it does not show you their battles or let you celebrate what they
-did. In Elixir you follow the players you care about, and their sessions,
-their firsts and the battles they are proud of come to one feed on
-[Home](/home), newest first, with your own play in it. You cheer an item
-with one of six cheers, and highlight a battle of your own with a few words
-about it. Your clan is a group of friends too: follow it to see its week,
-and if you lead it, run it on a policy in [Clan](/clan). One digest email
-brings the people you follow and your clan's news to your inbox, weekly or
-daily, so you keep up even when you do not open the website.
+Most of Clash Royale is you against one opponent. You can add friends in
+the game, but you can't see their battles or celebrate what they pull off.
+Elixir fixes that.
 
-**How you use it:** sign in, add your player tag, follow a few people and
-choose your digest. The [Quickstart](/docs/quickstart) walks it through.
-Everything inside needs an account; a highlight someone shares, or a battle
-link someone sends, opens without one.
+- **Follow the players you care about.** Their sessions, their firsts (a new
+  Arena, a new league) and their best battles land in one feed on
+  [Home](/home), newest first, with your own play in it.
+- **Cheer them on.** Every item takes one of six cheers.
+- **Show off.** Highlight one of your own battles and tell the story in your
+  own words.
+- **Keep up with your clan.** Follow it to see its week. Lead it? Run it on
+  your clan's rules in [Clan](/clan).
+- **Get your digest.** One email with your friends and your clan's news,
+  weekly or daily, so you keep up even when you don't open Elixir.
 
-**What feeds it:** the Clash Royale API only answers "what is true right
-now": your last ~30 battles, your current trophies. Elixir reads
-continuously through its [collectors](/docs/operators), stores every battle
-once (no matter how many members saw it), and derives daily readings, war
-records and timeline moments from the stream. Following a player is what
-starts recording them ([Recording and coverage](/docs/recording)). The same
-record is your season in [Stats](/home/you/stats), your clan's week in
-[Clan](/clan), and the facts behind every feed item and digest.
+**Getting started:** sign in, add your player tag, follow a few people and
+choose your digest. The [Quickstart](/docs/quickstart) walks you through it.
+Everything inside needs an account. A highlight or battle link someone
+shares opens for anyone.
 
-You can also connect your own AI agent through MCP and bring that record
-into a conversation: *"how has my ladder win rate trended since I swapped
-Cannon for Musketeer?"* is a real, answerable question here. An agent is
-optional; you do not need one to use Elixir. Connect it at
-`https://elixir.poapkings.com/mcp` with Claude or another MCP client
+**What powers it:** the Clash Royale API only knows what's true right now:
+your last ~30 battles, your trophies today. Elixir's
+[collectors](/docs/operators) keep reading, store every battle once (however
+many members saw it), and turn the stream into daily records, war results
+and feed moments. Following a player is what starts recording them
+([Recording and coverage](/docs/recording)). That same record is your season
+in [Stats](/home/you/stats), your clan's week in [Clan](/clan), and the facts
+behind every feed item and digest.
+
+**Bring your own AI:** connect an AI agent over MCP and ask it about your
+games. *"How has my ladder win rate changed since I swapped Cannon for
+Musketeer?"* is a real question it can answer here. It's optional: you don't
+need an agent to use Elixir. Connect it at `https://elixir.poapkings.com/mcp`
+with Claude or another MCP client
 ([Connect a client](/docs/connect-a-client)).
 
 **Who runs it:** this is a hobby service operated by Jamie Thingelstad

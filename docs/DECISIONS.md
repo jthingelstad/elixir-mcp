@@ -48,6 +48,7 @@ restating it in wider words.
 - **Elixir is the system of record for game facts** — only collectors write the game record; what family apps attest is held apart and labelled (Data model). [Jamie, 2026-09-04, 2026-09-25]
 - **Orientation is release readiness** — a person opening Elixir understands that it is where they follow and celebrate their friends and clan, and sees a clear next step. [Jamie, 2026-10-03, 2026-11-11]
 - **The public story opens with the social layer** — agents and MCP are a later chapter of it. [Jamie, 2026-11-12]
+- **Player-facing words sound like the game** — text a player reads matches Clash Royale's own voice, for a player on their phone: short, friendly, in the game's words; it is the default for all text going forward, and `AGENTS.md` § Voice is the guide. Developer and agent reference pages stay plain and precise. [Jamie, 2026-11-13]
 - **The POAP KINGS seed succeeds at 15 and 10** — after the two-week seed with POAP KINGS, success is 15 or more accounts signing in during both weeks, and 10 or more of them cheering, following or highlighting at least once; counted per account, never per mail recipient. Counting this is allowed under "What we never do". [Jamie, 2026-11-12]
 - **No blockchain, POAP or ENS; no Supercell marks** — the unofficiality disclaimer is on every user-visible surface, tool metadata included. [engineering, 2026-09-03]
 

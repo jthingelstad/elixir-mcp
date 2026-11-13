@@ -122,10 +122,7 @@ test("@narrow invitation entry and signup fit phone and desktop without changing
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    for (const name of [
-      "Follow your friends",
-      "Share a battle you are proud of",
-    ])
+    for (const name of ["Follow your friends", "Show off your best battles"])
       await expect(
         page
           .locator(".home-row__title")

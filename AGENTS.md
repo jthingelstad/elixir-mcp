@@ -146,6 +146,32 @@ Skills and tests cite these by number; keep the numbering.
 - Services share through packages, never each other
   (`packages/record/test/boundary.test.mjs`).
 
+## Voice
+
+Every word a player reads (the site, the docs' player pages, the app, mail,
+the timeline's lines, Discord posts) sounds like Clash Royale, written for
+a player on their phone ("Player-facing words sound like the game",
+DECISIONS):
+
+- **Short and friendly.** Short sentences and short paragraphs; "you" and
+  contractions; lists over long paragraphs. Say "tap", not "click".
+- **The game's words, capitalized as the game does:** player tag,
+  clanmates, battle, deck, Arena, league, trophies, River Race, Clan Wars,
+  Leader, Co-Leader, Elder. "Follow", never "track".
+- **True first.** Promise only what the code does; a playful line is
+  still a claim. No em dashes, no buzzwords, no version history in
+  product pages.
+- **Players are often kids.** Keep it warm and plain, and never name a
+  real player in examples except King Thing #20JJJ2CCRU and POAP KINGS
+  #J2RGCRVG.
+- **The front-door sentence is fixed:** "Elixir is the missing social
+  layer of Clash Royale: follow your friends and your clan, see how they
+  play, and cheer them on."
+
+Developer and agent pages (protocol, tools, the JSON API, operators) stay
+plain and precise rather than playful. Legal lines (the unofficiality
+notice, privacy, terms) change only with Jamie's word.
+
 ## Working style
 
 - **A session is one worktree, one branch, one pull request.** The main
