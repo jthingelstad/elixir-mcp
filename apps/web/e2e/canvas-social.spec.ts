@@ -160,9 +160,7 @@ for (const [label, width] of [
         panel.getByText("You played them twice this week · In your clan"),
       ).toBeVisible();
       await expect(panel.getByText("Uses a slot")).toBeVisible();
-      await expect(
-        panel.getByText("Followed by Ada, who you follow"),
-      ).toBeVisible();
+      await expect(panel.getByText("Ada follows them")).toBeVisible();
       await expect(panel.getByText("Free · already recorded")).toBeVisible();
       await expect(
         panel.getByText("Your follows: 3 of 50 slots"),
