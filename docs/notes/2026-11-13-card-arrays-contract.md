@@ -73,6 +73,9 @@ Every entity read pins the endpoint. The latest-receipt reads
 (`raceMatchmakingAt`, `{poll_state}`)
 order by `fetched_at desc, receipt_id desc`; `{tag_footprint}` walks the
 endpoints with a loose index scan instead of reading entity_key alone.
+`GET /api/me`'s `fetches_24h` per recording names the five subject
+endpoints (Codex on #927: it read entity_key alone, which only the
+dropped index served).
 
 ## Ops removed
 

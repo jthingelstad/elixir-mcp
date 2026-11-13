@@ -229,8 +229,14 @@ export function accountRoutes({
       const recordings = await db.query(
         `select r.subject_tag, r.status, r.created_at,
                   (select max(last_admitted_at) from poll_state ps where ps.subject_tag = r.subject_tag) as freshest_poll,
+                  -- Every endpoint a recorded subject is fetched on, so
+                  -- the count probes api_receipt_entity_fetched (0256:
+                  -- endpoint, entity_key, fetched_at) once per endpoint.
                   (select count(*)::int from api_receipt ar
-                   where ar.entity_key = r.subject_tag
+                   where ar.endpoint = any(array['player', 'player_battlelog',
+                                                 'clan', 'currentriverrace',
+                                                 'riverracelog'])
+                     and ar.entity_key = r.subject_tag
                      and ar.fetched_at > now() - interval '24 hours') as fetches_24h
          from recording r
          -- Recording is per SUBJECT, not per account: the second account
