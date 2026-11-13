@@ -219,7 +219,8 @@ analytics signal in mail is a Tinylytics pixel the reader's mail client loads.
   rebuildable from source.
 - **The S3 payload archive.** New payload content is archived to S3 at
   admission (Hive-partitioned by endpoint, entity, and date; gzip JSON;
-  lifecycle to Infrequent Access at 30 days) before the database commit,
+  lifecycle to Infrequent Access at 30 days, deleted a year after it is
+  archived) before the database commit,
   a committed row always has its S3 twin. S3 is the system of record
   for raw readings; Postgres keeps a payload's JSON only for a
   fetch a reader is waiting on (a `live: true` request, read within

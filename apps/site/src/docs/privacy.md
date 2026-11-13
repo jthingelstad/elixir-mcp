@@ -18,7 +18,7 @@ says, in general terms, what the service keeps and why; the details
 move as the service grows.
 
 **Game data.** Elixir records public Clash Royale data from Supercell's
-API (battles, profiles, clans, wars) and keeps it over time. The game
+API (battles, profiles, clans, wars) and keeps it for a year. The game
 shows the present; Elixir keeps the history, and anyone with an account
 can read it. Nothing is recorded that the game's API does not already
 publish. The Elixir family's own apps can add facts of their own (a
@@ -27,8 +27,8 @@ one of the apps). Each one says which app it came from, and only the
 people it is meant for can see it.
 
 **Without an account.** Every read of the record needs a free account:
-players, clans, timelines and profiles, on the website, over MCP and
-through the JSON API. Two pages of the record open to anyone: a
+players, clans, timelines and profiles, on the website and over MCP.
+Two pages of the record open to anyone: a
 battle's own page, with its link and share picture, so a battle can be
 shared; and a highlight its poster has shared, at its own
 link, with the player's game name, their words and that battle, never a
@@ -140,15 +140,14 @@ the game record.
 status and fetch counts are public and credited to your primary player.
 Your machine's own name and address are not published.
 
-**Keeping and removing.** Game history is kept; it is what the service
+**Keeping and removing.** Game history is kept for a year; it is what the service
 is for. Elixir keeps what it records for one year, then deletes it. To remove your account and your address, email
 [admin@poapkings.com](mailto:admin@poapkings.com) or use the feedback
 form. Removing an account deletes the account, not the record: your
 address, claims, nicknames, highlights, agents, connections, mail and usage go
 ([your account](/docs/your-account#removing-the-account) lists them).
 The players' game history is public game data, as it is in the game
-itself, and stays as any unfollowed player's does, under the
-[record's retention rule](https://github.com/jthingelstad/elixir-mcp/blob/main/docs/product/record.md#when-a-person-leaves).
+itself, and stays for a year from when it happened, like everything Elixir records.
 A few copies outside the database go on their own clocks: captured call
 bodies within 90 days, Discord delivery records within 14, and your
 newsletter enrollment and archived mail are removed by hand. The reviewed cleanup

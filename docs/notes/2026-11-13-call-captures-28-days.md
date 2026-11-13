@@ -30,3 +30,28 @@ Follow-up to the retention trim (#934), from Codex's finding on it.
     field with a promised clock of its own.
 - **Not done.** Captures already older than 28 days in S3 go at the
   first lifecycle run after the deploy.
+
+## The payload archive keeps a year
+
+Jamie, 2026-11-13: "yes to 1 year retention on s3 payloaad archive too".
+
+- `payloads-to-ia` gains `ExpirationInDays: 365`, and a new
+  `payloads-purge-expired` removes the noncurrent version a day after the
+  delete marker, then the marker (as `calls/`), so nothing waits another
+  year under `expire-superseded-versions`.
+- The bucket's protections, from the template: versioning on,
+  `DeletionPolicy: Retain`, no Object Lock, and `ArchiveBucketPolicy`
+  denying a `payloads/` put without `If-None-Match`. That policy governs
+  principals' writes; lifecycle expiry is S3's own and is not affected.
+  No IAM change.
+- An unchanged payload is not rewritten, so its object goes a year after
+  it was first archived even if the same content is still being fetched.
+  A rebuild from the archive reaches back a year.
+- DECISIONS, ENGINEERING, the record brief, architecture, limits and the
+  skills that said "kept forever" now say a year.
+
+## Privacy and mail pages
+
+Jamie approved the four privacy replacements and the mail page's "for a
+year" as proposed on #934; nothing else on those pages changed.
+

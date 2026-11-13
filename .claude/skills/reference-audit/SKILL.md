@@ -8,7 +8,8 @@ description: Check that cr-agent-api-docs keeps up with what the Clash Royale AP
 cr-agent-api-docs is the one book of Clash Royale API truth, and it is
 meant to be written to (AGENTS.md rule 8). Elixir is its best evidence:
 the archive at `s3://elixir-mcp-archive-<account>/payloads/` holds every
-distinct payload the collectors have fetched, kept forever, across every
+distinct payload the collectors have fetched in the last year (each object
+expires a year after it is archived), across every
 recorded clan and player and the boards and event lists no single-clan
 tool reads. This skill turns that into doc patches.
 

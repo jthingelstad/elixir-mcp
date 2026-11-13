@@ -90,7 +90,7 @@ if the quota store is unreachable, active accounts keep working.
 | Data | Kept |
 |---|---|
 | Recorded game history (battles, daily readings, clan membership, war weeks, timeline moments) | one year from when it happened, then deleted |
-| Raw API payloads | archived to S3 at admission; the latest per subject stays in the database until a year after it was last fetched |
+| Raw API payloads | archived to S3 at admission and deleted there a year later; the latest per subject stays in the database until a year after it was last fetched |
 | Call log rows (the tool, when, which credential and client, the country it came from, its address and arguments, and how the call went) | 28 days |
 | Credential refusal counts | 30 days |
 | Timeline game-moment ledger | one year; a timeline read covers at most 30 days |

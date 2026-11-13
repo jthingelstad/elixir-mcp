@@ -128,7 +128,11 @@ Consecutive 403s open a per-collector breaker and drain it.
   removal of history still goes through the manifest above.
 - **The archive is write-once and content-addressed:** `payloads/` objects
   are written with `If-None-Match: *` (`packages/ingest/src/handler.mjs`)
-  in a versioned bucket with `DeletionPolicy: Retain`.
+  in a versioned bucket with `DeletionPolicy: Retain`. They expire a year
+  after they are archived (`payloads-to-ia` and `payloads-purge-expired`
+  in `infra/template.yaml`), so a rebuild from the archive reaches back a
+  year. An unchanged payload is not rewritten, so its object goes a year
+  after it was first archived even if the same content is still fetched.
 - **Tools never read `api_payload`.** Its JSON column is a cache for a
   reader waiting on that exact payload (`live_fetch`, on the live lane,
   within seconds), and only live-lane payloads carry it. `live_fetch`'s

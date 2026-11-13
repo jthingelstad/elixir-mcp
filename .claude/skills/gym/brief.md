@@ -113,7 +113,7 @@ Use `elixir_send_feedback`, consolidated at the end of the run — one item per 
 Every finding's acceptance criteria are ALSO expressed as cases that the maintainer's suite runs **as written** — nothing is hand-translated, so a case that does not parse or does not run is a finding without a criterion. Two things consume each case:
 
 - `tool` + `args` are re-issued **live** by the suite, on every gated deploy and daily.
-- `request_id` is the answer you read when you filed — the one that **shows the defect**. The maintainer pulls that exact answer from the call archive and proves your case *fails* on it; that proof is kept forever (the archive expires in 90 days, the proof does not). So `request_id` is not optional provenance: it is the bite. Give the id of the call that showed the wrong answer, not a later, cleaner call.
+- `request_id` is the answer you read when you filed — the one that **shows the defect**. The maintainer pulls that exact answer from the call archive and proves your case *fails* on it; that proof is kept forever (the call archive expires in 28 days, the proof does not). So `request_id` is not optional provenance: it is the bite. Give the id of the call that showed the wrong answer, not a later, cleaner call.
 
 Case shape:
 
