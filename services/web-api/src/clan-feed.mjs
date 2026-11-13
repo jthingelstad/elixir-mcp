@@ -55,6 +55,12 @@ export async function readClanFeed(db, account, clanTag, now = Date.now()) {
       interactive: true,
       highlightTags: await currentMembers(db, clanTag),
       filter: (it) => it.section !== "account",
+      // The Feed draws items, never a clan entry's activity counts, so it
+      // skips the late-capture count (2026-11-12, "a clan's late counts
+      // are read only when a read says them"): that count walks every
+      // battle the record learned in the week, for every clan, and was
+      // most of the Feed's time (2026-11-13). The items are the same.
+      lateCounts: false,
       perf,
     },
   );

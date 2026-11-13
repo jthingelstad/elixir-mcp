@@ -188,8 +188,8 @@ export const useMyPlace = () => useGated(keys.place, () => api.myPlace());
 
 /** The Feed's timeline: the clan's items, its members' moments and
  *  highlights, newest first, as this reader reads them. */
-export const useFeed = (tag, enabled = true) =>
-  useGated(keys.feed(tag), () => manageApi.feed(tag), { enabled });
+export const useFeed = (tag) =>
+  useGated(keys.feed(tag), () => manageApi.feed(tag));
 
 /** The race now (the clan card's chip, the Feed's bar): weekly facts,
  *  `{race: null}` between races or before any is recorded. */

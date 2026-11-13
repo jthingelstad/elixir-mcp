@@ -136,12 +136,16 @@ export async function clanWeekBattles(db, clanTag, windows) {
               (count(distinct battle_id) filter (where ranked))::int as ranked
          from played group by i, player_tag
      )
+     -- Each member named by primary key, a scalar per row: joined, the
+     -- planner could hash the whole player table for a clan's few
+     -- (2026-11-13, a Seq Scan in the landing budget test).
      select t.i, t.battles, t.active, t.ranked, t.ranked_active,
             (select jsonb_agg(jsonb_build_object(
-                      'player_tag', x.player_tag, 'name', p.name,
+                      'player_tag', x.player_tag,
+                      'name', (select p.name from player p
+                                where p.player_tag = x.player_tag),
                       'battles', x.battles, 'ranked', x.ranked))
                from people x
-               left join player p on p.player_tag = x.player_tag
               where x.i = t.i) as members
        from (select i,
                     count(distinct battle_id)::int as battles,
