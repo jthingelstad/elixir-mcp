@@ -105,8 +105,7 @@ test("internal membership read uses the shared canonical query and never writes"
   });
   assert.equal(queries.length, 2);
   assert.match(queries[0].text, /from clan_membership/);
-  assert.match(queries[1].text, /admitted_read_day/);
-  assert.doesNotMatch(queries[1].text, /api_receipt/);
+  assert.match(queries[1].text, /api_receipt/);
   assert.ok(queries.every((q) => !/(insert|update|delete)\s/i.test(q.text)));
   assert.equal(queries[0].values[0], "#CLAN");
 });

@@ -178,6 +178,33 @@ const FILL_GAPS = `insert into battlelog_read_gap (player_tag, read_at, next_rea
   returning 1`;
 
 /**
+ * One player's stretches, in a transaction holding the poll_state row ingest
+ * locks for the same player (recordReadFacts). A read admitted late while
+ * this runs either commits first, and the receipts read here include it, or
+ * waits, and then splits the stretch this wrote. Without the lock the
+ * receipts could be read before the late read committed while ingest found
+ * no stretch to split, and the stretch would stand, too long, for good
+ * (`on conflict do nothing` never corrects it). The connection must not be
+ * in a transaction already.
+ */
+async function fillGaps(db, tag) {
+  await db.query("begin");
+  try {
+    await db.query(
+      `select 1 from poll_state
+        where subject_tag = $1 and endpoint = 'player_battlelog' for update`,
+      [tag],
+    );
+    const r = await db.query(FILL_GAPS, ["player_battlelog", tag]);
+    await db.query("commit");
+    return r.rowCount;
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
+  }
+}
+
+/**
  * {read_facts_backfill}: fill the read facts from the receipts still
  * held, one subject at a time (each subject one statement on the
  * receipts' (endpoint, entity_key, fetched_at) index), in the order
@@ -185,7 +212,8 @@ const FILL_GAPS = `insert into battlelog_read_gap (player_tag, read_at, next_rea
  * `{subjects, written, after, done, remaining, ms}`; pass `after` back
  * until `done`. Idempotent: a re-run writes nothing, and it converges
  * with what ingest writes meanwhile. Must run to done before the receipt
- * trim is switched on. `db` is a connected client.
+ * trim is switched on. `db` is a connected client outside a transaction
+ * (each battle log takes one of its own).
  */
 export async function backfillReadFacts(db, spec = {}) {
   const budgetMs = Math.min(
@@ -218,11 +246,10 @@ export async function backfillReadFacts(db, spec = {}) {
       continue;
     }
     key = next.k;
-    const r = await db.query(
-      phase === "player_battlelog" ? FILL_GAPS : FILL_DAYS,
-      [phase, key],
-    );
-    written += r.rowCount;
+    written +=
+      phase === "player_battlelog"
+        ? await fillGaps(db, key)
+        : (await db.query(FILL_DAYS, [phase, key])).rowCount;
     subjects += 1;
   }
   // A real remaining: subjects left in this phase and every later one,
