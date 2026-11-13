@@ -53,7 +53,9 @@ const arrival = (id, offer) => ({
 });
 
 let calls;
+let following;
 beforeEach(() => {
+  following = false;
   calls = [];
   HTMLDialogElement.prototype.showModal ??= function () {
     this.open = true;
@@ -69,7 +71,7 @@ beforeEach(() => {
     if (p === "/api/me/follow-cost")
       return reply({
         player_tag: "#2Y0P8V1",
-        following: false,
+        following,
         free: true,
         used: 3,
         limit: 10,
@@ -108,4 +110,20 @@ test("Follow sits on an arrival you do not follow, and prices only when asked", 
   await waitFor(() =>
     expect(screen.getByText(/Free · already recorded/)).toBeTruthy(),
   );
+});
+
+test("one of your agents tracking them never stops your own follow (Codex on #871)", async () => {
+  following = true;
+  renderWithProviders(<HomeFeed />);
+  await screen.findByText("Invented 2 joined Ada's Clan.");
+  fireEvent.click(screen.getByRole("button", { name: "Follow" }));
+  await waitFor(() =>
+    expect(screen.getByText("Free · already recorded")).toBeTruthy(),
+  );
+  const dialog = document.querySelector("dialog[open]");
+  const confirm = [...dialog.querySelectorAll("button")].find(
+    (b) => b.textContent === "Follow",
+  );
+  fireEvent.click(confirm);
+  await waitFor(() => expect(calls).toContain("POST /api/claims"));
 });

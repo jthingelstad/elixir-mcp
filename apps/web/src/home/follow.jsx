@@ -176,17 +176,7 @@ export function FollowButton({
       }
       confirm="Follow"
       disabled={full}
-      run={async () => {
-        // A feed offers Follow from what it knows when it was built; a
-        // player followed since, or followed with their notify switch off,
-        // is already yours to keep as it is, so nothing is written.
-        if (lazy && !known) {
-          const priced = await api.followCost(tag);
-          if (priced?.ok && priced.data?.following)
-            return { ok: true, data: { player_tag: tag, already: true } };
-        }
-        return api.claimAction({ player_tag: tag, relationship: "friend" });
-      }}
+      run={() => api.claimAction({ player_tag: tag, relationship: "friend" })}
       onDone={(answer) => {
         invalidate();
         onDone?.(answer?.data ?? null);
@@ -199,14 +189,19 @@ function CostWords({ cost }) {
   return (
     <p className="kit-tiny" role="status">
       {cost
-        ? (followCostLine(cost) ?? "You already follow them.")
+        ? // `following` counts the account's agents too (Codex on #871), so
+          // all it can promise is the price.
+          (followCostLine(cost) ?? "Free · already recorded")
         : "Checking what this costs…"}
     </p>
   );
 }
 
 /** The price, read when the dialog that shows it opens (a lazy Follow). A
- *  follow past the limit is refused by the server, and the dialog says why. */
+ *  follow past the limit is refused by the server, and the dialog says why;
+ *  the write itself decides a player already yours (Codex on #871: the
+ *  price's `following` counts the reader's agents too, so it never skips
+ *  the reader's own follow). */
 function PricedOnOpen({ tag }) {
   const { data } = useFollowCost(tag);
   return <CostWords cost={data && data.player_tag === tag ? data : null} />;
