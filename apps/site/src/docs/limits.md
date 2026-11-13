@@ -89,11 +89,12 @@ if the quota store is unreachable, active accounts keep working.
 
 | Data | Kept |
 |---|---|
-| Recorded game history, daily readings, war | while someone follows it, and for at least a year after the last person stops |
-| Raw API payloads | archived to S3 at admission; latest per subject stays hot |
-| Call log rows | indefinitely: the tool, when, which credential and client, the country it came from, and how the call went; the address (`viewer_ip`) cleared after 30 days; arguments cleared after 90 days |
+| Recorded game history (battles, daily readings, clan membership, war weeks, timeline moments) | one year from when it happened, then deleted |
+| Raw API payloads | archived to S3 at admission; the latest per subject stays in the database until a year after it was last fetched |
+| Call log rows (the tool, when, which credential and client, the country it came from, its address and arguments, and how the call went) | 28 days |
 | Credential refusal counts | 30 days |
-| Timeline game-moment ledger | indefinitely; a timeline read covers at most 30 days |
+| Timeline game-moment ledger | one year; a timeline read covers at most 30 days |
+| Your account's history (account events, the list of mail sent to you, answered feedback, cheers, finished claim checks) | one year |
 | Saved request and response bodies of tool calls | 90 days (S3 lifecycle expiry; the website stops offering them on the same clock) |
 | OAuth tokens | 90 days past expiry (grant life is 90 days) |
 | Website sessions | 90 days absolute, 30 days sliding; the address a session was last used from cleared 30 days after that use; rows purged 30 days after expiry |

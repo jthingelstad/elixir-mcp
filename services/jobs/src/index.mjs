@@ -10,7 +10,8 @@ import { isRetiredEmailKind } from "@elixir-mcp/contracts";
  *  Ops payloads: {sweep_payloads: true,
  *  sweep_operational: true} · {sweep_operational: true} ·
  *  {archetype_stamp: true} · {capture_efficiency: true} ·
- *  {shape_census: true} · {email: "<kind>", account_id?, force?}.
+ *  {shape_census: true} · {retention_trim: true} ·
+ *  {email: "<kind>", account_id?, force?}.
  *  Retired editorial payloads refuse before I/O. */
 
 import pg from "pg";
@@ -30,6 +31,7 @@ import { runEmail } from "./email/index.mjs";
 import { captureEfficiency } from "./efficiency.mjs";
 import { warBattlesUnresolved, warUnresolvedEmf } from "./war-calendar.mjs";
 import { shapeCensus } from "./shape-census.mjs";
+import { retentionTrim } from "@elixir-mcp/record/retention";
 
 /** Hourly Postgres sweep ({sweep_payloads: true}, EventBridge :15):
  *  superseded payload rows (not the latest per endpoint+entity) leave
@@ -284,6 +286,20 @@ export async function sweepOperational(databaseUrl) {
   }
 }
 
+/** The daily retention trim ({retention_trim: true}, EventBridge
+ *  04:40Z): one year for the record and accounts' history, 28 days for
+ *  operational logs (packages/record/src/retention.mjs declares which).
+ *  Bounded per run; what is left goes the next day. */
+export async function runRetentionTrim(databaseUrl, { remainingMs } = {}) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    return await retentionTrim(db, { remainingMs: remainingMs ?? null });
+  } finally {
+    await db.end();
+  }
+}
+
 // Mail leaves through the outbox for the relay (packages/outbox/src/outbox.mjs).
 const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 async function enqueueEmail(msg) {
@@ -432,6 +448,16 @@ export async function handler(event, context) {
       throw new Error(
         `email_run_incomplete: ${event.email} sent ${result.sent}, ${result.remaining} remaining after ${result.ms} ms`,
       );
+    return result;
+  }
+  if (event?.retention_trim) {
+    const result = await runRetentionTrim(process.env.DATABASE_URL, {
+      remainingMs:
+        typeof context?.getRemainingTimeInMillis === "function"
+          ? () => context.getRemainingTimeInMillis()
+          : undefined,
+    });
+    console.log(JSON.stringify({ retention_trim: result }));
     return result;
   }
   if (event?.shape_census) {

@@ -2263,6 +2263,28 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt ShapeCensusRule.Arn
 
+  # The daily retention trim (packages/record/src/retention.mjs): one
+  # year for the record, 28 days for operational logs, in bounded
+  # batches; what is left goes the next day. 04:40Z: clear of the
+  # 05:05Z to 05:30Z nightly work and the hourly :05 and :15 runs.
+  RetentionTrimRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-retention-trim
+      ScheduleExpression: cron(40 4 * * ? *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: retention-trim
+          Input: '{"retention_trim": true}'
+
+  RetentionTrimPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt RetentionTrimRule.Arn
+
   # ------------------------------------------------------------ front doors
   ArchiveBucket:
     Type: AWS::S3::Bucket

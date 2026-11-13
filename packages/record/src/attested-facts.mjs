@@ -505,3 +505,20 @@ export function removeClanFactBySystem(
     refInput,
   );
 }
+
+/** The table, named here so the retention trim (retention.mjs) can list
+ *  it without naming it: this module and the timeline's read are the
+ *  only runtime code that may (services/mcp/test/attested-readers). */
+export const ATTESTED_FACT_TABLE = "attested_fact";
+
+/** The retention trim's SQL for facts past their window, by
+ *  occurred_at: one batch's delete, and the count the dry run reports.
+ *  Row counts only; no fact's content leaves this module. */
+export const ATTESTED_FACT_RETENTION = Object.freeze({
+  count: `select count(*)::bigint as n from attested_fact
+           where occurred_at < now() - $1::interval`,
+  deleteBatch: `delete from attested_fact
+                 where ctid = any(array(
+                   select ctid from attested_fact
+                    where occurred_at < now() - $1::interval limit $2))`,
+});
