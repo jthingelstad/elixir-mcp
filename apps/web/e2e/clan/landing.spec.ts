@@ -233,7 +233,7 @@ test("coming back from sign-in lands on the Feed", async ({ page }) => {
   await page.goto("/clan/0QC8RCGY");
   await page
     .getByRole("main")
-    .getByRole("link", { name: "Sign in", exact: true })
+    .getByRole("button", { name: "Sign in", exact: true })
     .click();
   await expect(page).toHaveURL(/\/signin$/);
   await page.getByLabel("Email").fill("ada@example.com");

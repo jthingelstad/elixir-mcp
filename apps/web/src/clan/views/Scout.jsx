@@ -1,7 +1,7 @@
 import { noun, Tag, useClock, Panel } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 
 /**
  * Scout an applicant: paste the tag from the game, read it live, and see

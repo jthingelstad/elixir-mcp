@@ -28,6 +28,10 @@ test("every record page signed out renders the sign-in wall, never the page", as
     "/home/find",
     "/home/player/0QC8RCGY",
     "/home/player/0QC8RCGY?tab=record",
+    // Clan's pages are the app's: the same wall, not a page of their own.
+    "/clan",
+    "/clan/directory",
+    "/clan/0QC8RCGY/feed",
   ];
   for (const url of urls) {
     const html = await renderApp({ url, me });

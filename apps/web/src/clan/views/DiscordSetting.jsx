@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DiscordDeliveries, useClock, Panel } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useDiscord, useInvalidate } from "../lib/queries.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 
 /**
  * Actions in the clan's Discord (Jamie, 2026-10-10). A leader or

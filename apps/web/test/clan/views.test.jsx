@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   cleanup,
   fireEvent,
@@ -9,13 +9,23 @@ import {
 import { renderWithProviders } from "./helpers.jsx";
 import { RosterTable } from "../../src/clan/views/Clan.jsx";
 import { Refused, REFUSALS } from "../../src/clan/views/Refused.jsx";
-import { Landing } from "../../src/clan/views/Landing.jsx";
 import { Disclaimer } from "@elixir-mcp/ui";
 import { Clans } from "../../src/clan/views/Clans.jsx";
-import { VerifyNotice } from "../../src/clan/views/VerifyNotice.jsx";
+import { VerifyPlayer } from "../../src/components/VerifyPlayer.jsx";
 import { clanFromPath, parseClanPath } from "../../src/clan/App.jsx";
 import { clanPath } from "../../src/clan/lib/base.js";
-import { HostContext } from "../../src/clan/lib/host.js";
+
+// The app's follow buttons read the follow plan; here they only say who
+// they were asked about.
+const asked = vi.hoisted(() => []);
+vi.mock("../../src/home/FollowClan.jsx", () => ({
+  FollowMember: ({ clanTag, playerTag, name }) => {
+    asked.push([clanTag, playerTag, name]);
+    return <button type="button">Follow {name}</button>;
+  },
+  FollowClan: () => null,
+  FollowThisClan: () => null,
+}));
 
 afterEach(cleanup);
 
@@ -134,20 +144,14 @@ describe("the clan page", () => {
     expect(cells[3]).toBe("0"); // donations really zero
   });
 
-  test("each row carries the app's Follow when the app lends one, and none without", () => {
+  test("each row carries the app's Follow for a clan, and none without one", () => {
     const members = [
       { player_tag: "#C1", name: "Bo", role: "coLeader", trophies: 1 },
       { player_tag: "#M1", name: "Zed", role: "member", trophies: 2 },
     ];
-    const asked = [];
-    const FollowMember = ({ clanTag, playerTag, name }) => {
-      asked.push([clanTag, playerTag, name]);
-      return <button type="button">Follow {name}</button>;
-    };
+    asked.length = 0;
     const { container } = renderWithProviders(
-      <HostContext.Provider value={{ FollowMember }}>
-        <RosterTable members={members} clanTag="#0QC8RCGY" />
-      </HostContext.Provider>,
+      <RosterTable members={members} clanTag="#0QC8RCGY" />,
     );
     expect(container.querySelectorAll("td.roster-table__follow").length).toBe(
       2,
@@ -155,9 +159,7 @@ describe("the clan page", () => {
     expect(screen.getByRole("button", { name: "Follow Zed" })).toBeTruthy();
     expect(asked).toContainEqual(["#0QC8RCGY", "#M1", "Zed"]);
     cleanup();
-    const bare = renderWithProviders(
-      <RosterTable members={members} clanTag="#0QC8RCGY" />,
-    );
+    const bare = renderWithProviders(<RosterTable members={members} />);
     expect(bare.container.querySelector(".roster-table__follow")).toBeNull();
   });
 
@@ -244,36 +246,6 @@ describe("the gate pages", () => {
       screen.getByText(/These are observations, not a live check/),
     ).toBeTruthy();
     expect(screen.getByText(/If that is still accurate/)).toBeTruthy();
-  });
-});
-
-describe("the landing page", () => {
-  test("names both prerequisites before the button", () => {
-    renderWithProviders(<Landing />);
-    expect(screen.getByText(/An Elixir account/)).toBeTruthy();
-    expect(screen.getByText(/2\. Your player/)).toBeTruthy();
-    // Both signup links bring a new account back to the Clan address.
-    const signups = screen.getAllByRole("link", {
-      name: "Create your account",
-    });
-    expect(signups).toHaveLength(2);
-    for (const link of signups)
-      expect(link.getAttribute("href")).toBe(
-        "/signin?signup&return_to=%2Fclan",
-      );
-    expect(
-      screen.getByRole("link", { name: "Sign in" }).getAttribute("href"),
-    ).toBe("/signin");
-    expect(
-      screen.getByText(
-        "Your Elixir sign-in opens your recorded history and clan tools.",
-      ),
-    ).toBeTruthy();
-  });
-
-  test("a sign-in error is explained", () => {
-    renderWithProviders(<Landing error="session_expired" />);
-    expect(screen.getByRole("alert").textContent).toMatch(/Your session ended/);
   });
 });
 
@@ -397,46 +369,16 @@ describe("choosing a clan", () => {
 });
 
 describe("an unverified player", () => {
-  test("the notice after sign-in names the role waiting, links to Verify and goes on only when acknowledged", async () => {
-    let acknowledged = 0;
-    renderWithProviders(
-      <VerifyNotice
-        me={{
-          ...me,
-          verify_notice: {
-            acknowledged: false,
-            clans: [
-              {
-                clan_tag: "#0QC8RCGY",
-                clan_name: "Example Clan",
-                player_tag: "#098R2R0PUL",
-                player_name: "Ada",
-                role: "leader",
-                role_label: "Leader",
-              },
-            ],
-          },
-        }}
-        onAcknowledge={async () => {
-          acknowledged += 1;
-        }}
-      />,
-    );
+  test("the notice after sign-in is Elixir's verify notice, linking to Verify", () => {
+    renderWithProviders(<VerifyPlayer titleAs="h1" />);
     expect(
-      screen.getByRole("heading", { name: /Verify your player to lead/ }),
+      screen.getByRole("heading", { level: 1, name: "Verify your player" }),
     ).toBeTruthy();
-    expect(screen.getByText("Leader")).toBeTruthy();
-    expect(screen.getByText(/Example Clan/)).toBeTruthy();
     expect(
       screen
-        .getByRole("link", { name: /Verify in Elixir/ })
+        .getByRole("link", { name: /Verify a player/ })
         .getAttribute("href"),
-    ).toContain("/settings/players/verify");
-    fireEvent.click(
-      screen.getByRole("button", { name: /I understand, continue/ }),
-    );
-    await Promise.resolve();
-    expect(acknowledged).toBe(1);
+    ).toBe("/settings/players/verify");
   });
 
   test("the chooser shows its clan as a member's, marked unverified, with the role verifying brings", () => {

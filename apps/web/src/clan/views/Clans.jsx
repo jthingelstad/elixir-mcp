@@ -1,7 +1,7 @@
 import { Link, Tag, Panel, PageHead } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { RoleChip } from "../components/RoleChip.jsx";
-import { ELIXIR_LINKS } from "../lib/links.js";
+import { VERIFY } from "../../components/VerifyPlayer.jsx";
 import { CLAN } from "../lib/base.js";
 
 /**
@@ -110,7 +110,7 @@ export function Clans({ me, onSelect, selecting }) {
                     in {i.clan_name ?? <Tag tag={i.clan_tag} />}
                   </span>
                 ) : null}
-                <Link className="btn btn--sm ml-auto" to={ELIXIR_LINKS.verify}>
+                <Link className="btn btn--sm ml-auto" to={VERIFY}>
                   Verify your player
                 </Link>
               </div>

@@ -1,15 +1,11 @@
-/** Routes join the parent application; views and their shell load on entry. */
-import { createElement } from "react";
+/** Clan's routes in the app's route tree; its pages load on entry. */
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { CLAN } from "./lib/base.js";
-const Shell = lazyRouteComponent(() => import("./App.jsx"), "ClanShell");
-export function createClanRoutes(parent, options = {}) {
-  const component = () => createElement(Shell, options);
-  component.preload = Shell.preload;
+export function createClanRoutes(parent) {
   const route = createRoute({
     getParentRoute: () => parent,
     id: "clan",
-    component,
+    component: lazyRouteComponent(() => import("./App.jsx"), "ClanLayout"),
   });
   return route.addChildren([
     createRoute({

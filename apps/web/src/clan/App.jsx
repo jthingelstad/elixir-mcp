@@ -7,7 +7,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -18,13 +17,12 @@ import {
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
-import { Disclaimer, ErrorBoundary, FeedbackSheet } from "@elixir-mcp/ui";
+import { ErrorBoundary, FeedbackSheet } from "@elixir-mcp/ui";
 import { api, feedbackApi } from "./api.js";
 import { keys, useDirectory, useMeQuery } from "./lib/queries.js";
 import { leads, pageOf, policyActive } from "./lib/tabs.js";
 import { landingPath } from "./lib/landing.js";
 import { useSelectClan } from "./lib/select.js";
-import { HostContext } from "./lib/host.js";
 import {
   CLAN,
   appPath,
@@ -43,7 +41,6 @@ import { Clan } from "./views/Clan.jsx";
 import { Clans } from "./views/Clans.jsx";
 import { Directory } from "./views/Directory.jsx";
 import { Standing } from "./views/Standing.jsx";
-import { Landing } from "./views/Landing.jsx";
 import { Refused } from "./views/Refused.jsx";
 import { Away } from "./views/Away.jsx";
 import { Awards } from "./views/Awards.jsx";
@@ -54,8 +51,9 @@ import { YouHere } from "./views/YouHere.jsx";
 import { Season } from "./views/Season.jsx";
 import { Run } from "./views/Run.jsx";
 import { MembersBack } from "./views/Members.jsx";
-import { VerifyNotice } from "./views/VerifyNotice.jsx";
-import { ELIXIR_LINKS } from "./lib/links.js";
+import { VerifyPlayer } from "../components/VerifyPlayer.jsx";
+import { Unavailable } from "../shell/Unavailable.jsx";
+import { SETTINGS } from "../lib/settings.js";
 // The clan map brings Leaflet and the place lists: loaded when opened.
 const ClanMap = lazy(() =>
   import("./views/ClanMap.jsx").then((m) => ({ default: m.ClanMap })),
@@ -82,8 +80,8 @@ function MapWhenInBrowser({ clan, me }) {
 }
 
 /**
- * Routes, all under Elixir's /clan (CLAN, lib/base.js): `/clan` (the signed-out
- * landing, or the chooser for someone with no clan open), `/clan/clans` (the
+ * Routes, all under Elixir's /clan (CLAN, lib/base.js): `/clan` (the chooser
+ * for someone with no clan open), `/clan/clans` (the
  * whole chooser), `/clan/<TAG>/<tab>` with its pages (Feed, Standings, War,
  * Members, Policy and the leaders' Run), `/clan/verify` (the notice after
  * sign-in) and `/clan/refused/<reason>`. The app's own pages win over a tag.
@@ -92,7 +90,8 @@ function MapWhenInBrowser({ clan, me }) {
  * The router owns history and params; the GATE - where a signed-in person
  * belongs, whatever address they arrived at - is the Shell's effect below,
  * because it is a session state machine (a refresh, a select) and not a
- * per-route loader.
+ * per-route loader. Signed out, the app's shell shows Elixir's sign-in page
+ * (apps/web App.jsx, ClanOutlet) and none of this runs.
  */
 
 /** `/clan/<TAG>/<section>[/<tab>]` parsed: the tag with its #, the tab and the
@@ -116,7 +115,7 @@ export function clanFromPath(path, clans = []) {
 }
 
 /** `navigate(to)` for the views: a path, with a query string riding
- *  along (`/clan?error=session_expired`). */
+ *  along (`/clan/directory?q=...`). */
 function useNav() {
   const nav = useNavigate();
   return useCallback(
@@ -132,11 +131,11 @@ function useNav() {
   );
 }
 
-/** The session, as a query on ["me"]. A 401 reads as signed out (with
- *  whether it expired), a transport failure or a 5xx as "unavailable"
- *  - signed in, Elixir did not answer - and never as signed out.
- *  `refresh(true)` is the server-side re-read (?refresh=1). */
-function useMe() {
+/** The person's clans, as a query on ["me", "clan"], under the app's
+ *  session. A 401 reads as signed out, a transport failure or a 5xx as
+ *  "unavailable" - signed in, Elixir did not answer - and never as signed
+ *  out. `refresh(true)` is the server-side re-read (?refresh=1). */
+function useClanMe() {
   const queryClient = useQueryClient();
   const query = useMeQuery();
   const generation = sessionGeneration(queryClient);
@@ -178,20 +177,16 @@ function useMe() {
 }
 
 const SessionContext = createContext(null);
-/** The session and the clan chooser, for the pages. */
+/** The person's clans and the clan chooser, for the pages. */
 const useSession = () => useContext(SessionContext);
 
+/** `/clan`: the chooser for someone with no clan open. With one open, the
+ *  layout sends them to its Feed. */
 export function LandingPage() {
   const { me, select, selecting } = useSession();
-  const { searchStr, pathname } = useLocation();
-  const error = new URLSearchParams(searchStr).get("error");
-  if (me === null) return null;
-  // The chooser for someone signed in with no clan open.
-  if (me.signed_in)
-    return me.ok && !me.selected ? (
-      <Clans me={me} onSelect={select} selecting={selecting} />
-    ) : null;
-  return <Landing error={error} here={pathname + searchStr} />;
+  return me?.ok && !me.selected ? (
+    <Clans me={me} onSelect={select} selecting={selecting} />
+  ) : null;
 }
 
 export function ClansPage() {
@@ -200,8 +195,8 @@ export function ClansPage() {
   return <Clans me={me} onSelect={select} selecting={selecting} />;
 }
 
-/** The clan directory (#768): signed in is enough. Signed out, the shell
- *  shows the landing and this draws nothing. */
+/** The clan directory (#768): signed in is enough. Signed out, the app
+ *  shows its sign-in page and this never runs. */
 export function DirectoryPage() {
   const { me } = useSession();
   const signedIn = Boolean(me?.signed_in && !me.unavailable);
@@ -403,7 +398,7 @@ export function YouPage() {
   const replace = sub !== "away";
   useEffect(() => {
     if (!me?.signed_in || me.unavailable) return;
-    if (replace) window.location.replace(ELIXIR_LINKS.tracking);
+    if (replace) window.location.replace(`${SETTINGS}/players`);
     else
       navigate(clan ? `${clanPath(clan.clan_tag)}/members/away` : CLAN, {
         replace: true,
@@ -434,27 +429,39 @@ export function RefusedPage() {
   );
 }
 
-/** The notice after sign-in: an unverified player's Elder, Co-leader or
- *  Leader role waits for Settings → Players → Verify. "I understand" goes on. */
+/** The notice after sign-in, while a player whose role is Elder or above is
+ *  not verified: Elixir's verify notice, and Continue goes on as a member. */
 export function VerifyPage() {
   const { me, setMe } = useSession();
   const navigate = useNav();
+  const [busy, setBusy] = useState(false);
   if (!me?.ok || !me.verify_notice) return null;
   return (
-    <VerifyNotice
-      me={me}
-      onAcknowledge={async () => {
-        const r = await api.acknowledgeVerify();
-        if (r.ok) {
-          setMe(r.data);
-          navigate(r.data.selected ? landingPath(r.data) : CLAN, {
-            replace: true,
-          });
-        } else if (r.status === 401) {
-          setMe({ signed_in: false, expired: true });
-        }
-      }}
-    />
+    <>
+      <VerifyPlayer titleAs="h1" />
+      <div className="mt-4 flex flex-wrap gap-2.5">
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const r = await api.acknowledgeVerify();
+            setBusy(false);
+            if (r.ok) {
+              setMe(r.data);
+              navigate(r.data.selected ? landingPath(r.data) : CLAN, {
+                replace: true,
+              });
+            } else if (r.status === 401) {
+              setMe({ signed_in: false, expired: true });
+            }
+          }}
+        >
+          {busy ? "Going on…" : "Continue"}
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -495,32 +502,19 @@ export function SendFeedback({ me, path }) {
   );
 }
 
-/** Outside the app's shell (a test), the page and the disclaimer. */
-function PlainFrame({ children }) {
-  return (
-    <div className="shell">
-      {children}
-      <Disclaimer />
-    </div>
-  );
-}
-
 /** Pages any signed-in person reads, with a clan or none, before the
  *  notice after sign-in: the clan directory (#768) is for finding one. */
 const OPEN_TO_ALL = new Set(["/directory"]);
 
-export function ClanShell({
-  Frame = PlainFrame,
-  rememberAfterSignIn = () => {},
-  FollowClan = null,
-  FollowMember = null,
-  FollowThisClan = null,
-}) {
-  const { pathname: path, searchStr } = useLocation();
+/** Clan's pages inside the app's shell (apps/web App.jsx, ClanOutlet), which
+ *  has already found the person signed in. */
+export function ClanLayout() {
+  const { pathname: path } = useLocation();
   // The path under the prefix: "/" is the landing, "/you" your page.
   const app = appPath(path) ?? "";
   const navigate = useNav();
-  const { me, checking, refresh, setMe } = useMe();
+  const queryClient = useQueryClient();
+  const { me, checking, refresh, setMe } = useClanMe();
   // One selection at a time, held until the address is the new clan's.
   const { select, selecting } = useSelectClan({ navigate, setMe });
 
@@ -531,7 +525,9 @@ export function ClanShell({
     // shell unmounts, and sending it back here would undo the click.
     if (path !== CLAN && !path.startsWith(`${CLAN}/`)) return;
     if (!me.signed_in) {
-      rememberAfterSignIn(path + window.location.search);
+      // The session ended under Clan's read: the app reads its session
+      // again, and its sign-in page follows.
+      queryClient.invalidateQueries({ queryKey: ["me"], exact: true });
       return;
     }
     if (me.unavailable) return;
@@ -592,13 +588,7 @@ export function ClanShell({
       // Email/action deep links select the clan without losing their destination.
       select(atClan.clan_tag, { keepPath: true });
     }
-  }, [me, path, app, navigate, select, selecting, rememberAfterSignIn]);
-
-  // What the joining app lends the views (lib/host.js), held still.
-  const host = useMemo(
-    () => ({ FollowClan, FollowMember, FollowThisClan }),
-    [FollowClan, FollowMember, FollowThisClan],
-  );
+  }, [me, path, app, navigate, select, selecting, queryClient]);
 
   // The head and tabs belong to the clan being read.
   const inClan =
@@ -609,48 +599,32 @@ export function ClanShell({
     <SessionContext.Provider
       value={{ me, checking, refresh, setMe, select, selecting }}
     >
-      <HostContext.Provider value={host}>
-        <Frame>
-          <main className="page">
-            <div className="page__inner page__inner--solo">
-              {inClan ? (
-                <ClanHead
-                  me={me}
-                  path={path}
-                  navigate={navigate}
-                  select={select}
-                  selecting={selecting}
-                />
-              ) : null}
-              <RoleConfirming />
-              <ErrorBoundary key={path}>
-                {me && !me.signed_in && app !== "/" ? (
-                  <Landing
-                    error={me.expired ? "session_expired" : null}
-                    here={path + searchStr}
-                  />
-                ) : null}
-                {me?.signed_in && me.unavailable ? (
-                  <div
-                    className="callout callout--warn mx-auto mt-10 max-w-[560px]"
-                    role="alert"
-                  >
-                    <span>
-                      Elixir did not answer. Your sign-in is fine; try again in
-                      a minute.
-                    </span>
-                  </div>
-                ) : (
-                  <Outlet />
-                )}
-              </ErrorBoundary>
-              {me?.signed_in && !me.unavailable ? (
-                <SendFeedback me={me} path={path} />
-              ) : null}
-            </div>
-          </main>
-        </Frame>
-      </HostContext.Provider>
+      <main className="page">
+        <div className="page__inner page__inner--solo">
+          {inClan ? (
+            <ClanHead
+              me={me}
+              path={path}
+              navigate={navigate}
+              select={select}
+              selecting={selecting}
+            />
+          ) : null}
+          <RoleConfirming />
+          <ErrorBoundary key={path}>
+            {me?.signed_in === false ? (
+              <div className="kit-skeleton" aria-busy="true" />
+            ) : me?.unavailable ? (
+              <Unavailable busy={checking} onRetry={() => refresh()} />
+            ) : (
+              <Outlet />
+            )}
+          </ErrorBoundary>
+          {me?.signed_in && !me.unavailable ? (
+            <SendFeedback me={me} path={path} />
+          ) : null}
+        </div>
+      </main>
     </SessionContext.Provider>
   );
 }

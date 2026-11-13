@@ -3,7 +3,7 @@ import { PageHead } from "../components/PageHead.jsx";
 import { useEffect, useState } from "react";
 import { manageApi } from "../api.js";
 import { useRecruit } from "../lib/queries.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 import { CLAN, clanPath } from "../lib/base.js";
 import { untilWritten } from "../lib/pending.js";
 

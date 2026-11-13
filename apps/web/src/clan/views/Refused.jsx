@@ -1,5 +1,6 @@
-import { ELIXIR_LINKS, inApp } from "../lib/links.js";
 import { CLAN } from "../lib/base.js";
+import { HOME } from "../../lib/moved.js";
+import { SETTINGS } from "../../lib/settings.js";
 import { Link, useClock, Tag, Empty } from "@elixir-mcp/ui";
 import { useEffect } from "react";
 
@@ -13,7 +14,7 @@ export const REFUSALS = {
   no_primary_player: {
     title: "Clan starts with your player",
     body: "Add the player you play as, and their clan shows up here.",
-    link: [ELIXIR_LINKS.addPlayer, "Add your player"],
+    link: [`${HOME}#add-player`, "Add your player"],
     // Nothing to report back: the page looks again when you return.
     plain: true,
   },
@@ -22,7 +23,7 @@ export const REFUSALS = {
     body: "The latest recorded profiles for your own players show no clan. These are observations, not a live check.",
     action:
       "If that is still accurate, join a clan in the game; the clan directory lists the clans that saved their rules in Elixir. Otherwise wait for a fresh profile and clan roster, then check again.",
-    link: [ELIXIR_LINKS.elixirHome, "Your Elixir account"],
+    link: [HOME, "Your Elixir account"],
     also: [`${CLAN}/directory`, "Clan directory"],
   },
   membership_unknown: {
@@ -30,7 +31,7 @@ export const REFUSALS = {
     body: "Elixir has not confirmed your players' clan membership yet. A gap in your profile or roster reads does not mean you are outside a clan.",
     action:
       "Check recording under Players & following, then check again after your profile and clan roster have been read.",
-    link: [ELIXIR_LINKS.tracking, "Settings → Players"],
+    link: [`${SETTINGS}/players`, "Settings → Players"],
   },
 };
 
@@ -118,15 +119,9 @@ export function Refused({ reason, me, onRecheck, checking }) {
         <span>{page.action}</span>
       </div>
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        {inApp(page.link[0]) ? (
-          <Link className="btn btn--primary" to={page.link[0]}>
-            {page.link[1]} ›
-          </Link>
-        ) : (
-          <a className="btn btn--primary" href={page.link[0]}>
-            {page.link[1]} ›
-          </a>
-        )}
+        <Link className="btn btn--primary" to={page.link[0]}>
+          {page.link[1]} ›
+        </Link>
         {page.also ? (
           <Link className="btn" to={page.also[0]}>
             {page.also[1]}

@@ -12,7 +12,7 @@ import { YourPlace } from "./YourPlace.jsx";
  * A member adds a place picked from the lists (a country, its region and,
  * if they like, a city: never an address, never the device's location)
  * and sees everyone else who has, with each one's local time. Only the
- * clan's verified members see it, and it stays in Elixir Clan.
+ * clan's verified members see it, and it stays in Clan.
  */
 export function ClanMap({ clan }) {
   const { state } = useClanMap(clan.clan_tag);

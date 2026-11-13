@@ -4,8 +4,8 @@ import { PageHead } from "../components/PageHead.jsx";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useMyAway } from "../lib/queries.js";
-import { trackEvent } from "../analytics.js";
-import { ELIXIR_LINKS } from "../lib/links.js";
+import { trackEvent } from "../../analytics.js";
+import { VERIFY } from "../../components/VerifyPlayer.jsx";
 
 /**
  * Away: a member tells the clan they will be gone, on their own page
@@ -96,7 +96,7 @@ export function Away({ clan }) {
           <span>
             Saying you are away is said in your player&rsquo;s name, so it waits
             until your player is verified.{" "}
-            <Link to={ELIXIR_LINKS.verify}>Verify your player</Link>
+            <Link to={VERIFY}>Verify your player</Link>
           </span>
         </div>
       ) : state.allowed ? (

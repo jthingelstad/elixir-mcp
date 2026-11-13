@@ -157,9 +157,13 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
       page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
     )
     .toBe("/clan/0QC8RCGY/feed");
+  // Elixir's own sign-in page, as on every page of the record.
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Sign in first" }),
+  ).toBeVisible();
   await page
     .getByRole("main")
-    .getByRole("link", { name: "Sign in", exact: true })
+    .getByRole("button", { name: "Sign in", exact: true })
     .click();
   await expect(page).toHaveURL(/\/signin$/);
   expect(
@@ -174,7 +178,7 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
   await accessible(page, "shared sign-in return");
 });
 
-test("a Clan landing uses the common sign-in without a separate OAuth login", async ({
+test("signed out, /clan is Elixir's sign-in page with no separate OAuth login", async ({
   page,
 }) => {
   const calls: string[] = [];
@@ -185,20 +189,20 @@ test("a Clan landing uses the common sign-in without a separate OAuth login", as
   });
   await page.goto("/clan");
   await expect(
-    page.getByRole("main").getByRole("link", { name: "Sign in", exact: true }),
-  ).toHaveAttribute("href", "/signin");
-  // A new account comes back to Clan.
-  for (const signup of await page
-    .getByRole("link", { name: "Create your account" })
-    .all())
-    await expect(signup).toHaveAttribute(
-      "href",
-      "/signin?signup&return_to=%2Fclan",
-    );
+    page.getByRole("heading", { level: 1, name: "Sign in first" }),
+  ).toBeVisible();
+  await page
+    .getByRole("main")
+    .getByRole("button", { name: "Sign in", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/signin$/);
+  expect(
+    await page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
+  ).toBe("/clan");
   expect(calls.filter((path) => path.startsWith("/api/clan/auth/"))).toEqual(
     [],
   );
-  await accessible(page, "shared landing");
+  await accessible(page, "signed-out clan");
 });
 
 test("an unverified Leader: the notice first, then the clan as a member with the way to verify", async ({
@@ -247,17 +251,16 @@ test("an unverified Leader: the notice first, then the clan as a member with the
   );
   await page.goto("/clan/0QC8RCGY");
   await expect(page).toHaveURL(/\/verify$/);
+  // Elixir's verify notice, as You shows it.
   await expect(
-    page.getByRole("heading", { name: "Verify your player to lead here" }),
+    page.getByRole("heading", { level: 1, name: "Verify your player" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /Verify in Elixir/ }),
-  ).toBeVisible();
+    page.getByRole("link", { name: /Verify a player/ }),
+  ).toHaveAttribute("href", "/settings/players/verify");
   await accessible(page, "verify notice");
 
-  await page
-    .getByRole("button", { name: "I understand, continue as a member" })
-    .click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
   await expect(clanTab(page, "Run")).toHaveCount(0);
   await clanTab(page, "Members").click();

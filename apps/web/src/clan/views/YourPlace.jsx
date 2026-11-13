@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
 import { keys, useInvalidate, useMyPlace } from "../lib/queries.js";
 import { placeLabel } from "../lib/place-label.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 
 // The place lists load with the picker, in the browser only: geo.js reads
 // them through Vite's import.meta.glob, which a server render (Settings is

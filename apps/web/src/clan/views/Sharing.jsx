@@ -1,7 +1,7 @@
 import { useSharing } from "../lib/queries.js";
 
 /**
- * What Elixir Clan records in Elixir (door 3, 2026-09-25): what the clan
+ * What Clan records in Elixir (door 3, 2026-09-25): what the clan
  * did goes back to Elixir as facts, each said by the person who did it, and
  * what the app computed each morning (the award standings) as its own.
  * Always, with nothing to switch (Jamie, 2026-09-25): every kind is

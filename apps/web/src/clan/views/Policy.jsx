@@ -2,7 +2,7 @@ import { Disclosure, noun, useClock, Panel, Table } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, usePolicy } from "../lib/queries.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 import {
   PRESETS,
   countedCategories,

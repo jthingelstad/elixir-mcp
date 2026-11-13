@@ -9,7 +9,7 @@ export const FEEDBACK_HISTORY = "/settings/feedback";
 export const feedbackItemHref = (id) => `${FEEDBACK_HISTORY}/${id}`;
 
 /**
- * "Report this", beside a judgment Elixir Clan made: an action, a
+ * "Report this", beside a judgment Clan made: an action, a
  * standing, an award race (2026-10-08). It files into Elixir's one
  * feedback record, area clan, pointing at the thing on screen, so the
  * maintainer reads the action or the policy the person was looking at

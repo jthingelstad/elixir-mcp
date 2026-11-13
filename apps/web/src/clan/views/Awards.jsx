@@ -15,7 +15,7 @@ import { MemberLink } from "../components/MemberLink.jsx";
 import { TooFew } from "../components/TooFew.jsx";
 import { ReportThis } from "../components/ReportThis.jsx";
 import { PageHead } from "../components/PageHead.jsx";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 import { CLAN, clanPath } from "../lib/base.js";
 import { ordinal } from "../lib/words.js";
 

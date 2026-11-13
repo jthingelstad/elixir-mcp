@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useSocial } from "../lib/queries.js";
-import { trackEvent } from "../analytics.js";
+import { trackEvent } from "../../analytics.js";
 
 /**
  * The clan's Social switch (Jamie, 2026-09-26): every clan has the social
