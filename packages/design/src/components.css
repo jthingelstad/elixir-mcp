@@ -6217,20 +6217,24 @@ button.kit-row {
   min-width: 0;
 }
 
+/* Flat like Home (2026-11-13): an empty state is words on the page, left
+   where the page's words start, as Home's quiet lines are; not a centred
+   box. Inside a panel it keeps the panel's own inset. */
 .empty.kit-empty {
   max-width: none;
-  padding: 26px 18px;
-  background: var(--panel);
-  text-align: center;
+  padding: 4px 0 8px;
+  border-radius: 0;
+  background: none;
+  text-align: left;
 }
 .kit-panel .empty.kit-empty {
-  background: none;
+  padding: 12px 16px 16px;
 }
 .kit-empty .empty__body:last-child {
   margin-bottom: 0;
 }
 .kit-empty .empty__body {
-  margin: 0 auto;
+  margin: 0;
   max-width: 60ch;
 }
 .kit-empty__action {
@@ -6704,6 +6708,10 @@ button.kit-row {
   gap: 16px;
   margin-top: 16px;
   min-width: 0;
+}
+/* A state page's one way back: its own width, not the column's. */
+.kit-home__go {
+  justify-self: start;
 }
 /* The feed and a 320px side column (canvas .cols). */
 .kit-home__two {
@@ -9924,7 +9932,10 @@ a.kit-mbattle:hover {
   .clan-field__check,
   .segmented button,
   .mail-pref__all,
-  .select {
+  .select,
+  .input,
+  input.mono,
+  input[data-tag] {
     min-height: var(--hit-touch);
   }
   .mail-pref__all {

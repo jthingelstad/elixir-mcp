@@ -262,7 +262,7 @@ clock time in prose: `game_clock` is the schedule.
 
 ### Recorded evidence
 
-**View games** and **View crossing** open the read-only evidence in place. Sessions list exact canonical games in play order (time, then game
+**Open session** and **Open crossing** open the read-only evidence in place. Sessions list exact canonical games in play order (time, then game
 ID), 25 per page, with links to their existing public battle pages. These
 are the games of the sitting the item counts, from its first battle through
 its last, which can reach before the read window: a standout's evidence is

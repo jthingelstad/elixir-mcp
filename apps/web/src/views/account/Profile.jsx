@@ -104,7 +104,7 @@ export function Profile({ me, refresh }) {
                     </TagText>
                   </Link>
                   <Note>
-                    The name in your top bar, and who Ladder opens on. Change it
+                    The name in your top bar, and who Stats opens on. Change it
                     on another of your players&rsquo; pages.
                   </Note>
                 </>

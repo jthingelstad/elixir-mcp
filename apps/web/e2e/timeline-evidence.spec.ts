@@ -428,7 +428,10 @@ test("on an agent's Timeline, evidence takes focus and Close returns it to its r
     }),
   );
   await page.goto(`/settings/agents/${PUBLIC_ID}/timeline`);
-  const trigger = page.getByRole("button", { name: "View games", exact: true });
+  const trigger = page.getByRole("button", {
+    name: "Open session",
+    exact: true,
+  });
   await trigger.click();
   const panel = page.getByRole("region", { name: "Timeline evidence" });
   await expect(panel).toBeFocused();

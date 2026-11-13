@@ -3,6 +3,7 @@ import { Icon, LogTable, useClock, TagText } from "@elixir-mcp/ui";
 import { useMyTimeline, useTimelineEvidence } from "../../lib/queries.js";
 import { TimelineEvidence, useTimelinePlace } from "./timeline-shared.jsx";
 import { TimelineDiscord } from "./TimelineDiscord.jsx";
+import { evidenceWord } from "../../home/Session.jsx";
 
 /**
  * The timeline: what happened to the players and clans you track, the
@@ -89,8 +90,7 @@ export function Timeline({ crumb = null } = {}) {
       state,
       it.evidence
         ? {
-            text:
-              it.evidence.kind === "session" ? "View games" : "View crossing",
+            text: evidenceWord(it, false),
             action: () => viewEvidence(it),
           }
         : "",
