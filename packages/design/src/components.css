@@ -4598,7 +4598,29 @@ a.card-art:hover .card-art__img {
   max-width: 260px;
 }
 .kit-deckrow > li {
+  position: relative;
   min-width: 0;
+}
+/* A card's cost on its corner (canvas .ct .cost): the elixir drop, a
+   deeper violet here so its white figure keeps 4.5:1. */
+.kit-deckrow__cost {
+  top: 2px;
+  left: 2px;
+  background: radial-gradient(circle at 35% 30%, #c084fc, #7e22ce 55%, #581c87);
+}
+.kit-deckrow__said {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.kit-vs__note {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-faint);
+  font-size: 12px;
 }
 /* Two decks with the score between (canvas .vs): stacked on a phone. */
 .kit-vs {
@@ -7910,6 +7932,14 @@ a.kit-mbattle:hover {
 }
 .kit-mbattle b {
   color: var(--ink);
+}
+.kit-mbattle__line {
+  min-width: 0;
+}
+.kit-mbattle__note {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 12px;
 }
 .kit-mbattle__res {
   font-size: 14px;

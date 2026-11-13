@@ -15,6 +15,13 @@
  *              score ("3-0"), and `three_crowns`, how many wins took all
  *              three crowns. From the stored spark's crowns; a week stored
  *              before they were kept has none, and the line says less.
+ *   deck       a sitting's deck row: its most played deck's label and
+ *              eight cards, each `{id, name, form, elixir_cost}`, kept at
+ *              build time. A week stored before it was kept has none.
+ *   versus     a highlight's two decks, `{mine, theirs}`, each
+ *              `{label, cards}`; theirs null unless one opponent.
+ *   proof_mode the mode group of the battle that proved a moment
+ *              ("ladder"), for the line under its result.
  *
  * The chips only choose what is shown; the read is the timeline's, so the
  * page's place ("New since your last visit") and its evidence reads stay
@@ -22,7 +29,12 @@
  * them, so its contract does not change.
  */
 import { battleLinks } from "@elixir-mcp/record/battle-links";
-import { sessionSpark } from "@elixir-mcp/tools/activity/entries";
+import { modeGroupOf } from "@elixir-mcp/contracts";
+import {
+  highlightVersus,
+  sessionDeck,
+  sessionSpark,
+} from "@elixir-mcp/tools/activity/entries";
 
 /** The facts a moment names its proving battle under (follow.mjs). */
 const PROOFS = ["promoted_by", "crossed_by", "best_win"];
@@ -31,6 +43,17 @@ export const proofOf = (it) => {
   for (const k of PROOFS) {
     const id = it.facts?.[k]?.battle_id;
     if (id) return String(id);
+  }
+  return null;
+};
+
+/** The mode group of the battle that proved a moment, or null. */
+export const proofModeOf = (it) => {
+  for (const k of PROOFS) {
+    const p = it.facts?.[k];
+    if (!p?.battle_id) continue;
+    if (p.mode) return p.mode;
+    return p.type ? modeGroupOf(p.type, p.event_tag ?? null) : null;
   }
   return null;
 };
@@ -112,12 +135,18 @@ export async function annotateFeed(db, timeline, subjects) {
     const spark = sparkOf(it);
     const scores = scoresOf(sessionSpark(it));
     const link = proofs[i] ? links.get(proofs[i]) : null;
+    const deck = sessionDeck(it);
+    const versus = highlightVersus(it);
+    const proofMode = proofs[i] ? proofModeOf(it) : null;
     return {
       ...it,
       groups: groupsOf(it, subjects),
       ...(spark ? { spark } : {}),
       ...(scores ? { scores } : {}),
+      ...(deck ? { deck } : {}),
+      ...(versus ? { versus } : {}),
       ...(link ? { battle_url: link.url } : {}),
+      ...(proofMode ? { proof_mode: proofMode } : {}),
     };
   });
 }

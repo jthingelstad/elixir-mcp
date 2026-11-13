@@ -27,6 +27,8 @@ export interface DeckCard {
   name: string;
   form?: CardForm | null;
   level?: number | null;
+  /** The catalog's elixir cost, for a deck row's cost drop. */
+  elixir_cost?: number | null;
 }
 
 /** The mirror's file suffix per form (contracts cardArtPath). */
@@ -238,17 +240,21 @@ export function DeckGrid({
  *  takes an equal share of the row, up to 420px wide, so the eight fit a
  *  phone. `columns` 4 lays it two by four, as each side of `DeckVersus`
  *  does. The art is the mirror's file, sized by CSS only; the canvas's
- *  text tiles were stand-ins for it. */
+ *  text tiles were stand-ins for it. `showCost` puts each card's elixir
+ *  cost on its corner (canvas `.ct .cost`) where the card carries one,
+ *  and says it to a screen reader. */
 export function DeckRow({
   cards,
   columns = 8,
   showLevel = false,
+  showCost = false,
   cardTo,
   label,
 }: {
   cards: DeckCard[];
   columns?: 4 | 8;
   showLevel?: boolean;
+  showCost?: boolean;
   cardTo?: ((card: DeckCard) => string | undefined) | undefined;
   label?: string | undefined;
 }) {
@@ -257,16 +263,28 @@ export function DeckRow({
       className={`kit-deckrow kit-deckrow--${columns}`}
       aria-label={label ?? "Deck"}
     >
-      {cards.map((c, i) => (
-        <li key={`${c.id}-${i}`}>
-          <CardArt
-            card={c}
-            size="fill"
-            showLevel={showLevel}
-            to={cardTo?.(c)}
-          />
-        </li>
-      ))}
+      {cards.map((c, i) => {
+        const cost =
+          showCost && typeof c.elixir_cost === "number" ? c.elixir_cost : null;
+        return (
+          <li key={`${c.id}-${i}`}>
+            <CardArt
+              card={c}
+              size="fill"
+              showLevel={showLevel}
+              to={cardTo?.(c)}
+            />
+            {cost !== null ? (
+              <>
+                <span className="card-elixir kit-deckrow__cost" aria-hidden>
+                  {cost}
+                </span>
+                <span className="kit-deckrow__said">, {cost} elixir</span>
+              </>
+            ) : null}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -287,13 +305,18 @@ export function DeckVersus({
   right,
   score,
   scoreLabel,
+  note,
   cardTo,
+  showCost = false,
 }: {
   left: VersusSide;
   right: VersusSide;
   score: ReactNode;
   scoreLabel?: string | undefined;
+  /** A line under the score (canvas: the mode). */
+  note?: ReactNode;
   cardTo?: ((card: DeckCard) => string | undefined) | undefined;
+  showCost?: boolean;
 }) {
   const side = (s: VersusSide, key: string) => (
     <div className="kit-vs__side" key={key}>
@@ -301,7 +324,12 @@ export function DeckVersus({
         <b>{s.name}</b>
         {s.label ? <> · {s.label}</> : null}
       </p>
-      <DeckRow cards={s.cards} columns={4} cardTo={cardTo} />
+      <DeckRow
+        cards={s.cards}
+        columns={4}
+        cardTo={cardTo}
+        showCost={showCost}
+      />
     </div>
   );
   return (
@@ -315,6 +343,7 @@ export function DeckVersus({
           {score}
         </span>
         {scoreLabel ? <span className="kit-vs__said">{scoreLabel}</span> : null}
+        {note ? <span className="kit-vs__note">{note}</span> : null}
       </div>
       {side(right, "r")}
     </div>

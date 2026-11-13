@@ -36,6 +36,7 @@ import {
   ATTESTED_FACT_KINDS,
   ATTESTED_FACT_TYPES,
   FAMILY_APP_NAMES,
+  formName,
   modeGroupOf,
   postUrl,
 } from "@elixir-mcp/contracts";
@@ -48,7 +49,7 @@ import {
   CLAN_EVENT_COLUMNS,
 } from "../event-payloads.mjs";
 import { collectionLevelStep } from "@elixir-mcp/ingest/snapshots";
-import { deckIdentities } from "../tools/shared.mjs";
+import { deckCardsWithCost, deckIdentities } from "../tools/shared.mjs";
 import { itemSchema } from "./schemas.mjs";
 import { trophiesAreStanding } from "../controls.mjs";
 import {
@@ -490,20 +491,49 @@ const SPARK = Symbol("session spark");
 /** The battles of a battle_session or session_standout item, in order, or
  *  null for any other item. */
 export const sessionSpark = (item) => item?.[SPARK] ?? null;
+/** A sitting's deck for the website's deck row (design canvas,
+ *  2026-11-13): the most played deck of its most played archetype, as
+ *  `{label, cards: [{id, name, form, elixir_cost}]}`. Web-only, like the
+ *  spark: MCP's facts keep the labels alone. */
+const DECK = Symbol("session deck");
+/** A battle_session or session_standout item's deck, or null. */
+export const sessionDeck = (item) => item?.[DECK] ?? null;
+/** A highlight's two decks for the website (design canvas, 2026-11-13):
+ *  `{mine, theirs}`, each `{label, cards}`, theirs null unless one
+ *  opponent. Web-only; MCP's battle_highlight facts are unchanged. */
+const VERSUS = Symbol("highlight decks");
+export const highlightVersus = (item) => item?.[VERSUS] ?? null;
+/** A deck as the highlight read aggregated it, in the website's shape:
+ *  the stamped archetype label (none when unclassified or unstamped) and
+ *  the cards with their costs. Null with no cards. */
+function versusSide(d) {
+  const cards = (d?.cards ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    form: formName(c.form),
+    elixir_cost: c.elixir_cost ?? null,
+  }));
+  return cards.length ? { label: d.label ?? null, cards } : null;
+}
+/** The deck symbol on an item, when the sitting has one. */
+const deckOf = (s) => (s.deckRow ? { [DECK]: s.deckRow } : {});
 /** A finished item as Home's stored week keeps it (home_feed, 0245): its
- *  two server-only fields as plain keys, so they survive JSON. Never
- *  served: `restoredItem` puts them back under their symbols. */
+ *  server-only fields as plain keys, so they survive JSON. Never served:
+ *  `restoredItem` puts them back under their symbols. A week stored
+ *  before a field existed simply lacks it. */
 export function storedItem(it) {
   const out = { ...it };
   if (it[SPARK] !== undefined) out._spark = it[SPARK];
+  if (it[DECK] !== undefined) out._deck = it[DECK];
   if (it[EVIDENCE] !== undefined) out._evidence_source = it[EVIDENCE];
   return out;
 }
 /** A stored item as the builder finished it: its server-only fields back
  *  under their symbols, and nothing else changed. */
 export function restoredItem(stored) {
-  const { _spark, _evidence_source, ...it } = stored;
+  const { _spark, _deck, _evidence_source, ...it } = stored;
   if (_spark !== undefined) it[SPARK] = _spark;
+  if (_deck !== undefined) it[DECK] = _deck;
   if (_evidence_source !== undefined) it[EVIDENCE] = _evidence_source;
   return it;
 }
@@ -956,6 +986,18 @@ async function nameSessions(db, sessions, named = null) {
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .slice(0, SESSION_DECKS_CAP)
       .map(([label, battles]) => ({ label, battles }));
+    // The top label's most played deck, its eight cards with their costs,
+    // for the website's deck row: from the same identities, no read.
+    const top = s.decks[0]?.label ?? null;
+    let topHash = null;
+    for (const [hash, n] of s.deckCounts)
+      if (
+        ids.get(hash)?.archetype?.label === top &&
+        (topHash === null || n > s.deckCounts.get(topHash))
+      )
+        topHash = hash;
+    const cards = topHash ? deckCardsWithCost(ids.get(topHash)) : null;
+    s.deckRow = cards?.length ? { label: top, cards } : null;
     s.events = [...s.eventCounts.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([event_tag, battles]) => ({
@@ -1009,6 +1051,7 @@ function sessionFacts({
   deckCounts: _d,
   eventCounts: _e,
   spark: _s,
+  deckRow: _r,
   ...rest
 }) {
   return rest;
@@ -1679,6 +1722,7 @@ export async function buildPlayerEntry(
       section: "battles",
       facts: { ...self, ...sessionFacts(s) },
       [SPARK]: s.spark,
+      ...deckOf(s),
       [STORY]: sittingStory(tag, anchored[i], s.started_at),
       ...sessionEvidence(tag, anchored[i], s.ended_at, s.open),
     });
@@ -2854,6 +2898,7 @@ export async function buildClanEntry(
         ...sessionFacts(sess),
       },
       [SPARK]: sess.spark,
+      ...deckOf(sess),
       [STORY]: sittingStory(memberTag, memberAnchored[i], sess.started_at),
       ...sessionEvidence(
         memberTag,
@@ -2886,6 +2931,7 @@ export async function buildClanEntry(
         ...standoutDetails[i],
       },
       [SPARK]: sess.spark,
+      ...deckOf(sess),
       [STORY]: sittingStory(
         sess.player_tag,
         standoutAnchored[i],
@@ -3043,6 +3089,20 @@ async function accountItems(db, accountId, fromMs, toMs) {
  * the reader is the account that posted it, or one of its agents.
  * Section "battles"; public, like the battle it names.
  */
+/** One deck as jsonb for a highlight's two decks, inside the highlight's
+ *  one statement: its stamped label (0148) unless unclassified, and its
+ *  cards with their catalog costs. */
+const VERSUS_DECK_SQL = (hash) => `(select jsonb_build_object(
+          'label', case when d.archetype_family <> 'unclassified'
+                        then d.archetype_label end,
+          'cards', (select coalesce(jsonb_agg(jsonb_build_object(
+                       'id', dc.card_id, 'form', dc.form, 'name', c.name,
+                       'elixir_cost', c.elixir_cost)
+                     order by dc.card_id, dc.form), '[]'::jsonb)
+                      from deck_card dc join card c on c.card_id = dc.card_id
+                     where dc.deck_hash = d.deck_hash))
+         from deck d where d.deck_hash = ${hash})`;
+
 async function highlightItems(
   db,
   subjects,
@@ -3070,7 +3130,12 @@ async function highlightItems(
                     order by o.player_tag), '[]'::jsonb)
                from battle_participant o
                left join player op on op.player_tag = o.player_tag
-              where o.battle_id = h.battle_id and o.side <> me.side) as opponents
+              where o.battle_id = h.battle_id and o.side <> me.side) as opponents,
+            ${VERSUS_DECK_SQL("me.deck_hash")} as my_deck,
+            (select ${VERSUS_DECK_SQL("o.deck_hash")}
+               from battle_participant o
+              where o.battle_id = h.battle_id and o.side <> me.side
+              order by o.player_tag limit 1) as their_deck
        from battle_highlight h
        join player p on p.player_tag = h.player_tag
        join battle b on b.battle_id = h.battle_id
@@ -3123,6 +3188,14 @@ async function highlightItems(
         },
         ...(r.yours && r.share_id ? { share_url: postUrl(r.share_id) } : {}),
       },
+      ...(versusSide(r.my_deck)
+        ? {
+            [VERSUS]: {
+              mine: versusSide(r.my_deck),
+              theirs: opponents.length === 1 ? versusSide(r.their_deck) : null,
+            },
+          }
+        : {}),
       [STORY]: {
         ...moment("battle_highlight", r.highlight_id),
         revision: Math.max(1, Number(r.revision) || 1),

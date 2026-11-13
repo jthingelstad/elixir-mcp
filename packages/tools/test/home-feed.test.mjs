@@ -14,6 +14,7 @@ import { scratchDb } from "../../ingest/test/helpers.mjs";
 import {
   readTimelineEvidence,
   restoredItem,
+  sessionDeck,
   sessionSpark,
   storedItem,
 } from "../src/activity/entries.mjs";
@@ -101,6 +102,27 @@ test("the server-only fields survive the store and are never served", () => {
     id: "x",
     kind: "battle_session",
   });
+});
+
+test("a sitting's deck row survives the store under its symbol, never served", () => {
+  const deck = {
+    label: "Invented cycle",
+    cards: [{ id: 26000000, name: "Knight", form: "base", elixir_cost: 3 }],
+  };
+  const restored = restoredItem(
+    JSON.parse(
+      JSON.stringify({ id: "y", kind: "battle_session", _deck: deck }),
+    ),
+  );
+  assert.deepEqual(sessionDeck(restored), deck);
+  assert.deepEqual(JSON.parse(JSON.stringify(restored)), {
+    id: "y",
+    kind: "battle_session",
+  });
+  // Stored again, it is the same row: a week stored before the deck was
+  // kept has no _deck and restores with none.
+  assert.deepEqual(storedItem(restored)._deck, deck);
+  assert.equal(sessionDeck(restoredItem({ id: "z" })), null);
 });
 
 test("the first read builds and stores the week; the next serves the row as built", async () => {

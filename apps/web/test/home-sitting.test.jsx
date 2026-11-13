@@ -35,3 +35,41 @@ test("the mode line names the widest win, and an old row says less", () => {
   render(<Sitting it={{ kind: "battle_session", facts }} />);
   expect(screen.getByText("Trophy Road")).toBeTruthy();
 });
+
+test("a sitting draws its deck's eight cards with their costs under its label", () => {
+  const cards = Array.from({ length: 8 }, (_, i) => ({
+    id: 26000000 + i,
+    name: `Card ${i}`,
+    form: i === 0 ? "hero" : "base",
+    elixir_cost: i + 1,
+  }));
+  const facts = {
+    battles: 4,
+    won: 3,
+    lost: 1,
+    by_mode: { ladder: 4 },
+    decks: [{ label: "Invented cycle", battles: 4 }],
+  };
+  render(
+    <Sitting
+      it={{
+        kind: "battle_session",
+        facts,
+        deck: { label: "Invented cycle", cards },
+      }}
+    />,
+  );
+  const row = screen.getByRole("list", {
+    name: "Invented cycle, the deck played most",
+  });
+  expect(row.querySelectorAll("li")).toHaveLength(8);
+  expect(row.querySelectorAll(".kit-deckrow__cost")[7].textContent).toBe("8");
+  // A deck kept for another label (an old row) is not drawn.
+  cleanup();
+  render(
+    <Sitting
+      it={{ kind: "battle_session", facts, deck: { label: "Other", cards } }}
+    />,
+  );
+  expect(screen.queryByRole("list")).toBeNull();
+});
