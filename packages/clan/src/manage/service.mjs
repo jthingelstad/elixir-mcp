@@ -228,6 +228,11 @@ export function createManageService({
   seasonCalendar = null,
   /** Where Elixir Clan's app is, for the links in its email */
   appUrl = "https://elixir.poapkings.com/clan",
+  /** Runs `fn` holding the clan's lock (the web API's session advisory
+   *  lock). Every read-modify-write of the clan's cards, numbers and
+   *  verdict snapshot goes through it; the record reads before it do
+   *  not. The morning run already holds the lock: `fn()` there. */
+  exclusive = (_clanTag, fn) => fn(),
 }) {
   const isLeader = (who) => LEADERS.has(who.role);
   const requireLeader = (who) => {
@@ -614,7 +619,69 @@ export function createManageService({
     return names;
   }
 
-  /** Evaluate (or reuse a fresh snapshot), reconcile cards, verify outcomes. */
+  /** The cards with every one numbered: read, and numbered under the
+   *  clan's lock only when one still has no number. */
+  async function numberedCards(clanTag) {
+    const all = await ledger.cards(clanTag);
+    if (all.every((c) => Number.isInteger(c.number))) return all;
+    return exclusive(clanTag, async () => {
+      const fresh = await ledger.cards(clanTag);
+      await numberActions(clanTag, fresh);
+      return fresh;
+    });
+  }
+
+  /** A snapshot saved by an evaluation that started after `t`,
+   *  under the same policy: what it read is at least as fresh as ours. */
+  const fresher = (snapshot, policy, t) =>
+    !!snapshot &&
+    snapshot.removal_evidence_schema === 5 &&
+    snapshot.policy_version === policy.version &&
+    Date.parse(snapshot.evaluated_at) > t;
+
+  /** The record reads an evaluation judges from: participation with each
+   *  member's activity evidence, and the roster when the policy needs it.
+   *  No clan state is written here but the monotonic size observation. */
+  async function gatherEvaluation({
+    clanTag,
+    token,
+    policy,
+    t,
+    participation,
+  }) {
+    const fetched =
+      participation ?? (await fetchParticipation(mcp, token, clanTag));
+    const part = {
+      ...fetched,
+      members: await activityForMembers(clanTag, fetched.members),
+    };
+    // Too small to judge: remember the size and stop, before any card moves.
+    if (!participation) {
+      await noteSize(clanTag, part.members.length, t);
+      if (part.members.length < MIN_MEMBERS)
+        throw tooFewMembers(part.members.length);
+    }
+    // The roster carries today's trophies and the join/leave events; read
+    // only when the policy needs one of them.
+    const needsRoster =
+      policy.values.trophies_enabled ||
+      policy.values.departures_enabled ||
+      policy.values.welcome_enabled;
+    const roster =
+      !participation && needsRoster
+        ? await fetchRoster(mcp, token, clanTag)
+        : null;
+    return { part, roster };
+  }
+
+  /**
+   * Evaluate (or reuse a fresh snapshot), reconcile cards, verify outcomes.
+   * The record is read outside the clan's lock; the ledger is read again
+   * and changed inside it (`exclusive`), so two evaluations never raise
+   * the same card and none writes over a decision from a stale read. An
+   * evaluation that finds a snapshot from one that started after it read
+   * the record takes that one instead of judging from older reads.
+   */
   async function evaluateClan({
     clanTag,
     token,
@@ -638,29 +705,56 @@ export function createManageService({
       t - Date.parse(cached.evaluated_at) < EVALUATION_TTL_MS
     )
       return { verdicts: cached, policy, cached: true };
+    const gathered = await gatherEvaluation({
+      clanTag,
+      token,
+      policy,
+      t,
+      participation,
+    });
+    void who;
+    return exclusive(clanTag, async () => {
+      const current = await requirePolicy(clanTag, { size: false });
+      const latest = await ledger.latestVerdicts(clanTag);
+      if (fresher(latest, current, t))
+        return { verdicts: latest, policy: current, cached: true };
+      // A policy saved while the record was read: judge by it, with the
+      // reads it needs (rare, so read under the lock).
+      const { part, roster } =
+        current.version === policy.version
+          ? gathered
+          : await gatherEvaluation({
+              clanTag,
+              token,
+              policy: current,
+              t,
+              participation,
+            });
+      return applyEvaluation({
+        clanTag,
+        token,
+        t,
+        policy: current,
+        cached: latest,
+        part,
+        roster,
+        participation,
+      });
+    });
+  }
 
-    const fetched =
-      participation ?? (await fetchParticipation(mcp, token, clanTag));
-    const part = {
-      ...fetched,
-      members: await activityForMembers(clanTag, fetched.members),
-    };
-    // Too small to judge: remember the size and stop, before any card moves.
-    if (!participation) {
-      await noteSize(clanTag, part.members.length, t);
-      if (part.members.length < MIN_MEMBERS)
-        throw tooFewMembers(part.members.length);
-    }
-    // The roster carries today's trophies and the join/leave events; read
-    // only when the policy needs one of them.
-    const needsRoster =
-      policy.values.trophies_enabled ||
-      policy.values.departures_enabled ||
-      policy.values.welcome_enabled;
-    const roster =
-      !participation && needsRoster
-        ? await fetchRoster(mcp, token, clanTag)
-        : null;
+  /** The locked half of an evaluation: judge against the ledger as it is
+   *  now, reconcile cards, verify outcomes, save the snapshot. */
+  async function applyEvaluation({
+    clanTag,
+    token,
+    t,
+    policy,
+    cached,
+    part,
+    roster,
+    participation,
+  }) {
     const cards = await ledger.cards(clanTag);
     const decisions = cards
       .filter((c) => c.status === "done" || c.status === "declined")
@@ -1047,7 +1141,6 @@ export function createManageService({
       })),
     };
     await ledger.saveVerdicts(clanTag, snapshot);
-    void who;
     return { verdicts: snapshot, policy, cached: false };
   }
 
@@ -1362,8 +1455,7 @@ export function createManageService({
         ? { verdicts: snapshot, policy: currentPolicy, cached: true }
         : await evaluateClan({ clanTag, token, who, force: refresh });
       const t = now();
-      const all = await ledger.cards(clanTag);
-      await numberActions(clanTag, all);
+      const all = await numberedCards(clanTag);
       const mine = all.filter((c) => canAct(c, who));
       const closedAt = (c) => c.decided_at ?? c.withdrawn_at ?? c.raised_at;
       const open = mine
@@ -1404,11 +1496,8 @@ export function createManageService({
     async actionByNumber(clanTag, who, number, token = null) {
       await requirePolicy(clanTag);
       let card = await ledger.cardByNumber(clanTag, number);
-      if (!card) {
-        const all = await ledger.cards(clanTag);
-        await numberActions(clanTag, all);
-        card = all.find((c) => c.number === number);
-      }
+      if (!card)
+        card = (await numberedCards(clanTag)).find((c) => c.number === number);
       if (!card || !canAct(card, who)) throw new ManageError(404, "no_action");
       const safety = (await removalSafety(clanTag, [card], token)).get(
         card.card_id,
@@ -1717,8 +1806,7 @@ export function createManageService({
     async history(clanTag, who, token = null) {
       requireLeader(who);
       await requirePolicy(clanTag);
-      const allCards = await ledger.cards(clanTag);
-      await numberActions(clanTag, allCards);
+      const allCards = await numberedCards(clanTag);
       const byCard = await logsByCard(clanTag);
       const safety = await removalSafety(clanTag, allCards, token);
       const cards = allCards
