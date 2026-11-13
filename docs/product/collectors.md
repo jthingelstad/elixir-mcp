@@ -24,8 +24,9 @@ collector is credited publicly to the operator's primary player by its
 card name; the machine's name and address are private. [Jamie,
 2026-09-06, 2026-09-07, 2026-10-12]
 
-An operator runs their collectors from Settings › Collectors: raising a
-hand, the one-time token, and each collector's own record. Anyone can
+Anyone raises a hand at Settings › Collectors › Run a collector, linked
+from `/data`; once they run one, Settings › Collectors holds the
+one-time token and each collector's own record. Anyone can
 see the fleet on `/data`, which lists each collector by card name and
 operator, whether it is keeping up and whether its release is signed.
 Admin's fleet and efficiency pages are staff-only, under Settings ›
