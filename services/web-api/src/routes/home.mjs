@@ -990,8 +990,13 @@ export function homeRoutes({
       const week = lastGameWeek(new Date());
       const registry = exploreRegistry();
       // Leave the page room to answer: past this the rest keep their counts
-      // and go without a deck.
-      const stopAt = (event.softDeadlineAt ?? Date.now() + 20_000) - 5_000;
+      // and go without a deck. With no soft deadline (no HTTP context: tests,
+      // a local server) there is none to keep room for (deadline.mjs), so a
+      // slow host never trims a deck the page would have drawn.
+      const stopAt =
+        typeof event.softDeadlineAt === "number"
+          ? event.softDeadlineAt - 5_000
+          : Infinity;
       const started = Date.now();
       const facts = await buildFriendsWeek({
         db,

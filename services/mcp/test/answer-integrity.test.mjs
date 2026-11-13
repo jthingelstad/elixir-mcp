@@ -80,6 +80,7 @@ test("performance totals agree across views beyond 2000 battles, with explicit r
 });
 
 test("fresh profile cannot freshen battle answers; unknown inputs stay unknown", async () => {
+  const wrote = Date.now();
   await scratch.db.query(
     `insert into poll_state (subject_tag,endpoint,last_admitted_at)
     values ($1,'player',now()),($1,'player_battlelog',now()-interval '2 days')`,
@@ -90,7 +91,13 @@ test("fresh profile cannot freshen battle answers; unknown inputs stay unknown",
   assert.equal(battle.meta.recorded_since, "2026-09-01T00:01:00.000Z");
   assert.ok(battle.meta.recording_active_since);
   const mixed = await call("players_summary", { player_tag: TAG });
-  assert.ok(mixed.meta.source_polls.player.freshness_seconds < 5);
+  // The profile poll is as old as this test's own run, however slow the
+  // host: never the battle log's two days.
+  assert.ok(
+    mixed.meta.source_polls.player.freshness_seconds <=
+      Math.ceil((Date.now() - wrote) / 1000) + 1,
+    JSON.stringify(mixed.meta.source_polls.player),
+  );
   assert.ok(
     mixed.meta.source_polls.player_battlelog.freshness_seconds >= 172800,
   );
