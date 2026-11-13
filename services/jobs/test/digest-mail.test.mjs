@@ -571,6 +571,48 @@ test("the clan part turned off: a followed clanmate's role change is told under 
   );
 });
 
+test("the clan part turned off: a followed clanmate promoted with nothing else to tell still stands in the digest (Codex on #922)", async () => {
+  const QUIET = "#0V2YC8QQ";
+  await db.query(`insert into player (player_tag, name) values ($1, 'Quiet')`, [
+    QUIET,
+  ]);
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, left_observed_at, role)
+     values ($1, $2, '2026-08-01T00:00:00Z', null, 'elder')`,
+    [C2, QUIET],
+  );
+  await db.query(
+    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, occurred_at, player_tag, role_before, role_after)
+     values ($1, 'role_changed', 'estimated', '2026-10-04T10:00:00Z', '2026-10-04T10:00:00Z', '2026-10-04T10:00:00Z', $2, 'member', 'elder')`,
+    [C2, QUIET],
+  );
+  // A reader who follows the clan and only this quiet member.
+  const id = await reader("quiet-promoted", [
+    ["#0YQ2Y0LR", "primary"],
+    [QUIET, "friend"],
+  ]);
+  await db.query(
+    `insert into account_clan (account_id, clan_tag, notify) values ($1, $2, true)`,
+    [id, C2],
+  );
+  const mail = await buildDigest({
+    db,
+    account: { accountId: id, timezone: "UTC" },
+    cadence: "weekly",
+    window: W2,
+    fold: { clan: false, arena: true },
+  });
+  assert.ok(mail, "the promotion alone is a digest");
+  assert.deepEqual(mail.clans, []);
+  const quiet = mail.people.find((p) => p.tag === QUIET);
+  assert.ok(quiet, JSON.stringify(mail.people));
+  assert.equal(quiet.battles, 0);
+  assert.ok(
+    quiet.items.some((it) => it.kind === "member_role_changed"),
+    JSON.stringify(quiet.items),
+  );
+});
+
 test("a clan's news alone sends a weekly digest, never one for a reader who had the clan report off", async () => {
   const args = {
     db,
