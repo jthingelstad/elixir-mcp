@@ -188,7 +188,11 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
       routes[`${req.method()} ${url.pathname}${url.search}`] ??
       (key === "GET /api/me/home/feed"
         ? routes["GET /api/me/timeline"]
-        : undefined);
+        : // The app's own ask for your battles answers quietly
+          // (2026-11-14, ../fixtures.ts asksForBattles).
+          url.pathname === "/api/me/refresh"
+          ? ([200, { queued: false, players: [] }] as const)
+          : undefined);
     const [status, body] =
       typeof answer === "function"
         ? answer(route)

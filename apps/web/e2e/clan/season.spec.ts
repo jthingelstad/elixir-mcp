@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { seasonReport } from "@elixir-mcp/clan-engine";
 import { seasonRecordFixture } from "@elixir-mcp/clan-engine/fixtures";
+import { asksForBattles } from "../fixtures.ts";
 import { ME, clanTab, mockApi, signedIn } from "./fixtures.ts";
 
 const base = "/clan/0QC8RCGY";
@@ -45,7 +46,8 @@ for (const width of [390, 1280]) {
       page.on("request", (r) => {
         if (
           new URL(r.url()).pathname.startsWith("/api/") &&
-          r.method() !== "GET"
+          r.method() !== "GET" &&
+          !asksForBattles(r.url())
         )
           writes.push(r.method() + " " + r.url());
       });

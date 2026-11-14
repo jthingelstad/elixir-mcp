@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import {
   ME,
   SIGNED_OUT,
+  asksForBattles,
   mockApi,
   signedIn,
   railStaysInView,
@@ -360,7 +361,11 @@ test.describe("signed in", () => {
     const marks: unknown[] = [];
     const writes: string[] = [];
     page.on("request", (r) => {
-      if (r.method() !== "GET" && new URL(r.url()).pathname.startsWith("/api/"))
+      if (
+        r.method() !== "GET" &&
+        new URL(r.url()).pathname.startsWith("/api/") &&
+        !asksForBattles(r.url())
+      )
         writes.push(`${r.method()} ${new URL(r.url()).pathname}`);
     });
     await mockApi(page, {
