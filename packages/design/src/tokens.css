@@ -228,10 +228,6 @@
   --chart-bar: rgba(139, 92, 246, 0.85); /* a chart's bar */
   --chart-bar-partial: rgba(139, 92, 246, 0.35); /* a bar for a part day */
   --chart-hit-focus: rgba(139, 92, 246, 0.1); /* a focused bar's hit area */
-  --art-glow: rgba(139, 92, 246, 0.45); /* the home art's glow, centre */
-  --art-glow-fade: rgba(139, 92, 246, 0.08); /* the home art's glow, edge */
-  --art-ring: rgba(245, 200, 76, 0.25); /* the ring round the home art */
-  --art-shadow: rgba(4, 2, 12, 0.6); /* the home art's drop shadow */
   --ink-on-art: #fff; /* text over card art: a deck's name, an elixir cost */
   --deck-name-scrim: rgba(4, 2, 12, 0.6); /* under a deck's name on its art */
   --form-ink: #160f2e; /* text on a card's form badge */
@@ -330,15 +326,14 @@
   --r-round: 50%; /* a circle */
 
   --hit: 44px; /* minimum control target */
-  --hit-touch: 44px; /* narrow viewport */
 
   /* ---- Motion (2026-09-12, with Verify) ----------------------------
      Three durations and one curve; nothing else animates. The
      prefers-reduced-motion rule at the end of this file turns every
      animation and transition off in one place. */
-  --dur-fast: 150ms;
-  --dur-base: 320ms;
-  --dur-slow: 700ms;
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 320ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   --bp-narrow: 900px; /* ONE breakpoint, all surfaces */
