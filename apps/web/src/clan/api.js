@@ -3,7 +3,7 @@
  * longer reply window without extending ordinary
  * reads. All answers keep the family's envelope and retry rules. */
 
-import { createClient } from "@elixir-mcp/client";
+import { createClient } from "../client/index.ts";
 import { trackEvent } from "../analytics.js";
 import { routeLabel } from "./analytics.js";
 import { confirmingRole } from "./lib/role.js";

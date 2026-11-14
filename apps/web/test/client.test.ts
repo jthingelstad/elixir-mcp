@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { test, expect, vi } from "vitest";
 import {
   ApiError,
@@ -6,7 +7,7 @@ import {
   routeLabel,
   transportFailed,
   unwrap,
-} from "../src/index.ts";
+} from "../src/client/index.ts";
 
 function response(
   status: number,

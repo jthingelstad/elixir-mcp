@@ -22,7 +22,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { answered, unwrap } from "@elixir-mcp/client";
+import { answered, unwrap } from "../client/index.ts";
 import { api } from "../api.js";
 import { sweepBattles } from "./battle-sweep.js";
 import { bellSeenAt } from "../shell/bell-logic.js";

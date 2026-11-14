@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { test, expect, vi } from "vitest";
 import { act, cleanup, waitFor } from "@testing-library/react";
-import { resetSessionCache } from "@elixir-mcp/client";
+import { resetSessionCache } from "../../src/client/index.ts";
 import { renderWithProviders } from "./helpers.jsx";
 import { useRoster, keys } from "../../src/clan/lib/queries.js";
 import { api } from "../../src/clan/api.js";

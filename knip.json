@@ -13,11 +13,7 @@
     },
     "apps/web": {
       "entry": ["e2e/*.spec.ts"],
-      "project": ["src/**/*.{js,jsx}", "e2e/**/*.ts"]
-    },
-    "packages/client": {
-      "entry": ["test/*.test.ts"],
-      "project": ["src/**/*.ts", "test/**/*.ts"]
+      "project": ["src/**/*.{js,jsx,ts}", "e2e/**/*.ts"]
     },
     "packages/ui": {
       "entry": ["test/*.test.tsx"],

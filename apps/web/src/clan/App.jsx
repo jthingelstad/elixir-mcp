@@ -1,4 +1,4 @@
-import { sessionGeneration } from "@elixir-mcp/client";
+import { sessionGeneration } from "../client/index.ts";
 import { FEEDBACK_CATEGORIES } from "@elixir-mcp/contracts";
 import {
   Suspense,

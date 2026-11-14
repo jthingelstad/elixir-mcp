@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { useWrite } from "@elixir-mcp/client";
+import { useWrite } from "../client/index.ts";
 import { ConfirmAction, Icon, WriteError, useFlash } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { HOME_FEED_KEY, keys, useMyHighlights } from "../lib/queries.js";

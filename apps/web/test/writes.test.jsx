@@ -10,7 +10,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createQueryClient, useWrite } from "@elixir-mcp/client";
+import { createQueryClient, useWrite } from "../src/client/index.ts";
 import { WriteError, writeErrorText } from "@elixir-mcp/ui";
 
 /**

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useWrite } from "@elixir-mcp/client";
+import { useWrite } from "../client/index.ts";
 import {
   DeckGrid,
   Empty,

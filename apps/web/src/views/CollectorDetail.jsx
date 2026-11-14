@@ -1,5 +1,5 @@
 import { useInitialTime, Panel, PageHead, Empty } from "@elixir-mcp/ui";
-import { useWrite } from "@elixir-mcp/client";
+import { useWrite } from "../client/index.ts";
 import {
   ago,
   beatCls,

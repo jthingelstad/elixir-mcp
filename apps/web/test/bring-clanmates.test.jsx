@@ -9,7 +9,7 @@ import {
   within,
 } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createQueryClient } from "@elixir-mcp/client";
+import { createQueryClient } from "../src/client/index.ts";
 import { BringClanmates } from "../src/components/BringClanmates.jsx";
 
 afterEach(() => {
