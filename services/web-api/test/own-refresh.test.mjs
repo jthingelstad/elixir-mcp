@@ -428,6 +428,30 @@ test("another player: the hour's cap holds under concurrent taps on many players
     await db.query(`delete from player where player_tag = $1::text`, [tag]);
 });
 
+test("another player: an unlimited live quota (admin) is not held to the hour", async () => {
+  const admin = { ...person, role: "admin" };
+  const tags = [];
+  for (let i = 0; i < OTHERS_PER_HOUR + 2; i++) {
+    const tag = `#0${"2289PYLQGRJCUV"[i]}${"0289PYLQGRJCUV"[(i * 5) % 14]}V2`;
+    tags.push(tag);
+    await db.query(
+      `insert into player (player_tag) values ($1) on conflict do nothing`,
+      [tag],
+    );
+  }
+  for (const tag of tags) {
+    const r = await call("POST", admin, { tag });
+    assert.equal(r.body.queued, true, tag);
+  }
+  assert.equal((await openJobs()).length, OTHERS_PER_HOUR + 2);
+  assert.equal(await liveday(), 0);
+  // A second tap on one player mints nothing more.
+  await call("POST", admin, { tag: tags[0] });
+  assert.equal((await openJobs()).length, OTHERS_PER_HOUR + 2);
+  for (const tag of tags)
+    await db.query(`delete from player where player_tag = $1::text`, [tag]);
+});
+
 test("another player: the live quota spent, or no token, answers quietly", async () => {
   await db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 20)`,
