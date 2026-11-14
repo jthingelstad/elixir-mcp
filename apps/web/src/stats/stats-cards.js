@@ -1,7 +1,7 @@
 /**
- * Cards (LadderCards.dc.html): the cards you played and the cards you
- * faced in one mode this season, as battles_cards returns them (mine and
- * opponent), and the opponents behind them as battles_opponents counts
+ * Cards (the design canvas's Cards frame): the cards you played and the
+ * cards you faced in one mode this season, as battles_cards returns them
+ * (mine and opponent), and the opponents behind them as battles_opponents counts
  * them. A form is its own card here, as it is in the tool: an Evo Witch
  * row and a Witch row are two records. Nothing here adds rows up, rates a
  * card or labels one; the order is the tool's, in the one the reader

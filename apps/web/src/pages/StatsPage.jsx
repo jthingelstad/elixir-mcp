@@ -7,29 +7,29 @@ import {
   OTHER,
   capturePending,
   isOwnClaim,
-  ladderPlayers,
+  statsPlayers,
   scopeHref,
-  ladderSlug,
+  statsSlug,
   playerName,
   pickMode,
   pickPlayer,
   pickSeason,
   recordedSeasons,
-} from "../ladder/ladder.js";
+} from "../stats/stats.js";
 import { useToolRead } from "../lib/queries.js";
-import { NoPlayers } from "../ladder/common.jsx";
-import { Cards } from "../ladder/Cards.jsx";
-import { Battles } from "../ladder/Battles.jsx";
-import { Pending } from "../ladder/Pending.jsx";
-import { Decks } from "../ladder/Decks.jsx";
-import { LadderFrame } from "../ladder/ScopeBar.jsx";
-import { Season } from "../ladder/Season.jsx";
+import { NoPlayers } from "../stats/common.jsx";
+import { Cards } from "../stats/Cards.jsx";
+import { Battles } from "../stats/Battles.jsx";
+import { Pending } from "../stats/Pending.jsx";
+import { Decks } from "../stats/Decks.jsx";
+import { StatsFrame } from "../stats/ScopeBar.jsx";
+import { Season } from "../stats/Season.jsx";
 import { YouTabs } from "../home/You.jsx";
-import { Whose, whoseWords } from "../ladder/whose.js";
+import { Whose, whoseWords } from "../stats/whose.js";
 
 /**
  * You › Stats (2026-11-12; Ladder, at /ladder until then), under You's tabs.
- * LADDER/{page}: whose season (`?player=`, one of yours, the primary by
+ * STATS/{page}: whose season (`?player=`, one of yours, the primary by
  * default), which game (`?mode=`, else the mode played most) and which
  * season (`?season=`, else the current one, or the last with battles
  * while the current has none: pickSeason), then the page inside the scope
@@ -38,10 +38,10 @@ import { Whose, whoseWords } from "../ladder/whose.js";
  * seasons for the picker. One no-mode read of the season gives the head its
  * dates, the chips their Other, and the bar its freshness.
  */
-export function LadderPage() {
+export function StatsPage() {
   const { me } = useMe();
   const { search } = useLocation();
-  const players = ladderPlayers(me?.claims, search?.player);
+  const players = statsPlayers(me?.claims, search?.player);
   const player = pickPlayer(players, search?.player);
   // A player you follow is theirs, not yours: no You tabs above it, a way
   // back to their player page, and "their" where your own says "your".
@@ -58,13 +58,13 @@ export function LadderPage() {
             </Link>
           </nav>
         )}
-        <LadderBody players={players} player={player} />
+        <StatsBody players={players} player={player} />
       </div>
     </Whose.Provider>
   );
 }
 
-function LadderBody({ players, player }) {
+function StatsBody({ players, player }) {
   const { me } = useMe();
   const navigate = useNav();
   const { pathname, search } = useLocation();
@@ -90,7 +90,7 @@ function LadderBody({ players, player }) {
   );
   // No session answer yet says nothing about whose players there are.
   if (!player) return me ? <NoPlayers /> : null;
-  const slug = ladderSlug(pathname);
+  const slug = statsSlug(pathname);
   const hrefFor = (over) => scopeHref(slug, search ?? {}, over);
   // Nothing captured yet: say so, calmly, on every page (Pending.jsx), with the
   // player control still in reach, so a new or mistyped tag strands nobody.
@@ -173,7 +173,7 @@ function ScopedPage({
     startsAt: read.data?.applied?.window?.season?.starts_at ?? null,
   };
   return (
-    <LadderFrame
+    <StatsFrame
       slug={slug}
       player={player}
       players={players}
@@ -186,7 +186,7 @@ function ScopedPage({
       navigate={navigate}
     >
       <Tab slug={slug} {...ctx} />
-    </LadderFrame>
+    </StatsFrame>
   );
 }
 

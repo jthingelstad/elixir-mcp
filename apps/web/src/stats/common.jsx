@@ -7,12 +7,12 @@ import {
   Stat,
   useClock,
 } from "@elixir-mcp/ui";
-import { fmt, warLine } from "./ladder.js";
+import { fmt, warLine } from "./stats.js";
 import { useToolRead } from "../lib/queries.js";
 import { tagPath } from "../lib/tag-url.js";
 
 /**
- * The pieces every Ladder tab shares: the callouts the frame draws, a record
+ * The pieces every Stats tab shares: the callouts the frame draws, a record
  * in the house's win and loss inks, and the states a read can be in.
  */
 
@@ -31,7 +31,7 @@ export function SeasonFallback({ season, hrefFor }) {
   const empty = season?.fallback;
   if (!empty) return null;
   return (
-    <div className="callout callout--info ladder-season-note" role="status">
+    <div className="callout callout--info stats-season-note" role="status">
       <Icon name="info" size={17} />
       <span>
         {empty.name} has no recorded battles yet, so this is {season.name}.{" "}
@@ -79,13 +79,13 @@ export function WarLine({ player, clan, seasonWar, full = false }) {
     .filter(Boolean)
     .join(" ");
   return (
-    <div className="callout callout--info ladder-war" role="status">
+    <div className="callout callout--info stats-war" role="status">
       <span>
-        <b className="ladder-war__line">
+        <b className="stats-war__line">
           {line.line}
           {line.at ? ` As of ${when(line.at)}.` : ""}
         </b>{" "}
-        {note ? <span className="ladder-war__note">{note}</span> : null}{" "}
+        {note ? <span className="stats-war__note">{note}</span> : null}{" "}
         <Link to={`/clan/${tagPath(clanTag)}/war`}>
           See the race in Clan › War
         </Link>
@@ -99,13 +99,13 @@ export function WarLine({ player, clan, seasonWar, full = false }) {
 export function Record({ wins, losses, draws = 0 }) {
   const said = `${fmt(wins)} won, ${fmt(losses)} lost${draws ? `, ${fmt(draws)} drawn` : ""}`;
   return (
-    <span className="ladder-record" aria-label={said} role="img">
-      <span className="ladder-w">{fmt(wins)}</span>
-      <span className="ladder-sep">–</span>
-      <span className="ladder-l">{fmt(losses)}</span>
+    <span className="stats-record" aria-label={said} role="img">
+      <span className="stats-w">{fmt(wins)}</span>
+      <span className="stats-sep">–</span>
+      <span className="stats-l">{fmt(losses)}</span>
       {draws ? (
         <>
-          <span className="ladder-sep">–</span>
+          <span className="stats-sep">–</span>
           <span>{fmt(draws)}</span>
         </>
       ) : null}
@@ -116,7 +116,7 @@ export function Record({ wins, losses, draws = 0 }) {
 export function Tile({ label, children, small = false, sub = null }) {
   return (
     <Stat
-      className="ladder-tile"
+      className="stats-tile"
       label={label}
       value={children}
       small={small}
@@ -149,13 +149,13 @@ export function ReadError({ query, what = "this" }) {
   );
 }
 
-/** The reader has no player of their own yet: Ladder reads a season,
+/** The reader has no player of their own yet: Stats reads a season,
  *  and a season belongs to a player. */
 export function NoPlayers() {
   return (
-    <div className="ladder-page">
+    <div className="stats-page">
       <PageHead
-        className="ladder-head"
+        className="stats-head"
         title="Stats"
         sub="Your season, read back"
       />

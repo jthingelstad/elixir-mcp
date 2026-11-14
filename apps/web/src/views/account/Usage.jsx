@@ -39,7 +39,7 @@ function fourteenDays(days, now = new Date()) {
       day: key,
       calls: byDay.get(key)?.calls ?? 0,
       errors: byDay.get(key)?.errors ?? 0,
-      // The website's and Ladder's own reads: logged, never charged (#538).
+      // The website's and Stats' own reads: logged, never charged (#538).
       web: byDay.get(key)?.web_calls ?? 0,
       today: i === 0,
     });

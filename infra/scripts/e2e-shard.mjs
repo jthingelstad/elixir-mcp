@@ -26,7 +26,7 @@ const E2E = "apps/web/e2e";
 export const SPEC_WEIGHTS = {
   "responsive-reflow.spec.ts": 75,
   "signin-return.spec.ts": 34,
-  "ladder.spec.ts": 33,
+  "stats.spec.ts": 33,
   "clan/roles-readiness.spec.ts": 30,
   "recorder-onboarding.spec.ts": 25,
   "clan/clan.spec.ts": 18,

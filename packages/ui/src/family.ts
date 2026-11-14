@@ -77,7 +77,7 @@ export interface FamilyTab {
 
 /** The places a signed-in reader moves between, in order (slice 7, #765:
  *  Home, Find, Clan, You). The phone draws all four and the bell; the top
- *  bar draws all but You, which is its avatar. Ladder is a product, not a
+ *  bar draws all but You, which is its avatar. Stats is a product, not a
  *  tab: You leads to it. */
 export const FAMILY_TABS: ReadonlyArray<FamilyTab> = manifest.tabs.map((t) => ({
   ...t,

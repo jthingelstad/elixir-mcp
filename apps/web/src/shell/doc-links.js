@@ -310,9 +310,9 @@ export const DOC_LINKS = {
       ["Cards", "/docs/cards"],
     ],
   ],
-  // Ladder's pages: the section's own page first, then the tool each
+  // Stats' pages: the section's own page first, then the tool each
   // page reads.
-  "ladder:season": [
+  "stats:season": [
     "Stats",
     [
       ["Stats", "/docs/ladder"],
@@ -320,21 +320,21 @@ export const DOC_LINKS = {
       ["players_summary", "/docs/tools/players#players_summary"],
     ],
   ],
-  "ladder:battles": [
+  "stats:battles": [
     "Stats",
     [
       ["Battles", "/docs/ladder-battles#battles"],
       ["battles_query", "/docs/tools/battles#battles_query"],
     ],
   ],
-  "ladder:decks": [
+  "stats:decks": [
     "Stats",
     [
       ["Decks", "/docs/ladder-decks#decks"],
       ["battles_decks", "/docs/tools/battles#battles_decks"],
     ],
   ],
-  "ladder:cards": [
+  "stats:cards": [
     "Stats",
     [
       ["Cards", "/docs/ladder-cards#cards"],

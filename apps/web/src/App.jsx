@@ -53,18 +53,18 @@ import {
   settingsTitle,
 } from "./lib/settings.js";
 import {
-  LADDER,
-  isLadder,
-  ladderHere,
-  ladderLegal,
-  ladderTitle,
-} from "./ladder/ladder.js";
+  STATS,
+  isStats,
+  statsHere,
+  statsLegal,
+  statsTitle,
+} from "./stats/stats.js";
 import { HOME, SIGN_IN, movedTo } from "./lib/moved.js";
 import { FOLLOW_ME, isPlayerPath } from "./lib/player.js";
 import { normTag } from "./lib/tag-url.js";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { Unavailable } from "./shell/Unavailable.jsx";
-import { LadderInvite } from "./ladder/Invite.jsx";
+import { StatsInvite } from "./stats/Invite.jsx";
 import { FollowInvite } from "./home/FollowMe.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { takeLoginToken } from "./url-hygiene.js";
@@ -79,7 +79,7 @@ import { takeLoginToken } from "./url-hygiene.js";
  * does. A count of the reader's own things is the one exception, because it
  * is a number and not a list.
  *
- * This app is the site's DYNAMIC half (2026-09-07 split): Home, Ladder, Clan,
+ * This app is the site's DYNAMIC half (2026-09-07 split): Home, Stats, Clan,
  * Settings pages and Explore. The root is the site's. Docs, updates and the
  * public pages are real documents built by apps/site and served from the same
  * hostname; they are reached with plain hrefs (STATIC_LINKS below), which are
@@ -214,8 +214,8 @@ export function barArea(path, me = null) {
   if (clean === FIND || isPlayerPath(path)) return "find";
   if (clean === YOU) return "you";
   if (isHome(path)) return "home";
-  // Ladder is You's Stats tab (2026-11-12).
-  if (isLadder(path)) return "you";
+  // Stats is You's last tab (2026-11-12).
+  if (isStats(path)) return "you";
   if (isClan(path)) return "clan";
   return undefined;
 }
@@ -267,8 +267,8 @@ export function legalRoute(path) {
   // A battle's public page is the app's too.
   if (BATTLE_PATH.test(path)) return path;
   if (POST_PATH.test(path)) return path;
-  // Ladder resolves its own paths.
-  if (isLadder(path)) return ladderLegal(path);
+  // Stats resolves its own paths.
+  if (isStats(path)) return statsLegal(path);
   return null;
 }
 
@@ -309,7 +309,7 @@ export function titleFor(path) {
       tab === "player" ? "Player" : tab === "follow" ? "Follow" : null;
     return name ? `${name} - Home - ${SITE}` : `Home - ${SITE}`;
   }
-  if (isLadder(path)) return ladderTitle(path, SITE);
+  if (isStats(path)) return statsTitle(path, SITE);
   if (isClan(path)) {
     // Clan's own pages (/clan/you, /clan/verify...) lead with their
     // name, a clan's section (/clan/<tag>/<section>) with the section.
@@ -429,7 +429,7 @@ const signedInPath = (path) => {
     )
       return false;
     return (
-      isLadder(url.pathname) ||
+      isStats(url.pathname) ||
       isClan(url.pathname) ||
       isHome(url.pathname) ||
       isSettings(url.pathname) ||
@@ -478,9 +478,9 @@ export function SignInWall({ navigate }) {
   // completing proof does not leave a second automatic return in
   // history (notably an email's ?report=1 feedback redirect).
   const signIn = () => navigate(SIGN_IN, { replace: true });
-  // Ladder says what it is first: a visitor may not know yet.
-  if (isLadder(pathname))
-    return <LadderInvite returnTo={here} onSignIn={signIn} />;
+  // Stats says what it is first: a visitor may not know yet.
+  if (isStats(pathname))
+    return <StatsInvite returnTo={here} onSignIn={signIn} />;
   // A Follow me link opens on Join (slice 5's flow), back to the link.
   if (pathname.startsWith(`${FOLLOW_ME}/`))
     return <FollowInvite returnTo={here} onSignIn={signIn} />;
@@ -693,12 +693,12 @@ const postRoute = createRoute({
 });
 
 /** Stats, You's tab (Ladder until 2026-11-12): no rail. Signed in only. */
-const ladderRoute = createRoute({
+const statsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: `${LADDER}/{-$page}`,
+  path: `${STATS}/{-$page}`,
   component: lazyRouteComponent(
-    () => import("./pages/LadderPage.jsx"),
-    "LadderPage",
+    () => import("./pages/StatsPage.jsx"),
+    "StatsPage",
   ),
 });
 
@@ -757,7 +757,7 @@ export const routeTree = rootRoute.addChildren([
   adminRoute,
   battleRoute,
   postRoute,
-  ladderRoute,
+  statsRoute,
   createClanRoutes(rootRoute),
 ]);
 
@@ -765,18 +765,18 @@ export const routeTree = rootRoute.addChildren([
  *  the section, its page (validated against SECTIONS, so a stale slug
  *  falls back to the section's first page), the rail position, the
  *  ids. Route components read this rather than re-deriving it. */
-/** Ladder's place in the route table: one section, signed in. */
-const LADDER_SECTION = { label: "Stats", authed: true, pages: [] };
+/** Stats' place in the route table: one section, signed in. */
+const STATS_SECTION = { label: "Stats", authed: true, pages: [] };
 const SETTINGS_SECTION = { label: "Settings", authed: true, pages: [] };
 
 export function useHere() {
   const { pathname, search } = useLocation();
-  if (isLadder(pathname))
+  if (isStats(pathname))
     return {
       path: pathname,
-      section: "ladder",
-      sec: LADDER_SECTION,
-      here: ladderHere(pathname),
+      section: "stats",
+      sec: STATS_SECTION,
+      here: statsHere(pathname),
       search: search ?? {},
     };
   if (isSettings(pathname))
@@ -997,8 +997,8 @@ function ConsoleShell() {
   const needsAuth = sec?.authed && !authed && me !== null && !unreachable;
   const showUnavailable = sec?.authed && !authed && unreachable;
   const showRail = authed && !needsAuth && Boolean(here.key);
-  // Ladder has a scope bar and tabs in the page, and no rail (step 5).
-  const railed = showRail && here.product !== "ladder";
+  // Stats has a scope bar and tabs in the page, and no rail (step 5).
+  const railed = showRail && here.product !== "stats";
 
   // Every time a page prints is on the account's clock: the zone
   // set on Profile, or UTC when none is (Jamie, 2026-09-23). A new

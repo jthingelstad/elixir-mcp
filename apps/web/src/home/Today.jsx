@@ -20,7 +20,7 @@ import {
 import { api } from "../api.js";
 import { PeopleToFollow, StarterSet } from "./People.jsx";
 import { RacePlace } from "./RacePlace.jsx";
-import { ladderHref } from "../ladder/ladder.js";
+import { statsHref } from "../stats/stats.js";
 import { SETTINGS } from "../lib/settings.js";
 import { tagPath } from "../lib/tag-url.js";
 import {
@@ -118,7 +118,7 @@ function YourWeek({ player }) {
   const failed = week?.ok === false;
   const modes = week?.modes ?? initial?.modes ?? {};
   const open = chosen ?? week?.mode ?? "ladder";
-  const link = ladderHref("season", { player: player.player_tag, mode: open });
+  const link = statsHref("season", { player: player.player_tag, mode: open });
   // Cheers received this week (G4) are every mode's: the opening read counts
   // them. Null when unread or not countable just now: shown as nothing.
   const cheers = initial?.cheers ?? null;

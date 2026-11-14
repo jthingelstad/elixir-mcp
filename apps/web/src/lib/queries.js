@@ -714,11 +714,11 @@ export const useCardCatalog = ({ enabled = true } = {}) =>
   });
 
 /** One tool's answer through Stats' door (`/api/me/stats`, the explore
- *  bridge for your own players and those you follow), as Ladder reads it:
+ *  bridge for your own players and those you follow), as Stats reads it:
  *  the body, or a thrown error carrying the tool's code when the tool
  *  refused. Keyed under the reader's root, because what it reads is
  *  theirs and a timezone change (the days a battle falls on) or a sign
- *  in must refetch it. Ladder pages cache for minutes and never poll:
+ *  in must refetch it. Stats pages cache for minutes and never poll:
  *  a person's own reads spend no daily quota (#538) but do share the
  *  hourly bucket with their own MCP clients. */
 async function toolRead(tool, args) {
@@ -731,10 +731,10 @@ async function toolRead(tool, args) {
   }
   return r?.body ?? null;
 }
-const ladderKey = (tool, args) => ["me", "ladder", tool, args];
+const statsKey = (tool, args) => ["me", "stats", tool, args];
 export const useToolRead = (tool, args, { enabled = true } = {}) =>
   useQuery({
-    queryKey: ladderKey(tool, args),
+    queryKey: statsKey(tool, args),
     queryFn: () => toolRead(tool, args),
     enabled,
     staleTime: 5 * 60_000,
@@ -748,7 +748,7 @@ export const useToolRead = (tool, args, { enabled = true } = {}) =>
 export const useToolReads = (tool, list, { enabled = true } = {}) =>
   useQueries({
     queries: list.map((args) => ({
-      queryKey: ladderKey(tool, args),
+      queryKey: statsKey(tool, args),
       queryFn: () => toolRead(tool, args),
       enabled,
       staleTime: 5 * 60_000,
@@ -765,7 +765,7 @@ export const useBattleSweep = (
   { enabled = true, pages = SWEEP_PAGES } = {},
 ) =>
   useQuery({
-    queryKey: ladderKey("battles_query:sweep", { ...args, pages }),
+    queryKey: statsKey("battles_query:sweep", { ...args, pages }),
     queryFn: () => sweepBattles(toolRead, args, pages),
     enabled,
     staleTime: 5 * 60_000,

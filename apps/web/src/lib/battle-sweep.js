@@ -1,5 +1,5 @@
 /**
- * battles_query, every page of it through next_cursor, as Ladder's Days
+ * battles_query, every page of it through next_cursor, as Stats' Days
  * page reads a season. A page is bounded by the 48,000-character result
  * cap as well as by its limit, and the cap depends on what the rows
  * hold: a compact page of 50 had grown past it by 9.18 (each row gained

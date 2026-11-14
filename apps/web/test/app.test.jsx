@@ -483,7 +483,7 @@ test("admin view is admin-gated in the UI", { timeout: 20000 }, async () => {
 });
 
 test(
-  "signed-out Ladder says what it is and offers an account",
+  "signed-out Stats says what it is and offers an account",
   { timeout: 20000 },
   async () => {
     window.history.pushState({}, "", "/home/you/stats/cards");
@@ -589,7 +589,7 @@ test(
 test("the route table has no page under /console: the Console folded", async () => {
   const { routeTree } = await import("../src/App.jsx");
   // Outside the console: a battle's public page (2026-10-01), a shared
-  // post's (#762), and Ladder,
+  // post's (#762), and Stats,
   // the one section beside the Console (2026-09-28), with one route under
   // its own prefix, and Home at its new address (redesign step 3), with
   // the player page and Follow me links under it (#764).

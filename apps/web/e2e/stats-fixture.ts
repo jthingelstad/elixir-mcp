@@ -1,7 +1,7 @@
 import type { Route } from "@playwright/test";
 
 /**
- * Ladder's reads, as the tools answer them through POST /api/explore
+ * Stats' reads, as the tools answer them through POST /api/explore
  * (shapes copied from live answers for the fixture player, contract
  * 9.17.1). One dispatcher answers by tool and mode, and records every
  * call so a journey can say which reads a page made.

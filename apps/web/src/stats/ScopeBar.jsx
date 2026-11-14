@@ -8,23 +8,23 @@ import {
 } from "@elixir-mcp/ui";
 import { useId } from "react";
 import {
-  LADDER_PAGES,
+  STATS_PAGES,
   fmt,
   isOwnClaim,
   modeChips,
   modeWords,
   playerName,
   seasonHead,
-} from "./ladder.js";
+} from "./stats.js";
 import { SeasonFallback, useSeasonEdge, WarLine } from "./common.jsx";
 import { ZoneOffer } from "../components/ZoneOffer.jsx";
 
 /**
- * Every Ladder tab's frame (redesign step 5, 2026-11-06): the head, the scope
+ * Every Stats tab's frame (redesign step 5, 2026-11-06): the head, the scope
  * bar, the tabs, then the callouts in the board's order. The frame stays when a
  * read fails, so a person can still change player, season or mode.
  */
-export function LadderFrame({
+export function StatsFrame({
   slug,
   player,
   players,
@@ -40,7 +40,7 @@ export function LadderFrame({
   const body = scope.data;
   const clan = summary.data?.clan ?? null;
   return (
-    <div className="ladder-page">
+    <div className="stats-page">
       <FrameHead
         slug={slug}
         player={player}
@@ -63,13 +63,13 @@ export function LadderFrame({
       <Tabs
         label="Stats"
         value={slug}
-        items={LADDER_PAGES.map((p) => ({
+        items={STATS_PAGES.map((p) => ({
           key: p.slug,
           label: p.label,
           href: hrefFor({ slug: p.slug }),
         }))}
       />
-      <div className="ladder-stack">
+      <div className="stats-stack">
         <ZoneOffer />
         <SeasonFallback season={season} hrefFor={hrefFor} />
         {mode === "war" && season.current ? (
@@ -92,10 +92,10 @@ function FrameHead({ slug, player, clanName, mode, season, applied }) {
   const name = applied ? head.name : season.name;
   const who = playerName(player);
   if (slug !== "season") {
-    const page = LADDER_PAGES.find((p) => p.slug === slug)?.label;
+    const page = STATS_PAGES.find((p) => p.slug === slug)?.label;
     return (
       <PageHead
-        className="ladder-head"
+        className="stats-head"
         title={page}
         sub={`${who} · ${name}, ${modeWords(mode)}`}
       />
@@ -115,7 +115,7 @@ function FrameHead({ slug, player, clanName, mode, season, applied }) {
     span = `The season ran ${edge(head.startsAt)} to ${edge(head.endsAt)}.`;
   return (
     <PageHead
-      className="ladder-head"
+      className="stats-head"
       title={name}
       sub={span ? `${place} · ${span}` : place}
     />
@@ -140,9 +140,9 @@ export function PlayerPick({ player, players, hrefFor, navigate }) {
   const id = useId();
   if (players.length < 2)
     return (
-      <span className="ladder-scope__one">
+      <span className="stats-scope__one">
         {playerName(player)}{" "}
-        <span className="mono ladder-scope__tag">{player.player_tag}</span>
+        <span className="mono stats-scope__tag">{player.player_tag}</span>
       </span>
     );
   return (
@@ -199,8 +199,8 @@ function ScopeBar({
     ? listed
     : [...listed, { key: season.key, name: season.name }];
   return (
-    <div className="ladder-scope ladder-scope--frame">
-      <div className="ladder-scope__picks">
+    <div className="stats-scope stats-scope--frame">
+      <div className="stats-scope__picks">
         <PlayerPick
           player={player}
           players={players}
@@ -231,13 +231,13 @@ function ScopeBar({
       </div>
       <Chips
         label="Mode"
-        className="ladder-scope__modes"
+        className="stats-scope__modes"
         value={mode}
         options={modeChips(modes, mode)}
         onChange={(key) => navigate(hrefFor({ mode: key }))}
       />
       {observedAt ? (
-        <FreshChip ts={observedAt} className="ladder-scope__fresh">
+        <FreshChip ts={observedAt} className="stats-scope__fresh">
           {playerName(player)}&rsquo;s battle log was last read at{" "}
           {when(observedAt)}. The game keeps about the last 30 battles, so a
           long session between reads can leave a gap. A gap means unknown. It

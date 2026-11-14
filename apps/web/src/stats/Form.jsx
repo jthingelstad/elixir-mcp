@@ -19,7 +19,7 @@ import {
   seasonRows,
   seasonWords,
   shortDay,
-} from "./ladder.js";
+} from "./stats.js";
 import { useToolRead } from "../lib/queries.js";
 import { Loading, ReadError } from "./common.jsx";
 import { useWhose } from "./whose.js";
@@ -223,7 +223,7 @@ export function SeasonForm({ player, mode, season, seasons, body, summary }) {
   };
   const say = (text, foot = null) => (
     <FormPanel {...panel} foot={foot}>
-      <p className="ladder-form__lede">{text}</p>
+      <p className="stats-form__lede">{text}</p>
     </FormPanel>
   );
   if (prev === null)
@@ -368,13 +368,13 @@ function FormPanel({
           {aside}
         </span>
       }
-      className="ladder-form"
+      className="stats-form"
       aria-labelledby={id}
     >
       <div className="panel__body">
-        {lede ? <p className="ladder-form__lede">{lede}</p> : null}
+        {lede ? <p className="stats-form__lede">{lede}</p> : null}
         {children ?? (
-          <table className="ladder-form__table">
+          <table className="stats-form__table">
             <thead>
               <tr>
                 <th scope="col">
@@ -393,7 +393,7 @@ function FormPanel({
                   <th scope="row">{r.label}</th>
                   {r.cells.map((cell, i) => (
                     <td key={cols[i]}>
-                      <span className="ladder-form__value">
+                      <span className="stats-form__value">
                         {cell.said ? (
                           <>
                             <span aria-hidden="true">{cell.value}</span>
@@ -403,7 +403,7 @@ function FormPanel({
                           cell.value
                         )}
                       </span>
-                      <span className="ladder-form__count">{cell.count}</span>
+                      <span className="stats-form__count">{cell.count}</span>
                     </td>
                   ))}
                 </tr>

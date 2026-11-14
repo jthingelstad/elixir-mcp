@@ -6,8 +6,8 @@
 import { test, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, screen } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
-import { YOUNG_RECORD_DAYS, youngRecord } from "../src/ladder/ladder.js";
-import { YoungRecord } from "../src/ladder/YoungRecord.jsx";
+import { YOUNG_RECORD_DAYS, youngRecord } from "../src/stats/stats.js";
+import { YoungRecord } from "../src/stats/YoungRecord.jsx";
 
 const now = Date.parse("2026-10-12T15:00:00Z");
 const daysAgo = (d) => new Date(now - d * 86_400_000).toISOString();

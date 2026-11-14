@@ -1,7 +1,7 @@
 import { CLAN_HELP } from "./clan-help.js";
 import { HOME_HELP } from "../home/help.js";
-import { LADDER_HELP } from "../ladder/help.js";
-import { isLadder, ladderSlug } from "../ladder/ladder.js";
+import { STATS_HELP } from "../stats/help.js";
+import { isStats, statsSlug } from "../stats/stats.js";
 import { SETTINGS_HELP } from "../views/account/help.js";
 import { ADMIN_HELP } from "../views/help.js";
 import { settingsHere } from "../lib/settings.js";
@@ -22,8 +22,8 @@ export function helpFor(path) {
   const [, first, second] = clean.split("/");
   const area = (page, name = "console") => ({ ...page, area: name });
   // Stats, under You since 2026-11-12, is Ladder's own help.
-  if (isLadder(clean))
-    return area(LADDER_HELP[ladderSlug(clean)] ?? LADDER_HELP.season, "ladder");
+  if (isStats(clean))
+    return area(STATS_HELP[statsSlug(clean)] ?? STATS_HELP.season, "ladder");
   if (first === "home")
     return area(HOME_HELP[second ?? "today"] ?? HOME_HELP.today);
   if (first === "clan") return area(CLAN_HELP, "clan");

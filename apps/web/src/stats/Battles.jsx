@@ -1,6 +1,6 @@
 import { Empty, Icon, Link, Panel, useClock } from "@elixir-mcp/ui";
 import { useMemo, useState } from "react";
-import { OTHER, clockTime, fmt, modeWords, readModes } from "./ladder.js";
+import { OTHER, clockTime, fmt, modeWords, readModes } from "./stats.js";
 import {
   battleDays,
   battleKind,
@@ -11,7 +11,7 @@ import {
   tallyLine,
   timeSpan,
   weekdayLabel,
-} from "./ladder-days.js";
+} from "./stats-days.js";
 import { useBattleSweep } from "../lib/queries.js";
 import { Loading, ReadError } from "./common.jsx";
 import { useWhose } from "./whose.js";
@@ -23,7 +23,7 @@ const SITTINGS_SHOWN = 5;
 
 /**
  * The Battles tab: every battle in this chip's mode, by day and by sitting, each
- * opening on its own page. A war battle is listed like any other: Ladder shows a
+ * opening on its own page. A war battle is listed like any other: Stats shows a
  * person's battles one by one, and war by the week is the clan war's rule, which
  * the line above holds. Other is Challenge and Tournament, each a game of its
  * own: its own read, days and sittings, so no count or record crosses the two.
@@ -81,7 +81,7 @@ function ModeBattles({ player, group, titled, modeReady, season, startsAt }) {
   const [older, setOlder] = useState(false);
   const whose = useWhose();
   const words = modeWords(group);
-  const title = titled ? <h2 className="ladder-group">{words}</h2> : null;
+  const title = titled ? <h2 className="stats-group">{words}</h2> : null;
   if (!modeReady || sweep.isPending)
     return <Loading what={`the season's ${words} battles`} />;
   if (sweep.isError)
@@ -153,7 +153,7 @@ function Day({ day, past, zone, titleAs }) {
         title={day.label}
         titleAs={titleAs}
         action={
-          <span className="ladder-aside">{soloSittingLine(day, zone)}</span>
+          <span className="stats-aside">{soloSittingLine(day, zone)}</span>
         }
       >
         <BattleRows battles={day.sittings[0].battles} zone={zone} />
@@ -163,16 +163,16 @@ function Day({ day, past, zone, titleAs }) {
     <Panel
       title={day.label}
       titleAs={titleAs}
-      action={<span className="ladder-aside">{tallyLine(day)}</span>}
+      action={<span className="stats-aside">{tallyLine(day)}</span>}
     >
       {sittings.map((s, i) => (
-        <details key={s.key} className="ladder-sit" open={i === 0}>
+        <details key={s.key} className="stats-sit" open={i === 0}>
           <summary>
-            <span className="ladder-sit__when">
+            <span className="stats-sit__when">
               {past ? `${weekdayLabel(s.day)}, ` : ""}
               {timeSpan(s.start, s.end, zone)}
             </span>
-            <span className="ladder-sit__what">
+            <span className="stats-sit__what">
               {tallyLine(sittingTally(s))}
               {s.trophies
                 ? ` · ${fmt(s.trophies.from)} to ${fmt(s.trophies.to)}`
@@ -213,7 +213,7 @@ const sittingTally = (s) =>
 
 function BattleRows({ battles, zone }) {
   return (
-    <ul className="ladder-rows">
+    <ul className="stats-rows">
       {battles.map((b) => (
         <BattleRow key={b.battle_id ?? b.battle_time} b={b} zone={zone} />
       ))}
@@ -232,16 +232,16 @@ function BattleRow({ b, zone }) {
   const kind = battleKind(b);
   const outcome = battleOutcome(b);
   return (
-    <li className="ladder-row">
-      <span className="ladder-row__t">{clockTime(b.battle_time, zone)}</span>
-      <span className={`ladder-row__res ladder-row__res--${outcome.tone}`}>
+    <li className="stats-row">
+      <span className="stats-row__t">{clockTime(b.battle_time, zone)}</span>
+      <span className={`stats-row__res stats-row__res--${outcome.tone}`}>
         {outcome.words}
       </span>
-      <span className="ladder-row__who">
+      <span className="stats-row__who">
         {path ? <Link to={path}>{who}</Link> : who}
-        {kind ? <span className="ladder-row__kind"> {kind}</span> : null}
+        {kind ? <span className="stats-row__kind"> {kind}</span> : null}
       </span>
-      <span className="ladder-row__tr">
+      <span className="stats-row__tr">
         {change ? `${change > 0 ? "+" : "−"}${fmt(Math.abs(change))}` : ""}
       </span>
     </li>

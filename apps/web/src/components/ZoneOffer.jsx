@@ -27,7 +27,7 @@ function zoneWords(zone) {
  * The one-click offer to put the account on the reader's own clock.
  *
  * An account with no zone reads in UTC (Profile; docs/your-account,
- * "Your time zone"), so a new person read Ladder's nights in UTC while
+ * "Your time zone"), so a new person read Stats' nights in UTC while
  * the battle page, before they signed in, had shown their own clock
  * (the 2026-10-08 fresh-person journey). Since then a new account opens
  * on its signup browser's zone, so this is for the accounts made before

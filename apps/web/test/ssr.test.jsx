@@ -18,7 +18,7 @@ test("signed-out deep links and redirect roots render complete documents without
 
 // #759, DECISIONS "Everyone signs in; shared posts stay public": a
 // signed-out visit to any page of the record is the sign-in-or-join wall
-// (Ladder says what it is first, then the same way in), never the page.
+// (Stats says what it is first, then the same way in), never the page.
 test("every record page signed out renders the sign-in wall, never the page", async () => {
   const me = { ok: true, status: 200, data: { authenticated: false } };
   const urls = [
@@ -39,8 +39,8 @@ test("every record page signed out renders the sign-in wall, never the page", as
     expect(html, url).toContain("create an account");
     expect(html, url).not.toContain("Nothing at this address");
   }
-  const ladder = await renderApp({ url: "/home/you/stats/battles", me });
-  expect(ladder).toContain("Your season, read back");
+  const stats = await renderApp({ url: "/home/you/stats/battles", me });
+  expect(stats).toContain("Your season, read back");
 });
 
 test("sign-in and signup render useful forms on the server", async () => {

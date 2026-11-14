@@ -5,7 +5,7 @@
  * or reads a cause into a change.
  */
 import { cardLabel } from "@elixir-mcp/ui";
-import { shortDay } from "./ladder.js";
+import { shortDay } from "./stats.js";
 
 /** "your cards 0.60 levels above theirs", from mean_level_gap. For a
  *  player you follow (`own` false), "their cards 0.60 levels above their

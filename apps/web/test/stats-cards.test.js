@@ -1,5 +1,5 @@
 /**
- * Ladder's Cards page shaping (ladder/ladder-cards.js): battles_cards'
+ * Stats' Cards page shaping (stats/stats-cards.js): battles_cards'
  * rows as the page lists them. These pin a form as its own row, the
  * card page link (never for a tower troop), counts that never add rows
  * up, an opponent the record has no name for, the order the reader
@@ -15,7 +15,7 @@ import {
   opponentName,
   pickOrder,
   times,
-} from "../src/ladder/ladder-cards.js";
+} from "../src/stats/stats-cards.js";
 
 const BODY = {
   modes_in_window: { ladder: { battles: 35, mean_level_gap: 0.62 } },

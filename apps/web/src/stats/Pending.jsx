@@ -5,19 +5,19 @@ import { SETTINGS } from "../lib/settings.js";
 import { useInvalidate } from "../lib/queries.js";
 import { recordJourney } from "../lib/record-journey.js";
 import { tagPath } from "../lib/tag-url.js";
-import { captureLanded, playerName } from "./ladder.js";
+import { captureLanded, playerName } from "./stats.js";
 import { PlayerPick } from "./ScopeBar.jsx";
 
 /**
  * The first capture is on its way (2026-10-08). A player just added has
  * nothing on record, so instead of a red read error or "no battles in
- * this mode", Ladder says what is happening and links to the capture
- * status. The one Ladder view that polls: it reads the Console's
+ * this mode", Stats says what is happening and links to the capture
+ * status. The one Stats view that polls: it reads the Console's
  * first-answer status (an account read, never a tool, so it costs the
  * reader no quota) as FirstAnswer does: every few seconds for the first
  * minutes after the add, then about once a minute, and when
  * the capture has landed (captureLanded: the profile and a battle-log
- * read) it refreshes the Ladder reads once.
+ * read) it refreshes the Stats reads once.
  */
 export function Pending({ player, players, hrefFor, navigate }) {
   const tag = player.player_tag;
@@ -29,20 +29,20 @@ export function Pending({ player, players, hrefFor, navigate }) {
   useEffect(() => {
     if (!landed || refreshed.current) return;
     refreshed.current = true;
-    invalidate(["me", "ladder"]);
+    invalidate(["me", "stats"]);
   }, [landed, invalidate]);
   const journey = data ? recordJourney(data) : null;
   const status = `${SETTINGS}/players/${tagPath(tag)}`;
   const name = playerName(player);
   return (
-    <div className="ladder-page">
+    <div className="stats-page">
       <PageHead
-        className="ladder-head"
+        className="stats-head"
         title="Stats"
         sub="Your season, read back"
       />
-      <div className="ladder-scope">
-        <div className="ladder-scope__picks">
+      <div className="stats-scope">
+        <div className="stats-scope__picks">
           <PlayerPick
             player={player}
             players={players}

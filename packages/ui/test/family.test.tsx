@@ -25,11 +25,11 @@ test("every icon the manifest names is one the kit's Icon draws", () => {
 });
 
 // The places are on the left and the game is the candy button on the
-// right: Home, Ladder, Clan, then Drop.
+// right: Home, Stats, Clan, then Drop.
 test("the manifest's places, in order, and the one game", () => {
   expect(FAMILY_PRODUCTS.filter((p) => !p.game).map((p) => p.key)).toEqual([
     "home",
-    "ladder",
+    "stats",
     "clan",
   ]);
   const games = FAMILY_PRODUCTS.filter((p) => p.game);

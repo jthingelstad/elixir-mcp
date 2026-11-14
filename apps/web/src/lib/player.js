@@ -3,7 +3,7 @@ import { normTag, tagPath } from "./tag-url.js";
 
 /**
  * The player page's addresses, in one place (slice 6, #764). Every player
- * name on the web opens one page (Jamie, 2026-11-12: "Yes, one page"); Ladder
+ * name on the web opens one page (Jamie, 2026-11-12: "Yes, one page"); Stats
  * and Clan stay reachable from it. Mail and Discord lines build the same
  * address on the server (packages/mail render.mjs, packages/syndication
  * lines.mjs).

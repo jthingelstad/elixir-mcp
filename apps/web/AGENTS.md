@@ -1,7 +1,7 @@
 # apps/web: the signed-in app and the shared shell
 
 The React application behind every path a session or a live read draws:
-Home (`/home`), Settings (`/settings`, Admin under it for staff), Stats (Ladder, `/home/you/stats`, guide in `src/ladder/`),
+Home (`/home`), Settings (`/settings`, Admin under it for staff), Stats (`/home/you/stats`, guide in `src/stats/`),
 Clan (`/clan`, guide in `src/clan/`) and the public battle page
 (`/battle/<id>`). The root `AGENTS.md` golden rules apply; product
 behaviour is in `apps/site/src/docs/`, not here.
@@ -13,8 +13,8 @@ behaviour is in `apps/site/src/docs/`, not here.
   `src/lib/queries.js` is the one place for query keys and hooks; the
   reader's own things are keyed under `["me", ...]`, so invalidating the
   session refetches all of them (Clan's keys start `["me", "clan"]`,
-  Ladder's `["me", "ladder"]`).
-- **Paths carry their prefix.** Every Stats path is written with `LADDER`,
+  Stats' `["me", "stats"]`).
+- **Paths carry their prefix.** Every Stats path is written with `STATS`,
   not a router basepath, because the kit's `Link` renders `to` verbatim.
 - **One build serves three surfaces.** CloudFront routes `/home`, `/signin`,
   `/settings`, `/clan` and their descendants to the web/API Web Function for

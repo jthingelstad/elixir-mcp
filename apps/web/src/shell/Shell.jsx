@@ -13,7 +13,7 @@ import {
   initialsOf,
 } from "@elixir-mcp/ui";
 import { ADMIN, SETTINGS } from "../lib/settings.js";
-import { ladderHref } from "../ladder/ladder.js";
+import { statsHref } from "../stats/stats.js";
 import { rememberSession } from "../lib/session-hint.js";
 import { BellButton, BellSheet, useBell } from "./Bell.jsx";
 import { HelpDrawer } from "./HelpDrawer.jsx";
@@ -62,7 +62,7 @@ export function barAccount(me, signOut) {
       key: c.player_tag,
       name: c.nickname ?? c.name ?? c.player_tag,
       note: c.is_primary === true ? "Your main player" : "Also you",
-      href: ladderHref("season", { player: c.player_tag }),
+      href: statsHref("season", { player: c.player_tag }),
     }));
   const add = {
     label: "Add or verify a player",
