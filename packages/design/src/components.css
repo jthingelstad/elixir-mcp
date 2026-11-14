@@ -10523,3 +10523,301 @@ h1.kit-post__title {
   line-height: 1.3;
   letter-spacing: 0;
 }
+
+/* Stamps (#1015): a passport's ink impressions (packages/ui Stamp.tsx).
+   Earned: a double ring (solid, then dashed inside), the Stamp's ink, a
+   slight tilt and its day. Unearned: one thin plain outline in faint ink,
+   level, with "Elixir" for the day. The tile's words say which as well,
+   so no state rests on colour alone. Levels share one ink. */
+.kit-stamp {
+  --stamp-ink: var(--stamp-blank);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  width: 100%;
+  max-width: 144px;
+  min-width: 0;
+  aspect-ratio: 1;
+  padding: var(--s-3) 6px;
+  color: var(--stamp-ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-round);
+  transform: rotate(var(--stamp-tilt, 0deg));
+}
+.kit-stamp--square {
+  border-radius: 12px;
+}
+.kit-stamp--earned {
+  border: 2px solid currentColor;
+}
+.kit-stamp--earned::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed currentColor;
+  border-radius: inherit;
+  opacity: 0.75;
+  pointer-events: none;
+}
+.kit-stamp--violet {
+  --stamp-ink: var(--stamp-violet);
+}
+.kit-stamp--blue {
+  --stamp-ink: var(--stamp-blue);
+}
+.kit-stamp--teal {
+  --stamp-ink: var(--stamp-teal);
+}
+.kit-stamp--coral {
+  --stamp-ink: var(--stamp-coral);
+}
+.kit-stamp--tilt-a {
+  --stamp-tilt: -1.5deg;
+}
+.kit-stamp--tilt-b {
+  --stamp-tilt: 1deg;
+}
+.kit-stamp > svg {
+  width: 26px;
+  height: 26px;
+}
+.kit-stamp__name {
+  max-width: 100%;
+  text-align: center;
+  font: 600 var(--t-caption) / 1.12 var(--font);
+  overflow-wrap: anywhere;
+}
+.kit-stamp__day {
+  max-width: 100%;
+  text-align: center;
+  font: 400 var(--t-micro) / 1.2 var(--font-mono);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.kit-stamp--l {
+  max-width: 180px;
+}
+.kit-stamp--l > svg {
+  width: 44px;
+  height: 44px;
+}
+.kit-stamp--l .kit-stamp__name {
+  font-size: var(--t-h2);
+}
+.kit-stamp--l .kit-stamp__day {
+  font-size: var(--t-caption);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-stamp--l.kit-stamp--earned {
+    animation: kit-stamp-in 220ms ease-out;
+  }
+}
+@keyframes kit-stamp-in {
+  from {
+    opacity: 0;
+    transform: scale(1.12) rotate(var(--stamp-tilt, 0deg));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(var(--stamp-tilt, 0deg));
+  }
+}
+
+.kit-stamp-tile {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--s-2);
+  min-width: 0;
+  min-height: var(--hit);
+  padding: var(--s-1);
+  color: var(--ink-faint);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.kit-stamp-tile:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 4px;
+}
+.kit-stamp-tile__label {
+  font-size: var(--t-caption);
+  line-height: 1.4;
+  text-align: center;
+  color: var(--ink-faint);
+}
+.kit-stamp-tile--earned .kit-stamp-tile__label {
+  color: var(--ink-dim);
+}
+@media (hover: hover) {
+  .kit-stamp-tile:hover .kit-stamp {
+    background: var(--panel);
+  }
+}
+
+.kit-stamp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4) var(--s-3);
+  margin: 0;
+  padding: var(--s-4) 0 var(--s-1);
+  list-style: none;
+}
+.kit-stamp-grid > li {
+  display: grid;
+  min-width: 0;
+}
+@media (max-width: 359px) {
+  .kit-stamp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 760px) {
+  .kit-stamp-grid {
+    column-gap: var(--s-8);
+  }
+  .kit-stamp__name {
+    font-size: var(--t-body-sm);
+  }
+  .kit-stamp__day {
+    font-size: var(--t-caption);
+  }
+}
+
+.kit-stamp-mini {
+  --stamp-ink: var(--stamp-violet);
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--stamp-ink);
+  border: 1px dashed currentColor;
+  border-radius: var(--r-round);
+}
+.kit-stamp-mini--square {
+  border-radius: 8px;
+}
+
+/* A passport (apps/web src/home/Passport.jsx) and its compact entry row. */
+.kit-passport {
+  display: grid;
+  gap: var(--s-6);
+  max-width: 760px;
+}
+.kit-passport__who {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.kit-passport__who-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.kit-passport__who-name {
+  font-weight: 600;
+  font-size: var(--t-body);
+  overflow-wrap: anywhere;
+}
+.kit-passport__who-note,
+.kit-passport__count {
+  color: var(--ink-faint);
+  font-size: var(--t-caption);
+  line-height: 1.5;
+}
+.kit-passport__count {
+  flex: none;
+  font-size: var(--t-body-sm);
+  color: var(--ink-dim);
+}
+.kit-av--account {
+  background: var(--panel-raised);
+  color: var(--ink-dim);
+}
+.kit-passport__group h2 {
+  margin: 0;
+  font: 600 var(--t-h2) / 1.3 var(--font);
+}
+.kit-passport__skeleton {
+  aspect-ratio: 1;
+  border-radius: var(--r-round);
+  background: var(--panel-raised);
+  opacity: 0.55;
+}
+.kit-passport__foot {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+  line-height: 1.6;
+}
+.kit-passport__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+.kit-passport-sheet {
+  display: grid;
+  gap: var(--s-3);
+}
+.kit-passport-sheet > .kit-stamp {
+  justify-self: center;
+  margin-bottom: var(--s-3);
+}
+.kit-passport-sheet p {
+  margin: 0;
+  line-height: 1.6;
+}
+.kit-passport-sheet__note {
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.kit-passport-sheet .btn {
+  justify-self: stretch;
+  min-height: var(--hit);
+}
+.kit-passport-levels {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-passport-levels li {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--line-soft);
+}
+.kit-passport-levels li > span:last-child {
+  margin-left: auto;
+  color: var(--ink-dim);
+}
+.kit-passport-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  min-width: 0;
+}
+.kit-passport-row__marks {
+  display: inline-flex;
+  gap: var(--s-2);
+}
+.kit-passport-row__open {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--hit);
+  color: var(--ink-link);
+  font-size: var(--t-body-sm);
+}

@@ -295,6 +295,14 @@
   --map-pin-edge: #1d4ed8;
   --map-pin-mine: #f5b301;
 
+  /* Stamps' inks (#1015): four, the same for every level of a Stamp.
+     Never gold: gold is the verification mark's and the brand's. */
+  --stamp-violet: var(--accent-bright);
+  --stamp-blue: #7fb6f8;
+  --stamp-teal: #62ddc2;
+  --stamp-coral: #fb8fa1;
+  --stamp-blank: var(--ink-faint);
+
   /* ---- Component paints (2026-11-14 hygiene) ----------------------
      Colours components.css used to write inline, each held here at its
      exact value and named for its job. A redesign changes them here. */

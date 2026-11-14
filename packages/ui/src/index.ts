@@ -71,6 +71,15 @@ export {
 } from "./avatar-crops.ts";
 export { Icon, type IconName } from "./Icon.tsx";
 export {
+  STAMP_LEVELS,
+  StampMark,
+  StampMini,
+  StampTile,
+  stampDay,
+  stampTitle,
+  type StampFace,
+} from "./Stamp.tsx";
+export {
   LogTable,
   type LogCell,
   type LogCol,
