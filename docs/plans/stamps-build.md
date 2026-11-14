@@ -1,6 +1,6 @@
 # Build handoff: Elixir passports and Stamps
 
-Status: ready for the next implementation session, 2026-11-14.
+Status: slice 1 (catalog, eligibility, storage, the two reads) built 2026-11-14 (#1015); the slices after it are open.
 Implementation is tracked in [#1015](https://github.com/jthingelstad/elixir-mcp/issues/1015).
 Start from [product direction](../product/stamps.md) and the
 [interactive design](../design/passport/README.md). Nothing in this
