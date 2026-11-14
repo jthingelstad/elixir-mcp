@@ -66,7 +66,12 @@ range (never `= any`), friendly and clanmate types only, in the trailing
 at least five minutes ago and handled, so a late ingest commit is still
 read; one recorded late (a quiet player polled again) is read once,
 when it arrives. A follow, alt or verification rewinds the checkpoint,
-since the battles behind it were judged without the new player. The
+since the battles behind it were judged without the new player. A
+rewind also counts up `played_epoch` (0270), and a pass moves the
+checkpoint only while the epoch is the one it read at its start: a
+rewind landing mid-pass wins, so the next pass reads the window again
+against the new players (PR #1020 review). Facts the stale pass
+recorded stay; they were true. The
 other side must be a followed player who is not the account's own; in
 2v2 the followed player must be the teammate; a battle whose shape the
 record cannot prove is left out. One local day counts once.
