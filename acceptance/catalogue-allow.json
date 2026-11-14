@@ -69,14 +69,5 @@
     "king_tower_fell": "a VALUE of inferred.duration.basis, not a field; the note explains the three rules",
     "regulation_ran": "same",
     "overtime_expired": "same"
-  },
-  "war_history": {
-    "end_of_day_rank": "on days[].standings[] only when a recorded week holds API periodLogs; the sampled historical week can have no day rows"
-  },
-  "battles_performance": {
-    "net_trophies": "On an ungrouped window and on weekly rows, not on group_by rows. The trophy floor note names it whenever the player stood on a floor in the window, so a run whose only floored seed is grouped has no response carrying it. Pinned by the output schema and Gym cases.",
-    "week_of": "On weekly rows only; an empty current-season weekly response has no rows. Grouping notes still explain the field. Nonempty weekly schemas and denominator invariants are pinned by scratch tests.",
-    "trophy_battles": "On weekly trophy-mode rows only; an empty current-season window has no such rows. The notes explain this conditional denominator, also pinned by the output schema and scratch tests.",
-    "trophy_mode_battles": "Same conditional weekly trophy-mode denominator as trophy_battles; a new season can have no captured trophy-mode rows."
   }
 }
