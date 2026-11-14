@@ -565,8 +565,10 @@ export function makeHandler({
   return handler;
 }
 
+// The door a request came in at, with an agent's public id masked:
+// `/a/<id>/mcp` logs as `/a/*/mcp`.
 function doorKey(path) {
-  return path.replace(/\/([ai])\/[^/]+/g, "/$1/*");
+  return path.replace(/\/a\/[^/]+/g, "/a/*");
 }
 
 // The JSON-RPC method and, for tools/call, the tool name - read
