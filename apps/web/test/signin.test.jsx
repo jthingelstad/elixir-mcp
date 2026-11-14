@@ -8,6 +8,7 @@
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -31,7 +32,10 @@ beforeEach(() => {
   window.history.pushState({}, "", "/console/signin");
   reply(200, { ok: true });
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 async function toCodeStep() {
   render(<SignIn onAuthed={vi.fn()} />);
@@ -316,6 +320,9 @@ test("an empty tag is not sent, and a new account's landing reaches onAuthed", a
 // nothing at all; plain sign-in asks nothing and sends no answer.
 test("a no to the 13-or-older question sends nothing and says so", async () => {
   window.history.pushState({}, "", "/console/signin?signup");
+  vi.useFakeTimers({
+    toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"],
+  });
   global.fetch = vi.fn();
   render(<SignIn onAuthed={vi.fn()} />);
   fireEvent.change(screen.getByLabelText("Email"), {
@@ -326,7 +333,10 @@ test("a no to the 13-or-older question sends nothing and says so", async () => {
   const send = screen.getByRole("button", { name: "Send sign-in email" });
   expect(send.disabled).toBe(true);
   fireEvent.submit(send.closest("form"));
-  await new Promise((r) => setTimeout(r, 20));
+  // A send would wait out Turnstile's bound before it fetched, so a real
+  // 20 ms could never have seen one: run the faked clock past every
+  // bound, then look.
+  await act(() => vi.advanceTimersByTimeAsync(10 * 60_000));
   expect(global.fetch).not.toHaveBeenCalled();
 });
 

@@ -345,6 +345,60 @@ export async function seedReceipt(
   return receipt.receipt_id;
 }
 
+/** Who `waitUntilBlocked` waits for, as a condition on a pg_locks row
+ *  `l` and its parameter. */
+const BLOCKED = {
+  // Any backend queued behind this one (a row lock, an advisory lock, a
+  // unique-index insert waiting on the holder's transaction).
+  blockedBy: "$1::int = any(pg_blocking_pids(l.pid))",
+  // These backends.
+  pids: "l.pid = any($1::int[])",
+  // A waiter for pg_advisory_[xact_]lock(hashtext($1)) in this database.
+  advisoryKey: `l.locktype = 'advisory'
+      and l.database = (select oid from pg_database where datname = current_database())
+      and l.objid = (hashtext($1)::bigint & 4294967295) and l.objsubid = 1`,
+  // Backends that connected with this application_name.
+  applicationName:
+    "l.pid in (select pid from pg_stat_activity where application_name = $1)",
+};
+
+/** Wait until PostgreSQL says a backend is queued behind a lock, rather
+ *  than sleeping a fixed time and assuming it got there: on a loaded host
+ *  a sleep ends before the other connection has sent its statement, and
+ *  the test takes a path it never meant to (the 2026-11-14 assessment).
+ *  `target` names exactly one of `blockedBy` (a holder's pid), `pids`,
+ *  `advisoryKey` (the text hashed into an advisory lock) or
+ *  `applicationName`; `count` is how many must be waiting. Reads pg_locks,
+ *  which is live, so `db` may be inside a transaction, even the holder's
+ *  own (pg_stat_activity is a snapshot held for the reader's whole
+ *  transaction). Fails after `timeoutMs`, naming what never queued. */
+export async function waitUntilBlocked(
+  db,
+  target,
+  { count = 1, timeoutMs = 30_000 } = {},
+) {
+  const keys = Object.keys(target);
+  if (keys.length !== 1 || !(keys[0] in BLOCKED))
+    throw new Error(
+      `waitUntilBlocked takes one of ${Object.keys(BLOCKED).join(", ")}`,
+    );
+  const [key] = keys;
+  const sql = `select count(distinct l.pid)::int as n from pg_locks l
+    where not l.granted and ${BLOCKED[key]}`;
+  const until = Date.now() + timeoutMs;
+  for (;;) {
+    const {
+      rows: [{ n }],
+    } = await db.query(sql, [target[key]]);
+    if (n >= count) return n;
+    if (Date.now() > until)
+      throw new Error(
+        `waitUntilBlocked: ${n} of ${count} waiting (${key} ${JSON.stringify(target[key])}) after ${timeoutMs} ms`,
+      );
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
 /** Record clans so their rosters write every member (rosterRecords). */
 export async function trackClans(db, tags) {
   const {

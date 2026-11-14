@@ -1,6 +1,9 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import {
+  scratchDb,
+  waitUntilBlocked,
+} from "../../../packages/ingest/test/helpers.mjs";
 import { familyClientsOn } from "../src/ops-family-clients.mjs";
 import { getClient } from "@elixir-mcp/auth";
 let scratch;
@@ -180,6 +183,9 @@ test("an in-flight authorization mint cannot escape the retirement sweep", async
     application_name: "clan_retirement_mint",
   });
   await peer.connect();
+  const {
+    rows: [{ pid: peerPid }],
+  } = await peer.query("select pg_backend_pid() as pid");
   try {
     const retirement = familyClientsOn(wrapped, {
       retire_app: { app: "clan", expected_client_id: clanId, apply: true },
@@ -191,22 +197,10 @@ test("an in-flight authorization mint cannot escape the retirement sweep", async
       scope: "cr:read",
       resource: "https://elixir.poapkings.com/mcp",
     });
-    let waiting = false;
-    for (let n = 0; n < 100; n++) {
-      waiting =
-        (
-          await db.query(
-            "select 1 from pg_stat_activity where application_name='clan_retirement_mint' and wait_event_type='Lock'",
-          )
-        ).rowCount === 1;
-      if (waiting) break;
-      await new Promise((r) => setTimeout(r, 10));
-    }
-    assert.equal(
-      waiting,
-      true,
-      "final mint serializes on the retiring registration",
-    );
+    // The final mint serializes on the retiring registration: observed in
+    // pg_locks, which (unlike pg_stat_activity, a snapshot for the whole
+    // transaction the retirement holds open on `db`) is live.
+    await waitUntilBlocked(db, { pids: [peerPid] });
     release();
     await retirement;
     assert.equal(await mint, null);

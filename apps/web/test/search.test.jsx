@@ -4,7 +4,13 @@
  * is a click, never a keystroke.
  */
 import { test, expect, vi, afterEach, describe } from "vitest";
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { SearchSheet } from "../src/shell/SearchSheet.jsx";
 import {
@@ -306,17 +312,28 @@ describe("the sheet", () => {
   });
 
   test("two letters read nothing, however long they sit", async () => {
+    // The debounce on a faked clock: "however long" is a minute of it,
+    // not a real 650 ms a loaded host could stretch or squeeze.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const fetch = respond();
     renderWithProviders(<SearchSheet me={{ claims: [] }} onClose={vi.fn()} />);
-    fireEvent.change(
-      screen.getByRole("searchbox", { name: /Search players/, hidden: true }),
-      { target: { value: "ab" } },
-    );
-    await new Promise((r) => setTimeout(r, 650));
-    // The roster is the one read of opening the sheet; typing added none.
-    const reads = fetch.mock.calls
-      .filter(([p]) => String(p).startsWith("/api/explore"))
-      .map(([, i]) => JSON.parse(i.body).tool);
-    expect(reads.filter((t) => t !== "clans_roster")).toEqual([]);
+    const box = screen.getByRole("searchbox", {
+      name: /Search players/,
+      hidden: true,
+    });
+    // The roster is the one read of opening the sheet; typing adds none.
+    const typed = () =>
+      fetch.mock.calls
+        .filter(([p]) => String(p).startsWith("/api/explore"))
+        .map(([, i]) => JSON.parse(i.body).tool)
+        .filter((t) => t !== "clans_roster");
+    fireEvent.change(box, { target: { value: "ab" } });
+    await act(() => vi.advanceTimersByTimeAsync(60_000));
+    expect(typed()).toEqual([]);
+    // The same clock does carry a third letter past the debounce, so the
+    // quiet above is the two-letter rule, not a clock that never moved.
+    fireEvent.change(box, { target: { value: "abc" } });
+    await act(() => vi.advanceTimersByTimeAsync(60_000));
+    expect(typed().length).toBeGreaterThan(0);
   });
 });

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
 import { gzipSync } from "node:zlib";
-import { scratchDb, seedReceipt } from "./helpers.mjs";
+import { scratchDb, seedReceipt, waitUntilBlocked } from "./helpers.mjs";
 import { RECORDING_CUTOVER_LOCK } from "@elixir-mcp/ledger";
 import { processResult } from "../src/pipeline.mjs";
 
@@ -94,22 +94,9 @@ test("cutover drains an in-flight archive admission, then refuses its stale bulk
       return { stopped: result.rowCount, done: true };
     })();
     await lockRequested.promise;
-    let waiting = false;
-    for (let attempt = 0; attempt < 20 && !waiting; attempt++) {
-      const {
-        rows: [lock],
-      } = await ctx.db.query(
-        "select exists (select 1 from pg_locks where pid=$1 and locktype='advisory' and not granted) as waiting",
-        [backend.pid],
-      );
-      waiting = lock.waiting;
-      if (!waiting) await new Promise((resolve) => setTimeout(resolve, 5));
-    }
-    assert.equal(
-      waiting,
-      true,
-      "cutover is blocked on the admission's advisory lock",
-    );
+    // Cutover is blocked on the admission's advisory lock: observed, with
+    // no bound a loaded host could outrun (it gave up after 100 ms).
+    await waitUntilBlocked(ctx.db, { pids: [backend.pid] });
     assert.equal(completed, false, "cutover must wait for the older admission");
     releaseArchive.resolve();
     assert.equal((await admission).outcome, "admitted");

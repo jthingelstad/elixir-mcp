@@ -1,9 +1,11 @@
 import { afterEach, expect, test, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -22,19 +24,19 @@ const CLANS = {
 };
 
 function show(clans) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => ({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify(clans),
-    })),
-  );
+  const fetch = vi.fn(async () => ({
+    ok: true,
+    status: 200,
+    text: async () => JSON.stringify(clans),
+  }));
+  vi.stubGlobal("fetch", fetch);
+  const client = createQueryClient();
   render(
-    <QueryClientProvider client={createQueryClient()}>
+    <QueryClientProvider client={client}>
       <BringClanmates />
     </QueryClientProvider>,
   );
+  return { fetch, client };
 }
 
 test("bring your clanmates: named for the clan, a chat line within 200, the plain signup link", async () => {
@@ -58,7 +60,13 @@ test("bring your clanmates: named for the clan, a chat line within 200, the plai
 });
 
 test("with no clan there is nothing to invite to", async () => {
-  show({ ...CLANS, home_clan: null });
-  await new Promise((r) => setTimeout(r, 50));
+  const { fetch, client } = show({ ...CLANS, home_clan: null });
+  // Nothing drawn before the clans read answers proves nothing: wait for
+  // the read to have answered and the query to settle, then let React
+  // take the result, and only then look.
+  await waitFor(() => expect(fetch).toHaveBeenCalled());
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await act(() => new Promise((r) => setTimeout(r, 0)));
+  expect(client.getQueryCache().getAll()[0]?.state.status).toBe("success");
   expect(screen.queryByText("Invite clanmates", { exact: true })).toBe(null);
 });

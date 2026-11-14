@@ -15,6 +15,7 @@
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -373,8 +374,18 @@ test("a magic link is redeemed ONCE, however many times the page re-renders whil
   });
   render(<FreshApp />);
   await waitFor(() => expect(window.location.pathname).toBe("/home"));
-  // Let any straggling re-render fire its effect, then count.
-  await new Promise((r) => setTimeout(r, 200));
+  // Let any straggling re-render fire its effect, then count: settle
+  // every read the page has started and let React and the query cache
+  // flush, until a pass starts no new read. Quiet is observed, not slept
+  // on.
+  for (let seen = -1, pass = 0; seen !== global.fetch.mock.calls.length;) {
+    if (++pass > 50) throw new Error("the page never stopped reading");
+    seen = global.fetch.mock.calls.length;
+    await act(async () => {
+      await Promise.allSettled(global.fetch.mock.results.map((r) => r.value));
+      await new Promise((r) => setTimeout(r, 0));
+    });
+  }
   expect(redeems).toBe(1);
   expect(window.location.search).toBe("");
 });

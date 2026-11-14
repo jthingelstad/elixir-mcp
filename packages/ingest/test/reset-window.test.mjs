@@ -1,7 +1,12 @@
 import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { projectPlayerSnapshot } from "../src/snapshots.mjs";
-import { fixture, scratchDb, trackClans } from "./helpers.mjs";
+import {
+  fixture,
+  scratchDb,
+  trackClans,
+  waitUntilBlocked,
+} from "./helpers.mjs";
 import { playerEvents } from "./event-rows.mjs";
 import { participationQueries } from "../../record/src/participation-sql.mjs";
 import { evaluateAwards } from "@elixir-mcp/clan-engine";
@@ -270,6 +275,9 @@ test("two transactions that see the same reset at once write one moment", async 
   const [one, two] = [new pg.Client(ctx.url), new pg.Client(ctx.url)];
   await one.connect();
   await two.connect();
+  const {
+    rows: [{ pid: firstPid }],
+  } = await one.query("select pg_backend_pid() as pid");
   try {
     await one.query("begin");
     assert.equal(
@@ -291,8 +299,9 @@ test("two transactions that see the same reset at once write one moment", async 
       await two.query("commit");
       return wrote;
     });
-    // The second waits for the first to commit, then finds its moment.
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // The second waits for the first to commit, then finds its moment:
+    // it is queued behind the first, observed rather than slept on.
+    await waitUntilBlocked(one, { blockedBy: firstPid });
     await one.query("commit");
     assert.equal(await second, false);
   } finally {

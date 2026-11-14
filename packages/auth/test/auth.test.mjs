@@ -20,7 +20,11 @@ import {
   originAllowed,
   openVerifiedAccount,
 } from "../src/index.mjs";
-import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
+import {
+  createScratch,
+  dropScratch,
+  waitUntilBlocked,
+} from "../../ingest/test/helpers.mjs";
 
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -406,7 +410,7 @@ test("rate limit: counts within the hourly window", async () => {
 test("rate limit: asks that truly overlap each take their own count (#972)", async () => {
   // Every door's sign-in mail ceiling is this counter. The overlap is
   // forced, not timed: one transaction holds the bucket's row, the
-  // contenders queue on its lock (seen in pg_stat_activity), and only
+  // contenders queue on its lock (seen in pg_locks), and only
   // then is it released. A check-then-write counter lets every contender
   // read the same count here; the one-statement upsert cannot.
   const bucket = "auth#race-972";
@@ -428,16 +432,7 @@ test("rate limit: asks that truly overlap each take their own count (#972)", asy
     const answers = Promise.all(
       clients.map((c) => checkRateLimit(c, { bucket, max, now })),
     );
-    for (let waiting = 0; waiting < contenders;) {
-      ({
-        rows: [{ waiting }],
-      } = await db.query(
-        `select count(*)::int as waiting from pg_stat_activity
-         where pid = any($1) and wait_event_type = 'Lock'`,
-        [pids],
-      ));
-      if (waiting < contenders) await new Promise((r) => setTimeout(r, 20));
-    }
+    await waitUntilBlocked(db, { pids }, { count: contenders });
     await holder.query("commit");
     const allowed = await answers;
     assert.equal(allowed.filter(Boolean).length, max - 1);
@@ -494,13 +489,17 @@ test("a role change cannot ride authorization that went stale mid-flight", async
       [target.account_id],
     );
 
+    const {
+      rows: [{ pid: promoter }],
+    } = await other.query("select pg_backend_pid() as pid");
     const inFlight = setAccountRole(db, {
       accountId: target.account_id,
       role: "member",
       actorRole: "admin",
     });
-    // Let it reach the lock before the promotion commits.
-    await new Promise((r) => setTimeout(r, 100));
+    // It reaches the lock before the promotion commits: observed from the
+    // promoter's own connection (pg_locks is live inside a transaction).
+    await waitUntilBlocked(other, { blockedBy: promoter });
     await other.query("commit");
 
     const result = await inFlight;
