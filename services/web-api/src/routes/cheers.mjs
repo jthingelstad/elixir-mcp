@@ -192,6 +192,8 @@ export function cheersRoutes({ resolveAccount }) {
         // Never the account's administration: left out at the read, so it
         // spends none of the timeline's cap either.
         accountLines: false,
+        // Items only: the feed says no entry's late-capture count.
+        lateCounts: false,
       });
       const items = await annotateFeed(db, feedItems(built.timeline), subjects);
       return {

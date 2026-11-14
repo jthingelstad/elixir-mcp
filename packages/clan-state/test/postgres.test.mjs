@@ -326,3 +326,27 @@ test("reopen compare-and-patch is atomic across clients and preserves partial se
   assert.equal(saved.reopenings.length, 1);
   assert.equal(original.card_id, "reopen-fixture");
 });
+
+test("getMany answers what one get per key answers, in the keys' order, absent keys left out", async () => {
+  const store = createPostgresStore(db);
+  const ledger = createPostgresLedger(db);
+  for (const item of durable) await store.put(item);
+  const keys = [
+    durable[3].pk,
+    "place##0LQ9GV",
+    durable[0].pk,
+    durable[4].pk,
+    durable[0].pk,
+  ];
+  const one = [];
+  for (const pk of keys) one.push(await store.get(pk));
+  assert.deepEqual(await store.getMany(keys), one.filter(Boolean));
+  assert.deepEqual(await store.getMany([]), []);
+  // A person's places, through the ledger: one read for all their tags.
+  await ledger.savePlace(["#0PYQ2C"], { lat: 1, lon: 2 });
+  assert.deepEqual(
+    await ledger.places(["#0PYQ2C", "#0LQ9GV"]),
+    await ledger.places(["#0PYQ2C"]),
+  );
+  assert.equal((await ledger.places(["#0PYQ2C", "#0LQ9GV"])).length, 1);
+});

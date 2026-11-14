@@ -127,6 +127,11 @@ export function createMemoryLedger() {
       const item = items.get(pk);
       return item ? structuredClone(item) : null;
     },
+    async getMany(pks) {
+      return pks
+        .filter((pk) => items.has(pk))
+        .map((pk) => structuredClone(items.get(pk)));
+    },
     async compareAndPatch(pk, expected, patch) {
       const current = items.get(pk);
       if (!current || !isDeepStrictEqual(current, expected)) return null;
@@ -624,8 +629,7 @@ export function ledgerOver(io) {
     // ---- social (2026-09-26): a person's place, under each of their
     // verified tags; the clan's switch, in the clan's partition ----------
     async places(tags) {
-      const items = [];
-      for (const tag of tags) items.push(await io.get(`place#${tag}`));
+      const items = await io.getMany(tags.map((tag) => `place#${tag}`));
       return items.filter(Boolean).map(stripKeys);
     },
     async savePlace(tags, place) {
