@@ -175,7 +175,7 @@ function YouAccount({ me, primary }) {
           <Row href={DROP} title="Play Drop" detail="The elixir-cost game." />
           {me?.is_admin === true ? (
             <Row
-              href={`${ADMIN}/requests`}
+              href={`${ADMIN}/accounts`}
               title="Admin"
               detail="Staff only."
             />

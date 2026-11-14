@@ -22,8 +22,6 @@
  * every field in it has the value.
  */
 
-export const POLICY_SCHEMA_VERSION = 3;
-
 /**
  * The smallest clan a policy engages with (Jamie, 2026-09-25): as a clan
  * takes no part in Clan Wars until it has 10 members, operational policy

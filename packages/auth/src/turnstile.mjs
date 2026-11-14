@@ -30,8 +30,6 @@ export const TURNSTILE_SITE_KEY = "0x4AAAAAAFW0ZICrZblLsqht";
 export const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 /** Flip with the TurnstileMode stack parameter, never here. */
 export const DEFAULT_TURNSTILE_MODE = "observe";
-/** The doors that mail a code, as the relay's log names them. */
-export const TURNSTILE_SURFACES = ["web", "oauth"];
 /** Cloudflare documents a 2048-character maximum. */
 export const TURNSTILE_TOKEN_MAX = 2048;
 

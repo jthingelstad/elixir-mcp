@@ -82,16 +82,6 @@ const OBSOLETE_JOB_SQL = `status in ('queued', 'leased', 'dead') and (
   endpoint = any($1::text[])
   or (lane = 'bulk' and not (${BULK_JOB_WANTED_SQL})))`;
 
-export async function hasRetiredJobs(db) {
-  const {
-    rows: [row],
-  } = await db.query(
-    `select exists (select 1 from job where ${OBSOLETE_JOB_SQL}) as pending`,
-    [RETIRED_RECORDING_ENDPOINTS],
-  );
-  return row.pending;
-}
-
 export async function bulkJobWanted(db, { endpoint, entity_key }) {
   const { rows } = await db.query(
     `select (${BULK_JOB_WANTED_SQL}) as wanted

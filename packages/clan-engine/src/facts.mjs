@@ -18,15 +18,6 @@ import { inactivityEvidence } from "./inactivity.mjs";
 
 const DAY_MS = 86400_000;
 
-export function isoWeekStartUtc(date) {
-  const d = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
-  const day = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() - (day - 1));
-  return d;
-}
-
 /**
  * Per-member facts as of `at`.
  * @param {object} participation the clans_participation answer

@@ -35,8 +35,6 @@ import { randomUUID } from "node:crypto";
 export const QUALITY_KEEP_DAYS = 90;
 /** The archive bucket's prefix for a run's raw inputs and answers. */
 export const RUN_RAW_PREFIX = "discord-runs/";
-/** The outbox lane the relay's receipts arrive on. */
-export const RECEIPT_PREFIX = "discord-receipt/";
 /** A receipt's outcomes, as the ledger keeps them. */
 export const RECEIPT_OUTCOMES = new Set([
   "posted",

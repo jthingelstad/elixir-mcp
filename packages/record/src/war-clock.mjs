@@ -24,9 +24,6 @@ const PERIODS_PER_SECTION = TRAINING_DAYS + WAR_DAYS;
 const NOMINAL_RESET_HOUR_UTC = 10;
 const DAY_MS = 24 * 3600_000;
 
-/** War decks a member can play on a war day: the game's own limit. */
-export const WAR_DECKS_PER_DAY = 4;
-
 /** The war days a finished race week asked of a member (decks, not
  *  days: DECISIONS, "War facts are weekly aggregates"): every war day up
  *  to the clan's finish, since after the boat crosses the rest of the

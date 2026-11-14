@@ -190,37 +190,3 @@ export async function clanWeekBattles(db, clanTag, windows) {
     };
   });
 }
-
-/** How many members the record holds on a clan's roster at each instant
- *  (membership intervals, as the clan entry sizes a window), with when
- *  the record first saw the roster and when the clan's active recording
- *  began: a count before the first is unknown, never zero. */
-export async function clanRosterAt(db, clanTag, instants) {
-  const { rows } = await db.query(
-    `select t.i,
-            (select count(*)::int from clan_membership cm
-              where cm.clan_tag = $1 and cm.joined_observed_at <= t.at
-                and (cm.left_observed_at is null or cm.left_observed_at > t.at)) as members
-       from jsonb_to_recordset($2::jsonb) as t(i int, at timestamptz)
-      order by t.i`,
-    [
-      clanTag,
-      JSON.stringify(
-        instants.map((at, i) => ({ i, at: new Date(at).toISOString() })),
-      ),
-    ],
-  );
-  const {
-    rows: [since],
-  } = await db.query(
-    `select (select min(joined_observed_at) from clan_membership where clan_tag = $1) as roster_since,
-            (select min(created_at) from recording
-              where subject_type = 'clan' and subject_tag = $1 and status = 'active') as recording_since`,
-    [clanTag],
-  );
-  return {
-    members: rows.map((r) => r.members),
-    roster_since: since.roster_since?.toISOString() ?? null,
-    recording_since: since.recording_since?.toISOString() ?? null,
-  };
-}

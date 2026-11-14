@@ -23,7 +23,6 @@ export {
   refuseDiscordSetting,
   refusalOf,
   saveDiscordSetting,
-  settingView,
   WEBHOOK_REFUSALS,
 } from "./settings.mjs";
 export { makeHistoryReader, makeStatusReader } from "./store.mjs";

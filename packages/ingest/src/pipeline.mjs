@@ -842,18 +842,16 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
     if (admission.ok) {
       // What the fetch was worth (0077): the projection's own count of
       // rows it inserted or changed, and the transaction's wall time so
-      // far. A point rewards a fetch that returned data, never one that
-      // repeated what was held (Jamie, 2026-09-11).
+      // far. gateway.fetch_points is a dead column (fetch points retired,
+      // DECISIONS): ingest no longer counts it.
       const facts = Number.isInteger(projection?.facts) ? projection.facts : 0;
       await db.query(
         `update api_receipt set new_facts = $2, ingest_ms = $3 where receipt_id = $1`,
         [receiptId, facts, Date.now() - t0],
       );
       await db.query(
-        `update gateway set last_success_at = now(),
-                fetch_points = fetch_points + case when $2 > 0 then 1 else 0 end
-         where gateway_id::text = $1`,
-        [msg.gateway_id, facts],
+        `update gateway set last_success_at = now() where gateway_id::text = $1`,
+        [msg.gateway_id],
       );
 
       // The read's own fact, kept a year while its receipt goes at 28

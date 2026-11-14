@@ -154,18 +154,17 @@ test("a profile re-poll within the day leaves the player row's version alone", a
   assert.notEqual(await version(), before, "a day on, the sighting moves");
 });
 
-test("a fetch that returned data earns a point and a new_facts count; one that repeated the record earns nothing", async () => {
+test("a fetch records its new_facts count and the gateway's last success; the retired fetch_points never moves", async () => {
   const log = await fixture("player_battlelog/with_boat_and_duel.json");
   const tag = meta["player_battlelog/with_boat_and_duel.json"].entity_key;
-  const points = async () => await db_points_query();
-  async function db_points_query() {
-    const { rows } = await ctx.db.query(
-      `select fetch_points from gateway where gateway_id = $1`,
-      [gatewayId],
-    );
-    return rows[0].fetch_points;
-  }
-  const before = await points();
+  const gateway = async () =>
+    (
+      await ctx.db.query(
+        `select fetch_points, last_success_at from gateway where gateway_id = $1`,
+        [gatewayId],
+      )
+    ).rows[0];
+  const before = await gateway();
   const first = await processResult(
     ctx.db,
     message({
@@ -186,7 +185,9 @@ test("a fetch that returned data earns a point and a new_facts count; one that r
   const r1 = await receipt(first.receiptId);
   assert.ok(r1.new_facts > 0, "new battles are facts");
   assert.ok(r1.ingest_ms >= 0, "ingest time recorded");
-  assert.equal(Number(await points()), Number(before) + 1);
+  const after = await gateway();
+  assert.ok(after.last_success_at instanceof Date, "last success recorded");
+  assert.equal(Number(after.fetch_points), Number(before.fetch_points));
 
   const second = await processResult(
     ctx.db,
@@ -201,9 +202,8 @@ test("a fetch that returned data earns a point and a new_facts count; one that r
   const r2 = await receipt(second.receiptId);
   assert.equal(r2.new_facts, 0, "nothing the record did not hold");
   assert.equal(
-    Number(await points()),
-    Number(before) + 1,
-    "no point for no data",
+    Number((await gateway()).fetch_points),
+    Number(before.fetch_points),
   );
 });
 
