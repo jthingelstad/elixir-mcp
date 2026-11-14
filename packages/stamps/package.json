@@ -9,12 +9,14 @@
     ".": "./src/index.mjs",
     "./catalog": "./src/catalog.mjs",
     "./eligibility": "./src/eligibility.mjs",
-    "./projection": "./src/projection.mjs"
+    "./projection": "./src/projection.mjs",
+    "./backfill": "./src/backfill.mjs"
   },
   "scripts": {
     "test": "node --test --test-force-exit"
   },
   "dependencies": {
+    "@elixir-mcp/clan-state": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0"
   },
   "devDependencies": {
