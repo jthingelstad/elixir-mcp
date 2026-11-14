@@ -1,9 +1,11 @@
 # Passports and Stamps
 
-Design direction, 2026-11-14. **First slice built, nothing awarded yet.**
+Design direction, 2026-11-14. **Earning built; the pages are not.**
 The catalog, eligibility, storage and two signed-in passport reads exist
-(`packages/stamps`, migration 0269); no hook grants a Stamp, no page
-shows one, and Home has no passport yet. The clickable sample is in
+(`packages/stamps`, migrations 0269 and 0270). Real writes grant Stamps
+through hooks, the owner's reconciliation repairs and grants the rest,
+and a new Stamp is one line in the bell. No page shows a passport yet,
+Home has no profile list, and nobody's history is backfilled. The clickable sample is in
 [the passport design](../design/passport/README.md); the build plan is
 [the build handoff](../plans/stamps-build.md).
 
@@ -172,6 +174,20 @@ Built in the first slice (#1015):
   `GET /api/passports/<id>` (the public projection only), for signed-in
   people.
 
-Not built yet: the hooks that record facts and grant Stamps after a real
-write, the owner's reconciliation, the passport pages and the profile
-list in the app, the legacy backfill, and any notice or feed item.
+Built in the earning slice (#1015,
+[note](../notes/2026-11-14-passport-stamps-earning.md)):
+
+- Hooks after each successful write (verification, a picture, a place,
+  an added or followed player, Discord, a digest choice, a cheer on
+  someone else's item, a highlight with words). A hook never fails the
+  write it follows.
+- `POST /api/me/passport/reconcile`, the owner's bounded, idempotent
+  pass (Played Together, Inner Circle, Mutual, All Set, Storyteller and
+  any setup Stamp a hook missed), and `POST /api/me/passport/map` for
+  the map step's "Not now".
+- One bell line per new Stamp, at the highest level a pass granted,
+  opening `/home/passport?stamp=<id>`. No popup, feed item, digest row
+  or email.
+
+Not built yet: the passport pages and the profile list in the app (which
+call the reconciliation), and the legacy backfill.
