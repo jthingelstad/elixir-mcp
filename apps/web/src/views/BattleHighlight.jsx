@@ -123,7 +123,7 @@ function Compose({ battle, players, nameOf, invalidate }) {
       <WriteError error={post.error} />
       <div className="share-actions">
         <button
-          className="btn btn--gold"
+          className="btn btn--primary"
           type="submit"
           disabled={post.busy || count(words) > WORDS_MAX}
         >

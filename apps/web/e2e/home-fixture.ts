@@ -21,7 +21,10 @@ const DECK = {
   losses: 8,
   cards: CARDS,
 };
-const AGO = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+const fixtureNow = process.env.ELIXIR_DESIGN_NOW
+  ? Date.parse(process.env.ELIXIR_DESIGN_NOW)
+  : Date.now();
+const AGO = (min: number) => new Date(fixtureNow - min * 60_000).toISOString();
 
 const FIRST = {
   ok: true,

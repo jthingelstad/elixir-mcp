@@ -64,11 +64,23 @@ for (const [label, width] of [
       await expect(feed.locator(".kit-sfacts")).toHaveText(
         "Battles5Won3Lost2Trophies+28",
       );
-      // A clan's line wears the gold edge; a moment links its battle.
+      // A clan's line retains its identifying class; a moment links its battle.
       await expect(page.locator(".kit-feed__item--clan")).toHaveCount(1);
       await expect(
         feed.getByRole("link", { name: "Open the battle" }),
       ).toHaveAttribute("href", "/battle/b2c3d4e5f6a7");
+      // Every card stays inside Your week at both widths, rather than
+      // clipping the last three cards in the desktop side column.
+      const deck = page.locator(".kit-week .deck-grid");
+      await expect(deck.locator("li")).toHaveCount(8);
+      const clipped = await deck.evaluate((el) => {
+        const bounds = el.getBoundingClientRect();
+        return [...el.querySelectorAll(".card-art")].filter((card) => {
+          const rect = card.getBoundingClientRect();
+          return rect.left < bounds.left - 1 || rect.right > bounds.right + 1;
+        }).length;
+      });
+      expect(clipped).toBe(0);
       // A name opens the player page.
       await expect(
         feed.getByRole("link", { name: "Ada", exact: true }),

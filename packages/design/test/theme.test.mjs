@@ -63,7 +63,7 @@ test("the tokens are the utility vocabulary: colours, type, radii, fonts, the br
     css,
     /\.border-line-strong \{\s*border-color: var\(--line-strong\)/,
   );
-  assert.match(css, /\.rounded-panel \{\s*border-radius: var\(--r-panel\)/);
+  assert.match(css, /\.rounded-panel \{\s*border-radius: var\(--r-control\)/);
   assert.match(css, /\.font-display \{\s*font-family: var\(--font-display\)/);
   assert.match(css, /\.text-body \{[^}]*font-size: var\(--t-body\)/);
   assert.match(

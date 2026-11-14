@@ -1,0 +1,28 @@
+{
+  "before": {
+    "rootTokens": 203,
+    "typeTokens": 32,
+    "radiusTokens": 19,
+    "selectorRules": 1774,
+    "componentBytes": 233158,
+    "componentDeclarations": 5678,
+    "literalSpacingPixels": 1161,
+    "componentShadows": 48,
+    "componentGradients": 11,
+    "appInlineStyles": 195,
+    "kitInlineStyles": 9
+  },
+  "after": {
+    "rootTokens": 167,
+    "typeTokens": 11,
+    "radiusTokens": 4,
+    "selectorRules": 1769,
+    "componentBytes": 230031,
+    "componentDeclarations": 5697,
+    "literalSpacingPixels": 605,
+    "componentShadows": 46,
+    "componentGradients": 6,
+    "appInlineStyles": 195,
+    "kitInlineStyles": 8
+  }
+}

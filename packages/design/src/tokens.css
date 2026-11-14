@@ -113,15 +113,15 @@
 
 :root {
   /* ---- Ground: page up to a raised panel -------------------------- */
-  --ground: #100d20; /* page background, under the radial wash */
-  --ground-chrome: #141025; /* header, footer, rail */
-  --ground-sunken: #151125; /* code blocks, meter troughs, inputs */
-  --panel: #1b1630; /* cards, panels, chip backgrounds */
-  --panel-raised: #241d3b; /* secondary buttons, tag pills */
-  --panel-head: #171229; /* header strip inside a code panel */
-  --panel-float: #1b1630; /* a card that floats: auth, the transcript */
-  --control: #3a2f5c; /* a solid button: filled, never outlined (canvas .btn) */
-  --control-hover: #463a6d;
+  --ground: #121218; /* page background */
+  --ground-chrome: #17161d; /* header, footer, rail */
+  --ground-sunken: #15141b; /* code blocks, meter troughs, inputs */
+  --panel: #1c1b23; /* cards, panels, chip backgrounds */
+  --panel-raised: #292730; /* secondary buttons, tag pills */
+  --panel-head: #19181f; /* header strip inside a code panel */
+  --panel-float: var(--panel); /* a card that floats: auth, the transcript */
+  --control: #302d3a; /* a solid button: filled, never outlined (canvas .btn) */
+  --control-hover: #3b3747;
 
   /* The page wash. One gradient, same on every surface. */
   --page-wash: none;
@@ -131,17 +131,17 @@
      Flat is better." Panels sit on the ground by tone, not outlines; a
      line marks an input, a table's rows, focus, a qualification (dashed)
      or a state. --line-soft is kept for the few that remain. */
-  --line: #393047; /* inputs, a table's header rule */
-  --line-soft: #30283f; /* a quiet inner edge that still says something */
-  --line-row: #292238; /* the rule under a table row */
-  --line-strong: #625079; /* a text field's edge, a dashed caveat */
+  --line: #393540; /* inputs, a table's header rule */
+  --line-soft: #2e2b35; /* a quiet inner edge that still says something */
+  --line-row: #29262f; /* the rule under a table row */
+  --line-strong: #6b6279; /* a text field's edge, a dashed caveat */
 
   /* ---- Ink -------------------------------------------------------- */
-  --ink: #f2eff8; /* primary text, numbers, active nav */
-  --ink-body: #ded8e9; /* body copy in panels and tables */
-  --ink-dim: #bcb4cb; /* ledes, inactive nav, secondary copy */
-  --ink-faint: #aaa1ba; /* labels, footnotes, provenance */
-  --ink-link: #bca5f5; /* links and Clash Royale tags */
+  --ink: #f4f3f7; /* primary text, numbers, active nav */
+  --ink-body: #dedbe5; /* body copy in panels and tables */
+  --ink-dim: #b9b3c4; /* ledes, inactive nav, secondary copy */
+  --ink-faint: #aaa4b6; /* labels, footnotes, provenance */
+  --ink-link: var(--accent-bright); /* links and Clash Royale tags */
   --ink-link-hover: #d3c4ff;
   --ink-code: #e6dfff; /* inside a code block */
   --ink-quiet-icon: #8b7fc7; /* an icon that is deliberately inert */
@@ -160,10 +160,10 @@
     0.07
   ); /* a clan item's wash, under its edge */
   --gold-dash: rgba(245, 200, 76, 0.55); /* a leader's decision: dashed */
-  --shadow-brand: 0 2px 0 #000; /* the wordmark's and display titles' drop */
+  --shadow-brand: none; /* the wordmark's and display titles' drop */
 
   --accent: #8b5cf6; /* meter fills, charts, marks */
-  --accent-bright: #b49af0; /* icons, accent ink, unread dot */
+  --accent-bright: #bca5f5; /* icons, accent ink, unread dot */
   --accent-deep: #6d28d9; /* selected control, primary non-brand */
 
   --ok: #4ade80; /* recording, healthy, granted, win */
@@ -274,7 +274,7 @@
   --hover-row: rgba(139, 92, 246, 0.07);
   --hover-child: rgba(139, 92, 246, 0.1);
   --mark-current: inset 3px 0 0 var(--accent-bright); /* current rail item */
-  --mark-tab: inset 0 -2px 0 var(--gold); /* current header tab */
+  --mark-tab: inset 0 -2px 0 var(--accent-bright); /* current header tab */
   --edge-clan: inset 3px 0 0 var(--gold); /* the clan's gold edge, never a gold outline */
   /* Your own clan's tile or panel: a flat gold top (round three,
      2026-11-13). A background band, not an inset shadow: the shadow
@@ -284,13 +284,13 @@
 
   /* An avatar's initials sit on one of seven fills, chosen from the tag:
      presentational only, never a meaning (canvas .av .h1 to .h7). */
-  --av-1: #2d6cdf;
-  --av-2: #0d7a68;
-  --av-3: #b4467a;
-  --av-4: #a35a12;
-  --av-5: #6b4bd1;
-  --av-6: #3f7d20;
-  --av-7: #8a3b3b;
+  --av-1: #394b71;
+  --av-2: #28564e;
+  --av-3: #684256;
+  --av-4: #694c30;
+  --av-5: #554778;
+  --av-6: #405733;
+  --av-7: #704544;
   --av-ink: #fff;
 
   --focus-glow: rgba(139, 92, 246, 0.28);
@@ -301,40 +301,17 @@
   --font-display: "Clash Royale", Inter, sans-serif;
   --font-mono: ui-monospace, Menlo, Consolas, monospace;
 
-  --t-h1-site: 36px; /* site + design-system h1 */
-  --t-h1-page: 30px; /* a page's title, display face (canvas .pagehead) */
-  --t-h2: 18px;
-  --t-panel-head: 14px;
-  --t-body: 15px;
-  --t-body-sm: 13.5px;
-  --t-label: 11px; /* uppercase, .09em tracking */
-  --t-mono: 12.5px;
-  --t-stat: 20px; /* mono stat value */
-  /* The rest of the sizes components.css draws, at their exact values
-     (2026-11-14 hygiene). A ladder to collapse, not a scale to extend. */
+  --t-h1-page: 32px; /* page title */
+  --t-h2: 20px;
+  --t-body: 16px;
+  --t-body-sm: 14px;
   --t-card-cost: 9px; /* a card's elixir cost */
   --t-micro: 10px;
-  --t-badge: 10.5px; /* a level badge, a count dot */
-  --t-fine: 11.5px; /* fine print, chart legends, keys */
   --t-caption: 12px; /* notes, meta lines, small labels */
-  --t-small: 13px; /* small controls, tables, inputs */
-  --t-prose: 14.5px; /* Markdown prose, row titles */
-  --t-row-text: 15.5px; /* a Home row's text */
-  --t-body-lg: 16px; /* ledes, names, phone inputs */
-  --t-lead: 17px; /* feed text, a stat row's values */
-  --t-stat-row: 19px; /* a stat row's value, wide */
-  --t-card-title: 21px; /* a Home row's title */
-  --t-stat-lg: 22px; /* a stat's value, a post's title */
   --t-title: 24px; /* the wordmark, a page head's title */
-  --t-door-title: 26px; /* the sign-in door's title */
-  --t-stat-brand: 27px; /* a brand stat value */
-  --t-rule-big: 28px; /* a policy rule's big number, wide */
-  --t-display: 38px; /* the docs' title, a battle's crowns on a phone */
-  --t-score-dash: 40px; /* the dash between a battle's crowns */
   --t-score: 64px; /* a battle's crowns */
   --t-head-tag: 0.55em; /* a tag beside a page head's title */
-  --t-hero: clamp(32px, 5vw, 46px); /* the site's hero title */
-  --t-home-title: clamp(36px, 6vw, 54px); /* the front page's title */
+  --t-home-title: clamp(32px, 5vw, 48px); /* the front page's title */
   --lh-body: 1.5;
   --lh-prose: 1.65;
 
@@ -347,29 +324,12 @@
   --pad-page: 32px;
   --pad-page-narrow: 16px;
 
-  --r-chip: 8px;
-  --r-control: 6px;
-  --r-block: 12px;
-  --r-panel: 8px;
+  --r-control: 8px;
   --r-rail: 0; /* squared into the current-item rule */
   --r-pill: 999px;
-  /* The rest of the radii components.css draws, at their exact values
-     (2026-11-14 hygiene). */
-  --r-card: 10px; /* tiles, steps, dialogs */
-  --r-tile: 14px; /* a card tile, a moment, a post card */
-  --r-feature: 18px; /* a battle's score panel, a clan crest */
-  --r-window: 16px; /* a transcript window */
-  --r-rail-card: 13px;
-  --r-control-lg: 11px; /* a large button */
-  --r-select: 9px; /* a select */
-  --r-code: 5px; /* inline code, a key, a small gauge */
-  --r-thumb: 4px; /* a card thumbnail */
-  --r-dot: 3px; /* a mode dot, a swatch */
-  --r-tick: 2px; /* a tick, a bar's top */
   --r-round: 50%; /* a circle */
-  --r-bubble: 14px 14px 4px 14px; /* your message in a transcript */
 
-  --hit: 40px; /* desktop row / control */
+  --hit: 44px; /* minimum control target */
   --hit-touch: 44px; /* narrow viewport */
 
   /* ---- Motion (2026-09-12, with Verify) ----------------------------
@@ -469,32 +429,32 @@
   --font-mono: var(--font-mono);
 
   --text-*: initial;
-  --text-h1-site: var(--t-h1-site);
+  --text-h1-site: var(--t-h1-page);
   --text-h1-page: var(--t-h1-page);
   --text-h2: var(--t-h2);
-  --text-panel-head: var(--t-panel-head);
+  --text-panel-head: var(--t-body-sm);
   --text-body: var(--t-body);
   --text-body--line-height: var(--lh-body);
   --text-body-sm: var(--t-body-sm);
-  --text-label: var(--t-label);
-  --text-mono: var(--t-mono);
-  --text-stat: var(--t-stat);
+  --text-label: var(--t-caption);
+  --text-mono: var(--t-caption);
+  --text-stat: var(--t-h2);
   --text-caption: var(--t-caption);
-  --text-small: var(--t-small);
-  --text-prose: var(--t-prose);
-  --text-body-lg: var(--t-body-lg);
+  --text-small: var(--t-body-sm);
+  --text-prose: var(--t-body-sm);
+  --text-body-lg: var(--t-body);
   --text-title: var(--t-title);
 
   --leading-body: var(--lh-body);
   --leading-prose: var(--lh-prose);
 
   --radius-*: initial;
-  --radius-chip: var(--r-chip);
+  --radius-chip: var(--r-control);
   --radius-control: var(--r-control);
-  --radius-block: var(--r-block);
-  --radius-panel: var(--r-panel);
+  --radius-block: var(--r-control);
+  --radius-panel: var(--r-control);
   --radius-pill: var(--r-pill);
-  --radius-select: var(--r-select);
+  --radius-select: var(--r-control);
 
   --shadow-*: initial;
   --shadow-modal: var(--shadow-modal);

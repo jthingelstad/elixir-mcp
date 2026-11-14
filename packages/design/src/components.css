@@ -87,14 +87,14 @@ pre {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   font-variant-numeric: tabular-nums;
 }
 
-/* Clash Royale is for display type only — never body, never tables. */
+/* Content uses one face; the wordmark alone keeps the game face. */
 .display {
-  font-family: var(--font-display);
-  font-weight: 400;
+  font-family: var(--font);
+  font-weight: 600;
 }
 
 .wordmark {
@@ -119,13 +119,16 @@ table {
    names). They look the same today; the names let a redesign treat
    them apart. */
 .mono,
-.mono-tag,
-.mono-num {
+.mono-tag {
   font-family: var(--font-mono);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
+}
+.mono-num {
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums;
 }
 .footnote {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 
@@ -162,11 +165,11 @@ html[data-session="in"] [data-session-face="out"] {
   justify-content: center;
   width: 30px;
   height: 30px;
-  border: 2px solid var(--gold);
+  border: 0;
   border-radius: var(--r-round);
   background: var(--panel-raised);
-  color: var(--gold-light);
-  font-size: var(--t-label);
+  color: var(--ink);
+  font-size: var(--t-caption);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -190,15 +193,15 @@ html[data-session="in"] [data-session-face="out"] {
   width: 344px;
   max-width: calc(100vw - 32px);
   overflow: hidden;
-  border-radius: var(--r-panel);
+  border-radius: var(--r-control);
   background: var(--panel-float);
   box-shadow: var(--shadow-float);
 }
 .account-menu__head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+  gap: var(--s-3);
+  padding: var(--s-4);
 }
 .account-menu__name {
   font-size: var(--t-body);
@@ -209,7 +212,7 @@ html[data-session="in"] [data-session-face="out"] {
 .account-menu__email {
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
 }
 .account-menu__detail {
@@ -221,10 +224,10 @@ html[data-session="in"] [data-session-face="out"] {
 .account-menu__group {
   display: flex;
   flex-direction: column;
-  padding: 8px;
+  padding: var(--s-2);
 }
 .account-menu__label {
-  padding: 6px 8px 4px;
+  padding: 6px var(--s-2) var(--s-1);
   font-size: var(--t-caption);
   font-weight: 500;
   letter-spacing: 0;
@@ -238,9 +241,9 @@ html[data-session="in"] [data-session-face="out"] {
   align-items: center;
   gap: 10px;
   min-height: 36px;
-  padding: 0 8px;
+  padding: 0 var(--s-2);
   border-radius: var(--r-control);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   color: var(--ink-body);
 }
 .account-menu__player:hover,
@@ -278,7 +281,7 @@ html[data-session="in"] [data-session-face="out"] {
 }
 .account-menu__more {
   min-height: 32px;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-link);
 }
 .account-menu__link > svg {
@@ -290,24 +293,24 @@ html[data-session="in"] [data-session-face="out"] {
   color: var(--ink-faint);
 }
 .account-menu__foot {
-  padding: 12px 16px 14px;
+  padding: var(--s-3) var(--s-4) 14px;
 }
 .account-menu__out {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--s-2);
   width: 100%;
   height: var(--hit);
   border: 1px solid transparent;
   border-radius: var(--r-control);
   background: var(--control);
   color: var(--ink);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 600;
 }
 .account-menu__note {
-  margin: 8px 0 0;
+  margin: var(--s-2) 0 0;
   font-size: var(--t-caption);
   color: var(--ink-faint);
   text-align: center;
@@ -350,7 +353,7 @@ html[data-session="in"] [data-session-face="out"] {
   max-height: calc(100dvh - 57px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 20px 12px 0;
+  padding: var(--s-5) var(--s-3) 0;
 }
 /* The pin's bottom space is its last child's. */
 .rail__pin > :last-child {
@@ -363,7 +366,7 @@ html[data-session="in"] [data-session-face="out"] {
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink-faint);
-  padding: 16px 11px 6px;
+  padding: var(--s-4) 11px 6px;
 }
 
 .rail__item {
@@ -373,7 +376,7 @@ html[data-session="in"] [data-session-face="out"] {
   min-height: var(--hit);
   padding: 10px 11px;
   border-radius: var(--r-rail);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 500;
   color: var(--ink-dim);
   background: transparent;
@@ -395,7 +398,7 @@ html[data-session="in"] [data-session-face="out"] {
 .rail__child {
   display: flex;
   align-items: center;
-  padding: 8px 11px 8px 44px;
+  padding: var(--s-2) 11px var(--s-2) 44px;
   border-radius: var(--r-rail);
   font-size: var(--t-body-sm);
   color: var(--ink-faint);
@@ -414,7 +417,7 @@ html[data-session="in"] [data-session-face="out"] {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   font-family: var(--font-mono);
   font-size: var(--t-caption);
   color: var(--ink-faint);
@@ -438,7 +441,7 @@ html[data-session="in"] [data-session-face="out"] {
      it. The closed row names the section and where you are in it. */
   .rail {
     flex: 0 0 auto;
-    padding: 4px var(--pad-page-narrow) 0;
+    padding: var(--s-1) var(--pad-page-narrow) 0;
     background: none;
   }
   /* Narrow draws no pin (Rail.tsx); this holds for the first paint,
@@ -475,7 +478,7 @@ html[data-session="in"] [data-session-face="out"] {
     color: var(--ink);
   }
   .rail__toggle[aria-expanded="true"] {
-    margin-bottom: 8px;
+    margin-bottom: var(--s-2);
   }
 }
 
@@ -521,12 +524,12 @@ html[data-session="in"] [data-session-face="out"] {
 .page__lede {
   margin: 7px 0 0;
   color: var(--ink-dim);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   max-width: 66ch;
   text-wrap: pretty;
 }
 .page__crumb {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   margin-bottom: 14px;
 }
 
@@ -570,16 +573,16 @@ html[data-session="in"] [data-session-face="out"] {
   box-shadow: var(--shadow-float);
 }
 .panel__head {
-  padding: 13px 16px;
+  padding: 13px var(--s-4);
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 600;
 }
 .panel__body {
-  padding: 16px;
+  padding: var(--s-4);
 }
 
 /* The feedback sheet (2026-10-08): one modal for sending feedback from
@@ -589,7 +592,7 @@ html[data-session="in"] [data-session-face="out"] {
   width: min(560px, calc(100vw - 32px));
   padding: 0;
   border: 0;
-  border-radius: var(--r-panel);
+  border-radius: var(--r-control);
   background: var(--panel);
   color: var(--ink-body);
   box-shadow: var(--shadow-modal);
@@ -607,8 +610,8 @@ html[data-session="in"] [data-session-face="out"] {
   font-size: var(--t-body-sm);
 }
 .panel__foot {
-  padding: 11px 16px;
-  font-size: var(--t-mono);
+  padding: 11px var(--s-4);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 
@@ -627,7 +630,7 @@ p.kit-tiny,
   display: flex;
   gap: 11px;
   align-items: flex-start;
-  border-radius: var(--r-block);
+  border-radius: var(--r-control);
   padding: 13px 15px;
   font-size: var(--t-body-sm);
   line-height: 1.6;
@@ -646,13 +649,13 @@ p.kit-tiny,
 
 /* An empty state says WHY it is empty, then offers one action. */
 .empty {
-  border-radius: var(--r-block);
-  padding: 16px;
+  border-radius: var(--r-control);
+  padding: var(--s-4);
   max-width: 60ch;
   background: var(--panel);
 }
 .empty__title {
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 600;
   color: var(--ink);
   margin-bottom: 6px;
@@ -717,9 +720,9 @@ p.kit-tiny,
 .pager {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s-3);
   padding: 14px 2px 0;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
   flex-wrap: wrap;
 }
@@ -731,11 +734,11 @@ p.kit-tiny,
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: var(--t-mono);
+  gap: var(--s-2);
+  font-size: var(--t-caption);
   font-weight: 600;
   border-radius: var(--r-pill);
-  padding: 4px 12px;
+  padding: var(--s-1) var(--s-3);
 }
 .chip__dot {
   width: 7px;
@@ -819,14 +822,14 @@ p.kit-tiny,
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
+  gap: var(--s-4);
 }
 .stats__cell {
-  padding: 12px 16px 12px 0;
+  padding: var(--s-3) var(--s-4) var(--s-3) 0;
 }
 .stats__value {
   font-family: var(--font-mono);
-  font-size: var(--t-stat);
+  font-size: var(--t-h2);
   color: var(--ink);
 }
 .stats__note {
@@ -838,8 +841,8 @@ p.kit-tiny,
 /* Brand counters (Home, corpus totals) are the ONE place a number is gold —
    they are a brand moment, not a reading. */
 .stats__value--brand {
-  font-family: var(--font-display);
-  font-size: var(--t-stat-brand);
+  font-family: var(--font);
+  font-size: var(--t-title);
   background: var(--gold-grad);
   -webkit-background-clip: text;
   background-clip: text;
@@ -851,8 +854,8 @@ p.kit-tiny,
    ================================================================== */
 
 /* Three weights, told apart at a glance (Jamie, 2026-11-11: "Buttons
-   should be easy to distinguish"). Gold, filled, is the one thing to do
-   on a screen (.btn--primary, and .btn--gold, its older name). Solid,
+   should be easy to distinguish"). Violet, filled, is the one thing to do
+   on a screen (.btn--primary, and .btn--gold, its legacy class name). Solid,
    the raised neutral fill, is any other action (.btn). A link is the
    way out (.btn--quiet, .btn--text, button.link). No button is
    outlined: the border stays transparent so every weight is the same
@@ -861,15 +864,16 @@ p.kit-tiny,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 40px;
+  gap: var(--s-2);
+  min-height: var(--hit);
   font-size: var(--t-body-sm);
   font-weight: 600;
-  border-radius: var(--r-chip);
-  padding: 9px 16px;
+  border-radius: var(--r-control);
+  padding: 9px var(--s-4);
   border: 1px solid transparent;
   background: var(--control);
   color: var(--ink);
+  font: 600 var(--t-body-sm) / 1.4 var(--font);
 }
 .btn:hover {
   background: var(--control-hover);
@@ -879,14 +883,14 @@ p.kit-tiny,
   outline-offset: 2px;
 }
 .btn--primary {
-  background: var(--gold-grad);
-  color: var(--gold-on);
-  font-weight: 700;
-  padding: 9px 16px;
-  box-shadow: 0 2px 0 var(--gold-edge);
+  background: var(--accent-bright);
+  color: var(--ground);
+  font-weight: 600;
+  padding: 9px var(--s-4);
+  box-shadow: none;
 }
 .btn--primary:hover {
-  background: var(--gold-light);
+  background: var(--ink-link-hover);
 }
 .btn--quiet {
   background: transparent;
@@ -910,27 +914,24 @@ p.kit-tiny,
   background: color-mix(in srgb, var(--bad) 22%, transparent);
 }
 .btn--sm {
-  min-height: 32px;
-  font-size: var(--t-small);
-  padding: 5px 12px;
-  border-radius: var(--r-chip);
+  min-height: var(--hit);
+  font-size: var(--t-body-sm);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-control);
 }
-/* Follow (canvas .follow, 2026-11-12): violet is you acting, a pill so it
-   reads as a choice about a person, never the screen's gold action. Its
-   pressed state (Following) drops to the raised fill. Doubled so the later
-   nav-sized .btn--sm cannot square it off. */
+
 .btn.btn--follow {
-  min-height: 34px;
+  min-height: var(--hit);
   padding: 0 14px;
-  border-radius: var(--r-pill);
-  background: var(--accent-deep);
-  color: var(--av-ink);
-  font-size: var(--t-small);
-  font-weight: 700;
+  border-radius: var(--r-control);
+  background: var(--accent-bright);
+  color: var(--ground);
+  font-size: var(--t-body-sm);
+  font-weight: 600;
   box-shadow: none;
 }
 .btn--follow:hover {
-  background: color-mix(in srgb, var(--accent-deep) 85%, var(--accent));
+  background: var(--ink-link-hover);
 }
 .btn--follow[aria-pressed="true"] {
   background: var(--panel-raised);
@@ -943,16 +944,16 @@ p.kit-tiny,
   border-radius: var(--r-control);
   color: var(--ink);
   font-size: var(--t-body);
-  padding: 12px 13px;
+  padding: var(--s-3) 13px;
 }
 
 .select {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--r-select);
+  border-radius: var(--r-control);
   color: var(--ink-body);
-  font-size: var(--t-small);
-  padding: 8px 11px;
+  font-size: var(--t-body-sm);
+  padding: var(--s-2) 11px;
 }
 
 /* ==================================================================
@@ -960,7 +961,7 @@ p.kit-tiny,
    ================================================================== */
 
 .code {
-  border-radius: var(--r-block);
+  border-radius: var(--r-control);
   background: var(--ground-sunken);
   overflow: hidden;
 }
@@ -974,9 +975,9 @@ p.kit-tiny,
 }
 .code__body {
   margin: 0;
-  padding: 14px 16px;
+  padding: 14px var(--s-4);
   overflow: auto;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   line-height: 1.65;
   color: var(--ink-code);
 }
@@ -986,9 +987,9 @@ p.kit-tiny,
 .freshness {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: var(--t-mono);
-  padding: 4px 0;
+  gap: var(--s-2);
+  font-size: var(--t-caption);
+  padding: var(--s-1) 0;
   white-space: nowrap;
 }
 .freshness--live {
@@ -1009,7 +1010,7 @@ p.kit-tiny,
    long answer pushes older messages up and out instead of growing the
    box and shoving the page down while somebody is reading it. */
 .transcript__window {
-  border-radius: var(--r-window);
+  border-radius: var(--r-control);
   background: var(--panel-float);
   overflow: hidden;
   box-shadow: var(--shadow-float);
@@ -1028,7 +1029,7 @@ p.kit-tiny,
   background: var(--line);
 }
 .transcript__body {
-  padding: 16px;
+  padding: var(--s-4);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -1045,14 +1046,14 @@ p.kit-tiny,
   align-self: flex-end;
   max-width: 82%;
   background: var(--line-soft);
-  border-radius: var(--r-bubble);
+  border-radius: var(--r-control);
   padding: 11px 14px;
-  font-size: var(--t-prose);
+  font-size: var(--t-body-sm);
   color: var(--ink);
 }
 .transcript__agent {
   max-width: 94%;
-  font-size: var(--t-prose);
+  font-size: var(--t-body-sm);
   line-height: 1.6;
   color: var(--ink-body);
   text-wrap: pretty;
@@ -1064,12 +1065,12 @@ p.kit-tiny,
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-faint);
 }
 .transcript__dots {
   display: flex;
-  gap: 4px;
+  gap: var(--s-1);
 }
 .transcript__dots span {
   width: 6px;
@@ -1099,7 +1100,7 @@ p.kit-tiny,
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
+  gap: var(--s-1) var(--s-2);
 }
 .transcript__tools {
   padding: 11px 15px;
@@ -1107,7 +1108,7 @@ p.kit-tiny,
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 
@@ -1139,12 +1140,12 @@ h3 {
 h1,
 .page-title {
   margin: 0;
-  font: 400 var(--t-stat-lg)/1.3 var(--font-display);
+  font: 600 var(--t-h2)/1.3 var(--font);
   letter-spacing: 0.01em;
 }
 .hero-title {
   margin: 0 0 18px;
-  font: 400 var(--t-hero) / 1.1 var(--font-display);
+  font: 600 var(--t-home-title) / 1.1 var(--font);
   letter-spacing: 0.01em;
   text-wrap: pretty;
 }
@@ -1154,19 +1155,19 @@ h1,
 }
 
 .stat__label {
-  font: 600 var(--t-label) var(--font-mono);
+  font: 600 var(--t-caption) var(--font-mono);
   letter-spacing: 0.06em;
   color: var(--ink-faint);
 }
 
 .lede {
-  font-size: var(--t-body-lg);
+  font-size: var(--t-body);
   color: var(--ink-body);
   max-width: 560px;
   text-wrap: pretty;
 }
 .eyebrow {
-  font: 600 var(--t-label) var(--font-mono);
+  font: 600 var(--t-caption) var(--font-mono);
   letter-spacing: 0.1em;
   color: var(--ink-link);
 }
@@ -1174,7 +1175,7 @@ h1,
    This is a change from the current file. */
 .tag {
   font-family: var(--font-mono);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-body);
   font-variant-numeric: slashed-zero;
 }
@@ -1231,10 +1232,10 @@ main.wrap {
   align-items: baseline;
   gap: 14px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: var(--s-5);
 }
 .page-head__note {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-faint);
   text-wrap: pretty;
 }
@@ -1247,7 +1248,7 @@ main.wrap {
 .cols {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: var(--s-5);
   align-items: flex-start;
 }
 
@@ -1264,13 +1265,13 @@ main.wrap {
   overflow-x: auto;
 }
 .segmented button {
-  padding: 5px 12px;
+  padding: 5px var(--s-3);
   border: 1px solid transparent;
   border-radius: var(--r-control);
   background: transparent;
   color: var(--ink-faint);
   font: inherit;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -1288,7 +1289,7 @@ main.wrap {
   align-items: center;
   gap: 6px;
   margin-bottom: var(--s-4);
-  font: var(--t-fine) var(--font-mono);
+  font: var(--t-caption) var(--font-mono);
   flex-wrap: wrap;
 }
 .trail a[aria-current] {
@@ -1325,7 +1326,7 @@ main.wrap {
 th {
   text-align: left;
   padding: var(--s-2) var(--s-3);
-  font: 600 var(--t-label) var(--font-mono);
+  font: 600 var(--t-caption) var(--font-mono);
   letter-spacing: 0.06em;
   color: var(--ink-faint);
 }
@@ -1351,20 +1352,20 @@ tr.yours td {
 /* Outcomes are text colour only — a win chip on every battle row is
    noise. */
 .outcome {
-  font: 600 var(--t-fine) var(--font-mono);
+  font: 600 var(--t-caption) var(--font-mono);
 }
 
 /* Scope, role, kind — neutral square mono tags, no dot */
 .tag-chip {
   padding: 2px var(--s-2);
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   background: var(--ground-sunken);
-  font: var(--t-fine) var(--font-mono);
+  font: var(--t-caption) var(--font-mono);
   color: var(--ink-body);
 }
 .kind-chip {
   padding: 3px 7px;
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   font: 600 var(--t-micro) var(--font-mono);
   letter-spacing: 0.1em;
   color: var(--ink-faint);
@@ -1379,8 +1380,8 @@ tr.yours td {
    thin sample without hiding the number. */
 .sample {
   padding: 1px 6px;
-  border-radius: var(--r-chip);
-  font: var(--t-label) var(--font-mono);
+  border-radius: var(--r-control);
+  font: var(--t-caption) var(--font-mono);
   color: var(--ink-faint);
   background: var(--panel-raised);
 }
@@ -1390,8 +1391,8 @@ tr.yours td {
 .caveat {
   padding: 1px 7px;
   border: 1px dashed var(--line-strong);
-  border-radius: var(--r-chip);
-  font: var(--t-label) var(--font-mono);
+  border-radius: var(--r-control);
+  font: var(--t-caption) var(--font-mono);
   color: var(--ink-faint);
 }
 
@@ -1426,7 +1427,7 @@ tr.yours td {
   flex: none;
   margin-top: 1px;
   padding: 2px 6px;
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   font: 600 var(--t-micro) var(--font-mono);
   letter-spacing: 0.08em;
   color: var(--ink-faint);
@@ -1434,12 +1435,12 @@ tr.yours td {
 }
 .disclaimer__text {
   flex: 1 1 320px;
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
   line-height: 1.5;
   color: var(--ink-faint);
 }
 .disclaimer__maker {
-  font: var(--t-label) var(--font-mono);
+  font: var(--t-caption) var(--font-mono);
   color: var(--ink-quiet-icon);
   white-space: nowrap;
 }
@@ -1451,7 +1452,7 @@ button {
   cursor: pointer;
 }
 .btn--text {
-  padding: 4px var(--s-2);
+  padding: var(--s-1) var(--s-2);
   background: transparent;
   border: 1px solid transparent;
   color: var(--ink-link);
@@ -1466,13 +1467,13 @@ button {
 /* The gold weight's older name (the brand moments: Sign in, request
    access); since the flat kit it is .btn--primary's twin. */
 .btn--gold {
-  background: var(--gold-grad);
-  color: var(--gold-on);
-  font-weight: 700;
-  box-shadow: 0 2px 0 var(--gold-edge);
+  background: var(--accent-bright);
+  color: var(--ground);
+  font-weight: 600;
+  box-shadow: none;
 }
 .btn--gold:hover {
-  background: var(--gold-light);
+  background: var(--ink-link-hover);
 }
 .btn:disabled {
   background: var(--line);
@@ -1496,7 +1497,7 @@ textarea {
   border-radius: var(--r-control);
   color: var(--ink);
   font: inherit;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   outline: none;
 }
 /* A box or a dot is its own size: the full width above is a text
@@ -1526,7 +1527,7 @@ textarea {
   resize: vertical;
 }
 .field-error {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--bad);
 }
 input[aria-invalid="true"] {
@@ -1573,16 +1574,16 @@ input[aria-invalid="true"] {
 .mailprefs__head {
   display: flex;
   align-items: flex-end;
-  gap: 24px;
+  gap: var(--s-6);
   flex-wrap: wrap;
   margin-bottom: 18px;
 }
 .mailall {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s-3);
   padding: 10px 14px;
-  border-radius: var(--r-block);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 .mailall__label {
@@ -1605,7 +1606,7 @@ input[aria-invalid="true"] {
 .mailsent {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s-3);
   min-height: var(--hit-touch);
   padding: 11px 0;
   color: var(--ink-faint);
@@ -1614,7 +1615,7 @@ input[aria-invalid="true"] {
 .mailsent__day {
   width: 96px;
   flex-shrink: 0;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 .mailsent__subject {
   flex-grow: 1;
@@ -1638,14 +1639,14 @@ input[aria-invalid="true"] {
   padding: 10px var(--s-3);
   background: var(--panel);
   border-radius: var(--r-control);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-body);
 }
 .notice::before {
   content: "";
   flex: none;
   width: 3px;
-  border-radius: var(--r-tick);
+  border-radius: var(--r-control);
   background: var(--accent);
 }
 
@@ -1660,8 +1661,8 @@ input[aria-invalid="true"] {
 }
 .record__sub {
   max-width: 640px;
-  margin-bottom: 20px;
-  font-size: var(--t-small);
+  margin-bottom: var(--s-5);
+  font-size: var(--t-body-sm);
   color: var(--ink-faint);
   text-wrap: pretty;
 }
@@ -1673,16 +1674,16 @@ input[aria-invalid="true"] {
 .fields dt {
   padding: 9px var(--s-3);
   background: var(--panel-head);
-  font: var(--t-label) var(--font-mono);
+  font: var(--t-caption) var(--font-mono);
   color: var(--ink-faint);
 }
 .fields dd {
   margin: 0;
   padding: 9px var(--s-3);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 .fields dd .hint {
-  font: var(--t-label) var(--font-mono);
+  font: var(--t-caption) var(--font-mono);
   color: var(--ink-faint);
 }
 
@@ -1727,7 +1728,7 @@ input[aria-invalid="true"] {
 .raw {
   padding: var(--s-3) var(--s-4);
   background: var(--ground-sunken);
-  font: var(--t-fine)/1.6 var(--font-mono);
+  font: var(--t-caption)/1.6 var(--font-mono);
   color: var(--ink-body);
   white-space: pre-wrap;
   word-break: break-word;
@@ -1741,8 +1742,7 @@ input[aria-invalid="true"] {
   gap: var(--s-4);
   min-width: 0;
 }
-/* The filters sit on the page, not in a panel (canvas .fbar): each a small
-   label over a segmented row. */
+
 .clan-dir__filters {
   display: flex;
   flex-wrap: wrap;
@@ -1765,7 +1765,7 @@ input[aria-invalid="true"] {
 }
 .clan-dir__label {
   color: var(--ink-faint);
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1796,7 +1796,7 @@ input[aria-invalid="true"] {
   gap: 6px;
   margin: 0;
   color: var(--ink-dim);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 .clan-dir__grid {
   display: grid;
@@ -1813,13 +1813,13 @@ input[aria-invalid="true"] {
   gap: var(--s-2);
   min-width: 0;
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-block);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 .clan-dir__tile:hover {
   background: color-mix(in srgb, var(--panel) 92%, var(--accent));
 }
-/* Your own clan's tile (canvas .ctile.mine): the gold top. */
+
 .clan-dir__tile--mine {
   background: var(--edge-mine), var(--panel);
 }
@@ -1841,7 +1841,7 @@ input[aria-invalid="true"] {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px var(--s-2);
+  gap: var(--s-1) var(--s-2);
   min-width: 0;
 }
 .clan-dir__name {
@@ -1875,7 +1875,7 @@ input[aria-invalid="true"] {
 .clan-dir__about {
   margin: 0;
   color: var(--ink-body);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   overflow-wrap: anywhere;
 }
 .clan-dir__kv {
@@ -1891,7 +1891,7 @@ input[aria-invalid="true"] {
 .clan-dir__kv dd {
   margin: 0;
   color: var(--ink-body);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 /* A tile's foot: members and the removal rule, small, at the bottom of
    every tile in a row; your own clan named at the right. */
@@ -1910,7 +1910,7 @@ input[aria-invalid="true"] {
   min-width: 0;
   margin: 0;
   color: var(--ink-dim);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 .clan-dir__footkv div {
   display: flex;
@@ -1929,13 +1929,13 @@ input[aria-invalid="true"] {
 }
 .clan-dir__mine {
   color: var(--gold);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   font-weight: 600;
 }
 .clan-dir__foot {
   margin: 0;
   color: var(--ink-faint);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 
 /* ── Charts (Data section only) ───────────────────────────────
@@ -2022,16 +2022,16 @@ input[aria-invalid="true"] {
   transform: translateX(-50%);
   z-index: 5;
   min-width: 150px;
-  padding: 8px 10px;
-  border-radius: var(--r-chip);
+  padding: var(--s-2) 10px;
+  border-radius: var(--r-control);
   background: var(--panel-raised);
   box-shadow: var(--shadow-tip);
   pointer-events: none;
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
 }
 .charttip__head {
   color: var(--ink-faint);
-  font: var(--t-label) var(--font-mono);
+  font: var(--t-caption) var(--font-mono);
   margin-bottom: 5px;
 }
 .charttip__row {
@@ -2049,7 +2049,7 @@ input[aria-invalid="true"] {
 .charttip__sw {
   width: 9px;
   height: 9px;
-  border-radius: var(--r-tick);
+  border-radius: var(--r-control);
   flex: none;
 }
 .charttip__foot {
@@ -2067,7 +2067,7 @@ input[aria-invalid="true"] {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 
@@ -2119,14 +2119,14 @@ input[aria-invalid="true"] {
   margin-top: 18px;
 }
 .doc-demo .footnote {
-  margin: 12px 2px 0;
+  margin: var(--s-3) 2px 0;
 }
 .doc-demo__links {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 20px;
-  row-gap: 4px;
-  font-size: var(--t-panel-head);
+  column-gap: var(--s-5);
+  row-gap: var(--s-1);
+  font-size: var(--t-body-sm);
 }
 
 /* ── Mobile ───────────────────────────────────────────────────
@@ -2145,7 +2145,7 @@ input[aria-invalid="true"] {
     grid-template-columns: 1fr 1fr;
   }
   .segmented button {
-    padding: 8px 12px;
+    padding: var(--s-2) var(--s-3);
   } /* 44px row */
   .fields {
     grid-template-columns: 1fr;
@@ -2168,7 +2168,7 @@ input[aria-invalid="true"] {
 .gauge {
   position: relative;
   height: 10px;
-  border-radius: var(--r-code);
+  border-radius: var(--r-control);
   background: var(--ground-sunken);
   overflow: hidden;
 }
@@ -2196,10 +2196,10 @@ input[aria-invalid="true"] {
    bar it has to sit level with the links beside it without shouting over the
    wordmark. */
 .btn--sm {
-  min-height: 32px;
-  padding: 6px 12px;
-  font-size: var(--t-small);
-  border-radius: var(--r-chip);
+  min-height: var(--hit);
+  padding: var(--s-2) var(--s-3);
+  font-size: var(--t-body-sm);
+  border-radius: var(--r-control);
 }
 
 /* Account onboarding uses the same panels and tokens as the record views. */
@@ -2214,34 +2214,34 @@ input[aria-invalid="true"] {
 .first-answer__questions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
-  gap: 12px;
+  gap: var(--s-3);
 }
 .first-answer__questions article {
-  border-radius: var(--r-card);
-  padding: 16px;
+  border-radius: var(--r-control);
+  padding: var(--s-4);
   background: var(--panel);
 }
 .first-answer__questions h3 {
   margin: 0;
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
 }
 .first-answer__questions p {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   line-height: 1.65;
 }
 .first-answer__manual {
   display: block;
-  margin-top: 16px;
+  margin-top: var(--s-4);
 }
 .first-answer__manual textarea {
   display: block;
   width: 100%;
   min-height: 130px;
-  margin-top: 8px;
+  margin-top: var(--s-2);
 }
 
 .first-answer__questions details {
-  margin: 12px 0;
+  margin: var(--s-3) 0;
   font-size: var(--t-caption);
   color: var(--ink-faint);
 }
@@ -2272,11 +2272,11 @@ input[aria-invalid="true"] {
 }
 .siterail__nav .rail__item {
   min-height: 36px;
-  padding: 8px 11px;
+  padding: var(--s-2) 11px;
   gap: 11px;
 }
 .siterail__nav .rail__group:first-child {
-  padding-top: 4px;
+  padding-top: var(--s-1);
 }
 .siterail__body {
   flex: 1 1 420px;
@@ -2285,7 +2285,7 @@ input[aria-invalid="true"] {
 .siterail__foot {
   margin-top: 22px;
   padding: 14px 11px 0;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-faint);
   display: flex;
   flex-direction: column;
@@ -2309,7 +2309,7 @@ input[aria-invalid="true"] {
   }
   .siterail__nav .rail__group {
     flex-basis: 100%;
-    padding: 10px 4px 2px;
+    padding: 10px var(--s-1) 2px;
   }
   .siterail__nav .rail__item {
     border-radius: var(--r-control);
@@ -2346,7 +2346,7 @@ input[aria-invalid="true"] {
    ================================================================== */
 .home-title {
   margin: 0;
-  font: 400 var(--t-home-title) / 1.08 var(--font-display);
+  font: 600 var(--t-home-title) / 1.08 var(--font);
   letter-spacing: 0.01em;
   text-wrap: balance;
 }
@@ -2359,8 +2359,8 @@ input[aria-invalid="true"] {
 }
 .btn--lg {
   height: 46px;
-  padding: 0 20px;
-  border-radius: var(--r-control-lg);
+  padding: 0 var(--s-5);
+  border-radius: var(--r-control);
   font-size: var(--t-body);
   font-weight: 600;
 }
@@ -2419,7 +2419,7 @@ input[aria-invalid="true"] {
 .home-row {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
-  column-gap: 16px;
+  column-gap: var(--s-4);
   row-gap: 6px;
   align-items: start;
 }
@@ -2437,25 +2437,25 @@ input[aria-invalid="true"] {
 }
 .home-row__title {
   margin: 0;
-  font-size: var(--t-card-title);
+  font-size: var(--t-h2);
   font-weight: 600;
   line-height: 1.3;
 }
 .home-row__text {
   margin: 0;
   max-width: 62ch;
-  font-size: var(--t-row-text);
+  font-size: var(--t-body);
   line-height: 1.6;
   color: var(--ink-body);
 }
 .home-row__links {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 20px;
-  row-gap: 4px;
+  column-gap: var(--s-5);
+  row-gap: var(--s-1);
 }
 .home-row__link {
-  font-size: var(--t-prose);
+  font-size: var(--t-body-sm);
   font-weight: 500;
 }
 
@@ -2467,7 +2467,7 @@ input[aria-invalid="true"] {
   margin: 44px 0 0;
   max-width: 760px;
   line-height: 1.55;
-  font-size: var(--t-prose);
+  font-size: var(--t-body-sm);
   color: var(--ink-body);
 }
 .home-next__mark {
@@ -2490,22 +2490,18 @@ input[aria-invalid="true"] {
 }
 .home-join__title {
   margin: 0;
-  font-size: var(--t-card-title);
+  font-size: var(--t-h2);
   font-weight: 600;
   line-height: 1.3;
 }
 
-/* The gate (canvas App .gate, 2026-11-13): one centred column, the mark
-   above a gold title, the two ways in stacked full width. Below it the
-   rows, the Drop line and the call to join share the gate's column.
-   Layout only: the words are the page's own. */
 .home-gate {
   display: grid;
   justify-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   max-width: 640px;
   margin: 0 auto;
-  padding-top: 24px;
+  padding-top: var(--s-6);
   text-align: center;
 }
 .home-gate__col {
@@ -2513,7 +2509,7 @@ input[aria-invalid="true"] {
   min-width: 0;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: var(--s-5);
 }
 .home-gate__ways {
   display: flex;
@@ -2551,10 +2547,10 @@ input[aria-invalid="true"] {
 }
 [data-home] .home-title {
   color: var(--gold);
-  font-size: var(--t-hero);
+  font-size: var(--t-home-title);
 }
 [data-home] .home-lede {
-  font-size: var(--t-lead);
+  font-size: var(--t-body);
   color: var(--ink-dim);
 }
 [data-home] .home-rows,
@@ -2597,7 +2593,7 @@ input[aria-invalid="true"] {
   .home-join {
     flex-direction: row;
     align-items: center;
-    gap: 24px;
+    gap: var(--s-6);
   }
 }
 
@@ -2623,7 +2619,7 @@ input[aria-invalid="true"] {
   font-weight: 600;
 }
 .siterail__head-here {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-faint);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2633,10 +2629,10 @@ input[aria-invalid="true"] {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   color: var(--ink-faint);
   font-family: var(--font-mono);
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
 }
 .siterail__head-chevron {
   display: none;
@@ -2658,11 +2654,11 @@ input[aria-invalid="true"] {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-dim);
   background: var(--control);
   border: 1px solid transparent;
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   padding: 5px 9px;
 }
 .siterail__chips a:hover {
@@ -2673,9 +2669,9 @@ input[aria-invalid="true"] {
 .rail__gen {
   margin-left: auto;
   font-family: var(--font-mono);
-  font-size: var(--t-label);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
-  border-radius: var(--r-code);
+  border-radius: var(--r-control);
   padding: 1px 5px;
   background: var(--panel-raised);
 }
@@ -2707,9 +2703,9 @@ input[aria-invalid="true"] {
 }
 .docs-search kbd {
   font-family: var(--font-mono);
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
   border: 1px solid var(--line);
-  border-radius: var(--r-code);
+  border-radius: var(--r-control);
   padding: 1px 5px;
 }
 /* Docs: article plus the "On this page" outline on the right. */
@@ -2727,13 +2723,13 @@ input[aria-invalid="true"] {
   flex: 0 0 172px;
   position: sticky;
   top: 24px;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 .docs__onpage-list {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  padding-left: 12px;
+  padding-left: var(--s-3);
 }
 .docs__onpage-list a {
   color: var(--ink-dim);
@@ -2743,21 +2739,21 @@ input[aria-invalid="true"] {
   box-shadow: -13px 0 0 -12px var(--accent-bright);
 }
 .docs__onpage-foot {
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: var(--s-5);
+  padding-top: var(--s-4);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: var(--t-mono);
+  gap: var(--s-2);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .docs__crumb {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: var(--t-mono);
+  gap: var(--s-2);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
-  margin-bottom: 12px;
+  margin-bottom: var(--s-3);
 }
 .docs__crumb a {
   color: var(--ink-faint);
@@ -2769,10 +2765,10 @@ input[aria-invalid="true"] {
   color: var(--ink-body);
 }
 .docs__lede {
-  font-size: var(--t-lead);
+  font-size: var(--t-body);
   line-height: 1.6;
   color: var(--ink-body);
-  margin: 0 0 24px;
+  margin: 0 0 var(--s-6);
   text-wrap: pretty;
 }
 .docs__callout {
@@ -2780,19 +2776,19 @@ input[aria-invalid="true"] {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 6px 12px;
+  gap: 6px var(--s-3);
   background: var(--panel);
-  border-radius: var(--r-block);
+  border-radius: var(--r-control);
   padding: 9px 14px;
-  margin: 0 0 16px;
-  font-size: var(--t-panel-head);
+  margin: 0 0 var(--s-4);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
 }
 .docs__guide {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 0 0 16px;
+  margin: 0 0 var(--s-4);
 }
 .docs__guide .chip {
   text-decoration: none;
@@ -2810,7 +2806,7 @@ input[aria-invalid="true"] {
 }
 .docrail__sub {
   padding: 10px 10px 3px;
-  font-size: var(--t-label);
+  font-size: var(--t-caption);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -2818,15 +2814,15 @@ input[aria-invalid="true"] {
 .docs-tops {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 12px;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
 }
 .examples-row {
   display: grid;
   grid-template-columns: 190px minmax(0, 1fr) auto;
   gap: 3px 14px;
-  padding: 11px 16px;
-  font-size: var(--t-panel-head);
+  padding: 11px var(--s-4);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
   text-decoration: none;
 }
@@ -2862,9 +2858,9 @@ input[aria-invalid="true"] {
   display: none;
 }
 .docrail__summary {
-  gap: 12px;
+  gap: var(--s-3);
   min-height: 36px;
-  padding: 8px 11px;
+  padding: var(--s-2) 11px;
 }
 .docrail__summary > svg {
   color: var(--ink-faint);
@@ -2891,7 +2887,7 @@ input[aria-invalid="true"] {
 }
 .siterail--docs .docrail__family {
   padding-left: 52px;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 .siterail--docs .rail__child--deep {
   padding-left: 64px;
@@ -2921,7 +2917,7 @@ input[aria-invalid="true"] {
   color: var(--ink-faint);
 }
 .docs__title {
-  font-size: var(--t-display);
+  font-size: var(--t-h1-page);
   margin: 0 0 10px;
 }
 .docs__onpage-label {
@@ -2938,8 +2934,8 @@ input[aria-invalid="true"] {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px 16px;
-  margin-top: 32px;
+  gap: 10px var(--s-4);
+  margin-top: var(--s-8);
   padding-top: 18px;
   font-size: var(--t-body-sm);
   color: var(--ink-faint);
@@ -2978,9 +2974,9 @@ input[aria-invalid="true"] {
 .docs-task {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 20px;
-  border-radius: var(--r-panel);
+  gap: var(--s-3);
+  padding: var(--s-5);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 .docs-task__head {
@@ -3002,7 +2998,7 @@ input[aria-invalid="true"] {
 .docs-task__title {
   flex: 1 1 auto;
   margin: 0;
-  font-size: var(--t-lead);
+  font-size: var(--t-body);
   font-weight: 600;
 }
 .docs-task__product {
@@ -3010,7 +3006,7 @@ input[aria-invalid="true"] {
   padding: 2px 9px;
   border-radius: var(--r-pill);
   background: var(--panel-raised);
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
   font-weight: 500;
   color: var(--ink-dim);
   white-space: nowrap;
@@ -3018,23 +3014,23 @@ input[aria-invalid="true"] {
 .docs-task__text {
   flex: 1 1 auto;
   margin: 0;
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   line-height: 1.55;
   color: var(--ink-body);
 }
 .docs-task__links {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 16px;
-  padding-top: 12px;
+  gap: 6px var(--s-4);
+  padding-top: var(--s-3);
   font-size: var(--t-body-sm);
 }
 .docs-new {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  border-radius: var(--r-panel);
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-control);
   background: var(--ground-sunken);
 }
 .docs-new > svg {
@@ -3044,7 +3040,7 @@ input[aria-invalid="true"] {
 .docs-new p {
   flex: 1 1 auto;
   margin: 0;
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   line-height: 1.5;
   color: var(--ink-body);
 }
@@ -3070,7 +3066,7 @@ input[aria-invalid="true"] {
   display: block;
   text-align: left;
   background: var(--panel);
-  border-radius: var(--r-rail-card);
+  border-radius: var(--r-control);
   padding: 15px;
   color: inherit;
 }
@@ -3083,7 +3079,7 @@ input[aria-invalid="true"] {
   align-items: center;
   gap: 9px;
   margin-bottom: 6px;
-  font-size: var(--t-prose);
+  font-size: var(--t-body-sm);
   font-weight: 600;
   color: var(--ink);
 }
@@ -3092,7 +3088,7 @@ input[aria-invalid="true"] {
 }
 .rail-card__lede {
   display: block;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
   line-height: 1.55;
 }
@@ -3129,7 +3125,7 @@ input[aria-invalid="true"] {
   border: 0;
   background: transparent;
   font: inherit;
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 500;
   text-align: left;
   cursor: pointer;
@@ -3141,7 +3137,7 @@ input[aria-invalid="true"] {
 /* Third level of the docs rail: one tool under its family. */
 .rail__child--deep {
   padding-left: 60px;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   min-height: 30px;
   padding-top: 5px;
   padding-bottom: 5px;
@@ -3182,7 +3178,7 @@ input[aria-invalid="true"] {
 }
 .transcript__md ul,
 .transcript__md ol {
-  padding-left: 20px;
+  padding-left: var(--s-5);
 }
 .transcript__md li {
   margin: 3px 0;
@@ -3195,17 +3191,17 @@ input[aria-invalid="true"] {
   color: var(--ink);
 }
 .transcript__md code {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-code);
   background: var(--ground-sunken);
-  border-radius: var(--r-code);
+  border-radius: var(--r-control);
   padding: 1px 5px;
 }
 .transcript__md blockquote {
-  padding: 8px 12px;
+  padding: var(--s-2) var(--s-3);
   border-left: 2px solid var(--accent-bright);
   background: var(--ground-sunken);
-  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  border-radius: 0 var(--r-control) var(--r-control) 0;
 }
 .transcript__md blockquote p {
   margin: 0 0 6px;
@@ -3213,7 +3209,7 @@ input[aria-invalid="true"] {
 
 /* Markdown a person wrote (feedback, a maintainer's reply), at body size. */
 .md {
-  font-size: var(--t-prose);
+  font-size: var(--t-body-sm);
   line-height: 1.65;
   color: var(--ink-body);
   text-wrap: pretty;
@@ -3248,14 +3244,14 @@ input[aria-invalid="true"] {
   margin: 14px 0 6px;
 }
 .md code {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-code);
   background: var(--ground-sunken);
-  border-radius: var(--r-code);
+  border-radius: var(--r-control);
   padding: 1px 5px;
 }
 .md pre {
-  padding: 10px 12px;
+  padding: 10px var(--s-3);
   background: var(--ground-sunken);
   border-radius: var(--r-control);
   overflow-x: auto;
@@ -3266,7 +3262,7 @@ input[aria-invalid="true"] {
   background: none;
 }
 .md blockquote {
-  padding: 6px 12px;
+  padding: 6px var(--s-3);
   border-left: 2px solid var(--accent-bright);
   color: var(--ink-dim);
 }
@@ -3289,14 +3285,14 @@ input[aria-invalid="true"] {
   gap: 6px;
   max-height: 232px;
   overflow-y: auto;
-  padding: 8px;
+  padding: var(--s-2);
   background: var(--ground-sunken);
   border-radius: var(--r-control);
 }
 .cardpick__card {
   appearance: none;
   border: 2px solid transparent;
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   background: none;
   padding: 3px;
   cursor: pointer;
@@ -3315,7 +3311,7 @@ input[aria-invalid="true"] {
   width: 100%;
   height: auto;
   display: block;
-  border-radius: var(--r-thumb);
+  border-radius: var(--r-control);
 }
 .cardpick__card--picked {
   border-color: var(--gold);
@@ -3331,8 +3327,8 @@ input[aria-invalid="true"] {
 .cardpick__caption {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: var(--t-small);
+  gap: var(--s-2);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
   min-height: 20px;
 }
@@ -3351,7 +3347,7 @@ input[aria-invalid="true"] {
 .deck {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: var(--s-2);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -3360,7 +3356,7 @@ input[aria-invalid="true"] {
   position: relative;
   aspect-ratio: 5 / 6;
   border: 2px solid var(--line);
-  border-radius: var(--r-block);
+  border-radius: var(--r-control);
   background: var(--ground-sunken);
   display: flex;
   align-items: center;
@@ -3393,8 +3389,8 @@ input[aria-invalid="true"] {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 2px 4px;
-  font-size: var(--t-label);
+  padding: 2px var(--s-1);
+  font-size: var(--t-caption);
   line-height: 1.2;
   text-align: center;
   color: var(--ink-on-art);
@@ -3406,7 +3402,7 @@ input[aria-invalid="true"] {
 .deck__fallback {
   font-size: var(--t-caption);
   color: var(--ink-dim);
-  padding: 4px;
+  padding: var(--s-1);
   text-align: center;
 }
 .deck__slot--swapped {
@@ -3464,7 +3460,7 @@ input[aria-invalid="true"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s-3);
   min-height: var(--hit-touch);
   padding: 6px 0;
 }
@@ -3476,7 +3472,7 @@ input[aria-invalid="true"] {
 .verify__who {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   flex-wrap: wrap;
   margin: 0;
 }
@@ -3486,15 +3482,15 @@ input[aria-invalid="true"] {
   margin: 0 0 var(--s-3);
 }
 .verify__hint {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
   margin: var(--s-3) 0 0;
 }
 .verify__live {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: var(--t-small);
+  gap: var(--s-2);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
   min-height: 24px;
 }
@@ -3514,7 +3510,7 @@ input[aria-invalid="true"] {
   height: 3px;
   margin: 6px 0 10px;
   background: var(--line);
-  border-radius: var(--r-tick);
+  border-radius: var(--r-control);
   overflow: hidden;
 }
 .verify__tick > i {
@@ -3531,7 +3527,7 @@ input[aria-invalid="true"] {
 }
 .verify__actions {
   display: flex;
-  gap: 12px;
+  gap: var(--s-3);
   flex-wrap: wrap;
   margin-top: var(--s-4);
 }
@@ -3600,7 +3596,7 @@ input[aria-invalid="true"] {
 .verify__seen {
   margin: var(--s-3) auto 0;
   max-width: 44ch;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
   text-align: center;
 }
@@ -3614,12 +3610,12 @@ input[aria-invalid="true"] {
   display: inline-flex;
   align-items: center;
   color: var(--ok);
-  margin-left: 4px;
+  margin-left: var(--s-1);
   vertical-align: middle;
 }
 .verify__error {
   color: var(--bad);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   margin: var(--s-3) 0 0;
 }
 
@@ -3650,12 +3646,12 @@ input[aria-invalid="true"] {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
   border-radius: var(--r-pill);
-  padding: 3px 8px 3px 6px;
+  padding: 3px var(--s-2) 3px 6px;
   border: 1px solid var(--line);
   color: var(--ink-faint);
   vertical-align: middle;
@@ -3719,7 +3715,7 @@ input[aria-invalid="true"] {
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  font-family: var(--font-display);
+  font-family: var(--font);
   font-size: var(--t-h2);
   color: var(--ink);
   margin-bottom: 6px;
@@ -3737,13 +3733,13 @@ input[aria-invalid="true"] {
 .release-key__fp {
   display: block;
   font-family: var(--font-mono);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-code);
   background: var(--ground-sunken);
   border: 1px solid var(--line-soft);
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   padding: 7px 10px;
-  margin-bottom: 8px;
+  margin-bottom: var(--s-2);
   overflow-wrap: anywhere;
 }
 .release-key__foot {
@@ -3751,7 +3747,7 @@ input[aria-invalid="true"] {
   color: var(--ink-faint);
 }
 .release-key__ascii {
-  margin-top: 8px;
+  margin-top: var(--s-2);
   font-size: var(--t-caption);
   color: var(--ink-faint);
 }
@@ -3764,8 +3760,8 @@ input[aria-invalid="true"] {
   line-height: 1.15;
   color: var(--ink-code);
   background: var(--ground-sunken);
-  border-radius: var(--r-chip);
-  padding: 8px 10px;
+  border-radius: var(--r-control);
+  padding: var(--s-2) 10px;
   margin: 6px 0 0;
   overflow-x: auto;
 }
@@ -3773,7 +3769,7 @@ input[aria-invalid="true"] {
 .randomart {
   margin: 0;
   padding: 10px;
-  border-radius: var(--r-block);
+  border-radius: var(--r-control);
   background: var(--ground-sunken);
   border: 1px solid var(--line);
   box-shadow: inset 0 0 0 1px var(--line-soft);
@@ -3784,9 +3780,9 @@ input[aria-invalid="true"] {
 .randomart__rule {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   font-family: var(--font-mono);
-  font-size: var(--t-badge);
+  font-size: var(--t-micro);
   letter-spacing: 0.08em;
   color: var(--ink-faint);
   margin: 2px 0 6px;
@@ -3809,7 +3805,7 @@ input[aria-invalid="true"] {
   aspect-ratio: 3 / 4;
   display: grid;
   place-items: center;
-  border-radius: var(--r-dot);
+  border-radius: var(--r-control);
   font-family: var(--font-mono);
   font-size: var(--t-micro);
   font-weight: 700;
@@ -3935,8 +3931,8 @@ input[aria-invalid="true"] {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: 4px;
-  border-radius: var(--r-panel);
+  padding: var(--s-1);
+  border-radius: var(--r-control);
   border: 1px dashed var(--line-strong);
   background: var(--panel-raised);
   font-size: clamp(8px, calc(var(--card-w) / 5), 10.5px);
@@ -3980,13 +3976,13 @@ input[aria-invalid="true"] {
   background: var(--ground);
   border: 1px solid var(--card-level-edge);
   font-family: var(--font-mono);
-  font-size: var(--t-badge);
+  font-size: var(--t-micro);
   font-weight: 700;
   color: var(--card-label-ink);
 }
 .card-art__name {
   max-width: calc(var(--card-w) + 10px);
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
   line-height: 1.25;
   text-align: center;
   color: var(--card-label-ink);
@@ -3996,7 +3992,7 @@ a.card-art:hover .card-art__img {
 }
 .deck-grid {
   display: grid;
-  gap: 8px 6px;
+  gap: var(--s-2) 6px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -4007,7 +4003,7 @@ a.card-art:hover .card-art__img {
 }
 .deck-grid--8 {
   grid-template-columns: repeat(8, max-content);
-  gap: 4px;
+  gap: var(--s-1);
 }
 /* A card that takes its box's width (CardArt size "fill"): a deck row's
    column. The art is the mirror's file at 100% of the column. */
@@ -4015,8 +4011,7 @@ a.card-art:hover .card-art__img {
   --card-w: 100%;
   width: 100%;
 }
-/* A deck as one row of eight (canvas .deck): equal columns up to 420px,
-   so the eight fit a phone; --4 is two rows of four (a side of .kit-vs). */
+
 .kit-deckrow {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
@@ -4034,8 +4029,7 @@ a.card-art:hover .card-art__img {
   position: relative;
   min-width: 0;
 }
-/* A card's cost on its corner (canvas .ct .cost): the elixir drop, a
-   deeper violet here so its white figure keeps 4.5:1. */
+
 .card-elixir.kit-deckrow__cost {
   top: 2px;
   left: 2px;
@@ -4051,15 +4045,15 @@ a.card-art:hover .card-art__img {
 }
 .kit-vs__note {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--s-1);
   color: var(--ink-faint);
   font-size: var(--t-caption);
 }
-/* Two decks with the score between (canvas .vs): stacked on a phone. */
+
 .kit-vs {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr);
-  gap: 12px;
+  gap: var(--s-3);
   align-items: center;
 }
 .kit-vs .kit-deckrow {
@@ -4073,7 +4067,7 @@ a.card-art:hover .card-art__img {
   text-align: center;
 }
 .kit-vs__score {
-  font: 400 var(--t-stat)/1 var(--font-display);
+  font: 600 var(--t-h2)/1 var(--font);
   letter-spacing: 0.04em;
   color: var(--ink);
 }
@@ -4091,7 +4085,7 @@ a.card-art:hover .card-art__img {
   }
   .kit-vs {
     grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
+    gap: var(--s-2);
   }
   .kit-vs__mid {
     text-align: left;
@@ -4102,21 +4096,13 @@ a.card-art:hover .card-art__img {
   }
 }
 
-/* ------------------------------------------------------------ card tile
-   The public card pages (canvas 2026-09-29: CardsIndex, CardPage). A
-   card tile is one card in a list: its art with the elixir drop, its
-   place in the mode, its name and kind, its share of decks as a bar and
-   the line under it. The rest of this block is the same pages' pieces:
-   the mode switch and filter pills, the four figures on a card's page
-   and its months as bars. Every number in them is the API's; the bar
-   widths and heights are set from those numbers by the page script. */
 .card-tile {
   display: flex;
   align-items: center;
   gap: 14px;
   min-width: 0;
-  padding: 14px 16px;
-  border-radius: var(--r-tile);
+  padding: 14px var(--s-4);
+  border-radius: var(--r-control);
   background: var(--panel);
   color: var(--ink);
   text-decoration: none;
@@ -4149,7 +4135,7 @@ a.card-art:hover .card-art__img {
 }
 .card-tile__name {
   overflow: hidden;
-  font-size: var(--t-prose);
+  font-size: var(--t-body-sm);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4192,7 +4178,7 @@ a.card-art:hover .card-art__img {
 [data-card] [hidden] {
   display: none !important;
 }
-/* A card page's own art: the canvas's 92px card with the large drop. */
+
 .card-figure {
   position: relative;
   flex: none;
@@ -4206,13 +4192,13 @@ a.card-art:hover .card-art__img {
 .card-filter {
   min-width: 30px;
   height: 30px;
-  padding: 0 12px;
+  padding: 0 var(--s-3);
   border-radius: var(--r-pill);
   background: var(--control);
   border: 1px solid transparent;
   color: var(--ink-dim);
   font: inherit;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   cursor: pointer;
 }
 .card-filter--round {
@@ -4243,31 +4229,25 @@ a.card-art:hover .card-art__img {
   background: transparent;
   color: var(--ink);
   font: inherit;
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   outline: none;
 }
 .card-search:focus-within {
   border-color: var(--accent);
 }
 
-/* ---------------------------------------------------------------- battle
-   One battle's public page (apps/web Battle.jsx, design canvas
-   2026-10-01): the player left, the opponent right, the scoreboard
-   between, both decks, how it ended, the link. A win is blue and a loss
-   rose on this ground; the mode is a coloured square, never a word's
-   colour. */
 .battle {
   container-type: inline-size;
   container-name: battle;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--s-5);
   min-width: 0;
 }
 .battle__bar {
   display: flex;
   align-items: center;
-  gap: 8px 16px;
+  gap: var(--s-2) var(--s-4);
   flex-wrap: wrap;
   font-size: var(--t-body-sm);
   color: var(--ink-dim);
@@ -4289,14 +4269,14 @@ a.card-art:hover .card-art__img {
   border-radius: var(--r-pill);
   background: var(--panel);
   border: 1px solid transparent;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-body);
   white-space: nowrap;
 }
 .mode-chip__dot {
   width: 9px;
   height: 9px;
-  border-radius: var(--r-dot);
+  border-radius: var(--r-control);
   background: var(--ink-faint);
 }
 .mode-chip__dot--ladder {
@@ -4318,9 +4298,9 @@ a.card-art:hover .card-art__img {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(200px, 300px) minmax(0, 1fr);
   align-items: center;
-  gap: 24px;
-  padding: 26px 32px;
-  border-radius: var(--r-feature);
+  gap: var(--s-6);
+  padding: 26px var(--s-8);
+  border-radius: var(--r-control);
   background: radial-gradient(
     40rem 14rem at 50% 0%,
     var(--score-glow),
@@ -4341,7 +4321,7 @@ a.card-art:hover .card-art__img {
 .battle__who {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   flex-wrap: wrap;
   min-width: 0;
   max-width: 100%;
@@ -4350,7 +4330,7 @@ a.card-art:hover .card-art__img {
   flex-direction: row-reverse;
 }
 .battle__name {
-  font: 400 var(--t-h1-page)/1.1 var(--font-display);
+  font: 600 var(--t-h1-page)/1.1 var(--font);
   color: var(--ink);
   overflow-wrap: anywhere;
 }
@@ -4359,13 +4339,13 @@ a.card-art:hover .card-art__img {
   color: var(--ink-faint);
 }
 .battle__note {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .trophy-pills {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
   flex-wrap: wrap;
 }
 .battle__side--right .trophy-pills {
@@ -4376,11 +4356,11 @@ a.card-art:hover .card-art__img {
   align-items: center;
   gap: 10px;
   height: 30px;
-  padding: 0 12px;
-  border-radius: var(--r-chip);
+  padding: 0 var(--s-3);
+  border-radius: var(--r-control);
   box-sizing: border-box;
   font-family: var(--font-mono);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   background: var(--line-row);
   color: var(--ink-body);
 }
@@ -4401,7 +4381,7 @@ a.card-art:hover .card-art__img {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--s-3);
   text-align: center;
 }
 .battle__crowns {
@@ -4424,14 +4404,14 @@ a.card-art:hover .card-art__img {
   color: var(--loss-ink);
 }
 .battle__dash {
-  font: var(--t-score-dash)/1.4 var(--font-mono);
+  font: var(--t-h1-page)/1.4 var(--font-mono);
   color: var(--line-strong);
 }
 .battle__sub {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
 }
 .result-chip {
@@ -4441,7 +4421,7 @@ a.card-art:hover .card-art__img {
   height: 24px;
   padding: 0 10px;
   border-radius: var(--r-pill);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   font-weight: 600;
   white-space: nowrap;
   background: var(--panel-raised);
@@ -4459,7 +4439,7 @@ a.card-art:hover .card-art__img {
 .battle__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  gap: var(--s-5);
   align-items: start;
 }
 .battle__grid--wide {
@@ -4493,7 +4473,7 @@ a.card-art:hover .card-art__img {
 }
 .battle-deck__body {
   display: flex;
-  gap: 24px;
+  gap: var(--s-6);
   align-items: flex-start;
 }
 .battle-deck__facts {
@@ -4504,7 +4484,7 @@ a.card-art:hover .card-art__img {
   min-width: 0;
 }
 .battle-deck__label {
-  font-size: var(--t-body-lg);
+  font-size: var(--t-body);
   font-weight: 700;
   color: var(--ink);
 }
@@ -4525,15 +4505,15 @@ a.card-art:hover .card-art__img {
 }
 .battle-deck__stats dd {
   margin: 0;
-  font: 600 var(--t-lead) var(--font-mono);
+  font: 600 var(--t-body) var(--font-mono);
   color: var(--ink);
 }
 .tower-troop {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: var(--r-card);
+  padding: var(--s-2) 10px;
+  border-radius: var(--r-control);
   background: var(--ground-sunken);
   font-size: var(--t-body-sm);
   color: var(--ink);
@@ -4549,16 +4529,16 @@ a.card-art:hover .card-art__img {
 }
 .towers {
   display: flex;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .tower {
   flex: 1 1 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: var(--r-card);
+  gap: var(--s-1);
+  padding: 10px var(--s-3);
+  border-radius: var(--r-control);
   background: var(--tower);
 }
 .tower--down {
@@ -4581,7 +4561,7 @@ a.card-art:hover .card-art__img {
   color: var(--ink);
 }
 .tower--down .tower__hp {
-  font: 600 var(--t-small) var(--font);
+  font: 600 var(--t-body-sm) var(--font);
   color: var(--tower-down-ink);
 }
 .battle-ended {
@@ -4595,13 +4575,13 @@ a.card-art:hover .card-art__img {
 .battle-ended__who {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: var(--t-small);
+  gap: var(--s-2);
+  font-size: var(--t-body-sm);
   color: var(--ink-body);
 }
 .battle-ended__left {
   margin-left: auto;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .battle-rows {
@@ -4614,9 +4594,9 @@ a.card-art:hover .card-art__img {
 .battle-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s-3);
   min-height: var(--hit-touch);
-  padding: 10px 12px;
+  padding: 10px var(--s-3);
   color: var(--ink);
   text-decoration: none;
 }
@@ -4630,7 +4610,7 @@ a.card-art:hover .card-art__img {
 .battle-row__when {
   width: 70px;
   flex-shrink: 0;
-  font: var(--t-mono) var(--font-mono);
+  font: var(--t-caption) var(--font-mono);
   color: var(--ink-dim);
 }
 .battle-row__who {
@@ -4642,7 +4622,7 @@ a.card-art:hover .card-art__img {
   text-overflow: ellipsis;
 }
 .battle-row__result {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -4655,17 +4635,17 @@ a.card-art:hover .card-art__img {
 .share-link {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   height: 42px;
-  padding: 0 4px 0 12px;
-  border-radius: var(--r-card);
+  padding: 0 var(--s-1) 0 var(--s-3);
+  border-radius: var(--r-control);
   background: var(--ground);
   border: 1px solid var(--line);
 }
 .share-link__url {
   flex-grow: 1;
   min-width: 0;
-  font: var(--t-small) var(--font-mono);
+  font: var(--t-body-sm) var(--font-mono);
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4673,7 +4653,7 @@ a.card-art:hover .card-art__img {
 }
 .share-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--s-2);
   margin-top: 10px;
 }
 .share-actions .btn {
@@ -4688,7 +4668,7 @@ a.card-art:hover .card-art__img {
 }
 .highlight-posted__words {
   margin: 0;
-  font-size: var(--t-lead);
+  font-size: var(--t-body);
   line-height: 1.45;
   color: var(--ink);
   white-space: pre-line;
@@ -4699,21 +4679,21 @@ a.card-art:hover .card-art__img {
   color: var(--ink-dim);
 }
 .highlight-posted__where {
-  margin: 4px 0 10px;
-  font-size: var(--t-mono);
+  margin: var(--s-1) 0 10px;
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .highlight-posted__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 10px;
+  gap: var(--s-2) 10px;
   margin-top: 10px;
 }
 .highlight-posted__actions .highlight-posted__delete {
-  margin-left: 4px;
-  padding: 6px 4px;
-  font-size: var(--t-mono);
+  margin-left: var(--s-1);
+  padding: 6px var(--s-1);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .highlight-posted__actions .highlight-posted__delete:hover {
@@ -4731,12 +4711,12 @@ a.card-art:hover .card-art__img {
     padding-inline: 6px;
   }
   .battle__compare .table td:first-child {
-    padding-left: 12px;
+    padding-left: var(--s-3);
   }
 }
 .battle__foot {
   display: flex;
-  gap: 8px 24px;
+  gap: var(--s-2) var(--s-6);
   align-items: baseline;
   flex-wrap: wrap;
   padding-top: 14px;
@@ -4744,17 +4724,17 @@ a.card-art:hover .card-art__img {
   color: var(--ink-faint);
 }
 .battle__id {
-  font: var(--t-fine) var(--font-mono);
+  font: var(--t-caption) var(--font-mono);
   overflow-wrap: anywhere;
 }
 @media (max-width: 760px) {
   .battle__score {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 10px;
-    padding: 16px 14px;
+    padding: var(--s-4) 14px;
   }
   .battle__name {
-    font-size: var(--t-body-lg);
+    font-size: var(--t-body);
   }
   /* On a phone the scoreboard is names and crowns; the trophies and the
      length are in Side by side and How it ended below. */
@@ -4765,17 +4745,17 @@ a.card-art:hover .card-art__img {
     display: none;
   }
   .battle__clan {
-    font-size: var(--t-mono);
+    font-size: var(--t-caption);
   }
   .battle__crown {
-    font-size: var(--t-display);
+    font-size: var(--t-h1-page);
   }
   .battle__dash {
     font-size: var(--t-title);
   }
   .trophy-pill {
     height: 26px;
-    padding: 0 8px;
+    padding: 0 var(--s-2);
     font-size: var(--t-caption);
     gap: 6px;
   }
@@ -4788,17 +4768,17 @@ a.card-art:hover .card-art__img {
   }
   .battle-deck__body {
     flex-direction: column;
-    gap: 12px;
+    gap: var(--s-3);
   }
   .battle-deck .panel__body {
-    padding: 12px;
+    padding: var(--s-3);
   }
   /* The phone's copy button is the icon; its name stays on the link. */
   .battle-deck__copy-text {
     display: none;
   }
   .battle-deck__stats dd {
-    font-size: var(--t-panel-head);
+    font-size: var(--t-body-sm);
   }
   .battle-deck .card-art__form {
     padding: 0 2px;
@@ -4842,11 +4822,11 @@ a.card-art:hover .card-art__img {
   min-width: 0;
 }
 .stats-group {
-  margin: 8px 0 -4px;
+  margin: var(--s-2) 0 -4px;
   font-size: var(--t-h2);
 }
 .stats-aside {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   font-weight: 400;
   color: var(--ink-faint);
 }
@@ -4856,20 +4836,20 @@ a.card-art:hover .card-art__img {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .stats-scope__picks {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
 }
 /* One select, one height, in Stats' bar and Clan's head. */
 .scope-select {
   width: auto;
   min-height: 36px;
   max-width: 100%;
-  padding: 4px 8px;
+  padding: var(--s-1) var(--s-2);
   border: 1px solid var(--line);
   border-radius: var(--r-control);
   background: var(--panel);
@@ -4879,14 +4859,14 @@ a.card-art:hover .card-art__img {
 .stats-scope__one {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   min-height: 32px;
   font-size: var(--t-body-sm);
   font-weight: 600;
 }
 .stats-scope__tag {
   font-weight: 400;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .stats-scope__fresh {
@@ -4906,8 +4886,6 @@ a.card-art:hover .card-art__img {
 .kit-tabs[data-more-right],
 .kit-chips[data-more-left],
 .kit-chips[data-more-right],
-.kit-home__filters[data-more-left],
-.kit-home__filters[data-more-right],
 .kit-facts[data-more-left],
 .kit-facts[data-more-right] {
   mask-image: linear-gradient(
@@ -4938,11 +4916,11 @@ a.card-art:hover .card-art__img {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  gap: var(--s-2) var(--s-3);
 }
 .stats-order__hint {
   flex: 1 1 16rem;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   line-height: 1.5;
   color: var(--ink-faint);
 }
@@ -4974,14 +4952,14 @@ a.card-art:hover .card-art__img {
 .stats-tiles {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  padding: 10px 18px 12px;
+  gap: var(--s-4);
+  padding: 10px 18px var(--s-3);
 }
 .stats-tile {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 18px 8px 0;
+  padding: var(--s-2) 18px var(--s-2) 0;
   border-radius: 0;
   background: transparent;
   border: 0;
@@ -4991,7 +4969,7 @@ a.card-art:hover .card-art__img {
    each number over its count. Both columns in the same ink: neither
    side is marked as the better one. */
 .stats-form__lede {
-  margin: 0 0 12px;
+  margin: 0 0 var(--s-3);
   font-size: var(--t-body-sm);
   line-height: 1.5;
   color: var(--ink-dim);
@@ -5003,7 +4981,7 @@ a.card-art:hover .card-art__img {
 }
 .stats-form__table th,
 .stats-form__table td {
-  padding: 8px 10px 8px 0;
+  padding: var(--s-2) 10px var(--s-2) 0;
   font-family: var(--font);
   letter-spacing: 0;
   text-align: left;
@@ -5022,13 +5000,13 @@ a.card-art:hover .card-art__img {
   color: var(--ink-faint);
 }
 .stats-form__table tbody th {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   font-weight: 500;
   color: var(--ink-dim);
 }
 .stats-form__value {
   display: block;
-  font-size: var(--t-stat);
+  font-size: var(--t-h2);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.25;
@@ -5045,9 +5023,9 @@ a.card-art:hover .card-art__img {
 .stats-cal {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
+  gap: var(--s-1);
   margin: 0;
-  padding: 10px 18px 12px;
+  padding: 10px 18px var(--s-3);
   list-style: none;
 }
 .stats-cal__wd {
@@ -5061,7 +5039,7 @@ a.card-art:hover .card-art__img {
   gap: 1px;
   min-width: 0;
   min-height: 56px;
-  padding: 6px 8px;
+  padding: 6px var(--s-2);
   border: 1px solid transparent;
   border-radius: 0;
   font-size: var(--t-caption);
@@ -5130,21 +5108,21 @@ a.card-art:hover .card-art__img {
   gap: 6px 18px;
   margin: 0;
   padding: 10px 18px;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-dim);
   list-style: none;
 }
 .stats-legend li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .stats-swatch {
   flex: none;
   width: 14px;
   height: 14px;
   border: 1px solid transparent;
-  border-radius: var(--r-dot);
+  border-radius: var(--r-control);
 }
 
 /* Week by week: newest first, a bar of wins and losses over the facts. */
@@ -5165,7 +5143,7 @@ a.card-art:hover .card-art__img {
 .stats-bar {
   display: block;
   height: 8px;
-  margin: 5px 0 4px;
+  margin: 5px 0 var(--s-1);
   border-radius: var(--r-pill);
   background: var(--line-row);
 }
@@ -5177,7 +5155,7 @@ a.card-art:hover .card-art__img {
 }
 .stats-wk__note {
   display: block;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   font-variant-numeric: tabular-nums;
   color: var(--ink-dim);
 }
@@ -5185,7 +5163,7 @@ a.card-art:hover .card-art__img {
 /* Season's most played deck. */
 .stats-top {
   display: grid;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .stats-top p {
   margin: 0;
@@ -5196,11 +5174,11 @@ a.card-art:hover .card-art__img {
   color: var(--ink);
 }
 .stats-top__sub {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .stats-top__line {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
 }
 
@@ -5209,18 +5187,18 @@ a.card-art:hover .card-art__img {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px 12px;
+  gap: 2px var(--s-3);
   min-height: 44px;
   padding: 11px 18px;
   cursor: pointer;
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
 }
 .stats-sit__when {
   font-weight: 600;
 }
 .stats-sit__what {
   color: var(--ink-dim);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 .stats-rows {
   margin: 0;
@@ -5233,14 +5211,14 @@ a.card-art:hover .card-art__img {
   align-items: center;
   gap: 2px 10px;
   min-height: 44px;
-  padding: 8px 18px;
+  padding: var(--s-2) 18px;
   font-size: var(--t-body-sm);
 }
 .stats-row__t {
   flex: none;
   width: 70px;
   color: var(--ink-faint);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 .stats-row__who {
   flex: 1 1 6rem;
@@ -5249,7 +5227,7 @@ a.card-art:hover .card-art__img {
 }
 .stats-row__kind {
   color: var(--ink-faint);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 /* Record's two colours; the word is there too, so colour is never alone. */
 .stats-row__res {
@@ -5268,7 +5246,7 @@ a.card-art:hover .card-art__img {
   flex: none;
   width: 52px;
   font-family: var(--font-mono);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   text-align: right;
 }
 
@@ -5287,25 +5265,25 @@ a.card-art:hover .card-art__img {
   margin: 0;
 }
 .stats-deckrow__name {
-  font-size: var(--t-prose);
+  font-size: var(--t-body-sm);
   font-weight: 600;
   color: var(--ink);
 }
 .stats-deckrow__rec {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 .stats-deckrow__cards {
   min-width: 0;
 }
 .stats-deckrow__line {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .stats-duel {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 2px 12px;
+  gap: 2px var(--s-3);
   padding: 10px 18px;
   font-size: var(--t-body-sm);
 }
@@ -5322,8 +5300,8 @@ a.card-art:hover .card-art__img {
 .stats-swap__side {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: var(--s-2);
+  padding: var(--s-3) 14px;
   border-radius: var(--r-control);
   background: var(--ground-sunken);
 }
@@ -5344,10 +5322,10 @@ a.card-art:hover .card-art__img {
   list-style: none;
 }
 .stats-swap__what {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 .stats-swap__record {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-dim);
 }
 .stats-swap__record .stats-record {
@@ -5378,7 +5356,7 @@ a.card-art:hover .card-art__img {
   list-style: none;
 }
 .stats-opponents li {
-  padding: 4px 0;
+  padding: var(--s-1) 0;
 }
 .stats-opponents__gap {
   color: var(--ink-faint);
@@ -5387,7 +5365,7 @@ a.card-art:hover .card-art__img {
 .stats-opponents__tag {
   font-family: var(--font-mono);
   font-variant-numeric: slashed-zero;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 
@@ -5397,7 +5375,7 @@ a.card-art:hover .card-art__img {
     gap: 10px;
   }
   .stats-form__value {
-    font-size: var(--t-lead);
+    font-size: var(--t-body);
   }
   /* Two selects side by side, full width, then the chips, every target 44px.
      With one player (round two, 2026-11-13) the head's line names them
@@ -5455,7 +5433,7 @@ a.card-art:hover .card-art__img {
   .stats-cal {
     display: flex;
     flex-direction: column-reverse;
-    gap: 4px;
+    gap: var(--s-1);
   }
   /* The days to come are one line under the list, so today leads it (Jamie,
      2026-11-06). The computer's month keeps them. */
@@ -5469,13 +5447,13 @@ a.card-art:hover .card-art__img {
     display: block;
     margin: 0;
     padding: 10px 18px 14px;
-    font-size: var(--t-small);
+    font-size: var(--t-body-sm);
     color: var(--ink-dim);
   }
   .stats-day {
     flex-direction: row;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--s-2);
     min-height: 0;
   }
   .stats-day__wd {
@@ -5491,13 +5469,13 @@ a.card-art:hover .card-art__img {
   .stats-deckrow .deck-grid--8,
   .stats-top .deck-grid--8 {
     grid-template-columns: repeat(4, max-content);
-    gap: 8px 6px;
+    gap: var(--s-2) 6px;
   }
   .stats-swap__body {
     grid-template-columns: minmax(0, 1fr);
   }
   .stats-card {
-    gap: 8px;
+    gap: var(--s-2);
   }
 }
 
@@ -5515,7 +5493,7 @@ a.card-art:hover .card-art__img {
   color: var(--ink);
 }
 .disclosure__body {
-  padding: 4px 0 20px;
+  padding: var(--s-1) 0 var(--s-5);
   min-width: 0;
 }
 .detail-sheet {
@@ -5543,29 +5521,29 @@ a.card-art:hover .card-art__img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 22px 24px;
+  gap: var(--s-4);
+  padding: 22px var(--s-6);
 }
 .detail-sheet__head h2 {
   margin: 0;
-  font-size: var(--t-stat);
+  font-size: var(--t-h2);
   font-weight: 600;
 }
 .detail-sheet__body {
-  padding: 24px;
+  padding: var(--s-6);
   overflow-wrap: anywhere;
 }
 .settings-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--s-5);
   min-height: 88px;
-  padding: 20px 0;
+  padding: var(--s-5) 0;
 }
 .settings-row__title {
-  margin: 0 0 4px;
-  font-size: var(--t-body-lg);
+  margin: 0 0 var(--s-1);
+  font-size: var(--t-body);
   font-weight: 600;
 }
 .settings-row__description {
@@ -5575,8 +5553,8 @@ a.card-art:hover .card-art__img {
 .fact-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px 36px;
-  margin-bottom: 24px;
+  gap: var(--s-5) 36px;
+  margin-bottom: var(--s-6);
 }
 .fact-strip > * {
   flex: 0 1 auto;
@@ -5593,10 +5571,10 @@ a.card-art:hover .card-art__img {
   color: var(--ink-dim);
 }
 .delivery-preview p {
-  margin: 4px 0;
+  margin: var(--s-1) 0;
 }
 .delivery-row {
-  padding: 12px 0;
+  padding: var(--s-3) 0;
 }
 .timeline-list {
   padding: 0;
@@ -5606,7 +5584,7 @@ a.card-art:hover .card-art__img {
 .timeline-list__row {
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr) auto;
-  gap: 16px;
+  gap: var(--s-4);
   align-items: start;
   padding: 18px 0;
 }
@@ -5618,13 +5596,13 @@ a.card-art:hover .card-art__img {
 }
 .timeline-list__time {
   color: var(--ink-faint);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 .timeline-list__subject {
   display: block;
   color: var(--ink-dim);
-  font-size: var(--t-mono);
-  margin-bottom: 4px;
+  font-size: var(--t-caption);
+  margin-bottom: var(--s-1);
 }
 .timeline-list__text {
   margin: 0;
@@ -5634,7 +5612,7 @@ a.card-art:hover .card-art__img {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
 }
 /* "New since your last visit": a rule under the last new row, its label
    pointing up at them (2026-10-20). */
@@ -5642,10 +5620,10 @@ a.card-art:hover .card-art__img {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 0;
+  padding: var(--s-2) 0;
   border-bottom: 1px solid var(--accent-bright);
   color: var(--accent-bright);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 .timeline-list__new {
   color: var(--accent-bright);
@@ -5656,15 +5634,15 @@ a.card-art:hover .card-art__img {
     font-size: var(--t-title);
   }
   .settings-row {
-    gap: 12px;
+    gap: var(--s-3);
   }
   .detail-sheet__head,
   .detail-sheet__body {
-    padding: 20px 16px;
+    padding: var(--s-5) var(--s-4);
   }
   .timeline-list__row {
     grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
+    gap: var(--s-2);
   }
   .timeline-list__time {
     grid-column: 1 / -1;
@@ -5673,20 +5651,20 @@ a.card-art:hover .card-art__img {
 
 /* One action, the board's one column: folds, then the buttons. */
 .disclosure.action-fold {
-  padding-inline: 20px;
+  padding-inline: var(--s-5);
 }
 .action-decline {
   display: grid;
   gap: 10px;
   max-width: 520px;
-  padding: 14px 20px;
+  padding: 14px var(--s-5);
 }
 .clan-decide {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-5);
 }
 
 .permission-details {
@@ -5702,7 +5680,7 @@ a.card-art:hover .card-art__img {
 .permission-details .mono {
   display: block;
   overflow-wrap: anywhere;
-  padding-block: 8px;
+  padding-block: var(--s-2);
 }
 
 .account-menu__head > div {
@@ -5712,7 +5690,7 @@ a.card-art:hover .card-art__img {
 
 /* Email choices use the same reading rows on every screen. */
 .mail-pref {
-  margin-block: 24px;
+  margin-block: var(--s-6);
 }
 .mail-pref__list {
   list-style: none;
@@ -5734,20 +5712,20 @@ a.card-art:hover .card-art__img {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 10px;
-  margin: 0 0 4px;
-  font-size: var(--t-panel-head);
+  margin: 0 0 var(--s-1);
+  font-size: var(--t-body-sm);
   font-weight: 600;
 }
 .mail-pref__what,
 .mail-pref__when,
 .mail-pref__last {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .mail-pref__cadence {
   display: inline-flex;
   max-width: 100%;
-  margin-top: 8px;
+  margin-top: var(--s-2);
 }
 /* The digest's clan part: a quiet line under its cadence, its own switch
    at the end. */
@@ -5755,7 +5733,7 @@ a.card-art:hover .card-art__img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s-3);
   max-width: 420px;
   margin-top: 10px;
 }
@@ -5767,7 +5745,7 @@ a.card-art:hover .card-art__img {
 .mail-source {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--s-1);
   color: var(--ink-faint);
   font-size: var(--t-caption);
   font-weight: 400;
@@ -5792,19 +5770,19 @@ a.card-art:hover .card-art__img {
    each, and All sent sits on its head's line at the panel action's size. */
 .mail-pref .section-title {
   margin: 0;
-  font: 700 var(--t-panel-head) / 1.4 var(--font);
+  font: 700 var(--t-body-sm) / 1.4 var(--font);
   letter-spacing: 0;
   color: var(--ink);
 }
 .mail-pref > .section-title,
 .mail-pref__head {
-  margin-bottom: 4px;
+  margin-bottom: var(--s-1);
 }
 /* What follows a head starts the same distance under it: a list's first
    row brings its own padding, a note gets the same gap, and the last row
    leaves no padding to widen the gap to the next head. */
 .mail-pref > .page-head__note {
-  margin-top: 12px;
+  margin-top: var(--s-3);
 }
 .mail-pref__list > .mail-pref__row:last-child {
   padding-bottom: 0;
@@ -5816,7 +5794,7 @@ a.card-art:hover .card-art__img {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px 24px;
+  gap: var(--s-2) var(--s-6);
   padding-bottom: 18px;
   font-size: var(--t-body-sm);
   color: var(--ink-dim);
@@ -5825,7 +5803,7 @@ a.card-art:hover .card-art__img {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s-3);
 }
 .recruit-copy__tools select {
   min-width: 210px;
@@ -5839,7 +5817,7 @@ a.card-art:hover .card-art__img {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  gap: 16px;
+  gap: var(--s-4);
 }
 .recruit-context .disclosure {
   margin: 0;
@@ -5866,14 +5844,14 @@ a.card-art:hover .card-art__img {
 .kit-head {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: var(--s-2) var(--s-4);
   align-items: flex-end;
   justify-content: space-between;
   margin-bottom: 18px;
 }
 .kit-head__main {
   display: grid;
-  gap: 4px;
+  gap: var(--s-1);
   flex: 1 1 320px;
   min-width: 0;
 }
@@ -5890,8 +5868,8 @@ a.card-art:hover .card-art__img {
   vertical-align: 0.15em;
 }
 .kit-head__title {
-  font: 400 var(--t-h1-page) / 1.15 var(--font-display);
-  letter-spacing: 0.01em;
+  font: 600 var(--t-h1-page) / 1.15 var(--font);
+  letter-spacing: -0.03em;
   color: var(--ink);
   overflow-wrap: anywhere;
 }
@@ -5902,7 +5880,7 @@ a.card-art:hover .card-art__img {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  gap: var(--s-2) var(--s-3);
   min-width: 0;
   max-width: 100%;
 }
@@ -5910,14 +5888,14 @@ a.card-art:hover .card-art__img {
 .kit-fresh {
   position: relative;
   max-width: 100%;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .kit-fresh > summary {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
+  min-height: var(--hit);
   padding: 0 10px;
   border: 1px solid transparent;
   background: var(--panel);
@@ -5951,11 +5929,11 @@ a.card-art:hover .card-art__img {
   right: 0;
   width: 280px;
   margin-top: 6px;
-  padding: 12px;
+  padding: var(--s-3);
   background: var(--panel-raised);
-  border-radius: var(--r-panel);
+  border-radius: var(--r-control);
   color: var(--ink-body);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   line-height: 1.5;
   box-shadow: var(--shadow-float);
 }
@@ -5965,7 +5943,7 @@ a.card-art:hover .card-art__img {
   display: flex;
   gap: 2px;
   max-width: 100%;
-  margin-bottom: 20px;
+  margin-bottom: var(--s-5);
   overflow-x: auto;
 }
 .kit-tabs--wrap {
@@ -5988,23 +5966,24 @@ a.card-art:hover .card-art__img {
   color: var(--ink);
 }
 .kit-tabs__tab:focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--accent-bright);
   outline-offset: -2px;
 }
 .kit-tabs__tab[aria-selected="true"] {
   color: var(--ink);
   font-weight: 600;
-  box-shadow: inset 0 -2px 0 var(--gold);
+  box-shadow: var(--mark-tab);
 }
 .kit-tabs__count {
   margin-left: 6px;
-  padding: 1px 7px;
+  padding: 0;
   border-radius: var(--r-pill);
-  background: var(--gold);
-  color: var(--gold-on);
+  background: none;
+  color: var(--ink-faint);
   font-size: var(--t-caption);
   font-style: normal;
-  font-weight: 600;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .kit-tabs__mark {
@@ -6013,7 +5992,7 @@ a.card-art:hover .card-art__img {
   height: 8px;
   margin-left: 6px;
   border-radius: var(--r-round);
-  background: var(--gold);
+  background: var(--accent-bright);
   vertical-align: 0.1em;
 }
 
@@ -6026,15 +6005,15 @@ a.card-art:hover .card-art__img {
   gap: 6px;
 }
 .kit-chip {
-  min-height: 34px;
-  padding: 6px 12px;
+  min-height: var(--hit);
+  padding: var(--s-2) var(--s-3);
   border: 1px solid transparent;
-  border-radius: var(--r-chip);
-  background: var(--panel-raised);
+  border-radius: var(--r-control);
+  background: transparent;
   color: var(--ink-dim);
   font: inherit;
   font-size: var(--t-body-sm);
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -6046,13 +6025,12 @@ a.card-art:hover .card-art__img {
   background: var(--control-hover);
   color: var(--ink);
 }
-/* The chosen chip is filled violet (canvas .chip.on): you chose it. */
+
 .kit-chip[aria-pressed="true"] {
-  background: var(--accent-deep);
-  color: var(--ink);
+  background: var(--accent-bright);
+  color: var(--ground);
 }
-/* A segmented row (canvas .seg): the same chips joined into one control,
-   for a filter that takes one value. Scrolls on a phone, never wraps. */
+
 .kit-chips--seg {
   display: inline-flex;
   flex-wrap: nowrap;
@@ -6079,8 +6057,7 @@ a.card-art:hover .card-art__img {
   background: var(--accent-deep);
   color: var(--ink);
 }
-/* A fact about a clan (canvas .fact): a quiet sunken label; gold for the
-   one that is a commitment the clan made, playing Clan Wars. */
+
 .kit-facts {
   display: flex;
   flex-wrap: wrap;
@@ -6090,7 +6067,7 @@ a.card-art:hover .card-art__img {
   list-style: none;
 }
 .kit-fact {
-  padding: 2px 8px;
+  padding: 2px var(--s-2);
   border-radius: var(--r-control);
   background: var(--ground-sunken);
   color: var(--ink-dim);
@@ -6103,24 +6080,24 @@ a.card-art:hover .card-art__img {
 .kit-chip b {
   margin-left: 3px;
   font-weight: 600;
-  color: var(--ink);
+  color: inherit;
 }
 
 .kit-panel {
   background: var(--panel);
-  border-radius: var(--r-panel);
+  border-radius: var(--r-control);
 }
 .kit-panel__head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: baseline;
-  gap: 4px 12px;
-  padding: 12px 16px 4px;
+  gap: var(--s-1) var(--s-3);
+  padding: var(--s-3) var(--s-4) var(--s-1);
 }
 .kit-panel__title {
   margin: 0;
-  font: 700 var(--t-panel-head) / 1.4 var(--font);
+  font: 700 var(--t-body-sm) / 1.4 var(--font);
   letter-spacing: 0;
   color: var(--ink);
   min-width: 0;
@@ -6130,23 +6107,23 @@ a.card-art:hover .card-art__img {
   min-width: 0;
 }
 .kit-panel__body {
-  padding: 14px 16px;
+  padding: 14px var(--s-4);
 }
 .kit-panel__head + .kit-panel__body,
 .kit-panel__head + .panel__body {
-  padding-top: 8px;
+  padding-top: var(--s-2);
 }
 .kit-panel .panel__head {
-  padding: 12px 16px 4px;
+  padding: var(--s-3) var(--s-4) var(--s-1);
 }
 .kit-panel .panel__body {
-  padding-right: 16px;
-  padding-left: 16px;
+  padding-right: var(--s-4);
+  padding-left: var(--s-4);
 }
 .kit-panel .panel__foot,
 .kit-panel .panel__note {
-  padding-right: 16px;
-  padding-left: 16px;
+  padding-right: var(--s-4);
+  padding-left: var(--s-4);
   background: none;
 }
 .kit-panel .table th {
@@ -6154,20 +6131,20 @@ a.card-art:hover .card-art__img {
 }
 .kit-panel .table th:first-child,
 .kit-panel .table td:first-child {
-  padding-left: 16px;
+  padding-left: var(--s-4);
 }
 .kit-panel .table th:last-child,
 .kit-panel .table td:last-child {
-  padding-right: 16px;
+  padding-right: var(--s-4);
 }
 .kit-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s-3);
   width: 100%;
   min-height: 46px;
-  padding: 10px 16px;
+  padding: 10px var(--s-4);
   border: 0;
   background: none;
   color: var(--ink-body);
@@ -6250,21 +6227,19 @@ button.kit-row {
 .kit-table th {
   white-space: nowrap;
 }
-/* Column heads (canvas .tbl th, 2026-11-13): small faint capitals, so the
-   figures under them carry the weight. */
+
 .kit-table thead th {
-  font-size: var(--t-label);
+  font-size: var(--t-caption);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-faint);
   border-bottom-color: var(--line-soft);
 }
-/* A short list of figures in a side card (canvas .kv): faint label, plain
-   value, no cell fills. */
+
 .fields.kit-kv {
   grid-template-columns: minmax(110px, 40%) 1fr;
-  gap: 4px 12px;
+  gap: var(--s-1) var(--s-3);
 }
 .fields.kit-kv dt {
   padding: 6px 0;
@@ -6275,7 +6250,7 @@ button.kit-row {
 .fields.kit-kv dd {
   padding: 6px 0;
   color: var(--ink);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 600;
 }
 .kit-table td,
@@ -6307,18 +6282,18 @@ button.kit-row {
    box. Inside a panel it keeps the panel's own inset. */
 .empty.kit-empty {
   max-width: none;
-  padding: 4px 0 8px;
+  padding: var(--s-1) 0 var(--s-2);
   border-radius: 0;
   background: none;
   text-align: left;
 }
 .kit-panel .empty.kit-empty {
-  padding: 12px 16px 16px;
+  padding: var(--s-3) var(--s-4) var(--s-4);
 }
 /* A padded panel's body already insets its words: an error or empty state
    in it starts where the body's own lines do (2026-11-13). */
 .kit-panel__body > .empty.kit-empty {
-  padding: 4px 0 0;
+  padding: var(--s-1) 0 0;
 }
 .kit-empty .empty__body:last-child {
   margin-bottom: 0;
@@ -6328,20 +6303,20 @@ button.kit-row {
   max-width: 60ch;
 }
 .kit-empty__action {
-  margin-top: 12px;
+  margin-top: var(--s-3);
 }
 /* An empty or error title is Inter at the panel head's size whatever its
    level; only a whole page's (an h1) is the page title, so a page that is
    all empty state still has its head (round three, 2026-11-13). The h1
    rule's display face no longer leaks into a 14px title. */
 .kit-empty .empty__title {
-  font: 600 var(--t-panel-head) / 1.4 var(--font);
+  font: 600 var(--t-body-sm) / 1.4 var(--font);
   letter-spacing: 0;
 }
 .kit-empty h1.empty__title {
-  font: 400 var(--t-stat-lg) / 1.3 var(--font-display);
+  font: 600 var(--t-h2) / 1.3 var(--font);
   letter-spacing: 0.01em;
-  margin-bottom: 8px;
+  margin-bottom: var(--s-2);
 }
 
 .kit-stats {
@@ -6356,15 +6331,15 @@ button.kit-row {
   min-width: 0;
 }
 .kit-stat__label {
-  font-size: var(--t-label);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: var(--t-caption);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--ink-faint);
 }
 .kit-stat__value {
-  font-size: var(--t-stat-lg);
-  font-weight: 700;
+  font-size: var(--t-h2);
+  font-weight: 600;
   line-height: 1.2;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -6377,7 +6352,7 @@ button.kit-row {
 }
 @media (max-width: 900px) {
   .stats-tile .kit-stat__value--sm {
-    font-size: var(--t-lead);
+    font-size: var(--t-body);
   }
 }
 .kit-stat__value--ok {
@@ -6390,32 +6365,37 @@ button.kit-row {
   color: var(--bad);
 }
 .kit-stat__of {
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 400;
   color: var(--ink-faint);
 }
 .kit-stat__note {
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   color: var(--ink-dim);
 }
 
 @media (max-width: 760px) {
   .kit-head__title {
     font-size: var(--t-title);
+    font: 600 var(--t-h1-page) / 1.15 var(--font);
+    letter-spacing: -0.03em;
   }
   .kit-fresh__pop {
     position: static;
     width: auto;
   }
   .kit-tabs__tab {
-    padding: 11px 12px;
+    padding: 11px var(--s-3);
   }
   .kit-chip {
-    min-height: 44px;
+    min-height: var(--hit);
+    background: transparent;
+    padding: var(--s-2) var(--s-3);
+    font-weight: 500;
   }
   .kit-panel__head,
   .kit-panel .panel__head {
-    padding: 12px 14px 8px;
+    padding: var(--s-3) 14px var(--s-2);
   }
   .kit-panel__body,
   .kit-panel .panel__body {
@@ -6450,8 +6430,8 @@ button.kit-row {
   }
   .kit-table--fit td,
   .kit-table--fit th {
-    padding-right: 8px;
-    padding-left: 8px;
+    padding-right: var(--s-2);
+    padding-left: var(--s-2);
     white-space: normal;
   }
   .kit-table--fit .kit-table__num {
@@ -6497,7 +6477,7 @@ button.kit-row {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    gap: 12px;
+    gap: var(--s-3);
     padding: 2px 0;
     border: 0;
     white-space: normal;
@@ -6510,7 +6490,7 @@ button.kit-row {
     content: attr(data-h) / "";
     flex: 1 1 40%;
     min-width: 0;
-    font-size: var(--t-small);
+    font-size: var(--t-body-sm);
     color: var(--ink-faint);
     text-align: left;
   }
@@ -6586,9 +6566,9 @@ button.kit-row {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: 0 12px;
+    gap: 0 var(--s-3);
     margin-top: 2px;
-    font-size: var(--t-small);
+    font-size: var(--t-body-sm);
     color: var(--ink-dim);
   }
   .kit-table--cards > tbody > tr > .kit-table__lead {
@@ -6623,7 +6603,7 @@ button.kit-row {
   width: 100%;
   max-width: var(--page-max);
   margin-inline: auto;
-  padding: 20px 24px 40px;
+  padding: var(--s-5) var(--s-6) 40px;
   flex: 1 0 auto;
   min-width: 0;
 }
@@ -6651,22 +6631,22 @@ button.kit-row {
 .kit-top__row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--s-4);
   max-width: var(--page-max);
   min-height: 60px;
   margin-inline: auto;
-  padding-inline: max(24px, env(safe-area-inset-left))
-    max(24px, env(safe-area-inset-right));
+  padding-inline: max(var(--s-6), env(safe-area-inset-left))
+    max(var(--s-6), env(safe-area-inset-right));
 }
-/* The wordmark (canvas .brand): the display face in gold, dropped. */
+/* Only the wordmark keeps the display face and brand gold. */
 .kit-top__brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   color: var(--gold);
-  font: 400 var(--t-stat-lg) / 1 var(--font-display);
+  font: 400 var(--t-h2) / 1 var(--font-display);
   text-decoration: none;
-  text-shadow: var(--shadow-brand);
+  min-height: var(--hit);
 }
 .kit-top__brand:hover {
   color: var(--gold-light);
@@ -6674,7 +6654,7 @@ button.kit-row {
 .kit-top__nav,
 .kit-top__out {
   display: flex;
-  gap: 4px;
+  gap: var(--s-1);
 }
 /* Signed in, these are the app's three places: tabs with the phone's icons,
    set off from the brand and standing the full height of the bar. Signed out,
@@ -6687,12 +6667,12 @@ button.kit-row {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 40px;
-  padding: 0 12px;
+  height: var(--hit);
+  padding: 0 var(--s-3);
   border-radius: var(--r-control);
   color: var(--ink-dim);
-  font-size: var(--t-prose);
-  font-weight: 600;
+  font-size: var(--t-body-sm);
+  font-weight: 500;
   text-decoration: none;
 }
 .kit-top__nav a:hover {
@@ -6706,7 +6686,7 @@ button.kit-row {
   color: var(--ink);
 }
 .kit-top__nav a[aria-current="page"] svg {
-  color: var(--gold);
+  color: var(--accent-bright);
 }
 .kit-top__out a {
   padding: 6px 10px;
@@ -6722,16 +6702,16 @@ button.kit-row {
   display: inline-flex;
   flex: 0 1 340px;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   min-width: 0;
-  min-height: 38px;
-  padding: 6px 12px;
+  min-height: var(--hit);
+  padding: 6px var(--s-3);
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   background: var(--ground-sunken);
   color: var(--ink-faint);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -6745,10 +6725,10 @@ button.kit-row {
   color: var(--ink-body);
   text-decoration: none;
 }
-/* The bar's icon buttons (canvas .iconbtn): 40px, a tint on hover. */
+
 .kit-top__icon {
-  min-width: 40px;
-  min-height: 40px;
+  min-width: var(--hit);
+  min-height: var(--hit);
   color: var(--ink-dim);
   /* Search keeps its own outline; the icon is a bare button, or the browser draws one. */
   justify-content: center;
@@ -6756,7 +6736,7 @@ button.kit-row {
   height: 36px;
   padding: 0;
   border: 0;
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
 }
 .kit-top__icon:hover {
   background: var(--panel-raised);
@@ -6772,18 +6752,18 @@ button.kit-row {
   width: 344px;
   max-width: calc(100vw - 32px);
 }
-/* You, on the bar (canvas .me): a pill on the panel's tone. */
+
 .kit-top__avatar {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 3px 12px 3px 3px;
+  gap: var(--s-2);
+  min-height: var(--hit);
+  padding: 3px var(--s-3) 3px 3px;
   border: 0;
   border-radius: var(--r-pill);
-  background: var(--panel);
+  background: transparent;
   color: var(--ink);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 600;
   cursor: pointer;
 }
@@ -6797,51 +6777,51 @@ button.kit-row {
   display: none;
 }
 .kit-foot {
-  padding-top: 16px;
+  padding-top: var(--s-4);
   background: var(--ground-chrome);
 }
 .kit-foot__links {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px 16px;
-  padding-inline: 16px;
-  font-size: var(--t-small);
+  gap: var(--s-2) var(--s-4);
+  padding-inline: var(--s-4);
+  font-size: var(--t-body-sm);
 }
 .kit-foot__links a {
   color: var(--ink-dim);
 }
 .kit-home {
   display: grid;
-  gap: 16px;
-  margin-top: 16px;
+  gap: var(--s-4);
+  margin-top: var(--s-4);
   min-width: 0;
 }
 /* A state page's one way back: its own width, not the column's. */
 .kit-home__go {
   justify-self: start;
 }
-/* The feed and a 320px side column (canvas .cols). */
+
 .kit-home__two {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 24px;
+  gap: var(--s-6);
   align-items: start;
 }
 .kit-home__main,
 .kit-home__side {
   display: grid;
-  gap: 16px;
+  gap: var(--s-4);
   min-width: 0;
 }
 .kit-home__filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--s-1);
+  overflow-x: visible;
 }
-/* The feed's chips in the page head, right of the title (canvas .pagehead
-   .chips): one row, New the last toggle in it. */
+
 .kit-home__chips:empty {
   display: none;
 }
@@ -6880,32 +6860,30 @@ button.kit-row {
      chip cut by the screen's edge fades out under the kit's fade rather
      than stopping at a hairline. */
   .kit-home__filters {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     min-width: 0;
     max-width: 100%;
-    overflow-x: auto;
+    overflow-x: visible;
     scrollbar-width: none;
-  }
-  .kit-home__filters::-webkit-scrollbar {
-    display: none;
+    gap: var(--s-1);
   }
   .kit-home__filters .kit-chips {
-    flex: none;
-    flex-wrap: nowrap;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
     overflow: visible;
   }
   .kit-home__filters > .kit-chip {
     flex: none;
   }
   .kit-home__filters .kit-chip {
-    padding-inline: 10px;
+    padding-inline: 6px;
   }
 }
-/* A race week's place (canvas .racebar): a gold bar on a sunken trough. */
+
 .kit-racebar {
   display: block;
   height: 10px;
-  margin: 6px 0 4px;
+  margin: 6px 0 var(--s-1);
   border-radius: var(--r-pill);
   background: var(--ground-sunken);
   overflow: hidden;
@@ -6930,17 +6908,17 @@ button.kit-row {
 .kit-racebar--p5 > i {
   width: 20%;
 }
-/* A sitting's figures with the note right of them (canvas .stile). */
+
 .kit-stile {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px 16px;
+  gap: 6px var(--s-4);
   align-items: end;
 }
 .kit-stile__note {
   margin: 0;
   color: var(--ink-faint);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   text-align: right;
 }
 @media (max-width: 720px) {
@@ -6955,22 +6933,16 @@ button.kit-row {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 12px;
+  gap: var(--s-1) var(--s-3);
   margin: 0;
   padding: 10px 14px;
   border: 0;
   border-left: 3px solid var(--gold);
-  border-radius: var(--r-panel);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 /* The clan's gold edge: an inset rule on the leading side, never a gold
    outline. Needs you is the clan asking. */
-.kit-panel--clan {
-  box-shadow: var(--edge-clan);
-}
-.kit-panel--clan > .kit-panel__head .kit-panel__title {
-  color: var(--gold);
-}
 /* A leader's decision keeps a dashed border, the one panel edge that
    carries meaning (game facts and clan decisions stay distinguishable). */
 .kit-panel--decision,
@@ -6979,22 +6951,22 @@ button.kit-row {
   box-shadow: none;
 }
 .kit-week__quiet {
-  margin: 12px 0 0;
+  margin: var(--s-3) 0 0;
   color: var(--ink-dim);
 }
 .kit-week .kit-stats {
-  margin-top: 12px;
+  margin-top: var(--s-3);
 }
 .kit-deck {
-  margin-top: 16px;
+  margin-top: var(--s-4);
   min-width: 0;
 }
 .kit-deck__head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 2px 12px;
-  margin-bottom: 8px;
+  gap: 2px var(--s-3);
+  margin-bottom: var(--s-2);
 }
 .kit-deck__name {
   color: var(--ink);
@@ -7003,24 +6975,25 @@ button.kit-row {
 .kit-deck__note,
 .kit-tiny {
   color: var(--ink-dim);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 .kit-deck .deck-grid {
   max-width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 /* Home's welcome steps (G4): one quiet panel above the feed, its steps flat
    rows inside it rather than boxes of their own. */
 .kit-welcome {
   margin-bottom: 14px;
-  padding: 12px 0 4px;
-  border-radius: var(--r-panel);
+  padding: var(--s-3) 0 var(--s-1);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 .kit-welcome > h2 {
-  margin: 0 0 4px;
-  padding: 0 16px;
+  margin: 0 0 var(--s-1);
+  padding: 0 var(--s-4);
   color: var(--ink);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 700;
 }
 .kit-welcome__count {
@@ -7028,13 +7001,12 @@ button.kit-row {
   font-size: var(--t-caption);
   font-weight: 400;
 }
-/* Compact (design canvas 2026-11-13, .onb): the count at the head's right,
-   one line a step with its way in at the right. */
+
 .kit-welcome--compact > h2 {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s-3);
 }
 .kit-checks {
   margin: 0;
@@ -7044,8 +7016,8 @@ button.kit-row {
 .kit-check {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
+  gap: var(--s-3);
+  padding: 10px var(--s-4);
 }
 .kit-check__body {
   flex: 1 1 auto;
@@ -7054,14 +7026,14 @@ button.kit-row {
 .kit-check__body h3 {
   margin: 0;
   color: var(--ink);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 700;
 }
 .kit-check__body p {
   margin: 0;
   overflow: hidden;
   color: var(--ink-dim);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -7073,22 +7045,22 @@ button.kit-row {
    Follow these at the foot. No rule between rows: the rows' own space. */
 .kit-starter {
   margin-bottom: 14px;
-  padding: 10px 0 4px;
-  border-radius: var(--r-panel);
+  padding: 10px 0 var(--s-1);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 .kit-starter__head {
   margin: 0;
-  padding: 0 16px;
+  padding: 0 var(--s-4);
   color: var(--ink);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 700;
 }
 .kit-starter__lead {
-  margin: 2px 0 4px;
-  padding: 0 16px;
+  margin: 2px 0 var(--s-1);
+  padding: 0 var(--s-4);
   color: var(--ink-dim);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 /* The tick is a 44px tap (touch-targets.spec.ts); the box in it stays 20px. */
 .kit-starter__tick {
@@ -7109,7 +7081,7 @@ button.kit-row {
 /* Show all and the foot keep their 44px taps, but the taps overlap the
    rows' own space, so the block's rhythm stays the rows' (2026-11-13). */
 .kit-starter__more {
-  margin: -4px 8px -6px;
+  margin: -4px var(--s-2) -6px;
 }
 /* The bell's "See N more in Clan": the quiet link under Needs you, set on
    the rows' text edge (round three, 2026-11-13). */
@@ -7125,7 +7097,7 @@ button.kit-row {
   align-items: center;
   justify-content: space-between;
   gap: 6px 10px;
-  padding: 0 16px 2px;
+  padding: 0 var(--s-4) 2px;
 }
 .kit-starter__top .kit-starter__head {
   padding: 0;
@@ -7155,8 +7127,8 @@ button.kit-row {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 4px 12px;
-  padding: 0 16px 4px;
+  gap: var(--s-1) var(--s-3);
+  padding: 0 var(--s-4) var(--s-1);
 }
 .kit-starter__foot p {
   flex: 1 1 160px;
@@ -7169,43 +7141,43 @@ button.kit-row {
   margin-bottom: 6px;
 }
 .kit-starter--empty .kit-starter__not-now {
-  margin: 0 8px 6px;
+  margin: 0 var(--s-2) 6px;
 }
-/* Home's digest panel (canvas "Your digest"). */
+
 .kit-digest__line {
   margin: 0 0 10px;
   color: var(--ink-dim);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 .kit-digest__line b {
   color: var(--ink);
 }
 .kit-welcome .kit-step {
-  padding: 14px 16px;
+  padding: 14px var(--s-4);
   border-radius: 0;
   background: none;
 }
 .kit-skeleton {
   min-height: 120px;
-  margin-top: 16px;
-  border-radius: var(--r-card);
+  margin-top: var(--s-4);
+  border-radius: var(--r-control);
   background: var(--panel-raised);
 }
 .kit-steps {
   display: grid;
-  gap: 4px;
+  gap: var(--s-1);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .kit-step {
   display: flex;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: var(--r-card);
+  gap: var(--s-3);
+  padding: var(--s-3) 14px;
+  border-radius: var(--r-control);
   background: var(--panel);
 }
-/* A step's number, filled violet; done, filled green (canvas .onb .n). */
+
 .kit-step__dot {
   display: inline-flex;
   flex: none;
@@ -7216,7 +7188,7 @@ button.kit-row {
   border-radius: var(--r-round);
   background: var(--accent-deep);
   color: var(--ink);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   font-weight: 800;
 }
 .kit-step--done .kit-step__dot {
@@ -7240,31 +7212,31 @@ button.kit-row {
 }
 .kit-step__opt {
   color: var(--ink-dim);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   font-weight: 400;
 }
 .kit-inbox {
   padding: 14px;
-  border-radius: var(--r-card);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 .kit-inbox h2 {
-  margin: 0 0 8px;
+  margin: 0 0 var(--s-2);
   font-size: var(--t-body);
   font-weight: 600;
 }
 .kit-inbox p {
-  margin: 0 0 8px;
+  margin: 0 0 var(--s-2);
 }
 .kit-form label {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: var(--s-1);
   color: var(--ink-body);
 }
 .kit-form__row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .kit-form__row .input {
   flex: 1 1 160px;
@@ -7274,17 +7246,17 @@ button.kit-row {
    field it takes the field's height. */
 .kit-form__row > .btn.btn--follow {
   align-self: stretch;
-  padding-inline: 20px;
-  font-size: var(--t-panel-head);
+  padding-inline: var(--s-5);
+  font-size: var(--t-body-sm);
 }
 .kit-form__err {
   margin: 6px 0 0;
   color: var(--bad);
 }
-/* A day's heading in the feed: a label (canvas .label). */
+
 .kit-day {
   display: grid;
-  gap: 14px;
+  gap: var(--s-2);
 }
 .kit-feed__head > .btn--follow {
   flex: none;
@@ -7292,33 +7264,30 @@ button.kit-row {
 }
 .kit-day > div {
   display: grid;
-  gap: 14px;
+  gap: 0;
 }
 .kit-day__head {
-  margin: 4px 2px -4px;
-  color: var(--ink-faint);
-  font-size: var(--t-label);
+  margin: var(--s-2) 0 0;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
   font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .kit-tl__more {
   display: block;
   margin-top: 2px;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 .kit-tl__evidence {
   display: grid;
-  gap: 8px;
-  margin: 0 0 8px;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-2);
   padding: 10px 14px;
   border-left: 2px solid var(--line);
   overflow-wrap: anywhere;
 }
-/* Home's one feed (slice 7, #765; the canvas's Round 3, 2026-11-13). An item
-   is a card on the panel's tone, no border: who and when on top, its title,
-   its facts, then its cheers. A clan's item wears the gold edge and wash; a
-   leader's decision the dashed gold border. */
+/* A flat feed: the people, results and card art carry the story. */
 .kit-home__main {
   min-width: 0;
 }
@@ -7329,7 +7298,7 @@ button.kit-row {
 }
 /* While the first page reads: words, not an empty grey box (G1). */
 .kit-feed__reading {
-  margin: 12px 0;
+  margin: var(--s-3) 0;
   color: var(--ink-dim);
 }
 /* More, under the last item: the next thirty of the same week. */
@@ -7337,38 +7306,34 @@ button.kit-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 12px 0;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
 }
 .kit-feed__item {
   display: grid;
-  gap: 6px;
-  padding: 16px 18px 12px;
-  border-radius: var(--r-block);
-  background: var(--panel);
+  gap: var(--s-2);
+  padding: var(--s-5) 0;
+  border-radius: 0;
+  background: none;
   overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--line-soft);
 }
-.kit-feed__item--clan {
-  box-shadow: var(--edge-clan);
-  background:
-    linear-gradient(90deg, var(--gold-wash), transparent 40%), var(--panel);
-}
-/* The clan's band over its item (canvas .clanband). */
+
 .kit-feed__band {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   margin: -6px 0 2px;
-  color: var(--gold);
+  color: var(--ink-dim);
   font-size: var(--t-caption);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .kit-feed__head {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--s-3);
 }
 .kit-feed__who {
   display: grid;
@@ -7388,28 +7353,28 @@ a.kit-feed__name:hover {
 }
 .kit-feed__time {
   color: var(--ink-faint);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 .kit-feed__text {
-  margin: 4px 0 0;
+  margin: var(--s-1) 0 0;
   color: var(--ink);
-  font-size: var(--t-lead);
-  font-weight: 700;
-  line-height: 1.35;
+  font-size: var(--t-body);
+  font-weight: 500;
+  line-height: 1.5;
 }
 .kit-feed__sub {
   margin: 0;
   color: var(--ink-dim);
   font-size: var(--t-body-sm);
 }
-/* A highlight's words: the player's own, on a gold rule (canvas .words). */
+
 .kit-feed__words {
-  margin: 2px 0 4px;
-  padding-left: 12px;
-  border-left: 3px solid var(--gold);
+  margin: 2px 0 var(--s-1);
+  padding-left: var(--s-3);
+  border-left: 2px solid var(--line-strong);
   color: var(--ink-body);
 }
-/* A moment: its medal beside its title (canvas .medal). */
+
 .kit-feed__moment {
   display: flex;
   align-items: center;
@@ -7425,34 +7390,20 @@ a.kit-feed__name:hover {
   justify-content: center;
   width: 52px;
   height: 52px;
-  border-radius: var(--r-block);
-  background: radial-gradient(
-    circle at 30% 25%,
-    var(--gold-light),
-    var(--gold) 55%,
-    var(--gold-edge)
-  );
-  color: var(--gold-on);
+  border-radius: var(--r-control);
+  background: var(--panel-raised);
+  color: var(--ink-dim);
 }
-.kit-medal--violet {
-  background: radial-gradient(
-    circle at 30% 25%,
-    var(--ink-link-hover),
-    var(--accent) 60%,
-    var(--accent-deep)
-  );
-  color: var(--ink);
-}
-/* The battle under a moment (canvas .mbattle): a sunken line, one link. */
+
 .kit-mbattle {
   display: flex;
   align-items: center;
   gap: 10px;
   min-height: 44px;
-  margin-top: 4px;
-  padding: 10px 12px;
-  border-radius: var(--r-chip);
-  background: var(--ground-sunken);
+  margin-top: var(--s-1);
+  padding: var(--s-2) 0;
+  border-radius: var(--r-control);
+  background: none;
   color: var(--ink-body);
   font-size: var(--t-body-sm);
   text-decoration: none;
@@ -7473,7 +7424,7 @@ a.kit-mbattle:hover {
   font-size: var(--t-caption);
 }
 .kit-mbattle__res {
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 800;
 }
 .kit-mbattle__res--won {
@@ -7494,7 +7445,7 @@ a.kit-mbattle:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 10px;
-  margin-top: 4px;
+  margin-top: var(--s-1);
 }
 .kit-feed__foot > .kit-cheers {
   flex: 1 1 auto;
@@ -7503,15 +7454,14 @@ a.kit-mbattle:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 14px;
+  gap: var(--s-1) 14px;
   margin-left: auto;
 }
 .kit-feed__links .link {
   font-size: var(--t-body-sm);
   font-weight: 600;
 }
-/* A sitting (canvas .stile and .sfacts): its numbers, then its bars, then
-   the deck it played most. */
+
 .kit-feed__sitting {
   display: grid;
   gap: 6px;
@@ -7520,7 +7470,7 @@ a.kit-mbattle:hover {
 .kit-sfacts {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 18px;
+  gap: var(--s-1) 18px;
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
@@ -7530,16 +7480,16 @@ a.kit-mbattle:hover {
 }
 .kit-sfacts dt {
   color: var(--ink-faint);
-  font-size: var(--t-label);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--t-caption);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .kit-sfacts dd {
   margin: 0;
   color: var(--ink);
   font-size: var(--t-h2);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.15;
 }
 .kit-sfacts dd.kit-sfacts--won {
@@ -7554,14 +7504,13 @@ a.kit-mbattle:hover {
 .kit-decklabel {
   margin: 0;
   color: var(--ink-faint);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 .kit-decklabel b {
   color: var(--ink-dim);
   font-weight: 600;
 }
-/* A feed item's cheers (#765; canvas .rxc): pills on the raised tone, yours
-   filled violet; Cheer, which opens the six, is a link. */
+
 .kit-cheers {
   display: grid;
   gap: 6px;
@@ -7577,10 +7526,10 @@ a.kit-mbattle:hover {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 32px;
+  min-height: var(--hit);
   padding: 0 10px;
   border-radius: var(--r-pill);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
 }
 .kit-cheers .kit-cheers__add {
   background: transparent;
@@ -7592,7 +7541,7 @@ a.kit-mbattle:hover {
 }
 .kit-cheers__who {
   color: var(--ink-faint);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 /* People to follow and Find's people (2026-11-12): why on one line, the
    cost on the next, the Follow on the right. Flat: the rows' own rules. */
@@ -7604,7 +7553,7 @@ a.kit-mbattle:hover {
 }
 .kit-people__cost {
   color: var(--ink-faint);
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
   font-weight: 600;
 }
 .kit-people__cost--free {
@@ -7626,7 +7575,7 @@ a.kit-mbattle:hover {
 .kit-people__slots {
   display: grid;
   gap: 6px;
-  padding: 8px 16px 14px;
+  padding: var(--s-2) var(--s-4) 14px;
   margin: 0;
 }
 .kit-people__slots p {
@@ -7635,16 +7584,15 @@ a.kit-mbattle:hover {
 /* Find's Suggested (2026-11-13): Show more under the rows, and with nobody
    to suggest, the ways to find people side by side. */
 .kit-findsuggest__more {
-  padding: 8px 16px 0;
+  padding: var(--s-2) var(--s-4) 0;
 }
 .kit-findsuggest__ways {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--s-2);
   margin-top: 10px;
 }
-/* Following, where it is a fact and not a control (canvas .follow.on): the
-   pill a Follow becomes, on the raised fill. */
+
 .kit-following {
   display: inline-flex;
   align-items: center;
@@ -7653,12 +7601,11 @@ a.kit-mbattle:hover {
   border-radius: var(--r-pill);
   background: var(--panel-raised);
   color: var(--ink-dim);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   font-weight: 700;
   white-space: nowrap;
 }
-/* Your own clan, as a panel (canvas .panel with the gold top): its crest,
-   its name and what you follow of it, then the clan's own action. */
+
 .kit-panel--mine {
   background: var(--edge-mine), var(--panel);
 }
@@ -7666,8 +7613,8 @@ a.kit-mbattle:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 14px;
-  padding: 16px 16px 4px;
+  gap: var(--s-3) 14px;
+  padding: var(--s-4) var(--s-4) var(--s-1);
 }
 .kit-clanpeople__who {
   flex: 1 1 200px;
@@ -7676,7 +7623,7 @@ a.kit-mbattle:hover {
 .kit-clanpeople__name {
   margin: 0;
   color: var(--ink);
-  font-size: var(--t-lead);
+  font-size: var(--t-body);
   font-weight: 700;
   overflow-wrap: anywhere;
 }
@@ -7688,7 +7635,7 @@ a.kit-mbattle:hover {
 /* A battle page's cheers: the items in your feed it proves. */
 .kit-battle-cheers {
   display: grid;
-  gap: 12px;
+  gap: var(--s-3);
 }
 .kit-battle-cheers__item {
   display: grid;
@@ -7697,8 +7644,7 @@ a.kit-mbattle:hover {
 .kit-battle-cheers__item .kit-feed__text {
   margin: 0;
 }
-/* A sitting's bars (canvas .spark): one a battle, up and green a win,
-   down and red a loss, the height its crown margin; a midline under all. */
+
 .kit-spark {
   position: relative;
   display: flex;
@@ -7734,11 +7680,11 @@ a.kit-mbattle:hover {
   position: absolute;
   right: 0;
   left: 0;
-  border-radius: var(--r-tick);
+  border-radius: 0;
 }
 .kit-spark__win > b {
   bottom: 50%;
-  background: var(--ok);
+  background: var(--win);
 }
 .kit-spark__loss > b {
   top: 50%;
@@ -7753,8 +7699,7 @@ a.kit-mbattle:hover {
 .kit-spark__unknown > b {
   opacity: 0.45;
 }
-/* A margin of one, two or three crowns: a third, two thirds or all of half
-   the box (canvas: 16% of the whole a crown). */
+
 .kit-spark__m1 > b {
   height: 16%;
 }
@@ -7769,16 +7714,16 @@ a.kit-mbattle:hover {
    hairline between rows, the result's colour on a thin left edge. */
 .kit-sgames {
   display: grid;
-  gap: 12px;
+  gap: var(--s-3);
   margin: 6px 0 0;
-  padding: 14px 18px 12px;
-  border-radius: var(--r-block);
-  background: var(--panel);
+  padding: var(--s-3) 0;
+  border-radius: var(--r-control);
+  background: none;
   min-width: 0;
 }
 /* On a player's page the games open inside the item's own card. */
 .kit-pitem .kit-sgames {
-  margin: 8px 0 0;
+  margin: var(--s-2) 0 0;
   padding: 10px 0 0;
   border-top: 1px solid var(--line);
   border-radius: 0;
@@ -7788,7 +7733,7 @@ a.kit-mbattle:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
+  gap: var(--s-1) var(--s-2);
   margin: 0;
   color: var(--ink-faint);
   font-size: var(--t-body-sm);
@@ -7800,7 +7745,7 @@ a.kit-mbattle:hover {
 .kit-sgames__note {
   margin: 0;
   color: var(--ink-faint);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 .kit-sgames__run {
   display: grid;
@@ -7828,7 +7773,7 @@ a.kit-mbattle:hover {
   grid-template-columns: 58px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: start;
-  padding: 8px 0 8px 10px;
+  padding: var(--s-2) 0 var(--s-2) 10px;
   box-shadow: inset 2px 0 0 var(--line);
 }
 .kit-sgame + .kit-sgame {
@@ -7845,7 +7790,7 @@ a.kit-mbattle:hover {
   line-height: 1.2;
 }
 .kit-sgame__result b {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   font-weight: 700;
   color: var(--ink-dim);
 }
@@ -7891,7 +7836,7 @@ a.kit-mbattle:hover {
 .kit-sgame__games {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--s-1);
   margin: 2px 0 0;
   padding: 0;
   list-style: none;
@@ -7901,7 +7846,7 @@ a.kit-mbattle:hover {
   border-radius: var(--r-control);
   background: var(--panel-raised);
   color: var(--ink-dim);
-  font: 600 var(--t-fine)/1.4 var(--font-mono);
+  font: 600 var(--t-caption)/1.4 var(--font-mono);
 }
 .kit-sgame__games > li.kit-sgame__game--win {
   color: var(--win-ink);
@@ -7916,7 +7861,7 @@ a.kit-mbattle:hover {
   white-space: nowrap;
 }
 .kit-sgame__trophies {
-  font: 600 var(--t-small)/1.2 var(--font-mono);
+  font: 600 var(--t-body-sm)/1.2 var(--font-mono);
   color: var(--ink-dim);
 }
 .kit-sgame__trophies--up {
@@ -7927,7 +7872,7 @@ a.kit-mbattle:hover {
 }
 .kit-sgame__go {
   color: var(--ink-link);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   font-weight: 600;
 }
 .kit-sgames__foot {
@@ -7938,11 +7883,11 @@ a.kit-mbattle:hover {
 }
 @media (max-width: 760px) {
   .kit-sgames {
-    padding-inline: 12px;
+    padding-inline: var(--s-3);
   }
   .kit-sgame {
     grid-template-columns: 50px minmax(0, 1fr) auto;
-    gap: 8px;
+    gap: var(--s-2);
   }
 }
 /* The bell's dot: lit while something needs you. */
@@ -7957,18 +7902,18 @@ a.kit-mbattle:hover {
   width: 8px;
   height: 8px;
   border-radius: var(--r-pill);
-  background: var(--gold);
+  background: var(--accent-bright);
 }
-/* With a count (canvas .dot): gold, its number in the gold's ink. */
+
 .kit-bell__dot--count {
   top: -8px;
   right: -9px;
   width: auto;
   min-width: 16px;
   height: 16px;
-  padding: 0 4px;
-  color: var(--gold-on);
-  font-size: var(--t-badge);
+  padding: 0 var(--s-1);
+  color: var(--ground);
+  font-size: var(--t-micro);
   font-weight: 800;
   line-height: 16px;
   text-align: center;
@@ -8017,11 +7962,11 @@ a.kit-mbattle:hover {
 .kit-find__search {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   width: 100%;
   padding: 10px 14px;
   border: 1px solid var(--line);
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   background: transparent;
   color: var(--ink-dim);
   font: inherit;
@@ -8029,28 +7974,21 @@ a.kit-mbattle:hover {
   cursor: pointer;
 }
 .kit-find__link {
-  margin: 8px 0;
+  margin: var(--s-2) 0;
   overflow-wrap: anywhere;
 }
-/* New since your last visit (canvas .newmark): gold words between rules. */
+
 .kit-newmark {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--gold);
+  color: var(--ink-dim);
   font-size: var(--t-caption);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
-.kit-newmark::before,
-.kit-newmark::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--gold-dash);
-}
-/* An avatar: initials on a fill chosen from the tag (canvas .av). */
+
 .kit-av {
   display: inline-flex;
   flex: none;
@@ -8061,44 +7999,43 @@ a.kit-mbattle:hover {
   border-radius: var(--r-round);
   background: var(--av-5);
   color: var(--av-ink);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 800;
 }
 .kit-av--s {
   width: 30px;
   height: 30px;
-  font-size: var(--t-fine);
+  font-size: var(--t-caption);
 }
 .kit-av--l {
   width: 84px;
   height: 84px;
   font-size: var(--t-h1-page);
 }
-/* A clan's crest (canvas .crest.s): its initials in the display face on a
-   gold-edged square. Never the clan's badge art. */
+/* Initials are a neutral fallback; card-art avatar crops are untouched. */
 .kit-av--clan {
   width: 44px;
   height: 44px;
-  border: 2px solid var(--gold);
-  border-radius: var(--r-card);
-  background: linear-gradient(160deg, var(--accent-deep), var(--panel));
-  color: var(--gold);
-  font-family: var(--font-display);
-  font-size: var(--t-body-lg);
-  font-weight: 400;
+  border: 0;
+  border-radius: var(--r-round);
+  background: var(--panel-raised);
+  color: var(--ink-dim);
+  font-family: var(--font);
+  font-size: var(--t-body);
+  font-weight: 600;
 }
 .kit-av--clan.kit-av--s {
   width: 32px;
   height: 32px;
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   font-size: var(--t-caption);
 }
-/* The large crest (canvas .crest), at the head of a clan's page. */
+
 .kit-av--crest {
   width: 84px;
   height: 84px;
   border-width: 3px;
-  border-radius: var(--r-feature);
+  border-radius: var(--r-control);
   font-size: var(--t-h1-page);
 }
 .kit-av--1 {
@@ -8122,7 +8059,7 @@ a.kit-mbattle:hover {
 .kit-av--7 {
   background: var(--av-7);
 }
-/* A meter (canvas .meter): a trough and an accent fill, for a share. */
+
 .kit-meter {
   display: block;
   width: 100%;
@@ -8144,14 +8081,10 @@ a.kit-mbattle:hover {
 }
 .kit-follow {
   padding: 14px;
-  border-radius: var(--r-card);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
-/* The player page (#764; canvas Player, Round 3 flat, 2026-11-13). Its head
-   sits on the page as Home's title and Clan's head do (flat since
-   2026-11-13: no card, no wash): the avatar, the name in the display face,
-   the line, the verified badge, the three counts that open their tabs, and
-   the actions on the right. */
+
 .kit-phead {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -8159,8 +8092,8 @@ a.kit-mbattle:hover {
     "av main actions"
     "av counts actions";
   align-items: center;
-  gap: 4px 20px;
-  padding: 4px 0 0;
+  gap: var(--s-1) var(--s-5);
+  padding: var(--s-1) 0 0;
 }
 /* The head keeps the reading column's measure, so on a wide screen its
    actions sit over the timeline, not alone at the far edge. */
@@ -8173,7 +8106,7 @@ a.kit-mbattle:hover {
 .kit-phead__main {
   grid-area: main;
   display: grid;
-  gap: 4px;
+  gap: var(--s-1);
   min-width: 0;
 }
 .kit-phead > .kit-statrow {
@@ -8182,8 +8115,8 @@ a.kit-mbattle:hover {
 }
 .kit-phead__name {
   margin: 0;
-  font: 400 var(--t-h1-page) / 1.1 var(--font-display);
-  letter-spacing: 0.01em;
+  font: 600 var(--t-h1-page) / 1.15 var(--font);
+  letter-spacing: -0.03em;
   color: var(--ink);
   overflow-wrap: anywhere;
 }
@@ -8191,6 +8124,7 @@ a.kit-mbattle:hover {
   margin: 0;
   color: var(--ink-faint);
   font-size: var(--t-body-sm);
+  line-height: 1.6;
 }
 .kit-phead__actions {
   grid-area: actions;
@@ -8198,7 +8132,7 @@ a.kit-mbattle:hover {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--s-2);
 }
 /* "You": the state, said where the Follow button would be, plain words
    first in the row (a pill read as one more thing to tap). Following is
@@ -8207,9 +8141,9 @@ a.kit-mbattle:hover {
   display: inline-flex;
   align-items: center;
   min-height: 36px;
-  padding: 0 4px 0 0;
+  padding: 0 var(--s-1) 0 0;
   color: var(--ink-dim);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 600;
 }
 .btn.btn--following {
@@ -8227,18 +8161,18 @@ a.kit-mbattle:hover {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 16px;
-  padding: 12px 0 0;
+  gap: var(--s-2) var(--s-4);
+  padding: var(--s-3) 0 0;
   border-top: 1px solid var(--line);
   color: var(--ink-dim);
   font-size: var(--t-body-sm);
 }
-/* The counts (canvas .statrow): each a button to its tab. */
+
 .kit-statrow {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 22px;
-  margin: 8px 0 0;
+  gap: var(--s-1) 22px;
+  margin: var(--s-2) 0 0;
 }
 .kit-statrow__btn {
   display: grid;
@@ -8256,26 +8190,26 @@ a.kit-mbattle:hover {
   color: var(--ink-dim);
 }
 .kit-statrow .kit-stat__value {
-  font-size: var(--t-stat-row);
+  font-size: var(--t-h2);
 }
 .kit-player__badges {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin: 4px 0 0;
+  margin: var(--s-1) 0 0;
 }
 .kit-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
+  gap: var(--s-1);
+  padding: 2px var(--s-2);
   border-radius: var(--r-pill);
   background: var(--panel);
   color: var(--ink-dim);
   font-size: var(--t-caption);
 }
-/* Verified (canvas .vbadge): green on its own wash. */
+
 .kit-badge--ok {
   background: var(--ok-fill);
   color: var(--ok);
@@ -8286,7 +8220,7 @@ a.kit-mbattle:hover {
 .kit-player > .kit-tabs {
   margin-bottom: 0;
 }
-/* Under the tabs: one reading column, as the canvas's main column. */
+
 .kit-player__body {
   display: grid;
   gap: 14px;
@@ -8297,7 +8231,7 @@ a.kit-mbattle:hover {
   display: grid;
   gap: 10px;
 }
-/* A timeline item (canvas Player .item): a medal tile beside the line. */
+
 .kit-pitem__body {
   display: flex;
   align-items: flex-start;
@@ -8305,64 +8239,63 @@ a.kit-mbattle:hover {
 }
 .kit-pitem__main {
   display: grid;
-  gap: 4px;
+  gap: var(--s-1);
   flex: 1;
   min-width: 0;
 }
 .kit-pitem__main .kit-feed__text {
   margin: 0;
-  font-size: var(--t-body-lg);
+  font-size: var(--t-body);
 }
 .kit-medal--tile {
   width: 44px;
   height: 44px;
-  border-radius: var(--r-card);
+  border-radius: var(--r-control);
 }
 .kit-medal--clan {
-  border: 2px solid var(--gold);
-  background: linear-gradient(160deg, var(--accent-deep), var(--panel));
-  color: var(--gold);
+  border: 0;
+  background: var(--panel-raised);
+  color: var(--ink-dim);
 }
 .kit-pitem .kit-feed__foot {
-  margin-top: 4px;
+  margin-top: var(--s-1);
 }
-/* A highlight on the Highlights tab (canvas .hcard): Home's card surface,
-   flat since 2026-11-13; the gold crown line and the display face carry it. */
+
 .kit-hcard {
   display: grid;
   gap: 6px;
-  padding: 18px;
-  border-radius: var(--r-tile);
-  background: var(--panel);
+  padding: var(--s-5) 0;
+  border-radius: 0;
+  background: none;
   color: var(--ink);
   overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--line-soft);
 }
 .kit-hcard__when {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   margin: 0;
-  font: 400 var(--t-body) / 1 var(--font-display);
-  color: var(--gold);
+  font: 600 var(--t-body) / 1 var(--font);
+  color: var(--ink-dim);
 }
 .kit-hcard__title {
-  margin: 4px 0 0;
-  font: 400 var(--t-stat-lg) / 1.15 var(--font-display);
+  margin: var(--s-1) 0 0;
+  font: 600 var(--t-h2) / 1.15 var(--font);
   letter-spacing: 0.01em;
 }
 .kit-hcard__words {
-  margin: 4px 0 6px;
+  margin: var(--s-1) 0 6px;
   padding-left: 10px;
-  border-left: 3px solid var(--gold);
+  border-left: 2px solid var(--line-strong);
   color: var(--ink-body);
   font-size: var(--t-body);
 }
-/* Moments (canvas Player moments): tiles on Home's card surface, a medal
-   each, straight on the page (no panel round them since 2026-11-13). */
+
 .kit-moments {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 12px;
+  gap: var(--s-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -8372,15 +8305,15 @@ a.kit-mbattle:hover {
   align-items: center;
   gap: 10px;
   min-width: 0;
-  padding: 12px;
-  border-radius: var(--r-tile);
+  padding: var(--s-3);
+  border-radius: var(--r-control);
   background: var(--panel);
   overflow-wrap: anywhere;
 }
 .kit-moment .kit-medal {
   width: 40px;
   height: 40px;
-  border-radius: var(--r-card);
+  border-radius: var(--r-control);
 }
 .kit-moment__main {
   display: grid;
@@ -8402,37 +8335,36 @@ a.kit-mbattle:hover {
 .kit-you > :not(.kit-player) {
   max-width: 820px;
 }
-/* Follows: the two lists side by side (canvas .grid2). */
+
 .kit-pfollows {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   align-items: start;
 }
-/* A shared post, /h/<id> (canvas Highlight): one card, centred, then the
-   way in. */
+
 .kit-post {
   display: grid;
-  gap: 16px;
+  gap: var(--s-4);
   max-width: 760px;
   margin: 0 auto;
 }
 .kit-post__card {
   display: grid;
   gap: 10px;
-  padding: 18px 20px 14px;
-  border-radius: var(--r-tile);
+  padding: 18px var(--s-5) 14px;
+  border-radius: var(--r-control);
   background: var(--panel);
   overflow-wrap: anywhere;
 }
 .kit-post__title {
   margin: 2px 0 0;
-  font: 400 var(--t-h1-page) / 1.15 var(--font-display);
+  font: 600 var(--t-h1-page) / 1.15 var(--font);
   letter-spacing: 0.01em;
   color: var(--ink);
 }
 .kit-post__words {
-  font-size: var(--t-body-lg);
+  font-size: var(--t-body);
 }
 .kit-post__length {
   display: flex;
@@ -8440,21 +8372,21 @@ a.kit-mbattle:hover {
   gap: 6px;
   margin: 0;
 }
-/* Four numbers side by side (canvas .nums): this side's, then the other's. */
+
 .kit-nums {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin: 4px 0 0;
+  gap: var(--s-2);
+  margin: var(--s-1) 0 0;
 }
 .kit-nums > div {
-  padding: 8px 10px;
-  border-radius: var(--r-panel);
+  padding: var(--s-2) 10px;
+  border-radius: var(--r-control);
   background: var(--ground-sunken);
 }
 .kit-nums dt {
   color: var(--ink-faint);
-  font-size: var(--t-badge);
+  font-size: var(--t-micro);
   font-weight: 600;
   letter-spacing: 0.07em;
   line-height: 1.25;
@@ -8463,21 +8395,21 @@ a.kit-mbattle:hover {
 .kit-nums dd {
   margin: 2px 0 0;
   color: var(--ink);
-  font-size: var(--t-lead);
+  font-size: var(--t-body);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .kit-nums__vs {
   color: var(--ink-faint);
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   font-weight: 600;
 }
-/* The way in for a reader with no account (canvas Highlight's CTA). */
+
 .kit-cta {
   display: grid;
-  gap: 8px;
-  padding: 18px 20px;
-  border-radius: var(--r-tile);
+  gap: var(--s-2);
+  padding: 18px var(--s-5);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 .kit-cta__title {
@@ -8499,6 +8431,10 @@ a.kit-mbattle:hover {
   flex: 0 0 auto;
 }
 @media (max-width: 760px) {
+  .kit-player > .kit-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
   /* On a phone the avatar sits beside the name, smaller, as Clan's crest
      does, and the actions take their own row under it, so the timeline
      starts on the first screen. */
@@ -8509,15 +8445,17 @@ a.kit-mbattle:hover {
       "counts counts"
       "actions actions";
     align-items: center;
-    gap: 8px 12px;
+    gap: var(--s-2) var(--s-3);
   }
   .kit-phead > .kit-av--l {
     width: 56px;
     height: 56px;
-    font-size: var(--t-stat);
+    font-size: var(--t-h2);
   }
   .kit-phead__name {
     font-size: var(--t-title);
+    font: 600 var(--t-h1-page) / 1.15 var(--font);
+    letter-spacing: -0.03em;
   }
   /* The counts and the actions on the page's gutter, under the avatar,
      not indented to the name (2026-11-13). */
@@ -8525,10 +8463,10 @@ a.kit-mbattle:hover {
     justify-content: flex-start;
   }
   .kit-statrow {
-    gap: 4px 16px;
+    gap: var(--s-1) var(--s-4);
   }
   .kit-statrow .kit-stat__value {
-    font-size: var(--t-lead);
+    font-size: var(--t-body);
   }
   .kit-moment .kit-medal {
     display: inline-flex;
@@ -8540,7 +8478,7 @@ a.kit-mbattle:hover {
     padding: 14px;
   }
   .kit-post__title {
-    font-size: var(--t-stat-lg);
+    font-size: var(--t-h2);
   }
   .kit-nums {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -8559,20 +8497,21 @@ a.kit-mbattle:hover {
   select,
   textarea,
   .select {
-    font-size: var(--t-body-lg);
+    font-size: var(--t-body);
   }
   .kit-shell__main {
-    padding: 14px 16px 28px;
+    padding: 14px var(--s-4) 28px;
   }
   .kit-top__row {
     gap: 10px;
-    padding-inline: max(16px, env(safe-area-inset-left))
-      max(16px, env(safe-area-inset-right));
+    padding-inline: max(var(--s-4), env(safe-area-inset-left))
+      max(var(--s-4), env(safe-area-inset-right));
     min-height: 54px;
   }
   .kit-top__nav,
   .kit-top__search {
     display: none;
+    min-height: var(--hit);
   }
   /* Out of sight, still the button's name. */
   .kit-top__name {
@@ -8596,24 +8535,30 @@ a.kit-mbattle:hover {
     white-space: normal;
   }
   .kit-feed__item {
-    padding: 14px 14px 12px;
+    padding: var(--s-5) 0;
+    gap: var(--s-2);
+    border-radius: 0;
+    background: none;
+    border-bottom: 1px solid var(--line-soft);
   }
   /* The phone board draws a moment without its medal: the sentence keeps
      the card's whole reading width. */
   .kit-medal {
     display: none;
+    background: var(--panel-raised);
+    color: var(--ink-dim);
   }
   .kit-spark {
     height: 48px;
   }
   .kit-sfacts {
-    gap: 4px 16px;
+    gap: var(--s-1) var(--s-4);
   }
   .kit-sfacts dd {
-    font-size: var(--t-lead);
+    font-size: var(--t-h2);
+    font-weight: 600;
   }
-  /* The phone's tab bar (canvas .tabs-b): the bar's own chrome, and the
-     place you are in in gold, icon and word. */
+
   .kit-bottom {
     position: fixed;
     right: 0;
@@ -8638,12 +8583,12 @@ a.kit-mbattle:hover {
     justify-content: center;
     gap: 3px;
     min-height: 60px;
-    padding: 6px 4px;
+    padding: 6px var(--s-1);
     border: 0;
     background: transparent;
     color: var(--ink-dim);
     font: inherit;
-    font-size: var(--t-fine);
+    font-size: var(--t-caption);
     font-weight: 600;
     letter-spacing: 0.01em;
     text-decoration: none;
@@ -8652,7 +8597,7 @@ a.kit-mbattle:hover {
   }
   .kit-bottom svg {
     box-sizing: content-box;
-    padding: 4px 14px;
+    padding: var(--s-1) 14px;
     border-radius: var(--r-pill);
     transition: background-color 120ms ease;
   }
@@ -8661,7 +8606,7 @@ a.kit-mbattle:hover {
     background: var(--hover-rail);
   }
   .kit-bottom [aria-current="page"] {
-    color: var(--gold);
+    color: var(--accent-bright);
   }
   .kit-bottom a:focus-visible,
   .kit-bottom button:focus-visible {
@@ -8671,9 +8616,6 @@ a.kit-mbattle:hover {
   .kit-bottom button:focus-visible svg {
     outline: 2px solid var(--accent-bright);
     outline-offset: 1px;
-  }
-  .kit-deck .deck-grid--8 {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   /* The phone's bell is a tab; the bar's would be a second one. */
   .kit-top .kit-bell {
@@ -8690,8 +8632,8 @@ a.kit-mbattle:hover {
 
 .clan-head {
   display: grid;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
 }
 /* The place's name leads in display type; a page inside it is a step down. */
 .clan-head ~ .kit-head .kit-head__title,
@@ -8707,9 +8649,9 @@ a.kit-mbattle:hover {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas: "av who side";
-  gap: 8px 16px;
+  gap: var(--s-2) var(--s-4);
   align-items: center;
-  padding: 4px 0 0;
+  padding: var(--s-1) 0 0;
 }
 .clan-head__card > .kit-av {
   grid-area: av;
@@ -8734,7 +8676,7 @@ a.kit-mbattle:hover {
   grid-area: side;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--s-2);
   align-items: center;
 }
 /* The picker's "Clan" is for screen readers (2026-11-13): shown, it floated
@@ -8793,7 +8735,7 @@ a.kit-mbattle:hover {
   max-width: calc(100vw - 32px);
 }
 .clan-head__chips {
-  margin-top: 8px;
+  margin-top: var(--s-2);
 }
 .clan-head__chips:focus-visible {
   outline: 2px solid var(--accent-bright);
@@ -8805,7 +8747,7 @@ a.kit-mbattle:hover {
 @media (max-width: 760px) {
   .clan-head {
     gap: 6px;
-    margin-bottom: 12px;
+    margin-bottom: var(--s-3);
   }
   /* Home's density (round two, 2026-11-13): the crest beside the role and
      name only; the clan's line, its chips and the Follow row all start on
@@ -8819,7 +8761,7 @@ a.kit-mbattle:hover {
       "chips chips"
       "side side";
     align-items: center;
-    gap: 0 12px;
+    gap: 0 var(--s-3);
   }
   .clan-head__who {
     display: contents;
@@ -8847,7 +8789,7 @@ a.kit-mbattle:hover {
   }
   .clan-head__side {
     flex-wrap: nowrap;
-    margin-top: 12px;
+    margin-top: var(--s-3);
   }
   .clan-head__side .clan-head__picker {
     flex: 1 1 auto;
@@ -8859,7 +8801,7 @@ a.kit-mbattle:hover {
   .clan-head__card .kit-av--crest {
     width: 48px;
     height: 48px;
-    border-radius: var(--r-block);
+    border-radius: var(--r-control);
     font-size: var(--t-h2);
   }
   .clan-head__chips::-webkit-scrollbar {
@@ -8875,15 +8817,15 @@ a.kit-mbattle:hover {
    cards, no edge. */
 .clan-race {
   display: grid;
-  gap: 8px;
+  gap: var(--s-2);
   padding: 14px 18px;
-  border-radius: var(--r-block);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 .clan-race__top {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: var(--s-1) var(--s-3);
   align-items: baseline;
   justify-content: space-between;
 }
@@ -8921,10 +8863,10 @@ a.kit-mbattle:hover {
 .clan-subnav {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: var(--s-2) var(--s-4);
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: var(--s-4);
 }
 .clan-subnav__find {
   width: 200px;
@@ -8935,7 +8877,7 @@ a.kit-mbattle:hover {
    and its two foot sections are flat: a heading and space, no box and,
    since 2026-11-13, no rule. */
 .clan-members-find {
-  margin-bottom: 12px;
+  margin-bottom: var(--s-3);
 }
 .clan-members-find .clan-subnav__find {
   width: 240px;
@@ -8944,7 +8886,7 @@ a.kit-mbattle:hover {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  margin-bottom: 4px;
+  margin-bottom: var(--s-1);
   color: var(--ink-dim);
   text-decoration: none;
 }
@@ -8988,13 +8930,13 @@ a.kit-mbattle:hover {
 .clan-today {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 24px;
+  gap: var(--s-6);
   align-items: start;
 }
 .clan-today__waiting,
 .clan-today__cards {
   display: grid;
-  gap: 16px;
+  gap: var(--s-4);
   min-width: 0;
 }
 .clan-today__now:empty {
@@ -9008,10 +8950,10 @@ a.kit-mbattle:hover {
 .clan-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: var(--s-2) var(--s-3);
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--s-3) var(--s-4);
 }
 .clan-row--stack {
   display: grid;
@@ -9035,13 +8977,13 @@ a.kit-mbattle:hover {
 }
 .clan-clock {
   display: grid;
-  gap: 4px;
+  gap: var(--s-1);
 }
 .clan-facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px 20px;
-  margin: 0 0 16px;
+  gap: var(--s-3) var(--s-5);
+  margin: 0 0 var(--s-4);
 }
 .clan-presets {
   display: grid;
@@ -9050,10 +8992,10 @@ a.kit-mbattle:hover {
 }
 .clan-preset {
   display: grid;
-  gap: 4px;
-  padding: 12px;
+  gap: var(--s-1);
+  padding: var(--s-3);
   border: 1px solid transparent;
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   background: var(--control);
   color: var(--ink);
   font: inherit;
@@ -9083,7 +9025,7 @@ a.kit-mbattle:hover {
   gap: 14px;
 }
 .clan-run__list h2 {
-  margin: 0 0 4px;
+  margin: 0 0 var(--s-1);
 }
 .clan-run__list ul {
   display: grid;
@@ -9094,12 +9036,12 @@ a.kit-mbattle:hover {
 }
 .clan-run__list a {
   display: flex;
-  gap: 8px;
+  gap: var(--s-2);
   align-items: center;
   justify-content: space-between;
   min-height: 36px;
-  padding: 4px 10px;
-  border-radius: var(--r-chip);
+  padding: var(--s-1) 10px;
+  border-radius: var(--r-control);
   color: var(--ink-dim);
   text-decoration: none;
 }
@@ -9139,7 +9081,7 @@ a.kit-mbattle:hover {
 }
 .clan-run__section {
   display: grid;
-  gap: 16px;
+  gap: var(--s-4);
   align-content: start;
   min-width: 0;
 }
@@ -9148,11 +9090,11 @@ a.kit-mbattle:hover {
 .clan-save {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 16px;
+  gap: 10px var(--s-4);
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-radius: var(--r-panel);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 .clan-save[data-live="true"] {
@@ -9182,7 +9124,7 @@ a.kit-mbattle:hover {
 .clan-save__buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--s-2);
 }
 /* One policy setting: its name, the box with its unit beside it, what the
    saved policy had when the draft changed it, then its help. */
@@ -9199,14 +9141,14 @@ a.kit-mbattle:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   min-height: 32px;
 }
 .clan-field__control {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  gap: var(--s-2) var(--s-3);
 }
 .clan-field__control select {
   flex: 0 1 420px;
@@ -9248,7 +9190,7 @@ a.kit-mbattle:hover {
 .clan-versions__row {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);
-  gap: 12px;
+  gap: var(--s-3);
   padding: 10px 0;
 }
 .clan-versions__v {
@@ -9296,8 +9238,8 @@ a.kit-mbattle:hover {
     position: sticky;
     bottom: 0;
     display: grid;
-    gap: 8px;
-    padding: 12px;
+    gap: var(--s-2);
+    padding: var(--s-3);
     background: var(--panel-float);
   }
   .clan-save,
@@ -9338,7 +9280,7 @@ a.kit-mbattle:hover {
     min-width: 0;
   }
   .clan-rows tr {
-    padding: 10px 16px;
+    padding: 10px var(--s-4);
     border-top: 1px solid var(--line-soft);
   }
   .clan-rows th,
@@ -9349,7 +9291,7 @@ a.kit-mbattle:hover {
   }
   .clan-rows td[data-label] {
     display: flex;
-    gap: 12px;
+    gap: var(--s-3);
     justify-content: space-between;
   }
   .clan-rows td[data-label]::before {
@@ -9362,23 +9304,23 @@ a.kit-mbattle:hover {
 /* ---- A confirmation (redesign step 6): one question, Cancel holds focus. */
 .kit-confirm {
   width: min(440px, calc(100% - 32px));
-  padding: 20px;
+  padding: var(--s-5);
   color: var(--ink);
   background: var(--ground-chrome);
   border: 0;
-  border-radius: var(--r-card);
+  border-radius: var(--r-control);
 }
 .kit-confirm::backdrop {
   background: var(--scrim);
 }
 .kit-confirm__title {
-  margin: 0 0 8px;
-  font-size: var(--t-lead);
+  margin: 0 0 var(--s-2);
+  font-size: var(--t-body);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 .kit-confirm__body {
-  margin: 0 0 16px;
+  margin: 0 0 var(--s-4);
   font-size: var(--t-body-sm);
   line-height: 1.5;
   color: var(--ink-body);
@@ -9387,17 +9329,14 @@ a.kit-mbattle:hover {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--s-2);
 }
 
-/* The sign-in door (canvas Signup .panel, 2026-11-13): one flat panel, no
-   float or shadow, labels in small capitals, the gold action full width.
-   A link that failed keeps the warning edge. */
 .kit-door {
   max-width: 480px;
   margin: 40px auto 0;
-  padding: 24px 22px;
-  border-radius: var(--r-block);
+  padding: var(--s-6) 22px;
+  border-radius: var(--r-control);
   background: var(--panel);
 }
 .kit-door--warn {
@@ -9405,20 +9344,20 @@ a.kit-mbattle:hover {
 }
 .kit-door .kit-door__title {
   margin: 0;
-  font-size: var(--t-door-title);
+  font-size: var(--t-title);
   font-weight: 700;
   line-height: 1.2;
 }
 .kit-door__lead {
-  margin: 8px 0 20px;
-  font-size: var(--t-prose);
+  margin: var(--s-2) 0 var(--s-5);
+  font-size: var(--t-body-sm);
   line-height: 1.6;
   color: var(--ink-dim);
   text-wrap: pretty;
 }
 .kit-door .field-label {
   margin-bottom: 6px;
-  font-size: var(--t-label);
+  font-size: var(--t-caption);
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -9427,9 +9366,9 @@ a.kit-mbattle:hover {
   width: 100%;
   box-sizing: border-box;
   margin-bottom: 14px;
-  padding: 12px 13px;
+  padding: var(--s-3) 13px;
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-card);
+  border-radius: var(--r-control);
   background: var(--ground-sunken);
   color: var(--ink);
   font-size: var(--t-body);
@@ -9444,7 +9383,7 @@ a.kit-mbattle:hover {
   width: 100%;
   justify-content: center;
   padding: 13px;
-  border-radius: var(--r-control-lg);
+  border-radius: var(--r-control);
   font-size: var(--t-body);
 }
 
@@ -9452,7 +9391,7 @@ a.kit-mbattle:hover {
 .st-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--s-4);
   min-width: 0;
 }
 .st-facts {
@@ -9463,12 +9402,12 @@ a.kit-mbattle:hover {
 .st-facts > dt,
 .st-facts > dd {
   margin: 0;
-  padding: 12px 16px;
+  padding: var(--s-3) var(--s-4);
   font-size: var(--t-body-sm);
 }
 .st-facts > dt {
   color: var(--ink-faint);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
 }
 .st-facts > dd {
   min-width: 0;
@@ -9479,37 +9418,37 @@ a.kit-mbattle:hover {
   grid-template-columns: minmax(0, 1fr);
 }
 .st-facts--rows > dt {
-  padding: 12px 16px 0;
+  padding: var(--s-3) var(--s-4) 0;
   color: var(--ink);
   font-size: var(--t-body);
   font-weight: 600;
 }
 .st-facts--rows > dd {
-  padding: 3px 16px 12px;
+  padding: 3px var(--s-4) var(--s-3);
   color: var(--ink-dim);
   font-size: var(--t-body-sm);
   line-height: 1.5;
 }
 .st-note {
   display: block;
-  margin-top: 4px;
-  font-size: var(--t-mono);
+  margin-top: var(--s-1);
+  font-size: var(--t-caption);
   line-height: 1.45;
   color: var(--ink-faint);
 }
 .st-foot {
   margin: 0;
   max-width: 78ch;
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   line-height: 1.5;
   color: var(--ink-faint);
 }
-/* A panel's closing sentence keeps the rows' inset (canvas .setrow). */
+
 .st-facts + .st-foot {
-  padding: 0 16px 14px;
+  padding: 0 var(--s-4) 14px;
 }
 .st-inset {
-  padding: 13px 16px;
+  padding: 13px var(--s-4);
   font-size: var(--t-body-sm);
   line-height: 1.5;
   color: var(--ink-body);
@@ -9524,7 +9463,7 @@ a.kit-mbattle:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .st-form input,
 .st-form select {
@@ -9546,17 +9485,17 @@ a.kit-mbattle:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .st-group {
   margin: 0;
-  padding: 12px 16px 2px;
-  font-size: var(--t-mono);
+  padding: var(--s-3) var(--s-4) 2px;
+  font-size: var(--t-caption);
   font-weight: 600;
   color: var(--ink-faint);
 }
 .st-group span {
-  margin-left: 8px;
+  margin-left: var(--s-2);
   font-weight: 400;
 }
 /* What members see (G8, 2026-11-12): at phone width every control on the
@@ -9564,7 +9503,7 @@ a.kit-mbattle:hover {
    44 px tall. Flat: sizes only, no new edges. */
 .st-seen__out {
   align-self: flex-start;
-  margin-top: 4px;
+  margin-top: var(--s-1);
 }
 @media (max-width: 760px) {
   .st-seen .btn,
@@ -9585,7 +9524,7 @@ a.kit-mbattle:hover {
 }
 .st-code {
   display: block;
-  padding: 10px 12px;
+  padding: 10px var(--s-3);
   background: var(--ground-sunken);
   border-radius: var(--r-control);
   overflow-wrap: anywhere;
@@ -9595,7 +9534,7 @@ a.kit-mbattle:hover {
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
 }
 @media (max-width: 720px) {
   .st-facts {
@@ -9618,7 +9557,7 @@ a.kit-mbattle:hover {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-dim);
 }
 .st-field select,
@@ -9627,15 +9566,15 @@ a.kit-mbattle:hover {
 }
 .st-answer {
   max-width: 70ch;
-  padding: 2px 0 2px 16px;
+  padding: 2px 0 2px var(--s-4);
   border-left: 2px solid var(--accent-bright);
 }
 .st-answer > .label {
-  margin-bottom: 8px;
+  margin-bottom: var(--s-2);
 }
 .st-note-body {
   max-width: 70ch;
-  font-size: var(--t-body-lg);
+  font-size: var(--t-body);
   color: var(--ink);
 }
 .st-bars {
@@ -9643,14 +9582,14 @@ a.kit-mbattle:hover {
   align-items: flex-end;
   gap: 3px;
   height: 96px;
-  padding: 14px 16px 0;
+  padding: 14px var(--s-4) 0;
 }
 .st-bar {
   flex: 1 1 0;
   min-width: 0;
   min-height: 1px;
   background: var(--accent);
-  border-radius: var(--r-tick) var(--r-tick) 0 0;
+  border-radius: var(--r-control) var(--r-control) 0 0;
 }
 .st-bar--today {
   background: var(--accent-bright);
@@ -9658,22 +9597,22 @@ a.kit-mbattle:hover {
 .st-bars__axis {
   display: flex;
   justify-content: space-between;
-  padding: 6px 16px 12px;
-  font-size: var(--t-fine);
+  padding: 6px var(--s-4) var(--s-3);
+  font-size: var(--t-caption);
   color: var(--ink-faint);
 }
 .st-list {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
 }
 .st-list > li {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 4px 12px;
-  padding: 8px 16px;
+  gap: var(--s-1) var(--s-3);
+  padding: var(--s-2) var(--s-4);
 }
 /* Clan's answer to "am I OK?": the first thing in You in the clan. */
 .kit-step__ahead {
@@ -9682,9 +9621,9 @@ a.kit-mbattle:hover {
 .clan-verdict {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   margin: 0;
-  font-size: var(--t-lead);
+  font-size: var(--t-body);
   font-weight: 600;
   color: var(--ink);
 }
@@ -9698,8 +9637,8 @@ a.kit-mbattle:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 14px;
-  padding: 10px 16px;
-  font-size: var(--t-small);
+  padding: 10px var(--s-4);
+  font-size: var(--t-body-sm);
 }
 .st-meter__name {
   flex: 0 1 180px;
@@ -9745,13 +9684,13 @@ a.kit-mbattle:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .follow-clan {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
+  gap: 6px var(--s-2);
 }
 .follow-clan__note {
   flex-basis: 100%;
@@ -9761,7 +9700,7 @@ a.kit-mbattle:hover {
 .st-two {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--s-4);
 }
 @media (max-width: 720px) {
   .st-two {
@@ -9775,12 +9714,15 @@ a.kit-mbattle:hover {
   background: transparent;
   font: inherit;
   cursor: pointer;
+  min-width: var(--hit);
+  min-height: var(--hit);
 }
 /* Too narrow for a useful prompt: the magnifier alone, its words still its name. */
 @media (max-width: 1000px) {
   .kit-top__search {
     flex: 0 0 auto;
-    padding: 8px;
+    padding: var(--s-2);
+    min-height: var(--hit);
   }
   .kit-top__search span {
     position: absolute;
@@ -9792,8 +9734,9 @@ a.kit-mbattle:hover {
   }
 }
 .kit-top__search {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   text-align: left;
+  min-height: var(--hit);
 }
 .kit-search,
 .kit-help {
@@ -9811,7 +9754,7 @@ a.kit-mbattle:hover {
 .kit-search {
   width: min(640px, calc(100% - 32px));
   margin: 72px auto auto;
-  border-radius: var(--r-card);
+  border-radius: var(--r-control);
 }
 .kit-search__box {
   display: flex;
@@ -9822,7 +9765,7 @@ a.kit-mbattle:hover {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: var(--s-3) 14px;
   border-bottom: 1px solid var(--line);
 }
 .kit-search__field .input {
@@ -9831,7 +9774,7 @@ a.kit-mbattle:hover {
 }
 .kit-search__results {
   overflow-y: auto;
-  padding: 6px 0 12px;
+  padding: 6px 0 var(--s-3);
 }
 .kit-search__group h2,
 .kit-help h3 {
@@ -9841,17 +9784,17 @@ a.kit-mbattle:hover {
   color: var(--ink-dim);
 }
 .kit-search__group h2 {
-  padding: 10px 16px 4px;
+  padding: 10px var(--s-4) var(--s-1);
 }
 .kit-search__group a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s-3);
   min-height: var(--hit-touch);
-  padding: 9px 16px;
+  padding: 9px var(--s-4);
   color: var(--ink);
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   text-decoration: none;
   overflow-wrap: anywhere;
 }
@@ -9863,12 +9806,12 @@ a.kit-mbattle:hover {
   flex: none;
   max-width: 50%;
   color: var(--ink-dim);
-  font-size: var(--t-mono);
+  font-size: var(--t-caption);
   text-align: right;
 }
 .kit-search__note {
   margin: 0;
-  padding: 10px 16px;
+  padding: 10px var(--s-4);
   font-size: var(--t-body-sm);
   color: var(--ink-body);
 }
@@ -9876,8 +9819,8 @@ a.kit-mbattle:hover {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
 }
 .kit-search__miss h2 {
   margin: 0;
@@ -9899,8 +9842,8 @@ a.kit-mbattle:hover {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 16px 18px 24px;
-  font-size: var(--t-panel-head);
+  padding: var(--s-4) 18px var(--s-6);
+  font-size: var(--t-body-sm);
   line-height: 1.5;
   color: var(--ink-body);
 }
@@ -9911,18 +9854,18 @@ a.kit-mbattle:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s-3);
 }
 .kit-help__head h2 {
   margin: 0;
-  font-size: var(--t-lead);
+  font-size: var(--t-body);
   color: var(--ink);
 }
 .kit-help__links {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
 }
 /* The Send button is a .btn, whose display beats the browser's own [hidden]
    rule, so it stayed on screen after a note was sent. */
@@ -9933,7 +9876,7 @@ a.kit-mbattle:hover {
 .kit-help form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .kit-help textarea {
   width: 100%;
@@ -9959,8 +9902,8 @@ a.kit-mbattle:hover {
     padding-bottom: env(safe-area-inset-bottom);
   }
   .kit-help__box {
-    padding-top: calc(16px + env(safe-area-inset-top));
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-top: calc(var(--s-4) + env(safe-area-inset-top));
+    padding-bottom: calc(var(--s-6) + env(safe-area-inset-bottom));
   }
 }
 
@@ -9975,7 +9918,7 @@ a.kit-mbattle:hover {
   text-decoration: none;
 }
 .data-sec {
-  margin: 0 0 32px;
+  margin: 0 0 var(--s-8);
   scroll-margin-top: 72px;
 }
 .data-sec__head {
@@ -9983,20 +9926,20 @@ a.kit-mbattle:hover {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin: 0 0 8px;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-2);
 }
 .data-sec__head h2 {
   margin: 0;
   font-size: var(--t-h2);
 }
 .data-sec__link {
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
 }
 .data-range {
   display: flex;
   gap: 6px;
-  margin: 0 0 12px;
+  margin: 0 0 var(--s-3);
 }
 .data-range[hidden],
 .data-chart[hidden] {
@@ -10004,13 +9947,13 @@ a.kit-mbattle:hover {
 }
 .data-table summary {
   cursor: pointer;
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
 }
 .data-rows__row {
   display: grid;
-  gap: 4px 16px;
+  gap: var(--s-1) var(--s-4);
   padding: 10px 14px;
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   min-width: 0;
 }
 .data-rows__row > * {
@@ -10062,10 +10005,10 @@ a.kit-mbattle:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--s-4);
   margin: 0 0 18px;
-  padding: 12px 14px;
-  border-radius: var(--r-chip);
+  padding: var(--s-3) 14px;
+  border-radius: var(--r-control);
   cursor: pointer;
 }
 .updates-switch[hidden] {
@@ -10078,7 +10021,7 @@ a.kit-mbattle:hover {
   min-width: 0;
 }
 .updates-switch__name {
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 600;
 }
 .updates-switch input {
@@ -10087,7 +10030,7 @@ a.kit-mbattle:hover {
   flex: none;
 }
 .updates-month {
-  margin: 26px 0 12px;
+  margin: 26px 0 var(--s-3);
 }
 .updates-entry {
   margin-bottom: var(--s-3);
@@ -10100,7 +10043,7 @@ a.kit-mbattle:hover {
   gap: 11px;
 }
 .updates-entry__date {
-  font-size: var(--t-small);
+  font-size: var(--t-body-sm);
   color: var(--ink-faint);
 }
 .updates-entry__title {
@@ -10119,7 +10062,7 @@ a.kit-mbattle:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 24px;
+  margin-top: var(--s-6);
 }
 .updates-pager__older {
   margin-left: auto;
@@ -10141,8 +10084,8 @@ a.kit-mbattle:hover {
 .kit-rule {
   display: grid;
   gap: 14px;
-  padding: 18px 20px;
-  border-radius: var(--r-panel);
+  padding: 18px var(--s-5);
+  border-radius: var(--r-control);
   background: var(--panel);
   scroll-margin-top: 80px;
 }
@@ -10161,16 +10104,16 @@ a.kit-mbattle:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--s-2);
   margin: 0;
   color: var(--gold-light);
-  font-size: var(--t-label);
+  font-size: var(--t-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .kit-rule__mark {
-  padding: 1px 8px;
+  padding: 1px var(--s-2);
   border-radius: var(--r-pill);
   background: var(--gold-wash);
   color: var(--gold);
@@ -10190,16 +10133,16 @@ a.kit-mbattle:hover {
   display: grid;
   flex: 1 1 120px;
   align-content: start;
-  gap: 4px;
+  gap: var(--s-1);
   min-width: 0;
-  padding: 12px 14px;
+  padding: var(--s-3) 14px;
   border-radius: var(--r-control);
   background: var(--ground-sunken);
 }
 .kit-rule__big {
   color: var(--ink);
-  font-family: var(--font-display);
-  font-size: var(--t-rule-big);
+  font-family: var(--font);
+  font-size: var(--t-title);
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
 }
@@ -10213,7 +10156,7 @@ a.kit-mbattle:hover {
   top: 10px;
   right: 12px;
   color: var(--ink-faint);
-  font-size: var(--t-label);
+  font-size: var(--t-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -10228,9 +10171,9 @@ a.kit-mbattle:hover {
 .kit-rule__weight {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--s-2);
   margin-bottom: 6px;
-  font-size: var(--t-panel-head);
+  font-size: var(--t-body-sm);
   font-weight: 600;
 }
 .kit-rule__weight span {
@@ -10250,12 +10193,12 @@ a.kit-mbattle:hover {
 }
 .kit-rule__lines {
   display: grid;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .kit-rule__lines p {
   margin: 0;
   color: var(--ink-body);
-  font-size: var(--t-prose);
+  font-size: var(--t-body-sm);
   line-height: 1.55;
 }
 /* Who sees what about you under a rule (Policy): quiet, under its lines. */
@@ -10269,14 +10212,14 @@ a.kit-mbattle:hover {
 .kit-why {
   display: grid;
   gap: 6px;
-  padding: 12px 14px;
+  padding: var(--s-3) 14px;
   border-radius: var(--r-control);
   background: var(--ground-sunken);
   box-shadow: inset 3px 0 0 var(--gold);
 }
 .kit-why__label {
   color: var(--gold-light);
-  font-size: var(--t-label);
+  font-size: var(--t-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -10295,16 +10238,13 @@ a.kit-mbattle:hover {
 }
 @media (max-width: 760px) {
   .kit-rule {
-    padding: 16px;
+    padding: var(--s-4);
   }
   .kit-rule__big {
     font-size: var(--t-title);
   }
 }
 
-/* Touch (2026-11-13): the canvas draws small controls at 28 to 34px; under a
-   finger every one of them is at least the 44px target, the look unchanged
-   on a mouse. */
 @media (pointer: coarse) {
   .btn,
   .btn--sm,
@@ -10414,7 +10354,7 @@ a.kit-mbattle:hover {
     display: inline-flex;
     align-items: center;
     min-height: var(--hit-touch);
-    padding-inline: 8px;
+    padding-inline: var(--s-2);
   }
 }
 
@@ -10464,7 +10404,7 @@ a.kit-mbattle:hover {
 /* A battle's games are the kit's tabs (round three, 2026-11-13); the deck
    panels below bring their own space. */
 .kit-tabs.battle__games {
-  margin-bottom: 8px;
+  margin-bottom: var(--s-2);
 }
 
 /* Profile images (2026-11-14): a card's base art placed in the avatar's
@@ -10526,7 +10466,7 @@ a.kit-mbattle:hover {
   min-height: 44px;
   padding: var(--s-1);
   border: 2px solid transparent;
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   background: none;
   color: var(--ink-dim);
   cursor: pointer;
