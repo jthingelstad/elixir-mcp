@@ -613,6 +613,17 @@ html[data-session="in"] [data-session-face="out"] {
   color: var(--ink-faint);
 }
 
+/* Round two of polish (2026-11-13): small explanatory lines keep a reading
+   measure on a wide screen (Stats' floor note ran 190 characters, Find's
+   help 145); a phone never reaches it. */
+.panel__foot,
+.footnote,
+p.kit-tiny,
+.kit-week__quiet,
+.kit-starter__lead {
+  max-width: 76ch;
+}
+
 .callout {
   display: flex;
   gap: 11px;
@@ -1121,6 +1132,13 @@ html[data-session="in"] [data-session-face="out"] {
 /* The brand shell: display face, weight 400 (Clash has one weight),
    positive letter-spacing (it is a wide face, negative tracking fights
    it). Everything else is Inter. */
+/* Round two of polish (2026-11-13): no head ends on one orphaned word
+   ("Sign in or create an / account"); a rule of a head's own wins. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
 h1,
 .page-title {
   margin: 0;
@@ -1588,6 +1606,7 @@ input[aria-invalid="true"] {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: var(--hit-touch);
   padding: 11px 0;
   color: var(--ink-faint);
   text-decoration: none;
@@ -3942,19 +3961,23 @@ input[aria-invalid="true"] {
   overflow-wrap: anywhere;
   color: var(--ink-dim);
 }
+/* The form's word stays one word on a small card (round two, 2026-11-13:
+   Stats' 32px cards stacked HERO a letter a line): it never wraps, and its
+   size and padding follow the card's width down to a floor. */
 .card-art__form {
   position: absolute;
   top: 3px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 0 6px;
+  padding: 0 clamp(2px, calc(var(--card-w, 60px) / 12), 6px);
   height: 15px;
   line-height: 15px;
   border-radius: var(--r-pill);
   color: #160f2e;
-  font-size: 9.5px;
+  font-size: clamp(7px, calc(var(--card-w, 60px) / 5), 9.5px);
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
   text-transform: uppercase;
 }
 .card-art__form--evolution {
@@ -4604,6 +4627,7 @@ a.card-art:hover .card-art__img {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: var(--hit-touch);
   padding: 10px 12px;
   color: var(--ink);
   text-decoration: none;
@@ -7228,6 +7252,13 @@ button.kit-row {
   flex: 1 1 160px;
   min-width: 0;
 }
+/* Follow is the one pill everywhere (round two, 2026-11-13); beside a
+   field it takes the field's height. */
+.kit-form__row > .btn.btn--follow {
+  align-self: stretch;
+  padding-inline: 20px;
+  font-size: 14px;
+}
 .kit-form__err {
   margin: 6px 0 0;
   color: var(--bad);
@@ -9515,6 +9546,12 @@ a.kit-mbattle:hover {
   width: auto;
   max-width: 100%;
 }
+/* A form's button sits on its fields' baseline row, not centred against a
+   label and its field (round two, 2026-11-13: Settings' Follow rode 11px
+   above the Friend select). */
+.st-form > .btn {
+  align-self: flex-end;
+}
 .st-actions {
   display: flex;
   flex-wrap: wrap;
@@ -10340,9 +10377,15 @@ a.kit-mbattle:hover {
   a.battle__name,
   .kit-tl__more,
   .home-row__link,
+  .ladder-card__name,
   .battle-deck a.card-art,
   .hit {
     position: relative;
+  }
+  /* Round two (2026-11-13): wrapped rows of the front page's links sit
+     44px apart, so one link's tap never reaches into the next row's. */
+  .home-row__links {
+    row-gap: 22px;
   }
   /* A truly inline box resolves the centring percentages against nothing
      in Chrome; one line of inline-block is the same text, centred right. */
@@ -10358,6 +10401,7 @@ a.kit-mbattle:hover {
   a.battle__name::after,
   .kit-tl__more::after,
   .home-row__link::after,
+  .ladder-card__name::after,
   .battle-deck a.card-art::after,
   .hit::after {
     content: "";

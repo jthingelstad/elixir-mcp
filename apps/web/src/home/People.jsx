@@ -357,7 +357,7 @@ export function YourClanPeople() {
             ask={{ clan_tag: data.clan.clan_tag }}
             label="Follow my clan"
             title={`Follow everyone in ${clanName}?`}
-            className="btn btn--gold"
+            className="btn btn--follow"
           />
         ) : null}
       </div>
@@ -481,7 +481,7 @@ export function StarterSet({ query }) {
           label={`Follow these (${plan.to_follow})`}
           title={`Follow ${plan.to_follow} ${plan.to_follow === 1 ? "player" : "players"}?`}
           confirm="Follow these"
-          className="btn btn--gold"
+          className="btn btn--follow"
         />
         <p className="kit-tiny kit-starter__sum" role="status">
           {followPlanLine(plan)}
