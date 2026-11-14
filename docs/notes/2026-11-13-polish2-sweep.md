@@ -51,4 +51,9 @@ leave the phone's top bar). Not done here: the error states come in four
 forms (a box, a head with Try again, a head alone, a box with a link);
 one form for them is a pass of its own.
 
+- **Roster read's explanation** (Clan's head, from #988) opens past the
+  line's clipped separator strip (`left: var(--clan-sep)`): when Roster
+  read wrapped to a row's start, its first 16px of text were clipped
+  (Codex on #988).
+
 Tests: `apps/web/test/player-page.test.jsx` (the own-page highlights link).
