@@ -27,7 +27,7 @@ export const DOC_LINKS = {
       ["Roles and quotas", "/docs/roles"],
     ],
   ],
-  tracking: [
+  players: [
     "What we record for you",
     [
       ["How recording works", "/docs/recording"],
@@ -46,9 +46,9 @@ export const DOC_LINKS = {
       ["Privacy", "/docs/privacy"],
     ],
   ],
-  // The record of one tracked thing: the page with the notify switch on
-  // it links to what a notification is.
-  "tracking:record": [
+  // The record of one followed player or clan: the page with the notify
+  // switch on it links to what a notification is.
+  "players:record": [
     "What we record for you",
     [
       ["How recording works", "/docs/recording"],
@@ -119,7 +119,7 @@ export const DOC_LINKS = {
       ["The timeline", "/docs/timeline"],
     ],
   ],
-  "agent:tracking": [
+  "agent:following": [
     "What an agent follows",
     [
       ["What an agent follows", "/docs/agents#what-an-agent-follows"],

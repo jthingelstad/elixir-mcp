@@ -43,9 +43,9 @@ import { Efficiency } from "./Efficiency.jsx";
 /**
  * Admin, nine pages.
  *
- * Six of them are the console's one log table with different columns
+ * Six of them are the app's one log table with different columns
  * (components/LogTable.jsx) — the same component Activity's three views
- * use, so the console never grows a second table idiom. Collectors and
+ * use, so the app never grows a second table idiom. Collectors and
  * Service tokens keep their own screens: a lifecycle with a different
  * legal move per row, and a one-time secret reveal, are not a log.
  *
@@ -267,7 +267,7 @@ const secs = (s) =>
       : s < 7200
         ? `${Math.round(s / 60)} min`
         : `${Math.round(s / 3600)} h`;
-/** A clan's key in a console path drops its #; a timeline's is its
+/** A clan's key in an app path drops its #; a timeline's is its
  *  account id. */
 const discordKey = (d) =>
   d.clan_tag ? d.clan_tag.replace(/^#/, "") : (d.account_id ?? "");
@@ -853,7 +853,7 @@ function AdminAccountDetail({ id }) {
           </span>
           {a.is_owner && <span className="chip chip--info">owner</span>}
         </div>
-        {/* .fields is the console's one key/value list (Agents, Explore
+        {/* .fields is the app's one key/value list (Agents, Explore
             and the collector record all use it) — a flat dl, no wrapper
             divs, because the grid is two columns of the SAME list. */}
         <dl className="fields" style={{ margin: 0 }}>
@@ -1005,7 +1005,7 @@ function AdminConnections() {
       action: async () => {
         // Somebody else's credential: the confirmation names whose, and
         // what stops working, because "Revoke" on a table row is the
-        // easiest destructive click in the console to make by accident.
+        // easiest destructive click in the app to make by accident.
         const whose = c.email ?? c.public_id ?? "this account";
         if (
           !window.confirm(
@@ -1047,7 +1047,7 @@ const FEEDBACK_AREA_LABEL = {
   mcp: "MCP",
   api: "JSON API",
   console: "Elixir",
-  ladder: "Ladder",
+  ladder: "Stats",
   clan: "Clan",
   mail: "Email",
   docs: "Docs",
@@ -1441,7 +1441,7 @@ function AdminServiceTokens() {
 
 /** The call a report is about, read over the admin lane so the maintainer
  *  sees what the filer saw — the arguments and the answer, not a
- *  description of them. Attached by the console's Report this call button
+ *  description of them. Attached by the app's Report this call button
  *  and by elixir_send_feedback's request_id (contract 1.1.0). */
 function AttachedCall({ requestId }) {
   const { stamp } = useClock();

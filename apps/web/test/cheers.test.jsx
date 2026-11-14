@@ -175,7 +175,7 @@ test("a cheer the server refuses says so", async () => {
   );
 });
 
-test("on an agent's console the counts show and nothing can be pressed", () => {
+test("on an agent's pages the counts show and nothing can be pressed", () => {
   global.fetch = vi.fn(async () => reply({}));
   renderWithProviders(
     <ScopeProvider value="ag_example">

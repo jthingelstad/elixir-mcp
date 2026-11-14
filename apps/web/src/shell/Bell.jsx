@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ErrorState,
-  FAMILY_PLACES,
+  SHELL_PLACES,
   Icon,
   Link,
   Row,
@@ -52,7 +52,7 @@ export function useBell(me, enabled) {
 }
 
 export function BellButton({ bell, onOpen, phone = false }) {
-  const words = FAMILY_PLACES.bell;
+  const words = SHELL_PLACES.bell;
   const label = bellLabel(words.label, bell.count);
   return (
     <button
@@ -167,7 +167,7 @@ export function BellSheet({ me, onClose }) {
     >
       <div className="kit-help__box">
         <header className="kit-help__head">
-          <h2 id="bell-title">{FAMILY_PLACES.bell.label}</h2>
+          <h2 id="bell-title">{SHELL_PLACES.bell.label}</h2>
           <button
             type="button"
             className="btn btn--sm btn--quiet"

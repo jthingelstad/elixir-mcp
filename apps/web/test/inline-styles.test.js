@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * A ratchet on inline styles. The console reached past its stylesheet
+ * A ratchet on inline styles. The app reached past its stylesheet
  * 605 times (2026-09-13) - `style={{ marginLeft: "auto" }}` where a
  * utility class now exists - and every one is a rule no other screen
  * can share. The count may only go DOWN: retire them as a view is
@@ -30,7 +30,7 @@ function walk(dir) {
   });
 }
 
-test(`inline styles in the console never exceed ${CEILING}`, () => {
+test(`inline styles in the app never exceed ${CEILING}`, () => {
   const counts = walk(src).map((f) => [
     path.relative(src, f),
     (readFileSync(f, "utf8").match(/style=\{/g) ?? []).length,

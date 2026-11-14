@@ -5,7 +5,7 @@ import { api } from "../../api.js";
 import { SETTINGS } from "../../lib/settings.js";
 import { tagPath } from "../../lib/tag-url.js";
 
-/** The add form's test: Tracking.jsx says the same. */
+/** The add form's test: Following.jsx says the same. */
 const TAG_OK = /^#?[0289PYLQGRJCUVO]{3,12}$/i;
 const canonical = (raw) =>
   `#${raw.trim().toUpperCase().replace(/^#/, "").replaceAll("O", "0")}`;

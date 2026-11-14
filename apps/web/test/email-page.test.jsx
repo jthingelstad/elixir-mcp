@@ -1,5 +1,5 @@
 /**
- * Account › Emails from Elixir (the ConsoleEmails board, 2026-10-02):
+ * Account › Emails from Elixir (the emails board, 2026-10-02):
  * a row per kind with its local schedule, the kinds that come when something happens, the last few sent,
  * and Every email, which sets every kind at once.
  */

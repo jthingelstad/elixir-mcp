@@ -39,7 +39,7 @@ export function renderMarkdown(text: string | null | undefined): string {
   return marked.parse(escapeHtml(text ?? "")) as string;
 }
 
-/** `className` is the prose style to render under: the console's `md`,
+/** `className` is the prose style to render under: the app's `md`,
  *  Clan's `prose`. */
 export function Markdown({
   text,

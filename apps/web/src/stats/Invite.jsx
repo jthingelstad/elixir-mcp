@@ -1,4 +1,4 @@
-import { FAMILY_SAMPLE_BATTLE, Icon, Panel } from "@elixir-mcp/ui";
+import { SHELL_SAMPLE_BATTLE, Icon, Panel } from "@elixir-mcp/ui";
 import { STATS_PAGES, MODES } from "./stats.js";
 
 /** What each Stats page reads back, in the docs' words
@@ -64,7 +64,7 @@ export function StatsInvite({ returnTo, onSignIn }) {
       <p className="footnote mt-4">
         Free signup with an email, then add your player.{" "}
         <a href="/docs/ladder">How Stats works</a> ·{" "}
-        <a href={FAMILY_SAMPLE_BATTLE.path}>{FAMILY_SAMPLE_BATTLE.label}</a>
+        <a href={SHELL_SAMPLE_BATTLE.path}>{SHELL_SAMPLE_BATTLE.label}</a>
       </p>
     </section>
   );

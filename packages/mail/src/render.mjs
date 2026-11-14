@@ -9,7 +9,7 @@
  *  (Jamie, 2026-09-18, from the gallery). Each renderer hands the shell
  *  the same preheader it returns, so the inbox preview and the record of
  *  the send are one string. */
-import family from "@elixir-mcp/ui/family.json" with { type: "json" };
+import shell from "@elixir-mcp/ui/shell.json" with { type: "json" };
 import { pixelPath, pixelTag } from "./pixel.mjs";
 import {
   SITE,
@@ -42,9 +42,9 @@ export const KIND_LABELS = {
  *  product's own, so a product added there is tagged here too. */
 const FAMILY_ORIGINS = [
   ...new Set([
-    family.origin,
-    ...family.products.map(
-      (p) => new URL(p.href ?? p.path, family.origin).origin,
+    shell.origin,
+    ...shell.products.map(
+      (p) => new URL(p.href ?? p.path, shell.origin).origin,
     ),
   ]),
 ];
@@ -622,7 +622,7 @@ const FEEDBACK_AREA_LABEL = {
   mcp: "MCP",
   api: "the JSON API",
   console: "the app",
-  ladder: "Ladder",
+  ladder: "Stats",
   clan: "Clan",
   mail: "an email",
   docs: "the docs",

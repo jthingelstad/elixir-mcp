@@ -36,7 +36,7 @@ function walk(dir) {
   });
 }
 
-test("no console call awaits an api write and drops its answer", () => {
+test("no app call awaits an api write and drops its answer", () => {
   // A statement that IS the await: nothing reads the envelope. Assigned
   // (`const r = await api.x()`) or unwrapped (`unwrap(await ...)`) is
   // read; a write goes through useWrite, which reads it for you.

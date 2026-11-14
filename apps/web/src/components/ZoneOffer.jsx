@@ -34,7 +34,7 @@ function zoneWords(zone) {
  * that, or whose browser gave none: it names the clock in use and offers
  * the browser's zone, saved only on the click. It shows only while the
  * account has no zone and the browser's is not UTC, and never on an
- * agent's console.
+ * agent's pages.
  */
 export function ZoneOffer({ className = "" }) {
   const { zone } = useClock();

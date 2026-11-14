@@ -4,7 +4,7 @@ import { useState } from "react";
  * A sent email, shown as it went out, in a frame that runs nothing:
  * same-origin so the frame can be sized to its content, links opening
  * in a new tab, no scripts (an archived mail carries none, and a frame
- * that could run one would be the one place in the console that does).
+ * that could run one would be the one place in the app that does).
  * The API has already stripped the open pixel, so neither the person's
  * record nor the maintainer's counts as an open. Shared by the account
  * record (views/account/EmailRecord.jsx) and the admin queue.

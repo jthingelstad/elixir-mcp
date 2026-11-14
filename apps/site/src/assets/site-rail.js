@@ -1,5 +1,5 @@
 /**
- * The site rails (Docs, Examples, Data, Updates, Family).
+ * The site rails (Docs, Examples, Data, Updates).
  *
  * Two jobs, both progressive: below the one breakpoint the rail's head
  * row is a disclosure that opens the list in place — above the content,

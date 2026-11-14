@@ -884,7 +884,7 @@ function Shell() {
   // Nothing at this address brings its own shell (MissingPage).
   if (legalRoute(movedTo(pathname) ?? pathname) === null) return <Outlet />;
   if (isHome(pathname)) return <HomeOutlet />;
-  return isClan(pathname) ? <ClanOutlet /> : <ConsoleShell />;
+  return isClan(pathname) ? <ClanOutlet /> : <PageShell />;
 }
 
 /** Home's shell. Signed out it is the wall, which returns here after sign-in. */
@@ -958,7 +958,7 @@ function ClanOutlet() {
   );
 }
 
-function ConsoleShell() {
+function PageShell() {
   const navigate = useNav();
   const { me, unreachable, retrying, refresh } = useMe();
   const narrow = useNarrow();

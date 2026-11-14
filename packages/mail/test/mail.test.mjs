@@ -194,13 +194,13 @@ test("tagLink tags a link into every product the family's bar names", async () =
   // The origins come from the kit's product manifest, the list the top
   // bar draws, so a product added there is tagged here with no edit.
   const { tagLink } = await import("../src/index.mjs");
-  const { default: family } = await import("@elixir-mcp/ui/family.json", {
+  const { default: shell } = await import("@elixir-mcp/ui/shell.json", {
     with: { type: "json" },
   });
   const campaign = { kind: "milestone", period: "2026-09-19" };
-  assert.ok(family.products.length > 0);
-  for (const p of family.products) {
-    const url = new URL(p.href ?? p.path, family.origin).href;
+  assert.ok(shell.products.length > 0);
+  for (const p of shell.products) {
+    const url = new URL(p.href ?? p.path, shell.origin).href;
     assert.match(tagLink(url, campaign), /[?&]utm_source=email&/, p.key);
   }
   // Drop is on a host of its own, and its links are still ours.
@@ -712,7 +712,7 @@ test("feedback answer: their words clipped and escaped, the answer whole, status
     "Answered: “The Arena week is missing the deck I played on Saturday.”",
   );
   assert.match(html, /Your feedback, answered/);
-  assert.match(html, /About Ladder · filed/);
+  assert.match(html, /About Stats · filed/);
   assert.match(html, />Done · shipped in <span[^>]*>11\.3\.0</);
   assert.match(
     html,

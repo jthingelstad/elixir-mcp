@@ -8,7 +8,7 @@ import {
   signedIn,
 } from "./fixtures.ts";
 
-test("public signup verifies email and returns to the requested Console step", async ({
+test("public signup verifies email and returns to the requested app step", async ({
   page,
 }) => {
   let authed = false,

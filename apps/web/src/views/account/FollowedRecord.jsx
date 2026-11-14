@@ -100,7 +100,7 @@ export function FollowedRecord({ me, refresh, navigate, tag }) {
             player_tag: wanted,
             action: on ? "notify_off" : "notify_on",
           }),
-    // The console's root: your session (a claim's switch) and your clans.
+    // The scope's root: your session (a claim's switch) and your clans.
     { invalidate: () => loadClans() },
   );
   const remove = useWrite(

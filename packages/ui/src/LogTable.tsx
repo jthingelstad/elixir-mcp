@@ -11,7 +11,7 @@ import { TagText } from "./Tag.tsx";
  * different columns, so they are the same component: sticky header,
  * filter selects built from the rows themselves, a pager, and an
  * optional footnote. Timeline supplies a narrative row renderer. Adding a column must never mean adding a table —
- * that is how a console ends up with four table idioms and a reader who
+ * that is how an app ends up with four table idioms and a reader who
  * has to learn each one.
  *
  * The table is INTERFACE, not a report: no card around it, no filled

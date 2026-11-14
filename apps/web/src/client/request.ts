@@ -3,7 +3,7 @@ import type { Envelope, TransportError } from "./envelope.ts";
 export type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface ClientOptions {
-  /** Sent on every request. The console sends the contract header
+  /** Sent on every request. The app sends the contract header
    *  web-api requires as its CSRF marker on state changes. */
   headers?: Record<string, string>;
   /** Just past the API's own soft deadline (web-api answers 504 at

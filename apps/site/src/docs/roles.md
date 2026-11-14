@@ -31,7 +31,7 @@ their agents, a member's away only to the clan's leaders.
 
 | Quota | member | leader | family | partner | admin | owner |
 |---|---|---|---|---|---|---|
-| Players you follow | 50 | 50 | 50 | 50 | unlimited | unlimited |
+| Player slots (a free follow uses none) | 50 | 50 | 50 | 50 | unlimited | unlimited |
 | Clans you follow, the clan only | 1 | 1 | 3 | 10 | unlimited | unlimited |
 | Clans you follow, every member | none | 1 | 3 | 5 | unlimited | unlimited |
 | Tool calls / day | 500 | 2,000 | 5,000 | 15,000 | unlimited | unlimited |

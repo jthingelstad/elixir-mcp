@@ -19,7 +19,7 @@ test("sends the area, the refs and the page with what was written", async () => 
       context={{ clan_tag: "#J2RGCRVG" }}
       send={send}
       onClose={() => {}}
-      itemHref={(id) => `/console/account/feedback/${id}`}
+      itemHref={(id) => `/settings/feedback/${id}`}
     />,
   );
   expect(screen.getByText("This action, #12.")).toBeTruthy();
@@ -38,7 +38,7 @@ test("sends the area, the refs and the page with what was written", async () => 
     context: { path: "/", clan_tag: "#J2RGCRVG" },
   });
   expect(screen.getByText("Read it as fb_42").getAttribute("href")).toBe(
-    "/console/account/feedback/42",
+    "/settings/feedback/42",
   );
 });
 
@@ -92,8 +92,8 @@ test("links your feedback and its answers before and after sending", async () =>
       categories={CATEGORIES}
       send={send}
       onClose={() => {}}
-      itemHref={(id) => `/console/account/feedback/${id}`}
-      historyHref="/console/account/feedback"
+      itemHref={(id) => `/settings/feedback/${id}`}
+      historyHref="/settings/feedback"
     />,
   );
   const history = () =>
@@ -101,13 +101,13 @@ test("links your feedback and its answers before and after sending", async () =>
       name: "Your feedback and its answers ›",
       hidden: true,
     });
-  expect(history().getAttribute("href")).toBe("/console/account/feedback");
+  expect(history().getAttribute("href")).toBe("/settings/feedback");
   fireEvent.change(screen.getByLabelText("Message"), {
     target: { value: "The rail hides on my phone." },
   });
   fireEvent.click(screen.getByRole("button", { name: "Send", hidden: true }));
   await screen.findByText("Read it as fb_7");
-  expect(history().getAttribute("href")).toBe("/console/account/feedback");
+  expect(history().getAttribute("href")).toBe("/settings/feedback");
 });
 
 test("without a history address, no history link", () => {

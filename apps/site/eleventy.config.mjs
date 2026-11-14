@@ -68,8 +68,8 @@ export default function (eleventyConfig) {
   // shell.mjs), PNG at 48 and 96 px. Mail links https PNGs on this
   // origin, never a data URI and never Supercell's CDN.
   eleventyConfig.addPassthroughCopy("src/assets/mail");
-  // The family's logo, the one the top bar draws on every surface
-  // (packages/ui/src/family.json names it). Rendered small from the
+  // Elixir's logo, the one the top bar draws on every surface
+  // (packages/ui/src/shell.json names it). Rendered small from the
   // 512px source in poapkings.com: the bar draws it at 40px.
   eleventyConfig.addPassthroughCopy("src/assets/elixir-logo-*.webp");
   // Card art for mail and the card pages: byte-identical copies of the
@@ -281,7 +281,7 @@ export default function (eleventyConfig) {
   );
   /** The same glyph as the kit's Icon draws it in the top bar
    *  (packages/ui/src/Icon.tsx: stroke 1.9, `shrink-0`), for the
-   *  product buttons base.njk renders from the family manifest. The
+   *  product buttons base.njk renders from the shell manifest. The
    *  manifest names an icon; this is how a name becomes the glyph. */
   eleventyConfig.addShortcode(
     "chromeIcon",

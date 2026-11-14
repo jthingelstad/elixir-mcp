@@ -1,30 +1,31 @@
-import manifest from "./family.json" with { type: "json" };
+import manifest from "./shell.json" with { type: "json" };
 import type { IconName } from "./Icon.tsx";
 
 /**
- * The family, as the top bar knows it. ONE list, so the Eleventy build and the
- * app draw the same bar, tabs and footer.
+ * The shell's manifest: what the top bar, the phone's tabs and the footer
+ * draw. ONE list, so the Eleventy build and the app draw the same bar, tabs
+ * and footer.
  *
- * The list is family.json beside this file, the product manifest: this module
+ * The list is shell.json beside this file: this module
  * reads it for the React shell (apps/web/src/shell/Shell.jsx), and apps/site
- * reads the same file through its `familyBar` data file, so base.njk loops
+ * reads the same file through its `shell` data file, so base.njk loops
  * over it instead of copying it. Adding a product is one edit there. A test in
  * apps/site pins both readers to that one file, and packages/mail tags a link
  * into any product it names.
  */
 
-/** The wordmark beside the logo. The family is "Elixir"; the products
- *  are the places in it. */
-export const FAMILY_WORDMARK: string = manifest.wordmark;
+/** The wordmark beside the logo, "Elixir"; the products are the places
+ *  in it. */
+export const SHELL_WORDMARK: string = manifest.wordmark;
 
-/** Where the family lives. Verticals prefix their hrefs with this; the
- *  Console and the static site are on it already and use bare paths. */
-export const FAMILY_ORIGIN: string = manifest.origin;
+/** Elixir's origin. The app and the static site are on it already and
+ *  use bare paths; mail and anything off the origin prefix hrefs with it. */
+export const SHELL_ORIGIN: string = manifest.origin;
 
 /** The logo, a small webp the site build serves from /assets. */
-export const FAMILY_LOGO: string = manifest.logo;
+export const SHELL_LOGO: string = manifest.logo;
 
-export interface FamilyProduct {
+export interface ShellProduct {
   /** The manifest's name for it. */
   key: string;
   label: string;
@@ -41,22 +42,22 @@ export interface FamilyProduct {
 }
 
 /** Every product, left to right, the game last. The one you are inside
- *  lights up green; the others are the way over. A product on the family
+ *  lights up green; the others are the way over. A product on Elixir's
  *  origin is a `path` in the manifest and absolute here; one elsewhere
  *  is an `href`. Icons are names in Icon's set (a kit test renders each
  *  one). */
-export const FAMILY_PRODUCTS: ReadonlyArray<FamilyProduct> =
+export const SHELL_PRODUCTS: ReadonlyArray<ShellProduct> =
   manifest.products.map((p) => ({
     key: p.key,
     label: p.label,
-    href: p.href ?? `${FAMILY_ORIGIN}${p.path}`,
+    href: p.href ?? `${SHELL_ORIGIN}${p.path}`,
     icon: p.icon as IconName,
     ...(p.external ? { external: true } : {}),
     ...(p.game ? { game: true, action: p.action, about: p.about } : {}),
   }));
 
 /** Where the bar's words lead, on this origin. */
-export const FAMILY_PLACES = {
+export const SHELL_PLACES = {
   signIn: manifest.signIn,
   createAccount: manifest.createAccount,
   settings: manifest.account.path,
@@ -65,7 +66,7 @@ export const FAMILY_PLACES = {
   bell: manifest.bell,
 };
 
-export interface FamilyTab {
+export interface ShellTab {
   key: string;
   label: string;
   /** On this origin. */
@@ -79,33 +80,33 @@ export interface FamilyTab {
  *  Home, Find, Clan, You). The phone draws all four and the bell; the top
  *  bar draws all but You, which is its avatar. Stats is a product, not a
  *  tab: You leads to it. */
-export const FAMILY_TABS: ReadonlyArray<FamilyTab> = manifest.tabs.map((t) => ({
+export const SHELL_TABS: ReadonlyArray<ShellTab> = manifest.tabs.map((t) => ({
   ...t,
   icon: t.icon as IconName,
 }));
 
 /** The bar's places for somebody signed out. */
-export const FAMILY_SIGNED_OUT: { key: string; label: string; path: string }[] =
+export const SHELL_SIGNED_OUT: { key: string; label: string; path: string }[] =
   manifest.signedOut;
 
 /** The footer's links, in order, on every surface. */
-export const FAMILY_FOOT: { label: string; path: string }[] = manifest.foot;
+export const SHELL_FOOT: { label: string; path: string }[] = manifest.foot;
 
 /** One recorded battle's public page, shown to somebody with no record
  *  yet so they can see what Elixir keeps before signing up: the home
- *  page and signed-out Ladder link it. A battle of the maintainer's own
+ *  page and signed-out Stats link it. A battle of the maintainer's own
  *  player (King Thing #20JJJ2CCRU, a war win on 2026-10-01); recorded
  *  history is kept indefinitely, so the link stays good. Change it here,
  *  the one place both halves read. */
-export const FAMILY_SAMPLE_BATTLE: { label: string; path: string } = {
+export const SHELL_SAMPLE_BATTLE: { label: string; path: string } = {
   label: manifest.sampleBattle.label,
   path: manifest.sampleBattle.path,
 };
 
-/** A family href with the origin taken off, for a surface that is on the
- *  family origin already (the app, the static site). */
+/** An href with Elixir's origin taken off, for a surface that is on the
+ *  origin already (the app, the static site). */
 export function onOrigin(href: string): string {
-  return href.startsWith(`${FAMILY_ORIGIN}/`)
-    ? href.slice(FAMILY_ORIGIN.length)
+  return href.startsWith(`${SHELL_ORIGIN}/`)
+    ? href.slice(SHELL_ORIGIN.length)
     : href;
 }

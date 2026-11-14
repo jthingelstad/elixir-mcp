@@ -102,7 +102,7 @@ export const accountRows = (account) =>
       a.players === 1 && a.clans === 0 && a.subjects?.[0]?.kind === "player"
         ? a.subjects[0].tag
         : null;
-    const tracking = eventGroup(a.kind) === "tracking";
+    const aboutPlayers = eventGroup(a.kind) === "players";
     return {
       key: `${a.kind}-${a.at}-${i}`,
       title,
@@ -111,7 +111,7 @@ export const accountRows = (account) =>
       to:
         one && a.kind !== "claim_ended"
           ? playerHref(one)
-          : `${SETTINGS}/${tracking ? "players" : "sign-ins"}`,
+          : `${SETTINGS}/${aboutPlayers ? "players" : "sign-ins"}`,
       new: a.new === true,
     };
   });

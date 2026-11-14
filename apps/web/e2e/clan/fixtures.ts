@@ -1,4 +1,4 @@
-import { ME as ACCOUNT, signedIn as consoleSignedIn } from "../fixtures.ts";
+import { ME as ACCOUNT, signedIn as accountSignedIn } from "../fixtures.ts";
 import type { Page, Route } from "@playwright/test";
 
 const FIRST = {
@@ -248,7 +248,7 @@ export function signedIn(
 ): Record<string, Answer> {
   let me = { ...ME, policy };
   return {
-    ...consoleSignedIn(),
+    ...accountSignedIn(),
     "GET /api/me": [
       200,
       {

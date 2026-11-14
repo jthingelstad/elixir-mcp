@@ -1,5 +1,5 @@
 /**
- * The console's queries: one place for keys and one hook per read, so
+ * The app's queries: one place for keys and one hook per read, so
  * two screens cannot disagree about the same data and a mutation knows
  * what to invalidate.
  *
@@ -80,17 +80,17 @@ export const keys = {
 const payload = (call) => () => call().then(unwrap);
 
 /**
- * The root of a console's own keys: `["me"]` for yours, `["agent", id]`
- * for an agent's (2026-09-23). Every read that an agent's console shares
- * with yours keys under its console's root, so switching can never paint
+ * The root of a scope's own keys: `["me"]` for yours, `["agent", id]`
+ * for an agent's (2026-09-23). Every read that an agent's pages share
+ * with yours keys under its scope's root, so switching can never paint
  * one account's data under the other's header, and invalidating a root
- * refetches everything that console shows. The hooks below read the
+ * refetches everything that scope shows. The hooks below read the
  * scope themselves; yours keep exactly the keys they always had.
  */
 export const rootFor = (agent) => (agent ? ["agent", agent] : keys.me);
 export const scopedKey = (agent, ...rest) => [...rootFor(agent), ...rest];
 
-/** An agent's own `me`, for its console and for the rail's counts. It
+/** An agent's own `me`, for its pages and for the rail's counts. It
  *  keeps the envelope: a 404 is "not your agent", an answer, not an error. */
 export const useAgentMe = (agent) =>
   useQuery({
@@ -474,7 +474,7 @@ export const useMyHighlights = (battle, enabled = true) =>
 /** Move the Console's place in the timeline to the window end the page
  *  showed (Jamie, 2026-10-20: independent of what agents have read via
  *  MCP). The page's own copy takes the new place, so a return visit
- *  opens from it, and the console's `me` refetches so the rail's dot
+ *  opens from it, and the scope's `me` refetches so the rail's dot
  *  follows. Nothing else refetches: the feed's next read would move the
  *  window and ask to mark again. */
 export function useMarkTimelineSeen() {
@@ -505,7 +505,7 @@ export function useMarkTimelineSeen() {
 }
 
 /** The timeline's Discord cross-post. On an agent's settings page the
- *  agent is named outright; elsewhere it is the console's scope. */
+ *  agent is named outright; elsewhere it is the page's scope. */
 export const useTimelineDiscord = (agentId = null) => {
   const scoped = useScope();
   const agent = agentId ?? scoped;
@@ -660,8 +660,8 @@ export const useMyFeedback = () => {
   });
 };
 
-/** One of your own items (or, on an agent's console, the agent's), with
- *  what follows it. Opening it on your own console reads its answer. */
+/** One of your own items (or, on an agent's pages, the agent's), with
+ *  what follows it. Opening it on your own pages reads its answer. */
 export const useMyFeedbackItem = (id) => {
   const agent = useScope();
   return useQuery({
@@ -774,8 +774,8 @@ export const useBattleSweep = (
 
 /** `invalidate(keys.sessions)` after a mutation: the read refetches and
  *  every screen showing it follows. `invalidate()` with no key is the
- *  console's root: the session and everything that is the reader's own,
- *  or, on an agent's console, everything that is the agent's.
+ *  scope's root: the session and everything that is the reader's own,
+ *  or, on an agent's pages, everything that is the agent's.
  *
  *  In-flight reads are cancelled first. A read with no data yet that is
  *  still in flight when the write lands is not refetched by
