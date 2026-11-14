@@ -111,6 +111,7 @@ const STATIC_PAGES = [
   "/docs/operators",
   "/docs/player-page",
   "/docs/verified-players",
+  "/docs/passport",
   "/docs/verify",
   "/docs/ladder",
   "/docs/email",
