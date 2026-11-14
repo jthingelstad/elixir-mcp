@@ -105,9 +105,19 @@ test("@narrow catalog and card facts fit phone, tablet and desktop", async ({
 test("a missing card-art cache keeps catalog facts readable", async ({
   page,
 }) => {
-  // Force image failure before the deferred script registers its handler.
+  // Force image failure before the deferred script registers its handler:
+  // the script is held until the page shows every card image has failed,
+  // not for a fixed 250 ms a loaded host could outrun.
   await page.route("**/assets/cards-index.js*", async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await page.waitForFunction(() => {
+      const art = [
+        ...document.querySelectorAll<HTMLImageElement>("img.card-art__img"),
+      ];
+      return (
+        art.length > 0 &&
+        art.every((img) => img.complete && img.naturalWidth === 0)
+      );
+    });
     await route.continue();
   });
   await page.route("**/assets/cards/**", (route) =>

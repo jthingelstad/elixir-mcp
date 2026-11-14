@@ -8,6 +8,7 @@ import { signUnsubscribe } from "@elixir-mcp/mail";
 import {
   createScratch,
   dropScratch,
+  waitUntilBlocked,
 } from "../../../packages/ingest/test/helpers.mjs";
 
 const ADMIN_URL =
@@ -3663,8 +3664,14 @@ test("a one-click unsubscribe racing a removal waits for it and writes nothing",
   ]);
   const request = event({ method: "POST", path: "/api/email/unsubscribe" });
   request.queryStringParameters = { t: token };
+  const {
+    rows: [{ pid: remover }],
+  } = await db.query("select pg_backend_pid() as pid");
   const pending = handler(request);
-  await new Promise((r) => setTimeout(r, 300));
+  // The click is queued behind the removal's row lock: observed, not
+  // assumed after a sleep (on a loaded host a sleep ended before the
+  // handler had reached the row, and the click read the finished removal).
+  await waitUntilBlocked(db, { blockedBy: remover });
   await db.query(
     `update account set email_hash = 'removed:' || account_id::text, status = 'disabled'
       where account_id = $1`,

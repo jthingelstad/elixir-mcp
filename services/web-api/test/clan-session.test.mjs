@@ -1,6 +1,9 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import {
+  scratchDb,
+  waitUntilBlocked,
+} from "../../../packages/ingest/test/helpers.mjs";
 import { createSession, revokeSession } from "@elixir-mcp/auth";
 import { writeClanFactInClan } from "@elixir-mcp/record/attested-facts";
 import { makeHandler } from "../src/handler.mjs";
@@ -284,27 +287,9 @@ test("mutations serialize across O/0 clan aliases", async () => {
       ...(method === "POST" ? { body: { values: {} } } : {}),
     });
     try {
-      // Observe an actual lock waiter rather than assuming a slow response.
-      const limit = Date.now() + 5000;
-      let waiting = false;
-      while (Date.now() < limit) {
-        waiting = (
-          await scratch.db.query(
-            `select exists(select 1 from pg_locks
-           where locktype='advisory' and not granted
-           and database=(select oid from pg_database where datname=current_database())
-           and objid=(hashtext($1)::bigint & 4294967295)) as waiting`,
-            [key],
-          )
-        ).rows[0].waiting;
-        if (waiting) break;
-        await new Promise((resolve) => setTimeout(resolve, 20));
-      }
-      assert.equal(
-        waiting,
-        true,
-        `${method} must wait on the canonical clan lock`,
-      );
+      // Observe an actual lock waiter rather than assuming a slow response:
+      // the request must wait on the canonical clan lock.
+      await waitUntilBlocked(scratch.db, { advisoryKey: key });
     } finally {
       await scratch.db.query("select pg_advisory_unlock(hashtext($1))", [key]);
     }

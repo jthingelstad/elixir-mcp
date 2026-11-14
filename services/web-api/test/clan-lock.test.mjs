@@ -7,7 +7,10 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import {
+  scratchDb,
+  waitUntilBlocked,
+} from "../../../packages/ingest/test/helpers.mjs";
 import {
   member,
   participation,
@@ -121,18 +124,6 @@ const removals = async () =>
   (await createPostgresLedger(scratch.db).cards(CLAN)).filter(
     (c) => c.type === "removal" && c.player_tag === idle.player_tag,
   );
-
-/** Whether a connection is waiting for the clan's lock right now. */
-const lockWaiter = async () =>
-  (
-    await watcher.query(
-      `select exists(select 1 from pg_locks
-        where locktype = 'advisory' and not granted
-          and database = (select oid from pg_database where datname = current_database())
-          and objid = (hashtext($1)::bigint & 4294967295)) as waiting`,
-      [clanLockKey(CLAN)],
-    )
-  ).rows[0].waiting;
 
 test("two evaluations that read the record together raise each Action once", async () => {
   // Both participation reads must have started before either answers:
@@ -274,7 +265,7 @@ test("the locked half waits for the clan's lock; the record reads do not", async
     // The participation read runs while another holder has the lock.
     await read.promise;
     // Then the evaluation queues for the lock: observed, not assumed.
-    while (!(await lockWaiter())) await new Promise((r) => setImmediate(r));
+    await waitUntilBlocked(watcher, { advisoryKey: key });
     assert.equal(settled, false);
     assert.equal((await removals()).length, 0, "nothing written while waiting");
   } finally {

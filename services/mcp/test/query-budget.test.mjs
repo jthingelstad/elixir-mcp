@@ -300,6 +300,8 @@ test("the deadline never races an account write", async () => {
     deadlineMs: 50,
     registry: {
       invoke: async () => {
+        // Longer than the deadline on purpose: the sleep is what a write
+        // must outlast, and a slow host only lengthens it.
         await new Promise((resolve) => setTimeout(resolve, 200));
         return { ok: true };
       },
@@ -419,6 +421,10 @@ test("a deadline that passes while the budget is still being set leaves the conn
         return typeof v === "function" ? v.bind(target) : v;
       }
       return async (sql, ...rest) => {
+        // A timer, deliberately: the read must come back after the
+        // 100 ms deadline's own timer has fired, and Node fires timers in
+        // expiry order however late a loaded host runs them, so 300 ms
+        // after this (set before the deadline's) is always second.
         if (String(sql).includes("current_setting('statement_timeout')"))
           await new Promise((r) => setTimeout(r, 300));
         return target.query(sql, ...rest);
@@ -443,8 +449,9 @@ test("a deadline that passes while the budget is still being set leaves the conn
   assert.equal(result.body.error.code, "query_timeout");
   await done;
   // The abandoned read was cancelled at the server, and nothing it set
-  // outlives the call.
-  await new Promise((r) => setTimeout(r, 50));
+  // outlives the call. No sleep: the tool has finished, so it has nothing
+  // left to send, and one client runs its queries in order, so this read
+  // lands after everything the abandoned call did send.
   assert.deepEqual(await settings(), before);
 });
 

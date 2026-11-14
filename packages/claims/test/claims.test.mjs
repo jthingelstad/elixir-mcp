@@ -20,7 +20,11 @@ import {
   markVerified,
   VERIFIED_ELSEWHERE,
 } from "../src/index.mjs";
-import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
+import {
+  createScratch,
+  dropScratch,
+  waitUntilBlocked,
+} from "../../ingest/test/helpers.mjs";
 
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -524,13 +528,17 @@ test("a mutation waits for another account's in-flight change to the same player
     await holder.query("begin");
     await holder.query(`select pg_advisory_xact_lock(hashtext($1))`, [D]);
 
+    const {
+      rows: [{ pid: adderPid }],
+    } = await adder.query("select pg_backend_pid() as pid");
     let settled = false;
     const pending = addPlayer(adder, bob, { tag: D, via: "test" }).then((r) => {
       settled = true;
       return r;
     });
-    // Give it a real chance to finish if it were not blocked.
-    await new Promise((r) => setTimeout(r, 250));
+    // The add is queued behind the holder's subject lock: PostgreSQL says
+    // so, where a 250 ms sleep only hoped it had got there.
+    await waitUntilBlocked(holder, { pids: [adderPid] });
     assert.equal(
       settled,
       false,
