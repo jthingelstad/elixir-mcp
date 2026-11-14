@@ -1,4 +1,4 @@
-import { useWrite } from "@elixir-mcp/client";
+import { useWrite } from "../../client/index.ts";
 import { ConfirmAction, TagText, writeErrorText } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";

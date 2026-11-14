@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
-import { answered } from "@elixir-mcp/client";
+import { answered } from "../client/index.ts";
 import {
   Avatar,
   DeckVersus,

@@ -26,9 +26,11 @@ behaviour is in `apps/site/src/docs/`, not here.
   component CSS, compiled once by Tailwind v4 into `dist/styles.css`),
   `packages/ui` (chrome, rail, log table, freshness, Markdown, icons,
   error boundary, disclaimer, the clock vocabulary, the family manifest
-  `src/family.json`) and `packages/client` (the `{ ok, status, data }`
-  envelope, `createClient()`, the query client and its one retry rule).
-  What a view needs that the kit lacks is a kit addition.
+  `src/family.json`). The app's own data layer is `src/client/` (the
+  `{ ok, status, data }` envelope, `createClient()`, the query client and
+  its one retry rule; `packages/client` until 2026-11-14, folded in because
+  the app was its only reader). What a view needs that the kit lacks is a
+  kit addition.
 - **New pages use the kit's parts:** `PageHead`, `Tabs`, `Chips`, `Panel` and
   `Rows`, `Table`, `Empty` and `ErrorState`, `Stats`, `FreshChip`, all in
   `@elixir-mcp/ui`. Never a hand-written `<table>`: at phone width no table

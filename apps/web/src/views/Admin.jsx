@@ -1,4 +1,4 @@
-import { useWrite } from "@elixir-mcp/client";
+import { useWrite } from "../client/index.ts";
 import { FEEDBACK_ANSWER_STATUSES } from "@elixir-mcp/contracts";
 import {
   ago,

@@ -1,4 +1,4 @@
-import { useWrite } from "@elixir-mcp/client";
+import { useWrite } from "../../client/index.ts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ConfirmAction,

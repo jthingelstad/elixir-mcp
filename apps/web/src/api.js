@@ -1,9 +1,9 @@
 /** Site API client: same-origin /api/*, cookie-authed, contract header on
  *  every request (the CSRF marker web-api requires on state changes).
- *  The envelope, timeout and failure accounting are the family's, in
- *  @elixir-mcp/client; this file is only the console's route map. */
+ *  The envelope, timeout and failure accounting are the app's client, in
+ *  src/client/; this file is only the app's route map. */
 
-import { createClient } from "@elixir-mcp/client";
+import { createClient } from "./client/index.ts";
 import { trackEvent } from "./analytics.js";
 
 const client = createClient({

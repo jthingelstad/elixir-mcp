@@ -19,7 +19,7 @@ import {
   transportFailed,
   unwrap,
   sessionGeneration,
-} from "@elixir-mcp/client";
+} from "../../client/index.ts";
 import { api, manageApi } from "../api.js";
 
 export const keys = {

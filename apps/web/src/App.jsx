@@ -38,7 +38,7 @@ import {
   answered,
   createQueryClient,
   resetSessionCache,
-} from "@elixir-mcp/client";
+} from "./client/index.ts";
 import { createClanRoutes } from "./clan/routes.jsx";
 import { api } from "./api.js";
 import { useMyGateways } from "./lib/queries.js";

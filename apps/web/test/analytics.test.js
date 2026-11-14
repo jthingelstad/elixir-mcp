@@ -535,9 +535,9 @@ describe("loadTinylytics", () => {
 
 describe("failure events", async () => {
   const { trackEvent } = await import("../src/analytics.js");
-  // The label is the family's now (@elixir-mcp/client), pinned there;
-  // this checks the console still gets that behaviour through it.
-  const { routeLabel } = await import("@elixir-mcp/client");
+  // The label is the client's (src/client/), pinned in client.test.ts;
+  // this checks the app still gets that behaviour through it.
+  const { routeLabel } = await import("../src/client/index.ts");
 
   test("a route label collapses the id, never the route", () => {
     expect(routeLabel("GET", "/api/admin/calls/abc-123")).toBe(

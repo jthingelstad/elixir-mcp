@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
-import { answered } from "@elixir-mcp/client";
+import { answered } from "../client/index.ts";
 import {
   DeckGrid,
   MODE_LABEL,

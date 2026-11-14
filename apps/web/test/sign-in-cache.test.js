@@ -3,7 +3,7 @@ import {
   createQueryClient,
   resetSessionCache,
   sessionGeneration,
-} from "@elixir-mcp/client";
+} from "../src/client/index.ts";
 
 test("a new identity cannot reuse old feedback, admin or owned-agent data, even from an outstanding read", async () => {
   const client = createQueryClient();

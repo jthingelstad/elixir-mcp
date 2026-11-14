@@ -526,7 +526,7 @@ imported by name.
 | `syndication` | the timeline cross-posted to Discord and a clan's activity channel: the setting, the wake, the sync, its lines, the relay's worker and the quality ledger (`quality.mjs`) |
 | `clan-engine`, `clan`, `clan-state` | Clan, a set of features inside Elixir (`packages/clan/AGENTS.md`) |
 | `docs` | the public docs as a corpus the MCP door serves |
-| `design`, `ui`, `client` | the web kit (`apps/web/AGENTS.md`) |
+| `design`, `ui` | the web kit (`apps/web/AGENTS.md`); the app's data layer is `apps/web/src/client/` |
 
 | Service (Lambda) | Serves |
 | --- | --- |

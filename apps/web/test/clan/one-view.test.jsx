@@ -7,7 +7,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createQueryClient } from "@elixir-mcp/client";
+import { createQueryClient } from "../../src/client/index.ts";
 import { renderWithProviders } from "./helpers.jsx";
 import { Feed } from "../../src/clan/views/Feed.jsx";
 import { ClanPolicy } from "../../src/clan/views/ClanPolicy.jsx";

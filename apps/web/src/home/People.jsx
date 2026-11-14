@@ -12,7 +12,7 @@ import {
   ErrorState,
 } from "@elixir-mcp/ui";
 import { useQueryClient } from "@tanstack/react-query";
-import { useWrite } from "@elixir-mcp/client";
+import { useWrite } from "../client/index.ts";
 import { api } from "../api.js";
 import { playerHref } from "../lib/player.js";
 import { usePeople } from "../lib/queries.js";

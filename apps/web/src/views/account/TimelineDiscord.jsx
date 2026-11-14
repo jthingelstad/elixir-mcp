@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useWrite } from "@elixir-mcp/client";
+import { useWrite } from "../../client/index.ts";
 import {
   ConfirmAction,
   DetailSheet,
