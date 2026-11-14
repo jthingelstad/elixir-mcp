@@ -184,7 +184,7 @@ export function CallRecord({ id, navigate }) {
   );
 
   if (status === null && rec === null)
-    return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+    return <p className="text-ink-faint">Loading…</p>;
   // A failed read is not an absence (console audit M1): only 403 and 404
   // say the call is not in your log.
   if (!rec && status !== 403 && status !== 404)
@@ -349,8 +349,7 @@ export function CallRecord({ id, navigate }) {
             into the message: it is stored as feedback.request_id, so
             the queue can link straight back to this record. */}
         <Link
-          className="btn btn--sm"
-          style={{ marginLeft: "auto" }}
+          className="btn btn--sm ml-auto"
           to={`${SETTINGS}/feedback?request_id=${encodeURIComponent(call.request_id)}`}
         >
           <Icon name="message-square" size={15} />

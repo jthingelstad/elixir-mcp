@@ -336,7 +336,7 @@ function QueueGauge({ queue, now }) {
       title="Work waiting"
       titleAs="div"
       action={
-        <span className="mono" style={{ marginLeft: "auto", fontWeight: 400 }}>
+        <span className="mono ml-auto font-normal">
           next tick{" "}
           {nextIn == null ? "—" : nextIn === 0 ? "now" : `in ${nextIn}s`}
         </span>
@@ -377,7 +377,7 @@ export function Status() {
 
   if (status.error)
     return <p className="field-error">Could not load status.</p>;
-  if (!data) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+  if (!data) return <p className="text-ink-faint">Loading…</p>;
 
   const h = data.health;
   // "Behind" is the machine's own schedule, not a health verdict: a
@@ -411,7 +411,7 @@ export function Status() {
               flexWrap: "wrap",
             }}
           >
-            <span className="mono" style={{ color: "var(--ink-faint)" }}>
+            <span className="mono text-ink-faint">
               as of {when(data.as_of)}
             </span>
             <button
