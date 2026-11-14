@@ -98,6 +98,8 @@ const MIGRATE_READS = {
   account_enroll: (v) => isObject(v) && v.dry_run === true,
   account_follow: (v) => isObject(v) && v.dry_run === true,
   agent_recordings: (v) => exactly(v, { dry_run: true }),
+  // A dry run is the default; the pairs alone, with no apply key, read.
+  avatar_import: (v) => exactly(v, { pairs: Array.isArray }),
   tier_census: (v) => exactly(v, { dry_run: true }),
   verified_tag_census: (v) => exactly(v, { dry_run: true }),
   funnel: anyArgs,

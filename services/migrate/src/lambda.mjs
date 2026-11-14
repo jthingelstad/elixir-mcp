@@ -388,6 +388,15 @@ async function dispatch(event, context) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.avatar_import) {
+    const { avatarImportOp } = await import("./ops-avatar-import.mjs");
+    const result = await avatarImportOp(
+      process.env.DATABASE_URL,
+      event.avatar_import,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.agent_recordings) {
     const { agentRecordingsOp } = await import("./ops-agent-recordings.mjs");
     const result = await agentRecordingsOp(
