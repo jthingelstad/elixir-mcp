@@ -89,8 +89,12 @@ export interface CrResultMessage {
 /** Email queue message — VPC Lambdas enqueue, the non-VPC relay sends
  *  (DESIGN §7 NAT-free posture). Plaintext email address rides the queue
  *  (SSE-encrypted at rest) because the relay must address the mail. */
-/** Every product mail kind ever sent (docs/EMAIL.md), retired ones
- *  included (RETIRED_EMAIL_KINDS). Active since 2026-11-12: the digest
+/** Every product mail kind Elixir still knows (docs/EMAIL.md), retired
+ *  ones included (RETIRED_EMAIL_KINDS). `top_100` and `card_of_week` were
+ *  removed outright on 2026-11-14 (Jamie: "Remove those email kinds."):
+ *  their sent records still read (the label falls back) and their old
+ *  unsubscribe links land on the "has ended" page, as any unknown kind
+ *  does. Active since 2026-11-12: the digest
  *  (tracking_report, the one scheduled mail for everyone), the collector
  *  week, Clan's actions waiting (a family app's own mail sent through
  *  Elixir), and answers to feedback. Every one is bulk: switchable per
@@ -102,23 +106,18 @@ export const PRODUCT_EMAIL_KINDS = [
   "clan_report",
   "arena_week",
   "tracking_report",
-  "top_100",
-  "card_of_week",
   "collector_activity",
   "milestone",
   "clan_actions_waiting",
   "feedback_answer",
 ] as const;
 export type ProductEmailKind = (typeof PRODUCT_EMAIL_KINDS)[number];
-/** Kinds Elixir no longer sends. `top_100` and `card_of_week` were
- *  retired with the recorder era; `clan_report`, `arena_week` and
+/** Kinds Elixir no longer sends: `clan_report`, `arena_week` and
  *  `milestone` folded into the digest on 2026-11-12 (Jamie: "One digest
  *  email and merging clan and those you follow is really needed").
  *  Their names stay so sent records, stored switches and old unsubscribe
  *  links still resolve; generation and send refuse before I/O. */
 export const RETIRED_EMAIL_KINDS: readonly ProductEmailKind[] = [
-  "top_100",
-  "card_of_week",
   "clan_report",
   "arena_week",
   "milestone",
@@ -130,6 +129,16 @@ export function isRetiredEmailKind(kind: string): boolean {
 export const ACTIVE_PRODUCT_EMAIL_KINDS = PRODUCT_EMAIL_KINDS.filter(
   (kind) => !isRetiredEmailKind(kind),
 );
+/** A kind Elixir sends today. Every send path refuses anything else
+ *  before I/O: a retired kind, or a name no longer known at all (the
+ *  removed `top_100` and `card_of_week`). */
+export function isActiveEmailKind(kind: string): boolean {
+  return (ACTIVE_PRODUCT_EMAIL_KINDS as readonly string[]).includes(kind);
+}
+/** Why a send path refused a kind that is not active. */
+export function inactiveEmailReason(kind: string): "retired" | "unknown_kind" {
+  return isRetiredEmailKind(kind) ? "retired" : "unknown_kind";
+}
 
 export interface EmailMessage {
   v: 1;
@@ -208,8 +217,6 @@ export const EMAIL_KIND_CLASS: Record<
   clan_report: "bulk",
   arena_week: "bulk",
   tracking_report: "bulk",
-  top_100: "bulk",
-  card_of_week: "bulk",
   collector_activity: "bulk",
   milestone: "bulk",
   clan_actions_waiting: "bulk",

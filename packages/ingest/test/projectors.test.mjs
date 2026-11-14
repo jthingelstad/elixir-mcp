@@ -154,17 +154,16 @@ test("a profile re-poll within the day leaves the player row's version alone", a
   assert.notEqual(await version(), before, "a day on, the sighting moves");
 });
 
-test("a fetch records its new_facts count and the gateway's last success; the retired fetch_points never moves", async () => {
+test("a fetch records its new_facts count and the gateway's last success", async () => {
   const log = await fixture("player_battlelog/with_boat_and_duel.json");
   const tag = meta["player_battlelog/with_boat_and_duel.json"].entity_key;
   const gateway = async () =>
     (
       await ctx.db.query(
-        `select fetch_points, last_success_at from gateway where gateway_id = $1`,
+        `select last_success_at from gateway where gateway_id = $1`,
         [gatewayId],
       )
     ).rows[0];
-  const before = await gateway();
   const first = await processResult(
     ctx.db,
     message({
@@ -187,7 +186,6 @@ test("a fetch records its new_facts count and the gateway's last success; the re
   assert.ok(r1.ingest_ms >= 0, "ingest time recorded");
   const after = await gateway();
   assert.ok(after.last_success_at instanceof Date, "last success recorded");
-  assert.equal(Number(after.fetch_points), Number(before.fetch_points));
 
   const second = await processResult(
     ctx.db,
@@ -201,10 +199,6 @@ test("a fetch records its new_facts count and the gateway's last success; the re
   assert.equal(second.outcome, "admitted");
   const r2 = await receipt(second.receiptId);
   assert.equal(r2.new_facts, 0, "nothing the record did not hold");
-  assert.equal(
-    Number((await gateway()).fetch_points),
-    Number(before.fetch_points),
-  );
 });
 
 test("donation decrease across snapshots emits donation_reset with evidence", async () => {

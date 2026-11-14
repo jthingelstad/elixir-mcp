@@ -1009,10 +1009,8 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
 });
 
 test("collector fleet: card-derived identity; points and credits retired (#539)", async () => {
-  // fetch_points is a dead column: ingest still counts it, nothing serves it.
-  await db.query(
-    `update gateway set fetch_points = 2600 where name = 'kitchen-mac' and status <> 'revoked'`,
-  );
+  // Fetch points and credits are retired (their column dropped in 0266):
+  // nothing serves either.
   const mine = parse(
     await handler(
       event({
@@ -2526,8 +2524,8 @@ test("one operator cannot read another operator's machine label", async () => {
   // A label of exactly the kind that makes this matter: a hostname with
   // a username and a location in it.
   await db.query(
-    `insert into gateway (owner_account_id, name, status, fetch_points, card_name)
-     values ($1, 'jamies-imac-basement', 'active', 40, 'Mega Knight')`,
+    `insert into gateway (owner_account_id, name, status, card_name)
+     values ($1, 'jamies-imac-basement', 'active', 'Mega Knight')`,
     [op.account_id],
   );
   const snoopCookie = await signIn(SNOOP, "203.0.113.28");
@@ -3838,13 +3836,7 @@ test("retired email switches cannot be restored, while history and old unsubscri
     [accountId],
   );
   assert.equal(held.enabled, false);
-  for (const kind of [
-    "top_100",
-    "card_of_week",
-    "clan_report",
-    "arena_week",
-    "milestone",
-  ]) {
+  for (const kind of ["clan_report", "arena_week", "milestone"]) {
     const response = await handler(
       event({
         method: "PUT",
@@ -3864,28 +3856,69 @@ test("retired email switches cannot be restored, while history and old unsubscri
       if (method === "GET") assert.match(reply.body, /has ended/);
     }
   }
-  await handler(
-    event({
-      method: "PUT",
-      path: "/api/me/email",
-      cookie: memberCookie,
-      body: { kind: "all", enabled: true },
-    }),
-  );
   const preferences = parse(
     await handler(
       event({ method: "GET", path: "/api/me/email", cookie: memberCookie }),
     ),
   ).kinds;
   assert.ok(
-    !preferences.some((k) => ["top_100", "card_of_week"].includes(k.kind)),
+    !preferences.some((k) =>
+      ["clan_report", "arena_week", "milestone"].includes(k.kind),
+    ),
   );
+});
+
+test("a removed mail kind (Top 100, Card of the Week): old unsubscribe links land on the ended page, sends still read", async () => {
+  const {
+    rows: [account],
+  } = await db.query("select account_id from account where email_hash = $1", [
+    emailHash(NEWCOMER),
+  ]);
+  const accountId = account.account_id;
+  // Removed outright on 2026-11-14 (Jamie: "Remove those email kinds."):
+  // a footer already delivered still carries a signed token naming one.
+  for (const kind of ["top_100", "card_of_week"]) {
+    const response = await handler(
+      event({
+        method: "PUT",
+        path: "/api/me/email",
+        cookie: memberCookie,
+        body: { kind, enabled: false },
+      }),
+    );
+    assert.equal(response.statusCode, 400);
+    assert.equal(parse(response).error, "bad_kind");
+    const token = signUnsubscribe({ secret: SECRET, accountId, kind });
+    const page = event({ method: "GET", path: "/api/email/unsubscribe" });
+    page.queryStringParameters = { t: token };
+    const shown = await handler(page);
+    assert.equal(shown.statusCode, 200, shown.body);
+    assert.match(shown.headers["content-type"], /^text\/html/);
+    assert.match(shown.body, /This email has ended/);
+    assert.match(shown.body, /nothing to turn off/);
+    assert.ok(shown.body.includes('href="/settings/emails"'));
+    assert.ok(
+      !shown.body.includes("<form"),
+      "no button for a kind with no switch",
+    );
+    const button = event({ method: "POST", path: "/api/email/unsubscribe" });
+    button.queryStringParameters = { t: token };
+    const pressed = await handler(button);
+    assert.equal(pressed.statusCode, 200, pressed.body);
+    assert.match(pressed.body, /This email has ended/);
+    const oneClick = event({ method: "POST", path: "/api/email/unsubscribe" });
+    oneClick.queryStringParameters = { t: token };
+    oneClick.body = "List-Unsubscribe=One-Click";
+    const client = await handler(oneClick);
+    assert.equal(client.statusCode, 200);
+    assert.equal(client.body, "ok");
+  }
   const { rows: prefs } = await db.query(
-    "select enabled from account_email_pref where account_id = $1 and kind in ('top_100', 'card_of_week')",
+    "select 1 from account_email_pref where account_id = $1 and kind in ('top_100', 'card_of_week')",
     [accountId],
   );
-  assert.equal(prefs.length, 2);
-  assert.ok(prefs.every((p) => p.enabled === false));
+  assert.equal(prefs.length, 0, "a removed kind gets no switch row");
+  // A send of a removed kind still lists and opens, under a plain label.
   const {
     rows: [issue],
   } = await db.query(
@@ -3907,9 +3940,9 @@ test("retired email switches cannot be restored, while history and old unsubscri
       }),
     ),
   ).sends;
-  assert.ok(
-    list.some((s) => s.send_id === send.send_id && s.kind === "top_100"),
-  );
+  const row = list.find((s) => s.send_id === send.send_id);
+  assert.equal(row?.kind, "top_100");
+  assert.equal(row?.label, "Retired email");
   const detail = await handler(
     event({
       method: "GET",
@@ -3919,6 +3952,14 @@ test("retired email switches cannot be restored, while history and old unsubscri
   );
   assert.equal(detail.statusCode, 200);
   assert.equal(parse(detail).send.kind, "top_100");
+  const page = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/email", cookie: memberCookie }),
+    ),
+  );
+  assert.ok(
+    !page.kinds.some((k) => ["top_100", "card_of_week"].includes(k.kind)),
+  );
 });
 
 test("the digest's clan part is the person's to turn on and off, on the clan report's row", async () => {

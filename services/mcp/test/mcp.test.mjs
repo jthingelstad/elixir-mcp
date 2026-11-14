@@ -414,10 +414,11 @@ test("local time helpers: DST-aware day bounds", () => {
 });
 
 test("collector points no longer raise the daily quota (#539)", async () => {
-  // fetch_points is a dead column: nothing counts or reads it.
+  // Running a collector earns the Family tier and nothing else: fetch
+  // points are gone (their column dropped in 0266).
   await db.query(
-    `insert into gateway (owner_account_id, name, static_ip, status, fetch_points)
-     values ($1, 'credit-gw', '127.0.0.1', 'active', 999999)`,
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     values ($1, 'credit-gw', '127.0.0.1', 'active')`,
     [account.accountId],
   );
   const r = await makeQuota({ db, account })();

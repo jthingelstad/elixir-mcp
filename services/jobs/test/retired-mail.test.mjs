@@ -4,18 +4,21 @@ import { runEmail } from "../src/email/index.mjs";
 import { deliver } from "@elixir-mcp/mail/deliver";
 import { handler } from "../src/index.mjs";
 
-test("scheduled, forced and direct entry points of every retired mail perform no IO", async () => {
+test("scheduled, forced and direct entry points of every retired or removed mail perform no IO", async () => {
   const forbidden = () => {
     throw new Error("retired mail performed IO");
   };
   // The clan report, Arena week and milestone folded into the one digest
   // (Jamie, 2026-11-12): a rule left behind or a forced run sends nothing.
-  for (const kind of [
-    "top_100",
-    "card_of_week",
-    "clan_report",
-    "arena_week",
-    "milestone",
+  // Top 100 and Card of the Week are no kind at all since 2026-11-14:
+  // a stale rule or a hand-run event naming one is refused the same way,
+  // as an unknown kind.
+  for (const [kind, why] of [
+    ["top_100", "unknown_kind"],
+    ["card_of_week", "unknown_kind"],
+    ["clan_report", "retired"],
+    ["arena_week", "retired"],
+    ["milestone", "retired"],
   ]) {
     for (const force of [false, true]) {
       const result = await runEmail({
@@ -24,7 +27,7 @@ test("scheduled, forced and direct entry points of every retired mail perform no
         db: { query: forbidden },
         enqueue: forbidden,
       });
-      assert.equal(result.skipped, "retired");
+      assert.equal(result.skipped, why);
       assert.equal(
         (
           await deliver({
@@ -34,13 +37,10 @@ test("scheduled, forced and direct entry points of every retired mail perform no
             enqueue: forbidden,
           })
         ).reason,
-        "retired",
+        why,
       );
     }
-    assert.equal(
-      (await handler({ email: kind, force: true })).skipped,
-      "retired",
-    );
+    assert.equal((await handler({ email: kind, force: true })).skipped, why);
   }
   // Their old manual entry points (Top 100, Card of the Week, the issue
   // queue) went with the tombstones (2026-11-12): an event naming one is

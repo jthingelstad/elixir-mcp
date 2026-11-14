@@ -26,7 +26,6 @@ const GATEWAYS = [
     enrolled_at: "2026-09-01T00:00:00.000Z",
     last_heartbeat_at: "2026-09-06T15:29:57.000Z",
     last_success_at: "2026-09-06T15:28:00.000Z",
-    fetch_points: 4639,
     last_seen_sha: "v0.1.16",
     fetches_last_hour: 252,
     // A completed fetch always consumes a lease and a submit. The table
@@ -49,7 +48,6 @@ const GATEWAYS = [
     enrolled_at: "2026-09-06T14:00:00.000Z",
     last_heartbeat_at: "2026-09-06T15:29:52.000Z",
     last_success_at: "2026-09-06T15:20:00.000Z",
-    fetch_points: 2,
     last_seen_sha: "v0.1.16",
     fetches_last_hour: 202,
     provision_ready: false,
