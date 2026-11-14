@@ -1,3 +1,4 @@
+import { verificationBudget } from "./verification-budget.mjs";
 /**
  * What the player page, Stats, Find, the bell, the search sheet, the
  * battle page, a shared post, Settings, the timeline and its feed, and
@@ -75,7 +76,7 @@ async function read(label, path, opts, { statements, buffers }) {
   ran.push(...r.seen);
   assert.equal(r.status, 200, `${label}: ${JSON.stringify(r.body)}`);
   assert.ok(
-    r.seen.length <= statements,
+    r.seen.length <= statements + verificationBudget(r.body),
     `${label}: ${r.seen.length} statements, budget ${statements}`,
   );
   const planned = await plans(seed.db, r.seen);
@@ -415,7 +416,10 @@ test("the search sheet's reads stay in their budgets", async () => {
     );
     ran.push(...r.seen);
     assert.equal(r.status, 200);
-    assert.ok(r.seen.length <= 6, `players_search: ${r.seen.length}`);
+    assert.ok(
+      r.seen.length <= 6 + verificationBudget(r.body),
+      `players_search: ${r.seen.length}`,
+    );
     const planned = await plans(seed.db, r.seen);
     const p = planned.find((x) => /with mine as materialized/.test(x.full));
     assert.ok(p, "players_search ran");

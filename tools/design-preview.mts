@@ -3,6 +3,10 @@ import http from "node:http";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { homeApi } from "../apps/web/e2e/home-fixture.ts";
+import { FIND } from "../apps/web/e2e/find-fixture.ts";
+import { identityFixtures } from "../apps/web/e2e/identity-fixture.ts";
+import { signedIn as clanIn } from "../apps/web/e2e/clan/fixtures.ts";
+import { explore } from "../apps/web/e2e/stats-fixture.ts";
 import { ADA } from "../apps/web/e2e/player-fixture.ts";
 
 const port = Number(process.env.ELIXIR_DESIGN_PORT ?? 4388);
@@ -15,7 +19,25 @@ const child = spawn(
     stdio: "inherit",
   },
 );
-const routes = homeApi({ "GET /api/player": [200, ADA] });
+const routes = identityFixtures({
+  ...clanIn(),
+  ...homeApi({
+    "GET /api/player": [200, ADA],
+    "GET /api/me/people/find": [
+      200,
+      {
+        ...FIND,
+        people: FIND.people
+          .filter((p) => ["Juniper", "Elm"].includes(p.name))
+          .map((p) => ({
+            ...p,
+            avatar_card_id: p.name === "Juniper" ? 26000000 : null,
+          })),
+      },
+    ],
+    "POST /api/me/tool": explore(),
+  }),
+});
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url!, `http://127.0.0.1:${port}`);
   if (url.pathname.startsWith("/api/")) {
@@ -26,7 +48,9 @@ const server = http.createServer(async (req, res) => {
       routes[key] ??
       (key === "GET /api/me/home/feed"
         ? routes["GET /api/me/timeline"]
-        : undefined);
+        : key === "POST /api/me/stats"
+          ? routes["POST /api/me/tool"]
+          : undefined);
     const [status, body] =
       typeof answer === "function"
         ? answer({

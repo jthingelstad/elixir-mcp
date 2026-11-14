@@ -28,6 +28,7 @@ export function fittingLimit(error, limit) {
  */
 export async function sweepBattles(read, args, pages) {
   const battles = [];
+  const player_verifications = {};
   let first = null;
   let cursor = null;
   let limit = Number(args.limit ?? 25);
@@ -48,6 +49,7 @@ export async function sweepBattles(read, args, pages) {
       continue;
     }
     first ??= body;
+    Object.assign(player_verifications, body?.player_verifications);
     battles.push(...(body?.battles ?? []));
     cursor = body?.next_cursor ?? null;
     if (!cursor || reads >= pages) break;
@@ -55,6 +57,7 @@ export async function sweepBattles(read, args, pages) {
   return {
     first,
     battles,
+    player_verifications,
     total: first?.total_count ?? null,
     capped: Boolean(cursor),
   };

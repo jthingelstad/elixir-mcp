@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useLocation } from "@tanstack/react-router";
 import {
   Empty,
@@ -92,7 +93,9 @@ export function FollowMePage() {
               key={x.player_tag}
               title={
                 <Link to={playerHref(x.player_tag)}>
-                  <TagText>{x.name ?? x.player_tag}</TagText>
+                  <PlayerName tag={x.player_tag}>
+                    <TagText>{x.name ?? x.player_tag}</TagText>
+                  </PlayerName>
                 </Link>
               }
               detail={

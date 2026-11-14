@@ -10,6 +10,8 @@ import { afterEach, describe, expect, test } from "vitest";
 import {
   AccountAvatar,
   Avatar,
+  PlayerIdentityProvider,
+  PlayerName,
   avatarCardOf,
   avatarCrop,
 } from "../src/index.ts";
@@ -88,5 +90,29 @@ describe("AccountAvatar", () => {
     expect(container.querySelector(".chrome__avatar")!.textContent).toBe("KT");
     rerender(<AccountAvatar card={null} initials="KT" />);
     expect(container.querySelector("img")).toBeNull();
+  });
+});
+
+describe("verified player identity", () => {
+  test("proof survives missing and failed art; neither art nor a clan can imply it", () => {
+    const draw = (verified: boolean, card: number | null) => (
+      <PlayerIdentityProvider players={{ "#00C298UC": verified }}>
+        <Avatar name="Ada" tag="#00C298UC" card={card} />
+        <PlayerName tag="#00C298UC">Ada</PlayerName>
+        <Avatar name="Grove" tag="#00C298UC" clan />
+      </PlayerIdentityProvider>
+    );
+    const { container, rerender, queryByRole } = render(draw(true, null));
+    expect(container.querySelectorAll(".kit-av--verified")).toHaveLength(1);
+    expect(queryByRole("img", { name: "Verified player" })).not.toBeNull();
+    rerender(draw(true, 26000000));
+    fireEvent.error(container.querySelector(".kit-av img")!);
+    expect(container.querySelector(".kit-av--verified")!.textContent).toBe(
+      "AD",
+    );
+    expect(queryByRole("img", { name: "Verified player" })).not.toBeNull();
+    rerender(draw(false, 26000001));
+    expect(container.querySelector(".kit-av--verified")).toBeNull();
+    expect(queryByRole("img", { name: "Verified player" })).toBeNull();
   });
 });

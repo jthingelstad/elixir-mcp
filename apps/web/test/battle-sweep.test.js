@@ -96,3 +96,24 @@ test("the limit a refusal names is always smaller than the one refused", () => {
   expect(fittingLimit({ hint: "" }, 40)).toBe(20);
   expect(fittingLimit({}, 1)).toBe(1);
 });
+
+test("proof from every response page survives a season sweep, including explicit revocation", async () => {
+  let page = 0;
+  const read = async () =>
+    ++page === 1
+      ? {
+          battles: [],
+          next_cursor: "next",
+          player_verifications: { "#00C298UC": true },
+        }
+      : {
+          battles: [],
+          next_cursor: null,
+          player_verifications: { "#00C298UC": false, "#080J2V9Q": true },
+        };
+  const out = await sweepBattles(read, ARGS, 12);
+  expect(out.player_verifications).toEqual({
+    "#00C298UC": false,
+    "#080J2V9Q": true,
+  });
+});

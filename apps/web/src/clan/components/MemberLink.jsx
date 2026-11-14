@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@elixir-mcp/ui";
 import { memberPath } from "../lib/base.js";
@@ -25,7 +26,7 @@ export function MemberLink({ clanTag, playerTag, navigate, children }) {
     own && clanTag ? memberPath(clanTag, playerTag) : playerHref(playerTag);
   return (
     <Link to={to} navigate={navigate} className="hit">
-      {children}
+      <PlayerName tag={playerTag}>{children}</PlayerName>
     </Link>
   );
 }

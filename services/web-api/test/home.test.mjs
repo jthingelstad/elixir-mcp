@@ -403,7 +403,7 @@ test("a failed clan panel says so and the rest of Home still renders", async () 
   );
   const head = await call(clanFails, id, "GET", "/api/me/home");
   assert.equal(head.statusCode, 200, head.body);
-  assert.deepEqual(Object.keys(data(head)), ["first"]);
+  assert.deepEqual(Object.keys(data(head)), ["first", "player_verifications"]);
   assert.equal(data(head).first.ok, true);
   const failed = await call(clanFails, id, "GET", "/api/me/home/clan");
   assert.equal(failed.statusCode, 200, failed.body);

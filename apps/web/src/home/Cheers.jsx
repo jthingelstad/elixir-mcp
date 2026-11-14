@@ -92,7 +92,7 @@ export function Cheers({ it, where }) {
           id={pickId}
           role="group"
           aria-label="Choose a cheer"
-          className="kit-cheers__row"
+          className="kit-cheers__row kit-cheers__picker"
         >
           {CHEERS.map((c) => (
             <button

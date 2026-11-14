@@ -1,3 +1,4 @@
+import { PlayerName } from "./PlayerIdentity.tsx";
 import type { ReactNode } from "react";
 import { AccountAvatar } from "./AccountAvatar.tsx";
 import { Icon, type IconName } from "./Icon.tsx";
@@ -11,6 +12,7 @@ export interface ChromePlayer {
   tag?: string;
   /** The primary player wears the star. */
   primary?: boolean;
+  verified?: boolean;
   /** Who this player is to you, in words: drawn instead of the star and tag. */
   note?: string;
   href: string;
@@ -38,6 +40,7 @@ export interface ChromeAccount {
    *  initials (2026-11-14). The account's own, so it shows here whether or
    *  not any of its players is verified. */
   avatarCard?: number | null;
+  verified?: boolean;
   email?: string;
   /** A mono line under the address: the role and the clock. */
   detail?: string;
@@ -97,10 +100,13 @@ export function AccountMenu({
         <AccountAvatar
           large
           card={account.avatarCard}
+          verified={account.verified}
           initials={account.initials ?? initialsOf(account.name)}
         />
         <div className="min-w-0">
-          <div className="account-menu__name">{account.name}</div>
+          <div className="account-menu__name">
+            <PlayerName verified={account.verified}>{account.name}</PlayerName>
+          </div>
           {account.email && (
             <div className="account-menu__email">{account.email}</div>
           )}
@@ -127,7 +133,9 @@ export function AccountMenu({
               )}
               {/* A player with no name is named by its tag (TagText draws it). */}
               <span className="account-menu__player-name">
-                <TagText>{p.name}</TagText>
+                <PlayerName tag={p.tag} verified={p.verified}>
+                  <TagText>{p.name}</TagText>
+                </PlayerName>
               </span>
               {p.note ? (
                 <small className="account-menu__player-note">{p.note}</small>

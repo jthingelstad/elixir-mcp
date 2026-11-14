@@ -8431,9 +8431,13 @@ a.kit-mbattle:hover {
   flex: 0 0 auto;
 }
 @media (max-width: 760px) {
-  .kit-player > .kit-tabs {
+  .kit-tabs {
     flex-wrap: wrap;
     overflow-x: visible;
+  }
+  .kit-tabs__tab {
+    padding-inline: var(--s-2);
+    font-size: var(--t-body-sm);
   }
   /* On a phone the avatar sits beside the name, smaller, as Clan's crest
      does, and the actions take their own row under it, so the timeline
@@ -8535,11 +8539,7 @@ a.kit-mbattle:hover {
     white-space: normal;
   }
   .kit-feed__item {
-    padding: var(--s-5) 0;
-    gap: var(--s-2);
-    border-radius: 0;
-    background: none;
-    border-bottom: 1px solid var(--line-soft);
+    padding: var(--s-3) 0 var(--s-4);
   }
   /* The phone board draws a moment without its medal: the sentence keeps
      the card's whole reading width. */
@@ -10409,7 +10409,7 @@ a.kit-mbattle:hover {
 
 /* Profile images (2026-11-14): a card's base art placed in the avatar's
    circle by CSS alone (the crop's variables come from avatar-crops.ts),
-   never resized or re-encoded; a plain circle with no ring or glow.
+   never resized or re-encoded. Verification is a separate core state.
    Then Settings > Profile's picker: avatar tiles of at least 44px. */
 .kit-av--image,
 .chrome__avatar--image {
@@ -10496,4 +10496,64 @@ a.kit-mbattle:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--s-2);
+}
+
+/* Proof remains visible when art fails or the player has never chosen art.
+   The dark keyline separates the gold from both light card art and fills. */
+.kit-av--verified,
+.chrome__avatar--verified {
+  box-shadow:
+    0 0 0 2px var(--ground),
+    0 0 0 4px var(--gold);
+}
+.kit-player-name {
+  display: inline;
+  overflow-wrap: anywhere;
+}
+.kit-verified {
+  display: inline-block;
+  width: 0.875em;
+  height: 0.875em;
+  min-width: 12px;
+  min-height: 12px;
+  margin-left: 0.3em;
+  vertical-align: -0.075em;
+  color: var(--gold);
+}
+.kit-find .kit-panel {
+  background: none;
+  border-radius: 0;
+}
+.kit-find .kit-panel__head,
+.kit-find .kit-panel__body,
+.kit-find .kit-people__slots,
+.kit-find .kit-people__quiet {
+  padding-inline: 0;
+}
+.kit-find .kit-row {
+  padding-inline: 0;
+}
+.kit-find > .kit-head,
+.kit-find > .kit-tabs {
+  margin-bottom: 0;
+}
+.kit-cheers__picker .kit-chip {
+  flex: 1 1 100px;
+  justify-content: center;
+}
+.kit-cheers__picker {
+  animation: kit-reveal 160ms ease-out;
+}
+@keyframes kit-reveal {
+  from {
+    transform: translateY(4px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-cheers__picker {
+    animation: none;
+  }
 }

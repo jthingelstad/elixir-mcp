@@ -1,3 +1,4 @@
+import { withPlayerVerifications } from "./player-identities.mjs";
 import { verifyRoutes } from "./routes/verify.mjs";
 import { signInApi, apiProblem, v1Operation } from "./sign-in-api.mjs";
 import { randomUUID } from "node:crypto";
@@ -610,7 +611,11 @@ export function makeHandler({
             if (!agent) return json(404, { error: "not_found" });
             event.scopedAccount = agent;
           }
-          return route(db, event, body, context);
+          return withPlayerVerifications(
+            db,
+            found.key,
+            await route(db, event, body, context),
+          );
         },
         () => {
           timedOut = true;

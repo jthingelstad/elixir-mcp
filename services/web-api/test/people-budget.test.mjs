@@ -1,3 +1,4 @@
+import { verificationBudget } from "./verification-budget.mjs";
 /**
  * What the people reads cost the database (2026-11-13): Home's starter
  * set and its People to follow panel, and Find's Suggested, From your
@@ -161,7 +162,7 @@ test("the people reads stay in their budgets and read the person's battles by ra
     assert.equal(r.status, 200, path);
     assert.equal(r.body.ok, true, path);
     assert.ok(
-      r.seen.length <= BUDGET[path],
+      r.seen.length <= BUDGET[path] + verificationBudget(r.body),
       `${path}: ${r.seen.length} statements, budget ${BUDGET[path]}`,
     );
     // Never one statement over many players' battles: each player's are

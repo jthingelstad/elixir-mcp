@@ -116,7 +116,10 @@ test(
   async () => {
     window.history.pushState({}, "", "/home/you");
     render(<App />);
-    await screen.findByRole("heading", { level: 1, name: "Birch Lantern" });
+    await screen.findByRole("heading", {
+      level: 1,
+      name: /Birch Lantern\s*Verified player/,
+    });
     expect(screen.getByText("Birch Lantern won five in a row")).toBeTruthy();
     const stats = screen.getByRole("tab", { name: "Stats" });
     expect(

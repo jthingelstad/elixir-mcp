@@ -1,3 +1,4 @@
+import { PlayerIdentities } from "./lib/PlayerIdentities.jsx";
 import {
   InitialTimeProvider,
   ErrorBoundary,
@@ -830,9 +831,11 @@ export function App({ runtime = null }) {
     <InitialTimeProvider at={state.renderedAt}>
       <SignInProgress.Provider value={signInProgress}>
         <QueryClientProvider client={queryClient}>
-          <CardArtSource>
-            <RouterProvider router={router} />
-          </CardArtSource>
+          <PlayerIdentities>
+            <CardArtSource>
+              <RouterProvider router={router} />
+            </CardArtSource>
+          </PlayerIdentities>
         </QueryClientProvider>
       </SignInProgress.Provider>
     </InitialTimeProvider>

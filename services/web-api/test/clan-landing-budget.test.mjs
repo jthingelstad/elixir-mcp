@@ -1,3 +1,4 @@
+import { verificationBudget } from "./verification-budget.mjs";
 /**
  * What Clan's landing costs the database (2026-11-13), over a seeded clan
  * whose rows are a small part of each table (`clan-landing-seed.mjs`):
@@ -102,7 +103,7 @@ async function call(path, query = {}) {
       rawQueryString: new URLSearchParams(query).toString(),
     }),
   );
-  return { status: r.statusCode, seen };
+  return { status: r.statusCode, body: JSON.parse(r.body), seen };
 }
 
 /** Every scan in a plan, with the rows it read: what it returned and what
@@ -192,7 +193,7 @@ test("the Feed page's reads stay in their statement budgets and read the clan by
   for (const [key, r] of all) {
     assert.equal(r.status, 200, key);
     assert.ok(
-      r.seen.length <= BUDGET[key],
+      r.seen.length <= BUDGET[key] + verificationBudget(r.body),
       `${key}: ${r.seen.length} statements, budget ${BUDGET[key]}`,
     );
     assertBounded(key, await plans(r.seen));
@@ -237,7 +238,7 @@ test("the other tabs' first reads stay in their budgets and read the clan by ran
     const r = await call(`/api/clan/clans/${bare()}${key}`);
     assert.equal(r.status, 200, key);
     assert.ok(
-      r.seen.length <= BUDGET[key],
+      r.seen.length <= BUDGET[key] + verificationBudget(r.body),
       `${key}: ${r.seen.length} statements, budget ${BUDGET[key]}`,
     );
     assertBounded(key, await plans(r.seen));

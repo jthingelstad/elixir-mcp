@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useState } from "react";
 import {
   SHELL_PLACES,
@@ -61,7 +62,7 @@ export function FindPage() {
   const [tab, setTab] = useState("suggested");
   const openSheet = useSheet();
   return (
-    <div className="kit-home">
+    <div className="kit-home kit-find">
       <PageHead
         title="Find"
         sub="Find your friends, your clanmates and players you’ve battled."
@@ -225,7 +226,14 @@ function FollowMeLink({ players }) {
         Send it to a friend: it opens your players&rsquo; page on Elixir, ready
         to follow. It names{" "}
         <TagText>
-          {players.map((p) => p.name ?? p.player_tag).join(" and ")}
+          {players.map((p, i) => (
+            <span key={p.player_tag}>
+              {i ? " and " : ""}
+              <PlayerName tag={p.player_tag}>
+                {p.name ?? p.player_tag}
+              </PlayerName>
+            </span>
+          ))}
         </TagText>{" "}
         and nothing else.
       </p>

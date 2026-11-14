@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useState } from "react";
 import {
   Avatar,
@@ -72,7 +73,9 @@ function Person({ p, detail, used, limit }) {
       }
       title={
         <Link to={playerHref(tag)} className="hit">
-          <TagText>{p.name ?? tag}</TagText>
+          <PlayerName tag={tag}>
+            <TagText>{p.name ?? tag}</TagText>
+          </PlayerName>
         </Link>
       }
       detail={detail}

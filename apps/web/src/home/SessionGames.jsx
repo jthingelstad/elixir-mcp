@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { DeckRow, Link, TagText, noun, useClock } from "@elixir-mcp/ui";
 import { playerHref } from "../lib/player.js";
 import { modeWord } from "./logic.js";
@@ -154,7 +155,9 @@ const RESULT = { win: "Win", loss: "Loss", draw: "Draw" };
 function Who({ p }) {
   return (
     <Link to={playerHref(p.player_tag)} className="kit-sgame__name">
-      <TagText>{nameOf(p)}</TagText>
+      <PlayerName tag={p.player_tag}>
+        <TagText>{nameOf(p)}</TagText>
+      </PlayerName>
     </Link>
   );
 }
