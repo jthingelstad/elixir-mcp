@@ -1321,7 +1321,33 @@ export function prefetchStatements({ fromMs, toMs, basis = "observed" }) {
   const sql = playerBattlesSql("t.tag", fromMs, toMs, basis);
   return {
     wide: perTag(sql.wide, "x.battle_time"),
-    late: perTag(sql.late),
+    // An observed window's late count reads the battles the record
+    // learned in the window, anyone's, by created_at: per tag, that is the
+    // whole week once for every player (263,921 buffers for a feed of 56
+    // on a year's record, 2026-11-13). The week's late captures are read
+    // once instead and counted by player; each tag's count is the one its
+    // own statement gives. An occurred window reads each player's own
+    // battles by time, so it stays per tag.
+    late:
+      basis === "occurred"
+        ? perTag(sql.late)
+        : `with late as materialized (
+             select b.battle_id from battle b
+              where b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
+                and b.battle_time < b.created_at - interval '1 day'
+           ), counts as (
+             select bp.player_tag, count(*)::int as n
+               from late l
+               cross join lateral (
+                 select bp.player_tag from battle_participant bp
+                  where bp.battle_id = l.battle_id
+                 offset 0) bp
+              group by bp.player_tag
+           )
+           select t.tag as batch_tag, coalesce(c.n, 0) as n
+             from unnest($1::text[]) with ordinality as t(tag, ord)
+             left join counts c on c.player_tag = t.tag
+            order by t.ord`,
     snapshot: (atMs) => perTag(snapshotSql("t.tag", atMs)),
   };
 }

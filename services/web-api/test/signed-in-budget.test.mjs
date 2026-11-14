@@ -1,6 +1,7 @@
 /**
- * What the player page, Stats, Find, the bell and the search sheet cost
- * the database (2026-11-13), over a synthetic record
+ * What the player page, Stats, Find, the bell, the search sheet, the
+ * battle page, a shared post, Settings, the timeline and its feed, and
+ * Clan's pages past its landing cost the database (2026-11-13), over a synthetic record
  * (`signed-in-seed.mjs`): King Thing signed in, a clan among others,
  * months of battles and day rows, 55 follows. Every read
  * each page makes on load goes through the web API's own handler, one at
@@ -538,6 +539,239 @@ test("the bell's and cheers' items are the ones a build with late counts makes",
   }
 });
 
+/** Each read in order, each in its budget; answers the reads by label. */
+async function inOrder(reads) {
+  const out = {};
+  for (const [label, path, opts, budget] of reads) {
+    out[label] = await read(label, path, opts, budget);
+  }
+  return out;
+}
+
+/** The leader's latest battle the public page can name (not a war row). */
+const latestBattle = async () =>
+  (
+    await seed.db.query(
+      `select battle_id from battle_participant
+        where player_tag = $1 and battle_id not like '%-w%'
+        order by battle_time desc limit 1`,
+      [seed.leaderTag],
+    )
+  ).rows[0].battle_id;
+
+/**
+ * The battle page and a shared post (2026-11-13): the shell's /api/me,
+ * the battle itself, then the viewer's highlight, cheers and follow cost;
+ * a post reads its battle as the battle page does.
+ */
+const BATTLE = {
+  "/api/me": { statements: 11, buffers: 900 },
+  "/api/public/battles": { statements: 21, buffers: 500 },
+  "/api/me/highlights": { statements: 5, buffers: 50 },
+  "/api/me/cheers": { statements: 26, buffers: 900 },
+  "/api/me/follow-cost": { statements: 5, buffers: 250 },
+  "/api/public/highlights": { statements: 22, buffers: 500 },
+};
+
+test("the battle page and a shared post stay in their budgets, and /api/me reads each claim's player by key", async () => {
+  const battle = await latestBattle();
+  const page = await inOrder([
+    ["/api/me", "/api/me", {}, BATTLE["/api/me"]],
+    [
+      "/api/public/battles",
+      `/api/public/battles/${battle}`,
+      {},
+      BATTLE["/api/public/battles"],
+    ],
+    [
+      "/api/me/highlights",
+      "/api/me/highlights",
+      { query: { battle } },
+      BATTLE["/api/me/highlights"],
+    ],
+    [
+      "/api/me/cheers",
+      "/api/me/cheers",
+      { query: { battle } },
+      BATTLE["/api/me/cheers"],
+    ],
+    [
+      "/api/me/follow-cost",
+      "/api/me/follow-cost",
+      { query: { player_tag: seed.leaderTag } },
+      BATTLE["/api/me/follow-cost"],
+    ],
+  ]);
+  for (const s of scansOf(
+    page["/api/me"].planned,
+    /cross join lateral \(\s*select p\.name, p\.last_known_clan_tag from player p/,
+    "player",
+  ))
+    assert.equal(s.index, "player_pkey", `/api/me: player read by ${s.index}`);
+
+  // A post: the owner's words on a battle the page can name.
+  const share = "qqqqqqqqqqqqqqz";
+  await seed.db.query(
+    `insert into battle_highlight (player_tag, battle_id, account_id, words, share_id, shared_at)
+     values ($1, $2, $3, 'What a finish', $4, now())`,
+    [seed.leaderTag, battle, seed.accountId, share],
+  );
+  try {
+    await inOrder([
+      [
+        "/api/public/highlights",
+        `/api/public/highlights/${share}`,
+        {},
+        BATTLE["/api/public/highlights"],
+      ],
+      ["/api/me (post)", "/api/me", {}, BATTLE["/api/me"]],
+    ]);
+  } finally {
+    await seed.db.query("delete from battle_highlight where share_id = $1", [
+      share,
+    ]);
+  }
+});
+
+/**
+ * Settings' reads on load, page by page: Account, Email, Clans, Sessions,
+ * Activity, Requests, Connections, Agents, the RSS and Discord feeds,
+ * Players, Follows, the first answer and Seen's battle. Feedback's count
+ * is left out: its statement is sent with more values than it names, so
+ * it cannot be explained as it ran (its reads are an account's own rows).
+ */
+const SETTINGS = [
+  ["/api/me/usage", 6, 50],
+  ["/api/me/email", 6, 50],
+  ["/api/me/email/sends", 3, 50],
+  ["/api/me/clans", 6, 250],
+  ["/api/me/sessions", 3, 50],
+  ["/api/me/activity", 4, 50],
+  ["/api/me/requests", 3, 50],
+  ["/api/me/connections", 4, 50],
+  ["/api/me/principals", 4, 50],
+  ["/api/me/rss", 3, 50],
+  ["/api/me/timeline/discord", 3, 50],
+  ["/api/me/verify", 4, 250],
+  ["/api/me/follow-slots", 6, 700],
+  ["/api/me/first-answer", 8, 200],
+];
+
+test("Settings' reads stay in their budgets, and Players reads each claim's player by key", async () => {
+  const r = await inOrder(
+    SETTINGS.map(([path, statements, buffers]) => [
+      path,
+      path,
+      {},
+      { statements, buffers },
+    ]),
+  );
+  for (const s of scansOf(
+    r["/api/me/verify"].planned,
+    /cross join lateral \(\s*select p\.name from player p\s+where p\.player_tag = c\.player_tag limit 1\) p/,
+    "player",
+  ))
+    assert.equal(s.index, "player_pkey", `verify: player read by ${s.index}`);
+  await inOrder([
+    [
+      "Seen: battles_query",
+      "/api/explore",
+      tool("battles_query", {
+        player_tag: seed.leaderTag,
+        limit: 1,
+        verbosity: "compact",
+      }),
+      { statements: 20, buffers: 150 },
+    ],
+  ]);
+});
+
+/** The statement that counts an observed week's late captures. */
+const LATE_ONCE = /with late as materialized \(/;
+const LATE_ANY = /b\.battle_time < b\.created_at - interval '1 day'/;
+
+test("the timeline page counts the week's late captures once, and the feed never", async () => {
+  // Settings' agent Timeline page reads the same builder for its agent.
+  const { timeline } = await inOrder([
+    [
+      "timeline",
+      "/api/me/timeline",
+      {},
+      // The shared builder reads each followed player and clan apart,
+      // about seven statements apiece: a follow-up of its own.
+      { statements: 412, buffers: 48000 },
+    ],
+  ]);
+  const late = timeline.seen.filter((s) => LATE_ANY.test(s.text));
+  assert.equal(late.length, 1, "one late-count statement");
+  assert.match(late[0].text, LATE_ONCE);
+  const p = timeline.planned.find((x) => LATE_ONCE.test(x.full));
+  assert.ok(p.buffers <= 600, `late count: ${p.buffers} buffers`);
+
+  // The RSS feed: items only, so no late count at all.
+  const link = await request(handler, seed.cookie, "/api/me/rss", {
+    method: "POST",
+  });
+  assert.equal(link.status, 200, JSON.stringify(link.body));
+  const token = link.body.url.split("/").pop();
+  const feed = await inOrder([
+    ["rss", `/api/rss/${token}`, {}, { statements: 409, buffers: 48000 }],
+  ]);
+  assert.ok(
+    !feed.rss.seen.some((s) => LATE_ANY.test(s.text)),
+    "the feed read the late-capture count",
+  );
+  await request(handler, seed.cookie, "/api/me/rss", { method: "DELETE" });
+});
+
+/**
+ * Clan's pages past the landing's budget (`clan-landing-budget.test.mjs`
+ * holds the Feed, Standings, War and Policy): Manage and Awards both
+ * evaluated (`refresh=1`) and cached, then History, Run, Recruit,
+ * Sharing, Voice, Social, the Map, your away note and a member's
+ * activity. Evaluated, Manage and Awards each run the clan's
+ * participation evaluation that Standings shares; its heaviest
+ * statements read the window's battles and look up each one's side by
+ * key on purpose, to keep its index-only scans.
+ */
+const CLAN = [
+  ["/manage", { refresh: "1" }, 61, 30000],
+  ["/manage", {}, 13, 300],
+  ["/history", {}, 25, 1700],
+  ["/run", {}, 6, 300],
+  ["/awards", { refresh: "1" }, 53, 27000],
+  ["/awards", {}, 14, 300],
+  ["/recruit", {}, 26, 1700],
+  ["/sharing", {}, 8, 300],
+  ["/voice", {}, 9, 300],
+  ["/social", {}, 9, 300],
+  ["/map", {}, 21, 1700],
+  ["/me/away", {}, 11, 300],
+  ["/members/<leader>/activity", {}, 68, 15000],
+];
+
+test("Clan's other pages stay in their budgets, and the Map reads its places in one statement", async () => {
+  const base = `/api/clan/clans/${seed.clanTag.slice(1)}`;
+  const r = await inOrder(
+    CLAN.map(([rest, query, statements, buffers]) => [
+      `${rest}${query.refresh ? " (evaluated)" : ""}`,
+      `${base}${rest.replace("<leader>", seed.leaderTag.slice(1))}`,
+      { query },
+      { statements, buffers },
+    ]),
+  );
+  const places = r["/map"].seen.filter((s) =>
+    /from clan_state where pk = \$1/.test(s.text),
+  );
+  assert.ok(
+    r["/map"].seen.some((s) =>
+      /unnest\(\$1::text\[\]\) with ordinality as t\(pk, ord\)/.test(s.text),
+    ),
+    "the Map read its places together",
+  );
+  assert.ok(places.length <= 3, `the Map read ${places.length} items by key`);
+});
+
 /**
  * Each fix against the statement it replaced: the old form, rebuilt from
  * the new statement as it ran, must answer the same rows.
@@ -551,6 +785,11 @@ const OLD = [
   {
     name: "your players' names (myPlayers)",
     re: /cross join lateral \(\s*select p\.name, p\.last_known_clan_tag from player p\s+where p\.player_tag = c\.player_tag limit 1\) p/,
+    old: "join player p on p.player_tag = c.player_tag",
+  },
+  {
+    name: "a claim's player (GET /api/me/verify)",
+    re: /cross join lateral \(\s*select p\.name from player p\s+where p\.player_tag = c\.player_tag limit 1\) p/,
     old: "join player p on p.player_tag = c.player_tag",
   },
   {

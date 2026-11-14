@@ -334,7 +334,12 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
                    from claim_challenge ch
                   where ch.account_id = c.account_id and ch.player_tag = c.player_tag
                     and ch.outcome = 'open' limit 1) as challenge
-           from claim c join player p on p.player_tag = c.player_tag
+           from claim c
+           -- Each claim's player by its key, never a merge join walking
+           -- player_pkey across the claimed tags (2026-11-13).
+           cross join lateral (
+             select p.name from player p
+              where p.player_tag = c.player_tag limit 1) p
           where c.account_id = $1
           order by c.is_primary desc, c.player_tag`,
         [account.accountId],

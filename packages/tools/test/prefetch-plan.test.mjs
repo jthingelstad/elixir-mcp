@@ -11,6 +11,11 @@ import { prefetchStatements } from "../src/activity/entries.mjs";
  * of 52 players. This pins the per-tag form: one probe of the player's
  * own index per tag, never a scan or a hash of battle_participant, and
  * rows equal to what each player's statement returns alone.
+ *
+ * An observed window's late count is the exception (2026-11-13): per tag
+ * it read the whole week's battles by created_at once for every player,
+ * so it reads the week's late captures once and counts them by player.
+ * Its counts must be the ones the per-player statement gave.
  */
 const planNodes = async (db, text, values) => {
   const r = await db.query(
@@ -113,9 +118,49 @@ test("prefetchStatements: each tag reads its own index, once, and gets its own r
       // Plans: the player's own index, probed once per tag; never a scan
       // or a hash of battle_participant (the opponent's crowns come off
       // the primary key).
+      // The observed late count against the per-player statement it
+      // replaced, as that statement read.
+      if (basis === "observed")
+        for (const tag of tags) {
+          const { rows } = await db.query(
+            `select count(*)::int as n
+               from battle b
+               join battle_participant bp on bp.battle_id = b.battle_id
+              where b.created_at >= to_timestamp(${fromMs + 1} / 1000.0)
+                and b.created_at < to_timestamp(${toMs + 1} / 1000.0)
+                and b.battle_time < b.created_at - interval '1 day'
+                and bp.player_tag = $1`,
+            [tag],
+          );
+          assert.equal(
+            late.find((r) => r.batch_tag === tag).n,
+            rows[0].n,
+            `observed late ${tag}`,
+          );
+        }
+      if (basis === "observed") {
+        // The week's late captures once, by created_at; each one's
+        // players by the primary key.
+        const nodes = await planNodes(db, q.late, [tags]);
+        for (const n of nodes)
+          if (["battle", "battle_participant"].includes(n["Relation Name"]))
+            assert.ok(
+              !n["Node Type"].includes("Seq Scan"),
+              `observed late: a scan of ${n["Relation Name"]}`,
+            );
+        const week = nodes.filter(
+          (n) => n["Index Name"] === "battle_created_at",
+        );
+        assert.equal(week.length, 1, "observed late: the week read once");
+        assert.equal(week[0]["Actual Loops"], 1);
+        const sides = nodes.filter(
+          (n) => n["Index Name"] === "battle_participant_pkey",
+        );
+        assert.equal(sides.length, 1, "observed late: sides by key");
+      }
       for (const [name, text] of [
         ["wide", q.wide],
-        ["late", q.late],
+        ...(basis === "occurred" ? [["late", q.late]] : []),
       ]) {
         const nodes = await planNodes(db, text, [tags]);
         const own = nodes.filter(

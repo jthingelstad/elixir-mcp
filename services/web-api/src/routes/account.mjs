@@ -216,7 +216,14 @@ export function accountRoutes({
         `select c.player_tag, c.status, c.verified_at, c.is_primary, c.notify, c.relationship,
                   p.name, p.last_known_clan_tag,
                   nn.nickname
-           from claim c join player p on p.player_tag = c.player_tag
+           from claim c
+           -- Each claim's player by its key: joined plainly, the planner
+           -- merge-joins the claims against player_pkey and walks the
+           -- index from the first claimed tag to the last (1,778 buffers
+           -- for 56 claims on a year's record, 2026-11-13).
+           cross join lateral (
+             select p.name, p.last_known_clan_tag from player p
+              where p.player_tag = c.player_tag limit 1) p
            left join player_nickname nn on nn.account_id = c.account_id
              and nn.player_tag = c.player_tag
          where c.account_id = $1 order by c.is_primary desc, c.player_tag`,

@@ -11,6 +11,20 @@ export function createPostgresStore(db) {
           .rows[0]?.body ?? null
       );
     },
+    /** Several items by key, in the keys' order, absent ones left out:
+     *  one statement for a clan's members (the map read 52, 2026-11-13). */
+    async getMany(pks) {
+      if (pks.length === 0) return [];
+      return (
+        await db.query(
+          `select s.body from unnest($1::text[]) with ordinality as t(pk, ord)
+             cross join lateral (
+               select body from clan_state where pk = t.pk) s
+            order by t.ord`,
+          [pks],
+        )
+      ).rows.map((r) => r.body);
+    },
     async put(item) {
       await db.query(
         `insert into clan_state (pk, body) values ($1, $2::jsonb)
