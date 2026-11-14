@@ -179,6 +179,116 @@ test.describe("your passport", () => {
     ).toBeFocused();
   });
 
+  test("a new Stamp's line in the bell opens its sheet on your passport", async ({
+    page,
+  }) => {
+    const at = "2026-11-14T12:00:00.000Z";
+    await open(page, "/home", {
+      "GET /api/me/bell": [
+        200,
+        {
+          seen_at: null,
+          players: 0,
+          new: 0,
+          reactions: { new: 0, items: [] },
+          followers: { count: 0, new: 0, unnamed: 0, players: [] },
+          answers: { new: 0, items: [] },
+          account: {
+            new: 1,
+            items: [
+              {
+                kind: "stamp_earned",
+                stamp_id: "cheerleader",
+                name: "Cheerleader",
+                level: 2,
+                levels: 3,
+                events: 1,
+                players: 0,
+                clans: 0,
+                subjects: [],
+                at,
+                new: true,
+              },
+            ],
+          },
+        },
+      ],
+    });
+    await page.getByRole("button", { name: /^Notifications/ }).click();
+    const bell = page.getByRole("dialog", { name: "Notifications" });
+    const line = bell.getByRole("link", { name: /New Stamp: Cheerleader II/ });
+    await expect(line).toHaveAttribute(
+      "href",
+      "/home/passport?stamp=cheerleader",
+    );
+    await line.click();
+    await expect(page).toHaveURL(/\/home\/passport\?stamp=cheerleader$/);
+    const sheet = page.getByRole("dialog", { name: "Cheerleader II" });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByText("Earned 12 November 2026.")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    await expect(
+      page.getByRole("button", { name: /^Cheerleader II\./ }),
+    ).toBeFocused();
+  });
+
+  test("opening your passport reconciles behind it, and a granted Stamp shows", async ({
+    page,
+  }) => {
+    const GRANTED = {
+      ...OWN_PASSPORT,
+      passport: {
+        ...OWN_PASSPORT.passport,
+        earned: [
+          ...OWN_PASSPORT.passport.earned,
+          {
+            stamp_id: "played_together",
+            level: 1,
+            earned_on: "2026-11-14",
+            earned_before: null,
+          },
+        ],
+      },
+    };
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => (release = r));
+    let granted = false;
+    const passes: string[] = [];
+    await open(page, "/home/passport", {}, async (p) => {
+      await p.route("**/api/me/passport", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(granted ? GRANTED : OWN_PASSPORT),
+        }),
+      );
+      await p.route("**/api/me/passport/reconcile", async (route) => {
+        passes.push(route.request().method());
+        await held;
+        granted = true;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ...GRANTED,
+            granted: [{ stamp_id: "played_together", level: 1 }],
+            more: false,
+          }),
+        });
+      });
+    });
+    // The passport is on screen while the pass is still out.
+    await expect(who(page).getByText("4 Stamps")).toBeVisible();
+    await expect.poll(() => passes).toEqual(["POST"]);
+    release();
+    await expect(who(page).getByText("5 Stamps")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Played Together I\. Earned/ }),
+    ).toBeVisible();
+    expect(passes).toEqual(["POST"]);
+  });
+
   test("reduced motion: the stamp-in animation is gone", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page, "/home/passport?stamp=cheerleader");

@@ -26,6 +26,8 @@ import {
   isPassportPath,
   passportHref,
   passportIdOf,
+  RECONCILE_PASSES,
+  reconcilePassport,
   summaryOf,
   unitWord,
 } from "../src/lib/passport.js";
@@ -526,3 +528,98 @@ test(
     ).toBeGreaterThan(0);
   },
 );
+
+/** The passport header's count, once the header is there. */
+const whoSays = async (text) => {
+  const who = await waitFor(() => {
+    const el = document.querySelector(".kit-passport__who");
+    if (!el) throw new Error("no header yet");
+    return el;
+  });
+  return within(who).findByText(text);
+};
+
+test("the reconciliation: again while more, three passes at most, quiet on failure", async () => {
+  const pass = (granted, more) => ({
+    ok: true,
+    status: 200,
+    data: { ...OWN, granted, more },
+  });
+  const calls = (answers) => {
+    let i = 0;
+    const call = vi.fn(async () => {
+      const a = answers[Math.min(i, answers.length - 1)];
+      i += 1;
+      if (a instanceof Error) throw a;
+      return a;
+    });
+    return call;
+  };
+  const busy = calls([pass([{ stamp_id: "mutual" }], true)]);
+  expect(await reconcilePassport(busy)).toEqual({ granted: 3 });
+  expect(busy).toHaveBeenCalledTimes(RECONCILE_PASSES);
+  const done = calls([pass([], true), pass([], false)]);
+  expect(await reconcilePassport(done)).toEqual({ granted: 0 });
+  expect(done).toHaveBeenCalledTimes(2);
+  const refused = calls([{ ok: false, status: 429, data: null }]);
+  expect(await reconcilePassport(refused)).toEqual({ granted: 0 });
+  expect(refused).toHaveBeenCalledTimes(1);
+  const thrown = calls([new Error("offline")]);
+  expect(await reconcilePassport(thrown)).toEqual({ granted: 0 });
+});
+
+test("opening your passport reconciles after it shows, and reads again when a Stamp is granted", async () => {
+  let reads = 0;
+  const granted = {
+    ...OWN,
+    passport: {
+      ...OWN.passport,
+      earned: [
+        ...OWN.passport.earned,
+        {
+          stamp_id: "mutual",
+          level: 1,
+          earned_on: "2026-11-14",
+          earned_before: null,
+        },
+      ],
+    },
+  };
+  let release;
+  const held = new Promise((r) => (release = r));
+  routes["/api/me/passport"] = () => {
+    reads += 1;
+    return reply(reads === 1 ? OWN : granted);
+  };
+  routes["/api/me/passport/reconcile"] = async () => {
+    await held;
+    return reply({
+      ...granted,
+      granted: [{ stamp_id: "mutual" }],
+      more: false,
+    });
+  };
+  at("/home/passport");
+  // The passport shows before the reconciliation answers.
+  expect(await whoSays("3 Stamps")).toBeTruthy();
+  expect(asked).toContain("/api/me/passport/reconcile");
+  release();
+  expect(await whoSays("4 Stamps")).toBeTruthy();
+  expect(asked.filter((p) => p === "/api/me/passport/reconcile")).toHaveLength(
+    1,
+  );
+});
+
+test("a failed reconciliation changes nothing on screen, and nobody else's passport reconciles", async () => {
+  routes["/api/me/passport/reconcile"] = () =>
+    reply({ error: "unavailable" }, 503);
+  at("/home/passport");
+  expect(await whoSays("3 Stamps")).toBeTruthy();
+  await waitFor(() => expect(asked).toContain("/api/me/passport/reconcile"));
+  expect(screen.queryByText(/could not be read/)).toBeNull();
+  cleanup();
+  asked = [];
+  at(`/home/passport/${THEIRS}`);
+  expect(await screen.findByText("1 Stamp")).toBeTruthy();
+  expect(asked).not.toContain("/api/me/passport/reconcile");
+});

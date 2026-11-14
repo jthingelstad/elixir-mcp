@@ -221,6 +221,9 @@ export const api = {
   myPassport: () => request("GET", "/api/me/passport"),
   /** Anyone's passport by its id: earned Stamps and their days only. */
   passport: (id) => request("GET", `/api/passports/${encodeURIComponent(id)}`),
+  /** One pass of your passport's reconciliation: Stamps a write could not
+   *  grant at the time. Answers your passport plus `granted` and `more`. */
+  reconcilePassport: () => request("POST", "/api/me/passport/reconcile", {}),
   /** A player's page (#764): their record, follows, followers and badges. */
   playerPage: (tag) =>
     request("GET", `/api/player?tag=${encodeURIComponent(tag)}`),

@@ -24,6 +24,37 @@ export const passportHref = (id = null, stampId = null) => {
   return stampId ? `${base}?stamp=${encodeURIComponent(stampId)}` : base;
 };
 
+/** At most this many reconciliation passes on one open. Each pass is
+ *  bounded on the server and answers `more` when another would read on. */
+export const RECONCILE_PASSES = 3;
+
+/**
+ * The owner's reconciliation (#1015), shared by the passport page and Home:
+ * `call` is one pass (`api.reconcilePassport`), repeated while it answers
+ * `more`, at most `passes` times. Quiet: a refusal, a failed call or a
+ * thrown error ends the run and is never shown, since the passport already
+ * on screen stays true. Resolves to how many Stamps the passes granted,
+ * so a caller reads again only when something changed.
+ */
+export async function reconcilePassport(
+  call,
+  { passes = RECONCILE_PASSES } = {},
+) {
+  let granted = 0;
+  for (let i = 0; i < passes; i += 1) {
+    let env;
+    try {
+      env = await call();
+    } catch {
+      break;
+    }
+    if (!env?.ok || env.status !== 200 || !env.data) break;
+    granted += Array.isArray(env.data.granted) ? env.data.granted.length : 0;
+    if (env.data.more !== true) break;
+  }
+  return { granted };
+}
+
 /** Whether a path is a passport page: yours, or one with a well-formed id. */
 export function isPassportPath(path) {
   const clean = String(path ?? "").replace(/(.)\/$/, "$1");

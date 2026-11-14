@@ -14,7 +14,7 @@
  * branches on the status itself; those use answered() and keep the
  * envelope.
  */
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import {
   useInfiniteQuery,
   useMutation,
@@ -25,6 +25,7 @@ import {
 import { answered, unwrap } from "../client/index.ts";
 import { api } from "../api.js";
 import { sweepBattles } from "./battle-sweep.js";
+import { reconcilePassport } from "./passport.js";
 import { bellSeenAt } from "../shell/bell-logic.js";
 import { useScope } from "./scope.js";
 
@@ -242,6 +243,21 @@ export const useMyPassport = (enabled = true) =>
     enabled,
     staleTime: 30_000,
   });
+
+/** Your passport's reconciliation on open (#1015): after the first paint,
+ *  quietly, bounded (lib/passport.js reconcilePassport). When it grants a
+ *  Stamp, your passport and the bell read again. Home can call it too. */
+export function useReconcilePassport(enabled = true) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!enabled) return;
+    reconcilePassport(() => api.reconcilePassport()).then(({ granted }) => {
+      if (granted === 0) return;
+      queryClient.invalidateQueries({ queryKey: ["me", "passport"] });
+      queryClient.invalidateQueries({ queryKey: ["me", "bell"] });
+    });
+  }, [enabled, queryClient]);
+}
 
 /** Another member's passport by its id: the public projection alone. */
 export const usePassport = (id) =>
