@@ -21,6 +21,7 @@ import {
 } from "@elixir-mcp/contracts";
 import { resolveBattleRef } from "@elixir-mcp/record/battle-links";
 import { readPublicBattle } from "./battle-page.mjs";
+import { verifiedAvatars } from "./avatars.mjs";
 
 /** The most a highlight's words run to, in characters (code points, as
  *  Postgres counts them in 0239's check). */
@@ -237,9 +238,13 @@ export async function readPublicPost(db, shareId, { around = true } = {}) {
     s.players.some((p) => p.player_tag === h.player_tag),
   );
   const url = postUrl(h.share_id);
+  // The poster's profile image, when an account verified them and chose
+  // one (avatars.mjs): a shared post shows it to anyone with the link.
+  const face = (await verifiedAvatars(db, [h.player_tag])).get(h.player_tag);
   return {
     ...read,
     highlight: {
+      ...(face ? { avatar_card_id: face } : {}),
       share_id: h.share_id,
       url,
       image: `${url}.png`,

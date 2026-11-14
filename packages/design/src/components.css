@@ -10531,3 +10531,94 @@ a.kit-mbattle:hover {
 .kit-tabs.battle__games {
   margin-bottom: 8px;
 }
+
+/* Profile images (2026-11-14): a card's base art placed in the avatar's
+   circle by CSS alone (the crop's variables come from avatar-crops.ts),
+   never resized or re-encoded; a plain circle with no ring or glow.
+   Then Settings > Profile's picker: avatar tiles of at least 44px. */
+.kit-av--image,
+.chrome__avatar--image {
+  overflow: hidden;
+  border: 0;
+  background: var(--panel-raised);
+}
+.kit-av--image > img,
+.chrome__avatar--image > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--avatar-x, 50%) var(--avatar-y, 48%);
+  transform: scale(var(--avatar-scale, 1.21));
+}
+.avpick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.avpick__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.avpick__picked {
+  color: var(--ink);
+  font-weight: 700;
+}
+.avpick__search {
+  width: 100%;
+}
+.avpick__grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(calc(var(--s-12) + var(--s-6)), 1fr)
+  );
+  gap: var(--s-1);
+  max-height: calc(var(--s-12) * 7);
+  overflow-y: auto;
+  padding: var(--s-2);
+  background: var(--ground-sunken);
+  border-radius: var(--r-control);
+}
+.avpick__tile {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-1);
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--s-1);
+  border: 2px solid transparent;
+  border-radius: var(--r-chip);
+  background: none;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+.avpick__tile:hover {
+  border-color: var(--line-strong);
+}
+.avpick__tile:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.avpick__tile[aria-pressed="true"] {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.avpick__name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--text-label);
+  line-height: 1.2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.avpick__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}

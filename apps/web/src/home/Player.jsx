@@ -179,7 +179,12 @@ export function PlayerView({
   return (
     <div className="kit-home kit-player">
       <header className="kit-phead">
-        <Avatar name={p.name ?? p.tag} tag={p.tag} large />
+        <Avatar
+          name={p.name ?? p.tag}
+          tag={p.tag}
+          card={p.avatar_card_id ?? null}
+          large
+        />
         <div className="kit-phead__main">
           <h1 className="kit-phead__name">
             <TagText>{p.name ?? p.tag}</TagText>
@@ -594,7 +599,14 @@ function Follows({ page, player, own }) {
       <Row
         key={f.tag}
         href={playerHref(f.tag)}
-        lead={<Avatar name={f.name ?? f.tag} tag={f.tag} small />}
+        lead={
+          <Avatar
+            name={f.name ?? f.tag}
+            tag={f.tag}
+            card={f.avatar_card_id ?? null}
+            small
+          />
+        }
         title={<TagText>{f.name ?? f.tag}</TagText>}
         detail={f.name ? <Tag tag={f.tag} /> : null}
       />

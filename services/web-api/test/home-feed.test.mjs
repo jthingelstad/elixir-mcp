@@ -74,6 +74,11 @@ test("annotateFeed adds the chips, the battle's page, and keeps the rest", async
   const BATTLE = "a".repeat(64);
   const db = {
     async query(sql, [ids]) {
+      // The faces' profile images (2026-11-14): one read for the page.
+      if (/avatar_card_id/.test(sql)) {
+        assert.deepEqual(ids, [FRIEND]);
+        return { rows: [{ player_tag: FRIEND, avatar_card_id: 26000000 }] };
+      }
       assert.match(sql, /unnest/);
       assert.deepEqual(ids, [BATTLE]);
       return { rows: [{ id: BATTLE, prev: null, next: null }] };
@@ -93,6 +98,8 @@ test("annotateFeed adds the chips, the battle's page, and keeps the rest", async
   assert.deepEqual(out[0].groups, ["friends"]);
   assert.match(out[0].battle_url, /\/battle\/a{12}$/);
   assert.equal(out[0].text, "Crossed 6,000 trophies.");
+  assert.equal(out[0].avatar_card_id, 26000000);
+  assert.equal(out[1].avatar_card_id, undefined);
   assert.deepEqual(out[1].groups, ["you"]);
   assert.equal(out[1].battle_url, undefined);
   assert.equal(out[1].spark, undefined);

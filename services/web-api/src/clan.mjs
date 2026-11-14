@@ -77,6 +77,7 @@ import { makeLive } from "@elixir-mcp/tools/live";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { principalBlock } from "@elixir-mcp/tools/identity";
 import { toolDeadlineMs } from "./deadline.mjs";
+import { verifiedAvatars } from "./avatars.mjs";
 
 const registry = makeRegistry();
 const live = makeLive({ enqueue: (db, job) => enqueueJob(db, job) });
@@ -509,6 +510,8 @@ export function createClanRequest({
       feed: (clanTag) => readClanFeed(db, account, clanTag),
       // The clan card's race chip and the Feed's race bar (G5).
       race: (clanTag) => readClanRace(read, clanTag),
+      // The roster's profile images, one statement a roster (2026-11-14).
+      avatars: (tags) => verifiedAvatars(db, tags),
       appUrl,
       elixirUrl: origin,
     });

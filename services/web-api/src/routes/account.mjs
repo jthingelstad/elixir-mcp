@@ -8,6 +8,7 @@ import {
   removePlayer,
 } from "@elixir-mcp/claims";
 import {
+  cardType,
   normalizeTag,
   InvalidTagError,
   roleQuotas,
@@ -15,7 +16,7 @@ import {
   OAUTH_SCOPES,
   OAUTH_SCOPE_DETAILS,
 } from "@elixir-mcp/contracts";
-import { accountZone, normalizeScope } from "@elixir-mcp/auth";
+import { accountZone, checkRateLimit, normalizeScope } from "@elixir-mcp/auth";
 import { discordLinkOf } from "@elixir-mcp/auth/discord";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
@@ -32,6 +33,10 @@ import { labelOf as emailChoiceLabel } from "./email.mjs";
 import { loadCallRecord } from "../call-record.mjs";
 import { annotateFeed } from "../feed.mjs";
 import { withCheers } from "../cheers.mjs";
+
+/** Profile image changes an account may make in an hour: plenty for
+ *  trying cards on, few enough that nothing loops on the write. */
+const AVATAR_WRITES_PER_HOUR = 60;
 
 /** An audit row the daily tool-call limiter charged (`mcpday#`,
  *  packages/tools/quota.mjs): every call at /mcp. Not `GET /api/v1/me` (`rest`,
@@ -264,7 +269,7 @@ export function accountRoutes({
       );
       const { rows: ent } = await db.query(
         `select ${tierSql("a")} as role, a.mcp_daily_quota, a.live_daily_quota,
-                a.newsletter_opt_in, a.email
+                a.newsletter_opt_in, a.email, a.avatar_card_id
          from account a where a.account_id = $1`,
         [account.accountId],
       );
@@ -454,6 +459,10 @@ export function accountRoutes({
         is_owner: account.isOwner,
         is_admin: account.isAdmin,
         timezone: account.timezone,
+        // The profile image, a card id (2026-11-14): the account's own, so
+        // the top bar, the account menu and Settings draw it whether or not
+        // any of its players is verified. Null: initials.
+        avatar_card_id: e.avatar_card_id ?? null,
         // The holder's own address, shown back to them on their profile
         // and in the console rail. Never on a public surface (0046).
         email: e.email ?? null,
@@ -505,6 +514,57 @@ export function accountRoutes({
         tz,
       ]);
       return json(200, { ok: true, timezone: tz });
+    },
+
+    // The profile image (2026-11-14, Jamie: "I want to wholesale move that
+    // into Elixir"): one card from the catalog, never a tower troop, or
+    // null to go back to initials. A person's only: an agent is refused,
+    // and no agent console reaches it (AGENT_SCOPED_ROUTES).
+    "POST /api/me/avatar": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (account.kind === "agent") return json(403, { error: "not_entitled" });
+      const raw = body?.card_id;
+      let card = null;
+      if (raw !== null && raw !== undefined) {
+        card = typeof raw === "number" ? raw : Number.NaN;
+        if (
+          !Number.isSafeInteger(card) ||
+          card <= 0 ||
+          cardType(card) === "tower_troop"
+        )
+          return json(400, {
+            error: "unknown_card",
+            message: "That card can't be a profile image.",
+          });
+      }
+      if (
+        !(await checkRateLimit(db, {
+          bucket: `avatar#${account.accountId}`,
+          max: AVATAR_WRITES_PER_HOUR,
+        }))
+      )
+        return json(429, { error: "rate_limited" });
+      // A card in the current catalog with base art (kind 'card': a tower
+      // troop is 'support'); the art the avatar draws is that file.
+      const { rows } = await db.query(
+        `update account a set avatar_card_id = $2, avatar_set_at = now()
+          where a.account_id = $1
+            and ($2::integer is null or exists (
+                  select 1 from card c
+                   where c.card_id = $2 and c.kind = 'card' and c.in_catalog
+                     and c.icon_medium is not null))
+          returning a.avatar_card_id`,
+        [account.accountId, card],
+      );
+      if (!rows[0])
+        return json(400, {
+          error: "unknown_card",
+          message: "That card can't be a profile image.",
+        });
+      return json(200, { ok: true, avatar_card_id: rows[0].avatar_card_id });
     },
 
     // What a Follow would cost, said before the tap (#760): free when

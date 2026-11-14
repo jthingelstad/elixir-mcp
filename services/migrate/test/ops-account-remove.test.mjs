@@ -53,9 +53,10 @@ before(async () => {
   ids.person = (
     await one(
       `insert into account (email_hash, email, status, role, request_note, timezone,
-                            activity_seen_at, console_timeline_seen_at)
+                            activity_seen_at, console_timeline_seen_at,
+                            avatar_card_id, avatar_set_at)
        values ($1, $2, 'approved', 'member', 'let me in', 'America/Chicago',
-               now(), now())
+               now(), now(), 26000000, now())
        returning account_id`,
       [emailHash(ADDRESS), ADDRESS],
     )
@@ -449,7 +450,8 @@ test("the run removes the person and their agent, keeps the game record, and lea
 
   const acct = await one(
     `select email, email_hash, status, request_note, timezone, newsletter_opt_in,
-            activity_seen_at, console_timeline_seen_at
+            activity_seen_at, console_timeline_seen_at,
+            avatar_card_id, avatar_set_at
        from account where account_id = $1`,
     [ids.person],
   );
@@ -464,6 +466,9 @@ test("the run removes the person and their agent, keeps the game record, and lea
     // pointer and the Console's own (0228).
     activity_seen_at: null,
     console_timeline_seen_at: null,
+    // The profile image is the account's (0268).
+    avatar_card_id: null,
+    avatar_set_at: null,
   });
   assert.equal(
     (await one(`select status from account where account_id = $1`, [ids.agent]))

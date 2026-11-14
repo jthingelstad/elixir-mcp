@@ -243,6 +243,21 @@ Stats say so and offer your browser's zone in one click. A battle's page
 reads on your account's clock when you are signed in, and on your
 browser's when you are not.
 
+## Your profile image
+
+**Settings › Profile › Profile image** lets you pick one Clash Royale card
+as your picture. Search the cards by name, tap one to see it in the circle,
+then tap **Save**. **Remove** puts your initials back.
+
+- It shows on the players you've verified, your main player and your
+  verified alts: in feeds, on player pages, in Find, in clan lists and on
+  shared posts. Anyone who can already see that player sees it.
+- A player you haven't verified, or only follow, keeps their initials.
+- Haven't verified a player yet? You can still pick one. For now only you
+  see it, in your top bar and your account menu.
+- It's always the card's own art, never a photo. Tower troops can't be
+  picked.
+
 ## Your limits
 
 Your limits set how many players and clans you can record and how many

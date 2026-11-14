@@ -7,6 +7,7 @@
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import { json } from "../http.mjs";
+import { peopleWithAvatars } from "../avatars.mjs";
 import { panel } from "./home.mjs";
 import {
   battlePeople,
@@ -32,7 +33,13 @@ export function peopleRoutes({ resolveAccount }) {
       }))
     )
       return json(429, { error: "rate_limited" });
-    return json(200, await panel(name, () => fn(db, account.accountId)));
+    // Each listed player's profile image, one statement for the list.
+    return json(
+      200,
+      await panel(name, async () =>
+        peopleWithAvatars(db, await fn(db, account.accountId)),
+      ),
+    );
   };
   return {
     "GET /api/me/people/suggested": read("people_suggested", suggestedPeople),

@@ -12,6 +12,7 @@ import { enqueueJob } from "@elixir-mcp/ledger";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import { socialOf } from "@elixir-mcp/tools/social";
+import { verifiedAvatars, withAvatar } from "../avatars.mjs";
 import {
   buildTimeline,
   itemVisibility,
@@ -198,20 +199,42 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
   const highlights = (
     await playerHighlights(db, tag, { timezone, limit: HIGHLIGHTS, now })
   ).map(pageItem);
+  // The verified account's badges, follows and followers: the one reader
+  // players_follows serves too (@elixir-mcp/tools/social). No verified
+  // account, nothing to show: follows are an account's.
+  const social = await socialOf(db, tag);
+  // The profile images of the page's player and of every player its
+  // follows and followers name, in one statement (avatars.mjs). The page's
+  // alone: players_follows reads socialOf and never these.
+  const avatars = await verifiedAvatars(db, [
+    tag,
+    ...(social.follows?.players ?? []).map((f) => f.tag),
+    ...(social.followers?.players ?? []).map((f) => f.tag),
+  ]);
+  const faced = (list) =>
+    list
+      ? {
+          ...list,
+          players: list.players.map((f) => withAvatar(f, f.tag, avatars)),
+        }
+      : list;
   return {
-    player: {
-      tag: p.player_tag,
-      name: p.name ?? null,
-      clan_tag: p.clan_tag ?? null,
-      clan_name: p.clan_name ?? null,
-      trophies: await latestTrophies(db, tag),
-      recorded: p.recorded === true,
-    },
+    player: withAvatar(
+      {
+        tag: p.player_tag,
+        name: p.name ?? null,
+        clan_tag: p.clan_tag ?? null,
+        clan_name: p.clan_name ?? null,
+        trophies: await latestTrophies(db, tag),
+        recorded: p.recorded === true,
+      },
+      tag,
+      avatars,
+    ),
     you: await readerSide(db, account.accountId, tag, p.clan_tag),
-    // The verified account's badges, follows and followers: the one reader
-    // players_follows serves too (@elixir-mcp/tools/social). No verified
-    // account, nothing to show: follows are an account's.
-    ...(await socialOf(db, tag)),
+    ...social,
+    follows: faced(social.follows),
+    followers: faced(social.followers),
     window_days: PAGE_DAYS,
     timeline,
     timeline_more: built.timeline_more ?? 0,

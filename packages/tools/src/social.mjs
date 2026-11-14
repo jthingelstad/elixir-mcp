@@ -33,6 +33,31 @@ export async function verifiedAccount(db, tag) {
   return rows[0] ?? null;
 }
 
+/** The profile images of the players in `tags` (2026-11-14): for each tag
+ *  an account verified as itself (verifiedAccount's rule, read for a page
+ *  of tags in one statement), the card that account chose, when it chose
+ *  one. A tag nobody verified, or whose account chose none, is absent, and
+ *  its avatar stays initials. The website's alone: no MCP tool and no
+ *  `/api/v1` answer carries it. A `Map` of tag to card id. */
+export async function verifiedAvatars(db, tags) {
+  const list = [
+    ...new Set((tags ?? []).filter((t) => typeof t === "string" && t)),
+  ];
+  if (list.length === 0) return new Map();
+  const { rows } = await db.query(
+    `select v.player_tag, v.avatar_card_id
+       from (select distinct on (c.player_tag) c.player_tag, a.avatar_card_id
+               from claim c join account a using (account_id)
+              where c.player_tag = any($1::text[]) and c.status = 'verified'
+                and (c.is_primary or c.relationship in ('primary', 'alt'))
+                and coalesce(a.kind, 'person') = 'person'
+              order by c.player_tag, c.verified_at) v
+      where v.avatar_card_id is not null`,
+    [list],
+  );
+  return new Map(rows.map((r) => [r.player_tag, r.avatar_card_id]));
+}
+
 /** Who the account follows: its friends (Home's Follow), by game name and
  *  tag. Watched players and its agents' players are not follows. */
 export async function followsOf(db, accountId) {

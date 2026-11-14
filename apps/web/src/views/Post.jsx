@@ -155,7 +155,7 @@ function PostCard({ read, h, who, viewer }) {
   return (
     <article className="kit-post__card" aria-label={`${who}’s post`}>
       <header className="kit-feed__head">
-        <Avatar name={who} tag={h.player_tag} />
+        <Avatar name={who} tag={h.player_tag} card={h.avatar_card_id ?? null} />
         <div className="kit-feed__who">
           <span className="kit-feed__name">
             <TagText>{who}</TagText>

@@ -36,7 +36,8 @@ const LARGE = [
  */
 const BUDGET = {
   "/api/clan/me": 15,
-  "/api/clan/roster": 16,
+  // +1: the page's profile images, one statement (2026-11-14).
+  "/api/clan/roster": 17,
   "/race": 21,
   // Asked alone, Actions evaluates the clan's participation itself; on the
   // page it shares /me's evaluation while that is in flight. An evaluation

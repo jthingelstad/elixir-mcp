@@ -22,6 +22,7 @@ export {
   type ChromeAccountLink,
   type ChromePlayer,
 } from "./AccountMenu.tsx";
+export { AccountAvatar } from "./AccountAvatar.tsx";
 export {
   FAMILY_LOGO,
   FAMILY_ORIGIN,
@@ -60,7 +61,13 @@ export { Panel, Row, Rows } from "./Panel.tsx";
 export { Table, type TableColumn, type TableGroup } from "./Table.tsx";
 export { Empty, ErrorState } from "./Empty.tsx";
 export { Stat, Stats } from "./Stats.tsx";
-export { Avatar, avatarHue, avatarInitials } from "./Avatar.tsx";
+export { Avatar, avatarCardOf, avatarHue, avatarInitials } from "./Avatar.tsx";
+export {
+  AVATAR_CROP_OVERRIDES,
+  DEFAULT_AVATAR_CROP,
+  avatarCrop,
+  type AvatarCrop,
+} from "./avatar-crops.ts";
 export { Icon, type IconName } from "./Icon.tsx";
 export {
   LogTable,

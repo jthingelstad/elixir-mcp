@@ -22,11 +22,12 @@ const LARGE = ["battle", "battle_participant", "player"];
 /** Statements each read may make, as of this change: a ceiling to come
  *  down, never to rise without a reason in its pull request. */
 const BUDGET = {
-  "/api/me/people/starter": 11,
-  "/api/me/people/suggested": 11,
-  "/api/me/people/find": 11,
-  "/api/me/people/battles": 8,
-  "/api/me/people/clan": 11,
+  // +1 each: the rows' profile images, one statement a list (2026-11-14).
+  "/api/me/people/starter": 12,
+  "/api/me/people/suggested": 12,
+  "/api/me/people/find": 12,
+  "/api/me/people/battles": 9,
+  "/api/me/people/clan": 12,
 };
 
 // Invented: a friendly opponent and a 2v2 teammate's pair of opponents.
