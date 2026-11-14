@@ -236,7 +236,21 @@ test("one shell: the wordmark, the product source, the why-line in the reader's 
   for (const { kind, facts: f } of allFixtures()) {
     const out = renderMail(kind, f, links).html;
     assert.ok(!/display:\s*(flex|grid)/.test(out), `${kind}: no flex or grid`);
-    assert.ok(!/background-image|url\(/.test(out), `${kind}: no backgrounds`);
+    assert.doesNotMatch(out, /background-image/);
+    const inline = out.replace(/<style>[\s\S]*?<\/style>/g, "");
+    assert.ok(
+      !/background-image|url\(/.test(inline),
+      `${kind}: no backgrounds`,
+    );
+    const faceUrls = [...out.matchAll(/src:url\('([^']+)'\)/g)].map(
+      (m) => m[1],
+    );
+    assert.deepEqual(faceUrls, [
+      `${SITE}/assets/fonts/Clash_Regular.otf`,
+      `${SITE}/assets/fonts/Rubik-latin.woff2`,
+    ]);
+    assert.match(out, /<!--\[if !mso\]><!--><style>/);
+    assert.doesNotMatch(out, /@import|<link[^>]+stylesheet/);
     assert.ok(!/data:image/.test(out), `${kind}: no data URIs`);
   }
 });

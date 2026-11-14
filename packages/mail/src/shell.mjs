@@ -7,15 +7,23 @@
  *  and the Fan Content disclaimer.
  *
  *  Mail is not a browser. Tables and inline styles only: no flex, no
- *  grid, no background images, no stylesheet, no SVG. Images are https
+ *  grid, no background images, no external stylesheet, no SVG. Optional
+ *  self-hosted font faces enhance supporting clients; layout stays inline. Images are https
  *  PNGs on Elixir's own origin, never data URIs and never Supercell's
  *  CDN, and each says what it is in its alt text. Dark only, by decision
  *  (Jamie, 2026-09-18, from the gallery). */
 import { DISCLAIMER } from "@elixir-mcp/contracts";
 
 export const SITE = "https://elixir.poapkings.com";
-export const FONT =
-  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+export const FONT = "Rubik,'Trebuchet MS',Arial,sans-serif";
+const DISPLAY_FONT =
+  "'Clash Royale','Arial Black','Trebuchet MS',Arial,sans-serif";
+// Outlook's Word renderer never sees the font declarations: it uses the
+// inline fallback stack instead of its Times New Roman font-face bug.
+const FONT_FACES = `<!--[if !mso]><!--><style>
+@font-face{font-family:'Clash Royale';font-style:normal;font-weight:400;src:url('${SITE}/assets/fonts/Clash_Regular.otf') format('opentype');font-display:swap;}
+@font-face{font-family:Rubik;font-style:normal;font-weight:400 700;src:url('${SITE}/assets/fonts/Rubik-latin.woff2') format('woff2');font-display:swap;}
+</style><!--<![endif]-->`;
 export const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
 
 /** The mail palette, aligned with packages/design/src/tokens.css. Values
@@ -245,11 +253,11 @@ export function mailShell({
   const src = source ?? MAIL_SOURCE[kind] ?? { product: "Elixir", when: "" };
   const sourceLabel = src.product;
   const head = title
-    ? `<h1 style="margin:0;font-family:${FONT};font-size:24px;line-height:1.2;font-weight:700;color:${M.ink};">${title}</h1>
+    ? `<h1 style="margin:0;font-family:${DISPLAY_FONT};font-size:24px;line-height:1.3;font-weight:400;color:${M.ink};">${title}</h1>
         ${subtitle ? `<p style="margin:6px 0 22px;font-family:${FONT};font-size:14px;line-height:1.5;color:${M.faint};">${subtitle}</p>` : `<div style="height:18px;line-height:18px;font-size:0;">&nbsp;</div>`}`
     : "";
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light"><title>${esc(docTitle ?? "Elixir")}</title></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light"><title>${esc(docTitle ?? "Elixir")}</title>${FONT_FACES}</head>
 <body style="margin:0;padding:0;background-color:${M.bg};-webkit-text-size-adjust:100%;">
 <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;max-height:0;max-width:0;overflow:hidden;mso-hide:all;">${esc(preheader)}</span>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${M.bg}" style="background-color:${M.bg};"><tr><td align="center" style="padding:24px 12px 28px;">
@@ -257,7 +265,7 @@ export function mailShell({
   <tr><td style="padding:0 4px 16px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
       <td width="36" valign="middle" style="width:36px;"><img src="${LOGO_URL}" alt="" width="36" height="36" style="display:block;width:36px;height:36px;border:0;outline:none;text-decoration:none;" /></td>
-      <td valign="middle" style="padding-left:12px;font-family:${FONT};font-size:20px;line-height:1;font-weight:700;color:${M.gold};">Elixir</td>
+      <td valign="middle" style="padding-left:12px;font-family:${DISPLAY_FONT};font-size:20px;line-height:1.2;font-weight:400;color:${M.gold};">Elixir</td>
       <td align="right" valign="middle"><span style="font-family:${FONT};font-size:14px;color:${M.faint};">${esc(sourceLabel)}</span></td>
     </tr></table>
   </td></tr>

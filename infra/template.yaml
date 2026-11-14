@@ -2691,6 +2691,8 @@ Resources:
           FunctionAssociations:
             - EventType: viewer-request
               FunctionARN: !GetAtt SpaRouter.FunctionMetadata.FunctionARN
+            - EventType: viewer-response
+              FunctionARN: !GetAtt FontCors.FunctionMetadata.FunctionARN
         CacheBehaviors:
           # The public reads, CACHED (#23, #73). Every /api/public route
           # runs real aggregation (status several time-series queries,
@@ -3130,6 +3132,28 @@ Resources:
             }
           });
           return request;
+        }
+
+  # Supporting email clients read fonts from a different origin. Only
+  # successful public font responses get CORS, never an app/API response.
+  FontCors:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub "${AWS::StackName}-font-cors"
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Allow public fonts in supporting mail clients
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var response = event.response;
+          if ((request.method === 'GET' || request.method === 'HEAD') &&
+              /^\/assets\/fonts\/[A-Za-z0-9_-]+\.(woff2?|otf|ttf)$/.test(request.uri) &&
+              (response.statusCode === 200 || response.statusCode === 206 || response.statusCode === 304)) {
+            response.headers['access-control-allow-origin'] = { value: '*' };
+          }
+          return response;
         }
 
   # ------------------------------------------------------------ monitoring
