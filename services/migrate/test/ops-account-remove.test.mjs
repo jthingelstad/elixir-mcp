@@ -229,6 +229,31 @@ before(async () => {
      values ($1, '#J2RGCRVG', 'k', 1, '{}')`,
     [ids.person],
   );
+  // A passport, an earned Stamp, a ladder fact and a profile list (0269,
+  // #1015).
+  await db.query(
+    `insert into account_passport (account_id, passport_id)
+     values ($1, 'abcdefghjkmn')`,
+    [ids.person],
+  );
+  await db.query(
+    `insert into account_stamp_earned
+       (account_id, stamp_id, level, earned_at, earned_on, definition_version)
+     values ($1, 'linked', 1, now(), current_date, 1)`,
+    [ids.person],
+  );
+  await db.query(
+    `insert into account_stamp_fact
+       (account_id, stamp_id, qualifier, source_hash, event_at, local_day,
+        day_starts_at, day_ends_at)
+     values ($1, 'cheerleader', 'day:2026-11-14', repeat('b', 64), now(),
+             '2026-11-14', '2026-11-14T00:00:00Z', '2026-11-15T00:00:00Z')`,
+    [ids.person],
+  );
+  await db.query(
+    `insert into account_profile_list (account_id, picture_at) values ($1, now())`,
+    [ids.person],
+  );
   // A linked Discord and a link round trip still open (0233, #531).
   await db.query(
     `insert into account_discord (account_id, discord_user_id, username)
@@ -344,6 +369,10 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     home_feed: 1,
     bell_week: 1,
     home_clan_card: 1,
+    account_stamp_fact: 1,
+    account_stamp_earned: 1,
+    account_profile_list: 1,
+    account_passport: 1,
     timeline_reader: 0,
     timeline_discord_told: 2,
     timeline_discord: 1,
@@ -494,6 +523,10 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "home_feed",
     "bell_week",
     "home_clan_card",
+    "account_stamp_fact",
+    "account_stamp_earned",
+    "account_profile_list",
+    "account_passport",
     "credential_refusal",
     "mcp_call_audit",
     "timeline_discord",

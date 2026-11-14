@@ -219,6 +219,21 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     ["bell_week", `bell_week where account_id = any($1::uuid[])`],
     // Their stored Home clan card (0248, #649).
     ["home_clan_card", `home_clan_card where account_id = any($1::uuid[])`],
+    // Their passport, Stamps, ladder facts and profile list (0269,
+    // #1015). The tombstone fires no cascade, so each goes by name.
+    [
+      "account_stamp_fact",
+      `account_stamp_fact where account_id = any($1::uuid[])`,
+    ],
+    [
+      "account_stamp_earned",
+      `account_stamp_earned where account_id = any($1::uuid[])`,
+    ],
+    [
+      "account_profile_list",
+      `account_profile_list where account_id = any($1::uuid[])`,
+    ],
+    ["account_passport", `account_passport where account_id = any($1::uuid[])`],
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
     [
       "timeline_discord_told",

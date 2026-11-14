@@ -204,6 +204,11 @@ export const KEPT = Object.freeze({
   bell_week: "one cached week per account, rebuilt in place",
   home_feed: "one cached feed per account, rebuilt in place",
   home_clan_card: "one cached card per account, rebuilt in place",
+  account_passport: "a person's passport id",
+  account_stamp_earned: "an earned Stamp, which never lapses",
+  account_stamp_fact:
+    "a ladder's lifetime evidence, capped at its top level (20/50/20 rows)",
+  account_profile_list: "a person's profile-list latches",
   player: "a game identity; its history is what is trimmed",
   clan: "a game identity",
   card: "the card catalog",
