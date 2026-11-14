@@ -194,6 +194,12 @@ Backfill cannot revoke. It must be restartable and bounded per account.
 Do not generate a bell flood for historic grants: one “Your passport is
 ready” summary is enough. Do not run a live backfill in this design session.
 
+Built 2026-11-14: migration 0272's launch line, `packages/stamps`
+`legacy.mjs` and `backfill.mjs`, the `{passport_backfill}` op and the
+bell's "Your passport is ready" line
+(`docs/notes/2026-11-14-passport-backfill.md`). Not run against
+production.
+
 ## Build slices
 
 1. Catalog, pure eligibility tests, additive storage and independent
