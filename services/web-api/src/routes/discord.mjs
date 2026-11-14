@@ -20,6 +20,7 @@ import {
 } from "@elixir-mcp/auth/discord";
 
 import { json } from "../http.mjs";
+import { settleAfter } from "../passport-hooks.mjs";
 
 /** How long the callback waits for the relay's reply: under the door's
  *  30 s, with room for the database work after it. */
@@ -151,6 +152,7 @@ export function discordRoutes({
           return done("taken");
         }
         await logEvent(db, account.accountId, "discord_linked");
+        await settleAfter(db, account.accountId, "linked");
         authLog("discord_linked", { email: emailRef(account.emailHash) });
         return done("linked");
       }
@@ -211,7 +213,10 @@ export function discordRoutes({
       );
       if (!known) {
         const linked = await linkDiscord(db, who[0].account_id, user);
-        if (linked.ok) await logEvent(db, who[0].account_id, "discord_linked");
+        if (linked.ok) {
+          await logEvent(db, who[0].account_id, "discord_linked");
+          await settleAfter(db, who[0].account_id, "linked");
+        }
       }
       authLog("discord_signed_in", {
         email: emailRef(hash),

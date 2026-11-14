@@ -12,6 +12,7 @@
  * adapter's (`../clan.mjs`, `clanLockPlan`).
  */
 import { json } from "../http.mjs";
+import { settleAfter } from "../passport-hooks.mjs";
 
 /** The health check: a liveness answer that reads nothing, so it takes no
  *  database lease and stays an answer when the pool is full. */
@@ -54,20 +55,37 @@ const SIGNED_IN = [
 /** `clan` is the request adapter (`createClanRequest`). Clan is part of
  *  Elixir: its routes always exist. */
 export function clanRoutes({ clan, resolvePerson }) {
-  async function signedIn(db, event, body) {
+  async function asPerson(db, event, body) {
     const method = event.method ?? "GET";
     const person = await resolvePerson(db, event, {
       requireContractHeader: !["GET", "HEAD"].includes(method),
     });
-    if (!person) return json(401, { signed_in: false });
-    return clan({
+    if (!person) return { response: json(401, { signed_in: false }) };
+    const response = await clan({
       db,
       account: person,
       event: { ...event, body: event.body ? JSON.stringify(body) : undefined },
     });
+    return { person, response };
+  }
+  const signedIn = async (db, event, body) =>
+    (await asPerson(db, event, body)).response;
+  /** Saving a place on the clan map (#1015): once Clan has answered 200
+   *  the place is stored, and On the Map and the map step latch. Only
+   *  that the save succeeded is passed on, never the place. */
+  async function savePlace(db, event, body) {
+    const { person, response } = await asPerson(db, event, body);
+    if (person && response?.statusCode === 200) {
+      await settleAfter(db, person.accountId, "on_the_map", {
+        map_choice: "place",
+        place_saved: true,
+      });
+    }
+    return response;
   }
   return {
     ...CLAN_UNSIGNED,
     ...Object.fromEntries(SIGNED_IN.map((key) => [key, signedIn])),
+    "PUT /api/clan/me/place": savePlace,
   };
 }

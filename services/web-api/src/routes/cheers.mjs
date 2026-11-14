@@ -23,11 +23,14 @@ import { annotateFeed } from "../feed.mjs";
 import {
   CHEERS_PER_HOUR,
   CHEER_READS_PER_HOUR,
+  aboutSomeoneElse,
+  cheeredAt,
   cheersOnPage,
-  inOwnFeed,
+  ownFeedItem,
   readCheerBody,
   setCheer,
 } from "../cheers.mjs";
+import { factAfter } from "../passport-hooks.mjs";
 import {
   FEED_READS_PER_HOUR,
   FEED_RESETS_PER_HOUR,
@@ -62,6 +65,27 @@ const text = (statusCode, body, headers = {}) => ({
   body,
 });
 
+/** A cheer on someone else's item, as a Cheerleader fact. Never throws:
+ *  the hook's failures are logged and the cheer stands. */
+async function cheerFact(db, accountId, item) {
+  let at = null;
+  try {
+    if (!(await aboutSomeoneElse(db, accountId, item))) return;
+    at = await cheeredAt(db, accountId, item.id);
+  } catch {
+    console.error(
+      JSON.stringify({ at: "passport_hook_failed", hook: "cheerleader" }),
+    );
+    return;
+  }
+  if (!at) return;
+  await factAfter(db, accountId, "cheerleader", {
+    stamp_id: "cheerleader",
+    source: `cheer:${item.id}`,
+    event_at: at,
+  });
+}
+
 export function cheersRoutes({ resolveAccount }) {
   const person = async (db, event, write) => {
     const account = await resolveAccount(db, event, {
@@ -87,8 +111,9 @@ export function cheersRoutes({ resolveAccount }) {
         return limited();
       // Taking a cheer back needs nothing more; giving one needs the item
       // in the person's own feed now.
+      let shown = null;
       if (asked.cheer !== null) {
-        const shown = await inOwnFeed(db, {
+        shown = await ownFeedItem(db, {
           accountId: account.accountId,
           itemId: asked.itemId,
           tags: asked.tags,
@@ -100,10 +125,18 @@ export function cheersRoutes({ resolveAccount }) {
             message: "That item is not in your feed now.",
           });
       }
-      return json(
-        200,
-        await setCheer(db, account.accountId, asked.itemId, asked.cheer),
+      const answer = await setCheer(
+        db,
+        account.accountId,
+        asked.itemId,
+        asked.cheer,
       );
+      // Cheerleader (#1015), after the cheer is stored: one local day,
+      // from the cheer's first stored instant. The item is its source, so
+      // a retry, another emoji or a cheer taken back and given again is
+      // the same cheer. Taking one back never revokes a day.
+      if (shown) await cheerFact(db, account.accountId, shown);
+      return json(200, answer);
     },
 
     // A page's cheers: which of its items are in the reader's feed now.
