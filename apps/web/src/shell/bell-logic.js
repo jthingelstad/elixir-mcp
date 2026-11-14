@@ -1,5 +1,8 @@
 import { cheerCounts } from "../home/cheer-set.js";
+// player.js first: it, moved.js and clan/lib/base.js import each other,
+// and player.js reads HOME as it loads.
 import { playerHref } from "../lib/player.js";
+import { passportHref } from "../lib/passport.js";
 import { SETTINGS } from "../lib/settings.js";
 import { eventGroup, eventLabel } from "../views/account/events.js";
 
@@ -95,7 +98,7 @@ export function stampRow(a, i) {
     title: `New Stamp: ${a.name}${level}`,
     at: a.at,
     detail: null,
-    to: `/home/passport?stamp=${encodeURIComponent(a.stamp_id)}`,
+    to: passportHref(null, a.stamp_id),
     new: a.new === true,
   };
 }
