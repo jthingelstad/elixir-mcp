@@ -85,7 +85,10 @@ pre {
   font-family: var(--font-mono);
 }
 table {
+  width: 100%;
   border-collapse: collapse;
+  font-size: var(--t-small);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Clash Royale is for display type only — never body, never tables. */
@@ -429,7 +432,8 @@ html[data-session="in"] [data-session-face="out"] {
      it. The closed row names the section and where you are in it. */
   .rail {
     flex: 0 0 auto;
-    padding: 10px 12px 12px;
+    padding: 4px var(--pad-page-narrow) 0;
+    background: none;
   }
   /* Narrow draws no pin (Rail.tsx); this holds for the first paint,
      before the app has read the width. */
@@ -449,22 +453,11 @@ html[data-session="in"] [data-session-face="out"] {
     width: 100%;
     height: var(--hit-touch);
     box-sizing: border-box;
-    background: var(--control);
-    border: 1px solid transparent;
-    border-radius: var(--r-control);
-    padding: 0 11px;
-    color: var(--ink);
     text-align: left;
-  }
-  /* Quiet (2026-11-13): on a phone the picker is one plain line on the
-     page's own ground, not a violet slab on the chrome above every
-     Settings page. The section's name, then the chevron; the page's
-     content starts right under it. */
-  .rail {
-    padding: 4px var(--pad-page-narrow) 0;
-    background: none;
-  }
-  .rail__toggle {
+    /* Quiet (2026-11-13): on a phone the picker is one plain line on the
+       page's own ground, not a violet slab on the chrome above every
+       Settings page. The section's name, then the chevron; the page's
+       content starts right under it. */
     padding: 0;
     background: none;
     border: 0;
@@ -693,6 +686,7 @@ p.kit-tiny,
   text-align: left;
   color: var(--ink-faint);
   border-bottom: 1px solid var(--line);
+  font-family: var(--font);
 }
 
 .table td {
@@ -1323,12 +1317,6 @@ main.wrap {
 .tablewrap {
   overflow-x: auto;
 }
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--t-small);
-  font-variant-numeric: tabular-nums;
-}
 th {
   text-align: left;
   padding: var(--s-2) var(--s-3);
@@ -1410,9 +1398,6 @@ tr.yours td {
 .freshness--stale::before {
   background: var(--warn);
 }
-.freshness--never {
-  color: var(--ink-faint);
-}
 
 /* Disclaimer — the Supercell fan-content note, on every surface. Given
    a dignified home: its own mono UNOFFICIAL tag, above the fold of the
@@ -1423,6 +1408,17 @@ tr.yours td {
   align-items: flex-start;
   padding: var(--s-4) var(--s-6) var(--s-6);
   flex-wrap: wrap;
+  /* The footer keeps to the same column as the top bar: full-width rule
+     and ground, content centred inside --page-max. It used to run edge to
+     edge on a wide window while the bar above it stopped at 1280px. */
+  padding-left: max(
+    var(--s-6),
+    calc((100% - var(--page-max)) / 2 + var(--s-6))
+  );
+  padding-right: max(
+    var(--s-6),
+    calc((100% - var(--page-max)) / 2 + var(--s-6))
+  );
 }
 .disclaimer__tag {
   flex: none;
@@ -2273,6 +2269,7 @@ input[aria-invalid="true"] {
 .siterail__nav .rail__item {
   min-height: 36px;
   padding: 8px 11px;
+  gap: 11px;
 }
 .siterail__nav .rail__group:first-child {
   padding-top: 4px;
@@ -2296,14 +2293,15 @@ input[aria-invalid="true"] {
 @media (max-width: 900px) {
   .siterail {
     flex-direction: column;
+    align-items: stretch;
   }
   .siterail__nav {
     position: static;
     flex: 0 0 auto;
     width: 100%;
-    flex-direction: row;
     flex-wrap: wrap;
-    gap: 4px 6px;
+    flex-direction: column;
+    gap: 6px;
   }
   .siterail__nav .rail__group {
     flex-basis: 100%;
@@ -2643,9 +2641,6 @@ input[aria-invalid="true"] {
   display: flex;
   flex-direction: column;
   gap: 2px;
-}
-.siterail__nav .rail__item {
-  gap: 11px;
 }
 .siterail__nav .rail__item > svg {
   color: inherit;
@@ -3113,15 +3108,9 @@ input[aria-invalid="true"] {
   .siterail__nav[data-open="false"] .siterail__foot {
     display: none;
   }
-  .siterail__nav {
-    flex-direction: column;
-    gap: 6px;
-  }
-  .siterail__nav .rail__item {
-    border-radius: var(--r-control);
-  }
   .docs-layout {
     flex-direction: column;
+    align-items: stretch;
   }
   .docs__onpage {
     position: static;
@@ -3145,20 +3134,6 @@ input[aria-invalid="true"] {
   font-weight: 600;
 }
 
-/* The footer keeps to the same column as the top bar: full-width rule
-   and ground, content centred inside --page-max. It used to run edge to
-   edge on a wide window while the bar above it stopped at 1280px. */
-.disclaimer {
-  padding-left: max(
-    var(--s-6),
-    calc((100% - var(--page-max)) / 2 + var(--s-6))
-  );
-  padding-right: max(
-    var(--s-6),
-    calc((100% - var(--page-max)) / 2 + var(--s-6))
-  );
-}
-
 /* Third level of the docs rail: one tool under its family. */
 .rail__child--deep {
   padding-left: 60px;
@@ -3173,9 +3148,6 @@ input[aria-invalid="true"] {
    and one wide table pushed the whole page out sideways), and a
    Markdown table scrolls inside its own box instead. */
 @media (max-width: 900px) {
-  .siterail {
-    align-items: stretch;
-  }
   .siterail__body {
     width: 100%;
     min-width: 0;
@@ -3187,9 +3159,6 @@ input[aria-invalid="true"] {
   }
 }
 @media (max-width: 900px) {
-  .docs-layout {
-    align-items: stretch;
-  }
   .docs-layout .docs__body {
     width: 100%;
     max-width: 100%;
@@ -5451,9 +5420,7 @@ a.card-art:hover .card-art__img {
   }
   .stats-scope .stats-scope__modes {
     order: 2;
-  }
-  /* Mode chips stay on one line; the fade says there are more. */
-  .stats-scope .stats-scope__modes {
+    /* Mode chips stay on one line; the fade says there are more. */
     flex: 1 1 100%;
     flex-wrap: nowrap;
     min-width: 0;
@@ -5732,11 +5699,6 @@ a.card-art:hover .card-art__img {
   display: block;
   overflow-wrap: anywhere;
   padding-block: 8px;
-}
-
-/* Page help is secondary navigation. */
-.table th {
-  font-family: var(--font);
 }
 
 .account-menu__head > div {
@@ -6781,14 +6743,19 @@ button.kit-row {
 }
 /* The bar's icon buttons (canvas .iconbtn): 40px, a tint on hover. */
 .kit-top__icon {
-  justify-content: center;
   min-width: 40px;
   min-height: 40px;
-  border-radius: var(--r-chip);
   color: var(--ink-dim);
+  /* Search keeps its own outline; the icon is a bare button, or the browser draws one. */
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-chip);
 }
 .kit-top__icon:hover {
-  background: var(--hover-rail);
+  background: var(--panel-raised);
   color: var(--ink);
 }
 .kit-top__account {
@@ -7265,14 +7232,12 @@ button.kit-row {
 .kit-step__body p {
   color: var(--ink-dim);
   font-size: var(--t-body-sm);
+  margin: 0 0 6px;
 }
 .kit-step__opt {
   color: var(--ink-dim);
   font-size: var(--t-small);
   font-weight: 400;
-}
-.kit-step__body p {
-  margin: 0 0 6px;
 }
 .kit-inbox {
   padding: 14px;
@@ -7633,6 +7598,8 @@ a.kit-mbattle:hover {
 .kit-people__row .kit-row__detail {
   display: grid;
   gap: 2px;
+  color: var(--ink-faint);
+  font-size: var(--t-body-sm);
 }
 .kit-people__cost {
   color: var(--ink-faint);
@@ -7653,10 +7620,6 @@ a.kit-mbattle:hover {
 }
 .kit-people__row .kit-row__title a:hover {
   color: var(--ink-link-hover);
-}
-.kit-people__row .kit-row__detail {
-  color: var(--ink-faint);
-  font-size: var(--t-body-sm);
 }
 .kit-people__quiet,
 .kit-people__slots {
@@ -8604,6 +8567,7 @@ a.kit-mbattle:hover {
     gap: 10px;
     padding-inline: max(16px, env(safe-area-inset-left))
       max(16px, env(safe-area-inset-right));
+    min-height: 54px;
   }
   /* A timeline line reads across the phone; its time goes under it. */
   .kit-tl {
@@ -8641,9 +8605,6 @@ a.kit-mbattle:hover {
   }
   .kit-check__body p {
     white-space: normal;
-  }
-  .kit-top__row {
-    min-height: 54px;
   }
   .kit-feed__item {
     padding: 14px 14px 12px;
@@ -8888,6 +8849,12 @@ a.kit-mbattle:hover {
   }
   .clan-head__chips {
     grid-area: chips;
+    /* The chips are one row that scrolls sideways inside the head instead
+       of wrapping to four (2026-11-13); the faded edge says there is more. */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
   }
   .clan-head__side {
     flex-wrap: nowrap;
@@ -8905,14 +8872,6 @@ a.kit-mbattle:hover {
     height: 48px;
     border-radius: var(--r-block);
     font-size: var(--t-h2);
-  }
-  /* The chips are one row that scrolls sideways inside the head instead
-     of wrapping to four (2026-11-13); the faded edge says there is more. */
-  .clan-head__chips {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
   }
   .clan-head__chips::-webkit-scrollbar {
     display: none;
@@ -9006,7 +8965,7 @@ a.kit-mbattle:hover {
 .clan-foot {
   display: grid;
   gap: 10px;
-  margin-top: 32px;
+  margin-top: 28px;
 }
 .clan-foot__head {
   margin: 0;
@@ -9091,9 +9050,6 @@ a.kit-mbattle:hover {
 }
 .clan-fold > summary {
   cursor: pointer;
-}
-.clan-foot {
-  margin-top: 28px;
 }
 .clan-facts {
   display: grid;
@@ -9833,19 +9789,6 @@ a.kit-mbattle:hover {
   background: transparent;
   font: inherit;
   cursor: pointer;
-}
-/* Search keeps its own outline; the icon is a bare button, or the browser draws one. */
-.kit-top__icon {
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--r-chip);
-}
-.kit-top__icon:hover {
-  background: var(--panel-raised);
-  color: var(--ink);
 }
 /* Too narrow for a useful prompt: the magnifier alone, its words still its name. */
 @media (max-width: 1000px) {
