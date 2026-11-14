@@ -402,7 +402,7 @@ export function Verify({ refresh, navigate, tag = null }) {
       <Panel title="Your players">
         <div className="panel__body">
           {list === null ? (
-            <p style={{ color: "var(--ink-faint)" }}>Loading…</p>
+            <p className="text-ink-faint">Loading…</p>
           ) : players.length === 0 ? (
             <p className="verify__lead">
               <strong>Nothing to verify yet.</strong> Add your player, or

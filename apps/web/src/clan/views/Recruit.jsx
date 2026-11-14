@@ -173,8 +173,7 @@ export function Recruit({ clan, navigate }) {
             {d.can_edit ? (
               <button
                 type="button"
-                className="btn--text"
-                style={{ marginLeft: "auto" }}
+                className="btn--text ml-auto"
                 onClick={() => load(true)}
               >
                 read again

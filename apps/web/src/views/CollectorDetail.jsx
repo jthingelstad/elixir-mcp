@@ -118,10 +118,7 @@ function Hours({ daily }) {
       title="Fetches per day"
       titleAs="div"
       action={
-        <span
-          className="footnote"
-          style={{ marginLeft: "auto", fontWeight: 400 }}
-        >
+        <span className="footnote ml-auto font-normal">
           last {rows.length} {noun(rows.length, "day")} · UTC
         </span>
       }
@@ -190,11 +187,7 @@ function Operations({ g, staged, setStaged, reload }) {
     <Panel
       title="Operations"
       titleAs="div"
-      action={
-        <span className="caveat" style={{ marginLeft: "auto" }}>
-          admin
-        </span>
-      }
+      action={<span className="caveat ml-auto">admin</span>}
       style={{ marginBottom: "14px" }}
     >
       <dl className="fields" style={{ margin: 0 }}>
@@ -294,8 +287,7 @@ function YourCard({ own, navigate, home }) {
       titleAs="div"
       action={
         <button
-          className="btn btn--sm"
-          style={{ marginLeft: "auto" }}
+          className="btn btn--sm ml-auto"
           onClick={() => setOpen((o) => !o)}
         >
           {open ? "Keep it" : "Change"}
@@ -436,7 +428,7 @@ export function CollectorPage({
   const detail = useGatewayDetail(own?.gateway_id).data ?? null;
 
   if (!status || mine === null)
-    return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+    return <p className="text-ink-faint">Loading…</p>;
 
   if (!pub && !own)
     return (
@@ -483,7 +475,7 @@ export function CollectorPage({
           </>
         }
         aside={
-          <span className={`chip chip--${tone}`} style={{ marginLeft: "auto" }}>
+          <span className={`chip chip--${tone} ml-auto`}>
             <span className="chip__dot" />
             {status_ !== "active"
               ? status_[0].toUpperCase() + status_.slice(1)
@@ -561,10 +553,7 @@ export function CollectorPage({
           title="Collector token"
           titleAs="div"
           action={
-            <span
-              className="footnote"
-              style={{ marginLeft: "auto", fontWeight: 400 }}
-            >
+            <span className="footnote ml-auto font-normal">
               Staged, waiting for you
             </span>
           }
@@ -592,8 +581,7 @@ export function CollectorPage({
               machine.
             </span>
             <button
-              className="btn btn--selected"
-              style={{ marginLeft: "auto" }}
+              className="btn btn--selected ml-auto"
               onClick={async () => {
                 const r = await api.gatewayEnv(own.gateway_id);
                 if (r.ok) setRevealed(r.data.env.trim());
@@ -613,8 +601,7 @@ export function CollectorPage({
               Shown once. It is gone from us now.
             </span>
             <button
-              className="btn btn--sm"
-              style={{ marginLeft: "auto" }}
+              className="btn btn--sm ml-auto"
               onClick={() => navigator.clipboard?.writeText(env)}
             >
               Copy

@@ -56,11 +56,11 @@ export function Fleet({ navigate }) {
   // A failed read is said, not left loading (console audit M2).
   if (!status && statusQuery.isError)
     return (
-      <p style={{ color: "var(--ink-faint)" }}>
+      <p className="text-ink-faint">
         This could not be read just now; try again in a moment.
       </p>
     );
-  if (!status) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+  if (!status) return <p className="text-ink-faint">Loading…</p>;
 
   const fleet = status.collectors ?? [];
   const todays = fleet.reduce((n, c) => n + (c.fetches_1h ?? 0), 0);
@@ -83,8 +83,7 @@ export function Fleet({ navigate }) {
             door only changes its word. */}
             {mine !== null && (
               <button
-                className="btn btn--primary"
-                style={{ marginLeft: "auto" }}
+                className="btn btn--primary ml-auto"
                 onClick={() => navigate(`${SETTINGS}/collectors/new`)}
               >
                 <Icon name="plus" size={16} />

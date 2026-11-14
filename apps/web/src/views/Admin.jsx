@@ -781,8 +781,7 @@ function AdminAccountDetail({ id }) {
     if (a) setRole(a.granted_role ?? a.role);
   }, [a]);
 
-  if (accounts === null)
-    return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+  if (accounts === null) return <p className="text-ink-faint">Loading…</p>;
   if (!a)
     return (
       <div className="panel">
@@ -932,7 +931,7 @@ function AdminAccountDetail({ id }) {
         >
           <div className="panel__head">
             <span className="panel-title">Agents and integrations</span>
-            <span className="caveat" style={{ marginLeft: "auto" }}>
+            <span className="caveat ml-auto">
               {children.length} owned by this account
             </span>
           </div>
@@ -946,7 +945,7 @@ function AdminAccountDetail({ id }) {
                       c.public_id ??
                       c.account_id.slice(0, 8)}
                   </Link>
-                  <span style={{ color: "var(--ink-faint)" }}>
+                  <span className="text-ink-faint">
                     {" · "}
                     {c.status}
                     {c.public_id ? ` · ${c.public_id}` : ""}
@@ -1591,7 +1590,7 @@ function AdminFeedbackItem({ id, navigate }) {
         </div>
       </div>
     );
-  if (!item) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+  if (!item) return <p className="text-ink-faint">Loading…</p>;
   const refs = item.refs ?? [];
   const calls = refs.filter((r) => r.kind === "call");
   const emails = refs.filter((r) => r.kind === "email");
@@ -1651,9 +1650,7 @@ function AdminFeedbackItem({ id, navigate }) {
       </p>
       <section className="panel" style={{ maxWidth: "720px" }}>
         <div className="panel__head">
-          <span className="mono" style={{ color: "var(--ink-faint)" }}>
-            fb_{item.feedback_id}
-          </span>
+          <span className="mono text-ink-faint">fb_{item.feedback_id}</span>
           <span className="tag-chip">
             {FEEDBACK_AREA_LABEL[item.area] ?? item.area}
           </span>
