@@ -45,14 +45,15 @@ function useTicking(everyMs: number, against: number | null) {
   const [initial] = useInitialTime();
   const [now, setNow] = useState(initial);
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), everyMs);
-    return () => clearInterval(id);
-  }, [everyMs]);
-  const [seen, setSeen] = useState(against);
-  if (seen !== against) {
-    setSeen(against);
-    setNow(Date.now());
-  }
+    const tick = () => setNow(Date.now());
+    // A new instant to measure: read the clock at once, then every tick.
+    const first = setTimeout(tick, 0);
+    const id = setInterval(tick, everyMs);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, [everyMs, against]);
   return now;
 }
 
