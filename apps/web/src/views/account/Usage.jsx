@@ -155,17 +155,21 @@ function Allows({ me, usage }) {
           rows={[
             ["Player slots used", e.player_slots?.used, e.player_slots?.limit],
             [
-              "Clans, the clan only",
+              "Clans you follow, the clan only",
               e.activity_clans?.used,
               e.activity_clans?.limit,
             ],
             [
-              "Clans, every member",
+              "Clans you follow, every member",
               e.comprehensive_clans?.used,
               e.comprehensive_clans?.limit,
             ],
-            ["Calls a day", usage?.today_calls, e.mcp_calls_per_day],
-            ["Live fetches a day", usage?.live_today, e.live_fetches_per_day],
+            ["Tool calls a day", usage?.today_calls, e.mcp_calls_per_day],
+            [
+              "Live CR fetches a day",
+              usage?.live_today,
+              e.live_fetches_per_day,
+            ],
             ["Agents", undefined, e.agents?.limit],
           ]}
         />
