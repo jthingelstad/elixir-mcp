@@ -10,8 +10,7 @@
     "./catalog": "./src/catalog.mjs",
     "./eligibility": "./src/eligibility.mjs",
     "./projection": "./src/projection.mjs",
-    "./backfill": "./src/backfill.mjs",
-    "./summary": "./src/summary.mjs"
+    "./backfill": "./src/backfill.mjs"
   },
   "scripts": {
     "test": "node --test --test-force-exit"
