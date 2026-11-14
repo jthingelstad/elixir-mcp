@@ -30,4 +30,12 @@ its cause rather than rerun past.
   the doors' 2.5 s everywhere else), every wait is for its condition,
   and any 5xx or failed section ends the test at once, naming it. The
   timeouts left are hang guards; the file passes with every query
-  slowed by 150 ms.
+  slowed by 150 ms. Waiting for the condition also exposed a race in
+  the claim step: `findByText("#00J")` matched one element only between
+  the list's refresh and the move to the new player's page, where the
+  tag appears two or three times; it now waits for that page and its
+  heading.
+- **Vacuum guard test (#979).** Under load one page of 885 stayed
+  unmarked after `{vacuum}`: a plain VACUUM that cannot take a page's
+  cleanup lock leaves its bit unset. The tests assert what the op
+  promises, the check's own threshold, not every page.
