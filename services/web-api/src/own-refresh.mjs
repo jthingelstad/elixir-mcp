@@ -262,3 +262,213 @@ export async function refreshStatus(
     );
   return { players, feed_current: feedCurrent };
 }
+
+/* ------------------------------------------------------------------------
+ * Any player's battles, read now: the player page's button (2026-11-14).
+ *
+ * A deliberate tap, for one player, on anyone's page. Your own verified
+ * players go through refreshOwn above (the same action as the chip). For
+ * anyone else it is ONE recording read of their battle log, never the
+ * start of a recording: the scheduler plans only players someone records
+ * (or a recorded clan's members), so a one-off read leaves no schedule
+ * behind. Its limits, all in the database:
+ *
+ *  - A log read in the last two minutes, or a read already on its way,
+ *    answers `fresh` or `queued` and spends nothing.
+ *  - One ask per account per player per two minutes (PLAYER_FLOOR_S): a
+ *    `refreshone#<account>#<tag>` row in rate_limit keyed by the two-minute
+ *    slot, inserted once (`on conflict do nothing`), so taps at once pass
+ *    once. Across a slot's edge the read the first tap minted is still
+ *    open, so the second one joins it rather than minting.
+ *  - The one global bucket (the lane takes its token first).
+ *  - OTHERS_PER_HOUR asks that reach the lane per account per hour
+ *    (`refreshother#<account>`), then the person's live quota itself
+ *    (`liveday#<account>`, liveBudgetFor), as any deliberate live read.
+ *    A refusal gives back what was taken.
+ *
+ * Every refusal is `skipped` with `retry_after_s`; never an error.
+ * ---------------------------------------------------------------------- */
+
+/** One ask per account per player in this many seconds. */
+export const PLAYER_FLOOR_S = 120;
+/** Asks for other people's battles that reach the lane, per account per
+ *  hour. Half a Member's live quota (20 a day), so a Member's day lasts at
+ *  least two hours of tapping, and a Leader's 100 cannot go in one sitting. */
+export const OTHERS_PER_HOUR = 10;
+export const REFRESH_ONE = "refreshone#";
+export const REFRESH_OTHERS = "refreshother#";
+
+/** Whether Elixir knows this tag at all (a page exists for it). */
+async function knownPlayer(db, tag) {
+  const { rows } = await db.query(
+    `select 1 from player where player_tag = $1::text`,
+    [tag],
+  );
+  return rows.length > 0;
+}
+
+/** Pass this account's floor for one player, or say how long until it opens. */
+async function takePlayerFloor(db, accountId, tag) {
+  const { rows } = await db.query(
+    `insert into rate_limit (bucket, window_start, count)
+     values ($1::text, to_timestamp(floor(extract(epoch from now()) / $2::int) * $2::int), 1)
+     on conflict (bucket, window_start) do nothing
+     returning window_start`,
+    [`${REFRESH_ONE}${accountId}#${tag}`, PLAYER_FLOOR_S],
+  );
+  if (rows.length) return { ok: true };
+  const {
+    rows: [w],
+  } = await db.query(
+    `select greatest(1, $1::int - (floor(extract(epoch from now()))::bigint % $1::int))::int as s`,
+    [PLAYER_FLOOR_S],
+  );
+  return { ok: false, retry_after_s: w.s };
+}
+
+class Refused extends Error {
+  constructor(retryAfterS) {
+    super("refused");
+    this.retry_after_s = retryAfterS;
+  }
+}
+
+/** The hour's asks, then the day's live quota; a refusal throws Refused
+ *  having given back what it took. Returns what to give back later. */
+async function spendForOther(db, account) {
+  const hour = `${REFRESH_OTHERS}${account.accountId}`;
+  const {
+    rows: [h],
+  } = await db.query(
+    `insert into rate_limit (bucket, window_start, count)
+     values ($1::text, date_trunc('hour', now()), 1)
+     on conflict (bucket, window_start) do update set count = rate_limit.count + 1
+       where rate_limit.count < $2::int
+     returning window_start`,
+    [hour, OTHERS_PER_HOUR],
+  );
+  if (!h) {
+    const {
+      rows: [w],
+    } = await db.query(
+      `select greatest(1, ceil(extract(epoch from date_trunc('hour', now()) + interval '1 hour' - now())))::int as s`,
+    );
+    throw new Refused(w.s);
+  }
+  const spent = [{ bucket: hour, window: h.window_start }];
+  const budget = liveBudgetFor(account);
+  if (budget.cap !== Infinity) {
+    const day = new Date().toISOString().slice(0, 10);
+    const { rows } = await db.query(
+      `insert into rate_limit (bucket, window_start, count) values ($1::text, $2::date, 1)
+       on conflict (bucket, window_start) do update set count = rate_limit.count + 1
+         where rate_limit.count < $3::int
+       returning window_start`,
+      [budget.bucket, day, budget.cap],
+    );
+    if (!rows.length) {
+      await giveBack(db, spent);
+      const {
+        rows: [w],
+      } = await db.query(
+        `select greatest(1, ceil(extract(epoch from date_trunc('day', now() at time zone 'UTC') + interval '1 day' - (now() at time zone 'UTC'))))::int as s`,
+      );
+      throw new Refused(w.s);
+    }
+    spent.push({ bucket: budget.bucket, window: rows[0].window_start });
+  }
+  return spent;
+}
+
+async function giveBack(db, spent) {
+  for (const s of spent ?? [])
+    await db.query(
+      `update rate_limit set count = count - 1
+        where bucket = $1::text and window_start = $2::timestamptz and count > 0`,
+      [s.bucket, s.window],
+    );
+}
+
+/**
+ * Ask for one player's battle log now. Your own verified player is your
+ * own refresh (refreshOwn); anyone else is one read under the limits
+ * above. Answers the same shape as refreshOwn, with one player.
+ */
+export async function refreshPlayer(
+  db,
+  live,
+  account,
+  tag,
+  { now = new Date() } = {},
+) {
+  const own = await ownPlayers(db, account.accountId);
+  if (own.includes(tag)) return refreshOwn(db, live, account, { now });
+  const answer = (player, outcome) => {
+    console.info(JSON.stringify({ at: "player_refresh", outcome }));
+    return { queued: player.state === "queued", players: [player] };
+  };
+  if (!(await knownPlayer(db, tag)))
+    return answer({ tag, state: "skipped" }, "unknown");
+  const s = await logState(db, tag);
+  if (ageS(s.readAt, now) <= FRESH_ENOUGH_S)
+    return answer({ tag, state: "fresh" }, "fresh");
+  if (s.pending)
+    return answer({ tag, state: "queued", retry_after_s: 15 }, "open");
+  const floor = await takePlayerFloor(db, account.accountId, tag);
+  if (!floor.ok)
+    return answer(
+      { tag, state: "skipped", retry_after_s: floor.retry_after_s },
+      "floor",
+    );
+  let spent = null;
+  try {
+    const r = await live(db, {
+      endpoint: ENDPOINT,
+      entityKey: tag,
+      record: true,
+      beforeMint: async () => {
+        spent = await spendForOther(db, account);
+      },
+    });
+    if (spent && r.minted === false) await giveBack(db, spent);
+    if (r.ok) return answer({ tag, state: "fresh" }, "fresh");
+    if (r.reason === "pending" && r.queued === false)
+      return answer(
+        { tag, state: "skipped", retry_after_s: r.retry_after_s },
+        "no_token",
+      );
+    if (r.reason === "pending")
+      return answer(
+        { tag, state: "queued", retry_after_s: r.retry_after_s },
+        r.minted ? "minted" : "joined",
+      );
+    return answer({ tag, state: "skipped" }, r.reason ?? "skipped");
+  } catch (err) {
+    if (err instanceof Refused)
+      return answer(
+        { tag, state: "skipped", retry_after_s: err.retry_after_s },
+        "limit",
+      );
+    if (spent) await giveBack(db, spent).catch(() => {});
+    console.error(
+      JSON.stringify({ at: "player_refresh_failed", code: err?.code ?? null }),
+    );
+    return answer({ tag, state: "skipped" }, "error");
+  }
+}
+
+/** One player's follow-up read: when the log was last read, whether a read
+ *  is on its way. Nothing private and nothing woken. */
+export async function playerStatus(db, tag) {
+  const s = await logState(db, tag);
+  return {
+    players: [
+      {
+        tag,
+        read_at: s.readAt ? s.readAt.toISOString() : null,
+        pending: s.pending,
+      },
+    ],
+    feed_current: true,
+  };
+}

@@ -15,7 +15,12 @@ import { enqueueJob } from "../../../packages/ledger/src/ledger.mjs";
 import { makeLive } from "../../../packages/tools/src/live.mjs";
 import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
 import { refreshRoutes } from "../src/routes/refresh.mjs";
-import { FLOOR_S, REFRESH_DAY } from "../src/own-refresh.mjs";
+import {
+  FLOOR_S,
+  OTHERS_PER_HOUR,
+  PLAYER_FLOOR_S,
+  REFRESH_DAY,
+} from "../src/own-refresh.mjs";
 import {
   createScratch,
   dropScratch,
@@ -31,6 +36,10 @@ const ALT = "#0Q2L8";
 const UNVERIFIED_ALT = "#0LUVR2";
 const FRIEND = "#0YY9P";
 const ALL = [PRIMARY, ALT, UNVERIFIED_ALT, FRIEND];
+/** Known from an opponent's log only: a page, no recording. */
+const STRANGER = "#0PQ2VY";
+/** Never seen at all. */
+const UNKNOWN = "#0CU8LG";
 
 let db;
 let gatewayId;
@@ -38,9 +47,19 @@ let person;
 const wakes = [];
 let routes;
 
-const call = async (method, account, { pool = db } = {}) => {
+const call = async (method, account, { pool = db, tag } = {}) => {
   const r = routes({ account })[`${method} /api/me/refresh`];
-  const res = await r(pool, { headers: { "x-elixir-client": "web" } });
+  const event = {
+    headers: { "x-elixir-client": "web" },
+    ...(tag && method === "GET"
+      ? { queryStringParameters: { player_tag: tag } }
+      : {}),
+  };
+  const res = await r(
+    pool,
+    event,
+    tag && method === "POST" ? { player_tag: tag } : {},
+  );
   return { status: res.statusCode, body: JSON.parse(res.body) };
 };
 
@@ -89,6 +108,7 @@ before(async () => {
       [tag, a.account_id],
     );
   }
+  await db.query(`insert into player (player_tag) values ($1)`, [STRANGER]);
   for (const [tag, primary, relationship, status] of [
     [PRIMARY, true, "primary", "verified"],
     [ALT, false, "alt", "verified"],
@@ -120,7 +140,7 @@ beforeEach(async () => {
   await db.query(`delete from api_receipt`);
   await db.query(`delete from rate_limit`);
   await db.query(`delete from home_feed`);
-  await db.query(`update budget_state set tokens = 10`);
+  await db.query(`update budget_state set tokens = 20`);
   wakes.length = 0;
 });
 
@@ -237,7 +257,7 @@ test("the day's allowance spent: queued false, and the token goes back", async (
     ["skipped", "skipped"],
   );
   assert.deepEqual(await openJobs(), []);
-  assert.equal(await tokens(), 10);
+  assert.equal(await tokens(), 20);
   // The MCP live quota's bucket is untouched either way.
   const { rows } = await db.query(
     `select 1 from rate_limit where bucket like 'liveday#%'`,
@@ -302,4 +322,158 @@ test("the follow-up read says when a read landed and wakes the stored week once"
   const current = await call("GET", person);
   assert.equal(current.body.feed_current, true);
   assert.equal(wakes.length, 1);
+});
+
+/* --- Any player's battles: the player page's button ------------------- */
+
+const liveday = async () =>
+  Number(
+    (
+      await db.query(`select count from rate_limit where bucket = $1`, [
+        `liveday#${person.accountId}`,
+      ])
+    ).rows[0]?.count ?? 0,
+  );
+
+test("another player's button: one recording read, charged as a live read", async () => {
+  const before = await tokens();
+  const r = await call("POST", person, {
+    tag: STRANGER.slice(1).toLowerCase(),
+  });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body, {
+    queued: true,
+    players: [{ tag: STRANGER, state: "queued", retry_after_s: 15 }],
+  });
+  const { rows: jobs } = await db.query(
+    `select entity_key, lane, record from job where status = 'queued'`,
+  );
+  assert.deepEqual(jobs, [
+    { entity_key: STRANGER, lane: "live", record: true },
+  ]);
+  assert.equal(before - (await tokens()), 1);
+  assert.equal(await liveday(), 1);
+  // One read, never a recording: nothing starts recording them.
+  const { rows: rec } = await db.query(
+    `select 1 from recording where subject_tag = $1`,
+    [STRANGER],
+  );
+  assert.equal(rec.length, 0);
+  // The follow-up read is that player's.
+  const s = await call("GET", person, { tag: STRANGER });
+  assert.deepEqual(s.body.players, [
+    { tag: STRANGER, read_at: null, pending: true },
+  ]);
+});
+
+test("another player: read two minutes ago is fresh, and spends nothing", async () => {
+  await readLog(STRANGER, 1);
+  const r = await call("POST", person, { tag: STRANGER });
+  assert.deepEqual(r.body.players, [{ tag: STRANGER, state: "fresh" }]);
+  assert.deepEqual(await openJobs(), []);
+  assert.equal(await liveday(), 0);
+});
+
+test("another player: taps at once mint once, and the floor holds two minutes", async () => {
+  const many = await Promise.all(
+    Array.from({ length: 6 }, () => call("POST", person, { tag: STRANGER })),
+  );
+  for (const r of many) assert.equal(r.status, 200);
+  assert.deepEqual(await openJobs(), [STRANGER]);
+  assert.equal(await liveday(), 1);
+  // The read failed, say, and nothing is open: inside the floor, wait.
+  await db.query(`update job set status = 'dead'`);
+  // Should the two-minute slot turn over just here, its next one is taken
+  // too, so this step never depends on the clock.
+  await db.query(
+    `insert into rate_limit (bucket, window_start, count)
+     values ($1, to_timestamp(floor(extract(epoch from now()) / $2::int) * $2::int + $2::int), 1)
+     on conflict do nothing`,
+    [`refreshone#${person.accountId}#${STRANGER}`, PLAYER_FLOOR_S],
+  );
+  const shut = await call("POST", person, { tag: STRANGER });
+  assert.equal(shut.body.queued, false);
+  assert.equal(shut.body.players[0].state, "skipped");
+  const wait = shut.body.players[0].retry_after_s;
+  assert.ok(wait >= 1 && wait <= PLAYER_FLOOR_S, String(wait));
+  assert.equal(await liveday(), 1);
+});
+
+test("another player: the hour's cap holds under concurrent taps on many players", async () => {
+  const tags = [];
+  // Invented tags over the alphabet, built here, never real players.
+  for (let i = 0; i < OTHERS_PER_HOUR + 4; i++) {
+    const tag = `#0${"2289PYLQGRJCUV"[i]}${"0289PYLQGRJCUV"[(i * 3) % 14]}Q8`;
+    tags.push(tag);
+    await db.query(
+      `insert into player (player_tag) values ($1) on conflict do nothing`,
+      [tag],
+    );
+  }
+  const answers = await Promise.all(
+    tags.map((tag) => call("POST", person, { tag })),
+  );
+  const queued = answers.filter((r) => r.body.queued);
+  assert.equal(queued.length, OTHERS_PER_HOUR);
+  assert.equal((await openJobs()).length, OTHERS_PER_HOUR);
+  for (const r of answers.filter((a) => !a.body.queued)) {
+    assert.equal(r.status, 200);
+    assert.equal(r.body.players[0].state, "skipped");
+    assert.ok(r.body.players[0].retry_after_s > 0);
+  }
+  // Refused taps took no token and no live quota.
+  assert.equal(await liveday(), OTHERS_PER_HOUR);
+  assert.equal(20 - (await tokens()), OTHERS_PER_HOUR);
+  for (const tag of tags)
+    await db.query(`delete from player where player_tag = $1::text`, [tag]);
+});
+
+test("another player: the live quota spent, or no token, answers quietly", async () => {
+  await db.query(
+    `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 20)`,
+    [`liveday#${person.accountId}`, new Date().toISOString().slice(0, 10)],
+  );
+  const spent = await call("POST", person, { tag: STRANGER });
+  assert.equal(spent.status, 200);
+  assert.equal(spent.body.players[0].state, "skipped");
+  assert.ok(spent.body.players[0].retry_after_s > 0);
+  assert.equal(await tokens(), 20);
+  const { rows } = await db.query(
+    `select count from rate_limit where bucket like 'refreshother#%'`,
+  );
+  assert.deepEqual(rows, [{ count: 0 }]);
+  await db.query(`delete from rate_limit`);
+  await db.query(`update budget_state set tokens = 0`);
+  const none = await call("POST", person, { tag: STRANGER });
+  assert.equal(none.body.queued, false);
+  assert.equal(none.body.players[0].state, "skipped");
+  assert.deepEqual(await openJobs(), []);
+  assert.equal(await liveday(), 0);
+});
+
+test("another player: unknown, invalid, an agent, and your own player", async () => {
+  const unknown = await call("POST", person, { tag: UNKNOWN });
+  assert.deepEqual(unknown.body, {
+    queued: false,
+    players: [{ tag: UNKNOWN, state: "skipped" }],
+  });
+  assert.deepEqual(await openJobs(), []);
+  const bad = await call("POST", person, { tag: "not a tag!" });
+  assert.equal(bad.status, 400);
+  for (const method of ["POST", "GET"]) {
+    const r = await call(
+      method,
+      { ...person, kind: "agent" },
+      { tag: STRANGER },
+    );
+    assert.equal(r.status, 403);
+  }
+  assert.deepEqual(await openJobs(), []);
+  // Your own verified player is your own refresh, the chip's action.
+  const own = await call("POST", person, { tag: PRIMARY });
+  assert.deepEqual(
+    own.body.players.map((p) => p.tag),
+    [PRIMARY, ALT],
+  );
+  assert.equal(await liveday(), 0);
 });

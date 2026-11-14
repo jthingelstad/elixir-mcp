@@ -7,10 +7,20 @@
  *  never an error the person sees.
  *
  *  `GET /api/me/refresh` is the page's cheap follow-up: whether the reads
- *  it asked for have landed, and whether Home's stored week has them. */
+ *  it asked for have landed, and whether Home's stored week has them.
+ *
+ *  With `player_tag` (the body's on POST, the query's on GET), both ask
+ *  about that one player instead: the player page's button, which reaches
+ *  anyone Elixir knows, one read at a time (own-refresh.mjs, refreshPlayer). */
 import { checkRateLimit } from "@elixir-mcp/auth";
+import { normalizeTag } from "@elixir-mcp/contracts";
 import { json } from "../http.mjs";
-import { refreshOwn, refreshStatus } from "../own-refresh.mjs";
+import {
+  playerStatus,
+  refreshOwn,
+  refreshPlayer,
+  refreshStatus,
+} from "../own-refresh.mjs";
 
 /** Asks in an hour, past which the answer is `queued: false` without a
  *  read of anything: the floor already bounds what an ask can spend. */
@@ -36,10 +46,23 @@ export function refreshRoutes({ resolveAccount, live, wake = null }) {
     return { account };
   };
 
+  /** The asked player's tag: absent is undefined, a bad one null. */
+  const askedTag = (value) => {
+    if (value === undefined || value === null || value === "") return undefined;
+    try {
+      return normalizeTag(value);
+    } catch {
+      return null;
+    }
+  };
+  const badTag = () => json(400, { error: "invalid_tag" });
+
   return {
-    "POST /api/me/refresh": async (db, event) => {
+    "POST /api/me/refresh": async (db, event, body = {}) => {
       const { account, refused } = await person(db, event, true);
       if (refused) return refused;
+      const tag = askedTag(body?.player_tag);
+      if (tag === null) return badTag();
       if (
         !(await checkRateLimit(db, {
           bucket: `refresh#${account.accountId}`,
@@ -47,12 +70,19 @@ export function refreshRoutes({ resolveAccount, live, wake = null }) {
         }))
       )
         return json(200, { queued: false, players: [] });
-      return json(200, await refreshOwn(db, live, account));
+      return json(
+        200,
+        tag
+          ? await refreshPlayer(db, live, account, tag)
+          : await refreshOwn(db, live, account),
+      );
     },
 
     "GET /api/me/refresh": async (db, event) => {
       const { account, refused } = await person(db, event, false);
       if (refused) return refused;
+      const tag = askedTag(event.queryStringParameters?.player_tag);
+      if (tag === null) return badTag();
       if (
         !(await checkRateLimit(db, {
           bucket: `refresh-read#${account.accountId}`,
@@ -60,7 +90,12 @@ export function refreshRoutes({ resolveAccount, live, wake = null }) {
         }))
       )
         return json(429, { error: "rate_limited" }, { "retry-after": "600" });
-      return json(200, await refreshStatus(db, account.accountId, { wake }));
+      return json(
+        200,
+        tag
+          ? await playerStatus(db, tag)
+          : await refreshStatus(db, account.accountId, { wake }),
+      );
     },
   };
 }
