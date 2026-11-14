@@ -120,15 +120,34 @@ describe("makeOwnRefresh", () => {
     }
   });
 
-  test("read in the last two minutes: Home is read again, nothing polled", async () => {
-    const { r, status, invalidated } = harness({
+  test("read in the last two minutes: one follow-up read, then Home is read again", async () => {
+    const { r, status, waits, invalidated } = harness({
       ask: async () =>
         ok({ queued: false, players: [{ tag: TAG, state: "fresh" }] }),
+      statuses: [
+        ok({ players: [{ tag: TAG, pending: false }], feed_current: true }),
+      ],
     });
     await r.ask();
-    expect(status).not.toHaveBeenCalled();
+    expect(status).toHaveBeenCalledTimes(1);
+    expect(waits).toEqual([]);
     expect(invalidated).toEqual(LANDED_KEYS);
     expect(r.snapshot().outcome).toBe("updated");
+  });
+
+  test("read in the last two minutes, after Home's week was built: one wait for the week", async () => {
+    const { r, status, waits, invalidated } = harness({
+      ask: async () =>
+        ok({ queued: false, players: [{ tag: TAG, state: "fresh" }] }),
+      statuses: [
+        ok({ players: [{ tag: TAG, pending: false }], feed_current: false }),
+        ok({ players: [{ tag: TAG, pending: false }], feed_current: true }),
+      ],
+    });
+    await r.ask();
+    expect(status).toHaveBeenCalledTimes(2);
+    expect(waits).toEqual([5_000]);
+    expect(invalidated).toEqual(LANDED_KEYS);
   });
 
   test("asks close together are one ask", async () => {
