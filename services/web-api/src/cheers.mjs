@@ -74,10 +74,39 @@ async function feedItemsFor(db, { accountId, tags, subjects }) {
   };
 }
 
-/** Is this item in the person's own feed, as of now? */
-export async function inOwnFeed(db, { accountId, itemId, tags, subjects }) {
+/** The item as the person's own feed holds it now, or null. */
+export async function ownFeedItem(db, { accountId, itemId, tags, subjects }) {
   const { items } = await feedItemsFor(db, { accountId, tags, subjects });
-  return items.some((it) => it.id === itemId);
+  return items.find((it) => it.id === itemId) ?? null;
+}
+
+/** Whether an item is about someone else: none of the players it names
+ *  is one of the account's own (its primary or an alt, any status).
+ *  Cheerleader counts cheers on other people's items only (#1015). */
+export async function aboutSomeoneElse(db, accountId, item) {
+  const tags = [
+    item?.subject_tag,
+    ...(item?.subjects ?? []).map((s) => s?.tag),
+  ].filter((t) => typeof t === "string" && t);
+  if (tags.length === 0) return true;
+  const { rows } = await db.query(
+    `select 1 from claim
+      where account_id = $1::uuid and player_tag = any($2::text[])
+        and (is_primary or relationship in ('primary', 'alt'))
+      limit 1`,
+    [accountId, tags],
+  );
+  return rows.length === 0;
+}
+
+/** When the person's cheer on an item was first given, as stored. */
+export async function cheeredAt(db, accountId, itemId) {
+  const { rows } = await db.query(
+    `select created_at from timeline_cheer
+      where account_id = $1::uuid and item_id = $2::text`,
+    [accountId, itemId],
+  );
+  return rows[0]?.created_at ?? null;
 }
 
 /** Set, change or take back the person's cheer on an item; `cheer` null

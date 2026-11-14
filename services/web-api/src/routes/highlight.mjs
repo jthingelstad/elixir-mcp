@@ -18,7 +18,23 @@ import {
   readPublicPost,
   shareHighlight,
 } from "../highlight.mjs";
+import { factAfter } from "../passport-hooks.mjs";
 import { namedShell, previewOf } from "./battle.mjs";
+
+/** Storyteller (#1015), after the post or edit is stored: one fact per
+ *  distinct battle told with words. The highlight is the source and the
+ *  canonical battle id the qualifier, so an edit, a repost or a second
+ *  share link of the same battle adds nothing. Dated at the post's
+ *  creation, as reconciliation dates it, so a hook and a repair agree. */
+async function storyFact(db, accountId, h) {
+  if (!h || !/\S/.test(String(h.words ?? ""))) return;
+  await factAfter(db, accountId, "storyteller", {
+    stamp_id: "storyteller",
+    source: `highlight:${h.highlight_id}`,
+    battle_id: h.battle_id,
+    event_at: h.created_at,
+  });
+}
 
 const reply = (r, ok) =>
   r.error
@@ -158,6 +174,7 @@ export function highlightRoutes({
         words: body.words,
       });
       if (!made.error && wake) await wake(db, made.highlight);
+      if (!made.error) await storyFact(db, account.accountId, made.highlight);
       return reply(made, (r) => ({ highlight: r.highlight }));
     },
 
@@ -171,6 +188,8 @@ export function highlightRoutes({
       });
       if (!edited.error && edited.changed && wake)
         await wake(db, edited.highlight);
+      if (!edited.error)
+        await storyFact(db, account.accountId, edited.highlight);
       return reply(edited, (r) => ({ highlight: r.highlight }));
     },
 

@@ -33,6 +33,7 @@ import { labelOf as emailChoiceLabel } from "./email.mjs";
 import { loadCallRecord } from "../call-record.mjs";
 import { annotateFeed } from "../feed.mjs";
 import { withCheers } from "../cheers.mjs";
+import { playersChangedAfter, settleAfter } from "../passport-hooks.mjs";
 
 /** Profile image changes an account may make in an hour: plenty for
  *  trying cards on, few enough that nothing loops on the write. */
@@ -118,6 +119,9 @@ export function accountRoutes({
       // No row means either you never added this tag, or it is your primary
       // -- and demoting a primary by renaming it would leave you with none.
       if (!r.ok) return json(404, { error: "not_found_or_primary" });
+      // Full Roster, or a follow (#1015), once the change committed.
+      if (account.kind !== "agent")
+        await playersChangedAfter(db, account.accountId, "relationship");
       return json(200, { ok: true, relationship: body.relationship });
     }
     if (action === "remove") {
@@ -174,6 +178,13 @@ export function accountRoutes({
     if (!r.ok && r.error === "verified_elsewhere")
       return json(409, { error: r.error, message: r.message });
     if (!r.ok) return json(404, { error: "not_found" });
+    // The passport (#1015), once the add committed: the add-player step,
+    // Full Roster, the follow step, Inner Circle and Mutual. A follow can
+    // also make the followed player's verified owner a Mutual.
+    if (account.kind !== "agent") {
+      await playersChangedAfter(db, account.accountId, "player_added");
+      if (follow) await settleFollowedOwner(db, account.accountId, tag);
+    }
     // claims logs recording_started; logging it here too wrote it twice.
     // A person's add asks for the battle log live too (2026-11-09), so
     // the last 30 battles land with the profile, in seconds.
@@ -193,6 +204,27 @@ export function accountRoutes({
       slot: slotWire(r.slot),
       ...(follow ? { added: r.added, relationship: r.relationship } : {}),
     });
+  }
+
+  /** The verified owner of a player just followed, settled too: a
+   *  follow back completes their Mutual as well as yours. */
+  async function settleFollowedOwner(db, accountId, tag) {
+    try {
+      const { rows } = await db.query(
+        `select c.account_id from claim c
+           join account a on a.account_id = c.account_id
+          where c.player_tag = $1::text and c.status = 'verified'
+            and (c.is_primary or c.relationship in ('primary', 'alt'))
+            and c.account_id <> $2::uuid and a.kind = 'person'
+          limit 1`,
+        [tag, accountId],
+      );
+      if (rows[0]) await settleAfter(db, rows[0].account_id, "mutual");
+    } catch {
+      console.error(
+        JSON.stringify({ at: "passport_hook_failed", hook: "mutual" }),
+      );
+    }
   }
 
   /** What a follow costs, on the wire: Infinity is null (unlimited). */
@@ -564,6 +596,9 @@ export function accountRoutes({
           error: "unknown_card",
           message: "That card can't be a profile image.",
         });
+      // Looking Good (#1015): a card chosen, never going back to initials.
+      if (rows[0].avatar_card_id !== null)
+        await settleAfter(db, account.accountId, "looking_good");
       return json(200, { ok: true, avatar_card_id: rows[0].avatar_card_id });
     },
 

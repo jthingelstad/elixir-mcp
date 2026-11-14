@@ -6,6 +6,7 @@ import { participantModeClause } from "@elixir-mcp/record/mode-filter";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { markVerified, VERIFIED_ELSEWHERE } from "@elixir-mcp/claims";
 import { drawTarget, deckIds, deckKey } from "./verify-draw.mjs";
+import { playersChangedAfter } from "../passport-hooks.mjs";
 
 /**
  * Verify (0080, battles since 0081): prove that the signed-in account
@@ -570,6 +571,9 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
           method: "deck_battle",
           battle_id: proof.battle_id,
         });
+        // Player verified (#1015), after the proof committed. A person's
+        // only: the store refuses any other account.
+        await playersChangedAfter(db, account.accountId, "player_verified");
         const done = await claimFor(db, account.accountId, row.player_tag);
         return json(
           200,

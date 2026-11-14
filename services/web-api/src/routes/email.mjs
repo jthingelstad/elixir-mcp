@@ -42,6 +42,7 @@ import {
   loadSendRecord,
 } from "../send-record.mjs";
 import { json, UUID_RE } from "../http.mjs";
+import { settleAfter } from "../passport-hooks.mjs";
 
 const esc = (v) =>
   String(v ?? "")
@@ -197,6 +198,30 @@ async function setCadence(db, accountId, cadence) {
       [accountId, JSON.stringify({ kind: "tracking_report", cadence })],
     )
     .catch(() => {});
+}
+
+/** The digest choice as now stored, latched for the profile list. */
+async function settleDigest(db, accountId) {
+  let choice = null;
+  try {
+    const { rows } = await db.query(
+      `select enabled, coalesce(cadence, 'weekly') as cadence
+         from account_email_pref
+        where account_id = $1::uuid and kind = 'tracking_report'`,
+      [accountId],
+    );
+    if (rows[0]) choice = rows[0].enabled === false ? "off" : rows[0].cadence;
+  } catch {
+    // The next settle reads the same row: the step is not lost.
+  }
+  await settleAfter(
+    db,
+    accountId,
+    "digest",
+    ["weekly", "daily", "off"].includes(choice)
+      ? { digest_choice: choice }
+      : null,
+  );
 }
 
 /** The labels read as names ("Milestones", "every Elixir email"); a
@@ -380,6 +405,15 @@ export function emailRoutes({
           clanPart,
           "profile",
         );
+      // The digest step (#1015): a cadence chosen, the digest turned on
+      // or off, or every email turned off. The default weekly digest (no
+      // row) is never a choice, and Stamps never turn mail on.
+      if (
+        (kind === "tracking_report" &&
+          (cadence !== undefined || typeof body.enabled === "boolean")) ||
+        (kind === "all" && body.enabled === false)
+      )
+        await settleDigest(db, account.accountId);
       return json(200, {
         kind,
         ...(typeof body.enabled === "boolean" ? { enabled: body.enabled } : {}),
