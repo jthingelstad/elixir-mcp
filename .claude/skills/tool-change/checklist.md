@@ -170,7 +170,7 @@ only when it does not apply, and say why in the commit message.
 
 - [ ] The second derivations in `../consistency/facets.md` section 3 are
       grepped and changed: timeline entries, mail builders and
-      fixtures, rollups, the console and web-api routes. Review; run
+      fixtures, rollups, the web app and web-api routes. Review; run
       `/consistency <decision>` when a DECISIONS line is involved.
 - [ ] On a removal, the unpinned MCP reader (the Discord preview) is
       grepped for the field.

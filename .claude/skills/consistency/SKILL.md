@@ -82,7 +82,7 @@ report. Do not propose fixes beyond one line each.
 ```
 
 For a sweep, slices that worked on 2026-09-25: (1) tools and their
-schemas, (2) second derivations (timeline, mail, console), (3) the JSON
+schemas, (2) second derivations (timeline, mail, the web app), (3) the JSON
 API, (4) accounts, identity and privacy, (5) recording, ingest and
 schema, (6) the ledger, runbooks and skills, (7) public docs, (8) the
 connected repos, (9) artifacts and cleanup.

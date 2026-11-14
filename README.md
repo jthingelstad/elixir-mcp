@@ -40,7 +40,7 @@ An npm workspaces monorepo.
 | `docs/` | Engineering invariants, the decision ledger, how production is operated, and one note per change |
 
 For contributors: [AGENTS.md](AGENTS.md) holds the golden rules and points to
-each area's own guide (the web app, Ladder, Clan, tools, site, infra);
+each area's own guide (the web app, Stats, Clan, tools, site, infra);
 [docs/ENGINEERING.md](docs/ENGINEERING.md) the build invariants,
 [docs/DECISIONS.md](docs/DECISIONS.md) the ratified decisions and
 [docs/OPERATIONS.md](docs/OPERATIONS.md) how production is operated.

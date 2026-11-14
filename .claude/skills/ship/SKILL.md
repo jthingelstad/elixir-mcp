@@ -217,7 +217,7 @@ name's prefix (`badges`, `battles`, `cards`, `clans`,
 `--acceptance=war,clans`. Shared code (`services/mcp/src/protocol.mjs`,
 `packages/tools`, ingest) or a release: `--acceptance`;
 family runs skip the `#docs` cases. Nothing a tool serves changed
-(console, site copy, infrastructure, mail, an op): none, and the change
+(the web app, site copy, infrastructure, mail, an op): none, and the change
 note says why. Never the whole suite by habit: on 2026-09-23 a full pass
 on every deploy drained the database's EBS byte balance in an afternoon,
 and on 2026-11-12/13 about ten runs drained it to 0 and the database

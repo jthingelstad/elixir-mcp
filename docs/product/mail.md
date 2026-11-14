@@ -7,6 +7,12 @@ and rulings are tagged `[Jamie, date]`, readings of them
 `[engineering, date]`. Ratified by Jamie, 2026-11-13 ("I think the rest
 is good to go").*
 
+*2026-11-13: the digest's weekly day is Monday at 11:00 UTC, right after
+the game's weekly reset, not Wednesday (DECISIONS "The digest is the one
+scheduled mail; leaders' Actions mail stays apart": "that email should
+move to Monday", Jamie, 2026-11-13). The table's "Weekly on Wednesday"
+no longer holds.*
+
 ## What it is for
 
 "Keeping you up to date is part of the service, even when you do not

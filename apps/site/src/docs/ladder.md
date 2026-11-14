@@ -1,7 +1,7 @@
 ---
 slug: ladder
 title: "Stats: your season, read back"
-description: "Stats, a tab of You at /home/you/stats (Ladder until 2026-11-12): one of your players' Clash Royale season as Elixir recorded it, one mode at a time, read from the same tools a connected app calls. What each page shows, which tool each number comes from, and what Stats deliberately leaves out."
+description: "Stats, a tab of You at /home/you/stats: one of your players' Clash Royale season as Elixir recorded it, one mode at a time, read from the same tools a connected app calls. What each page shows, which tool each number comes from, and what Stats deliberately leaves out."
 section: ladder
 order: 1
 navTitle: "Reading your stats"
@@ -21,9 +21,6 @@ wide screen, a tab on a phone), after Timeline, Highlights, Moments and Follows;
 it is signed in like Home. A bar at the top says whose
 season, which season and which mode you are reading; four tabs under it are
 the pages: **Season**, **Battles**, **Decks** and **Cards**.
-
-Stats was called **Ladder** until 2026-11-12, at `/ladder`. Those old
-addresses stopped working on 2026-11-13; Stats is under `/home/you/stats`.
 
 Stats is a mirror, not a coach. It shows what happened and leaves the
 conclusion to you: no verdict, no pace, no advice, and no number the tools

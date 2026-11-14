@@ -1,4 +1,4 @@
-# Ladder (Stats)
+# Stats (`ladder` in code)
 
 `/home/you/stats` (`LADDER` in `paths.js`, which imports nothing; `ladder.js` re-exports it): a player's season, read back,
 called Stats to a reader since 2026-11-12, the last tab of You. The code keeps
@@ -11,7 +11,7 @@ Cards. The route is in `src/App.jsx`, the page chunk
 views and their shaping functions (`ladder*.js`) live here. Public docs:
 `apps/site/src/docs/ladder.md`.
 
-- **Ladder has no API of its own.** Every read is an MCP tool answered
+- **Stats has no API of its own.** Every read is an MCP tool answered
   through Stats' door, `POST /api/me/stats` (`api.stats`, hooks in
   `src/lib/queries.js` under `["me", "ladder", ...]`): the Explore
   bridge behind a per-tag gate that opens only for the reader's own
@@ -28,13 +28,13 @@ views and their shaping functions (`ladder*.js`) live here. Public docs:
   is on its way" and polls the capture status
   (`/api/me/first-answer`, every 5 s for the first 3 minutes after the
   add, then every 60 s: `nextPoll` in `hooks/useFirstAnswer.js`), then
-  refreshes the Ladder reads once when it lands. "Lands" is both reads:
+  refreshes the Stats reads once when it lands. "Lands" is both reads:
   the profile AND a battle-log read (`capturePending` / `captureLanded`
   in `ladder.js`); the profile alone arrives seconds after an add and
   sets `recorded_since`, which is not a capture. A tag the game answered
   404 never lands, and Pending says "Tag not found". Bring your
   clanmates is not on Stats: it moved to Find's Your clan (2026-11-12).
-  A number Ladder needs that no tool returns is a tool change
+  A number Stats needs that no tool returns is a tool change
   (`.claude/skills/tool-change/`), never a client derivation.
 - **Facts, never verdicts.** Everything on a page is something a tool
   returned. No pace, rating, coaching line or verdict word ("Elixir

@@ -327,8 +327,9 @@ and is listed by `elixir_my_feedback` wherever it was filed.
   `on_behalf_of`: what it files is already that person's.
 - `elixir_my_feedback({ feedback_id?, limit?, offset?, status?, since?, area?, verbosity? })`:
   `status` one of `new`, `seen`, `planned`, `needs_info`, `done`,
-  `declined`; `area` one of `mcp`, `api`, `console`, `ladder`, `clan`,
-  `mail`, `docs`, `recorder` (where it was filed). Returns each item's
+  `declined`; `area` one of `mcp`, `api`, `console` (the website, Stats and
+  Clan aside), `ladder` (Stats), `clan`, `mail`, `docs`, `recorder` (where it
+  was filed). Returns each item's
   `area`, `refs` and `follows_id` when it has them, `response`,
   `responded_at`, `shipped_in`, `related_tools`. Pages are bounded by
   delivered size as well as `limit`, so follow `next_offset` with the same

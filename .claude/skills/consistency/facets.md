@@ -46,9 +46,9 @@ is where the war-days gap lived.
 | Timeline entries | `packages/tools/src/activity/entries.mjs`, `summary.mjs` | the tools for the same fact (war, battles, donations) |
 | Participation SQL | `packages/record/src/participation-sql.mjs` | `clans_participation`, `clans_standings`, war tools |
 | Product mail | `services/jobs/src/email/build-*.mjs`, `packages/mail/src/render.mjs`, `packages/mail/fixtures/` | the tools the builder should call; wording in docs |
-| Console | `apps/web/src/views/**`, `apps/web/src/pages/**` | tool semantics, docs wording, privacy (analytics.js) |
+| Web app (Home, Find, You, Stats, Clan, Settings) | `apps/web/src/**` | tool semantics, docs wording, privacy (analytics.js) |
 | Web API routes | `services/web-api/src/routes/*.mjs`, `packages/outbox/src/notify.mjs` | the tools, the docs, runtime strings that point at docs |
-| Collector quota | `packages/tools/src/quota.mjs`, ingest points | mail, console and docs wording for credits |
+| Role quotas | `packages/tools/src/quota.mjs`, `packages/contracts/src/roles.ts` | Settings › Usage, the collector mail and the Roles and Limits pages (collector credits retired 2026-10-12) |
 
 ## 4. The JSON API
 

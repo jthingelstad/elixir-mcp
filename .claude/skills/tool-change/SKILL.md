@@ -123,7 +123,7 @@ its column across `services/`, `apps/web/src/` and `packages/mail/`:
   them. Some also run SQL of their own. Fixtures are in
   `packages/mail/fixtures/`.
 - **Rollups** (`packages/ingest/src/rollups.mjs`), which must agree with the live SQL.
-- **The console** (`apps/web/src/`) and **web-api routes**
+- **The web app** (`apps/web/src/`) and **web-api routes**
   (`services/web-api/src/routes/`).
 
 If the change realizes a DECISIONS line, run `/consistency <decision>`
