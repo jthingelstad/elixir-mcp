@@ -17,7 +17,7 @@ export function Disclaimer({
         </a>
         .
       </span>
-      <span className="disclaimer__family">a POAP KINGS product</span>
+      <span className="disclaimer__maker">a POAP KINGS product</span>
     </Tag>
   );
 }

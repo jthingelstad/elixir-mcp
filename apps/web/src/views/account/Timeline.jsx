@@ -10,7 +10,7 @@ import { evidenceWord } from "../../home/Session.jsx";
  * same items a connection reads with elixir_timeline.
  *
  * Its own rail item between Overview and Explore (Jamie, 2026-09-23):
- * it is the thing a reader most often opens the console to ask, and it
+ * it is the thing a reader most often opens the app to ask, and it
  * had been Activity's first view, one level down beside the call log.
  * Still a LogTable, because it is still a log, and newest first as the
  * timeline is everywhere: a newsfeed (contract 7.0.0). Above it, the

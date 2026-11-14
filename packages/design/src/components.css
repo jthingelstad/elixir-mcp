@@ -551,7 +551,7 @@ html[data-session="in"] [data-session-face="out"] {
   }
 }
 
-/* Docs strip — foot of EVERY console page, same slot, driven by one map. */
+/* Docs strip — foot of EVERY app page, same slot, driven by one map. */
 
 /* ==================================================================
    Panels. The kit's Panel (kit-panel, at the end of this file) fills the
@@ -1242,7 +1242,7 @@ main.wrap {
   margin-left: auto;
 }
 
-/* Two-column console: content + rail. Reflows at narrow widths —
+/* Two-column app page: content + rail. Reflows at narrow widths —
    do not use fixed pixel widths. */
 .cols {
   display: flex;
@@ -1438,7 +1438,7 @@ tr.yours td {
   line-height: 1.5;
   color: var(--ink-faint);
 }
-.disclaimer__family {
+.disclaimer__maker {
   font: var(--t-label) var(--font-mono);
   color: var(--ink-quiet-icon);
   white-space: nowrap;
@@ -2132,7 +2132,7 @@ input[aria-invalid="true"] {
 /* ── Mobile ───────────────────────────────────────────────────
    Player-facing pages must work on a phone: stat strips go two-up, tap
    targets stay >= 44px, tables scroll horizontally inside .tablewrap
-   rather than shrinking type. Console pages may stay desktop-first. */
+   rather than shrinking type. Settings and staff pages may stay desktop-first. */
 
 @media (max-width: 700px) {
   .wrap {
@@ -2252,8 +2252,8 @@ input[aria-invalid="true"] {
 /* ==================================================================
    Site rails (design handoff 2026-09-09, step 7)
 
-   Use cases, Data, Updates and Family each carry a rail on the left:
-   the console's rail idiom — group eyebrow, item, gold rule on the
+   Use cases, Data and Updates each carry a rail on the left:
+   the app's rail idiom — group eyebrow, item, gold rule on the
    current one — as a SIBLING of the content, never over it. Below the
    one breakpoint it stacks above the content as a wrapping row.
    ================================================================== */
@@ -3064,7 +3064,7 @@ input[aria-invalid="true"] {
     flex-wrap: wrap;
   }
 }
-/* Rail cards on Examples and Family: "More like this", siblings. */
+/* Rail cards on Examples: "More like this", siblings. */
 .rail-card {
   flex: 1 1 240px;
   display: block;

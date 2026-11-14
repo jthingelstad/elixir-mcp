@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
  * A player or clan tag as a person reads it (2026-10-08). Tags mix
  * digits and capitals, and in the display face and plain Inter a zero
  * and a capital O are the same round shape: a typo'd "#09LCJP89Y" read
- * as the right tag on the Tracking page's own headline. Every tag a
+ * as the right tag on the Players page's own headline. Every tag a
  * page shows goes through here, or through `.cr-tag` in markup the kit
  * does not draw: monospace with a slashed zero (design
  * components.css), at the size of the text around it.

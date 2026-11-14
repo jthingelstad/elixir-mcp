@@ -26,11 +26,11 @@ test("wide: a list with groups, counts and dots", () => {
       current="activity"
       navigate={navigate}
       narrow={false}
-      title="Console"
-      label="Console sections"
+      title="Settings"
+      label="Settings sections"
     />,
   );
-  const nav = screen.getByRole("navigation", { name: "Console sections" });
+  const nav = screen.getByRole("navigation", { name: "Settings sections" });
   expect(nav).toBeTruthy();
   expect(screen.getByText("Your record")).toBeTruthy();
   expect(screen.getByText("3")).toBeTruthy();
@@ -45,7 +45,7 @@ test("wide: a list with groups, counts and dots", () => {
       .getAttribute("aria-current"),
   ).toBeNull();
   // Head: the product; no disclosure to open.
-  expect(screen.getByText("Console")).toBeTruthy();
+  expect(screen.getByText("Settings")).toBeTruthy();
   expect(screen.queryByRole("button", { expanded: false })).toBeNull();
   // A click navigates in-app and never follows the href.
   const ev = fireEvent.click(screen.getByRole("link", { name: /Overview/ }));
@@ -60,7 +60,7 @@ test("narrow: a disclosure above the content naming where you are, opening to th
       current="activity"
       navigate={vi.fn()}
       narrow
-      title="Console"
+      title="Settings"
       subtitle="All settings"
     />,
   );
@@ -114,7 +114,7 @@ const WAITING: RailItem[] = [
     dot: { tone: "unread", title: "Unread notifications" },
   },
   // A count of your own things waits for nobody.
-  { key: "tracking", label: "Tracking", icon: "radar", to: "/k", meta: "4" },
+  { key: "players", label: "Players", icon: "radar", to: "/k", meta: "4" },
   {
     key: "connections",
     label: "Connections",
@@ -131,7 +131,7 @@ test("narrow, closed: one mark for what waits in another section, an alert beati
       current="overview"
       navigate={vi.fn()}
       narrow
-      title="Console"
+      title="Settings"
     />,
   );
   const toggle = screen.getByRole("button", { expanded: false });
@@ -158,7 +158,7 @@ test("narrow, closed: one mark for what waits in another section, an alert beati
       current="connections"
       navigate={vi.fn()}
       narrow
-      title="Console"
+      title="Settings"
     />,
   );
   fireEvent.click(screen.getByRole("button", { expanded: true }));
@@ -171,13 +171,11 @@ test("narrow, closed: one mark for what waits in another section, an alert beati
 test("narrow, closed: nothing waiting draws no mark, and a count alone draws none", () => {
   render(
     <Rail
-      items={WAITING.filter(
-        (r) => r.key === "overview" || r.key === "tracking",
-      )}
+      items={WAITING.filter((r) => r.key === "overview" || r.key === "players")}
       current="overview"
       navigate={vi.fn()}
       narrow
-      title="Console"
+      title="Settings"
     />,
   );
   expect(
@@ -192,7 +190,7 @@ test("wide: the column's contents sit in one pin", () => {
       current="overview"
       navigate={vi.fn()}
       narrow={false}
-      title="Console"
+      title="Settings"
     />,
   );
   const pin = document.querySelector(".rail > .rail__pin")!;
@@ -209,7 +207,7 @@ test("narrow: no pin, the disclosure flows above the page", () => {
       current="overview"
       navigate={vi.fn()}
       narrow
-      title="Console"
+      title="Settings"
     />,
   );
   fireEvent.click(screen.getByRole("button", { expanded: false }));

@@ -25,8 +25,8 @@ behaviour is in `apps/site/src/docs/`, not here.
 - **The kit is shared, never copied.** `packages/design` (tokens and
   component CSS, compiled once by Tailwind v4 into `dist/styles.css`),
   `packages/ui` (chrome, rail, log table, freshness, Markdown, icons,
-  error boundary, disclaimer, the clock vocabulary, the family manifest
-  `src/family.json`). The app's own data layer is `src/client/` (the
+  error boundary, disclaimer, the clock vocabulary, the shell manifest
+  `src/shell.json`). The app's own data layer is `src/client/` (the
   `{ ok, status, data }` envelope, `createClient()`, the query client and
   its one retry rule; `packages/client` until 2026-11-14, folded in because
   the app was its only reader). What a view needs that the kit lacks is a

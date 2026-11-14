@@ -198,7 +198,7 @@ describe("actions", () => {
     expect(screen.queryByText(REMOVAL_UNSEEN)).toBeNull();
   });
 
-  test("the engine names a battle's mode in the family's words", () => {
+  test("the engine names a battle's mode in Elixir's words", () => {
     expect(MODE_GROUP_LABEL).toEqual(MODE_LABEL);
   });
 

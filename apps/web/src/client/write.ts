@@ -24,7 +24,7 @@ export type WriteResult<T> =
 
 export interface WriteOptions<T> {
   /** After a successful write: query keys to refetch, or a function that
-   *  refetches (the console passes its scoped `useInvalidate`). */
+   *  refetches (the app passes its scoped `useInvalidate`). */
   invalidate?: QueryKey[] | ((data: T) => unknown);
 }
 
@@ -66,7 +66,7 @@ export function useWrite<A extends unknown[], T = unknown>(
       }
       // In-flight reads are cancelled first: a read still pending when
       // the write lands is joined, not refetched, and would paint the
-      // state from before the write (the console's useInvalidate).
+      // state from before the write (the app's useInvalidate).
       for (const queryKey of invalidate ?? []) {
         await queryClient.cancelQueries({ queryKey });
         await queryClient.invalidateQueries({ queryKey });

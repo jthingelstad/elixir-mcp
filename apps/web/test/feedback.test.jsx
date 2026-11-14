@@ -1,5 +1,5 @@
 /**
- * Feedback: the list is the console's log table with the note
+ * Feedback: the list is the app's log table with the note
  * shortened to its first line, and the record renders the note and the
  * reply as the Markdown they were written in.
  */

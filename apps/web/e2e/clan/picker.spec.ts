@@ -107,7 +107,7 @@ test("one clan: no picker at all", async ({ page }) => {
   await expect(page.getByRole("combobox", { name: "Clan" })).toHaveCount(0);
 });
 
-test("@narrow the old address for your players goes to tracking, and away to Members", async ({
+test("@narrow the old address for your players goes to Players & following, and away to Members", async ({
   page,
 }) => {
   await mockApi(page, signedIn(ACTIONS));

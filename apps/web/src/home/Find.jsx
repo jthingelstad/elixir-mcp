@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  FAMILY_PLACES,
+  SHELL_PLACES,
   Icon,
   Link,
   PageHead,
@@ -153,8 +153,8 @@ function Search() {
         aria-haspopup="dialog"
         onClick={() => open("search")}
       >
-        <Icon name={FAMILY_PLACES.search.icon} size={18} />
-        <span>{FAMILY_PLACES.search.prompt}</span>
+        <Icon name={SHELL_PLACES.search.icon} size={18} />
+        <span>{SHELL_PLACES.search.prompt}</span>
       </button>
       <FollowForm />
     </>

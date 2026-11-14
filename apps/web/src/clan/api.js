@@ -1,7 +1,7 @@
 /** Same-origin Clan route map, using the shared session and CSRF header.
  * Model operations (and connecting Discord, which waits for Discord) get a
  * longer reply window without extending ordinary
- * reads. All answers keep the family's envelope and retry rules. */
+ * reads. All answers keep the app client's envelope and retry rules. */
 
 import { createClient } from "../client/index.ts";
 import { trackEvent } from "../analytics.js";

@@ -9,7 +9,7 @@ import { SETTINGS } from "../../lib/settings.js";
  * about it (Jamie, 2026-09-19: "a list of emails sent to me just like my
  * MCP calls, and a feedback item straight from the details of one").
  *
- * The console's job here is the call record's: make the thing visible.
+ * The app's job here is the call record's: make the thing visible.
  * The body is the archived render, shown in a sandboxed frame with no
  * scripts and the open pixel already stripped by the API, so looking at
  * your own record is never counted as an open. The id in the header is

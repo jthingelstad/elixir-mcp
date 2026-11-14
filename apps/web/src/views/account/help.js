@@ -24,7 +24,7 @@ export const SETTINGS_HELP = {
   },
   players: {
     title: "Players & following",
-    docs: "tracking",
+    docs: "players",
     lines: [
       "The players and clans you added. Added means recorded. Each one takes a slot from the pool you share with your agents.",
       "Your main player is who You, Stats and Home open on. Verify is what makes a player yours: one battle proves it.",
@@ -32,7 +32,7 @@ export const SETTINGS_HELP = {
   },
   player: {
     title: "A player you follow",
-    docs: "tracking:record",
+    docs: "players:record",
     lines: [
       "What Elixir holds for this player, how fresh it is, and how you relate to them. The grid counts recorded battles. A day with no read is unknown, never a day they did not play.",
     ],

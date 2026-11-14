@@ -10,9 +10,9 @@ import { useInvalidate, useMyClans } from "../lib/queries.js";
  * "it should follow it automatically for the primary player assuming they
  * have a clan set"; claims followPrimaryClan). This is the fallback, for
  * when it could not: the account's clan slot is taken by a clan the person
- * chose (Elixir never displaces one), the person once stopped tracking
+ * chose (Elixir never displaces one), the person once stopped following
  * this clan, or no admitted profile has named the clan yet. It shows only
- * while the home clan is not followed, on Tracking and on the primary
+ * while the home clan is not followed, on Players & following and on the primary
  * player's page, which is where adding a tag lands.
  *
  * Activity scope: the slot every tier has, and what "follow my clan"

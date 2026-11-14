@@ -8,7 +8,7 @@ import { SETTINGS } from "../../lib/settings.js";
  * One tool call: the request as sent, the response as received, and
  * where the time went.
  *
- * The console's job here is the same as the notification record's: make
+ * The app's job here is the same as the notification record's: make
  * the wire visible. An agent builder asking "what did my bot actually
  * send to war_history, and what came back" reads it here rather than
  * from our prose; a reader of the Activity log opens a row to see why it
@@ -169,7 +169,7 @@ function outcomeOf(call) {
 }
 
 export function CallRecord({ id, navigate }) {
-  // The record's own links stay in the console it was opened from.
+  // The record's own links stay in the scope it was opened from.
   const path = useScopedPath();
   const { when } = useClock();
   // The envelope, because 403 and 404 are answers this page reads.

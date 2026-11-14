@@ -629,7 +629,7 @@ test.describe("signed in", () => {
     await page.goto("/settings/usage");
     const toggle = page.locator(".rail__toggle");
     await expect(toggle).toContainText("Usage");
-    // Tracking's count is what you track, not something waiting.
+    // Players' count is what you follow, not something waiting.
     await expect(toggle.locator(".rail__dot")).toHaveCount(0);
     await toggle.click();
     await expect(
@@ -661,7 +661,7 @@ test.describe("signed in", () => {
     await expect(
       page.getByRole("navigation", { name: "Settings sections" }),
     ).toHaveCount(0);
-    await accessible(page, "narrow tracking");
+    await accessible(page, "narrow players");
   });
 
   test("@narrow Home: the phone's tabs name the place, nothing is under them, and nothing scrolls sideways", async ({

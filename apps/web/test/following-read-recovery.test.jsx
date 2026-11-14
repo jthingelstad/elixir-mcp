@@ -24,7 +24,7 @@ afterEach(() => {
 
 for (const [name, View, props] of views) {
   for (const warm of [false, true]) {
-    test(`${name} distinguishes ${warm ? "a failed refresh with retained clans" : "a failed first read"} from no tracking and retries only the read`, async () => {
+    test(`${name} distinguishes ${warm ? "a failed refresh with retained clans" : "a failed first read"} from following nothing and retries only the read`, async () => {
       let failed = !warm;
       const fetch = vi.fn(async (path) => {
         const bad = path === "/api/me/clans" && failed;

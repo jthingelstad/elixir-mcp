@@ -13,7 +13,7 @@ import { Link } from "./Link.tsx";
  * card catalog names (2026-10-08: "Card art should be in the api
  * response for cards"), a ribbon for an Evo or Hero form,
  * and the level under the card. One tile for every surface that shows
- * a card or a deck — the battle page, Ladder, Clan, the console — so a
+ * a card or a deck — the battle page, Stats, Clan, the app — so a
  * deck reads the same wherever it is. Levels are the in-game 1-16
  * scale the contract serves (`displayLevel`); form is the form PLAYED
  * and is never merged with the base card.

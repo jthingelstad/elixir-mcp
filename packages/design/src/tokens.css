@@ -4,7 +4,7 @@
    (--ground, --line, --ink-dim, --accent) rather than what it looks
    like (--bg0, --edge, --muted, --purple).
 
-   THE tokens for every surface in the family. This file is one of two
+   THE tokens for every surface of Elixir. This file is one of two
    sources compiled by index.css into the single stylesheet both halves
    of elixir.poapkings.com serve (apps/web through Vite, apps/site as
    /assets/site.css; a test asserts the served copy is those exact

@@ -18,14 +18,14 @@ afterEach(cleanup);
 const inApp = (navigate: (to: string) => void) =>
   render(
     <NavigateProvider navigate={navigate}>
-      <Link to="/console/explore/player/20JJJ2CCRU">King Thing</Link>
+      <Link to="/home/player/20JJJ2CCRU">King Thing</Link>
     </NavigateProvider>,
   );
 
 test("a Link always carries its href, so it focuses and copies", () => {
   inApp(vi.fn());
   const a = screen.getByRole("link", { name: "King Thing" });
-  expect(a.getAttribute("href")).toBe("/console/explore/player/20JJJ2CCRU");
+  expect(a.getAttribute("href")).toBe("/home/player/20JJJ2CCRU");
 });
 
 test("a plain primary click routes in-app and cancels the page load", () => {
@@ -33,7 +33,7 @@ test("a plain primary click routes in-app and cancels the page load", () => {
   inApp(navigate);
   const a = screen.getByRole("link", { name: "King Thing" });
   const followed = fireEvent.click(a, { button: 0 });
-  expect(navigate).toHaveBeenCalledWith("/console/explore/player/20JJJ2CCRU");
+  expect(navigate).toHaveBeenCalledWith("/home/player/20JJJ2CCRU");
   expect(followed).toBe(false); // preventDefault
 });
 
@@ -53,9 +53,9 @@ test.each([
 });
 
 test("without a provider a Link is a plain anchor", () => {
-  render(<Link to="/console/explore">Explore</Link>);
-  const a = screen.getByRole("link", { name: "Explore" });
-  expect(a.getAttribute("href")).toBe("/console/explore");
+  render(<Link to="/home/find">Find</Link>);
+  const a = screen.getByRole("link", { name: "Find" });
+  expect(a.getAttribute("href")).toBe("/home/find");
   expect(fireEvent.click(a)).toBe(true);
 });
 
@@ -82,7 +82,7 @@ test("a LogTable cell link is a Link; an outside one opens a new tab", () => {
         ]}
         rows={[
           [
-            { text: "abc123", href: "/console/account/activity/c/abc123" },
+            { text: "abc123", href: "/settings/usage/requests/abc123" },
             { text: "source", href: "https://example.com/card" },
           ],
         ]}
@@ -90,11 +90,11 @@ test("a LogTable cell link is a Link; an outside one opens a new tab", () => {
     </NavigateProvider>,
   );
   const id = screen.getByRole("link", { name: "abc123" });
-  expect(id.getAttribute("href")).toBe("/console/account/activity/c/abc123");
+  expect(id.getAttribute("href")).toBe("/settings/usage/requests/abc123");
   fireEvent.click(id, { metaKey: true });
   expect(navigate).not.toHaveBeenCalled();
   fireEvent.click(id);
-  expect(navigate).toHaveBeenCalledWith("/console/account/activity/c/abc123");
+  expect(navigate).toHaveBeenCalledWith("/settings/usage/requests/abc123");
   const out = screen.getByRole("link", { name: "source" });
   expect(out.getAttribute("target")).toBe("_blank");
   expect(out.getAttribute("rel")).toContain("noopener");
@@ -111,7 +111,7 @@ test("the Rail leaves a modified click to the browser", () => {
       current="o"
       navigate={navigate}
       narrow={false}
-      title="Console"
+      title="Settings"
     />,
   );
   const a = screen.getByRole("link", { name: /Overview/ });

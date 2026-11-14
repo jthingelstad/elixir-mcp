@@ -184,8 +184,8 @@ test(
   "a player claim and first captured snapshot become a usable first question",
   { timeout: HANG },
   async () => {
-    // Home's first step and Tracking offer the same field; this journey
-    // uses Tracking, which manages what you track from then on.
+    // Home's first step and Players & following offer the same field; this
+    // journey uses Players, which manages what you follow from then on.
     open("/settings/players");
     const input = await until(() => screen.getByLabelText("Player tag"));
     fireEvent.change(input, { target: { value: "#00J" } });

@@ -9,7 +9,7 @@ import { transportFailed } from "./envelope.ts";
  * a 401 or a 403 is the answer, and asking again is how a refused
  * session turns into a loop. Data stays fresh for a minute, so leaving
  * a page and coming back does not refetch cold; a window regaining
- * focus refetches anything stale, which on a console people leave open
+ * focus refetches anything stale, which on an app people leave open
  * is the difference between a live reading and a stale one.
  */
 export function createQueryClient(): QueryClient {

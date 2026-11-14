@@ -17,7 +17,7 @@ import {
  * or one with Cmd, Ctrl, Shift or Alt, is the browser's: a new tab, a
  * new window, a download.
  *
- * The router arrives through `NavigateProvider` (the console's Shell),
+ * The router arrives through `NavigateProvider` (the app's Shell),
  * or a `navigate` prop. With neither, a Link is a plain anchor and a
  * click is a page load, which is still correct, only slower: a vertical
  * taking the kit through its pin keeps working before it wires one up.

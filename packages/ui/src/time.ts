@@ -100,7 +100,7 @@ type Instant = string | number | Date | null | undefined;
 
 /** A wall clock for an instant: its date, hours and minutes, seconds,
  *  and the suffix that names the zone. No zone (the account never set
- *  one) is UTC written the way the console always wrote it, with a Z;
+ *  one) is UTC written the way the app always wrote it, with a Z;
  *  a zone is that zone's own short name ("CDT", or "GMT+2" where the
  *  zone has no abbreviation). A zone this browser does not know reads
  *  as UTC rather than failing the page. */
@@ -144,7 +144,7 @@ function wallClock(ts: Instant, zone: string | null | undefined) {
 
 /** An instant as the reader's wall clock: "09-12 10:00 CDT", or with
  *  `year` "2026-09-12 10:00 CDT", and `seconds` adds them. Every
- *  absolute time the console shows goes through here, in the account's
+ *  absolute time the app shows goes through here, in the account's
  *  timezone (Jamie, 2026-09-23: the console knew the zone and printed
  *  UTC anyway, from a dozen hand-built toISOString() copies). "—" for
  *  no instant. */

@@ -49,7 +49,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** Every page in the console that is a log, and what it needs to have
+/** Every page in the app that is a log, and what it needs to have
  *  rows. If a page is added here it must go through LogTable too. */
 const PAGES = [
   [

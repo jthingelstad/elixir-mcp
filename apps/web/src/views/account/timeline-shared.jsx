@@ -19,7 +19,7 @@ export function useTimelinePlace(timeline) {
   const seenTo = timeline?.seen_to ?? null;
   const to = timeline?.window?.to ?? null;
   // The place as this visit found it: taken from the first read, per
-  // console (an agent's console keeps the agent's place).
+  // scope (an agent's pages keep the agent's place).
   const [opened, setOpened] = useState(null);
   if (timeline && (opened === null || opened.agent !== agent))
     setOpened({ agent, seenTo });

@@ -29,15 +29,15 @@ const LABELS = {
 
 const GROUP = {
   signed_in: "signins",
-  claim_added: "tracking",
-  claim_ended: "tracking",
-  claim_verified: "tracking",
-  verify_started: "tracking",
-  clan_added: "tracking",
-  clan_removed: "tracking",
-  primary_clan_changed: "tracking",
-  recording_started: "tracking",
-  recording_stopped: "tracking",
+  claim_added: "players",
+  claim_ended: "players",
+  claim_verified: "players",
+  verify_started: "players",
+  clan_added: "players",
+  clan_removed: "players",
+  primary_clan_changed: "players",
+  recording_started: "players",
+  recording_stopped: "players",
   discord_linked: "discord",
   discord_unlinked: "discord",
 };
@@ -45,7 +45,7 @@ const GROUP = {
 export const EVENT_GROUPS = [
   { key: "all", label: "Everything" },
   { key: "signins", label: "Sign-ins" },
-  { key: "tracking", label: "Players and clans" },
+  { key: "players", label: "Players and clans" },
   { key: "access", label: "Access" },
   { key: "discord", label: "Discord" },
 ];

@@ -33,7 +33,7 @@ export interface FeedbackSendResult {
 }
 
 export interface FeedbackSheetProps {
-  /** The part of Elixir this is about: console, ladder, clan... */
+  /** The part of Elixir this is about: the stored area values `console`, `ladder`, `clan`... */
   area: string;
   /** Filed categories, in the order offered (from the contracts). */
   categories: readonly string[];

@@ -15,7 +15,7 @@ import { useInitialTime } from "./InitialTime.tsx";
 
 /** The reader's timezone, set once where the app knows the account and
  *  read by every view that prints a time. Null (no provider, or an
- *  account that never set one) is UTC, which is what the console showed
+ *  account that never set one) is UTC, which is what the app showed
  *  everywhere before the zone reached it. */
 const ZoneContext = createContext<string | null>(null);
 

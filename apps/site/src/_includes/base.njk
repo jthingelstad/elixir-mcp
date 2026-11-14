@@ -45,8 +45,8 @@
   <body>
     <div class="kit-shell">
       {#- The top bar: the app's (apps/web/src/shell/Shell.jsx), the same classes
-          and the same words, read from ONE list, the kit's manifest
-          (packages/ui/src/family.json, here as `familyBar`). This template
+          and the same words, read from ONE list, the kit's shell manifest
+          (packages/ui/src/shell.json, here as `shell`). This template
           loops over it and holds no product, label or link of its own; a test
           pins that, and pins this bar to the app's.
 
@@ -56,42 +56,42 @@
           comes from the hint, and the email is never here. -#}
       <header class="kit-top">
         <div class="kit-top__row">
-          {%- set homePlace = familyBar.products[0] %}
-          <a class="kit-top__brand" data-session-face="out" href="/" aria-label="{{ familyBar.wordmark }} home">
-            <img src="{{ familyBar.logo | asset }}" alt="" width="28" height="28" />
-            <span>{{ familyBar.wordmark }}</span>
+          {%- set homePlace = shell.products[0] %}
+          <a class="kit-top__brand" data-session-face="out" href="/" aria-label="{{ shell.wordmark }} home">
+            <img src="{{ shell.logo | asset }}" alt="" width="28" height="28" />
+            <span>{{ shell.wordmark }}</span>
           </a>
-          <a class="kit-top__brand" data-session-face="in" href="{{ homePlace.path }}" aria-label="{{ familyBar.wordmark }}, go to {{ homePlace.label }}">
-            <img src="{{ familyBar.logo | asset }}" alt="" width="28" height="28" />
-            <span>{{ familyBar.wordmark }}</span>
+          <a class="kit-top__brand" data-session-face="in" href="{{ homePlace.path }}" aria-label="{{ shell.wordmark }}, go to {{ homePlace.label }}">
+            <img src="{{ shell.logo | asset }}" alt="" width="28" height="28" />
+            <span>{{ shell.wordmark }}</span>
           </a>
           <nav class="kit-top__out" data-session-face="out" aria-label="Main">
-            {%- for place in familyBar.signedOut %}
+            {%- for place in shell.signedOut %}
             <a href="{{ place.path }}"{% if navActive == place.key %} aria-current="page"{% endif %}>{{ place.label }}</a>
             {%- endfor %}
           </nav>
           <nav class="kit-top__nav" data-session-face="in" aria-label="Main">
-            {%- for tab in familyBar.tabs %}{% if tab.bar != false %}
+            {%- for tab in shell.tabs %}{% if tab.bar != false %}
             <a href="{{ tab.path }}">{% chromeIcon tab.icon, 18 %}{{ tab.label }}</a>
             {%- endif %}{% endfor %}
           </nav>
-          <a class="kit-top__search" data-session-face="in" href="{{ familyBar.search.staticPath }}">
-            {% chromeIcon familyBar.search.icon, 18 %}
-            <span>{{ familyBar.search.prompt }}</span>
+          <a class="kit-top__search" data-session-face="in" href="{{ shell.search.staticPath }}">
+            {% chromeIcon shell.search.icon, 18 %}
+            <span>{{ shell.search.prompt }}</span>
           </a>
           <span class="kit-top__gap"></span>
-          <a class="kit-top__link" data-session-face="out" href="{{ familyBar.signIn.path }}">{{ familyBar.signIn.label }}</a>
-          <a class="btn btn--sm btn--primary" data-session-face="out" href="{{ familyBar.createAccount.path }}">{{ familyBar.createAccount.label }}</a>
-          <button type="button" class="kit-top__icon" data-session-face="in" data-help-open aria-label="{{ familyBar.help.label }}">
-            {% chromeIcon familyBar.help.icon, 18 %}
+          <a class="kit-top__link" data-session-face="out" href="{{ shell.signIn.path }}">{{ shell.signIn.label }}</a>
+          <a class="btn btn--sm btn--primary" data-session-face="out" href="{{ shell.createAccount.path }}">{{ shell.createAccount.label }}</a>
+          <button type="button" class="kit-top__icon" data-session-face="in" data-help-open aria-label="{{ shell.help.label }}">
+            {% chromeIcon shell.help.icon, 18 %}
           </button>
-          <a class="kit-top__icon kit-bell" data-session-face="in" href="{{ familyBar.bell.staticPath }}" aria-label="{{ familyBar.bell.label }}">
-            {% chromeIcon familyBar.bell.icon, 18 %}
+          <a class="kit-top__icon kit-bell" data-session-face="in" href="{{ shell.bell.staticPath }}" aria-label="{{ shell.bell.label }}">
+            {% chromeIcon shell.bell.icon, 18 %}
           </a>
           {#- Play Drop is in the account menu and the footer, not the bar
               (the canvas's shell, 2026-11-12). -#}
-          <a class="kit-top__avatar" data-session-face="in" href="{{ familyBar.account.path }}">
-            <span class="sr-only">{{ familyBar.account.label }}: </span>
+          <a class="kit-top__avatar" data-session-face="in" href="{{ shell.account.path }}">
+            <span class="sr-only">{{ shell.account.label }}: </span>
             <span class="chrome__avatar chrome__avatar--hint" aria-hidden="true"></span>
             <span class="kit-top__name chrome__me-name--hint"></span>
           </a>
@@ -103,11 +103,11 @@
       </main>
 
       <footer class="kit-foot">
-        <nav aria-label="{{ familyBar.wordmark }}" class="kit-foot__links">
-          {%- for link in familyBar.foot %}
+        <nav aria-label="{{ shell.wordmark }}" class="kit-foot__links">
+          {%- for link in shell.foot %}
           <a href="{{ link.path }}">{{ link.label }}</a>
           {%- endfor %}
-          {%- for product in familyBar.products %}{% if product.game %}
+          {%- for product in shell.products %}{% if product.game %}
           <a href="{{ product.href }}" target="_blank" rel="noopener noreferrer">{{ product.action }}</a>
           {%- endif %}{% endfor %}
         </nav>
@@ -118,21 +118,21 @@
             information see Supercell&rsquo;s Fan Content Policy:
             <a href="https://www.supercell.com/fan-content-policy">www.supercell.com/fan-content-policy</a>.
           </span>
-          <span class="disclaimer__family">{{ site.family }}</span>
+          <span class="disclaimer__maker">{{ site.maker }}</span>
         </div>
       </footer>
 
       {#- The phone's tabs, signed in only, as the app draws them. -#}
       <nav class="kit-bottom" data-session-face="in" aria-label="Main, phone">
-        {%- for tab in familyBar.tabs %}
+        {%- for tab in shell.tabs %}
         <a href="{{ tab.path }}">
           {% chromeIcon tab.icon, 22 %}
           <span>{{ tab.label }}</span>
         </a>
         {%- endfor %}
-        <a href="{{ familyBar.bell.staticPath }}">
-          {% chromeIcon familyBar.bell.icon, 22 %}
-          <span>{{ familyBar.bell.tab }}</span>
+        <a href="{{ shell.bell.staticPath }}">
+          {% chromeIcon shell.bell.icon, 22 %}
+          <span>{{ shell.bell.tab }}</span>
         </a>
       </nav>
     </div>
@@ -151,7 +151,7 @@
         <section>
           <h3>Read more</h3>
           <div class="kit-help__links">
-            <a class="btn btn--sm" href="{{ familyBar.docs.path }}">Docs home</a>
+            <a class="btn btn--sm" href="{{ shell.docs.path }}">Docs home</a>
             <a class="btn btn--sm" href="/docs/about">About Elixir</a>
           </div>
         </section>

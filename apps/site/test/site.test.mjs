@@ -358,7 +358,7 @@ test("the app shell is not indexable", { skip }, () => {
   assert.ok(!read("sitemap.xml").includes("app.html"));
 });
 
-test("Limits states the enforced console-session lifetime", { skip }, () => {
+test("Limits states the enforced sign-in session lifetime", { skip }, () => {
   // The session row, not the cookie, owns the inactivity limit. Keep the
   // published retention table aligned with that security boundary.
   assert.match(
@@ -558,16 +558,16 @@ test(
     ].map((m) => m[1]);
     assert.ok(links.length > 0, "STATIC_LINKS was found");
     const {
-      FAMILY_FOOT,
-      FAMILY_PLACES,
-      FAMILY_ORIGIN,
-      FAMILY_PRODUCTS,
-      FAMILY_SIGNED_OUT,
-    } = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
+      SHELL_FOOT,
+      SHELL_PLACES,
+      SHELL_ORIGIN,
+      SHELL_PRODUCTS,
+      SHELL_SIGNED_OUT,
+    } = await import(path.join(repoRoot, "packages/ui/src/shell.ts"));
     const siteLinks = [
-      ...FAMILY_SIGNED_OUT.map((p) => p.path),
-      ...FAMILY_FOOT.map((l) => l.path),
-      FAMILY_PLACES.help.path,
+      ...SHELL_SIGNED_OUT.map((p) => p.path),
+      ...SHELL_FOOT.map((l) => l.path),
+      SHELL_PLACES.help.path,
     ];
     for (const link of [...links, ...siteLinks]) {
       assert.ok(
@@ -577,13 +577,13 @@ test(
     }
     // Home's button is the app, on this origin; so is everything the bar
     // links for someone signed in.
-    const product = FAMILY_PRODUCTS.find((p) => p.key === "home");
-    assert.equal(product.href, `${FAMILY_ORIGIN}/home`);
+    const product = SHELL_PRODUCTS.find((p) => p.key === "home");
+    assert.equal(product.href, `${SHELL_ORIGIN}/home`);
     for (const uri of [
       "/home",
-      FAMILY_PLACES.signIn.path,
-      FAMILY_PLACES.search.path,
-      FAMILY_PLACES.settings,
+      SHELL_PLACES.signIn.path,
+      SHELL_PLACES.search.path,
+      SHELL_PLACES.settings,
     ])
       assertNativeApp(uri);
   },
@@ -620,38 +620,38 @@ test(
   },
 );
 
-test("the bar has one source: the kit's product manifest", async () => {
-  // packages/ui/src/family.json is the family's product manifest. The
-  // kit's family.ts reads it for the React shell (apps/web/src/shell/Shell.jsx),
-  // and _data/familyBar.js hands it to base.njk, which loops over it.
+test("the bar has one source: the kit's shell manifest", async () => {
+  // packages/ui/src/shell.json is the shell's manifest. The
+  // kit's shell.ts reads it for the React shell (apps/web/src/shell/Shell.jsx),
+  // and _data/shell.js hands it to base.njk, which loops over it.
   // Both must read the file itself, never a copy: base.njk used to
-  // hand-mirror family.ts, and a copy is how two bars drift into two.
+  // hand-mirror shell.ts, and a copy is how two bars drift into two.
   // Needs no built tree: this is about where the bar comes from.
   const { default: manifest } = await import(
-    path.join(repoRoot, "packages/ui/src/family.json"),
+    path.join(repoRoot, "packages/ui/src/shell.json"),
     { with: { type: "json" } }
   );
-  const { default: familyBar } = await import(
-    path.join(repoRoot, "apps/site/src/_data/familyBar.js")
+  const { default: shell } = await import(
+    path.join(repoRoot, "apps/site/src/_data/shell.js")
   );
   // The same module, not an equal object: the data file IS the manifest.
-  assert.equal(familyBar, manifest, "the site's bar is not the kit's file");
+  assert.equal(shell, manifest, "the site's bar is not the kit's file");
 
-  const kit = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
-  assert.equal(kit.FAMILY_WORDMARK, manifest.wordmark);
-  assert.equal(kit.FAMILY_ORIGIN, manifest.origin);
-  assert.equal(kit.FAMILY_LOGO, manifest.logo);
+  const kit = await import(path.join(repoRoot, "packages/ui/src/shell.ts"));
+  assert.equal(kit.SHELL_WORDMARK, manifest.wordmark);
+  assert.equal(kit.SHELL_ORIGIN, manifest.origin);
+  assert.equal(kit.SHELL_LOGO, manifest.logo);
   assert.deepEqual(
-    kit.FAMILY_PRODUCTS.map((p) => p.key),
+    kit.SHELL_PRODUCTS.map((p) => p.key),
     manifest.products.map((p) => p.key),
   );
   for (const [i, p] of manifest.products.entries()) {
-    // On the family origin a product is a path; elsewhere, an href.
+    // On Elixir's origin a product is a path; elsewhere, an href.
     assert.ok(
       Boolean(p.path) !== Boolean(p.href),
       `${p.key} needs a path or an href, not both`,
     );
-    assert.deepEqual(kit.FAMILY_PRODUCTS[i], {
+    assert.deepEqual(kit.SHELL_PRODUCTS[i], {
       key: p.key,
       label: p.label,
       href: p.href ?? `${manifest.origin}${p.path}`,
@@ -660,12 +660,12 @@ test("the bar has one source: the kit's product manifest", async () => {
       ...(p.game ? { game: true, action: p.action, about: p.about } : {}),
     });
   }
-  assert.equal(kit.FAMILY_PLACES.signIn, manifest.signIn);
-  assert.equal(kit.FAMILY_SIGNED_OUT, manifest.signedOut);
-  assert.equal(kit.FAMILY_FOOT, manifest.foot);
+  assert.equal(kit.SHELL_PLACES.signIn, manifest.signIn);
+  assert.equal(kit.SHELL_SIGNED_OUT, manifest.signedOut);
+  assert.equal(kit.SHELL_FOOT, manifest.foot);
   // The bar's places and the phone's tabs (slice 7, #765), and the bell.
-  assert.deepEqual(kit.FAMILY_TABS, manifest.tabs);
-  assert.equal(kit.FAMILY_PLACES.bell, manifest.bell);
+  assert.deepEqual(kit.SHELL_TABS, manifest.tabs);
+  assert.equal(kit.SHELL_PLACES.bell, manifest.bell);
 
   // And the template keeps nothing of its own: no label, key, path or
   // href from the manifest is spelled out in it. (The logo's home link is
@@ -708,7 +708,7 @@ test(
     // manifest the app's Shell draws from (apps/web/test/shell.test.jsx pins
     // the app to the same words): the same links in the same order, or the
     // two bars have drifted into two bars.
-    const kit = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
+    const kit = await import(path.join(repoRoot, "packages/ui/src/shell.ts"));
     const { JSDOM } = await import("jsdom");
     const site = new JSDOM(read("index.html")).window.document;
     const hrefs = (sel) =>
@@ -718,7 +718,7 @@ test(
       ]);
     // The bar's places are the tabs the bar shows (slice 7, #765: Home,
     // Find, Clan); the phone has all four, and the bell after them.
-    const places = kit.FAMILY_TABS.filter((t) => t.bar !== false).map((t) => [
+    const places = kit.SHELL_TABS.filter((t) => t.bar !== false).map((t) => [
       t.label,
       t.path,
     ]);
@@ -726,19 +726,19 @@ test(
     // 2026-11-12); Cards and Updates are in the footer.
     assert.deepEqual(
       hrefs('.kit-top__out[data-session-face="out"] a'),
-      kit.FAMILY_SIGNED_OUT.map((p) => [p.label, p.path]),
+      kit.SHELL_SIGNED_OUT.map((p) => [p.label, p.path]),
     );
     assert.equal(
       site
         .querySelector('.kit-top__link[data-session-face="out"]')
         .getAttribute("href"),
-      kit.FAMILY_PLACES.signIn.path,
+      kit.SHELL_PLACES.signIn.path,
     );
     assert.equal(
       site
         .querySelector('.btn--primary[data-session-face="out"]')
         .getAttribute("href"),
-      kit.FAMILY_PLACES.createAccount.path,
+      kit.SHELL_PLACES.createAccount.path,
     );
     // Signed in: the places, search, help, the game, the account.
     assert.deepEqual(hrefs('.kit-top__nav[data-session-face="in"] a'), places);
@@ -747,13 +747,13 @@ test(
         .querySelector('.kit-top__search[data-session-face="in"]')
         .getAttribute("href"),
       // A static page has no search sheet: it opens the one on Home.
-      kit.FAMILY_PLACES.search.staticPath,
+      kit.SHELL_PLACES.search.staticPath,
     );
     assert.equal(
       site
         .querySelector('.kit-top__icon[data-session-face="in"]')
         .getAttribute("aria-label"),
-      kit.FAMILY_PLACES.help.label,
+      kit.SHELL_PLACES.help.label,
     );
     // Play Drop left the bar (2026-11-12): the footer carries it.
     assert.equal(site.querySelector(".kit-top__drop"), null);
@@ -763,20 +763,20 @@ test(
       site
         .querySelector('.kit-top__avatar[data-session-face="in"]')
         .getAttribute("href"),
-      kit.FAMILY_PLACES.settings,
+      kit.SHELL_PLACES.settings,
     );
     // A static page has no bell sheet either: it opens the one on Home.
     const bell = site.querySelector('.kit-bell[data-session-face="in"]');
-    assert.equal(bell.getAttribute("href"), kit.FAMILY_PLACES.bell.staticPath);
-    assert.equal(bell.getAttribute("aria-label"), kit.FAMILY_PLACES.bell.label);
+    assert.equal(bell.getAttribute("href"), kit.SHELL_PLACES.bell.staticPath);
+    assert.equal(bell.getAttribute("aria-label"), kit.SHELL_PLACES.bell.label);
     // The phone's tabs are the signed-in face only, and are the app's five.
     assert.deepEqual(hrefs('nav.kit-bottom[data-session-face="in"] a'), [
-      ...kit.FAMILY_TABS.map((t) => [t.label, t.path]),
-      [kit.FAMILY_PLACES.bell.tab, kit.FAMILY_PLACES.bell.staticPath],
+      ...kit.SHELL_TABS.map((t) => [t.label, t.path]),
+      [kit.SHELL_PLACES.bell.tab, kit.SHELL_PLACES.bell.staticPath],
     ]);
     // The logo, on both faces.
     for (const img of site.querySelectorAll(".kit-top__brand img"))
-      assert.equal(img.getAttribute("src").split("?")[0], kit.FAMILY_LOGO);
+      assert.equal(img.getAttribute("src").split("?")[0], kit.SHELL_LOGO);
   },
 );
 
@@ -784,7 +784,7 @@ test(
   "the signed-out places light up by the page, and the footer is on every page",
   { skip },
   async () => {
-    const kit = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
+    const kit = await import(path.join(repoRoot, "packages/ui/src/shell.ts"));
     const { JSDOM } = await import("jsdom");
     for (const [page, want] of [
       ["index.html", null],
@@ -815,7 +815,7 @@ test(
       const hrefs = [...foot.querySelectorAll("a")].map((a) =>
         a.getAttribute("href"),
       );
-      for (const l of kit.FAMILY_FOOT)
+      for (const l of kit.SHELL_FOOT)
         assert.ok(hrefs.includes(l.path), `${page} footer links ${l.path}`);
       assert.doesNotMatch(
         doc.querySelector(".kit-top").textContent + foot.textContent,
@@ -1078,7 +1078,7 @@ test("analytics only ever comes from tinylytics.app", { skip }, () => {
           // No font CDN: Inter is self-hosted, so a reader's page load
           // tells no third party what they read.
           "elixir.poapkings.com",
-          // The family's product button in the top bar that lives
+          // The shell's product button in the top bar that lives
           // elsewhere: a plain link, not a script, so the CSP is untouched.
           "drop.poapkings.com",
           "www.supercell.com",
@@ -1589,11 +1589,11 @@ test(
     );
 
     // Drop is one line, linking the manifest's own Drop in a new window.
-    const { default: family } = await import(
-      path.join(repoRoot, "packages/ui/src/family.json"),
+    const { default: shell } = await import(
+      path.join(repoRoot, "packages/ui/src/shell.json"),
       { with: { type: "json" } }
     );
-    const drop = family.products.find((p) => p.game);
+    const drop = shell.products.find((p) => p.game);
     const next = doc.querySelector(".home-next");
     assert.equal(next.tagName, "P");
     const play = next.querySelector("a");
@@ -1714,7 +1714,7 @@ test(
   "the home page shows a recorded battle beside its signup",
   { skip },
   () => {
-    // One battle, named once in the kit's family manifest, in the gate's
+    // One battle, named once in the kit's shell manifest, in the gate's
     // signed-out footnote: a shared battle opens without an account.
     const html = read("index.html");
     assert.match(

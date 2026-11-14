@@ -76,7 +76,7 @@ import {
 } from "lucide-react";
 
 /**
- * The family's icons, from Lucide.
+ * Elixir's icons, from Lucide.
  *
  * The design draws the rail with Lucide and this is Lucide — the
  * package, not forty glyphs copied out of it. The copies were a

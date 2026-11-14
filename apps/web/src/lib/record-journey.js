@@ -13,13 +13,13 @@ export const logRead = (p) => Boolean(p?.battlelog_observed_at);
  * Nothing here treats a successful poll or an empty count as full coverage. */
 export function recordJourney(data) {
   const p = data?.player;
-  const tracking = `${SETTINGS}/players`;
+  const players = `${SETTINGS}/players`;
   if (!p)
     return {
       state: "Add your player",
       text: "Start with your player tag in Players & following.",
       action: "Go to Players & following",
-      to: tracking,
+      to: players,
     };
   const recorded = p.profile_available || hasBattleEvidence(p);
   const failures = (p.capture_attempts ?? []).filter(
@@ -75,14 +75,14 @@ export function recordJourney(data) {
     to: playerHref(p.player_tag),
   };
   const destination = notFound
-    ? { action: "Fix the tag", to: `${tracking}/${tagPath(p.player_tag)}` }
+    ? { action: "Fix the tag", to: `${players}/${tagPath(p.player_tag)}` }
     : hasBattleEvidence(p)
       ? battles
       : p.profile_available
         ? profile
         : {
             action: "Check recording status",
-            to: `${tracking}/${tagPath(p.player_tag)}`,
+            to: `${players}/${tagPath(p.player_tag)}`,
           };
   const interval = p.capture_interval;
   return {

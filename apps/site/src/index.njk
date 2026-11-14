@@ -18,7 +18,7 @@ navActive: home
 
     A row promises only what is live, and shows no number: a visitor here
     has no record and the page has nobody's to show. -#}
-{%- set drop = familyBar.products | selectattr("game") | first %}
+{%- set drop = shell.products | selectattr("game") | first %}
 <div data-home>
 <section class="home-gate" aria-labelledby="home-gate">
   <div class="home-gate__col">
@@ -30,15 +30,15 @@ navActive: home
     </p>
     <div class="home-gate__ways" data-session-face="out">
       <a class="btn btn--primary btn--lg" href="/signin?signup">Create an account</a>
-      <a class="btn btn--lg" href="{{ familyBar.signIn.path }}">{{ familyBar.signIn.label }}</a>
+      <a class="btn btn--lg" href="{{ shell.signIn.path }}">{{ shell.signIn.label }}</a>
     </div>
     <div class="home-gate__ways" data-session-face="in">
-      <a class="btn btn--primary btn--lg" href="{{ familyBar.products[0].path }}">Open Elixir</a>
+      <a class="btn btn--primary btn--lg" href="{{ shell.products[0].path }}">Open Elixir</a>
     </div>
     <p class="footnote m-0" data-session-face="out">
       A shared highlight or battle link opens for anyone. Everything else is
       for members.
-      <a href="{{ familyBar.sampleBattle.path }}">{{ familyBar.sampleBattle.label }}</a>
+      <a href="{{ shell.sampleBattle.path }}">{{ shell.sampleBattle.label }}</a>
     </p>
   </div>
   <div class="home-art">

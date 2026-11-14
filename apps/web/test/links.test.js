@@ -5,23 +5,23 @@ import { fileURLToPath } from "node:url";
 
 /**
  * A ratchet on links. Explore promises that
- * "every record has a real URL", yet 65 anchors in the console and the
+ * "every record has a real URL", yet 65 anchors in the app and the
  * kit rendered with a click handler and no href: no keyboard focus, no
  * new tab, no copying the link, and axe does not flag one. Both counts
  * here are pinned at zero:
  *
  * - every anchor has an href (a place to go is the kit's Link; an
  *   action is `<button className="link">`);
- * - no anchor in the console carries its own click handler, because a
+ * - no anchor in the app carries its own click handler, because a
  *   handler that calls preventDefault takes a Cmd-click's new tab away.
  *   The kit's Link, Rail and Chrome leave a modified click to the
- *   browser (isPlainClick); the console uses them.
+ *   browser (isPlainClick); the app uses them.
  *
  * oxlint's jsx-a11y/anchor-is-valid guards the first as well; this
  * test is the one that also sees the kit's TypeScript sources.
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
-const CONSOLE = path.resolve(here, "../src");
+const APP = path.resolve(here, "../src");
 const KIT = path.resolve(here, "../../../packages/ui/src");
 
 function walk(dir) {
@@ -69,14 +69,14 @@ function anchors(file) {
   return found;
 }
 
-const all = [...walk(CONSOLE), ...walk(KIT)].flatMap(anchors);
+const all = [...walk(APP), ...walk(KIT)].flatMap(anchors);
 
 test("the scan sees the kit's own anchors", () => {
   // A scan that found nothing would pass everything.
   expect(all.some((a) => a.at.startsWith("Link.tsx"))).toBe(true);
 });
 
-test("every anchor in the console and the kit has an href", () => {
+test("every anchor in the app and the kit has an href", () => {
   const bare = all
     .filter((a) => !/\bhref=/.test(a.tag) && !/\{\.\.\./.test(a.tag))
     .map((a) => a.at);
@@ -86,11 +86,11 @@ test("every anchor in the console and the kit has an href", () => {
 /** Clan's views came from their own package on 2026-11-13 with anchors
  *  that take their own click; the count only goes down until they use the
  *  kit's Link too. */
-const CLAN_DIR = path.join(CONSOLE, "clan");
+const CLAN_DIR = path.join(APP, "clan");
 const CLAN_HANDLED_CEILING = 34;
 
-test("no console anchor takes its own click (use the kit's Link)", () => {
-  const handled = walk(CONSOLE)
+test("no app anchor takes its own click (use the kit's Link)", () => {
+  const handled = walk(APP)
     .filter((f) => !f.startsWith(`${CLAN_DIR}${path.sep}`))
     .flatMap(anchors)
     .filter((a) => /\bonClick=/.test(a.tag))

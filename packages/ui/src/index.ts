@@ -24,18 +24,18 @@ export {
 } from "./AccountMenu.tsx";
 export { AccountAvatar } from "./AccountAvatar.tsx";
 export {
-  FAMILY_LOGO,
-  FAMILY_ORIGIN,
-  FAMILY_PRODUCTS,
-  FAMILY_SAMPLE_BATTLE,
-  FAMILY_FOOT,
-  FAMILY_PLACES,
-  FAMILY_SIGNED_OUT,
-  FAMILY_TABS,
-  FAMILY_WORDMARK,
+  SHELL_LOGO,
+  SHELL_ORIGIN,
+  SHELL_PRODUCTS,
+  SHELL_SAMPLE_BATTLE,
+  SHELL_FOOT,
+  SHELL_PLACES,
+  SHELL_SIGNED_OUT,
+  SHELL_TABS,
+  SHELL_WORDMARK,
   onOrigin,
-  type FamilyProduct,
-} from "./family.ts";
+  type ShellProduct,
+} from "./shell.ts";
 export { Disclaimer } from "./Disclaimer.tsx";
 export { ErrorBoundary } from "./ErrorBoundary.tsx";
 export {

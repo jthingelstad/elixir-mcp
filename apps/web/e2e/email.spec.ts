@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mockApi, signedIn } from "./fixtures.ts";
 
-/** Account › Emails from Elixir, the ConsoleEmails board (2026-10-02):
+/** Account › Emails from Elixir, the emails board (2026-10-02):
  *  each kind with its local schedule, the kinds that come when
  *  something happens, the last few sent, and Every email. */
 

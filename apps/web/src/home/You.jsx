@@ -2,7 +2,7 @@ import { useLocation } from "@tanstack/react-router";
 import {
   Empty,
   ErrorState,
-  FAMILY_PRODUCTS,
+  SHELL_PRODUCTS,
   Link,
   PageHead,
   Panel,
@@ -21,7 +21,7 @@ import { VerifyPlayer } from "../components/VerifyPlayer.jsx";
 import { PLAYER_TABS, PlayerView } from "./Player.jsx";
 
 const DROP =
-  FAMILY_PRODUCTS.find((p) => p.key === "drop")?.href ??
+  SHELL_PRODUCTS.find((p) => p.key === "drop")?.href ??
   "https://drop.poapkings.com/";
 
 export const YOU = "/home/you";

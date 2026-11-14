@@ -10,7 +10,7 @@ const clan = {
 };
 
 for (const width of [390, 1280]) {
-  test(`Tracking waits for its first clan read and names a filtered empty list at ${width}px`, async ({
+  test(`Players & following waits for its first clan read and names a filtered empty list at ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -51,7 +51,7 @@ for (const width of [390, 1280]) {
     }
   });
   for (const players of [false, true]) {
-    test(`Tracking recovers a failed clan read without re-adding (${players ? "returning player" : "no players"}) at ${width}px`, async ({
+    test(`Players & following recovers a failed clan read without re-adding (${players ? "returning player" : "no players"}) at ${width}px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -130,7 +130,7 @@ for (const width of [390, 1280]) {
     });
   }
 
-  test(`a clan Tracking deep link recovers a failed read at ${width}px`, async ({
+  test(`a followed clan's deep link recovers a failed read at ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });

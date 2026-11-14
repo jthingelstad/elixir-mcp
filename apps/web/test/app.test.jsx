@@ -179,7 +179,7 @@ test(
 );
 
 test(
-  "tracking renders claims, recording state, and notify switches",
+  "Players & following renders claims, recording state, and notify switches",
   { timeout: 20000 },
   async () => {
     // The table moved off Overview with the 2026-09-09 split: Overview
@@ -582,13 +582,13 @@ test(
     expect(window.location.search).toBe("?x=1");
     // The folded Console's addresses are not the app's at all since
     // 2026-11-13: the edge answers them with the site's 404 (pinned by
-    // apps/site/test/site.test.mjs and e2e/console.spec.ts).
+    // apps/site/test/site.test.mjs and e2e/app.spec.ts).
   },
 );
 
 test("the route table has no page under /console: the Console folded", async () => {
   const { routeTree } = await import("../src/App.jsx");
-  // Outside the console: a battle's public page (2026-10-01), a shared
+  // Outside the app: a battle's public page (2026-10-01), a shared
   // post's (#762), and Stats,
   // the one section beside the Console (2026-09-28), with one route under
   // its own prefix, and Home at its new address (redesign step 3), with
@@ -622,7 +622,7 @@ test("the route table has no page under /console: the Console folded", async () 
 });
 
 test(
-  "the console prints times on the account's clock, and UTC when none is set",
+  "the app prints times on the account's clock, and UTC when none is set",
   { timeout: 20000 },
   async () => {
     // Jamie, 2026-09-23: the console knew the zone and printed UTC anyway.
@@ -983,11 +983,11 @@ test(
 );
 
 test(
-  "the timeline keeps the console's own place: it marks what it showed and rules off what is new",
+  "the timeline keeps the app's own place: it marks what it showed and rules off what is new",
   { timeout: 20000 },
   async () => {
     // Jamie, 2026-10-20: "timeline should be independent of what agents
-    // have seen via MCP." The page moves the console's place to the
+    // have seen via MCP." The page moves the app's place to the
     // window it showed, the rail's dot follows, and the rule sits where
     // the place stood when the page opened.
     const item = (text, at, observed_at) => ({

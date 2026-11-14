@@ -17,7 +17,7 @@ const client = createClient({
 
 const request = (method, path, body) => client.request(method, path, body);
 
-/** Whose `/api/me` a call reads: yours, or, on an agent's console, the
+/** Whose `/api/me` a call reads: yours, or, on an agent's pages, the
  *  agent's (`/api/agent/<public_id>`, the same routes run as the agent
  *  for its owner). The scoped calls below take the agent's public id as
  *  their last argument; omitted, they are yours, as they always were. */
@@ -302,7 +302,7 @@ export const api = {
   myTimeline: (agent) => request("GET", `${home(agent)}/timeline`),
   // Your cheer on a timeline item (#765): one of six, or null to take it
   // back. The item's subject tags let the server find it in your feed.
-  // Yours alone: never an agent's console.
+  // Yours alone: never an agent's pages.
   cheer: ({ item_id, cheer, subjects }) =>
     request("PUT", "/api/me/cheers", { item_id, cheer, subjects }),
   // Which of a player page's or a battle page's items take your cheers.
@@ -347,7 +347,7 @@ export const api = {
     request("GET", `/api/me/gateway-detail?id=${encodeURIComponent(id)}`),
   myClanAction: (body, agent) => request("POST", `${home(agent)}/clans`, body),
   // An agent's players (2026-09-23): the same writer as /api/claims, at an
-  // address its console can scope. It watches, only.
+  // address its pages can scope. It watches, only.
   agentPlayerAction: (body, agent) =>
     request("POST", `${home(agent)}/players`, body),
   // Fire-and-forget: a failed view must never surface to a user, and must

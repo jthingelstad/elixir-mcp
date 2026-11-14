@@ -3,12 +3,12 @@ import {
   AccountAvatar,
   AccountMenu,
   Disclaimer,
-  FAMILY_FOOT,
-  FAMILY_LOGO,
-  FAMILY_PLACES,
-  FAMILY_PRODUCTS,
-  FAMILY_SIGNED_OUT,
-  FAMILY_TABS,
+  SHELL_FOOT,
+  SHELL_LOGO,
+  SHELL_PLACES,
+  SHELL_PRODUCTS,
+  SHELL_SIGNED_OUT,
+  SHELL_TABS,
   Icon,
   Link,
   initialsOf,
@@ -25,27 +25,27 @@ import { useSignOut } from "./sign-out.js";
 /**
  * The shell on every page of the app: the top bar, the avatar's menu, the
  * phone's tabs, the footer, the search sheet and the help drawer. The words and
- * addresses are the kit's manifest (packages/ui/src/family.json), the list
+ * addresses are the kit's manifest (packages/ui/src/shell.json), the list
  * apps/site draws the same bar from. A static page has no app under it: its
  * Help is a small drawer of its own (assets/site-help.js) and its Search comes
  * here as `/home?search`.
  */
 const PLACES = {
-  ...Object.fromEntries(FAMILY_TABS.map((t) => [t.key, t.path])),
-  signIn: FAMILY_PLACES.signIn.path,
-  createAccount: FAMILY_PLACES.createAccount.path,
+  ...Object.fromEntries(SHELL_TABS.map((t) => [t.key, t.path])),
+  signIn: SHELL_PLACES.signIn.path,
+  createAccount: SHELL_PLACES.createAccount.path,
   verify: `${SETTINGS}/players/verify`,
-  settings: FAMILY_PLACES.settings,
+  settings: SHELL_PLACES.settings,
   admin: `${ADMIN}/accounts`,
 };
 
 /** The places a signed-in reader moves between (slice 7, #765): Home, Find,
  *  Clan and You, from the manifest. The phone draws all four and the bell;
  *  the top bar all but You, which is its avatar. */
-const TABS = FAMILY_TABS;
+const TABS = SHELL_TABS;
 
 const DROP =
-  FAMILY_PRODUCTS.find((p) => p.key === "drop")?.href ??
+  SHELL_PRODUCTS.find((p) => p.key === "drop")?.href ??
   "https://drop.poapkings.com/";
 
 /** The primary player's name, otherwise "Your account". */
@@ -127,7 +127,7 @@ function Brand() {
       className="kit-top__brand"
       aria-label="Elixir, go to Home"
     >
-      <img src={FAMILY_LOGO} alt="" width="28" height="28" />
+      <img src={SHELL_LOGO} alt="" width="28" height="28" />
       <span>Elixir</span>
     </Link>
   );
@@ -202,7 +202,7 @@ function TopBar({ me, area, open, bell }) {
         <div className="kit-top__row">
           <Brand />
           <nav className="kit-top__out" aria-label="Main">
-            {FAMILY_SIGNED_OUT.map((p) => (
+            {SHELL_SIGNED_OUT.map((p) => (
               <a key={p.key} href={p.path}>
                 {p.label}
               </a>
@@ -213,7 +213,7 @@ function TopBar({ me, area, open, bell }) {
             Sign in
           </Link>
           <Link to={PLACES.createAccount} className="btn btn--sm btn--primary">
-            {FAMILY_PLACES.createAccount.label}
+            {SHELL_PLACES.createAccount.label}
           </Link>
         </div>
       </header>
@@ -241,18 +241,18 @@ function TopBar({ me, area, open, bell }) {
           aria-haspopup="dialog"
           onClick={() => open("search")}
         >
-          <Icon name={FAMILY_PLACES.search.icon} size={18} />
-          <span>{FAMILY_PLACES.search.prompt}</span>
+          <Icon name={SHELL_PLACES.search.icon} size={18} />
+          <span>{SHELL_PLACES.search.prompt}</span>
         </button>
         <span className="kit-top__gap" />
         <button
           type="button"
           className="kit-top__icon"
-          aria-label={FAMILY_PLACES.help.label}
+          aria-label={SHELL_PLACES.help.label}
           aria-haspopup="dialog"
           onClick={() => open("help")}
         >
-          <Icon name={FAMILY_PLACES.help.icon} size={18} />
+          <Icon name={SHELL_PLACES.help.icon} size={18} />
         </button>
         <BellButton bell={bell} onOpen={() => open("bell")} />
         {/* Play Drop is in the avatar's menu and the footer, not the bar
@@ -310,7 +310,7 @@ function SiteFoot() {
   return (
     <footer className="kit-foot">
       <nav aria-label="Elixir" className="kit-foot__links">
-        {FAMILY_FOOT.map((l) => (
+        {SHELL_FOOT.map((l) => (
           <a key={l.path} href={l.path}>
             {l.label}
           </a>

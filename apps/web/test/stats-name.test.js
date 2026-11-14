@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
  * feedback area value `ladder`. So this looks only at the shapes a
  * surface name takes and a mode value never does: file and folder names,
  * camelCase and constant identifiers, `ladder-` class names, the query
- * key, the help drawer's doc keys and the family manifest's product key.
+ * key, the help drawer's doc keys and the shell manifest's product key.
  */
 const web = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repo = path.resolve(web, "../..");
@@ -69,9 +69,9 @@ test("the stylesheet has no ladder- class and the manifest no ladder product", (
     "utf8",
   );
   expect(css.match(/\.ladder-[a-z][\w-]*/g) ?? []).toEqual([]);
-  const family = JSON.parse(
-    readFileSync(path.join(repo, "packages/ui/src/family.json"), "utf8"),
+  const shell = JSON.parse(
+    readFileSync(path.join(repo, "packages/ui/src/shell.json"), "utf8"),
   );
-  expect(family.products.map((p) => p.key)).not.toContain("ladder");
-  expect(family.products.find((p) => p.key === "stats")?.label).toBe("Stats");
+  expect(shell.products.map((p) => p.key)).not.toContain("ladder");
+  expect(shell.products.find((p) => p.key === "stats")?.label).toBe("Stats");
 });
