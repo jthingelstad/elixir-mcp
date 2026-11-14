@@ -52,7 +52,10 @@ test("earned and unearned differ in shape and words, not colour alone", () => {
       <StampMark stamp={LADDER} />
     </>,
   );
-  const [earned, blank] = container.querySelectorAll(".kit-stamp");
+  const [earned, blank] = [...container.querySelectorAll(".kit-stamp")] as [
+    Element,
+    Element,
+  ];
   expect(earned.className).toContain("kit-stamp--earned");
   expect(earned.className).toContain("kit-stamp--coral");
   expect(earned.className).toMatch(/kit-stamp--tilt-[ab]/);
