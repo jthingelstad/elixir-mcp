@@ -270,7 +270,7 @@ async function playedTogether(db, accountId, { now, budget }) {
   const {
     rows: [mark],
   } = await db.query(
-    `select coalesce(played_cursor, 0)::text as cursor
+    `select coalesce(played_cursor, 0)::text as cursor, played_epoch
        from account_passport where account_id = $1::uuid`,
     [accountId],
   );
@@ -326,12 +326,15 @@ async function playedTogether(db, accountId, { now, budget }) {
     through = r.cursor;
   }
   if (capped && rows.length) through = rows.at(-1).cursor;
-  if (through !== null)
+  // Only within the generation this pass read: a rewind since (the
+  // account's players changed mid-pass) wins, and the next pass reads
+  // the window again. Facts this pass recorded stay; they were true.
+  if (through !== null && mark)
     await db.query(
       `update account_passport
           set played_cursor = greatest(coalesce(played_cursor, 0), $2::bigint)
-        where account_id = $1::uuid`,
-      [accountId, through],
+        where account_id = $1::uuid and played_epoch = $3::int`,
+      [accountId, through, mark.played_epoch],
     );
   return {
     granted,
@@ -345,12 +348,15 @@ async function playedTogether(db, accountId, { now, budget }) {
  * battles already read were judged against the old set, so the next
  * reconciliation reads the look-back window again from the start. The
  * facts already held stay; reading again only adds days the new set
- * proves.
+ * proves. The epoch counts up on every rewind, even of a null cursor, so
+ * a pass that started before it (and read the old set) cannot move the
+ * checkpoint after it: the pass writes only within the epoch it read.
  */
 export async function rewindPlayed(db, accountId) {
   await db.query(
-    `update account_passport set played_cursor = null
-      where account_id = $1::uuid and played_cursor is not null`,
+    `update account_passport
+        set played_cursor = null, played_epoch = played_epoch + 1
+      where account_id = $1::uuid`,
     [accountId],
   );
 }
