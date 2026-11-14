@@ -6568,7 +6568,7 @@ button.kit-row {
     justify-content: space-between;
     gap: 0 var(--s-3);
     margin-top: 2px;
-    font-size: var(--t-body-sm);
+    font-size: var(--t-caption);
     color: var(--ink-dim);
   }
   .kit-table--cards > tbody > tr > .kit-table__lead {
