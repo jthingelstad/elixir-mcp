@@ -59,16 +59,15 @@ export const esc = (v) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
-/** The source at the top right: the product a mail belongs to, and when it
- *  comes. The sources are the console's (Clan, Ladder, Friends, Cards,
- *  Collectors, Account), and the console's email page wears the same
- *  chip on each kind. */
+/** The source at the top right: the part of Elixir a mail belongs to, and
+ *  when it comes. Settings' Emails page wears the same chip on each kind.
+ *  Arena week and milestones were Stats' (Ladder's until 2026-11-12). */
 export const MAIL_SOURCE = {
   clan_report: { product: "Clan", when: "Monday" },
-  arena_week: { product: "Ladder", when: "Tuesday" },
+  arena_week: { product: "Stats", when: "Tuesday" },
   tracking_report: { product: "Home", when: "Digest" },
   collector_activity: { product: "Collectors", when: "Sunday" },
-  milestone: { product: "Ladder", when: "Milestone" },
+  milestone: { product: "Stats", when: "Milestone" },
   clan_actions_waiting: { product: "Clan", when: "Actions" },
   feedback_answer: { product: "Account", when: "Feedback" },
   login: { product: "Account", when: "Sign in" },
