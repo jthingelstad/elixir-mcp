@@ -452,6 +452,50 @@ test("another player: an unlimited live quota (admin) is not held to the hour", 
     await db.query(`delete from player where player_tag = $1::text`, [tag]);
 });
 
+test("a read already on its way by live_fetch (fetch-only) becomes a recording one, for nothing", async () => {
+  for (const tag of [STRANGER, PRIMARY])
+    await enqueueJob(db, {
+      endpoint: "player_battlelog",
+      entity_key: tag,
+      lane: "live",
+      record: false,
+    });
+  const other = await call("POST", person, { tag: STRANGER });
+  assert.equal(other.body.players[0].state, "queued");
+  const own = await call("POST", person);
+  assert.equal(own.body.players[0].state, "queued");
+  const { rows } = await db.query(
+    `select entity_key, record from job where endpoint = 'player_battlelog'
+      and status in ('queued', 'leased') order by job_id`,
+  );
+  const byTag = Object.fromEntries(rows.map((r) => [r.entity_key, r.record]));
+  assert.equal(byTag[STRANGER], true);
+  assert.equal(byTag[PRIMARY], true);
+  assert.equal(await tokens(), 20 - (rows.length - 2));
+  assert.equal(await liveday(), 0);
+});
+
+test("a queued bulk read of the player moves to the live lane, for nothing", async () => {
+  await enqueueJob(db, {
+    endpoint: "player_battlelog",
+    entity_key: STRANGER,
+    lane: "bulk",
+    record: true,
+  });
+  const r = await call("POST", person, { tag: STRANGER });
+  assert.equal(r.body.players[0].state, "queued");
+  const { rows } = await db.query(
+    `select lane, record from job where endpoint = 'player_battlelog'
+      and entity_key = $1::text and status in ('queued', 'leased')`,
+    [STRANGER],
+  );
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].lane, "live");
+  assert.equal(rows[0].record, true);
+  assert.equal(await tokens(), 20);
+  assert.equal(await liveday(), 0);
+});
+
 test("another player: the live quota spent, or no token, answers quietly", async () => {
   await db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 20)`,
