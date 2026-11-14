@@ -43,6 +43,7 @@ import { FollowAll, FollowButton } from "./follow.jsx";
 import { PlayerRecord } from "./PlayerRecord.jsx";
 import { useAskOnOpen } from "../lib/own-refresh.js";
 import { RefreshPlayer } from "./RefreshPlayer.jsx";
+import { PassportRow } from "./PassportRow.jsx";
 
 /**
  * A player's page (slice 6, #764): the one page every player name opens
@@ -204,6 +205,11 @@ export function PlayerView({
             <TagText>{sub}</TagText>
           </p>
           <Badges badges={page.badges} />
+          {/* A verified player's passport (#1015): one row, under the
+              name, so the play below stays in view. */}
+          {page.passport ? (
+            <PassportRow summary={page.passport} own={you.own} />
+          ) : null}
         </div>
         <Counts page={page} onPick={setTab} />
         {/* Two actions at most (2026-11-13): where you stand with the

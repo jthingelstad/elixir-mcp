@@ -15,6 +15,7 @@ import {
   initialsOf,
 } from "@elixir-mcp/ui";
 import { ADMIN, SETTINGS } from "../lib/settings.js";
+import { PASSPORT } from "../lib/passport.js";
 import { statsHref } from "../stats/stats.js";
 import { rememberSession } from "../lib/session-hint.js";
 import { BellButton, BellSheet, useBell } from "./Bell.jsx";
@@ -90,6 +91,13 @@ export function barAccount(me, signOut) {
         icon: "user-round",
         label: "You",
         href: PLACES.you,
+      },
+      // Every account has a passport, with or without a player (#1015).
+      {
+        key: "passport",
+        icon: "stamp",
+        label: "Passport",
+        href: PASSPORT,
       },
       // The player group, and the line under it, only draw with a player.
       ...(players.length === 0

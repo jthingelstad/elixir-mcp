@@ -216,6 +216,11 @@ export const api = {
         ? `/api/me/home/week?mode=${encodeURIComponent(mode)}`
         : "/api/me/home/week",
     ),
+  /** Your own passport (#1015): its Stamps, plus your steps and exact
+   *  progress, which only you see. */
+  myPassport: () => request("GET", "/api/me/passport"),
+  /** Anyone's passport by its id: earned Stamps and their days only. */
+  passport: (id) => request("GET", `/api/passports/${encodeURIComponent(id)}`),
   /** A player's page (#764): their record, follows, followers and badges. */
   playerPage: (tag) =>
     request("GET", `/api/player?tag=${encodeURIComponent(tag)}`),

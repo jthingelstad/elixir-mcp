@@ -233,6 +233,25 @@ export const usePlayerPage = (tag) =>
     staleTime: 30_000,
   });
 
+/** Your passport (#1015): the public projection plus `owner` (the
+ *  profile steps and each Stamp's exact progress). */
+export const useMyPassport = (enabled = true) =>
+  useQuery({
+    queryKey: ["me", "passport"],
+    queryFn: answered(() => api.myPassport()),
+    enabled,
+    staleTime: 30_000,
+  });
+
+/** Another member's passport by its id: the public projection alone. */
+export const usePassport = (id) =>
+  useQuery({
+    queryKey: ["me", "passport-view", id ?? ""],
+    queryFn: answered(() => api.passport(id)),
+    enabled: Boolean(id),
+    staleTime: 60_000,
+  });
+
 /** A player's record, the Record tab of their page (2026-11-12, from
  *  Explore's player and profile records): what Elixir recorded over 30
  *  days and the last profile read, through the bridge Find's search uses.

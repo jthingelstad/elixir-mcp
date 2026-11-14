@@ -62,6 +62,7 @@ import {
 } from "./stats/stats.js";
 import { HOME, SIGN_IN, movedTo } from "./lib/moved.js";
 import { FOLLOW_ME, isPlayerPath } from "./lib/player.js";
+import { PASSPORT, isPassportPath } from "./lib/passport.js";
 import { normTag } from "./lib/tag-url.js";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { Unavailable } from "./shell/Unavailable.jsx";
@@ -214,6 +215,9 @@ export function barArea(path, me = null) {
   const clean = path.replace(/(.)\/$/, "$1");
   if (ownPlayerPath(clean, me)) return "you";
   if (clean === FIND || isPlayerPath(path)) return "find";
+  // Your passport is You's; another member's is Find's, like their page.
+  if (clean === PASSPORT) return "you";
+  if (isPassportPath(path)) return "find";
   if (clean === YOU) return "you";
   if (isHome(path)) return "home";
   // Stats is You's last tab (2026-11-12).
@@ -251,7 +255,9 @@ const HOME_PATHS = new Set([HOME, FIND, YOU]);
 /** Home, Find and You, and the player page and Follow me links under Home
  *  (#764). */
 const isHome = (path) =>
-  HOME_PATHS.has(path.replace(/(.)\/$/, "$1")) || isPlayerPath(path);
+  HOME_PATHS.has(path.replace(/(.)\/$/, "$1")) ||
+  isPlayerPath(path) ||
+  isPassportPath(path);
 
 const isClan = (path) =>
   path === "/clan" ||
@@ -307,6 +313,7 @@ export function titleFor(path) {
     const tab = path.split("/")[2];
     if (tab === "find") return `Find - ${SITE}`;
     if (tab === "you") return `You - ${SITE}`;
+    if (tab === "passport") return `Passport - Home - ${SITE}`;
     const name =
       tab === "player" ? "Player" : tab === "follow" ? "Follow" : null;
     return name ? `${name} - Home - ${SITE}` : `Home - ${SITE}`;
@@ -738,6 +745,24 @@ const playerRoute = createRoute({
   ),
 });
 
+/** A passport (#1015): yours, and anyone's by its id. */
+const passportRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: PASSPORT,
+  component: lazyRouteComponent(
+    () => import("./home/Passport.jsx"),
+    "PassportPage",
+  ),
+});
+const passportViewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: `${PASSPORT}/$id`,
+  component: lazyRouteComponent(
+    () => import("./home/Passport.jsx"),
+    "PassportPage",
+  ),
+});
+
 /** A "Follow me in Elixir" link: the players it names, to follow. */
 const followMeRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -754,6 +779,8 @@ export const routeTree = rootRoute.addChildren([
   youRoute,
   playerRoute,
   followMeRoute,
+  passportRoute,
+  passportViewRoute,
   signInRoute,
   settingsRoute,
   adminRoute,

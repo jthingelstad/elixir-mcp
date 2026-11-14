@@ -1,4 +1,14 @@
-import { Disclosure, Link, PageHead, Panel, TagText } from "@elixir-mcp/ui";
+import {
+  Avatar,
+  Disclosure,
+  ErrorState,
+  Icon,
+  Link,
+  PageHead,
+  Panel,
+  PlayerName,
+  TagText,
+} from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { ZoneOffer } from "../../components/ZoneOffer.jsx";
@@ -8,12 +18,19 @@ import { limitsLabel } from "../../lib/words.js";
 import { SETTINGS } from "../../lib/settings.js";
 import { tagPath } from "../../lib/tag-url.js";
 import { Facts, Note } from "./parts.jsx";
+import { PassportRow } from "../../home/PassportRow.jsx";
+import { summaryOf } from "../../lib/passport.js";
+import { playerHref } from "../../lib/player.js";
+import { useMyPassport } from "../../lib/queries.js";
 
 /**
  * Profile: the account you are signed in as. Editable here are the profile
  * image (its own panel, AvatarPicker.jsx) and the time zone; everything else names where it is changed, because each has its own
  * page. Limits read in full on Usage and limits, Discord on Connections &
  * agents.
+ *
+ * Who you are comes first (#1015): your main player as every member sees
+ * it, and your passport, before the account's private machinery.
  */
 export function Profile({ me, refresh }) {
   const [tzError, setTzError] = useState(null);
@@ -23,11 +40,20 @@ export function Profile({ me, refresh }) {
       : ["UTC"];
   const main = (me?.claims ?? []).find((c) => c.is_primary) ?? null;
   const discordOn = me?.discord || me?.features?.discord_login === true;
+  const mainVerified = main
+    ? (me?.player_verifications?.[main.player_tag] ??
+      main.status === "verified")
+    : false;
 
   return (
     <div className="st-page">
       <PageHead title="Profile" sub="Your account and your preferences." />
       <ZoneOffer />
+      <Panel title="You in Elixir" titleAs="h2">
+        <Identity me={me} main={main} verified={mainVerified} />
+        <PassportPreview />
+      </Panel>
+      <AvatarPicker me={me} refresh={refresh} />
       <Panel title="Account" titleAs="h2">
         <Facts
           rows={[
@@ -100,9 +126,11 @@ export function Profile({ me, refresh }) {
                     to={`${SETTINGS}/players/${tagPath(main.player_tag)}`}
                     className="hit"
                   >
-                    <TagText>
-                      {main.nickname ?? main.name ?? main.player_tag}
-                    </TagText>
+                    <PlayerName tag={main.player_tag} verified={mainVerified}>
+                      <TagText>
+                        {main.nickname ?? main.name ?? main.player_tag}
+                      </TagText>
+                    </PlayerName>
                   </Link>
                   <Note>
                     The name in your top bar, and who Stats opens on. Change it
@@ -155,7 +183,6 @@ export function Profile({ me, refresh }) {
           ]}
         />
       </Panel>
-      <AvatarPicker me={me} refresh={refresh} />
       <Panel title="Closing your account" titleAs="h2">
         <p className="st-inset m-0">
           There is no delete button. Write to admin@poapkings.com, or{" "}
@@ -165,4 +192,74 @@ export function Profile({ me, refresh }) {
       </Panel>
     </div>
   );
+}
+
+/** Your main player as members see it: the picture, the name with its
+ *  mark (gold only while verified), and its page. No player is the
+ *  account's own icon and "New player". */
+function Identity({ me, main, verified }) {
+  const name = main ? (main.name ?? main.player_tag) : null;
+  return (
+    <div className="kit-passport__who">
+      {main ? (
+        <Avatar
+          name={name}
+          tag={main.player_tag}
+          verified={verified}
+          card={verified ? (me?.avatar_card_id ?? null) : null}
+        />
+      ) : (
+        <span className="kit-av kit-av--account" aria-hidden="true">
+          <Icon name="user-round" size={20} />
+        </span>
+      )}
+      <div className="kit-passport__who-main">
+        <span className="kit-passport__who-name">
+          {main ? (
+            <Link className="link" to={playerHref(main.player_tag)}>
+              <PlayerName tag={main.player_tag} verified={verified}>
+                <TagText>{name}</TagText>
+              </PlayerName>
+            </Link>
+          ) : (
+            "New player"
+          )}
+        </span>
+        <span className="kit-passport__who-note">
+          {!main ? (
+            <Link className="link" to={`${SETTINGS}/players#add-player-tag`}>
+              Add your player
+            </Link>
+          ) : verified ? (
+            main.player_tag
+          ) : (
+            "Player not verified"
+          )}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Your passport in one row; the page has the rest. */
+function PassportPreview() {
+  const query = useMyPassport();
+  if (query.isPending)
+    return (
+      <p className="kit-tiny" role="status">
+        Reading your passport…
+      </p>
+    );
+  const env = query.data;
+  if (query.isError || env?.status !== 200 || !env.data?.passport)
+    return (
+      <ErrorState
+        title="Your passport could not be read just now"
+        onRetry={() => query.refetch()}
+        busy={query.isFetching}
+      >
+        Its Stamps are safe. Try again in a moment.
+      </ErrorState>
+    );
+  return <PassportRow summary={summaryOf(env.data.passport)} own />;
 }
