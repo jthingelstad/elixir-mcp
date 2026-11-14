@@ -66,8 +66,8 @@ function Stop({ p }) {
     const still = (p.agents ?? []).length > 0;
     return (
       <ConfirmAction
-        label={p.yours === "watching" ? "Stop watching" : "Stop following"}
-        title={`Stop following ${who}?`}
+        label={p.yours === "watching" ? "Stop watching" : "Unfollow"}
+        title={`Unfollow ${who}?`}
         body={
           <p className="m-0">
             Elixir stops recording <TagText>{who}</TagText> for you. They are
@@ -77,7 +77,7 @@ function Stop({ p }) {
               : "Their slot is free again at once."}
           </p>
         }
-        confirm="Stop following"
+        confirm="Unfollow"
         run={() =>
           api.claimAction({ player_tag: p.player_tag, action: "remove" })
         }
@@ -185,9 +185,9 @@ export function FollowSlots() {
             of a clan Elixir records in full, or a player another account
             followed first, costs nothing, so a clan where everyone follows
             everyone costs the same as one follower. You and your agents share
-            these slots. Stop following someone who uses one to free it; if a
-            free player&rsquo;s reason goes away, they keep recording and start
-            using a slot.
+            these slots. Unfollow someone who uses one to free it; if a free
+            player&rsquo;s reason goes away, they keep recording and start using
+            a slot.
           </p>
         </>
       )}

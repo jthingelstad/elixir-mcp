@@ -49,7 +49,7 @@ function messageFor(r) {
     case "rate_limited":
       return "Too many starts in the last hour. Give it a little while and try again.";
     case "quota_exceeded":
-      return "Your limits have no free place for a new tag. Stop following one under Players & following, or verify a player you already follow.";
+      return "Your limits have no free place for a new tag. Unfollow one under Players & following, or verify a player you already follow.";
     case "not_entitled":
       return "Only a person's account can hold a claim.";
     case "not_yours":

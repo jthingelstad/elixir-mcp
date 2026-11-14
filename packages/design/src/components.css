@@ -8621,6 +8621,22 @@ a.kit-mbattle:hover {
   gap: 8px;
   align-items: center;
 }
+/* The roster's freshness is quiet text beside the actions, as Home's is,
+   not one more pill (2026-11-13). */
+.clan-head__side .kit-fresh > summary {
+  padding-left: 0;
+  background: none;
+}
+/* The picker's "Clan" is for screen readers (2026-11-13): shown, it floated
+   above the select beside Follow; the select's own text names the clan. */
+.clan-head__picker .field-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .clan-head__line {
   color: var(--ink-dim);
   font-size: 13.5px;
@@ -10230,7 +10246,10 @@ a.kit-mbattle:hover {
   }
   /* Design pass three: each tab at least 44px wide, so War and Run are as
      easy to tap as the rest, with the padding taken from the wider ones. */
+  /* Polish (2026-11-13): the row's slack is shared between the tabs, so
+     no two labels sit closer than the rest (Members ran into Policy). */
   .clan-head .kit-tabs__tab {
+    flex: 1 1 auto;
     min-width: var(--hit-touch);
     padding-inline: 4px;
     font-size: 13.5px;

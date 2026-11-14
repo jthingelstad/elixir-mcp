@@ -313,7 +313,7 @@ function Clans({ me, query }) {
         {full ? (
           <p className="panel__body m-0">
             {e?.comprehensive_clans?.limit === 0
-              ? "Your one clan place is in use. Stop following that clan first."
+              ? "Your one clan place is in use. Unfollow that clan first."
               : "Both your places are in use: stop following a clan first."}
           </p>
         ) : (

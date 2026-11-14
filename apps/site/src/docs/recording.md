@@ -99,7 +99,7 @@ in one place: a meter of the slots in use out of your limit, the same
 number every Follow says, then the players using a slot because of you
 (each with who follows them: you, or an agent of yours by name) and,
 apart from them, the free follows with why each is free. A player you
-follow or watch has **Stop following** there; your own players open on
+follow or watch has **Unfollow** there; your own players open on
 Players & following, and a player only your agent follows opens that agent's
 page. A player your agent also follows keeps its slot until the agent stops
 too.
@@ -221,7 +221,7 @@ your clan's news in your digest. The rules:
 - **Never past your slots, never in place of a clan you chose.** If your
   activity clan slot is already in use, nothing changes; Players & following and
   your player's page offer the clan instead, one click to follow.
-- **Never back after you stop.** Stop following that clan and Elixir does
+- **Never back after you stop.** Unfollow that clan and Elixir does
   not follow it for you again; you can still follow it yourself.
 - **It moves with your player.** When your primary joins another clan (or
   you make another player primary), the follow Elixir made moves to the

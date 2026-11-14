@@ -333,7 +333,7 @@ map; it is the same one place.
 
 **Your follow slots** shows the slots in use out of your limit, the same
 number every Follow says, the players using one because of you with
-**Stop following** on each you follow, and the free follows apart
+**Unfollow** on each you follow, and the free follows apart
 ([What a player slot costs](/docs/recording#what-a-player-slot-costs)).
 
 Last, a lens: your main player's latest battle drawn by the battle page

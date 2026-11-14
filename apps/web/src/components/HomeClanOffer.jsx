@@ -62,7 +62,7 @@ export function HomeClanOffer({ className = "" }) {
         </button>
         <span className="mt-[5px] block text-[13px] text-ink-dim">
           {full
-            ? "Your clan slot for recording the clan only is in use, so Elixir did not follow it for you. Stop following that clan first, or keep the one you chose. "
+            ? "Your clan slot for recording the clan only is in use, so Elixir did not follow it for you. Unfollow that clan first, or keep the one you chose. "
             : ""}
           The clan only: its roster, its members coming and going, and its river
           races. The clan and every member also records every member&rsquo;s

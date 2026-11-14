@@ -114,13 +114,13 @@ for (const [label, width] of [
       await noSideways(page);
       await accessible(page, `slot meter ${label}`);
 
-      await using.getByRole("button", { name: "Stop following" }).click();
+      await using.getByRole("button", { name: "Unfollow" }).click();
       const dialog = page.getByRole("dialog", {
-        name: "Stop following Copper Fern?",
+        name: "Unfollow Copper Fern?",
       });
       await expect(dialog).toContainText("Their slot is free again at once.");
       await accessible(page, `stop following ${label}`);
-      await dialog.getByRole("button", { name: "Stop following" }).click();
+      await dialog.getByRole("button", { name: "Unfollow" }).click();
       await expect(dialog).toHaveCount(0);
       expect(posted).toEqual([{ player_tag: "#0VJ2QV", action: "remove" }]);
     });
