@@ -7004,6 +7004,14 @@ button.kit-row {
 .kit-profile__row--wait .kit-step__dot {
   background: var(--panel-raised);
 }
+.kit-profile__passport {
+  margin: 0 0 var(--s-1);
+}
+.kit-profile__passport a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hit);
+}
 .kit-profile__also {
   margin: 0 0 var(--s-1);
   color: var(--ink-dim);

@@ -7,7 +7,6 @@ import { describe, expect, test } from "vitest";
 import {
   EXTRAS,
   followLine,
-  mapHref,
   profileView,
   stampName,
 } from "../src/home/profile-list.js";
@@ -78,8 +77,7 @@ describe("The profile list", () => {
     );
     expect(v.next.id).toBe("map");
     expect(v.next.notNow).toBe(true);
-    expect(v.next.go.to).toBe(mapHref("#0QC8RCGY"));
-    expect(mapHref(null)).toBe("/clan");
+    expect(v.next.go.to).toBe("/clan/0QC8RCGY/members/map");
   });
 
   test("a step Elixir cannot tell yet comes after every step to do", () => {
