@@ -199,7 +199,7 @@ function ScopeBar({
     ? listed
     : [...listed, { key: season.key, name: season.name }];
   return (
-    <div className="ladder-scope">
+    <div className="ladder-scope ladder-scope--frame">
       <div className="ladder-scope__picks">
         <PlayerPick
           player={player}

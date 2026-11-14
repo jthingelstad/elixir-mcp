@@ -4879,6 +4879,15 @@ a.card-art:hover .card-art__img {
 .ladder-scope__fresh {
   margin-left: auto;
 }
+/* The scope's freshness is quiet text, as Home's and Clan's are, not a
+   pill (2026-11-13). */
+.ladder-scope .ladder-scope__fresh > summary {
+  padding-left: 0;
+  background: none;
+}
+.ladder-when {
+  white-space: nowrap;
+}
 /* A row that scrolls fades the edge with more behind it. */
 .kit-tabs[data-more-left],
 .kit-tabs[data-more-right],
@@ -5375,15 +5384,33 @@ a.card-art:hover .card-art__img {
   .ladder-form__value {
     font-size: 17px;
   }
-  /* Two selects side by side, full width, then the chips, every target 44px. */
+  /* Two selects side by side, full width, then the chips, every target 44px.
+     With one player (round two, 2026-11-13) the head's line names them
+     already, so the bar drops the name and is one quiet line: the season
+     select, the battle log's freshness beside it, then the mode chips. */
   .ladder-scope__picks {
     flex-basis: 100%;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .ladder-scope--frame .ladder-scope__picks:has(.ladder-scope__one) {
+    flex-basis: auto;
+    display: flex;
+  }
+  .ladder-scope--frame .ladder-scope__one {
+    display: none;
+  }
   .scope-select {
     width: 100%;
     min-height: 44px;
+  }
+  .ladder-scope--frame
+    .ladder-scope__picks:has(.ladder-scope__one)
+    .scope-select {
+    width: auto;
+  }
+  .ladder-scope .ladder-scope__modes {
+    order: 2;
   }
   /* Mode chips stay on one line; the fade says there are more. */
   .ladder-scope .ladder-scope__modes {
@@ -5406,10 +5433,11 @@ a.card-art:hover .card-art__img {
     min-height: 44px;
   }
   .ladder-scope__fresh {
-    margin-left: 0;
+    margin-left: auto;
   }
   .ladder-scope .ladder-scope__fresh > summary {
     min-height: 44px;
+    padding-right: 0;
   }
   /* The calendar becomes a list of the days, newest first, each naming its
      weekday; the column heads and the week's padding drop out. */
@@ -8649,19 +8677,15 @@ a.kit-mbattle:hover {
    who you are in it, the name in the display face, its line and facts. No
    card, no gold edge: the name and the crest carry the clan. */
 .clan-head__card {
-  display: flex;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "av who side";
+  gap: 8px 16px;
   align-items: center;
   padding: 4px 0 0;
 }
-.clan-head__top {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 0;
+.clan-head__card > .kit-av {
+  grid-area: av;
 }
 .clan-head__role {
   color: var(--ink-dim);
@@ -8674,21 +8698,17 @@ a.kit-mbattle:hover {
   overflow-wrap: anywhere;
 }
 .clan-head__who {
+  grid-area: who;
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 .clan-head__side {
+  grid-area: side;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-}
-/* The roster's freshness is quiet text beside the actions, as Home's is,
-   not one more pill (2026-11-13). */
-.clan-head__side .kit-fresh > summary {
-  padding-left: 0;
-  background: none;
 }
 /* The picker's "Clan" is for screen readers (2026-11-13): shown, it floated
    above the select beside Follow; the select's own text names the clan. */
@@ -8700,9 +8720,48 @@ a.kit-mbattle:hover {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+/* The clan's line wraps only between its parts, never inside one ("invite
+   / only"), and the roster's freshness is its quiet last part, as Home's is
+   on its title line (round two, 2026-11-13). Every part carries its "·"
+   in front; the line starts one separator to the left and clips it, so no
+   line, first or wrapped, ever starts with a dot. */
 .clan-head__line {
+  --clan-sep: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-left: calc(-1 * var(--clan-sep));
+  clip-path: inset(-100vh -100vw -100vh var(--clan-sep));
   color: var(--ink-dim);
   font-size: 13.5px;
+  line-height: 1.5;
+}
+.clan-head__part {
+  white-space: nowrap;
+}
+.clan-head__part::before,
+.clan-head__line > .kit-fresh::before {
+  content: "\00b7";
+  display: inline-block;
+  width: var(--clan-sep);
+  color: var(--ink-faint);
+  text-align: center;
+}
+.clan-head__line > .kit-fresh {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13.5px;
+  /* The summary keeps its 44px target; the row does not grow by it. */
+  margin-block: -12px;
+}
+.clan-head__line .kit-fresh > summary {
+  padding: 0;
+  background: none;
+}
+.clan-head__line .kit-fresh__pop {
+  left: 0;
+  right: auto;
+  max-width: calc(100vw - 32px);
 }
 .clan-head__chips {
   margin-top: 8px;
@@ -8712,18 +8771,55 @@ a.kit-mbattle:hover {
   outline-offset: 2px;
 }
 /* At phone width the head sits tighter, so a page's own content still
-   starts on the first screen. */
+   starts on the first screen: the crest beside the name, then Follow and
+   the picker in one row on the page's gutter. */
 @media (max-width: 760px) {
   .clan-head {
     gap: 6px;
     margin-bottom: 12px;
   }
-  .clan-head__top {
-    row-gap: 6px;
-  }
+  /* Home's density (round two, 2026-11-13): the crest beside the role and
+     name only; the clan's line, its chips and the Follow row all start on
+     the page's gutter. */
   .clan-head__card {
-    align-items: flex-start;
-    gap: 12px;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "av role"
+      "av name"
+      "line line"
+      "chips chips"
+      "side side";
+    align-items: center;
+    gap: 0 12px;
+  }
+  .clan-head__who {
+    display: contents;
+  }
+  .clan-head__role {
+    grid-area: role;
+    align-self: end;
+  }
+  .clan-head__name {
+    grid-area: name;
+    align-self: start;
+  }
+  .clan-head__line {
+    grid-area: line;
+    margin-top: 10px;
+  }
+  .clan-head__chips {
+    grid-area: chips;
+  }
+  .clan-head__side {
+    flex-wrap: nowrap;
+    margin-top: 12px;
+  }
+  .clan-head__side .clan-head__picker {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .clan-head__side .scope-select {
+    width: 100%;
   }
   .clan-head__card .kit-av--crest {
     width: 48px;
@@ -10299,23 +10395,16 @@ a.kit-mbattle:hover {
   }
 }
 
-/* Phone (2026-11-13, design pass two): Clan's tab row fits all six tabs at
-   390px instead of scrolling; the directory's filters each take the full
-   row, and its removal filter folds to two rows instead of hiding half its
-   choices off the edge. */
+/* Phone (2026-11-13): the directory's filters each take the full row, and
+   its removal filter folds to two rows instead of hiding half its choices
+   off the edge. */
 @media (max-width: 480px) {
-  .clan-head .kit-tabs {
-    gap: 0;
-  }
-  /* Design pass three: each tab at least 44px wide, so War and Run are as
-     easy to tap as the rest, with the padding taken from the wider ones. */
-  /* Polish (2026-11-13): the row's slack is shared between the tabs, so
-     no two labels sit closer than the rest (Members ran into Policy). */
+  /* Round two (2026-11-13): six tabs and the Feed's count do not fit 390px
+     without crowding, so the row scrolls with the kit's fade, as every
+     other tab bar does, each tab at least 44px wide. */
   .clan-head .kit-tabs__tab {
-    flex: 1 1 auto;
+    flex: none;
     min-width: var(--hit-touch);
-    padding-inline: 4px;
-    font-size: 13.5px;
     text-align: center;
   }
   .clan-dir__field {

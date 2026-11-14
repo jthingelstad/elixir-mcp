@@ -98,6 +98,44 @@ describe("the clan card", () => {
     expect(screen.queryByRole("list", { name: "This clan" })).toBeNull();
   });
 
+  test("the line: one span per part, Roster read its last part, the actions in their own cell", async () => {
+    vi.spyOn(api, "roster").mockResolvedValue(
+      ok({
+        clan_tag: clan.clan_tag,
+        member_count: 3,
+        type: "inviteOnly",
+        required_trophies: 5000,
+        members: [],
+        meta: { as_of: new Date().toISOString(), freshness_seconds: 300 },
+      }),
+    );
+    vi.spyOn(manageApi, "race").mockResolvedValue(ok({ race: null }));
+    const me = { selected: clan, clans: [clan], policy: { set: false } };
+    const { container } = renderWithProviders(
+      <ClanHead me={me} path="/clan" navigate={vi.fn()} />,
+    );
+    await screen.findByText(/Roster read/);
+    const line = container.querySelector(".clan-head__line");
+    const parts = [...line.querySelectorAll(".clan-head__part")].map(
+      (el) => el.textContent,
+    );
+    // Each part is whole, so the line can only wrap between them.
+    expect(parts.join(" · ")).toBe(
+      clanLine(clan, {
+        member_count: 3,
+        type: "inviteOnly",
+        required_trophies: 5000,
+      }),
+    );
+    expect(parts.length).toBeGreaterThan(1);
+    expect(line.lastElementChild.textContent).toMatch(/Roster read/);
+    const side = container.querySelector(".clan-head__side");
+    // Follow and the picker sit in their own cell of the card, so on a phone
+    // they share one row under the line (Follow itself: e2e follow-this-clan).
+    expect(side.parentElement.classList.contains("clan-head__card")).toBe(true);
+    expect(line.contains(side)).toBe(false);
+  });
+
   test("the race chip names a place only when the read gives one", () => {
     expect(raceChip(null)).toBeNull();
     expect(
