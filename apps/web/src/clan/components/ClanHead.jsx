@@ -24,6 +24,11 @@ const JOIN = {
  *  how it takes members and the trophies it asks. Each part only when the
  *  roster read carries it. */
 export function clanLine(clan, roster) {
+  return lineParts(clan, roster).join(" · ");
+}
+
+/** The line's parts, each kept whole on a phone. */
+function lineParts(clan, roster) {
   const count = roster?.member_count ?? null;
   const floor = roster?.required_trophies ?? null;
   return [
@@ -33,9 +38,7 @@ export function clanLine(clan, roster) {
       : `${count} ${count === 1 ? "member" : "members"}, ${Math.max(0, 50 - count)} open`,
     JOIN[roster?.type] ?? null,
     floor > 0 ? `${n(floor)} trophies to join` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  ].filter(Boolean);
 }
 
 /** The head's chips: the race now, then the rules the leaders saved. Its
@@ -86,30 +89,19 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
           clan
           large
         />
-        <div className="clan-head__top">
-          <div className="clan-head__who">
-            {who ? <p className="clan-head__role m-0">{who}</p> : null}
-            <h1 className="kit-head__title clan-head__name m-0">
-              {clan.name ?? <Tag tag={clan.clan_tag} />}
-            </h1>
-            <p className="clan-head__line m-0">{clanLine(clan, roster)}</p>
-            {racing || ruleChips.length ? (
-              <HeadChips
-                // A new set of chips is a new row: the hint measures again.
-                key={[racing, ...ruleChips.map((c) => c.key)].join("|")}
-                racing={racing}
-                rules={ruleChips}
-              />
-            ) : null}
-          </div>
-          <div className="clan-head__side">
-            <FollowThisClan clanTag={clan.clan_tag} clanName={clan.name} />
-            <ClanPicker
-              me={me}
-              navigate={navigate}
-              select={select}
-              selecting={selecting}
-            />
+        <div className="clan-head__who">
+          {who ? <p className="clan-head__role m-0">{who}</p> : null}
+          <h1 className="kit-head__title clan-head__name m-0">
+            {clan.name ?? <Tag tag={clan.clan_tag} />}
+          </h1>
+          {/* One line that wraps only between its parts, the roster's
+              freshness its quiet last part (2026-11-13). */}
+          <div className="clan-head__line">
+            {lineParts(clan, roster).map((part, i) => (
+              <span key={i} className="clan-head__part">
+                {part}
+              </span>
+            ))}
             {roster?.meta?.as_of ? (
               <FreshChip
                 label="Roster read"
@@ -121,6 +113,23 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
               </FreshChip>
             ) : null}
           </div>
+          {racing || ruleChips.length ? (
+            <HeadChips
+              // A new set of chips is a new row: the hint measures again.
+              key={[racing, ...ruleChips.map((c) => c.key)].join("|")}
+              racing={racing}
+              rules={ruleChips}
+            />
+          ) : null}
+        </div>
+        <div className="clan-head__side">
+          <FollowThisClan clanTag={clan.clan_tag} clanName={clan.name} />
+          <ClanPicker
+            me={me}
+            navigate={navigate}
+            select={select}
+            selecting={selecting}
+          />
         </div>
       </div>
       {clan.verified === false || clan.unlock ? (

@@ -173,11 +173,18 @@ function Summary({ mode, season, body, head }) {
         <Tile
           label="Battles"
           sub={
-            !season.current
-              ? `in ${head.name}`
-              : from
-                ? `since ${when(begins ? body.meta.recorded_since : from)}${begins ? `, when ${whose.your} record begins` : ""}`
-                : null
+            !season.current ? (
+              `in ${head.name}`
+            ) : from ? (
+              // On a phone's narrow tile the line parts only at the
+              // comma, never leaving "since" or a lone "am" behind.
+              <>
+                <SinceWhen
+                  text={when(begins ? body.meta.recorded_since : from)}
+                />
+                {begins ? `, when ${whose.your} record begins` : ""}
+              </>
+            ) : null
           }
         >
           {fmt(w.battles)}
@@ -582,6 +589,17 @@ function SeasonExtras({ player, search }) {
           historyHref={`${SETTINGS}/feedback`}
         />
       ) : null}
+    </>
+  );
+}
+
+export function SinceWhen({ text }) {
+  const cut = text.lastIndexOf(", ");
+  if (cut < 0) return <span className="ladder-when">since {text}</span>;
+  return (
+    <>
+      <span className="ladder-when">since {text.slice(0, cut + 1)}</span>{" "}
+      <span className="ladder-when">{text.slice(cut + 2)}</span>
     </>
   );
 }
