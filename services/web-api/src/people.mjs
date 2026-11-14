@@ -81,10 +81,16 @@ async function metInBattles(db, accountId, days, exclude) {
             max(m.battle_time) as last_met,
             (array_agg(o.clan_tag order by m.battle_time desc))[1] as clan_tag
        from mine m
-       join battle_participant o on o.battle_id = m.battle_id
+       -- OFFSET 0 keeps it a probe of each battle's key: flattened into a
+       -- join, the planner guessed thousands of battles in mine and hashed
+       -- every participant row in the record (13,060 buffers, 2026-11-13).
+       cross join lateral (
+         select o.player_tag, o.side, o.clan_tag from battle_participant o
+          where o.battle_id = m.battle_id
+            and o.player_tag <> all($3::text[])
+            and o.player_tag not in (select player_tag from own)
+         offset 0) o
        join player p on p.player_tag = o.player_tag
-      where o.player_tag <> all($3::text[])
-        and o.player_tag not in (select player_tag from own)
       group by o.player_tag, p.name
       order by (count(*) filter (where o.side <> m.side and m.type = any($4::text[])) > 0) desc,
                (count(*) filter (where o.side = m.side) > 0) desc,

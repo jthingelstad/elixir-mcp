@@ -65,6 +65,8 @@ async function feedItemsFor(db, { accountId, tags, subjects }) {
     interactive: true,
     // Home's feed leaves the account's administration out; so does this.
     accountLines: false,
+    // Items only: no entry, so no late count to read.
+    lateCounts: false,
   });
   return {
     items: (built.timeline ?? []).filter(cheerable),
@@ -190,7 +192,15 @@ export async function cheersReceived(db, accountId, tag, fromMs, toMs) {
   const built = await buildTimeline(
     db,
     [{ kind: "player", tag, relationship: "primary", nickname: null }],
-    { fromMs, toMs, accountId, interactive: true, accountLines: false },
+    {
+      fromMs,
+      toMs,
+      accountId,
+      interactive: true,
+      accountLines: false,
+      // Items only: no entry, so no late count to read.
+      lateCounts: false,
+    },
   );
   const ids = (built.timeline ?? []).filter(cheerable).map((it) => it.id);
   if (ids.length === 0) return 0;
