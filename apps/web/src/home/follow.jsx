@@ -124,7 +124,7 @@ export function followCostLine(c) {
 
 /**
  * Follow, asked first (#764: "Follow from the page always asks first and shows
- * its cost"). One dialog: who, that they are not told, and what it costs, from
+ * its cost"). One dialog: who, that their bell shows it, and what it costs, from
  * the same read as every other Follow. A follow that would take a slot when
  * none is left is not offered; the server refuses it anyway. `cost` is the
  * price when the list read it already: `{ free, following, used, limit }`.
@@ -165,7 +165,8 @@ export function FollowButton({
             ) : (
               <Tag tag={tag} />
             )}
-            . They are not told. Their sessions start in your feed.
+            . If they verified their player on Elixir, their bell shows a new
+            follower. Their sessions start in your feed.
           </p>
           {lazy && !known ? (
             <PricedOnOpen tag={tag} />
@@ -267,7 +268,8 @@ export function FollowAll({
       body={
         <>
           <p className="m-0">
-            Nobody is told. Their sessions start in your feed, and you can stop
+            Anyone who verified their player on Elixir sees a new follower in
+            their bell. Their sessions start in your feed, and you can stop
             following anyone on Players &amp; following.
           </p>
           <p className="kit-tiny" role="status">

@@ -120,7 +120,8 @@ them costs:
 
 Everyone is ticked. Untick anyone you'd rather not follow, then tap
 **Follow these**: it asks once, with what it costs, and follows only the
-ticked players. Nobody is followed until you tap, and nobody is told. It
+ticked players. Nobody is followed until you tap. Anyone who verified
+their player on Elixir sees a new follower in their bell. It
 takes at most 10 of your player slots; free ones don't count. **Not now**
 puts it away for 30 days; if you still follow few after that, it comes
 back. When there is nobody to suggest, it is one line pointing to

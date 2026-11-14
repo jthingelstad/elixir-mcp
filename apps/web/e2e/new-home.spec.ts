@@ -282,7 +282,7 @@ for (const [label, width] of [
       );
       await find.getByRole("tab", { name: "Search" }).click();
       await expect(
-        page.getByText("They aren’t told.", { exact: false }),
+        page.getByText("their bell shows a new follower", { exact: false }),
       ).toBeVisible();
       await noSideways(page);
       await accessible(page, "Find");

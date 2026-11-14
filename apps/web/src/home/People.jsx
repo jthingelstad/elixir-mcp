@@ -534,7 +534,7 @@ export function StarterSet({ query }) {
       ) : null}
       <div className="kit-starter__foot">
         <p className="kit-tiny">
-          Untick anyone you&rsquo;d rather not follow. Nobody is told.{" "}
+          Untick anyone you&rsquo;d rather not follow.{" "}
           <span role="status">{followPlanLine(plan)}</span>
         </p>
         {notNow}

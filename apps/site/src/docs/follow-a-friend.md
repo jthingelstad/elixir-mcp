@@ -31,7 +31,8 @@ On the website:
 Or on **Find** (on the top bar, and a tab on a phone): under **Search**,
 **Follow by player tag** takes the tag and adds
 the player as a friend in one step. It asks for your own player first if you
-have none, and never makes the player your primary. They aren't told.
+have none, and never makes the player your primary. If they verified
+their player on Elixir, their bell shows a new follower ([the bell](/docs/your-account#the-bell)).
 
 ## Find
 
