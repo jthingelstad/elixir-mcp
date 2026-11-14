@@ -61,6 +61,7 @@ import {
 } from "./ladder/ladder.js";
 import { HOME, SIGN_IN, movedTo } from "./lib/moved.js";
 import { FOLLOW_ME, isPlayerPath } from "./lib/player.js";
+import { normTag } from "./lib/tag-url.js";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { Unavailable } from "./shell/Unavailable.jsx";
 import { LadderInvite } from "./ladder/Invite.jsx";
@@ -205,9 +206,11 @@ const POST_PATH = /^\/h\/[a-z2-7]{15}$/;
 /** Which place the bar marks as the one you are in, from the route. A battle's
  *  public page is in no place, nor are Settings' pages: the Search tab opens
  *  a sheet over whichever page you are on. Another player's page and a Follow
- *  me link are Find's (2026-11-13): that is where you look for people. */
-export function barArea(path) {
+ *  me link are Find's (2026-11-13): that is where you look for people. The
+ *  page of one of your own players (your main or an alt) is You's. */
+export function barArea(path, me = null) {
   const clean = path.replace(/(.)\/$/, "$1");
+  if (ownPlayerPath(clean, me)) return "you";
   if (clean === FIND || isPlayerPath(path)) return "find";
   if (clean === YOU) return "you";
   if (isHome(path)) return "home";
@@ -215,6 +218,27 @@ export function barArea(path) {
   if (isLadder(path)) return "you";
   if (isClan(path)) return "clan";
   return undefined;
+}
+
+/** Whether a path is the player page of one of the reader's own players:
+ *  a claim that is the primary or an alt (a friend or a watched player is
+ *  someone else's page). */
+function ownPlayerPath(clean, me) {
+  const m = /^\/home\/player\/([^/,]+)$/.exec(clean);
+  if (!m || !me?.claims?.length) return false;
+  let tag;
+  try {
+    tag = normTag(decodeURIComponent(m[1]));
+  } catch {
+    return false;
+  }
+  return me.claims.some(
+    (c) =>
+      normTag(c.player_tag) === tag &&
+      (c.is_primary ||
+        c.relationship === "primary" ||
+        c.relationship === "alt"),
+  );
 }
 
 /** Find and You (slice 7, #765): pages under /home, which the distribution
@@ -878,7 +902,7 @@ function HomeOutlet() {
         <AppShell
           me={unreachable ? null : me}
           unreachable={unreachable}
-          area={barArea(pathname)}
+          area={barArea(pathname, me)}
         >
           <ErrorBoundary key={pathname}>
             {authed ? (
@@ -985,7 +1009,7 @@ function ConsoleShell() {
         <ShellFrame
           me={unreachable ? null : me}
           unreachable={unreachable}
-          area={barArea(effectivePath)}
+          area={barArea(effectivePath, me)}
         >
           <div
             className={`kit-frame mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}

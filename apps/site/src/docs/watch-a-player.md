@@ -68,5 +68,7 @@ spend your slots. See [Your agents](/docs/agents).
 
 ## Stopping
 
-**Unfollow** on the player's page, or `elixir_follow_player` with
-`action: "remove"`. What was recorded stays recorded.
+**Unfollow** in Settings › Players & following (**Stop watching**, for a
+player you only watch), or `elixir_follow_player` with `action: "remove"`.
+A player you follow also offers it on their page: tap **Following**, then
+**Unfollow**. What was recorded stays recorded.
