@@ -7,7 +7,7 @@ order: 2
 navTitle: "Sign in with Elixir"
 icon: log-in
 lede: "Elixir's family apps sign you in with your Elixir account, and create one if you are new: no consent page, and one grant you can see and end in Settings. Other apps can ask too, for less, and you approve each one."
-reviewed: "2026-11-13 against contract 13.0.0 and JSON API 5.0.0"
+reviewed: "2026-11-14 the profile image in /me (JSON API 5.1.0); 2026-11-13 against contract 13.0.0 and JSON API 5.0.0"
 callout: ["Open it at Settings › Connections & agents", "/settings/connections", "Open Connections & agents"]
 ---
 
@@ -31,7 +31,8 @@ address on a family origin. A family app calls
 [`GET /api/v1/me`](#get-api-v1-me) as you without an hourly limit, and only a
 family app can be given `account:email`, and only when
 it asks. Drop learns who you are, and the players you follow, from
-`GET /api/v1/me`, and your address from `/oauth/userinfo`. It writes
+`GET /api/v1/me`, along with your profile image, and your address from
+`/oauth/userinfo`. It writes
 nothing to Elixir.
 
 ## What you see
@@ -130,9 +131,39 @@ an `x-request-id` header. `data` holds:
   `/oauth/userinfo`'s `sub`, and the same for as long as the account
   lives;
 - `principal`: who they are to Elixir, as an MCP `initialize` says it;
+  its `subject` is their primary player;
 - `players`: the players they follow, with each one's tag, name, clan
-  and who it is to them;
+  and who it is to them. The one with `is_primary` true is who they play
+  as, and `claim_status` is `verified` once they proved it is theirs;
+  its `name` is that player's game name as Elixir last recorded it;
+- `avatar`: their profile image, or `null` when they chose none (below);
 - `email`: only for a family app holding `account:email`.
+
+Names (a game name, a nickname, a clan's name) come exactly as Clash
+Royale sent them. Elixir stores them unchanged and never cleans them, so
+treat each one as untrusted text and escape it where you show it.
+
+### The profile image
+
+`avatar` is the Clash Royale card the person picked in Settings ›
+Profile:
+
+```json
+"avatar": {
+  "card_id": 26000000,
+  "name": "Knight",
+  "art_url": "https://elixir.poapkings.com/assets/cards/26000000.png",
+  "crop": { "x": 43, "y": 40, "scale": 1.39 }
+}
+```
+
+Draw it the way Elixir does, with CSS alone: a box with
+`overflow: hidden` and `border-radius: 50%`, and inside it the image at
+`width: 100%; height: 100%; object-fit: cover`,
+`object-position: <x>% <y>%` and `transform: scale(<scale>)`. The crop is
+Elixir's, so the circle matches the one on Elixir, and it follows when
+Elixir re-tunes a card. Never resize or re-encode the art; when it fails
+to load, show your own placeholder. `name` is for alt text.
 
 `/api/v1` answers nothing else. Elixir has people and their agents, and
 an agent reads through [MCP](/docs/connecting).

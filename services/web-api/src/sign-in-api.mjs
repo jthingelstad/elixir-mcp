@@ -16,6 +16,7 @@ import {
 } from "@elixir-mcp/auth";
 import { describeIdentity, principalBlock } from "@elixir-mcp/tools/identity";
 import { myPlayers } from "@elixir-mcp/record/players";
+import { avatarCrop } from "@elixir-mcp/ui/avatar-crops";
 import contract from "@elixir-mcp/contracts/integration-api.openapi.json" with { type: "json" };
 import { json, bearer } from "./http.mjs";
 
@@ -25,6 +26,10 @@ const API_RESOURCE = "https://elixir.poapkings.com/api/v1";
 /** A person calling through a third-party OAuth client: metered per
  *  account per hour. First-party clients are not (Jamie, 2026-09-23). */
 const PERSON_HOURLY_LIMIT = 600;
+
+/** Where the card art lives: Elixir's mirror, on Elixir's own origin, so
+ *  an app on another origin draws the same file Elixir does. */
+const ORIGIN = new URL(API_RESOURCE).origin;
 
 /** Where a problem's `type` points: the page that lists the codes. */
 const DOCS = "https://elixir.poapkings.com/docs/sign-in-with-elixir";
@@ -127,15 +132,39 @@ export function apiProblem(status, code, requestId, detail, retryAfter) {
   );
 }
 
+/** The account's profile image (5.1.0), or null when it has none: the
+ *  card, its name, the art's address and where Elixir crops it, so an app
+ *  draws the circle Elixir draws without Elixir's crop table. */
+async function avatarOf(db, accountId) {
+  const { rows } = await db.query(
+    `select a.avatar_card_id, c.name
+       from account a
+       left join card c on c.card_id = a.avatar_card_id
+      where a.account_id = $1`,
+    [accountId],
+  );
+  const id = rows[0]?.avatar_card_id;
+  if (id == null) return null;
+  const { x, y, scale } = avatarCrop(id);
+  return {
+    card_id: id,
+    name: rows[0].name ?? null,
+    art_url: `${ORIGIN}/assets/cards/${id}.png`,
+    crop: { x, y, scale },
+  };
+}
+
 /** Who the signed-in person is: the principal block MCP initialize
  *  carries, the account id (userinfo's `sub`, stable for the account's
- *  life, 5.0.0), the players they follow, and for a family app holding
- *  account:email the address (2.1.0), as at /oauth/userinfo. */
+ *  life, 5.0.0), the players they follow, the profile image (5.1.0), and
+ *  for a family app holding account:email the address (2.1.0), as at
+ *  /oauth/userinfo. */
 async function me(db, account) {
   return {
     account_id: account.accountId,
     principal: principalBlock("person", await describeIdentity(db, account)),
     players: await myPlayers(db, account.accountId),
+    avatar: await avatarOf(db, account.accountId),
     ...(account.firstParty && (account.scopes ?? []).includes("account:email")
       ? {
           email:
