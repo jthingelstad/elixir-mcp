@@ -99,7 +99,6 @@ const EXTRA = [
     /^\/examples\//,
     ["_data/examples.js", "_data/examplesFlat.js", "_data/transcript.js"],
   ],
-  [/^\/family(\/|$)/, ["_data/family.js", "_data/familyFlat.js"]],
   // The agent exchange (doc-demo.njk) is drawn from the examples.
   [
     /^\/docs\/connect-a-client$/,

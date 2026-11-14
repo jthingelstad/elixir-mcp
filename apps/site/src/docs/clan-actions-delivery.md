@@ -39,7 +39,7 @@ again.
   from Discord; whether a leader may one day act from Discord (deciding an
   action, a member marking themselves away) is deliberately left open
   while we learn what clans do there. Clan does not answer questions in
-  Discord either: conversation is the [Discord bot](/family/discord)'s,
+  Discord either: conversation is the [Discord bot](/docs/agents)'s,
   which a clan runs on its own keys.
 - Actions already open when the webhook is connected are posted too; one
   that closes before it was ever posted is not.

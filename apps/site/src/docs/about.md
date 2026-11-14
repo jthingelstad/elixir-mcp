@@ -7,7 +7,7 @@ order: 1
 navTitle: "Welcome"
 icon: info
 lede: "Follow your friends and your clan, see how they play, and cheer them on."
-reviewed: "2026-11-13 the social layer first; 2026-10-12 who writes the words"
+reviewed: "2026-11-14 the Discord bot links to Building an agent, the family pages are gone; 2026-11-13 the social layer first; 2026-10-12 who writes the words"
 callout: ["Open it at Status and data", "/data", "Status and data"]
 ---
 
@@ -72,7 +72,7 @@ Elder band and the actions leaders decide, using your clan's own policy.
 [Stats](/home/you/stats) explores your own play, mode by mode.
 [Elixir Drop](https://drop.poapkings.com) is a separate elixir-cost learning
 game. A clan can also run its own
-[Discord bot](/family/discord), an agent that reads its game facts from
+[Discord bot](/docs/agents), an agent that reads its game facts from
 this service. The code is public. Start at
 [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp);
 the [Architecture](/docs/architecture) page maps the related repos.

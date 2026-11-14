@@ -1,5 +1,10 @@
 # The record
 
+*2026-11-13: Elixir keeps a year (DECISIONS "Elixir keeps a year;
+operational logs 28 days"): recorded history goes one year after it
+happened, followed or not; principle 5's 'a year after its last
+follower leaves' no longer holds alone.*
+
 *Rewritten 2026-11-13 to the social layer, from the brief Jamie ratified
 on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
 [DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Ratified by Jamie, 2026-11-13

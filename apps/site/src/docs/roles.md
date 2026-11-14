@@ -7,7 +7,7 @@ order: 30
 navTitle: "Roles"
 icon: shield-check
 lede: "What each role records for you, never what you may read."
-reviewed: "2026-10-12 roles are earned in the game, the collector points economy retired; a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup"
+reviewed: "2026-11-14 partner is community-scale slots and budgets on MCP, the quota rows say follow, two kinds of principal, one MCP endpoint each; 2026-10-12 roles are earned in the game, the collector points economy retired; a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup"
 callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"]
 ---
 
@@ -31,9 +31,9 @@ their agents, a member's away only to the clan's leaders.
 
 | Quota | member | leader | family | partner | admin | owner |
 |---|---|---|---|---|---|---|
-| Player recordings | 50 | 50 | 50 | 50 | unlimited | unlimited |
-| Clan watches, the clan only | 1 | 1 | 3 | 10 | unlimited | unlimited |
-| Clan watches, every member | none | 1 | 3 | 5 | unlimited | unlimited |
+| Players you follow | 50 | 50 | 50 | 50 | unlimited | unlimited |
+| Clans you follow, the clan only | 1 | 1 | 3 | 10 | unlimited | unlimited |
+| Clans you follow, every member | none | 1 | 3 | 5 | unlimited | unlimited |
 | Tool calls / day | 500 | 2,000 | 5,000 | 15,000 | unlimited | unlimited |
 | Live CR fetches / day | 20 | 100 | 250 | 1,000 | unlimited | unlimited |
 | Agents | 3 | 5 | 10 | 25 | unlimited | unlimited |
@@ -63,10 +63,9 @@ each clan keeps its own policy, standing, Actions and awards, and you
 switch between the clans your own players (your primary and alts) are
 in. A clan you only record or watch does not appear there.
 
-**partner**: full access to Elixir's API surface, granted by the
-maintainer for serious tooling (a clan bot, a community service).
-Community-scale slots and budgets, and an expectation: partners run a
-collector. At this scale you should be adding capacity to the fleet, not
+**partner**: community-scale slots and budgets on MCP, granted by the
+maintainer for serious tooling (a clan bot, a community service). It
+comes with an expectation: partners run a collector. At this scale you should be adding capacity to the fleet, not
 only consuming it.
 
 **admin**: runs Admin day-to-day: answers feedback,
@@ -77,9 +76,12 @@ removes partner. Unlimited quotas, exempt from every cap.
 plus granting or revoking the admin role and running the collector
 fleet. No admin can change the owner's account, or another admin's.
 
-## Three kinds of principal
+## Two kinds of principal
 
-Not everything that calls Elixir is a person.
+Not everything that calls Elixir is a person. There are two kinds, and
+each has one MCP endpoint: you have `/mcp`, for your own agent, and a
+clan's agent has its own, `/a/<public_id>/mcp`
+([Building an agent](/docs/agents#connect-it)).
 
 **You** are a person. You sign in with your email and connect the apps you
 choose (Claude, ChatGPT and others) over OAuth; the tools answer about *your* players, your clans, your
