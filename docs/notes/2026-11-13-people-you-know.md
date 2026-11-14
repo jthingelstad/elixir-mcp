@@ -81,7 +81,7 @@ that seed (`PEOPLE_BUFFERS=1`):
 Most of the starter's buffers are the clanmates' last battles, one probe
 each on the same cover index.
 
-## Making it automatic later
+## Automatic following: decided against
 
 Pre-checked by design today. Following the set without the tap is one
 call where the account's first read lands (or on a Home read that finds
@@ -89,4 +89,8 @@ call where the account's first read lands (or on a Home read that finds
 (await starterSet(db, id)).people.map((p) => p.tag)), liveRead)` in
 `services/web-api/src/routes/player.mjs`, the loop the follow-all route
 already runs, with the panel turned into a notice of who was followed.
-That is a product call, not made here.
+Decided 2026-11-13: the set stays pre-checked with one confirmed Follow
+these, never followed automatically (a follow shows in the other person's
+bell, so automatic would announce a new account to people without its
+choosing). Jamie agreed with that recommendation; DECISIONS, "Home
+suggests follows to anyone following few".

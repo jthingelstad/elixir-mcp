@@ -30,7 +30,9 @@ The page's "hitpoints left" sums a missing value as 0 already. Home's
 session games and the timeline's evidence (`packages/tools/src/activity/
 entries.mjs`) read round crowns, never a King value. MCP's
 `battles_query` still serves a round's `tower_hp` without `king` for that
-side: unchanged here, a question for a follow-up.
+side, as recorded. Decided 2026-11-13: it stays as recorded and does not
+say the King fell (Jamie agreed with that recommendation; DECISIONS, "A
+duel game's left-out King Tower reads fallen").
 
 The battle page's towers note says, under a duel game, that a King Tower
 shows as destroyed when the other side took three crowns in that game;
