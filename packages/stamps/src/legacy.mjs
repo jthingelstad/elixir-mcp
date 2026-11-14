@@ -47,13 +47,15 @@ const iso = (v) => (v ? new Date(v).toISOString() : null);
 /**
  * The launch as it applies to one account: { launched_at (ISO), pre
  * (the account was made before launch), settled (its setup Stamps were
- * already settled as of launch) }, or null when there is no launch row
+ * already settled as of launch), history (the operator's backfill has
+ * read its ladder history before launch, 0273) }, or null when there is no launch row
  * (a database before 0272) or no such account.
  */
 export async function readLaunch(db, accountId) {
   const { rows } = await db.query(
     `select l.launched_at, (a.created_at < l.launched_at) as pre,
-            (p.legacy_settled_at is not null) as settled
+            (p.legacy_settled_at is not null) as settled,
+            (p.legacy_history_at is not null) as history
        from passport_launch l
        join account a on a.account_id = $1::uuid
        left join account_passport p on p.account_id = a.account_id`,
@@ -65,6 +67,7 @@ export async function readLaunch(db, accountId) {
     launched_at: iso(r.launched_at),
     pre: r.pre === true,
     settled: r.settled === true,
+    history: r.history === true,
   };
 }
 
@@ -249,6 +252,13 @@ async function ladderLevelsAt(db, accountId, stampIds, at) {
  * Split grants by the launch line: { legacy, ordinary }. Ladder levels
  * the pre-launch facts reach are legacy; setup Stamps are ordinary here
  * (settleLegacy has already filed the ones that stood at launch).
+ *
+ * For an account made before launch whose ladder history the backfill
+ * has not read yet (0273), a ladder level that is not legacy is neither:
+ * it waits. History not yet read (an older friendly, a highlight, a
+ * cheer) may reach that level before launch, and an ordinary grant, a
+ * bell line, can never be refiled. The facts stay; the account's next
+ * earning call after the backfill grants it.
  */
 export async function splitByLaunch(db, accountId, grants, line) {
   if (!line?.pre || !grants.length) return { legacy: [], ordinary: grants };
@@ -264,8 +274,11 @@ export async function splitByLaunch(db, accountId, grants, line) {
   const at = await ladderLevelsAt(db, accountId, ladders, line.launched_at);
   const legacy = [];
   const ordinary = [];
-  for (const g of grants)
-    ((at.get(g.stamp_id) ?? 0) >= g.level ? legacy : ordinary).push(g);
+  const ladder = new Set(ladders);
+  for (const g of grants) {
+    if ((at.get(g.stamp_id) ?? 0) >= g.level) legacy.push(g);
+    else if (!ladder.has(g.stamp_id) || line.history) ordinary.push(g);
+  }
   return { legacy, ordinary };
 }
 

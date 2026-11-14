@@ -7,7 +7,8 @@ through hooks, the owner's reconciliation repairs and grants the rest,
 and a new Stamp is one line in the bell. History before launch is
 "Earned before <launch day>" and never a bell line: migration 0272 stores
 the launch instant, every grant path files what predates it as legacy,
-an account made before launch gets one "Your passport is ready" line,
+an account made before launch gets one "Your passport is ready" line
+(its ladder Stamps wait until the backfill has read its history, 0273),
 and the operator's `{passport_backfill}` adds the history no live path
 reads (docs/OPERATIONS.md, Passport launch backfill). No page shows a
 passport yet and Home has no profile list. The clickable sample is in
