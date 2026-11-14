@@ -65,6 +65,8 @@ for (const width of [390, 1280]) {
             ["find-directory", "/home/find", "h1"],
             ["find-link", "/home/find", "h1"],
             ["home-cheers", "/home", ".kit-feed__item"],
+            ["site-signed", "/", "h1"],
+            ["docs-signed", "/docs", "h1"],
           ]
         : []),
     ]) {
@@ -73,6 +75,19 @@ for (const width of [390, 1280]) {
         !process.env.ELIXIR_DESIGN_SCENES.split(",").includes(name!)
       )
         continue;
+      if (name!.endsWith("-signed")) {
+        await page.goto("/home");
+        await expect(page.locator(".kit-feed__item").first()).toBeVisible();
+        await expect
+          .poll(() =>
+            page.evaluate(
+              () =>
+                JSON.parse(localStorage.getItem("elixir.session") ?? "null")
+                  ?.name,
+            ),
+          )
+          .toBe("King Thing");
+      }
       await page.goto(url!);
       await expect(page.locator(ready!).first()).toBeVisible();
       const tab = {

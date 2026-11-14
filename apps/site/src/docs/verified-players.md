@@ -24,3 +24,8 @@ a follow, nickname or clan role cannot grant it.
 [Verify your player](/docs/verify) to prove it is yours.
 [Your profile image](/docs/your-account#your-profile-image) is a separate
 choice. Linking Discord has its own badge on the player page.
+
+
+The site and Docs show your player after a recent app visit. Otherwise,
+their header uses a generic account icon. Open Elixir to see your player’s
+current state.

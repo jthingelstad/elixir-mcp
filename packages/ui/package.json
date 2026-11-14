@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./avatar-crops": "./src/avatar-crops.ts",
     "./shell.json": "./src/shell.json",
-    "./time": "./src/time.ts"
+    "./time": "./src/time.ts",
+    "./verification-mark.json": "./src/verification-mark.json"
   },
   "scripts": {
     "test": "vitest run"

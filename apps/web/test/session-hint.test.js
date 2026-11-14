@@ -43,3 +43,30 @@ test("a hint lasts the session's sliding window", () => {
   const now = Date.UTC(2026, 10, 5);
   expect(sessionHint({ claims: [] }, now).until).toBe(now + 30 * 86_400_000);
 });
+
+test("the static identity carries explicit recent proof, never an art/role inference", () => {
+  const now = Date.UTC(2026, 10, 14);
+  const me = {
+    claims: [
+      {
+        is_primary: true,
+        player_tag: "#00C298UC",
+        name: "Ada",
+        status: "unverified",
+      },
+    ],
+    avatar_card_id: 26000000,
+    role: "leader",
+  };
+  const plain = sessionHint(me, now);
+  expect(plain.verified).toBe(false);
+  expect(plain.identity_until).toBe(now + 5 * 60_000);
+  const proof = sessionHint(
+    { ...me, player_verifications: { "#00C298UC": true } },
+    now,
+  );
+  expect(proof.verified).toBe(true);
+  expect(
+    sessionHint({ claims: [{ is_primary: true, name: "Ada" }] }, now).verified,
+  ).toBeUndefined();
+});

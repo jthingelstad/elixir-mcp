@@ -16,7 +16,19 @@
     if (!hint || !(hint.until > Date.now())) return;
     const root = document.documentElement;
     root.setAttribute("data-session", "in");
-    if (typeof hint.name !== "string" || !hint.name) return;
+    // Never paint a named player as unverified merely because an old hint
+    // lacks proof. A stale/legacy hint keeps navigation, with a generic account.
+    if (
+      !(hint.identity_until > Date.now()) ||
+      typeof hint.verified !== "boolean" ||
+      typeof hint.name !== "string" ||
+      !hint.name
+    )
+      return;
+    root.setAttribute(
+      "data-session-player",
+      hint.verified ? "verified" : "unverified",
+    );
     const words = hint.name.trim().split(/\s+/).filter(Boolean);
     const initials =
       words.length > 1

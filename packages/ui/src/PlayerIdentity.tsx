@@ -1,3 +1,4 @@
+import mark from "./verification-mark.json" with { type: "json" };
 import { createContext, useContext, type ReactNode } from "react";
 
 export type PlayerVerifications = Readonly<Record<string, boolean>>;
@@ -22,20 +23,17 @@ export function VerifiedMark() {
     <svg
       className="kit-verified"
       role="img"
-      aria-label="Verified player"
-      viewBox="0 0 16 16"
+      aria-label={mark.label}
+      viewBox={mark.viewBox}
     >
-      <path
-        fill="currentColor"
-        d="m8 0 2 2 3-.1.1 3L16 8l-2.9 3.1-.1 3-3-.1L8 16l-2-2-3 .1-.1-3L0 8l2.9-3.1.1-3 3 .1Z"
-      />
+      <path fill="currentColor" d={mark.badge} />
       <path
         fill="none"
         stroke="var(--ground)"
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="m4.5 8 2.2 2.2 4.8-4.5"
+        d={mark.check}
       />
     </svg>
   );

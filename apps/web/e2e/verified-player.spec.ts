@@ -1,6 +1,6 @@
 import { PNG } from "./test-art.ts";
 import { expect, test } from "@playwright/test";
-import { mockApi } from "./fixtures.ts";
+import { ME, mockApi } from "./fixtures.ts";
 import { homeApi } from "./home-fixture.ts";
 import { FIND } from "./find-fixture.ts";
 import { ADA } from "./player-fixture.ts";
@@ -67,4 +67,86 @@ test("phone identities: proof survives missing art; art alone cannot create a ve
     page.getByRole("heading", { name: "Ada Verified player", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".kit-phead .kit-av--verified")).toHaveText("AD");
+});
+
+test("static headers use recent explicit proof, fall back when stale, and add no session request", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.install();
+  let verified = true;
+  let sessionReads = 0;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/me") sessionReads++;
+  });
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me": () => [
+        200,
+        {
+          ...ME,
+          claims: ME.claims.map((c) => ({
+            ...c,
+            status: verified ? "verified" : "unverified",
+          })),
+          player_verifications: { "#20JJJ2CCRU": verified },
+        },
+      ],
+    }),
+  );
+  const openFromApp = async () => {
+    await page.goto("/home");
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            JSON.parse(localStorage.getItem("elixir.session") ?? "null")
+              ?.verified,
+        ),
+      )
+      .toBe(verified);
+    // Tear down Home before counting: its observers can finish a session
+    // refresh after the hint is written. Those are not static-page reads.
+    await page.goto("about:blank");
+    const before = sessionReads;
+    await page.goto("/docs");
+    expect(sessionReads).toBe(before);
+  };
+  await openFromApp();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-session-player",
+    "verified",
+  );
+  const account = page.locator("a.kit-top__avatar");
+  await expect(account).toHaveAccessibleName(/King Thing.*Verified player/);
+  await expect(account.locator(".chrome__avatar")).not.toHaveCSS(
+    "box-shadow",
+    "none",
+  );
+  await page.clock.fastForward(6 * 60_000);
+  await page.goto("/docs/your-account");
+  await expect(page.locator("html")).not.toHaveAttribute(
+    "data-session-player",
+    "verified",
+  );
+  await expect(
+    page.locator("a.kit-top__avatar .chrome__avatar > svg"),
+  ).toBeVisible();
+  await expect(page.locator("a.kit-top__avatar")).not.toHaveAccessibleName(
+    /King Thing/,
+  );
+  verified = false;
+  await openFromApp();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-session-player",
+    "unverified",
+  );
+  await expect(page.locator("a.kit-top__avatar")).toHaveAccessibleName(
+    /King Thing/,
+  );
+  await expect(page.locator("a.kit-top__avatar .chrome__avatar")).toHaveCSS(
+    "box-shadow",
+    "none",
+  );
 });

@@ -139,7 +139,7 @@ test.describe("at computer width", () => {
     expect(Math.abs(fill / whole - 0.5)).toBeLessThan(0.02);
   });
 
-  test("Stats' scope stays on one line, and its names are only names", async ({
+  test("Stats' scope aligns on one line with shared 44px controls", async ({
     page,
   }) => {
     await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
@@ -159,7 +159,7 @@ test.describe("at computer width", () => {
           ((c?.y ?? 99) + (c?.height ?? 0) / 2),
       ),
     ).toBeLessThan(4);
-    expect(s?.height).toBe(36);
+    expect(s?.height).toBe(44);
   });
 });
 
