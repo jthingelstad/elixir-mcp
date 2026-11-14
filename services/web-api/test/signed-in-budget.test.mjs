@@ -21,6 +21,9 @@ import { makeHandler } from "../src/handler.mjs";
 import { createClanRequest } from "../src/clan.mjs";
 import { makeDatabase } from "@elixir-mcp/http/database";
 import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
+import { makeRegistry } from "@elixir-mcp/tools";
+import { makeRecordReader } from "@elixir-mcp/tools/invoker";
+import { memberParticipation } from "@elixir-mcp/tools/tools/clans";
 import {
   LARGE,
   captureStatements,
@@ -828,7 +831,9 @@ test("a batched timeline is the one each subject read alone makes", async () => 
  * key on purpose, to keep its index-only scans.
  */
 const CLAN = [
-  ["/manage", { refresh: "1" }, 61, 30000],
+  // One statement more since 2026-11-13: it keeps its participation read
+  // for a cold Awards (ledger participation#).
+  ["/manage", { refresh: "1" }, 62, 30000],
   ["/manage", {}, 13, 300],
   ["/history", {}, 25, 1700],
   ["/run", {}, 6, 300],
@@ -840,7 +845,9 @@ const CLAN = [
   ["/social", {}, 9, 300],
   ["/map", {}, 21, 1700],
   ["/me/away", {}, 11, 300],
-  ["/members/<leader>/activity", {}, 68, 15000],
+  // Reads the member's own part of the clan's participation
+  // (memberParticipation), not the whole clan's.
+  ["/members/<leader>/activity", {}, 52, 3000],
 ];
 
 test("Clan's other pages stay in their budgets, and the Map reads its places in one statement", async () => {
@@ -962,4 +969,112 @@ test("every fix answers what the statement it replaced answered", async () => {
     }
     assert.ok(compared > 0, `${o.name}: no statement ran to compare`);
   }
+});
+
+/**
+ * A cold Awards (its snapshot gone, no refresh) right after the clan's
+ * evaluation judges from that evaluation's participation read: none of
+ * the participation tool's statements, a few hundred buffers where it
+ * read about 21,000 alone.
+ */
+test("a cold Awards judges from the participation the clan's evaluation read", async () => {
+  const base = `/api/clan/clans/${seed.clanTag.slice(1)}`;
+  await read(
+    "/manage (evaluated)",
+    `${base}/manage`,
+    { query: { refresh: "1" } },
+    {
+      statements: 62,
+      buffers: 30000,
+    },
+  );
+  await seed.db.query("delete from clan_state where pk = $1", [
+    `awards_snapshot#${seed.clanTag}`,
+  ]);
+  const cold = await read(
+    "/awards (cold)",
+    `${base}/awards`,
+    {},
+    {
+      statements: 30,
+      buffers: 1000,
+    },
+  );
+  assert.equal(cold.body.cached, false, "Awards evaluated");
+  assert.ok(
+    !cold.seen.some((s) =>
+      /from \(select distinct unnest\(\$1::text\[\]\) as player_tag\) t/.test(
+        s.text,
+      ),
+    ),
+    "no participation read",
+  );
+});
+
+/**
+ * The member drill-down's slice of clans_participation is the tool's own
+ * answer for that member: the window, the war weeks and the member's row,
+ * for every member of the clan and a player who is in none of it. Only
+ * the read's instant (`as_of`, the current week's `covers.to`) differs.
+ */
+test("a member's part of the participation is the tool's answer for that member", async () => {
+  const account = {
+    accountId: seed.accountId,
+    kind: "person",
+    role: "member",
+    timezone: null,
+  };
+  const reader = makeRecordReader({
+    db: seed.db,
+    account,
+    registry: makeRegistry(),
+    surface: "web",
+  });
+  const r = await reader("clans_participation", {
+    clan_tag: seed.clanTag,
+    weeks: 4,
+  });
+  assert.ok(!r.isError, JSON.stringify(r.body));
+  const instant = (weeks) =>
+    weeks.map((w) =>
+      w.covers ? { ...w, covers: { ...w.covers, to: null } } : w,
+    );
+  const tags = [...r.body.members.map((m) => m.player_tag), "#0GRJCUV"];
+  for (const tag of tags) {
+    const mine = await memberParticipation(
+      seed.db,
+      account,
+      seed.clanTag,
+      tag,
+      4,
+    );
+    const row = r.body.members.find((m) => m.player_tag === tag);
+    assert.deepEqual(
+      {
+        clan_tag: mine.clan_tag,
+        weeks: instant(mine.weeks),
+        war_weeks: mine.war_weeks,
+        members: mine.members,
+      },
+      {
+        clan_tag: r.body.clan_tag,
+        weeks: instant(r.body.weeks),
+        war_weeks: r.body.war_weeks,
+        members: row
+          ? [
+              {
+                player_tag: row.player_tag,
+                joined_observed_at: row.joined_observed_at,
+                last_battle_time_in_clan: row.last_battle_time_in_clan,
+                war_decks: row.war_decks,
+                war_points: row.war_points,
+              },
+            ]
+          : [],
+      },
+      tag,
+    );
+    assert.ok(Number.isFinite(Date.parse(mine.meta.as_of)));
+  }
+  assert.ok(r.body.members.length >= 10, "a full clan");
 });

@@ -11,6 +11,13 @@ import { isDeepStrictEqual } from "node:util";
  *   policy#<clan>#v<n>       one immutable version: values, who, when
  *   verdicts#<clan>          the latest verdict snapshot (small; evidence
  *                            summaries, never Elixir payloads)
+ *   participation#<clan>     the participation read the latest evaluation
+ *                            judged from (the record's own weekly facts,
+ *                            read as a member of the clan; no account's
+ *                            data), and when it was read: a cold Awards
+ *                            judges from it while it is younger than an
+ *                            evaluation's TTL rather than read it again
+ *                            (2026-11-13). Overwritten by each read
  *   action_seq#<clan>        the clan's action counter: every action gets
  *                            the next number, so people can say "action
  *                            37" (2026-09-25)
@@ -276,6 +283,19 @@ export function ledgerOver(io) {
       // A clan evaluated under a policy is on the morning's list (a policy
       // saved before the list existed joins at its next evaluation).
       await scheduleClan(clanTag);
+    },
+    async latestParticipation(clanTag) {
+      const item = await io.get(`participation#${clanTag}`);
+      return item ? { read_at: item.read_at, body: item.body } : null;
+    },
+    async saveParticipation(clanTag, { read_at, body }) {
+      await io.put({
+        pk: `participation#${clanTag}`,
+        gsi1pk: clanKey(clanTag),
+        gsi1sk: "participation#latest",
+        read_at,
+        body,
+      });
     },
     // ---- cards ---------------------------------------------------------
     async cards(clanTag) {

@@ -11,6 +11,7 @@ import {
 import { isoWeekLabel, isoWeekStart } from "../time.mjs";
 import {
   MEMBERS_SQL,
+  MEMBER_SQL,
   FORMER_MEMBERS_SQL,
   participationQueries,
   rosterHistoryQueries,
@@ -110,6 +111,123 @@ async function stintStarts(db, clanTag, tags) {
     out.set(tag, { start, first: new Date(list[0].joined_observed_at) });
   }
   return out;
+}
+
+/** The ISO weeks a participation read covers at `now`, the current
+ *  partial week last, and where the window starts. */
+function participationWeeks(now, weeks) {
+  const thisWeekStart = isoWeekStart(now);
+  const from = new Date(thisWeekStart.getTime() - (weeks - 1) * 7 * 86400_000);
+  const weekBounds = [];
+  for (let i = 0; i < weeks; i += 1) {
+    const start = new Date(from.getTime() + i * 7 * 86400_000);
+    const end = new Date(start.getTime() + 7 * 86400_000);
+    weekBounds.push({
+      iso_week: isoWeekLabel(start),
+      from: start.toISOString(),
+      to: end.toISOString(),
+      // The mark every clipped bucket carries (4.0.0; complete before):
+      // the current ISO week is the one the window clips.
+      ...(end > now
+        ? {
+            partial: true,
+            covers: { from: start.toISOString(), to: now.toISOString() },
+          }
+        : {}),
+    });
+  }
+  return { from, weekBounds };
+}
+
+/** The war weeks a participation read lists, as it serves them. The
+ *  finish under each (Gym #110): decks played after the boat crossed earn
+ *  nothing, so war_points over war_decks is not a rate on a finished
+ *  week. The same helper war_history uses. */
+async function participationWarWeeks(db, clanTag, rows) {
+  const finishDays = await finishWarDays(db, clanTag, rows);
+  const finishedEarly = (w) =>
+    w.is_colosseum || w.finished_observed_at === null
+      ? null
+      : finishDays.has(weekKey(w));
+  const shaped = rows.map((w) => ({
+    season_id: w.season_id,
+    section_index: w.section_index,
+    is_colosseum: w.is_colosseum,
+    started_observed_at: w.started_observed_at?.toISOString() ?? null,
+    finished_observed_at: w.finished_observed_at?.toISOString() ?? null,
+    finished_early: finishedEarly(w),
+    finish_war_day: finishDays.get(weekKey(w)) ?? null,
+  }));
+  return { finishDays, finishedEarly, shaped };
+}
+
+/**
+ * One current member's part of clans_participation, for Clan's member
+ * drill-down (2026-11-13): the window's weeks and war weeks, and the
+ * member's own row's current stint, last battle in the clan and war
+ * decks and points, each from the code the tool serves them with, and the
+ * read's `meta.as_of`. The tool reads the whole clan's eight columns, its
+ * former members and its coverage (about 11,700 buffers on a full clan)
+ * for this one row. The same entitlement as the tool; `members` is empty
+ * when the player has no open membership here. Web shape (objects).
+ */
+export async function memberParticipation(
+  db,
+  account,
+  inputTag,
+  playerTag,
+  weeks,
+) {
+  const clanTag = await entitledClan(db, account, inputTag);
+  const now = new Date();
+  const { from, weekBounds } = participationWeeks(now, weeks);
+  const {
+    rows: [m],
+  } = await db.query(MEMBER_SQL, [clanTag, playerTag]);
+  const reads = participationQueries({
+    clanTag,
+    tags: m ? [m.player_tag] : [],
+    from,
+    rankedTypes: typesForModeGroup("ranked"),
+  });
+  const run = (name) => {
+    const q = reads.find((r) => r.name === name);
+    return db.query(q.text, q.values);
+  };
+  const warWeeks = await run("war_weeks");
+  const { shaped } = await participationWarWeeks(db, clanTag, warWeeks.rows);
+  const members = [];
+  if (m) {
+    const part = new Map(
+      (await run("war_participation")).rows.map((r) => [
+        `${r.season_id}|${r.section_index}`,
+        r,
+      ]),
+    );
+    const of = (w) => part.get(`${w.season_id}|${w.section_index}`);
+    const stint = (await stintStarts(db, clanTag, [m.player_tag])).get(
+      m.player_tag,
+    );
+    const joined =
+      stint?.start ??
+      (m.joined_observed_at ? new Date(m.joined_observed_at) : null);
+    members.push({
+      player_tag: m.player_tag,
+      joined_observed_at: joined?.toISOString() ?? null,
+      last_battle_time_in_clan: m.last_battle_in_clan
+        ? new Date(m.last_battle_in_clan).toISOString()
+        : null,
+      war_decks: warWeeks.rows.map((w) => of(w)?.decks_used ?? null),
+      war_points: warWeeks.rows.map((w) => of(w)?.points ?? null),
+    });
+  }
+  return {
+    clan_tag: clanTag,
+    weeks: weekBounds,
+    war_weeks: shaped,
+    members,
+    meta: { as_of: new Date().toISOString() },
+  };
 }
 
 async function joinedMidWindowNote(
@@ -747,28 +865,7 @@ export const clansTools = {
           "elixir_follow_clan({ clan_tag }) starts recording it.",
         );
       const now = new Date();
-      const thisWeekStart = isoWeekStart(now);
-      const from = new Date(
-        thisWeekStart.getTime() - (weeks - 1) * 7 * 86400_000,
-      );
-      const weekBounds = [];
-      for (let i = 0; i < weeks; i += 1) {
-        const start = new Date(from.getTime() + i * 7 * 86400_000);
-        const end = new Date(start.getTime() + 7 * 86400_000);
-        weekBounds.push({
-          iso_week: isoWeekLabel(start),
-          from: start.toISOString(),
-          to: end.toISOString(),
-          // The mark every clipped bucket carries (4.0.0; complete before):
-          // the current ISO week is the one the window clips.
-          ...(end > now
-            ? {
-                partial: true,
-                covers: { from: start.toISOString(), to: now.toISOString() },
-              }
-            : {}),
-        });
-      }
+      const { from, weekBounds } = participationWeeks(now, weeks);
       const seasonFields = await seasonFieldsForInstants(ctx.db, from, null, {
         flavor: "plain",
       });
@@ -801,14 +898,11 @@ export const clansTools = {
       const battles = await run("battles_by_week");
       const donations = await run("donations_by_week");
       const warWeeks = await run("war_weeks");
-      // The finish under each war week (Gym #110): decks played after the
-      // boat crossed earn nothing, so war_points over war_decks is not a
-      // rate on a finished week. The same helper war_history uses.
-      const finishDays = await finishWarDays(ctx.db, clanTag, warWeeks.rows);
-      const finishedEarly = (w) =>
-        w.is_colosseum || w.finished_observed_at === null
-          ? null
-          : finishDays.has(weekKey(w));
+      const { finishDays, finishedEarly, shaped } = await participationWarWeeks(
+        ctx.db,
+        clanTag,
+        warWeeks.rows,
+      );
       const participation = await run("war_participation");
       const formerBattles = await run("former_battles_by_week");
       const formerDonations = await run("former_donations_by_week");
@@ -1028,15 +1122,7 @@ export const clansTools = {
         first_roster_observed_at: firstRoster?.toISOString() ?? null,
         basis: coverage.basis,
         weeks: weekBounds,
-        war_weeks: warWeeks.rows.map((w) => ({
-          season_id: w.season_id,
-          section_index: w.section_index,
-          is_colosseum: w.is_colosseum,
-          started_observed_at: w.started_observed_at?.toISOString() ?? null,
-          finished_observed_at: w.finished_observed_at?.toISOString() ?? null,
-          finished_early: finishedEarly(w),
-          finish_war_day: finishDays.get(weekKey(w)) ?? null,
-        })),
+        war_weeks: shaped,
         role_history_since: roleSince?.toISOString?.() ?? null,
         ...(table
           ? {

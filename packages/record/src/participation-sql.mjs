@@ -72,6 +72,16 @@ join player p on p.player_tag = cm.player_tag
 where cm.clan_tag = $1 and cm.left_observed_at is null
 order by cm.player_tag`;
 
+/** One open member's MEMBERS_SQL row, for Clan's member drill-down
+ *  (`memberParticipation`): the join and the last battle in the clan, the
+ *  player's own ranges only. */
+export const MEMBER_SQL = `select cm.player_tag, cm.joined_observed_at,
+       ${lastBattleInClan("cm.player_tag", "cm.clan_tag")} as last_battle_in_clan
+from clan_membership cm
+join player p on p.player_tag = cm.player_tag
+where cm.clan_tag = $1 and cm.player_tag = $2 and cm.left_observed_at is null
+order by cm.player_tag`;
+
 /** Members who left inside the window and are not back (issue #46): one
  *  row per player, their latest interval here. Battles and donations are
  *  counted for them in this clan only, since after leaving they are

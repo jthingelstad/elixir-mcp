@@ -18,8 +18,13 @@ const atReset = (value) => {
   return at && new Date(Date.parse(at) + RESET_MS).toISOString();
 };
 
+const WEEKS = 4;
+
 export function createMemberActivity({
   record,
+  /** `(clanTag, playerTag, weeks)`: the member's part of clans_participation
+   *  (`memberParticipation` in @elixir-mcp/tools), the same fields. */
+  participationFor = null,
   weeklyCounts = async () => [],
   warBounds = async () => [],
   now = () => Date.now(),
@@ -38,10 +43,14 @@ export function createMemberActivity({
     );
     if (roster.clan_tag !== clanTag || !member)
       throw new ManageError(404, "not_current_member");
-    const p = await call("clans_participation", {
-      clan_tag: clanTag,
-      weeks: 4,
-    });
+    // The member's own part of the clan's participation (the window, its
+    // war weeks and the member's row) when the caller can read it apart;
+    // else the whole clan's, as the tool serves it.
+    const p = participationFor
+      ? await participationFor(clanTag, playerTag, WEEKS).catch(() => {
+          throw new ManageError(502, "elixir_unavailable");
+        })
+      : await call("clans_participation", { clan_tag: clanTag, weeks: WEEKS });
     const participation = (p.members ?? []).find(
       (m) => m.player_tag === playerTag,
     );
