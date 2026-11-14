@@ -100,15 +100,11 @@ test("Clan is never called an app of its own", () => {
   assert.deepEqual(hits(tracked().filter(SURFACE), APP_NAME), []);
 });
 
-/** Clan's old OAuth client, from when Clan was an app that signed people
- *  in through Elixir: only its removal (the `retire_app` op, its tests and
- *  its catalogue row) may name it. */
-const CLIENT_RETIREMENT = [
-  "services/migrate/src/ops-family-clients.mjs",
-  "services/migrate/test/clan-oauth-retirement.test.mjs",
-  "services/mcp/test/ops-invoke.test.mjs",
-  ".claude/skills/ops/ops.md",
-];
+/** Clan is never a family app with an OAuth client of its own (its old
+ *  client is gone from production, read 2026-11-14, and so is the op
+ *  that removed it): only the test that pins the op's refusal to provision one
+ *  may name it. */
+const CLIENT_RETIREMENT = ["services/migrate/test/family-clients.test.mjs"];
 const CLAN_FAMILY_APP = new RegExp(
   [`\\bapp"?:\\s*"clan"`, `family_oauth_client[^\\n]*'clan'`].join("|"),
 );

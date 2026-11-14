@@ -23,25 +23,13 @@
  *     registered clients: the registration expires now and every live grant
  *     under it is revoked, with a connection_revoked event for its account.
  *     A provisioned client is refused.
- *   {family_clients: {retire_app: {app: "clan", expected_client_id, apply}}}
- *     removes Clan's old provisioned client, from when Clan was a separate
- *     app. A preview by default (the client, its live grants and unused
- *     codes). With apply: true, in one transaction, the registration
- *     expires, unused codes are burned, each live grant is revoked with a
- *     connection_revoked event, and the family_oauth_client row is deleted.
- *     The expired oauth_client row stays as its grants' history. Once the
- *     row is gone it answers already_removed and writes nothing.
  *
  * Authority: Jamie (a family app is his to name).
  */
 
 import crypto from "node:crypto";
 import pg from "pg";
-import {
-  FIRST_PARTY_ORIGINS,
-  validateRedirectUris,
-  validClientId,
-} from "@elixir-mcp/auth";
+import { FIRST_PARTY_ORIGINS, validateRedirectUris } from "@elixir-mcp/auth";
 
 const HASH_RE = /^[0-9a-f]{64}$/;
 const APP_RE = /^[a-z][a-z0-9-]{1,30}$/;
@@ -67,81 +55,6 @@ export async function familyClients(databaseUrl, spec = {}) {
 }
 
 export async function familyClientsOn(db, spec = {}) {
-  if (spec.retire_app) {
-    const { app, expected_client_id: expected, apply } = spec.retire_app;
-    // Only Clan's old client, never a generic family-client kill switch:
-    // Drop signs in with Elixir through its own.
-    if (app !== "clan" || !validClientId(expected))
-      throw new Error("Clan retirement needs its exact provisioned client id");
-    await db.query("begin");
-    try {
-      const current = (
-        await db.query(
-          `select fc.client_id, c.expires_at from family_oauth_client fc join oauth_client c using(client_id) where fc.app='clan' for update of fc,c`,
-        )
-      ).rows[0];
-      if (!current) {
-        await db.query("rollback");
-        return { retire_app: { app, applied: false, already_removed: true } };
-      }
-      if (current.client_id !== expected)
-        throw new Error("Clan client changed; read it again");
-      const counts = (
-        await db.query(
-          `select
-        (select count(*)::int from oauth_family where client_id=$1 and revoked_at is null) as grants,
-        (select count(*)::int from oauth_code where client_id=$1 and used_at is null) as codes`,
-          [expected],
-        )
-      ).rows[0];
-      if (apply !== true) {
-        await db.query("rollback");
-        return {
-          retire_app: { app, client_id: expected, applied: false, ...counts },
-        };
-      }
-      await db.query(
-        "update oauth_client set expires_at=least(expires_at,now()) where client_id=$1",
-        [expected],
-      );
-      await db.query(
-        "update oauth_code set used_at=now() where client_id=$1 and used_at is null",
-        [expected],
-      );
-      const families = (
-        await db.query(
-          "update oauth_family set revoked_at=now() where client_id=$1 and revoked_at is null returning family_id,account_id",
-          [expected],
-        )
-      ).rows;
-      for (const family of families)
-        await db.query(
-          `insert into account_event(account_id,kind,detail) values($1,'connection_revoked',$2::jsonb)`,
-          [
-            family.account_id,
-            JSON.stringify({
-              family_id: family.family_id,
-              by: "operator",
-              reason: "Clan consolidated into the Elixir session",
-            }),
-          ],
-        );
-      // Nothing names Clan a family app any more. The expired registration
-      // stays as its grants' history; getClient refuses it.
-      await db.query(
-        "delete from family_oauth_client where client_id=$1 and app='clan'",
-        [expected],
-      );
-      await db.query("commit");
-      return {
-        retire_app: { app, client_id: expected, applied: true, ...counts },
-      };
-    } catch (error) {
-      await db.query("rollback").catch(() => {});
-      throw error;
-    }
-  }
-
   if (spec.set_secret) {
     const { app, secret_hash: hash } = spec.set_secret;
     if (!HASH_RE.test(String(hash ?? "")))
@@ -306,6 +219,6 @@ export async function familyClientsOn(db, spec = {}) {
   }
 
   throw new Error(
-    "family_clients needs list, set_secret, require_secret, provision, set_redirect_uris, revoke_clients or retire_app",
+    "family_clients needs list, set_secret, require_secret, provision, set_redirect_uris or revoke_clients",
   );
 }

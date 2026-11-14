@@ -100,7 +100,7 @@ test("op: everything else is a write, and takes the lock", () => {
     { integration: { action: "revoke_legacy", id: "1" } },
     { integration: {} },
     { family_clients: { set_secret: {} } },
-    { family_clients: { list: true, retire_app: { app: "clan" } } },
+    { family_clients: { list: true, provision: { app: "x" } } },
     { oauth_grants: { revoke: ["f"] } },
     { oauth_grants: { redirect_host: "x", revoke: ["f"] } },
     // The rebuild and the leftover's drop; anything beside the table.
