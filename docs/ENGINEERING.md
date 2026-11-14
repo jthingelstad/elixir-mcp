@@ -353,7 +353,11 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   joined an open job. `GET /api/me/refresh` is the page's poll; once a read
   has landed after Home's stored week was built it wakes one rebuild with
   `since` (outbox id `home.<account>.since.<ms>`), so the week is never
-  kept as fresh past a battle it lacks.
+  kept as fresh past a battle it lacks. With `player_tag` (a player page's
+  button) it is one recording read of that player, never a recording:
+  a two-minute slot row per account and player in `rate_limit` inserted
+  once, then the global token, `refreshother#<account>` (10 an hour) and
+  `liveday#<account>`, each given back on a refusal (`refreshPlayer`).
 - **The shape of every admitted payload is known, and a change is a work
   item.** Every endpoint's projector carries a field manifest
   (`packages/ingest/src/payload-keys.mjs`): for each field the API sends,

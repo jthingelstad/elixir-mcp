@@ -89,6 +89,11 @@ same one shared budget as everything else; when the budget or your
 allowance has no room, nothing is asked and the page shows what Elixir
 already has. An agent cannot ask for it.
 
+On anyone's player page, **Check for new battles** asks for one read of
+that player's battle log, under limits of its own
+([A player's page](/docs/player-page#check-for-new-battles)). It never
+starts recording them.
+
 ## Freshness, as the envelope reports it
 
 Every response's `meta` says what it was built from:

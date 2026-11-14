@@ -46,6 +46,22 @@ Your own primary player's page, once you have verified it, is **You**
 Your players' pages opened by name offer **Your stats**, and a clanmate's page
 **Open in Clan** when your clan runs Clan.
 
+## Check for new battles
+
+Under the player's name, **Check for new battles** asks for a fresh read of
+that player's battle log. While it looks the button says "Checking…".
+When the read lands, the page shows the new battles without a reload and
+the button says "Updated just now".
+
+On your own player it does what tapping the freshness chip does. On
+anyone else's page it is one read of their battles, and it does not start
+following or recording them. A log read in the last two minutes counts as
+fresh and is not read again. You can ask about one player once every two
+minutes, and about other players' battles 10 times an hour, from your
+daily [live fetches](/docs/limits). When a limit says wait, the button
+says "Try again in 2 min" (or however long it is), and nothing else
+changes.
+
 ## Follows, followers and badges
 
 What a page shows about an account is what [Privacy](/docs/privacy) makes
