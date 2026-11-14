@@ -8,9 +8,19 @@
  *  - projection.mjs (`@elixir-mcp/stamps/projection`): the public
  *    passport's whitelist.
  *  - store.mjs: the only reader and writer of migration 0269's tables.
+ *  - earn.mjs: the hooks' settle, a ladder fact with its action, and the
+ *    owner's bounded reconciliation.
  *
- * The root re-exports what the web API reads today; the store's writers
- * (ensurePassport, grantStamps, recordFact, latchProfile, readSnapshot)
- * join it when the hooks of the next slice call them.
+ * The root re-exports only what the web API calls (knip holds it).
  */
-export { readOwnerPassport, readPublicPassport } from "./store.mjs";
+export {
+  ensurePassport,
+  readOwnerPassport,
+  readPublicPassport,
+} from "./store.mjs";
+export {
+  earnFact,
+  reconcilePassport,
+  rewindPlayed,
+  settlePassport,
+} from "./earn.mjs";
