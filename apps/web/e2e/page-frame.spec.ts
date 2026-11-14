@@ -51,7 +51,9 @@ for (const width of [1440, 1100, 820]) {
 test.describe("at computer width", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("place and page headings use the same text face", async ({ page }) => {
+  test("the clan name uses the game face and its section headings use the interface face", async ({
+    page,
+  }) => {
     await clanApi(page, clanIn());
     await page.goto("/clan/0QC8RCGY/members");
     const font = (selector: string) =>
@@ -60,11 +62,18 @@ test.describe("at computer width", () => {
         .first()
         .evaluate((el) => getComputedStyle(el).fontFamily);
     await expect(page.locator(".clan-head h1")).toHaveText("Example Clan");
-    expect(await font(".clan-head h1")).toContain("Inter");
-    expect(await font(".clan-head h1")).not.toContain("Clash Royale");
+    expect(await font(".clan-head h1")).toContain("Clash Royale");
+    expect(
+      await page
+        .locator(".clan-head h1")
+        .evaluate((el) => getComputedStyle(el).fontWeight),
+    ).toBe("400");
     await expect(
       page.getByRole("heading", { level: 2, name: "Roster" }),
     ).toBeVisible();
+    expect(await font(".page__inner .kit-head__title >> nth=1")).toContain(
+      "Rubik",
+    );
     expect(await font(".page__inner .kit-head__title >> nth=1")).not.toContain(
       "Clash Royale",
     );

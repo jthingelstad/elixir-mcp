@@ -22,6 +22,9 @@ The digest gives each friend room: their highlights and words come before
 their battle record. A gold check beside a linked player name marks a
 player verified in Elixir, even if they have not chosen an image.
 
+Mail apps that support custom fonts show the same game titles as Elixir.
+The text and links still work with custom fonts or images blocked.
+
 | Kind | When | What it is |
 |---|---|---|
 | **Your digest** | Mondays at 11:00 UTC, right after the weekly reset, or daily, or off: your choice | The people you follow and your clan's week in one story, each player once: [below](#your-digest). Skipped when nothing happened. |

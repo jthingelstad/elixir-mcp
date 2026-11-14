@@ -42,9 +42,18 @@ switch is the same: the ended page, never an error.
 ### Phone-first mail styling
 
 The shared shell uses the app's neutral dark palette, violet primary
-actions, gold brand and verified-name marks, 8 px corners, and system
-fonts. Digest people have a full-width name and highlights, then their
-record, rather than competing name and number columns. All facts and
+actions, gold brand and verified-name marks, 8 px corners, Clash Royale
+main titles and Rubik text. Optional self-hosted `@font-face` rules in the
+head enhance clients that support them. Those rules are hidden from
+Outlook's Word renderer; inline Arial Black title and Trebuchet MS / Arial
+body fallbacks keep unsupported or blocked-font mail readable. Layout
+styles remain inline and no external stylesheet or font CDN is used.
+`FontCors` adds cross-origin access only to successful GET/HEAD responses
+for public font files, on the static behavior. API and app responses never
+receive it. This lets supporting mail clients and sandboxed send records
+load the same fonts without a font CDN.
+
+Digest people have a full-width name and highlights, then their record, rather than competing name and number columns. All facts and
 links remain; mail adds no new notifications or interactive controls.
 
 `buildDigest` batches the canonical `verifiedPlayerIdentities` ownership

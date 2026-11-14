@@ -1,0 +1,134 @@
+[
+  {
+    "name": "site",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "docs",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "signin",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "home",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "find",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "player",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "stats",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "clan",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "settings",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "site",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "docs",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "signin",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "home",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "find",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "player",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "stats",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "clan",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "settings",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "mail-tracking_report",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "mail-login",
+    "width": 390,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "mail-tracking_report",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  },
+  {
+    "name": "mail-login",
+    "width": 1280,
+    "sameText": true,
+    "overflow": false
+  }
+]
