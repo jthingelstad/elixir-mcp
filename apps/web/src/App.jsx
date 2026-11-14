@@ -69,6 +69,7 @@ import { StatsInvite } from "./stats/Invite.jsx";
 import { FollowInvite } from "./home/FollowMe.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { takeLoginToken } from "./url-hygiene.js";
+import { useRefreshOnOpen } from "./lib/own-refresh.js";
 
 /**
  * The route table and the rails. The shell itself, the same top bar, phone
@@ -884,6 +885,9 @@ export function useMe() {
 
 function Shell() {
   const { pathname } = useLocation();
+  // Your own battles read now, when the app opens and when it comes back
+  // (2026-11-14, lib/own-refresh.js). Never blocks anything below.
+  useRefreshOnOpen(useMe().me);
   // Nothing at this address brings its own shell (MissingPage).
   if (legalRoute(movedTo(pathname) ?? pathname) === null) return <Outlet />;
   if (isHome(pathname)) return <HomeOutlet />;

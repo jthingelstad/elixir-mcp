@@ -3,6 +3,7 @@ import { useWrite } from "../client/index.ts";
 import { ConfirmAction, Icon, WriteError, useFlash } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { HOME_FEED_KEY, keys, useMyHighlights } from "../lib/queries.js";
+import { useAskOnOpen } from "../lib/own-refresh.js";
 
 /**
  * Highlight it (social slice 4, #762): a signed-in person whose own
@@ -76,6 +77,8 @@ function Words({ id, value, onChange, label }) {
 
 function Compose({ battle, players, nameOf, invalidate }) {
   const id = useId();
+  // Opening the composer asks for your battles now (lib/own-refresh.js).
+  useAskOnOpen(true);
   const [words, setWords] = useState("");
   const [as, setAs] = useState(players[0]);
   const post = useWrite(api.postHighlight, { invalidate });

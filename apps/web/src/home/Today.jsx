@@ -47,6 +47,7 @@ import {
   weekChips,
   welcomeSteps,
 } from "./logic.js";
+import { useOwnRefresh } from "../lib/own-refresh.js";
 
 const DASH = "–";
 
@@ -501,9 +502,12 @@ function DigestPanel({ first }) {
 /** The chip's words: what the age of the read means for this page. */
 export function TodayFresh({ player }) {
   const { when } = useClock();
+  // Opening the chip asks for your own battles now, under the server's
+  // limits; while that runs it says so (lib/own-refresh.js).
+  const { checking, ask } = useOwnRefresh();
   const ts = player?.battlelog_observed_at ?? null;
   return (
-    <FreshChip ts={ts}>
+    <FreshChip ts={ts} checking={checking} onOpen={ask}>
       {ts
         ? `Your battle log was last read ${when(ts)}. `
         : // Not read yet: what is on record came from elsewhere (a battle
