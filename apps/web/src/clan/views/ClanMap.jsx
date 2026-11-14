@@ -100,9 +100,8 @@ function useMinute() {
 }
 
 /** A token's color, for Leaflet's vector layers (they take values). */
-const token = (name, fallback) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
-  fallback;
+const token = (name) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 function MapView({ entries }) {
   const el = useRef(null);
@@ -131,9 +130,9 @@ function MapView({ entries }) {
       if (!byPin.has(k)) byPin.set(k, []);
       byPin.get(k).push(e);
     }
-    const accent = token("--color-accent", "#3b82f6");
-    const deep = token("--color-accent-deep", "#1d4ed8");
-    const gold = token("--color-gold", "#f5b301");
+    const accent = token("--map-pin");
+    const deep = token("--map-pin-edge");
+    const gold = token("--map-pin-mine");
     for (const group of byPin.values()) {
       const { lat, lng, tz } = group[0].place;
       const you = group.some((e) => e.you);

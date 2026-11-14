@@ -84,13 +84,13 @@ function ActionRow({ action, clan, navigate }) {
     <>
       <TypeIcon type={action.type} />
       <span className="grid min-w-0 flex-auto gap-0.5">
-        <span className="text-[14px] font-semibold text-ink">
+        <span className="text-(length:--t-panel-head) font-semibold text-ink">
           {Number.isInteger(n) ? (
             <span className="mono mr-2 font-normal text-ink-faint">#{n}</span>
           ) : null}
           {action.label}
         </span>
-        <span className="text-[12.5px] text-ink-dim">
+        <span className="text-mono text-ink-dim">
           <TagText>{about(action)}</TagText>
           {action.status !== "proposed" && action.delivery_channels?.length > 1
             ? " · Clan chat and Leader Message"
@@ -107,7 +107,7 @@ function ActionRow({ action, clan, navigate }) {
       </span>
       <span className="shrink-0 self-center">
         {open ? (
-          <span className="whitespace-nowrap text-[12px] text-ink-faint">
+          <span className="whitespace-nowrap text-caption text-ink-faint">
             {ago(action.raised_at)}
           </span>
         ) : (
@@ -160,7 +160,7 @@ export function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
         ))}
       </ul>
       {foot ? (
-        <div className="panel__foot text-[12.5px] text-ink-faint">{foot}</div>
+        <div className="panel__foot text-mono text-ink-faint">{foot}</div>
       ) : null}
     </Panel>
   );

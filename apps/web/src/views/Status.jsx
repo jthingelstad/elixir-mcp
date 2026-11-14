@@ -292,7 +292,7 @@ function BudgetGauge({ budget }) {
         >
           <div className="meter__fill" style={{ width: `${pct}%` }} />
         </div>
-        <p className="block text-[12.5px] text-ink-faint mt-3">
+        <p className="block text-mono text-ink-faint mt-3">
           {[hour, live, changed, `${budget.rate_per_sec}/s`]
             .filter(Boolean)
             .join(" · ")}

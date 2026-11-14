@@ -406,7 +406,7 @@ function Decided({ clan, navigate }) {
                   ) : null}
                   {e.copy ? <CopyLine text={e.copy} /> : null}
                 </span>
-                <span className="shrink-0 text-[12.5px] text-ink-faint">
+                <span className="shrink-0 text-mono text-ink-faint">
                   {whenDay(e.at)}
                 </span>
               </li>

@@ -92,7 +92,7 @@ export function FixTag({ claim, refresh, navigate, stop }) {
           setBad(problem ?? "");
         }}
       >
-        <label className="text-[13.5px]" htmlFor="fix-tag-input">
+        <label className="text-body-sm" htmlFor="fix-tag-input">
           Correct tag
         </label>
         <input

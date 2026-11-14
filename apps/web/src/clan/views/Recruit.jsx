@@ -436,7 +436,7 @@ function DraftWithModel({ clan, model, navigate, current, onDraft }) {
               and save.
             </span>
             {result.checks.map((c) => (
-              <span key={c} className="page-head__note text-[var(--warn)]">
+              <span key={c} className="page-head__note text-warn">
                 {c}
               </span>
             ))}

@@ -760,7 +760,7 @@ export function PolicyFoot({ e, go }) {
                 value={e.note}
                 onChange={(ev) => e.setNote(ev.target.value)}
               />
-              <p className="m-0 text-[13.5px]">
+              <p className="m-0 text-body-sm">
                 Saving lists this clan in Elixir&rsquo;s clan directory, with
                 its policy&rsquo;s public part.
               </p>
@@ -768,7 +768,7 @@ export function PolicyFoot({ e, go }) {
                 <summary className="label cursor-pointer">
                   What saving does
                 </summary>
-                <div className="mt-2 grid gap-2 text-[13.5px]">
+                <div className="mt-2 grid gap-2 text-body-sm">
                   <p className="m-0">
                     Edits stay on this page until you save. The new version
                     applies the next time Elixir reads the clan, which can be as
@@ -1009,7 +1009,7 @@ function Field({
       )}
       {help ? <div className="clan-field__help">{f.why}</div> : null}
       {error ? (
-        <div className="field-error text-[var(--bad)]" role="alert">
+        <div className="field-error text-bad" role="alert">
           {error}
         </div>
       ) : null}

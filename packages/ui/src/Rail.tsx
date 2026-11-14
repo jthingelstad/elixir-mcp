@@ -135,7 +135,7 @@ export function Rail({
   const shown = !narrow || open;
   const top = narrow ? null : (
     <div className="mb-[6px] flex h-10 items-center gap-[9px] px-[11px]">
-      <span className="truncate text-[13.5px] font-semibold" title={title}>
+      <span className="truncate text-body-sm font-semibold" title={title}>
         {title}
       </span>
     </div>
@@ -160,10 +160,10 @@ export function Rail({
           onClick={() => setOpen(!open)}
         >
           {active && <Icon name={active.icon} size={17} />}
-          <span className="text-[13.5px] font-semibold">
+          <span className="text-body-sm font-semibold">
             {active?.label ?? title}
           </span>
-          <span className="truncate text-[13px] text-ink-faint">
+          <span className="truncate text-small text-ink-faint">
             {subtitle ?? ""}
           </span>
           <span className="ml-auto flex items-center gap-[10px]">

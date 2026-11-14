@@ -552,7 +552,7 @@ function SeasonExtras({ player, search }) {
   return (
     <>
       <Disclosure title="About this record">
-        <p className="m-0 text-[13.5px] text-ink-body">
+        <p className="m-0 text-body-sm text-ink-body">
           Each mode is its own game and keeps its own record. Stats reads the
           recorded battles, without pooling modes or rating players. Counts and
           gaps in the record are shown with the figures they affect.

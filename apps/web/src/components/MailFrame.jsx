@@ -17,7 +17,7 @@ export function MailFrame({ html }) {
       title="The email as it was sent"
       srcDoc={doc}
       sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-      className="block w-full border border-line rounded-[12px] bg-ground"
+      className="block w-full border border-line rounded-block bg-ground"
       style={{ height: `${height}px` }}
       onLoad={(ev) => {
         const h = ev.target.contentDocument?.documentElement?.scrollHeight;

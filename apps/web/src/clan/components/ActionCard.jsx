@@ -147,7 +147,7 @@ export function TypeIcon({ type, big = false }) {
   const [name, tone] = TYPE_ICON[type] ?? ["inbox", "text-accent-bright"];
   return (
     <span
-      className={`grid shrink-0 place-items-center ${big ? "h-9 w-9 rounded-control bg-info-fill" : "h-[30px] w-[30px] rounded-[9px] bg-panel-raised"} ${tone}`}
+      className={`grid shrink-0 place-items-center ${big ? "h-9 w-9 rounded-control bg-info-fill" : "h-[30px] w-[30px] rounded-select bg-panel-raised"} ${tone}`}
     >
       <Icon name={name} size={big ? 18 : 15} />
     </span>
@@ -198,7 +198,7 @@ export function CopyLine({
 }) {
   const [done, flash] = useFlash();
   return (
-    <div className="flex items-start gap-2 rounded-control bg-ground-sunken px-2.5 py-2 text-[13px]">
+    <div className="flex items-start gap-2 rounded-control bg-ground-sunken px-2.5 py-2 text-small">
       <span className="flex-auto">
         <TagText>{text}</TagText>
       </span>
@@ -418,7 +418,7 @@ function ChatMessage({
   const lines = value.length ? value : [""];
   return (
     <div className="grid gap-2.5 rounded-block bg-ground-sunken p-4">
-      <span className="text-[13.5px] font-semibold">Clan chat</span>
+      <span className="text-body-sm font-semibold">Clan chat</span>
       <div className="page-head__note">
         {kind === "removal"
           ? "Use this only after you decide and make the change in the game. Drafting does not remove anyone."
@@ -475,7 +475,7 @@ function ChatMessage({
  *  was sent; on its own it keeps them itself. */
 export function LeaderMessageNotice({ count = 1, children }) {
   return (
-    <div className="rounded-control bg-panel-raised p-3 text-[13px] leading-[1.5]">
+    <div className="rounded-control bg-panel-raised p-3 text-small leading-body">
       <strong>Leader Message availability: check in the game</strong>
       <p className="my-1">
         Reported limit: one Leader Message per day. Elixir cannot see sends
@@ -616,7 +616,7 @@ function DeliveryComposer({
         </>
       ) : (
         <div className="grid gap-2.5 rounded-block bg-ground-sunken p-4">
-          <strong className="text-[13.5px]">Clan chat</strong>
+          <strong className="text-body-sm">Clan chat</strong>
           <p className="page-head__note m-0">
             Send in the clan&rsquo;s chat, where members normally talk. Each
             field below is a separate send. Check the text after sending; the
@@ -670,7 +670,7 @@ function DeliveryComposer({
 
 function SentWords({ receipt }) {
   return (
-    <div className="grid gap-1 text-[13.5px]">
+    <div className="grid gap-1 text-body-sm">
       <strong>
         {receipt.channel === "clan_chat"
           ? "Sent in clan chat"
@@ -727,7 +727,7 @@ function LeaderMessage({
         <span className="text-accent-bright">
           <Icon name="megaphone" size={15} />
         </span>
-        <span className="grow text-[13.5px] font-semibold">
+        <span className="grow text-body-sm font-semibold">
           Clan Leader Message
         </span>
       </div>
@@ -868,22 +868,22 @@ export function ActionLog({ action, clan, onChanged }) {
         {(action.log ?? []).map((e, i) => (
           <li
             key={e.entry_id ?? `${e.kind}-${i}`}
-            className="grid gap-1 py-2 text-[13.5px]"
+            className="grid gap-1 py-2 text-body-sm"
           >
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="text-accent-bright">
                 <Icon name={KIND_ICON[e.kind] ?? "circle-dashed"} size={14} />
               </span>
-              <span className="text-[13px] font-semibold text-ink">
+              <span className="text-small font-semibold text-ink">
                 {KIND[e.kind] ?? e.kind}
               </span>
-              <span className="grow text-[13px] text-ink-dim">
+              <span className="grow text-small text-ink-dim">
                 by <By by={e.by} />
                 {e.detail?.reconstructed
                   ? " (from the action's own record)"
                   : ""}
               </span>
-              <span className="mono text-[12px] text-ink-faint">
+              <span className="mono text-caption text-ink-faint">
                 <time dateTime={e.at}>{whenAt(e.at, zone)}</time>
               </span>
             </div>
@@ -1397,7 +1397,7 @@ function BoundActionCard({
           </div>
         ) : null}
         <div className="grid gap-1.5">
-          <div className="text-[16px] leading-[1.6] text-ink">
+          <div className="text-body-lg leading-[1.6] text-ink">
             <Reason
               action={action}
               zone={zone}
@@ -1414,10 +1414,10 @@ function BoundActionCard({
                 key={f.key}
                 className="flex flex-wrap gap-x-4 gap-y-0.5 py-2"
               >
-                <span className="w-[110px] shrink-0 text-[12.5px] text-ink-faint">
+                <span className="w-[110px] shrink-0 text-mono text-ink-faint">
                   {f.label}
                 </span>
-                <span className="grow text-[13.5px] text-ink-body">
+                <span className="grow text-body-sm text-ink-body">
                   {f.value}{" "}
                   <span className="page-head__note">
                     ({f.window}
@@ -1429,7 +1429,7 @@ function BoundActionCard({
           </div>
         ) : null}
         {action.player_tag ? (
-          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+          <div className="flex flex-wrap items-center gap-2 text-small">
             <Link to={playerInClanPath(action.player_tag)}>
               {action.player_name
                 ? `Open ${action.player_name}'s page`
@@ -1457,7 +1457,7 @@ function BoundActionCard({
       </div>
       {comes.length ? (
         <Disclosure title="What this comes from" className="action-fold">
-          <div className="grid gap-1.5 text-[13.5px] text-ink-body">
+          <div className="grid gap-1.5 text-body-sm text-ink-body">
             {comes.map((line, i) => (
               <p className="m-0" key={i}>
                 {line}

@@ -82,10 +82,10 @@ function Races({ races }) {
                 }
               />
             </svg>
-            <span className="font-mono text-[12px] text-ink">
+            <span className="font-mono text-caption text-ink">
               {w.decks === null ? "—" : w.decks}
             </span>
-            <span className="text-[11px] text-ink-faint">
+            <span className="text-label text-ink-faint">
               Week {w.section_index + 1}
               {w.open ? " · now" : ""}
             </span>
@@ -222,7 +222,7 @@ export function YouHere({ clan, navigate }) {
           <span className="flex items-center justify-center w-[34px] h-[34px] rounded-control bg-info-fill text-accent-bright">
             <Icon name="inbox" size={17} />
           </span>
-          <span className="grow text-[14.5px] font-semibold">
+          <span className="grow text-prose font-semibold">
             {d.open_actions} action{d.open_actions === 1 ? " waits" : "s wait"}{" "}
             for you
           </span>
@@ -295,7 +295,7 @@ export function YouHere({ clan, navigate }) {
               <div className="panel__body grid gap-3">
                 <Races races={races} />
                 {asked !== null && closed.length ? (
-                  <p className="m-0 text-[13px] text-ink-dim">
+                  <p className="m-0 text-small text-ink-dim">
                     {played} of {asked} in the finished race
                     {closed.length === 1 ? "" : "s"}.
                   </p>
@@ -389,7 +389,7 @@ export function YouHere({ clan, navigate }) {
               {y.time_here.events
                 .filter((e) => e.type === "role_changed")
                 .map((e) => (
-                  <p key={e.at} className="m-0 text-[13.5px] text-ink-dim">
+                  <p key={e.at} className="m-0 text-body-sm text-ink-dim">
                     {date(e.at)}: {ROLE[e.role_before] ?? e.role_before ?? "?"}{" "}
                     → {ROLE[e.role_after] ?? e.role_after ?? "?"}
                   </p>
@@ -413,7 +413,7 @@ export function YouHere({ clan, navigate }) {
                       {g.name}
                       {g.manual ? "" : ` · ${ordinal(g.rank)}`}
                     </span>
-                    <span className="text-[12.5px] text-ink-faint">
+                    <span className="text-mono text-ink-faint">
                       Season {g.season_id}
                     </span>
                   </li>

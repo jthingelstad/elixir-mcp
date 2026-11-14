@@ -289,7 +289,7 @@ export function Review({ clan, navigate, who }) {
                 {rows.length}
                 {bucket === "actionable" ? ", also in the Feed" : ""}
               </span>
-              <span className="grow text-[12.5px] font-normal text-ink-faint">
+              <span className="grow text-mono font-normal text-ink-faint">
                 {says}
               </span>
             </div>

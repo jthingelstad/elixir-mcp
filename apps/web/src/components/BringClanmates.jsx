@@ -16,7 +16,7 @@ import {
 function Copyable({ text, label, channel, multiline = false }) {
   const [done, flash] = useFlash();
   return (
-    <div className="flex items-start gap-2 rounded-control bg-ground-sunken px-2.5 py-2 text-[13px]">
+    <div className="flex items-start gap-2 rounded-control bg-ground-sunken px-2.5 py-2 text-small">
       <span
         className={`min-w-0 flex-auto break-words ${multiline ? "whitespace-pre-line" : ""}`}
       >
@@ -65,7 +65,7 @@ export function BringClanmates({ className = "" }) {
     <details className={`disclosure ${className}`.trim()}>
       <summary>Invite clanmates</summary>
       <div className="panel__body grid gap-2.5">
-        <p className="m-0 text-[13.5px] text-ink-body">
+        <p className="m-0 text-body-sm text-ink-body">
           Anyone in {shown} who signs up gets their own battle history kept and
           the clan&rsquo;s week by email every Monday. Free and unofficial.
         </p>
@@ -107,7 +107,7 @@ export function BringClanmates({ className = "" }) {
               Share the message
             </button>
             {shareNote && (
-              <span className="text-[12.5px] text-ink-dim">{shareNote}</span>
+              <span className="text-mono text-ink-dim">{shareNote}</span>
             )}
           </div>
         )}

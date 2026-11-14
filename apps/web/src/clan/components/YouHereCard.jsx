@@ -59,7 +59,7 @@ export function Minimums({ minimums, ranks }) {
           <span>{said}</span>
         </p>
       )}
-      <p className="m-0 text-[13.5px] text-ink-dim">
+      <p className="m-0 text-body-sm text-ink-dim">
         {minimums.rule === "all"
           ? `All of these, over ${weeks}.`
           : `Any one of these is enough, over ${weeks}.`}
@@ -146,7 +146,7 @@ export function HowYouAreDoing({ d, base, navigate }) {
       {d.hold ? <div className="notice">{holdWords(d.hold)}</div> : null}
       {!ranks && c.evidence ? <p className="m-0">{c.evidence}</p> : null}
       {c.tenure_min_days != null && y?.time_here?.tenure_known ? (
-        <p className="m-0 text-[13.5px] text-ink-dim">
+        <p className="m-0 text-body-sm text-ink-dim">
           {y.time_here.days >= c.tenure_min_days
             ? `${y.time_here.days} ${noun(y.time_here.days, "day")} in the clan: past the ${c.tenure_min_days} ${noun(c.tenure_min_days, "day")} Elder asks for.`
             : `${y.time_here.days} of the ${c.tenure_min_days} ${noun(c.tenure_min_days, "day")} in the clan Elder asks for.`}

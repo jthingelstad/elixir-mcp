@@ -105,7 +105,7 @@ export function RosterTable({
                     )}
                   </span>
                   {m.you ? (
-                    <span className="chip chip--info px-2 py-0 text-[11px]">
+                    <span className="chip chip--info px-2 py-0 text-label">
                       you
                     </span>
                   ) : null}
@@ -302,7 +302,7 @@ function Comings({ roster, clan, history, navigate }) {
         <h2 id="clan-comings" className="kit-panel__title grow">
           Comings and goings
         </h2>
-        <Link to={more} navigate={navigate} className="text-[13px] font-normal">
+        <Link to={more} navigate={navigate} className="text-small font-normal">
           {history ? "Who came and went, on Today" : "Open Season"}
         </Link>
       </div>
@@ -318,10 +318,10 @@ function Comings({ roster, clan, history, navigate }) {
                 <span className={`shrink-0 ${tone}`} aria-hidden="true">
                   <Icon name={icon} size={16} />
                 </span>
-                <span className="grow min-w-0 text-[13.5px] text-ink-body">
+                <span className="grow min-w-0 text-body-sm text-ink-body">
                   {line(e)}
                 </span>
-                <span className="shrink-0 text-[12.5px] text-ink-faint">
+                <span className="shrink-0 text-mono text-ink-faint">
                   {when(e.at)}
                 </span>
               </div>

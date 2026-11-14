@@ -46,7 +46,7 @@ export function StatsInvite({ returnTo, onSignIn }) {
             <Icon name={p.icon} size={18} />
             <span>
               <strong>{p.label}</strong>
-              <span className="block text-[13px] text-ink-faint">
+              <span className="block text-small text-ink-faint">
                 {ABOUT[p.slug]}
               </span>
             </span>
