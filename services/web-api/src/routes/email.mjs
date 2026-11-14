@@ -183,8 +183,8 @@ async function setPref(
  *  default) when the person has none, so choosing daily never turns the
  *  digest on or off by itself. */
 /** The person's own cadence choice. It records `via = 'profile'` even on a
- *  row an operator made, so Home's welcome step (first-answer.mjs) knows the
- *  person chose (Codex on #811). */
+ *  row an operator made, so the profile list's digest step (packages/stamps
+ *  readSnapshot) knows the person chose (Codex on #811). */
 async function setCadence(db, accountId, cadence) {
   await db.query(
     `insert into account_email_pref (account_id, kind, enabled, via, changed_at, cadence)

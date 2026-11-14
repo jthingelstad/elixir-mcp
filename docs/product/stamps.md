@@ -1,6 +1,6 @@
 # Passports and Stamps
 
-Design direction, 2026-11-14. **Earning, the backfill and the pages built; the profile list is not.**
+Design direction, 2026-11-14. **Earning, the backfill, the pages and Home's profile list built.**
 The catalog, eligibility, storage and two signed-in passport reads exist
 (`packages/stamps`, migrations 0269 and 0270). Real writes grant Stamps
 through hooks, the owner's reconciliation repairs and grants the rest,
@@ -11,7 +11,8 @@ an account made before launch gets one "Your passport is ready" line
 (its ladder Stamps wait until the backfill has read its history, 0273),
 and the operator's `{passport_backfill}` adds the history no live path
 reads (docs/OPERATIONS.md, Passport launch backfill). The passport
-pages show it; Home has no profile list yet. The clickable sample is in
+pages show it, and Home shows the profile list
+(`apps/web/src/home/ProfileList.jsx`, 0274 for its dismissal). The clickable sample is in
 [the passport design](../design/passport/README.md); the build plan is
 [the build handoff](../plans/stamps-build.md).
 
@@ -214,4 +215,11 @@ Built in the pages slice (#1015,
   when the player's canonical verified owner has a passport; a player
   page shows it as a row with **Open passport**.
 
-Not built yet: the profile list on Home.
+Built in the profile list slice (#1015,
+[note](../notes/2026-11-14-passport-profile-list.md)):
+
+- Home's profile list: the six steps of `owner.profile`, each naming its
+  Stamp and linking to where it is done. It calls the reconciliation
+  after first paint, while `more`, at most five times and once a minute;
+  `POST /api/me/passport/dismiss` puts the list away for an account that
+  finished the older welcome.

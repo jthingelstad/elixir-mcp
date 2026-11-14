@@ -9,7 +9,6 @@ import {
   sparkWords,
   timelineDays,
   weekChips,
-  welcomeSteps,
 } from "../src/home/logic.js";
 
 const clock = { when: (ts) => `at ${ts}` };
@@ -293,44 +292,7 @@ test("step 3 names a player only when there is one", () => {
   expect(clanStepLine("Clan", false)).toBe("Clan, a clan you follow.");
 });
 
-describe("Home's welcome steps (G4)", () => {
-  const first = (player, welcome) => ({ player, welcome });
-  test("each step from the account's own state, counted", () => {
-    const s = welcomeSteps(
-      first({ verified: false }, { following: 0, digest: null }),
-    );
-    expect(s.steps).toEqual({
-      player: true,
-      verify: false,
-      follow: false,
-      digest: false,
-    });
-    expect([s.done, s.total, s.all]).toEqual([1, 4, false]);
-    const all = welcomeSteps(
-      first(
-        { verified: true },
-        { following: 1, digest: { enabled: false, cadence: "weekly" } },
-      ),
-    );
-    expect([all.done, all.all]).toEqual([4, true]);
-  });
-  test("finished once, gone for good: unfollowing everyone does not bring it back", () => {
-    const after = welcomeSteps(
-      first(
-        { verified: true },
-        {
-          following: 0,
-          digest: { enabled: true, cadence: "weekly" },
-          finished_at: "2026-11-12T20:00:00Z",
-        },
-      ),
-    );
-    expect([after.done, after.all]).toEqual([3, true]);
-  });
-  test("no welcome state, no steps: never guessed", () => {
-    expect(welcomeSteps({ player: { verified: true } })).toBeNull();
-    expect(welcomeSteps(undefined)).toBeNull();
-  });
+describe("The digest's line", () => {
   test("the digest's line is the person's own setting", () => {
     expect(digestLine(null)).toBeNull();
     expect(digestLine({ enabled: false, cadence: "daily" })).toBe(

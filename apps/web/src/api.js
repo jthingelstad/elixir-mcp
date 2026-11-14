@@ -224,6 +224,12 @@ export const api = {
   /** One pass of your passport's reconciliation: Stamps a write could not
    *  grant at the time. Answers your passport plus `granted` and `more`. */
   reconcilePassport: () => request("POST", "/api/me/passport/reconcile", {}),
+  /** The profile list's map step answered Not now: done, no Stamp. */
+  passportMapNotNow: () =>
+    request("POST", "/api/me/passport/map", { choice: "not_now" }),
+  /** The profile list put away, for an account that finished the older
+   *  welcome list. */
+  dismissProfileList: () => request("POST", "/api/me/passport/dismiss", {}),
   /** A player's page (#764): their record, follows, followers and badges. */
   playerPage: (tag) =>
     request("GET", `/api/player?tag=${encodeURIComponent(tag)}`),

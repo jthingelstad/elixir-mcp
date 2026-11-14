@@ -89,19 +89,41 @@ and a member joining, leaving or changing role, has a gold edge with the
 clan's name above it. Every player's name opens their
 [player page](/docs/player-page).
 
-### Welcome to Elixir
+### Your profile
 
-Until you have done four things, Home opens with them above the feed:
-**Welcome to Elixir, 2 of 4 done**. They are adding your player, verifying
-it's you (one battle with a deck Elixir names), following a few people,
-and choosing your [digest](/docs/email). Each step says what was done or
-links to where you do it, and is worked out from your account each time
-you open Home. Following one player completes the follow step. Choosing
-your digest is picking Daily or Weekly, or turning it off, in Settings ›
-Emails; picking Weekly counts even though it is the default, and so does
-turning it off. Once all four are done the steps are gone for good: Elixir
-notes that you finished, so unfollowing everyone later does not bring them
-back.
+Until your profile is done, Home opens with it above the feed:
+**Your profile, 2 of 6 done**. It shows the one step to do next, with the
+Stamp it earns and a button to where you do it. Tap **See all steps** for
+all six:
+
+1. **Add your player.**
+2. **Verify it's you**: one battle with a deck Elixir names. Earns the
+   **Player verified** Stamp.
+3. **Pick your picture**: a card, in Settings › Profile. Earns **Looking
+   Good**.
+4. **Follow someone who plays**: one player who has played in the last 7
+   days. One friend is enough.
+5. **Choose your email**: Weekly, Daily or Off for your
+   [digest](/docs/email). Off counts too.
+6. **Your place on the clan map**: set your country, region or city, or
+   tap **Not now**. Both finish the step; only a place earns **On the
+   Map**.
+
+All six earn the **All Set** Stamp. Adding another of your players and
+connecting Discord are offered under the list. They earn Stamps of their
+own and never count against it.
+
+If the people you follow haven't played this week, the follow step says
+so. If Elixir is still catching up on their battles, it says that instead,
+and the step finishes once it sees a battle from the last 7 days.
+
+Each step stays done once it's done, and the list goes for good once all
+six are. Opening Home also catches your Stamps up in the background, so
+something you did elsewhere shows up without a reload. A new Stamp is one
+line in the bell.
+
+Finished the older four-step welcome? You see only the steps that are
+left, and **Hide** puts the list away on every device.
 
 ### People you know
 

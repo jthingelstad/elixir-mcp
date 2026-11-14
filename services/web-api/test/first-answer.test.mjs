@@ -338,10 +338,13 @@ test("selected capture state is claim-bound; roster-only data never promises a p
   assert.ok(p.capture_interval.observed_from && p.capture_interval.observed_to);
 });
 
-test("first-answer carries Home's welcome state: the players followed and the digest, once chosen (G4)", async () => {
+test("first-answer carries what Home reads beside the profile list: the players followed and the digest, once chosen", async () => {
   const first = JSON.parse((await read()).body);
-  let w = first.welcome;
-  assert.deepEqual(w, { following: 0, digest: null, finished_at: null });
+  let w = first.setup;
+  assert.deepEqual(w, { following: 0, digest: null });
+  // The older welcome steps are gone (#1015): the profile list is the
+  // passport's, never worked out here.
+  assert.equal("welcome" in first, false);
   // Home's suggested follows: never put aside yet.
   assert.equal(first.starter_hidden_until, null);
   await db.query(
@@ -369,26 +372,26 @@ test("first-answer carries Home's welcome state: the players followed and the di
     "insert into account_email_pref (account_id, kind, enabled, via) values ($1, 'tracking_report', true, 'ops')",
     [accountId],
   );
-  w = JSON.parse((await read()).body).welcome;
+  w = JSON.parse((await read()).body).setup;
   assert.equal(w.following, 2);
   assert.equal(w.digest, null);
   await db.query(
     "update account_email_pref set via = 'profile', cadence = 'daily' where account_id = $1 and kind = 'tracking_report'",
     [accountId],
   );
-  w = JSON.parse((await read()).body).welcome;
+  w = JSON.parse((await read()).body).setup;
   assert.equal(w.digest.cadence, "daily");
   assert.equal(w.digest.enabled, true);
   assert.ok(w.digest.chosen_at);
 });
 
-test("the welcome checklist finishes for good: stamped once all four are done, never undone (Jamie, 2026-11-12)", async () => {
+test("reading Home stamps nothing: the older welcome's finish is left as it was (#1015)", async () => {
   await db.query("update account set welcome_finished_at = null");
   await db.query("delete from claim where account_id = $1 and not is_primary", [
     accountId,
   ]);
   await db.query(
-    "update claim set status = 'unverified', verified_at = null where account_id = $1 and is_primary",
+    "update claim set status = 'verified', verified_at = now() where account_id = $1 and is_primary",
     [accountId],
   );
   await db.query(
@@ -402,33 +405,13 @@ test("the welcome checklist finishes for good: stamped once all four are done, n
     "insert into claim (account_id, player_tag, relationship) values ($1, '#0Y0PLGJ8', 'friend')",
     [accountId],
   );
-  // Three of four (the primary is not verified): not finished.
-  let w = JSON.parse((await read()).body).welcome;
-  assert.equal(w.finished_at, null);
-  await db.query(
-    "update claim set status = 'verified', verified_at = now() where account_id = $1 and is_primary",
-    [accountId],
-  );
-  // One follow and a digest turned off complete it, and the read stamps it.
-  w = JSON.parse((await read()).body).welcome;
-  assert.ok(w.finished_at, "the read stamps the finish");
-  const stamped = w.finished_at;
+  // All four of the older steps hold, and the read writes nothing.
+  const w = JSON.parse((await read()).body).setup;
+  assert.equal(w.following, 1);
+  assert.equal(w.digest.enabled, false);
   const stored = await db.query(
     "select welcome_finished_at from account where account_id = $1",
     [accountId],
   );
-  assert.ok(stored.rows[0].welcome_finished_at);
-  // Unfollowing everyone keeps it finished, with the first stamp.
-  await db.query("delete from claim where account_id = $1 and not is_primary", [
-    accountId,
-  ]);
-  w = JSON.parse((await read()).body).welcome;
-  assert.equal(w.following, 0);
-  assert.equal(w.finished_at, stamped);
-  // Another account's finish is its own.
-  const other = await db.query(
-    "select welcome_finished_at from account where account_id = $1",
-    [otherId],
-  );
-  assert.equal(other.rows[0].welcome_finished_at, null);
+  assert.equal(stored.rows[0].welcome_finished_at, null);
 });

@@ -37,7 +37,6 @@ import {
   actionsFrom,
   DIGEST_CHOICES,
   digestChoice,
-  digestLine,
   digestWhen,
   lastRaceLine,
   modeWord,
@@ -45,16 +44,15 @@ import {
   raceNowLine,
   panelOf,
   weekChips,
-  welcomeSteps,
 } from "./logic.js";
 import { useOwnRefresh } from "../lib/own-refresh.js";
+import { ProfileList } from "./ProfileList.jsx";
 
 const DASH = "–";
 
 /** Home (slice 7, #765): the one feed beside your week, your clan and People
- *  to follow (2026-11-12), under the welcome steps until they are done (G4).
- *  Each
- *  side panel reads for itself and draws its own loading state; a panel that
+ *  to follow (2026-11-12), under the profile list until it is done (#1015).
+ *  Each side panel reads for itself and draws its own loading state; a panel that
  *  failed says so, the rest render. Needs you moved to the bell, which every
  *  page wears (shell/Bell.jsx); the unlock notice stays here, at the top. */
 export function HomePanels({ first, player, feed }) {
@@ -79,7 +77,11 @@ export function HomePanels({ first, player, feed }) {
       <div className="kit-home__two">
         <div className="kit-home__main">
           {starterShown ? <StarterSet query={starter} /> : null}
-          <Welcome first={first} player={player} />
+          <ProfileList
+            first={first}
+            player={player}
+            clanTag={clan?.ok ? (clan.clan_tag ?? null) : null}
+          />
           {feed}
         </div>
         <div className="kit-home__side">
@@ -345,129 +347,30 @@ function FollowHomeClan({ clan }) {
   );
 }
 
-/** Home's welcome steps (G4, 2026-11-12): what a new account has left to
- *  do, until all four are done; then nothing, in place of the folded Setup
- *  details. Worked out from the first answer each time (logic.js). Compact
- *  since the design canvas of 2026-11-13: one line a step, its way in at
- *  the right, and the count at the head's right. */
-function Welcome({ first, player }) {
-  const state = welcomeSteps(first);
-  if (!state || state.all) return null;
-  const name = player.name ?? player.player_tag;
-  const following = first.welcome.following ?? 0;
-  return (
-    <section
-      className="kit-welcome kit-welcome--compact"
-      aria-labelledby="kit-welcome-head"
-    >
-      <h2
-        id="kit-welcome-head"
-        // A flex row reads each part as its own word, so the head says
-        // its sentence whole.
-        aria-label={`Welcome to Elixir, ${state.done} of ${state.total} done`}
-      >
-        <span>Welcome to Elixir</span>
-        <span className="kit-welcome__count">
-          {state.done} of {state.total} done
-        </span>
-      </h2>
-      <ol className="kit-checks">
-        <Check
-          n={1}
-          title="Add your player"
-          done={state.steps.player}
-          line={
-            state.steps.player ? (
-              <>
-                <TagText>{name}</TagText>, your main player.
-              </>
-            ) : null
-          }
-        />
-        <Check
-          n={2}
-          title="Verify it’s you"
-          done={state.steps.verify}
-          line={
-            state.steps.verify
-              ? `${name} is verified.`
-              : "Play one battle with the deck Elixir names. Win or lose, it counts."
-          }
-          to={`${SETTINGS}/players/verify`}
-          go="Verify"
-          goName={`Verify ${name}`}
-        />
-        <Check
-          n={3}
-          title="Follow a few people"
-          done={state.steps.follow}
-          line={
-            state.steps.follow
-              ? `You follow ${following} ${following === 1 ? "player" : "players"}.`
-              : "Their battles and big moments fill your feed."
-          }
-          to="/home/find"
-          go="Find"
-          goName="Find people"
-        />
-        <Check
-          n={4}
-          title="Choose your digest"
-          done={state.steps.digest}
-          line={
-            state.steps.digest
-              ? digestLine(first.welcome.digest)
-              : "Your friends in one email. Weekly, daily or off: your call."
-          }
-          to={`${SETTINGS}/emails`}
-          go="Choose"
-          goName="Choose your digest"
-        />
-      </ol>
-    </section>
-  );
-}
-
-/** One welcome step on one line (canvas .onb): its dot, what it is, a line
- *  that says what is done or why, and its way in while it is not done. */
-function Check({ n, title, done, line, to = null, go = null, goName = null }) {
-  return (
-    <li className={`kit-check${done ? " kit-step--done" : ""}`}>
-      <span className="kit-step__dot" aria-hidden="true">
-        {done ? "✓" : n}
-      </span>
-      <div className="kit-check__body">
-        <h3>{title}</h3>
-        {line ? <p>{line}</p> : null}
-      </div>
-      {!done && to ? (
-        <Link to={to} className="btn btn--sm" aria-label={goName ?? undefined}>
-          {go}
-        </Link>
-      ) : null}
-    </li>
-  );
-}
-
 /** Your digest, chosen here as on Settings' Emails (design canvas
  *  2026-11-13): one write to the same row, so choosing here completes the
- *  welcome step too. The default is weekly; choosing the one already lit
+ *  profile list's email step too. The default is weekly; choosing the one already lit
  *  saves it, which is how a person chooses the default. */
 function DigestPanel({ first }) {
   const queryClient = useQueryClient();
   const write = useWrite(api.setDigest, {
     invalidate: async () => {
-      // The welcome's count and Settings' Emails, not the rest of Home.
+      // Home's own read, the profile list's email step and Settings'
+      // Emails, not the rest of Home.
       await queryClient.invalidateQueries({
         queryKey: ["me", "home"],
+        exact: true,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["me", "passport"],
         exact: true,
       });
       await queryClient.invalidateQueries({ queryKey: keys.email });
     },
   });
   const [picked, setPicked] = useState(null);
-  if (!first?.welcome) return null;
-  const value = picked ?? digestChoice(first.welcome.digest);
+  if (!first?.setup) return null;
+  const value = picked ?? digestChoice(first.setup.digest);
   return (
     <Panel title="Your digest" pad className="kit-digest">
       <p className="kit-digest__line">

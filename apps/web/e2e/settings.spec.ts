@@ -129,6 +129,8 @@ test.describe("@narrow Settings at phone width", () => {
         new URL(r.url()).pathname.startsWith("/api/") &&
         !["GET"].includes(r.method()) &&
         !r.url().includes("/api/me/tool") &&
+        // Home's passport catch-up on open (#1015), not the typing.
+        !r.url().includes("/api/me/passport/reconcile") &&
         !asksForBattles(r.url())
       )
         writes.push(r.url());

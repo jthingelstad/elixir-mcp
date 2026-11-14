@@ -1,8 +1,8 @@
 /**
- * Home's side and welcome as the design canvas of 2026-11-13 draws them:
- * the digest chosen in place with the same write Settings makes, the
- * welcome steps one line each with the count at the right, and the race's
- * place on the clan card while a war day runs. Invented names only.
+ * Home's side and profile list: the digest chosen in place with the same
+ * write Settings makes, the profile list (#1015) from the passport read
+ * with its next step on top, and the race's place on the clan card while a
+ * war day runs. Invented names only.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -40,14 +40,54 @@ const CLAN = {
   needs_total: 0,
 };
 
+const IDS = [
+  "add_player",
+  "verify_player",
+  "picture",
+  "follow_active",
+  "digest",
+  "map",
+];
+const passport = (states, extra = {}) => ({
+  owner: {
+    profile: {
+      version: 2,
+      complete: false,
+      completed_at: null,
+      older_welcome_finished: false,
+      dismissed_at: null,
+      follows: { following: 1, active: 0, unknown: 0 },
+      steps: IDS.map((id, i) => ({ id, state: states[i], latched: false })),
+      ...extra,
+    },
+    stamps: [],
+  },
+});
+
 let writes;
+let owner;
 beforeEach(() => {
   writes = [];
+  owner = passport(["done", "done", "todo", "todo", "done", "todo"]);
   global.fetch = vi.fn(async (path, init) => {
     const p = String(path).split("?")[0];
     if (init?.method === "PUT") {
       writes.push([p, JSON.parse(init.body)]);
       return reply({ kind: "tracking_report" });
+    }
+    if (p === "/api/me/passport") return reply(owner);
+    if (init?.method === "POST" && p === "/api/me/passport/map") {
+      writes.push([p, JSON.parse(init.body)]);
+      const after = passport(["done", "done", "todo", "todo", "done", "done"]);
+      return reply({ ...after, granted: [], more: false });
+    }
+    if (init?.method === "POST" && p === "/api/me/passport/dismiss") {
+      writes.push([p, JSON.parse(init.body)]);
+      const after = passport(["done", "done", "todo", "todo", "done", "todo"], {
+        older_welcome_finished: true,
+        dismissed_at: "2026-11-14T12:00:00.000Z",
+      });
+      return reply(after);
     }
     if (p === "/api/me/home/clan") return reply({ clan: CLAN });
     if (p === "/api/me/home/needs") return reply({ needs: CLAN });
@@ -56,7 +96,7 @@ beforeEach(() => {
 });
 afterEach(() => cleanup());
 
-const first = (welcome) => ({ player: PLAYER, welcome });
+const first = (setup) => ({ player: PLAYER, setup });
 
 test("the digest's lit choice is the person's own, else weekly", () => {
   expect(digestChoice(null)).toBe("weekly");
@@ -94,32 +134,85 @@ test("choosing the digest on Home makes Settings' write, Off included", async ()
   expect(screen.getByText(/Your feed is still here/)).toBeTruthy();
 });
 
-test("the welcome is one line a step, its count at the head's right", async () => {
+test("the profile list puts its next step on top, the six folded under it", async () => {
   renderWithProviders(
     <HomePanels
-      first={first({ following: 0, digest: null })}
+      first={first({ following: 1, digest: { enabled: false } })}
       player={PLAYER}
       feed={null}
     />,
   );
   const head = await screen.findByRole("heading", {
-    name: "Welcome to Elixir, 2 of 4 done",
+    name: "Your profile, 3 of 6 done",
   });
-  expect(head.querySelector(".kit-welcome__count").textContent).toBe(
-    "2 of 4 done",
+  expect(head.querySelector(".kit-profile__count").textContent).toBe(
+    "3 of 6 done",
   );
-  const rows = [...document.querySelectorAll(".kit-check")];
+  const next = document.querySelector(".kit-profile__next");
+  expect(next.dataset.step).toBe("picture");
+  const choose = screen.getAllByRole("link", { name: "Choose your picture" });
+  expect(choose[0].getAttribute("href")).toBe("/settings/profile");
+  const rows = [...document.querySelectorAll(".kit-profile__row")];
   expect(rows.map((r) => r.querySelector("h3").textContent)).toEqual([
-    "Add your player",
-    "Verify it’s you",
-    "Follow a few people",
-    "Choose your digest",
+    "Add your player Done.",
+    "Verify it’s you Done.",
+    "Pick your picture To do.",
+    "Follow someone who plays To do.",
+    "Choose your email Done.",
+    "Your place on the clan map To do.",
   ]);
-  const find = screen.getByRole("link", { name: "Find people" });
-  expect(find.textContent).toBe("Find");
-  expect(find.getAttribute("href")).toBe("/home/find");
-  expect(screen.getByRole("link", { name: "Choose your digest" })).toBeTruthy();
-  expect(screen.queryByRole("link", { name: /Verify/ })).toBeNull();
+  expect(document.querySelector(".kit-profile").textContent).toContain(
+    "The player you follow hasn’t played in the last 7 days.",
+  );
+  expect(screen.getByText("Your digest is off.")).toBeTruthy();
+  // Only after the older welcome can it be put away.
+  expect(
+    screen.queryByRole("button", { name: "Hide your profile list" }),
+  ).toBeNull();
+});
+
+test("the map's Not now finishes the step with the server's answer", async () => {
+  owner = passport(["done", "done", "done", "done", "done", "todo"]);
+  renderWithProviders(
+    <HomePanels
+      first={first({ following: 1, digest: { enabled: true } })}
+      player={PLAYER}
+      feed={null}
+    />,
+  );
+  // The next step's Not now (the folded row has its own too).
+  const [now] = await screen.findAllByRole("button", { name: "Not now" });
+  expect(now.closest(".kit-profile__next")).toBeTruthy();
+  fireEvent.click(now);
+  await waitFor(() =>
+    expect(writes).toEqual([["/api/me/passport/map", { choice: "not_now" }]]),
+  );
+  await screen.findByRole("heading", { name: "Your profile, 5 of 6 done" });
+  expect(screen.queryByRole("button", { name: "Not now" })).toBeNull();
+});
+
+test("after the older welcome: only what is left, and Hide puts it away", async () => {
+  owner = passport(["done", "done", "todo", "todo", "done", "todo"], {
+    older_welcome_finished: true,
+  });
+  renderWithProviders(
+    <HomePanels
+      first={first({ following: 1, digest: { enabled: true } })}
+      player={PLAYER}
+      feed={null}
+    />,
+  );
+  await screen.findByText(
+    "You finished your welcome. Here’s what’s left for the All Set Stamp.",
+  );
+  expect(document.querySelectorAll(".kit-profile__row")).toHaveLength(3);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Hide your profile list" }),
+  );
+  await waitFor(() =>
+    expect(document.querySelector(".kit-profile")).toBeNull(),
+  );
+  expect(writes).toEqual([["/api/me/passport/dismiss", {}]]);
 });
 
 test("the clan card draws the race's place while a war day runs", async () => {

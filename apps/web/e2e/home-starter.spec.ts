@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mockApi } from "./fixtures.ts";
-import { HOME, homeApi } from "./home-fixture.ts";
+import { HOME, homeApi, ownerPassport } from "./home-fixture.ts";
 
 /**
  * Home's suggested follows (2026-11-13), the first thing a person who
@@ -76,20 +76,24 @@ const offer = (people = PEOPLE) => ({
 });
 
 const home = (
-  welcome: Record<string, unknown>,
+  setup: Record<string, unknown>,
   starter: unknown,
   more: Parameters<typeof homeApi>[0] = {},
 ) =>
   homeApi({
     "GET /api/me/home": [
       200,
-      { first: { ...HOME.first, welcome, starter_hidden_until: null } },
+      { first: { ...HOME.first, setup, starter_hidden_until: null } },
     ],
     "GET /api/me/people/starter": [200, starter],
+    "GET /api/me/passport": [
+      200,
+      ownerPassport(["done", "done", "todo", "todo", "todo", "todo"]),
+    ],
     ...more,
   });
 
-const NEW = { following: 0, digest: null, finished_at: null };
+const NEW = { following: 0, digest: null };
 
 async function noSideways(page: Page) {
   const over = await page.evaluate(
@@ -115,10 +119,10 @@ for (const [label, width, height] of [
     ).toBeVisible();
     const go = set.getByRole("button", { name: "Follow these (8)" });
     await expect(go).toBeVisible();
-    // Above the welcome steps and the feed.
+    // Above the profile list and the feed.
     const top = await set.boundingBox();
-    const welcome = await page.locator(".kit-welcome").boundingBox();
-    expect(top!.y).toBeLessThan(welcome!.y);
+    const list = await page.locator(".kit-profile").boundingBox();
+    expect(top!.y).toBeLessThan(list!.y);
     // Without scrolling: the button and the first three rows, reasons and
     // all, end inside the first screen.
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
@@ -202,7 +206,7 @@ test("a hostile name is text; untick, then one confirmed follow of the ticked", 
   ]);
 });
 
-test("offered to an account following few after its welcome is done, and Not now puts it aside", async ({
+test("offered to an account following few after its profile list is done, and Not now puts it aside", async ({
   page,
 }) => {
   let hidden = 0;
@@ -212,10 +216,16 @@ test("offered to an account following few after its welcome is done, and Not now
       {
         following: 3,
         digest: { chosen_at: AGO(600), enabled: true, cadence: "weekly" },
-        finished_at: AGO(500),
       },
       offer(),
       {
+        "GET /api/me/passport": [
+          200,
+          ownerPassport(["done", "done", "done", "done", "done", "done"], {
+            complete: true,
+            completed_at: AGO(500),
+          }),
+        ],
         "POST /api/me/people/starter/hide": () => {
           hidden += 1;
           return [200, { hidden_at: AGO(0) }];
@@ -226,7 +236,7 @@ test("offered to an account following few after its welcome is done, and Not now
   await page.goto("/home");
   const set = page.locator(".kit-starter");
   await expect(set).toBeVisible();
-  await expect(page.locator(".kit-welcome")).toHaveCount(0);
+  await expect(page.locator(".kit-profile")).toHaveCount(0);
   await set.getByRole("button", { name: "Not now" }).click();
   await expect(set).toHaveCount(0);
   expect(hidden).toBe(1);
@@ -242,7 +252,7 @@ test("following five, or put aside: no list, and no read for it", async ({
   };
   await mockApi(
     page,
-    home({ following: 5, digest: null, finished_at: null }, offer(), {
+    home({ following: 5, digest: null }, offer(), {
       "GET /api/me/people/starter": count,
     }),
   );
@@ -257,7 +267,7 @@ test("following five, or put aside: no list, and no read for it", async ({
         {
           first: {
             ...HOME.first,
-            welcome: NEW,
+            setup: NEW,
             starter_hidden_until: new Date(
               Date.now() + 10 * 86_400_000,
             ).toISOString(),

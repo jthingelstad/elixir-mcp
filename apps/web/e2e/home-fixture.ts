@@ -240,3 +240,37 @@ export const homeApi = (overrides: Parameters<typeof signedIn>[0] = {}) =>
     "GET /api/me/timeline/discord": [200, { enabled: true }],
     ...overrides,
   });
+
+/** Home's profile list (#1015): the owner's passport read with the six
+ *  steps in the given states. Not part of HOME_READS: a test that wants
+ *  the list names it. */
+const PROFILE_IDS = [
+  "add_player",
+  "verify_player",
+  "picture",
+  "follow_active",
+  "digest",
+  "map",
+];
+export const ownerPassport = (
+  states: string[],
+  profile: Record<string, unknown> = {},
+) => ({
+  owner: {
+    profile: {
+      version: 2,
+      complete: false,
+      completed_at: null,
+      older_welcome_finished: false,
+      dismissed_at: null,
+      follows: { following: 0, active: 0, unknown: 0 },
+      steps: PROFILE_IDS.map((id, i) => ({
+        id,
+        state: states[i],
+        latched: false,
+      })),
+      ...profile,
+    },
+    stamps: [],
+  },
+});

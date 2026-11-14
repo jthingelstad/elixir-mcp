@@ -397,29 +397,6 @@ export function gameLine(b) {
   return `${outcome}${score}${against}${mode}`;
 }
 
-/**
- * Home's welcome steps (G4, 2026-11-12): add your player, verify it, follow a
- * few people, choose your digest. Each is read from state the account already
- * keeps (the first answer: its player, `welcome.following` and
- * `welcome.digest`), never a second record of onboarding. Null when the
- * answer carries no welcome state (an older server): no steps beat guessed
- * ones. Jamie, 2026-11-12: one follow completes the follow step, turning the
- * digest off counts as choosing it, and once all four are done the stored
- * `welcome.finished_at` keeps the steps gone for good, whatever changes later.
- */
-export function welcomeSteps(first) {
-  const w = first?.welcome;
-  if (!w) return null;
-  const steps = {
-    player: Boolean(first.player),
-    verify: first.player?.verified === true,
-    follow: (w.following ?? 0) > 0,
-    digest: Boolean(w.digest),
-  };
-  const done = Object.values(steps).filter(Boolean).length;
-  return { steps, done, total: 4, all: done === 4 || Boolean(w.finished_at) };
-}
-
 /** Home's digest panel's three choices (canvas: Weekly / Daily / Off). */
 export const DIGEST_CHOICES = [
   { key: "weekly", label: "Weekly" },
@@ -478,7 +455,7 @@ export const STARTER_UNDER = 5;
  *  have not run out. From Home's own read; the server checks the same
  *  before it answers. */
 export function offersStarter(first, nowMs = Date.now()) {
-  const following = first?.welcome?.following;
+  const following = first?.setup?.following;
   if (typeof following !== "number" || following >= STARTER_UNDER) return false;
   const until = first?.starter_hidden_until;
   return !(until && Date.parse(until) > nowMs);

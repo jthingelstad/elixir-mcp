@@ -116,7 +116,11 @@ after(async () => {
 });
 
 test("the earning writes are a signed-in person's, with the contract header", async () => {
-  for (const p of ["/api/me/passport/reconcile", "/api/me/passport/map"]) {
+  for (const p of [
+    "/api/me/passport/reconcile",
+    "/api/me/passport/map",
+    "/api/me/passport/dismiss",
+  ]) {
     assert.equal((await call("POST", p, { body: {} })).status, 401, p);
     const bare = await call("POST", p, {
       who: "owner",
@@ -131,6 +135,7 @@ test("the earning writes are a signed-in person's, with the contract header", as
   for (const key of [
     "POST /api/me/passport/reconcile",
     "POST /api/me/passport/map",
+    "POST /api/me/passport/dismiss",
   ]) {
     const res = await routes[key](db, {}, { choice: "not_now" });
     assert.equal(res.statusCode, 403, key);
@@ -220,6 +225,37 @@ test("Not now completes the map step and never grants On the Map", async () => {
   assert.equal(res.body.more, false);
   assert.ok(Array.isArray(res.body.granted));
   assert.deepEqual(await levels("on_the_map"), []);
+});
+
+test("the profile list is dismissed only by an account that finished the older welcome", async () => {
+  const refused = await call("POST", "/api/me/passport/dismiss", {
+    who: "owner",
+    body: {},
+  });
+  assert.equal(refused.status, 409);
+  assert.equal(refused.body.error, "not_offered");
+  await db.query(
+    `update account set welcome_finished_at = now() where account_id = $1`,
+    [ids.owner],
+  );
+  const res = await call("POST", "/api/me/passport/dismiss", {
+    who: "owner",
+    body: {},
+  });
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body.owner.profile.older_welcome_finished, true);
+  assert.ok(res.body.owner.profile.dismissed_at);
+  assert.equal(res.body.owner.profile.completed_at, null);
+  assert.deepEqual(await levels("all_set"), []);
+  const read = await call("GET", "/api/me/passport", { who: "owner" });
+  assert.equal(
+    read.body.owner.profile.dismissed_at,
+    res.body.owner.profile.dismissed_at,
+  );
+  await db.query(
+    `update account set welcome_finished_at = null where account_id = $1`,
+    [ids.owner],
+  );
 });
 
 test("reconciliation repairs a missed place save from a boolean and answers no place", async () => {

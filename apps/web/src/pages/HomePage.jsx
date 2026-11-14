@@ -5,6 +5,7 @@ import { useMe } from "../App.jsx";
 import { useHome } from "../lib/queries.js";
 import { NewAccount } from "../home/NewAccount.jsx";
 import { useFirstRead } from "../home/first-read.js";
+import { useReconcileOnOpen } from "../lib/passport-reconcile.js";
 import { HomeFeed } from "../home/Feed.jsx";
 import { HomePanels, TodayError, TodayFresh } from "../home/Today.jsx";
 
@@ -30,6 +31,10 @@ export function HomePage() {
   // Where the feed puts its chips: the head, right of the title (design
   // canvas, 2026-11-13). The feed draws them above itself until it is set.
   const [chipsAt, setChipsAt] = useState(null);
+  // The passport's catch-up (#1015): once Home draws its feed (the profile
+  // list's place), after first paint, never waited on. A new account's
+  // first steps write nothing until the person acts.
+  useReconcileOnOpen(Boolean(me) && ready);
   if (query.isError || data?.first?.ok === false)
     return (
       <>

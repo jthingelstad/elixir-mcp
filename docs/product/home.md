@@ -104,12 +104,13 @@ is one feed", "The left rail stays only in Settings"]
    someone did not play. [Jamie, 2026-11-05, Q6, A34; standing]
 9. **The feed's place is its own.** Opening Home clears New and changes
    nothing an agent has read. [Jamie, 2026-10-20]
-10. **The first steps finish for good.** "Welcome to Elixir, N of 4 done"
-    (add your player, verify it, follow someone, choose your digest)
-    shows until all four are done; one follow completes its step, turning
+10. **The first steps finish for good.** "Your profile, N of 6 done"
+    (the six steps of docs/product/stamps.md's profile list, which
+    replaced the four-step welcome on 2026-11-14) shows one next step
+    until all six are done; one active follow completes its step, turning
     the digest off counts as choosing it, and once finished it never
     comes back. [Jamie, 2026-11-12, "The welcome checklist finishes for
-    good"]
+    good"; Jamie, 2026-11-14, the passport design session]
 11. **Your timeline is yours to carry.** One private RSS link to your
     feed, everyone you follow together, made, reset or turned off in
     Settings. There is no feed per player. [Jamie, 2026-11-11, "Your

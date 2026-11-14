@@ -1,6 +1,6 @@
 # Build handoff: Elixir passports and Stamps
 
-Status: slice 1 (catalog, eligibility, storage, the two reads) built 2026-11-14 (#1015); earning (slice 3's hooks, slice 4, and slice 5's bell notices) built 2026-11-14 (#1015, [note](../notes/2026-11-14-passport-stamps-earning.md)); the pages, the Home list and the backfill are open.
+Status: slice 1 (catalog, eligibility, storage, the two reads) built 2026-11-14 (#1015); earning (slice 3's hooks, slice 4, and slice 5's bell notices) built 2026-11-14 (#1015, [note](../notes/2026-11-14-passport-stamps-earning.md)); Home's profile list built 2026-11-14 (#1015, [note](../notes/2026-11-14-passport-profile-list.md)); the backfill is built (below); the pages are open.
 Implementation is tracked in [#1015](https://github.com/jthingelstad/elixir-mcp/issues/1015).
 Start from [product direction](../product/stamps.md) and the
 [interactive design](../design/passport/README.md). Nothing in this

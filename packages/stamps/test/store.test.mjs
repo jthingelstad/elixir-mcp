@@ -18,6 +18,7 @@ import { processResult } from "../../ingest/src/pipeline.mjs";
 import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 import {
   PASSPORT_ID,
+  dismissProfileList,
   ensurePassport,
   grantStamps,
   latchProfile,
@@ -491,6 +492,41 @@ test("the cap holds under concurrency: 50 Cheerleader days at most", async () =>
     ),
     TypeError,
   );
+});
+
+test("the profile list is dismissed only after the older welcome, once, completing nothing", async () => {
+  const a = await person();
+  const t1 = "2026-11-14T10:00:00Z";
+  const t2 = "2026-11-14T12:00:00Z";
+  // Not offered: the older welcome list was never finished.
+  assert.deepEqual(await dismissProfileList(db, a, { now: t1 }), {
+    refused: "not_offered",
+  });
+  await db.query(
+    `update account set welcome_finished_at = now() where account_id = $1`,
+    [a],
+  );
+  assert.deepEqual(await dismissProfileList(db, a, { now: t1 }), {
+    dismissed_at: new Date(t1).toISOString(),
+  });
+  // Set once: a second dismissal keeps the first instant.
+  assert.deepEqual(await dismissProfileList(db, a, { now: t2 }), {
+    dismissed_at: new Date(t1).toISOString(),
+  });
+  const owner = await readOwnerPassport(db, a, { now: t2 });
+  assert.equal(owner.owner.profile.dismissed_at, new Date(t1).toISOString());
+  assert.equal(owner.owner.profile.older_welcome_finished, true);
+  assert.equal(owner.owner.profile.complete, false, "dismissed is not done");
+  assert.equal(owner.owner.profile.completed_at, null);
+  assert.ok(owner.owner.profile.steps.every((s) => !s.latched));
+  assert.equal(
+    owner.owner.stamps.find((s) => s.stamp_id === "all_set").earned_level,
+    0,
+  );
+  const agent = await agentOf(a);
+  assert.deepEqual(await dismissProfileList(db, agent, { now: t1 }), {
+    refused: "not_person",
+  });
 });
 
 test("profile latches keep their first instant; choices keep the latest", async () => {

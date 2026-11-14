@@ -412,6 +412,36 @@ export async function latchProfile(db, accountId, patch, { now }) {
   return rows[0] ?? null;
 }
 
+/**
+ * Put Home's profile list away (0274). Offered only to a person who
+ * finished the older welcome list (account.welcome_finished_at): the
+ * spec gives them the remaining steps and a way to dismiss them. Sets
+ * dismissed_at once and never clears it; latches nothing, completes
+ * nothing, grants nothing. Returns { dismissed_at } or
+ * { refused: 'not_person' | 'not_offered' }.
+ */
+export async function dismissProfileList(db, accountId, { now }) {
+  const at = isoOf(now);
+  const {
+    rows: [acct],
+  } = await db.query(
+    `select kind, welcome_finished_at from account where account_id = $1::uuid`,
+    [accountId],
+  );
+  if (!acct || acct.kind !== "person") return { refused: "not_person" };
+  if (!acct.welcome_finished_at) return { refused: "not_offered" };
+  const { rows } = await db.query(
+    `insert into account_profile_list as l (account_id, dismissed_at, updated_at)
+     values ($1::uuid, $2::timestamptz, $2::timestamptz)
+     on conflict (account_id) do update set
+       dismissed_at = coalesce(l.dismissed_at, excluded.dismissed_at),
+       updated_at = excluded.updated_at
+     returning dismissed_at`,
+    [accountId, at],
+  );
+  return { dismissed_at: new Date(rows[0].dismissed_at).toISOString() };
+}
+
 /** The account's primary claim as the public projection takes it. */
 async function readPrimary(db, accountId) {
   const { rows } = await db.query(
@@ -589,7 +619,7 @@ export async function readSnapshot(db, accountId, { now }) {
   } = await db.query(
     `select add_player_at, verify_player_at, picture_at, follow_active_at,
             digest_choice, digest_at, map_choice, map_at, map_place_saved_at,
-            completed_at
+            completed_at, dismissed_at
        from account_profile_list where account_id = $1::uuid`,
     [accountId],
   );
@@ -638,6 +668,7 @@ export async function readSnapshot(db, accountId, { now }) {
     latches,
     earned,
     legacy_welcome_finished: Boolean(acct.welcome_finished_at),
+    profile_dismissed_at: iso(list?.dismissed_at),
   };
 }
 
@@ -652,7 +683,8 @@ export async function readSnapshot(db, accountId, { now }) {
  *     passport, catalog_version,            as the public read
  *     owner: {
  *       profile: { version, complete, completed_at, steps: [{ id, state, latched }],
- *                  older_welcome_finished },
+ *                  follows: { following, active, inactive, unknown } | null,
+ *                  older_welcome_finished, dismissed_at },
  *       stamps: [{ stamp_id, earned_level, progress: { count, next, top, unknown, pending? } }]
  *     }
  *   }
@@ -673,6 +705,7 @@ export async function readOwnerPassport(db, accountId, { now }) {
       profile: {
         ...evaluation.profile,
         older_welcome_finished: snapshot.legacy_welcome_finished,
+        dismissed_at: snapshot.profile_dismissed_at,
       },
       stamps: evaluation.stamps.map((s) => ({
         stamp_id: s.stamp_id,
