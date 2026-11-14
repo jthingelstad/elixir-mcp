@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./avatar-crops": "./src/avatar-crops.ts",
     "./family.json": "./src/family.json",
     "./time": "./src/time.ts"
   },

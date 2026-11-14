@@ -4,13 +4,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import {
-  AVATAR_CROP_OVERRIDES,
   avatarCrop,
   DEFAULT_AVATAR_CROP,
+  DROP_AVATAR_CROPS,
+  ELIXIR_AVATAR_CROPS,
 } from "../src/avatar-crops.ts";
 
-/** The profile image's crop table (2026-11-14), moved from Drop unchanged,
- *  and every catalog card resolving to a crop. Plain JavaScript because the
+/** The profile image's crop tables (2026-11-14): Drop's, moved unchanged,
+ *  Elixir's own rows, which win, and every catalog card resolving to a
+ *  crop. Plain JavaScript because the
  *  kit's typecheck has no Node types. */
 const repo = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -37,27 +39,40 @@ function canonical(table) {
 
 describe("the crop table", () => {
   test("carries Drop's 121 values exactly", () => {
-    expect(Object.keys(AVATAR_CROP_OVERRIDES)).toHaveLength(121);
+    expect(Object.keys(DROP_AVATAR_CROPS)).toHaveLength(121);
     expect(DEFAULT_AVATAR_CROP).toEqual({ x: 50, y: 48, scale: 1.21 });
     expect(
-      createHash("sha256")
-        .update(canonical(AVATAR_CROP_OVERRIDES))
-        .digest("hex"),
+      createHash("sha256").update(canonical(DROP_AVATAR_CROPS)).digest("hex"),
     ).toBe("89ae5a7f5609c59c9cbea7a0ff2dc941a439e577fb6101999184b06c2287ebfd");
   });
 
-  test("every catalog card resolves to a whole crop; two take the default", () => {
+  test("every catalog card resolves to a whole crop; one takes the default", () => {
+    const ids = new Set(catalog.items.map(({ id }) => id));
     const missing = [];
-    for (const { id } of catalog.items) {
+    for (const id of ids) {
       const c = avatarCrop(id);
       for (const v of [c.x, c.y, c.scale])
         expect(Number.isFinite(v)).toBe(true);
       expect(c.scale).toBeGreaterThan(0);
-      if (!(id in AVATAR_CROP_OVERRIDES)) missing.push(id);
+      if (!(id in DROP_AVATAR_CROPS) && !(id in ELIXIR_AVATAR_CROPS))
+        missing.push(id);
     }
-    // Mirror and one card Drop never listed: the default until re-tuned.
-    expect(missing.sort()).toEqual([28000006, 28000025]);
-    expect(avatarCrop(28000006)).toEqual(DEFAULT_AVATAR_CROP);
+    // Spirit Empress, which Drop never listed: the default frames it well.
+    expect(missing).toEqual([28000025]);
+    expect(avatarCrop(28000025)).toEqual(DEFAULT_AVATAR_CROP);
+    // Every Elixir row is a catalog card.
+    for (const id of Object.keys(ELIXIR_AVATAR_CROPS))
+      expect(ids.has(Number(id))).toBe(true);
+  });
+
+  test("Elixir's own row wins over Drop's and the default", () => {
+    expect(avatarCrop(28000006)).toEqual({ x: 50, y: 46, scale: 1.3 });
+    for (const [id, row] of Object.entries(ELIXIR_AVATAR_CROPS))
+      expect(avatarCrop(Number(id))).toEqual({
+        ...DEFAULT_AVATAR_CROP,
+        ...DROP_AVATAR_CROPS[id],
+        ...row,
+      });
   });
 
   test("a partial row keeps the default's other fields", () => {

@@ -63,8 +63,9 @@ export { Empty, ErrorState } from "./Empty.tsx";
 export { Stat, Stats } from "./Stats.tsx";
 export { Avatar, avatarCardOf, avatarHue, avatarInitials } from "./Avatar.tsx";
 export {
-  AVATAR_CROP_OVERRIDES,
   DEFAULT_AVATAR_CROP,
+  DROP_AVATAR_CROPS,
+  ELIXIR_AVATAR_CROPS,
   avatarCrop,
   type AvatarCrop,
 } from "./avatar-crops.ts";
