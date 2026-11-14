@@ -460,7 +460,7 @@ html[data-session="in"] [data-session-face="out"] {
     align-items: center;
     gap: 9px;
     width: 100%;
-    height: var(--hit-touch);
+    height: var(--hit);
     box-sizing: border-box;
     text-align: left;
     /* Quiet (2026-11-13): on a phone the picker is one plain line on the
@@ -573,7 +573,7 @@ html[data-session="in"] [data-session-face="out"] {
   box-shadow: var(--shadow-float);
 }
 .panel__head {
-  padding: 13px var(--s-4);
+  padding: var(--s-4);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1607,7 +1607,7 @@ input[aria-invalid="true"] {
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  min-height: var(--hit-touch);
+  min-height: var(--hit);
   padding: 11px 0;
   color: var(--ink-faint);
   text-decoration: none;
@@ -1783,7 +1783,7 @@ input[aria-invalid="true"] {
 @media (max-width: 760px) {
   .clan-dir__toggle {
     display: inline-flex;
-    min-height: var(--hit-touch);
+    min-height: var(--hit);
   }
   .clan-dir__more:not([data-open]) {
     display: none;
@@ -2347,15 +2347,16 @@ input[aria-invalid="true"] {
 .home-title {
   margin: 0;
   font: 600 var(--t-home-title) / 1.08 var(--font);
-  letter-spacing: 0.01em;
+  letter-spacing: -0.03em;
   text-wrap: balance;
+  color: var(--ink);
 }
 .home-lede {
   margin: 0;
   max-width: 54ch;
-  font-size: var(--t-h2);
+  font-size: var(--t-body);
   line-height: 1.6;
-  color: var(--ink-body);
+  color: var(--ink-dim);
 }
 .btn--lg {
   height: 46px;
@@ -2368,43 +2369,19 @@ input[aria-invalid="true"] {
   font-weight: 700;
 }
 
-/* The logo on a violet glow inside a faint gold ring. */
+/* The existing bottle art leads the same reading column as the promise. */
 .home-art {
-  position: relative;
   display: flex;
+  justify-content: flex-start;
   align-items: center;
-  justify-content: center;
-  height: 240px;
-}
-.home-art::before,
-.home-art::after {
-  content: "";
-  position: absolute;
-  border-radius: var(--r-pill);
-}
-.home-art::before {
-  width: 240px;
-  height: 240px;
-  background: radial-gradient(
-    circle,
-    var(--art-glow),
-    var(--art-glow-fade) 55%,
-    transparent 70%
-  );
-}
-.home-art::after {
-  width: 200px;
-  height: 200px;
-  border: 1px solid var(--art-ring);
+  order: -1;
+  height: 112px;
 }
 .home-art img {
-  position: relative;
-  z-index: 1;
   display: block;
-  width: 180px;
-  height: 180px;
+  width: 88px;
+  height: 88px;
   object-fit: contain;
-  filter: drop-shadow(0 18px 40px var(--art-shadow));
 }
 
 /* Three rows, no boxes: an icon, a title, a sentence or two and the way
@@ -2497,19 +2474,19 @@ input[aria-invalid="true"] {
 
 .home-gate {
   display: grid;
-  justify-items: center;
+  justify-items: stretch;
   gap: var(--s-2);
   max-width: 640px;
   margin: 0 auto;
-  padding-top: var(--s-6);
-  text-align: center;
+  padding-top: var(--s-4);
+  text-align: left;
 }
 .home-gate__col {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  align-items: center;
-  gap: var(--s-5);
+  align-items: flex-start;
+  gap: var(--s-4);
 }
 .home-gate__ways {
   display: flex;
@@ -2528,41 +2505,16 @@ input[aria-invalid="true"] {
     width: 100%;
   }
 }
-[data-home] .home-art {
-  order: -1;
-  height: 140px;
-}
-[data-home] .home-art::before {
-  width: 150px;
-  height: 150px;
-  aspect-ratio: auto;
-}
-[data-home] .home-art::after {
-  width: 124px;
-  height: 124px;
-}
-[data-home] .home-art img {
-  width: 104px;
-  height: 104px;
-}
-[data-home] .home-title {
-  color: var(--gold);
-  font-size: var(--t-home-title);
-}
-[data-home] .home-lede {
-  font-size: var(--t-body);
-  color: var(--ink-dim);
-}
 [data-home] .home-rows,
 [data-home] .home-next {
   max-width: 640px;
   margin-inline: auto;
 }
 [data-home] .home-join {
-  align-items: center;
+  align-items: stretch;
   max-width: 640px;
   margin-inline: auto;
-  text-align: center;
+  text-align: left;
 }
 
 /* The live pieces show when the data arrives, with the hidden
@@ -2572,24 +2524,6 @@ input[aria-invalid="true"] {
 }
 
 @media (min-width: 900px) {
-  .home-art {
-    height: 420px;
-  }
-  /* The art's column is narrowest just past the band's start: its glow stays
-     inside it there, or the whole page gains a sideways scroll. */
-  .home-art::before {
-    width: min(400px, 100%);
-    height: auto;
-    aspect-ratio: 1;
-  }
-  .home-art::after {
-    width: 330px;
-    height: 330px;
-  }
-  .home-art img {
-    width: 288px;
-    height: 288px;
-  }
   .home-join {
     flex-direction: row;
     align-items: center;
@@ -2604,9 +2538,9 @@ input[aria-invalid="true"] {
   align-items: center;
   gap: 9px;
   width: 100%;
-  height: 40px;
-  padding: 0 11px;
-  margin-bottom: 6px;
+  min-height: var(--hit);
+  padding: 0 var(--s-3);
+  margin-bottom: var(--s-2);
   border: 0;
   background: none;
   color: var(--ink);
@@ -2679,9 +2613,9 @@ input[aria-invalid="true"] {
   display: flex;
   align-items: center;
   gap: 9px;
-  height: 40px;
-  padding: 0 11px;
-  margin-bottom: 6px;
+  min-height: var(--hit);
+  padding: 0 var(--s-3);
+  margin-bottom: var(--s-2);
   background: var(--ground-sunken);
   border: 1px solid var(--line);
   border-radius: var(--r-control);
@@ -2691,11 +2625,16 @@ input[aria-invalid="true"] {
 .docs-search input {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: var(--hit);
   border: 0;
   background: none;
   padding: 0;
   color: var(--ink);
   font: inherit;
+}
+.docs-search:focus-within {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
 }
 .docs-search input:focus {
   outline: none;
@@ -2961,7 +2900,7 @@ input[aria-invalid="true"] {
   align-items: center;
   gap: 6px;
 }
-/* The docs home: one card per thing a person comes to do. */
+/* The docs home: flat task groups with the same gutter as the prose. */
 .docs-layout .docs__body--home {
   max-width: none;
 }
@@ -2975,9 +2914,8 @@ input[aria-invalid="true"] {
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
-  padding: var(--s-5);
-  border-radius: var(--r-control);
-  background: var(--panel);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--line-soft);
 }
 .docs-task__head {
   display: flex;
@@ -2986,14 +2924,12 @@ input[aria-invalid="true"] {
 }
 .docs-task__icon {
   flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--r-control);
-  background: var(--panel-raised);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--gold);
+  width: 24px;
+  height: 24px;
+  color: var(--accent-bright);
 }
 .docs-task__title {
   flex: 1 1 auto;
@@ -3461,7 +3397,7 @@ input[aria-invalid="true"] {
   align-items: center;
   justify-content: space-between;
   gap: var(--s-3);
-  min-height: var(--hit-touch);
+  min-height: var(--hit);
   padding: 6px 0;
 }
 .verify__list {
@@ -3532,7 +3468,7 @@ input[aria-invalid="true"] {
   margin-top: var(--s-4);
 }
 .verify__actions .btn {
-  min-height: var(--hit-touch);
+  min-height: var(--hit);
 }
 .verify__burst {
   position: relative;
@@ -4595,7 +4531,7 @@ a.card-art:hover .card-art__img {
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  min-height: var(--hit-touch);
+  min-height: var(--hit);
   padding: 10px var(--s-3);
   color: var(--ink);
   text-decoration: none;
@@ -4800,26 +4736,17 @@ a.card-art:hover .card-art__img {
    2026-11-06). A win is --win-ink and a loss
    --loss-ink as text; as bars they are --win-ink and --loss. Gold is never a
    data value here: it only rings today. */
-.stats-page {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-/* You › Stats (2026-11-12): You's tabs over Stats' own frame. */
-.kit-you-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-}
-.stats-head.kit-head {
-  margin-bottom: 0;
-}
+.stats-page,
+.kit-you-stats,
 .stats-stack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--s-4);
   min-width: 0;
+}
+/* You › Stats (2026-11-12): You's tabs over Stats' own frame. */
+.stats-head.kit-head {
+  margin-bottom: 0;
 }
 .stats-group {
   margin: var(--s-2) 0 -4px;
@@ -4847,7 +4774,7 @@ a.card-art:hover .card-art__img {
 /* One select, one height, in Stats' bar and Clan's head. */
 .scope-select {
   width: auto;
-  min-height: 36px;
+  min-height: var(--hit);
   max-width: 100%;
   padding: var(--s-1) var(--s-2);
   border: 1px solid var(--line);
@@ -5395,7 +5322,6 @@ a.card-art:hover .card-art__img {
   }
   .scope-select {
     width: 100%;
-    min-height: 44px;
   }
   .stats-scope--frame .stats-scope__picks:has(.stats-scope__one) .scope-select {
     width: auto;
@@ -6395,17 +6321,17 @@ button.kit-row {
   }
   .kit-panel__head,
   .kit-panel .panel__head {
-    padding: var(--s-3) 14px var(--s-2);
+    padding: var(--s-3) var(--s-4) var(--s-2);
   }
   .kit-panel__body,
   .kit-panel .panel__body {
-    padding-right: 14px;
-    padding-left: 14px;
+    padding-right: var(--s-4);
+    padding-left: var(--s-4);
   }
   .kit-panel .panel__foot,
   .kit-panel .panel__note {
-    padding-right: 14px;
-    padding-left: 14px;
+    padding-right: var(--s-4);
+    padding-left: var(--s-4);
   }
   .kit-row {
     padding: 11px 14px;
@@ -9424,7 +9350,7 @@ a.kit-mbattle:hover {
   font-weight: 600;
 }
 .st-facts--rows > dd {
-  padding: 3px var(--s-4) var(--s-3);
+  padding: var(--s-1) var(--s-4) var(--s-3);
   color: var(--ink-dim);
   font-size: var(--t-body-sm);
   line-height: 1.5;
@@ -9445,16 +9371,16 @@ a.kit-mbattle:hover {
 }
 
 .st-facts + .st-foot {
-  padding: 0 var(--s-4) 14px;
+  padding: 0 var(--s-4) var(--s-4);
 }
 .st-inset {
-  padding: 13px var(--s-4);
+  padding: var(--s-4);
   font-size: var(--t-body-sm);
   line-height: 1.5;
   color: var(--ink-body);
 }
 .st-inset > p {
-  margin: 0 0 10px;
+  margin: 0 0 var(--s-2);
 }
 .st-inset > p:last-child {
   margin-bottom: 0;
@@ -9791,7 +9717,7 @@ a.kit-mbattle:hover {
   align-items: center;
   justify-content: space-between;
   gap: var(--s-3);
-  min-height: var(--hit-touch);
+  min-height: var(--hit);
   padding: 9px var(--s-4);
   color: var(--ink);
   font-size: var(--t-body-sm);
@@ -10233,7 +10159,7 @@ a.kit-mbattle:hover {
   display: inline-flex;
   align-items: center;
   justify-self: start;
-  min-height: var(--hit-touch);
+  min-height: var(--hit);
   font-weight: 600;
 }
 @media (max-width: 760px) {
@@ -10263,7 +10189,7 @@ a.kit-mbattle:hover {
   input.mono-tag,
   input.mono-num,
   input[data-tag] {
-    min-height: var(--hit-touch);
+    min-height: var(--hit);
   }
   .mail-pref__all {
     display: inline-flex;
@@ -10285,7 +10211,7 @@ a.kit-mbattle:hover {
      way, takes the tap. `.hit` is the same rule for a link a view marks. */
   .kit-top__brand,
   .kit-top__link {
-    min-height: var(--hit-touch);
+    min-height: var(--hit);
   }
   .kit-top__icon,
   .kit-top__avatar,
@@ -10327,8 +10253,8 @@ a.kit-mbattle:hover {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: max(100%, var(--hit-touch));
-    height: max(100%, var(--hit-touch));
+    width: max(100%, var(--hit));
+    height: max(100%, var(--hit));
     transform: translate(-50%, -50%);
   }
   /* On a phone a roster card's name already takes the whole row's tap
@@ -10353,7 +10279,7 @@ a.kit-mbattle:hover {
   .kit-foot__links a {
     display: inline-flex;
     align-items: center;
-    min-height: var(--hit-touch);
+    min-height: var(--hit);
     padding-inline: var(--s-2);
   }
 }
@@ -10367,7 +10293,7 @@ a.kit-mbattle:hover {
      other tab bar does, each tab at least 44px wide. */
   .clan-head .kit-tabs__tab {
     flex: none;
-    min-width: var(--hit-touch);
+    min-width: var(--hit);
     text-align: center;
   }
   .clan-dir__field {
@@ -10555,5 +10481,28 @@ a.kit-mbattle:hover {
 @media (prefers-reduced-motion: reduce) {
   .kit-cheers__picker {
     animation: none;
+  }
+}
+
+/* Shared phone controls: readable fields and one 44px control rhythm. */
+.docs-task__links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hit);
+  padding-right: var(--s-2);
+}
+.stats-page > .kit-tabs,
+.kit-you-stats > .kit-tabs {
+  margin-bottom: 0;
+}
+@media (max-width: 760px) {
+  .input,
+  .select,
+  .scope-select,
+  .docs-search input {
+    font-size: var(--t-body);
+  }
+  .clan-members-find .clan-subnav__find {
+    width: 100%;
   }
 }
