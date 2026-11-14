@@ -397,6 +397,17 @@ async function dispatch(event, context) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.passport_backfill) {
+    // Legacy Stamps for accounts made before launch (#1015, 0272):
+    // account_stamp_earned, account_stamp_fact, account_passport only.
+    const { passportBackfillOp } = await import("./ops-passport-backfill.mjs");
+    const result = await passportBackfillOp(
+      process.env.DATABASE_URL,
+      event.passport_backfill,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.agent_recordings) {
     const { agentRecordingsOp } = await import("./ops-agent-recordings.mjs");
     const result = await agentRecordingsOp(
