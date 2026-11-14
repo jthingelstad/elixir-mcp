@@ -226,3 +226,28 @@ test("a new Stamp is one line, at its level, to the passport's sheet (#1015)", (
     ["New Stamp: On the Map", "/home/passport?stamp=on_the_map", false, null],
   ]);
 });
+
+test("an account made before Stamps gets one passport line, never a line per old Stamp (#1015)", () => {
+  const at = "2026-11-14T12:00:00.000Z";
+  const base = { events: 1, players: 0, clans: 0, subjects: [], at };
+  const rows = accountRows({
+    items: [
+      { ...base, kind: "passport_ready", stamps: 4, new: true },
+      { ...base, kind: "passport_ready", stamps: 1, new: false },
+    ],
+  });
+  expect(rows.map((r) => [r.title, r.detail, r.to, r.new])).toEqual([
+    [
+      "Your passport is ready",
+      "4 Stamps you had already earned are in it.",
+      "/home/passport",
+      true,
+    ],
+    [
+      "Your passport is ready",
+      "1 Stamp you had already earned is in it.",
+      "/home/passport",
+      false,
+    ],
+  ]);
+});

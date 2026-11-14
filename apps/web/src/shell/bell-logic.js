@@ -100,6 +100,24 @@ export function stampRow(a, i) {
   };
 }
 
+/** "Your passport is ready" (#1015): an account made before Stamps
+ *  existed gets this one line, never a "New Stamp" line for each thing it
+ *  had already done. */
+export function passportReadyRow(a, i) {
+  const n = Number(a.stamps) || 0;
+  return {
+    key: `passport-ready-${a.at}-${i}`,
+    title: "Your passport is ready",
+    at: a.at,
+    detail:
+      n === 1
+        ? "1 Stamp you had already earned is in it."
+        : `${n} Stamps you had already earned are in it.`,
+    to: "/home/passport",
+    new: a.new === true,
+  };
+}
+
 /** Your account's lines (2026-11-12): each burst one line, "Recording
  *  started for 24 players". One player opens their page; the rest open
  *  Settings, where the account's whole log is. A new Stamp is its own
@@ -107,6 +125,7 @@ export function stampRow(a, i) {
 export const accountRows = (account) =>
   (account?.items ?? []).map((a, i) => {
     if (a.kind === "stamp_earned") return stampRow(a, i);
+    if (a.kind === "passport_ready") return passportReadyRow(a, i);
     const who = accountWho(a);
     const say = ACCOUNT_LINE[a.kind];
     const title =
