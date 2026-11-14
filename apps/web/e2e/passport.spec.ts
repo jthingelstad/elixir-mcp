@@ -32,7 +32,7 @@ async function open(
   routes: Routes = {},
   // Routes that must win over the fixtures: Playwright asks the last
   // registered first.
-  after: (page: Page) => Promise<void> = async () => {},
+  after: (page: Page) => Promise<unknown> = async () => {},
 ) {
   await page.route("**/assets/cards/**", (route) =>
     route.request().url().includes(`/${BROKEN_ART}.png`)
