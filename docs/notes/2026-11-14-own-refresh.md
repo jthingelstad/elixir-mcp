@@ -45,6 +45,44 @@ the app feels live without a second mechanism.
   read is on its way, and its "N min ago" now moves on every 30 seconds
   while the page is open (it used to stop at the age of the first render).
 
+## Any player's page: Check for new battles
+
+Added in the same pull request at the lead session's ask: a button on
+every player page that asks for a fresh read of that player.
+
+- **On your own player** it is your own refresh, the chip's action.
+- **On anyone else** it is `POST /api/me/refresh` with `player_tag`:
+  one recording `player_battlelog` read on the live lane. A log read in
+  the last two minutes answers `fresh`, and a read already open answers
+  `queued`; neither spends anything. Then, in the database: one ask per
+  account per player per two minutes (a `refreshone#<account>#<tag>`
+  row in `rate_limit`, keyed by the two-minute slot and inserted once, so
+  taps at once pass once; across a slot's edge the first tap's read is
+  still open and the second joins it), the global token, 10 an hour
+  (`refreshother#<account>`) and then the person's live quota itself
+  (`liveday#`), as any deliberate live read. A refusal gives back what it
+  took. `GET /api/me/refresh?player_tag=` is its poll.
+- **10 an hour** is half a Member's live quota (20 a day): a Member's day
+  lasts at least two hours of tapping, and a Leader's 100 cannot go in one
+  sitting. It applies to every person, owner included.
+- **A player Elixir does not know** answers `skipped` and reads nothing.
+  The page itself already says "Elixir has not recorded this player" with
+  Follow, which is the way to start recording (the first read,
+  `requestFirstRead`, runs on a follow); the button is not drawn there, so
+  there is no second path.
+- **What a one-off read stores.** The same as any recording live read:
+  the receipt (kept 28 days), the payload in the archive (its S3
+  lifecycle), the battles with both sides (kept a year by battle time,
+  like every battle), name stubs for the players in them, and a
+  `poll_state` row. The scheduler plans only players someone records or a
+  recorded clan's members, so the `poll_state` row starts nothing. The
+  player stays a ghost (no recording), so the ghost-player rule (metrics
+  count recorded players only) holds without change; no retention rule
+  needs changing.
+- Button words: "Check for new battles", "Checking…", "Updated just
+  now", "Try again in N min". It is a full-size `btn` (44 px), keyboard
+  reachable, its words its label, in a polite live region.
+
 ## Why its own allowance
 
 The live quota (`liveday#`) is only spent by an agent's or a person's MCP
@@ -70,7 +108,8 @@ Refreshing the people you follow. Each followed player costs about 21
 fetches a day on the schedule (#760). Refreshing your five most-followed
 on every ask would add up to five live reads an ask: at about four asks a
 person a day, 20 reads a person, 6,000 a day for 300 people, most of the
-live share (about 8,640 a day). Not built, and not in scope.
+live share (about 8,640 a day). Not built as an automatic read; the
+button above is the deliberate one-player version.
 
 No new CR endpoint, scheduled job, SQS queue or analytics event.
 
