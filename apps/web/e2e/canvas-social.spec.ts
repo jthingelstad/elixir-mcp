@@ -159,12 +159,11 @@ for (const [label, width] of [
       await expect(
         panel.getByText("You played them twice this week · In your clan"),
       ).toBeVisible();
-      await expect(panel.getByText("Uses a slot")).toBeVisible();
+      // A row says only when a follow is free (2026-11-13).
+      await expect(panel.getByText("Uses a slot")).toHaveCount(0);
       await expect(panel.getByText("Ada follows them")).toBeVisible();
-      await expect(panel.getByText("Free · already recorded")).toBeVisible();
-      await expect(
-        panel.getByText("Your follows: 3 of 50 slots"),
-      ).toBeVisible();
+      await expect(panel.getByText("Free", { exact: true })).toBeVisible();
+      await expect(panel.getByText("3 of your 50 follows used")).toBeVisible();
       await expect(
         panel.getByRole("link", { name: "Find more people" }),
       ).toHaveAttribute("href", "/home/find");
@@ -462,9 +461,9 @@ for (const [label, width] of [
       await expect(
         page.getByRole("link", { name: "Hedy", exact: true }),
       ).toBeVisible();
-      await expect(
-        page.getByText("Uses a slot", { exact: true }),
-      ).toBeVisible();
+      await expect(page.getByText("Uses a slot", { exact: true })).toHaveCount(
+        0,
+      );
       await noSideways(page);
       await accessible(page, "Find, Your clan");
 
@@ -475,11 +474,10 @@ for (const [label, width] of [
         }),
       ).toBeVisible();
       await expect(
-        page.getByText(/^Met 3 times · 2 wins, 1 loss · last /),
+        page.getByText("Met 3 times · 2 wins, 1 loss", { exact: true }),
       ).toBeVisible();
-      await expect(
-        page.getByText("Free · already recorded", { exact: true }),
-      ).toBeVisible();
+      await expect(page.getByText(/^Last met /).first()).toBeVisible();
+      await expect(page.getByText("Free", { exact: true })).toBeVisible();
       await expect(page.getByText("Your 2v2 teammate twice")).toBeVisible();
       await expect(
         page.getByText("No ratings, no guesses.", { exact: false }),

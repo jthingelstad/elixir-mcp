@@ -363,7 +363,7 @@ function MomentBattle({ it }) {
           </span>
         </>
       ) : null}
-      <span className="kit-mbattle__go">The battle</span>
+      <span className="kit-mbattle__go">Open the battle</span>
     </Link>
   );
 }

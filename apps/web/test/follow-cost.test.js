@@ -17,14 +17,12 @@ const cost = (over) => ({
 });
 
 test("a player nothing else records uses a slot, with the used count", () => {
-  expect(followCostLine(cost())).toBe(
-    "Uses 1 of your 50 player slots · 3 used",
-  );
+  expect(followCostLine(cost())).toBe("Uses 1 of your 50 follows · 3 used");
 });
 
 test("a player Elixir already records is free", () => {
   expect(followCostLine(cost({ free: true, reason: "in_recorded_clan" }))).toBe(
-    "Free · already recorded · 3 of 50 slots used",
+    "Free · already recorded · 3 of your 50 follows used",
   );
   expect(followCostLine(cost({ free: true, limit: null }))).toBe(
     "Free · already recorded",

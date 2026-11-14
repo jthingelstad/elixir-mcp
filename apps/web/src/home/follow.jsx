@@ -115,11 +115,12 @@ export function followCostLine(c) {
   if (c.free)
     return c.limit == null
       ? "Free · already recorded"
-      : `Free · already recorded · ${n(c.used)} of ${n(c.limit)} slots used`;
+      : `Free · already recorded · ${n(c.used)} of your ${n(c.limit)} follows used`;
   if (c.limit == null) return null;
+  // A refusal keeps the product's word for the limit: slots.
   if (c.used >= c.limit)
     return `All ${n(c.limit)} player slots in use. Following a player Elixir already records stays free.`;
-  return `Uses 1 of your ${n(c.limit)} player slots · ${n(c.used)} used`;
+  return `Uses 1 of your ${n(c.limit)} follows · ${n(c.used)} used`;
 }
 
 /**
@@ -226,17 +227,17 @@ function planLine(plan) {
     return plan.following > 0
       ? "You already follow every one of them."
       : "Nobody here to follow.";
-  const parts = [
-    `${many(plan.to_follow, "player", "players")} to follow`,
-    `${n(plan.free)} free`,
-    `${many(plan.slots, "uses a slot", "use a slot")}`,
-  ];
-  const head = parts.join(" · ");
-  if (plan.limit == null) return head;
-  const left = Math.max(0, plan.limit - plan.used);
-  if (!plan.fits)
-    return `${head}. Only ${n(left)} of your ${n(plan.limit)} player slots are left, so nobody would be followed. Following a player Elixir already records stays free.`;
-  return `${head} · ${n(plan.used)} of ${n(plan.limit)} slots used now`;
+  // One line by the button (2026-11-13): who, and what it uses of your
+  // follows. A refusal keeps the product's word for the limit: slots.
+  const who = many(plan.to_follow, "player", "players");
+  if (plan.limit != null && !plan.fits) {
+    const left = Math.max(0, plan.limit - plan.used);
+    return `${who}, ${many(plan.slots, "needs a slot", "need a slot")}. Only ${n(left)} of your ${n(plan.limit)} player slots are left, so nobody would be followed. Following a player Elixir already records stays free.`;
+  }
+  if (plan.slots === 0) return `${who} · free`;
+  if (plan.limit == null)
+    return `${who} · ${many(plan.slots, "uses a follow", "use a follow")}`;
+  return `${who} · uses ${n(plan.slots)} of your ${n(plan.limit)} follows`;
 }
 
 /**

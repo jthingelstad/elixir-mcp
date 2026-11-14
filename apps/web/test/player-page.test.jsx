@@ -220,9 +220,7 @@ test("one address per player, and a Follow me link carries tags only", () => {
 });
 
 test("a plan in words: free, slots, and a refusal that says why", () => {
-  expect(followPlanLine(plan)).toBe(
-    "2 players to follow · 1 free · 1 uses a slot · 3 of 50 slots used now",
-  );
+  expect(followPlanLine(plan)).toBe("2 players · uses 1 of your 50 follows");
   expect(followPlanLine({ ...plan, slots: 2, used: 49, fits: false })).toMatch(
     /Only 1 of your 50 player slots are left, so nobody would be followed\./,
   );
@@ -347,7 +345,7 @@ test(
       name: "Follow Copper Fern?",
       hidden: true,
     });
-    await within(dialog).findByText("Uses 1 of your 50 player slots · 3 used");
+    await within(dialog).findByText("Uses 1 of your 50 follows · 3 used");
     expect(posted).toEqual([]);
     fireEvent.click(
       within(dialog).getByRole("button", { name: "Follow", hidden: true }),
@@ -391,18 +389,14 @@ test(
     expect(
       screen.getByRole("link", { name: "Copper Fern" }).getAttribute("href"),
     ).toBe("/home/player/0VJ2QV");
-    expect(
-      screen.getByText("Uses 1 of your 50 player slots · 3 used"),
-    ).toBeTruthy();
+    expect(screen.getByText("Uses 1 of your 50 follows · 3 used")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Follow all 2" }));
     const dialog = await screen.findByRole("dialog", {
       name: "Follow all 2 players?",
       hidden: true,
     });
     expect(
-      within(dialog).getByText(
-        "2 players to follow · 1 free · 1 uses a slot · 3 of 50 slots used now",
-      ),
+      within(dialog).getByText("2 players · uses 1 of your 50 follows"),
     ).toBeTruthy();
     fireEvent.click(
       within(dialog).getByRole("button", {

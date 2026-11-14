@@ -67,7 +67,7 @@ for (const [label, width] of [
       // A clan's line wears the gold edge; a moment links its battle.
       await expect(page.locator(".kit-feed__item--clan")).toHaveCount(1);
       await expect(
-        feed.getByRole("link", { name: "The battle" }),
+        feed.getByRole("link", { name: "Open the battle" }),
       ).toHaveAttribute("href", "/battle/b2c3d4e5f6a7");
       // A name opens the player page.
       await expect(
@@ -246,7 +246,7 @@ for (const [label, width] of [
       await noSideways(page);
     });
 
-    test("Find: search, Follow, the clan directory and your follow link", async ({
+    test("Find: search, Follow, the clan directory and your Follow me link", async ({
       page,
     }) => {
       await mockApi(
@@ -274,7 +274,7 @@ for (const [label, width] of [
       const find = page.getByRole("tablist", { name: "Find" });
       await find.getByRole("tab", { name: "Clan directory" }).click();
       await expect(
-        page.getByRole("link", { name: /Clan directory/ }),
+        page.getByRole("link", { name: /Open the clan directory/ }),
       ).toHaveAttribute("href", "/clan/directory");
       await find.getByRole("tab", { name: "Your link" }).click();
       await expect(page.locator(".kit-find__link code")).toContainText(

@@ -107,8 +107,8 @@ back.
 
 While you follow fewer than five players, Home opens with **People you
 know** at the top, every time you visit, not only the first. It lists
-players you already know in the game, each with why and what following
-them costs:
+players you already know in the game, each with why, and **Free** on
+anyone following costs nothing:
 
 - clanmates Elixir already records, free to follow ("In your clan,
   already in Elixir"),
@@ -119,8 +119,9 @@ them costs:
   your clan, played today").
 
 Everyone is ticked. Untick anyone you'd rather not follow, then tap
-**Follow these**: it asks once, with what it costs, and follows only the
-ticked players. Nobody is followed until you tap. Anyone who verified
+**Follow these**. One line by the button says what following the ticked
+players costs ("8 players · uses 7 of your 50 follows"); it asks once,
+with the same line, and follows only the ticked players. Nobody is followed until you tap. Anyone who verified
 their player on Elixir sees a new follower in their bell. It
 takes at most 10 of your player slots; free ones don't count. **Not now**
 puts it away for 30 days; if you still follow few after that, it comes
@@ -142,7 +143,7 @@ it. Each reads on its own, so the feed never waits for them.
   fame", or training days, or finished), the last race's place, and your
   war decks and donations this week.
 - **People to follow:** up to five players, each with why they are there
-  as a fact and what following them costs. They come in turn from three
+  as a fact, and **Free** on anyone following costs nothing. They come in turn from three
   places: players your own players met in the last seven days (twice or
   more, a friendly battle, or as a 2v2 teammate, those first: "You played
   a friendly battle this week"), players followed by the verified players

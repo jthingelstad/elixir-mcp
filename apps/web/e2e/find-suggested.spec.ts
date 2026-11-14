@@ -106,12 +106,12 @@ for (const [label, width] of [
     await expect(rows.nth(0)).toContainText(
       "You played a friendly battle in the last 30 days",
     );
-    await expect(rows.nth(0)).toContainText("Uses a slot");
+    await expect(rows.nth(0)).not.toContainText("Uses a slot");
     await expect(rows.nth(1)).toContainText("Ada follows them");
     await expect(rows.nth(2)).toContainText(
       "Your 2v2 teammate twice in the last 30 days",
     );
-    await expect(rows.nth(2)).toContainText("Free · already recorded");
+    await expect(rows.nth(2)).toContainText("Free");
     await expect(rows.nth(3)).toContainText("In your clan");
     await expect(
       list.getByRole("link", { name: "Juniper", exact: true }),
@@ -174,7 +174,7 @@ test("a Follow on Suggested is the one confirmed, priced Follow", async ({
     .filter({ hasText: "Juniper" });
   await row.getByRole("button", { name: "Follow", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Follow Juniper?" });
-  await expect(dialog).toContainText("Uses 1 of your 50 player slots · 3 used");
+  await expect(dialog).toContainText("Uses 1 of your 50 follows · 3 used");
   expect(posted).toEqual([]);
   await dialog.getByRole("button", { name: "Follow", exact: true }).click();
   await expect(dialog).toBeHidden();

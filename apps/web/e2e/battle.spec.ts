@@ -193,7 +193,7 @@ test("joining from a battle link: Join Elixir, the age question, back on the bat
   await expect(page).toHaveURL(new RegExp(`${here}$`));
   const from = page.getByRole("region", { name: "Follow from here" });
   await expect(from).toContainText("Free · already recorded");
-  await expect(from).toContainText("Uses 1 of your 50 player slots");
+  await expect(from).toContainText("Uses 1 of your 50 follows");
   await expect(page.getByRole("link", { name: "Join Elixir" })).toHaveCount(0);
   await from
     .getByRole("button", { name: /^Follow / })
