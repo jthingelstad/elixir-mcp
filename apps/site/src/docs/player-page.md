@@ -72,9 +72,11 @@ page's behalf; following stays the person's ask (`elixir_follow_player`).
 a new follower if they verified their player on Elixir,
 and says what it costs: free when Elixir already records them, or one of your
 player slots ([What a player slot costs](/docs/recording#what-a-player-slot-costs)).
-Nothing is followed until you confirm.
+Nothing is followed until you confirm. Once you follow a player, the button
+reads **Following**; tap it to **Unfollow**, asked first too.
 
-A player in a clan also offers **Follow everyone in** that clan: one question
+A player in a clan also offers **Follow everyone** in that clan, at the foot
+of the **Follows** tab: one question
 for the clan's current members (at most 50), saying how many are free and how
 many take a slot, against the slots you have left. Past your limit it is
 refused whole, and says why; nobody is followed in part. One that needs no

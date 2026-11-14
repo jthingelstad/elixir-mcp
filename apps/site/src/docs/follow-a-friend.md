@@ -110,6 +110,7 @@ your digest too, while recording carries on.
 
 ## Stopping
 
-**Unfollow** on the player's page, or `elixir_follow_player` with
+On the player's page, tap **Following**, then **Unfollow**. Or use
+**Unfollow** in Settings › Players & following, or `elixir_follow_player` with
 `action: "remove"`. The history already recorded is kept, and recording
 stops only when nobody else following the player has a reason to keep it.

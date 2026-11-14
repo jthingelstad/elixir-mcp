@@ -6814,6 +6814,26 @@ button.kit-row {
   .kit-home__filters > .kit-chip {
     flex: none;
   }
+  /* Phone chips run a little tighter, so Everyone to New fit a 390px
+     screen whole; narrower, the row scrolls under its fade and ends at a
+     hairline before New, so a cut chip reads as cut, never as one chip
+     under another (2026-11-13). */
+  .kit-home__filters .kit-chip {
+    padding-inline: 10px;
+  }
+  .kit-home__filters > .kit-chip--new {
+    position: relative;
+    margin-left: 9px;
+  }
+  .kit-home__filters > .kit-chip--new::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: -9px;
+    width: 1px;
+    background: var(--line);
+  }
 }
 /* A race week's place (canvas .racebar): a gold bar on a sunken trough. */
 .kit-racebar {
@@ -7020,8 +7040,10 @@ button.kit-row {
   margin: 0;
   accent-color: var(--gold);
 }
+/* Show all and the foot keep their 44px taps, but the taps overlap the
+   rows' own space, so the block's rhythm stays the rows' (2026-11-13). */
 .kit-starter__more {
-  margin: 0 8px 6px;
+  margin: -4px 8px -6px;
 }
 /* Follow these beside the heading: a small phone's first screen holds it
    and three rows. */
@@ -7062,7 +7084,7 @@ button.kit-row {
   align-items: center;
   justify-content: space-between;
   gap: 4px 12px;
-  padding: 4px 16px 6px;
+  padding: 0 16px 4px;
 }
 .kit-starter__foot p {
   flex: 1 1 160px;
@@ -8059,17 +8081,32 @@ a.kit-mbattle:hover {
    the line, the verified badge, the three counts that open their tabs, and
    the actions on the right. */
 .kit-phead {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "av main actions"
+    "av counts actions";
   align-items: center;
-  gap: 16px 20px;
+  gap: 4px 20px;
   padding: 4px 0 0;
 }
+/* The head keeps the reading column's measure, so on a wide screen its
+   actions sit over the timeline, not alone at the far edge. */
+.kit-player > .kit-phead {
+  max-width: 820px;
+}
+.kit-phead > .kit-av {
+  grid-area: av;
+}
 .kit-phead__main {
+  grid-area: main;
   display: grid;
   gap: 4px;
-  flex: 1 1 300px;
   min-width: 0;
+}
+.kit-phead > .kit-statrow {
+  grid-area: counts;
+  margin: 0;
 }
 .kit-phead__name {
   margin: 0;
@@ -8084,17 +8121,17 @@ a.kit-mbattle:hover {
   font-size: var(--t-body-sm);
 }
 .kit-phead__actions {
+  grid-area: actions;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
 }
-/* "Following" or "You": the state, said where the Follow button would be.
-   Since 2026-11-13 plain words first in the row, not a third button shape
-   beside the buttons (a pill read as one more thing to tap). */
+/* "You": the state, said where the Follow button would be, plain words
+   first in the row (a pill read as one more thing to tap). Following is
+   the Follow pill pressed, and offers Unfollow (2026-11-13). */
 .kit-phead__state {
-  order: -1;
   display: inline-flex;
   align-items: center;
   min-height: 36px;
@@ -8102,6 +8139,27 @@ a.kit-mbattle:hover {
   color: var(--ink-dim);
   font-size: 14px;
   font-weight: 600;
+}
+.btn.btn--following {
+  background: var(--panel-raised);
+  color: var(--ink-dim);
+}
+.btn.btn--following:hover {
+  background: var(--control-hover);
+  color: var(--ink);
+}
+/* Follows: their clan, to follow whole, one quiet row under the lists. */
+.kit-pfollows__clan {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
 }
 /* The counts (canvas .statrow): each a button to its tab. */
 .kit-statrow {
@@ -8150,6 +8208,11 @@ a.kit-mbattle:hover {
   background: var(--ok-fill);
   color: var(--ok);
   font-weight: 700;
+}
+/* The tabs sit in the page's grid, whose gap is their space: their own
+   margin under it left an empty band before the first day (2026-11-13). */
+.kit-player > .kit-tabs {
+  margin-bottom: 0;
 }
 /* Under the tabs: one reading column, as the canvas's main column. */
 .kit-player__body {
@@ -8368,8 +8431,13 @@ a.kit-mbattle:hover {
      does, and the actions take their own row under it, so the timeline
      starts on the first screen. */
   .kit-phead {
-    align-items: flex-start;
-    gap: 10px 12px;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "av main"
+      "counts counts"
+      "actions actions";
+    align-items: center;
+    gap: 8px 12px;
   }
   .kit-phead > .kit-av--l {
     width: 56px;
@@ -8379,13 +8447,8 @@ a.kit-mbattle:hover {
   .kit-phead__name {
     font-size: 24px;
   }
-  .kit-phead__main {
-    flex: 1 1 0;
-  }
-  .kit-phead__actions {
-    flex: none;
-    width: 100%;
-  }
+  /* The counts and the actions on the page's gutter, under the avatar,
+     not indented to the name (2026-11-13). */
   .kit-phead__actions {
     justify-content: flex-start;
   }

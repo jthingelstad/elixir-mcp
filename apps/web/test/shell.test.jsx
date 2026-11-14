@@ -287,6 +287,23 @@ describe("the bar on a page", () => {
     // A player's page and a Follow me link are Find's (2026-11-13).
     expect(barArea("/home/player/0PYLQ2")).toBe("find");
     expect(barArea("/home/follow/0PYLQ2")).toBe("find");
+    // Your own player's page (main or alt) is You's; a friend's stays Find's.
+    const me = {
+      claims: [
+        {
+          player_tag: "#20JJJ2CCRU",
+          is_primary: true,
+          relationship: "primary",
+        },
+        { player_tag: "#0PYLQ2", is_primary: false, relationship: "alt" },
+        { player_tag: "#0GRJCUV", is_primary: false, relationship: "friend" },
+      ],
+    };
+    expect(barArea("/home/player/20JJJ2CCRU", me)).toBe("you");
+    expect(barArea("/home/player/0PYLQ2/", me)).toBe("you");
+    expect(barArea("/home/player/0GRJCUV", me)).toBe("find");
+    expect(barArea("/home/follow/0PYLQ2", me)).toBe("find");
+    expect(barArea("/home/player/%E0%A4%A", me)).toBe("find");
     expect(barArea("/home/you/")).toBe("you");
     // Ladder is your stats, reached from You.
     expect(barArea("/home/you/stats/decks")).toBe("you");

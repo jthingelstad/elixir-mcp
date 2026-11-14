@@ -7,6 +7,7 @@ import {
 } from "../clan/views/PlayerInClan.jsx";
 import {
   Avatar,
+  ConfirmAction,
   Empty,
   ErrorState,
   Icon,
@@ -23,9 +24,11 @@ import {
 } from "@elixir-mcp/ui";
 import { useNav } from "../App.jsx";
 import { trackEvent } from "../analytics.js";
+import { api } from "../api.js";
 import { ladderHref } from "../ladder/ladder.js";
 import { followMeHref, playerHref } from "../lib/player.js";
 import {
+  useInvalidate,
   usePageCheers,
   usePlayerEvidence,
   usePlayerPage,
@@ -185,9 +188,19 @@ export function PlayerView({
             <TagText>{sub}</TagText>
           </p>
           <Badges badges={page.badges} />
-          <Counts page={page} onPick={setTab} />
         </div>
+        <Counts page={page} onPick={setTab} />
+        {/* Two actions at most (2026-11-13): where you stand with the
+            player first (You, Following, or Follow), their Stats second.
+            Follow everyone in their clan is on the Follows tab. */}
         <nav className="kit-phead__actions" aria-label="More about this player">
+          {you.own ? (
+            <span className="kit-phead__state">You</span>
+          ) : you.following ? (
+            <Unfollow tag={p.tag} name={p.name} />
+          ) : (
+            <FollowButton tag={p.tag} name={p.name} />
+          )}
           {you.own && !self ? (
             <Link
               to={ladderHref("season", { player: p.tag })}
@@ -203,21 +216,7 @@ export function PlayerView({
               Their stats
             </Link>
           ) : null}
-          {p.clan_tag && !you.own ? (
-            <FollowAll
-              ask={{ clan_tag: p.clan_tag }}
-              label={`Follow everyone in ${p.clan_name ?? "their clan"}`}
-              title={`Follow everyone in ${p.clan_name ?? p.clan_tag}?`}
-            />
-          ) : null}
           {you.own ? <CopyFollowMe tag={p.tag} /> : null}
-          {you.own ? (
-            <span className="kit-phead__state">You</span>
-          ) : you.following ? (
-            <span className="kit-phead__state">Following</span>
-          ) : (
-            <FollowButton tag={p.tag} name={p.name} />
-          )}
         </nav>
       </header>
       <Tabs
@@ -253,7 +252,7 @@ export function PlayerView({
         ) : shown === "record" ? (
           <PlayerRecord tag={p.tag} />
         ) : (
-          <Follows page={page} />
+          <Follows page={page} player={p} own={you.own} />
         )}
       </div>
     </div>
@@ -543,15 +542,39 @@ function PlayerGames({ tag, item, onClose }) {
   );
 }
 
-/** Who the account follows and who follows it, by game name and tag. */
-function Follows({ page }) {
+/** Their clan, offered whole: Follow everyone in it, one question
+ *  (moved here from the page's head on 2026-11-13, so the head holds two
+ *  actions at most). */
+function FollowTheirClan({ player, own }) {
+  if (!player.clan_tag || own) return null;
+  const clan = player.clan_name ?? player.clan_tag;
+  return (
+    <div className="kit-pfollows__clan">
+      <p className="m-0">
+        Everyone in <TagText>{clan}</TagText>
+      </p>
+      <FollowAll
+        ask={{ clan_tag: player.clan_tag }}
+        label="Follow everyone"
+        title={`Follow everyone in ${clan}?`}
+      />
+    </div>
+  );
+}
+
+/** Who the account follows and who follows it, by game name and tag, and
+ *  their clan to follow whole. */
+function Follows({ page, player, own }) {
   if (!page.follows)
     return (
-      <p className="kit-week__quiet">
-        No account has verified this player, so there are no follows to show.
-        Follows belong to an account, and a page shows them for the player its
-        account verified.
-      </p>
+      <>
+        <p className="kit-week__quiet">
+          No account has verified this player, so there are no follows to show.
+          Follows belong to an account, and a page shows them for the player its
+          account verified.
+        </p>
+        <FollowTheirClan player={player} own={own} />
+      </>
     );
   const people = (list) =>
     list.map((f) => (
@@ -591,7 +614,35 @@ function Follows({ page }) {
           </p>
         ) : null}
       </Panel>
+      <FollowTheirClan player={player} own={own} />
     </div>
+  );
+}
+
+/** Following, said where Follow was: a button that offers Unfollow, asked
+ *  first, as Settings' Players & following asks it. */
+function Unfollow({ tag, name }) {
+  const invalidate = useInvalidate();
+  const who = name ?? tag;
+  return (
+    <ConfirmAction
+      label={
+        <>
+          <Icon name="check" size={14} /> Following
+        </>
+      }
+      className="btn btn--sm btn--follow btn--following"
+      title={`Unfollow ${who}?`}
+      body={
+        <p className="m-0">
+          Elixir stops recording <TagText>{who}</TagText> for you. They are not
+          told.
+        </p>
+      }
+      confirm="Unfollow"
+      run={() => api.claimAction({ player_tag: tag, action: "remove" })}
+      onDone={() => invalidate()}
+    />
   );
 }
 

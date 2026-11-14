@@ -359,6 +359,71 @@ test(
 );
 
 test(
+  "Following leads the head and offers Unfollow, asked first; Their stats is second",
+  { timeout: 20000 },
+  async () => {
+    page = {
+      ...PAGE,
+      you: {
+        own: false,
+        following: true,
+        relationship: "friend",
+        clanmate: null,
+      },
+    };
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
+    render(<App />);
+    await screen.findByRole("heading", { level: 1, name: "Copper Fern" });
+    const head = screen.getByRole("navigation", {
+      name: "More about this player",
+    });
+    // Two actions at most: Following, then Their stats. Follow everyone
+    // in their clan is on the Follows tab.
+    expect(
+      [...head.querySelectorAll("a, button")].map((b) => b.textContent.trim()),
+    ).toEqual(["Following", "Their stats"]);
+    fireEvent.click(within(head).getByRole("button", { name: "Following" }));
+    const dialog = await screen.findByRole("dialog", {
+      name: "Unfollow Copper Fern?",
+      hidden: true,
+    });
+    expect(posted).toEqual([]);
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Unfollow", hidden: true }),
+    );
+    await waitFor(() =>
+      expect(posted).toEqual([
+        ["/api/claims", { player_tag: "#0VJ2QV", action: "remove" }],
+      ]),
+    );
+  },
+);
+
+test(
+  "Follow everyone in their clan is on the Follows tab, not the head",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/home/player/0VJ2QV?tab=follows");
+    render(<App />);
+    await screen.findByRole("heading", { level: 1, name: "Copper Fern" });
+    const head = screen.getByRole("navigation", {
+      name: "More about this player",
+    });
+    expect(within(head).queryByRole("button", { name: /everyone/ })).toBeNull();
+    expect(await screen.findByText("Everyone in Grove")).toBeTruthy();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Follow everyone" }),
+    );
+    expect(
+      await screen.findByRole("dialog", {
+        name: "Follow everyone in Grove?",
+        hidden: true,
+      }),
+    ).toBeTruthy();
+  },
+);
+
+test(
   "a player no account verified has no follows to show",
   { timeout: 20000 },
   async () => {
