@@ -31,7 +31,12 @@ import {
   passportIdOf,
   unitWord,
 } from "../lib/passport.js";
-import { useMyClans, useMyPassport, usePassport } from "../lib/queries.js";
+import {
+  useMyClans,
+  useMyPassport,
+  usePassport,
+  useReconcilePassport,
+} from "../lib/queries.js";
 
 /**
  * A passport (#1015): /home/passport is yours, /home/passport/<id> anyone's,
@@ -39,6 +44,8 @@ import { useMyClans, useMyPassport, usePassport } from "../lib/queries.js";
  * Stamp's exact progress and where to earn it, which only you see. Another
  * member's shows what was earned and when, and the rules, never progress,
  * a setting or a way onto a clan map.
+ *
+ * Opening your own also runs the reconciliation (useReconcilePassport).
  *
  * `?stamp=<id>` opens one Stamp's detail (the bell links there). Opening
  * and closing replace the address, so Back leaves the passport rather than
@@ -49,6 +56,9 @@ export function PassportPage() {
   const id = passportIdOf(pathname);
   const own = id === null;
   const mine = useMyPassport(own);
+  // Stamps a write could not grant at the time: settled in the background,
+  // never before the passport shows, never a message when it fails.
+  useReconcilePassport(own);
   const theirs = usePassport(id);
   const query = own ? mine : theirs;
   // Your own public link: said so only from what this session already
