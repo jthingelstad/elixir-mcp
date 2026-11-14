@@ -68,5 +68,5 @@ spend your slots. See [Your agents](/docs/agents).
 
 ## Stopping
 
-**Stop following** on the player's page, or `elixir_follow_player` with
+**Unfollow** on the player's page, or `elixir_follow_player` with
 `action: "remove"`. What was recorded stays recorded.

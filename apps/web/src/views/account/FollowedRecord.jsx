@@ -34,7 +34,7 @@ import { FixTag, StopFollowing } from "./TagFix.jsx";
  * remove button in it is a form pretending to be a list, and it makes
  * the one thing a list is for — comparing rows — impossible.
  *
- * "Stop following" says what it costs beside itself: the history already
+ * "Unfollow" says what it costs beside itself: the history already
  * recorded is kept, and this only stops new capture. That is the whole
  * reason the word is "stop" and not "delete". It asks in a dialog before it
  * writes (TagFix.jsx).

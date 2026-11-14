@@ -332,9 +332,9 @@ test(
     // stopped a recording. What it costs is in the question.
     const writes = () =>
       global.fetch.mock.calls.filter(([, init]) => init?.method === "POST");
-    fireEvent.click(screen.getByRole("button", { name: "Stop following" }));
+    fireEvent.click(screen.getByRole("button", { name: "Unfollow" }));
     const ask = document.querySelector("dialog.kit-confirm");
-    expect(ask.textContent).toContain("Stop following Jamie?");
+    expect(ask.textContent).toContain("Unfollow Jamie?");
     expect(ask.textContent).toContain("History stays");
     expect(writes()).toEqual([]);
     fireEvent.click(

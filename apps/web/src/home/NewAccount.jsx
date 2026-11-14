@@ -304,7 +304,7 @@ function FirstRead({ player, journey, onCheck, busy, onStopped }) {
               onStopped();
             }}
           >
-            Stop following it
+            Unfollow it
           </button>
         </div>
         {err ? (

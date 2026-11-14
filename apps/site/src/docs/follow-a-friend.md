@@ -110,6 +110,6 @@ your digest too, while recording carries on.
 
 ## Stopping
 
-**Stop following** on the player's page, or `elixir_follow_player` with
+**Unfollow** on the player's page, or `elixir_follow_player` with
 `action: "remove"`. The history already recorded is kept, and recording
 stops only when nobody else following the player has a reason to keep it.

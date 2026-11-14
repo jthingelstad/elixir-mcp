@@ -173,7 +173,7 @@ export function MemberActivity({
           <div className="callout" role="note">
             <span>
               <b>This player is no longer on this clan&rsquo;s roster.</b> Their
-              record stays in Ladder; it is not read here.
+              record stays in Stats; it is not read here.
             </span>
           </div>
         ) : state.forbidden || state.signedOut || state.error ? (

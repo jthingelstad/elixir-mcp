@@ -218,13 +218,9 @@ test(
     ).toBeTruthy();
     expect(within(free).queryByRole("button")).toBeNull();
     // Your own follow stops here, asked first.
-    fireEvent.click(
-      within(using).getByRole("button", { name: "Stop following" }),
-    );
+    fireEvent.click(within(using).getByRole("button", { name: "Unfollow" }));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: "Stop following" }),
-    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "Unfollow" }));
     await waitFor(() =>
       expect(posted).toEqual([{ player_tag: "#0VJ2QV", action: "remove" }]),
     );

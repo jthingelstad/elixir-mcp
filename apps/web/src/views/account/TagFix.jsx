@@ -11,7 +11,7 @@ const canonical = (raw) =>
   `#${raw.trim().toUpperCase().replace(/^#/, "").replaceAll("O", "0")}`;
 
 /**
- * "Stop following", asked once in a dialog (a mis-click must not stop a
+ * "Unfollow", asked once in a dialog (a mis-click must not stop a
  * recording). `run` is the page's removal; it answers { ok }. A refusal
  * (your main player, while you track others) stays in the dialog and says
  * why.
@@ -19,10 +19,10 @@ const canonical = (raw) =>
 export function StopFollowing({ name, run, busy, onDone }) {
   return (
     <ConfirmAction
-      label="Stop following"
+      label="Unfollow"
       className="btn btn--sm btn--danger"
       disabled={busy}
-      title={<>Stop following {name}?</>}
+      title={<>Unfollow {name}?</>}
       body="History stays for at least a year after the last person stops following. Elixir stops recording them for you, and they leave your timeline and your digest."
       confirm="Yes, stop"
       run={run}
