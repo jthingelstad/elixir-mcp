@@ -204,10 +204,11 @@ const POST_PATH = /^\/h\/[a-z2-7]{15}$/;
 
 /** Which place the bar marks as the one you are in, from the route. A battle's
  *  public page is in no place, nor are Settings' pages: the Search tab opens
- *  a sheet over whichever page you are on. */
+ *  a sheet over whichever page you are on. Another player's page and a Follow
+ *  me link are Find's (2026-11-13): that is where you look for people. */
 export function barArea(path) {
   const clean = path.replace(/(.)\/$/, "$1");
-  if (clean === FIND) return "find";
+  if (clean === FIND || isPlayerPath(path)) return "find";
   if (clean === YOU) return "you";
   if (isHome(path)) return "home";
   // Ladder is You's Stats tab (2026-11-12).

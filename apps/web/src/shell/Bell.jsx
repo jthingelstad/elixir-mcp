@@ -197,7 +197,7 @@ export function BellSheet({ me, onClose }) {
           </p>
         ) : null}
         {reactions.length ? (
-          <Section title="Reactions to your items">
+          <Section title="Cheers on your items">
             <Rows>
               {reactions.map((r) => (
                 <Row

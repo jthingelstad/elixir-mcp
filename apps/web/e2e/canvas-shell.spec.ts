@@ -283,7 +283,7 @@ for (const [label, width] of [
       await bell.click();
       const sheet = page.getByRole("dialog", { name: "Notifications" });
       const reactions = sheet.getByRole("region", {
-        name: "Reactions to your items",
+        name: "Cheers on your items",
       });
       await expect(reactions).toContainText("Invented Owl won five in a row");
       await expect(reactions.getByLabel("On fire 2, Royal 1")).toBeVisible();
