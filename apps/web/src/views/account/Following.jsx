@@ -454,12 +454,12 @@ export function Following({ me, refresh, navigate, hash, search = "" }) {
           }
         />
         <Stat
-          label="Clans, the clan only"
+          label="Clans you follow, the clan only"
           value={(e?.activity_clans?.used ?? 0).toLocaleString()}
           of={ofLimit(e?.activity_clans)}
         />
         <Stat
-          label="Clans, every member"
+          label="Clans you follow, every member"
           value={(e?.comprehensive_clans?.used ?? 0).toLocaleString()}
           of={ofLimit(e?.comprehensive_clans)}
         />
