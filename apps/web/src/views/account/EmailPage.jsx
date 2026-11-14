@@ -36,7 +36,7 @@ const ABOUT = {
 const SOURCE_ICON = {
   Home: "house",
   Clan: "users",
-  Ladder: "chart-line",
+  Stats: "chart-line",
   Friends: "users-round",
   Cards: "layers",
   Collectors: "server",

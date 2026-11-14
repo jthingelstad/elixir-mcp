@@ -53,8 +53,7 @@ views and their shaping functions (`stats*.js`) live here. Public docs:
   with the code): the docs slugs (`/docs/ladder`, `ladder-season`,
   `ladder-battles`, `ladder-decks`, `ladder-cards`, which `elixir_docs`
   serves), the feedback area value `ladder` (stored on each item; it reads
-  as Stats), the mail source label "Ladder" (`MAIL_SOURCE` in
-  `packages/mail`), and the docs group key in `apps/site`. The mode value
+  as Stats), and the docs group key in `apps/site`. The mode value
   `ladder` is Trophy Road, a game mode, and is not this surface.
   `apps/web/test/stats-name.test.js` keeps the surface name from coming
   back.
