@@ -195,5 +195,23 @@ Built in the earning slice (#1015,
   opening `/home/passport?stamp=<id>`. No popup, feed item, digest row
   or email.
 
-Not built yet: the passport pages and the profile list in the app (which
-call the reconciliation), and the legacy backfill.
+Built in the pages slice (#1015,
+[note](../notes/2026-11-14-passport-pages.md)):
+
+- The Stamp mark in the kit (`packages/ui` `Stamp.tsx`, styles in
+  `packages/design`): earned is a tilted, inked mark with its name and
+  day; unearned is a plain outline with a word under it. One ink for
+  every level; no metal colours.
+- The pages: `/home/passport` (yours, with progress and where to earn
+  each Stamp) and `/home/passport/<id>` (any signed-in member's, the
+  public projection only), a detail sheet per Stamp, and
+  `?stamp=<stamp_id>` to open one. Opening your own passport runs the
+  reconciliation in the background and reads it again when a Stamp is
+  granted.
+- Entry points: Passport in the account menu, a row on You, and
+  identity with a passport preview at the top of Settings > Profile.
+- `GET /api/player` adds a compact summary (`{id, count, marks}`) only
+  when the player's canonical verified owner has a passport; a player
+  page shows it as a row with **Open passport**.
+
+Not built yet: the profile list on Home and the legacy backfill.
