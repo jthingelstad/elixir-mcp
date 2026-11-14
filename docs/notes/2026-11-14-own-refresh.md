@@ -20,7 +20,7 @@ the app feels live without a second mechanism.
   is not recorded). Every refusal is a 200 with `queued: false`.
 - **The floor.** One ask per account per five minutes, across every tab
   and device: a conditional `update account set own_refresh_at = now()`
-  (migration 0270). Six concurrent asks mint once; the test pins it.
+  (migration 0271). Six concurrent asks mint once; the test pins it.
 - **The charge.** Each mint takes one token from the one global bucket
   (`takeLiveToken`, inside `liveFetch`), then one from
   `refreshday#<account>`, a UTC-day bucket the size of the person's live
@@ -64,7 +64,10 @@ every player page that asks for a fresh read of that player.
   took. `GET /api/me/refresh?player_tag=` is its poll.
 - **10 an hour** is half a Member's live quota (20 a day): a Member's day
   lasts at least two hours of tapping, and a Leader's 100 cannot go in one
-  sitting. It applies to every person, owner included.
+  sitting. An account whose live quota is unlimited (owner, admin;
+  `liveBudgetFor`) is not held to it either, as every per-account live
+  allowance treats it; the two-minute floor and the global bucket still
+  hold for everyone.
 - **A player Elixir does not know** answers `skipped` and reads nothing.
   The page itself already says "Elixir has not recorded this player" with
   Follow, which is the way to start recording (the first read,
@@ -113,4 +116,4 @@ button above is the deliberate one-player version.
 
 No new CR endpoint, scheduled job, SQS queue or analytics event.
 
-Migration 0270. MCP 13.1.1 and JSON API 5.1.0 unchanged.
+Migration 0271. MCP 13.1.1 and JSON API 5.1.0 unchanged.
