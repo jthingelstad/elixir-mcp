@@ -285,8 +285,10 @@ test("the passport reads refuse the signed out, agents and every agent console",
     assert.equal(res.statusCode, 403, key);
     assert.equal(JSON.parse(res.body).error, "not_entitled");
   }
+  // Each person's first sign-in made their passport (#1015, earning);
+  // nothing else was written.
   assert.deepEqual(await sizes(), {
-    account_passport: 0,
+    account_passport: 4,
     account_stamp_earned: 0,
     account_stamp_fact: 0,
     account_profile_list: 0,
@@ -330,7 +332,7 @@ test("the owner sees their passport, its steps and exact progress, and nothing i
   const again = await call("GET", "/api/me/passport", { who: "verified" });
   assert.equal(again.body.passport.id, passport.id);
   assert.deepEqual(await sizes(), {
-    account_passport: 1,
+    account_passport: 4,
     account_stamp_earned: 0,
     account_stamp_fact: 0,
     account_profile_list: 0,
@@ -416,8 +418,8 @@ test("the public passport carries the whitelist alone, for each kind of account"
   });
   assertPublic(noplayer.body, ids.noplayer);
 
-  // Reading three other people's passports wrote nothing, and the viewer
-  // got no passport of their own from it.
+  // Reading three other people's passports wrote nothing. The viewer's
+  // own passport is the one their sign-up made, never a read's.
   assert.deepEqual(await sizes(), before);
   assert.equal(
     (
@@ -425,7 +427,7 @@ test("the public passport carries the whitelist alone, for each kind of account"
         ids.viewer,
       ])
     ).rowCount,
-    0,
+    1,
   );
 });
 

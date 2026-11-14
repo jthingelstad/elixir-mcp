@@ -57,6 +57,7 @@ import { cheersRoutes } from "./routes/cheers.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
 import { peopleRoutes } from "./routes/people.mjs";
 import { passportRoutes } from "./routes/passport.mjs";
+import { ensurePassport } from "@elixir-mcp/stamps";
 import { clanRoutes } from "./routes/clan.mjs";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import {
@@ -410,6 +411,15 @@ export function makeHandler({
       // A signup tag another account has verified (#556): Tracking, which
       // says why.
       Boolean(onboarded?.refused);
+    // The passport is made with the person's account (#1015), as well as
+    // lazily by its first read or settle: best effort, since sign-in must
+    // not fail on it and the lazy path repairs a miss.
+    if (firstUse)
+      await ensurePassport(db, account.account_id).catch(() =>
+        console.error(
+          JSON.stringify({ at: "passport_hook_failed", hook: "signup" }),
+        ),
+      );
     const landing = firstUse
       ? {
           new_account: {
