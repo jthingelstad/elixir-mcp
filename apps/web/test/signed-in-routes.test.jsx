@@ -21,6 +21,8 @@ import {
   configure,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
+// The route chunks compile while this file loads, not inside a wait.
+import "./warm-routes.js";
 import { ADMIN, ADMIN_PAGES } from "../src/lib/settings.js";
 
 // This file renders the whole App, routes and all, from a cold module

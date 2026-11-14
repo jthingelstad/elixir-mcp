@@ -1,10 +1,14 @@
 // @vitest-environment node
 import { test, expect } from "vitest";
 import { makeAppPages } from "../../../services/web-api/src/app-pages.mjs";
-// The pages load server rendering on the first page; loading it here,
-// before any test starts, keeps vitest's transform of the whole app out
-// of a test's five-second budget (it timed out on a loaded host).
+// The pages load server rendering on the first page, through
+// `@elixir-mcp/web/server`: the same module instance as this import
+// (measured, #995), so the app's own graph compiles while the file loads.
 import "../src/entry-server.jsx";
+// The render then awaits router.load, which imports the route's lazy
+// chunk: that compile, not the entry's, was the cold cost left inside
+// the first rendering test (#995). warm-routes takes it out too.
+import "./warm-routes.js";
 
 const request = {
   method: "GET",

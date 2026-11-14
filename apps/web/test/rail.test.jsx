@@ -19,6 +19,8 @@ import {
   configure,
 } from "@testing-library/react";
 import { ADMIN_RAIL, App, legalRoute } from "../src/App.jsx";
+// The route chunks compile while this file loads, not inside a wait.
+import "./warm-routes.js";
 import {
   AGENT_TABS,
   SETTINGS_RAIL,
