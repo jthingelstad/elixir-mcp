@@ -342,6 +342,18 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   is minted (charged once, at the mint; a second ask while it is open is
   the same ask) and the record answers now with `live_status.pending`.
   Nothing polls Postgres inside an MCP call (`packages/tools/src/live.mjs`).
+- **Your own battles on opening the app go through the same lane.**
+  `POST /api/me/refresh` (`services/web-api/src/own-refresh.mjs`) asks
+  `liveFetch` for a recording battle-log read of the person's own verified
+  players (primary first, three at most), skipping a log read in the last
+  two minutes. The once-per-five-minutes floor is one conditional `update`
+  of `account.own_refresh_at`, so concurrent tabs and devices pass it once.
+  Each mint takes a global token and then one from `refreshday#<account>`
+  (its own day bucket, sized like the live quota), refunded if the mint
+  joined an open job. `GET /api/me/refresh` is the page's poll; once a read
+  has landed after Home's stored week was built it wakes one rebuild with
+  `since` (outbox id `home.<account>.since.<ms>`), so the week is never
+  kept as fresh past a battle it lacks.
 - **The shape of every admitted payload is known, and a change is a work
   item.** Every endpoint's projector carries a field manifest
   (`packages/ingest/src/payload-keys.mjs`): for each field the API sends,

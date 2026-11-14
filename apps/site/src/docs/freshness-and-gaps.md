@@ -62,6 +62,33 @@ reads found that it had (`capture_audit_24h` in `/api/public/status`, with
 no sign-in; [Status and data](/data#right-now) is the public page), and
 Elixir's staff turn that into battles lost per day.
 
+## Your own battles, when you open Elixir
+
+The schedule above can be half an hour behind a battle you just played.
+So when you open Elixir, signed in with a verified player of your own,
+it asks for your own battle log now:
+
+- once when the app opens, and again when you come back to it after five
+  minutes or more away;
+- when you tap the freshness chip ("Battle log read 15 min ago");
+- when you open your own player page, or a battle you could highlight.
+
+While it waits the chip says "Checking for new battles…". When the read
+lands, usually within a minute, your Home, your player page and its
+battles show the new games without a reload. The chip's time keeps
+moving while the page is open.
+
+It asks for your verified players only (your main player first, then
+your verified alts, three at most), never for anyone you follow. A log
+read in the last two minutes is not read again. Your account asks at
+most once every five minutes, however many tabs or devices are open,
+and the reads come from a daily allowance of their own, the size of
+your [live fetches](/docs/limits) a day, so they never use up what your
+agent's live reads have. Each one is a read on the live lane from the
+same one shared budget as everything else; when the budget or your
+allowance has no room, nothing is asked and the page shows what Elixir
+already has. An agent cannot ask for it.
+
 ## Freshness, as the envelope reports it
 
 Every response's `meta` says what it was built from:
