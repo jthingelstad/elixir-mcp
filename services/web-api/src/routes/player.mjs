@@ -11,7 +11,8 @@ import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
-import { socialOf } from "@elixir-mcp/tools/social";
+import { socialOf, verifiedAccount } from "@elixir-mcp/tools/social";
+import { readPassportSummary } from "@elixir-mcp/stamps/summary";
 import { verifiedAvatars, withAvatar } from "../avatars.mjs";
 import {
   buildTimeline,
@@ -240,7 +241,19 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
     timeline_more: built.timeline_more ?? 0,
     moments: timeline.filter((it) => MOMENT_KINDS.has(it.kind)),
     highlights,
+    passport: await passportOf(db, tag),
   };
+}
+
+/** The passport of the account that verified the player, in one row
+ *  (#1015): `{ id, count, marks }` or null. Only the canonical verified
+ *  owner's, so a verified main and a verified alt open the same passport,
+ *  and an unverified claim, or no account, shows none. Built from the
+ *  public projection (packages/stamps summary.mjs), and read only: an
+ *  owner who has never opened their passport has none to show yet. */
+async function passportOf(db, tag) {
+  const owner = await verifiedAccount(db, tag);
+  return owner ? readPassportSummary(db, owner.account_id) : null;
 }
 
 /** What following each of `tags` would cost the reader's pool, as one plan:

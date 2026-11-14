@@ -20,6 +20,7 @@ import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
 import { passportRoutes } from "../src/routes/passport.mjs";
+import { PASSPORT_LEAKS } from "./passport-privacy.mjs";
 import {
   createScratch,
   dropScratch,
@@ -134,21 +135,7 @@ const PUBLIC_KEYS = new Set([
 function assertPublic(body, accountId) {
   for (const k of keysOf(body)) assert.ok(PUBLIC_KEYS.has(k), `key ${k}`);
   const text = JSON.stringify(body);
-  for (const leak of [
-    "example.com",
-    "@",
-    accountId,
-    "America/Chicago",
-    "Chicago",
-    DISCORD_NAME,
-    NICKNAME,
-    "progress",
-    "owner",
-    "token",
-    "limit",
-    "usage",
-    "timezone",
-  ])
+  for (const leak of [...PASSPORT_LEAKS, accountId, DISCORD_NAME, NICKNAME])
     assert.ok(!text.includes(leak), `leaked ${leak}`);
 }
 
