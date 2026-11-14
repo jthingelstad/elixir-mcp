@@ -82,7 +82,11 @@ Dynamic card-art crop styles stay.
 ## Tests deliberately changed
 
 - `page-frame.spec.ts`: page and place names now use Inter rather than
-  pinning the display face on Clan's title.
+  pinning the display face on Clan's title. It also checks roster density
+  at 390px and 420px with both loaded and unavailable web fonts. CI
+  exposed a 99px roster row that the original local check could measure
+  before fonts settled; phone roster metadata now uses the 12px caption
+  role so the fixture stays within the original 90px limit in both states.
 - `battle-highlight.test.jsx`: pins the primary action's role class,
   replacing the old gold-paint class; the action and its words stay.
 - `theme.test.mjs`: the existing radius utility resolves to the single
@@ -99,7 +103,7 @@ Dynamic card-art crop styles stay.
   lazy card art cannot leave a blank deck in a published capture.
 
 `npm run verify` passed on Node 24, including all 30 test units, static
-checks and Lambda builds. The full `npm run e2e` suite passed 505 journeys.
+checks and Lambda builds. The full `npm run e2e` suite passed 508 journeys.
 Native in-app browser review separately exercised Home → Friends → Ada,
 player tabs with arrow keys and Enter, and the bell. Phone and desktop
 checks found no page overflow or app console errors. The corrected Home

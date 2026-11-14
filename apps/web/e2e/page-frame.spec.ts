@@ -182,22 +182,32 @@ test("@narrow mode chips scroll on one line, and the edge says there are more", 
   ).toBeLessThanOrEqual(0);
 });
 
-test("@narrow Clan's roster is two lines a member", async ({ page }) => {
-  await clanApi(page, clanIn());
-  await page.goto("/clan/0QC8RCGY/members");
-  const row = page.locator(".roster-table tbody tr").first();
-  await expect(row).toBeVisible();
-  await expect(row.locator(".roster-table__wide").first()).toBeHidden();
-  await expect(row.locator(".roster-table__line")).toBeVisible();
-  const box = await row.boundingBox();
-  expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-  expect(box?.height ?? 999).toBeLessThan(90);
-  // The avatar leads the row (2026-11-13, the canvas's roster), and the
-  // name follows it with no column between them.
-  const avatar = row.locator(".kit-table__lead .kit-av").first();
-  const av = await avatar.boundingBox();
-  expect((av?.x ?? 999) - (box?.x ?? 0)).toBeLessThan(30);
-  const name = row.locator(".kit-table__lead a").first();
-  const left = (await name.boundingBox())?.x ?? 999;
-  expect(left - ((av?.x ?? 0) + (av?.width ?? 0))).toBeLessThan(16);
-});
+for (const width of [390, 420]) {
+  for (const font of ["loaded", "fallback"]) {
+    test(`@narrow Clan's roster is two lines a member at ${width}px with ${font} fonts`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 860 });
+      if (font === "fallback")
+        await page.route("**/assets/fonts/**", (route) => route.abort());
+      await clanApi(page, clanIn());
+      await page.goto("/clan/0QC8RCGY/members");
+      const row = page.locator(".roster-table tbody tr").first();
+      await expect(row).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      await expect(row.locator(".roster-table__wide").first()).toBeHidden();
+      await expect(row.locator(".roster-table__line")).toBeVisible();
+      const box = await row.boundingBox();
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 999).toBeLessThan(90);
+      // The avatar leads the row (2026-11-13, the canvas's roster), and the
+      // name follows it with no column between them.
+      const avatar = row.locator(".kit-table__lead .kit-av").first();
+      const av = await avatar.boundingBox();
+      expect((av?.x ?? 999) - (box?.x ?? 0)).toBeLessThan(30);
+      const name = row.locator(".kit-table__lead a").first();
+      const left = (await name.boundingBox())?.x ?? 999;
+      expect(left - ((av?.x ?? 0) + (av?.width ?? 0))).toBeLessThan(16);
+    });
+  }
+}
