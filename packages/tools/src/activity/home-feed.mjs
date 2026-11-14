@@ -350,24 +350,28 @@ const fromRow = (row) => ({
 export async function refreshHomeWeek(
   db,
   accountId,
-  { now = Date.now() } = {},
+  { now = Date.now(), since = null } = {},
 ) {
   const row = await storedWeek(db, accountId);
   // The bell's week rides the same wake (bell_week, 0247): built here
   // when it is missing or past FRESH, so the first bell is never cold.
   const bell = await refreshBellWeek(db, accountId, { now });
-  if (row && now - row.built_at.getTime() < HOME_FRESH_MS)
-    return { skipped: "fresh", ...(bell ? { bell } : {}) };
+  // A wake with `since` (your own battles read now, 2026-11-14) wants a
+  // week built after that read, however fresh the row is otherwise.
+  const sinceMs = since ? Date.parse(since) : NaN;
+  const kept = (r) =>
+    r &&
+    now - r.built_at.getTime() < HOME_FRESH_MS &&
+    !(r.built_at.getTime() < sinceMs);
+  if (kept(row)) return { skipped: "fresh", ...(bell ? { bell } : {}) };
   const { timezone } = await homeAccount(db, accountId);
   const subjects = await subjectsFor(db, accountId);
   const week = await buildOnce(db, "home_feed", accountId, {
     build: () => buildHomeWeek(db, accountId, { subjects, timezone, now }),
     // A read built it meanwhile: nothing left to do.
     reuse: async () => {
-      const kept = await storedWeek(db, accountId);
-      return kept && now - kept.built_at.getTime() < HOME_FRESH_MS
-        ? { items: kept.items, buildMs: 0 }
-        : null;
+      const stored = await storedWeek(db, accountId);
+      return kept(stored) ? { items: stored.items, buildMs: 0 } : null;
     },
   });
   return {
@@ -571,15 +575,21 @@ export async function homeWeeksToWake(db, { now = Date.now() } = {}) {
 }
 
 /** The outbox object that wakes one account's build: one per account a
- *  quarter hour, however many reads and runs ask. */
+ *  quarter hour, however many reads and runs ask. With `since` (an ISO
+ *  instant: one of your own battle logs read now, 2026-11-14), one per
+ *  read, and the build happens unless the row was built after it. */
 export function homeWeekWake(outbox) {
   if (!outbox) return null;
-  return (accountId, now = Date.now()) =>
+  return (accountId, now = Date.now(), { since = null } = {}) =>
     outbox(
       "timeline-sync",
-      { v: 1, home_feed: accountId },
+      since
+        ? { v: 1, home_feed: accountId, since }
+        : { v: 1, home_feed: accountId },
       {
-        id: `home.${accountId}.${Math.floor(now / HOME_FRESH_MS)}`,
+        id: since
+          ? `home.${accountId}.since.${Date.parse(since)}`
+          : `home.${accountId}.${Math.floor(now / HOME_FRESH_MS)}`,
         once: true,
       },
     );

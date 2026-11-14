@@ -162,7 +162,7 @@ export const handler = makeHandler({
     return { applied: await applyReceipts(db, list) };
   },
   // Home's stored week (0245, #649), as the account reads it.
-  homeFeed: (db, accountId) => refreshHomeWeek(db, accountId),
+  homeFeed: (db, accountId, opts = {}) => refreshHomeWeek(db, accountId, opts),
   async readObject(obj) {
     if (obj.bucket !== bucket) throw new Error("unknown bucket");
     try {

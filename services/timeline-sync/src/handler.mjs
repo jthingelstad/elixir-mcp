@@ -61,7 +61,7 @@ const LANES = [
  *   syncClan?: (db: any, clanTag: string, opts: { remainingMs: () => number, editor: boolean }) => Promise<object>,
  *   shareClanDiscord?: (db: any, clanTag: string) => Promise<object>,
  *   receipts?: ((db: any, msg: object) => Promise<object | null>) | null,
- *   homeFeed?: ((db: any, accountId: string) => Promise<object>) | null,
+ *   homeFeed?: ((db: any, accountId: string, opts?: { since?: string }) => Promise<object>) | null,
  *   readObject: (obj: {bucket: string, key: string}) => Promise<string | null>,
  *   deleteObject: (obj: {bucket: string, key: string}) => Promise<unknown>,
  * }} deps
@@ -107,7 +107,17 @@ export function makeHandler({
       } else if (msg?.v === 1 && typeof msg.home_feed === "string") {
         if (!UUID.test(msg.home_feed) || !homeFeed) return "bad_message";
         try {
-          const out = await homeFeed(await db(), msg.home_feed);
+          // `since`: a week built after this read (own refresh, 2026-11-14).
+          const since =
+            typeof msg.since === "string" &&
+            Number.isFinite(Date.parse(msg.since))
+              ? msg.since
+              : null;
+          const out = await homeFeed(
+            await db(),
+            msg.home_feed,
+            since ? { since } : {},
+          );
           console.log("home_feed_built", msg.home_feed, JSON.stringify(out));
         } catch (err) {
           console.error(

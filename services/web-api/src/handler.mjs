@@ -59,6 +59,7 @@ import { peopleRoutes } from "./routes/people.mjs";
 import { passportRoutes } from "./routes/passport.mjs";
 import { ensurePassport } from "@elixir-mcp/stamps";
 import { clanRoutes } from "./routes/clan.mjs";
+import { refreshRoutes } from "./routes/refresh.mjs";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import {
   CONTRACT_HEADER,
@@ -466,6 +467,9 @@ export function makeHandler({
       wake: homeWake,
     }),
     ...playerRoutes({ resolveAccount, live: liveRead }),
+    // Your own battles read now (2026-11-14): the same live lane, and the
+    // stored week's wake once a read lands.
+    ...refreshRoutes({ resolveAccount, live: liveRead, wake: homeWake }),
     ...feedbackRoutes({ resolveAccount, notifyOwner }),
     ...adminRoutes({
       resolveAccount,
