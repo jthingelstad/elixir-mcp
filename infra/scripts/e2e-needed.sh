@@ -4,7 +4,8 @@
 #
 # The journeys serve the built site and app tree with /api/* answered by
 # fixtures, so what lands in that tree, or builds and serves it, can break
-# them. A few specs also import code outside the tree: native-ssr bundles
+# them. The app bundles the Stamp catalog (packages/stamps catalog.mjs).
+# A few specs also import code outside the tree: native-ssr bundles
 # services/web-api's app-pages.mjs with build.mjs's own options, and the
 # mail specs render with packages/mail and the relay's templates. Those
 # files are named below.
@@ -31,6 +32,7 @@ reaches_journeys() {
     grep -E \
       -e '^apps/web/' \
       -e '^packages/(ui|client|design|clan-engine|contracts|record|mail|auth)/' \
+      -e '^packages/stamps/src/catalog\.mjs$' \
       -e '^services/web-api/src/(app-pages|http|share-files)\.mjs$' \
       -e '^services/email-relay/src/templates\.mjs$' \
       -e '^infra/scripts/(build|build-site|serve-site|e2e-shard)\.mjs$' \
