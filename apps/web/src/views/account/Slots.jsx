@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import {
   ConfirmAction,
   ErrorState,
@@ -113,7 +114,9 @@ function Player({ p, action = null, why = null }) {
       className="kit-row--target"
       title={
         <Link className="kit-row__link" to={playerHref(p.player_tag)}>
-          <TagText>{p.name ?? p.player_tag}</TagText>
+          <PlayerName tag={p.player_tag}>
+            <TagText>{p.name ?? p.player_tag}</TagText>
+          </PlayerName>
         </Link>
       }
       detail={[why, howFollowed(p)].filter(Boolean).join(" · ")}

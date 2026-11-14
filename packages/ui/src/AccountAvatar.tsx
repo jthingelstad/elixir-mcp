@@ -9,14 +9,17 @@ export function AccountAvatar({
   card,
   initials,
   large = false,
+  verified = false,
 }: {
   card?: number | null | undefined;
   initials: string;
   large?: boolean;
+  verified?: boolean | undefined;
 }) {
   const picture = useAvatarCard(card);
   const cls = [
     "chrome__avatar",
+    verified ? "chrome__avatar--verified" : null,
     large ? "chrome__avatar--lg" : null,
     picture.card !== null ? "chrome__avatar--image" : null,
   ]

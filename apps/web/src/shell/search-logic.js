@@ -305,6 +305,11 @@ export async function readSearch(raw, call, seen = () => {}) {
     const r = await call(tool, args);
     const failed = failure(r);
     if (failed) throw new Error(failed);
+    if (r.data.body?.player_verifications)
+      empty.player_verifications = {
+        ...empty.player_verifications,
+        ...r.data.body.player_verifications,
+      };
     return r.data.is_error ? null : r.data.body;
   };
   if (asTag) {

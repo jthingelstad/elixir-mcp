@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import {
   AccountAvatar,
@@ -61,6 +62,9 @@ export function barAccount(me, signOut) {
     .filter((c) => c.is_primary || c.relationship === "alt")
     .map((c) => ({
       key: c.player_tag,
+      tag: c.player_tag,
+      verified:
+        me?.player_verifications?.[c.player_tag] ?? c.status === "verified",
       name: c.nickname ?? c.name ?? c.player_tag,
       note: c.is_primary === true ? "Your main player" : "Also you",
       href: statsHref("season", { player: c.player_tag }),
@@ -72,6 +76,11 @@ export function barAccount(me, signOut) {
   return {
     name: barName(me),
     avatarCard: me?.avatar_card_id ?? null,
+    verified: claims.some(
+      (c) =>
+        c.is_primary &&
+        (me?.player_verifications?.[c.player_tag] ?? c.status === "verified"),
+    ),
     email: me?.email ?? undefined,
     players,
     playersFoot: add,
@@ -170,8 +179,25 @@ function Avatar({ me }) {
         <AccountAvatar
           card={me?.avatar_card_id ?? null}
           initials={initialsOf(name)}
+          verified={(me?.claims ?? []).some(
+            (c) =>
+              c.is_primary &&
+              (me?.player_verifications?.[c.player_tag] ??
+                c.status === "verified"),
+          )}
         />
-        <span className="kit-top__name">{name}</span>
+        <span className="kit-top__name">
+          <PlayerName
+            verified={(me?.claims ?? []).some(
+              (c) =>
+                c.is_primary &&
+                (me?.player_verifications?.[c.player_tag] ??
+                  c.status === "verified"),
+            )}
+          >
+            {name}
+          </PlayerName>
+        </span>
       </button>
       {open ? (
         <AccountMenu

@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { ACTION_ORDER as ORDER } from "@elixir-mcp/clan-engine";
 import {
@@ -317,7 +318,9 @@ function Decided({ clan, navigate }) {
             {c.player_tag ? (
               <>
                 {" · "}
-                {c.player_name ?? <Tag tag={c.player_tag} />}
+                <PlayerName tag={c.player_tag}>
+                  {c.player_name ?? <Tag tag={c.player_tag} />}
+                </PlayerName>
               </>
             ) : null}
           </span>
@@ -432,7 +435,9 @@ function Decided({ clan, navigate }) {
               <li key={h.player_tag} className="clan-row">
                 <span className="clan-row__main">
                   <span className="clan-row__title">
-                    {h.player_name ?? <Tag tag={h.player_tag} />}
+                    <PlayerName tag={h.player_tag}>
+                      {h.player_name ?? <Tag tag={h.player_tag} />}
+                    </PlayerName>
                   </span>
                   <span className="clan-row__meta">
                     {h.kind === "away" ? "Marked away" : "On hold"}{" "}

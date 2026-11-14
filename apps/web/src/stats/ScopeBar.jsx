@@ -1,3 +1,4 @@
+import { PlayerName, PlayerOption } from "@elixir-mcp/ui";
 import {
   FreshChip,
   Chips,
@@ -90,18 +91,29 @@ function FrameHead({ slug, player, clanName, mode, season, applied }) {
   const edge = useSeasonEdge();
   const head = seasonHead(applied);
   const name = applied ? head.name : season.name;
-  const who = playerName(player);
+  const who = (
+    <PlayerName tag={player?.player_tag}>{playerName(player)}</PlayerName>
+  );
   if (slug !== "season") {
     const page = STATS_PAGES.find((p) => p.slug === slug)?.label;
     return (
       <PageHead
         className="stats-head"
         title={page}
-        sub={`${who} · ${name}, ${modeWords(mode)}`}
+        sub={
+          <>
+            {who} · {name}, {modeWords(mode)}
+          </>
+        }
       />
     );
   }
-  const place = [who, clanName].filter(Boolean).join(" · ");
+  const place = (
+    <>
+      {who}
+      {clanName ? ` · ${clanName}` : ""}
+    </>
+  );
   let span = "";
   if (head.running && head.endsAt)
     span = `${
@@ -117,7 +129,12 @@ function FrameHead({ slug, player, clanName, mode, season, applied }) {
     <PageHead
       className="stats-head"
       title={name}
-      sub={span ? `${place} · ${span}` : place}
+      sub={
+        <>
+          {place}
+          {span ? ` · ${span}` : ""}
+        </>
+      }
     />
   );
 }
@@ -141,7 +158,7 @@ export function PlayerPick({ player, players, hrefFor, navigate }) {
   if (players.length < 2)
     return (
       <span className="stats-scope__one">
-        {playerName(player)}{" "}
+        <PlayerName tag={player?.player_tag}>{playerName(player)}</PlayerName>{" "}
         <span className="mono-tag stats-scope__tag">{player.player_tag}</span>
       </span>
     );
@@ -168,9 +185,9 @@ export function PlayerPick({ player, players, hrefFor, navigate }) {
             ["Following", players.filter((p) => !isOwnClaim(p))],
           ]}
           option={(p) => (
-            <option key={p.player_tag} value={p.player_tag}>
+            <PlayerOption key={p.player_tag} tag={p.player_tag}>
               {playerName(p)}
-            </option>
+            </PlayerOption>
           )}
         />
       </select>

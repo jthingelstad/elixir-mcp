@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import {
   CardArt,
   Chips,
@@ -346,7 +347,11 @@ function Opponents({ read, label, when, order }) {
               <ul className="stats-opponents">
                 {repeats.map((o) => (
                   <li key={o.player_tag}>
-                    <Link to={playerHref(o.player_tag)}>{opponentName(o)}</Link>
+                    <Link to={playerHref(o.player_tag)}>
+                      <PlayerName tag={o.player_tag}>
+                        {opponentName(o)}
+                      </PlayerName>
+                    </Link>
                     {clashes(o) ? (
                       <>
                         {" "}

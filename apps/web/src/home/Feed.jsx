@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -270,7 +271,9 @@ function Who({ who }) {
   if (who?.kind === "player")
     return (
       <Link to={playerHref(who.tag)} className="kit-feed__name">
-        <TagText>{who.name ?? who.tag}</TagText>
+        <PlayerName tag={who.tag}>
+          <TagText>{who.name ?? who.tag}</TagText>
+        </PlayerName>
       </Link>
     );
   if (who)

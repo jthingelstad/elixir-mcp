@@ -1,3 +1,4 @@
+import { PlayerName, PlayerOption } from "@elixir-mcp/ui";
 import {
   Disclosure,
   ago,
@@ -579,9 +580,9 @@ function AwardPanel({
                   >
                     <option value="">Choose a member…</option>
                     {candidates.map((c) => (
-                      <option key={c.player_tag} value={c.player_tag}>
-                        {c.name} ({c.player_tag})
-                      </option>
+                      <PlayerOption key={c.player_tag} tag={c.player_tag}>
+                        {`${c.name} (${c.player_tag})`}
+                      </PlayerOption>
                     ))}
                   </select>
                   <label
@@ -795,7 +796,9 @@ function OlderGrants({ grants, awardById }) {
                   <li key={`${g.award_id}-${g.player_tag}`}>
                     <strong>{awardById.get(g.award_id)?.name ?? g.name}</strong>
                     {g.rank > 1 ? ` #${g.rank}` : ""} ·{" "}
-                    {g.player_name ?? <Tag tag={g.player_tag} />}{" "}
+                    <PlayerName tag={g.player_tag}>
+                      {g.player_name ?? <Tag tag={g.player_tag} />}
+                    </PlayerName>{" "}
                     <span className="tag">{g.player_tag}</span>
                     {g.note ? `: ${g.note}` : ""}
                   </li>

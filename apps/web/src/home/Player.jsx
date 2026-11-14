@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useLocation } from "@tanstack/react-router";
 import {
@@ -182,12 +183,18 @@ export function PlayerView({
         <Avatar
           name={p.name ?? p.tag}
           tag={p.tag}
+          verified={page.badges?.verified_player === true}
           card={p.avatar_card_id ?? null}
           large
         />
         <div className="kit-phead__main">
           <h1 className="kit-phead__name">
-            <TagText>{p.name ?? p.tag}</TagText>
+            <PlayerName
+              tag={p.tag}
+              verified={page.badges?.verified_player === true}
+            >
+              <TagText>{p.name ?? p.tag}</TagText>
+            </PlayerName>
           </h1>
           <p className="kit-phead__line">
             <TagText>{sub}</TagText>
@@ -607,7 +614,11 @@ function Follows({ page, player, own }) {
             small
           />
         }
-        title={<TagText>{f.name ?? f.tag}</TagText>}
+        title={
+          <PlayerName tag={f.tag}>
+            <TagText>{f.name ?? f.tag}</TagText>
+          </PlayerName>
+        }
         detail={f.name ? <Tag tag={f.tag} /> : null}
       />
     ));

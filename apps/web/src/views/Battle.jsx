@@ -1,3 +1,4 @@
+import { PlayerName as IdentityName } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
@@ -447,11 +448,15 @@ function PlayerName({ p, signedIn }) {
   // signed out it is just the name.
   return signedIn ? (
     <Link className="battle__name" to={playerHref(p.player_tag)}>
-      <TagText>{nameOf(p)}</TagText>
+      <IdentityName tag={p.player_tag}>
+        <TagText>{nameOf(p)}</TagText>
+      </IdentityName>
     </Link>
   ) : (
     <span className="battle__name">
-      <TagText>{nameOf(p)}</TagText>
+      <IdentityName tag={p.player_tag}>
+        <TagText>{nameOf(p)}</TagText>
+      </IdentityName>
     </span>
   );
 }

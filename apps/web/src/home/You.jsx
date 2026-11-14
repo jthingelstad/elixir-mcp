@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useLocation } from "@tanstack/react-router";
 import {
   Empty,
@@ -154,7 +155,11 @@ function YouAccount({ me, primary }) {
               <Row
                 key={c.player_tag}
                 href={playerHref(c.player_tag)}
-                title={<TagText>{name(c)}</TagText>}
+                title={
+                  <PlayerName tag={c.player_tag}>
+                    <TagText>{name(c)}</TagText>
+                  </PlayerName>
+                }
                 detail={`${c.is_primary ? "Your main player" : "Also you"}${c.status === "verified" ? "" : ", not verified"}: its page. Only you see this list.`}
               />
             ))}

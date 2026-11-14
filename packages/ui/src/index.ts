@@ -121,3 +121,12 @@ export { InitialTimeProvider, useInitialTime } from "./InitialTime.tsx";
 
 export { ConfirmAction } from "./ConfirmAction.tsx";
 export { DetailSheet, Setting, Disclosure } from "./DetailSheet.tsx";
+
+export {
+  PlayerIdentityProvider,
+  PlayerName,
+  PlayerOption,
+  VerifiedMark,
+  usePlayerVerified,
+  type PlayerVerifications,
+} from "./PlayerIdentity.tsx";

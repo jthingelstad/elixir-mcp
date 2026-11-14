@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
@@ -158,7 +159,9 @@ function PostCard({ read, h, who, viewer }) {
         <Avatar name={who} tag={h.player_tag} card={h.avatar_card_id ?? null} />
         <div className="kit-feed__who">
           <span className="kit-feed__name">
-            <TagText>{who}</TagText>
+            <PlayerName tag={h.player_tag}>
+              <TagText>{who}</TagText>
+            </PlayerName>
           </span>
           <span className="kit-feed__time">
             {[

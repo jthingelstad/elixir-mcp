@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useRef } from "react";
 import {
   Avatar,
@@ -77,7 +78,7 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
   const race = useRace(clan.clan_tag).state.data?.race ?? null;
   const you = clan.acting_as_name ?? clan.player_name ?? null;
   const role = `${clan.role_label ?? ""}${clan.verified === false ? ", unverified" : ""}`;
-  const who = [you, role || null].filter(Boolean).join(" · ");
+  const who = you || role;
   const ruleChips = me.policy?.chips ?? [];
   const racing = raceChip(race);
   return (
@@ -90,7 +91,17 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
           large
         />
         <div className="clan-head__who">
-          {who ? <p className="clan-head__role m-0">{who}</p> : null}
+          {who ? (
+            <p className="clan-head__role m-0">
+              {you ? (
+                <PlayerName tag={clan.acting_as ?? clan.player_tag}>
+                  {you}
+                </PlayerName>
+              ) : null}
+              {you && role ? " · " : ""}
+              {role}
+            </p>
+          ) : null}
           <h1 className="kit-head__title clan-head__name m-0">
             {clan.name ?? <Tag tag={clan.clan_tag} />}
           </h1>

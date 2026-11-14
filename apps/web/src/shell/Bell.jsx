@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import {
   ErrorState,
@@ -247,7 +248,9 @@ export function BellSheet({ me, onClose }) {
                         <>
                           <New on={f.new} />
                           <Link to={f.to} className="hit" onClick={onClose}>
-                            <TagText>{f.title}</TagText>
+                            <PlayerName tag={f.tag}>
+                              <TagText>{f.title}</TagText>
+                            </PlayerName>
                           </Link>
                         </>
                       }
@@ -276,7 +279,9 @@ export function BellSheet({ me, onClose }) {
                       title={
                         <>
                           <New on={f.new} />
-                          <TagText>{f.title}</TagText>
+                          <PlayerName tag={f.tag}>
+                            <TagText>{f.title}</TagText>
+                          </PlayerName>
                         </>
                       }
                       detail={<TagText>{f.detail}</TagText>}

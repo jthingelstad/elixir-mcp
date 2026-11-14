@@ -1,3 +1,4 @@
+import { verifiedPlayerIdentities } from "@elixir-mcp/tools/social";
 /**
  * Profile images (2026-11-14): an account chooses one card, and it shows on
  * every player that account verified, wherever the website draws them.
@@ -222,6 +223,20 @@ test("only a verified primary or alt shows the image; an unverified claim, a fol
     [ALT]: KNIGHT,
     [FAN]: ARROWS,
   });
+  const proof = await verifiedPlayerIdentities(db, [
+    MAIN,
+    ALT,
+    SELF_ONLY,
+    FRIEND,
+    PLAIN,
+    FAN,
+  ]);
+  assert.equal(proof.has(MAIN), true);
+  assert.equal(proof.has(ALT), true);
+  assert.equal(proof.has(SELF_ONLY), false);
+  assert.equal(proof.has(FRIEND), false);
+  assert.equal(proof.has(PLAIN), true);
+  assert.equal(proof.get(PLAIN).avatar_card_id, null);
   // No tags, no statement.
   assert.equal((await verifiedAvatars(db, [])).size, 0);
 });
@@ -238,6 +253,7 @@ test("the player page shows the image on its head and on its follows and followe
   const main = await call("/api/player", { query: { tag: MAIN } });
   assert.equal(main.status, 200);
   assert.equal(main.body.player.avatar_card_id, KNIGHT);
+  assert.equal(main.body.player_verifications[MAIN], true);
   const follows = new Map(main.body.follows.players.map((f) => [f.tag, f]));
   assert.equal(follows.get(FAN).avatar_card_id, ARROWS);
   assert.equal("avatar_card_id" in follows.get(FRIEND), false);

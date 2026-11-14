@@ -239,7 +239,7 @@ test(
     // parallel test run takes longer than findBy's 1 s default.
     await screen.findByRole(
       "heading",
-      { level: 1, name: "Copper Fern" },
+      { level: 1, name: /Copper Fern\s*Verified player/ },
       { timeout: 10_000 },
     );
     expect(screen.getByText("Verified player")).toBeTruthy();
@@ -339,7 +339,10 @@ test(
   async () => {
     window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
-    await screen.findByRole("heading", { level: 1, name: "Copper Fern" });
+    await screen.findByRole("heading", {
+      level: 1,
+      name: /Copper Fern\s*Verified player/,
+    });
     fireEvent.click(screen.getByRole("button", { name: "Follow" }));
     const dialog = await screen.findByRole("dialog", {
       name: "Follow Copper Fern?",
@@ -373,7 +376,10 @@ test(
     };
     window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
-    await screen.findByRole("heading", { level: 1, name: "Copper Fern" });
+    await screen.findByRole("heading", {
+      level: 1,
+      name: /Copper Fern\s*Verified player/,
+    });
     const head = screen.getByRole("navigation", {
       name: "More about this player",
     });
@@ -405,7 +411,10 @@ test(
   async () => {
     window.history.pushState({}, "", "/home/player/0VJ2QV?tab=follows");
     render(<App />);
-    await screen.findByRole("heading", { level: 1, name: "Copper Fern" });
+    await screen.findByRole("heading", {
+      level: 1,
+      name: /Copper Fern\s*Verified player/,
+    });
     const head = screen.getByRole("navigation", {
       name: "More about this player",
     });
@@ -435,7 +444,10 @@ test(
     };
     window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
-    await screen.findByRole("heading", { level: 1, name: "Copper Fern" });
+    await screen.findByRole("heading", {
+      level: 1,
+      name: "Copper Fern",
+    });
     expect(screen.queryByText("Verified player")).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: /Follows/ }));
     expect(

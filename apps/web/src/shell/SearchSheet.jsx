@@ -1,3 +1,4 @@
+import { PlayerName } from "@elixir-mcp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorState, Icon, Link, TagText } from "@elixir-mcp/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -163,7 +164,15 @@ export function SearchSheet({ me, onClose }) {
                     onClick={onClose}
                   >
                     <span>
-                      <TagText>{r.t}</TagText>
+                      <PlayerName
+                        tag={
+                          r.href?.startsWith("/home/player/")
+                            ? normTag(r.href.split("/").at(-1))
+                            : null
+                        }
+                      >
+                        <TagText>{r.t}</TagText>
+                      </PlayerName>
                     </span>
                     <span className="kit-search__door">
                       <TagText>{r.d}</TagText>
