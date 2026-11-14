@@ -456,6 +456,28 @@ html[data-session="in"] [data-session-face="out"] {
     color: var(--ink);
     text-align: left;
   }
+  /* Quiet (2026-11-13): on a phone the picker is one plain line on the
+     page's own ground, not a violet slab on the chrome above every
+     Settings page. The section's name, then the chevron; the page's
+     content starts right under it. */
+  .rail {
+    padding: 4px var(--pad-page-narrow) 0;
+    background: none;
+  }
+  .rail__toggle {
+    padding: 0;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--line-row);
+    border-radius: 0;
+    color: var(--ink-dim);
+  }
+  .rail__toggle:hover {
+    color: var(--ink);
+  }
+  .rail__toggle[aria-expanded="true"] {
+    margin-bottom: 8px;
+  }
 }
 
 /* ==================================================================
@@ -5804,6 +5826,15 @@ a.card-art:hover .card-art__img {
 .kit-head__main > .page__crumb {
   margin-bottom: 6px;
 }
+/* A tag beside a page's title (an unrecorded player, 2026-11-13): the
+   smaller mono tag style, never the title's display face. */
+.kit-head__tag {
+  margin-left: 0.3em;
+  font-size: 0.55em;
+  font-weight: 500;
+  color: var(--ink-faint);
+  vertical-align: 0.15em;
+}
 .kit-head__title {
   font: 400 var(--t-h1-page) / 1.15 var(--font-display);
   letter-spacing: 0.01em;
@@ -8059,17 +8090,18 @@ a.kit-mbattle:hover {
   justify-content: flex-end;
   gap: 8px;
 }
-/* "Following" or "You": the state, said where the Follow button would be. */
+/* "Following" or "You": the state, said where the Follow button would be.
+   Since 2026-11-13 plain words first in the row, not a third button shape
+   beside the buttons (a pill read as one more thing to tap). */
 .kit-phead__state {
+  order: -1;
   display: inline-flex;
   align-items: center;
   min-height: 36px;
-  padding: 0 14px;
-  border-radius: var(--r-pill);
-  background: var(--panel-raised);
+  padding: 0 4px 0 0;
   color: var(--ink-dim);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
 /* The counts (canvas .statrow): each a button to its tab. */
 .kit-statrow {

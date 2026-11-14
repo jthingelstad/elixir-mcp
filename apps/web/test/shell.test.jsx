@@ -284,6 +284,9 @@ describe("the bar on a page", () => {
   test("the bar's place follows the route, and a battle's page lights none", () => {
     expect(barArea("/home")).toBe("home");
     expect(barArea("/home/find")).toBe("find");
+    // A player's page and a Follow me link are Find's (2026-11-13).
+    expect(barArea("/home/player/0PYLQ2")).toBe("find");
+    expect(barArea("/home/follow/0PYLQ2")).toBe("find");
     expect(barArea("/home/you/")).toBe("you");
     // Ladder is your stats, reached from You.
     expect(barArea("/home/you/stats/decks")).toBe("you");

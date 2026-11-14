@@ -110,7 +110,7 @@ export function SearchSheet({ me, onClose }) {
             className="input"
             type="search"
             aria-label="Search players, clans, cards, help"
-            placeholder="Search players, clans, cards, help"
+            placeholder="Players, clans, cards, help"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {
@@ -125,8 +125,15 @@ export function SearchSheet({ me, onClose }) {
             spellCheck="false"
             autoFocus
           />
-          <button type="button" className="btn btn--sm" onClick={onClose}>
-            Close
+          {/* The sheets close one way (2026-11-13): an X, as the bell and
+              help do, which leaves the field its width on a phone. */}
+          <button
+            type="button"
+            className="btn btn--sm btn--quiet"
+            aria-label="Close"
+            onClick={onClose}
+          >
+            <Icon name="x" size={16} />
           </button>
         </form>
         <div className="kit-search__results" aria-live="polite">

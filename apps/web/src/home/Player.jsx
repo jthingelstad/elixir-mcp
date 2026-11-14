@@ -97,7 +97,15 @@ export function PlayerPage() {
   if (env.status === 404)
     return (
       <>
-        <PageHead title={<Tag tag={tag} />} />
+        {/* Read as a player, the tag beside in the smaller tag style
+            (2026-11-13), never a bare mono tag for a title. */}
+        <PageHead
+          title={
+            <>
+              Player <Tag tag={tag} className="kit-head__tag" />
+            </>
+          }
+        />
         <Empty
           title="Elixir has not recorded this player"
           action={<FollowButton tag={tag} />}

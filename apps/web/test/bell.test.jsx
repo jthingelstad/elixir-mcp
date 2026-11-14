@@ -138,7 +138,7 @@ test("the bell's sections: counts not cheerers, named and counted followers, ans
   });
   renderWithProviders(<BellSheet me={{}} onClose={() => {}} />);
   const reactions = await screen.findByRole("region", {
-    name: "Reactions to your items",
+    name: "Cheers on your items",
     hidden: true,
   });
   expect(reactions.textContent).toContain("Invented Owner won five in a row");

@@ -150,7 +150,7 @@ account menu).
 The bell, on the top bar (a tab on a phone), holds what is about you, not
 your friends. Each part shows only when it has something:
 
-- **Reactions to your items**: the cheers others gave, in the last seven
+- **Cheers on your items**: the cheers others gave, in the last seven
   days, to the [timeline](/docs/timeline#cheers) items about players you
   have [verified](/docs/verify) as yours. Counts only, each cheer with its
   number: never who cheered. The bell keeps your week's items for up to
