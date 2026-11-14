@@ -24,9 +24,6 @@ export const passportHref = (id = null, stampId = null) => {
   return stampId ? `${base}?stamp=${encodeURIComponent(stampId)}` : base;
 };
 
-/** A Stamp's detail in your own passport: the bell's link. */
-export const stampHref = (stampId) => passportHref(null, stampId);
-
 /** Whether a path is a passport page: yours, or one with a well-formed id. */
 export function isPassportPath(path) {
   const clean = String(path ?? "").replace(/(.)\/$/, "$1");

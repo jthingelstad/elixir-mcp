@@ -20,7 +20,11 @@ export function PassportRow({ summary, own = false }) {
         </span>
       ) : null}
       <span>
-        {count === 0 ? "No Stamps yet" : count === 1 ? "1 Stamp" : `${count} Stamps`}
+        {count === 0
+          ? "No Stamps yet"
+          : count === 1
+            ? "1 Stamp"
+            : `${count} Stamps`}
       </span>
       <Link
         className="kit-passport-row__open"

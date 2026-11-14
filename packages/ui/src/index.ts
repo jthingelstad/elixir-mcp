@@ -75,7 +75,7 @@ export {
   StampMark,
   StampMini,
   StampTile,
-  stampDay,
+  earnedDay,
   stampTitle,
   type StampFace,
 } from "./Stamp.tsx";

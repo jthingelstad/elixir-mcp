@@ -61,7 +61,7 @@ const MONTHS = [
  *  "14 Nov 2026" short. The day was fixed in the owner's zone when it was
  *  earned, so it is read as it is: no time zone moves it. Null for
  *  anything that is not a day. */
-export function stampDay(
+export function earnedDay(
   day: string | null | undefined,
   { short = false }: { short?: boolean } = {},
 ): string | null {
@@ -101,7 +101,7 @@ export function StampMark({
   ]
     .filter(Boolean)
     .join(" ");
-  const shown = earned ? stampDay(day, { short: true }) : null;
+  const shown = earned ? earnedDay(day, { short: true }) : null;
   return (
     <span className={cls} aria-hidden="true">
       <Icon name={stamp.icon} size={large ? 44 : 26} />
