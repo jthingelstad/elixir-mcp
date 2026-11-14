@@ -21,9 +21,8 @@ move as the service grows.
 API (battles, profiles, clans, wars) and keeps it for a year. The game
 shows the present; Elixir keeps the history, and anyone with an account
 can read it. Nothing is recorded that the game's API does not already
-publish. The Elixir family's own apps can add facts of their own (a
-clan's awards, a leader's note on why a member left, a best score in
-one of the apps). Each one says which app it came from, and only the
+publish. Clan adds facts of its own (a clan's awards, a leader's note
+on why a member left). Each one says where it came from, and only the
 people it is meant for can see it.
 
 **Without an account.** Every read of the record needs a free account:

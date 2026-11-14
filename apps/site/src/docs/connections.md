@@ -7,13 +7,14 @@ order: 1
 navTitle: "Connect an agent"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
-reviewed: "2026-11-13 against contract 13.0.0 and JSON API 5.0.0"
+reviewed: "2026-11-14 one MCP endpoint for you, one for a clan's agent; 2026-11-13 against contract 13.0.0 and JSON API 5.0.0"
 callout: ["Open it at Settings › Connections & agents", "/settings/connections", "Open Connections & agents"]
 ---
 
 # Users and agents
 
-Two kinds of connection to Elixir: you, and an agent you own. The difference is not
+Two kinds of connection to Elixir, and only two: you, with one MCP endpoint
+for your own agent, and an agent you own for a clan, with one of its own. The difference is not
 technical trivia, it decides what "me" means, whose data comes back, and who
 pays for the calls.
 
@@ -24,6 +25,7 @@ The short version:
 | Acts for | yourself | a clan |
 | "Me" is | your primary player | the clan |
 | Signs in with | OAuth | a key, or OAuth by its owner |
+| MCP endpoint | `/mcp` | its own, `/a/<public_id>/mcp` |
 | Who can have one | everyone | everyone |
 
 ## You

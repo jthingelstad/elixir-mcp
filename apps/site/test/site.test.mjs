@@ -56,7 +56,6 @@ const STATIC_PAGES = [
   "/",
   "/cards",
   "/data",
-  "/family",
   "/examples",
   "/examples/play",
   "/examples/ladder",
@@ -68,12 +67,6 @@ const STATIC_PAGES = [
   "/examples/discord",
   "/examples/publish",
   "/examples/collector",
-  "/family/drop",
-  "/family/discord",
-  "/family/crdocs",
-  "/family/mcp",
-  "/family/royaledle",
-  "/family/royaleapi",
   "/docs",
   "/docs/about",
   "/docs/quickstart",
@@ -811,7 +804,7 @@ test(
         `${page} lights ${want}`,
       );
     }
-    for (const page of ["index.html", "docs/index.html", "family/index.html"]) {
+    for (const page of ["index.html", "docs/index.html", "data/index.html"]) {
       const doc = new JSDOM(read(page)).window.document;
       const foot = doc.querySelector("footer.kit-foot");
       assert.ok(foot, `${page} has the footer`);
@@ -824,13 +817,6 @@ test(
       );
       for (const l of kit.FAMILY_FOOT)
         assert.ok(hrefs.includes(l.path), `${page} footer links ${l.path}`);
-      // Family is on no menu (Jamie, 2026-09-29), and its pages are built.
-      assert.ok(
-        ![
-          ...doc.querySelectorAll(".kit-top a, .kit-foot a, .kit-bottom a"),
-        ].some((a) => a.getAttribute("href").startsWith("/family")),
-        `${page} links Family from a menu`,
-      );
       assert.doesNotMatch(
         doc.querySelector(".kit-top").textContent + foot.textContent,
         /Console/,
@@ -1358,30 +1344,19 @@ test(
   },
 );
 
-test("every family project has somewhere to go", { skip }, () => {
-  // /family described eight products and linked to none of them: the
-  // data carried the links and the template never rendered them. One
-  // page per product now, each linking to the thing itself.
-  const html = read("family/index.html");
-  for (const label of ["POAP KINGS", "Elixir Drop", "Royaledle", "RoyaleAPI"])
-    assert.ok(html.includes(label), `the family rail lost ${label}`);
-  for (const [rel, href] of [
-    ["family/index.html", "https://poapkings.com"],
-    ["family/drop/index.html", "https://drop.poapkings.com"],
-    ["family/discord/index.html", "/docs/agents"],
-    ["family/royaledle/index.html", "https://royaledle.org"],
-    ["family/royaleapi/index.html", "https://royaleapi.com"],
-  ])
-    assert.ok(
-      read(rel).includes(`href="${href}"`),
-      `${rel} has no link to ${href}`,
-    );
-  // Third-party projects carry their own byline, never ours.
-  const theirs = read("family/royaledle/index.html");
-  assert.match(theirs, /Not ours/);
-  assert.doesNotMatch(theirs, /Run by POAP KINGS/);
-  assert.match(theirs, /More we like/);
-  assert.match(read("family/drop/index.html"), /Also in the family/);
+test("the family pages are gone (Jamie, 2026-11-14)", { skip }, () => {
+  // "Delete family site pages": no /family document is built, and no
+  // built page, llms.txt or the sitemap links to one, so the address is
+  // the site's 404.
+  assert.ok(!existsSync(path.join(out, "family")), "a /family page is built");
+  const toFamily = /(href="|\]\(|<loc>)[^"\s)<]*\/family(\/|"|\)|<)/;
+  const linked = [
+    ...htmlPages(),
+    "llms.txt",
+    "llms-full.txt",
+    "sitemap.xml",
+  ].filter((rel) => toFamily.test(read(rel)));
+  assert.deepEqual(linked, [], "pages still link to /family");
 });
 
 test(

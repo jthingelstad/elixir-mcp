@@ -111,7 +111,10 @@ run, and recruits who match how the clan wants to play.
 
 ## Agents
 
-Connecting your own AI agent to Elixir over MCP stays core.
+Connecting your own AI agent to Elixir over MCP stays core. A player has
+one MCP endpoint, for their own agent, and a clan has one, for its
+agent: "Players should have one MCP endpoint. Clans have one too. That
+should be all we need." (Jamie, 2026-11-14)
 
 ## Never
 

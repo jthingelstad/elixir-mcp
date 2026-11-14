@@ -367,12 +367,6 @@ export default function (eleventyConfig) {
     (inputPath) =>
       `https://github.com/jthingelstad/elixir-mcp/blob/main/apps/site/${String(inputPath ?? "").replace(/^\.\//, "")}`,
   );
-  /** A project's page: the first one is /family itself, the rest sit
-   *  under it. One document per product, the way the design draws it. */
-  eleventyConfig.addFilter("familyPath", (p, first) =>
-    first ? "/family/index.html" : `/family/${p.key}/index.html`,
-  );
-
   eleventyConfig.addFilter("number", (n) =>
     typeof n === "number" ? n.toLocaleString("en-US") : "—",
   );
