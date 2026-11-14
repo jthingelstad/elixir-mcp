@@ -155,22 +155,41 @@ function expandGrants(grants) {
  * newly inserted levels, [{ stamp_id, level, earned_at, earned_on }], the
  * caller's cue for a bell notice; or { refused: "not_person" }.
  * earned_on is the local day of `now` in the account's zone, frozen.
+ *
+ * `legacy` (the launch instant, legacy.mjs) writes legacy rows instead:
+ * evidence from before launch, no trustworthy day, so earned_on is null,
+ * legacy_before is the launch's local day in the account's zone ("Earned
+ * before <day>") and legacy_source_to the launch instant. Such a row is
+ * never a bell notice. A level already held, either kind, is left as it
+ * is: nothing is ever rewritten.
  */
-export async function grantStamps(db, accountId, grants, { now }) {
+export async function grantStamps(
+  db,
+  accountId,
+  grants,
+  { now, legacy = null },
+) {
   const at = isoOf(now);
+  const launch = legacy === null ? null : isoOf(legacy);
   const pairs = expandGrants(grants);
   if (!pairs.length) return { granted: [] };
   const zone = await accountZone(db, accountId);
   const out = await withPassportLock(db, accountId, async () => {
     const { rows } = await db.query(
       `insert into account_stamp_earned
-         (account_id, stamp_id, level, earned_at, earned_on, definition_version)
+         (account_id, stamp_id, level, earned_at, earned_on, definition_version,
+          legacy_before, legacy_source_to)
        select $1::uuid, g.stamp_id, g.level, $4::timestamptz,
-              ($4::timestamptz at time zone $5::text)::date, $6::int
+              case when $7::timestamptz is null
+                   then ($4::timestamptz at time zone $5::text)::date end,
+              $6::int,
+              ($7::timestamptz at time zone $5::text)::date,
+              $7::timestamptz
          from unnest($2::text[], $3::smallint[]) as g(stamp_id, level)
        on conflict (account_id, stamp_id, level) do nothing
        returning stamp_id, level, earned_at,
-                 to_char(earned_on, 'YYYY-MM-DD') as earned_on`,
+                 to_char(earned_on, 'YYYY-MM-DD') as earned_on,
+                 to_char(legacy_before, 'YYYY-MM-DD') as earned_before`,
       [
         accountId,
         pairs.map((p) => p[0]),
@@ -178,6 +197,7 @@ export async function grantStamps(db, accountId, grants, { now }) {
         at,
         zone,
         CATALOG_VERSION,
+        launch,
       ],
     );
     return rows
@@ -186,6 +206,7 @@ export async function grantStamps(db, accountId, grants, { now }) {
         level: Number(r.level),
         earned_at: new Date(r.earned_at).toISOString(),
         earned_on: r.earned_on,
+        ...(r.earned_before ? { earned_before: r.earned_before } : {}),
       }))
       .sort(
         (a, b) => a.stamp_id.localeCompare(b.stamp_id) || a.level - b.level,
@@ -405,7 +426,7 @@ async function readPrimary(db, accountId) {
   return rows[0] ?? null;
 }
 
-async function readEarned(db, accountId) {
+export async function readEarned(db, accountId) {
   const { rows } = await db.query(
     `select stamp_id, level::int as level,
             to_char(earned_on, 'YYYY-MM-DD') as earned_on,

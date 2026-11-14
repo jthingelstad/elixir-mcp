@@ -205,6 +205,8 @@ export const KEPT = Object.freeze({
   home_feed: "one cached feed per account, rebuilt in place",
   home_clan_card: "one cached card per account, rebuilt in place",
   account_passport: "a person's passport id",
+  passport_launch:
+    "one row: the instant Stamps went live, the line every legacy grant is judged by",
   account_stamp_earned: "an earned Stamp, which never lapses",
   account_stamp_fact:
     "a ladder's lifetime evidence, capped at its top level (20/50/20 rows)",

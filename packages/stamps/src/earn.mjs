@@ -30,10 +30,10 @@ import { createHash } from "node:crypto";
 import { CLANMATE_TYPES, FRIENDLY_TYPES } from "@elixir-mcp/contracts";
 import { FACT_CAPS } from "./catalog.mjs";
 import { evaluatePassport } from "./eligibility.mjs";
+import { grantAcrossLaunch, readLaunch, settleLegacy } from "./legacy.mjs";
 import {
   accountZone,
   ensurePassport,
-  grantStamps,
   latchProfile,
   readSnapshot,
   recordFact,
@@ -65,10 +65,20 @@ const TEAM_TYPES = CLANMATE_TYPES.filter((t) => /2v2/i.test(t));
 
 /**
  * After a successful setup write: latch `latch` (latchProfile's patch)
- * when given, then settle. Returns { granted: [...] } with only the
- * levels this call inserted, or { refused: 'not_person' }.
+ * when given, then settle. Returns { granted: [...], legacy: [...] }:
+ * granted holds only the ordinary levels this call inserted (each a bell
+ * line), legacy the levels it filed as earned before launch (never a
+ * line; legacy.mjs), or { refused: 'not_person' }.
+ *
+ * For an account made before launch, the first settle files what stood
+ * at launch as legacy before anything else (settleLegacy), so the write
+ * that called it, made after launch, is still an ordinary grant.
  */
 export async function settlePassport(db, accountId, { now, latch = null }) {
+  const line = await readLaunch(db, accountId);
+  const baseline = line?.pre
+    ? await settleLegacy(db, accountId, { now, launch: line })
+    : { legacy: [] };
   if (latch) {
     const stored = await latchProfile(db, accountId, latch, { now });
     if (stored === null) return { refused: "not_person" };
@@ -88,27 +98,43 @@ export async function settlePassport(db, accountId, { now, latch = null }) {
       { steps: done, complete: completing },
       { now },
     );
-  if (!evaluation.grants.length) return { granted: [] };
-  const out = await grantStamps(db, accountId, evaluation.grants, { now });
-  return out.refused ? out : { granted: out.granted };
+  if (!evaluation.grants.length)
+    return { granted: [], legacy: baseline.legacy };
+  const out = await grantAcrossLaunch(db, accountId, evaluation.grants, {
+    now,
+    line,
+  });
+  return out.refused
+    ? { refused: out.refused }
+    : { granted: out.granted, legacy: [...baseline.legacy, ...out.legacy] };
 }
 
 /**
  * A ladder fact with its accepted action, then its level. Returns
- * { accepted, reason?, count, level, granted }.
+ * { accepted, reason?, count, level, granted, legacy }: a level the
+ * facts dated before launch already reach is filed as legacy, never a
+ * bell line (legacy.mjs). `onlyLegacy` (the operator's backfill) grants
+ * only those.
  */
-export async function earnFact(db, accountId, fact, { now }) {
+export async function earnFact(
+  db,
+  accountId,
+  fact,
+  { now, onlyLegacy = false },
+) {
   const r = await recordFact(db, accountId, fact, { now });
-  if (r.refused) return { ...r, granted: [] };
-  if (r.level < 1) return { ...r, granted: [] };
+  if (r.refused) return { ...r, granted: [], legacy: [] };
+  if (r.level < 1) return { ...r, granted: [], legacy: [] };
   // A retry or a racing call already granted it: nothing is new.
-  const g = await grantStamps(
-    db,
-    accountId,
-    [{ stamp_id: fact.stamp_id, level: r.level }],
-    { now },
-  );
-  return { ...r, granted: g.granted ?? [] };
+  const levels = Array.from({ length: r.level }, (_, i) => ({
+    stamp_id: fact.stamp_id,
+    level: i + 1,
+  }));
+  const g = await grantAcrossLaunch(db, accountId, levels, {
+    now,
+    onlyLegacy,
+  });
+  return { ...r, granted: g.granted ?? [], legacy: g.legacy ?? [] };
 }
 
 /** The account's stored facts for one ladder: their count, source and
@@ -199,9 +225,13 @@ async function storytellerFromHighlights(db, accountId, { now, budget }) {
  * other count) is left out, never guessed. Each own player is read as
  * its own range of its player/time cover, never `player_tag = any(...)`.
  */
-async function friendlyBattles(db, accountId, { now, after }) {
+export async function friendlyBattles(
+  db,
+  accountId,
+  { now, after = "0", from = null, before = false, limit = RECONCILE.BATTLES },
+) {
   const at = new Date(now).toISOString();
-  const from = new Date(
+  from ??= new Date(
     Date.parse(at) - RECONCILE.LOOKBACK_DAYS * 86_400_000,
   ).toISOString();
   const { rows } = await db.query(
@@ -223,7 +253,8 @@ async function friendlyBattles(db, accountId, { now, after }) {
            from battle_participant bp
           where bp.player_tag = own.player_tag
             and bp.battle_time >= $2::timestamptz
-            and bp.battle_time <= $3::timestamptz
+            and (bp.battle_time < $3::timestamptz
+                 or (not $9::boolean and bp.battle_time = $3::timestamptz))
             and bp.type = any($4::text[])) m
        join battle b on b.battle_id = m.battle_id
        cross join lateral (
@@ -249,8 +280,9 @@ async function friendlyBattles(db, accountId, { now, after }) {
       [...FRIENDLY_TYPES, ...CLANMATE_TYPES],
       after,
       TEAM_TYPES,
-      RECONCILE.BATTLES,
+      limit,
       Math.round(RECONCILE.SETTLED_MS / 1000),
+      before,
     ],
   );
   return rows;
