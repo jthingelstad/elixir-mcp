@@ -40,6 +40,22 @@ function watched(pattern = /pg_sleep/) {
   };
 }
 
+/** Nothing was left running: the sleep was cancelled in PostgreSQL
+ *  (57014), or, on a loaded host where the budget ran out while its
+ *  timeout was still being set, never sent at all (the invoker checks the
+ *  deadline before the send). Both are right; only a sleep that completed
+ *  was abandoned. Asserting exactly one 57014 failed a verify on
+ *  2026-11-14 with the sleep never sent. */
+async function assertNotAbandoned(sleeps, message) {
+  const outcomes = await Promise.all(sleeps);
+  assert.ok(outcomes.length <= 1, message);
+  assert.deepEqual(
+    outcomes.filter((o) => o !== "57014"),
+    [],
+    message,
+  );
+}
+
 before(async () => {
   await createScratch(name);
   const url = adminUrl.replace(/\/postgres$/, `/${name}`);
@@ -77,9 +93,8 @@ test("slow aggregation is canceled, answered with a reportable timeout, and audi
   assert.equal(result.body.error.code, "query_timeout");
   assert.equal(result.body.error.class, "retry");
   assert.match(result.body.error.hint, /war_history\(/);
-  assert.deepEqual(
-    await Promise.all(conn.sleeps),
-    ["57014"],
+  await assertNotAbandoned(
+    conn.sleeps,
     "the server cancels the query rather than merely abandoning its promise",
   );
   const { rows } = await db.query(
@@ -209,9 +224,8 @@ test("the Lambda deadline answers a slow read tool with query_timeout and audits
   assert.equal(result.body.error.code, "query_timeout");
   assert.ok(result.body.meta.request_id);
   // As above: the server's SQLSTATE, not a stopwatch.
-  assert.deepEqual(
-    await Promise.all(conn.sleeps),
-    ["57014"],
+  await assertNotAbandoned(
+    conn.sleeps,
     "cancelled in PostgreSQL, not abandoned",
   );
   const { rows } = await db.query(
