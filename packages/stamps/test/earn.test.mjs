@@ -544,3 +544,80 @@ test("wins, trophies and rank are read nowhere in earning", async () => {
   );
   assert.ok(RECONCILE.BATTLES > 0 && RECONCILE.FACTS > 0);
 });
+
+/** A client whose checkpoint write first lets `meanwhile` run on another
+ *  connection: the interleaving where the account's players change after
+ *  a pass read its battles and before it moved the checkpoint. */
+function rewoundMidPass(meanwhile) {
+  return {
+    async query(text, params) {
+      if (/set played_cursor = greatest/.test(text)) await meanwhile();
+      return db.query(text, params);
+    },
+  };
+}
+
+const checkpoint = async (id) =>
+  (
+    await db.query(
+      `select played_cursor::text as cursor, played_epoch
+         from account_passport where account_id = $1`,
+      [id],
+    )
+  ).rows[0];
+
+test("a rewind between a pass's read and its checkpoint write wins", async () => {
+  await settleRecord();
+  const me = await person();
+  await claim(me, ME, "primary", true);
+  await claim(me, RIVAL, "friend");
+  await ensurePassport(db, me);
+  const other = new pg.Client({ connectionString: URL });
+  await other.connect();
+  try {
+    await reconcilePassport(
+      rewoundMidPass(() => rewindPlayed(other, me)),
+      me,
+      { now: AUG30 },
+    );
+  } finally {
+    await other.end();
+  }
+  // The stale pass's facts stay (they were true); its checkpoint did not
+  // land, so the next pass reads the window again.
+  assert.equal(await facts(me, "played_together"), 3);
+  assert.deepEqual(await checkpoint(me), { cursor: null, played_epoch: 1 });
+  await claim(me, MATE, "friend");
+  await reconcilePassport(db, me, { now: AUG30 });
+  // MATE's 08-16 and 08-28 two-against-twos, behind the stale pass's
+  // would-be checkpoint, are read: two more days.
+  assert.equal(await facts(me, "played_together"), 5);
+  const after = await checkpoint(me);
+  assert.notEqual(after.cursor, null);
+  assert.equal(after.played_epoch, 1);
+});
+
+test("a rewind of a null checkpoint still counts the epoch up", async () => {
+  await settleRecord();
+  const me = await person();
+  await claim(me, ME, "primary", true);
+  await claim(me, RIVAL, "friend");
+  await ensurePassport(db, me);
+  assert.deepEqual(await checkpoint(me), { cursor: null, played_epoch: 0 });
+  await rewindPlayed(db, me);
+  assert.deepEqual(await checkpoint(me), { cursor: null, played_epoch: 1 });
+  // A pass that read epoch 1, with another rewind before its checkpoint
+  // write, cannot land its checkpoint either.
+  const other = new pg.Client({ connectionString: URL });
+  await other.connect();
+  try {
+    await reconcilePassport(
+      rewoundMidPass(() => rewindPlayed(other, me)),
+      me,
+      { now: AUG30 },
+    );
+  } finally {
+    await other.end();
+  }
+  assert.deepEqual(await checkpoint(me), { cursor: null, played_epoch: 2 });
+});
