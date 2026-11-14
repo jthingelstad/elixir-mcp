@@ -38,6 +38,10 @@ earned.
 Tap a Stamp to see its rule and its levels. On your own passport it also
 shows how far along you are and a button to the place where you earn it.
 
+When you earn a Stamp, the bell gets a line for it. Tap the line to open
+that Stamp on your passport. Opening your passport also checks for Stamps
+you have earned since, so a new one can show up while you look.
+
 ## Other members' passports
 
 When a verified player has a passport, their player page shows a row with

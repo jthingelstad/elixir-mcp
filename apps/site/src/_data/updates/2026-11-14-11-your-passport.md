@@ -2,7 +2,8 @@
 
 You have a passport now. Tap your picture, then **Passport**, to see
 your Stamps: small marks for milestones in Elixir, each with the day you
-earned it. Tap a Stamp to see how to earn it.
+earned it. Tap a Stamp to see how to earn it. When you earn a new one,
+the bell tells you: tap the line to open it.
 
 A verified player's page shows their latest Stamps. Tap **Open passport**
 to see the rest. Other members see what you earned, never your progress
