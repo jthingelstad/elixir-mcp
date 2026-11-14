@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, mockApi, signedIn } from "./clan/fixtures.ts";
+import { asksForBattles } from "./fixtures.ts";
 import {
   ACTIVITY_CHANNEL,
   EMAILS,
@@ -86,7 +87,8 @@ for (const width of [390, 820, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     const writes: string[] = [];
     page.on("request", (r) => {
-      if (r.method() !== "GET") writes.push(r.url());
+      if (r.method() !== "GET" && !asksForBattles(r.url()))
+        writes.push(r.url());
     });
     await mockApi(
       page,

@@ -77,8 +77,19 @@ ${onload ? `window[${JSON.stringify(onload)}]();` : ""}`,
   );
 }
 
+/** The app's own ask for the viewer's battles (POST and GET
+ *  /api/me/refresh, 2026-11-14): sent when a signed-in app with a verified
+ *  player opens, it reads the game and writes no data of the viewer's, so
+ *  a check that "nothing is written" leaves it out. */
+export const asksForBattles = (url: string) =>
+  new URL(url).pathname === "/api/me/refresh";
+
+/** What that ask answers unless a test says: nothing asked. */
+const QUIET_REFRESH = { queued: false, players: [] };
+
 /** Route every /api/* call to a fixture. An unlisted call answers 404
- *  JSON so a page can still say "could not load" rather than hang.
+ *  JSON so a page can still say "could not load" rather than hang, except
+ *  the app's own ask for your battles, which answers quietly.
  *  Turnstile's script is stubbed with it. */
 export async function mockApi(page: Page, routes: Record<string, Answer>) {
   await stubTurnstile(page);
@@ -99,7 +110,9 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
           // answers the bridge answers Stats too, unless it names Stats.
           key === "POST /api/me/stats"
           ? routes["POST /api/me/tool"]
-          : undefined);
+          : url.pathname === "/api/me/refresh"
+            ? ([200, QUIET_REFRESH] as const)
+            : undefined);
     const [status, body] =
       typeof answer === "function"
         ? answer(route)

@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { ME, SIGNED_OUT, mockApi, signedIn } from "./fixtures.ts";
+import {
+  ME,
+  SIGNED_OUT,
+  asksForBattles,
+  mockApi,
+  signedIn,
+} from "./fixtures.ts";
 
 const connection = {
   active_connections: 0,
@@ -264,7 +270,8 @@ for (const width of [390, 1280]) {
         if (
           p.startsWith("/api/") &&
           r.method() !== "GET" &&
-          p !== "/api/me/tool"
+          p !== "/api/me/tool" &&
+          !asksForBattles(r.url())
         )
           writes.push(`${r.method()} ${p}`);
       });

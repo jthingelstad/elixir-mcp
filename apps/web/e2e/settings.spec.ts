@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { BATTLE } from "./battle-fixture.ts";
-import { ME, mockApi, signedIn } from "./fixtures.ts";
+import { ME, asksForBattles, mockApi, signedIn } from "./fixtures.ts";
 
 /**
  * Settings and the bar's two sheets, redesign step 6, every page at phone
@@ -128,7 +128,8 @@ test.describe("@narrow Settings at phone width", () => {
       if (
         new URL(r.url()).pathname.startsWith("/api/") &&
         !["GET"].includes(r.method()) &&
-        !r.url().includes("/api/me/tool")
+        !r.url().includes("/api/me/tool") &&
+        !asksForBattles(r.url())
       )
         writes.push(r.url());
     });

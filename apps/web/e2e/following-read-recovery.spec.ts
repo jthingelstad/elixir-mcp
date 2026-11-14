@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { ME, mockApi, signedIn } from "./fixtures.ts";
+import { ME, asksForBattles, mockApi, signedIn } from "./fixtures.ts";
 
 const clan = {
   clan_tag: "#0QC8RCGY",
@@ -62,7 +62,8 @@ for (const width of [390, 1280]) {
       page.on("request", (request) => {
         if (
           new URL(request.url()).pathname.startsWith("/api/") &&
-          request.method() !== "GET"
+          request.method() !== "GET" &&
+          !asksForBattles(request.url())
         )
           writes.push(request.method() + " " + new URL(request.url()).pathname);
       });
@@ -139,7 +140,8 @@ for (const width of [390, 1280]) {
     page.on("request", (request) => {
       if (
         new URL(request.url()).pathname.startsWith("/api/") &&
-        request.method() !== "GET"
+        request.method() !== "GET" &&
+        !asksForBattles(request.url())
       )
         writes.push(request.method());
     });

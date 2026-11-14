@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, mockApi, signedIn } from "./clan/fixtures.ts";
+import { asksForBattles } from "./fixtures.ts";
 import { HOME_READS } from "./home-fixture.ts";
 
 // A configured UI is exercised entirely against the existing route fixtures.
@@ -14,7 +15,11 @@ for (const width of [390, 820, 1280]) {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("request", (req) => {
-      if (req.method() !== "GET" && !req.url().endsWith("/api/clan/select"))
+      if (
+        req.method() !== "GET" &&
+        !req.url().endsWith("/api/clan/select") &&
+        !asksForBattles(req.url())
+      )
         writes.push(req.url());
     });
     await mockApi(
@@ -67,7 +72,8 @@ for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     const writes: string[] = [];
     page.on("request", (req) => {
-      if (req.method() !== "GET") writes.push(req.url());
+      if (req.method() !== "GET" && !asksForBattles(req.url()))
+        writes.push(req.url());
     });
     await mockApi(
       page,
