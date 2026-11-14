@@ -84,6 +84,10 @@ const PINNED = {
     2,
     "today and the last hour; closed days read capture_efficiency_daily",
   ],
+  "services/web-api/src/own-refresh.mjs": [
+    1,
+    "the latest battle-log read, to say whether it is under two minutes old",
+  ],
   "services/web-api/src/routes/account.mjs": [
     1,
     "fetches in the last 24 hours",
