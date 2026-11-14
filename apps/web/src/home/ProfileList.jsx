@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Icon, Link, writeErrorText } from "@elixir-mcp/ui";
 import { api } from "../api.js";
-import { putPassport } from "../lib/passport-reconcile.js";
+import { passportHref, putPassport } from "../lib/passport.js";
 import { useMyPassport } from "../lib/queries.js";
 import { EXTRAS, profileView, stampName } from "./profile-list.js";
 
@@ -76,6 +76,9 @@ export function ProfileList({ first, player, clanTag = null }) {
             <StepRow key={s.id} step={s} onAnswer={put} />
           ))}
         </ol>
+        <p className="kit-profile__passport">
+          <Link to={passportHref()}>Your passport</Link>
+        </p>
         <p className="kit-profile__also">Also, any time:</p>
         <ul className="kit-profile__extras">
           {EXTRAS.map((x) => (

@@ -59,6 +59,28 @@ export async function reconcilePassport(
   return { read, granted };
 }
 
+/** A passport write's answer (Not now, Hide, a reconciliation pass) as
+ *  the passport read's envelope: the owner's passport without the
+ *  write's own `granted` and `more`. */
+export function asPassportRead(res) {
+  const out = { ...res.data };
+  delete out.granted;
+  delete out.more;
+  return { ...res, data: out };
+}
+
+/** Put a write's answer in the cached `["me", "passport"]` read. A read
+ *  already on its way is cancelled first: it left before the write, and
+ *  landing after it would paint the state from before (as
+ *  src/client/write.ts does for the reads a write invalidates). */
+export async function putPassport(queryClient, res) {
+  await queryClient.cancelQueries({
+    queryKey: ["me", "passport"],
+    exact: true,
+  });
+  queryClient.setQueryData(["me", "passport"], asPassportRead(res));
+}
+
 /** Whether a path is a passport page: yours, or one with a well-formed id. */
 export function isPassportPath(path) {
   const clean = String(path ?? "").replace(/(.)\/$/, "$1");

@@ -2,10 +2,9 @@ import { useState } from "react";
 import { Navigate, useLocation } from "@tanstack/react-router";
 import { PageHead } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
-import { useHome } from "../lib/queries.js";
+import { useHome, useReconcilePassport } from "../lib/queries.js";
 import { NewAccount } from "../home/NewAccount.jsx";
 import { useFirstRead } from "../home/first-read.js";
-import { useReconcileOnOpen } from "../lib/passport-reconcile.js";
 import { HomeFeed } from "../home/Feed.jsx";
 import { HomePanels, TodayError, TodayFresh } from "../home/Today.jsx";
 
@@ -34,7 +33,7 @@ export function HomePage() {
   // The passport's catch-up (#1015): once Home draws its feed (the profile
   // list's place), after first paint, never waited on. A new account's
   // first steps write nothing until the person acts.
-  useReconcileOnOpen(Boolean(me) && ready);
+  useReconcilePassport(Boolean(me) && ready);
   if (query.isError || data?.first?.ok === false)
     return (
       <>

@@ -125,11 +125,15 @@ test("the map's Not now finishes the step without the Stamp", async ({
 }) => {
   const done = ownerPassport(["done", "done", "done", "todo", "done", "done"]);
   let posted: unknown = null;
+  // Stateful, as the server is: a read after the write sees it.
+  let now = ownerPassport(["done", "done", "done", "todo", "done", "todo"]);
   await mockApi(
     page,
-    withList(ownerPassport(["done", "done", "done", "todo", "done", "todo"]), {
+    withList(now, {
+      "GET /api/me/passport": () => [200, now],
       "POST /api/me/passport/map": (route) => {
         posted = route.request().postDataJSON();
+        now = done;
         return [200, { ...done, granted: [], more: false }];
       },
     }),
@@ -157,18 +161,19 @@ test("after the older welcome: only what is left, and Hide puts it away", async 
   const left = ownerPassport(["done", "done", "todo", "done", "done", "todo"], {
     older_welcome_finished: true,
   });
+  // Stateful, as the server is: a read after the write sees it.
+  let now = left;
   await mockApi(
     page,
     withList(left, {
+      "GET /api/me/passport": () => [200, now],
       "POST /api/me/passport/dismiss": () => {
         hidden += 1;
-        return [
-          200,
-          ownerPassport(["done", "done", "todo", "done", "done", "todo"], {
-            older_welcome_finished: true,
-            dismissed_at: new Date().toISOString(),
-          }),
-        ];
+        now = ownerPassport(["done", "done", "todo", "done", "done", "todo"], {
+          older_welcome_finished: true,
+          dismissed_at: new Date().toISOString(),
+        });
+        return [200, now];
       },
     }),
   );

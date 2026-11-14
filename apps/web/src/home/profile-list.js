@@ -1,6 +1,6 @@
 import { PROFILE_STEPS, stampById } from "@elixir-mcp/stamps/catalog";
+import { destinationHref } from "../lib/passport.js";
 import { SETTINGS } from "../lib/settings.js";
-import { tagPath } from "../lib/tag-url.js";
 import { digestLine } from "./logic.js";
 
 /**
@@ -51,10 +51,6 @@ export function followLine(state, follows) {
     : "The players you follow haven’t played in the last 7 days. Follow someone who has.";
 }
 
-/** Where the map step's "Set a place" goes: your clan's map, else Clan. */
-export const mapHref = (clanTag) =>
-  clanTag ? `/clan/${tagPath(clanTag)}/members/map` : "/clan";
-
 /**
  * One step's words: { id, n, title, state, stamp, line, go } where `go`
  * is { to, label, name } for its way in (null once done). `context`
@@ -98,7 +94,7 @@ export function stepView(step, n, profile, context = {}) {
         go: done
           ? null
           : {
-              to: `${SETTINGS}/players/verify`,
+              to: destinationHref("verification"),
               label: "Verify",
               name: playerName ? `Verify ${playerName}` : "Verify your player",
             },
@@ -110,7 +106,7 @@ export function stepView(step, n, profile, context = {}) {
         go: done
           ? null
           : {
-              to: `${SETTINGS}/profile`,
+              to: destinationHref("picture"),
               label: "Choose",
               name: "Choose your picture",
             },
@@ -121,7 +117,11 @@ export function stepView(step, n, profile, context = {}) {
         line: followLine(step.state, profile?.follows ?? null),
         go: done
           ? null
-          : { to: "/home/find", label: "Find", name: "Find people to follow" },
+          : {
+              to: destinationHref("friends"),
+              label: "Find",
+              name: "Find people to follow",
+            },
       };
     case "digest":
       return {
@@ -145,7 +145,11 @@ export function stepView(step, n, profile, context = {}) {
           : "Set your country, region or city, or choose Not now. Both finish this step. Only a place earns On the Map.",
         go: done
           ? null
-          : { to: mapHref(clanTag), label: "Set a place", name: "Set a place" },
+          : {
+              to: destinationHref("map-view", { clanTag }),
+              label: "Set a place",
+              name: "Set a place",
+            },
         notNow: !done,
       };
     default:
@@ -197,11 +201,11 @@ export const EXTRAS = Object.freeze([
   {
     id: "full_roster",
     title: "Add another of your players",
-    to: `${SETTINGS}/players#add-player-tag`,
+    to: destinationHref("alts"),
   },
   {
     id: "linked",
     title: "Connect Discord",
-    to: `${SETTINGS}/connections/discord`,
+    to: destinationHref("discord"),
   },
 ]);

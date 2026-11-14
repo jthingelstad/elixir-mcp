@@ -219,7 +219,7 @@ Built in the profile list slice (#1015,
 [note](../notes/2026-11-14-passport-profile-list.md)):
 
 - Home's profile list: the six steps of `owner.profile`, each naming its
-  Stamp and linking to where it is done. It calls the reconciliation
-  after first paint, while `more`, at most five times and once a minute;
-  `POST /api/me/passport/dismiss` puts the list away for an account that
+  Stamp and linking to where it is done, with a link to your passport.
+  Opening Home runs the same reconciliation as the passport page, after
+  first paint; `POST /api/me/passport/dismiss` puts the list away for an account that
   finished the older welcome.

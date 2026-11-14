@@ -17,10 +17,12 @@ Home's six-step profile list, from the owner's passport read
   is still catching up".
 - **Map's Not now** is `POST /api/me/passport/map`; the answer replaces
   the cached read in place.
-- **Reconcile on open** (`apps/web/src/lib/passport-reconcile.js`): after
-  first paint, repeats while `more`, at most five calls, at most once a
-  minute per tab, quiet on any failure; a pass that granted refreshes
-  the bell.
+- **Reconcile on open**: Home calls the passport page's
+  `useReconcilePassport` (#1019, `apps/web/src/lib/passport.js`) once it
+  has drawn: repeats while `more`, at most three passes, quiet on any
+  failure; an answered pass reads the passport again and one that
+  granted refreshes the bell. Not now and Hide put their answer in the
+  cached read (`putPassport`), cancelling a read already on its way.
 - **Dismissal**: migration 0274 adds `account_profile_list.dismissed_at`;
   `POST /api/me/passport/dismiss` (20/h) sets it once, only for an
   account that finished the older welcome (`welcome_finished_at`), and
