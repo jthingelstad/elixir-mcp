@@ -413,8 +413,12 @@ test.describe("signed in", () => {
     await expect(page.getByText("Co-leader").first()).toBeVisible();
     // The clan's own figures, its comings and goings in the account's zone,
     // and a roster that finds a member.
+    // The head's line is one whole part per fact (2026-11-13), so it can
+    // wrap only between them.
+    const line = page.locator(".clan-head__line");
+    await expect(line.getByText("invite only", { exact: true })).toBeVisible();
     await expect(
-      page.getByText(/invite only · 5,000 trophies to join$/),
+      line.getByText("5,000 trophies to join", { exact: true }),
     ).toBeVisible();
     const tiles = page.getByRole("group", { name: "The clan in numbers" });
     await expect(tiles).toContainText("1,220");
