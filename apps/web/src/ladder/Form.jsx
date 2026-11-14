@@ -256,7 +256,7 @@ export function SeasonForm({ player, mode, season, seasons, body, summary }) {
   if (last.isError)
     return (
       <FormPanel {...panel}>
-        <ReadError error={last.error} what={prev.name} />
+        <ReadError query={last} what={prev.name} />
       </FormPanel>
     );
   if (!(Number(last.data.window?.battles ?? 0) > 0))

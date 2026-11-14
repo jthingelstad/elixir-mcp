@@ -1,5 +1,13 @@
 import { CATEGORY_LABELS } from "@elixir-mcp/clan-engine";
-import { Panel, Table, Tag, TagText, useClock, Link } from "@elixir-mcp/ui";
+import {
+  Panel,
+  Table,
+  Tag,
+  TagText,
+  useClock,
+  Link,
+  ErrorState,
+} from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { MemberLink } from "../components/MemberLink.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
@@ -735,7 +743,20 @@ export function Season({ clan, period, navigate }) {
       </div>
     </>
   );
-  const denied = (state) =>
+  const failedRead = (state, retry) => (
+    <>
+      <h2 className="sr-only">Season</h2>
+      {picker}
+      <ErrorState
+        title="The war could not be read just now"
+        onRetry={() => retry()}
+        busy={state.loading}
+      >
+        Try again in a moment.
+      </ErrorState>
+    </>
+  );
+  const denied = (state, retry) =>
     state.forbidden
       ? say("Not open to you", "Your current clan access does not allow this.")
       : state.error === "clan_not_recorded"
@@ -744,10 +765,10 @@ export function Season({ clan, period, navigate }) {
             "The week starts with the first read.",
           )
         : state.error && state.error !== "no_week"
-          ? say("Elixir did not answer", "Try again in a minute.")
+          ? failedRead(state, retry)
           : null;
   if (seasonId) {
-    const blocked = denied(season.state);
+    const blocked = denied(season.state, season.load);
     if (blocked) return blocked;
     if (!seasonData) return <p className="page__lede">Reading the season…</p>;
     const s = seasonData.seasons.find((r) => String(r.season_id) === seasonId);
@@ -772,7 +793,7 @@ export function Season({ clan, period, navigate }) {
       base,
       "Current season",
     );
-  const blocked = denied(read);
+  const blocked = denied(read, iso && !viewsRunning ? asked.load : latest.load);
   if (blocked) return blocked;
   if (!d) return <p className="page__lede">Reading the week…</p>;
   if (viewsRunning && running)

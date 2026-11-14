@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Empty, Link, TagText, useClock } from "@elixir-mcp/ui";
+import { Empty, Link, TagText, useClock, ErrorState } from "@elixir-mcp/ui";
 import { CLAN, clanPath } from "../lib/base.js";
 import { useFeed, useRace } from "../lib/queries.js";
 import { n, ordinal } from "../lib/words.js";
@@ -34,7 +34,7 @@ function byDay(items, dayHeading) {
  *  at a time. */
 function ClanTimeline({ clan }) {
   const { dayHeading, clock } = useClock();
-  const { state } = useFeed(clan.clan_tag);
+  const { state, load } = useFeed(clan.clan_tag);
   const [shown, setShown] = useState(FEED_PAGE);
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -49,10 +49,13 @@ function ClanTimeline({ clan }) {
     return (
       <section aria-labelledby="feed-timeline" className="grid gap-3">
         {head}
-        <p className="m-0 text-ink-dim" role="alert">
-          The clan&rsquo;s timeline could not be read just now. Try again in a
-          minute.
-        </p>
+        <ErrorState
+          title="The clan’s timeline could not be read just now"
+          onRetry={() => load()}
+          busy={state.loading}
+        >
+          Try again in a moment.
+        </ErrorState>
       </section>
     );
   const d = state.data;

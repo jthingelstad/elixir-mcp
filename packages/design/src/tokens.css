@@ -219,7 +219,11 @@
   --mark-current: inset 3px 0 0 var(--accent-bright); /* current rail item */
   --mark-tab: inset 0 -2px 0 var(--gold); /* current header tab */
   --edge-clan: inset 3px 0 0 var(--gold); /* the clan's gold edge, never a gold outline */
-  --edge-mine: inset 0 3px 0 var(--gold); /* your own clan's tile or panel: a gold top */
+  /* Your own clan's tile or panel: a flat gold top (round three,
+     2026-11-13). A background band, not an inset shadow: the shadow
+     followed the rounded corners down the sides and read as a card border. */
+  --edge-mine: linear-gradient(var(--gold), var(--gold)) top / 100% 3px
+    no-repeat;
 
   /* An avatar's initials sit on one of seven fills, chosen from the tag:
      presentational only, never a meaning (canvas .av .h1 to .h7). */

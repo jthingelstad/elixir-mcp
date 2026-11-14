@@ -68,18 +68,29 @@ function YouThisWeek({ d }) {
 
 /** "You in <clan>": your own group, numbers and clock, and the way to them. */
 function YouCard({ clan, base, navigate }) {
-  const { state } = useMemberView(clan.clan_tag);
+  const { state, load } = useMemberView(clan.clan_tag);
   const d = state.data;
   const title = `You in ${clan.name ?? clan.clan_tag}`;
   if (state.error || state.forbidden)
     return (
       <Panel aria-labelledby="today-you">
         <CardHead id="today-you" title={title} />
-        <p className="panel__body m-0 text-ink-dim">
-          {state.error === "not_on_roster"
-            ? "Elixir's record does not show you on this clan's roster yet."
-            : "Your activity could not be read just now."}
-        </p>
+        {state.error === "not_on_roster" ? (
+          <p className="panel__body m-0 text-ink-dim">
+            Elixir&rsquo;s record does not show you on this clan&rsquo;s roster
+            yet.
+          </p>
+        ) : (
+          <ErrorState
+            title="Your activity could not be read just now"
+            onRetry={state.forbidden ? undefined : () => load()}
+            busy={state.loading}
+          >
+            {state.forbidden
+              ? "Your current clan access does not allow this."
+              : "Try again in a moment."}
+          </ErrorState>
+        )}
       </Panel>
     );
   if (!d)
@@ -125,7 +136,7 @@ function YouCard({ clan, base, navigate }) {
 /** "This week": what the clan did together, the week still running or, once
  *  the race has closed the week, the one that closed. */
 function WeekCard({ clan, base, navigate }) {
-  const { state } = useWeek(clan.clan_tag, null);
+  const { state, load } = useWeek(clan.clan_tag, null);
   const d = state.data;
   const season = `${base}/war`;
   const open = (
@@ -137,11 +148,21 @@ function WeekCard({ clan, base, navigate }) {
     return (
       <Panel aria-labelledby="today-week">
         <CardHead id="today-week" title="This week" />
-        <p className="panel__body m-0 text-ink-dim">
-          {state.error === "clan_not_recorded"
-            ? "Elixir is not recording this clan yet."
-            : "Elixir did not answer. Try again in a minute."}
-        </p>
+        {state.error === "clan_not_recorded" ? (
+          <p className="panel__body m-0 text-ink-dim">
+            Elixir is not recording this clan yet.
+          </p>
+        ) : (
+          <ErrorState
+            title="This week could not be read just now"
+            onRetry={state.forbidden ? undefined : () => load()}
+            busy={state.loading}
+          >
+            {state.forbidden
+              ? "Your current clan access does not allow this."
+              : "Try again in a moment."}
+          </ErrorState>
+        )}
       </Panel>
     );
   if (!d)
@@ -255,12 +276,16 @@ const OUTCOME = {
 /** Decided: the leaders' record, every decision and who came and went. */
 function Decided({ clan, navigate }) {
   const { whenDay, calendar } = useClock();
-  const { data, isError } = useHistory(clan.clan_tag);
+  const { data, isError, refetch, isFetching } = useHistory(clan.clan_tag);
   const [now] = useState(() => Date.now());
   if (isError)
     return (
-      <ErrorState title="This page did not load">
-        Check your clan access or try again.
+      <ErrorState
+        title="The decisions could not be read just now"
+        onRetry={() => refetch()}
+        busy={isFetching}
+      >
+        Check your clan access, or try again in a moment.
       </ErrorState>
     );
   if (!data) return <p className="page__lede">Reading the decisions…</p>;
@@ -542,13 +567,17 @@ export function ActionsNow({ clan, who, navigate }) {
     );
   if (state.error)
     return (
-      <div className="callout callout--warn" role="alert">
-        <span>
-          {state.error === "clan_not_recorded"
-            ? "Elixir is not recording this clan yet."
-            : "Elixir did not answer. Try again in a minute."}
-        </span>
-      </div>
+      <ErrorState
+        title={
+          state.error === "clan_not_recorded"
+            ? "Elixir is not recording this clan yet"
+            : "Actions could not be read just now"
+        }
+        onRetry={state.error === "clan_not_recorded" ? undefined : () => load()}
+        busy={state.loading}
+      >
+        {state.error === "clan_not_recorded" ? null : "Try again in a moment."}
+      </ErrorState>
     );
   if (!d) return <p className="page__lede">Reading the record…</p>;
   return (

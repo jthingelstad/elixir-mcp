@@ -35,9 +35,13 @@ export function Empty({
 /**
  * The same shape when a read failed: says so, and offers Try again when
  * `onRetry` is given. Never a guess at what the page would have shown.
+ * The app's one error form (2026-11-13): the title names what could not be
+ * read ("<What> could not be read just now"), the body says what is safe
+ * and ends "Try again in a moment.", and Try again refetches that read.
  */
 export function ErrorState({
   title = "This could not be read just now",
+  titleAs,
   onRetry,
   busy = false,
   retryLabel = "Try again",
@@ -46,6 +50,7 @@ export function ErrorState({
   ...rest
 }: {
   title?: ReactNode;
+  titleAs?: ElementType;
   onRetry?: () => void;
   busy?: boolean;
   retryLabel?: string;
@@ -56,6 +61,7 @@ export function ErrorState({
       role="alert"
       {...rest}
       title={title}
+      {...(titleAs ? { titleAs } : {})}
       className={className ? `kit-error ${className}` : "kit-error"}
       action={
         onRetry ? (

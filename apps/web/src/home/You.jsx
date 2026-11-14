@@ -88,7 +88,7 @@ function YouPlayer({ tag, tab }) {
         onRetry={() => query.refetch()}
         busy={query.isFetching}
       >
-        {env?.data?.message ?? "Try again shortly."}
+        {env?.data?.message ?? "Try again in a moment."}
       </ErrorState>
     );
   if (env.status !== 200)

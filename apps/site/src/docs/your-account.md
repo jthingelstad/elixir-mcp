@@ -140,7 +140,8 @@ On Home, setup you have not finished opens the page as
 Recording problems are under the bell, **Needs you**.
 
 Signed out, the top bar is the logo, **Docs**, **Sign in** and **Create
-account**, and the front page is the way in: sign in, or create an account.
+account** (on a phone, **Docs** is in the footer instead), and the front page
+is the way in: sign in, or create an account.
 **Cards**, **Updates** and **Status and data** are in the footer, as public
 as they were, and **Play Drop** is in the footer too (and, signed in, in the
 account menu).

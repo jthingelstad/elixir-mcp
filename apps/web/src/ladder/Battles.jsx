@@ -85,9 +85,7 @@ function ModeBattles({ player, group, titled, modeReady, season, startsAt }) {
   if (!modeReady || sweep.isPending)
     return <Loading what={`the season's ${words} battles`} />;
   if (sweep.isError)
-    return (
-      <ReadError error={sweep.error} what={`${whose.your} ${words} battles`} />
-    );
+    return <ReadError query={sweep} what={`${whose.your} ${words} battles`} />;
   if (!days.length)
     return (
       <Empty

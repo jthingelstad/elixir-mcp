@@ -18,7 +18,7 @@ import { HouseRules } from "../components/HouseRules.jsx";
  */
 export function ClanPolicy({ clan, navigate }) {
   const { whenDay } = useClock();
-  const { data, isError } = usePolicy(clan.clan_tag);
+  const { data, isError, refetch, isFetching } = usePolicy(clan.clan_tag);
   const name = clan.name ?? clan.clan_tag;
   const edit = `${clanPath(clan.clan_tag)}/run/about`;
   const lead = leads(clan);
@@ -43,8 +43,12 @@ export function ClanPolicy({ clan, navigate }) {
     return (
       <>
         <PageHead title={`How ${name} works`} />
-        <ErrorState title="The policy did not load">
-          Try again in a minute.
+        <ErrorState
+          title="The policy could not be read just now"
+          onRetry={() => refetch()}
+          busy={isFetching}
+        >
+          Try again in a moment.
         </ErrorState>
       </>
     );

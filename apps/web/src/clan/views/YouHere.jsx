@@ -1,4 +1,13 @@
-import { Fresh, Icon, noun, Tag, Link, Panel, Table } from "@elixir-mcp/ui";
+import {
+  Fresh,
+  Icon,
+  noun,
+  Tag,
+  Link,
+  Panel,
+  Table,
+  ErrorState,
+} from "@elixir-mcp/ui";
 import { useMemberView } from "../lib/queries.js";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
 import { HowYouAreDoing, statusChip } from "../components/YouHereCard.jsx";
@@ -95,7 +104,7 @@ function Races({ races }) {
  * policy is active. Only you.
  */
 export function YouHere({ clan, navigate }) {
-  const { state } = useMemberView(clan.clan_tag);
+  const { state, load } = useMemberView(clan.clan_tag);
   const d = state.data;
   const base = clanPath(clan.clan_tag);
   const y = d?.you;
@@ -154,15 +163,28 @@ export function YouHere({ clan, navigate }) {
     return (
       <>
         {head}
-        <div className="callout callout--warn" role="alert">
-          <span>
-            {state.error === "clan_not_recorded"
-              ? "Elixir is not recording this clan yet."
+        <ErrorState
+          title={
+            state.error === "clan_not_recorded"
+              ? "Elixir is not recording this clan yet"
               : state.error === "not_on_roster"
-                ? "Elixir's record does not show you on this clan's roster yet."
-                : "Elixir did not answer. Try again in a minute."}
-          </span>
-        </div>
+                ? "You are not on this clan’s roster yet"
+                : "Your record could not be read just now"
+          }
+          onRetry={
+            state.error === "clan_not_recorded" ||
+            state.error === "not_on_roster"
+              ? undefined
+              : () => load()
+          }
+          busy={state.loading}
+        >
+          {state.error === "not_on_roster"
+            ? "Elixir's record does not show you on this clan's roster yet."
+            : state.error === "clan_not_recorded"
+              ? null
+              : "Try again in a moment."}
+        </ErrorState>
       </>
     );
   if (!d)

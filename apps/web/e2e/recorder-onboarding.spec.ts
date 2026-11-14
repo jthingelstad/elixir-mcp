@@ -538,7 +538,7 @@ for (const width of [390, 1280]) {
     failRead = true;
     await recording.getByRole("button", { name: "Check again" }).click();
     await expect(recording.getByRole("alert")).toContainText(
-      "Could not check your recorded data",
+      "Your recorded data could not be read just now",
     );
     await expect(
       recording.getByRole("link", { name: "View recorded profile ›" }),

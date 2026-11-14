@@ -7,6 +7,7 @@ import {
   Empty,
   Table,
   Link,
+  ErrorState,
 } from "@elixir-mcp/ui";
 import { useStanding } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
@@ -381,9 +382,13 @@ export function Standing({ clan, who, navigate, fromRun = false }) {
     return (
       <>
         {head}
-        <div className="callout callout--warn" role="alert">
-          <span>Elixir did not answer. Try again in a minute.</span>
-        </div>
+        <ErrorState
+          title="Standing could not be read just now"
+          onRetry={() => standing.refetch()}
+          busy={standing.isFetching}
+        >
+          Try again in a moment.
+        </ErrorState>
       </>
     );
   const d = state.data;

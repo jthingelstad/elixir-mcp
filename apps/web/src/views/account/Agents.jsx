@@ -47,7 +47,9 @@ export function NoAgent() {
           Connections &amp; agents
         </Link>
       }
-    />
+    >
+      Your agents are listed under Connections &amp; agents.
+    </Empty>
   );
 }
 

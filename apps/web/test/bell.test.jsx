@@ -62,7 +62,7 @@ test("the rest-of-the-list link closes the sheet, as each Action's does", async 
     <BellSheet me={{}} onClose={onClose} navigate={navigate} />,
   );
   const more = await screen.findByRole("link", {
-    name: /more waiting in Clan/,
+    name: /See \d+ more in Clan/,
     hidden: true,
   });
   fireEvent.click(more);

@@ -6,6 +6,7 @@ import {
   useClock,
   Panel,
   Link,
+  ErrorState,
 } from "@elixir-mcp/ui";
 import { PageHead } from "../components/PageHead.jsx";
 import { useEffect, useState } from "react";
@@ -52,9 +53,13 @@ export function Recruit({ clan, navigate }) {
   }
   if (state.error)
     return (
-      <div className="callout callout--warn" role="alert">
-        <span>Elixir did not answer. Try again in a minute.</span>
-      </div>
+      <ErrorState
+        title="Recruiting could not be read just now"
+        onRetry={() => load()}
+        busy={state.loading}
+      >
+        Try again in a moment.
+      </ErrorState>
     );
   if (!state.data) return <p className="page__lede">Reading the clan…</p>;
   const d = state.data;

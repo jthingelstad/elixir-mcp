@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Avatar,
@@ -12,6 +12,7 @@ import {
   TagText,
   useClock,
   useFlash,
+  useScrollHint,
 } from "@elixir-mcp/ui";
 import { SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
@@ -91,12 +92,11 @@ export function HomeFeed({ chipsAt = null } = {}) {
   )
     return (
       <ErrorState
-        title="Your feed didn’t load"
+        title="Your feed could not be read just now"
         onRetry={() => query.refetch()}
         busy={query.isFetching}
-        retryLabel="Try again"
       >
-        It took too long or the connection dropped. Nothing was lost.
+        Nothing was lost. Try again in a moment.
       </ErrorState>
     );
   if (items.length === 0)
@@ -132,7 +132,7 @@ export function HomeFeed({ chipsAt = null } = {}) {
       : items.filter(isNew).length;
   const total = timeline.total ?? items.length;
   const chips = (
-    <div className="kit-home__filters">
+    <FeedFilters>
       <Chips
         label="Show"
         options={FEED_CHIPS.map((c) => ({ ...c, count: counts[c.key] }))}
@@ -150,7 +150,7 @@ export function HomeFeed({ chipsAt = null } = {}) {
           New
         </Chip>
       ) : null}
-    </div>
+    </FeedFilters>
   );
   return (
     <div className="kit-feed">
@@ -385,6 +385,21 @@ function When({ it }) {
     >
       {range ? feedWhen(f.started_at, f.ended_at) : feedWhen(at)}
     </time>
+  );
+}
+
+/**
+ * The feed's chips, Who then New, in one row. On a phone the row scrolls as
+ * one, New after the Who chips rather than pinned over them, and fades the
+ * edge with more behind it (round three, 2026-11-13).
+ */
+function FeedFilters({ children }) {
+  const row = useRef(null);
+  useScrollHint(row);
+  return (
+    <div ref={row} className="kit-home__filters">
+      {children}
+    </div>
   );
 }
 

@@ -7,6 +7,7 @@ import {
   Panel,
   Table,
   noun,
+  ErrorState,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import {
@@ -177,19 +178,13 @@ export function MemberActivity({
             </span>
           </div>
         ) : state.forbidden || state.signedOut || state.error ? (
-          <div className="callout callout--warn" role="alert">
-            <span>
-              <b>This page did not load.</b> Check your clan access or try
-              again.{" "}
-              <button
-                type="button"
-                className="btn--text"
-                onClick={() => load()}
-              >
-                Try again
-              </button>
-            </span>
-          </div>
+          <ErrorState
+            title="This member’s numbers could not be read just now"
+            onRetry={() => load()}
+            busy={state.loading}
+          >
+            Check your clan access, or try again in a moment.
+          </ErrorState>
         ) : (
           <p className="page__lede">Reading this member&rsquo;s numbers…</p>
         )}

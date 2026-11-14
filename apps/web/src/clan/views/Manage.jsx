@@ -7,6 +7,7 @@ import {
   noun,
   useClock,
   Link,
+  ErrorState,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useManage } from "../lib/queries.js";
@@ -186,13 +187,21 @@ export function Review({ clan, navigate, who }) {
     return (
       <>
         {head}
-        <div className="callout callout--warn" role="alert">
-          <span>
-            {state.error === "clan_not_recorded"
-              ? "Elixir is not recording this clan yet, so there is nothing to read."
-              : "Elixir did not answer. Try again in a minute."}
-          </span>
-        </div>
+        <ErrorState
+          title={
+            state.error === "clan_not_recorded"
+              ? "Elixir is not recording this clan yet"
+              : "Review could not be read just now"
+          }
+          onRetry={
+            state.error === "clan_not_recorded" ? undefined : () => load()
+          }
+          busy={state.loading}
+        >
+          {state.error === "clan_not_recorded"
+            ? "There is nothing to read until it does."
+            : "Try again in a moment."}
+        </ErrorState>
       </>
     );
   if (!state.data)

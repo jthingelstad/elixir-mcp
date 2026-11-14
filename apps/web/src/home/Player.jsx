@@ -86,7 +86,7 @@ export function PlayerPage() {
         onRetry={() => query.refetch()}
         busy={query.isFetching}
       >
-        Try again shortly.
+        Try again in a moment.
       </ErrorState>
     );
   const env = query.data;
@@ -191,12 +191,12 @@ export function PlayerView({
         </div>
         <Counts page={page} onPick={setTab} />
         {/* Two actions at most (2026-11-13): where you stand with the
-            player first (You, Following, or Follow), their Stats second.
-            Follow everyone in their clan is on the Follows tab. */}
+            player first (Following or Follow), their Stats second. Your
+            own page needs no label saying so (round three): Your stats and
+            Copy Follow me link say it. Follow everyone in their clan is on
+            the Follows tab. */}
         <nav className="kit-phead__actions" aria-label="More about this player">
-          {you.own ? (
-            <span className="kit-phead__state">You</span>
-          ) : you.following ? (
+          {you.own ? null : you.following ? (
             <Unfollow tag={p.tag} name={p.name} />
           ) : (
             <FollowButton tag={p.tag} name={p.name} />

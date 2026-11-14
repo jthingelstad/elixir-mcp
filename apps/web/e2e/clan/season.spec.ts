@@ -165,9 +165,12 @@ test("season distinguishes no capture, missing races and unavailable reads", asy
   await expect(page.getByRole("alert")).toContainText("outside this read");
   failed = true;
   await page.reload();
-  await expect(page.getByRole("alert")).toContainText("did not answer", {
-    timeout: 10_000,
-  });
+  await expect(page.getByRole("alert")).toContainText(
+    "could not be read just now",
+    {
+      timeout: 10_000,
+    },
+  );
   await expect(page.getByRole("group", { name: "Season totals" })).toHaveCount(
     0,
   );

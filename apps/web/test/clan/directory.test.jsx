@@ -239,7 +239,9 @@ describe("the page", () => {
     );
     expect(screen.getByText("No clan has saved its rules yet")).toBeTruthy();
     rerender(<Directory state={{ error: "failed" }} onRetry={() => {}} />);
-    expect(screen.getByRole("alert").textContent).toMatch(/did not load/);
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /could not be read just now/,
+    );
     rerender(<Directory state={{ data: { clans: CLANS, truncated: true } }} />);
     expect(screen.getByText(/first 3 clans by name/)).toBeTruthy();
   });

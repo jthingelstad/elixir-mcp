@@ -6,6 +6,7 @@ import {
   Panel,
   Empty,
   Link,
+  ErrorState,
 } from "@elixir-mcp/ui";
 import { keys, useAction, useInvalidate } from "../lib/queries.js";
 import { ActionCard, STATUS, TypeIcon } from "../components/ActionCard.jsx";
@@ -51,13 +52,21 @@ function ActionRefused({ state, query, head }) {
   return (
     <>
       {head}
-      <div className="callout callout--warn" role="alert">
-        <span>
-          {state.error === "clan_not_recorded"
-            ? "Elixir is not recording this clan yet."
-            : "Elixir did not answer. Try again in a minute."}
-        </span>
-      </div>
+      <ErrorState
+        title={
+          state.error === "clan_not_recorded"
+            ? "Elixir is not recording this clan yet"
+            : "This action could not be read just now"
+        }
+        onRetry={
+          state.error === "clan_not_recorded"
+            ? undefined
+            : () => query.refetch()
+        }
+        busy={query.isFetching}
+      >
+        {state.error === "clan_not_recorded" ? "" : "Try again in a moment."}
+      </ErrorState>
     </>
   );
 }

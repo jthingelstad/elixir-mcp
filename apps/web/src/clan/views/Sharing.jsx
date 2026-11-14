@@ -1,3 +1,4 @@
+import { ErrorState } from "@elixir-mcp/ui";
 import { useSharing } from "../lib/queries.js";
 
 /**
@@ -10,7 +11,7 @@ import { useSharing } from "../lib/queries.js";
  * narrator) read them there. This section says what and to whom.
  */
 export function Sharing({ clan }) {
-  const { state } = useSharing(clan.clan_tag);
+  const { state, load } = useSharing(clan.clan_tag);
   const d = state.data;
   if (state.signedOut) return null;
   if (state.forbidden)
@@ -21,9 +22,13 @@ export function Sharing({ clan }) {
     );
   if (state.error)
     return (
-      <p className="page-head__note m-0">
-        Clan did not answer. Try again in a minute.
-      </p>
+      <ErrorState
+        title="The recording summary could not be read just now"
+        onRetry={() => load()}
+        busy={state.loading}
+      >
+        Try again in a moment.
+      </ErrorState>
     );
   if (!d) return <p className="page__lede">Reading…</p>;
   return (

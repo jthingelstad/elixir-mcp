@@ -746,7 +746,15 @@ test.describe("the static site's bar", () => {
     await page.goto("/");
     const bar = page.locator(".kit-top");
     await expect(bar.getByRole("link", { name: "Sign in" })).toBeVisible();
-    await expect(bar.getByRole("link", { name: "Docs" })).toBeVisible();
+    await expect(
+      bar.getByRole("link", { name: "Create account" }),
+    ).toBeVisible();
+    // On a phone Docs is the footer's (round three, 2026-11-13): the bar
+    // keeps one row.
+    await expect(bar.getByRole("link", { name: "Docs" })).toBeHidden();
+    await expect(
+      page.locator("footer.kit-foot").getByRole("link", { name: "Docs" }),
+    ).toBeVisible();
     await accessible(page, "front page, narrow");
     expect(
       await page.evaluate(

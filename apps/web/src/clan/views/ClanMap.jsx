@@ -1,4 +1,4 @@
-import { Tag, Panel } from "@elixir-mcp/ui";
+import { Tag, Panel, ErrorState } from "@elixir-mcp/ui";
 import { PageHead } from "../components/PageHead.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
@@ -15,7 +15,7 @@ import { YourPlace } from "./YourPlace.jsx";
  * clan's verified members see it, and it stays in Clan.
  */
 export function ClanMap({ clan }) {
-  const { state } = useClanMap(clan.clan_tag);
+  const { state, load } = useClanMap(clan.clan_tag);
   const now = useMinute();
   const d = state.data;
   if (state.forbidden || state.signedOut)
@@ -40,9 +40,13 @@ export function ClanMap({ clan }) {
   if (state.error)
     return (
       <Page>
-        <p className="page-head__note">
-          Clan did not answer. Try again in a minute.
-        </p>
+        <ErrorState
+          title="The clan map could not be read just now"
+          onRetry={() => load()}
+          busy={state.loading}
+        >
+          Try again in a moment.
+        </ErrorState>
       </Page>
     );
   if (!d) return <p className="page__lede">Reading…</p>;

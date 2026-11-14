@@ -59,10 +59,7 @@ export function Season(ctx) {
       {!modeReady || reads.some((r) => r.isPending) ? (
         <Loading what="the season" />
       ) : reads.some((r) => r.isError) ? (
-        <ReadError
-          error={reads.find((r) => r.isError).error}
-          what="this season"
-        />
+        <ReadError query={reads.find((r) => r.isError)} what="this season" />
       ) : mode === OTHER.key ? (
         <OtherSeason season={season} reads={reads} />
       ) : (
@@ -310,7 +307,7 @@ function Calendar({ player, mode, season, modeReady }) {
     return (
       <Panel title="Days played">
         <div className="panel__body">
-          <ReadError error={sweep.error} what="the season's days" />
+          <ReadError query={sweep} what="the season's days" />
         </div>
       </Panel>
     );
@@ -444,7 +441,7 @@ function WeekByWeek({ mode, args, running }) {
         </div>
       ) : weeks.isError ? (
         <div className="panel__body">
-          <ReadError error={weeks.error} what="the weeks" />
+          <ReadError query={weeks} what="the weeks" />
         </div>
       ) : (
         <ol className="ladder-wks">

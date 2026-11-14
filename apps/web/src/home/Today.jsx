@@ -109,9 +109,12 @@ const signedRecord = (r) => `${r.wins}${DASH}${r.losses}`;
 function YourWeek({ player }) {
   const { when, clock } = useClock();
   const [chosen, setChosen] = useState(null);
-  const initial = panelOf(useHomeWeek(null), "week");
-  const asked = panelOf(useHomeWeek(chosen, Boolean(chosen)), "week");
+  const initialRead = useHomeWeek(null);
+  const askedRead = useHomeWeek(chosen, Boolean(chosen));
+  const initial = panelOf(initialRead, "week");
+  const asked = panelOf(askedRead, "week");
   const week = chosen ? asked : initial;
+  const read = chosen ? askedRead : initialRead;
   const failed = week?.ok === false;
   const modes = week?.modes ?? initial?.modes ?? {};
   const open = chosen ?? week?.mode ?? "ladder";
@@ -134,9 +137,13 @@ function YourWeek({ player }) {
         onChange={setChosen}
       />
       {failed ? (
-        <p className="kit-week__quiet" role="alert">
-          Your week could not be read just now. Try again shortly.
-        </p>
+        <ErrorState
+          title="Your week could not be read just now"
+          onRetry={() => read.refetch()}
+          busy={read.isFetching}
+        >
+          Try again in a moment.
+        </ErrorState>
       ) : !week ? (
         <div className="kit-skeleton" aria-busy="true" />
       ) : week.record.battles === 0 ? (
@@ -223,17 +230,12 @@ function ClanPanel({ clan, player }) {
   if (!clan.ok)
     return (
       <Panel title="Your clan" pad>
-        <p className="kit-week__quiet" role="alert">
-          Your clans could not be read just now. Your saved follows are
-          unchanged.
-        </p>
-        <button
-          type="button"
-          className="btn btn--sm"
-          onClick={() => invalidate(["me", "home", "clan"])}
+        <ErrorState
+          title="Your clans could not be read just now"
+          onRetry={() => invalidate(["me", "home", "clan"])}
         >
-          Try again
-        </button>
+          Your saved follows are unchanged. Try again in a moment.
+        </ErrorState>
       </Panel>
     );
   if (clan.state === "none")
@@ -516,8 +518,12 @@ export function TodayFresh({ player }) {
 
 export function TodayError({ onRetry, busy }) {
   return (
-    <ErrorState title="Home didn’t load" onRetry={onRetry} busy={busy}>
-      Try again in a moment. Nothing was lost.
+    <ErrorState
+      title="Home could not be read just now"
+      onRetry={onRetry}
+      busy={busy}
+    >
+      Nothing was lost. Try again in a moment.
     </ErrorState>
   );
 }

@@ -1821,7 +1821,11 @@ input[aria-invalid="true"] {
 }
 /* Your own clan's tile (canvas .ctile.mine): the gold top. */
 .clan-dir__tile--mine {
-  box-shadow: var(--edge-mine);
+  background: var(--edge-mine), var(--panel);
+}
+.clan-dir__tile--mine:hover {
+  background:
+    var(--edge-mine), color-mix(in srgb, var(--panel) 92%, var(--accent));
 }
 .clan-dir__tile:focus-within {
   outline: 2px solid var(--accent-bright);
@@ -2518,6 +2522,13 @@ input[aria-invalid="true"] {
 }
 .home-gate__ways .btn {
   justify-content: center;
+}
+/* On a phone the two ways in take the column's width, the lede's edges,
+   not an inset of their own (round three, 2026-11-13). */
+@media (max-width: 520px) {
+  .home-gate__ways {
+    width: 100%;
+  }
 }
 [data-home] .home-art {
   order: -1;
@@ -4917,6 +4928,8 @@ a.card-art:hover .card-art__img {
 .kit-tabs[data-more-right],
 .kit-chips[data-more-left],
 .kit-chips[data-more-right],
+.kit-home__filters[data-more-left],
+.kit-home__filters[data-more-right],
 .kit-facts[data-more-left],
 .kit-facts[data-more-right] {
   mask-image: linear-gradient(
@@ -5730,7 +5743,7 @@ a.card-art:hover .card-art__img {
 
 /* Email choices use the same reading rows on every screen. */
 .mail-pref {
-  margin-block: 28px;
+  margin-block: 24px;
 }
 .mail-pref__list {
   list-style: none;
@@ -5805,10 +5818,30 @@ a.card-art:hover .card-art__img {
     grid-column: 1;
   }
 }
+/* Round three (2026-11-13): the page's four heads are the kit's panel
+   head (as Settings' other pages and Home's panels), one size and one gap
+   each, and All sent sits on its head's line at the panel action's size. */
 .mail-pref .section-title {
-  margin: 0 0 10px;
-  font-size: 18px;
-  font-weight: 600;
+  margin: 0;
+  font: 700 var(--t-panel-head) / 1.4 var(--font);
+  letter-spacing: 0;
+  color: var(--ink);
+}
+.mail-pref > .section-title,
+.mail-pref__head {
+  margin-bottom: 4px;
+}
+/* What follows a head starts the same distance under it: a list's first
+   row brings its own padding, a note gets the same gap, and the last row
+   leaves no padding to widen the gap to the next head. */
+.mail-pref > .page-head__note {
+  margin-top: 12px;
+}
+.mail-pref__list > .mail-pref__row:last-child {
+  padding-bottom: 0;
+}
+.mail-pref__all {
+  font-size: var(--t-body-sm);
 }
 .recruit-facts {
   display: flex;
@@ -6313,6 +6346,11 @@ button.kit-row {
 .kit-panel .empty.kit-empty {
   padding: 12px 16px 16px;
 }
+/* A padded panel's body already insets its words: an error or empty state
+   in it starts where the body's own lines do (2026-11-13). */
+.kit-panel__body > .empty.kit-empty {
+  padding: 4px 0 0;
+}
 .kit-empty .empty__body:last-child {
   margin-bottom: 0;
 }
@@ -6322,6 +6360,19 @@ button.kit-row {
 }
 .kit-empty__action {
   margin-top: 12px;
+}
+/* An empty or error title is Inter at the panel head's size whatever its
+   level; only a whole page's (an h1) is the page title, so a page that is
+   all empty state still has its head (round three, 2026-11-13). The h1
+   rule's display face no longer leaks into a 14px title. */
+.kit-empty .empty__title {
+  font: 600 14px / 1.4 var(--font);
+  letter-spacing: 0;
+}
+.kit-empty h1.empty__title {
+  font: 400 22px / 1.3 var(--font-display);
+  letter-spacing: 0.01em;
+  margin-bottom: 8px;
 }
 
 .kit-stats {
@@ -6825,7 +6876,7 @@ button.kit-row {
 }
 /* On a phone (2026-11-13) Home's head is two rows, not four: the battle
    log's freshness sits on the title's row, right, and the feed's chips are
-   one row that scrolls (with the kit's fade), New pinned at its end. */
+   one row that scrolls (with the kit's fade), New the last chip in it. */
 @media (max-width: 720px) {
   .kit-head--home {
     position: relative;
@@ -6850,41 +6901,30 @@ button.kit-row {
     padding-right: 0;
     background: none;
   }
+  /* The chips are one row that scrolls as one (round three, 2026-11-13):
+     New follows the Who chips instead of sitting pinned over them, and a
+     chip cut by the screen's edge fades out under the kit's fade rather
+     than stopping at a hairline. */
   .kit-home__filters {
     flex-wrap: nowrap;
-  }
-  .kit-home__filters .kit-chips {
-    flex: 0 1 auto;
-    flex-wrap: nowrap;
     min-width: 0;
+    max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
   }
-  .kit-home__filters .kit-chips::-webkit-scrollbar {
+  .kit-home__filters::-webkit-scrollbar {
     display: none;
+  }
+  .kit-home__filters .kit-chips {
+    flex: none;
+    flex-wrap: nowrap;
+    overflow: visible;
   }
   .kit-home__filters > .kit-chip {
     flex: none;
   }
-  /* Phone chips run a little tighter, so Everyone to New fit a 390px
-     screen whole; narrower, the row scrolls under its fade and ends at a
-     hairline before New, so a cut chip reads as cut, never as one chip
-     under another (2026-11-13). */
   .kit-home__filters .kit-chip {
     padding-inline: 10px;
-  }
-  .kit-home__filters > .kit-chip--new {
-    position: relative;
-    margin-left: 9px;
-  }
-  .kit-home__filters > .kit-chip--new::before {
-    content: "";
-    position: absolute;
-    top: 8px;
-    bottom: 8px;
-    left: -9px;
-    width: 1px;
-    background: var(--line);
   }
 }
 /* A race week's place (canvas .racebar): a gold bar on a sunken trough. */
@@ -7096,6 +7136,12 @@ button.kit-row {
    rows' own space, so the block's rhythm stays the rows' (2026-11-13). */
 .kit-starter__more {
   margin: -4px 8px -6px;
+}
+/* The bell's "See N more in Clan": the quiet link under Needs you, set on
+   the rows' text edge (round three, 2026-11-13). */
+.kit-bell__more {
+  align-self: flex-start;
+  margin: 2px -12px 0;
 }
 /* Follow these beside the heading: a small phone's first screen holds it
    and three rows. */
@@ -7647,7 +7693,7 @@ a.kit-mbattle:hover {
 /* Your own clan, as a panel (canvas .panel with the gold top): its crest,
    its name and what you follow of it, then the clan's own action. */
 .kit-panel--mine {
-  box-shadow: var(--edge-mine);
+  background: var(--edge-mine), var(--panel);
 }
 .kit-clanpeople__head {
   display: flex;
@@ -8581,14 +8627,11 @@ a.kit-mbattle:hover {
     clip-path: inset(50%);
     white-space: nowrap;
   }
+  /* Round three (2026-11-13): on a phone the signed-out bar is the brand,
+     Sign in and Create account, on one row. Docs wrapped onto a second row
+     of its own; it stays in the footer, every page's last links. */
   .kit-top__out {
-    order: 5;
-    width: 100%;
-    justify-content: space-between;
-  }
-  .kit-top__row:has(.kit-top__out) {
-    flex-wrap: wrap;
-    padding-block: 6px;
+    display: none;
   }
   .kit-home__two {
     grid-template-columns: minmax(0, 1fr);
@@ -10482,4 +10525,10 @@ a.kit-mbattle:hover {
   .clan-dir__fold .kit-chip:last-child {
     box-shadow: none;
   }
+}
+
+/* A battle's games are the kit's tabs (round three, 2026-11-13); the deck
+   panels below bring their own space. */
+.kit-tabs.battle__games {
+  margin-bottom: 8px;
 }

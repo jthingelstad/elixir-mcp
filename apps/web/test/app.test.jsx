@@ -862,7 +862,9 @@ test(
     fireEvent.click(screen.getByRole("button", { name: "More" }));
     await screen.findByText("The next items didn’t load. Try again.");
     expect(screen.getByText("Kept.")).toBeTruthy();
-    expect(screen.queryByText("Your feed didn’t load")).toBeNull();
+    expect(
+      screen.queryByText("Your feed could not be read just now"),
+    ).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "More" }));
     await screen.findByText("Read on the second try.");
     expect(more).toBe(2);
@@ -972,7 +974,7 @@ test(
       },
     });
     render(<App />);
-    await screen.findByText("Your feed didn’t load");
+    await screen.findByText("Your feed could not be read just now");
     expect(calls).toBe(1);
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     await screen.findByText("Read the second time.");

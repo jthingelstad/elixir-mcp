@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DiscordDeliveries, useClock, Panel } from "@elixir-mcp/ui";
+import { DiscordDeliveries, useClock, Panel, ErrorState } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useDiscord, useInvalidate } from "../lib/queries.js";
 import { trackEvent } from "../../analytics.js";
@@ -38,9 +38,13 @@ export function DiscordSetting({ clan }) {
     );
   if (state.error)
     return (
-      <p className="page-head__note m-0">
-        Clan did not answer. Try again in a minute.
-      </p>
+      <ErrorState
+        title="The clan’s Discord could not be read just now"
+        onRetry={() => load()}
+        busy={state.loading}
+      >
+        Try again in a moment.
+      </ErrorState>
     );
   const d = state.data;
   if (!d) return <p className="page__lede">Reading…</p>;

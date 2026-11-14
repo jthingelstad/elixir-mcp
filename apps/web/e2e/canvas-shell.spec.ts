@@ -142,9 +142,13 @@ for (const [label, width] of [
     }) => {
       await page.goto("/");
       const bar = page.locator(".kit-top");
-      await expect(
-        bar.locator('.kit-top__out[data-session-face="out"] a'),
-      ).toHaveText(["Docs"]);
+      // Docs is on the bar on a wide screen; on a phone it is the footer's
+      // alone, so the bar keeps one row (round three, 2026-11-13).
+      if (width > 760)
+        await expect(
+          bar.locator('.kit-top__out[data-session-face="out"] a'),
+        ).toHaveText(["Docs"]);
+      else await expect(bar.getByRole("link", { name: "Docs" })).toHaveCount(0);
       await expect(bar.getByRole("link", { name: "Sign in" })).toHaveAttribute(
         "href",
         "/signin",
@@ -169,6 +173,7 @@ for (const [label, width] of [
       const foot = page.locator("footer.kit-foot");
       for (const [name, href] of [
         ["Cards", "/cards"],
+        ["Docs", "/docs"],
         ["Updates", "/updates"],
       ] as const)
         await expect(
@@ -190,7 +195,13 @@ for (const [label, width] of [
       const nav = page
         .locator(".kit-top")
         .getByRole("navigation", { name: "Main" });
-      await expect(nav.getByRole("link")).toHaveText(["Docs"]);
+      if (width > 760) await expect(nav.getByRole("link")).toHaveText(["Docs"]);
+      else {
+        await expect(nav).toHaveCount(0);
+        await expect(
+          page.locator("footer.kit-foot").getByRole("link", { name: "Docs" }),
+        ).toBeVisible();
+      }
       await expect(
         page.locator(".kit-top").getByRole("link", { name: /Play Drop/ }),
       ).toHaveCount(0);
