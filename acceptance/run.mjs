@@ -385,6 +385,12 @@ if (isMain) {
     console.log(
       `shape provenance: ${status.recorded.length} tools on a recorded baseline (write their outputSchema)${status.recorded.length ? `: ${status.recorded.join(", ")}` : ""}; ${status.unpinned.length} with neither${status.unpinned.length ? `: ${status.unpinned.join(", ")}` : ""}`,
     );
+    // Fields notes or docs name that no response this run carried, held
+    // by a committed bite of the tool instead (checks/catalogue.mjs).
+    const held = [...(report.ctx.docsProvenance ?? new Map())];
+    console.log(
+      `docs provenance: ${held.length} named fields held by a bite, not this run${held.length ? `: ${held.map(([k, f]) => `${k} (${f})`).join(", ")}` : ""}`,
+    );
   }
   process.exit(report.failures ? 1 : 0);
 }
