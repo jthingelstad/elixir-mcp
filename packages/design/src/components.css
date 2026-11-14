@@ -8049,6 +8049,13 @@ a.kit-mbattle:hover {
   justify-content: flex-end;
   gap: var(--s-2);
 }
+/* Check for new battles (2026-11-14): one button under the head, at the
+   end of the line, a full tap target. */
+.kit-player__refresh {
+  display: flex;
+  justify-content: flex-end;
+  margin-block: var(--s-2);
+}
 /* "You": the state, said where the Follow button would be, plain words
    first in the row (a pill read as one more thing to tap). Following is
    the Follow pill pressed, and offers Unfollow (2026-11-13). */
