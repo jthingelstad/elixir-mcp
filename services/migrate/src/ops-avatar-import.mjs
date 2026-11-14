@@ -14,8 +14,9 @@
  * It never overwrites an image: only an account with no image is set, so
  * a choice made in Elixir stands and a second run sets nothing. The card
  * must be one `POST /api/me/avatar` accepts: in the current catalog as a
- * card (`kind = 'card'`, `in_catalog`, with art). An agent account is
- * never set.
+ * card (`kind = 'card'`, `in_catalog`, with art). An agent account and
+ * a removed account's tombstone ({account_remove}) are never set: both
+ * count as an unknown account.
  *
  * Dry run unless `apply` is exactly true. One transaction. The answer is
  * counts only (set, already had one, unknown account, unknown card, and
@@ -110,6 +111,7 @@ export async function avatarImport(db, { pairs, malformed, repeated }, apply) {
                 as i(account_id, card_id, ord)
          left join account a on a.account_id = i.account_id
                             and coalesce(a.kind, 'person') = 'person'
+                            and a.email_hash not like 'removed:%'
         order by i.ord`,
       [accounts, cards],
     );
