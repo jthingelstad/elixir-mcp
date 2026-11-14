@@ -1,0 +1,164 @@
+[
+  {
+    "state": "owner",
+    "width": 390,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "new",
+    "width": 390,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "visitor",
+    "width": 390,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "unverified",
+    "width": 390,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "map-choice",
+    "width": 390,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "past-proof",
+    "width": 390,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "complete",
+    "width": 390,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "loading",
+    "width": 390,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "error",
+    "width": 390,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "owner",
+    "width": 320,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "new",
+    "width": 320,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "visitor",
+    "width": 320,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "unverified",
+    "width": 320,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "map-choice",
+    "width": 320,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "past-proof",
+    "width": 320,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "complete",
+    "width": 320,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "loading",
+    "width": 320,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "error",
+    "width": 320,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "owner",
+    "width": 1280,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "new",
+    "width": 1280,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "visitor",
+    "width": 1280,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "unverified",
+    "width": 1280,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "map-choice",
+    "width": 1280,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "past-proof",
+    "width": 1280,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "complete",
+    "width": 1280,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "loading",
+    "width": 1280,
+    "overflow": false,
+    "seriousAxe": 0
+  },
+  {
+    "state": "error",
+    "width": 1280,
+    "overflow": false,
+    "seriousAxe": 0
+  }
+]

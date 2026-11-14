@@ -1,0 +1,3 @@
+large-text 320px reflow and detail focus passed
+font-failure 320px reflow and detail focus passed
+reduced-motion 320px reflow and detail focus passed
