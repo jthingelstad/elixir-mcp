@@ -31,7 +31,7 @@ import {
   stampById,
 } from "./catalog.mjs";
 import { evaluatePassport } from "./eligibility.mjs";
-import { publicPassport } from "./projection.mjs";
+import { publicEarned, publicPassport, summarize } from "./projection.mjs";
 
 /** Twelve characters with no look-alikes (no l, o, 0 or 1): about 59
  *  bits, so ids cannot be walked. Matches 0269's check. */
@@ -459,6 +459,49 @@ export async function readPublicPassport(db, passportId) {
     passport_id: rows[0].passport_id,
     primary: await readPrimary(db, accountId),
     earned: await readEarned(db, accountId),
+  });
+}
+
+/**
+ * The passport of the player's canonical verified owner in one row, for a
+ * player's page: `{ id, count, marks }` (projection.mjs summarize), or null.
+ * The owner is the same as @elixir-mcp/tools/social verifiedAccount: the
+ * person account whose verified primary or alt claim is the player, so a
+ * main and an alt give the same passport. The conditions match
+ * readPublicPassport (an approved person account holding the passport),
+ * and the earned rows pass the public whitelist before they are counted.
+ * One statement, for the page's statement budget. Never writes: an owner
+ * with no passport row yet is null.
+ */
+export async function readPlayerPassport(db, tag) {
+  const { rows } = await db.query(
+    `select ap.passport_id,
+            coalesce(
+              json_agg(json_build_object(
+                'stamp_id', e.stamp_id,
+                'level', e.level,
+                'earned_on', to_char(e.earned_on, 'YYYY-MM-DD'),
+                'legacy_before', to_char(e.legacy_before, 'YYYY-MM-DD')))
+                filter (where e.stamp_id is not null),
+              '[]') as earned
+       from (select c.account_id
+               from claim c join account a using (account_id)
+              where c.player_tag = $1 and c.status = 'verified'
+                and (c.is_primary or c.relationship in ('primary', 'alt'))
+                and coalesce(a.kind, 'person') = 'person'
+              order by c.verified_at limit 1) owner
+       join account a on a.account_id = owner.account_id
+        and a.kind = 'person' and a.status = 'approved'
+       join account_passport ap on ap.account_id = owner.account_id
+       left join account_stamp_earned e on e.account_id = owner.account_id
+      group by ap.passport_id`,
+    [tag],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return summarize({
+    id: String(row.passport_id),
+    earned: publicEarned(row.earned),
   });
 }
 

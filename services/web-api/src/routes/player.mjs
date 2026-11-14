@@ -12,7 +12,7 @@ import { enqueueJob } from "@elixir-mcp/ledger";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import { socialOf } from "@elixir-mcp/tools/social";
-import { readPlayerPassport } from "@elixir-mcp/stamps/summary";
+import { readPlayerPassport } from "@elixir-mcp/stamps";
 import { verifiedAvatars, withAvatar } from "../avatars.mjs";
 import {
   buildTimeline,
@@ -244,7 +244,7 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
     // The verified owner's passport in one row (#1015): the same owner as
     // the badges, a main and an alt alike; null for an unverified claim,
     // nobody's player or an owner with no passport yet. One statement,
-    // never a write (packages/stamps summary.mjs).
+    // never a write (packages/stamps store.mjs).
     passport: await readPlayerPassport(db, tag),
   };
 }

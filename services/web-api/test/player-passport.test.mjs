@@ -11,7 +11,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { createSession } from "@elixir-mcp/auth";
-import { summarize } from "@elixir-mcp/stamps/summary";
+import { summarize } from "@elixir-mcp/stamps/projection";
 import { makeHandler } from "../src/handler.mjs";
 import { PASSPORT_LEAKS } from "./passport-privacy.mjs";
 

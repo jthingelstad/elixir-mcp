@@ -16,6 +16,7 @@
 export {
   ensurePassport,
   readOwnerPassport,
+  readPlayerPassport,
   readPublicPassport,
 } from "./store.mjs";
 export {

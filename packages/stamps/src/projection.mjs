@@ -91,3 +91,17 @@ export function publicPassport({ passport_id, primary, earned }) {
     catalog_version: CATALOG_VERSION,
   };
 }
+
+/** A passport in one row (#1015), for a verified player's page: the
+ *  two most recent marks and the count, from a projection's earned
+ *  list (each Stamp once, at its highest level). A legacy grant sorts by
+ *  the day it is known to precede. */
+export function summarize(passport) {
+  const earned = passport?.earned ?? [];
+  const dayOf = (e) => e.earned_on ?? e.earned_before ?? "";
+  const marks = [...earned]
+    .sort((a, b) => (dayOf(b) > dayOf(a) ? 1 : dayOf(b) < dayOf(a) ? -1 : 0))
+    .slice(0, 2)
+    .map((e) => ({ stamp_id: e.stamp_id, level: e.level }));
+  return { id: passport.id, count: earned.length, marks };
+}
