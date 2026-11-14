@@ -20,15 +20,24 @@
  *                  is documented. Never that every documented kind
  *                  appeared this run: that is the day's data.
  *
+ *  A field that is optional by the day's data (a timeline item's
+ *  `crossed_by` exists only when a followed player crossed a band in the
+ *  window) passes notes and docs when a committed bite of the same tool
+ *  carries it as a key: the product served it, on the record, so the
+ *  docs name a field the tool can emit. Those fields are listed after
+ *  the run ("docs provenance"), as shape baselines are: evidence from a
+ *  capture, not from today.
+ *
  *  Allowances (tokens a note or a doc uses as prose, or a field that is
  *  conditional by design) live in catalogue-allow.json with a reason
  *  each, so a reviewer sees every exception in one place. */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateArgs } from "../../packages/tools/src/validate.mjs";
 import { loadCatalogue } from "../catalogue.mjs";
+import { calledAs } from "../replay.mjs";
 import { compareShape } from "../shapes.mjs";
 import { resolveArgs } from "../subjects.mjs";
 import {
@@ -188,6 +197,54 @@ function seenSoFar(ctx) {
   return { keys, values };
 }
 
+/** The keys every committed bite of a tool carries (`acceptance/bites`,
+ *  each a captured answer of the deployed product): tool, under the name
+ *  it is called by now (replay.mjs), -> key -> the first capture holding
+ *  it. Keys only, never values (a value in a capture is a day's data),
+ *  and never from a refusal. Read once per process. */
+let biteIndex = null;
+export function biteKeys(dir = path.join(here, "../bites")) {
+  if (biteIndex && dir === biteIndex.dir) return biteIndex.keys;
+  const keys = new Map();
+  let files = [];
+  try {
+    files = readdirSync(dir)
+      .filter((f) => f.endsWith(".json") && f !== "manifest.json")
+      .sort();
+  } catch {
+    // no bites directory: nothing on the record
+  }
+  for (const f of files) {
+    const c = JSON.parse(readFileSync(path.join(dir, f), "utf8"));
+    if (!c?.request?.tool || !c.response) continue;
+    if (c.response.error && !c.response.notes) continue;
+    const tool = calledAs(c);
+    if (!keys.has(tool)) keys.set(tool, new Map());
+    const held = keys.get(tool);
+    for (const k of deepKeys(c.response)) if (!held.has(k)) held.set(k, f);
+  }
+  biteIndex = { dir, keys };
+  return keys;
+}
+
+/** Splits the tokens nothing this run accounted for into those a bite
+ *  of the tool carries (recorded on ctx.docsProvenance, printed after
+ *  the run) and those served nowhere (the finding). */
+function heldByBite(ctx, tool, tokens, where) {
+  const held = (ctx.biteKeys ?? biteKeys()).get(tool) ?? new Map();
+  const missing = [];
+  for (const t of tokens) {
+    const file = held.get(t);
+    if (!file) {
+      missing.push(t);
+      continue;
+    }
+    if (!ctx.docsProvenance) ctx.docsProvenance = new Map();
+    ctx.docsProvenance.set(`${tool}#${where} ${t}`, file);
+  }
+  return missing;
+}
+
 export function buildCatalogueCases(catalogue = loadCatalogue()) {
   const cases = [];
   const bodies = new Map(); // tool -> [{ args, body }]
@@ -299,21 +356,24 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
         const allow = new Set(allowFor(tool));
         const toolNames = await allToolNames(ctx);
         for (const { args: a, body } of seen) {
-          const missing = [
-            ...noteTokens(body.notes, { tools: toolNames }),
-          ].filter(
-            (t) =>
-              !union.has(t) &&
-              !values.has(t) &&
-              !args.has(t) &&
-              !enums.has(t) &&
-              !toolNames.has(t) &&
-              !VOCABULARY.has(t) &&
-              !allow.has(t),
+          const missing = heldByBite(
+            ctx,
+            tool,
+            [...noteTokens(body.notes, { tools: toolNames })].filter(
+              (t) =>
+                !union.has(t) &&
+                !values.has(t) &&
+                !args.has(t) &&
+                !enums.has(t) &&
+                !toolNames.has(t) &&
+                !VOCABULARY.has(t) &&
+                !allow.has(t),
+            ),
+            "notes",
           );
           ok(
             missing.length === 0,
-            `${tool} ${JSON.stringify(a)}: notes name ${missing.join(", ")} and no response of ${tool} this run carried it`,
+            `${tool} ${JSON.stringify(a)}: notes name ${missing.join(", ")} and no response of ${tool} this run, nor any bite of it, carried it`,
           );
         }
       },
@@ -349,20 +409,27 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
         const toolNames = await allToolNames(ctx);
         const families = declaredFamilies(ctx.tools.get(tool)?.inputSchema);
         const { keys: everyKey, values: everyValue } = seenSoFar(ctx);
-        const missing = [...docsTokens(doc.markdown)].filter(
-          (t) =>
-            !everyKey.has(t) &&
-            !everyValue.has(t) &&
-            !allArgs.has(t) &&
-            !allEnums.has(t) &&
-            !inFamily(families, t) &&
-            !toolNames.has(t) &&
-            !VOCABULARY.has(t) &&
-            !allow.has(t),
+        // Data of the day: an optional field no window this run held
+        // still counts when a bite of this tool carried it.
+        const missing = heldByBite(
+          ctx,
+          tool,
+          [...docsTokens(doc.markdown)].filter(
+            (t) =>
+              !everyKey.has(t) &&
+              !everyValue.has(t) &&
+              !allArgs.has(t) &&
+              !allEnums.has(t) &&
+              !inFamily(families, t) &&
+              !toolNames.has(t) &&
+              !VOCABULARY.has(t) &&
+              !allow.has(t),
+          ),
+          "docs",
         );
         ok(
           missing.length === 0,
-          `${pointer} documents ${missing.join(", ")} and no response this run carried it`,
+          `${pointer} documents ${missing.join(", ")} and no response this run, nor any bite of ${tool}, carried it`,
         );
         // The other direction, for a tool that filters by kind: every
         // kind a response carried is one its docs name, by itself or by

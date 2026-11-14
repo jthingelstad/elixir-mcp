@@ -15,7 +15,11 @@ import { shapeCatalogue } from "./catalogue.mjs";
 import { identities } from "./checks/identities.mjs";
 import { noteTokens, notesNameFields, deepKeys } from "./lib.mjs";
 import { runSuite, SUITES } from "./run.mjs";
-import { buildCatalogueCases, ceilingMs } from "./checks/catalogue.mjs";
+import {
+  biteKeys,
+  buildCatalogueCases,
+  ceilingMs,
+} from "./checks/catalogue.mjs";
 import { contracts } from "./checks/contracts.mjs";
 
 const evidenceContract = contracts.find(
@@ -141,6 +145,74 @@ test("docs audit distinguishes conditional output vocabulary from unserved field
   await audit.run(ctx);
   markdown += " Plus `invented_missing_field`.";
   await assert.rejects(() => audit.run(ctx), /invented_missing_field/);
+});
+
+test("docs and notes audits hold on any day: an optional field a bite carried passes, one served nowhere fails", async () => {
+  // 2026-11-14: the gate failed on `crossed_by` and `arena_floor`, facts a
+  // timeline item carries only when a followed player crossed a band in
+  // the window. The committed bites hold both, so the gate no longer
+  // passes or fails on what players did that day.
+  const real = biteKeys().get("elixir_timeline");
+  assert.ok(
+    real?.has("crossed_by"),
+    "a bite of elixir_timeline holds crossed_by",
+  );
+  assert.ok(
+    real?.has("arena_floor"),
+    "a bite of elixir_timeline holds arena_floor",
+  );
+
+  let markdown = "Items carry `short_id`; a crossing names `crossed_by`.";
+  const body = {
+    docs: "example",
+    notes: ["A crossing names its battle in `crossed_by`."],
+    games: [{ short_id: "invented" }],
+  };
+  const ctx = {
+    tools: new Map([
+      [
+        "example_tool",
+        { inputSchema: { properties: {} }, outputSchema: { type: "object" } },
+      ],
+    ]),
+    allTools: new Set(["example_tool"]),
+    cache: new Map([["example", { body }]]),
+    // An invented capture of this tool carried the optional field once.
+    biteKeys: new Map([
+      ["example_tool", new Map([["crossed_by", "invented-bite.json"]])],
+      ["other_tool", new Map([["only_elsewhere", "other-bite.json"]])],
+    ]),
+    read: async (tool) =>
+      tool === "elixir_docs" ? { body: { markdown }, ms: 1 } : { body, ms: 1 },
+  };
+  const cases = buildCatalogueCases({
+    tools: { example_tool: { sets: [{ args: {} }], p95_ms: 1 } },
+  });
+  await cases.find((x) => x.id === "example_tool#0").run(ctx);
+  await cases.find((x) => x.id === "example_tool#notes").run(ctx);
+  const audit = cases.find((x) => x.id === "example_tool#docs");
+  await audit.run(ctx);
+  assert.equal(
+    ctx.docsProvenance.get("example_tool#docs crossed_by"),
+    "invented-bite.json",
+  );
+  assert.equal(
+    ctx.docsProvenance.get("example_tool#notes crossed_by"),
+    "invented-bite.json",
+  );
+  // Served by no response and no bite of this tool: still the finding,
+  // even when another tool's bite carried it.
+  markdown += " Plus `only_elsewhere` and `invented_missing_field`.";
+  await assert.rejects(
+    () => audit.run(ctx),
+    /documents only_elsewhere, invented_missing_field and no response this run, nor any bite of example_tool/,
+  );
+  // Without the bite, the optional field fails as it did on the day.
+  ctx.biteKeys = new Map();
+  await assert.rejects(
+    () => cases.find((x) => x.id === "example_tool#notes").run(ctx),
+    /notes name crossed_by/,
+  );
 });
 
 test("docs audit of kinds holds on any day: declared, never required to appear", async () => {

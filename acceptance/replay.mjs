@@ -35,7 +35,7 @@ const RENAMED_IN_12 = {
   clans_members_timeline: "clans_members_series",
 };
 
-function calledAs(c) {
+export function calledAs(c) {
   const major = Number(String(c.contract_version ?? "0").split(".")[0]);
   return major < 12
     ? (RENAMED_IN_12[c.request.tool] ?? c.request.tool)
