@@ -78,7 +78,8 @@
   },
   "account": {
     "label": "Your account",
-    "path": "/settings/profile"
+    "path": "/settings/profile",
+    "icon": "user-round"
   },
   "sampleBattle": {
     "label": "See a recorded battle",

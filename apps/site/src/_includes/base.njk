@@ -92,8 +92,8 @@
               (the canvas's shell, 2026-11-12). -#}
           <a class="kit-top__avatar" data-session-face="in" href="{{ shell.account.path }}">
             <span class="sr-only">{{ shell.account.label }}: </span>
-            <span class="chrome__avatar chrome__avatar--hint" aria-hidden="true"></span>
-            <span class="kit-top__name chrome__me-name--hint"></span>
+            <span class="chrome__avatar chrome__avatar--hint" aria-hidden="true">{% chromeIcon shell.account.icon, 18 %}</span>
+            <span class="kit-top__name"><span class="chrome__me-name--hint"></span>{% verifiedMark %}</span>
           </a>
         </div>
       </header>

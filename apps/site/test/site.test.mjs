@@ -1261,12 +1261,18 @@ test(
       const root = dom.window.document.documentElement;
       return {
         session: root.getAttribute("data-session"),
+        player: root.getAttribute("data-session-player"),
         name: root.style.getPropertyValue("--session-name"),
         initials: root.style.getPropertyValue("--session-initials"),
       };
     };
     const until = Date.now() + 86_400_000;
-    assert.deepEqual(face(null), { session: null, name: "", initials: "" });
+    assert.deepEqual(face(null), {
+      session: null,
+      player: null,
+      name: "",
+      initials: "",
+    });
     assert.equal(
       face(JSON.stringify({ until: Date.now() - 1, name: "Old" })).session,
       null,
@@ -1275,14 +1281,67 @@ test(
     assert.equal(face("not json").session, null);
     assert.deepEqual(face(JSON.stringify({ until, name: "King Thing" })), {
       session: "in",
-      name: '"King Thing"',
-      initials: '"KT"',
-    });
-    assert.deepEqual(face(JSON.stringify({ until, name: null })), {
-      session: "in",
+      player: null,
       name: "",
       initials: "",
     });
+    assert.deepEqual(face(JSON.stringify({ until, name: null })), {
+      session: "in",
+      player: null,
+      name: "",
+      initials: "",
+    });
+
+    const identity_until = Date.now() + 60_000;
+    assert.deepEqual(
+      face(
+        JSON.stringify({
+          until,
+          name: "King Thing",
+          verified: true,
+          identity_until,
+        }),
+      ),
+      {
+        session: "in",
+        player: "verified",
+        name: '"King Thing"',
+        initials: '"KT"',
+      },
+    );
+    assert.equal(
+      face(
+        JSON.stringify({
+          until,
+          name: "King Thing",
+          verified: false,
+          identity_until,
+        }),
+      ).player,
+      "unverified",
+    );
+    assert.equal(
+      face(
+        JSON.stringify({
+          until,
+          name: "King Thing",
+          verified: true,
+          identity_until: Date.now() - 1,
+        }),
+      ).name,
+      "",
+    );
+    assert.equal(
+      face(
+        JSON.stringify({
+          until,
+          name: "King Thing",
+          verified: "true",
+          identity_until,
+        }),
+      ).player,
+      null,
+    );
 
     // Both faces are in the markup; the sign-up calls are the signed-out one.
     const doc = new JSDOM(html).window.document;

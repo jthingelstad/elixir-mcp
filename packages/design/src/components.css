@@ -2495,9 +2495,6 @@ input[aria-invalid="true"] {
   gap: 10px;
   width: min(100%, 330px);
 }
-.home-gate__ways .btn {
-  justify-content: center;
-}
 /* On a phone the two ways in take the column's width, the lede's edges,
    not an inset of their own (round three, 2026-11-13). */
 @media (max-width: 520px) {
@@ -4745,9 +4742,6 @@ a.card-art:hover .card-art__img {
   min-width: 0;
 }
 /* You › Stats (2026-11-12): You's tabs over Stats' own frame. */
-.stats-head.kit-head {
-  margin-bottom: 0;
-}
 .stats-group {
   margin: var(--s-2) 0 -4px;
   font-size: var(--t-h2);
@@ -5346,9 +5340,6 @@ a.card-art:hover .card-art__img {
   .stats-scope .kit-chip,
   .stats-order .kit-chip {
     min-height: 44px;
-  }
-  .stats-scope__fresh {
-    margin-left: auto;
   }
   .stats-scope .stats-scope__fresh > summary {
     min-height: 44px;
@@ -10427,7 +10418,8 @@ a.kit-mbattle:hover {
 /* Proof remains visible when art fails or the player has never chosen art.
    The dark keyline separates the gold from both light card art and fills. */
 .kit-av--verified,
-.chrome__avatar--verified {
+.chrome__avatar--verified,
+html[data-session-player="verified"] .chrome__avatar--hint {
   box-shadow:
     0 0 0 2px var(--ground),
     0 0 0 4px var(--gold);
@@ -10460,7 +10452,10 @@ a.kit-mbattle:hover {
   padding-inline: 0;
 }
 .kit-find > .kit-head,
-.kit-find > .kit-tabs {
+.kit-find > .kit-tabs,
+.stats-head.kit-head,
+.stats-page > .kit-tabs,
+.kit-you-stats > .kit-tabs {
   margin-bottom: 0;
 }
 .kit-cheers__picker .kit-chip {
@@ -10491,10 +10486,6 @@ a.kit-mbattle:hover {
   min-height: var(--hit);
   padding-right: var(--s-2);
 }
-.stats-page > .kit-tabs,
-.kit-you-stats > .kit-tabs {
-  margin-bottom: 0;
-}
 @media (max-width: 760px) {
   .input,
   .select,
@@ -10505,4 +10496,13 @@ a.kit-mbattle:hover {
   .clan-members-find .clan-subnav__find {
     width: 100%;
   }
+}
+
+/* Static pages have no authority to recheck proof: a fresh app hint names
+   the player; an expired/legacy hint draws the generic account icon. */
+html:not([data-session-player="verified"])
+  .chrome__me-name--hint
+  + .kit-verified,
+html[data-session-player] .chrome__avatar--hint > svg {
+  display: none;
 }

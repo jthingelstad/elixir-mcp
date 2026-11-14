@@ -328,7 +328,7 @@
   --hit: 44px; /* minimum control target */
 
   /* ---- Motion (2026-09-12, with Verify) ----------------------------
-     Three durations and one curve; nothing else animates. The
+     Three shared durations and one curve. The
      prefers-reduced-motion rule at the end of this file turns every
      animation and transition off in one place. */
   --dur-fast: 120ms;
@@ -336,7 +336,7 @@
   --dur-slow: 320ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  --bp-narrow: 900px; /* ONE breakpoint, all surfaces */
+  --bp-narrow: 900px; /* the sidebar breakpoint */
 
   --shadow-modal: 0 24px 70px rgba(4, 2, 12, 0.5);
   --shadow-float: 0 20px 60px rgba(4, 2, 12, 0.45);

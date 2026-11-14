@@ -293,6 +293,14 @@ export default function (eleventyConfig) {
         .replace(/>\s+</g, "><")}</svg>`,
   );
 
+  // One verification glyph for React and the static header, never two drawings.
+  const mark = require("@elixir-mcp/ui/verification-mark.json");
+  eleventyConfig.addShortcode(
+    "verifiedMark",
+    () =>
+      `<svg class="kit-verified" role="img" aria-label="${mark.label}" viewBox="${mark.viewBox}"><path fill="currentColor" d="${mark.badge}"/><path fill="none" stroke="var(--ground)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="${mark.check}"/></svg>`,
+  );
+
   /** The H2 headings of a rendered page, for the docs rail's children
    *  and the "On this page" outline: [{ id, text }]. `text` is plain
    *  text: the heading's HTML with its tags dropped and marked's entities

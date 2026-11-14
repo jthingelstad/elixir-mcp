@@ -18,7 +18,27 @@ export function sessionHint(me, now = Date.now()) {
   const claims = me.claims ?? [];
   const primary = claims.find((c) => c.is_primary);
   const name = primary?.nickname ?? primary?.name ?? null;
-  return { until: now + HINT_DAYS * 86_400_000, name };
+  const state = me.player_verifications?.[primary?.player_tag];
+  const verified =
+    typeof state === "boolean"
+      ? state
+      : primary?.status === "verified"
+        ? true
+        : primary?.status === "unverified"
+          ? false
+          : undefined;
+  return {
+    until: now + HINT_DAYS * 86_400_000,
+    name,
+    ...(typeof verified === "boolean"
+      ? {
+          verified,
+          // The navigation hint lasts the session. Player proof stays fresh only
+          // as long as an app read; older static visits show a generic account.
+          identity_until: now + 5 * 60_000,
+        }
+      : {}),
+  };
 }
 
 /** Signing out leaves for a static page at once, before any session read
