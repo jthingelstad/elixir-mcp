@@ -162,6 +162,11 @@ export function actionsWaitingMail({
     if (!fresh.size) continue;
     const lines = mine.slice(0, MAIL_MAX_LINES).map((c) => ({
       title: actionTitle(c),
+      ...(c.player_tag &&
+      c.player_name &&
+      ACTION_TYPES[c.type]?.audience !== "member"
+        ? { player_tag: c.player_tag }
+        : {}),
       reason: actionReason(c),
       ...(Number.isInteger(c.number) ? { number: c.number } : {}),
       new: fresh.has(c.card_id),

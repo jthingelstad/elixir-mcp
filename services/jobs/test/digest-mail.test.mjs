@@ -739,3 +739,51 @@ test("clanNews names the people you follow first, and says which moves it named"
     ["left|#L0"],
   ]);
 });
+
+test("digest ownership proof is batched for shown players and does not come from a friend claim", async () => {
+  const args = {
+    db,
+    account: { accountId, timezone: "UTC" },
+    cadence: "weekly",
+    window,
+  };
+  const mail = await buildDigest(args);
+  assert.equal(
+    mail.player_verifications[LEADER],
+    true,
+    "verified without chosen art",
+  );
+  assert.equal(mail.player_verifications[FRIEND], false);
+  await db.query("begin");
+  try {
+    await db.query(
+      "update claim set status = 'verified' where account_id = $1 and player_tag = $2",
+      [accountId, FRIEND],
+    );
+    assert.equal(
+      (await buildDigest(args)).player_verifications[FRIEND],
+      false,
+      "a friend relationship is not ownership",
+    );
+    await db.query(
+      "update claim set status = 'unverified' where account_id = $1 and player_tag = $2",
+      [accountId, FRIEND],
+    );
+    const owner = (
+      await db.query(
+        "insert into account (email_hash, status) values ('digest-proof-owner', 'approved') returning account_id",
+      )
+    ).rows[0].account_id;
+    await db.query(
+      "insert into claim (account_id, player_tag, status, is_primary, relationship) values ($1, $2, 'verified', true, 'primary')",
+      [owner, FRIEND],
+    );
+    assert.equal(
+      (await buildDigest(args)).player_verifications[FRIEND],
+      true,
+      "a separate verified owner, without art",
+    );
+  } finally {
+    await db.query("rollback");
+  }
+});

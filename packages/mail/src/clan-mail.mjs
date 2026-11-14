@@ -18,6 +18,7 @@
  */
 
 import { normalizeTag } from "@elixir-mcp/contracts";
+import { verifiedPlayerIdentities } from "@elixir-mcp/auth/player-identities";
 import { FIRST_PARTY_ORIGINS } from "@elixir-mcp/auth";
 import { upsertIssue } from "@elixir-mcp/mail/ledger";
 import { deliver } from "@elixir-mcp/mail/deliver";
@@ -73,6 +74,14 @@ function checkLine(line, i, k) {
       throw bad(`messages[${i}].lines[${k}].number is an integer.`);
     return {
       title,
+      ...(line.player_tag
+        ? {
+            player_tag: tagOf(
+              line.player_tag,
+              `messages[${i}].lines[${k}].player_tag`,
+            ),
+          }
+        : {}),
       ...(reason ? { reason } : {}),
       ...(line.number != null ? { number: line.number } : {}),
       new: line.new === true,
@@ -193,6 +202,17 @@ async function sendMail(
       facts: { clan_tag: clanTag, source: sender.source },
       status: "queued",
     });
+    const namedTags = [
+      ...new Set(
+        messages.flatMap((m) =>
+          m.lines.map((l) => l.player_tag).filter(Boolean),
+        ),
+      ),
+    ];
+    const identities = await verifiedPlayerIdentities(db, namedTags);
+    const player_verifications = Object.fromEntries(
+      namedTags.map((tag) => [tag, identities.has(tag)]),
+    );
     const results = [];
     for (const m of messages) {
       const who = await recipientOf(db, m.player_tag, clanTag, kind);
@@ -217,6 +237,7 @@ async function sendMail(
             app: sender.app,
             subject: m.subject,
             lines: m.lines,
+            player_verifications,
             link: m.link,
           },
         });

@@ -91,7 +91,13 @@ export function tagLink(url, campaign) {
 
 function make(
   campaign = null,
-  { pixel = true, timezone = "UTC", memberClans = [], now = Date.now() } = {},
+  {
+    pixel = true,
+    timezone = "UTC",
+    memberClans = [],
+    now = Date.now(),
+    playerVerifications = {},
+  } = {},
 ) {
   // A clan's door is chosen per reader (structure, Mail links; A22, Q4): the
   // facts are the same for everyone a report goes to, so the choice is made
@@ -109,8 +115,12 @@ function make(
     m?.at ? whenAt(m.at, timezone, { now }) : (m?.when ?? "");
   const date = (iso) => (iso ? monthDayAt(iso, timezone) : "");
   const T = (url) => tagLink(url, campaign);
+  const verifiedMark = (tag) =>
+    playerVerifications[tag] === true
+      ? ` <span role="img" aria-label="Verified player" title="Verified player" style="color:${M.gold};font-size:14px;">✓</span>`
+      : "";
   const P = (tag, name) =>
-    `<a href="${T(playerDoor(tag))}" title="${esc(tag)}" style="color:${M.link};text-decoration:none;font-weight:600;">${esc(name)}</a>`;
+    `<a href="${T(playerDoor(tag))}" title="${esc(tag)}" style="color:${M.link};text-decoration:none;font-weight:600;">${esc(name)}${verifiedMark(tag)}</a>`;
   const K = (tag, name, url = clanDoor(tag)) =>
     `<a href="${T(url)}" title="${esc(tag)}" style="color:${M.link};text-decoration:none;font-weight:600;">${esc(name)}</a>`;
   const parts = mailParts(T);
@@ -173,6 +183,7 @@ function make(
   return {
     T,
     P,
+    verifiedMark,
     K,
     p,
     h2,
@@ -262,7 +273,7 @@ function digestItem(it, c) {
   const battle = it.battle_url
     ? ` ${c.link(it.battle_url, "See the battle", "font-weight:600;")}`
     : "";
-  return `<div style="font-family:${FONT};font-size:13.5px;line-height:1.5;color:${M.muted};margin-top:6px;">${esc(sentence(it.text))}${battle}</div>${it.words ? quote(it.words) : ""}`;
+  return `<div style="font-family:${FONT};font-size:16px;line-height:1.5;color:${M.muted};margin-top:8px;">${esc(sentence(it.text))}${battle}</div>${it.words ? quote(it.words) : ""}`;
 }
 
 /** A person in the digest: their name, their sittings and record, then
@@ -285,13 +296,13 @@ function digestPerson(x, c) {
         "margin-top:4px;",
       )
     : "";
-  return c.box(
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td valign="top" style="font-family:${FONT};font-size:15.5px;font-weight:700;">${c.P(x.tag, x.name)}${x.nickname ? ` <span style="font-weight:400;color:${M.faint};">(${esc(x.nickname)})</span>` : ""}${x.clanmate ? `<br><span style="font-weight:400;font-size:12.5px;color:${M.faint};">In ${c.K(x.clanmate.tag, x.clanmate.name ?? x.clanmate.tag)}</span>` : ""}</td>
-      <td align="right" valign="top" style="font-family:${FONT};font-size:12.5px;color:${M.faint};white-space:nowrap;">${record}${trophies}</td></tr></table>
-    ${(x.items ?? []).map((it) => digestItem(it, c)).join("")}${progress ? c.small(esc(sentence(capFirst(progress))), "margin-top:4px;") : ""}${more}`,
-    { mt: 10 },
-  );
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;"><tr><td style="padding:16px 0 0;border-top:1px solid ${M.row};overflow-wrap:anywhere;">
+    <div style="font-family:${FONT};font-size:16px;line-height:1.5;font-weight:700;">${c.P(x.tag, x.name)}${x.nickname ? ` <span style="font-weight:400;color:${M.faint};">(${esc(x.nickname)})</span>` : ""}</div>
+    ${x.clanmate ? `<div style="font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};">In ${c.K(x.clanmate.tag, x.clanmate.name ?? x.clanmate.tag)}</div>` : ""}
+    ${(x.items ?? []).map((it) => digestItem(it, c)).join("")}
+    ${progress ? c.small(esc(sentence(capFirst(progress))), "margin-top:8px;") : ""}
+    <div style="margin-top:8px;font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};">${record}${trophies}</div>${more}
+  </td></tr></table>`;
 }
 
 /** The digest of the people you follow (tracking_report, #767): who
@@ -324,7 +335,7 @@ function digest(f, c) {
         .filter((a) => a.items?.length || a.progress)
         .map(
           (a) =>
-            `<div style="margin-top:8px;font-family:${FONT};font-size:13.5px;font-weight:600;color:${M.ink};">${c.P(a.tag, a.name)}</div>${(a.items ?? []).map((it) => digestItem(it, c)).join("")}${a.progress ? c.small(esc(sentence(capFirst(progressText(a.progress)))), "margin-top:4px;") : ""}`,
+            `<div style="margin-top:8px;font-family:${FONT};font-size:16px;font-weight:600;color:${M.ink};">${c.P(a.tag, a.name)}</div>${(a.items ?? []).map((it) => digestItem(it, c)).join("")}${a.progress ? c.small(esc(sentence(capFirst(progressText(a.progress)))), "margin-top:4px;") : ""}`,
         )
         .join("")}`
     : "";
@@ -485,7 +496,7 @@ function collector(f, c) {
       return `<tr>
       <td width="36" valign="middle" style="width:36px;padding:9px 0;${line}">${x.card_id != null ? cardImg({ id: x.card_id, name: x.name, form: "base" }, 36, { radius: 5 }) : ""}</td>
       <td valign="middle" style="padding:9px 10px 9px 14px;${line}"><div style="font-family:${FONT};font-size:15px;font-weight:600;color:${M.ink};">${esc(x.name)}${x.version ? ` <span style="font-family:${MONO};font-size:11.5px;font-weight:400;color:${M.dim};">${esc(x.version)}</span>` : ""}</div>
-        <div style="font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};margin-top:3px;">${statusLine(x)}</div>
+        <div style="font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};margin-top:3px;">${statusLine(x)}</div>
         ${x.signature_state ? `<div style="font-family:${FONT};font-size:12px;line-height:1.5;color:${x.signature_state === "mismatch" ? M.warn : M.faint};margin-top:4px;">${esc(collectorSecurity(x.signature_state))}</div>` : ""}</td>
     </tr>`;
     })
@@ -571,7 +582,7 @@ function clanActions(f, c) {
       c.dayTime({ at }),
     );
   const titleOf = (l) => {
-    const words = esc(l.title);
+    const words = `${esc(l.title)}${c.verifiedMark(l.player_tag)}`;
     return Number.isInteger(l.number)
       ? c.link(
           clanPageUrl(tag, `actions/${l.number}`),
@@ -705,6 +716,7 @@ export function renderMail(kind, facts, links) {
     facts,
     make(campaign, {
       pixel: links.pixel !== false,
+      playerVerifications: facts.player_verifications ?? {},
       timezone: links.timezone ?? "UTC",
       memberClans: Array.isArray(links.member_clans) ? links.member_clans : [],
       ...(links.now === undefined ? {} : { now: Number(links.now) }),

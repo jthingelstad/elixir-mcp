@@ -56,6 +56,15 @@ test("only people who can act on an action are sent it", () => {
   assert.equal(to["#E"].subject, "Welcome a newcomer: Newbie (Example Clan)");
   assert.equal(to["#Q"].lines[0].title, "Going to be away?");
   assert.equal(to["#Q"].lines[0].new, true);
+  assert.equal(
+    to["#Q"].lines[0].player_tag,
+    undefined,
+    "a title without a name carries no identity",
+  );
+  assert.equal(
+    to["#L"].lines.find((l) => l.title.includes("Newbie")).player_tag,
+    "#N",
+  );
   assert.equal(to["#L"].link, "https://elixir.test/clan/0QC8RCGY/feed");
 });
 

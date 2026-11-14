@@ -762,3 +762,23 @@ test("the actions mail says Clan, not Elixir Clan", () => {
   assert.match(actions, /Clan sends this each morning when something new/);
   assert.doesNotMatch(actions, /Elixir Clan sends|morning run/);
 });
+
+test("digest names use explicit ownership proof, including players without chosen art", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
+  );
+  const tag = facts.people[0].tag;
+  facts.player_verifications = { [tag]: true };
+  const marked = renderMail("tracking_report", facts, links).html;
+  assert.equal((marked.match(/aria-label="Verified player"/g) ?? []).length, 1);
+  assert.match(marked, /title="Verified player"[^>]*>✓<\/span>/);
+  assert.match(htmlToText(marked), /Rapid Clear \(verified player\)/);
+  for (const value of [false, "true", undefined]) {
+    facts.player_verifications = { [tag]: value };
+    facts.people[0].avatar_card_id = 26000000;
+    assert.doesNotMatch(
+      renderMail("tracking_report", facts, links).html,
+      /aria-label="Verified player"/,
+    );
+  }
+});
