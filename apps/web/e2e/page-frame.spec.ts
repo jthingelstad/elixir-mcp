@@ -51,9 +51,7 @@ for (const width of [1440, 1100, 820]) {
 test.describe("at computer width", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("the place's name leads in display type, a page inside it a step down", async ({
-    page,
-  }) => {
+  test("place and page headings use the same text face", async ({ page }) => {
     await clanApi(page, clanIn());
     await page.goto("/clan/0QC8RCGY/members");
     const font = (selector: string) =>
@@ -62,7 +60,8 @@ test.describe("at computer width", () => {
         .first()
         .evaluate((el) => getComputedStyle(el).fontFamily);
     await expect(page.locator(".clan-head h1")).toHaveText("Example Clan");
-    expect(await font(".clan-head h1")).toContain("Clash Royale");
+    expect(await font(".clan-head h1")).toContain("Inter");
+    expect(await font(".clan-head h1")).not.toContain("Clash Royale");
     await expect(
       page.getByRole("heading", { level: 2, name: "Roster" }),
     ).toBeVisible();

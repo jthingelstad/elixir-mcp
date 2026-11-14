@@ -132,12 +132,7 @@ export function FeedbackSheet({
     >
       <div className="panel__head">
         <span className="panel-title">{title}</span>
-        <button
-          type="button"
-          className="btn btn--sm"
-          style={{ marginLeft: "auto" }}
-          onClick={onClose}
-        >
+        <button type="button" className="btn btn--sm ml-auto" onClick={onClose}>
           Close
         </button>
       </div>

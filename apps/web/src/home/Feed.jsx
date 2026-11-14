@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Avatar,
@@ -12,7 +12,6 @@ import {
   TagText,
   useClock,
   useFlash,
-  useScrollHint,
 } from "@elixir-mcp/ui";
 import { SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
@@ -42,8 +41,8 @@ import { RacePlace } from "./RacePlace.jsx";
  * nothing a connection has read (standing ruling, 2026-10-20).
  *
  * An item is a sitting with its sparkline, a moment with its battle, a
- * highlight in its player's words, or a clan's line, which wears the gold
- * edge. Every player's name opens their page, and every item carries its
+ * highlight in its player's words, or a clan's line, identified by its band.
+ * Every player's name opens their page, and every item carries its
  * cheers (Cheers.jsx). Your account's own lines (claims, recording started
  * or stopped) are not here: the read leaves them out and the bell tells
  * them (2026-11-12).
@@ -388,19 +387,9 @@ function When({ it }) {
   );
 }
 
-/**
- * The feed's chips, Who then New, in one row. On a phone the row scrolls as
- * one, New after the Who chips rather than pinned over them, and fades the
- * edge with more behind it (round three, 2026-11-13).
- */
+/** The same filters wrap when needed; no option hides beyond the edge. */
 function FeedFilters({ children }) {
-  const row = useRef(null);
-  useScrollHint(row);
-  return (
-    <div ref={row} className="kit-home__filters">
-      {children}
-    </div>
-  );
+  return <div className="kit-home__filters">{children}</div>;
 }
 
 function FeedItem({ it, open, onToggle }) {

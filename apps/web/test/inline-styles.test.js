@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
  * remainder and are what the floor will settle at.
  */
 const CEILING = 195;
+const KIT_CEILING = 8;
 
 const src = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -44,4 +45,14 @@ test(`inline styles in the app never exceed ${CEILING}`, () => {
   expect(total, `inline styles: ${total} (${worst})`).toBeLessThanOrEqual(
     CEILING,
   );
+});
+
+// The shared kit is now covered too: its static margin moved to ml-auto.
+test(`inline styles in the shared kit never exceed ${KIT_CEILING}`, () => {
+  const kit = path.resolve(src, "../../../packages/ui/src");
+  const total = walk(kit).reduce(
+    (n, f) => n + (readFileSync(f, "utf8").match(/style=\{/g) ?? []).length,
+    0,
+  );
+  expect(total).toBeLessThanOrEqual(KIT_CEILING);
 });

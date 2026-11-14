@@ -33,7 +33,7 @@ test("nothing is drawn when the server names no player of yours", async () => {
   expect(container.textContent).toBe("");
 });
 
-test("a verified player of yours posts with your words, from the gold button", async () => {
+test("a verified player of yours posts with your words, from the primary action", async () => {
   vi.spyOn(api, "myHighlights").mockResolvedValue(
     ok({ battle_id: "x", can_highlight_as: ["#0CR"], highlights: [] }),
   );
@@ -46,7 +46,7 @@ test("a verified player of yours posts with your words, from the gold button", a
   const button = await screen.findByRole("button", {
     name: "Post to your timeline",
   });
-  expect(button.className).toContain("btn--gold");
+  expect(button.className).toContain("btn--primary");
   // The player's name is text in the sentence, quotes and markup and all.
   expect(screen.getByText(/<b>"Ana"<\/b>’s timeline/)).toBeTruthy();
   fireEvent.change(screen.getByLabelText("Your words (optional)"), {
