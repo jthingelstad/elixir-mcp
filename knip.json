@@ -137,6 +137,11 @@
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"],
       "includeEntryExports": true
+    },
+    "packages/stamps": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"],
+      "includeEntryExports": true
     }
   }
 }
