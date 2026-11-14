@@ -265,7 +265,29 @@ test("the bell: reactions as counts, followers named only by a verified player, 
   assert.equal(bell.body.answers.items.length, 1);
   assert.equal(bell.body.answers.items[0].about, QUESTION);
   assert.equal(bell.body.answers.items[0].new, true);
-  assert.equal(bell.body.new, 1 + 2 + 1);
+  // The owner's highlight earned Storyteller I (#1015): one Stamp line in
+  // Your account, to the passport's sheet for it.
+  const stamps = bell.body.account.items.filter(
+    (i) => i.kind === "stamp_earned",
+  );
+  assert.deepEqual(
+    stamps.map((i) => [i.stamp_id, i.level, i.levels, i.name, i.new]),
+    [["storyteller", 1, 3, "Storyteller", true]],
+  );
+  assert.equal(bell.body.new, 1 + 2 + 1 + 1);
+  // A cheer on someone else's item is a Cheerleader day; the owner's own
+  // cheer on their own item is not.
+  const cheerDays = async (id) =>
+    (
+      await db.query(
+        `select count(*)::int as n from account_stamp_fact
+          where account_id = $1 and stamp_id = 'cheerleader'`,
+        [id],
+      )
+    ).rows[0].n;
+  assert.equal(await cheerDays(ids.friend), 1);
+  assert.equal(await cheerDays(ids.fan), 1);
+  assert.equal(await cheerDays(ids.owner), 0);
   // Never who cheered or followed, beyond the verified player's name: no
   // email, account id or the friend at all.
   const raw = JSON.stringify(bell.body);

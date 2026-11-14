@@ -190,3 +190,39 @@ test("your account's lines: a burst is one line, one player opens their page", (
   expect(seen.account.new).toBe(0);
   expect(seen.new).toBe(0);
 });
+
+test("a new Stamp is one line, at its level, to the passport's sheet (#1015)", () => {
+  const at = "2026-11-14T12:00:00.000Z";
+  const base = { events: 1, players: 0, clans: 0, subjects: [], at };
+  const rows = accountRows({
+    items: [
+      {
+        ...base,
+        kind: "stamp_earned",
+        stamp_id: "cheerleader",
+        name: "Cheerleader",
+        level: 2,
+        levels: 3,
+        new: true,
+      },
+      {
+        ...base,
+        kind: "stamp_earned",
+        stamp_id: "on_the_map",
+        name: "On the Map",
+        level: 1,
+        levels: 1,
+        new: false,
+      },
+    ],
+  });
+  expect(rows.map((r) => [r.title, r.to, r.new, r.detail])).toEqual([
+    [
+      "New Stamp: Cheerleader II",
+      "/home/passport?stamp=cheerleader",
+      true,
+      null,
+    ],
+    ["New Stamp: On the Map", "/home/passport?stamp=on_the_map", false, null],
+  ]);
+});

@@ -23,6 +23,12 @@
  *    2026-11-12. A burst is one line per kind ("Recording started for 24
  *    players"). Sign-ins stay in Settings › Sign-ins & devices; answers are
  *    their own section.
+ *  - A new Stamp (#1015): one line in Your account for each Stamp a pass
+ *    granted, at the highest level that pass granted, linking to the
+ *    passport's sheet for it. Read from the earned rows themselves
+ *    (account_stamp_earned), never from account_event, so a Stamp never
+ *    reaches the MCP timeline, Settings' log, the funnel, mail or the
+ *    digest; a backfilled (legacy) level is never a notice.
  *
  * Nothing here goes to mail, Discord, MCP or `/api/v1`, and an agent has no
  * bell. Reads are bounded: your own players' last seven days (the window a
@@ -38,6 +44,7 @@ import {
   ownVerifiedPlayers,
   readBellWeek,
 } from "@elixir-mcp/tools/activity/home-feed";
+import { levelCount, stampById } from "@elixir-mcp/stamps/catalog";
 import { proofOf } from "./feed.mjs";
 
 /** Followers and answers look back thirty days. */
@@ -282,6 +289,55 @@ export function foldAccountLines(rows, seen) {
   return { items, new: items.filter((i) => i.new).length };
 }
 
+/** New Stamps of the last seven days, one line per Stamp per pass. A pass
+ *  stamps every level it grants with one instant, so the levels of one
+ *  pass group into one line at the highest; a retry or a racing pass adds
+ *  no row, so it adds no line. */
+async function readStampLines(db, accountId, seen) {
+  const { rows } = await db.query(
+    `select stamp_id, max(level)::int as level, earned_at
+       from account_stamp_earned
+      where account_id = $1::uuid and legacy_before is null
+        and earned_at > now() - make_interval(days => $2::int)
+      group by stamp_id, earned_at
+      order by earned_at desc, stamp_id
+      limit $3::int`,
+    [accountId, ACCOUNT_DAYS, LIST_CAP],
+  );
+  return stampLines(rows, seen);
+}
+
+/** Earned groups → bell lines. Pure, for the tests. */
+export function stampLines(rows, seen) {
+  const seenMs = seen ? new Date(seen).getTime() : null;
+  return rows
+    .filter((r) => stampById(r.stamp_id))
+    .map((r) => {
+      const at = new Date(r.earned_at).toISOString();
+      return {
+        kind: "stamp_earned",
+        stamp_id: r.stamp_id,
+        name: stampById(r.stamp_id).name,
+        level: Number(r.level),
+        levels: levelCount(r.stamp_id),
+        at,
+        events: 1,
+        players: 0,
+        clans: 0,
+        subjects: [],
+        new: seenMs === null || Date.parse(at) > seenMs,
+      };
+    });
+}
+
+/** Your account's lines and new Stamps, newest first, one cap. */
+export function mergeAccountLines(lines, stamps) {
+  const items = [...lines.items, ...stamps]
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+    .slice(0, LIST_CAP);
+  return { items, new: items.filter((i) => i.new).length };
+}
+
 function clip(text, max) {
   const one = text.replace(/\s+/g, " ").trim();
   return one.length > max ? `${one.slice(0, max - 1).trimEnd()}…` : one;
@@ -301,7 +357,10 @@ export async function readBell(
   });
   const followers = await readFollowers(db, accountId, own, seen);
   const answers = await readAnswers(db, accountId);
-  const account = await readAccountLines(db, accountId, seen);
+  const account = mergeAccountLines(
+    await readAccountLines(db, accountId, seen),
+    await readStampLines(db, accountId, seen),
+  );
   return {
     seen_at: seen,
     players: own.length,

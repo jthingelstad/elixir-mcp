@@ -83,11 +83,30 @@ const ACCOUNT_DETAIL = {
     "Another account verified it. If it is yours, tell us through the feedback form.",
 };
 
+const ROMAN = ["I", "II", "III"];
+
+/** A new Stamp (#1015): its name, with its level when it has levels, to
+ *  the passport's sheet for it. */
+export function stampRow(a, i) {
+  const level =
+    a.levels > 1 && ROMAN[a.level - 1] ? ` ${ROMAN[a.level - 1]}` : "";
+  return {
+    key: `stamp-${a.stamp_id}-${a.at}-${i}`,
+    title: `New Stamp: ${a.name}${level}`,
+    at: a.at,
+    detail: null,
+    to: `/home/passport?stamp=${encodeURIComponent(a.stamp_id)}`,
+    new: a.new === true,
+  };
+}
+
 /** Your account's lines (2026-11-12): each burst one line, "Recording
  *  started for 24 players". One player opens their page; the rest open
- *  Settings, where the account's whole log is. */
+ *  Settings, where the account's whole log is. A new Stamp is its own
+ *  line (stampRow). */
 export const accountRows = (account) =>
   (account?.items ?? []).map((a, i) => {
+    if (a.kind === "stamp_earned") return stampRow(a, i);
     const who = accountWho(a);
     const say = ACCOUNT_LINE[a.kind];
     const title =
