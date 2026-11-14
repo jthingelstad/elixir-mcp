@@ -71,19 +71,10 @@ test("unchanged admitted profiles advance observation evidence without facts or 
       );
       return rows[0];
     };
-    const points = async () =>
-      (
-        await ctx.db.query(
-          "select fetch_points from gateway where gateway_id=$1",
-          [gatewayId],
-        )
-      ).rows[0].fetch_points;
     assert.equal((await deliver("00")).outcome, "admitted");
-    const before = await points();
     const repeat = await deliver("10");
     assert.equal(repeat.outcome, "admitted");
     assert.equal(repeat.projection.facts, 0);
-    assert.equal(await points(), before);
     assert.equal((await read()).profile_observed_at.toISOString(), at("10"));
     const receipts = await ctx.db.query(
       `select fetched_at, payload_hash, admission, new_facts from api_receipt
@@ -126,7 +117,6 @@ test("unchanged admitted profiles advance observation evidence without facts or 
     assert.equal(row.observed_at.toISOString(), at("50"));
     assert.equal(row.battle_count, 100);
     assert.equal(row.trophies, 6100);
-    assert.equal(await points(), before);
   } finally {
     await ctx.drop();
   }

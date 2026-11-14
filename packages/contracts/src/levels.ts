@@ -19,20 +19,6 @@ export function displayLevel(level: number, maxLevel: number): number {
   return level + (MAX_DISPLAY_LEVEL - maxLevel);
 }
 
-/** Normalize a card object in place-ish: display level, uniform cap. */
-export function displayCard<T extends { level?: number; maxLevel?: number }>(
-  card: T,
-): T {
-  if (typeof card.level !== "number" || typeof card.maxLevel !== "number") {
-    return card;
-  }
-  return {
-    ...card,
-    level: displayLevel(card.level, card.maxLevel),
-    maxLevel: MAX_DISPLAY_LEVEL,
-  };
-}
-
 /**
  * Alternate card forms — `evolutionLevel` / `maxEvolutionLevel` are a bit
  * field, never a progress counter or an ordinal (feedback #20, corroborated

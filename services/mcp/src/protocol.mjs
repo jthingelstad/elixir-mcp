@@ -15,7 +15,11 @@
  */
 
 import crypto from "node:crypto";
-import { CONTRACT_VERSION, DISCLAIMER } from "@elixir-mcp/contracts";
+import {
+  CONTRACT_VERSION,
+  DISCLAIMER,
+  JSONRPC_QUOTA_EXCEEDED,
+} from "@elixir-mcp/contracts";
 import {
   identitySentences,
   principalBlock,
@@ -108,7 +112,6 @@ export function countsAgainstHour(message) {
   if (!("id" in message)) return false;
   return !UNCOUNTED_METHODS.has(message.method);
 }
-export const MCP_QUOTA_ERROR_CODE = -32029;
 
 export function serverVersion(declarations) {
   const fingerprint = crypto
@@ -388,7 +391,7 @@ export async function handleMcpMessage(message, context) {
     const quota = await context.spendQuota();
     if (!quota.allowed) {
       await context.auditRefusal?.(
-        MCP_QUOTA_ERROR_CODE,
+        JSONRPC_QUOTA_EXCEEDED,
         name,
         params.arguments,
       );
@@ -396,7 +399,7 @@ export async function handleMcpMessage(message, context) {
         statusCode: 200,
         payload: rpcError(
           id,
-          MCP_QUOTA_ERROR_CODE,
+          JSONRPC_QUOTA_EXCEEDED,
           `Daily tool-call quota reached (${quota.max} per day). It resets at midnight UTC.`,
           {
             code: "quota_exceeded",

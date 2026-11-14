@@ -8,9 +8,4 @@ export * from "./gate.mjs";
 export * from "./oauth.mjs";
 export * from "./zone.mjs";
 export * from "./turnstile.mjs";
-export {
-  originAllowed,
-  forbiddenOrigin,
-  ORIGIN_HEADER,
-  viewerIp,
-} from "./origin.mjs";
+export { originAllowed, forbiddenOrigin, viewerIp } from "./origin.mjs";

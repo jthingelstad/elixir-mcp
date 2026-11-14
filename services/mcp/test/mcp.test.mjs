@@ -8,11 +8,7 @@ import pg from "pg";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { CONTRACT_VERSION } from "@elixir-mcp/contracts";
-import {
-  handleMcpMessage,
-  serverVersion,
-  MCP_QUOTA_ERROR_CODE,
-} from "../src/protocol.mjs";
+import { handleMcpMessage, serverVersion } from "../src/protocol.mjs";
 import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
 import { makeInvoker } from "../../../packages/tools/src/invoker.mjs";
 import { makeQuota } from "../../../packages/tools/src/quota.mjs";
@@ -210,7 +206,8 @@ test("quota exhaustion returns -32029", async () => {
       spendQuota: async () => ({ allowed: false, count: 501, max: 500 }),
     }),
   );
-  assert.equal(res.payload.error.code, MCP_QUOTA_ERROR_CODE);
+  // The wire value is documented (docs/protocol): pin the number itself.
+  assert.equal(res.payload.error.code, -32029);
 });
 
 test("a tools/call at the MCP door still charges the daily counter", async () => {
@@ -417,7 +414,7 @@ test("local time helpers: DST-aware day bounds", () => {
 });
 
 test("collector points no longer raise the daily quota (#539)", async () => {
-  // fetch_points is a dead column: ingest still counts it, nothing reads it.
+  // fetch_points is a dead column: nothing counts or reads it.
   await db.query(
     `insert into gateway (owner_account_id, name, static_ip, status, fetch_points)
      values ($1, 'credit-gw', '127.0.0.1', 'active', 999999)`,

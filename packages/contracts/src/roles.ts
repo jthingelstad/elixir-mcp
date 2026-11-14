@@ -116,26 +116,12 @@ export const ROLES: Record<Role, RoleQuotas> = {
   },
 };
 
-/** One entitlements system (Jamie, 2026-09-05): the console is a role
- *  power, not a separate flag. Admins run day-to-day (requests,
- *  feedback, clan recordings, roles up to partner); the
- *  owner — exactly one, whom no admin can affect — additionally holds
- *  admin grants, integrations, gateways, and quota overrides. */
-export type ConsoleAccess = "none" | "admin" | "owner";
-
-export function consoleAccess(role: string | null | undefined): ConsoleAccess {
-  if (role === "owner") return "owner";
-  if (role === "admin") return "admin";
-  return "none";
-}
-
 /** Tiers come from two places (Jamie, 2026-10-12, #530): Member, Leader
  *  and Family are EARNED in the game and computed on every read (see
  *  `tierSql`); Partner, admin and owner are GRANTS stored on the account.
  *  A stored "leader" or "family" is a pre-2026-10-12 hand grant: it counts
  *  for nothing now, and a tier earned is lost when its ground goes. */
 export const EARNED_ROLES: Role[] = ["member", "leader", "family"];
-export const GRANTED_ROLES: Role[] = ["partner", "admin", "owner"];
 
 /** Roles an admin-level actor may assign: Member (which takes a grant
  *  away) and Partner, which stays Jamie's to grant. Leader and Family are

@@ -35,7 +35,7 @@ const PLACES = {
   createAccount: FAMILY_PLACES.createAccount.path,
   verify: `${SETTINGS}/players/verify`,
   settings: FAMILY_PLACES.settings,
-  admin: `${ADMIN}/requests`,
+  admin: `${ADMIN}/accounts`,
 };
 
 /** The places a signed-in reader moves between (slice 7, #765): Home, Find,

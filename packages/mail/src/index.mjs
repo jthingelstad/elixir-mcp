@@ -26,12 +26,7 @@ export {
   sendTime as mailSendTime,
 } from "./shell.mjs";
 export { cardAsset, resolveCardArt } from "./cards.mjs";
-export {
-  pixelPath,
-  pixelUrl,
-  pixelTag,
-  TINYLYTICS_EMBED_CODE,
-} from "./pixel.mjs";
+export { pixelPath, pixelTag } from "./pixel.mjs";
 export { htmlToText } from "./text.mjs";
 export {
   signUnsubscribe,
