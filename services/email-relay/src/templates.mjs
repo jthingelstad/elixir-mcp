@@ -61,10 +61,10 @@ function shell({ kind, title, subtitle, preheader, body, pixel = null }) {
   });
 }
 
-const { p: para, small, h2, button: goldButton, rows } = mailParts();
-const p = (text, color = C.muted, size = 14.5) =>
+const { p: para, small, h2, button: primaryButton, rows } = mailParts();
+const p = (text, color = C.muted, size = 16) =>
   para(text, { color, size, mb: 14 });
-const button = (href, label) => goldButton(label, href, { tag: false });
+const button = (href, label) => primaryButton(label, href, { tag: false });
 
 export function renderEmail(msg) {
   // A product kind (a weekly report, a milestone) is rendered where the
@@ -161,7 +161,7 @@ export function renderEmail(msg) {
             },
             {
               title: "Your own agent",
-              text: `Connect it to <span style="font-family:${MONO};font-size:12.5px;">elixir.poapkings.com/mcp</span> and ask what the game can&rsquo;t answer.`,
+              text: `Connect it to <span style="font-family:${MONO};font-size:12px;">elixir.poapkings.com/mcp</span> and ask what the game can&rsquo;t answer.`,
             },
           ]),
           small(
@@ -230,7 +230,7 @@ export function renderEmail(msg) {
                      ([k, v]) =>
                        `<tr>
                           <td style="padding:8px 10px 8px 0;border-bottom:1px solid ${C.edge};font-family:${FONT};font-size:12px;color:${C.faint};width:32%;vertical-align:top;">${esc(k.replaceAll("_", " "))}</td>
-                          <td style="padding:8px 0;border-bottom:1px solid ${C.edge};font-family:${FONT};font-size:13.5px;line-height:1.5;color:${C.muted};word-break:break-word;overflow-wrap:anywhere;">${esc(v)}</td>
+                          <td style="padding:8px 0;border-bottom:1px solid ${C.edge};font-family:${FONT};font-size:14px;line-height:1.5;color:${C.muted};word-break:break-word;overflow-wrap:anywhere;">${esc(v)}</td>
                         </tr>`,
                    )
                    .join("")}

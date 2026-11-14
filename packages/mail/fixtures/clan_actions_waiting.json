@@ -10,13 +10,15 @@
    "title": "Promote to Elder: Newt Quiet",
    "reason": "In line for promotion on 3 weekly reviews (needs 3). Elders hold 6 places, and your clan aims for 8.",
    "number": 41,
-   "new": true
+   "new": true,
+   "player_tag": "#0CLVCJQG"
   },
   {
    "title": "Welcome back: Hollow Wren é⚡",
    "reason": "Joined {{when:2026-09-25T15:04:00.000Z}}. Welcome them in clan chat, then mark it done.",
    "number": 40,
-   "new": true
+   "new": true,
+   "player_tag": "#0C8Q20PV"
   },
   {
    "title": "Welcome: Sunny Lynx",
@@ -25,5 +27,9 @@
    "new": false
   }
  ],
- "link": "https://elixir.poapkings.com/clan/J2RGCRVG/feed"
+ "link": "https://elixir.poapkings.com/clan/J2RGCRVG/feed",
+ "player_verifications": {
+  "#0CLVCJQG": true,
+  "#0C8Q20PV": false
+ }
 }

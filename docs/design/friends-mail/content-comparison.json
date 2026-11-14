@@ -1,0 +1,110 @@
+[
+  {
+    "name": "feedback_answer",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "owner_notify-gateway_request",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "feedback_answer-planned",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "owner_notify-generic",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "tracking_report-daily",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "collector_activity-upgrade-missing",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "login",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "login-client-link",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "tracking_report",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "owner_notify-feedback",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "login-code-only",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "owner_notify-gateway_silent",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "clan_actions_waiting",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "login-oauth",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "tracking_report-you-only",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "collector_activity-upgrade-test",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "feedback_answer-declined",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "feedback_answer-question-shipped",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "collector_activity",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "welcome",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "collector_activity-silent",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "clan_actions_waiting-many",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "collector_activity-upgrade",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "owner_notify-gateway_quarantined",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "feedback_answer-needs_info",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "clan_actions_waiting-one",
+    "sameWordsAndLinks": true
+  },
+  {
+    "name": "feedback_answer-seen",
+    "sameWordsAndLinks": true
+  }
+]

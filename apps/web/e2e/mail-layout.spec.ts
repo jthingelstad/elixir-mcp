@@ -44,6 +44,18 @@ for (const viewport of [
           }));
       });
       expect(overflow, `${name} at ${viewport.width}px`).toEqual([]);
+      for (const button of await page.locator('a[target="_blank"]').all()) {
+        const bounds = await button.boundingBox();
+        expect(
+          bounds?.height,
+          `${name}: primary action remains easy to tap`,
+        ).toBeGreaterThanOrEqual(44);
+      }
+      if (name === "tracking_report") {
+        await expect(
+          page.getByRole("img", { name: "Verified player", exact: true }),
+        ).toHaveCount(2);
+      }
       if (!message) {
         await expect(
           page.getByRole("link", { name: "Turn off this mail", exact: true }),

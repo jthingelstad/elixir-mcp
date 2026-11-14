@@ -32,6 +32,7 @@
 import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import { itemText } from "@elixir-mcp/tools/activity/summary";
 import { BIG_FIRST_KINDS, progressOf } from "@elixir-mcp/tools/friends-week";
+import { verifiedPlayerIdentities } from "@elixir-mcp/auth/player-identities";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 
 /** The items a digest tells: a highlight (the player's post), the big
@@ -416,13 +417,23 @@ export async function buildDigest({
   const following = subjects.filter(
     (s) => s.kind === "player" && !["primary", "alt"].includes(s.relationship),
   ).length;
+  // The same ownership proof as the app, captured with this issue's facts.
+  // A friend claim or chosen image alone never verifies a player.
+  const shown = followed.slice(0, PEOPLE_CAP);
+  const tags = [
+    ...new Set([...shown, ...(youHas ? [you, ...alts] : [])].map((p) => p.tag)),
+  ];
+  const identities = await verifiedPlayerIdentities(db, tags);
   return {
+    player_verifications: Object.fromEntries(
+      tags.map((tag) => [tag, identities.has(tag)]),
+    ),
     cadence,
     window: {
       from: new Date(window.fromMs).toISOString(),
       to: new Date(window.toMs).toISOString(),
     },
-    people: followed.slice(0, PEOPLE_CAP),
+    people: shown,
     more_people: Math.max(0, followed.length - PEOPLE_CAP),
     clans,
     you: youHas

@@ -109,7 +109,22 @@ test("only the account that verified a player in the clan, with the kind on, is 
       "#0UY8VUR9",
       "#0LUCVCJV",
       "#00UQL2U9",
-    ].map((t) => message(t)),
+    ].map((t) =>
+      message(t, {
+        lines: [
+          {
+            title: "Promote to Elder: <b>Ada</b>",
+            player_tag: "#0LCLRCPQ",
+            new: true,
+          },
+          {
+            title: "Remove from the clan: Quiet",
+            player_tag: "#0Q0L80CC",
+            new: false,
+          },
+        ],
+      }),
+    ),
   });
   assert.equal(r.statusCode, 200, r.body);
   const by = Object.fromEntries(
@@ -134,6 +149,12 @@ test("only the account that verified a player in the clan, with the kind on, is 
     "the app's words are escaped",
   );
   assert.ok(!msg.html.includes("<b>Ada</b>"));
+  assert.equal(
+    (msg.html.match(/aria-label="Verified player"/g) ?? []).length,
+    1,
+  );
+  assert.match(msg.text, /Ada<\/b> \(verified player\)/);
+  assert.doesNotMatch(msg.text, /Quiet \(verified player\)/);
   assert.match(
     msg.html,
     /elixir\.poapkings\.com\/clan\/0QC8RCGY\/actions\?utm_source=email/,

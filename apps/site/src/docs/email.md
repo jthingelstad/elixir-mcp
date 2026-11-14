@@ -18,6 +18,10 @@ people get. Besides it, Elixir mails you only when there is something for
 you: a clan action that is yours to do, your collector's week if you run
 one, and an answer to feedback you filed.
 
+The digest gives each friend room: their highlights and words come before
+their battle record. A gold check beside a linked player name marks a
+player verified in Elixir, even if they have not chosen an image.
+
 | Kind | When | What it is |
 |---|---|---|
 | **Your digest** | Mondays at 11:00 UTC, right after the weekly reset, or daily, or off: your choice | The people you follow and your clan's week in one story, each player once: [below](#your-digest). Skipped when nothing happened. |

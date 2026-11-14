@@ -39,6 +39,25 @@ switch is the same: the ended page, never an error.
 
 ## The shared foundation
 
+### Phone-first mail styling
+
+The shared shell uses the app's neutral dark palette, violet primary
+actions, gold brand and verified-name marks, 8 px corners, and system
+fonts. Digest people have a full-width name and highlights, then their
+record, rather than competing name and number columns. All facts and
+links remain; mail adds no new notifications or interactive controls.
+
+`buildDigest` batches the canonical `verifiedPlayerIdentities` ownership
+read for the shown people, primary and alts. Clan action lines carry their
+subject tag from the engine; `sendActionsMail` batches the same proof read
+before rendering their names. The shared query lives in auth so neither
+mail nor the website owns a second proof rule. The issue's facts store only
+`player_verifications` booleans. The renderer marks linked names only for
+explicit `true`; missing metadata in older facts produces no claim.
+No avatar is added to mail, so verification needs no image to load.
+The email-safe text check has an accessible Verified player label.
+Sent HTML remains archived as sent.
+
 ### Newsletter enrollment
 
 Website and OAuth sign-in mail for an opted-in account, and a verified
@@ -419,8 +438,8 @@ sign-in code, welcome and operator notices included:
   reader's own zone (`MAIL_SCHEDULE`); on a bulk kind the manage link
   and the turn-off; the send id with its record and feedback links; the
   disclaimer. Transactional mail has no turn-off.
-- **Palette:** `#0b0920` ground, `#120f2a` panel; wins blue and losses
-  rose; gold is the brand and the button, never a figure.
+- **Palette:** `#121218` ground, `#1c1b23` panel; wins blue and losses
+  rose; violet actions, gold brand and verified-player name checks.
 - **One preheader:** each renderer hands the shell the preheader it
   returns.
 - **Layout:** one content panel, normal-case section headings and fluid

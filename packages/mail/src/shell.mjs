@@ -18,31 +18,31 @@ export const FONT =
   "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 export const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
 
-/** The mail palette, from the boards (gen/email.py, after the relay's
- *  own): values are copied, not imported, because mail cannot read a
- *  stylesheet. A win is blue and a loss rose, everywhere Elixir draws a
- *  record; gold is the brand and the button, never a data value. */
+/** The mail palette, aligned with packages/design/src/tokens.css. Values
+ *  are copied because mail cannot read a stylesheet. A win is blue and a loss rose, everywhere Elixir draws a
+ *  record; gold marks the brand and verified players; violet is the primary action. */
 export const M = {
-  bg: "#0b0920",
-  panel: "#120f2a",
-  edge: "#2a2450",
-  ink: "#f7f4ff",
-  muted: "#c8c1e6",
-  faint: "#a99fce",
-  dim: "#7d74ad",
+  bg: "#121218",
+  panel: "#1c1b23",
+  edge: "#393540",
+  ink: "#f4f3f7",
+  muted: "#dedbe5",
+  faint: "#b9b3c4",
+  dim: "#aaa4b6",
   gold: "#f5c84c",
-  goldOn: "#241a02",
-  row: "#221c44",
-  box: "#19143a",
-  well: "#17123a",
-  pill: "#1d1840",
-  raised: "#221a52",
-  ring: "#4c4193",
-  link: "#c4b5fd",
+  action: "#bca5f5",
+  actionOn: "#121218",
+  row: "#2e2b35",
+  box: "#17161d",
+  well: "#15141b",
+  pill: "#292730",
+  raised: "#302d3a",
+  ring: "#393540",
+  link: "#bca5f5",
   win: "#7fb6f8",
   loss: "#fb7185",
   ok: "#4ade80",
-  accent: "#8b5cf6",
+  accent: "#bca5f5",
   warn: "#fcd34d",
   // Light green ink, as Elixir marks "you" everywhere.
   youInk: "#bbf7d0",
@@ -245,7 +245,7 @@ export function mailShell({
   const src = source ?? MAIL_SOURCE[kind] ?? { product: "Elixir", when: "" };
   const sourceLabel = src.product;
   const head = title
-    ? `<h1 style="margin:0;font-family:${FONT};font-size:26px;line-height:1.2;font-weight:700;color:${M.ink};">${title}</h1>
+    ? `<h1 style="margin:0;font-family:${FONT};font-size:24px;line-height:1.2;font-weight:700;color:${M.ink};">${title}</h1>
         ${subtitle ? `<p style="margin:6px 0 22px;font-family:${FONT};font-size:14px;line-height:1.5;color:${M.faint};">${subtitle}</p>` : `<div style="height:18px;line-height:18px;font-size:0;">&nbsp;</div>`}`
     : "";
   return `<!doctype html>
@@ -257,8 +257,8 @@ export function mailShell({
   <tr><td style="padding:0 4px 16px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
       <td width="36" valign="middle" style="width:36px;"><img src="${LOGO_URL}" alt="" width="36" height="36" style="display:block;width:36px;height:36px;border:0;outline:none;text-decoration:none;" /></td>
-      <td valign="middle" style="padding-left:10px;font-family:${FONT};font-size:22px;line-height:1;font-weight:700;color:${M.gold};">Elixir</td>
-      <td align="right" valign="middle"><span style="font-family:${FONT};font-size:13px;color:${M.faint};">${esc(sourceLabel)}</span></td>
+      <td valign="middle" style="padding-left:12px;font-family:${FONT};font-size:20px;line-height:1;font-weight:700;color:${M.gold};">Elixir</td>
+      <td align="right" valign="middle"><span style="font-family:${FONT};font-size:14px;color:${M.faint};">${esc(sourceLabel)}</span></td>
     </tr></table>
   </td></tr>
   <tr><td bgcolor="${M.panel}" style="background-color:${M.panel};border:1px solid ${M.edge};border-radius:8px;">
@@ -285,7 +285,7 @@ export function mailShell({
             .join(" · ")}</p>`
         : ""
     }
-    <p style="margin:0;font-size:11.5px;">${esc(DISCLAIMER)}</p>
+    <p style="margin:0;font-size:12px;">${esc(DISCLAIMER)}</p>
   </td></tr>
 </table></td></tr></table>${pixel}</body></html>`;
 }
@@ -294,32 +294,29 @@ export function mailShell({
  *  site with the mail's campaign (render.mjs); the relay's transactional
  *  mail passes none and its links stay bare. */
 export function mailParts(T = (u) => u) {
-  const p = (
-    html,
-    { color = M.muted, size = 14.5, mb = 12, extra = "" } = {},
-  ) =>
+  const p = (html, { color = M.muted, size = 16, mb = 12, extra = "" } = {}) =>
     `<p style="margin:0 0 ${mb}px;font-family:${FONT};font-size:${size}px;line-height:1.6;color:${color};${extra}">${html}</p>`;
   const small = (html, extra = "") =>
-    `<p style="margin:8px 0 0;font-family:${FONT};font-size:12.5px;line-height:1.55;color:${M.faint};${extra}">${html}</p>`;
+    `<p style="margin:8px 0 0;font-family:${FONT};font-size:12px;line-height:1.55;color:${M.faint};${extra}">${html}</p>`;
   const h2 = (text, right = "") =>
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 10px;"><tr>
-      <td><h2 style="margin:0;font-family:${FONT};font-size:17px;line-height:1.35;font-weight:700;color:${M.ink};">${esc(text)}</h2>
-      ${right ? `<div style="margin-top:3px;font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};">${right}</div>` : ""}</td></tr></table>`;
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 12px;"><tr>
+      <td><h2 style="margin:0;font-family:${FONT};font-size:20px;line-height:1.35;font-weight:700;color:${M.ink};">${esc(text)}</h2>
+      ${right ? `<div style="margin-top:3px;font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};">${right}</div>` : ""}</td></tr></table>`;
   const link = (url, text, extra = "") =>
     `<a href="${esc(T(url))}" style="color:${M.link};text-decoration:none;${extra}">${text}</a>`;
   /** One primary link. The text alternative prints its destination;
    *  HTML readers can copy the button's link without a duplicate URL. */
   const button = (label, url, { tag = true } = {}) => {
     const href = tag ? T(url) : url;
-    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;max-width:100%;"><tr><td bgcolor="${M.gold}" style="background-color:${M.gold};border-radius:6px;">
-      <a href="${esc(href)}" target="_blank" style="display:inline-block;padding:13px 20px;font-family:${FONT};font-size:15px;line-height:1.4;font-weight:700;color:${M.goldOn};text-decoration:none;border-radius:6px;">${esc(label)}</a></td></tr></table>`;
+    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;max-width:100%;"><tr><td bgcolor="${M.action}" style="background-color:${M.action};border-radius:8px;">
+      <a href="${esc(href)}" target="_blank" style="display:inline-block;padding:13px 20px;font-family:${FONT};font-size:16px;line-height:1.4;font-weight:700;color:${M.actionOn};text-decoration:none;border-radius:8px;">${esc(label)}</a></td></tr></table>`;
   };
   /** A rounded box on the panel (a deck, a battle, an action). */
-  const box = (inner, { pad = "12px 14px", mt = 0 } = {}) =>
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:${mt}px;"><tr><td bgcolor="${M.box}" style="background-color:${M.box};border-radius:6px;padding:${pad};">${inner}</td></tr></table>`;
+  const box = (inner, { pad = "16px", mt = 0 } = {}) =>
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:${mt}px;"><tr><td bgcolor="${M.box}" style="background-color:${M.box};border-radius:8px;padding:${pad};">${inner}</td></tr></table>`;
   /** The coverage note: what the mail could and could not see. */
   const cov = (html) =>
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;"><tr><td style="border-left:2px solid ${M.edge};padding:0 0 0 12px;font-family:${FONT};font-size:12.5px;line-height:1.55;color:${M.faint};">${html}</td></tr></table>`;
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;"><tr><td style="border-left:2px solid ${M.edge};padding:0 0 0 12px;font-family:${FONT};font-size:12px;line-height:1.55;color:${M.faint};">${html}</td></tr></table>`;
   /** Rows: a title, a line under it, an optional right-hand cell; a
    *  hairline between them. `mark` is a small coloured square, the
    *  mail's stand-in for the board's icons (no SVG in mail). */
@@ -328,8 +325,8 @@ export function mailParts(T = (u) => u) {
       .map(
         (it, i) =>
           `<tr>${it.mark ? `<td width="18" valign="top" style="width:18px;padding:${i ? 14 : 4}px 0 0;"><div style="width:10px;height:10px;border-radius:3px;background-color:${it.mark};font-size:0;line-height:0;">&nbsp;</div></td>` : ""}<td valign="top" style="overflow-wrap:anywhere;padding:${i ? 10 : 0}px 0 10px;${i < items.length - 1 ? `border-bottom:1px solid ${M.row};` : ""}">
-        <div style="font-family:${FONT};font-size:14.5px;font-weight:600;line-height:1.4;color:${M.ink};">${it.title}</div>
-        ${it.text ? `<div style="font-family:${FONT};font-size:13px;line-height:1.5;color:${M.muted};margin-top:2px;">${it.text}</div>` : ""}</td>${it.right != null ? `<td align="right" valign="top" style="padding:${i ? 10 : 0}px 0 10px 10px;white-space:nowrap;font-family:${FONT};font-size:13px;color:${M.muted};${i < items.length - 1 ? `border-bottom:1px solid ${M.row};` : ""}">${it.right}</td>` : ""}</tr>`,
+        <div style="font-family:${FONT};font-size:16px;font-weight:600;line-height:1.4;color:${M.ink};">${it.title}</div>
+        ${it.text ? `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};margin-top:2px;">${it.text}</div>` : ""}</td>${it.right != null ? `<td align="right" valign="top" style="padding:${i ? 10 : 0}px 0 10px 10px;white-space:nowrap;font-family:${FONT};font-size:14px;color:${M.muted};${i < items.length - 1 ? `border-bottom:1px solid ${M.row};` : ""}">${it.right}</td>` : ""}</tr>`,
       )
       .join("")}</table>`;
   return { p, small, h2, link, button, box, cov, rows };

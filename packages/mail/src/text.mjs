@@ -41,6 +41,11 @@ export function htmlToText(html) {
   s = s.replace(/<span style="display:none[^"]*"[^>]*>[\s\S]*?<\/span>/i, "");
   s = s.replace(/<head[\s\S]*?<\/head>/i, "");
   s = s.replace(/<style[\s\S]*?<\/style>/gi, "");
+  // The visual ownership check has words in the text alternative too.
+  s = s.replace(
+    /<span role="img" aria-label="Verified player"[^>]*>✓<\/span>/g,
+    "(verified player)",
+  );
   // Links: "text (href)" unless the text is the href.
   s = s.replace(
     /<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,

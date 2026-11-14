@@ -80,10 +80,10 @@ writeFileSync(
 
 writeFileSync(
   path.join(out, "index.html"),
-  `<!doctype html><meta charset="utf-8"><title>Elixir mail previews</title><body style="font-family:system-ui;background:#0b0920;color:#f7f4ff;padding:24px"><h1>Elixir mail previews</h1><ul>${written
+  `<!doctype html><meta charset="utf-8"><title>Elixir mail previews</title><body style="font-family:system-ui;background:#121218;color:#f4f3f7;padding:24px"><h1>Elixir mail previews</h1><ul>${written
     .map(
       (w) =>
-        `<li><a style="color:#c4b5fd" href="${w.name}.html">${w.name}</a> · ${w.subject} · ${(w.bytes / 1024).toFixed(1)} KB</li>`,
+        `<li><a style="color:#bca5f5" href="${w.name}.html">${w.name}</a> · ${w.subject} · ${(w.bytes / 1024).toFixed(1)} KB</li>`,
     )
     .join("")}</ul></body>`,
 );

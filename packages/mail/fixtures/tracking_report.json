@@ -145,5 +145,11 @@
   ]
  },
  "following": 5,
- "coverage": "You follow 5 people; 3 have something recorded this week. A gap means unknown. It does not mean they didn’t play."
+ "coverage": "You follow 5 people; 3 have something recorded this week. A gap means unknown. It does not mean they didn’t play.",
+ "player_verifications": {
+  "#0CLVCJQG": true,
+  "#0C8Q20PV": false,
+  "#082ULV0U": false,
+  "#20JJJ2CCRU": true
+ }
 }
