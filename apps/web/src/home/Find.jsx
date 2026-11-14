@@ -198,9 +198,9 @@ function FollowForm() {
           <>
             <FollowCost tag={tag} />
             <p className="kit-tiny">
-              Anyone with a player tag can be followed. They aren&rsquo;t told.
-              Recording starts at once; the first read usually lands within a
-              minute.
+              Anyone with a player tag can be followed. If they verified their
+              player on Elixir, their bell shows a new follower. Recording
+              starts at once; the first read usually lands within a minute.
             </p>
           </>
         )}

@@ -68,7 +68,8 @@ page's behalf; following stays the person's ask (`elixir_follow_player`).
 
 ## Following from the page
 
-**Follow** asks first. The question names the player, says they are not told,
+**Follow** asks first. The question names the player, says their bell shows
+a new follower if they verified their player on Elixir,
 and says what it costs: free when Elixir already records them, or one of your
 player slots ([What a player slot costs](/docs/recording#what-a-player-slot-costs)).
 Nothing is followed until you confirm.

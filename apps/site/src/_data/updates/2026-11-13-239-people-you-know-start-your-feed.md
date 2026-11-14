@@ -6,7 +6,7 @@ your 2v2 teammates. Each says why ("You played a friendly battle") and
 what following them costs.
 
 Everyone is ticked. Untick anyone you'd rather not follow, then tap
-**Follow these**. Nothing is followed until you tap, and nobody is told.
+**Follow these**. Nothing is followed until you tap.
 **Not now** puts it away for 30 days.
 
 People to follow and Find's From your battles now put friendly battles

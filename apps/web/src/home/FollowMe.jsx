@@ -34,7 +34,7 @@ export function FollowMePage() {
   const head = (
     <PageHead
       title="Follow in Elixir"
-      sub="Someone shared a link to follow these players. Nobody is told who follows them."
+      sub="Someone shared a link to follow these players."
     />
   );
   if (!tags)

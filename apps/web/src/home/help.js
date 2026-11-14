@@ -13,7 +13,7 @@ export const HOME_HELP = {
     docs: "home:find",
     lines: [
       "Find is where you look for people: search, a friend's tag, the clan directory and your own follow link.",
-      "Anyone with a player tag can be followed. They aren't told.",
+      "Anyone with a player tag can be followed. If they verified their player on Elixir, their bell shows a new follower.",
     ],
   },
   you: {
