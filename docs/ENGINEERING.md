@@ -38,15 +38,15 @@ Consecutive 403s open a per-collector breaker and drain it.
 
 ## What gets recorded
 
-- **Recording follows tracking.** `packages/claims` decides who is recorded
+- **Recording follows a follow.** `packages/claims` decides who is recorded
   and why: a person's players and the players and clans they follow, in
   one pooled set of slots per person and their agents. Nothing is recorded
   for its own sake.
-- **A clan nobody tracks keeps only its tracked players.** A roster poll of
-  such a clan writes membership, role and roster rows only for the tracked
+- **A clan nobody follows keeps only its followed players.** A roster poll of
+  such a clan writes membership, role and roster rows only for the followed
   players on it, plus the clan's name, and no clan day row
   (`rosterRecords` in `packages/ingest/src/roster.mjs`). A retained battle
-  keeps every participant, so a later-tracked opponent's history is whole.
+  keeps every participant, so a later-followed opponent's history is whole.
 - **Retired endpoints are refused at every boundary.** Board and other
   retired recording endpoints are listed in
   `packages/contracts/src/recording-policy.ts` (`RETIRED_RECORDING_ENDPOINTS`)
@@ -700,7 +700,7 @@ invariants:
 
 `npm run verify` is the pre-push gate and CI's `validate` check (which also
 builds the site and runs the Playwright journeys): formatting, lint, knip,
-the TypeScript check over the console and the kit, all workspace tests and
+the TypeScript check over the web app and the kit, all workspace tests and
 the Lambda bundles. CI splits it across parallel jobs (`static`, three
 `test` shards, three `e2e` shards); `validate` passes only when each one
 it needed did. The test runner (`infra/scripts/test.mjs`) builds the

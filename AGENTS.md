@@ -71,7 +71,7 @@ not a feature to preserve.
 | Area | Guide |
 | --- | --- |
 | Home, Settings, Admin and the shared web shell | `apps/web/AGENTS.md` |
-| Ladder | `apps/web/src/ladder/AGENTS.md` |
+| Stats (the code keeps the name `ladder`) | `apps/web/src/ladder/AGENTS.md` |
 | Clan | `packages/clan/AGENTS.md` (engine, state and views: their own short guides) |
 | MCP tools | `packages/tools/AGENTS.md` |
 | The site and public docs | `apps/site/AGENTS.md` |

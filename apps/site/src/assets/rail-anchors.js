@@ -1,6 +1,6 @@
 /**
  * A page rail whose items are anchors on the same document (Data): mark
- * the section the reader is in as they scroll, the way the console rail
+ * the section the reader is in as they scroll, the way the Settings rail
  * marks its current item. Without JavaScript the links still jump.
  *
  * External file, never inline: the CSP forbids inline script and a test
@@ -25,7 +25,7 @@
         a.classList.toggle("rail__item--on", on);
       if (on) a.setAttribute("aria-current", "location");
       else a.removeAttribute("aria-current");
-      // The head row names where you are, the way the console rail does.
+      // The head row names where you are, the way the Settings rail does.
       if (on && here) here.textContent = a.textContent.trim();
     }
   }

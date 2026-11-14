@@ -15,7 +15,7 @@ class, and the reason this skill exists.
   back a day. Boat defenses were excluded from `clans_standings` only.
 - Fix: realize it on every surface in the decision's `facets.md` row.
 - Guard: a test that asserts the decision on the second derivation (mail
-  builder, timeline entry, console) as well as the tool; an acceptance
+  builder, timeline entry, web app) as well as the tool; an acceptance
   case comparing two tools that compute the same fact.
 
 ## contradicted

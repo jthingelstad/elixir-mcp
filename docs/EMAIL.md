@@ -250,11 +250,11 @@ friends mail counted them. Attested facts never enter
   `clanmate: {tag, name}` ("In <clan>"), and a `clan_joined`/`clan_left`
   item whose clan has a clan part is told there, not again under the
   person.
-- **Your clan:** each tracked clan with news of its own (`clanNews`): a
+- **Your clan:** each followed clan with news of its own (`clanNews`): a
   resolved race (place and fame, Colosseum named), joins, departures and
   role changes, as a headline and three bullets with the rest counted.
   A clan's battle count and gone-quiet are members' play and are not
-  repeated here. An account made after 0205 tracks its primary player's
+  repeated here. An account made after 0205 follows its primary player's
   clan automatically (`followPrimaryClan`), so a new member gets it.
 - **You:** your items and progress, and each alt that played or has a
   first, with its items and progress.

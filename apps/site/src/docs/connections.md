@@ -132,8 +132,7 @@ refused rather than quietly answering about the wrong subject.
 The top bar holds **Home**, **Find** and **Clan**, with search, Help and the
 bell beside them. A phone has **Home**, **Find**, **Clan**, **You** and the
 bell as tabs at its foot; on a wide screen the account menu is You. **You**
-is your own player's page, with **Stats** (your season, read back; it was
-Ladder) as its last tab. **Settings**, in the
+is your own player's page, with **Stats** (your season, read back) as its last tab. **Settings**, in the
 account menu, holds what we
 record for you and who can call on your behalf, and each agent you own has a
 page of its own there (below). On a wide screen a rail stays in view as a page scrolls;
@@ -141,7 +140,7 @@ on a phone it folds into one row above the page.
 
 | Page | What it does |
 |---|---|
-| Home | one feed of the last seven days, newest first, beside your week and your clan: what happened to the players and clans you follow, your clan and you, the same items your connections read with `elixir_timeline` ([Home's feed](/docs/timeline#homes-feed)). A new account gets its steps until the first read lands. Opening Home marks what is new since your last visit; it never changes what your connections have read ([its own place](#home-keeps-its-own-place-in-the-timeline)) |
+| Home | one feed of the last seven days, newest first, beside your week and your clan: what happened to the players and clans you follow, your clan and you, the same items your connections read with `elixir_timeline` ([Home's feed](/docs/timeline#homes-feed)). A new account opens on its four [Welcome to Elixir](/docs/timeline#welcome-to-elixir) steps until they are done. Opening Home marks what is new since your last visit; it never changes what your connections have read ([its own place](#home-keeps-its-own-place-in-the-timeline)) |
 | Find | your clan's members, search and **Follow a friend** by tag, the players you met in your battles, the clan directory and your own Follow me link ([Find](/docs/follow-a-friend#find)) |
 | You | your primary player's own page once you have [verified](/docs/verify) it, with a **Stats** tab ([your season, read back](/docs/ladder)); your other players, listed to you alone; Settings, Play Drop and signing out. With no verified player, You says how to verify one |
 | The bell | what is about you, not your friends: cheers on your items (counts, never who), new followers, your clan's Actions waiting on you as a leader, an old key still trying to connect, answers to your feedback, and what changed on your account ([the bell](/docs/your-account#the-bell)). A dot shows while something needs you or something came since you last opened it |
@@ -153,7 +152,7 @@ on a phone it folds into one row above the page.
 | Page | What it does |
 |---|---|
 | Profile | your address, the timezone your date windows use and Elixir prints every time in (a new account starts on its signup browser's; UTC when it has none), and closing your account |
-| Emails | a switch for each email, and **All sent**, the emails Elixir sent you |
+| Emails | your digest (**Weekly**, **Daily** or **Off**), a switch for each other email, and **All sent**, the emails Elixir sent you ([Turn an email off](/docs/turn-an-email-off)) |
 | Players & following | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start following someone and set a nickname with its tools |
 | Players & following › Verify | prove that you control a player by playing one battle with a deck Elixir names |
 | Connections & agents | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its pages; **New agent**; Discord sharing for your timeline; [your RSS link](/docs/timeline#your-rss-link); and the question to try once your agent can answer |
