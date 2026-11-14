@@ -689,6 +689,43 @@ private state is read through the IAM-only `{clan_maintenance}` op
   lock. Neither changes a policy or sends a message; read pointers never
   change. `reconcile_removal` is Jamie's incident repair.
 
+## Passport launch backfill
+
+Stamps (#1015) count from the deploy that applies migration 0272: it
+writes the launch instant (`passport_launch.launched_at`) as it runs,
+before the earning code serves. A Stamp level whose evidence predates
+that instant is filed "Earned before <launch day>" and is never a "New
+Stamp" line in the bell; each account made before launch gets one "Your
+passport is ready" line instead. That holds on every path, so the order
+is safe whatever happens first: an account's first hook or
+reconciliation after the deploy files its setup Stamps as they stood at
+launch, and the operator's backfill does the same. The backfill adds the
+history no live path reads: Played Together over the year the record
+keeps, highlights and cheers on other people's items from before launch.
+
+Order:
+
+1. Deploy `main` with 0272 (the normal `deploy.mjs`). Nothing else is
+   needed for the bell to stay quiet.
+2. After the deploy, never beside one, a dry run (it takes the lock: it
+   writes each account and rolls back):
+   `npm run op -- '{"passport_backfill": {}}'`.
+   It answers counts only: `accounts` read, `accounts_granted`,
+   `setup_settled` (accounts whose launch-time setup Stamps it filed),
+   `granted` (`{stamp: {level: accounts}}`), `facts` by ladder, `failed`,
+   `after`, `done`, `remaining` and `ms`. A batch is 200 accounts or 45 s.
+3. **WRITE**: `npm run op -- '{"passport_backfill": {"apply": true}}'`,
+   then again with `"after": "<the after it answered>"` until
+   `"done": true`. A second run grants nothing; a stopped run is resumed
+   from its `after` or simply run again. `failed` accounts were rolled
+   back; a later run tries them again.
+
+It only adds legacy rows and facts; it never removes or lowers anything.
+It undercounts by design: a cheer taken back, a highlight deleted, a
+follow since dropped, battles past the year, a picture or place saved
+again after launch, and a relationship changed without a timestamp are
+not recoverable. Details: `docs/notes/2026-11-14-passport-backfill.md`.
+
 ## Restore rehearsal
 
 Declined. DECISIONS lists "Database restore readiness work" under

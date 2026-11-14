@@ -1,11 +1,16 @@
 # Passports and Stamps
 
-Design direction, 2026-11-14. **Earning built; the pages are not.**
+Design direction, 2026-11-14. **Earning and the backfill built; the pages are not.**
 The catalog, eligibility, storage and two signed-in passport reads exist
 (`packages/stamps`, migrations 0269 and 0270). Real writes grant Stamps
 through hooks, the owner's reconciliation repairs and grants the rest,
-and a new Stamp is one line in the bell. No page shows a passport yet,
-Home has no profile list, and nobody's history is backfilled. The clickable sample is in
+and a new Stamp is one line in the bell. History before launch is
+"Earned before <launch day>" and never a bell line: migration 0272 stores
+the launch instant, every grant path files what predates it as legacy,
+an account made before launch gets one "Your passport is ready" line,
+and the operator's `{passport_backfill}` adds the history no live path
+reads (docs/OPERATIONS.md, Passport launch backfill). No page shows a
+passport yet and Home has no profile list. The clickable sample is in
 [the passport design](../design/passport/README.md); the build plan is
 [the build handoff](../plans/stamps-build.md).
 
