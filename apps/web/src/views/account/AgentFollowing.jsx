@@ -163,7 +163,7 @@ export function AgentFollowing({ agent }) {
           <label>
             Clan tag
             <input
-              className="mono"
+              className="mono-tag"
               placeholder="#CLANTAG"
               value={clanTag}
               onChange={(ev) => setClanTag(ev.target.value)}
@@ -261,7 +261,7 @@ export function AgentFollowing({ agent }) {
           <label>
             Player tag
             <input
-              className="mono"
+              className="mono-tag"
               placeholder="#0PJCLJYP"
               value={playerTag}
               onChange={(ev) => setPlayerTag(ev.target.value)}

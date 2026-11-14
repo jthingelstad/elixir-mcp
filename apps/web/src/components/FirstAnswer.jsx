@@ -129,7 +129,7 @@ export function FirstAnswer({
             <p className="font-semibold">{next.state}</p>
             <p>
               Clash Royale answered “not found” for{" "}
-              <span className="mono">{data.player.player_tag}</span>{" "}
+              <span className="mono-tag">{data.player.player_tag}</span>{" "}
               {ago(next.failedAt)}, so nothing is being recorded. Check the tag:
               in the game it is on the player&rsquo;s profile, below the name.
               Elixir asks the game again in about a day, in case the tag is

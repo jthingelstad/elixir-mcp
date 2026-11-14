@@ -86,7 +86,9 @@ function ActionRow({ action, clan, navigate }) {
       <span className="grid min-w-0 flex-auto gap-0.5">
         <span className="text-(length:--t-panel-head) font-semibold text-ink">
           {Number.isInteger(n) ? (
-            <span className="mono mr-2 font-normal text-ink-faint">#{n}</span>
+            <span className="mono-num mr-2 font-normal text-ink-faint">
+              #{n}
+            </span>
           ) : null}
           {action.label}
         </span>

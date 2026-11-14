@@ -754,7 +754,8 @@ function Ended({ battle, sides, game, title }) {
                   <TagText>{namesOf(s)}</TagText>
                   {left !== null && (
                     <span className="battle-ended__left">
-                      <span className="mono">{num(left)}</span> hitpoints left
+                      <span className="mono-num">{num(left)}</span> hitpoints
+                      left
                       {game && typeof leak === "number"
                         ? ` · ${fixed(leak, 2)} elixir leaked`
                         : ""}
@@ -783,7 +784,7 @@ function SideBySide({ battle, sides }) {
   const edge = battle.deck_level_edge;
   const level = (p, sign) => (
     <>
-      <span className="mono">{fixed(p.deck?.average_level, 1)}</span>
+      <span className="mono-num">{fixed(p.deck?.average_level, 1)}</span>
       {typeof edge === "number" && edge * sign > 0 && (
         <span className="battle__note"> +{fixed(Math.abs(edge), 2)}</span>
       )}
@@ -927,7 +928,7 @@ function Meetings({ read }) {
         {modes.size === 1 && (
           <span className="battle__note">
             {MODE_LABEL[[...modes][0]] ?? ""}{" "}
-            <span className="mono">
+            <span className="mono-num">
               {w}–{lost}
             </span>
           </span>

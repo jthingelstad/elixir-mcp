@@ -98,7 +98,7 @@ export function FixTag({ claim, refresh, navigate, stop }) {
         <input
           id="fix-tag-input"
           ref={input}
-          className="mono w-[11rem]"
+          className="mono-tag w-[11rem]"
           placeholder="#0PJCLJYP"
           aria-invalid={problem || bad || replace.error ? "true" : undefined}
           aria-describedby="fix-tag-help"
