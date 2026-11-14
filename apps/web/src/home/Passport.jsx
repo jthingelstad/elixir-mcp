@@ -14,7 +14,7 @@ import {
   StampMark,
   StampTile,
   TagText,
-  stampDay,
+  earnedDay,
   stampTitle,
   useFlash,
 } from "@elixir-mcp/ui";
@@ -144,7 +144,9 @@ function PassportView({ data, owner, yours, stampId }) {
   return (
     <div className="kit-home kit-passport">
       <PageHead
-        title={owner ? "Your passport" : <TagText>{`${name}’s passport`}</TagText>}
+        title={
+          owner ? "Your passport" : <TagText>{`${name}’s passport`}</TagText>
+        }
         sub={
           owner
             ? "Small marks for your Elixir story."
@@ -181,7 +183,9 @@ function PassportView({ data, owner, yours, stampId }) {
                     day={e ? (e.earned_on ?? e.earned_before) : null}
                     before={Boolean(e && !e.earned_on && e.earned_before)}
                     tilt={i}
-                    label={e ? "Earned" : s.optional ? "Optional" : "Not earned"}
+                    label={
+                      e ? "Earned" : s.optional ? "Optional" : "Not earned"
+                    }
                     name={`${stampTitle(s, e?.level ?? 0)}. ${statusLine(s, e)}`}
                     onClick={() => go(s.id)}
                   />
@@ -217,9 +221,11 @@ function PassportView({ data, owner, yours, stampId }) {
 /** "Earned 14 November 2026", "Earned before 14 November 2026", or what
  *  is still ahead, in words. */
 function statusLine(stamp, entry) {
-  if (!entry) return stamp.optional ? "Optional. Not earned yet." : "Not earned yet.";
-  if (entry.earned_on) return `Earned ${stampDay(entry.earned_on)}.`;
-  if (entry.earned_before) return `Earned before ${stampDay(entry.earned_before)}.`;
+  if (!entry)
+    return stamp.optional ? "Optional. Not earned yet." : "Not earned yet.";
+  if (entry.earned_on) return `Earned ${earnedDay(entry.earned_on)}.`;
+  if (entry.earned_before)
+    return `Earned before ${earnedDay(entry.earned_before)}.`;
   return "Earned.";
 }
 
@@ -353,8 +359,8 @@ function StampSheet({ stamp, entry, mine, owner, clanTag, onClose }) {
         ) : null}
         {owner && pr && !done && pr.next != null && (ladder || pr.next > 1) ? (
           <p>
-            Your progress: {pr.count} of {pr.next}{" "}
-            {unitWord(stamp.id, pr.next)}.
+            Your progress: {pr.count} of {pr.next} {unitWord(stamp.id, pr.next)}
+            .
           </p>
         ) : null}
         {owner && pr?.unknown && !done ? (

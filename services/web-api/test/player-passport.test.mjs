@@ -177,7 +177,13 @@ test("the row carries its three fields and none of the passport's private parts"
       }
   };
   walk(row);
-  assert.deepEqual([...keys].sort(), ["count", "id", "level", "marks", "stamp_id"]);
+  assert.deepEqual([...keys].sort(), [
+    "count",
+    "id",
+    "level",
+    "marks",
+    "stamp_id",
+  ]);
   const text = JSON.stringify(row);
   for (const leak of [...PASSPORT_LEAKS, OWNER, DISCORD, NICK, "earned_on"])
     assert.ok(!text.includes(leak), `leaked ${leak}`);
@@ -188,9 +194,24 @@ test("summarize: the count, and the two most recent marks, a legacy grant by its
     summarize({
       id: PASSPORT,
       earned: [
-        { stamp_id: "looking_good", level: 1, earned_on: null, earned_before: "2026-11-20" },
-        { stamp_id: "linked", level: 1, earned_on: "2026-11-01", earned_before: null },
-        { stamp_id: "mutual", level: 1, earned_on: "2026-11-12", earned_before: null },
+        {
+          stamp_id: "looking_good",
+          level: 1,
+          earned_on: null,
+          earned_before: "2026-11-20",
+        },
+        {
+          stamp_id: "linked",
+          level: 1,
+          earned_on: "2026-11-01",
+          earned_before: null,
+        },
+        {
+          stamp_id: "mutual",
+          level: 1,
+          earned_on: "2026-11-12",
+          earned_before: null,
+        },
       ],
     }),
     {
