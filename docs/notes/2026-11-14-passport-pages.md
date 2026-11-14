@@ -41,7 +41,8 @@ slice 2 and the page half of slice 5).
   identity and a passport preview. Profile's Main player uses `PlayerName`
   with its verified state. There is no sixth tab.
 - **`GET /api/player`** gains `passport: {id, count, marks} | null`.
-  `readPlayerPassport` (`packages/stamps/src/summary.mjs`) finds the
+  `readPlayerPassport` (`packages/stamps/src/store.mjs`, beside
+  `readPublicPassport`; the pure `summarize` is in `projection.mjs`) finds the
   player's canonical verified owner with the same rule as the player
   page's verified account, so a verified main and a verified alt name the
   same passport. An unverified claim, a player nobody holds and an owner
@@ -51,12 +52,22 @@ slice 2 and the page half of slice 5).
   its privacy test uses the same forbidden list as the projection's
   (`services/web-api/test/passport-privacy.mjs`).
 
+- **Reconciliation on open.** Your own passport calls
+  `POST /api/me/passport/reconcile` after it shows, again while the answer
+  says `more`, three passes at most (`reconcilePassport` in
+  `apps/web/src/lib/passport.js`, the hook `useReconcilePassport` in
+  `lib/queries.js`, so Home can call the same thing). A failure is quiet:
+  the passport on screen stays as it is. When a pass grants a Stamp, the
+  passport and the bell read again. Another member's passport never
+  reconciles.
+- **The bell's Stamp line** links with `passportHref(null, stampId)`, the
+  same `/home/passport?stamp=<id>` the page opens; a journey taps it and
+  sees the sheet open, then focus land on the tile when it closes.
+
 ## Open
 
-- `summary.mjs` reads the 0269 tables beside `store.mjs`, which is the
-  earning side's file. It may move into the store when that side settles.
-- Nothing writes Stamps yet, so live passports show only what the store
-  holds. The bell can link a new Stamp with `passportHref(null, stampId)`.
 - No analytics events for the passport.
 - `/home/passport/<id>` sits under Find in the bottom bar; your own
   passport sits under You.
+- The profile list on Home, which would call the same reconciliation, is
+  not built.
