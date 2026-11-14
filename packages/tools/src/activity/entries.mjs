@@ -1206,14 +1206,17 @@ const ledgerInWindow = (r, fromMs, toMs, basis) => {
   return t > fromMs && t <= toMs;
 };
 
+/** The player's ledger rows a window selects (`tagSql` names the player). */
+const playerLedgerSql = (tagSql, fromMs, toMs, basis) =>
+  `select ${PLAYER_EVENT_COLUMNS}
+     from player_event
+    where player_tag = ${tagSql} and ${ledgerWindowSql("", fromMs, toMs, basis)}
+    order by event_id`;
+
 async function playerLedger(db, tag, fromMs, toMs, basis) {
-  const { rows } = await db.query(
-    `select ${PLAYER_EVENT_COLUMNS}
-       from player_event
-      where player_tag = $1 and ${ledgerWindowSql("", fromMs, toMs, basis)}
-      order by event_id`,
-    [tag],
-  );
+  const { rows } = await db.query(playerLedgerSql("$1", fromMs, toMs, basis), [
+    tag,
+  ]);
   return (await hydratePlayerEvents(db, rows)).filter((r) =>
     ledgerInWindow(r, fromMs, toMs, basis),
   );
@@ -1392,6 +1395,83 @@ async function prefetchPlayers(
     ids: hashes.length ? await deckIdentities(db, hashes) : new Map(),
     titles: await eventTitles(db, events),
   };
+  // The rest of an entry's per-player reads (2026-11-13: about seven
+  // statements a player, 400-odd for a full follow list): who the player
+  // is, the window's ledger rows and clan moves, the presence reads, and
+  // the sittings' anchors and moments' first ids, each read once for
+  // every tag. Each per-player statement runs per tag inside one
+  // statement (perTag), on its player's own index range; the reads keyed
+  // by a row's own id (hydration, first ids, arena names) take every
+  // player's rows at once, as they take one player's.
+  const groupBy = (rows) => {
+    const out = new Map(tags.map((t) => [t, []]));
+    for (const { batch_tag: t, ...row } of rows) out.get(t)?.push(row);
+    return out;
+  };
+  const who = groupBy((await db.query(perTag(WHO_SQL("t.tag")), [tags])).rows);
+  const raw = groupBy(
+    (
+      await db.query(
+        perTag(playerLedgerSql("t.tag", fromMs, toMs, basis), "x.event_id"),
+        [tags],
+      )
+    ).rows,
+  );
+  const hydrated = new Set(
+    await hydratePlayerEvents(db, [...raw.values()].flat()),
+  );
+  const ledger = new Map(
+    tags.map((t) => [
+      t,
+      raw
+        .get(t)
+        .filter(
+          (r) => hydrated.has(r) && ledgerInWindow(r, fromMs, toMs, basis),
+        ),
+    ]),
+  );
+  const moves = groupBy(
+    (
+      await db.query(
+        perTag(
+          clanMovesSql("t.tag", fromMs, toMs),
+          "coalesce(x.left_observed_at, x.joined_observed_at)",
+        ),
+        [tags],
+      )
+    ).rows,
+  );
+  const played = new Map(
+    tags.map((t) => [t, playedOf(battles.get(t).wide, fromMs, basis)]),
+  );
+  const presence = await presenceBatch(db, tags, played, toMs);
+  const sessions = new Map(
+    tags.map((t) => [
+      t,
+      windowSessions(battles.get(t).wide, played.get(t), toMs),
+    ]),
+  );
+  const sittings = tags.flatMap((t) =>
+    sessions.get(t).map((s) => sittingOf(t, s)),
+  );
+  const anchors = await sittingAnchors(db, sittings);
+  const anchorsOf = new Map();
+  for (const [i, s] of sittings.entries())
+    anchorsOf.set(s.player_tag, [
+      ...(anchorsOf.get(s.player_tag) ?? []),
+      anchors[i],
+    ]);
+  const firstIds = await firstEventIds(
+    db,
+    "player_event",
+    [...ledger.values()].flat().filter(momentRow),
+  );
+  const arenaNames = await arenaNamesFor(
+    db,
+    tags.flatMap((t) =>
+      arenaIdsOf(before.get(t) ?? null, after.get(t) ?? null, ledger.get(t)),
+    ),
+  );
   return new Map(
     tags.map((t) => [
       t,
@@ -1400,48 +1480,169 @@ async function prefetchPlayers(
         before: before.get(t) ?? null,
         after: after.get(t) ?? null,
         named,
+        who: who.get(t),
+        ledger: ledger.get(t),
+        moves: moves.get(t),
+        presence: presence.get(t),
+        anchors: anchorsOf.get(t) ?? [],
+        firstIds,
+        arenaNames,
       },
     ]),
   );
 }
 
-async function presenceOf(db, tag, played, fromMs, toMs) {
-  const { rows: lastRows } = await db.query(
-    `select max(bp.battle_time) as last_battle
-       from battle_participant bp
-      where bp.player_tag = $1 and bp.battle_time < ${ts(toMs + 1)}`,
-    [tag],
+/** Who a player is now: name, clan and role (`tagSql` names the player). */
+const WHO_SQL = (tagSql) =>
+  `select p.name, cm.clan_tag, c.name as clan_name, cm.role
+     from player p
+     left join clan_membership cm
+       on cm.player_tag = p.player_tag and cm.left_observed_at is null
+     left join clan c on c.clan_tag = cm.clan_tag
+    where p.player_tag = ${tagSql}`;
+
+/** The player's clan joins and leaves the window observed. */
+const clanMovesSql = (tagSql, fromMs, toMs) =>
+  `select cm.clan_tag, c.name as clan_name, cm.role, cm.baseline,
+          cm.joined_observed_at, cm.left_observed_at
+     from clan_membership cm
+     left join clan c on c.clan_tag = cm.clan_tag
+    where cm.player_tag = ${tagSql}
+      and ((cm.joined_observed_at >= ${ts(fromMs + 1)} and cm.joined_observed_at < ${ts(toMs + 1)})
+        or (cm.left_observed_at >= ${ts(fromMs + 1)} and cm.left_observed_at < ${ts(toMs + 1)}))
+    order by coalesce(cm.left_observed_at, cm.joined_observed_at)`;
+
+/** The window's battles of the wider fetch (playerBattles' `rows`). */
+const playedOf = (wide, fromMs, basis) =>
+  basis === "occurred"
+    ? wide.filter((r) => r.battle_time.getTime() > fromMs)
+    : wide;
+
+/** Whole sittings from the wider fetch, kept when the window holds one of
+ *  their battles (not yet named: nameSessions). */
+const windowSessions = (wide, played, toMs) => {
+  const inWindow = new Set(played);
+  return sessionsOf(wide, toMs, { learned: (b) => inWindow.has(b) }).filter(
+    (x) => x.learned_at !== null,
   );
-  const lastBattle = lastRows[0]?.last_battle ?? null;
+};
+
+/** A sitting as sittingAnchors reads it. */
+const sittingOf = (tag, s) => ({
+  player_tag: tag,
+  startMs: Date.parse(s.started_at),
+  upToMs: Date.parse(s.ended_at),
+});
+
+/** A ledger row the timeline tells as a moment of its own. */
+const momentRow = (r) =>
+  PLAYER_MOMENT_KINDS.includes(r.event_type) &&
+  (r.event_type !== "badge_earned" || badgeItemWorthy(r.payload));
+
+/** The arenas an entry names: the profile's at each end, and the ledger's
+ *  arena moves. */
+const arenaIdsOf = (before, after, ledger) => [
+  ...(before && after && after.arena_id !== null && before.arena_id !== null
+    ? [before.arena_id, after.arena_id]
+    : []),
+  ...ledger
+    .filter((r) => r.event_type === "arena_changed")
+    .flatMap((r) => [r.payload.from, r.payload.to]),
+];
+
+/** presenceOf's three statements, each once for every tag: the last
+ *  battle by the window's end, the last before the window's first
+ *  battle (players who played in it), and the last battle-log read. */
+async function presenceBatch(db, tags, played, toMs) {
+  const out = new Map(
+    tags.map((t) => [
+      t,
+      { lastBattle: null, prior: null, daysSincePoll: null },
+    ]),
+  );
+  for (const r of (await db.query(perTag(lastBattleSql("t.tag", toMs)), [tags]))
+    .rows)
+    out.get(r.batch_tag).lastBattle = r.last_battle ?? null;
+  const firsts = tags.filter((t) => played.get(t).length > 0);
+  if (firsts.length)
+    for (const r of (
+      await db.query(
+        `select t.tag as batch_tag, x.t
+           from unnest($1::text[], $2::bigint[]) with ordinality as t(tag, first_ms, ord)
+           cross join lateral (
+             select max(bp.battle_time) as t from battle_participant bp
+              where bp.player_tag = t.tag
+                and bp.battle_time < to_timestamp(t.first_ms / 1000.0)
+             offset 0) x
+          order by t.ord`,
+        [
+          firsts,
+          firsts.map((t) =>
+            String(Math.floor(played.get(t)[0].battle_time.getTime())),
+          ),
+        ],
+      )
+    ).rows)
+      out.get(r.batch_tag).prior = r.t ?? null;
+  for (const r of (
+    await db.query(
+      perTag(
+        `select ${daysSincePollSql("t.tag", ts(toMs), ts(toMs + 1))} as days_since_poll`,
+      ),
+      [tags],
+    )
+  ).rows)
+    out.get(r.batch_tag).daysSincePoll = r.days_since_poll ?? null;
+  return out;
+}
+
+const lastBattleSql = (tagSql, toMs) =>
+  `select max(bp.battle_time) as last_battle
+     from battle_participant bp
+    where bp.player_tag = ${tagSql} and bp.battle_time < ${ts(toMs + 1)}`;
+
+/** A player's presence; `read` is their share of presenceBatch, or null
+ *  to read alone. */
+async function presenceOf(db, tag, played, fromMs, toMs, read = null) {
+  const lastBattle = read
+    ? read.lastBattle
+    : ((await db.query(lastBattleSql("$1", toMs), [tag])).rows[0]
+        ?.last_battle ?? null);
   const daysQuiet = lastBattle
     ? Math.floor((toMs - lastBattle.getTime()) / DAY_MS)
     : null;
   let returned = null;
   if (played.length > 0) {
     const firstIn = played[0].battle_time.getTime();
-    const { rows: prior } = await db.query(
-      `select max(bp.battle_time) as t from battle_participant bp
-        where bp.player_tag = $1 and bp.battle_time < ${ts(firstIn)}`,
-      [tag],
-    );
-    const t = prior[0]?.t;
+    const t = read
+      ? read.prior
+      : (
+          await db.query(
+            `select max(bp.battle_time) as t from battle_participant bp
+              where bp.player_tag = $1 and bp.battle_time < ${ts(firstIn)}`,
+            [tag],
+          )
+        ).rows[0]?.t;
     if (t) {
       const gap = Math.floor((firstIn - t.getTime()) / DAY_MS);
       if (gap >= RETURN_AFTER_DAYS)
         returned = { after_days: gap, at: iso(firstIn) };
     }
   }
-  const { rows: pollRows } = await db.query(
-    // Null only when no read at or before the window's end exists (Gym
-    // #119: a negative day count read as nonsense). The last battle-log
-    // read at or before the window's end (Gym #163: poll_state holds only
-    // the latest read, so a past window had read null whenever a later
-    // poll existed), from poll_state and the stretches unread (0259:
-    // receipts are kept 28 days).
-    `select ${daysSincePollSql("$1", ts(toMs), ts(toMs + 1))} as days_since_poll`,
-    [tag],
-  );
-  const daysSincePoll = pollRows[0]?.days_since_poll ?? null;
+  const daysSincePoll = read
+    ? read.daysSincePoll
+    : ((
+        await db.query(
+          // Null only when no read at or before the window's end exists (Gym
+          // #119: a negative day count read as nonsense). The last battle-log
+          // read at or before the window's end (Gym #163: poll_state holds only
+          // the latest read, so a past window had read null whenever a later
+          // poll existed), from poll_state and the stretches unread (0259:
+          // receipts are kept 28 days).
+          `select ${daysSincePollSql("$1", ts(toMs), ts(toMs + 1))} as days_since_poll`,
+          [tag],
+        )
+      ).rows[0]?.days_since_poll ?? null);
   // A rung crossed inside the window is a moment with an instant.
   let rungCrossed = null;
   if (lastBattle) {
@@ -1561,15 +1762,7 @@ export async function buildPlayerEntry(
     lateCounts = true,
   },
 ) {
-  const { rows: who } = await db.query(
-    `select p.name, cm.clan_tag, c.name as clan_name, cm.role
-       from player p
-       left join clan_membership cm
-         on cm.player_tag = p.player_tag and cm.left_observed_at is null
-       left join clan c on c.clan_tag = cm.clan_tag
-      where p.player_tag = $1`,
-    [tag],
-  );
+  const who = prefetched?.who ?? (await db.query(WHO_SQL("$1"), [tag])).rows;
   const name = who[0]?.name ?? null;
 
   const {
@@ -1605,15 +1798,8 @@ export async function buildPlayerEntry(
     .reduce((s, b) => s + (b.trophy_change ?? 0), 0);
   // Whole sittings from the wider fetch, kept when the window holds one
   // of their battles; the counts above are the window's own.
-  const inWindow = new Set(played);
   const sessions = await timed(perf, "player.sessions", () =>
-    nameSessions(
-      db,
-      sessionsOf(wide, toMs, { learned: (b) => inWindow.has(b) }).filter(
-        (x) => x.learned_at !== null,
-      ),
-      prefetched?.named,
-    ),
+    nameSessions(db, windowSessions(wide, played, toMs), prefetched?.named),
   );
 
   const before = prefetched
@@ -1639,26 +1825,19 @@ export async function buildPlayerEntry(
   const collectionLevel = diff("collection_level");
   const wins = diff("wins");
 
-  const ledger = await timed(perf, "player.ledger", () =>
-    playerLedger(db, tag, fromMs, toMs, basis),
-  );
+  const ledger =
+    prefetched?.ledger ??
+    (await timed(perf, "player.ledger", () =>
+      playerLedger(db, tag, fromMs, toMs, basis),
+    ));
   const ofKind = (k) => ledger.filter((r) => r.event_type === k);
-  const arenaNames = await arenaNamesFor(db, [
-    ...(arena ? [arena.from, arena.to] : []),
-    ...ofKind("arena_changed").flatMap((r) => [r.payload.from, r.payload.to]),
-  ]);
+  const arenaNames =
+    prefetched?.arenaNames ??
+    (await arenaNamesFor(db, arenaIdsOf(before, after, ledger)));
 
-  const { rows: moves } = await db.query(
-    `select cm.clan_tag, c.name as clan_name, cm.role, cm.baseline,
-            cm.joined_observed_at, cm.left_observed_at
-       from clan_membership cm
-       left join clan c on c.clan_tag = cm.clan_tag
-      where cm.player_tag = $1
-        and ((cm.joined_observed_at >= ${ts(fromMs + 1)} and cm.joined_observed_at < ${ts(toMs + 1)})
-          or (cm.left_observed_at >= ${ts(fromMs + 1)} and cm.left_observed_at < ${ts(toMs + 1)}))
-      order by coalesce(cm.left_observed_at, cm.joined_observed_at)`,
-    [tag],
-  );
+  const moves =
+    prefetched?.moves ??
+    (await db.query(clanMovesSql("$1", fromMs, toMs), [tag])).rows;
   const clanChanges = [];
   for (const m of moves) {
     const j = m.joined_observed_at.getTime();
@@ -1684,7 +1863,7 @@ export async function buildPlayerEntry(
   clanChanges.sort((a, b) => a.at.localeCompare(b.at));
 
   const presence = await timed(perf, "player.presence", () =>
-    presenceOf(db, tag, played, fromMs, toMs),
+    presenceOf(db, tag, played, fromMs, toMs, prefetched?.presence ?? null),
   );
   const warBattles = played.filter(
     (b) => modeGroupOf(b.type, b.event_tag) === "war",
@@ -1845,16 +2024,14 @@ export async function buildPlayerEntry(
     subjects: [{ tag, kind: "player", name }],
   };
   const self = { player_tag: tag, name };
-  const anchored = await timed(perf, "player.sittings", () =>
-    sittingAnchors(
-      db,
-      sessions.map((s) => ({
-        player_tag: tag,
-        startMs: Date.parse(s.started_at),
-        upToMs: Date.parse(s.ended_at),
-      })),
-    ),
-  );
+  const anchored =
+    prefetched?.anchors ??
+    (await timed(perf, "player.sittings", () =>
+      sittingAnchors(
+        db,
+        sessions.map((s) => sittingOf(tag, s)),
+      ),
+    ));
   for (const [i, s] of sessions.entries())
     items.push({
       ...subject,
@@ -1868,14 +2045,12 @@ export async function buildPlayerEntry(
       [STORY]: sittingStory(tag, anchored[i], s.started_at),
       ...sessionEvidence(tag, anchored[i], s.ended_at, s.open),
     });
-  const momentRows = ledger.filter(
-    (r) =>
-      PLAYER_MOMENT_KINDS.includes(r.event_type) &&
-      (r.event_type !== "badge_earned" || badgeItemWorthy(r.payload)),
-  );
-  const firstIds = await timed(perf, "player.story_ids", () =>
-    firstEventIds(db, "player_event", momentRows),
-  );
+  const momentRows = ledger.filter(momentRow);
+  const firstIds =
+    prefetched?.firstIds ??
+    (await timed(perf, "player.story_ids", () =>
+      firstEventIds(db, "player_event", momentRows),
+    ));
   for (const r of momentRows)
     items.push({
       ...subject,
