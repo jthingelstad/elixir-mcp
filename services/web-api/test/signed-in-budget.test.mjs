@@ -328,7 +328,8 @@ test("the bell stays in its budgets, built and stored, and never counts late cap
     "/api/me/bell",
     {},
     {
-      statements: 34,
+      // 35 since #1015: one read of the account's new Stamps.
+      statements: 35,
       buffers: 1100,
     },
   );
@@ -346,7 +347,8 @@ test("the bell stays in its budgets, built and stored, and never counts late cap
     "/api/me/bell",
     {},
     {
-      statements: 13,
+      // 14 since #1015: one read of the account's new Stamps.
+      statements: 14,
       buffers: 400,
     },
   );
