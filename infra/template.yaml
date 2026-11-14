@@ -3214,19 +3214,6 @@ Resources:
           # No DefaultValue: a default writes a zero on every jobs log
           # event and bills the metric every hour; without one it exists
           # only when a compose fails.
-  # Mail composed in the web-api counts toward the same metric. Its one
-  # writer was the JSON API's clan mail door (2.4.0), gone in 4.0.0: Clan's
-  # mail composes in the jobs Lambda, inside Elixir, so nothing writes
-  # email_compose_failed to this log group today.
-  WebApiEmailComposeFailedFilter:
-    Type: AWS::Logs::MetricFilter
-    Properties:
-      LogGroupName: !Ref WebApiLogGroup
-      FilterPattern: '"email_compose_failed"'
-      MetricTransformations:
-        - MetricNamespace: ElixirMCP/Email
-          MetricName: ComposeFailed
-          MetricValue: "1"
   # Discord refusing posts, or posts whose outcome is unknown, across
   # every webhook (the timeline cross-post, a clan's activity channel,
   # Clan's Actions): the relay logs one discord_undelivered line each.
