@@ -444,7 +444,9 @@ for (const size of ["wide", "@narrow"])
       "members/map",
     ]) {
       await page.goto(`${base}/${path}`);
-      await expect(page.getByRole("alert")).toBeVisible();
+      // Every refused read on the page says so (members/me has three:
+      // the Actions callout, This week and Your activity).
+      await expect(page.getByRole("alert").first()).toBeVisible();
     }
     routes[`GET ${apiBase}/members/02QQPCYQQ/activity`] = [
       503,
