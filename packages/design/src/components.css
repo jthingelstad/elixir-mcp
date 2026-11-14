@@ -114,7 +114,13 @@ table {
   color: var(--ink-faint);
 }
 
-.mono {
+/* Mono runs. .mono-tag is a player or clan tag, .mono-num a number or
+   score; .mono is everything else set in mono (ids, paths, code-like
+   names). They look the same today; the names let a redesign treat
+   them apart. */
+.mono,
+.mono-tag,
+.mono-num {
   font-family: var(--font-mono);
   font-size: var(--t-mono);
 }
@@ -1189,6 +1195,8 @@ h1,
 }
 /* The mono runs a page writes tags into; the zero is slashed there too. */
 .mono,
+.mono-tag,
+.mono-num,
 .tag-chip,
 .account-menu__tag,
 code {
@@ -1504,6 +1512,8 @@ input[type="radio"] {
   width: auto;
 }
 input.mono,
+input.mono-tag,
+input.mono-num,
 input[data-tag] {
   font-family: var(--font-mono);
   font-variant-numeric: slashed-zero;
@@ -10334,6 +10344,8 @@ a.kit-mbattle:hover {
   .select,
   .input,
   input.mono,
+  input.mono-tag,
+  input.mono-num,
   input[data-tag] {
     min-height: var(--hit-touch);
   }

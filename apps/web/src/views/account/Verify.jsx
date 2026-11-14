@@ -247,7 +247,7 @@ export function Verify({ refresh, navigate, tag = null }) {
             <strong>
               {challenge.name ?? <Tag tag={challenge.player_tag} />}
             </strong>{" "}
-            <span className="mono">{challenge.player_tag}</span>
+            <span className="mono-tag">{challenge.player_tag}</span>
           </p>
           {verified ? (
             <span className="chip chip--ok">
@@ -391,8 +391,8 @@ export function Verify({ refresh, navigate, tag = null }) {
               <span className="verify__dot" aria-hidden="true" />
               <span>
                 Reading the profile of{" "}
-                <span className="mono">{collecting.player_tag}</span> for the
-                first time, so we know which cards you own. Usually under a
+                <span className="mono-tag">{collecting.player_tag}</span> for
+                the first time, so we know which cards you own. Usually under a
                 minute.
               </span>
             </div>
@@ -419,7 +419,7 @@ export function Verify({ refresh, navigate, tag = null }) {
                   <span className="verify__who">
                     <strong>{p.name ?? <Tag tag={p.player_tag} />}</strong>
                     {p.status === "verified" && <VerifiedMark />}{" "}
-                    <span className="mono">{p.player_tag}</span>
+                    <span className="mono-tag">{p.player_tag}</span>
                     <span className="chip chip--tier">
                       {p.is_primary ? "Your main player" : "Also you"}
                     </span>

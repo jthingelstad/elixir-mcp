@@ -275,7 +275,7 @@ function BudgetGauge({ budget }) {
       title="Shared request budget"
       titleAs="div"
       action={
-        <span className="mono ml-auto font-normal">
+        <span className="mono-num ml-auto font-normal">
           {used.toLocaleString()} of {cap.toLocaleString()} in 24 hours ·{" "}
           {Math.round(pct)}%
         </span>

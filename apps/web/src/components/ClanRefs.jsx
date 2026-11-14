@@ -15,7 +15,7 @@ export function ClanRefs({ clans, empty = "—" }) {
       {c.name ? (
         <>
           {" "}
-          <span className="mono">{c.clan_tag}</span>
+          <span className="mono-tag">{c.clan_tag}</span>
         </>
       ) : null}
     </span>

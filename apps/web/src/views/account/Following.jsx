@@ -163,7 +163,7 @@ function AddPlayer({ refresh, navigate, input, first }) {
           <input
             ref={input}
             id="add-player-tag"
-            className="mono"
+            className="mono-tag"
             placeholder="#0PJCLJYP"
             aria-describedby="add-player-tag-hint"
             aria-invalid={err ? "true" : undefined}
@@ -336,7 +336,7 @@ function Clans({ me, query }) {
             <label>
               Clan tag
               <input
-                className="mono"
+                className="mono-tag"
                 placeholder="#CLANTAG"
                 value={clanTag}
                 onChange={(ev) => {

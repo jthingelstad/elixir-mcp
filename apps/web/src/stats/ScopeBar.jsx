@@ -142,7 +142,7 @@ export function PlayerPick({ player, players, hrefFor, navigate }) {
     return (
       <span className="stats-scope__one">
         {playerName(player)}{" "}
-        <span className="mono stats-scope__tag">{player.player_tag}</span>
+        <span className="mono-tag stats-scope__tag">{player.player_tag}</span>
       </span>
     );
   return (

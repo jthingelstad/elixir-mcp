@@ -219,7 +219,7 @@ function ByConnection({ callers }) {
                   style={{ width: `${(c.calls / top) * 100}%` }}
                 />
               </span>
-              <span className="mono">{c.calls.toLocaleString()}</span>
+              <span className="mono-num">{c.calls.toLocaleString()}</span>
             </li>
           ))}
         </ul>
@@ -251,7 +251,7 @@ function BusiestTools({ tools, path }) {
               >
                 {t.tool}
               </Link>
-              <span className="mono">{t.calls.toLocaleString()}</span>
+              <span className="mono-num">{t.calls.toLocaleString()}</span>
             </li>
           ))}
         </ul>

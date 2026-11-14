@@ -303,7 +303,7 @@ function Decided({ clan, navigate }) {
         <span className="clan-row__main">
           <span className="clan-row__title">
             {Number.isInteger(c.number) ? (
-              <span className="mono mr-2 font-normal text-ink-faint">
+              <span className="mono-num mr-2 font-normal text-ink-faint">
                 #{c.number}
               </span>
             ) : null}
