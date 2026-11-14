@@ -184,7 +184,7 @@ test("a hostile name is text; untick, then one confirmed follow of the ticked", 
     .getByRole("checkbox", { name: "Follow Invented Clanmate 1" })
     .uncheck();
   await expect(set.getByRole("status")).toContainText(
-    "6 players to follow · 1 free · 5 use a slot",
+    "6 players · uses 5 of your 50 follows",
   );
   expect(posted).toEqual([]);
   await set.getByRole("button", { name: "Follow these (6)" }).click();

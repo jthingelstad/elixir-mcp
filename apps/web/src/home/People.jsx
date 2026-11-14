@@ -18,6 +18,8 @@ import { usePeople } from "../lib/queries.js";
 import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
 import {
   costMark,
+  FREE_HINT,
+  lastMetLine,
   metLine,
   roleLabel,
   slotsLine,
@@ -29,8 +31,20 @@ import {
  * People to follow (2026-11-12): Home's side panel and Find's From your
  * battles and Your clan. Each person by game name and tag (never a
  * nickname), why they are here as a fact, and what following them costs.
- * Never ranked by skill: the server orders by the facts it states.
+ * Never ranked by skill: the server orders by the facts it states. A row
+ * marks only a follow that costs nothing ("Free"); what following costs is
+ * one line by the button that follows (2026-11-13).
  */
+
+/** The small Free mark: a player Elixir records already. */
+function FreeMark({ p }) {
+  const mark = costMark(p);
+  return mark ? (
+    <span className="kit-people__cost kit-people__cost--free" title={FREE_HINT}>
+      {mark}
+    </span>
+  ) : null;
+}
 
 /** A person's Follow, priced from the list's own read. */
 const priced = (p, used, limit) => ({
@@ -69,16 +83,12 @@ function Person({ p, detail, used, limit }) {
   );
 }
 
-/** A suggestion's why, as facts, then what following costs. */
+/** A suggestion's why, as facts, and Free when it costs nothing. */
 function WhyCost({ p, dayHeading }) {
   return (
     <>
       <span className="kit-people__why">{whyLines(p.why, { dayHeading })}</span>
-      <span
-        className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
-      >
-        {costMark(p)}
-      </span>
+      <FreeMark p={p} />
     </>
   );
 }
@@ -191,7 +201,7 @@ export function FindSuggested({ onSearch, onLink }) {
     );
   if (data.people.length === 0)
     return (
-      <Panel title="Suggested" pad className="kit-findsuggest">
+      <Panel pad className="kit-findsuggest" aria-label="Suggested">
         <p className="kit-week__quiet">
           Nobody to suggest yet. Friendly battles, 2v2 teammates, the players
           your follows follow and your clan show up here.
@@ -209,9 +219,10 @@ export function FindSuggested({ onSearch, onLink }) {
       </Panel>
     );
   const shown = all ? data.people : data.people.slice(0, FIND_SHOWN);
-  const slots = slotsLine(data.used, data.limit);
+  // The tab names the list, so the panel has no title of its own; Find's
+  // side has the follows meter, so the foot does not repeat it.
   return (
-    <Panel title="Suggested" className="kit-findsuggest">
+    <Panel className="kit-findsuggest" aria-label="Suggested">
       <Rows>
         {shown.map((p) => (
           <Person
@@ -243,7 +254,6 @@ export function FindSuggested({ onSearch, onLink }) {
         {all && data.more > 0
           ? " More are in From your battles and Your clan."
           : ""}
-        {slots ? ` ${slots}.` : ""}
       </p>
     </Panel>
   );
@@ -253,7 +263,7 @@ export function FindSuggested({ onSearch, onLink }) {
  *  how often and how it went, from the log only. */
 export function FromYourBattles() {
   const query = usePeople("battles");
-  const { when } = useClock();
+  const { feedWhen } = useClock();
   const data = query.data;
   if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;
   if (query.isError || !data?.ok)
@@ -264,7 +274,6 @@ export function FromYourBattles() {
         </p>
       </Panel>
     );
-  const slots = slotsLine(data.used, data.limit);
   return (
     <Panel title={`From your battle log, last ${data.days} days`}>
       {data.people.length === 0 ? (
@@ -281,14 +290,13 @@ export function FromYourBattles() {
               limit={data.limit}
               detail={
                 <>
-                  <span className="kit-people__why">{metLine(p, when)}</span>
-                  {p.following ? null : (
-                    <span
-                      className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
-                    >
-                      {costMark(p)}
+                  <span className="kit-people__why">{metLine(p)}</span>
+                  {p.last_met ? (
+                    <span className="kit-people__when">
+                      {lastMetLine(p, feedWhen)}
                     </span>
-                  )}
+                  ) : null}
+                  <FreeMark p={p} />
                 </>
               }
             />
@@ -301,7 +309,6 @@ export function FromYourBattles() {
         {data.more > 0
           ? ` The ${data.people.length} you met most are shown; ${data.more} more are not.`
           : ""}
-        {slots ? ` ${slots}.` : ""}
       </p>
     </Panel>
   );
@@ -372,13 +379,7 @@ export function YourClanPeople() {
                   {roleLabel(p.role) ? (
                     <span className="kit-people__why">{roleLabel(p.role)}</span>
                   ) : null}
-                  {p.following ? null : (
-                    <span
-                      className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
-                    >
-                      {costMark(p)}
-                    </span>
-                  )}
+                  <FreeMark p={p} />
                 </>
               }
             />
@@ -399,8 +400,9 @@ const STARTER_SHOWN = 5;
  * ticked; untick anyone, then one confirmed Follow these (the follow-all a
  * clan's Follow everyone uses), priced from this read and refused whole
  * past the slots left. Nothing is followed without that tap. Follow these
- * sits beside the heading and what it costs below the rows, so a small
- * phone's first screen holds the button and three rows with their reasons. "Not now" puts it aside for 30 days. With
+ * sits beside the heading with what it costs on one line under it, so a
+ * small phone's first screen holds the button and three rows with their
+ * reasons. "Not now" puts it aside for 30 days. With
  * nobody to suggest it is one line pointing to Find. `query` is
  * usePeople("starter"), read apart from the feed; the panel draws nothing
  * while it reads, on a failure or when the server offers none.
@@ -481,6 +483,9 @@ export function StarterSet({ query }) {
           confirm="Follow these"
           className="btn btn--gold"
         />
+        <p className="kit-tiny kit-starter__sum" role="status">
+          {followPlanLine(plan)}
+        </p>
       </div>
       <Rows>
         {shown.map((p) => {
@@ -506,18 +511,7 @@ export function StarterSet({ query }) {
                   <TagText>{name}</TagText>
                 </Link>
               }
-              detail={
-                <>
-                  <span className="kit-people__why">
-                    {whyLines(p.why, { dayHeading: feedDayHeading })}
-                  </span>
-                  <span
-                    className={`kit-people__cost${p.free ? " kit-people__cost--free" : ""}`}
-                  >
-                    {costMark(p)}
-                  </span>
-                </>
-              }
+              detail={<WhyCost p={p} dayHeading={feedDayHeading} />}
             />
           );
         })}
@@ -533,10 +527,7 @@ export function StarterSet({ query }) {
         </button>
       ) : null}
       <div className="kit-starter__foot">
-        <p className="kit-tiny">
-          Untick anyone you&rsquo;d rather not follow.{" "}
-          <span role="status">{followPlanLine(plan)}</span>
-        </p>
+        <p className="kit-tiny">Untick anyone you&rsquo;d rather not follow.</p>
         {notNow}
       </div>
       <WriteError error={hide.error} className="field-error" />

@@ -6,6 +6,7 @@
 import { describe, expect, test } from "vitest";
 import {
   costMark,
+  lastMetLine,
   metLine,
   raceNowLine,
   offersStarter,
@@ -137,48 +138,49 @@ describe("the starter set", () => {
   });
 });
 
-test("the cost mark: free, a slot, or already followed", () => {
-  expect(costMark({ free: true })).toBe("Free · already recorded");
-  expect(costMark({ free: false })).toBe("Uses a slot");
-  expect(costMark({ following: true, free: false })).toBe("Following");
-  expect(slotsLine(3, 50)).toBe("Your follows: 3 of 50 slots");
+test("the cost mark: a row says only when a follow is free", () => {
+  expect(costMark({ free: true })).toBe("Free");
+  expect(costMark({ free: false })).toBeNull();
+  expect(costMark({ following: true, free: true })).toBeNull();
+  expect(slotsLine(3, 50)).toBe("3 of your 50 follows used");
   expect(slotsLine(3, null)).toBeNull();
 });
 
 test("From your battles: how often you met and how it went, from the log", () => {
-  const when = (ts) => `at ${ts}`;
   expect(
-    metLine(
-      {
-        against: 3,
-        with_you: 0,
-        wins: 2,
-        losses: 1,
-        draws: 0,
-        last_met: "T",
-      },
-      when,
-    ),
-  ).toBe("Met 3 times · 2 wins, 1 loss · last at T");
+    metLine({
+      against: 3,
+      with_you: 0,
+      wins: 2,
+      losses: 1,
+      draws: 0,
+      last_met: "T",
+    }),
+  ).toBe("Met 3 times · 2 wins, 1 loss");
   expect(
-    metLine(
-      { against: 0, with_you: 2, wins: 0, losses: 0, last_met: null },
-      when,
-    ),
+    metLine({ against: 0, with_you: 2, wins: 0, losses: 0, last_met: null }),
   ).toBe("Your 2v2 teammate twice");
   expect(
-    metLine(
-      {
-        friendly: 1,
-        against: 1,
-        with_you: 0,
-        wins: 1,
-        losses: 0,
-        last_met: "T",
-      },
-      when,
-    ),
-  ).toBe("A friendly battle · Met once · 1 win · last at T");
+    metLine({
+      friendly: 1,
+      against: 1,
+      with_you: 0,
+      wins: 1,
+      losses: 0,
+      last_met: "T",
+    }),
+  ).toBe("A friendly battle · Met once · 1 win");
+});
+
+test("From your battles: when you last met, in Home's words", () => {
+  const feedWhen = (ts) => ({ a: "Today, 3:52 pm", b: "Tue, 4:53 am" })[ts];
+  expect(lastMetLine({ last_met: "a" }, feedWhen)).toBe(
+    "Last met today, 3:52 pm",
+  );
+  expect(lastMetLine({ last_met: "b" }, feedWhen)).toBe(
+    "Last met Tue, 4:53 am",
+  );
+  expect(lastMetLine({ last_met: null }, feedWhen)).toBeNull();
 });
 
 describe("this week's race", () => {

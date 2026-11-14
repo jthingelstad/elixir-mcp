@@ -77,15 +77,15 @@ export function FindPage() {
           ) : tab === "battles" ? (
             <FromYourBattles />
           ) : tab === "directory" ? (
-            <Panel title="Clans">
-              <Rows>
-                <Row
-                  href="/clan/directory"
-                  title="Clan directory"
-                  detail="Clans that saved their rules in Elixir, by name. Never ranked."
-                />
-              </Rows>
-            </Panel>
+            // One way on, so one plain link row rather than a panel round it.
+            <Rows className="kit-find__links">
+              <Row
+                href="/clan/directory"
+                title="Open the clan directory"
+                detail="Clans that saved their rules in Elixir, by name. Never ranked."
+                right={<Icon name="chevron-right" size={18} />}
+              />
+            </Rows>
           ) : tab === "link" ? (
             <FollowMeLink players={own} />
           ) : tab === "search" ? (
@@ -97,7 +97,7 @@ export function FindPage() {
             />
           )}
         </div>
-        <aside className="kit-home__side" aria-label="Your follow slots">
+        <aside className="kit-home__side" aria-label="Your follows">
           <SlotsSide />
         </aside>
       </div>
@@ -105,8 +105,9 @@ export function FindPage() {
   );
 }
 
-/** Find's side (the canvas's "Your follow slots"): how many of your slots
- *  are in use, from the same read as Settings' slots, and the way there. */
+/** Find's side (the canvas's "Your follow slots", named for follows since
+ *  2026-11-13, as the rest of Find says it): how many of your follows are
+ *  used, from the same read as Settings' slots, and the way there. */
 function SlotsSide() {
   const q = useFollowSlots();
   const d = q.data ?? null;
@@ -114,11 +115,11 @@ function SlotsSide() {
   const n = (v) => Number(v ?? 0).toLocaleString();
   const line =
     d.limit == null
-      ? `${n(d.used)} in use, no limit`
+      ? `${n(d.used)} used, no limit`
       : `${n(d.used)} of ${n(d.limit)} used`;
   return (
     <Panel
-      title="Your follow slots"
+      title="Your follows"
       action={<span className="kit-tiny">{line}</span>}
       pad
     >
@@ -127,12 +128,13 @@ function SlotsSide() {
           className="kit-meter"
           max={d.limit}
           value={Math.min(d.used ?? 0, d.limit)}
-          aria-label={`Follow slots: ${line}`}
+          aria-label={`Follows: ${line}`}
         />
       )}
       <p className="kit-tiny">
+        A player Elixir records already is free.{" "}
         <Link to={`${SETTINGS}/what-members-see`} className="hit">
-          See who uses one
+          See which follows count
         </Link>
       </p>
     </Panel>
@@ -218,7 +220,7 @@ function FollowMeLink({ players }) {
   const url =
     typeof window === "undefined" ? path : `${window.location.origin}${path}`;
   return (
-    <Panel title="Your follow link" pad>
+    <Panel title="Your Follow me link" pad>
       <p className="kit-tiny">
         Send it to a friend: it opens your players&rsquo; page on Elixir, ready
         to follow. It names{" "}
@@ -239,7 +241,7 @@ function FollowMeLink({ players }) {
         }}
       >
         <Icon name={copied ? "check" : "copy"} size={14} />
-        {copied ? "Copied" : "Copy your follow link"}
+        {copied ? "Copied" : "Copy your Follow me link"}
       </button>
     </Panel>
   );

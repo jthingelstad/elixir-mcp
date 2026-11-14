@@ -89,10 +89,12 @@ test("each player says what a Follow costs, and the Follow is Home's", async () 
     );
   renderWithProviders(<FollowFromHere sides={SIDES} me={MINE} />);
   expect(
-    await screen.findByText("Free · already recorded · 3 of 50 slots used"),
+    await screen.findByText(
+      "Free · already recorded · 3 of your 50 follows used",
+    ),
   ).toBeTruthy();
   expect(
-    await screen.findByText("Uses 1 of your 50 player slots · 3 used"),
+    await screen.findByText("Uses 1 of your 50 follows · 3 used"),
   ).toBeTruthy();
   // A name is text, markup and all.
   expect(screen.getByText('<b>"Bo"</b>')).toBeTruthy();

@@ -298,13 +298,19 @@ export const whyLines = (whys, clock) =>
 /** A suggested person's cost mark: free, or a slot. Following is its own
  *  word. */
 export function costMark(p) {
-  if (p.following) return "Following";
-  return p.free ? "Free · already recorded" : "Uses a slot";
+  // Since 2026-11-13 a row says only when a follow costs nothing; what
+  // following the list costs is one line by its button (followPlanLine).
+  if (p.following || !p.free) return null;
+  return "Free";
 }
 
+/** What the Free mark means, for its title. */
+export const FREE_HINT =
+  "Already recorded, so following uses none of your follows";
+
 /** Find's From your battles: how often you met and how it went, from the
- *  log only. `when` writes the last time. */
-export function metLine(p, when) {
+ *  log only. When you last met is its own line (`lastMetLine`). */
+export function metLine(p) {
   const parts = [];
   if (p.friendly > 0)
     parts.push(
@@ -320,13 +326,23 @@ export function metLine(p, when) {
     if (rec.length) parts.push(rec.join(", "));
   }
   if (p.with_you > 0) parts.push(`Your 2v2 teammate ${times(p.with_you)}`);
-  if (p.last_met) parts.push(`last ${when(p.last_met)}`);
   return parts.join(" · ");
 }
 
-/** The slots line under a list of people: "Your follows: 12 of 50 slots". */
+/** When you last met, in Home's words (2026-11-13): "Last met today,
+ *  3:52 pm", "Last met Tuesday, 4:53 am". `feedWhen` is the clock's. */
+export function lastMetLine(p, feedWhen) {
+  if (!p.last_met) return null;
+  const said = feedWhen(p.last_met).replace(
+    /^(Today|Tonight|Yesterday)\b/,
+    (d) => d.toLowerCase(),
+  );
+  return `Last met ${said}`;
+}
+
+/** The line under Home's people: "12 of your 50 follows used". */
 export const slotsLine = (used, limit) =>
-  limit == null ? null : `Your follows: ${used} of ${limit} slots`;
+  limit == null ? null : `${used} of your ${limit} follows used`;
 
 function ordinal(n) {
   const tens = n % 100;

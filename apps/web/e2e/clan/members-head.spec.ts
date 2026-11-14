@@ -132,7 +132,7 @@ for (const [label, width] of [
         name: "Follow everyone in Example Clan?",
       });
       await expect(dialog).toContainText(
-        "2 players to follow · 1 free · 1 uses a slot · 3 of 50 slots used now. Your own player is left out.",
+        "2 players · uses 1 of your 50 follows. Your own player is left out.",
       );
       await accessible(page, `follow everyone dialog ${label}`);
       await dialog.getByRole("button", { name: "Follow everyone" }).click();
@@ -211,9 +211,7 @@ for (const [label, width] of [
 
       await row("Zed").getByRole("button", { name: "Follow" }).click();
       const dialog = page.getByRole("dialog", { name: "Follow Zed?" });
-      await expect(dialog).toContainText(
-        "Uses 1 of your 50 player slots · 3 used",
-      );
+      await expect(dialog).toContainText("Uses 1 of your 50 follows · 3 used");
       await dialog.getByRole("button", { name: "Follow" }).click();
       await expect(dialog).toHaveCount(0);
       expect(posted).toEqual([{ player_tag: "#M1", relationship: "friend" }]);

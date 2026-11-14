@@ -292,7 +292,7 @@ describe("the sheet", () => {
       { target: { value: "#09CV8UVL" } },
     );
     await screen.findByText(
-      "Uses 1 of your 50 player slots · 3 used",
+      "Uses 1 of your 50 follows · 3 used",
       {},
       { timeout: 3000 },
     );

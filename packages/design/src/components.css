@@ -6740,6 +6740,50 @@ button.kit-row {
 .kit-head--home .kit-head__side {
   justify-content: flex-end;
 }
+/* On a phone (2026-11-13) Home's head is two rows, not four: the battle
+   log's freshness sits on the title's row, right, and the feed's chips are
+   one row that scrolls (with the kit's fade), New pinned at its end. */
+@media (max-width: 720px) {
+  .kit-head--home {
+    position: relative;
+  }
+  .kit-head--home .kit-head__side {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .kit-head--home .kit-home__chips {
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* Quiet text on the title's line: no pill, its 44px tap target centred
+     on the title so it never reaches the chips below. */
+  .kit-head--home .kit-fresh {
+    position: absolute;
+    top: -10px;
+    right: 0;
+    max-width: calc(100% - 120px);
+  }
+  .kit-head--home .kit-fresh > summary {
+    padding-right: 0;
+    background: none;
+  }
+  .kit-home__filters {
+    flex-wrap: nowrap;
+  }
+  .kit-home__filters .kit-chips {
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .kit-home__filters .kit-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .kit-home__filters > .kit-chip {
+    flex: none;
+  }
+}
 /* A race week's place (canvas .racebar): a gold bar on a sunken trough. */
 .kit-racebar {
   display: block;
@@ -6964,6 +7008,14 @@ button.kit-row {
 .kit-starter__top .btn {
   flex: none;
 }
+/* What Follow these costs, one line under it (2026-11-13): the rows say
+   only Free, so the price sits by the button that pays it. */
+.kit-starter__sum {
+  flex: 1 0 100%;
+  margin: 0;
+  color: var(--ink-faint);
+  text-align: end;
+}
 /* A row's reason and cost run on as one line: three rows fit a small
    phone's first screen with Follow these. */
 .kit-people__row.kit-starter__row .kit-row__detail {
@@ -6982,7 +7034,7 @@ button.kit-row {
   padding: 4px 16px 6px;
 }
 .kit-starter__foot p {
-  flex: 1 1 220px;
+  flex: 1 1 160px;
   margin: 0;
 }
 .kit-starter__foot .btn {
@@ -7429,6 +7481,10 @@ a.kit-mbattle:hover {
 .kit-people__cost--free {
   color: var(--ok);
 }
+/* From your battles: when you last met, its own line under how it went. */
+.kit-people__when {
+  color: var(--ink-faint);
+}
 .kit-people__row .kit-row__title a {
   color: var(--ink);
   font-weight: 600;
@@ -7821,6 +7877,16 @@ a.kit-mbattle:hover {
 .kit-bell__sec .kit-row {
   padding-right: 0;
   padding-left: 0;
+}
+/* Find's Clan directory (2026-11-13): one plain link row on the page, no
+   panel round it, its edge on the page's edge. */
+.kit-find__links .kit-row {
+  padding-right: 0;
+  padding-left: 0;
+}
+.kit-find__links .kit-row__title {
+  color: var(--ink-link);
+  font-weight: 600;
 }
 /* Find's search: the bar's search, as a page's own button. */
 .kit-find__search {

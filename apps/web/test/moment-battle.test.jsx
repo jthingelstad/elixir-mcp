@@ -75,9 +75,9 @@ test("a crossing and a promotion both name their battle's result, score and oppo
   expect(strips.map((a) => [a.getAttribute("href"), a.textContent])).toEqual([
     [
       "/battle/b1c3d4e5f6a7",
-      "Lost1-2 against Slate OwlTrophy Road · 9,012 trophies afterThe battle",
+      "Lost1-2 against Slate OwlTrophy Road · 9,012 trophies afterOpen the battle",
     ],
-    ["/battle/b2c3d4e5f6a7", "Won3-0 over Copper WrenThe battle"],
+    ["/battle/b2c3d4e5f6a7", "Won3-0 over Copper WrenOpen the battle"],
   ]);
 });
 

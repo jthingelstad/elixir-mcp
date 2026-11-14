@@ -139,7 +139,7 @@ for (const [label, width] of [
       const dialog = page.getByRole("dialog", { name: "Follow Ada?" });
       await expect(dialog).toBeVisible();
       await expect(
-        dialog.getByText("Uses 1 of your 50 player slots · 3 used"),
+        dialog.getByText("Uses 1 of your 50 follows · 3 used"),
       ).toBeVisible();
       expect(posted).toEqual([]);
       await dialog.getByRole("button", { name: "Follow", exact: true }).click();
