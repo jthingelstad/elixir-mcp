@@ -85,6 +85,7 @@ export function RosterTable({
                   <Avatar
                     name={m.name ?? m.player_tag}
                     tag={m.player_tag}
+                    card={m.avatar_card_id ?? null}
                     small
                   />
                   <span

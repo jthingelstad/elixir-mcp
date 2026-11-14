@@ -457,6 +457,7 @@ function FeedItem({ it, open, onToggle }) {
         <Avatar
           name={who?.name ?? who?.tag ?? "You"}
           tag={who?.tag}
+          card={who?.kind === "player" ? (it.avatar_card_id ?? null) : null}
           clan={who ? who.kind !== "player" : false}
         />
         <div className="kit-feed__who">

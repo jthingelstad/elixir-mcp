@@ -62,7 +62,14 @@ function Person({ p, detail, used, limit }) {
   return (
     <Row
       className="kit-people__row"
-      lead={<Avatar name={p.name ?? tag} tag={tag} small />}
+      lead={
+        <Avatar
+          name={p.name ?? tag}
+          tag={tag}
+          card={p.avatar_card_id ?? null}
+          small
+        />
+      }
       title={
         <Link to={playerHref(tag)} className="hit">
           <TagText>{p.name ?? tag}</TagText>

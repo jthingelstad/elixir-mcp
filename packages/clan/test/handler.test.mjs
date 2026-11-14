@@ -124,6 +124,41 @@ test("roster: names the primary's clan explicitly, marks your row, groups by rol
   assert.equal(h.record.calls.filter((c) => c[0] === "clans_roster").length, 3);
 });
 
+test("roster: each member whose verified account chose a profile image carries it, in one read for the roster", async () => {
+  const members = [
+    {
+      player_tag: "#0PRJ8Y2C",
+      name: "Invented One",
+      role: "leader",
+      trophies: 9000,
+    },
+    {
+      player_tag: "#0PRJ8Y2G",
+      name: "<img src=x onerror=alert(1)>",
+      role: "member",
+      trophies: 8000,
+    },
+  ];
+  const asked = [];
+  const h = harness({
+    door: { roster: rosterBody(members) },
+    avatars: async (tags) => {
+      asked.push(tags);
+      return new Map([["#0PRJ8Y2C", 26000000]]);
+    },
+  });
+  const { sessionCookie } = await signIn(h);
+  const r = await h.handler(
+    req("GET", "/api/roster", { cookies: cookieHeader(sessionCookie) }),
+  );
+  const body = JSON.parse(r.body);
+  assert.equal(asked.length, 1);
+  assert.deepEqual([...asked[0]].sort(), ["#0PRJ8Y2C", "#0PRJ8Y2G"]);
+  const by = new Map(body.members.map((m) => [m.player_tag, m]));
+  assert.equal(by.get("#0PRJ8Y2C").avatar_card_id, 26000000);
+  assert.equal("avatar_card_id" in by.get("#0PRJ8Y2G"), false);
+});
+
 test("roster: an empty clan renders as a roster with no members", async () => {
   const h = harness({ door: { roster: rosterBody([]) } });
   const { sessionCookie } = await signIn(h);

@@ -2,6 +2,7 @@ import { Disclosure, Link, PageHead, Panel, TagText } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { ZoneOffer } from "../../components/ZoneOffer.jsx";
+import { AvatarPicker } from "./AvatarPicker.jsx";
 import { discordStartHref } from "../../discord.js";
 import { limitsLabel } from "../../lib/words.js";
 import { SETTINGS } from "../../lib/settings.js";
@@ -9,8 +10,8 @@ import { tagPath } from "../../lib/tag-url.js";
 import { Facts, Note } from "./parts.jsx";
 
 /**
- * Profile: the account you are signed in as. Editable here is the time zone
- * alone; everything else names where it is changed, because each has its own
+ * Profile: the account you are signed in as. Editable here are the profile
+ * image (its own panel, AvatarPicker.jsx) and the time zone; everything else names where it is changed, because each has its own
  * page. Limits read in full on Usage and limits, Discord on Connections &
  * agents.
  */
@@ -154,6 +155,7 @@ export function Profile({ me, refresh }) {
           ]}
         />
       </Panel>
+      <AvatarPicker me={me} refresh={refresh} />
       <Panel title="Closing your account" titleAs="h2">
         <p className="st-inset m-0">
           There is no delete button. Write to admin@poapkings.com, or{" "}

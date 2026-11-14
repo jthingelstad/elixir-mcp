@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AccountAvatar } from "./AccountAvatar.tsx";
 import { Icon, type IconName } from "./Icon.tsx";
 import { Link } from "./Link.tsx";
 import { Tag, TagText } from "./Tag.tsx";
@@ -33,6 +34,10 @@ export interface ChromeAccount {
   name: string;
   /** Two letters for the avatar; derived from `name` when absent. */
   initials?: string;
+  /** The account's profile image, a card id, drawn in place of the
+   *  initials (2026-11-14). The account's own, so it shows here whether or
+   *  not any of its players is verified. */
+  avatarCard?: number | null;
   email?: string;
   /** A mono line under the address: the role and the clock. */
   detail?: string;
@@ -89,9 +94,11 @@ export function AccountMenu({
   return (
     <div className="account-menu" id="account-menu">
       <div className="account-menu__head">
-        <span className="chrome__avatar chrome__avatar--lg" aria-hidden="true">
-          {account.initials ?? initialsOf(account.name)}
-        </span>
+        <AccountAvatar
+          large
+          card={account.avatarCard}
+          initials={account.initials ?? initialsOf(account.name)}
+        />
         <div className="min-w-0">
           <div className="account-menu__name">{account.name}</div>
           {account.email && (

@@ -76,6 +76,10 @@ export function createHandler({
   /** the clan directory's tiles for the signed-in person, read through the
    *  approved seam (`@elixir-mcp/auth/clan-context`, #768) */
   directory = null,
+  /** the profile images of a page of player tags, a Map of tag to card id
+   *  (web-api `verifiedAvatars`, 2026-11-14): the roster's members show
+   *  theirs. None given, every member keeps initials. */
+  avatars = null,
   now = () => Date.now(),
   log = console,
 }) {
@@ -324,7 +328,20 @@ export function createHandler({
       log.warn?.("roster_failed", { error: r.error, code: r.code });
       return { response: json(502, { error: "elixir_unavailable" }) };
     }
-    const body = shapeRoster(r.body, { yourTags: clan.your_tags });
+    const shaped = shapeRoster(r.body, { yourTags: clan.your_tags });
+    const faces = avatars
+      ? await avatars(shaped.members.map((m) => m.player_tag))
+      : null;
+    const body = faces?.size
+      ? {
+          ...shaped,
+          members: shaped.members.map((m) =>
+            faces.has(m.player_tag)
+              ? { ...m, avatar_card_id: faces.get(m.player_tag) }
+              : m,
+          ),
+        }
+      : shaped;
     // The roster read is also how the policy gate learns the clan's size.
     if (manage)
       await manage

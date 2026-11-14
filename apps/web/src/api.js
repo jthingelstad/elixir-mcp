@@ -78,6 +78,9 @@ export const api = {
     return result;
   },
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
+  /** The profile image (2026-11-14): a catalog card id, or null for
+   *  initials. */
+  setAvatar: (card_id) => request("POST", "/api/me/avatar", { card_id }),
   /** Disconnect the Discord linked to this account (#531). */
   unlinkDiscord: () => request("POST", "/api/me/discord/unlink", {}),
   emailPrefs: () => request("GET", "/api/me/email"),

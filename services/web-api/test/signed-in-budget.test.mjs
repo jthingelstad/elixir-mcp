@@ -113,7 +113,8 @@ const scansOf = (planned, re, table) => {
  * never to rise without a reason in a pull request.
  */
 const PLAYER_PAGE = {
-  "/api/player": { statements: 29, buffers: 6000 },
+  // +1: the page's profile images, one statement (2026-11-14).
+  "/api/player": { statements: 30, buffers: 6000 },
   "/api/me/cheers": { statements: 26, buffers: 1500 },
   "/api/clan/me": { statements: 15, buffers: 300 },
   "/api/me/follow-plan": { statements: 9, buffers: 500 },
@@ -309,9 +310,10 @@ test("Stats' reads stay in their budgets and read the record by range", async ()
 const FIND = {
   "/api/me/home/needs": { statements: 12, buffers: 300 },
   "/api/me/follow-slots": { statements: 6, buffers: 700 },
-  "/api/me/people/suggested": { statements: 10, buffers: 600 },
-  "/api/me/people/battles": { statements: 8, buffers: 1300 },
-  "/api/me/people/clan": { statements: 11, buffers: 700 },
+  // +1 each: the rows' profile images, one statement a list (2026-11-14).
+  "/api/me/people/suggested": { statements: 11, buffers: 600 },
+  "/api/me/people/battles": { statements: 9, buffers: 1300 },
+  "/api/me/people/clan": { statements: 12, buffers: 700 },
   "/api/me/follow-plan": { statements: 9, buffers: 500 },
   "/api/me/clans": { statements: 6, buffers: 300 },
   "/api/me/home/clan": { statements: 9, buffers: 300 },
@@ -581,7 +583,8 @@ const BATTLE = {
   "/api/me/highlights": { statements: 5, buffers: 50 },
   "/api/me/cheers": { statements: 26, buffers: 900 },
   "/api/me/follow-cost": { statements: 5, buffers: 250 },
-  "/api/public/highlights": { statements: 22, buffers: 500 },
+  // +1: the page's profile images, one statement (2026-11-14).
+  "/api/public/highlights": { statements: 23, buffers: 500 },
 };
 
 test("the battle page and a shared post stay in their budgets, and /api/me reads each claim's player by key", async () => {
@@ -845,7 +848,8 @@ const CLAN = [
   ["/sharing", {}, 8, 300],
   ["/voice", {}, 9, 300],
   ["/social", {}, 9, 300],
-  ["/map", {}, 21, 1700],
+  // +1: the map reads the roster, with its profile images (2026-11-14).
+  ["/map", {}, 22, 1700],
   ["/me/away", {}, 11, 300],
   // Reads the member's own part of the clan's participation
   // (memberParticipation), not the whole clan's.

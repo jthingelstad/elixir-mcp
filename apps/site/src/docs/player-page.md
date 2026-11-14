@@ -17,7 +17,11 @@ search sheet, a battle, Stats and the email. The address is
 `/home/player/<tag>`, the tag without its `#`. You need to be signed in, as
 for every read of Elixir.
 
-The page leads with the player's game name, tag, clan and trophies. Under it:
+The page leads with the player's game name, tag, clan and trophies, beside
+their picture: the card their account chose as its
+[profile image](/docs/your-account#your-profile-image) once the player is
+verified, else their initials. The same picture is beside the player in
+their follows and followers. Under it:
 
 | Tab | What it holds |
 |---|---|

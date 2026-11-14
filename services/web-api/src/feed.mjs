@@ -22,6 +22,10 @@
  *              `{label, cards}`; theirs null unless one opponent.
  *   proof_mode the mode group of the battle that proved a moment
  *              ("ladder"), for the line under its result.
+ *   avatar_card_id
+ *              the profile image of the player the item's avatar draws
+ *              (avatarTagOf), when an account verified that player and
+ *              chose one (avatars.mjs, 2026-11-14). Absent otherwise.
  *
  * The chips only choose what is shown; the read is the timeline's, so the
  * page's place ("New since your last visit") and its evidence reads stay
@@ -29,6 +33,7 @@
  * them, so its contract does not change.
  */
 import { battleLinks } from "@elixir-mcp/record/battle-links";
+import { verifiedAvatars } from "./avatars.mjs";
 import { modeGroupOf } from "@elixir-mcp/contracts";
 import {
   highlightVersus,
@@ -138,11 +143,21 @@ export function offersFollow(it, subjects) {
   return !subjects.some((s) => s.kind === "player" && s.tag === tag);
 }
 
+/** The player an item's avatar draws, as Home's feed picks it: its first
+ *  player subject, else the player its facts name; null for a clan's item
+ *  or the account's own. */
+export function avatarTagOf(it) {
+  const player = (it.subjects ?? []).find((s) => s.kind === "player");
+  return player?.tag ?? it.facts?.player_tag ?? null;
+}
+
 /** The timeline's items with Home's fields added. */
 export async function annotateFeed(db, timeline, subjects) {
   const items = timeline ?? [];
   const proofs = items.map(proofOf);
   const links = await battleLinks(db, proofs.filter(Boolean));
+  const faces = items.map(avatarTagOf);
+  const avatars = await verifiedAvatars(db, faces);
   return items.map((it, i) => {
     const spark = sparkOf(it);
     const scores = scoresOf(sessionSpark(it));
@@ -160,6 +175,9 @@ export async function annotateFeed(db, timeline, subjects) {
       ...(link ? { battle_url: link.url } : {}),
       ...(proofMode ? { proof_mode: proofMode } : {}),
       ...(offersFollow(it, subjects) ? { offer_follow: true } : {}),
+      ...(faces[i] && avatars.has(faces[i])
+        ? { avatar_card_id: avatars.get(faces[i]) }
+        : {}),
     };
   });
 }

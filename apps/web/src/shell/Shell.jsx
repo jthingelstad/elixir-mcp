@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  AccountAvatar,
   AccountMenu,
   Disclaimer,
   FAMILY_FOOT,
@@ -70,6 +71,7 @@ export function barAccount(me, signOut) {
   };
   return {
     name: barName(me),
+    avatarCard: me?.avatar_card_id ?? null,
     email: me?.email ?? undefined,
     players,
     playersFoot: add,
@@ -165,9 +167,10 @@ function Avatar({ me }) {
         onClick={() => setOpen((v) => !v)}
       >
         <span className="sr-only">Account: </span>
-        <span className="chrome__avatar" aria-hidden="true">
-          {initialsOf(name)}
-        </span>
+        <AccountAvatar
+          card={me?.avatar_card_id ?? null}
+          initials={initialsOf(name)}
+        />
         <span className="kit-top__name">{name}</span>
       </button>
       {open ? (
