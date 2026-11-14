@@ -421,6 +421,8 @@ export async function buildBellWeek(db, accountId, { own, now = Date.now() }) {
     interactive: true,
     // Your account's own lines take no cheers.
     accountLines: false,
+    // Items only: no entry, so no late count to read.
+    lateCounts: false,
   });
   const buildMs = Date.now() - started;
   const items = (built.timeline ?? []).filter(cheerable);

@@ -1,7 +1,8 @@
 /**
- * What the player page and Stats cost the database (2026-11-13), over a
- * synthetic record (`signed-in-seed.mjs`): King Thing signed in, a clan
- * among others, months of battles and day rows, 55 follows. Every read
+ * What the player page, Stats, Find, the bell and the search sheet cost
+ * the database (2026-11-13), over a synthetic record
+ * (`signed-in-seed.mjs`): King Thing signed in, a clan among others,
+ * months of battles and day rows, 55 follows. Every read
  * each page makes on load goes through the web API's own handler, one at
  * a time in page order, held to a statement count; every statement's
  * plan is held to never scanning a large table whole, never reading more
@@ -18,6 +19,7 @@ import { seedSignedIn } from "./signed-in-seed.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { createClanRequest } from "../src/clan.mjs";
 import { makeDatabase } from "@elixir-mcp/http/database";
+import { buildTimeline } from "@elixir-mcp/tools/activity/entries";
 import {
   LARGE,
   captureStatements,
@@ -290,6 +292,249 @@ test("Stats' reads stay in their budgets and read the record by range", async ()
         [],
         "coverage's count never touches battle",
       );
+  }
+});
+
+/**
+ * Find, the bell and the search sheet (2026-11-13), as each asks on
+ * load: Home's needs and the bell first (the shell's), then Find's tabs
+ * (Suggested, From your battles, Your clan with its follow plan), the
+ * slots and the clans, and the search sheet's reads (a player's tag, a
+ * clan's tag, a name).
+ */
+const FIND = {
+  "/api/me/home/needs": { statements: 12, buffers: 300 },
+  "/api/me/follow-slots": { statements: 6, buffers: 700 },
+  "/api/me/people/suggested": { statements: 10, buffers: 600 },
+  "/api/me/people/battles": { statements: 8, buffers: 1300 },
+  "/api/me/people/clan": { statements: 11, buffers: 700 },
+  "/api/me/follow-plan": { statements: 9, buffers: 500 },
+  "/api/me/clans": { statements: 6, buffers: 300 },
+  "/api/me/home/clan": { statements: 9, buffers: 300 },
+};
+
+test("the bell stays in its budgets, built and stored, and never counts late captures", async () => {
+  // Built: the first read of the week (no stored row).
+  await seed.db.query("delete from bell_week");
+  const built = await read(
+    "/api/me/bell (built)",
+    "/api/me/bell",
+    {},
+    {
+      statements: 34,
+      buffers: 1100,
+    },
+  );
+  // The late count read every battle the record learned in the week,
+  // anyone's; the bell serves items, never an entry's late_captures.
+  assert.ok(
+    !built.seen.some((s) =>
+      /b\.battle_time < b\.created_at - interval '1 day'/.test(s.text),
+    ),
+    "the bell read the late-capture count",
+  );
+  // Stored: every read after it in the next three hours.
+  await read(
+    "/api/me/bell (stored)",
+    "/api/me/bell",
+    {},
+    {
+      statements: 13,
+      buffers: 400,
+    },
+  );
+});
+
+test("Find's tabs stay in their budgets and read each battle's other side by key", async () => {
+  const r = {};
+  for (const [key, opts] of [
+    ["/api/me/home/needs", {}],
+    ["/api/me/people/suggested", {}],
+    ["/api/me/people/battles", {}],
+    ["/api/me/people/clan", {}],
+    ["/api/me/follow-plan", { query: { clan_tag: seed.clanTag } }],
+    ["/api/me/follow-slots", {}],
+    ["/api/me/clans", {}],
+    ["/api/me/home/clan", {}],
+  ])
+    r[key] = await read(key, key, opts, FIND[key]);
+  for (const key of ["/api/me/people/suggested", "/api/me/people/battles"])
+    for (const s of scansOf(
+      r[key].planned,
+      /cross join lateral \(\s*select o\.player_tag, o\.side, o\.clan_tag/,
+      "battle_participant",
+    ))
+      assert.ok(
+        [
+          "battle_participant_pkey",
+          "battle_participant_player_time_cover",
+        ].includes(s.index),
+        `${key}: battle_participant read by ${s.index}`,
+      );
+});
+
+test("the search sheet's reads stay in their budgets", async () => {
+  const stranger = (
+    await seed.db.query(
+      `select player_tag from clan_membership
+        where clan_tag <> $1 and left_observed_at is null
+        order by player_tag limit 1`,
+      [seed.clanTag],
+    )
+  ).rows[0].player_tag;
+  // A player's tag: the summary answers it.
+  await read(
+    "search: players_summary",
+    "/api/explore",
+    tool("players_summary", { player_tag: stranger }),
+    { statements: 28, buffers: 1300 },
+  );
+  // A clan's tag: no player, so the roster.
+  await read(
+    "search: clans_roster",
+    "/api/explore",
+    tool("clans_roster", { clan_tag: seed.clanTag }),
+    { statements: 14, buffers: 1400 },
+  );
+  // A name, few matches and nearly every player matching: the clan and
+  // trophies are read for the rows shown only. The name itself is a
+  // substring, so `player` is read whole by name (a trigram index is the
+  // lead's call, after sizing the table in production).
+  for (const query of ["King", "Invented"]) {
+    const r = await request(
+      handler,
+      seed.cookie,
+      "/api/explore",
+      tool("players_search", { query, limit: 8 }),
+    );
+    ran.push(...r.seen);
+    assert.equal(r.status, 200);
+    assert.ok(r.seen.length <= 6, `players_search: ${r.seen.length}`);
+    const planned = await plans(seed.db, r.seen);
+    const p = planned.find((x) => /with mine as materialized/.test(x.full));
+    assert.ok(p, "players_search ran");
+    assert.ok(p.buffers <= 400, `players_search ${query}: ${p.buffers}`);
+    for (const s of p.scans)
+      if (s.table === "player_snapshot_daily" || s.table === "clan_membership")
+        assert.ok(s.loops <= 8, `${s.table} probed ${s.loops} times`);
+  }
+});
+
+/** players_search as it was before 2026-11-13: every match probed. */
+const OLD_SEARCH = `with hits as (
+   select p.player_tag, p.name, nn.nickname,
+          case
+            when nn.nickname ilike $2 then 'nickname'
+            when exists (select 1 from claim c
+                         where c.account_id = $1 and c.player_tag = p.player_tag)
+              then 'claim'
+            when exists (select 1 from claim c
+                         join clan_membership cm on cm.player_tag = c.player_tag
+                           and cm.left_observed_at is null
+                         join clan_membership cm2 on cm2.clan_tag = cm.clan_tag
+                           and cm2.left_observed_at is null
+                         where c.account_id = $1 and cm2.player_tag = p.player_tag)
+              or exists (select 1 from account_clan ac
+                         join clan_membership cm3 on cm3.clan_tag = ac.clan_tag
+                           and cm3.left_observed_at is null
+                         where ac.account_id = $1 and cm3.player_tag = p.player_tag)
+              then 'clanmate'
+            else 'corpus'
+          end as source
+   from player p
+   left join player_nickname nn on nn.account_id = $1
+     and nn.player_tag = p.player_tag
+   where p.name ilike $2 or nn.nickname ilike $2)
+ select h.player_tag, h.name, h.nickname, h.source,
+        cl.clan_tag, cl.name as clan_name, tr.trophies,
+        count(*) over ()::int as total_matches
+ from hits h
+ left join lateral (
+   select cm.clan_tag, c.name from clan_membership cm
+   left join clan c on c.clan_tag = cm.clan_tag
+   where cm.player_tag = h.player_tag and cm.left_observed_at is null
+   limit 1) cl on true
+ left join lateral (
+   select s.trophies from player_snapshot_daily s
+   where s.player_tag = h.player_tag
+   order by s.snapshot_date desc, s.snapshot_kind desc
+   limit 1) tr on true
+ order by case h.source when 'nickname' then -1 when 'claim' then 0 when 'clanmate' then 1 else 2 end,
+          (lower(h.name) = lower($4)) desc,
+          h.name
+ limit $3`;
+
+test("players_search answers what it answered before", async () => {
+  // A nickname of the reader's, so every source is in the record.
+  const nicked = seed.follows[1];
+  await seed.db.query(
+    `insert into player_nickname (account_id, player_tag, nickname)
+     values ($1, $2, 'Kingfisher') on conflict do nothing`,
+    [seed.accountId, nicked],
+  );
+  const now = ran.find((s) => /with mine as materialized/.test(s.text));
+  assert.ok(now, "players_search ran above");
+  const key = (r) => [
+    r.source === "nickname" ? -1 : ({ claim: 0, clanmate: 1 }[r.source] ?? 2),
+    r.name,
+  ];
+  for (const q of ["King", "Invented", "Kingfisher", "zzz"]) {
+    const args = (limit) => [seed.accountId, `%${q}%`, limit, q];
+    // Every match: the same rows, as sets.
+    const [all, allOld] = [
+      (await seed.db.query(now.text, args(100_000))).rows,
+      (await seed.db.query(OLD_SEARCH, args(100_000))).rows,
+    ];
+    const set = (rows) => rows.map((x) => JSON.stringify(x)).sort();
+    assert.deepEqual(set(all), set(allOld), `${q}: every match`);
+    // The first eight: the same order, row for row where the old order
+    // was settled, and the same ranks where it tied.
+    const [top, topOld] = [
+      (await seed.db.query(now.text, args(8))).rows,
+      (await seed.db.query(OLD_SEARCH, args(8))).rows,
+    ];
+    assert.deepEqual(top.map(key), topOld.map(key), `${q}: the ranking`);
+    assert.deepEqual(top, all.slice(0, 8), `${q}: a prefix of every match`);
+    if (q === "Kingfisher") assert.equal(top[0]?.source, "nickname");
+  }
+  await seed.db.query(
+    "delete from player_nickname where account_id = $1 and player_tag = $2",
+    [seed.accountId, nicked],
+  );
+});
+
+test("the bell's and cheers' items are the ones a build with late counts makes", async () => {
+  const now = Date.now();
+  const subjects = [
+    { kind: "player", tag: seed.leaderTag, relationship: "primary" },
+    ...seed.follows
+      .slice(0, 6)
+      .map((tag) => ({ kind: "player", tag, relationship: "friend" })),
+  ];
+  for (const subs of [subjects.slice(0, 1), subjects]) {
+    const build = (lateCounts) =>
+      buildTimeline(seed.db, subs, {
+        fromMs: now - 7 * 86_400_000,
+        toMs: now,
+        accountId: seed.accountId,
+        interactive: true,
+        accountLines: false,
+        lateCounts,
+      });
+    const [full, lean] = [await build(true), await build(false)];
+    assert.ok(full.timeline.length > 0, "the week has items");
+    assert.deepEqual(lean.timeline, full.timeline);
+    // The entries differ only in the count left out.
+    for (const [i, e] of full.entries.entries()) {
+      const l = lean.entries[i];
+      if (e.battles) {
+        assert.equal(l.battles.late_captures, null);
+        assert.deepEqual(
+          { ...l, battles: { ...l.battles, late_captures: 0 } },
+          { ...e, battles: { ...e.battles, late_captures: 0 } },
+        );
+      }
+    }
   }
 });
 

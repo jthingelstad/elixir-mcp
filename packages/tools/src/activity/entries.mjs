@@ -1285,6 +1285,7 @@ async function playerBattles(
   toMs,
   basis = "observed",
   prefetched = null,
+  lateCounts = true,
 ) {
   // Learned in the window (observed), or played in it (occurred); either
   // way never a late capture, which is counted, not narrated. An occurred
@@ -1300,7 +1301,13 @@ async function playerBattles(
   } else {
     const sql = playerBattlesSql("$1", fromMs, toMs, basis);
     wide = (await db.query(sql.wide, [tag])).rows;
-    lateN = (await db.query(sql.late, [tag])).rows[0]?.n ?? 0;
+    // Not counted (null) for a read that serves no entry: an observed
+    // window's count reads every battle the record learned in the window,
+    // anyone's, by created_at (1,031 of the bell's 2,008 buffers on a
+    // year's record, 2026-11-13).
+    lateN = lateCounts
+      ? ((await db.query(sql.late, [tag])).rows[0]?.n ?? 0)
+      : null;
   }
   const rows = occurred
     ? wide.filter((r) => r.battle_time.getTime() > fromMs)
@@ -1329,16 +1336,23 @@ export function prefetchStatements({ fromMs, toMs, basis = "observed" }) {
  * tag inside one statement (perTag), so a batched entry is the entry its
  * player alone would get, read on the same index.
  */
-async function prefetchPlayers(db, tags, { fromMs, toMs, basis }) {
+async function prefetchPlayers(
+  db,
+  tags,
+  { fromMs, toMs, basis, lateCounts = true },
+) {
   const sql = prefetchStatements({ fromMs, toMs, basis });
-  const battles = new Map(tags.map((t) => [t, { wide: [], late: 0 }]));
+  const battles = new Map(
+    tags.map((t) => [t, { wide: [], late: lateCounts ? 0 : null }]),
+  );
   for (const { batch_tag: t, ...row } of (await db.query(sql.wide, [tags]))
     .rows)
     battles.get(t)?.wide.push(row);
-  for (const r of (await db.query(sql.late, [tags])).rows) {
-    const b = battles.get(r.batch_tag);
-    if (b) b.late = r.n;
-  }
+  if (lateCounts)
+    for (const r of (await db.query(sql.late, [tags])).rows) {
+      const b = battles.get(r.batch_tag);
+      if (b) b.late = r.n;
+    }
   const snapshots = async (atMs) => {
     const { rows } = await db.query(sql.snapshot(atMs), [tags]);
     return new Map(rows.map(({ batch_tag, ...r }) => [batch_tag, r]));
@@ -1517,6 +1531,8 @@ export async function buildPlayerEntry(
     // This player's share of a batch read (prefetchPlayers), or null to
     // read alone.
     prefetched = null,
+    // battles.late_captures counted, or null (buildTimeline's lateCounts).
+    lateCounts = true,
   },
 ) {
   const { rows: who } = await db.query(
@@ -1535,7 +1551,15 @@ export async function buildPlayerEntry(
     wide,
     late,
   } = await timed(perf, "player.battles", () =>
-    playerBattles(db, tag, fromMs, toMs, basis, prefetched?.battles),
+    playerBattles(
+      db,
+      tag,
+      fromMs,
+      toMs,
+      basis,
+      prefetched?.battles,
+      lateCounts,
+    ),
   );
   const byMode = {};
   let won = 0;
@@ -3748,8 +3772,9 @@ export async function buildTimeline(
     // Off only for the test that holds a batched read to the per-player
     // one.
     batchPlayers = true,
-    // A clan entry's late captures and battles learned after the window
-    // (buildClanEntry): off only when the caller serves no activity.
+    // Late captures (a clan entry's, with its battles learned after the
+    // window, and a player entry's battles.late_captures): off only when
+    // the caller serves no entry, only items.
     lateCounts = true,
   },
 ) {
@@ -3768,7 +3793,12 @@ export async function buildTimeline(
   const batch =
     batchPlayers && playerTags.length > 1
       ? await timed(perf, "players.batch", () =>
-          prefetchPlayers(db, playerTags, { fromMs, toMs, basis }),
+          prefetchPlayers(db, playerTags, {
+            fromMs,
+            toMs,
+            basis,
+            lateCounts,
+          }),
         )
       : null;
   for (const s of subjects) {
@@ -3801,6 +3831,7 @@ export async function buildTimeline(
       basis,
       modeRecords,
       prefetched: batch?.get(s.tag) ?? null,
+      lateCounts,
     });
     const e = built.entry;
     const said =

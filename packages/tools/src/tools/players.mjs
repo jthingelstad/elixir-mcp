@@ -1002,36 +1002,51 @@ export const playersTools = {
       // The query is a literal, never a pattern.
       const pattern = `%${likeLiteral(q)}%`;
       const { rows } = await ctx.db.query(
-        `with hits as (
+        // The account's own players and clanmates once, as small sets,
+        // and the clan and trophies only for the rows shown: probed per
+        // match, a common name ("Invented", every match) read 178,991
+        // buffers for 20 rows (2026-11-13). The order's last key, the
+        // tag, only settles rows the rest tie on.
+        `with mine as materialized (
+           select c.player_tag from claim c where c.account_id = $1
+         ), mates as materialized (
+           select cm2.player_tag from claim c
+             join clan_membership cm on cm.player_tag = c.player_tag
+               and cm.left_observed_at is null
+             join clan_membership cm2 on cm2.clan_tag = cm.clan_tag
+               and cm2.left_observed_at is null
+            where c.account_id = $1
+           -- The account's own clans too: an agent claims no player, so
+           -- its clan came only through here (Gym #129).
+           union
+           select cm3.player_tag from account_clan ac
+             join clan_membership cm3 on cm3.clan_tag = ac.clan_tag
+               and cm3.left_observed_at is null
+            where ac.account_id = $1
+         ), hits as (
            select p.player_tag, p.name, nn.nickname,
                   case
                     when nn.nickname ilike $2 then 'nickname'
-                    when exists (select 1 from claim c
-                                 where c.account_id = $1 and c.player_tag = p.player_tag)
-                      then 'claim'
-                    when exists (select 1 from claim c
-                                 join clan_membership cm on cm.player_tag = c.player_tag
-                                   and cm.left_observed_at is null
-                                 join clan_membership cm2 on cm2.clan_tag = cm.clan_tag
-                                   and cm2.left_observed_at is null
-                                 where c.account_id = $1 and cm2.player_tag = p.player_tag)
-                      -- The account's own clans too: an agent claims no
-                      -- player, so its clan came only through here (Gym #129).
-                      or exists (select 1 from account_clan ac
-                                 join clan_membership cm3 on cm3.clan_tag = ac.clan_tag
-                                   and cm3.left_observed_at is null
-                                 where ac.account_id = $1 and cm3.player_tag = p.player_tag)
-                      then 'clanmate'
+                    when p.player_tag in (select player_tag from mine) then 'claim'
+                    when p.player_tag in (select player_tag from mates) then 'clanmate'
                     else 'corpus'
                   end as source
            from player p
            left join player_nickname nn on nn.account_id = $1
              and nn.player_tag = p.player_tag
-           where p.name ilike $2 or nn.nickname ilike $2)
+           where p.name ilike $2 or nn.nickname ilike $2
+         ), shown as (
+           select h.*, count(*) over ()::int as total_matches
+             from hits h
+            order by case h.source when 'nickname' then -1 when 'claim' then 0 when 'clanmate' then 1 else 2 end,
+                     -- A whole-name match before a substring one.
+                     (lower(h.name) = lower($4)) desc,
+                     h.name, h.player_tag
+            limit $3)
          select h.player_tag, h.name, h.nickname, h.source,
                 cl.clan_tag, cl.name as clan_name, tr.trophies,
-                count(*) over ()::int as total_matches
-         from hits h
+                h.total_matches
+         from shown h
          left join lateral (
            select cm.clan_tag, c.name from clan_membership cm
            left join clan c on c.clan_tag = cm.clan_tag
@@ -1045,10 +1060,8 @@ export const playersTools = {
            order by s.snapshot_date desc, s.snapshot_kind desc
            limit 1) tr on true
          order by case h.source when 'nickname' then -1 when 'claim' then 0 when 'clanmate' then 1 else 2 end,
-                  -- A whole-name match before a substring one.
                   (lower(h.name) = lower($4)) desc,
-                  h.name
-         limit $3`,
+                  h.name, h.player_tag`,
         [ctx.account.accountId, pattern, limit, q],
       );
       const total = rows[0]?.total_matches ?? 0;
