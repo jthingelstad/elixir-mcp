@@ -36,6 +36,9 @@ let scratch, handler, cookie, accountId;
 const pending = new Set();
 /** Every 5xx the API answered, as "METHOD path status". */
 const failures = [];
+/** Counts finished tests, so an until() a timed-out test left running
+ *  stops instead of acting on the next test's page. */
+let finished = 0;
 // The scratch database is a clone of the migrated template, and CREATE
 // DATABASE queues behind any other on the host (several verify runs at
 // once): a queue, so its bound is a hang guard.
@@ -101,6 +104,7 @@ beforeAll(async () => {
   });
 }, HANG);
 afterEach(async () => {
+  finished += 1;
   cleanup();
   await Promise.all([...pending]);
   expect(failures.splice(0)).toEqual([]);
@@ -130,7 +134,9 @@ afterAll(async () => {
  *  failed to render can never turn into the condition, so either ends the
  *  wait at once, naming it. */
 async function until(check) {
+  const test = finished;
   for (;;) {
+    if (finished !== test) throw new Error("the test this wait was for ended");
     if (failures.length)
       throw new Error(`the API answered ${failures.join(", ")}`);
     if (screen.queryByText(/This section failed to render/))
@@ -184,7 +190,15 @@ test(
     const input = await until(() => screen.getByLabelText("Player tag"));
     fireEvent.change(input, { target: { value: "#00J" } });
     fireEvent.click(input.closest("form").querySelector("button"));
-    await until(() => screen.getByText("#00J"));
+    // Adding opens the new player's page. Its tag is on that page twice
+    // (the heading and the line under it), and three times once the
+    // recording status reads, so "#00J" alone matched one element only in
+    // the moment between the list's refresh and the navigation: a race
+    // findBy won on an idle host and lost on a loaded one (#963).
+    await until(() => {
+      expect(window.location.pathname).toBe("/settings/players/00J");
+      return screen.getByRole("heading", { level: 1, name: "#00J" });
+    });
     expect(
       (
         await scratch.db.query(
