@@ -1114,3 +1114,40 @@ test("awards: a manual choice after a sent announcement gets separate copy witho
   assert.deepEqual(mail[0].card_ids, [fresh[0].card_id]);
   assert.deepEqual(await h.ledger.card("#0QC8RCGY", c.card_id), sent);
 });
+
+test("awards: asked cold, Awards judges from the participation the clan's evaluation just read, as if it had run then", async () => {
+  const reads = (h) =>
+    h.record.calls.filter(([name]) => name === "clans_participation").length;
+  // Manage evaluates first (as Standings or You here would), then a cold
+  // Awards two minutes later reads no participation of its own.
+  const shared = harness({ part: partClan() });
+  const cookies = await signedIn(shared);
+  const manage = await api(
+    shared,
+    cookies,
+    "GET",
+    "/api/clans/0QC8RCGY/manage",
+  );
+  assert.equal(manage.status, 200, JSON.stringify(manage.body));
+  assert.equal(reads(shared), 1);
+  shared.clock.t += 2 * 60_000;
+  const cold = await api(shared, cookies, "GET", `${BASE}/manage`);
+  assert.equal(cold.status, 200, JSON.stringify(cold.body));
+  assert.equal(cold.body.cached, false);
+  assert.equal(reads(shared), 1, "Awards judged from the evaluation's read");
+
+  // The same Awards, reading the record itself at the instant of that read.
+  const alone = harness({ part: partClan() });
+  const own = await api(alone, await signedIn(alone), "GET", `${BASE}/manage`);
+  assert.equal(reads(alone), 1);
+  assert.deepEqual(cold.body, own.body);
+
+  // Past the evaluation's TTL, or asked to refresh, Awards reads again.
+  shared.clock.t += 4 * 60_000;
+  await api(shared, cookies, "GET", `${BASE}/manage`);
+  assert.equal(reads(shared), 2, "a read older than the TTL is not shared");
+  await api(shared, cookies, "GET", "/api/clans/0QC8RCGY/manage");
+  assert.equal(reads(shared), 3);
+  await api(shared, cookies, "GET", `${BASE}/manage?refresh=1`);
+  assert.equal(reads(shared), 4, "a refresh reads the record");
+});

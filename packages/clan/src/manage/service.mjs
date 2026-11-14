@@ -160,6 +160,24 @@ export async function fetchParticipation(record, clanTag) {
   return r.body;
 }
 
+/**
+ * The participation read an evaluation judged from, as the ledger keeps
+ * it for a cold Awards (`participation#<clan>`, 2026-11-13): the body
+ * but its reader's meta, of which the engines read only `as_of` and
+ * `freshness_seconds`. Everything else in the body is the clan's record,
+ * the same for every member who reads it.
+ */
+export function shareableParticipation(body) {
+  const { meta, ...rest } = body;
+  return {
+    ...rest,
+    meta: {
+      as_of: meta?.as_of ?? null,
+      freshness_seconds: meta?.freshness_seconds ?? null,
+    },
+  };
+}
+
 /** The roster with its recent join/leave/role events; null when Elixir
  *  cannot answer (the evaluation goes on without the timeline). */
 /** How each race finished for this clan, keyed "<season>/<section>": rank,
@@ -643,6 +661,12 @@ export function createManageService({
       await noteSize(clanTag, part.members.length, t);
       if (part.members.length < MIN_MEMBERS)
         throw tooFewMembers(part.members.length);
+      // Kept for a cold Awards to judge from (ledger participation#),
+      // dated when this evaluation began, before the read.
+      await ledger.saveParticipation(clanTag, {
+        read_at: new Date(t).toISOString(),
+        body: shareableParticipation(fetched),
+      });
     }
     // The roster carries today's trophies and the join/leave events; read
     // only when the policy needs one of them.

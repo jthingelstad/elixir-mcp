@@ -72,6 +72,7 @@ import {
 } from "@elixir-mcp/record/attested-facts";
 import { makeRegistry } from "@elixir-mcp/tools";
 import { makeRecordReader } from "@elixir-mcp/tools/invoker";
+import { memberParticipation } from "@elixir-mcp/tools/tools/clans";
 import { makeLive } from "@elixir-mcp/tools/live";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { principalBlock } from "@elixir-mcp/tools/identity";
@@ -495,6 +496,10 @@ export function createClanRequest({
       social: createSocialService({ ledger, geo: diskGeo() }),
       memberActivity: createMemberActivity({
         record,
+        participationFor: (clanTag, playerTag, weeks) =>
+          timedRead("clans_participation", () =>
+            memberParticipation(db, account, clanTag, playerTag, weeks),
+          ),
         weeklyCounts: (...args) => memberActivityWeeks(db, ...args),
         warBounds: (weeks) => memberActivityWarBounds(db, weeks),
       }),

@@ -39,14 +39,16 @@ const BUDGET = {
   "/api/clan/roster": 16,
   "/race": 21,
   // Asked alone, Actions evaluates the clan's participation itself; on the
-  // page it shares /me's evaluation while that is in flight.
-  "/actions": 63,
+  // page it shares /me's evaluation while that is in flight. An evaluation
+  // keeps its participation read for a cold Awards: one statement
+  // (2026-11-13).
+  "/actions": 64,
   "/me": 50,
   "/week": 70,
   "/feed": 30,
   // The other tabs' first reads: Standings, War and Policy. Standings is
-  // 13 while the clan's evaluation is cached and 61 when it evaluates.
-  "/standing": 61,
+  // 13 while the clan's evaluation is cached and 62 when it evaluates.
+  "/standing": 62,
   "/season": 54,
   "/policy": 23,
 };

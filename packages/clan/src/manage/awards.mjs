@@ -301,7 +301,12 @@ export function createAwardsService({
   }
 
   async function readParticipation(clanTag) {
-    const participation = await participationFor(clanTag);
+    return withMembership(clanTag, await participationFor(clanTag));
+  }
+
+  /** Each member's war and donation weeks they were not in the clan for,
+   *  beside their participation. */
+  async function withMembership(clanTag, participation) {
     if (membershipFor) {
       const evidence = await membershipFor(clanTag, participation);
       participation.members = participation.members.map((m) => ({
@@ -366,9 +371,20 @@ export function createAwardsService({
       t - Date.parse(cached.evaluated_at) < EVALUATION_TTL_MS
     )
       return { result: cached, config, cached: true };
-    const participation = await readParticipation(clanTag);
+    // Asked cold, Awards judges from the participation the clan's latest
+    // evaluation read (Standings, Manage, You here) while that read is
+    // younger than an evaluation's TTL, and is dated at that read, as if
+    // it had run then: the grants, the weeks it announces and the
+    // snapshot's age all follow the record it judged. A refresh, the
+    // morning run and a clan last seen small read the record again.
+    const shared =
+      force || small ? null : await sharedParticipation(clanTag, t);
+    const at = shared ? Date.parse(shared.read_at) : t;
+    const participation = shared
+      ? await withMembership(clanTag, shared.body)
+      : await readParticipation(clanTag);
     // Too small for awards: remember the size and grant nothing.
-    await noteClanSize(ledger, clanTag, participation.members.length, t);
+    await noteClanSize(ledger, clanTag, participation.members.length, at);
     if (participation.members.length < MIN_MEMBERS)
       throw tooFewMembers(participation.members.length);
     return exclusive(clanTag, async () => {
@@ -378,11 +394,24 @@ export function createAwardsService({
       if (
         latest &&
         latest.config_version === current.version &&
-        Date.parse(latest.evaluated_at) > t
+        Date.parse(latest.evaluated_at) > at
       )
         return { result: latest, config: current, cached: true };
-      return applyAwards(clanTag, participation, current, t);
+      return applyAwards(clanTag, participation, current, at);
     });
+  }
+
+  /** The clan's latest evaluation's participation read (the eight
+   *  weeks every evaluation reads), when it is younger than an
+   *  evaluation's TTL at `t`. */
+  async function sharedParticipation(clanTag, t) {
+    const shared = await ledger.latestParticipation(clanTag);
+    const readAt = shared ? Date.parse(shared.read_at) : NaN;
+    return shared?.body?.members &&
+      readAt <= t &&
+      t - readAt < EVALUATION_TTL_MS
+      ? shared
+      : null;
   }
 
   /** The locked half: grants due against the ledger as it is now. */
