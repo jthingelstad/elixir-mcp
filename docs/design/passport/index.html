@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Elixir passport · design preview</title>
+    <link rel="stylesheet" href="/assets/site.css" />
+    <link rel="stylesheet" href="/prototype.css" />
+    <script type="module" src="/prototype.js"></script>
+  </head>
+  <body class="passport-preview">
+    <aside class="demo" aria-label="Design preview controls">
+      <div>
+        <strong>Design preview</strong
+        ><span>Sample data. Changes stay in this tab.</span>
+      </div>
+      <label
+        >State
+        <select id="scenario">
+          <option value="owner">Your passport</option>
+          <option value="new">New, unverified account</option>
+          <option value="visitor">Another member</option>
+          <option value="unverified">Unverified member</option>
+          <option value="map-choice">Map choice remaining</option>
+          <option value="past-proof">
+            Past verification, no current proof
+          </option>
+          <option value="complete">Every Stamp earned</option>
+          <option value="loading">Loading</option>
+          <option value="error">Failed read</option>
+        </select></label
+      >
+      <button class="btn btn--sm" id="reset">Reset sample</button>
+    </aside>
+    <div id="app"></div>
+    <dialog id="detail" aria-labelledby="detail-title"></dialog>
+    <p class="preview-status" id="status" role="status" aria-live="polite"></p>
+  </body>
+</html>

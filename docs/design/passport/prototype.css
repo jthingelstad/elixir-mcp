@@ -1,0 +1,602 @@
+.passport-preview {
+  margin: 0;
+  padding-bottom: 88px;
+  background: var(--ground);
+  color: var(--ink);
+}
+.passport-preview * {
+  box-sizing: border-box;
+}
+.passport-preview button,
+.passport-preview a,
+.passport-preview input,
+.passport-preview select {
+  touch-action: manipulation;
+}
+.demo {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--panel-raised);
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.demo > div {
+  flex: 1 1 240px;
+}
+.demo span {
+  display: block;
+  color: var(--ink-dim);
+}
+.demo label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.demo select {
+  color: var(--ink);
+  background: var(--panel);
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+}
+.passport-preview.capture .demo {
+  display: none;
+}
+.preview-top {
+  min-height: 56px;
+  padding: 8px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: var(--ground-chrome);
+}
+.preview-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+  color: var(--gold);
+  text-decoration: none;
+}
+.preview-brand img {
+  width: 30px;
+  height: 30px;
+}
+.preview-brand span {
+  font: 400 20px/1.2 var(--font-display);
+}
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.icon-button:hover {
+  background: var(--panel-raised);
+}
+.preview-main {
+  padding: 24px 16px 32px;
+  margin: 0 auto;
+  max-width: 760px;
+}
+.preview-main h1 {
+  font: 400 32px/1.3 var(--font-display);
+  letter-spacing: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.preview-main h2 {
+  font: 600 20px/1.35 var(--font);
+  margin: 0;
+}
+.preview-main h3 {
+  font: 600 16px/1.4 var(--font);
+  margin: 0;
+}
+.preview-main p {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.preview-main .sub {
+  margin: 8px 0 24px;
+  color: var(--ink-dim);
+}
+.passport-person {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0 32px;
+}
+.passport-person .person-name {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 600;
+}
+.passport-person .earned-count {
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+.avatar-sample {
+  height: 44px;
+  width: 44px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: #67464a;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.avatar-sample.verified {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.verification-mark {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--gold);
+}
+.person-note {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.stamp-section {
+  margin-top: 28px;
+}
+.stamp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 12px;
+  padding: 16px 0 4px;
+}
+.stamp-tile {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  border: 0;
+  background: transparent;
+  padding: 4px;
+  min-width: 0;
+  color: var(--ink-faint);
+  cursor: pointer;
+  border-radius: 8px;
+}
+.stamp-tile:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 4px;
+}
+.stamp-tile:hover .stamp-mark {
+  background: var(--panel);
+}
+.stamp-mark {
+  width: 100%;
+  max-width: 144px;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 6px;
+  position: relative;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  transform: rotate(var(--tilt));
+}
+.stamp-mark::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed currentColor;
+  border-radius: inherit;
+  opacity: 0.75;
+  pointer-events: none;
+}
+.stamp-mark.square {
+  border-radius: 12px;
+}
+.stamp-mark svg {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.stamp-title {
+  max-width: 100%;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.12;
+  font-weight: 600;
+}
+.stamp-date {
+  font: 400 10px/1.2 var(--font-mono);
+  letter-spacing: 0.02em;
+}
+.stamp-label {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-faint);
+  text-align: center;
+}
+.stamp-tile.earned.ink-violet {
+  color: var(--accent-bright);
+}
+.stamp-tile.earned.ink-blue {
+  color: #7fb6f8;
+}
+.stamp-tile.earned.ink-teal {
+  color: #62ddc2;
+}
+.stamp-tile.earned.ink-coral {
+  color: #fb8fa1;
+}
+.passport-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+.passport-actions .btn {
+  flex: 1 1 160px;
+}
+.passport-foot {
+  margin-top: 28px;
+  color: var(--ink-faint);
+  font-size: 12px !important;
+}
+.preview-bottom {
+  position: fixed;
+  z-index: 5;
+  inset: auto 0 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  min-height: 64px;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--ground-chrome);
+  border-top: 1px solid var(--line);
+}
+.preview-bottom button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  min-height: 64px;
+  display: grid;
+  gap: 3px;
+  align-content: center;
+  justify-items: center;
+  font: 500 12px/1.4 var(--font);
+  cursor: pointer;
+}
+.preview-bottom button.active {
+  color: var(--accent-bright);
+}
+.preview-bottom svg {
+  width: 22px;
+  height: 22px;
+}
+.preview-panel {
+  padding: 16px;
+  margin-top: 24px;
+  background: var(--panel);
+  border-radius: 8px;
+}
+.preview-panel p {
+  margin: 8px 0 0;
+}
+.checklist {
+  padding: 0;
+  margin: 16px 0 0;
+  list-style: none;
+}
+.checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.checklist .step-num {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  font: 500 12px var(--font);
+  background: var(--panel-raised);
+  border-radius: 50%;
+  color: var(--ink-dim);
+}
+.checklist .step-num.done {
+  color: #62ddc2;
+  background: transparent;
+}
+.checklist .step-num svg {
+  width: 18px;
+  height: 18px;
+}
+.checklist .step-text {
+  flex: 1;
+  min-width: 0;
+}
+.checklist .step-text p {
+  font-size: 14px;
+  color: var(--ink-dim);
+  margin: 4px 0 12px;
+}
+.checklist .step-text .done-copy {
+  margin-bottom: 0;
+  color: var(--ink-faint);
+}
+.mini-stamps {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.mini-stamps .mini {
+  border: 1px dashed currentColor;
+  border-radius: 50%;
+  padding: 6px;
+  color: var(--accent-bright);
+  width: 36px;
+  height: 36px;
+}
+.mini-stamps .mini svg {
+  width: 22px;
+  height: 22px;
+}
+.preview-feed {
+  margin: 28px 0;
+  padding: 20px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.preview-feed p {
+  margin: 12px 0;
+}
+.preview-feed .passport-person {
+  margin: 0;
+}
+.preview-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 24px 0 12px;
+  font-size: 14px;
+}
+.preview-tabs span {
+  padding: 12px 0;
+}
+.preview-tabs .selected {
+  color: var(--accent-bright);
+  border-bottom: 2px solid var(--accent-bright);
+}
+.text-link {
+  color: var(--accent-bright);
+  border: 0;
+  background: transparent;
+  font: inherit;
+  min-height: 44px;
+  cursor: pointer;
+  padding: 8px 0;
+  text-align: left;
+}
+.preview-status {
+  position: fixed;
+  z-index: 15;
+  left: 16px;
+  right: 16px;
+  bottom: 72px;
+  margin: 0 auto;
+  max-width: 560px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--panel-raised);
+  box-shadow: 0 4px 18px #0006;
+  font-size: 14px;
+  pointer-events: none;
+}
+.preview-status:empty {
+  display: none;
+}
+#detail {
+  padding: 0;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px 16px 0 0;
+  width: min(100%, 520px);
+  max-width: 100%;
+  max-height: calc(100dvh - 24px);
+  margin: auto auto 0;
+  overflow-y: auto;
+}
+#detail::backdrop {
+  background: #0009;
+}
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 0;
+}
+.detail-head h2 {
+  margin: 0;
+  font: 600 20px/1.3 var(--font);
+  flex: 1;
+}
+.detail-body {
+  padding: 16px 24px 28px;
+}
+.detail-body p {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.detail-body .stamp-tile {
+  max-width: 200px;
+  width: 180px;
+  margin: 0 auto 24px;
+  cursor: default;
+}
+.detail-body .stamp-mark {
+  max-width: none;
+}
+.detail-body .stamp-mark svg {
+  width: 44px;
+  height: 44px;
+}
+.detail-body .stamp-title {
+  font-size: 20px;
+}
+.detail-body .stamp-date {
+  font-size: 12px;
+}
+.detail-body .btn {
+  width: 100%;
+  margin-top: 12px;
+}
+.detail-body label {
+  display: block;
+  font-size: 14px;
+  margin-top: 16px;
+}
+.detail-body input,
+.detail-body select {
+  font: 400 16px var(--font);
+  width: 100%;
+  color: var(--ink);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 48px;
+  padding: 12px;
+  margin-top: 8px;
+}
+.detail-note {
+  font-size: 14px !important;
+  color: var(--ink-dim);
+}
+.level-list {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+.level-list li {
+  padding: 12px 0;
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  gap: 12px;
+}
+.level-list span {
+  margin-left: auto;
+  color: var(--ink-dim);
+}
+.notification {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  padding: 16px 0;
+  font: 400 16px/1.5 var(--font);
+  cursor: pointer;
+}
+.notification .notice-icon {
+  color: var(--accent-bright);
+  padding-top: 3px;
+}
+.notification small {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+.skeleton {
+  height: 112px;
+  background: var(--panel-raised);
+  border-radius: 50%;
+  opacity: 0.55;
+}
+.map-place {
+  margin: 20px 0;
+  min-height: 180px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  background: var(--ground-sunken);
+}
+.map-place svg {
+  width: 32px;
+  height: 32px;
+  color: #62ddc2;
+}
+@media (min-width: 760px) {
+  .preview-bottom {
+    inset: auto calc((100% - 760px) / 2) 0;
+  }
+  .stamp-grid {
+    column-gap: 32px;
+  }
+  .stamp-title {
+    font-size: 14px;
+  }
+  .stamp-date {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stamp-tile:hover .stamp-mark {
+    transition: background-color 120ms;
+  }
+}
+
+.completed-steps {
+  margin-top: 8px;
+  color: var(--ink-dim);
+  font-size: 14px;
+}
+.completed-steps summary {
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+}
+
+@media (max-width: 359px) {
+  .stamp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Enlarged phone text wraps within the ink frame instead of widening the page. */
+.stamp-mark {
+  min-width: 0;
+}
+.stamp-title,
+.stamp-date {
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  text-align: center;
+}

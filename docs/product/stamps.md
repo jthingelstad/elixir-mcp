@@ -1,0 +1,159 @@
+# Passports and Stamps
+
+Design direction, 2026-11-14. **Not built yet.** The clickable sample is
+in [the passport design](../design/passport/README.md); the next session
+starts with [the build handoff](../plans/stamps-build.md).
+
+## What it is for
+
+Small, dated marks in an Elixir passport recognize getting set up,
+connecting with friends and taking part. The feed remains the reason to
+return: friends' play, their words, their moments and cheers.
+
+Jamie confirmed the direction in the design session:
+
+- “Stamps should be visible on all accounts. It’s not a private aspect
+  of the account. It should be on all accounts.”
+- “The metaphor ... is like a stamp in a passport.”
+- Verification and putting a place on the map are examples of milestones
+  that should earn a Stamp.
+
+These supersede the older domain plan's verification-only visibility,
+optional public row, and exclusions of verification and location rewards.
+The remaining catalog builds on that plan, with engineering defaults
+identified below. The earlier domain plan is the Clash Royale guide checkout’s
+plans/elixir-profile-stamps-timeline-2026-11-14.md. It is not vendored here.
+
+## The words and the shape
+
+- **Stamps:** Elixir's earned milestones.
+- **Passport:** the account's collection of Stamps.
+- **Badges:** Clash Royale's own badges, as recorded from the game.
+- **Verification mark:** current ownership proof, the gold ring and check.
+
+Stamps resemble passport ink impressions, with a named mark and earned
+date. They are neither currency nor rarity medals. No points, account
+levels, streaks or ranking by collection size. Tiered Stamps use I, II and
+III, not bronze, silver and gold. Gold stays reserved for current
+verification and the existing brand.
+
+A dated Player verified Stamp is a historical milestone. It does not
+replace the live verification mark or keep a player verified after their
+proof is revoked. On the Map records setting a place, not where it is or
+whether it is still shared.
+
+## Who sees them
+
+Every **person account** has a member-visible passport, including a new
+account with no player and an account with an unverified player. There is
+no hide switch or verification gate for the passport.
+
+“Visible” follows Elixir's existing member boundary: signed-in members
+can open any person's passport. This does not create a new anonymous
+exception beside shared highlights and battles. Agent principals do not
+become human passport owners.
+
+An unverified claim is never used to attach an account's Stamps to the
+canonical game player page as its owner. The account has its own passport
+link. A verified player's page can link the verified owner's passport;
+the same account-wide collection appears on its verified alts.
+
+The public view contains earned Stamp IDs, highest levels and earned
+dates, with an explanatory catalog. Exact progress counts are for the
+owner. Email, Discord username, city, coordinates, nicknames, account
+UUIDs, agent keys, limits and usage records never enter the public view.
+This is a public achievement surface, not a public account-settings page.
+
+## Initial catalog
+
+The two newly explicit setup milestones bring the older nine-Stamp
+proposal to eleven. Stable IDs and prototype metadata are in
+[catalog.json](../design/passport/catalog.json). Names and the three
+level ladders are engineering defaults that can be tuned before build.
+
+| Stamp | Earned by | Levels |
+| --- | --- | --- |
+| Player verified | Successfully proving ownership of a player in Elixir, using the existing verification flow | Once |
+| Looking Good | Choosing a profile picture | Once |
+| On the Map | Successfully setting a place on the clan map | Once |
+| Full Roster | Adding another of your own players | Once |
+| Linked | Connecting Discord | Once |
+| All Set | Completing the six profile steps below | Once |
+| Inner Circle | Following five other players with a recorded battle in the last seven days | Once |
+| Mutual | Someone you follow follows you back | Once |
+| Played Together | Distinct days playing a friendly battle or 2v2 with someone followed | I / II / III: 1 / 5 / 20 |
+| Cheerleader | Distinct days on which you cheer someone | I / II / III: 3 / 15 / 50 |
+| Storyteller | Distinct battles highlighted with non-empty words of your own | I / II / III: 1 / 5 / 20 |
+
+Wins, trophies, rank and win rate never decide a Stamp. Repeated cheering
+in one day is one day. A missing week costs nothing. A highlight edited,
+removed and reposted is still one distinct battle for Storyteller.
+Earned Stamps and levels stay earned when a follow, picture, Discord
+connection or place is later removed.
+
+On the Map is optional. Setting a country, region or city earns it; opening the map,
+granting browser location permission or choosing Not now does not.
+The existing country/region/city picker and verified-clan-member map permissions remain. No extra precision is required.
+The public Stamp never includes the city or its location data.
+
+## One profile list
+
+Home offers one compact next step, not six full tasks before the feed.
+The full list can expand. Completed users get the feed immediately.
+
+1. Add your player.
+2. Verify your main player.
+3. Pick your picture.
+4. Follow one player who has played in the last seven days.
+5. Choose the digest: weekly, daily or off.
+6. Choose for the clan map: set a place or choose Not now.
+
+One active friend is enough; a parent need not follow strangers.
+Email off counts. Not now on the map counts toward All Set, but does not
+earn On the Map. Alts and Discord are offered, never prerequisites.
+Steps latch while the list is open; completion is stored once and does
+not return when circumstances change. An already-finished older welcome
+list receives only the remaining steps and can be dismissed.
+
+The list must distinguish “recording is catching up” from “your friend
+didn't play.” Unknown activity is not evidence of inactivity.
+
+## Where it fits
+
+- **Account menu and You:** a passport link for every account, including
+  the unverified state. No sixth bottom-navigation tab.
+- **Settings > Profile:** identity and a compact passport preview before
+  private account machinery; the same public passport opens from it.
+- **Verified player page:** a compact row with up to two marks, a count
+  and Open passport. It must not push the friend's play out of view.
+- **Passport:** the collection, earned and unearned states, dates and
+  a detail sheet with the rule, levels and the appropriate next action.
+- **Bell:** a newly earned Stamp links to its detail. No reward popup
+  interrupts a battle, a highlight or reading the feed.
+- **Feed and digest:** no new Stamp items or Stamp email. The digest
+  stays about friends' play and clan news.
+
+Public viewers get explanations and earned dates, not the owner's
+private progress or settings actions. Opening an On the Map Stamp grants
+no access to the owner's clan map.
+
+## Failure and accessibility
+
+Loading is not an empty passport. A failed read keeps its retry state,
+never zero earned Stamps. Saving a place or picture can earn only after
+the real write succeeds. Failed writes preserve the user's choice and
+show the ordinary retry path.
+
+Marks use text, icons and earned labels as well as color. Names have
+accessible labels; full rules and dates are available in the detail.
+Use a two-column collection on the smallest phones and three columns
+when marks remain legible. Targets are at least 44px. A sheet supports
+Escape, a focus trap and return to its triggering mark. Reduced motion
+removes any stamp-in animation. No bitmap text or modified game art.
+
+## Implementation boundary
+
+This session provides the specification, catalog, prototype and
+experience review. It does not award real Stamps, create storage or
+expose a new live passport route. The prototype's sample state is not an
+earning engine, privacy boundary or API implementation.
