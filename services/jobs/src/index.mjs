@@ -1,6 +1,6 @@
 import { publishPublicStats } from "./public-stats.mjs";
 import { runClanEvaluation } from "./clan.mjs";
-import { isRetiredEmailKind } from "@elixir-mcp/contracts";
+import { isActiveEmailKind, inactiveEmailReason } from "@elixir-mcp/contracts";
 /** The jobs Lambda — scheduled product work, split out of the migrate
  *  Lambda (2026-09-05): EventBridge fires the sweeps and
  *  the nightly archetype stamp here, so the function that can
@@ -346,8 +346,8 @@ function unsubscribeKeys() {
 }
 
 export async function handler(event, context) {
-  if (isRetiredEmailKind(String(event?.email ?? "")))
-    return { skipped: "retired" };
+  if (typeof event?.email === "string" && !isActiveEmailKind(event.email))
+    return { skipped: inactiveEmailReason(event.email) };
 
   if (event?.clan_evaluate) {
     const result = await runClanEvaluation({

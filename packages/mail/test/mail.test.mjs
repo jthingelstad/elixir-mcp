@@ -182,11 +182,11 @@ test("tagLink leaves foreign URLs alone and keeps an existing query string", asy
     "https://example.org/x",
   );
   assert.equal(
-    tagLink("https://elixir.poapkings.com/api/public/top100/2026-09-18?v=1", {
-      kind: "top_100",
+    tagLink("https://elixir.poapkings.com/home/you?v=1", {
+      kind: "tracking_report",
       period: "2026-09-18",
     }),
-    "https://elixir.poapkings.com/api/public/top100/2026-09-18?v=1&utm_source=email&utm_medium=top_100&utm_campaign=top_100-2026-09-18",
+    "https://elixir.poapkings.com/home/you?v=1&utm_source=email&utm_medium=tracking_report&utm_campaign=tracking_report-2026-09-18",
   );
 });
 
@@ -368,7 +368,8 @@ test("the weekly send times are the EventBridge crons", () => {
 
 test("renderMail refuses a kind it does not know and a send without links", () => {
   // The retired kinds have no renderer: a sent one's record shows the
-  // archived mail (2026-11-13).
+  // archived mail (2026-11-13). top_100 and card_of_week are no kind at
+  // all since 2026-11-14.
   for (const kind of [
     "newsletter",
     "top_100",

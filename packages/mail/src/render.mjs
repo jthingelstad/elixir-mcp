@@ -29,8 +29,6 @@ export const KIND_LABELS = {
   clan_report: "Clan report",
   arena_week: "Your week in the Arena",
   tracking_report: "Your digest",
-  top_100: "Top 100",
-  card_of_week: "Card of the Week",
   collector_activity: "Collector activity",
   milestone: "Milestones",
   clan_actions_waiting: "Clan actions waiting",

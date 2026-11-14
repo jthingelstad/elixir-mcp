@@ -17,14 +17,25 @@ a role and stand outside it (DECISIONS "The digest is the one scheduled
 mail; leaders' Actions mail stays apart"). Sign-in codes, the welcome
 and staff notices are transactional, from the relay.
 
-Retired (`RETIRED_EMAIL_KINDS`): `top_100`, `card_of_week`, and since
-2026-11-12 `clan_report`, `arena_week` and `milestone`, folded into the
-digest (Jamie: "One digest email and merging clan and those you follow
-is really needed"; `docs/notes/2026-11-12-one-email.md`). They stay in
-`PRODUCT_EMAIL_KINDS` so sent records and old unsubscribe links still
-resolve; generation, `deliver`, the relay and `PUT /api/me/email`
+Retired (`RETIRED_EMAIL_KINDS`) since 2026-11-12: `clan_report`,
+`arena_week` and `milestone`, folded into the digest (Jamie: "One digest
+email and merging clan and those you follow is really needed";
+`docs/notes/2026-11-12-one-email.md`). They stay in
+`PRODUCT_EMAIL_KINDS` because the digest reads two of their switches
+(`foldedOff`); generation, `deliver`, the relay and `PUT /api/me/email`
 (enabling one answers 410) refuse them before I/O, and Settings no
 longer lists them.
+
+Removed (2026-11-14, Jamie: "Remove those email kinds."): `top_100`
+(Ultimate Champions) and `card_of_week`. No code knows either name; the
+send paths refuse any kind that is not active (`isActiveEmailKind`,
+reason `unknown_kind`), and the relay treats one as a bad message.
+Migration 0267 deleted their switches. Their sent records stay and
+open, labelled "Retired email" (`send-record.mjs`), until the retention
+trim takes them; an old unsubscribe link naming one gets the "This
+email has ended" page and writes nothing, and a mail client's one-click
+POST still gets its `ok`. The rule for any link whose kind has no
+switch is the same: the ended page, never an error.
 
 ## The shared foundation
 

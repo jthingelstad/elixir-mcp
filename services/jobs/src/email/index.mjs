@@ -1,4 +1,4 @@
-import { isRetiredEmailKind } from "@elixir-mcp/contracts";
+import { isActiveEmailKind, inactiveEmailReason } from "@elixir-mcp/contracts";
 /** The product email job: one op per kind, idempotent by the ledger.
  *
  *  runEmail asks the ledger first which recipients already
@@ -49,7 +49,8 @@ export async function runEmail({
   // getRemainingTimeInMillis); null runs to the end.
   remainingMs = null,
 }) {
-  if (isRetiredEmailKind(kind)) return { kind, skipped: "retired", sent: 0 };
+  if (!isActiveEmailKind(kind))
+    return { kind, skipped: inactiveEmailReason(kind), sent: 0 };
   const started = Date.now();
   const own = !db;
   if (own) {

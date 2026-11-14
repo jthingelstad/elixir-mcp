@@ -842,8 +842,7 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
     if (admission.ok) {
       // What the fetch was worth (0077): the projection's own count of
       // rows it inserted or changed, and the transaction's wall time so
-      // far. gateway.fetch_points is a dead column (fetch points retired,
-      // DECISIONS): ingest no longer counts it.
+      // far.
       const facts = Number.isInteger(projection?.facts) ? projection.facts : 0;
       await db.query(
         `update api_receipt set new_facts = $2, ingest_ms = $3 where receipt_id = $1`,

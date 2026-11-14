@@ -19,7 +19,7 @@
  *       page's button: flips the kind off (or "all")
  *
  *  There is deliberately no anonymous page for an issue (Jamie,
- *  2026-09-18): sharing a Top 100 is forwarding the mail.
+ *  2026-09-18): sharing a mail is forwarding it.
  */
 import {
   DISCLAIMER,
@@ -224,6 +224,17 @@ export function emailRoutes({
     }
     return html(statusCode, inShell(shell, view) ?? fallback(view));
   };
+  // A link for a kind with no switch to flip: a retired kind, or one
+  // Elixir no longer knows at all (an old Top 100 or Card of the Week
+  // footer, removed 2026-11-14), which has no label of its own.
+  const switchable = (kind) =>
+    kind === "all" || (isProductEmailKind(kind) && !isRetiredEmailKind(kind));
+  const ended = (kind) => ({
+    title: KIND_LABELS[kind]
+      ? `${upper(labelOf(kind))} has ended`
+      : "This email has ended",
+    lead: `Elixir no longer sends this email, so there is nothing to turn off. Your other emails are on <a href="${MAIL_PATHS.emails}">your email settings</a>.`,
+  });
   const expired = {
     title: "This link has expired",
     lead: `Nothing was changed. Sign in and choose which emails you get from <a href="${MAIL_PATHS.emails}">your email settings</a>.`,
@@ -379,11 +390,7 @@ export function emailRoutes({
     "GET /api/email/unsubscribe": async (db, event) => {
       const c = claim(event);
       if (!c) return render(400, expired);
-      if (isRetiredEmailKind(c.kind))
-        return render(200, {
-          title: `${upper(labelOf(c.kind))} has ended`,
-          lead: `Elixir no longer sends this email, so there is nothing to turn off. Your other emails are on <a href="${MAIL_PATHS.emails}">your email settings</a>.`,
-        });
+      if (!switchable(c.kind)) return render(200, ended(c.kind));
       const t = encodeURIComponent(event.queryStringParameters?.t ?? "");
       const what = labelOf(c.kind);
       return render(200, {
@@ -398,8 +405,17 @@ export function emailRoutes({
     "POST /api/email/unsubscribe": async (db, event) => {
       const c = claim(event);
       if (!c) return render(400, expired);
+      // A kind Elixir no longer knows (top_100 and card_of_week, removed
+      // 2026-11-14) has no switch: nothing is written, the mail client's
+      // one-click gets its 2xx and a person gets the "has ended" page.
       if (c.kind !== "all" && !isProductEmailKind(c.kind))
-        return json(400, { error: "bad_kind" });
+        return isOneClick(event)
+          ? {
+              statusCode: 200,
+              headers: { "content-type": "text/plain" },
+              body: "ok",
+            }
+          : render(200, ended(c.kind));
       // A removed account keeps no switches ({account_remove}): a late
       // one-click on an old mail answers as done and writes nothing to the
       // tombstone, which has no address to mail anyway. The share lock

@@ -7,6 +7,8 @@ import {
   PRODUCT_EMAIL_KINDS,
   ACTIVE_PRODUCT_EMAIL_KINDS,
   isProductEmailKind,
+  isActiveEmailKind,
+  inactiveEmailReason,
 } from "../dist/index.js";
 
 test("obsolete capture has no collector path while retained paths still work", () => {
@@ -25,11 +27,20 @@ test("obsolete capture has no collector path while retained paths still work", (
     "/players/%2300J",
   );
 });
-test("retired mail remains recognizable for historical records only", () => {
+test("the removed mail kinds are no kind at all; the folded ones stay retired", () => {
+  // Top 100 and Card of the Week, removed 2026-11-14 (Jamie: "Remove
+  // those email kinds."): no send path, label or switch knows them.
   for (const kind of ["top_100", "card_of_week"]) {
-    assert.ok(PRODUCT_EMAIL_KINDS.includes(kind));
+    assert.equal(PRODUCT_EMAIL_KINDS.includes(kind), false);
+    assert.equal(isProductEmailKind(kind), false);
+    assert.equal(isActiveEmailKind(kind), false);
+    assert.equal(inactiveEmailReason(kind), "unknown_kind");
+  }
+  for (const kind of ["clan_report", "arena_week", "milestone"]) {
     assert.equal(isProductEmailKind(kind), true);
-    assert.equal(ACTIVE_PRODUCT_EMAIL_KINDS.includes(kind), false);
+    assert.equal(isActiveEmailKind(kind), false);
+    assert.equal(inactiveEmailReason(kind), "retired");
   }
   assert.ok(ACTIVE_PRODUCT_EMAIL_KINDS.includes("tracking_report"));
+  assert.equal(isActiveEmailKind("tracking_report"), true);
 });

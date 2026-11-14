@@ -26,10 +26,15 @@ export const SENDS_COLS = `s.send_id, s.issue_id, s.account_id, s.enqueued_at, s
 export const SENDS_FROM = `from email_send s join email_issue i on i.issue_id = s.issue_id`;
 export const SENDS_SQL = `select ${SENDS_COLS} ${SENDS_FROM}`;
 
+/** A send of a kind Elixir no longer knows (the Top 100 and Card of the
+ *  Week, removed 2026-11-14) keeps its stored kind and reads with this
+ *  label; its archived body still opens. */
+const UNKNOWN_KIND_LABEL = "Retired email";
+
 export const sendRow = (r) => ({
   send_id: r.send_id,
   kind: r.kind,
-  label: KIND_LABELS[r.kind] ?? r.kind,
+  label: KIND_LABELS[r.kind] ?? UNKNOWN_KIND_LABEL,
   subject: r.subject,
   period: r.period_key,
   sent_at: r.enqueued_at,

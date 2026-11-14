@@ -658,13 +658,7 @@ test("a product kind rides the queue rendered: sent as given with the one-click 
 });
 
 test("retired direct, outbox and malformed editorial messages are consumed without sending", async () => {
-  for (const kind of [
-    "top_100",
-    "card_of_week",
-    "clan_report",
-    "arena_week",
-    "milestone",
-  ]) {
+  for (const kind of ["clan_report", "arena_week", "milestone"]) {
     const deleted = [];
     const handler = makeHandler({
       send: () => {
