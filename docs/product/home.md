@@ -89,8 +89,13 @@ is one feed", "The left rail stays only in Settings"]
    feed and each slow panel read alone and fail alone with Try again. The
    feed is served from stored panels, so its sessions can be a little
    behind the record. A visit spends one charge on the person's hourly
-   bucket. [engineering, 2026-11-06, 2026-11-12; Jamie, 2026-11-12: a
-   stored feed is allowed if computing it on read cannot reach 2 s at p95]
+   bucket. Opening the app asks for your own verified players' battle
+   logs now, on the live lane, so a battle you just played reaches the
+   feed within a minute or so; the chip says "Checking for new battles…"
+   meanwhile, and the ask never holds up the page. [engineering,
+   2026-11-06, 2026-11-12, 2026-11-14; Jamie, 2026-11-12: a stored feed
+   is allowed if computing it on read cannot reach 2 s at p95;
+   `docs/notes/2026-11-14-own-refresh.md`]
 7. **Your own clock only.** The clan panel shows your own day count, and
    only while you are at risk. Nobody below co-leader sees another
    member's count here. [Jamie, 2026-11-05, Q1, Q2]
