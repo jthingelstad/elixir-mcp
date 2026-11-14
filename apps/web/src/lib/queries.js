@@ -244,7 +244,7 @@ export const usePlayerRecord = (tag, enabled) =>
     staleTime: 60_000,
     queryFn: async () => {
       const read = async (tool) => {
-        const r = await api.explore(tool, { player_tag: tag });
+        const r = await api.tool(tool, { player_tag: tag });
         if (!r.ok) throw new Error("request failed");
         if (!r.data?.is_error) return r.data?.body ?? null;
         // Only "not recorded" is an absent half; a timeout or a server
@@ -713,7 +713,7 @@ export const useCardCatalog = ({ enabled = true } = {}) =>
     enabled,
   });
 
-/** One tool's answer through Stats' door (`/api/me/stats`, the explore
+/** One tool's answer through Stats' door (`/api/me/stats`, the tool
  *  bridge for your own players and those you follow), as Stats reads it:
  *  the body, or a thrown error carrying the tool's code when the tool
  *  refused. Keyed under the reader's root, because what it reads is

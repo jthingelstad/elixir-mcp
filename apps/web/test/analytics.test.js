@@ -544,7 +544,7 @@ describe("failure events", async () => {
       "GET /api/admin/calls/*",
     );
     expect(routeLabel("GET", "/api/me/gateways")).toBe("GET /api/me/gateways");
-    expect(routeLabel("POST", "/api/explore")).toBe("POST /api/explore");
+    expect(routeLabel("POST", "/api/me/tool")).toBe("POST /api/me/tool");
     // Which agent is never reported (2026-09-25).
     expect(routeLabel("GET", "/api/agent/a1b2c3d4e5f6/usage")).toBe(
       "GET /api/agent/*/*",

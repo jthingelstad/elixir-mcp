@@ -157,13 +157,13 @@ async function playerPage(tag) {
   );
   out.summary = await read(
     "players_summary",
-    "/api/explore",
+    "/api/me/tool",
     tool("players_summary", { player_tag: tag }),
     PLAYER_PAGE.players_summary,
   );
   out.profile = await read(
     "players_profile",
-    "/api/explore",
+    "/api/me/tool",
     tool("players_profile", { player_tag: tag }),
     PLAYER_PAGE.players_profile,
   );
@@ -389,14 +389,14 @@ test("the search sheet's reads stay in their budgets", async () => {
   // A player's tag: the summary answers it.
   await read(
     "search: players_summary",
-    "/api/explore",
+    "/api/me/tool",
     tool("players_summary", { player_tag: stranger }),
     { statements: 28, buffers: 1300 },
   );
   // A clan's tag: no player, so the roster.
   await read(
     "search: clans_roster",
-    "/api/explore",
+    "/api/me/tool",
     tool("clans_roster", { clan_tag: seed.clanTag }),
     { statements: 14, buffers: 1400 },
   );
@@ -408,7 +408,7 @@ test("the search sheet's reads stay in their budgets", async () => {
     const r = await request(
       handler,
       seed.cookie,
-      "/api/explore",
+      "/api/me/tool",
       tool("players_search", { query, limit: 8 }),
     );
     ran.push(...r.seen);
@@ -686,7 +686,8 @@ test("Settings' reads stay in their budgets, and Players reads each claim's play
   await inOrder([
     [
       "Seen: battles_query",
-      "/api/explore",
+      // Seen reads through Stats' door, as the page does (useToolRead).
+      "/api/me/stats",
       tool("battles_query", {
         player_tag: seed.leaderTag,
         limit: 1,

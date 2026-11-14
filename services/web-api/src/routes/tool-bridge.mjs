@@ -15,19 +15,44 @@ import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
 
 /**
- * Writes the console itself performs through the bridge. The explorer is a
- * read surface; the one exception is the nickname editor, which is a
- * console feature on a cookie-authenticated, CSRF-checked session - the
- * person's own account:write. Everything else that changes state has its
- * own route or belongs at the MCP door under its OAuth capability.
+ * The app's own tool calls through the bridge, by name (2026-11-14). The
+ * bridge used to open every read-only tool to the browser, a leftover of
+ * the Console's Explore page; the app now calls these and nothing else:
+ * the player page's Record tab (players_summary, players_profile), Find
+ * and the search sheet (players_summary, clans_roster, players_search),
+ * and the nickname editor. Any other tool is refused before it runs, as
+ * an unknown one is. Stats has its own door and list (STATS_TOOLS).
  */
-const CONSOLE_WRITES = new Set(["elixir_nickname"]);
+const APP_READS = new Set([
+  "players_summary",
+  "players_profile",
+  "players_search",
+  "clans_roster",
+]);
 
-function explorable(tool) {
+/**
+ * The one write the app makes through the bridge: the nickname editor, on
+ * a cookie-authenticated, CSRF-checked session, the person's own
+ * account:write. Everything else that changes state has its own route or
+ * belongs at the MCP door under its OAuth capability.
+ */
+const APP_WRITES = new Set(["elixir_nickname"]);
+
+const APP_TOOLS = new Set([...APP_READS, ...APP_WRITES]);
+
+/** What the bridge runs for any door: a read-only tool, or the app's one
+ *  write. Never the live lane. Each door narrows it with its own list. */
+function bridgeable(tool) {
   const cls = TOOL_GROUPS[tool];
   if (!cls || tool === "live_fetch") return false;
-  return cls.readOnly || CONSOLE_WRITES.has(tool);
+  return cls.readOnly || APP_WRITES.has(tool);
 }
+
+const notBridged = (tool) =>
+  json(400, {
+    error: "bad_request",
+    message: `Unknown or non-explorable tool: ${tool}`,
+  });
 
 /**
  * Stats (You's last tab) reads its season through these tools only, each
@@ -61,20 +86,15 @@ async function statsOpens(db, accountId, tag) {
   return rows.length > 0;
 }
 
-export function exploreRoutes({ resolveAccount, exploreRegistry }) {
+export function toolBridgeRoutes({ resolveAccount, toolRegistry }) {
   /** One tool read through the bridge, for a signed-in account. */
   async function bridge(db, event, account, tool, args) {
-    const registry = exploreRegistry();
-    if (!registry.has(tool) || !explorable(tool)) {
-      return json(400, {
-        error: "bad_request",
-        message: `Unknown or non-explorable tool: ${tool}`,
-      });
-    }
+    const registry = toolRegistry();
+    if (!registry.has(tool) || !bridgeable(tool)) return notBridged(tool);
     // The hourly bucket /mcp uses (handler.mjs), the same one: a person's
     // own web reads are not a tier, but they are not unbounded either.
     // No daily tool-call quota here (Jamie, 2026-10-12, #538): the
-    // Console's and Ladder's own reads spend none of `mcpday#`. The call
+    // app's own reads spend none of `mcpday#`. The call
     // is still written to the log (surface "web"), and Usage counts it
     // apart from the budget. Not `firstParty`: that would lift the live
     // lane too (tools/shared.mjs liveBudgetFor), which stays metered.
@@ -112,14 +132,25 @@ export function exploreRoutes({ resolveAccount, exploreRegistry }) {
       ? body.args
       : {};
 
+  /** The app's own tools (APP_TOOLS), for a signed-in account. */
+  async function appTool(db, event, body) {
+    const account = await resolveAccount(db, event, {
+      requireContractHeader: true,
+    });
+    if (!account) return json(401, { error: "unauthenticated" });
+    const tool = String(body.tool ?? "");
+    if (!APP_TOOLS.has(tool)) return notBridged(tool);
+    return bridge(db, event, account, tool, argsOf(body));
+  }
+
   return {
-    "POST /api/explore": async (db, event, body) => {
-      const account = await resolveAccount(db, event, {
-        requireContractHeader: true,
-      });
-      if (!account) return json(401, { error: "unauthenticated" });
-      return bridge(db, event, account, String(body.tool ?? ""), argsOf(body));
-    },
+    "POST /api/me/tool": appTool,
+
+    // The old path, answered by the same narrowed handler for a browser
+    // tab loaded before the 2026-11-14 deploy. Remove it in a later pull
+    // request, once no tab can still be holding the old app (pinned by
+    // services/web-api/test/tool-bridge.test.mjs).
+    "POST /api/explore": appTool,
 
     // Stats' own door (2026-11-12): the bridge, for a player the account
     // holds or follows only. Everything from the game stays open to every

@@ -1,7 +1,7 @@
 import type { Route } from "@playwright/test";
 
 /**
- * Stats' reads, as the tools answer them through POST /api/explore
+ * Stats' reads, as the tools answer them through POST /api/me/tool
  * (shapes copied from live answers for the fixture player, contract
  * 9.17.1). One dispatcher answers by tool and mode, and records every
  * call so a journey can say which reads a page made.
@@ -983,7 +983,7 @@ export interface ToolCall {
   args: Record<string, unknown>;
 }
 
-/** POST /api/explore, answered by tool. `calls` collects every read.
+/** POST /api/me/tool, answered by tool. `calls` collects every read.
  *  `fits` is the largest battles_query page under the result cap: a
  *  larger one is refused as the hub prices it (renderToolResultText),
  *  which the live Days page met on 2026-10-02. */

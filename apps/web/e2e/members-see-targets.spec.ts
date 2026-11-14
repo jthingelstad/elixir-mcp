@@ -63,7 +63,7 @@ test("What members see: every control is a 44 px target, and a slot's row opens 
     signedIn({
       "GET /api/me/follow-slots": [200, SLOTS],
       "GET /api/clan/me/place": [200, { place: null }],
-      "POST /api/explore": [
+      "POST /api/me/tool": [
         200,
         { body: { battles: [{ url: BATTLE.battle.url }] } },
       ],

@@ -26,7 +26,7 @@ function useHomeRoster(clanTag) {
     staleTime: 10 * 60 * 1000,
     retry: false,
     queryFn: async () => {
-      const r = await api.explore("clans_roster", { clan_tag: clanTag });
+      const r = await api.tool("clans_roster", { clan_tag: clanTag });
       return r.ok && !r.data?.is_error ? r.data.body : null;
     },
   });
@@ -65,7 +65,7 @@ export function SearchSheet({ me, onClose }) {
     enabled: Boolean(settled),
     staleTime: 60 * 1000,
     retry: false,
-    queryFn: () => readSearch(settled, api.explore),
+    queryFn: () => readSearch(settled, api.tool),
   });
 
   const sources = useMemo(

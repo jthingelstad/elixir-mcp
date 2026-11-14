@@ -170,7 +170,7 @@ test(
           },
           you: { own: false, following: true, relationship: "friend" },
         });
-      if (p === "/api/me/stats" || p === "/api/explore") {
+      if (p === "/api/me/stats" || p === "/api/me/tool") {
         posted.push([p, JSON.parse(init.body)]);
         return reply({ is_error: false, body: {} });
       }

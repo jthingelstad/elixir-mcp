@@ -159,7 +159,7 @@ beforeEach(() => {
         limit: 50,
       });
     if (p.startsWith("/api/me/follow-plan")) return reply(plan);
-    if (p === "/api/explore") {
+    if (p === "/api/me/tool") {
       const { tool, args } = JSON.parse(init.body);
       posted.push([p, { tool, args }]);
       if (tool === "players_summary")
@@ -540,7 +540,7 @@ test(
     window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
     await screen.findByText("Copper Fern won five in a row");
-    expect(posted.some(([p]) => p === "/api/explore")).toBe(false);
+    expect(posted.some(([p]) => p === "/api/me/tool")).toBe(false);
     fireEvent.click(screen.getByRole("tab", { name: /Record/ }));
     await screen.findByText("Hog Rider cycle");
     expect(screen.getByText("25 won, 16 lost, 1 drawn")).toBeTruthy();
@@ -550,11 +550,11 @@ test(
     expect(screen.getByText(/42 of about 44 battles/)).toBeTruthy();
     expect(
       posted
-        .filter(([p]) => p === "/api/explore")
+        .filter(([p]) => p === "/api/me/tool")
         .map(([, b]) => b.tool)
         .sort(),
     ).toEqual(["players_profile", "players_summary"]);
-    expect(posted.find(([p]) => p === "/api/explore")[1].args.player_tag).toBe(
+    expect(posted.find(([p]) => p === "/api/me/tool")[1].args.player_tag).toBe(
       "#0VJ2QV",
     );
     expect(document.body.textContent).not.toContain("Hidden Moss");
@@ -577,7 +577,7 @@ test(
     const real = global.fetch;
     let fail = "query_timeout";
     global.fetch = vi.fn(async (path, init) => {
-      if (String(path) === "/api/explore") {
+      if (String(path) === "/api/me/tool") {
         const { tool } = JSON.parse(init.body);
         if (tool === "players_summary")
           return reply({ is_error: true, body: { error: { code: fail } } });

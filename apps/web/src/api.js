@@ -114,7 +114,9 @@ export const api = {
       `${home(agent)}/follow-cost?player_tag=${encodeURIComponent(player_tag)}`,
     ),
   usage: (agent) => request("GET", `${home(agent)}/usage`),
-  explore: (tool, args) => request("POST", "/api/explore", { tool, args }),
+  // The app's own tool calls (2026-11-14): the Record tab, Find and the
+  // search sheet; the server answers only the tools those make.
+  tool: (tool, args) => request("POST", "/api/me/tool", { tool, args }),
   // Stats' door (2026-11-12): the same tools, for your own players and the
   // players you follow only; anyone else is refused before a tool runs.
   stats: (tool, args) => request("POST", "/api/me/stats", { tool, args }),
@@ -123,7 +125,7 @@ export const api = {
   // turned into the failed envelope every other write returns, and
   // useWrite reads it as one.
   setNickname: async (player_tag, nickname) => {
-    const r = await request("POST", "/api/explore", {
+    const r = await request("POST", "/api/me/tool", {
       tool: "elixir_nickname",
       args: { player_tag, nickname },
     });

@@ -78,7 +78,7 @@ test.describe("Stats signed in", () => {
       await mockApi(
         page,
         signedIn({
-          "POST /api/explore": explore(calls, {
+          "POST /api/me/tool": explore(calls, {
             players_summary: summary({
               [mode]: { battles: 12, wins: 7, losses: 5 },
             }),
@@ -111,7 +111,7 @@ test.describe("Stats signed in", () => {
     page,
   }) => {
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats");
 
     await expect(
@@ -236,7 +236,7 @@ test.describe("Stats signed in", () => {
     // Thursday 4:00 pm Central: the game week began Monday 10:00Z.
     await page.clock.setFixedTime(new Date("2026-10-01T21:00:00Z"));
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats");
 
     const week = page.getByRole("region", { name: "This week vs your last 4" });
@@ -313,7 +313,7 @@ test.describe("Stats signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": explore(calls, {
+        "POST /api/me/tool": explore(calls, {
           form: { ...FORM, week: { ...FORM.week, decided_battles: 9 } },
         }),
       }),
@@ -354,7 +354,7 @@ test.describe("Stats signed in", () => {
     page,
   }) => {
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats");
     await page
       .getByRole("group", { name: "Mode" })
@@ -393,7 +393,7 @@ test.describe("Stats signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": explore(calls, {
+        "POST /api/me/tool": explore(calls, {
           players_summary: summary({
             ladder: { battles: 4, wins: 2, losses: 2 },
             ranked: { battles: 40, wins: 22, losses: 18 },
@@ -444,7 +444,7 @@ test.describe("Stats signed in", () => {
             ],
           },
         ],
-        "POST /api/explore": explore(calls),
+        "POST /api/me/tool": explore(calls),
       }),
     );
     await page.goto("/home/you/stats?mode=war");
@@ -507,7 +507,7 @@ test.describe("Stats signed in", () => {
   test("the season slug and a stale page resolve to the season home", async ({
     page,
   }) => {
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats/season?mode=war");
     await expect(page).toHaveURL(/\/home\/you\/stats\?mode=war$/);
     await page.goto("/home/you/stats/not-a-page");
@@ -555,7 +555,7 @@ test.describe("Stats signed in", () => {
               connection: { active_connections: 0 },
             },
           ],
-          "POST /api/explore": (route) => {
+          "POST /api/me/tool": (route) => {
             const { tool, args } = route.request().postDataJSON() as ToolCall;
             if (args.player_tag !== ALT.player_tag) return base(route);
             return [
@@ -606,7 +606,7 @@ test.describe("Stats signed in", () => {
             clan: null,
           },
         ],
-        "POST /api/explore": (route) => {
+        "POST /api/me/tool": (route) => {
           const { tool, args } = route.request().postDataJSON() as ToolCall;
           if (args.player_tag !== ALT.player_tag) return base(route);
           return [
@@ -646,7 +646,7 @@ test.describe("Stats signed in", () => {
       page,
       signedIn({
         "GET /api/me": [200, { ...ME, claims: [FRIEND] }],
-        "POST /api/explore": explore(),
+        "POST /api/me/tool": explore(),
       }),
     );
     await page.goto("/home/you/stats");
@@ -666,7 +666,7 @@ test.describe("Stats signed in", () => {
       page,
       signedIn({
         "GET /api/me": [200, { ...ME, claims: [...ME.claims, ALT] }],
-        "POST /api/explore": explore(),
+        "POST /api/me/tool": explore(),
       }),
     );
     await page.goto("/home/you/stats");
@@ -701,7 +701,7 @@ test.describe("Stats days and battles", () => {
   }) => {
     await page.clock.setFixedTime(TODAY);
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats");
     const panel = page
       .locator("section")
@@ -750,7 +750,7 @@ test.describe("Stats days and battles", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": (route) => {
+        "POST /api/me/tool": (route) => {
           const { tool } = route.request().postDataJSON() as ToolCall;
           if (tool === "elixir_coverage")
             return [
@@ -797,7 +797,7 @@ test.describe("Stats days and battles", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": (route) => {
+        "POST /api/me/tool": (route) => {
           const { tool } = route.request().postDataJSON() as ToolCall;
           if (tool === "elixir_coverage")
             return [
@@ -822,7 +822,7 @@ test.describe("Stats days and battles", () => {
   }) => {
     await page.clock.setFixedTime(TODAY);
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats/battles");
     await expect(
       page.getByRole("heading", { level: 1, name: "Battles" }),
@@ -887,7 +887,7 @@ test.describe("Stats days and battles", () => {
     const calls: ToolCall[] = [];
     await mockApi(
       page,
-      signedIn({ "POST /api/explore": explore(calls, { fits: 23 }) }),
+      signedIn({ "POST /api/me/tool": explore(calls, { fits: 23 }) }),
     );
     await page.goto("/home/you/stats");
     await expect(page.locator(".stats-day")).toHaveCount(28);
@@ -906,7 +906,7 @@ test.describe("Stats days and battles", () => {
 
   test("a battle without a page is a row, not a link", async ({ page }) => {
     await page.clock.setFixedTime(TODAY);
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats/battles?mode=war");
     await expect(page.locator(".stats-row").first()).toBeVisible();
     // The fixture's fifty-fifth battle, a war loss on the 26th, has no url.
@@ -919,7 +919,7 @@ test.describe("Stats days and battles", () => {
 
   test("a mode with no battles says so on Battles", async ({ page }) => {
     await page.clock.setFixedTime(TODAY);
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats/battles?mode=ranked");
     await expect(
       page.getByRole("heading", {
@@ -933,7 +933,7 @@ test.describe("Stats days and battles", () => {
     page,
   }) => {
     await page.clock.setFixedTime(TODAY);
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats");
     // Today leads: the days to come are one line under the played ones.
     await expect(page.locator(".stats-day:visible")).toHaveCount(23);
@@ -999,7 +999,7 @@ test.describe("Stats scope, moved pages and the other chips", () => {
         page,
         signedIn({
           "GET /api/me": [200, { ...ME, claims: [...ME.claims, ALT] }],
-          "POST /api/explore": explore(),
+          "POST /api/me/tool": explore(),
         }),
       );
       await page.goto(to);
@@ -1020,7 +1020,7 @@ test.describe("Stats scope, moved pages and the other chips", () => {
       page,
       signedIn({
         "GET /api/me": [200, { ...ME, claims: [...ME.claims, ALT] }],
-        "POST /api/explore": explore(),
+        "POST /api/me/tool": explore(),
       }),
     );
     // The player page's Open in Stats, and the same shape from Home and mail.
@@ -1043,7 +1043,7 @@ test.describe("Stats scope, moved pages and the other chips", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": explore([], { warRace: RACE }),
+        "POST /api/me/tool": explore([], { warRace: RACE }),
         "GET /api/me": [
           200,
           {
@@ -1112,7 +1112,7 @@ test.describe("Stats scope, moved pages and the other chips", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": (route) => {
+        "POST /api/me/tool": (route) => {
           const { tool, args } = route.request().postDataJSON() as ToolCall;
           const mine = rows[String(args.mode)];
           if (tool !== "battles_query" || !mine) return base(route);
@@ -1165,7 +1165,7 @@ test.describe("Stats scope, moved pages and the other chips", () => {
     page,
   }) => {
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats");
     const modes = page.getByRole("group", { name: "Mode" });
     await expect(modes.getByRole("button")).toHaveCount(5);
@@ -1173,7 +1173,7 @@ test.describe("Stats scope, moved pages and the other chips", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": explore(calls, {
+        "POST /api/me/tool": explore(calls, {
           otherModes: {
             challenge: tally(7, 4, 3),
             tournament: tally(3, 1, 2),
@@ -1217,7 +1217,7 @@ test.describe("Stats decks", () => {
     page,
   }) => {
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats/decks?mode=ladder");
 
     await expect(
@@ -1297,7 +1297,7 @@ test.describe("Stats decks", () => {
     page,
   }) => {
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats/decks?mode=war");
     const war = page.locator("section").filter({
       has: page.getByRole("heading", { name: "3 decks in War" }),
@@ -1320,7 +1320,7 @@ test.describe("Stats decks", () => {
   });
 
   test("the season home links to every deck", async ({ page }) => {
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats");
     await page.getByRole("link", { name: "Every deck you played ›" }).click();
     await expect(page).toHaveURL(/\/home\/you\/stats\/decks(\?mode=ladder)?$/);
@@ -1332,7 +1332,7 @@ test.describe("Stats decks", () => {
   test("@narrow a deck's cards sit in two rows of four, and nothing scrolls sideways", async ({
     page,
   }) => {
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats/decks");
     await expect(page.locator(".stats-deckrow .card-art")).toHaveCount(16);
     const grid = page.locator(".stats-deckrow .deck-grid").first();
@@ -1357,7 +1357,7 @@ test.describe("Stats cards", () => {
       page,
       signedIn({
         "GET /api/me": [200, { ...ME, claims: [...ME.claims, FRIEND] }],
-        "POST /api/explore": explore(calls),
+        "POST /api/me/tool": explore(calls),
       }),
     );
     await page.goto("/home/you/stats/cards?player=0PYU92P");
@@ -1387,7 +1387,7 @@ test.describe("Stats cards", () => {
     page,
   }) => {
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats/cards");
 
     await expect(
@@ -1479,7 +1479,7 @@ test.describe("Stats cards", () => {
     page,
   }) => {
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats/cards");
 
     // The default is the tools' own order, and says its floors.
@@ -1570,7 +1570,7 @@ test.describe("Stats cards", () => {
   });
 
   test("a mode with no battles says so", async ({ page }) => {
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats/cards?mode=war");
     await expect(
       page.getByRole("heading", { name: "No War battles this season" }),
@@ -1579,7 +1579,7 @@ test.describe("Stats cards", () => {
   });
 
   test("@narrow the card tables fit a phone", async ({ page }) => {
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats/cards");
     await expect(
       page.locator(".stats-cards").nth(0).locator("tbody tr"),
@@ -1597,7 +1597,7 @@ test.describe("Stats seasons", () => {
     page,
   }) => {
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats?mode=ladder");
     const picker = page.getByLabel("Season", { exact: true });
     await expect(picker).toHaveValue("136");
@@ -1664,7 +1664,7 @@ test.describe("Stats seasons", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": explore(calls, { emptyCurrent: true }),
+        "POST /api/me/tool": explore(calls, { emptyCurrent: true }),
       }),
     );
     await page.goto("/home/you/stats?mode=ladder");
@@ -1712,7 +1712,7 @@ test.describe("Stats this season vs last", () => {
   }) => {
     await page.clock.setFixedTime(NOW);
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats");
 
     const panel = page.getByRole("region", { name: "This season vs last" });
@@ -1825,7 +1825,7 @@ test.describe("Stats this season vs last", () => {
   }) => {
     await page.clock.setFixedTime(NOW);
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats?mode=war");
     const panel = page.getByRole("region", { name: "This season vs last" });
     await expect(panel).toContainText("War");
@@ -1858,7 +1858,7 @@ test.describe("Stats this season vs last", () => {
     await page.clock.setFixedTime(NOW);
     // Events: three battles this season.
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats?mode=event");
     await expect(
       page.getByRole("region", { name: "This season vs last" }),
@@ -1878,7 +1878,7 @@ test.describe("Stats this season vs last", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": explore(calls, {
+        "POST /api/me/tool": explore(calls, {
           past: { ladder: tally(6, 2, -40) },
           samePoint: { ladder: tally(4, 1, -40) },
         }),
@@ -1901,7 +1901,7 @@ test.describe("Stats this season vs last", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": explore(calls, {
+        "POST /api/me/tool": explore(calls, {
           samePoint: { ladder: tally(7, 3, 12) },
         }),
       }),
@@ -1935,7 +1935,7 @@ test.describe("Stats this season vs last", () => {
     // 40 minutes after Season 136 began (Monday, September 7, 10:00Z).
     await page.clock.setFixedTime(new Date("2026-09-07T10:40:00Z"));
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats?mode=ladder");
     const panel = page.getByRole("region", { name: "This season vs last" });
     await expect(panel.locator("thead th")).toHaveText([
@@ -1973,7 +1973,7 @@ test.describe("Stats this season vs last", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": explore(calls, { pastStart: false }),
+        "POST /api/me/tool": explore(calls, { pastStart: false }),
       }),
     );
     await page.goto("/home/you/stats?mode=ladder");
@@ -1997,7 +1997,7 @@ test.describe("Stats this season vs last", () => {
     const calls: ToolCall[] = [];
     await mockApi(
       page,
-      signedIn({ "POST /api/explore": explore(calls, { earlier: true }) }),
+      signedIn({ "POST /api/me/tool": explore(calls, { earlier: true }) }),
     );
     await page.goto("/home/you/stats?mode=ladder&season=135");
     const panel = page.getByRole("region", {
@@ -2077,7 +2077,7 @@ test.describe("Stats this season vs last", () => {
   }) => {
     await page.clock.setFixedTime(NOW);
     const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats?mode=ladder&season=135");
     await expect(
       page.getByRole("region", { name: "Season 135 vs the season before" }),
@@ -2092,7 +2092,7 @@ test.describe("Stats this season vs last", () => {
     page,
   }) => {
     await page.clock.setFixedTime(NOW);
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats");
     const panel = page.getByRole("region", { name: "This season vs last" });
     await expect(panel.locator("thead th")).toHaveCount(4);

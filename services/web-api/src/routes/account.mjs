@@ -40,10 +40,10 @@ import { withCheers } from "../cheers.mjs";
  *  budget. Clan's reads are in process and leave no call row at all
  *  (2026-11-13). */
 const CHARGED = `coalesce(surface, '') not in ('rest', 'web')`;
-/** The Console's and Ladder's own reads (POST /api/explore, which names
- *  no client): logged, shown on Usage, never charged. The bridge's one
- *  write, the nickname editor (explore.mjs CONSOLE_WRITES), is logged
- *  there too and is not a read. */
+/** The app's own reads (POST /api/me/tool and Stats' POST /api/me/stats,
+ *  which name no client): logged, shown on Usage, never charged. The
+ *  bridge's one write, the nickname editor (tool-bridge.mjs APP_WRITES),
+ *  is logged there too and is not a read. */
 const WEB_READS = `(surface = 'web' and client_name is null
   and tool <> 'elixir_nickname')`;
 
