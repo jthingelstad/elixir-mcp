@@ -115,7 +115,8 @@ const scansOf = (planned, re, table) => {
  */
 const PLAYER_PAGE = {
   // +1: the page's profile images, one statement (2026-11-14).
-  "/api/player": { statements: 30, buffers: 6000 },
+  // +1: the verified owner's passport in one row, one statement (#1015).
+  "/api/player": { statements: 31, buffers: 6000 },
   "/api/me/cheers": { statements: 26, buffers: 1500 },
   "/api/clan/me": { statements: 15, buffers: 300 },
   "/api/me/follow-plan": { statements: 9, buffers: 500 },
