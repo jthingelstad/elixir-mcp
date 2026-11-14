@@ -14,6 +14,8 @@ import {
   configure,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
+// The route chunks compile while this file loads, not inside a wait.
+import "./warm-routes.js";
 // Settings is a lazy chunk. Imported here, its module graph compiles while
 // the file loads, where no wait is bounded, instead of inside the first
 // test's wait for the page: on a loaded host the compile was most of a

@@ -1,6 +1,11 @@
 // @vitest-environment node
 import { test, expect } from "vitest";
 import { renderApp } from "../src/entry-server.jsx";
+// #995: the first renderApp awaits router.load, which imports the route's
+// lazy chunk. Cold, that chunk compiled inside the first test (1 to 5 s at
+// load 35 to 50, measured; past 20 s in a crowded verify). Imported here
+// the chunks compile while the file loads, and every render is warm.
+import "./warm-routes.js";
 
 test("signed-out deep links and redirect roots render complete documents without window", async () => {
   const me = { ok: true, status: 200, data: { authenticated: false } };

@@ -26,6 +26,8 @@ import {
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { App } from "../src/App.jsx";
+// The route chunks compile while this file loads, not inside a wait.
+import "./warm-routes.js";
 import { SignIn } from "../src/views/SignIn.jsx";
 import { SignIns } from "../src/views/account/SignIns.jsx";
 
