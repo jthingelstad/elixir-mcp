@@ -152,6 +152,7 @@ export async function refreshOwn(db, live, account, { now = new Date() } = {}) {
       continue;
     }
     if (s.pending) {
+      await joinOpen(db, live, tag);
       players.push({ tag, state: "queued", retry_after_s: 15 });
       outcomes.push("open");
       continue;
@@ -329,6 +330,27 @@ async function takePlayerFloor(db, accountId, tag) {
   return { ok: false, retry_after_s: w.s };
 }
 
+/** A read is already on its way: hand it to the lane anyway, which joins
+ *  it without charging, turns a fetch-only `live_fetch` job into a
+ *  recording one and lifts a queued bulk job onto the live lane. If the
+ *  job finished in between, nothing is minted here (`NoMint`), so a join
+ *  never spends a token or an allowance. */
+class NoMint extends Error {}
+async function joinOpen(db, live, tag) {
+  try {
+    await live(db, {
+      endpoint: ENDPOINT,
+      entityKey: tag,
+      record: true,
+      beforeMint: async () => {
+        throw new NoMint();
+      },
+    });
+  } catch (err) {
+    if (!(err instanceof NoMint)) throw err;
+  }
+}
+
 class Refused extends Error {
   constructor(retryAfterS) {
     super("refused");
@@ -416,8 +438,10 @@ export async function refreshPlayer(
   const s = await logState(db, tag);
   if (ageS(s.readAt, now) <= FRESH_ENOUGH_S)
     return answer({ tag, state: "fresh" }, "fresh");
-  if (s.pending)
+  if (s.pending) {
+    await joinOpen(db, live, tag);
     return answer({ tag, state: "queued", retry_after_s: 15 }, "open");
+  }
   const floor = await takePlayerFloor(db, account.accountId, tag);
   if (!floor.ok)
     return answer(
