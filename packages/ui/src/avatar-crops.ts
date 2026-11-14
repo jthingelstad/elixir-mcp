@@ -2,17 +2,22 @@
  * Where a card's art is cropped to make a profile image (2026-11-14). Jamie:
  * "Elixir Drop has a great method to allow players to have profile images
  * using circular crops from clash Royale cards. I want to wholesale move
- * that into Elixir." The numbers below are Drop's, set by hand one card at a
- * time with the frame's inner edge as a guide, so no crop shows the card's
- * border. They are carried over unchanged: re-tune a card here, never by
- * changing the art.
+ * that into Elixir." Drop's numbers were set by hand one card at a time with
+ * the frame's inner edge as a guide, so no crop shows the card's border.
+ * Re-tune a card here, never by changing the art.
  *
  * A crop places the card's base art (the mirror's one byte-identical file,
  * 285x420) in a circle with CSS alone: `x` and `y` are the
  * `object-position` percentages and `scale` the `transform: scale()`. A
- * lower `y` crops higher. A card with no row takes the default; so do the
- * cards Drop never had (28000006 Mirror, 28000025), until someone tunes
- * them.
+ * lower `y` crops higher.
+ *
+ * Two tables, so each keeps meaning one thing:
+ * - `DROP_AVATAR_CROPS`, Drop's 121 rows exactly as Drop had them (a test
+ *   pins their sha256). Never edit a row here.
+ * - `ELIXIR_AVATAR_CROPS`, Elixir's own rows, tuned against Elixir's art.
+ *   A row here wins over Drop's. Add a card here when its crop needs a
+ *   change.
+ * A card in neither takes the default.
  */
 export interface AvatarCrop {
   x: number;
@@ -26,8 +31,9 @@ export const DEFAULT_AVATAR_CROP: Readonly<AvatarCrop> = Object.freeze({
   scale: 1.21,
 });
 
-/** The hand-tuned crops, by card id; a missing field takes the default's. */
-export const AVATAR_CROP_OVERRIDES: Readonly<
+/** Drop's hand-tuned crops, by card id, unchanged; a missing field takes
+ *  the default's. */
+export const DROP_AVATAR_CROPS: Readonly<
   Record<number, Readonly<Partial<AvatarCrop>>>
 > = Object.freeze({
   // Knight
@@ -274,7 +280,30 @@ export const AVATAR_CROP_OVERRIDES: Readonly<
   28000026: { x: 45, y: 57, scale: 1.33 },
 });
 
-/** The crop for a card: its row over the default. */
+/** Elixir's own crops, by card id, set by rendering each at 40px and 96px
+ *  against Elixir's art (2026-11-14). A row here wins over Drop's.
+ *
+ *  - Mirror (28000006), which Drop never had: the art is a mirror, so it is
+ *    mostly blue at any crop; this one fills the circle with the mirror and
+ *    its top corners, with none of the card's outer border the default
+ *    showed along the top.
+ *
+ *  Looked at and left alone: Musketeer (26000014), Mega Minion (26000039)
+ *  and Bandit (26000046), whose Drop art differs from Elixir's but whose
+ *  Drop crops still frame the face cleanly on Elixir's; and Spirit Empress
+ *  (28000025), which the default frames well. */
+export const ELIXIR_AVATAR_CROPS: Readonly<
+  Record<number, Readonly<Partial<AvatarCrop>>>
+> = Object.freeze({
+  // Mirror
+  28000006: { x: 50, y: 46, scale: 1.3 },
+});
+
+/** The crop for a card: Elixir's row, over Drop's, over the default. */
 export function avatarCrop(cardId: number): AvatarCrop {
-  return { ...DEFAULT_AVATAR_CROP, ...AVATAR_CROP_OVERRIDES[cardId] };
+  return {
+    ...DEFAULT_AVATAR_CROP,
+    ...DROP_AVATAR_CROPS[cardId],
+    ...ELIXIR_AVATAR_CROPS[cardId],
+  };
 }
