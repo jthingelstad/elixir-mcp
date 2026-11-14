@@ -62,7 +62,7 @@ export function YoungRecord({ player, summary, className = "" }) {
       }
     >
       <div className="panel__body grid gap-2.5">
-        <p className="m-0 text-[13.5px] text-ink-body">{step.text}</p>
+        <p className="m-0 text-body-sm text-ink-body">{step.text}</p>
         <Link className="btn btn--sm justify-self-start" to={step.to}>
           {step.action} ›
         </Link>

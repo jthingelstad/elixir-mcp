@@ -287,7 +287,7 @@ export function MemberActivity({
               {d.battles.map((b) => (
                 <li
                   key={b.battle_id}
-                  className="flex justify-between gap-3 text-[13.5px]"
+                  className="flex justify-between gap-3 text-body-sm"
                 >
                   <span>
                     {b.url ? (
@@ -345,12 +345,12 @@ export function MemberActivity({
           </div>
         </Disclosure>
         <Disclosure title="How these are counted">
-          <p className="m-0 text-[13.5px]">
+          <p className="m-0 text-body-sm">
             Battles name this clan and fall in this member&rsquo;s current time
             here. A count from the week they joined stays unknown, shown as a
             dash.
           </p>
-          <p className="mt-2 mb-0 text-[13.5px]">
+          <p className="mt-2 mb-0 text-body-sm">
             A gap is unknown. No battle here does not prove no play
             {count
               ? `: Elixir last matched ${n(count.captured)} of the ${n(count.expected)} battles the game's counter added.`

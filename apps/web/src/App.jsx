@@ -488,7 +488,7 @@ export function SignInWall({ navigate }) {
     <div className="panel mx-auto mt-12 max-w-[420px]">
       <div className="panel__body text-center">
         <h1 className="page__title mb-2">Sign in first</h1>
-        <p className="text-[13px] text-ink-faint">
+        <p className="text-small text-ink-faint">
           Elixir&rsquo;s record opens to members: every player, clan and
           timeline needs an account. Verify your email to sign in, or to create
           an account if you are new.

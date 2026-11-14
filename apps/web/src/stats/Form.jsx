@@ -364,9 +364,7 @@ function FormPanel({
       title={title}
       titleId={id}
       action={
-        <span className="text-[12.5px] font-normal text-ink-faint">
-          {aside}
-        </span>
+        <span className="text-mono font-normal text-ink-faint">{aside}</span>
       }
       className="stats-form"
       aria-labelledby={id}

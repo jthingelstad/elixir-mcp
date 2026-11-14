@@ -74,7 +74,7 @@ export function EmailRecord({ id, navigate, search }) {
     <>
       {back}
       <div className="record__head">
-        <h1 className="text-[24px] m-0 text-ink">
+        <h1 className="text-title m-0 text-ink">
           {send.subject ?? send.label}
         </h1>
         <span className="chip chip--info">

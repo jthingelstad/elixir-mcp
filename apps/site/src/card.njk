@@ -14,7 +14,7 @@ navActive: cards
 ---
 {%- set formName = {"hero": "Hero", "evolution": "Evo", "base": ""}[card.artForm] %}
 <div class="flex flex-col gap-[22px] pt-7 pb-2" data-card="{{ card.id }}">
-  <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[13px] text-ink-faint">
+  <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-small text-ink-faint">
     <a href="/cards/" data-card-crumb>Cards</a>
     <span class="flex" aria-hidden="true">{% icon "chevron-right", 14 %}</span>
     <span class="text-ink-dim" aria-current="page">{{ card.name }}</span>
@@ -34,7 +34,7 @@ navActive: cards
     </span>
     <div class="flex min-w-0 flex-auto flex-col gap-[10px]">
       <h1 class="hero-title m-0">{{ card.name }}</h1>
-      <p class="m-0 text-[15px] text-ink-dim">
+      <p class="m-0 text-(length:--t-body) text-ink-dim">
         {{ card.rarity | capitalize }} {{ card.type }} &middot; {{ card.elixir }} elixir{% if card.also %} &middot; {{ card.also }}{% endif %}
       </p>
     </div>

@@ -85,7 +85,7 @@ function Group({ status, rows, you, war, clan, navigate }) {
           {s.label}
         </h3>
         <span className={`chip ${s.chip}`.trim()}>{rows.length}</span>
-        <span className="grow text-[12.5px] font-normal text-ink-faint">
+        <span className="grow text-mono font-normal text-ink-faint">
           {s.says}
         </span>
       </div>
@@ -135,8 +135,7 @@ function Group({ status, rows, you, war, clan, navigate }) {
               : []),
             {
               head: "",
-              className:
-                "whitespace-normal text-right text-[12.5px] text-ink-dim",
+              className: "whitespace-normal text-right text-mono text-ink-dim",
               cell: (r) =>
                 r.evidence || <span className="nil">Nothing recorded yet</span>,
             },
@@ -257,7 +256,7 @@ function You({ you, who, how, clan, navigate }) {
       <div className="panel__body grid gap-3">
         <div className="flex items-center gap-2.5">
           <span className="yours">★</span>
-          <span className="grow text-[15px] font-semibold">
+          <span className="grow text-(length:--t-body) font-semibold">
             {who?.name ?? "You"}
           </span>
           {s ? (
@@ -268,11 +267,11 @@ function You({ you, who, how, clan, navigate }) {
         </div>
         {war.length ? (
           <div className="flex flex-wrap items-center gap-3.5">
-            <span className="w-[110px] text-[12.5px] text-ink-faint">
+            <span className="w-[110px] text-mono text-ink-faint">
               War decks
             </span>
             <Spark label="Your war decks" points={war} />
-            <span className="text-[12.5px] text-ink-dim">
+            <span className="text-mono text-ink-dim">
               {played} of {asked}
             </span>
           </div>
@@ -297,7 +296,7 @@ function You({ you, who, how, clan, navigate }) {
         )}
       </div>
       {war.length ? (
-        <div className="panel__foot text-[12.5px] text-ink-faint">
+        <div className="panel__foot text-mono text-ink-faint">
           {war.length === 1
             ? `${war[0].label}.`
             : `${war[0].label} to ${war[war.length - 1].label}.`}

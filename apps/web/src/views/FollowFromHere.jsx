@@ -46,7 +46,7 @@ export function FollowFromHere({ sides, me, first = null }) {
     return (
       <Panel title="Follow from here" aria-label="Follow from here">
         <div className="kit-panel__body">
-          <p className="text-[14px] text-ink-body">
+          <p className="text-(length:--t-panel-head) text-ink-body">
             Add your own player first. Friends sit beside your own record, so
             Elixir needs to know who you are before you follow anyone; then come
             back to this page.

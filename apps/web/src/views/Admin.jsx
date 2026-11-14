@@ -622,7 +622,7 @@ function AdminEmailRecord({ id }) {
     <>
       {back}
       <div className="record__head">
-        <h1 className="text-[24px] m-0 text-ink">
+        <h1 className="text-title m-0 text-ink">
           {send.subject ?? send.label}
         </h1>
         <span className="chip chip--info">
@@ -1509,14 +1509,14 @@ function AttachedEmail({ sendId }) {
       className="panel__body"
       style={{ borderTop: "1px solid var(--line-soft)" }}
     >
-      <div className="mono text-[11px] text-ink-faint mb-[6px]">
+      <div className="mono text-label text-ink-faint mb-[6px]">
         THE EMAIL · <Link to={`${ADMIN}/emails/${sendId}`}>{sendId}</Link>
       </div>
       {mail.isError && (
         <p className="caveat m-0">That send is no longer in the ledger.</p>
       )}
       {rec?.send && (
-        <p className="m-0 mb-2 text-[13px]">
+        <p className="m-0 mb-2 text-small">
           {rec.send.label} · {when(rec.send.sent_at)}
           {rec.send.subject ? ` · ${rec.send.subject}` : ""}
         </p>
@@ -1687,7 +1687,7 @@ function AdminFeedbackItem({ id, navigate }) {
             <div className="mono" style={heading}>
               THREAD
             </div>
-            <p className="m-0 text-[13px]">
+            <p className="m-0 text-small">
               {thread
                 .map((t) => (
                   <Link
@@ -1708,7 +1708,7 @@ function AdminFeedbackItem({ id, navigate }) {
             <div className="mono" style={heading}>
               ABOUT
             </div>
-            <p className="m-0 text-[13px]">
+            <p className="m-0 text-small">
               {pointers
                 .map((r) => (
                   <span key={`${r.kind}${r.ref}`}>

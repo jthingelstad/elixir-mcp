@@ -521,7 +521,7 @@ export function SignIn({
             </p>
             <fieldset className="m-0 mb-4 border-0 p-0">
               <legend className="field-label">Are you 13 or older?</legend>
-              <div className="flex gap-5 text-[14px] text-ink-body">
+              <div className="flex gap-5 text-(length:--t-panel-head) text-ink-body">
                 <label className="hit flex items-center gap-2">
                   <input
                     type="radio"
@@ -558,7 +558,7 @@ export function SignIn({
           </>
         )}
         {/* The whole row is the box's tap, 44px tall (2026-11-13). */}
-        <label className="mb-1 flex min-h-[44px] items-center gap-2 text-[13px] text-ink-body">
+        <label className="mb-1 flex min-h-[44px] items-center gap-2 text-small text-ink-body">
           <input
             type="checkbox"
             className="shrink-0"
@@ -605,7 +605,7 @@ export function SignIn({
       {/* On the signup form, only once the question has a yes. */}
       {discordLogin && (!creating || age === "yes") && (
         <a
-          className="btn mt-3 w-full justify-center py-3 text-[15px]"
+          className="btn mt-3 w-full justify-center py-3 text-(length:--t-body)"
           href={discordStartHref({
             intent: "signin",
             zone: browserZone(),

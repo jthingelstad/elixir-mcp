@@ -171,7 +171,7 @@ export function SpreadWordFoot({
         {active ? (
           <>
             {roster?.description ? (
-              <p className="m-0 text-[13.5px] text-ink-body">
+              <p className="m-0 text-body-sm text-ink-body">
                 {roster.description}
               </p>
             ) : null}
@@ -183,7 +183,7 @@ export function SpreadWordFoot({
               label="Copy the clan tag"
             />
             <div className="label">Bring your clanmates</div>
-            <p className="m-0 text-[13px] text-ink-dim">
+            <p className="m-0 text-small text-ink-dim">
               Everyone in the clan can sign in with Elixir and see how the clan
               runs and where they stand.
             </p>
@@ -199,7 +199,7 @@ export function SpreadWordFoot({
         {recruiter ? (
           <>
             <div className="label">Recruit</div>
-            <p className="m-0 text-[13px] text-ink-dim">
+            <p className="m-0 text-small text-ink-dim">
               The clan&rsquo;s pitch as a personal note or a public post for a
               recruiting forum, with today&rsquo;s numbers from the game.
             </p>

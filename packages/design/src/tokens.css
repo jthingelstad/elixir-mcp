@@ -212,6 +212,63 @@
   --series-5: #ea580c;
   --series-6: #3b82f6;
 
+  /* Clan's map pins (Leaflet takes values, so ClanMap.jsx reads these).
+     Not the accent and gold: the pins have always drawn these. */
+  --map-pin: #3b82f6;
+  --map-pin-edge: #1d4ed8;
+  --map-pin-mine: #f5b301;
+
+  /* ---- Component paints (2026-11-14 hygiene) ----------------------
+     Colours components.css used to write inline, each held here at its
+     exact value and named for its job. A redesign changes them here. */
+  --warn-glow: rgba(252, 211, 77, 0.22); /* the ring round an alert dot */
+  --scrim: rgba(4, 2, 12, 0.45); /* behind a dialog or a sheet */
+  --scrim-strong: rgba(4, 2, 12, 0.55); /* behind the feedback sheet */
+  --spark-mid: #6d5bb0; /* a sparkline's middle bar */
+  --chart-bar: rgba(139, 92, 246, 0.85); /* a chart's bar */
+  --chart-bar-partial: rgba(139, 92, 246, 0.35); /* a bar for a part day */
+  --chart-hit-focus: rgba(139, 92, 246, 0.1); /* a focused bar's hit area */
+  --art-glow: rgba(139, 92, 246, 0.45); /* the home art's glow, centre */
+  --art-glow-fade: rgba(139, 92, 246, 0.08); /* the home art's glow, edge */
+  --art-ring: rgba(245, 200, 76, 0.25); /* the ring round the home art */
+  --art-shadow: rgba(4, 2, 12, 0.6); /* the home art's drop shadow */
+  --ink-on-art: #fff; /* text over card art: a deck's name, an elixir cost */
+  --deck-name-scrim: rgba(4, 2, 12, 0.6); /* under a deck's name on its art */
+  --form-ink: #160f2e; /* text on a card's form badge */
+  --form-evo: #d946ef; /* the Evolution form badge */
+  --form-hero: #f5c84c; /* the Hero form badge */
+  --card-level-edge: #3a3175; /* the edge of a card's level badge */
+  --card-label-ink: #ddd7f5; /* a card's level and name under its art */
+  --elixir-drop: radial-gradient(
+    circle at 35% 30%,
+    #f5b8ff,
+    #d946ef 55%,
+    #86198f
+  ); /* a card's elixir cost drop */
+  --elixir-drop-deck: radial-gradient(
+    circle at 35% 30%,
+    #c084fc,
+    #7e22ce 55%,
+    #581c87
+  ); /* the elixir drop in a deck row */
+  --mode-ladder: #a78bfa; /* a mode chip's dot: Trophy Road */
+  --mode-ranked: #7fb6f8; /* a mode chip's dot: Path of Legends */
+  --mode-war: #f472b6; /* a mode chip's dot: war */
+  --mode-tournament: #2dd4bf; /* a mode chip's dot: tournaments */
+  --score-glow: #2a1d63; /* the glow at the top of a battle's score */
+  --win-fill: rgba(127, 182, 248, 0.14); /* a win chip or pill */
+  --win-chip-ink: #cfe3fd; /* text on a win chip */
+  --loss-chip-ink: #fecdd3; /* text on a loss chip */
+  --tower: #19143a; /* a tower's tile on a battle page */
+  --tower-down: rgba(251, 113, 133, 0.1); /* a destroyed tower's tile */
+  --tower-down-ink: #fda4af; /* a destroyed tower's hitpoints */
+  --row-current: rgba(74, 222, 128, 0.07); /* the battle you are looking at */
+  --heat-1: #33275a; /* a day's activity, light */
+  --heat-2: #46347c; /* a day's activity, middle */
+  --heat-3: #5d45a3; /* a day's activity, heavy */
+  --heat-part: #2c2444; /* the stripe of a part-recorded day */
+  --heat-unknown: #3a3055; /* the stripe of an unrecorded day */
+
   /* ---- Interaction ------------------------------------------------ */
   --hover-rail: rgba(139, 92, 246, 0.14);
   --hover-row: rgba(139, 92, 246, 0.07);
@@ -253,6 +310,31 @@
   --t-label: 11px; /* uppercase, .09em tracking */
   --t-mono: 12.5px;
   --t-stat: 20px; /* mono stat value */
+  /* The rest of the sizes components.css draws, at their exact values
+     (2026-11-14 hygiene). A ladder to collapse, not a scale to extend. */
+  --t-card-cost: 9px; /* a card's elixir cost */
+  --t-micro: 10px;
+  --t-badge: 10.5px; /* a level badge, a count dot */
+  --t-fine: 11.5px; /* fine print, chart legends, keys */
+  --t-caption: 12px; /* notes, meta lines, small labels */
+  --t-small: 13px; /* small controls, tables, inputs */
+  --t-prose: 14.5px; /* Markdown prose, row titles */
+  --t-row-text: 15.5px; /* a Home row's text */
+  --t-body-lg: 16px; /* ledes, names, phone inputs */
+  --t-lead: 17px; /* feed text, a stat row's values */
+  --t-stat-row: 19px; /* a stat row's value, wide */
+  --t-card-title: 21px; /* a Home row's title */
+  --t-stat-lg: 22px; /* a stat's value, a post's title */
+  --t-title: 24px; /* the wordmark, a page head's title */
+  --t-door-title: 26px; /* the sign-in door's title */
+  --t-stat-brand: 27px; /* a brand stat value */
+  --t-rule-big: 28px; /* a policy rule's big number, wide */
+  --t-display: 38px; /* the docs' title, a battle's crowns on a phone */
+  --t-score-dash: 40px; /* the dash between a battle's crowns */
+  --t-score: 64px; /* a battle's crowns */
+  --t-head-tag: 0.55em; /* a tag beside a page head's title */
+  --t-hero: clamp(32px, 5vw, 46px); /* the site's hero title */
+  --t-home-title: clamp(36px, 6vw, 54px); /* the front page's title */
   --lh-body: 1.5;
   --lh-prose: 1.65;
 
@@ -271,6 +353,21 @@
   --r-panel: 8px;
   --r-rail: 0; /* squared into the current-item rule */
   --r-pill: 999px;
+  /* The rest of the radii components.css draws, at their exact values
+     (2026-11-14 hygiene). */
+  --r-card: 10px; /* tiles, steps, dialogs */
+  --r-tile: 14px; /* a card tile, a moment, a post card */
+  --r-feature: 18px; /* a battle's score panel, a clan crest */
+  --r-window: 16px; /* a transcript window */
+  --r-rail-card: 13px;
+  --r-control-lg: 11px; /* a large button */
+  --r-select: 9px; /* a select */
+  --r-code: 5px; /* inline code, a key, a small gauge */
+  --r-thumb: 4px; /* a card thumbnail */
+  --r-dot: 3px; /* a mode dot, a swatch */
+  --r-tick: 2px; /* a tick, a bar's top */
+  --r-round: 50%; /* a circle */
+  --r-bubble: 14px 14px 4px 14px; /* your message in a transcript */
 
   --hit: 40px; /* desktop row / control */
   --hit-touch: 44px; /* narrow viewport */
@@ -288,6 +385,8 @@
 
   --shadow-modal: 0 24px 70px rgba(4, 2, 12, 0.5);
   --shadow-float: 0 20px 60px rgba(4, 2, 12, 0.45);
+  --shadow-tip: 0 6px 20px rgb(0 0 0 / 45%); /* a chart's tooltip */
+  --shadow-lift: 0 8px 28px rgb(0 0 0 / 0.35); /* Clan's save bar, live */
 
   /* Spacing — 4pt. Not a handoff token: the sheet names no spacing
      scale, and the component layer below is written against this one. */
@@ -380,6 +479,11 @@
   --text-label: var(--t-label);
   --text-mono: var(--t-mono);
   --text-stat: var(--t-stat);
+  --text-caption: var(--t-caption);
+  --text-small: var(--t-small);
+  --text-prose: var(--t-prose);
+  --text-body-lg: var(--t-body-lg);
+  --text-title: var(--t-title);
 
   --leading-body: var(--lh-body);
   --leading-prose: var(--lh-prose);
@@ -390,6 +494,7 @@
   --radius-block: var(--r-block);
   --radius-panel: var(--r-panel);
   --radius-pill: var(--r-pill);
+  --radius-select: var(--r-select);
 
   --shadow-*: initial;
   --shadow-modal: var(--shadow-modal);

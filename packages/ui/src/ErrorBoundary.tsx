@@ -48,7 +48,7 @@ export class ErrorBoundary extends Component<
           The rest of the site still works. Use the navigation above. If you
           can, send the text below with a note about what you were doing.
         </ErrorState>
-        <pre className="mt-3 overflow-x-auto rounded-chip bg-ground-sunken p-3 text-[13px] whitespace-pre-wrap">
+        <pre className="mt-3 overflow-x-auto rounded-chip bg-ground-sunken p-3 text-small whitespace-pre-wrap">
           {String(this.state.error?.stack || this.state.error)}
         </pre>
       </div>

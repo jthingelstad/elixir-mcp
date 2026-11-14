@@ -59,7 +59,7 @@ export function TimelineDiscord() {
   const { gone, forum, failing } = sharingStatus(s);
   return (
     <>
-      <div className="flex flex-wrap items-center gap-3 text-[13.5px]">
+      <div className="flex flex-wrap items-center gap-3 text-body-sm">
         <span
           className={gone || forum || failing ? "text-warn" : "text-ink-dim"}
         >

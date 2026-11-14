@@ -106,10 +106,13 @@ export function FirstAnswer({
   return (
     <section className="mb-6" aria-labelledby="first-answer-title">
       <div className="flex flex-wrap items-baseline gap-2 pb-3">
-        <h2 id="first-answer-title" className="text-[14px] font-semibold">
+        <h2
+          id="first-answer-title"
+          className="text-(length:--t-panel-head) font-semibold"
+        >
           Your recording
         </h2>
-        <span className="text-[12.5px] text-ink-faint wide:ml-auto">
+        <span className="text-mono text-ink-faint wide:ml-auto">
           <TagText>
             {loading
               ? "checking the record…"
@@ -147,7 +150,7 @@ export function FirstAnswer({
         )
       )}
       {wait != null && !notFound && (
-        <p className="mb-3 text-[12.5px] text-ink-faint">
+        <p className="mb-3 text-mono text-ink-faint">
           {wait < 60_000
             ? "This page checks again every few seconds for the first minutes after an add, then about once a minute while open."
             : "This page checks again about once a minute while open."}{" "}
@@ -196,13 +199,15 @@ export function FirstAnswer({
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <span className="text-[14px] text-ink-body">{s.label}</span>
-                <span className="text-[12.5px] text-ink-faint">
+                <span className="text-(length:--t-panel-head) text-ink-body">
+                  {s.label}
+                </span>
+                <span className="text-mono text-ink-faint">
                   <TagText>{s.detail}</TagText>
                 </span>
               </div>
               {(!s.done || s.showAction) && s.action && (
-                <Link className="inline-block pt-1 text-[12.5px]" to={s.to}>
+                <Link className="inline-block pt-1 text-mono" to={s.to}>
                   {s.action} ›
                 </Link>
               )}

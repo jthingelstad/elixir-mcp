@@ -60,7 +60,7 @@ export function HomeClanOffer({ className = "" }) {
         >
           is not followed yet, follow it now!
         </button>
-        <span className="mt-[5px] block text-[13px] text-ink-dim">
+        <span className="mt-[5px] block text-small text-ink-dim">
           {full
             ? "Your clan slot for recording the clan only is in use, so Elixir did not follow it for you. Unfollow that clan first, or keep the one you chose. "
             : ""}

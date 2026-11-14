@@ -179,7 +179,7 @@ function WarList({ area, clan, navigate }) {
                   {p.name ?? <Tag tag={p.player_tag} />}
                 </MemberLink>
                 {p.joined_during ? (
-                  <span className="ml-2 text-[12px] text-ink-faint">new</span>
+                  <span className="ml-2 text-caption text-ink-faint">new</span>
                 ) : null}
               </>
             ),
@@ -232,10 +232,7 @@ function Membership({ m }) {
       </summary>
       <div className="disclosure__body grid gap-1.5">
         {rows.map(([x, line]) => (
-          <p
-            key={line}
-            className="m-0 flex justify-between gap-3 text-[13.5px]"
-          >
+          <p key={line} className="m-0 flex justify-between gap-3 text-body-sm">
             <TagText>{line}</TagText>
             {x.at ? (
               <span className="shrink-0 text-ink-faint">{when(x.at)}</span>
@@ -449,7 +446,7 @@ function ClosedWeek({ d, clan, navigate }) {
         <Panel as="div" className="mb-4">
           <div className="panel__body grid gap-1">
             <span className="label">Race result</span>
-            <span className="text-[18px] font-semibold">
+            <span className="text-h2 font-semibold">
               {ordinal(r.rank)}
               {r.fame !== null ? ` · ${n(r.fame)} fame` : ""}
             </span>
@@ -562,7 +559,7 @@ function WholeSeason({ s, current }) {
                   <>
                     Week {r.section_index + 1}
                     {r.is_colosseum ? " · Colosseum" : ""}
-                    <span className="block text-[12px] text-ink-faint">
+                    <span className="block text-caption text-ink-faint">
                       {date(r.from)}
                     </span>
                   </>
@@ -575,7 +572,7 @@ function WholeSeason({ s, current }) {
                   <>
                     {STATUS[r.state]}
                     {r.counters_unknown ? (
-                      <span className="block text-[12px] text-ink-faint">
+                      <span className="block text-caption text-ink-faint">
                         Partial readings
                       </span>
                     ) : null}
