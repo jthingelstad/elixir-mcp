@@ -119,8 +119,16 @@ export function makeOwnRefresh({
           outcome = "updated";
         }
       } else if (players.some((p) => p.state === "fresh")) {
-        // Read in the last two minutes, maybe after this page last read.
-        await Promise.all(landedKeys.map((queryKey) => invalidate(queryKey)));
+        // Read in the last two minutes, maybe after this page last read,
+        // and maybe after Home's stored week was built: the follow-up read
+        // wakes that week's rebuild, so ask it once (and once more after a
+        // short wait while the week catches up) before reading again.
+        const s = await status().catch(() => null);
+        if (s?.ok && s.data?.feed_current === false && !hidden()) {
+          await wait(MIN_WAIT_S * 1000);
+          await status().catch(() => null);
+        }
+        await landed();
         outcome = "updated";
       } else {
         const waits = players
