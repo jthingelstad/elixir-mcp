@@ -15,7 +15,7 @@
     "test": "node --test --test-force-exit test/*.test.mjs"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.3.3",
+    "@tailwindcss/cli": "^4.3.5",
     "tailwindcss": "^4.3.3"
   }
 }
