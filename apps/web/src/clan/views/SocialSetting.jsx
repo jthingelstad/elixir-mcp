@@ -1,3 +1,4 @@
+import { ErrorState } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useSocial } from "../lib/queries.js";
@@ -12,16 +13,20 @@ import { trackEvent } from "../../analytics.js";
 const LEADERS = new Set(["leader", "coLeader"]);
 
 export function SocialSetting({ clan }) {
-  const { state } = useSocial(clan.clan_tag);
+  const { state, load } = useSocial(clan.clan_tag);
   const invalidate = useInvalidate();
   const [busy, setBusy] = useState(false);
   const d = state.data;
   if (state.forbidden || state.signedOut) return null;
   if (state.error)
     return (
-      <p className="page-head__note m-0">
-        Clan did not answer. Try again in a minute.
-      </p>
+      <ErrorState
+        title="Social settings could not be read just now"
+        onRetry={() => load()}
+        busy={state.loading}
+      >
+        Try again in a moment.
+      </ErrorState>
     );
   if (!d) return <p className="page__lede">Reading…</p>;
   const canSet = LEADERS.has(clan.role);

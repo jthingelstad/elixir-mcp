@@ -114,7 +114,7 @@ test.each(["primary", "clan response", "clan transport"])(
     expect(response.statusCode).toBe(503);
     expect(response.headers["cache-control"]).toBe("private, no-store");
     // The app's own unavailable page, which Clan shares.
-    expect(response.body).toContain("Elixir didn’t answer");
+    expect(response.body).toContain("This page could not be read just now");
     expect(response.body).not.toContain("Sign in first");
     expect(response.body).toContain('"clanMe":{"ok":false,"status":503');
     if (failure === "primary") expect(calls).toEqual(["/api/me"]);

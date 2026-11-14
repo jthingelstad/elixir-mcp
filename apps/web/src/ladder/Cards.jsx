@@ -98,7 +98,7 @@ function ModeCards({ player, mode, chip, modeReady, season, order, onOrder }) {
   if (!modeReady || mine.isPending)
     return <Loading what={`${whose.your} cards`} />;
   if (mine.isError)
-    return <ReadError error={mine.error} what={`${whose.your} cards`} />;
+    return <ReadError query={mine} what={`${whose.your} cards`} />;
   if (!played)
     return chip === OTHER.key ? null : (
       <Empty title={`No ${modeWords(mode)} battles ${when}`} titleAs="h2">
@@ -272,7 +272,7 @@ function TheirCards({ read, opponents, mode, order }) {
         </div>
       ) : read.isError ? (
         <div className="panel__body">
-          <ReadError error={read.error} what={`the cards ${whose.you} faced`} />
+          <ReadError query={read} what={`the cards ${whose.you} faced`} />
         </div>
       ) : rows.length ? (
         <Table
@@ -331,7 +331,7 @@ function Opponents({ read, label, when, order }) {
         {read.isPending ? (
           <Loading what={`${whose.your} opponents`} />
         ) : read.isError ? (
-          <ReadError error={read.error} what={`${whose.your} opponents`} />
+          <ReadError query={read} what={`${whose.your} opponents`} />
         ) : (
           <>
             <p className="ladder-opponents__lede">

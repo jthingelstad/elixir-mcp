@@ -191,8 +191,12 @@ export function CallRecord({ id, navigate }) {
     return (
       <>
         {back}
-        <ErrorState title="This call could not be read">
-          Elixir did not answer just now. Try again in a moment.
+        <ErrorState
+          title="This call could not be read just now"
+          onRetry={() => record.refetch()}
+          busy={record.isFetching}
+        >
+          Try again in a moment.
         </ErrorState>
       </>
     );

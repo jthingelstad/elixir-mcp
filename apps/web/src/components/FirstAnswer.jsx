@@ -1,4 +1,4 @@
-import { Icon, Link, TagText, ago, useClock } from "@elixir-mcp/ui";
+import { ErrorState, Icon, Link, TagText, ago, useClock } from "@elixir-mcp/ui";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { nextPoll, useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { SETTINGS } from "../lib/settings.js";
@@ -183,13 +183,10 @@ export function FirstAnswer({
         </button>
       </div>
       {error && (
-        <div className="callout callout--warn" role="alert">
-          <Icon name="circle-dashed" size={17} />
-          <span>
-            Could not check your recorded data. Use Check again to retry. Your
-            saved players and any previously read evidence are unaffected.
-          </span>
-        </div>
+        <ErrorState title="Your recorded data could not be read just now">
+          Your saved players and any previously read evidence are unaffected.
+          Use Check again to retry.
+        </ErrorState>
       )}
       <div className="flex flex-col">
         {shown.map((s) => (

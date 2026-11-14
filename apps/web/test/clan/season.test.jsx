@@ -205,7 +205,7 @@ describe("refusals", () => {
     reads({ ok: false, status: 502, data: { error: "elixir_unavailable" } });
     draw();
     expect((await screen.findByRole("alert")).textContent).toContain(
-      "did not answer",
+      "could not be read just now",
     );
   });
 });

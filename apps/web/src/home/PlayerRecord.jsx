@@ -31,7 +31,7 @@ export function PlayerRecord({ tag }) {
         onRetry={() => query.refetch()}
         busy={query.isFetching}
       >
-        Try again shortly.
+        Try again in a moment.
       </ErrorState>
     );
   const { summary, profile } = query.data;

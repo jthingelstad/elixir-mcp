@@ -1,4 +1,12 @@
-import { Empty, Icon, Link, PageHead, Stat, useClock } from "@elixir-mcp/ui";
+import {
+  Empty,
+  ErrorState,
+  Icon,
+  Link,
+  PageHead,
+  Stat,
+  useClock,
+} from "@elixir-mcp/ui";
 import { fmt, warLine } from "./ladder.js";
 import { useToolRead } from "../lib/queries.js";
 import { tagPath } from "../lib/tag-url.js";
@@ -125,16 +133,19 @@ export function Loading({ what = "the record" }) {
   );
 }
 
-/** A read that did not come back: the tool's own words, never a guess
- *  at what the number would have been. */
-export function ReadError({ error, what = "this" }) {
+/** A read that did not come back: the kit's error state, the tool's own
+ *  words, never a guess at what the number would have been. Try again
+ *  refetches the read that failed. */
+export function ReadError({ query, what = "this" }) {
+  const title = `${what.charAt(0).toUpperCase()}${what.slice(1)} could not be read just now`;
   return (
-    <div className="callout callout--bad" role="alert">
-      <span>
-        Elixir could not read {what}
-        {error?.message ? `: ${error.message}` : "."}
-      </span>
-    </div>
+    <ErrorState
+      title={title}
+      onRetry={() => query.refetch()}
+      busy={query.isFetching}
+    >
+      {query.error?.message ?? "Try again in a moment."}
+    </ErrorState>
   );
 }
 

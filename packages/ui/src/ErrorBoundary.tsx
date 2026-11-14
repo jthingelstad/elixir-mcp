@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { ErrorState } from "./Empty.tsx";
 
 /**
  * There was no error boundary anywhere in the console once.
@@ -38,22 +39,18 @@ export class ErrorBoundary extends Component<
   override render() {
     if (!this.state.error) return this.props.children;
     return (
-      <div className="panel my-6">
-        <h2 className="mt-0">This section failed to render.</h2>
-        <p className="text-ink-faint">
+      <div className="my-6">
+        <ErrorState
+          titleAs="h2"
+          title="This section failed to render"
+          onRetry={() => this.setState({ error: null })}
+        >
           The rest of the site still works. Use the navigation above. If you
-          can, send this text with a note about what you were doing:
-        </p>
-        <pre className="overflow-x-auto rounded-chip bg-ground-sunken p-3 text-[13px] whitespace-pre-wrap">
+          can, send the text below with a note about what you were doing.
+        </ErrorState>
+        <pre className="mt-3 overflow-x-auto rounded-chip bg-ground-sunken p-3 text-[13px] whitespace-pre-wrap">
           {String(this.state.error?.stack || this.state.error)}
         </pre>
-        <button
-          type="button"
-          className="btn btn--sm"
-          onClick={() => this.setState({ error: null })}
-        >
-          Try again
-        </button>
       </div>
     );
   }

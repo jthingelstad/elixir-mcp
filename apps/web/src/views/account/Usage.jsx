@@ -268,7 +268,7 @@ export function Usage({ me }) {
   if (error && !usage)
     return (
       <ErrorState
-        title="Could not load usage"
+        title="Your usage could not be read just now"
         onRetry={refetch}
         busy={isFetching}
       >
@@ -353,7 +353,12 @@ export function Usage({ me }) {
         title="Usage and limits"
         sub="Your daily budget and where it went."
         aside={
-          <Link className="btn btn--sm" to={`${SETTINGS}/usage/requests`}>
+          // Quiet (round three): the page's one filled button is Connect an
+          // AI when nothing has called yet; Requests is a way along.
+          <Link
+            className="btn btn--sm btn--quiet"
+            to={`${SETTINGS}/usage/requests`}
+          >
             Requests
           </Link>
         }

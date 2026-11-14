@@ -75,7 +75,9 @@ export function FollowMePage() {
           title="These players could not be read just now"
           onRetry={() => plan.refetch()}
           busy={plan.isFetching}
-        />
+        >
+          Try again in a moment.
+        </ErrorState>
       </>
     );
   const p = plan.data;

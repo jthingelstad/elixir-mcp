@@ -165,7 +165,7 @@ export function needsYou({ clan, needs, signals, clock }) {
     const rest = (actions.needs_total ?? 0) - (actions.needs?.length ?? 0);
     if (rest > 0)
       more = {
-        title: `and ${rest} more waiting in Clan`,
+        title: `See ${rest} more in Clan`,
         to: clanWaiting(actions.clan_tag),
       };
   }

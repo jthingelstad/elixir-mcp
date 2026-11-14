@@ -347,7 +347,7 @@ test("partial capture is unavailable rather than an invented zero", async () => 
 test("a failed readiness request explains itself and can retry", async () => {
   global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
   render(<FirstAnswer claimsKey="a" />);
-  await screen.findByText(/Could not check your recorded data/);
+  await screen.findByText(/Your recorded data could not be read just now/);
   respond();
   fireEvent.click(screen.getByRole("button", { name: "Check again" }));
   await screen.findByText("Player tag saved");

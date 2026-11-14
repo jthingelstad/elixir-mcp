@@ -1,4 +1,11 @@
-import { Disclosure, ago, useClock, Panel, Table } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  ago,
+  useClock,
+  Panel,
+  Table,
+  ErrorState,
+} from "@elixir-mcp/ui";
 import { modelName } from "@elixir-mcp/clan-engine";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
@@ -100,9 +107,13 @@ export function Model({ clan }) {
     );
   if (state.error)
     return (
-      <div className="callout callout--warn" role="alert">
-        <span>Clan did not answer. Try again in a minute.</span>
-      </div>
+      <ErrorState
+        title="The clan’s model could not be read just now"
+        onRetry={() => load()}
+        busy={state.loading}
+      >
+        Try again in a moment.
+      </ErrorState>
     );
   const d = state.data;
   if (!d) return <p className="page__lede">Reading…</p>;

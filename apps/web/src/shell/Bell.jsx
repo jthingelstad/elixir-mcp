@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ErrorState,
   FAMILY_PLACES,
   Icon,
   Link,
@@ -114,7 +115,8 @@ function Section({ title, children }) {
 export function BellSheet({ me, onClose }) {
   const box = useRef(null);
   const clock = useClock();
-  const needs = panelOf(useBellNeeds(true), "needs");
+  const needsRead = useBellNeeds(true);
+  const needs = panelOf(needsRead, "needs");
   const clan = panelOf(useHomeClan(), "clan");
   const read = useBellRead(true, { fresh: true });
   const seen = useBellSeen();
@@ -180,9 +182,13 @@ export function BellSheet({ me, onClose }) {
           <div className="kit-skeleton" aria-busy="true" />
         ) : null}
         {read.isError ? (
-          <p className="kit-tiny" role="alert">
-            Your notifications could not be read just now.
-          </p>
+          <ErrorState
+            title="Your notifications could not be read just now"
+            onRetry={() => read.refetch()}
+            busy={read.isFetching}
+          >
+            Try again in a moment.
+          </ErrorState>
         ) : null}
         {bell && bell.players === 0 ? (
           <p>
@@ -300,20 +306,27 @@ export function BellSheet({ me, onClose }) {
                     }
                   />
                 ))}
-                {more ? (
-                  <Row
-                    quiet
-                    href={more.to}
-                    title={more.title}
-                    onClick={onClose}
-                  />
-                ) : null}
               </Rows>
             ) : null}
+            {/* The rest of the list is the app's quiet link, a 44px tap
+                (round three, 2026-11-13), not a plain row of text. */}
+            {more ? (
+              <Link
+                to={more.to}
+                className="btn btn--sm btn--quiet kit-bell__more"
+                onClick={onClose}
+              >
+                {more.title}
+              </Link>
+            ) : null}
             {needs?.ok === false ? (
-              <p className="kit-tiny" role="alert">
-                Your clan&rsquo;s actions could not be read just now.
-              </p>
+              <ErrorState
+                title="Your clan’s actions could not be read just now"
+                onRetry={() => needsRead.refetch()}
+                busy={needsRead.isFetching}
+              >
+                Try again in a moment.
+              </ErrorState>
             ) : null}
           </Section>
         ) : null}

@@ -36,8 +36,7 @@ export function Decks({ player, mode, modeReady, season }) {
   if (!modeReady || reads.some((r) => r.isPending))
     return <Loading what={`${whose.your} decks`} />;
   const failed = reads.find((r) => r.isError);
-  if (failed)
-    return <ReadError error={failed.error} what={`${whose.your} decks`} />;
+  if (failed) return <ReadError query={failed} what={`${whose.your} decks`} />;
   const count = (r) =>
     (r.data?.decks?.length ?? 0) + (r.data?.duel_decks?.length ?? 0);
   if (!reads.some((r) => count(r) > 0))

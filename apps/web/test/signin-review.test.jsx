@@ -93,7 +93,11 @@ test(
     // here, because the query's retry and the router's first render both
     // schedule through paths a faked clock does not advance evenly.
     expect(
-      await screen.findByText("Elixir didn’t answer", {}, { timeout: 4000 }),
+      await screen.findByText(
+        "This page could not be read just now",
+        {},
+        { timeout: 4000 },
+      ),
     ).toBeTruthy();
     expect(calls).toBe(2);
     expect(screen.queryByText("Sign in first")).toBeNull();
@@ -127,10 +131,14 @@ test(
     });
     render(<App />);
     await vi.advanceTimersByTimeAsync(1600);
-    expect(await screen.findByText("Elixir didn’t answer")).toBeTruthy();
+    expect(
+      await screen.findByText("This page could not be read just now"),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() =>
-      expect(screen.queryByText("Elixir didn’t answer")).toBeNull(),
+      expect(
+        screen.queryByText("This page could not be read just now"),
+      ).toBeNull(),
     );
     expect(screen.queryByText("Sign in first")).toBeNull();
   },

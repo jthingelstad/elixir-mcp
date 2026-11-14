@@ -9,6 +9,7 @@ import {
   TagText,
   useClock,
   WriteError,
+  ErrorState,
 } from "@elixir-mcp/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWrite } from "@elixir-mcp/client";
@@ -110,19 +111,13 @@ export function PeopleToFollow() {
   if (query.isError || !data?.ok)
     return (
       <Panel title="People to follow" pad>
-        <p className="kit-week__quiet">
-          Suggestions could not be read just now.{" "}
-          <Link to="/home/find">Find people</Link>
-        </p>
-        <button
-          type="button"
-          className="btn btn--sm"
-          onClick={() => query.refetch()}
-          disabled={query.isFetching}
-          aria-busy={query.isFetching}
+        <ErrorState
+          title="Suggestions could not be read just now"
+          onRetry={() => query.refetch()}
+          busy={query.isFetching}
         >
-          {query.isFetching ? "Reading…" : "Try again"}
-        </button>
+          Try again in a moment, or <Link to="/home/find">find people</Link>.
+        </ErrorState>
       </Panel>
     );
   const slots = slotsLine(data.used, data.limit);
@@ -185,18 +180,13 @@ export function FindSuggested({ onSearch, onLink }) {
   if (query.isError || !data?.ok)
     return (
       <Panel pad>
-        <p className="kit-week__quiet">
-          Suggestions didn’t load. Try again in a moment.
-        </p>
-        <button
-          type="button"
-          className="btn btn--sm"
-          onClick={() => query.refetch()}
-          disabled={query.isFetching}
-          aria-busy={query.isFetching}
+        <ErrorState
+          title="Suggestions could not be read just now"
+          onRetry={() => query.refetch()}
+          busy={query.isFetching}
         >
-          {query.isFetching ? "Reading…" : "Try again"}
-        </button>
+          Try again in a moment.
+        </ErrorState>
       </Panel>
     );
   if (data.people.length === 0)
@@ -269,9 +259,13 @@ export function FromYourBattles() {
   if (query.isError || !data?.ok)
     return (
       <Panel pad>
-        <p className="kit-week__quiet">
-          Your battles didn’t load. Try again in a moment.
-        </p>
+        <ErrorState
+          title="Your battles could not be read just now"
+          onRetry={() => query.refetch()}
+          busy={query.isFetching}
+        >
+          Try again in a moment.
+        </ErrorState>
       </Panel>
     );
   return (
@@ -323,9 +317,13 @@ export function YourClanPeople() {
   if (query.isError || !data?.ok)
     return (
       <Panel pad>
-        <p className="kit-week__quiet">
-          Your clan didn’t load. Try again in a moment.
-        </p>
+        <ErrorState
+          title="Your clan could not be read just now"
+          onRetry={() => query.refetch()}
+          busy={query.isFetching}
+        >
+          Try again in a moment.
+        </ErrorState>
       </Panel>
     );
   if (!data.clan)

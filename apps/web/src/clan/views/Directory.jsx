@@ -84,8 +84,12 @@ export function Directory({
     return (
       <div className="clan-dir">
         {head}
-        <ErrorState onRetry={onRetry} busy={state.loading}>
-          The directory did not load.
+        <ErrorState
+          title="The directory could not be read just now"
+          onRetry={onRetry}
+          busy={state.loading}
+        >
+          Try again in a moment.
         </ErrorState>
       </div>
     );

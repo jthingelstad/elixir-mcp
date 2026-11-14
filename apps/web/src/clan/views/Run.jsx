@@ -1,4 +1,4 @@
-import { Link } from "@elixir-mcp/ui";
+import { Link, ErrorState } from "@elixir-mcp/ui";
 import { useBlocker } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { clanPath } from "../lib/base.js";
@@ -154,9 +154,13 @@ function AwardsSetup({ clan }) {
     );
   if (state.forbidden || (state.error && state.error !== "too_few_members"))
     return (
-      <p className="page-head__note m-0" role="alert">
-        Awards could not be read just now. Try again shortly.
-      </p>
+      <ErrorState
+        title="Awards could not be read just now"
+        onRetry={() => load()}
+        busy={state.loading}
+      >
+        Try again in a moment.
+      </ErrorState>
     );
   if (!state.data)
     return state.error ? (
@@ -372,7 +376,7 @@ function RunSections({ clan, who, section, navigate }) {
       ? "Policy is unavailable for your current clan access."
       : e.policy.error?.status === 401
         ? "Your session expired. Sign in again."
-        : "Elixir did not answer the policy read. Try again in a minute.";
+        : "Try again in a moment.";
   return (
     <div className={`clan-run${section ? "" : " clan-run--index"}`}>
       <LeaveGuard when={dirty} runPath={base} />
@@ -401,9 +405,17 @@ function RunSections({ clan, who, section, navigate }) {
         ) : failed ? (
           <>
             <PageHead title={titleOf(slug)} />
-            <div className="callout callout--warn" role="alert">
-              <span>{readError}</span>
-            </div>
+            <ErrorState
+              title="The policy could not be read just now"
+              onRetry={
+                e.policy.error?.status === 403 || e.policy.error?.status === 401
+                  ? undefined
+                  : () => e.policy.refetch()
+              }
+              busy={e.policy.isFetching}
+            >
+              {readError}
+            </ErrorState>
           </>
         ) : !e.view ? (
           <p className="page__lede">Loading the policy…</p>

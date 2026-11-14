@@ -1,5 +1,12 @@
 import { useWrite } from "@elixir-mcp/client";
-import { Icon, Link, useClock, WriteError, PageHead } from "@elixir-mcp/ui";
+import {
+  ErrorState,
+  Icon,
+  Link,
+  useClock,
+  WriteError,
+  PageHead,
+} from "@elixir-mcp/ui";
 import { api } from "../../api.js";
 import { keys, useEmailPrefs } from "../../lib/queries.js";
 import { SETTINGS } from "../../lib/settings.js";
@@ -222,19 +229,13 @@ export function EmailPage() {
       <WriteError error={cadence.error} className="field-error mb-3" />
       <WriteError error={clanPart.error} className="field-error mb-3" />
       {query.isError ? (
-        <div className="callout callout--warn" role="alert">
-          <span>
-            <strong>Email settings could not be read.</strong> Your choices are
-            unchanged.{" "}
-            <button
-              type="button"
-              className="btn--text"
-              onClick={() => query.refetch()}
-            >
-              Try again
-            </button>
-          </span>
-        </div>
+        <ErrorState
+          title="Your email settings could not be read just now"
+          onRetry={() => query.refetch()}
+          busy={query.isFetching}
+        >
+          Your choices are unchanged. Try again in a moment.
+        </ErrorState>
       ) : null}
       <section className="mail-pref" aria-labelledby="scheduled-email">
         <h2 id="scheduled-email" className="section-title">
@@ -256,13 +257,13 @@ export function EmailPage() {
         <h2 id="also-email" className="section-title">
           Also
         </h2>
-        <p className="page-head__note m-0">
+        <p className="page-head__note mb-0">
           Product news: sent through our newsletter service. Every issue has its
           own unsubscribe link.
         </p>
       </section>
       <section className="mail-pref" aria-labelledby="sent-to-you">
-        <div className="flex items-center justify-between gap-3">
+        <div className="mail-pref__head flex items-center justify-between gap-3">
           <h2 id="sent-to-you" className="section-title">
             Sent to you
           </h2>

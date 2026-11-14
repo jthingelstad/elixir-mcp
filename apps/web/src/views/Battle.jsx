@@ -13,6 +13,7 @@ import {
   cardLabel,
   isTowerTroop,
   TagText,
+  Tabs,
   useClock,
   useFlash,
 } from "@elixir-mcp/ui";
@@ -316,23 +317,23 @@ export function BattleView({
       />
 
       {games && (
-        <div className="segmented" role="tablist" aria-label="Games">
-          {games.map((x, i) => (
-            <button
-              key={x.round}
-              type="button"
-              role="tab"
-              aria-selected={i === game}
-              onClick={() => setGame(i)}
-            >
-              Game {x.round}
-              {typeof x.sides[0]?.crowns === "number" &&
+        // The kit's one tab row (2026-11-13), not a third tab style: the
+        // games are tabs like a player's or a clan's.
+        <Tabs
+          label="Games"
+          className="battle__games"
+          value={String(game)}
+          onSelect={(k) => setGame(Number(k))}
+          items={games.map((x, i) => ({
+            key: String(i),
+            label: `Game ${x.round}${
+              typeof x.sides[0]?.crowns === "number" &&
               typeof x.sides[1]?.crowns === "number"
                 ? ` · ${x.sides[0].crowns}–${x.sides[1].crowns}`
-                : ""}
-            </button>
-          ))}
-        </div>
+                : ""
+            }`,
+          }))}
+        />
       )}
 
       <div className="battle__grid battle__grid--decks">

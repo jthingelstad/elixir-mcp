@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Icon, Link, TagText } from "@elixir-mcp/ui";
+import { ErrorState, Icon, Link, TagText } from "@elixir-mcp/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api.js";
 import { FollowCost, Followed, useFollow } from "../home/follow.jsx";
@@ -138,9 +138,13 @@ export function SearchSheet({ me, onClose }) {
         </form>
         <div className="kit-search__results" aria-live="polite">
           {failed ? (
-            <p className="kit-search__note" role="alert">
-              {remote.error?.message}
-            </p>
+            <ErrorState
+              title="Search could not be read just now"
+              onRetry={() => remote.refetch()}
+              busy={remote.isFetching}
+            >
+              {remote.error?.message ?? "Try again in a moment."}
+            </ErrorState>
           ) : null}
           {groups.map((g) => (
             <section key={g.h} className="kit-search__group">

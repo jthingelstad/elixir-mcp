@@ -1,4 +1,4 @@
-import { useClock } from "@elixir-mcp/ui";
+import { useClock, ErrorState } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useVoice } from "../lib/queries.js";
@@ -14,7 +14,7 @@ import { trackEvent } from "../../analytics.js";
  */
 export function VoiceSetting({ clan }) {
   const { whenDay } = useClock();
-  const { state } = useVoice(clan.clan_tag);
+  const { state, load } = useVoice(clan.clan_tag);
   const invalidate = useInvalidate();
   const [draft, setDraft] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -29,9 +29,13 @@ export function VoiceSetting({ clan }) {
     );
   if (state.error)
     return (
-      <p className="field-error m-0" role="alert">
-        Clan did not answer. Try again in a minute.
-      </p>
+      <ErrorState
+        title="The clan’s voice could not be read just now"
+        onRetry={() => load()}
+        busy={state.loading}
+      >
+        Try again in a moment.
+      </ErrorState>
     );
   const d = state.data;
   if (!d) return <p className="page__lede">Reading…</p>;

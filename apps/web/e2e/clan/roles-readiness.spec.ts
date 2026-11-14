@@ -454,7 +454,7 @@ for (const size of ["wide", "@narrow"])
     // The shared client quietly retries a 503 once. In a full concurrent
     // run its timer can be delayed beyond the default five-second wait.
     await expect(page.getByRole("alert")).toContainText(
-      "This page did not load",
+      "This member’s numbers could not be read just now",
       { timeout: 10_000 },
     );
   });
@@ -493,7 +493,7 @@ for (const size of ["wide", "@narrow"])
     routes[`GET ${apiBase}/history`] = [503, { error: "unavailable" }];
     await page.goto(`${base}/run/decided`);
     await expect(page.getByRole("alert")).toContainText(
-      "This page did not load",
+      "The decisions could not be read just now",
     );
     await expect(
       page.getByText(

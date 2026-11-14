@@ -162,7 +162,7 @@ for (const [label, width] of [
       await expect(sheet.locator(".kit-row__title").first()).toContainText(
         "Departure: kicked, left, or ignore? Ada",
       );
-      await expect(sheet).toContainText("and 3 more waiting in Clan");
+      await expect(sheet).toContainText("See 3 more in Clan");
       await accessible(page, "the bell");
       await sheet.getByRole("button", { name: "Close" }).click();
       await expect(sheet).toHaveCount(0);
@@ -180,10 +180,10 @@ for (const [label, width] of [
       );
       await page.goto("/home");
       await expect(
-        page.getByText("Your clans could not be read just now."),
+        page.getByText("Your clans could not be read just now"),
       ).toBeVisible();
       await expect(
-        page.getByText("Your week could not be read just now."),
+        page.getByText("Your week could not be read just now"),
       ).toBeVisible();
       await expect(page.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
       await noSideways(page);
@@ -195,7 +195,9 @@ for (const [label, width] of [
         homeApi({ "GET /api/me/timeline": [500, { error: "boom" }] }),
       );
       await page.goto("/home");
-      await expect(page.getByText("Your feed didn’t load")).toBeVisible();
+      await expect(
+        page.getByText("Your feed could not be read just now"),
+      ).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Try again" }),
       ).toBeVisible();

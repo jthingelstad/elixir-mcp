@@ -85,5 +85,7 @@ test("a failed refetch of an empty feed is the feed's failure", async () => {
   await act(() =>
     queryClient.refetchQueries({ queryKey: HOME_FEED_KEY }).catch(() => {}),
   );
-  expect(await screen.findByText("Your feed didn’t load")).toBeTruthy();
+  expect(
+    await screen.findByText("Your feed could not be read just now"),
+  ).toBeTruthy();
 });

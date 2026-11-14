@@ -7,6 +7,7 @@ import {
   useClock,
   Panel,
   Link,
+  ErrorState,
 } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useActivityDiscord, useInvalidate } from "../lib/queries.js";
@@ -22,7 +23,7 @@ const dead = (c) =>
  * The parent observes pending operations across closing and reopening. */
 export function ActivityDiscordSetting({ clan, navigate }) {
   const modelVoice = `${clanPath(clan.clan_tag)}/run/model-voice`;
-  const { state } = useActivityDiscord(clan.clan_tag);
+  const { state, load } = useActivityDiscord(clan.clan_tag);
   const invalidate = useInvalidate();
   const [busy, setBusy] = useState(false);
   const perform = async (operation, event, label, refresh = true) => {
@@ -45,9 +46,13 @@ export function ActivityDiscordSetting({ clan, navigate }) {
     );
   if (state.error)
     return (
-      <p className="field-error m-0" role="alert">
-        Clan did not answer. Try again in a minute.
-      </p>
+      <ErrorState
+        title="The activity channel could not be read just now"
+        onRetry={() => load()}
+        busy={state.loading}
+      >
+        Try again in a moment.
+      </ErrorState>
     );
   const d = state.data;
   if (!d) return <p className="page__lede">Reading…</p>;

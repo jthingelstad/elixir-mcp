@@ -1,3 +1,4 @@
+import { ErrorState } from "@elixir-mcp/ui";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
 import { keys, useInvalidate, useMyPlace } from "../lib/queries.js";
@@ -26,7 +27,7 @@ const lists = () => import("../lib/geo.js").then((m) => m.geo);
  * reader verifies one. `clanTag`, on a clan's map, is the map to redraw.
  */
 export function YourPlace({ clanTag = null, verify = null }) {
-  const { state } = useMyPlace();
+  const { state, load } = useMyPlace();
   const invalidate = useInvalidate();
   const [editing, setEditing] = useState(false);
   const place = state.data?.place ?? null;
@@ -47,9 +48,13 @@ export function YourPlace({ clanTag = null, verify = null }) {
     );
   if (state.error)
     return (
-      <p className="m-0" role="alert">
-        Your place did not load. Try again in a minute.
-      </p>
+      <ErrorState
+        title="Your place could not be read just now"
+        onRetry={() => load()}
+        busy={state.loading}
+      >
+        Try again in a moment.
+      </ErrorState>
     );
   if (!state.data)
     return (
