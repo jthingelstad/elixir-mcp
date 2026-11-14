@@ -274,6 +274,41 @@ test("the background build skips a fresh row and builds a stale one", async () =
   assert.equal((await row()).built_at.getTime(), built + HOME_FRESH_MS + 1);
 });
 
+test("a wake with a landed read builds a fresh row built before it, once per read", async () => {
+  const built = (await row()).built_at.getTime();
+  // A read that landed before the build: still fresh, skipped.
+  assert.equal(
+    (
+      await refreshHomeWeek(db, owner, {
+        now: built + 60_000,
+        since: new Date(built - 1000).toISOString(),
+      })
+    ).skipped,
+    "fresh",
+  );
+  // A read after it: built again, though the row is under fresh.
+  const out = await refreshHomeWeek(db, owner, {
+    now: built + 90_000,
+    since: new Date(built + 30_000).toISOString(),
+  });
+  assert.ok(out.items > 0, JSON.stringify(out));
+  assert.equal((await row()).built_at.getTime(), built + 90_000);
+  // The outbox object is one per read, and carries the read's time.
+  const writes = [];
+  const wake = homeWeekWake(async (lane, msg, opts) =>
+    writes.push({ lane, msg, opts }),
+  );
+  const since = new Date(built + 30_000).toISOString();
+  await wake(owner, built + 90_000, { since });
+  assert.deepEqual(writes, [
+    {
+      lane: "timeline-sync",
+      msg: { v: 1, home_feed: owner, since },
+      opts: { id: `home.${owner}.since.${built + 30_000}`, once: true },
+    },
+  ]);
+});
+
 test("an account away for days is still rebuilt, under serving, for a week", async () => {
   const { read_at } = await row();
   const readAt = read_at.getTime();

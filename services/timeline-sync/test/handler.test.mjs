@@ -392,3 +392,32 @@ test("a Home week's wake builds it and deletes its object; a failed build is log
   assert.ok(lines.includes("home_feed_built"));
   assert.ok(lines.includes("home_feed_failed"));
 });
+
+test("a Home week's wake passes on a landed read's time, and drops one that is not a time", async () => {
+  const seen = [];
+  const SINCE = "2026-11-14T12:00:00.000Z";
+  const withSince = `timeline-sync/home.${ACCOUNT}.since.1.json`;
+  const junk = `timeline-sync/home.${ACCOUNT}.since.2.json`;
+  const objects = new Map([
+    [withSince, JSON.stringify({ v: 1, home_feed: ACCOUNT, since: SINCE })],
+    [junk, JSON.stringify({ v: 1, home_feed: ACCOUNT, since: "soon" })],
+  ]);
+  const handler = makeHandler({
+    connect: async () => ({ end: async () => {} }),
+    sync: async () => assert.fail("not an account sync"),
+    homeFeed: async (_db, id, opts) => {
+      seen.push(opts);
+      return { items: 1 };
+    },
+    readObject: async (obj) => objects.get(obj.key) ?? null,
+    deleteObject: async (obj) => objects.delete(obj.key),
+  });
+  const log = console.log;
+  console.log = () => {};
+  try {
+    await handler({ Records: [record("a", withSince), record("b", junk)] });
+  } finally {
+    console.log = log;
+  }
+  assert.deepEqual(seen, [{ since: SINCE }, {}]);
+});
