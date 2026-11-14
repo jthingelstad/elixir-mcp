@@ -1,27 +1,43 @@
 # Decisions
 
-What stands, one line each. The code and the public docs
+Where things stand, one line each. The code and the public docs
 (`apps/site/src/docs/`) describe behaviour; this file records the choices
-that constrain it. The reasoning behind a line is in git history
+behind it. The reasoning behind a line is in git history
 (`git log -S "<words from the line>" -- docs/`). A change is a note in
-`docs/notes/` plus an edit here, written as the current rule, never as
-"was X, now Y".
+`docs/notes/` plus an edit here, written as the current approach, never
+as "was X, now Y".
 
-Every line ends with who decided it:
+**This is a working record, not a rulebook.** Elixir is being built, and
+its direction moves as we learn. A line is the best current answer as of
+its date. Many lines came from a short answer in the middle of other
+work, and the date says how fresh that answer is. When a line no longer
+fits what is being built, say so and change it: that is the file
+working, not a rule being broken.
 
-- **[Jamie, date]** is Jamie's decision. Do not re-litigate it; a
-  surface that disagrees with it is the defect, and a conflict you find
-  is a question for Jamie.
+Every line ends with where it came from:
+
+- **[Jamie, date]** is product direction from Jamie as of that date.
+  Build to it. If it looks out of date, or two lines pull against each
+  other, go with the newer direction and `VISION.md`, update the line,
+  and mention it in the pull request; ask Jamie only when the answer
+  changes what gets built next.
 - **[engineering, date]** is a default an agent chose. Follow it, and
-  propose a change with evidence (a note and an edit, in a pull request)
-  when it gets in the way.
-- **[Jamie, date; engineering: …]** is Jamie's decision with agent
+  change it with evidence (a note and an edit, in a pull request) when
+  it gets in the way.
+- **[Jamie, date; engineering: …]** is Jamie's direction with agent
   detail; the part after "engineering" may be revisited like any
   engineering line.
 
-A line says no more than the decision behind it. A guide, skill, page,
-comment or test that needs the rule names the line's heading rather than
-restating it in wider words.
+A few lines are firm because they protect people or money, and they say
+so in their own words: privacy (many players are minors), secrets, what
+is sent to whom, and what a person is charged. Those change only with
+Jamie.
+
+A line says no more than the answer behind it. A guide, skill, page,
+comment or test that needs it names the line's heading rather than
+restating it in wider words. Quotes in older lines are kept as the
+record of what was said that day; new lines say what we do and why, in
+plain words.
 
 ## Interface
 

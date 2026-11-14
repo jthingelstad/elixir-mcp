@@ -185,9 +185,11 @@ consistency round:
   (AGENTS.md, `docs/OPERATIONS.md`, the skills, the domain's
   `../WORKFLOW.md`),
   not another copy of X.
-- Do not re-litigate a **[Jamie]** DECISIONS line. A surface that
-  disagrees with it is the defect; a line that contradicts another line
-  is a product call. An **[engineering]** line is a default: a finding
+- A **[Jamie]** DECISIONS line is product direction as of its date.
+  A surface that disagrees with a current one is the finding; a line
+  that newer direction or `VISION.md` has passed is a line to update,
+  and two lines that pull against each other with no newer answer are a
+  question for Jamie. An **[engineering]** line is a default: a finding
   that it gets in the way is a proposal, not a defect.
 - A surface may be narrower than a line, never wider. Restating a line in
   broader words (a ban the line does not make) is itself a finding.

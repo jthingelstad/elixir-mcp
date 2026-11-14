@@ -9,8 +9,8 @@ the frozen archive of the notes up to 2026-10-10.
   Two notes may share a date; never rename another note.
 - **First line:** `# YYYY-MM-DD — <title>`, the same date.
 - **Body:** what changed, why, and the versions it ships in (MCP, JSON
-  API, a migration's number), as the NOTES entries did. A ratified
-  decision also gets its line in `docs/DECISIONS.md` in the same pull
+  API, a migration's number), as the NOTES entries did. A settled
+  choice also gets its line in `docs/DECISIONS.md` in the same pull
   request.
 - **Not here:** open items, asks for Jamie and parked ideas. Each is a
   GitHub issue in this repository, labelled `needs-jamie`, `engineering`
