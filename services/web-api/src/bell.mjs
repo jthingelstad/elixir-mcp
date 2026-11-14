@@ -292,19 +292,58 @@ export function foldAccountLines(rows, seen) {
 /** New Stamps of the last seven days, one line per Stamp per pass. A pass
  *  stamps every level it grants with one instant, so the levels of one
  *  pass group into one line at the highest; a retry or a racing pass adds
- *  no row, so it adds no line. */
+ *  no row, so it adds no line.
+ *
+ *  Legacy rows (#1015, 0272: earned before the passport's launch) are
+ *  never such a line. An account that has them gets one "Your passport is
+ *  ready" line instead, at the first one's instant (its first settle
+ *  after the deploy, or the operator's backfill), while that is recent
+ *  like the rest of the account's lines; it is one line however many
+ *  passes filed them. One statement for both. */
 async function readStampLines(db, accountId, seen) {
   const { rows } = await db.query(
-    `select stamp_id, max(level)::int as level, earned_at
-       from account_stamp_earned
-      where account_id = $1::uuid and legacy_before is null
-        and earned_at > now() - make_interval(days => $2::int)
-      group by stamp_id, earned_at
-      order by earned_at desc, stamp_id
-      limit $3::int`,
+    `(select false as ready, stamp_id, max(level)::int as level, earned_at,
+             null::int as stamps
+        from account_stamp_earned
+       where account_id = $1::uuid and legacy_before is null
+         and earned_at > now() - make_interval(days => $2::int)
+       group by stamp_id, earned_at
+       order by earned_at desc, stamp_id
+       limit $3::int)
+     union all
+     (select true, null, null, min(earned_at),
+             count(distinct stamp_id)::int
+        from account_stamp_earned
+       where account_id = $1::uuid and legacy_before is not null
+      having min(earned_at) > now() - make_interval(days => $2::int))`,
     [accountId, ACCOUNT_DAYS, LIST_CAP],
   );
-  return stampLines(rows, seen);
+  return [
+    ...stampLines(
+      rows.filter((r) => !r.ready),
+      seen,
+    ),
+    ...passportReadyLine(rows.find((r) => r.ready) ?? null, seen),
+  ];
+}
+
+/** The legacy rows' first instant and Stamp count → the line. */
+function passportReadyLine(row, seen) {
+  if (!row?.earned_at || !(row.stamps > 0)) return [];
+  const at = new Date(row.earned_at).toISOString();
+  const seenMs = seen ? new Date(seen).getTime() : null;
+  return [
+    {
+      kind: "passport_ready",
+      stamps: Number(row.stamps),
+      at,
+      events: 1,
+      players: 0,
+      clans: 0,
+      subjects: [],
+      new: seenMs === null || Date.parse(at) > seenMs,
+    },
+  ];
 }
 
 /** Earned groups → bell lines. Pure, for the tests. */
