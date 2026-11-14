@@ -250,9 +250,56 @@ test("ladders: a level pre-launch facts reach is legacy; one a later fact comple
   ]);
   await cheer(mixed, "2026-08-03T10:00:00Z");
   await cheer(mixed, "2026-08-04T10:00:00Z");
+  // A post-launch fact completes the level, but the account's history
+  // before launch is not read yet: the level waits rather than become a
+  // line that history might have made legacy (0273).
   const third = await cheer(mixed, AFTER);
-  assert.deepEqual(ids(third.granted), ["cheerleader:1"]);
+  assert.deepEqual(third.granted, []);
   assert.deepEqual(third.legacy, []);
+  assert.deepEqual(await earned(mixed), []);
+  // The backfill reads it (here: nothing more before launch), then the
+  // account's next earning call grants the level as ordinary, one line.
+  await db.query("begin");
+  const r = await backfillAccount(db, mixed, { now: NOW });
+  await db.query("commit");
+  assert.deepEqual(r.legacy, []);
+  const next = await settlePassport(db, mixed, { now: NOW });
+  assert.deepEqual(ids(next.granted), ["cheerleader:1"]);
+});
+
+test("history the backfill reads first makes a level legacy that a post-launch fact would otherwise have made a line", async () => {
+  const me = await person();
+  const cheer = (day) =>
+    earnFact(
+      db,
+      me,
+      { stamp_id: "cheerleader", source: `cheer:h-${day}`, event_at: day },
+      { now: NOW },
+    );
+  // Two post-launch cheers and one more: three facts, level 1 reachable,
+  // but it waits for the history.
+  await cheer("2026-09-02T10:00:00Z");
+  await cheer("2026-09-03T10:00:00Z");
+  assert.deepEqual((await cheer(AFTER)).granted, []);
+  // The backfill finds three cheers from before launch.
+  await db.query("begin");
+  const r = await backfillAccount(db, me, {
+    now: NOW,
+    cheers: [
+      { source: "cheer:h-old-1", event_at: "2026-08-03T10:00:00Z" },
+      { source: "cheer:h-old-2", event_at: "2026-08-04T10:00:00Z" },
+      { source: "cheer:h-old-3", event_at: "2026-08-05T10:00:00Z" },
+    ],
+  });
+  await db.query("commit");
+  assert.deepEqual(ids(r.legacy), ["cheerleader:1"]);
+  // Nothing old is ever a line; the next call has nothing new to grant
+  // (six facts: still level 1).
+  assert.deepEqual((await settlePassport(db, me, { now: NOW })).granted, []);
+  assert.deepEqual(
+    (await earned(me)).map((e) => [e.stamp_id, e.level, e.legacy_before]),
+    [["cheerleader", 1, "2026-09-01"]],
+  );
 });
 
 test("an account made after launch: the backfill skips it and its grants are ordinary", async () => {

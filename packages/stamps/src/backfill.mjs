@@ -257,6 +257,14 @@ export async function backfillAccount(db, accountId, { now, cheers = [] }) {
         line,
       })
     : { legacy: [] };
+  // The account's ladder history before launch is read: its ordinary
+  // ladder grants stop waiting (0273), from its next earning call on.
+  await tx.query(
+    `update account_passport
+        set legacy_history_at = coalesce(legacy_history_at, $2::timestamptz)
+      where account_id = $1::uuid`,
+    [accountId, new Date(now).toISOString()],
+  );
   const legacy = [
     ...told.legacy,
     ...cheered.legacy,

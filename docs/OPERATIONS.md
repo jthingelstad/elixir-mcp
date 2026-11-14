@@ -705,8 +705,12 @@ keeps, highlights and cheers on other people's items from before launch.
 
 Order:
 
-1. Deploy `main` with 0272 (the normal `deploy.mjs`). Nothing else is
-   needed for the bell to stay quiet.
+1. Deploy `main` with 0272 and 0273 (the normal `deploy.mjs`). Nothing
+   else is needed for the bell to stay quiet, but until the backfill has
+   read an account made before launch, its ladder Stamps (Played
+   Together, Cheerleader, Storyteller) wait: a level that is not legacy
+   is granted on the account's next earning call after the backfill
+   (0273). Run the backfill soon after the deploy.
 2. After the deploy, never beside one, a dry run (it takes the lock: it
    writes each account and rolls back):
    `npm run op -- '{"passport_backfill": {}}'`.
