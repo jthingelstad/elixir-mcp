@@ -1,6 +1,6 @@
 # Passport design preview
 
-**Design only, 2026-11-14.** Real earning, storage and routes are not built.
+**Design, 2026-11-14.** Storage and the two passport reads are built (`packages/stamps`, #1015); real earning and the pages are not.
 Start with [product direction](../../product/stamps.md), then the
 [build handoff](../../plans/stamps-build.md). The [Claude prompt](../../plans/claude-stamps-handoff.md)
 starts the implementation session. Deployment is on hold.

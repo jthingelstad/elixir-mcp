@@ -1,8 +1,11 @@
 # Passports and Stamps
 
-Design direction, 2026-11-14. **Not built yet.** The clickable sample is
-in [the passport design](../design/passport/README.md); the next session
-starts with [the build handoff](../plans/stamps-build.md).
+Design direction, 2026-11-14. **First slice built, nothing awarded yet.**
+The catalog, eligibility, storage and two signed-in passport reads exist
+(`packages/stamps`, migration 0269); no hook grants a Stamp, no page
+shows one, and Home has no passport yet. The clickable sample is in
+[the passport design](../design/passport/README.md); the build plan is
+[the build handoff](../plans/stamps-build.md).
 
 ## What it is for
 
@@ -153,7 +156,22 @@ removes any stamp-in animation. No bitmap text or modified game art.
 
 ## Implementation boundary
 
-This session provides the specification, catalog, prototype and
-experience review. It does not award real Stamps, create storage or
-expose a new live passport route. The prototype's sample state is not an
-earning engine, privacy boundary or API implementation.
+The design session provided the specification, catalog, prototype and
+experience review. The prototype's sample state is not an earning
+engine, privacy boundary or API implementation.
+
+Built in the first slice (#1015):
+
+- The catalog as code, `@elixir-mcp/stamps/catalog`, pure data the web
+  app can import, checked against the design's `catalog.json`.
+- Pure eligibility: a snapshot and an explicit time in, earned levels,
+  exact progress and the six profile steps out.
+- Storage (0269): the passport, earned Stamps, capped ladder facts and
+  the profile list's latches, removed with the account.
+- `GET /api/me/passport` (the owner's passport, steps and progress) and
+  `GET /api/passports/<id>` (the public projection only), for signed-in
+  people.
+
+Not built yet: the hooks that record facts and grant Stamps after a real
+write, the owner's reconciliation, the passport pages and the profile
+list in the app, the legacy backfill, and any notice or feed item.
