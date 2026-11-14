@@ -202,6 +202,9 @@ export const api = {
   // feedback's answers; opening it moves your seen marker. Yours alone.
   bell: () => request("GET", "/api/me/bell"),
   bellSeen: () => request("PUT", "/api/me/bell/seen"),
+  // Your own battles read now (2026-11-14): the ask, and whether it landed.
+  ownRefresh: () => request("POST", "/api/me/refresh"),
+  ownRefreshStatus: () => request("GET", "/api/me/refresh"),
   homeWeek: (mode) =>
     request(
       "GET",

@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   agoPlain,
@@ -60,6 +66,51 @@ describe("FreshChip", () => {
     const { container } = render(<FreshChip>Why.</FreshChip>);
     expect(container.querySelector(".kit-fresh--never")).toBeTruthy();
     expect(container.textContent).not.toMatch(/ago/);
+  });
+
+  test("the age keeps moving while the page is open", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-11-14T12:00:00Z"));
+      const ts = new Date("2026-11-14T11:58:00Z");
+      const { container } = render(<FreshChip ts={ts}>Why.</FreshChip>);
+      const summary = () => container.querySelector("summary")?.textContent;
+      expect(summary()).toBe("Battle log read 2 min ago");
+      act(() => {
+        vi.advanceTimersByTime(3 * 60_000);
+      });
+      expect(summary()).toBe("Battle log read 5 min ago");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("checking says so, and opening the chip asks", () => {
+    const onOpen = vi.fn();
+    const { container, rerender } = render(
+      <FreshChip seconds={900} checking onOpen={onOpen}>
+        Why.
+      </FreshChip>,
+    );
+    expect(container.querySelector("summary")?.textContent).toBe(
+      "Checking for new battles…",
+    );
+    const details = container.querySelector("details") as HTMLDetailsElement;
+    details.open = true;
+    fireEvent(details, new Event("toggle"));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    // Closing it asks nothing.
+    details.open = false;
+    fireEvent(details, new Event("toggle"));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    rerender(
+      <FreshChip seconds={900} onOpen={onOpen}>
+        Why.
+      </FreshChip>,
+    );
+    expect(container.querySelector("summary")?.textContent).toBe(
+      "Battle log read 15 min ago",
+    );
   });
 
   test("agoPlain reads as a person says it", () => {

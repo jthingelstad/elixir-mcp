@@ -41,6 +41,7 @@ import { Cheers, usePageCheered } from "./Cheers.jsx";
 import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
 import { FollowAll, FollowButton } from "./follow.jsx";
 import { PlayerRecord } from "./PlayerRecord.jsx";
+import { useAskOnOpen } from "../lib/own-refresh.js";
 
 /**
  * A player's page (slice 6, #764): the one page every player name opens
@@ -145,6 +146,8 @@ export function PlayerView({
   // your clan's member, in the last week.
   const cheered = usePageCheered({ player: p.tag });
   const you = page.you;
+  // Your own player page asks for your battles now (lib/own-refresh.js).
+  useAskOnOpen(you.own === true);
   // Your page (You) never draws it. Another of your players does, when it
   // is not the one you act as in that clan: that one's place in Clan is
   // its own page there (Codex on #831).
