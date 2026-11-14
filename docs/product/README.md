@@ -2,14 +2,14 @@
 
 One page per surface of Elixir, between [`VISION.md`](../../VISION.md)
 (the root: Elixir is the missing social layer of Clash Royale) and [`DECISIONS.md`](../DECISIONS.md)
-(one ruling a line). A brief says what a surface is for, who it serves,
+(where things stand, one line each). A brief says what a surface is for, who it serves,
 what it never does, the principles that decide its details, and what is
 still open. The details are derived from it, not asked one at a time.
 
 **The briefs describe the social layer.** They were rewritten on
-2026-11-13 to `VISION.md` and the rulings of 2026-11-11 to 2026-11-13,
-and Jamie ratified the rewrite the same day. Where a brief and VISION
-disagree, VISION wins; a brief a later ruling overtakes carries a dated
+2026-11-13 to `VISION.md` and the direction of 2026-11-11 to 2026-11-13,
+and Jamie read and agreed the rewrite the same day. Where a brief and VISION
+disagree, VISION wins; a brief that later direction overtakes carries a dated
 banner at its top naming what no longer holds, until it is rewritten.
 
 Drop is not here: it is its own product with its own rules. How Drop
@@ -17,20 +17,20 @@ signs a person in with Elixir is the Sign in with Elixir brief.
 
 ## How a brief is written and read
 
-- **Ratified by Jamie.** The line under the title says when Jamie read
-  it and said yes. Until then every paragraph is a draft.
+- **Read by Jamie.** The line under the title says when Jamie read it
+  and agreed. That is agreement as of that day, not a contract: a brief
+  is rewritten when the direction moves.
 - **A brief is intent, never a description of behaviour.** The public
   docs (`apps/site/src/docs/`) stay the one description of what Elixir
   does today; a brief says what the surface is for and the principles
   its details follow. Where the two disagree, the public docs describe
   what runs, the brief says where it goes, and an `engineering` issue
-  holds the gap; the ledger line for an unbuilt ruling names that issue
+  holds the gap; the ledger line for something not yet built names that issue
   (`open #528`).
 - **Provenance, as in DECISIONS.** Jamie's own words are quoted and
   tagged `[Jamie, date]`. A paragraph an agent inferred from the record
-  is tagged `[proposed]` until Jamie ratifies the page, then the tag
-  comes off. A brief says no more than Jamie decided; it never widens a
-  quote.
+  is tagged `[proposed]` until Jamie has read the page, then the tag
+  comes off. A brief does not claim more of Jamie than was said.
 - **A ledger line names its brief.** A DECISIONS line is one sentence
   and its provenance; the reasoning behind it is here. When a line and a
   brief disagree and the brief carries no banner saying so, the

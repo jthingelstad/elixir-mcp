@@ -42,19 +42,21 @@ not a feature to preserve.
   `/docs`, and to agents by `elixir_docs`). They are the only description
   of what the service does; do not write a second one here.
 - **`docs/product/`:** one brief per surface, rewritten to the social
-  layer and ratified by Jamie on 2026-11-13: what it is for, who it
+  layer, read and agreed by Jamie on 2026-11-13: what it is for, who it
   serves, its principles, what it never does, what is open. Intent, not
   behaviour. Where a brief and `VISION.md` disagree, VISION wins, and a
-  dated banner at a brief's top names what a later ruling overtook. Read
+  dated banner at a brief's top names what later direction overtook. Read
   the brief for its principles, list the product questions a change
   raises in its design note, and take the brief's and VISION's direction
   mid-build (tagged `[engineering]`, listed in the pull request) rather
   than asking one question at a time.
-- **`docs/DECISIONS.md`:** what stands, one line each, each tagged with
-  who decided it. A **[Jamie]** line is not re-litigated, and a surface
-  that disagrees with it is the defect; an **[engineering]** line is a
-  default you may propose changing with evidence. A line says no more
-  than its decision: cite it, never restate it wider.
+- **`docs/DECISIONS.md`:** where things stand, one line each, each tagged
+  with where it came from. It is a working record, not a rulebook: a
+  **[Jamie]** line is product direction as of its date, which you build
+  to and update when the direction has moved; an **[engineering]** line
+  is a default you may change with evidence. The few firm lines (privacy,
+  secrets, who is sent what, what is charged) say so. A line says no more
+  than its answer: cite it, never restate it wider.
 - **`docs/ENGINEERING.md`:** the build invariants (rate budget, migrations,
   contract versioning, ingest, packages, deploy).
 - **`docs/notes/`:** one note per change, written in its pull request

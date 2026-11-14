@@ -212,8 +212,9 @@ files).
 ## Standing rules
 
 - The repo is public. Never read `.env` files or secret values.
-- Do not re-litigate a **[Jamie]** DECISIONS line. A tool that disagrees
-  with one is the defect; an **[engineering]** line may be proposed for
-  change with evidence.
+- A **[Jamie]** DECISIONS line is product direction as of its date:
+  build the tool to it, and where the direction has since moved, update
+  the line in the same pull request. An **[engineering]** line may be
+  changed with evidence.
 - Never hand-mirror the tool list into another doc or repo: "It rots"
   (ENGINEERING).
