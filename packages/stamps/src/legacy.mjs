@@ -48,14 +48,19 @@ const iso = (v) => (v ? new Date(v).toISOString() : null);
  * The launch as it applies to one account: { launched_at (ISO), pre
  * (the account was made before launch), settled (its setup Stamps were
  * already settled as of launch), history (the operator's backfill has
- * read its ladder history before launch, 0273) }, or null when there is no launch row
- * (a database before 0272) or no such account.
+ * read its ladder history before launch, 0273, or the account was
+ * approved after launch: until then it could not sign in, so it has no
+ * follows, cheers or highlights from before launch to read) }, or null
+ * when there is no launch row (a database before 0272) or no such
+ * account. Every move from requested to approved sets decided_at
+ * (packages/auth gate.mjs); an account with none waits, the safe side.
  */
 export async function readLaunch(db, accountId) {
   const { rows } = await db.query(
     `select l.launched_at, (a.created_at < l.launched_at) as pre,
             (p.legacy_settled_at is not null) as settled,
-            (p.legacy_history_at is not null) as history
+            (p.legacy_history_at is not null
+              or a.decided_at >= l.launched_at) as history
        from passport_launch l
        join account a on a.account_id = $1::uuid
        left join account_passport p on p.account_id = a.account_id`,
