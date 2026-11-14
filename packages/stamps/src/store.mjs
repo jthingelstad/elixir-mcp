@@ -99,7 +99,7 @@ export async function passportIdOf(db, accountId) {
 
 /** The account's zone if PostgreSQL knows it, else UTC. Read outside any
  *  transaction: a bad zone is an error, which would abort one. */
-async function accountZone(db, accountId) {
+export async function accountZone(db, accountId) {
   const { rows } = await db.query(
     `select timezone from account where account_id = $1::uuid`,
     [accountId],
