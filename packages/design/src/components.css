@@ -8789,8 +8789,10 @@ a.kit-mbattle:hover {
   padding: 0;
   background: none;
 }
+/* The pop starts past the clipped separator strip (Codex on #988): at a
+   row's start the line's clip-path hides the first --clan-sep pixels. */
 .clan-head__line .kit-fresh__pop {
-  left: 0;
+  left: var(--clan-sep);
   right: auto;
   max-width: calc(100vw - 32px);
 }
