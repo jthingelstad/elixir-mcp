@@ -4,9 +4,9 @@
  * Drop's sign-in reads today, unchanged by the cut: a family app's grant
  * with `cr:read account:email` reads who the person is, their players
  * and their address; the account id (userinfo's `sub`) rides beside them
- * since 5.0.0. Every other path, the ones 4.x served included, is the
- * unknown operation's 404 whatever the credential, and an old
- * integration key is no credential at all.
+ * since 5.0.0, and the profile image since 5.1.0. Every other path,
+ * the ones 4.x served included, is the unknown operation's 404 whatever
+ * the credential, and an old integration key is no credential at all.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -23,6 +23,7 @@ import {
   validateAccessToken,
 } from "@elixir-mcp/auth";
 import { myPlayers } from "@elixir-mcp/record/players";
+import { avatarCrop } from "@elixir-mcp/ui/avatar-crops";
 import { ensureSeasonsAround } from "@elixir-mcp/record/season";
 import { makeHandler } from "../src/handler.mjs";
 import { signInApi, secondsLeftInHour } from "../src/sign-in-api.mjs";
@@ -166,6 +167,77 @@ test("Drop's sign-in read: who the person is, their account id, their players an
   })("elixir_my_players", {});
   assert.equal(tool.isError, false, JSON.stringify(tool.body));
   assert.deepEqual(wire(tool.body.players), listed);
+});
+
+test("the profile image: null until chosen, then the card, its art and Elixir's crop (5.1.0)", async () => {
+  const token = await grant(drop, "cr:read");
+  const before = data(await call("GET", "/api/v1/me", token)).data;
+  assert.equal(before.avatar, null);
+  assert.ok("avatar" in before);
+
+  // Mirror carries Elixir's own crop; Knight carries Drop's.
+  await db.query(
+    `insert into card (card_id, name, kind, icon_medium, in_catalog)
+     values (28000006, 'Mirror', 'card', 'https://example.invalid/m.png', true),
+            (26000000, 'Knight', 'card', 'https://example.invalid/k.png', true)
+     on conflict (card_id) do nothing`,
+  );
+  try {
+    for (const [id, name, crop] of [
+      [28000006, "Mirror", avatarCrop(28000006)],
+      [26000000, "Knight", { x: 43, y: 40, scale: 1.39 }],
+    ]) {
+      await db.query(
+        "update account set avatar_card_id = $2, avatar_set_at = now() where account_id = $1",
+        [person, id],
+      );
+      const me = data(await call("GET", "/api/v1/me", token)).data;
+      assert.deepEqual(me.avatar, {
+        card_id: id,
+        name,
+        art_url: `https://elixir.poapkings.com/assets/cards/${id}.png`,
+        crop,
+      });
+    }
+    // Elixir's Mirror row, not the default.
+    assert.notDeepEqual(avatarCrop(28000006), avatarCrop(28000025));
+  } finally {
+    await db.query(
+      "update account set avatar_card_id = null, avatar_set_at = null where account_id = $1",
+      [person],
+    );
+  }
+});
+
+test("the primary player and its game name, as Drop shows it, stored as the game sent it", async () => {
+  const hostile = `<img src=x onerror=alert(1)>"&'`;
+  const { rows } = await db.query(
+    "select name from player where player_tag = $1",
+    [PLAYER],
+  );
+  await db.query("update player set name = $2 where player_tag = $1", [
+    PLAYER,
+    hostile,
+  ]);
+  try {
+    const token = await grant(drop, "cr:read");
+    const me = data(await call("GET", "/api/v1/me", token)).data;
+    const primary = me.players.find((p) => p.is_primary);
+    assert.equal(primary.player_tag, PLAYER);
+    assert.equal(primary.claim_status, "verified");
+    // Unchanged: the client escapes at output, Elixir never rewrites it.
+    assert.equal(primary.name, hostile);
+    assert.deepEqual(me.principal.subject, {
+      type: "player",
+      tag: PLAYER,
+      name: hostile,
+    });
+  } finally {
+    await db.query("update player set name = $2 where player_tag = $1", [
+      PLAYER,
+      rows[0].name,
+    ]);
+  }
 });
 
 test("the address only for a family app holding account:email", async () => {

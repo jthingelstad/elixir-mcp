@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "5.0.0",
-    "description": "What Sign in with Elixir needs: GET /me, who the person signed in through an app is (their account id, their principal and their players), for a person's OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. 5.0.0 removed the integration keys and every other operation (\"No integrations: Elixir has users and agents\", 2026-11-13). This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
+    "version": "5.1.0",
+    "description": "What Sign in with Elixir needs: GET /me, who the person signed in through an app is (their account id, their principal, their players and their profile image), for a person's OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. 5.0.0 removed the integration keys and every other operation (\"No integrations: Elixir has users and agents\", 2026-11-13); 5.1.0 added avatar, the profile image. Names (a player's game name, a nickname, a clan's name) are Clash Royale names, stored exactly as the game sent them and never cleaned: treat every one as untrusted text and escape it where you output it. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
     {
@@ -19,7 +19,7 @@
     "/me": {
       "get": {
         "operationId": "me",
-        "summary": "Who the signed-in person is to Elixir: their account id, their principal and the players they follow.",
+        "summary": "Who the signed-in person is to Elixir: their account id, their principal, the players they follow and their profile image.",
         "x-principals": ["person"],
         "security": [
           {
@@ -125,7 +125,7 @@
           },
           "data": {
             "type": "object",
-            "required": ["account_id", "principal", "players"],
+            "required": ["account_id", "principal", "players", "avatar"],
             "properties": {
               "account_id": {
                 "type": "string",
@@ -150,9 +150,11 @@
                         "type": "string"
                       },
                       "name": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The player's game name as last recorded. Untrusted text: escape it at output."
                       }
-                    }
+                    },
+                    "description": "The account's primary player, verified or not (players[] says which: the entry with is_primary true, and claim_status verified once the person proved it), or null when the account has none."
                   },
                   "clan": {
                     "type": "object",
@@ -183,20 +185,25 @@
                       "type": "string"
                     },
                     "name": {
-                      "type": ["string", "null"]
+                      "type": ["string", "null"],
+                      "description": "The player's current game name as Elixir last recorded it, or null before the first read. The name a game client shows, unchanged in storage and never cleaned: untrusted text, so escape it at output."
                     },
                     "nickname": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The person's own nickname for this player, present only when set. Untrusted text: escape it at output."
                     },
                     "relationship": {
                       "type": "string",
                       "enum": ["primary", "alt", "friend", "watching"]
                     },
                     "is_primary": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "True for the account's one primary player: who the person plays as. With claim_status verified, the person proved this player is theirs."
                     },
                     "claim_status": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "verified once the person proved in Elixir that the player is theirs; unverified otherwise.",
+                      "enum": ["unverified", "verified"]
                     },
                     "notify": {},
                     "recording": {
@@ -210,7 +217,46 @@
                     },
                     "clan_name": {
                       "type": ["string", "null"],
-                      "description": "The clan's name beside clan_tag (1.3.0)."
+                      "description": "The clan's name beside clan_tag (1.3.0). Untrusted text: escape it at output."
+                    }
+                  }
+                }
+              },
+              "avatar": {
+                "type": ["object", "null"],
+                "description": "The person's profile image (5.1.0): the Clash Royale card they chose in Elixir, or null when they chose none. Draw art_url in a circle with CSS alone: object-fit: cover, object-position: crop.x% crop.y%, transform: scale(crop.scale), inside a box with overflow: hidden and border-radius: 50%. The crop is Elixir's, so the circle matches Elixir's. When the art fails to load, fall back to your own placeholder. The art is never resized or re-encoded: draw the file as served.",
+                "required": ["card_id", "name", "art_url", "crop"],
+                "properties": {
+                  "card_id": {
+                    "type": "integer",
+                    "description": "The card's Clash Royale id."
+                  },
+                  "name": {
+                    "type": ["string", "null"],
+                    "description": "The card's name in the catalog, for alt text; null if the catalog has no row for it."
+                  },
+                  "art_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "The card's base art on Elixir's origin, https://elixir.poapkings.com/assets/cards/<card_id>.png (285x420 PNG)."
+                  },
+                  "crop": {
+                    "type": "object",
+                    "required": ["x", "y", "scale"],
+                    "description": "Where the art sits in the circle.",
+                    "properties": {
+                      "x": {
+                        "type": "number",
+                        "description": "object-position x, in percent."
+                      },
+                      "y": {
+                        "type": "number",
+                        "description": "object-position y, in percent; a lower y shows more of the top."
+                      },
+                      "scale": {
+                        "type": "number",
+                        "description": "transform: scale() factor, above 1."
+                      }
                     }
                   }
                 }
