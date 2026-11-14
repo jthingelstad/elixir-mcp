@@ -16,6 +16,7 @@ import { useMe } from "../App.jsx";
 import { STATS, statsPlayers } from "../stats/stats.js";
 import { ADMIN, SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
+import { PASSPORT } from "../lib/passport.js";
 import { usePlayerPage } from "../lib/queries.js";
 import { useSignOut } from "../shell/sign-out.js";
 import { VerifyPlayer } from "../components/VerifyPlayer.jsx";
@@ -168,6 +169,11 @@ function YouAccount({ me, primary }) {
       ) : null}
       <Panel title="Your account" titleAs="h2">
         <Rows>
+          <Row
+            href={PASSPORT}
+            title="Your passport"
+            detail="Your Stamps, and how to earn the rest."
+          />
           <Row
             href={`${SETTINGS}/profile`}
             title="Settings"
