@@ -105,6 +105,16 @@ share instead, change `REFRESH_DAY` to the live quota's bucket. [engineering]
 - Home's stored week is rebuilt on a landed read rather than its 15
   minute freshness being shortened for everyone.
 
+## After review (#1022's Codex findings)
+
+- A read already on its way is handed to the lane rather than answered
+  past it, so a fetch-only `live_fetch` job becomes a recording one and a
+  queued bulk job moves to the live lane, for nothing (a join never
+  mints).
+- A `fresh` answer now asks the follow-up read once before the app reads
+  again, so a read that landed after Home's stored week was built wakes
+  that week's rebuild, with one short wait while it catches up.
+
 ## Not built
 
 Refreshing the people you follow. Each followed player costs about 21
