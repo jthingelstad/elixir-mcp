@@ -36,7 +36,7 @@ export function FollowClan({ clanTag, clanName = null }) {
           ask={ask}
           label="Follow everyone"
           title={`Follow everyone in ${clanName ?? clanTag}?`}
-          className="btn btn--sm btn--gold"
+          className="btn btn--sm btn--follow"
         />
       )}
       {refused ? (

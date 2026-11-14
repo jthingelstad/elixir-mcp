@@ -157,9 +157,8 @@ function AccountEvents({ limit, title, sub }) {
           </ErrorState>
         </div>
       ) : events && shown.length === 0 ? (
-        <div className="st-inset">
-          <Empty>Nothing of this kind yet.</Empty>
-        </div>
+        // The empty line sits on the list's own edge, not inset twice.
+        <Empty>Nothing of this kind yet.</Empty>
       ) : (
         <Rows>
           {shown.map((e) => (

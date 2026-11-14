@@ -242,7 +242,7 @@ export function PlayerView({
             tag={p.tag}
           />
         ) : shown === "highlights" ? (
-          <Highlights items={page.highlights} cheered={cheered} />
+          <Highlights items={page.highlights} cheered={cheered} own={you.own} />
         ) : shown === "moments" ? (
           <Moments
             items={page.moments}
@@ -440,10 +440,23 @@ function ItemList({ items, empty, more = 0, cheered, tag }) {
 
 /** The Highlights tab (canvas .hcard): each the player's pick, with their
  *  words, its cheers and its battle. */
-function Highlights({ items, cheered }) {
+function Highlights({ items, cheered, own = false }) {
   const { when, feedWhen } = useClock();
+  // Your own empty tab says how one is made (round two, 2026-11-13).
   if (items.length === 0)
-    return <p className="kit-week__quiet">No highlights posted yet.</p>;
+    return (
+      <p className="kit-week__quiet">
+        No highlights posted yet.
+        {own ? (
+          <>
+            {" "}
+            <a href="/docs/battles#highlight-a-battle">
+              How to highlight a battle ›
+            </a>
+          </>
+        ) : null}
+      </p>
+    );
   return items.map((it, i) => {
     const battle = battlePath(it);
     const withCheers = cheered?.of(it);

@@ -557,10 +557,11 @@ export function SignIn({
             </fieldset>
           </>
         )}
-        <label className="hit mb-2 flex items-start gap-2 text-[13px] text-ink-body">
+        {/* The whole row is the box's tap, 44px tall (2026-11-13). */}
+        <label className="mb-1 flex min-h-[44px] items-center gap-2 text-[13px] text-ink-body">
           <input
             type="checkbox"
-            className="mt-[3px] shrink-0"
+            className="shrink-0"
             checked={productNews}
             aria-describedby="signin-product-news-note"
             onChange={(e) => {

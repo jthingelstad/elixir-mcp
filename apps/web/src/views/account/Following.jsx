@@ -191,7 +191,7 @@ function AddPlayer({ refresh, navigate, input, first }) {
             </select>
           </label>
         )}
-        <button className="btn btn--sm" disabled={busy}>
+        <button className="btn btn--sm btn--follow" disabled={busy}>
           {busy ? "Adding…" : "Follow"}
         </button>
         {first ? null : <FollowCost tag={tag} />}
@@ -361,7 +361,7 @@ function Clans({ me, query }) {
                 </option>
               </select>
             </label>
-            <button className="btn btn--sm">Follow</button>
+            <button className="btn btn--sm btn--follow">Follow</button>
             <Note>
               The clan only records its roster, who joins and who goes, and its
               races. Every member also records each member&rsquo;s battles and

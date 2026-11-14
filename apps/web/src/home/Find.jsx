@@ -188,7 +188,7 @@ function FollowForm() {
             autoComplete="off"
             spellCheck="false"
           />
-          <button type="submit" className="btn btn--primary" disabled={busy}>
+          <button type="submit" className="btn btn--follow" disabled={busy}>
             Follow
           </button>
         </div>

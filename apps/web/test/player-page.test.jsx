@@ -594,3 +594,25 @@ test(
     expect(screen.getByText("7,600")).toBeTruthy();
   },
 );
+
+test(
+  "an empty Highlights tab says how to post one on your own page only",
+  { timeout: 20000 },
+  async () => {
+    page = { ...PAGE, you: { ...PAGE.you, own: true }, highlights: [] };
+    window.history.pushState({}, "", "/home/player/0VJ2QV?tab=highlights");
+    const { unmount } = render(<App />);
+    await screen.findByText(/No highlights posted yet/);
+    expect(
+      screen
+        .getByRole("link", { name: /How to highlight a battle/ })
+        .getAttribute("href"),
+    ).toBe("/docs/battles#highlight-a-battle");
+    unmount();
+    page = { ...PAGE, highlights: [] };
+    window.history.pushState({}, "", "/home/player/0VJ2QV?tab=highlights");
+    render(<App />);
+    await screen.findByText(/No highlights posted yet/);
+    expect(screen.queryByRole("link", { name: /How to highlight/ })).toBeNull();
+  },
+);

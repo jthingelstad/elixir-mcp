@@ -255,7 +255,7 @@ export function FollowAll({
   onDone,
   plan: known = null,
   confirm = "Follow everyone",
-  className = "btn btn--sm",
+  className = "btn btn--sm btn--follow",
 }) {
   const plan = useFollowPlan(ask, !known);
   const invalidate = useInvalidate();
