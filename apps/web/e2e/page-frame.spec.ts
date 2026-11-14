@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { mockApi, signedIn } from "./fixtures.ts";
-import { explore } from "./ladder-fixture.ts";
+import { explore } from "./stats-fixture.ts";
 import { homeApi } from "./home-fixture.ts";
 import { mockApi as clanApi, signedIn as clanIn } from "./clan/fixtures.ts";
 
@@ -27,7 +27,7 @@ for (const width of [1440, 1100, 820]) {
   test.describe(`one page frame at ${width}`, () => {
     test.use({ viewport: { width, height: 900 } });
 
-    test("Home, Ladder and Clan keep the bar's edge", async ({ page }) => {
+    test("Home, Stats and Clan keep the bar's edge", async ({ page }) => {
       await mockApi(page, homeApi());
       await page.goto("/home");
       await expect(page.locator(".kit-shell__main h1")).toBeVisible();
@@ -36,8 +36,8 @@ for (const width of [1440, 1100, 820]) {
 
       await mockApi(page, signedIn({ "POST /api/explore": explore() }));
       await page.goto("/home/you/stats");
-      await expect(page.locator(".ladder-page")).toBeVisible();
-      await sameAsBar(page, ".ladder-page");
+      await expect(page.locator(".stats-page")).toBeVisible();
+      await sameAsBar(page, ".stats-page");
       await page.unrouteAll();
 
       await clanApi(page, clanIn());
@@ -140,12 +140,12 @@ test.describe("at computer width", () => {
     expect(Math.abs(fill / whole - 0.5)).toBeLessThan(0.02);
   });
 
-  test("Ladder's scope stays on one line, and its names are only names", async ({
+  test("Stats' scope stays on one line, and its names are only names", async ({
     page,
   }) => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
     await page.goto("/home/you/stats");
-    const bar = page.locator(".ladder-scope");
+    const bar = page.locator(".stats-scope");
     await expect(bar).toBeVisible();
     const select = page.getByLabel("Season", { exact: true });
     const chip = bar.getByRole("button", { name: "Trophy Road" });
@@ -169,7 +169,7 @@ test("@narrow mode chips scroll on one line, and the edge says there are more", 
 }) => {
   await mockApi(page, signedIn({ "POST /api/explore": explore() }));
   await page.goto("/home/you/stats");
-  const row = page.locator(".ladder-scope__modes");
+  const row = page.locator(".stats-scope__modes");
   await expect(row).toBeVisible();
   const ys = await row
     .locator(".kit-chip")

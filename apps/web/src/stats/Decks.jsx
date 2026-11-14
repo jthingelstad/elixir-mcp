@@ -1,13 +1,13 @@
 import { CardArt, DeckGrid, Empty, Panel, useClock } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
-import { OTHER, fmt, modeLabel, pct, readModes, shortDay } from "./ladder.js";
+import { OTHER, fmt, modeLabel, pct, readModes, shortDay } from "./stats.js";
 import {
   deckLine,
   dayRange,
   formNames,
   formSwaps,
   nameList,
-} from "./ladder-decks.js";
+} from "./stats-decks.js";
 import { useToolReads } from "../lib/queries.js";
 import { Loading, ReadError, Record } from "./common.jsx";
 import { useWhose } from "./whose.js";
@@ -90,10 +90,10 @@ function ModeDecks({ mode, read, base }) {
         <Panel
           title={`${fmt(decks.length)} ${decks.length === 1 ? "deck" : "decks"} in ${label}`}
           titleId={id}
-          action={<span className="ladder-aside">Most played first</span>}
+          action={<span className="stats-aside">Most played first</span>}
           aria-labelledby={id}
         >
-          <ul className="ladder-decks">
+          <ul className="stats-decks">
             {shown.map((d, i) => (
               <DeckRow
                 key={d.deck_hash}
@@ -145,14 +145,14 @@ function DeckRow({ row, full, pending, zone }) {
   const name = row.archetype_label ?? "Unnamed deck";
   const forms = formNames(full ?? row);
   return (
-    <li className="ladder-deckrow">
-      <p className="ladder-deckrow__name">{name}</p>
-      <p className="ladder-deckrow__rec">
+    <li className="stats-deckrow">
+      <p className="stats-deckrow__name">{name}</p>
+      <p className="stats-deckrow__rec">
         {fmt(row.battles)} {row.battles === 1 ? "battle" : "battles"} ·{" "}
         <Record wins={row.wins} losses={row.losses} draws={row.draws ?? 0} />
         {row.win_rate != null ? ` · ${pct(row.win_rate)} won` : ""}
       </p>
-      <div className="ladder-deckrow__cards">
+      <div className="stats-deckrow__cards">
         {full?.cards?.length ? (
           <DeckGrid
             cards={full.cards}
@@ -164,11 +164,11 @@ function DeckRow({ row, full, pending, zone }) {
         ) : pending ? (
           <Loading what="the cards" />
         ) : (
-          <p className="ladder-deckrow__line">{row.card_names}</p>
+          <p className="stats-deckrow__line">{row.card_names}</p>
         )}
       </div>
-      {forms ? <p className="ladder-deckrow__line">{forms}</p> : null}
-      <p className="ladder-deckrow__line">
+      {forms ? <p className="stats-deckrow__line">{forms}</p> : null}
+      <p className="stats-deckrow__line">
         {deckLine(row, full, zone, whose.own)}
       </p>
     </li>
@@ -179,13 +179,13 @@ function DeckRow({ row, full, pending, zone }) {
 function DuelRounds({ duels }) {
   return (
     <Panel title="Duel rounds">
-      <ul className="ladder-rows">
+      <ul className="stats-rows">
         {duels.map((d) => (
-          <li key={`${d.deck_hash}|${d.mode}`} className="ladder-duel">
-            <span className="ladder-duel__name">
+          <li key={`${d.deck_hash}|${d.mode}`} className="stats-duel">
+            <span className="stats-duel__name">
               {d.archetype_label ?? d.card_names ?? "Unnamed deck"}
             </span>
-            <span className="ladder-duel__rec">
+            <span className="stats-duel__rec">
               {fmt(d.rounds)} {d.rounds === 1 ? "round" : "rounds"} ·{" "}
               <Record wins={d.wins} losses={d.losses} />
             </span>
@@ -217,10 +217,10 @@ function SwapPanel({ swap, mode, zone }) {
   const { before, after, unchanged, kind } = swap;
   const { whenDay } = useClock();
   const side = (deck, when, cards, caption) => (
-    <div className="ladder-swap__side">
-      <p className="ladder-swap__when">{when}</p>
+    <div className="stats-swap__side">
+      <p className="stats-swap__when">{when}</p>
       {cards.length ? (
-        <ul className="ladder-swap__cards">
+        <ul className="stats-swap__cards">
           {cards.map((c) => (
             <li key={c.id}>
               <CardArt card={c} size={44} showLevel={false} />
@@ -228,9 +228,9 @@ function SwapPanel({ swap, mode, zone }) {
           ))}
         </ul>
       ) : null}
-      <p className="ladder-swap__what">{caption}</p>
+      <p className="stats-swap__what">{caption}</p>
       {deck ? (
-        <p className="ladder-swap__record">
+        <p className="stats-swap__record">
           <Record
             wins={deck.wins}
             losses={deck.losses}
@@ -246,11 +246,11 @@ function SwapPanel({ swap, mode, zone }) {
     <Panel
       title={`The ${kind === "form" ? "form" : kind} swap on ${whenDay(swap.at)}`}
       titleId={id}
-      action={<span className="ladder-aside">{modeLabel(mode)} only</span>}
-      className="ladder-swap"
+      action={<span className="stats-aside">{modeLabel(mode)} only</span>}
+      className="stats-swap"
       aria-labelledby={id}
     >
-      <div className="panel__body ladder-swap__body">
+      <div className="panel__body stats-swap__body">
         {side(
           before.row,
           `Before, ${dayRange(before.row.first_used, before.row.last_used, zone)}`,

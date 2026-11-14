@@ -37,7 +37,7 @@ export function HomePage() {
         <TodayError busy={query.isFetching} onRetry={() => query.refetch()} />
       </>
     );
-  // "Add your player" from Ladder or Clan, on an account that follows someone
+  // "Add your player" from Stats or Clan, on an account that follows someone
   // but has no player of its own: Home's steps are over, Settings adds one.
   if (player && hash === "add-player")
     return <Navigate to="/settings/players" hash="add-player-tag" replace />;

@@ -18,7 +18,7 @@ import {
   readModes,
   seasonWords,
   signed,
-} from "./ladder.js";
+} from "./stats.js";
 import {
   ORDERS,
   cameBack,
@@ -28,7 +28,7 @@ import {
   opponentName,
   pickOrder,
   times,
-} from "./ladder-cards.js";
+} from "./stats-cards.js";
 import { useToolRead } from "../lib/queries.js";
 import { playerHref } from "../lib/player.js";
 import { useNav } from "../App.jsx";
@@ -112,14 +112,14 @@ function ModeCards({ player, mode, chip, modeReady, season, order, onOrder }) {
   return (
     <>
       <YourCards body={mine.data} label={label} other={chip === OTHER.key} />
-      <div className="ladder-order">
+      <div className="stats-order">
         <Chips
           label={`Order what ${whose.you} faced`}
           options={ORDERS}
           value={order}
           onChange={onOrder}
         />
-        <span className="ladder-order__hint">
+        <span className="stats-order__hint">
           {order === "losses"
             ? "Most battles lost first, then most battles."
             : "Most battles first."}{" "}
@@ -150,14 +150,14 @@ const gapText = (gap) => (gap == null ? "—" : signed(Number(gap), 2));
 /** A card's cell: its art, never a link, and its name, the one link. */
 function CardCell({ row }) {
   return (
-    <span className="ladder-card">
+    <span className="stats-card">
       <CardArt card={row.card} size={36} showLevel={false} />
       {row.href ? (
-        <a className="ladder-card__name" href={row.href}>
+        <a className="stats-card__name" href={row.href}>
           {row.label}
         </a>
       ) : (
-        <span className="ladder-card__name">{row.label}</span>
+        <span className="stats-card__name">{row.label}</span>
       )}
     </span>
   );
@@ -196,7 +196,7 @@ function YourCards({ body, label, other }) {
       title={other ? `${whose.Your} cards in ${label}` : `${whose.Your} cards`}
       titleId={id}
       action={
-        <span className="ladder-aside">
+        <span className="stats-aside">
           {fmt(rows.length)} {rows.length === 1 ? "row" : "rows"},{" "}
           {fmt(distinctCards(rows))}{" "}
           {distinctCards(rows) === 1 ? "card" : "cards"}
@@ -217,7 +217,7 @@ function YourCards({ body, label, other }) {
           ]}
           rows={shown}
           rowKey={(r) => r.key}
-          className="ladder-cards"
+          className="stats-cards"
         />
       ) : (
         <div className="panel__body">
@@ -251,7 +251,7 @@ function TheirCards({ read, opponents, mode, order }) {
       title={`Across the table from ${whose.them}`}
       titleId={id}
       action={
-        <span className="ladder-aside">
+        <span className="stats-aside">
           {[
             battles != null
               ? `${fmt(battles)} ${battles === 1 ? "battle" : "battles"}`
@@ -290,7 +290,7 @@ function TheirCards({ read, opponents, mode, order }) {
           ]}
           rows={shown}
           rowKey={(r) => r.key}
-          className="ladder-cards"
+          className="stats-cards"
         />
       ) : (
         <div className="panel__body">
@@ -334,7 +334,7 @@ function Opponents({ read, label, when, order }) {
           <ReadError query={read} what={`${whose.your} opponents`} />
         ) : (
           <>
-            <p className="ladder-opponents__lede">
+            <p className="stats-opponents__lede">
               {fmt(body.distinct_opponents)} different{" "}
               {body.distinct_opponents === 1 ? "opponent" : "opponents"} on{" "}
               {label} {when}.{" "}
@@ -343,7 +343,7 @@ function Opponents({ read, label, when, order }) {
                 : "None came back."}
             </p>
             {repeats.length ? (
-              <ul className="ladder-opponents">
+              <ul className="stats-opponents">
                 {repeats.map((o) => (
                   <li key={o.player_tag}>
                     <Link to={playerHref(o.player_tag)}>{opponentName(o)}</Link>
@@ -352,14 +352,14 @@ function Opponents({ read, label, when, order }) {
                         {" "}
                         <Tag
                           tag={o.player_tag}
-                          className="ladder-opponents__tag"
+                          className="stats-opponents__tag"
                         />
                       </>
                     ) : null}
                     , {times(o.battles)},{" "}
                     <Record wins={o.wins} losses={o.losses} draws={o.draws} />
                     {o.mean_level_gap != null ? (
-                      <span className="ladder-opponents__gap">
+                      <span className="stats-opponents__gap">
                         {" "}
                         · level gap {gapText(o.mean_level_gap)}
                       </span>

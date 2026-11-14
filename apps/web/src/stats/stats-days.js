@@ -1,12 +1,12 @@
 /**
- * Ladder's calendar (on Season) and battle list (on Battles): the season's
+ * Stats' calendar (on Season) and battle list (on Battles): the season's
  * battles as battles_query returned them, laid on the account's calendar and
  * chained into sittings. Counting is all this does: a day holds the battles
  * that started on it in the account's zone, each mode keeps its own count and
  * its own record, and a sitting is a run of battles with no gap longer than
  * half an hour. Nothing here rates a day or a sitting.
  */
-import { clockTime, fmt, modeLabel } from "./ladder.js";
+import { clockTime, fmt, modeLabel } from "./stats.js";
 import { battleCapture } from "@elixir-mcp/record/capture-state";
 
 /** Every mode group battles_query can name (contracts MODE_GROUPS), in

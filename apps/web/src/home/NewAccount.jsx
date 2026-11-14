@@ -17,7 +17,7 @@ import { clanStepLine } from "./logic.js";
  * the same read going: `first` is the newest answer, `landed` whether the
  * first read is in (the player's own battle log, not a battle on record).
  */
-/** Where Ladder's and Clan's "Add your player" land: Home's first step. */
+/** Where Stats' and Clan's "Add your player" land: Home's first step. */
 const ADD_PLAYER_HASH = "#add-player";
 
 export function NewAccount({
@@ -252,7 +252,7 @@ function AddPlayer({ onAdded }) {
           autoComplete="off"
           spellCheck="false"
           placeholder="#ABC123"
-          // Ladder and Clan's "Add your player" arrive here, ready to type.
+          // Stats and Clan's "Add your player" arrive here, ready to type.
           ref={(el) => {
             if (el && window.location.hash === ADD_PLAYER_HASH) el.focus();
           }}

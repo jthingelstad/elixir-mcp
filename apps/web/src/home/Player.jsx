@@ -25,7 +25,7 @@ import {
 import { useNav } from "../App.jsx";
 import { trackEvent } from "../analytics.js";
 import { api } from "../api.js";
-import { ladderHref } from "../ladder/ladder.js";
+import { statsHref } from "../stats/stats.js";
 import { followMeHref, playerHref } from "../lib/player.js";
 import {
   useInvalidate,
@@ -49,7 +49,7 @@ import { PlayerRecord } from "./PlayerRecord.jsx";
  * What it shows is DECISIONS "What is public about an account" and no more:
  * the player's game record, and for a player an account verified, that
  * account's follows, followers and badges. Game names and tags only: never a
- * nickname (yours included), a Discord username or an email. Ladder stays
+ * nickname (yours included), a Discord username or an email. Stats stays
  * reachable from here, as a link. Clan's member page folded in as the Clan
  * tab (2026-11-12), for a viewer with a player in their clan only.
  */
@@ -203,14 +203,14 @@ export function PlayerView({
           )}
           {you.own && !self ? (
             <Link
-              to={ladderHref("season", { player: p.tag })}
+              to={statsHref("season", { player: p.tag })}
               className="btn btn--sm"
             >
               Your stats
             </Link>
           ) : you.following && !you.own ? (
             <Link
-              to={ladderHref("season", { player: p.tag })}
+              to={statsHref("season", { player: p.tag })}
               className="btn btn--sm"
             >
               Their stats

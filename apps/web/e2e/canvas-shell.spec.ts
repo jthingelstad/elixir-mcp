@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, mockApi, SIGNED_OUT } from "./fixtures.ts";
 import { homeApi } from "./home-fixture.ts";
-import { explore } from "./ladder-fixture.ts";
+import { explore } from "./stats-fixture.ts";
 
 /**
  * The canvas's remaining shell pieces (2026-11-12): the signed-out shell

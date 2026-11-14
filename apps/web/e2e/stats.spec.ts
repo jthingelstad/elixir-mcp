@@ -7,7 +7,7 @@ import {
   summary,
   tally,
   type ToolCall,
-} from "./ladder-fixture.ts";
+} from "./stats-fixture.ts";
 
 /** Nothing serious or critical, on every page a journey lands on. */
 async function accessible(page: Page, name: string) {
@@ -40,7 +40,7 @@ const FRIEND = {
   claim_status: "verified",
 };
 
-test.describe("Ladder signed out", () => {
+test.describe("Stats signed out", () => {
   test("Stats says what it is and offers an account, with no rail", async ({
     page,
   }) => {
@@ -50,7 +50,7 @@ test.describe("Ladder signed out", () => {
       page.getByRole("heading", { name: "Your season, read back" }),
     ).toBeVisible();
     await expect(page.locator(".rail")).toHaveCount(0);
-    // A new account comes back to the Ladder page it was asked from.
+    // A new account comes back to the Stats page it was asked from.
     await expect(
       page.getByRole("link", { name: "Create your account" }),
     ).toHaveAttribute(
@@ -63,13 +63,13 @@ test.describe("Ladder signed out", () => {
     await expect(
       page.getByRole("link", { name: "See a recorded battle" }),
     ).toHaveAttribute("href", /^\/battle\/[0-9a-f]{12}$/);
-    await accessible(page, "ladder invite");
+    await accessible(page, "stats invite");
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
   });
 });
 
-test.describe("Ladder signed in", () => {
+test.describe("Stats signed in", () => {
   for (const mode of ["war", "event"]) {
     test(`a browser-only ${mode} player opens on their recorded mode`, async ({
       page,
@@ -135,10 +135,8 @@ test.describe("Ladder signed in", () => {
 
     // No rail: one player names itself, and the tabs are the pages.
     await expect(page.locator(".rail")).toHaveCount(0);
-    await expect(page.locator(".ladder-scope__one")).toContainText(
-      "King Thing",
-    );
-    await expect(page.locator(".ladder-scope__one")).toContainText(
+    await expect(page.locator(".stats-scope__one")).toContainText("King Thing");
+    await expect(page.locator(".stats-scope__one")).toContainText(
       "#20JJJ2CCRU",
     );
     await expect(
@@ -167,7 +165,7 @@ test.describe("Ladder signed in", () => {
       modes.getByRole("button", { name: "Trophy Road" }),
     ).toHaveAttribute("aria-pressed", "true");
 
-    const tiles = page.locator(".ladder-tile");
+    const tiles = page.locator(".stats-tile");
     await expect(tiles).toHaveCount(4);
     await expect(tiles.nth(0)).toContainText("35");
     await expect(tiles.nth(0)).toContainText("since Mon Sep 7, 5:00 am");
@@ -182,14 +180,14 @@ test.describe("Ladder signed in", () => {
     );
 
     // Week by week, newest first, the clipped weeks marked.
-    const weeks = page.locator(".ladder-wk");
+    const weeks = page.locator(".stats-wk");
     await expect(weeks).toHaveCount(4);
     await expect(weeks.nth(3)).toContainText("Week of Sep 7 (part of a week)");
     await expect(weeks.nth(3)).toContainText("4–6 · 40% won · −6");
     await expect(weeks.nth(2)).toContainText("+29");
 
     // The deck played most in this mode and this season, in real art.
-    const deck = page.locator(".ladder-top");
+    const deck = page.locator(".stats-top");
     await expect(deck).toContainText("Royal Hogs bridge spam");
     await expect(deck).toContainText("20 battles, last played");
     await expect(deck).toContainText("3.75 average elixir.");
@@ -203,7 +201,7 @@ test.describe("Ladder signed in", () => {
       page.getByText("without pooling modes or rating players"),
     ).toBeVisible();
 
-    // Help names Ladder's own page.
+    // Help names Stats' own page.
     await page.getByRole("button", { name: "Help for this page" }).click();
     await expect(
       page.getByRole("dialog").getByRole("link", { name: "Stats" }),
@@ -229,7 +227,7 @@ test.describe("Ladder signed in", () => {
           (c.args.season === 135 && c.args.mode === "ladder"),
       ),
     ).toBe(true);
-    await accessible(page, "ladder season");
+    await accessible(page, "stats season");
   });
 
   test("the week beside the four before it, and the season before and since the deck played most: numbers and counts only", async ({
@@ -305,7 +303,7 @@ test.describe("Ladder signed in", () => {
       await expect(panel).not.toContainText(
         /improv|better|worse|good|bad|great|declin|trend/i,
       );
-    await accessible(page, "ladder form");
+    await accessible(page, "stats form");
   });
 
   test("a form panel under the minimum is not drawn, and a mode without one draws neither", async ({
@@ -343,13 +341,13 @@ test.describe("Ladder signed in", () => {
       .getByRole("button", { name: "War" })
       .click();
     await expect(page).toHaveURL(/\/home\/you\/stats\?mode=war$/);
-    await expect(page.locator(".ladder-tile").nth(3)).toContainText("Crowns");
+    await expect(page.locator(".stats-tile").nth(3)).toContainText("Crowns");
     // Neither the week nor the deck panel: the one form panel is the
     // season's, with no War battle in Season 135 to set beside.
     await expect(
       page.getByRole("region", { name: "This season vs last" }),
     ).toContainText("Elixir recorded no War battles in Season 135");
-    await expect(page.locator(".ladder-form")).toHaveCount(1);
+    await expect(page.locator(".stats-form")).toHaveCount(1);
   });
 
   test("a mode is an address, and a mode with no battles says so", async ({
@@ -368,13 +366,13 @@ test.describe("Ladder signed in", () => {
         name: "No Path of Legends battles this season",
       }),
     ).toBeVisible();
-    await expect(page.locator(".ladder-tile")).toHaveCount(0);
+    await expect(page.locator(".stats-tile")).toHaveCount(0);
     expect(
       calls.some(
         (c) => c.tool === "battles_performance" && c.args.mode === "ranked",
       ),
     ).toBe(true);
-    await accessible(page, "ladder empty mode");
+    await accessible(page, "stats empty mode");
 
     // War moves no trophies: its fourth tile is crowns, and its weeks
     // carry no signed numbers.
@@ -383,8 +381,8 @@ test.describe("Ladder signed in", () => {
       .getByRole("button", { name: "War" })
       .click();
     await expect(page).toHaveURL(/\/home\/you\/stats\?mode=war$/);
-    await expect(page.locator(".ladder-tile").nth(3)).toContainText("Crowns");
-    await expect(page.locator(".ladder-tile").nth(3)).toContainText("61–44");
+    await expect(page.locator(".stats-tile").nth(3)).toContainText("Crowns");
+    await expect(page.locator(".stats-tile").nth(3)).toContainText("61–44");
     await expect(page.getByText("This week:")).toHaveCount(0);
   });
 
@@ -461,7 +459,7 @@ test.describe("Ladder signed in", () => {
       "label",
       "Your main player",
     );
-    await accessible(page, "ladder player list");
+    await accessible(page, "stats player list");
     await select.selectOption("#00GVJ89");
     await expect(page).toHaveURL(
       /\/home\/you\/stats\?player=00GVJ89&mode=war$/,
@@ -581,7 +579,7 @@ test.describe("Ladder signed in", () => {
       await expect(page.getByRole("heading", { name: words })).toBeVisible();
       const select = page.getByLabel("Player", { exact: true });
       await expect(select).toHaveValue("#00GVJ89");
-      await accessible(page, `ladder pending ${state}`);
+      await accessible(page, `stats pending ${state}`);
 
       // The way out keeps the page and the mode, and the main needs no name.
       await select.selectOption("#20JJJ2CCRU");
@@ -641,7 +639,7 @@ test.describe("Ladder signed in", () => {
       .toBeLessThanOrEqual(0);
   });
 
-  test("with no player of your own, Ladder says so and offers the way in", async ({
+  test("with no player of your own, Stats says so and offers the way in", async ({
     page,
   }) => {
     await mockApi(
@@ -658,7 +656,7 @@ test.describe("Ladder signed in", () => {
     await expect(
       page.getByRole("link", { name: "Add your player" }),
     ).toHaveAttribute("href", "/home#add-player");
-    await accessible(page, "ladder no players");
+    await accessible(page, "stats no players");
   });
 
   test("@narrow the scope bar is 44px tall to touch, and nothing scrolls sideways", async ({
@@ -676,7 +674,7 @@ test.describe("Ladder signed in", () => {
       page.getByRole("heading", { level: 1, name: "Season 136" }),
     ).toBeVisible();
     await expect(page.locator(".rail__toggle")).toHaveCount(0);
-    await expect(page.locator(".ladder-wk")).toHaveCount(4);
+    await expect(page.locator(".stats-wk")).toHaveCount(4);
     for (const target of [
       page.getByLabel("Player", { exact: true }),
       page.getByLabel("Season", { exact: true }),
@@ -690,11 +688,11 @@ test.describe("Ladder signed in", () => {
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
-    await accessible(page, "ladder narrow");
+    await accessible(page, "stats narrow");
   });
 });
 
-test.describe("Ladder days and battles", () => {
+test.describe("Stats days and battles", () => {
   // Tuesday, September 29, 4:00 pm Central: the board's "today".
   const TODAY = new Date("2026-09-29T21:00:00Z");
 
@@ -711,24 +709,24 @@ test.describe("Ladder days and battles", () => {
     await expect(panel).toContainText(
       "days with recorded battles, of 23 so far",
     );
-    const days = panel.locator(".ladder-day");
+    const days = panel.locator(".stats-day");
     await expect(days).toHaveCount(28);
     // Another mode's battles are a count on their day, never pooled in.
     const other = days.filter({ hasText: "in other modes" }).first();
-    await expect(other).toHaveClass(/ladder-day--other/);
+    await expect(other).toHaveClass(/stats-day--other/);
     // A day no read covers is unknown; the key lists what the calendar draws.
     await expect(days.nth(0)).toContainText("Unknown");
-    await expect(panel.locator(".ladder-legend")).toContainText(
+    await expect(panel.locator(".stats-legend")).toContainText(
       "Unknown. No read covers this day.",
     );
-    await expect(panel.locator(".ladder-legend")).not.toContainText("Not read");
+    await expect(panel.locator(".stats-legend")).not.toContainText("Not read");
     // Today is the ring, and the days to come say nothing.
     await expect(days.nth(22)).toHaveAttribute("aria-current", "date");
-    await expect(days.nth(23)).toHaveClass(/ladder-day--fut/);
+    await expect(days.nth(23)).toHaveClass(/stats-day--fut/);
     await expect(panel.locator(".panel__foot")).toContainText(
       "Season 136 runs Mon Sep 7, 5:00 am to Mon Oct 5, 5:00 am. Battles after midnight count on the next day.",
     );
-    await accessible(page, "ladder calendar");
+    await accessible(page, "stats calendar");
 
     // War: the same sweep, its own counts, no second read of the season.
     const reads = () => calls.filter((c) => c.tool === "battles_query").length;
@@ -778,11 +776,11 @@ test.describe("Ladder days and battles", () => {
       }),
     );
     await page.goto("/home/you/stats");
-    const days = page.locator(".ladder-day");
+    const days = page.locator(".stats-day");
     await expect(days.nth(6)).toContainText("Sep 13");
     await expect(days.nth(6)).toContainText("No battles");
-    await expect(days.nth(6)).toHaveClass(/ladder-day--quiet/);
-    await expect(page.locator(".ladder-legend")).toContainText(
+    await expect(days.nth(6)).toHaveClass(/stats-day--quiet/);
+    await expect(page.locator(".stats-legend")).toContainText(
       "No battles: the whole day was read.",
     );
     await expect(
@@ -816,7 +814,7 @@ test.describe("Ladder days and battles", () => {
     );
     await page.goto("/home/you/stats");
     await expect(page.getByText("Coverage could not be checked")).toBeVisible();
-    await expect(page.locator(".ladder-day--quiet")).toHaveCount(0);
+    await expect(page.locator(".stats-day--quiet")).toHaveCount(0);
   });
 
   test("Battles: by day and by sitting, in this chip's mode, each battle opening on its page", async ({
@@ -841,32 +839,32 @@ test.describe("Ladder days and battles", () => {
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Mon Sep 28" }) });
     // One sitting has no row of its own: the day's head says it.
-    await expect(day.locator(".ladder-sit")).toHaveCount(0);
-    await expect(day.locator(".ladder-aside")).toHaveText(
+    await expect(day.locator(".stats-sit")).toHaveCount(0);
+    await expect(day.locator(".stats-aside")).toHaveText(
       "0–3 · 12,530 to 12,500 · 10:53 – 11:09 pm",
     );
     // The result leads, by the time, in words and Record's colour; the floor
     // loss shows no trophies.
-    const rows = day.locator(".ladder-row");
+    const rows = day.locator(".stats-row");
     await expect(rows).toHaveCount(3);
     await expect(rows.first().locator("> span").nth(0)).toHaveText("11:09 pm");
     await expect(rows.first().locator("> span").nth(1)).toHaveText("Lost 0–1");
-    await expect(rows.first().locator(".ladder-row__res")).toHaveClass(
-      /ladder-row__res--loss/,
+    await expect(rows.first().locator(".stats-row__res")).toHaveClass(
+      /stats-row__res--loss/,
     );
-    await expect(rows.first().locator(".ladder-row__tr")).toHaveText("");
-    await expect(rows.nth(2).locator(".ladder-row__tr")).toHaveText("−30");
+    await expect(rows.first().locator(".stats-row__tr")).toHaveText("");
+    await expect(rows.nth(2).locator(".stats-row__tr")).toHaveText("−30");
     // Links come from the tool's url, never built here.
     await expect(rows.first().getByRole("link")).toHaveAttribute(
       "href",
       /^\/battle\/[0-9a-f]{12}$/,
     );
-    await accessible(page, "ladder battles");
+    await accessible(page, "stats battles");
 
-    const listed = await page.locator(".ladder-row").count();
+    const listed = await page.locator(".stats-row").count();
     await page.getByRole("button", { name: "Show older days" }).click();
     await expect
-      .poll(() => page.locator(".ladder-row").count())
+      .poll(() => page.locator(".stats-row").count())
       .toBeGreaterThan(listed);
 
     // Every page of this mode's season was read, compact, as the reader.
@@ -892,7 +890,7 @@ test.describe("Ladder days and battles", () => {
       signedIn({ "POST /api/explore": explore(calls, { fits: 23 }) }),
     );
     await page.goto("/home/you/stats");
-    await expect(page.locator(".ladder-day")).toHaveCount(28);
+    await expect(page.locator(".stats-day")).toHaveCount(28);
     // One refusal, then the season from the top at the limit that fits.
     const reads = calls.filter(
       (c) => c.tool === "battles_query" && !c.args.mode,
@@ -910,13 +908,13 @@ test.describe("Ladder days and battles", () => {
     await page.clock.setFixedTime(TODAY);
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
     await page.goto("/home/you/stats/battles?mode=war");
-    await expect(page.locator(".ladder-row").first()).toBeVisible();
+    await expect(page.locator(".stats-row").first()).toBeVisible();
     // The fixture's fifty-fifth battle, a war loss on the 26th, has no url.
     const day = page
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Sat Sep 26" }) });
-    await expect(day.locator(".ladder-row__who a")).toHaveCount(2);
-    await expect(day.locator(".ladder-row__who:not(:has(a))")).toHaveCount(1);
+    await expect(day.locator(".stats-row__who a")).toHaveCount(2);
+    await expect(day.locator(".stats-row__who:not(:has(a))")).toHaveCount(1);
   });
 
   test("a mode with no battles says so on Battles", async ({ page }) => {
@@ -928,7 +926,7 @@ test.describe("Ladder days and battles", () => {
         name: "No Path of Legends battles recorded this season yet",
       }),
     ).toBeVisible();
-    await accessible(page, "ladder battles empty");
+    await accessible(page, "stats battles empty");
   });
 
   test("@narrow the calendar is a list of days, and Battles fits a phone", async ({
@@ -938,41 +936,41 @@ test.describe("Ladder days and battles", () => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
     await page.goto("/home/you/stats");
     // Today leads: the days to come are one line under the played ones.
-    await expect(page.locator(".ladder-day:visible")).toHaveCount(23);
-    await expect(page.locator(".ladder-day:visible").first()).toBeVisible();
-    await expect(page.locator(".ladder-cal__ahead")).toContainText(
+    await expect(page.locator(".stats-day:visible")).toHaveCount(23);
+    await expect(page.locator(".stats-day:visible").first()).toBeVisible();
+    await expect(page.locator(".stats-cal__ahead")).toContainText(
       "5 days to come. The season ends",
     );
-    await expect(page.locator(".ladder-legend__fut")).toBeHidden();
-    await expect(page.locator(".ladder-cal__wd").first()).toBeHidden();
+    await expect(page.locator(".stats-legend__fut")).toBeHidden();
+    await expect(page.locator(".stats-cal__wd").first()).toBeHidden();
     // Newest first, naming its weekday.
-    const cal = page.locator(".ladder-cal");
+    const cal = page.locator(".stats-cal");
     await expect(
       cal.evaluate((el) => getComputedStyle(el).flexDirection),
     ).resolves.toBe("column-reverse");
-    await expect(page.locator(".ladder-day__wd").first()).toBeVisible();
+    await expect(page.locator(".stats-day__wd").first()).toBeVisible();
     const fits = () =>
       page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,
       );
     expect(await fits()).toBeLessThanOrEqual(0);
-    await accessible(page, "ladder calendar narrow");
+    await accessible(page, "stats calendar narrow");
     await page.goto("/home/you/stats/battles");
-    await expect(page.locator(".ladder-row").first()).toBeVisible();
+    await expect(page.locator(".stats-row").first()).toBeVisible();
     // Time and result stay on one line, and the row is still a 44 px target.
-    const row = page.locator(".ladder-row").first();
+    const row = page.locator(".stats-row").first();
     const [time, result] = await Promise.all([
-      row.locator(".ladder-row__t").boundingBox(),
-      row.locator(".ladder-row__res").boundingBox(),
+      row.locator(".stats-row__t").boundingBox(),
+      row.locator(".stats-row__res").boundingBox(),
     ]);
     expect(Math.abs((time?.y ?? 0) - (result?.y ?? 99))).toBeLessThan(6);
     expect((await row.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
     expect(await fits()).toBeLessThanOrEqual(0);
-    await accessible(page, "ladder battles narrow");
+    await accessible(page, "stats battles narrow");
   });
 });
 
-test.describe("Ladder scope, moved pages and the other chips", () => {
+test.describe("Stats scope, moved pages and the other chips", () => {
   const RACE = {
     current: {
       season_id: 136,
@@ -1025,7 +1023,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
         "POST /api/explore": explore(),
       }),
     );
-    // The player page's Open in Ladder, and the same shape from Home and mail.
+    // The player page's Open in Stats, and the same shape from Home and mail.
     await page.goto("/home/you/stats?player=00GVJ89&mode=casual");
     await expect(page.getByLabel("Player", { exact: true })).toHaveValue(
       "#00GVJ89",
@@ -1056,7 +1054,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
       }),
     );
     await page.goto("/home/you/stats?mode=war");
-    const line = page.locator(".ladder-war");
+    const line = page.locator(".stats-war");
     await expect(line).toContainText(
       "This week: 12 war decks used, 2,150 points.",
     );
@@ -1073,10 +1071,10 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
     await expect(
       page.getByText("War battles are listed one by one, like any other."),
     ).toBeVisible();
-    await accessible(page, "ladder war line");
+    await accessible(page, "stats war line");
     // Not on Trophy Road, and no line where the clan's war cannot be read.
     await page.goto("/home/you/stats");
-    await expect(page.locator(".ladder-tile").first()).toBeVisible();
+    await expect(page.locator(".stats-tile").first()).toBeVisible();
     await expect(line).toHaveCount(0);
   });
 
@@ -1150,9 +1148,9 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
       has: page.getByRole("heading", { name: "Mon Sep 28" }),
     });
     await expect(days).toHaveCount(2);
-    await expect(days.nth(0).locator(".ladder-aside")).toHaveText("1–0");
-    await expect(days.nth(1).locator(".ladder-aside")).toHaveText("0–1");
-    await expect(page.locator(".ladder-row")).toHaveCount(2);
+    await expect(days.nth(0).locator(".stats-aside")).toHaveText("1–0");
+    await expect(days.nth(1).locator(".stats-aside")).toHaveText("0–1");
+    await expect(page.locator(".stats-row")).toHaveCount(2);
     await expect(main).not.toContainText("2 battles");
     await expect(main).toContainText("the two are never added up");
     expect(
@@ -1160,7 +1158,7 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
         .filter((c) => c.tool === "battles_query" && c.args.mode)
         .map((c) => c.args.mode),
     ).toEqual(expect.arrayContaining(["challenge", "tournament"]));
-    await accessible(page, "ladder other battles");
+    await accessible(page, "stats other battles");
   });
 
   test("Other appears only with a Challenge or Tournament battle, and never pools the two", async ({
@@ -1190,11 +1188,11 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
       has: page.getByRole("heading", { name: "Challenge this season" }),
     });
     await expect(challenge).toContainText("never pooled");
-    await expect(challenge.locator(".ladder-tile").first()).toContainText("7");
+    await expect(challenge.locator(".stats-tile").first()).toContainText("7");
     const tournament = page.locator("section").filter({
       has: page.getByRole("heading", { name: "Tournament this season" }),
     });
-    await expect(tournament.locator(".ladder-tile").first()).toContainText("3");
+    await expect(tournament.locator(".stats-tile").first()).toContainText("3");
     await expect(tournament).toContainText(
       "A Tournament is not a Challenge, so the two are never added up.",
     );
@@ -1210,11 +1208,11 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
         ),
       )
       .toBe(true);
-    await accessible(page, "ladder other");
+    await accessible(page, "stats other");
   });
 });
 
-test.describe("Ladder decks", () => {
+test.describe("Stats decks", () => {
   test("every deck in this chip's mode, with its cards, its record and a swap of forms", async ({
     page,
   }) => {
@@ -1234,7 +1232,7 @@ test.describe("Ladder decks", () => {
       has: page.getByRole("heading", { name: "2 decks in Trophy Road" }),
     });
     await expect(road).toContainText("Most played first");
-    const decks = road.locator(".ladder-deckrow");
+    const decks = road.locator(".stats-deckrow");
     await expect(decks).toHaveCount(2);
     const first = decks.nth(0);
     await expect(first).toContainText("Royal Hogs bridge spam");
@@ -1263,12 +1261,12 @@ test.describe("Ladder decks", () => {
 
     // The two Trophy Road decks are the same eight cards with the
     // evolutions moved, one put down before the other was picked up.
-    const swap = page.locator(".ladder-swap");
+    const swap = page.locator(".stats-swap");
     await expect(swap.getByRole("heading")).toHaveText(
       "The evolution swap on Sun Sep 20",
     );
     await expect(swap).toContainText("Trophy Road only");
-    const sides = swap.locator(".ladder-swap__side");
+    const sides = swap.locator(".stats-swap__side");
     await expect(sides.nth(0)).toContainText("Before, Sep 8 to Sep 18");
     await expect(sides.nth(0)).toContainText(
       "Evolutions on Witch and Royal Ghost",
@@ -1285,7 +1283,7 @@ test.describe("Ladder decks", () => {
     await expect(swap).toContainText("it does not say the change caused it");
     // No card on the page is a link.
     await expect(page.locator("a.card-art")).toHaveCount(0);
-    await accessible(page, "ladder decks");
+    await accessible(page, "stats decks");
 
     // One read of this mode, one per deck for its cards, and no pooled read.
     const reads = calls.filter((c) => c.tool === "battles_decks");
@@ -1304,7 +1302,7 @@ test.describe("Ladder decks", () => {
     const war = page.locator("section").filter({
       has: page.getByRole("heading", { name: "3 decks in War" }),
     });
-    const mortar = war.locator(".ladder-deckrow").first();
+    const mortar = war.locator(".stats-deckrow").first();
     await expect(mortar).toContainText("Evo Mortar siege");
     await expect(
       mortar.getByRole("img", { name: "5 won, 4 lost" }),
@@ -1318,7 +1316,7 @@ test.describe("Ladder decks", () => {
     await expect(
       duels.getByRole("img", { name: "3 won, 7 lost" }),
     ).toBeVisible();
-    await accessible(page, "ladder war decks");
+    await accessible(page, "stats war decks");
   });
 
   test("the season home links to every deck", async ({ page }) => {
@@ -1336,8 +1334,8 @@ test.describe("Ladder decks", () => {
   }) => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
     await page.goto("/home/you/stats/decks");
-    await expect(page.locator(".ladder-deckrow .card-art")).toHaveCount(16);
-    const grid = page.locator(".ladder-deckrow .deck-grid").first();
+    await expect(page.locator(".stats-deckrow .card-art")).toHaveCount(16);
+    const grid = page.locator(".stats-deckrow .deck-grid").first();
     const columns = await grid.evaluate(
       (el) => getComputedStyle(el).gridTemplateColumns.split(" ").length,
     );
@@ -1346,11 +1344,11 @@ test.describe("Ladder decks", () => {
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
-    await accessible(page, "ladder decks narrow");
+    await accessible(page, "stats decks narrow");
   });
 });
 
-test.describe("Ladder cards", () => {
+test.describe("Stats cards", () => {
   test("a player you follow: their cards, the cards they faced, and whose deck is whose", async ({
     page,
   }) => {
@@ -1413,7 +1411,7 @@ test.describe("Ladder cards", () => {
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Your cards" }) });
     await expect(yours).toContainText("12 rows, 8 cards");
-    const mine = page.locator(".ladder-cards").nth(0).locator("tbody tr");
+    const mine = page.locator(".stats-cards").nth(0).locator("tbody tr");
     await expect(mine).toHaveCount(12);
     await expect(mine.nth(0)).toContainText("Hero Mini P.E.K.K.A");
     await expect(mine.nth(0)).toContainText("35");
@@ -1430,7 +1428,7 @@ test.describe("Ladder cards", () => {
       mine.nth(10).getByRole("link", { name: "Witch", exact: true }),
     ).toHaveAttribute("href", "/cards/26000007/");
     await expect(page.locator("a.card-art")).toHaveCount(0);
-    await expect(page.locator(".ladder-cards").nth(0)).toBeVisible();
+    await expect(page.locator(".stats-cards").nth(0)).toBeVisible();
 
     // Theirs: the first twelve of fourteen, then the rest in place.
     await expect(
@@ -1439,7 +1437,7 @@ test.describe("Ladder cards", () => {
     await expect(page.locator(".panel").nth(1)).toContainText(
       "35 battles · 34 opponents",
     );
-    const theirs = page.locator(".ladder-cards").nth(1).locator("tbody tr");
+    const theirs = page.locator(".stats-cards").nth(1).locator("tbody tr");
     await expect(theirs).toHaveCount(12);
     await expect(theirs.nth(0)).toContainText("Evo Witch");
     await expect(
@@ -1460,7 +1458,7 @@ test.describe("Ladder cards", () => {
       "/home/player/0RL080CU",
     );
     await expect(opp).toContainText("A Rival, twice,");
-    await accessible(page, "ladder cards");
+    await accessible(page, "stats cards");
 
     const reads = calls.filter(
       (c) => c.tool === "battles_cards" || c.tool === "battles_opponents",
@@ -1494,10 +1492,10 @@ test.describe("Ladder cards", () => {
     await expect(
       order.getByRole("button", { name: "Most losses" }),
     ).toHaveAttribute("aria-pressed", "false");
-    await expect(page.locator(".ladder-order")).toContainText(
+    await expect(page.locator(".stats-order")).toContainText(
       "Most battles first. A card is listed from 3 battles, a player from 2.",
     );
-    const theirs = page.locator(".ladder-cards").nth(1);
+    const theirs = page.locator(".stats-cards").nth(1);
     await expect(
       theirs.getByRole("columnheader", { name: "Level gap" }),
     ).toBeVisible();
@@ -1524,7 +1522,7 @@ test.describe("Ladder cards", () => {
     await expect(
       order.getByRole("button", { name: "Most losses" }),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator(".ladder-order")).toContainText(
+    await expect(page.locator(".stats-order")).toContainText(
       "Most battles lost first, then most battles. A card is listed from 3 battles, a player from 2.",
     );
     await expect(rows.nth(0)).toContainText("Evo Witch");
@@ -1568,7 +1566,7 @@ test.describe("Ladder cards", () => {
     ).toBe(false);
     // No label and no verdict on the page: the record, in an order.
     await expect(page.locator("body")).not.toContainText(/nemesis/i);
-    await accessible(page, "ladder cards by losses");
+    await accessible(page, "stats cards by losses");
   });
 
   test("a mode with no battles says so", async ({ page }) => {
@@ -1577,24 +1575,24 @@ test.describe("Ladder cards", () => {
     await expect(
       page.getByRole("heading", { name: "No War battles this season" }),
     ).toBeVisible();
-    await expect(page.locator(".ladder-cards")).toHaveCount(0);
+    await expect(page.locator(".stats-cards")).toHaveCount(0);
   });
 
   test("@narrow the card tables fit a phone", async ({ page }) => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
     await page.goto("/home/you/stats/cards");
     await expect(
-      page.locator(".ladder-cards").nth(0).locator("tbody tr"),
+      page.locator(".stats-cards").nth(0).locator("tbody tr"),
     ).toHaveCount(12);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
-    await accessible(page, "ladder cards narrow");
+    await accessible(page, "stats cards narrow");
   });
 });
 
-test.describe("Ladder seasons", () => {
+test.describe("Stats seasons", () => {
   test("the picker lists the player's seasons, and a season is an address every page honours", async ({
     page,
   }) => {
@@ -1656,7 +1654,7 @@ test.describe("Ladder seasons", () => {
     // A reload keeps it: the season is in the address, not the page.
     await page.reload();
     await expect(page.getByLabel("Season", { exact: true })).toHaveValue("135");
-    await accessible(page, "ladder decks, an earlier season");
+    await accessible(page, "stats decks, an earlier season");
   });
 
   test("an empty current season opens on the last one, says so, and the empty one is a click away", async ({
@@ -1670,7 +1668,7 @@ test.describe("Ladder seasons", () => {
       }),
     );
     await page.goto("/home/you/stats?mode=ladder");
-    const note = page.locator(".ladder-season-note");
+    const note = page.locator(".stats-season-note");
     await expect(note).toContainText(
       "Season 136 has no recorded battles yet, so this is Season 135.",
     );
@@ -1679,7 +1677,7 @@ test.describe("Ladder seasons", () => {
     ).toBeVisible();
     await expect(page.getByLabel("Season", { exact: true })).toHaveValue("135");
     // Its record is shown, not an empty page.
-    await expect(page.locator(".ladder-tiles").first()).toContainText("52");
+    await expect(page.locator(".stats-tiles").first()).toContainText("52");
     await accessible(page, "ladder, an empty current season");
 
     // The empty season itself, one click away, says it is empty.
@@ -1697,7 +1695,7 @@ test.describe("Ladder seasons", () => {
 /* "This season vs last" (Jamie, 2026-10-20): the season home's mode,
    this season beside the one before it on record. Thursday 4:00 pm
    Central, 24 days and 11 hours into Season 136. */
-test.describe("Ladder this season vs last", () => {
+test.describe("Stats this season vs last", () => {
   const NOW = new Date("2026-10-01T21:00:00Z");
   const PLAYER = "#20JJJ2CCRU";
   /** The reads that name a season other than the current one, or a
@@ -1819,7 +1817,7 @@ test.describe("Ladder this season vs last", () => {
           !c.args.deck_hash,
       ),
     ).toHaveLength(1);
-    await accessible(page, "ladder this season vs last");
+    await accessible(page, "stats this season vs last");
   });
 
   test("a mode with no battles last season says so, and reads no decks for it", async ({
@@ -1851,7 +1849,7 @@ test.describe("Ladder this season vs last", () => {
         },
       ],
     ]);
-    await accessible(page, "ladder this season vs last, none last season");
+    await accessible(page, "stats this season vs last, none last season");
   });
 
   test("this season under the minimum is not set beside last season, which is not read", async ({
@@ -1868,7 +1866,7 @@ test.describe("Ladder this season vs last", () => {
       "This season has fewer than 10 decided Events battles so far, so it is not set beside Season 135 yet.",
     );
     expect(added(calls)).toEqual([]);
-    await accessible(page, "ladder this season vs last, too few so far");
+    await accessible(page, "stats this season vs last, too few so far");
   });
 
   test("last season under the minimum is not set beside this one, and its decks are not read", async ({
@@ -2050,7 +2048,7 @@ test.describe("Ladder this season vs last", () => {
       ]),
     );
     expect(of134()).toHaveLength(2);
-    await accessible(page, "ladder a past season vs the one before");
+    await accessible(page, "stats a past season vs the one before");
 
     // Opening Season 134 reads its record from the same cache entry.
     await page.getByLabel("Season", { exact: true }).selectOption("134");
@@ -2087,7 +2085,7 @@ test.describe("Ladder this season vs last", () => {
       "Elixir's record of you holds no season before Season 135, so there is nothing to set beside it.",
     );
     expect(calls.some((c) => c.args.season === 134)).toBe(false);
-    await accessible(page, "ladder no season before");
+    await accessible(page, "stats no season before");
   });
 
   test("@narrow the season table fits a phone, three sides and all", async ({
@@ -2104,6 +2102,6 @@ test.describe("Ladder this season vs last", () => {
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
-    await accessible(page, "ladder this season vs last narrow");
+    await accessible(page, "stats this season vs last narrow");
   });
 });

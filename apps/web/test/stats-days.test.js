@@ -1,5 +1,5 @@
 /**
- * Ladder's calendar and battle list shaping (ladder/ladder-days.js): the
+ * Stats' calendar and battle list shaping (stats/stats-days.js): the
  * season's battles laid on the account's calendar and chained into sittings.
  * These pin the seams where a day or a sitting could invent a number: which day
  * a late battle lands on, a boat defense, a day the sweep never reached, a day
@@ -27,7 +27,7 @@ import {
   weekdayIndex,
   weekdayLabel,
   zoneName,
-} from "../src/ladder/ladder-days.js";
+} from "../src/stats/stats-days.js";
 
 const CHI = "America/Chicago";
 const SEASON = {

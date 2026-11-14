@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mockApi, signedIn } from "./fixtures.ts";
-import { explore } from "./ladder-fixture.ts";
+import { explore } from "./stats-fixture.ts";
 import { ME as CLAN_ME, signedIn as clanSignedIn } from "./clan/fixtures.ts";
 
 async function soundPage(page: Page) {
@@ -88,7 +88,7 @@ for (const suffix of ["", " @narrow"]) {
         .locator("section")
         .filter({ has: page.getByRole("heading", { name: "Days played" }) });
       await expect(panel).toContainText("days with recorded battles, of 23");
-      const days = page.locator(".ladder-day");
+      const days = page.locator(".stats-day");
       await expect(days.nth(3)).toContainText("Sep 10");
       const empty = days.nth(6); // Sep 13, a closed whole day without a captured battle.
       if (capture.quiet) {

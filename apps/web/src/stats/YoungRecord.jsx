@@ -2,7 +2,7 @@ import { useInitialTime, Panel } from "@elixir-mcp/ui";
 import { Link, noun } from "@elixir-mcp/ui";
 import { SETTINGS } from "../lib/settings.js";
 import { useMyClans } from "../lib/queries.js";
-import { youngRecord } from "./ladder.js";
+import { youngRecord } from "./stats.js";
 
 const STEPS = {
   verify: {
@@ -24,7 +24,7 @@ const STEPS = {
 
 /**
  * One next step on the season home while the record is young (under
- * YOUNG_RECORD_DAYS, ladder.js youngRecord): how old the record is and
+ * YOUNG_RECORD_DAYS, stats.js youngRecord): how old the record is and
  * a link. Plain facts; nothing about play. Its clan read is `/api/me/clans`
  * (cached, shared with Find's Bring your clanmates), and the record's
  * start is the summary's meta, so it adds no request.
@@ -54,7 +54,7 @@ export function YoungRecord({ player, summary, className = "" }) {
   return (
     <Panel
       className={className}
-      titleId="ladder-young-record"
+      titleId="stats-young-record"
       title={
         young.days === 0
           ? "Your record is less than a day old"

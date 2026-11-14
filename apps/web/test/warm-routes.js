@@ -12,7 +12,7 @@
  */
 import "../src/pages/SettingsPage.jsx";
 import "../src/pages/AdminPage.jsx";
-import "../src/pages/LadderPage.jsx";
+import "../src/pages/StatsPage.jsx";
 import "../src/pages/HomePage.jsx";
 import "../src/views/Battle.jsx";
 import "../src/views/Post.jsx";

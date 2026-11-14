@@ -11,7 +11,7 @@ import { DOC_LINKS } from "./doc-links.js";
  *
  * Every player opens their player page (Jamie, 2026-11-12, #764: "Yes, one
  * page"), wherever they were found; the row's right side says who they are to
- * you, or for a searched player their tag, clan and trophies. Ladder and Clan
+ * you, or for a searched player their tag, clan and trophies. Stats and Clan
  * are reached from the page. A clan is found by tag or from your own list,
  * never searched by name across the record. A deck hash or a war week is a
  * lookup of its own: it costs no read here, and Explore opens the record.

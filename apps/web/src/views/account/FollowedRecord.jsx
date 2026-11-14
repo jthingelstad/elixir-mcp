@@ -157,7 +157,7 @@ export function FollowedRecord({ me, refresh, navigate, tag }) {
     : (claim.nickname ?? claim.name ?? claim.player_tag);
   const fresh = secsSince(rec?.freshest_poll, now);
   const recording = isClan ? clan.recording_status : rec?.status;
-  // Every player name opens the player page (#764); Ladder is a door on it.
+  // Every player name opens the player page (#764); Stats is a door on it.
   const open = isClan
     ? ["/clan/directory", "Clan directory"]
     : [playerHref(wanted), you ? "Open your page" : "Open their page"];

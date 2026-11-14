@@ -516,7 +516,7 @@ test("a new account gets the steps, not the feed, and reads no panel", async ({
   expect(panels).toEqual([]);
 });
 
-test("adding your player from Ladder's or Clan's link stays on Home's steps", async ({
+test("adding your player from Stats' or Clan's link stays on Home's steps", async ({
   page,
 }) => {
   let added = false;

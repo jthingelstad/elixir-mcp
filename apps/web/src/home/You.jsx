@@ -12,7 +12,7 @@ import {
   TagText,
 } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
-import { LADDER, ladderPlayers } from "../ladder/ladder.js";
+import { STATS, statsPlayers } from "../stats/stats.js";
 import { ADMIN, SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
 import { usePlayerPage } from "../lib/queries.js";
@@ -30,12 +30,12 @@ export const YOU = "/home/you";
  * You (2026-11-12, Jamie's go: "You with Stats"): your own player page, the
  * one every player name opens, for your primary verified player, with a
  * Stats tab after its five. Stats is Ladder, unchanged (its scope bar and
- * four tabs), at LADDER; its old `/ladder` addresses are the site's 404.
+ * four tabs), at STATS; its old `/ladder` addresses are the site's 404.
  *
  * Alts [engineering, 2026-11-12, the narrow option]: You is the primary
  * player's page only. Your other players are listed below, to you alone,
  * each to its own page, and Stats' player picker reads any of them, as
- * Ladder's did. With no verified player, You says how to verify one.
+ * Stats' did. With no verified player, You says how to verify one.
  */
 export function YouPage() {
   const { me } = useMe();
@@ -61,9 +61,9 @@ export function youPlayer(claims) {
 }
 
 /** Stats as a tab of You, an address. */
-const STATS_TAB = { key: "stats", label: "Stats", href: LADDER };
+const STATS_TAB = { key: "stats", label: "Stats", href: STATS };
 
-/** You's tabs over Stats (LadderPage): the player page's five, each back
+/** You's tabs over Stats (StatsPage): the player page's five, each back
  *  on You, then Stats, open. */
 export function YouTabs() {
   const items = [
@@ -97,7 +97,7 @@ function YouPlayer({ tag, tab }) {
         <PageHead title="You" />
         <Empty title="Elixir has not recorded your player yet">
           Its first battles arrive within the hour. Your stats are in{" "}
-          <Link className="link" to={LADDER}>
+          <Link className="link" to={STATS}>
             Stats
           </Link>
           .
@@ -110,9 +110,9 @@ function YouPlayer({ tag, tab }) {
 }
 
 /** No verified player: how to verify one, and Stats for a player you added
- *  but have not verified yet, as Ladder read them. */
+ *  but have not verified yet, as Stats read them. */
 function NoVerified({ claims }) {
-  const own = ladderPlayers(claims);
+  const own = statsPlayers(claims);
   return (
     <>
       <PageHead title="You" />
@@ -120,7 +120,7 @@ function NoVerified({ claims }) {
         more={
           own.length > 0 ? (
             <Row
-              href={LADDER}
+              href={STATS}
               title="Your stats"
               detail="Your season, battles, decks and cards, before you verify."
             />

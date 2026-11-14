@@ -25,14 +25,14 @@ import {
   seasonHead,
   signed,
   weekRows,
-} from "./ladder.js";
+} from "./stats.js";
 import {
   chipCalendar,
   seasonCalendar,
   spanLabel,
   weekdayOf,
-} from "./ladder-days.js";
-import { gapLine, formNames } from "./ladder-decks.js";
+} from "./stats-days.js";
+import { gapLine, formNames } from "./stats-decks.js";
 import { api } from "../api.js";
 import { SETTINGS } from "../lib/settings.js";
 import { useBattleSweep, useToolRead, useToolReads } from "../lib/queries.js";
@@ -156,17 +156,15 @@ function Summary({ mode, season, body, head }) {
       }
       action={
         mode === "casual" ? (
-          <span className="ladder-aside">
+          <span className="stats-aside">
             2v2, friendly and clanmate battles
           </span>
         ) : observed && season.current ? (
-          <span className="ladder-aside">
-            As of {clockTime(observed, zone)}
-          </span>
+          <span className="stats-aside">As of {clockTime(observed, zone)}</span>
         ) : null
       }
     >
-      <div className="ladder-tiles">
+      <div className="stats-tiles">
         <Tile
           label="Battles"
           sub={
@@ -235,13 +233,13 @@ function OtherSeason({ season, reads }) {
         title={`${modeLabel(key)} ${inSeason(season, name)}`}
         action={
           i === 0 ? (
-            <span className="ladder-aside">
+            <span className="stats-aside">
               Other holds Challenge and Tournament, never pooled
             </span>
           ) : null
         }
       >
-        <div className="ladder-tiles">
+        <div className="stats-tiles">
           <Tile label="Battles">{fmt(w.battles)}</Tile>
           <Tile label="Record">
             <Record wins={w.wins} losses={w.losses} draws={w.draws} />
@@ -356,34 +354,34 @@ function Calendar({ player, mode, season, modeReady }) {
       <Panel
         title="Days played"
         action={
-          <span className="ladder-aside">
+          <span className="stats-aside">
             {fmt(cal.played)} {cal.played === 1 ? "day" : "days"} with recorded
             battles, of {fmt(cal.of)}
             {season.current ? " so far" : ""}
           </span>
         }
       >
-        <ol className="ladder-cal" aria-label={`${modeWords(mode)} by day`}>
+        <ol className="stats-cal" aria-label={`${modeWords(mode)} by day`}>
           {WEEKDAYS.map((w) => (
-            <li key={w} className="ladder-cal__wd" aria-hidden="true">
+            <li key={w} className="stats-cal__wd" aria-hidden="true">
               {w}
             </li>
           ))}
           {Array.from({ length: cal.lead }, (_, i) => (
             <li
               key={`lead${i}`}
-              className="ladder-cal__lead"
+              className="stats-cal__lead"
               aria-hidden="true"
             />
           ))}
           {cal.days.map((d) => (
             <li
               key={d.ymd}
-              className={`ladder-day ladder-day--${d.cls}${d.today ? " ladder-day--today" : ""}`}
+              className={`stats-day stats-day--${d.cls}${d.today ? " stats-day--today" : ""}`}
               aria-current={d.today ? "date" : undefined}
             >
-              <span className="ladder-day__n">
-                <span className="ladder-day__wd">{weekdayOf(d.ymd)} </span>
+              <span className="stats-day__n">
+                <span className="stats-day__wd">{weekdayOf(d.ymd)} </span>
                 {d.label}
               </span>
               {d.text ? <span>{d.text}</span> : null}
@@ -391,18 +389,18 @@ function Calendar({ player, mode, season, modeReady }) {
           ))}
         </ol>
         {toCome ? (
-          <p className="ladder-cal__ahead">
+          <p className="stats-cal__ahead">
             {fmt(toCome)} {toCome === 1 ? "day" : "days"} to come. The season
             ends {edge(applied.ends_at)}.
           </p>
         ) : null}
-        <ul className="ladder-legend">
+        <ul className="stats-legend">
           {KEY.filter(([cls]) =>
             cls === "l2" ? cal.played > 0 : shown.has(cls),
           ).map(([cls, words]) => (
-            <li key={cls} className={`ladder-legend__${cls}`}>
+            <li key={cls} className={`stats-legend__${cls}`}>
               <span
-                className={`ladder-swatch ladder-day--${cls}`}
+                className={`stats-swatch stats-day--${cls}`}
                 aria-hidden="true"
               />
               {words}
@@ -444,29 +442,29 @@ function WeekByWeek({ mode, args, running }) {
           <ReadError query={weeks} what="the weeks" />
         </div>
       ) : (
-        <ol className="ladder-wks">
+        <ol className="stats-wks">
           {rows.map((r) => (
-            <li key={r.key} className="ladder-wk">
-              <span className="ladder-wk__label">{r.label}</span>
+            <li key={r.key} className="stats-wk">
+              <span className="stats-wk__label">{r.label}</span>
               <svg
-                className="ladder-bar"
+                className="stats-bar"
                 width="100%"
                 height="8"
                 aria-hidden="true"
               >
                 <rect
-                  className="ladder-bar__w"
+                  className="stats-bar__w"
                   width={`${r.winShare}%`}
                   height="8"
                 />
                 <rect
-                  className="ladder-bar__l"
+                  className="stats-bar__l"
                   x={`${r.winShare}%`}
                   width={`${100 - r.winShare}%`}
                   height="8"
                 />
               </svg>
-              <span className="ladder-wk__note">{r.note}</span>
+              <span className="stats-wk__note">{r.note}</span>
             </li>
           ))}
         </ol>
@@ -522,9 +520,9 @@ function TopDeck({ mode, args, hrefFor }) {
         </Link>
       }
     >
-      <div className="panel__body ladder-top">
-        <p className="ladder-top__name">{name}</p>
-        <p className="ladder-top__sub">
+      <div className="panel__body stats-top">
+        <p className="stats-top__name">{name}</p>
+        <p className="stats-top__sub">
           {fmt(top.battles)} {top.battles === 1 ? "battle" : "battles"}
           {top.last_used ? `, last played ${when(top.last_used)}` : ""}
           {forms ? ` · ${forms}` : ""}
@@ -540,15 +538,15 @@ function TopDeck({ mode, args, hrefFor }) {
         ) : detail.isPending ? (
           <Loading what="the cards" />
         ) : (
-          <p className="ladder-top__sub">{top.card_names}</p>
+          <p className="stats-top__sub">{top.card_names}</p>
         )}
-        <p className="ladder-top__line">{line}</p>
+        <p className="stats-top__line">{line}</p>
       </div>
     </Panel>
   );
 }
 
-/** What the record is, and feedback about Ladder, at the foot of Season. */
+/** What the record is, and feedback about Stats, at the foot of Season. */
 function SeasonExtras({ player, search }) {
   const [feedback, setFeedback] = useState(false);
   return (
@@ -592,11 +590,11 @@ function SeasonExtras({ player, search }) {
 
 export function SinceWhen({ text }) {
   const cut = text.lastIndexOf(", ");
-  if (cut < 0) return <span className="ladder-when">since {text}</span>;
+  if (cut < 0) return <span className="stats-when">since {text}</span>;
   return (
     <>
-      <span className="ladder-when">since {text.slice(0, cut + 1)}</span>{" "}
-      <span className="ladder-when">{text.slice(cut + 2)}</span>
+      <span className="stats-when">since {text.slice(0, cut + 1)}</span>{" "}
+      <span className="stats-when">{text.slice(cut + 2)}</span>
     </>
   );
 }

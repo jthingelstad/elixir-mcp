@@ -10,7 +10,7 @@
       "icon": "house"
     },
     {
-      "key": "ladder",
+      "key": "stats",
       "label": "Stats",
       "path": "/home/you/stats",
       "icon": "chart-line"

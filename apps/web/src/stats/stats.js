@@ -1,11 +1,12 @@
 /**
- * Ladder: your season, read back (design canvas, 2026-10-01). A section
- * of Elixir itself at /ladder, in the same app and the same shell. A scope
+ * Stats: your season, read back (design canvas, 2026-10-01; Ladder, at
+ * /ladder, until 2026-11-12). A section of Elixir itself at STATS, in the
+ * same app and the same shell. A scope
  * bar (player, season, mode, freshness) and four tabs replaced its rail
  * (redesign step 5, 2026-11-06).
  *
- * Everything on a Ladder page is a fact a tool returned: the record
- * over the season, in one mode at a time. Ladder never computes a
+ * Everything on a Stats page is a fact a tool returned: the record
+ * over the season, in one mode at a time. Stats never computes a
  * verdict, a pace or a coaching line (docs/DECISIONS.md: facts, never
  * judgments; no branded or derived player metric). The functions here
  * route and shape; they never rate.
@@ -17,13 +18,13 @@
 import { clockAt, monthDayAt, seasonWeek, zoneShort } from "@elixir-mcp/ui";
 import { logRead } from "../lib/record-journey.js";
 import { tagPath } from "../lib/tag-url.js";
-import { LADDER, LADDER_PAGES } from "./paths.js";
+import { STATS, STATS_PAGES } from "./paths.js";
 
 // Stats' address and pages live in paths.js, which imports nothing, so the
 // site's tests can read them.
-export { LADDER, LADDER_PAGES } from "./paths.js";
+export { STATS, STATS_PAGES } from "./paths.js";
 
-/** The mode groups a Ladder page reads, one at a time, in chip order.
+/** The mode groups a Stats page reads, one at a time, in chip order.
  *  `key` is the tools' `mode` argument. */
 export const MODES = [
   { key: "ladder", label: "Trophy Road" },
@@ -61,54 +62,54 @@ export function modeChips(modes, current) {
 }
 
 /** True for a path this section owns. */
-export const isLadder = (path) =>
-  path === LADDER || String(path ?? "").startsWith(`${LADDER}/`);
+export const isStats = (path) =>
+  path === STATS || String(path ?? "").startsWith(`${STATS}/`);
 
-/** A Ladder path's segments after LADDER: ["", page, ...rest]. */
+/** A Stats path's segments after STATS: ["", page, ...rest]. */
 const after = (path) =>
   String(path ?? "")
-    .slice(LADDER.length)
+    .slice(STATS.length)
     .split("/");
 
-/** The page slug a Ladder path names, "season" for the bare one. */
-export function ladderSlug(path) {
-  if (!isLadder(path)) return "season";
+/** The page slug a Stats path names, "season" for the bare one. */
+export function statsSlug(path) {
+  if (!isStats(path)) return "season";
   const [, page] = after(path);
-  return LADDER_PAGES.some((p) => p.slug === page) ? page : "season";
+  return STATS_PAGES.some((p) => p.slug === page) ? page : "season";
 }
 
-/** A Ladder path resolved to one this section serves: the bare /ladder
+/** A Stats path resolved to one this section serves: the bare STATS
  *  is the season home; a known page is itself; a stale or unknown one,
  *  or anything deeper than a page, falls back to the nearest real one
- *  rather than an empty main. Null for a path that is not Ladder's. */
-export function ladderLegal(path) {
-  if (!isLadder(path)) return null;
-  if (path === LADDER) return path;
+ *  rather than an empty main. Null for a path that is not Stats'. */
+export function statsLegal(path) {
+  if (!isStats(path)) return null;
+  if (path === STATS) return path;
   const [, page = "", ...rest] = after(path);
-  if (page === "" || page === "season") return LADDER;
-  if (!LADDER_PAGES.some((p) => p.slug === page)) return LADDER;
-  return rest.length ? `${LADDER}/${page}` : path;
+  if (page === "" || page === "season") return STATS;
+  if (!STATS_PAGES.some((p) => p.slug === page)) return STATS;
+  return rest.length ? `${STATS}/${page}` : path;
 }
 
-/** Where a Ladder path sits in the tabs and in the docs strip. */
-export function ladderHere(path) {
-  const key = ladderSlug(path);
-  return { key, product: "ladder", doc: `ladder:${key}` };
+/** Where a Stats path sits in the tabs and in the docs strip. */
+export function statsHere(path) {
+  const key = statsSlug(path);
+  return { key, product: "stats", doc: `stats:${key}` };
 }
 
 /** Tab title: the page first, because a tab truncates from the right. */
-export function ladderTitle(path, site = "Elixir") {
-  const page = LADDER_PAGES.find((p) => p.slug === ladderSlug(path));
+export function statsTitle(path, site = "Elixir") {
+  const page = STATS_PAGES.find((p) => p.slug === statsSlug(path));
   return `${page?.label ?? "Season"} - Stats - ${site}`;
 }
 
-/** A Ladder address: the page, then the player (no hash, as every tag
+/** A Stats address: the page, then the player (no hash, as every tag
  *  in a path or query travels), the mode, the season and, on Cards, the
  *  order of what you faced. Omitted params stay off; no season is the
  *  current one (or the last one with battles, pickSeason), and no order
  *  is the tools' own (most battles first). */
-export function ladderHref(slug, { player, mode, season, order } = {}) {
-  const path = !slug || slug === "season" ? LADDER : `${LADDER}/${slug}`;
+export function statsHref(slug, { player, mode, season, order } = {}) {
+  const path = !slug || slug === "season" ? STATS : `${STATS}/${slug}`;
   const q = new URLSearchParams();
   if (player) q.set("player", tagPath(player));
   if (mode) q.set("mode", mode);
@@ -128,11 +129,11 @@ export function scopeHref(slug, search, { slug: to = slug, ...over } = {}) {
     order: search.order,
     ...over,
   };
-  return ladderHref(to, { ...keep, player: keep.player ?? undefined });
+  return statsHref(to, { ...keep, player: keep.player ?? undefined });
 }
 
 /* --------------------------------------------------------- the season
-   Ladder reads one season at a time (2026-10-08), named in the address
+   Stats reads one season at a time (2026-10-08), named in the address
    (`?season=136`) so a link, a reload or a mail lands on the season it
    meant. The tools take the season themselves ('current', 'previous',
    the month the API names it by, or the river race season number), so
@@ -221,7 +222,7 @@ export function previousSeason(seasons, season) {
 }
 
 /**
- * Which season a page reads, from the address and two reads LadderPage
+ * Which season a page reads, from the address and two reads StatsPage
  * makes: `seasons` (recordedSeasons, newest first) and `currentBattles`
  * (the current season's battles over every mode; undefined while it is
  * read, null when it could not be).
@@ -297,7 +298,7 @@ export const isFollowedClaim = (c) =>
  *  2026-11-12: "Stats opens for the players you follow", from their player
  *  page). A watched player or a stranger is never listed, and the server
  *  refuses their reads (`POST /api/me/stats`). */
-export function ladderPlayers(claims, param) {
+export function statsPlayers(claims, param) {
   const own = (claims ?? []).filter((c) => c?.player_tag && isOwnClaim(c));
   const sorted = [...own].sort(
     (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)),
@@ -342,7 +343,7 @@ export function pickMode(param, modes) {
 /**
  * The first capture has not landed yet (2026-10-08). A player just added
  * has nothing to read back, and an empty mode or a refusal would read as
- * a fault, so LadderPage shows Pending instead. Taken from the
+ * a fault, so StatsPage shows Pending instead. Taken from the
  * players_summary read the page already makes.
  *
  * The two reads of a first capture land in either order, seconds or
@@ -398,7 +399,7 @@ export const playerName = (p) => p?.nickname ?? p?.name ?? p?.player_tag ?? "";
 
 /* ---------------------------------------------------------------- time
    The one format lives in the kit (`whenAt`, `useClock`); these names are
-   the pieces Ladder's ranges and night rows use. */
+   the pieces Stats' ranges and night rows use. */
 
 export { clockAt as clockTime, monthDayAt as shortDay, zoneShort };
 

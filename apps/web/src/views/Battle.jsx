@@ -20,7 +20,7 @@ import {
 import { api } from "../api.js";
 import { useMe, useNav } from "../App.jsx";
 import { playerHref } from "../lib/player.js";
-import { ladderPlayers } from "../ladder/ladder.js";
+import { statsPlayers } from "../stats/stats.js";
 import { BattleCheers } from "./BattleCheers.jsx";
 import { BattleHighlight } from "./BattleHighlight.jsx";
 import { FollowFromHere } from "./FollowFromHere.jsx";
@@ -382,7 +382,7 @@ export function BattleView({
           sides={sides}
           own={
             signedIn &&
-            ladderPlayers(me?.claims).some((p) =>
+            statsPlayers(me?.claims).some((p) =>
               sides.some((side) =>
                 side.players.some((x) => x.player_tag === p.player_tag),
               ),

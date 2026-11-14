@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, SIGNED_OUT, mockApi, signedIn } from "./fixtures.ts";
 import { BATTLE } from "./battle-fixture.ts";
-import { explore } from "./ladder-fixture.ts";
+import { explore } from "./stats-fixture.ts";
 
 const tag = BATTLE.sides[0]!.players[0]!.player_tag;
 const own = {
@@ -104,7 +104,7 @@ test("choose a captured battle, inspect facts, preview and copy only deliberate 
     }),
   );
   await page.goto("/home/you/stats/battles");
-  await page.locator(".ladder-row a").first().click();
+  await page.locator(".stats-row a").first().click();
   await expect(page).toHaveURL(new RegExp(`${path}$`));
   await expect(page.getByRole("heading", { level: 1 })).toContainText("2 to 1");
   await expect(

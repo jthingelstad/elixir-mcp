@@ -584,7 +584,7 @@ html[data-session="in"] [data-session-face="out"] {
 }
 
 /* The feedback sheet (2026-10-08): one modal for sending feedback from
-   any page, Console, Ladder or Clan. A panel in a native dialog,
+   any page, Home, Stats or Clan. A panel in a native dialog,
    so Escape and the focus trap are the browser's. */
 .feedback-sheet {
   width: min(560px, calc(100vw - 32px));
@@ -4837,56 +4837,57 @@ a.card-art:hover .card-art__img {
   }
 }
 
-/* --------------------------------------------------------------- ladder
-   Ladder (/ladder): your season, read back, a scope bar and four tabs with
-   no rail (redesign step 5, 2026-11-06). A win is --win-ink and a loss
+/* ---------------------------------------------------------------- stats
+   Stats (/home/you/stats; Ladder until 2026-11-12): your season, read
+   back, a scope bar and four tabs with no rail (redesign step 5,
+   2026-11-06). A win is --win-ink and a loss
    --loss-ink as text; as bars they are --win-ink and --loss. Gold is never a
    data value here: it only rings today. */
-.ladder-page {
+.stats-page {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-/* You › Stats (2026-11-12): You's tabs over Ladder's own frame. */
+/* You › Stats (2026-11-12): You's tabs over Stats' own frame. */
 .kit-you-stats {
   display: flex;
   flex-direction: column;
   gap: 14px;
   min-width: 0;
 }
-.ladder-head.kit-head {
+.stats-head.kit-head {
   margin-bottom: 0;
 }
-.ladder-stack {
+.stats-stack {
   display: flex;
   flex-direction: column;
   gap: 14px;
   min-width: 0;
 }
-.ladder-group {
+.stats-group {
   margin: 8px 0 -4px;
   font-size: 18px;
 }
-.ladder-aside {
+.stats-aside {
   font-size: 12.5px;
   font-weight: 400;
   color: var(--ink-faint);
 }
 
 /* The scope bar: whose, which season, which game, how fresh. */
-.ladder-scope {
+.stats-scope {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
-.ladder-scope__picks {
+.stats-scope__picks {
   display: flex;
   flex: none;
   align-items: center;
   gap: 8px;
 }
-/* One select, one height, in Ladder's bar and Clan's head. */
+/* One select, one height, in Stats' bar and Clan's head. */
 .scope-select {
   width: auto;
   min-height: 36px;
@@ -4898,7 +4899,7 @@ a.card-art:hover .card-art__img {
   color: var(--ink);
   font-size: 13.5px;
 }
-.ladder-scope__one {
+.stats-scope__one {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -4906,21 +4907,21 @@ a.card-art:hover .card-art__img {
   font-size: 13.5px;
   font-weight: 600;
 }
-.ladder-scope__tag {
+.stats-scope__tag {
   font-weight: 400;
   font-size: 12.5px;
   color: var(--ink-faint);
 }
-.ladder-scope__fresh {
+.stats-scope__fresh {
   margin-left: auto;
 }
 /* The scope's freshness is quiet text, as Home's and Clan's are, not a
    pill (2026-11-13). */
-.ladder-scope .ladder-scope__fresh > summary {
+.stats-scope .stats-scope__fresh > summary {
   padding-left: 0;
   background: none;
 }
-.ladder-when {
+.stats-when {
   white-space: nowrap;
 }
 /* A row that scrolls fades the edge with more behind it. */
@@ -4956,50 +4957,50 @@ a.card-art:hover .card-art__img {
 }
 
 /* Cards: how what you faced is ordered, a choice beside its floors. */
-.ladder-order {
+.stats-order {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
 }
-.ladder-order__hint {
+.stats-order__hint {
   flex: 1 1 16rem;
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--ink-faint);
 }
 
-.ladder-season-note a {
+.stats-season-note a {
   white-space: nowrap;
 }
-.ladder-war__line {
+.stats-war__line {
   font-weight: 600;
 }
-.ladder-war__note {
+.stats-war__note {
   color: var(--ink-dim);
 }
 
-.ladder-record {
+.stats-record {
   font-family: var(--font-mono);
   white-space: nowrap;
 }
-.ladder-w {
+.stats-w {
   color: var(--win-ink);
 }
-.ladder-l {
+.stats-l {
   color: var(--loss-ink);
 }
-.ladder-sep {
+.stats-sep {
   color: var(--ink-faint);
 }
 
-.ladder-tiles {
+.stats-tiles {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   padding: 10px 18px 12px;
 }
-.ladder-tile {
+.stats-tile {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -5012,19 +5013,19 @@ a.card-art:hover .card-art__img {
 /* Form (2026-10-08): two stretches of one mode's record side by side,
    each number over its count. Both columns in the same ink: neither
    side is marked as the better one. */
-.ladder-form__lede {
+.stats-form__lede {
   margin: 0 0 12px;
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--ink-dim);
 }
-.ladder-form__table {
+.stats-form__table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
-.ladder-form__table th,
-.ladder-form__table td {
+.stats-form__table th,
+.stats-form__table td {
   padding: 8px 10px 8px 0;
   font-family: var(--font);
   letter-spacing: 0;
@@ -5032,30 +5033,30 @@ a.card-art:hover .card-art__img {
   vertical-align: top;
   border-bottom: 1px solid var(--line);
 }
-.ladder-form__table tr:last-child th,
-.ladder-form__table tr:last-child td {
+.stats-form__table tr:last-child th,
+.stats-form__table tr:last-child td {
   border-bottom: 0;
 }
-.ladder-form__table thead th {
+.stats-form__table thead th {
   font-size: var(--t-body-sm);
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink-faint);
 }
-.ladder-form__table tbody th {
+.stats-form__table tbody th {
   font-size: 13px;
   font-weight: 500;
   color: var(--ink-dim);
 }
-.ladder-form__value {
+.stats-form__value {
   display: block;
   font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.25;
 }
-.ladder-form__count {
+.stats-form__count {
   display: block;
   font-size: 12px;
   color: var(--ink-faint);
@@ -5064,7 +5065,7 @@ a.card-art:hover .card-art__img {
 /* Days played: the season on the account's calendar, in one chip's mode. The
    shade deepens with the day's battles; a day the read cannot speak for is
    hatched, never drawn empty. */
-.ladder-cal {
+.stats-cal {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
@@ -5072,12 +5073,12 @@ a.card-art:hover .card-art__img {
   padding: 10px 18px 12px;
   list-style: none;
 }
-.ladder-cal__wd {
+.stats-cal__wd {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-faint);
 }
-.ladder-day {
+.stats-day {
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -5089,56 +5090,56 @@ a.card-art:hover .card-art__img {
   font-size: 12px;
   overflow-wrap: anywhere;
 }
-.ladder-day__n {
+.stats-day__n {
   font-weight: 600;
 }
-.ladder-day--l1 {
+.stats-day--l1 {
   background: #33275a;
 }
-.ladder-day--l2 {
+.stats-day--l2 {
   background: #46347c;
 }
-.ladder-day--l3 {
+.stats-day--l3 {
   background: #5d45a3;
 }
-.ladder-day--other {
+.stats-day--other {
   background: var(--panel-raised);
 }
-.ladder-day--quiet {
+.stats-day--quiet {
   background: var(--ground-sunken);
 }
-.ladder-day--part {
+.stats-day--part {
   background: repeating-linear-gradient(
     135deg,
     var(--panel) 0 6px,
     #2c2444 6px 8px
   );
 }
-.ladder-day--unk {
+.stats-day--unk {
   background: repeating-linear-gradient(
     135deg,
     var(--panel) 0 3px,
     #3a3055 3px 5px
   );
 }
-.ladder-day--unread {
+.stats-day--unread {
   background: var(--panel);
   border-style: dashed;
   border-color: var(--line-strong);
 }
-.ladder-day--fut {
+.stats-day--fut {
   background: transparent;
   color: var(--ink-faint);
 }
-.ladder-cal__ahead {
+.stats-cal__ahead {
   display: none;
 }
-.ladder-day--today {
+.stats-day--today {
   box-shadow: inset 0 0 0 1px var(--gold);
 }
 /* The weekday is the column's on a wide screen, and the row's own on a
    phone, where the calendar is a list. */
-.ladder-day__wd {
+.stats-day__wd {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -5146,7 +5147,7 @@ a.card-art:hover .card-art__img {
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.ladder-legend {
+.stats-legend {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 6px 18px;
@@ -5156,12 +5157,12 @@ a.card-art:hover .card-art__img {
   color: var(--ink-dim);
   list-style: none;
 }
-.ladder-legend li {
+.stats-legend li {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.ladder-swatch {
+.stats-swatch {
   flex: none;
   width: 14px;
   height: 14px;
@@ -5170,34 +5171,34 @@ a.card-art:hover .card-art__img {
 }
 
 /* Week by week: newest first, a bar of wins and losses over the facts. */
-.ladder-wks {
+.stats-wks {
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.ladder-wk {
+.stats-wk {
   display: block;
   padding: 10px 18px;
   font-size: 13.5px;
 }
-.ladder-wk__label {
+.stats-wk__label {
   display: block;
   font-weight: 600;
 }
-.ladder-bar {
+.stats-bar {
   display: block;
   height: 8px;
   margin: 5px 0 4px;
   border-radius: 999px;
   background: var(--line-row);
 }
-.ladder-bar__w {
+.stats-bar__w {
   fill: var(--win-ink);
 }
-.ladder-bar__l {
+.stats-bar__l {
   fill: var(--loss);
 }
-.ladder-wk__note {
+.stats-wk__note {
   display: block;
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
@@ -5205,29 +5206,29 @@ a.card-art:hover .card-art__img {
 }
 
 /* Season's most played deck. */
-.ladder-top {
+.stats-top {
   display: grid;
   gap: 8px;
 }
-.ladder-top p {
+.stats-top p {
   margin: 0;
 }
-.ladder-top__name {
+.stats-top__name {
   font-size: 15px;
   font-weight: 600;
   color: var(--ink);
 }
-.ladder-top__sub {
+.stats-top__sub {
   font-size: 12.5px;
   color: var(--ink-faint);
 }
-.ladder-top__line {
+.stats-top__line {
   font-size: 13px;
   color: var(--ink-dim);
 }
 
 /* Battles: a day, its sittings, and each battle. */
-.ladder-sit > summary {
+.stats-sit > summary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -5237,19 +5238,19 @@ a.card-art:hover .card-art__img {
   cursor: pointer;
   font-size: 14px;
 }
-.ladder-sit__when {
+.stats-sit__when {
   font-weight: 600;
 }
-.ladder-sit__what {
+.stats-sit__what {
   color: var(--ink-dim);
   font-size: 13px;
 }
-.ladder-rows {
+.stats-rows {
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.ladder-row {
+.stats-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -5258,35 +5259,35 @@ a.card-art:hover .card-art__img {
   padding: 8px 18px;
   font-size: 13.5px;
 }
-.ladder-row__t {
+.stats-row__t {
   flex: none;
   width: 70px;
   color: var(--ink-faint);
   font-size: 12.5px;
 }
-.ladder-row__who {
+.stats-row__who {
   flex: 1 1 6rem;
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.ladder-row__kind {
+.stats-row__kind {
   color: var(--ink-faint);
   font-size: 12.5px;
 }
 /* Record's two colours; the word is there too, so colour is never alone. */
-.ladder-row__res {
+.stats-row__res {
   flex: none;
   width: 78px;
   font-weight: 600;
   color: var(--ink-dim);
 }
-.ladder-row__res--win {
+.stats-row__res--win {
   color: var(--win-ink);
 }
-.ladder-row__res--loss {
+.stats-row__res--loss {
   color: var(--loss-ink);
 }
-.ladder-row__tr {
+.stats-row__tr {
   flex: none;
   width: 52px;
   font-family: var(--font-mono);
@@ -5295,35 +5296,35 @@ a.card-art:hover .card-art__img {
 }
 
 /* Decks: one chip's decks, each with its real cards. */
-.ladder-decks {
+.stats-decks {
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.ladder-deckrow {
+.stats-deckrow {
   display: grid;
   gap: 6px;
   padding: 14px 18px;
 }
-.ladder-deckrow p {
+.stats-deckrow p {
   margin: 0;
 }
-.ladder-deckrow__name {
+.stats-deckrow__name {
   font-size: 14.5px;
   font-weight: 600;
   color: var(--ink);
 }
-.ladder-deckrow__rec {
+.stats-deckrow__rec {
   font-size: 13px;
 }
-.ladder-deckrow__cards {
+.stats-deckrow__cards {
   min-width: 0;
 }
-.ladder-deckrow__line {
+.stats-deckrow__line {
   font-size: 12.5px;
   color: var(--ink-faint);
 }
-.ladder-duel {
+.stats-duel {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -5331,17 +5332,17 @@ a.card-art:hover .card-art__img {
   padding: 10px 18px;
   font-size: 13.5px;
 }
-.ladder-duel__name {
+.stats-duel__name {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.ladder-swap__body {
+.stats-swap__body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
-.ladder-swap__side {
+.stats-swap__side {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -5349,15 +5350,15 @@ a.card-art:hover .card-art__img {
   border-radius: var(--r-control);
   background: var(--ground-sunken);
 }
-.ladder-swap__side p {
+.stats-swap__side p {
   margin: 0;
 }
-.ladder-swap__when {
+.stats-swap__when {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-faint);
 }
-.ladder-swap__cards {
+.stats-swap__cards {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -5365,48 +5366,48 @@ a.card-art:hover .card-art__img {
   padding: 0;
   list-style: none;
 }
-.ladder-swap__what {
+.stats-swap__what {
   font-size: 13px;
 }
-.ladder-swap__record {
+.stats-swap__record {
   font-size: 12.5px;
   color: var(--ink-dim);
 }
-.ladder-swap__record .ladder-record {
+.stats-swap__record .stats-record {
   font-size: 13.5px;
   font-weight: 600;
 }
 
 /* Cards: a card's art beside its name, the name the one link (to the card's
    public page); then the opponents. */
-.ladder-card {
+.stats-card {
   display: inline-flex;
   align-items: center;
   gap: 10px;
 }
-.ladder-card__name {
+.stats-card__name {
   font-weight: 500;
 }
-.ladder-cards td {
+.stats-cards td {
   padding-top: 6px;
   padding-bottom: 6px;
 }
-.ladder-opponents__lede {
+.stats-opponents__lede {
   margin: 0;
 }
-.ladder-opponents {
+.stats-opponents {
   margin: 10px 0 0;
   padding: 0;
   list-style: none;
 }
-.ladder-opponents li {
+.stats-opponents li {
   padding: 4px 0;
 }
-.ladder-opponents__gap {
+.stats-opponents__gap {
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
 }
-.ladder-opponents__tag {
+.stats-opponents__tag {
   font-family: var(--font-mono);
   font-variant-numeric: slashed-zero;
   font-size: 12.5px;
@@ -5414,115 +5415,113 @@ a.card-art:hover .card-art__img {
 }
 
 @media (max-width: 900px) {
-  .ladder-tiles {
+  .stats-tiles {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
-  .ladder-form__value {
+  .stats-form__value {
     font-size: 17px;
   }
   /* Two selects side by side, full width, then the chips, every target 44px.
      With one player (round two, 2026-11-13) the head's line names them
      already, so the bar drops the name and is one quiet line: the season
      select, the battle log's freshness beside it, then the mode chips. */
-  .ladder-scope__picks {
+  .stats-scope__picks {
     flex-basis: 100%;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .ladder-scope--frame .ladder-scope__picks:has(.ladder-scope__one) {
+  .stats-scope--frame .stats-scope__picks:has(.stats-scope__one) {
     flex-basis: auto;
     display: flex;
   }
-  .ladder-scope--frame .ladder-scope__one {
+  .stats-scope--frame .stats-scope__one {
     display: none;
   }
   .scope-select {
     width: 100%;
     min-height: 44px;
   }
-  .ladder-scope--frame
-    .ladder-scope__picks:has(.ladder-scope__one)
-    .scope-select {
+  .stats-scope--frame .stats-scope__picks:has(.stats-scope__one) .scope-select {
     width: auto;
   }
-  .ladder-scope .ladder-scope__modes {
+  .stats-scope .stats-scope__modes {
     order: 2;
   }
   /* Mode chips stay on one line; the fade says there are more. */
-  .ladder-scope .ladder-scope__modes {
+  .stats-scope .stats-scope__modes {
     flex: 1 1 100%;
     flex-wrap: nowrap;
     min-width: 0;
     overflow-x: auto;
     scrollbar-width: none;
   }
-  .ladder-scope__modes .kit-chip {
+  .stats-scope__modes .kit-chip {
     flex: none;
   }
-  .ladder-scope__one {
+  .stats-scope__one {
     min-height: 44px;
     min-width: 0;
     overflow-wrap: anywhere;
   }
-  .ladder-scope .kit-chip,
-  .ladder-order .kit-chip {
+  .stats-scope .kit-chip,
+  .stats-order .kit-chip {
     min-height: 44px;
   }
-  .ladder-scope__fresh {
+  .stats-scope__fresh {
     margin-left: auto;
   }
-  .ladder-scope .ladder-scope__fresh > summary {
+  .stats-scope .stats-scope__fresh > summary {
     min-height: 44px;
     padding-right: 0;
   }
   /* The calendar becomes a list of the days, newest first, each naming its
      weekday; the column heads and the week's padding drop out. */
-  .ladder-cal {
+  .stats-cal {
     display: flex;
     flex-direction: column-reverse;
     gap: 4px;
   }
   /* The days to come are one line under the list, so today leads it (Jamie,
      2026-11-06). The computer's month keeps them. */
-  .ladder-cal__wd,
-  .ladder-cal__lead,
-  .ladder-day--fut:not(.ladder-day--today),
-  .ladder-legend .ladder-legend__fut {
+  .stats-cal__wd,
+  .stats-cal__lead,
+  .stats-day--fut:not(.stats-day--today),
+  .stats-legend .stats-legend__fut {
     display: none;
   }
-  .ladder-cal__ahead {
+  .stats-cal__ahead {
     display: block;
     margin: 0;
     padding: 10px 18px 14px;
     font-size: 13px;
     color: var(--ink-dim);
   }
-  .ladder-day {
+  .stats-day {
     flex-direction: row;
     justify-content: space-between;
     gap: 8px;
     min-height: 0;
   }
-  .ladder-day__wd {
+  .stats-day__wd {
     position: static;
     width: auto;
     height: auto;
     overflow: visible;
     clip-path: none;
   }
-  .ladder-row__t {
+  .stats-row__t {
     width: 62px;
   }
-  .ladder-deckrow .deck-grid--8,
-  .ladder-top .deck-grid--8 {
+  .stats-deckrow .deck-grid--8,
+  .stats-top .deck-grid--8 {
     grid-template-columns: repeat(4, max-content);
     gap: 8px 6px;
   }
-  .ladder-swap__body {
+  .stats-swap__body {
     grid-template-columns: minmax(0, 1fr);
   }
-  .ladder-card {
+  .stats-card {
     gap: 8px;
   }
 }
@@ -6407,7 +6406,7 @@ button.kit-row {
   line-height: 1.35;
 }
 @media (max-width: 900px) {
-  .ladder-tile .kit-stat__value--sm {
+  .stats-tile .kit-stat__value--sm {
     font-size: 17px;
   }
 }
@@ -10422,7 +10421,7 @@ a.kit-mbattle:hover {
   a.battle__name,
   .kit-tl__more,
   .home-row__link,
-  .ladder-card__name,
+  .stats-card__name,
   .battle-deck a.card-art,
   .hit {
     position: relative;
@@ -10446,7 +10445,7 @@ a.kit-mbattle:hover {
   a.battle__name::after,
   .kit-tl__more::after,
   .home-row__link::after,
-  .ladder-card__name::after,
+  .stats-card__name::after,
   .battle-deck a.card-art::after,
   .hit::after {
     content: "";
