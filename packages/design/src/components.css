@@ -997,9 +997,6 @@ p.kit-tiny,
 .freshness--stale {
   color: var(--warn);
 }
-.freshness--derived {
-  color: var(--accent-bright);
-}
 .freshness--never {
   color: var(--ink-faint);
 }
@@ -1400,9 +1397,6 @@ tr.yours td {
 
 /* Freshness — how old is this number. green < 15m, amber < 24h,
    neutral beyond, and "as of <date>" for snapshots. */
-.freshness--fresh::before {
-  background: var(--ok);
-}
 .freshness--stale::before {
   background: var(--warn);
 }
@@ -7308,9 +7302,6 @@ button.kit-row {
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
-.kit-tl {
-  padding-inline: 0;
-}
 .kit-tl__more {
   display: block;
   margin-top: 2px;
@@ -8579,18 +8570,6 @@ a.kit-mbattle:hover {
       max(16px, env(safe-area-inset-right));
     min-height: 54px;
   }
-  /* A timeline line reads across the phone; its time goes under it. */
-  .kit-tl {
-    flex-wrap: wrap;
-    gap: 2px 12px;
-  }
-  .kit-tl .kit-row__main {
-    flex-basis: 100%;
-  }
-  .kit-tl .kit-row__right {
-    max-width: none;
-    text-align: left;
-  }
   .kit-top__nav,
   .kit-top__search {
     display: none;
@@ -9057,9 +9036,6 @@ a.kit-mbattle:hover {
 .clan-clock {
   display: grid;
   gap: 4px;
-}
-.clan-fold > summary {
-  cursor: pointer;
 }
 .clan-facts {
   display: grid;
