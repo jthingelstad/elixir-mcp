@@ -14,10 +14,10 @@ views and their shaping functions (`stats*.js`) live here. Public docs:
 
 - **Stats has no API of its own.** Every read is an MCP tool answered
   through Stats' door, `POST /api/me/stats` (`api.stats`, hooks in
-  `src/lib/queries.js` under `["me", "stats", ...]`): the Explore
+  `src/lib/queries.js` under `["me", "stats", ...]`): the app's tool
   bridge behind a per-tag gate that opens only for the reader's own
   players and the players they follow, and refuses the rest with 403
-  `not_followed` (Jamie, 2026-11-12; `services/web-api/src/routes/explore.mjs`).
+  `not_followed` (Jamie, 2026-11-12; `services/web-api/src/routes/tool-bridge.mjs`).
   A followed player opens from their player page's **Their stats**
   (`?player=`); the page then wears no You tabs, and its words come from
   `whose.js` ("their" for "your"). A person's own

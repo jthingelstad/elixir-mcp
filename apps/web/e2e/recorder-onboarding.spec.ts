@@ -264,7 +264,7 @@ for (const width of [390, 1280]) {
         if (
           p.startsWith("/api/") &&
           r.method() !== "GET" &&
-          p !== "/api/explore"
+          p !== "/api/me/tool"
         )
           writes.push(`${r.method()} ${p}`);
       });
@@ -298,7 +298,7 @@ for (const width of [390, 1280]) {
           ],
           "GET /api/me/clans": [200, { clans: [], home_clan: null }],
           "GET /api/player": [200, PLAYER_PAGE],
-          "POST /api/explore": (route) => {
+          "POST /api/me/tool": (route) => {
             const call = route.request().postDataJSON();
             calls.push(call);
             expect(call.args.live).not.toBe(true);
@@ -496,7 +496,7 @@ for (const width of [390, 1280]) {
           return [200, { ok: true }];
         },
         "GET /api/player": [200, PLAYER_PAGE],
-        "POST /api/explore": (route) => {
+        "POST /api/me/tool": (route) => {
           const call = route.request().postDataJSON();
           expect(call.args).toEqual({ player_tag: player.player_tag });
           if (call.tool === "players_summary") return [200, { body: summary }];

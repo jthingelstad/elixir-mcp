@@ -206,7 +206,7 @@ inside a request. Non-database work (S3 calls) still parallelises.
   `infra/template.yaml`, a ceiling just under that function's Lambda kill.
 - A read-only tool waits at most 5 s for a lock and answers
   `query_timeout` with a request id when its deadline passes, on every door
-  (MCP, the app's tool bridge `POST /api/explore`)
+  (MCP, the app's tool bridge `POST /api/me/tool`)
   (`packages/tools/src/invoker.mjs`). Writes never
   race a deadline.
 - An MCP result over `MCP_RESULT_MAX_CHARS`
@@ -530,7 +530,7 @@ imported by name.
 
 | Service (Lambda) | Serves |
 | --- | --- |
-| `web-api` | the site's API, `GET /api/v1/me`, `/api/clan`, the app's tool bridge (`/api/explore`), `/battle/*`, OAuth consent |
+| `web-api` | the site's API, `GET /api/v1/me`, `/api/clan`, the app's tool bridge (`/api/me/tool`), `/battle/*`, OAuth consent |
 | `mcp` | the MCP and OAuth doors |
 | `collector` | the collector door |
 | `scheduler` | the ledger tick |

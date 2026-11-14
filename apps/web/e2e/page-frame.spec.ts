@@ -34,7 +34,7 @@ for (const width of [1440, 1100, 820]) {
       await sameAsBar(page, ".kit-shell__main");
       await page.unrouteAll();
 
-      await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+      await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
       await page.goto("/home/you/stats");
       await expect(page.locator(".stats-page")).toBeVisible();
       await sameAsBar(page, ".stats-page");
@@ -72,7 +72,7 @@ test.describe("at computer width", () => {
   });
 
   test("Settings' rail keeps its column inside the frame", async ({ page }) => {
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/settings/usage");
     await expect(page.locator(".rail")).toBeVisible();
     const [railLeft] = await edges(page, ".rail");
@@ -85,7 +85,7 @@ test.describe("at computer width", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": explore(),
+        "POST /api/me/tool": explore(),
         "GET /api/me/feedback": [
           200,
           {
@@ -114,7 +114,7 @@ test.describe("at computer width", () => {
     await mockApi(
       page,
       signedIn({
-        "POST /api/explore": explore(),
+        "POST /api/me/tool": explore(),
         "GET /api/me/usage": [
           200,
           {
@@ -143,7 +143,7 @@ test.describe("at computer width", () => {
   test("Stats' scope stays on one line, and its names are only names", async ({
     page,
   }) => {
-    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats");
     const bar = page.locator(".stats-scope");
     await expect(bar).toBeVisible();
@@ -167,7 +167,7 @@ test.describe("at computer width", () => {
 test("@narrow mode chips scroll on one line, and the edge says there are more", async ({
   page,
 }) => {
-  await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+  await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
   await page.goto("/home/you/stats");
   const row = page.locator(".stats-scope__modes");
   await expect(row).toBeVisible();

@@ -98,7 +98,7 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
           // the tag and then answers as the bridge does: a fixture that
           // answers the bridge answers Stats too, unless it names Stats.
           key === "POST /api/me/stats"
-          ? routes["POST /api/explore"]
+          ? routes["POST /api/me/tool"]
           : undefined);
     const [status, body] =
       typeof answer === "function"

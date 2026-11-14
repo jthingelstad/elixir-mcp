@@ -41,7 +41,7 @@ import { homeRoutes } from "./routes/home.mjs";
 import { playerRoutes } from "./routes/player.mjs";
 import { publicRoutes } from "./routes/public.mjs";
 import { gatewaysRoutes } from "./routes/gateways.mjs";
-import { exploreRoutes } from "./routes/explore.mjs";
+import { toolBridgeRoutes } from "./routes/tool-bridge.mjs";
 import { feedbackRoutes } from "./routes/feedback.mjs";
 import { adminRoutes } from "./routes/admin.mjs";
 import { onboardAccount } from "@elixir-mcp/tools/onboard";
@@ -298,10 +298,10 @@ export function makeHandler({
     });
   }
 
-  let exploreRegistryCache = null;
-  function exploreRegistry() {
-    exploreRegistryCache ??= makeRegistry();
-    return exploreRegistryCache;
+  let toolRegistryCache = null;
+  function toolRegistry() {
+    toolRegistryCache ??= makeRegistry();
+    return toolRegistryCache;
   }
 
   // The activity log must never break the action it records.
@@ -445,10 +445,10 @@ export function makeHandler({
     ...clansRoutes({ resolveAccount, logEvent }),
     ...publicRoutes({ deadLetters }),
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),
-    ...exploreRoutes({ resolveAccount, exploreRegistry }),
+    ...toolBridgeRoutes({ resolveAccount, toolRegistry }),
     ...homeRoutes({
       resolveAccount,
-      exploreRegistry,
+      toolRegistry,
       clan,
       // A stored week past fresh asks the timeline-sync lane for a new one.
       wake: homeWake,

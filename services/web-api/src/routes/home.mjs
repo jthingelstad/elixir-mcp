@@ -862,7 +862,7 @@ const person = (p) => ({
 
 export function homeRoutes({
   resolveAccount,
-  exploreRegistry,
+  toolRegistry,
   clan,
   wake = null,
 }) {
@@ -904,7 +904,7 @@ export function homeRoutes({
       if (!account) return json(401, { error: "unauthenticated" });
       if (!(await panelRate(db, account)))
         return json(429, { error: "rate_limited" });
-      const read = toolReader(db, account, exploreRegistry(), event);
+      const read = toolReader(db, account, toolRegistry(), event);
       // `rebuild=1`: the page's ask when the card it was served is past
       // fresh; it builds now and keeps the build.
       const rebuild = event.queryStringParameters?.rebuild === "1";
@@ -936,7 +936,7 @@ export function homeRoutes({
         return json(429, { error: "rate_limited" });
       const tag = await primaryTag(db, account.accountId);
       if (!tag) return json(404, { error: "no_player" });
-      const read = toolReader(db, account, exploreRegistry(), event);
+      const read = toolReader(db, account, toolRegistry(), event);
       const wanted = event.queryStringParameters?.mode ?? null;
       const week = await panel("week", async () => {
         const out = await readWeek(read, db, tag, wanted);
@@ -991,7 +991,7 @@ export function homeRoutes({
       );
       if (own.length === 0) return json(200, { no_player: true });
       const week = lastGameWeek(new Date());
-      const registry = exploreRegistry();
+      const registry = toolRegistry();
       // Leave the page room to answer: past this the rest keep their counts
       // and go without a deck. With no soft deadline (no HTTP context: tests,
       // a local server) there is none to keep room for (deadline.mjs), so a

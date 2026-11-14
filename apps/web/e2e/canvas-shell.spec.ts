@@ -217,7 +217,7 @@ for (const [label, width] of [
         homeApi({
           "GET /api/me": [200, VERIFIED_ME],
           "GET /api/player": [200, PAGE],
-          "POST /api/explore": explore(),
+          "POST /api/me/tool": explore(),
         }),
       );
       await page.goto("/home/you");
@@ -260,7 +260,7 @@ for (const [label, width] of [
         page,
         homeApi({
           "GET /api/me": [200, VERIFIED_ME],
-          "POST /api/explore": explore(),
+          "POST /api/me/tool": explore(),
         }),
       );
       await page.goto("/home/you/stats/cards?mode=war");

@@ -81,7 +81,9 @@ The Console folded (2026-11-12): no page lives under `/console/`, and since
 2026-11-13 its old addresses are the site's 404 (CloudFront no longer
 routes them to the app). Find's
 search and a player page's Record tab still read through `POST
-/api/explore`, the tool bridge. `src/views/` holds the pages,
+/api/me/tool`, the tool bridge, which answers only the tools the app
+calls (`APP_TOOLS` in `services/web-api/src/routes/tool-bridge.mjs`); a
+new call through it adds its tool there. `src/views/` holds the pages,
 `src/views/account/` the Settings and agent pages; the route table is in
 `App.jsx`. `src/lib/settings.js` is Settings' rail and paths. Settings (`/settings`:
 profile, players, emails, connections and agents, sign-ins, usage, feedback,

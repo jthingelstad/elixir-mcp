@@ -1031,38 +1031,43 @@ test("collector fleet: card-derived identity; points and credits retired (#539)"
   assert.ok(!("arena" in gw));
 });
 
-test("explorer bridge: registry tools with session auth, audited as surface web", async () => {
+test("the app's tool bridge: its own tools with session auth, audited as surface web", async () => {
   const cookie = memberCookie;
   const res = parse(
     await handler(
       event({
-        path: "/api/explore",
+        path: "/api/me/tool",
         cookie,
-        body: { tool: "elixir_my_players", args: {} },
+        body: { tool: "players_search", args: { query: "King", limit: 8 } },
       }),
     ),
   );
   assert.equal(res.is_error, false);
-  assert.ok(Array.isArray(res.body.players));
+  assert.ok(Array.isArray(res.body.matches));
 
-  // Entitlements ride along: a stranger tag (no shared clan) refuses.
-  const denied = parse(
-    await handler(
-      event({
-        path: "/api/explore",
-        cookie,
-        body: { tool: "battles_query", args: { player_tag: "#0892G9" } },
-      }),
-    ),
+  // Universal reads (2026-09-05): any tag serves through the app's own
+  // tools; an unobserved one is answered by the tool, not refused here.
+  const stranger = await handler(
+    event({
+      path: "/api/me/tool",
+      cookie,
+      body: { tool: "players_summary", args: { player_tag: "#0892G9" } },
+    }),
   );
-  // Universal reads (2026-09-05): any tag serves; an unobserved one is
-  // an honest empty, not a refusal.
-  assert.equal(denied.is_error, false);
-  assert.equal(denied.body.battles.length, 0);
+  assert.equal(stranger.statusCode, 200);
 
-  // Live passthrough is not explorable; unknown tools refuse.
+  // A read-only tool the app does not call is refused (2026-11-14), as
+  // the live passthrough and unknown tools are.
+  const notTheApps = await handler(
+    event({
+      path: "/api/me/tool",
+      cookie,
+      body: { tool: "battles_query", args: { player_tag: "#0892G9" } },
+    }),
+  );
+  assert.equal(notTheApps.statusCode, 400);
   const live = await handler(
-    event({ path: "/api/explore", cookie, body: { tool: "live_fetch" } }),
+    event({ path: "/api/me/tool", cookie, body: { tool: "live_fetch" } }),
   );
   assert.equal(live.statusCode, 400);
 
@@ -1070,7 +1075,7 @@ test("explorer bridge: registry tools with session auth, audited as surface web"
   const { rows } = await db.query(
     `select count(*)::int n from mcp_call_audit where surface = 'web'`,
   );
-  assert.ok(rows[0].n >= 2, "explorer calls audited as web");
+  assert.ok(rows[0].n >= 2, "the app's tool calls audited as web");
 });
 
 test("Stats opens for your own players and the players you follow, and refuses the rest", async () => {
@@ -1185,7 +1190,7 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
   // route and its own MCP capability, so the bridge refuses it outright.
   const viaBridge = await handler(
     event({
-      path: "/api/explore",
+      path: "/api/me/tool",
       cookie,
       body: {
         tool: "elixir_send_feedback",
@@ -2929,7 +2934,7 @@ test("malformed ids are 400s, never uuid or bigint syntax errors", async () => {
   assert.equal(fb.statusCode, 400);
 });
 
-test("the explorer takes the hourly bucket but no daily quota, and is read-only", async () => {
+test("the app's tool bridge takes the hourly bucket but no daily quota, and is read-only", async () => {
   const cookie = memberCookie;
   const { rows: acct } = await db.query(
     `select account_id from account where email_hash = $1`,
@@ -2937,7 +2942,8 @@ test("the explorer takes the hourly bucket but no daily quota, and is read-only"
   );
   const accountId = acct[0].account_id;
   const call = (tool, args = {}) =>
-    handler(event({ path: "/api/explore", cookie, body: { tool, args } }));
+    handler(event({ path: "/api/me/tool", cookie, body: { tool, args } }));
+  const SEARCH = { query: "King", limit: 8 };
 
   // A person's own web read (#538, Jamie 2026-10-12): it bumps the hourly
   // bucket, leaves the daily tool-call counter alone, and is still written
@@ -2953,7 +2959,7 @@ test("the explorer takes the hourly bucket but no daily quota, and is read-only"
   const logged = async () => {
     const { rows } = await db.query(
       `select count(*)::int as n from mcp_call_audit
-        where account_id = $1 and tool = 'elixir_my_players'
+        where account_id = $1 and tool = 'players_search'
           and surface = 'web' and client_name is null`,
       [accountId],
     );
@@ -2962,7 +2968,7 @@ test("the explorer takes the hourly bucket but no daily quota, and is read-only"
   const hourBefore = await counter(`mcp#${accountId}`);
   const dayBefore = await counter(`mcpday#${accountId}`);
   const logBefore = await logged();
-  assert.equal((await call("elixir_my_players")).statusCode, 200);
+  assert.equal((await call("players_search", SEARCH)).statusCode, 200);
   assert.equal(
     await counter(`mcp#${accountId}`),
     hourBefore + 1,
@@ -2991,7 +2997,7 @@ test("the explorer takes the hourly bucket but no daily quota, and is read-only"
      on conflict (bucket, window_start) do update set count = 100000`,
     [`mcpday#${accountId}`, today],
   );
-  const spent = await call("elixir_my_players");
+  const spent = await call("players_search", SEARCH);
   assert.equal(spent.statusCode, 200, "a full daily quota refuses no web read");
   assert.equal(
     await counter(`mcpday#${accountId}`),
@@ -3016,7 +3022,7 @@ test("the explorer takes the hourly bucket but no daily quota, and is read-only"
     `update rate_limit set count = 100000 where bucket = $1 and window_start = $2`,
     [hourly[0].bucket, hourly[0].window_start],
   );
-  const rate = await call("elixir_my_players");
+  const rate = await call("players_search", SEARCH);
   assert.equal(rate.statusCode, 429);
   assert.equal(parse(rate).error, "rate_limited");
   await db.query(`delete from rate_limit where bucket = $1`, [
@@ -3024,7 +3030,9 @@ test("the explorer takes the hourly bucket but no daily quota, and is read-only"
   ]);
 
   // Arguments are validated on this door as well.
-  const bad = parse(await call("battles_query", { limit: "ten" }));
+  const bad = parse(
+    await call("players_search", { query: "King", limit: "ten" }),
+  );
   assert.equal(bad.is_error, true);
   assert.equal(bad.body.error.code, "bad_request");
 });

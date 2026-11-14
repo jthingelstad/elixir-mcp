@@ -293,16 +293,16 @@ function failure(r) {
 
 /**
  * The read half: a tag asks for the player, then the clan, then names; a word
- * asks for names. `explore(tool, args)` is the bridge, `seen(kind, id, tool,
+ * asks for names. `call(tool, args)` is the bridge, `seen(kind, id, tool,
  * args, body)` keeps a found record so opening it costs no second read.
  * Throws with the message when Elixir did not answer.
  */
-export async function readSearch(raw, explore, seen = () => {}) {
+export async function readSearch(raw, call, seen = () => {}) {
   const query = String(raw ?? "").trim();
   const asTag = isTagQuery(query);
   const empty = { players: [], clans: [], miss: null };
   const ask = async (tool, args) => {
-    const r = await explore(tool, args);
+    const r = await call(tool, args);
     const failed = failure(r);
     if (failed) throw new Error(failed);
     return r.data.is_error ? null : r.data.body;

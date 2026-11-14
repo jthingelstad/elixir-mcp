@@ -69,7 +69,7 @@ test("choose a captured battle, inspect facts, preview and copy only deliberate 
     signedIn({
       "GET /api/me": [200, own],
       [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, captured],
-      "POST /api/explore": (route) => {
+      "POST /api/me/tool": (route) => {
         const [status, payload] = source(route);
         const result = payload as {
           tool: string;

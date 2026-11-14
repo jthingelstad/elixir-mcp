@@ -57,7 +57,7 @@ for (const suffix of ["", " @narrow"]) {
       await mockApi(
         page,
         signedIn({
-          "POST /api/explore": (route) => {
+          "POST /api/me/tool": (route) => {
             const { tool } = route.request().postDataJSON();
             if (tool !== "elixir_coverage") return base(route);
             if (capture.name === "failed")

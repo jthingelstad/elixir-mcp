@@ -39,7 +39,7 @@ const mocks = signedIn({
   ],
   // What members see: its lens reads the main player's latest battle, then
   // draws it from the public battle answer. Other tools stay unmocked.
-  "POST /api/explore": (route) =>
+  "POST /api/me/tool": (route) =>
     route.request().postDataJSON()?.tool === "battles_query"
       ? [
           200,
@@ -128,7 +128,7 @@ test.describe("@narrow Settings at phone width", () => {
       if (
         new URL(r.url()).pathname.startsWith("/api/") &&
         !["GET"].includes(r.method()) &&
-        !r.url().includes("/api/explore")
+        !r.url().includes("/api/me/tool")
       )
         writes.push(r.url());
     });

@@ -230,7 +230,7 @@ describe("the sheet", () => {
       const p = String(path);
       let body = {};
       if (p === "/api/me/clans") body = CLANS;
-      else if (p.startsWith("/api/explore")) {
+      else if (p.startsWith("/api/me/tool")) {
         const sent = init.body ? JSON.parse(init.body) : {};
         body = handlers.explore?.(sent) ?? { is_error: true, body: {} };
       } else if (p === "/api/claims") body = handlers.claim?.(init) ?? {};
@@ -324,7 +324,7 @@ describe("the sheet", () => {
     // The roster is the one read of opening the sheet; typing adds none.
     const typed = () =>
       fetch.mock.calls
-        .filter(([p]) => String(p).startsWith("/api/explore"))
+        .filter(([p]) => String(p).startsWith("/api/me/tool"))
         .map(([, i]) => JSON.parse(i.body).tool)
         .filter((t) => t !== "clans_roster");
     fireEvent.change(box, { target: { value: "ab" } });
