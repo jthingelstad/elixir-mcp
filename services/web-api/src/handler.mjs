@@ -56,6 +56,7 @@ import { highlightRoutes } from "./routes/highlight.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
 import { peopleRoutes } from "./routes/people.mjs";
+import { passportRoutes } from "./routes/passport.mjs";
 import { clanRoutes } from "./routes/clan.mjs";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import {
@@ -468,6 +469,7 @@ export function makeHandler({
     // The bell's stored week rides the same wake (bell_week, 0247).
     ...bellRoutes({ resolveAccount, wake: homeWake }),
     ...peopleRoutes({ resolveAccount }),
+    ...passportRoutes({ resolveAccount }),
     ...highlightRoutes({
       resolveAccount,
       siteShell,
