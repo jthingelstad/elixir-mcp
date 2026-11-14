@@ -293,7 +293,10 @@ export async function refreshStatus(
 export const PLAYER_FLOOR_S = 120;
 /** Asks for other people's battles that reach the lane, per account per
  *  hour. Half a Member's live quota (20 a day), so a Member's day lasts at
- *  least two hours of tapping, and a Leader's 100 cannot go in one sitting. */
+ *  least two hours of tapping, and a Leader's 100 cannot go in one sitting.
+ *  An account with an unlimited live quota (owner, admin, a family app;
+ *  liveBudgetFor) is not held to it, as it is held to no live allowance;
+ *  the per-player floor and the global bucket still hold for everyone. */
 export const OTHERS_PER_HOUR = 10;
 export const REFRESH_ONE = "refreshone#";
 export const REFRESH_OTHERS = "refreshother#";
@@ -336,6 +339,8 @@ class Refused extends Error {
 /** The hour's asks, then the day's live quota; a refusal throws Refused
  *  having given back what it took. Returns what to give back later. */
 async function spendForOther(db, account) {
+  const budget = liveBudgetFor(account);
+  if (budget.cap === Infinity) return [];
   const hour = `${REFRESH_OTHERS}${account.accountId}`;
   const {
     rows: [h],
@@ -356,8 +361,7 @@ async function spendForOther(db, account) {
     throw new Refused(w.s);
   }
   const spent = [{ bucket: hour, window: h.window_start }];
-  const budget = liveBudgetFor(account);
-  if (budget.cap !== Infinity) {
+  {
     const day = new Date().toISOString().slice(0, 10);
     const { rows } = await db.query(
       `insert into rate_limit (bucket, window_start, count) values ($1::text, $2::date, 1)
