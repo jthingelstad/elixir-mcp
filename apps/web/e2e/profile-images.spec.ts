@@ -1,3 +1,4 @@
+import { PNG } from "./test-art.ts";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, mockApi, signedIn } from "./fixtures.ts";
@@ -10,11 +11,6 @@ import { ME, mockApi, signedIn } from "./fixtures.ts";
  * initials. Invented players only.
  */
 
-// A real 2x2 PNG: the art's own bytes do not matter here, only that it loads.
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGM40OAARAwQCgAsDgYB7KiQrwAAAABJRU5ErkJggg==",
-  "base64",
-);
 const BROKEN = 26000010;
 
 async function serveArt(page: Page) {

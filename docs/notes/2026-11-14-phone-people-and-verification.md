@@ -44,7 +44,12 @@ The repository gate passed on Node 24 across all 30 test units, static
 checks and Lambda builds. The browser suite found a low-contrast interval
 in the picker’s opacity fade; the fade was removed so text stays readable
 throughout its 160ms translation. Both cheer widths and the failed-art
-identity journey passed after the fix. The complete browser suite then passed all 509 journeys, without retries.
+identity journey passed after the fix. The complete local browser suite then passed all 509 journeys, without retries.
+CI exposed a test-environment dependency: the positive unverified-image case
+had used the host’s untracked card mirror. The image-load fixture now supplies
+the same tiny PNG already used by the profile-image journeys, while the
+negative image is explicitly aborted. No production art is added or changed. All five affected image journeys
+passed after this correction, and the full repository gate passed again.
 
 Native in-app browser review separately checked 390px Find tab selection,
 explicit verified/unverified names, the six 44px cheer targets, and Clan’s
