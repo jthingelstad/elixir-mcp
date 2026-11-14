@@ -88,6 +88,9 @@ routes.push(
   "/home/player/2ABC",
   "/home/player/2ABC?tab=record",
   "/home/follow/2ABC,9XYZ",
+  "/home/passport",
+  "/home/passport?stamp=cheerleader",
+  "/home/passport/abcdefghjkmn",
 );
 
 for (const route of routes) {
