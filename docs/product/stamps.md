@@ -1,6 +1,6 @@
 # Passports and Stamps
 
-Design direction, 2026-11-14. **Earning and the backfill built; the pages are not.**
+Design direction, 2026-11-14. **Earning, the backfill and the pages built; the profile list is not.**
 The catalog, eligibility, storage and two signed-in passport reads exist
 (`packages/stamps`, migrations 0269 and 0270). Real writes grant Stamps
 through hooks, the owner's reconciliation repairs and grants the rest,
@@ -10,8 +10,8 @@ the launch instant, every grant path files what predates it as legacy,
 an account made before launch gets one "Your passport is ready" line
 (its ladder Stamps wait until the backfill has read its history, 0273),
 and the operator's `{passport_backfill}` adds the history no live path
-reads (docs/OPERATIONS.md, Passport launch backfill). No page shows a
-passport yet and Home has no profile list. The clickable sample is in
+reads (docs/OPERATIONS.md, Passport launch backfill). The passport
+pages show it; Home has no profile list yet. The clickable sample is in
 [the passport design](../design/passport/README.md); the build plan is
 [the build handoff](../plans/stamps-build.md).
 
@@ -206,12 +206,12 @@ Built in the pages slice (#1015,
   each Stamp) and `/home/passport/<id>` (any signed-in member's, the
   public projection only), a detail sheet per Stamp, and
   `?stamp=<stamp_id>` to open one. Opening your own passport runs the
-  reconciliation in the background and reads it again when a Stamp is
-  granted.
+  reconciliation in the background and reads it again once a pass
+  answers.
 - Entry points: Passport in the account menu, a row on You, and
   identity with a passport preview at the top of Settings > Profile.
 - `GET /api/player` adds a compact summary (`{id, count, marks}`) only
   when the player's canonical verified owner has a passport; a player
   page shows it as a row with **Open passport**.
 
-Not built yet: the profile list on Home and the legacy backfill.
+Not built yet: the profile list on Home.
