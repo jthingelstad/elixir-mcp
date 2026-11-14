@@ -215,6 +215,74 @@ test("docs and notes audits hold on any day: an optional field a bite carried pa
   );
 });
 
+test("docs audit holds a shared section on any day: a bite of a tool answering with the same section counts, any other tool's does not", async () => {
+  // 2026-11-14: battles_opponents#docs failed on `rounds_played`, a
+  // duel-only field of battles_query's row, which battles_opponents also
+  // points at and can never carry. battles_query passed on its own bite;
+  // battles_opponents passed only while battles_query's window held a duel.
+  assert.ok(
+    biteKeys().get("battles_query")?.has("rounds_played"),
+    "a bite of battles_query holds rounds_played",
+  );
+
+  let markdown = "A row has `battle_id`; a duel row has `rounds_played`.";
+  const rowTool = { docs: "rows#a-row", battles: [{ battle_id: "x" }] };
+  const axisTool = { docs: "rows#a-row", opponents: [{ battle_id: "x" }] };
+  const elsewhere = { docs: "other#section", items: [] };
+  const bodyOf = {
+    row_tool: rowTool,
+    axis_tool: axisTool,
+    else_tool: elsewhere,
+  };
+  const tool = {
+    inputSchema: { properties: {} },
+    outputSchema: { type: "object" },
+  };
+  const ctx = {
+    tools: new Map(Object.keys(bodyOf).map((t) => [t, tool])),
+    allTools: new Set(Object.keys(bodyOf)),
+    cache: new Map(Object.entries(bodyOf).map(([t, body]) => [t, { body }])),
+    biteKeys: new Map([
+      ["row_tool", new Map([["rounds_played", "invented-duel.json"]])],
+      ["else_tool", new Map([["only_elsewhere", "other-bite.json"]])],
+    ]),
+    read: async (t) =>
+      t === "elixir_docs"
+        ? { body: { markdown }, ms: 1 }
+        : { body: bodyOf[t], ms: 1 },
+  };
+  const cases = buildCatalogueCases({
+    tools: Object.fromEntries(
+      Object.keys(bodyOf).map((t) => [t, { sets: [{ args: {} }], p95_ms: 1 }]),
+    ),
+  });
+  for (const t of Object.keys(bodyOf))
+    await cases.find((x) => x.id === `${t}#0`).run(ctx);
+  const audit = cases.find((x) => x.id === "axis_tool#docs");
+  // No duel this run: the row tool's bite holds the field for both.
+  await cases.find((x) => x.id === "row_tool#docs").run(ctx);
+  await audit.run(ctx);
+  assert.equal(
+    ctx.docsProvenance.get("axis_tool#docs rounds_played"),
+    "row_tool invented-duel.json",
+  );
+  assert.equal(
+    ctx.docsProvenance.get("row_tool#docs rounds_played"),
+    "invented-duel.json",
+  );
+  // A tool on another section lends nothing, and a field no bite of a
+  // sharer holds is still the finding.
+  markdown += " Plus `only_elsewhere`.";
+  await assert.rejects(
+    () => audit.run(ctx),
+    /documents only_elsewhere and no response this run, nor any bite of axis_tool or of row_tool \(same section\), carried it/,
+  );
+  // Without the sharer's bite, the day's data decides again: red.
+  ctx.biteKeys = new Map();
+  markdown = "A duel row has `rounds_played`.";
+  await assert.rejects(() => audit.run(ctx), /documents rounds_played/);
+});
+
 test("docs audit of kinds holds on any day: declared, never required to appear", async () => {
   const markdown = [
     "| `kind` | what |",

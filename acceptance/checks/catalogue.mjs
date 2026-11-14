@@ -24,7 +24,10 @@
  *  `crossed_by` exists only when a followed player crossed a band in the
  *  window) passes notes and docs when a committed bite of the same tool
  *  carries it as a key: the product served it, on the record, so the
- *  docs name a field the tool can emit. Those fields are listed after
+ *  docs name a field the tool can emit. For docs, a bite of another
+ *  tool whose answers this run point at the same section counts too: the
+ *  rule is about the section, and its live half already takes any
+ *  tool's response. Those fields are listed after
  *  the run ("docs provenance"), as shape baselines are: evidence from a
  *  capture, not from today.
  *
@@ -229,18 +232,26 @@ export function biteKeys(dir = path.join(here, "../bites")) {
 
 /** Splits the tokens nothing this run accounted for into those a bite
  *  of the tool carries (recorded on ctx.docsProvenance, printed after
- *  the run) and those served nowhere (the finding). */
-function heldByBite(ctx, tool, tokens, where) {
-  const held = (ctx.biteKeys ?? biteKeys()).get(tool) ?? new Map();
+ *  the run) and those served nowhere (the finding). `sharers` are the
+ *  other tools whose answers this run point at the same docs section:
+ *  their bites count for it too, named in the provenance, own bites
+ *  first. */
+function heldByBite(ctx, tool, tokens, where, sharers = []) {
+  const index = ctx.biteKeys ?? biteKeys();
+  const sources = [tool, ...sharers].map((t) => [t, index.get(t)]);
   const missing = [];
   for (const t of tokens) {
-    const file = held.get(t);
-    if (!file) {
+    const hit = sources.find(([, held]) => held?.has(t));
+    if (!hit) {
       missing.push(t);
       continue;
     }
+    const [by, held] = hit;
     if (!ctx.docsProvenance) ctx.docsProvenance = new Map();
-    ctx.docsProvenance.set(`${tool}#${where} ${t}`, file);
+    ctx.docsProvenance.set(
+      `${tool}#${where} ${t}`,
+      by === tool ? held.get(t) : `${by} ${held.get(t)}`,
+    );
   }
   return missing;
 }
@@ -410,7 +421,19 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
         const families = declaredFamilies(ctx.tools.get(tool)?.inputSchema);
         const { keys: everyKey, values: everyValue } = seenSoFar(ctx);
         // Data of the day: an optional field no window this run held
-        // still counts when a bite of this tool carried it.
+        // still counts when a bite of this tool carried it, or a bite of
+        // a tool that answers with the same section. The rule is about
+        // the section (documented and served nowhere), and its live half
+        // already takes any tool's response: battles_opponents points at
+        // battles_query's row section, can never carry `rounds_played`
+        // (a duel counts once on an opponent row), and so passed only
+        // while battles_query's window held a duel (2026-11-14).
+        const sharers = [...bodies.keys()]
+          .filter(
+            (t) =>
+              t !== tool && bodies.get(t).some((s) => s.body?.docs === pointer),
+          )
+          .sort();
         const missing = heldByBite(
           ctx,
           tool,
@@ -426,10 +449,11 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
               !allow.has(t),
           ),
           "docs",
+          sharers,
         );
         ok(
           missing.length === 0,
-          `${pointer} documents ${missing.join(", ")} and no response this run, nor any bite of ${tool}, carried it`,
+          `${pointer} documents ${missing.join(", ")} and no response this run, nor any bite of ${tool}${sharers.length ? ` or of ${sharers.join(", ")} (same section)` : ""}, carried it`,
         );
         // The other direction, for a tool that filters by kind: every
         // kind a response carried is one its docs name, by itself or by
