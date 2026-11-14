@@ -1,3 +1,4 @@
+import { PNG } from "./test-art.ts";
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./fixtures.ts";
 import { homeApi } from "./home-fixture.ts";
@@ -10,6 +11,15 @@ test("phone identities: proof survives missing art; art alone cannot create a ve
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/assets/cards/26000000.png", (r) => r.abort());
+  // The mirror cache is intentionally absent in CI. A successful image is
+  // explicit fixture data too, independent of any host's cached game art.
+  await page.route("**/assets/cards/26000001.png", (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: PNG,
+    }),
+  );
   await mockApi(
     page,
     identityFixtures(
