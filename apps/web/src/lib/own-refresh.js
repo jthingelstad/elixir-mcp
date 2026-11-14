@@ -40,9 +40,20 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const hiddenDoc = () =>
   typeof document !== "undefined" && document.visibilityState === "hidden";
 
+/** What landing refreshes for one player's page: the page and its games. */
+export const PLAYER_LANDED_KEYS = [
+  ["me", "player"],
+  ["me", "player-evidence"],
+  ["me", "player-record"],
+];
+
 /**
- * One app's refresher. `ask` never throws; `snapshot()` is
- * `{ checking }`. Built once per query client (useOwnRefresh).
+ * One refresher. `ask` never throws; `snapshot()` is `{ checking,
+ * outcome, retryAfterS, at }`: `outcome` is "updated" (a read landed, or
+ * one was read in the last two minutes), "limited" (a limit said wait
+ * `retryAfterS` seconds) or null, from the last ask that finished at `at`.
+ * The app's own is built once per query client (useOwnRefresh); a player
+ * page's button has one per player (usePlayerRefresh).
  */
 export function makeOwnRefresh({
   ask: askServer = api.ownRefresh,
@@ -51,8 +62,10 @@ export function makeOwnRefresh({
   wait = sleep,
   hidden = hiddenDoc,
   now = () => Date.now(),
+  spacingMs = ASK_SPACING_MS,
+  landedKeys = LANDED_KEYS,
 }) {
-  let state = { checking: false };
+  let state = { checking: false, outcome: null, retryAfterS: null, at: null };
   let busy = false;
   let lastAsk = -Infinity;
   const listeners = new Set();
@@ -62,7 +75,7 @@ export function makeOwnRefresh({
   };
 
   async function landed() {
-    await Promise.all(LANDED_KEYS.map((queryKey) => invalidate(queryKey)));
+    await Promise.all(landedKeys.map((queryKey) => invalidate(queryKey)));
   }
 
   async function poll(waitS) {
@@ -87,10 +100,12 @@ export function makeOwnRefresh({
   }
 
   async function ask() {
-    if (busy || now() - lastAsk < ASK_SPACING_MS) return;
+    if (busy || now() - lastAsk < spacingMs) return;
     busy = true;
     lastAsk = now();
-    set({ checking: true });
+    set({ ...state, checking: true });
+    let outcome = null;
+    let retryAfterS = null;
     try {
       const r = await askServer().catch(() => null);
       const body = r?.ok ? r.data : null;
@@ -99,14 +114,26 @@ export function makeOwnRefresh({
         const waits = players
           .filter((p) => p.state === "queued")
           .map((p) => p.retry_after_s ?? 15);
-        if (await poll(Math.min(...waits))) await landed();
+        if (await poll(Math.min(...waits))) {
+          await landed();
+          outcome = "updated";
+        }
       } else if (players.some((p) => p.state === "fresh")) {
         // Read in the last two minutes, maybe after this page last read.
-        await invalidate(["me", "home"]);
+        await Promise.all(landedKeys.map((queryKey) => invalidate(queryKey)));
+        outcome = "updated";
+      } else {
+        const waits = players
+          .map((p) => p.retry_after_s)
+          .filter((s) => typeof s === "number" && s > 0);
+        if (waits.length) {
+          outcome = "limited";
+          retryAfterS = Math.max(...waits);
+        }
       }
     } finally {
       busy = false;
-      set({ checking: false });
+      set({ checking: false, outcome, retryAfterS, at: now() });
     }
   }
 
@@ -133,17 +160,45 @@ function refresherFor(queryClient) {
   return r;
 }
 
-const IDLE = { checking: false };
+const IDLE = { checking: false, outcome: null, retryAfterS: null, at: null };
 
-/** `{ checking, ask }`: the app's one refresher. */
-export function useOwnRefresh() {
-  const queryClient = useQueryClient();
-  const r = refresherFor(queryClient);
+function useRefresher(r) {
   const state = useSyncExternalStore(r.subscribe, r.snapshot, () => IDLE);
   const ask = useCallback(() => {
     void r.ask();
   }, [r]);
-  return { checking: state.checking, ask };
+  return { ...state, ask };
+}
+
+/** `{ checking, outcome, retryAfterS, at, ask }`: the app's one refresher. */
+export function useOwnRefresh() {
+  return useRefresher(refresherFor(useQueryClient()));
+}
+
+const byPlayer = new WeakMap();
+
+/** One player page's button: a read of that player alone, under the
+ *  server's per-player limits; no spacing of its own, since the server
+ *  answers every tap and the button shows what it said. */
+export function usePlayerRefresh(tag) {
+  const queryClient = useQueryClient();
+  let map = byPlayer.get(queryClient);
+  if (!map) {
+    map = new Map();
+    byPlayer.set(queryClient, map);
+  }
+  let r = map.get(tag);
+  if (!r) {
+    r = makeOwnRefresh({
+      ask: () => api.refreshPlayer(tag),
+      status: () => api.refreshPlayerStatus(tag),
+      invalidate: (queryKey) => queryClient.invalidateQueries({ queryKey }),
+      spacingMs: 0,
+      landedKeys: PLAYER_LANDED_KEYS,
+    });
+    map.set(tag, r);
+  }
+  return useRefresher(r);
 }
 
 /** Whether `me` has a verified player of its own: the only reason to ask. */

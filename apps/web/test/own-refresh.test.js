@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
+import { refreshLabel } from "../src/home/RefreshPlayer.jsx";
 import {
   ASK_SPACING_MS,
   LANDED_KEYS,
@@ -126,7 +127,8 @@ describe("makeOwnRefresh", () => {
     });
     await r.ask();
     expect(status).not.toHaveBeenCalled();
-    expect(invalidated).toEqual([["me", "home"]]);
+    expect(invalidated).toEqual(LANDED_KEYS);
+    expect(r.snapshot().outcome).toBe("updated");
   });
 
   test("asks close together are one ask", async () => {
@@ -162,4 +164,61 @@ test("only a verified player of your own is a reason to ask", () => {
       me([{ claim_status: "unverified", is_primary: true, player_tag: TAG }]),
     ),
   ).toBe(false);
+});
+
+describe("the player page's button", () => {
+  test("a limit says when to try again, and the button comes back after", async () => {
+    const t = 1_000_000;
+    const { r } = harness({
+      ask: async () =>
+        ok({
+          queued: false,
+          players: [{ tag: TAG, state: "skipped", retry_after_s: 100 }],
+        }),
+      now: () => t,
+    });
+    await r.ask();
+    const s = r.snapshot();
+    expect(s.outcome).toBe("limited");
+    expect(s.retryAfterS).toBe(100);
+    expect(refreshLabel(s, t)).toBe("Try again in 2 min");
+    expect(refreshLabel(s, t + 50_000)).toBe("Try again in 1 min");
+    expect(refreshLabel(s, t + 100_000)).toBe("Check for new battles");
+  });
+
+  test("checking, then updated just now, then the button again", async () => {
+    const { r } = harness({
+      ask: async () =>
+        ok({
+          queued: true,
+          players: [{ tag: TAG, state: "queued", retry_after_s: 5 }],
+        }),
+      statuses: [ok({ players: [{ tag: TAG, pending: false }] })],
+      now: () => 5_000,
+    });
+    expect(refreshLabel({ checking: true }, 0)).toBe("Checking…");
+    await r.ask();
+    const s = r.snapshot();
+    expect(refreshLabel(s, 5_000)).toBe("Updated just now");
+    expect(refreshLabel(s, 5_000 + 121_000)).toBe("Check for new battles");
+    expect(refreshLabel({ checking: false, outcome: null }, 0)).toBe(
+      "Check for new battles",
+    );
+  });
+
+  test("no spacing of its own: every tap reaches the server", async () => {
+    const ask = vi.fn(async () => ok({ queued: false, players: [] }));
+    const r = makeOwnRefresh({
+      ask,
+      status: vi.fn(),
+      invalidate: async () => {},
+      wait: async () => {},
+      hidden: () => false,
+      now: () => 0,
+      spacingMs: 0,
+    });
+    await r.ask();
+    await r.ask();
+    expect(ask).toHaveBeenCalledTimes(2);
+  });
 });

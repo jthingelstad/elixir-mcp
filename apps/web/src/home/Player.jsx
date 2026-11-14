@@ -42,6 +42,7 @@ import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
 import { FollowAll, FollowButton } from "./follow.jsx";
 import { PlayerRecord } from "./PlayerRecord.jsx";
 import { useAskOnOpen } from "../lib/own-refresh.js";
+import { RefreshPlayer } from "./RefreshPlayer.jsx";
 
 /**
  * A player's page (slice 6, #764): the one page every player name opens
@@ -234,6 +235,7 @@ export function PlayerView({
           {you.own ? <CopyFollowMe tag={p.tag} /> : null}
         </nav>
       </header>
+      <RefreshPlayer tag={p.tag} own={you.own === true} />
       <Tabs
         label="Player"
         items={items}
