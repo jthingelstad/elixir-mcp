@@ -556,16 +556,16 @@ test("the reconciliation: again while more, three passes at most, quiet on failu
     return call;
   };
   const busy = calls([pass([{ stamp_id: "mutual" }], true)]);
-  expect(await reconcilePassport(busy)).toEqual({ granted: 3 });
+  expect(await reconcilePassport(busy)).toEqual({ read: 3, granted: 3 });
   expect(busy).toHaveBeenCalledTimes(RECONCILE_PASSES);
   const done = calls([pass([], true), pass([], false)]);
-  expect(await reconcilePassport(done)).toEqual({ granted: 0 });
+  expect(await reconcilePassport(done)).toEqual({ read: 2, granted: 0 });
   expect(done).toHaveBeenCalledTimes(2);
   const refused = calls([{ ok: false, status: 429, data: null }]);
-  expect(await reconcilePassport(refused)).toEqual({ granted: 0 });
+  expect(await reconcilePassport(refused)).toEqual({ read: 0, granted: 0 });
   expect(refused).toHaveBeenCalledTimes(1);
   const thrown = calls([new Error("offline")]);
-  expect(await reconcilePassport(thrown)).toEqual({ granted: 0 });
+  expect(await reconcilePassport(thrown)).toEqual({ read: 0, granted: 0 });
 });
 
 test("opening your passport reconciles after it shows, and reads again when a Stamp is granted", async () => {
@@ -606,6 +606,47 @@ test("opening your passport reconciles after it shows, and reads again when a St
   release();
   expect(await whoSays("4 Stamps")).toBeTruthy();
   expect(asked.filter((p) => p === "/api/me/passport/reconcile")).toHaveLength(
+    1,
+  );
+});
+
+test("a reconciliation that grants nothing still reads your progress again", async () => {
+  let reads = 0;
+  const moved = {
+    ...OWN,
+    owner: {
+      ...OWN.owner,
+      stamps: OWN.owner.stamps.map((s) =>
+        s.stamp_id === "cheerleader"
+          ? progress("cheerleader", 1, 8, 15, 50)
+          : s,
+      ),
+    },
+  };
+  let release;
+  const held = new Promise((r) => (release = r));
+  routes["/api/me/passport"] = () => {
+    reads += 1;
+    return reply(reads === 1 ? OWN : moved);
+  };
+  routes["/api/me/passport/reconcile"] = async () => {
+    await held;
+    return reply({ ...moved, granted: [], more: false });
+  };
+  at("/home/passport?stamp=cheerleader");
+  const sheet = await screen.findByRole("dialog", {
+    name: "Cheerleader I",
+    hidden: true,
+  });
+  expect(within(sheet).getByText("Your progress: 7 of 15 days.")).toBeTruthy();
+  release();
+  await waitFor(() =>
+    expect(
+      within(sheet).getByText("Your progress: 8 of 15 days."),
+    ).toBeTruthy(),
+  );
+  // The bell reads once, with the shell; no grant, so not again.
+  expect(asked.filter((p) => p === "/api/me/bell").length).toBeLessThanOrEqual(
     1,
   );
 });

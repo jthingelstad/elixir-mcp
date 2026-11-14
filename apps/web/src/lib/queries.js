@@ -245,17 +245,21 @@ export const useMyPassport = (enabled = true) =>
   });
 
 /** Your passport's reconciliation on open (#1015): after the first paint,
- *  quietly, bounded (lib/passport.js reconcilePassport). When it grants a
- *  Stamp, your passport and the bell read again. Home can call it too. */
+ *  quietly, bounded (lib/passport.js reconcilePassport). Once a pass answers,
+ *  your passport reads again (progress can move without a new level); the
+ *  bell reads again only when a Stamp was granted. Home can call it too. */
 export function useReconcilePassport(enabled = true) {
   const queryClient = useQueryClient();
   useEffect(() => {
     if (!enabled) return;
-    reconcilePassport(() => api.reconcilePassport()).then(({ granted }) => {
-      if (granted === 0) return;
-      queryClient.invalidateQueries({ queryKey: ["me", "passport"] });
-      queryClient.invalidateQueries({ queryKey: ["me", "bell"] });
-    });
+    reconcilePassport(() => api.reconcilePassport()).then(
+      ({ read, granted }) => {
+        if (read === 0) return;
+        queryClient.invalidateQueries({ queryKey: ["me", "passport"] });
+        if (granted > 0)
+          queryClient.invalidateQueries({ queryKey: ["me", "bell"] });
+      },
+    );
   }, [enabled, queryClient]);
 }
 

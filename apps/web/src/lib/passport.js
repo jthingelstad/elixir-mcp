@@ -33,14 +33,17 @@ export const RECONCILE_PASSES = 3;
  * `call` is one pass (`api.reconcilePassport`), repeated while it answers
  * `more`, at most `passes` times. Quiet: a refusal, a failed call or a
  * thrown error ends the run and is never shown, since the passport already
- * on screen stays true. Resolves to how many Stamps the passes granted,
- * so a caller reads again only when something changed.
+ * on screen stays true. Resolves to how many passes answered (`read`) and
+ * how many Stamps they granted: an answered pass can move progress without
+ * granting a level, so a caller reads the passport again after any answer
+ * and the bell only after a grant.
  */
 export async function reconcilePassport(
   call,
   { passes = RECONCILE_PASSES } = {},
 ) {
   let granted = 0;
+  let read = 0;
   for (let i = 0; i < passes; i += 1) {
     let env;
     try {
@@ -49,10 +52,11 @@ export async function reconcilePassport(
       break;
     }
     if (!env?.ok || env.status !== 200 || !env.data) break;
+    read += 1;
     granted += Array.isArray(env.data.granted) ? env.data.granted.length : 0;
     if (env.data.more !== true) break;
   }
-  return { granted };
+  return { read, granted };
 }
 
 /** Whether a path is a passport page: yours, or one with a well-formed id. */
