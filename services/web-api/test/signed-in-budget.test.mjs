@@ -686,14 +686,15 @@ test("Settings' reads stay in their budgets, and Players reads each claim's play
   await inOrder([
     [
       "Seen: battles_query",
-      // Seen reads through Stats' door, as the page does (useToolRead).
+      // Seen reads through Stats' door, as the page does (useToolRead):
+      // one statement more than the bridge alone, its claim check.
       "/api/me/stats",
       tool("battles_query", {
         player_tag: seed.leaderTag,
         limit: 1,
         verbosity: "compact",
       }),
-      { statements: 20, buffers: 150 },
+      { statements: 21, buffers: 150 },
     ],
   ]);
 });
