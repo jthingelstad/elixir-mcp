@@ -163,6 +163,9 @@ export async function buildHomeWeek(
     accountId,
     interactive: true,
     accountLines: false,
+    // Items only (Home stores and serves no entry), so no late count to
+    // read, as the bell's week and cheers.
+    lateCounts: false,
     perf,
   });
   const buildMs = Date.now() - started;

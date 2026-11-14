@@ -20,7 +20,7 @@ import { seedSignedIn } from "./signed-in-seed.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { createClanRequest } from "../src/clan.mjs";
 import { makeDatabase } from "@elixir-mcp/http/database";
-import { buildTimeline } from "@elixir-mcp/tools/activity/entries";
+import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import {
   LARGE,
   captureStatements,
@@ -504,7 +504,7 @@ test("players_search answers what it answered before", async () => {
   );
 });
 
-test("the bell's and cheers' items are the ones a build with late counts makes", async () => {
+test("the bell's, cheers' and Home's items are the ones a build with late counts makes", async () => {
   const now = Date.now();
   const subjects = [
     { kind: "player", tag: seed.leaderTag, relationship: "primary" },
@@ -512,11 +512,19 @@ test("the bell's and cheers' items are the ones a build with late counts makes",
       .slice(0, 6)
       .map((tag) => ({ kind: "player", tag, relationship: "friend" })),
   ];
-  for (const subs of [subjects.slice(0, 1), subjects]) {
+  // The bell's own player, cheers' few, and Home's week: every subject
+  // the account follows, in its time zone (buildHomeWeek, 2026-11-13).
+  const home = await subjectsFor(seed.db, seed.accountId);
+  for (const [subs, timezone] of [
+    [subjects.slice(0, 1), "UTC"],
+    [subjects, "UTC"],
+    [home, "America/Chicago"],
+  ]) {
     const build = (lateCounts) =>
       buildTimeline(seed.db, subs, {
         fromMs: now - 7 * 86_400_000,
         toMs: now,
+        timezone,
         accountId: seed.accountId,
         interactive: true,
         accountLines: false,
@@ -686,6 +694,10 @@ test("Settings' reads stay in their budgets, and Players reads each claim's play
   ]);
 });
 
+/** What a timeline of the reader's 56 players may make, whatever their
+ *  number: none of its reads is per player. */
+const TIMELINE_STATEMENTS = 30;
+
 /** The statement that counts an observed week's late captures. */
 const LATE_ONCE = /with late as materialized \(/;
 const LATE_ANY = /b\.battle_time < b\.created_at - interval '1 day'/;
@@ -697,9 +709,9 @@ test("the timeline page counts the week's late captures once, and the feed never
       "timeline",
       "/api/me/timeline",
       {},
-      // The shared builder reads each followed player and clan apart,
-      // about seven statements apiece: a follow-up of its own.
-      { statements: 412, buffers: 48000 },
+      // Every followed player's reads once for all of them (2026-11-13:
+      // 411 statements, about seven a player, before).
+      { statements: TIMELINE_STATEMENTS, buffers: 42000 },
     ],
   ]);
   const late = timeline.seen.filter((s) => LATE_ANY.test(s.text));
@@ -715,7 +727,12 @@ test("the timeline page counts the week's late captures once, and the feed never
   assert.equal(link.status, 200, JSON.stringify(link.body));
   const token = link.body.url.split("/").pop();
   const feed = await inOrder([
-    ["rss", `/api/rss/${token}`, {}, { statements: 409, buffers: 48000 }],
+    [
+      "rss",
+      `/api/rss/${token}`,
+      {},
+      { statements: TIMELINE_STATEMENTS, buffers: 42000 },
+    ],
   ]);
   assert.ok(
     !feed.rss.seen.some((s) => LATE_ANY.test(s.text)),
@@ -724,7 +741,83 @@ test("the timeline page counts the week's late captures once, and the feed never
   await request(handler, seed.cookie, "/api/me/rss", { method: "DELETE" });
 });
 
+test("Home's week, built, never counts late captures", async () => {
+  await seed.db.query("delete from home_feed");
+  const built = await read(
+    "/api/me/home/feed (built)",
+    "/api/me/home/feed",
+    {},
+    { statements: TIMELINE_STATEMENTS + 6, buffers: 42000 },
+  );
+  assert.ok(
+    !built.seen.some((s) => LATE_ANY.test(s.text)),
+    "Home's week read the late-capture count",
+  );
+});
+
+/** A db that counts the statements made through it. */
+const counting = (db) => {
+  const seen = [];
+  return {
+    db: { query: (text, values) => (seen.push(text), db.query(text, values)) },
+    seen,
+  };
+};
+
+test("the timeline's statements do not grow with the players it follows", async () => {
+  const all = await subjectsFor(seed.db, seed.accountId);
+  const players = all.filter((s) => s.kind === "player");
+  assert.ok(players.length >= 50, `${players.length} players followed`);
+  const now = Date.now();
+  const count = async (subjects) => {
+    const c = counting(seed.db);
+    await buildTimeline(c.db, subjects, {
+      fromMs: now - 7 * 86_400_000,
+      toMs: now,
+      accountId: seed.accountId,
+      interactive: true,
+    });
+    return c.seen.length;
+  };
+  const [few, many] = [await count(players.slice(0, 4)), await count(players)];
+  // The same statements; at most the few reads a batch makes only when
+  // some player has their rows (a crossing to hydrate, an arena to name)
+  // may be absent from the smaller one.
+  assert.ok(
+    many <= few + 3,
+    `${many} statements for ${players.length} players, ${few} for 4`,
+  );
+  assert.ok(many <= TIMELINE_STATEMENTS, `${many} statements`);
+});
+
+test("a batched timeline is the one each subject read alone makes", async () => {
+  const now = Date.now();
+  const subjects = [
+    ...(await subjectsFor(seed.db, seed.accountId)),
+    { kind: "clan", tag: seed.clanTag, scope: "comprehensive" },
+  ];
+  for (const basis of ["observed", "occurred"])
+    for (const days of [1, 7]) {
+      const opts = {
+        fromMs: now - days * 86_400_000,
+        toMs: now,
+        timezone: "America/Chicago",
+        accountId: seed.accountId,
+        interactive: true,
+        basis,
+      };
+      const batched = await buildTimeline(seed.db, subjects, opts);
+      const alone = await buildTimeline(seed.db, subjects, {
+        ...opts,
+        batchPlayers: false,
+      });
+      assert.ok(batched.timeline.length > 0, `${basis} ${days}d has items`);
+      assert.deepEqual(batched, alone, `${basis} over ${days} days`);
+    }
+});
+
 /**
+ * Clan's pages past the landing's budget/**
  * Clan's pages past the landing's budget (`clan-landing-budget.test.mjs`
  * holds the Feed, Standings, War and Policy): Manage and Awards both
  * evaluated (`refresh=1`) and cached, then History, Run, Recruit,
