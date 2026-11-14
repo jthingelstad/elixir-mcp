@@ -51,6 +51,18 @@ after(async () => {
   await dropScratch(SCRATCH);
 });
 
+/** What {vacuum} promises: the map whole enough that the check no longer
+ *  names the table. Not every page: a plain VACUUM that cannot take a
+ *  page's cleanup lock (the checkpointer flushing it while other runs
+ *  clone databases) leaves that page's bit unset, and one page of 885 was
+ *  (#979). */
+function wholeEnough(after, what) {
+  assert.ok(
+    after.relallvisible >= after.relpages * VISIBILITY_MIN_SHARE,
+    `${what}: ${after.relallvisible} of ${after.relpages} pages all-visible`,
+  );
+}
+
 const flagged = async (table) =>
   (await visibilityCheck(SCRATCH_URL)).flagged.find((t) => t.table === table);
 
@@ -86,7 +98,8 @@ test("the check names a table never analyzed, then one VACUUM FULL emptied, and 
   const out = await vacuum(SCRATCH_URL, { table: "vm_probe" });
   assert.equal(out.error, undefined, out.message);
   assert.equal(out.before.relallvisible, 0);
-  assert.equal(out.after.relallvisible, out.after.relpages);
+  wholeEnough(out.after, "vm_probe");
+  assert.ok(out.after.relallvisible > 0);
   assert.equal(await flagged("vm_probe"), undefined);
 });
 
@@ -136,7 +149,7 @@ test("{rewrite_table} ends with a plain vacuum, so the map it emptied is whole a
   assert.equal(out.error, undefined, out.message);
   assert.equal(out.vacuumed?.error, undefined, out.vacuumed?.message);
   assert.equal(out.vacuumed.table, "job");
-  assert.equal(out.vacuumed.after.relallvisible, out.vacuumed.after.relpages);
+  wholeEnough(out.vacuumed.after, "job");
 });
 
 async function ladder(files, options = {}) {
@@ -183,7 +196,7 @@ test("the ladder vacuums what a migration declares, after the commit, and never 
   assert.equal(v.table, "probe");
   assert.equal(v.error, undefined, v.message);
   assert.ok(v.after.relpages >= VISIBILITY_FLOOR_PAGES);
-  assert.equal(v.after.relallvisible, v.after.relpages);
+  wholeEnough(v.after, "probe");
   assert.ok(v.after.reltuples > 0);
   assert.ok(first.logs.some((l) => l.startsWith("vacuum after: ")));
 
