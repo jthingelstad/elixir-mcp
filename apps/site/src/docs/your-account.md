@@ -136,7 +136,7 @@ so the product and account controls keep their room. Your full account name
 wraps inside its menu. The same controls remain available by keyboard.
 
 On Home, setup you have not finished opens the page as
-[Welcome to Elixir](/docs/timeline#welcome-to-elixir) until it is done.
+[Your profile](/docs/timeline#your-profile) until it is done.
 Recording problems are under the bell, **Needs you**.
 
 Signed out, the top bar is the logo, **Docs**, **Sign in** and **Create

@@ -7,7 +7,7 @@ order: 2
 navTitle: "Quickstart"
 icon: rocket
 lede: "Sign in, add your player tag, follow a few people and choose your digest. That's it."
-reviewed: "2026-11-13 against Home's welcome steps and People you know"
+reviewed: "2026-11-14 against Home's profile list and People you know"
 ---
 
 # Get started with Elixir
@@ -15,8 +15,9 @@ reviewed: "2026-11-13 against Home's welcome steps and People you know"
 Elixir is the missing social layer of Clash Royale: follow your friends and
 your clan, see how they play, and cheer them on.
 
-Getting set up takes four steps. **Home** keeps them in a short list,
-**Welcome to Elixir**, until you've done them all.
+Getting set up takes four steps. **Home** keeps them, and two more (your
+picture and your place on the clan map), in one list, **Your profile**,
+until you've done them all ([Your profile](/docs/timeline#your-profile)).
 
 ## 1. Sign in
 

@@ -112,12 +112,15 @@ export async function firstAnswer(db, accountId, playerTag = null) {
      order by ac.is_primary desc, ac.clan_tag limit 1`,
     [accountId],
   );
-  // Home's welcome steps that are not the player's (G4, 2026-11-12), from
-  // state the account already keeps: the players it follows (Follow means
-  // Friend) and whether the person has chosen their digest, which is a
-  // tracking_report row of their own (the table holds a row only where a
-  // person changed the default; an operator's row is not their choice).
-  const welcome = await db.query(
+  // What Home still reads beside the profile list (#1015, which replaced
+  // the older welcome steps): how many players the account follows (the
+  // starter set is offered under STARTER_UNDER) and the person's own
+  // digest setting for Home's digest panel, a tracking_report row of
+  // their own (the table holds a row only where a person changed the
+  // default; an operator's row is not their choice). The profile list's
+  // steps are the passport's (GET /api/me/passport), never worked out
+  // here.
+  const setup = await db.query(
     `select (select count(*)::int from claim
               where account_id = $1 and relationship = 'friend'
                 and not is_primary) as following,
@@ -127,39 +130,19 @@ export async function firstAnswer(db, accountId, playerTag = null) {
                from account_email_pref
               where account_id = $1 and kind = 'tracking_report'
                 and via <> 'ops') as digest,
-            (select exists (select 1 from claim
-                             where account_id = $1 and is_primary
-                               and status = 'verified')) as verified,
-            (select welcome_finished_at from account
-              where account_id = $1) as finished_at,
             (select starter_hidden_at + make_interval(days => $2) from account
               where account_id = $1) as starter_hidden_until`,
     [accountId, STARTER_HIDDEN_DAYS],
   );
-  const { verified, starter_hidden_until, ...steps } = welcome.rows[0];
-  // Finished for good (Jamie, 2026-11-12, migration 0246): the first read
-  // that sees all four done stamps the account once, and the stamp is
-  // never cleared, so unfollowing everyone later does not bring the steps
-  // back. "Done" is the same four the steps draw: a verified primary
-  // player, one follow, and a digest setting of the person's own (off
-  // included).
-  if (!steps.finished_at && verified && steps.following > 0 && steps.digest) {
-    const stamped = await db.query(
-      `update account set welcome_finished_at = now()
-        where account_id = $1 and welcome_finished_at is null
-        returning welcome_finished_at`,
-      [accountId],
-    );
-    steps.finished_at = stamped.rows[0]?.welcome_finished_at ?? null;
-  }
+  const { starter_hidden_until, ...steps } = setup.rows[0];
   return {
     as_of: new Date().toISOString(),
     player: capturedPlayer,
     connection: connection.rows[0],
     clan: clan.rows[0] ?? null,
-    welcome: steps,
+    setup: steps,
     // Home's suggested follows (2026-11-13) are offered while
-    // welcome.following is under STARTER_UNDER, unless "Not now" was said
+    // setup.following is under STARTER_UNDER, unless "Not now" was said
     // until this instant.
     starter_hidden_until: starter_hidden_until?.toISOString() ?? null,
   };

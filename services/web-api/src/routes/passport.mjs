@@ -17,6 +17,9 @@
  *  - `POST /api/me/passport/map` `{choice: "not_now"}`: the profile
  *    list's map step answered "Not now". It completes the step and never
  *    grants On the Map.
+ *  - `POST /api/me/passport/dismiss`: Home's profile list put away, by
+ *    an account that finished the older welcome list (0274). It
+ *    completes nothing and grants nothing; any other account is 409.
  *
  *  A person's only: an agent is refused, and no agent console reaches
  *  any of them (AGENT_SCOPED_ROUTES does not list them). The GETs never
@@ -25,6 +28,7 @@ import { checkRateLimit } from "@elixir-mcp/auth";
 import { ledgerOver } from "@elixir-mcp/clan-state";
 import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
 import {
+  dismissProfileList,
   readOwnerPassport,
   readPublicPassport,
   reconcilePassport,
@@ -39,6 +43,8 @@ const PASSPORT_READS_PER_HOUR = 600;
 const RECONCILES_PER_HOUR = 120;
 /** "Not now" answers per hour per account. */
 const MAP_ANSWERS_PER_HOUR = 60;
+/** Dismissals per hour per account: it is set once, so a few is plenty. */
+const DISMISSALS_PER_HOUR = 20;
 
 /** Whether any of the account's verified players has a place on the
  *  clan map now. A boolean only: no place, city or point leaves here. */
@@ -136,6 +142,26 @@ export function passportRoutes({ resolveAccount }) {
       if (settled.refused) return notEntitled();
       const out = await readOwnerPassport(db, account.accountId, { now });
       return json(200, { ...out, granted: settled.granted, more: false });
+    },
+
+    // The profile list put away: only for an account that finished the
+    // older welcome list (docs/product/stamps.md). Hides it, nothing more.
+    "POST /api/me/passport/dismiss": async (db, event) => {
+      const { account, refused } = await person(db, event, "passport_dismiss", {
+        max: DISMISSALS_PER_HOUR,
+        write: true,
+      });
+      if (refused) return refused;
+      const now = new Date();
+      const out = await dismissProfileList(db, account.accountId, { now });
+      if (out.refused === "not_person") return notEntitled();
+      if (out.refused === "not_offered")
+        return json(409, {
+          error: "not_offered",
+          message:
+            "The profile list can be dismissed only by an account that finished the older welcome list.",
+        });
+      return json(200, await readOwnerPassport(db, account.accountId, { now }));
     },
 
     "GET /api/passports/*": async (db, event) => {

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mockApi, SIGNED_OUT } from "./fixtures.ts";
-import { HOME, homeApi } from "./home-fixture.ts";
+import { HOME, homeApi, ownerPassport } from "./home-fixture.ts";
 import { BATTLE } from "./battle-fixture.ts";
 import * as clan from "./clan/fixtures.ts";
 
@@ -113,7 +113,7 @@ test("Home with its suggested follows: the ticks, Follow these and Not now", asy
         {
           first: {
             ...HOME.first,
-            welcome: { following: 0, digest: null, finished_at: null },
+            setup: { following: 0, digest: null },
             starter_hidden_until: null,
           },
         },
@@ -137,6 +137,26 @@ test("Home with its suggested follows: the ticks, Follow these and Not now", asy
   );
   await page.goto("/home");
   await expect(page.locator(".kit-starter__row")).toHaveCount(3);
+  expect(await misses(page)).toEqual([]);
+});
+
+test("Home's profile list: its next step, Not now, Hide and the folded rows", async ({
+  page,
+}) => {
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me/passport": [
+        200,
+        ownerPassport(["done", "done", "todo", "todo", "done", "todo"], {
+          older_welcome_finished: true,
+        }),
+      ],
+    }),
+  );
+  await page.goto("/home");
+  await page.locator(".kit-profile__all > summary").click();
+  await expect(page.locator(".kit-profile__row")).toHaveCount(3);
   expect(await misses(page)).toEqual([]);
 });
 

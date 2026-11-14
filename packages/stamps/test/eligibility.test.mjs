@@ -223,6 +223,22 @@ test("the follow step: unknown activity is unknown, never inactive", () => {
   );
 });
 
+test("the follow step's counts tell nobody followed, quiet and catching up apart", () => {
+  assert.deepEqual(profileList(fresh({ follows: [] }), NOW).follows, {
+    following: 0,
+    active: 0,
+    inactive: 0,
+    unknown: 0,
+  });
+  assert.deepEqual(
+    profileList(fresh({ follows: [inactive(), unknown(), active()] }), NOW)
+      .follows,
+    { following: 3, active: 1, inactive: 1, unknown: 1 },
+  );
+  // Not read: no counts, never zero.
+  assert.equal(profileList(fresh({ follows: null }), NOW).follows, null);
+});
+
 test("followActivity: the trailing seven days, a fresh read, no future", () => {
   assert.equal(followActivity(active(), NOW), "active");
   assert.equal(

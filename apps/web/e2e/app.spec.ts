@@ -412,9 +412,15 @@ test.describe("signed in", () => {
     );
     await rendered(page);
     await accessible(page, "Home's feed, new since your last visit");
-    // The page's one write is the Console's own place: nothing an
-    // agent reads moves.
-    expect(writes).toEqual(["POST /api/me/timeline/seen"]);
+    // The page's writes are its own place and the passport's catch-up
+    // (#1015), which grants Stamps no agent reads: nothing an agent reads
+    // moves.
+    await expect
+      .poll(() => [...writes].sort())
+      .toEqual([
+        "POST /api/me/passport/reconcile",
+        "POST /api/me/timeline/seen",
+      ]);
 
     // A return visit opens from the place the last one left: nothing is
     // new, there is no rule and no dot, and the same window is not

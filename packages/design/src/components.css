@@ -6896,66 +6896,158 @@ button.kit-row {
   max-width: 100%;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
-/* Home's welcome steps (G4): one quiet panel above the feed, its steps flat
-   rows inside it rather than boxes of their own. */
-.kit-welcome {
+/* Home's profile list (#1015): one quiet panel above the feed, as the
+   welcome steps were. A head with the count, one next step with its way
+   in, and the six folded under a summary. Rubik throughout: the panel is
+   interface, not a page heading. Every way in is a 44px target. */
+.kit-profile {
   margin-bottom: 14px;
-  padding: var(--s-3) 0 var(--s-1);
+  padding: var(--s-3) var(--s-4) var(--s-2);
   border-radius: var(--r-control);
   background: var(--panel);
 }
-.kit-welcome > h2 {
-  margin: 0 0 var(--s-1);
-  padding: 0 var(--s-4);
-  color: var(--ink);
-  font-size: var(--t-body-sm);
-  font-weight: 700;
-}
-.kit-welcome__count {
-  color: var(--ink-faint);
-  font-size: var(--t-caption);
-  font-weight: 400;
-}
-
-.kit-welcome--compact > h2 {
+.kit-profile__head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--s-3);
 }
-.kit-checks {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.kit-check {
+.kit-profile__head h2 {
   display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: 10px var(--s-4);
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--s-2);
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--t-body);
+  font-weight: 700;
 }
-.kit-check__body {
+.kit-profile__count {
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+  font-weight: 400;
+}
+.kit-profile__dismiss {
+  flex: none;
+  text-align: right;
+}
+.kit-profile__lede {
+  margin: 2px 0 var(--s-3);
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.kit-profile__next,
+.kit-profile__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+.kit-profile__body {
   flex: 1 1 auto;
   min-width: 0;
 }
-.kit-check__body h3 {
-  margin: 0;
+.kit-profile__body h3 {
+  margin: 3px 0 2px;
   color: var(--ink);
-  font-size: var(--t-body-sm);
+  font-size: var(--t-body);
   font-weight: 700;
 }
-.kit-check__body p {
-  margin: 0;
-  overflow: hidden;
+.kit-profile__body p {
+  margin: 0 0 4px;
   color: var(--ink-dim);
   font-size: var(--t-body-sm);
-  text-overflow: ellipsis;
+}
+.kit-profile .kit-profile__stamp {
+  color: var(--ink);
+  font-size: var(--t-body-sm);
+  font-weight: 600;
+}
+.kit-profile__go {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+.kit-profile__go .kit-form__err {
+  flex-basis: 100%;
+}
+.kit-profile__all {
+  margin-top: var(--s-2);
+}
+.kit-profile__all > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--hit);
+  color: var(--ink);
+  font-size: var(--t-body-sm);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.kit-profile__all > summary::-webkit-details-marker {
+  display: none;
+}
+.kit-profile__all > summary > svg {
+  transition: transform 0.15s ease;
+}
+.kit-profile__all[open] > summary > svg {
+  transform: rotate(90deg);
+}
+.kit-profile__steps {
+  display: grid;
+  gap: var(--s-3);
+  margin: var(--s-1) 0 var(--s-3);
+  padding: 0;
+  list-style: none;
+}
+.kit-profile__row--wait .kit-step__dot {
+  background: var(--panel-raised);
+}
+.kit-profile__also {
+  margin: 0 0 var(--s-1);
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.kit-profile__extras {
+  margin: 0 0 var(--s-2);
+  padding: 0;
+  list-style: none;
+}
+.kit-profile__extras li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--s-2);
+  min-height: var(--hit);
+}
+.kit-profile__extras a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hit);
+}
+.kit-profile__extras .kit-profile__stamp {
+  color: var(--ink-dim);
+  font-weight: 400;
+}
+.kit-profile--done .kit-step__dot {
+  background: var(--ok);
+  color: var(--ok-on);
+}
+.kit-profile__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
   white-space: nowrap;
 }
-.kit-check > .btn {
-  flex: none;
+@media (prefers-reduced-motion: reduce) {
+  .kit-profile__all > summary > svg {
+    transition: none;
+  }
 }
-/* Home's starter set (2026-11-13): the welcome's flat panel, its people as
+/* Home's starter set (2026-11-13): the profile list's flat panel, its people as
    the rows People to follow draws, a tick at the left of each, and the one
    Follow these at the foot. No rule between rows: the rows' own space. */
 .kit-starter {
@@ -7066,11 +7158,6 @@ button.kit-row {
 }
 .kit-digest__line b {
   color: var(--ink);
-}
-.kit-welcome .kit-step {
-  padding: 14px var(--s-4);
-  border-radius: 0;
-  background: none;
 }
 .kit-skeleton {
   min-height: 120px;
@@ -8456,9 +8543,6 @@ a.kit-mbattle:hover {
   }
   .kit-home__two {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .kit-check__body p {
-    white-space: normal;
   }
   .kit-feed__item {
     padding: var(--s-3) 0 var(--s-4);

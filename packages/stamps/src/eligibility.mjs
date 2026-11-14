@@ -102,6 +102,12 @@ const stepState = (live, latched) =>
  * The six-step profile list: each step's state, whether it was latched,
  * and whether the list is complete. Complete is stored once
  * (latches.completed_at) and then stays complete whatever changes.
+ *
+ * `follows` counts the other players followed by their activity
+ * (followActivity), or null when the follows are not known, so the
+ * follow step can tell "nobody followed yet" from "the players you
+ * follow haven't played" from "recording is catching up". Owner-only:
+ * the public projection never carries the profile list.
  */
 export function profileList(snapshot, now) {
   const s = snapshot ?? {};
@@ -143,6 +149,8 @@ export function profileList(snapshot, now) {
     complete: Boolean(latches.completed_at) || allDone,
     completed_at: latches.completed_at ?? null,
     steps,
+    follows:
+      activity === null ? null : { following: s.follows.length, ...activity },
   };
 }
 

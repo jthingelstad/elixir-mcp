@@ -14,6 +14,7 @@
  * The root re-exports only what the web API calls (knip holds it).
  */
 export {
+  dismissProfileList,
   ensurePassport,
   readOwnerPassport,
   readPlayerPassport,

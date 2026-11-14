@@ -121,14 +121,12 @@ describe("the starter set", () => {
   });
   test("offered on every visit while fewer than five are followed, unless put aside", () => {
     const now = Date.parse("2026-11-13T12:00:00Z");
-    const first = (following, until = null, finished = null) => ({
-      welcome: { following, finished_at: finished },
+    const first = (following, until = null) => ({
+      setup: { following },
       starter_hidden_until: until,
     });
     expect(offersStarter(first(0), now)).toBe(true);
-    expect(offersStarter(first(4, null, "2026-11-01T00:00:00Z"), now)).toBe(
-      true,
-    );
+    expect(offersStarter(first(4), now)).toBe(true);
     expect(offersStarter(first(5), now)).toBe(false);
     expect(offersStarter(first(0, "2026-12-01T00:00:00Z"), now)).toBe(false);
     expect(offersStarter(first(0, "2026-11-01T00:00:00Z"), now)).toBe(true);
