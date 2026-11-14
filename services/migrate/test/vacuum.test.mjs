@@ -63,6 +63,27 @@ function wholeEnough(after, what) {
   );
 }
 
+/** Wait (at most 15 s) until no other backend in the scratch database
+ *  holds a snapshot. A plain VACUUM marks a page all-visible only when
+ *  its rows are older than every snapshot in the database, so a
+ *  concurrent one (the server's autovacuum analyzing a freshly cloned
+ *  scratch database while other runs load the server) left all 885 pages
+ *  unmarked once (2026-11-14). Returns who still holds one, for the
+ *  failure message. */
+async function quietHorizon() {
+  let holders = [];
+  for (let i = 0; i < 60; i++) {
+    ({ rows: holders } = await db.query(
+      `select backend_type, state from pg_stat_activity
+        where datname = current_database() and pid <> pg_backend_pid()
+          and (backend_xmin is not null or backend_xid is not null)`,
+    ));
+    if (holders.length === 0) return [];
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return holders;
+}
+
 const flagged = async (table) =>
   (await visibilityCheck(SCRATCH_URL)).flagged.find((t) => t.table === table);
 
@@ -95,10 +116,14 @@ test("the check names a table never analyzed, then one VACUUM FULL emptied, and 
   assert.equal(rewritten.all_visible_pages, 0);
   assert.equal(rewritten.all_visible_pct, 0);
 
+  const holders = await quietHorizon();
   const out = await vacuum(SCRATCH_URL, { table: "vm_probe" });
   assert.equal(out.error, undefined, out.message);
   assert.equal(out.before.relallvisible, 0);
-  wholeEnough(out.after, "vm_probe");
+  wholeEnough(
+    out.after,
+    `vm_probe (snapshots held: ${JSON.stringify(holders)})`,
+  );
   assert.ok(out.after.relallvisible > 0);
   assert.equal(await flagged("vm_probe"), undefined);
 });

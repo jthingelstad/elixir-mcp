@@ -302,6 +302,30 @@ test("history the backfill reads first makes a level legacy that a post-launch f
   );
 });
 
+test("an account made before launch but approved after it has no history to wait for: its ladder levels are ordinary", async () => {
+  // Requested before launch (it could not sign in), approved after it.
+  const late = await person();
+  await db.query(
+    `update account set decided_at = $2 where account_id = $1::uuid`,
+    [late, "2026-09-02T00:00:00Z"],
+  );
+  const cheer = (day) =>
+    earnFact(
+      db,
+      late,
+      { stamp_id: "cheerleader", source: `cheer:ap-${day}`, event_at: day },
+      { now: NOW },
+    );
+  await cheer("2026-09-03T10:00:00Z");
+  await cheer("2026-09-04T10:00:00Z");
+  const third = await cheer(AFTER);
+  assert.deepEqual(ids(third.granted), ["cheerleader:1"]);
+  assert.deepEqual(
+    (await earned(late)).map((e) => [e.stamp_id, e.level, e.legacy_before]),
+    [["cheerleader", 1, null]],
+  );
+});
+
 test("an account made after launch: the backfill skips it and its grants are ordinary", async () => {
   const me = await person({ created: AFTER });
   await claim(me, ME, "primary", { made: AFTER, verified: AFTER });

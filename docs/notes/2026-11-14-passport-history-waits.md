@@ -26,3 +26,15 @@ made after launch are unaffected.
 The cost: until the backfill has run, an existing account earns no
 ladder Stamp. docs/OPERATIONS.md now says to run the backfill soon after
 the deploy.
+
+## Accounts approved after launch
+
+From the review of PR #1026. The backfill walks approved people only, so
+an account that asked to join before launch and was let in after it was
+never read, and its ladder levels would have waited for good. Such an
+account could not sign in before it was approved, so it has no follows,
+cheers or highlights from before launch to read: there is nothing to
+wait for. `readLaunch` now treats an account whose `decided_at` (set by
+every move from requested to approved, `packages/auth` gate.mjs) falls
+after launch as having its history read. An approved account with no
+`decided_at` still waits for the backfill, the safe side.
