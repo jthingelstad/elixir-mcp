@@ -17,6 +17,16 @@ deploy's migration step 429s the deploy. Exit 3 means locked: the output
 names the holder, since when and doing what. Wait; never clear another
 holder's lock. A raw `aws lambda invoke` is for reads only.
 
+A throttled invoke (TooManyRequestsException: another invocation holds
+the function's one slot, a scheduled jobs run or a raw read) was refused
+before it ran, so it is the one call sent again: `npm run op` and the
+deploy's migrate and public-statistics invokes wait it out with
+doubling backoff for at most the function's own timeout and half a
+minute (`infra/scripts/lib/lambda-throttle.mjs`). A read stops waiting
+the moment someone takes the lock; an op whose function stays busy
+exits 4. A batch of calls holds the lock once for the whole run
+(`npm run op:batch`, Batches, below).
+
 The op catalogue, with each op's payload, bounds and whether it writes,
 is `.claude/skills/ops/ops.md`; how to run one safely is the `ops`
 skill. Live data is read, never written, to check behaviour (AGENTS.md
@@ -421,9 +431,9 @@ Sample real values against the game.
   where readers meet it. A schema change is a migration (the `migration`
   skill), never hand-applied. A purge or restatement sweeps every table
   carrying the key. A repair runs as a resumable op with a real
-  `remaining` count through `npm run op`, each invocation under the lock,
-  inside 45 s of budget so it stays under the 90 s alarm; stop when the
-  lock is held (exit 3) and resume after.
+  `remaining` count through `npm run op`, inside 45 s of budget so it
+  stays under the 90 s alarm, the whole run under one lock with
+  `npm run op:batch` (Batches, below).
 - **Vacuum after a large rewrite.** A bulk write or a VACUUM FULL
   empties the table's visibility map (`relallvisible = 0`) and index-only
   scans fall back to the heap until a vacuum runs; HOT updates never trip
@@ -766,3 +776,34 @@ Generate a fresh plan after any failure or reference change; never force past
 one. Read live endpoint pins, public health and alarms afterward and attach
 counts and the receipt to the PR. This is an explicit maintenance command,
 not an automatic scheduled writer.
+
+## Batches
+
+`npm run op` alone takes the lock per call, so a deploy can start
+between two calls of a multi-step job. A batch holds it once for the
+whole run:
+
+```sh
+npm run op:batch -- --purpose "<what it writes, and why>" -- <command> [args...]
+```
+
+It takes the lock as holder `batch` (exit 3, naming the holder, when
+someone else has it; nothing runs), runs the command with the lock's id
+in `ELIXIR_PRODUCTION_LOCK_ID`, and releases the lock when the command
+ends. Every `npm run op` the command runs finds that live lock and works
+under it, writes and reads alike, taking and refusing nothing. Ctrl-C
+or a SIGTERM is passed to the command and the lock is released once it
+has stopped; a batch killed outright leaves a lock its dead pid releases
+on the next acquire. Two steps of a resumable op, the second from the
+first's cursor:
+
+```sh
+npm run op:batch -- --purpose "repair x, steps 1-2" -- sh -c '
+  npm run op -- "{\"repair_x\": {\"limit\": 500}}" &&
+  npm run op -- "{\"repair_x\": {\"limit\": 500, \"after\": 1234}}"'
+```
+
+A longer loop belongs in a script that reads each answer's cursor and
+stops at `remaining: 0` (`-- ./backfill.sh`). Say in the pull
+request when a batch starts and roughly when it ends, and keep a batch
+to the work: a deploy waits behind it.

@@ -28,6 +28,7 @@ test("OPERATIONS.md keeps its sections, in order", () => {
       "Passport launch backfill",
       "Restore rehearsal",
       "Deployment history",
+      "Batches",
     ],
   );
 });
@@ -38,6 +39,7 @@ test("OPERATIONS.md carries the rules the runbooks point at", () => {
   assert.match(operations, /EBSByteBalance%/);
   assert.match(operations, /\(RELEASING-COLLECTOR\.md\)/);
   assert.match(operations, /compare-and-set/);
+  assert.match(operations, /npm run op:batch -- --purpose/);
   assert.match(operations, /Vacuum after a large rewrite/);
   for (const op of ["terminate_backends", "gateway_drain", "gateway_recover"])
     assert.match(operations, new RegExp(`\\{${op}\\}`));
