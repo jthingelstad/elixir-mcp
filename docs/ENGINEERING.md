@@ -204,6 +204,15 @@ inside a request. Non-database work (S3 calls) still parallelises.
 
 - Each Lambda's `statement_timeout` is set through `PGOPTIONS` in
   `infra/template.yaml`, a ceiling just under that function's Lambda kill.
+- The jobs Lambda opens every connection through
+  `services/jobs/src/db.mjs` and runs every op through its `runJob`:
+  a 10 s connect timeout, keepalive, the op's own `statement_timeout`
+  with a client `query_timeout` 5 s past it, and a run deadline of at
+  most 600 s. A lost connection, an unanswered query or the deadline
+  fails the run with `jobs_db_aborted` and destroys its connections, so
+  a stuck run never holds the function's one reserved slot (#814).
+  `services/jobs/test/jobs-db.test.mjs` fails on a bare `pg.Client`
+  there.
 - A read-only tool waits at most 5 s for a lock and answers
   `query_timeout` with a request id when its deadline passes, on every door
   (MCP, the app's tool bridge `POST /api/me/tool`)

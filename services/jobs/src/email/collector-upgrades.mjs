@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import pg from "pg";
+import { openJobsClient } from "../db.mjs";
 import { emailHash } from "@elixir-mcp/auth/crypto";
 import { upsertIssue } from "@elixir-mcp/mail/ledger";
 import { deliver } from "@elixir-mcp/mail/deliver";
@@ -37,8 +37,7 @@ export async function runCollectorUpgrades({
 }) {
   const own = !db;
   if (own) {
-    db = new pg.Client({ connectionString: databaseUrl });
-    await db.connect();
+    db = await openJobsClient(databaseUrl, { op: "collector_upgrades" });
   }
   const result = { sent: 0, skipped: 0, details: [] };
   try {

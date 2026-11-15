@@ -14,7 +14,7 @@ import { isActiveEmailKind, inactiveEmailReason } from "@elixir-mcp/contracts";
  *  {email: "<kind>", account_id?, force?}.
  *  Retired editorial payloads refuse before I/O. */
 
-import pg from "pg";
+import { openJobsClient, runJob, runRemainingMs } from "./db.mjs";
 import { purgeQuality } from "@elixir-mcp/syndication/quality";
 import { sweepSilentCollectors } from "./fleet.mjs";
 import { newsletterSync } from "./newsletter-sync.mjs";
@@ -47,8 +47,7 @@ export async function sweepPayloads(databaseUrl, s3override) {
   const { archiveKey } = await import("@elixir-mcp/ingest/pipeline");
   const { S3Client, HeadObjectCommand } = await import("@aws-sdk/client-s3");
   const s3 = s3override ?? new S3Client({});
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "sweep_payloads" });
   try {
     const { rows } = await db.query(
       `select p.payload_id, p.endpoint, p.entity_key, p.payload_hash,
@@ -134,8 +133,7 @@ export async function sweepPayloads(databaseUrl, s3override) {
  *  family lifetime — never trim below it. */
 /** Re-stamp every deck behind the current archetype version (0148). */
 export async function archetypeStampNightly(databaseUrl) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "archetype_stamp" });
   try {
     const vocab = await loadVocabulary(db);
     return await stampDecks(db, vocab, {});
@@ -148,8 +146,7 @@ export async function archetypeStampNightly(databaseUrl) {
  *  went quiet while told open (syndication wakeClosingSittings). */
 async function closingSittings(databaseUrl, { wakeOutbox = outbox } = {}) {
   if (!wakeOutbox) return { skipped: "no_outbox" };
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "discord_sittings" });
   try {
     return { woken: await wakeClosingSittings(db, { outbox: wakeOutbox }) };
   } finally {
@@ -162,8 +159,7 @@ async function closingSittings(databaseUrl, { wakeOutbox = outbox } = {}) {
 export async function homeFeeds(databaseUrl, { wakeOutbox = outbox } = {}) {
   const wake = homeWeekWake(wakeOutbox);
   if (!wake) return { skipped: "no_outbox" };
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "home_feeds" });
   try {
     const now = Date.now();
     const accounts = await homeWeeksToWake(db, { now });
@@ -175,8 +171,7 @@ export async function homeFeeds(databaseUrl, { wakeOutbox = outbox } = {}) {
 }
 
 export async function sweepOperational(databaseUrl) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "sweep_operational" });
   try {
     const war_unresolved = await warBattlesUnresolved(db);
     process.stdout.write(`${warUnresolvedEmf(war_unresolved)}\n`);
@@ -280,8 +275,7 @@ export async function sweepOperational(databaseUrl) {
  *  operational logs (packages/record/src/retention.mjs declares which).
  *  Bounded per run; what is left goes the next day. */
 export async function runRetentionTrim(databaseUrl, { remainingMs } = {}) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "retention_trim" });
   try {
     return await retentionTrim(db, { remainingMs: remainingMs ?? null });
   } finally {
@@ -345,10 +339,41 @@ function unsubscribeKeys() {
   };
 }
 
-export async function handler(event, context) {
+/** The ops an event names, in the order the dispatch runs them: the
+ *  run's limits are the widest of theirs (db.mjs). */
+export function eventOps(event) {
+  const ops = [];
+  if (event?.clan_evaluate) ops.push("clan_evaluate");
+  if (event?.discord_sittings) ops.push("discord_sittings");
+  if (event?.home_feeds) ops.push("home_feeds");
+  if (event?.collector_upgrades) ops.push("collector_upgrades");
+  if (event?.feedback_answers) ops.push("feedback_answers");
+  if (typeof event?.email === "string") ops.push("email");
+  if (event?.retention_trim) ops.push("retention_trim");
+  if (event?.shape_census) ops.push("shape_census");
+  if (event?.capture_efficiency) ops.push("capture_efficiency");
+  if (event?.public_stats) ops.push("public_stats");
+  if (event?.archetype_stamp) ops.push("archetype_stamp");
+  if (event?.sweep_payloads) ops.push("sweep_payloads");
+  if (event?.sweep_operational) ops.push("sweep_operational", "sweep_fleet");
+  if (event?.newsletter_sync) ops.push("newsletter_sync");
+  if (event?.sweep_fleet) ops.push("sweep_fleet");
+  return ops;
+}
+
+/** Every op runs as one job (db.mjs, #814): its connections time out,
+ *  a lost connection ends it, and it settles by a deadline well under
+ *  the Lambda's 900 s, so a stuck run never holds the one reserved
+ *  slot. */
+export async function handler(event, context, options = {}) {
   if (typeof event?.email === "string" && !isActiveEmailKind(event.email))
     return { skipped: inactiveEmailReason(event.email) };
+  const ops = eventOps(event);
+  if (ops.length === 0) throw new Error("jobs: no recognized op in event");
+  return runJob(ops, context, () => dispatch(event), options);
+}
 
+async function dispatch(event) {
   if (event?.clan_evaluate) {
     const result = await runClanEvaluation({
       databaseUrl: process.env.DATABASE_URL,
@@ -387,9 +412,7 @@ export async function handler(event, context) {
       accountEmail: spec.account_email ?? null,
       replay: spec.replay ?? null,
       apply: spec.apply === true,
-      remainingMs: context?.getRemainingTimeInMillis
-        ? () => context.getRemainingTimeInMillis()
-        : null,
+      remainingMs: runRemainingMs,
     });
     console.log(JSON.stringify({ collector_upgrades: result }));
     if (!event.feedback_answers) return result;
@@ -403,9 +426,7 @@ export async function handler(event, context) {
       enqueue: enqueueEmail,
       secret: unsubscribeKeys(),
       archive: await mailArchiveStore(),
-      remainingMs: context?.getRemainingTimeInMillis
-        ? () => context.getRemainingTimeInMillis()
-        : null,
+      remainingMs: runRemainingMs,
     });
     console.log(JSON.stringify({ feedback_answers: result }));
     return result;
@@ -421,10 +442,7 @@ export async function handler(event, context) {
       secret: unsubscribeKeys(),
       archive: await mailArchiveStore(),
       cardArt: await cardArtHeld(),
-      remainingMs:
-        typeof context?.getRemainingTimeInMillis === "function"
-          ? () => context.getRemainingTimeInMillis()
-          : null,
+      remainingMs: runRemainingMs,
     });
     console.log(JSON.stringify({ email: result }));
     // A run that stopped short of its recipients fails the invocation,
@@ -439,10 +457,7 @@ export async function handler(event, context) {
   }
   if (event?.retention_trim) {
     const result = await runRetentionTrim(process.env.DATABASE_URL, {
-      remainingMs:
-        typeof context?.getRemainingTimeInMillis === "function"
-          ? () => context.getRemainingTimeInMillis()
-          : undefined,
+      remainingMs: runRemainingMs,
     });
     console.log(JSON.stringify({ retention_trim: result }));
     return result;

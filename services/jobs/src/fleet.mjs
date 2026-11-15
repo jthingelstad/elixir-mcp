@@ -10,7 +10,7 @@
  *
  * `draining` and `revoked` are intentional stops and never silent.
  */
-import pg from "pg";
+import { openJobsClient } from "./db.mjs";
 import { silentSince } from "@elixir-mcp/ingest/fleet";
 
 /** Tell the owner about every collector that went silent since it was
@@ -19,8 +19,7 @@ export async function sweepSilentCollectors(
   databaseUrl,
   { enqueue, nowMs = Date.now(), ownerEmail } = {},
 ) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "sweep_fleet" });
   try {
     const { rows } = await db.query(
       `select gateway_id, name, card_name, status, enrolled_at,
