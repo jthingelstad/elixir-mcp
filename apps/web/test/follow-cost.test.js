@@ -39,3 +39,24 @@ test("nothing to say when already followed, or when slots are unlimited", () => 
   expect(followCostLine(cost({ following: true }))).toBeNull();
   expect(followCostLine(cost({ limit: null }))).toBeNull();
 });
+
+test("a Verified player's follow says what comes along (linked follows)", () => {
+  expect(
+    followCostLine(
+      cost({ free: true, limit: null, linked: { players: 0, slots: 0 } }),
+    ),
+  ).toBe("Free · already recorded · Also follows their account");
+  expect(
+    followCostLine(
+      cost({ free: true, limit: null, linked: { players: 2, slots: 0 } }),
+    ),
+  ).toBe(
+    "Free · already recorded · Also follows their account and 2 more players",
+  );
+  expect(followCostLine(cost({ linked: { players: 1, slots: 1 } }))).toBe(
+    "Uses 1 of your 50 follows · 3 used · Also follows their account and 1 more player (1 uses a follow)",
+  );
+  expect(
+    followCostLine(cost({ limit: null, linked: { players: 1, slots: 0 } })),
+  ).toBe("Also follows their account and 1 more player");
+});

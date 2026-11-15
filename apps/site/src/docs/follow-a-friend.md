@@ -32,7 +32,9 @@ Or on **Find** (on the top bar, and a tab on a phone): under **Search**,
 **Follow by player tag** takes the tag and adds
 the player as a friend in one step. It asks for your own player first if you
 have none, and never makes the player your primary. If they verified
-their player on Elixir, their bell shows a new follower ([the bell](/docs/your-account#the-bell)).
+their player on Elixir, their bell shows a new follower ([the bell](/docs/your-account#the-bell)),
+and you also follow their account and their other Verified players
+([Linked follows](/docs/verified-players#linked-follows)).
 
 ## Find
 
@@ -115,3 +117,7 @@ On the player's page, tap **Following**, then **Unfollow**. Or use
 **Unfollow** in Settings › Players & following, or `elixir_follow_player` with
 `action: "remove"`. The history already recorded is kept, and recording
 stops only when nobody else following the player has a reason to keep it.
+
+Unfollowing a Verified player you follow through its account ends the
+whole follow: the account and all its Verified players
+([Linked follows](/docs/verified-players#linked-follows)).

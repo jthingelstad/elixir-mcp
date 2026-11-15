@@ -221,7 +221,11 @@ export function PlayerView({
             the Follows tab. */}
         <nav className="kit-phead__actions" aria-label="More about this player">
           {you.own ? null : you.following ? (
-            <Unfollow tag={p.tag} name={p.name} />
+            <Unfollow
+              tag={p.tag}
+              name={p.name}
+              linked={page.badges?.verified_player === true}
+            />
           ) : (
             <FollowButton tag={p.tag} name={p.name} />
           )}
@@ -775,8 +779,10 @@ function Follows({ page, player, own }) {
 }
 
 /** Following, said where Follow was: a button that offers Unfollow, asked
- *  first, as Settings' Players & following asks it. */
-function Unfollow({ tag, name }) {
+ *  first, as Settings' Players & following asks it. A Verified player's
+ *  follow is its account's follow (linked follows, 2026-11-15), so
+ *  unfollowing it ends the whole link, and the dialog says so. */
+function Unfollow({ tag, name, linked = false }) {
   const invalidate = useInvalidate();
   const who = name ?? tag;
   return (
@@ -792,6 +798,9 @@ function Unfollow({ tag, name }) {
         <p className="m-0">
           Elixir stops recording <TagText>{who}</TagText> for you. They are not
           told.
+          {linked
+            ? " If you follow their account, you stop following it and all its verified players too."
+            : null}
         </p>
       }
       confirm="Unfollow"

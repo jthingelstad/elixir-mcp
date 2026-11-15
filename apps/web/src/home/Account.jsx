@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "@tanstack/react-router";
 import {
   Avatar,
+  ConfirmAction,
   Empty,
   ErrorState,
   Icon,
@@ -18,6 +19,7 @@ import { playerHref } from "../lib/player.js";
 import { useAccountPage, useInvalidate } from "../lib/queries.js";
 import { ItemList } from "./Player.jsx";
 import { PassportRow } from "./PassportRow.jsx";
+import { followPlanLine } from "./follow.jsx";
 
 /**
  * An account's page (Jamie, 2026-11-15): /home/account/<id>, for any
@@ -26,7 +28,7 @@ import { PassportRow } from "./PassportRow.jsx";
  * Verified (proved, so nobody else can claim it) or Claimed (said, not
  * proved); its badges; its place at city level; its Stamps; and one
  * timeline of all its players and its own news. Following an account brings
- * that news to your feed, and takes no follow slot.
+ * that news to your feed and follows each player it has verified.
  *
  * Never an email, a Discord username, a nickname or an agent: what DECISIONS
  * "What is public about an account" makes public and nothing past it.
@@ -128,7 +130,11 @@ function AccountView({ page }) {
         </div>
         <nav className="kit-phead__actions" aria-label="This account">
           {page.you.self ? null : (
-            <FollowAccount id={a.id} following={page.you.following} />
+            <FollowAccount
+              id={a.id}
+              following={page.you.following}
+              plan={page.you.plan ?? null}
+            />
           )}
         </nav>
       </header>
@@ -203,47 +209,84 @@ function AccountBadges({ badges }) {
   );
 }
 
-/** Follow or unfollow an account: free, so one tap, no dialog. */
-function FollowAccount({ id, following }) {
+/**
+ * Follow or unfollow an account, asked first (linked follows, Jamie
+ * 2026-11-15): following an account follows each player it has verified,
+ * now and later, so the dialog prices those players as a Follow of a clan
+ * does. Stopping ends it all: the account and its Verified players.
+ */
+function FollowAccount({ id, following, plan }) {
   const invalidate = useInvalidate();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const run = async () => {
-    setBusy(true);
-    setError(null);
-    const env = await (
-      following ? api.unfollowAccount(id) : api.followAccount(id)
-    ).catch(() => null);
-    setBusy(false);
-    if (!env?.ok) {
-      setError(env?.data?.message ?? "That did not work. Try again.");
-      return;
-    }
-    trackEvent(following ? "home.account_unfollowed" : "home.account_followed");
+  const [result, setResult] = useState(null);
+  const done = (kind) => (answer) => {
+    trackEvent(kind);
+    setResult(answer?.data ?? null);
     invalidate();
   };
+  if (following)
+    return (
+      <>
+        <ConfirmAction
+          label={
+            <>
+              <Icon name="check" size={14} /> Following
+            </>
+          }
+          className="btn btn--sm btn--follow btn--following"
+          title="Stop following this account?"
+          body={
+            <p className="m-0">
+              You&rsquo;ll stop following their account and every player
+              they&rsquo;ve verified. Their news leaves your feed.
+            </p>
+          }
+          confirm="Stop following"
+          run={() => api.unfollowAccount(id)}
+          onDone={done("home.account_unfollowed")}
+        />
+        <FollowResult result={result} />
+      </>
+    );
   return (
     <>
-      <button
-        type="button"
-        className={`btn btn--sm btn--follow${following ? " btn--following" : ""}`}
-        aria-pressed={following}
-        disabled={busy}
-        onClick={run}
-      >
-        {following ? (
+      <ConfirmAction
+        label="Follow"
+        className="btn btn--sm btn--follow"
+        danger={false}
+        title="Follow this account?"
+        body={
           <>
-            <Icon name="check" size={14} /> Following
+            <p className="m-0">
+              You&rsquo;ll follow their account and every player they&rsquo;ve
+              verified, now and later. Their bell shows a new follower.
+            </p>
+            <p className="kit-tiny" role="status">
+              {plan
+                ? plan.to_follow === 0
+                  ? "No players to add · free"
+                  : followPlanLine(plan)
+                : "Free · no player slots"}
+            </p>
           </>
-        ) : (
-          "Follow"
-        )}
-      </button>
-      {error ? (
-        <p className="kit-tiny" role="alert">
-          {error}
-        </p>
-      ) : null}
+        }
+        confirm="Follow"
+        run={() => api.followAccount(id)}
+        onDone={done("home.account_followed")}
+      />
+      <FollowResult result={result} />
     </>
+  );
+}
+
+/** What the last Follow came to, when a player could not be taken. */
+function FollowResult({ result }) {
+  const skipped = result?.skipped?.length ?? 0;
+  if (!skipped) return null;
+  return (
+    <p className="kit-tiny" role="status">
+      {skipped === 1 ? "1 player wasn’t" : `${skipped} players weren’t`}{" "}
+      followed: no free player slot, or no player of your own yet. Your bell has
+      the details.
+    </p>
   );
 }
