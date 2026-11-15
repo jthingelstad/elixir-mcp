@@ -191,7 +191,9 @@ opened it, plus answers you have not read. Opening the bell marks cheers,
 followers and your account's lines as seen; an answer stays new until you
 open it. If you open a line and come back, the bell opens where you left
 it, with the rest of what was new still marked; once you put the bell away,
-the next opening starts fresh. With no verified player, the bell says how
+the next opening starts fresh. If the bell can't refresh when you open
+it, it keeps what it showed before, says it may be out of date, and offers
+**Try again**; it marks nothing seen until a refresh works. With no verified player, the bell says how
 to verify one. Nothing in the bell is mailed or posted to Discord.
 
 ## Elixir on your phone
