@@ -215,10 +215,34 @@ async function storedWeek(db, accountId) {
   return rows[0] ?? null;
 }
 
+/** The instant an item last changed for a reader: the later of when it
+ *  sorts (a sitting's last battle) and when Elixir learned it. A battle
+ *  learned late sorts below the feed's top but is still news (Codex on
+ *  #1038). */
+export const changedAt = (it) =>
+  Math.max(
+    Date.parse(it.sort_at ?? it.at) || 0,
+    Date.parse(it.observed_at ?? it.at) || 0,
+  );
+
+/** Items read live over the stored week, never stored or counted. */
+export const liveItem = (it) =>
+  it.kind === "battle_highlight" || it.section === "attested";
+
+/** The newest change among a week's stored items, as an ISO instant, or
+ *  null: the mark the feed's first page hands the pill to count from. */
+export function feedWatermark(items) {
+  let best = 0;
+  for (const it of items)
+    if (!liveItem(it)) best = Math.max(best, changedAt(it));
+  return best > 0 ? new Date(best).toISOString() : null;
+}
+
 /**
- * How many of the stored week's items are newer than `sinceMs` (the
- * newest item the reader's feed shows), and when the week was built: Home's
- * "N new" pill (2026-11-14). One statement on the account's one row, never
+ * How many of the stored week's items changed after `sinceMs` (the first
+ * page's watermark, feedWatermark), and when the week was built: Home's
+ * "N new" pill (2026-11-14). An item counts when it sorts later or was
+ * learned later, so a battle learned late, below the feed's top, counts. One statement on the account's one row, never
  * a build and never the record: the five-minute wake keeps the row fresh
  * for anyone who reads Home, so the count follows the record within FRESH.
  * Highlights and attested facts are read live by the feed (readHomeWeek),
@@ -229,7 +253,10 @@ export async function countHomeNew(db, accountId, sinceMs) {
   const { rows } = await db.query(
     `select f.built_at,
             (select count(*)::int from jsonb_array_elements(f.items) it
-              where coalesce(it->>'sort_at', it->>'at')::timestamptz > $2
+              where greatest(
+                      coalesce(it->>'sort_at', it->>'at')::timestamptz,
+                      coalesce(it->>'observed_at', it->>'at')::timestamptz
+                    ) > $2
                 and it->>'kind' is distinct from 'battle_highlight'
                 and it->>'section' is distinct from 'attested') as fresh
        from home_feed f where f.account_id = $1`,

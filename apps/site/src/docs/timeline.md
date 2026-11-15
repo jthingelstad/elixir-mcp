@@ -66,7 +66,8 @@ and the panels beside it read on regardless.
 
 Nothing in the feed moves while you read it. While Home is open and on
 screen, Elixir checks about once a minute (and when you come back to the
-tab) whether your kept week has anything newer than the top of your feed.
+tab) whether your kept week has anything your feed doesn't, including a
+battle recorded late that belongs further down.
 When it does, a small **N new** button appears over the top of the feed,
 staying in view as you scroll. Tap it to read the newest page again and
 jump back to the top. Nothing is checked while the tab is hidden. A new

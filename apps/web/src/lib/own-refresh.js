@@ -11,9 +11,13 @@
  * lane's `retry_after_s`, a few times at most, and never while hidden. Once
  * the reads have landed (and Home's stored week has them, or the attempts
  * run out), your Home, player pages and their games are read again, so the
- * new battle shows without a reload; an open Home's feed is the exception,
- * whose "N new" pill offers it instead, so nothing moves under the reader. Nothing here ever blocks a render or
- * shows an error: `checking` is the one thing a view reads.
+ * new battle shows without a reload. An open Home's feed is the exception
+ * when the app asked on its own (opening, coming back to the tab): its
+ * "N new" pill offers what landed, so nothing moves under the reader. When
+ * the reader asked (the freshness chip, the refresh button), the feed is
+ * read again with the rest, since new games are what they asked to see.
+ * Nothing here ever blocks a render or shows an error: `checking` is the
+ * one thing a view reads.
  */
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -76,8 +80,10 @@ export function makeOwnRefresh({
     for (const l of listeners) l();
   };
 
-  async function landed() {
-    await Promise.all(landedKeys.map((queryKey) => invalidate(queryKey)));
+  async function landed(asked) {
+    await Promise.all(
+      landedKeys.map((queryKey) => invalidate(queryKey, { asked })),
+    );
   }
 
   async function poll(waitS) {
@@ -101,7 +107,8 @@ export function makeOwnRefresh({
     return false;
   }
 
-  async function ask() {
+  /** `asked`: the reader asked (a tap), not the app on its own. */
+  async function ask({ asked = false } = {}) {
     if (busy || now() - lastAsk < spacingMs) return;
     busy = true;
     lastAsk = now();
@@ -117,7 +124,7 @@ export function makeOwnRefresh({
           .filter((p) => p.state === "queued")
           .map((p) => p.retry_after_s ?? 15);
         if (await poll(Math.min(...waits))) {
-          await landed();
+          await landed(asked);
           outcome = "updated";
         }
       } else if (players.some((p) => p.state === "fresh")) {
@@ -130,7 +137,7 @@ export function makeOwnRefresh({
           await wait(MIN_WAIT_S * 1000);
           await status().catch(() => null);
         }
-        await landed();
+        await landed(asked);
         outcome = "updated";
       } else {
         const waits = players
@@ -157,10 +164,11 @@ export function makeOwnRefresh({
   };
 }
 
-/** An open Home's feed is not read again under the reader (2026-11-14):
- *  its "N new" pill counts what landed (its key is under ["me", "home"],
- *  so landing asks it now) and the reader taps to see it. A feed nobody is
- *  looking at is marked stale as before. */
+/** An open Home's feed is not read again under the reader when the app
+ *  asked on its own (2026-11-14): its "N new" pill counts what landed (its
+ *  key is under ["me", "home"], so landing asks it now) and the reader taps
+ *  to see it. A feed nobody is looking at is marked stale as before, and a
+ *  reader who asked gets the feed read again too. */
 const notOpenFeed = (q) =>
   !(
     q.queryKey.length === HOME_FEED_KEY.length &&
@@ -174,8 +182,10 @@ function refresherFor(queryClient) {
   let r = byClient.get(queryClient);
   if (!r) {
     r = makeOwnRefresh({
-      invalidate: (queryKey) =>
-        queryClient.invalidateQueries({ queryKey, predicate: notOpenFeed }),
+      invalidate: (queryKey, { asked } = {}) =>
+        queryClient.invalidateQueries(
+          asked ? { queryKey } : { queryKey, predicate: notOpenFeed },
+        ),
     });
     byClient.set(queryClient, r);
   }
@@ -184,10 +194,11 @@ function refresherFor(queryClient) {
 
 const IDLE = { checking: false, outcome: null, retryAfterS: null, at: null };
 
+/** A view's `ask` is a tap: the reader asked. */
 function useRefresher(r) {
   const state = useSyncExternalStore(r.subscribe, r.snapshot, () => IDLE);
   const ask = useCallback(() => {
-    void r.ask();
+    void r.ask({ asked: true });
   }, [r]);
   return { ...state, ask };
 }
@@ -240,7 +251,10 @@ export const hasOwnVerified = (me) =>
  * more hidden. Mounted once, at the root.
  */
 export function useRefreshOnOpen(me) {
-  const { ask } = useOwnRefresh();
+  const r = refresherFor(useQueryClient());
+  const ask = useCallback(() => {
+    void r.ask();
+  }, [r]);
   const eligible = hasOwnVerified(me);
   useEffect(() => {
     if (!eligible) return undefined;

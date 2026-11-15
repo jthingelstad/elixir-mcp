@@ -2,14 +2,16 @@
  * Home's "N new" pill (2026-11-14): an open feed is never read again under
  * the reader. A cheap count says when new items have arrived, a pill offers
  * them, and the tap reads the first page again. Your own battles landing
- * asks the count, not the feed. Invented players only.
+ * after the app asked on its own asks the count, not the feed; after you
+ * asked, the feed is read again. Invented players only.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, cleanup, act, fireEvent } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { HomeFeed } from "../src/home/Feed.jsx";
 import { HOME_FEED_NEW_KEY } from "../src/lib/queries.js";
-import { useOwnRefresh } from "../src/lib/own-refresh.js";
+import { useState } from "react";
+import { useOwnRefresh, useRefreshOnOpen } from "../src/lib/own-refresh.js";
 import { feedSince } from "../src/home/logic.js";
 
 vi.mock("../src/analytics.js", () => ({ trackEvent: () => {} }));
@@ -62,10 +64,20 @@ afterEach(() => cleanup());
 
 const count = (key) => calls.filter((c) => c.key === key).length;
 
-test("the pill counts from the newest item shown, a sitting by its last battle", () => {
+test("the pill counts from the newest change: a sitting by its last battle, a late battle by when it was learned", () => {
   expect(feedSince(null)).toBeNull();
   const sitting = item(1, 90, { kind: "battle_session", sort_at: AGO(5) });
   expect(feedSince(page([item(2, 30), sitting]))).toBe(sitting.sort_at);
+  // Learned late: below the top by its battle, the newest by learning.
+  const late = item(3, 60, { observed_at: AGO(1) });
+  expect(feedSince(page([item(2, 30), late]))).toBe(late.observed_at);
+  // The server's watermark wins: it has seen the whole week.
+  expect(
+    feedSince({
+      ...page([item(2, 30)]),
+      watermark: "2026-11-14T12:00:00.000Z",
+    }),
+  ).toBe("2026-11-14T12:00:00.000Z");
   const empty = page([]);
   expect(feedSince(empty)).toBe(empty.window.to);
 });
@@ -114,8 +126,62 @@ function Ask() {
   );
 }
 
-test("your own battles landing asks the count, never the open feed", async () => {
-  feed = page([item(1, 30)]);
+const ME = {
+  authenticated: true,
+  claims: [{ claim_status: "verified", is_primary: true }],
+};
+function OnOpen() {
+  useRefreshOnOpen(ME);
+  return null;
+}
+/** The app opening, a moment after Home has drawn. */
+function OnOpenAfter() {
+  const [open, setOpen] = useState(false);
+  return open ? (
+    <OnOpen />
+  ) : (
+    <button type="button" onClick={() => setOpen(true)}>
+      Open
+    </button>
+  );
+}
+
+// A friend's item five minutes old tops the feed; your own refresh then
+// records a battle ten minutes old. It is older than the top, and it must
+// still reach you.
+const friend = () => item(1, 5);
+const yours = () =>
+  item(2, 10, {
+    text: "Invented 2 won a battle.",
+    observed_at: AGO(0),
+  });
+
+test("the app's own ask lands: the open feed is not read, the pill offers the late battle", async () => {
+  feed = page([friend()]);
+  fresh = 0;
+  renderWithProviders(
+    <>
+      <OnOpenAfter />
+      <HomeFeed />
+    </>,
+  );
+  expect(
+    await screen.findByText("Invented 1 reached Path of Legends."),
+  ).toBeTruthy();
+  await vi.waitFor(() => expect(count("GET /api/me/home/feed/new")).toBe(1));
+  feed = page([friend(), yours()]);
+  fresh = 1;
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  const pill = await screen.findByRole("button", { name: "Show 1 new item" });
+  expect(count("GET /api/me/home/feed")).toBe(1);
+  expect(screen.queryByText("Invented 2 won a battle.")).toBeNull();
+  fresh = 0;
+  fireEvent.click(pill);
+  expect(await screen.findByText("Invented 2 won a battle.")).toBeTruthy();
+});
+
+test("you asked (the chip or the button): the feed is read again and your battle shows", async () => {
+  feed = page([friend()]);
   fresh = 0;
   renderWithProviders(
     <>
@@ -126,11 +192,9 @@ test("your own battles landing asks the count, never the open feed", async () =>
   expect(
     await screen.findByText("Invented 1 reached Path of Legends."),
   ).toBeTruthy();
-  await vi.waitFor(() => expect(count("GET /api/me/home/feed/new")).toBe(1));
+  feed = page([friend(), yours()]);
   fresh = 1;
   fireEvent.click(screen.getByRole("button", { name: "Ask" }));
-  expect(
-    await screen.findByRole("button", { name: "Show 1 new item" }),
-  ).toBeTruthy();
-  expect(count("GET /api/me/home/feed")).toBe(1);
+  expect(await screen.findByText("Invented 2 won a battle.")).toBeTruthy();
+  expect(count("GET /api/me/home/feed")).toBe(2);
 });

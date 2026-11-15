@@ -375,15 +375,21 @@ export const clanStepLine = (name, hasPlayer) =>
 /** The time to show beside an item: the one the feed is ordered by. */
 export const shownAt = (it) => it.sort_at ?? it.at;
 
-/** The instant the "N new" pill counts from (2026-11-14): the newest item
- *  the feed's first page shows, or the end of its week when it shows none.
- *  Null before the first page is read. */
+/** The instant the "N new" pill counts from (2026-11-14): the first
+ *  page's `watermark`, the server's newest change across the whole stored
+ *  week (an item sorting later or learned later; Codex on #1038). Before a
+ *  server that sends it, the newest change the first page shows, or the
+ *  end of its week. Null before the first page is read. */
 export function feedSince(page) {
   if (!page) return null;
+  if (page.watermark) return page.watermark;
   let best = null;
   for (const it of page.timeline ?? []) {
-    const ms = Date.parse(shownAt(it));
-    if (Number.isFinite(ms) && (best === null || ms > best)) best = ms;
+    const ms = Math.max(
+      Date.parse(shownAt(it)) || 0,
+      Date.parse(it.observed_at ?? it.at) || 0,
+    );
+    if (ms > 0 && (best === null || ms > best)) best = ms;
   }
   if (best === null) {
     const end = Date.parse(page.window?.to ?? "");

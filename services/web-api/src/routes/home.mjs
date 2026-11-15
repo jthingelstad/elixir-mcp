@@ -15,6 +15,7 @@ import {
   buildOnce,
   countHomeNew,
   feedAfter,
+  feedWatermark,
   feedOrder,
   homeAccount,
   readHomeWeek,
@@ -731,6 +732,10 @@ async function readFeed(db, account, cursor, wake) {
         fresh += 1;
     }
     out.counts = { ...counts, new: fresh, new_since: seen_to };
+    // Where the "N new" pill counts from: the newest change among the
+    // stored items this read holds. With none stored, every stored item
+    // that arrives is one the reader lacks, so count from the week's start.
+    out.watermark = feedWatermark(all) ?? out.window.from;
   }
   console.info(
     JSON.stringify({
@@ -981,9 +986,10 @@ export function homeRoutes({
     },
 
     // Home's "N new" pill (2026-11-14): how many of the stored week's
-    // items are newer than the newest one the reader's feed shows. One
-    // statement on the account's row after the session's own, polled by an
-    // open Home while its tab is visible; never a build, never the record.
+    // items changed (sort later, or were learned later) after `since`, the
+    // first page's `watermark`. One statement on the account's row after
+    // the session's own, polled by an open Home while its tab is visible;
+    // never a build, never the record.
     "GET /api/me/home/feed/new": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
