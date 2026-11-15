@@ -301,3 +301,175 @@ export async function readClanDirectory(db, account) {
     },
   };
 }
+
+// ---- the player map and Near you (#768) ------------------------------------
+
+/** [engineering, 2026-11-14] Bounds on one read; each says when it is
+ *  reached rather than dropping people without a word. */
+export const PLAYER_MAP_LIMIT = 1000;
+export const NEAR_YOU_LIMIT = 50;
+
+/**
+ * The people on the player map: a person's place (`place#<tag>`, written
+ * under each of their verified tags by Clan's social service) counts only
+ * when its owner chose the player map (`player_map: true`; an older place
+ * has no such key and stays on clan maps only), only under a tag that is
+ * still a verified own claim (primary or alt) of an approved person, and
+ * only when the place was written after that claim was verified, so a tag
+ * that moved to another account never carries the old owner's place. One
+ * row per account: its primary player when verified, else its earliest
+ * verified alt, so a person's players are never shown side by side.
+ *
+ * The pattern and the player_map test are word for word the predicate of
+ * the partial index `clan_state_player_map` (0275), so the ledger is never
+ * scanned whole (services/migrate/test/player-map-plan.test.mjs). `where`
+ * narrows the places (Near you: a country and region) inside the
+ * DISTINCT ON, where the index can serve it.
+ */
+const onMap = (where = "true") => `
+  select distinct on (c.account_id) c.account_id, c.player_tag,
+         s.body ->> 'country' as country,
+         s.body ->> 'region' as region,
+         s.body ->> 'city' as city
+    from clan_state s
+    join claim c on c.player_tag = s.body ->> 'player_tag'
+                and c.status = 'verified'
+                and (c.is_primary or c.relationship in ('primary', 'alt'))
+    join account a on a.account_id = c.account_id
+                  and a.kind = 'person' and a.status = 'approved'
+   where s.pk ~ '^place##[0289PYLQGRJCUV]{3,12}$'
+     and s.body ->> 'player_map' = 'true'
+     and s.pk = 'place#' || c.player_tag
+     and (c.verified_at is null
+          or (s.body ->> 'set_at')::timestamptz >= c.verified_at)
+     and ${where}
+   order by c.account_id, c.is_primary desc, c.verified_at nulls last,
+            c.player_tag`;
+
+/** Only an approved person reads either: never an agent or an integration. */
+const READER = `
+  select a.account_id from account a
+   where a.account_id = $1 and a.kind = 'person' and a.status = 'approved'`;
+
+// The whole map, by country, region and name: never by trophies or any
+// score. `you` marks the reader's own pin.
+const PLAYER_MAP_SQL = `
+with reader as (${READER}),
+on_map as (${onMap()})
+select o.player_tag, p.name, o.country, o.region, o.city,
+       o.account_id = reader.account_id as you
+  from reader, on_map o
+  left join player p on p.player_tag = o.player_tag
+ order by o.country, coalesce(o.region, ''),
+          lower(coalesce(p.name, o.player_tag)), o.player_tag
+ limit $2`;
+
+// The reader's own place (the newest written under their verified own
+// tags, read by key) and, in the same snapshot, the people on the player
+// map in its country and region, the reader's own account and anyone whose
+// players the reader already claims (owns, follows or watches) left out.
+// Ordered by the place alone: the reader's city first, then by name.
+// No place: no row.
+const NEAR_YOU_SQL = `
+with reader as (${READER}),
+mine as (
+  select s.body ->> 'country' as country,
+         coalesce(s.body ->> 'region', '') as region,
+         s.body ->> 'city' as city,
+         s.body ->> 'player_map' = 'true' as on_map
+    from reader
+    join claim c on c.account_id = reader.account_id
+                and c.status = 'verified'
+                and (c.is_primary or c.relationship in ('primary', 'alt'))
+    join clan_state s on s.pk = 'place#' || c.player_tag
+   order by s.body ->> 'set_at' desc nulls last
+   limit 1
+)
+select mine.country as my_country, nullif(mine.region, '') as my_region,
+       mine.city as my_city, mine.on_map as my_on_map,
+       n.player_tag, n.name, n.country, n.region, n.city
+  from reader, mine
+  left join lateral (
+    select o.player_tag, p.name, o.country, o.region, o.city
+      from (${onMap(
+        `s.body ->> 'country' = mine.country
+         and coalesce(s.body ->> 'region', '') = mine.region`,
+      )}) o
+      left join player p on p.player_tag = o.player_tag
+     where o.account_id <> reader.account_id
+       and not exists (
+         select 1 from claim theirs
+           join claim held on held.player_tag = theirs.player_tag
+          where theirs.account_id = o.account_id
+            and theirs.status = 'verified'
+            and held.account_id = reader.account_id)
+     order by coalesce(o.city = mine.city, false) desc,
+              lower(coalesce(p.name, o.player_tag)), o.player_tag
+     limit $2
+  ) n on true`;
+
+/** A place as the ledger holds it: codes and a GeoNames id, nothing finer. */
+const placeCodes = (country, region, city) => ({
+  country,
+  region: region || null,
+  city:
+    city === null || city === undefined || city === "" ? null : Number(city),
+});
+
+/**
+ * The player map (#768): everyone who chose it, for a signed-in, approved
+ * person. Each entry is a player's game name and tag, `you` for the
+ * reader's own, and the place codes; never an account, a nickname or
+ * anything finer than the picked place. `{ refused: "not_a_person" }` for
+ * an agent, an integration or an account that is not approved.
+ */
+export async function readPlayerMap(db, account) {
+  if (account?.kind !== "person" || !account.accountId)
+    return { refused: "not_a_person" };
+  const { rows } = await db.query(PLAYER_MAP_SQL, [
+    account.accountId,
+    PLAYER_MAP_LIMIT + 1,
+  ]);
+  return {
+    entries: rows.slice(0, PLAYER_MAP_LIMIT).map((r) => ({
+      player_tag: r.player_tag,
+      name: r.name ?? null,
+      you: r.you === true,
+      place: placeCodes(r.country, r.region, r.city),
+    })),
+    truncated: rows.length > PLAYER_MAP_LIMIT,
+  };
+}
+
+/**
+ * Near you (#768): the reader's own place and the people on the player map
+ * in its country and region (a country with no regions: the country), up
+ * to NEAR_YOU_LIMIT, the reader's city first, then by name. `{ place:
+ * null }` when the reader has set no place. `place.on_map` says whether
+ * the reader's own place is on the player map.
+ */
+export async function readNearYou(db, account) {
+  if (account?.kind !== "person" || !account.accountId)
+    return { refused: "not_a_person" };
+  const { rows } = await db.query(NEAR_YOU_SQL, [
+    account.accountId,
+    NEAR_YOU_LIMIT + 1,
+  ]);
+  if (rows.length === 0) return { place: null, people: [], truncated: false };
+  const first = rows[0];
+  const people = rows
+    .filter((r) => r.player_tag)
+    .map((r) => ({
+      player_tag: r.player_tag,
+      name: r.name ?? null,
+      place: placeCodes(r.country, r.region, r.city),
+    }));
+  return {
+    place: {
+      ...placeCodes(first.my_country, first.my_region, first.my_city),
+      on_map: first.my_on_map === true,
+    },
+    people: people.slice(0, NEAR_YOU_LIMIT),
+    truncated: people.length > NEAR_YOU_LIMIT,
+  };
+}

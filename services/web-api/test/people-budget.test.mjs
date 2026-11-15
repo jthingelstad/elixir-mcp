@@ -29,6 +29,9 @@ const BUDGET = {
   "/api/me/people/find": 12,
   "/api/me/people/battles": 9,
   "/api/me/people/clan": 12,
+  // #768: the session, the seam's one read, and Near you's follow prices.
+  "/api/me/people/near": 7,
+  "/api/me/player-map": 4,
 };
 
 // Invented: a friendly opponent and a 2v2 teammate's pair of opponents.
@@ -79,6 +82,20 @@ before(async () => {
   await add("people-budget-2v2", "trail", 3, [
     [leaderTag, mate.player_tag],
     FOES,
+  ]);
+  // The reader's place, on the player map (#768), so Near you reads whole.
+  const placePk = `place#${leaderTag}`;
+  await db.query(`insert into clan_state(pk, body) values ($1, $2)`, [
+    placePk,
+    {
+      pk: placePk,
+      player_tag: leaderTag,
+      country: "US",
+      region: "TX",
+      city: null,
+      set_at: new Date().toISOString(),
+      player_map: true,
+    },
   ]);
   await db.query("analyze battle; analyze battle_participant");
   pg.Client.prototype.query = function (config, values, cb) {

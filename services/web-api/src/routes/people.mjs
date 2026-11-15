@@ -14,6 +14,8 @@ import {
   clanPeople,
   findPeople,
   hideStarter,
+  nearPeople,
+  playerMap,
   starterSet,
   suggestedPeople,
 } from "../people.mjs";
@@ -50,6 +52,9 @@ export function peopleRoutes({ resolveAccount }) {
     // Home's starter set (2026-11-13): follows offered to an account that
     // follows few, never followed for it.
     "GET /api/me/people/starter": read("people_starter", starterSet),
+    // Find's Near you and the player map (#768): signed-in people only.
+    "GET /api/me/people/near": read("people_near", nearPeople),
+    "GET /api/me/player-map": read("player_map", playerMap),
     // Its quiet "Not now": off Home's top for 30 days.
     "POST /api/me/people/starter/hide": async (db, event) => {
       const account = await resolveAccount(db, event, {

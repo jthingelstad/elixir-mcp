@@ -39,6 +39,7 @@ const SIGNED_IN = [
   "GET /api/clan/me/place",
   "PUT /api/clan/me/place",
   "DELETE /api/clan/me/place",
+  "PUT /api/clan/me/place/player-map",
   "GET /api/clan/clans/**",
   "POST /api/clan/clans/**",
   "PUT /api/clan/clans/**",
