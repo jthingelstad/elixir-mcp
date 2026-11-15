@@ -285,9 +285,12 @@ export async function unfollowPlayerLinked(db, account, { tag, via }) {
 }
 
 /**
- * After `ownerId` verified `tag`: every account following them follows
- * the new player too ("now and later"). Skips become bell lines. Returns
- * `{ followed: n, skipped: n }`.
+ * After `ownerId` verified `tag`, both sides of the link catch up ("now
+ * and later"): every account following them follows the new player, and
+ * every person who already followed the player (while it was Claimed or
+ * Imported) now follows the account and its other Verified players.
+ * Skips become bell lines. Returns `{ followed, skipped, linked }`
+ * counts: players followed, players skipped, player followers linked.
  */
 export async function linkNewVerified(
   db,
@@ -297,12 +300,38 @@ export async function linkNewVerified(
 ) {
   let followed = 0;
   let skipped = 0;
+  let linked = 0;
   for (const readerId of await accountFollowersOf(db, ownerId)) {
+    // A follower who already has this player needs nothing.
+    if (!(await linkedTagsToFollow(db, readerId, ownerId)).includes(tag))
+      continue;
     const r = await followThrough(db, readerId, ownerId, tag, via);
     if (r.ok) followed += 1;
     else skipped += 1;
   }
-  return { followed, skipped };
+  const { rows } = await db.query(
+    `select c.account_id from claim c
+       join account a on a.account_id = c.account_id
+                     and a.kind = 'person' and a.status = 'approved'
+      where c.player_tag = $1 and c.relationship = 'friend'
+        and not c.is_primary and c.account_id <> $2
+        and not exists (
+          select 1 from account_follow f
+           where f.account_id = c.account_id and f.followed_account_id = $2)
+      order by c.account_id`,
+    [tag, ownerId],
+  );
+  for (const { account_id: readerId } of rows) {
+    const r = await followAccountLinked(db, { accountId: readerId }, ownerId, {
+      via,
+      first: tag,
+    });
+    if (!r.ok) continue;
+    linked += 1;
+    followed += r.followed.length;
+    skipped += r.skipped.length;
+  }
+  return { followed, skipped, linked };
 }
 
 /**

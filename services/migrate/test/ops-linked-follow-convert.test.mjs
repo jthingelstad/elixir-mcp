@@ -18,8 +18,9 @@ const V = "#0YRL2GQP"; // OWNER's primary, verified
 const W = "#0UVC8J9R"; // OWNER's alt, verified
 const C = "#0GUQ28PV"; // CLAIMER's, never verified
 const MINE = "#0LCVJ8YR"; // READER's own
+const FANS = "#0RQYGC2L"; // OLDFAN's own
 
-let scratch, db, OWNER, CLAIMER, READER;
+let scratch, db, OWNER, CLAIMER, READER, OLDFAN;
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
 const person = async (hash) =>
@@ -47,7 +48,7 @@ const count = async (sql, params) => (await db.query(sql, params)).rows[0].n;
 before(async () => {
   scratch = await scratchDb("linked_convert");
   db = scratch.db;
-  for (const tag of [V, W, C, MINE])
+  for (const tag of [V, W, C, MINE, FANS])
     await db.query("insert into player(player_tag,name) values ($1,$2)", [
       tag,
       `Name ${tag}`,
@@ -59,6 +60,13 @@ before(async () => {
   await claim(OWNER, W, "alt", true);
   await claim(CLAIMER, C, "primary");
   await claim(READER, MINE, "primary", true);
+  OLDFAN = await person("lc-oldfan");
+  await claim(OLDFAN, FANS, "primary", true);
+  // An account follow made before linked follows: no players with it.
+  await db.query(
+    "insert into account_follow(account_id, followed_account_id) values ($1,$2)",
+    [OLDFAN, OWNER],
+  );
   // Follows made before linked follows: one Verified, one Claimed.
   await claim(READER, V, "friend");
   await claim(READER, C, "friend");
@@ -92,12 +100,14 @@ test("the request is checked; only the dry run is a read", () => {
 test("dry run, apply, then a second apply that does nothing", async () => {
   const dry = await linkedFollowConvert(db, { apply: false });
   assert.equal(dry.dry_run, true);
-  assert.equal(dry.pairs, 1, "the Claimed player links nothing");
-  assert.equal(dry.readers, 1);
-  assert.equal(dry.players_to_follow, 1, "W comes along");
+  // READER's follow of V, and OLDFAN's account follow (which followed no
+  // players); the Claimed player links nothing.
+  assert.equal(dry.pairs, 2);
+  assert.equal(dry.readers, 2);
+  assert.equal(dry.players_to_follow, 3, "W for READER; V and W for OLDFAN");
   assert.equal(
     await count("select count(*)::int as n from account_follow"),
-    0,
+    1,
     "the dry run writes nothing",
   );
   assert.doesNotMatch(JSON.stringify(dry), UUID_RE);
@@ -105,7 +115,7 @@ test("dry run, apply, then a second apply that does nothing", async () => {
 
   const done = await linkedFollowConvert(db, { apply: true });
   assert.equal(done.accounts_followed, 1);
-  assert.equal(done.players_followed, 1);
+  assert.equal(done.players_followed, 3);
   assert.deepEqual(done.skipped, {});
   assert.equal(done.failed, 0);
   assert.doesNotMatch(JSON.stringify(done), UUID_RE);
@@ -132,6 +142,15 @@ test("dry run, apply, then a second apply that does nothing", async () => {
     ),
     0,
   );
+
+  const fans = (
+    await db.query(
+      `select player_tag from claim where account_id = $1
+          and relationship = 'friend' order by player_tag`,
+      [OLDFAN],
+    )
+  ).rows.map((r) => r.player_tag);
+  assert.deepEqual(fans, [V, W].sort());
 
   const again = await linkedFollowConvert(db, { apply: true });
   assert.equal(again.pairs, 0);
