@@ -10,8 +10,11 @@
 # It moves the worktree to a freshly fetched origin/main, links in the
 # machine's gitignored local files, clones the card-art cache, and
 # installs dependencies. Links, never copies, for anything secret: a copy
-# of a secrets file is a secret. Sibling repositories are not its
-# business; whoever made the worktree places them.
+# of a secrets file is a secret. Sibling repositories (../<repo>) that the
+# worktree's parent lacks are linked from beside the main checkout
+# (scripts/link-siblings.sh), so a Codex-made worktree can deploy; the
+# domain's session-start places them first, and nothing it placed is
+# touched.
 set -euo pipefail
 
 : "${CODEX_SOURCE_TREE_PATH:?worktree-setup: CODEX_SOURCE_TREE_PATH is unset (the main checkout)}"
@@ -52,6 +55,8 @@ for rel in \
   .claude/skills/reference-audit/reports; do
   link "$rel"
 done
+
+bash "$worktree/scripts/link-siblings.sh" "$source_tree" "$worktree"
 
 # The card-art cache (infra/scripts/mirror-card-art.mjs) ships with the
 # site when present, so a deploy from here must have it. A clone, not a
