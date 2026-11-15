@@ -7,7 +7,7 @@ order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your limits, and it shows nobody your address."
-reviewed: "2026-11-14 for the player map and Near you; 2026-11-14 for Your place on Profile; 2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
+reviewed: "2026-11-14 for a place staying with its owner; 2026-11-14 for the player map and Near you; 2026-11-14 for Your place on Profile; 2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
 callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"]
 ---
 
@@ -307,6 +307,11 @@ your place stays on your clan maps. **Join the player map** puts it back.
 A place you set before the player map existed stays on your clan maps
 only. Your place on Profile asks you once, with **Join the player map**
 and **Keep clan maps only**. Nothing changes until you choose.
+
+Your place stays yours. If a player you verified moves to someone
+else's account, they don't get your place: they start with none, and
+no map or Near you shows your place under that player. If you verify
+the player again later, only a place you set comes back with it.
 
 No link carries your place, and no agent or tool reads it. Your
 passport's **On the Map** Stamp says you set one, never where.

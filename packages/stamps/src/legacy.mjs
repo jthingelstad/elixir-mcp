@@ -29,8 +29,7 @@
  * Reads only the account's own rows, per account; the place is read from
  * Clan's store as its save instant, never as a place.
  */
-import { ledgerOver } from "@elixir-mcp/clan-state";
-import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
+import { readOwnedPlaces } from "@elixir-mcp/auth/clan-context";
 import {
   ACTIVE_WINDOW_DAYS,
   COUNTING,
@@ -82,7 +81,8 @@ export async function readLaunch(db, accountId) {
  *  then not known to predate it. */
 async function placeSavedBefore(db, tags, at) {
   if (tags.length === 0) return false;
-  const places = await ledgerOver(createPostgresStore(db)).places(tags);
+  // Only places these players' current claims wrote (2026-11-14).
+  const places = await readOwnedPlaces(db, tags);
   const before = Date.parse(at);
   return places.some((p) => {
     const t = Date.parse(p?.set_at ?? "");

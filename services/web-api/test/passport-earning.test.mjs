@@ -286,6 +286,8 @@ test("reconciliation repairs a missed place save from a boolean and answers no p
     JSON.stringify({
       pk: `place#${PLAYER}`,
       player_tag: PLAYER,
+      // Saved by its owner: a place counts only for the claim that wrote it.
+      account_id: ids.owner,
       label: PLACE_WORDS,
       lat: 44.97,
       lng: -93.26,

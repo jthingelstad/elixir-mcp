@@ -903,9 +903,9 @@ test("Clan's other pages stay in their budgets, and the Map reads its places in 
   );
   assert.ok(
     r["/map"].seen.some((s) =>
-      /unnest\(\$1::text\[\]\) with ordinality as t\(pk, ord\)/.test(s.text),
+      /unnest\(\$1::text\[\]\) with ordinality as t\(tag, ord\)/.test(s.text),
     ),
-    "the Map read its places together",
+    "the Map read its places together, under the ownership rule",
   );
   assert.ok(places.length <= 3, `the Map read ${places.length} items by key`);
 });

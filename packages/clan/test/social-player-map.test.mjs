@@ -20,6 +20,7 @@ import {
   signIn,
   cookieHeader,
   rosterBody,
+  memoryPlaces,
 } from "./fakes.mjs";
 
 const ADA = player();
@@ -37,7 +38,12 @@ function harness() {
   const handler = createHandler({
     record,
     ...createTestAccount(),
-    social: createSocialService({ ledger, geo: diskGeo(), now }),
+    social: createSocialService({
+      ledger,
+      geo: diskGeo(),
+      now,
+      ...memoryPlaces(ledger),
+    }),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,

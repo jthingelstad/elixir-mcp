@@ -282,3 +282,28 @@ export function seedVersion(ledger, kind, clanTag, values, version = 1) {
 
 export const ledgerWithPolicy = (ledger, clanTag, values, version = 1) =>
   seedVersion(ledger, "policy", clanTag, values, version);
+
+/**
+ * Clan's place reads over the in-memory ledger, for one person's world
+ * where every row is its writer's own. The ownership rule itself
+ * (`readOwnedPlaces`, a place belongs to the claim that wrote it) is
+ * Elixir's and is pinned on real SQL in
+ * services/web-api/test/place-owner.test.mjs.
+ */
+export function memoryPlaces(ledger, accountId = "test-person") {
+  const hidden = new Set(["pk", "gsi1pk", "gsi1sk", "account_id"]);
+  return {
+    accountId,
+    ownedPlaces: async (tags) =>
+      tags
+        .map((tag) => ledger.items.get(`place#${tag}`))
+        .filter(Boolean)
+        .map((row) =>
+          Object.fromEntries(
+            Object.entries(structuredClone(row)).filter(
+              ([k]) => !hidden.has(k),
+            ),
+          ),
+        ),
+  };
+}
