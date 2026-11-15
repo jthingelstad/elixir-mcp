@@ -123,7 +123,8 @@ all six:
 5. **Choose your email**: Weekly, Daily or Off for your
    [digest](/docs/email). Off counts too.
 6. **Your place on the clan map**: tap **Set a place** and pick your
-   country, region or city right there on Home, or tap **Not now**. Both
+   country, region or city right there on Home, and who sees it (your
+   clan maps, or the player map and Near you too), or tap **Not now**. Both
    finish the step; only a place earns **On the Map**. You need no clan,
    and it works whether or not your clan's map is on. Before your player
    is verified, the step says to verify first. Change it later in
