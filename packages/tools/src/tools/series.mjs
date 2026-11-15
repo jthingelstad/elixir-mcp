@@ -4,6 +4,7 @@
  *  player_snapshot_daily by (clan_tag, snapshot_date); one point per
  *  game day, the day's last observation; every point stamped. */
 
+import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { normalizeTag, gameDay } from "@elixir-mcp/contracts";
 import {
   PLAYER_METRICS,
@@ -105,7 +106,7 @@ const AGGREGATE_SQL = `
        where l.player_tag = s.player_tag
          and l.snapshot_date < s.snapshot_date
          and l.profile_observed_at is not null
-       order by l.snapshot_date desc
+       order by ${latestSnapshotOrder({ alias: "l", stamp: "profile_observed_at" })}
        limit 1) lp on s.profile_observed_at is null
     -- A member who left by the clan row's read keeps the clan's tag on
     -- their day row until a roster places them elsewhere; members_seen

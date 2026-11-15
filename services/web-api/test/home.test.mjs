@@ -932,8 +932,11 @@ test("your week names one mode at a time, keeps a chip for each, and hides a dec
     return {};
   };
   await scratch.db.query(
-    `insert into player_snapshot_daily(player_tag,snapshot_date,trophies)
-     values ($1, current_date - 1, 8000), ($1, current_date, 9000)`,
+    `insert into player_snapshot_daily(player_tag,snapshot_date,snapshot_kind,trophies,observed_at)
+     values ($1, current_date - 1, 'daily', 8000, now() - interval '1 day'),
+            ($1, current_date, 'daily', 9000, now()),
+            -- #512: the same day's frozen pre_reset row, observed earlier.
+            ($1, current_date, 'pre_reset', 8900, now() - interval '1 hour')`,
     [OWN],
   );
   const week = await readWeek(read, scratch.db, OWN, null);

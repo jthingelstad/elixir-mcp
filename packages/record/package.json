@@ -15,6 +15,7 @@
     "./form": "./src/form.mjs",
     "./game-week": "./src/game-week.mjs",
     "./game-clock": "./src/game-clock.mjs",
+    "./latest-snapshot": "./src/latest-snapshot.mjs",
     "./gateway-cards": "./src/gateway-cards.mjs",
     "./mode-filter": "./src/mode-filter.mjs",
     "./member-activity": "./src/member-activity.mjs",

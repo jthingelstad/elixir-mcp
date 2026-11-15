@@ -1,3 +1,4 @@
+import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { modeGroupSql, responseMeta } from "@elixir-mcp/contracts";
 import {
   MODE_SCHEMA,
@@ -54,7 +55,7 @@ export const battles_compare = {
            left join lateral (
              select * from player_snapshot_daily where player_tag = p.player_tag
                and profile_observed_at is not null
-             order by snapshot_date desc, snapshot_kind desc limit 1
+             order by ${latestSnapshotOrder({ stamp: "profile_observed_at" })} limit 1
            ) s on true where p.player_tag = $1`,
         [tag],
       );

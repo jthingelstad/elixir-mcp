@@ -1,3 +1,4 @@
+import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { playerEventOriginSql } from "@elixir-mcp/record/event-origin";
 /**
  * Player snapshot projector — DESIGN §4.5.
@@ -356,7 +357,7 @@ export async function projectPlayerSnapshot(
     `${SNAPSHOT_BASELINE}
      where player_tag = $1 and profile_observed_at is not null
        and (snapshot_date, snapshot_kind) < ($2::date, $3)
-     order by snapshot_date desc, snapshot_kind desc limit 1`,
+     order by ${latestSnapshotOrder({ stamp: "profile_observed_at" })} limit 1`,
     [playerTag, day, kind],
   );
   const prev = prevRows[0];

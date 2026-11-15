@@ -1,3 +1,4 @@
+import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
 /** players_summary · players_profile · players_series ·
@@ -107,7 +108,7 @@ export const playersTools = {
            left join lateral (
              select trophies, snapshot_date from player_snapshot_daily
              where player_tag = p.player_tag
-             order by snapshot_date desc, snapshot_kind desc limit 1
+             order by ${latestSnapshotOrder()} limit 1
            ) s on true
            where p.player_tag = $1`,
         [tag, ctx.account.accountId],
@@ -812,7 +813,7 @@ export const playersTools = {
       const { rows: lvl } = await ctx.db.query(
         `select collection_level
          from player_snapshot_daily where player_tag = $1 and profile_observed_at is not null
-         order by snapshot_date desc, snapshot_kind desc limit 1`,
+         order by ${latestSnapshotOrder({ stamp: "profile_observed_at" })} limit 1`,
         [tag],
       );
       const asOf = rows.reduce(
@@ -1057,7 +1058,7 @@ export const playersTools = {
          left join lateral (
            select s.trophies from player_snapshot_daily s
            where s.player_tag = h.player_tag
-           order by s.snapshot_date desc, s.snapshot_kind desc
+           order by ${latestSnapshotOrder({ alias: "s" })}
            limit 1) tr on true
          order by case h.source when 'nickname' then -1 when 'claim' then 0 when 'clanmate' then 1 else 2 end,
                   (lower(h.name) = lower($4)) desc,

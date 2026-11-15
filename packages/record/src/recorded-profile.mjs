@@ -1,3 +1,4 @@
+import { latestSnapshotOrder } from "./latest-snapshot.mjs";
 import { snapshotObjects } from "./snapshot-columns.mjs";
 
 /** Shared recorded profile facts; no transport, identity or live-fetch policy. */
@@ -38,7 +39,7 @@ export async function readRecordedProfile(db, tag) {
            -- writes rows too, and a roster-only row has no lifetime block.
            select * from player_snapshot_daily where player_tag = p.player_tag
              and profile_observed_at is not null
-           order by snapshot_date desc, snapshot_kind desc limit 1
+           order by ${latestSnapshotOrder({ stamp: "profile_observed_at" })} limit 1
          ) s on true
          where p.player_tag = $1`,
     [tag],
