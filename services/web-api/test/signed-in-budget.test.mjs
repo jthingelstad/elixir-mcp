@@ -117,7 +117,8 @@ const PLAYER_PAGE = {
   // +1: the page's profile images, one statement (2026-11-14).
   // +1: the verified owner's passport in one row, one statement (#1015).
   "/api/player": { statements: 31, buffers: 6000 },
-  "/api/me/cheers": { statements: 26, buffers: 1500 },
+  // 1500 to 900 (2026-11-14): 664 here, as on the battle page.
+  "/api/me/cheers": { statements: 26, buffers: 900 },
   "/api/clan/me": { statements: 15, buffers: 300 },
   "/api/me/follow-plan": { statements: 9, buffers: 500 },
   "/api/me/follow-cost": { statements: 4, buffers: 250 },
@@ -860,7 +861,8 @@ const CLAN = [
   ["/me/away", {}, 11, 300],
   // Reads the member's own part of the clan's participation
   // (memberParticipation), not the whole clan's.
-  ["/members/<leader>/activity", {}, 52, 3000],
+  // 3000 to 2000 (2026-11-14): 1534 here.
+  ["/members/<leader>/activity", {}, 52, 2000],
 ];
 
 test("Clan's other pages stay in their budgets, and the Map reads its places in one statement", async () => {
@@ -1008,10 +1010,8 @@ test("a cold Awards judges from the participation the clan's evaluation read", a
     "/awards (cold)",
     `${base}/awards`,
     {},
-    {
-      statements: 30,
-      buffers: 1000,
-    },
+    // 1000 to 400 buffers (2026-11-14): 264 here.
+    { statements: 30, buffers: 400 },
   );
   assert.equal(cold.body.cached, false, "Awards evaluated");
   assert.ok(

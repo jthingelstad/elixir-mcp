@@ -4,7 +4,8 @@
  * leftover of the Console's Explore page; now a read-only tool the app
  * does not call is refused before it runs, as an unknown one is, and
  * spends nothing of the hourly bucket. POST /api/explore, the old path,
- * answers with the same handler until a later pull request removes it.
+ * is gone (2026-11-14, after the day it stayed for tabs loaded before the
+ * rename): it is a 404 like any unknown address.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -23,9 +24,8 @@ const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 let db, handler, cookie, accountId;
 
 const ROUTE = "/api/me/tool";
-// Remove with the alias (tool-bridge.mjs).
 const OLD_ROUTE = "/api/explore";
-const PATHS = [ROUTE, OLD_ROUTE];
+const PATHS = [ROUTE];
 
 /** Each tool the app calls, with the arguments it sends. */
 const APP_TOOLS = [
@@ -98,7 +98,7 @@ const hourly = async () =>
     )
   ).rows[0].n;
 
-test("each tool the app calls runs through the bridge, on both paths", async () => {
+test("each tool the app calls runs through the bridge", async () => {
   for (const path of PATHS)
     for (const [tool, args] of APP_TOOLS) {
       const before = await audited(tool);
@@ -137,11 +137,25 @@ test("a read-only tool the app does not call is refused before it runs", async (
       assert.equal((await call(path, tool, {})).statusCode, 400, tool);
 });
 
-test("both paths still need a session", async () => {
+test("the bridge needs a session", async () => {
   for (const path of PATHS)
     assert.equal(
       (await call(path, "players_summary", {}, false)).statusCode,
       401,
       path,
     );
+});
+
+test("the old path is gone: a 404, and nothing runs", async () => {
+  const before = await audited("players_summary");
+  for (const withCookie of [true, false]) {
+    const res = await call(
+      OLD_ROUTE,
+      "players_summary",
+      { player_tag: "#20JJJ2CCRU" },
+      withCookie,
+    );
+    assert.equal(res.statusCode, 404, res.body);
+  }
+  assert.equal(await audited("players_summary"), before);
 });
