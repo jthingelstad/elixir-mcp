@@ -612,28 +612,49 @@ function Follows({ page, player, own }) {
         <FollowTheirClan player={player} own={own} />
       </>
     );
+  // A follower named by a claim it never verified (verified false) shows
+  // the player it claims, with no gold mark, said as not verified.
   const people = (list) =>
-    list.map((f) => (
-      <Row
-        key={f.tag}
-        href={playerHref(f.tag)}
-        lead={
-          <Avatar
-            name={f.name ?? f.tag}
-            tag={f.tag}
-            card={f.avatar_card_id ?? null}
-            small
-          />
-        }
-        title={
-          <PlayerName tag={f.tag}>
-            <TagText>{f.name ?? f.tag}</TagText>
-          </PlayerName>
-        }
-        detail={f.name ? <Tag tag={f.tag} /> : null}
-      />
-    ));
-  const unnamed = page.followers.unnamed ?? 0;
+    list.map((f) => {
+      const claimed = f.verified === false;
+      return (
+        <Row
+          key={f.tag}
+          href={playerHref(f.tag)}
+          lead={
+            <Avatar
+              name={f.name ?? f.tag}
+              tag={f.tag}
+              card={claimed ? null : (f.avatar_card_id ?? null)}
+              verified={claimed ? false : undefined}
+              small
+            />
+          }
+          title={
+            <PlayerName tag={f.tag} verified={claimed ? false : undefined}>
+              <TagText>{f.name ?? f.tag}</TagText>
+            </PlayerName>
+          }
+          detail={
+            claimed ? (
+              <>
+                {f.name ? (
+                  <>
+                    <Tag tag={f.tag} />
+                    {" · "}
+                  </>
+                ) : null}
+                Not verified
+              </>
+            ) : f.name ? (
+              <Tag tag={f.tag} />
+            ) : null
+          }
+        />
+      );
+    });
+  const noPlayer = page.followers.no_player ?? 0;
+  const unlisted = Math.max(0, (page.followers.unnamed ?? 0) - noPlayer);
   return (
     <div className="kit-pfollows">
       <Panel
@@ -650,14 +671,29 @@ function Follows({ page, player, own }) {
         title={`Followers ${page.followers.count.toLocaleString()}`}
         titleAs="h2"
       >
-        {page.followers.players.length ? (
-          <Rows>{people(page.followers.players)}</Rows>
+        {page.followers.players.length || noPlayer > 0 ? (
+          <Rows>
+            {people(page.followers.players)}
+            {noPlayer > 0 ? (
+              // An account with no player at all: an Elixir account, and
+              // nothing more about it.
+              <Row
+                lead={<Avatar name="Elixir account" small />}
+                title={
+                  noPlayer === 1
+                    ? "An Elixir account"
+                    : `${noPlayer.toLocaleString()} Elixir accounts`
+                }
+                detail="No player added yet"
+              />
+            ) : null}
+          </Rows>
         ) : null}
-        {unnamed > 0 || page.followers.count === 0 ? (
+        {unlisted > 0 || page.followers.count === 0 ? (
           <p className="kit-panel__body kit-tiny">
             {page.followers.count === 0
               ? "Nobody yet."
-              : `${unnamed.toLocaleString()} more ${unnamed === 1 ? "account has" : "accounts have"} no verified player, so ${unnamed === 1 ? "it is" : "they are"} counted, not named.`}
+              : `And ${unlisted.toLocaleString()} more, not listed here.`}
           </p>
         ) : null}
       </Panel>

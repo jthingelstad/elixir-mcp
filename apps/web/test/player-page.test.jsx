@@ -59,8 +59,12 @@ const PAGE = {
   badges: { verified_player: true, discord: true },
   follows: { count: 1, players: [{ tag: "#00L0", name: "Umber" }] },
   followers: {
-    count: 3,
-    players: [{ tag: "#0GVJ9V", name: "Birch Lantern" }],
+    count: 4,
+    players: [
+      { tag: "#0GVJ9V", name: "Birch Lantern", verified: true },
+      { tag: "#0PYLQ2", name: "Cedar Moss", verified: false },
+    ],
+    no_player: 2,
     unnamed: 2,
   },
   window_days: 30,
@@ -251,7 +255,7 @@ test(
     // Explore folded into the page (2026-11-12): no link out to it.
     expect(screen.queryByRole("link", { name: "Full record" })).toBeNull();
     expect(document.querySelector('a[href^="/console"]')).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Followers 3" }));
+    fireEvent.click(screen.getByRole("button", { name: "Followers 4" }));
     expect(
       screen
         .getByRole("tab", { name: /Follows/ })
@@ -261,9 +265,18 @@ test(
       name: /Birch Lantern/,
     });
     expect(follower.getAttribute("href")).toBe("/home/player/0GVJ9V");
-    expect(
-      screen.getByText(/2 more accounts have no verified player/),
-    ).toBeTruthy();
+    // An unverified follower is the player they claim, said plainly as not
+    // verified, with no gold mark and no profile image.
+    const claimed = await screen.findByRole("link", { name: /Cedar Moss/ });
+    expect(claimed.getAttribute("href")).toBe("/home/player/0PYLQ2");
+    expect(claimed.textContent).toContain("Not verified");
+    expect(claimed.querySelector(".kit-verified")).toBeNull();
+    expect(claimed.querySelector(".kit-av--verified")).toBeNull();
+    // Accounts with no player are Elixir accounts, nothing more, no link.
+    const accounts = screen.getByText("2 Elixir accounts");
+    expect(accounts.closest("a")).toBeNull();
+    expect(screen.getByText("No player added yet")).toBeTruthy();
+    expect(screen.queryByText(/counted, not named/)).toBeNull();
     // The top bar names the reader as they named themselves; the page never.
     expect(document.querySelector("main").textContent).not.toContain(
       "Private Owl",

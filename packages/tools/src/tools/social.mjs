@@ -78,7 +78,7 @@ const PLAYER_TAG = {
 export const socialTools = {
   players_follows: {
     description:
-      "Who a player follows and who follows them, exactly as their player page shows it: badges (verified_player, discord: that the account linked one, never which), follows (the players their account follows) and followers (people following them, named by the player each verified; the rest counted as unnamed). follows and followers are null when no account has verified the player. Defaults to your primary player. For a person's own connection and their agents.",
+      "Who a player follows and who follows them, exactly as their player page shows it: badges (verified_player, discord: that the account linked one, never which), follows (the players their account follows) and followers (people following them, each named by the player their account verified, else by the player it claims with verified false; an account with no player is counted in no_player, and unnamed counts every follower not listed). follows and followers are null when no account has verified the player. Defaults to your primary player. For a person's own connection and their agents.",
     inputSchema: {
       type: "object",
       properties: { player_tag: PLAYER_TAG },
@@ -96,7 +96,7 @@ export const socialTools = {
         notes: notes(
           social.follows === null
             ? "No account has verified this player, so it has no follows or followers to show."
-            : "A follower is named by the player their account verified; a follower with no verified player is counted in unnamed, never named.",
+            : "A follower is named by the player their account verified, or by the player it claims with verified false (a claim, never proof); an account with no player is counted in no_player, never named.",
           social.follows && social.follows.count > social.follows.players.length
             ? `follows lists the first ${social.follows.players.length} of ${social.follows.count} by name.`
             : null,

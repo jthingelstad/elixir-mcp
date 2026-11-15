@@ -23,7 +23,8 @@ import {
   shownAt,
 } from "@elixir-mcp/tools/activity/entries";
 
-import { sparkOf } from "../feed.mjs";
+import { battleLinks } from "@elixir-mcp/record/battle-links";
+import { proofOf, sparkOf } from "../feed.mjs";
 import { json } from "../http.mjs";
 import { homeClan } from "./clans.mjs";
 
@@ -39,8 +40,9 @@ import { homeClan } from "./clans.mjs";
  * Follows and followers belong to an account, and an account is named on the
  * page by the player it verified. A player no account has verified has no
  * follows or followers to show [engineering, 2026-11-12: the narrow reading].
- * A follower is named by the player its account verified, game name and tag;
- * an account with no verified player is counted, never named.
+ * A follower is named by the player its account verified, game name and tag,
+ * else by the player it claims, marked unverified (Jamie, 2026-11-14); an
+ * account with no player at all is counted, never named.
  */
 
 /** The page's timeline window, as Home's Timeline reads a week. */
@@ -196,7 +198,16 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
   if (!p) return null;
   const timezone = account.timezone ?? "UTC";
   const built = await pageTimeline(db, tag, timezone, now);
-  const timeline = (built.timeline ?? []).map(pageItem);
+  // A moment the record proved names its battle, as Home's feed links it
+  // (feed.mjs proofOf): one statement for the page's proofs, and no link
+  // where the record does not know the battle.
+  const proofs = (built.timeline ?? []).map(proofOf);
+  const links = await battleLinks(db, proofs.filter(Boolean));
+  const timeline = (built.timeline ?? []).map((it, i) => {
+    const item = pageItem(it);
+    const link = proofs[i] ? links.get(proofs[i]) : null;
+    return link && !item.battle_url ? { ...item, battle_url: link.url } : item;
+  });
   const highlights = (
     await playerHighlights(db, tag, { timezone, limit: HIGHLIGHTS, now })
   ).map(pageItem);
@@ -207,16 +218,22 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
   // The profile images of the page's player and of every player its
   // follows and followers name, in one statement (avatars.mjs). The page's
   // alone: players_follows reads socialOf and never these.
+  // A follower named by a claim it never verified draws initials: a
+  // profile image belongs to a verified player alone.
   const avatars = await verifiedAvatars(db, [
     tag,
     ...(social.follows?.players ?? []).map((f) => f.tag),
-    ...(social.followers?.players ?? []).map((f) => f.tag),
+    ...(social.followers?.players ?? [])
+      .filter((f) => f.verified !== false)
+      .map((f) => f.tag),
   ]);
   const faced = (list) =>
     list
       ? {
           ...list,
-          players: list.players.map((f) => withAvatar(f, f.tag, avatars)),
+          players: list.players.map((f) =>
+            f.verified === false ? f : withAvatar(f, f.tag, avatars),
+          ),
         }
       : list;
   return {

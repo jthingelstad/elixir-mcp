@@ -9,6 +9,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import { emitEvent } from "../../../packages/ingest/src/events.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
 import { followAllRefusal, followPlan, tagsOf } from "../src/routes/player.mjs";
@@ -19,13 +20,14 @@ const B = "#0PYP8RQ2"; // X follows
 const D = "#0YLPUQU8"; // Y's own, verified
 const E = "#0UCCGLUQ"; // the reader's own
 const U = "#0RPYVQ9R"; // nobody's
+const CL = "#0Q2L8"; // claimed by account WA, never verified
 const N1 = "#0C8VR2CG";
 const N2 = "#0C2P8LJR";
 const CLAN = "#0L8P9LLJ";
 const NICK = "Pet Name Nobody Else Sees";
 const DISCORD = "secret_discord_handle";
 
-let scratch, handler, X, Y, Z, R;
+let scratch, handler, X, Y, Z, R, WA, Q;
 const sessions = new Map();
 const data = (r) => JSON.parse(r.body);
 
@@ -81,6 +83,7 @@ before(async () => {
     [D, "Dogwood"],
     [E, "Elm"],
     [U, "Umber"],
+    [CL, "Willow"],
     [N1, "Nettle"],
     [N2, "Nutmeg"],
   ])
@@ -113,6 +116,18 @@ before(async () => {
   await claim(Y, A, "friend");
   await claim(Z, A, "friend");
   await claim(R, E, "primary");
+  // WA claims W and never verified it; Q claims D, which Y verified, so Q
+  // has no player of its own to be named by.
+  WA = await person("player-wa");
+  Q = await person("player-q");
+  await claim(WA, CL, "primary");
+  await claim(WA, A, "friend");
+  await claim(Q, D, "primary");
+  await claim(Q, A, "friend");
+  await db.query(
+    "update account set avatar_card_id = 26000000 where account_id = $1",
+    [WA],
+  );
   await db.query(
     "insert into account_discord(account_id,discord_user_id,username) values ($1,'123456789012345678',$2)",
     [X, DISCORD],
@@ -169,11 +184,17 @@ test("a verified player's page: record, badges, follows and followers by game na
     count: 1,
     players: [{ tag: B, name: "Birch" }],
   });
-  // Y is named by the player Y verified; Z has none and is counted.
+  // Y is named by the player Y verified; WA by the player it claims,
+  // marked unverified and with no profile image; Z has no player and Q's
+  // claim is on a tag Y verified, so both are counted, never named.
   assert.deepEqual(page.followers, {
-    count: 2,
-    players: [{ tag: D, name: "Dogwood" }],
-    unnamed: 1,
+    count: 4,
+    players: [
+      { tag: D, name: "Dogwood", verified: true },
+      { tag: CL, name: "Willow", verified: false },
+    ],
+    no_player: 2,
+    unnamed: 2,
   });
   for (const k of ["timeline", "moments", "highlights"])
     assert.ok(Array.isArray(page[k]), k);
@@ -181,6 +202,46 @@ test("a verified player's page: record, badges, follows and followers by game na
   assert.ok(!r.body.includes(NICK), "no nickname, the reader's included");
   assert.ok(!r.body.includes(DISCORD), "that a Discord is linked, never which");
   assert.ok(!r.body.includes("email"), "no email field");
+});
+
+test("a moment the record proved links its battle; one it did not has no link", async () => {
+  const proof = "ab".repeat(32);
+  const ago = (h) => new Date(Date.now() - h * 3_600_000);
+  await scratch.db.query(
+    "insert into battle (battle_id,battle_time,type,type_class,created_at) values ($1,$2,'PvP','pvp',$3)",
+    [proof, ago(2.5), ago(2.4)],
+  );
+  await scratch.db.query(
+    "insert into battle_participant (battle_id,player_tag,battle_time,side,type,type_class,outcome,crowns) values ($1,$2,$3,0,'PvP','pvp','win',3)",
+    [proof, A, ago(2.5)],
+  );
+  await emitEvent(scratch.db, "ranked_promotion", {
+    tag: A,
+    payload: { from: 2, to: 3, promoted_by: { battle_id: proof } },
+    windowStart: ago(3),
+    windowEnd: ago(2),
+    occurredAt: ago(2.5),
+  });
+  await emitEvent(scratch.db, "career_wins_step", {
+    tag: A,
+    payload: { wins: 1000, step: 1000 },
+    windowStart: ago(5),
+    windowEnd: ago(4),
+  });
+  const page = data(
+    await call(R, "GET", `/api/player?tag=${encodeURIComponent(A)}`),
+  );
+  const promoted = page.moments.find((m) => m.kind === "ranked_promotion");
+  const step = page.moments.find((m) => m.kind === "career_wins_step");
+  assert.ok(promoted, JSON.stringify(page.moments));
+  assert.match(promoted.battle_url, new RegExp(`/battle/${proof.slice(0, 8)}`));
+  assert.ok(step, JSON.stringify(page.moments));
+  assert.equal(step.battle_url, undefined, "no fake link");
+  // The Timeline tab draws the same item with the same link.
+  assert.equal(
+    page.timeline.find((m) => m.kind === "ranked_promotion").battle_url,
+    promoted.battle_url,
+  );
 });
 
 test("a player no account verified shows no follows, followers or badges", async () => {

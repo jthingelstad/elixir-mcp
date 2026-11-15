@@ -3223,10 +3223,19 @@ export const OUTPUT_SCHEMAS = {
             type: "array",
             items: {
               type: "object",
-              properties: { tag: TAG, name: NAME },
-              required: ["tag", "name"],
+              properties: {
+                tag: TAG,
+                name: NAME,
+                verified: {
+                  type: "boolean",
+                  description:
+                    "True when the follower's account verified this player; false when it only claims to be them.",
+                },
+              },
+              required: ["tag", "name", "verified"],
             },
           },
+          no_player: COUNT,
           unnamed: COUNT,
         }),
       ),

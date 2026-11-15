@@ -8,8 +8,9 @@ export { verifiedPlayerIdentities };
  * Follows and followers belong to an account, and an account is named by the
  * player it verified. A player no account has verified has no follows or
  * followers to show [engineering, 2026-11-12: the narrow reading]. A follower
- * is named by the player its account verified, game name and tag; an account
- * with no verified player is counted, never named. Never a nickname, an email
+ * is named by the player its account verified, game name and tag, else by
+ * the player it claims, marked unverified; an account with no player at all
+ * is counted, never named (followersOf). Never a nickname, an email
  * or a Discord username: that an account linked a Discord is a boolean.
  */
 
@@ -65,18 +66,29 @@ export async function followsOf(db, accountId) {
 }
 
 /** Who follows the player: people with a friend claim on them, each named
- *  by the player their account verified (game name and tag), the rest
- *  counted. The account that is the player is not its own follower. */
+ *  by the player their account verified (game name and tag, `verified:
+ *  true`), else by the player it claims to be and has not verified
+ *  (`verified: false`: the claim is all it says, never proof). An account
+ *  with neither is counted in `no_player`, never named. A claim on a tag
+ *  another account verified names nobody: that account is the player. The
+ *  account that is the player is not its own follower [Jamie, 2026-11-14:
+ *  unverified followers are shown as the player they claim]. */
 export async function followersOf(db, tag, selfAccountId) {
   const { rows } = await db.query(
-    `select f.account_id, v.player_tag as tag, p.name
+    `select f.account_id, v.player_tag as tag, p.name, v.verified
        from claim f
        join account a on a.account_id = f.account_id
        left join lateral (
-         select c.player_tag from claim c
-          where c.account_id = f.account_id and c.status = 'verified'
+         select c.player_tag, c.status = 'verified' as verified from claim c
+          where c.account_id = f.account_id
             and (c.is_primary or c.relationship in ('primary', 'alt'))
-          order by c.is_primary desc, c.verified_at limit 1) v on true
+            and (c.status = 'verified' or not exists (
+                  select 1 from claim o
+                   where o.player_tag = c.player_tag and o.status = 'verified'
+                     and o.account_id <> c.account_id))
+          order by c.status = 'verified' desc, c.is_primary desc,
+                   c.verified_at, c.created_at
+          limit 1) v on true
        left join player p on p.player_tag = v.player_tag
       where f.player_tag = $1 and f.relationship = 'friend'
         and coalesce(a.kind, 'person') = 'person'
@@ -85,12 +97,16 @@ export async function followersOf(db, tag, selfAccountId) {
     [tag, selfAccountId],
   );
   const named = rows.filter((r) => r.tag);
+  const listed = Math.min(named.length, FOLLOW_LIST_CAP);
   return {
     count: rows.length,
-    players: named
-      .slice(0, FOLLOW_LIST_CAP)
-      .map((r) => ({ tag: r.tag, name: r.name ?? null })),
-    unnamed: rows.length - Math.min(named.length, FOLLOW_LIST_CAP),
+    players: named.slice(0, FOLLOW_LIST_CAP).map((r) => ({
+      tag: r.tag,
+      name: r.name ?? null,
+      verified: r.verified === true,
+    })),
+    no_player: rows.length - named.length,
+    unnamed: rows.length - listed,
   };
 }
 
