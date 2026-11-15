@@ -7987,12 +7987,11 @@ a.kit-mbattle:hover {
   font-size: var(--t-body);
   color: var(--ink);
 }
+/* The title takes focus on open so it is read first; it is no control
+   (tabIndex -1), so it draws no ring, even when Chrome counts a script's
+   focus as visible. */
 .kit-bell__head h2:focus {
   outline: none;
-}
-.kit-bell__head h2:focus-visible {
-  outline: 2px solid var(--accent-bright);
-  outline-offset: 2px;
 }
 .kit-bell__close {
   min-width: var(--hit);
