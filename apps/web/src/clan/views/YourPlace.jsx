@@ -47,6 +47,13 @@ export function YourPlace({
   const { state, load } = useMyPlace();
   const invalidate = useInvalidate();
   const [editing, setEditing] = useState(open);
+  // A new opening request (Profile's hash turning to #place again, as
+  // Back does) opens the picker even with this view still mounted.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setEditing(true);
+  }
   const [removeError, setRemoveError] = useState("");
   const [removing, setRemoving] = useState(false);
   const place = state.data?.place ?? null;

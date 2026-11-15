@@ -184,7 +184,8 @@ export const useSocial = (tag) =>
   useGated(keys.social(tag), () => manageApi.social(tag));
 /** Your place, gated: 403 `unverified` is a person with no verified
  *  player, which Settings' Location says in words (2026-11-12). */
-export const useMyPlace = () => useGated(keys.place, () => api.myPlace());
+export const useMyPlace = (enabled = true) =>
+  useGated(keys.place, () => api.myPlace(), { enabled });
 
 /** The Feed's timeline: the clan's items, its members' moments and
  *  highlights, newest first, as this reader reads them. */

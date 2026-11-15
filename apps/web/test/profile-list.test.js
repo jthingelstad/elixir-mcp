@@ -100,6 +100,23 @@ describe("The profile list", () => {
     expect(map.notNow).toBe(true);
   });
 
+  test("the place route's answer, not the verify latch, decides the picker", () => {
+    // A verified alt with an unverified main: the route allows a place.
+    const alt = profileView(
+      profile(["done", "todo", "done", "done", "done", "todo"]),
+      { ...ctx, placeAllowed: true },
+    );
+    expect(alt.steps.find((s) => s.id === "map").place).toBe(true);
+    // Verification lost after the latch: the route refuses, so no picker.
+    const lost = profileView(
+      profile(["done", "done", "done", "done", "done", "todo"]),
+      { ...ctx, placeAllowed: false },
+    );
+    const map = lost.steps.find((s) => s.id === "map");
+    expect(map.place).toBe(false);
+    expect(map.go?.to).toBe("/settings/players/verify");
+  });
+
   test("a step Elixir cannot tell yet comes after every step to do", () => {
     const v = profileView(
       profile(["done", "done", "done", "unknown", "todo", "done"]),
