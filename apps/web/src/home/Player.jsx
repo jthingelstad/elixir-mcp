@@ -131,15 +131,9 @@ export function PlayerPage() {
   );
 }
 
-/** The page itself. You (`/home/you`) draws your primary player's with its
- *  own tabs after its five (Stats, 2026-11-12), each an address, and opens
- *  on the tab the address names. */
-export function PlayerView({
-  page,
-  extraTabs = [],
-  initialTab = "timeline",
-  self = false,
-}) {
+/** The page itself, open on the tab the address names. (You drew your
+ *  primary player's until 2026-11-15; it opens your account page now.) */
+export function PlayerView({ page, initialTab = "timeline" }) {
   const nav = useNav();
   const [tab, setTab] = useState(
     OWN_TABS.has(initialTab) ? initialTab : "timeline",
@@ -151,10 +145,9 @@ export function PlayerView({
   const you = page.you;
   // Your own player page asks for your battles now (lib/own-refresh.js).
   useAskOnOpen(you.own === true);
-  // Your page (You) never draws it. Another of your players does, when it
-  // is not the one you act as in that clan: that one's place in Clan is
-  // its own page there (Codex on #831).
-  const clanEntry = useClanOf(p.clan_tag, !self);
+  // Your own player draws it when it is not the one you act as in that
+  // clan: that one's place in Clan is its own page there (Codex on #831).
+  const clanEntry = useClanOf(p.clan_tag, true);
   const inClan =
     clanEntry.clan && clanEntry.clan.acting_as === p.tag
       ? { clan: null, pending: false }
@@ -181,7 +174,6 @@ export function PlayerView({
             : null,
     })),
     ...(inClan.clan ? [CLAN_TAB] : []),
-    ...extraTabs,
   ];
   return (
     <div className="kit-home kit-player">
@@ -252,7 +244,6 @@ export function PlayerView({
         label="Player"
         items={items}
         value={shown}
-        // A tab that is an address (You's Stats) leaves this page instead.
         onSelect={(k) => OWN_TABS.has(k) && setTab(k)}
       />
       <div className={shown === "clan" ? undefined : "kit-player__body"}>
@@ -689,7 +680,8 @@ function Follows({ page, player, own }) {
       </>
     );
   // A follower named by a claim it never verified (verified false) shows
-  // the player it claims, with no gold mark, said as not verified.
+  // the player it claims, with no gold mark, said as not verified. A
+  // verified one shows its account's @handle (2026-11-15) beside its tag.
   const people = (list) =>
     list.map((f) => {
       const claimed = f.verified === false;
@@ -722,8 +714,12 @@ function Follows({ page, player, own }) {
                 ) : null}
                 Not verified
               </>
-            ) : f.name ? (
-              <Tag tag={f.tag} />
+            ) : f.name || f.handle ? (
+              <>
+                {f.handle ? `@${f.handle}` : null}
+                {f.handle && f.name ? " · " : null}
+                {f.name ? <Tag tag={f.tag} /> : null}
+              </>
             ) : null
           }
         />

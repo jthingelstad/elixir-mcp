@@ -308,11 +308,11 @@ for (const [label, width] of [
       await expect(page.getByRole("dialog")).toBeVisible();
     });
 
-    test("You with no verified player: how to verify, Settings and Sign out", async ({
+    test("You with no account page read: Add or verify, Settings and Sign out", async ({
       page,
     }) => {
-      // The fixture's claim is not verified (it has no `status`): You says
-      // how to verify one (canvas-shell.spec.ts has the verified page).
+      // The fixture has no page id, so You is its account rows alone
+      // (canvas-shell.spec.ts has your account page).
       await mockApi(page, homeApi());
       await page.goto("/home/you");
       await expect(
@@ -322,7 +322,7 @@ for (const [label, width] of [
         page.getByRole("link", { name: /Settings/ }).first(),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /Verify a player/ }),
+        page.getByRole("link", { name: /Add or verify a player/ }),
       ).toHaveAttribute("href", "/settings/players/verify");
       await expect(
         page.getByRole("button", { name: /Sign out/ }),

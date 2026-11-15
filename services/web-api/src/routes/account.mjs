@@ -1,4 +1,10 @@
 import {
+  HANDLE_MESSAGES,
+  checkHandle,
+  setHandle,
+  suggestHandle,
+} from "../handle.mjs";
+import {
   addPlayer,
   linkAfterFollow,
   linkedTagsToFollow,
@@ -41,6 +47,8 @@ import { playersChangedAfter, settleAfter } from "../passport-hooks.mjs";
 /** Profile image changes an account may make in an hour: plenty for
  *  trying cards on, few enough that nothing loops on the write. */
 const AVATAR_WRITES_PER_HOUR = 60;
+/** Handle changes an hour: plenty for picking one, not for squatting. */
+const HANDLE_WRITES_PER_HOUR = 20;
 
 /** An audit row the daily tool-call limiter charged (`mcpday#`,
  *  packages/tools/quota.mjs): every call at /mcp. Not `GET /api/v1/me` (`rest`,
@@ -324,7 +332,7 @@ export function accountRoutes({
       );
       const { rows: ent } = await db.query(
         `select ${tierSql("a")} as role, a.mcp_daily_quota, a.live_daily_quota,
-                a.newsletter_opt_in, a.email, a.avatar_card_id,
+                a.newsletter_opt_in, a.email, a.avatar_card_id, a.handle,
                 (select passport_id from account_passport p
                   where p.account_id = a.account_id) as page_id
          from account a where a.account_id = $1`,
@@ -523,6 +531,9 @@ export function accountRoutes({
         // Your account page's id (/home/account/<id>, 2026-11-15): your
         // passport id, which other members see in your page's address.
         page_id: e.page_id ?? null,
+        // Your @handle (2026-11-15), public on your account page; null
+        // until you choose one.
+        handle: e.handle ?? null,
         // The holder's own address, shown back to them on their profile
         // and in the console rail. Never on a public surface (0046).
         email: e.email ?? null,
@@ -628,6 +639,53 @@ export function accountRoutes({
       if (rows[0].avatar_card_id !== null)
         await settleAfter(db, account.accountId, "looking_good");
       return json(200, { ok: true, avatar_card_id: rows[0].avatar_card_id });
+    },
+
+    // Your @handle (Jamie, 2026-11-15): set, change or remove it.
+    "POST /api/me/handle": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (account.kind === "agent") return json(403, { error: "not_entitled" });
+      const raw = body?.handle;
+      if (raw !== null && typeof raw !== "string")
+        return json(400, {
+          error: "invalid",
+          message: HANDLE_MESSAGES.invalid,
+        });
+      if (
+        !(await checkRateLimit(db, {
+          bucket: `handle#${account.accountId}`,
+          max: HANDLE_WRITES_PER_HOUR,
+        }))
+      )
+        return json(429, { error: "rate_limited" });
+      const out = await setHandle(db, account.accountId, raw);
+      if (out.error)
+        return json(out.error === "taken" ? 409 : 400, {
+          error: out.error,
+          message: HANDLE_MESSAGES[out.error],
+        });
+      return json(200, out);
+    },
+
+    // Whether a handle is free, said while you type; with none asked, the
+    // one Elixir suggests from your main player's name.
+    "GET /api/me/handle-check": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (account.kind === "agent") return json(403, { error: "not_entitled" });
+      const raw = event.queryStringParameters?.handle;
+      if (raw == null || raw === "")
+        return json(200, {
+          suggestion: await suggestHandle(db, account.accountId),
+        });
+      const out = await checkHandle(db, account.accountId, raw);
+      return json(200, {
+        ...out,
+        message: out.error ? HANDLE_MESSAGES[out.error] : null,
+      });
     },
 
     // What a Follow would cost, said before the tap (#760): free when

@@ -55,19 +55,36 @@ const VERIFIED_ME = {
   ],
 };
 
-const PAGE = {
-  player: {
-    tag: TAG,
+/** Your own account page, as You reads it (2026-11-15). */
+const OWN_ACCOUNT = {
+  account: {
+    id: "abcdefghjkmn",
+    handle: "owl",
     name: "Invented Owl",
-    clan_tag: "#0JQ0JQ8",
-    clan_name: "Grove",
-    trophies: 9400,
-    recorded: true,
+    player: { tag: TAG, name: "Invented Owl", state: "verified" },
+    state: "verified",
+    players: [
+      {
+        tag: TAG,
+        name: "Invented Owl",
+        relationship: "primary",
+        state: "verified",
+      },
+      {
+        tag: "#00GVJ89",
+        name: "Invented Alt",
+        relationship: "alt",
+        state: "claimed",
+      },
+    ],
+    badges: { verified_player: true, discord: false },
+    place: null,
+    follows: { count: 0, players: [] },
+    followers: 0,
+    following_accounts: 0,
   },
-  you: { own: true, following: false, relationship: "primary", clanmate: null },
-  badges: { verified_player: true, discord: false },
-  follows: { count: 0, players: [] },
-  followers: { count: 0, players: [], unnamed: 0 },
+  you: { self: true, following: false, to_follow: [], plan: null },
+  passport: null,
   window_days: 30,
   timeline: [
     {
@@ -78,8 +95,6 @@ const PAGE = {
     },
   ],
   timeline_more: 0,
-  moments: [],
-  highlights: [],
 };
 
 const BELL = {
@@ -209,29 +224,32 @@ for (const [label, width] of [
       await accessible(page, "signed-out app bar");
     });
 
-    test("You: your verified player's page, Stats as its last tab, your other players to you", async ({
+    test("You: your account page, @handle first, your players, Your stats one tap away", async ({
       page,
     }) => {
       await mockApi(
         page,
         homeApi({
-          "GET /api/me": [200, VERIFIED_ME],
-          "GET /api/player": [200, PAGE],
+          "GET /api/me": [
+            200,
+            { ...VERIFIED_ME, page_id: "abcdefghjkmn", handle: "owl" },
+          ],
+          "GET /api/accounts/abcdefghjkmn": [200, OWN_ACCOUNT],
           "POST /api/me/tool": explore(),
         }),
       );
       await page.goto("/home/you");
       await expect(
-        page.getByRole("heading", { level: 1, name: "Invented Owl" }),
+        page.getByRole("heading", { level: 1, name: "@owl" }),
       ).toBeVisible();
       await expect(page.getByText("Reached Path of Legends.")).toBeVisible();
-      const others = page.getByRole("region", { name: "Your other players" });
-      await expect(others).toContainText("Invented Alt");
-      await expect(others).toContainText("not verified");
+      const players = page.getByRole("region", { name: "Players" });
+      await expect(players).toContainText("Invented Owl");
+      await expect(players).toContainText("Invented Alt");
       await noSideways(page);
       await accessible(page, "You");
 
-      await page.getByRole("tab", { name: "Stats" }).click();
+      await page.getByRole("link", { name: "Your stats" }).click();
       await expect(page).toHaveURL(/\/home\/you\/stats$/);
       await expect(page).toHaveTitle("Season - Stats - Elixir");
       const tabs = page.getByRole("tablist", { name: "You" });
@@ -247,11 +265,11 @@ for (const [label, width] of [
       await noSideways(page);
       await accessible(page, "You, Stats");
 
-      // Back to the player page by its tab.
-      await tabs.getByRole("tab", { name: "Moments" }).click();
-      await expect(page).toHaveURL(/\/home\/you\?tab=moments$/);
+      // Back to your account page by its tab.
+      await tabs.getByRole("tab", { name: "You" }).click();
+      await expect(page).toHaveURL(/\/home\/you$/);
       await expect(
-        page.getByRole("heading", { level: 1, name: "Invented Owl" }),
+        page.getByRole("heading", { level: 1, name: "@owl" }),
       ).toBeVisible();
     });
 

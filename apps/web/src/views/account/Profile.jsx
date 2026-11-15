@@ -25,8 +25,9 @@ import { useMyPassport } from "../../lib/queries.js";
 import { YourPlace } from "../../clan/views/YourPlace.jsx";
 
 /**
- * Profile: the account you are signed in as. Editable here are the profile
- * image (its own panel, AvatarPicker.jsx) and the time zone; everything else names where it is changed, because each has its own
+ * Profile: the account you are signed in as. Editable here are your
+ * @handle, the profile image (its own panel, AvatarPicker.jsx) and the
+ * time zone; everything else names where it is changed, because each has its own
  * page. Limits read in full on Usage and limits, Discord on Connections &
  * agents.
  *
@@ -54,6 +55,7 @@ export function Profile({ me, refresh, hash = null }) {
       <ZoneOffer />
       <Panel title="You in Elixir" titleAs="h2">
         <Identity me={me} main={main} verified={mainVerified} />
+        <HandleSetting me={me} refresh={refresh} />
         <PassportPreview />
         <PlaceSetting hash={hash} />
       </Panel>
@@ -242,6 +244,141 @@ function Identity({ me, main, verified }) {
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * Your @handle (Jamie, 2026-11-15): optional, unique, public on your
+ * account page, in follow lists and in search. Typing checks it as you go
+ * (free, taken, or not allowed); with none set, Elixir offers one made
+ * from your main player's name. Save sets it; Remove takes it off.
+ */
+function HandleSetting({ me, refresh }) {
+  const current = me?.handle ?? null;
+  const [draft, setDraft] = useState(current ?? "");
+  const [check, setCheck] = useState(null);
+  const [suggestion, setSuggestion] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [saved, setSaved] = useState(null);
+  useEffect(() => setDraft(current ?? ""), [current]);
+  // A suggestion only for an account with no handle yet.
+  useEffect(() => {
+    if (current) return undefined;
+    let live = true;
+    api.checkHandle("").then((r) => {
+      if (live && r?.ok) setSuggestion(r.data?.suggestion ?? null);
+    });
+    return () => {
+      live = false;
+    };
+  }, [current]);
+  const typed = draft.trim().replace(/^@/, "").toLowerCase();
+  useEffect(() => {
+    if (!typed || typed === current) {
+      setCheck(null);
+      return undefined;
+    }
+    let live = true;
+    const timer = setTimeout(async () => {
+      const r = await api.checkHandle(typed);
+      if (live && r?.ok) setCheck(r.data);
+    }, 350);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [typed, current]);
+  const save = async (value) => {
+    setBusy(true);
+    setError(null);
+    setSaved(null);
+    const r = await api.setHandle(value);
+    setBusy(false);
+    if (!r?.ok) {
+      setError(r?.data?.message ?? "That handle could not be saved.");
+      return;
+    }
+    setSaved(value ? "Saved." : "Removed.");
+    refresh();
+  };
+  const ready =
+    Boolean(typed) && typed !== current && check?.handle === typed
+      ? check.available
+      : false;
+  return (
+    <section className="st-handle" aria-labelledby="st-handle-head">
+      <h3 id="st-handle-head" className="st-group">
+        Your @handle
+      </h3>
+      <form
+        className="kit-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (ready) save(typed);
+        }}
+      >
+        <label htmlFor="st-handle-input">
+          {current ? `You're @${current}` : "Pick a handle (optional)"}
+        </label>
+        <div className="kit-form__row">
+          <input
+            id="st-handle-input"
+            className="input"
+            placeholder={suggestion ? `@${suggestion}` : "@handle"}
+            value={draft}
+            maxLength={21}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setSaved(null);
+            }}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck="false"
+          />
+          <button type="submit" className="btn" disabled={busy || !ready}>
+            Save handle
+          </button>
+          {current ? (
+            <button
+              type="button"
+              className="btn btn--quiet"
+              disabled={busy}
+              onClick={() => save(null)}
+            >
+              Remove
+            </button>
+          ) : null}
+        </div>
+        {error ? (
+          <p className="kit-form__err" role="alert">
+            {error}
+          </p>
+        ) : check && check.handle === typed && !check.available ? (
+          <p className="kit-form__err" aria-live="polite">
+            {check.message}
+          </p>
+        ) : (
+          <p className="kit-tiny" aria-live="polite">
+            {saved ??
+              (ready
+                ? `@${typed} is free.`
+                : !current && suggestion && !typed
+                  ? `Try @${suggestion}, or pick your own.`
+                  : "3 to 20 letters, numbers or _. Members see it on your account page, in follow lists and in search.")}
+          </p>
+        )}
+        {!current && suggestion && !typed ? (
+          <button
+            type="button"
+            className="btn btn--sm"
+            onClick={() => setDraft(suggestion)}
+          >
+            Use @{suggestion}
+          </button>
+        ) : null}
+      </form>
+    </section>
   );
 }
 

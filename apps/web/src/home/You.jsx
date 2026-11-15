@@ -1,7 +1,4 @@
-import { PlayerName } from "@elixir-mcp/ui";
-import { useLocation } from "@tanstack/react-router";
 import {
-  Empty,
   ErrorState,
   SHELL_PRODUCTS,
   Link,
@@ -10,18 +7,14 @@ import {
   Row,
   Rows,
   Tabs,
-  TagText,
 } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
 import { STATS, statsPlayers } from "../stats/stats.js";
 import { ADMIN, SETTINGS } from "../lib/settings.js";
-import { playerHref } from "../lib/player.js";
 import { PASSPORT } from "../lib/passport.js";
-import { accountHref } from "../lib/account.js";
-import { usePlayerPage } from "../lib/queries.js";
+import { useAccountPage } from "../lib/queries.js";
 import { useSignOut } from "../shell/sign-out.js";
-import { VerifyPlayer } from "../components/VerifyPlayer.jsx";
-import { PLAYER_TABS, PlayerView } from "./Player.jsx";
+import { AccountView } from "./Account.jsx";
 
 const DROP =
   SHELL_PRODUCTS.find((p) => p.key === "drop")?.href ??
@@ -30,61 +23,40 @@ const DROP =
 export const YOU = "/home/you";
 
 /**
- * You (2026-11-12, Jamie's go: "You with Stats"): your own player page, the
- * one every player name opens, for your primary verified player, with a
- * Stats tab after its five. Stats is Ladder, unchanged (its scope bar and
- * four tabs), at STATS; its old `/ladder` addresses are the site's 404.
- *
- * Alts [engineering, 2026-11-12, the narrow option]: You is the primary
- * player's page only. Your other players are listed below, to you alone,
- * each to its own page, and Stats' player picker reads any of them, as
- * Stats' did. With no verified player, You says how to verify one.
+ * You (Jamie, 2026-11-15: "when you tap You it should go to your account,
+ * not your primary player"): your own account page, as other members see
+ * it (your players, Stamps and timeline), with Your stats one tap away and
+ * your account's rows under it. Each player opens its own page. With no
+ * player yet, the Players list says Add your player.
  */
 export function YouPage() {
   const { me } = useMe();
-  const { search } = useLocation();
-  const mine = youPlayer(me?.claims);
   return (
     <div className="kit-home kit-you">
-      {mine ? (
-        <YouPlayer tag={mine.player_tag} tab={search?.tab} />
+      {me?.page_id ? (
+        <YouAccountPage id={me.page_id} claims={me?.claims} />
       ) : (
-        <NoVerified claims={me?.claims} />
+        <PageHead title="You" />
       )}
-      <YouAccount me={me} primary={mine?.player_tag ?? null} />
+      <YouAccount me={me} />
     </div>
   );
 }
 
-/** Your primary player, when you verified it: the page You draws. */
-export function youPlayer(claims) {
-  return (
-    (claims ?? []).find((c) => c.is_primary && c.status === "verified") ?? null
-  );
-}
-
-/** Stats as a tab of You, an address. */
-const STATS_TAB = { key: "stats", label: "Stats", href: STATS };
-
-/** You's tabs over Stats (StatsPage): the player page's five, each back
- *  on You, then Stats, open. */
+/** You's tabs over Stats (StatsPage): back to You, then Stats, open. */
 export function YouTabs() {
   const items = [
-    ...PLAYER_TABS.map((t) => ({
-      key: t.key,
-      label: t.label,
-      href: t.key === "timeline" ? YOU : `${YOU}?tab=${t.key}`,
-    })),
-    STATS_TAB,
+    { key: "you", label: "You", href: YOU },
+    { key: "stats", label: "Stats", href: STATS },
   ];
   return <Tabs label="You" items={items} value="stats" />;
 }
 
-function YouPlayer({ tag, tab }) {
-  const query = usePlayerPage(tag);
+function YouAccountPage({ id, claims }) {
+  const query = useAccountPage(id);
   if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;
   const env = query.data;
-  if (query.isError || !env || env.status >= 500 || env.status === 429)
+  if (query.isError || !env || env.status !== 200)
     return (
       <ErrorState
         title="Your page could not be read just now"
@@ -94,89 +66,35 @@ function YouPlayer({ tag, tab }) {
         {env?.data?.message ?? "Try again in a moment."}
       </ErrorState>
     );
-  if (env.status !== 200)
-    return (
-      <>
-        <PageHead title="You" />
-        <Empty title="Elixir has not recorded your player yet">
-          Its first battles arrive within the hour. Your stats are in{" "}
-          <Link className="link" to={STATS}>
-            Stats
-          </Link>
-          .
-        </Empty>
-      </>
-    );
-  return (
-    <PlayerView page={env.data} self initialTab={tab} extraTabs={[STATS_TAB]} />
-  );
-}
-
-/** No verified player: how to verify one, and Stats for a player you added
- *  but have not verified yet, as Stats read them. */
-function NoVerified({ claims }) {
   const own = statsPlayers(claims);
   return (
-    <>
-      <PageHead title="You" />
-      <VerifyPlayer
-        more={
-          own.length > 0 ? (
-            <Row
-              href={STATS}
-              title="Your stats"
-              detail="Your season, battles, decks and cards, before you verify."
-            />
-          ) : null
-        }
-      >
-        You is your own player&rsquo;s page: its timeline, highlights, moments
-        and who follows it. Verify the player by its tag first, so the page is
-        yours and nobody else&rsquo;s.
-      </VerifyPlayer>
-    </>
+    <AccountView
+      page={env.data}
+      actions={
+        own.length ? (
+          <Link className="btn btn--sm" to={STATS}>
+            Your stats
+          </Link>
+        ) : null
+      }
+      noPlayers={
+        <p className="kit-week__quiet">
+          No player yet.{" "}
+          <Link className="link" to={`${SETTINGS}/players#add-player-tag`}>
+            Add your player
+          </Link>
+        </p>
+      }
+    />
   );
 }
 
-function YouAccount({ me, primary }) {
+function YouAccount({ me }) {
   const signOut = useSignOut();
-  const others = (me?.claims ?? []).filter(
-    (c) =>
-      c.player_tag !== primary && (c.is_primary || c.relationship === "alt"),
-  );
-  const name = (c) => c.nickname ?? c.name ?? c.player_tag;
   return (
     <>
-      {others.length ? (
-        <Panel
-          title={primary ? "Your other players" : "Your players"}
-          titleAs="h2"
-        >
-          <Rows>
-            {others.map((c) => (
-              <Row
-                key={c.player_tag}
-                href={playerHref(c.player_tag)}
-                title={
-                  <PlayerName tag={c.player_tag}>
-                    <TagText>{name(c)}</TagText>
-                  </PlayerName>
-                }
-                detail={`${c.is_primary ? "Your main player" : "Also you"}${c.status === "verified" ? "" : ", not verified"}: its page. Only you see this list.`}
-              />
-            ))}
-          </Rows>
-        </Panel>
-      ) : null}
       <Panel title="Your account" titleAs="h2">
         <Rows>
-          {me?.page_id ? (
-            <Row
-              href={accountHref(me.page_id)}
-              title="Your account page"
-              detail="Your players, Stamps and news, as other members see them."
-            />
-          ) : null}
           <Row
             href={PASSPORT}
             title="Your passport"

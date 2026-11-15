@@ -28,6 +28,7 @@ const LABELS = {
   account_followed: "Account followed",
   account_unfollowed: "Account unfollowed",
   follow_skipped: "Player not followed",
+  handle_cleared: "@handle cleared",
 };
 
 const GROUP = {

@@ -63,7 +63,7 @@ import {
 import { HOME, SIGN_IN, movedTo } from "./lib/moved.js";
 import { FOLLOW_ME, isPlayerPath } from "./lib/player.js";
 import { PASSPORT, isPassportPath } from "./lib/passport.js";
-import { ACCOUNT, isAccountPath } from "./lib/account.js";
+import { ACCOUNT, accountIdOf, isAccountPath } from "./lib/account.js";
 import { normTag } from "./lib/tag-url.js";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { Unavailable } from "./shell/Unavailable.jsx";
@@ -218,7 +218,9 @@ export function barArea(path, me = null) {
   if (clean === FIND || isPlayerPath(path)) return "find";
   // Your passport is You's; another member's is Find's, like their page.
   if (clean === PASSPORT) return "you";
-  // An account's page and its passport are Find's too (2026-11-15).
+  // Your own account page is You's (You opens it, 2026-11-15); another
+  // account's page and its passport are Find's.
+  if (ownAccountPath(path, me)) return "you";
   if (isPassportPath(path) || isAccountPath(path)) return "find";
   if (clean === YOU) return "you";
   if (isHome(path)) return "home";
@@ -226,6 +228,13 @@ export function barArea(path, me = null) {
   if (isStats(path)) return "you";
   if (isClan(path)) return "clan";
   return undefined;
+}
+
+/** Whether a path is the reader's own account page, by page id or handle. */
+function ownAccountPath(path, me) {
+  const id = accountIdOf(path);
+  if (!id || !me) return false;
+  return id === me.page_id || (Boolean(me.handle) && id === `@${me.handle}`);
 }
 
 /** Whether a path is the player page of one of the reader's own players:
@@ -733,7 +742,7 @@ const findRoute = createRoute({
   component: lazyRouteComponent(() => import("./home/Find.jsx"), "FindPage"),
 });
 
-/** You: your own player page with its Stats tab, and your account. */
+/** You: your own account page with Your stats, and your account rows. */
 const youRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: YOU,
@@ -778,6 +787,17 @@ const accountRoute = createRoute({
   ),
 });
 
+/** The same page by the account's @handle (2026-11-15): /home/@handle.
+ *  AccountPage reads the handle from the path (accountIdOf). */
+const handleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/home/@{$handle}",
+  component: lazyRouteComponent(
+    () => import("./home/Account.jsx"),
+    "AccountPage",
+  ),
+});
+
 /** A "Follow me in Elixir" link: the players it names, to follow. */
 const followMeRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -797,6 +817,7 @@ export const routeTree = rootRoute.addChildren([
   passportRoute,
   passportViewRoute,
   accountRoute,
+  handleRoute,
   signInRoute,
   settingsRoute,
   adminRoute,

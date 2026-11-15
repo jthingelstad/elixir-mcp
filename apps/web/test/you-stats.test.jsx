@@ -1,8 +1,8 @@
 /**
- * You with Stats (2026-11-12, Jamie's go: "You with Stats"): You is your
- * primary verified player's page with a Stats tab, Stats is Ladder
- * unchanged, every old Ladder address lands on Stats, and with no verified
- * player You says how to verify one. Invented players only.
+ * You (2026-11-15, Jamie: "when you tap You it should go to your account,
+ * not your primary player"): You is your own account page, with Your
+ * stats one tap away; Stats keeps a tab back to You. With no player yet,
+ * You says Add your player. Invented players only.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
@@ -15,7 +15,6 @@ import {
 import { App } from "../src/App.jsx";
 // The route chunks compile while this file loads, not inside a wait.
 import "./warm-routes.js";
-import { youPlayer } from "../src/home/You.jsx";
 
 configure({ asyncUtilTimeout: 5000 });
 
@@ -103,56 +102,112 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test("You is the primary player only when it is verified", () => {
-  expect(youPlayer(ME.claims)).toBe(VERIFIED);
-  expect(youPlayer([{ ...VERIFIED, status: "pending" }, ALT])).toBeNull();
-  expect(youPlayer([FRIEND])).toBeNull();
-  expect(youPlayer(undefined)).toBeNull();
-});
+const ACCOUNT_PAGE = {
+  account: {
+    id: "abcdefghjkmn",
+    handle: "birch",
+    name: "Birch Lantern",
+    player: { tag: "#0GVJ9V", name: "Birch Lantern", state: "verified" },
+    state: "verified",
+    players: [
+      {
+        tag: "#0GVJ9V",
+        name: "Birch Lantern",
+        relationship: "primary",
+        state: "verified",
+      },
+      { tag: "#00L0", name: "Umber", relationship: "alt", state: "claimed" },
+    ],
+    badges: { verified_player: true, discord: false },
+    place: null,
+    follows: { count: 0, players: [] },
+    followers: 0,
+    following_accounts: 0,
+  },
+  you: { self: true, following: false, to_follow: [], plan: null },
+  passport: null,
+  window_days: 30,
+  timeline: [
+    {
+      id: "t1",
+      kind: "battle_streak",
+      at: "2026-11-10T14:00:00.000Z",
+      text: "Birch Lantern won five in a row",
+    },
+  ],
+  timeline_more: 0,
+};
 
 test(
-  "You: your player's page with Stats as a tab, your other players to you alone, no friend",
+  "You: your account page, @handle first, your players each to its page, Your stats one tap away",
   { timeout: 20000 },
   async () => {
+    me = { ...ME, page_id: "abcdefghjkmn", handle: "birch" };
+    const asked = [];
+    global.fetch = vi.fn(async (path) => {
+      const p = String(path);
+      asked.push(p);
+      if (p === "/api/me") return reply(me);
+      if (p === "/api/accounts/abcdefghjkmn") return reply(ACCOUNT_PAGE);
+      return reply({});
+    });
     window.history.pushState({}, "", "/home/you");
     render(<App />);
-    await screen.findByRole("heading", {
-      level: 1,
-      name: /Birch Lantern\s*Verified player/,
-    });
+    await screen.findByRole("heading", { level: 1, name: "@birch" });
     expect(screen.getByText("Birch Lantern won five in a row")).toBeTruthy();
-    const stats = screen.getByRole("tab", { name: "Stats" });
+    const players = screen.getByRole("heading", {
+      name: "Players",
+    }).parentElement;
+    expect(players.textContent).toContain("Umber");
+    expect(players.textContent).not.toContain("Copper Fern");
     expect(
-      stats.closest("a")?.getAttribute("href") ?? stats.getAttribute("href"),
+      screen.getByRole("link", { name: "Your stats" }).getAttribute("href"),
     ).toBe("/home/you/stats");
-    const others = screen.getByRole("heading", { name: "Your other players" })
-      .parentElement.parentElement;
-    expect(others.textContent).toContain("Umber");
-    expect(others.textContent).toContain("not verified");
-    expect(others.textContent).not.toContain("Copper Fern");
-    // Your own page sends you to Stats by its tab, not a second door.
+    // Your own page offers no Follow, and You never reads a player page.
+    expect(screen.queryByRole("button", { name: "Follow" })).toBeNull();
+    expect(asked.some((p) => p.startsWith("/api/player?"))).toBe(false);
+  },
+);
+
+test(
+  "no player yet: You says Add your player",
+  { timeout: 20000 },
+  async () => {
+    me = { ...ME, claims: [], page_id: "abcdefghjkmn" };
+    global.fetch = vi.fn(async (path) => {
+      const p = String(path);
+      if (p === "/api/me") return reply(me);
+      if (p === "/api/accounts/abcdefghjkmn")
+        return reply({
+          ...ACCOUNT_PAGE,
+          account: {
+            ...ACCOUNT_PAGE.account,
+            handle: null,
+            player: null,
+            state: null,
+            players: [],
+          },
+          timeline: [],
+        });
+      return reply({});
+    });
+    window.history.pushState({}, "", "/home/you");
+    render(<App />);
+    const add = await screen.findByRole("link", { name: "Add your player" });
+    expect(add.getAttribute("href")).toBe("/settings/players#add-player-tag");
     expect(screen.queryByRole("link", { name: "Your stats" })).toBeNull();
   },
 );
 
-test(
-  "no verified player: You says how to verify one, and Stats stays reachable",
-  { timeout: 20000 },
-  async () => {
-    me = { ...ME, claims: [{ ...VERIFIED, status: "pending" }] };
-    window.history.pushState({}, "", "/home/you");
-    render(<App />);
-    await screen.findByRole("heading", { name: "Verify your player" });
-    expect(
-      screen
-        .getByRole("link", { name: /Verify a player/ })
-        .getAttribute("href"),
-    ).toBe("/settings/players/verify");
-    expect(
-      screen.getByRole("link", { name: /Your stats/ }).getAttribute("href"),
-    ).toBe("/home/you/stats");
-  },
-);
+test("Stats keeps a tab back to You", { timeout: 20000 }, async () => {
+  window.history.pushState({}, "", "/home/you/stats");
+  render(<App />);
+  const tabs = await screen.findByRole("tablist", { name: "You" });
+  const you = Array.from(tabs.querySelectorAll("a")).find(
+    (a) => a.textContent === "You",
+  );
+  expect(you?.getAttribute("href")).toBe("/home/you");
+});
 
 test(
   "a player you follow: their page opens Their stats, which read through Stats' own door, with no You tabs",

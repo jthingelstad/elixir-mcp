@@ -122,7 +122,7 @@ for (const [label, width] of [
       expect(box!.width).toBeGreaterThanOrEqual(44);
       await knight.click();
       await expect(knight).toHaveAttribute("aria-pressed", "true");
-      await page.getByRole("button", { name: "Save" }).click();
+      await page.getByRole("button", { name: "Save", exact: true }).click();
       await expect(page.getByRole("status")).toHaveText("Saved.");
       expect(posted).toEqual([{ card_id: 26000000 }]);
       const bar = page.locator(".kit-top__account .chrome__avatar").first();

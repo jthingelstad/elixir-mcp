@@ -1,3 +1,4 @@
+import { accountHref } from "../lib/account.js";
 import { playerHref } from "../lib/player.js";
 import { SETTINGS_RAIL } from "../lib/settings.js";
 import { HASH_RE, WEEK_RE, normTag, tagPath } from "../lib/tag-url.js";
@@ -201,6 +202,24 @@ const hits = (q) => (text) =>
 
 /** The local half of a typed word, grouped. `found` is what readSearch returned
  *  for it, merged in by door so a name is never drawn twice. */
+/** Whether a query could be an @handle (2026-11-15): two or more of a
+ *  handle's letters, with or without the @. A tag query is not. */
+export const handleQuery = (raw) => {
+  const t = String(raw ?? "")
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
+  return /^[a-z0-9_]{2,20}$/.test(t) && !isTagQuery(raw) ? t : null;
+};
+
+/** Accounts found by @handle, each to its page, its main player beside. */
+export const accountRows = (accounts) =>
+  (accounts ?? []).map((a) => ({
+    t: `@${a.handle}`,
+    d: a.player?.name ?? "Elixir account",
+    href: accountHref(a.id),
+  }));
+
 export function typedGroups(raw, s, found = null) {
   const q = String(raw ?? "")
     .trim()
@@ -241,6 +260,7 @@ export function typedGroups(raw, s, found = null) {
     group("You", youRows, TYPED),
     group("Clanmates", mateRows, TYPED),
     group("People you follow", followRows, TYPED),
+    group("Accounts", accountRows(found?.accounts), TYPED),
     group("Players", fresh, TYPED),
     group("Clans", [...foundClans, ...clanRows], TYPED),
     group(
