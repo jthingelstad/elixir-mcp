@@ -140,6 +140,11 @@ for (const width of [320, 390, 1280]) {
     expect(box!.y).toBeGreaterThanOrEqual(0);
     expect(box!.y + box!.height).toBeLessThanOrEqual(844);
     await noSideways(page);
+    // The pill fades in (160ms); axe reads a half-faded pill as low
+    // contrast, so check it once the fade has finished.
+    await pill.evaluate((el) =>
+      Promise.all(el.getAnimations().map((a) => a.finished)),
+    );
     await accessible(page, "the pill");
     if (shots)
       await page.screenshot({ path: `${shots}/new-pill-${width}.png` });
