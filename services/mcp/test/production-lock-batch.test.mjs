@@ -174,6 +174,51 @@ test("batch: a signal goes to the command, and the lock is released only once it
     assert.equal(proc.listenerCount(event), 0, event);
 });
 
+test(
+  "batch: the lock waits for every process the command started, not only the command",
+  { timeout: 15_000 },
+  async (t) => {
+    // Codex on #1044: a shell killed by SIGTERM while its op still runs.
+    // The worker traps SIGTERM and finishes a write; the batch must not
+    // release the lock until it has.
+    const file = scratch(t);
+    const dir = path.dirname(file);
+    const ready = path.join(dir, "ready");
+    const finished = path.join(dir, "finished");
+    const worker = `
+    const { writeFileSync } = require("node:fs");
+    process.on("SIGTERM", () => setTimeout(() => {
+      writeFileSync(${JSON.stringify(finished)}, "done");
+      process.exit(0);
+    }, 300));
+    writeFileSync(${JSON.stringify(ready)}, "up");
+    // Never outlives the test, even if the signal never reaches it.
+    setTimeout(() => process.exit(9), 8000);`;
+    const proc = new EventEmitter();
+    const done = holdForBatch({
+      file,
+      purpose: "x",
+      command: "sh",
+      args: [
+        "-c",
+        `"${process.execPath}" -e '${worker.replace(/'/g, "'\\''")}' & wait`,
+      ],
+      proc,
+      log: silent,
+    });
+    while (!existsSync(ready)) await new Promise((r) => setTimeout(r, 20));
+    proc.emit("SIGTERM");
+    const code = await done;
+    assert.equal(code, 143, "the shell died of the signal");
+    assert.equal(existsSync(finished), true, "the worker finished first");
+    assert.equal(
+      existsSync(file),
+      false,
+      "and only then was the lock released",
+    );
+  },
+);
+
 test("batch: an exit before the command ends still releases the lock", async (t) => {
   const file = scratch(t);
   const proc = new EventEmitter();

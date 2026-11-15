@@ -59,9 +59,11 @@ const realSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * answer is a throttle, along `schedule`. Any other error, and a
  * throttle once the schedule is spent, is thrown as it came.
  *
- * `beforeRetry(attempt, waitMs)` runs before each wait; returning a
- * string stops the retries and throws an error carrying it (`npm run op`
- * uses it to stop a read the moment a deploy holds the lock).
+ * `beforeRetry(attempt, waitMs)` runs before each wait and again after
+ * it, just before the resend; returning a string stops the retries and
+ * throws an error carrying it (`npm run op` uses it to stop a read the
+ * moment a deploy holds the lock, including a lock taken during the
+ * wait).
  *
  * @param {{ client: { send: (c: unknown) => Promise<any> }, command: unknown,
  *   schedule: number[], label: string, sleep?: (ms: number) => Promise<void>,
@@ -89,17 +91,22 @@ export async function sendWithThrottleBackoff({
         throw error;
       }
       const wait = schedule[attempt];
-      const stop = beforeRetry(attempt + 1, wait);
-      if (stop) {
+      const check = () => {
+        const stop = beforeRetry(attempt + 1, wait);
+        if (!stop) return;
         const stopped = new Error(stop);
         stopped.name = "ThrottleRetryStopped";
         stopped.cause = error;
         throw stopped;
-      }
+      };
+      check();
       log(
         `${label}: throttled (${error.Reason ?? error.name ?? "429"}): another invocation is running; it was not run. Trying again in ${Math.round(wait / 1000)} s (retry ${attempt + 1} of ${schedule.length}).`,
       );
       await sleep(wait);
+      // The lock may have been taken during the wait: ask again right
+      // before the resend, not only before the wait.
+      check();
     }
   }
 }
