@@ -154,12 +154,12 @@ test("production lock: a lock whose process is gone from this host is released w
   assert.equal(existsSync(file), false);
 });
 
-test("production lock: holders are deploy or op:<name>, nothing looser", (t) => {
+test("production lock: holders are deploy, batch or op:<name>, nothing looser", (t) => {
   const { file } = scratch(t);
-  for (const holder of ["session", "run", "", "op:"])
+  for (const holder of ["session", "run", "", "op:", "batch:x"])
     assert.throws(
       () => acquireLock({ ...quiet, file, holder, purpose: "x" }),
-      /use deploy or op/,
+      /use deploy, batch or op/,
     );
   assert.equal(readdirSync(path.dirname(file)).length, 0);
 });

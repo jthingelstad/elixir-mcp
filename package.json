@@ -50,6 +50,7 @@
     "acceptance": "npm run build && node acceptance/run.mjs",
     "cr": "node infra/scripts/cr-api.mjs",
     "op": "node infra/scripts/op.mjs",
+    "op:batch": "node infra/scripts/op-batch.mjs",
     "web-latency": "node infra/scripts/web-latency.mjs",
     "editor-replay": "node infra/scripts/editor-replay.mjs",
     "contract:bump": "node packages/contracts/scripts/bump.mjs",

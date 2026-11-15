@@ -79,6 +79,12 @@ import {
   parseDeployArgs,
 } from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
+import { FUNCTIONS } from "./lib/ops-invoke.mjs";
+import {
+  backoffSchedule,
+  budgetFor,
+  sendWithThrottleBackoff,
+} from "./lib/lambda-throttle.mjs";
 import { runVisibilityCheck } from "./lib/visibility-check.mjs";
 import {
   acceptanceCost,
@@ -110,11 +116,14 @@ import {
 import { importReferenceSeed } from "./lib/reference-seed-import.mjs";
 import { bundleFingerprint, chooseLane, codeKey } from "./lib/deploy-lane.mjs";
 import {
+  KEEP_ASSET_MANIFESTS,
   PRUNE_AFTER_DAYS,
+  SITE_ASSETS_PREFIX,
   deleteKeys,
   describeKept,
   hashedAssets,
   listObjects,
+  manifestPruneCandidates,
   md5,
   publish,
   publishPlan,
@@ -213,11 +222,31 @@ function dirtyTreeMessage(when, files) {
   return `deploy: ${when} changed tracked files; a deploy must never modify a tracked file. Find the step that wrote them and make it write elsewhere:\n${files.map((f) => `  ${f}`).join("\n")}`;
 }
 
+/**
+ * One invoke of a reserved-concurrency-1 function, waiting out a throttle
+ * (another invocation holding its one slot: a scheduled run, or a read
+ * that began before the lock) for at most the function's own timeout and
+ * half a minute (#456; lib/lambda-throttle.mjs). A throttled invoke never
+ * ran, so sending it again cannot run the work twice.
+ */
+export async function invokeWaitingOutThrottle(d, input, timeoutS, label) {
+  return sendWithThrottleBackoff({
+    client: d.lambda,
+    command: new InvokeCommand(input),
+    schedule: backoffSchedule({ budgetMs: budgetFor(timeoutS) }),
+    label,
+    sleep: d.sleep,
+  });
+}
+
 /** The migrate Lambda applies every pending migration (`{}`). */
 async function runMigrations(d, functionName) {
   console.error("running migrations via the migrate lambda...");
-  const invoked = await d.lambda.send(
-    new InvokeCommand({ FunctionName: functionName, Payload: "{}" }),
+  const invoked = await invokeWaitingOutThrottle(
+    d,
+    { FunctionName: functionName, Payload: "{}" },
+    FUNCTIONS.migrate.timeoutS,
+    "deploy: migrate",
   );
   const migrateResult = JSON.parse(
     Buffer.from(invoked.Payload).toString() || "null",
@@ -851,11 +880,14 @@ export const DEPLOY_PHASES = [
     name: "public-stats",
     when: (d) => d.lane === "platform",
     async run(d) {
-      const snapshot = await d.lambda.send(
-        new InvokeCommand({
-          FunctionName: "elixir-mcp-jobs",
+      const snapshot = await invokeWaitingOutThrottle(
+        d,
+        {
+          FunctionName: FUNCTIONS.jobs.name,
           Payload: JSON.stringify({ public_stats: true }),
-        }),
+        },
+        FUNCTIONS.jobs.timeoutS,
+        "deploy: public statistics",
       );
       if (snapshot.FunctionError)
         throw new Error(
@@ -1021,6 +1053,33 @@ export const DEPLOY_PHASES = [
       console.error(
         `pruned ${prune.length - kept.length} asset(s) no deploy has shipped for ${PRUNE_AFTER_DAYS}+ days`,
       );
+      // The manifests no prune reads again (#645): older than the window
+      // and beyond the newest KEEP_ASSET_MANIFESTS. Housekeeping only:
+      // a failure is a warning, and this deploy's own is never one.
+      try {
+        const old = manifestPruneCandidates({
+          keys: (
+            await listObjects(d.s3, d.codeBucket, {
+              prefix: SITE_ASSETS_PREFIX,
+            })
+          ).keys(),
+          now,
+          days: PRUNE_AFTER_DAYS,
+          own: d.assetManifestKey,
+        });
+        const keptManifests = await deleteKeys(d.s3, d.codeBucket, old);
+        if (keptManifests.length > 0)
+          console.warn(
+            `WARNING: S3 kept ${keptManifests.length} asset manifest(s) the prune deleted: ${describeKept(keptManifests)}`,
+          );
+        console.error(
+          `pruned ${old.length - keptManifests.length} asset manifest(s) older than ${PRUNE_AFTER_DAYS} days (the newest ${KEEP_ASSET_MANIFESTS} kept)`,
+        );
+      } catch (err) {
+        console.warn(
+          `WARNING: the asset manifests were not pruned this deploy: ${err?.message ?? err}`,
+        );
+      }
     },
   },
   {

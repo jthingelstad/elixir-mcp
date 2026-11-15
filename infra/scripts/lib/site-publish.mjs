@@ -421,6 +421,37 @@ export async function referencedAssets(s3, bucket, { now, days, own }) {
   return referenced;
 }
 
+/** The newest manifests kept whatever their age (#645): the record of
+ *  what the last deploys shipped, for reading back an asset's history. */
+export const KEEP_ASSET_MANIFESTS = 30;
+
+/**
+ * The asset manifests to delete (#645): those named for a deploy that
+ * started before the prune window, so no prune reads them again
+ * (referencedAssets lists only names inside it), beyond the newest
+ * `keep`, and never this deploy's own. Names begin with the deploy's
+ * start, so their order is their age. `deploys/site-published.json` is
+ * outside the prefix and never a candidate.
+ *
+ * @param {{ keys: Iterable<string>, now: number, days: number, own: string, keep?: number }} args
+ * @returns {string[]} keys
+ */
+export function manifestPruneCandidates({
+  keys,
+  now,
+  days,
+  own,
+  keep = KEEP_ASSET_MANIFESTS,
+}) {
+  const cutoff = `${SITE_ASSETS_PREFIX}${new Date(now - days * 86_400_000).toISOString().replace(/[:.]/g, "-")}`;
+  const manifests = [...keys]
+    .filter((k) => k.startsWith(SITE_ASSETS_PREFIX) && k.endsWith(".json"))
+    .sort();
+  return manifests
+    .slice(0, Math.max(0, manifests.length - keep))
+    .filter((k) => k !== own && k <= cutoff);
+}
+
 /**
  * The assets to delete: under assets/, not in this build, shipped by no
  * deploy in the window (`referenced`, from the manifests), and not

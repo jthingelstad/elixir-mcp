@@ -9,6 +9,7 @@ import test from "node:test";
 import {
   CONTENT_TYPES,
   IMMUTABLE,
+  KEEP_ASSET_MANIFESTS,
   REVALIDATE,
   SITE_ASSETS_PREFIX,
   contentType,
@@ -17,6 +18,7 @@ import {
   eachLimit,
   etagMd5,
   hashedAssets,
+  manifestPruneCandidates,
   md5,
   publish,
   publishPlan,
@@ -513,5 +515,53 @@ test("prune: the referenced assets come from every manifest in the window, and a
   await assert.rejects(
     referencedAssets(s3, "code", { now: NOW, days: 14, own }),
     /lists no assets/,
+  );
+});
+
+test("prune: an asset manifest goes once no prune reads it and it is not among the newest kept (#645)", async () => {
+  const sha = "e".repeat(40);
+  const key = (daysAgo) =>
+    siteAssetsKey(new Date(NOW - daysAgo * DAY).toISOString(), sha);
+  const own = key(0);
+  // One deploy a day for sixty days, plus today's.
+  const keys = [own, ...Array.from({ length: 60 }, (_, i) => key(i + 1))];
+  const gone = manifestPruneCandidates({ keys, now: NOW, days: 14, own });
+  // Older than the window and beyond the newest thirty (today's and
+  // days 1 to 29): days 30 to 60.
+  assert.equal(KEEP_ASSET_MANIFESTS, 30);
+  assert.deepEqual(
+    gone,
+    Array.from({ length: 31 }, (_, i) => key(60 - i)),
+  );
+  // Each candidate is outside the window the referenced-asset read lists,
+  // so the asset prune never misses one.
+  const s3 = fakeS3(
+    new Map(
+      keys.map((k) => [k, { body: JSON.stringify({ sha, assets: [] }) }]),
+    ),
+  );
+  await referencedAssets(s3, "code", { now: NOW, days: 14, own });
+  const read = new Set(
+    s3.calls.filter(([n]) => n === "GetObjectCommand").map(([, k]) => k),
+  );
+  assert.ok(gone.every((k) => !read.has(k)));
+
+  // Few deploys: everything is kept, however old.
+  const sparse = [key(0), key(100), key(200)];
+  assert.deepEqual(
+    manifestPruneCandidates({ keys: sparse, now: NOW, days: 14, own: key(0) }),
+    [],
+  );
+  // Inside the window is never a candidate, whatever keep says; nor is
+  // this deploy's own, nor anything outside the prefix.
+  assert.deepEqual(
+    manifestPruneCandidates({
+      keys: [key(1), key(2), key(20), own, "deploys/site-published.json"],
+      now: NOW,
+      days: 14,
+      own,
+      keep: 0,
+    }),
+    [key(20)],
   );
 });
