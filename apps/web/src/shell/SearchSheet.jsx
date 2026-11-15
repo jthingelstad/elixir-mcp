@@ -92,10 +92,17 @@ export function SearchSheet({ me, onClose }) {
       return r.ok ? (r.data?.accounts ?? []) : [];
     },
   });
+  // Accounts show as soon as they are found, whatever the player read is
+  // doing (Codex on #1065): a slow or failed name search hides no @handle.
+  // An empty account answer alone is not "nothing matches" yet.
+  const settledNow = q.trim() === settled;
+  const foundAccounts = settledNow ? (accounts.data ?? []) : [];
   const found =
-    q.trim() === settled && remote.data
-      ? { ...remote.data, accounts: accounts.data ?? [] }
-      : null;
+    settledNow && remote.data
+      ? { ...remote.data, accounts: foundAccounts }
+      : foundAccounts.length
+        ? { players: [], clans: [], miss: null, accounts: foundAccounts }
+        : null;
   const groups = typedGroups(q, sources, found);
   const miss = found?.miss ?? null;
   const failed = q.trim() === settled && remote.isError;
