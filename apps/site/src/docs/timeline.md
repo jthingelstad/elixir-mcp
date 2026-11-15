@@ -112,9 +112,12 @@ all six:
    days. One friend is enough.
 5. **Choose your email**: Weekly, Daily or Off for your
    [digest](/docs/email). Off counts too.
-6. **Your place on the clan map**: set your country, region or city, or
-   tap **Not now**. Both finish the step; only a place earns **On the
-   Map**.
+6. **Your place on the clan map**: tap **Set a place** and pick your
+   country, region or city right there on Home, or tap **Not now**. Both
+   finish the step; only a place earns **On the Map**. You need no clan,
+   and it works whether or not your clan's map is on. Before your player
+   is verified, the step says to verify first. Change it later in
+   [Your place](/docs/your-account#your-place).
 
 All six earn the **All Set** Stamp. Adding another of your players and
 connecting Discord are offered under the list. They earn Stamps of their

@@ -10,6 +10,8 @@ import {
   waitFor,
   cleanup,
   configure,
+  fireEvent,
+  within,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
 // The route chunks compile while this file loads, not inside a wait.
@@ -65,5 +67,88 @@ test(
     const tz = screen.getByRole("combobox", { name: "Time zone" });
     expect(tz.value).toBe("America/Chicago");
     expect(screen.getByText(/Leader limits/)).toBeTruthy();
+  },
+);
+
+const PLACED = {
+  country: "CA",
+  country_name: "Canada",
+  region: "08",
+  region_name: "Ontario",
+  city: null,
+  city_name: null,
+  precision: "region",
+};
+
+function placeFetch(place) {
+  const calls = [];
+  global.fetch = vi.fn(async (path, init) => {
+    const p = String(path);
+    if (p === "/api/clan/me/place") calls.push(init?.method ?? "GET");
+    const body =
+      p === "/api/me"
+        ? ME
+        : p === "/api/clan/me/place"
+          ? init?.method === "DELETE"
+            ? { cleared: true }
+            : { place }
+          : {};
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+  return calls;
+}
+
+test(
+  "Your place lives on Profile: Not set with Set, or the place with Change and Remove",
+  { timeout: 20000 },
+  async () => {
+    placeFetch(null);
+    window.history.pushState({}, "", "/settings/profile");
+    render(<App />);
+    const head = await screen.findByRole("heading", { name: "Your place" });
+    const section = head.closest("section");
+    await within(section).findByText("Not set");
+    expect(
+      within(section).getByText(/your clan’s verified members/),
+    ).toBeTruthy();
+    fireEvent.click(
+      within(section).getByRole("button", { name: "Set your place" }),
+    );
+    await within(section).findByLabelText("Country");
+    fireEvent.click(within(section).getByRole("button", { name: "Cancel" }));
+    await within(section).findByText("Not set");
+    cleanup();
+
+    const calls = placeFetch(PLACED);
+    window.history.pushState({}, "", "/settings/profile");
+    render(<App />);
+    const placed = (
+      await screen.findByRole("heading", { name: "Your place" })
+    ).closest("section");
+    await within(placed).findByText("Ontario, Canada");
+    expect(
+      within(placed).getByRole("button", { name: "Change your place" }),
+    ).toBeTruthy();
+    fireEvent.click(
+      within(placed).getByRole("button", { name: "Remove your place" }),
+    );
+    await waitFor(() => expect(calls).toContain("DELETE"));
+  },
+);
+
+test(
+  "#place opens the picker at once (the passport's On the Map, Location)",
+  { timeout: 20000 },
+  async () => {
+    placeFetch(null);
+    window.history.pushState({}, "", "/settings/profile#place");
+    render(<App />);
+    const country = await screen.findByLabelText("Country");
+    await waitFor(() => expect(document.activeElement).toBe(country));
   },
 );

@@ -77,7 +77,7 @@ export const STAMPS = Object.freeze(
       shape: "round",
       ink: "teal",
       rule: "Set your place on your clan’s map. Country, region or city all count.",
-      action: "Open clan map",
+      action: "Set your place",
       destination: "map-view",
       thresholds: [1],
       unit: "place",

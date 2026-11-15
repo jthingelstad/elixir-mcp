@@ -164,6 +164,38 @@ test("one place per person: written under each verified tag, shown in each of th
   assert.ok(h.ledger.items.has(`place#${alt.player_tag}`));
 });
 
+test("a place is the person's: a verified player with no clan sets one; an unverified one is refused", async () => {
+  // Home's map step and Settings › Profile set it with no clan page
+  // (2026-11-14): the route asks for a verified player, never a clan.
+  const h = harness();
+  const loner = await as(
+    h,
+    player({
+      player_tag: "#0RJL",
+      name: "Ben",
+      clan_tag: null,
+      clan_role: null,
+    }),
+  );
+  const set = await loner("PUT", "/api/me/place", {
+    country: "CA",
+    region: "08",
+  });
+  assert.equal(set.status, 200, JSON.stringify(set.body));
+  assert.equal((await loner("GET", "/api/me/place")).body.place.country, "CA");
+  assert.equal((await loner("DELETE", "/api/me/place")).status, 200);
+  const unverified = await as(
+    h,
+    player({ player_tag: "#09UR", name: "Cy", claim_status: "pending" }),
+  );
+  const refused = await unverified("PUT", "/api/me/place", {
+    country: "CA",
+    region: "08",
+  });
+  assert.equal(refused.status, 403);
+  assert.equal(refused.body.reason, "unverified");
+});
+
 test("a leader turns the clan's social features off; a member cannot; the rail hears it", async () => {
   const h = harness();
   const ben = await as(h, BEN);

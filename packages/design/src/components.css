@@ -6983,6 +6983,18 @@ button.kit-row {
 .kit-profile__go .kit-form__err {
   flex-basis: 100%;
 }
+/* The map step's picker, open under the step on Home (2026-11-14). */
+.kit-profile__place {
+  margin-top: var(--s-2);
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--ground-sunken);
+}
+.kit-profile__place .input {
+  width: 100%;
+  min-height: var(--hit);
+}
 .kit-profile__all {
   margin-top: var(--s-2);
 }
@@ -9761,6 +9773,19 @@ a.kit-bell__hit:focus-visible::after {
 .st-group span {
   margin-left: var(--s-2);
   font-weight: 400;
+}
+/* Settings › Profile's Your place (2026-11-14). */
+.st-place {
+  margin-top: var(--s-4);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+}
+.st-place .st-group {
+  padding: 0 0 var(--s-2);
+}
+.st-place .input {
+  width: 100%;
+  min-height: var(--hit);
 }
 /* What members see (G8, 2026-11-12): at phone width every control on the
    page, the lens's battle included, is a comfortable target, at least

@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Icon, Link, writeErrorText } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { passportHref, putPassport } from "../lib/passport.js";
 import { useMyPassport } from "../lib/queries.js";
+import { YourPlace } from "../clan/views/YourPlace.jsx";
 import { EXTRAS, profileView, stampName } from "./profile-list.js";
 
 /**
@@ -19,8 +20,10 @@ import { EXTRAS, profileView, stampName } from "./profile-list.js";
  *    so once, then goes on the next visit.
  *  - An account that finished the older welcome list sees only what is
  *    left, and can put the list away.
+ *  - The map step sets the place right here (2026-11-14): its button
+ *    opens the picker under the step, and a save latches the step.
  */
-export function ProfileList({ first, player, clanTag = null }) {
+export function ProfileList({ first, player }) {
   const read = useMyPassport();
   const queryClient = useQueryClient();
   const envelope = read.data;
@@ -29,7 +32,6 @@ export function ProfileList({ first, player, clanTag = null }) {
   const view = profileView(profile, {
     playerName: body?.passport?.player?.name ?? player?.name ?? null,
     digest: first?.setup?.digest ?? null,
-    clanTag,
   });
   // Seen open on this visit: completing it here says so once.
   const [seenOpen, setSeenOpen] = useState(false);
@@ -121,24 +123,57 @@ function NextStep({ step, onAnswer }) {
           <p className="kit-profile__stamp">Stamp: {step.stamp}</p>
         ) : null}
         {step.line ? <p>{step.line}</p> : null}
-        {step.go || step.notNow ? (
-          <div className="kit-profile__go">
-            {step.go ? (
-              <Link
-                to={step.go.to}
-                className="btn btn--primary btn--sm"
-                aria-label={
-                  step.go.name !== step.go.label ? step.go.name : undefined
-                }
-              >
-                {step.go.label}
-              </Link>
-            ) : null}
-            {step.notNow ? <NotNow onAnswer={onAnswer} /> : null}
-          </div>
-        ) : null}
+        <Ways step={step} onAnswer={onAnswer} primary />
       </div>
     </div>
+  );
+}
+
+/** A step's ways in: its link, the map step's picker, its Not now. */
+function Ways({ step, onAnswer, primary = false }) {
+  const [picking, setPicking] = useState(false);
+  const opener = useRef(null);
+  if (!(step.go || step.place || step.notNow)) return null;
+  const closePicker = () => {
+    setPicking(false);
+    // Back to the button that opened it, once it is drawn again.
+    requestAnimationFrame(() => opener.current?.focus());
+  };
+  const cls = primary ? "btn btn--primary btn--sm" : "btn btn--sm";
+  return (
+    <>
+      {picking ? null : (
+        <div className="kit-profile__go">
+          {step.go ? (
+            <Link
+              to={step.go.to}
+              className={cls}
+              aria-label={
+                step.go.name !== step.go.label ? step.go.name : undefined
+              }
+            >
+              {step.go.label}
+            </Link>
+          ) : null}
+          {step.place ? (
+            <button
+              type="button"
+              ref={opener}
+              className={cls}
+              onClick={() => setPicking(true)}
+            >
+              Set a place
+            </button>
+          ) : null}
+          {step.notNow ? <NotNow onAnswer={onAnswer} /> : null}
+        </div>
+      )}
+      {picking ? (
+        <div className="kit-profile__place">
+          <YourPlace onCancel={closePicker} onSaved={() => setPicking(false)} />
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -160,22 +195,7 @@ function StepRow({ step, onAnswer }) {
           <p className="kit-profile__stamp">Stamp: {step.stamp}</p>
         ) : null}
         {step.line ? <p>{step.line}</p> : null}
-        {!done && (step.go || step.notNow) ? (
-          <div className="kit-profile__go">
-            {step.go ? (
-              <Link
-                to={step.go.to}
-                className="btn btn--sm"
-                aria-label={
-                  step.go.name !== step.go.label ? step.go.name : undefined
-                }
-              >
-                {step.go.label}
-              </Link>
-            ) : null}
-            {step.notNow ? <NotNow onAnswer={onAnswer} /> : null}
-          </div>
-        ) : null}
+        {done ? null : <Ways step={step} onAnswer={onAnswer} />}
       </div>
     </li>
   );

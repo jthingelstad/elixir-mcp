@@ -58,7 +58,7 @@ export function SettingsPage() {
   const tag = here.id ? decodeURIComponent(here.id) : undefined;
   switch (here.page) {
     case "profile":
-      return <Profile me={me} refresh={refresh} />;
+      return <Profile me={me} refresh={refresh} hash={hash} />;
     case "seen":
       return <Seen me={me} />;
     case "sign-ins":
@@ -120,7 +120,7 @@ export function SettingsPage() {
         />
       );
     default:
-      return <Profile me={me} refresh={refresh} />;
+      return <Profile me={me} refresh={refresh} hash={hash} />;
   }
 }
 

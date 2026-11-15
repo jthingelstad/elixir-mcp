@@ -134,8 +134,9 @@ didn't play.” Unknown activity is not evidence of inactivity.
 
 - **Account menu and You:** a passport link for every account, including
   the unverified state. No sixth bottom-navigation tab.
-- **Settings > Profile:** identity and a compact passport preview before
-  private account machinery; the same public passport opens from it.
+- **Settings > Profile:** identity, a compact passport preview and Your
+  place before private account machinery; the same public passport opens
+  from it.
 - **Verified player page:** a compact row with up to two marks, a count
   and Open passport. It must not push the friend's play out of view.
 - **Passport:** the collection, earned and unearned states, dates and
@@ -223,3 +224,15 @@ Built in the profile list slice (#1015,
   Opening Home runs the same reconciliation as the passport page, after
   first paint; `POST /api/me/passport/dismiss` puts the list away for an account that
   finished the older welcome.
+
+Built in the place slice (2026-11-14,
+[note](../notes/2026-11-14-place-in-setup.md)):
+
+- The map step sets the place on Home: **Set a place** opens the picker
+  under the step, a save latches the step and earns On the Map through
+  the existing hook, and Not now stays. No clan page is needed: the
+  place is the person's, so no clan or a map turned off is fine. Before
+  a verified player, the step says to verify first.
+- Your place has a permanent home in Settings > Profile (You in Elixir):
+  the place or Not set, with Set, Change and Remove. On the Map's detail
+  action (**Set your place**) and What members see's Location open it.

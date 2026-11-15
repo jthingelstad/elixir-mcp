@@ -30,7 +30,9 @@ Elixir refuses Run's pages to them:
   each other's local time. Only the clan's members with a verified player here see it, and
   it stays out of the game record, Elixir's tools and the clan's agent.
   Members reach it from **Clan map** over the roster, and set or remove
-  their place there or under **Location** in Settings › What members see. Only the leader and co-leaders can change
+  their place there or in **Your place** on Settings › Profile. A place
+  is the member's own: it stays set while the map is off and shows again
+  when it is back on. Only the leader and co-leaders can change
   whether the member map is on. The clan's activity
   channel is under **Run › Discord** ([The
   clan's activity in Discord](/docs/clan-discord#the-clans-activity-in-discord)).

@@ -29,7 +29,7 @@ const profile = (states, extra = {}) => ({
   steps: IDS.map((id, i) => ({ id, state: states[i], latched: false })),
   ...extra,
 });
-const ctx = { playerName: "Invented One", digest: null, clanTag: "#0QC8RCGY" };
+const ctx = { playerName: "Invented One", digest: null };
 
 describe("The profile list", () => {
   test("six steps in order, each naming the Stamp it earns", () => {
@@ -70,14 +70,34 @@ describe("The profile list", () => {
     expect(v.steps[0].go).toBeNull();
   });
 
-  test("the map step links to the clan's map and offers Not now", () => {
+  test("the map step opens its picker right there and offers Not now", () => {
     const v = profileView(
       profile(["done", "done", "done", "done", "done", "todo"]),
       ctx,
     );
     expect(v.next.id).toBe("map");
     expect(v.next.notNow).toBe(true);
-    expect(v.next.go.to).toBe("/clan/0QC8RCGY/members/map");
+    expect(v.next.place).toBe(true);
+    // No clan page: the place is the person's.
+    expect(v.next.go).toBeNull();
+  });
+
+  test("before a verified player the map step waits on verifying", () => {
+    const v = profileView(
+      profile(["done", "todo", "done", "done", "done", "todo"]),
+      ctx,
+    );
+    const map = v.steps.find((s) => s.id === "map");
+    expect(map.place).toBe(false);
+    expect(map.line).toBe(
+      "First verify your player. A place belongs to a verified player.",
+    );
+    expect(map.go).toEqual({
+      to: "/settings/players/verify",
+      label: "Verify",
+      name: "Verify your player first",
+    });
+    expect(map.notNow).toBe(true);
   });
 
   test("a step Elixir cannot tell yet comes after every step to do", () => {

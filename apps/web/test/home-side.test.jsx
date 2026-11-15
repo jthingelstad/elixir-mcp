@@ -5,7 +5,13 @@
  * war day runs. Invented names only.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import {
+  screen,
+  cleanup,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { HomePanels } from "../src/home/Today.jsx";
 import { digestChoice, digestWhen } from "../src/home/logic.js";
@@ -40,6 +46,16 @@ const CLAN = {
   needs_total: 0,
 };
 
+const PLACE = {
+  country: "CA",
+  country_name: "Canada",
+  region: "08",
+  region_name: "Ontario",
+  city: null,
+  city_name: null,
+  precision: "region",
+};
+
 const IDS = [
   "add_player",
   "verify_player",
@@ -71,6 +87,15 @@ beforeEach(() => {
   owner = passport(["done", "done", "todo", "todo", "done", "todo"]);
   global.fetch = vi.fn(async (path, init) => {
     const p = String(path).split("?")[0];
+    if (init?.method === "PUT" && p === "/api/clan/me/place") {
+      writes.push([p, JSON.parse(init.body)]);
+      // The server's hook latches the map step once the save succeeds.
+      owner = passport(["done", "done", "done", "done", "done", "done"], {
+        complete: true,
+      });
+      return reply({ place: PLACE });
+    }
+    if (p === "/api/clan/me/place") return reply({ place: null });
     if (init?.method === "PUT") {
       writes.push([p, JSON.parse(init.body)]);
       return reply({ kind: "tracking_report" });
@@ -189,6 +214,49 @@ test("the map's Not now finishes the step with the server's answer", async () =>
   );
   await screen.findByRole("heading", { name: "Your profile, 5 of 6 done" });
   expect(screen.queryByRole("button", { name: "Not now" })).toBeNull();
+});
+
+test("the map step sets the place on Home itself: no clan page, Cancel returns focus", async () => {
+  owner = passport(["done", "done", "done", "done", "done", "todo"]);
+  renderWithProviders(
+    <HomePanels
+      first={first({ following: 1, digest: { enabled: true } })}
+      player={PLAYER}
+      feed={null}
+    />,
+  );
+  const next = await screen.findByRole("heading", {
+    name: "Your place on the clan map",
+  });
+  const step = next.closest(".kit-profile__next");
+  // A button that opens the picker here, never a link to a clan's map.
+  expect(step.querySelector("a[href*='/clan']")).toBeNull();
+  const open = within(step).getByRole("button", { name: "Set a place" });
+  fireEvent.click(open);
+  const country = await within(step).findByLabelText("Country");
+  await waitFor(() => expect(document.activeElement).toBe(country));
+  expect(within(step).getByText(/your clan’s verified members/)).toBeTruthy();
+  // Escape is Cancel, and focus goes back to the button.
+  fireEvent.keyDown(country, { key: "Escape" });
+  await waitFor(() =>
+    expect(document.activeElement?.textContent).toBe("Set a place"),
+  );
+  fireEvent.click(within(step).getByRole("button", { name: "Set a place" }));
+  const again = await within(step).findByLabelText("Country");
+  await waitFor(() =>
+    expect(again.querySelectorAll("option").length).toBeGreaterThan(200),
+  );
+  fireEvent.change(again, { target: { value: "CA" } });
+  const region = await within(step).findByLabelText("State or region");
+  fireEvent.change(region, { target: { value: "08" } });
+  fireEvent.click(within(step).getByRole("button", { name: "Add me" }));
+  await waitFor(() =>
+    expect(writes).toEqual([
+      ["/api/clan/me/place", { country: "CA", region: "08", city: null }],
+    ]),
+  );
+  // The passport reads again: all six done.
+  await screen.findByText("Your profile is done");
 });
 
 test("after the older welcome: only what is left, and Hide puts it away", async () => {

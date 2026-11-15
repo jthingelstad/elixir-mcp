@@ -154,6 +154,123 @@ test("the map's Not now finishes the step without the Stamp", async ({
   await expect(list.getByRole("button", { name: "Not now" })).toHaveCount(0);
 });
 
+for (const [label, width] of [
+  ["small phone", 320],
+  ["phone", 390],
+  ["desktop", 1280],
+] as const) {
+  test(`${label}: the map step sets the place on Home, with no clan page`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    const saved: unknown[] = [];
+    let place: unknown = null;
+    let now = ownerPassport(["done", "done", "done", "done", "done", "todo"]);
+    await mockApi(
+      page,
+      withList(now, {
+        "GET /api/me/passport": () => [200, now],
+        "GET /api/clan/me/place": () => [200, { place }],
+        "PUT /api/clan/me/place": (route) => {
+          saved.push(route.request().postDataJSON());
+          place = {
+            country: "CA",
+            country_name: "Canada",
+            region: "08",
+            region_name: "Ontario",
+            city: null,
+            city_name: null,
+            precision: "region",
+          };
+          // The server's hook latches the step once the save succeeds.
+          now = ownerPassport(
+            ["done", "done", "done", "done", "done", "done"],
+            { complete: true },
+          );
+          return [200, { place }];
+        },
+      }),
+    );
+    await page.goto("/home");
+    const next = page.locator(".kit-profile__next");
+    await expect(next).toHaveAttribute("data-step", "map");
+    await expect(next.locator("a[href*='/clan']")).toHaveCount(0);
+    const open = next.getByRole("button", { name: "Set a place" });
+    await expect(open).toBeVisible();
+    await open.click();
+    const country = next.getByLabel("Country");
+    await expect(country).toBeFocused();
+    await expect(country.locator("option")).not.toHaveCount(1);
+    await expect(next).toContainText(
+      "Who sees it: your clan’s verified members, on the clan map, when its leaders have the map on.",
+    );
+    await country.selectOption("CA");
+    await next.getByLabel("State or region").selectOption("08");
+    await expect(next.getByLabel(/City/)).toBeVisible();
+    await noSideways(page);
+    for (const target of await next.locator("select, button").all()) {
+      const box = await target.boundingBox();
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(
+      results.violations
+        .filter((v) => ["serious", "critical"].includes(v.impact ?? ""))
+        .map((v) => v.id),
+    ).toEqual([]);
+    if (process.env.PLACE_SHOTS)
+      await page.screenshot({
+        path: `${process.env.PLACE_SHOTS}/home-map-step-${width}.png`,
+        fullPage: false,
+      });
+    await next.getByRole("button", { name: "Add me" }).click();
+    await expect(page.getByText("Your profile is done")).toBeVisible();
+    expect(saved).toEqual([{ country: "CA", region: "08", city: null }]);
+  });
+}
+
+test("the map step: Cancel and Escape close the picker and return focus", async ({
+  page,
+}) => {
+  await mockApi(
+    page,
+    withList(ownerPassport(["done", "done", "done", "done", "done", "todo"]), {
+      "GET /api/clan/me/place": [200, { place: null }],
+    }),
+  );
+  await page.goto("/home");
+  const next = page.locator(".kit-profile__next");
+  await next.getByRole("button", { name: "Set a place" }).click();
+  await expect(next.getByLabel("Country")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(next.getByRole("button", { name: "Set a place" })).toBeFocused();
+  await next.getByRole("button", { name: "Set a place" }).click();
+  await next.getByRole("button", { name: "Cancel" }).click();
+  await expect(next.getByRole("button", { name: "Set a place" })).toBeFocused();
+});
+
+test("before a verified player, the map step waits on verifying", async ({
+  page,
+}) => {
+  await mockApi(
+    page,
+    withList(ownerPassport(["done", "todo", "done", "done", "done", "todo"])),
+  );
+  await page.goto("/home");
+  const list = page.locator(".kit-profile");
+  await list.getByText("See all steps").click();
+  const row = list.locator(".kit-profile__row").last();
+  await expect(row).toContainText(
+    "First verify your player. A place belongs to a verified player.",
+  );
+  await expect(
+    row.getByRole("link", { name: "Verify your player first" }),
+  ).toHaveAttribute("href", "/settings/players/verify");
+  await expect(row.getByRole("button", { name: "Set a place" })).toHaveCount(0);
+});
+
 test("after the older welcome: only what is left, and Hide puts it away", async ({
   page,
 }) => {

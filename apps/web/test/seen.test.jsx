@@ -1,8 +1,8 @@
 /**
  * Settings › What members see (#769): the page gathers who sees what, the
  * slots come from /api/me/follow-slots (the pool priced as every Follow
- * dialog prices it, 2026-11-12), Location is the clan map's own control
- * on /api/clan/me/place, and the lens is
+ * dialog prices it, 2026-11-12), Location names your place from
+ * /api/clan/me/place and links to its one editor on Profile, and the lens is
  * the battle page itself drawn for a viewer who is not you, from the public
  * battle answer. Invented players only.
  */
@@ -226,8 +226,12 @@ test(
     await waitFor(() =>
       expect(posted).toEqual([{ player_tag: "#0VJ2QV", action: "remove" }]),
     );
-    // Location is the map's own control, and says who sees it.
-    await screen.findByText("Add yourself to the map");
+    // Location names your place and links to its one editor, Profile's
+    // Your place, and says who sees it.
+    const row = await screen.findByRole("link", { name: /Your place/ });
+    expect(row.getAttribute("href")).toBe("/settings/profile#place");
+    await waitFor(() => expect(row.textContent).toContain("Not set"));
+    expect(screen.queryByText("Add yourself to the map")).toBeNull();
     expect(
       screen.getByText(
         /only the verified members of each clan your verified player is in/,
@@ -242,16 +246,18 @@ test(
 );
 
 test(
-  "Location with no verified player says how to get one",
+  "Location with no verified player says what a place needs",
   { timeout: 20000 },
   async () => {
     place = [403, { error: "gate", reason: "unverified" }];
     window.history.pushState({}, "", "/settings/what-members-see");
     render(<App />);
-    const link = await screen.findByRole("link", {
-      name: "Verify your player",
-    });
-    expect(link.getAttribute("href")).toBe("/settings/players");
+    const row = await screen.findByRole("link", { name: /Your place/ });
+    await waitFor(() =>
+      expect(row.textContent).toContain(
+        "Not set. A place needs a verified player.",
+      ),
+    );
   },
 );
 

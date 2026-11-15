@@ -7,7 +7,7 @@ order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your limits, and it shows nobody your address."
-reviewed: "2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
+reviewed: "2026-11-14 for Your place on Profile; 2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
 callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"]
 ---
 
@@ -274,6 +274,25 @@ then tap **Save**. **Remove** puts your initials back.
 - It's always the card's own art, never a photo. Tower troops can't be
   picked.
 
+## Your place
+
+**Your place** is in Settings › Profile, under **You in Elixir**. It
+shows your place or **Not set**, with **Set**, **Change** and
+**Remove**. The account menu's **Settings** opens Profile, so it is one
+tap away. You can also set it from the last step of **Your profile** on
+Home, without leaving Home.
+
+A place is a country, its region and, if you like, a city, picked from
+lists. It is never an address and never your device's location. It is
+yours, not a clan's: it needs a verified player, and nothing else. No
+clan, or a clan whose leaders have the map off, is fine.
+
+Who sees it: your clan's verified members, on the clan map, when its
+leaders have the map on. With players in more than one clan, each of
+those clans' maps shows it. Nobody else sees it, no link carries it, and
+no agent or tool reads it. Your passport's **On the Map** Stamp says you
+set one, never where.
+
 ## Your limits
 
 Your limits set how many players and clans you can record and how many
@@ -313,9 +332,9 @@ agent's: it is answered on the agent's page and timeline, never mailed.
 ## What members see
 
 [Settings › What members see](/settings/what-members-see) gathers, on one
-page, who sees what of you as Elixir works today. Two choices
-live on it, **Location** and your follow slots; each other choice it names
-links to the page that owns it.
+page, who sees what of you as Elixir works today. Your follow slots live
+on it; **Location** shows your place and opens **Your place** on Profile,
+and each other choice it names links to the page that owns it.
 
 - **Members who are signed in** see your players' games: each player's
   game name, tag, clan, profile, battles, decks and timeline. That is
@@ -355,13 +374,8 @@ links to the page that owns it.
   machinery: sign-ins, agents and their keys, connections,
   usage, the mail sent to you and your feedback.
 
-**Location** is your place on the clan map: a country, its region and, if
-you like, a city, picked from lists, never an address or your device's
-location. It needs a verified player. Only the verified members of each
-clan your verified player is in see it, on that clan's map, while the
-clan's leaders keep the map on; nobody else does, no link carries it, and
-no agent or tool reads it. Add it, change it or remove it here or on the
-map; it is the same one place.
+**Location** shows your place, or **Not set**, and opens
+[Your place](#your-place) on Profile, where you change it.
 
 **Your follow slots** shows the slots in use out of your limit, the same
 number every Follow says, the players using one because of you with

@@ -16,7 +16,9 @@ import { useToolRead } from "../../lib/queries.js";
 import { SETTINGS } from "../../lib/settings.js";
 import { playerHref } from "../../lib/player.js";
 import { Battle } from "../Battle.jsx";
-import { YourPlace } from "../../clan/views/YourPlace.jsx";
+import { useMyPlace } from "../../clan/lib/queries.js";
+import { placeLabel } from "../../clan/lib/place-label.js";
+import { PLACE_HREF } from "../../lib/passport.js";
 import { Facts, Note } from "./parts.jsx";
 import { FollowSlots } from "./Slots.jsx";
 
@@ -26,11 +28,11 @@ import { FollowSlots } from "./Slots.jsx";
  * it runs, checked against the route or query that serves it
  * (docs/notes/2026-11-12-what-members-see.md lists each one); a line that
  * stops being true is a defect of this page, never of the surface it
- * describes. Two controls live here, as the canvas draws them
- * (2026-11-12): Location, your place on the clan map (the same control the
- * map draws, src/clan/views/YourPlace.jsx), and your follow slots, each
- * slot-using follow with its way to stop (Slots.jsx). The other choices
- * link to the pages that own them.
+ * describes. One control lives here, as the canvas draws it (2026-11-12):
+ * your follow slots, each slot-using follow with its way to stop
+ * (Slots.jsx). Location names your place and links to its one editor,
+ * Settings › Profile's Your place (2026-11-14). The other choices link to
+ * the pages that own them.
  */
 
 /** The viewers the lens can stand in for. Neither is you: a member is
@@ -238,23 +240,20 @@ export function Seen({ me }) {
           <h3 id="seen-location" className="st-group">
             Location
           </h3>
-          <div className="st-inset">
-            <YourPlace
-              verify={
-                <p className="m-0">
-                  A place belongs to a verified player.{" "}
-                  <Link to={`${SETTINGS}/players`}>Verify your player</Link> on
-                  Players &amp; following to add one.
-                </p>
-              }
+          <Rows>
+            <Row
+              title="Your place"
+              detail={<PlaceNow />}
+              href={PLACE_HREF}
+              right="Profile"
             />
-            <p className="st-foot mt-2">
-              Who sees it: only the verified members of each clan your verified
-              player is in, on that clan&rsquo;s map, while its leaders keep the
-              map on. Nobody else: not other members, not anyone with a link,
-              and not an agent.
-            </p>
-          </div>
+          </Rows>
+          <p className="st-foot st-inset mt-2">
+            Who sees it: only the verified members of each clan your verified
+            player is in, on that clan&rsquo;s map, while its leaders keep the
+            map on. Nobody else: not other members, not anyone with a link, and
+            not an agent.
+          </p>
         </section>
         <Rows>
           <Row
@@ -362,4 +361,16 @@ function Lens({ main }) {
       {body}
     </Panel>
   );
+}
+
+/** Your place as Location's row says it: the place, Not set, or what
+ *  setting one needs. Profile's Your place changes it. */
+function PlaceNow() {
+  const { state } = useMyPlace();
+  if (state.forbidden) return "Not set. A place needs a verified player.";
+  if (state.error || state.signedOut)
+    return "Set, change or remove it on Profile.";
+  if (!state.data) return "Reading your place.";
+  const place = state.data.place;
+  return place ? placeLabel(place) : "Not set";
 }
