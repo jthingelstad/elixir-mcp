@@ -53,4 +53,11 @@ it.
 The picker's one line on who sees it: "Who sees it: your clan’s verified
 members, on the clan map, when its leaders have the map on."
 
+Whether Home's map step offers the picker comes from the place route's
+own answer (`GET /api/clan/me/place`, read only while the step waits),
+not the verify step's latch: an account whose verified player is an alt
+gets the picker, and one that lost verification after the latch gets
+Verify instead (Codex on #1028). Profile's `#place` opens the picker on
+every arrival, Back included, not only the first render.
+
 MCP 13.1.1 and JSON API 5.1.0 unchanged. No migration.

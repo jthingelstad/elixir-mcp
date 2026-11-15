@@ -55,10 +55,11 @@ export function followLine(state, follows) {
  * One step's words: { id, n, title, state, stamp, line, go } where `go`
  * is { to, label, name } for its way in (null once done), and `place`
  * marks the map step's picker, opened on Home itself. `context` carries
- * the player's name and the digest setting.
+ * the player's name, the digest setting and `placeAllowed`, the place
+ * route's answer (true, false, or null before it).
  */
 export function stepView(step, n, profile, context = {}) {
-  const { playerName = null, digest = null } = context;
+  const { playerName = null, digest = null, placeAllowed = null } = context;
   const verifyState =
     profile?.steps?.find((s) => s.id === "verify_player")?.state ?? null;
   const done = step.state === "done";
@@ -144,7 +145,9 @@ export function stepView(step, n, profile, context = {}) {
       // The place is the person's, set right here (2026-11-14): no clan
       // page, whatever the clan's map setting. It needs a verified
       // player, so before one the step waits on verifying.
-      const verified = verifyState === "done";
+      // `placeAllowed` is the place route's own answer (any verified
+      // player, now); the verify step's latch stands in until it comes.
+      const verified = placeAllowed ?? verifyState === "done";
       return {
         ...base,
         line: done

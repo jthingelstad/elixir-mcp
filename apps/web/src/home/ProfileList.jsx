@@ -4,6 +4,7 @@ import { Icon, Link, writeErrorText } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { passportHref, putPassport } from "../lib/passport.js";
 import { useMyPassport } from "../lib/queries.js";
+import { useMyPlace } from "../clan/lib/queries.js";
 import { YourPlace } from "../clan/views/YourPlace.jsx";
 import { EXTRAS, profileView, stampName } from "./profile-list.js";
 
@@ -29,9 +30,19 @@ export function ProfileList({ first, player }) {
   const envelope = read.data;
   const body = envelope?.ok ? envelope.data : null;
   const profile = body?.owner?.profile ?? null;
+  // Whether a place can be set comes from the place route itself, the
+  // server's rule (any verified player of yours, now), not the setup
+  // step's latch: read only while the map step waits.
+  const mapStep = profile?.steps?.find((s) => s.id === "map");
+  const place = useMyPlace(Boolean(mapStep) && mapStep.state !== "done");
   const view = profileView(profile, {
     playerName: body?.passport?.player?.name ?? player?.name ?? null,
     digest: first?.setup?.digest ?? null,
+    placeAllowed: place.state.forbidden
+      ? false
+      : place.state.data
+        ? true
+        : null,
   });
   // Seen open on this visit: completing it here says so once.
   const [seenOpen, setSeenOpen] = useState(false);
