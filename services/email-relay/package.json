@@ -5,7 +5,7 @@
   "type": "module",
   "main": "src/handler.mjs",
   "scripts": {
-    "test": "node --test --test-force-exit"
+    "test": "node --test '**/*.test.mjs'"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1161.0",

@@ -1,11 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   DEFAULT_WEIGHT,
+  NODE_TEST,
   WEIGHTS,
   defaultJobs,
   describeExit,
@@ -13,10 +15,16 @@ import {
   nodeMismatch,
   parseShard,
   plan,
+  reporterArgs,
   runUnit,
   unitCommand,
   units,
+  withReporter,
 } from "../../../infra/scripts/test.mjs";
+import {
+  MARK,
+  shortFiles,
+} from "../../../infra/scripts/lib/every-file-reported.mjs";
 import {
   openedDocs,
   specClosure,
@@ -159,7 +167,7 @@ test("test runner: a unit runs its own test script, never through npm (2026-11-1
   for (const unit of all) {
     const c = unitCommand(unit, repoRoot, "/usr/bin:/bin");
     assert.equal(c.cmd, "sh", unit.name);
-    assert.deepEqual(c.args, ["-c", unit.script], unit.name);
+    assert.deepEqual(c.args, ["-c", withReporter(unit.script)], unit.name);
     assert.doesNotMatch(unit.script, /\bnpm\b/, unit.name);
     assert.equal(c.cwd, path.join(repoRoot, path.relative(repoRoot, unit.dir)));
     assert.deepEqual(c.env.PATH.split(path.delimiter), [
@@ -170,10 +178,129 @@ test("test runner: a unit runs its own test script, never through npm (2026-11-1
     ]);
   }
   const timeline = all.find((u) => u.name === "timeline-sync");
-  assert.equal(timeline.script, "node --test --test-force-exit");
+  assert.equal(timeline.script, "node --test '**/*.test.mjs'");
   const root = unitCommand({ name: "root", workspace: null }, repoRoot);
   assert.equal(root.cmd, process.execPath);
   assert.equal(root.cwd, repoRoot);
+});
+
+test("test runner: every node test unit runs with the per-file count and without --test-force-exit (#1052)", () => {
+  // --test-force-exit made a file's process exit while its last results
+  // were still queued on the pipe to the parent (macOS writes pipes
+  // asynchronously): 259 of 267 tests read, and a green run.
+  const all = units(repoRoot);
+  for (const unit of all.filter((u) => u.workspace)) {
+    assert.ok(
+      NODE_TEST.test(unit.script) || unit.script === "vitest run",
+      `${unit.name}: "${unit.script}" is node --test or vitest run`,
+    );
+    assert.doesNotMatch(unit.script, /force-exit/, unit.name);
+    // Only test files run: a helper under test/ run as a file reports
+    // no tests, which the per-file count cannot tell from a lost report.
+    if (NODE_TEST.test(unit.script))
+      assert.match(unit.script, /\*\.test\.mjs/, unit.name);
+    const [, script] = unitCommand(unit, repoRoot).args;
+    if (NODE_TEST.test(unit.script))
+      for (const a of reporterArgs(repoRoot))
+        assert.ok(script.includes(`'${a}'`), `${unit.name}: ${a}`);
+    else assert.equal(script, unit.script, unit.name);
+  }
+  const root = unitCommand({ name: "root", workspace: null }, repoRoot);
+  assert.deepEqual(root.args.slice(0, 5), [
+    "--test",
+    ...reporterArgs(repoRoot),
+  ]);
+  assert.ok(!root.args.some((a) => /force-exit/.test(a)));
+});
+
+test("test runner: a unit whose test file exits before its last tests report fails (#1052)", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "elixir-mcp-short-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const five = (cut) =>
+    `import { test } from "node:test";\n` +
+    `test("one", () => {});\ntest("two", () => {});\n` +
+    `test("three", async () => {${cut ? " await new Promise((r) => setTimeout(r, 100)); process.exit(0);" : ""} });\n` +
+    `test("four", () => {});\ntest("five", () => {});\n`;
+  await writeFile(path.join(dir, "whole.test.mjs"), five(false));
+  await writeFile(path.join(dir, "cut.test.mjs"), five(true));
+  const unit = (file) => ({
+    name: "fixture",
+    workspace: "@elixir-mcp/fixture",
+    dir,
+    script: `node --test ${file}`,
+  });
+
+  // The file's process exits 0 after two results: node itself counts
+  // 2 tests, 0 failed, and exits 0. The old runner passed it.
+  const cut = await runUnit(unit("cut.test.mjs"));
+  assert.equal(cut.ok, false, cut.output);
+  assert.equal(cut.exit, 1);
+  assert.match(cut.output, /ℹ tests 2\b/);
+  assert.match(
+    cut.output,
+    new RegExp(
+      `${MARK} FAIL .*cut\\.test\\.mjs: its report ended before its summary \\(2 test results read\\)`,
+    ),
+  );
+
+  const whole = await runUnit(unit("whole.test.mjs"));
+  assert.equal(whole.ok, true, whole.output);
+  assert.match(
+    whole.output,
+    new RegExp(`${MARK} 1 files, each reported all of its tests \\(5\\)`),
+  );
+
+  // Both in one unit: the short file fails the unit and only it is named.
+  const both = await runUnit(unit("*.test.mjs"));
+  assert.equal(both.ok, false);
+  assert.match(both.output, /FAIL .*cut\.test\.mjs/);
+  assert.doesNotMatch(both.output, /FAIL .*whole\.test\.mjs/);
+  assert.match(
+    both.output,
+    new RegExp(`${MARK} 1 of 2 files did not report every test`),
+  );
+});
+
+test("every-file-reported: a file's summary must arrive and match the results read", () => {
+  const ev = (type, file, extra = {}) => ({
+    type,
+    data: { file, details: { type: "test" }, ...extra },
+  });
+  const summary = (file, tests) => ({
+    type: "test:summary",
+    data: { file, counts: { tests } },
+  });
+  const r = shortFiles([
+    ev("test:pass", "a"),
+    ev("test:fail", "a"),
+    { type: "test:pass", data: { file: "a", details: { type: "suite" } } },
+    summary("a", 2),
+    ev("test:pass", "b"),
+    summary("b", 3),
+    ev("test:pass", "c"),
+    // The run's own summary has no file and is not a file's.
+    { type: "test:summary", data: { counts: { tests: 4 } } },
+  ]);
+  assert.equal(r.files, 3);
+  assert.equal(r.tests, 2);
+  assert.deepEqual(r.short, [
+    { file: "b", seen: 1, ran: 3 },
+    { file: "c", seen: 1, ran: null },
+  ]);
+});
+
+test("test runner: a node test unit that never printed the per-file count is not a pass", async () => {
+  // The reporter sets the exit code; a unit that exits 0 without its
+  // line (here its output is thrown away) was never checked.
+  const r = await runUnit({
+    name: "fake",
+    workspace: "@elixir-mcp/fake",
+    dir: repoRoot,
+    script: "node --test no-such-file.test.mjs > /dev/null 2>&1; exit 0",
+  });
+  assert.equal(r.ok, false, r.output);
+  assert.equal(r.unchecked, true);
+  assert.match(describeExit(r), /no "every-file-reported:" line/);
 });
 
 test("test runner: a failed unit always says how it ended, even when it printed nothing", async () => {

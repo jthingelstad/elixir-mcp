@@ -13,7 +13,7 @@
     "./backfill": "./src/backfill.mjs"
   },
   "scripts": {
-    "test": "node --test --test-force-exit"
+    "test": "node --test '**/*.test.mjs'"
   },
   "dependencies": {
     "@elixir-mcp/clan-state": "0.1.0",
