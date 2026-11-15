@@ -103,13 +103,11 @@ recording collections, no imported judgment from elixir-bot. [Jamie,
 
 Account removal deletes the account: claims, nicknames, highlights,
 agents, connections, mail and usage. The players' game history is game
-data and stays, as any subject's does, until the unfollowed trim reaches
-it. [Jamie, 2026-10-12]
+data and stays, as any subject's does, until the year's retention trim
+reaches it. [Jamie, 2026-10-12, 2026-11-13]
 
 ## Open
 
-- **The trim is decided, not built** (#528). Until it ships, nothing is
-  trimmed.
 - **The cost of each followed player**, and the limits that keep about a
   thousand people affordable (VISION, Open). Default in force: 50 player
   slots at every tier, a follow costing one only when Elixir records the
