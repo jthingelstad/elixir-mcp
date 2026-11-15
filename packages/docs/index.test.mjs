@@ -91,6 +91,7 @@ test("section slugs are GitHub-style, the shape the code's docs pointers use", (
     battles.sections.map((s) => s.slug),
     [
       "what-a-battle-record-holds",
+      "opponents",
       "mode-groups",
       "events-are-their-own-group",
       "duels-and-boat-battles",

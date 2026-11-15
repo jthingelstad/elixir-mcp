@@ -691,6 +691,10 @@ private state is read through the IAM-only `{clan_maintenance}` op
 
 ## Passport launch backfill
 
+Already run: the launch deploy (build f6e5cb51a) and the backfill both
+happened on 2026-11-14, reading 47 accounts and granting 30. The steps
+below are kept for the record and for a rerun, which grants nothing new.
+
 Stamps (#1015) count from the deploy that applies migration 0272: it
 writes the launch instant (`passport_launch.launched_at`) as it runs,
 before the earning code serves. A Stamp level whose evidence predates

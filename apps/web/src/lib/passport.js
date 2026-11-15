@@ -1,6 +1,7 @@
 import { STAMPS, stampById } from "@elixir-mcp/stamps/catalog";
 import { HOME } from "./moved.js";
 import { SETTINGS } from "./settings.js";
+import { gateLifts, markReconciled, reconcileDue } from "./reconcile-gate.js";
 
 /**
  * A passport's addresses and the words its pages share (#1015).
@@ -33,8 +34,9 @@ export const RECONCILE_PASSES = 3;
  * `call` is one pass (`api.reconcilePassport`), repeated while it answers
  * `more`, at most `passes` times. Quiet: a refusal, a failed call or a
  * thrown error ends the run and is never shown, since the passport already
- * on screen stays true. Resolves to how many passes answered (`read`) and
- * how many Stamps they granted: an answered pass can move progress without
+ * on screen stays true. Resolves to how many passes answered (`read`), how
+ * many Stamps they granted, and whether the run finished (`done`: its last
+ * pass answered without `more`). An answered pass can move progress without
  * granting a level, so a caller reads the passport again after any answer
  * and the bell only after a grant.
  */
@@ -44,6 +46,7 @@ export async function reconcilePassport(
 ) {
   let granted = 0;
   let read = 0;
+  let done = false;
   for (let i = 0; i < passes; i += 1) {
     let env;
     try {
@@ -54,9 +57,37 @@ export async function reconcilePassport(
     if (!env?.ok || env.status !== 200 || !env.data) break;
     read += 1;
     granted += Array.isArray(env.data.granted) ? env.data.granted.length : 0;
-    if (env.data.more !== true) break;
+    if (env.data.more !== true) {
+      done = true;
+      break;
+    }
   }
-  return { read, granted };
+  return { read, granted, done };
+}
+
+/** One run at a time in a tab: an open that lands while a run is on its
+ *  way joins it rather than starting a second (a quick Home to passport
+ *  hop, a development double effect). */
+let running = null;
+
+/**
+ * Reconcile on open, behind the gate (reconcile-gate.js): resolves to the run's answer, or to
+ * null when the gate held it off. `now` is read when the run starts and
+ * again when it ends (the gate counts from the end).
+ */
+export function reconcileOnOpen(call, { now = () => Date.now() } = {}) {
+  if (running) return running;
+  if (!reconcileDue(now())) return Promise.resolve(null);
+  const liftsAtStart = gateLifts();
+  running = reconcilePassport(call)
+    .then((result) => {
+      if (result.done && gateLifts() === liftsAtStart) markReconciled(now());
+      return result;
+    })
+    .finally(() => {
+      running = null;
+    });
+  return running;
 }
 
 /** A passport write's answer (Not now, Hide, a reconciliation pass) as

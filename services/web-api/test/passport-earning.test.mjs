@@ -5,7 +5,7 @@
  * choice), a hook that throws never fails the action and logs no
  * account, the digest step takes an explicit weekly, daily or Off and
  * never the default, "Not now" completes the map step without On the
- * Map, and the owner's reconciliation is a person's own write that
+ * Map, a refused place save earns nothing, and the owner's reconciliation is a person's own write that
  * repairs a missed place save from a boolean and answers no place.
  * Invented names and tags only.
  */
@@ -16,6 +16,7 @@ import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { factAfter, settleAfter } from "../src/passport-hooks.mjs";
 import { passportRoutes } from "../src/routes/passport.mjs";
+import { clanRoutes } from "../src/routes/clan.mjs";
 import {
   createScratch,
   dropScratch,
@@ -208,6 +209,27 @@ test("the digest step: the default weekly is no choice, an explicit Off is", asy
     [ids.owner],
   );
   assert.equal(pref.enabled, false);
+});
+
+test("a refused place save earns nothing and latches no map step", async () => {
+  // Clan's own answer decides: only a 200 is a stored place. Clan is
+  // answered by a stand-in, so no clan has to be built for the refusal.
+  const routes = clanRoutes({
+    resolvePerson: async () => ({ accountId: ids.owner }),
+    clan: async () => ({
+      statusCode: 403,
+      body: JSON.stringify({ error: "not_a_member" }),
+    }),
+  });
+  const res = await routes["PUT /api/clan/me/place"](
+    db,
+    { method: "PUT", path: "/api/clan/me/place", body: "{}" },
+    { label: PLACE_WORDS },
+  );
+  assert.equal(res.statusCode, 403);
+  assert.deepEqual(await levels("on_the_map"), []);
+  const read = await call("GET", "/api/me/passport", { who: "owner" });
+  assert.notEqual(step(read.body, "map"), "done");
 });
 
 test("Not now completes the map step and never grants On the Map", async () => {

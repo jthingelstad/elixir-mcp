@@ -76,4 +76,4 @@ required e2e gate. Read PR summary and inline reviews before session-finish.
 Keep unrelated phone review recommendations for discussion; the real Bell
 read/seen redesign is separate from adding a Stamp destination. Land via
 normal reviewed PRs and finish the session. Report what is built versus
-still proposed. **Do not deploy until Jamie explicitly lifts the hold.**
+still proposed. (Done: Stamps launched 2026-11-14 once Jamie lifted the hold.)

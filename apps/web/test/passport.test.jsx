@@ -556,16 +556,32 @@ test("the reconciliation: again while more, three passes at most, quiet on failu
     return call;
   };
   const busy = calls([pass([{ stamp_id: "mutual" }], true)]);
-  expect(await reconcilePassport(busy)).toEqual({ read: 3, granted: 3 });
+  expect(await reconcilePassport(busy)).toEqual({
+    read: 3,
+    granted: 3,
+    done: false,
+  });
   expect(busy).toHaveBeenCalledTimes(RECONCILE_PASSES);
   const done = calls([pass([], true), pass([], false)]);
-  expect(await reconcilePassport(done)).toEqual({ read: 2, granted: 0 });
+  expect(await reconcilePassport(done)).toEqual({
+    read: 2,
+    granted: 0,
+    done: true,
+  });
   expect(done).toHaveBeenCalledTimes(2);
   const refused = calls([{ ok: false, status: 429, data: null }]);
-  expect(await reconcilePassport(refused)).toEqual({ read: 0, granted: 0 });
+  expect(await reconcilePassport(refused)).toEqual({
+    read: 0,
+    granted: 0,
+    done: false,
+  });
   expect(refused).toHaveBeenCalledTimes(1);
   const thrown = calls([new Error("offline")]);
-  expect(await reconcilePassport(thrown)).toEqual({ read: 0, granted: 0 });
+  expect(await reconcilePassport(thrown)).toEqual({
+    read: 0,
+    granted: 0,
+    done: false,
+  });
 });
 
 test("opening your passport reconciles after it shows, and reads again when a Stamp is granted", async () => {
@@ -663,4 +679,30 @@ test("a failed reconciliation changes nothing on screen, and nobody else's passp
   at(`/home/passport/${THEIRS}`);
   expect(await screen.findByText("1 Stamp")).toBeTruthy();
   expect(asked).not.toContain("/api/me/passport/reconcile");
+});
+
+test("a finished reconciliation is not asked again on the next open, until a write that could earn", async () => {
+  routes["/api/me/passport/reconcile"] = () =>
+    reply({ ...OWN, granted: [], more: false });
+  routes["/api/me/cheers"] = () => reply({ ok: true });
+  const reconciles = () =>
+    asked.filter((p) => p === "/api/me/passport/reconcile").length;
+  at("/home/passport");
+  expect(await whoSays("3 Stamps")).toBeTruthy();
+  await waitFor(() => expect(reconciles()).toBe(1));
+  // A second open inside the minute: the passport reads, no new pass.
+  cleanup();
+  at("/home/passport");
+  expect(await whoSays("3 Stamps")).toBeTruthy();
+  await new Promise((r) => setTimeout(r, 50));
+  expect(reconciles()).toBe(1);
+  // A cheer that landed lifts the gate: the next open reconciles.
+  const { api } = await import("../src/api.js");
+  expect(
+    (await api.cheer({ item_id: "item-1", cheer: "fire", subjects: [] })).ok,
+  ).toBe(true);
+  cleanup();
+  at("/home/passport");
+  expect(await whoSays("3 Stamps")).toBeTruthy();
+  await waitFor(() => expect(reconciles()).toBe(2));
 });

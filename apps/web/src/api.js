@@ -5,6 +5,7 @@
 
 import { createClient } from "./client/index.ts";
 import { trackEvent } from "./analytics.js";
+import { liftReconcileGate, noteWrite } from "./lib/reconcile-gate.js";
 
 const client = createClient({
   headers: { "x-elixir-client": "web" },
@@ -15,7 +16,12 @@ const client = createClient({
   onSlow: (info) => console.warn("[elixir] slow request", info),
 });
 
-const request = (method, path, body) => client.request(method, path, body);
+// A write that could earn a Stamp lifts the passport's reconcile gate, so
+// the next open of Home or the passport reads it (lib/passport.js).
+const request = (method, path, body) =>
+  client
+    .request(method, path, body)
+    .then((env) => noteWrite(method, path, env));
 
 /** Whose `/api/me` a call reads: yours, or, on an agent's pages, the
  *  agent's (`/api/agent/<public_id>`, the same routes run as the agent
@@ -68,6 +74,7 @@ export const api = {
   signOut: async () => {
     const result = await request("POST", "/api/session/signout", {});
     if (result.ok) {
+      liftReconcileGate();
       try {
         for (const key of Object.keys(sessionStorage))
           if (key.startsWith("clan-delivery:")) sessionStorage.removeItem(key);

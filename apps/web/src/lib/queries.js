@@ -25,7 +25,7 @@ import {
 import { answered, unwrap } from "../client/index.ts";
 import { api } from "../api.js";
 import { sweepBattles } from "./battle-sweep.js";
-import { reconcilePassport } from "./passport.js";
+import { reconcileOnOpen } from "./passport.js";
 import { bellSeenAt } from "../shell/bell-logic.js";
 import { useScope } from "./scope.js";
 
@@ -245,21 +245,21 @@ export const useMyPassport = (enabled = true) =>
   });
 
 /** Your passport's reconciliation on open (#1015): after the first paint,
- *  quietly, bounded (lib/passport.js reconcilePassport). Once a pass answers,
- *  your passport reads again (progress can move without a new level); the
- *  bell reads again only when a Stamp was granted. Home can call it too. */
+ *  quietly, bounded (lib/passport.js reconcilePassport), and not again
+ *  within a minute of a finished run unless a write that could earn came
+ *  between (reconcileOnOpen's gate). Once a pass answers, your passport
+ *  reads again (progress can move without a new level); the bell reads
+ *  again only when a Stamp was granted. Home calls it too. */
 export function useReconcilePassport(enabled = true) {
   const queryClient = useQueryClient();
   useEffect(() => {
     if (!enabled) return;
-    reconcilePassport(() => api.reconcilePassport()).then(
-      ({ read, granted }) => {
-        if (read === 0) return;
-        queryClient.invalidateQueries({ queryKey: ["me", "passport"] });
-        if (granted > 0)
-          queryClient.invalidateQueries({ queryKey: ["me", "bell"] });
-      },
-    );
+    reconcileOnOpen(() => api.reconcilePassport()).then((result) => {
+      if (!result || result.read === 0) return;
+      queryClient.invalidateQueries({ queryKey: ["me", "passport"] });
+      if (result.granted > 0)
+        queryClient.invalidateQueries({ queryKey: ["me", "bell"] });
+    });
   }, [enabled, queryClient]);
 }
 
