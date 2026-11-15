@@ -25,6 +25,9 @@ const LABELS = {
   gateway_token_staged: "Collector token staged",
   gateway_config_claimed: "Collector token revealed",
   email_pref: "Email choice changed",
+  account_followed: "Account followed",
+  account_unfollowed: "Account unfollowed",
+  follow_skipped: "Player not followed",
 };
 
 const GROUP = {
@@ -40,6 +43,9 @@ const GROUP = {
   recording_stopped: "players",
   discord_linked: "discord",
   discord_unlinked: "discord",
+  account_followed: "players",
+  account_unfollowed: "players",
+  follow_skipped: "players",
 };
 
 export const EVENT_GROUPS = [

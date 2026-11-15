@@ -21,6 +21,18 @@ export {
   pooledUsage,
   slotsFullMessage,
 } from "./pool.mjs";
+export {
+  ACCOUNT_FOLLOW_MAX,
+  accountFollowersOf,
+  followAccountLinked,
+  linkAfterFollow,
+  linkNewVerified,
+  linkedTagsToFollow,
+  unfollowAccountLinked,
+  unfollowPlayerLinked,
+  verifiedPlayersOf,
+  verifierOf,
+} from "./linked.mjs";
 
 /**
  * Who is subscribed to what, and therefore what gets recorded.

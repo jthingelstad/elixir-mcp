@@ -766,6 +766,32 @@ export const OUTPUT_SCHEMAS = {
       },
       recording_stopped: { type: "boolean" },
       primary_player_tag: { type: ["string", "null"] },
+      linked: {
+        type: "object",
+        description:
+          "Linked follows, on a person's friend follow of a player another account verified: that account is followed too, and so is each player it verified. followed lists the players this added; skipped those it could not take, each with a reason (no_free_slot, no_own_player). Absent when the player links no account.",
+        properties: {
+          followed: { type: "array", items: TAG },
+          skipped: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                player_tag: TAG,
+                reason: { type: "string" },
+              },
+              required: ["player_tag", "reason"],
+            },
+          },
+        },
+        required: ["followed", "skipped"],
+      },
+      unfollowed: {
+        type: "array",
+        items: TAG,
+        description:
+          "On remove of a player followed through its verifying account: the link ended, so these players were unfollowed with it.",
+      },
       docs: DOCS,
       meta: META,
       notes: NOTES,

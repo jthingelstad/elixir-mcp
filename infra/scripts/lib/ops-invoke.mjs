@@ -120,6 +120,10 @@ const MIGRATE_READS = {
   tier_census: (v) => exactly(v, { dry_run: true }),
   verified_tag_census: (v) => exactly(v, { dry_run: true }),
   funnel: anyArgs,
+  linked_follow_convert: (v) =>
+    v === true ||
+    (isObject(v) &&
+      (Object.keys(v).length === 0 || exactly(v, { apply: false }))),
   clan_maintenance: (v) =>
     isObject(v) &&
     CLAN_MAINTENANCE_READ_LANES.has(v.lane) &&

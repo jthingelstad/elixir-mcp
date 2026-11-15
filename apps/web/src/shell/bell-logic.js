@@ -82,6 +82,7 @@ const ACCOUNT_LINE = {
   claim_verified: (who) => `Verified ${who}`,
   claim_ended: (who) => `No longer yours: ${who}`,
   claim_refused: (who) => `Not added: ${who}`,
+  follow_skipped: (who) => `Not followed: ${who}`,
 };
 
 /** Why a line matters, where the line alone does not say. */
@@ -90,6 +91,8 @@ const ACCOUNT_DETAIL = {
     "Another account verified it. If it is yours, tell us through the feedback form.",
   claim_refused:
     "Another account verified it. If it is yours, tell us through the feedback form.",
+  follow_skipped:
+    "You follow their account, but there was no free player slot (or no player of your own yet). Free a slot, then tap Follow on their page.",
 };
 
 const ROMAN = ["I", "II", "III"];

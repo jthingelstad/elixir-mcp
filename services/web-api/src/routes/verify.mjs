@@ -4,7 +4,11 @@ import { normalizeTag, cardArt } from "@elixir-mcp/contracts";
 import { makeLive } from "@elixir-mcp/tools/live";
 import { participantModeClause } from "@elixir-mcp/record/mode-filter";
 import { enqueueJob } from "@elixir-mcp/ledger";
-import { markVerified, VERIFIED_ELSEWHERE } from "@elixir-mcp/claims";
+import {
+  linkNewVerified,
+  markVerified,
+  VERIFIED_ELSEWHERE,
+} from "@elixir-mcp/claims";
 import { drawTarget, deckIds, deckKey } from "./verify-draw.mjs";
 import { playersChangedAfter } from "../passport-hooks.mjs";
 
@@ -574,6 +578,19 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
         // Player verified (#1015), after the proof committed. A person's
         // only: the store refuses any other account.
         await playersChangedAfter(db, account.accountId, "player_verified");
+        // Linked follows (Jamie, 2026-11-15): everyone following this
+        // account follows its new Verified player too. After the proof
+        // committed, and never the proof's failure.
+        try {
+          await linkNewVerified(db, account.accountId, row.player_tag);
+        } catch (err) {
+          console.error(
+            JSON.stringify({
+              at: "linked_follow_failed",
+              error: String(err?.code ?? err?.name ?? "error").slice(0, 40),
+            }),
+          );
+        }
         const done = await claimFor(db, account.accountId, row.player_tag);
         return json(
           200,
