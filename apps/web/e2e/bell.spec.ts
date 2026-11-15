@@ -244,6 +244,59 @@ for (const width of [320, 390, 1280]) {
       await expect(fresh).toContainText("Elixir answered your feedback");
     });
 
+    test("a claimed follower is named, not verified, with Follow back; only no-player accounts are counted", async ({
+      page,
+    }) => {
+      // Jamie, 2026-11-14: the bell names followers as the followers list
+      // does. Invented players only.
+      const read = {
+        ...MIXED_BELL,
+        followers: {
+          count: 4,
+          new: 2,
+          no_player: 2,
+          unnamed: 2,
+          players: [
+            ...MIXED_BELL.followers.players,
+            {
+              tag: "#0Q2L8",
+              name: "Invented Claimer",
+              verified: false,
+              followed_tag: "#0YV8YGYJ",
+              followed_name: "Invented Owl",
+              new: true,
+              can_follow_back: true,
+            },
+          ],
+        },
+      };
+      await mockApi(
+        page,
+        homeApi({
+          "GET /api/me": [200, BELL_ME],
+          "GET /api/me/bell": [200, read],
+        }),
+      );
+      await page.goto("/home");
+      await trigger(page).click();
+      const sheet = page.getByRole("dialog", { name: "Notifications" });
+      const fresh = sheet.getByRole("region", { name: "New" });
+      const row = fresh
+        .locator(".kit-bell__item")
+        .filter({ hasText: "Invented Claimer follows you" });
+      await expect(row).toContainText("Not verified");
+      await expect(row.locator(".kit-verified")).toHaveCount(0);
+      await expect(
+        row.getByRole("button", { name: "Follow back" }),
+      ).toBeVisible();
+      await expect(
+        sheet.getByRole("region", { name: "Earlier" }),
+      ).toContainText("2 more followers with no player added yet");
+      await noSideways(page);
+      await accessible(page, `the bell, a claimed follower, at ${width}`);
+      await capture(page, "claimed", width);
+    });
+
     test("empty: all quiet", async ({ page }) => {
       await mockApi(
         page,
