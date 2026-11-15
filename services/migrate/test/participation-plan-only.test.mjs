@@ -128,6 +128,8 @@ test("plan-only refuses broad or unknown requests before opening a connection", 
     { queries: ["battles_by_week", "war_weeks", "donations_by_week"] },
     { weeks: 9 },
     { clan_tag: "not a tag" },
+    { clan_tag: undefined },
+    { clan_tag: 12345 },
   ]) {
     const db = fixtureClient();
     assert.ok(
@@ -141,6 +143,17 @@ test("plan-only refuses broad or unknown requests before opening a connection", 
     );
     assert.equal(db.connected, false);
   }
+});
+
+test("plan-only reads the clan tag through the contracts' normalizeTag (#446)", async () => {
+  const db = fixtureClient();
+  await participationPlan("unused", { clan_tag: " 0qc8rcgy " }, db);
+  const members = db.calls.find((call) => call.sql === MEMBERS_SQL);
+  assert.ok(members, "the members read ran");
+  assert.ok(
+    members.values.includes("#0QC8RCGY"),
+    JSON.stringify(members.values),
+  );
 });
 
 test("plan-only closes its read-only connection when planning fails", async () => {

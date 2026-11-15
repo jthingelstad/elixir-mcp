@@ -8,14 +8,15 @@ import { useScope } from "../lib/scope.js";
 const isUtc = (zone) => !zone || zone === "UTC" || zone === "Etc/UTC";
 
 /** "Central time" for America/Chicago; the IANA name when the browser
- *  has no generic name for it. */
-function zoneWords(zone) {
+ *  has no generic name for it. `at` is the clock's instant for this visit,
+ *  so render stays pure (#446). */
+function zoneWords(zone, at) {
   try {
     const p = new Intl.DateTimeFormat("en-US", {
       timeZone: zone,
       timeZoneName: "longGeneric",
     })
-      .formatToParts(new Date())
+      .formatToParts(at)
       .find((x) => x.type === "timeZoneName")?.value;
     return p ? p.replace(/ Time$/, " time") : zone;
   } catch {
@@ -37,7 +38,7 @@ function zoneWords(zone) {
  * agent's pages.
  */
 export function ZoneOffer({ className = "" }) {
-  const { zone } = useClock();
+  const { zone, now } = useClock();
   const agent = useScope();
   const invalidate = useInvalidate();
   const [busy, setBusy] = useState(false);
@@ -45,7 +46,7 @@ export function ZoneOffer({ className = "" }) {
   const [local, setLocal] = useState(null);
   useEffect(() => setLocal(browserZone()), []);
   if (agent || zone || isUtc(local)) return null;
-  const words = zoneWords(local);
+  const words = zoneWords(local, now);
   return (
     <div className={`callout callout--info ${className}`.trim()}>
       <Icon name="clock" size={17} />
