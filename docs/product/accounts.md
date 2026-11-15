@@ -118,5 +118,8 @@ as any unfollowed subject's does. [Jamie, 2026-10-12; see the record]
   fine for every member, young players included. [`VISION.md`, Open;
   Jamie, 2026-11-13]
 - **Whose follows and followers are shown.** The player page shows them
-  only for a player an account verified, and names a follower only by
-  their own verified player. [engineering, 2026-11-12]
+  only for a player an account verified, and names a follower by their own
+  verified player, else by the player they claim, marked not verified; an
+  account with no player is an Elixir account and nothing more.
+  [engineering, 2026-11-12; Jamie, 2026-11-14: unverified followers are
+  shown]
