@@ -4,7 +4,7 @@ import {
   FORMER_MEMBERS_SQL,
   participationQueries,
 } from "@elixir-mcp/record/participation-sql";
-import { typesForModeGroup } from "@elixir-mcp/contracts";
+import { normalizeTag, typesForModeGroup } from "@elixir-mcp/contracts";
 
 const READS = new Set([
   "battles_by_week",
@@ -50,9 +50,14 @@ export async function participationPlan(databaseUrl, spec = {}, client = null) {
     return { error: "one_or_two_known_participation_queries_required" };
   if (!Number.isInteger(weeks) || weeks < 1 || weeks > 8)
     return { error: "weeks_must_be_1_to_8" };
-  const clanTag = String(spec.clan_tag ?? "").toUpperCase();
-  if (!/^#[0289PYLQGRJCUV]{3,12}$/.test(clanTag))
+  // The one tag rule (contracts' normalizeTag): folds a missing #, case
+  // and the letter O, and refuses anything else (#446).
+  let clanTag;
+  try {
+    clanTag = normalizeTag(spec.clan_tag);
+  } catch {
     return { error: "clan_tag_required" };
+  }
   const db =
     client ??
     new pg.Client({

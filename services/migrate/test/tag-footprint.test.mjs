@@ -136,6 +136,69 @@ test("tag_footprint counts every tag-keyed table and what makes a tag tracked", 
   assert.equal(n.n, s.rows["player_card.player_tag"]);
 });
 
+test("with_tracked_other_side counts an opponent tracked through a recorded or followed clan (#452)", async () => {
+  // Invented tags (docs/invented-tags.json).
+  const T = "#0PYLQ2"; // the tag under audit
+  const RECORDED = "#0GRJCUV"; // open member of a recorded clan
+  const FOLLOWED = "#0YY9P"; // open member of an account-followed clan
+  const LEFT = "#0PQ2VY"; // left the recorded clan
+  const STRANGER = "#0CU8LG"; // no tracking at all
+  const CLAN_R = "#0C2C8";
+  const CLAN_F = "#0Q2L8";
+  for (const tag of [T, RECORDED, FOLLOWED, LEFT, STRANGER])
+    await db.query(
+      `insert into player (player_tag) values ($1) on conflict do nothing`,
+      [tag],
+    );
+  await db.query(
+    `insert into clan (clan_tag) values ($1), ($2) on conflict do nothing`,
+    [CLAN_R, CLAN_F],
+  );
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, status)
+     values ('clan', $1, $2, 'active')`,
+    [CLAN_R, accountId],
+  );
+  await db.query(
+    `insert into account_clan (account_id, clan_tag) values ($1, $2)`,
+    [accountId, CLAN_F],
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, left_observed_at)
+     values ($1, $3, now() - interval '9 days', null),
+            ($2, $4, now() - interval '9 days', null),
+            ($1, $5, now() - interval '9 days', now() - interval '2 days')`,
+    [CLAN_R, CLAN_F, RECORDED, FOLLOWED, LEFT],
+  );
+  for (const [i, other] of [RECORDED, FOLLOWED, LEFT, STRANGER].entries()) {
+    const id = `footprint-452-${i}`;
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class)
+       values ($1, now() - make_interval(hours => $2), 'PvP', 'pvp')`,
+      [id, i + 1],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, type, type_class, outcome)
+       values ($1, $2, now() - make_interval(hours => $4), 0, 'PvP', 'pvp', 'win'),
+              ($1, $3, now() - make_interval(hours => $4), 1, 'PvP', 'pvp', 'loss')`,
+      [id, T, other, i + 1],
+    );
+  }
+  const census = await tagFootprintCensus(
+    SCRATCH_URL,
+    { tags: [T] },
+    { head: async () => false },
+  );
+  const [t] = census.tags;
+  assert.equal(t.battles.participant_rows, 4);
+  assert.equal(
+    t.battles.with_tracked_other_side,
+    2,
+    "the recorded clan's and the followed clan's open members; not a leaver or a stranger",
+  );
+  assert.equal(t.tracking.tracked_clan_memberships, 0);
+});
+
 test("tag_footprint refuses an empty or malformed tag list", async () => {
   assert.equal(
     (await tagFootprintCensus(SCRATCH_URL, {})).error,

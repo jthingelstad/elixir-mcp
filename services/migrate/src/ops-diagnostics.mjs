@@ -884,6 +884,15 @@ const TAG_MENTIONS = [
  * role holds s3:GetObject on payloads/). Counts, dates and keys only;
  * nothing is written.
  */
+/** The clan a membership row names is tracked: an active clan recording
+ *  or an account's followed clan (DECISIONS: a recorded clan's members
+ *  are recorded). One predicate for the tag's own memberships and for the
+ *  other side of its battles (#452). */
+const trackedClan = (clanTag) =>
+  `(exists (select 1 from recording r where r.subject_type = 'clan'
+              and r.status = 'active' and r.subject_tag = ${clanTag})
+    or exists (select 1 from account_clan ac where ac.clan_tag = ${clanTag}))`;
+
 export async function tagFootprintCensus(databaseUrl, opts = {}, deps = {}) {
   const { normalizeTag } = await import("@elixir-mcp/contracts");
   const raw = Array.isArray(opts?.tags) ? opts.tags : [];
@@ -1026,10 +1035,7 @@ export async function tagFootprintCensus(databaseUrl, opts = {}, deps = {}) {
                   where player_tag = $1 and left_observed_at is null) as open_memberships,
                 (select count(*)::int from clan_membership cm
                   where cm.player_tag = $1 and cm.left_observed_at is null
-                    and (exists (select 1 from recording r where r.subject_type = 'clan'
-                                   and r.status = 'active' and r.subject_tag = cm.clan_tag)
-                         or exists (select 1 from account_clan ac
-                                     where ac.clan_tag = cm.clan_tag))) as tracked_clan_memberships`,
+                    and ${trackedClan("cm.clan_tag")}) as tracked_clan_memberships`,
         [tag],
       );
       const {
@@ -1041,7 +1047,13 @@ export async function tagFootprintCensus(databaseUrl, opts = {}, deps = {}) {
                    where o.battle_id = p.battle_id and o.player_tag <> p.player_tag
                      and (exists (select 1 from recording r where r.subject_type = 'player'
                                    and r.status = 'active' and r.subject_tag = o.player_tag)
-                          or exists (select 1 from claim c where c.player_tag = o.player_tag))
+                          or exists (select 1 from claim c where c.player_tag = o.player_tag)
+                          -- A member of a recorded or followed clan is
+                          -- recorded too (#452), as tracked_clan_memberships counts.
+                          or exists (select 1 from clan_membership om
+                                      where om.player_tag = o.player_tag
+                                        and om.left_observed_at is null
+                                        and ${trackedClan("om.clan_tag")}))
                 ))::int as with_tracked_other_side
            from battle_participant p where p.player_tag = $1`,
         [tag],
