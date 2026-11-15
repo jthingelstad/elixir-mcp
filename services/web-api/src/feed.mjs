@@ -87,8 +87,13 @@ export function groupsOf(it, subjects) {
   const tags = tagsOf(it);
   const groups = [];
   const any = (set) => [...tags].some((t) => set.has(t));
-  if (any(own) || ![...tags].some((t) => all.has(t))) groups.push("you");
-  if (any(friends)) groups.push("friends");
+  // A people item is about another account unless it names your own
+  // player: a followed account's news is Friends, never You, even when
+  // you follow none of its players.
+  const person = it.section === "people" && !any(own);
+  if (!person && (any(own) || ![...tags].some((t) => all.has(t))))
+    groups.push("you");
+  if (person || any(friends)) groups.push("friends");
   if (any(clans)) groups.push("clan");
   return groups;
 }

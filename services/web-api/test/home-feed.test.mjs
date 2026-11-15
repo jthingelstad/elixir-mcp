@@ -45,6 +45,13 @@ test("an item sits under the chips its subjects make it", () => {
   ]);
   // About nobody followed: the account's own (a feedback answer).
   assert.deepEqual(groupsOf({ subjects: [] }, SUBJECTS), ["you"]);
+  // A followed account's news is Friends, even about no player you follow
+  // or about no player at all; your own player's verification is You.
+  const person = (...tags) => ({ ...about(...tags), section: "people" });
+  assert.deepEqual(groupsOf(person(), SUBJECTS), ["friends"]);
+  assert.deepEqual(groupsOf(person(MEMBER), SUBJECTS), ["friends"]);
+  assert.deepEqual(groupsOf(person(FRIEND), SUBJECTS), ["friends"]);
+  assert.deepEqual(groupsOf(person(ME), SUBJECTS), ["you"]);
 });
 
 test("a sparkline is outcome and crown margin, one to three", () => {

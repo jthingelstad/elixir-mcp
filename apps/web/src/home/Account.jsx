@@ -114,7 +114,9 @@ function AccountView({ page }) {
           <span className="kit-stat">
             <span className="kit-stat__label">Following</span>{" "}
             <span className="kit-stat__value">
-              {(a.follows?.count ?? 0).toLocaleString()}
+              {(
+                (a.follows?.count ?? 0) + (a.following_accounts ?? 0)
+              ).toLocaleString()}
             </span>
           </span>
           <span className="kit-stat">

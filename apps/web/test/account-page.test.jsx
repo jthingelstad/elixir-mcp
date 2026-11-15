@@ -77,7 +77,7 @@ const PAGE = (following = false) => ({
     place: { city: "Duluth", region: "Minnesota", country: "United States" },
     follows: { count: 3 },
     followers: following ? 1 : 0,
-    following_accounts: 0,
+    following_accounts: 2,
   },
   you: { self: false, following },
   passport: {
@@ -172,6 +172,10 @@ test(
     expect(screen.getByText(/Alt · Claimed/)).toBeTruthy();
     expect(screen.getByText("Verified in Discord")).toBeTruthy();
     expect(screen.getByText("1 Stamp")).toBeTruthy();
+    // Following counts players and accounts: 3 + 2.
+    expect(screen.getByText("Following").parentElement.textContent).toContain(
+      "5",
+    );
     expect(
       screen.getByRole("link", { name: /Open passport/ }).getAttribute("href"),
     ).toBe(`/home/account/${THEIRS}/passport`);
