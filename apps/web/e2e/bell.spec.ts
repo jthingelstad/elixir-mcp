@@ -301,6 +301,51 @@ for (const width of [320, 390, 1280]) {
       await capture(page, "failed", width);
     });
 
+    test("a failed refresh keeps the rows the badge read, says so, and Try again recovers", async ({
+      page,
+    }) => {
+      // The badge reads the bell on load; the sheet's fresh read fails
+      // (and its one quiet retry) until Try again.
+      let reads = 0;
+      let up = false;
+      const seen: string[] = [];
+      await mockApi(
+        page,
+        homeApi({
+          "GET /api/me": [200, BELL_ME],
+          "GET /api/me/bell": () =>
+            ++reads === 1 || up
+              ? [200, MIXED_BELL]
+              : [503, { error: "unavailable" }],
+          "PUT /api/me/bell/seen": () => {
+            seen.push("put");
+            return [200, { seen_at: new Date().toISOString() }];
+          },
+        }),
+      );
+      await page.goto("/home");
+      const button = trigger(page);
+      await expect(button.locator(".kit-bell__dot--count")).toHaveText("6");
+      await button.click();
+      const sheet = page.getByRole("dialog", { name: "Notifications" });
+      const notice = sheet.getByRole("status");
+      await expect(notice).toHaveText(
+        /Couldn’t refresh just now, so this may be out of date\./,
+        { timeout: 10_000 },
+      );
+      await expect(
+        sheet.getByRole("region", { name: "New" }).getByRole("link"),
+      ).toHaveCount(4);
+      expect(seen).toEqual([]);
+      await noSideways(page);
+      await accessible(page, `the stale bell at ${width}`);
+      await capture(page, "stale", width);
+      up = true;
+      await notice.getByRole("button", { name: "Try again" }).click();
+      await expect(notice).toHaveCount(0);
+      await expect.poll(() => seen.length).toBe(1);
+    });
+
     test("long: the sheet scrolls, the page does not", async ({ page }) => {
       await mockApi(
         page,

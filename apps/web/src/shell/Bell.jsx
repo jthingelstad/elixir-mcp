@@ -218,11 +218,19 @@ export function BellSheet({ me, onClose, returnTo = null }) {
   const [kept] = useState(() => place);
   const marked = useRef(false);
   useEffect(() => {
-    if (!read.data || !read.isFetchedAfterMount || marked.current) return;
+    // A refresh that failed shows the cached rows, so it moves nothing:
+    // what came since was never shown.
+    if (
+      !read.data ||
+      !read.isFetchedAfterMount ||
+      read.isError ||
+      marked.current
+    )
+      return;
     marked.current = true;
     setShown(read.data);
     seen.mutate();
-  }, [read.data, read.isFetchedAfterMount, seen]);
+  }, [read.data, read.isFetchedAfterMount, read.isError, seen]);
   const { rows: needRows, more } = needsYou({
     clan,
     needs,
@@ -303,10 +311,14 @@ export function BellSheet({ me, onClose, returnTo = null }) {
 
   const loading = bell === null && read.isPending;
   const failed = bell === null && read.isError;
+  // The fresh read failed but the badge's earlier one is at hand: keep its
+  // rows and say they may be out of date.
+  const stale = bell !== null && read.isError;
   const noPlayer = bell?.players === 0;
   const needShown = needRows.length > 0 || more || needs?.ok === false;
   const nothing =
     bell &&
+    !stale &&
     needs !== undefined &&
     !needShown &&
     !noPlayer &&
@@ -438,6 +450,19 @@ export function BellSheet({ me, onClose, returnTo = null }) {
           </button>
         </header>
         <div className="kit-bell__scroll" ref={list}>
+          {stale ? (
+            <div className="kit-bell__stale" role="status">
+              <p>Couldn’t refresh just now, so this may be out of date.</p>
+              <button
+                type="button"
+                className="btn btn--sm"
+                disabled={read.isFetching}
+                onClick={() => read.refetch()}
+              >
+                {read.isFetching ? "Trying…" : "Try again"}
+              </button>
+            </div>
+          ) : null}
           {needShown ? (
             <Group id="bell-needs" title="Needs you" tone="needs">
               {needRows.map((r) => (

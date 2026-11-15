@@ -8178,6 +8178,25 @@ a.kit-bell__hit:focus-visible::after {
 .kit-bell__note {
   padding: 0 var(--s-2) var(--s-2);
 }
+/* A refresh that failed over cached rows: one line, then the rows. */
+.kit-bell__stale {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: var(--s-2) var(--s-2) 0;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--panel-raised);
+}
+.kit-bell__stale p {
+  flex: 1;
+  margin: 0;
+  font-size: var(--t-body-sm);
+  color: var(--ink-body);
+}
+.kit-bell__stale .btn {
+  min-height: var(--hit);
+}
 .kit-bell__ghost {
   height: 52px;
   margin: var(--s-2) var(--s-4);

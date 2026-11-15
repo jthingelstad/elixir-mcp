@@ -5,7 +5,15 @@
  * Waiting behind a modal. Invented names only.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+  waitFor,
+} from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createQueryClient } from "../src/client/index.ts";
 import { renderWithProviders } from "./helpers.jsx";
 import { BellSheet } from "../src/shell/Bell.jsx";
 
@@ -348,4 +356,103 @@ test("back from a row: what was new is still New, but the row you opened; closin
       [...third.querySelectorAll("a")].map((a) => a.getAttribute("href")),
     ).toEqual(["/settings/feedback/42"]),
   );
+});
+
+// Codex on #1029: the badge's earlier read is cached, so a failed fresh
+// read on opening used to hide its error behind those rows (or "All
+// quiet"). The rows stay, a line says they may be out of date, Try again
+// reads again, and the marker does not move over rows never refreshed.
+function renderOverCache(ui, cached) {
+  const client = createQueryClient();
+  client.setDefaultOptions({
+    queries: { ...client.getDefaultOptions().queries, retry: false },
+  });
+  client.setQueryData(["me", "bell"], cached);
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    ),
+  });
+}
+
+function failingBell(calls) {
+  let up = false;
+  global.fetch = vi.fn(async (path, init) => {
+    const p = String(path);
+    calls.push([init?.method ?? "GET", p]);
+    if (p === "/api/me/bell")
+      return up ? reply(BELL) : reply({ error: "down" }, 503);
+    if (p === "/api/me/bell/seen")
+      return reply({ seen_at: "2026-11-12T12:00:00.000Z" });
+    if (p === "/api/me/home/needs") return reply({ needs: CLAN });
+    if (p === "/api/me/home/clan") return reply({ clan: CLAN });
+    return reply({});
+  });
+  return () => {
+    up = true;
+  };
+}
+
+test("a failed refresh keeps the cached rows, says so, and Try again reads again; the marker waits", async () => {
+  HTMLDialogElement.prototype.showModal ??= function () {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close ??= function () {
+    this.open = false;
+  };
+  const calls = [];
+  const recover = failingBell(calls);
+  renderOverCache(<BellSheet me={{}} onClose={() => {}} />, BELL);
+  const notice = await screen.findByText(
+    "Couldn’t refresh just now, so this may be out of date.",
+  );
+  // The rows it had stay, under the line.
+  const fresh = screen.getByRole("region", { name: "New", hidden: true });
+  expect(fresh.textContent).toContain("Invented Owner won five in a row");
+  expect(
+    notice.compareDocumentPosition(fresh) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(calls.filter(([m]) => m === "PUT")).toHaveLength(0);
+  recover();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Try again", hidden: true }),
+  );
+  await waitFor(() =>
+    expect(calls).toContainEqual(["PUT", "/api/me/bell/seen"]),
+  );
+  expect(
+    screen.queryByText(
+      "Couldn’t refresh just now, so this may be out of date.",
+    ),
+  ).toBeNull();
+});
+
+test("a failed refresh over an empty cached read is never All quiet", async () => {
+  HTMLDialogElement.prototype.showModal ??= function () {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close ??= function () {
+    this.open = false;
+  };
+  const calls = [];
+  failingBell(calls);
+  global.fetch = ((inner) =>
+    vi.fn(async (path, init) =>
+      String(path) === "/api/me/home/needs"
+        ? reply({ needs: { ok: true, state: "none" } })
+        : inner(path, init),
+    ))(global.fetch);
+  renderOverCache(<BellSheet me={{}} onClose={() => {}} />, {
+    seen_at: null,
+    players: 1,
+    new: 0,
+    reactions: { new: 0, items: [] },
+    followers: { count: 0, new: 0, unnamed: 0, players: [] },
+    answers: { new: 0, items: [] },
+    account: { new: 0, items: [] },
+  });
+  await screen.findByText(
+    "Couldn’t refresh just now, so this may be out of date.",
+  );
+  expect(screen.queryByText("All quiet")).toBeNull();
 });
