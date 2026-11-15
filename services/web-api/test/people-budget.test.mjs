@@ -83,18 +83,25 @@ before(async () => {
     [leaderTag, mate.player_tag],
     FOES,
   ]);
-  // The reader's place, on the player map (#768), so Near you reads whole.
+  // The reader's place (#768), stamped as Clan saves it, so Near you
+  // reads whole.
+  const {
+    rows: [owner],
+  } = await db.query(
+    `select account_id from claim where player_tag = $1 and status = 'verified'`,
+    [leaderTag],
+  );
   const placePk = `place#${leaderTag}`;
   await db.query(`insert into clan_state(pk, body) values ($1, $2)`, [
     placePk,
     {
       pk: placePk,
       player_tag: leaderTag,
+      account_id: owner.account_id,
       country: "US",
       region: "TX",
       city: null,
       set_at: new Date().toISOString(),
-      player_map: true,
     },
   ]);
   await db.query("analyze battle; analyze battle_participant");

@@ -17,15 +17,11 @@
  *   fact, and the clan's agent never sees it.
  * - Every clan has it, with or without a policy and at any size; a leader
  *   or co-leader can turn the clan's social features off.
- * - The player map and Near you (#768, Jamie 2026-11-14): a place also
- *   reaches every signed-in Elixir member there only when its owner chose
- *   it (`player_map: true`). A place saved before that choice existed has
- *   no `player_map` and stays on clan maps only until its owner says yes;
- *   a save that does not say (an older page) never widens it: it keeps a
- *   no, and is otherwise clan maps only, never an earlier yes (the newest
- *   row under a tag may be a former owner's, whose yes is not this
- *   person's). The
- *   readers are Elixir's (`@elixir-mcp/auth/clan-context`), not Clan's.
+ * - A place is a place (Jamie, 2026-11-15): it also shows on the player
+ *   map and in Near you, to everyone signed in to Elixir, with no choice
+ *   of who sees it; to stop appearing, a person removes their place.
+ *   Those readers are Elixir's (`@elixir-mcp/auth/clan-context`), not
+ *   Clan's.
  * - A place belongs to the claim that wrote it (2026-11-14): every save
  *   stamps the writer's account, and every read here (your place, the
  *   picker, the clan map) goes through `ownedPlaces`, Elixir's one rule
@@ -71,25 +67,17 @@ export function createSocialService({
     )[0];
   }
 
-  /** Whether a place is on the player map: true, false (its owner chose
-   *  clan maps only) or null (saved before the choice existed: clan maps
-   *  only, and its owner has not been asked). */
-  const playerMapOf = (row) =>
-    typeof row?.player_map === "boolean" ? row.player_map : null;
-
   async function placeOf(tags) {
     const row = await newestRow(tags);
     if (!row) return null;
     const resolved = await geo.resolve(row);
-    return resolved.error
-      ? null
-      : { ...resolved, set_at: row.set_at, player_map: playerMapOf(row) };
+    return resolved.error ? null : { ...resolved, set_at: row.set_at };
   }
 
   /** One place under each of the person's verified tags, written now and
    *  stamped with their account: the row is theirs, and no other claim on
    *  the tag reads it as a place. */
-  async function write(tags, place, playerMap) {
+  async function write(tags, place) {
     if (!accountId) throw new Error("a place is saved by a signed-in account");
     await ledger.savePlace(tags, {
       account_id: accountId,
@@ -97,7 +85,6 @@ export function createSocialService({
       region: place.region,
       city: place.city,
       set_at: new Date(now()).toISOString(),
-      ...(playerMap === null ? {} : { player_map: playerMap }),
     });
   }
 
@@ -122,50 +109,16 @@ export function createSocialService({
     /** The person's own place (any of their verified tags), or null. */
     myPlace: (person) => placeOf(person.tags),
 
-    /** Save a place. `player_map` is the person's choice. Left out (a page
-     *  that does not ask), it never widens who sees the place: a no stays
-     *  a no and anything else is clan maps only. A yes is never carried
-     *  over (Codex on #1054); the row read is the person's own place
-     *  (`ownedPlaces`), never a former owner's. */
+    /** Save a place. */
     async setMyPlace(person, input) {
-      const asked = input?.player_map;
-      if (asked !== undefined && asked !== null && typeof asked !== "boolean")
-        throw new ManageError(
-          400,
-          "bad_request",
-          "player_map is true or false",
-        );
       const place = await geo.resolve(input);
       if (place.error)
         throw new ManageError(400, "bad_place", place.error, {
           field: place.field,
           message: place.error,
         });
-      const playerMap =
-        typeof asked === "boolean"
-          ? asked
-          : playerMapOf(await newestRow(person.tags)) === false
-            ? false
-            : null;
-      await write(person.tags, place, playerMap);
-      return { ...place, player_map: playerMap };
-    },
-
-    /** Join or leave the player map and Near you, keeping the place. */
-    async setPlayerMap(person, input) {
-      if (typeof input?.player_map !== "boolean")
-        throw new ManageError(
-          400,
-          "bad_request",
-          "player_map is true or false",
-        );
-      const row = await newestRow(person.tags);
-      if (!row) throw new ManageError(404, "no_place", "Set a place first.");
-      const place = await geo.resolve(row);
-      if (place.error)
-        throw new ManageError(404, "no_place", "Set a place first.");
-      await write(person.tags, place, input.player_map);
-      return { ...place, player_map: input.player_map };
+      await write(person.tags, place);
+      return place;
     },
 
     async clearMyPlace(person) {

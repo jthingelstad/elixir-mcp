@@ -1,10 +1,10 @@
 /**
  * The player map and Near you (#768, Jamie 2026-11-14): who appears, and
- * how precisely. Pinned here on a scratch database: a place reaches either
- * only when its owner chose the player map (never a clan-only place, nor
- * one saved before the choice existed); only under a tag still verified by
- * an approved person, and only when written after that verification (a tag
- * that moved never carries its old owner's place); one player per person;
+ * how precisely. Pinned here on a scratch database: every place shows
+ * (Jamie, 2026-11-15: a place is a place, no choice of who sees it), only
+ * under a tag still verified by an approved person, and only when that
+ * claim's account wrote it (a tag that moved never carries its old
+ * owner's place); one player per person;
  * Near you is the reader's country and region, the reader's city first,
  * never the reader, their own players or anyone they follow or watch; a
  * reader with no place gets none; an agent reads nothing; and no answer
@@ -25,18 +25,17 @@ const TORONTO = 6167865;
 
 // One account each, unless said otherwise.
 const P = {
-  reader: "#0VJLR2", // Austin, on the player map
-  houston: "#0VJLR8", // Houston, on the player map
-  dallas: "#0VJLR9", // Dallas, clan maps only (chose)
-  old: "#0VJLRP", // Texas, saved before the choice: no key
-  austin: "#0VJLRY", // Austin, on the player map
-  toronto: "#0VJLRL", // Ontario, on the player map
-  followed: "#0VJLRQ", // Texas, on the player map; the reader follows them
-  moved: "#0VJLRG", // Texas, on; place written before today's verification
-  dualMain: "#0VJLRC", // Texas, on; one person with an alt
-  dualAlt: "#0VJLRU", // the same person's alt, also on
-  disabled: "#0VJLRJ2", // Texas, on; the account is disabled
-  unverified: "#0VJLRJ8", // Texas, on; the claim is not verified
+  reader: "#0VJLR2", // Austin
+  houston: "#0VJLR8", // Houston
+  dallas: "#0VJLR9", // Dallas
+  austin: "#0VJLRY", // Austin
+  toronto: "#0VJLRL", // Ontario
+  followed: "#0VJLRQ", // Texas; the reader follows them
+  moved: "#0VJLRG", // Texas, a former owner's place left behind the tag
+  dualMain: "#0VJLRC", // Texas; one person with an alt
+  dualAlt: "#0VJLRU", // the same person's alt, also placed
+  disabled: "#0VJLRJ2", // Texas; the account is disabled
+  unverified: "#0VJLRJ8", // Texas; the claim is not verified
 };
 
 let scratch;
@@ -72,23 +71,19 @@ async function claim(accountId, tag, extra = {}) {
   );
 }
 
-async function place(
-  tag,
-  codes,
-  playerMapChoice,
-  setAt = "2026-11-05T00:00:00.000Z",
-) {
+/** A place as Clan saves it: stamped with the account that wrote it. */
+async function place(tag, codes, owner, setAt = "2026-11-05T00:00:00.000Z") {
   const pk = `place#${tag}`;
   await scratch.db.query(`insert into clan_state(pk, body) values ($1, $2)`, [
     pk,
     {
       pk,
       player_tag: tag,
+      account_id: owner,
       country: codes.country,
       region: codes.region ?? null,
       city: codes.city ?? null,
       set_at: setAt,
-      ...(playerMapChoice === undefined ? {} : { player_map: playerMapChoice }),
     },
   ]);
 }
@@ -106,27 +101,24 @@ before(async () => {
     "reader",
     "houston",
     "dallas",
-    "old",
     "austin",
     "toronto",
     "followed",
     "moved",
-  ]) {
-    const id = await account(key);
-    await claim(
-      id,
-      P[key],
-      key === "moved" ? { verified_at: "2026-11-10T00:00:00Z" } : {},
-    );
-  }
-  await place(P.reader, { ...TX, city: AUSTIN }, true);
-  await place(P.houston, { ...TX, city: HOUSTON }, true);
-  await place(P.dallas, { ...TX, city: DALLAS }, false);
-  await place(P.old, TX, undefined);
-  await place(P.austin, { ...TX, city: AUSTIN }, true);
-  await place(P.toronto, { country: "CA", region: "08", city: TORONTO }, true);
-  await place(P.followed, TX, true);
-  await place(P.moved, TX, true);
+  ])
+    await claim(await account(key), P[key]);
+  await place(P.reader, { ...TX, city: AUSTIN }, acct.reader);
+  await place(P.houston, { ...TX, city: HOUSTON }, acct.houston);
+  await place(P.dallas, { ...TX, city: DALLAS }, acct.dallas);
+  await place(P.austin, { ...TX, city: AUSTIN }, acct.austin);
+  await place(
+    P.toronto,
+    { country: "CA", region: "08", city: TORONTO },
+    acct.toronto,
+  );
+  await place(P.followed, TX, acct.followed);
+  // The tag's former owner wrote this row; the claim is someone else's now.
+  await place(P.moved, TX, await account("former"));
   // The reader follows one of them.
   await claim(acct.reader, P.followed, {
     status: "unverified",
@@ -134,19 +126,19 @@ before(async () => {
     relationship: "friend",
     verified_at: null,
   });
-  // One person, two players, both on.
+  // One person, two players, both placed.
   const dual = await account("dual");
   await claim(dual, P.dualMain);
   await claim(dual, P.dualAlt, { is_primary: false, relationship: "alt" });
-  await place(P.dualMain, TX, true);
-  await place(P.dualAlt, TX, true);
-  // A disabled account and an unverified claim, both "on".
+  await place(P.dualMain, TX, dual);
+  await place(P.dualAlt, TX, dual);
+  // A disabled account and an unverified claim, both placed.
   await claim(await account("disabled", "disabled"), P.disabled);
-  await place(P.disabled, TX, true);
+  await place(P.disabled, TX, acct.disabled);
   await claim(await account("unverified"), P.unverified, {
     status: "unverified",
   });
-  await place(P.unverified, TX, true);
+  await place(P.unverified, TX, acct.unverified);
   // A reader with no place, and an agent.
   await account("noplace");
   await account("agent", "approved", "agent", acct.reader);
@@ -155,34 +147,34 @@ after(async () => scratch?.drop());
 
 const tags = (rows) => rows.map((r) => r.player_tag ?? r.tag);
 
-test("the player map is everyone who chose it, one player a person, and nobody else", async () => {
+test("the player map is everyone with a place, one player a person, and nobody else", async () => {
   const got = await readPlayerMap(scratch.db, {
     accountId: acct.reader,
     kind: "person",
   });
   assert.deepEqual(
     tags(got.entries).sort(),
-    [P.reader, P.houston, P.austin, P.toronto, P.followed, P.dualMain].sort(),
+    [
+      P.reader,
+      P.houston,
+      P.dallas,
+      P.austin,
+      P.toronto,
+      P.followed,
+      P.dualMain,
+    ].sort(),
   );
   assert.equal(got.entries.find((e) => e.you).player_tag, P.reader);
   assert.equal(got.truncated, false);
-  // Left out: a clan-only place, one saved before the choice, a place that
-  // predates its tag's verification, an alt beside its main, a disabled
-  // account and an unverified claim.
-  for (const key of [
-    "dallas",
-    "old",
-    "moved",
-    "dualAlt",
-    "disabled",
-    "unverified",
-  ])
+  // Left out: a former owner's place behind a moved tag, an alt beside
+  // its main, a disabled account and an unverified claim.
+  for (const key of ["moved", "dualAlt", "disabled", "unverified"])
     assert.ok(!tags(got.entries).includes(P[key]), key);
 });
 
 test("a reader with no place still sees the player map; an agent reads nothing", async () => {
   const noplace = await playerMap(scratch.db, acct.noplace);
-  assert.equal(noplace.on_map, 6);
+  assert.equal(noplace.on_map, 7);
   assert.ok(noplace.entries.every((e) => e.you === false));
   assert.deepEqual(
     await readPlayerMap(scratch.db, { accountId: acct.agent, kind: "agent" }),
@@ -204,10 +196,14 @@ test("a reader with no place still sees the player map; an agent reads nothing",
 test("Near you is the reader's region, their city first, never the reader or who they follow", async () => {
   const got = await nearPeople(scratch.db, acct.reader);
   // Austin first (the reader's city), then the rest by name.
-  assert.deepEqual(tags(got.people), [P.austin, P.dualMain, P.houston]);
+  assert.deepEqual(tags(got.people), [
+    P.austin,
+    P.dallas,
+    P.dualMain,
+    P.houston,
+  ]);
   assert.equal(got.place.name, "Austin");
   assert.equal(got.place.region_name, "Texas");
-  assert.equal(got.place.on_map, true);
   const why = Object.fromEntries(got.people.map((p) => [p.tag, p.why]));
   assert.deepEqual(why[P.austin], [{ kind: "near", place_name: "Austin" }]);
   assert.deepEqual(why[P.houston], [{ kind: "near", place_name: "Houston" }]);
@@ -226,9 +222,8 @@ test("Near you is the reader's region, their city first, never the reader or who
   assert.ok(!tags(got.people).includes(P.followed));
 });
 
-test("a clan-only reader sees Near you, and is told they are not on the player map", async () => {
+test("a reader in another city of the region sees the rest of it, never themselves", async () => {
   const got = await nearPeople(scratch.db, acct.dallas);
-  assert.equal(got.place.on_map, false);
   assert.equal(got.place.name, "Dallas");
   // Nobody in Dallas, so by name; the reader's own row never appears.
   assert.deepEqual(tags(got.people), [
@@ -256,8 +251,8 @@ test("a country with no regions is one region", async () => {
   );
   await claim(a, "#0VJLRJ29");
   await claim(b, "#0VJLRJ2P");
-  await place("#0VJLRJ29", { country: "AW" }, true);
-  await place("#0VJLRJ2P", { country: "AW", city: 11972427 }, true);
+  await place("#0VJLRJ29", { country: "AW" }, a);
+  await place("#0VJLRJ2P", { country: "AW", city: 11972427 }, b);
   const got = await nearPeople(scratch.db, a);
   assert.deepEqual(tags(got.people), ["#0VJLRJ2P"]);
   assert.equal(got.place.region_name, "Aruba");
@@ -292,11 +287,7 @@ test("no answer carries anything finer than the picked place", async () => {
   // Near you carries a place's name, not its point.
   const near = await nearPeople(scratch.db, acct.reader);
   assert.ok(!JSON.stringify(near).includes("lat"));
-  assert.deepEqual(Object.keys(near.place).sort(), [
-    "name",
-    "on_map",
-    "region_name",
-  ]);
+  assert.deepEqual(Object.keys(near.place).sort(), ["name", "region_name"]);
 });
 
 test("each read is one statement", async () => {

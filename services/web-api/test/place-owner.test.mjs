@@ -10,7 +10,9 @@
  * the tag, the player map and Near you show nothing; the new owner's own
  * place shows as theirs and never reaches the former owner; a former
  * owner who verifies the tag again gets back only a place they wrote; a
- * row saved before the owner stamp follows the claim's verification time.
+ * row with no owner stamp is nobody's (0276 stamped every older row).
+ * The migration itself is pinned in
+ * services/migrate/test/place-one-setting.test.mjs.
  * Invented names and tags throughout.
  */
 import { test, before, after } from "node:test";
@@ -34,8 +36,8 @@ const CLAN = "#0QPLGR";
 const T = {
   moved: "#0QPLG2", // A's alt, removed by A and verified by B
   kept: "#0QPLG8", // A's primary, never moves
-  reader: "#0QPLG9", // someone else in Texas, on the player map
-  legacy: "#0QPLGY", // a place saved before the owner stamp
+  reader: "#0QPLG9", // someone else in Texas
+  unstamped: "#0QPLGY", // a row with no owner stamp
 };
 
 let scratch;
@@ -141,39 +143,36 @@ before(async () => {
       `insert into player(player_tag, name) values ($1, $2)`,
       [tag, `Invented ${i}`],
     );
-  for (const key of ["a", "b", "reader", "c", "d"]) await account(key);
+  for (const key of ["a", "b", "reader", "c"]) await account(key);
   await claim("a", T.kept, { verifiedAt: "2026-11-01T00:00:00Z" });
   await claim("a", T.moved, {
     primary: false,
     verifiedAt: "2026-11-01T00:00:00Z",
   });
   await claim("reader", T.reader, { verifiedAt: "2026-11-01T00:00:00Z" });
-  await claim("c", T.legacy, { verifiedAt: "2026-11-01T00:00:00Z" });
-  // A saves Austin, on the player map: written under both of A's tags.
+  await claim("c", T.unstamped, { verifiedAt: "2026-11-01T00:00:00Z" });
+  // A saves Austin: written under both of A's tags.
   await socialFor("a").setMyPlace(await person("a"), {
     country: "US",
     region: "TX",
     city: AUSTIN,
-    player_map: true,
   });
   await socialFor("reader").setMyPlace(await person("reader"), {
     country: "US",
     region: "TX",
     city: HOUSTON,
-    player_map: true,
   });
-  // C's place was saved before the owner stamp existed: no account_id.
-  const pk = `place#${T.legacy}`;
+  // A row under C's tag with no owner stamp, written after C verified.
+  const pk = `place#${T.unstamped}`;
   await scratch.db.query(`insert into clan_state(pk, body) values ($1, $2)`, [
     pk,
     {
       pk,
-      player_tag: T.legacy,
+      player_tag: T.unstamped,
       country: "US",
       region: "TX",
       city: AUSTIN,
       set_at: "2026-11-05T00:00:00.000Z",
-      player_map: true,
     },
   ]);
 });
@@ -183,12 +182,12 @@ test("before any move, every reader shows each place under its owner", async () 
   assert.equal((await socialFor("a").myPlace(await person("a"))).city, AUSTIN);
   assert.deepEqual(
     (await mapTags("reader")).sort(),
-    [T.moved, T.kept, T.reader, T.legacy].sort(),
+    [T.moved, T.kept, T.reader].sort(),
   );
-  // One player a person: A by their primary; C's older place too.
+  // One player a person: A by their primary.
   assert.deepEqual(
     (await playerMapTags("reader")).sort(),
-    [T.kept, T.reader, T.legacy].sort(),
+    [T.kept, T.reader].sort(),
   );
   // The stamp never leaves the seam.
   const [row] = await readOwnedPlaces(scratch.db, [T.moved]);
@@ -198,7 +197,6 @@ test("before any move, every reader shows each place under its owner", async () 
 
 test("a tag that moves to B carries none of A's place, anywhere", async () => {
   await move("a", "b", T.moved);
-  await move("c", "d", T.legacy);
   assert.deepEqual(await tagsOf("b"), [T.moved]);
   // B's Your place and the picker's starting point: empty.
   assert.equal(await socialFor("b").myPlace(await person("b")), null);
@@ -209,16 +207,14 @@ test("a tag that moves to B carries none of A's place, anywhere", async () => {
     people: [],
     truncated: false,
   });
-  // The clan map, read by anyone: nothing under either moved tag, and A's
+  // The clan map, read by anyone: nothing under the moved tag, and A's
   // place still under the primary A keeps.
   for (const reader of ["reader", "b", "a"]) {
     const tags = await mapTags(reader);
     assert.ok(!tags.includes(T.moved), reader);
-    assert.ok(!tags.includes(T.legacy), reader);
     assert.ok(tags.includes(T.kept), reader);
   }
-  // The player map: A by their primary, never B by the moved tag; the
-  // legacy row (saved before D verified) is nobody's.
+  // The player map: A by their primary, never B by the moved tag.
   assert.deepEqual(
     (await playerMapTags("reader")).sort(),
     [T.kept, T.reader].sort(),
@@ -232,23 +228,18 @@ test("a tag that moves to B carries none of A's place, anywhere", async () => {
 });
 
 test("B's own place shows as B's, and never reaches A", async () => {
-  // The picker's save with no choice: clan maps only, never A's yes.
-  const saved = await socialFor("b").setMyPlace(await person("b"), {
+  await socialFor("b").setMyPlace(await person("b"), {
     country: "CA",
     region: "08",
     city: TORONTO,
   });
-  assert.equal(saved.player_map, null);
   const mine = await socialFor("b").myPlace(await person("b"));
   assert.equal(mine.city, TORONTO);
-  assert.equal(mine.player_map, null);
   const entry = (
     await socialFor("reader").map(CLAN, roster, await person("reader"))
   ).entries.find((e) => e.player_tag === T.moved);
   assert.equal(entry.place.city, TORONTO);
-  // Clan maps only: not on the player map until B says yes.
-  assert.ok(!(await playerMapTags("reader")).includes(T.moved));
-  await socialFor("b").setPlayerMap(await person("b"), { player_map: true });
+  // And on the player map at once: a place is a place.
   assert.ok((await playerMapTags("reader")).includes(T.moved));
   // A never sees B's place as their own.
   const a = await socialFor("a").myPlace(await person("a"));
@@ -276,7 +267,6 @@ test("A verifying the tag again gets back only a place A wrote", async () => {
     country: "US",
     region: "TX",
     city: AUSTIN,
-    player_map: true,
   });
   await move("a", "b", T.moved);
   assert.deepEqual(await readOwnedPlaces(scratch.db, [T.moved]), []);
@@ -285,19 +275,12 @@ test("A verifying the tag again gets back only a place A wrote", async () => {
   assert.equal(back.city, AUSTIN);
 });
 
-test("a row saved before the stamp counts only for a claim verified before it", async () => {
-  // D verified the legacy tag after its row was saved: not D's.
-  assert.deepEqual(await readOwnedPlaces(scratch.db, [T.legacy]), []);
-  // Saved again after D's verification, unstamped (an older page's row):
-  // D's.
-  await scratch.db.query(
-    `update clan_state
-        set body = jsonb_set(body, '{set_at}', to_jsonb(now()::text))
-      where pk = $1`,
-    [`place#${T.legacy}`],
-  );
-  const [row] = await readOwnedPlaces(scratch.db, [T.legacy]);
-  assert.equal(row.city, AUSTIN);
+test("a row with no owner stamp is nobody's place, even under a claim verified before it", async () => {
+  assert.deepEqual(await readOwnedPlaces(scratch.db, [T.unstamped]), []);
+  assert.equal(await socialFor("c").myPlace(await person("c")), null);
+  assert.ok(!(await mapTags("reader")).includes(T.unstamped));
+  assert.ok(!(await playerMapTags("reader")).includes(T.unstamped));
+  assert.equal((await near("c")).place, null);
 });
 
 test("the owned-places read is one statement, by key", async () => {

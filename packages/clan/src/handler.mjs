@@ -360,7 +360,7 @@ export function createHandler({
 
   /** The person's own place for the clan map: read, set, cleared. One
    *  place per person, whichever of their clans they set it from. */
-  async function placeRoute(event, method, path = "/api/me/place") {
+  async function placeRoute(event, method) {
     const session = await loadSession(event);
     if (!session) return signedOut();
     const gated = await gateFor();
@@ -370,13 +370,6 @@ export function createHandler({
     if (!tags.length) return json(403, { error: "gate", reason: "unverified" });
     const person = { tags };
     try {
-      // Join or leave the player map and Near you, the place kept (#768).
-      if (path === "/api/me/place/player-map") {
-        if (method !== "PUT") return json(404, { error: "not_found" });
-        const body = parseBody(event);
-        if (body === null) return json(400, { error: "bad_request" });
-        return json(200, { place: await social.setPlayerMap(person, body) });
-      }
       if (method === "GET")
         return json(200, { place: await social.myPlace(person) });
       if (method === "PUT") {
@@ -967,11 +960,8 @@ export function createHandler({
     if (method === "GET" && path === "/api/roster") return await roster(event);
     if (directory && method === "GET" && path === "/api/directory")
       return await directoryRoute(event);
-    if (
-      social &&
-      (path === "/api/me/place" || path === "/api/me/place/player-map")
-    )
-      return await placeRoute(event, method, path);
+    if (social && path === "/api/me/place")
+      return await placeRoute(event, method);
     return json(404, { error: "not_found" });
   }
 }
