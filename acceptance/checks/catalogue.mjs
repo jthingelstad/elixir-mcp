@@ -424,10 +424,11 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
         // still counts when a bite of this tool carried it, or a bite of
         // a tool that answers with the same section. The rule is about
         // the section (documented and served nowhere), and its live half
-        // already takes any tool's response: battles_opponents points at
-        // battles_query's row section, can never carry `rounds_played`
-        // (a duel counts once on an opponent row), and so passed only
-        // while battles_query's window held a duel (2026-11-14).
+        // already takes any tool's response. Found when battles_opponents
+        // pointed at battles_query's row section, could never carry
+        // `rounds_played` (a duel counts once on an opponent row), and so
+        // passed only while battles_query's window held a duel
+        // (2026-11-14); it has its own section since MCP 13.2.1.
         const sharers = [...bodies.keys()]
           .filter(
             (t) =>

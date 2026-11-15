@@ -175,7 +175,7 @@ export const opponentsTools = {
           "mean_level_gap is your deck's average card level minus the opposing side's over the battles with both recorded (positive: your cards were higher); null when none were, as in a duel. A record is comparable to another's only at a similar gap.",
           "name_known false means no observation ever carried a name for that tag; players_names resolves the ones the corpus knows, players_profile({ live: true }) fetches one.",
         ),
-        docs: docsRef("battles", "what-a-battle-record-holds"),
+        docs: docsRef("battles", "opponents"),
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player_battlelog"], {
           timezone: win.timezone,
           windowTo: win.to,

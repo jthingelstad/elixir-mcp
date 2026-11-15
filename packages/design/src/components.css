@@ -10878,7 +10878,7 @@ h1.kit-post__title {
   justify-content: center;
   gap: var(--s-1);
   width: 100%;
-  max-width: 144px;
+  max-width: 9rem;
   min-width: 0;
   aspect-ratio: 1;
   padding: var(--s-3) 6px;
@@ -10929,6 +10929,9 @@ h1.kit-post__title {
   text-align: center;
   font: 600 var(--t-caption) / 1.12 var(--font);
   overflow-wrap: anywhere;
+  /* A name too long for its mark at a larger text size breaks with a
+     hyphen, not at any letter. */
+  hyphens: auto;
 }
 .kit-stamp__day {
   max-width: 100%;
@@ -10939,7 +10942,7 @@ h1.kit-post__title {
   overflow-wrap: anywhere;
 }
 .kit-stamp--l {
-  max-width: 180px;
+  max-width: 11.25rem;
 }
 .kit-stamp--l > svg {
   width: 44px;
@@ -11055,15 +11058,18 @@ h1.kit-post__title {
 }
 .kit-passport__who {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s-3);
   min-width: 0;
 }
+/* Room for the name before the count: with larger text the count goes
+   under it rather than over the gold mark. */
 .kit-passport__who-main {
   display: grid;
   gap: 2px;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 8rem;
 }
 .kit-passport__who-name {
   font-weight: 600;
@@ -11160,4 +11166,31 @@ h1.kit-post__title {
   min-height: var(--hit);
   color: var(--ink-link);
   font-size: var(--t-body-sm);
+}
+
+/* Text that follows the reader's font size (#1015 tidy, 2026-11-14). The
+   kit's type scale is px, so a larger default font size in the browser
+   moved nothing. Home's profile list, the passport pages, the detail
+   sheet, the compact passport row and the Stamp marks restate the scale
+   they use in rem: the same px at the browser's default 16px, and larger
+   with the reader's setting. Their own text starts from 1rem for the
+   same reason. Spacing and 44px targets stay px. The kit-wide change is
+   written up in docs/notes/2026-11-14-passport-close-out.md. */
+.kit-profile,
+.kit-passport,
+.kit-passport-sheet,
+.kit-passport-row,
+.kit-stamp-tile,
+.kit-stamp {
+  --t-h2: 1.25rem;
+  --t-body: 1rem;
+  --t-body-sm: 0.875rem;
+  --t-caption: 0.75rem;
+  --t-micro: 0.625rem;
+}
+.kit-profile,
+.kit-passport,
+.kit-passport-sheet,
+.kit-passport-row {
+  font-size: 1rem;
 }

@@ -7,6 +7,7 @@ import { createClient } from "../client/index.ts";
 import { trackEvent } from "../analytics.js";
 import { routeLabel } from "./analytics.js";
 import { confirmingRole } from "./lib/role.js";
+import { noteWrite } from "../lib/reconcile-gate.js";
 
 const options = {
   headers: { "x-elixir-client": "web" },
@@ -27,10 +28,12 @@ const post = (path, body) =>
   confirmingRole(() =>
     (SLOW.test(path) ? modelClient : client).post(path, body),
   );
+// A saved place can earn On the Map: it lifts the passport's reconcile
+// gate (lib/passport.js noteWrite).
 const put = (path, body) =>
   confirmingRole(() =>
     (SLOW.test(path) ? modelClient : client).request("PUT", path, body),
-  );
+  ).then((env) => noteWrite("PUT", path, env));
 const del = (path) => confirmingRole(() => client.request("DELETE", path));
 
 /** Where Clan's API answers on Elixir's origin. */

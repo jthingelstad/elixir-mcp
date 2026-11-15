@@ -206,6 +206,34 @@ link. It is not saved on the public page or encoded in its URL; opening the
 link alone shows the recorded game facts. Only words you deliberately type
 join the message, with no private notes or account details added.
 
+## Opponents
+
+`battles_opponents` groups a player's recorded head-to-head battles by
+the player on the other side. It answers "have I met this player before,
+and how did it go" in one call; `battles_query`'s `opponent_tag` then
+lists those battles one by one.
+
+Each row in `opponents` is one opponent:
+
+- `player_tag`, and `name` when the record has ever held one for that
+  tag. `name_known` is false when no recorded battle carried a name;
+  `players_names` resolves the ones the record knows.
+- `battles`, `wins`, `losses` and `draws`: your record against them in
+  the window.
+- `first_seen` and `last_seen`: the first and latest battle with them.
+- `modes`: the game modes you met them in.
+- `clan_tag_last_seen`: their clan at the latest battle, or null.
+- `mean_level_gap`: your deck's average card level minus theirs, over the
+  battles with both recorded; null when none were, as in a duel (see
+  [Reading the numbers](/docs/reading-the-numbers)).
+
+Only head-to-head battles count: a 2v2 teammate is never an opponent, and
+a duel counts once however many rounds it held. `distinct_opponents` is
+how many players you met in the window and `matching_opponents` how many
+passed `min_battles`; `min_battles: 2` keeps only the players you met
+more than once. `sort` orders the rows by battles, latest meeting, wins
+or losses, and `limit` caps them.
+
 ## Mode groups
 
 The `mode` argument on every battle tool takes one of seven groups. Each folds

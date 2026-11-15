@@ -1,10 +1,9 @@
 # Build handoff: Elixir passports and Stamps
 
-Status: slice 1 (catalog, eligibility, storage, the two reads) built 2026-11-14 (#1015); earning (slice 3's hooks, slice 4, and slice 5's bell notices) built 2026-11-14 (#1015, [note](../notes/2026-11-14-passport-stamps-earning.md)); Home's profile list built 2026-11-14 (#1015, [note](../notes/2026-11-14-passport-profile-list.md)); the backfill is built (below); the pages are open.
+Status: slice 1 (catalog, eligibility, storage, the two reads) built 2026-11-14 (#1015); earning (slice 3's hooks, slice 4, and slice 5's bell notices) built 2026-11-14 (#1015, [note](../notes/2026-11-14-passport-stamps-earning.md)); Home's profile list built 2026-11-14 (#1015, [note](../notes/2026-11-14-passport-profile-list.md)); the backfill is built (below); the pages are built. **Launched 2026-11-14** (build f6e5cb51a); the launch backfill ran on 2026-11-14 (47 accounts read, 30 granted). Close-out: [note](../notes/2026-11-14-passport-close-out.md), which audits the acceptance matrix below.
 Implementation is tracked in [#1015](https://github.com/jthingelstad/elixir-mcp/issues/1015).
 Start from [product direction](../product/stamps.md) and the
-[interactive design](../design/passport/README.md). Nothing in this
-handoff has been applied to production. Deployment remains on hold.
+[interactive design](../design/passport/README.md).
 
 ## Accepted direction and proposal
 
@@ -197,8 +196,8 @@ ready” summary is enough. Do not run a live backfill in this design session.
 Built 2026-11-14: migration 0272's launch line, `packages/stamps`
 `legacy.mjs` and `backfill.mjs`, the `{passport_backfill}` op and the
 bell's "Your passport is ready" line
-(`docs/notes/2026-11-14-passport-backfill.md`). Not run against
-production.
+(`docs/notes/2026-11-14-passport-backfill.md`). Run against
+production on 2026-11-14: 47 accounts read, 30 granted.
 
 ## Build slices
 
@@ -247,4 +246,3 @@ if that glyph is retained.
   anonymous aggregates. No achievement leaderboard or engagement score.
 
 Use the repository's current verify/e2e gates and read automated PR review.
-Do not deploy without a new instruction lifting the existing hold.

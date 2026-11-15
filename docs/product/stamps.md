@@ -1,6 +1,6 @@
 # Passports and Stamps
 
-Design direction, 2026-11-14. **Earning, the backfill, the pages and Home's profile list built.**
+Design direction, 2026-11-14. **Launched 2026-11-14** (build f6e5cb51a): earning, the pages and Home's profile list are live, and the launch backfill ran on 2026-11-14 (47 accounts read, 30 granted).
 The catalog, eligibility, storage and two signed-in passport reads exist
 (`packages/stamps`, migrations 0269 and 0270). Real writes grant Stamps
 through hooks, the owner's reconciliation repairs and grants the rest,
