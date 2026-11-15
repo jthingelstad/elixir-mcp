@@ -35,8 +35,7 @@ export async function withPlayerVerifications(db, route, response) {
     /^GET \/api\/clan(?:\/|$)/.test(route) ||
     /^GET \/api\/public\/(battles|highlights)\//.test(route) ||
     route === "POST /api/me/tool" ||
-    route === "POST /api/me/stats" ||
-    route === "POST /api/explore";
+    route === "POST /api/me/stats";
   if (
     !selected ||
     response?.statusCode !== 200 ||

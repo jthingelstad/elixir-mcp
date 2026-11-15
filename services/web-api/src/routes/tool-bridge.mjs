@@ -146,12 +146,6 @@ export function toolBridgeRoutes({ resolveAccount, toolRegistry }) {
   return {
     "POST /api/me/tool": appTool,
 
-    // The old path, answered by the same narrowed handler for a browser
-    // tab loaded before the 2026-11-14 deploy. Remove it in a later pull
-    // request, once no tab can still be holding the old app (pinned by
-    // services/web-api/test/tool-bridge.test.mjs).
-    "POST /api/explore": appTool,
-
     // Stats' own door (2026-11-12): the bridge, for a player the account
     // holds or follows only. Everything from the game stays open to every
     // member on the player page; Stats, the season read back, is yours and
