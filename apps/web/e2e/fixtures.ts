@@ -112,7 +112,10 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
           ? routes["POST /api/me/tool"]
           : url.pathname === "/api/me/refresh"
             ? ([200, QUIET_REFRESH] as const)
-            : undefined);
+            : key === "GET /api/me/home/feed/new"
+              ? // Home's "N new" count: nothing new unless a test says.
+                ([200, { new: 0, built_at: null }] as const)
+              : undefined);
     const [status, body] =
       typeof answer === "function"
         ? answer(route)

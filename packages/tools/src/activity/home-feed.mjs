@@ -216,6 +216,30 @@ async function storedWeek(db, accountId) {
 }
 
 /**
+ * How many of the stored week's items are newer than `sinceMs` (the
+ * newest item the reader's feed shows), and when the week was built: Home's
+ * "N new" pill (2026-11-14). One statement on the account's one row, never
+ * a build and never the record: the five-minute wake keeps the row fresh
+ * for anyone who reads Home, so the count follows the record within FRESH.
+ * Highlights and attested facts are read live by the feed (readHomeWeek),
+ * not stored, so they are not counted here; a highlight shows at the next
+ * read of the feed. Null when the account has no stored week.
+ */
+export async function countHomeNew(db, accountId, sinceMs) {
+  const { rows } = await db.query(
+    `select f.built_at,
+            (select count(*)::int from jsonb_array_elements(f.items) it
+              where coalesce(it->>'sort_at', it->>'at')::timestamptz > $2
+                and it->>'kind' is distinct from 'battle_highlight'
+                and it->>'section' is distinct from 'attested') as fresh
+       from home_feed f where f.account_id = $1`,
+    [accountId, new Date(sinceMs)],
+  );
+  const row = rows[0];
+  return row ? { fresh: row.fresh, builtAt: row.built_at } : null;
+}
+
+/**
  * Home's week for a read: the stored one when it was built for these
  * subjects and this time zone and is no older than SERVE, else built now.
  * `wake(accountId, now)` asks the background for a fresh build when the

@@ -104,6 +104,7 @@ test("every Home route wants a signed-in person", async () => {
     "/api/me/home/clan",
     "/api/me/home/week",
     "/api/me/home/friends",
+    "/api/me/home/feed/new",
   ])
     assert.equal((await call(handler, null, "GET", path)).statusCode, 401);
 });
@@ -1200,6 +1201,61 @@ test("Home's feed serves its stored week until it is past serving, then builds i
   assert.equal(third.total, 2);
   assert.notDeepEqual(third.window, first.window);
   assert.equal(await storedCount(), 2);
+});
+
+test("Home's N new: the stored week's items newer than the newest shown, one statement, nothing built (2026-11-14)", async () => {
+  const id = await person("home-feed-new");
+  const { db } = scratch;
+  const now = Date.now();
+  const at = (minAgo) => new Date(now - minAgo * 60_000).toISOString();
+  const probe = async (since) => {
+    const r = await handler({
+      path: "/api/me/home/feed/new",
+      method: "GET",
+      headers: {
+        cookie: `__Host-elixir_session=${sessions.get(id)}`,
+        "x-elixir-client": "web",
+        "cloudfront-viewer-address": "8.8.4.4:443",
+      },
+      queryStringParameters: { since },
+    });
+    return { status: r.statusCode, body: data(r) };
+  };
+  // No stored week yet: nothing new, and nothing is built.
+  assert.deepEqual(await probe(at(30)), {
+    status: 200,
+    body: { new: 0, built_at: null },
+  });
+  assert.equal(
+    (await db.query("select 1 from home_feed where account_id = $1", [id])).rows
+      .length,
+    0,
+    "the count builds no week",
+  );
+  const items = [
+    // A sitting sorts by its last battle (sort_at), not where it began.
+    { id: "s1", kind: "battle_session", at: at(90), sort_at: at(5) },
+    { id: "m1", kind: "ranked_promotion", at: at(10) },
+    { id: "m0", kind: "ranked_promotion", at: at(40) },
+    // Read live by the feed, never counted from the store.
+    { id: "h1", kind: "battle_highlight", at: at(2) },
+    { id: "f1", kind: "personal_record", section: "attested", at: at(2) },
+  ];
+  await db.query(
+    `insert into home_feed
+       (account_id, window_from, window_to, built_at, build_ms, timezone,
+        subjects_key, items, more)
+     values ($1, $2, $3, $3, 1, 'UTC', 'k', $4::jsonb, 0)`,
+    [id, new Date(now - 7 * 86_400_000), new Date(now), JSON.stringify(items)],
+  );
+  const two = await probe(at(30));
+  assert.equal(two.status, 200);
+  assert.equal(two.body.new, 2, "the sitting and the newer moment");
+  assert.equal(two.body.built_at, new Date(now).toISOString());
+  assert.equal((await probe(at(7))).body.new, 1);
+  assert.equal((await probe(at(5))).body.new, 0, "the newest shown is not new");
+  for (const since of ["", "soon", at(-5), at(60 * 24 * 15)])
+    assert.equal((await probe(since)).status, 400, `since=${since}`);
 });
 
 test("a stored week never outlives who may see a clan's fact: leave the clan and it goes at once (Codex on #818)", async () => {

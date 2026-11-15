@@ -1,5 +1,6 @@
 import { PlayerName } from "@elixir-mcp/ui";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { createPortal } from "react-dom";
 import {
   Avatar,
@@ -16,8 +17,10 @@ import {
 } from "@elixir-mcp/ui";
 import { playerHref } from "../lib/player.js";
 import {
+  reloadHomeFeed,
   useHomeFeed,
   useHomeFeedEvidence,
+  useHomeFeedNew,
   useMyPassport,
 } from "../lib/queries.js";
 import {
@@ -27,6 +30,7 @@ import {
 import {
   FEED_CHIPS,
   feedShown,
+  feedSince,
   modeWord,
   quietFeed,
   shownAt,
@@ -62,6 +66,12 @@ import { PeopleToFollow } from "./People.jsx";
  * New is one more toggle in the same row, not a second row of chips: on, it
  * keeps only what is new since your last visit, under whichever Show chip.
  *
+ * The feed is read when Home opens and when the reader asks, never under
+ * them (2026-11-14): an open Home asks a cheap count once a minute while its
+ * tab is visible, and when new items have arrived an "N new" pill floats
+ * at the feed's top without moving anything. Tapping it reads the first
+ * page again and brings the feed's top into view (NewPill).
+ *
  * A quiet week (#1016) says why from the passport's follow counts (Quiet)
  * and leads to Find. With `suggest`, Home's People to follow moves here,
  * under it, so a phone sees who to follow without scrolling past the side
@@ -90,6 +100,12 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
   const passport = useMyPassport(quiet);
   const shown = feedShown(items, show).filter((it) => !newOnly || isNew(it));
   const more = timeline?.timeline_more ?? 0;
+  const fresh = useHomeFeedNew(query.isSuccess ? feedSince(timeline) : null);
+  const top = useRef(null);
+  const pill =
+    fresh.data > 0 && !query.isFetching ? (
+      <NewPill count={fresh.data} top={top} />
+    ) : null;
   if (query.isPending)
     return (
       <p className="kit-feed__reading" aria-busy="true">
@@ -115,14 +131,17 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
     );
   if (items.length === 0)
     return (
-      <Quiet
-        follows={
-          passport.data?.ok
-            ? (passport.data.data?.owner?.profile?.follows ?? null)
-            : null
-        }
-        suggest={suggest}
-      />
+      <div ref={top} tabIndex={-1} className="kit-feed__top">
+        {pill}
+        <Quiet
+          follows={
+            passport.data?.ok
+              ? (passport.data.data?.owner?.profile?.follows ?? null)
+              : null
+          }
+          suggest={suggest}
+        />
+      </div>
     );
   const days = timelineDays(shown, { day, openedMs });
   // The week's counts, from the first page; what is loaded, if it has none.
@@ -164,7 +183,8 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
     </FeedFilters>
   );
   return (
-    <div className="kit-feed">
+    <div ref={top} tabIndex={-1} className="kit-feed kit-feed__top">
+      {pill}
       {refetchFailed ? (
         // A refetch that failed keeps what was read, and says it may be
         // behind, with a way to try again (Codex on #802).
@@ -257,6 +277,48 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
           ? ` A busy week: the ${total} newest are shown, and ${more.toLocaleString("en-US")} more this week are not.`
           : ""}
       </p>
+    </div>
+  );
+}
+
+/**
+ * "N new" (2026-11-14): floats at the feed's top, taking no room, so the
+ * page under it never moves; sticky, so a reader far down still sees it.
+ * The tap reads the first page again (the pages past it are let go) and
+ * brings the feed's top into view, its focus there for a keyboard.
+ */
+function NewPill({ count, top }) {
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const label = `${count.toLocaleString("en-US")} new`;
+  return (
+    <div className="kit-feed__newpill" role="status">
+      <button
+        type="button"
+        className="kit-newpill"
+        disabled={busy}
+        aria-busy={busy}
+        aria-label={`Show ${count.toLocaleString("en-US")} new ${count === 1 ? "item" : "items"}`}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await reloadHomeFeed(queryClient);
+          } finally {
+            setBusy(false);
+          }
+          const reduce = window.matchMedia?.(
+            "(prefers-reduced-motion: reduce)",
+          ).matches;
+          top.current?.scrollIntoView?.({
+            behavior: reduce ? "auto" : "smooth",
+            block: "start",
+          });
+          top.current?.focus?.({ preventScroll: true });
+        }}
+      >
+        <Icon name="chevron-up" size={16} />
+        {label}
+      </button>
     </div>
   );
 }

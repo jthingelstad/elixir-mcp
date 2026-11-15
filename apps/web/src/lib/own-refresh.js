@@ -11,12 +11,14 @@
  * lane's `retry_after_s`, a few times at most, and never while hidden. Once
  * the reads have landed (and Home's stored week has them, or the attempts
  * run out), your Home, player pages and their games are read again, so the
- * new battle shows without a reload. Nothing here ever blocks a render or
+ * new battle shows without a reload; an open Home's feed is the exception,
+ * whose "N new" pill offers it instead, so nothing moves under the reader. Nothing here ever blocks a render or
  * shows an error: `checking` is the one thing a view reads.
  */
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../api.js";
+import { HOME_FEED_KEY } from "./queries.js";
 
 /** Back after this long hidden: ask again. */
 export const HIDDEN_ASK_MS = 5 * 60_000;
@@ -155,13 +157,25 @@ export function makeOwnRefresh({
   };
 }
 
+/** An open Home's feed is not read again under the reader (2026-11-14):
+ *  its "N new" pill counts what landed (its key is under ["me", "home"],
+ *  so landing asks it now) and the reader taps to see it. A feed nobody is
+ *  looking at is marked stale as before. */
+const notOpenFeed = (q) =>
+  !(
+    q.queryKey.length === HOME_FEED_KEY.length &&
+    HOME_FEED_KEY.every((k, i) => q.queryKey[i] === k) &&
+    q.isActive()
+  );
+
 const byClient = new WeakMap();
 
 function refresherFor(queryClient) {
   let r = byClient.get(queryClient);
   if (!r) {
     r = makeOwnRefresh({
-      invalidate: (queryKey) => queryClient.invalidateQueries({ queryKey }),
+      invalidate: (queryKey) =>
+        queryClient.invalidateQueries({ queryKey, predicate: notOpenFeed }),
     });
     byClient.set(queryClient, r);
   }

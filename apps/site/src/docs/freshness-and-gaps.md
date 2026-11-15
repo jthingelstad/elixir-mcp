@@ -74,8 +74,9 @@ it asks for your own battle log now:
 - when you open your own player page, or a battle you could highlight.
 
 While it waits the chip says "Checking for new battles…". When the read
-lands, usually within a minute, your Home, your player page and its
-battles show the new games without a reload. The chip's time keeps
+lands, usually within a minute, your player page and its battles show
+the new games without a reload. Home's feed doesn't move under you: an
+**N new** button appears over it instead, and a tap shows them. The chip's time keeps
 moving while the page is open.
 
 It asks for your verified players only (your main player first, then

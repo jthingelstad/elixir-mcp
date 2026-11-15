@@ -12,6 +12,7 @@ import {
 import {
   HOME_WEEK_MS,
   buildOnce,
+  countHomeNew,
   feedAfter,
   feedOrder,
   homeAccount,
@@ -976,6 +977,28 @@ export function homeRoutes({
       const cursor = q.cursor ? readCursor(q.cursor) : null;
       if (q.cursor && !cursor) return json(400, { error: "invalid_cursor" });
       return json(200, await readFeed(db, account, cursor, wake));
+    },
+
+    // Home's "N new" pill (2026-11-14): how many of the stored week's
+    // items are newer than the newest one the reader's feed shows. One
+    // statement on the account's row after the session's own, polled by an
+    // open Home while its tab is visible; never a build, never the record.
+    "GET /api/me/home/feed/new": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const since = Date.parse(event.queryStringParameters?.since ?? "");
+      const now = Date.now();
+      if (
+        !Number.isFinite(since) ||
+        since > now + 60_000 ||
+        since < now - 2 * FEED_DAYS_MS
+      )
+        return json(400, { error: "invalid_since" });
+      const row = await countHomeNew(db, account.accountId, since);
+      return json(200, {
+        new: row?.fresh ?? 0,
+        built_at: row ? row.builtAt.toISOString() : null,
+      });
     },
 
     /** Home › Friends: the mail's builder, the mail's week. */

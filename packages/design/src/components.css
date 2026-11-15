@@ -7335,6 +7335,68 @@ button.kit-row {
   color: var(--ink-dim);
 }
 /* More, under the last item: the next thirty of the same week. */
+/* Home's "N new" pill (2026-11-14): sticky at the feed's top and taking
+   no room (no height, and the grid's gap given back), so nothing under it
+   moves when it comes or goes. */
+.kit-feed__top:focus {
+  outline: none;
+}
+.kit-feed__top:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 4px;
+}
+.kit-feed__newpill {
+  position: sticky;
+  top: var(--s-3);
+  z-index: 3;
+  height: 0;
+  margin-bottom: -14px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.kit-feed__top:not(.kit-feed) > .kit-feed__newpill {
+  margin-bottom: 0;
+}
+.kit-newpill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--hit);
+  padding: 0 var(--s-4);
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent-bright);
+  color: var(--ground);
+  font: inherit;
+  font-size: var(--t-body-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow-modal);
+  cursor: pointer;
+}
+.kit-newpill:hover {
+  filter: brightness(1.08);
+}
+.kit-newpill:focus-visible {
+  outline: 2px solid var(--ink-link);
+  outline-offset: 2px;
+}
+.kit-newpill[aria-busy="true"] {
+  opacity: 0.8;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-newpill {
+    animation: kit-newpill-in 160ms ease-out;
+  }
+}
+@keyframes kit-newpill-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
 .kit-feed__more {
   display: flex;
   flex-wrap: wrap;
