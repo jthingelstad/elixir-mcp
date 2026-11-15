@@ -17,7 +17,7 @@
  * night files nothing.
  */
 
-import pg from "pg";
+import { openJobsClient } from "./db.mjs";
 import { gunzipSync } from "node:zlib";
 import {
   PAYLOAD_KEYS,
@@ -49,8 +49,7 @@ export async function shapeCensus(databaseUrl, deps = {}) {
     };
   }
   const now = deps.now ? new Date(deps.now) : new Date();
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "shape_census" });
   const started = Date.now();
   try {
     const {

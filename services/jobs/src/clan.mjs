@@ -2,7 +2,7 @@
  * state and derived facts stay distinct from collector-admitted facts.
  * The record is read in process as Elixir itself; no grant, key or
  * credential is stored or presented. */
-import pg from "pg";
+import { openJobsClient } from "./db.mjs";
 import {
   createPostgresStore,
   createPostgresLedger,
@@ -161,8 +161,7 @@ export async function runClanEvaluation({
   sealingSecret = null,
   outboxBucket = null,
 }) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "clan_evaluate" });
   try {
     // The account Clan's computed facts have always been attested by: the
     // row Clan once wrote through, kept as provenance. Clan is part of

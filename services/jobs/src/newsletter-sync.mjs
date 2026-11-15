@@ -12,12 +12,11 @@
  * approved people it leaves off (opted out, or no address on file). No
  * address leaves the function in its answer or its log.
  */
-import pg from "pg";
+import { openJobsClient } from "./db.mjs";
 import { NEWSLETTER_ENROLL } from "@elixir-mcp/contracts";
 
 export async function newsletterSync(databaseUrl, { dryRun = true, enqueue }) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "newsletter_sync" });
   try {
     const { rows } = await db.query(
       `select email from account

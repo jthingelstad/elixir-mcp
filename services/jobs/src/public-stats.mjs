@@ -1,4 +1,4 @@
-import pg from "pg";
+import { openJobsClient } from "./db.mjs";
 import { refreshPublicStats } from "@elixir-mcp/tools/public-stats";
 
 /**
@@ -32,8 +32,7 @@ export async function refreshInOneSnapshot(db) {
 }
 
 export async function publishPublicStats(databaseUrl) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "public_stats" });
   try {
     const { at, payload, state, fetches_recounted } =
       await refreshInOneSnapshot(db);

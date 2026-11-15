@@ -12,12 +12,12 @@ import { isActiveEmailKind, inactiveEmailReason } from "@elixir-mcp/contracts";
  *  recipient and kind.
  *
  *  A run watches its own clock: with about 90 s
- *  of the Lambda's 900 left it stops taking recipients and says
+ *  of its run's deadline left (services/jobs/src/db.mjs) it stops taking recipients and says
  *  `incomplete`, and the handler fails the invocation so the async
  *  retry (EventInvokeConfig) carries on from where the ledger says it
  *  stopped, instead of every retry restarting from the oldest account
  *  and dying at the same place. */
-import pg from "pg";
+import { openJobsClient } from "../db.mjs";
 import { emailHash } from "@elixir-mcp/auth/crypto";
 import { loadRecipients } from "./ctx.mjs";
 import { lastCollectorWeek } from "./week.mjs";
@@ -45,8 +45,8 @@ export async function runEmail({
   // (path) => whether the card-art mirror holds that file (deliver's
   // cardArt); null draws every card in its own form.
   cardArt = null,
-  // () => ms left in this invocation (the Lambda context's
-  // getRemainingTimeInMillis); null runs to the end.
+  // () => ms left before this run's deadline (db.mjs runRemainingMs);
+  // null runs to the end.
   remainingMs = null,
 }) {
   if (!isActiveEmailKind(kind))
@@ -54,8 +54,7 @@ export async function runEmail({
   const started = Date.now();
   const own = !db;
   if (own) {
-    db = new pg.Client({ connectionString: databaseUrl });
-    await db.connect();
+    db = await openJobsClient(databaseUrl, { op: "email" });
   }
   const result = {
     kind,

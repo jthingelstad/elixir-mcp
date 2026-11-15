@@ -14,7 +14,7 @@
  * battles it covers. The console's Efficiency page reads the table.
  */
 
-import pg from "pg";
+import { openJobsClient } from "./db.mjs";
 
 const DAY = 86_400_000;
 
@@ -165,8 +165,7 @@ export async function captureEfficiency(
   { now = new Date(), days = 3 } = {},
 ) {
   const started = Date.now();
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const db = await openJobsClient(databaseUrl, { op: "capture_efficiency" });
   try {
     const out = { days: [], ms: 0 };
     const today = Date.parse(utcDay(now) + "T00:00:00Z");

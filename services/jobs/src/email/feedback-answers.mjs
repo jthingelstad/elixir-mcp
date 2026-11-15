@@ -16,7 +16,7 @@
  *  issue (the item and the instant it was answered), so a retry after an
  *  enqueue that was not marked finds it already sent and only marks it.
  *  The jobs function has concurrency one. */
-import pg from "pg";
+import { openJobsClient } from "../db.mjs";
 import { upsertIssue } from "@elixir-mcp/mail/ledger";
 import { deliver } from "@elixir-mcp/mail/deliver";
 import { MAIL_PATHS } from "@elixir-mcp/mail/paths";
@@ -75,8 +75,7 @@ export async function runFeedbackAnswers({
 }) {
   const own = !db;
   if (own) {
-    db = new pg.Client({ connectionString: databaseUrl });
-    await db.connect();
+    db = await openJobsClient(databaseUrl, { op: "feedback_answers" });
   }
   const result = { sent: 0, skipped: 0, details: [] };
   try {
