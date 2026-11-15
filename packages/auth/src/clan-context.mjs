@@ -315,22 +315,17 @@ const ownClaim = (c) => `${c}.status = 'verified'
  * A place belongs to the claim that wrote it (2026-11-14). A place is the
  * personal data of the person who picked it, stored under a player tag;
  * when the tag's verified claim moves to another account, or ends and is
- * verified again, the row stays behind. It counts for a claim only when
- * that claim's account wrote it: the row's `account_id` stamp (every save
- * since 2026-11-14) equals the claim's account; a row saved before the
- * stamp counts only when written at or after the claim was verified, so
- * an older owner's place never passes to the tag's next holder. A row
- * that fails is no place, for every reader: the owner's own view and the
- * picker, the clan map, the player map and Near you.
+ * verified again, the row stays behind. Every place row carries its
+ * writer's account (`account_id`, stamped on every save; 0276 stamped the
+ * older rows and deleted the orphans), and it counts for a claim only
+ * when that stamp is the claim's account, so an older owner's place never
+ * passes to the tag's next holder. A row that fails is no place, for
+ * every reader: the owner's own view and the picker, the clan map, the
+ * player map and Near you.
  * `s` is the clan_state row, `c` the claim it is read under.
  */
-const placeOwnedBy = (
-  s,
-  c,
-) => `(${s}.body ->> 'account_id' = ${c}.account_id::text
-    or (${s}.body ->> 'account_id' is null
-        and (${c}.verified_at is null
-             or (${s}.body ->> 'set_at')::timestamptz >= ${c}.verified_at)))`;
+const placeOwnedBy = (s, c) =>
+  `${s}.body ->> 'account_id' = ${c}.account_id::text`;
 
 // One statement for a list of tags, each read by its key in the list's
 // order (as the ledger's getMany): the place under the tag's verified own
@@ -374,21 +369,24 @@ export const PLAYER_MAP_LIMIT = 1000;
 export const NEAR_YOU_LIMIT = 50;
 
 /**
- * The people on the player map: a person's place (`place#<tag>`, written
- * under each of their verified tags by Clan's social service) counts only
- * when its owner chose the player map (`player_map: true`; an older place
- * has no such key and stays on clan maps only), only under a tag that is
- * still a verified own claim (primary or alt) of an approved person, and
- * only when that claim wrote it (`placeOwnedBy`), so a tag that moved to
- * another account never carries the old owner's place. One
+ * The people on the player map: everyone who has set a place
+ * (`place#<tag>`, written under each of their verified tags by Clan's
+ * social service; Jamie, 2026-11-15: a place is a place, shown
+ * everywhere), counted only under a tag that is still a verified own
+ * claim (primary or alt) of an approved person, and only when that claim
+ * wrote it (`placeOwnedBy`), so a tag that moved to another account never
+ * carries the old owner's place. One
  * row per account: its primary player when verified, else its earliest
  * verified alt, so a person's players are never shown side by side.
  *
- * The pattern and the player_map test are word for word the predicate of
- * the partial index `clan_state_player_map` (0275), so the ledger is never
+ * The pattern is word for word the predicate of the partial index
+ * `clan_state_place` (0276), so the ledger is never
  * scanned whole (services/migrate/test/player-map-plan.test.mjs). `where`
  * narrows the places (Near you: a country and region) inside the
- * DISTINCT ON, where the index can serve it.
+ * DISTINCT ON, where the index can serve it. Each place then finds its
+ * tag's one verified claim by key (claim_one_verified_per_tag; the
+ * LATERAL's limit keeps it a lookup), never by hashing the claim table
+ * whole on the owner stamp.
  */
 const onMap = (where = "true") => `
   select distinct on (c.account_id) c.account_id, c.player_tag,
@@ -396,14 +394,17 @@ const onMap = (where = "true") => `
          s.body ->> 'region' as region,
          s.body ->> 'city' as city
     from clan_state s
-    join claim c on c.player_tag = s.body ->> 'player_tag'
-                and ${ownClaim("c")}
+    cross join lateral (
+      select c.account_id, c.player_tag, c.is_primary, c.verified_at
+        from claim c
+       where c.player_tag = s.body ->> 'player_tag'
+         and ${ownClaim("c")}
+         and s.pk = 'place#' || c.player_tag
+         and ${placeOwnedBy("s", "c")}
+       limit 1) c
     join account a on a.account_id = c.account_id
                   and a.kind = 'person' and a.status = 'approved'
    where s.pk ~ '^place##[0289PYLQGRJCUV]{3,12}$'
-     and s.body ->> 'player_map' = 'true'
-     and s.pk = 'place#' || c.player_tag
-     and ${placeOwnedBy("s", "c")}
      and ${where}
    order by c.account_id, c.is_primary desc, c.verified_at nulls last,
             c.player_tag`;
@@ -437,8 +438,7 @@ with reader as (${READER}),
 mine as (
   select s.body ->> 'country' as country,
          coalesce(s.body ->> 'region', '') as region,
-         s.body ->> 'city' as city,
-         s.body ->> 'player_map' = 'true' as on_map
+         s.body ->> 'city' as city
     from reader
     join claim c on c.account_id = reader.account_id
                 and ${ownClaim("c")}
@@ -448,7 +448,7 @@ mine as (
    limit 1
 )
 select mine.country as my_country, nullif(mine.region, '') as my_region,
-       mine.city as my_city, mine.on_map as my_on_map,
+       mine.city as my_city,
        n.player_tag, n.name, n.country, n.region, n.city
   from reader, mine
   left join lateral (
@@ -479,7 +479,7 @@ const placeCodes = (country, region, city) => ({
 });
 
 /**
- * The player map (#768): everyone who chose it, for a signed-in, approved
+ * The player map (#768): everyone who has set a place, for a signed-in, approved
  * person. Each entry is a player's game name and tag, `you` for the
  * reader's own, and the place codes; never an account, a nickname or
  * anything finer than the picked place. `{ refused: "not_a_person" }` for
@@ -507,8 +507,7 @@ export async function readPlayerMap(db, account) {
  * Near you (#768): the reader's own place and the people on the player map
  * in its country and region (a country with no regions: the country), up
  * to NEAR_YOU_LIMIT, the reader's city first, then by name. `{ place:
- * null }` when the reader has set no place. `place.on_map` says whether
- * the reader's own place is on the player map.
+ * null }` when the reader has set no place.
  */
 export async function readNearYou(db, account) {
   if (account?.kind !== "person" || !account.accountId)
@@ -527,10 +526,7 @@ export async function readNearYou(db, account) {
       place: placeCodes(r.country, r.region, r.city),
     }));
   return {
-    place: {
-      ...placeCodes(first.my_country, first.my_region, first.my_city),
-      on_map: first.my_on_map === true,
-    },
+    place: placeCodes(first.my_country, first.my_region, first.my_city),
     people: people.slice(0, NEAR_YOU_LIMIT),
     truncated: people.length > NEAR_YOU_LIMIT,
   };

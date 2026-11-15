@@ -170,6 +170,44 @@ test("one place per person: written under each verified tag, shown in each of th
   assert.ok(h.ledger.items.has(`place#${alt.player_tag}`));
 });
 
+test("a place is a place: every row carries its owner and the time, and no choice of who sees it (2026-11-15)", async () => {
+  const h = harness();
+  const alt = player({
+    player_tag: "#0JQ0JQ8",
+    name: "Ada alt",
+    relationship: "alt",
+    is_primary: false,
+  });
+  h.record.state.players = [ADA, alt];
+  const { sessionCookie } = await signIn(h);
+  const send = (method, path, body) =>
+    h.handler(
+      req(method, path, {
+        cookies: cookieHeader(sessionCookie),
+        body: body === undefined ? undefined : JSON.stringify(body),
+      }),
+    );
+  // A choice an older page still sends is ignored, never stored.
+  const r = await send("PUT", "/api/me/place", {
+    country: "US",
+    region: "TX",
+    player_map: false,
+  });
+  assert.equal(r.statusCode, 200, r.body);
+  assert.equal("player_map" in JSON.parse(r.body).place, false);
+  for (const tag of [ADA.player_tag, alt.player_tag]) {
+    const row = h.ledger.items.get(`place#${tag}`);
+    assert.equal(row.account_id, "test-person", tag);
+    assert.equal(row.set_at, "2026-09-26T12:00:00.000Z", tag);
+    assert.equal("player_map" in row, false, tag);
+  }
+  // The old join and leave route is gone.
+  const gone = await send("PUT", "/api/me/place/player-map", {
+    player_map: true,
+  });
+  assert.equal(gone.statusCode, 404);
+});
+
 test("a place is the person's: a verified player with no clan sets one; an unverified one is refused", async () => {
   // Home's map step and Settings › Profile set it with no clan page
   // (2026-11-14): the route asks for a verified player, never a clan.

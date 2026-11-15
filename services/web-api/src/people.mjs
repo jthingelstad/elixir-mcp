@@ -555,9 +555,7 @@ export async function hideStarter(db, accountId) {
  * is one region), each as the player they verified, with why as a fact
  * ("Plays near you, in <their city, else region>") and what following
  * costs. Never ranked: the reader's city first, then by name. Only for a
- * reader who has set a place; `place: null` otherwise. `place.on_map` says
- * whether the reader's own place is on the player map, for the page's
- * invitation to join it.
+ * reader who has set a place; `place: null` otherwise.
  */
 export async function nearPeople(db, accountId) {
   const got = await readNearYou(db, { accountId, kind: "person" });
@@ -584,7 +582,6 @@ export async function nearPeople(db, accountId) {
     place: {
       name: placeName(mine),
       region_name: mine.region_name ?? mine.country_name,
-      on_map: got.place.on_map,
     },
     people: listed.map((p) => ({ ...p, ...costs.get(p.tag) })),
     truncated: got.truncated,
@@ -594,7 +591,7 @@ export async function nearPeople(db, accountId) {
 }
 
 /**
- * The player map (#768): everyone who chose it, each a pin at their
+ * The player map (#768): everyone who has set a place, each a pin at their
  * picked place as the clan map draws it (the place's own point and time
  * zone), with their verified player's game name and tag; `you` marks the
  * reader's own.
