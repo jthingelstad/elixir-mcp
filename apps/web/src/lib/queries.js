@@ -381,7 +381,46 @@ export const useHomeFeed = () =>
     initialPageParam: null,
     getNextPageParam: (last) => last?.next ?? undefined,
     retry: false,
+    // Nothing moves under the reader (2026-11-14): coming back to the tab
+    // asks the pill's cheap count instead (useHomeFeedNew), and the feed is
+    // read again when the reader taps it.
+    refetchOnWindowFocus: false,
   });
+
+/** How often an open Home asks whether its feed has new items. */
+export const FEED_NEW_POLL_MS = 60_000;
+export const HOME_FEED_NEW_KEY = ["me", "home", "feed-new"];
+
+/** Home's "N new" pill (2026-11-14): how many items the stored week holds
+ *  newer than `since`, the newest one the feed shows. One cheap read a
+ *  minute while Home is open, and when the tab comes back; TanStack holds
+ *  the interval while the tab is hidden (refetchIntervalInBackground is
+ *  off). A failed count is no pill, never an error. */
+export const useHomeFeedNew = (since) =>
+  useQuery({
+    queryKey: [...HOME_FEED_NEW_KEY, since],
+    queryFn: async () => {
+      const r = await api.homeFeedNew(since);
+      return r.ok ? (r.data?.new ?? 0) : 0;
+    },
+    enabled: Boolean(since),
+    staleTime: 30_000,
+    refetchInterval: FEED_NEW_POLL_MS,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    retry: false,
+  });
+
+/** Read Home's feed again from its first page, as the pill's tap asks:
+ *  the pages past the first are let go, so the read is one page. */
+export async function reloadHomeFeed(queryClient) {
+  queryClient.setQueryData(HOME_FEED_KEY, (old) =>
+    old?.pages?.length > 1
+      ? { pages: old.pages.slice(0, 1), pageParams: old.pageParams.slice(0, 1) }
+      : old,
+  );
+  await queryClient.refetchQueries({ queryKey: HOME_FEED_KEY, exact: true });
+}
 
 /** One of Home's items' evidence (View games, View crossing). */
 export const useHomeFeedEvidence = (params) =>

@@ -111,7 +111,11 @@ is one feed", "The left rail stays only in Settings"]
    one mode at a time; "No battle recorded this week", never that
    someone did not play. [Jamie, 2026-11-05, Q6, A34; standing]
 9. **The feed's place is its own.** Opening Home clears New and changes
-   nothing an agent has read. [Jamie, 2026-10-20]
+   nothing an agent has read. [Jamie, 2026-10-20] Nothing moves under the
+   reader: an open feed is read again only when they ask, and an "N new"
+   pill says when newer items have arrived, from a cheap count polled
+   while the tab is visible. [Jamie, 2026-11-14, the feedback close-out;
+   `docs/notes/2026-11-14-home-new-pill.md`]
 10. **The first steps finish for good.** "Your profile, N of 6 done"
     (the six steps of docs/product/stamps.md's profile list, which
     replaced the four-step welcome on 2026-11-14) shows one next step

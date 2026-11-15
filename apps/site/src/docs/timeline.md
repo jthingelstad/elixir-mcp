@@ -64,6 +64,15 @@ loaded. If the feed doesn't load (the read took too long or the connection
 dropped), it says so and offers **Try again**. It never asks again on its own,
 and the panels beside it read on regardless.
 
+Nothing in the feed moves while you read it. While Home is open and on
+screen, Elixir checks about once a minute (and when you come back to the
+tab) whether your kept week has anything newer than the top of your feed.
+When it does, a small **N new** button appears over the top of the feed,
+staying in view as you scroll. Tap it to read the newest page again and
+jump back to the top. Nothing is checked while the tab is hidden. A new
+highlight isn't counted by the button; it shows the next time the feed is
+read.
+
 When your week has nothing in it, Home says why as far as Elixir knows:
 the players you follow have been quiet (none of them played a battle in
 the last 7 days), Elixir is still catching up on some of them, or you
