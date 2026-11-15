@@ -78,7 +78,7 @@ export function initialsOf(name: string): string {
 /**
  * The account menu, under the bar's account button (canvas 2026-09-29):
  * who you are, your players, the account's own pages, and the way out.
- * What lives here left the Console's rail, which carries structure and
+ * What lives here left the app's rail, which carries structure and
  * never the reader's own things.
  *
  * A disclosure, not an ARIA menu: it holds links and one button, and a

@@ -2,7 +2,7 @@
  * A battle's public link (2026-10-01, Jamie: "Public yes"). A battle_id
  * is a sha256 (64 hex), and its page lives at /battle/<short id>: the
  * id's first 12 characters, longer only when another recorded battle
- * shares them. The link is what mail, Ladder, Clan, the console and an
+ * shares them. The link is what mail, Stats, Clan, the app and an
  * agent hand a person for one battle; `/battle/<short id>.png` is its
  * share picture.
  */

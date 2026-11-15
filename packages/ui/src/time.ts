@@ -443,7 +443,7 @@ export function seasonWeek(
 /** The browser's own IANA zone ("America/Chicago"), or null when it
  *  will not say. The battle page's clock when nobody is signed in; the
  *  zone a signup sends, which a NEW account opens on (Jamie,
- *  2026-10-08); and the zone the Console offers to set when an account
+ *  2026-10-08); and the zone the app offers to set when an account
  *  has none. Never a silent default for an existing account, whose zone
  *  is the one it has (UTC while it has none). */
 export function browserZone(): string | null {

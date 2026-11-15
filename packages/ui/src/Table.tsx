@@ -44,7 +44,7 @@ export interface TableGroup<R> {
  * - "cards" (default): each row is a block, its lead cell the title and the
  *   rest label and value. The header stays for a screen reader.
  * - "fit": the columns stay and tighten, for a few short columns. A page's
- *   own rules may finish the job (Ladder's decks).
+ *   own rules may finish the job (Clan's awards race).
  * - "scroll": sideways inside its own box. Admin only: Admin is unchanged.
  */
 export function Table<R>({

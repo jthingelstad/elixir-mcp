@@ -90,7 +90,7 @@ async function latestTrophies(db, tag) {
 }
 
 /** The reader and this player: theirs, followed, or a member of the reader's
- *  home clan (which door Ladder and Clan are on the page). */
+ *  home clan (which door Stats and Clan are on the page). */
 async function readerSide(db, accountId, tag, clanTag) {
   const { rows } = await db.query(
     `select is_primary, relationship from claim

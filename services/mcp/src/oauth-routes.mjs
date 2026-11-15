@@ -1188,7 +1188,7 @@ export function makeOauthRoutes({
         if (opened) {
           // After proof only, as the website sends it; a courtesy-mail
           // outage must not undo the sign-in. No onboarding here: this
-          // door asks for no player tag, and the first Console sign-in
+          // door asks for no player tag, and the first app sign-in
           // (onboardAccount) lands a tagless account on Tracking.
           await sendWelcomeEmail({
             email: ctx.signup_email,

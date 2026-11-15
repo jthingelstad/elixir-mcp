@@ -41,8 +41,8 @@ const AVATAR_WRITES_PER_HOUR = 60;
 
 /** An audit row the daily tool-call limiter charged (`mcpday#`,
  *  packages/tools/quota.mjs): every call at /mcp. Not `GET /api/v1/me` (`rest`,
- *  metered on its own) and nothing on the web surface: the Console's and
- *  Ladder's own reads (#538, Jamie 2026-10-12) spend no daily tool-call
+ *  metered on its own) and nothing on the web surface: the app's and
+ *  Stats' own reads (#538, Jamie 2026-10-12) spend no daily tool-call
  *  budget. Clan's reads are in process and leave no call row at all
  *  (2026-11-13). */
 const CHARGED = `coalesce(surface, '') not in ('rest', 'web')`;
@@ -350,7 +350,7 @@ export function accountRoutes({
       // "timeline should be independent of what agents have seen via
       // MCP" (Jamie, 2026-10-20). An agent's mark_read leaves this dot
       // lit; meta.timeline_pending (packages/tools shared.mjs) is the
-      // agents' count and never reads the Console's place.
+      // agents' count and never reads the app's place.
       const { rows: sig } = await db.query(
         `select
            (select count(*)::int from oauth_family f
@@ -881,9 +881,9 @@ export function accountRoutes({
       // Fourteen days, because the page draws them as a bar per day and
       // a week is too short a run to see a shape in.
       // Only what the daily limiter charges counts (CHARGED, above): the
-      // log also holds the Console's, Ladder's and Clan's own reads and
+      // log also holds the app's, Stats' and Clan's own reads and
       // `GET /api/v1/me` calls, which spend no tool-call budget. web_calls is the
-      // Console's and Ladder's reads, counted apart and never charged, so
+      // app's and Stats' reads, counted apart and never charged, so
       // the page can show them without counting them against the day.
       const { rows: days } = await db.query(
         `select (created_at at time zone 'UTC')::date::text as day,
@@ -975,7 +975,7 @@ export function accountRoutes({
         // leaving somebody to wonder why their own usage looks bigger than
         // their own usage.
         agent_calls_today: days.find((d) => d.day === today)?.agent_calls ?? 0,
-        // The Console's and Ladder's own reads today: the same tools, but
+        // The app's and Stats' own reads today: the same tools, but
         // not counted against the daily budget (docs/limits, #538).
         web_calls_today: days.find((d) => d.day === today)?.web_calls ?? 0,
         live_today: live[0]?.count ?? 0,
@@ -1023,7 +1023,7 @@ export function accountRoutes({
     "GET /api/me/timeline": async (db, event) => {
       // The Timeline page: the last seven days for this account's subjects,
       // synthesized exactly as elixir_timeline would. Reading here moves
-      // nothing. seen_to is the Console's own place (0228) as it stood
+      // nothing. seen_to is the app's own place (0228) as it stood
       // before this read, for the page's "New since your last visit"
       // divider; the page moves it with POST /api/me/timeline/seen. The
       // agents' read pointers (activity_seen_at, timeline_reader) are
@@ -1112,7 +1112,7 @@ export function accountRoutes({
     },
 
     "POST /api/me/timeline/seen": async (db, event, body) => {
-      // The Console showed this account's Timeline through `to` (the
+      // The app showed this account's Timeline through `to` (the
       // window end GET /api/me/timeline served): its own place moves
       // there, forward only, and the rail's dot counts from it. On an
       // agent's console it is the agent's row, moved by its owner. Never

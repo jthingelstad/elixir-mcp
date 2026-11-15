@@ -490,7 +490,7 @@ async function relatedTo(db, feedbackId, accountId = null) {
 }
 
 /** Answers delivered to the filer, wherever they read them: the MCP page,
- *  the Console's item, Clan's sheet. Only answered items move. */
+ *  the app's item, Clan's sheet. Only answered items move. */
 export async function markSeen(db, accountId, ids) {
   const list = (ids ?? []).map(String).filter((id) => /^\d+$/.test(id));
   if (!list.length) return 0;

@@ -4,12 +4,12 @@
  * Elixir says what happened; this sets one stretch of a player's own
  * record beside another, in one mode, and stops there. Two readings:
  *
- *  - the week: one game week against the four before it (Ladder's
+ *  - the week: one game week against the four before it (Stats'
  *    "This week vs your last 4" strip, and the line in Tuesday's Arena
  *    mail);
  *  - the deck change: the season before and since the first battle on
- *    the deck the player has played most this season (Ladder);
- *  - the season: the season beside the one before it (Ladder, Jamie
+ *    the deck the player has played most this season (Stats);
+ *  - the season: the season beside the one before it (Stats, Jamie
  *    2026-10-20), a running one also beside last season to the same
  *    point; each side is shaped alone (seasonSide), under the same
  *    minimum.
@@ -21,7 +21,7 @@
  * FORM_MIN_BATTLES is too few to set beside another, and then nothing
  * is shown. No verdict, no score, no "better" (docs/DECISIONS.md).
  *
- * Pure and browser-safe: the Ladder page and the jobs Lambda's mail
+ * Pure and browser-safe: the Stats page and the jobs Lambda's mail
  * builder both import it, so the windows, the minimum and the shape
  * are one function, not two.
  */

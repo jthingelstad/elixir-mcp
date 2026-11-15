@@ -2,7 +2,7 @@ import { playerHref } from "../../lib/player.js";
 
 /**
  * Where Clan lives on Elixir's origin (one origin, 2026-09-28):
- * the site and docs own the root, the Console /console, and Clan this
+ * the site and docs own the root, the app /home and /settings, and Clan this
  * prefix. Every Clan path is written with it, explicitly, rather than
  * through a router basepath: the kit's Link renders `to` as the href
  * verbatim, so a path without the prefix would be a broken link the

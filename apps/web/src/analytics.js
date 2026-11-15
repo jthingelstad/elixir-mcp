@@ -222,8 +222,8 @@ function documentReferrer() {
  * view and its beacon waits until the view settles: the reader's first
  * pointer or key press, the next navigation, the page going away, or
  * SETTLE_MS. A history REPLACE while the view is still open is the app
- * redirecting it (a clan's own address to its Actions, an old Console path to
- * its new one, an email's report link to feedback), so it moves the open
+ * redirecting it (a clan's own address to its Actions, an email's report
+ * link to feedback), so it moves the open
  * view's address and is never a second count: a document's view was already
  * counted by the embed or by its landing beacon, which waits like any other.
  * A replace after the view settled is the reader going somewhere, a new view,

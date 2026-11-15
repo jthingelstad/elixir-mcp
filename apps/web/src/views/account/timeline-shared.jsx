@@ -8,7 +8,7 @@ import { useScope } from "../../lib/scope.js";
  * What both Timeline pages share: the place a visit opens from, and one item's
  * recorded evidence.
  *
- * The Console keeps its own place in the feed (Jamie, 2026-10-20: "timeline
+ * The app keeps its own place in the feed (Jamie, 2026-10-20: "timeline
  * should be independent of what agents have seen via MCP"). Showing the page
  * moves that place to the window it showed; "new" is drawn from the place as
  * it stood when the page opened, so it holds still while the place moves

@@ -559,7 +559,7 @@ export const useMyHighlights = (battle, enabled = true) =>
     enabled: enabled && Boolean(battle),
   });
 
-/** Move the Console's place in the timeline to the window end the page
+/** Move the app's place in the timeline to the window end the page
  *  showed (Jamie, 2026-10-20: independent of what agents have read via
  *  MCP). The page's own copy takes the new place, so a return visit
  *  opens from it, and the scope's `me` refetches so the rail's dot

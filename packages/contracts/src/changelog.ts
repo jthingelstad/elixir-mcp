@@ -16,5 +16,5 @@ export type { ChangelogEntry } from "./changelog-entry.js";
 
 // Already newest first: the build lists the files that way. A sort here
 // would read as a side effect to a bundler and pull every version into
-// bundles that never show the changelog (the Console's).
+// bundles that never show the changelog (the app's).
 export const CHANGELOG: ChangelogEntry[] = CHANGES;
