@@ -4,7 +4,10 @@
   "ignoreExportsUsedInFile": true,
   "workspaces": {
     ".": {
-      "entry": ["infra/scripts/*.mjs"],
+      "entry": [
+        "infra/scripts/*.mjs",
+        "infra/scripts/lib/every-file-reported.mjs"
+      ],
       "project": ["infra/scripts/**/*.mjs"]
     },
     "apps/site": {
