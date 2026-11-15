@@ -342,7 +342,7 @@ test.describe("another member's passport", () => {
   }) => {
     const asked: string[] = [];
     page.on("request", (r) => asked.push(new URL(r.url()).pathname));
-    await open(page, `/home/passport/${THEIRS}`);
+    await open(page, `/home/account/${THEIRS}/passport`);
     await expect(
       page.getByRole("heading", { level: 1, name: "Ada’s passport" }),
     ).toBeVisible();
@@ -369,7 +369,7 @@ test.describe("another member's passport", () => {
   test("a lapsed proof: Player verified stays, the gold goes", async ({
     page,
   }) => {
-    await open(page, `/home/passport/${THEIRS}`, {
+    await open(page, `/home/account/${THEIRS}/passport`, {
       [`GET /api/passports/${THEIRS}`]: [200, LAPSED_PASSPORT],
     });
     await expect(who(page).getByText("Player not verified")).toBeVisible();
@@ -384,7 +384,7 @@ test.describe("another member's passport", () => {
   test("an account with no player: the account icon and New player", async ({
     page,
   }) => {
-    await open(page, `/home/passport/${THEIRS}`, {
+    await open(page, `/home/account/${THEIRS}/passport`, {
       [`GET /api/passports/${THEIRS}`]: [200, NEW_PASSPORT],
     });
     await expect(who(page).getByText("New player")).toBeVisible();
@@ -397,7 +397,7 @@ test.describe("another member's passport", () => {
   test("a mistyped id is no passport, with the way to yours", async ({
     page,
   }) => {
-    await open(page, "/home/passport/zzzzzzzzzzzz", {});
+    await open(page, "/home/account/zzzzzzzzzzzz/passport", {});
     await expect(page.getByText("No passport at this address")).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Open your passport" }),
@@ -449,7 +449,7 @@ test.describe("the ways in", () => {
     await expect(row.getByText("3 Stamps")).toBeVisible();
     await expect(
       row.getByRole("link", { name: "Open passport" }),
-    ).toHaveAttribute("href", `/home/passport/${THEIRS}`);
+    ).toHaveAttribute("href", `/home/account/${THEIRS}/passport`);
     await expect(row.locator(".kit-stamp-mini")).toHaveCount(2);
     await expect(
       page.getByRole("tablist", { name: "Player" }),

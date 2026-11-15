@@ -137,5 +137,8 @@ export {
   PlayerOption,
   VerifiedMark,
   usePlayerVerified,
+  usePlayerClaimed,
+  PLAYER_STATE_LABEL,
+  type PlayerState,
   type PlayerVerifications,
 } from "./PlayerIdentity.tsx";

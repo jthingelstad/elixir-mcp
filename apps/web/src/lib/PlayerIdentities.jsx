@@ -7,7 +7,8 @@ import { PlayerIdentityProvider } from "@elixir-mcp/ui";
  * Reads carry the metadata, so avatars never start their own HTTP requests. */
 function proofs(data, into) {
   if (!data || typeof data !== "object") return;
-  Object.assign(into, data.player_verifications);
+  Object.assign(into.players, data.player_verifications);
+  Object.assign(into.claims, data.player_claims);
   for (const key of ["data", "body", "pages"]) {
     const child = data[key];
     if (Array.isArray(child)) child.forEach((page) => proofs(page, into));
@@ -19,7 +20,7 @@ function proofStore(client) {
   let snapshot;
   const read = () => {
     if (!snapshot) {
-      const next = {};
+      const next = { players: {}, claims: {} };
       cache
         .getAll()
         .slice()
@@ -47,9 +48,13 @@ function proofStore(client) {
 export function PlayerIdentities({ children }) {
   const client = useQueryClient();
   const store = useMemo(() => proofStore(client), [client]);
-  const players = useSyncExternalStore(store.subscribe, store.read, store.read);
+  const { players, claims } = useSyncExternalStore(
+    store.subscribe,
+    store.read,
+    store.read,
+  );
   return (
-    <PlayerIdentityProvider players={players}>
+    <PlayerIdentityProvider players={players} claims={claims}>
       {children}
     </PlayerIdentityProvider>
   );

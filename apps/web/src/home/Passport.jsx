@@ -22,6 +22,7 @@ import { STAMPS, stampById } from "@elixir-mcp/stamps/catalog";
 import { useNav } from "../App.jsx";
 import { SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
+import { accountHref } from "../lib/account.js";
 import {
   GROUPS,
   PASSPORT,
@@ -38,8 +39,8 @@ import {
 } from "../lib/queries.js";
 
 /**
- * A passport (#1015): /home/passport is yours, /home/passport/<id> anyone's,
- * for a signed-in member. Both draw the public projection; yours adds each
+ * A passport (#1015): /home/passport is yours, /home/account/<id>/passport
+ * anyone's, under their account page (2026-11-15), for a signed-in member. Both draw the public projection; yours adds each
  * Stamp's exact progress and where to earn it, which only you see. Another
  * member's shows what was earned and when, and the rules, never progress,
  * a setting or a way onto a clan map.
@@ -168,6 +169,13 @@ function PassportView({ data, owner, yours, stampId }) {
           </Link>
         </p>
       ) : null}
+      {owner || !p.id ? null : (
+        <p className="kit-passport__foot">
+          <Link className="link" to={accountHref(p.id)}>
+            Open their account
+          </Link>
+        </p>
+      )}
       <Who passport={p} owner={owner} count={earned.size} />
       {earned.size === 0 ? (
         <p className="kit-passport__foot">

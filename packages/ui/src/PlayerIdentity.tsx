@@ -3,21 +3,46 @@ import { createContext, useContext, type ReactNode } from "react";
 
 export type PlayerVerifications = Readonly<Record<string, boolean>>;
 const Proof = createContext<PlayerVerifications>({});
+const Claims = createContext<PlayerVerifications>({});
 
-/** Explicit proof from the current website response, never inferred from art. */
+/** A player's state (2026-11-15): Verified (an account proved it is this
+ *  player; nobody else can claim it), Claimed (an account says it is and
+ *  has not verified it) or Imported (followed, so Elixir records it). */
+export type PlayerState = "verified" | "claimed" | "imported";
+
+/** Explicit proof and claims from the current website response, never
+ *  inferred from art. */
 export function PlayerIdentityProvider({
   players,
+  claims = {},
   children,
 }: {
   players: PlayerVerifications;
+  claims?: PlayerVerifications;
   children: ReactNode;
 }) {
-  return <Proof.Provider value={players}>{children}</Proof.Provider>;
+  return (
+    <Proof.Provider value={players}>
+      <Claims.Provider value={claims}>{children}</Claims.Provider>
+    </Proof.Provider>
+  );
 }
 export function usePlayerVerified(tag?: string | null) {
   const players = useContext(Proof);
   return Boolean(tag && players[tag] === true);
 }
+/** Claimed and not verified, as the newest response said. */
+export function usePlayerClaimed(tag?: string | null) {
+  const claims = useContext(Claims);
+  const verified = usePlayerVerified(tag);
+  return Boolean(tag && !verified && claims[tag] === true);
+}
+/** The words for each state, as the player page and the docs say them. */
+export const PLAYER_STATE_LABEL: Readonly<Record<PlayerState, string>> = {
+  verified: "Verified",
+  claimed: "Claimed",
+  imported: "Imported",
+};
 export function VerifiedMark() {
   return (
     <svg

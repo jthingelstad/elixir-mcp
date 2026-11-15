@@ -173,19 +173,19 @@ const at = (path) => {
 test("addresses: yours, anyone's by a well-formed id, and one Stamp's", () => {
   expect(isPassportPath("/home/passport")).toBe(true);
   expect(isPassportPath("/home/passport/")).toBe(true);
-  expect(isPassportPath(`/home/passport/${MINE}`)).toBe(true);
-  expect(isPassportPath("/home/passport/not-an-id")).toBe(false);
-  expect(isPassportPath("/home/passport/abcdefghijkl")).toBe(false); // i, l
-  expect(passportIdOf(`/home/passport/${THEIRS}`)).toBe(THEIRS);
+  expect(isPassportPath(`/home/account/${MINE}/passport`)).toBe(true);
+  expect(isPassportPath("/home/account/not-an-id/passport")).toBe(false);
+  expect(isPassportPath("/home/account/abcdefghijkl/passport")).toBe(false); // i, l
+  expect(passportIdOf(`/home/account/${THEIRS}/passport`)).toBe(THEIRS);
   expect(passportIdOf("/home/passport")).toBeNull();
   expect(passportHref()).toBe("/home/passport");
   expect(passportHref(null, "cheerleader")).toBe(
     "/home/passport?stamp=cheerleader",
   );
-  expect(passportHref(THEIRS)).toBe(`/home/passport/${THEIRS}`);
+  expect(passportHref(THEIRS)).toBe(`/home/account/${THEIRS}/passport`);
   expect(titleFor("/home/passport")).toBe("Passport - Home - Elixir");
   expect(barArea("/home/passport")).toBe("you");
-  expect(barArea(`/home/passport/${THEIRS}`)).toBe("find");
+  expect(barArea(`/home/account/${THEIRS}/passport`)).toBe("find");
 });
 
 test("helpers: the highest level each, two latest marks, and where to earn", () => {
@@ -340,7 +340,7 @@ test(
   "another member's passport: dates and rules, no progress, no action, no map",
   { timeout: 20000 },
   async () => {
-    at(`/home/passport/${THEIRS}?stamp=on_the_map`);
+    at(`/home/account/${THEIRS}/passport?stamp=on_the_map`);
     await screen.findByRole("heading", {
       level: 1,
       name: "Copper Fern’s passport",
@@ -382,7 +382,7 @@ test(
           ],
         },
       });
-    at(`/home/passport/${THEIRS}`);
+    at(`/home/account/${THEIRS}/passport`);
     await screen.findByText("Player not verified");
     const who = () => document.querySelector(".kit-passport__who");
     expect(
@@ -404,7 +404,7 @@ test(
           earned: [],
         },
       });
-    at(`/home/passport/${THEIRS}`);
+    at(`/home/account/${THEIRS}/passport`);
     await screen.findByText("No Stamps earned yet.");
     expect(screen.getByText("New player")).toBeTruthy();
     expect(screen.getByText("Elixir account")).toBeTruthy();
@@ -473,7 +473,7 @@ test(
       });
     at("/home/player/0VJ2QV");
     const open = await screen.findByRole("link", { name: "Open passport" });
-    expect(open.getAttribute("href")).toBe(`/home/passport/${THEIRS}`);
+    expect(open.getAttribute("href")).toBe(`/home/account/${THEIRS}/passport`);
     expect(screen.getByText("4 Stamps")).toBeTruthy();
   },
 );
@@ -674,7 +674,7 @@ test("a failed reconciliation changes nothing on screen, and nobody else's passp
   expect(screen.queryByText(/could not be read/)).toBeNull();
   cleanup();
   asked = [];
-  at(`/home/passport/${THEIRS}`);
+  at(`/home/account/${THEIRS}/passport`);
   expect(await screen.findByText("1 Stamp")).toBeTruthy();
   expect(asked).not.toContain("/api/me/passport/reconcile");
 });

@@ -179,7 +179,7 @@ test("twice the default font size, 320px: Home's profile list grows and nothing 
 
 for (const [label, path] of [
   ["yours", "/home/passport"],
-  ["another member's", `/home/passport/${THEIRS}`],
+  ["another member's", `/home/account/${THEIRS}/passport`],
 ] as const)
   test(`twice the default font size, 320px: ${label} passport grows and nothing is cut off`, async ({
     page,

@@ -1,5 +1,7 @@
 # Passports and Stamps
 
+*2026-11-15: another member's passport moved to `/home/account/<id>/passport`, under their account page; following an account shows its Stamps on Home (`docs/notes/2026-11-15-account-pages.md`).*
+
 Design direction, 2026-11-14. **Launched 2026-11-14** (build f6e5cb51a): earning, the pages and Home's profile list are live, and the launch backfill ran on 2026-11-14 (47 accounts read, 30 granted).
 The catalog, eligibility, storage and two signed-in passport reads exist
 (`packages/stamps`, migrations 0269 and 0270). Real writes grant Stamps

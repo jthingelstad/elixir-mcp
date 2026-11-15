@@ -301,7 +301,9 @@ export function accountRoutes({
       );
       const { rows: ent } = await db.query(
         `select ${tierSql("a")} as role, a.mcp_daily_quota, a.live_daily_quota,
-                a.newsletter_opt_in, a.email, a.avatar_card_id
+                a.newsletter_opt_in, a.email, a.avatar_card_id,
+                (select passport_id from account_passport p
+                  where p.account_id = a.account_id) as page_id
          from account a where a.account_id = $1`,
         [account.accountId],
       );
@@ -495,6 +497,9 @@ export function accountRoutes({
         // the top bar, the account menu and Settings draw it whether or not
         // any of its players is verified. Null: initials.
         avatar_card_id: e.avatar_card_id ?? null,
+        // Your account page's id (/home/account/<id>, 2026-11-15): your
+        // passport id, which other members see in your page's address.
+        page_id: e.page_id ?? null,
         // The holder's own address, shown back to them on their profile
         // and in the console rail. Never on a public surface (0046).
         email: e.email ?? null,

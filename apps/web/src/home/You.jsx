@@ -17,6 +17,7 @@ import { STATS, statsPlayers } from "../stats/stats.js";
 import { ADMIN, SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
 import { PASSPORT } from "../lib/passport.js";
+import { accountHref } from "../lib/account.js";
 import { usePlayerPage } from "../lib/queries.js";
 import { useSignOut } from "../shell/sign-out.js";
 import { VerifyPlayer } from "../components/VerifyPlayer.jsx";
@@ -169,6 +170,13 @@ function YouAccount({ me, primary }) {
       ) : null}
       <Panel title="Your account" titleAs="h2">
         <Rows>
+          {me?.page_id ? (
+            <Row
+              href={accountHref(me.page_id)}
+              title="Your account page"
+              detail="Your players, Stamps and news, as other members see them."
+            />
+          ) : null}
           <Row
             href={PASSPORT}
             title="Your passport"

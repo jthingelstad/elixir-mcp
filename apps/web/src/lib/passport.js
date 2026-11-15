@@ -1,4 +1,5 @@
 import { STAMPS, stampById } from "@elixir-mcp/stamps/catalog";
+import { ACCOUNT } from "./account.js";
 import { HOME } from "./moved.js";
 import { SETTINGS } from "./settings.js";
 import { gateLifts, markReconciled, reconcileDue } from "./reconcile-gate.js";
@@ -6,11 +7,13 @@ import { gateLifts, markReconciled, reconcileDue } from "./reconcile-gate.js";
 /**
  * A passport's addresses and the words its pages share (#1015).
  *
- *   /home/passport                 your own passport
- *   /home/passport/<passport id>   anyone's, for any signed-in member
- *   ...?stamp=<stamp id>           the same page, one Stamp's detail open
+ *   /home/passport                       your own passport
+ *   /home/account/<passport id>/passport anyone's, for any signed-in member,
+ *                                        under their account page (2026-11-15)
+ *   ...?stamp=<stamp id>                 the same page, one Stamp's detail open
  *
- * Both sit under /home, which the distribution already sends to this app,
+ * The passport id is the account's page id (lib/account.js). Both sit
+ * under /home, which the distribution already sends to this app,
  * behind Home's member gate. `?stamp=` is how a link (the bell's, a shared
  * one) opens one Stamp: an id the catalog does not know opens nothing.
  */
@@ -21,7 +24,7 @@ export const PASSPORT = `${HOME}/passport`;
 const PASSPORT_ID = /^[a-km-np-z2-9]{12}$/;
 
 export const passportHref = (id = null, stampId = null) => {
-  const base = id ? `${PASSPORT}/${id}` : PASSPORT;
+  const base = id ? `${ACCOUNT}/${id}/passport` : PASSPORT;
   return stampId ? `${base}?stamp=${encodeURIComponent(stampId)}` : base;
 };
 
@@ -116,13 +119,13 @@ export async function putPassport(queryClient, res) {
 export function isPassportPath(path) {
   const clean = String(path ?? "").replace(/(.)\/$/, "$1");
   if (clean === PASSPORT) return true;
-  const m = /^\/home\/passport\/([^/]+)$/.exec(clean);
+  const m = /^\/home\/account\/([^/]+)\/passport$/.exec(clean);
   return Boolean(m && PASSPORT_ID.test(m[1]));
 }
 
 /** The passport id a path names, or null for your own. */
 export function passportIdOf(path) {
-  const m = /^\/home\/passport\/([^/]+)\/?$/.exec(String(path ?? ""));
+  const m = /^\/home\/account\/([^/]+)\/passport\/?$/.exec(String(path ?? ""));
   return m && PASSPORT_ID.test(m[1]) ? m[1] : null;
 }
 

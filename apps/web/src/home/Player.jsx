@@ -44,6 +44,7 @@ import { PlayerRecord } from "./PlayerRecord.jsx";
 import { useAskOnOpen } from "../lib/own-refresh.js";
 import { RefreshPlayer } from "./RefreshPlayer.jsx";
 import { PassportRow } from "./PassportRow.jsx";
+import { accountHref, accountOf } from "../lib/account.js";
 
 /**
  * A player's page (slice 6, #764): the one page every player name opens
@@ -205,6 +206,7 @@ export function PlayerView({
             <TagText>{sub}</TagText>
           </p>
           <Badges badges={page.badges} />
+          <Identity page={page} />
           {/* A verified player's passport (#1015): one row, under the
               name, so the play below stays in view. */}
           {page.passport ? (
@@ -298,6 +300,58 @@ function Badges({ badges }) {
   );
 }
 
+/**
+ * Who says they are this player (2026-11-15). Verified: the account that
+ * proved it, and nobody else can claim it. Claimed: every account saying it
+ * is this player, each a link to its page ("This is important so you know
+ * what account is making the claim"). Imported: followed by someone, so
+ * Elixir records it, and no account says it is theirs.
+ */
+function Identity({ page }) {
+  const claimants = page.claimants ?? [];
+  const verified = claimants.find((c) => c.verified);
+  if (verified)
+    return (
+      <p className="kit-tiny kit-player__identity">
+        Verified by{" "}
+        <Link className="link" to={accountHref(verified.id)}>
+          {verified.player ? (
+            <TagText>{verified.player.name ?? verified.player.tag}</TagText>
+          ) : (
+            "their account"
+          )}
+        </Link>
+        {verified.relationship === "alt" ? ", as their alt" : null}. Nobody else
+        can claim this player.
+      </p>
+    );
+  if (claimants.length)
+    return (
+      <p className="kit-tiny kit-player__identity">
+        <span className="kit-badge">Claimed</span> by{" "}
+        {claimants.map((c, i) => (
+          <span key={c.id}>
+            {i ? ", " : null}
+            <Link className="link" to={accountHref(c.id)}>
+              {c.player ? (
+                <TagText>{c.player.name ?? c.player.tag}</TagText>
+              ) : (
+                "their account"
+              )}
+            </Link>
+          </span>
+        ))}
+        . Not verified yet.
+      </p>
+    );
+  return (
+    <p className="kit-tiny kit-player__identity">
+      <span className="kit-badge">Imported</span> Followed on Elixir. No account
+      has claimed this player.
+    </p>
+  );
+}
+
 /** The account's counts (canvas .statrow), each a button to its tab. */
 function Counts({ page, onPick }) {
   if (!page.follows) return null;
@@ -368,7 +422,14 @@ function byDay(items, dayKey) {
   return days;
 }
 
-function ItemList({ items, empty, more = 0, cheered, tag }) {
+export function ItemList({
+  items,
+  empty,
+  more = 0,
+  cheered,
+  tag,
+  accountLinks = true,
+}) {
   const { when, feedWhen, day, feedDayHeading: dayHeading } = useClock();
   const [openId, setOpenId] = useState(null);
   if (items.length === 0) return <p className="kit-week__quiet">{empty}</p>;
@@ -422,7 +483,10 @@ function ItemList({ items, empty, more = 0, cheered, tag }) {
                     ) : null}
                   </div>
                 </div>
-                {withCheers || games || battle.startsWith("/battle/") ? (
+                {withCheers ||
+                games ||
+                battle.startsWith("/battle/") ||
+                (accountLinks && accountOf(it)) ? (
                   <footer className="kit-feed__foot">
                     {withCheers ? (
                       <Cheers it={withCheers} where={cheered.where} />
@@ -441,6 +505,14 @@ function ItemList({ items, empty, more = 0, cheered, tag }) {
                       {battle.startsWith("/battle/") ? (
                         <Link to={battle} className="btn btn--sm">
                           Open the battle
+                        </Link>
+                      ) : null}
+                      {accountLinks && accountOf(it) ? (
+                        <Link
+                          to={accountHref(accountOf(it))}
+                          className="btn btn--sm"
+                        >
+                          Open their account
                         </Link>
                       ) : null}
                     </span>

@@ -234,6 +234,16 @@ export const usePlayerPage = (tag) =>
     staleTime: 30_000,
   });
 
+/** An account's page (2026-11-15). Under ["me"]: whether you follow it
+ *  changes it. */
+export const useAccountPage = (id) =>
+  useQuery({
+    queryKey: ["me", "account", id ?? ""],
+    queryFn: answered(() => api.accountPage(id)),
+    enabled: Boolean(id),
+    staleTime: 30_000,
+  });
+
 /** Your passport (#1015): the public projection plus `owner` (the
  *  profile steps and each Stamp's exact progress). */
 export const useMyPassport = (enabled = true) =>
