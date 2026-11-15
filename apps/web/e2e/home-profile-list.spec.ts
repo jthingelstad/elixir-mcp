@@ -201,9 +201,15 @@ for (const [label, width] of [
     const country = next.getByLabel("Country");
     await expect(country).toBeFocused();
     await expect(country.locator("option")).not.toHaveCount(1);
-    await expect(next).toContainText(
-      "Who sees it: your clan’s verified members, on the clan map, when its leaders have the map on.",
-    );
+    // Who sees it is a choice beside the lists (#768).
+    await expect(
+      next.getByRole("radio", {
+        name: /My clan maps, the player map and Near you/,
+      }),
+    ).toBeChecked();
+    await expect(
+      next.getByRole("radio", { name: /My clan maps only/ }),
+    ).toBeVisible();
     await country.selectOption("CA");
     await next.getByLabel("State or region").selectOption("08");
     await expect(next.getByLabel(/City/)).toBeVisible();
@@ -227,7 +233,9 @@ for (const [label, width] of [
       });
     await next.getByRole("button", { name: "Add me" }).click();
     await expect(page.getByText("Your profile is done")).toBeVisible();
-    expect(saved).toEqual([{ country: "CA", region: "08", city: null }]);
+    expect(saved).toEqual([
+      { country: "CA", region: "08", city: null, player_map: true },
+    ]);
   });
 }
 
