@@ -1,3 +1,4 @@
+import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { featuredDeck, buildFriendsWeek } from "@elixir-mcp/tools/friends-week";
 import { deckIdentities } from "@elixir-mcp/tools/shared";
@@ -113,7 +114,7 @@ export function openingMode(modes) {
 async function latestTrophies(db, tag) {
   const { rows } = await db.query(
     `select trophies from player_snapshot_daily where player_tag = $1
-      order by snapshot_date desc, snapshot_kind desc limit 1`,
+      order by ${latestSnapshotOrder()} limit 1`,
     [tag],
   );
   return rows[0]?.trophies ?? null;

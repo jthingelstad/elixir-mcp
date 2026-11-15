@@ -100,7 +100,10 @@ before(async () => {
   await db.query(
     `insert into player_snapshot_daily(player_tag,snapshot_date,snapshot_kind,battle_count,trophies,profile_observed_at,observed_at)
      values ($1,'2026-11-01','daily',10,7000,now(),now()),
-            ($1,'2026-11-10','daily',12,7400,now(),now())`,
+            ($1,'2026-11-10','daily',12,7400,now(),now()),
+            -- #512: the frozen pre_reset row of the same game day, observed
+            -- earlier; the page's trophies are the daily row's.
+            ($1,'2026-11-10','pre_reset',11,7350,now() - interval '1 hour',now() - interval '1 hour')`,
     [A],
   );
   handler = makeHandler({ databaseUrl: scratch.url, secret: "test" });

@@ -23,6 +23,7 @@
  *  by mode over 28 days, their milestones over 28 days and their role
  *  changes here. The engine's `dossierLines` and `storyAngles` decide
  *  what of it each kind of draft is told. */
+import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import {
   buildTimeline,
   shownAt,
@@ -158,7 +159,7 @@ export async function clanStoryFacts(
          left join lateral (
            select * from player_snapshot_daily d
             where d.player_tag = p.player_tag and d.profile_observed_at is not null
-            order by d.snapshot_date desc, d.profile_observed_at desc limit 1) s on true
+            order by ${latestSnapshotOrder({ alias: "d", stamp: "profile_observed_at" })} limit 1) s on true
          left join arena a on a.arena_id = s.arena_id
         where p.player_tag = any($2::text[])`,
       [clanTag, tags],

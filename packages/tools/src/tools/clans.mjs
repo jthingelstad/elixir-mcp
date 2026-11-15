@@ -2,6 +2,7 @@
  *  (1.0.0): from/to + days sugar, `applied`, `notes[]` + `docs`,
  *  `verbosity` (replacing summary: true), `live: true` on the roster. */
 
+import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import {
   normalizeTag,
   responseMeta,
@@ -647,7 +648,7 @@ export const clansTools = {
              and nn.player_tag = cm.player_tag
            left join lateral (
              select trophies, donations, donations_received, arena_id from player_snapshot_daily
-             where player_tag = cm.player_tag order by snapshot_date desc, snapshot_kind desc limit 1
+             where player_tag = cm.player_tag order by ${latestSnapshotOrder()} limit 1
            ) s on true
            left join arena a on a.arena_id = s.arena_id
            -- The roster's own columns, from its newest read of THIS clan
@@ -656,14 +657,14 @@ export const clansTools = {
              select clan_rank, previous_clan_rank from player_snapshot_daily
              where player_tag = cm.player_tag and clan_tag = cm.clan_tag
                and roster_observed_at is not null
-             order by snapshot_date desc, snapshot_kind desc limit 1
+             order by ${latestSnapshotOrder({ stamp: "roster_observed_at" })} limit 1
            ) r on true
            left join lateral (
              select best_trophies, battle_count, wins, losses, three_crown_wins, collection_level,
                     king_tower_level, total_donations, favorite_card_id, profile_observed_at
              from player_snapshot_daily
              where player_tag = cm.player_tag and profile_observed_at is not null
-             order by snapshot_date desc, snapshot_kind desc limit 1
+             order by ${latestSnapshotOrder({ stamp: "profile_observed_at" })} limit 1
            ) l on true
            where cm.clan_tag = $1 and cm.left_observed_at is null
            -- Members on equal trophies (a capped Trophy Road holds many)

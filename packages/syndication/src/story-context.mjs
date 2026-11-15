@@ -10,6 +10,7 @@
  *  read is bounded: a few queries for each of the run's first
  *  `CONTEXT_STORIES_MAX` battle stories, each on one player's indexed
  *  rows. A fact the record lacks is left out, never guessed. */
+import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { modeGroupOf } from "@elixir-mcp/contracts";
 import { deckIdentities } from "@elixir-mcp/tools/shared";
 import { participantModeClause } from "@elixir-mcp/record/mode-filter";
@@ -155,7 +156,7 @@ export async function storyContext(
              select d.arena_id from player_snapshot_daily d
               where d.player_tag = cm.player_tag
                 and d.profile_observed_at is not null
-              order by d.snapshot_date desc, d.profile_observed_at desc
+              order by ${latestSnapshotOrder({ alias: "d", stamp: "profile_observed_at" })}
               limit 1) s
           where cm.clan_tag = $1 and cm.left_observed_at is null
             and cm.player_tag <> $2 and s.arena_id = $3 and p.name is not null

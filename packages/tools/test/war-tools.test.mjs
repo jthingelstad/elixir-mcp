@@ -1,3 +1,4 @@
+import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
@@ -936,7 +937,7 @@ test("players_search: corpus-wide names resolve; unknowns honest-empty", async (
   const latest = (
     await db.query(
       `select trophies from player_snapshot_daily where player_tag = $1
-        order by snapshot_date desc, snapshot_kind desc limit 1`,
+        order by ${latestSnapshotOrder()} limit 1`,
       [member.player_tag],
     )
   ).rows[0];
