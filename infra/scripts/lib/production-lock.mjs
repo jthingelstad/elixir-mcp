@@ -21,7 +21,7 @@
  * sees process.exit().
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn as spawnChild } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import {
   linkSync,
@@ -168,9 +168,9 @@ export function acquireLock({
   alive = pidAlive,
   warn = (line) => console.warn(line),
 }) {
-  if (!/^(deploy|op:[\w+.-]+)$/.test(holder))
+  if (!/^(deploy|batch|op:[\w+.-]+)$/.test(holder))
     throw new Error(
-      `production lock holder ${JSON.stringify(holder)}: use deploy or op:<name>`,
+      `production lock holder ${JSON.stringify(holder)}: use deploy, batch or op:<name>`,
     );
   const lock = {
     lock_id: randomUUID(),
@@ -293,4 +293,151 @@ export function holdUntilExit({ file, lock, log = (l) => console.error(l) }) {
       process.exit(code);
     });
   return release;
+}
+
+/** The environment variable a batch hands its children: its lock_id. */
+export const BATCH_LOCK_ENV = "ELIXIR_PRODUCTION_LOCK_ID";
+
+/**
+ * The batch lock this process inherited, while it is still live: the
+ * lock file holds a `batch` lock whose lock_id is the one in
+ * BATCH_LOCK_ENV. Anything else (no variable, the batch gone, an
+ * abandoned lock reclaimed, someone else's lock) is null, with a warning
+ * when a variable was set, and the caller takes the lock as usual.
+ */
+export function batchLockFromEnv({
+  file,
+  env = process.env,
+  hostname = osHostname(),
+  alive = pidAlive,
+  warn = (line) => console.warn(line),
+}) {
+  const id = env[BATCH_LOCK_ENV];
+  if (!id) return null;
+  const current = lockHolder({ file, hostname, alive, warn });
+  if (current?.holder === "batch" && current.lock_id === id) return current;
+  warn(
+    `production lock: ${BATCH_LOCK_ENV} is set but that batch's lock is no longer held; this op takes the lock for itself.`,
+  );
+  return null;
+}
+
+const SIGNALS = [
+  ["SIGINT", 130],
+  ["SIGTERM", 143],
+  ["SIGHUP", 129],
+];
+
+/**
+ * Hold the lock for a batch (#440): take it once as holder `batch`, run
+ * one command with BATCH_LOCK_ENV set to the lock's id, and release it
+ * when the command ends. Every `npm run op` inside sees the batch's lock
+ * as its own (ops-invoke.mjs), so a multi-step backfill with `after`
+ * cursors is one hold and no deploy starts between two of its calls.
+ *
+ * A signal to this process is passed to the command, and the lock is
+ * released once the command has exited, so the lock never ends while a
+ * child is still writing; the 'exit' handler releases it on any other
+ * way out. A process killed outright leaves an abandoned lock, which the
+ * next acquire releases (its pid is gone).
+ *
+ * @param {{ file: string, purpose: string, command: string, args?: string[],
+ *   worktree?: string, head?: string | null, env?: NodeJS.ProcessEnv,
+ *   spawn?: typeof spawnChild, proc?: NodeJS.EventEmitter,
+ *   acquire?: typeof acquireLock, log?: (line: string) => void }} options
+ * @returns {Promise<number>} the command's exit code; 3 when locked
+ */
+export async function holdForBatch({
+  file,
+  purpose,
+  command,
+  args = [],
+  worktree = process.cwd(),
+  head = null,
+  env = process.env,
+  spawn = spawnChild,
+  proc = process,
+  acquire = acquireLock,
+  log = (line) => console.error(line),
+}) {
+  if (!String(purpose ?? "").trim())
+    throw new Error("a batch needs a purpose: what it writes, and why");
+  const inherited = batchLockFromEnv({ file, env, warn: log });
+  if (inherited) {
+    // A batch inside a batch: the outer one holds the lock already.
+    log(`production lock: already held by this batch (${inherited.purpose}).`);
+    return runChild({ spawn, command, args, env, proc, log });
+  }
+  const got = acquire({
+    file,
+    holder: "batch",
+    purpose: String(purpose).trim(),
+    worktree,
+    head,
+    warn: log,
+  });
+  if (!got.ok) {
+    log(`batch: ${got.reason}\nNothing was run.`);
+    return 3;
+  }
+  let held = true;
+  const release = () => {
+    if (!held) return;
+    held = false;
+    try {
+      if (releaseLock({ file, lockId: got.lock.lock_id }))
+        log("production lock released (batch).");
+    } catch (error) {
+      log(String(error?.message ?? error));
+    }
+  };
+  proc.on("exit", release);
+  log(`batch: production lock taken for ${got.lock.purpose}.`);
+  try {
+    return await runChild({
+      spawn,
+      command,
+      args,
+      env: { ...env, [BATCH_LOCK_ENV]: got.lock.lock_id },
+      proc,
+      log,
+    });
+  } finally {
+    release();
+    proc.off("exit", release);
+  }
+}
+
+/** Run the command, passing this process's signals on to it; resolves
+ *  with its exit code (128 + n for a signal) once it has exited. */
+function runChild({ spawn, command, args, env, proc, log }) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const child = spawn(command, args, { stdio: "inherit", env });
+    const forwards = SIGNALS.map(([signal]) => {
+      const forward = () => {
+        log(
+          `batch: ${signal}; passing it to the command and releasing the lock once it has stopped.`,
+        );
+        child.kill(signal);
+      };
+      proc.on(signal, forward);
+      return [signal, forward];
+    });
+    const done = (code) => {
+      if (settled) return;
+      settled = true;
+      for (const [signal, forward] of forwards) proc.off(signal, forward);
+      resolve(code);
+    };
+    child.on("error", (error) => {
+      log(`batch: could not run ${command}: ${error.message}`);
+      done(127);
+    });
+    child.on("close", (code, signal) => {
+      if (code !== null) return done(code);
+      const known = SIGNALS.find(([name]) => name === signal);
+      done(known ? known[1] : 1);
+    });
+  });
 }

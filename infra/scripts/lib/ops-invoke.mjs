@@ -20,7 +20,24 @@
  * either: both functions run at reserved concurrency 1, and a read
  * during a deploy's migration step 429s the deploy (twice on
  * 2026-09-22). Held is a wait.
+ *
+ * Inside a batch (production-lock.mjs holdForBatch, `npm run op:batch`)
+ * the batch already holds the lock: an op that inherits the batch's
+ * lock id, and finds that lock still live, takes nothing and is refused
+ * nothing (#440).
+ *
+ * A throttled invoke (another invocation in the function's one slot) was
+ * refused before it ran, so it is the one call sent again, with bounded
+ * backoff (lib/lambda-throttle.mjs, #456); a read stops waiting the
+ * moment someone takes the lock.
  */
+
+import {
+  backoffSchedule,
+  budgetFor,
+  isThrottle,
+  sendWithThrottleBackoff,
+} from "./lambda-throttle.mjs";
 
 export const FUNCTIONS = {
   migrate: { name: "elixir-mcp-migrate", timeoutS: 300 },
@@ -142,11 +159,16 @@ export function classifyOp(fn, payload) {
 const OP_USAGE = `usage: npm run op -- '<json payload>' [--function migrate|jobs]
 
   Invokes the ops Lambda once, synchronously (default: migrate), as
-  profile cloud-engineer in us-east-1, with no retries. Prints the
+  profile cloud-engineer in us-east-1. The one resend is a throttle
+  (another invocation in the function's one slot, refused before it
+  ran), waited out for at most the function's timeout. Prints the
   response JSON and the function error if any; exits 1 on a function
-  error. A write op takes the production lock first; a read takes none
-  but does not run while production is locked. The payload's keys are
-  .claude/skills/ops/ops.md's ops (migrate) or the jobs Lambda's.
+  error, 3 when production is locked, 4 when the function stayed busy.
+  A write op takes the production lock first; a read takes none but
+  does not run while production is locked. Inside \`npm run op:batch\`
+  the batch holds the lock and each op runs under it. The payload's
+  keys are .claude/skills/ops/ops.md's ops (migrate) or the jobs
+  Lambda's.
 
   npm run op -- '{"stats": true}'
   npm run op -- '{"ledger": {"op": "dead"}}'
@@ -203,19 +225,34 @@ function decodePayload(bytes) {
 }
 
 /**
- * Invoke once. `lambda` is a client with send(); `InvokeCommand` its
- * command class (both injected, so the tests never reach AWS).
+ * Invoke once; only a throttle (refused before it ran) is sent again.
+ * `lambda` is a client with send(); `InvokeCommand` its command class
+ * (both injected, so the tests never reach AWS).
  *
  * @returns {Promise<{ statusCode?: number, functionError: string | null, body: unknown }>}
  */
-async function invokeOnce({ lambda, InvokeCommand, fn, payload }) {
-  const res = await lambda.send(
-    new InvokeCommand({
+async function invokeOnce({
+  lambda,
+  InvokeCommand,
+  fn,
+  payload,
+  sleep,
+  log,
+  beforeRetry,
+}) {
+  const res = await sendWithThrottleBackoff({
+    client: lambda,
+    command: new InvokeCommand({
       FunctionName: FUNCTIONS[fn].name,
       InvocationType: "RequestResponse",
       Payload: Buffer.from(JSON.stringify(payload)),
     }),
-  );
+    schedule: backoffSchedule({ budgetMs: budgetFor(FUNCTIONS[fn].timeoutS) }),
+    label: "op",
+    sleep,
+    log,
+    beforeRetry,
+  });
   return {
     statusCode: res.StatusCode,
     functionError: res.FunctionError ?? null,
@@ -225,7 +262,8 @@ async function invokeOnce({ lambda, InvokeCommand, fn, payload }) {
 
 /** The client settings that make one call one call: no SDK retries, and
  *  a socket that waits past the function's own timeout instead of
- *  giving up (on 2026-09-19 a CLI retry ran a jobs op twice). */
+ *  giving up (on 2026-09-19 a CLI retry ran a jobs op twice). The one
+ *  resend is runOp's own, on a throttle only. */
 export function lambdaClientConfig(fn) {
   return {
     region: "us-east-1",
@@ -242,8 +280,10 @@ const ENGINEER = /:assumed-role\/ProjectsCloudEngineer\//;
 
 /**
  * The whole command, with every outside effect injected: `whoami()`
- * answers the caller's ARN, `lambda`/`InvokeCommand` invoke, and the
- * lock functions are production-lock.mjs's. Returns the exit code.
+ * answers the caller's ARN, `lambda`/`InvokeCommand` invoke, the lock
+ * functions are production-lock.mjs's, and `batchLock()` answers the
+ * live batch lock this process inherited, or null. Returns the exit
+ * code.
  */
 export async function runOp({
   argv,
@@ -257,6 +297,8 @@ export async function runOp({
   describe,
   worktree,
   head,
+  batchLock = () => null,
+  sleep,
   print = (line) => console.log(line),
   warn = (line) => console.error(line),
 }) {
@@ -281,7 +323,12 @@ export async function runOp({
   }
 
   let release = () => {};
-  if (op.kind === "write") {
+  const batch = batchLock();
+  if (batch) {
+    warn(
+      `op: ${op.kind === "write" ? `WRITE (${op.why})` : "read"} under the batch's production lock (${batch.purpose}).`,
+    );
+  } else if (op.kind === "write") {
     const got = acquireLock({
       file: lockFile,
       holder: `op:${op.ops
@@ -311,7 +358,41 @@ export async function runOp({
   }
   try {
     warn(`op: invoking ${label} once, synchronously...`);
-    const res = await invokeOnce({ lambda, InvokeCommand, fn, payload });
+    // A read outside a batch holds no lock, so it stops waiting out a
+    // throttle as soon as someone takes the lock: the deploy comes first.
+    const beforeRetry =
+      op.kind === "read" && !batch
+        ? () => {
+            const holder = lockHolder({ file: lockFile, warn });
+            return holder
+              ? `production was locked while this read waited; ${describe(holder)}`
+              : null;
+          }
+        : undefined;
+    let res;
+    try {
+      res = await invokeOnce({
+        lambda,
+        InvokeCommand,
+        fn,
+        payload,
+        sleep,
+        log: warn,
+        beforeRetry,
+      });
+    } catch (error) {
+      if (error?.name === "ThrottleRetryStopped") {
+        warn(`op: ${error.message}\nNothing was invoked.`);
+        return 3;
+      }
+      if (isThrottle(error)) {
+        warn(
+          `op: ${FUNCTIONS[fn].name} stayed busy past its own timeout; nothing was invoked. Read what is running before trying again.`,
+        );
+        return 4;
+      }
+      throw error;
+    }
     print(
       typeof res.body === "string"
         ? res.body

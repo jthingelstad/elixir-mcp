@@ -6,6 +6,9 @@
  *   npm run op -- '{"stats": true}'
  *   npm run op -- '{"shape_census": true}' --function jobs
  *   npm run op -- --help
+ *
+ * Inside `npm run op:batch` (op-batch.mjs) it runs under the batch's
+ * lock instead of taking its own.
  */
 
 import { execFileSync } from "node:child_process";
@@ -21,6 +24,7 @@ import {
 } from "./lib/ops-invoke.mjs";
 import {
   acquireLock,
+  batchLockFromEnv,
   describeHolder,
   holdUntilExit,
   lockFileFor,
@@ -54,6 +58,7 @@ process.exitCode = await runOp({
   lambda: new LambdaClient(config),
   InvokeCommand,
   lockFile: lockFileFor(repoRoot),
+  batchLock: () => batchLockFromEnv({ file: lockFileFor(repoRoot) }),
   acquireLock,
   lockHolder,
   holdUntilExit,

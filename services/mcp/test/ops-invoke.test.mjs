@@ -318,3 +318,90 @@ test("op: the wrong identity, a bad argument or {} invokes nothing and takes no 
     assert.deepEqual(h.events, []);
   }
 });
+
+test("op: inside a batch, a write and a read run under the batch's lock: nothing taken, nothing refused", async () => {
+  const batch = { holder: "batch", lock_id: "B", purpose: "repair x" };
+  for (const argv of [['{"vacuum": true}'], ['{"stats": true}']]) {
+    // lockHolder answers the batch's own lock, which must not refuse it.
+    const h = harness({ held: batch });
+    assert.equal(
+      await runOp({ ...h.deps, batchLock: () => batch, argv }),
+      0,
+      argv[0],
+    );
+    assert.deepEqual(h.events, ["invoke"]);
+    assert.match(
+      h.err.join("\n"),
+      /under the batch's production lock \(repair x\)/,
+    );
+  }
+});
+
+/** The SDK's throttle, refused before the function ran. */
+function throttled() {
+  return Object.assign(new Error("Rate Exceeded."), {
+    name: "TooManyRequestsException",
+    Reason: "ReservedFunctionConcurrentInvocationLimitExceeded",
+    $metadata: { httpStatusCode: 429 },
+  });
+}
+
+/** A harness whose Lambda throws a throttle `n` times, then answers. */
+function throttledHarness(n, options) {
+  const h = harness(options);
+  const answer = h.deps.lambda.send;
+  let left = n;
+  h.deps.lambda = {
+    send: async (command) => {
+      if (left > 0) {
+        left -= 1;
+        h.events.push("throttled");
+        throw throttled();
+      }
+      return answer(command);
+    },
+  };
+  h.slept = [];
+  h.deps.sleep = async (ms) => h.slept.push(ms);
+  return h;
+}
+
+test("op: a throttled write waits it out under its lock and is sent again; the lock is released after", async () => {
+  const h = throttledHarness(2);
+  assert.equal(await runOp({ ...h.deps, argv: ['{"vacuum": true}'] }), 0);
+  assert.deepEqual(h.events, [
+    "acquire op:vacuum",
+    "throttled",
+    "throttled",
+    "invoke",
+    "release L",
+  ]);
+  assert.deepEqual(h.slept, [2_000, 4_000]);
+  assert.match(h.err.join("\n"), /throttled .*it was not run/);
+});
+
+test("op: a throttled read stops waiting the moment production is locked", async () => {
+  const h = throttledHarness(5);
+  let checks = 0;
+  h.deps.lockHolder = () =>
+    (checks += 1) <= 2 ? null : { holder: "deploy", lock_id: "D" };
+  assert.equal(await runOp({ ...h.deps, argv: ['{"stats": true}'] }), 3);
+  // Free at the start and after the first throttle; locked after the
+  // second, so no third send.
+  assert.deepEqual(h.events, ["throttled", "throttled"]);
+  assert.match(
+    h.err.join("\n"),
+    /locked while this read waited; held by deploy/,
+  );
+});
+
+test("op: a function busy past its own timeout exits 4 and still releases the lock", async () => {
+  const h = throttledHarness(10_000);
+  assert.equal(await runOp({ ...h.deps, argv: ['{"vacuum": true}'] }), 4);
+  assert.equal(h.events.at(-1), "release L");
+  assert.equal(
+    h.slept.reduce((a, b) => a + b, 0),
+    (FUNCTIONS.migrate.timeoutS + 30) * 1000,
+  );
+  assert.match(h.err.join("\n"), /stayed busy past its own timeout/);
+});
