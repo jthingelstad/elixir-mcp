@@ -153,18 +153,19 @@ export function unitWord(stampId, n) {
   return n === 1 ? one : many;
 }
 
-/** Where the owner does what earns a Stamp, from its catalog destination.
- *  `clanTag` is the owner's home clan, for the map; without one, Clan. */
-export function destinationHref(destination, { clanTag = null } = {}) {
+/** Profile's Your place, with its picker open (#place): the place is the
+ *  person's, so setting it needs no clan page (2026-11-14). */
+export const PLACE_HREF = `${SETTINGS}/profile#place`;
+
+/** Where the owner does what earns a Stamp, from its catalog destination. */
+export function destinationHref(destination) {
   switch (destination) {
     case "verification":
       return `${SETTINGS}/players/verify`;
     case "picture":
       return `${SETTINGS}/profile`;
     case "map-view":
-      return clanTag
-        ? `/clan/${String(clanTag).replace(/^#/, "")}/members/map`
-        : "/clan";
+      return PLACE_HREF;
     case "alts":
       return `${SETTINGS}/players#add-player-tag`;
     case "discord":

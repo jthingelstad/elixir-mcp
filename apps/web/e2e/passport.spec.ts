@@ -162,7 +162,7 @@ test.describe("your passport", () => {
     await expect(tile).toBeFocused();
   });
 
-  test("?stamp= opens one Stamp from a link; On the Map goes to the home clan's map", async ({
+  test("?stamp= opens one Stamp from a link; On the Map opens Your place", async ({
     page,
   }) => {
     await open(page, "/home/passport?stamp=on_the_map");
@@ -170,8 +170,8 @@ test.describe("your passport", () => {
     await expect(sheet).toBeVisible();
     await expect(sheet.getByText("Optional. Not earned yet.")).toBeVisible();
     await expect(
-      sheet.getByRole("link", { name: "Open clan map" }),
-    ).toHaveAttribute("href", "/clan/0JQ0JQ8/members/map");
+      sheet.getByRole("link", { name: "Set your place" }),
+    ).toHaveAttribute("href", "/settings/profile#place");
     await sheet.getByRole("button", { name: "Close" }).click();
     await expect(sheet).toBeHidden();
     await expect(

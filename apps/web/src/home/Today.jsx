@@ -86,11 +86,7 @@ export function HomePanels({ first, player, feed }) {
       <div className="kit-home__two">
         <div className="kit-home__main">
           {starterShown ? <StarterSet query={starter} /> : null}
-          <ProfileList
-            first={first}
-            player={player}
-            clanTag={clan?.ok ? (clan.clan_tag ?? null) : null}
-          />
+          <ProfileList first={first} player={player} />
           {typeof feed === "function" ? feed({ suggest: suggestHere }) : feed}
         </div>
         <div className="kit-home__side">

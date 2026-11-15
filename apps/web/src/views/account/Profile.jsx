@@ -9,7 +9,7 @@ import {
   PlayerName,
   TagText,
 } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { ZoneOffer } from "../../components/ZoneOffer.jsx";
 import { AvatarPicker } from "./AvatarPicker.jsx";
@@ -22,6 +22,7 @@ import { PassportRow } from "../../home/PassportRow.jsx";
 import { summaryOf } from "../../lib/passport.js";
 import { playerHref } from "../../lib/player.js";
 import { useMyPassport } from "../../lib/queries.js";
+import { PLACE_WHO, YourPlace } from "../../clan/views/YourPlace.jsx";
 
 /**
  * Profile: the account you are signed in as. Editable here are the profile
@@ -30,9 +31,11 @@ import { useMyPassport } from "../../lib/queries.js";
  * agents.
  *
  * Who you are comes first (#1015): your main player as every member sees
- * it, and your passport, before the account's private machinery.
+ * it, your passport and your place, before the account's private
+ * machinery. Your place lives here for good (2026-11-14): #place (the
+ * passport's On the Map, What members see's Location) opens its picker.
  */
-export function Profile({ me, refresh }) {
+export function Profile({ me, refresh, hash = null }) {
   const [tzError, setTzError] = useState(null);
   const timezones =
     typeof Intl.supportedValuesOf === "function"
@@ -52,6 +55,7 @@ export function Profile({ me, refresh }) {
       <Panel title="You in Elixir" titleAs="h2">
         <Identity me={me} main={main} verified={mainVerified} />
         <PassportPreview />
+        <PlaceSetting hash={hash} />
       </Panel>
       <AvatarPicker me={me} refresh={refresh} />
       <Panel title="Account" titleAs="h2">
@@ -262,4 +266,44 @@ function PassportPreview() {
       </ErrorState>
     );
   return <PassportRow summary={summaryOf(env.data.passport)} own />;
+}
+
+/** Your place: the place or "Not set", with Set, Change and Remove, and
+ *  who sees it. The router's hash, not the window's: an in-app move draws
+ *  this page before the address bar has the new hash. */
+function PlaceSetting({ hash }) {
+  const landing =
+    hash ??
+    (typeof window === "undefined" ? "" : window.location.hash.slice(1));
+  const opening = landing === "place";
+  const section = useRef(null);
+  useEffect(() => {
+    if (opening) section.current?.scrollIntoView?.({ block: "start" });
+  }, [opening]);
+  return (
+    <section
+      ref={section}
+      id="place"
+      className="st-place"
+      aria-labelledby="st-place-head"
+    >
+      <h3 id="st-place-head" className="st-group">
+        Your place
+      </h3>
+      <YourPlace
+        setting
+        open={opening}
+        verify={
+          <p className="m-0">
+            Not set. A place belongs to a verified player.{" "}
+            <Link to={`${SETTINGS}/players/verify`}>Verify your player</Link> to
+            add one.
+          </p>
+        }
+      />
+      <p className="kit-tiny mt-2 mb-0">
+        A country, a region or a city, never closer. {PLACE_WHO}
+      </p>
+    </section>
+  );
 }

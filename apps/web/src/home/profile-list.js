@@ -53,11 +53,14 @@ export function followLine(state, follows) {
 
 /**
  * One step's words: { id, n, title, state, stamp, line, go } where `go`
- * is { to, label, name } for its way in (null once done). `context`
- * carries the player's name, the digest setting and the home clan's tag.
+ * is { to, label, name } for its way in (null once done), and `place`
+ * marks the map step's picker, opened on Home itself. `context` carries
+ * the player's name and the digest setting.
  */
 export function stepView(step, n, profile, context = {}) {
-  const { playerName = null, digest = null, clanTag = null } = context;
+  const { playerName = null, digest = null } = context;
+  const verifyState =
+    profile?.steps?.find((s) => s.id === "verify_player")?.state ?? null;
   const done = step.state === "done";
   const base = {
     id: step.id,
@@ -137,21 +140,30 @@ export function stepView(step, n, profile, context = {}) {
               name: "Choose your email",
             },
       };
-    case "map":
+    case "map": {
+      // The place is the person's, set right here (2026-11-14): no clan
+      // page, whatever the clan's map setting. It needs a verified
+      // player, so before one the step waits on verifying.
+      const verified = verifyState === "done";
       return {
         ...base,
         line: done
           ? null
-          : "Set your country, region or city, or choose Not now. Both finish this step. Only a place earns On the Map.",
-        go: done
-          ? null
-          : {
-              to: destinationHref("map-view", { clanTag }),
-              label: "Set a place",
-              name: "Set a place",
-            },
+          : verified
+            ? "Set your country, region or city, or choose Not now. Both finish this step. Only a place earns On the Map."
+            : "First verify your player. A place belongs to a verified player.",
+        go:
+          done || verified
+            ? null
+            : {
+                to: destinationHref("verification"),
+                label: "Verify",
+                name: "Verify your player first",
+              },
+        place: !done && verified,
         notNow: !done,
       };
+    }
     default:
       return { ...base, line: null, go: null };
   }

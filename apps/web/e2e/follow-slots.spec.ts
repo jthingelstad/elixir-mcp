@@ -6,7 +6,8 @@ import { mockApi, signedIn } from "./fixtures.ts";
  * Settings › What members see, the canvas's two controls (2026-11-12): the
  * slot meter (used of limit, the players using a slot because of you,
  * each with its way to stop, and apart from them the free follows) and
- * Location (your place on the clan map, saying who sees it). At phone and
+ * Location (your place, saying who sees it, opening its one editor on
+ * Settings › Profile, 2026-11-14). At phone and
  * desktop width, with axe. Invented players; local mocks only.
  */
 
@@ -125,7 +126,7 @@ for (const [label, width] of [
       expect(posted).toEqual([{ player_tag: "#0VJ2QV", action: "remove" }]);
     });
 
-    test("Location: your place on the clan map, and who sees it", async ({
+    test("Your place on Profile: set from the lists, and who sees it", async ({
       page,
     }) => {
       const saved: unknown[] = [];
@@ -154,31 +155,46 @@ for (const [label, width] of [
           },
         }),
       );
+      // What members see's Location names it and opens Profile's.
       await page.goto("/settings/what-members-see");
       const location = page.getByRole("region", { name: "Location" });
+      await expect(
+        location.getByRole("link", { name: /Your place/ }),
+      ).toHaveAttribute("href", "/settings/profile#place");
+      await expect(location).toContainText("Not set");
       await expect(location).toContainText(
         "only the verified members of each clan your verified player is in",
       );
       // Nothing about players near you: that waits on a legal view.
       await expect(location).not.toContainText(/near/i);
-      const country = location.getByLabel("Country");
+      await location.getByRole("link", { name: /Your place/ }).click();
+      await expect(page).toHaveURL(/\/settings\/profile#place$/);
+      const yours = page.getByRole("region", { name: "Your place" });
+      await expect(yours).toContainText("your clan’s verified members");
+      const country = yours.getByLabel("Country");
+      await expect(country).toBeFocused();
       await expect(country.locator("option")).not.toHaveCount(1);
       await noSideways(page);
-      await accessible(page, `location ${label}`);
+      await accessible(page, `your place ${label}`);
       await country.selectOption("NO");
-      const regionOrCity = location.getByLabel(/State or region|City/);
+      const regionOrCity = yours.getByLabel(/State or region|City/);
       await expect(regionOrCity.first()).toBeVisible();
       // Norway has regions in the list or not; either way a country alone
       // is allowed only when it has none, so pick what is offered.
-      if (await location.getByLabel("State or region").count())
-        await location.getByLabel("State or region").selectOption({ index: 1 });
-      await location.getByRole("button", { name: "Add me" }).click();
-      await expect(location).toContainText("You’re on the map at");
+      if (await yours.getByLabel("State or region").count())
+        await yours.getByLabel("State or region").selectOption({ index: 1 });
+      await yours.getByRole("button", { name: "Add me" }).click();
+      await expect(
+        yours.getByRole("button", { name: "Change your place" }),
+      ).toBeVisible();
+      await expect(
+        yours.getByRole("button", { name: "Remove your place" }),
+      ).toBeVisible();
       expect(saved).toHaveLength(1);
       expect((saved[0] as { country: string }).country).toBe("NO");
     });
 
-    test("Location with no verified player says how to get one", async ({
+    test("Your place with no verified player says how to get one", async ({
       page,
     }) => {
       await mockApi(
@@ -193,10 +209,16 @@ for (const [label, width] of [
       );
       await page.goto("/settings/what-members-see");
       const location = page.getByRole("region", { name: "Location" });
-      await expect(
-        location.getByRole("link", { name: "Verify your player" }),
-      ).toHaveAttribute("href", "/settings/players");
+      await expect(location).toContainText(
+        "Not set. A place needs a verified player.",
+      );
       await accessible(page, `location unverified ${label}`);
+      await page.goto("/settings/profile");
+      const yours = page.getByRole("region", { name: "Your place" });
+      await expect(
+        yours.getByRole("link", { name: "Verify your player" }),
+      ).toHaveAttribute("href", "/settings/players/verify");
+      await accessible(page, `your place unverified ${label}`);
     });
   });
 }

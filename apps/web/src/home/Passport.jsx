@@ -32,7 +32,6 @@ import {
   unitWord,
 } from "../lib/passport.js";
 import {
-  useMyClans,
   useMyPassport,
   usePassport,
   useReconcilePassport,
@@ -132,8 +131,6 @@ function PassportView({ data, owner, yours, stampId }) {
   const progress = new Map(
     (owner ? (data.owner?.stamps ?? []) : []).map((s) => [s.stamp_id, s]),
   );
-  const clans = useMyClans();
-  const clanTag = owner ? (clans.data?.home_clan?.clan_tag ?? null) : null;
   const open = stampById(stampId) ? stampId : null;
   const closed = useRef(null);
   useEffect(() => {
@@ -217,7 +214,6 @@ function PassportView({ data, owner, yours, stampId }) {
           entry={earned.get(open) ?? null}
           mine={progress.get(open) ?? null}
           owner={owner}
-          clanTag={clanTag}
           onClose={() => {
             closed.current = open;
             go(null);
@@ -327,7 +323,7 @@ const NOTES = {
 
 /** One Stamp's detail: the mark, its day, the rule and the levels; for
  *  the owner, the exact count and where to earn the next level. */
-function StampSheet({ stamp, entry, mine, owner, clanTag, onClose }) {
+function StampSheet({ stamp, entry, mine, owner, onClose }) {
   const level = entry?.level ?? 0;
   const ladder = stamp.thresholds.length > 1;
   const done = level >= stamp.thresholds.length;
@@ -382,7 +378,7 @@ function StampSheet({ stamp, entry, mine, owner, clanTag, onClose }) {
         {owner && !done ? (
           <Link
             className="btn btn--primary"
-            to={destinationHref(stamp.destination, { clanTag })}
+            to={destinationHref(stamp.destination)}
           >
             {stamp.action}
           </Link>

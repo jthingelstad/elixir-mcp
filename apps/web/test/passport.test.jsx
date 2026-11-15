@@ -204,10 +204,8 @@ test("helpers: the highest level each, two latest marks, and where to earn", () 
       { stamp_id: "player_verified", level: 1 },
     ],
   });
-  expect(destinationHref("map-view", { clanTag: "#0LL2" })).toBe(
-    "/clan/0LL2/members/map",
-  );
-  expect(destinationHref("map-view")).toBe("/clan");
+  // The place is the person's: Profile's Your place, picker open.
+  expect(destinationHref("map-view")).toBe("/settings/profile#place");
   expect(destinationHref("verification")).toBe("/settings/players/verify");
   expect(unitWord("cheerleader", 1)).toBe("day");
   expect(unitWord("storyteller", 5)).toBe("highlighted battles");
@@ -308,7 +306,7 @@ test(
 );
 
 test(
-  "?stamp= opens one Stamp; On the Map's action goes to the home clan's map",
+  "?stamp= opens one Stamp; On the Map's action opens Your place on Profile",
   { timeout: 20000 },
   async () => {
     at("/home/passport?stamp=on_the_map");
@@ -318,9 +316,9 @@ test(
     });
     const action = within(sheet).getByRole("link", { hidden: true });
     await waitFor(() =>
-      expect(action.getAttribute("href")).toBe("/clan/0LL2/members/map"),
+      expect(action.getAttribute("href")).toBe("/settings/profile#place"),
     );
-    expect(action.textContent).toBe("Open clan map");
+    expect(action.textContent).toBe("Set your place");
     fireEvent.click(
       within(sheet).getByRole("button", { name: "Close", hidden: true }),
     );
