@@ -342,11 +342,12 @@ test("getMany answers what one get per key answers, in the keys' order, absent k
   for (const pk of keys) one.push(await store.get(pk));
   assert.deepEqual(await store.getMany(keys), one.filter(Boolean));
   assert.deepEqual(await store.getMany([]), []);
-  // A person's places, through the ledger: one read for all their tags.
+  // A person's place is written under each tag by key. The ledger has no
+  // read of places: they are read only under Elixir's ownership rule
+  // (readOwnedPlaces, services/web-api/test/place-owner.test.mjs).
   await ledger.savePlace(["#0PYQ2C"], { lat: 1, lon: 2 });
-  assert.deepEqual(
-    await ledger.places(["#0PYQ2C", "#0LQ9GV"]),
-    await ledger.places(["#0PYQ2C"]),
-  );
-  assert.equal((await ledger.places(["#0PYQ2C", "#0LQ9GV"])).length, 1);
+  const saved = await store.getMany(["place##0PYQ2C", "place##0LQ9GV"]);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].player_tag, "#0PYQ2C");
+  assert.equal(ledger.places, undefined);
 });

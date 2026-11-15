@@ -25,8 +25,7 @@
  *  any of them (AGENT_SCOPED_ROUTES does not list them). The GETs never
  *  grant a Stamp. */
 import { checkRateLimit } from "@elixir-mcp/auth";
-import { ledgerOver } from "@elixir-mcp/clan-state";
-import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
+import { readOwnedPlaces } from "@elixir-mcp/auth/clan-context";
 import {
   dismissProfileList,
   readOwnerPassport,
@@ -56,8 +55,11 @@ async function hasPlace(db, accountId) {
     [accountId],
   );
   if (rows.length === 0) return false;
-  const ledger = ledgerOver(createPostgresStore(db));
-  const places = await ledger.places(rows.map((r) => r.player_tag));
+  // Only a place this account wrote (a tag that moved here keeps none).
+  const places = await readOwnedPlaces(
+    db,
+    rows.map((r) => r.player_tag),
+  );
   return places.length > 0;
 }
 

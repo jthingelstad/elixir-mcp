@@ -54,7 +54,10 @@ import { diskGeo } from "@elixir-mcp/clan/geo.mjs";
 import { normalizeTag } from "@elixir-mcp/clan/gate.mjs";
 import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
 import { myPlayers } from "@elixir-mcp/record/players";
-import { readClanDirectory } from "@elixir-mcp/auth/clan-context";
+import {
+  readClanDirectory,
+  readOwnedPlaces,
+} from "@elixir-mcp/auth/clan-context";
 import { readMembershipCapture } from "@elixir-mcp/record/membership-capture";
 import { membershipCapture } from "@elixir-mcp/record/capture-state";
 import {
@@ -494,7 +497,14 @@ export function createClanRequest({
       }),
       recruit: createRecruitService({ ledger, record, model }),
       scout: createScout({ record }),
-      social: createSocialService({ ledger, geo: diskGeo() }),
+      // Places are read under Elixir's ownership rule and stamped with
+      // the person who saves them (2026-11-14).
+      social: createSocialService({
+        ledger,
+        geo: diskGeo(),
+        ownedPlaces: (tags) => readOwnedPlaces(db, tags),
+        accountId: account.accountId,
+      }),
       memberActivity: createMemberActivity({
         record,
         participationFor: (clanTag, playerTag, weeks) =>

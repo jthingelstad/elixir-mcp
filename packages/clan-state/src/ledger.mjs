@@ -93,7 +93,9 @@ import { isDeepStrictEqual } from "node:util";
  *                            city picked from the lists, written under each
  *                            of their verified tags (one place per person,
  *                            in every clan they are in), removed when they
- *                            clear it
+ *                            clear it; `account_id` names the account that
+ *                            wrote it (2026-11-14), and it is a place only
+ *                            for that account's claim on the tag
  *
  * Deleted as a set when a clan's last verified leader disconnects
  * (deleteClan). Retention: cards and notes are kept; the verdict snapshot
@@ -647,11 +649,11 @@ export function ledgerOver(io) {
     },
     // ---- the whole clan ------------------------------------------------
     // ---- social (2026-09-26): a person's place, under each of their
-    // verified tags; the clan's switch, in the clan's partition ----------
-    async places(tags) {
-      const items = await io.getMany(tags.map((tag) => `place#${tag}`));
-      return items.filter(Boolean).map(stripKeys);
-    },
+    // verified tags; the clan's switch, in the clan's partition. Places
+    // are read only through Elixir's ownership rule (`readOwnedPlaces` in
+    // @elixir-mcp/auth/clan-context, 2026-11-14): a row under a tag is a
+    // place only for the claim that wrote it, so the ledger has no raw
+    // read of them ------------------------------------------------------
     async savePlace(tags, place) {
       for (const tag of tags)
         await io.put({ pk: `place#${tag}`, player_tag: tag, ...place });

@@ -20,6 +20,7 @@ import {
   req,
   signIn,
   cookieHeader,
+  memoryPlaces,
 } from "./fakes.mjs";
 
 const T = Date.parse("2026-10-12T12:00:00Z");
@@ -27,13 +28,15 @@ const ago = (ms) => new Date(T - ms).toISOString();
 
 function harness(who = player()) {
   const record = fakeRecord({ players: [who] });
+  const ledger = createMemoryLedger();
   const handler = createHandler({
     record,
     ...createTestAccount(),
     social: createSocialService({
-      ledger: createMemoryLedger(),
+      ledger,
       geo: diskGeo(),
       now: () => T,
+      ...memoryPlaces(ledger),
     }),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",

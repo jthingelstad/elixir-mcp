@@ -3,7 +3,10 @@
  * `readOwnClanView` gives a person their own view of one clan (#535);
  * `readClanDirectory` gives a signed-in person, or an agent reading for its
  * approved owner (12.0.0), the clan directory's tiles, the policy's public
- * part only (#768). The agent policy-context reader retired with
+ * part only (#768). People's places (`place#<tag>` rows) are read here
+ * too, under one rule: a place belongs to the claim that wrote it
+ * (`placeOwnedBy`), for Clan's own view and clan map (`readOwnedPlaces`),
+ * the player map and Near you. The agent policy-context reader retired with
  * `clans_context` in 12.0.0, and its grant storage and op in 0256
  * (DECISIONS "`clans_context` retires"). */
 import { ELIXIR_ORIGIN } from "@elixir-mcp/contracts";
@@ -302,6 +305,67 @@ export async function readClanDirectory(db, account) {
   };
 }
 
+// ---- people's places: the one ownership rule ------------------------------
+
+/** A verified own claim (primary or alt): the only claim a place is under. */
+const ownClaim = (c) => `${c}.status = 'verified'
+    and (${c}.is_primary or ${c}.relationship in ('primary', 'alt'))`;
+
+/**
+ * A place belongs to the claim that wrote it (2026-11-14). A place is the
+ * personal data of the person who picked it, stored under a player tag;
+ * when the tag's verified claim moves to another account, or ends and is
+ * verified again, the row stays behind. It counts for a claim only when
+ * that claim's account wrote it: the row's `account_id` stamp (every save
+ * since 2026-11-14) equals the claim's account; a row saved before the
+ * stamp counts only when written at or after the claim was verified, so
+ * an older owner's place never passes to the tag's next holder. A row
+ * that fails is no place, for every reader: the owner's own view and the
+ * picker, the clan map, the player map and Near you.
+ * `s` is the clan_state row, `c` the claim it is read under.
+ */
+const placeOwnedBy = (
+  s,
+  c,
+) => `(${s}.body ->> 'account_id' = ${c}.account_id::text
+    or (${s}.body ->> 'account_id' is null
+        and (${c}.verified_at is null
+             or (${s}.body ->> 'set_at')::timestamptz >= ${c}.verified_at)))`;
+
+// One statement for a list of tags, each read by its key in the list's
+// order (as the ledger's getMany): the place under the tag's verified own
+// claim, when that claim wrote it. A tag with no such claim, or whose row
+// another claim wrote, has none.
+const OWNED_PLACES_SQL = `
+select s.body
+  from unnest($1::text[]) with ordinality as t(tag, ord)
+  cross join lateral (
+    select s.body from claim c
+      join clan_state s on s.pk = 'place#' || c.player_tag
+     where c.player_tag = t.tag
+       and ${ownClaim("c")}
+       and ${placeOwnedBy("s", "c")}
+     limit 1) s
+ order by t.ord`;
+
+/** The ledger's own keys and the owner stamp stay here: a reader gets the
+ *  place as Clan saved it, never whose account wrote it. */
+const HIDDEN = new Set(["pk", "gsi1pk", "gsi1sk", "account_id"]);
+const placeItem = (body) =>
+  Object.fromEntries(Object.entries(body).filter(([k]) => !HIDDEN.has(k)));
+
+/**
+ * The places under these tags that their current verified own claims
+ * wrote (`placeOwnedBy`), in the tags' order, absent ones left out. The
+ * only read of `place#` rows by tag: Clan's own view and picker, its clan
+ * map, the passport's "has a place" and its legacy check read through it.
+ */
+export async function readOwnedPlaces(db, tags) {
+  if (!tags?.length) return [];
+  const { rows } = await db.query(OWNED_PLACES_SQL, [tags]);
+  return rows.map((r) => placeItem(r.body));
+}
+
 // ---- the player map and Near you (#768) ------------------------------------
 
 /** [engineering, 2026-11-14] Bounds on one read; each says when it is
@@ -315,8 +379,8 @@ export const NEAR_YOU_LIMIT = 50;
  * when its owner chose the player map (`player_map: true`; an older place
  * has no such key and stays on clan maps only), only under a tag that is
  * still a verified own claim (primary or alt) of an approved person, and
- * only when the place was written after that claim was verified, so a tag
- * that moved to another account never carries the old owner's place. One
+ * only when that claim wrote it (`placeOwnedBy`), so a tag that moved to
+ * another account never carries the old owner's place. One
  * row per account: its primary player when verified, else its earliest
  * verified alt, so a person's players are never shown side by side.
  *
@@ -333,15 +397,13 @@ const onMap = (where = "true") => `
          s.body ->> 'city' as city
     from clan_state s
     join claim c on c.player_tag = s.body ->> 'player_tag'
-                and c.status = 'verified'
-                and (c.is_primary or c.relationship in ('primary', 'alt'))
+                and ${ownClaim("c")}
     join account a on a.account_id = c.account_id
                   and a.kind = 'person' and a.status = 'approved'
    where s.pk ~ '^place##[0289PYLQGRJCUV]{3,12}$'
      and s.body ->> 'player_map' = 'true'
      and s.pk = 'place#' || c.player_tag
-     and (c.verified_at is null
-          or (s.body ->> 'set_at')::timestamptz >= c.verified_at)
+     and ${placeOwnedBy("s", "c")}
      and ${where}
    order by c.account_id, c.is_primary desc, c.verified_at nulls last,
             c.player_tag`;
@@ -364,8 +426,8 @@ select o.player_tag, p.name, o.country, o.region, o.city,
           lower(coalesce(p.name, o.player_tag)), o.player_tag
  limit $2`;
 
-// The reader's own place (the newest written under their verified own
-// tags, read by key) and, in the same snapshot, the people on the player
+// The reader's own place (the newest their verified own claims wrote,
+// read by key) and, in the same snapshot, the people on the player
 // map in its country and region, the reader's own account and anyone whose
 // players the reader already claims (owns, follows or watches) left out.
 // Ordered by the place alone: the reader's city first, then by name.
@@ -379,9 +441,9 @@ mine as (
          s.body ->> 'player_map' = 'true' as on_map
     from reader
     join claim c on c.account_id = reader.account_id
-                and c.status = 'verified'
-                and (c.is_primary or c.relationship in ('primary', 'alt'))
+                and ${ownClaim("c")}
     join clan_state s on s.pk = 'place#' || c.player_tag
+                     and ${placeOwnedBy("s", "c")}
    order by s.body ->> 'set_at' desc nulls last
    limit 1
 )

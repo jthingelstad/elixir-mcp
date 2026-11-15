@@ -26,13 +26,32 @@
  *   row under a tag may be a former owner's, whose yes is not this
  *   person's). The
  *   readers are Elixir's (`@elixir-mcp/auth/clan-context`), not Clan's.
+ * - A place belongs to the claim that wrote it (2026-11-14): every save
+ *   stamps the writer's account, and every read here (your place, the
+ *   picker, the clan map) goes through `ownedPlaces`, Elixir's one rule
+ *   (`readOwnedPlaces`): a row under a tag whose verified claim another
+ *   account now holds, or that ended, is no place. A tag that moves never
+ *   shows its former owner's place to its new owner or on a clan map.
  */
 
 import { ManageError } from "./service.mjs";
 
 const LEADERS = new Set(["leader", "coLeader"]);
 
-export function createSocialService({ ledger, geo, now = () => Date.now() }) {
+/**
+ * `ownedPlaces(tags)` reads the places their current verified claims wrote
+ * (`readOwnedPlaces` over the request's client); `accountId` is the
+ * signed-in person's, stamped on every place they save.
+ */
+export function createSocialService({
+  ledger,
+  geo,
+  ownedPlaces,
+  accountId,
+  now = () => Date.now(),
+}) {
+  if (typeof ownedPlaces !== "function")
+    throw new Error("createSocialService needs ownedPlaces");
   async function setting(clanTag) {
     const s = await ledger.socialSetting(clanTag);
     return {
@@ -42,10 +61,10 @@ export function createSocialService({ ledger, geo, now = () => Date.now() }) {
     };
   }
 
-  /** The newest place among a person's tags (they are written together;
-   *  a tag verified later has none until the next save). */
+  /** The newest place among a person's tags that they wrote (they are
+   *  written together; a tag verified later has none until the next save). */
   async function newestRow(tags) {
-    const rows = await ledger.places(tags);
+    const rows = await ownedPlaces(tags);
     if (!rows.length) return null;
     return rows.sort((a, b) =>
       String(b.set_at).localeCompare(String(a.set_at)),
@@ -67,11 +86,13 @@ export function createSocialService({ ledger, geo, now = () => Date.now() }) {
       : { ...resolved, set_at: row.set_at, player_map: playerMapOf(row) };
   }
 
-  /** One place under each of the person's verified tags, written now, so
-   *  each row's `set_at` follows the claim it is under (the player map
-   *  shows a row only when it was written after that claim was verified). */
+  /** One place under each of the person's verified tags, written now and
+   *  stamped with their account: the row is theirs, and no other claim on
+   *  the tag reads it as a place. */
   async function write(tags, place, playerMap) {
+    if (!accountId) throw new Error("a place is saved by a signed-in account");
     await ledger.savePlace(tags, {
+      account_id: accountId,
       country: place.country,
       region: place.region,
       city: place.city,
@@ -104,9 +125,8 @@ export function createSocialService({ ledger, geo, now = () => Date.now() }) {
     /** Save a place. `player_map` is the person's choice. Left out (a page
      *  that does not ask), it never widens who sees the place: a no stays
      *  a no and anything else is clan maps only. A yes is never carried
-     *  over, because the newest row under a tag can be its former owner's
-     *  (a claim that moved leaves its place behind) and their yes is not
-     *  this person's (Codex on #1054). */
+     *  over (Codex on #1054); the row read is the person's own place
+     *  (`ownedPlaces`), never a former owner's. */
     async setMyPlace(person, input) {
       const asked = input?.player_map;
       if (asked !== undefined && asked !== null && typeof asked !== "boolean")
@@ -161,7 +181,7 @@ export function createSocialService({ ledger, geo, now = () => Date.now() }) {
     async map(clanTag, members, you) {
       if (!(await setting(clanTag)).enabled)
         throw new ManageError(409, "social_off");
-      const rows = await ledger.places(members.map((m) => m.player_tag));
+      const rows = await ownedPlaces(members.map((m) => m.player_tag));
       const byTag = new Map(rows.map((r) => [r.player_tag, r]));
       const entries = [];
       for (const m of members) {

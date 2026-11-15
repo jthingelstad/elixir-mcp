@@ -16,7 +16,7 @@
     "test": "node --test '**/*.test.mjs'"
   },
   "dependencies": {
-    "@elixir-mcp/clan-state": "0.1.0",
+    "@elixir-mcp/auth": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0"
   },
   "devDependencies": {
