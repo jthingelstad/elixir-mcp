@@ -20,6 +20,7 @@ import {
   shownAt,
   subjectsFor,
 } from "@elixir-mcp/tools/activity/entries";
+import { feedWatermark } from "@elixir-mcp/tools/activity/home-feed";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
 import { createClanRequest } from "../src/clan.mjs";
@@ -1120,6 +1121,10 @@ test("Home's feed comes thirty a page: More reads on in the same week, the first
   // New is counted from the place the read found, and says which (Codex on
   // #800): this person has none yet.
   assert.equal(one.counts.new_since, null);
+  // The "N new" watermark covers stored items only; these are all read
+  // live, so it is the week's start (anything stored later is new), and
+  // later pages carry none.
+  assert.equal(one.watermark, one.window.from);
 
   const more = await feed({ cursor: one.next });
   assert.equal(more.statusCode, 200, more.body);
@@ -1127,6 +1132,7 @@ test("Home's feed comes thirty a page: More reads on in the same week, the first
   assert.equal(two.timeline.length, 5);
   assert.equal(two.next, null);
   assert.equal(two.counts, undefined);
+  assert.equal(two.watermark, undefined);
   assert.deepEqual(two.window, one.window);
   const ids = [...one.timeline, ...two.timeline].map((it) => it.id);
   assert.equal(new Set(ids).size, 35, "no item twice, none lost");
@@ -1240,6 +1246,14 @@ test("Home's N new: the stored week's items newer than the newest shown, one sta
     { id: "s1", kind: "battle_session", at: at(90), sort_at: at(5) },
     { id: "m1", kind: "ranked_promotion", at: at(10) },
     { id: "m0", kind: "ranked_promotion", at: at(40) },
+    // A battle learned late: it sorts below the top, and is still news.
+    {
+      id: "s0",
+      kind: "battle_session",
+      at: at(120),
+      sort_at: at(60),
+      observed_at: at(6),
+    },
     // Read live by the feed, never counted from the store.
     { id: "h1", kind: "battle_highlight", at: at(2) },
     { id: "f1", kind: "personal_record", section: "attested", at: at(2) },
@@ -1253,10 +1267,52 @@ test("Home's N new: the stored week's items newer than the newest shown, one sta
   );
   const two = await probe(at(30));
   assert.equal(two.status, 200);
-  assert.equal(two.body.new, 2, "the sitting and the newer moment");
+  assert.equal(
+    two.body.new,
+    3,
+    "the sitting, the newer moment and the battle learned late",
+  );
   assert.equal(two.body.built_at, new Date(now).toISOString());
-  assert.equal((await probe(at(7))).body.new, 1);
+  assert.equal((await probe(at(7))).body.new, 2);
   assert.equal((await probe(at(5))).body.new, 0, "the newest shown is not new");
+  // The first page's watermark is the stored items' newest change, and
+  // counting from it finds nothing until the week changes.
+  const mark = feedWatermark(items);
+  assert.equal(mark, items[0].sort_at, "the live items are left out");
+  assert.equal((await probe(mark)).body.new, 0);
+  assert.equal(
+    feedWatermark([{ id: "h", kind: "battle_highlight", at: at(1) }]),
+    null,
+  );
+  // Codex on #1038: your own refresh records a battle ten minutes old while
+  // a five-minute sitting tops the feed. Dated below the top, learned after
+  // the reader's read: it counts.
+  await db.query(
+    `update home_feed set items = items || $2::jsonb, built_at = now()
+      where account_id = $1`,
+    [
+      id,
+      JSON.stringify([
+        {
+          id: "s9",
+          kind: "battle_session",
+          at: at(10),
+          sort_at: at(10),
+          observed_at: at(0.5),
+        },
+      ]),
+    ],
+  );
+  assert.equal((await probe(mark)).body.new, 1, "the late battle");
+  assert.equal(
+    (
+      await probe(
+        feedWatermark([...items, { observed_at: at(0.5), at: at(10) }]),
+      )
+    ).body.new,
+    0,
+    "a feed read after it holds it",
+  );
   for (const since of ["", "soon", at(-5), at(60 * 24 * 15)])
     assert.equal((await probe(since)).status, 400, `since=${since}`);
 });

@@ -104,7 +104,8 @@ for (const width of [320, 390, 1280]) {
             new URL(route.request().url()).searchParams.get("since") ?? "";
           counts.push(since);
           // The newcomer, once learned, is new to a feed that lacks it.
-          const fresh = arrived && Date.parse(since) < Date.parse(newcomer.at);
+          const fresh =
+            arrived && Date.parse(since) < Date.parse(newcomer.observed_at);
           return [200, { new: fresh ? 1 : 0, built_at: AGO(1) }];
         },
       }),
@@ -116,7 +117,7 @@ for (const width of [320, 390, 1280]) {
     const feed = page.locator(".kit-feed");
     await expect(feed.getByText("Invented 1 reached Path")).toBeVisible();
     await expect.poll(() => counts.length).toBeGreaterThan(0);
-    expect(counts[0]).toBe(items[0]!.at);
+    expect(counts[0]).toBe(items[0]!.observed_at);
 
     // Read on to the second page and stay down there.
     await page.getByRole("button", { name: "More", exact: true }).click();

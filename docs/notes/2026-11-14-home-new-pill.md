@@ -59,6 +59,38 @@ scrolled.
   sitting moves its `sort_at`). That is new games, so it counts.
   [engineering]
 
+## Learned late (Codex on #1038)
+
+The first cut counted items whose `sort_at` was newer than the top of
+the feed. A battle recorded late (a backfill, a collector catching up)
+keeps its old `sort_at`, so it landed below the top and was never
+counted. Now an item counts by its *change time*, the later of `sort_at`
+and `observed_at` (`changedAt` in `home-feed.mjs`, `greatest(...)` in
+the SQL), and the first feed page carries a `watermark`: the newest
+change time over its stored items, leaving out the live highlights and
+attested facts the count never sees. The client asks from the
+watermark, so a page read just now counts 0 until the week changes.
+Older pages without one fall back to the newest shown or learned time.
+With no stored items at all, the watermark is the week's start.
+[engineering]
+
+Why a watermark, not identity: sending the ids the reader holds would
+mean up to every loaded page's ids on each minute's probe, and would
+still miss a sitting that grew (same id, new battles). Comparing change
+times against the read's watermark is one comparison per stored item on
+the one row, the same single statement, and catches both. The count is
+what the reader lacks: items new since the read, plus held sittings
+that gained games. [engineering]
+
+Own refresh, asked or not: when the app asks on its own (opening,
+coming back after five minutes), landing still leaves an open feed
+alone and the pill offers what came (its count is asked at once). When
+the reader asks (the freshness chip on Home, the refresh button), the
+feed is read again with the rest: they asked to see new games, and a
+tap at the head of Home moving the feed is the answer, not a surprise.
+The refresh-at-open feature keeps working either way: a late battle is
+now counted, so the pill appears. [engineering]
+
 ## Tests
 
 Unit: `apps/web/test/home-feed-new.test.jsx` (the count's `since`, the
