@@ -627,7 +627,7 @@ function clanActions(f, c) {
  * something the reader filed, from any part of Elixir. One mail per
  * answer, sent only when they have not already read it where they filed
  * it. Their own words come back as an excerpt; the answer whole, as
- * plain text (it was written as Markdown for the Console's page).
+ * plain text (it was written as Markdown for the app's page).
  */
 const FEEDBACK_AREA_LABEL = {
   mcp: "MCP",

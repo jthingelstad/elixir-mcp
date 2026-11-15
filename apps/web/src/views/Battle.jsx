@@ -160,7 +160,7 @@ function CopyButton({ text, label = "Copy", className = "btn btn--sm" }) {
 
 /** /battle/<ref>: the page, on the reader's clock (the account's zone,
  *  or the browser's when nobody is signed in). A signed-in account with
- *  no zone set reads UTC here as it does on the Console and Ladder, so
+ *  no zone set reads UTC here as it does on every signed-in page, so
  *  one battle never shows two clocks. Links to the site's static pages
  *  (a card) are page loads; another battle stays in-app. */
 export function BattlePage() {

@@ -9,7 +9,7 @@ import { seasonFromDate } from "./war-clock.mjs";
 const DAY = 86_400_000;
 
 export function lastGameWeek(now = new Date()) {
-  // Most recent Monday 10:00Z at or before now: the boundary Ladder's
+  // Most recent Monday 10:00Z at or before now: the boundary Stats'
   // "This week vs your last 4" uses too (@elixir-mcp/record/form).
   const monday = gameWeekStartMs(now.getTime());
   const to = new Date(monday);

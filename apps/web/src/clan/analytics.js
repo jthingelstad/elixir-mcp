@@ -68,7 +68,7 @@ export function analyticsLocation(
 /** The route key a failure reports: method and path with ids and tags as
  *  `*`. The server's own line names the same route without its mount
  *  (`/api/clans/*`); the key keeps `/api/clan`, so on the site Clan
- *  shares with the Console its failures never read as the Console's. */
+ *  shares with the rest of the app its failures never read as the app's. */
 export function routeLabel(method, path) {
   const generic = path
     .replace(/^\/api\/clan\/clans\/[0-9A-Za-z]+/, "/api/clan/clans/*")

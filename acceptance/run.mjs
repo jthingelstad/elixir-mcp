@@ -74,14 +74,15 @@ const KNOWN = new Map(
   ).map((k) => [k.case, k]),
 );
 /** One at a time everywhere: the budget rule times each call, and three
- *  heavy reads on the micro inflate each other. A test pins it at 1. */
+ *  heavy reads on the small inflate each other. A test pins it at 1. */
 export const CONCURRENCY = { catalogue: 1 };
 
 /**
  * The pace (2026-11-13): after each call that reaches the door, the run
  * rests `ratio` times as long as that call took, between `minRestMs` and
- * `maxRestMs`, before its next one. The database is a db.t4g.micro whose
- * EBS bandwidth bursts from a bucket that refills only a few points an
+ * `maxRestMs`, before its next one. The database is a db.t4g.small for
+ * now (the micro again later, docs/DECISIONS.md). On the micro, EBS
+ * bandwidth bursts from a bucket that refills only a few points an
  * hour; back-to-back runs at full speed (about 7 MB/s of reads, peaks of
  * 15 to 19) drained it to 0 on 2026-11-12/13 and it dropped connections.
  * Resting twice each call's time spreads the same reads over about three

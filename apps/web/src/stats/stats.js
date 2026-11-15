@@ -379,7 +379,7 @@ export function capturePending(summary) {
 }
 
 /**
- * Pending's side of the same rule, from the Console's first-answer
+ * Pending's side of the same rule, from the app's first-answer
  * status: the capture has landed once the profile is in and the player's
  * own battle log has been read (with battles, or none for an inactive
  * player). A battle on record is not that read (an opponent stub's, from

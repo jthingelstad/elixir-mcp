@@ -48,7 +48,7 @@ import { homeClan, myClans } from "./clans.mjs";
  *  board's rule). */
 const DECK_FROM = 5;
 const LEADERS = new Set(["leader", "coLeader"]);
-/** The modes a week's chips can name, the ones Ladder names plus Casual. */
+/** The modes a week's chips can name: the ones Stats names. */
 const WEEK_MODES = ["ladder", "ranked", "war", "casual", "event"];
 
 /** One panel's read: its answer, or that it could not be read. Either way one

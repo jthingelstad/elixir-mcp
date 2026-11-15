@@ -1216,7 +1216,7 @@ Resources:
   # Sending as elixir@poapkings.com through SES (2026-09-16; Fastmail is a
   # mailbox, not a sender, and RECEIVING stays there - nothing here touches
   # the apex MX). Easy DKIM signs with SES-managed keys: the three CNAMEs
-  # in Outputs go to Namecheap by hand. bounce.poapkings.com is the custom
+  # in Outputs are Route 53 stack code. bounce.poapkings.com is the custom
   # MAIL FROM so SPF aligns with the From domain (Gmail/Yahoo bulk rules);
   # it needs the MX and TXT in Outputs. Bounces and complaints go to the
   # alarm topic, so they reach the ops queue like everything else; open
@@ -3342,7 +3342,7 @@ Outputs:
   AlarmTopicArn:
     Value: !Ref AlarmTopic
     Description: Subscribe from projects-sysadmin to projects-ops-alerts
-  # The DNS for sending as elixir@poapkings.com, all at Namecheap by hand.
+  # The DNS for sending as elixir@poapkings.com, in the dns-poapkings-com stack.
   SenderDkimCname1:
     Value: !Sub "${SenderIdentity.DkimDNSTokenName1} CNAME ${SenderIdentity.DkimDNSTokenValue1}"
   SenderDkimCname2:

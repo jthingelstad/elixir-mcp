@@ -12,7 +12,7 @@ import { PlayerPick } from "./ScopeBar.jsx";
  * The first capture is on its way (2026-10-08). A player just added has
  * nothing on record, so instead of a red read error or "no battles in
  * this mode", Stats says what is happening and links to the capture
- * status. The one Stats view that polls: it reads the Console's
+ * status. The one Stats view that polls: it reads the app's
  * first-answer status (an account read, never a tool, so it costs the
  * reader no quota) as FirstAnswer does: every few seconds for the first
  * minutes after the add, then about once a minute, and when

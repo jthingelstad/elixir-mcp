@@ -16,7 +16,7 @@ import { evidenceWord } from "../../home/Session.jsx";
  * timeline is everywhere: a newsfeed (contract 7.0.0). Above it, the
  * switch that cross-posts it to a Discord channel (2026-10-10).
  *
- * The Console keeps its own place in it (Jamie, 2026-10-20: "timeline
+ * The app keeps its own place in it (Jamie, 2026-10-20: "timeline
  * should be independent of what agents have seen via MCP"). Showing the
  * page moves that place to the window it showed, which clears the rail's
  * dot; it never moves what a connection has read, and a connection's

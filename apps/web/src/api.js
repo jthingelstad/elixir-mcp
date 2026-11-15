@@ -357,7 +357,7 @@ export const api = {
   rssLink: () => request("GET", "/api/me/rss"),
   resetRssLink: () => request("POST", "/api/me/rss"),
   rssLinkOff: () => request("DELETE", "/api/me/rss"),
-  // The Console's own place in the timeline (2026-10-20): the window end
+  // The app's own place in the timeline (2026-10-20): the window end
   // the page showed. Never an agent's read pointer.
   markTimelineSeen: (to, agent) =>
     request("POST", `${home(agent)}/timeline/seen`, { to }),

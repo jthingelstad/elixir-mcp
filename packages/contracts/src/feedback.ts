@@ -77,7 +77,7 @@ export const FEEDBACK_REF_KINDS = [
 ] as const;
 export type FeedbackRefKind = (typeof FEEDBACK_REF_KINDS)[number];
 
-/** Pointers only a Console or Clan page files, after checking them
+/** Pointers only a page of the app files, after checking them
  *  itself; never an MCP argument, so a door's `refs` drop them
  *  as unknown. `discord_post` (2026-10-11): a row of the Discord quality
  *  ledger (0222), named by a rating of a post on its delivery history. */
@@ -101,5 +101,5 @@ export const DISCORD_RATING_NOTE_MAX = 1000;
 /** Message and answer caps, one for every door. */
 export const FEEDBACK_MESSAGE_MAX = 8000;
 export const FEEDBACK_RESPONSE_MAX = 4000;
-/** How many pointers one item may carry (a Ladder page reads several). */
+/** How many pointers one item may carry (a Clan page names several). */
 export const FEEDBACK_REFS_MAX = 20;

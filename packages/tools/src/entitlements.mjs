@@ -176,7 +176,7 @@ const DISCORD_ASKER = /^discord:([0-9]{17,20})$/;
  * Who on_behalf_of names, and how we know (#531).
  *
  * `discord:<user id>` first goes through the Discord link a person made
- * from their own Console (Discord's sign-in proved it): their primary or
+ * from their own Settings (Discord's sign-in proved it): their primary or
  * an alt, but only one that is a current member of a clan this agent acts
  * for (Jamie, 2026-10-24, call 1), so a link never reaches past the
  * agent's clans. A claim still unverified resolves, flagged (call 3).

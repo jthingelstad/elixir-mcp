@@ -21,7 +21,7 @@ export function helpFor(path) {
   const clean = String(path ?? "").replace(/\/$/, "");
   const [, first, second] = clean.split("/");
   const area = (page, name = "console") => ({ ...page, area: name });
-  // Stats, under You since 2026-11-12, is Ladder's own help.
+  // Stats, under You since 2026-11-12, keeps the stored area `ladder`.
   if (isStats(clean))
     return area(STATS_HELP[statsSlug(clean)] ?? STATS_HELP.season, "ladder");
   if (first === "home")

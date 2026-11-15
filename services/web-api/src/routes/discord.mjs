@@ -44,7 +44,7 @@ const withOutcome = (path, outcome) => `${path}?discord=${outcome}`;
  * no verified address is sent to email sign-in, then may link.
  *
  * Both start at `GET /api/auth/discord/start` (a browser navigation, so a
- * plain link in the Console) and come back to the callback Discord is
+ * plain link in the app) and come back to the callback Discord is
  * registered with. Every outcome is a redirect to the page that asked,
  * with `?discord=<outcome>` for it to say what happened.
  */
