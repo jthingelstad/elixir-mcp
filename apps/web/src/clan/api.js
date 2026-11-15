@@ -224,12 +224,9 @@ export const api = {
   directory: () => get(`${API}/directory`),
   /** "I understand" on the notice after sign-in. */
   acknowledgeVerify: () => post(`${API}/verify-notice`, {}),
-  // Where you play from, for every clan map you are on (one per person).
+  // Where you play from: your clan maps, the player map and Near you (one
+  // per person).
   myPlace: () => get(`${API}/me/place`),
   setMyPlace: (place) => put(`${API}/me/place`, place),
   clearMyPlace: () => del(`${API}/me/place`),
-  // On the player map and in Near you, or clan maps only (#768); the
-  // place itself stays.
-  setPlayerMap: (playerMap) =>
-    put(`${API}/me/place/player-map`, { player_map: playerMap }),
 };

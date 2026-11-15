@@ -18,7 +18,6 @@ import { api } from "../api.js";
 import { playerHref } from "../lib/player.js";
 import { usePeople } from "../lib/queries.js";
 import { PLACE_HREF } from "../lib/passport.js";
-import { usePlayerMapChoice } from "../clan/views/YourPlace.jsx";
 import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
 import {
   costMark,
@@ -262,17 +261,16 @@ export function FindSuggested({ onSearch, onLink }) {
 }
 
 /**
- * Find's Near you (#768, Jamie 2026-11-14): people on the player map in
- * your country and region, as the players they verified, each with where
- * as a plain fact and a Follow. Your city first, then by name; never
+ * Find's Near you (#768, Jamie 2026-11-14): the people who set a place
+ * in your country and region, as the players they verified, each with
+ * where as a plain fact and a Follow. Your city first, then by name; never
  * ranked by trophies, wins or any score, and never closer than the place
  * each picked. Only for a reader with a place; anyone else is asked to set
- * one. A reader on clan maps only still sees it, and is told they are not
- * on it themselves.
+ * one. Setting a place is what puts someone here (2026-11-15): there is
+ * no other choice to make.
  */
 export function NearYou() {
   const query = usePeople("near");
-  const { choose, busy, error } = usePlayerMapChoice();
   const data = query.data;
   if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;
   if (query.isError || !data?.ok)
@@ -303,30 +301,9 @@ export function NearYou() {
     );
   return (
     <Panel className="kit-near" aria-label="Near you">
-      {data.place.on_map ? null : (
-        <div className="kit-near__join">
-          <p className="kit-tiny m-0">
-            Your place is on your clan maps only, so players near you
-            don&rsquo;t see you here.
-          </p>
-          <button
-            type="button"
-            className="btn btn--sm"
-            disabled={busy}
-            onClick={() => choose(true)}
-          >
-            Join the player map
-          </button>
-          {error ? (
-            <p className="field-error m-0" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </div>
-      )}
       {data.people.length === 0 ? (
         <p className="kit-week__quiet kit-near__empty">
-          Nobody in {data.place.region_name} is on the player map yet.
+          Nobody else in {data.place.region_name} has set a place yet.
         </p>
       ) : (
         <Rows>
@@ -342,7 +319,7 @@ export function NearYou() {
         </Rows>
       )}
       <p className="kit-tiny kit-people__slots">
-        People on the player map in {data.place.region_name}. Your city first,
+        People who set a place in {data.place.region_name}. Your city first,
         then by name. Never ranked.
         {data.truncated ? ` Showing the first ${data.people.length}.` : ""}{" "}
         <Link to={PLACE_HREF} className="hit">

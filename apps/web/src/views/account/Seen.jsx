@@ -19,6 +19,7 @@ import { Battle } from "../Battle.jsx";
 import { useMyPlace } from "../../clan/lib/queries.js";
 import { placeLabel } from "../../clan/lib/place-label.js";
 import { PLACE_HREF } from "../../lib/passport.js";
+import { PLACE_WHO } from "../../clan/views/YourPlace.jsx";
 import { Facts, Note } from "./parts.jsx";
 import { FollowSlots } from "./Slots.jsx";
 
@@ -106,15 +107,13 @@ export function Seen({ me }) {
               </>,
             ],
             [
-              "Your place, if you chose the player map",
+              "Your place, if you set one",
               <>
                 The city, region or country you picked, never closer, with your
                 verified player&rsquo;s game name and tag: on the player map,
-                and in Near you for members in your region. Only if you chose
-                it; a place on your clan maps only shows nowhere else.
+                and in Near you for members in your region.
                 <Note>
-                  Leave the player map on Profile and your place stays on your
-                  clan maps.
+                  To stop showing it anywhere, remove your place on Profile.
                 </Note>
               </>,
             ],
@@ -262,11 +261,7 @@ export function Seen({ me }) {
             />
           </Rows>
           <p className="st-foot st-inset mt-2">
-            Who sees it: the verified members of each clan your verified player
-            is in, on that clan&rsquo;s map, while its leaders keep the map on.
-            If you chose the player map, members signed in to Elixir too, on the
-            player map and in Near you. Nobody else: not anyone with a link, and
-            not an agent.
+            {PLACE_WHO} Nobody else: not anyone with a link, and not an agent.
           </p>
         </section>
         <Rows>
@@ -386,8 +381,5 @@ function PlaceNow() {
     return "Set, change or remove it on Profile.";
   if (!state.data) return "Reading your place.";
   const place = state.data.place;
-  if (!place) return "Not set";
-  return place.player_map === true
-    ? `${placeLabel(place)}, on your clan maps and the player map`
-    : `${placeLabel(place)}, on your clan maps only`;
+  return place ? placeLabel(place) : "Not set";
 }

@@ -7687,14 +7687,8 @@ a.kit-mbattle:hover {
   gap: var(--s-2);
   margin-top: 10px;
 }
-/* Find's Near you (#768): the clan-maps-only note above the rows, the
-   empty line, and the player map below with room between them. */
-.kit-near__join {
-  display: grid;
-  justify-items: start;
-  gap: var(--s-2);
-  padding: var(--s-3) var(--s-4);
-}
+/* Find's Near you (#768): the empty line, and the player map below with
+   room between them. */
 .kit-near__empty {
   padding: 0 var(--s-4);
 }
@@ -10903,7 +10897,6 @@ html[data-session-player="verified"] .chrome__avatar--hint {
 .kit-find .kit-panel__body,
 .kit-find .kit-people__slots,
 .kit-find .kit-people__quiet,
-.kit-find .kit-near__join,
 .kit-find .kit-near__empty {
   padding-inline: 0;
 }

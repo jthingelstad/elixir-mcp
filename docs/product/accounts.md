@@ -43,13 +43,14 @@ The Clash Royale API is open, so nearly nothing in the game is private.
 | Who you follow and who follows you | Every member |
 | Verification (your Clash Royale player, your Discord) | Every member, as badges |
 | A highlight you post | Your player's followers on the timeline; anyone with its link once you share it |
-| Where you play, if you share it (a city at most) | Your clan's verified members, on its map, while its leaders keep the map on |
+| Where you play, if you set it (a city at most) | Your clan's verified members on the clan map, while its leaders keep the map on; anyone signed in to Elixir on the player map and in Near you. No choice: to stop showing it, remove it |
 | Nicknames you give players | Only you |
 | Your Discord username and profile | Nobody; it shows only as a "verified in Discord" badge |
 | Your email address and the account's machinery (sign-in, agent keys, feedback, mail records, usage) | Only you, and the address to a family app |
 
 [Jamie, 2026-09-08, 2026-11-11, "What is public about an account",
-"Location is opt-in and a city at most"; engineering, 2026-11-11: email
+"Location is opt-in and a city at most"; Jamie, 2026-11-15: a place is
+a place, shown everywhere with no visibility choice; engineering, 2026-11-11: email
 and the machinery stay private] Settings › What members see says this as
 built, linking each choice to the page that owns it.
 

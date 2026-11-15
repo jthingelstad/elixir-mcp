@@ -38,8 +38,11 @@ is one feed", "The left rail stays only in Settings"]
   phone. [Jamie, 2026-11-12, "Home is one feed"]
 - **Find** (`/home/find`): Your clan (with Follow my clan and Invite
   clanmates), Search, From your battles, the clan directory and your
-  Follow me link. [Jamie, 2026-11-12; DECISIONS "People to follow states
-  why, and ranks nobody", "Invite clanmates is not on Home"]
+  Follow me link; Near you lists people who set a place in your region,
+  above the player map of everyone who set one, with nothing to join or
+  leave. [Jamie, 2026-11-12; Jamie, 2026-11-15, "a place is a place";
+  DECISIONS "People to follow states why, and ranks nobody", "Invite
+  clanmates is not on Home", "Location is opt-in and a city at most"]
 - **You** (`/home/you`): your primary player's page once it is verified,
   with a fifth tab, Stats; your other players listed to you alone; your
   account and signing out. With no verified player, You says how to
