@@ -106,6 +106,19 @@ export function Seen({ me }) {
               </>,
             ],
             [
+              "Your place, if you chose the player map",
+              <>
+                The city, region or country you picked, never closer, with your
+                verified player&rsquo;s game name and tag: on the player map,
+                and in Near you for members in your region. Only if you chose
+                it; a place on your clan maps only shows nowhere else.
+                <Note>
+                  Leave the player map on Profile and your place stays on your
+                  clan maps.
+                </Note>
+              </>,
+            ],
+            [
               "A cheer you give",
               <>
                 A count on that item, for every member whose feed shows it: how
@@ -249,9 +262,10 @@ export function Seen({ me }) {
             />
           </Rows>
           <p className="st-foot st-inset mt-2">
-            Who sees it: only the verified members of each clan your verified
-            player is in, on that clan&rsquo;s map, while its leaders keep the
-            map on. Nobody else: not other members, not anyone with a link, and
+            Who sees it: the verified members of each clan your verified player
+            is in, on that clan&rsquo;s map, while its leaders keep the map on.
+            If you chose the player map, members signed in to Elixir too, on the
+            player map and in Near you. Nobody else: not anyone with a link, and
             not an agent.
           </p>
         </section>
@@ -372,5 +386,8 @@ function PlaceNow() {
     return "Set, change or remove it on Profile.";
   if (!state.data) return "Reading your place.";
   const place = state.data.place;
-  return place ? placeLabel(place) : "Not set";
+  if (!place) return "Not set";
+  return place.player_map === true
+    ? `${placeLabel(place)}, on your clan maps and the player map`
+    : `${placeLabel(place)}, on your clan maps only`;
 }

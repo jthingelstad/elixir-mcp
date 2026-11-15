@@ -540,6 +540,16 @@ export const usePeople = (which, enabled = true) =>
     staleTime: 60_000,
   });
 
+/** The player map (#768): the people who chose it, for a signed-in
+ *  person. */
+export const usePlayerMap = (enabled = true) =>
+  useQuery({
+    queryKey: ["me", "player-map"],
+    queryFn: payload(() => api.playerMap()),
+    enabled,
+    staleTime: 60_000,
+  });
+
 /** The battle page's highlight panel (#762): your posts of this battle
  *  and the verified players you may post it as. Yours, never an agent's. */
 export const useMyHighlights = (battle, enabled = true) =>

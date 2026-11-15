@@ -32,7 +32,8 @@ Elixir refuses Run's pages to them:
   Members reach it from **Clan map** over the roster, and set or remove
   their place there or in **Your place** on Settings › Profile. A place
   is the member's own: it stays set while the map is off and shows again
-  when it is back on. Only the leader and co-leaders can change
+  when it is back on. A member who also chose the player map is on that
+  map whatever this switch says ([Your place](/docs/your-account#your-place)). Only the leader and co-leaders can change
   whether the member map is on. The clan's activity
   channel is under **Run › Discord** ([The
   clan's activity in Discord](/docs/clan-discord#the-clans-activity-in-discord)).

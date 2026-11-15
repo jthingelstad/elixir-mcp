@@ -252,7 +252,10 @@ test("the map step sets the place on Home itself: no clan page, Cancel returns f
   fireEvent.click(within(step).getByRole("button", { name: "Add me" }));
   await waitFor(() =>
     expect(writes).toEqual([
-      ["/api/clan/me/place", { country: "CA", region: "08", city: null }],
+      [
+        "/api/clan/me/place",
+        { country: "CA", region: "08", city: null, player_map: true },
+      ],
     ]),
   );
   // The passport reads again: all six done.

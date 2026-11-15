@@ -26,7 +26,7 @@ signs a person in with Elixir is the Sign in with Elixir brief.
   its details follow. Where the two disagree, the public docs describe
   what runs, the brief says where it goes, and an `engineering` issue
   holds the gap; the ledger line for something not yet built names that issue
-  (`open #768`).
+  (`open #<issue>`).
 - **Provenance, as in DECISIONS.** Jamie's own words are quoted and
   tagged `[Jamie, date]`. A paragraph an agent inferred from the record
   is tagged `[proposed]` until Jamie has read the page, then the tag

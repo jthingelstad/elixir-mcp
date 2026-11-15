@@ -112,11 +112,6 @@ as any unfollowed subject's does. [Jamie, 2026-10-12; see the record]
 
 - **Whether Partner stays.** Default in force: it stays, granted by
   Jamie; the Roles page explains the three earned tiers first.
-- **Defaults for young players** beyond the 13+ attestation (the player
-  map, shared posts), worth a legal view. Default in force: no player
-  map or Near you. The clan map is settled: a city or zip code at most is
-  fine for every member, young players included. [`VISION.md`, Open;
-  Jamie, 2026-11-13]
 - **Whose follows and followers are shown.** The player page shows them
   only for a player an account verified, and names a follower by their own
   verified player, else by the player they claim, marked not verified; an

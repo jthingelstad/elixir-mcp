@@ -1,5 +1,5 @@
 import { PlayerName } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import {
   SHELL_PLACES,
   Icon,
@@ -19,7 +19,17 @@ import { followMeHref } from "../lib/player.js";
 import { BringClanmates } from "../components/BringClanmates.jsx";
 import { useSheet } from "../shell/sheet.js";
 import { FollowCost, Followed, useFollow } from "./follow.jsx";
-import { FindSuggested, FromYourBattles, YourClanPeople } from "./People.jsx";
+import {
+  FindSuggested,
+  FromYourBattles,
+  NearYou,
+  YourClanPeople,
+} from "./People.jsx";
+
+// The player map carries Leaflet, which needs a window: loaded with the tab.
+const PlayerMap = lazy(() =>
+  import("./PlayerMap.jsx").then((m) => ({ default: m.PlayerMap })),
+);
 
 /**
  * Find (slice 7, #765; its sections 2026-11-12): where you go to find people
@@ -29,13 +39,15 @@ import { FindSuggested, FromYourBattles, YourClanPeople } from "./People.jsx";
  * the sheet every page has, and a tag
  * follows a friend; From your battles lists the players you met; the clan
  * directory lists the clans that saved their rules, by name; your Follow me link is how a friend finds
- * you. Near you waits on its legal question and is not here, not even as a
- * placeholder. Since 2026-11-13 Find opens on Suggested, a list to tap
+ * you. Near you (#768, Jamie 2026-11-14) lists the people on the player
+ * map in your region, with the player map below. Since 2026-11-13 Find
+ * opens on Suggested, a list to tap
  * through with why on every row (Jamie: Find "lands you on a search that
  * ONLY works by player tag and is essnetially a dead end").
  */
 export const FIND_SECTIONS = [
   { key: "suggested", label: "Suggested" },
+  { key: "near", label: "Near you" },
   { key: "clan", label: "Your clan", own: true },
   { key: "search", label: "Search" },
   { key: "battles", label: "From your battles", own: true },
@@ -89,6 +101,15 @@ export function FindPage() {
             </Rows>
           ) : tab === "link" ? (
             <FollowMeLink players={own} />
+          ) : tab === "near" ? (
+            <>
+              <NearYou />
+              <Suspense
+                fallback={<div className="kit-skeleton" aria-busy="true" />}
+              >
+                <PlayerMap />
+              </Suspense>
+            </>
           ) : tab === "search" ? (
             <Search />
           ) : (

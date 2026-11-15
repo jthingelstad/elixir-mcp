@@ -228,4 +228,8 @@ export const api = {
   myPlace: () => get(`${API}/me/place`),
   setMyPlace: (place) => put(`${API}/me/place`, place),
   clearMyPlace: () => del(`${API}/me/place`),
+  // On the player map and in Near you, or clan maps only (#768); the
+  // place itself stays.
+  setPlayerMap: (playerMap) =>
+    put(`${API}/me/place/player-map`, { player_map: playerMap }),
 };

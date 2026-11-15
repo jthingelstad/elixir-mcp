@@ -13,9 +13,106 @@ const lists = () => import("../lib/geo.js").then((m) => m.geo);
 /** Who sees a place, in one line, true to the server's rule
  *  (packages/clan/src/manage/social.mjs): the clan map of each clan a
  *  verified player of yours is in, to its verified members, while its
- *  leaders keep the map on. */
+ *  leaders keep the map on; and, only when its owner chose it (#768), the
+ *  player map and Near you, to people signed in to Elixir. */
 export const PLACE_WHO =
   "Who sees it: your clan’s verified members, on the clan map, when its leaders have the map on.";
+export const PLACE_WHO_WIDE =
+  "Who sees it: your clan’s verified members, on the clan map, and anyone signed in to Elixir, on the player map and in Near you.";
+
+/** The two reaches a place can have (#768), as the picker offers them. */
+export const REACH_WIDE = "My clan maps, the player map and Near you";
+export const REACH_CLAN = "My clan maps only";
+
+/** A place's reach in one line, from its `player_map` (true, false, or
+ *  null for a place saved before the choice existed: clan maps only). */
+export const reachLine = (playerMap) =>
+  playerMap === true
+    ? "On your clan maps, the player map and Near you."
+    : "On your clan maps only.";
+
+/** Join or leave the player map, keeping the place (#768). */
+export function usePlayerMapChoice() {
+  const invalidate = useInvalidate();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const choose = async (playerMap) => {
+    setBusy(true);
+    setError("");
+    const r = await api.setPlayerMap(playerMap);
+    setBusy(false);
+    if (!r?.ok) {
+      setError(r?.data?.message ?? "That did not work. Try again.");
+      return false;
+    }
+    trackEvent(playerMap ? "clan.player_map_joined" : "clan.player_map_left");
+    invalidate(keys.place);
+    invalidate(["me", "people", "near"], { exact: true });
+    invalidate(["me", "player-map"], { exact: true });
+    return true;
+  };
+  return { choose, busy, error };
+}
+
+/** Under a saved place: where it shows, and the way on or off the player
+ *  map. A place saved before the choice existed asks once, in words, and
+ *  stays on clan maps only until its owner says yes. */
+function PlaceReach({ place }) {
+  const { choose, busy, error } = usePlayerMapChoice();
+  const asked = place.player_map === true || place.player_map === false;
+  return (
+    <div className="grid gap-2">
+      {asked ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="page-head__note">{reachLine(place.player_map)}</span>
+          <button
+            type="button"
+            className="btn btn--sm"
+            disabled={busy}
+            onClick={() => choose(!place.player_map)}
+          >
+            {place.player_map ? "Leave the player map" : "Join the player map"}
+          </button>
+        </div>
+      ) : (
+        <div className="callout" role="note">
+          <div className="grid gap-2">
+            <strong>New: the player map</strong>
+            <span>
+              Your place can also go on the player map and in Near you, where
+              anyone signed in to Elixir can find players near them. Only your
+              place shows, never closer. It stays on your clan maps only unless
+              you say yes.
+            </span>
+            <span className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn btn--sm btn--primary"
+                disabled={busy}
+                onClick={() => choose(true)}
+              >
+                Join the player map
+              </button>
+              <button
+                type="button"
+                className="btn btn--sm"
+                disabled={busy}
+                onClick={() => choose(false)}
+              >
+                Keep clan maps only
+              </button>
+            </span>
+          </div>
+        </div>
+      )}
+      {error ? (
+        <p className="field-error m-0" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * Your place (Social, 2026-09-26): one place per person, picked from the
@@ -153,9 +250,11 @@ export function YourPlace({
             {removeError}
           </p>
         ) : null}
+        {place ? <PlaceReach place={place} /> : null}
         {setting ? (
           <p className="page-head__note m-0">
-            A country, a region or a city, never closer. {PLACE_WHO}
+            A country, a region or a city, never closer.{" "}
+            {place?.player_map === true ? PLACE_WHO_WIDE : PLACE_WHO}
           </p>
         ) : null}
       </div>
@@ -195,6 +294,12 @@ function PlacePicker({ initial, focus = false, onCancel, onSaved }) {
   const [data, setData] = useState(null);
   const [region, setRegion] = useState(initial?.region ?? "");
   const [city, setCity] = useState(initial?.city ? String(initial.city) : "");
+  // Who sees it (#768). A new place starts on the player map, said in
+  // plain words beside the choice; a saved one keeps what its owner chose,
+  // so a place never asked about is never widened by a change.
+  const [wide, setWide] = useState(
+    initial ? initial.player_map === true : true,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -240,6 +345,7 @@ function PlacePicker({ initial, focus = false, onCancel, onSaved }) {
           country,
           region: needsRegion ? region : null,
           city: city ? Number(city) : null,
+          player_map: wide,
         });
         setBusy(false);
         if (!r.ok) return setError(r.data?.message ?? "That did not work.");
@@ -250,8 +356,8 @@ function PlacePicker({ initial, focus = false, onCancel, onSaved }) {
         {initial ? "Change your place" : "Add yourself to the map"}
       </strong>
       <p className="page-head__note m-0">
-        A country, a region or a city, from the lists. {PLACE_WHO} You can
-        remove it any time.
+        A country, a region or a city, from the lists, never closer. You can
+        change or remove it any time.
       </p>
       <label className="field-label" htmlFor={`${id}-country`}>
         Country
@@ -322,6 +428,39 @@ function PlacePicker({ initial, focus = false, onCancel, onSaved }) {
           </select>
         </>
       ) : null}
+      <fieldset className="grid gap-1">
+        <legend className="field-label">Who sees it</legend>
+        <label className="flex items-start gap-2">
+          <input
+            type="radio"
+            name={`${id}-reach`}
+            checked={wide}
+            onChange={() => setWide(true)}
+          />
+          <span>
+            {REACH_WIDE}
+            <span className="page-head__note block">
+              Your clan&rsquo;s verified members, and anyone signed in to Elixir
+              looking for players near them.
+            </span>
+          </span>
+        </label>
+        <label className="flex items-start gap-2">
+          <input
+            type="radio"
+            name={`${id}-reach`}
+            checked={!wide}
+            onChange={() => setWide(false)}
+          />
+          <span>
+            {REACH_CLAN}
+            <span className="page-head__note block">
+              Only your clan&rsquo;s verified members, when its leaders have the
+              map on.
+            </span>
+          </span>
+        </label>
+      </fieldset>
       {error ? (
         <p className="field-error" role="alert">
           {error}
