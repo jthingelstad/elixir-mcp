@@ -289,7 +289,12 @@ export async function unfollowPlayerLinked(db, account, { tag, via }) {
  * the new player too ("now and later"). Skips become bell lines. Returns
  * `{ followed: n, skipped: n }`.
  */
-export async function linkNewVerified(db, ownerId, tag, { via = "linked" } = {}) {
+export async function linkNewVerified(
+  db,
+  ownerId,
+  tag,
+  { via = "linked" } = {},
+) {
   let followed = 0;
   let skipped = 0;
   for (const readerId of await accountFollowersOf(db, ownerId)) {
