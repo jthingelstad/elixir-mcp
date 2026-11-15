@@ -108,9 +108,30 @@ export function FollowCost({ tag }) {
   ) : null;
 }
 
-/** The words, apart so tests can read them without a render. */
+/** The words, apart so tests can read them without a render. A Verified
+ *  player's follow is its account's follow too (linked follows,
+ *  2026-11-15), so the line says what comes along. */
 export function followCostLine(c) {
   if (c.following) return null;
+  const base = slotLine(c);
+  const linked = linkedLine(c.linked);
+  if (!linked) return base;
+  return base ? `${base} · ${linked}` : linked;
+}
+
+/** What a linked follow brings along: the account, and its other
+ *  Verified players. */
+export function linkedLine(l) {
+  if (!l) return null;
+  const n = (v) => v.toLocaleString();
+  if (!l.players) return "Also follows their account";
+  const who = `${n(l.players)} more ${l.players === 1 ? "player" : "players"}`;
+  return l.slots
+    ? `Also follows their account and ${who} (${n(l.slots)} ${l.slots === 1 ? "uses a follow" : "use a follow"})`
+    : `Also follows their account and ${who}`;
+}
+
+function slotLine(c) {
   const n = (v) => v.toLocaleString();
   if (c.free)
     return c.limit == null

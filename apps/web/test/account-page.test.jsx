@@ -1,6 +1,7 @@
 /**
  * Account pages (2026-11-15): an account's players with their states, its
- * badges and Stamps, its timeline, Follow in one tap; a Claimed player
+ * badges and Stamps, its timeline, Follow asked first and priced (linked
+ * follows); a Claimed player
  * wears the grey ring and names the account claiming it. Invented players
  * and page ids only.
  */
@@ -79,7 +80,21 @@ const PAGE = (following = false) => ({
     followers: following ? 1 : 0,
     following_accounts: 2,
   },
-  you: { self: false, following },
+  you: {
+    self: false,
+    following,
+    to_follow: following ? [] : [MAIN],
+    plan: following
+      ? null
+      : {
+          to_follow: 1,
+          following: 0,
+          slots: 0,
+          used: 1,
+          limit: 50,
+          fits: true,
+        },
+  },
   passport: {
     id: THEIRS,
     count: 1,
@@ -120,7 +135,12 @@ beforeEach(() => {
     [`GET /api/accounts/${THEIRS}`]: () => reply(PAGE(following)),
     "POST /api/me/account-follows": () => {
       following = true;
-      return reply({ ok: true, following: true });
+      return reply({
+        ok: true,
+        following: true,
+        followed: [MAIN],
+        skipped: [],
+      });
     },
     "GET /api/me/clans": () => reply({ clans: [], home_clan: null }),
   };
@@ -185,7 +205,17 @@ test(
     const ring = moss.parentElement.querySelector(".kit-av");
     expect(ring.className).toContain("kit-av--claimed");
     expect(ring.className).not.toContain("kit-av--verified");
+    // Follow asks first: it follows their Verified players too, priced.
     fireEvent.click(screen.getByRole("button", { name: "Follow" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.textContent).toContain("every player they");
+    expect(dialog.textContent).toContain("1 player · free");
+    expect(writes).toEqual([]);
+    fireEvent.click(
+      Array.from(dialog.querySelectorAll("button")).find(
+        (b) => b.textContent === "Follow",
+      ),
+    );
     await waitFor(() =>
       expect(writes).toEqual([
         `POST /api/me/account-follows ${JSON.stringify({ id: THEIRS })}`,

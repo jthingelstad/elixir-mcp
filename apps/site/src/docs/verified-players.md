@@ -54,9 +54,28 @@ An account page shows a person on Elixir:
 - One timeline: their players' battles and news, plus the account's own
   news, like a Stamp earned, a place set, or a player verified.
 
-Tap **Follow** to follow an account. Its news (Stamps, places, verified
-players) then shows on your Home. Following an account takes no player
-slot. Open your own account page from **You**, then **Your account page**.
+Tap **Follow** to follow an account. You also follow every player it has
+verified, now and later, and its news (Stamps, places, verified players)
+shows on your Home. Elixir tells you first what the follow uses of your
+player slots. Open your own account page from **You**, then **Your account
+page**.
+
+## Linked follows
+
+A Verified player and its account are one follow:
+
+- Follow a Verified player, and you follow the account that verified it,
+  plus its other Verified players.
+- Follow an account, and you follow all its Verified players. When it
+  verifies another player later, you follow that one too.
+- Unfollow the account, or any of its Verified players, and the whole
+  follow ends.
+- Claimed and Imported players stay just themselves. Anyone can claim a
+  player, so a claim never pulls in an account.
+
+If Elixir can't take one of the players (no free player slot, or you
+don't have a player of your own yet), it skips that one and your bell
+says so. You still follow the rest.
 
 A verification is big news: once an account verifies a player, nobody
 else can claim them. It shows on the account's timeline and on Home for
