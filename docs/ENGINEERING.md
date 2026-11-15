@@ -757,6 +757,14 @@ script uses `--test-force-exit`, which let a file's process exit before
 its last results were read (`docs/notes/2026-11-14-test-count-integrity.md`).
 A test file ends when its handles close.
 
+A journey that asserts a calendar word ("today", "yesterday", "tonight",
+"this week", a weekday or a date the app derives from "now") pins the
+page's clock with `page.clock.setFixedTime` and seeds its fixture times
+from that same instant, never from the real clock: the reader's zone is
+the fixture account's (`ME.timezone`, America/Chicago), and CI runs at
+every hour (`docs/notes/2026-11-15-e2e-reader-clock.md`, which also has
+the harness that runs the journeys at any instant).
+
 **The acceptance suite** (`acceptance/`, layers in `acceptance/README.md`)
 reads the deployed door as a read-only agent principal with its own token
 and budget, and asserts invariants, never values that change daily. It runs

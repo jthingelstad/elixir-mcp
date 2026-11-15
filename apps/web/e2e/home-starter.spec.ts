@@ -12,7 +12,17 @@ import { HOME, homeApi, ownerPassport } from "./home-fixture.ts";
  * follow; "Not now" puts it aside; with nobody to suggest, one line
  * points to Find. Invented players only.
  */
-const AGO = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+// Every journey here runs under one pinned clock, Wednesday noon in the
+// reader's zone (ME.timezone, America/Chicago), and the fixture's times
+// are minutes before it. Against the real clock a clanmate who played 30
+// minutes ago "played yesterday" in the half hour after Central midnight,
+// so the first-screen test failed main's CI at 00:21 Central on
+// 2026-11-15 (docs/notes/2026-11-15-e2e-reader-clock.md).
+const NOW = Date.parse("2026-11-11T18:00:00Z");
+const AGO = (min: number) => new Date(NOW - min * 60_000).toISOString();
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(NOW);
+});
 const HOSTILE = "<img src=x onerror=alert(1)>Fern";
 
 const PEOPLE = [
@@ -268,9 +278,7 @@ test("following five, or put aside: no list, and no read for it", async ({
           first: {
             ...HOME.first,
             setup: NEW,
-            starter_hidden_until: new Date(
-              Date.now() + 10 * 86_400_000,
-            ).toISOString(),
+            starter_hidden_until: new Date(NOW + 10 * 86_400_000).toISOString(),
           },
         },
       ],

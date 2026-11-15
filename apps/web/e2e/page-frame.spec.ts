@@ -197,6 +197,9 @@ for (const width of [390, 420]) {
       page,
     }) => {
       await page.setViewportSize({ width, height: 860 });
+      // Pinned in the fixture's year: from 2027 the first row's last battle
+      // reads "Sat Sep 12 2026, 11:40 am" and wraps to a third line.
+      await page.clock.setFixedTime(new Date("2026-11-15T18:00:00Z"));
       if (font === "fallback")
         await page.route("**/assets/fonts/**", (route) => route.abort());
       await clanApi(page, clanIn());

@@ -110,6 +110,9 @@ test.describe("Stats signed in", () => {
   test("the season home: the head, the scope bar, the tabs, and the mode's season", async ({
     page,
   }) => {
+    // Pinned in the fixture's year: from 2027 the app prints a 2026 date
+    // with its year ("Mon Oct 5 2026"), and these lines assert none.
+    await page.clock.setFixedTime(new Date("2026-09-29T21:00:00Z"));
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats");
@@ -1216,6 +1219,9 @@ test.describe("Stats decks", () => {
   test("every deck in this chip's mode, with its cards, its record and a swap of forms", async ({
     page,
   }) => {
+    // Pinned in the fixture's year: from 2027 the app prints a 2026 date
+    // with its year ("Mon Oct 5 2026"), and these lines assert none.
+    await page.clock.setFixedTime(new Date("2026-09-29T21:00:00Z"));
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats/decks?mode=ladder");
@@ -1500,6 +1506,9 @@ test.describe("Stats seasons", () => {
   test("the picker lists the player's seasons, and a season is an address every page honours", async ({
     page,
   }) => {
+    // Pinned in the fixture's year: from 2027 the app prints a 2026 date
+    // with its year ("Mon Oct 5 2026"), and these lines assert none.
+    await page.clock.setFixedTime(new Date("2026-09-29T21:00:00Z"));
     const calls: ToolCall[] = [];
     await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
     await page.goto("/home/you/stats?mode=ladder");
