@@ -28,6 +28,7 @@
 import { createHash } from "node:crypto";
 import {
   buildTimeline,
+  followedAccountIds,
   restoredItem,
   shownAt,
   storedItem,
@@ -77,6 +78,13 @@ export function subjectsKey(subjects) {
     .digest("hex")
     .slice(0, 32);
 }
+
+/** Home's key: its subjects and the accounts it follows (0277). */
+const homeKey = (subjects, accounts = []) =>
+  subjectsKey([
+    ...subjects,
+    ...accounts.map((id) => ({ kind: "account", tag: id })),
+  ]);
 
 /**
  * One build of an account's stored row at a time. Two cold reads of one
@@ -152,7 +160,14 @@ export async function homeAccount(db, accountId) {
 export async function buildHomeWeek(
   db,
   accountId,
-  { subjects, timezone, now = Date.now(), readAt = null, perf = null },
+  {
+    subjects,
+    accounts = [],
+    timezone,
+    now = Date.now(),
+    readAt = null,
+    perf = null,
+  },
 ) {
   const fromMs = now - HOME_WEEK_MS;
   const started = Date.now();
@@ -166,6 +181,9 @@ export async function buildHomeWeek(
     // Items only (Home stores and serves no entry), so no late count to
     // read, as the bell's week and cheers.
     lateCounts: false,
+    // The account-level news of the accounts you follow and of the
+    // players you follow: a verified player, a Stamp, a place (0277).
+    people: { accounts, players: true },
     perf,
   });
   const buildMs = Date.now() - started;
@@ -195,7 +213,7 @@ export async function buildHomeWeek(
       new Date(now),
       buildMs,
       timezone,
-      subjectsKey(subjects),
+      homeKey(subjects, accounts),
       JSON.stringify(items.map(storedItem)),
       more,
       readAt === null ? null : new Date(readAt),
@@ -280,7 +298,8 @@ export async function readHomeWeek(
   { timezone, now = Date.now(), wake = null, window = null, perf = null },
 ) {
   const subjects = await subjectsFor(db, accountId);
-  const key = subjectsKey(subjects);
+  const accounts = await followedAccountIds(db, accountId);
+  const key = homeKey(subjects, accounts);
   const row = await storedWeek(db, accountId);
   let age = row ? now - row.built_at.getTime() : Infinity;
   const serves = (r) =>
@@ -320,6 +339,7 @@ export async function readHomeWeek(
       build: async () => ({
         ...(await buildHomeWeek(db, accountId, {
           subjects,
+          accounts,
           timezone,
           now,
           readAt: now,
@@ -417,8 +437,10 @@ export async function refreshHomeWeek(
   if (kept(row)) return { skipped: "fresh", ...(bell ? { bell } : {}) };
   const { timezone } = await homeAccount(db, accountId);
   const subjects = await subjectsFor(db, accountId);
+  const accounts = await followedAccountIds(db, accountId);
   const week = await buildOnce(db, "home_feed", accountId, {
-    build: () => buildHomeWeek(db, accountId, { subjects, timezone, now }),
+    build: () =>
+      buildHomeWeek(db, accountId, { subjects, accounts, timezone, now }),
     // A read built it meanwhile: nothing left to do.
     reuse: async () => {
       const stored = await storedWeek(db, accountId);
@@ -462,7 +484,8 @@ const ownSubjects = (own) =>
 
 /** Items another person can cheer: an id, and never your account's own
  *  lines. */
-export const cheerable = (it) => Boolean(it?.id) && it.section !== "account";
+export const cheerable = (it) =>
+  Boolean(it?.id) && it.section !== "account" && it.section !== "people";
 
 /**
  * Build the seven days of the account's own players ending `now` and

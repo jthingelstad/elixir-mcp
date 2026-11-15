@@ -234,6 +234,13 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
       `account_profile_list where account_id = any($1::uuid[])`,
     ],
     ["account_passport", `account_passport where account_id = any($1::uuid[])`],
+    // Their follows of other accounts, and other people's follows of
+    // them (0277): a removed account has no page to follow.
+    [
+      "account_follow",
+      `account_follow where account_id = any($1::uuid[])
+          or followed_account_id = any($1::uuid[])`,
+    ],
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
     [
       "timeline_discord_told",

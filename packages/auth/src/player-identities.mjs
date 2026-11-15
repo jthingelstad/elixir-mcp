@@ -22,3 +22,30 @@ export async function verifiedPlayerIdentities(db, tags) {
     ]),
   );
 }
+
+/** Each of `tags` that is Verified or Claimed, in one statement: the
+ *  states a website response carries (Jamie, 2026-11-15). Verified: a
+ *  person account verified the player as itself (the rule above).
+ *  Claimed: "attached to an account but not verified", a person's self
+ *  claim (primary or alt) on a tag no account verified. Verifying ends
+ *  every other account's self claim (#556), so a tag is one or the other.
+ *  A tag in neither is Imported, or not followed at all. Map tag ->
+ *  "verified" | "claimed". */
+export async function playerIdentityStates(db, tags) {
+  const list = [
+    ...new Set((tags ?? []).filter((t) => typeof t === "string" && t)),
+  ];
+  if (!list.length) return new Map();
+  const { rows } = await db.query(
+    `select c.player_tag, bool_or(c.status = 'verified') as verified
+       from claim c join account a using (account_id)
+      where c.player_tag = any($1::text[])
+        and (c.is_primary or c.relationship in ('primary', 'alt'))
+        and coalesce(a.kind, 'person') = 'person'
+      group by c.player_tag`,
+    [list],
+  );
+  return new Map(
+    rows.map((r) => [r.player_tag, r.verified ? "verified" : "claimed"]),
+  );
+}

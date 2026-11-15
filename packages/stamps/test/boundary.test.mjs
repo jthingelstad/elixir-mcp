@@ -6,6 +6,14 @@
  * the package in code that builds the feed, the digest and other mail,
  * Discord posts, MCP tools or `/api/v1`. The bell, the passport routes,
  * the player page's row and the hooks are the readers by design.
+ *
+ * One way in is open since 2026-11-15 (Jamie: "if you follow an account
+ * you should see their passport stamps"): the timeline's people items,
+ * built in packages/tools but served only when a web caller asks
+ * (buildTimeline's `people`: Home, the player and account pages), never
+ * to MCP, the digest, RSS or Discord. ALLOWED names those files; the
+ * tools package's people-items test pins that the timeline tool serves
+ * none.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -31,6 +39,12 @@ const NEVER = [
   "packages/syndication/src",
   "packages/tools/src",
 ];
+
+const ALLOWED = new Set([
+  "packages/tools/src/activity/entries.mjs",
+  "packages/tools/src/activity/schemas.mjs",
+  "packages/tools/src/activity/summary.mjs",
+]);
 
 const READS_STAMPS =
   /account_stamp|stamp_earned|@elixir-mcp\/stamps|packages\/stamps/;
@@ -60,7 +74,10 @@ test("the feed, mail, Discord, MCP and /api/v1 read no Stamp", async () => {
   for (const rel of NEVER)
     for (const file of await files(rel)) {
       read += 1;
-      if (READS_STAMPS.test(await readFile(file, "utf8")))
+      if (
+        READS_STAMPS.test(await readFile(file, "utf8")) &&
+        !ALLOWED.has(path.relative(root, file))
+      )
         offenders.push(path.relative(root, file));
     }
   // The paths are real: a rename must move this list, not empty it.

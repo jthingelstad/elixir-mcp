@@ -444,6 +444,11 @@ const FEEDBACK_STATUS_WORDS = {
 };
 
 /** One timeline item as a sentence. */
+/** An account as a people item names it: the player it is, else a
+ *  member with no player yet. */
+const personName = (f) =>
+  f.account_name ?? f.account_player_tag ?? "An Elixir member";
+
 export function itemText(it, timeZone = "UTC") {
   const f = it.facts ?? {};
   const subj = it.subject_name ?? it.subject_tag ?? "";
@@ -567,6 +572,26 @@ export function itemText(it, timeZone = "UTC") {
         ] ?? f.unit;
       return `${member} stands ${f.place === 1 ? "first" : ordinal(f.place)} in ${subj}'s ${f.award} for Season ${f.season_id} with ${num(f.value)} ${unit}${f.previous_player_tag ? `, taking it from ${f.previous_name ?? f.previous_player_tag}` : ""}${via(f)}.`;
     }
+    // People items (Jamie, 2026-11-15): an account's own activity, told
+    // to its followers, the account named by the player it is.
+    case "player_verified":
+      return f.relationship === "alt" && f.account_player_tag !== f.player_tag
+        ? `${personName(f)} verified ${f.name ?? f.player_tag} as their alt. Nobody else can claim it now.`
+        : `${f.name ?? f.player_tag} is verified on Elixir. Nobody else can claim ${f.player_tag} now.`;
+    case "stamp_earned": {
+      const list = (f.stamps ?? []).map((st) =>
+        st.level > 1 ? `${st.name} (level ${st.level})` : st.name,
+      );
+      return `${personName(f)} earned ${list.length > 1 ? `${list.length} Stamps: ${list.join(", ")}` : `the ${list[0] ?? "a"} Stamp`}.`;
+    }
+    case "place_set":
+      return `${personName(f)} set their place on the player map.`;
+    case "account_place_set":
+      return "Your account: you set your place on the player map.";
+    case "account_account_followed":
+      return "Your account: you followed an account.";
+    case "account_account_unfollowed":
+      return "Your account: you unfollowed an account.";
     // A verified tag is its owner's (#556): the tag and why, never the
     // account that verified it.
     case "account_claim_ended":
