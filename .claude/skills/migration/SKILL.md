@@ -139,9 +139,10 @@ transactions, write only rows that change, return a cursor and a real
 not finished - never run a backfill and a deploy together (migrate has
 reserved concurrency 1)." A looping op holds the function, so the
 deploy's migrate step gets a 429 and the deploy fails (twice on
-2026-09-22). Run every batch through `npm run op`: each invocation takes
-the production lock, so a deployer reads who and since when instead of
-a 429, and the batch stops at a held lock (exit 3) and resumes after.
+2026-09-22). Run every batch through `npm run op:batch`, which holds
+the production lock from the first call to the last (docs/OPERATIONS.md,
+"Batches"), so a deployer reads who and since when instead of a 429 and
+no deploy starts between two steps.
 Say in the pull request when a batch starts and roughly when it ends.
 When the op is done, retire it with its
 test and driver (b01fc4bb); migrations that name it keep naming it.

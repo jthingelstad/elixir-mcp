@@ -110,8 +110,9 @@ Read two real ones first:
 - `seriesBackfill` (retired 2026-11-13; `git show
   665c3c21:services/migrate/src/ops-series.mjs`): the cursor in a state
   table (`series_backfill_state`, 0131, dropped in 0256), S3 reads before
-  the transaction opens, a batch retried on deadlock, and a local driver,
-  `infra/scripts/series-backfill.mjs`.
+  the transaction opens, and a batch retried on deadlock. Its local
+  driver looped raw invokes outside the lock; a driver now runs under
+  `npm run op:batch` and calls `npm run op`.
 - `oppLevelBackfill` for 0156 (retired): `git show
   b01fc4bb^:services/migrate/src/deck-backfill.mjs`, and its test at
   `b01fc4bb^:services/migrate/test/opp-level-backfill.test.mjs`. A

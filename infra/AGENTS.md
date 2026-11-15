@@ -89,6 +89,11 @@ and the record.
   and a read waits while it is held. A held lock prints who, since when
   and doing what, and exits 3 from `npm run op`: wait, never clear it. A
   lock whose process has exited on this host is released automatically.
+  `npm run op:batch` (`scripts/op-batch.mjs`) holds it for a whole batch
+  of `npm run op` calls (`docs/OPERATIONS.md`, "Batches"). The migrate
+  and public-statistics invokes, and `npm run op`, wait out a throttle
+  (another invocation in the function's one slot) for at most the
+  function's timeout (`scripts/lib/lambda-throttle.mjs`).
 - **Endpoint grants:** the CloudFront grant on each Web Function endpoint
   is written by the deploy, outside CloudFormation. Before anything is
   migrated or switched, a read-only check (`grants-check`,
@@ -106,7 +111,9 @@ and the record.
   without. Each deploy writes the `assets/` keys it ships to
   `deploys/site-assets/`, and the prune takes only an asset no deploy in
   the last 14 days shipped and none uploaded; any manifest it cannot read
-  stops the prune, never the deploy. A document S3 keeps on delete fails
+  stops the prune, never the deploy. Manifests older than those 14 days,
+  beyond the newest 30, are pruned too (`deploys/site-published.json`
+  stays). A document S3 keeps on delete fails
   the publish; an asset it keeps is a warning.
 - **The deploy record:** every deploy writes `deploys/production.json` to
   the code bucket and comments on each pull request it shipped, with the
@@ -132,7 +139,10 @@ build, Clan's record-read and store split; `--check` exits 1 when a
 judged route is over; not a deploy or CI gate, since natural traffic is
 too sparse; tested offline in `services/mcp/test/web-latency.test.mjs`),
 `test-workflows.sh` (the
-workflow lint), `test.mjs` (`npm test`: every workspace test, one build
+workflow lint: SHA pins, `permissions: {}` and per-job permissions,
+non-persisted checkout tokens, no `pull_request_target`, and the
+`validate` job as the gate; `services/mcp/test/test-workflows.test.mjs`
+proves each rule still fails), `test.mjs` (`npm test`: every workspace test, one build
 then a bounded pool locally, `--shard i/n` in CI), `e2e-shard.mjs` (the
 spec files one CI journey shard runs) and `e2e-needed.sh` (whether a
 change needs the journeys; `lib/e2e-inputs.mjs` is its test's measure of

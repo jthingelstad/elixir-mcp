@@ -92,15 +92,19 @@ npm run op -- '{"shape_census": true}' --function jobs
 ```
 
 It checks the caller is `assumed-role/ProjectsCloudEngineer/projects-cloud-engineer`,
-invokes with profile `cloud-engineer`, no retries and a read timeout past
-the function's own, and prints the result. It classifies the payload by
+invokes with profile `cloud-engineer`, no retries but a throttle (refused
+before it ran, waited out for at most the function's timeout; exit 4 if
+it stays busy) and a read timeout past the function's own, and prints
+the result. It classifies the payload by
 an allowlist (`infra/scripts/lib/ops-invoke.mjs`): a payload that is not
 plainly a read is a write and takes the production lock
 (`infra/scripts/lib/production-lock.mjs`) for the invocation. A read
 takes no lock but does not run while the lock is held. Exit 3 means
 locked: the output names the holder, since when and doing what. Wait;
-never clear another holder's lock. A looping batch takes the lock once
-per invocation, so it stops at exit 3 and resumes after.
+never clear another holder's lock. A batch of calls holds the lock once
+for the whole run with `npm run op:batch -- --purpose "<what>" --
+<command>` (docs/OPERATIONS.md, "Batches"); each `npm run op` inside runs
+under it.
 
 The two raw paths below take no lock: **reads only**. Confirm the
 identity first: `AWS_PROFILE=cloud-engineer aws sts get-caller-identity`
