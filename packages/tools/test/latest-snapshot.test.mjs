@@ -25,6 +25,7 @@ import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
 import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
+import { prefetchStatements } from "../src/activity/entries.mjs";
 
 const CLAN = "#J2RGCRVG";
 const P = "#0LYQ8RCP2"; // invented
@@ -304,4 +305,24 @@ test("battles_compare reads each player's newest profile", async () => {
   );
   assert.equal(byTag[P].trophies, late.p.trophies);
   assert.equal(byTag[Q].trophies, late.q.trophies);
+});
+
+test("the timeline's profile at an instant still finds a window's frozen row when it is the newest at or before it", async () => {
+  // 00:10Z falls between the 00:05Z read (both rows) and the 00:20Z
+  // rewrite of the daily row: the frozen row is the profile as it stood.
+  const between = Date.parse("2026-11-16T00:10:00Z");
+  const q = prefetchStatements({ fromMs: between, toMs: Date.parse(AFTER) });
+  const {
+    rows: [atBoundary],
+  } = await ctx.db.query(q.snapshot(between), [[P]]);
+  assert.ok(atBoundary, "a profile at or before the boundary");
+  assert.equal(atBoundary.trophies, early.p.trophies);
+  assert.equal(
+    atBoundary.observed_at.toISOString(),
+    "2026-11-16T00:05:00.000Z",
+  );
+  const {
+    rows: [atEnd],
+  } = await ctx.db.query(q.snapshot(Date.parse(AFTER)), [[P]]);
+  assert.equal(atEnd.trophies, late.p.trophies);
 });

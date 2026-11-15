@@ -29,9 +29,13 @@ What changed:
   (`snapshots.mjs`), `players_summary`, `players_collection`,
   `players_search`, `clans_roster` (three reads), `battles_compare`,
   `clans_series`' carried profile (it had ordered by date alone, so the
-  row it took on a window day was the planner's choice), the timeline's
-  snapshot at an instant (a tie-break only), the two syndication
-  laterals, and the web app's Home and player-page trophies.
+  row it took on a window day was the planner's choice), the two
+  syndication laterals, and the web app's Home and player-page trophies.
+- **Not the timeline's profile at an instant** (`activity/entries.mjs`):
+  it is bounded on the stamp and probes 0262's index with no sort, over
+  every kind. A boundary between a window's frozen row and the daily
+  row's later rewrite must still find the frozen row, the newest profile
+  at or before it (the PR's review).
   `packages/record/test/latest-snapshot.test.mjs` fails on any source file
   that orders snapshots by kind name or spells its own date-then-stamp
   order.

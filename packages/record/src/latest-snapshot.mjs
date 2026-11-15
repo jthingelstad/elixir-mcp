@@ -28,8 +28,10 @@
  * `alias` qualifies the columns ("s" gives `s.snapshot_date ...`).
  * A read bounded on the stamp itself ("the last profile at or before t",
  * the timeline's) probes 0262's (player_tag, profile_observed_at desc)
- * index instead and keeps to `snapshot_kind = 'daily'`, the row every
- * observation writes, so it needs no sort (activity/entries.mjs).
+ * index instead, with no sort and over every kind: at a boundary that
+ * falls between a window's frozen row and the daily row's later rewrite,
+ * the frozen row is the newest profile at or before it
+ * (activity/entries.mjs).
  */
 const STAMPS = new Set([
   "observed_at",

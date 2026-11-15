@@ -1156,12 +1156,7 @@ function sessionFacts({
  *  player (`$1`, or a batch's lateral column). One probe of
  *  player_snapshot_daily_profile_time (0262); without it the read took
  *  every day row of the player from the heap and sorted them
- *  (cold-read-plan.test.mjs). The `daily` row only: every profile read
- *  writes it, so the newest profile instant is always on one, and a read
- *  inside the donation window writes `pre_reset` at the same instant
- *  with the week's high-water donations, which a tie on the stamp could
- *  otherwise serve (#512). A filter, not a sort key, so the probe stays
- *  sort-free. */
+ *  (cold-read-plan.test.mjs). */
 const snapshotSql = (tagSql, atMs) =>
   `select profile_observed_at as observed_at, trophies, best_trophies, arena_id,
           collection_level, wins, battle_count,
@@ -1169,7 +1164,6 @@ const snapshotSql = (tagSql, atMs) =>
           pol_league as league, pol_trophies as rating, pol_rank as rank
      from player_snapshot_daily
     where player_tag = ${tagSql} and profile_observed_at is not null
-      and snapshot_kind = 'daily'
       and profile_observed_at <= ${ts(atMs)}
     order by profile_observed_at desc limit 1`;
 
