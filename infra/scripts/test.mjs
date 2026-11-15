@@ -16,11 +16,16 @@
  *
  * The build runs ONCE, first: `npm run build` (design, contracts, docs),
  * or the merged site tree (build-site.mjs, which runs that build too)
- * when the `site` unit is selected. Each unit then runs as
- * `npm test --ignore-scripts -w <workspace>`, which skips the
- * workspace's own `pretest`: a workspace that needs a build for a
- * focused `npm test -w` run says so in `pretest`, and here that build has
- * already happened. Tests therefore only READ built output; a test that
+ * when the `site` unit is selected. Each unit then runs its workspace's
+ * `test` script itself (`unitCommand`): `sh -c` in the workspace's
+ * directory with its `node_modules/.bin` and the root's on PATH, as npm
+ * runs a script, but with no npm process. It skips the workspace's own
+ * `pretest`: a workspace that needs a build for a focused `npm test -w`
+ * run says so in `pretest`, and here that build has already happened.
+ * No npm per unit because npm sets `process.title`, and on macOS libuv
+ * then checks in with LaunchServices, which now and then calls abort():
+ * the unit died of SIGABRT in 0.1 s with no output (2026-11-14,
+ * docs/notes/2026-11-14-test-runner-silent-unit.md). Tests therefore only READ built output; a test that
  * rebuilt the contract while another workspace imported it would be a
  * race. Units share nothing else: each scratch database is named for the
  * test process (`elixir_mcp_test_<name>_<pid>`) and servers listen on
@@ -38,7 +43,9 @@
  *
  * Output is held per unit and printed whole when the unit ends (folded in
  * a GitHub Actions group when it passed), then a summary by duration.
- * Exit 1 if any unit failed.
+ * A failed unit always says how it ended (its exit code or the signal
+ * that killed it, and that it printed nothing when it did not), so a
+ * failure is never a bare FAIL. Exit 1 if any unit failed.
  *
  * Shards are balanced on WEIGHTS, the units' measured CI seconds:
  * longest first, each to the lightest shard, ties by name, so a shard's
@@ -97,7 +104,12 @@ export function units(root = repoRoot) {
       if (!existsSync(file)) continue;
       const ws = JSON.parse(readFileSync(file, "utf8"));
       if (!ws.scripts?.test) continue;
-      out.push({ name: dir, workspace: ws.name });
+      out.push({
+        name: dir,
+        workspace: ws.name,
+        dir: path.join(parent, dir),
+        script: ws.scripts.test,
+      });
     }
   }
   out.push({ name: "root", workspace: null });
@@ -211,55 +223,121 @@ function run(cmd, args, label) {
   }
 }
 
-function runUnit(unit, env) {
-  const [cmd, args] = unit.workspace
-    ? ["npm", ["test", "--ignore-scripts", "-w", unit.workspace]]
-    : [
-        "node",
-        [
-          "--test",
-          "--test-force-exit",
-          "docs/*.test.mjs",
-          "acceptance/**/*.test.mjs",
-        ],
-      ];
+/** How a unit runs: its workspace's `test` script under `sh -c` in the
+ *  workspace's directory, with the workspace's and the root's
+ *  `node_modules/.bin` first on PATH (what `npm test` would do), or the
+ *  root's own files for `root`. Never through npm: npm sets
+ *  process.title, which on macOS can abort the process before it prints
+ *  a byte (see the header). */
+export function unitCommand(
+  unit,
+  root = repoRoot,
+  basePath = process.env.PATH,
+) {
+  if (!unit.workspace)
+    return {
+      cmd: process.execPath,
+      args: [
+        "--test",
+        "--test-force-exit",
+        "docs/*.test.mjs",
+        "acceptance/**/*.test.mjs",
+      ],
+      cwd: root,
+      env: {},
+    };
+  const bins = [
+    path.join(unit.dir, "node_modules", ".bin"),
+    path.join(root, "node_modules", ".bin"),
+  ];
+  return {
+    cmd: "sh",
+    args: ["-c", unit.script],
+    cwd: unit.dir,
+    env: { PATH: [...bins, basePath].filter(Boolean).join(path.delimiter) },
+  };
+}
+
+export function runUnit(unit, env = {}) {
+  const { cmd, args, cwd, env: own } = unitCommand(unit);
   const started = Date.now();
   return new Promise((resolve) => {
+    const chunks = [];
+    let settled = false;
+    const finish = (exit, signal, note) => {
+      if (settled) return;
+      settled = true;
+      if (note) chunks.push(Buffer.from(note));
+      resolve({
+        ...unit,
+        ok: exit === 0 && !signal,
+        exit,
+        signal: signal ?? null,
+        seconds: (Date.now() - started) / 1000,
+        output: Buffer.concat(chunks).toString("utf8"),
+      });
+    };
     const child = spawn(cmd, args, {
-      cwd: repoRoot,
+      cwd,
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         ...process.env,
         ...env,
+        ...own,
         FORCE_COLOR: process.env.FORCE_COLOR ?? "0",
       },
     });
-    const chunks = [];
     child.stdout.on("data", (c) => chunks.push(c));
     child.stderr.on("data", (c) => chunks.push(c));
-    child.on("close", (code, signal) =>
-      resolve({
-        ...unit,
-        ok: code === 0,
-        exit: code ?? signal,
-        seconds: (Date.now() - started) / 1000,
-        output: Buffer.concat(chunks).toString("utf8"),
-      }),
+    // A unit that cannot start (EAGAIN under a process limit, a missing
+    // shell) is that unit's failure, said in its output, not the run's
+    // crash.
+    child.on("error", (err) =>
+      finish(
+        err.code ?? "error",
+        null,
+        `test: could not start ${cmd}: ${err.message}\n`,
+      ),
     );
+    child.on("close", (code, signal) => finish(code, signal));
   });
 }
 
-function report(r) {
-  const head = `${r.ok ? "ok  " : "FAIL"} ${r.name} (${r.seconds.toFixed(1)} s)`;
-  if (inActions && r.ok) {
-    process.stdout.write(`::group::${head}\n${r.output}\n::endgroup::\n`);
-    return;
+/** How a unit ended, in words: "exit 1", "killed by SIGABRT". */
+export function describeExit(r) {
+  if (r.signal) return `killed by ${r.signal}`;
+  return typeof r.exit === "number" ? `exit ${r.exit}` : `${r.exit}`;
+}
+
+/** One unit's block of the run's output. A failure always names how the
+ *  unit ended, says so when it printed nothing, and for a signal on
+ *  macOS points at the crash report the system wrote. */
+export function formatReport(
+  r,
+  { actions = inActions, platform = process.platform } = {},
+) {
+  const ended = r.ok ? "" : `, ${describeExit(r)}`;
+  const head = `${r.ok ? "ok  " : "FAIL"} ${r.name} (${r.seconds.toFixed(1)} s${ended})`;
+  if (actions && r.ok) return `::group::${head}\n${r.output}\n::endgroup::\n`;
+  let out = `\n──── ${head} ────\n${r.output}\n`;
+  if (!r.ok) {
+    const silent = r.output.trim() === "";
+    const why = [
+      `test: ${r.name} failed: ${describeExit(r)}${silent ? ", and it printed nothing" : ""}.`,
+    ];
+    if (r.signal && platform === "darwin")
+      why.push(
+        `test: a process killed by a signal on macOS leaves a crash report in ~/Library/Logs/DiagnosticReports (node-<date>-<time>.ips); its faulting thread says where it died.`,
+      );
+    out += `${why.join("\n")}\n`;
+    if (actions)
+      out += `::error title=test ${r.name}::${r.name} failed (${describeExit(r)})\n`;
   }
-  process.stdout.write(`\n──── ${head} ────\n${r.output}\n`);
-  if (inActions && !r.ok)
-    process.stdout.write(
-      `::error title=test ${r.name}::${r.name} failed (exit ${r.exit})\n`,
-    );
+  return out;
+}
+
+function report(r) {
+  process.stdout.write(formatReport(r));
 }
 
 async function pool(list, jobs, env) {
@@ -345,7 +423,7 @@ async function main() {
   );
   for (const r of [...results].sort((a, b) => b.seconds - a.seconds))
     console.log(
-      `  ${r.ok ? "ok  " : "FAIL"} ${r.seconds.toFixed(1).padStart(6)} s  ${r.name}`,
+      `  ${r.ok ? "ok  " : "FAIL"} ${r.seconds.toFixed(1).padStart(6)} s  ${r.name}${r.ok ? "" : ` (${describeExit(r)})`}`,
     );
   if (failed.length) {
     console.log(
