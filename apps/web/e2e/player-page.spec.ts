@@ -112,6 +112,70 @@ for (const [label, width] of [
       ]);
     });
 
+    test("followers: verified, claimed and accounts with no player; a moment opens its battle", async ({
+      page,
+    }, info) => {
+      const moment = {
+        id: "t2",
+        kind: "ranked_promotion",
+        at: "2026-11-11T18:00:00.000Z",
+        text: "Ada was promoted to Master I, on a 3-0 win over Lovelace.",
+        battle_url: "https://elixir.poapkings.com/battle/0a1b2c3d4e5f",
+      };
+      const unproved = {
+        id: "t3",
+        kind: "badge_earned",
+        at: "2026-11-09T18:00:00.000Z",
+        text: "Ada earned a badge.",
+      };
+      await mockApi(
+        page,
+        homeApi({
+          "GET /api/player": [
+            200,
+            {
+              ...ADA,
+              followers: {
+                count: 4,
+                players: [
+                  { tag: "#0JVRYLGG", name: "Edsger", verified: true },
+                  { tag: "#0GRJCUV", name: "Hopper", verified: false },
+                ],
+                no_player: 2,
+                unnamed: 2,
+              },
+              moments: [moment, unproved],
+              player_verifications: { "#0JVRYLGG": true, "#0GRJCUV": false },
+            },
+          ],
+        }),
+      );
+      await page.goto("/home/player/00C298UC?tab=follows");
+      const claimed = page.getByRole("link", { name: /Hopper/ });
+      await expect(claimed).toBeVisible();
+      await expect(claimed).toContainText("Not verified");
+      await expect(claimed.locator(".kit-verified")).toHaveCount(0);
+      await expect(
+        page.getByRole("link", { name: /Edsger/ }).locator(".kit-verified"),
+      ).toHaveCount(1);
+      await expect(page.getByText("2 Elixir accounts")).toBeVisible();
+      await expect(page.getByText("No player added yet")).toBeVisible();
+      await noSideways(page);
+      await accessible(page, "followers");
+      await page.screenshot({
+        path: info.outputPath(`followers-${label}.png`),
+        fullPage: true,
+      });
+
+      await page.getByRole("tab", { name: "Moments" }).click();
+      const open = page.getByRole("link", { name: "Open the battle" });
+      // The proved moment links its battle; the other has no link at all.
+      await expect(open).toHaveCount(1);
+      await expect(open).toHaveAttribute("href", "/battle/0a1b2c3d4e5f");
+      await noSideways(page);
+      await accessible(page, "moments");
+    });
+
     test("a Follow me link signed out names nobody and joins back to it", async ({
       page,
     }) => {
