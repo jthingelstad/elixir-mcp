@@ -7098,12 +7098,6 @@ button.kit-row {
 .kit-starter__more {
   margin: -4px var(--s-2) -6px;
 }
-/* The bell's "See N more in Clan": the quiet link under Needs you, set on
-   the rows' text edge (round three, 2026-11-13). */
-.kit-bell__more {
-  align-self: flex-start;
-  margin: 2px -12px 0;
-}
 /* Follow these beside the heading: a small phone's first screen holds it
    and three rows. */
 .kit-starter__top {
@@ -7932,12 +7926,187 @@ a.kit-mbattle:hover {
   top: 3px;
   right: 13px;
 }
-/* The bell's sheet (2026-11-12): sections by tone, no outlines; a new row
-   carries the dot's own gold. */
-.kit-bell__sec {
+.kit-bottom .kit-bell__dot--count {
+  top: -6px;
+  right: -12px;
+}
+
+/* ==================================================================
+   The bell (#1009, 2026-11-14): an inbox. On a wide screen a popover
+   under the bar's bell; on a phone, where the bell is a tab, a sheet from
+   the foot of the screen. Needs you on its own tone first, then New and
+   Earlier; every row one target. Tokens only.
+   ================================================================== */
+.kit-bell__sheet {
+  position: fixed;
+  inset: var(--bell-top, 64px) var(--bell-right, 16px) auto auto;
+  width: min(400px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(600px, calc(100dvh - var(--bell-top, 64px) - 16px));
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: var(--ink-body);
+  background: var(--ground-chrome);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-control);
+  box-shadow: var(--shadow-float);
+}
+.kit-bell__sheet[open] {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  animation: kit-bell-in var(--dur-fast) var(--ease-out);
+}
+/* A popover: the page stays in view, a tap outside closes it. */
+.kit-bell__sheet::backdrop {
+  background: transparent;
+}
+@keyframes kit-bell-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.kit-bell__box {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  font-size: var(--t-body-sm);
+  line-height: 1.4;
+}
+.kit-bell__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-1) var(--s-1) var(--s-1) var(--s-4);
+  border-bottom: 1px solid var(--line-soft);
+}
+.kit-bell__head h2 {
+  margin: 0;
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+.kit-bell__head h2:focus {
+  outline: none;
+}
+.kit-bell__head h2:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+.kit-bell__close {
+  min-width: var(--hit);
+  min-height: var(--hit);
+  padding: 0;
+}
+.kit-bell__scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: var(--s-2);
+}
+.kit-bell__group h3 {
+  margin: 0;
+  padding: var(--s-3) var(--s-4) var(--s-1);
+  font-size: var(--t-caption);
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+.kit-bell__group--needs {
+  margin: var(--s-2) var(--s-2) 0;
+  border-radius: var(--r-control);
+  background: var(--panel);
+}
+.kit-bell__group--needs h3 {
+  padding-inline: var(--s-2);
+  color: var(--gold);
+}
+.kit-bell__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-bell__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.kit-bell__item:hover {
+  background: var(--panel-raised);
+}
+.kit-bell__item--needs:hover {
+  border-radius: var(--r-control);
+}
+.kit-bell__hit {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: var(--s-3);
+  min-width: 0;
+  min-height: var(--hit);
+  padding: 10px var(--s-4);
+  color: inherit;
+  text-decoration: none;
+}
+.kit-bell__group--needs .kit-bell__hit {
+  padding-inline: var(--s-2);
+}
+/* The link covers the whole row; a control of its own sits above it. */
+a.kit-bell__hit::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+a.kit-bell__hit:focus-visible {
+  outline: none;
+}
+a.kit-bell__hit:focus-visible::after {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: -2px;
+  border-radius: var(--r-control);
+}
+.kit-bell__item:hover .kit-bell__hit--still {
+  cursor: default;
+}
+.kit-bell__icon {
+  display: inline-flex;
+  flex: none;
+  padding-top: 1px;
+  color: var(--ink-dim);
+}
+.kit-bell__item--new .kit-bell__icon,
+.kit-bell__item--needs .kit-bell__icon {
+  color: var(--ink);
+}
+.kit-bell__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.kit-bell__title {
+  color: var(--ink);
+  font-weight: 500;
+}
+.kit-bell__item--new .kit-bell__title {
+  font-weight: 600;
+}
+.kit-bell__detail {
+  color: var(--ink-dim);
+  font-size: var(--t-caption);
+}
+/* Clan's words can run long; the Action itself has them all. */
+.kit-bell__item--needs .kit-bell__detail {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.kit-bell__action {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  padding-right: var(--s-3);
 }
 .kit-bell__new {
   display: inline-block;
@@ -7948,15 +8117,60 @@ a.kit-mbattle:hover {
   background: var(--gold);
   vertical-align: middle;
 }
+.kit-bell__cheers {
+  font-size: var(--t-body-sm);
+}
 .kit-bell__cheer {
   margin-right: 10px;
   white-space: nowrap;
 }
-/* Flat like Home (2026-11-13): a section's rows line up with its heading,
-   not inset as if they sat in a panel. */
-.kit-bell__sec .kit-row {
-  padding-right: 0;
-  padding-left: 0;
+.kit-bell__note {
+  padding: 0 var(--s-2) var(--s-2);
+}
+.kit-bell__ghost {
+  height: 52px;
+  margin: var(--s-2) var(--s-4);
+  border-radius: var(--r-control);
+  background: var(--panel-raised);
+}
+.kit-bell__scroll > .kit-empty,
+.kit-bell__scroll > .empty {
+  margin: var(--s-4);
+}
+@media (max-width: 760px) {
+  /* The phone's sheet: the bell is a tab at the foot, so the sheet rises
+     from there, over the tabs, clear of the home indicator. */
+  .kit-bell__sheet {
+    inset: auto 0 0 0;
+    width: 100%;
+    max-height: 85dvh;
+    border-width: 1px 0 0;
+    border-radius: 16px 16px 0 0;
+  }
+  .kit-bell__sheet[open] {
+    animation-name: kit-bell-up;
+    animation-duration: var(--dur-base);
+  }
+  .kit-bell__sheet::backdrop {
+    background: var(--scrim);
+  }
+  .kit-bell__head {
+    padding-top: var(--s-2);
+  }
+  .kit-bell__scroll {
+    padding-bottom: calc(var(--s-3) + env(safe-area-inset-bottom));
+  }
+}
+@keyframes kit-bell-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-bell__sheet[open] {
+    animation: none;
+  }
 }
 /* Find's Clan directory (2026-11-13): one plain link row on the page, no
    panel round it, its edge on the page's edge. */

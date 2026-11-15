@@ -1,5 +1,5 @@
 import { PlayerName } from "@elixir-mcp/ui";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AccountAvatar,
   AccountMenu,
@@ -288,7 +288,7 @@ function TopBar({ me, area, open, bell }) {
         >
           <Icon name={SHELL_PLACES.help.icon} size={18} />
         </button>
-        <BellButton bell={bell} onOpen={() => open("bell")} />
+        <BellButton bell={bell} onOpen={(from) => open("bell", from)} />
         {/* Play Drop is in the avatar's menu and the footer, not the bar
             (Structure "Proposed", 2026-11-12). */}
         <Avatar me={me} />
@@ -334,7 +334,7 @@ function BottomTabs({ me, area, open, bell }) {
           <span>{t.label}</span>
         </Link>
       ))}
-      <BellButton bell={bell} onOpen={() => open("bell")} phone />
+      <BellButton bell={bell} onOpen={(from) => open("bell", from)} phone />
     </nav>
   );
 }
@@ -370,6 +370,13 @@ export function ShellFrame({ me, unreachable = false, area, children }) {
   // One sheet at a time, and mounted only when asked for: nothing is read
   // for search until someone opens it.
   const [sheet, setSheet] = useState(null);
+  // The control that opened a sheet, for focus to go back to (#1009). A
+  // page's own `open(name)` passes none; the bell then finds its button.
+  const [opener, setOpener] = useState(null);
+  const open = useCallback((name, from = null) => {
+    setOpener(from instanceof HTMLElement ? from : null);
+    setSheet(name);
+  }, []);
   const close = () => setSheet(null);
   // The static half's Search and bell land here as ?search and ?bell, since a
   // static page has no sheet of its own. [engineering, 2026-11-06]
@@ -384,20 +391,20 @@ export function ShellFrame({ me, unreachable = false, area, children }) {
   }, [signedIn]);
   const bell = useBell(me, signedIn);
   return (
-    <SheetContext.Provider value={signedIn ? setSheet : () => {}}>
+    <SheetContext.Provider value={signedIn ? open : () => {}}>
       <div className={`kit-shell${signedIn ? " kit-shell--in" : ""}`}>
-        <TopBar me={me} area={area} open={setSheet} bell={bell} />
+        <TopBar me={me} area={area} open={open} bell={bell} />
         {children}
         <SiteFoot />
         {signedIn ? (
-          <BottomTabs me={me} area={area} open={setSheet} bell={bell} />
+          <BottomTabs me={me} area={area} open={open} bell={bell} />
         ) : null}
         {signedIn && sheet === "search" ? (
           <SearchSheet me={me} onClose={close} />
         ) : null}
         {signedIn && sheet === "help" ? <HelpDrawer onClose={close} /> : null}
         {signedIn && sheet === "bell" ? (
-          <BellSheet me={me} onClose={close} />
+          <BellSheet me={me} onClose={close} returnTo={opener} />
         ) : null}
       </div>
     </SheetContext.Provider>

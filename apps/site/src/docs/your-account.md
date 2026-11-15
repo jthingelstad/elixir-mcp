@@ -149,38 +149,50 @@ account menu).
 ## The bell
 
 The bell, on the top bar (a tab on a phone), holds what is about you, not
-your friends. Each part shows only when it has something:
+your friends. On a wide screen it opens as a small box under the bell; on a
+phone it slides up from the foot. Every line is one tap: it opens where the
+line points. Escape, **Close** or a tap outside puts it away and returns you
+to the bell.
 
-- **Cheers on your items**: the cheers others gave, in the last seven
-  days, to the [timeline](/docs/timeline#cheers) items about players you
-  have [verified](/docs/verify) as yours. Counts only, each cheer with its
-  number: never who cheered. The bell keeps your week's items for up to
-  fifteen minutes while you use Elixir (two hours while you are away),
-  so cheers on an item made since can reach the timeline before the bell.
-  Cheers on items it already holds show at once.
-- **New followers**: accounts that started following one of your verified
+It has up to three parts, each shown only when it has something:
+
+- **Needs you**: your clan's Actions waiting on you as a leader, and an old
+  key still trying to connect. These stay until they are done.
+- **New**: what came since you last opened the bell.
+- **Earlier**: the rest of the last week or month, the same kinds of lines
+  you have already seen.
+
+The lines are:
+
+- **Cheers** on the [timeline](/docs/timeline#cheers) items about players
+  you have [verified](/docs/verify) as yours, in the last seven days:
+  each cheer with its count, never who cheered. The bell keeps your week's
+  items for up to fifteen minutes while you use Elixir (two hours while you
+  are away), so cheers on an item made since can reach the timeline before
+  the bell. Cheers on items it already holds show at once.
+- **Followers**: accounts that started following one of your verified
   players in the last thirty days. One is named by its own verified
   player's game name and tag, as its [player page](/docs/player-page)
-  would name it; one with no verified player is counted, not named. A
+  would name it; those with no verified player are counted, not named. A
   named one has **Follow back**, unless you already follow, watch or own
   that player: it asks first, with what it costs, like every Follow.
-- **Needs you**: your clan's Actions waiting on you as a leader, and an old
-  key still trying to connect, as before.
 - **Answers to your feedback**: each answer the maintainer gave in the last
   thirty days, and any you have not read; it opens the answer in Settings ›
   Feedback.
 - **Your account**: what changed on your account in the last seven days,
-  such as players and clans added, recording started or stopped, or a
-  player another account verified. A burst is one line per kind
-  ("Recording started for 24 players"). A line about one player opens
-  their page; the rest open Settings. Sign-ins stay in Settings › Sign-ins
-  & devices.
+  such as players and clans added, recording started or stopped, a
+  [Stamp](/docs/passport) earned, or a player another account verified. A
+  burst is one line per kind ("Recording started for 24 players"). A line
+  about one player opens their page; the rest open Settings. Sign-ins stay
+  in Settings › Sign-ins & devices.
 
-A dot shows on the bell while something needs you or something came since
-you last opened it. Opening the bell marks reactions, followers and your
-account's lines as seen;
-an answer stays new until you open it. With no verified player, the bell
-says how to verify one. Nothing in the bell is mailed or posted to Discord.
+The bell shows a number: what needs you, plus what came since you last
+opened it, plus answers you have not read. Opening the bell marks cheers,
+followers and your account's lines as seen; an answer stays new until you
+open it. If you open a line and come back, the bell opens where you left
+it, with the rest of what was new still marked; once you put the bell away,
+the next opening starts fresh. With no verified player, the bell says how
+to verify one. Nothing in the bell is mailed or posted to Discord.
 
 ## Elixir on your phone
 

@@ -137,39 +137,43 @@ test("the bell's sections: counts not cheerers, named and counted followers, ans
     return reply({});
   });
   renderWithProviders(<BellSheet me={{}} onClose={() => {}} />);
-  const reactions = await screen.findByRole("region", {
-    name: "Cheers on your items",
+  // One inbox (#1009): Needs you first, then New; each row is its link.
+  const fresh = await screen.findByRole("region", {
+    name: "New",
     hidden: true,
   });
-  expect(reactions.textContent).toContain("Invented Owner won five in a row");
-  expect(reactions.textContent).toContain("Counts only: never who cheered.");
+  const needs = screen.getByRole("region", { name: "Needs you", hidden: true });
   expect(
-    reactions.querySelector('[aria-label="On fire 2, Royal 1"]'),
+    needs.compareDocumentPosition(fresh) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
-  const link = reactions.querySelector("a");
-  expect(link.getAttribute("href")).toBe("/battle/abc123");
-  const followers = screen.getByRole("region", {
-    name: "New followers",
-    hidden: true,
-  });
-  expect(followers.textContent).toContain("Invented Fan");
-  expect(followers.textContent).toContain("Follows Invented Owner");
-  expect(followers.textContent).toMatch(/2 more accounts follow you/);
-  const answers = screen.getByRole("region", {
-    name: "Answers to your feedback",
-    hidden: true,
-  });
-  expect(answers.querySelector("a").getAttribute("href")).toBe(
-    "/settings/feedback/42",
+  expect(fresh.textContent).toContain("Invented Owner won five in a row");
+  // Counts, never who; no explanatory line any more.
+  expect(fresh.querySelector('[aria-label="On fire 2, Royal 1"]')).toBeTruthy();
+  expect(document.body.textContent).not.toContain("never who cheered");
+  const hrefs = [...fresh.querySelectorAll("a")].map((a) =>
+    a.getAttribute("href"),
   );
-  screen.getByRole("region", { name: "Needs you", hidden: true });
+  expect(hrefs).toEqual([
+    "/battle/abc123",
+    "/home/player/0VQRR8U0",
+    "/settings/feedback/42",
+  ]);
+  expect(fresh.textContent).toContain("Invented Fan follows you");
+  expect(fresh.textContent).toContain("Elixir answered your feedback");
+  const earlier = screen.getByRole("region", { name: "Earlier", hidden: true });
+  expect(earlier.textContent).toContain(
+    "2 more followers with no verified player",
+  );
+  // No separate Open buttons: Needs you's rows are links too.
+  expect(needs.querySelectorAll("a.btn")).toHaveLength(0);
+  expect(needs.querySelector("a").getAttribute("href")).toBe(
+    "/clan/0QC8RCGY/actions/41",
+  );
   // What was new when it opened stays marked while it is open.
   await waitFor(() =>
     expect(calls).toContainEqual(["PUT", "/api/me/bell/seen"]),
   );
-  expect(
-    document.querySelectorAll(".kit-bell__new").length,
-  ).toBeGreaterThanOrEqual(3);
+  expect(document.querySelectorAll(".kit-bell__new").length).toBe(3);
   expect(calls.filter(([m]) => m === "PUT")).toHaveLength(1);
 });
 
@@ -193,7 +197,7 @@ test("no verified player: the bell says how to get cheers and followers", async 
   });
   renderWithProviders(<BellSheet me={{}} onClose={() => {}} />);
   const verify = await screen.findByRole("link", {
-    name: "Verify a player",
+    name: /^Verify your player/,
     hidden: true,
   });
   expect(verify.getAttribute("href")).toBe("/settings/players/verify");
@@ -230,14 +234,118 @@ test("a new follower's verified player has Follow back, the one confirmed Follow
     hidden: true,
   });
   expect(back).toHaveLength(1);
-  const region = screen.getByRole("region", {
-    name: "New followers",
-    hidden: true,
-  });
   // Both names still open the player's page.
-  const hrefs = [...region.querySelectorAll("a")].map((a) =>
+  const hrefs = [...document.querySelectorAll("dialog a")].map((a) =>
     a.getAttribute("href"),
   );
   expect(hrefs).toContain("/home/player/0VQRR8U0");
   expect(hrefs).toContain("/home/player/0VJLCPJ0");
+});
+
+const dialogs = () => {
+  HTMLDialogElement.prototype.showModal ??= function () {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close ??= function () {
+    this.open = false;
+  };
+};
+
+const bellOnly = () =>
+  vi.fn(async (path) => {
+    const p = String(path);
+    if (p === "/api/me/bell") return reply(BELL);
+    if (p === "/api/me/bell/seen")
+      return reply({ seen_at: "2026-11-12T12:00:00.000Z" });
+    if (p === "/api/me/home/needs") return reply({ needs: null });
+    return reply({});
+  });
+
+test("Escape closes the bell and focus goes back to the button that opened it (#1009)", async () => {
+  dialogs();
+  global.fetch = bellOnly();
+  const trigger = document.createElement("button");
+  trigger.className = "kit-bell";
+  document.body.append(trigger);
+  trigger.getClientRects = () => [{}];
+  const onClose = vi.fn();
+  renderWithProviders(
+    <BellSheet me={{}} onClose={onClose} returnTo={trigger} />,
+  );
+  await screen.findByRole("region", { name: "New", hidden: true });
+  // The title has focus first, so the name is read before the list.
+  expect(document.activeElement?.id).toBe("bell-title");
+  // The arrows go down the rows, Home and End to the ends.
+  const dialog = document.querySelector("dialog");
+  const rows = [...dialog.querySelectorAll("[data-bell-row]")];
+  fireEvent.keyDown(dialog, { key: "ArrowDown" });
+  expect(document.activeElement).toBe(rows[0]);
+  fireEvent.keyDown(dialog, { key: "ArrowDown" });
+  expect(document.activeElement).toBe(rows[1]);
+  fireEvent.keyDown(dialog, { key: "End" });
+  expect(document.activeElement).toBe(rows.at(-1));
+  fireEvent.keyDown(dialog, { key: "Home" });
+  expect(document.activeElement).toBe(rows[0]);
+  fireEvent(dialog, new Event("cancel", { cancelable: true }));
+  expect(onClose).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(document.activeElement).toBe(trigger));
+  trigger.remove();
+});
+
+test("back from a row: what was new is still New, but the row you opened; closing starts fresh (#1009)", async () => {
+  dialogs();
+  global.fetch = bellOnly();
+  const first = renderWithProviders(<BellSheet me={{}} onClose={() => {}} />);
+  const fresh = await screen.findByRole("region", {
+    name: "New",
+    hidden: true,
+  });
+  await waitFor(() => expect(fresh.querySelectorAll("a").length).toBe(3));
+  // Leave through the follower's row.
+  fireEvent.click(fresh.querySelector('a[href="/home/player/0VQRR8U0"]'));
+  first.unmount();
+  // The marker has moved: the read now says nothing is new but the answer.
+  global.fetch = vi.fn(async (path) => {
+    const p = String(path);
+    if (p === "/api/me/bell")
+      return reply({
+        ...BELL,
+        new: 1,
+        reactions: {
+          ...BELL.reactions,
+          new: 0,
+          items: BELL.reactions.items.map((r) => ({ ...r, new: false })),
+        },
+        followers: {
+          ...BELL.followers,
+          new: 0,
+          players: BELL.followers.players.map((f) => ({ ...f, new: false })),
+        },
+      });
+    if (p === "/api/me/home/needs") return reply({ needs: null });
+    return reply({ seen_at: "2026-11-12T12:05:00.000Z" });
+  });
+  const second = renderWithProviders(<BellSheet me={{}} onClose={() => {}} />);
+  const again = await screen.findByRole("region", {
+    name: "New",
+    hidden: true,
+  });
+  await waitFor(() =>
+    expect(
+      [...again.querySelectorAll("a")].map((a) => a.getAttribute("href")),
+    ).toEqual(["/battle/abc123", "/settings/feedback/42"]),
+  );
+  // Closed by you: the next opening keeps nothing.
+  fireEvent.click(screen.getByRole("button", { name: "Close", hidden: true }));
+  second.unmount();
+  renderWithProviders(<BellSheet me={{}} onClose={() => {}} />);
+  const third = await screen.findByRole("region", {
+    name: "New",
+    hidden: true,
+  });
+  await waitFor(() =>
+    expect(
+      [...third.querySelectorAll("a")].map((a) => a.getAttribute("href")),
+    ).toEqual(["/settings/feedback/42"]),
+  );
 });

@@ -165,13 +165,13 @@ for (const [label, width] of [
               .getByRole("navigation", { name: "Main, phone" })
               .getByRole("button", { name: /Bell/ })
           : page.getByRole("button", {
-              name: /^Notifications, \d+ new$/,
+              name: /^Notifications, 2 need you$/,
             });
       await expect(bell.locator(".kit-bell__dot")).toBeVisible();
       await bell.click();
       const sheet = page.getByRole("dialog", { name: "Notifications" });
       await expect(sheet).toBeVisible();
-      await expect(sheet.locator(".kit-row__title").first()).toContainText(
+      await expect(sheet.locator(".kit-bell__title").first()).toContainText(
         "Departure: kicked, left, or ignore? Ada",
       );
       await expect(sheet).toContainText("See 3 more in Clan");
