@@ -21,6 +21,11 @@
  * page reads claimantsOf too.
  */
 import { readOwnedPlaces } from "@elixir-mcp/auth/clan-context";
+import {
+  followAccountLinked,
+  linkedTagsToFollow,
+  unfollowAccountLinked,
+} from "@elixir-mcp/claims";
 import { readAccountPassport } from "@elixir-mcp/stamps";
 import { followsOf } from "@elixir-mcp/tools/social";
 import {
@@ -33,8 +38,7 @@ import { verifiedAvatars, withAvatar } from "./avatars.mjs";
 export const PAGE_ID = /^[a-km-np-z2-9]{12}$/;
 /** The page's timeline window, as the player page reads it. */
 export const ACCOUNT_PAGE_DAYS = 30;
-/** Accounts one person may follow: generous, and said when reached. */
-export const ACCOUNT_FOLLOW_MAX = 500;
+export { ACCOUNT_FOLLOW_MAX } from "@elixir-mcp/claims";
 
 /** The approved person account a page id names, or null. */
 export async function accountByPageId(db, id) {
@@ -229,6 +233,11 @@ export async function readAccountPage(db, reader, id, now = Date.now()) {
     you: {
       self: reader.accountId === account.account_id,
       following: counts.you_follow === true,
+      // The Verified players a Follow would add (linked follows).
+      to_follow:
+        reader.accountId === account.account_id
+          ? []
+          : await linkedTagsToFollow(db, reader.accountId, account.account_id),
     },
     passport: await readAccountPassport(db, account.account_id),
     window_days: ACCOUNT_PAGE_DAYS,
@@ -237,65 +246,32 @@ export async function readAccountPage(db, reader, id, now = Date.now()) {
   };
 }
 
-/** Follow an account. Idempotent; refused for yourself and past the cap.
- *  `{ ok, following }` or `{ error }`. */
-export async function followAccount(db, readerId, id) {
+/** Follow an account, linked (Jamie, 2026-11-15): the account and each
+ *  of its Verified players. Idempotent; refused for yourself and past the
+ *  cap. `{ ok, following, followed, skipped }` or `{ error }`. */
+export async function followAccount(db, reader, id) {
   const target = await accountByPageId(db, id);
   if (!target) return { error: "not_found" };
-  if (target.account_id === readerId) return { error: "self" };
-  await db.query("begin");
-  try {
-    await db.query(
-      `select account_id from account where account_id = $1 for update`,
-      [readerId],
-    );
-    const { rows } = await db.query(
-      `select count(*)::int as n from account_follow where account_id = $1`,
-      [readerId],
-    );
-    const { rowCount } = await db.query(
-      `insert into account_follow (account_id, followed_account_id)
-       select $1, $2 where $3::int < ${ACCOUNT_FOLLOW_MAX}
-       on conflict do nothing`,
-      [readerId, target.account_id, rows[0].n],
-    );
-    const held = await db.query(
-      `select 1 from account_follow
-        where account_id = $1 and followed_account_id = $2`,
-      [readerId, target.account_id],
-    );
-    if (!held.rows.length) {
-      await db.query("rollback");
-      return { error: "too_many" };
-    }
-    if (rowCount > 0)
-      await db.query(
-        `insert into account_event (account_id, kind, detail)
-         values ($1, 'account_followed', $2)`,
-        [readerId, JSON.stringify({ account_id: target.page_id })],
-      );
-    await db.query("commit");
-    return { ok: true, following: true };
-  } catch (err) {
-    await db.query("rollback");
-    throw err;
-  }
+  if (target.account_id === reader.accountId) return { error: "self" };
+  const r = await followAccountLinked(db, reader, target.account_id, {
+    via: "web",
+  });
+  if (r.error) return r;
+  return {
+    ok: true,
+    following: true,
+    followed: r.followed,
+    skipped: r.skipped.map((s) => ({ player_tag: s.tag, reason: s.reason })),
+  };
 }
 
-/** Stop following an account. Idempotent. */
-export async function unfollowAccount(db, readerId, id) {
+/** Stop following an account, and each of its Verified players.
+ *  Idempotent. `{ ok, following: false, unfollowed }`. */
+export async function unfollowAccount(db, reader, id) {
   const target = await accountByPageId(db, id);
   if (!target) return { error: "not_found" };
-  const { rowCount } = await db.query(
-    `delete from account_follow
-      where account_id = $1 and followed_account_id = $2`,
-    [readerId, target.account_id],
-  );
-  if (rowCount > 0)
-    await db.query(
-      `insert into account_event (account_id, kind, detail)
-       values ($1, 'account_unfollowed', $2)`,
-      [readerId, JSON.stringify({ account_id: target.page_id })],
-    );
-  return { ok: true, following: false };
+  const r = await unfollowAccountLinked(db, reader, target.account_id, {
+    via: "web",
+  });
+  return { ok: true, following: false, unfollowed: r.unfollowed };
 }

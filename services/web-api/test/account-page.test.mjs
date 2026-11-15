@@ -204,7 +204,10 @@ test("an account's page shows its players, badges, Stamps and news, and nothing 
     verified_player: true,
     discord: true,
   });
-  assert.deepEqual(page.you, { self: false, following: false });
+  assert.equal(page.you.self, false);
+  assert.equal(page.you.following, false);
+  // READER follows V already: a Follow adds no player (linked follows).
+  assert.deepEqual(page.you.to_follow, []);
   assert.ok(page.passport, "the account's passport rides along");
   const kinds = page.timeline.map((it) => it.kind).sort();
   assert.deepEqual(kinds, ["place_set", "player_verified", "stamp_earned"]);
@@ -239,7 +242,12 @@ test("following an account: yourself refused, idempotent, counted, undone", asyn
       id: pageIds.get(MAIN),
     });
     assert.equal(r.statusCode, 200, r.body);
-    assert.deepEqual(data(r), { ok: true, following: true });
+    assert.deepEqual(data(r), {
+      ok: true,
+      following: true,
+      followed: [],
+      skipped: [],
+    });
   }
   const events = await scratch.db.query(
     "select detail from account_event where account_id = $1 and kind = 'account_followed'",
@@ -275,7 +283,9 @@ test("following an account: yourself refused, idempotent, counted, undone", asyn
     `/api/me/account-follows/${pageIds.get(MAIN)}`,
   );
   assert.equal(off.statusCode, 200, off.body);
-  assert.deepEqual(data(off), { ok: true, following: false });
+  // Linked follows: unfollowing the account unfollows its Verified
+  // player V, which READER followed.
+  assert.deepEqual(data(off), { ok: true, following: false, unfollowed: [V] });
   const missing = await call(READER, "POST", "/api/me/account-follows", {
     id: "abcdefghjkmn",
   });

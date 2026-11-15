@@ -1,11 +1,14 @@
 import {
   addPlayer,
+  linkAfterFollow,
+  linkedTagsToFollow,
   setRelationship,
   playerCosts,
   poolLimits,
   poolOwner,
   pooledUsage,
-  removePlayer,
+  unfollowPlayerLinked,
+  verifierOf,
 } from "@elixir-mcp/claims";
 import {
   cardType,
@@ -125,7 +128,9 @@ export function accountRoutes({
       return json(200, { ok: true, relationship: body.relationship });
     }
     if (action === "remove") {
-      const r = await removePlayer(db, account, { tag, via: "web" });
+      // Linked follows: unfollowing a Verified player you follow through
+      // its account ends the account follow and its other players too.
+      const r = await unfollowPlayerLinked(db, account, { tag, via: "web" });
       if (r.refused === "primary_in_use")
         return json(409, {
           error: "primary_in_use",
@@ -137,6 +142,7 @@ export function accountRoutes({
         removed: r.removed,
         recording_stopped: r.recordingStopped,
         primary_player_tag: r.promotedPrimary,
+        ...(r.unlinked ? { unfollowed: r.unlinked.unfollowed } : {}),
       });
     }
     // 'add': added = recorded (Jamie, 2026-09-05). Slots count the players
@@ -181,6 +187,12 @@ export function accountRoutes({
     // The passport (#1015), once the add committed: the add-player step,
     // Full Roster, the follow step, Inner Circle and Mutual. A follow can
     // also make the followed player's verified owner a Mutual.
+    // Linked follows (Jamie, 2026-11-15): a Verified player's follow is
+    // its account's follow, with the account's other Verified players.
+    const linked =
+      follow && account.kind !== "agent"
+        ? await linkAfterFollow(db, account, tag, { via: "web" })
+        : null;
     if (account.kind !== "agent") {
       await playersChangedAfter(db, account.accountId, "player_added");
       if (follow) await settleFollowedOwner(db, account.accountId, tag);
@@ -203,6 +215,17 @@ export function accountRoutes({
       clan_followed: r.clanFollowed ?? null,
       slot: slotWire(r.slot),
       ...(follow ? { added: r.added, relationship: r.relationship } : {}),
+      ...(linked
+        ? {
+            linked: {
+              followed: linked.followed,
+              skipped: linked.skipped.map((x) => ({
+                player_tag: x.tag,
+                reason: x.reason,
+              })),
+            },
+          }
+        : {}),
     });
   }
 
@@ -628,6 +651,17 @@ export function accountRoutes({
       const limits = poolLimits(owner);
       const [cost] = tag ? await playerCosts(db, owner.account_id, [tag]) : [];
       const used = await pooledUsage(db, owner.account_id);
+      // Linked follows: following a Verified player follows its account's
+      // other Verified players too, so the price counts them.
+      const verifier =
+        tag && account.kind === "person" ? await verifierOf(db, tag) : null;
+      const extra =
+        verifier && verifier !== account.accountId
+          ? await linkedTagsToFollow(db, account.accountId, verifier, tag)
+          : [];
+      const extraCosts = extra.length
+        ? await playerCosts(db, owner.account_id, extra)
+        : [];
       return json(200, {
         player_tag: tag,
         following: cost?.following ?? null,
@@ -635,6 +669,12 @@ export function accountRoutes({
         reason: cost?.reason ?? null,
         used: used.players_used,
         limit: limits.player_slots === Infinity ? null : limits.player_slots,
+        linked: extra.length
+          ? {
+              players: extra.length,
+              slots: extraCosts.filter((c) => !c.free && !c.following).length,
+            }
+          : null,
       });
     },
     "POST /api/claims": followPlayer,

@@ -408,6 +408,18 @@ async function dispatch(event, context) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.linked_follow_convert) {
+    // Existing follows to linked follows (2026-11-15): account_follow,
+    // friend claims and their account_event lines; the dry run reads.
+    const { linkedFollowConvertOp } =
+      await import("./ops-linked-follow-convert.mjs");
+    const result = await linkedFollowConvertOp(
+      process.env.DATABASE_URL,
+      event.linked_follow_convert,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.agent_recordings) {
     const { agentRecordingsOp } = await import("./ops-agent-recordings.mjs");
     const result = await agentRecordingsOp(

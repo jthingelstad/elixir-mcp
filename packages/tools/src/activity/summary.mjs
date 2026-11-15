@@ -592,6 +592,10 @@ export function itemText(it, timeZone = "UTC") {
       return "Your account: you followed an account.";
     case "account_account_unfollowed":
       return "Your account: you unfollowed an account.";
+    case "account_follow_skipped":
+      return f.reason === "no_own_player"
+        ? `Your account: ${f.player_tag} was not followed with the account you follow, because you have no player of your own yet.`
+        : `Your account: ${f.player_tag} was not followed with the account you follow, because no player slot was free.`;
     // A verified tag is its owner's (#556): the tag and why, never the
     // account that verified it.
     case "account_claim_ended":

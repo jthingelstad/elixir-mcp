@@ -2,6 +2,7 @@ import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { checkRateLimit } from "@elixir-mcp/auth";
 import {
   addPlayer,
+  linkAfterFollow,
   playerCosts,
   poolLimits,
   poolOwner,
@@ -432,6 +433,9 @@ async function followEach(db, account, plan, liveRead) {
     // read; one already recorded has theirs.
     if (r.recordingStarted)
       await requestFirstRead(db, liveRead, p.player_tag, account.accountId);
+    // Linked follows: a Verified player brings its account along. What
+    // that cannot take is skipped and said in the bell.
+    await linkAfterFollow(db, account, p.player_tag, { via: "web" });
   }
   return { ok: true, followed };
 }

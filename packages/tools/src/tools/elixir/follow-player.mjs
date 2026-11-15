@@ -1,12 +1,16 @@
 import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
-import { addPlayer, removePlayer } from "@elixir-mcp/claims";
+import {
+  addPlayer,
+  linkAfterFollow,
+  unfollowPlayerLinked,
+} from "@elixir-mcp/claims";
 import { requestFirstRead } from "../../live.mjs";
 import { TAG_RULE_HINT, ToolFailure, appliedBlock, notes } from "../shared.mjs";
 import { RECORDING_DOCS } from "./common.mjs";
 
 export const elixir_follow_player = {
   description:
-    "Follow a player on your account: claims the tag AND starts recording in one act (followed means recorded). It spends a player slot only when Elixir records them because of you (an agent spends its owner's); the result's slot says. Say who they are to you with relationship (primary = you, alt = also you, friend, watching); a first player is your primary unless named friend or watching. A tag another account verified is theirs: friend or watching only. An agent follows as watching only. action remove releases the claim; notify_on / notify_off set whether the player feeds your elixir_timeline.",
+    "Follow a player: claims the tag AND starts recording (followed means recorded). It spends a player slot only when Elixir records them because of you (an agent spends its owner's); the result's slot says. relationship says who they are to you (primary = you, alt = also you, friend, watching); a first player is your primary unless named friend or watching. A tag another account verified is theirs: friend or watching only, and friend also follows that account and its verified players (linked). action remove releases the claim; notify_on / notify_off set the timeline feed.",
   inputSchema: {
     type: "object",
     properties: {
@@ -62,7 +66,12 @@ export const elixir_follow_player = {
       };
     }
     if (action === "remove") {
-      const r = await removePlayer(ctx.db, ctx.account, { tag, via: "mcp" });
+      // Linked follows: a player followed through its verifying account
+      // ends the whole link (Jamie, 2026-11-15).
+      const r = await unfollowPlayerLinked(ctx.db, ctx.account, {
+        tag,
+        via: "mcp",
+      });
       if (r.refused === "primary_in_use")
         throw new ToolFailure(
           "bad_request",
@@ -74,9 +83,13 @@ export const elixir_follow_player = {
         removed: r.removed,
         recording_stopped: r.recordingStopped,
         primary_player_tag: r.promotedPrimary,
+        ...(r.unlinked ? { unfollowed: r.unlinked.unfollowed } : {}),
         applied: appliedBlock({ player_tag: tag, action }),
         notes: notes(
           "History already recorded is kept; only the recording stops when no reason remains.",
+          r.unlinked
+            ? `You followed ${tag} through the account that verified it, so that account and all its verified players are unfollowed too.`
+            : null,
         ),
         docs: RECORDING_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
@@ -128,6 +141,14 @@ export const elixir_follow_player = {
         })
       : { requested: false };
     const battlesToo = first.battles?.requested === true;
+    // Linked follows (Jamie, 2026-11-15): a person's friend follow of a
+    // player another account verified follows that account and its other
+    // verified players.
+    // linkAfterFollow links only a person's friend claim, so an agent's
+    // watched player links nothing.
+    const linked = await linkAfterFollow(ctx.db, ctx.account, tag, {
+      via: "mcp",
+    });
     const slot = r.slot;
     const limit = slot.limit === Infinity ? null : slot.limit;
     const of =
@@ -145,6 +166,17 @@ export const elixir_follow_player = {
         used: slot.used,
         limit,
       },
+      ...(linked
+        ? {
+            linked: {
+              followed: linked.followed,
+              skipped: linked.skipped.map((x) => ({
+                player_tag: x.tag,
+                reason: x.reason,
+              })),
+            },
+          }
+        : {}),
       applied: appliedBlock({
         player_tag: tag,
         action,
@@ -177,6 +209,9 @@ export const elixir_follow_player = {
           : slot.took
             ? `This used 1 of your player slots: ${of}.`
             : `This player uses one of your player slots: ${of}.`,
+        linked
+          ? `${tag} is verified by another account, so you follow that account too, and each player it verified: ${linked.followed.length} more followed${linked.skipped.length ? `, ${linked.skipped.length} skipped (no free slot, or no player of your own)` : ""}.`
+          : null,
         "Captures appear on your elixir_timeline while notify is on.",
       ),
       docs: RECORDING_DOCS,

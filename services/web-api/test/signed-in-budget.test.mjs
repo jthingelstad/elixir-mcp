@@ -123,7 +123,8 @@ const PLAYER_PAGE = {
   "/api/me/cheers": { statements: 26, buffers: 900 },
   "/api/clan/me": { statements: 15, buffers: 300 },
   "/api/me/follow-plan": { statements: 9, buffers: 500 },
-  "/api/me/follow-cost": { statements: 4, buffers: 250 },
+  // +1: who verified the player, for linked follows (2026-11-15).
+  "/api/me/follow-cost": { statements: 5, buffers: 250 },
   players_summary: { statements: 28, buffers: 3500 },
   players_profile: { statements: 12, buffers: 60 },
 };
@@ -592,7 +593,8 @@ const BATTLE = {
   "/api/public/battles": { statements: 21, buffers: 500 },
   "/api/me/highlights": { statements: 5, buffers: 50 },
   "/api/me/cheers": { statements: 26, buffers: 900 },
-  "/api/me/follow-cost": { statements: 5, buffers: 250 },
+  // +1: who verified the player, for linked follows (2026-11-15).
+  "/api/me/follow-cost": { statements: 6, buffers: 250 },
   // +1: the page's profile images, one statement (2026-11-14).
   "/api/public/highlights": { statements: 23, buffers: 500 },
 };
