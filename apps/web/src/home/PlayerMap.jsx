@@ -3,8 +3,9 @@ import { PlaceMap } from "../components/PlaceMap.jsx";
 import { usePlayerMap } from "../lib/queries.js";
 
 /**
- * The player map (#768): the people who chose it, each at the city, region
- * or country they picked and never closer, for anyone signed in to Elixir.
+ * The player map (#768): everyone who has set a place, each at the city,
+ * region or country they picked and never closer, for anyone signed in to
+ * Elixir.
  * Find's Near you draws it below its list, loaded lazily (Leaflet).
  * There is no page of it outside Elixir, and nothing of it on MCP.
  */

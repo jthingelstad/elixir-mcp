@@ -232,14 +232,11 @@ test(
     expect(row.getAttribute("href")).toBe("/settings/profile#place");
     await waitFor(() => expect(row.textContent).toContain("Not set"));
     expect(screen.queryByText("Add yourself to the map")).toBeNull();
+    // One reach for every place: the clan map, the player map, Near you.
     expect(
       screen.getByText(
-        /the verified members of each clan your verified player is in/,
+        /your clan’s verified members on the clan map, and anyone signed in to Elixir on the player map and in Near you/,
       ),
-    ).toBeTruthy();
-    // The player map and Near you only for a place that chose them.
-    expect(
-      screen.getByText(/If you chose the player map, members signed in/),
     ).toBeTruthy();
     // The other choices link to the pages that own them.
     expect(

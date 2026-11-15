@@ -1,8 +1,8 @@
 /**
- * Find's Near you and the player map (#768, Jamie 2026-11-14): people on
- * the player map in your region, each with where as a fact and a Follow,
- * never ranked; a reader with no place is asked to set one; a reader on
- * clan maps only is told so and can join. Invented players only.
+ * Find's Near you and the player map (#768, Jamie 2026-11-14): the people
+ * who set a place in your region, each with where as a fact and a Follow,
+ * never ranked; a reader with no place is asked to set one; nothing to
+ * join or leave (2026-11-15). Invented players only.
  */
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
@@ -11,7 +11,6 @@ import {
   fireEvent,
   render,
   screen,
-  waitFor,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
 import "./warm-routes.js";
@@ -44,7 +43,7 @@ const reply = (body, status = 200) => ({
 
 const NEAR = {
   ok: true,
-  place: { name: "Austin", region_name: "Texas", on_map: true },
+  place: { name: "Austin", region_name: "Texas" },
   people: [
     {
       tag: "#0VJLRY",
@@ -91,20 +90,16 @@ const MAP = {
   attribution: "Places from GeoNames. Map © OpenStreetMap contributors.",
 };
 
-let near, calls;
+let near;
 beforeEach(() => {
   cleanup();
   near = NEAR;
-  calls = [];
   vi.spyOn(console, "error").mockImplementation(() => {});
-  global.fetch = vi.fn(async (path, init) => {
+  global.fetch = vi.fn(async (path) => {
     const p = String(path);
-    calls.push([init?.method ?? "GET", p, init?.body ?? null]);
     if (p === "/api/me") return reply(ME);
     if (p === "/api/me/people/near") return reply(near);
     if (p === "/api/me/player-map") return reply(MAP);
-    if (p === "/api/clan/me/place/player-map")
-      return reply({ place: { player_map: true } });
     return reply({});
   });
 });
@@ -128,7 +123,7 @@ test(
     expect(screen.getByText("Plays near you, in Houston")).toBeTruthy();
     expect(screen.getAllByRole("button", { name: /Follow/ }).length).toBe(2);
     expect(
-      screen.getByText(/People on the player map in Texas\. Your city first/),
+      screen.getByText(/People who set a place in Texas\. Your city first/),
     ).toBeTruthy();
     expect(document.body.textContent).toContain("Never ranked.");
     // No score, trophies or distance on a row.
@@ -151,27 +146,18 @@ test(
 );
 
 test(
-  "a reader on clan maps only is told so, and can join the player map",
+  "Near you offers nothing to join or leave",
   { timeout: 20000 },
   async () => {
-    near = { ...NEAR, place: { ...NEAR.place, on_map: false } };
     await openNear();
-    await screen.findByText(/on your clan maps only, so players near you/);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Join the player map" }),
-    );
-    await waitFor(() =>
-      expect(calls).toContainEqual([
-        "PUT",
-        "/api/clan/me/place/player-map",
-        JSON.stringify({ player_map: true }),
-      ]),
-    );
+    await screen.findByText("Plays near you, in Austin");
+    expect(screen.queryByText(/clan maps only/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /player map/ })).toBeNull();
   },
 );
 
 test("with nobody near, it says so by region", { timeout: 20000 }, async () => {
   near = { ...NEAR, people: [] };
   await openNear();
-  await screen.findByText("Nobody in Texas is on the player map yet.");
+  await screen.findByText("Nobody else in Texas has set a place yet.");
 });

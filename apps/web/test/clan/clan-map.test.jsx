@@ -126,57 +126,11 @@ describe("clan map", () => {
         country: "US",
         region: "TX",
         city: 4671654,
-        player_map: true,
       }),
     );
   });
 
-  test("a new place says who sees it and can stay on clan maps only (#768)", async () => {
-    vi.spyOn(manageApi, "map").mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: { members: 1, on_map: 0, entries: [], attribution: "" },
-    });
-    vi.spyOn(api, "myPlace").mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: { place: null },
-    });
-    const saved = vi.spyOn(api, "setMyPlace").mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        place: { country: "AW", country_name: "Aruba", player_map: false },
-      },
-    });
-    renderWithProviders(<ClanMap clan={clan} />);
-    const wide = await screen.findByRole("radio", {
-      name: /My clan maps, the player map and Near you/,
-    });
-    expect(wide.checked).toBe(true);
-    expect(
-      screen.getByText(
-        /anyone signed in to\s+Elixir looking for players near them/,
-      ),
-    ).toBeTruthy();
-    fireEvent.click(screen.getByRole("radio", { name: /My clan maps only/ }));
-    const country = await screen.findByLabelText("Country");
-    await waitFor(() =>
-      expect(country.querySelectorAll("option").length).toBeGreaterThan(200),
-    );
-    fireEvent.change(country, { target: { value: "AW" } });
-    fireEvent.click(await screen.findByText("Add me"));
-    await waitFor(() =>
-      expect(saved).toHaveBeenCalledWith({
-        country: "AW",
-        region: null,
-        city: null,
-        player_map: false,
-      }),
-    );
-  });
-
-  test("a place saved before the choice asks once and is never widened by a change (#768)", async () => {
+  test("the picker and a saved place say who sees it, with nothing to choose; removing is the way off", async () => {
     vi.spyOn(manageApi, "map").mockResolvedValue({
       ok: true,
       status: 200,
@@ -192,62 +146,27 @@ describe("clan map", () => {
           region: null,
           city: null,
           precision: "country",
-          player_map: null,
         },
       },
     });
-    const join = vi.spyOn(api, "setPlayerMap").mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: { place: { country: "AW", player_map: true } },
-    });
+    const clear = vi
+      .spyOn(api, "clearMyPlace")
+      .mockResolvedValue({ ok: true, status: 200, data: { cleared: true } });
     renderWithProviders(<ClanMap clan={clan} />);
-    await screen.findByText("New: the player map");
-    expect(screen.getByText(/stays on your clan maps only/)).toBeTruthy();
-    // Changing the place keeps it on clan maps only unless they choose.
+    const who =
+      /your clan’s verified members on the clan map, and anyone signed in to Elixir on the player map and in Near you/;
+    await screen.findByText(who);
+    expect(screen.queryByText(/player map$/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /player map/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Change your place" }));
-    const clanOnly = await screen.findByRole("radio", {
-      name: /My clan maps only/,
-    });
-    expect(clanOnly.checked).toBe(true);
+    await screen.findByLabelText("Country");
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.getByText(who)).toBeTruthy();
     fireEvent.click(screen.getByText("Cancel"));
     fireEvent.click(
-      await screen.findByRole("button", { name: "Join the player map" }),
+      await screen.findByRole("button", { name: "Remove your place" }),
     );
-    await waitFor(() => expect(join).toHaveBeenCalledWith(true));
-  });
-
-  test("on the player map, the place says so and can leave it, keeping the place (#768)", async () => {
-    vi.spyOn(manageApi, "map").mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: { members: 1, on_map: 0, entries: [], attribution: "" },
-    });
-    vi.spyOn(api, "myPlace").mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: {
-        place: {
-          country: "AW",
-          country_name: "Aruba",
-          precision: "country",
-          player_map: true,
-        },
-      },
-    });
-    const leave = vi.spyOn(api, "setPlayerMap").mockResolvedValue({
-      ok: true,
-      status: 200,
-      data: { place: { country: "AW", player_map: false } },
-    });
-    const clear = vi.spyOn(api, "clearMyPlace");
-    renderWithProviders(<ClanMap clan={clan} />);
-    await screen.findByText("On your clan maps, the player map and Near you.");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Leave the player map" }),
-    );
-    await waitFor(() => expect(leave).toHaveBeenCalledWith(false));
-    expect(clear).not.toHaveBeenCalled();
+    await waitFor(() => expect(clear).toHaveBeenCalled());
   });
 
   test("turned off by the clan's leaders, the map says so", async () => {

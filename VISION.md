@@ -91,8 +91,9 @@ Elixir account to Clash Royale player.
 - **Search:** players who exist in Elixir, meaning everyone someone has
   followed.
 - **Your battle log:** follow a notable opponent from it.
-- **Location:** opt-in, never finer than a city or a zip code. Players on
-  a map, to find players in your region, and the clan map.
+- **Location:** opt-in, never finer than a city or a zip code. A place,
+  once set, is on the clan map, the player map and Near you, to find
+  players in your region.
 - **The clan directory:** search on what only Elixir has, the dimensions
   of a clan's policy and its description. Setting a policy is how a clan
   opts in to being found.

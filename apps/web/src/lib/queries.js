@@ -540,7 +540,7 @@ export const usePeople = (which, enabled = true) =>
     staleTime: 60_000,
   });
 
-/** The player map (#768): the people who chose it, for a signed-in
+/** The player map (#768): everyone who has set a place, for a signed-in
  *  person. */
 export const usePlayerMap = (enabled = true) =>
   useQuery({

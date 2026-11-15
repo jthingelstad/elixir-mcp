@@ -7,8 +7,9 @@ import { homeApi } from "./home-fixture.ts";
  * Find's Near you and the player map (#768, Jamie 2026-11-14: city-level
  * location is fine for everyone; the gate goes). People on the player map
  * in your region, each with where as a fact and a Follow, your city first
- * and never ranked; the player map below, at picked places only. A reader
- * with no place is asked to set one; one on clan maps only can join.
+ * and never ranked; the player map below, at picked places only. A place
+ * is a place (Jamie, 2026-11-15): everyone who set one is on both, with
+ * nothing to join or leave. A reader with no place is asked to set one.
  * At 320, 390 and 1280 px, in both color schemes (Elixir draws one theme,
  * so the two must agree), with axe. Invented players; local mocks only.
  * PLAYER_MAP_SHOTS names a folder for the screenshots.
@@ -44,7 +45,7 @@ const HOUSTON: [number, string, number, number] = [
 
 const NEAR = {
   ok: true,
-  place: { name: "Austin", region_name: "Texas", on_map: true },
+  place: { name: "Austin", region_name: "Texas" },
   people: [
     {
       tag: "#0VJLRY",
@@ -180,7 +181,7 @@ for (const width of [320, 390, 1280]) {
       await expect(rows.nth(2)).toContainText("Plays near you, in Houston");
       await expect(rows.getByRole("button", { name: /Follow/ })).toHaveCount(3);
       await expect(list).toContainText(
-        "People on the player map in Texas. Your city first, then by name. Never ranked.",
+        "People who set a place in Texas. Your city first, then by name. Never ranked.",
       );
       await expect(list).not.toContainText(/trophies|km\b|miles/i);
       // The player map: pins at picked places, and its sources.
@@ -212,70 +213,4 @@ test("a reader with no place is asked to set one, and still sees the map", async
   await noSideways(page);
   await accessible(page, "near you, no place");
   await shot(page, "near-you-no-place-390");
-});
-
-test("a reader on clan maps only is told so and can join", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  const asked: unknown[] = [];
-  await openNear(
-    page,
-    { ...NEAR, place: { ...NEAR.place, on_map: false } },
-    {
-      "PUT /api/clan/me/place/player-map": (route: {
-        request: () => { postDataJSON: () => unknown };
-      }) => {
-        asked.push(route.request().postDataJSON());
-        return [200, { place: { ...place(AUSTIN), player_map: true } }];
-      },
-    },
-  );
-  const near = page.locator(".kit-near");
-  await expect(near).toContainText(
-    "Your place is on your clan maps only, so players near you don’t see you here.",
-  );
-  await shot(page, "near-you-clan-only-390");
-  await near.getByRole("button", { name: "Join the player map" }).click();
-  await expect.poll(() => asked).toEqual([{ player_map: true }]);
-  await accessible(page, "near you, clan maps only");
-});
-
-test("a place saved before the choice asks once on Profile", async ({
-  page,
-}) => {
-  for (const width of [320, 390, 1280]) {
-    await page.setViewportSize({ width, height: 844 });
-    let answer = { ...place(AUSTIN), player_map: null as boolean | null };
-    const asked: unknown[] = [];
-    await mockApi(
-      page,
-      homeApi({
-        "GET /api/clan/me/place": () => [200, { place: answer }],
-        "PUT /api/clan/me/place/player-map": (route: {
-          request: () => { postDataJSON: () => { player_map: boolean } };
-        }) => {
-          const body = route.request().postDataJSON();
-          asked.push(body);
-          answer = { ...answer, player_map: body.player_map };
-          return [200, { place: answer }];
-        },
-      }),
-    );
-    await page.goto("/settings/profile");
-    const yours = page.getByRole("region", { name: "Your place" });
-    await expect(yours).toContainText("New: the player map");
-    await expect(yours).toContainText(
-      "It stays on your clan maps only unless you say yes.",
-    );
-    await noSideways(page);
-    await shot(page, `profile-player-map-ask-${width}`);
-    await yours.getByRole("button", { name: "Keep clan maps only" }).click();
-    await expect(yours).toContainText("On your clan maps only.");
-    await yours.getByRole("button", { name: "Join the player map" }).click();
-    await expect(yours).toContainText(
-      "On your clan maps, the player map and Near you.",
-    );
-    await shot(page, `profile-player-map-on-${width}`);
-    expect(asked).toEqual([{ player_map: false }, { player_map: true }]);
-    await page.unrouteAll({ behavior: "ignoreErrors" });
-  }
 });

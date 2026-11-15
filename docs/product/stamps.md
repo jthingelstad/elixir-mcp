@@ -236,3 +236,6 @@ Built in the place slice (2026-11-14,
 - Your place has a permanent home in Settings > Profile (You in Elixir):
   the place or Not set, with Set, Change and Remove. On the Map's detail
   action (**Set your place**) and What members see's Location open it.
+- Since 2026-11-15 a place has no visibility choice: the picker and Your
+  place say who sees it (clan map, player map, Near you), and removing
+  it is the way off ([note](../notes/2026-11-15-place-is-a-place.md)).

@@ -11,8 +11,8 @@ import { YourPlace } from "./YourPlace.jsx";
  * A member adds a place picked from the lists (a country, its region and,
  * if they like, a city: never an address, never the device's location)
  * and sees everyone else who has, with each one's local time. Only the
- * clan's verified members see it. A member who also chose the player map
- * (#768) is on that one too, at the same place.
+ * clan's verified members see it. The same place is on the player map
+ * and in Near you too (#768; 2026-11-15, a place is a place).
  */
 export function ClanMap({ clan }) {
   const { state, load } = useClanMap(clan.clan_tag);

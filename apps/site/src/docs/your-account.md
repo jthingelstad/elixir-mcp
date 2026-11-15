@@ -7,7 +7,7 @@ order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your limits, and it shows nobody your address."
-reviewed: "2026-11-14 for a place staying with its owner; 2026-11-14 for the player map and Near you; 2026-11-14 for Your place on Profile; 2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
+reviewed: "2026-11-15 for one place shown everywhere, with no choice of who sees it; 2026-11-14 for a place staying with its owner; 2026-11-14 for the player map and Near you; 2026-11-14 for Your place on Profile; 2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
 callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"]
 ---
 
@@ -287,26 +287,17 @@ lists. It is never an address and never your device's location. It is
 yours, not a clan's: it needs a verified player, and nothing else. No
 clan, or a clan whose leaders have the map off, is fine.
 
-When you set or change it, you pick who sees it:
+Who sees it: your clan's verified members on the clan map, and anyone
+signed in to Elixir on the **player map** and in
+[Near you](/docs/follow-a-friend#find), where people in your region find
+you with a Follow button. There is nothing to choose; the picker and
+Your place both say so. To stop showing it anywhere, remove your place.
 
-- **My clan maps, the player map and Near you.** Your clan's verified
-  members see it on the clan map. Anyone signed in to Elixir sees it on
-  the **player map**, and people in your region find you in
-  [Near you](/docs/follow-a-friend#find) with a Follow button.
-- **My clan maps only.** Only your clan's verified members, on the clan
-  map, when its leaders have the map on.
-
-With players in more than one clan, each of those clans' maps shows it.
-The player map and Near you show your place as you picked it, never
-closer, beside your verified player's game name and tag. They show one
+With players in more than one clan, each of those clans' maps shows it
+when its leaders have the map on. The player map and Near you show your
+place as you picked it, never closer, beside your verified player's game
+name and tag, whatever your clans' map switches say. They show one
 player for you, your main if it's verified.
-
-You can leave the player map any time with **Leave the player map**, and
-your place stays on your clan maps. **Join the player map** puts it back.
-
-A place you set before the player map existed stays on your clan maps
-only. Your place on Profile asks you once, with **Join the player map**
-and **Keep clan maps only**. Nothing changes until you choose.
 
 Your place stays yours. If a player you verified moves to someone
 else's account, they don't get your place: they start with none, and
@@ -373,9 +364,9 @@ and each other choice it names links to the page that owns it.
   game name, your words and the battle, not your account; a follower who
   cross-posts their timeline to Discord sends it there too, and a line
   posted there stays if you delete the highlight. A collector you run is credited to your main
-  player's game name and tag, on the public status page too. If you
-  chose the player map, they see your place there and in Near you, with
-  your verified player's game name and tag. In Clan,
+  player's game name and tag, on the public status page too. If you set
+  a place, they see it on the player map and in Near you, with your
+  verified player's game name and tag. In Clan,
   your clan's verified members see your place on its map if you added
   one, its leaders see an away you mark, and what you decide as a leader
   or elder shows under your player's game name. With Discord connected,
