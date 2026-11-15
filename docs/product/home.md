@@ -48,7 +48,12 @@ is one feed", "The left rail stays only in Settings"]
 - **The bell**, on every page: what is about you. Cheers on your items
   (counts, never who), new followers, the Clan Actions waiting for you,
   answers to your feedback and your account's own notices. [Jamie,
-  2026-11-12, "The bell is what is about you"]
+  2026-11-12, "The bell is what is about you"] Laid out as Needs you,
+  then New, then Earlier; a popover under the bar's bell on a wide screen,
+  a sheet from the foot on a phone; every line one tap, no buttons but
+  Follow back. Its number counts what needs you plus what is new on both
+  the bar and the phone tab. Back from a line, it opens where you left
+  it. [engineering, 2026-11-14, #1009, "The bell is a compact inbox"]
 - **The player page** (`/home/player/<tag>`): every player name anywhere
   opens it. Its tabs are Timeline, Highlights, Moments, Follows and
   Record (the player's recorded profile and last thirty days), and Clan

@@ -12,15 +12,21 @@ import { eventGroup, eventLabel } from "../views/account/events.js";
  * waiting stay Home's old Needs you (home/logic.js needsYou).
  */
 
-/** How many things in the bell are new: the rows that need you (always,
- *  while they wait) and what came since you last opened it. */
+/** How many things the badge counts: the rows that need you (always,
+ *  while they wait) and what came since you last opened it, an unread
+ *  answer until you read it. */
 export function bellCount(needRows, bell) {
   return (needRows ?? 0) + (bell?.new ?? 0);
 }
 
-/** The bell's name with its count, read aloud on the button. */
-export function bellLabel(label, count) {
-  return count > 0 ? `${label}, ${count} new` : label;
+/** The bell's name with what its badge counts, read aloud on the button:
+ *  "Notifications, 2 need you, 3 new". */
+export function bellLabel(label, { need = 0, fresh = 0 } = {}) {
+  const parts = [
+    need > 0 ? `${need} ${need === 1 ? "needs" : "need"} you` : null,
+    fresh > 0 ? `${fresh} new` : null,
+  ].filter(Boolean);
+  return parts.length ? `${label}, ${parts.join(", ")}` : label;
 }
 
 /** The read as it stands once the bell was opened: reactions and followers
@@ -90,11 +96,12 @@ const ROMAN = ["I", "II", "III"];
 
 /** A new Stamp (#1015): its name, with its level when it has levels, to
  *  the passport's sheet for it. */
-export function stampRow(a, i) {
+export function stampRow(a) {
   const level =
     a.levels > 1 && ROMAN[a.level - 1] ? ` ${ROMAN[a.level - 1]}` : "";
   return {
-    key: `stamp-${a.stamp_id}-${a.at}-${i}`,
+    key: `stamp-${a.stamp_id}-${a.at}`,
+    icon: "stamp",
     title: `New Stamp: ${a.name}${level}`,
     at: a.at,
     detail: null,
@@ -106,10 +113,11 @@ export function stampRow(a, i) {
 /** "Your passport is ready" (#1015): an account made before Stamps
  *  existed gets this one line, never a "New Stamp" line for each thing it
  *  had already done. */
-export function passportReadyRow(a, i) {
+export function passportReadyRow(a) {
   const n = Number(a.stamps) || 0;
   return {
-    key: `passport-ready-${a.at}-${i}`,
+    key: `passport-ready-${a.at}`,
+    icon: "stamp",
     title: "Your passport is ready",
     at: a.at,
     detail:
@@ -126,9 +134,9 @@ export function passportReadyRow(a, i) {
  *  Settings, where the account's whole log is. A new Stamp is its own
  *  line (stampRow). */
 export const accountRows = (account) =>
-  (account?.items ?? []).map((a, i) => {
-    if (a.kind === "stamp_earned") return stampRow(a, i);
-    if (a.kind === "passport_ready") return passportReadyRow(a, i);
+  (account?.items ?? []).map((a) => {
+    if (a.kind === "stamp_earned") return stampRow(a);
+    if (a.kind === "passport_ready") return passportReadyRow(a);
     const who = accountWho(a);
     const say = ACCOUNT_LINE[a.kind];
     const title =
@@ -145,7 +153,8 @@ export const accountRows = (account) =>
         : null;
     const aboutPlayers = eventGroup(a.kind) === "players";
     return {
-      key: `${a.kind}-${a.at}-${i}`,
+      key: `${a.kind}-${a.at}`,
+      icon: aboutPlayers ? "user-round" : "settings",
       title,
       at: a.at,
       detail: ACCOUNT_DETAIL[a.kind] ?? null,
@@ -163,6 +172,7 @@ export function reactionRow(r) {
   const battle = String(r.battle_url ?? "").replace(/^https?:\/\/[^/]+/, "");
   return {
     key: r.item_id,
+    icon: "heart",
     text: r.text,
     counts,
     words: counts.map((c) => `${c.label} ${c.count}`).join(", "),
@@ -173,24 +183,26 @@ export function reactionRow(r) {
 }
 
 /** Followers: the named ones by their verified player, then one line for
- *  those counted. "New" means since you last opened the bell. */
+ *  those counted. "New" means since you last opened the bell. No follow
+ *  time is shown. */
 export function followerRows(followers) {
   const rows = (followers?.players ?? []).map((p) => ({
     key: `${p.tag}-${p.followed_tag}`,
+    icon: "user-plus",
     title: p.name ?? p.tag,
     tag: p.tag,
     name: p.name ?? null,
     // Their verified player is yours to follow back unless you already
     // own, follow or watch it (the bell's read says).
     followBack: p.can_follow_back === true,
-    detail: `Follows ${p.followed_name ?? p.followed_tag}`,
+    followed: p.followed_name ?? p.followed_tag,
     to: playerHref(p.tag),
     new: p.new === true,
   }));
   const unnamed = followers?.unnamed ?? 0;
   const counted =
     unnamed > 0
-      ? `${unnamed} more ${unnamed === 1 ? "account follows" : "accounts follow"} you with no verified player, so ${unnamed === 1 ? "it is" : "they are"} counted, not named.`
+      ? `${unnamed} more ${unnamed === 1 ? "follower" : "followers"} with no verified player`
       : null;
   return { rows, counted };
 }
@@ -198,9 +210,48 @@ export function followerRows(followers) {
 /** Answers to your feedback, each to its page in Settings. */
 export const answerRows = (answers) =>
   (answers?.items ?? []).map((a) => ({
-    key: a.id,
-    title: a.about || "Your feedback",
-    detail: a.new ? "Answered: not read yet" : "Answered",
+    key: `answer-${a.id}`,
+    icon: "message-square",
+    title: "Elixir answered your feedback",
+    about: a.about || null,
+    at: a.responded_at ?? null,
     to: `${SETTINGS}/feedback/${a.id}`,
     new: a.new === true,
   }));
+
+/**
+ * The bell's events as one inbox (#1009): every row of every kind, each
+ * with its kind and its key, split into New and Earlier. A row is New when
+ * the read says so or when `keep` holds its key (what was new when the
+ * bell last showed it, kept while you visit a row and come back); `drop`
+ * holds the keys you have opened since, which are no longer new. Within
+ * each part the kinds keep the order cheers, followers, answers, your
+ * account, each newest first as the read sends it.
+ */
+export function bellGroups(bell, { keep = null } = {}) {
+  if (!bell) return { fresh: [], earlier: [], counted: null };
+  const { rows: followers, counted } = followerRows(bell.followers);
+  const all = [
+    ...(bell.reactions?.items ?? []).map((r) => ({
+      kind: "cheer",
+      ...reactionRow(r),
+    })),
+    ...followers.map((f) => ({ kind: "follower", ...f })),
+    ...answerRows(bell.answers).map((a) => ({ kind: "answer", ...a })),
+    ...accountRows(bell.account).map((a) => ({ kind: "account", ...a })),
+  ];
+  // Two lines of one kind at one instant keep apart.
+  const seen = new Map();
+  for (const row of all) {
+    const n = (seen.get(row.key) ?? 0) + 1;
+    seen.set(row.key, n);
+    if (n > 1) row.key = `${row.key}~${n}`;
+  }
+  const isNew = (row) => row.new || keep?.has(row.key) === true;
+  const marked = all.map((row) => ({ ...row, new: isNew(row) }));
+  return {
+    fresh: marked.filter((r) => r.new),
+    earlier: marked.filter((r) => !r.new),
+    counted,
+  };
+}

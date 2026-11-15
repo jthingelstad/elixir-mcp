@@ -7,6 +7,7 @@ import {
   accountRows,
   answerRows,
   bellCount,
+  bellGroups,
   bellLabel,
   bellSeenAt,
   followerRows,
@@ -16,8 +17,17 @@ import {
 test("the count is what needs you plus what came since the bell was opened", () => {
   expect(bellCount(0, undefined)).toBe(0);
   expect(bellCount(2, { new: 3 })).toBe(5);
-  expect(bellLabel("Notifications", 0)).toBe("Notifications");
-  expect(bellLabel("Notifications", 4)).toBe("Notifications, 4 new");
+  expect(bellLabel("Notifications", {})).toBe("Notifications");
+  expect(bellLabel("Notifications", { need: 0, fresh: 4 })).toBe(
+    "Notifications, 4 new",
+  );
+  // What waits on you and what is new are said apart (#1009).
+  expect(bellLabel("Notifications", { need: 1, fresh: 3 })).toBe(
+    "Notifications, 1 needs you, 3 new",
+  );
+  expect(bellLabel("Notifications", { need: 2, fresh: 0 })).toBe(
+    "Notifications, 2 need you",
+  );
 });
 
 test("opening the bell clears reactions and followers; an unread answer stays new", () => {
@@ -75,36 +85,49 @@ test("followers: named by their verified player with Follow back when it is your
   expect(rows).toEqual([
     {
       key: "#0CR-#0J8",
+      icon: "user-plus",
       title: "Invented Fan",
       tag: "#0CR",
       name: "Invented Fan",
       followBack: true,
-      detail: "Follows #0J8",
+      followed: "#0J8",
       to: "/home/player/0CR",
       new: false,
     },
     {
       key: "#0G2ULUJP-#0J8",
+      icon: "user-plus",
       title: "#0G2ULUJP",
       tag: "#0G2ULUJP",
       name: null,
       // Only when the read says it is yours to follow back.
       followBack: false,
-      detail: "Follows #0J8",
+      followed: "#0J8",
       to: "/home/player/0G2ULUJP",
       new: true,
     },
   ]);
-  expect(counted).toMatch(/^1 more account follows you/);
+  expect(counted).toBe("1 more follower with no verified player");
+  expect(followerRows({ unnamed: 2, players: [] }).counted).toBe(
+    "2 more followers with no verified player",
+  );
   expect(followerRows({ unnamed: 0, players: [] }).counted).toBeNull();
 });
 
 test("answers open their page in Settings", () => {
-  expect(answerRows({ items: [{ id: 9, about: "", new: false }] })).toEqual([
+  expect(
+    answerRows({
+      items: [
+        { id: 9, about: "", responded_at: "2026-11-12T10:00:00Z", new: false },
+      ],
+    }),
+  ).toEqual([
     {
-      key: 9,
-      title: "Your feedback",
-      detail: "Answered",
+      key: "answer-9",
+      icon: "message-square",
+      title: "Elixir answered your feedback",
+      about: null,
+      at: "2026-11-12T10:00:00Z",
       to: "/settings/feedback/9",
       new: false,
     },
@@ -250,4 +273,48 @@ test("an account made before Stamps gets one passport line, never a line per old
       false,
     ],
   ]);
+});
+
+test("one inbox: New then Earlier, every kind keyed; what you left new stays new, but the row you opened (#1009)", () => {
+  const bell = {
+    players: 1,
+    reactions: {
+      items: [
+        { item_id: "tl_a", text: "A", cheers: { royal: 1 }, new: true },
+        { item_id: "tl_b", text: "B", cheers: { royal: 2 }, new: false },
+      ],
+    },
+    followers: {
+      unnamed: 1,
+      players: [{ tag: "#0CR", name: "Invented Fan", followed_tag: "#0J8" }],
+    },
+    answers: { items: [{ id: 7, about: "Slow", new: true }] },
+    account: {
+      items: [
+        { kind: "passport_ready", stamps: 2, at: "2026-11-14T12:00:00Z" },
+        { kind: "passport_ready", stamps: 2, at: "2026-11-14T12:00:00Z" },
+      ],
+    },
+  };
+  const first = bellGroups(bell);
+  expect(first.fresh.map((r) => [r.kind, r.key])).toEqual([
+    ["cheer", "tl_a"],
+    ["answer", "answer-7"],
+  ]);
+  expect(first.earlier.map((r) => r.key)).toEqual([
+    "tl_b",
+    "#0CR-#0J8",
+    "passport-ready-2026-11-14T12:00:00Z",
+    // Two lines at one instant keep apart.
+    "passport-ready-2026-11-14T12:00:00Z~2",
+  ]);
+  expect(first.counted).toBe("1 more follower with no verified player");
+  // Back from a row: the read says nothing is new any more (the marker
+  // moved), but what was new then is kept (the sheet leaves out the row
+  // you opened).
+  const seen = bellSeenAt(bell, "2026-11-14T13:00:00Z");
+  const back = bellGroups(seen, { keep: new Set(["tl_a"]) });
+  expect(back.fresh.map((r) => r.key)).toEqual(["tl_a", "answer-7"]);
+  expect(bellGroups(seen).fresh.map((r) => r.key)).toEqual(["answer-7"]);
+  expect(bellGroups(null)).toEqual({ fresh: [], earlier: [], counted: null });
 });

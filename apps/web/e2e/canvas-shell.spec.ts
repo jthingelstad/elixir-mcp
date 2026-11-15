@@ -289,27 +289,22 @@ for (const [label, width] of [
           ? page
               .getByRole("navigation", { name: "Main, phone" })
               .getByRole("button", { name: /Bell/ })
-          : page.getByRole("button", { name: /^Notifications, \d+ new$/ });
+          : page.getByRole("button", { name: /^Notifications, / });
       await expect(bell.locator(".kit-bell__dot")).toBeVisible();
       await bell.click();
       const sheet = page.getByRole("dialog", { name: "Notifications" });
-      const reactions = sheet.getByRole("region", {
-        name: "Cheers on your items",
-      });
-      await expect(reactions).toContainText("Invented Owl won five in a row");
-      await expect(reactions.getByLabel("On fire 2, Royal 1")).toBeVisible();
-      await expect(reactions).toContainText("Counts only: never who cheered.");
-      const followers = sheet.getByRole("region", { name: "New followers" });
+      const fresh = sheet.getByRole("region", { name: "New" });
+      await expect(fresh).toContainText("Invented Owl won five in a row");
+      await expect(fresh.getByLabel("On fire 2, Royal 1")).toBeVisible();
       await expect(
-        followers.getByRole("link", { name: /Invented Fan/ }),
+        fresh.getByRole("link", { name: /Invented Fan follows you/ }),
       ).toHaveAttribute("href", "/home/player/00J8VCYU");
-      await expect(followers).toContainText("2 more accounts follow you");
-      const answers = sheet.getByRole("region", {
-        name: "Answers to your feedback",
-      });
       await expect(
-        answers.getByRole("link", { name: /The war tab is slow/ }),
+        fresh.getByRole("link", { name: /Elixir answered your feedback/ }),
       ).toHaveAttribute("href", "/settings/feedback/42");
+      await expect(
+        sheet.getByRole("region", { name: "Earlier" }),
+      ).toContainText("2 more followers with no verified player");
       await expect(
         sheet.getByRole("region", { name: "Needs you" }),
       ).toBeVisible();
