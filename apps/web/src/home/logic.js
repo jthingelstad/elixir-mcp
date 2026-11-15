@@ -258,6 +258,11 @@ export function whyLine(why, { dayHeading = null } = {}) {
     const played = playedLine(why.last_battle, dayHeading);
     return played ? `In your clan, ${played}` : "In your clan";
   }
+  // Near you (#768): never finer than the place its owner picked.
+  if (why.kind === "near")
+    return why.place_name
+      ? `Plays near you, in ${why.place_name}`
+      : "Plays near you";
   if (why.kind === "followed_by") {
     const who = why.via?.name ?? why.via?.tag ?? "A player you follow";
     return why.others > 0

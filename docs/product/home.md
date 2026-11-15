@@ -147,5 +147,3 @@ Action; carry a referral id in a Follow me link.
 - Whether the bell should name who cheered, say when someone followed, or
   mark answers read when it is opened.
 - Whether an alt should have a You page of its own; You is the primary.
-- Players near you and the player map wait on a legal view of young
-  players (VISION, Open); Find leaves them out.

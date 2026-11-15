@@ -137,8 +137,6 @@ Royale because they play it with Elixir.
 
 ## Open
 
-- Defaults for young players beyond the 13+ attestation (the player map,
-  shared posts), worth a legal view.
 - The cost of each followed player, and the limits that keep about 1,000
   people affordable.
 - The digest's cadence: weekly, daily, or the person's choice.

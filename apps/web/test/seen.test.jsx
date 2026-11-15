@@ -234,10 +234,13 @@ test(
     expect(screen.queryByText("Add yourself to the map")).toBeNull();
     expect(
       screen.getByText(
-        /only the verified members of each clan your verified player is in/,
+        /the verified members of each clan your verified player is in/,
       ),
     ).toBeTruthy();
-    expect(screen.queryByText(/near/i)).toBeNull();
+    // The player map and Near you only for a place that chose them.
+    expect(
+      screen.getByText(/If you chose the player map, members signed in/),
+    ).toBeTruthy();
     // The other choices link to the pages that own them.
     expect(
       screen.getByRole("link", { name: /Discord/ }).getAttribute("href"),

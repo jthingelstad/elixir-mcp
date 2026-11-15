@@ -340,7 +340,7 @@ for (const [label, width] of [
       await accessible(page, "battle page, signed out");
     });
 
-    test("Find: Your clan, From your battles, and no Near you", async ({
+    test("Find: Your clan, From your battles, and Near you", async ({
       page,
     }) => {
       await mockApi(
@@ -423,13 +423,13 @@ for (const [label, width] of [
       const find = page.getByRole("tablist", { name: "Find" });
       await expect(find.getByRole("tab")).toHaveText([
         "Suggested",
+        "Near you",
         "Your clan",
         "Search",
         "From your battles",
         "Clan directory",
         "Your link",
       ]);
-      await expect(page.getByText(/Near you/)).toHaveCount(0);
 
       // Find opens on Suggested (Jamie, 2026-11-13); with nobody to
       // suggest it says what fills it and offers Search and your link.

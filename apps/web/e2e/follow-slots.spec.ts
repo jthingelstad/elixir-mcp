@@ -150,6 +150,7 @@ for (const [label, width] of [
               lat: 62,
               lng: 10,
               tz: "Europe/Oslo",
+              player_map: body.player_map,
             };
             return [200, { place }];
           },
@@ -163,16 +164,23 @@ for (const [label, width] of [
       ).toHaveAttribute("href", "/settings/profile#place");
       await expect(location).toContainText("Not set");
       await expect(location).toContainText(
-        "only the verified members of each clan your verified player is in",
+        "the verified members of each clan your verified player is in",
       );
-      // Nothing about players near you: that waits on a legal view.
-      await expect(location).not.toContainText(/near/i);
+      // The player map and Near you reach a place only if its owner chose.
+      await expect(location).toContainText(
+        "If you chose the player map, members signed in to Elixir too",
+      );
       await location.getByRole("link", { name: /Your place/ }).click();
       await expect(page).toHaveURL(/\/settings\/profile#place$/);
       const yours = page.getByRole("region", { name: "Your place" });
-      await expect(yours).toContainText("your clan’s verified members");
+      // Who sees it, as a choice beside the lists (#768).
+      const wide = yours.getByRole("radio", {
+        name: /My clan maps, the player map and Near you/,
+      });
+      await expect(wide).toBeChecked();
       const country = yours.getByLabel("Country");
       await expect(country).toBeFocused();
+      await yours.getByRole("radio", { name: /My clan maps only/ }).check();
       await expect(country.locator("option")).not.toHaveCount(1);
       await noSideways(page);
       await accessible(page, `your place ${label}`);
@@ -194,6 +202,10 @@ for (const [label, width] of [
       await expect(
         yours.getByRole("button", { name: "Remove your place" }),
       ).toBeVisible();
+      await expect(yours).toContainText("On your clan maps only.");
+      await expect(
+        yours.getByRole("button", { name: "Join the player map" }),
+      ).toBeVisible();
       if (process.env.PLACE_SHOTS) {
         await yours.scrollIntoViewIfNeeded();
         await page.screenshot({
@@ -203,6 +215,7 @@ for (const [label, width] of [
       }
       expect(saved).toHaveLength(1);
       expect((saved[0] as { country: string }).country).toBe("NO");
+      expect((saved[0] as { player_map: boolean }).player_map).toBe(false);
     });
 
     test("Your place with no verified player says how to get one", async ({

@@ -1643,11 +1643,6 @@ test(
     // A row describes; it never shows a record or a count.
     for (const r of rows)
       assert.doesNotMatch(r.textContent, /\d+\s*[–-]\s*\d+|\d%|\d,\d{3}/);
-    // Near you is not live, so nothing here promises it.
-    assert.doesNotMatch(
-      doc.querySelector("[data-home]").textContent,
-      /near you/i,
-    );
 
     // Drop is one line, linking the manifest's own Drop in a new window.
     const { default: shell } = await import(

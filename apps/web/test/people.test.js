@@ -36,6 +36,11 @@ describe("why a person is suggested", () => {
       "You played 2 friendly battles and a clan friendly, and once more this week",
     );
     expect(whyLine(b({ against: 2 }))).toBe("You played them twice this week");
+    // Near you (#768): the place its owner picked, no finer.
+    expect(whyLine({ kind: "near", place_name: "Austin" })).toBe(
+      "Plays near you, in Austin",
+    );
+    expect(whyLine({ kind: "near" })).toBe("Plays near you");
     expect(whyLine(b({ against: 3 }))).toBe(
       "You played them 3 times this week",
     );
@@ -226,18 +231,19 @@ describe("this week's race", () => {
   });
 });
 
-test("Find's sections: Suggested first, no Near you, and your own only with a player", () => {
+test("Find's sections: Suggested first, then Near you, and your own only with a player", () => {
   expect(FIND_SECTIONS.map((t) => t.label)).toEqual([
     "Suggested",
+    "Near you",
     "Your clan",
     "Search",
     "From your battles",
     "Clan directory",
     "Your link",
   ]);
-  expect(FIND_SECTIONS.some((t) => /near/i.test(t.label))).toBe(false);
   expect(findSections(false).map((t) => t.key)).toEqual([
     "suggested",
+    "near",
     "search",
     "directory",
   ]);

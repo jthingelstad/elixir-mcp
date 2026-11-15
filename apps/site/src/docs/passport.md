@@ -47,8 +47,8 @@ you have earned since, so a new one can show up while you look.
 When a verified player has a passport, their player page shows a row with
 their latest Stamps and **Open passport**. Any signed-in member can open
 it. They see what was earned and when, and the rules. They never see your
-progress, your settings or where you are on a clan map: the On the Map
-Stamp only says you set a place. On your own passport, its button opens
+progress, your settings or where you are on a clan map or the player
+map: the On the Map Stamp only says you set a place. On your own passport, its button opens
 [Your place](/docs/your-account#your-place) with the picker ready.
 
 **Copy passport link** on your passport copies the address members can
