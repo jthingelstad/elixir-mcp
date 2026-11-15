@@ -280,13 +280,20 @@ test("an agent is refused, and no agent console reaches the route", async () => 
     secret: "own-refresh-secret",
     sendLoginEmail: async () => {},
   });
-  for (const method of ["POST", "GET"]) {
-    const res = await handler({
-      path: "/api/me/refresh",
-      method,
-      headers: { "x-elixir-client": "web" },
-    });
-    assert.equal(res.statusCode, 401, method);
+  try {
+    for (const method of ["POST", "GET"]) {
+      const res = await handler({
+        path: "/api/me/refresh",
+        method,
+        headers: { "x-elixir-client": "web" },
+      });
+      assert.equal(res.statusCode, 401, method);
+    }
+  } finally {
+    // Its pool closes before the scratch database is dropped: an idle
+    // connection the drop terminates otherwise surfaces after the run as
+    // an uncaught error, failing the file now and then (2026-11-14).
+    await handler.close();
   }
 });
 

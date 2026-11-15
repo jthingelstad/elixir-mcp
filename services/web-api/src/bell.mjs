@@ -148,12 +148,16 @@ async function readReactions(db, accountId, own, seen, { wake, perf }) {
 }
 
 /** Who started following one of your own verified players in the last
- *  thirty days: named by their account's verified player, else counted. */
+ *  thirty days: named by their account's verified player, else by the
+ *  player it claims and has not verified (`verified: false`; a claim on a
+ *  tag another account verified names nobody), as the followers list on a
+ *  player page names them (packages/tools social.mjs followersOf). An
+ *  account with no player at all is counted in `no_player`, never named. */
 async function readFollowers(db, accountId, own, seen) {
-  const empty = { players: [], count: 0, unnamed: 0, new: 0 };
+  const empty = { players: [], count: 0, no_player: 0, unnamed: 0, new: 0 };
   if (own.length === 0) return empty;
   const { rows } = await db.query(
-    `select f.player_tag as followed, v.player_tag as tag, p.name,
+    `select f.player_tag as followed, v.player_tag as tag, p.name, v.verified,
             ($3::timestamptz is null or f.created_at > $3) as fresh,
             exists (select 1 from claim mine
                      where mine.account_id = $2
@@ -161,10 +165,16 @@ async function readFollowers(db, accountId, own, seen) {
        from claim f
        join account a on a.account_id = f.account_id
        left join lateral (
-         select c.player_tag from claim c
-          where c.account_id = f.account_id and c.status = 'verified'
+         select c.player_tag, c.status = 'verified' as verified from claim c
+          where c.account_id = f.account_id
             and (c.is_primary or c.relationship in ('primary', 'alt'))
-          order by c.is_primary desc, c.verified_at limit 1) v on true
+            and (c.status = 'verified' or not exists (
+                  select 1 from claim o
+                   where o.player_tag = c.player_tag and o.status = 'verified'
+                     and o.account_id <> c.account_id))
+          order by c.status = 'verified' desc, c.is_primary desc,
+                   c.verified_at, c.created_at
+          limit 1) v on true
        left join player p on p.player_tag = v.player_tag
       where f.player_tag = any($1::text[]) and f.relationship = 'friend'
         and coalesce(a.kind, 'person') = 'person'
@@ -179,14 +189,19 @@ async function readFollowers(db, accountId, own, seen) {
     players: named.slice(0, LIST_CAP).map((r) => ({
       tag: r.tag,
       name: r.name ?? null,
+      // False: the player their account claims and has not verified,
+      // named as the followers list names them (Jamie, 2026-11-14).
+      verified: r.verified === true,
       followed_tag: r.followed,
       followed_name: names.get(r.followed) ?? null,
       new: r.fresh,
-      // Follow back (2026-11-13): offered on their verified player unless
-      // you own, follow or watch it already.
+      // Follow back (2026-11-13): offered on their player, verified or
+      // claimed, unless you own, follow or watch it already.
       can_follow_back: !r.claimed,
     })),
     count: rows.length,
+    // Accounts with no player at all: counted, never named.
+    no_player: rows.length - named.length,
     unnamed: rows.length - Math.min(named.length, LIST_CAP),
     new: rows.filter((r) => r.fresh).length,
   };
