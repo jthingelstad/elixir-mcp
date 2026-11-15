@@ -45,9 +45,11 @@ opens for the players you follow"]
    not a calendar; a just-added player is told the first capture is on
    its way, never shown an empty season; a wrong tag says so with the
    fix in reach. [Jamie, 2026-10-03, 2026-10-08]
-5. **What you faced is ordered by the reader.** Most battles first; most
-   losses first is a choice in the address; a row needs its floor; no
-   row is labelled or advised on. [Jamie, 2026-10-08]
+5. **Cards answers one question:** the cards you played and the cards
+   you faced, in one mode, most battles first; a row needs its floor; no
+   row is labelled or advised on. Anything that answers another question
+   is not on it. [Jamie, 2026-11-14, replacing the reader-chosen order of
+   2026-10-08]
 6. **A player's battles, one by one.** Stats treats battles individually,
    war battles included: the calendar and Battles show each on the day
    it was played. War by the week is about the clan war's week, not a

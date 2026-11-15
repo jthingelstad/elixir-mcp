@@ -46,12 +46,10 @@ test("a tabbed page stays inside a phone's width, and its tabs take the keyboard
   await expectNoSidewaysScroll(page);
 });
 
-test("a ladder table keeps its columns on a phone and fits", async ({
-  page,
-}) => {
+test("the Stats card lists fit a phone", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
   await page.goto("/home/you/stats/cards");
-  await expect(page.locator(".stats-cards").first()).toBeVisible();
+  await expect(page.locator(".stats-cardrows").first()).toBeVisible();
   await expectNoSidewaysScroll(page);
 });

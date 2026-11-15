@@ -126,11 +126,10 @@ session between reads can leave a gap, and a gap means unknown, not no battles.
 - **Comparing two decks.** There is no deck-against-deck page; each deck's
   record sits in its own row, and a comparison across rows is only fair
   within one mode and a similar level gap.
-- **How everyone plays a card.** The card tables show your battles only.
+- **How everyone plays a card.** The card lists show your battles only.
   Elixir keeps no cross-player card statistics; a card's public page holds
   its catalog facts.
 - **Matchup expectations.** How you should do against a deck is a judgment
   Elixir does not make; what happened against it is on the record.
-- **A label for what beats you.** Most losses first is an order, not a
-  verdict: no card or player is called anything, and no row says what to
-  do about it.
+- **A label for what beats you.** The cards you faced read most battles
+  first: no card is called anything, and no row says what to do about it.

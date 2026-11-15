@@ -4830,20 +4830,6 @@ a.card-art:hover .card-art__img {
   background: var(--ink-faint);
 }
 
-/* Cards: how what you faced is ordered, a choice beside its floors. */
-.stats-order {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s-2) var(--s-3);
-}
-.stats-order__hint {
-  flex: 1 1 16rem;
-  font-size: var(--t-caption);
-  line-height: 1.5;
-  color: var(--ink-faint);
-}
-
 .stats-season-note a {
   white-space: nowrap;
 }
@@ -5252,40 +5238,18 @@ a.card-art:hover .card-art__img {
   font-weight: 600;
 }
 
-/* Cards: a card's art beside its name, the name the one link (to the card's
-   public page); then the opponents. */
-.stats-card {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+/* Cards: a row per card, its art (sized by CSS alone, never a smaller
+   copy), the name and battles, and the record on the right in tabular
+   figures so the columns line up down the list. */
+.stats-cardrows .kit-row__lead {
+  width: 40px;
 }
-.stats-card__name {
-  font-weight: 500;
-}
-.stats-cards td {
-  padding-top: 6px;
-  padding-bottom: 6px;
-}
-.stats-opponents__lede {
-  margin: 0;
-}
-.stats-opponents {
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.stats-opponents li {
-  padding: var(--s-1) 0;
-}
-.stats-opponents__gap {
-  color: var(--ink-faint);
+.stats-cardrows .kit-row__detail,
+.stats-cardrows .stats-record {
   font-variant-numeric: tabular-nums;
 }
-.stats-opponents__tag {
-  font-family: var(--font-mono);
-  font-variant-numeric: slashed-zero;
-  font-size: var(--t-caption);
-  color: var(--ink-faint);
+.stats-cardrows .kit-row__right {
+  color: var(--ink-body);
 }
 
 @media (max-width: 900px) {
@@ -5335,8 +5299,7 @@ a.card-art:hover .card-art__img {
     min-width: 0;
     overflow-wrap: anywhere;
   }
-  .stats-scope .kit-chip,
-  .stats-order .kit-chip {
+  .stats-scope .kit-chip {
     min-height: 44px;
   }
   .stats-scope .stats-scope__fresh > summary {
@@ -5388,9 +5351,6 @@ a.card-art:hover .card-art__img {
   }
   .stats-swap__body {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .stats-card {
-    gap: var(--s-2);
   }
 }
 
@@ -10600,7 +10560,6 @@ a.kit-bell__hit:focus-visible::after {
   a.battle__name,
   .kit-tl__more,
   .home-row__link,
-  .stats-card__name,
   .battle-deck a.card-art,
   .hit {
     position: relative;
@@ -10624,7 +10583,6 @@ a.kit-bell__hit:focus-visible::after {
   a.battle__name::after,
   .kit-tl__more::after,
   .home-row__link::after,
-  .stats-card__name::after,
   .battle-deck a.card-art::after,
   .hit::after {
     content: "";

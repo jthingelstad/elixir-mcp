@@ -1,21 +1,10 @@
 /**
  * Stats' Cards page shaping (stats/stats-cards.js): battles_cards'
  * rows as the page lists them. These pin a form as its own row, the
- * card page link (never for a tower troop), counts that never add rows
- * up, an opponent the record has no name for, the order the reader
- * chooses (never chosen for them) and each row's level gap.
+ * card page link (never for a tower troop) and the tool's order.
  */
 import { test, expect } from "vitest";
-import {
-  ORDERS,
-  cameBack,
-  cardRows,
-  distinctCards,
-  modeBattles,
-  opponentName,
-  pickOrder,
-  times,
-} from "../src/stats/stats-cards.js";
+import { cardRows, modeBattles } from "../src/stats/stats-cards.js";
 
 const BODY = {
   modes_in_window: { ladder: { battles: 35, mean_level_gap: 0.62 } },
@@ -74,43 +63,10 @@ test("each card and form is its own row, in the tool's order, linked to the card
   expect(rows[3].href).toBeNull();
   expect(rows[3].card.form).toBe("base");
   expect(rows[1].rate).toBe(0.4);
-  // Two forms of the Witch are two rows and one card.
-  expect(distinctCards(rows)).toBe(3);
   expect(cardRows(null)).toEqual([]);
 });
 
 test("the mode's battles are the tool's count for that mode", () => {
   expect(modeBattles(BODY, "ladder")).toBe(35);
   expect(modeBattles(BODY, "war")).toBeNull();
-});
-
-test("opponents read as words", () => {
-  expect(times(1)).toBe("once");
-  expect(times(2)).toBe("twice");
-  expect(times(5)).toBe("5 times");
-  expect(cameBack(1)).toBe("One came back");
-  expect(cameBack(12)).toBe("12 came back");
-  expect(opponentName({ player_tag: "#FAKE33", name: "Cedar Tawny" })).toBe(
-    "Cedar Tawny",
-  );
-  expect(
-    opponentName({ player_tag: "#FAKE33", name: null, name_known: false }),
-  ).toBe("#FAKE33");
-});
-
-test("the order is the reader's choice: most losses only when asked", () => {
-  expect(ORDERS.map((o) => o.key)).toEqual(["battles", "losses"]);
-  expect(ORDERS[0].label).toBe("Most faced");
-  expect(pickOrder(undefined)).toBe("battles");
-  expect(pickOrder("")).toBe("battles");
-  expect(pickOrder("nonsense")).toBe("battles");
-  expect(pickOrder("losses")).toBe("losses");
-  // No label rides on a row: the labels are the orders', never a card's.
-  for (const o of ORDERS) expect(o.label).not.toMatch(/nemesis|counter|weak/i);
-});
-
-test("a row carries the tool's level gap, null where the record has none", () => {
-  const rows = cardRows(BODY);
-  expect(rows[0].gap).toBe(-0.4);
-  expect(rows[1].gap).toBeNull();
 });
