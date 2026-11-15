@@ -1349,7 +1349,7 @@ test.describe("Stats decks", () => {
 });
 
 test.describe("Stats cards", () => {
-  test("a player you follow: their cards, the cards they faced, and whose deck is whose", async ({
+  test("a player you follow: the cards they played and faced, and whose deck is whose", async ({
     page,
   }) => {
     const calls: ToolCall[] = [];
@@ -1362,20 +1362,17 @@ test.describe("Stats cards", () => {
     );
     await page.goto("/home/you/stats/cards?player=0PYU92P");
     await expect(
-      page.getByRole("heading", { name: "Their cards" }),
+      page.getByRole("heading", { name: "Cards they played" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Across the table from them" }),
+      page.getByRole("heading", { name: "Cards they faced" }),
     ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Your cards" })).toHaveCount(
-      0,
+    await expect(
+      page.getByRole("heading", { name: "Cards you played" }),
+    ).toHaveCount(0);
+    await expect(page.locator(".panel").nth(1)).toContainText(
+      "Their record in the battles where the opponent's deck held the card.",
     );
-    await expect(
-      page.getByRole("columnheader", { name: "Their record" }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("columnheader", { name: "Opponent's card" }),
-    ).toBeVisible();
     expect(
       calls.every(
         (c) => c.args.player_tag == null || c.args.player_tag === "#0PYU92P",
@@ -1383,7 +1380,7 @@ test.describe("Stats cards", () => {
     ).toBe(true);
   });
 
-  test("the cards you played and faced in one mode, each form its own row, and the opponents", async ({
+  test("the cards you played and faced in one mode, each form its own row, the mode named", async ({
     page,
   }) => {
     const calls: ToolCall[] = [];
@@ -1406,21 +1403,20 @@ test.describe("Stats cards", () => {
         .getByRole("button", { name: "Trophy Road" }),
     ).toHaveAttribute("aria-pressed", "true");
 
-    // Yours: twelve rows, eight cards (four of them in two forms).
-    const yours = page
+    // Played: twelve rows (four cards in two forms), the mode named.
+    const played = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Your cards" }) });
-    await expect(yours).toContainText("12 rows, 8 cards");
-    const mine = page.locator(".stats-cards").nth(0).locator("tbody tr");
+      .filter({ has: page.getByRole("heading", { name: "Cards you played" }) });
+    await expect(played).toContainText("35 Trophy Road battles");
+    const mine = page.locator(".stats-cardrows").nth(0).locator(".kit-row");
     await expect(mine).toHaveCount(12);
     await expect(mine.nth(0)).toContainText("Hero Mini P.E.K.K.A");
-    await expect(mine.nth(0)).toContainText("35");
+    await expect(mine.nth(0)).toContainText("35 battles · 34% won");
     await expect(
       mine.nth(0).getByRole("img", { name: "12 won, 23 lost" }),
     ).toBeVisible();
-    await expect(mine.nth(0)).toContainText("34%");
     // The name is the one link, to the card's public page; the art is not
-    // a link.
+    // a link of its own.
     await expect(
       mine.nth(4).getByRole("link", { name: "Evo Witch" }),
     ).toHaveAttribute("href", "/cards/26000007/");
@@ -1428,36 +1424,32 @@ test.describe("Stats cards", () => {
       mine.nth(10).getByRole("link", { name: "Witch", exact: true }),
     ).toHaveAttribute("href", "/cards/26000007/");
     await expect(page.locator("a.card-art")).toHaveCount(0);
-    await expect(page.locator(".stats-cards").nth(0)).toBeVisible();
-
-    // Theirs: the first twelve of fourteen, then the rest in place.
-    await expect(
-      page.getByRole("heading", { name: "Across the table from you" }),
-    ).toBeVisible();
-    await expect(page.locator(".panel").nth(1)).toContainText(
-      "35 battles · 34 opponents",
+    await expect(played).toContainText(
+      "Cards in fewer than 3 battles are left out.",
     );
-    const theirs = page.locator(".stats-cards").nth(1).locator("tbody tr");
+
+    // Faced: the first twelve of fourteen, then the rest in place.
+    const faced = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Cards you faced" }) });
+    await expect(faced).toContainText("35 Trophy Road battles");
+    const theirs = page.locator(".stats-cardrows").nth(1).locator(".kit-row");
     await expect(theirs).toHaveCount(12);
     await expect(theirs.nth(0)).toContainText("Evo Witch");
     await expect(
       theirs.nth(0).getByRole("img", { name: "1 won, 8 lost" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Show all 14 rows" }).click();
+    await page.getByRole("button", { name: "Show all 14" }).click();
     await expect(theirs).toHaveCount(14);
 
-    // The opponents: the tool's count and the one who came back.
-    const opp = page
-      .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Opponents" }) });
-    await expect(opp).toContainText(
-      "34 different opponents on Trophy Road this season. One came back:",
+    // What the page cut stays cut: no order, no level gap, no opponents.
+    await expect(page.getByRole("heading", { name: "Opponents" })).toHaveCount(
+      0,
     );
-    await expect(opp.getByRole("link", { name: "A Rival" })).toHaveAttribute(
-      "href",
-      "/home/player/0RL080CU",
+    await expect(page.locator("body")).not.toContainText(/level gap/i);
+    await expect(page.getByRole("button", { name: "Most losses" })).toHaveCount(
+      0,
     );
-    await expect(opp).toContainText("A Rival, twice,");
     await accessible(page, "stats cards");
 
     const reads = calls.filter(
@@ -1469,104 +1461,11 @@ test.describe("Stats cards", () => {
       expect.arrayContaining([
         ["battles_cards", "mine", "ladder"],
         ["battles_cards", "opponent", "ladder"],
-        ["battles_opponents", null, "ladder"],
       ]),
     );
+    expect(reads.some((c) => c.tool === "battles_opponents")).toBe(false);
     expect(reads.every((c) => c.args.season === "current")).toBe(true);
-  });
-
-  test("most losses first is a choice: the default order stays, the address keeps it, and each row has its level gap", async ({
-    page,
-  }) => {
-    const calls: ToolCall[] = [];
-    await mockApi(page, signedIn({ "POST /api/me/tool": explore(calls) }));
-    await page.goto("/home/you/stats/cards");
-
-    // The default is the tools' own order, and says its floors.
-    const order = page.getByRole("group", {
-      name: "Order what you faced",
-    });
-    await expect(
-      order.getByRole("button", { name: "Most faced" }),
-    ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      order.getByRole("button", { name: "Most losses" }),
-    ).toHaveAttribute("aria-pressed", "false");
-    await expect(page.locator(".stats-order")).toContainText(
-      "Most battles first. A card is listed from 3 battles, a player from 2.",
-    );
-    const theirs = page.locator(".stats-cards").nth(1);
-    await expect(
-      theirs.getByRole("columnheader", { name: "Level gap" }),
-    ).toBeVisible();
-    const rows = theirs.locator("tbody tr");
-    await expect(rows.nth(0)).toContainText("Evo Witch");
-    await expect(rows.nth(0)).toContainText("+0.60");
-    await expect(rows.nth(1)).toContainText("Graveyard");
-    await expect(rows.nth(1)).toContainText("−0.35");
-    // A row whose battles carry no levels shows a dash, never a zero.
-    await expect(rows.nth(4)).toContainText("Skeletons");
-    await expect(rows.nth(4).locator("td").last()).toHaveText("—");
-    expect(
-      calls
-        .filter(
-          (c) => c.tool === "battles_cards" || c.tool === "battles_opponents",
-        )
-        .every((c) => c.args.sort === undefined),
-    ).toBe(true);
-
-    // Choosing most losses is going to its address, and the reads ask
-    // the tools for that order.
-    await order.getByRole("button", { name: "Most losses" }).click();
-    await expect(page).toHaveURL(/\/home\/you\/stats\/cards\?.*order=losses/);
-    await expect(
-      order.getByRole("button", { name: "Most losses" }),
-    ).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator(".stats-order")).toContainText(
-      "Most battles lost first, then most battles. A card is listed from 3 battles, a player from 2.",
-    );
-    await expect(rows.nth(0)).toContainText("Evo Witch");
-    await expect(rows.nth(1)).toContainText("Graveyard");
-    await expect(rows.nth(2)).toContainText("Fireball");
-    await expect(rows.nth(3)).toContainText("Skeletons");
-    await expect(page.locator(".panel").nth(1)).toContainText(
-      "most battles lost first",
-    );
-    const opp = page
-      .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Opponents" }) });
-    await expect(opp).toContainText("One came back, most battles lost first:");
-    await expect(opp).toContainText("level gap −0.50");
-    // A chip keeps the order; Your cards does not take it.
-    await page
-      .getByRole("group", { name: "Mode" })
-      .getByRole("button", { name: "War" })
-      .click();
-    await expect(page).toHaveURL(
-      /mode=war.*order=losses|order=losses.*mode=war/,
-    );
-    await page
-      .getByRole("group", { name: "Mode" })
-      .getByRole("button", { name: "Trophy Road" })
-      .click();
-    const sorted = calls.filter((c) => c.args.sort === "losses");
-    expect(sorted.map((c) => [c.tool, c.args.perspective ?? null])).toEqual(
-      expect.arrayContaining([
-        ["battles_cards", "opponent"],
-        ["battles_opponents", null],
-      ]),
-    );
-    expect(
-      calls.some(
-        (c) =>
-          c.tool === "battles_cards" &&
-          c.args.perspective === "mine" &&
-          c.args.sort !== undefined,
-      ),
-    ).toBe(false);
-    // No label and no verdict on the page: the record, in an order.
-    await expect(page.locator("body")).not.toContainText(/nemesis/i);
-    await accessible(page, "stats cards by losses");
+    expect(reads.every((c) => c.args.sort === undefined)).toBe(true);
   });
 
   test("a mode with no battles says so", async ({ page }) => {
@@ -1575,19 +1474,24 @@ test.describe("Stats cards", () => {
     await expect(
       page.getByRole("heading", { name: "No War battles this season" }),
     ).toBeVisible();
-    await expect(page.locator(".stats-cards")).toHaveCount(0);
+    await expect(page.locator(".stats-cardrows")).toHaveCount(0);
   });
 
-  test("@narrow the card tables fit a phone", async ({ page }) => {
+  test("@narrow the card lists fit a phone, every row a full-size target", async ({
+    page,
+  }) => {
     await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats/cards");
-    await expect(
-      page.locator(".stats-cards").nth(0).locator("tbody tr"),
-    ).toHaveCount(12);
+    const rows = page.locator(".stats-cardrows").nth(0).locator(".kit-row");
+    await expect(rows).toHaveCount(12);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
+    // Each row is one line of art, name and record: never a stacked card.
+    const box = await rows.nth(0).boundingBox();
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(box?.height ?? 999).toBeLessThan(90);
     await accessible(page, "stats cards narrow");
   });
 });

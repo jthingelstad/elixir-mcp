@@ -112,16 +112,10 @@ test("an address carries the player without its hash and only what was given", (
   );
 });
 
-test("Cards keeps a chosen order in its address, and only most losses", () => {
+test("an old Cards address's order is dropped: the page has one order", () => {
   expect(statsHref("cards", { mode: "ladder", order: "losses" })).toBe(
-    "/home/you/stats/cards?mode=ladder&order=losses",
-  );
-  // The default order is no parameter at all.
-  expect(statsHref("cards", { mode: "ladder", order: "battles" })).toBe(
     "/home/you/stats/cards?mode=ladder",
   );
-  // Another page never carries Cards' order.
-  expect(statsHref("decks", { order: "losses" })).toBe("/home/you/stats/decks");
 });
 
 const CLAIMS = [
