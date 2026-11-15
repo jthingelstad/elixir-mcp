@@ -27,6 +27,7 @@
  * and of the reads; a Gym session asks for it with --gym.
  *
  * Usage: node acceptance/run.mjs [--gym] [--only <substring>] [--family <family>] [--json] [--no-pace]
+ *   (--help prints RUN_USAGE and runs nothing; an unknown flag is refused)
  *   --gym runs the Gym's regression pass INSTEAD of the gate, in a Gym
  *   session only; --family and --only narrow it the same way.
  *   --family battles runs only the cases that read a battles_* tool: the
@@ -286,10 +287,85 @@ export function baselineStatus(tools) {
   return { recorded, unpinned };
 }
 
+export const RUN_USAGE = `usage: node acceptance/run.mjs [--gym] [--only <substring>] [--family <family>] [--json] [--no-pace] [--update-shapes --reason "<why>"]
+
+  The deployed product against the real record, read-only: the deploy
+  gate (contracts, identities, budgets, catalogue, ground). Needs
+  acceptance/.env (ELIXIR_MCP_URL, ELIXIR_MCP_TOKEN).
+
+  --only <substring>   one suite or one case (e.g. budgets, gym/304.1)
+  --family <family>    only the cases that read that family's tools
+  --gym                the Gym's regression pass instead of the gate
+                       (Gym sessions only)
+  --json               the report as JSON
+  --no-pace            no rests between calls: a local server only
+  --update-shapes      rewrite the recorded shape baselines; needs
+  --reason "<why>"     the reviewed reason the baseline moves
+  --help               this, and nothing run`;
+
+/**
+ * The runner's arguments. Anything it does not know is refused: an
+ * unknown flag (--help, until 2026-11-14) used to start the whole suite.
+ *
+ * @param {string[]} argv process.argv.slice(2)
+ */
+export function parseRunArgs(argv) {
+  const out = {
+    help: false,
+    only: null,
+    family: null,
+    json: false,
+    gym: false,
+    noPace: false,
+    updateShapes: false,
+    reason: null,
+    errors: [],
+  };
+  const rest = [...argv];
+  const value = (flag) => {
+    const v = rest.shift();
+    if (v === undefined || v.startsWith("--")) {
+      out.errors.push(`${flag} needs a value`);
+      if (v !== undefined) rest.unshift(v);
+      return null;
+    }
+    return v;
+  };
+  while (rest.length) {
+    const arg = rest.shift();
+    if (arg === "--help" || arg === "-h") out.help = true;
+    else if (arg === "--only") out.only = value(arg);
+    else if (arg === "--family") out.family = value(arg);
+    else if (arg === "--reason") out.reason = value(arg);
+    else if (arg === "--json") out.json = true;
+    else if (arg === "--gym") out.gym = true;
+    else if (arg === "--no-pace") out.noPace = true;
+    else if (arg === "--update-shapes") out.updateShapes = true;
+    else out.errors.push(`unknown argument ${arg}`);
+  }
+  if (out.updateShapes && !out.reason)
+    out.errors.push(
+      '--update-shapes needs --reason "why the baseline moves": it is a reviewed change',
+    );
+  return out;
+}
+
 const isMain =
   process.argv[1] &&
   import.meta.url === new URL(`file://${process.argv[1]}`).href;
 if (isMain) {
+  // Arguments first: help and a refusal never reach the door.
+  const parsed = parseRunArgs(process.argv.slice(2));
+  if (parsed.help) {
+    console.log(RUN_USAGE);
+    process.exit(0);
+  }
+  if (parsed.errors.length) {
+    console.error(
+      `acceptance: ${parsed.errors.join("; ")}; nothing was run.\n\n${RUN_USAGE}`,
+    );
+    process.exit(2);
+  }
   const env = loadEnv();
   if (!env) {
     console.error(
@@ -297,26 +373,9 @@ if (isMain) {
     );
     process.exit(2);
   }
-  const args = process.argv.slice(2);
-  const only = args.includes("--only")
-    ? args[args.indexOf("--only") + 1]
-    : null;
-  const family = args.includes("--family")
-    ? args[args.indexOf("--family") + 1]
-    : null;
-  const json = args.includes("--json");
-  const gymPass = args.includes("--gym");
-  const pace = args.includes("--no-pace") ? null : PACE;
-  const updateShapes = args.includes("--update-shapes");
-  const reason = args.includes("--reason")
-    ? args[args.indexOf("--reason") + 1]
-    : null;
-  if (updateShapes && !reason) {
-    console.error(
-      '--update-shapes needs --reason "why the baseline moves": it is a reviewed change',
-    );
-    process.exit(2);
-  }
+  const { only, family, json, updateShapes, reason } = parsed;
+  const gymPass = parsed.gym;
+  const pace = parsed.noPace ? null : PACE;
   const door = makeDoor({
     url: env.ELIXIR_MCP_URL,
     token: env.ELIXIR_MCP_TOKEN,
