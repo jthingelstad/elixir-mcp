@@ -21,7 +21,10 @@
  *   reaches every signed-in Elixir member there only when its owner chose
  *   it (`player_map: true`). A place saved before that choice existed has
  *   no `player_map` and stays on clan maps only until its owner says yes;
- *   a save that does not say (an older page) keeps what the place had. The
+ *   a save that does not say (an older page) never widens it: it keeps a
+ *   no, and is otherwise clan maps only, never an earlier yes (the newest
+ *   row under a tag may be a former owner's, whose yes is not this
+ *   person's). The
  *   readers are Elixir's (`@elixir-mcp/auth/clan-context`), not Clan's.
  */
 
@@ -98,9 +101,12 @@ export function createSocialService({ ledger, geo, now = () => Date.now() }) {
     /** The person's own place (any of their verified tags), or null. */
     myPlace: (person) => placeOf(person.tags),
 
-    /** Save a place. `player_map` is the person's choice; left out, the
-     *  place keeps the choice it had (none for a new one: clan maps only),
-     *  so a page that does not ask never widens who sees it. */
+    /** Save a place. `player_map` is the person's choice. Left out (a page
+     *  that does not ask), it never widens who sees the place: a no stays
+     *  a no and anything else is clan maps only. A yes is never carried
+     *  over, because the newest row under a tag can be its former owner's
+     *  (a claim that moved leaves its place behind) and their yes is not
+     *  this person's (Codex on #1054). */
     async setMyPlace(person, input) {
       const asked = input?.player_map;
       if (asked !== undefined && asked !== null && typeof asked !== "boolean")
@@ -118,7 +124,9 @@ export function createSocialService({ ledger, geo, now = () => Date.now() }) {
       const playerMap =
         typeof asked === "boolean"
           ? asked
-          : playerMapOf(await newestRow(person.tags));
+          : playerMapOf(await newestRow(person.tags)) === false
+            ? false
+            : null;
       await write(person.tags, place, playerMap);
       return { ...place, player_map: playerMap };
     },

@@ -46,7 +46,9 @@ finding players in their region, and on their clans' maps.
   claims (owns, follows or watches).
 - **Consent:** `player_map` on the place item is true, false or absent.
   Absent means never asked: clan maps only. A save that leaves the flag
-  out keeps what the place had, so an older page never widens anything.
+  out never widens anything: it keeps a no and is otherwise clan maps
+  only, never an earlier yes (the newest row under a tag can be a former
+  owner's when a claim moved; Codex on #1054, fixed in the follow-up).
   `PUT /api/clan/me/place/player-map {player_map}` joins or leaves without
   touching the place; it needs a place (404 `no_place`) and a verified
   player (403 `unverified`, as setting a place). Every write restamps
