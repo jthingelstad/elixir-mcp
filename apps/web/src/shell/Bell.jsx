@@ -22,8 +22,8 @@ import { bellCount, bellGroups, bellLabel } from "./bell-logic.js";
 
 /**
  * The bell (2026-11-12): what is about you, not your friends. Reactions to
- * your items (counts, never who), new followers (named by their verified
- * player, else counted), Needs you (your clan's Actions waiting on you, an
+ * your items (counts, never who), new followers (named by their player,
+ * a claimed one marked not verified; an account with none counted), Needs you (your clan's Actions waiting on you, an
  * old key still trying to connect), answers to your feedback and your
  * account's own lines, Stamps among them.
  *
@@ -351,9 +351,14 @@ export function BellSheet({ me, onClose, returnTo = null }) {
             to={r.to}
             onLeave={leave(r.key)}
             isNew={on}
+            detail={r.verified ? null : "Not verified"}
             title={
               <>
-                <PlayerName tag={r.tag}>
+                {/* A claimed player wears no gold mark (Jamie, 2026-11-14). */}
+                <PlayerName
+                  tag={r.tag}
+                  verified={r.verified ? undefined : false}
+                >
                   <TagText>{r.title}</TagText>
                 </PlayerName>{" "}
                 {one ? (
@@ -370,8 +375,8 @@ export function BellSheet({ me, onClose, returnTo = null }) {
                 backed.has(r.tag) ? (
                   <span className="kit-following">Following</span>
                 ) : (
-                  // Follow back (2026-11-13): the follower's verified
-                  // player, by the one confirmed, priced Follow.
+                  // Follow back (2026-11-13): the follower's player,
+                  // verified or claimed, by the one confirmed, priced Follow.
                   <FollowButton
                     tag={r.tag}
                     name={r.name}

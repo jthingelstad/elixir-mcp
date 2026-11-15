@@ -11,6 +11,7 @@ import {
   fireEvent,
   cleanup,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createQueryClient } from "../src/client/index.ts";
@@ -99,16 +100,27 @@ const BELL = {
     ],
   },
   followers: {
-    count: 3,
-    new: 1,
+    count: 4,
+    new: 2,
+    no_player: 2,
     unnamed: 2,
     players: [
       {
         tag: "#0VQRR8U0",
         name: "Invented Fan",
+        verified: true,
         followed_tag: "#0QRVVG22J",
         followed_name: "Invented Owner",
         new: true,
+      },
+      {
+        tag: "#0Q2L8",
+        name: "Invented Claimer",
+        verified: false,
+        followed_tag: "#0QRVVG22J",
+        followed_name: "Invented Owner",
+        new: true,
+        can_follow_back: true,
       },
     ],
   },
@@ -164,14 +176,27 @@ test("the bell's sections: counts not cheerers, named and counted followers, ans
   expect(hrefs).toEqual([
     "/battle/abc123",
     "/home/player/0VQRR8U0",
+    "/home/player/0Q2L8",
     "/settings/feedback/42",
   ]);
   expect(fresh.textContent).toContain("Invented Fan follows you");
+  // A claimed player is named, marked not verified, with no gold mark,
+  // and offered Follow back as anyone else is (Jamie, 2026-11-14).
+  const claimed = [...fresh.querySelectorAll(".kit-bell__item")].find((li) =>
+    li.textContent.includes("Invented Claimer follows you"),
+  );
+  expect(claimed).toBeTruthy();
+  expect(claimed.textContent).toContain("Not verified");
+  expect(claimed.querySelector(".kit-verified")).toBeNull();
+  expect(
+    within(claimed).getByRole("button", { name: /Follow back/, hidden: true }),
+  ).toBeTruthy();
   expect(fresh.textContent).toContain("Elixir answered your feedback");
   const earlier = screen.getByRole("region", { name: "Earlier", hidden: true });
   expect(earlier.textContent).toContain(
-    "2 more followers with no verified player",
+    "2 more followers with no player added yet",
   );
+  expect(earlier.textContent).not.toContain("not listed here");
   // No separate Open buttons: Needs you's rows are links too.
   expect(needs.querySelectorAll("a.btn")).toHaveLength(0);
   expect(needs.querySelector("a").getAttribute("href")).toBe(
@@ -181,7 +206,7 @@ test("the bell's sections: counts not cheerers, named and counted followers, ans
   await waitFor(() =>
     expect(calls).toContainEqual(["PUT", "/api/me/bell/seen"]),
   );
-  expect(document.querySelectorAll(".kit-bell__new").length).toBe(3);
+  expect(document.querySelectorAll(".kit-bell__new").length).toBe(4);
   expect(calls.filter(([m]) => m === "PUT")).toHaveLength(1);
 });
 
@@ -308,7 +333,7 @@ test("back from a row: what was new is still New, but the row you opened; closin
     name: "New",
     hidden: true,
   });
-  await waitFor(() => expect(fresh.querySelectorAll("a").length).toBe(3));
+  await waitFor(() => expect(fresh.querySelectorAll("a").length).toBe(4));
   // Leave through the follower's row.
   fireEvent.click(fresh.querySelector('a[href="/home/player/0VQRR8U0"]'));
   first.unmount();
@@ -341,7 +366,11 @@ test("back from a row: what was new is still New, but the row you opened; closin
   await waitFor(() =>
     expect(
       [...again.querySelectorAll("a")].map((a) => a.getAttribute("href")),
-    ).toEqual(["/battle/abc123", "/settings/feedback/42"]),
+    ).toEqual([
+      "/battle/abc123",
+      "/home/player/0Q2L8",
+      "/settings/feedback/42",
+    ]),
   );
   // Closed by you: the next opening keeps nothing.
   fireEvent.click(screen.getByRole("button", { name: "Close", hidden: true }));

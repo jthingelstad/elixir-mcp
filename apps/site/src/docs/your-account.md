@@ -171,11 +171,13 @@ The lines are:
   are away), so cheers on an item made since can reach the timeline before
   the bell. Cheers on items it already holds show at once.
 - **Followers**: accounts that started following one of your verified
-  players in the last thirty days. One is named by its own verified
-  player's game name and tag, as its [player page](/docs/player-page)
-  would name it; those with no verified player are counted, not named. A
-  named one has **Follow back**, unless you already follow, watch or own
-  that player: it asks first, with what it costs, like every Follow.
+  players in the last thirty days, named as your
+  [player page](/docs/player-page)'s followers list names them: by their
+  verified player's game name and tag, or by the player they say they are
+  but haven't verified yet, marked **Not verified** and with no gold mark.
+  Accounts with no player at all are counted, not named. A named one has
+  **Follow back**, unless you already follow, watch or own that player: it
+  asks first, with what it costs, like every Follow.
 - **Answers to your feedback**: each answer the maintainer gave in the last
   thirty days, and any you have not read; it opens the answer in Settings ›
   Feedback.

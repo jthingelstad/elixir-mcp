@@ -240,10 +240,12 @@ test("the bell: reactions as counts, followers named only by a verified player, 
   // Followers: the fan by their own verified player, the friend counted.
   assert.equal(bell.body.followers.count, 2);
   assert.equal(bell.body.followers.unnamed, 1);
+  assert.equal(bell.body.followers.no_player, 1);
   assert.deepEqual(bell.body.followers.players, [
     {
       tag: FAN_PLAYER,
       name: FAN_NAME,
+      verified: true,
       followed_tag: PLAYER,
       followed_name: "Invented Owner",
       new: true,
@@ -293,6 +295,55 @@ test("the bell: reactions as counts, followers named only by a verified player, 
   const raw = JSON.stringify(bell.body);
   for (const leak of [FRIEND, FAN, ids.friend, ids.fan, "bell-friend"])
     assert.equal(raw.includes(leak), false, leak);
+});
+
+test("a follower who claims a player and has not verified it is named by it, marked not verified", async () => {
+  // Jamie, 2026-11-14: as the followers list names them. One claims a
+  // player nobody verified; another claims the fan's verified player,
+  // which names nobody (the fan is that player), so it is counted.
+  const CLAIMED = "#0Q2L8";
+  await db.query(`insert into player (player_tag, name) values ($1, $2)`, [
+    CLAIMED,
+    "Invented Claimer",
+  ]);
+  const claimer = await account("bell-claimer@example.com");
+  await db.query(
+    `insert into claim (account_id, player_tag, is_primary, relationship, status)
+     values ($1, $2, true, 'primary', 'unverified')`,
+    [claimer, CLAIMED],
+  );
+  await claim(claimer, PLAYER, "friend");
+  const squatter = await account("bell-squatter@example.com");
+  await db.query(
+    `insert into claim (account_id, player_tag, is_primary, relationship, status)
+     values ($1, $2, true, 'primary', 'unverified')`,
+    [squatter, FAN_PLAYER],
+  );
+  await claim(squatter, PLAYER, "friend");
+  try {
+    const bell = await call("GET", "/api/me/bell", { who: "owner" });
+    assert.equal(bell.status, 200, JSON.stringify(bell.body));
+    const f = bell.body.followers;
+    assert.equal(f.count, 4);
+    // The friend and the squatter have no player of their own to name.
+    assert.equal(f.no_player, 2);
+    assert.equal(f.unnamed, 2);
+    const byTag = new Map(f.players.map((p) => [p.tag, p]));
+    assert.deepEqual(byTag.get(CLAIMED), {
+      tag: CLAIMED,
+      name: "Invented Claimer",
+      verified: false,
+      followed_tag: PLAYER,
+      followed_name: "Invented Owner",
+      new: true,
+      can_follow_back: true,
+    });
+    assert.equal(byTag.get(FAN_PLAYER).verified, true);
+    assert.equal(f.players.length, 2);
+  } finally {
+    for (const id of [claimer, squatter])
+      await db.query(`delete from claim where account_id = $1`, [id]);
+  }
 });
 
 test("opening the bell: what came before is seen; an unread answer stays new", async () => {

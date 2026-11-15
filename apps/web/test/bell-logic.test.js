@@ -68,18 +68,27 @@ test("a reaction row: counts in the picker's order, never who, and a battle path
   ).toBeNull();
 });
 
-test("followers: named by their verified player with Follow back when it is yours to follow, the rest one counted line", () => {
+test("followers: named by their player, a claimed one not verified, Follow back when it is yours to follow; no-player accounts one counted line", () => {
   const { rows, counted } = followerRows({
     unnamed: 1,
+    no_player: 1,
     players: [
       {
         tag: "#0CR",
         name: "Invented Fan",
+        verified: true,
         followed_tag: "#0J8",
         new: false,
         can_follow_back: true,
       },
-      { tag: "#0G2ULUJP", name: null, followed_tag: "#0J8", new: true },
+      {
+        tag: "#0G2ULUJP",
+        name: null,
+        verified: false,
+        followed_tag: "#0J8",
+        new: true,
+        can_follow_back: true,
+      },
     ],
   });
   expect(rows).toEqual([
@@ -89,6 +98,7 @@ test("followers: named by their verified player with Follow back when it is your
       title: "Invented Fan",
       tag: "#0CR",
       name: "Invented Fan",
+      verified: true,
       followBack: true,
       followed: "#0J8",
       to: "/home/player/0CR",
@@ -100,17 +110,29 @@ test("followers: named by their verified player with Follow back when it is your
       title: "#0G2ULUJP",
       tag: "#0G2ULUJP",
       name: null,
-      // Only when the read says it is yours to follow back.
-      followBack: false,
+      // Claimed, not verified: named, marked, and Follow back as for others.
+      verified: false,
+      followBack: true,
       followed: "#0J8",
       to: "/home/player/0G2ULUJP",
       new: true,
     },
   ]);
-  expect(counted).toBe("1 more follower with no verified player");
-  expect(followerRows({ unnamed: 2, players: [] }).counted).toBe(
-    "2 more followers with no verified player",
+  expect(counted).toBe("1 more follower with no player added yet");
+  expect(followerRows({ unnamed: 2, no_player: 2, players: [] }).counted).toBe(
+    "2 more followers with no player added yet",
   );
+  // Past the list's cap, the rest are counted apart.
+  expect(followerRows({ unnamed: 5, no_player: 2, players: [] }).counted).toBe(
+    "2 more followers with no player added yet · 3 more, not listed here",
+  );
+  // An older read: no `verified`, no `no_player`.
+  expect(
+    followerRows({ unnamed: 1, players: [{ tag: "#0CR" }] }),
+  ).toMatchObject({
+    rows: [{ verified: true }],
+    counted: "1 more follower with no player added yet",
+  });
   expect(followerRows({ unnamed: 0, players: [] }).counted).toBeNull();
 });
 
@@ -308,7 +330,7 @@ test("one inbox: New then Earlier, every kind keyed; what you left new stays new
     // Two lines at one instant keep apart.
     "passport-ready-2026-11-14T12:00:00Z~2",
   ]);
-  expect(first.counted).toBe("1 more follower with no verified player");
+  expect(first.counted).toBe("1 more follower with no player added yet");
   // Back from a row: the read says nothing is new any more (the marker
   // moved), but what was new then is kept (the sheet leaves out the row
   // you opened).

@@ -182,9 +182,11 @@ export function reactionRow(r) {
   };
 }
 
-/** Followers: the named ones by their verified player, then one line for
- *  those counted. "New" means since you last opened the bell. No follow
- *  time is shown. */
+/** Followers: each named by their player, verified or only claimed
+ *  (`verified: false`, shown as not verified, as the followers list on a
+ *  player page shows them; Jamie, 2026-11-14), then one line counting the
+ *  accounts with no player at all and any past the list. "New" means since
+ *  you last opened the bell. No follow time is shown. */
 export function followerRows(followers) {
   const rows = (followers?.players ?? []).map((p) => ({
     key: `${p.tag}-${p.followed_tag}`,
@@ -192,18 +194,28 @@ export function followerRows(followers) {
     title: p.name ?? p.tag,
     tag: p.tag,
     name: p.name ?? null,
-    // Their verified player is yours to follow back unless you already
-    // own, follow or watch it (the bell's read says).
+    // An older read has no `verified`: every row it named was verified.
+    verified: p.verified !== false,
+    // Their player is yours to follow back unless you already own,
+    // follow or watch it (the bell's read says).
     followBack: p.can_follow_back === true,
     followed: p.followed_name ?? p.followed_tag,
     to: playerHref(p.tag),
     new: p.new === true,
   }));
   const unnamed = followers?.unnamed ?? 0;
+  // An older read has no `no_player`: everyone it left unnamed had none.
+  const noPlayer = Math.min(followers?.no_player ?? unnamed, unnamed);
+  const past = unnamed - noPlayer;
   const counted =
-    unnamed > 0
-      ? `${unnamed} more ${unnamed === 1 ? "follower" : "followers"} with no verified player`
-      : null;
+    [
+      noPlayer > 0
+        ? `${noPlayer} more ${noPlayer === 1 ? "follower" : "followers"} with no player added yet`
+        : null,
+      past > 0 ? `${past} more, not listed here` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || null;
   return { rows, counted };
 }
 
