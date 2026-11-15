@@ -21,8 +21,12 @@ import net from "node:net";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { makeOutbox } from "@elixir-mcp/outbox";
 import {
   JOB_LIMITS,
+  assertRunLive,
+  guardS3,
   limitsFor,
   openJobsClient,
   runJob,
@@ -172,6 +176,68 @@ test("a run stuck past its deadline settles and drops its connection", async () 
   assert.ok(ms < 1_500, `ended in ${ms} ms`);
   assert.ok(client.connection.stream.destroyed, "its connection is closed");
   await assert.rejects(client.query("select 1"), /jobs_db_aborted/);
+});
+
+/** An S3 client that never reaches the network: it counts the requests
+ *  that got as far as being sent. */
+function countingS3() {
+  const sent = [];
+  const s3 = new S3Client({
+    region: "us-east-1",
+    credentials: { accessKeyId: "test", secretAccessKey: "test" },
+    requestHandler: {
+      handle: async (request) => {
+        sent.push(request.path);
+        return {
+          response: { statusCode: 200, headers: {}, body: undefined },
+        };
+      },
+    },
+  });
+  return { s3: guardS3(s3), sent };
+}
+
+test("an aborted run's leftover work enqueues nothing (Codex on #1042)", async () => {
+  // A mail run awaiting its archive write when the deadline passes: the
+  // write finishes after the handler has failed, and the continuation
+  // would hand the mail to the outbox although its send record can no
+  // longer be written, so the retry would send it again.
+  const { s3, sent } = countingS3();
+  const outbox = makeOutbox("outbox-test", s3);
+  let resumeArchive;
+  let leftover;
+  const { error } = await timed(
+    runJob(
+      "email",
+      null,
+      async () => {
+        await new Promise((resolve) => (resumeArchive = resolve));
+        leftover = outbox("email", { to: "nobody" }).then(
+          () => "enqueued",
+          (e) => e,
+        );
+      },
+      { limits: { runMs: 200 } },
+    ),
+  );
+  assert.match(error.message, /email: run passed its .* deadline/);
+  resumeArchive();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  const outcome = await leftover;
+  assert.equal(outcome.code, "jobs_db_aborted", "the enqueue was refused");
+  assert.deepEqual(sent, [], "nothing reached the outbox bucket");
+});
+
+test("a live run's S3 writes go through", async () => {
+  const { s3, sent } = countingS3();
+  await runJob("email", null, async () => {
+    assertRunLive();
+    await s3.send(
+      new PutObjectCommand({ Bucket: "b", Key: "email/x", Body: "{}" }),
+    );
+  });
+  assert.equal(sent.length, 1);
+  assertRunLive(); // outside a run: nothing to check
 });
 
 test("the deadline stays inside the Lambda's own clock", async () => {

@@ -14,7 +14,8 @@ import { isActiveEmailKind, inactiveEmailReason } from "@elixir-mcp/contracts";
  *  {email: "<kind>", account_id?, force?}.
  *  Retired editorial payloads refuse before I/O. */
 
-import { openJobsClient, runJob, runRemainingMs } from "./db.mjs";
+import { S3Client } from "@aws-sdk/client-s3";
+import { guardS3, openJobsClient, runJob, runRemainingMs } from "./db.mjs";
 import { purgeQuality } from "@elixir-mcp/syndication/quality";
 import { sweepSilentCollectors } from "./fleet.mjs";
 import { newsletterSync } from "./newsletter-sync.mjs";
@@ -45,7 +46,7 @@ export async function sweepPayloads(databaseUrl, s3override) {
   const bucket = process.env.ARCHIVE_BUCKET;
   if (!bucket) throw new Error("ARCHIVE_BUCKET not configured");
   const { archiveKey } = await import("@elixir-mcp/ingest/pipeline");
-  const { S3Client, HeadObjectCommand } = await import("@aws-sdk/client-s3");
+  const { HeadObjectCommand } = await import("@aws-sdk/client-s3");
   const s3 = s3override ?? new S3Client({});
   const db = await openJobsClient(databaseUrl, { op: "sweep_payloads" });
   try {
@@ -284,7 +285,8 @@ export async function runRetentionTrim(databaseUrl, { remainingMs } = {}) {
 }
 
 // Mail leaves through the outbox for the relay (packages/outbox/src/outbox.mjs).
-const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
+// Its writes stop once the run is aborted (db.mjs guardS3).
+const outbox = makeOutbox(process.env.OUTBOX_BUCKET, guardS3(new S3Client({})));
 async function enqueueEmail(msg) {
   if (!outbox) throw new Error("OUTBOX_BUCKET is not set");
   await outbox(
@@ -303,8 +305,7 @@ async function mailArchiveStore() {
   if (mailArchive !== undefined) return mailArchive;
   const bucket = process.env.ARCHIVE_BUCKET;
   if (!bucket) return (mailArchive = null);
-  const { S3Client } = await import("@aws-sdk/client-s3");
-  return (mailArchive = { s3: new S3Client({}), bucket });
+  return (mailArchive = { s3: guardS3(new S3Client({})), bucket });
 }
 
 /** Whether the site bucket's card-art mirror holds a file (deliver's
@@ -316,7 +317,7 @@ async function mailArchiveStore() {
 async function cardArtHeld() {
   const bucket = process.env.SITE_BUCKET;
   if (!bucket) return null;
-  const { S3Client, HeadObjectCommand } = await import("@aws-sdk/client-s3");
+  const { HeadObjectCommand } = await import("@aws-sdk/client-s3");
   const s3 = new S3Client({});
   return (p) =>
     s3

@@ -110,6 +110,35 @@ export function runRemainingMs() {
   return run ? Math.max(0, run.deadlineAt - Date.now()) : null;
 }
 
+/** Throw the run's error if it has been aborted; nothing outside a run.
+ *
+ *  An abort settles the handler but cannot stop the run's own code: an
+ *  await already in flight (an S3 archive write, a compose) finishes,
+ *  and its continuation can resume in the next invocation that reuses
+ *  this environment. Its database queries already reject; this is the
+ *  same stop for its other side effects, so an orphan never enqueues a
+ *  mail or a Discord post whose send record it can no longer write (a
+ *  retry would then send it again). The run's context follows every
+ *  continuation, so the check sees the abort wherever it runs. */
+export function assertRunLive() {
+  const run = current.getStore();
+  if (run?.error) throw run.error;
+}
+
+/** An S3 client whose every send first checks assertRunLive: the jobs
+ *  Lambda's outbox and archive writes go through one (#814). A send
+ *  already on the wire when the run aborts still completes. */
+export function guardS3(s3) {
+  s3.middlewareStack.add(
+    (next) => async (args) => {
+      assertRunLive();
+      return next(args);
+    },
+    { step: "initialize", name: "jobsRunLive" },
+  );
+  return s3;
+}
+
 /** Run `fn` as one job: its connections take the op's limits, and it
  *  settles by its deadline whatever it is waiting on. `context` is the
  *  Lambda context (its clock caps the deadline); `limits` overrides the
