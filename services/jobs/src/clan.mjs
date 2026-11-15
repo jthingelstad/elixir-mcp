@@ -2,7 +2,8 @@
  * state and derived facts stay distinct from collector-admitted facts.
  * The record is read in process as Elixir itself; no grant, key or
  * credential is stored or presented. */
-import { openJobsClient } from "./db.mjs";
+import { S3Client } from "@aws-sdk/client-s3";
+import { guardS3, openJobsClient } from "./db.mjs";
 import {
   createPostgresStore,
   createPostgresLedger,
@@ -208,10 +209,15 @@ export async function runClanEvaluation({
               appUrl,
               bridge: createDiscordBridge({
                 secret: sealingSecret,
-                storage: modelStorage(outboxBucket),
+                storage: modelStorage(
+                  outboxBucket,
+                  guardS3(new S3Client({ maxAttempts: 2 })),
+                ),
               }),
               // A minute on, the timeline sync collects the answers.
-              wake: clanDiscordWake(makeOutbox(outboxBucket)),
+              wake: clanDiscordWake(
+                makeOutbox(outboxBucket, guardS3(new S3Client({}))),
+              ),
               quality: discordQuality(db),
             })
           : null,
