@@ -256,7 +256,9 @@ test("before a verified player, the map step waits on verifying", async ({
 }) => {
   await mockApi(
     page,
-    withList(ownerPassport(["done", "todo", "done", "done", "done", "todo"])),
+    withList(ownerPassport(["done", "todo", "done", "done", "done", "todo"]), {
+      "GET /api/clan/me/place": [403, { error: "gate", reason: "unverified" }],
+    }),
   );
   await page.goto("/home");
   const list = page.locator(".kit-profile");
