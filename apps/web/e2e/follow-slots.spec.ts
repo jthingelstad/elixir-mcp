@@ -176,6 +176,10 @@ for (const [label, width] of [
       await expect(country.locator("option")).not.toHaveCount(1);
       await noSideways(page);
       await accessible(page, `your place ${label}`);
+      if (process.env.PLACE_SHOTS)
+        await page.screenshot({
+          path: `${process.env.PLACE_SHOTS}/profile-picker-${width}.png`,
+        });
       await country.selectOption("NO");
       const regionOrCity = yours.getByLabel(/State or region|City/);
       await expect(regionOrCity.first()).toBeVisible();
@@ -190,6 +194,13 @@ for (const [label, width] of [
       await expect(
         yours.getByRole("button", { name: "Remove your place" }),
       ).toBeVisible();
+      if (process.env.PLACE_SHOTS) {
+        await yours.scrollIntoViewIfNeeded();
+        await page.screenshot({
+          path: `${process.env.PLACE_SHOTS}/profile-your-place-${width}.png`,
+          fullPage: true,
+        });
+      }
       expect(saved).toHaveLength(1);
       expect((saved[0] as { country: string }).country).toBe("NO");
     });

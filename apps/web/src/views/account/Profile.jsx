@@ -22,7 +22,7 @@ import { PassportRow } from "../../home/PassportRow.jsx";
 import { summaryOf } from "../../lib/passport.js";
 import { playerHref } from "../../lib/player.js";
 import { useMyPassport } from "../../lib/queries.js";
-import { PLACE_WHO, YourPlace } from "../../clan/views/YourPlace.jsx";
+import { YourPlace } from "../../clan/views/YourPlace.jsx";
 
 /**
  * Profile: the account you are signed in as. Editable here are the profile
@@ -301,9 +301,6 @@ function PlaceSetting({ hash }) {
           </p>
         }
       />
-      <p className="kit-tiny mt-2 mb-0">
-        A country, a region or a city, never closer. {PLACE_WHO}
-      </p>
     </section>
   );
 }

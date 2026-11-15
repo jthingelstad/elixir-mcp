@@ -6995,6 +6995,11 @@ button.kit-row {
   width: 100%;
   min-height: var(--hit);
 }
+@media (max-width: 360px) {
+  .kit-profile__place {
+    padding: var(--s-2);
+  }
+}
 .kit-profile__all {
   margin-top: var(--s-2);
 }
@@ -9776,8 +9781,10 @@ a.kit-bell__hit:focus-visible::after {
 }
 /* Settings › Profile's Your place (2026-11-14). */
 .st-place {
+  display: grid;
+  gap: var(--s-2);
   margin-top: var(--s-4);
-  padding-top: var(--s-3);
+  padding: var(--s-3) var(--s-4) var(--s-4);
   border-top: 1px solid var(--line);
 }
 .st-place .st-group {

@@ -146,6 +146,11 @@ export function YourPlace({
             {removeError}
           </p>
         ) : null}
+        {setting ? (
+          <p className="page-head__note m-0">
+            A country, a region or a city, never closer. {PLACE_WHO}
+          </p>
+        ) : null}
       </div>
     );
   const cancel =
