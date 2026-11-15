@@ -607,6 +607,7 @@ test("the route table has no page under /console: the Console folded", async () 
     "battle/$ref",
     "h/$id",
     "home",
+    "home/@{$handle}",
     "home/account/$id",
     "home/account/$id/passport",
     "home/find",

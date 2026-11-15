@@ -134,7 +134,7 @@ refused rather than quietly answering about the wrong subject.
 The top bar holds **Home**, **Find** and **Clan**, with search, Help and the
 bell beside them. A phone has **Home**, **Find**, **Clan**, **You** and the
 bell as tabs at its foot; on a wide screen the account menu is You. **You**
-is your own player's page, with **Stats** (your season, read back) as its last tab. **Settings**, in the
+is your own account page, with **Your stats** (your season, read back). **Settings**, in the
 account menu, holds what we
 record for you and who can call on your behalf, and each agent you own has a
 page of its own there (below). On a wide screen a rail stays in view as a page scrolls;

@@ -10,6 +10,7 @@ import {
   readable,
   searchSources,
   typedGroups,
+  handleQuery,
   isTagQuery,
 } from "./search-logic.js";
 import { normTag } from "../lib/tag-url.js";
@@ -79,7 +80,22 @@ export function SearchSheet({ me, onClose }) {
       }),
     [me, clans.data, roster.data, cards.data],
   );
-  const found = q.trim() === settled ? (remote.data ?? null) : null;
+  // Accounts by @handle (2026-11-15), beside the player read.
+  const handle = handleQuery(settled);
+  const accounts = useQuery({
+    queryKey: ["me", "search", "accounts", handle ?? ""],
+    enabled: Boolean(handle),
+    staleTime: 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const r = await api.searchAccounts(handle);
+      return r.ok ? (r.data?.accounts ?? []) : [];
+    },
+  });
+  const found =
+    q.trim() === settled && remote.data
+      ? { ...remote.data, accounts: accounts.data ?? [] }
+      : null;
   const groups = typedGroups(q, sources, found);
   const miss = found?.miss ?? null;
   const failed = q.trim() === settled && remote.isError;

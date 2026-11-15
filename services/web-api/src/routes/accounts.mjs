@@ -1,7 +1,8 @@
 /** Account pages and account follows (Jamie, 2026-11-15): account-page.mjs
  *  reads and writes them.
  *
- *  - `GET /api/accounts/<page-id>`: an account's page, for any signed-in
+ *  - `GET /api/accounts?q=<handle prefix>`: Find's account search.
+ *  - `GET /api/accounts/<page-id or @handle>`: an account's page, for any signed-in
  *    member, one charge on the hourly bucket the player page uses.
  *  - `POST /api/me/account-follows` `{id}`: follow an account and each of
  *    its Verified players (linked follows, claims/linked.mjs).
@@ -10,6 +11,7 @@
  *
  *  A person's only: an agent is refused, and no agent console reaches
  *  them (AGENT_SCOPED_ROUTES does not list them). */
+import { searchHandles } from "../handle.mjs";
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import {
@@ -42,6 +44,14 @@ export function accountsRoutes({ resolveAccount }) {
     return { account };
   };
   return {
+    // Find's account search (2026-11-15): accounts by @handle prefix.
+    "GET /api/accounts": async (db, event) => {
+      const { refused } = await person(db, event);
+      if (refused) return refused;
+      const q = event.queryStringParameters?.q ?? "";
+      return json(200, { accounts: await searchHandles(db, q) });
+    },
+
     "GET /api/accounts/*": async (db, event) => {
       const { account, refused } = await person(db, event);
       if (refused) return refused;

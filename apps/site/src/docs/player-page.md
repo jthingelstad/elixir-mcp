@@ -41,9 +41,9 @@ counts, while it is in your own feed: from the last seven days, about a
 player or clan you follow ([Cheers](/docs/timeline#cheers)). Older items,
 and items on the page of a player you do not follow, show no cheers.
 
-Your own primary player's page, once you have verified it, is **You**
-(`/home/you`), with a sixth tab, **Stats**: [your season, read back](/docs/ladder).
-Your players' pages opened by name offer **Your stats**, and a clanmate's page
+**You** (`/home/you`) is your own [account page](/docs/verified-players#account-pages),
+with **Your stats**: [your season, read back](/docs/ladder). Each of your
+players opens its own page from there. Your players' pages offer **Your stats**, and a clanmate's page
 **Open in Clan** when your clan runs Clan.
 
 ## Check for new battles

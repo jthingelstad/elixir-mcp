@@ -341,7 +341,7 @@ export function adminRoutes({ resolveAccount, logEvent, capture = null }) {
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select a.account_id, a.email_hash, a.email, a.status, a.is_owner,
-                a.kind, a.public_id, a.owned_by_account_id,
+                a.kind, a.public_id, a.owned_by_account_id, a.handle,
                 -- The tier is earned in the game (#530) and read now;
                 -- granted_role is what is stored, the grant Admin sets
                 -- (Partner, or Member to take one away). A stored leader
@@ -384,6 +384,26 @@ export function adminRoutes({ resolveAccount, logEvent, capture = null }) {
         settable_roles:
           account.role === "owner" ? SETTABLE_BY_OWNER : ADMIN_SETTABLE,
       });
+    },
+
+    // Clear a reported @handle (2026-11-15). The account keeps its page
+    // and may choose another; its bell says the old one was cleared.
+    "POST /api/admin/accounts/handle-clear": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const accountId = String(body?.account_id ?? "");
+      if (!UUID_RE.test(accountId)) return json(404, { error: "not_found" });
+      const { rows } = await db.query(
+        `update account set handle = null, handle_set_at = null
+          where account_id = $1 and handle is not null
+          returning account_id`,
+        [accountId],
+      );
+      if (!rows[0]) return json(404, { error: "not_found" });
+      await logEvent(db, accountId, "handle_cleared", {});
+      return json(200, { ok: true, account_id: accountId });
     },
 
     "POST /api/admin/accounts": async (db, event, body) => {

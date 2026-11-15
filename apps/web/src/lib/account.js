@@ -5,6 +5,7 @@ import { HOME } from "./moved.js";
  *
  *   /home/account/<id>            an account's page, for any signed-in member
  *   /home/account/<id>/passport   its passport (lib/passport.js)
+ *   /home/@<handle>               the same page, by the account's @handle
  *
  * <id> is the account's page id, its passport id: twelve letters and
  * digits with no look-alikes, never the account's UUID or an agent's id.
@@ -17,11 +18,28 @@ export const isPageId = (id) => typeof id === "string" && PAGE_ID.test(id);
 
 export const accountHref = (id) => `${ACCOUNT}/${id}`;
 
-/** The page id an account page's path names, or null. Its passport is not
- *  the account page. */
+/** An account's @handle (2026-11-15): 3 to 20 lowercase letters, digits
+ *  and underscores, unique; another address for the same page. */
+const HANDLE = /^[a-z0-9_]{3,20}$/;
+
+export const handleHref = (handle) => `${HOME}/@${handle}`;
+
+/** The account an account page's path names: its page id, or `@handle`
+ *  for /home/@handle; null for any other path. Its passport is not the
+ *  account page. */
 export function accountIdOf(path) {
-  const m = /^\/home\/account\/([^/]+)\/?$/.exec(String(path ?? ""));
-  return m && isPageId(m[1]) ? m[1] : null;
+  const clean = String(path ?? "");
+  const m = /^\/home\/account\/([^/]+)\/?$/.exec(clean);
+  if (m) return isPageId(m[1]) ? m[1] : null;
+  const h = /^\/home\/@([^/]+)\/?$/.exec(clean);
+  if (!h) return null;
+  let handle;
+  try {
+    handle = decodeURIComponent(h[1]).toLowerCase();
+  } catch {
+    return null;
+  }
+  return HANDLE.test(handle) ? `@${handle}` : null;
 }
 
 export const isAccountPath = (path) => accountIdOf(path) !== null;

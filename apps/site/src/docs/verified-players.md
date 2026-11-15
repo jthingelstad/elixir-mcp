@@ -57,8 +57,12 @@ An account page shows a person on Elixir:
 Tap **Follow** to follow an account. You also follow every player it has
 verified, now and later, and its news (Stamps, places, verified players)
 shows on your Home. Elixir tells you first what the follow uses of your
-player slots. Open your own account page from **You**, then **Your account
-page**.
+player slots. **You** is your own account page.
+
+An account can have an [@handle](/docs/your-account#your-handle). Then
+its page leads with it, its main player under it, and `/home/@handle`
+opens the same page. Search finds accounts by @handle, and follow lists
+show it beside a verified player.
 
 ## Linked follows
 

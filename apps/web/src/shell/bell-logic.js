@@ -93,6 +93,8 @@ const ACCOUNT_DETAIL = {
     "Another account verified it. If it is yours, tell us through the feedback form.",
   follow_skipped:
     "You follow their account, but there was no free player slot (or no player of your own yet). Free a slot, then tap Follow on their page.",
+  handle_cleared:
+    "Someone reported it, so Elixir took it off your account page. You can pick a new one in Settings.",
 };
 
 const ROMAN = ["I", "II", "III"];
@@ -164,7 +166,9 @@ export const accountRows = (account) =>
       to:
         one && a.kind !== "claim_ended"
           ? playerHref(one)
-          : `${SETTINGS}/${aboutPlayers ? "players" : "sign-ins"}`,
+          : a.kind === "handle_cleared"
+            ? `${SETTINGS}/profile`
+            : `${SETTINGS}/${aboutPlayers ? "players" : "sign-ins"}`,
       new: a.new === true,
     };
   });

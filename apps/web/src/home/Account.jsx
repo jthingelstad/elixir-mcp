@@ -22,8 +22,8 @@ import { PassportRow } from "./PassportRow.jsx";
 import { followPlanLine } from "./follow.jsx";
 
 /**
- * An account's page (Jamie, 2026-11-15): /home/account/<id>, for any
- * signed-in member. An account is a person on Elixir; it says which players
+ * An account's page (Jamie, 2026-11-15): /home/account/<id>, or
+ * /home/@handle when the account set one, for any signed-in member. An account is a person on Elixir; it says which players
  * it is. Its page shows those players, primary first then alts, each
  * Verified (proved, so nobody else can claim it) or Claimed (said, not
  * proved); its badges; its place at city level; its Stamps; and one
@@ -73,10 +73,19 @@ const placeWords = (place) =>
     ? [place.city, place.region, place.country].filter(Boolean).join(", ")
     : null;
 
-function AccountView({ page }) {
+/**
+ * The page itself, for AccountPage and for You (2026-11-15: You opens your
+ * own account page). `actions` is what the header offers yourself (You's
+ * Your stats); `noPlayers` replaces the empty Players line.
+ *
+ * An account with an @handle (2026-11-15) leads with it, its main player
+ * under it; one without leads with its main player, as before.
+ */
+export function AccountView({ page, actions = null, noPlayers = null }) {
   const a = page.account;
   const primary = a.player;
-  const title = primary?.name ?? primary?.tag ?? "An Elixir member";
+  const playerName = primary?.name ?? primary?.tag ?? "An Elixir member";
+  const title = a.handle ? `@${a.handle}` : playerName;
   const place = placeWords(a.place);
   const sub = [
     primary?.tag,
@@ -89,7 +98,7 @@ function AccountView({ page }) {
     <div className="kit-home kit-player kit-account">
       <header className="kit-phead">
         <Avatar
-          name={title}
+          name={playerName}
           tag={primary?.tag}
           verified={a.state === "verified"}
           claimed={a.state === "claimed"}
@@ -97,11 +106,27 @@ function AccountView({ page }) {
           large
         />
         <div className="kit-phead__main">
-          <h1 className="kit-phead__name">
-            <PlayerName tag={primary?.tag} verified={a.state === "verified"}>
-              <TagText>{title}</TagText>
-            </PlayerName>
-          </h1>
+          {a.handle ? (
+            <>
+              <h1 className="kit-phead__name">{title}</h1>
+              {primary ? (
+                <p className="kit-phead__line">
+                  <PlayerName
+                    tag={primary.tag}
+                    verified={a.state === "verified"}
+                  >
+                    <TagText>{playerName}</TagText>
+                  </PlayerName>
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <h1 className="kit-phead__name">
+              <PlayerName tag={primary?.tag} verified={a.state === "verified"}>
+                <TagText>{title}</TagText>
+              </PlayerName>
+            </h1>
+          )}
           {sub ? (
             <p className="kit-phead__line">
               <TagText>{sub}</TagText>
@@ -129,7 +154,9 @@ function AccountView({ page }) {
           </span>
         </div>
         <nav className="kit-phead__actions" aria-label="This account">
-          {page.you.self ? null : (
+          {page.you.self ? (
+            actions
+          ) : (
             <FollowAccount
               id={a.id}
               following={page.you.following}
@@ -173,7 +200,9 @@ function AccountView({ page }) {
             ))}
           </ul>
         ) : (
-          <p className="kit-week__quiet">No players claimed yet.</p>
+          (noPlayers ?? (
+            <p className="kit-week__quiet">No players claimed yet.</p>
+          ))
         )}
       </section>
       <section className="kit-player__body" aria-labelledby="acct-timeline">

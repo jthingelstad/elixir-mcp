@@ -1,3 +1,4 @@
+import { handlesOfVerified } from "../handle.mjs";
 import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { checkRateLimit } from "@elixir-mcp/auth";
 import {
@@ -235,12 +236,27 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
       .filter((f) => f.verified !== false)
       .map((f) => f.tag),
   ]);
+  // The @handle of the account that verified each listed player
+  // (2026-11-15): web only, never players_follows (MCP). A Claimed
+  // follower may be claimed by more than one account, so it shows none.
+  const handles = await handlesOfVerified(db, [
+    ...(social.follows?.players ?? []).map((f) => f.tag),
+    ...(social.followers?.players ?? [])
+      .filter((f) => f.verified !== false)
+      .map((f) => f.tag),
+  ]);
+  const withHandle = (f) =>
+    f.verified !== false && handles.has(f.tag)
+      ? { ...f, handle: handles.get(f.tag) }
+      : f;
   const faced = (list) =>
     list
       ? {
           ...list,
           players: list.players.map((f) =>
-            f.verified === false ? f : withAvatar(f, f.tag, avatars),
+            f.verified === false
+              ? f
+              : withHandle(withAvatar(f, f.tag, avatars)),
           ),
         }
       : list;

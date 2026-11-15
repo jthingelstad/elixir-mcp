@@ -245,6 +245,23 @@ player or add yours. Friends and watched players are covered in
 Players are added under **Settings › Players & following**, and following a player is
 recording it: see [What Elixir records](/docs/recording).
 
+## Your @handle
+
+Your account can have an @handle, like `@ruby_knight`. It's optional.
+Pick one in **Settings › Profile › Your @handle**.
+
+- 3 to 20 letters, numbers or `_`. Capitals don't count: `@Ruby` is
+  `@ruby`.
+- Nobody else can have yours. Elixir says while you type if one is
+  taken, and suggests one from your main player's name.
+- Some words belong to Elixir, and some aren't allowed at all.
+- Change it or **Remove** it any time. Your old one is free for someone
+  else then.
+- Members see it on your account page, in follow lists and in search.
+  `/home/@yourhandle` opens your account page.
+- If someone reports a handle, Elixir can take it off. Your bell tells
+  you, and you can pick a new one.
+
 ## Your time zone
 
 **Settings › Profile › Time zone** sets the times Elixir
@@ -389,6 +406,10 @@ and each other choice it names links to the page that owns it.
   email address, your Discord name and profile, and your account's
   machinery: sign-ins, agents and their keys, connections,
   usage, the mail sent to you and your feedback.
+
+Your [@handle](#your-handle), if you set one, is public to members: on
+your account page, beside your verified player in follow lists, and in
+search. Agents and connected apps don't get it.
 
 **Location** shows your place, or **Not set**, and opens
 [Your place](#your-place) on Profile, where you change it.

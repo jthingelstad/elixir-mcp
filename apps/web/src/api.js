@@ -85,6 +85,17 @@ export const api = {
     return result;
   },
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
+  /** Your @handle (2026-11-15): set it, or with null remove it. */
+  setHandle: (handle) => request("POST", "/api/me/handle", { handle }),
+  /** Whether a handle is free for you; with none, a suggestion. */
+  checkHandle: (handle) =>
+    request(
+      "GET",
+      `/api/me/handle-check${handle ? `?handle=${encodeURIComponent(handle)}` : ""}`,
+    ),
+  /** Find's account search: accounts whose @handle starts with `q`. */
+  searchAccounts: (q) =>
+    request("GET", `/api/accounts?q=${encodeURIComponent(q)}`),
   /** The profile image (2026-11-14): a catalog card id, or null for
    *  initials. */
   setAvatar: (card_id) => request("POST", "/api/me/avatar", { card_id }),
@@ -303,6 +314,8 @@ export const api = {
     request("POST", "/api/me/gateway-card", { id, card }),
   adminAccounts: () => request("GET", "/api/admin/accounts"),
   adminEfficiency: () => request("GET", "/api/admin/efficiency"),
+  adminClearHandle: (account_id) =>
+    request("POST", "/api/admin/accounts/handle-clear", { account_id }),
   adminSetRole: (account_id, role) =>
     request("POST", "/api/admin/accounts", { account_id, role }),
   myClans: (agent) => request("GET", `${home(agent)}/clans`),

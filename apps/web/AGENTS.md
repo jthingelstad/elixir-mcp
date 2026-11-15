@@ -64,7 +64,7 @@ behaviour is in `apps/site/src/docs/`, not here.
 ## Home and the shell
 
 `src/home/` is Home (`/home`, one feed), Find (`/home/find`), You
-(`/home/you`, your primary verified player's page with the Stats tab) and the
+(`/home/you`, your own account page with Your stats, since 2026-11-15) and the
 player page (`/home/player/<tag>`), and
 `src/shell/Shell.jsx` is the top bar, bottom tabs and footer every page wears,
 with the bell (`src/shell/Bell.jsx`, its logic `bell-logic.js`, its read

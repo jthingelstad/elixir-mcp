@@ -33,6 +33,7 @@ import {
   itemVisibility,
 } from "@elixir-mcp/tools/activity/entries";
 import { verifiedAvatars, withAvatar } from "./avatars.mjs";
+import { HANDLE, normalizeHandle } from "./handle.mjs";
 
 /** Page ids are twelve letters and digits with no look-alikes (0269). */
 export const PAGE_ID = /^[a-km-np-z2-9]{12}$/;
@@ -40,18 +41,29 @@ export const PAGE_ID = /^[a-km-np-z2-9]{12}$/;
 export const ACCOUNT_PAGE_DAYS = 30;
 export { ACCOUNT_FOLLOW_MAX } from "@elixir-mcp/claims";
 
-/** The approved person account a page id names, or null. */
+/** The approved person account a page id, or an `@handle`, names, or
+ *  null. A handle is another way to the same page (2026-11-15). */
 export async function accountByPageId(db, id) {
-  if (typeof id !== "string" || !PAGE_ID.test(id)) return null;
+  if (typeof id !== "string") return null;
+  let where;
+  let key;
+  if (PAGE_ID.test(id)) {
+    where = "ap.passport_id = $1::text";
+    key = id;
+  } else if (id.startsWith("@")) {
+    key = normalizeHandle(id);
+    if (!HANDLE.test(key)) return null;
+    where = "a.handle = $1::text";
+  } else return null;
   const { rows } = await db.query(
-    `select a.account_id, ap.passport_id as page_id,
+    `select a.account_id, ap.passport_id as page_id, a.handle,
             exists (select 1 from account_discord d
                      where d.account_id = a.account_id) as discord
        from account_passport ap
        join account a on a.account_id = ap.account_id
-      where ap.passport_id = $1::text
+      where ${where}
         and a.kind = 'person' and a.status = 'approved'`,
-    [id],
+    [key],
   );
   return rows[0] ?? null;
 }
@@ -217,6 +229,8 @@ export async function readAccountPage(db, reader, id, now = Date.now()) {
   return {
     account: {
       id: account.page_id,
+      // The account's own @handle (2026-11-15), null when it set none.
+      handle: account.handle ?? null,
       name: primary?.name ?? null,
       player: primary ? withAvatar({ ...primary }, primary.tag, avatars) : null,
       state: primary?.state ?? null,

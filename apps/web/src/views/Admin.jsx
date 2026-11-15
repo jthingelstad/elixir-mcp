@@ -2,6 +2,7 @@ import { useWrite } from "../client/index.ts";
 import { FEEDBACK_ANSWER_STATUSES } from "@elixir-mcp/contracts";
 import {
   ago,
+  ConfirmAction,
   Icon,
   Link,
   LogTable,
@@ -806,6 +807,32 @@ function AdminAccountDetail({ id }) {
     ["Account id", a.account_id],
     ["Kind", a.kind ?? "person"],
     ["Public id", a.public_id ?? "—"],
+    [
+      "Handle",
+      a.handle ? (
+        <>
+          @{a.handle}{" "}
+          {/* A reported handle comes off here (2026-11-15); the
+              account's bell says so and it can pick another. */}
+          <ConfirmAction
+            label="Clear handle"
+            className="btn btn--sm"
+            title={`Clear @${a.handle}?`}
+            body={
+              <p className="m-0">
+                It leaves their account page, follow lists and search. Their
+                bell tells them, and they can pick a new one.
+              </p>
+            }
+            confirm="Clear handle"
+            run={() => api.adminClearHandle(a.account_id)}
+            onDone={load}
+          />
+        </>
+      ) : (
+        "—"
+      ),
+    ],
     ["Principal name", a.principal_name ?? "—"],
     ["Status", a.status],
     ["Created", day(a.created_at)],
