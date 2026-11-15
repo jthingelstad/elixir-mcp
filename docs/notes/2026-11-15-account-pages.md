@@ -63,3 +63,8 @@ and direction rather than asked:
   claims it has no name and shows only its page id's content.
 - A Claimed player claimed by several accounts lists every one, oldest
   claim first.
+
+**Follow-up (Codex on #1061).** A followed account's people items sit
+under Home's Friends chip, not You, even when the reader follows none of
+its players; and an account page's Following counts followed accounts as
+well as players.
