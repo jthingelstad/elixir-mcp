@@ -41,6 +41,17 @@
  * the units and node --test's own file concurrency would start. Files
  * with no database never wait.
  *
+ * Every `node --test` unit (each workspace script starting `node --test`,
+ * and root) runs with two reporters: `spec`, and
+ * lib/every-file-reported.mjs, which fails the unit when any test file's
+ * report arrived short of the tests that file says it ran, and prints a
+ * line saying it checked. A node unit that exits 0 without that line is
+ * a failure too. No unit uses --test-force-exit: it let a file's process
+ * exit with its last results still queued on the pipe to node's parent,
+ * and node counted the short report as a pass (259 of 267, #1052,
+ * docs/notes/2026-11-14-test-count-integrity.md). vitest units are not
+ * counted this way: vitest fails a test whose worker exits mid-file.
+ *
  * Output is held per unit and printed whole when the unit ends (folded in
  * a GitHub Actions group when it passed), then a summary by duration.
  * A failed unit always says how it ended (its exit code or the signal
@@ -63,6 +74,7 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { MARK } from "./lib/every-file-reported.mjs";
 
 export const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -223,6 +235,36 @@ function run(cmd, args, label) {
   }
 }
 
+/** A `node --test` unit's script: `node --test` first, then its own
+ *  flags and files. Every node test unit has that shape, so the runner
+ *  can add its reporters (and a test pins the shape). */
+export const NODE_TEST = /^node --test(?=\s|$)/;
+
+/** The reporters every `node --test` unit runs with: `spec` for people,
+ *  and every-file-reported.mjs, which fails the unit when a test file's
+ *  report arrived short and prints MARK when it ran (#1052). */
+export function reporterArgs(root = repoRoot) {
+  return [
+    "--test-reporter=spec",
+    "--test-reporter-destination=stdout",
+    `--test-reporter=${path.join(root, "infra/scripts/lib/every-file-reported.mjs")}`,
+    "--test-reporter-destination=stdout",
+  ];
+}
+
+/** The script with the reporters after `node --test`; a script of any
+ *  other shape (vitest) is unchanged. */
+export function withReporter(script, root = repoRoot) {
+  if (!NODE_TEST.test(script)) return script;
+  const args = reporterArgs(root).map((a) => `'${a.replaceAll("'", "'\\''")}'`);
+  return script.replace(NODE_TEST, `node --test ${args.join(" ")}`);
+}
+
+/** Whether the unit runs under `node --test`, and so must print MARK. */
+export function reportsEveryFile(unit) {
+  return !unit.workspace || NODE_TEST.test(unit.script);
+}
+
 /** How a unit runs: its workspace's `test` script under `sh -c` in the
  *  workspace's directory, with the workspace's and the root's
  *  `node_modules/.bin` first on PATH (what `npm test` would do), or the
@@ -239,7 +281,7 @@ export function unitCommand(
       cmd: process.execPath,
       args: [
         "--test",
-        "--test-force-exit",
+        ...reporterArgs(root),
         "docs/*.test.mjs",
         "acceptance/**/*.test.mjs",
       ],
@@ -252,7 +294,7 @@ export function unitCommand(
   ];
   return {
     cmd: "sh",
-    args: ["-c", unit.script],
+    args: ["-c", withReporter(unit.script, root)],
     cwd: unit.dir,
     env: { PATH: [...bins, basePath].filter(Boolean).join(path.delimiter) },
   };
@@ -268,24 +310,38 @@ export function runUnit(unit, env = {}) {
       if (settled) return;
       settled = true;
       if (note) chunks.push(Buffer.from(note));
+      const output = Buffer.concat(chunks).toString("utf8");
+      // A node test unit that exited 0 without the file check's line
+      // ran without it (#1052): not a pass, whatever node counted.
+      const unchecked =
+        exit === 0 &&
+        !signal &&
+        reportsEveryFile(unit) &&
+        !output.includes(MARK);
       resolve({
         ...unit,
-        ok: exit === 0 && !signal,
+        ok: exit === 0 && !signal && !unchecked,
         exit,
         signal: signal ?? null,
+        unchecked,
         seconds: (Date.now() - started) / 1000,
-        output: Buffer.concat(chunks).toString("utf8"),
+        output,
       });
     };
+    const childEnv = {
+      ...process.env,
+      ...env,
+      ...own,
+      FORCE_COLOR: process.env.FORCE_COLOR ?? "0",
+    };
+    // A unit is a top-level node --test run even when this runs inside
+    // one (the runner's own tests): inherited, this makes node --test
+    // a child that writes serialized results and skips its reporters.
+    delete childEnv.NODE_TEST_CONTEXT;
     const child = spawn(cmd, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
-      env: {
-        ...process.env,
-        ...env,
-        ...own,
-        FORCE_COLOR: process.env.FORCE_COLOR ?? "0",
-      },
+      env: childEnv,
     });
     child.stdout.on("data", (c) => chunks.push(c));
     child.stderr.on("data", (c) => chunks.push(c));
@@ -306,6 +362,8 @@ export function runUnit(unit, env = {}) {
 /** How a unit ended, in words: "exit 1", "killed by SIGABRT". */
 export function describeExit(r) {
   if (r.signal) return `killed by ${r.signal}`;
+  if (r.unchecked)
+    return `exit 0, but no "${MARK}" line: the per-file test count never ran`;
   return typeof r.exit === "number" ? `exit ${r.exit}` : `${r.exit}`;
 }
 

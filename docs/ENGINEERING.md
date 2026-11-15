@@ -745,6 +745,18 @@ pools at two connections, so four sessions verifying at once stay under
 the local server's 100 connections
 (`docs/notes/2026-11-13-test-db-slots.md`).
 
+A pass counts only tests that reported. Every `node --test` unit runs
+with `infra/scripts/lib/every-file-reported.mjs` beside `spec`: each test
+file must deliver its own end-of-file summary, and the results read from
+it must number the tests that summary says it ran, or the unit fails; a
+node unit that never printed the check's line fails too. No hand-kept
+counts. So a workspace's test script is `node --test` followed by its
+test files' glob (`'**/*.test.mjs'`, never a bare `node --test`, which
+also runs helpers under `test/` as empty files), or `vitest run`; and no
+script uses `--test-force-exit`, which let a file's process exit before
+its last results were read (`docs/notes/2026-11-14-test-count-integrity.md`).
+A test file ends when its handles close.
+
 **The acceptance suite** (`acceptance/`, layers in `acceptance/README.md`)
 reads the deployed door as a read-only agent principal with its own token
 and budget, and asserts invariants, never values that change daily. It runs

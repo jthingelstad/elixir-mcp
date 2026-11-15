@@ -34,7 +34,7 @@
     "./read-facts": "./src/read-facts.mjs"
   },
   "scripts": {
-    "test": "node --test --test-force-exit"
+    "test": "node --test '**/*.test.mjs'"
   },
   "dependencies": {
     "@elixir-mcp/contracts": "0.1.0"

@@ -8,7 +8,7 @@
     "build": "eleventy",
     "dev": "eleventy --serve",
     "pretest": "node ../../infra/scripts/build-site.mjs --skip-stats",
-    "test": "node --test --test-force-exit"
+    "test": "node --test '**/*.test.mjs'"
   },
   "dependencies": {
     "@elixir-mcp/contracts": "*",

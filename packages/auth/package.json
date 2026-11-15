@@ -10,7 +10,7 @@
     "./*": "./src/*.mjs"
   },
   "scripts": {
-    "test": "node --test --test-force-exit"
+    "test": "node --test '**/*.test.mjs'"
   },
   "dependencies": {
     "@elixir-mcp/clan-engine": "0.1.0",

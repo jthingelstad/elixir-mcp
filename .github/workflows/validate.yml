@@ -93,6 +93,10 @@ jobs:
   test:
     name: test (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
+    # A shard takes about 2 minutes. Test files end when their handles
+    # close (no --test-force-exit since #1052), so a file that leaks one
+    # hangs its shard; this ends it as a failure, not a six-hour wait.
+    timeout-minutes: 15
     permissions:
       contents: read
     strategy:
