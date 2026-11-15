@@ -17,8 +17,12 @@
  * bell behave exactly as a tap would: the account follow is logged as
  * `account_followed`, and a player the reader cannot take (no free slot,
  * no player of their own) is skipped and told as `follow_skipped`.
- * Nothing is unfollowed. Idempotent: a pair already linked is not read
- * again, so a second apply does nothing.
+ * It also catches up the account follows made before linked follows,
+ * which followed no players: each follows the account's Verified players
+ * it lacks. Nothing is unfollowed. Idempotent: a pair already linked
+ * (account followed, every Verified player followed) is not read again,
+ * so a second apply does nothing, except to try again a player a reader
+ * could not take the first time.
  *
  * The dry run only reads: the pairs and the players each would add.
  * The answer is counts only, never an account id, a tag or a name.
@@ -43,7 +47,9 @@ export function readSpec(spec) {
 /**
  * The pairs to link: an approved person holding a friend claim on a
  * player Verified (as primary or alt) by another approved person, with
- * no account follow between them yet.
+ * no account follow between them yet; and every account follow already
+ * made (before linked follows it followed no players), kept when the
+ * account has a Verified player its follower does not follow yet.
  */
 async function pairsToLink(db) {
   const { rows } = await db.query(
@@ -62,9 +68,30 @@ async function pairsToLink(db) {
           select 1 from account_follow af
            where af.account_id = f.account_id
              and af.followed_account_id = v.account_id)
-      order by f.account_id, v.account_id`,
+     union
+     select af.account_id, af.followed_account_id
+       from account_follow af
+       join account r on r.account_id = af.account_id
+                     and r.kind = 'person' and r.status = 'approved'
+       join account o on o.account_id = af.followed_account_id
+                     and o.kind = 'person' and o.status = 'approved'
+     order by 1, 2`,
   );
-  return rows;
+  const pairs = [];
+  for (const p of rows) {
+    const tags = await linkedTagsToFollow(db, p.reader_id, p.owner_id);
+    const followsAlready = (
+      await db.query(
+        `select 1 from account_follow
+          where account_id = $1 and followed_account_id = $2`,
+        [p.reader_id, p.owner_id],
+      )
+    ).rows.length;
+    // An account follow with every Verified player followed is done.
+    if (followsAlready && !tags.length) continue;
+    pairs.push({ ...p, tags: tags.length });
+  }
+  return pairs;
 }
 
 /** One pass over every pair. Counts only. */
@@ -81,11 +108,9 @@ export async function linkedFollowConvert(db, spec) {
     skipped: {},
     failed: 0,
   };
-  for (const { reader_id: readerId, owner_id: ownerId } of pairs) {
+  for (const { reader_id: readerId, owner_id: ownerId, tags } of pairs) {
     if (!spec.apply) {
-      out.players_to_follow += (
-        await linkedTagsToFollow(db, readerId, ownerId)
-      ).length;
+      out.players_to_follow += tags;
       continue;
     }
     try {

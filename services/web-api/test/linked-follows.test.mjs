@@ -222,7 +222,7 @@ test("a player the account verifies later joins every follow of it", async () =>
   await claim(OWNER, N, "alt", true);
   const r = await linkNewVerified(scratch.db, OWNER, N);
   // READER takes it; NOPLAYER still has no player of their own.
-  assert.deepEqual(r, { followed: 1, skipped: 1 });
+  assert.deepEqual(r, { followed: 1, skipped: 1, linked: 0 });
   assert.ok((await friendsOf(READER)).includes(N));
 });
 
@@ -242,4 +242,19 @@ test("Claimed and Imported players stay player-only", async () => {
   const r = await unfollow(READER, C);
   assert.equal(data(r).unfollowed, undefined);
   assert.equal(await followsAccount(READER, OWNER), true);
+});
+
+test("a Claimed player's followers are linked when its owner verifies it", async () => {
+  // READER follows C while it is only Claimed: player-only.
+  await follow(READER, C);
+  assert.equal(await followsAccount(READER, CLAIMER), false);
+  // CLAIMER verifies C: READER now follows CLAIMER's account.
+  await scratch.db.query(
+    `update claim set status = 'verified', verified_at = now()
+      where account_id = $1 and player_tag = $2`,
+    [CLAIMER, C],
+  );
+  const r = await linkNewVerified(scratch.db, CLAIMER, C);
+  assert.equal(r.linked, 1);
+  assert.equal(await followsAccount(READER, CLAIMER), true);
 });

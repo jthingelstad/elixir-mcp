@@ -14,7 +14,9 @@ player-only, existing follows convert as recommended".
   (`account_follow`) and each of its other Verified players.
 - Following an account (`POST /api/me/account-follows`) follows its
   Verified players. Verifying a player (`routes/verify.mjs`) runs
-  `linkNewVerified`, so every follower of the account follows it too.
+  `linkNewVerified`, so every follower of the account follows it too, and
+  everyone who already followed that player (while it was Claimed or
+  Imported) now follows the account and its other Verified players.
 - Unfollowing the account, or a Verified player of an account the reader
   follows, ends it all (`unfollowAccountLinked`). A player the reader
   claims as their own, or watches, is never touched.
@@ -39,7 +41,9 @@ clan's Follow everyone reads); Unfollow says the whole link ends.
 
 `{linked_follow_convert}` (dry run reads; `apply: true` writes) links each
 person who already followed a player another account verified, through
-the same live path (via `convert`), once after the deploy. Counts only.
+the same live path (via `convert`), once after the deploy. It also
+catches up account follows made before linked follows, which followed no
+players (Codex on #1063). Counts only.
 
 ## Product questions, decided as [engineering]
 
