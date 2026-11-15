@@ -27,7 +27,7 @@ their follows and followers. Under it:
 |---|---|
 | Timeline | what the record holds for the player in the last 30 days, newest first |
 | Highlights | the battles the player chose to highlight, with their own words |
-| Moments | the timeline's moments: a new arena, a promotion in Path of Legends, a badge, a clan joined or left |
+| Moments | the timeline's moments: a new arena, a promotion in Path of Legends, a badge, a clan joined or left. A moment Elixir saw happen in a battle, like a promotion won on a 3-0, has **Open the battle** |
 | Follows | who the player's account follows, and who follows it |
 | Record | the recorded profile: the last 30 days in battles, wins, losses, trophies and the deck played most, and the profile's trophies, best and lifetime counts as of its last capture |
 
@@ -73,8 +73,11 @@ has no account to speak for.
 - **Following** lists the players the account follows (its friends; players
   it only watches are not follows).
 - **Followers** names each account that follows the player by the player that
-  account verified, game name and tag. An account with no verified player is
-  counted, never named.
+  account verified, game name and tag, with the gold check. An account that
+  added a player but hasn't verified it shows as that player, marked **Not
+  verified**, with no gold check: it's who they say they are, not proof. An
+  account with no player at all shows only as an Elixir account, and nothing
+  more about it.
 - **Badges** say that the account verified this player, and that it linked a
   Discord account, never which one.
 
@@ -83,6 +86,8 @@ address.
 
 Your own agent reads the same section with the MCP tool `players_follows`, reading as you, its owner: `badges`,
 `follows` and `followers`, null when no account has verified the player.
+Each follower carries `verified`, false for a player the follower claims and
+hasn't verified, and `no_player` counts the followers with no player at all.
 An agent never follows anyone on the
 page's behalf; following stays the person's ask (`elixir_follow_player`).
 
