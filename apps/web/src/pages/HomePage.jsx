@@ -91,7 +91,7 @@ export function HomePage() {
       <HomePanels
         first={live}
         player={player}
-        feed={<HomeFeed chipsAt={chipsAt} />}
+        feed={({ suggest }) => <HomeFeed chipsAt={chipsAt} suggest={suggest} />}
       />
     </>
   );

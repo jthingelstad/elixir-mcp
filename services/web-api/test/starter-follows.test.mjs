@@ -5,7 +5,7 @@
  * clanmates battled in clan chat; then the most recently active clanmates),
  * the cap on players that would take a slot, every row's reason and cost,
  * game names only, never a player the account claims, and the offer on
- * every visit while the account follows fewer than five players, unless
+ * every visit while fewer than five of its follows played this week, unless
  * "Not now" was said in the last 30 days.
  * Nothing here follows anyone. Invented names and tags throughout.
  */
@@ -243,7 +243,7 @@ test("the starter set takes no more slots than are left; free ones are not count
   }
 });
 
-test("offered on every visit while the account follows fewer than five, finished welcome or not", async (t) => {
+test("offered on every visit while fewer than five follows played, finished welcome or not", async (t) => {
   t.mock.method(console, "info", () => {});
   // A finished welcome changes nothing (Jamie, 2026-11-13: "even if it
   // isn't their first login").
@@ -277,6 +277,38 @@ test("offered on every visit while the account follows fewer than five, finished
   );
   await db.query(
     `update account set welcome_finished_at = null where account_id = $1`,
+    [ownerId],
+  );
+});
+
+test("follows who have not played in seven days do not end the offer (#1016)", async (t) => {
+  t.mock.method(console, "info", () => {});
+  // Five invented follows: four never recorded in battle, one last seen
+  // eight days ago. None played this week, so the offer stays.
+  const quiet = ["#0YCLGYCG", "#00QGUQRG", "#0LR8RQ82", "#0RPYYYYV"];
+  const stale = "#0CUQ9G2L";
+  for (const tag of [...quiet, stale]) {
+    await player(tag, "Invented Quiet");
+    await db.query(
+      `insert into claim (account_id, player_tag, relationship) values ($1, $2, 'friend')`,
+      [ownerId, tag],
+    );
+  }
+  await battle("PvP", 8 * 24, [stale], [FOE_A]);
+  let res = await call("/api/me/people/starter");
+  assert.equal(res.body.offer, true);
+  for (const tag of [...quiet, stale])
+    assert.ok(!res.body.people.some((p) => p.tag === tag), tag);
+  // Five who played this week end it, whatever the quiet ones.
+  for (const tag of [LADDER, FOE_A, FOE_B, TEAMMATE, FRIEND])
+    await db.query(
+      `insert into claim (account_id, player_tag, relationship) values ($1, $2, 'friend')`,
+      [ownerId, tag],
+    );
+  res = await call("/api/me/people/starter");
+  assert.deepEqual(res.body, { ok: true, offer: false, people: [] });
+  await db.query(
+    `delete from claim where account_id = $1 and relationship = 'friend'`,
     [ownerId],
   );
 });

@@ -175,7 +175,7 @@ record, about Clan and the thing on screen, and the answer comes to your
 [feedback](/docs/your-account#feedback) and your inbox.
 
 On a phone the tabs stay in one row under the clan's name, scrolling
-sideways when they do not all fit, with a count on the Feed when something is
+sideways when they do not all fit, with an arrow on the edge that has more, with a count on the Feed when something is
 waiting for you, and Run opens as its list of sections.
 
 Coming to a clan (its address, [/clan](/clan) or coming back from sign-in)

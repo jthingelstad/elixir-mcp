@@ -113,8 +113,11 @@ export async function firstAnswer(db, accountId, playerTag = null) {
     [accountId],
   );
   // What Home still reads beside the profile list (#1015, which replaced
-  // the older welcome steps): how many players the account follows (the
-  // starter set is offered under STARTER_UNDER) and the person's own
+  // the older welcome steps): how many players the account follows, and
+  // how many of them have a recorded battle in the last seven days,
+  // counted only to five, all the gate needs, so a big follow list stops
+  // probing early (the starter set is offered while that is under
+  // STARTER_UNDER, #1016), and the person's own
   // digest setting for Home's digest panel, a tracking_report row of
   // their own (the table holds a row only where a person changed the
   // default; an operator's row is not their choice). The profile list's
@@ -124,6 +127,16 @@ export async function firstAnswer(db, accountId, playerTag = null) {
     `select (select count(*)::int from claim
               where account_id = $1 and relationship = 'friend'
                 and not is_primary) as following,
+            (select count(*)::int from (
+               select 1 from claim c
+                where c.account_id = $1 and c.relationship = 'friend'
+                  and not c.is_primary
+                  and exists (
+                    select 1 from battle_participant bp
+                     where bp.player_tag = c.player_tag
+                       and bp.battle_time >= now() - interval '7 days'
+                       and bp.battle_time <= now())
+                limit 5) p) as following_played,
             (select json_build_object('chosen_at', changed_at,
                                       'enabled', enabled,
                                       'cadence', coalesce(cadence, 'weekly'))
@@ -142,7 +155,7 @@ export async function firstAnswer(db, accountId, playerTag = null) {
     clan: clan.rows[0] ?? null,
     setup: steps,
     // Home's suggested follows (2026-11-13) are offered while
-    // setup.following is under STARTER_UNDER, unless "Not now" was said
+    // setup.following_played is under STARTER_UNDER, unless "Not now" was said
     // until this instant.
     starter_hidden_until: starter_hidden_until?.toISOString() ?? null,
   };

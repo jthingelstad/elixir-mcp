@@ -14,9 +14,12 @@ import {
   useClock,
   useFlash,
 } from "@elixir-mcp/ui";
-import { SETTINGS } from "../lib/settings.js";
 import { playerHref } from "../lib/player.js";
-import { useHomeFeed, useHomeFeedEvidence } from "../lib/queries.js";
+import {
+  useHomeFeed,
+  useHomeFeedEvidence,
+  useMyPassport,
+} from "../lib/queries.js";
 import {
   TimelineEvidence,
   useTimelinePlace,
@@ -25,6 +28,7 @@ import {
   FEED_CHIPS,
   feedShown,
   modeWord,
+  quietFeed,
   shownAt,
   timelineDays,
 } from "./logic.js";
@@ -33,6 +37,7 @@ import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
 import { SessionGames } from "./SessionGames.jsx";
 import { Cheers } from "./Cheers.jsx";
 import { RacePlace } from "./RacePlace.jsx";
+import { PeopleToFollow } from "./People.jsx";
 
 /**
  * Home's one feed (slice 7, #765): the last seven days of everyone you
@@ -56,8 +61,13 @@ import { RacePlace } from "./RacePlace.jsx";
  * them a place (`chipsAt`, design canvas 2026-11-13), else above the feed.
  * New is one more toggle in the same row, not a second row of chips: on, it
  * keeps only what is new since your last visit, under whichever Show chip.
+ *
+ * A quiet week (#1016) says why from the passport's follow counts (Quiet)
+ * and leads to Find. With `suggest`, Home's People to follow moves here,
+ * under it, so a phone sees who to follow without scrolling past the side
+ * panels; Home leaves the side panel out meanwhile.
  */
-export function HomeFeed({ chipsAt = null } = {}) {
+export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
   const { day, feedDayHeading: dayHeading } = useClock();
   const query = useHomeFeed();
   const pages = query.data?.pages ?? [];
@@ -74,6 +84,10 @@ export function HomeFeed({ chipsAt = null } = {}) {
     openedMs !== null && Date.parse(it.observed_at ?? it.at) > openedMs;
   // Q8 keeps the State chips; the four Show chips replace its Who chips
   // (Jamie, 2026-11-12).
+  // The passport is Home's read already (the profile list's); a quiet feed
+  // reads its follow counts, and only then.
+  const quiet = query.isSuccess && items.length === 0;
+  const passport = useMyPassport(quiet);
   const shown = feedShown(items, show).filter((it) => !newOnly || isNew(it));
   const more = timeline?.timeline_more ?? 0;
   if (query.isPending)
@@ -101,17 +115,14 @@ export function HomeFeed({ chipsAt = null } = {}) {
     );
   if (items.length === 0)
     return (
-      <Empty
-        title="Nothing in the last seven days"
-        action={
-          <Link to={`${SETTINGS}/players`} className="btn btn--sm">
-            Choose who you follow
-          </Link>
+      <Quiet
+        follows={
+          passport.data?.ok
+            ? (passport.data.data?.owner?.profile?.follows ?? null)
+            : null
         }
-      >
-        Everyone you follow, your clan and you appear here while their notify
-        switch is on.
-      </Empty>
+        suggest={suggest}
+      />
     );
   const days = timelineDays(shown, { day, openedMs });
   // The week's counts, from the first page; what is loaded, if it has none.
@@ -246,6 +257,30 @@ export function HomeFeed({ chipsAt = null } = {}) {
           ? ` A busy week: the ${total} newest are shown, and ${more.toLocaleString("en-US")} more this week are not.`
           : ""}
       </p>
+    </div>
+  );
+}
+
+/** A quiet week (#1016): why, as far as Elixir knows it, and the next step,
+ *  Find, where your battles' and your clan's people wait with why each one
+ *  is there. With `suggest`, People to follow sits under it. */
+function Quiet({ follows, suggest }) {
+  const q = quietFeed(follows);
+  return (
+    <div className="kit-feed kit-feed--quiet">
+      <Empty
+        title={q.title}
+        titleAs="h2"
+        data-quiet={q.key}
+        action={
+          <Link to="/home/find" className="btn btn--primary">
+            Find your people
+          </Link>
+        }
+      >
+        {q.body}
+      </Empty>
+      {suggest ? <PeopleToFollow /> : null}
     </div>
   );
 }

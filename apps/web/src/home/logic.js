@@ -444,19 +444,71 @@ export function starterPlan(chosen, used, limit) {
   };
 }
 
-/** Home offers its suggested follows while an account follows fewer
- *  players than this (its own not counted, nor clans) [engineering,
- *  2026-11-13]. The server holds the same number (STARTER_UNDER). */
+/** Home offers its suggested follows while fewer than this many of the
+ *  players an account follows played in the last seven days (its own not
+ *  counted, nor clans) [engineering, 2026-11-13; 2026-11-14, #1016]. The
+ *  server holds the same number (STARTER_UNDER). */
 export const STARTER_UNDER = 5;
 
 /** Whether Home offers the starter set (2026-11-13): on every visit while
- *  the account follows fewer than STARTER_UNDER players (Jamie: "even if it
- *  isn't their first login"), unless "Not now" was said and its 30 days
- *  have not run out. From Home's own read; the server checks the same
- *  before it answers. */
+ *  fewer than STARTER_UNDER of the players the account follows have a
+ *  recorded battle in the last seven days (Jamie: "even if it isn't their
+ *  first login"; #1016: ten quiet follows are not a feed), unless "Not now"
+ *  was said and its 30 days have not run out. From Home's own read
+ *  (`setup.following_played`, or `setup.following` from an older read); the
+ *  server checks the same before it answers. */
 export function offersStarter(first, nowMs = Date.now()) {
-  const following = first?.setup?.following;
-  if (typeof following !== "number" || following >= STARTER_UNDER) return false;
+  const setup = first?.setup;
+  const played =
+    typeof setup?.following_played === "number"
+      ? setup.following_played
+      : setup?.following;
+  if (typeof played !== "number" || played >= STARTER_UNDER) return false;
   const until = first?.starter_hidden_until;
   return !(until && Date.parse(until) > nowMs);
+}
+
+/**
+ * What a quiet Home says (#1016), from the passport's count of the players
+ * you follow by their activity (`owner.profile.follows`: following, active,
+ * inactive, unknown; stamps eligibility followActivity), so a quiet feed is
+ * friend-focused and honest about coverage:
+ *
+ *  - nobody followed yet: the feed waits for friends;
+ *  - any follow whose battles Elixir has not read lately (unknown), or one
+ *    with a recorded battle the stored feed has not caught (active):
+ *    Elixir is still catching up, never "they didn't play";
+ *  - every follow freshly read with no battle this week: they have been
+ *    quiet;
+ *  - the counts unread or failed: the plain line, claiming neither.
+ */
+export function quietFeed(follows) {
+  if (!follows || typeof follows.following !== "number")
+    return {
+      key: "unknown",
+      title: "Nothing in the last seven days",
+      body: "Battles from the players you follow, your clan and you show up here.",
+    };
+  if (follows.following === 0)
+    return {
+      key: "none",
+      title: "Your feed is waiting for friends",
+      body: "Follow your friends and clanmates, and their battles show up here.",
+    };
+  if ((follows.unknown ?? 0) > 0 || (follows.active ?? 0) > 0)
+    return {
+      key: "catching_up",
+      title: "Still catching up",
+      body: "Elixir is still reading battles for some of the players you follow. Their play shows up here once it’s read.",
+    };
+  const one = follows.following === 1;
+  return {
+    key: "quiet",
+    title: one
+      ? "The player you follow has been quiet"
+      : "The players you follow have been quiet",
+    body: one
+      ? "They haven’t played a battle in the last 7 days. When they do, it shows up here."
+      : "None of them has played a battle in the last 7 days. When they do, it shows up here.",
+  };
 }
