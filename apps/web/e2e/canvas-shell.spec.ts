@@ -304,7 +304,7 @@ for (const [label, width] of [
       ).toHaveAttribute("href", "/settings/feedback/42");
       await expect(
         sheet.getByRole("region", { name: "Earlier" }),
-      ).toContainText("2 more followers with no verified player");
+      ).toContainText("2 more followers with no player added yet");
       await expect(
         sheet.getByRole("region", { name: "Needs you" }),
       ).toBeVisible();
