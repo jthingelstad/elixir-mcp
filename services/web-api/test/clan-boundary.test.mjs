@@ -103,3 +103,21 @@ test("only Clan's web wiring and the clans_directory tool read the clan director
     "services/web-api/src/clan.mjs",
   ]);
 });
+
+// The player map and Near you (#768) read people's places through the same
+// seam, for Find alone: never MCP, a tool, or Clan's own handler.
+test("only Find's people reads read the player map and Near you", async () => {
+  const callers = [];
+  for (const top of ["services", "packages", "apps"]) {
+    for await (const file of files(path.join(ROOT, top))) {
+      const rel = path.relative(ROOT, file);
+      if (/(^|\/)(test|e2e)\//.test(rel)) continue;
+      const text = await readFile(file, "utf8");
+      if (/\b(readPlayerMap|readNearYou)\b/.test(text)) callers.push(rel);
+    }
+  }
+  assert.deepEqual(callers.sort(), [
+    "packages/auth/src/clan-context.mjs",
+    "services/web-api/src/people.mjs",
+  ]);
+});

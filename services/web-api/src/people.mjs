@@ -23,6 +23,8 @@ import {
   pooledUsage,
 } from "@elixir-mcp/claims";
 import { CLANMATE_TYPES, FRIENDLY_TYPES } from "@elixir-mcp/contracts";
+import { readNearYou, readPlayerMap } from "@elixir-mcp/auth/clan-context";
+import { MAP_ATTRIBUTION, placeName, resolvePlace } from "./player-places.mjs";
 import { homeClan } from "./routes/clans.mjs";
 import { FOLLOW_ALL_MAX, followPlan } from "./routes/player.mjs";
 
@@ -545,4 +547,76 @@ export async function hideStarter(db, accountId) {
     [accountId],
   );
   return { hidden_at: rows[0]?.starter_hidden_at?.toISOString() ?? null };
+}
+
+/**
+ * Find's Near you (#768): the people on the player map in the reader's
+ * region (the same country and state or region; a country with no regions
+ * is one region), each as the player they verified, with why as a fact
+ * ("Plays near you, in <their city, else region>") and what following
+ * costs. Never ranked: the reader's city first, then by name. Only for a
+ * reader who has set a place; `place: null` otherwise. `place.on_map` says
+ * whether the reader's own place is on the player map, for the page's
+ * invitation to join it.
+ */
+export async function nearPeople(db, accountId) {
+  const got = await readNearYou(db, { accountId, kind: "person" });
+  if (got.refused || !got.place) return { place: null, people: [] };
+  const mine = await resolvePlace(got.place);
+  if (!mine) return { place: null, people: [] };
+  const listed = [];
+  for (const p of got.people) {
+    const place = await resolvePlace(p.place);
+    if (!place) continue;
+    listed.push({
+      tag: p.player_tag,
+      name: p.name ?? null,
+      why: [{ kind: "near", place_name: placeName(place) }],
+    });
+  }
+  const slots = await slotsOf(db, accountId);
+  const costs = await costsOf(
+    db,
+    slots.owner.account_id,
+    listed.map((p) => p.tag),
+  );
+  return {
+    place: {
+      name: placeName(mine),
+      region_name: mine.region_name ?? mine.country_name,
+      on_map: got.place.on_map,
+    },
+    people: listed.map((p) => ({ ...p, ...costs.get(p.tag) })),
+    truncated: got.truncated,
+    used: slots.used,
+    limit: slots.limit,
+  };
+}
+
+/**
+ * The player map (#768): everyone who chose it, each a pin at their
+ * picked place as the clan map draws it (the place's own point and time
+ * zone), with their verified player's game name and tag; `you` marks the
+ * reader's own.
+ */
+export async function playerMap(db, accountId) {
+  const got = await readPlayerMap(db, { accountId, kind: "person" });
+  if (got.refused) return { entries: [], on_map: 0, truncated: false };
+  const entries = [];
+  for (const e of got.entries) {
+    const place = await resolvePlace(e.place);
+    if (!place) continue;
+    entries.push({
+      player_tag: e.player_tag,
+      name: e.name,
+      you: e.you,
+      place,
+    });
+  }
+  return {
+    entries,
+    on_map: entries.length,
+    truncated: got.truncated,
+    attribution: MAP_ATTRIBUTION,
+  };
 }
