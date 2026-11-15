@@ -10,7 +10,6 @@ export default {
       "`clans_roster`: each member's trophies and donations, roster columns and lifetime block come from the newest row of their kind.",
       "`battles_compare`: each player's topline, likewise.",
       "`clans_series`: a member carried from an earlier day's profile takes that day's newest profile row.",
-      "`elixir_timeline`: a player's profile at an instant takes the day's moving row when one read inside the window wrote both rows at that instant.",
     ),
     "No field or argument changed. The JSON API is unchanged at 5.1.0.",
   ),
