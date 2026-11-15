@@ -16,6 +16,7 @@ import {
   useFlash,
 } from "@elixir-mcp/ui";
 import { playerHref } from "../lib/player.js";
+import { accountHref, accountOf } from "../lib/account.js";
 import {
   reloadHomeFeed,
   useHomeFeed,
@@ -518,6 +519,11 @@ function FeedItem({ it, open, onToggle }) {
       ) : null}
       {it.kind === "battle_highlight" ? (
         <HighlightLinks facts={it.facts} />
+      ) : null}
+      {accountOf(it) ? (
+        <Link to={accountHref(accountOf(it))} className="btn btn--sm">
+          Open their account
+        </Link>
       ) : null}
       {it.evidence ? (
         <button

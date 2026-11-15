@@ -1,5 +1,7 @@
 # Accounts and privacy
 
+*2026-11-15: accounts now have pages at `/home/account/<id>` and can be followed; a player is Imported, Claimed or Verified (DECISIONS, `docs/notes/2026-11-15-account-pages.md`).*
+
 *Rewritten 2026-11-13 to the social layer, from the brief Jamie ratified
 on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
 [DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Ratified by Jamie, 2026-11-13

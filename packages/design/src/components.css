@@ -8544,6 +8544,31 @@ a.kit-bell__hit:focus-visible::after {
 .kit-statrow .kit-stat__value {
   font-size: var(--t-h2);
 }
+/* An account's page (2026-11-15): its players, primary first. */
+.kit-account__players {
+  margin: var(--s-3) 0;
+}
+.kit-account__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-2);
+}
+.kit-account__player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.kit-account__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.kit-player__identity {
+  margin: var(--s-1) 0 0;
+}
 .kit-player__badges {
   display: flex;
   flex-wrap: wrap;
@@ -10874,6 +10899,14 @@ html[data-session-player="verified"] .chrome__avatar--hint {
   box-shadow:
     0 0 0 2px var(--ground),
     0 0 0 4px var(--gold);
+}
+/* Claimed (2026-11-15): an account says it is this player and has not
+   verified it. The verified ring's geometry in a quiet grey, so gold stays
+   the one mark of proof. */
+.kit-av--claimed {
+  box-shadow:
+    0 0 0 2px var(--ground),
+    0 0 0 4px var(--ink-faint);
 }
 .kit-player-name {
   display: inline;

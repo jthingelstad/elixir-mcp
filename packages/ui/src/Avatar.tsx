@@ -1,4 +1,4 @@
-import { usePlayerVerified } from "./PlayerIdentity.tsx";
+import { usePlayerClaimed, usePlayerVerified } from "./PlayerIdentity.tsx";
 import { useState, type CSSProperties } from "react";
 import { avatarCrop } from "./avatar-crops.ts";
 import { cardArtSrc, isTowerTroop } from "./Cards.tsx";
@@ -96,6 +96,7 @@ export function Avatar({
   tag,
   card = null,
   verified,
+  claimed,
   clan = false,
   small = false,
   large = false,
@@ -106,17 +107,22 @@ export function Avatar({
    *  one. A clan never has one. */
   card?: number | null;
   verified?: boolean | undefined;
+  /** Claimed by an account and not verified: the grey ring. */
+  claimed?: boolean | undefined;
   clan?: boolean;
   small?: boolean;
   /** A clan's crest (canvas .crest) or a player page's head (.phead), 84px. */
   large?: boolean;
 }) {
   const known = usePlayerVerified(tag);
+  const knownClaim = usePlayerClaimed(tag);
   const proof = !clan && (verified ?? known);
+  const claim = !clan && !proof && (claimed ?? knownClaim);
   const picture = useAvatarCard(clan ? null : card);
   const cls = [
     "kit-av",
     proof ? "kit-av--verified" : null,
+    claim ? "kit-av--claimed" : null,
     clan ? "kit-av--clan" : `kit-av--${avatarHue(tag ?? name)}`,
     picture.card !== null ? "kit-av--image" : null,
     small ? "kit-av--s" : null,

@@ -185,6 +185,7 @@ export const CHILDREN = Object.freeze({
 export const KEPT = Object.freeze({
   account: "the account itself; removal is its own path",
   account_clan: "a current follow",
+  account_follow: "a current follow of another account",
   account_clan_declined: "a standing choice",
   account_discord: "a current link",
   account_email_pref: "a current mail setting",

@@ -241,6 +241,15 @@ export const api = {
   /** The profile list put away, for an account that finished the older
    *  welcome list. */
   dismissProfileList: () => request("POST", "/api/me/passport/dismiss", {}),
+  /** An account's page (2026-11-15), by its page id: the players it
+   *  claims or verified, its badges, place, Stamps and timeline. */
+  accountPage: (id) =>
+    request("GET", `/api/accounts/${encodeURIComponent(id)}`),
+  /** Follow an account: its news (a verified player, a Stamp, a place)
+   *  joins your feed. Free: it takes no follow slot. */
+  followAccount: (id) => request("POST", "/api/me/account-follows", { id }),
+  unfollowAccount: (id) =>
+    request("DELETE", `/api/me/account-follows/${encodeURIComponent(id)}`),
   /** A player's page (#764): their record, follows, followers and badges. */
   playerPage: (tag) =>
     request("GET", `/api/player?tag=${encodeURIComponent(tag)}`),

@@ -63,6 +63,7 @@ import {
 import { HOME, SIGN_IN, movedTo } from "./lib/moved.js";
 import { FOLLOW_ME, isPlayerPath } from "./lib/player.js";
 import { PASSPORT, isPassportPath } from "./lib/passport.js";
+import { ACCOUNT, isAccountPath } from "./lib/account.js";
 import { normTag } from "./lib/tag-url.js";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { Unavailable } from "./shell/Unavailable.jsx";
@@ -217,7 +218,8 @@ export function barArea(path, me = null) {
   if (clean === FIND || isPlayerPath(path)) return "find";
   // Your passport is You's; another member's is Find's, like their page.
   if (clean === PASSPORT) return "you";
-  if (isPassportPath(path)) return "find";
+  // An account's page and its passport are Find's too (2026-11-15).
+  if (isPassportPath(path) || isAccountPath(path)) return "find";
   if (clean === YOU) return "you";
   if (isHome(path)) return "home";
   // Stats is You's last tab (2026-11-12).
@@ -257,7 +259,8 @@ const HOME_PATHS = new Set([HOME, FIND, YOU]);
 const isHome = (path) =>
   HOME_PATHS.has(path.replace(/(.)\/$/, "$1")) ||
   isPlayerPath(path) ||
-  isPassportPath(path);
+  isPassportPath(path) ||
+  isAccountPath(path);
 
 const isClan = (path) =>
   path === "/clan" ||
@@ -313,7 +316,9 @@ export function titleFor(path) {
     const tab = path.split("/")[2];
     if (tab === "find") return `Find - ${SITE}`;
     if (tab === "you") return `You - ${SITE}`;
-    if (tab === "passport") return `Passport - Home - ${SITE}`;
+    if (tab === "passport" || isPassportPath(path))
+      return `Passport - Home - ${SITE}`;
+    if (tab === "account") return `Account - Home - ${SITE}`;
     const name =
       tab === "player" ? "Player" : tab === "follow" ? "Follow" : null;
     return name ? `${name} - Home - ${SITE}` : `Home - ${SITE}`;
@@ -756,10 +761,20 @@ const passportRoute = createRoute({
 });
 const passportViewRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: `${PASSPORT}/$id`,
+  path: `${ACCOUNT}/$id/passport`,
   component: lazyRouteComponent(
     () => import("./home/Passport.jsx"),
     "PassportPage",
+  ),
+});
+
+/** An account's page (2026-11-15), by its page id. */
+const accountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: `${ACCOUNT}/$id`,
+  component: lazyRouteComponent(
+    () => import("./home/Account.jsx"),
+    "AccountPage",
   ),
 });
 
@@ -781,6 +796,7 @@ export const routeTree = rootRoute.addChildren([
   followMeRoute,
   passportRoute,
   passportViewRoute,
+  accountRoute,
   signInRoute,
   settingsRoute,
   adminRoute,

@@ -7,7 +7,7 @@ order: 9
 navTitle: "Passport"
 icon: stamp
 lede: "Your passport holds Stamps: small marks for things you do in Elixir, each with the day you earned it."
-reviewed: "2026-11-15 a place shows on the maps and Near you, never on a passport; 2026-11-14 against contract 13.1.1"
+reviewed: "2026-11-15 a passport lives under its account page; 2026-11-15 a place shows on the maps and Near you, never on a passport; 2026-11-14 against contract 13.1.1"
 ---
 
 # Your passport
@@ -53,7 +53,9 @@ On the Map Stamp only says you set one. On your own passport, its button opens
 [Your place](/docs/your-account#your-place) with the picker ready.
 
 **Copy passport link** on your passport copies the address members can
-open.
+open. A passport lives on its account page, at
+`/home/account/<id>/passport`; see
+[Account pages](/docs/verified-players#account-pages).
 
 ## The gold mark
 
