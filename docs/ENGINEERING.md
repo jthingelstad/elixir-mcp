@@ -20,7 +20,12 @@ to keep it.
 the rows it actually inserted (a subject already queued is not charged
 twice) and plans against `min(tokens, capacity - queued bulk)` of the bulk
 share, so work queued through a fleet outage cannot stack past what the
-bucket allows. Every new live row (the live lane, a card first seen in a
+bucket allows. The plan is sized from an unlocked read, so the tick then
+takes its tokens in one floored statement (`grantBulk` in
+`packages/ledger/src/plan.mjs`: `least(asked, floor(tokens x bulk
+share))` of the row as it stands, under `for update`) and enqueues only
+what was granted: a live mint during planning shrinks the plan, and the
+bucket never goes below zero (#448). Every new live row (the live lane, a card first seen in a
 deck) takes one token atomically
 (`takeLiveToken` in `packages/ledger/src/ledger.mjs`); with none left it
 queues nothing, charges nothing (not even the account's live quota) and

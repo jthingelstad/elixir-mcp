@@ -9,10 +9,11 @@
  *      dominate), then expected yield (bph x hours overdue), then
  *      overdue, then endpoint/tag for determinism;
  *   4. take at most the bulk allowance (bulkAllowance: the bulk share
- *      of the tokens, less what is already queued), stamp
- *      last_planned_at, return jobs. The handler enqueues them and
- *      charges the bucket for the rows that were really inserted
- *      (chargeBudget), in the same transaction.
+ *      of the tokens, less what is already queued), take that many
+ *      tokens floored at what the bucket holds now (grantBulk, #448),
+ *      stamp last_planned_at on the granted jobs, return them. The
+ *      handler enqueues them and gives back the tokens of any that were
+ *      not really inserted (settleBulkCharge), in the same transaction.
  *
  * The live lane never goes through this planner. Each live job is
  * charged one token when it is minted (takeLiveToken in ledger.mjs), so
@@ -310,8 +311,8 @@ export function boardDayStartMs(nowMs) {
  * The bucket as it stands at `now`: the stored tokens plus what accrued
  * since the last settle, capped at BUCKET_CAP_SECONDS of carryover. A
  * read only - nothing is locked while the tick plans, so a live mint is
- * never held behind a tick (the row is written once, at the end, by
- * chargeBudget).
+ * never held behind the planning queries. The row is taken once the plan
+ * is chosen (grantBulk), which grants only what is still there.
  */
 export async function readBudget(db, now) {
   const {
@@ -346,25 +347,67 @@ export function bulkAllowance({ tokens, cap, liveReserve, queuedBulk }) {
 }
 
 /**
- * Settle the bucket to `now` and charge it `charged` tokens, in one
- * statement at the end of the tick. Relative to the row as it stands, so
- * a live mint that charged a token while the tick planned is kept, not
- * overwritten. Also records the charge by hour (budget_charge, 0187), the
- * ledger the status page reads.
+ * Settle the bucket to `now` and take up to `asked` tokens for the bulk
+ * lane, floored: it grants `least(asked, floor(settled x bulk share))`
+ * and never more, so the bucket cannot go negative and the live reserve
+ * stays whole (#448). The plan was sized from an unlocked read
+ * (readBudget), and a live mint may have spent tokens since; the grant is
+ * what is left now, and the caller enqueues only that many.
+ *
+ * One statement: the CTE's FOR UPDATE takes the row and reads its latest
+ * committed tokens, so the grant counts every live mint that committed
+ * first, and a live mint after it waits for the tick's commit. The cap
+ * (rate x BUCKET_CAP_SECONDS) is applied before the grant, as before; a
+ * balance already below zero (a debt from before #448) grants nothing
+ * and is repaid by accrual, never deepened.
+ *
+ * Taking the row here, before the enqueue, puts the tick in the same
+ * lock order as a live mint (budget row, then job rows); the old charge
+ * after the enqueue took them the other way round.
  */
-export async function chargeBudget(db, now, charged) {
+export async function grantBulk(db, now, asked) {
+  const {
+    rows: [g],
+  } = await db.query(
+    `with s as (
+       select least(rate_per_sec * $3,
+                    tokens + rate_per_sec * greatest(0, extract(epoch from ($1::timestamptz - settled_at))))
+                as settled,
+              live_reserve
+       from budget_state
+       for update
+     ), g as (
+       select settled,
+              least($2::int, greatest(0, floor(settled * (1 - live_reserve))))::int as granted
+       from s
+     )
+     update budget_state set tokens = g.settled - g.granted, settled_at = $1
+     from g
+     returning g.granted, budget_state.tokens::float as tokens`,
+    [now, Math.max(0, Math.floor(asked)), BUCKET_CAP_SECONDS],
+  );
+  return { granted: g.granted, tokens: g.tokens };
+}
+
+/**
+ * Close the tick's charge: give back the granted tokens the enqueue did
+ * not use (a planned subject that already had a queued job costs
+ * nothing), and record what was charged by hour (budget_charge, 0187),
+ * the ledger the status page reads. The refund only returns what
+ * grantBulk took, so the balance never passes the ceiling it settled to.
+ */
+export async function settleBulkCharge(db, now, granted, inserted) {
+  if (inserted > granted)
+    throw new Error(
+      `bulk_overcharge: ${inserted} inserted, ${granted} granted`,
+    );
   const {
     rows: [b],
   } = await db.query(
-    `update budget_state set
-       tokens = least(rate_per_sec * $3,
-                      tokens + rate_per_sec * greatest(0, extract(epoch from ($1::timestamptz - settled_at))))
-                - $2,
-       settled_at = $1
-     returning tokens::float as tokens`,
-    [now, charged, BUCKET_CAP_SECONDS],
+    "update budget_state set tokens = tokens + $1 returning tokens::float as tokens",
+    [granted - inserted],
   );
-  if (charged > 0) await recordCharge(db, "bulk", charged, now);
+  if (inserted > 0) await recordCharge(db, "bulk", inserted, now);
   await db.query(
     "delete from budget_charge where hour < $1::timestamptz - interval '8 days'",
     [now],
@@ -664,7 +707,7 @@ export function queueSummary(eligible) {
  * @param {import('pg').Client} db
  * @param {Date} now injectable for tests
  */
-export async function planTick(db, now = new Date()) {
+export async function planTick(db, now = new Date(), { grant = null } = {}) {
   const budget = await readBudget(db, now);
   const { tokens } = budget;
   await seedPollState(db, now);
@@ -693,7 +736,13 @@ export async function planTick(db, now = new Date()) {
     };
 
   const eligible = await selectEligible(db, now);
-  const selected = eligible.slice(0, bulkBudget);
+  const planned = eligible.slice(0, bulkBudget);
+  // The tick takes its tokens before anything is stamped or enqueued
+  // (grantBulk): a live mint during planning can leave fewer than the
+  // plan, and the lowest-ranked jobs are the ones dropped.
+  const selected = grant
+    ? planned.slice(0, await grant(planned.length))
+    : planned;
 
   // A plan settles any retry owed (0188). A retry keeps its count, so the
   // next failure waits twice as long; a plan the cadence made starts the

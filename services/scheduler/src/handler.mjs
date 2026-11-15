@@ -6,27 +6,41 @@
  */
 
 import pg from "pg";
-import { planTick, chargeBudget } from "@elixir-mcp/ledger/plan";
+import { planTick, grantBulk, settleBulkCharge } from "@elixir-mcp/ledger/plan";
 import { enqueueJob, settleLeases, ledgerStats } from "@elixir-mcp/ledger";
 
 /**
- * One tick's work inside the caller's transaction: plan, enqueue, and
- * charge the bucket for the rows the enqueue really INSERTED. A planned
- * subject that already had a queued job (a live row, or a bulk row a
- * dark fleet never leased) upgrades or folds into it and costs nothing:
- * charging every plan spent tokens on work that was never added (review
- * 2026-09-27 §4.1). The charge settles the bucket in the same statement,
- * last, so the budget row is locked only for the commit.
+ * One tick's work inside the caller's transaction: plan, take the plan's
+ * tokens floored at what the bucket holds now, enqueue, and give back
+ * the tokens of any planned subject that already had a queued job (a
+ * live row, or a bulk row a dark fleet never leased): it upgrades or
+ * folds into that job and costs nothing (review 2026-09-27 §4.1).
+ * The grant is one atomic statement (grantBulk), so a live mint that
+ * spent tokens while the tick planned shrinks the plan rather than
+ * driving the bucket negative (#448). From the grant to the commit the
+ * budget row is locked: a live mint then waits for the enqueue, a few
+ * hundred small statements at most.
  */
 export async function tickOnce(client, now) {
-  const result = await planTick(client, now);
+  let grant = null;
+  const result = await planTick(client, now, {
+    grant: async (asked) =>
+      (grant = await grantBulk(client, now, asked)).granted,
+  });
+  // A tick with no bulk allowance still settles the bucket to now.
+  grant ??= await grantBulk(client, now, 0);
   let inserted = 0;
   for (const job of result.jobs) {
     const row = await enqueueJob(client, job);
     if (row?.inserted) inserted += 1;
   }
-  const tokensAfter = await chargeBudget(client, now, inserted);
-  return { ...result, inserted, tokensAfter };
+  const tokensAfter = await settleBulkCharge(
+    client,
+    now,
+    grant.granted,
+    inserted,
+  );
+  return { ...result, granted: grant.granted, inserted, tokensAfter };
 }
 
 export function makeHandler({ databaseUrl, emitMetrics = () => {} }) {
