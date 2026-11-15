@@ -311,6 +311,43 @@ describe("the sheet", () => {
     ).toBe(true);
   });
 
+  test("an @handle shows even when the player search fails (Codex on #1065)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path) => {
+        const p = String(path);
+        const answer = (status, body) => ({
+          ok: status < 400,
+          status,
+          json: async () => body,
+          text: async () => JSON.stringify(body),
+        });
+        if (p === "/api/accounts?q=rubyk")
+          return answer(200, {
+            accounts: [
+              {
+                id: "abcdefghjkmn",
+                handle: "rubyk",
+                player: { tag: "#0VRGQ2YC", name: "Ruby" },
+              },
+            ],
+          });
+        if (p.startsWith("/api/me/tool"))
+          return answer(500, { message: "Elixir did not answer." });
+        return answer(200, {});
+      }),
+    );
+    renderWithProviders(<SearchSheet me={{ claims: [] }} onClose={vi.fn()} />);
+    fireEvent.change(
+      screen.getByRole("searchbox", { name: /Search players/, hidden: true }),
+      { target: { value: "@rubyk" } },
+    );
+    const row = await screen.findByText("@rubyk", {}, { timeout: 3000 });
+    expect(row.closest("a")?.getAttribute("href")).toBe(
+      "/home/account/abcdefghjkmn",
+    );
+  });
+
   test("two letters read nothing, however long they sit", async () => {
     // The debounce on a faked clock: "however long" is a minute of it,
     // not a real 650 ms a loaded host could stretch or squeeze.
