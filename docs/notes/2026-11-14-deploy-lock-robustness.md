@@ -74,3 +74,7 @@ nothing for a worktree beside the main checkout.
   the whole group and the lock is released only once the group is empty.
   Before, a shell killed by SIGTERM released the lock while the op it had
   started was still running.
+- (Codex on #1047) Waiting for the group counts only members still
+  running: a finished orphan that nothing reaps (PID 1 in some
+  containers) stays a zombie in the group, and used to hold the lock
+  for good. `liveGroupMembers` reads `ps` and skips zombies.

@@ -409,6 +409,40 @@ export async function holdForBatch({
   }
 }
 
+/** Every process as `pid pgid stat` lines (`ps` on macOS and Linux). */
+function psProcesses() {
+  return execFileSync("ps", ["-A", "-o", "pid=,pgid=,stat="], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+}
+
+/**
+ * How many members of process group `pgid` are still running: zombies
+ * (stat starting Z), which have exited and wait only to be reaped, are
+ * not counted. null when the process list cannot be read; the caller
+ * then trusts the group signal alone.
+ *
+ * @param {number} pgid
+ * @param {() => string} list
+ * @returns {number | null}
+ */
+export function liveGroupMembers(pgid, list = psProcesses) {
+  let out;
+  try {
+    out = list();
+  } catch {
+    return null;
+  }
+  let live = 0;
+  for (const line of out.split("\n")) {
+    const [pid, group, stat = ""] = line.trim().split(/\s+/);
+    if (!pid || Number(group) !== pgid) continue;
+    if (!stat.startsWith("Z")) live += 1;
+  }
+  return live;
+}
+
 /** Run the command in a process group of its own, passing this
  *  process's signals on to the whole group; resolves with its exit code
  *  (128 + n for a signal) once the command and every process it started
@@ -425,6 +459,7 @@ function runChild({
   proc,
   log,
   killGroup = (pid, signal) => process.kill(-pid, signal),
+  listProcesses = psProcesses,
   pollMs = 200,
 }) {
   return new Promise((resolve) => {
@@ -459,11 +494,15 @@ function runChild({
       if (!child.pid) return false;
       try {
         killGroup(child.pid, 0);
-        return true;
       } catch (error) {
         // EPERM: a member exists but is not ours to signal; still alive.
-        return error?.code === "EPERM";
+        if (error?.code !== "EPERM") return false;
       }
+      // Something answers for the group, but a finished orphan nobody
+      // reaps (PID 1 in some containers) stays a zombie in it for good;
+      // only a member still running counts.
+      const live = liveGroupMembers(child.pid, listProcesses);
+      return live === null ? true : live > 0;
     };
     const finish = (code) => {
       for (const [signal, forward] of forwards) proc.off(signal, forward);
