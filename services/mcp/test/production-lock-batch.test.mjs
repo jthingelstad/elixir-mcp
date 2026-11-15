@@ -7,6 +7,7 @@
  * AWS.
  */
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,6 +18,7 @@ import {
   acquireLock,
   batchLockFromEnv,
   holdForBatch,
+  liveGroupMembers,
   lockHolder,
   releaseLock,
 } from "../../../infra/scripts/lib/production-lock.mjs";
@@ -218,6 +220,39 @@ test(
     );
   },
 );
+
+test("batch: a zombie left in the group does not hold the lock", () => {
+  // Codex on #1047: where PID 1 reaps no orphans, a finished worker stays
+  // a zombie in the group forever; only running members count.
+  const ps = () =>
+    [
+      "    1     1 Ss",
+      "  500   500 S+",
+      "  501   500 Z",
+      "  502   500 R",
+      "  600   600 Z+",
+      "",
+    ].join("\n");
+  assert.equal(liveGroupMembers(500, ps), 2);
+  assert.equal(liveGroupMembers(600, ps), 0, "zombies only: the group is done");
+  assert.equal(liveGroupMembers(700, ps), 0);
+  assert.equal(
+    liveGroupMembers(500, () => {
+      throw new Error("no ps");
+    }),
+    null,
+  );
+  // The real ps parses: this test's own process is a running member of
+  // its own group.
+  const me = liveGroupMembers(
+    Number(
+      spawnSync("ps", ["-o", "pgid=", "-p", String(process.pid)], {
+        encoding: "utf8",
+      }).stdout.trim(),
+    ),
+  );
+  assert.ok(me >= 1, String(me));
+});
 
 test("batch: an exit before the command ends still releases the lock", async (t) => {
   const file = scratch(t);
