@@ -53,15 +53,21 @@ test("phone identities: proof survives missing art; art alone cannot create a ve
   const plainRow = page.locator(".kit-people__row").filter({ has: unverified });
   await expect(plainRow.locator(".kit-av img")).toBeVisible();
   await expect(plainRow.locator(".kit-av--verified")).toHaveCount(0);
+  // Find's tabs are one row that scrolls inside its own bar on a phone
+  // (#1016): the bar stays on the page, each tab a full-height target.
+  const bar = await page.getByRole("tablist", { name: "Find" }).boundingBox();
+  expect(bar!.x).toBeGreaterThanOrEqual(0);
+  expect(bar!.x + bar!.width).toBeLessThanOrEqual(390);
+  const tops = new Set<number>();
   for (const tab of await page
     .getByRole("tablist", { name: "Find" })
     .getByRole("tab")
     .all()) {
     const box = await tab.boundingBox();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    tops.add(Math.round(box!.y));
     expect(box!.height).toBeGreaterThanOrEqual(44);
   }
+  expect(tops.size).toBe(1);
   await verified.click();
   await expect(
     page.getByRole("heading", { name: "Ada Verified player", exact: true }),

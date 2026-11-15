@@ -5889,6 +5889,58 @@ a.card-art:hover .card-art__img {
   font-weight: 600;
   box-shadow: var(--mark-tab);
 }
+/* More tabs off an edge (#1016): a chevron on the page's ground over the
+   row's edge pixels, pinned there while the row scrolls, so a phone sees
+   there is more without guessing from a faded word. Decorative: a tap goes
+   through to the tab under it, and the arrow keys and a swipe scroll the
+   row. The edge fades under it rather than in the mask, which would hide
+   the chevron too. */
+.kit-tabs[data-more-right]:not(.kit-tabs--wrap) {
+  --fade-right: 0px;
+}
+.kit-tabs[data-more-left]:not(.kit-tabs--wrap) {
+  --fade-left: 0px;
+}
+.kit-tabs[data-more-right]:not(.kit-tabs--wrap)::after,
+.kit-tabs[data-more-left]:not(.kit-tabs--wrap)::before {
+  position: sticky;
+  display: flex;
+  flex: none;
+  align-items: center;
+  width: var(--hit);
+  color: var(--ink);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  pointer-events: none;
+}
+.kit-tabs[data-more-right]:not(.kit-tabs--wrap)::after {
+  content: "›";
+  /* Nothing for a screen reader: the tabs say themselves. */
+  content: "›" / "";
+  right: 0;
+  justify-content: flex-end;
+  margin-left: calc(-1 * var(--hit));
+  padding-right: 2px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--tabs-ground, var(--ground)) 55%
+  );
+}
+.kit-tabs[data-more-left]:not(.kit-tabs--wrap)::before {
+  content: "‹";
+  content: "‹" / "";
+  left: 0;
+  justify-content: flex-start;
+  margin-right: calc(-1 * var(--hit));
+  padding-left: 2px;
+  background: linear-gradient(
+    to left,
+    transparent,
+    var(--tabs-ground, var(--ground)) 55%
+  );
+}
 .kit-tabs__count {
   margin-left: 6px;
   padding: 0;
@@ -8448,9 +8500,15 @@ a.kit-mbattle:hover {
   flex: 0 0 auto;
 }
 @media (max-width: 760px) {
-  .kit-tabs {
-    flex-wrap: wrap;
-    overflow-x: visible;
+  /* One row on a phone (#1016): a wrapped second line of tabs read as a
+     second level and pushed the page down. The row scrolls sideways
+     instead, the open tab is scrolled into view, and the edge with more
+     wears a chevron (below). `wrap` still wraps. */
+  .kit-tabs:not(.kit-tabs--wrap) {
+    scrollbar-width: none;
+  }
+  .kit-tabs:not(.kit-tabs--wrap)::-webkit-scrollbar {
+    display: none;
   }
   .kit-tabs__tab {
     padding-inline: var(--s-2);

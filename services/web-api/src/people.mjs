@@ -313,10 +313,13 @@ export async function findPeople(db, accountId) {
  *  and never more in all than one follow-all names. */
 const STARTER_SLOTS = 10;
 const STARTER_MAX = FOLLOW_ALL_MAX;
-/** Home offers the set while an account follows fewer players than this,
- *  its own (primary and alts) not counted, nor clans [engineering,
- *  2026-11-13]. */
+/** Home offers the set while fewer than this many of the players an
+ *  account follows have a recorded battle in the last PLAYED_DAYS, its own
+ *  (primary and alts) not counted, nor clans [engineering, 2026-11-13;
+ *  engineering, 2026-11-14 (#1016): played, not merely followed, so ten
+ *  quiet follows do not end the offer]. */
 const STARTER_UNDER = 5;
+const PLAYED_DAYS = 7;
 /** How long "Not now" keeps the set off Home's top. */
 export const STARTER_HIDDEN_DAYS = 30;
 
@@ -338,7 +341,8 @@ export const STARTER_HIDDEN_DAYS = 30;
  *
  * At most STARTER_SLOTS that would take a slot (fewer when fewer are
  * left), and STARTER_MAX in all. Offered while the account follows fewer
- * than STARTER_UNDER players and has not said "Not now" in the last
+ * than STARTER_UNDER players who played in the last PLAYED_DAYS and has
+ * not said "Not now" in the last
  * STARTER_HIDDEN_DAYS (`account.starter_hidden_at`); an offer may hold
  * nobody, and Home then says where to look instead. Nothing here follows
  * anyone: the set is a list the person ticks and confirms through the one
@@ -347,17 +351,26 @@ export const STARTER_HIDDEN_DAYS = 30;
 export async function starterSet(db, accountId) {
   const { rows: gate } = await db.query(
     `select a.starter_hidden_at > now() - make_interval(days => $2) as hidden,
-            (select count(*)::int from claim c
-              where c.account_id = a.account_id and c.relationship = 'friend'
-                and not c.is_primary) as following,
+            (select count(*)::int from (
+               select 1 from claim c
+                where c.account_id = a.account_id and c.relationship = 'friend'
+                  and not c.is_primary
+                  and exists (
+                    select 1 from battle_participant bp
+                     where bp.player_tag = c.player_tag
+                       and bp.battle_time >= now() - make_interval(days => $3)
+                       and bp.battle_time <= now())
+                limit $4) p) as played,
             (select count(*)::int from claim c
               where c.account_id = a.account_id
                 and (c.is_primary or c.relationship in ('primary', 'alt'))) as own
        from account a where a.account_id = $1`,
-    [accountId, STARTER_HIDDEN_DAYS],
+    [accountId, STARTER_HIDDEN_DAYS, PLAYED_DAYS, STARTER_UNDER],
   );
+  // `played` is counted only to STARTER_UNDER: a long follow list stops
+  // probing battles once the gate is decided.
   const g = gate[0];
-  if (!g || g.hidden || g.following >= STARTER_UNDER)
+  if (!g || g.hidden || g.played >= STARTER_UNDER)
     return { offer: false, people: [] };
   if (g.own === 0) return { offer: true, people: [] };
   const s = await peopleSources(db, accountId, {

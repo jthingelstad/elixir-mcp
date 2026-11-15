@@ -26,6 +26,7 @@ import { tagPath } from "../lib/tag-url.js";
 import {
   keys,
   useHomeClan,
+  useHomeFeed,
   useHomeNeeds,
   useHomeWeek,
   useInvalidate,
@@ -71,6 +72,14 @@ export function HomePanels({ first, player, feed }) {
   const starterShown =
     offered && Boolean(starter.data?.ok && starter.data.offer);
   const starterListed = starterShown && starter.data.people?.length > 0;
+  // A quiet week (#1016): People to follow moves under the feed's quiet
+  // line, in the main column, so a phone reaches it first. The feed's own
+  // read, shared, never a second request.
+  const feedRead = useHomeFeed();
+  const quiet =
+    feedRead.isSuccess &&
+    (feedRead.data?.pages ?? []).every((p) => !(p?.timeline?.length > 0));
+  const suggestHere = typeof feed === "function" && quiet && !starterListed;
   return (
     <div className="kit-home">
       {unlock ? <Unlock player={player} /> : null}
@@ -82,12 +91,12 @@ export function HomePanels({ first, player, feed }) {
             player={player}
             clanTag={clan?.ok ? (clan.clan_tag ?? null) : null}
           />
-          {feed}
+          {typeof feed === "function" ? feed({ suggest: suggestHere }) : feed}
         </div>
         <div className="kit-home__side">
           <YourWeek player={player} />
           <ClanPanel clan={clan} player={player} />
-          {starterListed ? null : <PeopleToFollow />}
+          {starterListed || suggestHere ? null : <PeopleToFollow />}
           <DigestPanel first={first} />
         </div>
       </div>

@@ -134,6 +134,17 @@ describe("the starter set", () => {
     expect(offersStarter({}, now)).toBe(false);
     expect(offersStarter(null, now)).toBe(false);
   });
+  test("ten follows who have not played this week keep it offered (#1016)", () => {
+    const now = Date.parse("2026-11-14T12:00:00Z");
+    const played = (following, following_played) => ({
+      setup: { following, following_played },
+      starter_hidden_until: null,
+    });
+    expect(offersStarter(played(10, 0), now)).toBe(true);
+    expect(offersStarter(played(10, 4), now)).toBe(true);
+    expect(offersStarter(played(10, 5), now)).toBe(false);
+    expect(offersStarter(played(5, 5), now)).toBe(false);
+  });
 });
 
 test("the cost mark: a row says only when a follow is free", () => {

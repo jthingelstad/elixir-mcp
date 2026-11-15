@@ -341,7 +341,7 @@ test("selected capture state is claim-bound; roster-only data never promises a p
 test("first-answer carries what Home reads beside the profile list: the players followed and the digest, once chosen", async () => {
   const first = JSON.parse((await read()).body);
   let w = first.setup;
-  assert.deepEqual(w, { following: 0, digest: null });
+  assert.deepEqual(w, { following: 0, following_played: 0, digest: null });
   // The older welcome steps are gone (#1015): the profile list is the
   // passport's, never worked out here.
   assert.equal("welcome" in first, false);
@@ -374,7 +374,23 @@ test("first-answer carries what Home reads beside the profile list: the players 
   );
   w = JSON.parse((await read()).body).setup;
   assert.equal(w.following, 2);
+  // Neither has a recorded battle: followed, not played (#1016).
+  assert.equal(w.following_played, 0);
   assert.equal(w.digest, null);
+  // One battles today, the other only eight days ago: one played.
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class)
+     values ('first-answer-played', now() - interval '1 hour', 'PvP', 'pvp'),
+            ('first-answer-old', now() - interval '8 days', 'PvP', 'pvp')`,
+  );
+  await db.query(
+    `insert into battle_participant
+       (battle_id, player_tag, side, battle_time, type, type_class, outcome)
+     values ('first-answer-played', '#0Y0PLGJ8', 0, now() - interval '1 hour', 'PvP', 'pvp', 'win'),
+            ('first-answer-old', '#00GG9Q8R', 0, now() - interval '8 days', 'PvP', 'pvp', 'win')`,
+  );
+  w = JSON.parse((await read()).body).setup;
+  assert.equal(w.following_played, 1);
   await db.query(
     "update account_email_pref set via = 'profile', cadence = 'daily' where account_id = $1 and kind = 'tracking_report'",
     [accountId],

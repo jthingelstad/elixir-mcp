@@ -72,7 +72,10 @@ is one feed", "The left rail stays only in Settings"]
    ordered by trophies, wins or any score. It is not a recommendation in
    the sense Elixir forbids: it advises nothing about the game.
    [engineering, 2026-11-12; DECISIONS "No recommendations from Elixir",
-   "Elixir rates no player"]
+   "Elixir rates no player"] A quiet week says why as far as Elixir
+   knows (quiet, or still catching up) and leads to Find, with People to
+   follow under it; People you know stays while fewer than five follows
+   played in the last 7 days. [engineering, 2026-11-14; #1016]
 4. **Following asks first and says its cost.** A follow from Find, the
    search sheet, the player page or a Follow me link is one confirmed act
    that names the slots it takes; following several is one act, refused

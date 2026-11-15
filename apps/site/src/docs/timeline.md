@@ -64,6 +64,13 @@ loaded. If the feed doesn't load (the read took too long or the connection
 dropped), it says so and offers **Try again**. It never asks again on its own,
 and the panels beside it read on regardless.
 
+When your week has nothing in it, Home says why as far as Elixir knows:
+the players you follow have been quiet (none of them played a battle in
+the last 7 days), Elixir is still catching up on some of them, or you
+don't follow anyone yet. **Find your people** opens
+[Find](/docs/follow-a-friend#find), and **People to follow** moves up
+under that line, so a phone shows it before your week.
+
 Your account's own items (a player or clan added, recording started or
 stopped, a player no longer yours, an answer to your feedback) are not in
 Home's feed: they are about your account, not anyone's play, so [the
@@ -127,8 +134,10 @@ left, and **Hide** puts the list away on every device.
 
 ### People you know
 
-While you follow fewer than five players, Home opens with **People you
-know** at the top, every time you visit, not only the first. It lists
+While fewer than five of the players you follow played a battle in the
+last 7 days, Home opens with **People you know** at the top, every time
+you visit, not only the first. Following players who've gone quiet
+doesn't put it away. It lists
 players you already know in the game, each with why, and **Free** on
 anyone following costs nothing:
 
@@ -146,7 +155,7 @@ players costs ("8 players · uses 7 of your 50 follows"); it asks once,
 with the same line, and follows only the ticked players. Nobody is followed until you tap. Anyone who verified
 their player on Elixir sees a new follower in their bell. It
 takes at most 10 of your player slots; free ones don't count. **Not now**
-puts it away for 30 days; if you still follow few after that, it comes
+puts it away for 30 days; if fewer than five of your follows still play after that, it comes
 back. When there is nobody to suggest, it is one line pointing to
 [Find](/docs/follow-a-friend#find), where you can search or send your
 Follow me link. Nobody is ranked, and names are game names, never a
