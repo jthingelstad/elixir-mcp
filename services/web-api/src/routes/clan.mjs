@@ -76,6 +76,14 @@ export function clanRoutes({ clan, resolvePerson }) {
   async function savePlace(db, event, body) {
     const { person, response } = await asPerson(db, event, body);
     if (person && response?.statusCode === 200) {
+      // A place saved is account-level news its followers see (Jamie,
+      // 2026-11-15), logged without the place, which stays Clan's: the
+      // account page reads the current one through the seam.
+      await db.query(
+        `insert into account_event (account_id, kind, detail)
+         values ($1, 'place_set', '{}'::jsonb)`,
+        [person.accountId],
+      );
       await settleAfter(db, person.accountId, "on_the_map", {
         map_choice: "place",
         place_saved: true,

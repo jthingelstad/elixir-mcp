@@ -31,6 +31,7 @@ import {
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { daysSincePollSql } from "@elixir-mcp/record/read-facts";
 import { createHash } from "node:crypto";
+import { stampById } from "@elixir-mcp/stamps/catalog";
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import { rankedLeagueName } from "@elixir-mcp/record/ranked-leagues";
 import {
@@ -895,6 +896,21 @@ export async function subjectsFor(db, accountId) {
     })),
     ...clans.map((r) => ({ kind: "clan", tag: r.clan_tag, scope: r.scope })),
   ];
+}
+
+/** The person accounts `accountId` follows (0277), for Home's people
+ *  items and the subjects key: a follow or an unfollow rebuilds the week. */
+export async function followedAccountIds(db, accountId) {
+  const { rows } = await db.query(
+    `select f.followed_account_id as id
+       from account_follow f
+       join account a on a.account_id = f.followed_account_id
+                     and a.kind = 'person' and a.status = 'approved'
+      where f.account_id = $1
+      order by f.followed_account_id`,
+    [accountId],
+  );
+  return rows.map((r) => r.id);
 }
 
 /* ------------------------------------------------------------------ */
@@ -3414,6 +3430,173 @@ async function accountItems(db, accountId, fromMs, toMs) {
 }
 
 /**
+ * People items (Jamie, 2026-11-15): what an account did that its
+ * followers see, section `people`, visibility `member` (signed-in Elixir
+ * members, never cross-posted). Served only when the caller names whose:
+ * `accounts` (account ids: followed accounts, or the one account a page is
+ * about) and `playerTags` (followed players: their verification alone).
+ *
+ * - `player_verified`: an account verified a player as itself, primary or
+ *   alt. "Verifying a player means NOBODY else can claim it", so it is
+ *   told to the account's followers and the player's. One story per
+ *   verification, whichever way the reader follows.
+ * - `stamp_earned`: a Stamp level earned live (a launch backfill's legacy
+ *   grants are not news).
+ * - `place_set`: the account saved its place. The place itself is Clan's
+ *   and never in the item; the account's page reads the current one.
+ *
+ * Each names the account by its page id (the passport id, never the
+ * account UUID) and by the player it is: its primary, verified or claimed.
+ */
+const PERSON_IDENTITY_SQL = `
+  select a.account_id, ap.passport_id as page_id,
+         pc.player_tag as primary_tag, pp.name as primary_name,
+         pc.status = 'verified' as primary_verified
+    from account a
+    join account_passport ap on ap.account_id = a.account_id
+    left join claim pc on pc.account_id = a.account_id and pc.is_primary
+    left join player pp on pp.player_tag = pc.player_tag
+   where a.account_id = any($1::uuid[])
+     and a.kind = 'person' and a.status = 'approved'`;
+
+const personFacts = (who) => ({
+  account_id: who.page_id,
+  account_player_tag: who.primary_tag ?? null,
+  account_name: who.primary_name ?? null,
+  account_verified: who.primary_verified === true,
+});
+
+const personSubjects = (who) =>
+  who.primary_tag
+    ? [{ kind: "player", tag: who.primary_tag, name: who.primary_name ?? null }]
+    : [];
+
+export async function peopleItems(
+  db,
+  { accounts = [], playerTags = [], fromMs, toMs },
+) {
+  const ids = [...new Set(accounts.filter(Boolean))];
+  const tags = [...new Set(playerTags.filter(Boolean))];
+  if (!ids.length && !tags.length) return [];
+  const between = (col) =>
+    `${col} >= ${ts(fromMs + 1)} and ${col} < ${ts(toMs + 1)}`;
+  const items = [];
+  const { rows: verified } = await db.query(
+    `select c.player_tag, p.name, c.account_id, c.verified_at,
+            case when c.is_primary then 'primary' else c.relationship end
+              as relationship,
+            ap.passport_id as page_id,
+            pc.player_tag as primary_tag, pp.name as primary_name,
+            pc.status = 'verified' as primary_verified
+       from claim c
+       join account a on a.account_id = c.account_id
+                     and a.kind = 'person' and a.status = 'approved'
+       join account_passport ap on ap.account_id = c.account_id
+       left join player p on p.player_tag = c.player_tag
+       left join claim pc on pc.account_id = c.account_id and pc.is_primary
+       left join player pp on pp.player_tag = pc.player_tag
+      where c.status = 'verified'
+        and (c.is_primary or c.relationship in ('primary', 'alt'))
+        and (c.account_id = any($1::uuid[]) or c.player_tag = any($2::text[]))
+        and ${between("c.verified_at")}`,
+    [ids, tags],
+  );
+  const { rows: stamps } = ids.length
+    ? await db.query(
+        `select account_id, stamp_id, level::int as level, earned_at
+           from account_stamp_earned
+          where account_id = any($1::uuid[]) and legacy_before is null
+            and ${between("earned_at")}
+          order by earned_at, stamp_id, level`,
+        [ids],
+      )
+    : { rows: [] };
+  const { rows: places } = ids.length
+    ? await db.query(
+        `select distinct on (account_id) account_id, event_id, created_at
+           from account_event
+          where account_id = any($1::uuid[]) and kind = 'place_set'
+            and ${between("created_at")}
+          order by account_id, created_at desc`,
+        [ids],
+      )
+    : { rows: [] };
+  // A verification carries its account's identity in its own row; a Stamp
+  // or a place reads it once for every account named.
+  const named = [
+    ...new Set([
+      ...stamps.map((r) => r.account_id),
+      ...places.map((r) => r.account_id),
+    ]),
+  ];
+  const { rows: people } = named.length
+    ? await db.query(PERSON_IDENTITY_SQL, [named])
+    : { rows: [] };
+  const whoOf = new Map(people.map((r) => [r.account_id, r]));
+  for (const r of verified) {
+    const who = r;
+    items.push({
+      subject_tag: r.player_tag,
+      subject_name: r.name ?? null,
+      subjects: [{ kind: "player", tag: r.player_tag, name: r.name ?? null }],
+      at: iso(r.verified_at),
+      kind: "player_verified",
+      section: "people",
+      facts: {
+        player_tag: r.player_tag,
+        name: r.name ?? null,
+        relationship: r.relationship,
+        ...personFacts(who),
+      },
+      [STORY]: moment("player_verified", r.player_tag, iso(r.verified_at)),
+    });
+  }
+  // A burst of levels earned at one instant (a first reconcile) is one
+  // item per account, naming each Stamp at its highest level.
+  const bursts = new Map();
+  for (const r of stamps) {
+    const key = `${r.account_id}|${iso(r.earned_at)}`;
+    const b = bursts.get(key) ?? { r, earned: new Map() };
+    b.earned.set(r.stamp_id, Math.max(b.earned.get(r.stamp_id) ?? 0, r.level));
+    bursts.set(key, b);
+  }
+  for (const { r, earned } of bursts.values()) {
+    const who = whoOf.get(r.account_id);
+    if (!who) continue;
+    const list = [...earned].map(([id, level]) => ({
+      stamp_id: id,
+      name: stampById(id)?.name ?? id,
+      level,
+    }));
+    items.push({
+      subject_tag: who.primary_tag ?? null,
+      subject_name: who.primary_name ?? null,
+      subjects: personSubjects(who),
+      at: iso(r.earned_at),
+      kind: "stamp_earned",
+      section: "people",
+      facts: { stamps: list, ...personFacts(who) },
+      [STORY]: moment("stamp_earned", who.page_id, iso(r.earned_at)),
+    });
+  }
+  for (const r of places) {
+    const who = whoOf.get(r.account_id);
+    if (!who) continue;
+    items.push({
+      subject_tag: who.primary_tag ?? null,
+      subject_name: who.primary_name ?? null,
+      subjects: personSubjects(who),
+      at: iso(r.created_at),
+      kind: "place_set",
+      section: "people",
+      facts: personFacts(who),
+      [STORY]: moment("account_event", String(r.event_id)),
+    });
+  }
+  return items;
+}
+
+/**
  * The highlights the followed players posted in the window (social slice
  * 4, #762): each the one single-battle item, carrying the player's words
  * and the battle it names. It happened when it was posted (`at`, and the
@@ -3970,6 +4153,11 @@ export async function buildTimeline(
     // says not. Home's feed and the RSS feed leave it out at the read;
     // the bell tells it (2026-11-12). Every other door keeps it.
     accountLines = true,
+    // People items (peopleItems): whose account-level activity to serve,
+    // `{ accounts, players }`: account ids, and whether the followed
+    // players' verifications come too. Null: none (MCP and the feeds that
+    // leave Elixir never serve them).
+    people = null,
     // Off only for the test that holds a batched read to the per-player
     // one.
     batchPlayers = true,
@@ -4062,6 +4250,15 @@ export async function buildTimeline(
   }
   if (accountLines)
     items.push(...(await accountItems(db, accountId, fromMs, toMs)));
+  if (people)
+    items.push(
+      ...(await peopleItems(db, {
+        accounts: people.accounts ?? [],
+        playerTags: people.players ? playerTags : [],
+        fromMs,
+        toMs,
+      })),
+    );
   items.push(
     ...(await highlightItems(db, subjects, {
       accountId,
@@ -4251,6 +4448,7 @@ export function mergeStories(items) {
  *  the attested rules; leaders and owner never publish. */
 export function itemVisibility(it) {
   if (it.section === "account") return "owner";
+  if (it.section === "people") return "member";
   if (it.section === "attested")
     return ATTESTED_FACT_TYPES[it.kind]?.visibility ?? "owner";
   return "public";

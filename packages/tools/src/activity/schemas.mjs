@@ -217,8 +217,53 @@ export const TIMELINE_KIND_SCHEMAS = {
   ),
 };
 
+/**
+ * People items (2026-11-15): an account's own activity for its followers,
+ * the account by its page id and the player it is. Web only: the web
+ * timeline asks for them (buildTimeline's `people`), and MCP, the digest,
+ * RSS and Discord never do, so they are not timeline tool kinds and the
+ * timeline tool's docs do not list them.
+ */
+export const PEOPLE_KIND_SCHEMAS = {
+  player_verified: {
+    version: 1,
+    at: "the verification",
+    facts: [
+      "player_tag",
+      "name",
+      "relationship",
+      "account_id",
+      "account_player_tag",
+      "account_name",
+      "account_verified",
+    ],
+  },
+  stamp_earned: {
+    version: 1,
+    at: "when the Stamp was earned",
+    facts: [
+      "stamps",
+      "account_id",
+      "account_player_tag",
+      "account_name",
+      "account_verified",
+    ],
+  },
+  place_set: {
+    version: 1,
+    at: "when the place was saved",
+    facts: [
+      "account_id",
+      "account_player_tag",
+      "account_name",
+      "account_verified",
+    ],
+  },
+};
+
 const schemaOf = (kind) =>
   TIMELINE_KIND_SCHEMAS[kind] ??
+  PEOPLE_KIND_SCHEMAS[kind] ??
   (kind.startsWith("account_") ? TIMELINE_KIND_SCHEMAS.account : undefined);
 
 /** The schema an item's facts follow: `<kind>/<version>`. */

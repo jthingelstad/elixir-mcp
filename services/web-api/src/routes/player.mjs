@@ -26,6 +26,7 @@ import {
 
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { proofOf, sparkOf } from "../feed.mjs";
+import { claimantsOf } from "../account-page.mjs";
 import { json } from "../http.mjs";
 import { homeClan } from "./clans.mjs";
 
@@ -41,6 +42,9 @@ import { homeClan } from "./clans.mjs";
  * Follows and followers belong to an account, and an account is named on the
  * page by the player it verified. A player no account has verified has no
  * follows or followers to show [engineering, 2026-11-12: the narrow reading].
+ * A Claimed player's page names the accounts claiming it, each linking to
+ * its account page (Jamie, 2026-11-15: "This is important so you know what
+ * account is making the claim"); `claimants`, from claimantsOf.
  * A follower is named by the player its account verified, game name and tag,
  * else by the player it claims, marked unverified (Jamie, 2026-11-14); an
  * account with no player at all is counted, never named.
@@ -176,7 +180,9 @@ const pageTimeline = (db, tag, timezone, now) =>
       // which has its own reader rules. The page is the public record.
       accountId: null,
       basis: "occurred",
-      filter: (it) => itemVisibility(it) === "public",
+      // Its verification on Elixir, told on its page too (2026-11-15).
+      people: { accounts: [], players: true },
+      filter: (it) => ["public", "member"].includes(itemVisibility(it)),
     },
   );
 
@@ -251,6 +257,10 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
       avatars,
     ),
     you: await readerSide(db, account.accountId, tag, p.clan_tag),
+    // Who says they are this player (Jamie, 2026-11-15): the account that
+    // verified it, else every account claiming it, each by its page id.
+    // Empty: Imported, or not followed at all.
+    claimants: await claimantsOf(db, tag),
     ...social,
     follows: faced(social.follows),
     followers: faced(social.followers),

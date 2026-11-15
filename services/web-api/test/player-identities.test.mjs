@@ -9,19 +9,20 @@ const A = "#00C298UC",
   B = "#080J2V9Q",
   C = "#0G2ULUJP";
 
-test("proof covers initials and chosen art, never follows or clan subjects", async () => {
+test("proof and claims cover every player tag, never follows or clan subjects", async () => {
   let calls = 0;
   const db = {
     query: async (sql, [tags]) => {
       calls++;
-      assert.match(sql, /c.status = 'verified'/);
+      assert.match(sql, /bool_or\(c.status = 'verified'\)/);
       assert.match(sql, /relationship in \('primary', 'alt'\)/);
       assert.match(sql, /coalesce\(a.kind, 'person'\) = 'person'/);
       assert.deepEqual(tags, [A, B, C]);
       return {
         rows: [
-          { player_tag: A, avatar_card_id: null },
-          { player_tag: C, avatar_card_id: 26000000 },
+          { player_tag: A, verified: true },
+          { player_tag: B, verified: false },
+          { player_tag: C, verified: true },
         ],
       };
     },
@@ -44,6 +45,8 @@ test("proof covers initials and chosen art, never follows or clan subjects", asy
     [B]: false,
     [C]: true,
   });
+  // Claimed (2026-11-15): a self claim no account verified.
+  assert.deepEqual(body.player_claims, { [A]: false, [B]: true, [C]: false });
   assert.equal(body.people[1].avatar_card_id, 26000001);
   assert.equal(calls, 1);
   assert.deepEqual([...playerTagsIn({ members: [{ player_tag: A }] })], [A]);

@@ -536,6 +536,38 @@ export async function readPlayerPassport(db, tag) {
 }
 
 /**
+ * An account's passport in one row, for its account page (2026-11-15):
+ * `{ id, count, marks }` as readPlayerPassport answers for a verified
+ * player, here by the account itself, so an account with no verified
+ * player shows its Stamps too. The earned rows pass the public whitelist.
+ * One statement; never writes. Null without a passport row.
+ */
+export async function readAccountPassport(db, accountId) {
+  const { rows } = await db.query(
+    `select ap.passport_id,
+            coalesce(
+              json_agg(json_build_object(
+                'stamp_id', e.stamp_id,
+                'level', e.level,
+                'earned_on', to_char(e.earned_on, 'YYYY-MM-DD'),
+                'legacy_before', to_char(e.legacy_before, 'YYYY-MM-DD')))
+                filter (where e.stamp_id is not null),
+              '[]') as earned
+       from account_passport ap
+       left join account_stamp_earned e on e.account_id = ap.account_id
+      where ap.account_id = $1::uuid
+      group by ap.passport_id`,
+    [accountId],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return summarize({
+    id: String(row.passport_id),
+    earned: publicEarned(row.earned),
+  });
+}
+
+/**
  * Everything eligibility needs about one account at `now`, read in a few
  * statements (eligibility.mjs documents the shape). Reads only.
  *

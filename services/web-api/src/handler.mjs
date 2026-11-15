@@ -57,6 +57,7 @@ import { cheersRoutes } from "./routes/cheers.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
 import { peopleRoutes } from "./routes/people.mjs";
 import { passportRoutes } from "./routes/passport.mjs";
+import { accountsRoutes } from "./routes/accounts.mjs";
 import { ensurePassport } from "@elixir-mcp/stamps";
 import { clanRoutes } from "./routes/clan.mjs";
 import { refreshRoutes } from "./routes/refresh.mjs";
@@ -484,6 +485,7 @@ export function makeHandler({
     ...bellRoutes({ resolveAccount, wake: homeWake }),
     ...peopleRoutes({ resolveAccount }),
     ...passportRoutes({ resolveAccount }),
+    ...accountsRoutes({ resolveAccount }),
     ...highlightRoutes({
       resolveAccount,
       siteShell,

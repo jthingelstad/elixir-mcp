@@ -125,7 +125,7 @@ test("only Find's people reads read the player map and Near you", async () => {
 // A place belongs to the claim that wrote it (2026-11-14): every read of
 // people's places goes through the one rule in the seam. Clan's web
 // wiring (your place, the picker, the clan map) and the passport read
-// them by tag with readOwnedPlaces; the player map and Near you apply the
+// them by tag with readOwnedPlaces, as the account page (0277) does; the player map and Near you apply the
 // same predicate in their own statements. No other code reads place rows.
 test("people's places are read only under the ownership rule", async () => {
   const callers = [];
@@ -147,6 +147,7 @@ test("people's places are read only under the ownership rule", async () => {
   assert.deepEqual(callers.sort(), [
     "packages/auth/src/clan-context.mjs",
     "packages/stamps/src/legacy.mjs",
+    "services/web-api/src/account-page.mjs",
     "services/web-api/src/clan.mjs",
     "services/web-api/src/routes/passport.mjs",
   ]);

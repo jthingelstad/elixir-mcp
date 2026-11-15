@@ -16,6 +16,7 @@
 export {
   dismissProfileList,
   ensurePassport,
+  readAccountPassport,
   readOwnerPassport,
   readPlayerPassport,
   readPublicPassport,
