@@ -2,8 +2,8 @@
  * The player map's consent (#768, Jamie 2026-11-14): a place reaches the
  * player map and Near you only when its owner chose it. A place saved
  * before the choice existed stays on clan maps only (`player_map: null`)
- * until its owner says yes; a save that does not say keeps what the place
- * had; leaving the player map keeps the place; a person with no verified
+ * until its owner says yes; a save that does not say never widens it (a
+ * yes is never carried over: it may be a former owner's); leaving the player map keeps the place; a person with no verified
  * player still cannot set one.
  */
 import { test } from "node:test";
@@ -109,20 +109,35 @@ test("a place saved before the choice stays on clan maps only until its owner sa
   assert.equal(after.player_map, false);
 });
 
-test("a new place carries the choice its owner made, and a save that does not say keeps it", async () => {
+test("a new place carries the choice its owner made, and a save that does not say never widens", async () => {
   const h = harness();
   const ada = await as(h, ADA);
+  const no = await ada("PUT", "/api/me/place", {
+    ...AUSTIN,
+    player_map: false,
+  });
+  assert.equal(no.body.place.player_map, false);
+  // Moving without saying (an older page) keeps a no.
+  const keptNo = await ada("PUT", "/api/me/place", {
+    country: "CA",
+    region: "08",
+  });
+  assert.equal(keptNo.body.place.player_map, false);
   const wide = await ada("PUT", "/api/me/place", {
     ...AUSTIN,
     player_map: true,
   });
   assert.equal(wide.body.place.player_map, true);
-  // Moving without saying (an older page) keeps the player map.
+  // ...but never carries a yes: back to clan maps only.
   const moved = await ada("PUT", "/api/me/place", {
     country: "CA",
     region: "08",
   });
-  assert.equal(moved.body.place.player_map, true);
+  assert.equal(moved.body.place.player_map, null);
+  assert.equal(
+    h.ledger.items.get(`place#${ADA.player_tag}`).player_map,
+    undefined,
+  );
   // Choosing clan maps only on a change.
   const narrow = await ada("PUT", "/api/me/place", {
     ...AUSTIN,
@@ -204,4 +219,25 @@ test("each write stamps the time it was written, under every verified tag", asyn
     assert.equal(row.player_map, true, tag);
     assert.equal(row.set_at, "2026-11-14T12:01:00.000Z", tag);
   }
+});
+
+test("a tag that moved never carries its former owner's yes (Codex on #1054)", async () => {
+  const h = harness();
+  // The former owner's place, on the player map, left behind under the tag.
+  await h.ledger.savePlace([ADA.player_tag], {
+    country: "US",
+    region: "TX",
+    city: 4671654,
+    set_at: "2026-11-01T00:00:00.000Z",
+    player_map: true,
+  });
+  // The new owner saves from a page that does not ask.
+  const ada = await as(h, ADA);
+  const r = await ada("PUT", "/api/me/place", { country: "CA", region: "08" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.place.player_map, null);
+  assert.equal(
+    h.ledger.items.get(`place#${ADA.player_tag}`).player_map,
+    undefined,
+  );
 });
