@@ -138,6 +138,31 @@ test("throttle: beforeRetry can stop the wait before the next send", async () =>
   assert.deepEqual(slept, []);
 });
 
+test("throttle: beforeRetry is asked again after the wait, right before the resend", async () => {
+  const client = scripted(throttle(), { StatusCode: 200 });
+  const asked = [];
+  let stopAfterWait = false;
+  await assert.rejects(
+    sendWithThrottleBackoff({
+      ...quiet,
+      client,
+      command: {},
+      schedule: [1, 1],
+      label: "t",
+      sleep: async () => {
+        stopAfterWait = true;
+      },
+      beforeRetry: (attempt) => {
+        asked.push(attempt);
+        return stopAfterWait ? "locked during the wait" : null;
+      },
+    }),
+    { name: "ThrottleRetryStopped", message: "locked during the wait" },
+  );
+  assert.equal(client.sent.length, 1);
+  assert.deepEqual(asked, [1, 1]);
+});
+
 test("deploy: the migrate and public-statistics invokes wait out a throttle within the function's timeout", async () => {
   for (const [timeoutS, input] of [
     [300, { FunctionName: "elixir-mcp-migrate", Payload: "{}" }],

@@ -64,3 +64,13 @@ each git repository beside the main checkout that the worktree's parent
 lacks, so a Codex-made worktree reaches `../cr-agent-api-docs` and
 `../drop.poapkings.com`. It never replaces an existing entry and does
 nothing for a worktree beside the main checkout.
+
+## After review (Codex on #1044)
+
+- A throttled op read asks about the lock again after each wait, right
+  before the resend, so a deploy that takes the lock mid-wait is never
+  met by a read sent under it.
+- A batch's command runs in a process group of its own; a signal goes to
+  the whole group and the lock is released only once the group is empty.
+  Before, a shell killed by SIGTERM released the lock while the op it had
+  started was still running.

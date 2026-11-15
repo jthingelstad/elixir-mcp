@@ -791,10 +791,13 @@ It takes the lock as holder `batch` (exit 3, naming the holder, when
 someone else has it; nothing runs), runs the command with the lock's id
 in `ELIXIR_PRODUCTION_LOCK_ID`, and releases the lock when the command
 ends. Every `npm run op` the command runs finds that live lock and works
-under it, writes and reads alike, taking and refusing nothing. Ctrl-C
-or a SIGTERM is passed to the command and the lock is released once it
-has stopped; a batch killed outright leaves a lock its dead pid releases
-on the next acquire. Two steps of a resumable op, the second from the
+under it, writes and reads alike, taking and refusing nothing. The
+command runs in a process group of its own: Ctrl-C or a SIGTERM is
+passed to every process in it, and the lock is released only once all
+of them have stopped, so an op a dying shell started still holds it. The
+command cannot read the terminal (batches are unattended). A batch
+killed outright leaves a lock its dead pid releases on the next
+acquire. Two steps of a resumable op, the second from the
 first's cursor:
 
 ```sh

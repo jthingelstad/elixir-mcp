@@ -335,9 +335,10 @@ const SIGNALS = [
  * as its own (ops-invoke.mjs), so a multi-step backfill with `after`
  * cursors is one hold and no deploy starts between two of its calls.
  *
- * A signal to this process is passed to the command, and the lock is
- * released once the command has exited, so the lock never ends while a
- * child is still writing; the 'exit' handler releases it on any other
+ * The command runs in a process group of its own. A signal to this
+ * process is passed to the whole group, and the lock is released once
+ * every process in it has exited, so the lock never ends while an op the
+ * command started is still writing; the 'exit' handler releases it on any other
  * way out. A process killed outright leaves an abandoned lock, which the
  * next acquire releases (its pid is gone).
  *
@@ -408,27 +409,78 @@ export async function holdForBatch({
   }
 }
 
-/** Run the command, passing this process's signals on to it; resolves
- *  with its exit code (128 + n for a signal) once it has exited. */
-function runChild({ spawn, command, args, env, proc, log }) {
+/** Run the command in a process group of its own, passing this
+ *  process's signals on to the whole group; resolves with its exit code
+ *  (128 + n for a signal) once the command and every process it started
+ *  in that group have exited. A shell running `npm run op` twice leaves
+ *  no op running when the shell dies first: the lock waits for it.
+ *  (The group is a background one, so a batch command cannot read the
+ *  terminal; batches are unattended.) A descendant that leaves the group
+ *  (setsid, a daemon) is outside what the lock can see. */
+function runChild({
+  spawn,
+  command,
+  args,
+  env,
+  proc,
+  log,
+  killGroup = (pid, signal) => process.kill(-pid, signal),
+  pollMs = 200,
+}) {
   return new Promise((resolve) => {
     let settled = false;
-    const child = spawn(command, args, { stdio: "inherit", env });
+    const child = spawn(command, args, {
+      stdio: "inherit",
+      env,
+      detached: true,
+    });
+    const signalAll = (signal) => {
+      if (child.pid) {
+        try {
+          killGroup(child.pid, signal);
+          return;
+        } catch {
+          // The group is already gone; fall back to the child itself.
+        }
+      }
+      child.kill(signal);
+    };
     const forwards = SIGNALS.map(([signal]) => {
       const forward = () => {
         log(
-          `batch: ${signal}; passing it to the command and releasing the lock once it has stopped.`,
+          `batch: ${signal}; passing it to the command's processes and releasing the lock once they have all stopped.`,
         );
-        child.kill(signal);
+        signalAll(signal);
       };
       proc.on(signal, forward);
       return [signal, forward];
     });
+    const groupAlive = () => {
+      if (!child.pid) return false;
+      try {
+        killGroup(child.pid, 0);
+        return true;
+      } catch (error) {
+        // EPERM: a member exists but is not ours to signal; still alive.
+        return error?.code === "EPERM";
+      }
+    };
+    const finish = (code) => {
+      for (const [signal, forward] of forwards) proc.off(signal, forward);
+      resolve(code);
+    };
     const done = (code) => {
       if (settled) return;
       settled = true;
-      for (const [signal, forward] of forwards) proc.off(signal, forward);
-      resolve(code);
+      if (!groupAlive()) return finish(code);
+      log(
+        "batch: the command has exited; waiting for the processes it started before releasing the lock.",
+      );
+      const timer = setInterval(() => {
+        if (groupAlive()) return;
+        clearInterval(timer);
+        finish(code);
+      }, pollMs);
     };
     child.on("error", (error) => {
       log(`batch: could not run ${command}: ${error.message}`);

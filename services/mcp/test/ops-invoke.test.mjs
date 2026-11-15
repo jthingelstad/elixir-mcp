@@ -384,15 +384,30 @@ test("op: a throttled read stops waiting the moment production is locked", async
   const h = throttledHarness(5);
   let checks = 0;
   h.deps.lockHolder = () =>
-    (checks += 1) <= 2 ? null : { holder: "deploy", lock_id: "D" };
+    (checks += 1) <= 1 ? null : { holder: "deploy", lock_id: "D" };
   assert.equal(await runOp({ ...h.deps, argv: ['{"stats": true}'] }), 3);
-  // Free at the start and after the first throttle; locked after the
-  // second, so no third send.
-  assert.deepEqual(h.events, ["throttled", "throttled"]);
+  // Free at the start; locked at the first throttle, so no wait and no
+  // second send.
+  assert.deepEqual(h.events, ["throttled"]);
+  assert.deepEqual(h.slept, []);
   assert.match(
     h.err.join("\n"),
     /locked while this read waited; held by deploy/,
   );
+});
+
+test("op: a lock taken during a throttled read's wait stops it before the resend", async () => {
+  const h = throttledHarness(5);
+  let locked = false;
+  h.deps.lockHolder = () =>
+    locked ? { holder: "deploy", lock_id: "D" } : null;
+  h.deps.sleep = async (ms) => {
+    h.slept.push(ms);
+    locked = true; // a deploy takes the lock mid-wait
+  };
+  assert.equal(await runOp({ ...h.deps, argv: ['{"stats": true}'] }), 3);
+  assert.deepEqual(h.events, ["throttled"], "never sent under the lock");
+  assert.deepEqual(h.slept, [2_000]);
 });
 
 test("op: a function busy past its own timeout exits 4 and still releases the lock", async () => {
