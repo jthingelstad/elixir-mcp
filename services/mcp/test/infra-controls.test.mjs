@@ -1468,7 +1468,8 @@ test("CI builds the site once per job (#73)", async () => {
     ),
   );
   // A focused `npm test -w @elixir-mcp/site` builds it in pretest; the
-  // runner skips pretest (--ignore-scripts) because it built it first.
+  // runner runs only the test script (unitCommand), never pretest,
+  // because it built it first.
   assert.match(site.scripts.pretest, /build-site\.mjs/);
   assert.doesNotMatch(site.scripts.test, /build/);
   const runner = await readFile(

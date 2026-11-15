@@ -8,9 +8,13 @@ import {
   DEFAULT_WEIGHT,
   WEIGHTS,
   defaultJobs,
+  describeExit,
+  formatReport,
   nodeMismatch,
   parseShard,
   plan,
+  runUnit,
+  unitCommand,
   units,
 } from "../../../infra/scripts/test.mjs";
 import {
@@ -143,6 +147,79 @@ test("test runner: every workspace with a test script is a unit, and root is one
   assert.equal(pkg.scripts.pretest, undefined, "the runner builds once");
   // A weight for a unit that no longer exists is a stale table.
   for (const n of Object.keys(WEIGHTS)) assert.ok(names.includes(n), n);
+});
+
+test("test runner: a unit runs its own test script, never through npm (2026-11-14)", () => {
+  // npm sets process.title; on macOS libuv then checks in with
+  // LaunchServices, which now and then calls abort(). A unit died of
+  // SIGABRT in 0.1 s with no output that way (the crash report's stack:
+  // abort < _LSApplicationCheckIn < uv_set_process_title).
+  const all = units(repoRoot).filter((u) => u.workspace);
+  assert.ok(all.length > 20);
+  for (const unit of all) {
+    const c = unitCommand(unit, repoRoot, "/usr/bin:/bin");
+    assert.equal(c.cmd, "sh", unit.name);
+    assert.deepEqual(c.args, ["-c", unit.script], unit.name);
+    assert.doesNotMatch(unit.script, /\bnpm\b/, unit.name);
+    assert.equal(c.cwd, path.join(repoRoot, path.relative(repoRoot, unit.dir)));
+    assert.deepEqual(c.env.PATH.split(path.delimiter), [
+      path.join(unit.dir, "node_modules", ".bin"),
+      path.join(repoRoot, "node_modules", ".bin"),
+      "/usr/bin",
+      "/bin",
+    ]);
+  }
+  const timeline = all.find((u) => u.name === "timeline-sync");
+  assert.equal(timeline.script, "node --test --test-force-exit");
+  const root = unitCommand({ name: "root", workspace: null }, repoRoot);
+  assert.equal(root.cmd, process.execPath);
+  assert.equal(root.cwd, repoRoot);
+});
+
+test("test runner: a failed unit always says how it ended, even when it printed nothing", async () => {
+  const fake = (script, dir = repoRoot) => ({
+    name: "fake",
+    workspace: "@elixir-mcp/fake",
+    dir,
+    script,
+  });
+  // Killed by a signal before a byte: the 2026-11-14 shape.
+  const killed = await runUnit(fake("kill -TERM $$"));
+  assert.equal(killed.ok, false);
+  assert.equal(killed.signal, "SIGTERM");
+  assert.equal(killed.output, "");
+  assert.equal(describeExit(killed), "killed by SIGTERM");
+  const mac = formatReport(killed, { actions: false, platform: "darwin" });
+  assert.match(mac, /FAIL fake \(\d+\.\d s, killed by SIGTERM\)/);
+  assert.match(mac, /fake failed: killed by SIGTERM, and it printed nothing/);
+  assert.match(mac, /DiagnosticReports/);
+  const ci = formatReport(killed, { actions: true, platform: "linux" });
+  assert.doesNotMatch(ci, /DiagnosticReports/);
+  assert.match(
+    ci,
+    /::error title=test fake::fake failed \(killed by SIGTERM\)/,
+  );
+  // A plain non-zero exit names its code; output is kept.
+  const exited = await runUnit(fake("echo broken; exit 3"));
+  assert.equal(exited.ok, false);
+  assert.equal(exited.exit, 3);
+  const text = formatReport(exited, { actions: false, platform: "darwin" });
+  assert.match(text, /broken/);
+  assert.match(text, /fake failed: exit 3\./);
+  assert.doesNotMatch(text, /printed nothing|DiagnosticReports/);
+  // A unit that cannot start is its own failure, not the runner's crash.
+  const missing = await runUnit(
+    fake("true", path.join(repoRoot, "no-such-dir")),
+  );
+  assert.equal(missing.ok, false);
+  assert.match(missing.output, /could not start sh/);
+  // A pass stays quiet about how it ended.
+  const passed = await runUnit(fake("true"));
+  assert.equal(passed.ok, true);
+  assert.doesNotMatch(
+    formatReport(passed, { actions: false, platform: "darwin" }),
+    /failed/,
+  );
 });
 
 test("test runner: shards cover every unit exactly once, deterministically and balanced", () => {
