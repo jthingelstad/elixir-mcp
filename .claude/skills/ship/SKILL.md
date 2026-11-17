@@ -98,7 +98,10 @@ tool, so an MCP change never moves it):
 - `apps/site/src/docs/sign-in-with-elixir.md` says what `/me` answers.
 
 **What a user sees:** a file in `apps/site/src/_data/updates/`,
-`<YYYY-MM-DD>-<NN>-<slug>.md` (`apps/site/AGENTS.md`, "Updates"): a
+`<YYYY-MM-DD>-t<HHMMSS>-<slug>.md` (`apps/site/AGENTS.md`, "Updates"): use
+the current UTC date and time and this change's slug, without reserving a
+daily number. Same-second entries sort by file name; legacy numbered
+entries keep their relative order. Never rename an existing entry. A
 `# Title` line, then the body written for a person, ending with the versions
 ("Contracts 9.0.0 and 9.0.1; JSON API 2.0.0."). `/updates` already shows
 the changelog entries; this is the story, not a copy.

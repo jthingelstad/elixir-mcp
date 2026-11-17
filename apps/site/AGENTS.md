@@ -30,11 +30,14 @@ the same corpus. Write what is true now, plainly:
 ## Updates
 
 Every user-visible change adds its own file to `src/_data/updates/` in the
-same commit: `<YYYY-MM-DD>-<NN>-<slug>.md`, a `# Title` line, a blank
+same commit: `<YYYY-MM-DD>-t<HHMMSS>-<slug>.md`, a `# Title` line, a blank
 line, then the body: what a person notices, in their words, ending with
-the MCP and JSON API versions. NN orders one day's entries, the higher
-the newer; take the day's highest plus one (`01` on a new day). Never
-edit another entry to make room. `src/_data/updates.js` reads them.
+the MCP and JSON API versions. Use the current UTC date and time, with a
+slug for this change; no daily number is reserved or coordinated. Entries
+at the same second sort by file name. Legacy numbered entries stay as
+they are, below timed entries on the same day; never rename another entry
+to make room. Public addresses and feed IDs use the date and title, not
+the file's time or number. `src/_data/updates.js` reads them.
 
 ## Building and testing
 
