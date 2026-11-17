@@ -89,6 +89,10 @@ function ordinal(n) {
   return `${n}${{ 1: "st", 2: "nd", 3: "rd" }[n % 10] ?? "th"}`;
 }
 /** "Season 137, week 4", or "week 4" on a row with no season. */
+/** A war week's decks at most: four a battle day, four battle days
+ *  (cr-agent-api-docs clans.md, decksUsedToday). */
+const WAR_WEEK_DECKS = 16;
+
 const seasonWeek = (seasonId, week) =>
   seasonId ? `Season ${seasonId}, week ${week}` : `week ${week}`;
 
@@ -654,7 +658,11 @@ export function itemText(it, timeZone = "UTC") {
         ((rank[f.role_after] ?? 0) < (rank[f.role_before] ?? 0)
           ? "demoted"
           : "promoted");
-      return `${f.name ?? f.player_tag} was ${dir} from ${roleWord(f.role_before)} to ${roleWord(f.role_after)} in ${subj}.`;
+      // The clan, named from the item's clan subject: a promotion on the
+      // player's own timeline (13.10.0) has the player as its subject.
+      const clan =
+        (it.subjects ?? []).find((x) => x.kind === "clan")?.name ?? subj;
+      return `${f.name ?? f.player_tag} was ${dir} from ${roleWord(f.role_before)} to ${roleWord(f.role_after)} in ${clan}.`;
     }
     case "bracket_observed": {
       const rivals = (f.rivals ?? []).map((r) => r.name ?? r.tag).join(", ");
@@ -664,6 +672,10 @@ export function itemText(it, timeZone = "UTC") {
       return `${subj} crossed the finish line${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}.`;
     case "week_resolved":
       return `${subj} finished ${seasonWeek(f.season_id, (f.section_index ?? 0) + 1)}${f.is_colosseum ? " (Colosseum)" : ""}${f.rank ? ` in ${ordinal(f.rank)} place` : ""}${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}${typeof f.trophy_change === "number" ? ` (${f.trophy_change > 0 ? "+" : ""}${f.trophy_change} war trophies)` : ""}${carried(f.members)}.`;
+    // Decks, not days: the week's count as the race recorded it, 16 at
+    // most (four a battle day), and its points; never fame (13.10.0).
+    case "war_week_played":
+      return `${member || subj} played ${f.decks_used >= WAR_WEEK_DECKS ? `all ${WAR_WEEK_DECKS} war decks` : plural(f.decks_used, "war deck")} in ${seasonWeek(f.season_id, (f.section_index ?? 0) + 1)}${f.is_colosseum ? " (Colosseum)" : ""}${typeof f.points === "number" ? `, for ${num(f.points)} points` : ""}.`;
     case "clan_joined":
       return `${subj} joined ${f.clan_name ?? f.clan_tag}.`;
     case "clan_left":

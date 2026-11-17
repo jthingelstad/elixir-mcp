@@ -506,6 +506,14 @@ export function momentHead(it) {
                 : f.league_name,
           }
         : null;
+    // A war week (13.10.0): the week's decks, never a day and never fame.
+    case "war_week_played":
+      return typeof f.decks_used === "number"
+        ? {
+            kicker: `Clan Wars week ${(f.section_index ?? 0) + 1}`,
+            title: `${f.decks_used} ${f.decks_used === 1 ? "deck" : "decks"}`,
+          }
+        : null;
     case "badge_earned":
       if (Array.isArray(f.badges) && f.badges.length > 1)
         return {

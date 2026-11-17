@@ -41,6 +41,7 @@
     "league_name": "on a ranked_season_finished timeline item only, a kind a run's window may not hold",
     "card_first_win": "timeline: a kind written only when a followed player wins with a card or form the previous profile read did not show (13.9.0, going forward only); a run's window may hold none. Pinned by packages/ingest/test/card-first-win.test.mjs and packages/tools/test/timeline-tool.test.mjs.",
     "tower_troop": "on a card_first_win timeline item only, a kind a run's window may not hold",
+    "war_week_played": "timeline: a kind served only on a followed player's timeline at a war week's close, read from the clan's resolved week (13.10.0); never on a clan's timeline, so a clan suite's window holds none. Pinned by packages/tools/test/timeline-player-clan.test.mjs.",
     "rating": "on a ranked_season_finished timeline item only, a kind a run's window may not hold",
     "overtime_wins": "on a sitting item only when the tiebreaker decided one of its wins, a rare case (13.5.0). Pinned by services/web-api/test/home-feed.test.mjs and packages/tools/test/profile-moments-text.test.mjs."
   },

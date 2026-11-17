@@ -724,6 +724,9 @@ const SMALL_MOMENTS = new Set([
   // A Ranked season's finish (0289): every friend who played says it on
   // the season's roll, so a run of them is one group row.
   "ranked_season_finished",
+  // A war week at its close (13.10.0): every friend in the clan's war
+  // has one at the same instant, so a run of them is one group row.
+  "war_week_played",
 ]);
 export function smallMoment(it) {
   if (!SMALL_MOMENTS.has(it?.kind)) return false;

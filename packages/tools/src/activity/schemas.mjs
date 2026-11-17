@@ -234,6 +234,22 @@ export const TIMELINE_KIND_SCHEMAS = {
       "members",
     ],
   },
+  // A player's own war week, at its close (13.10.0): the week's decks
+  // and points as the race recorded them, never a day and never fame.
+  war_week_played: {
+    version: 1,
+    at: "the read that saw the week close",
+    facts: [
+      ...MEMBER,
+      "clan_tag",
+      "clan_name",
+      "season_id",
+      "section_index",
+      "is_colosseum",
+      "decks_used",
+      "points",
+    ],
+  },
   quiet_crossed: {
     version: 2,
     at: "the last battle plus the rung's days",

@@ -418,6 +418,8 @@ function Counts({ page, onPick }) {
 const CLAN_KINDS = new Set([
   "race_finished",
   "week_resolved",
+  // The player's own war week wears its clan's medal too (13.10.0).
+  "war_week_played",
   "bracket_observed",
   "member_joined",
   "member_left",
