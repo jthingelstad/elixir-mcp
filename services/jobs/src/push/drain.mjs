@@ -26,6 +26,7 @@ import {
   readAwayActivity,
 } from "@elixir-mcp/tools/activity/bell";
 import {
+  closeStillWanted,
   CLOSE_DAILY_CAP,
   CLOSE_KIND,
   closeCandidates,
@@ -233,7 +234,7 @@ async function deliver(db, outbox, noticeId) {
   const {
     rows: [n],
   } = await db.query(
-    `select notice_id, account_id, kind, title, body, url, pending
+    `select notice_id, account_id, kind, title, body, url, pending, told
        from push_notice where notice_id = $1 and status = 'sending'`,
     [noticeId],
   );
@@ -248,7 +249,12 @@ async function deliver(db, outbox, noticeId) {
       where account_id = $1 and kind = $2`,
     [n.account_id, n.kind],
   );
-  if (pref && pref.enabled === false) {
+  // A close friends notice whose friend was unstarred, or a block made,
+  // since it was written is stopped the same way (Codex on #1090).
+  const stale =
+    n.kind === CLOSE_KIND &&
+    !(await closeStillWanted(db, n.account_id, n.told));
+  if ((pref && pref.enabled === false) || stale) {
     await db.query(
       `update push_notice
           set status = case when cardinality(pending) < devices

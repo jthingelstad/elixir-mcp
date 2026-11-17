@@ -114,19 +114,24 @@ export const CANDIDATES_SQL = `with devices as (
      ), tags as (
        select distinct player_tag from marks
      ), last_session as (
-       select t.player_tag, s.started_at, s.ended_at, s.battles, s.event
+       select t.player_tag, s.started_at, s.ended_at, s.battles, s.maybe
          from tags t
          cross join lateral (
            select min(x.battle_time) as started_at,
                   max(x.battle_time) as ended_at,
                   count(*)::int as battles,
-                  bool_or(x.event) as event
+                  bool_or(x.maybe) as maybe
              from (
-               select g.battle_time, g.event,
+               select g.battle_time, g.maybe,
                       sum(g.starts) over (order by g.battle_time desc
                                           rows unbounded preceding) as back
                  from (
-                   select bp.battle_time, b.event_tag is not null as event,
+                   -- A battle that can make a short session worth it: a
+                   -- challenge's (its run) or a Ranked one (a climb the
+                   -- battles' league stamps show, with or without a
+                   -- profile's ranked_promotion yet; Codex on #1090).
+                   select bp.battle_time,
+                          (b.event_tag is not null or b.league_number is not null) as maybe,
                           -- The newer battle is 30 minutes or more after
                           -- this one: the session ends here.
                           case when lag(bp.battle_time) over (order by bp.battle_time desc)
@@ -173,7 +178,7 @@ export const CANDIDATES_SQL = `with devices as (
         group by n.account_id, el->>'tag'
      )
      select m.account_id, m.player_tag, m.first_device,
-            s.started_at, s.ended_at, s.battles, s.event,
+            s.started_at, s.ended_at, s.battles, s.maybe,
             mo.moment_at, t.sessions_through, t.moments_through
        from marks m
        left join last_session s on s.player_tag = m.player_tag
@@ -182,6 +187,35 @@ export const CANDIDATES_SQL = `with devices as (
                        and t.player_tag = m.player_tag
       where (s.ended_at is not null or mo.moment_at is not null)
       order by m.account_id, m.player_tag`;
+
+/**
+ * Whether a close friends notice may still go, at delivery: every friend
+ * it names is still a close mark of the account's, and no block either
+ * way stands with the player's verified owner. A notice written before a
+ * block or an unstar and retried after it (an outbox write that failed)
+ * is dropped, never delivered (Codex on #1090).
+ */
+export async function closeStillWanted(db, accountId, told) {
+  const tags = (Array.isArray(told) ? told : [])
+    .map((t) => t?.tag)
+    .filter((t) => typeof t === "string");
+  if (tags.length === 0) return false;
+  const {
+    rows: [r],
+  } = await db.query(
+    `select count(*)::int as ok
+       from claim c
+      where c.account_id = $1 and c.player_tag = any($2::text[]) and c.close
+        and not exists (
+              select 1 from claim o
+               where o.player_tag = c.player_tag
+                 and o.status = 'verified'
+                 and o.account_id <> c.account_id
+                 and ${blockedSql("o.account_id", "c.account_id")})`,
+    [accountId, [...new Set(tags)]],
+  );
+  return r.ok === new Set(tags).size;
+}
 
 /** The statement's parameters. */
 export const candidateParams = (now, accountId = null) => [
@@ -225,10 +259,10 @@ export function wanted(r, nowMs) {
     end > floor &&
     (r.sessions_through === null ||
       ms(r.started_at) > ms(r.sessions_through)) &&
-    // A short session is worth it only for a challenge run's wins (an
-    // event battle, the build reads the run) or a Ranked climb, which is
-    // also a headline moment and is found as one.
-    (r.battles >= CLOSE_MIN_BATTLES || r.event === true);
+    // A short session is worth it only for a challenge run's wins or a
+    // Ranked climb; the build reads which, so a short session with a
+    // challenge or Ranked battle goes on to it.
+    (r.battles >= CLOSE_MIN_BATTLES || r.maybe === true);
   const moment =
     r.moment_at !== null &&
     ms(r.moment_at) > floor &&

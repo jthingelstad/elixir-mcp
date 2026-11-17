@@ -79,12 +79,9 @@ at your browser's push service (Google, Mozilla, Apple or Microsoft) and
 the keys that encrypt each notice so only that device can read it, with
 a short name like "Safari on iPhone" and when it was added and last
 reached. That address is private: it is never shown, even to you, and
-never shared. Each notice is encrypted before it leaves Elixir and says
-how many, never who, except Close friends' play, which names the friend
-you starred and goes only to you. A notice is kept with when it was sent
-and whether you tapped it, so the email does not tell you the same thing,
-and a Close friends' play notice with which of your close friends' play
-it told, so it is told once. Remove a
+never shared. Each notice is encrypted before it leaves Elixir, says how
+many, never who, and is kept with when it was sent and whether you
+tapped it, so the email does not tell you the same thing. Remove a
 device in Settings › Notifications, or block notifications in your
 browser, and Elixir stops; a device your browser says is gone is
 removed. Deleting your account removes all of it.
