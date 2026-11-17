@@ -1636,7 +1636,7 @@ test(
     const art = doc.querySelector(".home-art img");
     assert.equal(art.getAttribute("src"), "/assets/elixir-logo-288.webp");
     assert.ok(existsSync(path.join(out, "assets/elixir-logo-288.webp")));
-    // Three rows: friends, your clan, highlights, each with its way in.
+    // Three rows: friends, your clan, posts about battles, each with its way in.
     const rows = [...doc.querySelectorAll(".home-row")];
     assert.deepEqual(
       rows.map((r) => r.querySelector(".home-row__title").textContent),
@@ -1653,7 +1653,7 @@ test(
       [
         ["/docs/follow-a-friend"],
         ["/docs/bring-your-clan", "/docs/clan-directory"],
-        ["/docs/battles#highlight-a-battle"],
+        ["/docs/battles#post-about-a-battle"],
       ],
     );
     // A row describes; it never shows a record or a count.

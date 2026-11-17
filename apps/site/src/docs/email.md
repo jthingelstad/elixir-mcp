@@ -19,7 +19,7 @@ you: a clan action that is yours to do, cheers and new followers you
 have not seen yet, your collector's week if you run one, and an answer to
 feedback you filed.
 
-The digest gives each friend room: their highlights and words come before
+The digest gives each friend room: their posts about battles and their words come before
 their battle record. A gold check beside a linked player name marks a
 player verified in Elixir, even if they have not chosen an image.
 
@@ -66,7 +66,7 @@ chooses what to say, and the timeline keeps everything.
   or posted, friends first, up to twelve with the rest counted. Each has
   their sessions, then their battles and record, their trophies, and up to
   three things:
-  their [highlights](/docs/timeline#highlights) first, with their own
+  their [posts about battles](/docs/timeline#posts-about-battles) first, with their own
   words, then the big [firsts](/docs/milestones) (a new arena, league,
   best band, form, legendary badge or career step), a move between clans
   or a return, each with a link to the battle that did it when the record
@@ -81,7 +81,7 @@ chooses what to say, and the timeline keeps everything.
   the deck's eight cards on one session a friend. A session of one or two
   battles is one line. Each session's result opens its own page. In a
   busy digest, later friends' sessions get shorter, then become a link to
-  their page, and in a very busy one the last friends' highlights and
+  their page, and in a very busy one the last friends' posts and
   firsts are counted with a link to your timeline, so your email is never
   cut off. Your own
   sessions stay on your feed; under You, the digest keeps your week's
@@ -100,7 +100,7 @@ chooses what to say, and the timeline keeps everything.
 
 **Each player once.** Following everyone in your clan is common, so the
 digest never tells a player's week twice: their battles, firsts and
-highlights are told under them, and the clan's part keeps to the clan's
+posts are told under them, and the clan's part keeps to the clan's
 own news. A clanmate you follow who left the clan is told in the clan's
 part, not again under them. A clan's battle count and who went quiet are
 on [Clan](/docs/clan-week), not in the mail.
@@ -108,7 +108,7 @@ on [Clan](/docs/clan-week), not in the mail.
 What is attested (Clan's departures, roles, awards and messages,
 Drop's personal records) stays out of the digest; the timeline still
 carries them to their readers. Anything a person typed, a name, a
-nickname or a highlight's words, is shown as text.
+nickname or a post's words, is shown as text.
 
 ## Collector upgrade notices
 

@@ -128,7 +128,7 @@ Below it, the tabs:
   far, its place of the clans and fame so far, and about when the race
   closes. Then what is waiting for you, then the clan's last seven days,
   newest first: joins, departures and role changes, members' moments, and the
-  highlights its members post, each with its battle, thirty lines at a time
+  posts its members write about their battles, each with its battle, thirty lines at a time
   with **More** for the next thirty. Your own numbers and the week so far sit
   beside it, and above it on a phone. The Feed shows you what Elixir's timeline would
   show you about this clan, no more: a member reads the clan's facts, and the

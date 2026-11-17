@@ -47,7 +47,7 @@ function route(pathname) {
   // A battle's page is the app shell too: at the edge the API serves it
   // (the /battle/* behavior), with the battle's preview tags written in.
   if (/^\/battle\/[0-9a-f]{12,64}$/.test(key)) return "/app.html";
-  // So is a shared highlight's (#762, the /h/* behavior).
+  // So is a shared post about a battle's (#762, the /h/* behavior).
   if (/^\/h\/[a-z2-7]{15}$/.test(key)) return "/app.html";
   // And a session's public page (2026-11-17, the /session/* behavior).
   if (/^\/session\/[0-9A-Z]+\/tl_[0-9a-f]{20}\/\d+$/.test(key))

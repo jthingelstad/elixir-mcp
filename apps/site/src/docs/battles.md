@@ -123,14 +123,14 @@ On the smallest phones, the players' deck panels stack in their existing
 order, each keeping two rows of four cards. Larger phones and desktop show
 the panels side by side.
 
-Signed out, a battle's page, a shared highlight and a shared session
+Signed out, a battle's page, a shared post and a shared session
 ([Share a session](/docs/timeline#share-a-session)) carry one way in:
 **Join Elixir** opens the signup form and **Sign in** the sign-in form,
 and either brings you back to the page you were reading. The link names
 only the battle or the post, never who sent it to you.
 
 Signed in, **Follow from here** lists the page's players: a shared
-highlight's player first, then the rest of its battle; on a battle's page
+post's player first, then the rest of its battle; on a battle's page
 the left side first, then the right. Each says before the tap whether a
 Follow is free or uses one of your player slots ([What a player slot
 costs](/docs/recording#what-a-player-slot-costs)), and **Follow** adds
@@ -141,11 +141,11 @@ Find asks.
 ### Cheers
 
 Signed in, a battle's page has **In your feed** when an item in your own
-feed is about this battle: a highlight of it, or a moment it proved, such
+feed is about this battle: a post about it, or a moment it proved, such
 as the win that reached a new league. Each takes your cheer and shows its
 counts as it does on your Timeline ([Cheers](/docs/timeline#cheers)). A battle with
 no such item for you shows no cheers at all, and signed out the page shows
-neither cheers nor how many there are. A shared highlight's page (`/h/<id>`)
+neither cheers nor how many there are. A shared post's page (`/h/<id>`)
 carries no cheers.
 
 Add `.png` to the link for the battle's picture: the page drawn as one 1200 by
@@ -155,22 +155,27 @@ middle, as on the page) and how it ended, and the link under it. It is what the 
 on its own with the link beside it. Its time is in UTC, since a picture has no
 reader's clock.
 
-### Highlight a battle
+<a id="highlight-a-battle"></a>
+
+### Post about a battle
 
 On a battle's page, a signed-in person whose own **verified** player played
-it can highlight it: write up to 500 characters about it, or nothing, and
-choose **Post to your timeline**. The highlight goes on that player's
-timeline as this battle with your words, where the people who follow the
-player read it ([The timeline](/docs/timeline)). An unverified claim never
-lets anyone post as a player ([Verify](/docs/verify)). One highlight per
-player per battle; when two of your verified players played it, you choose
-which one posts.
+it can post about it: write up to 500 characters, or nothing at all, and tap
+**Post**. The post goes on that player's timeline with the battle attached
+and your words, where the people who follow the player read it ([The
+timeline](/docs/timeline)). An unverified claim never lets anyone post as a
+player ([Verify](/docs/verify)). One post per player per battle; when two of
+your verified players played it, you choose which one posts. A post about a
+battle carries the battle alone, never a deck or cards as well.
 
-Your highlight stays on the battle's page for you: **Edit words** changes
-them, **Delete** takes the highlight off the timeline and deletes the words.
-Only the account that posted it can change, share or delete it.
+Your words are checked as any post's are ([Limits](/docs/limits)): a link, a
+long number or an @handle is turned away.
 
-**Share** gives the highlight its own link, `/h/<id>`. The id is random and
+Your post stays on the battle's page for you: **Edit words** changes them,
+**Delete** takes the post off the timeline and deletes the words. Only the
+account that posted it can change, share or delete it.
+
+**Share** gives the post its own link, `/h/<id>`. The id is random and
 names only the post, never you or whoever opens it. Anyone with the link can
 open it without an account: the player's game name, your words, and the
 battle from that player's side: both decks with the score between them, the
@@ -179,17 +184,17 @@ battle's own page for the rest. It
 never shows a nickname, an email or anything of your account. The link
 unfurls in a chat with your words, and adding `.png` to it gives the battle's
 picture with the player's name, your words and the link. The same post is
-JSON at `/api/public/highlights/<id>`. Sharing again gives the same link.
-Deleting the highlight makes the link answer "No post at this link" within
+JSON at `/api/public/posts/<id>`. Sharing again gives the same link.
+Deleting the post makes the link answer "No post at this link" within
 about a minute.
 
-Once a highlight is shared, and when its player is in a clan whose leaders
-have turned on **Shared highlights** for the clan's Discord channel
+Once a post is shared, and when its player is in a clan whose leaders
+have turned on **Shared posts about battles** for the clan's Discord channel
 ([The clan's activity in Discord](/docs/clan-discord#the-clans-activity-in-discord)),
 you may choose **Post in your clan's Discord**. Elixir posts it there once,
 through the clan's own webhook: the player's game name, the result, your
 words and the link, which shows no preview. Nobody can be pinged by it,
-whatever the name or words say. Editing or deleting the highlight later
+whatever the name or words say. Editing or deleting the post later
 does not change the channel's post.
 
 ### Share with your context

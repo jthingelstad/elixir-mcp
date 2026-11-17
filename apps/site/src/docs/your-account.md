@@ -379,11 +379,11 @@ and each other choice it names links to the page that owns it.
   that *some* account is behind a player, never which: making a player
   you verified their own says another account has verified it, and
   following a player you follow can cost them no slot because another
-  account followed first. A highlight you post is on that player's
+  account followed first. A post about a battle is on that player's
   timeline for every member who follows the player, with the player's
   game name, your words and the battle, not your account; a follower who
   cross-posts their timeline to Discord sends it there too, and a line
-  posted there stays if you delete the highlight. A collector you run is credited to your main
+  posted there stays if you delete the post. A collector you run is credited to your main
   player's game name and tag, on the public status page too. If you set
   a place, they see it on the player map and in Near you, with your
   verified player's game name and tag. In Clan,
@@ -398,12 +398,12 @@ and each other choice it names links to the page that owns it.
 - **Someone with a link you send** opens it without an account. A
   battle link shows both sides' game names, clans, trophies and decks,
   the towers, how it ended, the left player's other battles in that
-  session and earlier battles between the two. A highlight you share
+  session and earlier battles between the two. A post about a battle you share
   shows your player's game name and your words over that battle, and its
-  picture carries the name, the words and the link; delete the highlight
-  and the link stops opening within about a minute ([Highlight a
-  battle](/docs/battles#highlight-a-battle)). A link carries the battle's
-  or the highlight's id and nothing else: no account id, nickname or
+  picture carries the name, the words and the link; delete the post
+  and the link stops opening within about a minute ([Post about a
+  battle](/docs/battles#post-about-a-battle)). A link carries the battle's
+  or the post's id and nothing else: no account id, nickname or
   email.
 - **Only you, or nobody else:** the nicknames you give players, your
   email address, your Discord name and profile, and your account's
@@ -452,8 +452,8 @@ reviewed step. Removing the account deletes the account:
   Discord account included;
 - **your claims**: the players and clans you follow;
 - **your nicknames** for players;
-- **your highlights**: the battles you posted to a player's timeline,
-  their words, and their share links, which stop opening;
+- **your posts**, those about battles included: their words, and their
+  share links, which stop opening;
 - **your agents**, their keys and the identities they map;
 - **your connections**: sessions, apps you allowed, a timeline
   cross-post's Discord webhook, and the clan Clan remembers you

@@ -84,7 +84,7 @@ In **[your digest](/docs/email#your-digest)** (weekly on Mondays, or
 daily by your choice) each friend who played or posted is shown under
 their name and your nickname for them: their battles with the wins and
 losses, their trophies, and up to three things, their
-[highlights](/docs/timeline#highlights) first with their own words, then
+[posts about battles](/docs/timeline#posts-about-battles) first with their own words, then
 a big first such as a new arena or a clan joined or left, each with a
 link to its battle when the record knows it. Friends come first, then
 the players you watch, up to twelve in all with the rest counted. Anyone

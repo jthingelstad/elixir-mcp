@@ -52,7 +52,7 @@ conventions that hold everywhere.
 | What was on in the game: events, challenges, side modes, by day | `game_events` |
 | Follow someone, say who they are to you | `elixir_follow_player`, `elixir_follow_clan`, `elixir_my_players`, `elixir_nickname` |
 | Resolve a human on an agent's surface to a player (agent connections only) | `on_behalf_of: "discord:<id>"` once they connect Discord in their Settings, else ask and pass `player_tag`; `elixir_my_identities` lists an agent's older mappings |
-| Who does this player follow, who follows them, and what have they posted? | `players_follows`, `players_highlights` (a person's own connection and their agents) |
+| Who does this player follow, who follows them, and what have they posted about their battles? | `players_follows`, `players_highlights` (a person's own connection and their agents) |
 | Who cheered my items, and how much? | `elixir_cheers` (counts by kind, never who; a person's own connection and their agents) |
 | Which clans have saved their rules in Elixir? | `clans_directory` (the public part of each policy; a person's own connection and their agents) |
 | Something is missing or took too many calls | `elixir_send_feedback`; `elixir_my_feedback` says what happened to it |
