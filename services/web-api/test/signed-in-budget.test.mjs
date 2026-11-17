@@ -120,9 +120,11 @@ const PLAYER_PAGE = {
   // people item, one statement each (account pages, 2026-11-15).
   // +1: the @handles of the accounts behind the follow lists' verified
   // players, one statement (account handles, 2026-11-15).
-  "/api/player": { statements: 34, buffers: 6000 },
+  // +3: the player's clan role changes and war weeks, one statement each, and a promotion's story id (13.10.0, 2026-11-17).
+  "/api/player": { statements: 37, buffers: 6000 },
   // 1500 to 900 (2026-11-14): 664 here, as on the battle page.
-  "/api/me/cheers": { statements: 26, buffers: 900 },
+  // +1: the player's clan news reads (13.10.0, 2026-11-17).
+  "/api/me/cheers": { statements: 27, buffers: 900 },
   "/api/clan/me": { statements: 15, buffers: 300 },
   "/api/me/follow-plan": { statements: 9, buffers: 500 },
   // +1: who verified the player, for linked follows (2026-11-15).
@@ -215,7 +217,9 @@ const STATS = (t) => [
   // The season list, from the first recorded battle: a long window, read
   // battle by battle, never by hashing the battle table.
   ["battles_performance", { player_tag: t, from: "LONG" }, 18, 14000],
-  ["battles_performance", { player_tag: t, season: "current" }, 18, 1100],
+  // 1100 to 1200 (2026-11-17): the current season's share of the seeded
+  // 26 weeks grows with the clock, and read 1101 to 1104 under a full run.
+  ["battles_performance", { player_tag: t, season: "current" }, 18, 1200],
   [
     "battles_performance",
     { player_tag: t, season: "current", mode: "ladder" },
@@ -336,7 +340,8 @@ test("the bell stays in its budgets, built and stored, and never counts late cap
     {},
     {
       // 35 since #1015: one read of the account's new Stamps.
-      statements: 35,
+      // +3: the player's clan role changes and war weeks, one statement each, and a promotion's story id (13.10.0, 2026-11-17).
+      statements: 38,
       buffers: 1100,
     },
   );
@@ -594,7 +599,8 @@ const BATTLE = {
   "/api/me": { statements: 11, buffers: 900 },
   "/api/public/battles": { statements: 21, buffers: 500 },
   "/api/me/highlights": { statements: 5, buffers: 50 },
-  "/api/me/cheers": { statements: 26, buffers: 900 },
+  // +1: the player's clan news reads (13.10.0, 2026-11-17).
+  "/api/me/cheers": { statements: 27, buffers: 900 },
   // +1: who verified the player, for linked follows (2026-11-15).
   "/api/me/follow-cost": { statements: 6, buffers: 250 },
   // +1: the page's profile images, one statement (2026-11-14).
@@ -717,8 +723,10 @@ test("Settings' reads stay in their budgets, and Players reads each claim's play
 });
 
 /** What a timeline of the reader's 56 players may make, whatever their
- *  number: none of its reads is per player. */
-const TIMELINE_STATEMENTS = 30;
+ *  number: none of its reads is per player. +2 (13.10.0, 2026-11-17):
+ *  the players' clan role changes and war weeks, one batched statement
+ *  each. */
+const TIMELINE_STATEMENTS = 32;
 
 /** The statement that counts an observed week's late captures. */
 const LATE_ONCE = /with late as materialized \(/;
