@@ -59,7 +59,7 @@ test("signed out: both decks, the score, how it ended, and the way in", async ({
   ).toHaveCount(8);
   await expect(
     page.getByRole("region", { name: "How it ended" }),
-  ).toContainText("The game went to time with 3 towers down.");
+  ).toContainText("Three towers fell before time ran out.");
   await expect(
     page.getByRole("region", { name: "Side by side" }),
   ).toContainText("13,591 → 13,621");

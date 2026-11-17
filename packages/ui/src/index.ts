@@ -5,6 +5,7 @@ export {
   cardArtSrc,
   cardLabel,
   DeckGrid,
+  DeckGridWait,
   DeckRow,
   DeckVersus,
   deckElixir,

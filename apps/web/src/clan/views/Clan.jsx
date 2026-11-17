@@ -557,8 +557,7 @@ export function Clan({
                 Scout
               </h2>
               <p className="page-head__note m-0">
-                For elders, co-leaders and the leader: a player&rsquo;s numbers
-                before they join.
+                A player&rsquo;s numbers before they join, for elders and up.
               </p>
               <Scout clan={clan} />
             </section>

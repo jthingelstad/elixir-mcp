@@ -322,13 +322,15 @@ function BandLine({ band, roster }) {
   if (!band)
     return roster ? (
       <p className="page-head__note m-0">
-        {roster.size} members, {roster.open_slots} open. Elders are chosen by
+        {roster.size} members, {roster.open_slots}{" "}
+        {roster.open_slots === 1 ? "spot" : "spots"} open. Elders are chosen by
         the leaders.
       </p>
     ) : null;
   return (
     <p className="page-head__note m-0">
-      {band.roster_size} members, {band.open_slots} open. {band.current_elders}{" "}
+      {band.roster_size} members, {band.open_slots}{" "}
+      {band.open_slots === 1 ? "spot" : "spots"} open. {band.current_elders}{" "}
       Elders; the policy keeps {band.floor} to {band.ceil}, aiming for{" "}
       {band.target}.
     </p>

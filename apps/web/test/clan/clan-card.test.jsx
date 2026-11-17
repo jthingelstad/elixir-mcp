@@ -52,13 +52,13 @@ describe("the clan card", () => {
         required_trophies: 5000,
       }),
     ).toBe(
-      "#0QC8RCGY · 47 members, 3 open · invite only · 5,000 trophies to join",
+      "#0QC8RCGY · 47 of 50 members · invite only · 5,000 trophies to join",
     );
     // Before the roster answers, just the tag; no floor, no floor words.
     expect(clanLine(clan, null)).toBe("#0QC8RCGY");
     expect(
       clanLine(clan, { member_count: 1, type: "open", required_trophies: 0 }),
-    ).toBe("#0QC8RCGY · 1 member, 49 open · open to join");
+    ).toBe("#0QC8RCGY · 1 of 50 members · open to join");
   });
 
   test("the chips: the race now, then each rule the leaders saved", async () => {

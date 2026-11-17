@@ -3412,6 +3412,40 @@ input[aria-invalid="true"] {
   color: var(--ink-body);
   margin: 0 0 var(--s-3);
 }
+/* The challenge's three steps: big numbers a player finds again after
+   switching back from the game (2026-11-16). */
+.verify__steps {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0 0 var(--s-4);
+  padding: 0;
+  list-style: none;
+  counter-reset: verify-step;
+  font-size: var(--t-body);
+  color: var(--ink-body);
+}
+.verify__steps > li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--s-3);
+  align-items: start;
+  counter-increment: verify-step;
+}
+.verify__steps > li::before {
+  content: counter(verify-step);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--accent-deep);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: var(--t-body-sm);
+}
+.verify__steps strong {
+  color: var(--ink);
+}
 .verify__hint {
   font-size: var(--t-body-sm);
   color: var(--ink-dim);
@@ -3848,6 +3882,17 @@ input[aria-invalid="true"] {
   display: block;
   width: var(--card-w);
   aspect-ratio: 285 / 420;
+}
+/* Art on its way: the frame's tile holds the place, pulsing only where
+   motion is welcome (2026-11-16). */
+.card-art__frame--wait {
+  border-radius: 6px;
+  background: var(--panel-raised);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card-art__frame--wait {
+    animation: kit-skel-pulse 1.4s ease-in-out infinite;
+  }
 }
 .card-art__img {
   display: block;
@@ -4645,18 +4690,19 @@ a.card-art:hover .card-art__img {
     padding-left: var(--s-3);
   }
 }
-.battle__foot {
+/* A signed-out reader's way in, under the score (2026-11-16). */
+.battle__join {
   display: flex;
-  gap: var(--s-2) var(--s-6);
-  align-items: baseline;
   flex-wrap: wrap;
-  padding-top: 14px;
-  font-size: var(--t-caption);
-  color: var(--ink-faint);
-}
-.battle__id {
-  font: var(--t-caption) var(--font-mono);
-  overflow-wrap: anywhere;
+  gap: var(--s-2) var(--s-3);
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 10px var(--s-4);
+  border-radius: var(--r-control);
+  background: var(--panel-raised);
+  font-size: var(--t-body-sm);
+  color: var(--ink-body);
 }
 @media (max-width: 760px) {
   .battle__score {
@@ -4994,6 +5040,32 @@ a.card-art:hover .card-art__img {
 .stats-cal__ahead {
   display: none;
 }
+/* A panel's explanation past its first line (2026-11-16): one quiet
+   opener, the rest of the words under it. */
+.stats-more {
+  margin-top: 4px;
+}
+.stats-more > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  cursor: pointer;
+  color: var(--ink-dim);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.stats-more > p {
+  margin: 4px 0 0;
+}
+/* A phone's "Show all days" (2026-11-16); the computer's month shows
+   every day, so it has nothing to open. */
+.stats-cal__more {
+  display: none;
+}
+/* Most played deck's frames while its cards load: the 52px of its grid. */
+.stats-top .card-art {
+  --card-w: 52px;
+}
 .stats-day--today {
   box-shadow: inset 0 0 0 1px var(--gold);
 }
@@ -5320,6 +5392,13 @@ a.card-art:hover .card-art__img {
   .stats-day--fut:not(.stats-day--today),
   .stats-legend .stats-legend__fut {
     display: none;
+  }
+  .stats-day--older {
+    display: none;
+  }
+  .stats-cal__more {
+    display: block;
+    padding: 6px 18px 0;
   }
   .stats-cal__ahead {
     display: block;
@@ -8548,7 +8627,6 @@ a.kit-bell__hit:focus-visible::after {
 }
 .kit-find__link {
   margin: var(--s-2) 0;
-  overflow-wrap: anywhere;
 }
 
 .kit-newmark {

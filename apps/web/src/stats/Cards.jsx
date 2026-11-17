@@ -11,7 +11,7 @@ import {
 } from "./stats.js";
 import { cardRows, modeBattles } from "./stats-cards.js";
 import { useToolRead } from "../lib/queries.js";
-import { Loading, ReadError, Record } from "./common.jsx";
+import { Loading, PanelNote, ReadError, Record } from "./common.jsx";
 import { useWhose } from "./whose.js";
 
 /** Rows a card list shows before "Show all". */
@@ -159,12 +159,13 @@ function CardList({ title, scope, rows, floor, foot }) {
           </button>
         </div>
       ) : null}
-      <div className="panel__foot">
-        {foot}
-        {floor
-          ? ` Cards in fewer than ${fmt(floor)} ${noun(floor, "battle")} are left out.`
-          : ""}
-      </div>
+      <PanelNote>
+        {`${foot}${
+          floor
+            ? ` Cards in fewer than ${fmt(floor)} ${noun(floor, "battle")} are left out.`
+            : ""
+        }`}
+      </PanelNote>
     </Panel>
   );
 }

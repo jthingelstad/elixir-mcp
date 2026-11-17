@@ -34,9 +34,7 @@ function lineParts(clan, roster) {
   const floor = roster?.required_trophies ?? null;
   return [
     clan.clan_tag,
-    count === null
-      ? null
-      : `${count} ${count === 1 ? "member" : "members"}, ${Math.max(0, 50 - count)} open`,
+    count === null ? null : `${count} of 50 members`,
     JOIN[roster?.type] ?? null,
     floor > 0 ? `${n(floor)} trophies to join` : null,
   ].filter(Boolean);

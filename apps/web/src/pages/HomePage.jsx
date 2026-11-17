@@ -57,7 +57,7 @@ export function HomePage() {
       <>
         <PageHead
           title="Welcome to Elixir"
-          sub="The game keeps about your last 30 battles. Elixir keeps reading them, so your record grows."
+          sub="Add your player tag, and your battles show up here within about a minute."
         />
         <NewAccount
           first={live}

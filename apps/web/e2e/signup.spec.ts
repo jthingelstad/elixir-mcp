@@ -243,11 +243,15 @@ for (const width of [390, 1280]) {
         ],
       }),
     );
-    // Home's first steps: the optional ones say so.
+    // Home's first steps: the optional one says so, and connecting an AI
+    // is not one of them (2026-11-16).
     await page.goto("/home");
     await expect(
-      page.getByRole("heading", { name: /^Connect an AI/ }),
+      page.getByRole("heading", { name: /^Prove it’s you/ }),
     ).toContainText("Optional");
+    await expect(
+      page.getByRole("heading", { name: /^Connect an AI/ }),
+    ).toHaveCount(0);
     await expect(page.getByLabel("Your player tag")).toBeVisible();
     // Tracking keeps its own address for the field, ready to type in
     // (2026-10-20).

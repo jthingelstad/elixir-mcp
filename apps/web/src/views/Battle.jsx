@@ -92,6 +92,13 @@ export const DURATION = {
 };
 
 const TOWER_WORDS = ["none", "one", "both"];
+const DOWN_WORDS = [
+  "No tower",
+  "One tower",
+  "Two towers",
+  "Three towers",
+  "Four towers",
+];
 
 /** The factual sentence under "How it ended": only what the towers and
  *  the crowns say, never why. */
@@ -104,7 +111,7 @@ export function endedSentence(basis, sides) {
   } else if (basis === "regulation_ran") {
     const down = princessLost(l.tower_hp) + princessLost(r.tower_hp);
     out.push(
-      `The game went to time with ${down === 1 ? "one tower" : `${down} towers`} down.`,
+      `${DOWN_WORDS[down] ?? `${down} towers`} fell before time ran out.`,
     );
   } else if (basis === "overtime_expired") {
     out.push(
@@ -317,6 +324,8 @@ export function BattleView({
         heading={heading}
       />
 
+      {signedOut && invite && <JoinLine />}
+
       {games && (
         // The kit's one tab row (2026-11-13), not a third tab style: the
         // games are tabs like a player's or a clan's.
@@ -390,12 +399,6 @@ export function BattleView({
             )
           }
         />
-      </div>
-
-      <div className="battle__foot">
-        <span>
-          Battle <span className="battle__id">{battle.id}</span>
-        </span>
       </div>
     </article>
   );
@@ -774,11 +777,10 @@ function Ended({ battle, sides, game, title }) {
       </div>
       <div className="panel__note">
         {basis === "regulation_ran" &&
-          "A game that runs to time lasts between 3:00 and 5:00; whether it reached overtime is not recorded. "}
-        Princess Towers are listed in the order the game reports them, not by
-        lane.
+          "A game that goes to time lasts 3 to 5 minutes. The game doesn’t say whether it went to overtime. "}
+        Princess Towers are in the order the game lists them, not by lane.
         {game &&
-          " A King Tower shows as destroyed when the other side took three crowns in that game, since the game leaves its value out."}
+          " The game leaves out a King Tower’s hitpoints after three crowns, so it shows here as destroyed."}
       </div>
     </section>
   );
@@ -855,9 +857,9 @@ function SideBySide({ battle, sides }) {
         </table>
       </div>
       <div className="panel__note">
-        The level edge compares the cards as played in this battle. Elixir
-        leaked is the game’s own count of elixir lost while a player’s bar sat
-        full.
+        The plus sign is how much higher one deck’s cards were, as they were
+        played in this battle. Elixir leaked is elixir lost while a player’s bar
+        sat full, as the game counts it.
       </div>
     </section>
   );
@@ -1035,6 +1037,26 @@ function Share({ battle, sides, own }) {
         )}
       </div>
     </section>
+  );
+}
+
+/** The way in, up top, for a reader who opened the link from a group
+ *  chat with no account (2026-11-16): one line and one button, so it is
+ *  plain from the first screen. The full Invite stays below the battle. */
+function JoinLine() {
+  const back = encodeURIComponent(
+    window.location.pathname + window.location.search,
+  );
+  return (
+    <p className="battle__join">
+      <span>Follow your friends’ battles on Elixir. It’s free.</span>
+      <a
+        className="btn btn--sm btn--gold"
+        href={`/signin?signup&return_to=${back}`}
+      >
+        Join free
+      </a>
+    </p>
   );
 }
 

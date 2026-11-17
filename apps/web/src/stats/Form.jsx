@@ -21,7 +21,7 @@ import {
   shortDay,
 } from "./stats.js";
 import { useToolRead } from "../lib/queries.js";
-import { Loading, ReadError } from "./common.jsx";
+import { Loading, PanelNote, ReadError } from "./common.jsx";
 import { useWhose } from "./whose.js";
 
 /**
@@ -410,7 +410,7 @@ function FormPanel({
           </table>
         )}
       </div>
-      {foot ? <div className="panel__foot">{foot}</div> : null}
+      <PanelNote lead={!lede}>{foot}</PanelNote>
     </Panel>
   );
 }

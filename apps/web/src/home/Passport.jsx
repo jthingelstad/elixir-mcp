@@ -187,7 +187,11 @@ function PassportView({ data, owner, yours, stampId }) {
       ) : null}
       {GROUPS.map((group) => (
         <section key={group} className="kit-passport__group">
-          <h2>{group}</h2>
+          {/* "Your circle" is the reader's word for their own; on someone
+              else's passport it is their circle, so it reads "Circle". */}
+          <h2>
+            {group === "Your circle" && !owner && !yours ? "Circle" : group}
+          </h2>
           <ul className="kit-stamp-grid">
             {STAMPS.filter((s) => s.group === group).map((s, i) => {
               const e = earned.get(s.id);

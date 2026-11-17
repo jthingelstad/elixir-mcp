@@ -10,7 +10,9 @@ import { useInvalidate } from "../lib/queries.js";
 import { clanStepLine } from "./logic.js";
 
 /**
- * Welcome: worked out from the record each time, with nothing stored. Each
+ * Welcome: worked out from the record each time, with nothing stored. Four
+ * steps, none of them jargon (2026-11-16): connecting an AI is not a
+ * first-minute step, so it lives in Settings › Connections and the docs. Each
  * step's state comes from the first answer; adding a player and the first
  * read are the two that hold Today back, and the rest never do. The page owns
  * the status read and the wait (first-read.js), so Today, once drawn, keeps
@@ -62,10 +64,10 @@ export function NewAccount({
           </Step>
           <Step
             n={2}
-            title="First read"
+            title="Your battles"
             done={Boolean(landed)}
             waiting={!added}
-            ahead="Your profile and about your last 30 battles usually show up within a minute."
+            ahead="Your recent battles show up here, usually within a minute."
             doneLine={
               landed
                 ? player.battles_30d > 0
@@ -109,16 +111,6 @@ export function NewAccount({
             counts. Then Elixir knows this player is yours, and you can act as
             Elder, Co-Leader or Leader in your clan.{" "}
             <Link to={`${SETTINGS}/players/verify`}>Prove it</Link>
-          </Step>
-          <Step
-            n={5}
-            title="Connect an AI"
-            optional
-            done={(live?.connection?.active_connections ?? 0) > 0}
-            doneLine="Connected."
-          >
-            Ask Claude or ChatGPT about your battles.{" "}
-            <a href="/docs/quickstart">Show me how</a>
           </Step>
         </ol>
         <aside className="kit-inbox">
@@ -334,12 +326,11 @@ function FirstRead({ player, journey, onCheck, busy, onStopped }) {
   return (
     <>
       <p>
-        Your tag is saved. Your profile and about your last 30 battles usually
-        show up within a minute (a few at busy times).
+        Got it. Your recent battles usually show up within a minute (a few at
+        busy times).
       </p>
       <p className="kit-tiny">
-        This page checks again every few seconds for the first minutes, then
-        about once a minute while it&rsquo;s open. You can close it.
+        This page keeps checking for you. You can close it and come back.
       </p>
     </>
   );

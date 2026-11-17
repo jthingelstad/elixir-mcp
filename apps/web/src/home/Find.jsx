@@ -102,14 +102,13 @@ export function FindPage() {
           ) : tab === "link" ? (
             <FollowMeLink players={own} />
           ) : tab === "near" ? (
-            <>
-              <NearYou />
+            <NearYou>
               <Suspense
                 fallback={<div className="kit-skeleton" aria-busy="true" />}
               >
                 <PlayerMap />
               </Suspense>
-            </>
+            </NearYou>
           ) : tab === "search" ? (
             <Search />
           ) : (
@@ -258,20 +257,26 @@ function FollowMeLink({ players }) {
         </TagText>
         .
       </p>
-      <p className="kit-find__link">
-        <code>{url}</code>
-      </p>
-      <button
-        type="button"
-        className="btn btn--sm"
-        onClick={() => {
-          navigator.clipboard?.writeText(url);
-          flash();
-        }}
-      >
-        <Icon name={copied ? "check" : "copy"} size={14} />
-        {copied ? "Copied" : "Copy your Follow me link"}
-      </button>
+      {/* One line, the address without its https:// and cut short where
+          it runs long; Copy takes the whole link (2026-11-16). */}
+      <div className="kit-find__link share-link">
+        <Icon name="link-2" size={15} />
+        <code className="share-link__url" title={url}>
+          {url.replace(/^https?:\/\//, "")}
+        </code>
+        <button
+          type="button"
+          className="btn btn--sm btn--gold"
+          aria-label={copied ? "Copied" : "Copy your Follow me link"}
+          onClick={() => {
+            navigator.clipboard?.writeText(url);
+            flash();
+          }}
+        >
+          <Icon name={copied ? "check" : "copy"} size={14} />
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
     </Panel>
   );
 }

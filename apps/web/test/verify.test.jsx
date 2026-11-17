@@ -222,11 +222,13 @@ test(
     // The player's own deck with two marked swaps, and the lead says so.
     expect(target.querySelectorAll(".deck__slot--swapped").length).toBe(2);
     expect(screen.getAllByLabelText("swapped in").length).toBe(2);
+    // The steps are a numbered list; step one says which deck it is.
+    const steps = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(
-      screen.getByText(
-        /your own recent Trophy Road deck with two cards swapped/,
+      steps.some((t) =>
+        /your own recent Trophy Road deck with two cards swapped/.test(t),
       ),
-    ).toBeTruthy();
+    ).toBe(true);
     expect(screen.getByText(/Any mode counts/)).toBeTruthy();
     // No battle yet: eight empty slots on the live side.
     const seen = screen.getByRole("list", {
@@ -234,7 +236,7 @@ test(
     });
     expect(seen.querySelectorAll(".deck__slot--empty").length).toBe(8);
     expect(screen.getByRole("status").textContent).toMatch(
-      /No battle since you started/,
+      /Waiting for your battle/,
     );
     expect(screen.getByText(/19 min left/)).toBeTruthy();
   },
@@ -264,7 +266,7 @@ test(
     const target = screen.getByRole("list", { name: "The deck to play" });
     expect(target.querySelectorAll(".deck__slot--matched").length).toBe(3);
     expect(screen.getByRole("status").textContent).toMatch(
-      /Battle log read \d+:\d\d:\d\d [ap]m/,
+      /Last checked \d+:\d\d:\d\d [ap]m/,
     );
 
     await act(async () => {

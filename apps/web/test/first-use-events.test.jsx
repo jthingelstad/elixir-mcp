@@ -148,23 +148,23 @@ test("past the fast window, a stub's record draws Today rather than waiting on",
   expect(screen.getByText("Today is drawn")).toBeTruthy();
 });
 
-test("the First read step says what is true now: profile and battles, usually within a minute (2026-11-09)", () => {
+test("the battles step says what is true now, in plain words, usually within a minute (2026-11-16)", () => {
   const before = renderWithProviders(<NewAccount first={first(null)} />);
   expect(
     screen.getByText(
-      "Your profile and about your last 30 battles usually show up within a minute.",
+      "Your recent battles show up here, usually within a minute.",
     ),
   ).toBeTruthy();
+  // Connecting an AI is not a first-minute step (2026-11-16).
+  expect(screen.queryByText(/Connect an AI/)).toBeNull();
   before.unmount();
   renderWithProviders(<NewAccount first={first(player)} />);
   expect(
     screen.getByText(
-      /Your profile and about your last 30 battles usually show up within a minute \(a few at busy times\)\./,
+      /Your recent battles usually show up within a minute \(a few at busy times\)\./,
     ),
   ).toBeTruthy();
-  // useFirstAnswer: every 5 s for three minutes, then every minute.
-  expect(
-    screen.getByText(/checks again every few seconds for the first minutes/),
-  ).toBeTruthy();
+  expect(screen.getByText(/This page keeps checking for you/)).toBeTruthy();
+  expect(screen.queryByText(/First read/)).toBeNull();
   expect(screen.queryByText(/within a few minutes/)).toBeNull();
 });

@@ -72,7 +72,7 @@ describe("recruit", () => {
     const facts = await screen.findByRole("group", {
       name: "Recruiting facts",
     });
-    expect(within(facts).getByText(/47 members · 3 open/)).toBeTruthy();
+    expect(within(facts).getByText(/47 members · 3 spots open/)).toBeTruthy();
     expect(
       within(facts).getByText(/5,000 trophies · invite only/),
     ).toBeTruthy();
