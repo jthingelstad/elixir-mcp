@@ -40,6 +40,7 @@ import { proofOf } from "@elixir-mcp/tools/activity/bell";
 import { modeGroupOf } from "@elixir-mcp/contracts";
 import {
   highlightVersus,
+  scoresOf,
   sessionDeck,
   sessionSpark,
 } from "@elixir-mcp/tools/activity/entries";
@@ -124,26 +125,9 @@ export function sparkBars(spark) {
   }));
 }
 
-/** A sitting's score facts from its battles in order, or null when the
- *  record kept no crowns. The widest win (ties: the earlier) and the wins
- *  that took three crowns. Facts only: no judgement of the sitting. */
-export function scoresOf(spark) {
-  if (!Array.isArray(spark)) return null;
-  const scored = spark.filter(
-    (b) =>
-      b.outcome === "win" &&
-      typeof b.crowns === "number" &&
-      typeof b.against === "number",
-  );
-  if (scored.length === 0) return null;
-  let best = scored[0];
-  for (const b of scored)
-    if (b.crowns - b.against > best.crowns - best.against) best = b;
-  return {
-    best_win: `${best.crowns}-${best.against}`,
-    three_crowns: scored.filter((b) => b.crowns >= 3).length,
-  };
-}
+/** A sitting's score facts (the widest win, the three-crown wins): the
+ *  tools' one function, which the digest reads too (2026-11-16). */
+export { scoresOf };
 
 /** Whether a clan arrival offers Follow (design canvas 2026-11-13): a
  *  member who joined a clan you follow, and whom you do not follow, from the

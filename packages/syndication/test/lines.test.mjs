@@ -181,3 +181,34 @@ test("a name that opens the line is never a heading or a list", () => {
       name,
     );
 });
+
+test("a sitting links its own session page, its name escaped (2026-11-16)", () => {
+  const it = {
+    id: "tl_0000000000000000c001",
+    kind: "session_standout",
+    at: new Date(NOW - 600_000).toISOString(),
+    subject_tag: "#0YRL2GQP",
+    subject_name: "*Bo* [x](y)",
+    text: "*Bo* [x](y) won 5 of 6.",
+    evidence: { kind: "session" },
+    facts: {
+      player_tag: "#0YRL2GQP",
+      started_at: "2026-10-10T17:00:00.000Z",
+      ended_at: new Date(NOW - 600_000).toISOString(),
+    },
+  };
+  const path =
+    "/home/player/0YRL2GQP/session/tl_0000000000000000c001?at=2026-10-10T17%3A00%3A00.000Z";
+  assert.deepEqual(itemLinks(it)[0], {
+    label: "session",
+    url: `${ORIGIN}${path}`,
+  });
+  const line = discordLine(it, { nowMs: NOW });
+  assert.ok(line.includes(`[session](<${ORIGIN}${path}>)`));
+  assert.ok(line.startsWith("\\*Bo\\* \\[x\\](y) won"));
+  assert.ok(!line.includes("[*Bo*"));
+  // An old row with no session evidence links no session.
+  assert.ok(
+    !itemLinks({ ...it, evidence: null }).some((l) => l.label === "session"),
+  );
+});

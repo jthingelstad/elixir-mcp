@@ -11,6 +11,7 @@
  *  with embeds suppressed. */
 import { ELIXIR_ORIGIN, DISCORD_CONTENT_MAX } from "@elixir-mcp/contracts";
 import { escapeDiscord } from "@elixir-mcp/clan-engine";
+import { SITTINGS, sessionPathOf } from "@elixir-mcp/ui/session-story";
 
 const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
@@ -55,9 +56,10 @@ const WAR_KINDS = new Set([
   "week_resolved",
 ]);
 
-/** The links an item carries, most specific first: its battle, its race
- *  week, the member a clan's item is about, then its subject (a clan
- *  when `clanTags` holds it, else a player). */
+/** The links an item carries, most specific first: its battle, a
+ *  sitting's own page (2026-11-16), its race week, the member a clan's
+ *  item is about, then its subject (a clan when `clanTags` holds it,
+ *  else a player). */
 export function itemLinks(
   it,
   { battles = new Map(), clanTags = new Set() } = {},
@@ -66,6 +68,9 @@ export function itemLinks(
   const links = [];
   const battle = battles.get(itemBattleId(it));
   if (battle) links.push({ label: "battle", url: battle.url });
+  const session = sessionPathOf(it);
+  if (session)
+    links.push({ label: "session", url: `${ELIXIR_ORIGIN}${session}` });
   if (
     WAR_KINDS.has(it.kind) &&
     it.subject_tag &&
@@ -95,7 +100,6 @@ export function itemLinks(
  *  time: the message's own post time says enough. */
 const FRESH_MS = 3 * 3600_000;
 
-const SITTINGS = new Set(["battle_session", "session_standout"]);
 /** The instant an item's age runs from: a sitting's last battle (it
  *  moved then, so a sitting edited as it grows stays fresh and never
  *  gains a time), every other item's own `at`. */

@@ -1,5 +1,6 @@
 import { tagPath } from "../lib/tag-url.js";
 import { SETTINGS } from "../lib/settings.js";
+import { modeWord } from "@elixir-mcp/ui/session-story";
 
 /** What Home works out on its own, away from the drawing. */
 
@@ -115,15 +116,9 @@ export const roleLabel = (role) => ROLES[role] ?? null;
 export const panelOf = (query, key) =>
   query.data?.[key] ?? (query.isError ? { ok: false } : undefined);
 
-const MODE_WORDS = {
-  ladder: "Trophy Road",
-  ranked: "Ranked",
-  war: "War",
-  casual: "Casual",
-  event: "Events",
-};
-export const modeWord = (mode) =>
-  MODE_WORDS[mode] ?? `${mode.charAt(0).toUpperCase()}${mode.slice(1)}`;
+// The game's names for the mode groups, shared with mail
+// (@elixir-mcp/ui/session-story).
+export { modeWord };
 
 /** Your week's chips: Casual always (Q6), Events only with battles in it
  *  (A34), and the names the game uses: Trophy Road and Ranked. */

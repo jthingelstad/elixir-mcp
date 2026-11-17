@@ -1,6 +1,15 @@
-import { DeckRow, Icon, Link, TagText, noun } from "@elixir-mcp/ui";
+import { DeckRow, Icon, Link, TagText } from "@elixir-mcp/ui";
+import {
+  SITTINGS,
+  compactSitting,
+  deckCaption,
+  modesSaid,
+  sessionChips,
+  sessionHeadline,
+  signedCount as signed,
+  trophyNet,
+} from "@elixir-mcp/ui/session-story";
 import { sessionHref } from "../lib/player.js";
-import { modeWord } from "./logic.js";
 import { Sparkline } from "./Sparkline.jsx";
 import { ModeLine } from "./ModeLine.jsx";
 
@@ -16,118 +25,23 @@ import { ModeLine } from "./ModeLine.jsx";
  * two battles is a compact card: the result on one line with its trophies,
  * no figures, no strip and no chips, a smaller deck.
  */
-export const SITTINGS = new Set(["battle_session", "session_standout"]);
+// The headline, chips and deck caption are derived in the kit's
+// session-story module, which the digest reads too, so a sitting is said
+// the same way in the app and in mail (2026-11-16).
+export {
+  SITTINGS,
+  compactSitting,
+  deckCaption,
+  modesSaid,
+  sessionChips,
+  sessionHeadline,
+  trophyNet,
+};
 
 /** A sitting with the facts a card is drawn from; one without (an old or
  *  thin row) keeps the timeline's sentence. */
 export const sittingCard = (it) =>
   SITTINGS.has(it?.kind) && (it.facts?.battles ?? 0) > 0;
-
-/** The modes a sitting was played in, as the game names them: an event
- *  by its own name when the sitting was all one event. */
-export function modesSaid(f = {}) {
-  const modes = Object.keys(f.by_mode ?? {});
-  const events = f.events ?? [];
-  const words = modes.map((m) =>
-    m === "event" && events.length === 1 && events[0]?.name
-      ? events[0].name
-      : modeWord(m),
-  );
-  if (words.length <= 1) return words[0] ?? null;
-  return `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`;
-}
-
-/** Where a sitting was played, as a phrase after its result: "on Trophy
- *  Road", "in Ranked", "in Classic 1v1" (an event by its own
- *  name), "across Trophy Road and Casual". */
-export function wherePlayed(f = {}) {
-  const modes = Object.keys(f.by_mode ?? {});
-  const said = modesSaid(f);
-  if (!said) return null;
-  if (modes.length > 1) return `across ${said}`;
-  return modes[0] === "ladder" ? `on ${said}` : `in ${said}`;
-}
-
-/** A sitting's headline, from its facts alone (2026-11-16): its result and
- *  what stood out, never the timeline's sentence, which repeats the name
- *  and every number the card shows (that sentence stays for MCP, RSS and
- *  Discord). "Won 8 of 12 on Trophy Road, 5 in a row"; "Lost a Ranked
- *  battle". */
-export function sessionHeadline(f = {}) {
-  const n = f.battles ?? 0;
-  const where = wherePlayed(f);
-  const modes = Object.keys(f.by_mode ?? {});
-  if (n === 1) {
-    const did = (f.won ?? 0) > 0 ? "Won" : (f.lost ?? 0) > 0 ? "Lost" : "Drew";
-    const said = modesSaid(f);
-    if (!said) return `${did} a battle`;
-    return modes[0] === "event" || modes.length > 1
-      ? `${did} a battle ${where}`
-      : `${did} a ${said} battle`;
-  }
-  const run =
-    typeof f.won_in_a_row === "number" && f.won_in_a_row >= 3
-      ? `, ${f.won_in_a_row} in a row`
-      : "";
-  // No win: the count and where, never "Won 0 of 3".
-  if (!(f.won > 0)) return `${n} battles${where ? ` ${where}` : ""}`;
-  return `Won ${f.won} of ${n}${where ? ` ${where}` : ""}${run}`;
-}
-
-/** The trophies a sitting moved, when it was played on Trophy Road. */
-export const trophyNet = (f = {}) =>
-  typeof f.trophy_net === "number" && (f.by_mode?.ladder ?? 0) > 0
-    ? f.trophy_net
-    : null;
-
-const signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : "0");
-
-/** The facts worth a chip (2026-11-16): the wins that took all three
- *  crowns, the widest win. Facts, never a verdict; nothing when none
- *  holds. */
-export function sessionChips(f = {}, scores = null) {
-  // The run of wins is in the headline (sessionHeadline).
-  const chips = [];
-  const three = scores?.three_crowns ?? 0;
-  if (three >= 1 && (f.battles ?? 0) > 1)
-    chips.push({
-      key: "three",
-      text: `${three} three-crown ${noun(three, "win")}`,
-    });
-  if (scores?.best_win && (f.battles ?? 0) > 1)
-    chips.push({ key: "best", text: `Best win ${scores.best_win}` });
-  return chips;
-}
-
-/** The deck caption: the deck played most, in how many of the battles, and
- *  how many other decks the sitting saw. */
-export function deckCaption(f = {}) {
-  const decks = f.decks ?? [];
-  const top = decks[0] ?? null;
-  if (!top?.label) return null;
-  const n = f.battles ?? 0;
-  const other = decks.length - 1;
-  return {
-    label: top.label,
-    count:
-      n > 1 && typeof top.battles === "number"
-        ? `${top.battles} of ${n} battles`
-        : null,
-    // The switch, said (2026-11-16): the other decks by name and count,
-    // so a sitting that changed deck reads as one that did.
-    more:
-      other > 0
-        ? `+${other} more ${noun(other, "deck")}: ${decks
-            .slice(1)
-            .map((d) =>
-              typeof d.battles === "number"
-                ? `${d.label} (${d.battles})`
-                : d.label,
-            )
-            .join(", ")}`
-        : null,
-  };
-}
 
 /** What the card's link says to a screen reader: whose session, and the
  *  numbers the figures show. */
@@ -152,9 +66,6 @@ export function sessionLink(it, tag) {
 
 /** A sitting's card body. `href` opens its page; without one (an old row)
  *  the card draws the same and opens nothing. */
-/** A sitting small enough for the compact card. */
-export const compactSitting = (f = {}) => (f.battles ?? 0) <= 2;
-
 export function Sitting({ it, href = null, who = null }) {
   const f = it.facts ?? {};
   const one = compactSitting(f);

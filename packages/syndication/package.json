@@ -23,7 +23,8 @@
     "@elixir-mcp/clan-engine": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0",
     "@elixir-mcp/record": "0.1.0",
-    "@elixir-mcp/tools": "0.1.0"
+    "@elixir-mcp/tools": "0.1.0",
+    "@elixir-mcp/ui": "0.1.0"
   },
   "devDependencies": {
     "pg": "^8.23.1"

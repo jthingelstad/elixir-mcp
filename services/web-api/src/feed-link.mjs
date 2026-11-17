@@ -12,6 +12,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { ELIXIR_ORIGIN } from "@elixir-mcp/contracts";
+import { sessionPathOf } from "@elixir-mcp/ui/session-story";
 
 /** 24 random bytes, base64url: 32 characters, 192 bits. */
 const TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
@@ -112,9 +113,12 @@ function whoOf(it) {
   return null;
 }
 
-/** Where an item opens: the battle that proved it, a highlight's battle,
- *  else the player's page, else Home. */
+/** Where an item opens: a sitting's own page (2026-11-16), the battle
+ *  that proved it, a highlight's battle, else the player's page, else
+ *  Home. */
 function linkOf(it) {
+  const session = sessionPathOf(it);
+  if (session) return `${ELIXIR_ORIGIN}${session}`;
   const battle = it.battle_url ?? it.facts?.battle?.url ?? null;
   if (typeof battle === "string" && battle.startsWith(`${ELIXIR_ORIGIN}/`))
     return battle;

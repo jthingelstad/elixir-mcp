@@ -26,7 +26,8 @@
     "@elixir-mcp/ledger": "0.1.0",
     "@elixir-mcp/outbox": "0.1.0",
     "@elixir-mcp/record": "0.1.0",
-    "@elixir-mcp/stamps": "0.1.0"
+    "@elixir-mcp/stamps": "0.1.0",
+    "@elixir-mcp/ui": "0.1.0"
   },
   "devDependencies": {
     "pg": "^8.23.1"

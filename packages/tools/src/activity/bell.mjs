@@ -20,6 +20,7 @@
  */
 import { blockedSql } from "@elixir-mcp/claims";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
+import { sessionPathOf } from "@elixir-mcp/ui/session-story";
 import { shownAt } from "./entries.mjs";
 import { ownVerifiedPlayers, readBellWeek } from "./home-feed.mjs";
 
@@ -127,6 +128,9 @@ export async function readReactions(
         null,
       // The player the item is about, for a link when it has no battle.
       subject_tag: it.subject_tag ?? it.subjects?.[0]?.tag ?? null,
+      // A sitting opens its own page (2026-11-16), before any battle:
+      // the bell, the activity mail and push all lead there.
+      session_path: sessionPathOf(it),
       cheers: g.cheers,
       total: g.total,
       new: g.fresh > 0,
@@ -282,6 +286,7 @@ export async function readAwayActivity(
         at: i.at,
         battle_url: i.battle_url,
         subject_tag: i.subject_tag,
+        session_path: i.session_path,
         fresh: i.fresh,
         total: i.total,
       })),

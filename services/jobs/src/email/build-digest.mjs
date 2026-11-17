@@ -29,7 +29,14 @@
  *  Null when nothing happened: no one followed played or posted, the
  *  reader did not, and no clan has news that sends (see `fold`). A null
  *  is no mail (never an empty week). */
-import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
+import {
+  buildTimeline,
+  scoresOf,
+  sessionDeck,
+  sessionSpark,
+  subjectsFor,
+} from "@elixir-mcp/tools/activity/entries";
+import { SITTINGS, sessionPathOf } from "@elixir-mcp/ui/session-story";
 import { itemText } from "@elixir-mcp/tools/activity/summary";
 import { BIG_FIRST_KINDS, progressOf } from "@elixir-mcp/tools/friends-week";
 import { verifiedPlayerIdentities } from "@elixir-mcp/auth/player-identities";
@@ -43,6 +50,10 @@ import { battleLinks } from "@elixir-mcp/record/battle-links";
  *  them (DECISIONS "Mail collapses; the timeline does not"); attested
  *  facts never enter mail. [engineering, 2026-11-12] */
 const DIGEST_KINDS = new Set([
+  // Each sitting, told as the web's session card tells it (2026-11-16,
+  // docs/notes/2026-11-16-digest-sessions.md): a headline from its facts,
+  // its figures and chips, the deck played most, linked to its own page.
+  ...SITTINGS,
   "battle_highlight",
   ...BIG_FIRST_KINDS,
   "clan_joined",
@@ -60,6 +71,14 @@ const DIGEST_SPAN_MS = {
 
 /** Items a person shows, newest highlights first; the rest counted. */
 const ITEMS_PER_PERSON = 3;
+/** Sittings a person shows: their biggest, told newest first; the rest
+ *  counted. [engineering, 2026-11-16] */
+const SITTINGS_PER_PERSON = 3;
+/** How far the digest's timeline read goes before its cap. MCP's cap
+ *  (150) is sized to its result limit; the mail picks a few per person, so
+ *  a week of sittings from everyone followed must not push a highlight
+ *  out of it. [engineering, 2026-11-16] */
+const DIGEST_TIMELINE_CAP = 2000;
 /** People drawn in one digest, busiest first; the rest counted. */
 const PEOPLE_CAP = 12;
 /** A clan's block: its headline and at most three bullets, as the
@@ -173,6 +192,79 @@ function digestItem(it, tz, links) {
   };
 }
 
+const withoutSittings = ({ sittings: _s, more_sittings: _m, ...p }) => p;
+
+const shownMs = (it) => Date.parse(it.sort_at ?? it.at ?? "") || 0;
+
+/** The facts a sitting's headline, figures and chips are made from
+ *  (@elixir-mcp/ui/session-story), as the issue stores them: the render
+ *  derives the words, so a stored issue renders the same later. */
+const SITTING_FACTS = [
+  "battles",
+  "won",
+  "lost",
+  "drawn",
+  "won_in_a_row",
+  "trophy_net",
+  "by_mode",
+  "events",
+  "decks",
+  "ranked",
+  "together",
+  "started_at",
+  "ended_at",
+];
+
+/** One sitting as the digest tells it (2026-11-16): its facts, its score
+ *  facts (the widest win, the three-crown wins), the deck played most with
+ *  its eight cards (drawn from Elixir's mirror of the art, never altered),
+ *  and its own page. Never the timeline's sentence: the render makes the
+ *  headline from the facts, as the web's card does. */
+export function digestSitting(it) {
+  const f = it.facts ?? {};
+  const deck = sessionDeck(it);
+  const scores = scoresOf(sessionSpark(it));
+  return {
+    kind: it.kind,
+    at: it.sort_at ?? it.at,
+    facts: Object.fromEntries(
+      SITTING_FACTS.filter((k) => f[k] !== undefined).map((k) => [k, f[k]]),
+    ),
+    ...(scores ? { scores } : {}),
+    ...(deck?.cards?.length
+      ? {
+          deck: {
+            label: deck.label,
+            cards: deck.cards.map((c) => ({
+              id: c.id,
+              name: c.name,
+              form: c.form,
+            })),
+          },
+        }
+      : {}),
+    path: sessionPathOf(it),
+  };
+}
+
+/** A person's own sittings (a clanmate's sitting on a followed clan's
+ *  timeline names them as its player): the biggest few by battles, ties
+ *  to the newest, then told newest first; `more` counts the rest. */
+export function pickSittings(items, tag) {
+  const sat = items.filter(
+    (it) => SITTINGS.has(it.kind) && it.facts?.player_tag === tag,
+  );
+  const shown = [...sat]
+    .sort(
+      (a, b) =>
+        (b.facts?.battles ?? 0) - (a.facts?.battles ?? 0) ||
+        shownMs(b) - shownMs(a),
+    )
+    .slice(0, SITTINGS_PER_PERSON)
+    .sort((a, b) => shownMs(b) - shownMs(a));
+  return { shown, more: Math.max(0, sat.length - SITTINGS_PER_PERSON) };
+}
+
 /** What the digest folds in for this reader. `clan: false` is the clan
  *  part turned off: the clan report's switch, kept off for a reader who
  *  turned that mail off before the merge, and set since 2026-11-13 by
@@ -204,6 +296,7 @@ export async function buildDigest({
     // late is told once, in the digest after it was learned, never
     // skipped. [engineering, 2026-11-12]
     basis: "observed",
+    cap: DIGEST_TIMELINE_CAP,
     accountId: account.accountId,
     // The mail goes to the person's own address, nowhere else.
     interactive: true,
@@ -262,6 +355,7 @@ export async function buildDigest({
   const itemsFor = (tag) => {
     const mine = items.filter(
       (it) =>
+        !SITTINGS.has(it.kind) &&
         (it.subject_tag === tag || it.subjects?.some((s) => s.tag === tag)) &&
         !toldByClan(it),
     );
@@ -271,11 +365,14 @@ export async function buildDigest({
       ...mine.filter((it) => it.kind === "battle_highlight"),
       ...mine.filter((it) => it.kind !== "battle_highlight"),
     ];
+    const sat = pickSittings(items, tag);
     return {
       items: ordered
         .slice(0, ITEMS_PER_PERSON)
         .map((it) => digestItem(it, tz, links)),
       more_items: Math.max(0, ordered.length - ITEMS_PER_PERSON),
+      sittings: sat.shown.map(digestSitting),
+      more_sittings: sat.more,
     };
   };
   const person = (e) => ({
@@ -436,9 +533,11 @@ export async function buildDigest({
     people: shown,
     more_people: Math.max(0, followed.length - PEOPLE_CAP),
     clans,
+    // Your own sittings are not retold to you: You keeps its count and
+    // record line, as before (2026-11-16).
     you: youHas
       ? {
-          ...you,
+          ...withoutSittings(you),
           clan: primary?.clan?.tag ? { tag: primary.clan.tag } : null,
           alts,
         }
