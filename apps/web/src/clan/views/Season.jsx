@@ -259,7 +259,7 @@ function Membership({ m }) {
 }
 
 const WEEK_NOTE =
-  "Battles and Path of Legends are this clan's recorded battles, including members who have since departed. Donations and war decks are for today's members: someone who has departed is not counted there, though All of Season counts them. Only those who took part are named.";
+  "Battles and Ranked are this clan's recorded battles, including members who have since departed. Donations and war decks are for today's members: someone who has departed is not counted there, though All of Season counts them. Only those who took part are named.";
 
 /** The areas other than the race: donations, then ranked play and battles. */
 function OtherAreas({ areas }) {
@@ -279,7 +279,7 @@ function OtherAreas({ areas }) {
         </Panel>
       ) : null}
       {ranked || battles ? (
-        <Panel as="div" title="Path of Legends and battles" titleAs="h3">
+        <Panel as="div" title="Ranked and battles" titleAs="h3">
           <div className="panel__body grid gap-1">
             {battles ? (
               <p className="m-0">
@@ -289,7 +289,7 @@ function OtherAreas({ areas }) {
             ) : null}
             {ranked ? (
               <p className="m-0">
-                {plural(ranked.total, "Path of Legends battle")} by{" "}
+                {plural(ranked.total, "Ranked battle")} by{" "}
                 {plural(took(ranked), "member")}.
               </p>
             ) : null}

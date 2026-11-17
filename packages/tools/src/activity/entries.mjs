@@ -33,7 +33,10 @@ import { daysSincePollSql } from "@elixir-mcp/record/read-facts";
 import { createHash } from "node:crypto";
 import { stampById } from "@elixir-mcp/stamps/catalog";
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
-import { rankedLeagueName } from "@elixir-mcp/record/ranked-leagues";
+import {
+  rankedLeagueName,
+  ULTIMATE_CHAMPION,
+} from "@elixir-mcp/record/ranked-leagues";
 import {
   ATTESTED_FACT_KINDS,
   ATTESTED_FACT_TYPES,
@@ -933,6 +936,35 @@ export async function followedAccountIds(db, accountId) {
 /* Sessions                                                            */
 /* ------------------------------------------------------------------ */
 
+/** Deck selections where the player did not bring their own deck (a
+ *  draft, a pick, a preset or an undisclosed deck): an archetype label
+ *  would name a deck nobody chose (cr-agent-api-docs players.md, "Deck
+ *  selection values"; 2026-11-16). */
+const DRAWN_DECKS = new Set([
+  "draft",
+  "draftCompetitive",
+  "pick",
+  "predefined",
+  "unknown",
+]);
+
+/** An event title as one line: titles come from /events as the game
+ *  wrote them, and one carried a newline ("King of Cards\nQuick Wit
+ *  Challenge", 2026-11). */
+export const cleanEventName = (t) =>
+  typeof t === "string" ? t.replace(/\s+/g, " ").trim() || null : null;
+
+/** A Ranked battle's rating, when it has one: only Ultimate Champion is
+ *  rated, and only its battles carry startingTrophies; below it a win's
+ *  +30 moves no standing (cr-agent-api-docs game-modes.md). */
+const rankedRating = (b) =>
+  typeof b.starting_trophies === "number" &&
+  (b.league_number === null ||
+    b.league_number === undefined ||
+    b.league_number === ULTIMATE_CHAMPION)
+    ? b.starting_trophies
+    : null;
+
 /**
  * Battle sessions: a run of one player's battles where no two consecutive
  * battles are SESSION_GAP_MS or more apart. Individual battles are never
@@ -977,6 +1009,14 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
         newly: [],
         decks: new Map(),
         events: new Map(),
+        // Ranked as the game tells it (2026-11-16): the league each
+        // battle started in, the climbs the sitting's own battles show,
+        // and Ultimate Champion's rating.
+        ranked: null,
+        // The recorded players met in the sitting: 2v2 partners, and
+        // opponents in friendly and clanmate battles. Named after, by
+        // nameSessions, only when the record follows them.
+        partners: new Map(),
         spark: [],
         // When the record LEARNED this session (Gym #162): the latest
         // commit of a battle this window learned, the instant that
@@ -1011,21 +1051,27 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     }
     const g = modeGroupOf(b.type, b.event_tag);
     cur.by_mode[g] = (cur.by_mode[g] ?? 0) + 1;
+    // Ranked's +30 a win below Ultimate Champion moves no standing
+    // (2026-11-16): only a rated battle's change is a net.
     if (
       typeof b.trophy_change === "number" &&
-      trophiesAreStanding(b.type, b.event_tag, b.game_mode_name)
+      trophiesAreStanding(b.type, b.event_tag, b.game_mode_name) &&
+      (g !== "ranked" || rankedRating(b) !== null)
     )
       cur.trophy_net_by_mode[g] =
         (cur.trophy_net_by_mode[g] ?? 0) + b.trophy_change;
+    if (g === "ranked") rankedStep(cur, b, t);
+    for (const p of b.mates ?? []) partnerStep(cur, p, "with");
+    if (g === "casual")
+      for (const p of b.foes ?? []) partnerStep(cur, p, "against");
     if (g === "ladder") {
       cur.trophy_net += b.trophy_change ?? 0;
       if (Math.abs(cur.trophy_net) > Math.abs(cur.trophy_net_peak))
         cur.trophy_net_peak = cur.trophy_net;
     }
-    if (b.deck_hash)
+    if (b.deck_hash && !DRAWN_DECKS.has(b.deck_selection))
       cur.decks.set(b.deck_hash, (cur.decks.get(b.deck_hash) ?? 0) + 1);
-    if (b.event_tag && g === "event")
-      cur.events.set(b.event_tag, (cur.events.get(b.event_tag) ?? 0) + 1);
+    if (b.event_tag && g === "event") eventStep(cur, b);
     for (const [key, rungs] of Object.entries(SESSION_RUNGS)) {
       // The value the rung is judged on, signed: a trophy rung is crossed
       // by the net's distance from zero, up or down.
@@ -1073,11 +1119,111 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     crossed: s.crossed,
     crossings: s.crossings,
     newly: s.newly,
+    ...(s.ranked ? { ranked: rankedFacts(s.ranked) } : {}),
     deckCounts: s.decks,
     eventCounts: s.events,
+    partnerCounts: s.partners,
     spark: s.spark,
     learned_at: s.learnedMs === null ? null : iso(s.learnedMs),
   }));
+}
+
+/** One Ranked battle into its sitting's ranked facts. */
+function rankedStep(cur, b, t) {
+  const r = (cur.ranked ??= {
+    battles: 0,
+    won: 0,
+    lost: 0,
+    leagues: [],
+    promotions: [],
+    last: null,
+    rating: null,
+  });
+  r.battles += 1;
+  if (b.outcome === "win") r.won += 1;
+  else if (b.outcome === "loss") r.lost += 1;
+  const league = Number.isInteger(b.league_number) ? b.league_number : null;
+  if (league !== null) {
+    // A climb inside the sitting: the league rose between two stamped
+    // battles and the last battle at the lower league was a win, the
+    // promoting battle (a battle's league is the one it started in).
+    // A rise after a loss is not told: the record missed a battle.
+    const prev = r.last;
+    if (prev && league > prev.league && prev.outcome === "win")
+      r.promotions.push({
+        from: prev.league,
+        to: league,
+        from_name: rankedLeagueName(prev.league),
+        to_name: rankedLeagueName(league),
+        battle_id: prev.battle_id ?? null,
+        at: iso(prev.t),
+      });
+    if (!r.leagues.includes(league)) r.leagues.push(league);
+    r.last = { league, outcome: b.outcome, battle_id: b.battle_id, t };
+  }
+  const rating = rankedRating(b);
+  if (rating !== null) {
+    r.rating ??= { from: rating, to: null };
+    r.rating.to =
+      typeof b.trophy_change === "number" ? rating + b.trophy_change : rating;
+  }
+}
+
+/** A sitting's ranked facts on the wire. */
+function rankedFacts(r) {
+  const first = r.leagues[0] ?? null;
+  const last = r.last?.league ?? null;
+  return {
+    battles: r.battles,
+    won: r.won,
+    lost: r.lost,
+    league_from: first,
+    league_from_name: rankedLeagueName(first),
+    league_to: last,
+    league_to_name: rankedLeagueName(last),
+    promotions: r.promotions,
+    ...(r.rating ? { rating: r.rating } : {}),
+  };
+}
+
+/** One recorded meeting with another player. */
+function partnerStep(cur, tag, how) {
+  if (!tag) return;
+  const p = cur.partners.get(tag) ?? { with: 0, against: 0 };
+  p[how] += 1;
+  cur.partners.set(tag, p);
+}
+
+/** One event battle into its event's run. A challenge's counter is its
+ *  wins so far (startingTrophies, absent at 0) and +1 a win, nothing on
+ *  a loss (cr-agent-api-docs challenges.md); an event whose battles move
+ *  anything else keeps its own standing and has no run counter. */
+function eventStep(cur, b) {
+  const e = cur.events.get(b.event_tag) ?? {
+    battles: 0,
+    won: 0,
+    lost: 0,
+    game_mode: null,
+    drawn_decks: false,
+    counter: true,
+    run_wins: null,
+  };
+  e.battles += 1;
+  if (b.outcome === "win") e.won += 1;
+  else if (b.outcome === "loss") e.lost += 1;
+  e.game_mode ??= b.game_mode_name ?? null;
+  if (DRAWN_DECKS.has(b.deck_selection)) e.drawn_decks = true;
+  const change = b.trophy_change ?? null;
+  const counts =
+    (b.outcome === "win" && (change === 1 || change === null)) ||
+    (b.outcome !== "win" && change === null);
+  if (!counts || trophiesAreStanding(b.type, b.event_tag, b.game_mode_name))
+    e.counter = false;
+  else if (typeof b.starting_trophies === "number" || change === 1) {
+    const reached = (b.starting_trophies ?? 0) + (change === 1 ? 1 : 0);
+    if (e.run_wins === null || reached > e.run_wins) e.run_wins = reached;
+  }
+  cur.events.set(b.event_tag, e);
 }
 
 /** The decks and named events a sitting was played with (#375): each
@@ -1088,6 +1234,9 @@ const SESSION_DECKS_CAP = 3;
 async function nameSessions(db, sessions, named = null) {
   const hashes = sessions.flatMap((s) => [...s.deckCounts.keys()]);
   const tags = [...new Set(sessions.flatMap((s) => [...s.eventCounts.keys()]))];
+  const partnerTags = [
+    ...new Set(sessions.flatMap((s) => [...(s.partnerCounts?.keys() ?? [])])),
+  ];
   // A batch read (prefetchPlayers) named every deck and event its battles
   // carry, so a session drawn from them asks nothing more.
   const ids = named
@@ -1096,6 +1245,7 @@ async function nameSessions(db, sessions, named = null) {
       ? await deckIdentities(db, hashes)
       : new Map();
   const titles = named ? named.titles : await eventTitles(db, tags);
+  const people = named?.partners ?? (await recordedPartners(db, partnerTags));
   for (const s of sessions) {
     // Deck labels merge: two forms of one archetype are one deck to say.
     const byLabel = new Map();
@@ -1122,14 +1272,61 @@ async function nameSessions(db, sessions, named = null) {
     const cards = topHash ? deckCardsWithCost(ids.get(topHash)) : null;
     s.deckRow = cards?.length ? { label: top, cards } : null;
     s.events = [...s.eventCounts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([event_tag, battles]) => ({
+      .sort((a, b) => b[1].battles - a[1].battles)
+      .map(([event_tag, e]) => ({
         event_tag,
-        name: titles.get(event_tag) ?? null,
-        battles,
+        name: cleanEventName(titles.get(event_tag)),
+        battles: e.battles,
+        won: e.won,
+        lost: e.lost,
+        game_mode: e.game_mode,
+        ...(e.drawn_decks ? { drawn_decks: true } : {}),
+        ...(e.counter && e.run_wins !== null ? { run_wins: e.run_wins } : {}),
       }));
+    // Who the sitting was played with or against, among the players the
+    // record follows: a stranger met in a battle is never named here.
+    const together = [...(s.partnerCounts ?? new Map()).entries()]
+      .filter(([tag]) => people.has(tag))
+      .map(([player_tag, p]) => ({
+        player_tag,
+        name: people.get(player_tag),
+        with: p.with,
+        against: p.against,
+      }))
+      .sort(
+        (a, b) =>
+          b.with + b.against - (a.with + a.against) ||
+          a.player_tag.localeCompare(b.player_tag),
+      )
+      .slice(0, SESSION_PARTNERS_CAP);
+    if (together.length) s.together = together;
   }
   return sessions;
+}
+
+const SESSION_PARTNERS_CAP = 3;
+/** The partners the record follows, by in-game name (the public game
+ *  name, never a nickname): a player with an active recording, or a
+ *  current member of a clan with one. */
+async function recordedPartners(db, tags) {
+  if (tags.length === 0) return new Map();
+  const { rows } = await db.query(
+    `select p.player_tag, p.name
+       from player p
+      where p.player_tag = any($1::text[])
+        and (exists (select 1 from recording r
+                      where r.subject_type = 'player'
+                        and r.subject_tag = p.player_tag
+                        and r.status = 'active')
+             or exists (select 1 from clan_membership cm
+                          join recording r on r.subject_type = 'clan'
+                           and r.subject_tag = cm.clan_tag
+                           and r.status = 'active'
+                         where cm.player_tag = p.player_tag
+                           and cm.left_observed_at is null))`,
+    [tags],
+  );
+  return new Map(rows.map((r) => [r.player_tag, r.name ?? null]));
 }
 
 async function eventTitles(db, tags) {
@@ -1173,6 +1370,7 @@ function sessionFacts({
   learned_at: _l,
   deckCounts: _d,
   eventCounts: _e,
+  partnerCounts: _p,
   spark: _s,
   deckRow: _r,
   ...rest
@@ -1276,11 +1474,19 @@ function playerBattlesSql(tagSql, fromMs, toMs, basis) {
         and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`;
   return {
     wide: `select b.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.crowns,
-            (select max(o.crowns) from battle_participant o
-              where o.battle_id = bp.battle_id and o.side <> bp.side) as crowns_against,
-            bp.trophy_change, bp.clan_tag, bp.deck_hash
+            o.crowns_against, o.mates, o.foes, b.league_number, b.deck_selection,
+            bp.trophy_change, bp.starting_trophies, bp.clan_tag, bp.deck_hash
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
+       cross join lateral (
+         -- The other participants by key (2026-11-16): the opposing
+         -- crowns, and who stood on each side, one probe a battle.
+         select max(o.crowns) filter (where o.side <> bp.side) as crowns_against,
+                coalesce(array_agg(o.player_tag order by o.player_tag)
+                  filter (where o.side = bp.side and o.player_tag <> bp.player_tag), '{}') as mates,
+                coalesce(array_agg(o.player_tag order by o.player_tag)
+                  filter (where o.side <> bp.side), '{}') as foes
+           from battle_participant o where o.battle_id = bp.battle_id) o
       where bp.player_tag = ${tagSql}
         and ${selected}
         and b.battle_time >= b.created_at - interval '1 day'
@@ -1423,9 +1629,20 @@ async function prefetchPlayers(
   const all = [...battles.values()].flatMap((b) => b.wide);
   const hashes = [...new Set(all.map((b) => b.deck_hash).filter(Boolean))];
   const events = [...new Set(all.map((b) => b.event_tag).filter(Boolean))];
+  const partnerTags = [
+    ...new Set(
+      all.flatMap((b) => [
+        ...(b.mates ?? []),
+        ...(modeGroupOf(b.type, b.event_tag) === "casual"
+          ? (b.foes ?? [])
+          : []),
+      ]),
+    ),
+  ];
   const named = {
     ids: hashes.length ? await deckIdentities(db, hashes) : new Map(),
     titles: await eventTitles(db, events),
+    partners: await recordedPartners(db, partnerTags),
   };
   // The rest of an entry's per-player reads (2026-11-13: about seven
   // statements a player, 400-odd for a full follow list): who the player
@@ -2234,9 +2451,8 @@ export function clanMemberBattlesQuery({
   const occurred = basis === "occurred";
   return {
     text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.trophy_change, bp.deck_hash,
-                  bp.crowns,
-                  (select max(o.crowns) from battle_participant o
-                    where o.battle_id = bp.battle_id and o.side <> bp.side) as crowns_against,
+                  bp.crowns, bp.starting_trophies, b.league_number, b.deck_selection,
+                  o.crowns_against, o.mates, o.foes,
                   (${
                     occurred
                       ? `bp.battle_time >= ${ts(fromMs + 1)}`
@@ -2253,8 +2469,18 @@ export function clanMemberBattlesQuery({
              -- join's.
              cross join lateral (
                select b.type, b.event_tag, b.game_mode_name, b.battle_time,
-                      b.created_at, b.boat_battle_side
+                      b.created_at, b.boat_battle_side, b.league_number,
+                      b.deck_selection
                  from battle b where b.battle_id = bp.battle_id limit 1) b
+             -- The other participants by key (2026-11-16): the opposing
+             -- crowns, and who stood on each side, one probe a battle.
+             cross join lateral (
+               select max(o.crowns) filter (where o.side <> bp.side) as crowns_against,
+                      coalesce(array_agg(o.player_tag order by o.player_tag)
+                        filter (where o.side = bp.side and o.player_tag <> bp.player_tag), '{}') as mates,
+                      coalesce(array_agg(o.player_tag order by o.player_tag)
+                        filter (where o.side <> bp.side), '{}') as foes
+                 from battle_participant o where o.battle_id = bp.battle_id) o
             where bp.clan_tag = $1
               and not (b.boat_battle_side is not null
                        and (b.boat_battle_side = 'defender') = (bp.side = 0))

@@ -115,7 +115,7 @@ export const REMOVAL_UNSEEN =
  *  @elixir-mcp/ui; an apps/web Clan test pins the two equal). */
 export const MODE_GROUP_LABEL = {
   ladder: "Trophy Road",
-  ranked: "Path of Legends",
+  ranked: "Ranked",
   war: "War",
   casual: "Casual",
   challenge: "Challenge",
@@ -211,7 +211,7 @@ export function cardFacts(v, policy, type = null) {
   if (counted.has("ranked"))
     facts.push({
       key: "ranked",
-      label: "Path of Legends",
+      label: "Ranked",
       value: `${f.ranked.battles} ranked battles`,
       window: `last ${policy.ranked_window_weeks} weeks`,
       fidelity: f.minimums.log_recorded === false ? "unknown" : "daily",

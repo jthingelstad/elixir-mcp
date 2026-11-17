@@ -34,7 +34,11 @@
 import { ULTIMATE_CHAMPION } from "@elixir-mcp/record/ranked-leagues";
 import { GOALS } from "./goals.mjs";
 import { FIELDS } from "./policy.mjs";
-import { MODE_GROUP_LABEL } from "./render.mjs";
+import { MODE_GROUP_LABEL as SHOWN_MODE_LABEL } from "./render.mjs";
+
+/** The model's dossier keeps its own wording for Ranked; players read
+ *  "Ranked" (render.mjs). The dossier changes in its own pull request. */
+const MODE_GROUP_LABEL = { ...SHOWN_MODE_LABEL, ranked: "Path of Legends" };
 
 const n = (x) => Number(x).toLocaleString("en-US");
 const isNum = (x) => typeof x === "number" && Number.isFinite(x);

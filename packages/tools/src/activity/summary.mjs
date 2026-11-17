@@ -56,7 +56,8 @@ const record = (won, lost, drawn) =>
  *  sentence uses the game's own names (redesign Q9). */
 const MODE_WORDS = {
   ladder: "Trophy Road",
-  ranked: "Path of Legends",
+  // The game's own word since 2025-06-30 (2026-11-16, DECISIONS).
+  ranked: "Ranked",
   war: "war",
   casual: "casual",
   event: "event",
@@ -111,7 +112,7 @@ export function summarizePlayer(e, timeZone = "UTC") {
   if (e.ranked?.rating) {
     const d = e.ranked.rating.to - e.ranked.rating.from;
     parts.push(
-      `Path of Legends rating ${num(e.ranked.rating.from)} → ${num(e.ranked.rating.to)} (${d > 0 ? "+" : ""}${d})`,
+      `Ranked rating ${num(e.ranked.rating.from)} → ${num(e.ranked.rating.to)} (${d > 0 ? "+" : ""}${d})`,
     );
   }
   for (const n of e.notables) {
@@ -298,7 +299,7 @@ export function clanSummaryParts(e, timeZone = "UTC") {
       );
     if (s.ranked_promotions.items.length)
       parts.push(
-        `Path of Legends: ${s.ranked_promotions.items
+        `Ranked: ${s.ranked_promotions.items
           .slice(0, 3)
           .map((m) => `${m.name ?? m.tag} → ${m.league}`)
           .join(", ")}${rest(s.ranked_promotions, 3)}`,
@@ -372,13 +373,62 @@ function sitting(f) {
       : "";
   return `${record(f.won, f.lost, f.drawn)}${m ? `; ${m}` : ""}${net}${peak}`;
 }
-/** The decks and named events a sitting was played with. */
+/** The decks and named events a sitting was played with. An event says
+ *  its own record, and a challenge the wins its counter reached; a
+ *  drafted deck has no label to say (2026-11-16). */
 function played(f) {
   const decks = (f.decks ?? []).map((d) => `${d.label} (${d.battles})`);
   const events = (f.events ?? [])
     .filter((e) => e.name)
-    .map((e) => `${e.name} (${e.battles})`);
+    .map((e) => {
+      const rec =
+        typeof e.won === "number" && typeof e.lost === "number"
+          ? `${e.won}W-${e.lost}L`
+          : `${e.battles}`;
+      const run =
+        typeof e.run_wins === "number" && e.run_wins > 0
+          ? `, up to ${plural(e.run_wins, "win")}`
+          : "";
+      const drawn = e.drawn_decks ? ", drafted decks" : "";
+      return `${e.name} (${rec}${run}${drawn})`;
+    });
   return `${decks.length ? `, with ${decks.join(", ")}` : ""}${events.length ? `, in ${events.join(", ")}` : ""}`;
+}
+
+/** A sitting's Ranked part as the game tells it (2026-11-16): the
+ *  league, a climb with the battle that won it, and Ultimate Champion's
+ *  rating. Nothing when the battles named no league. */
+function rankedPart(r) {
+  if (!r || !r.league_to_name) return "";
+  const climbs = (r.promotions ?? []).filter((p) => p.to_name);
+  const where =
+    climbs.length > 0
+      ? `climbed ${r.league_from_name ?? climbs[0].from_name} to ${r.league_to_name}`
+      : r.league_from_name && r.league_from !== r.league_to
+        ? `${r.league_from_name} to ${r.league_to_name}`
+        : r.league_to_name;
+  const rating =
+    r.rating &&
+    typeof r.rating.from === "number" &&
+    typeof r.rating.to === "number"
+      ? r.rating.from === r.rating.to
+        ? `, rating ${num(r.rating.to)}`
+        : `, rating ${num(r.rating.from)} to ${num(r.rating.to)}`
+      : "";
+  return `; ${where}${rating}`;
+}
+
+/** Who the sitting was played with or against, among the players the
+ *  record follows: "with Ana in 2v2", "against Bo". */
+function togetherPart(f) {
+  const people = (f.together ?? []).filter((p) => p.name ?? p.player_tag);
+  if (!people.length) return "";
+  const said = people.map((p) => {
+    const who = p.name ?? p.player_tag;
+    if (p.with && p.against) return `with and against ${who}`;
+    return p.with ? `with ${who}` : `against ${who}`;
+  });
+  return `, ${said.join(", ")}`;
 }
 
 /** Who carried a war week (2026-10-11, Jamie): the three members with the
@@ -455,7 +505,7 @@ export function itemText(it, timeZone = "UTC") {
   const member = f.name ?? f.player_tag ?? "";
   switch (it.kind) {
     case "battle_session":
-      return `${member || subj} played ${plural(f.battles, "battle")}${f.battles > 1 ? " in one sitting" : ""} (${sitting(f)})${played(f)}${f.open ? ", still going" : ""}.`;
+      return `${member || subj} played ${plural(f.battles, "battle")}${f.battles > 1 ? " in one sitting" : ""}${togetherPart(f)} (${sitting(f)}${rankedPart(f.ranked)})${played(f)}${f.open ? ", still going" : ""}.`;
     // A highlight is the player's post: the battle, then their words as
     // they wrote them (escaped at each output that needs it, never here).
     case "battle_highlight": {
@@ -489,7 +539,14 @@ export function itemText(it, timeZone = "UTC") {
       const best = f.best_win
         ? `; best win ${f.best_win.crowns ?? "?"}-${f.best_win.crowns_against ?? "?"} over ${against(f.best_win)}`
         : "";
-      return `${member || subj} played ${plural(f.battles, "battle")} in one sitting${mate} (${sitting(f)}${run})${played(f)}${best}${f.open ? ", still going" : ""}.`;
+      // `together` names the teammate already said once, never twice.
+      const others = {
+        ...f,
+        together: (f.together ?? []).filter(
+          (p) => !f.teammate || p.player_tag !== f.teammate.player_tag,
+        ),
+      };
+      return `${member || subj} played ${plural(f.battles, "battle")} in one sitting${mate}${togetherPart(others)} (${sitting(f)}${rankedPart(f.ranked)}${run})${played(f)}${best}${f.open ? ", still going" : ""}.`;
     }
     // The badge as a player says it: a level above 1 is a level taken,
     // the first level (or a one-off) is a badge earned.

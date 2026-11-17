@@ -58,7 +58,7 @@ export const panelOf = (query, key) =>
 
 const MODE_WORDS = {
   ladder: "Trophy Road",
-  ranked: "Path of Legends",
+  ranked: "Ranked",
   war: "War",
   casual: "Casual",
   event: "Events",
@@ -67,7 +67,7 @@ export const modeWord = (mode) =>
   MODE_WORDS[mode] ?? `${mode.charAt(0).toUpperCase()}${mode.slice(1)}`;
 
 /** Your week's chips: Casual always (Q6), Events only with battles in it
- *  (A34), and the names the game uses: Trophy Road and Path of Legends. */
+ *  (A34), and the names the game uses: Trophy Road and Ranked. */
 export function weekChips(modes = {}) {
   const keys = ["ladder", "ranked", "war", "casual"];
   if ((modes.event?.battles ?? 0) > 0) keys.push("event");

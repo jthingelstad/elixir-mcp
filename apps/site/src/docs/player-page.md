@@ -27,7 +27,7 @@ their follows and followers. Under it:
 |---|---|
 | Timeline | what the record holds for the player in the last 30 days, newest first |
 | Highlights | the battles the player chose to highlight, with their own words |
-| Moments | the timeline's moments: a new arena, a promotion in Path of Legends, a badge, a clan joined or left. A moment Elixir saw happen in a battle, like a promotion won on a 3-0, has **Open the battle** |
+| Moments | the timeline's moments: a new arena, a promotion in Ranked, a badge, a clan joined or left. A moment Elixir saw happen in a battle, like a promotion won on a 3-0, has **Open the battle** |
 | Follows | who the player's account follows, and who follows it |
 | Record | the recorded profile: the last 30 days in battles, wins, losses, trophies and the deck played most, and the profile's trophies, best and lifetime counts as of its last capture |
 

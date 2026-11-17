@@ -12,7 +12,7 @@ import { SHARE_FILES } from "../share-files.mjs";
 /** How a battle's mode reads to a person (the page's mode chip). */
 const MODE_LABEL = {
   ladder: "Trophy Road",
-  ranked: "Path of Legends",
+  ranked: "Ranked",
   war: "War",
   casual: "Casual",
   challenge: "Challenge",

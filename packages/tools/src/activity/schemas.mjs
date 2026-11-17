@@ -32,23 +32,33 @@ const SITTING = [
   "decks",
   "events",
 ];
+/** A sitting's facts present only when the record holds them: `ranked`
+ *  when it held a Ranked battle, `together` when it met a player the
+ *  record follows (2026-11-16). */
+const SITTING_OPTIONAL = ["ranked", "together"];
 const ROSTER = ["roster_size_before", "roster_size_after"];
 
 export const TIMELINE_KIND_SCHEMAS = {
   battle_session: {
     // 3 (2026-11-03): trophy_net_by_mode, each trophy mode's own net.
-    version: 3,
+    // 4 (2026-11-16): ranked (leagues, climbs, Ultimate Champion's
+    // rating), together (followed players met), events[] with their
+    // record, rules and run counter; Ranked's unrated +30s leave
+    // trophy_net_by_mode.
+    version: 4,
     at: "the sitting's first battle; sort_at is its last",
     facts: SITTING,
+    optional: SITTING_OPTIONAL,
   },
   session_standout: {
     // 3 (2026-10-11): crossings[] name their battle_id; teammate and
     // best_win say how the sitting went. 4 (2026-11-03):
-    // trophy_net_by_mode, each trophy mode's own net.
-    version: 4,
+    // trophy_net_by_mode, each trophy mode's own net. 5 (2026-11-16):
+    // as battle_session/4.
+    version: 5,
     at: "the battle that crossed the first new rung this window learned (every rung's is crossings[].at); sort_at is the sitting's last battle",
     facts: [...SITTING, "crossed", "newly", "crossings"],
-    optional: ["teammate", "best_win"],
+    optional: [...SITTING_OPTIONAL, "teammate", "best_win"],
   },
   // A battle its player highlighted with their own words (social slice
   // 4, #762): the one single-battle item. share_url only for the owner's

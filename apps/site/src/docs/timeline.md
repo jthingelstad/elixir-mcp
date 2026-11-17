@@ -115,6 +115,19 @@ Only battles Elixir recorded are on the page. When the update counted more
 than Elixir recorded, the page says how many are missing. A long sitting
 comes 25 battles at a time, and a session older than 30 days has no page.
 
+Each mode is told the way the game tells it:
+
+- **Ranked** says the league you played in. A climb names the win that
+  got you there ("climbed Master III to Champion"). In Ultimate Champion
+  it shows your rating, from where you started to where you ended. A
+  Ranked win below Ultimate Champion isn't counted as trophies.
+- **Challenges** show their record and how many wins your run reached.
+  An event's name is on one line, and a drafted deck has no archetype
+  name, since you didn't pick it.
+- **Played together.** A 2v2 names your teammate, and a friendly or
+  clanmate battle names who you played, but only players Elixir already
+  follows. Nobody else is ever named.
+
 A moment links its battle when the record has one, with its result, score
 and opponent; a highlight shows its player's own words. A clan's own line,
 and a member joining, leaving or changing role, has a gold edge with the

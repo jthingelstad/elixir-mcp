@@ -46,13 +46,13 @@ at the top of both, so you can switch back to a player already on record.
 ## One mode at a time
 
 Each mode is its own game, so each has its own chip in the bar, and nothing on a
-page pools across them. **Trophy Road** and **Path of Legends** match you by
+page pools across them. **Trophy Road** and **Ranked** match you by
 different rules; a war battle draws its opponent from the clans racing that
 week, not from your trophies; an event plays by its own. A win rate across
 all of them would describe none of them. [Modes](/docs/modes) says how
 Elixir tells them apart.
 
-There are five chips: Trophy Road, Path of Legends, War, Events and Casual.
+There are five chips: Trophy Road, Ranked, War, Events and Casual.
 A sixth, **Other**, appears only when your season holds a Challenge or a
 Tournament battle. It shows the two apart, one panel each, because a Tournament
 is not a Challenge; they are never added up.

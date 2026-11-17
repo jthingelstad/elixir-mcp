@@ -164,7 +164,7 @@ test("an eligible removal card says what it rests on and what it cannot see (#53
   assert.equal(row.label, "Rests on");
   assert.equal(
     row.value,
-    "Last recorded battle 2026-08-23 20:00 UTC, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 20:00 UTC and 2026-08-23 20:00 UTC, not since (last read 2026-09-12 20:00 UTC)",
+    "Last recorded battle 2026-08-23 20:00 UTC, Ranked; joined 2026-05-15; battle count rose by 1 between 2026-05-14 20:00 UTC and 2026-08-23 20:00 UTC, not since (last read 2026-09-12 20:00 UTC)",
   );
   assert.deepEqual(row.last_battle, {
     at: "2026-08-23T20:00:00.000Z",

@@ -35,7 +35,7 @@ former members and explains partial reads separately.
 |---|---|
 | Clan Wars | decks played and points; whether the boat crossed the finish and on which war day; how many members played every deck asked (four a war day, and all four days in a Colosseum week) |
 | Donations | cards donated, and by how many members |
-| Ranked play | Path of Legends battles, and by how many members |
+| Ranked play | Ranked battles, and by how many members |
 | Battles | battles played, and by how many members |
 
 Clan Wars names the members who took part, top five first with the rest a

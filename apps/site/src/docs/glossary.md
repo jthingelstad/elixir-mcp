@@ -152,8 +152,9 @@ figure the clan ladder ranks by (about a hundred times larger), is
 **repair_points**: what repairing the boat cost in a race: per clan on the
 standings, per member on participation. Never fame, never points.
 
-**PoL, Trophy Road**: Path of Legends is the ranked ladder (`mode:
-"ranked"`, with `league_number`); Trophy Road is the trophy ladder
+**Ranked (PoL), Trophy Road**: Ranked is the game's ranked ladder, called
+Path of Legends until June 2025 (`mode: "ranked"`, with `league_number`;
+column and field names keep `pol`); Trophy Road is the trophy ladder
 (`mode: "ladder"`).
 
 **game day**: the day every daily series and the war grid are keyed by:
@@ -210,14 +211,14 @@ profile (`best_trophies` its peak); `season_trophies` is the API's legacy
 `leagueStatistics` mirror of Trophy Road, with a frozen best in
 `season_best_trophies`, and NOT the seasonal Trophy Road, which is a
 progress bucket (above) read with `progress_key`; `pol_trophies`
-is the Path of Legends standing carried in that player's own profile.
+is the Ranked standing carried in that player's own profile.
 
 **league_number**: the API's own `leagueNumber`, passed through
 unchanged. On a battle row it is the value the battle log carried: the
 API sends one on battles that are not ranked too, so it names a Path of
 Legends league only on a `pathOfLegend` battle, where it is the league the
 battle started in. On a series point it is the league of the player's
-current Path of Legends season result that day. The record does not interpret the number itself; a timeline
+current Ranked season result that day. The record does not interpret the number itself; a timeline
 promotion names the leagues beside it (`from_name`, `to_name`). The profile's
 `path_of_legend` object keeps the API's own `leagueNumber`.
 

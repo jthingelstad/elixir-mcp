@@ -123,7 +123,7 @@ export function Scout({ clan }) {
               {p.trophies?.toLocaleString() ?? "—"} (best{" "}
               {p.best_trophies?.toLocaleString() ?? "—"})
             </span>
-            <span className="label">Path of Legends</span>
+            <span className="label">Ranked</span>
             <span>
               {p.path_of_legend?.current
                 ? `league ${p.path_of_legend.current.leagueNumber}, ${p.path_of_legend.current.trophies ?? 0} · best league ${p.path_of_legend.best?.leagueNumber ?? "—"}`

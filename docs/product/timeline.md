@@ -125,3 +125,10 @@ agent write a cheer or a highlight.
   Default in force: none. [`VISION.md`, Open]
 - **A shared post in the clan's Discord** through Clan's webhook (Jamie,
   2026-11-12) is not built: which webhook, and whether leaders opt in.
+- **One item for a pair's sitting.** Two followed players who played the
+  same 2v2 games each get their own sitting, and each names the other
+  (2026-11-16). Telling them as one item needs a story id for the pair
+  and a rule for cheers on it. Default in force: one item per player.
+- **A Ranked season's result** as its own item: the record does not keep
+  last season's finish as a fact of its own yet, and an unrated best can
+  be on the earlier league scale (`docs/notes/2026-11-16-modes-in-the-timeline.md`).

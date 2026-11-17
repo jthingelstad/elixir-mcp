@@ -35,7 +35,7 @@ export const CATEGORIES = ["war", "ranked", "donations", "trophies"];
 
 export const CATEGORY_LABELS = {
   war: "Clan Wars",
-  ranked: "Path of Legends",
+  ranked: "Ranked",
   donations: "Donations",
   trophies: "Trophy road",
 };

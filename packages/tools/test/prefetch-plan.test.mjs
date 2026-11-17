@@ -43,11 +43,12 @@ test("prefetchStatements: each tag reads its own index, once, and gets its own r
     await db.query(`create temporary table battle (
         battle_id text primary key, type text, event_tag text,
         game_mode_name text, battle_time timestamptz not null,
-        created_at timestamptz not null, boat_battle_side text);
+        created_at timestamptz not null, boat_battle_side text,
+        league_number int, deck_selection text);
       create index battle_created_at on battle (created_at);
       create temporary table battle_participant (
         battle_id text, player_tag text, side int, outcome text,
-        crowns int, trophy_change int, clan_tag text, deck_hash text,
+        crowns int, trophy_change int, starting_trophies int, clan_tag text, deck_hash text,
         battle_time timestamptz, padding text,
         primary key (battle_id, player_tag));
       create index battle_participant_player_time_cover
@@ -66,15 +67,15 @@ test("prefetchStatements: each tag reads its own index, once, and gets its own r
                '2026-11-01'::timestamptz + (i % 20160) * interval '1 minute',
                '2026-11-01'::timestamptz + (i % 20160) * interval '1 minute'
                  + case when i % 5 = 0 then interval '3 days' else interval '5 minutes' end,
-               null
+               null, null, 'collection'
           from generate_series(1, 120000) i;
       insert into battle_participant
         select 'b' || i, 'p' || (i % 3000), 0, case when i % 2 = 0 then 'win' else 'loss' end,
-               i % 4, 30, '#C' || (i % 40), 'd' || (i % 300),
+               i % 4, 30, null, '#C' || (i % 40), 'd' || (i % 300),
                '2026-11-01'::timestamptz + (i % 20160) * interval '1 minute', repeat('x', 200)
           from generate_series(1, 120000) i;
       insert into battle_participant
-        select 'b' || i, 'q' || i, 1, 'loss', i % 3, -30, null, 'e' || (i % 300),
+        select 'b' || i, 'q' || i, 1, 'loss', i % 3, -30, null, null, 'e' || (i % 300),
                '2026-11-01'::timestamptz + (i % 20160) * interval '1 minute', repeat('x', 200)
           from generate_series(1, 120000) i;
       insert into player_snapshot_daily

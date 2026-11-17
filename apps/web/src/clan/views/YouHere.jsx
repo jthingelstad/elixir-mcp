@@ -246,7 +246,7 @@ export function YouHere({ clan, navigate }) {
           />
         ) : null}
         <Tile
-          label="Path of Legends battles"
+          label="Ranked battles"
           value={n(y.this_week?.ranked_battles)}
           hint={counted("ranked") === false ? "Not counted here" : undefined}
         />
@@ -365,7 +365,7 @@ export function YouHere({ clan, navigate }) {
                   cell: (w) => n(w.battles),
                 },
                 {
-                  head: "Path of Legends",
+                  head: "Ranked",
                   num: true,
                   cell: (w) => n(w.ranked_battles),
                 },
