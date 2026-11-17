@@ -1109,6 +1109,62 @@ function cacheBehaviours(template) {
     .map((block) => [block.slice(0, block.indexOf("\n")).trim(), block]);
 }
 
+test("the edge preserves no-referrer for shared HTML, API and PNG, with the usual fallback", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const security = resource(
+    template,
+    "SecurityHeadersPolicy",
+    "SiteDistribution",
+  );
+  const match =
+    /ReferrerPolicy:\n\s+Override: (true|false)\n\s+ReferrerPolicy: (\S+)/.exec(
+      security,
+    );
+  assert.ok(match, "the response policy declares its override and fallback");
+  const override = match[1] === "true";
+  const fallback = match[2];
+  assert.equal(fallback, "strict-origin-when-cross-origin");
+  // CloudFront's documented contract: the configured value wins when
+  // Override is true or the origin did not supply this header.
+  // https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-cloudfront-responseheaderspolicy-referrerpolicy.html
+  const edgeHeader = (originHeader) =>
+    override || !originHeader ? fallback : originHeader;
+  const behaviours = cacheBehaviours(template);
+  for (const path of [
+    "/share/abcdefghijklmnopqrstuvwx",
+    "/share/abcdefghijklmnopqrstuvwx.png",
+    "/api/public/shared-items/abcdefghijklmnopqrstuvwx",
+  ]) {
+    const first = behaviours.find(([pattern]) =>
+      new RegExp(`^${pattern.replace(/\*/g, ".*")}$`).test(path),
+    );
+    assert.ok(first, `an edge behavior owns ${path}`);
+    assert.match(
+      first[1],
+      /ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy\n/,
+      path,
+    );
+    assert.equal(edgeHeader("no-referrer"), "no-referrer", path);
+    assert.equal(
+      edgeHeader(null),
+      "strict-origin-when-cross-origin",
+      `${path}: headerless origin keeps the fallback`,
+    );
+  }
+  // Referrer policy ownership must not relax the other security controls.
+  assert.match(security, /ContentSecurityPolicy:\n\s+Override: false/);
+  assert.match(security, /ContentTypeOptions:\n\s+Override: true/);
+  assert.match(security, /Header: Permissions-Policy\n\s+Override: true/);
+  assert.match(
+    security,
+    /FrameOptions:\n\s+Override: true\n\s+FrameOption: DENY/,
+  );
+  assert.match(
+    security,
+    /StrictTransportSecurity:\n\s+Override: true\n\s+AccessControlMaxAgeSec: 63072000\n\s+IncludeSubdomains: true\n\s+Preload: false/,
+  );
+});
+
 const CACHING_OPTIMIZED = "658327ea-f89d-4fab-a63d-7e88639e58f6";
 
 test("the static router only resolves documents; native app behaviors bypass it", async () => {

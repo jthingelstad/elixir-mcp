@@ -2713,8 +2713,11 @@ Resources:
           FrameOptions:
             Override: true
             FrameOption: DENY
+          # Preserve an origin's no-referrer on opaque item links; applying
+          # the fallback here would leak the capability on same-origin links.
+          # Origins without this header still receive the policy below.
           ReferrerPolicy:
-            Override: true
+            Override: false
             ReferrerPolicy: strict-origin-when-cross-origin
           # Two years, subdomains included. NOT preloaded: preload is
           # effectively irreversible and belongs to a domain decision,

@@ -368,6 +368,7 @@ export function BattleView({
           <Meetings read={read} />
           <Sitting read={read} />
           <Share
+            key={battle.id}
             battle={battle}
             sides={sides}
             own={

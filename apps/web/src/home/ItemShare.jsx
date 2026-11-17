@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@elixir-mcp/ui";
 import { shareableItem } from "@elixir-mcp/sharing/projection";
 import { CopyButton } from "../views/JoinElixir.jsx";
@@ -7,12 +7,31 @@ import { api } from "../api.js";
 /** Sharing never creates a post. Only the server's canonical URL enters
  * the outbound message; the signed-in item's names may be private aliases. */
 export function ItemShare({ it, battle, onReady }) {
+  if (!battle && !shareableItem(it)) return null;
+  return (
+    <ShareAction
+      key={battle ? `battle:${battle.id}` : `item:${it.id}`}
+      it={it}
+      battle={battle}
+      onReady={onReady}
+    />
+  );
+}
+
+/** A target owns its cached capability and every pending side effect. */
+function ShareAction({ it, battle, onReady }) {
   const [state, setState] = useState("idle");
   const [url, setUrl] = useState(null);
   const busy = useRef(false);
-  if (!battle && !shareableItem(it)) return null;
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const run = async () => {
-    if (busy.current) return;
+    if (busy.current || !active.current) return;
     busy.current = true;
     setState("pending");
     try {
@@ -39,33 +58,37 @@ export function ItemShare({ it, battle, onReady }) {
                 at: it.facts?.started_at ?? it.sort_at ?? it.at,
               },
         );
+        if (!active.current) return;
         if (!out.ok || !out.data?.url) throw new Error("unavailable");
         link = out.data.url;
         setUrl(link);
         onReady?.(link);
       }
+      if (!active.current) return;
       if (navigator.share) {
         try {
           await navigator.share({ url: link });
-          setState("shared");
+          if (active.current) setState("shared");
           return;
         } catch (error) {
-          if (error.name === "AbortError") {
+          if (!active.current) return;
+          if (error?.name === "AbortError") {
             setState("link");
             return;
           }
         }
       }
       try {
+        if (!active.current) return;
         if (!navigator.clipboard?.writeText)
           throw new Error("clipboard_unavailable");
         await navigator.clipboard.writeText(link);
-        setState("copied");
+        if (active.current) setState("copied");
       } catch {
-        setState("link");
+        if (active.current) setState("link");
       }
     } catch {
-      setState("error");
+      if (active.current) setState("error");
     } finally {
       busy.current = false;
     }

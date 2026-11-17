@@ -5,6 +5,7 @@ import {
   fireEvent,
   cleanup,
   waitFor,
+  act,
 } from "@testing-library/react";
 import { ItemShare } from "../src/home/ItemShare.jsx";
 import { api } from "../src/api.js";
@@ -161,4 +162,90 @@ test("a Clan news item shares from its owning clan even when a player is named t
   expect(api.shareItem).toHaveBeenCalledWith(
     expect.objectContaining({ source: "game", subject: clan }),
   );
+});
+
+const NEXT_URL = "https://elixir.poapkings.com/share/zyxwvutsrqponmlkjihgfedc";
+const nextItem = { ...item, id: "tl_1123456789abcdef0123" };
+
+test("a different canonical item resets its cached link, image and embed copy", async () => {
+  api.shareItem.mockImplementation(async ({ item_id }) => ({
+    ok: true,
+    data: { url: item_id === item.id ? URL : NEXT_URL },
+  }));
+  const { rerender } = render(<ItemShare it={item} />);
+  fireEvent.click(screen.getByRole("button", { name: "Share", exact: true }));
+  await screen.findByRole("button", { name: "Link copied" });
+  rerender(<ItemShare it={nextItem} />);
+  expect(screen.queryByRole("link", { name: "Share image" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Copy for a post" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Share", exact: true }));
+  await screen.findByRole("button", { name: "Link copied" });
+  expect(api.shareItem).toHaveBeenCalledTimes(2);
+  expect(copy.mock.calls.map(([value]) => value)).toEqual([URL, NEXT_URL]);
+  expect(
+    screen.getByRole("link", { name: "Share image" }).getAttribute("href"),
+  ).toBe(`${NEXT_URL}.png`);
+  fireEvent.click(screen.getByRole("button", { name: "Copy for a post" }));
+  expect(copy.mock.calls.at(-1)[0]).toContain(NEXT_URL);
+  expect(copy.mock.calls.at(-1)[0]).not.toContain(URL);
+});
+
+test("a previous target's late create cannot publish a callback or clipboard write", async () => {
+  let finish;
+  const ready = vi.fn();
+  api.shareItem.mockImplementation(({ item_id }) =>
+    item_id === item.id
+      ? new Promise((resolve) => {
+          finish = resolve;
+        })
+      : Promise.resolve({ ok: true, data: { url: NEXT_URL } }),
+  );
+  const { rerender } = render(<ItemShare it={item} onReady={ready} />);
+  fireEvent.click(screen.getByRole("button", { name: "Share", exact: true }));
+  await screen.findByRole("button", { name: "Getting link…" });
+  rerender(<ItemShare it={nextItem} onReady={ready} />);
+  fireEvent.click(screen.getByRole("button", { name: "Share", exact: true }));
+  await screen.findByRole("button", { name: "Link copied" });
+  await act(async () => {
+    finish({ ok: true, data: { url: URL } });
+  });
+  expect(ready.mock.calls.map(([value]) => value)).toEqual([NEXT_URL]);
+  expect(copy.mock.calls.map(([value]) => value)).toEqual([NEXT_URL]);
+  expect(
+    screen.getByRole("link", { name: "Share image" }).getAttribute("href"),
+  ).toBe(`${NEXT_URL}.png`);
+});
+
+test("an unmounted target's late native failure never falls back to the clipboard", async () => {
+  let refuse;
+  navigator.share = vi
+    .fn()
+    .mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          refuse = reject;
+        }),
+    )
+    .mockResolvedValue(undefined);
+  api.shareItem.mockImplementation(async ({ item_id }) => ({
+    ok: true,
+    data: { url: item_id === item.id ? URL : NEXT_URL },
+  }));
+  const { rerender } = render(<ItemShare it={item} />);
+  fireEvent.click(screen.getByRole("button", { name: "Share", exact: true }));
+  await waitFor(() => expect(navigator.share).toHaveBeenCalledOnce());
+  rerender(<ItemShare it={nextItem} />);
+  fireEvent.click(screen.getByRole("button", { name: "Share", exact: true }));
+  await screen.findByRole("button", { name: "Shared" });
+  await act(async () => {
+    refuse(new Error("native sheet failed after navigation"));
+  });
+  expect(copy).not.toHaveBeenCalled();
+  expect(navigator.share.mock.calls.map(([value]) => value.url)).toEqual([
+    URL,
+    NEXT_URL,
+  ]);
+  expect(
+    screen.getByRole("link", { name: "Share image" }).getAttribute("href"),
+  ).toBe(`${NEXT_URL}.png`);
 });
