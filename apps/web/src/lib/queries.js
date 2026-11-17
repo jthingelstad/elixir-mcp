@@ -479,7 +479,10 @@ const mapItems = (old, list, fn) =>
         }
       : old[list]
         ? { ...old, [list]: old[list].map(fn) }
-        : old;
+        : old.data?.[list]
+          ? // An envelope Clan keeps whole (`answered`): `{ ok, data }`.
+            { ...old, data: { ...old.data, [list]: old.data[list].map(fn) } }
+          : old;
 
 /** Your timeline's RSS link (#765): on or off, and since when. */
 export const useRssLink = () =>
@@ -525,6 +528,18 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
     );
     queryClient.setQueriesData({ queryKey: ["me", "cheers"] }, (old) =>
       mapItems(old, "items", patch),
+    );
+    // A post's other copies: a player's or an account's post list, and
+    // Clan's Feed.
+    queryClient.setQueriesData({ queryKey: ["me", "posts"] }, (old) =>
+      mapItems(old, "posts", patch),
+    );
+    queryClient.setQueriesData(
+      {
+        queryKey: ["me", "clan", "record"],
+        predicate: (q) => q.queryKey.at(-1) === "feed",
+      },
+      (old) => mapItems(old, "items", patch),
     );
   };
   const done = (id) => {

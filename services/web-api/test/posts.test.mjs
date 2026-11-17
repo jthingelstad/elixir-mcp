@@ -445,6 +445,25 @@ test("clanmates see the posts in Clan's Feed, and may cheer them there", async (
     text: "Looks fine to me",
   });
   assert.equal(data(r).error, "not_open", r.body);
+  // The Feed's post carries the reader's cheer and its comments, so the
+  // card can draw both (#1100, Codex).
+  const again = await readClanFeed(
+    scratch.db,
+    { accountId: CLANMATE, kind: "person", timezone: "UTC" },
+    CLAN,
+    Date.now(),
+    { posts: true },
+  );
+  const mine = again.items.find((it) => it.id === id);
+  assert.equal(mine.my_cheer, "on_fire");
+  assert.ok((mine.cheers?.on_fire ?? 0) >= 1, JSON.stringify(mine.cheers));
+  assert.equal(mine.comments.open, false);
+  // Nothing else in the Feed takes a cheer.
+  assert.ok(
+    again.items
+      .filter((it) => it.kind !== "post")
+      .every((it) => !("cheers" in it) && !("comments" in it)),
+  );
 });
 
 test("cheers and answers on a post reach its author's bell, never who cheered", async () => {

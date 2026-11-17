@@ -13,6 +13,7 @@ import { screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { PostComposer } from "../src/home/Post.jsx";
 import { FeedItem } from "../src/home/FeedItem.jsx";
+import { PostList } from "../src/home/PostList.jsx";
 import {
   POST_MAX,
   averageElixir,
@@ -234,4 +235,36 @@ test("a post draws its words as plain text, its Question label, deck and Copy de
   expect(screen.getByRole("button", { name: "Report" })).toBeTruthy();
   // A question takes answers.
   expect(await screen.findByRole("button", { name: "Answer" })).toBeTruthy();
+});
+
+test("a cheer on a page's post list shows at once, and a second tap takes it back", async () => {
+  const sent = [];
+  global.fetch = vi.fn(async (p, init = {}) => {
+    const url = String(p);
+    if (url === "/api/me") return reply(ME());
+    if (url.startsWith("/api/me/posts"))
+      return reply({ posts: [POST({ cheers: {}, my_cheer: null })] });
+    if (url === "/api/me/cheers") {
+      const body = JSON.parse(init.body);
+      sent.push(body.cheer);
+      return reply({
+        item_id: body.item_id,
+        cheers: body.cheer ? { [body.cheer]: 1 } : {},
+        my_cheer: body.cheer,
+      });
+    }
+    return reply({}, 404);
+  });
+  renderWithProviders(<PostList player="#0PGQ2UYL" />);
+  const cheer = () => screen.getByRole("button", { name: "Cheer" });
+  fireEvent.click(await screen.findByRole("button", { name: "Cheer" }));
+  await waitFor(() =>
+    expect(cheer().getAttribute("aria-pressed")).toBe("true"),
+  );
+  await waitFor(() => expect(sent).toEqual(["well_played"]));
+  fireEvent.click(cheer());
+  await waitFor(() =>
+    expect(cheer().getAttribute("aria-pressed")).toBe("false"),
+  );
+  await waitFor(() => expect(sent).toEqual(["well_played", null]));
 });
