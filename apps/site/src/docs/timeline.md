@@ -87,18 +87,33 @@ Home's feed: they are about your account, not anyone's play, so [the
 bell](/docs/your-account#the-bell) tells them instead, a burst of them as
 one line. Settings' Timeline page and `elixir_timeline` still carry them.
 
-A sitting of battles shows its figures: battles, won, lost and, on Trophy
-Road, the trophies it moved, with the deck it was played with most and in
-how many of its battles. It carries a small bar chart, one bar per battle in
-the order played: up for a win and down for a loss, as tall as the crown margin
-(one to three). A draw is a flat tick, and a battle whose crowns the record
-lacks is a short, faint bar. The same facts are written out for a screen
-reader. **Open session** opens the sitting's battles in place, newest first,
-under the deck each run of them was played with (its cards, and its
-archetype name when it has one). Each battle shows its result and score,
-who was on the other side (and your teammate in a 2v2), a duel's games,
-the trophies it moved on Trophy Road, and **Battle**, which opens its page.
-A long sitting comes 25 battles at a time.
+A sitting of battles is a card. Its headline is what happened, like "Won 8
+of 12 on Trophy Road, 5 in a row" (an event by its own name). Under it are
+its figures: won, lost and, on Trophy Road, the trophies it moved. A small
+bar chart shows one bar per battle in the order played: up for a win and
+down for a loss, as tall as the crown margin (one to three). A draw is a flat
+tick, and a battle whose crowns the record lacks is a short, faint bar. Chips
+say how many wins took three crowns and the widest win. The deck played most
+shows its eight cards, with how many battles it played, and the card names
+the other decks the sitting switched to. One or two battles make a smaller
+card: the result and its trophies on one line, and the deck.
+
+Tap the card to open the session's own page. Back brings you here. It shows:
+
+- the figures, the bar chart and the chips again;
+- every deck played, with its cards and its count;
+- every battle, newest first: its result and score, who was on the other
+  side (tap a name for their page) and their deck, your teammate in a 2v2,
+  a duel's games, the trophies it moved, the mode, the time, and
+  **Battle**, which opens its page;
+- facts that marked a battle, like **Three crowns**, **5th win in a row**,
+  or a new best in trophies;
+- **Highlight** on each battle when the session is your own verified
+  player's, which opens the battle's page at its highlight.
+
+Only battles Elixir recorded are on the page. When the update counted more
+than Elixir recorded, the page says how many are missing. A long sitting
+comes 25 battles at a time, and a session older than 30 days has no page.
 
 A moment links its battle when the record has one, with its result, score
 and opponent; a highlight shows its player's own words. A clan's own line,

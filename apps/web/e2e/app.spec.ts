@@ -230,9 +230,9 @@ test.describe("signed in", () => {
     // Home's feed (#765), for an account whose player is on record.
     await mockApi(page, signedIn(HOME_READS));
     await page.goto("/home");
-    const session = page
-      .locator(".kit-feed__item")
-      .filter({ hasText: "Played a battle session." });
+    const session = page.locator(".kit-feed__item").filter({
+      has: page.locator(".kit-scard__head", { hasText: "3 battles" }),
+    });
     await expect(session).toBeVisible();
     // Rows say nothing of what connections have read (2026-10-20); a first
     // visit, with no place yet, marks nothing new.
@@ -341,7 +341,9 @@ test.describe("signed in", () => {
     // have seen via MCP." The Console keeps its own place: the page moves
     // it to the window it showed, and the rail's dot counts against it.
     const TO = "2026-09-12T16:00:00.000Z";
-    const item = (text: string, at: string) => ({
+    // Each sitting's card is headed by its facts (2026-11-16), so each
+    // has its own count.
+    const item = (text: string, at: string, battles: number) => ({
       at,
       observed_at: at,
       subject_tag: "#20JJJ2CCRU",
@@ -349,13 +351,13 @@ test.describe("signed in", () => {
       kind: "battle_session",
       section: "battles",
       text,
-      facts: { battles: 3 },
+      facts: { battles },
     });
     let items: Record<string, unknown>[] = [
-      item("The latest sitting.", "2026-09-12T15:30:00Z"),
-      item("A sitting since.", "2026-09-12T15:00:00Z"),
-      item("A sitting you saw.", "2026-09-12T12:00:00Z"),
-      item("An older sitting.", "2026-09-11T12:00:00Z"),
+      item("The latest sitting.", "2026-09-12T15:30:00Z", 6),
+      item("A sitting since.", "2026-09-12T15:00:00Z", 5),
+      item("A sitting you saw.", "2026-09-12T12:00:00Z", 4),
+      item("An older sitting.", "2026-09-11T12:00:00Z", 3),
     ];
     let seenTo = "2026-09-12T13:00:00.000Z";
     const marks: unknown[] = [];
@@ -399,13 +401,13 @@ test.describe("signed in", () => {
     await expect.poll(() => marks).toEqual([{ to: TO }]);
     // The rule sits under the last new row, drawn from the place as the
     // page opened, so it holds after the write moved it.
-    const list = page.locator(".kit-feed__text, .kit-newmark");
+    const list = page.locator(".kit-scard__head, .kit-newmark");
     await expect(list).toHaveText([
-      /The latest sitting\./,
-      /A sitting since\./,
+      "6 battles",
+      "5 battles",
       /New since your last visit/,
-      /A sitting you saw\./,
-      /An older sitting\./,
+      "4 battles",
+      "3 battles",
     ]);
     await expect(page.locator("main")).not.toContainText(
       "Unread by connections",
@@ -426,7 +428,7 @@ test.describe("signed in", () => {
     // new, there is no rule and no dot, and the same window is not
     // marked twice.
     await page.reload();
-    await expect(list.filter({ hasText: "An older sitting." })).toBeVisible();
+    await expect(list.filter({ hasText: "3 battles" })).toBeVisible();
     await expect(page.locator(".kit-newmark")).toHaveCount(0);
     expect(marks).toHaveLength(1);
 

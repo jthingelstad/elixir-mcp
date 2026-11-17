@@ -18,6 +18,17 @@ export const FOLLOW_ME = `${HOME}/follow`;
 /** A player's page: the tag without its hash. */
 export const playerHref = (tag) => `${PLAYER}/${tagPath(tag)}`;
 
+/** A session's own page (2026-11-16): under its player's page, by the
+ *  item's id, with its start so the read finds it in a short window. */
+export const sessionHref = (tag, id, at = null) =>
+  `${playerHref(tag)}/session/${encodeURIComponent(id)}${
+    at ? `?${new URLSearchParams({ at })}` : ""
+  }`;
+
+/** Whether a path is a session's page. */
+export const isSessionPath = (path) =>
+  /^\/home\/player\/[^/,]+\/session\/[^/]+\/?$/.test(String(path ?? ""));
+
 /** A "Follow me in Elixir" link: the players' tags, comma-separated, and
  *  nothing else (DECISIONS "Invites carry no referral ids"). */
 export const followMeHref = (tags) =>

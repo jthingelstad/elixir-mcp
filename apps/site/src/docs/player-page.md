@@ -31,10 +31,9 @@ their follows and followers. Under it:
 | Follows | who the player's account follows, and who follows it |
 | Record | the recorded profile: the last 30 days in battles, wins, losses, trophies and the deck played most, and the profile's trophies, best and lifetime counts as of its last capture |
 
-A sitting on the Timeline tab looks as it does on Home: its small bar chart
-of wins and losses, its battles, won and lost, the trophies it moved and the
-deck played most, and **Open session**, which opens its battles in place
-([Your timeline](/docs/timeline)). You's Timeline is the same.
+A sitting on the Timeline tab is the same card as on Home: its headline,
+its figures and bar chart, and the deck played most. Tap it for the
+session's own page ([Your timeline](/docs/timeline)). You's Timeline is the same.
 
 An item on the Timeline, Highlights or Moments tab takes a cheer, with its
 counts, while it is in your own feed: from the last seven days, about a

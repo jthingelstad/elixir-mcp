@@ -39,7 +39,13 @@ import {
 import { normTag, tagFromPath } from "../lib/tag-url.js";
 import { SessionGames } from "./SessionGames.jsx";
 import { Cheers, usePageCheered } from "./Cheers.jsx";
-import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
+import {
+  evidenceWord,
+  Sitting,
+  SITTINGS,
+  sittingCard,
+  sessionLink,
+} from "./Session.jsx";
 import { FollowAll, FollowButton } from "./follow.jsx";
 import { PlayerRecord } from "./PlayerRecord.jsx";
 import { useAskOnOpen } from "../lib/own-refresh.js";
@@ -444,7 +450,11 @@ export function ItemList({
             // A sitting draws as Home draws it (G7): its sparkline, its
             // numbers and its games, read in place.
             const sitting = SITTINGS.has(it.kind);
-            const games = sitting && tag && it.id && it.evidence;
+            // Since 2026-11-16 the card opens the session's own page; one
+            // with no page to open (an old row) reads its games in place.
+            const card = sittingCard(it);
+            const href = card ? sessionLink(it, tag) : null;
+            const games = sitting && !href && tag && it.id && it.evidence;
             const open = games && openId === it.id;
             return (
               <article
@@ -454,9 +464,11 @@ export function ItemList({
                 <div className="kit-pitem__body">
                   <Medal kind={it.kind} />
                   <div className="kit-pitem__main">
-                    <p className="kit-feed__text">
-                      <TagText>{it.text}</TagText>
-                    </p>
+                    {card ? null : (
+                      <p className="kit-feed__text">
+                        <TagText>{it.text}</TagText>
+                      </p>
+                    )}
                     {it.at ? (
                       <time
                         className="kit-feed__time"
@@ -469,7 +481,7 @@ export function ItemList({
                     {it.words ? (
                       <p className="kit-feed__words">{it.words}</p>
                     ) : null}
-                    {sitting ? <Sitting it={it} /> : null}
+                    {card ? <Sitting it={it} href={href} /> : null}
                     {open ? (
                       <PlayerGames
                         tag={tag}

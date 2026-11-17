@@ -268,6 +268,10 @@ export const api = {
    *  evidence params Home's timeline read takes. */
   playerEvidence: (params) =>
     request("GET", `/api/player/evidence?${new URLSearchParams(params)}`),
+  /** One sitting's own page (2026-11-16): `tag`, `id`, `at` (its start),
+   *  and `offset` with `expected_evidence_version` for its older games. */
+  playerSession: (params) =>
+    request("GET", `/api/player/session?${new URLSearchParams(params)}`),
   /** What following several players costs, before the tap: `player_tags`
    *  (a Follow me link's) or `clan_tag` (everyone in it now). */
   followPlan: ({ player_tags = null, clan_tag = null }) =>

@@ -195,6 +195,18 @@ export function analyticsLocation(
     return settingsLocation(pathname, origin);
   if (isSignIn(pathname)) return null;
   const segments = pathname.split("/").filter(Boolean);
+  // A session's page (2026-11-16) is one page, /home/session, whose
+  // record is the session's id; its player's tag rides in the path only.
+  if (
+    segments[0] === "home" &&
+    segments[1] === "player" &&
+    segments[3] === "session" &&
+    segments[4]
+  ) {
+    const url = new URL("/home/session", origin);
+    url.searchParams.set("id", decodeURIComponent(segments[4]));
+    return { path: "/home/session", url: url.toString() };
+  }
   const page = segments.length ? `/${segments.slice(0, 2).join("/")}` : "/";
   const url = new URL(page, origin);
   const id = segments.slice(2).join("/");

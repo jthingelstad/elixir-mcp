@@ -327,6 +327,16 @@ export const usePlayerEvidence = (params) =>
     enabled: Boolean(params),
   });
 
+/** One sitting's page (2026-11-16): the item, a page of its games, the
+ *  moments they proved. */
+export const usePlayerSession = (params) =>
+  useQuery({
+    queryKey: ["me", "player-session", params],
+    staleTime: 30_000,
+    queryFn: answered(() => api.playerSession(params)),
+    enabled: Boolean(params?.tag && params?.id),
+  });
+
 /** What following a list of players, or a clan, costs (#764). */
 export const useFollowPlan = (ask, enabled = true) =>
   useQuery({

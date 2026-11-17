@@ -13,6 +13,11 @@ const CARDS = [
   [26000006, "Balloon"],
   [26000007, "Witch"],
 ].map(([id, name]) => ({ id, name, form: "base" }));
+/** The sitting's deck as the feed keeps it: each card with its cost. */
+const SITTING_CARDS = CARDS.map((c, i) => ({
+  ...c,
+  elixir_cost: [3, 3, 2, 5, 7, 3, 5, 5][i],
+}));
 const DECK = {
   family: "ladder",
   label: "Giant beatdown",
@@ -125,12 +130,27 @@ const TIMELINE = {
       text: "Won 3 of 5 in Trophy Road.",
       kind: "battle_session",
       facts: {
+        player_tag: TAG,
+        started_at: AGO(70),
+        ended_at: AGO(30),
         battles: 5,
         won: 3,
         lost: 2,
+        drawn: 0,
         by_mode: { ladder: 5 },
         trophy_net: 28,
+        won_in_a_row: 2,
+        // Played as live sittings are (2026-11-16): two decks, the art
+        // kept for the one played most.
+        decks: [
+          { label: "Giant beatdown", battles: 4 },
+          { label: "Hog Rider cycle", battles: 1 },
+        ],
+        events: [],
+        open: false,
       },
+      deck: { label: "Giant beatdown", cards: SITTING_CARDS },
+      scores: { best_win: "3-0", three_crowns: 1 },
       groups: ["you"],
       spark: [
         { r: "w", m: 3 },
@@ -228,6 +248,25 @@ export const HOME_READS = {
   ],
 } satisfies Parameters<typeof signedIn>[0];
 
+/** The sitting's own page (GET /api/player/session, 2026-11-16). */
+const SITTING = TIMELINE.timeline.find((it) => it.kind === "battle_session");
+const SESSION_PAGE: [number, unknown] = [
+  200,
+  {
+    player: { tag: TAG, name: "King Thing" },
+    you: { own: true, can_highlight: true },
+    item: SITTING,
+    games: {
+      ...(EVIDENCE[1] as object),
+      item_id: "n1",
+      version: "v1",
+      offset: 0,
+      limit: 25,
+    },
+    marks: [],
+  },
+];
+
 export const homeApi = (overrides: Parameters<typeof signedIn>[0] = {}) =>
   signedIn({
     "GET /api/me": [200, ME],
@@ -238,6 +277,7 @@ export const homeApi = (overrides: Parameters<typeof signedIn>[0] = {}) =>
         : [200, TIMELINE],
     "POST /api/me/timeline/seen": [200, { seen_to: window.to }],
     "GET /api/me/timeline/discord": [200, { enabled: true }],
+    "GET /api/player/session": SESSION_PAGE,
     ...overrides,
   });
 
