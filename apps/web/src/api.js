@@ -410,8 +410,8 @@ export const api = {
     request("POST", "/api/me/comments", { item_id, subjects, text }),
   deleteComment: (id) =>
     request("DELETE", `/api/me/comments/${encodeURIComponent(id)}`),
-  reportComment: (id, reason) =>
-    request("POST", "/api/me/comment-reports", { id, reason }),
+  reportComment: (id, reason, subjects = []) =>
+    request("POST", "/api/me/comment-reports", { id, reason, subjects }),
   commentSetting: () => request("GET", "/api/me/comment-setting"),
   setCommentSetting: (who) =>
     request("PUT", "/api/me/comment-setting", { who }),

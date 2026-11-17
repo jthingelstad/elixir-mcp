@@ -279,6 +279,7 @@ function CommentRow({ c, it }) {
       {reporting ? (
         <ReportForm
           id={c.id}
+          subjects={itemSubjects(it)}
           onDone={() => {
             setReported(true);
             changed(it.id);
@@ -291,7 +292,7 @@ function CommentRow({ c, it }) {
 
 /** Why you report it: one reason. You stop seeing it at once; two reports
  *  hide it until an admin looks. Its writer is never told. */
-function ReportForm({ id, onDone }) {
+function ReportForm({ id, subjects, onDone }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -300,7 +301,7 @@ function ReportForm({ id, onDone }) {
     e.preventDefault();
     if (!reason || busy) return;
     setBusy(true);
-    const res = await api.reportComment(id, reason);
+    const res = await api.reportComment(id, reason, subjects);
     setBusy(false);
     if (res.ok) onDone();
     else setError("Your report wasn't sent. Try again.");

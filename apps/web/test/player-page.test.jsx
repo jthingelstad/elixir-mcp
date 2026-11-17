@@ -798,3 +798,42 @@ test(
     expect(screen.queryByRole("link", { name: /How to highlight/ })).toBeNull();
   },
 );
+
+test(
+  "a player whose owner you blocked offers Unblock alone (Codex on #1081)",
+  { timeout: 20000 },
+  async () => {
+    page = {
+      ...PAGE,
+      you: { ...PAGE.you, blocked: true },
+      claimants: [
+        {
+          id: "pp_invented_fern",
+          verified: true,
+          relationship: "primary",
+          player: null,
+        },
+      ],
+    };
+    const served = global.fetch;
+    global.fetch = vi.fn(async (path, init) =>
+      String(path) === "/api/me"
+        ? reply({ ...ME, features: { comments: true } })
+        : served(path, init),
+    );
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
+    render(<App />);
+    const actions = await screen.findByRole(
+      "navigation",
+      { name: "More about this player" },
+      { timeout: 10_000 },
+    );
+    expect(
+      await within(actions).findByRole("button", { name: "Unblock" }),
+    ).toBeTruthy();
+    expect(
+      within(actions).queryByRole("button", { name: /^Follow/ }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Block" })).toBeNull();
+  },
+);

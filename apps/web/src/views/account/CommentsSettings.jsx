@@ -49,6 +49,9 @@ function WhoMayComment() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const who = read.data?.who ?? null;
+  // Read the clock once per visit; the server already drops a pause that
+  // has ended (Codex on #1081).
+  const [now] = useState(() => Date.now());
   const pick = async (key) => {
     if (busy || key === who) return;
     setBusy(true);
@@ -76,7 +79,8 @@ function WhoMayComment() {
           and every comment is checked before it posts. You can always comment
           on your own play, and remove any comment on it.
         </p>
-        {read.data?.suspended_until ? (
+        {read.data?.suspended_until &&
+        Date.parse(read.data.suspended_until) > now ? (
           <p className="field-error" role="status">
             Commenting is paused for your account for now.
           </p>

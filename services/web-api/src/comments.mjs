@@ -81,7 +81,12 @@ async function hasVerifiedPlayer(db, accountId) {
 /** An account's comment setting: `{ who, suspended_until }`. */
 export async function commentSettingOf(db, accountId) {
   const { rows } = await db.query(
-    `select who, suspended_until from comment_setting where account_id = $1`,
+    // A pause that has ended reads as none (Codex on #1081): openOwners
+    // enforces only one still running, and nothing clears the column.
+    `select who,
+            case when suspended_until > now() then suspended_until end
+              as suspended_until
+       from comment_setting where account_id = $1`,
     [accountId],
   );
   return {

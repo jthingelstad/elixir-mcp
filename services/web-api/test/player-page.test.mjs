@@ -188,6 +188,8 @@ test("a verified player's page: record, badges, follows and followers by game na
     // The reader's own close-friend mark (0281), in the reader's block only.
     close: false,
     relationship: null,
+    // The reader's own block of the verified owner (2026-11-16).
+    blocked: false,
     clanmate: null,
   });
   // Follows are the account's friends, never what it only watches.
