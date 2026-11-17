@@ -4,7 +4,7 @@ import { mockApi } from "./fixtures.ts";
 import { HOME, homeApi, ownerPassport } from "./home-fixture.ts";
 
 /**
- * Home's profile list (#1015): "Your profile, N of 6 done" above the feed,
+ * Home's profile list (#1015): "Getting set up, N of 6 done" above the feed,
  * its next step on top with the Stamp it earns, the six folded under it,
  * the map's Not now, the follow step's catching-up line, and an older
  * account's remaining steps with Hide. The passport catch-up runs after
@@ -58,7 +58,7 @@ for (const [label, width] of [
     await page.goto("/home");
     const list = page.locator(".kit-profile");
     await expect(
-      list.getByRole("heading", { name: "Your profile, 1 of 6 done" }),
+      list.getByRole("heading", { name: "Getting set up, 1 of 6 done" }),
     ).toBeVisible();
     await expect(list).toContainText("Finish all six for the All Set Stamp.");
     const next = list.locator(".kit-profile__next");
@@ -148,7 +148,7 @@ test("the map's Not now finishes the step without the Stamp", async ({
   await list.getByText("See all steps").click();
   await list.getByRole("button", { name: "Not now" }).click();
   await expect(
-    list.getByRole("heading", { name: "Your profile, 5 of 6 done" }),
+    list.getByRole("heading", { name: "Getting set up, 5 of 6 done" }),
   ).toBeVisible();
   expect(posted).toEqual({ choice: "not_now" });
   await expect(list.getByRole("button", { name: "Not now" })).toHaveCount(0);
@@ -228,7 +228,7 @@ for (const [label, width] of [
         fullPage: false,
       });
     await next.getByRole("button", { name: "Add me" }).click();
-    await expect(page.getByText("Your profile is done")).toBeVisible();
+    await expect(page.getByText("You’re all set up")).toBeVisible();
     expect(saved).toEqual([{ country: "CA", region: "08", city: null }]);
   });
 }
@@ -305,7 +305,7 @@ test("after the older welcome: only what is left, and Hide puts it away", async 
   );
   await list.getByText("See what’s left").click();
   await expect(list.locator(".kit-profile__row")).toHaveCount(2);
-  await list.getByRole("button", { name: "Hide your profile list" }).click();
+  await list.getByRole("button", { name: "Hide the setup list" }).click();
   await expect(list).toHaveCount(0);
   expect(hidden).toBe(1);
 });

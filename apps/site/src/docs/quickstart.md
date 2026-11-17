@@ -16,8 +16,8 @@ Elixir is the missing social layer of Clash Royale: follow your friends and
 your clan, see how they play, and cheer them on.
 
 Getting set up takes four steps. **Your Timeline** keeps them, and two more (your
-picture and your place on the clan map), in one list, **Your profile**,
-until you've done them all ([Your profile](/docs/timeline#your-profile)).
+picture and your place on the clan map), in one list, **Getting set up**,
+until you've done them all ([Getting set up](/docs/timeline#getting-set-up)).
 
 ## 1. Sign in
 

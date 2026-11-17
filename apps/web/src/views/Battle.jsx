@@ -16,7 +16,6 @@ import {
   TagText,
   Tabs,
   useClock,
-  useFlash,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useMe, useNav } from "../App.jsx";
@@ -26,6 +25,7 @@ import { BattleCheers } from "./BattleCheers.jsx";
 import { BattleHighlight } from "./BattleHighlight.jsx";
 import { FollowFromHere } from "./FollowFromHere.jsx";
 import { PlayerBattleShare } from "./PlayerBattleShare.jsx";
+import { CopyButton, Invite, JoinLine } from "./JoinElixir.jsx";
 
 /**
  * One battle's public page, /battle/<short id> (design canvas
@@ -146,23 +146,6 @@ function useMedia(query) {
     return () => mq.removeEventListener("change", on);
   }, [query]);
   return hit;
-}
-
-function CopyButton({ text, label = "Copy", className = "btn btn--sm" }) {
-  const [copied, flash] = useFlash();
-  return (
-    <button
-      type="button"
-      className={className}
-      onClick={() => {
-        navigator.clipboard?.writeText(text);
-        flash();
-      }}
-    >
-      <Icon name={copied ? "check" : "copy"} size={14} />
-      {copied ? "Copied" : label}
-    </button>
-  );
 }
 
 /** /battle/<ref>: the page, on the reader's clock (the account's zone,
@@ -1035,59 +1018,6 @@ function Share({ battle, sides, own }) {
             players={`${namesOf(sides[0])} against ${namesOf(sides[1])}`}
           />
         )}
-      </div>
-    </section>
-  );
-}
-
-/** The way in, up top, for a reader who opened the link from a group
- *  chat with no account (2026-11-16): one line and one button, so it is
- *  plain from the first screen. The full Invite stays below the battle. */
-function JoinLine() {
-  const back = encodeURIComponent(
-    window.location.pathname + window.location.search,
-  );
-  return (
-    <p className="battle__join">
-      <span>Follow your friends’ battles on Elixir. It’s free.</span>
-      <a
-        className="btn btn--sm btn--gold"
-        href={`/signin?signup&return_to=${back}`}
-      >
-        Join free
-      </a>
-    </p>
-  );
-}
-
-/** For a reader with no account: what Elixir is, and the way in (#763).
- *  Both links carry this page as where to come back to, and nothing else:
- *  never who sent the link ("Invites carry no referral ids"). */
-export function Invite({ who = null }) {
-  const back = encodeURIComponent(
-    window.location.pathname + window.location.search,
-  );
-  const title = who
-    ? `Follow ${who} on Elixir`
-    : "Follow these players on Elixir";
-  return (
-    <section className="kit-cta" aria-label={title}>
-      <h2 className="kit-cta__title">{title}</h2>
-      <p className="kit-cta__text">
-        Elixir is where Clash Royale players follow each other’s battles and
-        celebrate them. It’s free. Join or sign in and you come back to this
-        page, ready to follow.
-      </p>
-      <div className="share-actions">
-        <a className="btn btn--gold" href={`/signin?signup&return_to=${back}`}>
-          Join Elixir
-        </a>
-        <a className="btn" href={`/signin?return_to=${back}`}>
-          Sign in
-        </a>
-        <a className="btn btn--quiet" href="/">
-          What is Elixir?
-        </a>
       </div>
     </section>
   );

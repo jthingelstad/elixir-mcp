@@ -52,6 +52,7 @@ import { resolveOwnedAgent } from "./agent-scope.mjs";
 import { deadlineMs } from "./deadline.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";
 import { battleRoutes } from "./routes/battle.mjs";
+import { sessionRoutes } from "./routes/session.mjs";
 import { highlightRoutes } from "./routes/highlight.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { commentsRoutes } from "./routes/comments.mjs";
@@ -491,6 +492,8 @@ export function makeHandler({
     ...principalsRoutes({ resolveAccount, logEvent }),
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleRoutes({ siteShell, shareImage }),
+    // A session's public page, picture and JSON (2026-11-17).
+    ...sessionRoutes({ siteShell, shareImage }),
     ...cheersRoutes({ resolveAccount }),
     // Comments, blocks and reports (2026-11-16), off unless the stack's
     // CommentsEnabled is true.

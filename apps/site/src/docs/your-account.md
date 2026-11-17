@@ -136,7 +136,7 @@ so the product and account controls keep their room. Your full account name
 wraps inside its menu. The same controls remain available by keyboard.
 
 On your Timeline, setup you have not finished opens the page as
-[Your profile](/docs/timeline#your-profile) until it is done.
+[Getting set up](/docs/timeline#getting-set-up) until it is done.
 Recording problems are under the bell, **Needs you**.
 
 Signed out, the top bar is the logo, **Docs**, **Sign in** and **Create
@@ -297,7 +297,7 @@ then tap **Save**. **Remove** puts your initials back.
 **Your place** is in Settings › Profile, under **You in Elixir**. It
 shows your place or **Not set**, with **Set**, **Change** and
 **Remove**. The account menu's **Settings** opens Profile, so it is one
-tap away. You can also set it from the last step of **Your profile** on
+tap away. You can also set it from the last step of **Getting set up** on
 your Timeline, without leaving it.
 
 A place is a country, its region and, if you like, a city, picked from

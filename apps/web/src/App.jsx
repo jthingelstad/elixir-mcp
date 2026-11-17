@@ -64,7 +64,8 @@ import { HOME, SIGN_IN, TIMELINE, movedTo } from "./lib/moved.js";
 import { FOLLOW_ME, isPlayerPath, isSessionPath } from "./lib/player.js";
 import { PASSPORT, isPassportPath } from "./lib/passport.js";
 import { ACCOUNT, accountIdOf, isAccountPath } from "./lib/account.js";
-import { normTag } from "./lib/tag-url.js";
+import { normTag, tagFromPath } from "./lib/tag-url.js";
+import { publicSessionPath } from "@elixir-mcp/ui/session-story";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { Unavailable } from "./shell/Unavailable.jsx";
 import { StatsInvite } from "./stats/Invite.jsx";
@@ -214,6 +215,28 @@ const BATTLE_PATH = /^\/battle\/[0-9a-f]{12,64}$/;
  *  characters (POST_ID_PATTERN in @elixir-mcp/contracts). */
 const POST_PATH = /^\/h\/[a-z2-7]{15}$/;
 
+/** A session's public page (2026-11-17): /session/<tag>/<id>/<start>, the
+ *  player's tag without its hash, the item's id and its start in seconds. */
+const SESSION_PUBLIC_PATH =
+  /^\/session\/[0-9A-Z]{3,15}\/tl_[0-9a-f]{20}\/\d{9,11}$/;
+
+/** The public page a session's member address names, from its path and
+ *  its `at`; null when it names none. */
+function publicSessionOf(pathname, at) {
+  const m = /^\/home\/player\/([^/,]+)\/session\/(tl_[0-9a-f]{20})\/?$/.exec(
+    pathname,
+  );
+  if (!m || typeof at !== "string") return null;
+  let tag = "";
+  try {
+    tag = tagFromPath(m[1]);
+  } catch {
+    return null;
+  }
+  const path = tag ? publicSessionPath(tag, m[2], at) : null;
+  return path && SESSION_PUBLIC_PATH.test(path) ? path : null;
+}
+
 /** Which place the bar marks as the one you are in, from the route. A battle's
  *  public page is in no place, nor are Settings' pages: the Search tab opens
  *  a sheet over whichever page you are on. Another player's page and a Follow
@@ -303,6 +326,7 @@ export function legalRoute(path) {
   // A battle's public page is the app's too.
   if (BATTLE_PATH.test(path)) return path;
   if (POST_PATH.test(path)) return path;
+  if (SESSION_PUBLIC_PATH.test(path)) return path;
   // Stats resolves its own paths.
   if (isStats(path)) return statsLegal(path);
   return null;
@@ -476,7 +500,8 @@ const signedInPath = (path) => {
       isHome(movedTo(url.pathname) ?? url.pathname) ||
       isSettings(url.pathname) ||
       BATTLE_PATH.test(url.pathname) ||
-      POST_PATH.test(url.pathname)
+      POST_PATH.test(url.pathname) ||
+      SESSION_PUBLIC_PATH.test(url.pathname)
     );
   } catch {
     return false;
@@ -611,7 +636,8 @@ function MissingPage() {
 /** What the distribution routes to this app; the rest is the static site.
  *  `/console`, `/ladder` and `/data/service` left it on 2026-11-13: a link
  *  to one loads the site's 404. */
-const APP_PATHS = /^\/(home|timeline|signin|settings|clan|battle|h)(\/|$)/;
+const APP_PATHS =
+  /^\/(home|timeline|signin|settings|clan|battle|h|session)(\/|$)/;
 
 const rootRoute = createRootRoute({
   beforeLoad: ({ location }) => {
@@ -726,6 +752,17 @@ const battleRoute = createRoute({
   component: lazyRouteComponent(
     () => import("./views/Battle.jsx"),
     "BattlePage",
+  ),
+});
+
+/** A session's public page (2026-11-17); signed in it opens the member
+ *  page. */
+const publicSessionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/session/$tag/$id/$at",
+  component: lazyRouteComponent(
+    () => import("./home/PublicSession.jsx"),
+    "PublicSessionPage",
   ),
 });
 
@@ -856,6 +893,7 @@ export const routeTree = rootRoute.addChildren([
   adminRoute,
   battleRoute,
   postRoute,
+  publicSessionRoute,
   statsRoute,
   createClanRoutes(rootRoute),
 ]);
@@ -994,12 +1032,22 @@ function Shell() {
 /** Home's shell. Signed out it is the wall, which returns here after sign-in. */
 function HomeOutlet() {
   const navigate = useNav();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { me, unreachable, retrying, refresh } = useMe();
   useEffect(() => {
     document.title = titleFor(pathname);
   }, [pathname]);
   const authed = me?.authenticated === true;
+  // A session's member link, signed out, opens its public page instead of
+  // the wall (2026-11-17): the links mail, Discord, push and RSS sent keep
+  // working for anyone. The web API's 302 does it on a first load.
+  const publicSession =
+    me?.authenticated === false && !unreachable
+      ? publicSessionOf(pathname, search?.at)
+      : null;
+  useEffect(() => {
+    if (publicSession) navigate(publicSession, { replace: true });
+  }, [publicSession, navigate]);
   return (
     <ZoneProvider zone={me?.timezone}>
       <NavigateProvider navigate={navigate}>
@@ -1013,7 +1061,7 @@ function HomeOutlet() {
               <Outlet />
             ) : unreachable ? (
               <Unavailable busy={retrying} onRetry={refresh} />
-            ) : me === null ? (
+            ) : me === null || publicSession ? (
               <div className="kit-skeleton" aria-busy="true" />
             ) : (
               <SignInWall navigate={navigate} />
@@ -1071,8 +1119,13 @@ function PageShell() {
   const authed = me?.authenticated === true;
 
   useEffect(() => {
-    // A battle's page and a post's name themselves once they have loaded.
-    if (BATTLE_PATH.test(effectivePath) || POST_PATH.test(effectivePath))
+    // A battle's page, a post's and a session's public page name
+    // themselves once they have loaded.
+    if (
+      BATTLE_PATH.test(effectivePath) ||
+      POST_PATH.test(effectivePath) ||
+      SESSION_PUBLIC_PATH.test(effectivePath)
+    )
       return;
     document.title = titleFor(effectivePath);
   }, [effectivePath]);

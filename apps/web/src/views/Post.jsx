@@ -23,9 +23,9 @@ import {
   endedSentence,
   gamesOf,
   hpLeft,
-  Invite,
   scoreOf,
 } from "./Battle.jsx";
+import { Invite } from "./JoinElixir.jsx";
 import { FollowFromHere } from "./FollowFromHere.jsx";
 
 /**

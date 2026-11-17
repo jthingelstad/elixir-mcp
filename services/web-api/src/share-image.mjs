@@ -16,6 +16,14 @@ import { DISCLAIMER } from "@elixir-mcp/contracts";
 import { whenAt } from "@elixir-mcp/ui/time";
 import { fontMetrics } from "./font-metrics.mjs";
 import { scoreOf } from "./battle-page.mjs";
+import {
+  deckCaption,
+  modesSaid,
+  sessionChips,
+  sessionHeadline,
+  signedCount,
+  trophyNet,
+} from "@elixir-mcp/ui/session-story";
 
 const SHARE_WIDTH = 1200;
 const SHARE_HEIGHT = 630;
@@ -105,10 +113,14 @@ export function makeShareImage({ assets, cardArt = async () => null }) {
       };
     })());
 
+  /** A battle's read draws the battle; a public session's read
+   *  (session-page.mjs, `session: true`) draws the session's card. */
   return async function render(read) {
     const f = await load();
     const art = await artFor(read, cardArt);
-    const svg = drawBattle(read, { ...f, art });
+    const svg = read.session
+      ? drawSession(read, { ...f, art })
+      : drawBattle(read, { ...f, art });
     const resvg = new Resvg(svg, {
       fitTo: { mode: "original" },
       font: { fontBuffers: f.fonts, defaultFontFamily: "Inter" },
@@ -124,7 +136,12 @@ export function makeShareImage({ assets, cardArt = async () => null }) {
 /** Every card the picture shows, its art read once. */
 async function artFor(read, cardArt) {
   const cards = new Map();
-  for (const side of read.sides)
+  const sessionDeck = read.session
+    ? (read.item?.deck ?? topDeck(read.games))
+    : null;
+  for (const c of sessionDeck?.cards ?? [])
+    cards.set(`${c.id}:${c.form ?? "base"}`, c);
+  for (const side of read.sides ?? [])
     for (const p of side.players)
       for (const c of shownDeck(read, p)?.cards ?? [])
         cards.set(`${c.id}:${c.form ?? "base"}`, c);
@@ -143,6 +160,32 @@ function shownDeck(read, player) {
   return rounds.length ? rounds[rounds.length - 1] : null;
 }
 
+/** A line of text no wider than `max`, shortened with an ellipsis. */
+const fit = (text, metrics, size, max) => {
+  const s = String(text);
+  if (metrics.width(s, size) <= max) return s;
+  let cut = s;
+  while (cut.length > 1 && metrics.width(`${cut}…`, size) > max)
+    cut = cut.slice(0, -1);
+  return `${cut.trimEnd()}…`;
+};
+/** One line of text, escaped as it is written unless `raw`. */
+const text = (x, y, s, o = {}) =>
+  `<text x="${x}" y="${y}" font-family="${o.family ?? "Inter"}" font-size="${o.size ?? 16}"${o.weight ? ` font-weight="${o.weight}"` : ""} fill="${o.fill ?? C.body}"${o.anchor ? ` text-anchor="${o.anchor}"` : ""}${o.spacing ? ` letter-spacing="${o.spacing}"` : ""}>${o.raw ? s : esc(s)}</text>`;
+
+/** The ground every picture is drawn on. */
+const GROUND = `<defs>
+    <radialGradient id="wash" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="${C.wash}"/>
+      <stop offset="100%" stop-color="${C.ground}"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${C.goldLight}"/>
+      <stop offset="100%" stop-color="${C.gold}"/>
+    </linearGradient>
+  </defs>
+  <rect width="${SHARE_WIDTH}" height="${SHARE_HEIGHT}" fill="url(#wash)"/>`;
+
 /** The SVG for one battle (exported for the tests, which read it). */
 export function drawBattle(read, f) {
   const { battle, sides, games } = read;
@@ -150,18 +193,6 @@ export function drawBattle(read, f) {
   const last = games?.length ? games[games.length - 1] : null;
   const out = [];
   const push = (s) => out.push(s);
-
-  // A line of text no wider than `max`, shortened with an ellipsis.
-  const fit = (text, metrics, size, max) => {
-    const s = String(text);
-    if (metrics.width(s, size) <= max) return s;
-    let cut = s;
-    while (cut.length > 1 && metrics.width(`${cut}…`, size) > max)
-      cut = cut.slice(0, -1);
-    return `${cut.trimEnd()}…`;
-  };
-  const text = (x, y, s, o = {}) =>
-    `<text x="${x}" y="${y}" font-family="${o.family ?? "Inter"}" font-size="${o.size ?? 16}"${o.weight ? ` font-weight="${o.weight}"` : ""} fill="${o.fill ?? C.body}"${o.anchor ? ` text-anchor="${o.anchor}"` : ""}${o.spacing ? ` letter-spacing="${o.spacing}"` : ""}>${o.raw ? s : esc(s)}</text>`;
 
   // ---- ground
   push(`<defs>
@@ -671,4 +702,259 @@ function wrap(text, metrics, size, max) {
   }
   if (line) lines.push(line);
   return lines;
+}
+
+/** The modes' dot, when the session was one mode. */
+const sessionDot = (f) => {
+  const modes = Object.keys(f.by_mode ?? {});
+  return modes.length === 1 ? (MODE_DOT[modes[0]] ?? C.faint) : C.faint;
+};
+
+/** The SVG for one session's card (2026-11-17; exported for the tests):
+ *  the player's game name, the session's headline, its figures and the
+ *  strip of its battles in the order played, the chips, and its most
+ *  played deck as the game lays it out. The art is drawn as the file has
+ *  it: nothing over it, around it or through it (DECISIONS "Card art"),
+ *  so unlike the battle's picture it carries no form ribbon or level. A
+ *  card with no art is its name in the frame. The foot is the page's link
+ *  and the fan-content line. Every string is escaped by text() as it is
+ *  written. */
+export function drawSession(read, f) {
+  const { player, item } = read;
+  const facts = item.facts ?? {};
+  const out = [GROUND];
+  const push = (s) => out.push(s);
+  const LEFT_W = 600;
+
+  // ---- the bar: wordmark, the modes, when it started
+  push(
+    text(PAD, 62, "Elixir", { family: "Clash", size: 38, fill: "url(#gold)" }),
+  );
+  const x = PAD + f.clash.width("Elixir", 38) + 22;
+  const when = facts.started_at
+    ? whenAt(facts.started_at, null, { now: 0 })
+    : null;
+  const whenW = when ? f.regular.width(when, 17) : 0;
+  const modes = modesSaid(facts);
+  if (modes) {
+    const label = fit(modes, f.regular, 17, RIGHT_X - whenW - 40 - x - 50);
+    const w = 34 + f.regular.width(label, 17) + 16;
+    push(
+      `<rect x="${x}" y="33" width="${w}" height="36" rx="18" fill="${C.panel}" stroke="${C.line}"/>`,
+    );
+    push(
+      `<rect x="${x + 15}" y="46" width="10" height="10" rx="3" fill="${sessionDot(facts)}"/>`,
+    );
+    push(text(x + 34, 57, label, { size: 17 }));
+  }
+  if (when)
+    push(text(RIGHT_X, 57, when, { size: 17, fill: C.faint, anchor: "end" }));
+  push(
+    `<line x1="0" y1="88" x2="${SHARE_WIDTH}" y2="88" stroke="${C.lineSoft}"/>`,
+  );
+
+  // ---- who, and the headline in up to two lines
+  push(
+    text(PAD, 148, fit(player.name ?? player.tag, f.bold, 34, LEFT_W), {
+      size: 34,
+      weight: 700,
+      fill: C.ink,
+    }),
+  );
+  const lines = wrap(sessionHeadline(facts), f.bold, 28, LEFT_W);
+  const shown = lines.slice(0, 2);
+  if (lines.length > 2)
+    shown[1] = fit(`${lines.slice(1).join(" ")}`, f.bold, 28, LEFT_W);
+  shown.forEach((line, k) =>
+    push(
+      text(PAD, 196 + k * 36, line, { size: 28, weight: 700, fill: C.gold }),
+    ),
+  );
+
+  // ---- the figures, as the page's summary has them
+  const net = trophyNet(facts);
+  const figures = [
+    ["BATTLES", String(facts.battles ?? 0), C.ink],
+    ["WON", String(facts.won ?? 0), C.win],
+    ["LOST", String(facts.lost ?? 0), C.ink],
+    ...((facts.drawn ?? 0) > 0 ? [["DRAWN", String(facts.drawn), C.ink]] : []),
+    ...(net !== null
+      ? [
+          [
+            "TROPHIES",
+            signedCount(net),
+            net > 0 ? C.win : net < 0 ? C.loss : C.ink,
+          ],
+        ]
+      : []),
+  ];
+  const fy = 196 + shown.length * 36 + 28;
+  figures.forEach(([label, value, fill], k) => {
+    const fx = PAD + k * 120;
+    push(text(fx, fy, label, { size: 12, fill: C.faint, spacing: 1 }));
+    push(text(fx, fy + 38, value, { size: 34, weight: 700, fill }));
+  });
+
+  // ---- the strip: one bar per battle in the order played, up for a
+  // win, down for a loss, its height the crown margin; a draw a tick, a
+  // battle with no crowns recorded a short faint bar.
+  const spark = Array.isArray(item.spark) ? item.spark : [];
+  const base = fy + 112;
+  if (spark.length > 1) {
+    const gap = spark.length > 40 ? 2 : 4;
+    const bw = Math.max(
+      2,
+      Math.min(16, (LEFT_W - gap * (spark.length - 1)) / spark.length),
+    );
+    push(
+      `<line x1="${PAD}" y1="${base}" x2="${PAD + LEFT_W}" y2="${base}" stroke="${C.lineSoft}"/>`,
+    );
+    spark.slice(0, 200).forEach((b, k) => {
+      const bx = (PAD + k * (bw + gap)).toFixed(1);
+      if (b.r === "d") {
+        push(
+          `<rect x="${bx}" y="${base - 2}" width="${bw.toFixed(1)}" height="4" fill="${C.faint}"/>`,
+        );
+        return;
+      }
+      const h = b.m == null ? 8 : b.m * 12;
+      const fill = b.r === "w" ? C.win : C.loss;
+      push(
+        `<rect x="${bx}" y="${b.r === "w" ? base - h - 2 : base + 2}" width="${bw.toFixed(1)}" height="${h}" rx="1.5" fill="${fill}"${b.m == null ? ' opacity="0.45"' : ""}/>`,
+      );
+    });
+  }
+
+  // ---- the chips: facts, never a verdict
+  const chips = sessionChips(facts, item.scores ?? null).map((c) => c.text);
+  let cx = PAD;
+  const cy = base + 60;
+  for (const chip of chips) {
+    const label = fit(chip, f.regular, 16, LEFT_W - (cx - PAD) - 28);
+    const w = f.regular.width(label, 16) + 28;
+    if (cx + w > PAD + LEFT_W) break;
+    push(
+      `<rect x="${cx}" y="${cy - 22}" width="${w}" height="32" rx="16" fill="${C.panel}" stroke="${C.line}"/>`,
+    );
+    push(text(cx + 14, cy, label, { size: 16, fill: C.body }));
+    cx += w + 10;
+  }
+
+  // ---- the deck played most, its art as the file has it
+  const deck = item.deck ?? topDeck(read.games);
+  const cardW = 96;
+  const gridW = deckWidth(4, cardW, 12);
+  const gx = RIGHT_X - gridW;
+  const caption = deckCaption(facts);
+  const label = deck?.label ?? caption?.label ?? null;
+  push(
+    text(gx, 134, fit(label ?? "The deck", f.bold, 20, gridW), {
+      size: 20,
+      weight: 700,
+      fill: C.ink,
+    }),
+  );
+  drawPlainDeck(push, f, deck, { x: gx, y: 152, w: cardW, gap: 12 });
+  const count =
+    caption && caption.label === label && caption.count
+      ? `Played in ${caption.count}`
+      : null;
+  if (count)
+    push(
+      text(gx, 152 + 2 * Math.round(cardW * CARD_RATIO) + 12 + 34, count, {
+        size: 16,
+        fill: C.dim,
+      }),
+    );
+
+  // ---- the foot: the page's link and the disclaimer
+  push(
+    `<line x1="0" y1="578" x2="${SHARE_WIDTH}" y2="578" stroke="${C.lineSoft}"/>`,
+  );
+  // The session's address is too long to sit beside the disclaimer, and
+  // a cut one leads nowhere: the picture names the site, and the post or
+  // chat it travels in carries the link.
+  if (read.url)
+    push(
+      text(PAD, 612, new URL(read.url).host, {
+        size: 18,
+        weight: 700,
+        fill: C.link,
+      }),
+    );
+  const cut = DISCLAIMER.indexOf(". ") + 1;
+  push(
+    text(RIGHT_X, 600, DISCLAIMER.slice(0, cut), {
+      size: 12,
+      fill: C.faint,
+      anchor: "end",
+    }),
+  );
+  push(
+    text(RIGHT_X, 617, DISCLAIMER.slice(cut).trim(), {
+      size: 12,
+      fill: C.faint,
+      anchor: "end",
+    }),
+  );
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${SHARE_WIDTH}" height="${SHARE_HEIGHT}" viewBox="0 0 ${SHARE_WIDTH} ${SHARE_HEIGHT}">${out.join("\n")}</svg>`;
+}
+
+/** The player's deck that played most of the sitting, from the games'
+ *  read (its session-wide counts), when the item names none: a sitting
+ *  whose decks carry no archetype still shows the cards it played. */
+function topDeck(games) {
+  let best = null;
+  for (const d of games?.decks ?? [])
+    if (
+      Number.isInteger(d?.battles) &&
+      d.cards?.length &&
+      (!best || d.battles > best.battles)
+    )
+      best = d;
+  return best;
+}
+
+/** A deck in the game's 2 by 4, each card's art and nothing over it. */
+function drawPlainDeck(push, f, deck, { x, y, w, gap }) {
+  const h = Math.round(w * CARD_RATIO);
+  const rowGap = 12;
+  if (!deck?.cards?.length) {
+    push(
+      `<rect x="${x}" y="${y}" width="${deckWidth(4, w, gap)}" height="${2 * h + rowGap}" rx="12" fill="none" stroke="${C.lineStrong}" stroke-dasharray="6 5"/>`,
+    );
+    push(
+      text(x + deckWidth(4, w, gap) / 2, y + h + 6, "No deck recorded", {
+        size: 16,
+        fill: C.faint,
+        anchor: "middle",
+      }),
+    );
+    return;
+  }
+  deck.cards.slice(0, 8).forEach((card, k) => {
+    const cx = x + (k % 4) * (w + gap);
+    const cy = y + Math.floor(k / 4) * (h + rowGap);
+    const art = f.art.get(`${card.id}:${card.form ?? "base"}`);
+    if (art) {
+      push(
+        `<image x="${cx}" y="${cy}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" href="data:image/png;base64,${art}"/>`,
+      );
+      return;
+    }
+    push(
+      `<rect x="${cx + 0.5}" y="${cy + 0.5}" width="${w - 1}" height="${h - 1}" rx="8" fill="${C.raised}" stroke="${C.lineStrong}" stroke-dasharray="4 3"/>`,
+    );
+    const lines = wrap(card.name ?? "", f.regular, 12, w - 8).slice(0, 3);
+    lines.forEach((line, n) =>
+      push(
+        text(
+          cx + w / 2,
+          cy + h / 2 - ((lines.length - 1) * 14.4) / 2 + n * 14.4 + 4,
+          line,
+          { size: 12, fill: C.dim, anchor: "middle" },
+        ),
+      ),
+    );
+  });
 }

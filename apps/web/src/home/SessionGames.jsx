@@ -152,7 +152,15 @@ export function SessionGames({ item, query, offset, setOffset, onRefresh }) {
 
 const RESULT = { win: "Win", loss: "Loss", draw: "Draw" };
 
-function Who({ p }) {
+/** A name on the other side. On a session's public page (2026-11-17) it is
+ *  the game name as plain text: the player's page is a signed-in one. */
+function Who({ p, linked = true }) {
+  if (!linked)
+    return (
+      <span className="kit-sgame__name">
+        <TagText>{nameOf(p)}</TagText>
+      </span>
+    );
   return (
     <Link to={playerHref(p.player_tag)} className="kit-sgame__name">
       <PlayerName tag={p.player_tag}>
@@ -165,7 +173,8 @@ function Who({ p }) {
 /** One game's row. A session's page (2026-11-16) adds the opponent's deck
  *  (`theirs`), the facts it marked (`marks`), the deck it was played with
  *  when the sitting saw several (`mine`) and, for the reader's own verified
- *  player, a way to highlight it (`highlightTo`). */
+ *  player, a way to highlight it (`highlightTo`). Its public page
+ *  (2026-11-17) draws names unlinked (`linked`). */
 export function Game({
   b,
   at,
@@ -175,6 +184,7 @@ export function Game({
   mine = null,
   marks = [],
   highlightTo = null,
+  linked = true,
 }) {
   const outcome = RESULT[b.outcome] ? b.outcome : "unknown";
   const score = gameScore(b);
@@ -197,7 +207,7 @@ export function Game({
               {mates.map((p, i) => (
                 <span key={p.player_tag}>
                   {i ? " and " : ""}
-                  <Who p={p} />
+                  <Who p={p} linked={linked} />
                 </span>
               ))}{" "}
             </>
@@ -208,7 +218,7 @@ export function Game({
               {opponents.map((p, i) => (
                 <span key={p.player_tag}>
                   {i ? " and " : ""}
-                  <Who p={p} />
+                  <Who p={p} linked={linked} />
                 </span>
               ))}
             </>

@@ -47,6 +47,15 @@ describe("analyticsLocation", () => {
     expect(new URL(seen.url).searchParams.get("id")).toBe("2ABC");
   });
 
+  test("a session's public page is one page, its id the record", () => {
+    const seen = at("/session/0JQ8PL2V/tl_a1b2c3d4e5f60718293a/1794000000");
+    expect(seen.path).toBe("/session");
+    const url = new URL(seen.url);
+    expect(url.pathname).toBe("/session");
+    expect(url.searchParams.get("id")).toBe("tl_a1b2c3d4e5f60718293a");
+    expect(seen.url).not.toContain("0JQ8PL2V");
+  });
+
   test("Settings reports the kind of page, never which player, agent or record", () => {
     // Report hygiene: one row per kind of record page, never one per
     // record (docs/ENGINEERING.md, "Product identifiers versus measurement").

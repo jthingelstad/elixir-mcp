@@ -4634,6 +4634,11 @@ a.card-art:hover .card-art__img {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The copy button keeps its words on one line; the address gives way. */
+.share-link .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .share-actions {
   display: flex;
   gap: var(--s-2);

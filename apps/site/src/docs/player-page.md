@@ -33,7 +33,8 @@ their follows and followers. Under it:
 
 A session on the Timeline tab is the same card as on your Timeline: its headline,
 its figures and bar chart, and the deck played most. Tap it for the
-session's own page ([Your timeline](/docs/timeline)). Profile's Timeline tab is the same.
+session's own page ([Your timeline](/docs/timeline)), which you can share
+with anyone ([Share a session](/docs/timeline#share-a-session)). Profile's Timeline tab is the same.
 
 An item on the Timeline, Highlights or Moments tab takes a cheer, with its
 counts, while it is in your own feed: from the last seven days, about a

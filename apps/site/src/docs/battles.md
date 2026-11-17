@@ -123,7 +123,8 @@ On the smallest phones, the players' deck panels stack in their existing
 order, each keeping two rows of four cards. Larger phones and desktop show
 the panels side by side.
 
-Signed out, a battle's page and a shared highlight carry one way in:
+Signed out, a battle's page, a shared highlight and a shared session
+([Share a session](/docs/timeline#share-a-session)) carry one way in:
 **Join Elixir** opens the signup form and **Sign in** the sign-in form,
 and either brings you back to the page you were reading. The link names
 only the battle or the post, never who sent it to you.

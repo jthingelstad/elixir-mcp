@@ -323,4 +323,9 @@ test("comments off: no thread, no Block, no settings page", async ({
   await expect(page.getByRole("button", { name: "Block" })).toHaveCount(0);
   await page.goto("/settings/comments");
   await expect(page.getByText("Comments aren't on yet")).toBeVisible();
+  // Its own tab title and a line saying what the page is for (2026-11-17).
+  await expect(page).toHaveTitle("Comments & blocks - Settings - Elixir");
+  await expect(
+    page.getByText("this is where you choose who can comment on your play"),
+  ).toBeVisible();
 });

@@ -162,6 +162,32 @@ Only battles Elixir recorded are on the page. When the update counted more
 than Elixir recorded, the page says how many are missing. A long session
 comes 25 battles at a time, and a session older than 30 days has no page.
 
+### Share a session
+
+A session's page has **Share this session** at its foot:
+
+- **Copy link** copies the session's own link. Anyone can open it, no
+  account needed.
+- **Share image** saves a picture of the session: its headline, figures and
+  bar chart, the deck played most with its cards, and the player's game
+  name.
+- **Copy for a post** copies one short line, like "King Thing: Won 8 of 12
+  on Trophy Road, 5 in a row", with the link under it.
+
+Someone who opens the link without an account sees the session's
+headline, when it was played, its figures, bar chart and chips, its decks
+and every battle with who was on the other side and their deck. Each
+battle opens its own page. Players show by their game names only, never
+a nickname. Cheers, comments, a close friend's star and the Verified mark
+are only for members, and the names don't open player pages. **Join
+free**, **Join Elixir** and **Sign in** bring them back to this session,
+ready to follow the player.
+
+The link works for 30 days, like the session's page. A signed-out link to
+the member page (from your email, Discord, a notification or RSS) opens
+the shared page instead, and signed in the shared link opens the member
+page.
+
 Each mode is told the way the game tells it:
 
 - **Ranked** says the league you played in. A climb names the win that
@@ -181,10 +207,10 @@ and a member joining, leaving or changing role, has a gold edge with the
 clan's name above it. Every player's name opens their
 [player page](/docs/player-page).
 
-### Your profile
+### Getting set up
 
-Until your profile is done, your Timeline opens with it above the feed:
-**Your profile, 2 of 6 done**. It shows the one step to do next, with the
+Until you're set up, your Timeline opens with the list above the feed:
+**Getting set up, 2 of 6 done**. It shows the one step to do next, with the
 Stamp it earns and a button to where you do it. Tap **See all steps** for
 all six:
 

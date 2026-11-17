@@ -28,7 +28,10 @@ export function CommentsSettings({ me }) {
     return (
       <div className="st-page">
         <PageHead title="Comments & blocks" />
-        <Empty title="Comments aren't on yet" />
+        <Empty title="Comments aren't on yet">
+          When they are, this is where you choose who can comment on your play
+          and see anyone you've blocked.
+        </Empty>
       </div>
     );
   return (

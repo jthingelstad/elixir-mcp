@@ -671,7 +671,7 @@ async function evidenceOpponents(db, records) {
  *  nickname. `decks` is the page's distinct decks, the player's first; a
  *  battle names its own by index (`deck`), and its one opponent's
  *  (`opponent_deck`, 2026-11-16: the session page draws both). */
-async function sessionGameDetail(db, playerTag, records) {
+async function sessionGameDetail(db, playerTag, records, deckCounts = {}) {
   const byBattle = new Map();
   const decks = [];
   if (records.length === 0) return { byBattle, decks };
@@ -731,7 +731,14 @@ async function sessionGameDetail(db, playerTag, records) {
     return deckIndex.get(hash);
   };
   // The player's own decks first, so a page's first decks are theirs.
-  for (const r of rows) indexOf(r.deck_hash);
+  // Each says how many of the whole sitting's battles it played
+  // (`battles`, 2026-11-17), so a sitting longer than one page counts
+  // exactly rather than from the page in hand.
+  for (const r of rows) {
+    const i = indexOf(r.deck_hash);
+    if (i !== null && decks[i].battles === undefined)
+      decks[i].battles = deckCounts[r.deck_hash] ?? null;
+  }
   for (const r of rows) {
     const out = {};
     const own = indexOf(r.deck_hash);
@@ -780,6 +787,7 @@ export async function readTimelineEvidence(
   if (expectedVersion && expectedVersion !== item.evidence.version)
     return { error: "evidence_changed" };
   let records;
+  let deckCounts = {};
   // The website reads a sitting newest first, as every feed is; an agent's
   // read keeps the order it was given (played order).
   const dir = detail ? "desc" : "asc";
@@ -791,13 +799,19 @@ export async function readTimelineEvidence(
       rows: [current],
     } = await db.query(
       `with records as materialized (
-         select distinct b.battle_id, b.battle_time, b.type, b.event_tag, bp.side, bp.outcome, bp.crowns, bp.trophy_change
+         select distinct b.battle_id, b.battle_time, b.type, b.event_tag, bp.side, bp.outcome, bp.crowns, bp.trophy_change, bp.deck_hash
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
           where bp.player_tag = $1 and bp.battle_time >= $2::timestamptz
             and bp.battle_time <= $3::timestamptz and ${OWN_BATTLE_SQL}
        )
        select md5(string_agg(battle_id, ',' order by battle_time, battle_id)) as fingerprint,
               count(*)::int as count,
+              -- The whole sitting's battles per deck, for the website's
+              -- deck counts past one page (2026-11-17). Same snapshot.
+              (select coalesce(jsonb_object_agg(d.deck_hash, d.n), '{}'::jsonb)
+                 from (select deck_hash, count(*)::int as n from records
+                        where deck_hash is not null group by deck_hash) d)
+                as deck_counts,
               (select coalesce(jsonb_agg(p order by p.battle_time ${dir}, p.battle_id ${dir}), '[]'::jsonb)
                  from (select * from records
                        order by battle_time ${dir}, battle_id ${dir} limit $4 offset $5) p) as page
@@ -815,6 +829,7 @@ export async function readTimelineEvidence(
     )
       return { error: "evidence_changed" };
     records = current.page;
+    deckCounts = current.deck_counts ?? {};
   } else {
     const { rows } = await db.query(
       `with origin as (select $1::bigint as id),
@@ -843,7 +858,7 @@ export async function readTimelineEvidence(
   const opposing = await evidenceOpponents(db, records);
   const more =
     detail && source.kind === "session"
-      ? await sessionGameDetail(db, source.playerTag, records)
+      ? await sessionGameDetail(db, source.playerTag, records, deckCounts)
       : null;
   const battles = records.map((r) => ({
     battle_id: r.battle_id,

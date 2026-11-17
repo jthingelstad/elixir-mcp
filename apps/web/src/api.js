@@ -353,6 +353,15 @@ export const api = {
     request("GET", `/api/me/verify/${encodeURIComponent(id)}`),
   publicStatus: () => request("GET", "/api/public/status"),
   publicCards: () => request("GET", "/api/public/cards"),
+  /** A session's public page (2026-11-17): its player's tag (no hash),
+   *  the item's id and its start in seconds; `offset` with the evidence
+   *  version for an older page of its games, as path segments (the edge
+   *  forwards no query string). */
+  publicSession: (tag, id, at, offset = 0, version = null) =>
+    request(
+      "GET",
+      `/api/public/sessions/${[tag, id, at, ...(offset && version ? [offset, version] : [])].map((x) => encodeURIComponent(String(x))).join("/")}`,
+    ),
   publicBattle: (ref) =>
     request("GET", `/api/public/battles/${encodeURIComponent(ref)}`),
   // Highlights (#762): a person's own posts of their verified players'

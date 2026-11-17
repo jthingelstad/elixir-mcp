@@ -271,3 +271,48 @@ export function sessionPathOf(it: Item | null | undefined) {
     ? sessionPath(tag, it.id, at)
     : null;
 }
+
+/** A session's public page (2026-11-17), as a path: the address a person
+ *  shares, which anyone opens with no account, as a battle's /battle/<id>.
+ *  Its player (the tag without its hash), the item's id, and its start in
+ *  whole seconds; the page answers only when all three name one recorded
+ *  session, so the address cannot be guessed from a tag. Null when the
+ *  start does not read as a time. */
+export function publicSessionPath(
+  tag: string,
+  id: string,
+  startedAt: string | null | undefined,
+) {
+  const ms = Date.parse(String(startedAt ?? ""));
+  if (!Number.isFinite(ms) || !id || !tag) return null;
+  return `/session/${encodeURIComponent(String(tag).replace(/^#/, ""))}/${encodeURIComponent(id)}/${Math.floor(ms / 1000)}`;
+}
+
+/** A name as plain text for a post (2026-11-17): a game name is the
+ *  player's own, so it loses the control and direction characters that
+ *  could break a line or turn the text around, and runs of space close
+ *  up. Never markup-escaped: a post is text, and the place it is pasted
+ *  escapes it. */
+export function plainName(s: unknown) {
+  return String(s ?? "")
+    .replace(
+      // eslint-disable-next-line no-control-regex
+      /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069\ufeff]/g,
+      " ",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** The text "Copy for a post" puts on the clipboard (2026-11-17): who
+ *  played, the session's headline, and its link. Facts only, the
+ *  headline's own words. */
+export function sessionPostText(
+  name: unknown,
+  f: Facts = {},
+  url: string | null = null,
+) {
+  const who = plainName(name);
+  const line = `${who ? `${who}: ` : ""}${sessionHeadline(f)}`;
+  return url ? `${line}\n${url}` : line;
+}

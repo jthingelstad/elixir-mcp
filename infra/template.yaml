@@ -2868,6 +2868,21 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
+          # A session's public page, /session/<tag>/<id>/<start>, and its
+          # picture (.png on the same address), 2026-11-17: public like a
+          # battle's page, the same shell with the session's preview tags,
+          # cached by path alone. The origin says max-age=60 while the
+          # session is open, an hour (the picture a day) once it ended.
+          - PathPattern: /session/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /api/v1/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
