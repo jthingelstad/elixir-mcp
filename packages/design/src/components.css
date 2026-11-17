@@ -3889,9 +3889,16 @@ input[aria-invalid="true"] {
   border-radius: 6px;
   background: var(--panel-raised);
 }
+/* The tile pulses its own colour, never its opacity: a form ribbon on
+   it keeps full contrast while the art loads. */
 @media (prefers-reduced-motion: no-preference) {
   .card-art__frame--wait {
-    animation: kit-skel-pulse 1.4s ease-in-out infinite;
+    animation: card-art-wait 1.4s ease-in-out infinite;
+  }
+}
+@keyframes card-art-wait {
+  50% {
+    background-color: var(--panel);
   }
 }
 .card-art__img {
