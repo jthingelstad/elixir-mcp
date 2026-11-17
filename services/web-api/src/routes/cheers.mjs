@@ -16,6 +16,8 @@
  *  the token is its credential, and a token that opens nothing is a 404
  *  (class "private link" in the public-boundary test). */
 import { checkRateLimit } from "@elixir-mcp/auth";
+import { blockedEitherWay, verifierOf } from "@elixir-mcp/claims";
+import { itemPlayer } from "../comments.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import { json } from "../http.mjs";
@@ -119,6 +121,14 @@ export function cheersRoutes({ resolveAccount }) {
           tags: asked.tags,
           subjects: await subjectsFor(db, account.accountId),
         });
+        // Nobody in a block with the player's owner, either way, cheers
+        // their items (2026-11-16); said as not in the feed.
+        if (shown) {
+          const tag = itemPlayer(shown);
+          const owner = tag ? await verifierOf(db, tag) : null;
+          if (owner && (await blockedEitherWay(db, account.accountId, owner)))
+            shown = null;
+        }
         if (!shown)
           return json(404, {
             error: "not_found",

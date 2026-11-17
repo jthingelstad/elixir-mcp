@@ -20,13 +20,14 @@ import {
   readAccountPage,
   unfollowAccount,
 } from "../account-page.mjs";
+import { blockedPeople, withoutBlocked } from "../blocks.mjs";
 import { json } from "../http.mjs";
 import { followPlan } from "./player.mjs";
 
 const notFound = () =>
   json(404, { error: "not_found", message: "No Elixir account has that id." });
 
-export function accountsRoutes({ resolveAccount }) {
+export function accountsRoutes({ resolveAccount, blocks = false }) {
   const person = async (db, event, { write = false } = {}) => {
     const account = await resolveAccount(db, event, {
       requireContractHeader: write,
@@ -46,16 +47,29 @@ export function accountsRoutes({ resolveAccount }) {
   return {
     // Find's account search (2026-11-15): accounts by @handle prefix.
     "GET /api/accounts": async (db, event) => {
-      const { refused } = await person(db, event);
+      const { account, refused } = await person(db, event);
       if (refused) return refused;
       const q = event.queryStringParameters?.q ?? "";
-      return json(200, { accounts: await searchHandles(db, q) });
+      // Nobody in a block with the reader, either way (2026-11-16).
+      const found = withoutBlocked(
+        { accounts: await searchHandles(db, q) },
+        await blockedPeople(db, account.accountId, { enabled: blocks }),
+      );
+      return json(200, { accounts: found.accounts });
     },
 
     "GET /api/accounts/*": async (db, event) => {
       const { account, refused } = await person(db, event);
       if (refused) return refused;
-      const page = await readAccountPage(db, account, event.pathParam);
+      const page = await readAccountPage(
+        db,
+        account,
+        event.pathParam,
+        Date.now(),
+        {
+          blocks,
+        },
+      );
       if (!page) return notFound();
       // What Follow would cost, said before the tap (Jamie, 2026-11-15):
       // the account's Verified players you don't follow yet.

@@ -14,7 +14,7 @@ const notEntitled = () =>
     message: "The bell is a person's own; an agent has none.",
   });
 
-export function bellRoutes({ resolveAccount, wake = null }) {
+export function bellRoutes({ resolveAccount, wake = null, comments = false }) {
   const person = async (db, event, write) => {
     const account = await resolveAccount(db, event, {
       requireContractHeader: write,
@@ -37,7 +37,11 @@ export function bellRoutes({ resolveAccount, wake = null }) {
         return json(429, { error: "rate_limited" }, { "retry-after": "600" });
       const started = Date.now();
       const perf = {};
-      const bell = await readBell(db, account.accountId, { wake, perf });
+      const bell = await readBell(db, account.accountId, {
+        wake,
+        perf,
+        comments,
+      });
       // Like Home's panels: how long, and whether the week was stored.
       console.info(
         JSON.stringify({

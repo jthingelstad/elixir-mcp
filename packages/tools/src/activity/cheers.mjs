@@ -33,7 +33,9 @@ export const cheerable = (it) => Boolean(it?.id) && it.section !== "account";
 
 /** Each item's cheers, as counts and the reader's own: a Map of item id to
  *  `{ cheers: { well_played: 2, … }, my_cheer }`, only for items that have
- *  any or that the reader cheered. One read for the whole page. */
+ *  any or that the reader cheered. One read for the whole page. Cheers by
+ *  anyone in a block with the reader, either way, are not counted in what
+ *  the reader sees (0280). */
 export async function cheersFor(db, itemIds, accountId) {
   const ids = [...new Set(itemIds.filter((id) => ITEM_ID_RE.test(id)))];
   const out = new Map();
@@ -41,8 +43,12 @@ export async function cheersFor(db, itemIds, accountId) {
   const { rows } = await db.query(
     `select item_id, cheer, count(*)::int as n,
             bool_or(account_id = $2) as mine
-       from timeline_cheer
+       from timeline_cheer c
       where item_id = any($1::text[])
+        and ($2::uuid is null or not exists (
+              select 1 from account_block ab
+               where (ab.account_id = $2 and ab.blocked_account_id = c.account_id)
+                  or (ab.account_id = c.account_id and ab.blocked_account_id = $2)))
       group by item_id, cheer`,
     [ids, accountId ?? null],
   );

@@ -208,8 +208,23 @@ async function accountTimeline(db, accountId, players, timezone, now) {
   );
 }
 
+async function youBlocked(db, readerId, accountId) {
+  if (readerId === accountId) return false;
+  const { rows } = await db.query(
+    `select 1 from account_block where account_id = $1 and blocked_account_id = $2`,
+    [readerId, accountId],
+  );
+  return rows.length > 0;
+}
+
 /** The whole account page for one signed-in reader, or null. */
-export async function readAccountPage(db, reader, id, now = Date.now()) {
+export async function readAccountPage(
+  db,
+  reader,
+  id,
+  now = Date.now(),
+  { blocks = false } = {},
+) {
   const account = await accountByPageId(db, id);
   if (!account) return null;
   const players = await accountPlayers(db, account.account_id);
@@ -247,6 +262,12 @@ export async function readAccountPage(db, reader, id, now = Date.now()) {
     you: {
       self: reader.accountId === account.account_id,
       following: counts.you_follow === true,
+      // Whether the reader blocked this account (2026-11-16): their own
+      // block only, for Block or Unblock. A block the other way is never
+      // said.
+      blocked: blocks
+        ? await youBlocked(db, reader.accountId, account.account_id)
+        : false,
       // The Verified players a Follow would add (linked follows).
       to_follow:
         reader.accountId === account.account_id

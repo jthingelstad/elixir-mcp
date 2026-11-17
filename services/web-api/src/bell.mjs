@@ -16,6 +16,12 @@
  *    an account with none is counted, never named. No follow time is shown.
  *  - Answers: your own feedback's answers, which you already read in
  *    Settings › Feedback.
+ *  - Comments (2026-11-16, readComments): comments on items about your own
+ *    verified players in the last seven days, with the commenter's game
+ *    name and a clip of the words; never your own, never anyone's in a
+ *    block with you. Read only while comments are on.
+ *  - A block either way (2026-11-16) leaves that person's cheers, follows
+ *    and comments out of every section.
  *
  *  - Your account: the account's own administration of the last seven days
  *    (players and clans added, recording started or stopped, a player no
@@ -49,6 +55,7 @@ import {
   readReactions,
 } from "@elixir-mcp/tools/activity/bell";
 import { levelCount, stampById } from "@elixir-mcp/stamps/catalog";
+import { blockedSql } from "@elixir-mcp/claims";
 
 export { markBellSeen } from "@elixir-mcp/tools/activity/bell";
 
@@ -225,11 +232,58 @@ export function mergeAccountLines(lines, stamps) {
   return { items, new: items.filter((i) => i.new).length };
 }
 
+/** Comments other people left on your items in the last seven days
+ *  (2026-11-16), newest first, each naming its author as the comment
+ *  does (their account's primary player and its page) with a clip of the
+ *  words. None from anyone in a block with you. This list is the one
+ *  place comments reach you: web push and the activity mail read the
+ *  bell (DECISIONS "Comments, checked before they post"), and the words
+ *  are hostile input, escaped wherever they are shown. */
+async function readComments(db, accountId, seen) {
+  const { rows } = await db.query(
+    `select tc.comment_id::text as comment_id, tc.item_id, tc.body,
+            tc.created_at, ap.passport_id as author_id,
+            pc.player_tag as author_tag, pp.name as author_name,
+            ($2::timestamptz is null or tc.created_at > $2) as fresh
+       from timeline_comment tc
+       join account a on a.account_id = tc.account_id
+                     and a.kind = 'person' and a.status = 'approved'
+       left join account_passport ap on ap.account_id = tc.account_id
+       left join claim pc on pc.account_id = tc.account_id and pc.is_primary
+       left join player pp on pp.player_tag = pc.player_tag
+      where tc.owner_account_id = $1 and tc.account_id <> $1
+        and tc.status = 'visible'
+        and tc.created_at > now() - make_interval(days => $3)
+        and not ${blockedSql("tc.account_id", "$1::uuid")}
+      order by tc.created_at desc, tc.comment_id desc
+      limit $4`,
+    [accountId, seen, ACCOUNT_DAYS, LIST_CAP + 1],
+  );
+  const items = rows.slice(0, LIST_CAP).map((r) => ({
+    comment_id: r.comment_id,
+    item_id: r.item_id,
+    at: r.created_at ? new Date(r.created_at).toISOString() : null,
+    author: {
+      account_id: r.author_id ?? null,
+      player_tag: r.author_tag ?? null,
+      name: r.author_name ?? null,
+    },
+    text: clip(String(r.body ?? ""), 120),
+    new: r.fresh === true,
+  }));
+  return { items, new: items.filter((i) => i.new).length };
+}
+
+function clip(text, max) {
+  const one = text.replace(/\s+/g, " ").trim();
+  return one.length > max ? `${one.slice(0, max - 1).trimEnd()}…` : one;
+}
+
 /** The bell's four sections and how many things in them are new. */
 export async function readBell(
   db,
   accountId,
-  { wake = null, perf = null } = {},
+  { wake = null, perf = null, comments: commentsOn = false } = {},
 ) {
   const seen = await seenAt(db, accountId);
   const own = await ownVerifiedPlayers(db, accountId);
@@ -240,6 +294,9 @@ export async function readBell(
     new: read.new,
   };
   const followers = await readFollowers(db, accountId, own, seen);
+  const comments = commentsOn
+    ? await readComments(db, accountId, seen)
+    : { items: [], new: 0 };
   const answers = await readAnswers(db, accountId);
   const account = mergeAccountLines(
     await readAccountLines(db, accountId, seen),
@@ -248,9 +305,11 @@ export async function readBell(
   return {
     seen_at: seen,
     players: own.length,
-    new: reactions.new + followers.new + answers.new + account.new,
+    new:
+      reactions.new + followers.new + comments.new + answers.new + account.new,
     reactions,
     followers,
+    comments,
     answers,
     account,
   };
