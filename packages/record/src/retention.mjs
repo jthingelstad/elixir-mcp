@@ -232,6 +232,7 @@ export const KEPT = Object.freeze({
   clan: "a game identity",
   card: "the card catalog",
   arena: "the arena catalog",
+  badge_art: "the badge art catalog (0288): one icon per badge and level",
   deck: "canonical deck identity; surviving battles point at it",
   card_role: "vocabulary",
   card_role_version: "vocabulary",
