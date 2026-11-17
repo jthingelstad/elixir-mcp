@@ -1,5 +1,5 @@
 import { CLAN } from "../lib/base.js";
-import { HOME } from "../../lib/moved.js";
+import { TIMELINE } from "../../lib/moved.js";
 import { SETTINGS } from "../../lib/settings.js";
 import { Link, useClock, Tag, Empty } from "@elixir-mcp/ui";
 import { useEffect } from "react";
@@ -14,7 +14,7 @@ export const REFUSALS = {
   no_primary_player: {
     title: "Clan starts with your player",
     body: "Add the player you play as, and their clan shows up here.",
-    link: [`${HOME}#add-player`, "Add your player"],
+    link: [`${TIMELINE}#add-player`, "Add your player"],
     // Nothing to report back: the page looks again when you return.
     plain: true,
   },
@@ -23,7 +23,7 @@ export const REFUSALS = {
     body: "The latest recorded profiles for your own players show no clan. These are observations, not a live check.",
     action:
       "If that is still accurate, join a clan in the game; the clan directory lists the clans that saved their rules in Elixir. Otherwise wait for a fresh profile and clan roster, then check again.",
-    link: [HOME, "Your Elixir account"],
+    link: [TIMELINE, "Your Timeline"],
     also: [`${CLAN}/directory`, "Clan directory"],
   },
   membership_unknown: {

@@ -1457,7 +1457,7 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
     "tracking_report",
   ]);
   assert.equal(kind("tracking_report").last_send_id, null);
-  assert.equal(kind("tracking_report").product, "Home");
+  assert.equal(kind("tracking_report").product, "Timeline");
   // The digest carries its cadence, weekly until chosen; no other kind does.
   assert.equal(kind("tracking_report").cadence, "weekly");
   assert.equal(kind("collector_activity").cadence, null);
@@ -1467,7 +1467,7 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   // (ACTIVITY_MAIL_DEFAULT_ON), from Home.
   assert.equal(kind("activity_today").sends, null);
   assert.equal(kind("activity_today").enabled, true);
-  assert.equal(kind("activity_today").product, "Home");
+  assert.equal(kind("activity_today").product, "Timeline");
   assert.deepEqual(Object.keys(kind("collector_activity").sends).sort(), [
     "time",
     "weekday",
@@ -3760,7 +3760,7 @@ test("a turn-off link is answered in Elixir's own page, and the button gets a pa
   assert.equal(pressed.statusCode, 200);
   assert.match(pressed.headers["content-type"], /^text\/html/);
   assert.match(pressed.body, /<title>Your digest: off - Elixir<\/title>/);
-  for (const href of ["/home", "/settings/emails", "/signin", "/"])
+  for (const href of ["/timeline", "/settings/emails", "/signin", "/"])
     assert.ok(pressed.body.includes(`href="${href}"`), `no way on to ${href}`);
   assert.match(pressed.body, /data-session-face="in"/);
   assert.match(pressed.body, /data-session-face="out"/);
@@ -3816,7 +3816,7 @@ test("a turn-off page still answers, with its ways on, when the site's page cann
     assert.match(reply.body, /Every email is off/);
     assert.match(reply.body, /Sign-in codes and account notices still come/);
     assert.ok(reply.body.includes('href="/settings/emails"'));
-    assert.ok(reply.body.includes('href="/home"'));
+    assert.ok(reply.body.includes('href="/timeline"'));
     assert.match(reply.body, /not endorsed by Supercell/);
   }
 });

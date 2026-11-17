@@ -272,8 +272,8 @@ export function Seen({ me }) {
           />
           <Row
             title="Your highlights"
-            detail="Post, edit, share or delete one on the battle’s own page; your feed on Home links each battle."
-            href="/home"
+            detail="Post, edit, share or delete one on the battle’s own page; your Timeline links each battle."
+            href="/timeline"
           />
           <Row
             title="Your RSS link"

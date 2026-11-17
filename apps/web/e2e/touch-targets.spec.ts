@@ -98,7 +98,7 @@ test("Home: the top bar, the feed, the panels and the footer", async ({
 }) => {
   await mockApi(page, homeApi());
   await page.goto("/home");
-  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Timeline" })).toBeVisible();
   expect(await misses(page)).toEqual([]);
 });
 

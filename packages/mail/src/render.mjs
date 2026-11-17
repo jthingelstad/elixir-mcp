@@ -249,9 +249,9 @@ function progressText(p) {
     .join(", ");
 }
 
-// A reader's own timeline on Home: every moment, newest first, the small
-// ones the mail only counts.
-const timelineUrl = () => `${SITE}/home`;
+// A reader's own Timeline (Home's feed until 2026-11-17): every moment,
+// newest first, the small ones the mail only counts.
+const timelineUrl = () => `${SITE}/timeline`;
 
 /** A sentence's first letter in capitals. */
 const capFirst = (t) => (t ? `${t.charAt(0).toUpperCase()}${t.slice(1)}` : t);
@@ -366,7 +366,7 @@ function digestSittings(x, c, { mode = "full", art = true } = {}) {
   if (mode === "count") {
     const all = list.length + (x.more_sittings ?? 0);
     return c.small(
-      `${n(all)} ${all === 1 ? "sitting" : "sittings"} on ${c.link(playerUrl(x.tag), "their page")}.`,
+      `${n(all)} ${all === 1 ? "session" : "sessions"} on ${c.link(playerUrl(x.tag), "their page")}.`,
       "margin-top:6px;",
     );
   }
@@ -382,7 +382,7 @@ function digestSittings(x, c, { mode = "full", art = true } = {}) {
   });
   const more = x.more_sittings
     ? c.small(
-        `${n(x.more_sittings)} more ${x.more_sittings === 1 ? "sitting" : "sittings"} on ${c.link(playerUrl(x.tag), "their page")}.`,
+        `${n(x.more_sittings)} more ${x.more_sittings === 1 ? "session" : "sessions"} on ${c.link(playerUrl(x.tag), "their page")}.`,
         "margin-top:6px;",
       )
     : "";
@@ -401,7 +401,7 @@ function digestSittings(x, c, { mode = "full", art = true } = {}) {
  *  (DECISIONS "Flat: tone, not outlines"). */
 function digestPerson(x, c, sittings = {}) {
   const record = x.battles
-    ? `${n(x.sessions)} sitting${x.sessions === 1 ? "" : "s"} · ${n(x.battles)} battle${x.battles === 1 ? "" : "s"} · ${recHtml(x.wins, x.losses)}`
+    ? `${n(x.sessions)} session${x.sessions === 1 ? "" : "s"} · ${n(x.battles)} battle${x.battles === 1 ? "" : "s"} · ${recHtml(x.wins, x.losses)}`
     : "No battles recorded";
   const trophies =
     x.trophies && x.trophies.to !== x.trophies.from
@@ -502,14 +502,14 @@ function digest(f, c) {
     ? `${c.h2("From people you follow", `${n(people.length + (f.more_people ?? 0))} of ${n(f.following ?? 0)} had something this ${span}`)}${digestPeople(people, c)}${
         f.more_people
           ? c.small(
-              `${n(f.more_people)} more ${f.more_people === 1 ? "person" : "people"} you follow had something; ${c.link(`${SITE}/home`, "your feed")} has them all.`,
+              `${n(f.more_people)} more ${f.more_people === 1 ? "person" : "people"} you follow had something; ${c.link(`${SITE}/timeline`, "your Timeline")} has them all.`,
             )
           : ""
       }`
     : "";
   const you = f.you;
   const youText = you
-    ? `${you.battles ? `${n(you.sessions)} sitting${you.sessions === 1 ? "" : "s"}, ${n(you.battles)} battle${you.battles === 1 ? "" : "s"}, ${recHtml(you.wins, you.losses)}` : "No battles recorded"}${you.trophies && you.trophies.to !== you.trophies.from ? `, ${signed(you.trophies.to - you.trophies.from)} trophies` : ""}.${you.alts?.length ? ` With ${you.alts.map((a) => `${c.P(a.tag, a.name)} (${n(a.battles)})`).join(" and ")}.` : ""}${(you.items ?? []).map((it) => `<br>${digestItem(it, c)}`).join("")}${you.progress ? c.small(esc(sentence(capFirst(progressText(you.progress)))), "margin-top:4px;") : ""}${(
+    ? `${you.battles ? `${n(you.sessions)} session${you.sessions === 1 ? "" : "s"}, ${n(you.battles)} battle${you.battles === 1 ? "" : "s"}, ${recHtml(you.wins, you.losses)}` : "No battles recorded"}${you.trophies && you.trophies.to !== you.trophies.from ? `, ${signed(you.trophies.to - you.trophies.from)} trophies` : ""}.${you.alts?.length ? ` With ${you.alts.map((a) => `${c.P(a.tag, a.name)} (${n(a.battles)})`).join(" and ")}.` : ""}${(you.items ?? []).map((it) => `<br>${digestItem(it, c)}`).join("")}${you.progress ? c.small(esc(sentence(capFirst(progressText(you.progress)))), "margin-top:4px;") : ""}${(
         you.alts ?? []
       )
         .filter((a) => a.items?.length || a.progress)
@@ -531,7 +531,7 @@ function digest(f, c) {
   ];
   const body = `${from}
     ${around.length ? `${c.h2("Around you")}${c.rows(around)}` : ""}
-    ${c.button("Open your feed", `${SITE}/home`)}
+    ${c.button("Open your Timeline", `${SITE}/timeline`)}
     ${c.small(`Anyone with a player tag can be followed: ${c.link(`${SITE}/home/find`, "follow a friend")}. Everyone you follow: <a href="${c.T(MAIL_PATHS.players)}" style="color:${M.link};">Settings › Players</a>.`)}
     ${c.cov(esc(f.coverage ?? ""))}`;
   // The inbox preview: a highlight's words first, else who played.
@@ -905,7 +905,7 @@ function activityToday(f, c) {
   const itemUrl = (i) =>
     sittingUrl(i.session_path) ||
     (i.battle_url && battleOn(i.battle_url)) ||
-    (i.subject_tag ? playerUrl(i.subject_tag) : `${SITE}/home`);
+    (i.subject_tag ? playerUrl(i.subject_tag) : `${SITE}/timeline`);
   const cheerRows = cheers.map((i) => ({
     title: c.link(
       itemUrl(i),
@@ -928,7 +928,7 @@ function activityToday(f, c) {
   }));
   const body = `${cheerRows.length ? `${c.h2("Cheers")}${c.rows(cheerRows)}` : ""}
     ${followRows.length ? `${c.h2("New followers")}${c.rows(followRows)}` : ""}
-    ${c.button("Open Elixir", `${SITE}/home`)}
+    ${c.button("Open Elixir", `${SITE}/timeline`)}
     ${c.cov("Counts only: Elixir never tells anyone who cheered.")}`;
   const preheader = subjectParts.join(" and ");
   return {

@@ -183,7 +183,7 @@ test("addresses: yours, anyone's by a well-formed id, and one Stamp's", () => {
     "/home/passport?stamp=cheerleader",
   );
   expect(passportHref(THEIRS)).toBe(`/home/account/${THEIRS}/passport`);
-  expect(titleFor("/home/passport")).toBe("Passport - Home - Elixir");
+  expect(titleFor("/home/passport")).toBe("Passport - Timeline - Elixir");
   expect(barArea("/home/passport")).toBe("you");
   expect(barArea(`/home/account/${THEIRS}/passport`)).toBe("find");
 });
@@ -289,9 +289,9 @@ test(
     ).toBeTruthy();
     expect(
       within(sheet)
-        .getByRole("link", { name: "Open Home", hidden: true })
+        .getByRole("link", { name: "Open your Timeline", hidden: true })
         .getAttribute("href"),
-    ).toBe("/home");
+    ).toBe("/timeline");
     fireEvent(sheet, new Event("cancel", { cancelable: true }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { hidden: true })).toBeNull(),

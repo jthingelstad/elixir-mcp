@@ -252,7 +252,7 @@ for (const [label, width] of [
       await page.getByRole("link", { name: "Your stats" }).click();
       await expect(page).toHaveURL(/\/home\/you\/stats$/);
       await expect(page).toHaveTitle("Season - Stats - Elixir");
-      const tabs = page.getByRole("tablist", { name: "You" });
+      const tabs = page.getByRole("tablist", { name: "Profile" });
       await expect(tabs.getByRole("tab", { name: "Stats" })).toHaveAttribute(
         "aria-selected",
         "true",
@@ -266,7 +266,7 @@ for (const [label, width] of [
       await accessible(page, "You, Stats");
 
       // Back to your account page by its tab.
-      await tabs.getByRole("tab", { name: "You" }).click();
+      await tabs.getByRole("tab", { name: "Profile" }).click();
       await expect(page).toHaveURL(/\/home\/you$/);
       await expect(
         page.getByRole("heading", { level: 1, name: "@owl" }),

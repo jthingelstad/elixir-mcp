@@ -55,9 +55,9 @@ export function NewAccount({
             <AddPlayer
               onAdded={() => {
                 // The player is added, so #add-player has done its work; left
-                // on, Home would send an account with a player to Settings.
+                // on, the Timeline would send an account with a player to Settings.
                 if (window.location.hash === ADD_PLAYER_HASH)
-                  navigate({ to: "/home", hash: "", replace: true });
+                  navigate({ to: "/timeline", hash: "", replace: true });
                 invalidate();
               }}
             />

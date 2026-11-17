@@ -719,7 +719,7 @@ test("verified signup welcome carries the explicit enrollment decision; unflagge
   assert.deepEqual(result.batchItemFailures, []);
   assert.deepEqual(enrolled, ["new@example.com"]);
   const welcome = renderEmail({ v: 1, kind: "welcome", to: "new@example.com" });
-  assert.match(welcome.text, /Add your player on Home/);
+  assert.match(welcome.text, /Add your player on your Timeline/);
   assert.doesNotMatch(welcome.text, /already being recorded/);
 });
 
@@ -808,7 +808,7 @@ test("welcome leads with following people and the one digest, and every service 
   const welcome = renderEmail({ kind: "welcome" });
   assert.match(
     welcome.html,
-    /href="https:\/\/elixir.poapkings.com\/home"[^>]*>Open Home/,
+    /href="https:\/\/elixir.poapkings.com\/timeline"[^>]*>Open your Timeline/,
   );
   // One digest, never three mails on three days (Jamie, 2026-11-12).
   assert.match(welcome.text, /One digest a week/);

@@ -227,7 +227,7 @@ for (const width of [320, 390, 1280]) {
       await expect(page).toHaveURL(/\/home\/player\/00J8VCYU$/);
       await expect(sheet).toHaveCount(0);
       await page.goBack();
-      await expect(page).toHaveURL(/\/home$/);
+      await expect(page).toHaveURL(/\/timeline$/);
       await trigger(page).click();
       // The marker moved when it first opened, so the read says only the
       // answer is new; the other two you left are kept as New.

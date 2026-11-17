@@ -99,17 +99,17 @@ export function TimelineEvidence({
                   ? ` from ${when(evidence.from)}`
                   : ""} through {when(evidence.through)}.
                 {selected.kind === "session_standout"
-                  ? " This evidence ends at the latest milestone reached in this update; the summary can include later games in the same sitting."
+                  ? " This evidence ends at the latest milestone reached in this update; the summary can include later games in the same session."
                   : ""}{" "}
                 {evidence.open
-                  ? "The summarized sitting was still open at this read."
-                  : "The summarized sitting was closed at this read."}
+                  ? "The summarized session was still open at this read."
+                  : "The summarized session was closed at this read."}
               </p>
               <p>
                 Whether every game was read is unknown.{" "}
                 {evidence.completeness === "anchor_bound"
-                  ? "The bounded search may omit the beginning of this sitting."
-                  : "These are the recorded games from the start of the sitting as Elixir read it."}
+                  ? "The bounded search may omit the beginning of this session."
+                  : "These are the recorded games from the start of the session as Elixir read it."}
               </p>
             </>
           ) : (

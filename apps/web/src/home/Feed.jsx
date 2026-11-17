@@ -311,8 +311,8 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
         </div>
       ) : null}
       <p className="kit-tiny">
-        New means learned since you last opened Home. Opening it changes nothing
-        your connections have read.
+        New means it arrived since you last opened your Timeline. Opening it
+        changes nothing your connections have read.
         {more > 0 && !query.hasNextPage
           ? ` A busy week: the ${total} newest are shown, and ${more.toLocaleString("en-US")} more this week are not.`
           : ""}

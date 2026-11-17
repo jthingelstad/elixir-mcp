@@ -26,7 +26,7 @@ all earned, loading and failed read. Routes in this preview are local hash
 views, not implemented product URLs.
 
 - Tap a mark for its rule, earned date, levels and owner-only progress.
-- Open Home, choose email Off: All Set completes without enabling mail.
+- Open your Timeline, choose email Off: All Set completes without enabling mail.
 - Start Map choice remaining. Not now completes All Set without On the Map;
   a saved country or city earns both. No extra precision is required.
 - Open another member's map Stamp: no location or map/settings action.

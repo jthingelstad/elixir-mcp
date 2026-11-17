@@ -1,7 +1,7 @@
 /** Help for the Settings pages, keyed by settingsHere's `page`. */
 export const SETTINGS_HELP = {
   profile: {
-    title: "Profile",
+    title: "Profile settings",
     docs: "profile",
     lines: [
       "Profile is who you are here: your email, your main player, your time zone and your limits. Every time Elixir prints is on your zone.",
@@ -27,7 +27,7 @@ export const SETTINGS_HELP = {
     docs: "players",
     lines: [
       "The players and clans you added. Added means recorded. Each one takes a slot from the pool you share with your agents.",
-      "Your main player is who You, Stats and Home open on. Verify is what makes a player yours: one battle proves it.",
+      "Your main player is who your Profile, Stats and Timeline open on. Verify is what makes a player yours: one battle proves it.",
     ],
   },
   player: {
@@ -52,7 +52,7 @@ export const SETTINGS_HELP = {
     ],
   },
   notifications: {
-    title: "Notifications",
+    title: "Notification settings",
     docs: "profile:notifications",
     lines: [
       "Turn on notifications on this phone or computer, and pick what comes: cheers on your play, new followers, Clan Actions and answers to your feedback. Counts only, never who.",

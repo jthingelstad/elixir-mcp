@@ -402,7 +402,7 @@ test(
     ).toBe("/battle/aaaaaaaaaaa2");
     // Not the reader's own player: no Highlight.
     expect(screen.queryByRole("link", { name: /^Highlight/ })).toBeNull();
-    expect(document.title).toBe("Session - Home - Elixir");
+    expect(document.title).toBe("Session - Timeline - Elixir");
   },
 );
 

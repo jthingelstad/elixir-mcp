@@ -148,7 +148,7 @@ export function Efficiency() {
           </div>
         </div>
         <div className="panel__foot">
-          A battle is lost when a sitting rolls past the API&rsquo;s 30-entry
+          A battle is lost when a session rolls past the API&rsquo;s 30-entry
           log before it is read. The count is the lifetime counter&rsquo;s move
           over each profile interval, less what the record holds inside it, with
           intervals that had no gap setting the floor for modes the log never

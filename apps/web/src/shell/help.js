@@ -21,9 +21,11 @@ export function helpFor(path) {
   const clean = String(path ?? "").replace(/\/$/, "");
   const [, first, second] = clean.split("/");
   const area = (page, name = "console") => ({ ...page, area: name });
-  // Stats, under You since 2026-11-12, keeps the stored area `ladder`.
+  // Stats, under Profile (You until 2026-11-17) since 2026-11-12, keeps the
+  // stored area `ladder`.
   if (isStats(clean))
     return area(STATS_HELP[statsSlug(clean)] ?? STATS_HELP.season, "ladder");
+  if (first === "timeline") return area(HOME_HELP.today);
   if (first === "home")
     return area(HOME_HELP[second ?? "today"] ?? HOME_HELP.today);
   if (first === "clan") return area(CLAN_HELP, "clan");

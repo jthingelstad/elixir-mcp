@@ -189,7 +189,7 @@ describe("the gate pages", () => {
   test("each refusal points at its own Elixir place; an unverified player is not one", () => {
     const hrefs = Object.values(REFUSALS).map((p) => p.link[0]);
     expect(new Set(hrefs).size).toBe(hrefs.length);
-    expect(REFUSALS.no_primary_player.link[0]).toBe("/home#add-player");
+    expect(REFUSALS.no_primary_player.link[0]).toBe("/timeline#add-player");
     expect(REFUSALS.unverified).toBeUndefined();
   });
 

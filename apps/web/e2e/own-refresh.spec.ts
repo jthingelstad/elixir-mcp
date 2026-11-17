@@ -65,7 +65,7 @@ test("a queued read lands and Home shows it without a reload", async ({
   );
   await page.goto("/home");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Home" }),
+    page.getByRole("heading", { level: 1, name: "Timeline" }),
   ).toBeVisible();
   const chip = page.locator(".kit-fresh summary").first();
   await expect(chip).toHaveText("Checking for new battles…");
@@ -101,7 +101,7 @@ test("no verified player of your own: nothing is asked", async ({ page }) => {
   );
   await page.goto("/home");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Home" }),
+    page.getByRole("heading", { level: 1, name: "Timeline" }),
   ).toBeVisible();
   await expect(page.locator(".kit-fresh summary").first()).toHaveText(
     /^Battle log read /,

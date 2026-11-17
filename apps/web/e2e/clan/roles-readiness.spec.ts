@@ -393,7 +393,7 @@ for (const size of ["wide", "@narrow"])
       });
       await page.goto("/home");
       await expect(
-        page.getByRole("heading", { level: 1, name: "Home", exact: true }),
+        page.getByRole("heading", { level: 1, name: "Timeline", exact: true }),
       ).toBeVisible();
       await expect(
         page

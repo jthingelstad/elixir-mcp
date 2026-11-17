@@ -163,7 +163,7 @@ export function NoPlayers() {
         title="Stats start with your player"
         titleAs="h2"
         action={
-          <Link className="btn btn--primary" to="/home#add-player">
+          <Link className="btn btn--primary" to="/timeline#add-player">
             Add your player
           </Link>
         }

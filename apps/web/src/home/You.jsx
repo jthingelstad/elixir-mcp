@@ -25,7 +25,7 @@ const DROP =
 export const YOU = "/home/you";
 
 /**
- * You (Jamie, 2026-11-15: "when you tap You it should go to your account,
+ * Profile, the You tab until 2026-11-17 (Jamie, 2026-11-15: "when you tap You it should go to your account,
  * not your primary player"): your own account page, as other members see
  * it (your players, Stamps and timeline), with Your stats one tap away and
  * your account's rows under it. Each player opens its own page. With no
@@ -39,7 +39,7 @@ export function YouPage() {
         <YouAccountPage id={me.page_id} claims={me?.claims} />
       ) : (
         <>
-          <PageHead title="You" />
+          <PageHead title="Profile" />
           {me?.claims?.length ? null : <AddYourPlayer />}
         </>
       )}
@@ -48,13 +48,13 @@ export function YouPage() {
   );
 }
 
-/** You's tabs over Stats (StatsPage): back to You, then Stats, open. */
+/** Profile's tabs over Stats (StatsPage): back to Profile, then Stats, open. */
 export function YouTabs() {
   const items = [
-    { key: "you", label: "You", href: YOU },
+    { key: "you", label: "Profile", href: YOU },
     { key: "stats", label: "Stats", href: STATS },
   ];
-  return <Tabs label="You" items={items} value="stats" />;
+  return <Tabs label="Profile" items={items} value="stats" />;
 }
 
 function YouAccountPage({ id, claims }) {

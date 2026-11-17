@@ -111,7 +111,7 @@ test("a new account with no tag lands on Home with the first step open", async (
   expect(sentTag).toBeUndefined();
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/home$/);
+  await expect(page).toHaveURL(/\/timeline$/);
   await expect(page.getByLabel("Your player tag")).toBeVisible();
 });
 
@@ -286,7 +286,7 @@ for (const width of [390, 1280]) {
       page.getByRole("heading", { name: "Stats start with your player" }),
     ).toBeVisible();
     await page.getByRole("link", { name: "Add your player" }).click();
-    await expect(page).toHaveURL(/\/home#add-player$/);
+    await expect(page).toHaveURL(/\/timeline#add-player$/);
     await expect(page.getByLabel("Your player tag")).toBeFocused();
     await page.goto("/clan");
     await expect(
@@ -294,7 +294,7 @@ for (const width of [390, 1280]) {
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Add your player" }),
-    ).toHaveAttribute("href", "/home#add-player");
+    ).toHaveAttribute("href", "/timeline#add-player");
     await expect(
       page.getByRole("button", { name: /check again/i }),
     ).toHaveCount(0);
@@ -312,7 +312,7 @@ for (const width of [390, 1280]) {
       ),
     ).toEqual([]);
     await page.getByRole("link", { name: "Add your player" }).click();
-    await expect(page).toHaveURL(/\/home#add-player$/);
+    await expect(page).toHaveURL(/\/timeline#add-player$/);
   });
 }
 

@@ -47,7 +47,7 @@ for (const [label, width, tag] of [
     // The timeline's sentence stays for MCP, RSS and Discord; the card
     // says the sitting from its facts.
     await expect(
-      page.getByText("King Thing played 12 battles in one sitting", {
+      page.getByText("King Thing played 12 battles in one session", {
         exact: false,
       }),
     ).toHaveCount(0);
@@ -81,7 +81,7 @@ for (const [label, width, tag] of [
     await expect(page).toHaveURL(
       /\/home\/player\/20JJJ2CCRU\/session\/tl_s12\?at=/,
     );
-    await expect(page).toHaveTitle("Session - Home - Elixir");
+    await expect(page).toHaveTitle("Session - Timeline - Elixir");
     await page.goBack();
     await expect(big).toBeVisible();
   });

@@ -38,7 +38,7 @@ const ABOUT = {
 };
 
 const SOURCE_ICON = {
-  Home: "house",
+  Timeline: "house",
   Clan: "users",
   Stats: "chart-line",
   Friends: "users-round",

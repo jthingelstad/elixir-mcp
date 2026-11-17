@@ -97,7 +97,7 @@ describe("the bar on a page", () => {
   };
 
   test(
-    "signed in: Home, Find and Clan, the search prompt, help, the bell, Drop, and tabs for the phone",
+    "signed in: Timeline, Find and Clan, the search prompt, help, the bell, Drop, and tabs for the phone",
     { timeout: 20000 },
     async () => {
       me = SIGNED_IN;
@@ -109,7 +109,7 @@ describe("the bar on a page", () => {
           a.getAttribute("href"),
         ]),
       ).toEqual([
-        ["Home", "/home"],
+        ["Timeline", "/timeline"],
         ["Find", "/home/find"],
         ["Clan", "/clan"],
       ]);
@@ -131,24 +131,24 @@ describe("the bar on a page", () => {
       const tabs = screen.getByRole("navigation", { name: "Main, phone" });
       expect(
         [...tabs.querySelectorAll("a, button")].map((a) => a.textContent),
-      ).toEqual(["Home", "Find", "Clan", "You", "Bell"]);
+      ).toEqual(["Timeline", "Find", "Clan", "Profile", "Bell"]);
       // On Find, Find is the lit tab.
       expect(tabs.querySelector("[aria-current]").textContent).toBe("Find");
     },
   );
 
   test(
-    "news since Home was last opened marks the Home tab, in words too",
+    "news since the Timeline was last opened marks its tab, in words too",
     { timeout: 20000 },
     async () => {
       me = { ...SIGNED_IN, signals: { timeline_pending: 3 } };
       render(<App />);
       const nav = await screen.findByRole("navigation", { name: "Main" });
       const home = [...nav.querySelectorAll("a")].find(
-        (a) => a.getAttribute("href") === "/home",
+        (a) => a.getAttribute("href") === "/timeline",
       );
       expect(home.querySelector(".kit-bell__dot")).toBeTruthy();
-      expect(home.getAttribute("aria-label")).toBe("Home, new items");
+      expect(home.getAttribute("aria-label")).toBe("Timeline, new items");
       const find = [...nav.querySelectorAll("a")].find(
         (a) => a.getAttribute("href") === "/home/find",
       );
@@ -232,13 +232,13 @@ describe("the bar on a page", () => {
   );
 
   test(
-    "a signed-in reader who follows Sign in goes on to Home",
+    "a signed-in reader who follows Sign in goes on to the Timeline",
     { timeout: 20000 },
     async () => {
       me = { authenticated: true, email: "reader@example.test", signals: {} };
       window.history.pushState({}, "", "/signin");
       render(<App />);
-      await waitFor(() => expect(window.location.pathname).toBe("/home"));
+      await waitFor(() => expect(window.location.pathname).toBe("/timeline"));
     },
   );
 
@@ -284,7 +284,9 @@ describe("the bar on a page", () => {
   );
 
   test("the bar's place follows the route, and a battle's page lights none", () => {
-    expect(barArea("/home")).toBe("home");
+    expect(barArea("/timeline")).toBe("home");
+    // The old address is not drawn: it forwards before the bar paints.
+    expect(barArea("/home")).toBeUndefined();
     expect(barArea("/home/find")).toBe("find");
     // A player's page and a Follow me link are Find's (2026-11-13).
     expect(barArea("/home/player/0PYLQ2")).toBe("find");

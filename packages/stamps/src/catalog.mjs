@@ -182,7 +182,7 @@ export const STAMPS = Object.freeze(
       shape: "round",
       ink: "coral",
       rule: "Cheer someone on 3, 15 and 50 different days. The days do not have to be in a row.",
-      action: "Open Home",
+      action: "Open your Timeline",
       destination: "home",
       thresholds: [3, 15, 50],
       unit: "days",

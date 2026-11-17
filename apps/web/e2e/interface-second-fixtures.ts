@@ -88,11 +88,11 @@ export const RECRUIT = {
 
 export const EMAILS = {
   kinds: [
-    ["tracking_report", "Your digest", "Home", "Wednesday"],
+    ["tracking_report", "Your digest", "Timeline", "Wednesday"],
     ["collector_activity", "Collector activity", "Collectors", "Sunday"],
     ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
     ["feedback_answer", "Answers to your feedback", "Account", null],
-    ["activity_today", "Cheers on your play", "Home", null],
+    ["activity_today", "Cheers on your play", "Timeline", null],
   ].map(([kind, label, product, weekday]) => ({
     kind,
     label,

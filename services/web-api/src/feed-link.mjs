@@ -115,7 +115,7 @@ function whoOf(it) {
 
 /** Where an item opens: a sitting's own page (2026-11-16), the battle
  *  that proved it, a highlight's battle, else the player's page, else
- *  Home. */
+ *  the Timeline. */
 function linkOf(it) {
   const session = sessionPathOf(it);
   if (session) return `${ELIXIR_ORIGIN}${session}`;
@@ -124,10 +124,10 @@ function linkOf(it) {
     return battle;
   const who = whoOf(it);
   if (who?.tag) return `${ELIXIR_ORIGIN}/home/player/${tagPath(who.tag)}`;
-  return `${ELIXIR_ORIGIN}/home`;
+  return `${ELIXIR_ORIGIN}/timeline`;
 }
 
-/** The feed's items: Home's (the read leaves out the account's own
+/** The feed's items: the Timeline's (the read leaves out the account's own
  *  administration, accountLines: false), newest first, at most FEED_ITEMS. */
 export const feedItems = (timeline) =>
   (timeline ?? [])
@@ -161,7 +161,7 @@ export function renderRss(items, { now = new Date() } = {}) {
     '<rss version="2.0">',
     "<channel>",
     "<title>Your Elixir timeline</title>",
-    `<link>${ELIXIR_ORIGIN}/home</link>`,
+    `<link>${ELIXIR_ORIGIN}/timeline</link>`,
     "<description>Everyone you follow on Elixir, your clan and you: the last seven days. This material is unofficial and is not endorsed by Supercell. For more information see Supercell&apos;s Fan Content Policy: www.supercell.com/fan-content-policy.</description>",
     `<lastBuildDate>${now.toUTCString()}</lastBuildDate>`,
     "<ttl>30</ttl>",

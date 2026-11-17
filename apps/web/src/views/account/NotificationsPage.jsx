@@ -175,8 +175,8 @@ export function NotificationsPage({ env = globalThis }) {
   return (
     <div className="mailprefs">
       <PageHead
-        title="Notifications"
-        sub="Cheers, followers and things waiting for you, on your phone or computer."
+        title="Notification settings"
+        sub="How Elixir tells you about cheers, followers and things waiting for you, on your phone or computer. The notifications themselves are under the bell."
       />
       {query.isError ? (
         <ErrorState

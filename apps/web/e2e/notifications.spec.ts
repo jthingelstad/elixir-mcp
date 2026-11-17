@@ -91,7 +91,7 @@ test.describe("390px", () => {
     await mockApi(page, signedIn({ "GET /api/me/push": [200, PUSH] }));
     await page.goto("/settings/notifications");
     await expect(
-      page.getByRole("heading", { name: "Notifications", exact: true }),
+      page.getByRole("heading", { name: "Notification settings", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Turn on notifications" }),

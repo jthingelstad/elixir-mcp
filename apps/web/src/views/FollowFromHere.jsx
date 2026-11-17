@@ -51,7 +51,7 @@ export function FollowFromHere({ sides, me, first = null }) {
             Elixir needs to know who you are before you follow anyone; then come
             back to this page.
           </p>
-          <Link to="/home" className="btn btn--sm mt-3">
+          <Link to="/timeline" className="btn btn--sm mt-3">
             Add your player
           </Link>
         </div>

@@ -125,11 +125,11 @@ export function renderEmail(msg) {
       text:
         `You're in.\n\n` +
         `Elixir is where you keep up with your friends and your clan in Clash Royale: see their battles, cheer their firsts, and share your own.\n\n` +
-        `Add your player on Home, then follow the people you play with. Your clan is one click: follow it and Elixir keeps up with whoever is in it.\n` +
+        `Add your player on your Timeline, then follow the people you play with. Your clan is one click: follow it and Elixir keeps up with whoever is in it.\n` +
         `Your profile and roughly your last 30 battles usually arrive within a minute of adding your player.\n` +
-        `Open ${SITE}/home to get started.\n\n` +
+        `Open ${SITE}/timeline to get started.\n\n` +
         `What comes next\n\n` +
-        `Your feed: everyone you follow, newest first, on Home.\n` +
+        `Your Timeline: everyone you follow, newest first.\n` +
         `One digest a week: the people you follow and your clan's week (its race, who joined and departed) in one email, each player once. Make it daily, or turn it off, in Settings.\n` +
         `Your own agent: connect it to ${SITE}/mcp and ask what the game can't answer.\n\n` +
         `The five-minute version: ${SITE}/docs/quickstart\n\n` +
@@ -140,20 +140,20 @@ export function renderEmail(msg) {
         title: "You’re in.",
         subtitle: "Your Elixir account is ready",
         preheader:
-          "You’re in. Add your player on Home, then follow the people you play with.",
+          "You’re in. Add your player on your Timeline, then follow the people you play with.",
         body: [
           p(
             "Elixir is where you keep up with your friends and your clan in Clash Royale: see their battles, cheer their firsts, and share your own.",
           ),
           p(
-            "Add your player on Home, then follow the people you play with. Your clan is one click: follow it and Elixir keeps up with whoever is in it. Your profile and roughly your last 30 battles usually arrive within a minute of adding your player.",
+            "Add your player on your Timeline, then follow the people you play with. Your clan is one click: follow it and Elixir keeps up with whoever is in it. Your profile and roughly your last 30 battles usually arrive within a minute of adding your player.",
           ),
-          button(`${SITE}/home`, "Open Home"),
+          button(`${SITE}/timeline`, "Open your Timeline"),
           h2("What comes next"),
           rows([
             {
-              title: "Your feed",
-              text: "Everyone you follow, newest first, on Home.",
+              title: "Your Timeline",
+              text: "Everyone you follow, newest first.",
             },
             {
               title: "One digest a week",
