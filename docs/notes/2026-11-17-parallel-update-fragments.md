@@ -18,3 +18,17 @@ contracts are unchanged; no schema migration. This is build bookkeeping,
 so it adds no product update and changes no public product description.
 No acceptance run is needed for this piece because no tool behavior
 changed. The build session deploys it with its other merged changes.
+
+
+The resumed full gate exposed an independent race in the vacuum helper's
+regression: it expected exactly one other snapshot while the helper was
+already querying through another pooled connection. PostgreSQL may report
+that active read or autovacuum as well as the fixture's held snapshot.
+The test now holds two controlled snapshots and requires both known PIDs
+in the result, without assuming they are the database's only blockers.
+The bare-vacuum visibility check, waiting behavior, final complete map and
+held-snapshot refusal are retained. Cleanup releases the snapshots and
+settles the pending helper before closing the clients or dropping its pool.
+The controlled second holder reproduces `2 !== 1` against the old assertion
+without an unhandled rejection; the corrected assertion passes. No helper
+or production behavior changed.

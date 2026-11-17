@@ -3,8 +3,9 @@
  * stand on (2026-11-17): a snapshot another backend took before the
  * rows were written keeps a bare VACUUM from marking them, which is what
  * left the budget seeds' maps short under load; vacuumWhole waits it out
- * and confirms the map. The other backend here is a client of the test's
- * own, so the order is fixed, not raced.
+ * and confirms the map. Two backends here are clients of the test's
+ * own, so their snapshots and release order are fixed, not raced. Other
+ * real blockers, including the helper's concurrent read, may be present.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -24,13 +25,25 @@ after(async () => {
   await ctx?.drop();
 });
 
-test("a snapshot older than the rows keeps a bare vacuum from the map, and vacuumWhole waits it out", async () => {
+test("snapshots older than the rows keep a bare vacuum from the map, and vacuumWhole waits for both", async () => {
   const { db, url } = ctx;
-  const holder = new pg.Client({ connectionString: url });
-  await holder.connect();
+  const holders = [
+    new pg.Client({ connectionString: url }),
+    new pg.Client({ connectionString: url }),
+  ];
+  const connected = [];
+  const holderPids = [];
+  let whole;
   try {
-    await holder.query("begin isolation level repeatable read");
-    await holder.query("select 1"); // the snapshot, taken now
+    for (const holder of holders) {
+      await holder.connect();
+      connected.push(holder);
+      await holder.query("begin isolation level repeatable read");
+      const {
+        rows: [{ pid }],
+      } = await holder.query("select pg_backend_pid() as pid");
+      holderPids.push(pid); // both snapshots precede the rows
+    }
     await db.query(
       `create table vw_probe (id int primary key, v int) with (autovacuum_enabled = false)`,
     );
@@ -46,16 +59,32 @@ test("a snapshot older than the rows keeps a bare vacuum from the map, and vacuu
 
     // vacuumWhole waits while the snapshot is held ...
     let done = false;
-    const whole = vacuumWhole(db, ["vw_probe"]).then(() => (done = true));
-    assert.equal((await snapshotHolders(db)).length, 1);
+    whole = vacuumWhole(db, ["vw_probe"]).then(() => (done = true));
+    // Mark a background failure handled immediately; the explicit await below
+    // still fails this test, and finally always drains it before the pool drops.
+    whole.catch(() => {});
+    const snapshots = await snapshotHolders(db);
+    for (const pid of holderPids)
+      assert.ok(
+        snapshots.some((snapshot) => snapshot.pid === pid),
+        `the known snapshot holder ${pid} is reported`,
+      );
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(done, false, "it does not vacuum under the snapshot");
     // ... and once it is let go, the map is whole.
-    await holder.query("commit");
+    await holders[0].query("commit");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(done, false, "it still waits for the other held snapshot");
+    await holders[1].query("commit");
     await whole;
     assert.deepEqual(await shortMaps(db, ["vw_probe"]), []);
   } finally {
-    await holder.end();
+    // Release snapshots first, then settle the helper while its pool is still
+    // open. An assertion failure must leave no background query after teardown.
+    for (const holder of connected)
+      await holder.query("rollback").catch(() => {});
+    await whole?.catch(() => {});
+    for (const holder of connected) await holder.end();
   }
 });
 
