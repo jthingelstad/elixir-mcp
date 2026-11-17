@@ -236,6 +236,15 @@ export async function hydratePlayerEvents(db, rows) {
           wins: r.wins,
         };
         break;
+      // A Ranked season's final league (0289): the rating only in
+      // Ultimate Champion (null below it), never the global rank.
+      case "ranked_season_finished":
+        r.payload = {
+          season: r.season_month,
+          league: r.league_to,
+          rating: r.value_after,
+        };
+        break;
       case "arena_changed":
         r.payload = pick({
           from: r.arena_from,

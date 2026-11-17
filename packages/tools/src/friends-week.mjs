@@ -40,8 +40,10 @@ export const BIG_FIRST_KINDS = new Set([
   "king_tower_leveled",
   "challenge_best_run",
   "twelve_win_run",
-  // The battle moments (0289): a deck taken up in one mode.
+  // The battle moments (0289): a deck taken up in one mode, and a Ranked
+  // season's final league.
   "deck_switched",
+  "ranked_season_finished",
 ]);
 
 /** Game-mode names as the mail says them. The tool rows are keyed by the

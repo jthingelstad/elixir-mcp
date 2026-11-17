@@ -37,6 +37,9 @@
     "three_crown_wins": "on a sitting item only when it held a three-crown win (13.5.0); a quiet window may hold none. packages/tools/test/profile-moments-text.test.mjs pins its sentence.",
     "deck_switched": "timeline: a kind written only when a live battle-log read sees a member's third battle with a new deck in one mode (13.6.0, going forward only); a run's window may hold none. Pinned by packages/ingest/test/deck-switch.test.mjs and packages/tools/test/timeline-tool.test.mjs.",
     "prior_deck": "on a deck_switched timeline item only, a kind a run's window may not hold",
+    "ranked_season_finished": "timeline: a kind written once a month, when a followed player's profile rolls into the next season (13.8.0, going forward only); never on a clan's timeline, so a clan suite's window holds none. Pinned by packages/ingest/test/ranked-season.test.mjs and packages/tools/test/timeline-tool.test.mjs.",
+    "league_name": "on a ranked_season_finished timeline item only, a kind a run's window may not hold",
+    "rating": "on a ranked_season_finished timeline item only, a kind a run's window may not hold",
     "overtime_wins": "on a sitting item only when the tiebreaker decided one of its wins, a rare case (13.5.0). Pinned by services/web-api/test/home-feed.test.mjs and packages/tools/test/profile-moments-text.test.mjs."
   },
   "players_names": {

@@ -634,6 +634,9 @@ const SMALL_MOMENTS = new Set([
   "king_tower_leveled",
   "challenge_best_run",
   "twelve_win_run",
+  // A Ranked season's finish (0289): every friend who played says it on
+  // the season's roll, so a run of them is one group row.
+  "ranked_season_finished",
 ]);
 export function smallMoment(it) {
   if (!SMALL_MOMENTS.has(it?.kind)) return false;

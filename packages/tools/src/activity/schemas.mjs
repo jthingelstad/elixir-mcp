@@ -161,6 +161,11 @@ export const TIMELINE_KIND_SCHEMAS = {
     optional: ["level", "prior_level"],
   },
   // The battle moments (0289, the owner 2026-11-17).
+  ranked_season_finished: {
+    version: 1,
+    at: "the season's end; the profile says it hours or days later, when it rolls",
+    facts: [...MEMBER, "season", "league", "league_name", "rating"],
+  },
   deck_switched: {
     version: 1,
     at: "the run's third battle, when the switch became real",

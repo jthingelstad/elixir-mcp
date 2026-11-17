@@ -29,7 +29,7 @@ import { badgeRung, TWELVE_WIN_BADGES } from "@elixir-mcp/record/badge-names";
 
 import { gameDay, inPreResetWindow } from "@elixir-mcp/contracts";
 import { inSeasonRollWindow } from "@elixir-mcp/record/war-clock";
-import { ensureSeason } from "@elixir-mcp/record/season";
+import { ensureSeason, parseProgressKey } from "@elixir-mcp/record/season";
 import { snapshotColumns } from "@elixir-mcp/record/snapshot-columns";
 import { payloadHash } from "./hash.mjs";
 import { emitEvent } from "./events.mjs";
@@ -568,7 +568,13 @@ export async function projectPlayerSnapshot(
       : 0;
   const polSeason =
     kind === "daily"
-      ? await projectPolSeason(db, { playerTag, payload, fetchedAt })
+      ? await projectPolSeason(db, {
+          playerTag,
+          payload,
+          fetchedAt,
+          receiptId,
+          moments,
+        })
       : 0;
 
   return {
@@ -613,14 +619,52 @@ export async function projectFrozenCounters(db, { playerTag, payload }) {
 }
 
 /**
- * lastPathOfLegendSeasonResult is the previous season's final standing,
- * carried on every profile poll of the following month.
- * Fill-once on player_pol_season under the season whose ends_at is the
- * latest at or before the poll: the one that has rolled. A profile with
- * no last result (a new account) writes nothing; the API's null rank
- * (not globally ranked) is kept as null.
+ * Whether this profile has rolled past the season that closed most
+ * recently (season_month YYYY-MM). The profile rolls per player, hours
+ * after the season hour and for an idle player days after it
+ * (cr-agent-api-docs players.md, "The profile rolls per player"): until
+ * it does, lastPathOfLegendSeasonResult is the season BEFORE the one that
+ * closed. Every season field moves in the poll that drops the old month's
+ * `seasonal-trophy-road-YYYYMM` bucket, and the new month's bucket is
+ * already there before the roll. So: rolled when a seasonal road bucket
+ * of a later month is present and the closed month's is gone; anything
+ * else (the old bucket still there, or no seasonal bucket to read) is not
+ * a roll, and absence beats a guess.
  */
-export async function projectPolSeason(db, { playerTag, payload, fetchedAt }) {
+export function profileRolledPast(payload, seasonMonth) {
+  const progress = payload?.progress;
+  if (!progress || typeof progress !== "object") return false;
+  let later = false;
+  for (const raw of Object.keys(progress)) {
+    const key = parseProgressKey(raw);
+    if (key?.mode !== "seasonal-trophy-road" || !key.season_month) continue;
+    if (key.season_month === seasonMonth) return false;
+    if (key.season_month > seasonMonth) later = true;
+  }
+  return later;
+}
+
+/**
+ * lastPathOfLegendSeasonResult is the previous season's final standing,
+ * carried on every profile poll of the following month, once the profile
+ * has rolled (profileRolledPast). Kept on player_pol_season under the
+ * season whose ends_at is the latest at or before the poll. A read that
+ * has not rolled writes nothing: it still carries the season before
+ * (the stale result this fixes, 2026-11-17). A rolled read whose values
+ * differ from the row corrects it, since every rolled read of a month
+ * carries the same result: a row filed from an unrolled read before the
+ * fix heals on the next daily read. A profile with no last result (a new
+ * account) writes nothing; the API's null rank (not globally ranked) is
+ * kept as null.
+ *
+ * The moment (ranked_season_finished, 0289): when the row is NEW, the
+ * player played Ranked that season, and the record watched them through
+ * it. See rankedSeasonFinished.
+ */
+export async function projectPolSeason(
+  db,
+  { playerTag, payload, fetchedAt, receiptId = null, moments = false },
+) {
   const last = payload.lastPathOfLegendSeasonResult;
   if (!last || typeof last !== "object") return 0;
   if (
@@ -629,21 +673,92 @@ export async function projectPolSeason(db, { playerTag, payload, fetchedAt }) {
     !Number.isInteger(last.rank)
   )
     return 0;
-  const { rowCount } = await db.query(
+  const {
+    rows: [season],
+  } = await db.query(
+    `select season_month, starts_at, ends_at from season
+      where ends_at <= $1::timestamptz order by ends_at desc limit 1`,
+    [fetchedAt],
+  );
+  if (!season || !profileRolledPast(payload, season.season_month)) return 0;
+  const league = intOrNull(last.leagueNumber);
+  const trophies = intOrNull(last.trophies);
+  const { rows } = await db.query(
     `insert into player_pol_season (player_tag, season_month, league, trophies, rank, observed_at)
-     select $1, s.season_month, $2, $3, $4, $5::timestamptz
-     from season s where s.ends_at <= $5::timestamptz
-     order by s.ends_at desc limit 1
-     on conflict (player_tag, season_month) do nothing`,
+     values ($1, $2, $3, $4, $5, $6::timestamptz)
+     on conflict (player_tag, season_month) do update set
+       league = excluded.league, trophies = excluded.trophies,
+       rank = excluded.rank, observed_at = excluded.observed_at
+     where (player_pol_season.league, player_pol_season.trophies, player_pol_season.rank)
+           is distinct from (excluded.league, excluded.trophies, excluded.rank)
+     returning (xmax = 0) as inserted`,
     [
       playerTag,
-      intOrNull(last.leagueNumber),
-      intOrNull(last.trophies),
+      season.season_month,
+      league,
+      trophies,
       intOrNull(last.rank),
       fetchedAt,
     ],
   );
-  return rowCount;
+  if (rows[0]?.inserted && moments)
+    await rankedSeasonFinished(db, {
+      playerTag,
+      season,
+      league,
+      trophies,
+      fetchedAt,
+      receiptId,
+    });
+  return rows.length;
+}
+
+/**
+ * "Pip finished the Ranked season in Master I." (the owner, 2026-11-17).
+ * Facts only: the league, and the rating only in Ultimate Champion (the
+ * one rated league; below it the API's trophies are always 0), never the
+ * global rank. Stamped at the season's end. Said only when
+ *  - the player played Ranked that season: a league above Master I, or a
+ *    Ranked battle the record holds inside the season (1 with 0 is also
+ *    what a player who sat the season out reads, cr-agent-api-docs
+ *    game-modes.md), and
+ *  - the record watched them through it: a profile read before the
+ *    season ended. A new follow's first read files the row and says
+ *    nothing.
+ * The row is new only once per season, so it is said once.
+ */
+const UNRATED_BELOW = 7;
+async function rankedSeasonFinished(
+  db,
+  { playerTag, season, league, trophies, fetchedAt, receiptId },
+) {
+  if (!Number.isInteger(league)) return;
+  const {
+    rows: [seen],
+  } = await db.query(
+    `select exists (select 1 from player_snapshot_daily
+                     where player_tag = $1 and profile_observed_at < $2::timestamptz) as watched,
+            exists (select 1 from battle_participant
+                     where player_tag = $1 and type = 'pathOfLegend'
+                       and battle_time >= $3::timestamptz and battle_time < $2::timestamptz) as played`,
+    [playerTag, season.ends_at, season.starts_at],
+  );
+  if (!seen.watched) return;
+  if (league <= 1 && !seen.played) return;
+  const endsAt = season.ends_at.toISOString();
+  await emitEvent(db, "ranked_season_finished", {
+    tag: playerTag,
+    payload: {
+      season_month: season.season_month,
+      league,
+      rating: league >= UNRATED_BELOW ? trophies : null,
+    },
+    windowStart: season.starts_at.toISOString(),
+    // The read that saw the roll: an observed window learns it then.
+    windowEnd: new Date(fetchedAt).toISOString(),
+    occurredAt: endsAt,
+    receiptId,
+  });
 }
 
 /**
