@@ -135,6 +135,45 @@ export const ACTIVITY_MAIL_DEFAULT_ON = true;
 export function emailKindDefault(kind: string): boolean {
   return kind === "activity_today" ? ACTIVITY_MAIL_DEFAULT_ON : true;
 }
+/** Web push (2026-11-16, docs/notes/2026-11-16-web-push.md): the kinds a
+ *  person can switch per account on Settings › Notifications. Each is on
+ *  until switched off (account_push_pref holds only a moved switch). */
+export const PUSH_KINDS = [
+  "cheers",
+  "followers",
+  "clan_actions",
+  "answers",
+] as const;
+export type PushKind = (typeof PUSH_KINDS)[number];
+export function isPushKind(kind: string): kind is PushKind {
+  return (PUSH_KINDS as readonly string[]).includes(kind);
+}
+/** The push services a subscription may name (web push, 2026-11-16):
+ *  Chrome and Android's, Firefox's, Safari's and Edge's. The web API
+ *  refuses any other endpoint and the relay never posts to one, so a
+ *  stored endpoint cannot point the relay at an arbitrary host. */
+const PUSH_HOSTS = [
+  "fcm.googleapis.com",
+  "updates.push.services.mozilla.com",
+  "web.push.apple.com",
+];
+const PUSH_HOST_SUFFIXES = [".push.apple.com", ".notify.windows.com"];
+export function isPushEndpoint(value: unknown): boolean {
+  if (typeof value !== "string" || value.length > 1024) return false;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:" || url.port || url.username || url.password)
+    return false;
+  const host = url.hostname.toLowerCase();
+  return (
+    PUSH_HOSTS.includes(host) ||
+    PUSH_HOST_SUFFIXES.some((s) => host.endsWith(s) && host.length > s.length)
+  );
+}
 /** Historical kinds stay valid for sent records and old unsubscribe links. */
 export const ACTIVE_PRODUCT_EMAIL_KINDS = PRODUCT_EMAIL_KINDS.filter(
   (kind) => !isRetiredEmailKind(kind),
@@ -342,6 +381,7 @@ export const OUTBOX_LANES = [
   "timeline-hold",
   "timeline-editor",
   "timeline-discord",
+  "web-push",
 ] as const;
 export type OutboxLane = (typeof OUTBOX_LANES)[number];
 

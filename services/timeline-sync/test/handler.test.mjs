@@ -421,3 +421,37 @@ test("a Home week's wake passes on a landed read's time, and drops one that is n
   }
   assert.deepEqual(seen, [{ since: SINCE }, {}]);
 });
+
+test("web push receipts (2026-11-16) are read by their own reader and their object deleted", async () => {
+  const key = "push-receipt/5f0c2d4e-8a1b-4c3d-9e2f-0a1b2c3d4e5f.json";
+  const body = { v: 1, subscription_id: "7", notice_id: "n", outcome: "gone" };
+  const read = [];
+  const deleted = [];
+  const log = console.log;
+  const error = console.error;
+  console.log = () => {};
+  console.error = () => {};
+  try {
+    const make = (pushReceipts) =>
+      makeHandler({
+        connect: async () => ({ end: async () => {} }),
+        sync: async () => assert.fail("not an account's wake"),
+        receipts: async () => assert.fail("not a Discord receipt"),
+        pushReceipts,
+        readObject: async () => JSON.stringify(body),
+        deleteObject: async (obj) => deleted.push(obj.key),
+      });
+    const out = await make(async (_db, msg) => {
+      read.push(msg);
+      return { outcome: "gone", deleted: 1 };
+    })({ Records: [record("a", key)] });
+    assert.deepEqual(out.batchItemFailures, []);
+    assert.deepEqual(read, [body]);
+    assert.deepEqual(deleted, [key]);
+    const none = await make(null)({ Records: [record("b", key)] });
+    assert.deepEqual(none.batchItemFailures, [{ itemIdentifier: "b" }]);
+  } finally {
+    console.log = log;
+    console.error = error;
+  }
+});

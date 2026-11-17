@@ -39,6 +39,7 @@ export const keys = {
   gateways: ["me", "gateways"],
   sessions: ["me", "sessions"],
   email: ["me", "email"],
+  push: ["me", "push"],
   emailSends: ["me", "email", "sends"],
   emailRecord: (id) => ["me", "email", "sends", id],
   connections: ["me", "connections"],
@@ -107,6 +108,9 @@ export const useUsage = () => {
     queryFn: payload(() => api.usage(agent)),
   });
 };
+
+export const usePush = (enabled = true) =>
+  useQuery({ queryKey: keys.push, queryFn: payload(api.push), enabled });
 
 export const useEmailPrefs = () =>
   useQuery({ queryKey: keys.email, queryFn: payload(api.emailPrefs) });

@@ -51,6 +51,9 @@ export function makeHandler({
   /** A Discord sign-in or link's code to trade for the user (#531,
    *  @elixir-mcp/auth/discord createDiscordLoginWorker). */
   discordLoginObject = null,
+  /** A web push notice for one device (2026-11-16, web-push.mjs):
+   *  `(obj, {receives})`. */
+  webPushObject = null,
   upgradeDelivery = null,
   /** `(record, seconds)`: hold a record back that long (SQS
    *  ChangeMessageVisibility), for a Discord lane that knows when to try
@@ -241,7 +244,7 @@ export function makeHandler({
 
   /** One queue record: the outbox objects it names, or the message it
    *  carries. */
-  async function fromRecord(body, final = false) {
+  async function fromRecord(body, final = false, receives = 1) {
     const objects = outboxObjects(body);
     if (objects === null) return deliver(JSON.parse(body));
     // One object per notification; S3's own test event names none.
@@ -270,6 +273,12 @@ export function makeHandler({
         await discordLoginObject(obj);
         continue;
       }
+      // Web push (2026-11-16): one notice for one device.
+      if (obj.key.startsWith("web-push/")) {
+        if (!webPushObject) return "bad_message";
+        await webPushObject(obj, { receives });
+        continue;
+      }
       const text = await readObject(obj);
       if (text === null) continue;
       const outcome = await deliver(JSON.parse(text), { use: obj.key });
@@ -289,11 +298,10 @@ export function makeHandler({
     const batchItemFailures = [];
     for (const record of event.Records ?? []) {
       let outcome;
-      const final =
-        Number(record.attributes?.ApproximateReceiveCount ?? 0) >=
-        discordMaxReceives;
+      const receives = Number(record.attributes?.ApproximateReceiveCount ?? 0);
+      const final = receives >= discordMaxReceives;
       try {
-        outcome = await fromRecord(record.body, final);
+        outcome = await fromRecord(record.body, final, Math.max(1, receives));
       } catch (err) {
         outcome = "retry";
         // A Discord lane that knows when to try again (a rate limit, its

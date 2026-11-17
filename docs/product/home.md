@@ -15,7 +15,8 @@ new follower; a Clan Action that became yours; an answer to your
 feedback), and "Cheers on your play", at most one email a day of the
 cheers and new followers you have not seen. Both are counts, never who,
 and both read the bell's own items (DECISIONS "The bell reaches you when
-you are away"; `docs/notes/2026-11-16-reach-you.md`).*
+you are away"; `docs/notes/2026-11-16-reach-you.md`,
+`docs/notes/2026-11-16-web-push.md`).*
 
 ## What it is for
 

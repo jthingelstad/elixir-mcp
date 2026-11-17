@@ -137,6 +137,8 @@ export const TRIMMED = Object.freeze([
   // Comments (0282) go at a year like cheers; one an owner or an admin
   // removed goes 30 days after its removal (sweepOperational).
   plain("timeline_comment", "created_at", YEAR),
+  // A push told (0283): the caps read today, the activity mail a day.
+  plain("push_notice", "created_at", DAYS_28),
   plain("claim_challenge", "created_at", YEAR, "outcome <> 'open'"),
   plain(
     "collector_version_event",
@@ -194,6 +196,9 @@ export const KEPT = Object.freeze({
   account_clan_declined: "a standing choice",
   account_discord: "a current link",
   account_email_pref: "a current mail setting",
+  account_push_pref: "a current push setting",
+  push_subscription:
+    "a current device; the relay deletes a gone one, and it goes with the account",
   agent_identity: "a current agent",
   claim: "a current claim",
   recording: "what is being recorded now; the unfollowed trim reads it",

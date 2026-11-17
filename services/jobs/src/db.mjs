@@ -55,6 +55,7 @@ export const JOB_LIMITS = Object.freeze({
   // Every minute or five: a few rows each.
   collector_upgrades: TICK,
   feedback_answers: TICK,
+  web_push: TICK,
   discord_sittings: TICK,
   home_feeds: TICK,
   // Hourly and by hand: indexed deletes and small reads. The record

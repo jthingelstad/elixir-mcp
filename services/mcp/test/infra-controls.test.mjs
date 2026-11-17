@@ -1483,8 +1483,37 @@ test("the one-minute mail rule also drains answers to feedback (0204)", async ()
   const template = await readFile(templateUrl, "utf8");
   assert.match(
     resource(template, "CollectorUpgradeRule", "CollectorUpgradePermission"),
-    /Input: '\{"collector_upgrades": true, "feedback_answers": true\}'/,
+    // With web push off (its switch, 2026-11-16) the rule's input is this.
+    /- '\{"collector_upgrades": true, "feedback_answers": true\}'/,
   );
+});
+
+test("web push (2026-11-16): one stack switch, the relay alone reads the one secret, and the lanes it uses", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  // The minute rule drains web push only while the switch is on.
+  assert.match(
+    resource(template, "CollectorUpgradeRule", "CollectorUpgradePermission"),
+    /Input: !If\n\s+- WebPushOn\n\s+- '\{"collector_upgrades": true, "feedback_answers": true, "web_push": true\}'/,
+  );
+  assert.match(template, /WebPushOn: !Equals \[!Ref WebPush, "on"\]/);
+  // GetSecretValue appears once, on the one secret, in the relay's role.
+  const reads = [...template.matchAll(/secretsmanager:GetSecretValue/g)];
+  assert.equal(reads.length, 1);
+  const relay = resource(template, "EmailRelayRole", "SenderConfigurationSet");
+  assert.match(relay, /secretsmanager:GetSecretValue/);
+  assert.match(
+    relay,
+    /arn:aws:secretsmanager:\$\{AWS::Region\}:\$\{AWS::AccountId\}:secret:elixir-mcp\/web-push-\?\?\?\?\?\?/,
+  );
+  // The private key is never an environment variable: the relay gets the
+  // secret's name, the web API only the public key's dynamic reference.
+  assert.doesNotMatch(template, /vapid_private_key/);
+  assert.match(
+    template,
+    /VAPID_PUBLIC_KEY: !If\n\s+- WebPushOn\n\s+- "\{\{resolve:secretsmanager:elixir-mcp\/web-push:SecretString:vapid_public_key\}\}"/,
+  );
+  assert.match(template, /Value: web-push\/ \}/);
+  assert.match(template, /Value: push-receipt\/ \}/);
 });
 
 test("a site miss fails over to the site's 404 page, on the site behaviour alone", async () => {

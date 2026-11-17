@@ -20,6 +20,7 @@ import { statsHref } from "../stats/stats.js";
 import { rememberSession } from "../lib/session-hint.js";
 import { BellButton, BellSheet, useBell } from "./Bell.jsx";
 import { HelpDrawer } from "./HelpDrawer.jsx";
+import { useThisDeviceCheck } from "./PushPrompt.jsx";
 import { SearchSheet } from "./SearchSheet.jsx";
 import { SheetContext } from "./sheet.js";
 import { useSignOut } from "./sign-out.js";
@@ -390,6 +391,7 @@ export function ShellFrame({ me, unreachable = false, area, children }) {
     setSheet(asked);
   }, [signedIn]);
   const bell = useBell(me, signedIn);
+  useThisDeviceCheck(signedIn);
   return (
     <SheetContext.Provider value={signedIn ? open : () => {}}>
       <div className={`kit-shell${signedIn ? " kit-shell--in" : ""}`}>

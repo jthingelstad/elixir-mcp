@@ -80,6 +80,13 @@ export const DOC_LINKS = {
       ["Privacy", "/docs/privacy"],
     ],
   ],
+  "profile:notifications": [
+    "Notifications",
+    [
+      ["Notifications", "/docs/email#notifications"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
   "activity:emails": [
     "The emails Elixir sends",
     [

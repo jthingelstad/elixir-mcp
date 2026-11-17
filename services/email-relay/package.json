@@ -1,7 +1,7 @@
 {
   "name": "@elixir-mcp/email-relay",
   "version": "0.1.0",
-  "description": "The non-VPC email sender: S3 notifies its queue for each message in the outbox, and it sends mail from elixir@poapkings.com over SES, Clan's model calls, and Discord posts (Clan's Actions and cross-posted timelines).",
+  "description": "The non-VPC email sender: S3 notifies its queue for each message in the outbox, and it sends mail from elixir@poapkings.com over SES, Clan's model calls, and Discord posts (Clan's Actions and cross-posted timelines), and web push notices to people's devices.",
   "type": "module",
   "main": "src/handler.mjs",
   "scripts": {
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1161.0",
+    "@aws-sdk/client-secrets-manager": "^3.1161.0",
     "@aws-sdk/client-sesv2": "^3.1161.0",
     "@aws-sdk/client-sqs": "^3.1161.0",
     "@elixir-mcp/auth": "0.1.0",

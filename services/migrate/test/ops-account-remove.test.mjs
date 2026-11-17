@@ -237,6 +237,22 @@ before(async () => {
   await db.query(`insert into bell_seen (account_id) values ($1)`, [
     ids.person,
   ]);
+  // A push device, a switch and a notice (0283).
+  await db.query(
+    `insert into push_subscription (account_id, endpoint, p256dh, auth)
+     values ($1, 'https://fcm.googleapis.com/fcm/send/remove-me', repeat('B', 87), repeat('a', 22))`,
+    [ids.person],
+  );
+  await db.query(
+    `insert into account_push_pref (account_id, kind, enabled)
+     values ($1, 'cheers', false)`,
+    [ids.person],
+  );
+  await db.query(
+    `insert into push_notice (account_id, kind, title, url, through)
+     values ($1, 'cheers', '2 cheers on your play', '/home', now())`,
+    [ids.person],
+  );
   // Their stored Home week (0245, #649).
   await db.query(
     `insert into home_feed (account_id, window_from, window_to, build_ms,
@@ -399,6 +415,9 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     account_block: 2,
     comment_setting: 1,
     bell_seen: 1,
+    push_subscription: 1,
+    account_push_pref: 1,
+    push_notice: 1,
     home_feed: 1,
     bell_week: 1,
     home_clan_card: 1,
@@ -559,6 +578,9 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "account_block",
     "comment_setting",
     "bell_seen",
+    "push_subscription",
+    "account_push_pref",
+    "push_notice",
     "home_feed",
     "bell_week",
     "home_clan_card",

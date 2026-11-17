@@ -11,6 +11,10 @@ import {
   OWNER_NOTIFY_KINDS,
   outboxKey,
   outboxObjects,
+  OUTBOX_LANES,
+  PUSH_KINDS,
+  isPushEndpoint,
+  isPushKind,
 } from "../dist/index.js";
 
 test("owner_notify carries an optional, closed notify_kind", () => {
@@ -183,4 +187,34 @@ test("a login may carry its page's Turnstile token; nothing else may", () => {
     }).errors,
     ["turnstile:not-login"],
   );
+});
+
+test("web push (2026-11-16): a known push service over https, and four kinds", () => {
+  for (const ok of [
+    "https://fcm.googleapis.com/fcm/send/abc",
+    "https://updates.push.services.mozilla.com/wpush/v2/abc",
+    "https://web.push.apple.com/QH/abc",
+    "https://wns2-par02p.notify.windows.com/w/?token=abc",
+  ])
+    assert.equal(isPushEndpoint(ok), true, ok);
+  for (const bad of [
+    "http://fcm.googleapis.com/fcm/send/abc",
+    "https://fcm.googleapis.com:444/fcm/send/abc",
+    "https://user:pw@fcm.googleapis.com/fcm/send/abc",
+    "https://fcm.googleapis.com.evil.example/x",
+    "https://evilnotify.windows.com/x",
+    "https://127.0.0.1/x",
+    "not a url",
+    null,
+    "https://fcm.googleapis.com/" + "a".repeat(2000),
+  ])
+    assert.equal(isPushEndpoint(bad), false, String(bad).slice(0, 60));
+  assert.deepEqual(PUSH_KINDS, [
+    "cheers",
+    "followers",
+    "clan_actions",
+    "answers",
+  ]);
+  assert.equal(isPushKind("who"), false);
+  assert.ok(OUTBOX_LANES.includes("web-push"));
 });

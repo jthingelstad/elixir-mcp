@@ -101,6 +101,20 @@ export const api = {
   setAvatar: (card_id) => request("POST", "/api/me/avatar", { card_id }),
   /** Disconnect the Discord linked to this account (#531). */
   unlinkDiscord: () => request("POST", "/api/me/discord/unlink", {}),
+  /** Web push (2026-11-16): whether it is offered, its public key, this
+   *  account's devices and each kind's switch. */
+  push: () => request("GET", "/api/me/push"),
+  addPushDevice: (subscription, label) =>
+    request("POST", "/api/me/push/subscriptions", { subscription, label }),
+  removePushDevice: (id) =>
+    request("DELETE", `/api/me/push/subscriptions/${encodeURIComponent(id)}`),
+  pushOff: (endpoint) => request("POST", "/api/me/push/off", { endpoint }),
+  /** Whether this browser's endpoint is this account's device: a yes or
+   *  no, never an endpoint back. Another account's row is dropped. */
+  pushThisDevice: (endpoint) =>
+    request("POST", "/api/me/push/this-device", { endpoint }),
+  setPushKind: (kind, enabled) =>
+    request("PUT", "/api/me/push/kinds", { kind, enabled }),
   emailPrefs: () => request("GET", "/api/me/email"),
   setEmailPref: (kind, enabled) =>
     request("PUT", "/api/me/email", { kind, enabled }),

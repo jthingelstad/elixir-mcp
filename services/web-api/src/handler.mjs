@@ -55,6 +55,7 @@ import { battleRoutes } from "./routes/battle.mjs";
 import { highlightRoutes } from "./routes/highlight.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { commentsRoutes } from "./routes/comments.mjs";
+import { pushRoutes } from "./routes/push.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
 import { peopleRoutes } from "./routes/people.mjs";
 import { passportRoutes } from "./routes/passport.mjs";
@@ -253,6 +254,9 @@ export function makeHandler({
    *  the model bridge's check (comment-check.mjs); null = comments off
    *  everywhere. */
   comments = null,
+  /** Web push's VAPID public key (routes/push.mjs, 2026-11-16); null =
+   *  notifications are not offered. Public: every browser is handed it. */
+  vapidPublicKey = null,
 }) {
   database ??= makeDatabase({
     connectionString: databaseUrl,
@@ -491,6 +495,7 @@ export function makeHandler({
     // Comments, blocks and reports (2026-11-16), off unless the stack's
     // CommentsEnabled is true.
     ...commentsRoutes({ resolveAccount, comments }),
+    ...pushRoutes({ resolveAccount, publicKey: vapidPublicKey }),
     // The bell's stored week rides the same wake (bell_week, 0247).
     ...bellRoutes({
       resolveAccount,

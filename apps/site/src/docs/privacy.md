@@ -73,6 +73,19 @@ have not seen it in Elixir yet: it says how many, never who. Every mail has a wa
 never undone by the service. Mail is counted by issue (how many were
 opened, which links were clicked), never by who opened it.
 
+**Notifications.** If you turn on notifications on a phone or computer,
+Elixir keeps what your browser gives it to reach that device: an address
+at your browser's push service (Google, Mozilla, Apple or Microsoft) and
+the keys that encrypt each notice so only that device can read it, with
+a short name like "Safari on iPhone" and when it was added and last
+reached. That address is private: it is never shown, even to you, and
+never shared. Each notice is encrypted before it leaves Elixir, says how
+many, never who, and is kept with when it was sent and whether you
+tapped it, so the email does not tell you the same thing. Remove a
+device in Settings › Notifications, or block notifications in your
+browser, and Elixir stops; a device your browser says is gone is
+removed. Deleting your account removes all of it.
+
 **Sign-in check.** The sign-in forms, on this site and on the page an
 app sends you to when it connects to Elixir, use Cloudflare
 [Turnstile](https://www.cloudflare.com/application-services/products/turnstile/)

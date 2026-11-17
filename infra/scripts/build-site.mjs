@@ -153,6 +153,8 @@ export function verifySite({ outDir, designCss }) {
     "icon-192.png",
     "icon-512.png",
     "icon-maskable-512.png",
+    // Web push's service worker (2026-11-16): push and a tap only.
+    "sw.js",
   ]) {
     if (!files.has(required)) problems.push(`${required} is missing`);
   }

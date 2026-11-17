@@ -14,6 +14,7 @@ the steps that need a value are Jamie's, in the Secrets Manager console.
 | `clan_sealing_secret` | app secret | web-api, email-relay, jobs, timeline-sync (`CLAN_MODEL_SECRET`): seals Clan's stored model keys and Discord webhooks, the timeline's Discord webhooks, and the outbox requests that carry them | Clan sealing secret |
 | `moderation_api_key` | app secret; an Anthropic API key of Elixir's own, for comment checks | email-relay (`MODERATION_API_KEY`), only when `CommentsEnabled=true` | Moderation key |
 | `turnstile_secret_key` | app secret; the secret of Cloudflare Turnstile widget "Elixir sign-in" | email-relay, when `TurnstileKeyInSecret=true` | Turnstile secret key |
+| `vapid_public_key`, `vapid_private_key` | their own secret `elixir-mcp/web-push` (2026-11-16) | email-relay reads the pair at runtime and keeps it in memory (its one `GetSecretValue`); the web-api gets only the public key, by a dynamic reference | Web push key pair |
 | `OriginSecret` | a NoEcho stack parameter | CloudFront sends it; web-api, mcp and collector require it | Origin secret |
 
 **CloudFormation reads a secret only when the resource holding the
@@ -182,6 +183,25 @@ To rotate it, put the new value in the same key and deploy with
 `--param=SecretEpoch=<YYYY-MM-DD>`. To turn comments off, deploy with
 `--param=CommentsEnabled=false`; the relay stops reading the key. Remove
 the key from the secret only after that deploy has succeeded.
+
+## Web push key pair
+
+The VAPID pair web push signs with (2026-11-16): `elixir-mcp/web-push`, a
+JSON string with `vapid_public_key` (an uncompressed P-256 point, 65
+bytes, base64url) and `vapid_private_key` (32 bytes, base64url). It was
+made on the host and written without being shown. The private key is
+never an environment variable: the email relay reads the secret when it
+first sends and keeps the pair in memory, and refuses to send if the two
+halves do not match. The web-api's `VAPID_PUBLIC_KEY` is a dynamic
+reference to the public half, read at deploy.
+
+Changing the pair turns off every device that subscribed under the old
+public key: browsers refuse a push signed by another key, and each
+device's next tap of **Turn on notifications** subscribes again. So a
+rotation is for a leak only: write the new pair in the console, then
+deploy with `--param=SecretEpoch=<YYYY-MM-DD>` so the web-api reads the
+new public key; the relay picks the pair up as its containers recycle.
+`--param=WebPush=off` stops every push without touching the secret.
 
 ## Any other app-secret key
 

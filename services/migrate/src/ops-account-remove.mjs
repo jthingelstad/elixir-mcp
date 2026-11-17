@@ -230,6 +230,17 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     ["comment_setting", `comment_setting where account_id = any($1::uuid[])`],
     // When they last opened the bell (0244).
     ["bell_seen", `bell_seen where account_id = any($1::uuid[])`],
+    // Their push devices, switches and notices (0283): a device's
+    // endpoint is private account machinery and goes with them.
+    [
+      "push_subscription",
+      `push_subscription where account_id = any($1::uuid[])`,
+    ],
+    [
+      "account_push_pref",
+      `account_push_pref where account_id = any($1::uuid[])`,
+    ],
+    ["push_notice", `push_notice where account_id = any($1::uuid[])`],
     // Their stored Home week (0245, #649).
     ["home_feed", `home_feed where account_id = any($1::uuid[])`],
     // Their stored bell week (0247, #649).

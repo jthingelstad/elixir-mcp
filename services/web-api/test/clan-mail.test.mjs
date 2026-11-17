@@ -24,6 +24,8 @@ const name = `elixir_mcp_test_clan_mail_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 const CLAN = "#0QC8RCGY";
 const sent = [];
+// Web push's hook (2026-11-16): who a message with new Actions is owed to.
+const told = [];
 let db, handler;
 
 /** Clan's morning run's send, answered as status and body. */
@@ -33,6 +35,7 @@ async function mail(body) {
       enqueue: async (msg) => sent.push(msg),
       secret: "test",
       archive: null,
+      notify: async (n) => told.push(n),
     });
     return { statusCode: 200, body: JSON.stringify({ data: result }) };
   } catch (e) {
@@ -138,6 +141,20 @@ test("only the account that verified a player in the clan, with the kind on, is 
     "#0LUCVCJV": "no_address",
     "#00UQL2U9": "no_account",
   });
+  // Push is owed to each verified member in the clan with new Actions,
+  // whatever their mail switch or address; never the unproven or gone.
+  const members = (
+    await db.query(
+      "select account_id from claim where player_tag = '#0LCLRCPQ' or player_tag = '#0J8CVLL8' or player_tag = '#0LUCVCJV' order by player_tag",
+    )
+  ).rows.map((x) => x.account_id);
+  assert.deepEqual(told.map((n) => n.accountId).sort(), [...members].sort());
+  assert.ok(told.every((n) => n.count === 1 && n.clanName === "Example Clan"));
+  assert.ok(
+    told.every((n) => n.clanTag === CLAN && n.link.endsWith("/actions")),
+  );
+  assert.ok(told.some((n) => n.accountId === lead));
+  assert.ok(told.some((n) => n.accountId === off));
   assert.equal(sent.length, 1);
   const [msg] = sent;
   assert.equal(msg.kind, "clan_actions_waiting");

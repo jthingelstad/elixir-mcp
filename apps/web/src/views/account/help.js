@@ -51,6 +51,13 @@ export const SETTINGS_HELP = {
       "Each mail Elixir can send, and whether it comes to you. Sign-in codes are not on the list: they always send.",
     ],
   },
+  notifications: {
+    title: "Notifications",
+    docs: "profile:notifications",
+    lines: [
+      "Turn on notifications on this phone or computer, and pick what comes: cheers on your play, new followers, Clan Actions and answers to your feedback. Counts only, never who.",
+    ],
+  },
   sent: {
     title: "Sent to you",
     docs: "activity:emails",

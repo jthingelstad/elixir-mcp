@@ -51,6 +51,7 @@ const WEB = {
   "favicon.ico": "ico",
   // Installing on a phone: apps/web/public's manifest and icons.
   "manifest.webmanifest": "{}",
+  "sw.js": "",
   "apple-touch-icon.png": "png",
   "icon-192.png": "png",
   "icon-512.png": "png",

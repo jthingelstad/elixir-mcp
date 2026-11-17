@@ -50,7 +50,10 @@ behaviour is in `apps/site/src/docs/`, not here.
   on `/signin`), so `trackEvent` works in every session (#508).
 - No Radix before a real dialog. Elixir installs as a web app
   (`public/manifest.webmanifest`, its icons, the head tags here and in
-  the site's `base.njk`, pinned by a site test); no service worker. `test/inline-styles.test.js` is a
+  the site's `base.njk`, pinned by a site test). Its one service worker,
+  `public/sw.js` (2026-11-16), is web push's: `push` and
+  `notificationclick` only, never a fetch handler or a cache, so every
+  request reaches the network as before (`docs/notes/2026-11-16-web-push.md`). `test/inline-styles.test.js` is a
   ratchet on inline styles: the count only goes down.
 
 ## Testing

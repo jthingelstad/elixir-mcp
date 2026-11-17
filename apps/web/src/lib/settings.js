@@ -63,6 +63,12 @@ export const SETTINGS_RAIL = [
   },
   { key: "emails", label: "Emails", icon: "mail", to: `${SETTINGS}/emails` },
   {
+    key: "notifications",
+    label: "Notifications",
+    icon: "bell",
+    to: `${SETTINGS}/notifications`,
+  },
+  {
     key: "connections",
     label: "Connections & agents",
     icon: "plug",
@@ -129,6 +135,8 @@ export function settingsHere(path) {
       if (third === "verify")
         return fourth ? null : at("players", "verify", { id: second });
       return third ? null : at("players", "player", { id: second });
+    case "notifications":
+      return second ? null : at("notifications", "notifications");
     case "emails":
       if (!second) return at("emails", "emails");
       if (second === "sent") return third ? null : at("emails", "sent");
@@ -225,6 +233,7 @@ const TITLES = {
   player: "Player",
   verify: "Verify",
   emails: "Emails",
+  notifications: "Notifications",
   sent: "Sent to you",
   email: "Email",
   connections: "Connections & agents",

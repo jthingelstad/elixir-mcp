@@ -98,6 +98,8 @@ export const PRESERVED_PARAMETERS = [
   // check. A deploy never resets either.
   "CommentsEnabled",
   "CommentsMonthlyCapUsd",
+  // Web push (2026-11-16): on by default, switched off only by hand.
+  "WebPush",
 ];
 
 /**

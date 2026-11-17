@@ -143,6 +143,7 @@ test("Settings' rail: eight places, Collectors for who runs one, Admin for staff
     "What members see",
     "Players & following",
     "Emails",
+    "Notifications",
     "Connections & agents",
     "Sign-ins & devices",
     "Usage and limits",

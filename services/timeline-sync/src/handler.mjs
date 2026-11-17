@@ -38,7 +38,9 @@
  *
  * The relay's receipts for the quality ledger (0222: what Discord
  * answered for each post) arrive on discord-receipt/ and are read into
- * the ledger here, the one place in the VPC its notifications reach.
+ * the ledger here, the one place in the VPC its notifications reach. Its
+ * web push receipts (2026-11-16) arrive on push-receipt/ the same way: a
+ * device's last success, or its deletion when its push service says gone.
  */
 import { isCanonicalTag, outboxObjects } from "@elixir-mcp/contracts";
 
@@ -52,6 +54,7 @@ const LANES = [
   "timeline-hold/",
   "timeline-editor/",
   "discord-receipt/",
+  "push-receipt/",
 ];
 
 /**
@@ -61,6 +64,7 @@ const LANES = [
  *   syncClan?: (db: any, clanTag: string, opts: { remainingMs: () => number, editor: boolean }) => Promise<object>,
  *   shareClanDiscord?: (db: any, clanTag: string) => Promise<object>,
  *   receipts?: ((db: any, msg: object) => Promise<object | null>) | null,
+ *   pushReceipts?: ((db: any, msg: object) => Promise<object | null>) | null,
  *   homeFeed?: ((db: any, accountId: string, opts?: { since?: string }) => Promise<object>) | null,
  *   readObject: (obj: {bucket: string, key: string}) => Promise<string | null>,
  *   deleteObject: (obj: {bucket: string, key: string}) => Promise<unknown>,
@@ -72,6 +76,7 @@ export function makeHandler({
   syncClan = null,
   shareClanDiscord = null,
   receipts = null,
+  pushReceipts = null,
   homeFeed = null,
   readObject,
   deleteObject,
@@ -86,7 +91,8 @@ export function makeHandler({
       const lane = LANES.find((l) => obj.key.startsWith(l));
       if (!lane) return "bad_message";
       const receipt = lane === "discord-receipt/";
-      const held = lane !== "timeline-sync/" && !receipt;
+      const pushReceipt = lane === "push-receipt/";
+      const held = lane !== "timeline-sync/" && !receipt && !pushReceipt;
       const editor = lane === "timeline-editor/";
       const text = await readObject(obj);
       if (text === null) continue;
@@ -98,7 +104,13 @@ export function makeHandler({
       }
       if (held && !(msg?.v === 1 && typeof msg.clan_tag === "string"))
         return "bad_message";
-      if (receipt) {
+      if (pushReceipt) {
+        if (!pushReceipts) return "bad_message";
+        const out = await pushReceipts(await db(), msg);
+        // A receipt that is not one is dropped, never retried.
+        if (out === null) console.error("push_receipt_bad");
+        else console.log("push_receipt", JSON.stringify(out));
+      } else if (receipt) {
         if (!receipts) return "bad_message";
         const out = await receipts(await db(), msg);
         // A receipt the ledger cannot read is dropped, never retried.
