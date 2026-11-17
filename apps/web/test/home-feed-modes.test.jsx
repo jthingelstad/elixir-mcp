@@ -181,3 +181,13 @@ test("a Show chip with nothing in the mode names both", async () => {
     ),
   ).toBeTruthy();
 });
+
+test("a mode kept from before, in a quiet week, keeps its list so it can be cleared", async () => {
+  page = week([], { mode: "war", week_total: 0 });
+  const setMode = vi.fn();
+  renderWithProviders(<HomeFeed mode="war" setMode={setMode} />);
+  const list = await screen.findByRole("combobox", { name: "Mode" });
+  expect(list.value).toBe("war");
+  fireEvent.change(list, { target: { value: "all" } });
+  expect(setMode).toHaveBeenCalledWith(null);
+});
