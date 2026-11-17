@@ -5,7 +5,7 @@ import { useMe } from "../App.jsx";
 import { useHome, useReconcilePassport } from "../lib/queries.js";
 import { NewAccount } from "../home/NewAccount.jsx";
 import { useFirstRead } from "../home/first-read.js";
-import { HomeFeed, useTimelineMode } from "../home/Feed.jsx";
+import { HomeFeed, ModePick, useTimelineMode } from "../home/Feed.jsx";
 import { keptFor } from "../home/logic.js";
 import { useMayPost } from "../home/Post.jsx";
 import { HomePanels, TodayError, TodayFresh } from "../home/Today.jsx";
@@ -94,23 +94,29 @@ export function HomePage() {
         aside={
           <>
             <div ref={setChipsAt} className="kit-home__chips" />
+            <div className="kit-home__tools">
+              <ModePick value={mode} onChange={setMode} />
+              {mayPost ? (
+                <button
+                  type="button"
+                  className="btn btn--sm btn--primary kit-home__post"
+                  aria-expanded={writing}
+                  onClick={(event) => {
+                    // Some touch browsers do not focus a tapped button.
+                    // Name this opener before the writing field takes focus.
+                    event.currentTarget.focus();
+                    setWriting(true);
+                    document
+                      .querySelector(".kit-post-compose")
+                      ?.scrollIntoView?.({ block: "nearest" });
+                  }}
+                >
+                  <Icon name="plus" size={16} />
+                  Post
+                </button>
+              ) : null}
+            </div>
             <TodayFresh player={player} />
-            {mayPost ? (
-              <button
-                type="button"
-                className="btn btn--sm btn--primary kit-home__post"
-                aria-expanded={writing}
-                onClick={() => {
-                  setWriting(true);
-                  document
-                    .querySelector(".kit-post-compose")
-                    ?.scrollIntoView?.({ block: "nearest" });
-                }}
-              >
-                <Icon name="plus" size={16} />
-                Post
-              </button>
-            ) : null}
           </>
         }
       />
@@ -125,6 +131,7 @@ export function HomePage() {
             compose={{ open: writing, setOpen: setWriting }}
             mode={mode}
             setMode={setMode}
+            modeInHead
           />
         )}
       />

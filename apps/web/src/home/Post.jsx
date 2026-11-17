@@ -61,24 +61,38 @@ export function useMayPost() {
  */
 export function PostComposer({ open, setOpen }) {
   const may = useMayPost();
+  const start = useRef(null);
+  const opener = useRef(null);
+  useEffect(() => {
+    if (open || !opener.current) return;
+    // Run after the closed composer has mounted its wide entry point.
+    // The phone's Post button stays in the page head throughout.
+    const target = opener.current.isConnected ? opener.current : start.current;
+    opener.current = null;
+    target?.focus();
+  }, [open]);
   if (!may) return null;
   if (!open)
     return (
       <div className="kit-post-compose kit-post-compose--quiet">
         <button
+          ref={start}
           type="button"
           className="kit-post-compose__start"
-          onClick={() => setOpen(true)}
+          onClick={(event) => {
+            opener.current = event.currentTarget;
+            setOpen(true);
+          }}
         >
           <Icon name="plus" size={16} />
           Write a post or ask a question
         </button>
       </div>
     );
-  return <PostForm onClose={() => setOpen(false)} />;
+  return <PostForm onClose={() => setOpen(false)} opener={opener} />;
 }
 
-function PostForm({ onClose }) {
+function PostForm({ onClose, opener }) {
   const [text, setText] = useState("");
   const [question, setQuestion] = useState(false);
   const [cards, setCards] = useState([]);
@@ -90,8 +104,9 @@ function PostForm({ onClose }) {
   const changed = usePostsChanged();
   const catalog = useCardCatalog();
   useEffect(() => {
+    opener.current ??= document.activeElement;
     box.current?.focus();
-  }, []);
+  }, [opener]);
   const draft = readDraft(text);
   const left = POST_MAX - draft.length;
   const byId = useMemo(
