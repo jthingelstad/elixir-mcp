@@ -92,7 +92,7 @@ test("no Clan view handles an anchor's click itself", async () => {
 
 test("the anchor scan sees a handler with arrows and template literals", () => {
   const [tag] = anchors(
-    "<a\n  href={`${base}/feed`}\n  onClick={(e) => {\n    e.preventDefault();\n    navigate?.(`${base}/feed`);\n  }}\n>Feed</a>",
+    "<a\n  href={`${base}/feed`}\n  onClick={(e) => {\n    e.preventDefault();\n    navigate?.(`${base}/feed`);\n  }}\n>Timeline</a>",
   );
   expect(tag).toMatch(/onClick=/);
   expect(tag.endsWith("}\n>")).toBe(true);

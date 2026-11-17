@@ -51,6 +51,7 @@ describe("Clan as one view: six tabs", () => {
   test("Feed counts what is waiting for you, and only with an active policy", () => {
     const today = (m) => clanTabs(m)[0];
     expect(today(me("leader", { open_actions: 3 }))).toMatchObject({
+      label: "Timeline",
       count: 3,
       countLabel: "waiting for you",
     });

@@ -9,7 +9,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
-import { readClanFeed, FEED_DAYS } from "../src/clan-feed.mjs";
+import { readClanFeed, FEED_DAYS, isClanNews } from "../src/clan-feed.mjs";
 
 const T = Date.parse("2026-11-12T12:00:00Z");
 const H = 3_600_000;
@@ -92,6 +92,11 @@ before(async () => {
   );
   await playerWithPost(STAYED, "Stays", "feed-1", "Three crowns", null);
   await playerWithPost(LEFT, "Gone", "feed-2", "Old words", at(T - 2 * H));
+  await db.query(
+    `insert into clan_event (clan_tag, event_type, timing, occurred_at, window_start, window_end, player_tag, role_after)
+     values ($1, 'member_joined', 'exact', $2, $2, $2, $3, 'member')`,
+    [CLAN, at(T - 3 * H), STAYED],
+  );
 });
 
 after(async () => {
@@ -121,6 +126,15 @@ test("feed: current members' posts about battles, drawn as the Timeline draws th
   const [h] = posts;
   assert.equal(h.subject_tag, STAYED);
   assert.equal(h.post.battle.battle_id, "feed-1");
+  assert.equal(
+    h.clan_news,
+    false,
+    "member writing remains All activity, not clan news",
+  );
+  assert.equal(
+    feed.items.find((it) => it.kind === "member_joined").clan_news,
+    true,
+  );
   assert.match(h.id, /^tl_[0-9a-f]{20}$/);
   assert.ok(Date.parse(h.at));
   for (const it of feed.items) {
@@ -136,5 +150,80 @@ test("feed: current members' posts about battles, drawn as the Timeline draws th
   assert.deepEqual(
     times,
     [...times].sort((a, b) => b - a),
+  );
+});
+
+test("Clan news is roster/race news or a clan fact, without changing visibility or the item", () => {
+  for (const kind of [
+    "member_joined",
+    "member_left",
+    "member_role_changed",
+    "bracket_observed",
+    "race_finished",
+    "week_resolved",
+    "departure_classified",
+    "clan_message",
+    "award_granted",
+    "member_away",
+  ])
+    assert.equal(isClanNews({ kind }), true, kind);
+  for (const kind of [
+    "post",
+    "battle_session",
+    "badge_earned",
+    "returned",
+    "personal_record",
+    "account_mail_sent",
+    "unknown",
+  ])
+    assert.equal(isClanNews({ kind }), false, kind);
+  const leadersOnly = {
+    kind: "member_away",
+    visibility: "leaders",
+    id: "same-story",
+  };
+  assert.equal(isClanNews(leadersOnly), true);
+  assert.deepEqual(leadersOnly, {
+    kind: "member_away",
+    visibility: "leaders",
+    id: "same-story",
+  });
+});
+
+test("Clan news filters before the cap, so member moments cannot hide a roster change", async () => {
+  const who = { accountId: reader, timezone: "UTC", kind: "person" };
+  const before = await readClanFeed(db, who, CLAN, T);
+  const arrival = before.items.find((it) => it.kind === "member_joined");
+  await db.query(
+    `insert into player_event (player_tag, event_type, timing, window_start, window_end, badge_name, level)
+     select $1, 'badge_earned', 'estimated', $2::timestamptz + g * interval '1 second',
+            $2::timestamptz + g * interval '1 second', 'Fixture badge ' || g, 5
+       from generate_series(1, 101) g`,
+    [STAYED, at(T - 2 * H)],
+  );
+  await db.query(
+    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, player_tag, role_before, role_after)
+     select $1, 'role_changed', 'estimated', $2::timestamptz + g * interval '1 second',
+            $2::timestamptz + g * interval '1 second', $3,
+            case when g % 2 = 1 then 'member' else 'elder' end,
+            case when g % 2 = 1 then 'elder' else 'member' end
+       from generate_series(1, 50) g`,
+    [CLAN, at(T - H), STAYED],
+  );
+  const all = await readClanFeed(db, who, CLAN, T);
+  assert.ok(all.more > 0);
+  assert.equal(
+    all.items.some((it) => it.kind === "member_joined"),
+    false,
+  );
+  const news = await readClanFeed(db, who, CLAN, T, { view: "news" });
+  assert.equal(news.view, "news");
+  assert.equal(news.more, 0);
+  assert.equal(news.items.length, 51);
+  assert.ok(news.items.every((it) => it.clan_news));
+  // The focused read serves the very same story, not a new event.
+  assert.equal(
+    news.items.find((it) => it.kind === "member_joined").id,
+    arrival.id,
   );
 });

@@ -48,8 +48,8 @@ function harness(role, { verified = true } = {}) {
   const handler = createHandler({
     record,
     ...createTestAccount(),
-    feed: async (clanTag) => {
-      feedCalls.push(clanTag);
+    feed: async (clanTag, options) => {
+      feedCalls.push({ clanTag, ...options });
       return { clan_tag: clanTag, window_days: 7, items: [], more: 0 };
     },
     race: async (clanTag) => {
@@ -119,6 +119,17 @@ test("feed: every member reads the clan's Feed, for this clan", async () => {
     const r = await call("/feed");
     assert.equal(r.status, 200, `${role} ${JSON.stringify(r.body)}`);
     assert.equal(r.body.clan_tag, TAG);
-    assert.deepEqual(h.feedCalls, [TAG]);
+    assert.deepEqual(h.feedCalls, [{ clanTag: TAG, view: "all" }]);
   }
+});
+
+test("feed: the named-clan gate passes only supported Timeline views", async () => {
+  const h = harness("member");
+  const cookies = cookieHeader((await signIn(h)).sessionCookie);
+  const call = (view) =>
+    h.handler(req("GET", `${BASE}/feed`, { cookies, query: { view } }));
+  assert.equal((await call("news")).statusCode, 200);
+  assert.deepEqual(h.feedCalls, [{ clanTag: TAG, view: "news" }]);
+  assert.equal((await call("all-records")).statusCode, 400);
+  assert.equal(h.feedCalls.length, 1);
 });

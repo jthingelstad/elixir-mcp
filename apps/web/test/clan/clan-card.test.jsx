@@ -44,6 +44,41 @@ const open = {
 };
 
 describe("the clan card", () => {
+  test("the compact head keeps recruitment and policy details in About this clan", async () => {
+    vi.spyOn(api, "roster").mockResolvedValue(
+      ok({
+        member_count: 47,
+        type: "inviteOnly",
+        required_trophies: 5000,
+        members: [],
+      }),
+    );
+    vi.spyOn(manageApi, "race").mockResolvedValue(ok({ race: null }));
+    const { container } = renderWithProviders(
+      <ClanHead
+        me={{
+          selected: clan,
+          clans: [clan],
+          policy: { chips: [{ key: "war", text: "In Clan Wars" }] },
+        }}
+        path="/clan"
+        navigate={vi.fn()}
+      />,
+    );
+    await screen.findByText("47 of 50 members");
+    const summary = screen.getByRole("button", { name: "About this clan" });
+    const details = document.getElementById(
+      summary.getAttribute("aria-controls"),
+    );
+    expect(details).toBeTruthy();
+    expect(summary.getAttribute("aria-expanded")).toBe("false");
+    expect(details.hidden).toBe(true);
+    expect(details.textContent).toContain("5,000 trophies to join");
+    expect(details.textContent).toContain("In Clan Wars");
+    expect(
+      container.querySelector(".clan-head__line").textContent,
+    ).not.toContain("trophies to join");
+  });
   test("the clan's line: tag, members, invite only and the trophy floor", () => {
     expect(
       clanLine(clan, {
@@ -120,14 +155,16 @@ describe("the clan card", () => {
       (el) => el.textContent,
     );
     // Each part is whole, so the line can only wrap between them.
-    expect(parts.join(" · ")).toBe(
+    expect(parts).toEqual(["3 of 50 members"]);
+    expect(
+      container.querySelector(".clan-head__details").textContent,
+    ).toContain(
       clanLine(clan, {
         member_count: 3,
         type: "inviteOnly",
         required_trophies: 5000,
       }),
     );
-    expect(parts.length).toBeGreaterThan(1);
     expect(line.lastElementChild.textContent).toMatch(/Roster read/);
     const side = container.querySelector(".clan-head__side");
     // Follow and the picker sit in their own cell of the card, so on a phone

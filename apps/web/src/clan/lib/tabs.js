@@ -54,7 +54,7 @@ export function clanTabs(me) {
   const tabs = [
     {
       key: "feed",
-      label: "Feed",
+      label: "Timeline",
       href: `${base}/feed`,
       count: waiting || null,
       countLabel: "waiting for you",

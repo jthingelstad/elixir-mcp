@@ -246,7 +246,7 @@ export function ActionDetail({ clan, who, number, navigate }) {
     <>
       <Link to={list} navigate={navigate} className="mb-2 inline-block">
         <Icon name="chevron-left" size={16} />
-        Feed
+        Timeline
       </Link>
       <PageHead
         title={

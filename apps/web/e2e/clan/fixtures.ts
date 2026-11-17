@@ -234,6 +234,7 @@ const FEED = {
       // draws a post.
       id: "tl_00000000000000000021",
       kind: "post",
+      clan_news: false,
       at: "2026-09-12T15:00:00Z",
       sort_at: "2026-09-12T15:00:00Z",
       subject_tag: "#0LJL008R",
@@ -255,7 +256,10 @@ const FEED = {
     },
     {
       id: "join-1",
-      kind: "clan_member_joined",
+      kind: "member_joined",
+      clan_news: true,
+      subject_tag: "#0QC8RCGY",
+      subjects: [{ kind: "clan", tag: "#0QC8RCGY", name: "Example Clan" }],
       at: "2026-09-11T09:00:00Z",
       text: "Dee joined Example Clan",
     },

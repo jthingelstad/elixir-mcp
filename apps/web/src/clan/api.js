@@ -47,7 +47,8 @@ export const manageApi = {
   history: (tag) => get(`${clanBase(tag)}/history`),
   // Clan as one view (slice 8): the clan's timeline, and Run's own answer
   // (403 leaders_only to anyone but a verified leader or co-leader).
-  feed: (tag) => get(`${clanBase(tag)}/feed`),
+  feed: (tag, view = "all") =>
+    get(`${clanBase(tag)}/feed${view === "news" ? "?view=news" : ""}`),
   race: (tag) => get(`${clanBase(tag)}/race`),
   run: (tag) => get(`${clanBase(tag)}/run`),
   policy: (tag) => get(`${clanBase(tag)}/policy`),

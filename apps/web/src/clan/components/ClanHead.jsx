@@ -1,8 +1,9 @@
 import { PlayerName } from "@elixir-mcp/ui";
-import { useRef } from "react";
+import { useId, useRef, useState } from "react";
 import {
   Avatar,
   FreshChip,
+  Icon,
   Link,
   Tabs,
   Tag,
@@ -29,14 +30,14 @@ export function clanLine(clan, roster) {
 }
 
 /** The line's parts, each kept whole on a phone. */
-function lineParts(clan, roster) {
+function lineParts(clan, roster, compact = false) {
   const count = roster?.member_count ?? null;
   const floor = roster?.required_trophies ?? null;
   return [
-    clan.clan_tag,
+    compact ? null : clan.clan_tag,
     count === null ? null : `${count} of 50 members`,
-    JOIN[roster?.type] ?? null,
-    floor > 0 ? `${n(floor)} trophies to join` : null,
+    compact ? null : (JOIN[roster?.type] ?? null),
+    !compact && floor > 0 ? `${n(floor)} trophies to join` : null,
   ].filter(Boolean);
 }
 
@@ -59,17 +60,17 @@ function HeadChips({ racing, rules }) {
 }
 
 /**
- * The head every clan page wears, a clan card: the clan's name, its line
- * (tag, members, how it takes members, its trophy floor), who you are in
- * it, a row of chips (the race now and the rules the leaders saved), how
- * fresh the roster read is, Follow (Home's clan follow,
- * home/FollowClan.jsx), a picker with two or more clans, the verify
- * banner, and the tabs. The clan's name is the page's one h1; each page's
- * own head under it is an h2. On a phone the chips are one row that
+ * The shared clan head keeps its name, membership, role and freshness
+ * visible, beside Follow and the clan picker. About this clan discloses
+ * its tag, recruitment requirements, race and policy chips. The verify
+ * banner stays outside that disclosure. The clan's name is the page's
+ * one h1; each page's own head under it is an h2. On a phone the chips are one row that
  * scrolls sideways inside the head, its edge faded where more is hidden,
  * and a tab stop while it scrolls; on a wider screen they wrap.
  */
 export function ClanHead({ me, path, navigate, select, selecting }) {
+  const [about, setAbout] = useState(false);
+  const aboutId = useId();
   const clan = me.selected;
   const { state } = useRoster(clan.clan_tag);
   const roster = state.data ?? null;
@@ -106,7 +107,7 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
           {/* One line that wraps only between its parts, the roster's
               freshness its quiet last part (2026-11-13). */}
           <div className="clan-head__line">
-            {lineParts(clan, roster).map((part, i) => (
+            {lineParts(clan, roster, true).map((part, i) => (
               <span key={i} className="clan-head__part">
                 {part}
               </span>
@@ -122,14 +123,6 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
               </FreshChip>
             ) : null}
           </div>
-          {racing || ruleChips.length ? (
-            <HeadChips
-              // A new set of chips is a new row: the hint measures again.
-              key={[racing, ...ruleChips.map((c) => c.key)].join("|")}
-              racing={racing}
-              rules={ruleChips}
-            />
-          ) : null}
         </div>
         <div className="clan-head__side">
           <FollowThisClan clanTag={clan.clan_tag} clanName={clan.name} />
@@ -139,7 +132,27 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
             select={select}
             selecting={selecting}
           />
+          <button
+            type="button"
+            className="btn--text clan-head__about-toggle"
+            aria-expanded={about}
+            aria-controls={aboutId}
+            onClick={() => setAbout((open) => !open)}
+          >
+            About this clan
+            <Icon name={about ? "chevron-up" : "chevron-down"} size={16} />
+          </button>
         </div>
+      </div>
+      <div id={aboutId} hidden={!about} className="clan-head__details">
+        <p className="page-head__note m-0">{clanLine(clan, roster)}</p>
+        {racing || ruleChips.length ? (
+          <HeadChips
+            key={[racing, ...ruleChips.map((c) => c.key)].join("|")}
+            racing={racing}
+            rules={ruleChips}
+          />
+        ) : null}
       </div>
       {clan.verified === false || clan.unlock ? (
         <div className="callout callout--info" role="status">

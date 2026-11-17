@@ -31,7 +31,14 @@ export const keys = {
   roster: (tag) => ["me", "clan", "record", tag, "roster"],
   manage: (tag) => ["me", "clan", "record", tag, "manage"],
   history: (tag) => ["me", "clan", "record", tag, "history"],
-  feed: (tag) => ["me", "clan", "record", tag, "feed"],
+  feed: (tag, view = "all") => [
+    "me",
+    "clan",
+    "record",
+    tag,
+    "feed",
+    ...(view === "news" ? ["news"] : []),
+  ],
   race: (tag) => ["me", "clan", "record", tag, "race"],
   run: (tag) => ["me", "clan", "record", tag, "run"],
   policy: (tag) => ["me", "clan", "record", tag, "policy"],
@@ -189,8 +196,8 @@ export const useMyPlace = (enabled = true) =>
 
 /** The Feed's timeline: the clan's items, its members' moments and
  *  posts, newest first, as this reader reads them. */
-export const useFeed = (tag) =>
-  useGated(keys.feed(tag), () => manageApi.feed(tag));
+export const useFeed = (tag, view = "all") =>
+  useGated(keys.feed(tag, view), () => manageApi.feed(tag, view));
 
 /** The race now (the clan card's chip, the Feed's bar): weekly facts,
  *  `{race: null}` between races or before any is recorded. */

@@ -89,7 +89,10 @@ test("a member sees five tabs, and Run is refused", async ({ page }) => {
   await page.goto("/clan/0QC8RCGY/feed");
   for (const name of ["Standings", "War", "Members", "Policy"])
     await expect(clanTab(page, name)).toBeVisible();
-  await expect(clanTab(page, /^Feed/)).toHaveAttribute("aria-selected", "true");
+  await expect(clanTab(page, /^Timeline/)).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await expect(clanTab(page, "Run")).toHaveCount(0);
   await expect(page.getByText("Three crowns with seconds left")).toBeVisible();
   await expect(page.getByText("A 3-2 win")).toBeVisible();

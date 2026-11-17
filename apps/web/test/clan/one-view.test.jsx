@@ -44,6 +44,46 @@ function sideCardsUnread() {
 }
 
 describe("Feed", () => {
+  test("Clan news focuses roster changes without reordering or removing All activity", async () => {
+    sideCardsUnread();
+    const items = [
+      {
+        id: "moment",
+        at: "2026-11-12T11:00:00Z",
+        kind: "badge_earned",
+        text: "A new badge",
+        clan_news: false,
+      },
+      {
+        id: "arrival",
+        at: "2026-11-12T10:00:00Z",
+        kind: "member_joined",
+        text: "Bo joined the clan",
+        clan_news: true,
+      },
+    ];
+    const feed = vi
+      .spyOn(manageApi, "feed")
+      .mockImplementation(async (_tag, view) => ({
+        ok: true,
+        status: 200,
+        data: {
+          clan_tag: member.clan_tag,
+          items: view === "news" ? items.filter((it) => it.clan_news) : items,
+        },
+      }));
+    renderWithProviders(<Feed clan={member} navigate={vi.fn()} />);
+    expect(await screen.findByText("A new badge")).toBeTruthy();
+    const all = screen.getByRole("button", { name: "All activity" });
+    expect(all.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Clan news" }));
+    expect(await screen.findByText("Bo joined the clan")).toBeTruthy();
+    expect(feed).toHaveBeenCalledWith(member.clan_tag, "news");
+    expect(screen.queryByText("A new badge")).toBeNull();
+    fireEvent.click(all);
+    expect(await screen.findByText("A new badge")).toBeTruthy();
+    expect(screen.getAllByText("Bo joined the clan")).toHaveLength(1);
+  });
   // Drawn by the Timeline's own components (2026-11-17).
   test("the clan's timeline, its members' posts about battles with their words, newest first", async () => {
     sideCardsUnread();
@@ -94,7 +134,7 @@ describe("Feed", () => {
     ).toBe("/battle/abc");
     expect(screen.getByText("Bo joined the clan")).toBeTruthy();
     expect(
-      screen.getByRole("heading", { name: "Feed", level: 2 }),
+      screen.getByRole("heading", { name: "Timeline", level: 2 }),
     ).toBeTruthy();
   });
 

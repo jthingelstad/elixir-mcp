@@ -10085,6 +10085,27 @@ a.kit-bell__hit:focus-visible::after {
   outline: 2px solid var(--accent-bright);
   outline-offset: 2px;
 }
+.clan-head__about-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 8px;
+  color: var(--ink-dim);
+}
+.clan-head__about-toggle:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+  border-radius: var(--r-control);
+}
+.clan-head__details {
+  display: grid;
+  gap: var(--s-2);
+  padding-bottom: var(--s-3);
+}
+.clan-head__details[hidden] {
+  display: none;
+}
 /* At phone width the head sits tighter, so a page's own content still
    starts on the first screen: the crest beside the name, then Follow and
    the picker in one row on the page's gutter. */
@@ -10102,7 +10123,6 @@ a.kit-bell__hit:focus-visible::after {
       "av role"
       "av name"
       "line line"
-      "chips chips"
       "side side";
     align-items: center;
     gap: 0 var(--s-3);
@@ -10123,7 +10143,6 @@ a.kit-bell__hit:focus-visible::after {
     margin-top: 10px;
   }
   .clan-head__chips {
-    grid-area: chips;
     /* The chips are one row that scrolls sideways inside the head instead
        of wrapping to four (2026-11-13); the faded edge says there is more. */
     flex-wrap: nowrap;
@@ -10132,7 +10151,8 @@ a.kit-bell__hit:focus-visible::after {
     scrollbar-width: none;
   }
   .clan-head__side {
-    flex-wrap: nowrap;
+    grid-area: side;
+    flex-wrap: wrap;
     margin-top: var(--s-3);
   }
   .clan-head__side .clan-head__picker {

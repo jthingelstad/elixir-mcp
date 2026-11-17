@@ -78,7 +78,7 @@ Award standings have no switch: they come with the clan's
 ## When one appears
 
 Clan reads the clan every morning from 11:00 UTC, and again when someone
-opens Standing or chooses **Refresh suggestions** in Run › Waiting. The Feed
+opens Standing or chooses **Refresh suggestions** in Run › Waiting. The Timeline
 and Waiting normally open the saved evaluation with its as-of time, keeping decisions quick; its
 first reading or a changed policy also evaluates the record.
 A member has at most one open action of each
@@ -117,7 +117,7 @@ comes from**, its message, and **History**, the saved log and comment form.
 The buttons come last. These labels do not
 change which decisions your role may make.
 
-The **Feed** lists what is waiting for you first. Once an Action closes, it
+The **Timeline** lists what is waiting for you first. Once an Action closes, it
 leaves your list. Closed Actions are for the leader and co-leaders: they
 have **Waiting** and **Decided** under **Run**, every decision, newest
 first. Its **Who came and went** shows recent
@@ -322,7 +322,7 @@ an existing object still fails without starting another model call.
 
 ## Who sees what
 
-The **Feed** lists what is waiting for you. You see the open actions that
+The **Timeline** lists what is waiting for you. You see the open actions that
 are yours, by your name or by your role, and no others: another's action
 number, or a closed one's, answers that there is no such action. Only the
 leader and co-leaders see closed actions. **Nobody below co-leader ever sees a removal action or who
@@ -331,7 +331,7 @@ before it's done: not here, and not in the clan's Discord, where none of
 these is posted ([Actions in the clan's Discord](/docs/clan-actions-delivery#actions-in-the-clans-discord)). The leader and co-leaders also have **Decided**, under
 Run, every action the clan has had with its outcome, and the holds.
 
-Everyone opens a clan on the **Feed**
+Everyone opens a clan on the **Timeline**
 ([Finding your way](/docs/bring-your-clan#finding-your-way)).
 
 You need a verified player to decide or comment; until then you can

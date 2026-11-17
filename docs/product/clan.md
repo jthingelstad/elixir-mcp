@@ -5,6 +5,11 @@ on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
 [DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Ratified by Jamie, 2026-11-13
 ("I think the rest is good to go").*
 
+*Updated 2026-11-17: every clan has a Timeline of its own. All activity
+stays newest-first by default; Clan news focuses on roster changes,
+race facts and clan notices. About this clan keeps secondary details
+available while activity and notices that need you come first.*
+
 ## What it is for
 
 A clan is just another group of friends, and Clan is that group's piece
@@ -24,8 +29,8 @@ leaders write its policy, and nothing clan-specific enters the code.
 
 ## Who it serves
 
-- **Every member**: the Feed (the clan's last seven days, its members'
-  highlights, what waits for you and The week), Standings (Standing,
+- **Every member**: the Timeline (the clan's last seven days, its members'
+  moments and posts, what waits for you and The week), Standings (Standing,
   then award races), War, Members (the roster with Follow on each row,
   Follow everyone, the clan map, a city or zip code at most and so fine
   for every member, young players included) and Policy (the policy in plain words
@@ -51,7 +56,7 @@ leaders write its policy, and nothing clan-specific enters the code.
 A person is in Clan as the role they hold in the game, once their player
 is verified; until then they read as a member. The record learns a role
 change on its next roster read, so a leader's change waits for a roster
-read within the hour. [Jamie, 2026-10-12] Everyone lands on the Feed,
+read within the hour. [Jamie, 2026-10-12] Everyone lands on the Timeline,
 where what waits for each person comes first. [engineering, 2026-11-12]
 
 ## Principles that decide the details

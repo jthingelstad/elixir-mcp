@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Empty, Skeleton, useClock, ErrorState } from "@elixir-mcp/ui";
+import { Chips, Empty, Skeleton, useClock, ErrorState } from "@elixir-mcp/ui";
 import { FeedRows } from "../../home/FeedItem.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
 import { keys, useFeed, useRace } from "../lib/queries.js";
@@ -32,7 +32,8 @@ function byDay(items, dayHeading) {
  *  cheer and answer it here. */
 function ClanTimeline({ clan }) {
   const { dayHeading } = useClock();
-  const { state, load } = useFeed(clan.clan_tag);
+  const [view, setView] = useState("all");
+  const { state, load } = useFeed(clan.clan_tag, view);
   const [shown, setShown] = useState(FEED_PAGE);
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -40,13 +41,28 @@ function ClanTimeline({ clan }) {
   }
   const head = (
     <h3 id="feed-timeline" className="sr-only">
-      The clan, the last seven days
+      The clan's Timeline, the last seven days
     </h3>
+  );
+  const controls = (
+    <Chips
+      label="Clan Timeline"
+      value={view}
+      options={[
+        { key: "all", label: "All activity" },
+        { key: "news", label: "Clan news" },
+      ]}
+      onChange={(next) => {
+        setView(next);
+        setShown(FEED_PAGE);
+      }}
+    />
   );
   if (state.error || state.forbidden)
     return (
       <section aria-labelledby="feed-timeline" className="grid gap-3">
         {head}
+        {controls}
         <ErrorState
           title="The clan’s timeline could not be read just now"
           onRetry={() => load()}
@@ -61,6 +77,7 @@ function ClanTimeline({ clan }) {
     return (
       <section aria-labelledby="feed-timeline" className="grid gap-3">
         {head}
+        {controls}
         <Skeleton rows={4} label="Reading the clan’s week" />
       </section>
     );
@@ -70,10 +87,23 @@ function ClanTimeline({ clan }) {
   return (
     <section aria-labelledby="feed-timeline" className="grid gap-3">
       {head}
+      {controls}
+      {view === "news" ? (
+        <p className="page-head__note m-0">
+          Joins, departures, role changes, races and the clan's own notices.
+        </p>
+      ) : null}
       {items.length === 0 ? (
-        <Empty title="Nothing in the last seven days">
-          Joins, departures, promotions, members&rsquo; moments and posts appear
-          here as Elixir records them.
+        <Empty
+          title={
+            view === "news"
+              ? "No clan news in the last seven days"
+              : "Nothing in the last seven days"
+          }
+        >
+          {view === "news"
+            ? "All activity still shows your clanmates' moments and posts."
+            : "Joins, departures, promotions, members' moments and posts appear here as Elixir records them."}
         </Empty>
       ) : (
         <div className="kit-feed">
@@ -108,7 +138,8 @@ function ClanTimeline({ clan }) {
       ) : null}
       {left === 0 && d.more > 0 ? (
         <p className="page-head__note m-0">
-          A busy week: the {all.length} newest are shown, and{" "}
+          A busy week: the {all.length} newest{" "}
+          {view === "news" ? "clan news" : "activity"} items were read, and{" "}
           {Number(d.more).toLocaleString("en-US")} more are not.
         </p>
       ) : null}
@@ -125,7 +156,7 @@ function aboutAt(ts, { dayHeading, clock, zone }) {
 }
 
 /**
- * The race bar on top of the Feed (G5): which day of the race it is, the
+ * The race panel beside the Timeline (below it on phones): which day it is, the
  * clan's war decks this race week against four a war day for each member
  * so far (weekly, never a day's split: DECISIONS, "War facts are weekly
  * aggregates"), the clan's place of the clans and its fame, and when the
@@ -190,9 +221,9 @@ export function RaceBar({ race }) {
 }
 
 /**
- * Feed, Clan's first tab for everyone (Clan as one view, slice 8, #766; it
- * replaced Today): what waits for you first, then the clan's timeline, with
- * you in this clan and the clan's week in a side column beside them (on a
+ * Timeline, Clan's first tab for everyone (the route stays /feed): what
+ * waits for you first, then the clan's Timeline, with the race, you in
+ * this clan and the clan's week in a side column beside them (on a
  * phone, after the timeline, as Home's: 2026-11-13). Run holds the leaders'
  * Waiting and Decided; an action waiting for a leader is in both.
  *
@@ -206,16 +237,16 @@ export function Feed({ clan, who, navigate }) {
   const race = useRace(clan.clan_tag).state;
   return (
     <>
-      <h2 className="sr-only">Feed</h2>
+      <h2 className="sr-only">Timeline</h2>
       <div className="clan-today">
         <div className="clan-today__waiting">
-          <RaceBar race={race.data?.race ?? null} />
           <div className="clan-today__now">
             <ActionsNow clan={clan} who={who} navigate={navigate} />
           </div>
-          <ClanTimeline clan={clan} />
+          <ClanTimeline key={clan.clan_tag} clan={clan} />
         </div>
         <div className="clan-today__cards">
+          <RaceBar race={race.data?.race ?? null} />
           <WeekCard clan={clan} base={base} navigate={navigate} />
           <YouCard clan={clan} base={base} navigate={navigate} />
         </div>

@@ -173,7 +173,10 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
-  await expect(clanTab(page, /^Feed/)).toHaveAttribute("aria-selected", "true");
+  await expect(clanTab(page, /^Timeline/)).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await accessible(page, "shared sign-in return");
 });
 
@@ -395,8 +398,8 @@ test.describe("signed in", () => {
     ).toBeVisible();
     await accessible(page, "chooser");
 
-    // Picking one is remembered and lands on its Feed, the race on top
-    // and the clan card's chips in the head (G5).
+    // Picking one is remembered and lands on its Timeline. Recruitment
+    // and policy details stay available in About this clan.
     await page.getByText("Example Clan").first().click();
     await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
     await expect(
@@ -405,6 +408,7 @@ test.describe("signed in", () => {
     await expect(
       page.getByRole("progressbar", { name: "13 of 24 war decks this week" }),
     ).toBeVisible();
+    await page.getByRole("button", { name: "About this clan" }).click();
     const chips = page.getByRole("list", { name: "This clan" });
     await expect(chips).toContainText("2nd in the river race · 4,820 fame");
     await clanTab(page, "Members").click();
@@ -413,13 +417,11 @@ test.describe("signed in", () => {
     await expect(page.getByText("Co-leader").first()).toBeVisible();
     // The clan's own figures, its comings and goings in the account's zone,
     // and a roster that finds a member.
-    // The head's line is one whole part per fact (2026-11-13), so it can
-    // wrap only between them.
-    const line = page.locator(".clan-head__line");
-    await expect(line.getByText("invite only", { exact: true })).toBeVisible();
-    await expect(
-      line.getByText("5,000 trophies to join", { exact: true }),
-    ).toBeVisible();
+    // The disclosure keeps all recruitment facts while the compact head
+    // leaves room for activity.
+    const details = page.locator(".clan-head__details");
+    await expect(details).toContainText("invite only");
+    await expect(details).toContainText("5,000 trophies to join");
     const tiles = page.getByRole("group", { name: "The clan in numbers" });
     await expect(tiles).toContainText("1,220");
     const comings = page.getByRole("region", { name: "Comings and goings" });
@@ -536,7 +538,7 @@ test.describe("signed in", () => {
     await page.goto("/clan/0QC8RCGY");
     for (const name of ["Standings", "War", "Members", "Policy", "Run"])
       await expect(clanTab(page, name)).toBeVisible();
-    await expect(clanTab(page, /^Feed/)).toBeVisible();
+    await expect(clanTab(page, /^Timeline/)).toBeVisible();
     await expect(page.locator(".clan-today")).toContainText(/policy/i);
   });
 
@@ -857,7 +859,7 @@ test.describe("signed in", () => {
       }),
     );
     await page.goto("/clan/0QC8RCGY/members");
-    await clanTab(page, /^Feed/).click();
+    await clanTab(page, /^Timeline/).click();
     await expect(page).toHaveURL(/\/feed$/);
     const row = page.getByRole("link", { name: /#37.*Remove from the clan/ });
     await expect(row).toContainText("1 comment");
@@ -878,7 +880,7 @@ test.describe("signed in", () => {
     await expect(page.getByText("I messaged them yesterday.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
     // An action's page is under Today.
-    await expect(clanTab(page, /^Feed/)).toHaveAttribute(
+    await expect(clanTab(page, /^Timeline/)).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -889,7 +891,10 @@ test.describe("signed in", () => {
     await expect(
       page.getByRole("heading", { name: "Remove from the clan: Sleepy" }),
     ).toBeVisible();
-    await page.getByRole("link", { name: "Feed" }).click();
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: "Timeline", exact: true })
+      .click();
     await expect(page).toHaveURL(/\/feed$/);
     await page.goto("/clan/0QC8RCGY/actions/99");
     await expect(page.getByText("No action #99 here")).toBeVisible();
@@ -1007,8 +1012,8 @@ test.describe("signed in", () => {
     page,
   }) => {
     await page.goto("/clan/0QC8RCGY/members");
-    await expect(clanTab(page, /^Feed/)).toHaveAccessibleName(
-      /^Feed 2 waiting for you$/,
+    await expect(clanTab(page, /^Timeline/)).toHaveAccessibleName(
+      /^Timeline 2 waiting for you$/,
     );
     for (const name of ["Standings", "War", "Members", "Policy", "Run"])
       await expect(clanTab(page, name)).toBeAttached();
@@ -1023,7 +1028,7 @@ test.describe("signed in", () => {
     await accessible(page, "narrow standing");
   });
 
-  test("@narrow the Feed puts the timeline first and the head's chips in one row", async ({
+  test("@narrow the Timeline puts activity first and keeps clan details reachable", async ({
     page,
   }) => {
     await page.goto("/clan/0QC8RCGY/feed");
@@ -1037,7 +1042,9 @@ test.describe("signed in", () => {
       cards.boundingBox(),
     ]);
     expect(t && c && t.y < c.y).toBe(true);
-    // The chips are one row that scrolls inside the head, never the page.
+    const about = page.getByRole("button", { name: "About this clan" });
+    await expect(about).toHaveAttribute("aria-expanded", "false");
+    await about.click();
     const chips = page.getByRole("list", { name: "This clan" });
     await expect(chips).toBeVisible();
     const tops = await chips

@@ -523,10 +523,11 @@ export function createClanRequest({
       // The clan directory, through the approved seam (#768).
       directory: () => readClanDirectory(db, account),
       // Clan's Feed (#766): the clan's timeline as this reader reads it.
-      feed: (clanTag) =>
+      feed: (clanTag, { view = "all" } = {}) =>
         readClanFeed(db, account, clanTag, Date.now(), {
           posts,
           comments,
+          view,
         }),
       // The clan card's race chip and the Feed's race bar (G5).
       race: (clanTag) => readClanRace(read, clanTag),

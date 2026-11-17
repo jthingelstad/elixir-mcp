@@ -182,7 +182,7 @@ test("switching back from two small clans restores the active clan's navigation 
     await expect(
       page.getByRole("heading", { level: 1, name: clan.name }),
     ).toBeVisible();
-    await expect(clanTab(page, /^Feed/)).toBeVisible();
+    await expect(clanTab(page, /^Timeline/)).toBeVisible();
     await expect(clanTab(page, "Members")).toBeVisible();
   }
 });

@@ -475,8 +475,12 @@ export function createHandler({
       if (method === "GET" && rest === "/run")
         return json(200, { clan_tag: tag, run: true });
       // The Feed: the clan's timeline as this member reads it.
-      if (feed && method === "GET" && rest === "/feed")
-        return json(200, await feed(tag));
+      if (feed && method === "GET" && rest === "/feed") {
+        const view = event.queryStringParameters?.view ?? "all";
+        if (view !== "all" && view !== "news")
+          return json(400, { error: "bad_view" });
+        return json(200, await feed(tag, { view }));
+      }
       // The race now, for the clan card and the Feed's race bar (G5): the
       // clan's week as weekly facts, read as this member reads war_current.
       if (race && method === "GET" && rest === "/race")
