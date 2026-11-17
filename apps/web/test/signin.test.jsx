@@ -160,7 +160,7 @@ test("signup discloses mail choices and links the privacy policy", () => {
   expect(screen.getByLabelText("Send me Elixir product news").checked).toBe(
     true,
   );
-  expect(screen.getByText(/Your digest has its own off switch/)).toBeTruthy();
+  expect(screen.getByText(/your digest has its own off switch/)).toBeTruthy();
   expect(
     screen.getByRole("link", { name: "Privacy" }).getAttribute("href"),
   ).toBe("/docs/privacy");

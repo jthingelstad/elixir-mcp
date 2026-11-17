@@ -173,3 +173,37 @@ export function NoPlayers() {
     </div>
   );
 }
+
+/** A panel's explanation, one line at most (2026-11-16): the first
+ *  sentence shows, and the rest, every word of it kept, opens under
+ *  "More about these numbers". `more` names the rest instead of the
+ *  first sentence's end; `lead` false puts it all behind the opener, for
+ *  a panel whose lede already says its one line. */
+export function splitNote(text) {
+  const s = String(text ?? "").trim();
+  const cut = s.search(/[.:;]\s+(?=[A-Z])/);
+  return cut < 0 ? [s, ""] : [s.slice(0, cut + 1), s.slice(cut + 1).trim()];
+}
+
+export function PanelNote({ children, lead = true, more: given = null }) {
+  if (!children && !given) return null;
+  const [first, rest] =
+    given !== null
+      ? [children, given]
+      : typeof children === "string"
+        ? splitNote(children)
+        : [children, ""];
+  const shown = lead ? first : null;
+  const more = lead ? rest : [first, rest].filter(Boolean).join(" ");
+  return (
+    <div className="panel__foot">
+      {shown}
+      {more ? (
+        <details className="stats-more">
+          <summary>More about these numbers</summary>
+          <p>{more}</p>
+        </details>
+      ) : null}
+    </div>
+  );
+}

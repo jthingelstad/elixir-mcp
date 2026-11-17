@@ -42,9 +42,9 @@ export function SmallClan({ clan, members, min = MIN_MEMBERS, navigate }) {
     <Panel as="div" title={`Clan management starts at ${min} members`}>
       <div className="panel__body grid gap-2">
         <p className="m-0">
-          This clan has {members}. Until it has {min}, Clan shows the roster and
-          every member&rsquo;s numbers. The policy, actions, standing and awards
-          wait, and a saved policy picks up again at {min}.
+          This clan has {members}. The roster and everyone&rsquo;s numbers are
+          here now. The policy, actions, standing and awards start at {min}, and
+          a saved policy picks up again then.
         </p>
         {lead ? (
           <p className="m-0">Leaders can prepare and save the policy now.</p>
@@ -200,8 +200,8 @@ export function SpreadWordFoot({
           <>
             <div className="label">Recruit</div>
             <p className="m-0 text-small text-ink-dim">
-              The clan&rsquo;s pitch as a personal note or a public post for a
-              recruiting forum, with today&rsquo;s numbers from the game.
+              Your clan&rsquo;s pitch, as a note or a forum post, with
+              today&rsquo;s numbers.
             </p>
             <button
               type="button"

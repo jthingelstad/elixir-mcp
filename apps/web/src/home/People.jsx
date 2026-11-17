@@ -269,7 +269,10 @@ export function FindSuggested({ onSearch, onLink }) {
  * one. Setting a place is what puts someone here (2026-11-15): there is
  * no other choice to make.
  */
-export function NearYou() {
+/** Near you, then whatever Find draws under it (the player map). The
+ *  map comes only once this read answers, so a reader offline sees one
+ *  error and one Try again, never two stacked (2026-11-16). */
+export function NearYou({ children = null }) {
   const query = usePeople("near");
   const data = query.data;
   if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;
@@ -287,46 +290,54 @@ export function NearYou() {
     );
   if (!data.place)
     return (
-      <Panel pad className="kit-near" aria-label="Near you">
-        <p className="kit-week__quiet">
-          Set your place to see players near you. A country, a region or a city,
-          never closer.
-        </p>
-        <div className="kit-findsuggest__ways">
-          <Link to={PLACE_HREF} className="btn btn--sm btn--primary">
-            Set your place
-          </Link>
-        </div>
-      </Panel>
+      <>
+        <Panel pad className="kit-near" aria-label="Near you">
+          <p className="kit-week__quiet">
+            Set your place to see players near you. A country, a region or a
+            city, never closer.
+          </p>
+          <div className="kit-findsuggest__ways">
+            <Link to={PLACE_HREF} className="btn btn--sm btn--primary">
+              Set your place
+            </Link>
+          </div>
+        </Panel>
+        {children}
+      </>
     );
   return (
-    <Panel className="kit-near" aria-label="Near you">
-      {data.people.length === 0 ? (
-        <p className="kit-week__quiet kit-near__empty">
-          Nobody else in {data.place.region_name} has set a place yet.
+    <>
+      <Panel className="kit-near" aria-label="Near you">
+        {data.people.length === 0 ? (
+          <p className="kit-week__quiet kit-near__empty">
+            Nobody else in {data.place.region_name} has set a place yet.
+          </p>
+        ) : (
+          <Rows>
+            {data.people.map((p) => (
+              <Person
+                key={p.tag}
+                p={p}
+                used={data.used}
+                limit={data.limit}
+                detail={<WhyCost p={p} />}
+              />
+            ))}
+          </Rows>
+        )}
+        <p className="kit-tiny kit-people__slots">
+          People who set a place in {data.place.region_name}. Your city first,
+          then by name. Never ranked.
+          {data.truncated
+            ? ` Showing the first ${data.people.length}.`
+            : ""}{" "}
+          <Link to={PLACE_HREF} className="hit">
+            Your place
+          </Link>
         </p>
-      ) : (
-        <Rows>
-          {data.people.map((p) => (
-            <Person
-              key={p.tag}
-              p={p}
-              used={data.used}
-              limit={data.limit}
-              detail={<WhyCost p={p} />}
-            />
-          ))}
-        </Rows>
-      )}
-      <p className="kit-tiny kit-people__slots">
-        People who set a place in {data.place.region_name}. Your city first,
-        then by name. Never ranked.
-        {data.truncated ? ` Showing the first ${data.people.length}.` : ""}{" "}
-        <Link to={PLACE_HREF} className="hit">
-          Your place
-        </Link>
-      </p>
-    </Panel>
+      </Panel>
+      {children}
+    </>
   );
 }
 

@@ -83,7 +83,9 @@ export function Recruit({ clan, navigate }) {
       <div className="recruit-facts" role="group" aria-label="Recruiting facts">
         <span>
           {f?.members ?? "?"} {noun(f?.members, "member")}
-          {f ? ` · ${f.open_slots} open` : ""}
+          {f
+            ? ` · ${f.open_slots} ${f.open_slots === 1 ? "spot" : "spots"} open`
+            : ""}
         </span>
         <span>
           {f?.required_trophies != null
@@ -184,7 +186,9 @@ export function Recruit({ clan, navigate }) {
             <span className="label">Members</span>
             <span>
               {f?.members ?? "?"} {noun(f?.members, "member")}
-              {f ? ` · ${f.open_slots} open` : ""}
+              {f
+                ? ` · ${f.open_slots} ${f.open_slots === 1 ? "spot" : "spots"} open`
+                : ""}
             </span>
             <span className="label">To join</span>
             <span>

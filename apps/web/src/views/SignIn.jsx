@@ -580,8 +580,8 @@ export function SignIn({
           Send me Elixir product news
         </label>
         <p id="signin-product-news-note" className="footnote mb-4">
-          New accounts only. Sign-in and welcome emails still come, and your
-          digest has its own switch.
+          Only counts for a new account. Sign-in and welcome emails come either
+          way, and your digest has its own off switch.
         </p>
         {error && (
           <p className="field-error" role="alert">
@@ -616,9 +616,11 @@ export function SignIn({
           Continue with Discord
         </a>
       )}
+      {/* Each thing said once (2026-11-16): the digest's off switch is in
+          the product-news note above, not here as well. */}
       <p className="footnote mt-4 mb-0 text-pretty">
         {creating ? (
-          "A tag here only counts for a new account. An existing account keeps its players. "
+          "Already have an account? Then the tag here is ignored and your players stay as they are. "
         ) : (
           <>
             New here?{" "}
@@ -628,13 +630,12 @@ export function SignIn({
               onClick={() => setCreating(true)}
             >
               Create an account
-            </button>{" "}
-            and add your player tag as you do.{" "}
+            </button>
+            .{" "}
           </>
         )}
-        Your digest has its own off switch. See{" "}
-        <a href="/docs/privacy">Privacy</a>, <a href="/docs/email">Emails</a>{" "}
-        and <a href="/docs/terms">Terms</a>.
+        See <a href="/docs/privacy">Privacy</a>,{" "}
+        <a href="/docs/email">Emails</a> and <a href="/docs/terms">Terms</a>.
       </p>
     </div>
   );

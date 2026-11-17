@@ -131,6 +131,9 @@ export function CardArt({
   const want = source?.want;
   useEffect(() => want?.(), [want]);
   const [failed, setFailed] = useState<string[]>([]);
+  // The art's file once it has drawn: until then the frame is a quiet tile
+  // (a skeleton), never an empty hole while lazy art loads (2026-11-16).
+  const [drawn, setDrawn] = useState<string | null>(null);
   const form = card.form ?? "base";
   const label = cardLabel(card);
   const alt = card.level ? `${label}, level ${card.level}` : label;
@@ -145,7 +148,13 @@ export function CardArt({
   const src = candidates?.find((u) => !failed.includes(u));
   const body: ReactNode = (
     <>
-      <span className="card-art__frame">
+      <span
+        className={
+          candidates === null || (src && drawn !== src)
+            ? "card-art__frame card-art__frame--wait"
+            : "card-art__frame"
+        }
+      >
         {candidates === null ? null : !src ? (
           <span className="card-art__blank" aria-hidden="true">
             {card.name}
@@ -160,6 +169,12 @@ export function CardArt({
             height={Math.round((imgW * 420) / 285)}
             loading="lazy"
             decoding="async"
+            // An image the browser drew before the app hydrated fires no
+            // load event the app hears; its ref sees it complete instead.
+            ref={(el) => {
+              if (el?.complete && el.naturalWidth > 0) setDrawn(src);
+            }}
+            onLoad={() => setDrawn(src)}
             onError={() => setFailed((f) => [...f, src])}
           />
         )}
@@ -233,6 +248,36 @@ export function DeckGrid({
         </li>
       ))}
     </ul>
+  );
+}
+
+/** A deck's frames before its cards are known (2026-11-16): the same
+ *  grid as `DeckGrid`, each frame a quiet tile, so the panel keeps its
+ *  height and never shows an empty hole while the read is out. The
+ *  frames take the card width the page's CSS gives `.card-art` there
+ *  (no inline style). */
+export function DeckGridWait({
+  count = 8,
+  columns = 4,
+  label = "the cards",
+}: {
+  count?: number;
+  columns?: 4 | 8;
+  label?: string;
+}) {
+  return (
+    <div role="status">
+      <span className="sr-only">Reading {label}…</span>
+      <ul className={`deck-grid deck-grid--${columns}`} aria-hidden="true">
+        {Array.from({ length: count }, (_, i) => (
+          <li key={i}>
+            <span className="card-art">
+              <span className="card-art__frame card-art__frame--wait" />
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

@@ -439,7 +439,7 @@ export function Following({ me, refresh, navigate, hash, search = "" }) {
     <div className="st-page">
       <PageHead
         title="Players & following"
-        sub="Manage the players and clans Elixir records for you. You and your agents share these places."
+        sub="Your players, and the players and clans you follow. An AI you connect uses the same spots."
       />
       <ClaimNotice me={me} onFollowing />
       <Stats>

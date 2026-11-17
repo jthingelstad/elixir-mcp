@@ -431,13 +431,15 @@ export function Standing({ clan, who, navigate, fromRun = false }) {
       ) : null}
       {groups.length ? (
         <p className="page-head__note mt-4 mb-0">
-          Standing is participation in what this clan counts, compared across
-          its members and Elders over the windows the policy sets. It is a
-          group.
+          A group compares each member&rsquo;s part in what this clan counts,
+          over the windows its policy sets.
           {war
-            ? " Bars are war decks in each finished race the war window reads, out of the decks asked."
-            : ""}{" "}
-          Leaders and co-leaders have no group.
+            ? " Bars are war decks played in each finished race in the war window, out of the decks asked."
+            : ""}
+          {/* A leader read it in their own You panel just above. */}
+          {d.you && LEADERS.has(who?.role)
+            ? null
+            : " Leaders and co-leaders have no group."}
         </p>
       ) : null}
       {/* A standing is Elixir's reading against the clan's policy: when it reads

@@ -217,6 +217,6 @@ test("each side's towers read Princess, King, Princess, the King in the middle",
   ]);
   // The note says why, under a duel game's towers.
   expect(container.textContent).toContain(
-    "A King Tower shows as destroyed when the other side took three crowns in that game, since the game leaves its value out.",
+    "The game leaves out a King Tower’s hitpoints after three crowns, so it shows here as destroyed.",
   );
 });

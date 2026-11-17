@@ -173,23 +173,33 @@ export function Verify({ refresh, navigate, tag = null }) {
     else if (player.status !== "verified") startRef.current?.(wanted);
   }, [wanted, list, challenge]);
 
+  // While a challenge is open the page is the instruction: the head says
+  // what this is in one line, and what it unlocks waits on the picker.
+  const inChallenge =
+    challenge?.state === "open" || challenge?.state === "verified";
   const header = (
     <PageHead
       crumb={<Crumb to={`${SETTINGS}/players`}>Players &amp; following</Crumb>}
       title="Verify"
       sub={
-        <>
-          Prove that you control a player by playing one battle with a deck we
-          name. Nothing to install, nothing to share: we only read your public
-          battle log.
-        </>
+        inChallenge ? (
+          "Prove this player is yours with one battle. Nothing to install: we only read your public battle log."
+        ) : (
+          <>
+            Prove that you control a player by playing one battle with a deck we
+            name. Nothing to install, nothing to share: we only read your public
+            battle log.
+          </>
+        )
       }
     >
-      <p className="st-note">
-        Verifying lets you act as your clan&rsquo;s Elder, Co-leader or Leader
-        here. Without it you read Clan and act as a member, whatever your role
-        in the game.
-      </p>
+      {inChallenge ? null : (
+        <p className="st-note">
+          Verifying lets you act as your clan&rsquo;s Elder, Co-leader or Leader
+          here. Without it you read Clan and act as a member, whatever your role
+          in the game.
+        </p>
+      )}
     </PageHead>
   );
 
@@ -254,19 +264,38 @@ export function Verify({ refresh, navigate, tag = null }) {
               <Icon name="shield-check" size={14} /> Verified
             </span>
           ) : (
-            <span className="chip chip--info">{left} min left</span>
+            <span className="chip chip--info">{left} min left to play</span>
           )}
         </div>
         <div className="verify__panels">
           <Panel title="Play one battle with this deck">
             <div className="panel__body">
-              <p className="verify__lead">
-                {challenge.target_source === "most_played"
-                  ? "This is your own recent Trophy Road deck with two cards swapped (marked). Make those two changes in a deck slot and play one battle with it."
-                  : "Build these 8 cards in a deck slot and play one battle with it."}{" "}
-                Any mode counts, win or lose: the battle is the proof, and you
-                can switch back afterwards.
-              </p>
+              {/* Three steps a player reads at a glance on the phone the
+                  game is on (2026-11-16): the same instruction as before. */}
+              <ol className="verify__steps">
+                <li>
+                  {challenge.target_source === "most_played" ? (
+                    <>
+                      This is your own recent Trophy Road deck with{" "}
+                      <strong>two cards swapped</strong> (marked). Make those
+                      two changes in a deck slot in Clash Royale.
+                    </>
+                  ) : (
+                    <>
+                      Build <strong>these 8 cards</strong> in a deck slot in
+                      Clash Royale.
+                    </>
+                  )}
+                </li>
+                <li>
+                  <strong>Play one battle</strong> with it. Any mode counts, win
+                  or lose.
+                </li>
+                <li>
+                  Come back here. It turns green by itself, and then you can
+                  switch your deck back.
+                </li>
+              </ol>
               <DeckGrid cards={challenge.target} label="The deck to play" />
             </div>
           </Panel>
@@ -293,9 +322,12 @@ export function Verify({ refresh, navigate, tag = null }) {
                       </TagText>
                     </>
                   ) : (
-                    <>No battle since you started.</>
+                    <>
+                      <strong>Waiting for your battle.</strong> Nothing new yet,
+                      and that is fine: play when you are ready.
+                    </>
                   )}{" "}
-                  Battle log read {clock(challenge.read_at, zone)}
+                  Last checked {clock(challenge.read_at, zone)}.
                 </span>
               </div>
               {!verified && (
@@ -310,9 +342,9 @@ export function Verify({ refresh, navigate, tag = null }) {
               />
               {!verified && !challenge.live_capped && (
                 <p className="verify__hint">
-                  A finished battle reaches the game's log within about a
-                  minute. Keep this page open: it checks every 15 seconds, and
-                  the challenge stays open for an hour.
+                  A finished battle shows up here within about a minute. Keep
+                  this page open: it checks every 15 seconds, and the challenge
+                  stays open for an hour.
                 </p>
               )}
               {!verified && challenge.live_capped && (

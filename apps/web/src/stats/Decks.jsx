@@ -9,7 +9,7 @@ import {
   nameList,
 } from "./stats-decks.js";
 import { useToolReads } from "../lib/queries.js";
-import { Loading, ReadError, Record } from "./common.jsx";
+import { Loading, PanelNote, ReadError, Record } from "./common.jsx";
 import { useWhose } from "./whose.js";
 
 /** Decks a panel shows with their cards before "Show all"; each shown deck is
@@ -192,11 +192,11 @@ function DuelRounds({ duels }) {
           </li>
         ))}
       </ul>
-      <div className="panel__foot">
-        Each row is one deck in one mode. A duel row counts its rounds, each won
-        or lost on its own crowns; a duel has no single deck, so it is outside
-        the other rows.
-      </div>
+      <PanelNote>
+        {
+          "Each row is one deck in one mode. A duel row counts its rounds, each won or lost on its own crowns; a duel has no single deck, so it is outside the other rows."
+        }
+      </PanelNote>
     </Panel>
   );
 }
@@ -274,11 +274,9 @@ function SwapPanel({ swap, mode, zone }) {
           `${fmt(unchanged.length)} ${unchanged.length === 1 ? "card" : "cards"} in the same form in both decks`,
         )}
       </div>
-      <div className="panel__foot">
-        Each record is that deck&apos;s own in {modeLabel(mode)}. The record
-        reads back what happened after the change; it does not say the change
-        caused it.
-      </div>
+      <PanelNote>
+        {`Each record is that deck's own in ${modeLabel(mode)}. The record reads back what happened after the change; it does not say the change caused it.`}
+      </PanelNote>
     </Panel>
   );
 }

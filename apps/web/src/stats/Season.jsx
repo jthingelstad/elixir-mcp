@@ -1,5 +1,6 @@
 import {
   DeckGrid,
+  DeckGridWait,
   Disclosure,
   Empty,
   FeedbackSheet,
@@ -38,7 +39,14 @@ import { SETTINGS } from "../lib/settings.js";
 import { useBattleSweep, useToolRead, useToolReads } from "../lib/queries.js";
 import { DeckForm, SeasonForm, WeekForm } from "./Form.jsx";
 import { YoungRecord } from "./YoungRecord.jsx";
-import { Loading, ReadError, Record, Tile, useSeasonEdge } from "./common.jsx";
+import {
+  Loading,
+  PanelNote,
+  ReadError,
+  Record,
+  Tile,
+  useSeasonEdge,
+} from "./common.jsx";
 import { useWhose } from "./whose.js";
 
 /** The season tab: one chip's season so far, as battles_performance reads it,
@@ -202,7 +210,7 @@ function Summary({ mode, season, body, head }) {
           </Tile>
         ) : null}
       </div>
-      {note ? <div className="panel__foot">{note}</div> : null}
+      <PanelNote>{note}</PanelNote>
     </Panel>
   );
 }
@@ -247,10 +255,10 @@ function OtherSeason({ season, reads }) {
           {crowns ? <Tile label="Crowns">{crowns.value}</Tile> : null}
         </div>
         {i > 0 ? (
-          <div className="panel__foot">
-            A second read, its own panel. A Tournament is not a Challenge, so
-            the two are never added up.
-          </div>
+          <PanelNote>
+            A Tournament is not a Challenge, so the two are never added up. A
+            second read, its own panel.
+          </PanelNote>
         ) : null}
       </Panel>
     );
@@ -276,7 +284,10 @@ const KEY = [
  * another mode's battles show as a count on their day, never pooled into this
  * one. A day is "No battles" only when a whole-day read proves it.
  */
+const PHONE_DAYS = 7;
+
 function Calendar({ player, mode, season, modeReady }) {
+  const [everyDay, setEveryDay] = useState(false);
   const { zone } = useClock();
   const edge = useSeasonEdge();
   const [now] = useInitialTime();
@@ -329,6 +340,13 @@ function Calendar({ player, mode, season, modeReady }) {
   const shown = new Set(cal.days.map((d) => d.cls));
   const firstRead = cal.days.find((d) => d.state !== "unread");
   const toCome = cal.days.filter((d) => d.cls === "fut" && !d.today).length;
+  // A phone lists the newest week and opens the rest on a tap
+  // (2026-11-16): the whole season is a long scroll on a small screen.
+  const past = cal.days.filter((d) => d.cls !== "fut" || d.today);
+  const older = new Set(
+    everyDay ? [] : past.slice(0, -PHONE_DAYS).map((d) => d.ymd),
+  );
+  const hidden = past.length - PHONE_DAYS;
   return (
     <>
       {capped ? (
@@ -377,7 +395,7 @@ function Calendar({ player, mode, season, modeReady }) {
           {cal.days.map((d) => (
             <li
               key={d.ymd}
-              className={`stats-day stats-day--${d.cls}${d.today ? " stats-day--today" : ""}`}
+              className={`stats-day stats-day--${d.cls}${d.today ? " stats-day--today" : ""}${older.has(d.ymd) ? " stats-day--older" : ""}`}
               aria-current={d.today ? "date" : undefined}
             >
               <span className="stats-day__n">
@@ -388,6 +406,20 @@ function Calendar({ player, mode, season, modeReady }) {
             </li>
           ))}
         </ol>
+        {hidden > 0 ? (
+          <div className="stats-cal__more">
+            <button
+              type="button"
+              className="btn btn--sm btn--quiet"
+              aria-expanded={everyDay}
+              onClick={() => setEveryDay((v) => !v)}
+            >
+              {everyDay
+                ? `Show the last ${PHONE_DAYS} days`
+                : `Show all ${fmt(past.length)} days`}
+            </button>
+          </div>
+        ) : null}
         {toCome ? (
           <p className="stats-cal__ahead">
             {fmt(toCome)} {toCome === 1 ? "day" : "days"} to come. The season
@@ -407,14 +439,17 @@ function Calendar({ player, mode, season, modeReady }) {
             </li>
           ))}
         </ul>
-        <div className="panel__foot">
+        <PanelNote
+          more={
+            cal.gap
+              ? `Longest stretch with no battles in this mode, all days fully read: ${fmt(cal.gap.length)} ${cal.gap.length === 1 ? "day" : "days"}, ${spanLabel(cal.gap)}.`
+              : ""
+          }
+        >
           {mode === "ladder"
             ? `${name} ${season.current ? "runs" : "ran"} ${edge(applied.starts_at)} to ${edge(applied.ends_at)}. Battles after midnight count on the next day.`
             : "Same key in every mode. Other modes show as a count, never pooled into this one."}
-          {cal.gap
-            ? ` Longest stretch with no battles in this mode, all days fully read: ${fmt(cal.gap.length)} ${cal.gap.length === 1 ? "day" : "days"}, ${spanLabel(cal.gap)}.`
-            : ""}
-        </div>
+        </PanelNote>
       </Panel>
     </>
   );
@@ -469,13 +504,13 @@ function WeekByWeek({ mode, args, running }) {
           ))}
         </ol>
       )}
-      <div className="panel__foot">
-        Partial weeks compare by win rate, never by count.
-        {trophies ? " Signed numbers are net trophies." : ""}
-        {mode === "war"
-          ? " Calendar weeks do not line up with race weeks."
-          : ""}
-      </div>
+      <PanelNote>
+        {`${trophies ? "Signed numbers are net trophies. " : ""}Partial weeks compare by win rate, never by count.${
+          mode === "war"
+            ? " Calendar weeks do not line up with race weeks."
+            : ""
+        }`}
+      </PanelNote>
     </Panel>
   );
 }
@@ -536,7 +571,7 @@ function TopDeck({ mode, args, hrefFor }) {
             label={`Cards in ${name}`}
           />
         ) : detail.isPending ? (
-          <Loading what="the cards" />
+          <DeckGridWait columns={8} label={`the cards in ${name}`} />
         ) : (
           <p className="stats-top__sub">{top.card_names}</p>
         )}
