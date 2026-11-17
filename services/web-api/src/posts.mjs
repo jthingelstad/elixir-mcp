@@ -34,11 +34,21 @@
  */
 import { randomBytes } from "node:crypto";
 import { blockedSql } from "@elixir-mcp/claims";
-import { classifyDeck, deckLink, findDeckLink, parseDeckLink } from "@elixir-mcp/contracts";
+import {
+  classifyDeck,
+  deckLink,
+  findDeckLink,
+  parseDeckLink,
+} from "@elixir-mcp/contracts";
 import { cachedVocabulary } from "@elixir-mcp/ingest/card-roles";
 import { checkComment, POST_REFUSAL_WORDS } from "./comment-check.mjs";
 import { tidyComment } from "./comment-filter.mjs";
-import { COOLDOWN_AFTER, COOLDOWN_MINUTES, HIDE_AT_REPORTS, REPORT_REASONS } from "./comments.mjs";
+import {
+  COOLDOWN_AFTER,
+  COOLDOWN_MINUTES,
+  HIDE_AT_REPORTS,
+  REPORT_REASONS,
+} from "./comments.mjs";
 
 /** Posts one account may start a check for: per minute and per day. */
 export const POSTS_PER_MINUTE = 1;
@@ -81,7 +91,8 @@ export function readPostInput(body) {
     if (found) {
       deck = found.deck;
       text =
-        text.slice(0, found.index) + text.slice(found.index + found.link.length);
+        text.slice(0, found.index) +
+        text.slice(found.index + found.link.length);
     }
   }
   const raw = Array.isArray(body.cards) ? body.cards : [];
@@ -512,7 +523,7 @@ export async function homePosts(db, readerId, { subjects, fromMs, toMs }) {
 
 /** Whether a post (its row) is one the reader may see now: the same
  *  audience Home reads. */
-export async function canSeePost(db, readerId, itemId, subjects) {
+async function canSeePost(db, readerId, itemId, subjects) {
   const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
   const rows = await readRows(db, `${AUDIENCE} and p.item_id = $3`, [
     readerId,
@@ -522,9 +533,21 @@ export async function canSeePost(db, readerId, itemId, subjects) {
   return rows.length ? (await postItems(db, rows, readerId))[0] : null;
 }
 
+/** A post the reader may see by either road: their Home audience, or
+ *  Clan's Feed (the post's player is in a clan with one of theirs now).
+ *  Cheers, comments and reports on a post ask this. */
+export async function visiblePost(db, readerId, itemId, subjects) {
+  const home = await canSeePost(db, readerId, itemId, subjects);
+  if (home) return home;
+  const rows = await readRows(db, `p.item_id = $2`, [readerId, itemId], 1);
+  if (rows.length === 0) return null;
+  if (!(await inClanWith(db, readerId, rows[0].player_tag))) return null;
+  return (await postItems(db, rows, readerId))[0];
+}
+
 /** Whether the reader's own player is in the clan a post's player is in
  *  now: Clan's Feed shows them that post, so they may report it. */
-export async function inClanWith(db, readerId, playerTag) {
+async function inClanWith(db, readerId, playerTag) {
   const { rows } = await db.query(
     `select 1 from claim c
        join clan_membership mine on mine.player_tag = c.player_tag
@@ -542,7 +565,11 @@ export async function inClanWith(db, readerId, playerTag) {
 
 /** A player's posts a reader may see (their page and their account's
  *  page): the same audience as Home, newest first. */
-export async function postsBy(db, readerId, { subjects, playerTag = null, accountId = null }) {
+export async function postsBy(
+  db,
+  readerId,
+  { subjects, playerTag = null, accountId = null },
+) {
   const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
   const rows = playerTag
     ? await readRows(db, `${AUDIENCE} and p.player_tag = $3`, [
@@ -578,7 +605,11 @@ export async function clanPosts(db, readerId, { clanTag, fromMs, toMs }) {
 function deckView(deck, catalog, roles) {
   const cards = deck.cards.map((id) => {
     const c = catalog.get(id);
-    return { id, name: c?.name ?? String(id), elixir_cost: c?.elixir_cost ?? null };
+    return {
+      id,
+      name: c?.name ?? String(id),
+      elixir_cost: c?.elixir_cost ?? null,
+    };
   });
   const a = classifyDeck(
     cards.map((c) => ({ ...c, form: null })),
@@ -590,7 +621,10 @@ function deckView(deck, catalog, roles) {
     tower_troop: troop ? { id: troop.id, name: troop.name } : null,
     label: a?.label ?? null,
     average_elixir: a?.average_elixir ?? null,
-    copy_link: deckLink({ cards: deck.cards, tower_troop: deck.tower_troop ?? null }),
+    copy_link: deckLink({
+      cards: deck.cards,
+      tower_troop: deck.tower_troop ?? null,
+    }),
   };
 }
 

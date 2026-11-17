@@ -233,6 +233,18 @@ before(async () => {
     `insert into comment_setting (account_id, who) values ($1, 'nobody')`,
     [ids.person],
   );
+  // Posts (0285): one they wrote, and their report of the other's.
+  await db.query(
+    `insert into account_post (item_id, account_id, player_tag, body)
+     values ('tl_0123456789abcdef0125', $1, '#0RY8UJUL', 'Is Hog good?'),
+            ('tl_0123456789abcdef0126', $2, '#0VQRR8U0', 'Any tips?')`,
+    [ids.person, ids.other],
+  );
+  await db.query(
+    `insert into post_report (post_id, account_id, reason)
+     select post_id, $1, 'spam' from account_post where account_id = $2`,
+    [ids.person, ids.other],
+  );
   // When they last opened the bell (0244).
   await db.query(`insert into bell_seen (account_id) values ($1)`, [
     ids.person,
@@ -414,6 +426,8 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     comment_check: 1,
     account_block: 2,
     comment_setting: 1,
+    post_report: 1,
+    account_post: 1,
     bell_seen: 1,
     push_subscription: 1,
     account_push_pref: 1,
@@ -577,6 +591,8 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "comment_check",
     "account_block",
     "comment_setting",
+    "post_report",
+    "account_post",
     "bell_seen",
     "push_subscription",
     "account_push_pref",

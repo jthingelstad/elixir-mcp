@@ -21,14 +21,13 @@ import { accountOfPage } from "@elixir-mcp/claims";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import {
-  canSeePost,
   deletePost,
-  inClanWith,
   dismissPostReports,
   postsBy,
   readPostInput,
   removePost,
   reportPost,
+  visiblePost,
   writePost,
 } from "../posts.mjs";
 import { json } from "../http.mjs";
@@ -150,8 +149,8 @@ export function postsRoutes({ resolveAccount, posts = null }) {
         // Only a post the reporter may read now (their Timeline, or their
         // clan's Feed); ids are sequential.
         async (row) =>
-          (await canSeePost(db, account.accountId, row.item_id, subjects)) !==
-            null || (await inClanWith(db, account.accountId, row.player_tag)),
+          (await visiblePost(db, account.accountId, row.item_id, subjects)) !==
+          null,
       );
       if (out.error === "invalid_reason")
         return json(400, { error: "invalid_reason" });
