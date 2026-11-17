@@ -66,7 +66,7 @@ for (const [label, width, tag] of [
     ).toContainText(
       "+2 more decks: Lava Hound beatdown (2), Hog Rider cycle (1)",
     );
-    // One battle is a lighter card: no figures, no strip, a smaller deck.
+    // One battle is one line (2026-11-17): no figures, no strip, no deck.
     const one = page.getByRole("link", { name: /^Open Ada’s session:/ });
     await expect(one).toContainText("Lost a Trophy Road battle −28 trophies");
     await expect(one.locator(".kit-sfacts, .kit-spark")).toHaveCount(0);

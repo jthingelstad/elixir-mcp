@@ -234,9 +234,13 @@ const FEED = {
       id: "hl-1",
       kind: "battle_highlight",
       at: "2026-09-12T15:00:00Z",
-      text: "Zed posted a highlight",
-      words: "Three crowns with seconds left",
-      battle_url: "https://elixir.test/battle/example-1",
+      text: "Zed posted a highlight: “Three crowns with seconds left”",
+      // As the Timeline draws it (2026-11-17): its subject and its facts.
+      subjects: [{ kind: "player", tag: "#0LJL008R", name: "Zed" }],
+      facts: {
+        words: "Three crowns with seconds left",
+        battle: { url: "https://elixir.test/battle/example-1" },
+      },
     },
     {
       id: "join-1",

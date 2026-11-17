@@ -44,6 +44,7 @@ function sideCardsUnread() {
 }
 
 describe("Feed", () => {
+  // Drawn by the Timeline's own components (2026-11-17).
   test("the clan's timeline, its highlights' words and battles, newest first", async () => {
     sideCardsUnread();
     vi.spyOn(manageApi, "feed").mockResolvedValue({
@@ -58,9 +59,12 @@ describe("Feed", () => {
             id: "h1",
             kind: "battle_highlight",
             at: "2026-11-12T10:00:00Z",
-            text: "Ada posted a highlight",
-            words: "Three crowns at last",
-            battle_url: "https://elixir.test/battle/abc",
+            text: "Ada posted a highlight: “Three crowns at last”",
+            subjects: [{ kind: "player", tag: "#0QG0JPUC", name: "Ada" }],
+            facts: {
+              words: "Three crowns at last",
+              battle: { url: "https://elixir.test/battle/abc" },
+            },
           },
           {
             id: "j1",
@@ -72,13 +76,13 @@ describe("Feed", () => {
       },
     });
     renderWithProviders(<Feed clan={member} navigate={vi.fn()} />);
-    expect(await screen.findByText("Ada posted a highlight")).toBeTruthy();
+    expect(await screen.findByText("Ada posted a highlight.")).toBeTruthy();
     expect(screen.getByText(/Three crowns at last/)).toBeTruthy();
     expect(
-      screen
-        .getByRole("link", { name: "Open the battle" })
-        .getAttribute("href"),
+      screen.getByRole("link", { name: "Open battle" }).getAttribute("href"),
     ).toBe("/battle/abc");
+    // No cheer here: cheers live on the reader's own Timeline.
+    expect(screen.queryByRole("button", { name: "Cheer" })).toBeNull();
     expect(screen.getByText("Bo joined the clan")).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Feed", level: 2 }),

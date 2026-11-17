@@ -1,6 +1,6 @@
 import { tagPath } from "../lib/tag-url.js";
 import { SETTINGS } from "../lib/settings.js";
-import { modeWord } from "@elixir-mcp/ui/session-story";
+import { modeChips, modeWord } from "@elixir-mcp/ui/session-story";
 
 /** What Home works out on its own, away from the drawing. */
 
@@ -592,5 +592,102 @@ export function quietFeed(follows) {
     body: one
       ? "They haven’t played a battle in the last 7 days. When they do, it shows up here."
       : "None of them has played a battle in the last 7 days. When they do, it shows up here.",
+  };
+}
+
+/** A session that recedes (2026-11-17, the feed's rhythm): one or two
+ *  battles, with nothing on it worth its own card. Never a close friend's
+ *  (the reader starred them to see them), never a session with comments,
+ *  and never one with a fact past its result: a Ranked climb or rating, a
+ *  challenge run's wins, drafted decks, a followed player met. A Ranked
+ *  session's plain league is not such a fact. Old rows without facts keep
+ *  their card. */
+export function shortSession(it) {
+  if (it?.kind !== "battle_session") return false;
+  const n = it.facts?.battles ?? 0;
+  if (n < 1 || n > 2) return false;
+  if ((it.groups ?? []).includes("close")) return false;
+  if ((it.comments?.count ?? 0) > 0) return false;
+  return modeChips(it.facts).every((c) => c.key === "league");
+}
+
+/**
+ * A day's rows as the Timeline draws them (2026-11-17): every item in the
+ * feed's own order, newest first, nothing moved. A short session alone is
+ * a one-line row (`line`); two or more in a row, whoever played them,
+ * are one group row (`group`) that opens in place. A group never spans the
+ * "New since your last visit" line: the row that carries the line ends
+ * its group, so the line stays under the last new item.
+ */
+export function feedRows(rows) {
+  const out = [];
+  let run = [];
+  const flush = () => {
+    if (run.length === 1) out.push({ type: "line", ...run[0] });
+    else if (run.length > 1)
+      out.push({
+        type: "group",
+        it: run[0].it,
+        rows: run,
+        newLine: run.at(-1).newLine,
+      });
+    run = [];
+  };
+  for (const row of rows) {
+    if (shortSession(row.it)) {
+      run.push(row);
+      if (row.newLine) flush();
+    } else {
+      flush();
+      out.push({ type: "item", ...row });
+    }
+  }
+  flush();
+  return out;
+}
+
+/** What a group of short sessions says, as facts: whose, how many
+ *  battles, won and lost. "Pip played 3 short sessions"; "4 short
+ *  sessions from Pip, Ash and 2 others". Names are the game's: escaped
+ *  where they are drawn. */
+export function groupSaid(items) {
+  const people = [];
+  for (const it of items) {
+    const tag = it.facts?.player_tag ?? it.subject_tag;
+    if (!people.some((p) => p.tag === tag))
+      people.push({ tag, name: it.facts?.name ?? it.subject_name ?? tag });
+  }
+  const sum = (k) => items.reduce((n, it) => n + (it.facts?.[k] ?? 0), 0);
+  const battles = sum("battles");
+  const won = sum("won");
+  const lost = sum("lost");
+  const drawn = sum("drawn");
+  const n = items.length;
+  const names =
+    people.length <= 3
+      ? people.map((p) => p.name)
+      : [
+          ...people.slice(0, 2).map((p) => p.name),
+          `${people.length - 2} others`,
+        ];
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return {
+    people,
+    one: people.length === 1,
+    title:
+      people.length === 1
+        ? `${people[0].name} played ${n} short sessions`
+        : `${n} short sessions from ${list}`,
+    record: [
+      `${battles} ${battles === 1 ? "battle" : "battles"}`,
+      `${won} won`,
+      `${lost} lost`,
+      drawn > 0 ? `${drawn} drawn` : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
   };
 }

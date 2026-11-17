@@ -1,4 +1,5 @@
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
+import { annotateFeed } from "./feed.mjs";
 
 /**
  * Clan's Feed (slice 8, #766): the clan's timeline for one signed-in member,
@@ -12,24 +13,25 @@ import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
  * leaders-only ones, exactly as the same person reads this clan in Home's
  * Timeline or `elixir_timeline`. The Feed widens nothing. The Clan handler
  * proves the reader is in the clan before this runs.
+ *
+ * Each item goes out as the Timeline draws it (2026-11-17, feedItem): the
+ * same component draws both, so they cannot drift.
  */
 export const FEED_DAYS = 7;
 const DAY_MS = 86_400_000;
 
-/** One item, as the Feed draws it: its sentence and, for a highlight, its
- *  words and its battle. Never its facts whole. */
-const feedItem = (it) => ({
-  id: it.id ?? null,
-  kind: it.kind,
-  at: shownAt(it) || it.at || null,
-  text: String(it.text ?? ""),
-  ...(it.kind === "battle_highlight"
-    ? {
-        words: it.facts?.words ?? null,
-        battle_url: it.facts?.battle?.url ?? null,
-      }
-    : {}),
-});
+/** One item, as the Feed draws it (2026-11-17): the item as the Timeline
+ *  draws it, with the same fields Home's read adds (`annotateFeed`), so
+ *  Clan's Feed and the Timeline share one component and cannot drift. The
+ *  reader is the same member the timeline's reader rule already let read
+ *  this item; nothing of Home's own is sent (the reader's groups, the
+ *  Follow offer, cheers, comments), and `at` is the instant it sorts by. */
+const HOME_ONLY = ["groups", "offer_follow", "section"];
+const feedItem = (it) => {
+  const out = { ...it, at: shownAt(it) || it.at || null };
+  for (const k of HOME_ONLY) delete out[k];
+  return out;
+};
 
 /** The clan's current members, as the record holds them. */
 async function currentMembers(db, clanTag) {
@@ -76,7 +78,7 @@ export async function readClanFeed(db, account, clanTag, now = Date.now()) {
   return {
     clan_tag: clanTag,
     window_days: FEED_DAYS,
-    items: (built.timeline ?? []).map(feedItem),
+    items: (await annotateFeed(db, built.timeline ?? [], [])).map(feedItem),
     more: built.timeline_more ?? 0,
   };
 }

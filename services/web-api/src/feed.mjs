@@ -24,6 +24,13 @@
  *              `{label, cards}`; theirs null unless one opponent.
  *   proof_mode the mode group of the battle that proved a moment
  *              ("ladder"), for the line under its result.
+ *   moment_card
+ *              the card a Mastery badge is for, `{id, name}`, so the
+ *              moment can show that card's art (2026-11-17). From the
+ *              badge's own identifier (masteryCard) and the catalog, in
+ *              one read for the page; absent when the catalog has no card
+ *              by that name. A card unlocked or a form names its card in
+ *              its own facts (`card_id`, `form`) and needs none.
  *   avatar_card_id
  *              the profile image of the player the item's avatar draws
  *              (avatarTagOf), when an account verified that player and
@@ -35,6 +42,7 @@
  * them, so its contract does not change.
  */
 import { battleLinks } from "@elixir-mcp/record/battle-links";
+import { masteryCard } from "@elixir-mcp/record/badge-names";
 import { verifiedAvatars } from "./avatars.mjs";
 import { proofOf } from "@elixir-mcp/tools/activity/bell";
 import { modeGroupOf } from "@elixir-mcp/contracts";
@@ -149,11 +157,33 @@ export function avatarTagOf(it) {
   return player?.tag ?? it.facts?.player_tag ?? null;
 }
 
+const BADGE_KINDS = new Set(["badge_earned", "legendary_badge_earned"]);
+
+/** The card a Mastery badge item is about, by its shown name; null for any
+ *  other item. */
+export const masteryCardOf = (it) =>
+  BADGE_KINDS.has(it?.kind) ? masteryCard(it.facts?.badge) : null;
+
+/** The catalog's cards by shown name, for the Mastery badges on a page: one
+ *  read, and none when the page has no Mastery badge. */
+async function cardsByName(db, names) {
+  const wanted = [...new Set(names.filter(Boolean))];
+  if (wanted.length === 0) return new Map();
+  const { rows } = await db.query(
+    `select card_id, name from card
+      where kind = 'card' and name = any($1::text[])`,
+    [wanted],
+  );
+  return new Map(rows.map((r) => [r.name, r.card_id]));
+}
+
 /** The timeline's items with Home's fields added. */
 export async function annotateFeed(db, timeline, subjects, close = null) {
   const items = timeline ?? [];
   const proofs = items.map(proofOf);
   const links = await battleLinks(db, proofs.filter(Boolean));
+  const mastery = items.map(masteryCardOf);
+  const cards = await cardsByName(db, mastery);
   const faces = items.map(avatarTagOf);
   const avatars = await verifiedAvatars(db, faces);
   return items.map((it, i) => {
@@ -173,6 +203,9 @@ export async function annotateFeed(db, timeline, subjects, close = null) {
       ...(link ? { battle_url: link.url } : {}),
       ...(proofMode ? { proof_mode: proofMode } : {}),
       ...(offersFollow(it, subjects) ? { offer_follow: true } : {}),
+      ...(mastery[i] && cards.has(mastery[i])
+        ? { moment_card: { id: cards.get(mastery[i]), name: mastery[i] } }
+        : {}),
       ...(faces[i] && avatars.has(faces[i])
         ? { avatar_card_id: avatars.get(faces[i]) }
         : {}),

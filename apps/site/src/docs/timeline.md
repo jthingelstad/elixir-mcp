@@ -120,8 +120,30 @@ down for a loss, as tall as the crown margin (one to three). A draw is a flat
 tick, and a battle whose crowns the record lacks is a short, faint bar. Chips
 say how many wins took three crowns and the widest win. The deck played most
 shows its eight cards, with how many battles it played, and the card names
-the other decks the session switched to. One or two battles make a smaller
-card: the result and its trophies on one line, and the deck.
+the other decks the session switched to.
+
+Short sessions step back so the big ones stand out. A session of one or
+two battles is one line: who, when, the result and its
+trophies, and its **Cheer** on the right. Tap the line to open the
+session's page. Two or more short sessions in a row, whoever played them,
+fold into one row, such as "4 short sessions from Pip, Ash and 2 others",
+with their battles, wins and losses, when, and how many cheers they have
+between them. Tap it to open them in place, each as its own line. A cheer
+always goes to one session: the folded row takes none itself, so open it
+to cheer one. Nothing is moved: the feed stays newest first, and a folded
+row never crosses the **New since your last visit** line.
+
+A short session stays a card when it is more than a result: a close
+friend's (their sessions never fold), one with a comment, one that
+climbed a league or moved a rating in Ranked, a challenge run, or one
+played with or against a player you follow.
+
+Moments carry their art. A new card, a new Evo or Hero form and a Card
+Mastery show that card's own art, never changed. A new Arena, a new league
+in Ranked and a new best on Trophy Road read as the day's headline, with
+a mark of their own: Elixir has no Arena art and draws none. A clan's line
+wears the clan's mark on its band. A close friend's items show the small
+star beside their name, which only you see.
 
 Tap the card to open the session's own page. Back brings you here. It shows:
 
