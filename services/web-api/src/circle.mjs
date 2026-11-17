@@ -12,7 +12,9 @@
  * and never as a nudge. No rate, no wins against losses, no comparison:
  * modes are different games, and a count of battles pools no rate.
  *
- * Two statements and the stored week, whatever the circle's size:
+ * Two statements and the stored week, whatever the circle's size, and
+ * every marked friend in the answer: follows can pass the player slots
+ * (a player already recorded, staff), so no cap would be safe to drop at.
  *
  * - the marks and each friend's battles (`friendsWeek`): one statement, a
  *   range of each friend's own (player_tag, battle_time) cover, boat
@@ -50,8 +52,6 @@ const NOT_MOMENTS = new Set([
 const MOMENTS_MAX = 2;
 /** At most this many suggestions while nobody is marked. */
 const SUGGEST_MAX = 6;
-/** Every close friend fits: the account's player slots are 50. */
-const CIRCLE_MAX = 60;
 
 /** Your own players, as a subquery on $1. */
 const OWN = `select player_tag from claim where account_id = $1
@@ -79,8 +79,7 @@ async function friendsWeek(db, accountId, { fromMs, timezone }) {
             and bp.battle_time >= $2::timestamptz
             and ${notBoatDefense("bp", { lookupByKey: true })}) w
       where c.account_id = $1 and c.close
-      order by c.player_tag
-      limit ${CIRCLE_MAX}`,
+      order by c.player_tag`,
     [accountId, new Date(fromMs).toISOString(), timezone],
   );
   return rows;

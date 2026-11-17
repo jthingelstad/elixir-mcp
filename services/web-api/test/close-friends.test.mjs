@@ -243,6 +243,30 @@ test("the circle tells this week's battles and days, newest play first, a quiet 
   assert.ok(!/"wins"|"losses"|"rate"|"score"/.test(r.body));
 });
 
+test("every marked friend is in the circle, however many", async () => {
+  // Follows can pass the player slots, so the read keeps every mark.
+  const many = await person("cf-many");
+  const ALPHA = "0289PYLQGRJCUV";
+  const tags = Array.from(
+    { length: 75 },
+    (_, i) => "#0" + ALPHA[i % 14] + ALPHA[Math.floor(i / 14)] + "QQ2V",
+  );
+  for (const tag of tags) {
+    await scratch.db.query(
+      "insert into player(player_tag,name) values ($1,$2) on conflict do nothing",
+      [tag, `Many ${tag.slice(1, 5)}`],
+    );
+    await scratch.db.query(
+      `insert into claim(account_id,player_tag,status,is_primary,relationship,close)
+       values ($1,$2,'unverified',false,'friend',true)`,
+      [many, tag],
+    );
+  }
+  const r = await call(many, "GET", "/api/me/home/circle");
+  assert.equal(r.statusCode, 200, r.body);
+  assert.equal(data(r).circle.friends.length, tags.length);
+});
+
 test("the circle is gated as its neighbours", async () => {
   const r = await handler({
     path: "/api/me/home/circle",
