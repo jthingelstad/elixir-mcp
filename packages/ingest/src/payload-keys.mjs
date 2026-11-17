@@ -220,9 +220,7 @@ export const PAYLOAD_KEYS = {
     "badges[].maxLevel": to("player_badge.max_level", opt),
     "badges[].progress": to("player_badge.progress", opt),
     "badges[].target": to("player_badge.target", opt),
-    "badges[].iconUrls.large": dropped(
-      "a badge catalog row per name is Tier 2",
-    ),
+    "badges[].iconUrls.large": to("badge_art.icon_url"),
     "achievements[].name": dropped(
       "twelve fixed rows per player; player_achievement is Tier 2",
     ),

@@ -292,7 +292,11 @@ const ITEMS = [
       max_level: 10,
       prior_level: 9,
     },
-    { moment_card: { id: 26000000, name: "Knight", form: "base" } },
+    {
+      moment_card: { id: 26000000, name: "Knight", form: "base" },
+      // Badge art (0288) the mirror has not copied yet: the card draws.
+      badge_art: "/assets/badges/kn-10-not-mirrored.png",
+    },
   ),
   session(MOSS, 160, {
     results: "wwwlwwwwlwww",
@@ -368,13 +372,23 @@ const ITEMS = [
       prior_level: 14,
     },
   ),
-  moment(BRAM, 308, "twelve_win_run", "Bram won 12 in Grand Challenge.", {
-    badge: "Grand12Wins",
-    badge_label: "Grand Challenge 12 Wins",
-    challenge: "Grand Challenge",
-    runs: 4,
-    runs_before: 3,
-  }),
+  moment(
+    BRAM,
+    308,
+    "twelve_win_run",
+    "Bram won 12 in Grand Challenge.",
+    {
+      badge: "Grand12Wins",
+      badge_label: "Grand Challenge 12 Wins",
+      challenge: "Grand Challenge",
+      runs: 4,
+      runs_before: 3,
+      level: 2,
+      prior_level: 1,
+    },
+    // The badge's own art (0288), as the mirror names it.
+    { badge_art: "/assets/badges/g12-2.png" },
+  ),
   session(SAGE, 320, {
     results: "wwlwlwl",
     mode: "ranked",

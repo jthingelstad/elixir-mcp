@@ -46,8 +46,19 @@
  *    node infra/scripts/mirror-card-art.mjs [--catalog <file|url>]
  *    node infra/scripts/mirror-card-art.mjs --seed-bucket <bucket> [--catalog <file|url>]
  *
- *  Card art is used under Supercell's Fan Content Policy; every surface
- *  that shows it carries the disclaimer.
+ *  Badge art (2026-11-17, the owner: "Yes use badge art. For sure.") is
+ *  mirrored the same way, into apps/site/src/assets/badges: the icons
+ *  the live badge list (/api/public/badges) names, one file per icon,
+ *  named by the icon URL's own opaque id (contracts' badgeArtPath). That
+ *  id changes when the image does, so a file the mirror already holds is
+ *  the image and is not fetched again. A badge list that does not answer
+ *  (the deploy that first ships the route) warns and ships what the
+ *  bucket held.
+ *
+ *    node infra/scripts/mirror-card-art.mjs --seed-bucket <bucket> [--badges <file|url>]
+ *
+ *  Card and badge art are used under Supercell's Fan Content Policy;
+ *  every surface that shows them carries the disclaimer.
  */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -58,7 +69,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../..");
 export const OUT = path.join(repoRoot, "apps/site/src/assets/cards");
+export const BADGE_OUT = path.join(repoRoot, "apps/site/src/assets/badges");
 const DEFAULT_CATALOG = "https://elixir.poapkings.com/api/public/cards";
+const DEFAULT_BADGES = "https://elixir.poapkings.com/api/public/badges";
 
 /** Each form, its key in the API's iconUrls and its file suffix
  *  (contracts CARD_ART_FORMS; kept here so this script runs without a
@@ -71,6 +84,12 @@ export const FORMS = [
 
 /** The only names the mirror writes. */
 export const ORIGINAL = /^\d+(_evo|_hero)?\.png$/;
+
+/** A badge icon URL and the opaque id the mirrored file is named by
+ *  (contracts' badgeArtPath; a test holds the two together). */
+export const BADGE_ICON =
+  /^https:\/\/api-assets\.clashroyale\.com\/playerbadges\/\d+\/([A-Za-z0-9_-]+)\.png$/;
+export const BADGE_FILE = /^[A-Za-z0-9_-]+\.png$/;
 
 const PNG_SIGNATURE = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
@@ -95,12 +114,23 @@ export function artTasks(cards) {
   return out;
 }
 
+/** Every distinct icon the badge list names: {url, file}. */
+export function badgeTasks(badges) {
+  const seen = new Map();
+  for (const b of badges) {
+    const url = b?.icon_url ?? b?.iconUrls?.large;
+    const id = typeof url === "string" ? BADGE_ICON.exec(url)?.[1] : null;
+    if (id && !seen.has(id)) seen.set(id, { url, file: `${id}.png` });
+  }
+  return [...seen.values()];
+}
+
 /** Remove what the mirror does not write (the old resized copies), so
  *  the site build never ships them. Returns the names removed. */
-export async function pruneLocal(out) {
+export async function pruneLocal(out, keep = ORIGINAL) {
   const removed = [];
   for (const name of await readdir(out).catch(() => [])) {
-    if (ORIGINAL.test(name)) continue;
+    if (keep.test(name)) continue;
     await rm(path.join(out, name), { recursive: true, force: true });
     removed.push(name);
   }
@@ -109,9 +139,17 @@ export async function pruneLocal(out) {
 
 /** Mirror one icon: fetch it, and keep exactly its bytes.
  *  @returns {Promise<{file: string, status: string, sha256?: string, bytes?: number, detail?: string}>} */
-async function mirrorOne(task, { out, fetchImpl }) {
+async function mirrorOne(task, { out, fetchImpl, keepHeld = false }) {
   const target = path.join(out, task.file);
   const held = await readOrNull(target);
+  // A badge file is named by its image's id: one held is that image.
+  if (held && keepHeld)
+    return {
+      file: task.file,
+      status: "held",
+      sha256: sha256(held),
+      bytes: held.length,
+    };
   const res = await fetchImpl(task.url, {
     signal: AbortSignal.timeout(30000),
   }).catch((err) => ({ ok: false, status: err.message }));
@@ -195,6 +233,46 @@ export async function mirrorCards({
   };
 }
 
+/** Mirror every icon the badge list names into `out`: only the ones it
+ *  does not hold are fetched. */
+export async function mirrorBadges({
+  badges,
+  out = BADGE_OUT,
+  fetchImpl = fetch,
+  concurrency = 8,
+}) {
+  await mkdir(out, { recursive: true });
+  const pruned = await pruneLocal(out, BADGE_FILE);
+  const tasks = badgeTasks(badges);
+  const results = new Array(tasks.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, tasks.length) }, async () => {
+      while (next < tasks.length) {
+        const i = next++;
+        results[i] = await mirrorOne(tasks[i], {
+          out,
+          fetchImpl,
+          keepHeld: true,
+        });
+      }
+    }),
+  );
+  const count = (s) => results.filter((r) => r.status === s).length;
+  const names = (s) => results.filter((r) => r.status === s).map((r) => r.file);
+  return {
+    results,
+    summary: {
+      icons: tasks.length,
+      held: count("held"),
+      written: count("written"),
+      missing: names("missing"),
+      refused: names("refused"),
+      pruned: pruned.length,
+    },
+  };
+}
+
 async function loadCatalog(source) {
   if (/^https?:/.test(source)) {
     const res = await fetch(source, { signal: AbortSignal.timeout(30000) });
@@ -206,21 +284,21 @@ async function loadCatalog(source) {
 
 /** The originals the site bucket already holds, copied down: never the
  *  old resized copies (every one of their names has a hyphen). */
-function seedFromBucket(bucket, out) {
+function seedFromBucket(bucket, out, prefix = "assets/cards") {
   execFileSync(
     "aws",
     [
       "s3",
       "sync",
-      `s3://${bucket}/assets/cards`,
+      `s3://${bucket}/${prefix}`,
       out,
       "--only-show-errors",
       "--exclude",
       "*",
       "--include",
       "*.png",
-      "--exclude",
-      "*-*",
+      // The old resized card copies all have a hyphen; a badge id can.
+      ...(prefix === "assets/cards" ? ["--exclude", "*-*"] : []),
     ],
     { stdio: "inherit" },
   );
@@ -249,6 +327,29 @@ async function main() {
       "[art] missing forms are expected for about two weeks after Supercell lists a card or form; surfaces draw the base card until the next deploy finds the image.",
     );
   console.log(JSON.stringify(summary));
+  await mainBadges(bucket);
+}
+
+/** Badge art after card art: its own failure is a warning, so it never
+ *  costs the cards a run. */
+async function mainBadges(bucket) {
+  try {
+    await mkdir(BADGE_OUT, { recursive: true });
+    await pruneLocal(BADGE_OUT, BADGE_FILE);
+    if (bucket) seedFromBucket(bucket, BADGE_OUT, "assets/badges");
+    const list = await loadCatalog(arg("badges", DEFAULT_BADGES));
+    const { results, summary } = await mirrorBadges({
+      badges: list.badges ?? list,
+    });
+    for (const r of results)
+      if (r.status !== "held")
+        console.log(
+          `[badge-art] ${r.file} ${r.status}${r.detail ? ` (${r.detail})` : ""}${r.sha256 ? ` sha256 ${r.sha256}` : ""}`,
+        );
+    console.log(JSON.stringify(summary));
+  } catch (err) {
+    console.error(`WARNING: badge art mirror failed: ${err.message}`);
+  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) await main();

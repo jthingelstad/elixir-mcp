@@ -7917,6 +7917,19 @@ a.kit-line__go:hover {
   background: var(--info-fill);
   color: var(--accent-bright);
 }
+/* A badge's own art (0288): the game's icon, whole and unaltered, sized
+   by width alone so its own proportions hold. No background, border,
+   radius, filter or overlay. */
+.kit-mart--badge img {
+  display: block;
+  width: 56px;
+  height: auto;
+}
+.kit-line__art--badge img {
+  display: block;
+  width: 24px;
+  height: auto;
+}
 /* A day's Mastery cards side by side, each whole. */
 .kit-mart--cards {
   gap: 4px;

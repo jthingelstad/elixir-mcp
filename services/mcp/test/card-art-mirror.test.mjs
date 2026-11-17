@@ -11,11 +11,18 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { CARD_ART_FORMS, cardArtPath } from "@elixir-mcp/contracts";
 import {
+  CARD_ART_FORMS,
+  badgeArtPath,
+  cardArtPath,
+} from "@elixir-mcp/contracts";
+import {
+  BADGE_FILE,
   FORMS,
   ORIGINAL,
   artTasks,
+  badgeTasks,
+  mirrorBadges,
   mirrorCards,
 } from "../../../infra/scripts/mirror-card-art.mjs";
 
@@ -197,12 +204,83 @@ test("the old resized copies are removed from the cache, so the site never ships
   }
 });
 
+// Badge art (0288, 2026-11-17): the same byte-identical copy, named by
+// the icon URL's own opaque id. Ids here are made up; the shape is the API's.
+const BADGES = [
+  {
+    name: "YearsPlayed",
+    level: 5,
+    icon_url: `${CDN}/playerbadges/512/yp-5.png`,
+  },
+  {
+    name: "YearsPlayed",
+    level: 6,
+    icon_url: `${CDN}/playerbadges/512/yp_6.png`,
+  },
+  // Two rows naming one image are one file.
+  { name: "Other", level: 0, icon_url: `${CDN}/playerbadges/512/yp_6.png` },
+  // Not the API's badge host: never fetched.
+  { name: "Odd", level: 0, icon_url: "https://x.example/odd.png" },
+];
+
+test("the badge mirror's names are contracts' own", () => {
+  const tasks = badgeTasks(BADGES);
+  assert.deepEqual(
+    tasks.map((t) => t.file),
+    ["yp-5.png", "yp_6.png"],
+  );
+  for (const t of tasks) {
+    assert.equal(`/assets/badges/${t.file}`, badgeArtPath(t.url));
+    assert.match(t.file, BADGE_FILE);
+  }
+  assert.equal(badgeArtPath("https://x.example/odd.png"), null);
+});
+
+test("the badge mirror stores each icon's exact bytes and fetches only what it lacks", async () => {
+  const out = await mkdtemp(path.join(tmpdir(), "badge-art-"));
+  try {
+    const files = new Map([
+      [BADGES[0].icon_url, png()],
+      [BADGES[1].icon_url, png()],
+    ]);
+    const { fetchImpl, asked } = cdn(files);
+    await writeFile(path.join(out, "stray.txt"), "x");
+    const { summary } = await mirrorBadges({ badges: BADGES, out, fetchImpl });
+    assert.equal(summary.written, 2);
+    assert.equal(summary.pruned, 1, "what the mirror does not write goes");
+    for (const [url, bytes] of files) {
+      const stored = await readFile(path.join(out, path.basename(url)));
+      assert.ok(stored.equals(bytes), `${url} is byte-identical`);
+      assert.equal(sha(stored), sha(bytes));
+    }
+    assert.ok(!asked.includes("https://x.example/odd.png"));
+    // The id names the image: a file held is not asked for again.
+    asked.length = 0;
+    const again = await mirrorBadges({ badges: BADGES, out, fetchImpl });
+    assert.equal(again.summary.held, 2);
+    assert.deepEqual(asked, []);
+    // A non-PNG is refused, never converted.
+    const svg = `${CDN}/playerbadges/512/new.png`;
+    const refused = await mirrorBadges({
+      badges: [{ name: "New", level: 1, icon_url: svg }],
+      out,
+      fetchImpl: cdn(new Map([[svg, png()]]), { type: "image/svg+xml" })
+        .fetchImpl,
+    });
+    assert.deepEqual(refused.summary.refused, ["new.png"]);
+    assert.ok(!existsSync(path.join(out, "new.png")));
+  } finally {
+    await rm(out, { recursive: true, force: true });
+  }
+});
+
 // The boundary: no card-art path can reach image code. The mirror
 // imports only Node's own modules, the PNG codec it once used is gone,
 // and no surface asks for a width.
 const CARD_ART_PATHS = [
   "infra/scripts/mirror-card-art.mjs",
   "packages/contracts/src/card-art.ts",
+  "packages/contracts/src/badge-art.ts",
   "packages/ui/src/Cards.tsx",
   "packages/mail/src/cards.mjs",
   "apps/site/src/_lib/cards.mjs",

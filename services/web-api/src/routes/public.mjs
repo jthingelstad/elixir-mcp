@@ -1,6 +1,7 @@
 import { json } from "../http.mjs";
 import {
   DISCLAIMER,
+  badgeArt,
   cardArt,
   cardForms,
   cardType,
@@ -26,6 +27,30 @@ export function publicRoutes({ deadLetters }) {
         {
           cards: catalog.cards,
           as_of: catalog.as_of,
+          disclaimer: DISCLAIMER,
+        },
+        { "cache-control": "public, max-age=3600" },
+      );
+    },
+
+    // The game's badge art, PUBLIC and sign-in free (2026-11-17, the
+    // owner: "Yes use badge art. For sure."): each badge and level a
+    // read profile has carried, its icon URL and the mirrored copy on
+    // this origin. Reference only: no player, no count of holders. The
+    // deploy's mirror reads this list (infra/scripts/mirror-card-art.mjs).
+    "GET /api/public/badges": async (db) => {
+      const { rows } = await db.query(
+        `select name, level, icon_url from badge_art order by name, level`,
+      );
+      return json(
+        200,
+        {
+          badges: rows.map((r) => ({
+            name: r.name,
+            level: r.level,
+            icon_url: r.icon_url,
+            art: badgeArt(r.icon_url),
+          })),
           disclaimer: DISCLAIMER,
         },
         { "cache-control": "public, max-age=3600" },

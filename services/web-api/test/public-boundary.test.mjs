@@ -63,6 +63,10 @@ const PUBLIC = {
   // import reads it with no key.
   "GET /api/public/cards": "reference",
   "GET /api/public/cards/*": "reference",
+  // The game's badge art (2026-11-17): each badge and level's icon and
+  // its mirrored copy; no player, no holder count. The deploy's mirror
+  // reads it.
+  "GET /api/public/badges": "reference",
   // A private link: your timeline's RSS feed (#765, DECISIONS "Your
   // timeline is an RSS feed"). A feed reader cannot sign in, so the
   // link's token is the credential; a token that opens nothing is a 404
