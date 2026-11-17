@@ -236,9 +236,10 @@ export function mergeAccountLines(lines, stamps) {
  *  (2026-11-16), newest first, each naming its author as the comment
  *  does (their account's primary player and its page) with a clip of the
  *  words. None from anyone in a block with you. This list is the one
- *  place comments reach you: web push and the activity mail read the
- *  bell (DECISIONS "Comments, checked before they post"), and the words
- *  are hostile input, escaped wherever they are shown. */
+ *  place comments reach you (DECISIONS "Comments, checked before they
+ *  post"): the activity mail and push (tools activity/bell.mjs
+ *  readAwayActivity) carry cheers and follows only. The words are hostile
+ *  input, escaped wherever they are shown. */
 async function readComments(db, accountId, seen) {
   const { rows } = await db.query(
     `select tc.comment_id::text as comment_id, tc.item_id, tc.body,
