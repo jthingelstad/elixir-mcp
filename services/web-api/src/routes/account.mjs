@@ -8,6 +8,7 @@ import {
   addPlayer,
   linkAfterFollow,
   linkedTagsToFollow,
+  setClose,
   setRelationship,
   playerCosts,
   poolLimits,
@@ -99,6 +100,23 @@ export function accountRoutes({
       );
       if (rowCount === 0) return json(404, { error: "not_found" });
       return json(200, { ok: true, notify: action === "notify_on" });
+    }
+    // A close friend (0281): the reader's private mark on a friend follow,
+    // kept in step across a linked account's players (close.mjs). An
+    // agent follows as watching only, so it has no friends to mark.
+    if (action === "close_on" || action === "close_off") {
+      if (account.kind === "agent") return json(403, { error: "not_entitled" });
+      const r = await setClose(db, account, {
+        tag,
+        close: action === "close_on",
+      });
+      if (r.error === "not_found") return json(404, { error: r.error });
+      if (r.error)
+        return json(409, {
+          error: r.error,
+          message: "Only a player you follow as a friend can be a close friend.",
+        });
+      return json(200, r);
     }
     /**
      * The writer this column never had.
@@ -281,7 +299,7 @@ export function accountRoutes({
       // anyway, so Promise.all bought no parallelism and only tripped the
       // deprecation (docs/ENGINEERING.md: one client, one query at a time).
       const claims = await db.query(
-        `select c.player_tag, c.status, c.verified_at, c.is_primary, c.notify, c.relationship,
+        `select c.player_tag, c.status, c.verified_at, c.is_primary, c.notify, c.relationship, c.close,
                   p.name, p.last_known_clan_tag,
                   nn.nickname
            from claim c

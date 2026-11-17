@@ -5,8 +5,10 @@
  *
  *   groups     which of Home's chips it belongs under: "you" (your own
  *              players, and the account's own items), "friends", "clan"
- *              (a clan you follow, or one of its members). Everyone is
- *              every item, so it is never named.
+ *              (a clan you follow, or one of its members), and "close"
+ *              (a player you marked a close friend, 0281: the reader's
+ *              own mark, in the reader's own read). Everyone is every
+ *              item, so it is never named.
  *   spark      a sitting's battles in order, for the sparkline: each
  *              battle's outcome and crown margin. Sessions only.
  *   battle_url the battle that proved a moment, as its public page.
@@ -68,7 +70,7 @@ const tagsOf = (it) =>
 /** Which chips an item sits under, from the account's own subjects. An
  *  item about nobody the account follows is the account's own (its
  *  administration, a feedback answer), so it is yours. */
-export function groupsOf(it, subjects) {
+export function groupsOf(it, subjects, close = null) {
   const own = new Set();
   const friends = new Set();
   const clans = new Set();
@@ -91,7 +93,18 @@ export function groupsOf(it, subjects) {
     groups.push("you");
   if (person || any(friends)) groups.push("friends");
   if (any(clans)) groups.push("clan");
+  if (close?.size && any(close)) groups.push("close");
   return groups;
+}
+
+/** The players the reader marked close friends (0281), as a set of tags.
+ *  The account's own read only: never another member's, never MCP. */
+export async function closeTags(db, accountId) {
+  const { rows } = await db.query(
+    `select player_tag from claim where account_id = $1 and close`,
+    [accountId],
+  );
+  return new Set(rows.map((r) => r.player_tag));
 }
 
 /** A sitting's battles as the sparkline draws them: "w", "l" or "d", and
@@ -153,7 +166,7 @@ export function avatarTagOf(it) {
 }
 
 /** The timeline's items with Home's fields added. */
-export async function annotateFeed(db, timeline, subjects) {
+export async function annotateFeed(db, timeline, subjects, close = null) {
   const items = timeline ?? [];
   const proofs = items.map(proofOf);
   const links = await battleLinks(db, proofs.filter(Boolean));
@@ -168,7 +181,7 @@ export async function annotateFeed(db, timeline, subjects) {
     const proofMode = proofs[i] ? proofModeOf(it) : null;
     return {
       ...it,
-      groups: groupsOf(it, subjects),
+      groups: groupsOf(it, subjects, close),
       ...(spark ? { spark } : {}),
       ...(scores ? { scores } : {}),
       ...(deck ? { deck } : {}),

@@ -25,9 +25,10 @@ import { lastGameWeek } from "@elixir-mcp/record/game-week";
 
 import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
-import { annotateFeed, groupsOf } from "../feed.mjs";
+import { annotateFeed, closeTags, groupsOf } from "../feed.mjs";
 import { cheersReceived, withCheers } from "../cheers.mjs";
 import { firstAnswer } from "../first-answer.mjs";
+import { readCircle } from "../circle.mjs";
 import { homeClan, myClans } from "./clans.mjs";
 
 /** Home's reads: the app's own internal API, not a JSON API version. The
@@ -695,6 +696,9 @@ async function readFeed(db, account, cursor, wake) {
     perf,
   });
   const all = [...week.items].sort(feedOrder);
+  // Close friends (0281): read apart from the stored week, so marking one
+  // never changes the week's subjects or makes it rebuild.
+  const close = await closeTags(db, account.accountId);
   let start = cursor?.offset ?? 0;
   if (cursor?.last) {
     const after = all.findIndex((it) => feedAfter(it, cursor.last));
@@ -712,7 +716,7 @@ async function readFeed(db, account, cursor, wake) {
     // counts and the reader's own, never who (slice 7, #765).
     timeline: await withCheers(
       db,
-      await annotateFeed(db, page, week.subjects),
+      await annotateFeed(db, page, week.subjects, close),
       account.accountId,
     ),
     total: all.length,
@@ -723,11 +727,17 @@ async function readFeed(db, account, cursor, wake) {
     timeline_more: week.more,
   };
   if (!cursor) {
-    const counts = { everyone: all.length, you: 0, friends: 0, clan: 0 };
+    const counts = {
+      everyone: all.length,
+      you: 0,
+      friends: 0,
+      clan: 0,
+      close: 0,
+    };
     const seenMs = seen_to ? Date.parse(seen_to) : null;
     let fresh = 0;
     for (const it of all) {
-      for (const g of groupsOf(it, week.subjects)) counts[g] += 1;
+      for (const g of groupsOf(it, week.subjects, close)) counts[g] += 1;
       if (seenMs !== null && Date.parse(it.observed_at ?? it.at) > seenMs)
         fresh += 1;
     }
@@ -983,6 +993,24 @@ export function homeRoutes({
       const cursor = q.cursor ? readCursor(q.cursor) : null;
       if (q.cursor && !cursor) return json(400, { error: "invalid_cursor" });
       return json(200, await readFeed(db, account, cursor, wake));
+    },
+
+    // Your circle this week (2026-11-16): the close friends the reader
+    // marked, and how each played since Monday's reset; with none marked,
+    // who to offer. One panel, gated and charged as its neighbours.
+    "GET /api/me/home/circle": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (!(await panelRate(db, account)))
+        return json(429, { error: "rate_limited" });
+      const { timezone } = await homeAccount(db, account.accountId);
+      const circle = await panel("circle", () =>
+        readCircle(db, account, {
+          timezone: account.timezone ?? timezone ?? "UTC",
+          wake,
+        }),
+      );
+      return json(200, { circle });
     },
 
     // Home's "N new" pill (2026-11-14): how many of the stored week's

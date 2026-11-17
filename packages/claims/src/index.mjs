@@ -33,6 +33,7 @@ export {
   verifiedPlayersOf,
   verifierOf,
 } from "./linked.mjs";
+export { setClose } from "./close.mjs";
 
 /**
  * Who is subscribed to what, and therefore what gets recorded.
@@ -389,10 +390,13 @@ export async function addPlayer(
     // An explicit make_primary on a tag already claimed still switches.
     if (claimed === 0 && makePrimary === true) {
       await db.query(
+        // A close friend made primary is no longer a friend: the mark
+        // goes with the friendship (0281's check).
         `update claim set is_primary = (player_tag = $2),
                 relationship = case when player_tag = $2 then 'primary'
                                     when relationship = 'primary' then 'watching'
-                                    else relationship end where account_id = $1`,
+                                    else relationship end,
+                close = close and player_tag <> $2 where account_id = $1`,
         [account.accountId, tag],
       );
     }
@@ -489,7 +493,9 @@ export async function setRelationship(db, account, { tag, relationship }) {
       return { ok: false, ...VERIFIED_ELSEWHERE };
     }
     const { rowCount } = await db.query(
-      `update claim set relationship = $3
+      // A close friend made an alt or watched is no longer a friend: the
+      // mark goes with the friendship (0281's check).
+      `update claim set relationship = $3, close = close and $3 = 'friend'
         where account_id = $1 and player_tag = $2 and not is_primary`,
       [account.accountId, tag, relationship],
     );

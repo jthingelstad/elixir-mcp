@@ -101,7 +101,7 @@ async function latestTrophies(db, tag) {
  *  home clan (which door Stats and Clan are on the page). */
 async function readerSide(db, accountId, tag, clanTag) {
   const { rows } = await db.query(
-    `select is_primary, relationship from claim
+    `select is_primary, relationship, close from claim
       where account_id = $1 and player_tag = $2`,
     [accountId, tag],
   );
@@ -116,6 +116,9 @@ async function readerSide(db, accountId, tag, clanTag) {
     // Following is the reader's own Follow, a friend claim. A watched
     // player is recorded, not followed: the page still offers Follow.
     following: !own && claim?.relationship === "friend",
+    // A close friend (0281): the reader's own private mark, in the reader's
+    // own block, never anywhere another member reads.
+    close: !own && claim?.relationship === "friend" && claim?.close === true,
     relationship: own ? "own" : (claim?.relationship ?? null),
     clanmate:
       !own && home && clanTag && home.clan_tag === clanTag
