@@ -231,3 +231,39 @@ test("never: a new follow's first read, a drawn deck, a late capture, or a win t
   });
   assert.deepEqual(await firstWins(OTHER), []);
 });
+
+test("the read before the unlock on the same game day: its snapshot row was overwritten, and the win between still counts", async () => {
+  // Game day 2026-11-10 starts at 10:00Z. Both reads fall in it, so the
+  // day's one snapshot row ends holding the second read's time.
+  const TAG = "#009YP8UQC";
+  await profile(TAG, T0, BASE);
+  const won = await battle(TAG, T0 + HOUR);
+  // The log delivered the win before any read showed the card.
+  await detectFirstWins(ctx.db, {
+    playerTag: TAG,
+    mark: iso(T0),
+    observedAt: iso(T0 + HOUR + 60_000),
+  });
+  assert.deepEqual(await firstWins(TAG), [], "not new yet");
+  await profile(TAG, T0 + 2 * HOUR, [...BASE, card(MUSKETEER, "Musketeer")]);
+  const rows = await firstWins(TAG);
+  assert.equal(rows.length, 1, "the profile read writes it");
+  assert.equal(rows[0].payload.battle_id, won);
+});
+
+test("a first win the record held before this rule shipped keeps a later live win silent", async () => {
+  const TAG = "#00C8VGLL";
+  await profile(TAG, T0 - DAY, BASE);
+  // The unlock read and a prompt first win after it, with no
+  // battle-log detection run: the rule had not shipped.
+  await profile(TAG, T0, [...BASE, card(MUSKETEER, "Musketeer")]);
+  await battle(TAG, T0 + HOUR);
+  // A later live read delivers another win with it.
+  await battle(TAG, T0 + 2 * DAY);
+  await detectFirstWins(ctx.db, {
+    playerTag: TAG,
+    mark: iso(T0 + 2 * DAY - HOUR),
+    observedAt: iso(T0 + 2 * DAY + HOUR),
+  });
+  assert.deepEqual(await firstWins(TAG), [], "the first was not this read's");
+});

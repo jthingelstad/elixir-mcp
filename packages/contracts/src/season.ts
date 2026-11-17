@@ -48,7 +48,7 @@ export function preResetWindowStart(now: Date): Date {
  * pinned equal by the ingest tests. UTC arithmetic only, so DST cannot
  * move it. Returns YYYY-MM-DD.
  */
-const GAME_DAY_RESET_MS = 10 * 3600_000;
+export const GAME_DAY_RESET_MS = 10 * 3600_000;
 export function gameDay(at: Date | number | string): string {
   const ms = typeof at === "number" ? at : new Date(at).getTime();
   if (!Number.isFinite(ms)) throw new Error(`gameDay: not an instant: ${at}`);

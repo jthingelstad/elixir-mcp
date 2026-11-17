@@ -31,10 +31,17 @@
  */
 
 import { emitEvent } from "./events.mjs";
-import { CARD_FORM_BITS } from "@elixir-mcp/contracts";
+import {
+  CARD_FORM_BITS,
+  GAME_DAY_RESET_MS,
+  gameDay,
+} from "@elixir-mcp/contracts";
 
 const FRESH_DAYS = 28;
 const DAY = 24 * 3600_000;
+/** The instant the game day holding `at` began (a snapshot row's day). */
+const gameDayStart = (at) =>
+  new Date(Date.parse(`${gameDay(at)}T00:00:00Z`) + GAME_DAY_RESET_MS);
 /** As tools' DRAWN_DECKS: the player did not bring their own deck. */
 const DRAWN = ["draft", "draftCompetitive", "pick", "predefined", "unknown"];
 
@@ -78,9 +85,12 @@ async function unlocksOf(db, playerTag, since, cardIds = null) {
     card_id: r.card_id,
     bit: r.bit ?? null,
     seen_at: r.seen_at,
-    // No read before: the unlock was not seen against a prior collection,
-    // which card_unlocked never is; guard all the same.
-    held_after: r.held_after ?? r.seen_at,
+    // No earlier day's row: the read before the unlock was on the same
+    // game day, and the day's snapshot row now holds the unlock read's
+    // time (one row a day). That read was no earlier than the day's
+    // start, and the card was not held at it, so no win with the card
+    // is older than the start of the day.
+    held_after: r.held_after ?? gameDayStart(r.seen_at),
   }));
 }
 
@@ -119,7 +129,7 @@ async function written(db, playerTag, { card_id, bit }) {
  *  fresh; returns 1 when written. */
 async function writeFirstWin(
   db,
-  { playerTag, unlock, upTo, observedAt, receiptId },
+  { playerTag, unlock, upTo, observedAt, receiptId, after = null },
 ) {
   if (await written(db, playerTag, unlock)) return 0;
   const wins = (await winsIn(db, playerTag, unlock.held_after, upTo)).filter(
@@ -128,6 +138,10 @@ async function writeFirstWin(
   const first = wins[0];
   if (!first) return 0;
   const t = first.battle_time.getTime();
+  // From a battle-log read: the first win must be one this read
+  // delivered. One the record already held (before this rule shipped,
+  // say) keeps every later win silent rather than being told now.
+  if (after !== null && t <= Date.parse(after)) return 0;
   if (first.created_at.getTime() - t > DAY) return 0; // a late capture
   if (unlock.seen_at.getTime() - t > FRESH_DAYS * DAY) return 0;
   if (t - unlock.seen_at.getTime() > FRESH_DAYS * DAY) return 0;
@@ -189,6 +203,7 @@ export async function detectFirstWins(
       upTo: observedAt,
       observedAt,
       receiptId,
+      after: mark,
     });
   return { written: n };
 }
