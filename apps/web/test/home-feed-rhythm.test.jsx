@@ -220,17 +220,23 @@ test("2026-11-17: small moments are lines, and several in a row are one group", 
       card_id: 26000021,
     },
   );
-  const king = small(
+  const run = small(
     "m2",
-    "king_tower_leveled",
+    "challenge_best_run",
     "#0YCLUPC9",
     "Ash",
-    "Ash reached King Tower level 15.",
+    "Ash's best challenge run is now 9 wins.",
     {
-      level: 15,
+      best: 9,
     },
   );
   expect(smallMoment(maxed)).toBe(true);
+  // A King Tower level keeps its card (the owner, 2026-11-17).
+  expect(
+    smallMoment(
+      small("k", "king_tower_leveled", "#0YCLUPC9", "Ash", "x", { level: 15 }),
+    ),
+  ).toBe(false);
   // A headline keeps its card; so does a clan's item or a close friend's.
   expect(
     smallMoment(small("h", "best_trophies_band", "#0QPPRRC9", "Pip", "x")),
@@ -251,10 +257,10 @@ test("2026-11-17: small moments are lines, and several in a row are one group", 
   // moment never folds with a session.
   const s = session("s", "#0QPPRRC9", "Pip");
   expect(
-    feedRows([row(maxed), row(king), row(s), row(maxed)]).map((r) => r.type),
+    feedRows([row(maxed), row(run), row(s), row(maxed)]).map((r) => r.type),
   ).toEqual(["moments", "line", "moment"]);
 
-  renderWithProviders(<FeedRows rows={[row(maxed), row(king)]} />);
+  renderWithProviders(<FeedRows rows={[row(maxed), row(run)]} />);
   const toggle = screen.getByRole("button", {
     name: /2 moments from Pip and Ash/,
   });
@@ -262,7 +268,7 @@ test("2026-11-17: small moments are lines, and several in a row are one group", 
   const body = document.getElementById(toggle.getAttribute("aria-controls"));
   expect(within(body).getAllByRole("article")).toHaveLength(2);
   expect(body.textContent).toMatch(/Maxed Hog Rider\./);
-  expect(body.textContent).toMatch(/Reached King Tower level 15\./);
+  expect(body.textContent).toMatch(/Best challenge run is now 9 wins\./);
 });
 
 test("2026-11-17: the profile moments' heads", () => {
