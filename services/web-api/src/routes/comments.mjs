@@ -255,13 +255,18 @@ export function commentsRoutes({
         } catch {
           target = null;
         }
-      } else if (body?.post_id != null && posts) {
-        // A post's author (2026-11-17), as a comment's.
+      } else if (body?.post_id != null) {
+        // A post's author (2026-11-17), as a comment's. A post about a
+        // battle is drawn with posts off too (0292), so its author can be
+        // blocked from it either way; a plain post's only while posts are
+        // on (Codex on #1117).
         const id = String(body.post_id);
         if (/^[1-9][0-9]{0,18}$/.test(id)) {
           const { rows } = await db.query(
-            `select account_id from account_post where post_id = $1::bigint`,
-            [id],
+            `select account_id from account_post
+              where post_id = $1::bigint
+                and (battle_id is not null or $2::boolean)`,
+            [id, posts === true],
           );
           target = rows[0]?.account_id ?? null;
         }

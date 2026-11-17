@@ -8,7 +8,8 @@
  * item id the timeline served for it (storyId in @elixir-mcp/tools), so
  * cheers and comments keyed by that id still name it. After it, the old
  * table refuses writes, and a delete on it (the old code's, an account
- * removal's or a battle cascade's) takes the post with it. Invented tags.
+ * removal's or a battle cascade's) takes the post with it, and a post's
+ * delete takes the frozen row, so its words never outlive it. Invented tags.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -38,6 +39,8 @@ async function before0292(db) {
   await db.query(`
     drop trigger battle_highlight_moved on battle_highlight;
     drop function battle_highlight_moved();
+    drop trigger account_post_battle_gone on account_post;
+    drop function account_post_battle_gone();
     delete from account_post where battle_id is not null;
     drop index account_post_player_battle, account_post_battle,
                account_post_player_changed;
@@ -243,4 +246,33 @@ test("after 0292 a post's battle excludes a deck, and only a battle post may be 
     ),
     /account_post_battle_fkey/,
   );
+});
+
+test("after 0292 deleting a post that was a highlight takes the frozen row", async () => {
+  const db = scratch.db;
+  const frozen = async () =>
+    (
+      await db.query(
+        `select highlight_id from battle_highlight where highlight_id = $1`,
+        [H.shared],
+      )
+    ).rows.length;
+  assert.equal(await frozen(), 1);
+  // The author's delete (posts.mjs deletePost), or the purge of a removed
+  // one, or retention: each deletes the account_post row.
+  await db.query(`delete from account_post where item_id = $1`, [
+    storyId("battle_highlight", H.shared),
+  ]);
+  assert.equal(await frozen(), 0);
+  // A plain post's delete touches no frozen row.
+  const { rows } = await db.query(
+    `select count(*)::int as n from battle_highlight`,
+  );
+  await db.query(
+    `delete from account_post where item_id = 'tl_00000000000000000001'`,
+  );
+  const { rows: after } = await db.query(
+    `select count(*)::int as n from battle_highlight`,
+  );
+  assert.equal(after[0].n, rows[0].n);
 });

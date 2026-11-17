@@ -33,7 +33,8 @@
 -- write fails and is made again after it). A delete goes through and
 -- takes the post the row became with it, so a highlight deleted in those
 -- minutes, a person removed, or a battle the record drops (by cascade)
--- leaves no post behind. The table is dropped by the contract migration
+-- leaves no post behind; and a post's own delete takes its frozen row
+-- (below). The table is dropped by the contract migration
 -- in a later deploy, once no deployed code reads it.
 --
 -- account_post is a day old and battle_highlight a week old, both small
@@ -117,6 +118,29 @@ end $$;
 create trigger battle_highlight_moved
   before insert or update or delete on battle_highlight
   for each row execute function battle_highlight_moved();
+
+-- And the other way: a post about a battle that was a highlight takes the
+-- frozen row with it when it goes (its author's delete, the purge of a
+-- removed one, retention), so the words never outlive the post (Codex on
+-- #1117). Only on a delete made directly (trigger depth 1): one the frozen
+-- row's own trigger makes is already taking that row, and a battle's
+-- cascade takes the frozen row by its own foreign key.
+create function account_post_battle_gone() returns trigger
+language plpgsql as $$
+begin
+  delete from battle_highlight
+   where battle_id = old.battle_id
+     and player_tag = old.player_tag
+     and 'tl_' || substr(encode(sha256(convert_to(
+           'battle_highlight|' || highlight_id::text, 'UTF8')), 'hex'), 1, 20)
+         = old.item_id;
+  return old;
+end $$;
+
+create trigger account_post_battle_gone
+  after delete on account_post
+  for each row when (old.battle_id is not null and pg_trigger_depth() < 1)
+  execute function account_post_battle_gone();
 
 comment on column account_post.battle_id is
   '0292: the battle the post is about, played by its player (the foreign key proves it); null for a post about nothing in the record. One per player per battle.';

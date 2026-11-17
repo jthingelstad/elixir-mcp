@@ -41,8 +41,11 @@ fast rather than queueing ingest; the deploy can be retried.
 - **The old table stays, read-only:** a trigger refuses insert and update
   with SQLSTATE 25006 (`read_only_sql_transaction`) and mirrors a delete
   onto the post it became, so an old Lambda mid-deploy, an account removal
-  or a battle cascade still removes it. Dropping `battle_highlight` is a
-  later contract step.
+  or a battle cascade still removes it. The other way, a second trigger
+  deletes the frozen row when its post is deleted directly (its author,
+  the purge of a removed one, retention), so the words never outlive the
+  post (Codex on #1117). Dropping `battle_highlight` is a later contract
+  step (#1119).
 
 `services/migrate/test/battle-posts-migration.test.mjs` runs the file on a
 scratch database put back to 0291, with highlights in every state.
