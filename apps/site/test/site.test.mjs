@@ -76,6 +76,7 @@ const STATIC_PAGES = [
   "/docs/reading-the-numbers",
   "/docs/decks-and-war",
   "/docs/timeline-tool",
+  "/docs/timeline-kinds",
   "/docs/ladder-season",
   "/docs/ladder-battles",
   "/docs/ladder-decks",

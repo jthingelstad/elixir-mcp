@@ -135,10 +135,25 @@ export async function hydratePlayerEvents(db, rows) {
     );
     for (const c of cs) cards.set(c.card_id, c);
   }
+  // A deck switch's two decks by their stamped labels (0289), read now:
+  // a label re-stamped since is said as the record names it today.
+  const deckHashes = [
+    ...new Set(
+      rows.flatMap((r) => [r.deck_hash, r.prior_deck_hash]).filter(Boolean),
+    ),
+  ];
+  const deckLabels = new Map();
+  if (deckHashes.length) {
+    const { rows: ds } = await db.query(
+      `select deck_hash, archetype_label from deck where deck_hash = any($1)`,
+      [deckHashes],
+    );
+    for (const d of ds) deckLabels.set(d.deck_hash, d.archetype_label);
+  }
   const battles = await describeBattles(
     db,
     rows
-      .filter((r) => r.battle_id)
+      .filter((r) => r.battle_id && r.event_type !== "deck_switched")
       .map((r) => ({ battle_id: r.battle_id, player_tag: r.player_tag })),
   );
   for (const r of rows) {
@@ -209,6 +224,18 @@ export async function hydratePlayerEvents(db, rows) {
           ...(r.prior_level !== null ? { prior_level: r.prior_level } : {}),
         });
         break;
+      // The battle moments (0289).
+      case "deck_switched":
+        r.payload = {
+          mode: r.mode_group,
+          deck: deckLabels.get(r.deck_hash) ?? null,
+          deck_hash: r.deck_hash,
+          prior_deck: deckLabels.get(r.prior_deck_hash) ?? null,
+          prior_deck_hash: r.prior_deck_hash,
+          battles: r.battles,
+          wins: r.wins,
+        };
+        break;
       case "arena_changed":
         r.payload = pick({
           from: r.arena_from,
@@ -262,7 +289,8 @@ export async function hydratePlayerEvents(db, rows) {
 export const PLAYER_EVENT_COLUMNS =
   "event_id, player_tag, event_type, timing, window_start, window_end, occurred_at, origin_event_id, evidence_version, evidence_observed_at, " +
   "card_id, badge_name, level, prior_level, max_level, arena_from, arena_to, arena_to_name, " +
-  "league_from, league_to, value_before, value_after, step, battle_id, floor";
+  "league_from, league_to, value_before, value_after, step, battle_id, floor, " +
+  "mode_group, deck_hash, prior_deck_hash, battles, wins, season_month";
 
 export const CLAN_EVENT_COLUMNS =
   "event_id, clan_tag, event_type, timing, window_start, window_end, occurred_at, " +

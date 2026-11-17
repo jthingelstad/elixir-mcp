@@ -35,6 +35,8 @@
     "runs_before": "on a twelve_win_run timeline item only, a rare kind",
     "badge_count": "on a badge_earned item only when it tells a day of several Mastery badges (13.5.0); a run's window may hold none. packages/tools/test/timeline-tool.test.mjs pins it.",
     "three_crown_wins": "on a sitting item only when it held a three-crown win (13.5.0); a quiet window may hold none. packages/tools/test/profile-moments-text.test.mjs pins its sentence.",
+    "deck_switched": "timeline: a kind written only when a live battle-log read sees a member's third battle with a new deck in one mode (13.6.0, going forward only); a run's window may hold none. Pinned by packages/ingest/test/deck-switch.test.mjs and packages/tools/test/timeline-tool.test.mjs.",
+    "prior_deck": "on a deck_switched timeline item only, a kind a run's window may not hold",
     "overtime_wins": "on a sitting item only when the tiebreaker decided one of its wins, a rare case (13.5.0). Pinned by services/web-api/test/home-feed.test.mjs and packages/tools/test/profile-moments-text.test.mjs."
   },
   "players_names": {

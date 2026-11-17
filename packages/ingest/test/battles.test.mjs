@@ -286,6 +286,8 @@ test("empty battlelog is a clean no-op", async () => {
     facts: 0,
     // An empty log writes no mark, so it is no first read.
     firstLog: false,
+    // A replay reads no mark for the deck switch (0289).
+    priorMark: null,
     captureAudit: { audited: false, gap: false },
     arenaEvidence: null,
     affectedPairs: [],
@@ -333,7 +335,13 @@ test("the high-water mark: a live poll drops every battle its log already delive
 
   // Second live poll of the same log: every battle is at or before the
   // mark - skipped before any table is touched, no gap.
+  assert.equal(first.priorMark, null, "a first log has no mark to read past");
   const second = await poll(log, true);
+  assert.match(
+    String(second.priorMark),
+    /^\d{4}-\d\d-\d\dT/,
+    "the mark it read",
+  );
   assert.equal(second.battlesSkipped, log.length, "all skipped");
   assert.equal(second.battlesInserted, 0);
   assert.deepEqual(second.captureAudit, { audited: true, gap: false });

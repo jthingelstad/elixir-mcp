@@ -7677,6 +7677,12 @@ a.kit-feed__name:hover {
 .kit-feed__moment .kit-feed__text {
   margin: 0;
 }
+/* A deck switch (0289): the sentence, then the new deck's eight cards. */
+.kit-feed__moment--deck {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-2);
+}
 .kit-medal {
   display: inline-flex;
   flex: none;

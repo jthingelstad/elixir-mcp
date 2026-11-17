@@ -28,6 +28,13 @@ export function playerEventColumns(type, p = {}) {
     value_before: null,
     value_after: null,
     step: null,
+    // The battle moments (0289).
+    mode_group: null,
+    deck_hash: null,
+    prior_deck_hash: null,
+    battles: null,
+    wins: null,
+    season_month: null,
     battle_id: text(battle?.battle_id),
     floor: int(battle?.arena_floor),
   };
@@ -58,6 +65,35 @@ export function playerEventColumns(type, p = {}) {
         prior_level: int(p.prior_level),
         max_level: int(p.max_level),
         step: int(p.rung),
+      };
+    // A deck newly played in one mode (0289): the first battle with it
+    // is its battle_id.
+    case "deck_switched":
+      return {
+        ...out,
+        mode_group: text(p.mode_group),
+        deck_hash: text(p.deck_hash),
+        prior_deck_hash: text(p.prior_deck_hash),
+        battles: int(p.battles),
+        wins: int(p.wins),
+        battle_id: text(p.first_battle_id),
+      };
+    // A Ranked season's final league once the profile rolled (0289).
+    case "ranked_season_finished":
+      return {
+        ...out,
+        season_month: text(p.season_month),
+        league_to: int(p.league),
+        value_after: int(p.rating),
+      };
+    // The first win with a newly unlocked card or form (0289): the form's
+    // bit in step as card_form_unlocked has it, null for the card itself.
+    case "card_first_win":
+      return {
+        ...out,
+        card_id: int(p.card_id),
+        step: p.form ? (CARD_FORM_BITS[p.form] ?? null) : null,
+        battle_id: text(p.battle_id),
       };
     case "card_maxed":
       return { ...out, card_id: int(p.card_id), level: int(p.level) };
