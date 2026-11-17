@@ -936,7 +936,13 @@ test("13.5.0: badge rungs, one story per badge and per player's Mastery a day, t
     );
     await write(
       tag,
-      { name: "MasteryMinions", level: 5, prior_level: 4, rung: 5 },
+      {
+        name: "MasteryMinions",
+        level: 5,
+        prior_level: 4,
+        max_level: 10,
+        rung: 5,
+      },
       "09",
     );
     await write(
@@ -985,6 +991,10 @@ test("13.5.0: badge rungs, one story per badge and per player's Mastery a day, t
     assert.equal(mastery.facts.badge_count, 2);
     assert.equal(mastery.facts.level, 10);
     assert.equal(mastery.facts.badge, "MasteryHogRider");
+    // Every top-level badge fact is the top badge's own (Codex, #1103):
+    // Hog Rider rose from 3 today, whichever row came last.
+    assert.equal(mastery.facts.prior_level, 3);
+    assert.equal("max_level" in mastery.facts, false);
     assert.equal(mastery.revision, 3, "three level-ups in the story");
     assert.equal(mastery.schema, "badge_earned/3");
     const two = mine.find((it) => it.facts.badge === "2v2");

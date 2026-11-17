@@ -1979,6 +1979,7 @@ function badgeStoryFacts(r) {
   const facts = decorate("badge_earned", r.payload, new Map());
   if (!group || group.rows.length < 2) return facts;
   const byBadge = new Map();
+  const maxLevel = new Map();
   for (const m of group.rows) {
     const cur = byBadge.get(m.payload.name);
     byBadge.set(m.payload.name, {
@@ -1987,6 +1988,7 @@ function badgeStoryFacts(r) {
       level: m.payload.level ?? null,
       prior_level: cur ? cur.prior_level : (m.payload.prior_level ?? null),
     });
+    maxLevel.set(m.payload.name, m.payload.max_level ?? null);
   }
   const badges = [...byBadge.values()].sort(
     (a, b) => (b.level ?? 0) - (a.level ?? 0) || a.badge.localeCompare(b.badge),
@@ -1998,12 +2000,22 @@ function badgeStoryFacts(r) {
       ...(one.prior_level !== null ? { prior_level: one.prior_level } : {}),
     };
   }
+  // The top-level badge facts are the highest badge's own, every one of
+  // them: never another row's prior or max level beside its name.
   const [top] = badges;
+  const rest = { ...facts };
+  delete rest.level;
+  delete rest.prior_level;
+  delete rest.max_level;
   return {
-    ...facts,
+    ...rest,
     badge: top.badge,
     badge_label: top.badge_label,
     ...(top.level !== null ? { level: top.level } : {}),
+    ...(top.prior_level !== null ? { prior_level: top.prior_level } : {}),
+    ...(maxLevel.get(top.badge) !== null
+      ? { max_level: maxLevel.get(top.badge) }
+      : {}),
     badges: badges.slice(0, BADGE_LIST_CAP),
     badge_count: badges.length,
   };
