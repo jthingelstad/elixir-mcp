@@ -68,10 +68,13 @@ got right in one place. [Jamie, 2026-10-12]
    sessions, moments and highlights; the account's own notices go to the
    bell. Every item stays in the timeline an agent reads. [Jamie,
    2026-11-12, "The feed shows only people's play"]
-6. **People react; nobody comments.** A signed-in person cheers an item
-   with one of six; counts are shown, never who. An agent reads cheers
-   and never writes them. Cheers never go to mail or Discord. [Jamie,
-   2026-11-11, 2026-11-12]
+6. **People react, and comments are checked first.** A signed-in person
+   cheers an item with one of six; counts are shown, never who. A comment
+   is a few plain words, checked by a small model before it posts, on an
+   item about a verified player, as that player's owner allows. Agents
+   read cheers and never write them, and never read or write comments.
+   Neither goes to mail or Discord. [Jamie, 2026-11-11, 2026-11-12,
+   2026-11-16, "Comments, checked before they post"]
 7. **Facts, never advice.** The text states what happened and lets the
    reader conclude; coaching belongs to the person's own agent. [Jamie,
    2026-10-11]
@@ -121,8 +124,9 @@ agent write a cheer or a highlight.
 - **Acting from Discord** (deciding an Action, marking away) is
   undecided on purpose. Default in force: Discord is a channel, and every
   write happens in Elixir. [Jamie, 2026-10-12, 2026-11-11]
-- **Comments**, whether and when, and the moderation they would need.
-  Default in force: none. [`VISION.md`, Open]
+- **Comments' reach beyond the item**: a reply to a reply, mentioning
+  someone, comments in the digest. Default in force: none of them.
+  [engineering, 2026-11-16]
 - **A shared post in the clan's Discord** through Clan's webhook (Jamie,
   2026-11-12) is not built: which webhook, and whether leaders opt in.
 - **One item for a pair's sitting.** Two followed players who played the

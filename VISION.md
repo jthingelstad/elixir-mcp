@@ -142,8 +142,10 @@ Royale because they play it with Elixir.
   people affordable.
 - The digest's cadence: weekly, daily, or the person's choice.
 - The fixed set of reactions.
-- Whether and when comments come, and the moderation they would need. A
-  player's own words on their highlight are not comments.
+- How far comments reach: replies, mentions, the digest. They came on
+  2026-11-16, checked by a small model before they post (DECISIONS
+  "Comments, checked before they post"). A player's own words on their
+  highlight are not comments.
 - The interview named nicknames and Discord identity as the private
   data. A person's email address and the account's own machinery (sign-in,
   agent keys, feedback, mail records) are taken to stay private too.
