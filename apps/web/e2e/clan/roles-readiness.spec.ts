@@ -414,7 +414,7 @@ for (const size of ["wide", "@narrow"])
       await page.goto(`${base}/standings`);
       await expect(page.getByText(/starts at 10 members/)).toBeVisible();
       await expect(clanTab(page, "Run")).toHaveCount(0);
-      for (const name of [/^Feed/, "Standings", "War", "Members", "Policy"])
+      for (const name of [/^Timeline/, "Standings", "War", "Members", "Policy"])
         await expect(clanTab(page, name)).toBeVisible();
       await clanTab(page, "Members").click();
       await expect(

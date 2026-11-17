@@ -64,9 +64,9 @@ test.describe("arriving at a clan", () => {
     await page.goto("/clan/0QC8RCGY");
     await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
     await expect(
-      page.getByRole("heading", { name: "Feed", exact: true }),
+      page.getByRole("heading", { name: "Timeline", exact: true }),
     ).toBeAttached();
-    await expect(clanTab(page, /^Feed/)).toHaveAttribute(
+    await expect(clanTab(page, /^Timeline/)).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -262,7 +262,7 @@ test.describe("everyone lands on the Feed", () => {
       );
       await page.goto("/clan/0QC8RCGY");
       await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/feed$/);
-      await expect(clanTab(page, /^Feed/)).toBeVisible();
+      await expect(clanTab(page, /^Timeline/)).toBeVisible();
       await expect(clanTab(page, "Run")).toHaveCount(
         ["leader", "coLeader"].includes(role) ? 1 : 0,
       );

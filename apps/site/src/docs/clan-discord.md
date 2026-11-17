@@ -34,7 +34,7 @@ specific page a clan member may read once signed in: the session's own
 page for one member's session, the battle's page for one member's battle
 the record holds, the clan's **War** for a war
 story, its **Standings** for an award, the member's player page for
-another story about one member, and the clan's **Feed** for a join, a
+another story about one member, and the clan's **Timeline** for a join, a
 departure, a role change or a story about several members. A post edited
 in place keeps its link.
 

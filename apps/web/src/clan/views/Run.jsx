@@ -194,7 +194,7 @@ function Elsewhere({ clan, who, slug, navigate }) {
         <PageHead
           title="Waiting"
           fresh={<RefreshSuggestions clan={clan} />}
-          lede="What the clan's policy suggests you can do. The same actions are first in the Feed."
+          lede="What the clan's policy suggests you can do. The same actions are first in the Timeline."
         />
         <ActionsNow clan={clan} who={who} navigate={navigate} />
       </div>

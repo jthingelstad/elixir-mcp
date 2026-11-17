@@ -388,7 +388,7 @@ describe("actions", () => {
       }),
     ).toBeTruthy();
     fireEvent.click(screen.getByText(/History, 1 entry/));
-    expect(screen.getByText("Feed")).toBeTruthy();
+    expect(screen.getByText("Timeline")).toBeTruthy();
     expect(
       screen.getByText(
         /Earlier: declined \w+ Sep [12]( 2026)? \(knows the member\)/,

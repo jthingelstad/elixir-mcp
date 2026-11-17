@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-11-13; agents read the policy in the clan directory; 2026-11-13; Follow in the clan head, Elixir's clan follow; 2026-11-12; Recruit and Scout are for elders, co-leaders and the leader, members keep Standing; 2026-11-12; Members is one page: Standing on Standings, Review in Run, Recruit and Scout at the roster's foot, Follow on each row; 2026-11-12; the clan card: its line, race and rule chips, and the Feed's race bar; 2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-11-17; Clan Timeline, All activity and Clan news, compact head with About this clan, race beside or below activity; 2026-11-13; agents read the policy in the clan directory; 2026-11-13; Follow in the clan head, Elixir's clan follow; 2026-11-12; Recruit and Scout are for elders, co-leaders and the leader, members keep Standing; 2026-11-12; Members is one page: Standing on Standings, Review in Run, Recruit and Scout at the roster's foot, Follow on each row; 2026-11-12; the clan card: its line, race and rule chips, and the Feed's race bar; 2026-11-12; the Feed: thirty lines and More, You here and This week beside it; 2026-11-12; Members' head: Follow everyone and Clan map; 2026-11-12; the tabs Feed, Standings, War, Members, Policy and Run, everyone lands on the Feed, a name opens the player page; 2026-11-06; the picker beside the clan's name; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -99,14 +99,14 @@ own players are in.
 
 ## Finding your way
 
-The head of every Clan page is the clan you are in: its name; its tag, how
-many members it has and how many places are open, whether it is open or
-invite only, and the trophies it asks to join; your role there; and, while
-your player there is not verified, **Verify**. Under them sits a row of
-chips: the clan's place and fame in this week's race, and the rules its
-leaders saved in its policy (Clan Wars or not, each minimum and the day a
-quiet member's removal comes up). A rule the saved policy has no value for
-has no chip; Elixir never fills one in. If your
+The head of every Clan page names the clan and your role there, with the
+member count and when the roster was read. **About this clan** opens its
+tag, joining rules, trophy requirement, place and fame in the race, and
+the rules its leaders saved. A rule with no saved value has no chip;
+Elixir never fills one in. The details stay available without crowding
+out the clan's activity on a phone.
+
+When your player there is not verified, **Verify** stays visible. If your
 players are in more than one clan, a **Clan** picker sits beside the name:
 each clan with your role there, and **All your clans…** for the full list.
 Picking a clan keeps you on the page you were on. With one clan there is
@@ -123,16 +123,18 @@ following a clan under **Settings › Players & following**.
 
 Below it, the tabs:
 
-- **Feed**: the race bar on top while a race is on: the day of the race, the
-  clan's war decks this race week against four a war day for each member so
-  far, its place of the clans and fame so far, and about when the race
-  closes. Then what is waiting for you, then the clan's last seven days,
-  newest first: joins, departures and role changes, members' moments, and the
-  posts its members write about their battles, each with its battle, thirty lines at a time
-  with **More** for the next thirty. Your own numbers and the week so far sit
-  beside it, and above it on a phone. The Feed shows you what Elixir's timeline would
-  show you about this clan, no more: a member reads the clan's facts, and the
-  leader and co-leaders also the ones that are theirs.
+- **Timeline**: what is waiting for you comes first, then the clan's last
+  seven days, newest first. **All activity** starts with everything you
+  may read: joins, departures and role changes, members' moments and
+  posts. **Clan news** focuses on roster moves, races, awards and the
+  clan's own notices. Each view keeps the same item once, in time order;
+  it does not change your personal Timeline.
+  Thirty lines appear at a time, with **More** for the next thirty.
+  The race, your own numbers and the week so far sit beside the activity,
+  or after it on a phone. The race says the day, weekly war decks, the
+  clan's place and fame, and about when it closes.
+  A member reads the clan's facts; the leader and co-leaders also read
+  the facts that are theirs. A filter never changes that permission.
 - **Standings**: [Standing](/docs/standing) first, once the clan has a
   policy and 10 members; then each season's races and its winners, and
   your own trophy case ([Awards and trophies](/docs/clan-awards)).
@@ -175,11 +177,11 @@ record, about Clan and the thing on screen, and the answer comes to your
 [feedback](/docs/your-account#feedback) and your inbox.
 
 On a phone the tabs stay in one row under the clan's name, scrolling
-sideways when they do not all fit, with an arrow on the edge that has more, with a count on the Feed when something is
+sideways when they do not all fit, with an arrow on the edge that has more, with a count on the Timeline when something is
 waiting for you, and Run opens as its list of sections.
 
 Coming to a clan (its address, [/clan](/clan) or coming back from sign-in)
-opens the **Feed**, for every member and whether or not something is waiting.
+opens the **Timeline**, for every member and whether or not something is waiting.
 With several clans and none chosen yet, [/clan](/clan) asks which. An address
 that names a page always opens that page, and an older link to a clan page,
 from mail or Discord, still opens the page that holds the thing.

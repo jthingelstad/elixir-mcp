@@ -71,4 +71,4 @@ who has since departed. Donations and war decks are for today's members. Only th
 took part are named, so the report never lists who did nothing. Your own
 "this week" on your page in Clan and on your Timeline reads the same window. It
 raises no actions and shows no standing; those are on
-the [Feed](/docs/clan-actions) and [Standing](/docs/standing).
+the [Timeline](/docs/clan-actions) and [Standing](/docs/standing).
