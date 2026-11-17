@@ -4,7 +4,7 @@
  * battle page is public" of #526). Every read of the record needs an
  * account. Open without one: a battle link someone sends (its page, its
  * JSON and its picture), a post its owner shares (slice 4, #762: its
- * page, JSON and picture, highlight.test.mjs), status pages that count the recorder, the game's card
+ * page, JSON and picture, battle-posts.test.mjs), status pages that count the recorder, the game's card
  * list, and signing in. The site and docs are the site bucket's, never
  * this router's; the collector door, MCP and /api/v1 each refuse a
  * missing credential in their own tests (sign-in-api.test.mjs: GET
@@ -44,9 +44,9 @@ const PUBLIC = {
   // The record: a post its owner shares, with its preview (slice 4,
   // #762): its page (and picture, /h/<id>.png) and its JSON. The owner's
   // game name, words and the battle; never an account, nickname or
-  // sender (highlight.test.mjs pins the shape).
+  // sender (battle-posts.test.mjs pins the shape).
   "GET /h/*": "record",
-  "GET /api/public/highlights/*": "record",
+  "GET /api/public/posts/*": "record",
   // The record: a session link someone sends (2026-11-17, DECISIONS "A
   // session's public page"): its page (and picture, .png on the same
   // address) and its JSON, read as nobody, only when the tag, the id and
@@ -102,7 +102,7 @@ const CLASSES = new Set([
  *  this is a product decision. */
 const RECORD = [
   "GET /api/public/battles/*",
-  "GET /api/public/highlights/*",
+  "GET /api/public/posts/*",
   "GET /api/public/sessions/**",
   "GET /battle/*",
   "GET /h/*",

@@ -228,9 +228,9 @@ before(async () => {
   cookies.owner = await signIn(OWNER);
   cookies.friend = await signIn(FRIEND);
   cookies.stranger = await signIn(STRANGER);
-  const made = await call("POST", "/api/me/highlights", {
+  const made = await call("POST", "/api/me/posts", {
     who: "owner",
-    body: { battle: battleId, words: "A comeback" },
+    body: { battle: battleId, text: "A comeback" },
   });
   assert.equal(made.status, 201, JSON.stringify(made.body));
 });

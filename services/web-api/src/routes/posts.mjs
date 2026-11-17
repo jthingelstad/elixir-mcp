@@ -272,6 +272,7 @@ export function postsRoutes({
         async (row) =>
           (await visiblePost(db, account.accountId, row.item_id, subjects, {
             plain,
+            open: true,
           })) !== null,
       );
       if (out.error === "invalid_reason")

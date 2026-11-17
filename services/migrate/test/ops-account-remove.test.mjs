@@ -190,8 +190,8 @@ before(async () => {
      values ('remove-highlight', '#0VQRR8U0', now(), 0, 'PvP', 'pvp', 'win')`,
   );
   await db.query(
-    `insert into battle_highlight (player_tag, battle_id, account_id, words, share_id, shared_at)
-     values ('#0VQRR8U0', 'remove-highlight', $1, 'gg', 'abcdefghij23456', now())`,
+    `insert into account_post (item_id, player_tag, battle_id, account_id, body, share_id, shared_at)
+     values ('tl_00000000000000000bb1', '#0VQRR8U0', 'remove-highlight', $1, 'gg', 'abcdefghij23456', now())`,
     [ids.person],
   );
   // A cheer they gave and their RSS link (0243, #765).
@@ -418,7 +418,9 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     account_clan: 2,
     account_clan_declined: 1,
     player_nickname: 1,
-    battle_highlight: 1,
+    // Frozen at 0291: the person's post about a battle is an account_post
+    // row now.
+    battle_highlight: 0,
     timeline_cheer: 1,
     timeline_feed_link: 1,
     comment_report: 1,
@@ -427,7 +429,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     account_block: 2,
     comment_setting: 1,
     post_report: 1,
-    account_post: 1,
+    account_post: 2,
     bell_seen: 1,
     push_subscription: 1,
     account_push_pref: 1,

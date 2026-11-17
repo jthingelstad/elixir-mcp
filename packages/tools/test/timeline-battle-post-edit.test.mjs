@@ -1,6 +1,7 @@
 /**
- * A highlight's edit on the timeline (Codex review of #773; 0240): the
- * record learns a highlight again when its words change, so a poller
+ * A battle post's edit on the timeline (Codex review of #773; 0240, a
+ * highlight until 0291): the record learns a post about a battle again
+ * when its words change, so a poller
  * reading by observation is served the correction as the same story (one
  * id, the same posting time) at a higher revision, and the news check
  * says so; a read by when things happened still finds it where it was
@@ -24,7 +25,7 @@ let ctx;
 let db;
 let owner;
 let subjects;
-let highlightId;
+let postId;
 
 const highlights = async (fromMs, toMs, basis) =>
   (
@@ -77,15 +78,15 @@ before(async () => {
   );
   subjects = await subjectsFor(db, owner);
   // Posted at T; edited at T+3h (as the web API writes an edit).
-  highlightId = (
+  postId = (
     await db.query(
-      `insert into battle_highlight (player_tag, battle_id, account_id, words,
-                                     created_at, updated_at)
-       values ($1, 'hl-edit-1', $2, 'first words', $3, $3)
-       returning highlight_id`,
+      `insert into account_post (item_id, player_tag, battle_id, account_id,
+                                 body, created_at)
+       values ('tl_000000000000000ed171', $1, 'hl-edit-1', $2, 'first words', $3)
+       returning post_id::text`,
       [PLAYER, owner, at(T)],
     )
-  ).rows[0].highlight_id;
+  ).rows[0].post_id;
 });
 
 after(async () => ctx?.drop());
@@ -100,10 +101,10 @@ test("an edit is served to a poller as the same story at a higher revision", asy
   assert.equal(first.observed_at, at(T));
 
   await db.query(
-    `update battle_highlight
-        set words = 'better words', revision = revision + 1, updated_at = $2
-      where highlight_id = $1`,
-    [highlightId, at(T + 3 * H)],
+    `update account_post
+        set body = 'better words', revision = revision + 1, updated_at = $2
+      where post_id = $1::bigint`,
+    [postId, at(T + 3 * H)],
   );
 
   // The next read, from the poller's pointer: the news check finds it,

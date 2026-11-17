@@ -1,14 +1,17 @@
 /**
- * Highlights (social slice 4, #762): a person posts one of their verified
- * players' battles to that player's timeline with their words, and may
- * share it as /h/<id>. Pinned here: only a verified player of yours who
- * played the battle can be posted as; the post is its writer's to edit,
- * share and delete; a shared post opens signed out and carries nothing
- * about the account; a deleted one is a 404; a name and words are escaped
- * at each output; the timeline item carries the words, and the share link
- * only for its owner; a post and an edit that changes the words wake the
- * Discord syndication of the timelines the player reaches, and an edit
- * is the same item at a higher revision.
+ * Posts about battles (social slice 4, #762; 2026-11-17, 0291: what was
+ * a highlight is a post with a battle attached). A person posts about one
+ * of their verified players' battles on that player's timeline, words
+ * optional, and may share it as /h/<id>. Pinned here: only a verified
+ * player of yours who played the battle can be posted as; the post is its
+ * writer's to edit, share and delete; a shared post opens signed out and
+ * carries nothing about the account; a deleted one is a 404; a name and
+ * words are escaped at each output; the timeline item carries the words,
+ * and the share link only for its owner; a post and an edit that changes
+ * the words wake the Discord syndication of the timelines the player
+ * reaches, and an edit is the same item at a higher revision. The handler
+ * here has posts and comments off: a post about a battle works anyway,
+ * as highlighting did.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -20,7 +23,7 @@ import pg from "pg";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
-import { cleanWords, mintShareId } from "../src/highlight.mjs";
+import { mintShareId } from "../src/battle-posts.mjs";
 import { makeShareImage } from "../src/share-image.mjs";
 import { shareSources } from "../src/share-files.mjs";
 import {
@@ -32,7 +35,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
-const name = `elixir_mcp_test_highlight_${process.pid}`;
+const name = `elixir_mcp_test_battle_posts_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 
 // The fixture's own player (fixtures/player_battlelog).
@@ -214,33 +217,26 @@ test("share ids: 15 base32 characters, random, never sequential", () => {
   assert.equal(mintShareId(Buffer.alloc(15, 255)), "777777777777777");
 });
 
-test("words: stored as typed, control characters dropped, 500 at most", () => {
-  assert.equal(cleanWords("  <b>hi</b>\r\nthere\x00 "), "<b>hi</b>\nthere");
-  assert.equal(cleanWords("é".repeat(500)), "é".repeat(500));
-  assert.equal(cleanWords("x".repeat(501)), null);
-  assert.equal(cleanWords(undefined), "");
-});
-
 test("only a verified player of yours who played the battle can be posted as", async () => {
   // Signed out.
-  const out = await call("POST", "/api/me/highlights", {
-    body: { battle: battleId, words: "hi" },
+  const out = await call("POST", "/api/me/posts", {
+    body: { battle: battleId, text: "hi" },
   });
   assert.equal(out.status, 401);
   // An unverified claim is anyone's to make: it never lets you post.
-  const friend = await call("POST", "/api/me/highlights", {
+  const friend = await call("POST", "/api/me/posts", {
     who: "friend",
-    body: { battle: battleId, player_tag: PLAYER, words: "mine now" },
+    body: { battle: battleId, player_tag: PLAYER, text: "mine now" },
   });
   assert.equal(friend.status, 403);
   assert.equal(friend.body.error, "not_your_battle");
-  const asked = await call("GET", `/api/me/highlights?battle=${battleId}`, {
+  const asked = await call("GET", `/api/me/posts?battle=${battleId}`, {
     who: "friend",
   });
   assert.equal(asked.status, 200);
-  assert.deepEqual(asked.body.can_highlight_as, []);
+  assert.deepEqual(asked.body.can_post_as, []);
   // No claim at all.
-  const stranger = await call("POST", "/api/me/highlights", {
+  const stranger = await call("POST", "/api/me/posts", {
     who: "stranger",
     body: { battle: battleId, player_tag: PLAYER },
   });
@@ -250,103 +246,126 @@ test("only a verified player of yours who played the battle can be posted as", a
     `select player_tag from battle_participant where battle_id = $1 and player_tag <> $2`,
     [battleId, PLAYER],
   );
-  const opponent = await call("POST", "/api/me/highlights", {
+  const opponent = await call("POST", "/api/me/posts", {
     who: "owner",
     body: { battle: battleId, player_tag: rows[0].player_tag },
   });
   assert.equal(opponent.status, 403);
   // A battle Elixir does not hold.
-  const none = await call("POST", "/api/me/highlights", {
+  const none = await call("POST", "/api/me/posts", {
     who: "owner",
     body: { battle: "ffffffffffffffff", player_tag: PLAYER },
   });
   assert.equal(none.status, 404);
-  // Too many words.
-  const long = await call("POST", "/api/me/highlights", {
+  // Too many words: the post check's own limit.
+  const long = await call("POST", "/api/me/posts", {
     who: "owner",
-    body: { battle: battleId, words: "x".repeat(501) },
+    body: { battle: battleId, text: "x".repeat(501) },
   });
-  assert.equal(long.status, 400);
+  assert.equal(long.status, 422);
+  assert.equal(long.body.category, "too_long");
+  // A battle carries itself: no deck or cards beside it.
+  const cards = await call("POST", "/api/me/posts", {
+    who: "owner",
+    body: { battle: battleId, text: "hi", cards: [26000000] },
+  });
+  assert.equal(cards.status, 422);
   // A write needs the contract header.
-  const bare = await call("POST", "/api/me/highlights", {
+  const bare = await call("POST", "/api/me/posts", {
     who: "owner",
     contract: false,
     body: { battle: battleId },
   });
   assert.notEqual(bare.status, 201);
   const count = await db.query(
-    `select count(*)::int as n from battle_highlight`,
+    `select count(*)::int as n from account_post where battle_id is not null`,
   );
   assert.equal(count.rows[0].n, 0);
 });
 
-test("create, edit, share, then delete: the link is a 404", async () => {
-  const before = await call("GET", `/api/me/highlights?battle=${battleId}`, {
+test("a post about nothing in the record still needs posts on", async () => {
+  const plain = await call("POST", "/api/me/posts", {
+    who: "owner",
+    body: { text: "just words" },
+  });
+  assert.equal(plain.status, 404);
+  assert.equal(plain.body.error, "posts_off");
+});
+
+test("create without words, edit, share, then delete: the link is a 404", async () => {
+  const before = await call("GET", `/api/me/posts?battle=${battleId}`, {
     who: "owner",
   });
-  assert.deepEqual(before.body.can_highlight_as, [PLAYER]);
-  assert.deepEqual(before.body.highlights, []);
+  assert.deepEqual(before.body.can_post_as, [PLAYER]);
+  assert.deepEqual(before.body.posts, []);
 
-  const made = await call("POST", "/api/me/highlights", {
+  // Words are optional: the battle is the post.
+  const made = await call("POST", "/api/me/posts", {
     who: "owner",
-    body: { battle: battleId, words: "first words" },
+    body: { battle: battleId },
   });
   assert.equal(made.status, 201, JSON.stringify(made.body));
-  const h = made.body.highlight;
-  assert.equal(h.player_tag, PLAYER);
-  assert.equal(h.battle_id, battleId);
-  assert.equal(h.words, "first words");
+  const item = made.body.post;
+  const h = item.post;
+  assert.equal(item.kind, "post");
+  assert.equal(item.subject_tag, PLAYER);
+  assert.equal(h.battle.battle_id, battleId);
+  assert.equal(h.text, "");
   assert.equal(h.share_url, null);
+  assert.equal(h.deck, null);
+  assert.deepEqual(h.cards, []);
+  assert.equal(h.can_edit, true);
 
-  const again = await call("POST", "/api/me/highlights", {
+  const again = await call("POST", "/api/me/posts", {
     who: "owner",
-    body: { battle: battleId, player_tag: PLAYER, words: "twice" },
+    body: { battle: battleId, player_tag: PLAYER, text: "twice" },
   });
   assert.equal(again.status, 409);
 
   // Somebody else's post is not theirs to change, share or delete.
   for (const [method, p, body] of [
-    ["PUT", `/api/me/highlights/${h.highlight_id}`, { words: "hijack" }],
-    ["POST", "/api/me/highlights/share", { highlight_id: h.highlight_id }],
-    ["DELETE", `/api/me/highlights/${h.highlight_id}`, undefined],
+    ["PUT", `/api/me/posts/${h.id}`, { text: "hijack" }],
+    ["POST", "/api/me/post-shares", { id: h.id }],
+    ["DELETE", `/api/me/posts/${h.id}`, undefined],
   ]) {
     const r = await call(method, p, { who: "friend", body });
     assert.equal(r.status, 404, `${method} ${p}`);
   }
 
-  const edited = await call("PUT", `/api/me/highlights/${h.highlight_id}`, {
+  const edited = await call("PUT", `/api/me/posts/${h.id}`, {
     who: "owner",
-    body: { words: HOSTILE_WORDS },
+    body: { text: HOSTILE_WORDS },
   });
-  assert.equal(edited.status, 200);
-  assert.equal(edited.body.highlight.words, HOSTILE_WORDS);
+  assert.equal(edited.status, 200, JSON.stringify(edited.body));
+  assert.equal(edited.body.post.post.text, HOSTILE_WORDS);
+  assert.equal(edited.body.post.post.edited, true);
 
-  const shared = await call("POST", "/api/me/highlights/share", {
+  const shared = await call("POST", "/api/me/post-shares", {
     who: "owner",
-    body: { highlight_id: h.highlight_id },
+    body: { id: h.id },
   });
   assert.equal(shared.status, 200);
-  const url = shared.body.highlight.share_url;
+  const url = shared.body.share_url;
   assert.match(url, /^https:\/\/elixir\.poapkings\.com\/h\/[a-z2-7]{15}$/);
   const shareId = url.split("/").at(-1);
   // Sharing twice is the same link.
-  const twice = await call("POST", "/api/me/highlights/share", {
+  const twice = await call("POST", "/api/me/post-shares", {
     who: "owner",
-    body: { highlight_id: h.highlight_id },
+    body: { id: h.id },
   });
-  assert.equal(twice.body.highlight.share_url, url);
+  assert.equal(twice.body.share_url, url);
 
   // Open, signed out: the page, the JSON and the picture.
   const page = await request("GET", `/h/${shareId}`);
   assert.equal(page.statusCode, 200);
   assert.match(page.headers["cache-control"], /max-age=60/);
-  const json = await call("GET", `/api/public/highlights/${shareId}`);
+  const json = await call("GET", `/api/public/posts/${shareId}`);
   assert.equal(json.status, 200);
-  assert.equal(json.body.highlight.words, HOSTILE_WORDS);
-  assert.equal(json.body.highlight.name, HOSTILE_NAME);
-  assert.equal(json.body.highlight.player_tag, PLAYER);
-  assert.equal(json.body.highlight.side, "left");
-  assert.equal(json.body.highlight.url, url);
+  assert.equal(json.body.post.words, HOSTILE_WORDS);
+  assert.equal(json.body.post.name, HOSTILE_NAME);
+  assert.equal(json.body.post.player_tag, PLAYER);
+  assert.equal(json.body.post.side, "left");
+  assert.equal(json.body.post.url, url);
   assert.equal(json.body.battle.id.length > 0, true);
   assert.equal(json.body.sides.length, 2);
   const png = await request("GET", `/h/${shareId}.png`);
@@ -356,52 +375,58 @@ test("create, edit, share, then delete: the link is a 404", async () => {
 
   // Nothing about the account, its nicknames or its email, anywhere in it.
   const text = JSON.stringify(json.body);
-  for (const leak of [
-    ownerId,
-    OWNER,
-    "account",
-    "nickname",
-    "email",
-    h.highlight_id,
-  ])
+  for (const leak of [ownerId, OWNER, "account", "nickname", "email"])
     assert.equal(text.includes(leak), false, leak);
+  assert.equal("post_id" in json.body.post, false);
 
   // Deleted: gone from the panel, and every address of the post 404s.
-  const gone = await call("DELETE", `/api/me/highlights/${h.highlight_id}`, {
+  const gone = await call("DELETE", `/api/me/posts/${h.id}`, {
     who: "owner",
   });
   assert.equal(gone.status, 200);
   assert.equal((await request("GET", `/h/${shareId}`)).statusCode, 404);
   assert.equal((await request("GET", `/h/${shareId}.png`)).statusCode, 404);
-  assert.equal(
-    (await call("GET", `/api/public/highlights/${shareId}`)).status,
-    404,
-  );
-  const after = await call("GET", `/api/me/highlights?battle=${battleId}`, {
+  assert.equal((await call("GET", `/api/public/posts/${shareId}`)).status, 404);
+  const after = await call("GET", `/api/me/posts?battle=${battleId}`, {
     who: "owner",
   });
-  assert.deepEqual(after.body.highlights, []);
-  const again404 = await call(
-    "DELETE",
-    `/api/me/highlights/${h.highlight_id}`,
-    {
-      who: "owner",
-    },
-  );
+  assert.deepEqual(after.body.posts, []);
+  const again404 = await call("DELETE", `/api/me/posts/${h.id}`, {
+    who: "owner",
+  });
   assert.equal(again404.status, 404);
 });
 
+test("a plain post cannot be shared", async () => {
+  const {
+    rows: [p],
+  } = await db.query(
+    `insert into account_post (item_id, account_id, player_tag, body)
+     values ('tl_0000000000000000abcd', $1, $2, 'words alone')
+     returning post_id::text as id`,
+    [ownerId, PLAYER],
+  );
+  const r = await call("POST", "/api/me/post-shares", {
+    who: "owner",
+    body: { id: p.id },
+  });
+  assert.equal(r.status, 404);
+  await db.query(`delete from account_post where post_id = $1::bigint`, [
+    p.id,
+  ]);
+});
+
 test("a shared post's page escapes the name and the words in its tags", async () => {
-  const made = await call("POST", "/api/me/highlights", {
+  const made = await call("POST", "/api/me/posts", {
     who: "owner",
-    body: { battle: otherBattleId, words: HOSTILE_WORDS },
+    body: { battle: otherBattleId, text: HOSTILE_WORDS },
   });
-  assert.equal(made.status, 201);
-  const shared = await call("POST", "/api/me/highlights/share", {
+  assert.equal(made.status, 201, JSON.stringify(made.body));
+  const shared = await call("POST", "/api/me/post-shares", {
     who: "owner",
-    body: { highlight_id: made.body.highlight.highlight_id },
+    body: { id: made.body.post.post.id },
   });
-  const url = shared.body.highlight.share_url;
+  const url = shared.body.share_url;
   const shareId = url.split("/").at(-1);
   const page = await request("GET", `/h/${shareId}`);
   const html = page.body;
@@ -419,7 +444,7 @@ test("a shared post's page escapes the name and the words in its tags", async ()
   assert.equal((await request("GET", "/h/aaaaaaaaaaaaaaa")).statusCode, 404);
   assert.equal((await request("GET", "/h/NOT-AN-ID")).statusCode, 404);
   assert.equal(
-    (await call("GET", "/api/public/highlights/aaaaaaaaaaaaaaa")).status,
+    (await call("GET", "/api/public/posts/aaaaaaaaaaaaaaa")).status,
     404,
   );
 });
@@ -433,12 +458,16 @@ test("the timeline item carries the words, and the link only for its owner", asy
   assert.equal(item.facts.player_tag, PLAYER);
   assert.equal(item.facts.words, HOSTILE_WORDS);
   assert.equal(item.facts.battle.battle_id, otherBattleId);
+  // The post's id, under both names (schema v2).
+  assert.match(item.facts.post_id, /^[1-9][0-9]*$/);
+  assert.equal(item.facts.highlight_id, item.facts.post_id);
   assert.match(
     item.facts.battle.url,
     /^https:\/\/elixir\.poapkings\.com\/battle\//,
   );
   assert.match(item.facts.share_url, /^https:\/\/elixir\.poapkings\.com\/h\//);
   assert.ok(item.text.includes(HOSTILE_WORDS));
+  assert.ok(item.text.includes("posted about"), item.text);
 
   // A friend who follows the player reads the post, never its owner's
   // share link (theirs to hand out).
@@ -465,38 +494,41 @@ test("a post and a changed edit wake the Discord syndication; the edit is the sa
       .filter((w) => w.lane === "timeline-sync")
       .map((w) => w.message.account_id);
   wakes.length = 0;
-  const made = await call("POST", "/api/me/highlights", {
+  const made = await call("POST", "/api/me/posts", {
     who: "owner",
-    body: { battle: battleId, words: "before" },
+    body: { battle: battleId, text: "before" },
   });
   assert.equal(made.status, 201, JSON.stringify(made.body));
   assert.deepEqual(syncWakes(), [friendId]);
-  const id = made.body.highlight.highlight_id;
+  const id = made.body.post.post.id;
   const read = async () =>
     (
       await call("GET", "/api/me/timeline", { who: "friend" })
     ).body.timeline.find(
-      (it) => it.kind === "battle_highlight" && it.facts.highlight_id === id,
+      (it) => it.kind === "battle_highlight" && it.facts.post_id === id,
     );
   const first = await read();
+  // The record item and the post are one: the same item id.
+  assert.equal(first.id, made.body.post.id);
   assert.equal(first.revision, 1);
   assert.equal(first.facts.words, "before");
 
   // The same words again change nothing and wake nothing.
   wakes.length = 0;
-  const same = await call("PUT", `/api/me/highlights/${id}`, {
+  const same = await call("PUT", `/api/me/posts/${id}`, {
     who: "owner",
-    body: { words: "before" },
+    body: { text: "before" },
   });
   assert.equal(same.status, 200);
+  assert.equal(same.body.changed, false);
   assert.deepEqual(syncWakes(), []);
   assert.equal((await read()).revision, 1);
 
   // New words: a wake, and the same story at a higher revision, posted
   // when it was.
-  const edited = await call("PUT", `/api/me/highlights/${id}`, {
+  const edited = await call("PUT", `/api/me/posts/${id}`, {
     who: "owner",
-    body: { words: "after" },
+    body: { text: "after" },
   });
   assert.equal(edited.status, 200);
   assert.deepEqual(syncWakes(), [friendId]);
@@ -507,9 +539,17 @@ test("a post and a changed edit wake the Discord syndication; the edit is the sa
   assert.equal(grown.facts.words, "after");
   assert.ok(grown.observed_at >= first.observed_at);
 
+  // Dropping the words is an edit too: the battle stays the post.
+  const dropped = await call("PUT", `/api/me/posts/${id}`, {
+    who: "owner",
+    body: { text: "" },
+  });
+  assert.equal(dropped.status, 200, JSON.stringify(dropped.body));
+  assert.equal(dropped.body.post.post.text, "");
+
   // A deletion wakes nothing: no sync takes a line back.
   wakes.length = 0;
-  const gone = await call("DELETE", `/api/me/highlights/${id}`, {
+  const gone = await call("DELETE", `/api/me/posts/${id}`, {
     who: "owner",
   });
   assert.equal(gone.status, 200);

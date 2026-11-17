@@ -2,7 +2,7 @@
  * Home's stored week (home_feed, 0245; #649): a read serves the row the
  * build stored while it is the same reader's (subjects, time zone) and
  * young enough, asks for a fresh one past fifteen minutes, builds it
- * itself past three hours; highlights are read live over it; the
+ * itself past three hours; posts about battles are read live over it; the
  * server-only fields (a sitting's sparkline, an item's evidence source)
  * survive the store and are never served. On a scratch database (golden
  * rule 9).
@@ -37,7 +37,7 @@ const PLAYER = "#0L98VL0Y";
 let ctx;
 let db;
 let owner;
-let highlightId;
+let postId;
 
 const read = (now, extra = {}) =>
   readHomeWeek(db, owner, { timezone: "UTC", now, ...extra });
@@ -82,15 +82,15 @@ before(async () => {
      values ($1, $2, 'verified', true, 'primary', true)`,
     [owner, PLAYER],
   );
-  highlightId = (
+  postId = (
     await db.query(
-      `insert into battle_highlight (player_tag, battle_id, account_id, words,
-                                     created_at, updated_at)
-       values ($1, 'home-feed-0', $2, 'first words', $3, $3)
-       returning highlight_id`,
+      `insert into account_post (item_id, player_tag, battle_id, account_id,
+                                 body, created_at)
+       values ('tl_00000000000000f00d01', $1, 'home-feed-0', $2, 'first words', $3)
+       returning post_id::text`,
       [PLAYER, owner, at(T - H)],
     )
-  ).rows[0].highlight_id;
+  ).rows[0].post_id;
 });
 
 after(async () => ctx?.drop());
@@ -188,11 +188,11 @@ test("past fresh the row is still served, and a build is asked for once a quarte
   assert.deepEqual(await homeWeeksToWake(db, { now: T + 60_000 }), []);
 });
 
-test("highlights are read live over the stored week", async () => {
+test("posts about battles are read live over the stored week", async () => {
   await db.query(
-    `update battle_highlight set words = 'better words', revision = 2,
-            updated_at = $2 where highlight_id = $1`,
-    [highlightId, at(T + 120_000)],
+    `update account_post set body = 'better words', revision = 2,
+            updated_at = $2 where post_id = $1::bigint`,
+    [postId, at(T + 120_000)],
   );
   const week = await read(T + 180_000);
   assert.equal(week.stored, true);

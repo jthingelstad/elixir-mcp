@@ -221,18 +221,25 @@ after(async () => {
   await scratch?.drop();
 });
 
-test("with posts off, or comments off, every route answers 404 posts_off", async () => {
+test("with posts off, or comments off, a post about nothing in the record is refused and none is read", async () => {
   for (const h of [offHandler, commentsOnlyHandler]) {
     const off = callWith(h);
+    const w = await off(AUTHOR, "POST", "/api/me/posts", {
+      text: "Is Hog good?",
+    });
+    assert.equal(w.statusCode, 404);
+    assert.equal(data(w).error, "posts_off");
+    // The lists still answer (a post about a battle is read either way,
+    // 0291), holding no post about nothing in the record.
+    const r = await off(AUTHOR, "GET", "/api/me/posts", null, { mine: "1" });
+    assert.equal(r.statusCode, 200, r.body);
+    assert.deepEqual(data(r).posts, []);
     for (const [method, path, body] of [
-      ["GET", "/api/me/posts", null, { mine: "1" }],
-      ["POST", "/api/me/posts", { text: "Is Hog good?" }],
       ["DELETE", "/api/me/posts/1"],
       ["POST", "/api/me/post-reports", { id: "1", reason: "spam" }],
     ]) {
-      const r = await off(AUTHOR, method, path, body, { mine: "1" });
-      assert.equal(r.statusCode, 404, `${method} ${path}`);
-      assert.equal(data(r).error, "posts_off");
+      const x = await off(AUTHOR, method, path, body);
+      assert.equal(x.statusCode, 404, `${method} ${path}`);
     }
     const me = data(await off(AUTHOR, "GET", "/api/me"));
     assert.equal(me.features?.posts, false, "Settings is told posts are off");
@@ -421,7 +428,7 @@ test("clanmates see the posts in Clan's Feed, and may cheer them there", async (
     { accountId: CLANMATE, kind: "person", timezone: "UTC" },
     CLAN,
     Date.now(),
-    { posts: true },
+    { posts: true, comments: true },
   );
   const posts = feed.items.filter((it) => it.kind === "post");
   assert.ok(posts.some((p) => p.post.author.player_tag === A));
@@ -452,7 +459,7 @@ test("clanmates see the posts in Clan's Feed, and may cheer them there", async (
     { accountId: CLANMATE, kind: "person", timezone: "UTC" },
     CLAN,
     Date.now(),
-    { posts: true },
+    { posts: true, comments: true },
   );
   const mine = again.items.find((it) => it.id === id);
   assert.equal(mine.my_cheer, "on_fire");
@@ -610,7 +617,16 @@ test("the author deletes a post at once; nobody else can", async () => {
   assert.deepEqual(left, { posts: 0, cheers: 0, comments: 0 });
 });
 
-test("posts never reach the record's timeline, which MCP, mail, push, RSS and Discord build from", async () => {
+/** The record's readers of posts about battles (0291), each reading only
+ *  rows with a battle. */
+const BATTLE_POST_READERS = [
+  "packages/stamps/src/backfill.mjs",
+  "packages/stamps/src/earn.mjs",
+  "packages/syndication/src/battle-post-share.mjs",
+  "packages/tools/src/activity/entries.mjs",
+];
+
+test("a post about nothing in the record never reaches the record's timeline, which MCP, mail, push, RSS and Discord build from", async () => {
   const subjects = await subjectsFor(scratch.db, FOLLOWER);
   const built = await buildTimeline(scratch.db, subjects, {
     fromMs: Date.now() - 7 * 86_400_000,
@@ -620,7 +636,8 @@ test("posts never reach the record's timeline, which MCP, mail, push, RSS and Di
   });
   assert.equal(built.timeline.filter((it) => it.kind === "post").length, 0);
   // And no code outside the web API's own reads, the schema, the account
-  // removal and the sweeps names the table.
+  // removal and the sweeps names the table, but for the readers of posts
+  // about battles (0291: what highlights were), which read only those.
   const root = fileURLToPath(new URL("../../../", import.meta.url));
   const files = execFileSync("git", ["grep", "-l", "account_post", "--", "."], {
     cwd: root,
@@ -630,10 +647,11 @@ test("posts never reach the record's timeline, which MCP, mail, push, RSS and Di
     .filter(Boolean)
     .filter(
       (f) =>
-        !/^(db\/|docs\/|services\/web-api\/(src|test)\/|services\/migrate\/(src|test)\/ops-account-remove|services\/jobs\/src\/index|packages\/record\/src\/retention|apps\/web\/)/.test(
+        !/^(db\/|docs\/|services\/web-api\/(src|test)\/|services\/migrate\/(src|test)\/ops-account-remove|services\/jobs\/src\/index|packages\/record\/src\/retention|apps\/web\/|services\/jobs\/test\/)/.test(
           f,
         ),
-    );
+    )
+    .filter((f) => !BATTLE_POST_READERS.includes(f) && !/\/test\//.test(f));
   assert.deepEqual(files, []);
 });
 

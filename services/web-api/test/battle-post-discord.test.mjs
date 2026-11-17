@@ -1,9 +1,10 @@
 /**
- * A shared highlight posted in its player's clan's Discord (social slice
- * 9, #767). Pinned here: only the highlight's owner, only once it is
- * shared, only while the owner holds a verified claim and the player is
- * a member of a clan whose activity channel is on with "Shared
- * highlights" turned on by a leader (off by default); once only; the post
+ * A shared post about a battle posted in its player's clan's Discord
+ * (social slice 9, #767; a highlight until 0291). Pinned here: only the
+ * post's author, only once it is shared, only while the author holds a
+ * verified claim and the player is a member of a clan whose activity
+ * channel is on with "Shared posts about battles" turned on by a leader
+ * (the `highlights` category, off by default); once only; the post
  * goes through the outbox's timeline-discord/ lane as a clan_activity
  * message with the channel's webhook still sealed, with a quality ledger
  * row; its words make a hostile name and hostile words literal (no
@@ -34,9 +35,9 @@ import {
   CLAN_ACTIVITY_PURPOSE,
 } from "../../../packages/syndication/src/seal.mjs";
 import {
-  highlightPostContent,
-  highlightPostKey,
-} from "../../../packages/syndication/src/highlight-share.mjs";
+  battlePostContent,
+  battlePostKey,
+} from "../../../packages/syndication/src/battle-post-share.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import {
   createScratch,
@@ -47,7 +48,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
-const name = `elixir_mcp_test_hl_discord_${process.pid}`;
+const name = `elixir_mcp_test_bp_discord_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 
 // The fixture's own player (fixtures/player_battlelog), in an invented clan.
@@ -61,6 +62,10 @@ const OTHER = "hl-discord-other@example.com";
 const HOSTILE_NAME = "@everyone **Boss** <@&4242>";
 const HOSTILE_WORDS =
   "gg @here <@123456789012345678> <t:1700000000:R>\n# big\n[click](https://evil.example) ||spoiler|| `code`";
+// What a post's filter lets through (no link, number or @handle: it
+// refuses each; a highlight's words from before 0291 may still carry
+// them, and the line above pins how they read).
+const POSTED_WORDS = "gg <b>all</b>\n# big\n||spoiler|| `code` **loud** <:x:1>";
 
 const box = clanActivitySeal(
   createBox("hl-discord-secret", CLAN_ACTIVITY_PURPOSE),
@@ -120,9 +125,9 @@ async function account(email, claim) {
 }
 
 const discordLane = () => outbox.filter((o) => o.lane === "timeline-discord");
-const highlightOn = async (battle) =>
-  (await call("GET", `/api/me/highlights?battle=${battle}`, { who: "owner" }))
-    .body.highlights[0];
+const postOn = async (battle) =>
+  (await call("GET", `/api/me/posts?battle=${battle}`, { who: "owner" })).body
+    .posts[0].post;
 
 before(async () => {
   await createScratch(name);
@@ -229,7 +234,7 @@ after(async () => {
 });
 
 test("the post's words: a hostile name and words are literal, no clan name, no tag, one unpreviewed link", () => {
-  const content = highlightPostContent({
+  const content = battlePostContent({
     name: HOSTILE_NAME,
     playerTag: PLAYER,
     words: HOSTILE_WORDS,
@@ -238,7 +243,7 @@ test("the post's words: a hostile name and words are literal, no clan name, no t
   });
   const lines = content.split("\n");
   assert.equal(lines.length, 3, content);
-  assert.match(lines[0], /^\*\*.*\*\* shared a highlight: a 3-1 win$/);
+  assert.match(lines[0], /^\*\*.*\*\* posted about a 3-1 win$/);
   assert.match(lines[1], /^> “.*”$/);
   assert.equal(
     lines[2],
@@ -253,32 +258,32 @@ test("the post's words: a hostile name and words are literal, no clan name, no t
   assert.ok(!content.includes(CLAN_NAME));
   // No words: just the line and the link; no record: "a battle".
   assert.equal(
-    highlightPostContent({
+    battlePostContent({
       name: "Ana",
       playerTag: PLAYER,
       words: "  ",
       battle: {},
       url: "https://elixir.poapkings.com/h/x",
     }),
-    "**Ana** shared a highlight: a battle\n[Open in Elixir](<https://elixir.poapkings.com/h/x>)",
+    "**Ana** posted about a battle\n[Open in Elixir](<https://elixir.poapkings.com/h/x>)",
   );
 });
 
 test("only the owner, only shared, only where the leaders turned it on, once", async () => {
-  const made = await call("POST", "/api/me/highlights", {
+  const made = await call("POST", "/api/me/posts", {
     who: "owner",
-    body: { battle: battleId, words: HOSTILE_WORDS },
+    body: { battle: battleId, text: POSTED_WORDS },
   });
   assert.equal(made.status, 201, JSON.stringify(made.body));
-  const id = made.body.highlight.highlight_id;
-  const ask = (who = "owner", body = { highlight_id: id }) =>
-    call("POST", "/api/me/highlights/discord", { who, body });
+  const id = made.body.post.post.id;
+  const ask = (who = "owner", body = { id }) =>
+    call("POST", "/api/me/post-discord", { who, body });
 
-  // Signed out, and someone else's highlight.
+  // Signed out, and someone else's post.
   assert.equal(
     (
-      await call("POST", "/api/me/highlights/discord", {
-        body: { highlight_id: id },
+      await call("POST", "/api/me/post-discord", {
+        body: { id },
       })
     ).status,
     401,
@@ -288,13 +293,13 @@ test("only the owner, only shared, only where the leaders turned it on, once", a
   const unshared = await ask();
   assert.equal(unshared.status, 409);
   assert.equal(unshared.body.error, "not_shared");
-  await call("POST", "/api/me/highlights/share", {
+  await call("POST", "/api/me/post-shares", {
     who: "owner",
-    body: { highlight_id: id },
+    body: { id },
   });
-  // Shared, but the leaders have not turned shared highlights on: off by
+  // Shared, but the leaders have not turned shared battle posts on: off by
   // default, whatever the policy says.
-  assert.deepEqual((await highlightOn(battleId)).clan_discord, {
+  assert.deepEqual((await postOn(battleId)).clan_discord, {
     available: false,
     posted_at: null,
   });
@@ -309,7 +314,7 @@ test("only the owner, only shared, only where the leaders turned it on, once", a
       where clan_tag = $1`,
     [CLAN],
   );
-  assert.deepEqual((await highlightOn(battleId)).clan_discord, {
+  assert.deepEqual((await postOn(battleId)).clan_discord, {
     available: true,
     posted_at: null,
   });
@@ -327,9 +332,9 @@ test("only the owner, only shared, only where the leaders turned it on, once", a
   assert.ok(!JSON.stringify(message).includes("webhooks/"));
   assert.equal(message.posts.length, 1);
   const [p] = message.posts;
-  assert.equal(p.key, highlightPostKey(id));
+  assert.equal(p.key, battlePostKey(id));
   assert.equal(p.revision, 1);
-  assert.match(p.content, /shared a highlight/);
+  assert.match(p.content, /posted about a/);
   assert.match(
     p.content,
     /\[Open in Elixir\]\(<https:\/\/.+\/h\/[a-z2-7]{15}>\)$/,
@@ -351,8 +356,8 @@ test("only the owner, only shared, only where the leaders turned it on, once", a
     account_id: ownerId,
     clan_tag: CLAN,
   });
-  assert.equal((await highlightOn(battleId)).clan_discord.available, false);
-  assert.ok((await highlightOn(battleId)).clan_discord.posted_at);
+  assert.equal((await postOn(battleId)).clan_discord.available, false);
+  assert.ok((await postOn(battleId)).clan_discord.posted_at);
 
   // Once: a second ask sends nothing.
   const again = await ask();
@@ -401,7 +406,7 @@ test("only the owner, only shared, only where the leaders turned it on, once", a
     log: { log: () => {}, error: () => {} },
   });
   const deliver = async () => {
-    const key = `timeline-discord/highlight-${id}.json`;
+    const key = `timeline-discord/post-${id}.json`;
     objects.set(key, { body: message, etag: '"o"' });
     try {
       await work({ bucket: "outbox", key }, { final: false });
@@ -423,22 +428,22 @@ test("only the owner, only shared, only where the leaders turned it on, once", a
 });
 
 test("not your player any more, or not in a clan: refused", async () => {
-  const made = await call("POST", "/api/me/highlights", {
+  const made = await call("POST", "/api/me/posts", {
     who: "owner",
-    body: { battle: otherBattleId, words: "" },
+    body: { battle: otherBattleId, text: "" },
   });
-  const id = made.body.highlight.highlight_id;
-  await call("POST", "/api/me/highlights/share", {
+  const id = made.body.post.post.id;
+  await call("POST", "/api/me/post-shares", {
     who: "owner",
-    body: { highlight_id: id },
+    body: { id },
   });
   await db.query(
     `update clan_membership set left_observed_at = now() where player_tag = $1`,
     [PLAYER],
   );
-  const noClan = await call("POST", "/api/me/highlights/discord", {
+  const noClan = await call("POST", "/api/me/post-discord", {
     who: "owner",
-    body: { highlight_id: id },
+    body: { id },
   });
   assert.equal(noClan.status, 409);
   assert.equal(noClan.body.error, "no_clan");
@@ -446,9 +451,9 @@ test("not your player any more, or not in a clan: refused", async () => {
     `update claim set status = 'unverified' where account_id = $1`,
     [ownerId],
   );
-  const notYours = await call("POST", "/api/me/highlights/discord", {
+  const notYours = await call("POST", "/api/me/post-discord", {
     who: "owner",
-    body: { highlight_id: id },
+    body: { id },
   });
   assert.equal(notYours.status, 403);
   assert.equal(notYours.body.error, "not_your_player");

@@ -125,6 +125,10 @@ const PLAYER_PAGE = {
   // 1500 to 900 (2026-11-14): 664 here, as on the battle page.
   // +1: the player's clan news reads (13.10.0, 2026-11-17).
   "/api/me/cheers": { statements: 27, buffers: 900 },
+  // The player's posts, those about battles with their battles (0291:
+  // what /api/player read as highlights until then, inside its 6000).
+  // 916 cold here, nearly all the battle posts' decks.
+  "/api/me/posts": { statements: 12, buffers: 1500 },
   "/api/clan/me": { statements: 15, buffers: 300 },
   "/api/me/follow-plan": { statements: 9, buffers: 500 },
   // +1: who verified the player, for linked follows (2026-11-15).
@@ -147,6 +151,12 @@ async function playerPage(tag) {
     "/api/me/cheers",
     { query: { player: tag } },
     PLAYER_PAGE["/api/me/cheers"],
+  );
+  out.posts = await read(
+    "/api/me/posts",
+    "/api/me/posts",
+    { query: { player: tag } },
+    PLAYER_PAGE["/api/me/posts"],
   );
   out.clans = await read(
     "/api/clan/me",
@@ -181,15 +191,17 @@ async function playerPage(tag) {
   return out;
 }
 
-test("your own player page stays in its budgets, and reads each highlight's row by key", async () => {
+test("your own player page stays in its budgets, and reads each battle post's row by key", async () => {
   const page = await playerPage(seed.leaderTag);
-  // Each highlight's participant row by its primary key, never off the
-  // player's whole history once per highlight.
-  for (const s of scansOf(
-    page.player.planned,
-    /from battle_highlight h/,
+  // Each battle post's participant row by its primary key, never off the
+  // player's whole history once per post.
+  const scans = scansOf(
+    page.posts.planned,
+    /from account_post p\s+join account au/,
     "battle_participant",
-  ))
+  );
+  assert.ok(scans.length > 0, "the battle posts' read was planned");
+  for (const s of scans)
     assert.equal(s.index, "battle_participant_pkey", JSON.stringify(s));
   // Your players' names by key, never a walk along player_pkey.
   for (const s of scansOf(page.clans.planned, /from claim c/, "player"))
@@ -592,19 +604,20 @@ const latestBattle = async () =>
 
 /**
  * The battle page and a shared post (2026-11-13): the shell's /api/me,
- * the battle itself, then the viewer's highlight, cheers and follow cost;
+ * the battle itself, then the viewer's posts about it, cheers and follow
+ * cost;
  * a post reads its battle as the battle page does.
  */
 const BATTLE = {
   "/api/me": { statements: 11, buffers: 900 },
   "/api/public/battles": { statements: 21, buffers: 500 },
-  "/api/me/highlights": { statements: 5, buffers: 50 },
+  "/api/me/posts": { statements: 6, buffers: 80 },
   // +1: the player's clan news reads (13.10.0, 2026-11-17).
   "/api/me/cheers": { statements: 27, buffers: 900 },
   // +1: who verified the player, for linked follows (2026-11-15).
   "/api/me/follow-cost": { statements: 6, buffers: 250 },
   // +1: the page's profile images, one statement (2026-11-14).
-  "/api/public/highlights": { statements: 23, buffers: 500 },
+  "/api/public/posts": { statements: 23, buffers: 500 },
 };
 
 test("the battle page and a shared post stay in their budgets, and /api/me reads each claim's player by key", async () => {
@@ -618,10 +631,10 @@ test("the battle page and a shared post stay in their budgets, and /api/me reads
       BATTLE["/api/public/battles"],
     ],
     [
-      "/api/me/highlights",
-      "/api/me/highlights",
+      "/api/me/posts",
+      "/api/me/posts",
       { query: { battle } },
-      BATTLE["/api/me/highlights"],
+      BATTLE["/api/me/posts"],
     ],
     [
       "/api/me/cheers",
@@ -646,22 +659,22 @@ test("the battle page and a shared post stay in their budgets, and /api/me reads
   // A post: the owner's words on a battle the page can name.
   const share = "qqqqqqqqqqqqqqz";
   await seed.db.query(
-    `insert into battle_highlight (player_tag, battle_id, account_id, words, share_id, shared_at)
-     values ($1, $2, $3, 'What a finish', $4, now())`,
+    `insert into account_post (item_id, player_tag, battle_id, account_id, body, share_id, shared_at)
+     values ('tl_' || substr(md5(random()::text), 1, 20), $1, $2, $3, 'What a finish', $4, now())`,
     [seed.leaderTag, battle, seed.accountId, share],
   );
   try {
     await inOrder([
       [
-        "/api/public/highlights",
-        `/api/public/highlights/${share}`,
+        "/api/public/posts",
+        `/api/public/posts/${share}`,
         {},
-        BATTLE["/api/public/highlights"],
+        BATTLE["/api/public/posts"],
       ],
       ["/api/me (post)", "/api/me", {}, BATTLE["/api/me"]],
     ]);
   } finally {
-    await seed.db.query("delete from battle_highlight where share_id = $1", [
+    await seed.db.query("delete from account_post where share_id = $1", [
       share,
     ]);
   }
@@ -930,9 +943,9 @@ test("Clan's other pages stay in their budgets, and the Map reads its places in 
  */
 const OLD = [
   {
-    name: "a highlight's own row (highlightItems)",
-    re: /cross join lateral \(\s*select bp\.side, bp\.crowns, bp\.outcome, bp\.trophy_change, bp\.deck_hash\s+from battle_participant bp\s+where bp\.battle_id = h\.battle_id and bp\.player_tag = h\.player_tag\s+limit 1\) me/,
-    old: "join battle_participant me on me.battle_id = h.battle_id and me.player_tag = h.player_tag",
+    name: "a battle post's own row (battlePostRows)",
+    re: /cross join lateral \(\s*select bp\.side, bp\.crowns, bp\.outcome, bp\.trophy_change, bp\.deck_hash\s+from battle_participant bp\s+where bp\.battle_id = p\.battle_id and bp\.player_tag = p\.player_tag\s+limit 1\) me/,
+    old: "join battle_participant me on me.battle_id = p.battle_id and me.player_tag = p.player_tag",
   },
   {
     name: "your players' names (myPlayers)",

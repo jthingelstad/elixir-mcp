@@ -446,11 +446,12 @@ test("Storyteller: one battle once, however it is reposted", async () => {
       },
       { now },
     );
+  // A highlight counted before 0291, under its old source.
   assert.equal((await story("highlight:1", "battle-x")).accepted, true);
-  // Edited, removed and reposted: a new highlight, the same battle.
-  assert.equal((await story("highlight:2", "battle-x")).reason, "same_battle");
-  assert.equal((await story("highlight:3", "battle-y")).count, 2);
-  await assert.rejects(story("highlight:4", ""), TypeError);
+  // The post it became, or one removed and reposted: the same battle.
+  assert.equal((await story("post:2", "battle-x")).reason, "same_battle");
+  assert.equal((await story("post:3", "battle-y")).count, 2);
+  await assert.rejects(story("post:4", ""), TypeError);
   const { rows } = await db.query(
     `select qualifier from account_stamp_fact where account_id = $1`,
     [a],

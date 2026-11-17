@@ -78,7 +78,6 @@ const PAGE = {
   ],
   timeline_more: 0,
   moments: [],
-  highlights: [],
 };
 
 const reply = (body, status = 200) => ({
@@ -92,11 +91,14 @@ let page;
 let plan;
 let posted;
 let pageCheers;
+// The player's posts, as GET /api/me/posts?player= answers.
+let pagePosts;
 // Replies for the session page, in turn, when a test sets them.
 let sessionReplies;
 beforeEach(() => {
   cleanup();
   page = PAGE;
+  pagePosts = [];
   sessionReplies = null;
   pageCheers = {};
   posted = [];
@@ -138,7 +140,7 @@ beforeEach(() => {
       const item = page.timeline[0];
       return reply({
         player: { tag: "#0VJ2QV", name: "Copper Fern" },
-        you: { own: false, can_highlight: false },
+        you: { own: false, can_post: false },
         item,
         games: {
           item_id: item.id,
@@ -193,6 +195,7 @@ beforeEach(() => {
       });
     }
     if (p.startsWith("/api/me/cheers?")) return reply(pageCheers);
+    if (p.startsWith("/api/me/posts?")) return reply({ posts: pagePosts });
     if (p === "/api/me/cheers" && init?.method === "PUT") {
       const body = JSON.parse(init.body);
       posted.push([p, body]);
@@ -299,7 +302,9 @@ test(
     expect(screen.getByText("Verified in Discord")).toBeTruthy();
     // The counts are buttons to their tabs (canvas .statrow).
     expect(screen.getByRole("button", { name: "Following 1" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^Highlights \d/ })).toBeTruthy();
+    // A post about a battle is a post (0291): no Highlights count or tab.
+    expect(screen.queryByRole("button", { name: /^Highlights/ })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /Highlights/ })).toBeNull();
     expect(screen.getByText("Copper Fern won five in a row")).toBeTruthy();
     // Explore folded into the page (2026-11-12): no link out to it.
     expect(screen.queryByRole("link", { name: "Full record" })).toBeNull();
@@ -450,7 +455,7 @@ test(
       reply({ error: "evidence_changed" }, 409),
       reply({
         player: { tag: "#0VJ2QV", name: "Copper Fern" },
-        you: { own: false, can_highlight: false },
+        you: { own: false, can_post: false },
         item,
         games: {
           item_id: "s3",
@@ -786,24 +791,50 @@ test(
 );
 
 test(
-  "an empty Highlights tab says how to post one on your own page only",
+  "a player's posts about battles are on the Timeline tab, and an old Highlights address opens it",
   { timeout: 20000 },
   async () => {
-    page = { ...PAGE, you: { ...PAGE.you, own: true }, highlights: [] };
-    window.history.pushState({}, "", "/home/player/0VJ2QV?tab=highlights");
-    const { unmount } = render(<App />);
-    await screen.findByText(/No highlights posted yet/);
-    expect(
-      screen
-        .getByRole("link", { name: /How to highlight a battle/ })
-        .getAttribute("href"),
-    ).toBe("/docs/battles#highlight-a-battle");
-    unmount();
-    page = { ...PAGE, highlights: [] };
+    pagePosts = [
+      {
+        id: "tl_00000000000000000071",
+        kind: "post",
+        at: "2026-11-10T14:05:00.000Z",
+        sort_at: "2026-11-10T14:05:00.000Z",
+        subject_tag: "#0VJ2QV",
+        subjects: [{ kind: "player", tag: "#0VJ2QV", name: "Copper Fern" }],
+        text: "Copper Fern posted.",
+        comments: { count: 0, latest: [], open: false },
+        post: {
+          id: "71",
+          text: "Three crowns at last",
+          author: { player_tag: "#0VJ2QV", name: "Copper Fern" },
+          battle: {
+            battle_id: "aaaaaaaaaaa1",
+            url: "https://elixir.example/battle/aaaaaaaaaaa1",
+            mode_group: "ladder",
+            outcome: "win",
+            crowns: 3,
+            crowns_against: 0,
+            opponents: [{ name: "Umber" }],
+          },
+        },
+      },
+    ];
     window.history.pushState({}, "", "/home/player/0VJ2QV?tab=highlights");
     render(<App />);
-    await screen.findByText(/No highlights posted yet/);
-    expect(screen.queryByRole("link", { name: /How to highlight/ })).toBeNull();
+    const list = await screen.findByRole("region", { name: "Posts" });
+    expect(within(list).getByText("Three crowns at last")).toBeTruthy();
+    expect(
+      within(list).getByText("A 3-0 win against Umber (Trophy Road)"),
+    ).toBeTruthy();
+    expect(
+      within(list)
+        .getByRole("link", { name: "Open battle" })
+        .getAttribute("href"),
+    ).toBe("/battle/aaaaaaaaaaa1");
+    expect(
+      screen.getByRole("tab", { name: /Timeline/ }).getAttribute("aria-selected"),
+    ).toBe("true");
   },
 );
 

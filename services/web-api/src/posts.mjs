@@ -706,29 +706,33 @@ export async function homePosts(
 
 /** Whether a post (its row) is one the reader may see now: the same
  *  audience Home reads, or any post about a battle. */
-async function canSeePost(db, readerId, itemId, subjects, plain) {
+async function canSeePost(db, readerId, itemId, subjects, plain, open) {
   const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
   const rows = await readRows(
     db,
-    `(${AUDIENCE} or p.battle_id is not null) and p.item_id = $3`,
+    open
+      ? `(${AUDIENCE} or p.battle_id is not null) and p.item_id = $3`
+      : `${AUDIENCE} and p.item_id = $3`,
     [readerId, tags, itemId],
     { plain },
   );
   return rows.length ? (await postItems(db, rows, readerId))[0] : null;
 }
 
-/** A post the reader may see by either road: their Home audience (a post
- *  about a battle is as open as the battle, on its player's page), or
+/** A post the reader may see by either road: their Home audience, or
  *  Clan's Feed (the post's player is in a clan with one of theirs now).
- *  Cheers, comments and reports on a post ask this. */
+ *  Cheers, comments and reports on a post ask this. `open`: a post about
+ *  a battle counts wherever its player's page shows it (to everyone), as
+ *  for a report; a cheer or a comment stays with the feeds, as on a
+ *  highlight. */
 export async function visiblePost(
   db,
   readerId,
   itemId,
   subjects,
-  { plain = false } = {},
+  { plain = false, open = false } = {},
 ) {
-  const home = await canSeePost(db, readerId, itemId, subjects, plain);
+  const home = await canSeePost(db, readerId, itemId, subjects, plain, open);
   if (home) return home;
   const rows = await readRows(db, `p.item_id = $2`, [readerId, itemId], {
     plain,

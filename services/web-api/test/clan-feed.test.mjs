@@ -1,7 +1,8 @@
 /**
  * Clan's Feed (slice 8, #766) over a scratch database (golden rule 9): the
- * clan's timeline for one member, newest first, carrying the highlights of
- * the clan's current members (a member who has left is not in it), each
+ * clan's timeline for one member, newest first, carrying the posts about
+ * battles (highlights until 0291) of the clan's current members (a member
+ * who has left is not in it), each post once, as the post it is, each
  * item as the Timeline draws it (2026-11-17) without Home's own fields;
  * none of the reader's own account items. Synthetic tags only.
  */
@@ -22,7 +23,7 @@ let ctx;
 let db;
 let reader;
 
-async function playerWithHighlight(tag, name, battleId, words, leftAt) {
+async function playerWithPost(tag, name, battleId, words, leftAt) {
   await db.query(`insert into player (player_tag, name) values ($1, $2)`, [
     tag,
     name,
@@ -56,8 +57,8 @@ async function playerWithHighlight(tag, name, battleId, words, leftAt) {
     [owner, tag],
   );
   await db.query(
-    `insert into battle_highlight (player_tag, battle_id, account_id, words, created_at, updated_at)
-     values ($1, $2, $3, $4, $5, $5)`,
+    `insert into account_post (item_id, player_tag, battle_id, account_id, body, created_at)
+     values ('tl_' || substr(md5(random()::text), 1, 20), $1, $2, $3, $4, $5)`,
     [tag, battleId, owner, words, at(T - 4 * H)],
   );
 }
@@ -89,38 +90,46 @@ before(async () => {
      values ($1, $2, 'verified', true, 'primary', true)`,
     [reader, READER],
   );
-  await playerWithHighlight(STAYED, "Stays", "feed-1", "Three crowns", null);
-  await playerWithHighlight(LEFT, "Gone", "feed-2", "Old words", at(T - 2 * H));
+  await playerWithPost(STAYED, "Stays", "feed-1", "Three crowns", null);
+  await playerWithPost(LEFT, "Gone", "feed-2", "Old words", at(T - 2 * H));
 });
 
 after(async () => {
   await ctx?.drop();
 });
 
-test("feed: current members' highlights, drawn as the Timeline draws them, never a member who has left", async () => {
+test("feed: current members' posts about battles, drawn as the Timeline draws them, never a member who has left", async () => {
   const feed = await readClanFeed(
     db,
-    { accountId: reader, timezone: "UTC" },
+    { accountId: reader, timezone: "UTC", kind: "person" },
     CLAN,
     T,
   );
   assert.equal(feed.clan_tag, CLAN);
   assert.equal(feed.window_days, FEED_DAYS);
   assert.equal(typeof feed.more, "number");
-  const highlights = feed.items.filter((it) => it.kind === "battle_highlight");
+  // One item for each post: the post, never the record's line beside it.
+  assert.equal(
+    feed.items.filter((it) => it.kind === "battle_highlight").length,
+    0,
+  );
+  const posts = feed.items.filter((it) => it.kind === "post");
   assert.deepEqual(
-    highlights.map((it) => it.facts?.words),
+    posts.map((it) => it.post.text),
     ["Three crowns"],
   );
-  const [h] = highlights;
-  assert.match(h.text, /Stays/);
-  assert.ok(h.id);
+  const [h] = posts;
+  assert.equal(h.subject_tag, STAYED);
+  assert.equal(h.post.battle.battle_id, "feed-1");
+  assert.match(h.id, /^tl_[0-9a-f]{20}$/);
   assert.ok(Date.parse(h.at));
   for (const it of feed.items) {
     // Home's own fields stay Home's: the reader's groups, the Follow
-    // offer, cheers and comments; and the timeline's section.
-    for (const k of ["groups", "offer_follow", "cheers", "comments", "section"])
-      assert.ok(!(k in it), `no ${k} on Clan's Feed`);
+    // offer and the timeline's section; cheers and comments too, but on
+    // a post, which a clanmate may cheer and answer here.
+    const own = ["groups", "offer_follow", "section"];
+    if (it.kind !== "post") own.push("cheers", "comments");
+    for (const k of own) assert.ok(!(k in it), `no ${k} on Clan's Feed`);
   }
   // Newest first.
   const times = feed.items.map((it) => Date.parse(it.at)).filter(Boolean);
