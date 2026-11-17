@@ -48,6 +48,7 @@ import {
 } from "./logic.js";
 import { useOwnRefresh } from "../lib/own-refresh.js";
 import { ProfileList } from "./ProfileList.jsx";
+import { Circle } from "./Circle.jsx";
 
 const DASH = "–";
 
@@ -87,6 +88,8 @@ export function HomePanels({ first, player, feed }) {
         <div className="kit-home__main">
           {starterShown ? <StarterSet query={starter} /> : null}
           <ProfileList first={first} player={player} />
+          {/* Your circle this week (2026-11-16): above the feed, compact. */}
+          {typeof feed === "function" ? <Circle /> : null}
           {typeof feed === "function" ? feed({ suggest: suggestHere }) : feed}
         </div>
         <div className="kit-home__side">

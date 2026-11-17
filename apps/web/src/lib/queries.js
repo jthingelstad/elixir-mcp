@@ -182,6 +182,16 @@ export const useHomeNeeds = () =>
     queryFn: payload(api.homeNeeds),
   });
 
+/** Your circle this week (2026-11-16): its own read, so the feed never
+ *  waits on it. */
+export const HOME_CIRCLE_KEY = ["me", "home", "circle"];
+export const useHomeCircle = () =>
+  useQuery({
+    queryKey: HOME_CIRCLE_KEY,
+    queryFn: payload(api.homeCircle),
+    staleTime: 60_000,
+  });
+
 /** The bell's dot (slice 7): Home's Needs you read, shared with Home, and
  *  read again at most every few minutes as you move between pages. */
 export const useBellNeeds = (enabled = true) =>

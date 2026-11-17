@@ -544,10 +544,20 @@ test(
       name: "More about this player",
     });
     // Two actions at most: Following, then Their stats. Follow everyone
-    // in their clan is on the Follows tab.
+    // in their clan is on the Follows tab. The close-friend star beside
+    // Following (2026-11-16) is a mark, not an action, and only yours.
     expect(
-      [...head.querySelectorAll("a, button")].map((b) => b.textContent.trim()),
+      [...head.querySelectorAll("a, button")]
+        .filter((b) => !b.classList.contains("kit-close"))
+        .map((b) => b.textContent.trim()),
     ).toEqual(["Following", "Their stats"]);
+    expect(
+      within(head)
+        .getByRole("button", {
+          name: "Mark Copper Fern a close friend",
+        })
+        .getAttribute("aria-pressed"),
+    ).toBe("false");
     fireEvent.click(within(head).getByRole("button", { name: "Following" }));
     const dialog = await screen.findByRole("dialog", {
       name: "Unfollow Copper Fern?",

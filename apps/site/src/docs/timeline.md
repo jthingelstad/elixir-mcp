@@ -32,11 +32,36 @@ kept, so Home opens at once (below).
 ## Home's feed
 
 Home is your timeline as one feed, newest first, in days. Chips choose
-whose items it shows: **Everyone**, **Friends** (the players you follow as
-friends), **Clan** (the clans you follow), or **You** (your own players),
-each with its count. A player you only watch is under Everyone. **All** or
-**New** chooses between everything and what came since your last visit. The
-chips only choose what the page draws.
+whose items it shows: **Everyone**, **Close friends** (once you have
+starred one, below), **Friends** (the players you follow as friends),
+**Clan** (the clans you follow), or **You** (your own players), each with
+its count. A player you only watch is under Everyone. **All** or **New**
+chooses between everything and what came since your last visit. The chips
+only choose what the page draws: your place moves when you open the feed,
+whichever chip is on, so **New** means the same under every chip. Your
+choice is kept for your next visit on the same device.
+
+### Your circle this week
+
+Star a friend you follow and they are a **close friend**. Your circle sits
+above the feed and shows how each close friend's week went since
+Monday's reset (the same week as **Your week**): how many battles, on how
+many days, how many sessions, and up to two things the timeline already
+told about them. Tap a face to open their newest session, or their page
+when they have none this week. **See all** opens the full list.
+
+Facts only. Your circle is in order of who played last, never by how well
+they played, and a friend with no battles this week just says "No battles
+this week". Until you star someone, it offers a few players you already
+follow, the ones who follow you back and your clanmates first, each with
+a star to tap.
+
+Only you see your stars. The friend is never told, and no page anyone else
+reads, no follow list, no mail and no connected app shows them. Star or
+unstar a friend on their page (the star beside **Following**), in
+Settings › Players & following, or in your circle. Starring one Verified
+player of an account stars all of that account's Verified players you
+follow, because they are one follow.
 
 Elixir builds your week ahead and keeps it, so Home opens at once instead of
 reading seven days of everyone you follow while you wait. A kept week is

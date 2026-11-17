@@ -115,7 +115,14 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
             : key === "GET /api/me/home/feed/new"
               ? // Home's "N new" count: nothing new unless a test says.
                 ([200, { new: 0, built_at: null }] as const)
-              : undefined);
+              : key === "GET /api/me/home/circle"
+                ? // Your circle this week (2026-11-16): nobody marked and
+                  // nobody to offer, so it draws nothing, unless a test says.
+                  ([
+                    200,
+                    { circle: { ok: true, friends: [], suggestions: [] } },
+                  ] as const)
+                : undefined);
     const [status, body] =
       typeof answer === "function"
         ? answer(route)

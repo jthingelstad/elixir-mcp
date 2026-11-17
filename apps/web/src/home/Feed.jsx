@@ -21,16 +21,20 @@ import {
   reloadHomeFeed,
   useHomeFeed,
   useHomeFeedEvidence,
+  useHomeCircle,
   useHomeFeedNew,
   useMyPassport,
 } from "../lib/queries.js";
+import { useMe } from "../App.jsx";
 import {
   TimelineEvidence,
   useTimelinePlace,
 } from "../views/account/timeline-shared.jsx";
 import {
-  FEED_CHIPS,
+  feedChips,
   feedShown,
+  keepShow,
+  keptShow,
   feedSince,
   modeWord,
   quietFeed,
@@ -73,6 +77,12 @@ import { PeopleToFollow } from "./People.jsx";
  * New is one more toggle in the same row, not a second row of chips: on, it
  * keeps only what is new since your last visit, under whichever Show chip.
  *
+ * Close friends (2026-11-16) is one more Show chip, offered once you have
+ * marked one, and the Show choice is remembered per account in this
+ * browser. Like every Show chip it only chooses what is shown: opening the
+ * feed moves your place as it always did, whichever chip is lit, so the
+ * bell's dot and New mean the same thing under every chip.
+ *
  * The feed is read when Home opens and when the reader asks, never under
  * them (2026-11-14): an open Home asks a cheap count once a minute while its
  * tab is visible, and when new items have arrived an "N new" pill floats
@@ -90,7 +100,27 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
   const pages = query.data?.pages ?? [];
   const timeline = pages[0] ?? null;
   const { openedMs } = useTimelinePlace(timeline);
-  const [show, setShow] = useState("everyone");
+  // The Show chip, as this account left it here (2026-11-16).
+  const { me } = useMe();
+  // Kept per account: its page id, else its main player, else this browser.
+  const who = me?.authenticated
+    ? (me.page_id ??
+      (me.claims ?? []).find((c) => c.is_primary)?.player_tag ??
+      "account")
+    : null;
+  const [picked, setPicked] = useState(null);
+  const circle = useHomeCircle();
+  const hasClose = (circle.data?.circle?.friends?.length ?? 0) > 0;
+  const chipList = feedChips(hasClose);
+  const wanted = picked ?? keptShow(who);
+  // A kept Close friends with nobody marked any more is Everyone; while the
+  // circle is still reading, the kept choice holds.
+  const show =
+    wanted === "close" && circle.isSuccess && !hasClose ? "everyone" : wanted;
+  const setShow = (v) => {
+    setPicked(v);
+    keepShow(who, v);
+  };
   const [newOnly, setNewOnly] = useState(false);
   const [openId, setOpenId] = useState(null);
   const items = useMemo(
@@ -153,7 +183,7 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
   const days = timelineDays(shown, { day, openedMs });
   // The week's counts, from the first page; what is loaded, if it has none.
   const counts = Object.fromEntries(
-    FEED_CHIPS.map((c) => [
+    chipList.map((c) => [
       c.key,
       timeline.counts?.[c.key] ?? feedShown(items, c.key).length,
     ]),
@@ -172,7 +202,7 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
     <FeedFilters>
       <Chips
         label="Show"
-        options={FEED_CHIPS.map((c) => ({ ...c, count: counts[c.key] }))}
+        options={chipList.map((c) => ({ ...c, count: counts[c.key] }))}
         value={show}
         onChange={setShow}
       />
@@ -215,11 +245,13 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
         <p className="kit-week__quiet">
           {newOnly
             ? "Nothing new here since your last visit."
-            : show === "friends"
-              ? "Nothing from your friends in the last seven days."
-              : show === "clan"
-                ? "Nothing from your clan in the last seven days."
-                : "Nothing of yours in the last seven days."}
+            : show === "close"
+              ? "Nothing from your close friends in the last seven days."
+              : show === "friends"
+                ? "Nothing from your friends in the last seven days."
+                : show === "clan"
+                  ? "Nothing from your clan in the last seven days."
+                  : "Nothing of yours in the last seven days."}
         </p>
       ) : (
         days.map((d) => (

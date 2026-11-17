@@ -220,7 +220,10 @@ export async function readCircle(
     return {
       from,
       friends: [],
-      suggestions: await withFaces(db, await suggestions(db, account.accountId)),
+      suggestions: await withFaces(
+        db,
+        await suggestions(db, account.accountId),
+      ),
     };
   // Home's stored week, as the feed reads it: built in the background, so
   // this is one row; a cold account builds it once for both reads.

@@ -103,6 +103,17 @@ characters) or through a connected app with `elixir_nickname`. It is private
 to you (apps you connect as yourself see it; an agent keeps its own), and your digest uses it. A nickname
 stays when you stop following the player, and an empty one clears it.
 
+## Close friends
+
+Tap the star beside **Following** on a friend's page, or on their row in
+Settings › Players & following, to make them a close friend. Close
+friends get [your circle this week](/docs/timeline#your-circle-this-week)
+on Home and a **Close friends** chip on the feed. The star is private to
+you: the friend is never told and nobody else sees it. Unfollowing a
+friend, or switching them to watching, takes the star away. Starring a
+Verified player stars their account's other Verified players you follow
+too.
+
 ## The notifications switch
 
 Each followed player has a **Notifications** switch, on from the start;

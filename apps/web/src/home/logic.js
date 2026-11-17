@@ -8,10 +8,69 @@ import { SETTINGS } from "../lib/settings.js";
  *  server puts each item in (services/web-api/src/feed.mjs). */
 export const FEED_CHIPS = [
   { key: "everyone", label: "Everyone" },
+  // Close friends (2026-11-16): offered only to an account that has marked
+  // one (feedChips); the mark and the chip are the reader's alone.
+  { key: "close", label: "Close friends" },
   { key: "friends", label: "Friends" },
   { key: "clan", label: "Clan" },
   { key: "you", label: "You" },
 ];
+
+/** The Show chips this reader gets: Close friends only once one is marked. */
+export const feedChips = (hasClose) =>
+  FEED_CHIPS.filter((c) => c.key !== "close" || hasClose);
+
+/** Where the feed's Show choice is kept, per account, in this browser. */
+const SHOW_KEY = "elixir.home.show:";
+
+/** The Show chip this reader chose last time here, if it is one we still
+ *  offer; storage that is blocked or empty means Everyone. */
+export function keptShow(who) {
+  if (!who) return "everyone";
+  try {
+    const v = window.localStorage.getItem(SHOW_KEY + who);
+    return FEED_CHIPS.some((c) => c.key === v) ? v : "everyone";
+  } catch {
+    return "everyone";
+  }
+}
+
+/** Keep the reader's Show choice for their next visit. Never throws. */
+export function keepShow(who, show) {
+  if (!who) return;
+  try {
+    if (show === "everyone") window.localStorage.removeItem(SHOW_KEY + who);
+    else window.localStorage.setItem(SHOW_KEY + who, show);
+  } catch {
+    // Storage blocked: the choice lasts this visit.
+  }
+}
+
+/** A close friend's week in one short line, as facts: how many battles on
+ *  how many days, or that there were none. Never a nudge. */
+export function circleLine(f) {
+  if (!f || !(f.battles > 0)) return "No battles this week";
+  const n = (v, one, many) =>
+    `${v.toLocaleString("en-US")} ${v === 1 ? one : many}`;
+  const parts = [n(f.battles, "battle", "battles")];
+  if (f.days > 0) parts.push(`${n(f.days, "day", "days")}`);
+  return parts.join(" · ");
+}
+
+/** The circle's fuller line: sittings too, when the week told them. */
+export function circleDetail(f) {
+  const line = circleLine(f);
+  if (!f || !(f.battles > 0) || !(f.sittings > 0)) return line;
+  return `${line} · ${f.sittings} ${f.sittings === 1 ? "sitting" : "sittings"}`;
+}
+
+/** Why a player is offered for the circle, as facts. */
+export function circleWhy(s) {
+  const why = [];
+  if (s?.follows_you) why.push("Follows you");
+  if (s?.clanmate) why.push("Clanmate");
+  return why.join(" · ") || "You follow them";
+}
 
 /** The items a chip shows, in the feed's own order. */
 export const feedShown = (items, show) =>
