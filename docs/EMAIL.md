@@ -300,7 +300,11 @@ friends mail counted them. Attested facts never enter
   two battles (`compactSitting`) is one line. The deck's eight cards are
   drawn once a person, on their biggest sitting with a deck, from the
   mirrored art (`cardImg`, never altered). The reader's own sittings are
-  not retold under You.
+  not retold under You. A budget over the whole message (`digestPeople`,
+  `DIGEST_BUDGET`, Codex on #1084) keeps a twelve-person digest under
+  Gmail's ~102 KB clip: people are drawn in order, their sittings full
+  (art for the first three) while the people drawn stay under 40 KB, one
+  line each under 60 KB, then a count linking their page.
 - **Each player once (2026-11-12).** Following a whole clan is common,
   so people are told only under themselves: a followed clanmate carries
   `clanmate: {tag, name}` ("In <clan>"), and a `clan_joined`/`clan_left`

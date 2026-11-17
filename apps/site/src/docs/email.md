@@ -79,7 +79,9 @@ chooses what to say, and the timeline keeps everything.
   three-crown wins, the widest win, a Ranked climb, a challenge's furthest
   run, who you follow it was played with, and the deck played most, with
   the deck's eight cards on one session a friend. A session of one or two
-  battles is one line. Each session's result opens its own page. Your own
+  battles is one line. Each session's result opens its own page. In a
+  busy digest, later friends' sessions get shorter, then become a link to
+  their page, so your email is never cut off. Your own
   sessions stay on your feed; under You, the digest keeps your week's
   count and your firsts.
 - **Your clan:** each clan you follow with news of its own: a river race

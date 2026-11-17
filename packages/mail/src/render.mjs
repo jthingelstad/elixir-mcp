@@ -313,7 +313,7 @@ const deckRow = (cards) =>
  *  decks named. One or two battles is one line. `art` draws the deck's
  *  eight cards (one sitting a person, to keep the mail light). Every
  *  string is escaped here. */
-function digestSitting(sit, c, { art = false } = {}) {
+function digestSitting(sit, c, { art = false, brief = false } = {}) {
   const f = sit.facts ?? {};
   const url = sittingUrl(sit.path);
   const head = esc(sessionHeadline(f));
@@ -324,6 +324,8 @@ function digestSitting(sit, c, { art = false } = {}) {
   const when = sit.at ? esc(c.dayTime({ at: sit.at })) : "";
   const caption = deckCaption(f);
   const dot = ` <span style="color:${M.dim};">·</span> `;
+  if (brief && !compactSitting(f))
+    return `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.faint};margin-top:8px;">${title}${net !== null ? ` ${netHtml(net)}` : ""}${when ? `${dot}${when}` : ""}</div>`;
   if (compactSitting(f)) {
     const tail = [
       ...modeChips(f).map((x) => esc(x.text)),
@@ -355,10 +357,19 @@ function digestSitting(sit, c, { art = false } = {}) {
 }
 
 /** A person's sittings: each as above, the deck's art on their biggest
- *  one, and how many more on their page. */
-function digestSittings(x, c) {
+ *  one, and how many more on their page. `mode` is the digest's budget
+ *  for this person (digest): "full", "full" without `art`, "brief" (each
+ *  sitting one line) or "count" (one line linking their page). */
+function digestSittings(x, c, { mode = "full", art = true } = {}) {
   const list = Array.isArray(x.sittings) ? x.sittings : [];
   if (!list.length) return "";
+  if (mode === "count") {
+    const all = list.length + (x.more_sittings ?? 0);
+    return c.small(
+      `${n(all)} ${all === 1 ? "sitting" : "sittings"} on ${c.link(playerUrl(x.tag), "their page")}.`,
+      "margin-top:6px;",
+    );
+  }
   let lead = -1;
   list.forEach((sit, i) => {
     const b = sit.facts?.battles ?? 0;
@@ -375,13 +386,20 @@ function digestSittings(x, c) {
         "margin-top:6px;",
       )
     : "";
-  return `${list.map((sit, i) => digestSitting(sit, c, { art: i === lead })).join("")}${more}`;
+  return `${list
+    .map((sit, i) =>
+      digestSitting(sit, c, {
+        art: art && mode === "full" && i === lead,
+        brief: mode === "brief",
+      }),
+    )
+    .join("")}${more}`;
 }
 
 /** A person in the digest: their name, their sittings and record, then
  *  what they posted and reached, the rest counted. Tone, not outlines
  *  (DECISIONS "Flat: tone, not outlines"). */
-function digestPerson(x, c) {
+function digestPerson(x, c, sittings = {}) {
   const record = x.battles
     ? `${n(x.sessions)} sitting${x.sessions === 1 ? "" : "s"} · ${n(x.battles)} battle${x.battles === 1 ? "" : "s"} · ${recHtml(x.wins, x.losses)}`
     : "No battles recorded";
@@ -402,10 +420,52 @@ function digestPerson(x, c) {
     <div style="font-family:${FONT};font-size:16px;line-height:1.5;font-weight:700;">${c.P(x.tag, x.name)}${x.nickname ? ` <span style="font-weight:400;color:${M.faint};">(${esc(x.nickname)})</span>` : ""}</div>
     ${x.clanmate ? `<div style="font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};">In ${c.K(x.clanmate.tag, x.clanmate.name ?? x.clanmate.tag)}</div>` : ""}
     ${(x.items ?? []).map((it) => digestItem(it, c)).join("")}
-    ${digestSittings(x, c)}
+    ${digestSittings(x, c, sittings)}
     ${progress ? c.small(esc(sentence(capFirst(progress))), "margin-top:8px;") : ""}
     <div style="margin-top:8px;font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};">${record}${trophies}</div>${more}
   </td></tr></table>`;
+}
+
+/** The digest's budget for its people (2026-11-16, Codex on #1084): Gmail
+ *  clips a message past about 102 KB of HTML, hiding the rest and the
+ *  footer's turn-off link. People are drawn in order; each one's sittings
+ *  are full while the people drawn so far stay under FULL_BYTES (the deck's
+ *  art for the first ART_PEOPLE), one line each under BRIEF_BYTES, and a
+ *  count with a link to their page past that. */
+const DIGEST_BUDGET = {
+  FULL_BYTES: 40_000,
+  BRIEF_BYTES: 60_000,
+  ART_PEOPLE: 3,
+};
+
+function digestPeople(people, c) {
+  let used = 0;
+  let art = 0;
+  return people
+    .map((x) => {
+      const has = Array.isArray(x.sittings) && x.sittings.length > 0;
+      const tries = [
+        {
+          mode: "full",
+          art: art < DIGEST_BUDGET.ART_PEOPLE,
+          under: DIGEST_BUDGET.FULL_BYTES,
+        },
+        { mode: "brief", under: DIGEST_BUDGET.BRIEF_BYTES },
+      ];
+      let html = null;
+      for (const t of has ? tries : []) {
+        const out = digestPerson(x, c, t);
+        if (used + out.length <= t.under) {
+          html = out;
+          if (t.mode === "full" && t.art && out.includes("<img")) art += 1;
+          break;
+        }
+      }
+      html ??= digestPerson(x, c, { mode: has ? "count" : "full" });
+      used += html.length;
+      return html;
+    })
+    .join("");
 }
 
 /** The digest of the people you follow (tracking_report, #767): who
@@ -422,7 +482,7 @@ function digest(f, c) {
     (x.items ?? []).some((it) => it.kind === "battle_highlight"),
   );
   const from = people.length
-    ? `${c.h2("From people you follow", `${n(people.length + (f.more_people ?? 0))} of ${n(f.following ?? 0)} had something this ${span}`)}${people.map((x) => digestPerson(x, c)).join("")}${
+    ? `${c.h2("From people you follow", `${n(people.length + (f.more_people ?? 0))} of ${n(f.following ?? 0)} had something this ${span}`)}${digestPeople(people, c)}${
         f.more_people
           ? c.small(
               `${n(f.more_people)} more ${f.more_people === 1 ? "person" : "people"} you follow had something; ${c.link(`${SITE}/home`, "your feed")} has them all.`,

@@ -106,3 +106,30 @@ test("a cheer on a sitting opens its session page in the activity mail", () => {
     /href="https:\/\/elixir\.poapkings\.com\/home\/player\/0QQG0JVQQ\/session\/tl_0000000000000000c001\?at=2026-11-16T15%3A02%3A00\.000Z&amp;utm_/,
   );
 });
+
+test("a full digest stays under Gmail's clip: twelve people, three big sittings each (Codex on #1084)", () => {
+  const facts = read("tracking_report");
+  const rapid = facts.people.find((p) => p.name === "Rapid Clear");
+  const big = rapid.sittings.find((s) => (s.facts.battles ?? 0) > 2);
+  const items = [...rapid.items, ...rapid.items, ...rapid.items].slice(0, 3);
+  facts.people = Array.from({ length: 12 }, (_, i) => ({
+    ...rapid,
+    tag: `#0QQG0JVQQ`,
+    name: `Rapid Clear the ${"Long ".repeat(3)}${i}`,
+    items,
+    sittings: [big, big, big].map((s, j) => ({
+      ...s,
+      path: s.path.replace("a102", `a1${i}${j}`),
+    })),
+    more_sittings: 5,
+  }));
+  const { html } = renderMail("tracking_report", facts, links);
+  assert.ok(html.length < 100_000, `${html.length} bytes`);
+  // The footer, and its turn-off link, are inside the mail.
+  assert.ok(html.includes("api/email/unsubscribe?t=x"));
+  // The first people are told in full, the art on at most three; the
+  // last only counted, with a link to their page.
+  assert.ok(words(html).includes("3 three-crown wins"));
+  assert.ok((html.match(/alt="Hog Rider"/g) ?? []).length <= 3);
+  assert.ok(words(html).includes("8 sittings on their page."));
+});
