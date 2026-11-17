@@ -24,6 +24,7 @@
  */
 import { addPlayer } from "@elixir-mcp/claims";
 import { seedClanLanding } from "./clan-landing-seed.mjs";
+import { vacuumWhole } from "../../../packages/ingest/test/helpers.mjs";
 
 /** Another clan's copy `k` of a tag: `#Q`, two letters for k, the rest. */
 const code = (sql) => `translate(${sql}, '0123456789', '0289PYLQGR')`;
@@ -270,7 +271,8 @@ export async function seedSignedIn(
       where x.n <= 40`,
     [leaderTag, accountId],
   );
-  await db.query("vacuum analyze");
+  // The budget tests measure plans and buffers: the map must be whole.
+  await vacuumWhole(db);
   step("done");
   return { ...base, follows };
 }

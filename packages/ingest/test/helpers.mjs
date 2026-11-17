@@ -416,3 +416,89 @@ export async function trackClans(db, tags) {
       [tag, account.account_id],
     );
 }
+
+/** Other backends in `db`'s database that hold a snapshot or a
+ *  transaction id: what keeps VACUUM from marking a page all-visible. */
+export async function snapshotHolders(db) {
+  const { rows } = await db.query(
+    `select pid, backend_type, state, left(query, 60) as query
+       from pg_stat_activity
+      where datname = current_database() and pid <> pg_backend_pid()
+        and (backend_xmin is not null or backend_xid is not null)`,
+  );
+  return rows;
+}
+
+/** Wait until no other backend in `db`'s database holds a snapshot.
+ *  Fails after `timeoutMs` (a hang guard, not a budget), naming them. */
+export async function quietHorizon(db, { timeoutMs = 120_000 } = {}) {
+  const until = Date.now() + timeoutMs;
+  for (;;) {
+    const holders = await snapshotHolders(db);
+    if (holders.length === 0) return;
+    if (Date.now() > until)
+      throw new Error(
+        `quietHorizon: snapshots still held after ${timeoutMs} ms: ${JSON.stringify(holders)}`,
+      );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
+/** Heap pages a vacuum may leave unmarked without its readers' plans or
+ *  buffers moving: a plain VACUUM skips a page whose cleanup lock it
+ *  cannot take (#979), one or two at a time. */
+const mapSlack = (pages) => Math.max(2, Math.ceil(pages / 100));
+
+/** The tables (all ordinary public ones when `tables` is null) whose
+ *  visibility map is short of their heap by more than the slack. */
+export async function shortMaps(db, tables = null) {
+  const { rows } = await db.query(
+    `select c.relname as table, c.relpages, c.relallvisible
+       from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r'
+        and ($1::text[] is null or c.relname = any($1::text[]))
+      order by c.relname`,
+    [tables],
+  );
+  return rows.filter(
+    (r) => r.relpages - r.relallvisible > mapSlack(r.relpages),
+  );
+}
+
+/**
+ * VACUUM (ANALYZE) `tables` (or the whole database) so the visibility
+ * map is whole, for a test that measures plans or shared buffers.
+ *
+ * A plan and its buffers are only a measure of the code when the map is
+ * whole: with it short, an index-only scan reads the heap for every
+ * unmarked page, and the planner prices index-only out and picks a whole
+ * table scan. VACUUM marks a page only when its rows are older than
+ * every snapshot other backends in the database hold, and on a shared
+ * local server those exist (the server's autovacuum analyzing a freshly
+ * cloned scratch database, while other runs' transactions keep the
+ * snapshots it takes old). A seed's bare `vacuum analyze` under that left
+ * the map short and the budget tests' plans and buffer ceilings failed
+ * for a reason that was not the code (2026-11-17). So: wait until no
+ * other backend holds a snapshot, vacuum, and confirm the map. A backend
+ * that takes an old snapshot between the wait and the vacuum can still
+ * cost a pass; then the wait and the vacuum run again, `attempts` times
+ * at most, and the error names what was still short. A snapshot held
+ * past `quietMs` fails it at once, naming its holder.
+ */
+export async function vacuumWhole(
+  db,
+  tables = null,
+  { attempts = 5, quietMs = 120_000 } = {},
+) {
+  const names = tables?.map((t) => pg.escapeIdentifier(t)).join(", ");
+  let short = [];
+  for (let i = 0; i < attempts; i++) {
+    await quietHorizon(db, { timeoutMs: quietMs });
+    await db.query(names ? `vacuum (analyze) ${names}` : "vacuum (analyze)");
+    short = await shortMaps(db, tables);
+    if (short.length === 0) return;
+  }
+  throw new Error(
+    `vacuumWhole: the visibility map is short after ${attempts} vacuums: ${JSON.stringify(short)}`,
+  );
+}

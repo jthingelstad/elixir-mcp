@@ -2,8 +2,8 @@
  * A jobs run fails fast when its database goes away (#814). On
  * 2026-11-12 RDS restarted under a run that held a bare pg.Client; the
  * run sat to the 900 s Lambda timeout and held the function's one
- * reserved slot. Every case here ends in about a second with an error
- * that names the op and the cause:
+ * reserved slot. Every case here ends the run with an error that names
+ * the op and the cause:
  *
  * - a server that accepts the connection and never answers;
  * - a connection that goes silent mid-run (packets dropped, no reset:
@@ -14,8 +14,18 @@
  *
  * And a healthy run keeps its op's statement limit, so a long legitimate
  * statement is not cut off.
+ *
+ * The timeout cases read no wall clock. Each mocks setTimeout (pg's
+ * connect and read timers and the run's deadline all use it), waits for
+ * the run to reach the state under test, then moves the clock to the
+ * limit and checks that the limit is what ended the run. Until
+ * 2026-11-17 they used 300 ms real limits and asserted "ended in under
+ * 2 s"; on a loaded host the healthy connect to the scratch database
+ * itself outran 300 ms, so the run failed for the wrong reason
+ * ("no connection" where the test wanted "no answer").
  */
 import { test, before, after } from "node:test";
+import { setImmediate as macrotask } from "node:timers/promises";
 import assert from "node:assert/strict";
 import net from "node:net";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -81,59 +91,108 @@ async function proxy() {
 
 const FAST = { connectMs: 300, statementMs: 400, answerGraceMs: 300 };
 
-async function timed(promise) {
-  const started = Date.now();
-  try {
-    await promise;
-  } catch (error) {
-    return { error, ms: Date.now() - started };
-  }
-  return { error: null, ms: Date.now() - started };
+/** A promise and its resolver: the run tells the test it has reached
+ *  the state under test. */
+function signal() {
+  let fire;
+  const reached = new Promise((resolve) => (fire = resolve));
+  return { fire, reached };
 }
 
-test("a server that never answers ends the run at the connect timeout", async () => {
-  const port = await listen(() => {}); // accepts, says nothing
-  const url = `postgres://nobody@127.0.0.1:${port}/none`;
-  const { error, ms } = await timed(
-    runJob("sweep_operational", null, () => sweepOperational(url), {
-      limits: FAST,
-    }),
+/** The run's outcome, and whether it has settled yet, without awaiting
+ *  it: `settled()` lets a test check that nothing ended the run before
+ *  the clock reached its limit. */
+function watch(promise) {
+  let done = false;
+  const outcome = promise.then(
+    () => ({ error: null }),
+    (error) => ({ error }),
   );
-  assert.ok(error, "the run must fail");
-  assert.equal(error.code, "jobs_db_aborted");
-  assert.match(error.message, /sweep_operational: no connection within/);
-  assert.ok(ms < 2_000, `ended in ${ms} ms`);
-});
+  outcome.then(() => (done = true));
+  return { outcome, settled: () => done };
+}
 
-test("a connection that goes silent mid-run ends it when the answer is overdue", async () => {
-  const p = await proxy();
-  const { error, ms } = await timed(
-    runJob(
-      "home_feeds",
-      null,
-      async () => {
-        const db = await openJobsClient(p.url);
-        try {
-          await db.query("select 1");
-          p.silence();
-          await db.query("select 2");
-          return "unreachable";
-        } finally {
-          await db.end();
-        }
-      },
-      { limits: FAST },
-    ),
-  );
-  assert.ok(error, "the run must fail");
-  assert.equal(error.code, "jobs_db_aborted");
-  assert.match(error.message, /home_feeds: no answer from the database/);
-  assert.ok(ms < 3_000, `ended in ${ms} ms`);
-});
+/** Moves the mocked clock to just short of `ms` and checks the run is
+ *  still waiting, then to `ms` and returns how it ended. Real I/O and
+ *  microtasks get a macrotask turn between the steps. */
+async function endsAt(t, run, ms) {
+  await macrotask();
+  t.mock.timers.tick(ms - 1);
+  await macrotask();
+  assert.equal(run.settled(), false, `still waiting at ${ms - 1} ms`);
+  t.mock.timers.tick(1);
+  return run.outcome;
+}
 
-test("a connection reset mid-run ends it at once", async () => {
+// A case that regresses to hanging fails at this bound rather than
+// stalling the suite; it is no budget the cases are measured against.
+const HANG = { timeout: 30_000 };
+
+test(
+  "a server that never answers ends the run at the connect timeout",
+  HANG,
+  async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const accepted = signal();
+    const port = await listen(() => accepted.fire()); // accepts, says nothing
+    const url = `postgres://nobody@127.0.0.1:${port}/none`;
+    const run = watch(
+      runJob("sweep_operational", null, () => sweepOperational(url), {
+        limits: FAST,
+      }),
+    );
+    await accepted.reached;
+    const { error } = await endsAt(t, run, FAST.connectMs);
+    assert.ok(error, "the run must fail");
+    assert.equal(error.code, "jobs_db_aborted");
+    assert.match(error.message, /sweep_operational: no connection within/);
+    assert.match(error.cause?.message ?? "", /timeout expired/);
+  },
+);
+
+test(
+  "a connection that goes silent mid-run ends it when the answer is overdue",
+  HANG,
+  async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const p = await proxy();
+    const asked = signal();
+    const run = watch(
+      runJob(
+        "home_feeds",
+        null,
+        async () => {
+          const db = await openJobsClient(p.url);
+          try {
+            await db.query("select 1");
+            p.silence();
+            const pending = db.query("select 2");
+            asked.fire();
+            await pending;
+            return "unreachable";
+          } finally {
+            await db.end();
+          }
+        },
+        { limits: FAST },
+      ),
+    );
+    await asked.reached;
+    const { error } = await endsAt(
+      t,
+      run,
+      FAST.statementMs + FAST.answerGraceMs,
+    );
+    assert.ok(error, "the run must fail");
+    assert.equal(error.code, "jobs_db_aborted");
+    assert.match(error.message, /home_feeds: no answer from the database/);
+    assert.equal(error.cause?.message, "Query read timeout");
+  },
+);
+
+test("a connection reset mid-run ends it at once", HANG, async () => {
   const p = await proxy();
-  const { error, ms } = await timed(
+  const { error } = await watch(
     runJob(
       "clan_evaluate",
       null,
@@ -141,42 +200,51 @@ test("a connection reset mid-run ends it at once", async () => {
         const db = await openJobsClient(p.url);
         try {
           await db.query("select 1");
-          setTimeout(p.reset, 100);
-          // Long enough that only the reset can end it.
-          await db.query("select pg_sleep(30)");
+          // Longer than HANG and inside the statement limit, so only the
+          // reset can end it in time.
+          const pending = db.query("select pg_sleep(60)");
+          p.reset();
+          await pending;
           return "unreachable";
         } finally {
           await db.end();
         }
       },
-      { limits: { ...FAST, statementMs: 60_000 } },
+      { limits: { statementMs: 600_000 } },
     ),
-  );
+  ).outcome;
   assert.ok(error, "the run must fail");
   assert.equal(error.code, "jobs_db_aborted");
   assert.match(error.message, /clan_evaluate: connection lost/);
-  assert.ok(ms < 2_000, `ended in ${ms} ms`);
 });
 
-test("a run stuck past its deadline settles and drops its connection", async () => {
-  let client;
-  const { error, ms } = await timed(
-    runJob(
-      "sweep_fleet",
-      null,
-      async () => {
-        client = await openJobsClient(ctx.url);
-        await new Promise(() => {}); // an S3 call that never returns
-      },
-      { limits: { runMs: 300 } },
-    ),
-  );
-  assert.ok(error, "the run must fail");
-  assert.match(error.message, /sweep_fleet: run passed its .* deadline/);
-  assert.ok(ms < 1_500, `ended in ${ms} ms`);
-  assert.ok(client.connection.stream.destroyed, "its connection is closed");
-  await assert.rejects(client.query("select 1"), /jobs_db_aborted/);
-});
+test(
+  "a run stuck past its deadline settles and drops its connection",
+  HANG,
+  async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    let client;
+    const stuck = signal();
+    const run = watch(
+      runJob(
+        "sweep_fleet",
+        null,
+        async () => {
+          client = await openJobsClient(ctx.url);
+          stuck.fire();
+          await new Promise(() => {}); // an S3 call that never returns
+        },
+        { limits: { runMs: 300 } },
+      ),
+    );
+    await stuck.reached;
+    const { error } = await endsAt(t, run, 300);
+    assert.ok(error, "the run must fail");
+    assert.match(error.message, /sweep_fleet: run passed its .* deadline/);
+    assert.ok(client.connection.stream.destroyed, "its connection is closed");
+    await assert.rejects(client.query("select 1"), /jobs_db_aborted/);
+  },
+);
 
 /** An S3 client that never reaches the network: it counts the requests
  *  that got as far as being sent. */
@@ -206,7 +274,7 @@ test("an aborted run's leftover work enqueues nothing (Codex on #1042)", async (
   const outbox = makeOutbox("outbox-test", s3);
   let resumeArchive;
   let leftover;
-  const { error } = await timed(
+  const { error } = await watch(
     runJob(
       "email",
       null,
@@ -219,7 +287,7 @@ test("an aborted run's leftover work enqueues nothing (Codex on #1042)", async (
       },
       { limits: { runMs: 200 } },
     ),
-  );
+  ).outcome;
   assert.match(error.message, /email: run passed its .* deadline/);
   resumeArchive();
   await new Promise((resolve) => setTimeout(resolve, 20));
