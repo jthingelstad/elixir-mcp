@@ -52,7 +52,7 @@ Once your profile shows your clan, Elixir follows that clan for you
 
 Next, your Timeline asks you to **verify it's you**: play one battle with a deck Elixir
 names. Win or lose, it counts ([Verify](/docs/verify)). A verified player can
-[highlight a battle](/docs/battles#highlight-a-battle) and act in Clan with
+[post about a battle](/docs/battles#post-about-a-battle) and act in Clan with
 their in-game role.
 
 ## 3. Follow a few people

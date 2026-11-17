@@ -50,7 +50,7 @@ In **[your digest](/docs/email#your-digest)**, the players you watch
 come after your [friends](/docs/follow-a-friend), whoever has the most
 to tell first, then the busiest, shown as a friend is: their battles
 with wins and losses, their trophies, and up to three things (their
-highlights, a new arena or league, a clan joined or left, a return),
+posts about battles, a new arena or league, a clan joined or left, a return),
 twelve people in all with the rest counted. A player who neither played
 nor posted is left out.
 

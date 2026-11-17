@@ -24,7 +24,7 @@ Elixir fixes that.
   Arena, a new league) and their best battles land in one feed on
   [your Timeline](/timeline), newest first, with your own play in it.
 - **Cheer them on.** Every item takes a cheer, from twenty happy glyphs.
-- **Show off.** Highlight one of your own battles and tell the story in your
+- **Show off.** Post about one of your own battles and tell the story in your
   own words.
 - **Keep up with your clan.** Follow it to see its week. Lead it? Run it on
   your clan's rules in [Clan](/clan).
@@ -33,7 +33,7 @@ Elixir fixes that.
 
 **Getting started:** sign in, add your player tag, follow a few people and
 choose your digest. The [Quickstart](/docs/quickstart) walks you through it.
-Everything inside needs an account. A highlight or battle link someone
+Everything inside needs an account. A post or battle link someone
 shares opens for anyone.
 
 **What powers it:** the Clash Royale API only knows what's true right now:

@@ -90,7 +90,7 @@ follow, because they are one follow.
 Elixir builds your week ahead and keeps it, so your Timeline opens at once instead of
 reading seven days of everyone you follow while you wait. A kept week is
 rebuilt every quarter hour while you use your Timeline, so the newest battles can take
-up to about twenty minutes to appear. A highlight, a cheer and your **New**
+up to about twenty minutes to appear. A post, a cheer and your **New**
 marker are always read live, and following or unfollowing someone, changing a
 nickname or your time zone builds the week again on your next visit. While
 you are away it is still rebuilt every two hours for a week, so a quiet day
@@ -120,7 +120,7 @@ battle recorded late that belongs further down.
 When it does, a small **N new** button appears over the top of the feed,
 staying in view as you scroll. Tap it to read the newest page again and
 jump back to the top. Nothing is checked while the tab is hidden. A new
-highlight isn't counted by the button; it shows the next time the feed is
+post isn't counted by the button; it shows the next time the feed is
 read.
 
 When your week has nothing in it, your Timeline says why as far as Elixir knows:
@@ -185,8 +185,8 @@ Tap the card to open the session's own page. Back brings you here. It shows:
   **Battle**, which opens its page;
 - facts that marked a battle, like **Three crowns**, **5th win in a row**,
   or a new best in trophies;
-- **Highlight** on each battle when the session is your own verified
-  player's, which opens the battle's page at its highlight.
+- **Post** on each battle when the session is your own verified
+  player's, which opens the battle's page where you post about it.
 - **Cheers**, under the figures and chips, while the session is in your own feed
   ([Cheers](#cheers)), with the same counts as on your Timeline.
 
@@ -234,7 +234,7 @@ Each mode is told the way the game tells it:
   follows. Nobody else is ever named.
 
 A moment links its battle when the record has one, with its result, score
-and opponent; a highlight shows its player's own words. A clan's own line,
+and opponent; a post about a battle shows its player's own words. A clan's own line,
 and a member joining, leaving or changing role, has a gold edge with the
 clan's name above it. Every player's name opens their
 [player page](/docs/player-page).
@@ -440,7 +440,8 @@ A post is words only: up to 500 characters, with no links, photos or
 example to bullying, to asking where people live or how old they are, to
 trading accounts or to "add me on" another app. It tells you why in one
 line and keeps your words so you can change them. You can write 5 posts
-a day, one a minute.
+a day, one a minute. A post about a battle has its own room: 30 a day,
+3 a minute ([Posts about battles](#posts-about-battles)).
 
 Who sees it:
 
@@ -459,7 +460,7 @@ post from you right away, and Elixir takes a look.
 Treat a post as public. Today it shows on the Timeline, in your clan's
 Feed, on your Profile and on your player's page. Elixir's emails,
 notifications, RSS feeds, Discord channels, agents and shared pages may
-carry posts later.
+carry posts later. A post about a battle already goes further (below).
 
 ## Your RSS link
 
@@ -479,20 +480,32 @@ seven days and at most 50 items, newest first.
   cheers.
 - A feed reader may read it up to 60 times an hour.
 
-## Highlights
+## Posts about battles
 
-A highlight is a battle a player chose to put on their timeline, with their
-own words: the timeline's one item about a single battle. Only a person whose
-verified player played the battle can post it, from the battle's page
-([Highlight a battle](/docs/battles#highlight-a-battle)). Everyone who follows
-the player reads it in their timeline, with a link to the battle. Its owner's
-timeline also carries the post's share link once they have shared it; nobody
-else's does. A deleted highlight leaves every timeline.
+<a id="highlights"></a>
 
-Your own agent reads the highlights a player posted, newest first, with the
-MCP tool `players_highlights`:
-each one's sentence, the words written with it and the battle's link. It
-reads them as you, its owner, and an agent never posts or deletes one.
+A post can carry one battle instead of a deck or cards: a battle its
+player played, with their own words or none at all. It is written from the
+battle's own page by a person whose verified player played it ([Post about
+a battle](/docs/battles#post-about-a-battle)), and it is the timeline's one
+item about a single battle. One per player per battle. It shows the result,
+both decks with the score between them and a link to the battle.
+
+- **Who sees it:** the people who follow the player, on their Timeline,
+  and the player's clanmates, in the clan's Feed. Those readers can cheer
+  and answer it. The player's page shows it to every signed-in member.
+- **Where else it goes:** your digest email, notifications, your RSS link,
+  Timeline to Discord, a clan's Discord channel when its author shares it
+  there, and agents all carry it. Its owner's timeline carries its share
+  link once they have shared it; nobody else's does.
+- **Delete** takes it off every timeline.
+
+Your own agent reads the posts about battles a player wrote, newest first,
+with the MCP tool `players_highlights`: each one's sentence, the words
+written with it and the battle's link. The tool and the timeline's item
+kind (`battle_highlight`) keep the name these had when they were called
+highlights. An agent reads them as you, its owner, and never posts or
+deletes one.
 
 ## Attested facts
 
@@ -542,7 +555,7 @@ page. Connections and agent pages show whether sharing is on.
   of the subjects, the timeline is read from the cross-post's own place
   in it and anything new is posted. Nothing polls. An attested fact (a
   leader's word in Clan, a family app's record) wakes it the same
-  way, and so does a highlight when it is posted or its words change.
+  way, and so does a post about a battle when it is posted or its words change.
   A quiet rung crossed by the clock posts with the next thing the
   record learns about that subject. Nothing from before it was turned on
   is posted. The cross-post's place never moves your read pointer, a
@@ -554,11 +567,11 @@ page. Connections and agent pages show whether sharing is on.
   (`<t:{at_unix}:R>`, from a session's last battle). Nothing pings
   anyone.
 - **Edited, never repeated.** When an item grows (a session adds
-  battles, or closes, or a highlight's words change), its message is
+  battles, or closes, or a post's words change), its message is
   edited in place; a session posted while going is edited to its final
   count within about 45 minutes of its last battle. A message deleted
   in the channel stays deleted, and a line already posted stays when
-  its item leaves the timeline (a highlight deleted on Elixir). A
+  its item leaves the timeline (a post deleted on Elixir). A
   post whose answer from Discord is lost is never sent again: a missing
   line beats a duplicate.
 - **The webhook.** Only Discord's own webhook address is accepted;
@@ -600,7 +613,7 @@ channels tells it twice.
   app, and says so in `attested_by`; the game's own record of the same moment
   (`member_left`, `member_role_changed`) stays beside it, raw.
 - **It never assumes what the reader is for.** The same items serve a
-  clan-management routine, a highlights bot, a recruiter watching churn, a
+  clan-management routine, a bot for posts about battles, a recruiter watching churn, a
   war-only agent, and a person reading the website. Each reads the sections
   it cares about.
 - **It never changes for the mail.** The mail chooses what to say from

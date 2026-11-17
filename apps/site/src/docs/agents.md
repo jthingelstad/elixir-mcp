@@ -185,13 +185,13 @@ question is fresher than the first.
 ## Reading the social layer
 
 An agent reads the social layer as its owner and never writes it: no
-follow it was not asked for, no cheer, no highlight. Four read-only tools,
+follow it was not asked for, no cheer, no post. Four read-only tools,
 for a person's own connection and the agents of an approved person:
 
 | Tool | What it reads |
 |---|---|
 | `players_follows` | who a player follows and who follows them, with their badges, as the player page shows it ([Follows, followers and badges](/docs/player-page#follows-followers-and-badges)) |
-| `players_highlights` | the highlights a player posted, newest first ([Highlights](/docs/timeline#highlights)) |
+| `players_highlights` | the posts about battles a player wrote, newest first ([Posts about battles](/docs/timeline#posts-about-battles)) |
 | `elixir_cheers` | the cheers other people gave the items about your owner's primary player, as counts by kind, never who ([Cheers](/docs/timeline#cheers)) |
 | `clans_directory` | the clan directory, each clan's tile and the public part of its policy ([Clan directory](/docs/clan-directory)) |
 

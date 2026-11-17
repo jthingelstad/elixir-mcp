@@ -71,7 +71,7 @@ it asks for your own battle log now:
 - once when the app opens, and again when you come back to it after five
   minutes or more away;
 - when you tap the freshness chip ("Battle log read 15 min ago");
-- when you open your own player page, or a battle you could highlight.
+- when you open your own player page, or a battle you could post about.
 
 While it waits the chip says "Checking for new battles…". When the read
 lands, usually within a minute, your player page and its battles show

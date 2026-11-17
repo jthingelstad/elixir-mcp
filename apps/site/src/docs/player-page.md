@@ -1,7 +1,7 @@
 ---
 slug: player-page
 title: "A player's page"
-description: "The one page every player name opens for a signed-in member: the player's timeline, highlights and moments, and for a player an account verified, that account's follows, followers and badges. Following from the page, following several players at once, and Follow me links."
+description: "The one page every player name opens for a signed-in member: the player's timeline, posts and moments, and for a player an account verified, that account's follows, followers and badges. Following from the page, following several players at once, and Follow me links."
 section: friends
 order: 7
 navTitle: "A player's page"
@@ -25,8 +25,7 @@ their follows and followers. Under it:
 
 | Tab | What it holds |
 |---|---|
-| Timeline | what the record holds for the player in the last 30 days, newest first |
-| Highlights | the battles the player chose to highlight, with their own words |
+| Timeline | the player's **Posts** first: their posts about battles, each with its battle and their own words, and any other posts you may see; then what the record holds for the player in the last 30 days, newest first |
 | Moments | the timeline's moments: a new arena, a promotion in Ranked, a badge, a clan joined or left. A moment Elixir saw happen in a battle, like a promotion won on a 3-0, has **Open the battle** |
 | Follows | who the player's account follows, and who follows it |
 | Record | the recorded profile: the last 30 days in battles, wins, losses, trophies and the deck played most, and the profile's trophies, best and lifetime counts as of its last capture |
@@ -36,10 +35,12 @@ its figures and bar chart, and the deck played most. Tap it for the
 session's own page ([Your timeline](/docs/timeline)), which you can share
 with anyone ([Share a session](/docs/timeline#share-a-session)). Profile's Timeline tab is the same.
 
-An item on the Timeline, Highlights or Moments tab takes a cheer, with its
+An item on the Timeline or Moments tab takes a cheer, with its
 counts, while it is in your own feed: from the last seven days, about a
 player or clan you follow ([Cheers](/docs/timeline#cheers)). Older items,
-and items on the page of a player you do not follow, show no cheers.
+and items on the page of a player you do not follow, show no cheers. A
+post takes a cheer while it is in your Timeline or your clan's Feed
+([Posts about battles](/docs/timeline#posts-about-battles)).
 
 **Profile** (`/home/you`) is your own [account page](/docs/verified-players#account-pages),
 with **Your stats**: [your season, read back](/docs/ladder). Each of your
