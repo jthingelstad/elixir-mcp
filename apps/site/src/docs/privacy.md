@@ -32,10 +32,10 @@ battle's own page, with its link and share picture, so a battle can be
 shared; a session's own page from the last 30 days, with its link and
 share picture, showing its battles, decks and the players' game names and
 never a nickname, a cheer, a comment or anything of the account
-([Share a session](/docs/timeline#share-a-session)); and a highlight its poster has shared, at its own
+([Share a session](/docs/timeline#share-a-session)); and a post about a battle its poster has shared, at its own
 link, with the player's game name, their words and that battle, never a
 nickname or anything of the account
-([Highlight a battle](/docs/battles#highlight-a-battle)). [The status page](/data) and its JSON count what the recorder holds and name no player or clan,
+([Post about a battle](/docs/battles#post-about-a-battle)). [The status page](/data) and its JSON count what the recorder holds and name no player or clan,
 except that each collector is credited to its operator's primary player.
 The game's card list, this site and its docs, and signing in open too.
 Any other page of the record asks you to sign in, or to create an account.
@@ -189,7 +189,7 @@ Your machine's own name and address are not published.
 is for. Elixir keeps what it records for one year, then deletes it. To remove your account and your address, email
 [admin@poapkings.com](mailto:admin@poapkings.com) or use the feedback
 form. Removing an account deletes the account, not the record: your
-address, claims, nicknames, highlights, agents, connections, mail and usage go
+address, claims, nicknames, posts, agents, connections, mail and usage go
 ([your account](/docs/your-account#removing-the-account) lists them).
 The players' game history is public game data, as it is in the game
 itself, and stays for a year from when it happened, like everything Elixir records.
